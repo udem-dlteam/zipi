@@ -1,0 +1,12 @@
+#!/bin/sh
+
+CPYTHON3DIR=cpython
+PYPYDIR=pypy
+
+if [ ! -e "${CPYTHON3DIR}" ] ; then
+  git clone git@github.com:python/cpython.git "${CPYTHON3DIR}"
+fi
+
+if [ ! -e "${PYPYDIR}" ] ; then
+  hg clone http://bitbucket.org/pypy/pypy "${PYPYDIR}"
+fi
