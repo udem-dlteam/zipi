@@ -4,6 +4,8 @@ import argparse
 import ast as AST
 import subprocess
 
+generate_location_information = True
+
 def pretty_print(source):
     p = subprocess.run(['gsi', '-:-8', '-e', '(pretty-print (read))'],
                        stdout=subprocess.PIPE,
@@ -19,16 +21,14 @@ def read_file(path):
         content = f.read()
     return content
 
-def parse(source):
-    return AST.parse(source)
-
-def dump(ast):
-    assert isinstance(ast, AST.Module)
-#    print(dict(type(ast)))
-#    print(dir(ast._attributes))
-#    print(dir(ast._fields))
-#    print(AST.dump(ast,True,False))
-    print(pretty_print(cvt_mod(ast)))
+def node_kind(ast, kind):
+    if generate_location_information:
+        return ("(" + kind +
+                " " + str(getattr(ast, "lineno", -1)) +
+                " " + str(getattr(ast, "col_offset", -1)) +
+                ")")
+    else:
+        return kind
 
 def cvt_seq(cvt, seq):
     return "(" + (" ".join(map(cvt, seq))) + ")"
@@ -62,20 +62,47 @@ def cvt_expr_context(ctx):
     else:
         assert False, "cvt_expr_context expected an expr_context AST"
 
+def cvt_int(i):
+    return str(i)
+
+def cvt_int_opt(i_opt):
+    if i_opt == None:
+        return "#f"
+    else:
+        return cvt_int(i_opt)
+
+def cvt_string(s):
+    return "\"" + str(s) + "\""
+
 def cvt_string_opt(string_opt):
     if string_opt == None:
         return "#f"
     else:
         return cvt_string(string_opt)
 
-def cvt_string(s):
-    return "\"" + str(s) + "\""
-
 def cvt_identifier(identifier):
     return str(identifier)
 
-#def cvt_type_ignore_seq(type_ignore_seq):
-#    return "type_ignore_seq"
+def cvt_identifier_opt(identifier_opt):
+    if identifier_opt == None:
+        return "#f"
+    else:
+        return cvt_identifier(identifier_opt)
+
+def cvt_arg(arg):
+    return ("(" + cvt_identifier(arg.arg) +
+            " " + cvt_expr_opt(arg.annotation) +
+#            " " + cvt_string_opt(arg.type_comment) +
+            ")")
+
+def cvt_arg_opt(arg_opt):
+    if arg_opt == None:
+        return "#f"
+    else:
+        return cvt_arg(arg_opt)
+
+def cvt_arg_seq(arg_seq):
+    return cvt_seq(cvt_arg, arg_seq)
 
 def cvt_arguments(arguments):
     return ("(" + cvt_arg_seq(arguments.args) +
@@ -87,33 +114,78 @@ def cvt_arguments(arguments):
             " " + cvt_expr_seq(arguments.defaults) +
             ")")
 
-def cvt_arg(arg):
-    return ("(" + cvt_identifier(arg.arg) +
-            " " + cvt_expr_opt(arg.annotation) +
-#            " " + cvt_string_opt(arg.type_comment) +
-            ")")
-
-def cvt_arg_seq(arg_seq):
-    return cvt_seq(cvt_arg, arg_seq)
-
-def cvt_arg_opt(arg_opt):
-    if arg_opt == None:
-        return "#f"
-    else:
-        return cvt_arg(arg_opt)
-
 def cvt_keyword(keyword):
-    print(keyword)
-    return "keyword"
-#    keyword = (identifier? arg, expr value)
+    return ("(" + cvt_identifier_opt(keyword.arg) +
+            " " + cvt_expr(keyword.value) +
+            ")")
 
 def cvt_keyword_seq(keyword_seq):
     return cvt_seq(cvt_keyword, keyword_seq)
 
+def cvt_alias(alias):
+    return ("(" + cvt_identifier(alias.name) +
+            " " + cvt_identifier_opt(alias.asname) +
+            ")")
+
+def cvt_alias_seq(alias_seq):
+    return cvt_seq(cvt_alias, alias_seq)
+
+def cvt_withitem(withitem):
+    return ("(" + cvt_expr(withitem.context_expr) +
+            " " + cvt_expr_opt(withitem.optional_vars) +
+            ")")
+
+def cvt_withitem_seq(withitem_seq):
+    return cvt_seq(cvt_withitem, withitem_seq)
+
+def cvt_slice(slice):
+    if isinstance(slice, AST.Slice):
+        return ("(" + node_kind(slice, "Slice") +
+                " " + cvt_expr_opt(slice.lower) +
+                " " + cvt_expr_opt(slice.upper) +
+                " " + cvt_expr_opt(slice.step) +
+                ")")
+    elif isinstance(slice, AST.ExtSlice):
+        return ("(" + node_kind(slice, "ExtSlice") +
+                " " + cvt_slice_seq(slice.dims) +
+                ")")
+    elif isinstance(slice, AST.Index):
+        return ("(" + node_kind(slice, "Index") +
+                " " + cvt_expr(slice.value) +
+                ")")
+    else:
+        assert False, "cvt_slice expected a slice AST"
+
+def cvt_comprehension(comprehension):
+    return ("(" + cvt_expr(comprehension[0]) +
+            " " + cvt_expr(comprehension[1]) +
+            " " + cvt_expr_seq(comprehension[2]) +
+            " " + cvt_int(comprehension[3]) +
+            ")")
+
+def cvt_comprehension_seq(comprehension_seq):
+    return cvt_seq(cvt_comprehension, comprehension_seq)
+
+def cvt_excepthandler(excepthandler):
+    if isinstance(excepthandler, AST.ExceptHandler):
+        return ("(" + node_kind(excepthandler, "Slice") +
+                " " + cvt_expr_opt(excepthandler.type) +
+                " " + cvt_identifier_opt(excepthandler.name) +
+                " " + cvt_stmt_seq(excepthandler.body) +
+                ")")
+    else:
+        assert False, "cvt_excepthandler expected an excepthandler AST"
+
+def cvt_excepthandler_seq(excepthandler_seq):
+    return cvt_seq(cvt_excepthandler, excepthandler_seq)
+
+#def cvt_type_ignore_seq(type_ignore_seq):
+#    return "type_ignore_seq"
+
 def cvt_boolop(op):
-    if isinstance(ctx, AST.And):
+    if isinstance(op, AST.And):
         return "And"
-    elif isinstance(ctx, AST.Or):
+    elif isinstance(op, AST.Or):
         return "Or"
     else:
         assert False, "cvt_boolop expected a boolop AST"
@@ -190,30 +262,30 @@ def cvt_cmpop_seq(ops):
 def cvt_mod(ast):
     if isinstance(ast, AST.Module):
         # Module(stmt* body, type_ignore *type_ignores)
-        return ("(Module" +
+        return ("(" + node_kind(ast, "Module") +
                 " " + cvt_stmt_seq(ast.body) +
 #                " " + cvt_type_ignore_seq(ast.type_ignores) +
                 ")")
     elif isinstance(ast, AST.Interactive):
         # Interactive(stmt* body)
-        return ("(Interactive" +
+        return ("(" + node_kind(ast, "Interactive") +
                 " " + cvt_stmt_seq(ast.body) +
                 ")")
     elif isinstance(ast, AST.Expression):
         # Expression(expr body)
-        return ("(Expression" +
+        return ("(" + node_kind(ast, "Expression") +
                 " " + cvt_expr(ast.body) +
                 ")")
     elif isinstance(ast, AST.Function):
         # FunctionType(expr* argtypes, expr returns)
-        return ("(Function" +
+        return ("(" + node_kind(ast, "Function") +
                 " " + cvt_expr_seq(ast.argtypes) +
                 " " + cvt_expr(ast.returns) +
                 ")")
 #    elif isinstance(ast, AST.Suite):
 #        # not really an actual node but useful in Jython's typesystem.
 #        # Suite(stmt* body)
-#        return ("(Suite" +
+#        return ("(" + node_kind(ast, "Suite") +
 #                " " + cvt_stmt_seq(ast.body) +
 #                ")")
     else:
@@ -224,7 +296,7 @@ def cvt_stmt(ast):
         # FunctionDef(identifier name, arguments args,
         #             stmt* body, expr* decorator_list, expr? returns,
         #             string? type_comment)
-        return ("(FunctionDef" +
+        return ("(" + node_kind(ast, "FunctionDef") +
                 " " + cvt_identifier(ast.name) +
                 " " + cvt_arguments(ast.args) +
                 " " + cvt_stmt_seq(ast.body) +
@@ -237,7 +309,7 @@ def cvt_stmt(ast):
         #                  stmt* body, expr* decorator_list, expr? returns,
         #                  string? type_comment)
         TODO
-        return ("(AsyncFunctionDef" +
+        return ("(" + node_kind(ast, "AsyncFunctionDef") +
                 " " + cvt_stmt_seq(ast.body) +
                 ")")
     elif isinstance(ast, AST.ClassDef):
@@ -246,30 +318,33 @@ def cvt_stmt(ast):
         #          keyword* keywords,
         #          stmt* body,
         #          expr* decorator_list)
-        TODO
-        return ("(ClassDef" +
+        return ("(" + node_kind(ast, "ClassDef") +
+                " " + cvt_identifier(ast.name) +
+                " " + cvt_expr_seq(ast.bases) +
+                " " + cvt_keyword_seq(ast.keywords) +
                 " " + cvt_stmt_seq(ast.body) +
+                " " + cvt_expr_seq(ast.decorator_list) +
                 ")")
     elif isinstance(ast, AST.Return):
         # Return(expr? value)
-        return ("(Return" +
+        return ("(" + node_kind(ast, "Return") +
                 " " + cvt_expr_opt(ast.value) +
                 ")")
     elif isinstance(ast, AST.Delete):
         # Delete(expr* targets)
-        return ("(Delete" +
+        return ("(" + node_kind(ast, "Delete") +
                 " " + cvt_expr_seq(ast.targets) +
                 ")")
     elif isinstance(ast, AST.Assign):
         # Assign(expr* targets, expr value, string? type_comment)
-        return ("(Assign" +
+        return ("(" + node_kind(ast, "Assign") +
                 " " + cvt_expr_seq(ast.targets) +
                 " " + cvt_expr(ast.value) +
-                " " + cvt_string_opt(ast.type_comment) +
+#                " " + cvt_string_opt(ast.type_comment) +
                 ")")
     elif isinstance(ast, AST.AugAssign):
         # AugAssign(expr target, operator op, expr value)
-        return ("(AugAssign" +
+        return ("(" + node_kind(ast, "AugAssign") +
                 " " + cvt_expr(ast.target) +
                 " " + cvt_operator(ast.op) +
                 " " + cvt_expr(ast.value) +
@@ -277,7 +352,7 @@ def cvt_stmt(ast):
     elif isinstance(ast, AST.AnnAssign):
         # 'simple' indicates that we annotate simple name without parens
         # AnnAssign(expr target, expr annotation, expr? value, int simple)
-        return ("(AnnAssign" +
+        return ("(" + node_kind(ast, "AnnAssign") +
                 " " + cvt_expr(ast.target) +
                 " " + cvt_expr(ast.annotation) +
                 " " + cvt_expr_opt(ast.value) +
@@ -286,58 +361,58 @@ def cvt_stmt(ast):
     elif isinstance(ast, AST.For):
         # use 'orelse' because else is a keyword in target languages
         # For(expr target, expr iter, stmt* body, stmt* orelse, string? type_comment)
-        return ("(For" +
+        return ("(" + node_kind(ast, "For") +
                 " " + cvt_expr(ast.target) +
                 " " + cvt_expr(ast.iter) +
                 " " + cvt_stmt_seq(ast.body) +
                 " " + cvt_stmt_seq(ast.orelse) +
-                " " + cvt_string_opt(ast.type_comment) +
+#                " " + cvt_string_opt(ast.type_comment) +
                 ")")
     elif isinstance(ast, AST.AsyncFor):
         # AsyncFor(expr target, expr iter, stmt* body, stmt* orelse, string? type_comment)
-        return ("(AsyncFor" +
+        return ("(" + node_kind(ast, "AsyncFor") +
                 " " + cvt_expr(ast.target) +
                 " " + cvt_expr(ast.iter) +
                 " " + cvt_stmt_seq(ast.body) +
                 " " + cvt_stmt_seq(ast.orelse) +
-                " " + cvt_string_opt(ast.type_comment) +
+#                " " + cvt_string_opt(ast.type_comment) +
                 ")")
     elif isinstance(ast, AST.While):
         # While(expr test, stmt* body, stmt* orelse)
-        return ("(While" +
+        return ("(" + node_kind(ast, "While") +
                 " " + cvt_expr(ast.test) +
                 " " + cvt_stmt_seq(ast.body) +
                 " " + cvt_stmt_seq(ast.orelse) +
                 ")")
     elif isinstance(ast, AST.If):
         # If(expr test, stmt* body, stmt* orelse)
-        return ("(If" +
+        return ("(" + node_kind(ast, "If") +
                 " " + cvt_expr(ast.test) +
                 " " + cvt_stmt_seq(ast.body) +
                 " " + cvt_stmt_seq(ast.orelse) +
                 ")")
     elif isinstance(ast, AST.With):
         # With(withitem* items, stmt* body, string? type_comment)
-        return ("(With" +
+        return ("(" + node_kind(ast, "With") +
                 " " + cvt_withitem_seq(ast.items) +
                 " " + cvt_stmt_seq(ast.body) +
-                " " + cvt_string_opt(ast.type_comment) +
+#                " " + cvt_string_opt(ast.type_comment) +
                 ")")
     elif isinstance(ast, AST.AsyncWith):
         # AsyncWith(withitem* items, stmt* body, string? type_comment)
-        return ("(AsyncWith" +
+        return ("(" + node_kind(ast, "AsyncWith") +
                 " " + cvt_stmt_seq(ast.body) +
-                " " + cvt_string_opt(ast.type_comment) +
+#                " " + cvt_string_opt(ast.type_comment) +
                 ")")
     elif isinstance(ast, AST.Raise):
         # Raise(expr? exc, expr? cause)
-        return ("(Raise" +
+        return ("(" + node_kind(ast, "Raise") +
                 " " + cvt_expr_opt(ast.exc) +
                 " " + cvt_expr_opt(ast.cause) +
                 ")")
     elif isinstance(ast, AST.Try):
         # Try(stmt* body, excepthandler* handlers, stmt* orelse, stmt* finalbody)
-        return ("(Try" +
+        return ("(" + node_kind(ast, "Try") +
                 " " + cvt_stmt_seq(ast.body) +
                 " " + cvt_excepthandler_seq(ast.handlers) +
                 " " + cvt_stmt_seq(ast.orelse) +
@@ -345,48 +420,48 @@ def cvt_stmt(ast):
                 ")")
     elif isinstance(ast, AST.Assert):
         # Assert(expr test, expr? msg)
-        return ("(Assert" +
+        return ("(" + node_kind(ast, "Assert") +
                 " " + cvt_expr(ast.test) +
                 " " + cvt_expr_opt(ast.msg) +
                 ")")
     elif isinstance(ast, AST.Import):
         # Import(alias* names)
-        return ("(Import" +
+        return ("(" + node_kind(ast, "Import") +
                 " " + cvt_alias_seq(ast.names) +
                 ")")
     elif isinstance(ast, AST.ImportFrom):
         # ImportFrom(identifier? module, alias* names, int? level)
-        return ("(ImportFrom" +
+        return ("(" + node_kind(ast, "ImportFrom") +
                 " " + cvt_identifier_opt(ast.module) +
                 " " + cvt_alias_seq(ast.names) +
                 " " + cvt_int_opt(ast.level) +
                 ")")
     elif isinstance(ast, AST.Global):
         # Global(identifier* names)
-        return ("(Global" +
+        return ("(" + node_kind(ast, "Global") +
                 " " + cvt_identifier_seq(ast.names) +
                 ")")
     elif isinstance(ast, AST.Nonlocal):
         # Nonlocal(identifier* names)
-        return ("(Nonlocal" +
+        return ("(" + node_kind(ast, "Nonlocal") +
                 " " + cvt_identifier_seq(ast.names) +
                 ")")
     elif isinstance(ast, AST.Expr):
         # Expr(expr value)
-        return ("(Expr" +
+        return ("(" + node_kind(ast, "Expr") +
                 " " + cvt_expr(ast.value) +
                 ")")
     elif isinstance(ast, AST.Pass):
         # Pass
-        return ("(Pass" +
+        return ("(" + node_kind(ast, "Pass") +
                 ")")
     elif isinstance(ast, AST.Break):
         # Break
-        return ("(Break" +
+        return ("(" + node_kind(ast, "Break") +
                 ")")
     elif isinstance(ast, AST.Continue):
         # Continue
-        return ("(Continue" +
+        return ("(" + node_kind(ast, "Continue") +
                 ")")
     else:
         assert False, "cvt_stmt expected a statement AST"
@@ -395,177 +470,177 @@ def cvt_expr(ast):
     if isinstance(ast, AST.BoolOp):
         # BoolOp() can use left & right?
         # BoolOp(boolop op, expr* values)
-        return ("(BoolOp" +
+        return ("(" + node_kind(ast, "BoolOp") +
                 " " + cvt_boolop(ast.op) +
                 " " + cvt_expr_seq(ast.values) +
                 ")")
 #    elif isinstance(ast, AST.NamedExpr):
 #        # NamedExpr(expr target, expr value)
-#        return ("(NamedExpr " +
+#        return ("(" + node_kind(ast, "NamedExpr ") +
 #                " " + cvt_expr(ast.target) +
 #                " " + cvt_expr(ast.value) +
 #                ")")
     elif isinstance(ast, AST.BinOp):
         # BinOp(expr left, operator op, expr right)
-        return ("(BinOp" +
+        return ("(" + node_kind(ast, "BinOp") +
                 " " + cvt_expr(ast.left) +
                 " " + cvt_operator(ast.op) +
                 " " + cvt_expr(ast.right) +
                 ")")
     elif isinstance(ast, AST.UnaryOp):
         # UnaryOp(unaryop op, expr operand)
-        return ("(UnaryOp" +
+        return ("(" + node_kind(ast, "UnaryOp") +
                 " " + cvt_unaryop(ast.op) +
                 " " + cvt_expr(ast.operand) +
                 ")")
     elif isinstance(ast, AST.Lambda):
         # Lambda(arguments args, expr body)
-        return ("(Lambda" +
+        return ("(" + node_kind(ast, "Lambda") +
                 " " + cvt_arguments(ast.args) +
                 " " + cvt_expr(ast.body) +
                 ")")
     elif isinstance(ast, AST.IfExp):
         # IfExp(expr test, expr body, expr orelse)
-        return ("(IfExp" +
+        return ("(" + node_kind(ast, "IfExp") +
                 " " + cvt_expr(ast.test) +
                 " " + cvt_expr(ast.body) +
                 " " + cvt_expr(ast.orelse) +
                 ")")
     elif isinstance(ast, AST.Dict):
         # Dict(expr* keys, expr* values)
-        return ("(Dict" +
+        return ("(" + node_kind(ast, "Dict") +
                 " " + cvt_expr_seq(ast.keys) +
                 " " + cvt_expr_seq(ast.values) +
                 ")")
     elif isinstance(ast, AST.Set):
         # Set(expr* elts)
-        return ("(Set" +
+        return ("(" + node_kind(ast, "Set") +
                 " " + cvt_expr_seq(ast.elts) +
                 ")")
     elif isinstance(ast, AST.ListComp):
         # ListComp(expr elt, comprehension* generators)
-        return ("(ListComp" +
+        return ("(" + node_kind(ast, "ListComp") +
                 " " + cvt_expr(ast.elt) +
                 " " + cvt_comprehension_seq(ast.generators) +
                 ")")
     elif isinstance(ast, AST.SetComp):
         # SetComp(expr elt, comprehension* generators)
-        return ("(SetComp" +
+        return ("(" + node_kind(ast, "SetComp") +
                 " " + cvt_expr(ast.elt) +
                 " " + cvt_comprehension_seq(ast.generators) +
                 ")")
     elif isinstance(ast, AST.DictComp):
         # DictComp(expr key, expr value, comprehension* generators)
-        return ("(DictComp" +
+        return ("(" + node_kind(ast, "DictComp") +
                 " " + cvt_expr(ast.key) +
                 " " + cvt_expr(ast.value) +
                 " " + cvt_comprehension_seq(ast.generators) +
                 ")")
     elif isinstance(ast, AST.GeneratorExp):
         # GeneratorExp(expr elt, comprehension* generators)
-        return ("(GeneratorExp" +
+        return ("(" + node_kind(ast, "GeneratorExp") +
                 " " + cvt_expr(ast.elt) +
                 " " + cvt_comprehension_seq(ast.generators) +
                 ")")
     elif isinstance(ast, AST.Await):
         # the grammar constrains where yield expressions can occur
         # Await(expr value)
-        return ("(Await" +
+        return ("(" + node_kind(ast, "Await") +
                 " " + cvt_expr(ast.value) +
                 ")")
     elif isinstance(ast, AST.Yield):
         # Yield(expr? value)
-        return ("(Yield" +
+        return ("(" + node_kind(ast, "Yield") +
                 " " + cvt_expr_opt(ast.value) +
                 ")")
     elif isinstance(ast, AST.YieldFrom):
         # YieldFrom(expr value)
-        return ("(YieldFrom" +
+        return ("(" + node_kind(ast, "YieldFrom") +
                 " " + cvt_expr(ast.value) +
                 ")")
     elif isinstance(ast, AST.Compare):
         # need sequences for compare to distinguish between
         # x < 4 < 3 and (x < 4) < 3
         # Compare(expr left, cmpop* ops, expr* comparators)
-        return ("(Compare" +
+        return ("(" + node_kind(ast, "Compare") +
                 " " + cvt_expr(ast.left) +
                 " " + cvt_cmpop_seq(ast.ops) +
                 " " + cvt_expr_seq(ast.comparators) +
                 ")")
     elif isinstance(ast, AST.Call):
         # Call(expr func, expr* args, keyword* keywords)
-        return ("(Call" +
+        return ("(" + node_kind(ast, "Call") +
                 " " + cvt_expr(ast.func) +
                 " " + cvt_expr_seq(ast.args) +
                 " " + cvt_keyword_seq(ast.keywords) +
                 ")")
     elif isinstance(ast, AST.FormattedValue):
         # FormattedValue(expr value, int? conversion, expr? format_spec)
-        return ("(FormattedValue" +
+        return ("(" + node_kind(ast, "FormattedValue") +
                 " " + cvt_expr(ast.value) +
                 " " + cvt_int_opt(ast.conversion) +
                 " " + cvt_expr_opt(ast.format_spec) +
                 ")")
     elif isinstance(ast, AST.JoinedStr):
         # JoinedStr(expr* values)
-        return ("(JoinedStr" +
+        return ("(" + node_kind(ast, "JoinedStr") +
                 " " + cvt_expr_seq(ast.values) +
                 ")")
     elif isinstance(ast, AST.Constant):
         # Constant(constant value, string? kind)
-        return ("(Constant" +
+        return ("(" + node_kind(ast, "Constant") +
                 " " + cvt_constant(ast.value) +
                 " " + cvt_string_opt(ast.kind) +
                 ")")
     elif isinstance(ast, AST.Attribute):
         # the following expression can appear in assignment context
         # Attribute(expr value, identifier attr, expr_context ctx)
-        return ("(Attribute" +
+        return ("(" + node_kind(ast, "Attribute") +
                 " " + cvt_expr(ast.value) +
                 " " + cvt_identifier(ast.attr) +
                 " " + cvt_expr_context(ast.ctx) +
                 ")")
     elif isinstance(ast, AST.Subscript):
         # Subscript(expr value, slice slice, expr_context ctx)
-        return ("(Subscript" +
+        return ("(" + node_kind(ast, "Subscript") +
                 " " + cvt_expr(ast.value) +
                 " " + cvt_slice(ast.slice) +
                 " " + cvt_expr_context(ast.ctx) +
                 ")")
     elif isinstance(ast, AST.Starred):
         # Starred(expr value, expr_context ctx)
-        return ("(Starred" +
+        return ("(" + node_kind(ast, "Starred") +
                 " " + cvt_expr(ast.value) +
                 " " + cvt_expr_context(ast.ctx) +
                 ")")
     elif isinstance(ast, AST.Name):
         # Name(identifier id, expr_context ctx)
-        return ("(Name" +
+        return ("(" + node_kind(ast, "Name") +
                 " " + cvt_identifier(ast.id) +
                 " " + cvt_expr_context(ast.ctx) +
                 ")")
     elif isinstance(ast, AST.List):
         # List(expr* elts, expr_context ctx)
-        return ("(List" +
+        return ("(" + node_kind(ast, "List") +
                 " " + cvt_expr_seq(ast.elts) +
                 " " + cvt_expr_context(ast.ctx) +
                 ")")
     elif isinstance(ast, AST.Tuple):
         # Tuple(expr* elts, expr_context ctx)
-        return ("(Tuple" +
+        return ("(" + node_kind(ast, "Tuple") +
                 " " + cvt_expr_seq(ast.elts) +
                 " " + cvt_expr_context(ast.ctx) +
                 ")")
     elif isinstance(ast, AST.Num):
-        return ("(Num" +
+        return ("(" + node_kind(ast, "Num") +
                 " " + cvt_string(ast.n) +
                 ")")
     elif isinstance(ast, AST.Str):
-        return ("(Str" +
+        return ("(" + node_kind(ast, "Str") +
                 " " + cvt_string(ast.s) +
                 ")")
     elif isinstance(ast, AST.NameConstant):
-        return ("(NameConstant" +
+        return ("(" + node_kind(ast, "NameConstant") +
                 " " + cvt_string(ast.value) +
                 ")")
     else:
@@ -573,51 +648,14 @@ def cvt_expr(ast):
         print(dir(ast))
         assert False, "cvt_expr expected an expression AST"
 
+def parse(source):
+    return AST.parse(source)
 
-
-"""
-
-    expr_context = Load | Store | Del | AugLoad | AugStore | Param
-
-    slice = Slice(expr? lower, expr? upper, expr? step)
-        # ExtSlice(slice* dims)
-        # Index(expr value)
-
-    boolop = And | Or
-
-    operator = Add | Sub | Mult | MatMult | Div | Mod | Pow | LShift
-                 | RShift | BitOr | BitXor | BitAnd | FloorDiv
-
-    unaryop = Invert | Not | UAdd | USub
-
-    cmpop = Eq | NotEq | Lt | LtE | Gt | GtE | Is | IsNot | In | NotIn
-
-    comprehension = (expr target, expr iter, expr* ifs, int is_async)
-
-    excepthandler = ExceptHandler(expr? type, identifier? name, stmt* body)
-                    attributes (int lineno, int col_offset, int? end_lineno, int? end_col_offset)
-
-    arguments = (arg* args, arg* posonlyargs, arg? vararg, arg* kwonlyargs,
-                 expr* kw_defaults, arg? kwarg, expr* defaults)
-
-    arg = (identifier arg, expr? annotation, string? type_comment)
-           attributes (int lineno, int col_offset, int? end_lineno, int? end_col_offset)
-
-    -- keyword arguments supplied to call (NULL identifier for **kwargs)
-    keyword = (identifier? arg, expr value)
-
-    -- import name with optional 'as' alias.
-    alias = (identifier name, identifier? asname)
-
-    withitem = (expr context_expr, expr? optional_vars)
-
-    type_ignore = TypeIgnore(int lineno, string tag)
-"""
-
+def dump(ast):
+    print(pretty_print(cvt_mod(ast)))
 
 def scmast(path):
     source = read_file(path)
-#    print(source)
     dump(parse(source))
 
 def main():
