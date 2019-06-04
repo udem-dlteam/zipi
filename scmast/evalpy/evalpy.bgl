@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 12:48:54 2019                          */
-;*    Last change :  Tue Jun  4 14:31:25 2019 (serrano)                */
+;*    Last change :  Tue Jun  4 14:49:00 2019 (serrano)                */
 ;*    Copyright   :  2019 M. Feeley & M. Serrano                       */
 ;*    -------------------------------------------------------------    */
 ;*    python ast interpreter (bigloo prelude)                          */
@@ -13,5 +13,9 @@
 ;*    The module                                                       */
 ;*---------------------------------------------------------------------*/
 (module evalpy
+   
+   (import evalpy_hclass
+	   evalpy_object)
+
    (export (evalpy expr)))
 

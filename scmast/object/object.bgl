@@ -1,0 +1,67 @@
+;*=====================================================================*/
+;*    serrano/nosync/py19/scmast/object/object.bgl                     */
+;*    -------------------------------------------------------------    */
+;*    Author      :  Marc Feeley & Manuel Serrano                      */
+;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
+;*    Last change :  Tue Jun  4 15:30:08 2019 (serrano)                */
+;*    Copyright   :  2019 M. Feeley & M. Serrano                       */
+;*    -------------------------------------------------------------    */
+;*    Object representation                                            */
+;*=====================================================================*/
+
+;*---------------------------------------------------------------------*/
+;*    The module                                                       */
+;*---------------------------------------------------------------------*/
+(module evalpy_object
+
+   (import evalpy_hclass)
+   
+   (export (class PyObject
+	      (hclass (default #unspecified))
+	      (elements (default (make-vector 4))))
+
+	   (inline make-pyobject hclass)
+	   (inline pyobject-hclass ::PyObject)
+	   (inline pyobject-hclass-set! ::PyObject ::HClass)
+	   (inline pyobject-elements-ref ::PyObject ::long)
+	   (pyobject-elements-set! ::PyObject ::long ::obj)
+
+	   (pyobject-find-prop ::PyObject ::obj)))
+
+;*---------------------------------------------------------------------*/
+;*    make-pyobject ...                                                */
+;*---------------------------------------------------------------------*/
+(define-inline (make-pyobject hclass)
+   (instantiate::PyObject
+      (hclass hclass)))
+
+;*---------------------------------------------------------------------*/
+;*    pyobject-hclass ...                                              */
+;*---------------------------------------------------------------------*/
+(define-inline (pyobject-hclass obj)
+   (with-access::PyObject obj (hclass)
+      hclass))
+
+;*---------------------------------------------------------------------*/
+;*    pyobject-hclass-set! ...                                         */
+;*---------------------------------------------------------------------*/
+(define-inline (pyobject-hclass-set! obj hc)
+   (with-access::PyObject obj (hclass)
+      (set! hclass hc)))
+
+;*---------------------------------------------------------------------*/
+;*    pyobject-elements-ref ...                                        */
+;*---------------------------------------------------------------------*/
+(define-inline (pyobject-elements-ref obj offset)
+   (with-access::PyObject obj (elements)
+      (vector-ref elements offset)))
+
+;*---------------------------------------------------------------------*/
+;*    pyobject-elements-set! ...                                       */
+;*---------------------------------------------------------------------*/
+(define (pyobject-elements-set! obj offset val)
+   (with-access::PyObject obj (elements)
+      (let ((len (vector-length elements)))
+	 (when (>= offset len)
+	    (set! elements (copy-vector elements (*fx 2 len))))
+	 (vector-set! elements offset val))))
