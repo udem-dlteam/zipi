@@ -3,7 +3,7 @@ BFLAGS = -g # -Obench
 AFILE = bglafile
 GAMBIT = gsc
 
-SOURCES = evalpy/evalpy
+SOURCES = evalpy/evalpy hclass/hclass object/object
 
 .SUFFIXES:
 .SUFFIXES: .scm .bgl .o
@@ -11,7 +11,7 @@ SOURCES = evalpy/evalpy
 astpy.bigloo: .afile
 	mkdir -p o/bigloo
 	$(MAKE) astpy COMPILER=$(BIGLOO) LINKER="$(BIGLOO) $(BFLAGS)" \
-           OBJECTS=$(SOURCES:%=o/bigloo/%.o)
+           OBJECTS="$(SOURCES:%=o/bigloo/%.o)"
 
 astpy: $(OBJECTS)
 	$(LINKER) $(LFLAGS) astpy.bgl $(OBJECTS) -o astpy
@@ -25,7 +25,8 @@ astpy: $(OBJECTS)
 clean:
 	rm -f .afile
 	rm -rf o
-	rm -f aspy
+	rm -f astpy
+	rm -f astpy.o
 
 o/bigloo/%.o: %.bgl %.scm
 	mkdir -p $(@D)

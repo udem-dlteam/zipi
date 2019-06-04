@@ -4,7 +4,7 @@ import argparse
 import ast as AST
 import subprocess
 
-generate_location_information = True
+generate_location_information = False
 
 def pretty_print(source):
     p = subprocess.run(['gsi', '-:-8', '-e', '(pretty-print (read))'],

@@ -89,7 +89,10 @@
 (define uninit (cons 1 2))
 
 (define (evalpy exp)
-   (meaning (compile exp '() #t (make-cell #f)) '() '() no-return))
+   (let* ((hclass0 (make-hclass '#(print)))
+	  (global (make-pyobject hclass0)))
+      (pyobject-elements-set! global 0 print)
+      (meaning (compile exp '() #t (make-cell #f)) '() global no-return)))
 
 (define (meaning bcode env global return)
    (bytecode-case bcode
@@ -131,9 +134,16 @@
 
       ;; properties
       ((GGET)
-       (get global bcode))
+       (let ((cache (bytecode-ref bcode 2)))
+	  (if (eq? (pyobject-hclass global) (pcache-hclass cache))
+	      (pyobject-elements-ref global (pcache-index cache))
+	      (gget global bcode))))
       ((GPUT)
-       (put global bcode (meaning (bytecode-ref bcode 2) env global return)))
+       (let ((cache (bytecode-ref bcode 3))
+	     (val (meaning (bytecode-ref bcode 2) env global return)))
+	  (if (eq? (pyobject-hclass global) (pcache-hclass cache))
+	      (pyobject-elements-set! global (pcache-index cache) val)
+	      (gput global bcode val))))
 
       ;; lambda
       ((LAM0)
@@ -221,8 +231,7 @@
 
       ;; module
       ((MOD)
-       (let ((global (list (cons 'print print))))
-	  (meaning (bytecode-ref bcode 1) env global return)))
+       (meaning (bytecode-ref bcode 1) env global return))
       (else
        (error "meaning" "Illegal byte code" bcode))))
 
@@ -233,19 +242,30 @@
 	  (bytecode-ref bcode 2))
        val))
 
-(define (get obj bcode)
-   (let* ((n (bytecode-ref bcode 1))
-	  (p (assq n obj)))
-      (if (pair? p)
-	  (cdr p)
-	  (error "NameError" "global name is not defined" n))))
+(define (gget obj bcode)
+   (let* ((name (bytecode-ref bcode 1))
+	  (cache (bytecode-ref bcode 2))
+	  (index (pyobject-find-prop obj name)))
+      (if (>= index 0)
+	  (begin
+	     (pcache-set! cache (pyobject-hclass obj) index)
+	     (pyobject-elements-ref obj index))
+	  (error "NameError" "global name is not defined" name))))
 
-(define (put obj bcode val)
-   (let* ((n (bytecode-ref bcode 1))
-	  (p (assq n obj)))
-      (if (pair? p)
-	  (set-cdr! p val)
-	  (set-cdr! (last-pair obj) (cons (cons n val) '())))))
+(define (gput obj bcode val)
+   (let* ((name (bytecode-ref bcode 1))
+	  (cache (bytecode-ref bcode 3))
+	  (index (pyobject-find-prop obj name))
+	  (hclass (pyobject-hclass obj)))
+      (if (>= index 0)
+	  (begin
+	     (pcache-set! cache hclass index)
+	     (pyobject-elements-set! obj index val))
+	  (let* ((nhclass (hclass-next hclass name '+))
+		 (index (hclass-last-index nhclass)))
+	     (pyobject-hclass-set! obj nhclass)
+	     (pcache-set! cache nhclass index)
+	     (pyobject-elements-set! obj index val)))))
 
 (define (compile exp env tail needret)
    (match-case exp
@@ -335,7 +355,7 @@
    (let loop ((env env)
 	      (offset 0))
       (cond
-	 ((null? env) (bytecode (code 'GGET) id))
+	 ((null? env) (bytecode (code 'GGET) id (make-pcache)))
 	 ((not (eq? (car env) id)) (loop (cdr env) (+ offset 1)))
 	 ((<= offset 3) (bytecode (code 'REF0 offset) id))
 	 (else (bytecode (code 'REF4) id offset)))))
@@ -344,7 +364,7 @@
    (let loop ((env env)
 	      (offset 0))
       (cond
-	 ((null? env) (bytecode (code 'GPUT) id val))
+	 ((null? env) (bytecode (code 'GPUT) id val (make-pcache)))
 	 ((not (eq? (car env) id)) (loop (cdr env) (+ offset 1)))
 	 ((<= offset 3) (bytecode (code 'SET0 offset) id) val)
 	 (else (bytecode (code 'SET4) id offset val)))))
