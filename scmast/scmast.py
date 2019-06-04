@@ -2,6 +2,17 @@
 
 import argparse
 import ast as AST
+import subprocess
+
+def pretty_print(source):
+    p = subprocess.run(['gsi', '-:-8', '-e', '(pretty-print (read))'],
+                       stdout=subprocess.PIPE,
+                       input=source,
+                       encoding='utf8')
+    if p.returncode == 0:
+        return p.stdout
+    else:
+        return source
 
 def read_file(path):
     with open(path, 'r') as f:
@@ -17,7 +28,7 @@ def dump(ast):
 #    print(dir(ast._attributes))
 #    print(dir(ast._fields))
 #    print(AST.dump(ast,True,False))
-    print(cvt_mod(ast))
+    print(pretty_print(cvt_mod(ast)))
 
 def cvt_seq(cvt, seq):
     return "(" + (" ".join(map(cvt, seq))) + ")"
