@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Thu Jun  6 13:12:00 2019 (serrano)                */
+;*    Last change :  Thu Jun  6 16:30:59 2019 (serrano)                */
 ;*    Copyright   :  2019 M. Feeley & M. Serrano                       */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -41,5 +41,5 @@
    (with-access::PyObject obj (%elements)
       (let ((len (vector-length %elements)))
 	 (when (>= offset len)
-	    (set! %elements (copy-vector %elements (*fx 2 len))))
+	    (set! %elements (copy-vector %elements (*fx 2 (max 1 len)))))
 	 (vector-set! %elements offset val))))

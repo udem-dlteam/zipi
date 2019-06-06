@@ -10,11 +10,15 @@
 
 (define-walk-method (return this::PySeq fun tail conf)
    (let loop ((nodes (PySeq-nodes this)))
-      (if (null? (cdr nodes))
-	  (return (car nodes) fun tail conf)
-	  (begin
-	     (return (car nodes) fun #f conf)
-	     (loop (cdr nodes))))))
+      (cond
+	 ((null? (cdr nodes))
+	  (return (car nodes) this tail conf))
+	 ((PyReturn? (car nodes))
+	  (set-cdr! nodes '())
+	  (return (car nodes) this tail conf))
+	 (else
+	  (return (car nodes) this #f conf)
+	  (loop (cdr nodes))))))
 
 (define-walk-method (return this::PyIf fun tail conf)
    (return (PyIf-test this) fun #f conf)

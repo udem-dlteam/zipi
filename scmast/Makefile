@@ -36,5 +36,8 @@ o/bigloo/%.o: %.bgl %.scm
 	mkdir -p $(@D)
 	$(COMPILER) $(BFLAGS) -c $+ -o $@
 
+ast/types.sch: ast/ast.bgl
+	$(BIGLOO) -classgen $< -o $@
+
 %.sch: %.bgl
 	$(BIGLOO) -classgen $< -o $@
