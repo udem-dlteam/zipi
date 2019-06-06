@@ -1,58 +1,87 @@
+#!/usr/bin/env gsi
+
 (cond-expand
-   (gambit
-    (define-macro (match-case expr clauses)
+  (gambit
+
+   (declare (standard-bindings) (extended-bindings) (not safe) (block))
+
+   (namespace ("##" import))
+
+   (import hclass)
+   (import object)
+
+   (define-macro (make-cell x) `(box ,x))
+   (define-macro (cell-ref cell) `(unbox ,cell))
+   (define-macro (cell-set! cell x) `(box-set! ,cell ,x))
+
+   (define-macro (match-case expr . clauses)
        
-       (define (ident sym)
-	  (let* ((s (symbol->string sym))
-		 (l (string-length s)))
-	     (if (char=? (string-ref s (-fx l 2) #\?))
-		 (string->symbol (substring s 0 (-fx l 1)))
-		 sym)))
-       
-       (let ((e (gensym 'expr)))
-	  `(let ((,e ,expr))
-	      ,@(map (lambda (clause)
-			(cond
-			   ((not (pair? clause))
-			    (error "match-case" "illegal clause" clause))
-			   ((eq? (car clause) 'else)
-			    clauses)
-			   ((not (pair? (car clause)))
-			    (error "match-case" "illegal clause" clause))
-			   (else
-			    `((,(caar clause))
-			      (apply (lambda ,(map ident (car clause))
-					,@(cdr clause))
-				 ,e)))))))))))
+     (define (ident sym)
+       (let* ((s (symbol->string sym))
+	      (len (string-length s)))
+	 (if (char=? (string-ref s 0) #\?)
+	     (string->symbol (substring s 1 len))
+	     sym)))
+
+     (define (idents x)
+       (cond ((symbol? x)
+              (ident x))
+             ((pair? x)
+              (cons (idents (car x)) (idents (cdr x))))
+             (else
+              x)))
+
+     (let ((e (gensym 'expr)))
+       `(let ((,e ,expr))
+          (case (car ,e)
+	    ,@(map (lambda (clause)
+		     (cond
+		      ((not (pair? clause))
+		       (error "match-case" "illegal clause" clause))
+		      ((eq? (car clause) 'else)
+		       clause)
+		      ((not (pair? (car clause)))
+		       (error "match-case" "illegal clause" clause))
+		      (else
+		       `((,(caar clause))
+			 (apply (lambda ,(idents (car clause))
+				  ,@(cdr clause))
+				,e)))))
+                   clauses)))))))
 
 (cond-expand
-   (gambit
-    (define-macro (bind-exit exit . body)
-       `(call/cc (lambda ,exit ,@body)))))
+  (gambit
+   (define-macro (bind-exit exit . body)
+     `(call/cc (lambda ,exit ,@body)))))
 
 (cond-expand
-   (gambit
-    (define (tprint . args)
-       (for-each display args)
-       (newline))))
+  (gambit
+   (define (tprint . args)
+     (for-each display args)
+     (newline))))
 
-(define-macro (all-bytecodes)
-   (let ((l '(MOD
-	      NOP SEQ
-	      NUM
-	      REF0 REF1 REF2 REF3 REF4 REF5
-	      SET0 SET1 SET2 SET3 SET4 SET5
-	      GGET GPUT GET PUT
-	      LAM0 LAM1 LAM2 LAM3 LAM4
-	      RLAM0 RLAM1 RLAM2 RLAM3 RLAM4
-	      TAIL RET
-	      CALL0 CALL1 CALL2 CALL3 CALL4
-	      ADD SUB
-	      TEST
-	      LT)))
-      `',(map (lambda (s n)
-		 (cons s n))
-	    l (iota (length l)))))
+(define-macro (define-all-bytecodes)
+  (let ((bytecodes
+         (let ((l '(MOD
+	            NOP SEQ
+	            NUM
+	            REF0 REF1 REF2 REF3 REF4 REF5
+	            SET0 SET1 SET2 SET3 SET4 SET5
+	            GGET GPUT GET PUT
+	            LAM0 LAM1 LAM2 LAM3 LAM4
+	            RLAM0 RLAM1 RLAM2 RLAM3 RLAM4
+	            TAIL RET
+	            CALL0 CALL1 CALL2 CALL3 CALL4
+	            ADD SUB
+	            TEST
+	            LT)))
+           (map (lambda (s n)
+		  (cons s n))
+	        l (iota (length l))))))
+    (eval `(define-macro (all-bytecodes) '',bytecodes))
+    `(define-macro (all-bytecodes) '',bytecodes)))
+
+(define-all-bytecodes)
 
 (define-macro (bytecode-case bcode . clauses)
    `(case (bytecode-ref bcode 0)
@@ -91,7 +120,7 @@
 (define (evalpy exp)
    (let* ((hclass0 (make-hclass '#(print)))
 	  (global (make-pyobject hclass0)))
-      (pyobject-elements-set! global 0 print)
+      (pyobject-elements-set! global 0 println)
       (meaning (compile exp '() #t (make-cell #f)) '() global no-return)))
 
 (define (meaning bcode env global return)
@@ -391,3 +420,27 @@
    (case op
       ((Lt) (bytecode (code 'LT) left right))
       (else (tprint "compile compare: not implemented"))))
+
+(cond-expand
+  (gambit
+
+   (define (parse path)
+     (let* ((port
+             (open-process
+              (list path: "../scmast/scmast.py"
+                    arguments: (list path))))
+            (ast-str
+             (read-line port #f))
+            (status
+             (process-status port)))
+       (close-port port)
+       (if (= status 0)
+           (with-input-from-string ast-str read)
+           #f)))
+
+   (define (main . args)
+     (for-each
+      (lambda (path)
+        (let ((ast (parse path)))
+          (if ast (time (evalpy ast)))))
+      args))))
