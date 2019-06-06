@@ -4,8 +4,8 @@ import argparse
 import ast as AST
 import subprocess
 
-python38 = False                        # set to True if this is Python 3.8
-generate_location_information = False   # set to True to get location info
+python38 = False                       # set to True if this is Python 3.8
+generate_location_information = True   # set to True to get location info
 
 def pretty_print(source):
     p = subprocess.run(['gsi', '-:-8', '-e', '(pretty-print (read))'],
@@ -24,8 +24,8 @@ def read_file(path):
 
 def node_kind(ast, kind):
     if generate_location_information:
-        return ('(' + kind +
-                ' ' + str(getattr(ast, 'lineno', -1)) +
+        return (kind +
+                ' (' + str(getattr(ast, 'lineno', -1)) +
                 ' ' + str(getattr(ast, 'col_offset', -1)) +
                 ')')
     else:
