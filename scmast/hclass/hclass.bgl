@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Tue Jun  4 15:36:41 2019 (serrano)                */
+;*    Last change :  Thu Jun  6 13:12:40 2019 (serrano)                */
 ;*    Copyright   :  2019 M. Feeley & M. Serrano                       */
 ;*    -------------------------------------------------------------    */
 ;*    Hidden classes for python ast interpreter                        */
@@ -12,7 +12,9 @@
 ;*---------------------------------------------------------------------*/
 ;*    The module                                                       */
 ;*---------------------------------------------------------------------*/
-(module evalpy_hclass
+(module __py_hclass
+
+   (include "hclass/hclass.sch")
    
    (export (class PCache
 	      (hclass (default (class-nil HClass)))
@@ -22,76 +24,28 @@
 	      (names::vector (default '#()))
 	      (transitions::pair-nil (default '()))))
    
-   (export (inline make-pcache)
-	   (inline pcache-hclass::HClass ::PCache)
-	   (inline pcache-index::long ::PCache)
-	   (inline pcache-set! ::PCache ::HClass ::long)
-	   (inline make-hclass ::vector)
-	   (inline hclass-names::vector ::HClass)
-	   (inline hclass-transitions::pair-nil ::HClass)
-	   (inline hclass-last-index::long ::HClass)
-	   (hclass-next ::HClass ::obj ::obj)))
+   (export (inline PCache-set! ::PCache ::HClass ::long)
+	   (inline HClass-last-index::long ::HClass)
+	   (HClass-next ::HClass ::obj ::obj)))
 
 ;*---------------------------------------------------------------------*/
-;*    make-pcache ...                                                  */
+;*    PCache-set! ...                                                  */
 ;*---------------------------------------------------------------------*/
-(define-inline (make-pcache)
-   (instantiate::PCache))
-
-;*---------------------------------------------------------------------*/
-;*    pcache-hclass ...                                                */
-;*---------------------------------------------------------------------*/
-(define-inline (pcache-hclass pc)
-   (with-access::PCache pc (hclass)
-      hclass))
-   
-;*---------------------------------------------------------------------*/
-;*    pcache-index ...                                                 */
-;*---------------------------------------------------------------------*/
-(define-inline (pcache-index pc)
-   (with-access::PCache pc (index)
-      index))
-   
-;*---------------------------------------------------------------------*/
-;*    pcache-set! ...                                                  */
-;*---------------------------------------------------------------------*/
-(define-inline (pcache-set! pc hc i)
+(define-inline (PCache-set! pc hc i)
    (with-access::PCache pc (hclass index)
       (set! hclass hc)
       (set! index i)))
 
 ;*---------------------------------------------------------------------*/
-;*    make-hclass ...                                                  */
+;*    HClass-transition-add! ...                                       */
 ;*---------------------------------------------------------------------*/
-(define-inline (make-hclass names)
-   (instantiate::HClass
-      (names names)
-      (transitions '())))
-
-;*---------------------------------------------------------------------*/
-;*    hclass-transition-add! ...                                       */
-;*---------------------------------------------------------------------*/
-(define (hclass-transition-add! hc::HClass tran target::HClass)
+(define (HClass-transition-add! hc::HClass tran target::HClass)
    (with-access::HClass hc (transitions)
       (set! transitions (cons (cons tran target) transitions))))
 
 ;*---------------------------------------------------------------------*/
-;*    hclass-names ...                                                 */
+;*    HClass-last-index ...                                            */
 ;*---------------------------------------------------------------------*/
-(define-inline (hclass-names hclass)
-   (with-access::HClass hclass (names)
-      names))
-
-;*---------------------------------------------------------------------*/
-;*    hclass-transitions ...                                           */
-;*---------------------------------------------------------------------*/
-(define-inline (hclass-transitions hclass)
-   (with-access::HClass hclass (transitions)
-      transitions))
-
-;*---------------------------------------------------------------------*/
-;*    hclass-last-index ...                                            */
-;*---------------------------------------------------------------------*/
-(define-inline (hclass-last-index hclass)
-   (-fx (vector-length (hclass-names hclass)) 1))
+(define-inline (HClass-last-index hclass)
+   (-fx (vector-length (HClass-names hclass)) 1))
    

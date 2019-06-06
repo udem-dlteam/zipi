@@ -1,0 +1,25 @@
+;*=====================================================================*/
+;*    serrano/nosync/py19/scmast/beval/beval.bgl                       */
+;*    -------------------------------------------------------------    */
+;*    Author      :  Manuel Serrano                                    */
+;*    Creation    :  Thu Jun  6 13:08:04 2019                          */
+;*    Last change :  Thu Jun  6 15:51:47 2019 (serrano)                */
+;*    Copyright   :  2019 Manuel Serrano                               */
+;*    -------------------------------------------------------------    */
+;*    byte code interpretation of the Python AST.                      */
+;*=====================================================================*/
+
+;*---------------------------------------------------------------------*/
+;*    The module                                                       */
+;*---------------------------------------------------------------------*/
+(module __py_beval
+
+   (include "ast/ast.sch"
+	    "hclass/hclass.sch"
+	    "object/object.sch")
+   
+   (import __py_hclass
+	   __py_object)
+
+   (export (py-beval ast conf)))
+

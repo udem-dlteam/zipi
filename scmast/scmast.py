@@ -5,7 +5,7 @@ import ast as AST
 import subprocess
 
 python38 = False                        # set to True if this is Python 3.8
-generate_location_information = False   # set to True to get location info
+generate_location_information = True    # set to True to get location info
 
 def pretty_print(source):
     p = subprocess.run(['gsi', '-:-8', '-e', '(pretty-print (read))'],

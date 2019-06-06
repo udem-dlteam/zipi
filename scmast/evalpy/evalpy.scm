@@ -39,7 +39,8 @@
 (define-macro (all-bytecodes)
    (let ((l '(MOD
 	      NOP SEQ
-	      NUM
+	      NUM STR
+	      REG0 REG1 REG2 REG3 REG4 REG5
 	      REF0 REF1 REF2 REF3 REF4 REF5
 	      SET0 SET1 SET2 SET3 SET4 SET5
 	      GGET GPUT GET PUT
@@ -99,6 +100,8 @@
       ;; literals
       ((NUM)
        (bytecode-ref bcode 1))
+      ((STR)
+       (bytecode-ref bcode 1))
 
       ;; misc
       ((NOP)
@@ -110,7 +113,18 @@
 	      (begin
 		 (meaning (car l) env global return)
 		 (loop (cdr l))))))
-      ;; ref & set
+      ;; reg (non deleted variables)
+      ((REG0)
+       (car env))
+      ((REG1)
+       (cadr env))
+      ((REG2)
+       (caddr env))
+      ((REG3)
+       (cadddr env))
+      ((REG4)
+       (list-ref env (bytecode-ref bcode 2)))
+      ;; possibly deleted variables
       ((REF0)
        (vref (car env) bcode))
       ((REF1)
@@ -121,6 +135,7 @@
        (vref (cadddr env) bcode))
       ((REF4)
        (vref (list-ref env (bytecode-ref bcode 2)) bcode))
+      ;; set
       ((SET0)
        (vref (car env) bcode))
       ((SET1)
@@ -271,7 +286,7 @@
    (match-case exp
       
       ;; mod
-      ((Module ?body)
+      ((Module ?body . ?type_ignors)
        ;; Module(stmt* body, type_ignore *type_ignores)
        (bytecode (code 'MOD) (compile-stmt* body env #t needret)))
 
@@ -283,6 +298,9 @@
 	   (begin
 	      (set-car! needret #t)
 	      (bytecode (code 'RET) (compile expr env #f needret)))))
+      ((Delete ?targets)
+       ;; Delete(expr* targets)
+       (compile-expr* targets env tail needref))
       ((If ?test ?body ?otherwise)
        ;; If(expr test, stmt* body, stmt* orelse)
        (bytecode (code 'TEST) (compile test env #f needret)
@@ -296,7 +314,8 @@
 	  (compile-set name env
 	     (compile-lambda (cell-ref needret) (car args)
 		(compile-stmt* body
-		   (extend-env (map car (car args)) env)
+		   (check-delete body
+		      (extend-env (map car (car args)) env))
 		   #t needret)))))
       ((Expr ?value)
        ;; Expr(expr value)
@@ -305,6 +324,10 @@
       ;; expr
       ((Num ?val)
        (bytecode (code 'NUM) (string->number val)))
+      ((Constant ?val ?string)
+       ;; Constant(constant value, string? kind) [3.8]
+       (if (string (bytecode (code 'STR) val))
+	   (bytecode (code 'NUM) (string->number val))))
       ((BinOp ?left ?op ?right)
        ;; BinOp(expr left, operator op, expr right)
        (case op
@@ -340,6 +363,7 @@
        ;; Name(identifier id, expr_context ctx)
        (case ctx
 	  ((Load) (compile-ref id env))
+	  ((Delete) (compile-delete id env))
 	  (else (error "ctx" "Not implemented" ctx))))
       (else
        (error "compile" "Not implemented" exp))))
@@ -351,14 +375,21 @@
 	     (list (compile (car exp) env tail needret))
 	     (cons (compile (car exp) env #f needret) (loop (cdr exp)))))))
 
+(define (compile-expr* exp env tail needret)
+   (bytecode (code 'SEQ)
+      (let loop ((exp exp))
+	 (if (null? (cdr exp))
+	     (list (compile (car exp) env tail needret))
+	     (cons (compile (car exp) env #f needret) (loop (cdr exp)))))))
+
 (define (compile-ref id env)
    (let loop ((env env)
 	      (offset 0))
       (cond
 	 ((null? env) (bytecode (code 'GGET) id (make-pcache)))
-	 ((not (eq? (car env) id)) (loop (cdr env) (+ offset 1)))
-	 ((<= offset 3) (bytecode (code 'REF0 offset) id))
-	 (else (bytecode (code 'REF4) id offset)))))
+	 ((not (eq? (caar env) id)) (loop (cdr env) (+ offset 1)))
+	 ((<= offset 3) (bytecode (code (if (cdar env) 'REG0 'REF0) offset) id))
+	 (else (bytecode (code (if (cdar env) 'REG4 'REF4)) id offset)))))
 
 (define (compile-set id env val)
    (let loop ((env env)
@@ -370,7 +401,7 @@
 	 (else (bytecode (code 'SET4) id offset val)))))
 
 (define (extend-env args env)
-   (append args env))
+   (append (map (lambda (a) (cons args #t)) env)))
 
 (define (compile-lambda needret args body)
    (cond

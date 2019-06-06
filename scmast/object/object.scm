@@ -1,6 +1,6 @@
-(define (pyobject-find-prop obj name)
-   (let* ((hclass (pyobject-hclass obj))
-	  (names (hclass-names hclass)))
+(define (PyObject-find-prop obj name)
+   (let* ((hclass (PyObject-hclass obj))
+	  (names (HClass-names hclass)))
       (let loop ((i (- (vector-length names) 1)))
 	 (cond
 	    ((= i -1) i)
