@@ -40,3 +40,4 @@
 	 ((not (eq? (PyDecl-id (car env)) id)) (loop (cdr env) (+ offset 1)))
 	 ((eq? (PyDecl-scope (car env)) 'local) (values (car env) offset))
 	 (else (values (car env) -1)))))
+ 

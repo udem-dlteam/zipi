@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 13:08:04 2019                          */
-;*    Last change :  Thu Jun  6 15:51:47 2019 (serrano)                */
+;*    Last change :  Tue Jun 11 13:21:49 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    byte code interpretation of the Python AST.                      */
@@ -19,7 +19,8 @@
 	    "object/object.sch")
    
    (import __py_hclass
-	   __py_object)
+	   __py_object
+	   __py_dump)
 
    (export (py-beval ast conf)))
 

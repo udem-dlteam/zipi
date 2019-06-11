@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Thu Jun  6 16:30:59 2019 (serrano)                */
+;*    Last change :  Tue Jun 11 09:34:58 2019 (serrano)                */
 ;*    Copyright   :  2019 M. Feeley & M. Serrano                       */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -22,10 +22,23 @@
 	      (hclass (default #unspecified))
 	      (%elements (default (make-vector 4))))
 
+	   (class PyFunction::PyObject
+	      (procedure read-only))
+
 	   (inline PyObject-elements-ref ::PyObject ::long)
 	   (PyObject-elements-set! ::PyObject ::long ::obj)
 
-	   (PyObject-find-prop ::PyObject ::obj)))
+	   (PyObject-find-prop ::PyObject ::obj)
+	   
+	   (PyFunction-default-hclass)
+
+	   (py-procedure->function ::procedure)
+	   
+	   (PyFunction-call0 ::obj)
+	   (PyFunction-call1 ::obj ::obj)
+	   (PyFunction-call2 ::obj ::obj ::obj)
+	   (PyFunction-call3 ::obj ::obj ::obj ::obj)
+	   (PyFunction-call4 ::obj ::obj ::obj ::obj ::obj)))
 
 ;*---------------------------------------------------------------------*/
 ;*    PyObject-elements-ref ...                                        */

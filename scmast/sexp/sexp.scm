@@ -19,7 +19,7 @@
 	  (make-PyFun loc
 	     (map (lambda (a) (make-PyDecl loc (car a) 'local)) (car args))
 	     (make-PySeq loc (compile-stmt* body #t 'local conf))
-	     #f)))
+	     #t)))
       ((Return ?loc ?expr)
        ;; Return(expr? value)
        (make-PyReturn loc (compile expr #f scope conf) tail))
@@ -62,8 +62,12 @@
 	   (error "Compare" "Not implemented" ops)
 	   (make-PyBinary loc 'bool
 	      (case (car ops)
-		 ((< <= > >= ) (car ops))
-		 (else "Comparae" "Illegal operator" (car ops)))
+		 ((< <= > >=) (car ops))
+		 ((Lt) '<)
+		 ((Le) '<=)
+		 ((Gt) '>)
+		 ((Ge) '>=)
+		 (else (error "Compare" "Illegal operator" (car ops))))
 	      (compile left #f scope conf)
 	      (compile (car rights) #f scope conf))))
       ((Call ?loc ?fun ?args ?keywords)

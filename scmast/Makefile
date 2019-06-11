@@ -4,7 +4,7 @@ AFILE = bglafile
 GAMBIT = gsc
 
 SOURCES = ast/ast sexp/sexp symbol/symbol return/return beval/beval \
-  hclass/hclass object/object
+  hclass/hclass object/object dump/dump
 
 .SUFFIXES:
 .SUFFIXES: .scm .bgl .sch .o

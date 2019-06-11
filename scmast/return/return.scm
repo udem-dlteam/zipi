@@ -1,7 +1,20 @@
 ;; annotate return statements with tail/notail information
+;; annotation function definitions with need-return values
 (define (py-return this::PyNode conf)
+   (mark-noreturn this)
    (return this #f #t conf))
 
+;; PyFun have been first initialized with need-return set to #t
+;; The first stage of this optimization is to replace all this #t with #f
+;; The analysis will then set to #t only functions that need to be
+(define-walk-method (mark-noreturn this::PyNode)
+   (call-default-walker))
+
+(define-walk-method (mark-noreturn this::PyFun)
+   (PyFun-need-return-set! this #f))
+
+;; Traverse the AST to mark all non-tail returns and mark the functions
+;; that use such returns
 (define-walk-method (return this::PyNode fun tail conf)
    (call-default-walker))
 
