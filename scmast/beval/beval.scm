@@ -65,55 +65,68 @@
 	  (global (make-PyObject hclass1 (vector __builtins__))))
       (PyObject-elements-set! __builtins__ 0 (py-procedure->function print))
       (PyObject-elements-set! __builtins__ 1 locals)
-      (meaning (compile ast) '() global no-return)))
+      (meaning (compile ast '()) '() global no-return)))
 
-(define-walk-method (compile this::PyNode)
+(define (compile* nodes env)
+   (map (lambda (n) (compile n env)) nodes))
+
+(define (compile+ vals decls env)
+   (let loop ((vals vals)
+	      (decls decls)
+	      (env env))
+      (if (null? vals)
+	  '()
+	  (let ((val (compile (car vals) env)))
+	     (cons val
+		(loop (cdr vals) (cdr decls) (cons (car decls) env)))))))
+
+(define-walk-method (compile this::PyNode env)
    (error "compile" "Not implemented" (typeof this)))
 
-(define-walk-method (compile this::PyModule)
+(define-walk-method (compile this::PyModule env)
    (bytecode (code 'MOD)
       (bytecode (code 'SEQ)
-	 (map compile (PyModule-stmts this)))))
+	 (compile* (PyModule-stmts this) (PyModule-globals this)))))
 
-(define-walk-method (compile this::PySeq)
+(define-walk-method (compile this::PySeq env)
    (bytecode (code 'SEQ)
-      (map compile (PySeq-nodes this))))
+      (compile* (PySeq-nodes this) env)))
 
-(define-walk-method (compile this::PyBlock)
+(define-walk-method (compile this::PyBlock env)
    (bytecode (code 'BLOCK)
-      (map compile (PyBlock-vals this))
-      (compile (PyBlock-body this))))
+      (compile+ (PyBlock-vals this) (PyBlock-decls this) env)
+      (compile (PyBlock-body this) (append (PyBlock-decls this) env))))
 
-(define-walk-method (compile this::PyReturn)
+(define-walk-method (compile this::PyReturn env)
    (bytecode (code (if (PyReturn-tail this) 'TAIL 'RET))
-      (compile (PyReturn-val this))))
+      (compile (PyReturn-val this) env)))
 
-(define-walk-method (compile this::PyIf)
+(define-walk-method (compile this::PyIf env)
    (bytecode (code 'TEST)
-      (compile (PyIf-test this))
-      (compile (PyIf-then this))
-      (compile (PyIf-else this))))
+      (compile (PyIf-test this) env)
+      (compile (PyIf-then this) env)
+      (compile (PyIf-else this) env)))
 
-(define-walk-method (compile this::PyDeclInit)
+(define-walk-method (compile this::PyDeclInit env)
    (if (eq? (PyDeclInit-scope this) 'local)
        (bytecode (code 'SET0)
-	  (compile (PyDeclInit-val this)))
+	  (compile (PyDeclInit-val this) env))
        (bytecode (code 'GPUT)
 	  (PyDeclInit-id this)
-	  (compile (PyDeclInit-val this))
+	  (compile (PyDeclInit-val this) env)
 	  (make-PCache #f -1))))
 
-(define-walk-method (compile this::PyAssig)
+(define-walk-method (compile this::PyAssig env)
 
    (define (compile-assig-ref this)
       (let* ((ref (PyAssig-lhs this))
 	     (decl (PyRef-decl ref))
-	    (val (compile (PyAssig-rhs this))))
+	     (val (compile (PyAssig-rhs this) env)))
 	 (case (PyDecl-scope decl)
 	    ((global)
 	     (bytecode (code 'GPUT) (PyDecl-id decl) val (make-PCache #f -1)))
 	    (else
-	     (bytecode (code 'SET0 (min (PyRef-index ref) 4)) val)))))
+	     (bytecode (code 'SET0 (min (lookup decl env) 4)) val)))))
       
    (cond
       ((PyRef? (PyAssig-lhs this))
@@ -121,21 +134,21 @@
       (else
        (error "compile-assig" "Not implemented" (py->list this)))))
 
-(define-walk-method (compile this::PyUninit)
+(define-walk-method (compile this::PyUninit env)
    (bytecode (code 'UNINIT)))
 
-(define-walk-method (compile this::PyNumber)
+(define-walk-method (compile this::PyNumber env)
    (bytecode (code 'NUM) (PyNumber-val this)))
 
-(define-walk-method (compile this::PyBinary)
+(define-walk-method (compile this::PyBinary env)
    (bytecode (code (PyBinary-op this))
-      (compile (PyBinary-lhs this))
-      (compile (PyBinary-rhs this))))
+      (compile (PyBinary-lhs this) env)
+      (compile (PyBinary-rhs this) env)))
 
-(define-walk-method (compile this::PyFun)
-   (let ((args (PyFun-args this))
-	 (body (compile (PyFun-body this)))
-	 (needret (PyFun-need-return this)))
+(define-walk-method (compile this::PyFun env)
+   (let* ((args (PyFun-args this))
+	  (body (compile (PyFun-body this) (append args env)))
+	  (needret (PyFun-need-return this)))
       (cond
 	 ((null? args)
 	  (bytecode (code (if needret 'RLAM0 'LAM0)) body))
@@ -150,25 +163,41 @@
 	 (else
 	  (error "compile-lambda" "Not implemented" (py->list args))))))
 
-(define-walk-method (compile this::PyCall)
+(define-walk-method (compile this::PyCall env)
    (if (<= (length (PyCall-args this)) 4)
        (apply bytecode (code 'CALL0 (length (PyCall-args this)))
-	  (compile (PyCall-fun this))
-	  (map compile (PyCall-args this)))
+	  (compile (PyCall-fun this) env)
+	  (compile* (PyCall-args this) env))
        (error "call" "Not implemented" (length (PyCall-args this)))))
    
-(define-walk-method (compile this::PyRef)
+(define-walk-method (compile this::PyRef env)
    (let ((decl (PyRef-decl this)))
       (case (PyDecl-scope decl)
 	 ((global)
 	  (bytecode (code 'GGET) (PyDecl-id decl) (make-PCache #f -1)))
 	 ((block)
-	  (bytecode (code 'VAR0 (min (PyRef-index this) 4))))
+	  (bytecode (code 'VAR0 (min (lookup decl env) 4))))
 	 (else
-	  (bytecode (code 'REF0 (min (PyRef-index this) 4)))))))
+	  (bytecode (code 'REF0 (min (lookup decl env) 4)))))))
 	  
-(define-walk-method (compile this::PyRefUnresolved)
+(define-walk-method (compile this::PyRefUnresolved env)
    (bytecode (code 'GGET) (PyRefUnresolved-id this) (make-PCache #f -1)))
+
+(define (lookup decl env)
+   (let loop ((i 0)
+	      (env env))
+      (cond
+	 ((null? env) #f)
+	 ((eq? (car env) decl) i)
+	 (else (loop (+ i 1) (cdr env))))))
+	  
+(define (lookup-by-id id env)
+   (let loop ((i 0)
+	      (env env))
+      (cond
+	 ((null? env) #f)
+	 ((eq? (PyDecl-id (car env)) id) i)
+	 (else (loop (+ i 1) (cdr env))))))
 	  
 (define (meaning bcode env global return)
    (bytecode-case bcode
