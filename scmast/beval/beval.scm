@@ -2,7 +2,6 @@
    (let ((l '(MOD
 	      NOP SEQ BLOCK
 	      UNINIT NUM STR
-	      REG0 REG1 REG2 REG3 REG4 REG5
 	      VAR0 VAR1 VAR2 VAR3 VAR4 VAR5
 	      REF0 REF1 REF2 REF3 REF4 REF5
 	      SET0 SET1 SET2 SET3 SET4 SET5
@@ -50,12 +49,22 @@
 (define (no-return . l)
    (error "return" "Illegal return" #f))
 
-(define uninit (cons 1 2))
+(define uninit
+   (let ((hclass (make-HClass '#() '())))
+      (make-PyObject hclass '#())))
+
+(define locals
+   (py-procedure->function
+      (lambda (bcode)
+	 (tprint "IN LOCALS... " (bytecode-name bcode)))))
 
 (define (py-beval ast conf)
-   (let* ((hclass0 (make-HClass '#(print) '()))
-	  (global (make-PyObject hclass0 '#())))
-      (PyObject-elements-set! global 0 (py-procedure->function print))
+   (let* ((hclass0 (make-HClass '#(print locals) '()))
+	  (hclass1 (make-HClass '#(__builtins__) '()))
+	  (__builtins__ (make-PyObject hclass0 '#(- -)))
+	  (global (make-PyObject hclass1 (vector __builtins__))))
+      (PyObject-elements-set! __builtins__ 0 (py-procedure->function print))
+      (PyObject-elements-set! __builtins__ 1 locals)
       (meaning (compile ast) '() global no-return)))
 
 (define-walk-method (compile this::PyNode)
@@ -188,18 +197,7 @@
 	      (meaning (bytecode-ref bcode 2) env global return)
 	      (loop (cdr vals)
 		 (cons (meaning (car vals) env global return) env)))))
-      ;; reg (non deleted variables)
-      ((REG0)
-       (car env))
-      ((REG1)
-       (cadr env))
-      ((REG2)
-       (caddr env))
-      ((REG3)
-       (cadddr env))
-      ((REG4)
-       (list-ref env (bytecode-ref bcode 2)))
-      ;; possibly deleted variables
+      ;; possibly unitialized or deleted variables
       ((REF0)
        (vref (car env) bcode))
       ((REF1)
@@ -306,7 +304,10 @@
        (return (meaning (bytecode-ref bcode 1) env global return)))
       ;; app
       ((CALL0)
-       (PyFunction-call0 (meaning (bytecode-ref bcode 1) env global return)))
+       (let ((proc (meaning (bytecode-ref bcode 1) env global return)))
+	  (if (eq? proc locals)
+	      ((PyFunction-procedure locals) bcode)
+	      (PyFunction-call0 proc))))
       ((CALL1)
        (PyFunction-call1 (meaning (bytecode-ref bcode 1) env global return)
 	  (meaning (bytecode-ref bcode 2) env global return)))
@@ -362,11 +363,16 @@
    (let* ((name (bytecode-ref bcode 1))
 	  (cache (bytecode-ref bcode 2))
 	  (index (PyObject-find-prop obj name)))
-      (if (>= index 0)
-	  (begin
-	     (PCache-set! cache (PyObject-hclass obj) index)
-	     (PyObject-elements-ref obj index))
-	  (error "NameError" "global name is not defined" name))))
+      (cond
+	 ((>= index 0)
+	  (PCache-set! cache (PyObject-hclass obj) index)
+	  (PyObject-elements-ref obj index))
+	 (else
+	  (let* ((__builtins__ (PyObject-elements-ref obj 0))
+		 (idxb (PyObject-find-prop __builtins__ name)))
+	     (if (>=fx idxb 0)
+		 (PyObject-elements-ref __builtins__ idxb)
+		 (error "NameError" "global name is not defined" name)))))))
 
 (define (gput obj bcode val)
    (let* ((name (bytecode-ref bcode 1))

@@ -1,7 +1,6 @@
 cpython
 pypy
 scmast/o
-scmast/hclass/hclass.sch
 scmast/object/object.sch
 scmast/ast/types.sch
 
