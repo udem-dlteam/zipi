@@ -1,7 +1,7 @@
 (define-macro (all-bytecodes)
    (let ((l '(MOD
 	      NOP SEQ BLOCK
-	      UNINIT NUM STR
+	      PRAGMA UNINIT NUM STR
 	      VAR0 VAR1 VAR2 VAR3 VAR4 VAR5
 	      REF0 REF1 REF2 REF3 REF4 REF5
 	      SET0 SET1 SET2 SET3 SET4 SET5
@@ -55,8 +55,16 @@
 
 (define locals
    (py-procedure->function
-      (lambda (bcode)
-	 (tprint "IN LOCALS... " (bytecode-name bcode)))))
+      (lambda (bcode env global return)
+	 (let ((frame (meaning (bytecode-ref bcode 2) env global return))
+	       (names (meaning (bytecode-ref bcode 3) env global return)))
+	    (tprint "IN LOCALS frame=" frame " names=" names)
+	    (or (cell-ref frame)
+		(let ((hclass (make-HClass (list->vector names) '()))
+		      (vals (map (lambda (name) #f)
+			       names)))
+		   (cell-set! frame (make-PyObject hclass (list->vector vals)))
+		   frame))))))
 
 (define (py-beval ast conf)
    (let* ((hclass0 (make-HClass '#(print locals) '()))
@@ -134,6 +142,9 @@
       (else
        (error "compile-assig" "Not implemented" (py->list this)))))
 
+(define-walk-method (compile this::PyPragma env)
+   (bytecode (code 'PRAGMA) (PyPragma-expr this)))
+
 (define-walk-method (compile this::PyUninit env)
    (bytecode (code 'UNINIT)))
 
@@ -164,11 +175,17 @@
 	  (error "compile-lambda" "Not implemented" (py->list args))))))
 
 (define-walk-method (compile this::PyCall env)
-   (if (<= (length (PyCall-args this)) 4)
+   (cond
+      ((null? (PyCall-args this))
+       (bytecode (code 'CALL0) (compile (PyCall-fun this) env)
+	  (bytecode (code 'VAR0 (min (lookup-by-id '%frame env))))
+	  (bytecode (code 'VAR0 (min (lookup-by-id '%names env))))))
+      ((<= (length (PyCall-args this)) 4)
        (apply bytecode (code 'CALL0 (length (PyCall-args this)))
 	  (compile (PyCall-fun this) env)
-	  (compile* (PyCall-args this) env))
-       (error "call" "Not implemented" (length (PyCall-args this)))))
+	  (compile* (PyCall-args this) env)))
+      (else
+       (error "call" "Not implemented" (length (PyCall-args this))))))
    
 (define-walk-method (compile this::PyRef env)
    (let ((decl (PyRef-decl this)))
@@ -206,6 +223,8 @@
        (bytecode-ref bcode 1))
       ((UNINIT)
        uninit)
+      ((PRAGMA)
+       (eval (bytecode-ref bcode 1)))
       ((STR)
        (bytecode-ref bcode 1))
       
@@ -335,7 +354,7 @@
       ((CALL0)
        (let ((proc (meaning (bytecode-ref bcode 1) env global return)))
 	  (if (eq? proc locals)
-	      ((PyFunction-procedure locals) bcode)
+	      ((PyFunction-procedure locals) bcode env global return)
 	      (PyFunction-call0 proc))))
       ((CALL1)
        (PyFunction-call1 (meaning (bytecode-ref bcode 1) env global return)

@@ -19,7 +19,21 @@
    (call-default-walker))
 
 (define-walk-method (locals this::PyFun fun)
-   (locals (PyFun-body this) this))
+
+   (define (function-names fun)
+      (map! PyDecl-id (append (PyFun-args fun) (PyFun-decls fun))))
+   
+   (locals (PyFun-body this) this)
+   (when (PyFun-can-locals this)
+      (let ((loc (PyNode-loc (PyFun-body this))))
+	 (PyFun-body-set! this
+	    (make-PyBlock loc
+	       (list (make-PyDecl loc '%frame 'block)
+		  (make-PyDecl loc '%names 'block))
+	       (list (make-PyPragma loc 'scheme '(make-cell #f))
+		  (make-PyPragma loc 'scheme `',(function-names this)))
+	       (PyFun-body this)))))
+   this)
 
 (define-walk-method (locals this::PyCall fun)
    (when (and (null? (PyCall-args this)) fun)

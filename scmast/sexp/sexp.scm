@@ -18,6 +18,7 @@
        (make-PyDeclInit loc name scope
 	  (make-PyFun loc
 	     (map (lambda (a) (make-PyDecl loc (car a) 'local)) (car args))
+	     '()
 	     (make-PySeq loc (compile-stmt* body #t 'local conf))
 	     #t #t)))
       ((Return ?loc ?expr)
