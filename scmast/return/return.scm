@@ -2,7 +2,8 @@
 ;; annotation function definitions with need-return values
 (define (py-return this::PyNode conf)
    (mark-noreturn this)
-   (return this #f #t conf))
+   (return this #f #t conf)
+   this)
 
 ;; PyFun have been first initialized with need-return set to #t
 ;; The first stage of this optimization is to replace all this #t with #f

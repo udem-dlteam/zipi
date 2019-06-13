@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 12:48:54 2019                          */
-;*    Last change :  Thu Jun 13 13:22:04 2019 (serrano)                */
+;*    Last change :  Thu Jun 13 13:25:13 2019 (serrano)                */
 ;*    Copyright   :  2019 M. Feeley & M. Serrano                       */
 ;*    -------------------------------------------------------------    */
 ;*    python ast interpreter (bigloo prelude)                          */
@@ -29,12 +29,32 @@
 ;*---------------------------------------------------------------------*/
 ;*    main ...                                                         */
 ;*---------------------------------------------------------------------*/
-(define (main argv)
-   (let ((ast (if (null? (cdr argv))
-		  (py-sexp (read) '())
-		  (py-sexp (call-with-input-file (cadr argv) read) '())))
+(define (main args)
+   (let ((verb 0)
 	 (conf '()))
-      (let ((ast (py-symbol! ast conf)))
-	 (py-return ast conf)
-	 (py-beval ast conf))))
-       
+      (args-parse (cdr args)
+	 ((("-h" "--help") (help "This message"))
+	  (usage args-parse-usage)
+	  (exit 0))
+	 (("-v?level" (help "Increase/set verbosity level (-v0 crystal silence)"))
+	  (if (string=? level "")
+	      (set! verb (+fx 1 verb))
+	      (set! verb (string->integer level))))
+	 (else
+	  (unless (string=? else "--")
+	     (set! conf (cons* :src else conf)))))
+      (py19 (cons* :verbose verb conf))))
+
+;*---------------------------------------------------------------------*/
+;*    usage ...                                                        */
+;*---------------------------------------------------------------------*/
+(define (usage args-parse-usage)
+   (print "py19")
+   (print "usage: py19 [options] -- [bigloo-options]")
+   (args-parse-usage #f)
+   (newline)
+   (print "Shell Variables:")
+   (print "   - PYTRACE: hop internal trace [PYTRACE=\"key1, key2, ...\"]")
+   (print "      trace")
+   (newline))
+
