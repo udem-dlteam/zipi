@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 10:16:39 2019                          */
-;*    Last change :  Tue Jun 11 13:07:02 2019 (serrano)                */
+;*    Last change :  Thu Jun 13 08:23:52 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Python AST                                                       */
@@ -21,15 +21,19 @@
 	   (class PyModule::PyNode
 	      (version::int read-only (default 1))
 	      (ident::string read-only)
-	      (stmts::pair-nil read-only (default '())))
+	      (stmts::pair-nil read-only (default '()))
+	      (globals::pair-nil (default '())))
 	   
 	   ;; misc
 	   (class PyDecl::PyNode
 	      (id::symbol read-only)
+	      ;; scope: global, local, block
 	      (scope::symbol read-only))
 	   
 	   (class PyDeclInit::PyDecl
 	      val::PyExpr)
+
+	   (class PyVar::PyDecl)
 	   
 	   ;; statements
 	   (abstract-class PyStmt::PyNode)
@@ -37,9 +41,12 @@
 	   (class PySeq::PyStmt
 	      (nodes::pair-nil (info '("ast"))))
 	   
-	   (class PyBlock::PySeq
-	      (endloc::pair read-only (info '("notraverse"))))
-	   
+	   (class PyBlock::PyStmt
+	      ;; equivalent to a Scheme let*
+	      decls::pair-nil
+	      vals::pair-nil
+	      body::PyStmt)
+
 	   (class PyReturn::PyStmt
 	      val::PyExpr
 	      tail::bool)
@@ -58,7 +65,7 @@
 	   
 	   ;; expressions
 	   (class PyExpr::PyNode)
-	   
+
 	   (class PyRef::PyExpr
 	      (decl (info '("jsonref" "notraverse")))
 	      (index::int (default 1)))
@@ -383,8 +390,10 @@
 (gen-walks PyModule (stmts))
 (gen-walks PyDeclInit val)
 (gen-walks PySeq (nodes))
+(gen-walks PyBlock (vals) body)
 (gen-walks PyReturn val)
 (gen-walks PyAssig lhs rhs)
 (gen-walks PyIf test then else)
+(gen-walks PyFun body)
 (gen-walks PyBinary lhs rhs)
 (gen-walks PyCall fun (args) (keywords))

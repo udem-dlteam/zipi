@@ -8,7 +8,7 @@
       ;; mod
       ((Module ?loc ?body . ?type_ignors)
        ;; Module(stmt* body, type_ignore *type_ignores)
-       (make-PyModule loc 1 "???" (compile-stmt* body #t 'global conf)))
+       (make-PyModule loc 1 "???" (compile-stmt* body #t 'global conf) '()))
       
       ;; stmt
       ((FunctionDef ?loc ?name ?args ?body ?decorator_list ?returns . ?type_comment)
@@ -28,7 +28,22 @@
        (make-PyDelete loc (map (lambda (t) (compile t #f scope conf)) targets)))
       ((Assign ?loc ?targets ?value . ?type_comment)
        ;; Assign(expr* targets, expr value, string? type_comment)
-       (tprint "ASSIGN: TODO"))
+       (if (null? (cdr targets))
+	   (make-PyAssig loc (compile (car targets) #f scope conf)
+	      (compile value #f scope conf))
+	   (let* ((id (gensym 'tmp))
+		  (var (make-PyVar loc id 'block))
+		  (val (compile value #f scope conf)))
+	      (let loop ((targets targets)
+			 (assigs '()))
+		 (if (null? targets)
+		     (make-PyBlock loc (list var) (list val)
+			(make-PySeq loc assigs))
+		     (let ((ref (compile (car targets) #f scope conf)))
+			(loop (cdr targets)
+			   (cons (make-PyAssig loc ref
+				    (make-PyRefUnresolved (PyNode-loc ref) id))
+			      assigs))))))))
       ((If ?loc ?test ?body ?otherwise)
        ;; If(expr test, stmt* body, stmt* orelse)
        (make-PyIf loc (compile test #f scope conf)
@@ -80,6 +95,7 @@
        ;; Name(identifier id, expr_context ctx)
        (case ctx
 	  ((Load) (make-PyRefUnresolved loc id))
+	  ((Store) (make-PyRefUnresolved loc id))
 	  ((Delete) (make-PyRefUnresolved loc id))
 	  (else (error "ctx" "Not implemented" ctx))))
       (else

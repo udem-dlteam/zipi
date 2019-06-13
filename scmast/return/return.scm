@@ -33,6 +33,14 @@
 	  (return (car nodes) this #f conf)
 	  (loop (cdr nodes))))))
 
+(define-walk-method (return this::PyBlock fun tail conf)
+   (for-each (lambda (v) (return v fun #f conf)) (PyBlock-vals this))
+   (return (PyBlock-body this) fun tail conf))
+
+(define-walk-method (return this::PyAssig fun tail conf)
+   (return (PyAssig-rhs this) fun #f conf)
+   (return (PyAssig-lhs this) fun #f conf))
+
 (define-walk-method (return this::PyIf fun tail conf)
    (return (PyIf-test this) fun #f conf)
    (return (PyIf-then this) fun tail conf)

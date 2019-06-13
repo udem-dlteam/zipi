@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 12:48:54 2019                          */
-;*    Last change :  Thu Jun  6 11:45:21 2019 (serrano)                */
+;*    Last change :  Thu Jun 13 10:13:09 2019 (serrano)                */
 ;*    Copyright   :  2019 M. Feeley & M. Serrano                       */
 ;*    -------------------------------------------------------------    */
 ;*    python ast interpreter (bigloo prelude)                          */
@@ -16,7 +16,8 @@
    
    (include "ast/ast.sch")
    
-   (import __py_sexp
+   (import __py_dump
+	   __py_sexp
 	   __py_symbol
 	   __py_return
 	   __py_beval
@@ -33,7 +34,8 @@
 		  (py-sexp (read) '())
 		  (py-sexp (call-with-input-file (cadr argv) read) '())))
 	 (conf '()))
-      (py-symbol! ast conf)
-      (py-return ast conf)
-      (py-beval ast conf)))
+      (let ((ast (py-symbol! ast conf)))
+	 (tprint "ASTsym=" (py->list ast))
+	 (py-return ast conf)
+	 (py-beval ast conf))))
        

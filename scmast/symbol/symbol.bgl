@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 14:41:56 2019                          */
-;*    Last change :  Thu Jun  6 15:30:01 2019 (serrano)                */
+;*    Last change :  Thu Jun 13 09:03:50 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Symbol resolution                                                */
@@ -16,5 +16,7 @@
 
    (include "ast/ast.sch")
 
+   (import __py_dump)
+   
    (export (py-symbol! ::PyNode conf)))
 

@@ -1,8 +1,9 @@
 (define-macro (all-bytecodes)
    (let ((l '(MOD
-	      NOP SEQ
+	      NOP SEQ BLOCK
 	      NUM STR
 	      REG0 REG1 REG2 REG3 REG4 REG5
+	      VAR0 VAR1 VAR2 VAR3 VAR4 VAR5
 	      REF0 REF1 REF2 REF3 REF4 REF5
 	      SET0 SET1 SET2 SET3 SET4 SET5
 	      GGET GPUT GET PUT
@@ -69,6 +70,11 @@
    (bytecode (code 'SEQ)
       (map compile (PySeq-nodes this))))
 
+(define-walk-method (compile this::PyBlock)
+   (bytecode (code 'BLOCK)
+      (map compile (PyBlock-vals this))
+      (compile (PyBlock-body this))))
+
 (define-walk-method (compile this::PyReturn)
    (bytecode (code (if (PyReturn-tail this) 'TAIL 'RET))
       (compile (PyReturn-val this))))
@@ -89,7 +95,22 @@
 	  (make-PCache #f -1))))
 
 (define-walk-method (compile this::PyAssig)
-   (tprint "TODO"))
+
+   (define (compile-assig-ref this)
+      (let* ((ref (PyAssig-lhs this))
+	     (decl (PyRef-decl ref))
+	    (val (compile (PyAssig-rhs this))))
+	 (case (PyDecl-scope decl)
+	    ((global)
+	     (bytecode (code 'GPUT) (PyDecl-id decl) val (make-PCache #f -1)))
+	    (else
+	     (bytecode (code 'SET0 (min (PyRef-index ref) 4) val))))))
+      
+   (cond
+      ((PyRef? (PyAssig-lhs this))
+       (compile-assig-ref this))
+      (else
+       (error "compile-assig" "Not implemented" (py->list this)))))
 
 (define-walk-method (compile this::PyNumber)
    (bytecode (code 'NUM) (PyNumber-val this)))
@@ -115,7 +136,7 @@
 	 ((null? (cddddr args))
 	  (bytecode (code (if needret 'RLAM4 'LAM4)) body))
 	 (else
-	  (error "compile-lambda" "Not implement" (length args))))))
+	  (error "compile-lambda" "Not implemented" (py->list args))))))
 
 (define-walk-method (compile this::PyCall)
    (if (<= (length (PyCall-args this)) 4)
@@ -126,9 +147,13 @@
    
 (define-walk-method (compile this::PyRef)
    (let ((decl (PyRef-decl this)))
-      (if (eq? (PyDecl-scope decl) 'global)
-	  (bytecode (code 'GGET) (PyDecl-id decl) (make-PCache #f -1))
-	  (bytecode (code 'REF0 (min (PyRef-index this) 4))))))
+      (case (PyDecl-scope decl)
+	 ((global)
+	  (bytecode (code 'GGET) (PyDecl-id decl) (make-PCache #f -1)))
+	 ((block)
+	  (bytecode (code 'VAR0 (min (PyRef-index this) 4))))
+	 (else
+	  (bytecode (code 'REF0 (min (PyRef-index this) 4)))))))
 	  
 (define-walk-method (compile this::PyRefUnresolved)
    (bytecode (code 'GGET) (PyRefUnresolved-id this) (make-PCache #f -1)))
@@ -151,6 +176,13 @@
 	      (begin
 		 (meaning (car l) env global return)
 		 (loop (cdr l))))))
+      ((BLOCK)
+       (let loop ((vals (bytecode-ref bcode 1))
+		  (env env))
+	  (if (null? vals)
+	      (meaning (bytecode-ref bcode 2) env global return)
+	      (loop (cdr vals)
+		 (cons (meaning (car vals) env global return) env)))))
       ;; reg (non deleted variables)
       ((REG0)
        (car env))
@@ -173,17 +205,33 @@
        (vref (cadddr env) bcode))
       ((REF4)
        (vref (list-ref env (bytecode-ref bcode 2)) bcode))
+      ;; variables
+      ((VAR0)
+       (car env))
+      ((VAR1)
+       (cadr env))
+      ((VAR2)
+       (caddr env))
+      ((VAR3)
+       (cadddr env))
+      ((VAR4)
+       (list-ref env (bytecode-ref bcode 2)))
       ;; set
       ((SET0)
-       (vref (car env) bcode))
+       (set-car! env
+	  (meaning (bytecode-ref bcode 1) env global return)))
       ((SET1)
-       (vref (cadr env) bcode))
+       (set-car! (cdr env)
+	  (meaning (bytecode-ref bcode 1) env global return)))
       ((SET2)
-       (vref (caddr env) bcode))
+       (set-car! (cddr env)
+	  (meaning (bytecode-ref bcode 1) env global return)))
       ((SET3)
-       (vref (cadddr env) bcode))
+       (set-car! (cdddr env)
+	  (meaning (bytecode-ref bcode 1) env global return)))
       ((SET4)
-       (vref (list-ref env (bytecode-ref bcode 2)) bcode))
+       (set-car! (cddddr env)
+	  (meaning (bytecode-ref bcode 1) env global return)))
       
       ;; properties
       ((GGET)

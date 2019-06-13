@@ -14,7 +14,7 @@ astpy.bigloo: .afile ast/types.sch hclass/hclass.sch object/object.sch
 	$(MAKE) astpy COMPILER=$(BIGLOO) LINKER="$(BIGLOO) $(BFLAGS)" \
            OBJECTS="$(SOURCES:%=o/bigloo/%.o)"
 
-astpy: $(OBJECTS)
+astpy: $(OBJECTS) astpy.bgl
 	$(LINKER) $(LFLAGS) astpy.bgl $(OBJECTS) -o astpy
 
 
