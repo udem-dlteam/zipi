@@ -3,19 +3,19 @@ BFLAGS = -g # -Obench
 AFILE = bglafile
 GAMBIT = gsc
 
-SOURCES = ast/ast sexp/sexp symbol/symbol return/return beval/beval \
-  hclass/hclass object/object dump/dump
+SOURCES = main/main ast/ast sexp/sexp symbol/symbol return/return beval/beval \
+  hclass/hclass object/object dump/dump locals/locals
 
 .SUFFIXES:
 .SUFFIXES: .scm .bgl .sch .o
 
 astpy.bigloo: .afile ast/types.sch hclass/hclass.sch object/object.sch
 	mkdir -p o/bigloo
-	$(MAKE) astpy COMPILER=$(BIGLOO) LINKER="$(BIGLOO) $(BFLAGS)" \
+	$(MAKE) astpy COMPILER=$(BIGLOO) LINKER="$(BIGLOO) -w $(BFLAGS)" \
            OBJECTS="$(SOURCES:%=o/bigloo/%.o)"
 
-astpy: $(OBJECTS) astpy.bgl astpy.scm
-	$(LINKER) $(LFLAGS) astpy.bgl astpy.scm $(OBJECTS) -o astpy
+astpy: $(OBJECTS)
+	$(LINKER) $(LFLAGS) $(OBJECTS) -o astpy
 
 
 .PHONY: clean clenall

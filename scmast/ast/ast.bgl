@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 10:16:39 2019                          */
-;*    Last change :  Thu Jun 13 11:07:43 2019 (serrano)                */
+;*    Last change :  Thu Jun 13 14:21:32 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Python AST                                                       */
@@ -93,7 +93,8 @@
 	   (final-class PyFun::PyExpr
 	      args::pair-nil
 	      body::PyStmt
-	      need-return::bool)
+	      need-return::bool
+	      can-locals::bool)
 	   
 	   (final-class PyCall::PyExpr
 	      fun::PyExpr
