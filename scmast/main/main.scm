@@ -1,6 +1,7 @@
 (define passes
    (list (cons "symbol" py-symbol!)
       (cons "return" py-return)
+      (cons "locals" py-locals)
       (cons "beval" py-beval)))
 
 (define (py19 conf)
