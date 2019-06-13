@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 10:16:39 2019                          */
-;*    Last change :  Thu Jun 13 08:23:52 2019 (serrano)                */
+;*    Last change :  Thu Jun 13 11:07:43 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Python AST                                                       */
@@ -74,6 +74,8 @@
 	      id)
 
 	   (abstract-class PyLiteral::PyExpr)
+	   
+	   (final-class PyUninit::PyExpr)
 	   
 	   (class PyLiteralValue::PyLiteral
 	      val)

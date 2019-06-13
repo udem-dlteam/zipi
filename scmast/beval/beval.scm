@@ -1,7 +1,7 @@
 (define-macro (all-bytecodes)
    (let ((l '(MOD
 	      NOP SEQ BLOCK
-	      NUM STR
+	      UNINIT NUM STR
 	      REG0 REG1 REG2 REG3 REG4 REG5
 	      VAR0 VAR1 VAR2 VAR3 VAR4 VAR5
 	      REF0 REF1 REF2 REF3 REF4 REF5
@@ -104,13 +104,16 @@
 	    ((global)
 	     (bytecode (code 'GPUT) (PyDecl-id decl) val (make-PCache #f -1)))
 	    (else
-	     (bytecode (code 'SET0 (min (PyRef-index ref) 4) val))))))
+	     (bytecode (code 'SET0 (min (PyRef-index ref) 4)) val)))))
       
    (cond
       ((PyRef? (PyAssig-lhs this))
        (compile-assig-ref this))
       (else
        (error "compile-assig" "Not implemented" (py->list this)))))
+
+(define-walk-method (compile this::PyUninit)
+   (bytecode (code 'UNINIT)))
 
 (define-walk-method (compile this::PyNumber)
    (bytecode (code 'NUM) (PyNumber-val this)))
@@ -163,6 +166,8 @@
       ;; literals
       ((NUM)
        (bytecode-ref bcode 1))
+      ((UNINIT)
+       uninit)
       ((STR)
        (bytecode-ref bcode 1))
       
