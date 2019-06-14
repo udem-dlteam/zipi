@@ -58,7 +58,6 @@
       (lambda (bcode env global return)
 	 (let ((frame (meaning (bytecode-ref bcode 2) env global return))
 	       (names (meaning (bytecode-ref bcode 3) env global return)))
-	    (tprint "IN LOCALS frame=" frame " names=" names)
 	    (or (cell-ref frame)
 		(let ((hclass (make-HClass (list->vector names) '()))
 		      (vals (map (lambda (name) #f)
@@ -81,12 +80,12 @@
 (define (compile+ vals decls env)
    (let loop ((vals vals)
 	      (decls decls)
-	      (env env))
+	      (env env)
+	      (acc '()))
       (if (null? vals)
-	  '()
-	  (let ((val (compile (car vals) env)))
-	     (cons val
-		(loop (cdr vals) (cdr decls) (cons (car decls) env)))))))
+	  acc
+	  (loop (cdr vals) (cdr decls) (cons (car decls) env)
+	     (cons (compile (car vals) env) acc)))))
 
 (define-walk-method (compile this::PyNode env)
    (error "compile" "Not implemented" (typeof this)))
