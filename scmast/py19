@@ -1,0 +1,26 @@
+#!/bin/bash
+
+./scmast.py $1 > $1.scm
+
+~/udem-dlteam/gambit/gsi/gsi -::.,dar \
+-e '(##import bigloo)' \
+ast/ast.bgl \
+-e '(##include "ast/walk.sch")' \
+-e '(##include "sexp/sexp#.scm")' \
+-e '(##include "sexp/sexp.scm")' \
+symbol/symbol.bgl \
+symbol/symbol.scm \
+return/return.bgl \
+return/return.scm \
+locals/locals.bgl \
+locals/locals.scm \
+-e '(##include "hclass/hclass.bgl")' \
+-e '(##include "hclass/hclass.scm")' \
+-e '(##include "object/object.bgl")' \
+-e '(##include "object/object.scm")' \
+beval/beval.bgl \
+beval/beval.scm \
+main/main.bgl \
+main/main.scm \
+main/main-gambit.scm \
+$1.scm

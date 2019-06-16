@@ -4,6 +4,11 @@
 	  (%env (cons '% env)))
       (glodecl! this %env)
       (resolve! this (cdr %env) conf)))
+(define (py-symbol! this conf)
+   (let* ((env (collect* this 'global))
+	  (%env (cons '% env)))
+      (glodecl! this %env)
+      (resolve! this (cdr %env) conf)))
 
 ;; collect declarations
 (define-walk-method (collect* this::PyNode scope)

@@ -43,8 +43,8 @@
 	      (set! verb (string->integer level))))
 	 (else
 	  (unless (string=? else "--")
-	     (set! conf (cons* :src else conf)))))
-      (py19 (cons* :verbose verb conf))))
+	     (set! conf (cons* '|:src| else conf)))))
+      (py19 (cons* '|:verbose| verb conf))))
 
 ;*---------------------------------------------------------------------*/
 ;*    usage ...                                                        */
