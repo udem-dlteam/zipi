@@ -1,7 +1,7 @@
 (define-macro (all-bytecodes)
    (let ((l '(MOD
 	      NOP SEQ BLOCK
-	      UNINIT NUM STR
+	      PRAGMA UNINIT NUM STR
 	      VAR0 VAR1 VAR2 VAR3 VAR4 VAR5
 	      REF0 REF1 REF2 REF3 REF4 REF5
 	      SET0 SET1 SET2 SET3 SET4 SET5

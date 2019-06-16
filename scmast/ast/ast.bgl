@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 10:16:39 2019                          */
-;*    Last change :  Thu Jun 13 14:21:32 2019 (serrano)                */
+;*    Last change :  Thu Jun 13 15:55:26 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Python AST                                                       */
@@ -66,9 +66,12 @@
 	   ;; expressions
 	   (class PyExpr::PyNode)
 
+	   (class PyPragma::PyExpr
+	      (lang::symbol (default 'scheme))
+	      expr)
+	   
 	   (class PyRef::PyExpr
-	      (decl (info '("jsonref" "notraverse")))
-	      (index::int (default 1)))
+	      (decl (info '("jsonref" "notraverse"))))
 	   
 	   (class PyRefUnresolved::PyExpr
 	      id)
@@ -92,6 +95,7 @@
 	   
 	   (final-class PyFun::PyExpr
 	      args::pair-nil
+	      decls::pair-nil
 	      body::PyStmt
 	      need-return::bool
 	      can-locals::bool)

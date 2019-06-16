@@ -31,7 +31,7 @@
       (cond
 	 ((not (PyRefUnresolved? lhs))
 	  (call-default-walker))
-	 ((lookup? (cdr %env) (PyRefUnresolved-id lhs))
+	 ((lookup (cdr %env) (PyRefUnresolved-id lhs))
 	  (call-default-walker))
 	 (else
 	  (let ((decl (make-PyDeclInit (PyNode-loc this)
@@ -65,10 +65,9 @@
 
 (define-walk-method (resolve! this::PyRefUnresolved env conf)
    (let ((loc (PyRefUnresolved-loc this)))
-      (multiple-value-bind (decl index)
-	 (lookup env (PyRefUnresolved-id this))
+      (let ((decl (lookup env (PyRefUnresolved-id this))))
 	 (if (PyDecl? decl)
-	     (make-PyRef loc decl index)
+	     (make-PyRef loc decl)
 	     this))))
 
 (define-walk-method (resolve! this::PyFun env conf)
@@ -91,9 +90,8 @@
    (if (eq? (PyDeclInit-scope this) 'local)
        (let ((loc (PyDeclInit-loc this)))
 	  ;; replace the declaration with an assignment
-	  (multiple-value-bind (decl index)
-	     (lookup env (PyDeclInit-id this))
-	     (make-PyAssig loc (make-PyRef loc decl index)
+	  (let ((decl (lookup env (PyDeclInit-id this))))
+	     (make-PyAssig loc (make-PyRef loc decl)
 		(resolve! (PyDeclInit-val this) env conf))))
        (call-default-walker)))
 
@@ -103,7 +101,7 @@
 
 (define-walk-method (collect-free-assig* this::PyAssig env)
    (if (isa? (PyAssig-lhs this) PyRefUnresolved)
-       (if (lookup? env (PyRefUnresolved-id (PyAssig-lhs this)))
+       (if (lookup env (PyRefUnresolved-id (PyAssig-lhs this)))
 	   (collect-free-assig* (PyAssig-rhs this) env)
 	   (let ((loc (PyExpr-loc (PyAssig-lhs this))))
 	      (cons (make-PyDeclInit loc
@@ -115,17 +113,12 @@
 
 ;; find a variable in the environment
 (define (lookup env id)
-   (let loop ((env env)
-	      (offset 0))
+   (let loop ((env env))
       (cond
-	 ((null? env) (values #f -1))
-	 ((not (eq? (PyDecl-id (car env)) id)) (loop (cdr env) (+ offset 1)))
-	 ((eq? (PyDecl-scope (car env)) 'local) (values (car env) offset))
-	 ((eq? (PyDecl-scope (car env)) 'block) (values (car env) offset))
-	 (else (values (car env) -1)))))
+	 ((null? env) #f)
+	 ((not (eq? (PyDecl-id (car env)) id)) (loop (cdr env)))
+	 ((eq? (PyDecl-scope (car env)) 'local) (car env))
+	 ((eq? (PyDecl-scope (car env)) 'block) (car env))
+	 (else (car env)))))
 
-(define (lookup? env id)
-   (multiple-value-bind (decl index)
-      (lookup env id)
-      decl))
  

@@ -4,18 +4,18 @@ AFILE = bglafile
 GAMBIT = gsc
 
 SOURCES = main/main ast/ast sexp/sexp symbol/symbol return/return beval/beval \
-  hclass/hclass object/object dump/dump locals/locals
+  hclass/hclass object/object dump/dump locals/locals scheme/scheme
 
 .SUFFIXES:
 .SUFFIXES: .scm .bgl .sch .o
 
-astpy.bigloo: .afile ast/types.sch hclass/hclass.sch object/object.sch
+pyc.bigloo: .afile ast/types.sch hclass/hclass.sch object/object.sch
 	mkdir -p o/bigloo
-	$(MAKE) astpy COMPILER=$(BIGLOO) LINKER="$(BIGLOO) -w $(BFLAGS)" \
+	$(MAKE) pyc COMPILER=$(BIGLOO) LINKER="$(BIGLOO) -w $(BFLAGS)" \
            OBJECTS="$(SOURCES:%=o/bigloo/%.o)"
 
-astpy: $(OBJECTS)
-	$(LINKER) $(LFLAGS) $(OBJECTS) -o astpy
+pyc: $(OBJECTS)
+	$(LINKER) $(LFLAGS) $(OBJECTS) -o pyc
 
 
 .PHONY: clean clenall
@@ -25,8 +25,8 @@ astpy: $(OBJECTS)
 
 clean:
 	rm -rf o
-	rm -f astpy
-	rm -f astpy.o
+	rm -f pyc
+	rm -f pyc.o
 
 cleanall: clean
 	rm -f .afile
