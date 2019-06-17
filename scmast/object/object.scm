@@ -60,19 +60,33 @@
 (define (PyFunction-call1 fun a0)
    (if (and (isa? fun PyFunction) (correct-arity? (PyFunction-procedure fun) 1))
        ((PyFunction-procedure fun) a0)
-       (error "call0" "wrong call" fun)))
+       (error "call1" "wrong call" fun)))
 
 (define (PyFunction-call2 fun a0 a1)
    (if (and (isa? fun PyFunction) (correct-arity? (PyFunction-procedure fun) 2))
        ((PyFunction-procedure fun) a0 a1)
-       (error "call0" "wrong call" fun)))
+       (error "call2" "wrong call" fun)))
 
 (define (PyFunction-call3 fun a0 a1 a2)
    (if (and (isa? fun PyFunction) (correct-arity? (PyFunction-procedure fun) 2))
        ((PyFunction-procedure fun) a0 a1 a2)
-       (error "call0" "wrong call" fun)))
+       (error "call3" "wrong call" fun)))
 
 (define (PyFunction-call4 fun a0 a1 a2 a3)
    (if (and (isa? fun PyFunction) (correct-arity? (PyFunction-procedure fun) 2))
        ((PyFunction-procedure fun) a0 a1 a2 a3)
-       (error "call0" "wrong call" fun)))
+       (error "call4" "wrong call" fun)))
+
+(define (py-make-global)
+   (let* ((hclass0 (make-HClass (vector (& "print") (& "locals")) '()))
+	  (hclass1 (make-HClass (vector (& "__builtins__")) '()))
+	  (__builtins__ (make-PyObject hclass0 '#(- -)))
+	  (%global (make-PyObject hclass1 (vector __builtins__))))
+      (PyObject-elements-set! __builtins__ 0 (py-procedure->function print))
+      (PyObject-elements-set! __builtins__ 1 "locals")))
+
+(define (py-make-caches size)
+   (list->vector
+      (map (lambda (n) (make-PCache #f -1))
+	 (iota size))))
+   

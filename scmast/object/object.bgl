@@ -43,17 +43,15 @@
 	   (PyFunction-call1 ::obj ::obj)
 	   (PyFunction-call2 ::obj ::obj ::obj)
 	   (PyFunction-call3 ::obj ::obj ::obj ::obj)
-	   (PyFunction-call4 ::obj ::obj ::obj ::obj ::obj))
+	   (PyFunction-call4 ::obj ::obj ::obj ::obj ::obj)
+
+	   (py-make-global)
+	   (py-make-caches ::int))
 
    (eval   (export global-get)
            (export global-put!)
            (export make-PyFunction)
-	   (export PyFunction-default-hclass)
-	   (export PyFunction-call0)
-	   (export PyFunction-call1)
-	   (export PyFunction-call2)
-	   (export PyFunction-call3)
-	   (export PyFunction-call4)))
+	   (export PyFunction-default-hclass)))
 
 ;*---------------------------------------------------------------------*/
 ;*    & ...                                                            */

@@ -6,17 +6,8 @@
       ast))
 
 (define (py-scheme-eval ast conf)
-   (let* ((def (PyModule-%info ast))
-	  (hclass0 (make-HClass (vector (& "print") (& "locals")) '()))
-	  (hclass1 (make-HClass (vector (& "__builtins__")) '()))
-	  (__builtins__ (make-PyObject hclass0 '#(- -)))
-	  (%global (make-PyObject hclass1 (vector __builtins__)))
-	  (%caches (list->vector
-		      (map (lambda (n) (make-PCache #f -1))
-			 (iota (PyModule-caches ast))))))
-      (PyObject-elements-set! __builtins__ 0 (py-procedure->function print))
-      (PyObject-elements-set! __builtins__ 1 locals3)
-      ((eval def) %global %caches)))
+   (let ((def (PyModule-%info ast)))
+      ((eval def) (py-make-global) (py-make-caches ,(PyModule-caches ast)))))
 
 (define (py-scheme-bigloo ast conf)
    (pp `(module ,(string->symbol (config-get conf 'src "__stdin"))
@@ -24,16 +15,7 @@
 	   (import __py_hclass)
 	   (main main)))
    (pp `(define (main argv)
-	   (let* ((hclass0 (make-HClass (vector (& "print") (& "locals")) '()))
-		  (hclass1 (make-HClass (vector (& "__builtins__")) '()))
-		  (__builtins__ (make-PyObject hclass0 '#(- -)))
-		  (%global (make-PyObject hclass1 (vector __builtins__)))
-		  (%caches (list->vector
-			      (map (lambda (n) (make-PCache #f -1))
-				 (iota ,(PyModule-caches ast))))))
-	      (PyObject-elements-set! __builtins__ 0 (py-procedure->function print))
-	      (PyObject-elements-set! __builtins__ 1 "locals")
-	      (pyc %global %caches))))
+	   (pyc (py-make-global) (py-make-caches ,(PyModule-caches ast)))))
    (pp `(define pyc ,(PyModule-%info ast))))
 		    
 (define (py-scheme-gambit ast conf)
