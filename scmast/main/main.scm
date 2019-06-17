@@ -8,7 +8,22 @@
    (list (cons "symbol" py-symbol!)
       (cons "return" py-return)
       (cons "locals" py-locals)
-      (cons "scheme" py-scheme)))
+      (cons "scheme" py-scheme)
+      (cons "eval" py-scheme-eval)))
+
+(define passes-bigloo
+   (list (cons "symbol" py-symbol!)
+      (cons "return" py-return)
+      (cons "locals" py-locals)
+      (cons "scheme" py-scheme)
+      (cons "bigloo" py-scheme-bigloo)))
+
+(define passes-gambit
+   (list (cons "symbol" py-symbol!)
+      (cons "return" py-return)
+      (cons "locals" py-locals)
+      (cons "scheme" py-scheme)
+      (cons "gambit" py-scheme-gambit)))
 
 (define passes-javascript
    (list (cons "symbol" py-symbol!)
@@ -30,6 +45,8 @@
 	  (passes (case (config-get conf 'target)
 		     ((beval) passes-beval)
 		     ((scheme) passes-scheme)
+		     ((bigloo) passes-bigloo)
+		     ((gambit) passes-gambit)
 		     ((javascript) passes-javascript)
 		     (else (error "pyc" "Unknown target language"
 			      (config-get conf 'target))))))
@@ -45,9 +62,9 @@
 		 (passes passes))
 	 (when (pair? passes)
 	    (when (config-get conf 'verbose)
-	       (display "  . ")
-	       (display (caar passes))
-	       (newline))
+	       (display "  . " (current-error-port))
+	       (display (caar passes) (current-error-port))
+	       (newline (current-error-port)))
 	    (let ((nast ((cdar passes) ast conf)))
 	       (when (config-get conf 'trace)
 		  (dump-trace tracedir (caar passes) nast))

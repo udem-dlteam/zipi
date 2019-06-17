@@ -23,7 +23,8 @@
               (version::int read-only (default 1))
               (ident::string read-only)
               stmts::pair-nil
-              (globals::pair-nil (default '())))
+              (globals::pair-nil (default '()))
+	      (caches::long (default -1)))
            
            ;; misc
            (class PyDecl::PyNode
