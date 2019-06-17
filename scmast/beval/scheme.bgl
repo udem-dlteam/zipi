@@ -1,0 +1,26 @@
+;*=====================================================================*/
+;*    serrano/nosync/py19/scmast/beval/scheme.bgl                      */
+;*    -------------------------------------------------------------    */
+;*    Author      :  Manuel Serrano                                    */
+;*    Creation    :  Fri Jun 14 16:05:14 2019                          */
+;*    Last change :  Fri Jun 14 16:05:23 2019 (serrano)                */
+;*    Copyright   :  2019 Manuel Serrano                               */
+;*    -------------------------------------------------------------    */
+;*    Scheme code generation                                           */
+;*=====================================================================*/
+
+;*---------------------------------------------------------------------*/
+;*    The module                                                       */
+;*---------------------------------------------------------------------*/
+(module __py_scheme
+
+   (include "ast/ast.sch"
+	    "hclass/hclass.sch"
+	    "object/object.sch")
+   
+   (import __py_hclass
+	   __py_object
+	   __py_dump)
+
+   (export (py-scheme ast conf)))
+

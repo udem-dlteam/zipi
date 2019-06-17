@@ -1,0 +1,45 @@
+;*=====================================================================*/
+;*    serrano/nosync/py19/scmast/scheme/scheme.bgl                     */
+;*    -------------------------------------------------------------    */
+;*    Author      :  Manuel Serrano                                    */
+;*    Creation    :  Mon Jun 17 07:40:23 2019                          */
+;*    Last change :  Mon Jun 17 07:40:49 2019 (serrano)                */
+;*    Copyright   :  2019 Manuel Serrano                               */
+;*    -------------------------------------------------------------    */
+;*    Scheme code generation                                           */
+;*=====================================================================*/
+
+;*---------------------------------------------------------------------*/
+;*    The module                                                       */
+;*---------------------------------------------------------------------*/
+(module __py_scheme
+   
+   (include "ast/ast.sch"
+	    "hclass/hclass.sch"
+	    "object/object.sch")
+   
+   (import __py_hclass
+	   __py_object
+	   __py_dump)
+
+   (export (py-scheme ast conf)))
+
+;*---------------------------------------------------------------------*/
+;*    epairify ...                                                     */
+;*---------------------------------------------------------------------*/
+(define (epairify node expr)
+   (if (pair? expr)
+       (econs (car expr) (cdr expr) (PyNode-loc node))
+       expr))
+
+;*---------------------------------------------------------------------*/
+;*    epairify-deep ...                                                */
+;*---------------------------------------------------------------------*/
+(define (epairify-deep node expr)
+   (let ((loc (PyNode-loc node)))
+      (if (or (epair? expr) (not (pair? expr)))
+	  expr
+	  (econs (epairify-deep loc (car expr))
+	     (epairify-deep loc (cdr expr))
+	     loc))))
+
