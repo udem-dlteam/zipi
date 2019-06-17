@@ -23,6 +23,7 @@
 	   __py_return
 	   __py_beval
 	   __py_scheme
+	   __py_javascript
 	   __py_hclass
 	   __py_object)
 
@@ -33,7 +34,7 @@
 ;*---------------------------------------------------------------------*/
 (define (main args)
    (let ((verb 0)
-	 (tgt 'scheme)
+	 (tgt 'beval)
 	 (conf '()))
       (args-parse (cdr args)
 	 ((("-h" "--help") (help "This message"))
@@ -47,8 +48,8 @@
 	      (set! verb (string->integer level))))
 	 (else
 	  (unless (string=? else "--")
-	     (set! conf (cons* :src else conf)))))
-      (pyc (cons* :verbose verb :target tgt conf))))
+	     (set! conf (cons* 'src else conf)))))
+      (pyc (cons* 'verbose verb 'target tgt conf))))
 
 ;*---------------------------------------------------------------------*/
 ;*    usage ...                                                        */

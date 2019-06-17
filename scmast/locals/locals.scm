@@ -27,11 +27,11 @@
    (when (PyFun-can-locals this)
       (let ((loc (PyNode-loc (PyFun-body this))))
 	 (PyFun-body-set! this
-	    (make-PyBlock loc
-	       (list (make-PyDecl loc '%frame 'block)
-		  (make-PyDecl loc '%names 'block))
-	       (list (make-PyPragma loc 'scheme '(make-cell #f))
-		  (make-PyPragma loc 'scheme `',(function-names this)))
+	    (new-PyBlock loc
+	       (list (new-PyDecl loc '%frame 'block)
+		  (new-PyDecl loc '%names 'block))
+	       (list (new-PyPragma loc '(make-cell #f))
+		  (new-PyPragma loc `',(function-names this)))
 	       (PyFun-body this)))))
    this)
 

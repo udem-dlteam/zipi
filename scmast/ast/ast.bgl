@@ -15,19 +15,20 @@
 (module __py_ast
    
    (export (abstract-class PyNode
-	      (loc::pair read-only (info '("notraverse"))))
+	      (loc::pair read-only (info '("notraverse")))
+	      (%info (default #unspecified) (info '("nojson" "notraverse"))))
 	   
 	   ;; module
 	   (class PyModule::PyNode
 	      (version::int read-only (default 1))
 	      (ident::string read-only)
-	      (stmts::pair-nil read-only (default '()))
+	      stmts::pair-nil
 	      (globals::pair-nil (default '())))
 	   
 	   ;; misc
 	   (class PyDecl::PyNode
+	      (key::int (default (genkey)))
 	      (name (default #f))
-	      (key::int (default -1))
 	      (id::symbol read-only)
 	      ;; scope: global, local, block
 	      (scope::symbol read-only))
@@ -97,15 +98,17 @@
 	   
 	   (final-class PyFun::PyExpr
 	      args::pair-nil
-	      decls::pair-nil
 	      body::PyStmt
-	      need-return::bool
-	      can-locals::bool)
+	      (decls::pair-nil (default '()))
+	      (need-return::bool (default #t))
+	      (can-locals::bool (default #t)))
 	   
 	   (final-class PyCall::PyExpr
 	      fun::PyExpr
-	      (args::pair-nil (default '()))
-	      (keywords::pair-nil (default '())))
+	      args::pair-nil
+	      keywords::pair-nil)
+
+	   (genkey)
 	   
 	   (generic walk0 n::PyNode p::procedure)
 	   (generic walk1 n::PyNode p::procedure a0)
@@ -131,6 +134,18 @@
 	   (generic walk5!::PyNode n::PyNode p::procedure a0 a1 a2 a3 a4)
 	   (generic walk6!::PyNode n::PyNode p::procedure a0 a1 a2 a3 a4 a5)
 	   (generic walk7!::PyNode n::PyNode p::procedure a0 a1 a2 a3 a4 a5 a6)))
+
+;*---------------------------------------------------------------------*/
+;*    key ...                                                          */
+;*---------------------------------------------------------------------*/
+(define key 0)
+
+;*---------------------------------------------------------------------*/
+;*    genkey ...                                                       */
+;*---------------------------------------------------------------------*/
+(define (genkey)
+   (set! key (+fx key 1))
+   key)
 
 ;*---------------------------------------------------------------------*/
 ;*    generic walks ...                                                */

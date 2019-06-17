@@ -24,3 +24,8 @@
 
    (export (py-beval ast conf)))
 
+;*---------------------------------------------------------------------*/
+;*    include                                                          */
+;*---------------------------------------------------------------------*/
+(define-macro (include file)
+   (call-with-input-file (make-file-name "beval" file) read))

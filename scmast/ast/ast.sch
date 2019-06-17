@@ -11,5 +11,6 @@
 
 (directives
    (include "ast/types.sch"
+	    "ast/new.sch"
 	    "ast/walk.sch")
    (import __py_ast))

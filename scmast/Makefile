@@ -3,9 +3,10 @@ BFLAGS = -g # -Obench
 AFILE = bglafile
 GAMBIT = gsc
 
-SOURCES = main/main ast/ast sexp/sexp symbol/symbol return/return beval/beval \
-  hclass/hclass object/object dump/dump locals/locals scheme/scheme \
-  javascript/javascript
+SOURCES = main/main ast/ast sexp/sexp symbol/symbol return/return \
+  beval/beval hclass/hclass object/object dump/dump locals/locals \
+  scheme/scheme \
+  javascript/javascript 
 
 .SUFFIXES:
 .SUFFIXES: .scm .bgl .sch .o
@@ -32,6 +33,7 @@ clean:
 cleanall: clean
 	rm -f .afile
 	rm -f ast/types.sch
+	rm -f ast/new.sch
 
 o/bigloo/%.o: %.bgl %.scm
 	mkdir -p $(@D)
@@ -40,5 +42,10 @@ o/bigloo/%.o: %.bgl %.scm
 ast/types.sch: ast/ast.bgl
 	$(BIGLOO) -classgen $< -o $@
 
+ast/new.sch: ast/ast.bgl
+	$(BIGLOO) -i etc/mkastnew.scm $< > $@
+
 %.sch: %.bgl
 	$(BIGLOO) -classgen $< -o $@
+
+main/main.scm: ast/new.sch

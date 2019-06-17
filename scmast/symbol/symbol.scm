@@ -1,5 +1,5 @@
 ;; symbol resolution
-(define (py-symbol! this::PyNode conf)
+(define (py-symbol! this conf)
    (let* ((env (collect* this 'global))
 	  (%env (cons '% env)))
       (glodecl! this %env)
@@ -29,7 +29,7 @@
 	 ((lookup (cdr %env) (PyRefUnresolved-id lhs))
 	  (call-default-walker))
 	 (else
-	  (let ((decl (make-PyDeclInit (PyNode-loc this)
+	  (let ((decl (new-PyDeclInit (PyNode-loc this)
 			 (PyRefUnresolved-id lhs) 'global
 			 (glodecl! (PyAssig-rhs this) %env))))
 	     (set-cdr! %env (cons decl (cdr %env)))
@@ -62,21 +62,22 @@
    (let ((loc (PyRefUnresolved-loc this)))
       (let ((decl (lookup env (PyRefUnresolved-id this))))
 	 (if (PyDecl? decl)
-	     (make-PyRef loc decl)
+	     (new-PyRef loc decl)
 	     this))))
 
 (define-walk-method (resolve! this::PyFun env conf)
    (let* ((loc (PyNode-loc this))
 	  (decls (collect* (PyFun-body this) 'local))
-	  (denv (map (lambda (decl) (make-PyDecl loc (PyDecl-id decl) 'local))
+	  (denv (map (lambda (decl)
+			(new-PyDecl loc (PyDecl-id decl) 'local))
 		   decls))
 	  (aenv (collect-free-assig* (PyFun-body this)
 		   (append denv (PyFun-args this) env)))
 	  (bdgs (append aenv denv)))
       (PyFun-body-set! this
-	 (make-PyBlock loc
+	 (new-PyBlock loc
 	    bdgs
-	    (map (lambda (b) (make-PyUninit (PyNode-loc b))) bdgs)
+	    (map (lambda (b) (new-PyUninit (PyNode-loc b))) bdgs)
 	    (resolve! (PyFun-body this)
 	       (append aenv denv (PyFun-args this) env) conf)))
       this))
@@ -86,7 +87,7 @@
        (let ((loc (PyDeclInit-loc this)))
 	  ;; replace the declaration with an assignment
 	  (let ((decl (lookup env (PyDeclInit-id this))))
-	     (make-PyAssig loc (make-PyRef loc decl)
+	     (new-PyAssig loc (new-PyRef loc decl)
 		(resolve! (PyDeclInit-val this) env conf))))
        (call-default-walker)))
 
@@ -99,10 +100,10 @@
        (if (lookup env (PyRefUnresolved-id (PyAssig-lhs this)))
 	   (collect-free-assig* (PyAssig-rhs this) env)
 	   (let ((loc (PyExpr-loc (PyAssig-lhs this))))
-	      (cons (make-PyDeclInit loc
+	      (cons (new-PyDeclInit loc
 		       (PyRefUnresolved-id (PyAssig-lhs this))
 		       'local
-		       (make-PyUninit loc))
+		       (new-PyUninit loc))
 		 (collect-free-assig* (PyAssig-rhs this) env))))
        (call-default-walker)))
 

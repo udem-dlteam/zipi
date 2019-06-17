@@ -19,7 +19,7 @@
    (import __py_hclass)
    
    (export (class PyObject
-	      (hclass (default #unspecified))
+	      (hclass (default #f))
 	      (%elements (default (make-vector 4))))
 
 	   (class PyFunction::PyObject

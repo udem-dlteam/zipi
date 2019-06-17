@@ -82,4 +82,3 @@
 	  (define (,short-walk ,(id-without-type (cadr args)) ,@(cddr args))
 	     (,name ,@(map id-without-type (cdr args))))
 	  ,@body)))
-
