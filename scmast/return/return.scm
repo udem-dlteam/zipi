@@ -57,6 +57,13 @@
       (PyFun-need-return-set! fun #t)
       (PyReturn-tail-set! this #f)))
 
+(define-walk-method (return this::PyTry fun tail conf)
+   (return (PyTry-body this) fun #f conf)
+   (return (PyTry-else this) fun tail conf)
+   (return (PyTry-finally this) fun #f conf)
+   (for-each (lambda (h) (return (PyHandler-body h) fun tail conf))
+      (PyTry-handlers this)))
+
 (define-walk-method (return this::PyPass fun tail conf)
    #f)
 

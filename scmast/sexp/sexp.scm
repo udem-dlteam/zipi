@@ -58,6 +58,12 @@
 	  (compile-stmt* loc body tail scope conf)
 	  (compile-stmt* loc otherwise tail scope conf)))
 
+      ((Try ?loc ?body ?handlers ?orelse ?finally)
+       ;; Try(stmt* body, excepthandler* handlers, stmt* orelse, stmt* finalbody)
+       (new-PyTry loc (compile-stmt* loc body #f scope conf)
+	  (map (lambda (h) (compile-handler h scope conf)) handlers)
+	  (compile-stmt* loc orelse #f scope conf)
+	  (compile-stmt* loc finally #f scope conf)))
       ((Expr ?loc ?value)
        ;; Expr(expr value)
        (sexp value tail scope conf))
@@ -88,6 +94,8 @@
 	  (case op
 	     ((Add) '+)
 	     ((Sub) '-)
+	     ((Div) '/)
+	     ((Mul) '*)
 	     (else "BinOp" "Illegal operator" op))
 	  (sexp left #f scope conf)
 	  (sexp right #f scope conf)))
@@ -120,7 +128,23 @@
 	  (else (error "ctx" "Not implemented" ctx))))
       (else
        (error "sexp" "Not implemented" exp))))
-      
+
+(define (compile-handler handler scope conf)
+   (match-case handler
+      ((ExceptHandler ?loc ?type ?name ?body)
+       (let ((expr (if type
+		       (sexp type #f scope conf)
+		       (new-PyUninit loc))))
+	  (if name
+	      (let ((body (new-PyBlock loc
+			     (list (new-PyDecl loc name 'block))
+			     (list (new-PyPragma loc '%exn))
+			     (compile-stmt* loc body #f scope conf))))
+		 (new-PyHandler loc expr body))
+	      (new-PyHandler loc expr (compile-stmt* loc body #f scope conf)))))
+      (else
+       (error "sexp" "Wrong handler" handler))))
+       
 (define (compile-stmt* loc body tail scope conf)
    (if (null? body)
        (new-PyPass loc)

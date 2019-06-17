@@ -53,6 +53,7 @@
 	   (py- x y)
 	   (pyneg x)
 	   (py* x y)
+	   (py/ x y)
 	   (py< x y)
 	   (py<= x y)
 	   (py> x y)

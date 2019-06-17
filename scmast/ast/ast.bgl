@@ -76,6 +76,16 @@
 	   (class PyWhile::PyLoop
 	      (test::PyExpr (info '("ast"))))
 
+	   (class PyTry::PyStmt
+	      (body::PyStmt (info '("ast")))
+	      handlers::pair-nil
+	      (else::PyStmt (info '("ast")))
+	      (finally::PyStmt (info '("ast"))))
+
+	   (class PyHandler::PyNode
+	      (type::PyExpr (info '("ast")))
+	      (body::PyStmt (info '("ast"))))
+	   
 	   (class PyBreak::PyStmt)
 	   (class PyContinue::PyStmt)
 	   (class PyPass::PyStmt)
@@ -433,6 +443,8 @@
 (gen-walks PyAssig lhs rhs)
 (gen-walks PyIf test then else)
 (gen-walks PyWhile test body else)
+(gen-walks PyTry body (handlers) else finally)
+(gen-walks PyHandler type body)
 (gen-walks PyFun body)
 (gen-walks PyBinary lhs rhs)
 (gen-walks PyCall fun (args) (keywords))

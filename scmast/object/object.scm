@@ -94,6 +94,9 @@
 (define (py* x y)
   (* x y))
 
+(define (py/ x y)
+  (/ x y))
+
 (define (py< x y)
   (< x y))
 
