@@ -2,7 +2,7 @@
 ;; Class accessors
 ;; Bigloo (4.3f)
 ;; Inria -- Sophia Antipolis     Wed 12 Jun 2019 11:17:36 AM CEST 
-;; (bigloo -classgen hclass/hclass.bgl)
+;; (bigloo -classgen hclass/hclass.bgl -o hclass/hclass.sch)
 ;; ==========================================================
 
 ;; The directives
@@ -11,7 +11,7 @@
 ;; PCache
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PCache::PCache hclass1061::obj index1062::long)
+    (inline make-PCache::PCache hclass1062::obj index1063::long)
     (inline PCache?::bool ::obj)
     (PCache-nil::PCache)
     (inline PCache-index::long ::PCache)
@@ -22,7 +22,7 @@
 ;; HClass
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-HClass::HClass names1057::vector transitions1058::pair-nil)
+    (inline make-HClass::HClass names1058::vector transitions1059::pair-nil)
     (inline HClass?::bool ::obj)
     (HClass-nil::HClass)
     (inline HClass-transitions::pair-nil ::HClass)
@@ -33,7 +33,7 @@
 ;; The definitions
 (cond-expand (bigloo-class-sans
 ;; PCache
-(define-inline (make-PCache::PCache hclass1061::obj index1062::long) (instantiate::PCache (hclass hclass1061) (index index1062)))
+(define-inline (make-PCache::PCache hclass1062::obj index1063::long) (instantiate::PCache (hclass hclass1062) (index index1063)))
 (define-inline (PCache?::bool obj::obj) ((@ isa? __object) obj (@ PCache __py_hclass)))
 (define (PCache-nil::PCache) (class-nil (@ PCache __py_hclass)))
 (define-inline (PCache-index::long o::PCache) (-> |#!bigloo_wallow| o index))
@@ -42,7 +42,7 @@
 (define-inline (PCache-hclass-set! o::PCache v::obj) (set! (-> |#!bigloo_wallow| o hclass) v))
 
 ;; HClass
-(define-inline (make-HClass::HClass names1057::vector transitions1058::pair-nil) (instantiate::HClass (names names1057) (transitions transitions1058)))
+(define-inline (make-HClass::HClass names1058::vector transitions1059::pair-nil) (instantiate::HClass (names names1058) (transitions transitions1059)))
 (define-inline (HClass?::bool obj::obj) ((@ isa? __object) obj (@ HClass __py_hclass)))
 (define (HClass-nil::HClass) (class-nil (@ HClass __py_hclass)))
 (define-inline (HClass-transitions::pair-nil o::HClass) (-> |#!bigloo_wallow| o transitions))

@@ -74,12 +74,15 @@
 	  (aenv (collect-free-assig* (PyFun-body this)
 		   (append denv (PyFun-args this) env)))
 	  (bdgs (append aenv denv)))
-      (PyFun-body-set! this
-	 (new-PyBlock loc
-	    bdgs
-	    (map (lambda (b) (new-PyUninit (PyNode-loc b))) bdgs)
-	    (resolve! (PyFun-body this)
-	       (append aenv denv (PyFun-args this) env) conf)))
+      (if (pair? bdgs)
+	  (PyFun-body-set! this
+	     (new-PyBlock loc
+		bdgs
+		(map (lambda (b) (new-PyUninit (PyNode-loc b))) bdgs)
+		(resolve! (PyFun-body this)
+		   (append bdgs (PyFun-args this) env) conf)))
+	  (PyFun-body-set! this
+	     (resolve! (PyFun-body this) (append (PyFun-args this) env) conf)))
       this))
 
 (define-walk-method (resolve! this::PyDeclInit env conf)

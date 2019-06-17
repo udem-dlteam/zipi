@@ -41,7 +41,7 @@
 	  (usage args-parse-usage)
 	  (exit 0))
 	 ((("-t" "--target") ?target (help "Set target language"))
-	  (set! target target))
+	  (set! tgt (string->symbol target)))
 	 (("-v?level" (help "Increase/set verbosity level (-v0 crystal silence)"))
 	  (if (string=? level "")
 	      (set! verb (+fx 1 verb))
@@ -61,6 +61,6 @@
    (newline)
    (print "Shell Variables:")
    (print "   - PYTRACE: hop internal trace [PYTRACE=\"key1, key2, ...\"]")
-   (print "      trace")
+   (print "      pyc:dump")
    (newline))
 
