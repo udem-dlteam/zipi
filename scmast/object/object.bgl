@@ -13,7 +13,7 @@
 ;*    The module                                                       */
 ;*---------------------------------------------------------------------*/
 (module __py_object
-
+   
    (include "object/object.sch")
    
    (import __py_hclass)
@@ -21,22 +21,22 @@
    (export (class PyObject
 	      (hclass (default #f))
 	      (%elements (default (make-vector 4))))
-
+	   
 	   (class PyFunction::PyObject
 	      (procedure read-only))
-
+	   
 	   (macro & name)
-
+	   
 	   (global-get ::PyObject ::obj ::obj)
 	   (global-put! ::PyObject ::obj ::obj ::obj)
 	   
 	   (inline PyObject-elements-ref ::PyObject ::long)
 	   (PyObject-elements-set! ::PyObject ::long ::obj)
-
+	   
 	   (PyObject-find-prop ::PyObject ::obj)
 	   
 	   (PyFunction-default-hclass)
-
+	   
 	   (py-procedure->function ::procedure)
 	   
 	   (PyFunction-call0 ::obj)
@@ -44,14 +44,20 @@
 	   (PyFunction-call2 ::obj ::obj ::obj)
 	   (PyFunction-call3 ::obj ::obj ::obj ::obj)
 	   (PyFunction-call4 ::obj ::obj ::obj ::obj ::obj)
-
+	   
 	   (py-make-global)
 	   (py-make-caches ::int))
-
+   
    (eval   (export global-get)
-           (export global-put!)
-           (export make-PyFunction)
-	   (export PyFunction-default-hclass)))
+      (export global-put!)
+      (export make-PyFunction)
+      (export PyFunction-default-hclass)
+      (export PyFunction-default-hclass)
+      (export PyFunction-call0)
+      (export PyFunction-call1)
+      (export PyFunction-call2)
+      (export PyFunction-call3)
+      (export PyFunction-call4)))
 
 ;*---------------------------------------------------------------------*/
 ;*    & ...                                                            */

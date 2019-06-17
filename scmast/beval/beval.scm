@@ -56,13 +56,7 @@
 		   frame))))))
 
 (define (py-beval ast conf)
-   (let* ((hclass0 (make-HClass '#(print locals) '()))
-	  (hclass1 (make-HClass '#(__builtins__) '()))
-	  (__builtins__ (make-PyObject hclass0 '#(- -)))
-	  (global (make-PyObject hclass1 (vector __builtins__))))
-      (PyObject-elements-set! __builtins__ 0 (py-procedure->function print))
-      (PyObject-elements-set! __builtins__ 1 locals2)
-      (meaning (compile ast '()) '() global no-return)))
+   (meaning (compile ast '()) '() (py-make-global) no-return))
 
 (define (compile* nodes env)
    (map (lambda (n) (compile n env)) nodes))

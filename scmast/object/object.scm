@@ -83,7 +83,8 @@
 	  (__builtins__ (make-PyObject hclass0 '#(- -)))
 	  (%global (make-PyObject hclass1 (vector __builtins__))))
       (PyObject-elements-set! __builtins__ 0 (py-procedure->function print))
-      (PyObject-elements-set! __builtins__ 1 "locals")))
+      (PyObject-elements-set! __builtins__ 1 "locals")
+      %global))
 
 (define (py-make-caches size)
    (list->vector

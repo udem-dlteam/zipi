@@ -7,7 +7,7 @@
 
 (define (py-scheme-eval ast conf)
    (let ((def (PyModule-%info ast)))
-      ((eval def) (py-make-global) (py-make-caches ,(PyModule-caches ast)))))
+      ((eval def) (py-make-global) (py-make-caches (PyModule-caches ast)))))
 
 (define (py-scheme-bigloo ast conf)
    (pp `(module ,(string->symbol (config-get conf 'src "__stdin"))
@@ -28,11 +28,6 @@
 (define uninit
    (let ((hclass (make-HClass '#() '())))
       (make-PyObject hclass '#())))
-
-(define locals3
-   (py-procedure->function
-      (lambda (bcode env global return)
-	 (tprint "NOT IMPLEMENTED"))))
 
 (define (pyc-scheme* nodes conf)
    (map (lambda (n) (pyc-scheme n conf)) nodes))
