@@ -3,6 +3,7 @@
 ./scmast.py $1 > $1.scm
 
 ~/udem-dlteam/gambit/gsi/gsi -::.,darR \
+-e '(declare (not proper-tail-calls))' \
 -e '(##import bigloo)' \
 ast/ast.bgl \
 -e '(##include "ast/walk.sch")' \
@@ -19,6 +20,12 @@ locals/locals.scm \
 -e '(##include "hclass/hclass.scm")' \
 -e '(##include "object/object.bgl")' \
 -e '(##include "object/object.scm")' \
+scheme/scheme.bgl \
+scheme/scheme.scm \
+javascript/javascript.bgl \
+javascript/javascript.scm \
+dump/dump.bgl \
+dump/dump.scm \
 beval/beval.bgl \
 beval/beval.scm \
 main/main.bgl \

@@ -15,7 +15,7 @@
 		      (map (lambda (n) (make-PCache #f -1))
 			 (iota (PyModule-caches ast))))))
       (PyObject-elements-set! __builtins__ 0 (py-procedure->function print))
-      (PyObject-elements-set! __builtins__ 1 locals)
+      (PyObject-elements-set! __builtins__ 1 locals3)
       ((eval def) %global %caches)))
 
 (define (py-scheme-bigloo ast conf)
@@ -47,7 +47,7 @@
    (let ((hclass (make-HClass '#() '())))
       (make-PyObject hclass '#())))
 
-(define locals
+(define locals3
    (py-procedure->function
       (lambda (bcode env global return)
 	 (tprint "NOT IMPLEMENTED"))))
