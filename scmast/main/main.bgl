@@ -21,6 +21,7 @@
 	   __py_symbol
 	   __py_locals
 	   __py_return
+	   __py_break
 	   __py_beval
 	   __py_scheme
 	   __py_javascript

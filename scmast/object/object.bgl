@@ -46,18 +46,19 @@
 	   (PyFunction-call4 ::obj ::obj ::obj ::obj ::obj)
 	   
 	   (py-make-global)
-	   (py-make-caches ::int))
+	   (py-make-caches ::int)
+
+	   (py-print . vals)
+	   (py+ x y)
+	   (py- x y)
+	   (pyneg x)
+	   (py* x y)
+	   (py< x y)
+	   (py<= x y)
+	   (py> x y)
+	   (py>= x y))
    
-   (eval   (export global-get)
-      (export global-put!)
-      (export make-PyFunction)
-      (export PyFunction-default-hclass)
-      (export PyFunction-default-hclass)
-      (export PyFunction-call0)
-      (export PyFunction-call1)
-      (export PyFunction-call2)
-      (export PyFunction-call3)
-      (export PyFunction-call4)))
+   (eval   (export-all)))
 
 ;*---------------------------------------------------------------------*/
 ;*    & ...                                                            */

@@ -46,9 +46,22 @@
    (return (PyIf-test this) fun #f conf)
    (return (PyIf-then this) fun tail conf)
    (return (PyIf-else this) fun tail conf))
-   
+
+(define-walk-method (return this::PyWhile fun tail conf)
+   (return (PyWhile-test this) fun #f conf)
+   (return (PyLoop-body this) fun #f conf)
+   (return (PyLoop-else this) fun tail conf))
+
 (define-walk-method (return this::PyReturn fun tail conf)
    (when (and (PyFun? fun) (not tail))
       (PyFun-need-return-set! fun #t)
       (PyReturn-tail-set! this #f)))
 
+(define-walk-method (return this::PyPass fun tail conf)
+   #f)
+
+(define-walk-method (return this::PyBreak fun tail conf)
+   #f)
+
+(define-walk-method (return this::PyContinue fun tail conf)
+   #f)

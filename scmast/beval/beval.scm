@@ -98,6 +98,9 @@
       (compile (PyIf-then this) env)
       (compile (PyIf-else this) env)))
 
+(define-walk-method (compile this::PyWhile env)
+   (error "compile" "Not implemented" (typeof this)))
+
 (define-walk-method (compile this::PyDeclInit env)
    (if (eq? (PyDecl-scope this) 'local)
        (bytecode (code 'SET0)

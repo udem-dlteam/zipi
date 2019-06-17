@@ -67,11 +67,57 @@
        (epairify this
 	  `(return (pyc-scheme (PyReturn-val this) conf)))))
 
+(define (pyc-test this conf)
+   (if (eq? (PyExpr-type this) 'bool)
+       (pyc-scheme this conf)
+       (epairify this
+	  `(py-test ,(pyc-scheme this conf)))))
+
+(define-walk-method (pyc-scheme this::PyWhile conf)
+
+   (define (pyc-scheme-while this)
+      (let ((loop (gensym 'loop)))
+	 (epairify this
+	    (if (PyWhile-need-continue this)
+		`(let ,loop ()
+		      (bind-exit (%continue)
+			 (when ,(pyc-test (PyWhile-test this) conf)
+			    ,(pyc-scheme (PyWhile-body this) conf)
+			    (,loop))))
+		`(let ,loop ()
+		      (when ,(pyc-test (PyWhile-test this) conf)
+			 ,(pyc-scheme (PyWhile-body this) conf)
+			 (,loop)))))))
+   (cond
+      ((PyWhile-need-break this)
+       (epairify this
+	  `(bind-exit (%break)
+	      ,(pyc-scheme-while this)
+	      ,@(if (isa? (PyWhile-else this) PyPass)
+		    '()
+		    (pyc-scheme (PyWhile-else this) conf)))))
+      ((isa? (PyWhile-else this) PyPass)
+       (pyc-scheme-while this))
+      (else
+       (epairify this
+	  `(begin
+	      ,(pyc-scheme-while this)
+	      ,(pyc-scheme (PyWhile-else this) conf))))))
+
 (define-walk-method (pyc-scheme this::PyIf conf)
    (epairify this
-      `(if ,(pyc-scheme (PyIf-test this) conf)
+      `(if ,(pyc-test (PyIf-test this) conf)
 	   ,(pyc-scheme (PyIf-then this) conf)
 	   ,(pyc-scheme (PyIf-else this) conf))))
+
+(define-walk-method (pyc-scheme this::PyPass conf)
+   #f)
+
+(define-walk-method (pyc-scheme this::PyBreak conf)
+   (epairify this '(%break #f)))
+
+(define-walk-method (pyc-scheme this::PyContinue conf)
+   (epairify this '(%continue #f)))
 
 (define (pyc-scheme-decl this conf)
    (unless (PyDecl-name this)
@@ -116,9 +162,12 @@
 (define-walk-method (pyc-scheme this::PyNumber conf)
    (PyLiteralValue-val this))
 
+(define-walk-method (pyc-scheme this::PyString conf)
+   (PyLiteralValue-val this))
+
 (define-walk-method (pyc-scheme this::PyBinary conf)
    (epairify this
-      `(,(PyBinary-op this)
+      `(,(symbol-append 'py (PyBinary-op this))
 	,(pyc-scheme (PyBinary-lhs this) conf)
 	,(pyc-scheme (PyBinary-rhs this) conf))))
 
