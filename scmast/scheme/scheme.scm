@@ -7,6 +7,7 @@
 
 (define (py-scheme-eval ast conf)
    (let ((def (PyNode-%info ast)))
+      (newline)
       ((eval def) (py-make-global) (py-make-caches (PyModule-caches ast)))))
 
 (define (py-scheme-bigloo ast conf)
@@ -110,6 +111,34 @@
 	   ,(pyc-scheme (PyIf-then this) conf)
 	   ,(pyc-scheme (PyIf-else this) conf))))
 
+(define-walk-method (pyc-scheme this::PyTry conf)
+   
+   (define (pyc-scheme-try this conf)
+      `(with-handler
+	  (lambda (%exn)
+	     (cond
+		,@(map (lambda (h) (pyc-scheme h conf))
+		   (PyTry-handlers this))))
+	  ,(if (isa? (PyTry-else this) PyPass)
+	       (pyc-scheme (PyTry-body this) conf)
+	       `(begin
+		   ,(pyc-scheme (PyTry-body this) conf)
+		   ,(pyc-scheme (PyTry-else this) conf)))))
+   
+   (epairify this
+      (if (isa? (PyTry-finally this) PyPass)
+	  (pyc-scheme-try this conf)
+	  `(unwind-protect
+	      ,(pyc-scheme-try this conf)
+	      ,(pyc-scheme (PyTry-finally this) conf)))))
+
+(define-walk-method (pyc-scheme this::PyHandler conf)
+   (epairify this
+      `(,(if (isa? (PyHandler-type this) PyUninit)
+	     #t
+	     `(isa? %exn ,(pyc-scheme (PyHandler-type this) conf)))
+	,(pyc-scheme (PyHandler-body this) conf))))
+			
 (define-walk-method (pyc-scheme this::PyPass conf)
    #f)
 

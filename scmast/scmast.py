@@ -231,7 +231,7 @@ def cvt_comprehension_seq(comprehension_seq):
 
 def cvt_excepthandler(excepthandler):
     if isinstance(excepthandler, AST.ExceptHandler):
-        return ('(' + node_kind(excepthandler, 'Slice') +
+        return ('(' + node_kind(excepthandler, 'ExceptHandler') +
                 ' ' + cvt_expr_opt(excepthandler.type) +
                 ' ' + cvt_identifier_opt(excepthandler.name) +
                 ' ' + cvt_stmt_seq(excepthandler.body) +
