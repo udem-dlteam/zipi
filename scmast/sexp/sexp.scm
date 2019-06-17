@@ -45,6 +45,13 @@
 			   (cons (new-PyAssig loc ref
 				    (new-PyRefUnresolved (PyNode-loc ref) id))
 			      assigs))))))))
+      ((While ?loc ?test ?body ?orelse)
+       ;; While(expr test, stmt* body, stmt* orelse)
+       (new-While loc
+	  (compile-expr test #f scope conf)
+	  (compile-stmt* body #f scope conf)
+	  (compile-stmt* orelse tail scope conf)))
+       
       ((If ?loc ?test ?body ?otherwise)
        ;; If(expr test, stmt* body, stmt* orelse)
        (new-PyIf loc (sexp test #f scope conf)

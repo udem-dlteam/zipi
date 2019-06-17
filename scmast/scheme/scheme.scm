@@ -73,6 +73,12 @@
 	   ,(pyc-scheme (PyIf-then this) conf)
 	   ,(pyc-scheme (PyIf-else this) conf))))
 
+(define-walk-method (pyc-scheme this::PyWhile conf)
+   (epairify this
+      `(if ,(pyc-scheme (PyIf-test this) conf)
+	   ,(pyc-scheme (PyIf-then this) conf)
+	   ,(pyc-scheme (PyIf-else this) conf))))
+
 (define (pyc-scheme-decl this::PyDecl conf)
    (unless (PyDecl-name this)
       (PyDecl-name-set! this
@@ -118,7 +124,7 @@
 
 (define-walk-method (pyc-scheme this::PyBinary conf)
    (epairify this
-      `(,(PyBinary-op this)
+      `(,(symbol-append 'py (PyBinary-op this))
 	,(pyc-scheme (PyBinary-lhs this) conf)
 	,(pyc-scheme (PyBinary-rhs this) conf))))
 

@@ -66,6 +66,18 @@
               (test::PyExpr (info '("ast")))
               (then::PyStmt (info '("ast")))
               (else::PyStmt (info '("ast"))))
+
+	   (class PyWhile::PyStmt
+	      (test::PyExpr (info '("ast")))
+	      (body::PyStmt (info '("ast")))
+	      (else::PyStmt (info '("ast")))
+	      (need-break::bool (default #t))
+	      (need-continue::bool (default #t)))
+
+
+	   (class PyBreak::PyStmt)
+	   (class PyContinue::PyStmt)
+	   (class PyPass::PyStmt)
            
            ;; expressions
            (class PyExpr::PyNode)
@@ -419,6 +431,7 @@
 (gen-walks PyReturn val)
 (gen-walks PyAssig lhs rhs)
 (gen-walks PyIf test then else)
+(gen-walks PyWhile test body else)
 (gen-walks PyFun body)
 (gen-walks PyBinary lhs rhs)
 (gen-walks PyCall fun (args) (keywords))
