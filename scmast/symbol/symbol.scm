@@ -86,7 +86,7 @@
    (if (eq? (PyDecl-scope this) 'local)
        (let ((loc (PyNode-loc this)))
 	  ;; replace the declaration with an assignment
-	  (let ((decl (lookup2 env (PyDeclInit-id this))))
+	  (let ((decl (lookup2 env (PyDecl-id this))))
 	     (new-PyAssig loc (new-PyRef loc decl)
 		(resolve! (PyDeclInit-val this) env conf))))
        (call-default-walker)))

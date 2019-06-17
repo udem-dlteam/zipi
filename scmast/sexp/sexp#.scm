@@ -24,7 +24,7 @@
 			(error "match-case" "illegal clause" clause))
 		       ((eq? (car clause) 'else)
 			`(else
-                          (cdr clause)))
+                          ,@(cdr clause)))
 		       ((not (pair? (car clause)))
 			(error "match-case" "illegal clause" clause))
 		       (else
