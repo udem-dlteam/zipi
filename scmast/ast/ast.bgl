@@ -15,125 +15,125 @@
 (module __py_ast
    
    (export (abstract-class PyNode
-	      (loc::pair read-only (info '("notraverse")))
-	      (%info (default #unspecified) (info '("nojson" "notraverse"))))
-	   
-	   ;; module
-	   (class PyModule::PyNode
-	      (version::int read-only (default 1))
-	      (ident::string read-only)
-	      stmts::pair-nil
-	      (globals::pair-nil (default '())))
-	   
-	   ;; misc
-	   (class PyDecl::PyNode
-	      (key::int (default (genkey)))
-	      (name (default #f))
-	      (id::symbol read-only)
-	      ;; scope: global, local, block
-	      (scope::symbol read-only))
-	   
-	   (class PyDeclInit::PyDecl
-	      val::PyExpr)
+              (loc::pair read-only (info '("notraverse")))
+              (%info (default #f) (info '("nojson" "notraverse"))))
+           
+           ;; module
+           (class PyModule::PyNode
+              (version::int read-only (default 1))
+              (ident::string read-only)
+              stmts::pair-nil
+              (globals::pair-nil (default '())))
+           
+           ;; misc
+           (class PyDecl::PyNode
+              (key::int (default (genkey)))
+              (name (default #f))
+              (id::symbol read-only)
+              ;; scope: global, local, block
+              (scope::symbol read-only))
+           
+           (class PyDeclInit::PyDecl
+              val::PyExpr)
 
-	   (class PyVar::PyDecl)
-	   
-	   ;; statements
-	   (abstract-class PyStmt::PyNode)
-	   
-	   (class PySeq::PyStmt
-	      (nodes::pair-nil (info '("ast"))))
-	   
-	   (class PyBlock::PyStmt
-	      ;; equivalent to a Scheme let*
-	      decls::pair-nil
-	      vals::pair-nil
-	      body::PyStmt)
+           (class PyVar::PyDecl)
+           
+           ;; statements
+           (abstract-class PyStmt::PyNode)
+           
+           (class PySeq::PyStmt
+              (nodes::pair-nil (info '("ast"))))
+           
+           (class PyBlock::PyStmt
+              ;; equivalent to a Scheme let*
+              decls::pair-nil
+              vals::pair-nil
+              body::PyStmt)
 
-	   (class PyReturn::PyStmt
-	      val::PyExpr
-	      tail::bool)
-	   
-	   (class PyDelete::PyStmt
-	      expr::PyExpr)
-	   
-	   (class PyAssig::PyStmt
-	      lhs::PyExpr
-	      rhs::PyExpr)
-	   
-	   (class PyIf::PyStmt
-	      (test::PyExpr (info '("ast")))
-	      (then::PyStmt (info '("ast")))
-	      (else::PyStmt (info '("ast"))))
-	   
-	   ;; expressions
-	   (class PyExpr::PyNode)
+           (class PyReturn::PyStmt
+              val::PyExpr
+              tail::bool)
+           
+           (class PyDelete::PyStmt
+              expr::PyExpr)
+           
+           (class PyAssig::PyStmt
+              lhs::PyExpr
+              rhs::PyExpr)
+           
+           (class PyIf::PyStmt
+              (test::PyExpr (info '("ast")))
+              (then::PyStmt (info '("ast")))
+              (else::PyStmt (info '("ast"))))
+           
+           ;; expressions
+           (class PyExpr::PyNode)
 
-	   (class PyPragma::PyExpr
-	      (lang::symbol (default 'scheme))
-	      expr)
-	   
-	   (class PyRef::PyExpr
-	      (decl (info '("jsonref" "notraverse"))))
-	   
-	   (class PyRefUnresolved::PyExpr
-	      id)
+           (class PyPragma::PyExpr
+              (lang::symbol (default 'scheme))
+              expr)
+           
+           (class PyRef::PyExpr
+              (decl (info '("jsonref" "notraverse"))))
+           
+           (class PyRefUnresolved::PyExpr
+              id)
 
-	   (abstract-class PyLiteral::PyExpr)
-	   
-	   (final-class PyUninit::PyExpr)
-	   
-	   (class PyLiteralValue::PyLiteral
-	      val)
-	   
-	   (final-class PyBool::PyLiteralValue)
-	   (final-class PyNumber::PyLiteralValue)
-	   (final-class PyString::PyLiteralValue)
-	   
-	   (final-class PyBinary::PyExpr
-	      type::symbol
-	      op::symbol
-	      lhs::PyExpr
-	      rhs::PyExpr)
-	   
-	   (final-class PyFun::PyExpr
-	      args::pair-nil
-	      body::PyStmt
-	      (decls::pair-nil (default '()))
-	      (need-return::bool (default #t))
-	      (can-locals::bool (default #t)))
-	   
-	   (final-class PyCall::PyExpr
-	      fun::PyExpr
-	      args::pair-nil
-	      keywords::pair-nil)
+           (abstract-class PyLiteral::PyExpr)
+           
+           (final-class PyUninit::PyExpr)
+           
+           (class PyLiteralValue::PyLiteral
+              val)
+           
+           (final-class PyBool::PyLiteralValue)
+           (final-class PyNumber::PyLiteralValue)
+           (final-class PyString::PyLiteralValue)
+           
+           (final-class PyBinary::PyExpr
+              type::symbol
+              op::symbol
+              lhs::PyExpr
+              rhs::PyExpr)
+           
+           (final-class PyFun::PyExpr
+              args::pair-nil
+              body::PyStmt
+              (decls::pair-nil (default '()))
+              (need-return::bool (default #t))
+              (can-locals::bool (default #t)))
+           
+           (final-class PyCall::PyExpr
+              fun::PyExpr
+              args::pair-nil
+              keywords::pair-nil)
 
-	   (genkey)
-	   
-	   (generic walk0 n::PyNode p::procedure)
-	   (generic walk1 n::PyNode p::procedure a0)
-	   (generic walk2 n::PyNode p::procedure a0 a1)
-	   (generic walk3 n::PyNode p::procedure a0 a1 a2)
-	   (generic walk4 n::PyNode p::procedure a0 a1 a2 a3)
-	   (generic walk5 n::PyNode p::procedure a0 a1 a2 a3 a4)
-	   (generic walk6 n::PyNode p::procedure a0 a1 a2 a3 a4 a5)
-	   (generic walk7 n::PyNode p::procedure a0 a1 a2 a3 a4 a5 a6)
-	   (generic walk0*::pair-nil n::PyNode p::procedure)
-	   (generic walk1*::pair-nil n::PyNode p::procedure a0)
-	   (generic walk2*::pair-nil n::PyNode p::procedure a0 a1)
-	   (generic walk3*::pair-nil n::PyNode p::procedure a0 a1 a2)
-	   (generic walk4*::pair-nil n::PyNode p::procedure a0 a1 a2 a3)
-	   (generic walk5*::pair-nil n::PyNode p::procedure a0 a1 a2 a3 a4)
-	   (generic walk6*::pair-nil n::PyNode p::procedure a0 a1 a2 a3 a4 a5)
-	   (generic walk7*::pair-nil n::PyNode p::procedure a0 a1 a2 a3 a4 a5 a6)
-	   (generic walk0!::PyNode n::PyNode p::procedure)
-	   (generic walk1!::PyNode n::PyNode p::procedure a0)
-	   (generic walk2!::PyNode n::PyNode p::procedure a0 a1)
-	   (generic walk3!::PyNode n::PyNode p::procedure a0 a1 a2)
-	   (generic walk4!::PyNode n::PyNode p::procedure a0 a1 a2 a3)
-	   (generic walk5!::PyNode n::PyNode p::procedure a0 a1 a2 a3 a4)
-	   (generic walk6!::PyNode n::PyNode p::procedure a0 a1 a2 a3 a4 a5)
-	   (generic walk7!::PyNode n::PyNode p::procedure a0 a1 a2 a3 a4 a5 a6)))
+           (genkey)
+           
+           (generic walk0 n::PyNode p::procedure)
+           (generic walk1 n::PyNode p::procedure a0)
+           (generic walk2 n::PyNode p::procedure a0 a1)
+           (generic walk3 n::PyNode p::procedure a0 a1 a2)
+           (generic walk4 n::PyNode p::procedure a0 a1 a2 a3)
+           (generic walk5 n::PyNode p::procedure a0 a1 a2 a3 a4)
+           (generic walk6 n::PyNode p::procedure a0 a1 a2 a3 a4 a5)
+           (generic walk7 n::PyNode p::procedure a0 a1 a2 a3 a4 a5 a6)
+           (generic walk0*::pair-nil n::PyNode p::procedure)
+           (generic walk1*::pair-nil n::PyNode p::procedure a0)
+           (generic walk2*::pair-nil n::PyNode p::procedure a0 a1)
+           (generic walk3*::pair-nil n::PyNode p::procedure a0 a1 a2)
+           (generic walk4*::pair-nil n::PyNode p::procedure a0 a1 a2 a3)
+           (generic walk5*::pair-nil n::PyNode p::procedure a0 a1 a2 a3 a4)
+           (generic walk6*::pair-nil n::PyNode p::procedure a0 a1 a2 a3 a4 a5)
+           (generic walk7*::pair-nil n::PyNode p::procedure a0 a1 a2 a3 a4 a5 a6)
+           (generic walk0!::PyNode n::PyNode p::procedure)
+           (generic walk1!::PyNode n::PyNode p::procedure a0)
+           (generic walk2!::PyNode n::PyNode p::procedure a0 a1)
+           (generic walk3!::PyNode n::PyNode p::procedure a0 a1 a2)
+           (generic walk4!::PyNode n::PyNode p::procedure a0 a1 a2 a3)
+           (generic walk5!::PyNode n::PyNode p::procedure a0 a1 a2 a3 a4)
+           (generic walk6!::PyNode n::PyNode p::procedure a0 a1 a2 a3 a4 a5)
+           (generic walk7!::PyNode n::PyNode p::procedure a0 a1 a2 a3 a4 a5 a6)))
 
 ;*---------------------------------------------------------------------*/
 ;*    key ...                                                          */
@@ -232,87 +232,87 @@
    
    (define (field-name f)
       (if (pair? f)
-	  (car f)
-	  f))
+          (car f)
+          f))
    
    (define (visit f nb-args)
       (if (pair? f)
-	  `(for-each (lambda (f)
-			(p f 
-			   ,@(map (lambda (i)
-				     (string->symbol (format "arg~a" i)))
-				(iota nb-args))))
-	      ,(car f))
-	  `(p ,f ,@(map (lambda (i)
-			   (string->symbol (format "arg~a" i)))
-		      (iota nb-args)))))
+          `(for-each (lambda (f)
+                        (p f 
+                           ,@(map (lambda (i)
+                                     (string->symbol (format "arg~a" i)))
+                                (iota nb-args))))
+              ,(car f))
+          `(p ,f ,@(map (lambda (i)
+                           (string->symbol (format "arg~a" i)))
+                      (iota nb-args)))))
    
    (define (visit* f nb-args)
       (if (pair? f)
-	  `(append-map (lambda (f)
-			  (p f 
-			     ,@(map (lambda (i)
-				       (string->symbol (format "arg~a" i)))
-				  (iota nb-args))))
-	      ,(car f))
-	  `(p ,f ,@(map (lambda (i)
-			   (string->symbol (format "arg~a" i)))
-		      (iota nb-args)))))
+          `(append-map (lambda (f)
+                          (p f 
+                             ,@(map (lambda (i)
+                                       (string->symbol (format "arg~a" i)))
+                                  (iota nb-args))))
+              ,(car f))
+          `(p ,f ,@(map (lambda (i)
+                           (string->symbol (format "arg~a" i)))
+                      (iota nb-args)))))
    
    (define (visit! f nb-args)
       (if (pair? f)
-	  `(let loop ((fields ,(car f)))
-	      (unless (null? fields)
-		 (set-car! fields
-		    (p (car fields)
-		       ,@(map (lambda (i)
-				 (string->symbol (format "arg~a" i)))
-			    (iota nb-args))))
-		 (loop (cdr fields))))
-	  `(set! ,f (p ,f ,@(map (lambda (i)
-				    (string->symbol (format "arg~a" i)))
-			       (iota nb-args))))))
+          `(let loop ((fields ,(car f)))
+              (unless (null? fields)
+                 (set-car! fields
+                    (p (car fields)
+                       ,@(map (lambda (i)
+                                 (string->symbol (format "arg~a" i)))
+                            (iota nb-args))))
+                 (loop (cdr fields))))
+          `(set! ,f (p ,f ,@(map (lambda (i)
+                                    (string->symbol (format "arg~a" i)))
+                               (iota nb-args))))))
 
    (define (withaccess body)
       `(,(symbol-append '|with-access::| class) n ,(map field-name fields)
            ;;; the body of the with-access form
-	   ,body))
+           ,body))
       
    (define (gen-method nb-args)
       `(define-method (,(string->symbol (format "walk~a" nb-args))
-		       ,(symbol-append '|n::| class)
-		       p
-		       ,@(map (lambda (i)
-				 (string->symbol (format "arg~a" i)))
-			    (iota nb-args)))
-	  ,(when (pair? fields)
-	     (withaccess
-		`(begin ,@(map (lambda (f) (visit f nb-args)) fields))))))
+                       ,(symbol-append '|n::| class)
+                       p
+                       ,@(map (lambda (i)
+                                 (string->symbol (format "arg~a" i)))
+                            (iota nb-args)))
+          ,(when (pair? fields)
+             (withaccess
+                `(begin ,@(map (lambda (f) (visit f nb-args)) fields))))))
 
    (define (gen-method* nb-args)
       `(define-method (,(string->symbol (format "walk~a*" nb-args))
-		       ,(symbol-append '|n::| class)
-		       p
-		       ,@(map (lambda (i)
-				 (string->symbol (format "arg~a" i)))
-			    (iota nb-args)))
-	  ,(if (null? fields)
-	       ''()
-	       (withaccess
-		  `(append ,@(map (lambda (f) (visit* f nb-args)) fields))))))
+                       ,(symbol-append '|n::| class)
+                       p
+                       ,@(map (lambda (i)
+                                 (string->symbol (format "arg~a" i)))
+                            (iota nb-args)))
+          ,(if (null? fields)
+               ''()
+               (withaccess
+                  `(append ,@(map (lambda (f) (visit* f nb-args)) fields))))))
 
    (define (gen-method! nb-args)
       `(define-method (,(string->symbol (format "walk~a!" nb-args))
-		       ,(symbol-append '|n::| class)
-		       p
-		       ,@(map (lambda (i)
-				 (string->symbol (format "arg~a" i)))
-			    (iota nb-args)))
-	  ,(when (pair? fields)
-	     (withaccess
-		`(begin
-		    ,@(map (lambda (f) (visit! f nb-args)) fields))))
-	  n))
+                       ,(symbol-append '|n::| class)
+                       p
+                       ,@(map (lambda (i)
+                                 (string->symbol (format "arg~a" i)))
+                            (iota nb-args)))
+          ,(when (pair? fields)
+             (withaccess
+                `(begin
+                    ,@(map (lambda (f) (visit! f nb-args)) fields))))
+          n))
 
    ;; generate the JavaScript walker
    `(begin
@@ -327,79 +327,79 @@
 
    (define (gen-method nb-args)
       (let ((args (map (lambda (i)
-			  (string->symbol (format "arg~a" i)))
-		     (iota nb-args)))
-	    (walk (string->symbol (format "walk~a" nb-args))))
-	 `(define-method (,walk ,(symbol-append '|n::| class) p ,@args)
-	     (let loop ((n n))
-		(cond
-;* 		   ((isa? n PyDollar)                                  */
-;* 		    (,walk n p ,@args))                                */
-		   ((isa? n PyNode)
-		    (let ((fields (class-all-fields (object-class n))))
-		       (let for ((i (-fx (vector-length fields) 1)))
-			  (when (>=fx i 0)
-			     (let* ((f (vector-ref fields i))
-				    (fi (class-field-info f)))
-				(unless (and (pair? fi) (member "notraverse" fi))
-				   (let ((v ((class-field-accessor f) n)))
-				      (loop v)))
-				(for (-fx i 1)))))))
-		   ((pair? n)
-		    (for-each loop n)))))))
+                          (string->symbol (format "arg~a" i)))
+                     (iota nb-args)))
+            (walk (string->symbol (format "walk~a" nb-args))))
+         `(define-method (,walk ,(symbol-append '|n::| class) p ,@args)
+             (let loop ((n n))
+                (cond
+;*                 ((isa? n PyDollar)                                  */
+;*                  (,walk n p ,@args))                                */
+                   ((isa? n PyNode)
+                    (let ((fields (class-all-fields (object-class n))))
+                       (let for ((i (-fx (vector-length fields) 1)))
+                          (when (>=fx i 0)
+                             (let* ((f (vector-ref fields i))
+                                    (fi (class-field-info f)))
+                                (unless (and (pair? fi) (member "notraverse" fi))
+                                   (let ((v ((class-field-accessor f) n)))
+                                      (loop v)))
+                                (for (-fx i 1)))))))
+                   ((pair? n)
+                    (for-each loop n)))))))
 
    (define (gen-method* nb-args)
       (let ((args (map (lambda (i)
-			  (string->symbol (format "arg~a" i)))
-		     (iota nb-args)))
-	    (walk (string->symbol (format "walk~a*" nb-args))))
-	 `(define-method (,walk ,(symbol-append '|n::| class) p ,@args)
-	     (let loop ((n n))
-		(cond
-;* 		   ((isa? n PyDollar)                                  */
-;* 		    (,walk n p ,@args))                                */
-		   ((isa? n PyNode)
-		    (let ((fields (class-all-fields (object-class n))))
-		       (let for ((i (-fx (vector-length fields) 1)))
-			  (if (=fx i -1)
-			      '()
-			      (let* ((f (vector-ref fields i))
-				     (fi (class-field-info f)))
-				 (if (and (pair? fi) (member "notraverse" fi))
-				     (for (-fx i 1))
-				     (let ((v ((class-field-accessor f) n)))
-					(append (loop v) (for (-fx i 1))))))))))
-		   ((pair? n)
-		    (append-map loop n))
-		   (else
-		    '()))))))
+                          (string->symbol (format "arg~a" i)))
+                     (iota nb-args)))
+            (walk (string->symbol (format "walk~a*" nb-args))))
+         `(define-method (,walk ,(symbol-append '|n::| class) p ,@args)
+             (let loop ((n n))
+                (cond
+;*                 ((isa? n PyDollar)                                  */
+;*                  (,walk n p ,@args))                                */
+                   ((isa? n PyNode)
+                    (let ((fields (class-all-fields (object-class n))))
+                       (let for ((i (-fx (vector-length fields) 1)))
+                          (if (=fx i -1)
+                              '()
+                              (let* ((f (vector-ref fields i))
+                                     (fi (class-field-info f)))
+                                 (if (and (pair? fi) (member "notraverse" fi))
+                                     (for (-fx i 1))
+                                     (let ((v ((class-field-accessor f) n)))
+                                        (append (loop v) (for (-fx i 1))))))))))
+                   ((pair? n)
+                    (append-map loop n))
+                   (else
+                    '()))))))
    
    (define (gen-method! nb-args)
       (let ((args (map (lambda (i)
-			  (string->symbol (format "arg~a" i)))
-		     (iota nb-args)))
-	    (walk (string->symbol (format "walk~a!" nb-args))))
-	 `(define-method (,walk ,(symbol-append '|n::| class) p ,@args)
-	     (let loop ((n n))
-		(cond
-		   ((isa? n PyDollar)
-		    (,walk n p ,@args)
-		    n)
-		   ((isa? n PyNode)
-		    (let ((fields (class-all-fields (object-class n))))
-		       (let for ((i (-fx (vector-length fields) 1)))
-			  (if (>=fx i 0)
-			      (let* ((f (vector-ref fields i))
-				     (fi (class-field-info f)))
-				 (unless (and (pair? fi) (member "notraverse" fi))
-				    (let ((v ((class-field-accessor f) n)))
-				       ((class-field-mutator f) n (loop v))))
-				 (for (-fx i 1)))
-			      n))))
-		   ((pair? n)
-		    (map! loop n))
-		   (else
-		    n))))))
+                          (string->symbol (format "arg~a" i)))
+                     (iota nb-args)))
+            (walk (string->symbol (format "walk~a!" nb-args))))
+         `(define-method (,walk ,(symbol-append '|n::| class) p ,@args)
+             (let loop ((n n))
+                (cond
+                   ((isa? n PyDollar)
+                    (,walk n p ,@args)
+                    n)
+                   ((isa? n PyNode)
+                    (let ((fields (class-all-fields (object-class n))))
+                       (let for ((i (-fx (vector-length fields) 1)))
+                          (if (>=fx i 0)
+                              (let* ((f (vector-ref fields i))
+                                     (fi (class-field-info f)))
+                                 (unless (and (pair? fi) (member "notraverse" fi))
+                                    (let ((v ((class-field-accessor f) n)))
+                                       ((class-field-mutator f) n (loop v))))
+                                 (for (-fx i 1)))
+                              n))))
+                   ((pair? n)
+                    (map! loop n))
+                   (else
+                    n))))))
 
    `(begin
        ,@(map (lambda (nb) (gen-method nb)) (iota 8))

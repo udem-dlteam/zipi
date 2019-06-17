@@ -2,10 +2,11 @@
 
 ./scmast.py $1 > $1.scm
 
-~/udem-dlteam/gambit/gsi/gsi -::.,dar \
+~/udem-dlteam/gambit/gsi/gsi -::.,darR \
 -e '(##import bigloo)' \
 ast/ast.bgl \
 -e '(##include "ast/walk.sch")' \
+-e '(##include "ast/new.sch")' \
 -e '(##include "sexp/sexp#.scm")' \
 -e '(##include "sexp/sexp.scm")' \
 symbol/symbol.bgl \
@@ -15,9 +16,12 @@ return/return.scm \
 locals/locals.bgl \
 locals/locals.scm \
 -e '(##include "hclass/hclass.bgl")' \
+-e '(pp (##structure-type (make-HClass 1 2)))' \
 -e '(##include "hclass/hclass.scm")' \
+-e '(pp (##structure-type (make-HClass 1 2)))' \
 -e '(##include "object/object.bgl")' \
 -e '(##include "object/object.scm")' \
+-e '(define PyFunction 123)' \
 beval/beval.bgl \
 beval/beval.scm \
 main/main.bgl \

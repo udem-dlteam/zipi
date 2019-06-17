@@ -1,5 +1,5 @@
 ;; annotate functions that might call locals
-(define (py-locals this::PyNode conf)
+(define (py-locals this conf)
    (mark-no-can-locals this)
    (locals this #f)
    this)
