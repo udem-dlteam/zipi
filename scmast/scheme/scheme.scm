@@ -2,11 +2,11 @@
    (let* ((cnt (make-cell 0))
 	  (caches (collect-caches ast cnt)))
       (PyModule-caches-set! ast (cell-ref cnt))
-      (PyModule-%info-set! ast (pyc-scheme ast conf))
+      (PyNode-%info-set! ast (pyc-scheme ast conf))
       ast))
 
 (define (py-scheme-eval ast conf)
-   (let ((def (PyModule-%info ast)))
+   (let ((def (PyNode-%info ast)))
       ((eval def) (py-make-global) (py-make-caches (PyModule-caches ast)))))
 
 (define (py-scheme-bigloo ast conf)
@@ -16,7 +16,7 @@
 	   (main main)))
    (pp `(define (main argv)
 	   (pyc (py-make-global) (py-make-caches ,(PyModule-caches ast)))))
-   (pp `(define pyc ,(PyModule-%info ast))))
+   (pp `(define pyc ,(PyNode-%info ast))))
 		    
 (define (py-scheme-gambit ast conf)
    (tprint "TODO"))
@@ -67,19 +67,59 @@
        (epairify this
 	  `(return (pyc-scheme (PyReturn-val this) conf)))))
 
-(define-walk-method (pyc-scheme this::PyIf conf)
-   (epairify this
-      `(if ,(pyc-scheme (PyIf-test this) conf)
-	   ,(pyc-scheme (PyIf-then this) conf)
-	   ,(pyc-scheme (PyIf-else this) conf))))
+(define (pyc-test this conf)
+   (if (eq? (PyExpr-type this) 'bool)
+       (pyc-scheme this conf)
+       (epairify this
+	  `(py-test ,(pyc-scheme this conf)))))
 
 (define-walk-method (pyc-scheme this::PyWhile conf)
+
+   (define (pyc-scheme-while this)
+      (let ((loop (gensym 'loop)))
+	 (epairify this
+	    (if (PyWhile-need-continue this)
+		`(let ,loop ()
+		      (bind-exit (%continue)
+			 (when ,(pyc-test (PyWhile-test this) conf)
+			    ,(pyc-scheme (PyWhile-body this) conf)
+			    (,loop))))
+		`(let ,loop ()
+		      (when ,(pyc-test (PyWhile-test this) conf)
+			 ,(pyc-scheme (PyWhile-body this) conf)
+			 (,loop)))))))
+   (cond
+      ((PyWhile-need-break this)
+       (epairify this
+	  `(bind-exit (%break)
+	      ,(pyc-scheme-while this)
+	      ,@(if (isa? (PyWhile-else this) PyPass)
+		    '()
+		    (pyc-scheme (PyWhile-else this) conf)))))
+      ((isa? (PyWhile-else this) PyPass)
+       (pyc-scheme-while this))
+      (else
+       (epairify this
+	  `(begin
+	      ,(pyc-scheme-while this)
+	      ,(pyc-scheme (PyWhile-else this) conf))))))
+
+(define-walk-method (pyc-scheme this::PyIf conf)
    (epairify this
-      `(if ,(pyc-scheme (PyIf-test this) conf)
+      `(if (pyc-test (PyIf-test this) conf)
 	   ,(pyc-scheme (PyIf-then this) conf)
 	   ,(pyc-scheme (PyIf-else this) conf))))
 
-(define (pyc-scheme-decl this::PyDecl conf)
+(define-walk-method (pyc-scheme this::PyPass conf)
+   #f)
+
+(define-walk-method (pyc-scheme this::PyBreak conf)
+   (epairify this '(%break)))
+
+(define-walk-method (pyc-scheme this::PyContinue conf)
+   (epairify this '(%continue)))
+
+(define (pyc-scheme-decl this conf)
    (unless (PyDecl-name this)
       (PyDecl-name-set! this
 	 (symbol-append (PyDecl-id this)
@@ -95,9 +135,9 @@
 (define-walk-method (pyc-scheme this::PyDeclInit conf)
    (let ((val (pyc-scheme (PyDeclInit-val this) conf)))
       (epairify this
-	 (if (eq? (PyDeclInit-scope this) 'local)
+	 (if (eq? (PyDecl-scope this) 'local)
 	     `(set! ,(pyc-scheme-decl this conf) ,val)
-	     `(global-put! %global ,(pyc-propname (PyDeclInit-id this)) ,val
+	     `(global-put! %global ,(pyc-propname (PyDecl-id this)) ,val
 		 (vector-ref %caches ,(PyNode-%info this)))))))
 
 (define-walk-method (pyc-scheme this::PyAssig conf)
@@ -107,7 +147,7 @@
       (epairify this
 	 (case (PyDecl-scope decl)
 	    ((global)
-	     `(global-put! %global ,(pyc-propname (PyDeclInit-id decl)) ,val
+	     `(global-put! %global ,(pyc-propname (PyDecl-id decl)) ,val
 		 (vector-ref %caches ,(PyNode-%info this))))
 	    (else
 	     `(set! ,(pyc-scheme-decl decl conf) ,val))))))
@@ -120,7 +160,10 @@
    uninit)
 
 (define-walk-method (pyc-scheme this::PyNumber conf)
-   (PyNumber-val this))
+   (PyLiteralValue-val this))
+
+(define-walk-method (pyc-scheme this::PyString conf)
+   (PyLiteralValue-val this))
 
 (define-walk-method (pyc-scheme this::PyBinary conf)
    (epairify this
@@ -170,7 +213,7 @@
 
 (define-walk-method (collect-caches this::PyDeclInit cnt)
    (call-default-walker)
-   (when (eq? (PyDeclInit-scope this) 'global)
+   (when (eq? (PyDecl-scope this) 'global)
       (let ((n (cell-ref cnt)))
 	 (cell-set! cnt (+ 1 n))
 	 (PyNode-%info-set! this n))))

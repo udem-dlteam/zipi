@@ -1,12 +1,14 @@
 (define passes-beval
    (list (cons "symbol" py-symbol!)
       (cons "return" py-return)
+      (cons "break" py-break)
       (cons "locals" py-locals)
       (cons "beval" py-beval)))
 
 (define passes-scheme
    (list (cons "symbol" py-symbol!)
       (cons "return" py-return)
+      (cons "break" py-break)
       (cons "locals" py-locals)
       (cons "scheme" py-scheme)
       (cons "eval" py-scheme-eval)))
@@ -14,6 +16,7 @@
 (define passes-bigloo
    (list (cons "symbol" py-symbol!)
       (cons "return" py-return)
+      (cons "break" py-break)
       (cons "locals" py-locals)
       (cons "scheme" py-scheme)
       (cons "bigloo" py-scheme-bigloo)))
@@ -21,13 +24,13 @@
 (define passes-gambit
    (list (cons "symbol" py-symbol!)
       (cons "return" py-return)
+      (cons "break" py-break)
       (cons "locals" py-locals)
       (cons "scheme" py-scheme)
       (cons "gambit" py-scheme-gambit)))
 
 (define passes-javascript
    (list (cons "symbol" py-symbol!)
-      (cons "return" py-return)
       (cons "locals" py-locals)
       (cons "javascript" py-javascript)))
 

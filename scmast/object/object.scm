@@ -77,17 +77,55 @@
        ((PyFunction-procedure fun) a0 a1 a2 a3)
        (error "call4" "wrong call" fun)))
 
-(define (py-make-global)
-   (let* ((hclass0 (make-HClass (vector (& "print") (& "locals")) '()))
-	  (hclass1 (make-HClass (vector (& "__builtins__")) '()))
-	  (__builtins__ (make-PyObject hclass0 '#(- -)))
-	  (%global (make-PyObject hclass1 (vector __builtins__))))
-      (PyObject-elements-set! __builtins__ 0 (py-procedure->function print))
-      (PyObject-elements-set! __builtins__ 1 "locals")
-      %global))
-
 (define (py-make-caches size)
    (list->vector
       (map (lambda (n) (make-PCache #f -1))
 	 (iota size))))
    
+(define (py-make-global)
+  (let* ((hclass0 (make-HClass (vector (& "print")
+                                       (& "locals")
+                                       )
+                               '()))
+	 (hclass1 (make-HClass (vector (& "__builtins__")
+                                       )
+                               '()))
+	 (__builtins__ (make-PyObject hclass0 '#(- -)))
+	 (%global (make-PyObject hclass1 (vector __builtins__))))
+
+    (PyObject-elements-set! __builtins__ 0 (py-procedure->function py-print))
+
+    (PyObject-elements-set! __builtins__ 1 "locals")
+
+    %global))
+
+(define (py-print . vals)
+   (for-each display vals)
+   (newline))
+
+(define (py+ x y)
+  (+ x y))
+
+(define (py- x y)
+  (- x y))
+
+(define (pyneg x)
+  (- x))
+
+(define (py* x y)
+  (* x y))
+
+(define (py< x y)
+  (< x y))
+
+(define (py<= x y)
+  (<= x y))
+
+(define (py= x y)
+  (= x y))
+
+(define (py> x y)
+  (> x y))
+
+(define (py>= x y)
+  (>= x y))

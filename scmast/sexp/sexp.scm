@@ -7,7 +7,7 @@
       ;; mod
       ((Module ?loc ?body . ?type_ignors)
        ;; Module(stmt* body, type_ignore *type_ignores)
-       (new-PyModule loc "???" (compile-stmt* body #t 'global conf)))
+       (new-PyModule loc "???" (compile* loc body #t 'global conf)))
       
       ;; stmt
       ((FunctionDef ?loc ?id ?args ?body ?decorator_list ?returns . ?type_comment)
@@ -19,7 +19,7 @@
 	     (map (lambda (a)
 		     (new-PyDecl loc (car a) 'local))
 		(car args))
-	     (new-PySeq loc (compile-stmt* body #t 'local conf)))))
+	     (compile-stmt* loc body #t 'local conf))))
       ((Return ?loc ?expr)
        ;; Return(expr? value)
        (new-PyReturn loc (sexp expr #f scope conf) tail))
@@ -47,24 +47,36 @@
 			      assigs))))))))
       ((While ?loc ?test ?body ?orelse)
        ;; While(expr test, stmt* body, stmt* orelse)
-       (new-While loc
-	  (compile-expr test #f scope conf)
-	  (compile-stmt* body #f scope conf)
-	  (compile-stmt* orelse tail scope conf)))
+       (new-PyWhile loc
+	  (compile-stmt* loc body #f scope conf)
+	  (compile-stmt* loc orelse tail scope conf)
+	  (sexp test #f scope conf)))
        
       ((If ?loc ?test ?body ?otherwise)
        ;; If(expr test, stmt* body, stmt* orelse)
        (new-PyIf loc (sexp test #f scope conf)
-	  (new-PySeq loc (compile-stmt* body tail scope conf))
-	  (new-PySeq loc (compile-stmt* otherwise tail scope conf))))
+	  (compile-stmt* loc body tail scope conf)
+	  (compile-stmt* loc otherwise tail scope conf)))
 
       ((Expr ?loc ?value)
        ;; Expr(expr value)
        (sexp value tail scope conf))
 
+      ((Pass ?loc)
+       ;; Pass
+       (new-PyPass loc))
+      ((Break ?loc)
+       ;; Continue
+       (new-PyBreak loc))
+      ((Continue ?loc)
+       ;; Continue
+       (new-PyContinue loc))
+
       ;; expr
       ((Num ?loc ?val)
        (new-PyNumber loc (string->number val)))
+      ((Str ?loc ?val)
+       (new-PyString loc val))
       ((Constant ?loc ?val ?string)
        ;; Constant(constant value, string? kind) [3.8]
        (if string
@@ -72,7 +84,7 @@
 	   (new-PyNumber loc (string->number val))))
       ((BinOp ?loc ?left ?op ?right)
        ;; BinOp(expr left, operator op, expr right)
-       (make-PyBinary loc #f 'any
+       (make-PyBinary loc #f (op-type op)
 	  (case op
 	     ((Add) '+)
 	     ((Sub) '-)
@@ -109,8 +121,22 @@
       (else
        (error "sexp" "Not implemented" exp))))
       
-(define (compile-stmt* body tail scope conf)
+(define (compile-stmt* loc body tail scope conf)
+   (if (null? body)
+       (new-PyPass loc)
+       (new-PySeq loc
+	  (let loop ((body body))
+	     (if (null? (cdr body))
+		 (list (sexp (car body) tail scope conf))
+		 (cons (sexp (car body) #f scope conf) (loop (cdr body))))))))
+
+(define (compile* loc body tail scope conf)
    (let loop ((body body))
       (if (null? (cdr body))
 	  (list (sexp (car body) tail scope conf))
 	  (cons (sexp (car body) #f scope conf) (loop (cdr body))))))
+
+(define (op-type op)
+   (if (memq op '(< <= > >= ==))
+       'bool
+       'unknown))
