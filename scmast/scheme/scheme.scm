@@ -2,11 +2,11 @@
    (let* ((cnt (make-cell 0))
 	  (caches (collect-caches ast cnt)))
       (PyModule-caches-set! ast (cell-ref cnt))
-      (PyModule-%info-set! ast (pyc-scheme ast conf))
+      (PyNode-%info-set! ast (pyc-scheme ast conf))
       ast))
 
 (define (py-scheme-eval ast conf)
-   (let ((def (PyModule-%info ast)))
+   (let ((def (PyNode-%info ast)))
       ((eval def) (py-make-global) (py-make-caches (PyModule-caches ast)))))
 
 (define (py-scheme-bigloo ast conf)
@@ -16,7 +16,7 @@
 	   (main main)))
    (pp `(define (main argv)
 	   (pyc (py-make-global) (py-make-caches ,(PyModule-caches ast)))))
-   (pp `(define pyc ,(PyModule-%info ast))))
+   (pp `(define pyc ,(PyNode-%info ast))))
 		    
 (define (py-scheme-gambit ast conf)
    (tprint "TODO"))
@@ -73,7 +73,7 @@
 	   ,(pyc-scheme (PyIf-then this) conf)
 	   ,(pyc-scheme (PyIf-else this) conf))))
 
-(define (pyc-scheme-decl this::PyDecl conf)
+(define (pyc-scheme-decl this conf)
    (unless (PyDecl-name this)
       (PyDecl-name-set! this
 	 (symbol-append (PyDecl-id this)
@@ -89,9 +89,9 @@
 (define-walk-method (pyc-scheme this::PyDeclInit conf)
    (let ((val (pyc-scheme (PyDeclInit-val this) conf)))
       (epairify this
-	 (if (eq? (PyDeclInit-scope this) 'local)
+	 (if (eq? (PyDecl-scope this) 'local)
 	     `(set! ,(pyc-scheme-decl this conf) ,val)
-	     `(global-put! %global ,(pyc-propname (PyDeclInit-id this)) ,val
+	     `(global-put! %global ,(pyc-propname (PyDecl-id this)) ,val
 		 (vector-ref %caches ,(PyNode-%info this)))))))
 
 (define-walk-method (pyc-scheme this::PyAssig conf)
@@ -101,7 +101,7 @@
       (epairify this
 	 (case (PyDecl-scope decl)
 	    ((global)
-	     `(global-put! %global ,(pyc-propname (PyDeclInit-id decl)) ,val
+	     `(global-put! %global ,(pyc-propname (PyDecl-id decl)) ,val
 		 (vector-ref %caches ,(PyNode-%info this))))
 	    (else
 	     `(set! ,(pyc-scheme-decl decl conf) ,val))))))
@@ -114,7 +114,7 @@
    uninit)
 
 (define-walk-method (pyc-scheme this::PyNumber conf)
-   (PyNumber-val this))
+   (PyLiteralValue-val this))
 
 (define-walk-method (pyc-scheme this::PyBinary conf)
    (epairify this
@@ -164,7 +164,7 @@
 
 (define-walk-method (collect-caches this::PyDeclInit cnt)
    (call-default-walker)
-   (when (eq? (PyDeclInit-scope this) 'global)
+   (when (eq? (PyDecl-scope this) 'global)
       (let ((n (cell-ref cnt)))
 	 (cell-set! cnt (+ 1 n))
 	 (PyNode-%info-set! this n))))
