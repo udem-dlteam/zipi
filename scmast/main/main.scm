@@ -3,13 +3,13 @@
       (cons "return" py-return)
       (cons "locals" py-locals)
       (cons "beval" py-beval)))
-#;
+
 (define passes-scheme
    (list (cons "symbol" py-symbol!)
       (cons "return" py-return)
       (cons "locals" py-locals)
       (cons "scheme" py-scheme)))
-#;
+
 (define passes-javascript
    (list (cons "symbol" py-symbol!)
       (cons "return" py-return)

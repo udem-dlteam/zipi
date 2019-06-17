@@ -12,7 +12,6 @@
 		      (map (lambda (n) (make-PCache #f -1)) (iota cnt)))))
       (PyObject-elements-set! __builtins__ 0 (py-procedure->function print))
       (PyObject-elements-set! __builtins__ 1 locals)
-      (pp def)
       ((eval def) %global %caches)))
 
 (define uninit
