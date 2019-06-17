@@ -106,7 +106,7 @@
 
 (define-walk-method (pyc-scheme this::PyIf conf)
    (epairify this
-      `(if (pyc-test (PyIf-test this) conf)
+      `(if ,(pyc-test (PyIf-test this) conf)
 	   ,(pyc-scheme (PyIf-then this) conf)
 	   ,(pyc-scheme (PyIf-else this) conf))))
 
@@ -114,10 +114,10 @@
    #f)
 
 (define-walk-method (pyc-scheme this::PyBreak conf)
-   (epairify this '(%break)))
+   (epairify this '(%break #f)))
 
 (define-walk-method (pyc-scheme this::PyContinue conf)
-   (epairify this '(%continue)))
+   (epairify this '(%continue #f)))
 
 (define (pyc-scheme-decl this conf)
    (unless (PyDecl-name this)
