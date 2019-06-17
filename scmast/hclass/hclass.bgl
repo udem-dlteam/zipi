@@ -39,7 +39,7 @@
 ;*---------------------------------------------------------------------*/
 ;*    HClass-transition-add! ...                                       */
 ;*---------------------------------------------------------------------*/
-(define (HClass-transition-add! hc::HClass tran target::HClass)
+(define (HClass-transition-add! hc tran target)
    (with-access::HClass hc (transitions)
       (set! transitions (cons (cons tran target) transitions))))
 

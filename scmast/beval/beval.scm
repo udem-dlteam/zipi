@@ -17,7 +17,7 @@
 
    (include "bytecodes.scm")
 
-   `(let ((c (assq ,id (all-bytecodes))))
+   `(let ((c (assq ,id ',(all-bytecodes))))
        (if (not c)
 	   (error "code" "illegal code" ,id)
 	   (+ (cdr c) ,(if (pair? offset) (car offset) 0)))))
@@ -43,7 +43,7 @@
    (let ((hclass (make-HClass '#() '())))
       (make-PyObject hclass '#())))
 
-(define locals
+(define locals2
    (py-procedure->function
       (lambda (bcode env global return)
 	 (let ((frame (meaning (bytecode-ref bcode 2) env global return))
@@ -61,7 +61,7 @@
 	  (__builtins__ (make-PyObject hclass0 '#(- -)))
 	  (global (make-PyObject hclass1 (vector __builtins__))))
       (PyObject-elements-set! __builtins__ 0 (py-procedure->function print))
-      (PyObject-elements-set! __builtins__ 1 locals)
+      (PyObject-elements-set! __builtins__ 1 locals2)
       (meaning (compile ast '()) '() global no-return)))
 
 (define (compile* nodes env)
@@ -105,11 +105,11 @@
       (compile (PyIf-else this) env)))
 
 (define-walk-method (compile this::PyDeclInit env)
-   (if (eq? (PyDeclInit-scope this) 'local)
+   (if (eq? (PyDecl-scope this) 'local)
        (bytecode (code 'SET0)
 	  (compile (PyDeclInit-val this) env))
        (bytecode (code 'GPUT)
-	  (PyDeclInit-id this)
+	  (PyDecl-id this)
 	  (compile (PyDeclInit-val this) env)
 	  (make-PCache #f -1))))
 
@@ -138,7 +138,7 @@
    (bytecode (code 'UNINIT)))
 
 (define-walk-method (compile this::PyNumber env)
-   (bytecode (code 'NUM) (PyNumber-val this)))
+   (bytecode (code 'NUM) (PyLiteralValue-val this)))
 
 (define-walk-method (compile this::PyBinary env)
    (bytecode (code (PyBinary-op this))
@@ -342,8 +342,8 @@
       ;; app
       ((CALL0)
        (let ((proc (meaning (bytecode-ref bcode 1) env global return)))
-	  (if (eq? proc locals)
-	      ((PyFunction-procedure locals) bcode env global return)
+	  (if (eq? proc locals2)
+	      ((PyFunction-procedure locals2) bcode env global return)
 	      (PyFunction-call0 proc))))
       ((CALL1)
        (PyFunction-call1 (meaning (bytecode-ref bcode 1) env global return)

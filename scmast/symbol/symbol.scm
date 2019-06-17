@@ -26,7 +26,7 @@
       (cond
 	 ((not (PyRefUnresolved? lhs))
 	  (call-default-walker))
-	 ((lookup (cdr %env) (PyRefUnresolved-id lhs))
+	 ((lookup2 (cdr %env) (PyRefUnresolved-id lhs))
 	  (call-default-walker))
 	 (else
 	  (let ((decl (new-PyDeclInit (PyNode-loc this)
@@ -59,8 +59,8 @@
 	     (loop (cons (car decls) env) (cdr decls) (cdr vals))))))
 
 (define-walk-method (resolve! this::PyRefUnresolved env conf)
-   (let ((loc (PyRefUnresolved-loc this)))
-      (let ((decl (lookup env (PyRefUnresolved-id this))))
+   (let ((loc (PyNode-loc this)))
+      (let ((decl (lookup2 env (PyRefUnresolved-id this))))
 	 (if (PyDecl? decl)
 	     (new-PyRef loc decl)
 	     this))))
@@ -86,10 +86,10 @@
       this))
 
 (define-walk-method (resolve! this::PyDeclInit env conf)
-   (if (eq? (PyDeclInit-scope this) 'local)
-       (let ((loc (PyDeclInit-loc this)))
+   (if (eq? (PyDecl-scope this) 'local)
+       (let ((loc (PyNode-loc this)))
 	  ;; replace the declaration with an assignment
-	  (let ((decl (lookup env (PyDeclInit-id this))))
+	  (let ((decl (lookup2 env (PyDeclInit-id this))))
 	     (new-PyAssig loc (new-PyRef loc decl)
 		(resolve! (PyDeclInit-val this) env conf))))
        (call-default-walker)))
@@ -100,9 +100,9 @@
 
 (define-walk-method (collect-free-assig* this::PyAssig env)
    (if (isa? (PyAssig-lhs this) PyRefUnresolved)
-       (if (lookup env (PyRefUnresolved-id (PyAssig-lhs this)))
+       (if (lookup2 env (PyRefUnresolved-id (PyAssig-lhs this)))
 	   (collect-free-assig* (PyAssig-rhs this) env)
-	   (let ((loc (PyExpr-loc (PyAssig-lhs this))))
+	   (let ((loc (PyNode-loc (PyAssig-lhs this))))
 	      (cons (new-PyDeclInit loc
 		       (PyRefUnresolved-id (PyAssig-lhs this))
 		       'local
@@ -111,7 +111,7 @@
        (call-default-walker)))
 
 ;; find a variable in the environment
-(define (lookup env id)
+(define (lookup2 env id)
    (let loop ((env env))
       (cond
 	 ((null? env) #f)

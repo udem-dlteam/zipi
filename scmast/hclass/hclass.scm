@@ -1,3 +1,4 @@
+#;
 (cond-expand
   (gambit
    (declare (standard-bindings) (extended-bindings) (not safe) (block))
