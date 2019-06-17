@@ -1,9 +1,9 @@
 ;*=====================================================================*/
-;*    serrano/nosync/py19/scmast/astpy.bgl                             */
+;*    serrano/nosync/pyc/scmast/main/main.bgl                         */
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 12:48:54 2019                          */
-;*    Last change :  Thu Jun 13 13:25:13 2019 (serrano)                */
+;*    Last change :  Mon Jun 17 07:40:06 2019 (serrano)                */
 ;*    Copyright   :  2019 M. Feeley & M. Serrano                       */
 ;*    -------------------------------------------------------------    */
 ;*    python ast interpreter (bigloo prelude)                          */
@@ -22,6 +22,7 @@
 	   __py_locals
 	   __py_return
 	   __py_beval
+	   __py_scheme
 	   __py_hclass
 	   __py_object)
 
@@ -32,11 +33,14 @@
 ;*---------------------------------------------------------------------*/
 (define (main args)
    (let ((verb 0)
+	 (tgt 'scheme)
 	 (conf '()))
       (args-parse (cdr args)
 	 ((("-h" "--help") (help "This message"))
 	  (usage args-parse-usage)
 	  (exit 0))
+	 ((("-t" "--target") ?target (help "Set target language"))
+	  (set! target target))
 	 (("-v?level" (help "Increase/set verbosity level (-v0 crystal silence)"))
 	  (if (string=? level "")
 	      (set! verb (+fx 1 verb))
@@ -44,14 +48,14 @@
 	 (else
 	  (unless (string=? else "--")
 	     (set! conf (cons* :src else conf)))))
-      (py19 (cons* :verbose verb conf))))
+      (pyc (cons* :verbose verb :target tgt conf))))
 
 ;*---------------------------------------------------------------------*/
 ;*    usage ...                                                        */
 ;*---------------------------------------------------------------------*/
 (define (usage args-parse-usage)
-   (print "py19")
-   (print "usage: py19 [options] -- [bigloo-options]")
+   (print "pyc")
+   (print "usage: pyc [options] -- [bigloo-options]")
    (args-parse-usage #f)
    (newline)
    (print "Shell Variables:")

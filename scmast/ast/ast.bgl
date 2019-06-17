@@ -26,6 +26,8 @@
 	   
 	   ;; misc
 	   (class PyDecl::PyNode
+	      (name (default #f))
+	      (key::int (default -1))
 	      (id::symbol read-only)
 	      ;; scope: global, local, block
 	      (scope::symbol read-only))

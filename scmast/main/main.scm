@@ -1,10 +1,22 @@
-(define passes
+(define passes-beval
    (list (cons "symbol" py-symbol!)
       (cons "return" py-return)
       (cons "locals" py-locals)
       (cons "beval" py-beval)))
 
-(define (py19 conf)
+(define passes-scheme
+   (list (cons "symbol" py-symbol!)
+      (cons "return" py-return)
+      (cons "locals" py-locals)
+      (cons "scheme" py-scheme)))
+
+(define passes-javascript
+   (list (cons "symbol" py-symbol!)
+      (cons "return" py-return)
+      (cons "locals" py-locals)
+      (cons "javascript" py-javascript)))
+
+(define (pyc conf)
    (let* ((src (config-get conf :src))
 	  (ast (if src
 		   (py-sexp (call-with-input-file src read) '())
@@ -12,8 +24,14 @@
 	  (env (getenv "PYTRACE"))
 	  (conf (cons* :trace (and (string? env) (string-contains env "trace"))
 		   :tmp (make-file-path (os-tmp)
-			    (or (getenv "USER") "anonymous") "PY19")
-		   conf)))
+			   (or (getenv "USER") "anonymous") "PYC")
+		   conf))
+	  (passes (case (config-get conf :target)
+		     ((beval) passes-beval)
+		     ((javascript) passes-javascript)
+		     ((scheme) passes-javascript)
+		     (else (error "pyc" "Unknown target language"
+			      (config-get conf :target))))))
       (compile ast passes conf)))
 
 (define (compile ast passes conf)
