@@ -284,7 +284,7 @@
 ;;     return True
 
 (define (py-builtin-all iterable)
-  (error "'all' not implemented"))
+  (error "all" "not implemented" #f))
 
 ;;-------------------- any(iterable)
 
@@ -298,7 +298,7 @@
 ;;     return False
 
 (define (py-builtin-any iterable)
-  (error "'any' not implemented"))
+  (error "any" "not implemented" #f))
 
 ;;-------------------- ascii(object)
 
@@ -308,7 +308,7 @@
 ;; that returned by repr() in Python 2.
 
 (define (py-builtin-ascii object)
-  (error "'ascii' not implemented"))
+  (error "ascii" "not implemented" #f))
 
 ;;-------------------- bin(x)
 
@@ -332,7 +332,7 @@
 ;; See also format() for more information.
 
 (define (py-builtin-bin x)
-  (error "'bin' not implemented"))
+  (error "bin" "not implemented" #f))
 
 ;;-------------------- class bool([x])
 
@@ -346,7 +346,7 @@
 ;; Changed in version 3.7: x is now a positional-only parameter.
 
 (define (py-builtin-bool x)
-  (error "'bool' not implemented"))
+  (error "bool" "not implemented" #f))
 
 ;;-------------------- breakpoint(*args, **kws)
 
@@ -362,7 +362,7 @@
 ;; New in version 3.7.
 
 (define (py-builtin-breakpoint args kws)
-  (error "'breakpoint' not implemented"))
+  (error "breakpoint" "not implemented" #f))
 
 ;;-------------------- class bytearray([source[, encoding[, errors]]])
 
@@ -389,7 +389,7 @@
 ;; Bytearray Objects.
 
 (define (py-builtin-bytearray source encoding errors)
-  (error "'bytearray' not implemented"))
+  (error "bytearray" "not implemented" #f))
 
 ;;-------------------- class bytes([source[, encoding[, errors]]])
 
@@ -407,7 +407,7 @@
 ;; Objects, and Bytes and Bytearray Operations.
 
 (define (py-builtin-bytes source encoding errors)
-  (error "'bytes' not implemented"))
+  (error "bytes" "not implemented" #f))
 
 ;;-------------------- callable(object)
 
@@ -421,7 +421,7 @@
 ;; then brought back in Python 3.2.
 
 (define (py-builtin-callable object)
-  (error "'callable' not implemented"))
+  (error "callable" "not implemented" #f))
 
 ;;-------------------- chr(i)
 
@@ -433,7 +433,7 @@
 ;; in base 16). ValueError will be raised if i is outside that range.
 
 (define (py-builtin-chr i)
-  (error "'chr' not implemented"))
+  (error "chr" "not implemented" #f))
 
 ;;-------------------- @classmethod
 
@@ -461,7 +461,7 @@
 ;; For more information on class methods, see The standard type hierarchy.
 
 (define (py-builtin-classmethod)
-  (error "'classmethod' not implemented"))
+  (error "classmethod" "not implemented" #f))
 
 ;;-------------------- compile(source, filename, mode, flags=0, dont_inherit=False, optimize=-1)
 
@@ -535,7 +535,7 @@
 ;; with.
 
 (define (py-builtin-compile source filename mode flags dont_inherit optimize)
-  (error "'compile' not implemented"))
+  (error "compile" "not implemented" #f))
 
 ;;-------------------- class complex([real[, imag]])
 
@@ -565,7 +565,7 @@
 ;; __float__() are not defined.
 
 (define (py-builtin-complex real imag)
-  (error "'complex' not implemented"))
+  (error "complex" "not implemented" #f))
 
 ;;-------------------- delattr(object, name)
 
@@ -576,7 +576,7 @@
 ;; del x.foobar.
 
 (define (py-builtin-delattr object name)
-  (error "'delattr' not implemented"))
+  (error "delattr" "not implemented" #f))
 
 ;;-------------------- class dict(**kwarg)
 ;;                     class dict(mapping, **kwarg)
@@ -589,7 +589,7 @@
 ;; well as the collections module.
 
 (define (py-builtin-dict kwarg)
-  (error "'dict' not implemented"))
+  (error "dict" "not implemented" #f))
 
 ;;-------------------- dir([object])
 
@@ -643,7 +643,7 @@
 ;; argument is a class.
 
 (define (py-builtin-dir object)
-  (error "'dir' not implemented"))
+  (error "dir" "not implemented" #f))
 
 ;;-------------------- divmod(a, b)
 
@@ -657,7 +657,7 @@
 ;; sign as b, and 0 <= abs(a % b) < abs(b).
 
 (define (py-builtin-divmod a b)
-  (error "'divmod' not implemented"))
+  (error "divmod" "not implemented" #f))
 
 ;;-------------------- enumerate(iterable, start=0)
 
@@ -681,7 +681,7 @@
 ;;         n += 1
 
 (define (py-builtin-enumerate iterable start)
-  (error "'enumerate' not implemented"))
+  (error "enumerate" "not implemented" #f))
 
 ;;-------------------- eval(expression, globals=None, locals=None)
 
@@ -723,7 +723,7 @@
 ;; argument. Code compilation events may also be raised.
 
 (define (py-builtin-eval expression globals locals)
-  (error "'eval' not implemented"))
+  (error "eval" "not implemented" #f))
 
 ;;-------------------- exec(object[, globals[, locals]])
 
@@ -766,7 +766,7 @@
 ;; effects of the code on locals after function exec() returns.
 
 (define (py-builtin-exec object globals locals)
-  (error "'eval' not implemented"))
+  (error "eval" "not implemented" #f))
 
 ;;-------------------- filter(function, iterable)
 
@@ -785,7 +785,7 @@
 ;; returns elements of iterable for which function returns false.
 
 (define (py-builtin-filter function iterable)
-  (error "'filter' not implemented"))
+  (error "filter" "not implemented" #f))
 
 ;;-------------------- class float([x])
 
@@ -845,7 +845,7 @@
 ;; not defined.
 
 (define (py-builtin-float x)
-  (error "'float' not implemented"))
+  (error "float" "not implemented" #f))
 
 ;;-------------------- format(value[, format_spec])
 
@@ -869,7 +869,7 @@
 ;; TypeError if format_spec is not an empty string.
 
 (define (py-builtin-format value format_spec)
-  (error "'format' not implemented"))
+  (error "format" "not implemented" #f))
 
 ;;-------------------- class frozenset([iterable])
 
@@ -881,7 +881,7 @@
 ;; classes, as well as the collections module.
 
 (define (py-builtin-frozenset iterable)
-  (error "'frozenset' not implemented"))
+  (error "frozenset" "not implemented" #f))
 
 ;;-------------------- getattr(object, name[, default])
 
@@ -893,7 +893,7 @@
 ;; raised.
 
 (define (py-builtin-getattr object name default)
-  (error "'getattr' not implemented"))
+  (error "getattr" "not implemented" #f))
 
 ;;-------------------- globals()
 
@@ -903,7 +903,7 @@
 ;; which it is called).
 
 (define (py-builtin-globals)
-  (error "'globals' not implemented"))
+  (error "globals" "not implemented" #f))
 
 ;;-------------------- hasattr(object, name)
 
@@ -913,7 +913,7 @@
 ;; whether it raises an AttributeError or not.)
 
 (define (py-builtin-hasattr object name)
-  (error "'hasattr' not implemented"))
+  (error "hasattr" "not implemented" #f))
 
 ;;-------------------- hash(object)
 
@@ -928,7 +928,7 @@
 ;; machine. See __hash__() for details.
 
 (define (py-builtin-hash object)
-  (error "'hash' not implemented"))
+  (error "hash" "not implemented" #f))
 
 ;;-------------------- help([object])
 
@@ -952,7 +952,7 @@
 ;; consistent.
 
 (define (py-builtin-help object)
-  (error "'help' not implemented"))
+  (error "help" "not implemented" #f))
 
 ;;-------------------- hex(x)
 
@@ -985,7 +985,7 @@
 ;; the float.hex() method.
 
 (define (py-builtin-hex x)
-  (error "'hex' not implemented"))
+  (error "hex" "not implemented" #f))
 
 ;;-------------------- id(object)
 
@@ -998,7 +998,7 @@
 ;; memory.
 
 (define (py-builtin-id object)
-  (error "'id' not implemented"))
+  (error "id" "not implemented" #f))
 
 ;;-------------------- input([prompt])
 
@@ -1023,7 +1023,7 @@
 ;; successfully reading input.
 
 (define (py-builtin-input prompt)
-  (error "'input' not implemented"))
+  (error "input" "not implemented" #f))
 
 ;;-------------------- class int([x])
 ;;                     class int(x, base=10)
@@ -1062,7 +1062,7 @@
 ;; defined.
 
 (define (py-builtin-int x)
-  (error "'int' not implemented"))
+  (error "int" "not implemented" #f))
 
 ;;-------------------- isinstance(object, classinfo)
 
@@ -1075,7 +1075,7 @@
 ;; TypeError exception is raised.
 
 (define (py-builtin-isinstance object classinfo)
-  (error "'isinstance' not implemented"))
+  (error "isinstance" "not implemented" #f))
 
 ;;-------------------- issubclass(class, classinfo)
 
@@ -1085,7 +1085,7 @@
 ;; will be checked. In any other case, a TypeError exception is raised.
 
 (define (py-builtin-issubclass object classinfo)
-  (error "'issubclass' not implemented"))
+  (error "issubclass" "not implemented" #f))
 
 ;;-------------------- iter(object[, sentinel])
 
@@ -1113,7 +1113,7 @@
 ;;         process_block(block)
 
 (define (py-builtin-iter object sentinel)
-  (error "'iter' not implemented"))
+  (error "iter" "not implemented" #f))
 
 ;;-------------------- len(s)
 
@@ -1122,7 +1122,7 @@
 ;; collection (such as a dictionary, set, or frozen set).
 
 (define (py-builtin-len s)
-  (error "'len' not implemented"))
+  (error "len" "not implemented" #f))
 
 ;;-------------------- class list([iterable])
 
@@ -1130,7 +1130,7 @@
 ;; type, as documented in Lists and Sequence Types — list, tuple, range.
 
 (define (py-builtin-list iterable)
-  (error "'list' not implemented"))
+  (error "list" "not implemented" #f))
 
 ;;-------------------- locals()
 
@@ -1144,7 +1144,7 @@
 ;; interpreter.
 
 (define (py-builtin-locals)
-  (error "'locals' not implemented"))
+  (error "locals" "not implemented" #f))
 
 ;;-------------------- map(function, iterable, ...)
 
@@ -1157,7 +1157,7 @@
 ;; tuples, see itertools.starmap().
 
 (define (py-builtin-map function iterable)
-  (error "'map' not implemented"))
+  (error "map" "not implemented" #f))
 
 ;;-------------------- max(iterable, *[, key, default])
 ;;                     max(arg1, arg2, *args[, key])
@@ -1183,7 +1183,7 @@
 ;; Changed in version 3.8: The key can be None.
 
 (define (py-builtin-max iterable key default)
-  (error "'max' not implemented"))
+  (error "max" "not implemented" #f))
 
 ;;-------------------- memoryview(obj)
 
@@ -1191,7 +1191,7 @@
 ;; Memory Views for more information.
 
 (define (py-builtin-memoryview obj)
-  (error "'memoryview' not implemented"))
+  (error "memoryview" "not implemented" #f))
 
 ;;-------------------- min(iterable, *[, key, default])
 ;;                     min(arg1, arg2, *args[, key])
@@ -1220,7 +1220,7 @@
 ;; Changed in version 3.8: The key can be None.
 
 (define (py-builtin-min iterable key default)
-  (error "'min' not implemented"))
+  (error "min" "not implemented" #f))
 
 ;;-------------------- next(iterator[, default])
 
@@ -1229,7 +1229,7 @@
 ;; exhausted, otherwise StopIteration is raised.
 
 (define (py-builtin-next iterator default)
-  (error "'next' not implemented"))
+  (error "next" "not implemented" #f))
 
 ;;-------------------- class object
 
@@ -1241,7 +1241,7 @@
 ;; attributes to an instance of the object class.
 
 (define (py-builtin-object)
-  (error "'object' not implemented"))
+  (error "object" "not implemented" #f))
 
 ;;-------------------- oct(x)
 
@@ -1268,7 +1268,7 @@
 ;; See also format() for more information.
 
 (define (py-builtin-oct x)
-  (error "'oct' not implemented"))
+  (error "oct" "not implemented" #f))
 
 ;;-------------------- open(file, mode='r', buffering=-1, encoding=None, errors=None, newline=None, closefd=True, opener=None)
 
@@ -1448,7 +1448,7 @@
 ;; On Windows, opening a console buffer may return a subclass of io.RawIOBase other than io.FileIO.
 
 (define (py-builtin-open file mode buffering encoding errors newline closefd opener)
-  (error "'open' not implemented"))
+  (error "open" "not implemented" #f))
 
 ;;-------------------- ord(c)
 
@@ -1458,7 +1458,7 @@
 ;; returns 8364. This is the inverse of chr().
 
 (define (py-builtin-ord c)
-  (error "'ord' not implemented"))
+  (error "ord" "not implemented" #f))
 
 ;;-------------------- pow(x, y[, z])
 
@@ -1492,7 +1492,7 @@
 ;; computation of modular inverses.
 
 (define (py-builtin-pow x y z)
-  (error "'pow' not implemented"))
+  (error "pow" "not implemented" #f))
 
 ;;-------------------- print(*objects, sep=' ', end='\n', file=sys.stdout, flush=False)
 
@@ -1597,7 +1597,7 @@
 ;; writeable.
 
 (define (py-builtin-property fget fset fdel doc)
-  (error "'property' not implemented"))
+  (error "property" "not implemented" #f))
 
 ;;-------------------- range(stop)
 ;;                     range(start, stop[, step])
@@ -1606,7 +1606,7 @@
 ;; type, as documented in Ranges and Sequence Types — list, tuple, range.
 
 (define (py-builtin-range stop)
-  (error "'range' not implemented"))
+  (error "range" "not implemented" #f))
 
 ;;-------------------- repr(object)
 
@@ -1620,7 +1620,7 @@
 ;; instances by defining a __repr__() method.
 
 (define (py-builtin-repr object)
-  (error "'repr' not implemented"))
+  (error "repr" "not implemented" #f))
 
 ;;-------------------- reversed(seq)
 
@@ -1630,7 +1630,7 @@
 ;; 0).
 
 (define (py-builtin-reversed seq)
-  (error "'reversed' not implemented"))
+  (error "reversed" "not implemented" #f))
 
 ;;-------------------- round(number[, ndigits])
 
@@ -1656,7 +1656,7 @@
 ;; Arithmetic: Issues and Limitations for more information.
 
 (define (py-builtin-round number ndigits)
-  (error "'round' not implemented"))
+  (error "round" "not implemented" #f))
 
 ;;-------------------- class set([iterable])
 
@@ -1668,7 +1668,7 @@
 ;; classes, as well as the collections module.
 
 (define (py-builtin-set iterable)
-  (error "'set' not implemented"))
+  (error "set" "not implemented" #f))
 
 ;;-------------------- setattr(object, name, value)
 
@@ -1679,7 +1679,7 @@
 ;; 'foobar', 123) is equivalent to x.foobar = 123.
 
 (define (py-builtin-setattr object name value)
-  (error "'setattr' not implemented"))
+  (error "setattr" "not implemented" #f))
 
 ;;-------------------- class slice(stop)
 ;;                     class slice(start, stop[, step])
@@ -1695,7 +1695,7 @@
 ;; alternate version that returns an iterator.
 
 (define (py-builtin-slice stop)
-  (error "'slice' not implemented"))
+  (error "slice" "not implemented" #f))
 
 ;;-------------------- sorted(iterable, *, key=None, reverse=False)
 
@@ -1723,7 +1723,7 @@
 ;; For sorting examples and a brief sorting tutorial, see Sorting HOW TO.
 
 (define (py-builtin-sorted iterable key reverse)
-  (error "'sorted' not implemented"))
+  (error "sorted" "not implemented" #f))
 
 ;;-------------------- @staticmethod
 
@@ -1756,7 +1756,7 @@
 ;; For more information on static methods, see The standard type hierarchy.
 
 (define (py-builtin-staticmethod)
-  (error "'staticmethod' not implemented"))
+  (error "staticmethod" "not implemented" #f))
 
 ;;-------------------- class str(object='')
 ;;                     class str(object=b'', encoding='utf-8', errors='strict')
@@ -1767,7 +1767,7 @@
 ;; strings, see Text Sequence Type — str.
 
 (define (py-builtin-str object)
-  (error "'str' not implemented"))
+  (error "str" "not implemented" #f))
 
 ;;-------------------- sum(iterable, /, start=0)
 
@@ -1785,7 +1785,7 @@
 ;; keyword argument.
 
 (define (py-builtin-sum iterable start)
-  (error "'sum' not implemented"))
+  (error "sum" "not implemented" #f))
 
 ;;-------------------- super([type[, object-or-type]])
 
@@ -1847,7 +1847,7 @@
 ;; super(), see guide to using super().
 
 (define (py-builtin-super type object-or-type)
-  (error "'super' not implemented"))
+  (error "super" "not implemented" #f))
 
 ;;-------------------- tuple([iterable])
 
@@ -1855,7 +1855,7 @@
 ;; type, as documented in Tuples and Sequence Types — list, tuple, range.
 
 (define (py-builtin-tuple iterable)
-  (error "'tuple' not implemented"))
+  (error "tuple" "not implemented" #f))
 
 ;;-------------------- class type(object)
 ;;                     class type(name, bases, dict)
@@ -1887,7 +1887,7 @@
 ;; of an object.
 
 (define (py-builtin-type object)
-  (error "'type' not implemented"))
+  (error "type" "not implemented" #f))
 
 ;;-------------------- vars([object])
 
@@ -1904,7 +1904,7 @@
 ;; dictionary are ignored.
 
 (define (py-builtin-vars object)
-  (error "'vars' not implemented"))
+  (error "vars" "not implemented" #f))
 
 ;;-------------------- zip(*iterables)
 
@@ -1953,7 +1953,7 @@
 ;; True
 
 (define (py-builtin-zip iterables)
-  (error "'zip' not implemented"))
+  (error "zip" "not implemented" #f))
 
 ;;-------------------- __import__(name, globals=None, locals=None, fromlist=(), level=0)
 
@@ -2014,4 +2014,4 @@
 ;; supported (which also changes the default value to 0).
 
 (define (py-builtin-__import__ name globals locals fromlist level)
-  (error "'__import__' not implemented"))
+  (error "__import__" "not implemented" #f))

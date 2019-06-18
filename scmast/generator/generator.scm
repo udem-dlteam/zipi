@@ -1,3 +1,7 @@
+(define (py-generator this conf)
+   (mark-generator this #f)
+   this)
+
 ;; Mark as generator functions that use yield
 (define-walk-method (mark-generator this::PyNode fun)
    (call-default-walker))

@@ -10,6 +10,6 @@
 
 (define-walk-method (cps-fun! this::PyFun)
    (if (PyFun-generator this)
-       (PyFun-body-set! this (cps (PyFunBody ...)))
-       (cps-fun! (PyFun-Body this))))
+       (PyFun-body-set! this (PyFun-body this));;(cps (PyFunBody ...)))
+       (cps-fun! (PyFun-body this))))
    

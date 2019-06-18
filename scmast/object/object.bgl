@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Tue Jun 11 09:34:58 2019 (serrano)                */
+;*    Last change :  Tue Jun 18 07:22:02 2019 (serrano)                */
 ;*    Copyright   :  2019 M. Feeley & M. Serrano                       */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -48,7 +48,6 @@
 	   (py-make-global)
 	   (py-make-caches ::int)
 
-	   (py-print . vals)
 	   (py+ x y)
 	   (py- x y)
 	   (pyneg x)
