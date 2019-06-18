@@ -9,7 +9,6 @@ def f():
 
 g = f();
 
-print ("calling g", g)
 print ("n1=", g.__next__())
 print ("n2=", g.__next__())
 print ("ns=", g.send(43))

@@ -227,7 +227,7 @@
    (define (generator this::PyFun exp)
       (if (PyFun-generator this)
 	  (epairify this
-	     `(letrec ((%gen (py-make-generator (lambda (%val) ,exp))))
+	     `(letrec ((%gen (py-make-generator (lambda (%v %e) ,exp))))
 		 %gen))
 	  exp))
    

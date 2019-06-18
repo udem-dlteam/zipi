@@ -1741,8 +1741,8 @@
 (define py-builtin-print
   (py-procedure->function
    (lambda rest (error "print" "unimplemented generic procedure for builtin" #f))
-   (lambda (object) ;; objects sep end file flush)
-     (print object))))
+   (lambda object ;; objects sep end file flush)
+     (apply print object))))
 
 ;;-------------------- class property(fget=None, fset=None, fdel=None, doc=None)
 
