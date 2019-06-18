@@ -271,7 +271,7 @@
 
 (define py-builtin-abs
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'abs'"))
+   (lambda rest (error "abs" "unimplemented generic procedure for builtin" #f))
    (lambda (x)
      (abs x))))
 
@@ -288,9 +288,9 @@
 
 (define py-builtin-all
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'all'"))
+   (lambda rest (error "all" "unimplemented generic procedure for builtin" #f))
    (lambda (iterable)
-     (error "'all' not implemented"))))
+     (error "all" "not implemented" #f))))
 
 ;;-------------------- any(iterable)
 
@@ -305,9 +305,9 @@
 
 (define py-builtin-any
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'any'"))
+   (lambda rest (error "any" "unimplemented generic procedure for builtin" #f))
    (lambda (iterable)
-     (error "'any' not implemented"))))
+     (error "any" "not implemented" #f))))
 
 ;;-------------------- ascii(object)
 
@@ -318,9 +318,9 @@
 
 (define py-builtin-ascii
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'ascii'"))
+   (lambda rest (error "ascii" "unimplemented generic procedure for builtin" #f))
    (lambda (object)
-     (error "'ascii' not implemented"))))
+     (error "ascii" "not implemented" #f))))
 
 ;;-------------------- bin(x)
 
@@ -345,9 +345,9 @@
 
 (define py-builtin-bin
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'bin'"))
+   (lambda rest (error "bin" "unimplemented generic procedure for builtin" #f))
    (lambda (x)
-     (error "'bin' not implemented"))))
+     (error "bin" "not implemented" #f))))
 
 ;;-------------------- class bool([x])
 
@@ -362,9 +362,9 @@
 
 (define py-builtin-bool
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'bool'"))
+   (lambda rest (error "bool" "unimplemented generic procedure for builtin" #f))
    (lambda (x)
-     (error "'bool' not implemented"))))
+     (error "bool" "not implemented" #f))))
 
 ;;-------------------- breakpoint(*args, **kws)
 
@@ -381,9 +381,9 @@
 
 (define py-builtin-breakpoint
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'breakpoint'"))
+   (lambda rest (error "breakpoint" "unimplemented generic procedure for builtin" #f))
    (lambda (args kws)
-     (error "'breakpoint' not implemented"))))
+     (error "breakpoint" "not implemented" #f))))
 
 ;;-------------------- class bytearray([source[, encoding[, errors]]])
 
@@ -411,9 +411,9 @@
 
 (define py-builtin-bytearray
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'bytearray'"))
+   (lambda rest (error "bytearray" "unimplemented generic procedure for builtin" #f))
    (lambda (source encoding errors)
-     (error "'bytearray' not implemented"))))
+     (error "bytearray" "not implemented" #f))))
 
 ;;-------------------- class bytes([source[, encoding[, errors]]])
 
@@ -432,9 +432,9 @@
 
 (define py-builtin-bytes
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'bytes'"))
+   (lambda rest (error "bytes" "unimplemented generic procedure for builtin" #f))
    (lambda (source encoding errors)
-     (error "'bytes' not implemented"))))
+     (error "bytes" "not implemented" #f))))
 
 ;;-------------------- callable(object)
 
@@ -449,9 +449,9 @@
 
 (define py-builtin-callable
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'callable'"))
+   (lambda rest (error "callable" "unimplemented generic procedure for builtin" #f))
    (lambda (object)
-     (error "'callable' not implemented"))))
+     (error "callable" "not implemented" #f))))
 
 ;;-------------------- chr(i)
 
@@ -464,9 +464,9 @@
 
 (define py-builtin-chr
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'chr'"))
+   (lambda rest (error "chr" "unimplemented generic procedure for builtin" #f))
    (lambda (i)
-     (error "'chr' not implemented"))))
+     (error "chr" "not implemented" #f))))
 
 ;;-------------------- @classmethod
 
@@ -495,9 +495,9 @@
 
 (define py-builtin-classmethod
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'classmethod'"))
+   (lambda rest (error "classmethod" "unimplemented generic procedure for builtin" #f))
    (lambda ()
-     (error "'classmethod' not implemented"))))
+     (error "classmethod" "not implemented" #f))))
 
 ;;-------------------- compile(source, filename, mode, flags=0, dont_inherit=False, optimize=-1)
 
@@ -572,9 +572,9 @@
 
 (define py-builtin-compile
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'compile'"))
+   (lambda rest (error "compile" "unimplemented generic procedure for builtin" #f))
    (lambda (source filename mode flags dont_inherit optimize)
-     (error "'compile' not implemented"))))
+     (error "compile" "not implemented" #f))))
 
 ;;-------------------- class complex([real[, imag]])
 
@@ -605,9 +605,9 @@
 
 (define py-builtin-complex
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'complex'"))
+   (lambda rest (error "complex" "unimplemented generic procedure for builtin" #f))
    (lambda (real imag)
-     (error "'complex' not implemented"))))
+     (error "complex" "not implemented" #f))))
 
 ;;-------------------- delattr(object, name)
 
@@ -619,9 +619,9 @@
 
 (define py-builtin-delattr
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'delattr'"))
+   (lambda rest (error "delattr" "unimplemented generic procedure for builtin" #f))
    (lambda (object name)
-     (error "'delattr' not implemented"))))
+     (error "delattr" "not implemented" #f))))
 
 ;;-------------------- class dict(**kwarg)
 ;;                     class dict(mapping, **kwarg)
@@ -635,9 +635,9 @@
 
 (define py-builtin-dict
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'dict'"))
+   (lambda rest (error "dict" "unimplemented generic procedure for builtin" #f))
    (lambda (kwarg)
-     (error "'dict' not implemented"))))
+     (error "dict" "not implemented" #f))))
 
 ;;-------------------- dir([object])
 
@@ -692,9 +692,9 @@
 
 (define py-builtin-dir
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'dir'"))
+   (lambda rest (error "dir" "unimplemented generic procedure for builtin" #f))
    (lambda (object)
-     (error "'dir' not implemented"))))
+     (error "dir" "not implemented" #f))))
 
 ;;-------------------- divmod(a, b)
 
@@ -709,9 +709,9 @@
 
 (define py-builtin-divmod
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'divmod'"))
+   (lambda rest (error "divmod" "unimplemented generic procedure for builtin" #f))
    (lambda (a b)
-     (error "'divmod' not implemented"))))
+     (error "divmod" "not implemented" #f))))
 
 ;;-------------------- enumerate(iterable, start=0)
 
@@ -736,9 +736,9 @@
 
 (define py-builtin-enumerate
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'enumerate'"))
+   (lambda rest (error "enumerate" "unimplemented generic procedure for builtin" #f))
    (lambda (iterable start)
-     (error "'enumerate' not implemented"))))
+     (error "enumerate" "not implemented" #f))))
 
 ;;-------------------- eval(expression, globals=None, locals=None)
 
@@ -781,9 +781,9 @@
 
 (define py-builtin-eval
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'eval'"))
+   (lambda rest (error "eval" "unimplemented generic procedure for builtin" #f))
    (lambda (expression globals locals)
-     (error "'eval' not implemented"))))
+     (error "eval" "not implemented" #f))))
 
 ;;-------------------- exec(object[, globals[, locals]])
 
@@ -827,9 +827,9 @@
 
 (define py-builtin-exec
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'exec'"))
+   (lambda rest (error "exec" "unimplemented generic procedure for builtin" #f))
    (lambda (object globals locals)
-     (error "'eval' not implemented"))))
+     (error "eval" "not implemented" #f))))
 
 ;;-------------------- filter(function, iterable)
 
@@ -849,9 +849,9 @@
 
 (define py-builtin-filter
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'filter'"))
+   (lambda rest (error "filter" "unimplemented generic procedure for builtin" #f))
    (lambda (function iterable)
-     (error "'filter' not implemented"))))
+     (error "filter" "not implemented" #f))))
 
 ;;-------------------- class float([x])
 
@@ -912,9 +912,9 @@
 
 (define py-builtin-float
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'float'"))
+   (lambda rest (error "float" "unimplemented generic procedure for builtin" #f))
    (lambda (x)
-     (error "'float' not implemented"))))
+     (error "float" "not implemented" #f))))
 
 ;;-------------------- format(value[, format_spec])
 
@@ -939,9 +939,9 @@
 
 (define py-builtin-format
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'format'"))
+   (lambda rest (error "format" "unimplemented generic procedure for builtin" #f))
    (lambda (value format_spec)
-     (error "'format' not implemented"))))
+     (error "format" "not implemented" #f))))
 
 ;;-------------------- class frozenset([iterable])
 
@@ -954,9 +954,9 @@
 
 (define py-builtin-frozenset
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'frozenset'"))
+   (lambda rest (error "frozenset" "unimplemented generic procedure for builtin" #f))
    (lambda (iterable)
-     (error "'frozenset' not implemented"))))
+     (error "frozenset" "not implemented" #f))))
 
 ;;-------------------- getattr(object, name[, default])
 
@@ -969,9 +969,9 @@
 
 (define py-builtin-getattr
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'getattr'"))
+   (lambda rest (error "getattr" "unimplemented generic procedure for builtin" #f))
    (lambda (object name default)
-     (error "'getattr' not implemented"))))
+     (error "getattr" "not implemented" #f))))
 
 ;;-------------------- globals()
 
@@ -982,9 +982,9 @@
 
 (define py-builtin-globals
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'globals'"))
+   (lambda rest (error "globals" "unimplemented generic procedure for builtin" #f))
    (lambda ()
-     (error "'globals' not implemented"))))
+     (error "globals" "not implemented" #f))))
 
 ;;-------------------- hasattr(object, name)
 
@@ -995,9 +995,9 @@
 
 (define py-builtin-hasattr
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'hasattr'"))
+   (lambda rest (error "hasattr" "unimplemented generic procedure for builtin" #f))
    (lambda (object name)
-     (error "'hasattr' not implemented"))))
+     (error "hasattr" "not implemented" #f))))
 
 ;;-------------------- hash(object)
 
@@ -1013,9 +1013,9 @@
 
 (define py-builtin-hash
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'hash'"))
+   (lambda rest (error "hash" "unimplemented generic procedure for builtin" #f))
    (lambda (object)
-     (error "'hash' not implemented"))))
+     (error "hash" "not implemented" #f))))
 
 ;;-------------------- help([object])
 
@@ -1040,9 +1040,9 @@
 
 (define py-builtin-help
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'help'"))
+   (lambda rest (error "help" "unimplemented generic procedure for builtin" #f))
    (lambda (object)
-     (error "'help' not implemented"))))
+     (error "help" "not implemented" #f))))
 
 ;;-------------------- hex(x)
 
@@ -1076,9 +1076,9 @@
 
 (define py-builtin-hex
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'hex'"))
+   (lambda rest (error "hex" "unimplemented generic procedure for builtin" #f))
    (lambda (x)
-     (error "'hex' not implemented"))))
+     (error "hex" "not implemented" #f))))
 
 ;;-------------------- id(object)
 
@@ -1092,9 +1092,9 @@
 
 (define py-builtin-id
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'id'"))
+   (lambda rest (error "id" "unimplemented generic procedure for builtin" #f))
    (lambda (object)
-     (error "'id' not implemented"))))
+     (error "id" "not implemented" #f))))
 
 ;;-------------------- input([prompt])
 
@@ -1120,9 +1120,9 @@
 
 (define py-builtin-input
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'input'"))
+   (lambda rest (error "input" "unimplemented generic procedure for builtin" #f))
    (lambda (prompt)
-     (error "'input' not implemented"))))
+     (error "input" "not implemented" #f))))
 
 ;;-------------------- class int([x])
 ;;                     class int(x, base=10)
@@ -1162,9 +1162,9 @@
 
 (define py-builtin-int
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'int'"))
+   (lambda rest (error "int" "unimplemented generic procedure for builtin" #f))
    (lambda (x)
-     (error "'int' not implemented"))))
+     (error "int" "not implemented" #f))))
 
 ;;-------------------- isinstance(object, classinfo)
 
@@ -1178,9 +1178,9 @@
 
 (define py-builtin-isinstance
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'isinstance'"))
+   (lambda rest (error "isinstance" "unimplemented generic procedure for builtin" #f))
    (lambda (object classinfo)
-     (error "'isinstance' not implemented"))))
+     (error "isinstance" "not implemented" #f))))
 
 ;;-------------------- issubclass(class, classinfo)
 
@@ -1191,9 +1191,9 @@
 
 (define py-builtin-issubclass
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'issubclass'"))
+   (lambda rest (error "issubclass" "unimplemented generic procedure for builtin" #f))
    (lambda (object classinfo)
-     (error "'issubclass' not implemented"))))
+     (error "issubclass" "not implemented" #f))))
 
 ;;-------------------- iter(object[, sentinel])
 
@@ -1222,9 +1222,9 @@
 
 (define py-builtin-iter
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'iter'"))
+   (lambda rest (error "iter" "unimplemented generic procedure for builtin" #f))
    (lambda (object sentinel)
-     (error "'iter' not implemented"))))
+     (error "iter" "not implemented" #f))))
 
 ;;-------------------- len(s)
 
@@ -1234,9 +1234,9 @@
 
 (define py-builtin-len
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'len'"))
+   (lambda rest (error "len" "unimplemented generic procedure for builtin" #f))
    (lambda (s)
-     (error "'len' not implemented"))))
+     (error "len" "not implemented" #f))))
 
 ;;-------------------- class list([iterable])
 
@@ -1245,9 +1245,9 @@
 
 (define py-builtin-list
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'list'"))
+   (lambda rest (error "list" "unimplemented generic procedure for builtin" #f))
    (lambda (iterable)
-     (error "'list' not implemented"))))
+     (error "list" "not implemented" #f))))
 
 ;;-------------------- locals()
 
@@ -1262,9 +1262,9 @@
 
 (define py-builtin-locals
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'locals'"))
+   (lambda rest (error "locals" "unimplemented generic procedure for builtin" #f))
    (lambda ()
-     (error "'locals' not implemented"))))
+     (error "locals" "not implemented" #f))))
 
 ;;-------------------- map(function, iterable, ...)
 
@@ -1278,9 +1278,9 @@
 
 (define py-builtin-map
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'map'"))
+   (lambda rest (error "map" "unimplemented generic procedure for builtin" #f))
    (lambda (function iterable)
-     (error "'map' not implemented"))))
+     (error "map" "not implemented" #f))))
 
 ;;-------------------- max(iterable, *[, key, default])
 ;;                     max(arg1, arg2, *args[, key])
@@ -1307,9 +1307,9 @@
 
 (define py-builtin-max
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'max'"))
+   (lambda rest (error "max" "unimplemented generic procedure for builtin" #f))
    (lambda (iterable key default)
-     (error "'max' not implemented"))))
+     (error "max" "not implemented" #f))))
 
 ;;-------------------- memoryview(obj)
 
@@ -1318,9 +1318,9 @@
 
 (define py-builtin-memoryview
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'memoryview'"))
+   (lambda rest (error "memoryview" "unimplemented generic procedure for builtin" #f))
    (lambda (obj)
-     (error "'memoryview' not implemented"))))
+     (error "memoryview" "not implemented" #f))))
 
 ;;-------------------- min(iterable, *[, key, default])
 ;;                     min(arg1, arg2, *args[, key])
@@ -1350,9 +1350,9 @@
 
 (define py-builtin-min
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'min'"))
+   (lambda rest (error "min" "unimplemented generic procedure for builtin" #f))
    (lambda (iterable key default)
-     (error "'min' not implemented"))))
+     (error "min" "not implemented" #f))))
 
 ;;-------------------- next(iterator[, default])
 
@@ -1362,9 +1362,9 @@
 
 (define py-builtin-next
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'next'"))
-   (lambda (iterator #!optional (default absent-argument))
-     (error "'next' not implemented"))))
+   (lambda rest (error "next" "unimplemented generic procedure for builtin" #f))
+   (lambda (iterator #!optional (default 'absent-argument))
+     (error "next" "not implemented" #f))))
 
 ;;-------------------- class object
 
@@ -1377,9 +1377,9 @@
 
 (define py-builtin-object
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'object'"))
+   (lambda rest (error "object" "unimplemented generic procedure for builtin" #f))
    (lambda ()
-     (error "'object' not implemented"))))
+     (error "object" "not implemented" #f))))
 
 ;;-------------------- oct(x)
 
@@ -1407,7 +1407,7 @@
 
 (define py-builtin-oct
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'oct'"))
+   (lambda rest (error "oct" "unimplemented generic procedure for builtin" #f))
    (lambda (x)
      (error "oct" "not implemented" #f))))
 
@@ -1590,9 +1590,9 @@
 
 (define py-builtin-open
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'open'"))
+   (lambda rest (error "open" "unimplemented generic procedure for builtin" #f))
    (lambda (file mode buffering encoding errors newline closefd opener)
-     (error "'open' not implemented"))))
+     (error "open" "not implemented" #f))))
 
 ;;-------------------- ord(c)
 
@@ -1603,9 +1603,9 @@
 
 (define py-builtin-ord
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'ord'"))
+   (lambda rest (error "ord" "unimplemented generic procedure for builtin" #f))
    (lambda (c)
-     (error "'ord' not implemented"))))
+     (error "ord" "not implemented" #f))))
 
 ;;-------------------- pow(x, y[, z])
 
@@ -1640,9 +1640,9 @@
 
 (define py-builtin-pow
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'pow'"))
+   (lambda rest (error "pow" "unimplemented generic procedure for builtin" #f))
    (lambda (x y z)
-     (error "'pow' not implemented"))))
+     (error "pow" "not implemented" #f))))
 
 ;;-------------------- print(*objects, sep=' ', end='\n', file=sys.stdout, flush=False)
 
@@ -1667,7 +1667,7 @@
 
 (define py-builtin-print
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'print'"))
+   (lambda rest (error "print" "unimplemented generic procedure for builtin" #f))
    (lambda (object) ;; objects sep end file flush)
      (print object))))
 
@@ -1751,9 +1751,9 @@
 
 (define py-builtin-property
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'property'"))
+   (lambda rest (error "property" "unimplemented generic procedure for builtin" #f))
    (lambda (fget fset fdel doc)
-     (error "'property' not implemented"))))
+     (error "property" "not implemented" #f))))
 
 ;;-------------------- range(stop)
 ;;                     range(start, stop[, step])
@@ -1763,9 +1763,9 @@
 
 (define py-builtin-range
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'range'"))
+   (lambda rest (error "range" "unimplemented generic procedure for builtin" #f))
    (lambda (stop)
-     (error "'range' not implemented"))))
+     (error "range" "not implemented" #f))))
 
 ;;-------------------- repr(object)
 
@@ -1780,9 +1780,9 @@
 
 (define py-builtin-repr
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'repr'"))
+   (lambda rest (error "repr" "unimplemented generic procedure for builtin" #f))
    (lambda (object)
-     (error "'repr' not implemented"))))
+     (error "repr" "not implemented" #f))))
 
 ;;-------------------- reversed(seq)
 
@@ -1793,9 +1793,9 @@
 
 (define py-builtin-reversed
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'reversed'"))
+   (lambda rest (error "reversed" "unimplemented generic procedure for builtin" #f))
    (lambda (seq)
-     (error "'reversed' not implemented"))))
+     (error "reversed" "not implemented" #f))))
 
 ;;-------------------- round(number[, ndigits])
 
@@ -1822,9 +1822,9 @@
 
 (define py-builtin-round
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'round'"))
+   (lambda rest (error "round" "unimplemented generic procedure for builtin" #f))
    (lambda (number ndigits)
-     (error "'round' not implemented"))))
+     (error "round" "not implemented" #f))))
 
 ;;-------------------- class set([iterable])
 
@@ -1837,9 +1837,9 @@
 
 (define py-builtin-set
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'set'"))
+   (lambda rest (error "set" "unimplemented generic procedure for builtin" #f))
    (lambda (iterable)
-     (error "'set' not implemented"))))
+     (error "set" "not implemented" #f))))
 
 ;;-------------------- setattr(object, name, value)
 
@@ -1851,9 +1851,9 @@
 
 (define py-builtin-setattr
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'setattr'"))
+   (lambda rest (error "setattr" "unimplemented generic procedure for builtin" #f))
    (lambda (object name value)
-     (error "'setattr' not implemented"))))
+     (error "setattr" "not implemented" #f))))
 
 ;;-------------------- class slice(stop)
 ;;                     class slice(start, stop[, step])
@@ -1870,9 +1870,9 @@
 
 (define py-builtin-slice
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'slice'"))
+   (lambda rest (error "slice" "unimplemented generic procedure for builtin" #f))
    (lambda (stop)
-     (error "'slice' not implemented"))))
+     (error "slice" "not implemented" #f))))
 
 ;;-------------------- sorted(iterable, *, key=None, reverse=False)
 
@@ -1901,9 +1901,9 @@
 
 (define py-builtin-sorted
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'sorted'"))
+   (lambda rest (error "sorted" "unimplemented generic procedure for builtin" #f))
    (lambda (iterable key reverse)
-     (error "'sorted' not implemented"))))
+     (error "sorted" "not implemented" #f))))
 
 ;;-------------------- @staticmethod
 
@@ -1937,9 +1937,9 @@
 
 (define py-builtin-staticmethod
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'staticmethod'"))
+   (lambda rest (error "staticmethod" "unimplemented generic procedure for builtin" #f))
    (lambda ()
-     (error "'staticmethod' not implemented"))))
+     (error "staticmethod" "not implemented" #f))))
 
 ;;-------------------- class str(object='')
 ;;                     class str(object=b'', encoding='utf-8', errors='strict')
@@ -1951,9 +1951,9 @@
 
 (define py-builtin-str
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'str'"))
+   (lambda rest (error "str" "unimplemented generic procedure for builtin" #f))
    (lambda (object)
-     (error "'str' not implemented"))))
+     (error "str" "not implemented" #f))))
 
 ;;-------------------- sum(iterable, /, start=0)
 
@@ -1972,9 +1972,9 @@
 
 (define py-builtin-sum
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'sum'"))
+   (lambda rest (error "sum" "unimplemented generic procedure for builtin" #f))
    (lambda (iterable start)
-     (error "'sum' not implemented"))))
+     (error "sum" "not implemented" #f))))
 
 ;;-------------------- super([type[, object-or-type]])
 
@@ -2037,9 +2037,9 @@
 
 (define py-builtin-super
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'super'"))
+   (lambda rest (error "super" "unimplemented generic procedure for builtin" #f))
    (lambda (type object-or-type)
-     (error "'super' not implemented"))))
+     (error "super" "not implemented" #f))))
 
 ;;-------------------- tuple([iterable])
 
@@ -2048,9 +2048,9 @@
 
 (define py-builtin-tuple
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'tuple'"))
+   (lambda rest (error "tuple" "unimplemented generic procedure for builtin" #f))
    (lambda (iterable)
-     (error "'tuple' not implemented"))))
+     (error "tuple" "not implemented" #f))))
 
 ;;-------------------- class type(object)
 ;;                     class type(name, bases, dict)
@@ -2083,9 +2083,9 @@
 
 (define py-builtin-type
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'type'"))
+   (lambda rest (error "type" "unimplemented generic procedure for builtin" #f))
    (lambda (object)
-     (error "'type' not implemented"))))
+     (error "type" "not implemented" #f))))
 
 ;;-------------------- vars([object])
 
@@ -2103,9 +2103,9 @@
 
 (define py-builtin-vars
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'vars'"))
+   (lambda rest (error "vars" "unimplemented generic procedure for builtin" #f))
    (lambda (object)
-     (error "'vars' not implemented"))))
+     (error "vars" "not implemented" #f))))
 
 ;;-------------------- zip(*iterables)
 
@@ -2155,9 +2155,9 @@
 
 (define py-builtin-zip
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'zip'"))
+   (lambda rest (error "zip" "unimplemented generic procedure for builtin" #f))
    (lambda (iterables)
-     (error "'zip' not implemented"))))
+     (error "zip" "not implemented" #f))))
 
 ;;-------------------- __import__(name, globals=None, locals=None, fromlist=(), level=0)
 
@@ -2219,6 +2219,6 @@
 
 (define py-builtin-__import__
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin '__import__'"))
+   (lambda rest (error "__import__" "unimplemented generic procedure for builtin" #f))
    (lambda (name globals locals fromlist level)
-     (error "'__import__' not implemented"))))
+     (error "__import__" "not implemented" #f))))
