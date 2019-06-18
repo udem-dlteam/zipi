@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 10:16:39 2019                          */
-;*    Last change :  Tue Jun 18 10:25:04 2019 (serrano)                */
+;*    Last change :  Tue Jun 18 13:06:51 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Python AST                                                       */
@@ -118,6 +118,10 @@
            (class PyRefUnresolved::PyExpr
               id)
 
+	   (class PyAccess::PyExpr
+	      obj::PyExpr
+	      (field::bstring read-only))
+	   
            (abstract-class PyLiteral::PyExpr)
            
            (final-class PyUninit::PyExpr)
@@ -480,6 +484,7 @@
 (gen-walks PyBinary lhs rhs)
 (gen-walks PyUnary expr)
 (gen-walks PyCall fun (args) (keywords))
+(gen-walks PyAccess obj)
 (gen-walks PyYield val)
 (gen-walks PyKont body)
 

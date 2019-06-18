@@ -133,6 +133,9 @@
 	  (sexp fun #f scope conf)
 	  (map (lambda (a) (sexp a #f scope conf)) args)
 	  (map (lambda (k) (sexp k #f scope conf)) keywords)))
+      ((Attribute ?loc ?value ?attr ?ctx)
+       ;; Attribute(expr value, identifier attr, expr_context ctx)
+       (new-PyAccess loc (sexp value #f scope conf) (symbol->string attr)))
       ((Name ?loc ?id ?ctx)
        ;; Name(identifier id, expr_context ctx)
        (case ctx

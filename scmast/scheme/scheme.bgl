@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Mon Jun 17 07:40:23 2019                          */
-;*    Last change :  Mon Jun 17 07:40:49 2019 (serrano)                */
+;*    Last change :  Tue Jun 18 14:03:36 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Scheme code generation                                           */
@@ -20,6 +20,7 @@
    
    (import __py_hclass
 	   __py_object
+	   __py_iterator
 	   __py_dump)
 
    (export (py-scheme ast conf)

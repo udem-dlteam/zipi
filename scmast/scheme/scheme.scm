@@ -14,6 +14,7 @@
    (pp `(module ,(string->symbol (config-get conf 'src "__stdin"))
 	   (import __py_object)
 	   (import __py_hclass)
+	   (import __py_iterator)
 	   (main main)))
    (pp `(define (main argv)
 	   (pyc (py-make-global) (py-make-caches ,(PyModule-caches ast)))))
@@ -74,7 +75,6 @@
       (epairify this
 	 `(,(if gen 'py-generator-yield* 'py-generator-yield)
 	   %gen ,(pyc-scheme (PyReturnYield-val this) conf)
-	   #f
 	   ,(pyc-scheme kont conf)))))
 
 (define-walk-method (pyc-scheme this::PyStmtExpr conf)
@@ -144,6 +144,10 @@
 	      ,(pyc-scheme-try this conf)
 	      ,(pyc-scheme (PyTry-finally this) conf)))))
 
+(define-walk-method (pyc-scheme this::PyRaise conf)
+   (epairify this
+      `(py-throw ,(pyc-scheme (PyRaise-exc this) conf))))
+
 (define-walk-method (pyc-scheme this::PyHandler conf)
    (epairify this
       `(,(if (isa? (PyHandler-type this) PyUninit)
@@ -168,7 +172,10 @@
    (PyDecl-name this))
 
 (define (pyc-propname name)
-   `(& ,(symbol->string name)))
+   (cond
+      ((string? name) `(& ,name))
+      ((symbol? name) `(& ,(symbol->string name)))
+      (else (error "pyc-propname" "Wrong property name" name))))
 
 (define-walk-method (pyc-scheme this::PyDecl conf)
    (pyc-scheme-decl this conf))
@@ -216,21 +223,28 @@
 	,(pyc-scheme (PyBinary-rhs this) conf))))
 
 (define-walk-method (pyc-scheme this::PyFun conf)
+   
+   (define (generator this::PyFun exp)
+      (if (PyFun-generator this)
+	  (epairify this
+	     `(letrec ((%gen (py-make-generator (lambda (%val) ,exp))))
+		 %gen))
+	  exp))
+   
    (let ((args (map (lambda (a) (pyc-scheme a conf)) (PyFun-args this)))
 	 (body (pyc-scheme (PyFun-body this) conf)))
       (epairify this
 	 `(make-PyFunction (PyFunction-default-hclass) '#()
 	     ,(if (PyFun-need-return this)
-		  `(lambda ,args (bind-exit (return) ,body))
-		  `(lambda ,args ,body))))))
+		  `(lambda ,args ,(generator this `(bind-exit (return) ,body)))
+		  `(lambda ,args ,(generator this body)))))))
 
 (define-walk-method (pyc-scheme this::PyKont conf)
    (let ((param (pyc-scheme (PyKont-param this) conf))
-	 (exn (pyc-scheme (PyKont-exn this) conf))
-	 (body (pyc-scheme (PyKont-body this) conf)))
+	 (exn (pyc-scheme (PyKont-exn this) conf)))
       (epairify this
 	 `(lambda (,param ,exn)
-	     body))))
+	     ,(pyc-scheme (PyKont-body this) conf)))))
 
 (define-walk-method (pyc-scheme this::PyCall conf)
    (let ((call (case (length (PyCall-args this))
@@ -259,6 +273,12 @@
       `(global-get %global ,(pyc-propname (PyRefUnresolved-id this))
 	  (vector-ref %caches ,(PyNode-%info this)))))
 
+(define-walk-method (pyc-scheme this::PyAccess conf)
+   (epairify this
+      `(object-get ,(pyc-scheme (PyAccess-obj this) conf)
+	  ,(pyc-propname (PyAccess-field this))
+	  (vector-ref %caches ,(PyNode-%info this)))))
+
 ;; collect caches
 (define-walk-method (collect-caches this::PyNode cnt)
    (call-default-walker))
@@ -277,6 +297,11 @@
 	 (PyNode-%info-set! this n))))
 
 (define-walk-method (collect-caches this::PyRefUnresolved cnt)
+   (let ((n (cell-ref cnt)))
+      (cell-set! cnt (+ 1 n))
+      (PyNode-%info-set! this n)))
+
+(define-walk-method (collect-caches this::PyAccess cnt)
    (let ((n (cell-ref cnt)))
       (cell-set! cnt (+ 1 n))
       (PyNode-%info-set! this n)))

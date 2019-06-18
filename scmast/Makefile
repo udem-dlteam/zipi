@@ -4,14 +4,16 @@ AFILE = bglafile
 GAMBIT = gsc
 
 SOURCES = main/main ast/ast sexp/sexp symbol/symbol return/return \
-  beval/beval hclass/hclass object/object dump/dump locals/locals \
+  beval/beval dump/dump locals/locals \
   break/break generator/generator cps/cps scheme/scheme \
-  javascript/javascript
+  javascript/javascript \
+  hclass/hclass object/object iterator/iterator
 
 .SUFFIXES:
 .SUFFIXES: .scm .bgl .sch .o
 
-pyc.bigloo: .afile ast/types.sch hclass/hclass.sch object/object.sch
+pyc.bigloo: .afile ast/types.sch hclass/hclass.sch object/object.sch \
+  iterator/iterator.sch
 	mkdir -p o/bigloo
 	$(MAKE) pyc COMPILER=$(BIGLOO) LINKER="$(BIGLOO) -w $(BFLAGS)" \
            OBJECTS="$(SOURCES:%=o/bigloo/%.o)"
@@ -46,6 +48,6 @@ ast/new.sch: ast/ast.bgl
 	$(BIGLOO) -i etc/mkastnew.scm $< > $@
 
 %.sch: %.bgl
-	$(BIGLOO) -classgen $< -o $@
+	touch $@ && $(BIGLOO) -classgen $< -o $@
 
 main/main.scm: ast/new.sch

@@ -1381,7 +1381,7 @@
 
 (define py-builtin-next
   (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'next'"))
+   (lambda rest (error "next" "unimplemented generic procedure for builtin" #f))
    (lambda (iterator #!optional (default absent-argument))
      (cond ((and (PyObject? iterator)
                  (let ((index (PyObject-find-prop iterator '__next__)))
@@ -1392,12 +1392,13 @@
 	      (let ((__next__ (PyObject-elements-ref iterator index)))
                 (with-handler
                  (lambda (e)
-                   (if (eq? e 'StopIteration)
+		    (if (and (not (eq? default absent-argument))
+			     (eq? e 'StopIteration))
                        default
                        (raise e)))
                  (PyFunction-call1 __next__ iterator)))))
            (else
-            (error "" "TypeError: object is not an iterator" #f))))))
+            (error "next" "TypeError: object is not an iterator" #f))))))
 
 ;;-------------------- class object
 

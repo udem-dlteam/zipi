@@ -11,6 +11,7 @@
 ;; debug macros
 (define-macro (kcall kont arg) `(,kont ,arg))
 (define-macro (KontExpr proc node link . name) proc)
+(define-macro (KontExpr* proc node link . name) proc)
 (define-macro (KontStmt proc node link . name) proc)
 
 (define-walk-method (cps-fun! this::PyFun)
@@ -102,7 +103,8 @@
 	     (exn (new-PyDecl loc (gensym '%exn) 'local))
 	     (body (kcall k (new-PyRef loc arg)))
 	     (cont (new-PyIf loc
-		      (new-PyBinary loc 'eq? (new-PyRef loc exn) (new-PyBool loc #t))
+		      (new-PyBinary loc 'is?
+			 (new-PyRef loc exn) (new-PyBool loc #t) :type 'bool)
 		      (new-PyRaise loc (new-PyRef loc arg) (new-PyUninit loc))
 		      body)))
 	 (new-PyKont loc arg exn (pack cont))))
@@ -137,7 +139,32 @@
 	     pack kbreaks kcontinues ktry fun)
 	  (if ktry
 	      (tprint "TODO")
-	      (new-PyReturnYield loc (cps-fun! expr) (new-PyUninit loc))))))
+	      (begin
+		 (PyReturn-val-set! this (cps-fun! expr))
+		 this)))))
+
+(define-walk-method (cps this::PyCall k pack kbreaks kcontinues ktry fun)
+   (let ((args (PyCall-args this)))
+      (cond
+	 ((yield-expr? (PyCall-fun this) kbreaks kcontinues)
+	  (cps (PyCall-fun this)
+	     (KontExpr (lambda (kfun)
+			  (PyCall-fun-set! this kfun)
+			  (cps this k pack kbreaks kcontinues ktry fun))
+		this k)
+	     pack kbreaks kcontinues ktry fun))
+	 ((any (lambda (e) (yield-expr? e kbreaks kcontinues)) args)
+	  (cps-fun! (PyCall-fun this))
+	  (cps* args
+	     (KontExpr* (lambda (kargs)
+			   (PyCall-args-set! this kargs)
+			   (cps this k pack kbreaks kcontinues ktry fun))
+		args k)
+	     pack kbreaks kcontinues ktry fun))
+	 (else
+	  (cps-fun! (PyCall-fun this))
+	  (for-each cps-fun! args)
+	  (kcall k this)))))
 
 (define-walk-method (cps this::PySeq k pack kbreaks kcontinues ktry fun)
    
