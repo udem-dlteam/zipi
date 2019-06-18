@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Tue Jun 18 05:22:22 2019                          */
-;*    Last change :  Tue Jun 18 07:20:44 2019 (serrano)                */
+;*    Last change :  Tue Jun 18 08:29:46 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Python CPS transformation for generators/iterators.              */
@@ -18,4 +18,8 @@
 
    (import __py_dump)
    
-   (export (py-cps this::PyNode conf)))
+   (export (py-cps this::PyNode conf))
+
+;*    (static (final-class %J2STail::J2SReturn))                       */
+
+   )

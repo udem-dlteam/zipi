@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 10:16:39 2019                          */
-;*    Last change :  Tue Jun 18 07:18:33 2019 (serrano)                */
+;*    Last change :  Tue Jun 18 07:35:27 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Python AST                                                       */
@@ -32,7 +32,9 @@
               (name (default #f))
               (id::symbol read-only)
               ;; scope: global, local, block
-              (scope::symbol read-only))
+              (scope::symbol read-only)
+	      ;; usage
+	      (usage::pair-nil (default '())))
            
            (class PyDeclInit::PyDecl
               val::PyExpr)
@@ -56,14 +58,10 @@
               tail::bool)
 
 	   (class PyReturnYield::PyStmt
-	      (expr::PyExpr (info '("ast")))
+	      (val::PyExpr (info '("ast")))
 	      (generator::bool read-only (default #f))
 	      (kont::PyExpr (info '("ast"))))
 
-	   (final-class PyYield::PyStmt
-	      (expr::PyExpr (info '("ast")))
-	      (generator::bool read-only (default #f)))
-	   
            (class PyDelete::PyStmt
               expr::PyExpr)
            
@@ -85,6 +83,10 @@
 	   (class PyWhile::PyLoop
 	      (test::PyExpr (info '("ast"))))
 
+	   (class PyRaise::PyStmt
+	      (exc (default #f) (info '("ast")))
+	      (cause (default #f) (info '("ast"))))
+	   
 	   (class PyTry::PyStmt
 	      (body::PyStmt (info '("ast")))
 	      handlers::pair-nil
@@ -123,7 +125,11 @@
            (final-class PyBool::PyLiteralValue)
            (final-class PyNumber::PyLiteralValue)
            (final-class PyString::PyLiteralValue)
-           
+
+	   (final-class PyUnary::PyExpr
+	      op::symbol
+	      expr::PyExpr)
+	   
            (final-class PyBinary::PyExpr
               op::symbol
               lhs::PyExpr
@@ -137,6 +143,10 @@
               (need-return::bool (default #t))
               (can-locals::bool (default #t)))
 
+	   (final-class PyYield::PyExpr
+	      (expr::PyExpr (info '("ast")))
+	      (generator::bool read-only (default #f)))
+	   
 	   (final-class PyKont::PyExpr
 	      (param::PyDecl read-only)
 	      (exn::PyDecl read-only)
@@ -455,14 +465,17 @@
 (gen-walks PySeq (nodes))
 (gen-walks PyBlock (vals) body)
 (gen-walks PyReturn val)
-(gen-walks PyReturnYield expr kont)
-(gen-walks PyYield expr)
+(gen-walks PyReturnYield val kont)
 (gen-walks PyAssig lhs rhs)
 (gen-walks PyIf test then else)
 (gen-walks PyWhile test body else)
+(gen-walks PyRaise exc cause)
 (gen-walks PyTry body (handlers) else finally)
 (gen-walks PyHandler type body)
 (gen-walks PyFun body)
-(gen-walks PyKont body)
+(gen-walks PyUnary expr)
 (gen-walks PyBinary lhs rhs)
 (gen-walks PyCall fun (args) (keywords))
+(gen-walks PyYield expr)
+(gen-walks PyKont body)
+

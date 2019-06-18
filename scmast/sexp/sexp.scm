@@ -1,6 +1,8 @@
 (define (py-sexp exp conf)
    (sexp exp #t 'global conf))
 
+;; The Python syntax parsed by this function is defined at the url:
+;;    https://docs.python.org/3.8/library/ast.html
 (define (sexp exp tail scope conf)
    (match-case exp
       
@@ -58,6 +60,11 @@
 	  (compile-stmt* loc body tail scope conf)
 	  (compile-stmt* loc otherwise tail scope conf)))
 
+      ((Raise ?loc ?exc ?cause)
+       ;; Raise(expr? exc, expr? cause)
+       (new-PyRaise loc
+	  :exc (when exc (sexp exc #f scope conf))
+	  :cause (when cause (sexp cause #f scope conf))))
       ((Try ?loc ?body ?handlers ?orelse ?finally)
        ;; Try(stmt* body, excepthandler* handlers, stmt* orelse, stmt* finalbody)
        (new-PyTry loc (compile-stmt* loc body #f scope conf)
