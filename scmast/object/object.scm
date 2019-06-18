@@ -49,8 +49,8 @@
 (define (PyFunction-default-hclass)
    fun-hclass)
 
-(define (py-procedure->function proc)
-   (make-PyFunction (PyFunction-default-hclass) '#() proc))
+(define (py-procedure->function generic-proc positional-proc)
+   (make-PyFunction (PyFunction-default-hclass) '#() positional-proc))
 
 (define (PyFunction-call0 fun)
    (if (and (isa? fun PyFunction) (correct-arity? (PyFunction-procedure fun) 0))
@@ -190,75 +190,75 @@
 	 (bi (make-PyObject hclass0 '#(- -)))
 	 (%global (make-PyObject hclass1 (vector bi))))
 
-    (PyObject-elements-set! bi 0 (py-procedure->function py-builtin-abs))
-    (PyObject-elements-set! bi 1 (py-procedure->function py-builtin-all))
-    (PyObject-elements-set! bi 2 (py-procedure->function py-builtin-any))
-    (PyObject-elements-set! bi 3 (py-procedure->function py-builtin-ascii))
-    (PyObject-elements-set! bi 4 (py-procedure->function py-builtin-bin))
-    (PyObject-elements-set! bi 5 (py-procedure->function py-builtin-bool))
-    (PyObject-elements-set! bi 6 (py-procedure->function py-builtin-breakpoint))
-    (PyObject-elements-set! bi 7 (py-procedure->function py-builtin-bytearray))
-    (PyObject-elements-set! bi 8 (py-procedure->function py-builtin-bytes))
-    (PyObject-elements-set! bi 9 (py-procedure->function py-builtin-callable))
-    (PyObject-elements-set! bi 10 (py-procedure->function py-builtin-chr))
-    (PyObject-elements-set! bi 11 (py-procedure->function py-builtin-classmethod))
-    (PyObject-elements-set! bi 12 (py-procedure->function py-builtin-compile))
-    (PyObject-elements-set! bi 13 (py-procedure->function py-builtin-complex))
-    (PyObject-elements-set! bi 14 (py-procedure->function py-builtin-delattr))
-    (PyObject-elements-set! bi 15 (py-procedure->function py-builtin-dict))
-    (PyObject-elements-set! bi 16 (py-procedure->function py-builtin-dir))
-    (PyObject-elements-set! bi 17 (py-procedure->function py-builtin-divmod))
-    (PyObject-elements-set! bi 18 (py-procedure->function py-builtin-enumerate))
-    (PyObject-elements-set! bi 19 (py-procedure->function py-builtin-eval))
-    (PyObject-elements-set! bi 20 (py-procedure->function py-builtin-exec))
-    (PyObject-elements-set! bi 21 (py-procedure->function py-builtin-filter))
-    (PyObject-elements-set! bi 22 (py-procedure->function py-builtin-float))
-    (PyObject-elements-set! bi 23 (py-procedure->function py-builtin-format))
-    (PyObject-elements-set! bi 24 (py-procedure->function py-builtin-frozenset))
-    (PyObject-elements-set! bi 25 (py-procedure->function py-builtin-getattr))
-    (PyObject-elements-set! bi 26 (py-procedure->function py-builtin-globals))
-    (PyObject-elements-set! bi 27 (py-procedure->function py-builtin-hasattr))
-    (PyObject-elements-set! bi 28 (py-procedure->function py-builtin-hash))
-    (PyObject-elements-set! bi 29 (py-procedure->function py-builtin-help))
-    (PyObject-elements-set! bi 30 (py-procedure->function py-builtin-hex))
-    (PyObject-elements-set! bi 31 (py-procedure->function py-builtin-id))
-    (PyObject-elements-set! bi 32 (py-procedure->function py-builtin-input))
-    (PyObject-elements-set! bi 33 (py-procedure->function py-builtin-int))
-    (PyObject-elements-set! bi 34 (py-procedure->function py-builtin-isinstance))
-    (PyObject-elements-set! bi 35 (py-procedure->function py-builtin-issubclass))
-    (PyObject-elements-set! bi 36 (py-procedure->function py-builtin-iter))
-    (PyObject-elements-set! bi 37 (py-procedure->function py-builtin-len))
-    (PyObject-elements-set! bi 38 (py-procedure->function py-builtin-list))
-    (PyObject-elements-set! bi 39 (py-procedure->function py-builtin-locals))
-    (PyObject-elements-set! bi 40 (py-procedure->function py-builtin-map))
-    (PyObject-elements-set! bi 41 (py-procedure->function py-builtin-max))
-    (PyObject-elements-set! bi 42 (py-procedure->function py-builtin-memoryview))
-    (PyObject-elements-set! bi 43 (py-procedure->function py-builtin-min))
-    (PyObject-elements-set! bi 44 (py-procedure->function py-builtin-next))
-    (PyObject-elements-set! bi 45 (py-procedure->function py-builtin-object))
-    (PyObject-elements-set! bi 46 (py-procedure->function py-builtin-oct))
-    (PyObject-elements-set! bi 47 (py-procedure->function py-builtin-open))
-    (PyObject-elements-set! bi 48 (py-procedure->function py-builtin-ord))
-    (PyObject-elements-set! bi 49 (py-procedure->function py-builtin-pow))
-    (PyObject-elements-set! bi 50 (py-procedure->function py-builtin-print))
-    (PyObject-elements-set! bi 51 (py-procedure->function py-builtin-property))
-    (PyObject-elements-set! bi 52 (py-procedure->function py-builtin-range))
-    (PyObject-elements-set! bi 53 (py-procedure->function py-builtin-repr))
-    (PyObject-elements-set! bi 54 (py-procedure->function py-builtin-reversed))
-    (PyObject-elements-set! bi 55 (py-procedure->function py-builtin-round))
-    (PyObject-elements-set! bi 56 (py-procedure->function py-builtin-set))
-    (PyObject-elements-set! bi 57 (py-procedure->function py-builtin-setattr))
-    (PyObject-elements-set! bi 58 (py-procedure->function py-builtin-slice))
-    (PyObject-elements-set! bi 59 (py-procedure->function py-builtin-sorted))
-    (PyObject-elements-set! bi 60 (py-procedure->function py-builtin-staticmethod))
-    (PyObject-elements-set! bi 61 (py-procedure->function py-builtin-str))
-    (PyObject-elements-set! bi 62 (py-procedure->function py-builtin-sum))
-    (PyObject-elements-set! bi 63 (py-procedure->function py-builtin-super))
-    (PyObject-elements-set! bi 64 (py-procedure->function py-builtin-tuple))
-    (PyObject-elements-set! bi 65 (py-procedure->function py-builtin-type))
-    (PyObject-elements-set! bi 66 (py-procedure->function py-builtin-vars))
-    (PyObject-elements-set! bi 67 (py-procedure->function py-builtin-zip))
-    (PyObject-elements-set! bi 68 (py-procedure->function py-builtin-__import__))
+    (PyObject-elements-set! bi 0  py-builtin-abs)
+    (PyObject-elements-set! bi 1  py-builtin-all)
+    (PyObject-elements-set! bi 2  py-builtin-any)
+    (PyObject-elements-set! bi 3  py-builtin-ascii)
+    (PyObject-elements-set! bi 4  py-builtin-bin)
+    (PyObject-elements-set! bi 5  py-builtin-bool)
+    (PyObject-elements-set! bi 6  py-builtin-breakpoint)
+    (PyObject-elements-set! bi 7  py-builtin-bytearray)
+    (PyObject-elements-set! bi 8  py-builtin-bytes)
+    (PyObject-elements-set! bi 9  py-builtin-callable)
+    (PyObject-elements-set! bi 10 py-builtin-chr)
+    (PyObject-elements-set! bi 11 py-builtin-classmethod)
+    (PyObject-elements-set! bi 12 py-builtin-compile)
+    (PyObject-elements-set! bi 13 py-builtin-complex)
+    (PyObject-elements-set! bi 14 py-builtin-delattr)
+    (PyObject-elements-set! bi 15 py-builtin-dict)
+    (PyObject-elements-set! bi 16 py-builtin-dir)
+    (PyObject-elements-set! bi 17 py-builtin-divmod)
+    (PyObject-elements-set! bi 18 py-builtin-enumerate)
+    (PyObject-elements-set! bi 19 py-builtin-eval)
+    (PyObject-elements-set! bi 20 py-builtin-exec)
+    (PyObject-elements-set! bi 21 py-builtin-filter)
+    (PyObject-elements-set! bi 22 py-builtin-float)
+    (PyObject-elements-set! bi 23 py-builtin-format)
+    (PyObject-elements-set! bi 24 py-builtin-frozenset)
+    (PyObject-elements-set! bi 25 py-builtin-getattr)
+    (PyObject-elements-set! bi 26 py-builtin-globals)
+    (PyObject-elements-set! bi 27 py-builtin-hasattr)
+    (PyObject-elements-set! bi 28 py-builtin-hash)
+    (PyObject-elements-set! bi 29 py-builtin-help)
+    (PyObject-elements-set! bi 30 py-builtin-hex)
+    (PyObject-elements-set! bi 31 py-builtin-id)
+    (PyObject-elements-set! bi 32 py-builtin-input)
+    (PyObject-elements-set! bi 33 py-builtin-int)
+    (PyObject-elements-set! bi 34 py-builtin-isinstance)
+    (PyObject-elements-set! bi 35 py-builtin-issubclass)
+    (PyObject-elements-set! bi 36 py-builtin-iter)
+    (PyObject-elements-set! bi 37 py-builtin-len)
+    (PyObject-elements-set! bi 38 py-builtin-list)
+    (PyObject-elements-set! bi 39 py-builtin-locals)
+    (PyObject-elements-set! bi 40 py-builtin-map)
+    (PyObject-elements-set! bi 41 py-builtin-max)
+    (PyObject-elements-set! bi 42 py-builtin-memoryview)
+    (PyObject-elements-set! bi 43 py-builtin-min)
+    (PyObject-elements-set! bi 44 py-builtin-next)
+    (PyObject-elements-set! bi 45 py-builtin-object)
+    (PyObject-elements-set! bi 46 py-builtin-oct)
+    (PyObject-elements-set! bi 47 py-builtin-open)
+    (PyObject-elements-set! bi 48 py-builtin-ord)
+    (PyObject-elements-set! bi 49 py-builtin-pow)
+    (PyObject-elements-set! bi 50 py-builtin-print)
+    (PyObject-elements-set! bi 51 py-builtin-property)
+    (PyObject-elements-set! bi 52 py-builtin-range)
+    (PyObject-elements-set! bi 53 py-builtin-repr)
+    (PyObject-elements-set! bi 54 py-builtin-reversed)
+    (PyObject-elements-set! bi 55 py-builtin-round)
+    (PyObject-elements-set! bi 56 py-builtin-set)
+    (PyObject-elements-set! bi 57 py-builtin-setattr)
+    (PyObject-elements-set! bi 58 py-builtin-slice)
+    (PyObject-elements-set! bi 59 py-builtin-sorted)
+    (PyObject-elements-set! bi 60 py-builtin-staticmethod)
+    (PyObject-elements-set! bi 61 py-builtin-str)
+    (PyObject-elements-set! bi 62 py-builtin-sum)
+    (PyObject-elements-set! bi 63 py-builtin-super)
+    (PyObject-elements-set! bi 64 py-builtin-tuple)
+    (PyObject-elements-set! bi 65 py-builtin-type)
+    (PyObject-elements-set! bi 66 py-builtin-vars)
+    (PyObject-elements-set! bi 67 py-builtin-zip)
+    (PyObject-elements-set! bi 68 py-builtin-__import__)
 
     %global))
 
@@ -269,8 +269,11 @@
 ;; number, its magnitude is returned. If x defines __abs__(), abs(x)
 ;; returns x.__abs__().
 
-(define (py-builtin-abs x)
-  (abs x))
+(define py-builtin-abs
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'abs'"))
+   (lambda (x)
+     (abs x))))
 
 ;;-------------------- all(iterable)
 
@@ -283,8 +286,11 @@
 ;;             return False
 ;;     return True
 
-(define (py-builtin-all iterable)
-  (error "all" "not implemented" #f))
+(define py-builtin-all
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'all'"))
+   (lambda (iterable)
+     (error "'all' not implemented"))))
 
 ;;-------------------- any(iterable)
 
@@ -297,8 +303,11 @@
 ;;             return True
 ;;     return False
 
-(define (py-builtin-any iterable)
-  (error "any" "not implemented" #f))
+(define py-builtin-any
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'any'"))
+   (lambda (iterable)
+     (error "'any' not implemented"))))
 
 ;;-------------------- ascii(object)
 
@@ -307,8 +316,11 @@
 ;; repr() using \x, \u or \U escapes. This generates a string similar to
 ;; that returned by repr() in Python 2.
 
-(define (py-builtin-ascii object)
-  (error "ascii" "not implemented" #f))
+(define py-builtin-ascii
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'ascii'"))
+   (lambda (object)
+     (error "'ascii' not implemented"))))
 
 ;;-------------------- bin(x)
 
@@ -331,8 +343,11 @@
 ;;
 ;; See also format() for more information.
 
-(define (py-builtin-bin x)
-  (error "bin" "not implemented" #f))
+(define py-builtin-bin
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'bin'"))
+   (lambda (x)
+     (error "'bin' not implemented"))))
 
 ;;-------------------- class bool([x])
 
@@ -345,8 +360,11 @@
 ;;
 ;; Changed in version 3.7: x is now a positional-only parameter.
 
-(define (py-builtin-bool x)
-  (error "bool" "not implemented" #f))
+(define py-builtin-bool
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'bool'"))
+   (lambda (x)
+     (error "'bool' not implemented"))))
 
 ;;-------------------- breakpoint(*args, **kws)
 
@@ -361,8 +379,11 @@
 ;;
 ;; New in version 3.7.
 
-(define (py-builtin-breakpoint args kws)
-  (error "breakpoint" "not implemented" #f))
+(define py-builtin-breakpoint
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'breakpoint'"))
+   (lambda (args kws)
+     (error "'breakpoint' not implemented"))))
 
 ;;-------------------- class bytearray([source[, encoding[, errors]]])
 
@@ -388,8 +409,11 @@
 ;; See also Binary Sequence Types — bytes, bytearray, memoryview and
 ;; Bytearray Objects.
 
-(define (py-builtin-bytearray source encoding errors)
-  (error "bytearray" "not implemented" #f))
+(define py-builtin-bytearray
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'bytearray'"))
+   (lambda (source encoding errors)
+     (error "'bytearray' not implemented"))))
 
 ;;-------------------- class bytes([source[, encoding[, errors]]])
 
@@ -406,8 +430,11 @@
 ;; See also Binary Sequence Types — bytes, bytearray, memoryview, Bytes
 ;; Objects, and Bytes and Bytearray Operations.
 
-(define (py-builtin-bytes source encoding errors)
-  (error "bytes" "not implemented" #f))
+(define py-builtin-bytes
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'bytes'"))
+   (lambda (source encoding errors)
+     (error "'bytes' not implemented"))))
 
 ;;-------------------- callable(object)
 
@@ -420,8 +447,11 @@
 ;; New in version 3.2: This function was first removed in Python 3.0 and
 ;; then brought back in Python 3.2.
 
-(define (py-builtin-callable object)
-  (error "callable" "not implemented" #f))
+(define py-builtin-callable
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'callable'"))
+   (lambda (object)
+     (error "'callable' not implemented"))))
 
 ;;-------------------- chr(i)
 
@@ -432,8 +462,11 @@
 ;; The valid range for the argument is from 0 through 1,114,111 (0x10FFFF
 ;; in base 16). ValueError will be raised if i is outside that range.
 
-(define (py-builtin-chr i)
-  (error "chr" "not implemented" #f))
+(define py-builtin-chr
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'chr'"))
+   (lambda (i)
+     (error "'chr' not implemented"))))
 
 ;;-------------------- @classmethod
 
@@ -460,8 +493,11 @@
 ;;
 ;; For more information on class methods, see The standard type hierarchy.
 
-(define (py-builtin-classmethod)
-  (error "classmethod" "not implemented" #f))
+(define py-builtin-classmethod
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'classmethod'"))
+   (lambda ()
+     (error "'classmethod' not implemented"))))
 
 ;;-------------------- compile(source, filename, mode, flags=0, dont_inherit=False, optimize=-1)
 
@@ -534,8 +570,11 @@
 ;; in flags to enable support for top-level await, async for, and async
 ;; with.
 
-(define (py-builtin-compile source filename mode flags dont_inherit optimize)
-  (error "compile" "not implemented" #f))
+(define py-builtin-compile
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'compile'"))
+   (lambda (source filename mode flags dont_inherit optimize)
+     (error "'compile' not implemented"))))
 
 ;;-------------------- class complex([real[, imag]])
 
@@ -564,8 +603,11 @@
 ;; Changed in version 3.8: Falls back to __index__() if __complex__() and
 ;; __float__() are not defined.
 
-(define (py-builtin-complex real imag)
-  (error "complex" "not implemented" #f))
+(define py-builtin-complex
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'complex'"))
+   (lambda (real imag)
+     (error "'complex' not implemented"))))
 
 ;;-------------------- delattr(object, name)
 
@@ -575,8 +617,11 @@
 ;; object allows it. For example, delattr(x, 'foobar') is equivalent to
 ;; del x.foobar.
 
-(define (py-builtin-delattr object name)
-  (error "delattr" "not implemented" #f))
+(define py-builtin-delattr
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'delattr'"))
+   (lambda (object name)
+     (error "'delattr' not implemented"))))
 
 ;;-------------------- class dict(**kwarg)
 ;;                     class dict(mapping, **kwarg)
@@ -588,8 +633,11 @@
 ;; For other containers see the built-in list, set, and tuple classes, as
 ;; well as the collections module.
 
-(define (py-builtin-dict kwarg)
-  (error "dict" "not implemented" #f))
+(define py-builtin-dict
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'dict'"))
+   (lambda (kwarg)
+     (error "'dict' not implemented"))))
 
 ;;-------------------- dir([object])
 
@@ -642,8 +690,11 @@
 ;; example, metaclass attributes are not in the result list when the
 ;; argument is a class.
 
-(define (py-builtin-dir object)
-  (error "dir" "not implemented" #f))
+(define py-builtin-dir
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'dir'"))
+   (lambda (object)
+     (error "'dir' not implemented"))))
 
 ;;-------------------- divmod(a, b)
 
@@ -656,8 +707,11 @@
 ;; b + a % b is very close to a, if a % b is non-zero it has the same
 ;; sign as b, and 0 <= abs(a % b) < abs(b).
 
-(define (py-builtin-divmod a b)
-  (error "divmod" "not implemented" #f))
+(define py-builtin-divmod
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'divmod'"))
+   (lambda (a b)
+     (error "'divmod' not implemented"))))
 
 ;;-------------------- enumerate(iterable, start=0)
 
@@ -680,8 +734,11 @@
 ;;         yield n, elem
 ;;         n += 1
 
-(define (py-builtin-enumerate iterable start)
-  (error "enumerate" "not implemented" #f))
+(define py-builtin-enumerate
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'enumerate'"))
+   (lambda (iterable start)
+     (error "'enumerate' not implemented"))))
 
 ;;-------------------- eval(expression, globals=None, locals=None)
 
@@ -722,8 +779,11 @@
 ;; Raises an auditing event exec with the code object as the
 ;; argument. Code compilation events may also be raised.
 
-(define (py-builtin-eval expression globals locals)
-  (error "eval" "not implemented" #f))
+(define py-builtin-eval
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'eval'"))
+   (lambda (expression globals locals)
+     (error "'eval' not implemented"))))
 
 ;;-------------------- exec(object[, globals[, locals]])
 
@@ -765,8 +825,11 @@
 ;; attempted. Pass an explicit locals dictionary if you need to see
 ;; effects of the code on locals after function exec() returns.
 
-(define (py-builtin-exec object globals locals)
-  (error "eval" "not implemented" #f))
+(define py-builtin-exec
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'exec'"))
+   (lambda (object globals locals)
+     (error "'eval' not implemented"))))
 
 ;;-------------------- filter(function, iterable)
 
@@ -784,8 +847,11 @@
 ;; See itertools.filterfalse() for the complementary function that
 ;; returns elements of iterable for which function returns false.
 
-(define (py-builtin-filter function iterable)
-  (error "filter" "not implemented" #f))
+(define py-builtin-filter
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'filter'"))
+   (lambda (function iterable)
+     (error "'filter' not implemented"))))
 
 ;;-------------------- class float([x])
 
@@ -844,8 +910,11 @@
 ;; Changed in version 3.8: Falls back to __index__() if __float__() is
 ;; not defined.
 
-(define (py-builtin-float x)
-  (error "float" "not implemented" #f))
+(define py-builtin-float
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'float'"))
+   (lambda (x)
+     (error "'float' not implemented"))))
 
 ;;-------------------- format(value[, format_spec])
 
@@ -868,8 +937,11 @@
 ;; Changed in version 3.4: object().__format__(format_spec) raises
 ;; TypeError if format_spec is not an empty string.
 
-(define (py-builtin-format value format_spec)
-  (error "format" "not implemented" #f))
+(define py-builtin-format
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'format'"))
+   (lambda (value format_spec)
+     (error "'format' not implemented"))))
 
 ;;-------------------- class frozenset([iterable])
 
@@ -880,8 +952,11 @@
 ;; For other containers see the built-in set, list, tuple, and dict
 ;; classes, as well as the collections module.
 
-(define (py-builtin-frozenset iterable)
-  (error "frozenset" "not implemented" #f))
+(define py-builtin-frozenset
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'frozenset'"))
+   (lambda (iterable)
+     (error "'frozenset' not implemented"))))
 
 ;;-------------------- getattr(object, name[, default])
 
@@ -892,8 +967,11 @@
 ;; exist, default is returned if provided, otherwise AttributeError is
 ;; raised.
 
-(define (py-builtin-getattr object name default)
-  (error "getattr" "not implemented" #f))
+(define py-builtin-getattr
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'getattr'"))
+   (lambda (object name default)
+     (error "'getattr' not implemented"))))
 
 ;;-------------------- globals()
 
@@ -902,8 +980,11 @@
 ;; method, this is the module where it is defined, not the module from
 ;; which it is called).
 
-(define (py-builtin-globals)
-  (error "globals" "not implemented" #f))
+(define py-builtin-globals
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'globals'"))
+   (lambda ()
+     (error "'globals' not implemented"))))
 
 ;;-------------------- hasattr(object, name)
 
@@ -912,8 +993,11 @@
 ;; not. (This is implemented by calling getattr(object, name) and seeing
 ;; whether it raises an AttributeError or not.)
 
-(define (py-builtin-hasattr object name)
-  (error "hasattr" "not implemented" #f))
+(define py-builtin-hasattr
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'hasattr'"))
+   (lambda (object name)
+     (error "'hasattr' not implemented"))))
 
 ;;-------------------- hash(object)
 
@@ -927,8 +1011,11 @@
 ;; truncates the return value based on the bit width of the host
 ;; machine. See __hash__() for details.
 
-(define (py-builtin-hash object)
-  (error "hash" "not implemented" #f))
+(define py-builtin-hash
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'hash'"))
+   (lambda (object)
+     (error "'hash' not implemented"))))
 
 ;;-------------------- help([object])
 
@@ -951,8 +1038,11 @@
 ;; reported signatures for callables are now more comprehensive and
 ;; consistent.
 
-(define (py-builtin-help object)
-  (error "help" "not implemented" #f))
+(define py-builtin-help
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'help'"))
+   (lambda (object)
+     (error "'help' not implemented"))))
 
 ;;-------------------- hex(x)
 
@@ -984,8 +1074,11 @@
 ;; Note To obtain a hexadecimal string representation for a float, use
 ;; the float.hex() method.
 
-(define (py-builtin-hex x)
-  (error "hex" "not implemented" #f))
+(define py-builtin-hex
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'hex'"))
+   (lambda (x)
+     (error "'hex' not implemented"))))
 
 ;;-------------------- id(object)
 
@@ -997,8 +1090,11 @@
 ;; CPython implementation detail: This is the address of the object in
 ;; memory.
 
-(define (py-builtin-id object)
-  (error "id" "not implemented" #f))
+(define py-builtin-id
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'id'"))
+   (lambda (object)
+     (error "'id' not implemented"))))
 
 ;;-------------------- input([prompt])
 
@@ -1022,8 +1118,11 @@
 ;; Raises an auditing event builtins.input/result with the result after
 ;; successfully reading input.
 
-(define (py-builtin-input prompt)
-  (error "input" "not implemented" #f))
+(define py-builtin-input
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'input'"))
+   (lambda (prompt)
+     (error "'input' not implemented"))))
 
 ;;-------------------- class int([x])
 ;;                     class int(x, base=10)
@@ -1061,8 +1160,11 @@
 ;; Changed in version 3.8: Falls back to __index__() if __int__() is not
 ;; defined.
 
-(define (py-builtin-int x)
-  (error "int" "not implemented" #f))
+(define py-builtin-int
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'int'"))
+   (lambda (x)
+     (error "'int' not implemented"))))
 
 ;;-------------------- isinstance(object, classinfo)
 
@@ -1074,8 +1176,11 @@
 ;; types. If classinfo is not a type or tuple of types and such tuples, a
 ;; TypeError exception is raised.
 
-(define (py-builtin-isinstance object classinfo)
-  (error "isinstance" "not implemented" #f))
+(define py-builtin-isinstance
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'isinstance'"))
+   (lambda (object classinfo)
+     (error "'isinstance' not implemented"))))
 
 ;;-------------------- issubclass(class, classinfo)
 
@@ -1084,8 +1189,11 @@
 ;; be a tuple of class objects, in which case every entry in classinfo
 ;; will be checked. In any other case, a TypeError exception is raised.
 
-(define (py-builtin-issubclass object classinfo)
-  (error "issubclass" "not implemented" #f))
+(define py-builtin-issubclass
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'issubclass'"))
+   (lambda (object classinfo)
+     (error "'issubclass' not implemented"))))
 
 ;;-------------------- iter(object[, sentinel])
 
@@ -1112,8 +1220,11 @@
 ;;     for block in iter(partial(f.read, 64), b''):
 ;;         process_block(block)
 
-(define (py-builtin-iter object sentinel)
-  (error "iter" "not implemented" #f))
+(define py-builtin-iter
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'iter'"))
+   (lambda (object sentinel)
+     (error "'iter' not implemented"))))
 
 ;;-------------------- len(s)
 
@@ -1121,16 +1232,22 @@
 ;; be a sequence (such as a string, bytes, tuple, list, or range) or a
 ;; collection (such as a dictionary, set, or frozen set).
 
-(define (py-builtin-len s)
-  (error "len" "not implemented" #f))
+(define py-builtin-len
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'len'"))
+   (lambda (s)
+     (error "'len' not implemented"))))
 
 ;;-------------------- class list([iterable])
 
 ;; Rather than being a function, list is actually a mutable sequence
 ;; type, as documented in Lists and Sequence Types — list, tuple, range.
 
-(define (py-builtin-list iterable)
-  (error "list" "not implemented" #f))
+(define py-builtin-list
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'list'"))
+   (lambda (iterable)
+     (error "'list' not implemented"))))
 
 ;;-------------------- locals()
 
@@ -1143,8 +1260,11 @@
 ;; may not affect the values of local and free variables used by the
 ;; interpreter.
 
-(define (py-builtin-locals)
-  (error "locals" "not implemented" #f))
+(define py-builtin-locals
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'locals'"))
+   (lambda ()
+     (error "'locals' not implemented"))))
 
 ;;-------------------- map(function, iterable, ...)
 
@@ -1156,8 +1276,11 @@
 ;; where the function inputs are already arranged into argument
 ;; tuples, see itertools.starmap().
 
-(define (py-builtin-map function iterable)
-  (error "map" "not implemented" #f))
+(define py-builtin-map
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'map'"))
+   (lambda (function iterable)
+     (error "'map' not implemented"))))
 
 ;;-------------------- max(iterable, *[, key, default])
 ;;                     max(arg1, arg2, *args[, key])
@@ -1182,16 +1305,22 @@
 ;;
 ;; Changed in version 3.8: The key can be None.
 
-(define (py-builtin-max iterable key default)
-  (error "max" "not implemented" #f))
+(define py-builtin-max
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'max'"))
+   (lambda (iterable key default)
+     (error "'max' not implemented"))))
 
 ;;-------------------- memoryview(obj)
 
 ;; Return a “memory view” object created from the given argument. See
 ;; Memory Views for more information.
 
-(define (py-builtin-memoryview obj)
-  (error "memoryview" "not implemented" #f))
+(define py-builtin-memoryview
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'memoryview'"))
+   (lambda (obj)
+     (error "'memoryview' not implemented"))))
 
 ;;-------------------- min(iterable, *[, key, default])
 ;;                     min(arg1, arg2, *args[, key])
@@ -1219,8 +1348,11 @@
 ;;
 ;; Changed in version 3.8: The key can be None.
 
-(define (py-builtin-min iterable key default)
-  (error "min" "not implemented" #f))
+(define py-builtin-min
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'min'"))
+   (lambda (iterable key default)
+     (error "'min' not implemented"))))
 
 ;;-------------------- next(iterator[, default])
 
@@ -1228,8 +1360,11 @@
 ;; method. If default is given, it is returned if the iterator is
 ;; exhausted, otherwise StopIteration is raised.
 
-(define (py-builtin-next iterator default)
-  (error "next" "not implemented" #f))
+(define py-builtin-next
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'next'"))
+   (lambda (iterator default)
+     (error "'next' not implemented"))))
 
 ;;-------------------- class object
 
@@ -1240,8 +1375,11 @@
 ;; Note object does not have a __dict__, so you can’t assign arbitrary
 ;; attributes to an instance of the object class.
 
-(define (py-builtin-object)
-  (error "object" "not implemented" #f))
+(define py-builtin-object
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'object'"))
+   (lambda ()
+     (error "'object' not implemented"))))
 
 ;;-------------------- oct(x)
 
@@ -1267,8 +1405,11 @@
 ;;
 ;; See also format() for more information.
 
-(define (py-builtin-oct x)
-  (error "oct" "not implemented" #f))
+(define py-builtin-oct
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'oct'"))
+   (lambda (x)
+     (error "'oct' not implemented"))))
 
 ;;-------------------- open(file, mode='r', buffering=-1, encoding=None, errors=None, newline=None, closefd=True, opener=None)
 
@@ -1447,8 +1588,11 @@
 ;; Support added to accept objects implementing os.PathLike.
 ;; On Windows, opening a console buffer may return a subclass of io.RawIOBase other than io.FileIO.
 
-(define (py-builtin-open file mode buffering encoding errors newline closefd opener)
-  (error "open" "not implemented" #f))
+(define py-builtin-open
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'open'"))
+   (lambda (file mode buffering encoding errors newline closefd opener)
+     (error "'open' not implemented"))))
 
 ;;-------------------- ord(c)
 
@@ -1457,8 +1601,11 @@
 ;; example, ord('a') returns the integer 97 and ord('€') (Euro sign)
 ;; returns 8364. This is the inverse of chr().
 
-(define (py-builtin-ord c)
-  (error "ord" "not implemented" #f))
+(define py-builtin-ord
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'ord'"))
+   (lambda (c)
+     (error "'ord' not implemented"))))
 
 ;;-------------------- pow(x, y[, z])
 
@@ -1491,8 +1638,11 @@
 ;; pow now allows the second argument to be negative, permitting
 ;; computation of modular inverses.
 
-(define (py-builtin-pow x y z)
-  (error "pow" "not implemented" #f))
+(define py-builtin-pow
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'pow'"))
+   (lambda (x y z)
+     (error "'pow' not implemented"))))
 
 ;;-------------------- print(*objects, sep=' ', end='\n', file=sys.stdout, flush=False)
 
@@ -1515,8 +1665,11 @@
 ;;
 ;; Changed in version 3.3: Added the flush keyword argument.
 
-(define (py-builtin-print object) ;; objects sep end file flush)
-  (print object))
+(define py-builtin-print
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'print'"))
+   (lambda (object) ;; objects sep end file flush)
+     (print object))))
 
 ;;-------------------- class property(fget=None, fset=None, fdel=None, doc=None)
 
@@ -1596,8 +1749,11 @@
 ;; Changed in version 3.5: The docstrings of property objects are now
 ;; writeable.
 
-(define (py-builtin-property fget fset fdel doc)
-  (error "property" "not implemented" #f))
+(define py-builtin-property
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'property'"))
+   (lambda (fget fset fdel doc)
+     (error "'property' not implemented"))))
 
 ;;-------------------- range(stop)
 ;;                     range(start, stop[, step])
@@ -1605,8 +1761,11 @@
 ;; Rather than being a function, range is actually an immutable sequence
 ;; type, as documented in Ranges and Sequence Types — list, tuple, range.
 
-(define (py-builtin-range stop)
-  (error "range" "not implemented" #f))
+(define py-builtin-range
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'range'"))
+   (lambda (stop)
+     (error "'range' not implemented"))))
 
 ;;-------------------- repr(object)
 
@@ -1619,8 +1778,11 @@
 ;; the object. A class can control what this function returns for its
 ;; instances by defining a __repr__() method.
 
-(define (py-builtin-repr object)
-  (error "repr" "not implemented" #f))
+(define py-builtin-repr
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'repr'"))
+   (lambda (object)
+     (error "'repr' not implemented"))))
 
 ;;-------------------- reversed(seq)
 
@@ -1629,8 +1791,11 @@
 ;; method and the __getitem__() method with integer arguments starting at
 ;; 0).
 
-(define (py-builtin-reversed seq)
-  (error "reversed" "not implemented" #f))
+(define py-builtin-reversed
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'reversed'"))
+   (lambda (seq)
+     (error "'reversed' not implemented"))))
 
 ;;-------------------- round(number[, ndigits])
 
@@ -1655,8 +1820,11 @@
 ;; can’t be represented exactly as a float. See Floating Point
 ;; Arithmetic: Issues and Limitations for more information.
 
-(define (py-builtin-round number ndigits)
-  (error "round" "not implemented" #f))
+(define py-builtin-round
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'round'"))
+   (lambda (number ndigits)
+     (error "'round' not implemented"))))
 
 ;;-------------------- class set([iterable])
 
@@ -1667,8 +1835,11 @@
 ;; For other containers see the built-in frozenset, list, tuple, and dict
 ;; classes, as well as the collections module.
 
-(define (py-builtin-set iterable)
-  (error "set" "not implemented" #f))
+(define py-builtin-set
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'set'"))
+   (lambda (iterable)
+     (error "'set' not implemented"))))
 
 ;;-------------------- setattr(object, name, value)
 
@@ -1678,8 +1849,11 @@
 ;; attribute, provided the object allows it. For example, setattr(x,
 ;; 'foobar', 123) is equivalent to x.foobar = 123.
 
-(define (py-builtin-setattr object name value)
-  (error "setattr" "not implemented" #f))
+(define py-builtin-setattr
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'setattr'"))
+   (lambda (object name value)
+     (error "'setattr' not implemented"))))
 
 ;;-------------------- class slice(stop)
 ;;                     class slice(start, stop[, step])
@@ -1694,8 +1868,11 @@
 ;; a[start:stop:step] or a[start:stop, i]. See itertools.islice() for an
 ;; alternate version that returns an iterator.
 
-(define (py-builtin-slice stop)
-  (error "slice" "not implemented" #f))
+(define py-builtin-slice
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'slice'"))
+   (lambda (stop)
+     (error "'slice' not implemented"))))
 
 ;;-------------------- sorted(iterable, *, key=None, reverse=False)
 
@@ -1722,8 +1899,11 @@
 ;;
 ;; For sorting examples and a brief sorting tutorial, see Sorting HOW TO.
 
-(define (py-builtin-sorted iterable key reverse)
-  (error "sorted" "not implemented" #f))
+(define py-builtin-sorted
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'sorted'"))
+   (lambda (iterable key reverse)
+     (error "'sorted' not implemented"))))
 
 ;;-------------------- @staticmethod
 
@@ -1755,8 +1935,11 @@
 ;;
 ;; For more information on static methods, see The standard type hierarchy.
 
-(define (py-builtin-staticmethod)
-  (error "staticmethod" "not implemented" #f))
+(define py-builtin-staticmethod
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'staticmethod'"))
+   (lambda ()
+     (error "'staticmethod' not implemented"))))
 
 ;;-------------------- class str(object='')
 ;;                     class str(object=b'', encoding='utf-8', errors='strict')
@@ -1766,8 +1949,11 @@
 ;; str is the built-in string class. For general information about
 ;; strings, see Text Sequence Type — str.
 
-(define (py-builtin-str object)
-  (error "str" "not implemented" #f))
+(define py-builtin-str
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'str'"))
+   (lambda (object)
+     (error "'str' not implemented"))))
 
 ;;-------------------- sum(iterable, /, start=0)
 
@@ -1784,8 +1970,11 @@
 ;; Changed in version 3.8: The start parameter can be specified as a
 ;; keyword argument.
 
-(define (py-builtin-sum iterable start)
-  (error "sum" "not implemented" #f))
+(define py-builtin-sum
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'sum'"))
+   (lambda (iterable start)
+     (error "'sum' not implemented"))))
 
 ;;-------------------- super([type[, object-or-type]])
 
@@ -1846,16 +2035,22 @@
 ;; For practical suggestions on how to design cooperative classes using
 ;; super(), see guide to using super().
 
-(define (py-builtin-super type object-or-type)
-  (error "super" "not implemented" #f))
+(define py-builtin-super
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'super'"))
+   (lambda (type object-or-type)
+     (error "'super' not implemented"))))
 
 ;;-------------------- tuple([iterable])
 
 ;; Rather than being a function, tuple is actually an immutable sequence
 ;; type, as documented in Tuples and Sequence Types — list, tuple, range.
 
-(define (py-builtin-tuple iterable)
-  (error "tuple" "not implemented" #f))
+(define py-builtin-tuple
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'tuple'"))
+   (lambda (iterable)
+     (error "'tuple' not implemented"))))
 
 ;;-------------------- class type(object)
 ;;                     class type(name, bases, dict)
@@ -1886,8 +2081,11 @@
 ;; type.__new__ may no longer use the one-argument form to get the type
 ;; of an object.
 
-(define (py-builtin-type object)
-  (error "type" "not implemented" #f))
+(define py-builtin-type
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'type'"))
+   (lambda (object)
+     (error "'type' not implemented"))))
 
 ;;-------------------- vars([object])
 
@@ -1903,8 +2101,11 @@
 ;; dictionary is only useful for reads since updates to the locals
 ;; dictionary are ignored.
 
-(define (py-builtin-vars object)
-  (error "vars" "not implemented" #f))
+(define py-builtin-vars
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'vars'"))
+   (lambda (object)
+     (error "'vars' not implemented"))))
 
 ;;-------------------- zip(*iterables)
 
@@ -1952,8 +2153,11 @@
 ;; >>> x == list(x2) and y == list(y2)
 ;; True
 
-(define (py-builtin-zip iterables)
-  (error "zip" "not implemented" #f))
+(define py-builtin-zip
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'zip'"))
+   (lambda (iterables)
+     (error "'zip' not implemented"))))
 
 ;;-------------------- __import__(name, globals=None, locals=None, fromlist=(), level=0)
 
@@ -2013,5 +2217,8 @@
 ;; Changed in version 3.3: Negative values for level are no longer
 ;; supported (which also changes the default value to 0).
 
-(define (py-builtin-__import__ name globals locals fromlist level)
-  (error "__import__" "not implemented" #f))
+(define py-builtin-__import__
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin '__import__'"))
+   (lambda (name globals locals fromlist level)
+     (error "'__import__' not implemented"))))

@@ -44,21 +44,22 @@
       (make-PyObject hclass '#())))
 
 (define locals2
-   (py-procedure->function
-      (lambda (bcode env global return)
-	 (let ((frame (meaning (bytecode-ref bcode 2) env global return))
-	       (names (meaning (bytecode-ref bcode 3) env global return)))
-	    (or (cell-ref frame)
-		(let ((hclass (make-HClass (list->vector names) '()))
-		      (vals (map (lambda (name) #f)
-			       names)))
-		   (cell-set! frame (make-PyObject hclass (list->vector vals)))
-		   frame))))))
+  (py-procedure->function
+   (lambda rest (error "unimplemented generic procedure for builtin 'locals'"))
+   (lambda (bcode env global return)
+     (let ((frame (meaning (bytecode-ref bcode 2) env global return))
+	   (names (meaning (bytecode-ref bcode 3) env global return)))
+       (or (cell-ref frame)
+	   (let ((hclass (make-HClass (list->vector names) '()))
+		 (vals (map (lambda (name) #f)
+			    names)))
+	     (cell-set! frame (make-PyObject hclass (list->vector vals)))
+	     frame))))))
 
 (define (py-beval ast conf)
    (meaning (compile ast '()) '() (py-make-global) no-return))
 
-(define (compile* nodes env)
+(define (compile*2 nodes env)
    (map (lambda (n) (compile n env)) nodes))
 
 (define (compile+ vals decls env)
@@ -77,11 +78,11 @@
 (define-walk-method (compile this::PyModule env)
    (bytecode (code 'MOD)
       (bytecode (code 'SEQ)
-	 (compile* (PyModule-stmts this) (PyModule-globals this)))))
+	 (compile*2 (PyModule-stmts this) (PyModule-globals this)))))
 
 (define-walk-method (compile this::PySeq env)
    (bytecode (code 'SEQ)
-      (compile* (PySeq-nodes this) env)))
+      (compile*2 (PySeq-nodes this) env)))
 
 (define-walk-method (compile this::PyBlock env)
    (bytecode (code 'BLOCK)
@@ -169,7 +170,7 @@
       ((<= (length (PyCall-args this)) 4)
        (apply bytecode (code 'CALL0 (length (PyCall-args this)))
 	  (compile (PyCall-fun this) env)
-	  (compile* (PyCall-args this) env)))
+	  (compile*2 (PyCall-args this) env)))
       (else
        (error "call" "Not implemented" (length (PyCall-args this))))))
    

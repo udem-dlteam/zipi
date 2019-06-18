@@ -22,6 +22,8 @@ locals/locals.scm \
 -e '(##include "object/object.scm")' \
 scheme/scheme.bgl \
 scheme/scheme.scm \
+break/break.bgl \
+break/break.scm \
 javascript/javascript.bgl \
 javascript/javascript.scm \
 dump/dump.bgl \
