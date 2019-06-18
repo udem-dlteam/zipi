@@ -20,6 +20,8 @@ locals/locals.scm \
 -e '(##include "hclass/hclass.scm")' \
 -e '(##include "object/object.bgl")' \
 -e '(##include "object/object.scm")' \
+-e '(##include "iterator/iterator.bgl")' \
+-e '(##include "iterator/iterator.scm")' \
 scheme/scheme.bgl \
 scheme/scheme.scm \
 break/break.bgl \

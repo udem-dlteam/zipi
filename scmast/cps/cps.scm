@@ -24,7 +24,7 @@
 (define (kid n) n)
 (define (kid? obj) (eq? obj kid))
 
-(define (cps*::PyNode nodes k* pack kbreaks kcontinues ktry fun)
+(define (cps* nodes k* pack kbreaks kcontinues ktry fun)
    (let loop ((nodes nodes)
 	      (knodes '()))
       (if (null? nodes)
@@ -104,7 +104,7 @@
 	     (body (kcall k (new-PyRef loc arg)))
 	     (cont (new-PyIf loc
 		      (new-PyBinary loc 'is?
-			 (new-PyRef loc exn) (new-PyBool loc #t) :type 'bool)
+			 (new-PyRef loc exn) (new-PyBool loc #t) type: 'bool)
 		      (new-PyRaise loc (new-PyRef loc arg) (new-PyUninit loc))
 		      body)))
 	 (new-PyKont loc arg exn (pack cont))))
@@ -116,10 +116,10 @@
       (if (yield-expr? val kbreaks kcontinues)
 	  (cps val
 	     (KontExpr (lambda (kexpr)
-			  (new-PyReturnYield loc kexpr kont :generator gen))
+			  (new-PyReturnYield loc kexpr kont generator: gen))
 		this k)
 	     pack kbreaks kcontinues ktry fun)
-	  (new-PyReturnYield loc (cps-fun! val) kont :generator gen))))
+	  (new-PyReturnYield loc (cps-fun! val) kont generator: gen))))
 
 (define-walk-method (cps this::PyReturn k pack kbreaks kcontinues ktry fun)
    (let ((loc (PyNode-loc this))
@@ -207,8 +207,29 @@
 
 ;; does an expression may yield or return?
 (define (yield-expr? this kbreaks kcontinues)
-   (let ((v (yield-expr* this kbreaks kcontinues)))
+  (let ((v (yield-expr* this kbreaks kcontinues)))
       (find (lambda (v) v) v)))
+
+(define (filter pred lst)
+  (if (pair? lst)
+      (if (pred (car lst))
+          (cons (car lst) (filter pred (cdr lst)))
+          (filter pred (cdr lst)))
+      '()))
+
+(define (any pred lst)
+  (if (pair? lst)
+      (if (pred (car lst))
+          #t
+          (any pred (cdr lst)))
+      #f))
+
+(define (find pred lst)
+  (if (pair? lst)
+      (if (pred (car lst))
+          (car lst)
+          (find pred (cdr lst)))
+      #f))
 
 (define-walk-method (yield-expr* this::PyNode kbreaks kcontinues)
    (call-default-walker))
