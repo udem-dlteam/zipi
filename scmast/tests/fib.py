@@ -6,3 +6,23 @@ def fib(n):
 
 print(fib(20))
 print(abs(30))
+
+x = dict()
+print(next(x))
+print(next(x))
+print(next(x))
+print(next(x))
+print(next(x))
+print(next(x, 777))
+print(next(x, 777))
+print(next(x, 777))
+print(next(x, 777))
+print(next(x, 777))
+print(next(x, 777))
+print(next(x, 777))
+print(next(x, 777))
+print(next(x, 777))
+print(next(x, 777))
+print(next(x, 777))
+print(next(x, 777))
+

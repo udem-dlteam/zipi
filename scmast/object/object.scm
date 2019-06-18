@@ -262,6 +262,11 @@
 
     %global))
 
+(define (alist->PyObject alist)
+  (make-PyObject
+   (make-HClass (list->vector (map car alist)) '())
+   (list->vector (map cdr alist))))
+
 ;;-------------------- abs(x)
 
 ;; Return the absolute value of a number. The argument may be an
@@ -636,8 +641,19 @@
 (define py-builtin-dict
   (py-procedure->function
    (lambda rest (error "dict" "unimplemented generic procedure for builtin" #f))
-   (lambda (kwarg)
-     (error "dict" "not implemented" #f))))
+   (lambda kwarg
+     (alist->PyObject
+      (list (cons '__next__
+                  (py-procedure->function
+                   (lambda rest (error "__next__" "unimplemented generic procedure" #f))
+                   (let ((n 0))
+                     (lambda (self)
+                       (if (< n 10)
+                           (begin
+                             (set! n (+ n 1))
+                             n)
+                           (raise 'StopIteration))))))
+            (cons 'foo 666))))))
 
 ;;-------------------- dir([object])
 
@@ -1360,11 +1376,28 @@
 ;; method. If default is given, it is returned if the iterator is
 ;; exhausted, otherwise StopIteration is raised.
 
+(define absent-argument
+  (cons 'absent 'argument))
+
 (define py-builtin-next
   (py-procedure->function
-   (lambda rest (error "next" "unimplemented generic procedure for builtin" #f))
-   (lambda (iterator #!optional (default 'absent-argument))
-     (error "next" "not implemented" #f))))
+   (lambda rest (error "unimplemented generic procedure for builtin 'next'"))
+   (lambda (iterator #!optional (default absent-argument))
+     (cond ((and (PyObject? iterator)
+                 (let ((index (PyObject-find-prop iterator '__next__)))
+                   (>= index 0)
+                   index))
+            =>
+            (lambda (index)
+	      (let ((__next__ (PyObject-elements-ref iterator index)))
+                (with-handler
+                 (lambda (e)
+                   (if (eq? e 'StopIteration)
+                       default
+                       (raise e)))
+                 (PyFunction-call1 __next__ iterator)))))
+           (else
+            (error "" "TypeError: object is not an iterator" #f))))))
 
 ;;-------------------- class object
 
