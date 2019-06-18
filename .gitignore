@@ -3,4 +3,6 @@ pypy
 scmast/o
 scmast/object/object.sch
 scmast/ast/types.sch
+scmast/ast/new.sch
+scmast/.afile
 
