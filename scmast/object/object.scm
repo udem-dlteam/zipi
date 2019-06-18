@@ -1363,7 +1363,7 @@
 (define py-builtin-next
   (py-procedure->function
    (lambda rest (error "unimplemented generic procedure for builtin 'next'"))
-   (lambda (iterator default)
+   (lambda (iterator #!optional (default absent-argument))
      (error "'next' not implemented"))))
 
 ;;-------------------- class object
@@ -1409,7 +1409,7 @@
   (py-procedure->function
    (lambda rest (error "unimplemented generic procedure for builtin 'oct'"))
    (lambda (x)
-     (error "'oct' not implemented"))))
+     (error "oct" "not implemented" #f))))
 
 ;;-------------------- open(file, mode='r', buffering=-1, encoding=None, errors=None, newline=None, closefd=True, opener=None)
 

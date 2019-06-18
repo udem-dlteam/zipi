@@ -24,6 +24,10 @@ scheme/scheme.bgl \
 scheme/scheme.scm \
 break/break.bgl \
 break/break.scm \
+generator/generator.bgl \
+generator/generator.scm \
+cps/cps.bgl \
+cps/cps.scm \
 javascript/javascript.bgl \
 javascript/javascript.scm \
 dump/dump.bgl \
