@@ -1,9 +1,9 @@
 ;*=====================================================================*/
-;*    serrano/nosync/pyc/scmast/main/main.bgl                         */
+;*    serrano/nosync/py19/scmast/main/main.bgl                         */
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 12:48:54 2019                          */
-;*    Last change :  Mon Jun 17 07:40:06 2019 (serrano)                */
+;*    Last change :  Tue Jun 18 05:38:47 2019 (serrano)                */
 ;*    Copyright   :  2019 M. Feeley & M. Serrano                       */
 ;*    -------------------------------------------------------------    */
 ;*    python ast interpreter (bigloo prelude)                          */
@@ -22,6 +22,8 @@
 	   __py_locals
 	   __py_return
 	   __py_break
+	   __py_generator
+	   __py_cps
 	   __py_beval
 	   __py_scheme
 	   __py_javascript
