@@ -1,0 +1,7 @@
+print(repr(123))
+print(repr(repr(123)))
+print(repr("hello\n"))
+print(repr('hello\n'))
+print(repr('\'"'))
+print(repr('a"b'))
+print(repr("a'b"))

@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Tue Jun 18 10:10:56 2019 (serrano)                */
+;*    Last change :  Tue Jun 18 14:29:27 2019 (serrano)                */
 ;*    Copyright   :  2019 M. Feeley & M. Serrano                       */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -30,6 +30,9 @@
 	   (global-get ::PyObject ::obj ::obj)
 	   (global-put! ::PyObject ::obj ::obj ::obj)
 	   
+	   (object-get ::PyObject ::obj ::obj)
+	   (object-put! ::PyObject ::obj ::obj ::obj)
+	   
 	   (inline PyObject-elements-ref ::PyObject ::long)
 	   (PyObject-elements-set! ::PyObject ::long ::obj)
 	   
@@ -48,15 +51,18 @@
 	   (py-make-global)
 	   (py-make-caches ::int)
 
+	   (py-throw ::obj)
+	   
+	   (pyis?::bool x y)
 	   (py+ x y)
 	   (py- x y)
 	   (pyneg x)
 	   (py* x y)
 	   (py/ x y)
-	   (py< x y)
-	   (py<= x y)
-	   (py> x y)
-	   (py>= x y))
+	   (py<::bool x y)
+	   (py<=::bool x y)
+	   (py>::bool x y)
+	   (py>=::bool x y))
    
    (eval   (export-all)))
 

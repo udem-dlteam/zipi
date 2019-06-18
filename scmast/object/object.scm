@@ -6,15 +6,15 @@
 (define (global-get/miss obj name cache)
    (let ((index (PyObject-find-prop obj name)))
       (cond
-	 ((>= index 0)
-	  (PCache-set! cache (PyObject-hclass obj) index)
-	  (PyObject-elements-ref obj index))
-	 (else
-	  (let* ((__builtins__ (PyObject-elements-ref obj 0))
-		 (idxb (PyObject-find-prop __builtins__ name)))
-	     (if (>=fx idxb 0)
-		 (PyObject-elements-ref __builtins__ idxb)
-		 (error "NameError" "global name is not defined" name)))))))
+         ((>= index 0)
+          (PCache-set! cache (PyObject-hclass obj) index)
+          (PyObject-elements-ref obj index))
+         (else
+          (let* ((__builtins__ (PyObject-elements-ref obj 0))
+                 (idxb (PyObject-find-prop __builtins__ name)))
+             (if (>=fx idxb 0)
+                 (PyObject-elements-ref __builtins__ idxb)
+                 (error "NameError" "global name is not defined" name)))))))
 
 (define (global-put! global name val cache)
    (if (eq? (PyObject-hclass global) (PCache-hclass cache))
@@ -23,25 +23,57 @@
 
 (define (global-put!/miss obj name val cache)
    (let* ((index (PyObject-find-prop obj name))
-	  (hclass (PyObject-hclass obj)))
+          (hclass (PyObject-hclass obj)))
       (if (>= index 0)
-	  (begin
-	     (PCache-set! cache hclass index)
-	     (PyObject-elements-set! obj index val))
-	  (let* ((nhclass (HClass-next hclass name '+))
-		 (index (HClass-last-index nhclass)))
-	     (PyObject-hclass-set! obj nhclass)
-	     (PCache-set! cache nhclass index)
-	     (PyObject-elements-set! obj index val)))))
+          (begin
+             (PCache-set! cache hclass index)
+             (PyObject-elements-set! obj index val))
+          (let* ((nhclass (HClass-next hclass name '+))
+                 (index (HClass-last-index nhclass)))
+             (PyObject-hclass-set! obj nhclass)
+             (PCache-set! cache nhclass index)
+             (PyObject-elements-set! obj index val)))))
+
+(define (object-get object name cache)
+   (if (eq? (PyObject-hclass object) (PCache-hclass cache))
+       (PyObject-elements-ref object (PCache-index cache))
+       (object-get/miss object name cache)))
+
+(define (object-get/miss obj name cache)
+  (let ((index (PyObject-find-prop obj name)))
+    (cond
+     ((>= index 0)
+      (PCache-set! cache (PyObject-hclass obj) index)
+      (PyObject-elements-ref obj index))
+     (else
+      (error "AttributeError" "object has no attribute" name)))))
+
+(define (object-put! object name val cache)
+  (if (eq? (PyObject-hclass object) (PCache-hclass cache))
+      (PyObject-elements-set! object (PCache-index cache) val)
+      (object-put!/miss object name val cache)))
+
+(define (object-put!/miss obj name val cache)
+  (let* ((index (PyObject-find-prop obj name))
+         (hclass (PyObject-hclass obj)))
+    (if (>= index 0)
+        (begin
+          (PCache-set! cache hclass index)
+          (PyObject-elements-set! obj index val))
+        (let* ((nhclass (HClass-next hclass name '+))
+               (index (HClass-last-index nhclass)))
+          (PyObject-hclass-set! obj nhclass)
+          (PCache-set! cache nhclass index)
+          (PyObject-elements-set! obj index val)))))
 
 (define (PyObject-find-prop obj name)
    (let* ((hclass (PyObject-hclass obj))
-	  (names (HClass-names hclass)))
+          (names (HClass-names hclass)))
       (let loop ((i (- (vector-length names) 1)))
-	 (cond
-	    ((= i -1) i)
-	    ((eq? name (vector-ref names i)) i)
-	    (else (loop (- i 1)))))))
+         (cond
+            ((= i -1) i)
+            ((eq? name (vector-ref names i)) i)
+            (else (loop (- i 1)))))))
 
 (define fun-hclass
    (make-HClass '#() '()))
@@ -77,11 +109,17 @@
        ((PyFunction-procedure fun) a0 a1 a2 a3)
        (error "call4" "wrong call" fun)))
 
+(define (py-throw exc)
+   (raise exc))
+
 (define (py-make-caches size)
    (list->vector
       (map (lambda (n) (make-PCache #f -1))
-	 (iota size))))
-   
+         (iota size))))
+
+(define (pyis? x y)
+   (eq? x y))
+
 (define (py+ x y)
   (+ x y))
 
@@ -184,11 +222,11 @@
                                        (& "__import__")
                                        )
                                '()))
-	 (hclass1 (make-HClass (vector (& "__builtins__")
+         (hclass1 (make-HClass (vector (& "__builtins__")
                                        )
                                '()))
-	 (bi (make-PyObject hclass0 '#(- -)))
-	 (%global (make-PyObject hclass1 (vector bi))))
+         (bi (make-PyObject hclass0 '#(- -)))
+         (%global (make-PyObject hclass1 (vector bi))))
 
     (PyObject-elements-set! bi 0  py-builtin-abs)
     (PyObject-elements-set! bi 1  py-builtin-all)
@@ -1389,14 +1427,15 @@
                    index))
             =>
             (lambda (index)
-	      (let ((__next__ (PyObject-elements-ref iterator index)))
-                (with-handler
-                 (lambda (e)
-		    (if (and (not (eq? default absent-argument))
-			     (eq? e 'StopIteration))
-                       default
-                       (raise e)))
-                 (PyFunction-call1 __next__ iterator)))))
+              (let ((__next__ (PyObject-elements-ref iterator index)))
+                (if (eq? default absent-argument)
+                    (PyFunction-call1 __next__ iterator)
+                    (with-handler
+                     (lambda (e)
+                       (if (eq? e 'StopIteration)
+                           default
+                           (raise e)))
+                     (PyFunction-call1 __next__ iterator))))))
            (else
             (error "next" "TypeError: object is not an iterator" #f))))))
 
@@ -1812,11 +1851,70 @@
 ;; the object. A class can control what this function returns for its
 ;; instances by defining a __repr__() method.
 
+(define (py-str? s)
+  (string? s))
+
+(define (py-str-to-string s)
+  s)
+
+(define (py-str-from-string s)
+  s)
+
 (define py-builtin-repr
   (py-procedure->function
    (lambda rest (error "repr" "unimplemented generic procedure for builtin" #f))
    (lambda (object)
-     (error "repr" "not implemented" #f))))
+     (cond ((and (PyObject? object)
+                 (let ((index (PyObject-find-prop object '__repr__)))
+                   (>= index 0)
+                   index))
+            =>
+            (lambda (index)
+              (let ((__repr__ (PyObject-elements-ref object index)))
+                (PyFunction-call1 __repr__ object))))
+           ((py-str? object)
+            (py-str-from-string (py-str-encode (py-str-to-string object))))
+           ((number? object)
+            (py-str-from-string (number->string object)))
+           ((eq? object #t)
+            (py-str-from-string "True"))
+           ((eq? object #f)
+            (py-str-from-string "False"))
+           (else
+            (py-str-from-string "<unknown>"))))))
+
+(define (py-str-encode str)
+  (let* ((quote-style #f)
+         (chars (string->list str)))
+    (for-each (lambda (c)
+                (cond ((char=? c #\")
+                       (set! quote-style #\'))
+                      ((and (char=? c #\') (not (eqv? quote-style #\')))
+                       (set! quote-style #\"))))
+              chars)
+    (if (not quote-style)
+        (set! quote-style #\'))
+    (let ((content
+           (apply string-append
+                  (map (lambda (c)
+                         (if (char=? c quote-style)
+                             (string #\\ quote-style)
+                             (let ((n (char->integer c)))
+                               (cond ((= n 9)   "\\t")
+                                     ((= n 10)  "\\n")
+                                     ((= n 13)  "\\r")
+                                     ((> n 255)
+                                      (string-append "\\u"
+                                                     (substring (number->string (+ #x10000000)) 2 9)))
+                                     ((or (< n 32) (> n 126))
+                                      (string-append "\\x"
+                                                     (substring (number->string (+ #x100)) 1 3)))
+                                     (else
+                                      (string c))))))
+                       chars)))
+          (quotes
+           (string quote-style)))
+      (string-append quotes content quotes))))
 
 ;;-------------------- reversed(seq)
 

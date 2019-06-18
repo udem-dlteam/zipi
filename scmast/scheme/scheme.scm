@@ -302,6 +302,7 @@
       (PyNode-%info-set! this n)))
 
 (define-walk-method (collect-caches this::PyAccess cnt)
+   (call-default-walker)
    (let ((n (cell-ref cnt)))
       (cell-set! cnt (+ 1 n))
       (PyNode-%info-set! this n)))
