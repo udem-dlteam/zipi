@@ -247,16 +247,32 @@
 	     ,(pyc-scheme (PyKont-body this) conf)))))
 
 (define-walk-method (pyc-scheme this::PyCall conf)
-   (let ((call (case (length (PyCall-args this))
-		  ((0) 'PyFunction-call0)
-		  ((1) 'PyFunction-call1)
-		  ((2) 'PyFunction-call2)
-		  ((3) 'PyFunction-call4)
-		  (else (error "pyc-scheme" "Not implemented" (py->list this))))))
-      (epairify this
-	 `(,call
-	     ,(pyc-scheme (PyCall-fun this) conf)
-	     ,@(map (lambda (a) (pyc-scheme a conf)) (PyCall-args this))))))
+   
+   (define (invoke fun args)
+      (let ((call (case (length args)
+		     ((0) 'PyFunction-call0)
+		     ((1) 'PyFunction-call1)
+		     ((2) 'PyFunction-call2)
+		     ((3) 'PyFunction-call4)
+		     (else (error "pyc-scheme" "Not implemented" (py->list this))))))
+	 `(,call ,fun ,@args)))
+
+   (let ((fun (PyCall-fun this)))
+      (if (isa? fun PyAccess)
+	  ;; method call
+	  (let ((obj (gensym '%obj)))
+	     (epairify this
+		`(let ((,obj ,(pyc-scheme (PyAccess-obj fun) conf)))
+		    ,(invoke `(object-get ,obj
+				 ,(pyc-propname (PyAccess-field fun))
+				 (vector-ref %caches ,(PyNode-%info fun)))
+			(cons obj
+			   (map (lambda (a) (pyc-scheme a conf))
+			      (PyCall-args this)))))))
+	  ;; function call
+	  (epairify this
+	     (invoke (pyc-scheme fun conf)
+		(map (lambda (a) (pyc-scheme a conf)) (PyCall-args this)))))))
 
 (define-walk-method (pyc-scheme this::PyRef conf)
    (let ((decl (PyRef-decl this)))

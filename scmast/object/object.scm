@@ -1422,7 +1422,7 @@
    (lambda rest (error "next" "unimplemented generic procedure for builtin" #f))
    (lambda (iterator #!optional (default absent-argument))
      (cond ((and (PyObject? iterator)
-                 (let ((index (PyObject-find-prop iterator '__next__)))
+                 (let ((index (PyObject-find-prop iterator (& "__next__"))))
                    (>= index 0)
                    index))
             =>
