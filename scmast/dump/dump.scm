@@ -48,6 +48,21 @@
      :tail ,(PyReturn-tail this)
      ,(pynode->list (PyReturn-val this))))
 
+(define-walk-method (pynode->list this::PyReturnYield)
+   `(,(string->symbol (typeof this))
+     :generator ,(PyReturnYield-generator this)
+     ,(pynode->list (PyReturnYield-val this))
+     ,(pynode->list (PyReturnYield-kont this))))
+
+(define-walk-method (pynode->list this::PyStmtExpr)
+   `(,(string->symbol (typeof this))
+     ,(pynode->list (PyStmtExpr-expr this))))
+
+(define-walk-method (pynode->list this::PyYield)
+   `(,(string->symbol (typeof this))
+     :generator ,(PyYield-generator this)
+     ,(pynode->list (PyYield-val this))))
+
 (define-walk-method (pynode->list this::PyPragma)
    `(,(string->symbol (typeof this))
      :lang ,(PyPragma-lang this)
@@ -57,7 +72,7 @@
    `(,(string->symbol (typeof this))))
 
 (define-walk-method (pynode->list this::PyLiteral)
-   `(,(string->symbol (typeof this)) ,(PyNumber-val this)))
+   `(,(string->symbol (typeof this)) ,(PyLiteralValue-val this)))
 
 (define-walk-method (pynode->list this::PyRef)
    `(,(string->symbol (typeof this))
@@ -72,6 +87,12 @@
      :can-locals ,(PyFun-can-locals this)
      :args ,(map pynode->list (PyFun-args this))
      ,(pynode->list (PyFun-body this))))
+
+(define-walk-method (pynode->list this::PyKont)
+   `(,(string->symbol (typeof this))
+     (,(pynode->list (PyKont-param this))
+      ,(pynode->list (PyKont-exn this)))
+     ,(pynode->list (PyKont-body this))))
 
 (define-walk-method (pynode->list this::PyCall)
    `(,(string->symbol (typeof this))

@@ -63,8 +63,8 @@
       ((Raise ?loc ?exc ?cause)
        ;; Raise(expr? exc, expr? cause)
        (new-PyRaise loc
-	  :exc (when exc (sexp exc #f scope conf))
-	  :cause (when cause (sexp cause #f scope conf))))
+	  (if exc (sexp exc #f scope conf) (new-PyUninit loc))
+ 	  (if cause (sexp cause #f scope conf) (new-PyUninit loc))))
       ((Try ?loc ?body ?handlers ?orelse ?finally)
        ;; Try(stmt* body, excepthandler* handlers, stmt* orelse, stmt* finalbody)
        (new-PyTry loc (compile-stmt* loc body #f scope conf)
@@ -73,7 +73,8 @@
 	  (compile-stmt* loc finally #f scope conf)))
       ((Expr ?loc ?value)
        ;; Expr(expr value)
-       (sexp value tail scope conf))
+       (new-PyStmtExpr loc
+	  (sexp value tail scope conf)))
 
       ((Pass ?loc)
        ;; Pass
@@ -97,7 +98,7 @@
 	   (new-PyNumber loc (string->number val))))
       ((BinOp ?loc ?left ?op ?right)
        ;; BinOp(expr left, operator op, expr right)
-       (make-PyBinary loc #f (op-type op)
+       (new-PyBinary loc 
 	  (case op
 	     ((Add) '+)
 	     ((Sub) '-)
@@ -105,7 +106,13 @@
 	     ((Mul) '*)
 	     (else "BinOp" "Illegal operator" op))
 	  (sexp left #f scope conf)
-	  (sexp right #f scope conf)))
+	  (sexp right #f scope conf)
+	  :type (op-type op)))
+      ((UnaryOp ?loc ?op ?expr)
+       (new-PyUnary loc op (sexp expr #f scope conf)))
+      ((Yield ?loc ?value)
+       (new-PyYield loc (sexp value tail scope conf)))
+      ;; Yield(expr? value)
       ((Compare ?loc ?left ?ops ?rights)
        ;; Compare(expr left, cmpop* ops, expr* comparators)
        (if (pair? (cdr ops))

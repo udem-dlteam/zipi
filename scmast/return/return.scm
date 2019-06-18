@@ -57,6 +57,9 @@
       (PyFun-need-return-set! fun #t)
       (PyReturn-tail-set! this #f)))
 
+(define-walk-method (return this::PyStmtExpr fun tail conf)
+   (return (PyStmtExpr-expr this) fun #f conf))
+
 (define-walk-method (return this::PyTry fun tail conf)
    (return (PyTry-body this) fun #f conf)
    (return (PyTry-else this) fun tail conf)

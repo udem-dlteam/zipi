@@ -38,6 +38,19 @@
 (define-walk-method (cps this::PyNode k pack kbreaks kcontinues ktry fun)
    (error "cps" "Should not be here" (py->list this)))
 
+(define-walk-method (cps this::PyStmtExpr k pack kbreaks kcontinues ktry fun)
+   (let ((loc (PyNode-loc this))
+	 (expr (PyStmtExpr-expr this)))
+      (if (yield-expr? expr kbreaks kcontinues)
+	  (cps expr
+	     (KontExpr (lambda (ke)
+			  (kcall k (new-PyStmtExpr loc ke)))
+		this k "expr")
+	     pack kbreaks kcontinues ktry fun)
+	  (begin
+	     (cps-fun! expr)
+	     (kcall k this)))))
+
 (define-walk-method (cps this::PyLiteral k pack kbreaks kcontinues ktry fun)
    (kcall k this))
 
@@ -90,21 +103,21 @@
 	     (body (kcall k (new-PyRef loc arg)))
 	     (cont (new-PyIf loc
 		      (new-PyBinary loc 'eq? (new-PyRef loc exn) (new-PyBool loc #t))
-		      (new-PyRaise loc :exc (new-PyRef loc arg))
+		      (new-PyRaise loc (new-PyRef loc arg) (new-PyUninit loc))
 		      body)))
 	 (new-PyKont loc arg exn (pack cont))))
    
    (let* ((loc (PyNode-loc this))
-	  (expr (PyYield-expr this))
+	  (val (PyYield-val this))
 	  (gen (PyYield-generator this))
 	  (kont (make-yield-kont k loc)))
-      (if (yield-expr? expr kbreaks kcontinues)
-	  (cps expr
+      (if (yield-expr? val kbreaks kcontinues)
+	  (cps val
 	     (KontExpr (lambda (kexpr)
 			  (new-PyReturnYield loc kexpr kont :generator gen))
 		this k)
 	     pack kbreaks kcontinues ktry fun)
-	  (new-PyReturnYield loc (cps-fun! expr) kont :generator gen))))
+	  (new-PyReturnYield loc (cps-fun! val) kont :generator gen))))
 
 (define-walk-method (cps this::PyReturn k pack kbreaks kcontinues ktry fun)
    (let ((loc (PyNode-loc this))
@@ -125,7 +138,46 @@
 	  (if ktry
 	      (tprint "TODO")
 	      (new-PyReturnYield loc (cps-fun! expr) (new-PyUninit loc))))))
-				  
+
+(define-walk-method (cps this::PySeq k pack kbreaks kcontinues ktry fun)
+   
+   (define (pack-seq this prev res)
+      (if (pair? prev)
+	  (set-cdr! prev (list res))
+	  (PySeq-nodes-set! this (list res)))
+      (PySeq-nodes-set! this
+	 (filter (lambda (x) (not (isa? x PyPass))) (PySeq-nodes this)))
+      (if (and (pair? (PySeq-nodes this)) (null? (cdr (PySeq-nodes this))))
+	  (if (isa? this PyBlock)
+	      (if (isa? (car (PySeq-nodes this)) PyBlock)
+		  (car (PySeq-nodes this))
+		  this)
+	      (car (PySeq-nodes this)))
+	  this))
+   
+   (let ((loc (PyNode-loc this)))
+      (let loop ((walk (PySeq-nodes this))
+		 (pnodes '()))
+	 (cond
+	    ((null? walk)
+	     (kcall k this))
+	    ((not (yield-expr? (car walk) kbreaks kcontinues))
+	     (cps-fun! (car walk))
+	     (loop (cdr walk) walk))
+	    ((null? (cdr walk))
+	     (pack-seq this pnodes
+		(cps (car walk)
+		   k pack kbreaks kcontinues ktry fun)))
+	    (else
+	     (pack-seq this pnodes
+		(cps (car walk)
+		   (KontStmt (lambda (khead)
+				(cps (new-PySeq loc
+					(cons khead (cdr walk)))
+				   k pack kbreaks kcontinues ktry fun))
+		      this k)
+		   pack kbreaks kcontinues ktry fun)))))))
+
 ;; does an expression may yield or return?
 (define (yield-expr? this kbreaks kcontinues)
    (let ((v (yield-expr* this kbreaks kcontinues)))

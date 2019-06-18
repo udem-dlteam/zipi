@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 10:16:39 2019                          */
-;*    Last change :  Tue Jun 18 07:35:27 2019 (serrano)                */
+;*    Last change :  Tue Jun 18 10:25:04 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Python AST                                                       */
@@ -84,8 +84,8 @@
 	      (test::PyExpr (info '("ast"))))
 
 	   (class PyRaise::PyStmt
-	      (exc (default #f) (info '("ast")))
-	      (cause (default #f) (info '("ast"))))
+	      (exc::PyExpr (info '("ast")))
+	      (cause::PyExpr (info '("ast"))))
 	   
 	   (class PyTry::PyStmt
 	      (body::PyStmt (info '("ast")))
@@ -100,7 +100,10 @@
 	   (class PyBreak::PyStmt)
 	   (class PyContinue::PyStmt)
 	   (class PyPass::PyStmt)
-           
+
+	   (class PyStmtExpr::PyStmt
+	      expr::PyExpr)
+	   
            ;; expressions
            (class PyExpr::PyNode
 	      (type::symbol (default 'unknown)))
@@ -144,7 +147,7 @@
               (can-locals::bool (default #t)))
 
 	   (final-class PyYield::PyExpr
-	      (expr::PyExpr (info '("ast")))
+	      (val::PyExpr (info '("ast")))
 	      (generator::bool read-only (default #f)))
 	   
 	   (final-class PyKont::PyExpr
@@ -472,10 +475,11 @@
 (gen-walks PyRaise exc cause)
 (gen-walks PyTry body (handlers) else finally)
 (gen-walks PyHandler type body)
+(gen-walks PyStmtExpr expr)
 (gen-walks PyFun body)
-(gen-walks PyUnary expr)
 (gen-walks PyBinary lhs rhs)
+(gen-walks PyUnary expr)
 (gen-walks PyCall fun (args) (keywords))
-(gen-walks PyYield expr)
+(gen-walks PyYield val)
 (gen-walks PyKont body)
 

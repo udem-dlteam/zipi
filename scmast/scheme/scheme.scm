@@ -68,6 +68,18 @@
        (epairify this
 	  `(return (pyc-scheme (PyReturn-val this) conf)))))
 
+(define-walk-method (pyc-scheme this::PyReturnYield conf)
+   (let ((kont (PyReturnYield-kont this))
+	 (gen (PyReturnYield-generator this)))
+      (epairify this
+	 `(,(if gen 'py-generator-yield* 'py-generator-yield)
+	   %gen ,(pyc-scheme (PyReturnYield-val this) conf)
+	   #f
+	   ,(pyc-scheme kont conf)))))
+
+(define-walk-method (pyc-scheme this::PyStmtExpr conf)
+   (pyc-scheme (PyStmtExpr-expr this) conf))
+
 (define (pyc-test this conf)
    (if (eq? (PyExpr-type this) 'bool)
        (pyc-scheme this conf)
@@ -188,6 +200,9 @@
 (define-walk-method (pyc-scheme this::PyUninit conf)
    uninit)
 
+(define-walk-method (pyc-scheme this::PyBool conf)
+   (PyLiteralValue-val this))
+
 (define-walk-method (pyc-scheme this::PyNumber conf)
    (PyLiteralValue-val this))
 
@@ -208,6 +223,14 @@
 	     ,(if (PyFun-need-return this)
 		  `(lambda ,args (bind-exit (return) ,body))
 		  `(lambda ,args ,body))))))
+
+(define-walk-method (pyc-scheme this::PyKont conf)
+   (let ((param (pyc-scheme (PyKont-param this) conf))
+	 (exn (pyc-scheme (PyKont-exn this) conf))
+	 (body (pyc-scheme (PyKont-body this) conf)))
+      (epairify this
+	 `(lambda (,param ,exn)
+	     body))))
 
 (define-walk-method (pyc-scheme this::PyCall conf)
    (let ((call (case (length (PyCall-args this))
