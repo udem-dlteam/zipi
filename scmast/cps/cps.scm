@@ -8,15 +8,20 @@
 (define-walk-method (cps-fun! this::PyNode)
    (call-default-walker))
 
-(define-walk-method (cps-fun! this::PyFun)
-   (if (PyFun-generator this)
-       (PyFun-body-set! this (PyFun-body this))
-       (cps-fun! (PyFun-body this)))
-   this)
-
 ;; debug macros
 (define-macro (kcall kont arg) `(,kont ,arg))
 (define-macro (KontExpr proc node link . name) proc)
+(define-macro (KontStmt proc node link . name) proc)
+
+(define-walk-method (cps-fun! this::PyFun)
+   (if (PyFun-generator this)
+       (PyFun-body-set! this
+	  (cps (PyFun-body this) (KontStmt kid this #f) kid '() '() #f this))
+       (cps-fun! (PyFun-body this)))
+   this)
+
+(define (kid n) n)
+(define (kid? obj) (eq? obj kid))
 
 (define (cps*::PyNode nodes k* pack kbreaks kcontinues ktry fun)
    (let loop ((nodes nodes)

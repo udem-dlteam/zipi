@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Tue Jun 18 07:22:02 2019 (serrano)                */
+;*    Last change :  Tue Jun 18 10:10:56 2019 (serrano)                */
 ;*    Copyright   :  2019 M. Feeley & M. Serrano                       */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -37,7 +37,7 @@
 	   
 	   (PyFunction-default-hclass)
 	   
-	   (py-procedure->function ::procedure)
+	   (py-procedure->function ::procedure ::procedure)
 	   
 	   (PyFunction-call0 ::obj)
 	   (PyFunction-call1 ::obj ::obj)

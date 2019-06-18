@@ -44,17 +44,18 @@
       (make-PyObject hclass '#())))
 
 (define locals2
-  (py-procedure->function
-   (lambda rest (error "unimplemented generic procedure for builtin 'locals'"))
-   (lambda (bcode env global return)
-     (let ((frame (meaning (bytecode-ref bcode 2) env global return))
-	   (names (meaning (bytecode-ref bcode 3) env global return)))
-       (or (cell-ref frame)
-	   (let ((hclass (make-HClass (list->vector names) '()))
-		 (vals (map (lambda (name) #f)
-			    names)))
-	     (cell-set! frame (make-PyObject hclass (list->vector vals)))
-	     frame))))))
+   (py-procedure->function
+      (lambda rest
+	 (error "locals" "unimplemented generic procedure for builtin" #f))
+      (lambda (bcode env global return)
+	 (let ((frame (meaning (bytecode-ref bcode 2) env global return))
+	       (names (meaning (bytecode-ref bcode 3) env global return)))
+	    (or (cell-ref frame)
+		(let ((hclass (make-HClass (list->vector names) '()))
+		      (vals (map (lambda (name) #f)
+			       names)))
+		   (cell-set! frame (make-PyObject hclass (list->vector vals)))
+		   frame))))))
 
 (define (py-beval ast conf)
    (meaning (compile ast '()) '() (py-make-global) no-return))
