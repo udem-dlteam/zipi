@@ -1,20 +1,15 @@
 ;; CPS transform functions that use yield
+;; This pass assumes that the GENERATOR pass has already execute
+;; and so generator function are alread marked
 (define (py-cps this conf)
-   (mark-yield this #f)
-   (cps! this))
+   (cps-fun! this))
 
-;; Mark as generator functions that use yield
-(define-walk-method (mark-yield this::PyNode fun)
+;; Transform CPS functions
+(define-walk-method (cps-fun! this::PyNode)
    (call-default-walker))
 
-(define-walk-method (mark-yield this::PyFun fun)
-   (mark-yield (PyFun-body this) this)
-   this)
-
-(define-walk-method (mark-yield this::PyYield fun)
-   (if fun
-       (PyFun-generator-set! fun #t)
-       (error "py-cps" "Illegal yield" this)))
-
-
-
+(define-walk-method (cps-fun! this::PyFun)
+   (if (PyFun-generator this)
+       (PyFun-body-set! this (cps (PyFunBody ...)))
+       (cps-fun! (PyFun-Body this))))
+   

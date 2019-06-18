@@ -3,6 +3,8 @@
       (cons "return" py-return)
       (cons "break" py-break)
       (cons "locals" py-locals)
+      (cons "generator" py-generator)
+      (cons "cps" py-cps)
       (cons "beval" py-beval)))
 
 (define passes-scheme
@@ -10,6 +12,8 @@
       (cons "return" py-return)
       (cons "break" py-break)
       (cons "locals" py-locals)
+      (cons "generator" py-generator)
+      (cons "cps" py-cps)
       (cons "scheme" py-scheme)
       (cons "eval" py-scheme-eval)))
 
@@ -18,6 +22,8 @@
       (cons "return" py-return)
       (cons "break" py-break)
       (cons "locals" py-locals)
+      (cons "generator" py-generator)
+      (cons "cps" py-cps)
       (cons "scheme" py-scheme)
       (cons "bigloo" py-scheme-bigloo)))
 
@@ -26,12 +32,15 @@
       (cons "return" py-return)
       (cons "break" py-break)
       (cons "locals" py-locals)
+      (cons "generator" py-generator)
+      (cons "cps" py-cps)
       (cons "scheme" py-scheme)
       (cons "gambit" py-scheme-gambit)))
 
 (define passes-javascript
    (list (cons "symbol" py-symbol!)
       (cons "locals" py-locals)
+      (cons "generator" py-generator)
       (cons "javascript" py-javascript)))
 
 (define (pyc conf)
