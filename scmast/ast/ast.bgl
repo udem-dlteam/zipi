@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 10:16:39 2019                          */
-;*    Last change :  Tue Jun 18 05:21:29 2019 (serrano)                */
+;*    Last change :  Tue Jun 18 05:39:14 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Python AST                                                       */
@@ -60,7 +60,7 @@
 	      (generator::bool read-only (default #f))
 	      (kont::PyExpr (info '("ast"))))
 	   
-	   (final-class PyYield::J2SExpr
+	   (final-class PyYield::PyExpr
 	      (expr::PyExpr (info '("ast")))
 	      (generator::bool read-only (default #f)))
 	   
