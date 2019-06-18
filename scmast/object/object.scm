@@ -150,6 +150,9 @@
 (define (py>= x y)
   (>= x y))
 
+(define (py!= x y)
+  (not (= x y)))
+
 (define (py-make-global)
   (let* ((hclass0 (make-HClass (vector (& "abs")
                                        (& "all")
@@ -680,18 +683,7 @@
   (py-procedure->function
    (lambda rest (error "dict" "unimplemented generic procedure for builtin" #f))
    (lambda kwarg
-     (alist->PyObject
-      (list (cons '__next__
-                  (py-procedure->function
-                   (lambda rest (error "__next__" "unimplemented generic procedure" #f))
-                   (let ((n 0))
-                     (lambda (self)
-                       (if (< n 10)
-                           (begin
-                             (set! n (+ n 1))
-                             n)
-                           (raise 'StopIteration))))))
-            (cons 'foo 666))))))
+     (error "dict" "not implemented" #f))))
 
 ;;-------------------- dir([object])
 
@@ -1277,8 +1269,19 @@
 (define py-builtin-iter
   (py-procedure->function
    (lambda rest (error "iter" "unimplemented generic procedure for builtin" #f))
-   (lambda (object sentinel)
-     (error "iter" "not implemented" #f))))
+   (lambda (object #!optional (sentinel absent-argument))
+     (cond ((not (eq? sentinel absent-argument))
+            (error "iter" "with 2 arguments not implemented" #f))
+           ((and (PyObject? object)
+                 (let ((index (PyObject-find-prop object (& "__iter__"))))
+                   (and (>= index 0)
+                        index)))
+            =>
+            (lambda (index)
+              (let ((__iter__ (PyObject-elements-ref object index)))
+                (PyFunction-call1 __iter__ object))))
+           (else
+            (error "iter" "only object with __iter__ method implemented" #f))))))
 
 ;;-------------------- len(s)
 
@@ -1290,7 +1293,18 @@
   (py-procedure->function
    (lambda rest (error "len" "unimplemented generic procedure for builtin" #f))
    (lambda (s)
-     (error "len" "not implemented" #f))))
+     (cond ((py-str? s)
+            (py-str-len s))
+           ((and (PyObject? s)
+                 (let ((index (PyObject-find-prop s (& "__len__"))))
+                   (and (>= index 0)
+                        index)))
+            =>
+            (lambda (index)
+              (let ((__len__ (PyObject-elements-ref s index)))
+                (PyFunction-call1 __len__ s))))
+           (else
+            (error "len" "only object with __len__ method implemented" #f))))))
 
 ;;-------------------- class list([iterable])
 
@@ -1423,8 +1437,8 @@
    (lambda (iterator #!optional (default absent-argument))
      (cond ((and (PyObject? iterator)
                  (let ((index (PyObject-find-prop iterator (& "__next__"))))
-                   (>= index 0)
-                   index))
+                   (and (>= index 0)
+                        index)))
             =>
             (lambda (index)
               (let ((__next__ (PyObject-elements-ref iterator index)))
@@ -1837,8 +1851,34 @@
 (define py-builtin-range
   (py-procedure->function
    (lambda rest (error "range" "unimplemented generic procedure for builtin" #f))
-   (lambda (stop)
-     (error "range" "not implemented" #f))))
+   (lambda (arg1 #!optional (arg2 absent-argument) (arg3 absent-argument))
+     (cond ((eq? arg2 absent-argument)
+            ;; stop
+            (py-range 0 arg1 1))
+           ((eq? arg3 absent-argument)
+            ;; start, stop
+            (py-range arg1 arg2 1))
+           (else
+            ;; start, stop, step
+            (py-range arg1 arg2 arg3))))))
+
+(define (py-range start stop step)
+  (alist->PyObject
+   (list (cons (& "__iter__")
+               (py-procedure->function
+                (lambda rest (error "__iter__" "unimplemented generic procedure" #f))
+                (lambda (self)
+                  (let ((i start))
+                    (alist->PyObject
+                     (list (cons (& "__next__")
+                                 (py-procedure->function
+                                  (lambda rest (error "__next__" "unimplemented generic procedure" #f))
+                                  (lambda (self)
+                                    (if (if (> step 0) (>= i stop) (<= i stop))
+                                        (raise 'StopIteration)
+                                        (let ((result i))
+                                          (set! i (+ i step))
+                                          result))))))))))))))
 
 ;;-------------------- repr(object)
 
@@ -1854,6 +1894,9 @@
 (define (py-str? s)
   (string? s))
 
+(define (py-str-len s)
+  (string-length s))
+
 (define (py-str-to-string s)
   s)
 
@@ -1865,9 +1908,9 @@
    (lambda rest (error "repr" "unimplemented generic procedure for builtin" #f))
    (lambda (object)
      (cond ((and (PyObject? object)
-                 (let ((index (PyObject-find-prop object '__repr__)))
-                   (>= index 0)
-                   index))
+                 (let ((index (PyObject-find-prop object (& "__repr__"))))
+                   (and (>= index 0)
+                        index)))
             =>
             (lambda (index)
               (let ((__repr__ (PyObject-elements-ref object index)))
@@ -1905,10 +1948,10 @@
                                      ((= n 13)  "\\r")
                                      ((> n 255)
                                       (string-append "\\u"
-                                                     (substring (number->string (+ #x10000000)) 2 9)))
+                                                     (substring (number->string (+ #x100000000 n) 16) 1 9)))
                                      ((or (< n 32) (> n 126))
                                       (string-append "\\x"
-                                                     (substring (number->string (+ #x100)) 1 3)))
+                                                     (substring (number->string (+ #x100 n) 16) 1 3)))
                                      (else
                                       (string c))))))
                        chars)))

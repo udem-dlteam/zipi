@@ -91,31 +91,31 @@
    (define (pyc-scheme-while this)
       (let ((loop (gensym 'loop)))
 	 (epairify this
-	    (if (PyWhile-need-continue this)
+	    (if (PyLoop-need-continue this)
 		`(let ,loop ()
 		      (bind-exit (%continue)
 			 (when ,(pyc-test (PyWhile-test this) conf)
-			    ,(pyc-scheme (PyWhile-body this) conf)
+			    ,(pyc-scheme (PyLoop-body this) conf)
 			    (,loop))))
 		`(let ,loop ()
 		      (when ,(pyc-test (PyWhile-test this) conf)
-			 ,(pyc-scheme (PyWhile-body this) conf)
+			 ,(pyc-scheme (PyLoop-body this) conf)
 			 (,loop)))))))
    (cond
-      ((PyWhile-need-break this)
+      ((PyLoop-need-break this)
        (epairify this
 	  `(bind-exit (%break)
 	      ,(pyc-scheme-while this)
-	      ,@(if (isa? (PyWhile-else this) PyPass)
+	      ,@(if (isa? (PyLoop-else this) PyPass)
 		    '()
-		    (pyc-scheme (PyWhile-else this) conf)))))
-      ((isa? (PyWhile-else this) PyPass)
+		    (pyc-scheme (PyLoop-else this) conf)))))
+      ((isa? (PyLoop-else this) PyPass)
        (pyc-scheme-while this))
       (else
        (epairify this
 	  `(begin
 	      ,(pyc-scheme-while this)
-	      ,(pyc-scheme (PyWhile-else this) conf))))))
+	      ,(pyc-scheme (PyLoop-else this) conf))))))
 
 (define-walk-method (pyc-scheme this::PyIf conf)
    (epairify this
