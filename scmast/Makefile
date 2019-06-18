@@ -5,7 +5,7 @@ GAMBIT = gsc
 
 SOURCES = main/main ast/ast sexp/sexp symbol/symbol return/return \
   beval/beval hclass/hclass object/object dump/dump locals/locals \
-  break/break scheme/scheme \
+  break/break cps/cps scheme/scheme \
   javascript/javascript
 
 .SUFFIXES:
