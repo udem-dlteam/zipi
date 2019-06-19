@@ -107,7 +107,7 @@
 	     (else "BinOp" "Illegal operator" op))
 	  (sexp left #f scope conf)
 	  (sexp right #f scope conf)
-	  :type (op-type op)))
+	  type: (op-type op)))
       ((UnaryOp ?loc ?op ?expr)
        (new-PyUnary loc op (sexp expr #f scope conf)))
       ((Yield ?loc ?value)

@@ -308,6 +308,179 @@
    (make-HClass (list->vector (map car alist)) '())
    (list->vector (map cdr alist))))
 
+(define (py-list-from-scheme elements)
+  (alist->PyObject
+   (list (cons (& "__class__")
+               py-builtin-list)
+         (cons (& "__len__")
+               (py-procedure->function
+                (lambda rest (error "__len__" "unimplemented generic procedure" #f))
+                (lambda (self)
+                  (vector-length elements))))
+         (cons (& "__getitem__")
+               (py-procedure->function
+                (lambda rest (error "__getitem__" "unimplemented generic procedure" #f))
+                (lambda (self i)
+                  (if (< i 0) (set! i (+ i (vector-length elements))))
+                  (if (or (< i 0) (>= i (vector-length elements)))
+                      (error "getitem" "index out of range" #f)
+                      (vector-ref elements i)))))
+         (cons (& "__iter__")
+               (py-procedure->function
+                (lambda rest (error "__iter__" "unimplemented generic procedure" #f))
+                (lambda (self)
+                  (let ((i 0))
+                    (alist->PyObject
+                     (list (cons (& "__next__")
+                                 (py-procedure->function
+                                  (lambda rest (error "__next__" "unimplemented generic procedure" #f))
+                                  (lambda (self)
+                                    (if (>= i (vector-length elements))
+                                        (raise 'StopIteration)
+                                        (let ((result (vector-ref elements i)))
+                                          (set! i (+ i 1))
+                                          result))))))))))))))
+
+(define (py-str? s)
+  (string? s))
+
+(define (py-str-len s)
+  (string-length s))
+
+(define (py-str-to-scheme s)
+  s)
+
+(define (py-str-from-scheme s)
+  s)
+
+(define (py-type obj)
+  (cond ((and (PyObject? obj)
+              (let ((index (PyObject-find-prop obj (& "__class__"))))
+                (and (>= index 0)
+                     index)))
+         =>
+         (lambda (index)
+           (PyObject-elements-ref obj index)))
+        ((py-str? obj)
+         'str)
+        ((number? obj)
+         'num)
+        ((boolean? obj)
+         'bool)
+        (else
+         (error "py-type" "unknown type" #f))))
+
+(define (py-print obj port)
+  (display (py-str-scheme obj) port))
+
+(define (py-str obj)
+  (py-str-from-scheme (py-str-scheme obj)))
+
+(define (py-str-scheme obj)
+  (let ((t (py-type obj)))
+    (cond ((eq? t 'str)
+           obj)
+          (else
+           (py-repr-scheme obj)))))
+
+(define (py-repr obj)
+  (py-str-from-scheme (py-repr-scheme obj)))
+
+(define (py-repr-scheme obj)
+  (cond ((and (PyObject? obj)
+              (let ((index (PyObject-find-prop obj (& "__repr__"))))
+                (and (>= index 0)
+                     index)))
+         =>
+         (lambda (index)
+           (let ((__repr__ (PyObject-elements-ref obj index)))
+             (py-str-to-scheme (PyFunction-call1 __repr__ obj)))))
+        (else
+         (let ((t (py-type obj)))
+           (cond ((eq? t py-builtin-list)
+                  (py-list-repr-scheme obj))
+                 ((eq? t 'str)
+                  (py-str-repr-scheme (py-str-to-scheme obj)))
+                 ((eq? t 'num)
+                  (number->string obj))
+                 ((eq? t 'bool)
+                  (if obj "True" "False"))
+                 (else
+                  "<unknown>"))))))
+
+(define (py-str-repr-scheme str)
+  (let* ((quote-style #f)
+         (chars (string->list str)))
+    (for-each (lambda (c)
+                (cond ((char=? c #\")
+                       (set! quote-style #\'))
+                      ((and (char=? c #\') (not (eqv? quote-style #\')))
+                       (set! quote-style #\"))))
+              chars)
+    (if (not quote-style)
+        (set! quote-style #\'))
+    (let ((content
+           (apply string-append
+                  (map (lambda (c)
+                         (if (char=? c quote-style)
+                             (string #\\ quote-style)
+                             (let ((n (char->integer c)))
+                               (cond ((= n 9)   "\\t")
+                                     ((= n 10)  "\\n")
+                                     ((= n 13)  "\\r")
+                                     ((> n 255)
+                                      (string-append "\\u"
+                                                     (substring (number->string (+ #x100000000 n) 16) 1 9)))
+                                     ((or (< n 32) (> n 126))
+                                      (string-append "\\x"
+                                                     (substring (number->string (+ #x100 n) 16) 1 3)))
+                                     (else
+                                      (string c))))))
+                       chars)))
+          (quotes
+           (string quote-style)))
+      (string-append quotes content quotes))))
+
+(define (py-list-repr-scheme lst)
+  (let ((len (PyFunction-call1 py-builtin-len lst)))
+    (let loop ((i (- len 1)) (elems '()))
+      (if (>= i 0)
+          (let ((x (py-repr (py-getitem lst i))))
+            (loop (- i 1)
+                  (cons (string-append x (if (= i (- len 1)) "" ", ")) elems)))
+          (string-append "[" (apply string-append elems) "]")))))
+           
+(define (py-len obj)
+  (cond ((and (PyObject? obj)
+              (let ((index (PyObject-find-prop obj (& "__len__"))))
+                (and (>= index 0)
+                     index)))
+         =>
+         (lambda (index)
+           (let ((__len__ (PyObject-elements-ref obj index)))
+             (PyFunction-call1 __len__ obj))))
+        ((py-str? obj)
+         (py-str-len obj))
+        (else
+         (error "len" "only object with __len__ method implemented" #f))))
+
+(define (py-getitem obj i)
+  (cond ((and (PyObject? obj)
+              (let ((index (PyObject-find-prop obj (& "__getitem__"))))
+                (and (>= index 0)
+                     index)))
+         =>
+         (lambda (index)
+           (let ((__getitem__ (PyObject-elements-ref obj index)))
+             (PyFunction-call2 __getitem__ obj i))))
+        ((py-str? s)
+         (py-str-from-scheme (string (string-ref (py-str-to-scheme s) i))))
+        (else
+         (error "getitem" "only object with __getitem__ method implemented" #f))))
+
+(define (py-chr i)
+  (py-str-from-scheme (string (integer->char i))))
+
 ;;-------------------- abs(x)
 
 ;; Return the absolute value of a number. The argument may be an
@@ -512,7 +685,7 @@
   (py-procedure->function
    (lambda rest (error "chr" "unimplemented generic procedure for builtin" #f))
    (lambda (i)
-     (error "chr" "not implemented" #f))))
+     (py-chr i))))
 
 ;;-------------------- @classmethod
 
@@ -1293,18 +1466,7 @@
   (py-procedure->function
    (lambda rest (error "len" "unimplemented generic procedure for builtin" #f))
    (lambda (s)
-     (cond ((py-str? s)
-            (py-str-len s))
-           ((and (PyObject? s)
-                 (let ((index (PyObject-find-prop s (& "__len__"))))
-                   (and (>= index 0)
-                        index)))
-            =>
-            (lambda (index)
-              (let ((__len__ (PyObject-elements-ref s index)))
-                (PyFunction-call1 __len__ s))))
-           (else
-            (error "len" "only object with __len__ method implemented" #f))))))
+     (py-len s))))
 
 ;;-------------------- class list([iterable])
 
@@ -1314,8 +1476,28 @@
 (define py-builtin-list
   (py-procedure->function
    (lambda rest (error "list" "unimplemented generic procedure for builtin" #f))
-   (lambda (iterable)
-     (error "list" "not implemented" #f))))
+   (lambda (#!optional (iterable absent-argument))
+     (py-list-from-scheme
+      (if (eq? iterable absent-argument)
+          (vector)
+          (cond ((and (PyObject? iterable)
+                      (let ((index (PyObject-find-prop iterable (& "__iter__"))))
+                        (and (>= index 0)
+                             index)))
+                 =>
+                 (lambda (index)
+                   (let ((__iter__ (PyObject-elements-ref iterable index)))
+                     (let ((iterator (PyFunction-call1 __iter__ iterable)))
+                       (let loop ((elems '()))
+                         (with-handler
+                          (lambda (e)
+                            (if (eq? e 'StopIteration)
+                                (list->vector (reverse elems))
+                                (raise e)))
+                          (let ((e (PyFunction-call1 py-builtin-next iterator)))
+                            (loop (cons e elems)))))))))
+                (else
+                 (error "list" "TypeError: object is not iterable" #f))))))))
 
 ;;-------------------- locals()
 
@@ -1755,8 +1937,10 @@
 (define py-builtin-print
   (py-procedure->function
    (lambda rest (error "print" "unimplemented generic procedure for builtin" #f))
-   (lambda object ;; objects sep end file flush)
-     (apply print object))))
+   (lambda objects ;; objects sep end file flush)
+     (let ((port (current-output-port)))
+       (for-each (lambda (x) (py-print x port)) objects)
+       (newline port)))))
 
 ;;-------------------- class property(fget=None, fset=None, fdel=None, doc=None)
 
@@ -1891,73 +2075,11 @@
 ;; the object. A class can control what this function returns for its
 ;; instances by defining a __repr__() method.
 
-(define (py-str? s)
-  (string? s))
-
-(define (py-str-len s)
-  (string-length s))
-
-(define (py-str-to-string s)
-  s)
-
-(define (py-str-from-string s)
-  s)
-
 (define py-builtin-repr
   (py-procedure->function
    (lambda rest (error "repr" "unimplemented generic procedure for builtin" #f))
    (lambda (object)
-     (cond ((and (PyObject? object)
-                 (let ((index (PyObject-find-prop object (& "__repr__"))))
-                   (and (>= index 0)
-                        index)))
-            =>
-            (lambda (index)
-              (let ((__repr__ (PyObject-elements-ref object index)))
-                (PyFunction-call1 __repr__ object))))
-           ((py-str? object)
-            (py-str-from-string (py-str-encode (py-str-to-string object))))
-           ((number? object)
-            (py-str-from-string (number->string object)))
-           ((eq? object #t)
-            (py-str-from-string "True"))
-           ((eq? object #f)
-            (py-str-from-string "False"))
-           (else
-            (py-str-from-string "<unknown>"))))))
-
-(define (py-str-encode str)
-  (let* ((quote-style #f)
-         (chars (string->list str)))
-    (for-each (lambda (c)
-                (cond ((char=? c #\")
-                       (set! quote-style #\'))
-                      ((and (char=? c #\') (not (eqv? quote-style #\')))
-                       (set! quote-style #\"))))
-              chars)
-    (if (not quote-style)
-        (set! quote-style #\'))
-    (let ((content
-           (apply string-append
-                  (map (lambda (c)
-                         (if (char=? c quote-style)
-                             (string #\\ quote-style)
-                             (let ((n (char->integer c)))
-                               (cond ((= n 9)   "\\t")
-                                     ((= n 10)  "\\n")
-                                     ((= n 13)  "\\r")
-                                     ((> n 255)
-                                      (string-append "\\u"
-                                                     (substring (number->string (+ #x100000000 n) 16) 1 9)))
-                                     ((or (< n 32) (> n 126))
-                                      (string-append "\\x"
-                                                     (substring (number->string (+ #x100 n) 16) 1 3)))
-                                     (else
-                                      (string c))))))
-                       chars)))
-          (quotes
-           (string quote-style)))
-      (string-append quotes content quotes))))
+     (py-repr object))))
 
 ;;-------------------- reversed(seq)
 
@@ -2128,7 +2250,7 @@
   (py-procedure->function
    (lambda rest (error "str" "unimplemented generic procedure for builtin" #f))
    (lambda (object)
-     (error "str" "not implemented" #f))))
+     (py-str object))))
 
 ;;-------------------- sum(iterable, /, start=0)
 
