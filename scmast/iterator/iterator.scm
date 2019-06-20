@@ -25,7 +25,7 @@
 (define (py-generator-send gen val)
    (let ((r ((PyGenerator-%next gen) val #f)))
       (if (eq? r 'StopIteration)
-	  (py-throw "TODO StopIerationExn")
+	  (py-throw 'StopIteration)
 	  r)))
       
 		     
