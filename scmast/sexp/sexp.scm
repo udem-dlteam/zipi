@@ -4,6 +4,16 @@
 ;; The Python syntax parsed by this function is defined at the url:
 ;;    https://docs.python.org/3.8/library/ast.html
 (define (sexp exp tail scope conf)
+
+   (match-case (car exp)
+      ;; language detection
+      ((Expr ?loc (Str ?loc ?lang))
+       (when (and (pair? exp) (string? (car exp)))
+	  (let ((p (memq language: conf)))
+	     (if (pair? p)
+		 (set-car! (cdr p) lang)
+		 (set-cdr! (last-pair conf) (list language: lang)))))))
+
    (match-case exp
       
       ;; mod
@@ -22,6 +32,14 @@
 		     (new-PyDecl loc (car a) 'local))
 		(car args))
 	     (compile-stmt* loc body #t 'local conf))))
+      ((ClassDef ?loc ?id ?bases ?keywords ?body ?decorator_list)
+       ;; ClassDef(identifier name,
+       ;;       expr* bases,
+       ;;       keyword* keywords,
+       ;;       stmt* body,
+       ;;       expr* decorator_list)
+       (tprint "TODO"))
+      
       ((Return ?loc ?expr)
        ;; Return(expr? value)
        (new-PyReturn loc (sexp expr #f scope conf) tail))
@@ -82,6 +100,16 @@
 	  (map (lambda (h) (compile-handler h scope conf)) handlers)
 	  (compile-stmt* loc orelse #f scope conf)
 	  (compile-stmt* loc finally #f scope conf)))
+
+      ((Import ?loc ?aliases)
+       ;; Import(alias* names)
+       (match-case (car aliases)
+	  ((builtins #f)
+	   (new-PyAssig loc (new-PyRefUnresolved loc 'builtins)
+	      (new-PyPragma loc '(py-builtins))))
+	  (else
+	   (error "Import" "Unsupported form" exp))))
+      
       ((Expr ?loc ?value)
        ;; Expr(expr value)
        (new-PyStmtExpr loc
