@@ -51,6 +51,13 @@
 			   (cons (new-PyAssig loc ref
 				    (new-PyRefUnresolved (PyNode-loc ref) id))
 			      assigs))))))))
+      ((For ?loc ?target ?iter ?body ?orelse . ?type_comment)
+      ;; For(expr target, expr iter, stmt* body, stmt* orelse, string? type_comment)
+       (new-PyFor loc
+	  (compile-stmt* loc body #f scope conf)
+	  (compile-stmt* loc orelse #f scope conf)
+	  (sexp target #f scope conf)
+	  (sexp iter #f scope conf)))
       ((While ?loc ?test ?body ?orelse)
        ;; While(expr test, stmt* body, stmt* orelse)
        (new-PyWhile loc
