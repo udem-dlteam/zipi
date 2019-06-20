@@ -1,7 +1,5 @@
 #!/bin/bash
 
-./scmast.py $1 > $1.scm
-
 ~/udem-dlteam/gambit/gsi/gsi -::.,darR \
 -e '(declare (not proper-tail-calls))' \
 -e '(##import bigloo)' \
@@ -39,4 +37,5 @@ beval/beval.scm \
 main/main.bgl \
 main/main.scm \
 main/main-gambit.scm \
-$1.scm
+-t scheme \
+$*

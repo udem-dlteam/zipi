@@ -20,9 +20,21 @@
    (pp `(define (main argv)
 	   (pyc (py-make-global) (py-make-caches ,(PyModule-caches ast)))))
    (pp `(define pyc ,(PyNode-%info ast))))
-		    
+
 (define (py-scheme-gambit ast conf)
-   (tprint "TODO"))
+  (pretty-print
+   `(begin
+      (|##import| bigloo)
+      (|##include| "hclass/hclass.bgl")
+      (|##include| "hclass/hclass.scm")
+      (|##include| "object/object.bgl")
+      (|##include| "object/object.scm")
+      (|##include| "iterator/iterator.bgl")
+      (|##include| "iterator/iterator.scm")
+      (define (main . args)
+        (pyc (py-make-global) (py-make-caches ,(PyModule-caches ast))))
+      (define pyc ,(PyNode-%info ast))
+      (main (cdr (command-line))))))
 
 (define (config-get conf key . def)
    (let ((c (memq key conf)))
