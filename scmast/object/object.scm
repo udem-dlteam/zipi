@@ -367,6 +367,8 @@
          'num)
         ((boolean? obj)
          'bool)
+	((eq? obj (py-none))
+	 'none)
         (else
          (error "py-type" "unknown type" #f))))
 
@@ -405,6 +407,8 @@
                   (number->string obj))
                  ((eq? t 'bool)
                   (if obj "True" "False"))
+		 ((eq? t 'none)
+		  "None")
                  (else
                   "<unknown>"))))))
 

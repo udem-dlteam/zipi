@@ -35,7 +35,8 @@
 	  (loop (cdr nodes))))))
 
 (define-walk-method (return this::PyBlock fun tail conf)
-   (for-each (lambda (v) (return v fun #f conf)) (PyBlock-vals this))
+   (for-each (lambda (d) (return (PyDeclInit-val d) fun #f conf))
+      (PyBlock-decls this))
    (return (PyBlock-body this) fun tail conf))
 
 (define-walk-method (return this::PyAssig fun tail conf)

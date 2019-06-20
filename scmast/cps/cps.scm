@@ -140,8 +140,11 @@
 	  (if ktry
 	      (tprint "TODO")
 	      (begin
-		 (PyReturn-val-set! this (cps-fun! expr))
-		 this)))))
+		 (PyReturn-val-set! this (new-PyPragma loc ''StopIteration))
+		 (new-PySeq loc
+		    (list
+		       (new-PyStmtExpr loc (cps-fun! expr))
+		       this)))))))
 
 (define-walk-method (cps this::PyCall k pack kbreaks kcontinues ktry fun)
    (let ((args (PyCall-args this)))
@@ -205,31 +208,50 @@
 		      this k)
 		   pack kbreaks kcontinues ktry fun)))))))
 
+(define-walk-method (cps this::PyBlock k pack kbreaks kcontinues ktry fun)
+   (let loop ((wdecls (PyBlock-decls this))
+	      (pdecls '())
+	      (sdecls '()))
+      (cond
+	 ((null? wdecls)
+	  (new-PyBlock (PyNode-loc this)
+	     (PyBlock-decls this)
+	     (cps (PyBlock-body this) k pack kbreaks kcontinues ktry fun)))
+	 ((not (yield-expr? (car wdecls) kbreaks kcontinues))
+	  (cps-fun! (car wdecls))
+	  (loop (cdr wdecls) wdecls
+	     (if (pair? sdecls) sdecls wdecls)))
+	 (else
+	  (PyDecl-scope-set! (car wdecls) 'kont)
+	  (let* ((y (cps (car wdecls)
+		       (KontStmt (lambda (ndecl)
+				    (cond
+				       ((null? (cdr wdecls))
+					(new-PyBlock (PyNode-loc this)
+					   (list ndecl) 
+					   (cps (PyBlock-body this)
+					      k pack kbreaks kcontinues
+					      ktry fun)))
+				       (else
+					(PyBlock-decls-set! this (cdr wdecls))
+					(new-PyBlock (PyNode-loc this)
+					   (list ndecl)
+					   (cps this
+					      k pack kbreaks kcontinues
+					      ktry fun)))))
+			  this k)
+		       pack kbreaks kcontinues ktry fun))
+		 (b (if (isa? y PyExpr) (new-PyStmtExpr (PyNode-loc y) y) y)))
+	     (if (null? pdecls)
+		 b
+		 (begin
+		    (set-cdr! pdecls '())
+		    (new-PyBlock (PyNode-loc this) sdecls b))))))))
+
 ;; does an expression may yield or return?
 (define (yield-expr? this kbreaks kcontinues)
   (let ((v (yield-expr* this kbreaks kcontinues)))
       (find (lambda (v) v) v)))
-
-(define (filter pred lst)
-  (if (pair? lst)
-      (if (pred (car lst))
-          (cons (car lst) (filter pred (cdr lst)))
-          (filter pred (cdr lst)))
-      '()))
-
-(define (any pred lst)
-  (if (pair? lst)
-      (if (pred (car lst))
-          #t
-          (any pred (cdr lst)))
-      #f))
-
-(define (find pred lst)
-  (if (pair? lst)
-      (if (pred (car lst))
-          (car lst)
-          (find pred (cdr lst)))
-      #f))
 
 (define-walk-method (yield-expr* this::PyNode kbreaks kcontinues)
    (call-default-walker))

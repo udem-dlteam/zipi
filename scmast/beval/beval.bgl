@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 13:08:04 2019                          */
-;*    Last change :  Tue Jun 11 13:21:49 2019 (serrano)                */
+;*    Last change :  Thu Jun 20 08:45:35 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    byte code interpretation of the Python AST.                      */
@@ -22,10 +22,14 @@
 	   __py_object
 	   __py_dump)
 
-   (export (py-beval ast conf)))
+   (export (py-beval ast conf))
+
+   (option (define includes '())))
 
 ;*---------------------------------------------------------------------*/
 ;*    include                                                          */
 ;*---------------------------------------------------------------------*/
 (define-macro (include file)
-   (call-with-input-file (make-file-name "beval" file) read))
+   (unless (member file includes)
+      (set! includes (cons file includes))
+      (call-with-input-file (make-file-name "beval" file) read)))

@@ -1,11 +1,15 @@
 
+def h():
+    print ("in h")
+    return 4
+
 def f():
     print ("in f")
     yield 1
     print ("after yield1")
     print ("y2=", (yield 2))
     print ("y3=", (yield 3))
-    return 4
+    return h()
 
 g = f();
 

@@ -15,7 +15,7 @@
 		  (vector
 		     (py-procedure->function
 			(lambda rest (error "__next__" "not implemented" #f))
-			(lambda (self) (py-generator-send self "NONE")))
+			(lambda (self) (py-generator-send self (py-none))))
 		     (py-procedure->function
 			(lambda rest (error "send" "not implemented" #f))
 			py-generator-send))
@@ -25,7 +25,7 @@
 (define (py-generator-send gen val)
    (let ((r ((PyGenerator-%next gen) val #f)))
       (if (eq? r 'StopIteration)
-	  (tprint "TODO")
+	  (py-throw "TODO StopIerationExn")
 	  r)))
       
 		     

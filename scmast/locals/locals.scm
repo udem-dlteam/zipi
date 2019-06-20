@@ -28,10 +28,11 @@
       (let ((loc (PyNode-loc (PyFun-body this))))
 	 (PyFun-body-set! this
 	    (new-PyBlock loc
-	       (list (new-PyDecl loc '%frame 'block)
-		  (new-PyDecl loc '%names 'block))
-	       (list (new-PyPragma loc '(make-cell #f))
-		  (new-PyPragma loc `',(function-names this)))
+	       (list
+		  (new-PyDeclInit loc '%frame 'block
+		     (new-PyPragma loc '(make-cell #f)))
+		  (new-PyDeclInit loc '%names 'block
+		     (new-PyPragma loc `',(function-names this))))
 	       (PyFun-body this)))))
    this)
 

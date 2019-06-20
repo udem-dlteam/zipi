@@ -18,7 +18,6 @@
 (define-walk-method (pynode->list this::PyBlock)
    `(,(string->symbol (typeof this))
      ,(map pynode->list (PyBlock-decls this))
-     ,(map pynode->list (PyBlock-vals this))
      ,(pynode->list (PyBlock-body this))))
 
 (define-walk-method (pynode->list this::PyAssig)

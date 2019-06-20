@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Tue Jun 18 13:35:42 2019                          */
-;*    Last change :  Tue Jun 18 14:19:20 2019 (serrano)                */
+;*    Last change :  Thu Jun 20 08:56:15 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Python Iterator                                                  */
@@ -25,7 +25,7 @@
 	   (py-make-generator ::procedure)
 	   (py-generator-yield ::PyGenerator ::obj ::procedure))
 
-   (eval   (export-all)))
+   (eval   (export-exports)))
 
    
 	      

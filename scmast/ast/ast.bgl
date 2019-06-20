@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 10:16:39 2019                          */
-;*    Last change :  Tue Jun 18 13:06:51 2019 (serrano)                */
+;*    Last change :  Thu Jun 20 09:29:51 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Python AST                                                       */
@@ -32,14 +32,14 @@
               (name (default #f))
               (id::symbol read-only)
               ;; scope: global, local, block
-              (scope::symbol read-only)
+              scope::symbol
 	      ;; usage
 	      (usage::pair-nil (default '())))
            
            (class PyDeclInit::PyDecl
               val::PyExpr)
 
-           (class PyVar::PyDecl)
+           (class PyVar::PyDeclInit)
            
            ;; statements
            (abstract-class PyStmt::PyNode)
@@ -50,7 +50,7 @@
            (class PyBlock::PyStmt
               ;; equivalent to a Scheme let*
               decls::pair-nil
-              vals::pair-nil
+;*               vals::pair-nil                                        */
               body::PyStmt)
 
            (class PyReturn::PyStmt
@@ -470,7 +470,7 @@
 (gen-walks PyModule (stmts))
 (gen-walks PyDeclInit val)
 (gen-walks PySeq (nodes))
-(gen-walks PyBlock (vals) body)
+(gen-walks PyBlock (decls) body)
 (gen-walks PyReturn val)
 (gen-walks PyReturnYield val kont)
 (gen-walks PyAssig lhs rhs)

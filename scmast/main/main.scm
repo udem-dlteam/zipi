@@ -73,7 +73,7 @@
       (let loop ((ast ast)
 		 (passes passes))
 	 (when (pair? passes)
-	    (when (config-get conf 'verbose)
+	    (when (>= (config-get conf 'verbose 0) 1)
 	       (display "  . " (current-error-port))
 	       (display (caar passes) (current-error-port))
 	       (newline (current-error-port)))

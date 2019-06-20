@@ -48,15 +48,15 @@
 
 (define-walk-method (resolve! this::PyBlock env conf)
    (let loop ((env env)
-	      (decls (PyBlock-decls this))
-	      (vals (PyBlock-vals this)))
-      (if (null? vals)
+	      (decls (PyBlock-decls this)))
+      (if (null? decls)
 	  (begin
 	     (PyBlock-body-set! this (resolve! (PyBlock-body this) env conf))
 	     this)
-	  (begin
-	     (set-car! vals (resolve! (car vals) env conf))
-	     (loop (cons (car decls) env) (cdr decls) (cdr vals))))))
+	  (let ((decl (car decls)))
+	     (PyDeclInit-val-set! decl
+		(resolve! (PyDeclInit-val decl) env conf))
+	     (loop (cons decl env) (cdr decls))))))
 
 (define-walk-method (resolve! this::PyRefUnresolved env conf)
    (let ((loc (PyNode-loc this)))
@@ -68,17 +68,17 @@
 (define-walk-method (resolve! this::PyFun env conf)
    (let* ((loc (PyNode-loc this))
 	  (decls (collect* (PyFun-body this) 'local))
-	  (denv (map (lambda (decl)
-			(new-PyDecl loc (PyDecl-id decl) 'local))
-		   decls))
 	  (aenv (collect-free-assig* (PyFun-body this)
-		   (append denv (PyFun-args this) env)))
-	  (bdgs (append aenv denv)))
+		   (append decls (PyFun-args this) env)))
+	  (bdgs (map (lambda (decl)
+			(let ((loc (PyDecl-loc decl)))
+			   (new-PyDeclInit loc (PyDecl-id decl) 'local
+			      (new-PyUninit loc))))
+		   (append aenv decls))))
       (if (pair? bdgs)
 	  (PyFun-body-set! this
 	     (new-PyBlock loc
 		bdgs
-		(map (lambda (b) (new-PyUninit (PyNode-loc b))) bdgs)
 		(resolve! (PyFun-body this)
 		   (append bdgs (PyFun-args this) env) conf)))
 	  (PyFun-body-set! this

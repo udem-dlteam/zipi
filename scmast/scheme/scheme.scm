@@ -7,7 +7,8 @@
 
 (define (py-scheme-eval ast conf)
    (let ((def (PyNode-%info ast)))
-      (newline)
+      (when (>= (config-get conf 'verbose 0) 1)
+	 (newline (current-error-port)))
       ((eval def) (py-make-global) (py-make-caches (PyModule-caches ast)))))
 
 (define (py-scheme-bigloo ast conf)
@@ -58,9 +59,10 @@
 
 (define-walk-method (pyc-scheme this::PyBlock conf)
    (epairify this
-      `(letrec* ,(map (lambda (decl val)
-			 `((,(pyc-scheme decl conf) ,(pyc-scheme val conf))))
-		    (PyBlock-decls this) (PyBlock-vals this))
+      `(letrec* ,(map (lambda (decl)
+			 `(,(pyc-scheme-decl decl conf)
+			   ,(pyc-scheme (PyDeclInit-val decl) conf)))
+		    (PyBlock-decls this))
 	  ,(pyc-scheme (PyBlock-body this) conf))))
 
 (define-walk-method (pyc-scheme this::PyReturn conf)

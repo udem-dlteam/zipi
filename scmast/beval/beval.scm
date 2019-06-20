@@ -87,7 +87,7 @@
 
 (define-walk-method (compile this::PyBlock env)
    (bytecode (code 'BLOCK)
-      (compile+ (PyBlock-vals this) (PyBlock-decls this) env)
+      (compile+ (map PyDeclInit-val (PyBlock-decls this)) (PyBlock-decls this) env)
       (compile (PyBlock-body this) (append (PyBlock-decls this) env))))
 
 (define-walk-method (compile this::PyReturn env)
