@@ -46,7 +46,7 @@
 (define (pyc conf)
    (let* ((src (config-get conf 'src))
 	  (ast (if src
-		   (py-sexp (call-with-input-file src read) '())
+		   (py-sexp (scmast.py src) '())
 		   (py-sexp (read) '())))
 	  (env (getenv "PYTRACE"))
 	  (conf (cons* 'trace
@@ -94,4 +94,22 @@
       (if c (cadr c) (if (pair? def) (car def) #f))))
 	       
    
-       
+(cond-expand
+  (bigloo
+
+   (define (scmast.py file)
+     (let ((all-args
+            (append (list "./scmast.py" file)
+                    (list :input :pipe
+                          :output :pipe))))
+       (let* ((proc (apply run-process all-args))
+              (result (read (process-output-port proc))))
+         result))))
+
+  (gambit
+
+   (define (scmast.py file)
+     (let* ((port (open-process (list path: "./scmast.py"
+                                      arguments: (list file))))
+            (result (read port)))
+       result))))

@@ -228,7 +228,7 @@
          (hclass1 (make-HClass (vector (& "__builtins__")
                                        )
                                '()))
-         (bi (make-PyObject hclass0 '#(- -)))
+         (bi (make-PyObject hclass0 (vector #f #f)))
          (%global (make-PyObject hclass1 (vector bi))))
 
     (PyObject-elements-set! bi 0  py-builtin-abs)
