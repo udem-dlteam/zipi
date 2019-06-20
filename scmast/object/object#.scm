@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Tue Jun  4 15:30:08 2019 (serrano)                */
+;*    Last change :  Thu Jun 20 08:38:58 2019 (serrano)                */
 ;*    Copyright   :  2019 M. Feeley & M. Serrano                       */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -46,3 +46,5 @@
            (vector-set! $elements-new $offset $val)
            (PyObject-elements-set! $obj $elements-new))
          (vector-set! $elements $offset $val))))
+
+(define (py-none) 'none)
