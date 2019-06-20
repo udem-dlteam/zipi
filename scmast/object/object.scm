@@ -473,8 +473,8 @@
          (lambda (index)
            (let ((__getitem__ (PyObject-elements-ref obj index)))
              (PyFunction-call2 __getitem__ obj i))))
-        ((py-str? s)
-         (py-str-from-scheme (string (string-ref (py-str-to-scheme s) i))))
+        ((py-str? obj)
+         (py-str-from-scheme (string (string-ref (py-str-to-scheme obj) i))))
         (else
          (error "getitem" "only object with __getitem__ method implemented" #f))))
 
