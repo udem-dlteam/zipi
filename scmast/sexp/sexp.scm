@@ -135,6 +135,7 @@
 		 ((Le) '<=)
 		 ((Gt) '>)
 		 ((Ge) '>=)
+		 ((Eq) 'is?)
 		 ((NotEq) '!=)
 		 (else (error "Compare" "Illegal operator" (car ops))))
 	      (sexp left #f scope conf)

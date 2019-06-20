@@ -26,7 +26,7 @@
       (cond
 	 ((not (PyRefUnresolved? lhs))
 	  (call-default-walker))
-	 ((lookup2 (cdr %env) (PyRefUnresolved-id lhs))
+	 ((lookup-id (cdr %env) (PyRefUnresolved-id lhs))
 	  (call-default-walker))
 	 (else
 	  (let ((decl (new-PyDeclInit (PyNode-loc this)
@@ -60,7 +60,7 @@
 
 (define-walk-method (resolve! this::PyRefUnresolved env conf)
    (let ((loc (PyNode-loc this)))
-      (let ((decl (lookup2 env (PyRefUnresolved-id this))))
+      (let ((decl (lookup-id env (PyRefUnresolved-id this))))
 	 (if (PyDecl? decl)
 	     (new-PyRef loc decl)
 	     this))))
@@ -89,7 +89,7 @@
    (if (eq? (PyDecl-scope this) 'local)
        (let ((loc (PyNode-loc this)))
 	  ;; replace the declaration with an assignment
-	  (let ((decl (lookup2 env (PyDecl-id this))))
+	  (let ((decl (lookup-id env (PyDecl-id this))))
 	     (new-PyAssig loc (new-PyRef loc decl)
 		(resolve! (PyDeclInit-val this) env conf))))
        (call-default-walker)))
@@ -100,18 +100,33 @@
 
 (define-walk-method (collect-free-assig* this::PyAssig env)
    (if (isa? (PyAssig-lhs this) PyRefUnresolved)
-       (if (lookup2 env (PyRefUnresolved-id (PyAssig-lhs this)))
+       (if (lookup-id env (PyRefUnresolved-id (PyAssig-lhs this)))
 	   (collect-free-assig* (PyAssig-rhs this) env)
-	   (let ((loc (PyNode-loc (PyAssig-lhs this))))
-	      (cons (new-PyDeclInit loc
-		       (PyRefUnresolved-id (PyAssig-lhs this))
-		       'local
-		       (new-PyUninit loc))
-		 (collect-free-assig* (PyAssig-rhs this) env))))
+	   (let* ((loc (PyNode-loc (PyAssig-lhs this)))
+		  (decl (new-PyDeclInit loc
+			   (PyRefUnresolved-id (PyAssig-lhs this))
+			   'local
+			   (new-PyUninit loc))))
+	      (cons decl
+		 (collect-free-assig* (PyAssig-rhs this) (cons decl env)))))
        (call-default-walker)))
 
+(define-walk-method (collect-free-assig* this::PyFor env)
+   (let ((n (PyFor-target this)))
+      (if (and (isa? n PyRefUnresolved)
+	       (not (lookup-id env (PyRefUnresolved-id n))))
+	  (let* ((loc (PyNode-loc this))
+		 (decl (new-PyDeclInit loc
+			  (PyRefUnresolved-id n)
+			  'local
+			  (new-PyUninit loc))))
+	     (cons decl
+		(collect-free-assig* (PyFor-body this) (cons decl env))))
+	  ;; no need to scan the iterators as they are plain expressions
+	  (collect-free-assig* (PyFor-body this) env))))
+   
 ;; find a variable in the environment
-(define (lookup2 env id)
+(define (lookup-id env id)
    (let loop ((env env))
       (cond
 	 ((null? env) #f)

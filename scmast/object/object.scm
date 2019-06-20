@@ -1,3 +1,10 @@
+(define (py-uninit)
+   uninit)
+
+(define uninit
+   (let ((hclass (make-HClass '#() '())))
+      (make-PyObject hclass '#())))
+
 (define (global-get global name cache)
    (if (eq? (PyObject-hclass global) (PCache-hclass cache))
        (PyObject-elements-ref global (PCache-index cache))
@@ -2063,7 +2070,7 @@
                                   (lambda rest (error "__next__" "unimplemented generic procedure" #f))
                                   (lambda (self)
                                     (if (if (> step 0) (>= i stop) (<= i stop))
-                                        (raise 'StopIteration)
+                                        (py-throw 'StopIteration)
                                         (let ((result i))
                                           (set! i (+ i step))
                                           result))))))))))))))

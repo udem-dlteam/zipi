@@ -103,3 +103,16 @@
      ,(PyBinary-op this)
      ,(pynode->list (PyBinary-lhs this))
      ,(pynode->list (PyBinary-rhs this))))
+
+(define-walk-method (pynode->list this::PyWhile)
+   `(,(string->symbol (typeof this))
+     ,(pynode->list (PyWhile-test this))
+     ,(pynode->list (PyWhile-body this))
+     :else ,(pynode->list (PyWhile-else this))))
+
+(define-walk-method (pynode->list this::PyFor)
+   `(,(string->symbol (typeof this))
+     :target ,(pynode->list (PyFor-target this))
+     :in ,(pynode->list (PyFor-iter this))
+     ,(pynode->list (PyFor-body this))
+     :else ,(pynode->list (PyFor-else this))))

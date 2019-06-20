@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Tue Jun 18 13:35:42 2019                          */
-;*    Last change :  Thu Jun 20 08:56:15 2019 (serrano)                */
+;*    Last change :  Thu Jun 20 14:25:09 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Python Iterator                                                  */
@@ -23,7 +23,8 @@
 	      %next)
 
 	   (py-make-generator ::procedure)
-	   (py-generator-yield ::PyGenerator ::obj ::procedure))
+	   (py-generator-yield ::PyGenerator ::obj ::procedure)
+	   (py-for-next ::obj ::obj))
 
    (eval   (export-exports)))
 

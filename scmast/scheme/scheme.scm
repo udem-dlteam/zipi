@@ -40,10 +40,6 @@
    (let ((c (memq key conf)))
       (if c (cadr c) (if (pair? def) (car def) #f))))
 
-(define uninit
-   (let ((hclass (make-HClass '#() '())))
-      (make-PyObject hclass '#())))
-
 (define (pyc-scheme* nodes conf)
    (map (lambda (n) (pyc-scheme n conf)) nodes))
 
@@ -103,7 +99,7 @@
 (define-walk-method (pyc-scheme this::PyWhile conf)
 
    (define (pyc-scheme-while this)
-      (let ((loop (gensym 'loop)))
+      (let ((loop (gensym '%while)))
 	 (epairify this
 	    (if (PyLoop-need-continue this)
 		`(let ,loop ()
@@ -115,6 +111,7 @@
 		      (when ,(pyc-test (PyWhile-test this) conf)
 			 ,(pyc-scheme (PyLoop-body this) conf)
 			 (,loop)))))))
+   
    (cond
       ((PyLoop-need-break this)
        (epairify this
@@ -129,6 +126,53 @@
        (epairify this
 	  `(begin
 	      ,(pyc-scheme-while this)
+	      ,(pyc-scheme (PyLoop-else this) conf))))))
+
+(define-walk-method (pyc-scheme this::PyFor conf)
+
+   (define (pyc-scheme-for this)
+      (let ((loop (gensym '%for))
+	    (target (gensym '%target))
+	    (iterable (gensym '%iterable))
+	    (iterator (gensym '%iterator))
+	    (next (gensym '%next)))
+	 (epairify this
+	    `(let* ((,iterable ,(pyc-scheme (PyFor-iter this) conf))
+		    (,iterator (PyFunction-call1
+				  (object-get ,iterable
+				     (& "__iter__")
+				     (vector-ref %caches
+					,(car (PyNode-%info this))))
+				  ,iterable))
+		    (,next (object-get ,iterator (& "__next__")
+			      (vector-ref %caches ,(cdr (PyNode-%info this))))))
+		(let ,loop ()
+		     (let ((,target (py-for-next ,iterator ,next)))
+			(unless (eq? ,target 'StopIteration)
+			   ,(let ((assig (new-PyAssig (PyNode-loc this)
+					    (PyFor-target this)
+					    (new-PyPragma (PyNode-loc this) target))))
+			       (pyc-scheme  assig conf))
+			   ,(if (PyLoop-need-continue this)
+				`(bind-exit (%continue)
+				    ,(pyc-scheme (PyLoop-body this) conf))
+				(pyc-scheme (PyLoop-body this) conf))
+			   (,loop))))))))
+   
+   (cond
+      ((PyLoop-need-break this)
+       (epairify this
+	  `(bind-exit (%break)
+	      ,(pyc-scheme-for this)
+	      ,@(if (isa? (PyLoop-else this) PyPass)
+		    '()
+		    (pyc-scheme (PyLoop-else this) conf)))))
+      ((isa? (PyLoop-else this) PyPass)
+       (pyc-scheme-for this))
+      (else
+       (epairify this
+	  `(begin
+	      ,(pyc-scheme-for this)
 	      ,(pyc-scheme (PyLoop-else this) conf))))))
 
 (define-walk-method (pyc-scheme this::PyIf conf)
@@ -219,7 +263,8 @@
       (PyPragma-expr this)))
 
 (define-walk-method (pyc-scheme this::PyUninit conf)
-   uninit)
+   (epairify this
+      '(py-uninit)))
 
 (define-walk-method (pyc-scheme this::PyBool conf)
    (PyLiteralValue-val this))
@@ -296,7 +341,7 @@
 	     `(global-get %global ,(pyc-propname (PyDecl-id decl))
 		 (vector-ref %caches ,(PyNode-%info this)))))
 	 (else
-	  (pyc-scheme decl conf)))))
+	  (pyc-scheme-decl decl conf)))))
 
 (define-walk-method (pyc-scheme this::PyRefUnresolved conf)
    (epairify this
@@ -344,5 +389,13 @@
 	 (let ((n (cell-ref cnt)))
 	    (cell-set! cnt (+ 1 n))
 	    (PyNode-%info-set! this n)))))
+
+(define-walk-method (collect-caches this::PyFor cnt)
+   (call-default-walker)
+   (let ((n (cell-ref cnt)))
+      (cell-set! cnt (+ 1 n))
+      (let ((m (cell-ref cnt)))
+	 (cell-set! cnt (+ 1 n))
+	 (PyNode-%info-set! this (cons n m)))))
 	  
    

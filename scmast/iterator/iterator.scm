@@ -28,4 +28,10 @@
 	  (py-throw 'StopIteration)
 	  r)))
       
-		     
+(define (py-for-next iterator next)
+   (with-handler
+      (lambda (e)
+	 (if (eq? e 'StopIteration)
+	     e
+	     (py-throw e)))
+      (PyFunction-call1 next iterator)))
