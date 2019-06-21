@@ -8,7 +8,7 @@
 (define (py-scheme-eval ast conf)
    (let ((def (PyNode-%info ast)))
       (when (>= (config-get conf 'verbose 0) 1)
-	 (newline (current-error-port)))
+	(newline (current-error-port)))
       ((eval def) (py-make-global) (py-make-caches (PyModule-caches ast)))))
 
 (define (py-scheme-bigloo ast conf)
@@ -31,10 +31,10 @@
       (|##include| "object/object.scm")
       (|##include| "iterator/iterator.bgl")
       (|##include| "iterator/iterator.scm")
-      (define (main . args)
+      (define (main args)
         (pyc (py-make-global) (py-make-caches ,(PyModule-caches ast))))
       (define pyc ,(PyNode-%info ast))
-      (main (cdr (command-line))))))
+      (main (command-line)))))
 
 (define (config-get conf key . def)
    (let ((c (memq key conf)))

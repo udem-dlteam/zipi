@@ -1,12 +1,10 @@
 #!/bin/bash
 
-~/udem-dlteam/gambit/gsi/gsi -::.,darR \
--e '(declare (not proper-tail-calls))' \
+~/udem-dlteam/gambit/gsi/gsi -::.,darR- \
 -e '(##import bigloo)' \
 ast/ast.bgl \
 -e '(##include "ast/walk.sch")' \
 -e '(##include "ast/new.sch")' \
--e '(##include "sexp/sexp#.scm")' \
 -e '(##include "sexp/sexp.scm")' \
 symbol/symbol.bgl \
 symbol/symbol.scm \
@@ -37,5 +35,4 @@ beval/beval.scm \
 main/main.bgl \
 main/main.scm \
 main/main-gambit.scm \
--t scheme \
 $*

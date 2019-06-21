@@ -71,7 +71,7 @@
 	  (aenv (collect-free-assig* (PyFun-body this)
 		   (append decls (PyFun-args this) env)))
 	  (bdgs (map (lambda (decl)
-			(let ((loc (PyDecl-loc decl)))
+			(let ((loc (PyNode-loc decl)))
 			   (new-PyDeclInit loc (PyDecl-id decl) 'local
 			      (new-PyUninit loc))))
 		   (append aenv decls))))
@@ -121,9 +121,9 @@
 			  'local
 			  (new-PyUninit loc))))
 	     (cons decl
-		(collect-free-assig* (PyFor-body this) (cons decl env))))
+		(collect-free-assig* (PyLoop-body this) (cons decl env))))
 	  ;; no need to scan the iterators as they are plain expressions
-	  (collect-free-assig* (PyFor-body this) env))))
+	  (collect-free-assig* (PyLoop-body this) env))))
    
 ;; find a variable in the environment
 (define (lookup-id env id)

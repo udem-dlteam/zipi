@@ -47,11 +47,29 @@
        (object-get/miss object name cache)))
 
 (define (object-get/miss obj name cache)
+  ;; TODO: create a 'method' instance with __func__ and __self__ attributes
+  ;; when attribute is a function and obj is not a class
   (let ((index (PyObject-find-prop obj name)))
     (cond
      ((>= index 0)
       (PCache-set! cache (PyObject-hclass obj) index)
       (PyObject-elements-ref obj index))
+     (else
+      (object-get/miss-in-class obj name)))))
+
+(define (object-get/miss-in-class obj name)
+  (let ((index (PyObject-find-prop obj (& "__class__"))))
+    (cond
+     ((>= index 0)
+      (let ((cls (PyObject-elements-ref obj index)))
+        (let ((index2 (PyObject-find-prop cls name)))
+          (cond
+           ((>= index2 0)
+            (PyObject-elements-ref cls index2))
+           ((not (eq? obj cls))
+            (object-get/miss-in-class cls name))
+           (else
+            (error "AttributeError" "object has no attribute" name))))))
      (else
       (error "AttributeError" "object has no attribute" name)))))
 
@@ -232,6 +250,7 @@
 				   (& "vars")
 				   (& "zip")
 				   (& "__import__")
+				   (& "StopIteration")
 				   )
 		      '()))
 	  (bi (make-PyObject hclass0 (vector #f #f))))
@@ -305,6 +324,7 @@
       (PyObject-elements-set! bi 66 py-builtin-vars)
       (PyObject-elements-set! bi 67 py-builtin-zip)
       (PyObject-elements-set! bi 68 py-builtin-__import__)
+      (PyObject-elements-set! bi 69 py-builtin-StopIteration)
       
       bi))
 
@@ -350,10 +370,26 @@
                                   (lambda rest (error "__next__" "unimplemented generic procedure" #f))
                                   (lambda (self)
                                     (if (>= i (vector-length elements))
-                                        (raise 'StopIteration)
+                                        (py-throw py-builtin-StopIteration)
                                         (let ((result (vector-ref elements i)))
                                           (set! i (+ i 1))
                                           result))))))))))))))
+
+(define py-example-type
+  (let ((t (alist->PyObject
+            (list (cons (& "__class__")
+                        0)
+                  (cons (& "foo")
+                        111)))))
+    (vector-set! (PyObject-%elements t) 0 t)
+    t))
+
+(define (py-example-instance)
+  (alist->PyObject
+   (list (cons (& "__class__")
+               py-example-type)
+         (cons (& "bar")
+               222))))
 
 (define (py-str? s)
   (string? s))
@@ -383,6 +419,8 @@
          'bool)
 	((eq? obj (py-none))
 	 'none)
+	((procedure? obj)
+	 'function)
 	((PyObject? obj)
 	 'pyobj)
         (else
@@ -425,6 +463,8 @@
                   (if obj "True" "False"))
 		 ((eq? t 'none)
 		  "None")
+		 ((eq? t 'function)
+		  "<function>")
 		 ((eq? t 'pyobj)
 		  (format "~s" obj))
                  (else
@@ -1282,7 +1322,9 @@
 (define py-builtin-help
   (py-procedure->function
    (lambda rest (error "help" "unimplemented generic procedure for builtin" #f))
-   (lambda (object)
+   (lambda _
+     (py-example-instance)
+     #;
      (error "help" "not implemented" #f))))
 
 ;;-------------------- hex(x)
@@ -1513,9 +1555,9 @@
                        (let loop ((elems '()))
                          (with-handler
                           (lambda (e)
-                            (if (eq? e 'StopIteration)
+                            (if (eq? e py-builtin-StopIteration)
                                 (list->vector (reverse elems))
-                                (raise e)))
+                                (py-throw e)))
                           (let ((e (PyFunction-call1 py-builtin-next iterator)))
                             (loop (cons e elems)))))))))
                 (else
@@ -1650,9 +1692,9 @@
                     (PyFunction-call1 __next__ iterator)
                     (with-handler
                      (lambda (e)
-                       (if (eq? e 'StopIteration)
+                       (if (eq? e py-builtin-StopIteration)
                            default
-                           (raise e)))
+                           (py-throw e)))
                      (PyFunction-call1 __next__ iterator))))))
            (else
             (error "next" "TypeError: object is not an iterator" #f))))))
@@ -2081,7 +2123,7 @@
                                   (lambda rest (error "__next__" "unimplemented generic procedure" #f))
                                   (lambda (self)
                                     (if (if (> step 0) (>= i stop) (<= i stop))
-                                        (py-throw 'StopIteration)
+                                        (py-throw py-builtin-StopIteration)
                                         (let ((result i))
                                           (set! i (+ i step))
                                           result))))))))))))))
@@ -2541,3 +2583,8 @@
    (lambda rest (error "__import__" "unimplemented generic procedure for builtin" #f))
    (lambda (name globals locals fromlist level)
      (error "__import__" "not implemented" #f))))
+
+;;-------------------- StopIteration
+
+(define py-builtin-StopIteration
+  'StopIteration) ;; TODO: replace with actual PyObject
