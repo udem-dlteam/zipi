@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 10:16:39 2019                          */
-;*    Last change :  Thu Jun 20 09:56:48 2019 (serrano)                */
+;*    Last change :  Thu Jun 20 16:41:16 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Python AST                                                       */
@@ -50,7 +50,6 @@
            (class PyBlock::PyStmt
               ;; equivalent to a Scheme let*
               decls::pair-nil
-;*               vals::pair-nil                                        */
               body::PyStmt)
 
            (class PyReturn::PyStmt
