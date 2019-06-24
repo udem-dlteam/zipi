@@ -141,7 +141,12 @@
 	      (new-PycPragma loc '(py-time-mod))))
 	  (else
 	   (error "Import" "Unsupported form" exp))))
-      
+      ((Global ?loc ?names)
+       ;; Global(identifier* names)
+       (new-PycSymbols loc 'global names))
+      ((Nonlocal ?loc ?names)
+       ;; Nonlocal(identifier* names)
+       (new-PycSymbols loc 'global names))
       ((Expr ?loc ?value)
        ;; Expr(expr value)
        (new-PycStmtExpr loc

@@ -15,7 +15,10 @@
       (cond
          ((>= index 0)
           (PCache-set! cache (PyObject-hclass obj) index)
-          (PyObject-elements-ref obj index))
+	  (let ((v (PyObject-elements-ref obj index)))
+	     (if (eq? v (py-uninit))
+		 (error "NameError" "global is not defined" name)
+		 v)))
          (else
           (let* ((__builtins__ (PyObject-elements-ref obj 0))
                  (idxb (PyObject-find-prop __builtins__ name)))

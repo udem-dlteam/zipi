@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 10:16:39 2019                          */
-;*    Last change :  Mon Jun 24 14:57:22 2019 (serrano)                */
+;*    Last change :  Mon Jun 24 15:49:44 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Python AST                                                       */
@@ -40,7 +40,7 @@
               val::PycExpr)
 
            (class PycVar::PycDeclInit)
-           
+
            ;; statements
            (abstract-class PycStmt::PycNode)
            
@@ -113,6 +113,10 @@
 
 	   (class PycStmtExpr::PycStmt
 	      expr::PycExpr)
+	   
+	   (class PycSymbols::PycStmt
+	      (scope::symbol read-only)
+	      (names::pair-nil read-only))
 	   
            ;; expressions
            (class PycExpr::PycNode

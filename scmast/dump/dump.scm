@@ -69,6 +69,11 @@
    `(,(string->symbol (typeof this))
      ,(pycnode->list (PycStmtExpr-expr this))))
 
+(define-walk-method (pycnode->list this::PycSymbols)
+   `(,(string->symbol (typeof this))
+     ,(PycSymbols-scope this)
+     ,(PycSymbols-names this)))
+   
 (define-walk-method (pycnode->list this::PycYield)
    `(,(string->symbol (typeof this))
      :generator ,(PycYield-generator this)
