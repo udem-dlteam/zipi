@@ -5,77 +5,77 @@
    (return this #f #t conf)
    this)
 
-;; PyFun have been first initialized with need-return set to #t
+;; PycFun have been first initialized with need-return set to #t
 ;; The first stage of this optimization is to replace all this #t with #f
 ;; The analysis will then set to #t only functions that need to be
-(define-walk-method (mark-noreturn this::PyNode)
+(define-walk-method (mark-noreturn this::PycNode)
    (call-default-walker))
 
-(define-walk-method (mark-noreturn this::PyFun)
-   (PyFun-need-return-set! this #f))
+(define-walk-method (mark-noreturn this::PycFun)
+   (PycFun-need-return-set! this #f))
 
 ;; Traverse the AST to mark all non-tail returns and mark the functions
 ;; that use such returns
-(define-walk-method (return this::PyNode fun tail conf)
+(define-walk-method (return this::PycNode fun tail conf)
    (call-default-walker))
 
-(define-walk-method (return this::PyStmt fun tail conf)
+(define-walk-method (return this::PycStmt fun tail conf)
    (call-default-walker))
 
-(define-walk-method (return this::PySeq fun tail conf)
-   (let loop ((nodes (PySeq-nodes this)))
+(define-walk-method (return this::PycSeq fun tail conf)
+   (let loop ((nodes (PycSeq-nodes this)))
       (cond
 	 ((null? (cdr nodes))
 	  (return (car nodes) this tail conf))
-	 ((PyReturn? (car nodes))
+	 ((PycReturn? (car nodes))
 	  (set-cdr! nodes '())
 	  (return (car nodes) this tail conf))
 	 (else
 	  (return (car nodes) this #f conf)
 	  (loop (cdr nodes))))))
 
-(define-walk-method (return this::PyReturn fun tail conf)
-   (when (and (PyFun? fun) (not tail))
-      (PyFun-need-return-set! fun #t)
-      (PyReturn-tail-set! this #f)))
+(define-walk-method (return this::PycReturn fun tail conf)
+   (when (and (PycFun? fun) (not tail))
+      (PycFun-need-return-set! fun #t)
+      (PycReturn-tail-set! this #f)))
 
-(define-walk-method (return this::PyFun fun tail conf)
-   (return (PyFun-body this) this #t conf))
+(define-walk-method (return this::PycFun fun tail conf)
+   (return (PycFun-body this) this #t conf))
 
-;* (define-walk-method (return this::PyBlock fun tail conf)            */
-;*    (for-each (lambda (d) (return (PyDeclInit-val d) fun #f conf))   */
-;*       (PyBlock-decls this))                                         */
-;*    (return (PyBlock-body this) fun tail conf))                      */
+;* (define-walk-method (return this::PycBlock fun tail conf)            */
+;*    (for-each (lambda (d) (return (PycDeclInit-val d) fun #f conf))   */
+;*       (PycBlock-decls this))                                         */
+;*    (return (PycBlock-body this) fun tail conf))                      */
 ;*                                                                     */
-;* (define-walk-method (return this::PyAssig fun tail conf)            */
-;*    (return (PyAssig-rhs this) fun #f conf)                          */
-;*    (return (PyAssig-lhs this) fun #f conf))                         */
+;* (define-walk-method (return this::PycAssig fun tail conf)            */
+;*    (return (PycAssig-rhs this) fun #f conf)                          */
+;*    (return (PycAssig-lhs this) fun #f conf))                         */
 ;*                                                                     */
-;* (define-walk-method (return this::PyIf fun tail conf)               */
-;*    (return (PyIf-test this) fun #f conf)                            */
-;*    (return (PyIf-then this) fun tail conf)                          */
-;*    (return (PyIf-else this) fun tail conf))                         */
+;* (define-walk-method (return this::PycIf fun tail conf)               */
+;*    (return (PycIf-test this) fun #f conf)                            */
+;*    (return (PycIf-then this) fun tail conf)                          */
+;*    (return (PycIf-else this) fun tail conf))                         */
 ;*                                                                     */
-;* (define-walk-method (return this::PyWhile fun tail conf)            */
-;*    (return (PyWhile-test this) fun #f conf)                         */
-;*    (return (PyLoop-body this) fun #f conf)                          */
-;*    (return (PyLoop-else this) fun tail conf))                       */
+;* (define-walk-method (return this::PycWhile fun tail conf)            */
+;*    (return (PycWhile-test this) fun #f conf)                         */
+;*    (return (PycLoop-body this) fun #f conf)                          */
+;*    (return (PycLoop-else this) fun tail conf))                       */
 ;*                                                                     */
-;* (define-walk-method (return this::PyStmtExpr fun tail conf)         */
-;*    (return (PyStmtExpr-expr this) fun #f conf))                     */
+;* (define-walk-method (return this::PycStmtExpr fun tail conf)         */
+;*    (return (PycStmtExpr-expr this) fun #f conf))                     */
 ;*                                                                     */
-;* (define-walk-method (return this::PyTry fun tail conf)              */
-;*    (return (PyTry-body this) fun #f conf)                           */
-;*    (return (PyTry-else this) fun tail conf)                         */
-;*    (return (PyTry-finally this) fun #f conf)                        */
-;*    (for-each (lambda (h) (return (PyHandler-body h) fun tail conf)) */
-;*       (PyTry-handlers this)))                                       */
+;* (define-walk-method (return this::PycTry fun tail conf)              */
+;*    (return (PycTry-body this) fun #f conf)                           */
+;*    (return (PycTry-else this) fun tail conf)                         */
+;*    (return (PycTry-finally this) fun #f conf)                        */
+;*    (for-each (lambda (h) (return (PycHandler-body h) fun tail conf)) */
+;*       (PycTry-handlers this)))                                       */
 
-(define-walk-method (return this::PyPass fun tail conf)
+(define-walk-method (return this::PycPass fun tail conf)
    #f)
 
-(define-walk-method (return this::PyBreak fun tail conf)
+(define-walk-method (return this::PycBreak fun tail conf)
    #f)
 
-(define-walk-method (return this::PyContinue fun tail conf)
+(define-walk-method (return this::PycContinue fun tail conf)
    #f)

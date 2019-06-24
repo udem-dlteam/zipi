@@ -14,10 +14,10 @@
 	  (loop (cdr vals) (cdr decls) (cons (car decls) conf)
 	     (cons (pyc-javascript (car vals) conf) acc)))))
 
-(define-walk-method (pyc-javascript this::PyNode env)
+(define-walk-method (pyc-javascript this::PycNode env)
    (error "pyc-javascript" "Not implemented" (py->list this)))
 
-(define-walk-method (pyc-javascript this::PyModule env)
+(define-walk-method (pyc-javascript this::PycModule env)
    `(lambda (global)
-       ,@(pyc-javascript* (PyModule-stmts this) (PyModule-globals this))))
+       ,@(pyc-javascript* (PycModule-stmts this) (PycModule-globals this))))
 

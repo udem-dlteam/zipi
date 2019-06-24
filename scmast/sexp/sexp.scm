@@ -20,17 +20,17 @@
       ;; mod
       ((Module ?loc ?body . ?type_ignors)
        ;; Module(stmt* body, type_ignore *type_ignores)
-       (new-PyModule loc "???" (compile* loc body #t 'global conf)))
+       (new-PycModule loc "???" (compile* loc body #t 'global conf)))
       
       ;; stmt
       ((FunctionDef ?loc ?id ?args ?body ?decorator_list ?returns . ?type_comment)
        ;; FunctionDef(identifier name, arguments args,
        ;;             stmt* body, expr* decorator_list, expr? returns,
        ;;             string? type_comment)
-       (new-PyDeclInit loc id scope
-	  (new-PyFun loc
+       (new-PycDeclInit loc id scope
+	  (new-PycFun loc
 	     (map (lambda (a)
-		     (new-PyDecl loc (car a) 'local))
+		     (new-PycDecl loc (car a) 'local))
 		(car args))
 	     (compile-stmt* loc body #t 'local conf))))
       ((ClassDef ?loc ?id ?bases ?keywords ?body ?decorator_list)
@@ -39,65 +39,65 @@
        ;;       keyword* keywords,
        ;;       stmt* body,
        ;;       expr* decorator_list)
-       (new-PyAssig loc (new-PyRefUnresolved loc id)
-	  (new-PyClass loc (compile-stmt* loc body #f 'local conf))))
+       (new-PycAssig loc (new-PycRefUnresolved loc id)
+	  (new-PycClass loc (compile-stmt* loc body #f 'local conf))))
       ((Return ?loc ?expr)
        ;; Return(expr? value)
-       (new-PyReturn loc (sexp expr #f scope conf) tail))
+       (new-PycReturn loc (sexp expr #f scope conf) tail))
       ((Delete ?loc ?targets)
        ;; Delete(expr* targets)
        (if (null? (cdr targets))
-	   (new-PyDelete loc (sexp (car targets) #f scope conf))
-	   (new-PySeq loc
+	   (new-PycDelete loc (sexp (car targets) #f scope conf))
+	   (new-PycSeq loc
 	      (map (lambda (t)
-		      (new-PyDelete loc (sexp t #f scope conf)))
+		      (new-PycDelete loc (sexp t #f scope conf)))
 		 targets))))
       ((Assign ?loc ?targets ?value . ?type_comment)
        ;; Assign(expr* targets, expr value, string? type_comment)
        (if (null? (cdr targets))
-	   (new-PyAssig loc
+	   (new-PycAssig loc
 	      (sexp (car targets) #f scope conf)
 	      (sexp value #f scope conf))
 	   (let* ((id (gensym 'tmp))
-		  (var (new-PyVar loc id 'block (sexp value #f scope conf))))
+		  (var (new-PycVar loc id 'block (sexp value #f scope conf))))
 	      (let loop ((targets targets)
 			 (assigs '()))
 		 (if (null? targets)
-		     (new-PyBlock loc (list var)
-			(new-PySeq loc assigs))
+		     (new-PycBlock loc (list var)
+			(new-PycSeq loc assigs))
 		     (let ((ref (sexp (car targets) #f scope conf)))
 			(loop (cdr targets)
-			   (cons (new-PyAssig loc ref
-				    (new-PyRefUnresolved (PyNode-loc ref) id))
+			   (cons (new-PycAssig loc ref
+				    (new-PycRefUnresolved (PycNode-loc ref) id))
 			      assigs))))))))
       ((For ?loc ?target ?iter ?body ?orelse . ?type_comment)
       ;; For(expr target, expr iter, stmt* body, stmt* orelse, string? type_comment)
-       (new-PyFor loc
+       (new-PycFor loc
 	  (compile-stmt* loc body #f scope conf)
 	  (compile-stmt* loc orelse #f scope conf)
 	  (sexp target #f scope conf)
 	  (sexp iter #f scope conf)))
       ((While ?loc ?test ?body ?orelse)
        ;; While(expr test, stmt* body, stmt* orelse)
-       (new-PyWhile loc
+       (new-PycWhile loc
 	  (compile-stmt* loc body #f scope conf)
 	  (compile-stmt* loc orelse tail scope conf)
 	  (sexp test #f scope conf)))
        
       ((If ?loc ?test ?body ?otherwise)
        ;; If(expr test, stmt* body, stmt* orelse)
-       (new-PyIf loc (sexp test #f scope conf)
+       (new-PycIf loc (sexp test #f scope conf)
 	  (compile-stmt* loc body tail scope conf)
 	  (compile-stmt* loc otherwise tail scope conf)))
 
       ((Raise ?loc ?exc ?cause)
        ;; Raise(expr? exc, expr? cause)
-       (new-PyRaise loc
-	  (if exc (sexp exc #f scope conf) (new-PyUninit loc))
- 	  (if cause (sexp cause #f scope conf) (new-PyUninit loc))))
+       (new-PycRaise loc
+	  (if exc (sexp exc #f scope conf) (new-PycUninit loc))
+ 	  (if cause (sexp cause #f scope conf) (new-PycUninit loc))))
       ((Try ?loc ?body ?handlers ?orelse ?finally)
        ;; Try(stmt* body, excepthandler* handlers, stmt* orelse, stmt* finalbody)
-       (new-PyTry loc (compile-stmt* loc body #f scope conf)
+       (new-PycTry loc (compile-stmt* loc body #f scope conf)
 	  (map (lambda (h) (compile-handler h scope conf)) handlers)
 	  (compile-stmt* loc orelse #f scope conf)
 	  (compile-stmt* loc finally #f scope conf)))
@@ -106,42 +106,42 @@
        ;; Import(alias* names)
        (match-case (car aliases)
 	  ((builtins #f)
-	   (new-PyAssig loc (new-PyRefUnresolved loc 'builtins)
-	      (new-PyPragma loc '(py-builtins-mod))))
+	   (new-PycAssig loc (new-PycRefUnresolved loc 'builtins)
+	      (new-PycPragma loc '(py-builtins-mod))))
 	  ((time #f)
-	   (new-PyAssig loc (new-PyRefUnresolved loc 'time)
-	      (new-PyPragma loc '(py-time-mod))))
+	   (new-PycAssig loc (new-PycRefUnresolved loc 'time)
+	      (new-PycPragma loc '(py-time-mod))))
 	  (else
 	   (error "Import" "Unsupported form" exp))))
       
       ((Expr ?loc ?value)
        ;; Expr(expr value)
-       (new-PyStmtExpr loc
+       (new-PycStmtExpr loc
 	  (sexp value tail scope conf)))
 
       ((Pass ?loc)
        ;; Pass
-       (new-PyPass loc))
+       (new-PycPass loc))
       ((Break ?loc)
        ;; Continue
-       (new-PyBreak loc))
+       (new-PycBreak loc))
       ((Continue ?loc)
        ;; Continue
-       (new-PyContinue loc))
+       (new-PycContinue loc))
 
       ;; expr
       ((Num ?loc ?val)
-       (new-PyNumber loc (string->number val)))
+       (new-PycNumber loc (string->number val)))
       ((Str ?loc ?val)
-       (new-PyString loc val))
+       (new-PycString loc val))
       ((Constant ?loc ?val ?string)
        ;; Constant(constant value, string? kind) [3.8]
        (if string
-	   (new-PyString loc val)
-	   (new-PyNumber loc (string->number val))))
+	   (new-PycString loc val)
+	   (new-PycNumber loc (string->number val))))
       ((BinOp ?loc ?left ?op ?right)
        ;; BinOp(expr left, operator op, expr right)
-       (new-PyBinary loc 
+       (new-PycBinary loc 
 	  (case op
 	     ((Add) '+)
 	     ((Sub) '-)
@@ -152,16 +152,16 @@
 	  (sexp right #f scope conf)
 	  type: (op-type op)))
       ((UnaryOp ?loc ?op ?expr)
-       (new-PyUnary loc op (sexp expr #f scope conf)))
+       (new-PycUnary loc op (sexp expr #f scope conf)))
       
       ((Yield ?loc ?value)
-       (new-PyYield loc (sexp value tail scope conf)))
+       (new-PycYield loc (sexp value tail scope conf)))
       ;; Yield(expr? value)
       ((Compare ?loc ?left ?ops ?rights)
        ;; Compare(expr left, cmpop* ops, expr* comparators)
        (if (pair? (cdr ops))
 	   (error "Compare" "Not implemented" ops)
-	   (make-PyBinary loc #f 'bool
+	   (make-PycBinary loc #f 'bool
 	      (case (car ops)
 		 ((< <= > >=) (car ops))
 		 ((Lt) '<)
@@ -175,23 +175,26 @@
 	      (sexp (car rights) #f scope conf))))
       ((Call ?loc ?fun ?args ?keywords)
        ;; Call(expr func, expr* args, keyword* keywords)
-       (new-PyCall loc
+       (new-PycCall loc
 	  (sexp fun #f scope conf)
 	  (map (lambda (a) (sexp a #f scope conf)) args)
 	  (map (lambda (k) (sexp k #f scope conf)) keywords)))
       ((Attribute ?loc ?value ?attr ?ctx)
        ;; Attribute(expr value, identifier attr, expr_context ctx)
-       (new-PyAccess loc (sexp value #f scope conf) (symbol->string attr)))
+       (new-PycAccess loc (sexp value #f scope conf) (symbol->string attr)))
       ((Name ?loc ?id ?ctx)
        ;; Name(identifier id, expr_context ctx)
        (case ctx
-	  ((Load) (new-PyRefUnresolved loc id))
-	  ((Store) (new-PyRefUnresolved loc id))
-	  ((Delete) (new-PyRefUnresolved loc id))
+	  ((Load) (new-PycRefUnresolved loc id))
+	  ((Store) (new-PycRefUnresolved loc id))
+	  ((Delete) (new-PycRefUnresolved loc id))
 	  (else (error "ctx" "Not implemented" ctx))))
       ((List ?loc ?elts ?ctx)
        ;; List(expr* elts, expr_context ctx)
        (new-PycList loc elts))
+      ((Tuple ?loc ?elts ?ctx)
+       ;; Tuple(expr* elts, expr_context ctx)
+       (new-PycTuple loc elts))
       (else
        (error "sexp" "Not implemented" exp))))
 
@@ -200,21 +203,21 @@
       ((ExceptHandler ?loc ?type ?name ?body)
        (let ((expr (if type
 		       (sexp type #f scope conf)
-		       (new-PyUninit loc))))
+		       (new-PycUninit loc))))
 	  (if name
-	      (let ((body (new-PyBlock loc
-			     (list (new-PyVar loc name 'block
-				      (new-PyPragma loc '%exn)))
+	      (let ((body (new-PycBlock loc
+			     (list (new-PycVar loc name 'block
+				      (new-PycPragma loc '%exn)))
 			     (compile-stmt* loc body #f scope conf))))
-		 (new-PyHandler loc expr body))
-	      (new-PyHandler loc expr (compile-stmt* loc body #f scope conf)))))
+		 (new-PycHandler loc expr body))
+	      (new-PycHandler loc expr (compile-stmt* loc body #f scope conf)))))
       (else
        (error "sexp" "Wrong handler" handler))))
        
 (define (compile-stmt* loc body tail scope conf)
    (if (null? body)
-       (new-PyPass loc)
-       (new-PySeq loc
+       (new-PycPass loc)
+       (new-PycSeq loc
 	  (let loop ((body body))
 	     (if (null? (cdr body))
 		 (list (sexp (car body) tail scope conf))

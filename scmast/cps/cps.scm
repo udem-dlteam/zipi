@@ -5,7 +5,7 @@
    (cps-fun! this))
 
 ;; Transform CPS functions
-(define-walk-method (cps-fun! this::PyNode)
+(define-walk-method (cps-fun! this::PycNode)
    (call-default-walker))
 
 ;; debug macros
@@ -14,11 +14,11 @@
 (define-macro (KontExpr* proc node link . name) proc)
 (define-macro (KontStmt proc node link . name) proc)
 
-(define-walk-method (cps-fun! this::PyFun)
-   (if (PyFun-generator this)
-       (PyFun-body-set! this
-	  (cps (PyFun-body this) (KontStmt kid this #f) kid '() '() #f this))
-       (cps-fun! (PyFun-body this)))
+(define-walk-method (cps-fun! this::PycFun)
+   (if (PycFun-generator this)
+       (PycFun-body-set! this
+	  (cps (PycFun-body this) (KontStmt kid this #f) kid '() '() #f this))
+       (cps-fun! (PycFun-body this)))
    this)
 
 (define (kid n) n)
@@ -36,157 +36,157 @@
 		nodes k*)
 	     pack kbreaks kcontinues ktry fun))))
 
-(define-walk-method (cps this::PyNode k pack kbreaks kcontinues ktry fun)
+(define-walk-method (cps this::PycNode k pack kbreaks kcontinues ktry fun)
    (error "cps" "Should not be here" (py->list this)))
 
-(define-walk-method (cps this::PyStmtExpr k pack kbreaks kcontinues ktry fun)
-   (let ((loc (PyNode-loc this))
-	 (expr (PyStmtExpr-expr this)))
+(define-walk-method (cps this::PycStmtExpr k pack kbreaks kcontinues ktry fun)
+   (let ((loc (PycNode-loc this))
+	 (expr (PycStmtExpr-expr this)))
       (if (yield-expr? expr kbreaks kcontinues)
 	  (cps expr
 	     (KontExpr (lambda (ke)
-			  (kcall k (new-PyStmtExpr loc ke)))
+			  (kcall k (new-PycStmtExpr loc ke)))
 		this k "expr")
 	     pack kbreaks kcontinues ktry fun)
 	  (begin
 	     (cps-fun! expr)
 	     (kcall k this)))))
 
-(define-walk-method (cps this::PyLiteral k pack kbreaks kcontinues ktry fun)
+(define-walk-method (cps this::PycLiteral k pack kbreaks kcontinues ktry fun)
    (kcall k this))
 
-(define-walk-method (cps this::PyUninit k pack kbreaks kcontinues ktry fun)
+(define-walk-method (cps this::PycUninit k pack kbreaks kcontinues ktry fun)
    (kcall k this))
 
-(define-walk-method (cps this::PyRef k pack kbreaks kcontinues ktry fun)
+(define-walk-method (cps this::PycRef k pack kbreaks kcontinues ktry fun)
    (kcall k this))
 
-(define-walk-method (cps this::PyUnary k pack kbreaks kcontinues ktry fun)
-   (let ((expr (PyUnary-expr this)))
+(define-walk-method (cps this::PycUnary k pack kbreaks kcontinues ktry fun)
+   (let ((expr (PycUnary-expr this)))
       (if (yield-expr? expr kbreaks kcontinues)
 	  (cps expr
 	     (KontExpr (lambda (kexpr)
-			  (kcall k (new-PyUnary (PyNode-loc this)
-				      (PyUnary-op this)
+			  (kcall k (new-PycUnary (PycNode-loc this)
+				      (PycUnary-op this)
 				      kexpr)))
 		this k)
 	     pack kbreaks kcontinues ktry fun)
 	  (kcall k this))))
 
-(define-walk-method (cps this::PyBinary k pack kbreaks kcontinues ktry fun)
-   (let ((lhs (PyBinary-lhs this))
-	 (rhs (PyBinary-rhs this)))
+(define-walk-method (cps this::PycBinary k pack kbreaks kcontinues ktry fun)
+   (let ((lhs (PycBinary-lhs this))
+	 (rhs (PycBinary-rhs this)))
       (cond
 	 ((yield-expr? lhs kbreaks kcontinues)
 	  (cps lhs
 	     (KontExpr (lambda (klhs)
-			  (cps (new-PyBinary (PyNode-loc this)
-				  (PyBinary-op this) klhs rhs)
+			  (cps (new-PycBinary (PycNode-loc this)
+				  (PycBinary-op this) klhs rhs)
 			     k pack kbreaks kcontinues ktry fun))
 		this k)
 	     pack kbreaks kcontinues ktry fun))
 	 ((yield-expr? rhs kbreaks kcontinues)
 	  (cps rhs
 	     (KontExpr (lambda (krhs)
-			  (cps (new-PyBinary (PyNode-loc this)
-				  (PyBinary-op this) lhs krhs)
+			  (cps (new-PycBinary (PycNode-loc this)
+				  (PycBinary-op this) lhs krhs)
 			     k pack kbreaks kcontinues ktry fun))
 		this k)
 	     pack kbreaks kcontinues ktry fun))
 	 (else
 	  (kcall k this)))))
 
-(define-walk-method (cps this::PyYield k pack kbreaks kcontinues ktry fun)
+(define-walk-method (cps this::PycYield k pack kbreaks kcontinues ktry fun)
 
    (define (make-yield-kont k loc)
-      (let* ((arg (new-PyDecl loc (gensym '%arg) 'local))
-	     (exn (new-PyDecl loc (gensym '%exn) 'local))
-	     (body (kcall k (new-PyRef loc arg)))
-	     (cont (new-PyIf loc
-		      (new-PyBinary loc 'is?
-			 (new-PyRef loc exn) (new-PyBool loc #t) type: 'bool)
-		      (new-PyRaise loc (new-PyRef loc arg) (new-PyUninit loc))
+      (let* ((arg (new-PycDecl loc (gensym '%arg) 'local))
+	     (exn (new-PycDecl loc (gensym '%exn) 'local))
+	     (body (kcall k (new-PycRef loc arg)))
+	     (cont (new-PycIf loc
+		      (new-PycBinary loc 'is?
+			 (new-PycRef loc exn) (new-PycBool loc #t) type: 'bool)
+		      (new-PycRaise loc (new-PycRef loc arg) (new-PycUninit loc))
 		      body)))
-	 (new-PyKont loc arg exn (pack cont))))
+	 (new-PycKont loc arg exn (pack cont))))
    
-   (let* ((loc (PyNode-loc this))
-	  (val (PyYield-val this))
-	  (gen (PyYield-generator this))
+   (let* ((loc (PycNode-loc this))
+	  (val (PycYield-val this))
+	  (gen (PycYield-generator this))
 	  (kont (make-yield-kont k loc)))
       (if (yield-expr? val kbreaks kcontinues)
 	  (cps val
 	     (KontExpr (lambda (kexpr)
-			  (new-PyReturnYield loc kexpr kont generator: gen))
+			  (new-PycReturnYield loc kexpr kont generator: gen))
 		this k)
 	     pack kbreaks kcontinues ktry fun)
-	  (new-PyReturnYield loc (cps-fun! val) kont generator: gen))))
+	  (new-PycReturnYield loc (cps-fun! val) kont generator: gen))))
 
-(define-walk-method (cps this::PyReturn k pack kbreaks kcontinues ktry fun)
-   (let ((loc (PyNode-loc this))
-	 (expr (PyReturn-val this)))
+(define-walk-method (cps this::PycReturn k pack kbreaks kcontinues ktry fun)
+   (let ((loc (PycNode-loc this))
+	 (expr (PycReturn-val this)))
       (if (yield-expr? expr kbreaks kcontinues)
 	  (cps expr
 	     (KontExpr (lambda (kexpr)
 			  (if ktry
-			      '(new-PyTail loc
-				(new-PyCall loc
-				   (new-PyRef loc ktry)
-				   (PyBool #t)
+			      '(new-PycTail loc
+				(new-PycCall loc
+				   (new-PycRef loc ktry)
+				   (PycBool #t)
 				   kexpr))
-			      (new-PyReturnYield loc kexpr
-				 (new-PyUninit loc))))
+			      (new-PycReturnYield loc kexpr
+				 (new-PycUninit loc))))
 		this k)
 	     pack kbreaks kcontinues ktry fun)
 	  (if ktry
 	      (tprint "TODO")
 	      (begin
-		 (PyReturn-val-set! this (new-PyPragma loc ''StopIteration))
-		 (new-PySeq loc
+		 (PycReturn-val-set! this (new-PycPragma loc ''StopIteration))
+		 (new-PycSeq loc
 		    (list
-		       (new-PyStmtExpr loc (cps-fun! expr))
+		       (new-PycStmtExpr loc (cps-fun! expr))
 		       this)))))))
 
-(define-walk-method (cps this::PyCall k pack kbreaks kcontinues ktry fun)
-   (let ((args (PyCall-args this)))
+(define-walk-method (cps this::PycCall k pack kbreaks kcontinues ktry fun)
+   (let ((args (PycCall-args this)))
       (cond
-	 ((yield-expr? (PyCall-fun this) kbreaks kcontinues)
-	  (cps (PyCall-fun this)
+	 ((yield-expr? (PycCall-fun this) kbreaks kcontinues)
+	  (cps (PycCall-fun this)
 	     (KontExpr (lambda (kfun)
-			  (PyCall-fun-set! this kfun)
+			  (PycCall-fun-set! this kfun)
 			  (cps this k pack kbreaks kcontinues ktry fun))
 		this k)
 	     pack kbreaks kcontinues ktry fun))
 	 ((any (lambda (e) (yield-expr? e kbreaks kcontinues)) args)
-	  (cps-fun! (PyCall-fun this))
+	  (cps-fun! (PycCall-fun this))
 	  (cps* args
 	     (KontExpr* (lambda (kargs)
-			   (PyCall-args-set! this kargs)
+			   (PycCall-args-set! this kargs)
 			   (cps this k pack kbreaks kcontinues ktry fun))
 		args k)
 	     pack kbreaks kcontinues ktry fun))
 	 (else
-	  (cps-fun! (PyCall-fun this))
+	  (cps-fun! (PycCall-fun this))
 	  (for-each cps-fun! args)
 	  (kcall k this)))))
 
-(define-walk-method (cps this::PySeq k pack kbreaks kcontinues ktry fun)
+(define-walk-method (cps this::PycSeq k pack kbreaks kcontinues ktry fun)
    
    (define (pack-seq this prev res)
       (if (pair? prev)
 	  (set-cdr! prev (list res))
-	  (PySeq-nodes-set! this (list res)))
-      (PySeq-nodes-set! this
-	 (filter (lambda (x) (not (isa? x PyPass))) (PySeq-nodes this)))
-      (if (and (pair? (PySeq-nodes this)) (null? (cdr (PySeq-nodes this))))
-	  (if (isa? this PyBlock)
-	      (if (isa? (car (PySeq-nodes this)) PyBlock)
-		  (car (PySeq-nodes this))
+	  (PycSeq-nodes-set! this (list res)))
+      (PycSeq-nodes-set! this
+	 (filter (lambda (x) (not (isa? x PycPass))) (PycSeq-nodes this)))
+      (if (and (pair? (PycSeq-nodes this)) (null? (cdr (PycSeq-nodes this))))
+	  (if (isa? this PycBlock)
+	      (if (isa? (car (PycSeq-nodes this)) PycBlock)
+		  (car (PycSeq-nodes this))
 		  this)
-	      (car (PySeq-nodes this)))
+	      (car (PycSeq-nodes this)))
 	  this))
    
-   (let ((loc (PyNode-loc this)))
-      (let loop ((walk (PySeq-nodes this))
+   (let ((loc (PycNode-loc this)))
+      (let loop ((walk (PycSeq-nodes this))
 		 (pnodes '()))
 	 (cond
 	    ((null? walk)
@@ -202,77 +202,77 @@
 	     (pack-seq this pnodes
 		(cps (car walk)
 		   (KontStmt (lambda (khead)
-				(cps (new-PySeq loc
+				(cps (new-PycSeq loc
 					(cons khead (cdr walk)))
 				   k pack kbreaks kcontinues ktry fun))
 		      this k)
 		   pack kbreaks kcontinues ktry fun)))))))
 
-(define-walk-method (cps this::PyBlock k pack kbreaks kcontinues ktry fun)
-   (let loop ((wdecls (PyBlock-decls this))
+(define-walk-method (cps this::PycBlock k pack kbreaks kcontinues ktry fun)
+   (let loop ((wdecls (PycBlock-decls this))
 	      (pdecls '())
 	      (sdecls '()))
       (cond
 	 ((null? wdecls)
-	  (new-PyBlock (PyNode-loc this)
-	     (PyBlock-decls this)
-	     (cps (PyBlock-body this) k pack kbreaks kcontinues ktry fun)))
+	  (new-PycBlock (PycNode-loc this)
+	     (PycBlock-decls this)
+	     (cps (PycBlock-body this) k pack kbreaks kcontinues ktry fun)))
 	 ((not (yield-expr? (car wdecls) kbreaks kcontinues))
 	  (cps-fun! (car wdecls))
 	  (loop (cdr wdecls) wdecls
 	     (if (pair? sdecls) sdecls wdecls)))
 	 (else
-	  (PyDecl-scope-set! (car wdecls) 'kont)
+	  (PycDecl-scope-set! (car wdecls) 'kont)
 	  (let* ((y (cps (car wdecls)
 		       (KontStmt (lambda (ndecl)
 				    (cond
 				       ((null? (cdr wdecls))
-					(new-PyBlock (PyNode-loc this)
+					(new-PycBlock (PycNode-loc this)
 					   (list ndecl) 
-					   (cps (PyBlock-body this)
+					   (cps (PycBlock-body this)
 					      k pack kbreaks kcontinues
 					      ktry fun)))
 				       (else
-					(PyBlock-decls-set! this (cdr wdecls))
-					(new-PyBlock (PyNode-loc this)
+					(PycBlock-decls-set! this (cdr wdecls))
+					(new-PycBlock (PycNode-loc this)
 					   (list ndecl)
 					   (cps this
 					      k pack kbreaks kcontinues
 					      ktry fun)))))
 			  this k)
 		       pack kbreaks kcontinues ktry fun))
-		 (b (if (isa? y PyExpr) (new-PyStmtExpr (PyNode-loc y) y) y)))
+		 (b (if (isa? y PycExpr) (new-PycStmtExpr (PycNode-loc y) y) y)))
 	     (if (null? pdecls)
 		 b
 		 (begin
 		    (set-cdr! pdecls '())
-		    (new-PyBlock (PyNode-loc this) sdecls b))))))))
+		    (new-PycBlock (PycNode-loc this) sdecls b))))))))
 
 ;; does an expression may yield or return?
 (define (yield-expr? this kbreaks kcontinues)
   (let ((v (yield-expr* this kbreaks kcontinues)))
       (find (lambda (v) v) v)))
 
-(define-walk-method (yield-expr* this::PyNode kbreaks kcontinues)
+(define-walk-method (yield-expr* this::PycNode kbreaks kcontinues)
    (call-default-walker))
 
-(define-walk-method (yield-expr* this::PyYield kbreaks kcontinues)
+(define-walk-method (yield-expr* this::PycYield kbreaks kcontinues)
    (list this))
 
-(define-walk-method (yield-expr* this::PyReturn kbreaks kcontinues)
+(define-walk-method (yield-expr* this::PycReturn kbreaks kcontinues)
    (list this))
 
-(define-walk-method (yield-expr* this::PyFun kbreaks kcontinues)
+(define-walk-method (yield-expr* this::PycFun kbreaks kcontinues)
    '())
 
-;* (define-walk-method (yield-expr* this::PyBreak kbreaks kcontinues)  */
-;*    (with-access::PyBreak this (target)                              */
+;* (define-walk-method (yield-expr* this::PycBreak kbreaks kcontinues)  */
+;*    (with-access::PycBreak this (target)                              */
 ;*       (if (assq target kbreaks)                                     */
 ;* 	  (list this)                                                  */
 ;* 	  '())))                                                       */
 ;*                                                                     */
-;* (define-walk-method (yield-expr* this::PyContinue kbreaks kcontinues) */
-;*    (with-access::PyContinue this (target)                           */
+;* (define-walk-method (yield-expr* this::PycContinue kbreaks kcontinues) */
+;*    (with-access::PycContinue this (target)                           */
 ;*       (if (assq target kcontinues)                                  */
 ;* 	  (list this)                                                  */
 ;* 	  '())))                                                       */

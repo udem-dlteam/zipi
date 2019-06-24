@@ -1,15 +1,15 @@
 (define (py-scheme ast conf)
    (let* ((cnt (make-cell 0))
 	  (caches (collect-caches ast cnt)))
-      (PyModule-caches-set! ast (cell-ref cnt))
-      (PyNode-%info-set! ast (pyc-scheme ast conf))
+      (PycModule-caches-set! ast (cell-ref cnt))
+      (PycNode-%info-set! ast (pyc-scheme ast conf))
       ast))
 
 (define (py-scheme-eval ast conf)
-   (let ((def (PyNode-%info ast)))
+   (let ((def (PycNode-%info ast)))
       (when (>= (config-get conf 'verbose 0) 1)
 	(newline (current-error-port)))
-      ((eval def) (py-make-global) (py-make-caches (PyModule-caches ast)))))
+      ((eval def) (py-make-global) (py-make-caches (PycModule-caches ast)))))
 
 (define (py-scheme-bigloo ast conf)
    (pp `(module ,(string->symbol (config-get conf 'src "__stdin"))
@@ -18,8 +18,8 @@
 	   (import __py_iterator)
 	   (main main)))
    (pp `(define (main argv)
-	   (pyc (py-make-global) (py-make-caches ,(PyModule-caches ast)))))
-   (pp `(define pyc ,(PyNode-%info ast))))
+	   (pyc (py-make-global) (py-make-caches ,(PycModule-caches ast)))))
+   (pp `(define pyc ,(PycNode-%info ast))))
 
 (define (py-scheme-gambit ast conf)
   (pretty-print
@@ -32,8 +32,8 @@
       (|##include| "iterator/iterator.bgl")
       (|##include| "iterator/iterator.scm")
       (define (main args)
-        (pyc (py-make-global) (py-make-caches ,(PyModule-caches ast))))
-      (define pyc ,(PyNode-%info ast))
+        (pyc (py-make-global) (py-make-caches ,(PycModule-caches ast))))
+      (define pyc ,(PycNode-%info ast))
       (main (command-line)))))
 
 (define (config-get conf key . def)
@@ -53,82 +53,82 @@
 	  (loop (cdr vals) (cdr decls) (cons (car decls) conf)
 	     (cons (pyc-scheme (car vals) conf) acc)))))
 
-(define-walk-method (pyc-scheme this::PyNode conf)
+(define-walk-method (pyc-scheme this::PycNode conf)
    (error "pyc-scheme" "Not implemented" (py->list this)))
 
-(define-walk-method (pyc-scheme this::PyModule conf)
+(define-walk-method (pyc-scheme this::PycModule conf)
    (epairify this
       `(lambda (%global %caches)
-	  ,@(pyc-scheme* (PyModule-stmts this) (PyModule-globals this)))))
+	  ,@(pyc-scheme* (PycModule-stmts this) (PycModule-globals this)))))
 
-(define-walk-method (pyc-scheme this::PySeq conf)
+(define-walk-method (pyc-scheme this::PycSeq conf)
    (epairify this
-      `(begin ,@(pyc-scheme* (PySeq-nodes this) conf))))
+      `(begin ,@(pyc-scheme* (PycSeq-nodes this) conf))))
 
-(define-walk-method (pyc-scheme this::PyBlock conf)
+(define-walk-method (pyc-scheme this::PycBlock conf)
    (epairify this
       `(letrec* ,(map (lambda (decl)
 			 `(,(pyc-scheme-decl decl conf)
-			   ,(pyc-scheme (PyDeclInit-val decl) conf)))
-		    (PyBlock-decls this))
-	  ,(pyc-scheme (PyBlock-body this) conf))))
+			   ,(pyc-scheme (PycDeclInit-val decl) conf)))
+		    (PycBlock-decls this))
+	  ,(pyc-scheme (PycBlock-body this) conf))))
 
-(define-walk-method (pyc-scheme this::PyReturn conf)
-   (if (PyReturn-tail this)
-       (pyc-scheme (PyReturn-val this) conf)
+(define-walk-method (pyc-scheme this::PycReturn conf)
+   (if (PycReturn-tail this)
+       (pyc-scheme (PycReturn-val this) conf)
        (epairify this
-	  `(return (pyc-scheme (PyReturn-val this) conf)))))
+	  `(return (pyc-scheme (PycReturn-val this) conf)))))
 
-(define-walk-method (pyc-scheme this::PyReturnYield conf)
-   (let ((kont (PyReturnYield-kont this))
-	 (gen (PyReturnYield-generator this)))
+(define-walk-method (pyc-scheme this::PycReturnYield conf)
+   (let ((kont (PycReturnYield-kont this))
+	 (gen (PycReturnYield-generator this)))
       (epairify this
 	 `(,(if gen 'py-generator-yield* 'py-generator-yield)
-	   %gen ,(pyc-scheme (PyReturnYield-val this) conf)
+	   %gen ,(pyc-scheme (PycReturnYield-val this) conf)
 	   ,(pyc-scheme kont conf)))))
 
-(define-walk-method (pyc-scheme this::PyStmtExpr conf)
-   (pyc-scheme (PyStmtExpr-expr this) conf))
+(define-walk-method (pyc-scheme this::PycStmtExpr conf)
+   (pyc-scheme (PycStmtExpr-expr this) conf))
 
 (define (pyc-test this conf)
-   (if (eq? (PyExpr-type this) 'bool)
+   (if (eq? (PycExpr-type this) 'bool)
        (pyc-scheme this conf)
        (epairify this
 	  `(py-test ,(pyc-scheme this conf)))))
 
-(define-walk-method (pyc-scheme this::PyWhile conf)
+(define-walk-method (pyc-scheme this::PycWhile conf)
 
    (define (pyc-scheme-while this)
       (let ((loop (gensym '%while)))
 	 (epairify this
-	    (if (PyLoop-need-continue this)
+	    (if (PycLoop-need-continue this)
 		`(let ,loop ()
 		      (bind-exit (%continue)
-			 (when ,(pyc-test (PyWhile-test this) conf)
-			    ,(pyc-scheme (PyLoop-body this) conf)
+			 (when ,(pyc-test (PycWhile-test this) conf)
+			    ,(pyc-scheme (PycLoop-body this) conf)
 			    (,loop))))
 		`(let ,loop ()
-		      (when ,(pyc-test (PyWhile-test this) conf)
-			 ,(pyc-scheme (PyLoop-body this) conf)
+		      (when ,(pyc-test (PycWhile-test this) conf)
+			 ,(pyc-scheme (PycLoop-body this) conf)
 			 (,loop)))))))
    
    (cond
-      ((PyLoop-need-break this)
+      ((PycLoop-need-break this)
        (epairify this
 	  `(bind-exit (%break)
 	      ,(pyc-scheme-while this)
-	      ,@(if (isa? (PyLoop-else this) PyPass)
+	      ,@(if (isa? (PycLoop-else this) PycPass)
 		    '()
-		    (pyc-scheme (PyLoop-else this) conf)))))
-      ((isa? (PyLoop-else this) PyPass)
+		    (pyc-scheme (PycLoop-else this) conf)))))
+      ((isa? (PycLoop-else this) PycPass)
        (pyc-scheme-while this))
       (else
        (epairify this
 	  `(begin
 	      ,(pyc-scheme-while this)
-	      ,(pyc-scheme (PyLoop-else this) conf))))))
+	      ,(pyc-scheme (PycLoop-else this) conf))))))
 
-(define-walk-method (pyc-scheme this::PyFor conf)
+(define-walk-method (pyc-scheme this::PycFor conf)
 
    (define (pyc-scheme-for this)
       (let ((loop (gensym '%for))
@@ -137,97 +137,97 @@
 	    (iterator (gensym '%iterator))
 	    (next (gensym '%next)))
 	 (epairify this
-	    `(let* ((,iterable ,(pyc-scheme (PyFor-iter this) conf))
+	    `(let* ((,iterable ,(pyc-scheme (PycFor-iter this) conf))
 		    (,iterator (PyFunction-call1
 				  (object-get ,iterable
 				     (& "__iter__")
 				     (vector-ref %caches
-					,(car (PyNode-%info this))))
+					,(car (PycNode-%info this))))
 				  ,iterable))
 		    (,next (object-get ,iterator (& "__next__")
-			      (vector-ref %caches ,(cdr (PyNode-%info this))))))
+			      (vector-ref %caches ,(cdr (PycNode-%info this))))))
 		(let ,loop ()
 		     (let ((,target (py-for-next ,iterator ,next)))
 			(unless (eq? ,target 'StopIteration)
-			   ,(let ((assig (new-PyAssig (PyNode-loc this)
-					    (PyFor-target this)
-					    (new-PyPragma (PyNode-loc this) target))))
+			   ,(let ((assig (new-PycAssig (PycNode-loc this)
+					    (PycFor-target this)
+					    (new-PycPragma (PycNode-loc this) target))))
 			       (pyc-scheme  assig conf))
-			   ,(if (PyLoop-need-continue this)
+			   ,(if (PycLoop-need-continue this)
 				`(bind-exit (%continue)
-				    ,(pyc-scheme (PyLoop-body this) conf))
-				(pyc-scheme (PyLoop-body this) conf))
+				    ,(pyc-scheme (PycLoop-body this) conf))
+				(pyc-scheme (PycLoop-body this) conf))
 			   (,loop))))))))
    
    (cond
-      ((PyLoop-need-break this)
+      ((PycLoop-need-break this)
        (epairify this
 	  `(bind-exit (%break)
 	      ,(pyc-scheme-for this)
-	      ,@(if (isa? (PyLoop-else this) PyPass)
+	      ,@(if (isa? (PycLoop-else this) PycPass)
 		    '()
-		    (pyc-scheme (PyLoop-else this) conf)))))
-      ((isa? (PyLoop-else this) PyPass)
+		    (pyc-scheme (PycLoop-else this) conf)))))
+      ((isa? (PycLoop-else this) PycPass)
        (pyc-scheme-for this))
       (else
        (epairify this
 	  `(begin
 	      ,(pyc-scheme-for this)
-	      ,(pyc-scheme (PyLoop-else this) conf))))))
+	      ,(pyc-scheme (PycLoop-else this) conf))))))
 
-(define-walk-method (pyc-scheme this::PyIf conf)
+(define-walk-method (pyc-scheme this::PycIf conf)
    (epairify this
-      `(if ,(pyc-test (PyIf-test this) conf)
-	   ,(pyc-scheme (PyIf-then this) conf)
-	   ,(pyc-scheme (PyIf-else this) conf))))
+      `(if ,(pyc-test (PycIf-test this) conf)
+	   ,(pyc-scheme (PycIf-then this) conf)
+	   ,(pyc-scheme (PycIf-else this) conf))))
 
-(define-walk-method (pyc-scheme this::PyTry conf)
+(define-walk-method (pyc-scheme this::PycTry conf)
    
    (define (pyc-scheme-try this conf)
       `(with-handler
 	  (lambda (%exn)
 	     (cond
 		,@(map (lambda (h) (pyc-scheme h conf))
-		   (PyTry-handlers this))))
-	  ,(if (isa? (PyTry-else this) PyPass)
-	       (pyc-scheme (PyTry-body this) conf)
+		   (PycTry-handlers this))))
+	  ,(if (isa? (PycTry-else this) PycPass)
+	       (pyc-scheme (PycTry-body this) conf)
 	       `(begin
-		   ,(pyc-scheme (PyTry-body this) conf)
-		   ,(pyc-scheme (PyTry-else this) conf)))))
+		   ,(pyc-scheme (PycTry-body this) conf)
+		   ,(pyc-scheme (PycTry-else this) conf)))))
    
    (epairify this
-      (if (isa? (PyTry-finally this) PyPass)
+      (if (isa? (PycTry-finally this) PycPass)
 	  (pyc-scheme-try this conf)
 	  `(unwind-protect
 	      ,(pyc-scheme-try this conf)
-	      ,(pyc-scheme (PyTry-finally this) conf)))))
+	      ,(pyc-scheme (PycTry-finally this) conf)))))
 
-(define-walk-method (pyc-scheme this::PyRaise conf)
+(define-walk-method (pyc-scheme this::PycRaise conf)
    (epairify this
-      `(py-throw ,(pyc-scheme (PyRaise-exc this) conf))))
+      `(py-throw ,(pyc-scheme (PycRaise-exc this) conf))))
 
-(define-walk-method (pyc-scheme this::PyHandler conf)
+(define-walk-method (pyc-scheme this::PycHandler conf)
    (epairify this
-      `(,(if (isa? (PyHandler-type this) PyUninit)
+      `(,(if (isa? (PycHandler-type this) PycUninit)
 	     #t
-	     `(isa? %exn ,(pyc-scheme (PyHandler-type this) conf)))
-	,(pyc-scheme (PyHandler-body this) conf))))
+	     `(isa? %exn ,(pyc-scheme (PycHandler-type this) conf)))
+	,(pyc-scheme (PycHandler-body this) conf))))
 			
-(define-walk-method (pyc-scheme this::PyPass conf)
+(define-walk-method (pyc-scheme this::PycPass conf)
    #f)
 
-(define-walk-method (pyc-scheme this::PyBreak conf)
+(define-walk-method (pyc-scheme this::PycBreak conf)
    (epairify this '(%break #f)))
 
-(define-walk-method (pyc-scheme this::PyContinue conf)
+(define-walk-method (pyc-scheme this::PycContinue conf)
    (epairify this '(%continue #f)))
 
 (define (pyc-scheme-decl this conf)
-   (unless (PyDecl-name this)
-      (PyDecl-name-set! this
-	 (symbol-append (PyDecl-id this)
-	    (string->symbol (number->string (PyDecl-key this))))))
-   (PyDecl-name this))
+   (unless (PycDecl-name this)
+      (PycDecl-name-set! this
+	 (symbol-append (PycDecl-id this)
+	    (string->symbol (number->string (PycDecl-key this))))))
+   (PycDecl-name this))
 
 (define (pyc-propname name)
    (cond
@@ -235,87 +235,87 @@
       ((symbol? name) `(& ,(symbol->string name)))
       (else (error "pyc-propname" "Wrong property name" name))))
 
-(define-walk-method (pyc-scheme this::PyDecl conf)
+(define-walk-method (pyc-scheme this::PycDecl conf)
    (pyc-scheme-decl this conf))
 
-(define-walk-method (pyc-scheme this::PyDeclInit conf)
-   (let ((val (pyc-scheme (PyDeclInit-val this) conf)))
+(define-walk-method (pyc-scheme this::PycDeclInit conf)
+   (let ((val (pyc-scheme (PycDeclInit-val this) conf)))
       (epairify this
-	 (if (eq? (PyDecl-scope this) 'local)
+	 (if (eq? (PycDecl-scope this) 'local)
 	     `(set! ,(pyc-scheme-decl this conf) ,val)
-	     `(global-put! %global ,(pyc-propname (PyDecl-id this)) ,val
-		 (vector-ref %caches ,(PyNode-%info this)))))))
+	     `(global-put! %global ,(pyc-propname (PycDecl-id this)) ,val
+		 (vector-ref %caches ,(PycNode-%info this)))))))
 
-(define-walk-method (pyc-scheme this::PyAssig conf)
-   (if (isa? (PyAssig-lhs this) PyRef)
-       (let* ((ref (PyAssig-lhs this))
-	      (decl (PyRef-decl ref))
-	      (val (pyc-scheme (PyAssig-rhs this) conf)))
+(define-walk-method (pyc-scheme this::PycAssig conf)
+   (if (isa? (PycAssig-lhs this) PycRef)
+       (let* ((ref (PycAssig-lhs this))
+	      (decl (PycRef-decl ref))
+	      (val (pyc-scheme (PycAssig-rhs this) conf)))
 	  (epairify this
-	     (case (PyDecl-scope decl)
+	     (case (PycDecl-scope decl)
 		((global)
-		 `(global-put! %global ,(pyc-propname (PyDecl-id decl)) ,val
-		     (vector-ref %caches ,(PyNode-%info this))))
+		 `(global-put! %global ,(pyc-propname (PycDecl-id decl)) ,val
+		     (vector-ref %caches ,(PycNode-%info this))))
 		(else
 		 `(set! ,(pyc-scheme-decl decl conf) ,val)))))
-       (let* ((axs (PyAssig-lhs this))
-	      (obj (PyAccess-obj axs))
-	      (field (PyAccess-field axs))
-	      (val (pyc-scheme (PyAssig-rhs this) conf)))
+       (let* ((axs (PycAssig-lhs this))
+	      (obj (PycAccess-obj axs))
+	      (field (PycAccess-field axs))
+	      (val (pyc-scheme (PycAssig-rhs this) conf)))
 	  `(object-put! ,(pyc-scheme obj conf) ,field
-	      ,(pyc-scheme (PyAssig-rhs this) conf)))))
+	      ,(pyc-scheme (PycAssig-rhs this) conf)))))
 
-(define-walk-method (pyc-scheme this::PyPragma conf)
+(define-walk-method (pyc-scheme this::PycPragma conf)
    (epairify this
-      (PyPragma-expr this)))
+      (PycPragma-expr this)))
 
-(define-walk-method (pyc-scheme this::PyUninit conf)
+(define-walk-method (pyc-scheme this::PycUninit conf)
    (epairify this
       '(py-uninit)))
 
-(define-walk-method (pyc-scheme this::PyBool conf)
-   (PyLiteralValue-val this))
+(define-walk-method (pyc-scheme this::PycBool conf)
+   (PycLiteralValue-val this))
 
-(define-walk-method (pyc-scheme this::PyNumber conf)
-   (PyLiteralValue-val this))
+(define-walk-method (pyc-scheme this::PycNumber conf)
+   (PycLiteralValue-val this))
 
-(define-walk-method (pyc-scheme this::PyString conf)
-   (PyLiteralValue-val this))
+(define-walk-method (pyc-scheme this::PycString conf)
+   (PycLiteralValue-val this))
 
-(define-walk-method (pyc-scheme this::PyBinary conf)
+(define-walk-method (pyc-scheme this::PycBinary conf)
    (epairify this
-      `(,(symbol-append 'py (PyBinary-op this))
-	,(pyc-scheme (PyBinary-lhs this) conf)
-	,(pyc-scheme (PyBinary-rhs this) conf))))
+      `(,(symbol-append 'py (PycBinary-op this))
+	,(pyc-scheme (PycBinary-lhs this) conf)
+	,(pyc-scheme (PycBinary-rhs this) conf))))
 
-(define-walk-method (pyc-scheme this::PyFun conf)
+(define-walk-method (pyc-scheme this::PycFun conf)
    
-   (define (generator this::PyFun exp)
-      (if (PyFun-generator this)
+   (define (generator this::PycFun exp)
+      (if (PycFun-generator this)
 	  (epairify this
 	     `(letrec ((%gen (py-make-generator (lambda (%v %e) ,exp))))
 		 %gen))
 	  exp))
    
-   (let ((args (map (lambda (a) (pyc-scheme a conf)) (PyFun-args this)))
-	 (body (pyc-scheme (PyFun-body this) conf)))
+   (let ((args (map (lambda (a) (pyc-scheme a conf)) (PycFun-args this)))
+	 (body (pyc-scheme (PycFun-body this) conf)))
       (epairify this
 	 `(make-PyFunction (PyFunction-default-hclass) '#()
-	     ,(if (PyFun-need-return this)
+	     ,(if (PycFun-need-return this)
 		  `(lambda ,args ,(generator this `(bind-exit (return) ,body)))
 		  `(lambda ,args ,(generator this body)))))))
 
-(define-walk-method (pyc-scheme this::PyClass conf)
+(define-walk-method (pyc-scheme this::PycClass conf)
 
-   (define (pyc-class this::PyClass)
+   (define (pyc-class this::PycClass)
       (epairify this
 	 `(py-make-class
 	     ,@(append-map (lambda (decl)
-			      `((& ,(symbol->string (PyDecl-id decl)))
+			      `((& ,(symbol->string (PycDecl-id decl)))
 				,(pyc-scheme-decl decl conf)))
-		  (PyClass-decls this)))))
+		  (PycClass-decls this)))))
 				  
-   (let ((body (pyc-scheme (PyClass-body this) conf)))
+   (let ((body (pyc-scheme (PycClass-body this) conf)))
       (epairify this
 	 (match-case body
 	    ((letrec* ?bindings . ?body)
@@ -323,14 +323,14 @@
 	    (else
 	     `(begin ,body ,(pyc-class this)))))))
 
-(define-walk-method (pyc-scheme this::PyKont conf)
-   (let ((param (pyc-scheme (PyKont-param this) conf))
-	 (exn (pyc-scheme (PyKont-exn this) conf)))
+(define-walk-method (pyc-scheme this::PycKont conf)
+   (let ((param (pyc-scheme (PycKont-param this) conf))
+	 (exn (pyc-scheme (PycKont-exn this) conf)))
       (epairify this
 	 `(lambda (,param ,exn)
-	     ,(pyc-scheme (PyKont-body this) conf)))))
+	     ,(pyc-scheme (PycKont-body this) conf)))))
 
-(define-walk-method (pyc-scheme this::PyCall conf)
+(define-walk-method (pyc-scheme this::PycCall conf)
    
    (define (invoke fun args)
       (let ((call (case (length args)
@@ -341,89 +341,91 @@
 		     (else (error "pyc-scheme" "Not implemented" (py->list this))))))
 	 `(,call ,fun ,@args)))
 
-   (let ((fun (PyCall-fun this)))
-      (if (isa? fun PyAccess)
+   (let ((fun (PycCall-fun this)))
+      (if (isa? fun PycAccess)
 	  ;; method call
 	  (let ((obj (gensym '%obj)))
 	     (epairify this
-		`(let ((,obj ,(pyc-scheme (PyAccess-obj fun) conf)))
+		`(let ((,obj ,(pyc-scheme (PycAccess-obj fun) conf)))
 		    ,(invoke `(object-get ,obj
-				 ,(pyc-propname (PyAccess-field fun))
-				 (vector-ref %caches ,(PyNode-%info fun)))
+				 ,(pyc-propname (PycAccess-field fun))
+				 (vector-ref %caches ,(PycNode-%info fun)))
 			(cons obj
 			   (map (lambda (a) (pyc-scheme a conf))
-			      (PyCall-args this)))))))
+			      (PycCall-args this)))))))
 	  ;; function call
 	  (epairify this
 	     (invoke (pyc-scheme fun conf)
-		(map (lambda (a) (pyc-scheme a conf)) (PyCall-args this)))))))
+		(map (lambda (a) (pyc-scheme a conf)) (PycCall-args this)))))))
 
-(define-walk-method (pyc-scheme this::PycList conf)
-   (tprint "TODO"))
+(define-walk-method (pyc-scheme this::PycCollection conf)
+   (epairify this
+      `(,(if (isa? this PycList) 'py-make-list 'py-make-tuple)
+	,@(map (lambda (e) (pyc-scheme e conf)) (PycList-elts this)))))
 
-(define-walk-method (pyc-scheme this::PyRef conf)
-   (let ((decl (PyRef-decl this)))
-      (case (PyDecl-scope decl)
+(define-walk-method (pyc-scheme this::PycRef conf)
+   (let ((decl (PycRef-decl this)))
+      (case (PycDecl-scope decl)
 	 ((global)
 	  (epairify this
-	     `(global-get %global ,(pyc-propname (PyDecl-id decl))
-		 (vector-ref %caches ,(PyNode-%info this)))))
+	     `(global-get %global ,(pyc-propname (PycDecl-id decl))
+		 (vector-ref %caches ,(PycNode-%info this)))))
 	 (else
 	  (pyc-scheme-decl decl conf)))))
 
-(define-walk-method (pyc-scheme this::PyRefUnresolved conf)
+(define-walk-method (pyc-scheme this::PycRefUnresolved conf)
    (epairify this
-      `(global-get %global ,(pyc-propname (PyRefUnresolved-id this))
-	  (vector-ref %caches ,(PyNode-%info this)))))
+      `(global-get %global ,(pyc-propname (PycRefUnresolved-id this))
+	  (vector-ref %caches ,(PycNode-%info this)))))
 
-(define-walk-method (pyc-scheme this::PyAccess conf)
+(define-walk-method (pyc-scheme this::PycAccess conf)
    (epairify this
-      `(object-get ,(pyc-scheme (PyAccess-obj this) conf)
-	  ,(pyc-propname (PyAccess-field this))
-	  (vector-ref %caches ,(PyNode-%info this)))))
+      `(object-get ,(pyc-scheme (PycAccess-obj this) conf)
+	  ,(pyc-propname (PycAccess-field this))
+	  (vector-ref %caches ,(PycNode-%info this)))))
 
 ;; collect caches
-(define-walk-method (collect-caches this::PyNode cnt)
+(define-walk-method (collect-caches this::PycNode cnt)
    (call-default-walker))
 
-(define-walk-method (collect-caches this::PyDeclInit cnt)
+(define-walk-method (collect-caches this::PycDeclInit cnt)
    (call-default-walker)
-   (when (eq? (PyDecl-scope this) 'global)
+   (when (eq? (PycDecl-scope this) 'global)
       (let ((n (cell-ref cnt)))
 	 (cell-set! cnt (+ 1 n))
-	 (PyNode-%info-set! this n))))
+	 (PycNode-%info-set! this n))))
       
-(define-walk-method (collect-caches this::PyRef cnt)
-   (when (eq? (PyDecl-scope (PyRef-decl this)) 'global)
+(define-walk-method (collect-caches this::PycRef cnt)
+   (when (eq? (PycDecl-scope (PycRef-decl this)) 'global)
       (let ((n (cell-ref cnt)))
 	 (cell-set! cnt (+ 1 n))
-	 (PyNode-%info-set! this n))))
+	 (PycNode-%info-set! this n))))
 
-(define-walk-method (collect-caches this::PyRefUnresolved cnt)
+(define-walk-method (collect-caches this::PycRefUnresolved cnt)
    (let ((n (cell-ref cnt)))
       (cell-set! cnt (+ 1 n))
-      (PyNode-%info-set! this n)))
+      (PycNode-%info-set! this n)))
 
-(define-walk-method (collect-caches this::PyAccess cnt)
+(define-walk-method (collect-caches this::PycAccess cnt)
    (call-default-walker)
    (let ((n (cell-ref cnt)))
       (cell-set! cnt (+ 1 n))
-      (PyNode-%info-set! this n)))
+      (PycNode-%info-set! this n)))
 
-(define-walk-method (collect-caches this::PyAssig cnt)
+(define-walk-method (collect-caches this::PycAssig cnt)
    (call-default-walker)
-   (when (isa? (PyAssig-lhs this) PyRef)
-      (when (eq? (PyDecl-scope (PyRef-decl (PyAssig-lhs this))) 'global)
+   (when (isa? (PycAssig-lhs this) PycRef)
+      (when (eq? (PycDecl-scope (PycRef-decl (PycAssig-lhs this))) 'global)
 	 (let ((n (cell-ref cnt)))
 	    (cell-set! cnt (+ 1 n))
-	    (PyNode-%info-set! this n)))))
+	    (PycNode-%info-set! this n)))))
 
-(define-walk-method (collect-caches this::PyFor cnt)
+(define-walk-method (collect-caches this::PycFor cnt)
    (call-default-walker)
    (let ((n (cell-ref cnt)))
       (cell-set! cnt (+ 1 n))
       (let ((m (cell-ref cnt)))
 	 (cell-set! cnt (+ 1 n))
-	 (PyNode-%info-set! this (cons n m)))))
+	 (PycNode-%info-set! this (cons n m)))))
 	  
    
