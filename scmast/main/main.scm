@@ -97,11 +97,15 @@
 (cond-expand
   (bigloo
 
+   (define-macro (get-build-path) (pwd))
+		 
+   (define build-path (get-build-path))
+      
    (define (scmast.py file)
      (let ((all-args
-            (append (list "./scmast.py" file)
+            (append (list (make-file-path build-path "./scmast.py") file)
                     (list :input :pipe
-                          :output :pipe))))
+		       :output :pipe))))
        (let* ((proc (apply run-process all-args))
               (result (read (process-output-port proc))))
          result))))
