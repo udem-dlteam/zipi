@@ -57,6 +57,14 @@
      (else
       (object-get/miss-in-class obj name)))))
 
+(define (object-get-no-cache obj name)
+  (let ((index (PyObject-find-prop obj name)))
+    (cond
+     ((>= index 0)
+      (PyObject-elements-ref obj index))
+     (else
+      (object-get/miss-in-class obj name)))))
+
 (define (object-get/miss-in-class obj name)
   (let ((index (PyObject-find-prop obj (& "__class__"))))
     (cond
@@ -66,8 +74,6 @@
           (cond
            ((>= index2 0)
             (PyObject-elements-ref cls index2))
-           ((not (eq? obj cls))
-            (object-get/miss-in-class cls name))
            (else
             (error "AttributeError" "object has no attribute" name))))))
      (else
@@ -371,8 +377,47 @@
               (loop rest
                     (cons name rev-attr-names)
                     (cons value rev-attr-values))))
-        (let ((hclass1 (make-HClass (list->vector (reverse rev-attr-names)) '())))
-          (make-PyObject hclass1 (list->vector (reverse rev-attr-values)))))))
+        (let* ((has-init?
+                (member (& "__init__") rev-attr-names))
+               (hclass1
+                (make-HClass
+                 (list->vector
+                  (cons (& "__class__")
+                        (if has-init?
+                            (reverse rev-attr-names)
+                            (cons (& "__init__") (reverse rev-attr-names)))))
+                 '()))
+               (cls
+                #f))
+          (set! cls
+            (make-PyFunction
+             hclass1
+             (list->vector
+              (cons py-builtin-type
+                    (if has-init?
+                        (reverse rev-attr-values)
+                        (cons py-default-init (reverse rev-attr-values)))))
+             (lambda args
+               (let ((nargs (length args)))
+                 (let ((__init__ (object-get-no-cache cls (& "__init__"))))
+                   (if (and (isa? __init__ PyFunction)
+                            (correct-arity? (PyFunction-procedure __init__)
+                                            nargs))
+                       (let* ((hclass2 (make-HClass (vector (& "__class__")) '()))
+                              (self (make-PyObject
+                                     hclass2
+                                     (vector cls))))
+                         (apply (PyFunction-procedure __init__)
+                                (cons self args))
+                         self)
+                       (error "call" "wrong call" __init__)))))))
+          cls))))
+
+(define py-default-init
+  (py-procedure->function
+   (lambda rest (error "__init__" "unimplemented generic procedure" #f))
+   (lambda (self)
+     self)))
 
 (define (py-make-global)
    (let ((hclass1 (make-HClass (vector (& "__builtins__")) '())))
