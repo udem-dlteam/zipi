@@ -181,6 +181,12 @@
 	   ,(pyc-scheme (PycIf-then this) conf)
 	   ,(pyc-scheme (PycIf-else this) conf))))
 
+(define-walk-method (pyc-scheme this::PycWith conf)
+   (epairify this
+      `(py-with ,(pyc-scheme (PycWith-expr this) conf)
+	  (lambda ()
+	     ,(pyc-scheme (PycWith-body this) conf)))))
+
 (define-walk-method (pyc-scheme this::PycTry conf)
    
    (define (pyc-scheme-try this conf)

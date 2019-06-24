@@ -37,6 +37,11 @@
      ,(pynode->list (PycIf-then this))
      ,(pynode->list (PycIf-else this))))
 
+(define-walk-method (pynode->list this::PycWith)
+   `(,(string->symbol (typeof this))
+     ,(pynode->list (PycWith-expr this))
+     ,(pynode->list (PycWith-body this))))
+
 (define-walk-method (pynode->list this::PycDecl)
    `(,(string->symbol (typeof this))
      :scope ,(PycDecl-scope this)
