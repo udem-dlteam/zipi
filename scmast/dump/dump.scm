@@ -25,6 +25,12 @@
      ,(pynode->list (PycAssig-lhs this))
      ,(pynode->list (PycAssig-rhs this))))
 
+(define-walk-method (pynode->list this::PycAugAssig)
+   `(,(string->symbol (typeof this))
+     ,(PycAugAssig-op this)
+     ,(pynode->list (PycAssig-lhs this))
+     ,(pynode->list (PycAssig-rhs this))))
+
 (define-walk-method (pynode->list this::PycIf)
    `(,(string->symbol (typeof this))
      ,(pynode->list (PycIf-test this))
@@ -86,7 +92,14 @@
 (define-walk-method (pynode->list this::PycSubscript)
    `(,(string->symbol (typeof this))
      ,(pynode->list (PycSubscript-obj this))
-     ,(PycSubscript-slice this)))
+     ,(PycSubscript-index this)))
+
+(define-walk-method (pynode->list this::PycSlice)
+   `(,(string->symbol (typeof this))
+     ,(pynode->list (PycSlice-obj this))
+     ,(pynode->list (PycSlice-lower this))
+     ,(pynode->list (PycSlice-upper this))
+     ,(pynode->list (PycSlice-step this))))
 
 (define-walk-method (pynode->list this::PycRefUnresolved)
    `(,(string->symbol (typeof this)) ,(PycRefUnresolved-id this)))

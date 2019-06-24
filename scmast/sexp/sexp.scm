@@ -70,6 +70,19 @@
 			   (cons (new-PycAssig loc ref
 				    (new-PycRefUnresolved (PycNode-loc ref) id))
 			      assigs))))))))
+      ((AugAssign ?loc ?target ?op ?value . ?type_comment)
+       ;; AugAssign(expr target, operator op, expr value)
+       (new-PycAugAssig loc
+	  (sexp target #f scope conf)
+	  (sexp value #f scope conf)
+	  (operator op "AugAssign")))
+      ((AnnAssign ?loc ?target ?annotation ?value ?simple)
+       ;; AnnAssign(expr target, expr annotation, expr? value, int simple)
+       (if value
+	   (new-PycAssig loc
+	      (sexp target #f scope conf)
+	      (sexp value #f scope conf))
+	   (new-PycUninit loc)))
       ((For ?loc ?target ?iter ?body ?orelse . ?type_comment)
       ;; For(expr target, expr iter, stmt* body, stmt* orelse, string? type_comment)
        (new-PycFor loc
@@ -142,12 +155,7 @@
       ((BinOp ?loc ?left ?op ?right)
        ;; BinOp(expr left, operator op, expr right)
        (new-PycBinary loc 
-	  (case op
-	     ((Add) '+)
-	     ((Sub) '-)
-	     ((Div) '/)
-	     ((Mul) '*)
-	     (else "BinOp" "Illegal operator" op))
+	  (operator op "BinOp")
 	  (sexp left #f scope conf)
 	  (sexp right #f scope conf)
 	  type: (op-type op)))
@@ -250,3 +258,11 @@
    (if (memq op '(< <= > >= ==))
        'bool
        'unknown))
+
+(define (operator op node)
+   (case op
+      ((Add) '+)
+      ((Sub) '-)
+      ((Div) '/)
+      ((Mul) '*)
+      (else node "Illegal operator" op)))

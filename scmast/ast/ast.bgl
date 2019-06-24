@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 10:16:39 2019                          */
-;*    Last change :  Mon Jun 24 14:08:25 2019 (serrano)                */
+;*    Last change :  Mon Jun 24 14:18:28 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Python AST                                                       */
@@ -67,6 +67,9 @@
            (class PycAssig::PycStmt
               lhs::PycExpr
               rhs::PycExpr)
+           
+           (class PycAugAssig::PycAssig
+	      op::symbol)
            
            (class PycIf::PycStmt
               (test::PycExpr (info '("ast")))
@@ -499,6 +502,7 @@
 (gen-walks PycReturn val)
 (gen-walks PycReturnYield val kont)
 (gen-walks PycAssig lhs rhs)
+(gen-walks PycAugAssig lhs rhs)
 (gen-walks PycIf test then else)
 (gen-walks PycWhile test body else)
 (gen-walks PycFor target iter body else)

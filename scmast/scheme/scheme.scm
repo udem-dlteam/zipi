@@ -259,7 +259,7 @@
 		     (vector-ref %caches ,(PycNode-%info this))))
 		(else
 		 `(set! ,(pyc-scheme-decl decl conf) ,val))))))
-      ((isa? (PycAssig-lhs this) PycAssig)
+      ((isa? (PycAssig-lhs this) PycAccess)
        (let* ((axs (PycAssig-lhs this))
 	      (obj (PycAccess-obj axs))
 	      (field (PycAccess-field axs))
@@ -276,6 +276,39 @@
 	     `(py-setitem! ,(pyc-scheme obj conf)
 		 ,(pyc-scheme index conf)
 		 ,(pyc-scheme (PycAssig-rhs this) conf)))))))
+
+(define-walk-method (pyc-scheme this::PycAugAssig conf)
+   (cond
+      ((or (isa? (PycAssig-lhs this) PycRef)
+	   (isa? (PycAssig-lhs this) PycAccess))
+       (let ((assig (new-PycAssig (PycNode-loc this)
+		       (PycAssig-lhs this)
+		       (new-PycBinary (PycNode-loc this)
+			  (PycAugAssig-op this)
+			  (PycAssig-lhs this)
+			  (PycAssig-rhs this))
+		       %info: (PycNode-%info this))))
+	  (pyc-scheme assig conf)))
+      (else
+       (let* ((axs (PycAssig-lhs this))
+	      (obj (PycSubscript-obj axs))
+	      (index (PycSubscript-index axs))
+	      (val (pyc-scheme (PycAssig-rhs this) conf)))
+	  (let* ((idx (gensym '%i))
+		 (assig (new-PycAssig (PycNode-loc this)
+			   (new-PycSubscript (PycNode-loc axs)
+			      obj
+			      (new-PycPragma (PycNode-loc index) idx))
+			   (new-PycBinary (PycNode-loc this)
+			      (PycAugAssig-op this)
+			      (new-PycSubscript (PycNode-loc axs)
+				 obj
+				 (new-PycPragma (PycNode-loc index) idx))
+			      (PycAssig-rhs this)))))
+	     
+	     (epairify this
+		`(let ((,idx ,(pyc-scheme index conf)))
+		    ,(pyc-scheme assig conf))))))))
 
 (define-walk-method (pyc-scheme this::PycPragma conf)
    (epairify this
