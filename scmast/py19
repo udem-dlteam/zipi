@@ -1,38 +1,40 @@
 #!/bin/bash
 
-~/udem-dlteam/gambit/gsi/gsi -::.,darR- \
--e '(##import bigloo)' \
-ast/ast.bgl \
--e '(##include "ast/walk.sch")' \
--e '(##include "ast/new.sch")' \
--e '(##include "sexp/sexp.scm")' \
-symbol/symbol.bgl \
-symbol/symbol.scm \
-return/return.bgl \
-return/return.scm \
-locals/locals.bgl \
-locals/locals.scm \
--e '(##include "hclass/hclass.bgl")' \
--e '(##include "hclass/hclass.scm")' \
--e '(##include "object/object.bgl")' \
--e '(##include "object/object.scm")' \
--e '(##include "iterator/iterator.bgl")' \
--e '(##include "iterator/iterator.scm")' \
-scheme/scheme.bgl \
-scheme/scheme.scm \
-break/break.bgl \
-break/break.scm \
-generator/generator.bgl \
-generator/generator.scm \
-cps/cps.bgl \
-cps/cps.scm \
-javascript/javascript.bgl \
-javascript/javascript.scm \
-dump/dump.bgl \
-dump/dump.scm \
-beval/beval.bgl \
-beval/beval.scm \
-main/main.bgl \
-main/main.scm \
-main/main-gambit.scm \
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+~/udem-dlteam/gambit/gsi/gsi -::$SCRIPT_DIR,darR-,t8,f8,-8 \
+-e "(##import bigloo)" \
+$SCRIPT_DIR/ast/ast.bgl \
+-e "(##include \"$SCRIPT_DIR/ast/walk.sch\")" \
+-e "(##include \"$SCRIPT_DIR/ast/new.sch\")" \
+-e "(##include \"$SCRIPT_DIR/sexp/sexp.scm\")" \
+$SCRIPT_DIR/symbol/symbol.bgl \
+$SCRIPT_DIR/symbol/symbol.scm \
+$SCRIPT_DIR/return/return.bgl \
+$SCRIPT_DIR/return/return.scm \
+$SCRIPT_DIR/locals/locals.bgl \
+$SCRIPT_DIR/locals/locals.scm \
+-e "(##include \"$SCRIPT_DIR/hclass/hclass.bgl\")" \
+-e "(##include \"$SCRIPT_DIR/hclass/hclass.scm\")" \
+-e "(##include \"$SCRIPT_DIR/object/object.bgl\")" \
+-e "(##include \"$SCRIPT_DIR/object/object.scm\")" \
+-e "(##include \"$SCRIPT_DIR/iterator/iterator.bgl\")" \
+-e "(##include \"$SCRIPT_DIR/iterator/iterator.scm\")" \
+$SCRIPT_DIR/scheme/scheme.bgl \
+$SCRIPT_DIR/scheme/scheme.scm \
+$SCRIPT_DIR/break/break.bgl \
+$SCRIPT_DIR/break/break.scm \
+$SCRIPT_DIR/generator/generator.bgl \
+$SCRIPT_DIR/generator/generator.scm \
+$SCRIPT_DIR/cps/cps.bgl \
+$SCRIPT_DIR/cps/cps.scm \
+$SCRIPT_DIR/javascript/javascript.bgl \
+$SCRIPT_DIR/javascript/javascript.scm \
+$SCRIPT_DIR/dump/dump.bgl \
+$SCRIPT_DIR/dump/dump.scm \
+$SCRIPT_DIR/beval/beval.bgl \
+$SCRIPT_DIR/beval/beval.scm \
+$SCRIPT_DIR/main/main.bgl \
+$SCRIPT_DIR/main/main.scm \
+$SCRIPT_DIR/main/main-gambit.scm \
 $*
