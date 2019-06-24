@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Mon Jun 17 07:50:42 2019                          */
-;*    Last change :                                                    */
+;*    Last change :  Mon Jun 24 14:58:20 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    JavaScript code generation                                       */
@@ -12,10 +12,10 @@
 ;*---------------------------------------------------------------------*/
 ;*    The module                                                       */
 ;*---------------------------------------------------------------------*/
-(module __py_javascript
+(module __pyc_javascript
    
    (include "ast/ast.sch")
    
-   (import __py_dump)
+   (import __pyc_dump)
    
-   (export (py-javascript ast conf)))
+   (export (pyc-javascript ast conf)))

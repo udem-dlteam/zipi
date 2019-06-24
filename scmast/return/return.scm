@@ -1,6 +1,6 @@
 ;; annotate return statements with tail/notail information
 ;; annotation function definitions with need-return values
-(define (py-return this conf)
+(define (pyc-return this conf)
    (mark-noreturn this)
    (return this #f #t conf)
    this)

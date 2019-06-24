@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 12:48:54 2019                          */
-;*    Last change :  Thu Jun 20 08:42:02 2019 (serrano)                */
+;*    Last change :  Mon Jun 24 14:56:48 2019 (serrano)                */
 ;*    Copyright   :  2019 M. Feeley & M. Serrano                       */
 ;*    -------------------------------------------------------------    */
 ;*    python ast interpreter (bigloo prelude)                          */
@@ -12,21 +12,21 @@
 ;*---------------------------------------------------------------------*/
 ;*    The module                                                       */
 ;*---------------------------------------------------------------------*/
-(module astpy
+(module pyc
    
    (include "ast/ast.sch")
    
-   (import __py_dump
-	   __py_sexp
-	   __py_symbol
-	   __py_locals
-	   __py_return
-	   __py_break
-	   __py_generator
-	   __py_cps
-	   __py_beval
-	   __py_scheme
-	   __py_javascript
+   (import __pyc_dump
+	   __pyc_sexp
+	   __pyc_symbol
+	   __pyc_locals
+	   __pyc_return
+	   __pyc_break
+	   __pyc_generator
+	   __pyc_cps
+	   __pyc_beval
+	   __pyc_scheme
+	   __pyc_javascript
 	   __py_hclass
 	   __py_object)
 

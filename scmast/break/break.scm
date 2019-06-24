@@ -1,6 +1,6 @@
 ;; annotate return statements with tail/notail information
 ;; annotation function definitions with need-return values
-(define (py-break this conf)
+(define (pyc-break this conf)
    (mark-nobreak-nocontinue this)
    (breakont this #f conf)
    this)
@@ -27,9 +27,9 @@
 (define-walk-method (breakont this::PycBreak loop conf)
    (if (isa? loop PycLoop)
        (PycLoop-need-break-set! loop #t)
-       (error "breakont" "Illegal break" (py->list this))))
+       (error "breakont" "Illegal break" (pyc->list this))))
 
 (define-walk-method (breakont this::PycContinue loop conf)
    (if (isa? loop PycLoop)
        (PycLoop-need-continue-set! loop #t)
-       (error "breakont" "Illegal continue" (py->list this))))
+       (error "breakont" "Illegal continue" (pyc->list this))))

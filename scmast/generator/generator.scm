@@ -1,4 +1,4 @@
-(define (py-generator this conf)
+(define (pyc-generator this conf)
    (mark-generator this #f)
    this)
 

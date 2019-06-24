@@ -1,7 +1,7 @@
 ;; CPS transform functions that use yield
 ;; This pass assumes that the GENERATOR pass has already execute
 ;; and so generator function are alread marked
-(define (py-cps this conf)
+(define (pyc-cps this conf)
    (cps-fun! this))
 
 ;; Transform CPS functions
@@ -37,7 +37,7 @@
 	     pack kbreaks kcontinues ktry fun))))
 
 (define-walk-method (cps this::PycNode k pack kbreaks kcontinues ktry fun)
-   (error "cps" "Should not be here" (py->list this)))
+   (error "cps" "Should not be here" (pyc->list this)))
 
 (define-walk-method (cps this::PycStmtExpr k pack kbreaks kcontinues ktry fun)
    (let ((loc (PycNode-loc this))

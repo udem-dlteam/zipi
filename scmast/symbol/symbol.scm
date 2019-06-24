@@ -1,5 +1,5 @@
 ;; symbol resolution
-(define (py-symbol! this conf)
+(define (pyc-symbol! this conf)
    (let* ((env (collect* this 'global))
 	  (%env (cons '% env)))
       (glodecl! this %env)
