@@ -321,7 +321,7 @@
 	    ((letrec* ?bindings . ?body)
 	     `(letrec* ,bindings ,@body ,(pyc-class this)))
 	    (else
-	     `(begin ,@body ,(pyc-class this)))))))
+	     `(begin ,body ,(pyc-class this)))))))
 
 (define-walk-method (pyc-scheme this::PyKont conf)
    (let ((param (pyc-scheme (PyKont-param this) conf))
@@ -357,6 +357,9 @@
 	  (epairify this
 	     (invoke (pyc-scheme fun conf)
 		(map (lambda (a) (pyc-scheme a conf)) (PyCall-args this)))))))
+
+(define-walk-method (pyc-scheme this::PycList conf)
+   (tprint "TODO"))
 
 (define-walk-method (pyc-scheme this::PyRef conf)
    (let ((decl (PyRef-decl this)))

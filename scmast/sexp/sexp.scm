@@ -153,6 +153,7 @@
 	  type: (op-type op)))
       ((UnaryOp ?loc ?op ?expr)
        (new-PyUnary loc op (sexp expr #f scope conf)))
+      
       ((Yield ?loc ?value)
        (new-PyYield loc (sexp value tail scope conf)))
       ;; Yield(expr? value)
@@ -188,6 +189,9 @@
 	  ((Store) (new-PyRefUnresolved loc id))
 	  ((Delete) (new-PyRefUnresolved loc id))
 	  (else (error "ctx" "Not implemented" ctx))))
+      ((List ?loc ?elts ?ctx)
+       ;; List(expr* elts, expr_context ctx)
+       (new-PycList loc elts))
       (else
        (error "sexp" "Not implemented" exp))))
 
