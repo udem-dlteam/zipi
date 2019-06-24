@@ -102,7 +102,22 @@
        (new-PycIf loc (sexp test #f scope conf)
 	  (compile-stmt* loc body tail scope conf)
 	  (compile-stmt* loc otherwise tail scope conf)))
-
+      ((With ?loc ?items ?body . ?type_comment)
+       (if (and (pair? items) (null? (cdr items)))
+	   (let ((item (car items)))
+	      (if (cadr item)
+		  (new-PycSeq loc
+		     (list
+			(new-PycAssig loc (sexp (cadr item) #f scope conf)
+			   (sexp (car item) #f scope conf))
+			(new-PycWith loc
+			   (sexp (cadr item) #f scope conf)
+			   (compile-stmt* loc body #f scope conf))))
+		  (new-PycWith loc
+		     (sexp (car item) #f scope conf)
+		     (compile-stmt* loc body #f scope conf))))
+	   (error "With" "Not implemented" exp)))
+       ;; With(withitem* items, stmt* body, string? type_comment)
       ((Raise ?loc ?exc ?cause)
        ;; Raise(expr? exc, expr? cause)
        (new-PycRaise loc

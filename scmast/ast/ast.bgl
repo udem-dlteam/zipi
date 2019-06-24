@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 10:16:39 2019                          */
-;*    Last change :  Mon Jun 24 14:18:28 2019 (serrano)                */
+;*    Last change :  Mon Jun 24 14:40:37 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Python AST                                                       */
@@ -75,6 +75,10 @@
               (test::PycExpr (info '("ast")))
               (then::PycStmt (info '("ast")))
               (else::PycStmt (info '("ast"))))
+
+	   (class PycWith::PycStmt
+	      (expr::PycExpr (info '("ast")))
+	      (body::PycStmt (info '("ast"))))
 
 	   (class PycLoop::PycStmt
 	      (body::PycStmt (info '("ast")))
@@ -504,6 +508,7 @@
 (gen-walks PycAssig lhs rhs)
 (gen-walks PycAugAssig lhs rhs)
 (gen-walks PycIf test then else)
+(gen-walks PycWith expr body)
 (gen-walks PycWhile test body else)
 (gen-walks PycFor target iter body else)
 (gen-walks PycRaise exc cause)
