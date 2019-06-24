@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Thu Jun 20 16:21:03 2019 (serrano)                */
+;*    Last change :  Mon Jun 24 11:05:16 2019 (serrano)                */
 ;*    Copyright   :  2019 M. Feeley & M. Serrano                       */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -27,7 +27,8 @@
 	   
 	   (macro & name)
 
-	   (py-builtins::PyObject)
+	   (py-builtins-mod::PyObject)
+	   (py-time-mod::PyObject)
 	   
 	   (global-get ::PyObject ::obj ::obj)
 	   (global-put! ::PyObject ::obj ::obj ::obj)
@@ -101,3 +102,9 @@
 ;*---------------------------------------------------------------------*/
 (define-inline (py-none)
    'None)
+
+;*---------------------------------------------------------------------*/
+;*    current-second ...                                               */
+;*---------------------------------------------------------------------*/
+(define-inline (current-second)
+   (current-seconds))
