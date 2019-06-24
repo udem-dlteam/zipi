@@ -309,7 +309,7 @@
 
    (define (pyc-class this::PyClass)
       (epairify this
-	 `(make-PyClass
+	 `(py-make-class
 	     ,@(append-map (lambda (decl)
 			      `((& ,(symbol->string (PyDecl-id decl)))
 				,(pyc-scheme-decl decl conf)))

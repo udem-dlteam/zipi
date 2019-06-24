@@ -98,7 +98,7 @@
 			   (new-PyDeclInit loc (PyDecl-id decl) 'local
 			      (new-PyUninit loc))))
 		   (append aenv decls))))
-      (PyClass-decls-set! this decls)
+      (PyClass-decls-set! this bdgs)
       (if (pair? bdgs)
 	  (PyClass-body-set! this
 	     (new-PyBlock loc

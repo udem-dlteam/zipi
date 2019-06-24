@@ -66,7 +66,7 @@
 
 (define (compile-pyc ast passes conf)
    (let ((tracedir (make-file-name (config-get conf 'tmp)
-		      (config-get conf 'filename "stdin"))))
+		      (config-get conf 'src "stdin"))))
       (when (config-get conf 'trace)
 	 (make-directories tracedir)
 	 (dump-trace tracedir "sexp" ast))

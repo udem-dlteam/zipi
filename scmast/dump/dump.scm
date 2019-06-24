@@ -40,6 +40,7 @@
 (define-walk-method (pynode->list this::PyDeclInit)
    `(,(string->symbol (typeof this))
      :scope ,(PyDecl-scope this)
+     :key ,(PyDecl-key this)
      ,(PyDecl-id this) ,(pynode->list (PyDeclInit-val this))))
 
 (define-walk-method (pynode->list this::PyReturn)
@@ -94,7 +95,11 @@
 
 (define-walk-method (pynode->list this::PyClass)
    `(,(string->symbol (typeof this))
-     :decls ,(map pynode->list (PyClass-decls this))
+     :decls ,(map (lambda (d)
+		     `(,(string->symbol (typeof d))
+		       :key ,(PyDecl-key d)
+		       ,(PyDecl-id d)))
+		(PyClass-decls this))
      :supers ,(map pynode->list (PyClass-supers this))
      ,(pynode->list (PyClass-body this))))
 
