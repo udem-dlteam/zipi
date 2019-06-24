@@ -270,11 +270,11 @@
       (else
        (let* ((axs (PycAssig-lhs this))
 	      (obj (PycSubscript-obj axs))
-	      (slice (PycSubscript-slice axs))
+	      (index (PycSubscript-index axs))
 	      (val (pyc-scheme (PycAssig-rhs this) conf)))
 	  (epairify this
 	     `(py-setitem! ,(pyc-scheme obj conf)
-		 ,(pyc-scheme slice conf)
+		 ,(pyc-scheme index conf)
 		 ,(pyc-scheme (PycAssig-rhs this) conf)))))))
 
 (define-walk-method (pyc-scheme this::PycPragma conf)
@@ -399,7 +399,14 @@
 (define-walk-method (pyc-scheme this::PycSubscript conf)
    (epairify this
       `(py-getitem ,(pyc-scheme (PycSubscript-obj this) conf)
-	  ,(pyc-scheme (PycSubscript-slice this) conf))))
+	  ,(pyc-scheme (PycSubscript-index this) conf))))
+
+(define-walk-method (pyc-scheme this::PycSlice conf)
+   (epairify this
+      `(py-slice ,(pyc-scheme (PycSlice-obj this) conf)
+	  ,(pyc-scheme (PycSlice-lower this) conf)
+	  ,(pyc-scheme (PycSlice-upper this) conf)
+	  ,(pyc-scheme (PycSlice-step this) conf))))
 
 ;; collect caches
 (define-walk-method (collect-caches this::PycNode cnt)

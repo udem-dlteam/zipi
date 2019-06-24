@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 10:16:39 2019                          */
-;*    Last change :  Mon Jun 24 13:54:18 2019 (serrano)                */
+;*    Last change :  Mon Jun 24 14:08:25 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Python AST                                                       */
@@ -127,7 +127,13 @@
 	   
 	   (class PycSubscript::PycExpr
 	      obj::PycExpr
-	      slice::PycExpr)
+	      index::PycExpr)
+	   
+	   (class PycSlice::PycExpr
+	      obj::PycExpr
+	      lower::PycExpr
+	      upper::PycExpr
+	      step::PycExpr)
 	   
            (abstract-class PycLiteral::PycExpr)
            
@@ -507,7 +513,8 @@
 (gen-walks PycCall fun (args) (keywords))
 (gen-walks PycCollection (elts))
 (gen-walks PycAccess obj)
-(gen-walks PycSubscript obj slice)
+(gen-walks PycSubscript obj index)
+(gen-walks PycSlice obj lower upper step)
 (gen-walks PycYield val)
 (gen-walks PycKont body)
 

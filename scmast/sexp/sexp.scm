@@ -183,8 +183,7 @@
        ;; Attribute(expr value, identifier attr, expr_context ctx)
        (new-PycAccess loc (sexp value #f scope conf) (symbol->string attr)))
       ((Subscript ?loc ?value ?slc ?ctx)
-       (new-PycSubscript loc (sexp value #f scope conf)
-	  (slice slc #f scope conf)))
+       (subscript loc value slc scope conf))
       ((Name ?loc ?id ?ctx)
        ;; Name(identifier id, expr_context ctx)
        (case ctx
@@ -201,10 +200,18 @@
       (else
        (error "sexp" "Not implemented" exp))))
 
-(define (slice exp tail scope conf)
+(define (subscript loc obj exp scope conf)
    (match-case exp
+      ((Slice ?loc ?lower ?upper ?step)
+       ;; Slice(expr? lower, expr? upper, expr? step)
+       (new-PycSlice loc (sexp obj #f scope conf)
+	  (if lower (sexp lower #f scope conf) (new-PycUninit loc))
+	  (if upper (sexp upper #f scope conf) (new-PycUninit loc))
+	  (if step (sexp step #f scope conf) (new-PycUninit loc))))
       ((Index ?loc ?exp)
-       (sexp exp tail scope conf))
+       ;; Index(expr value)
+       (new-PycSubscript loc (sexp obj #f scope conf)
+	  (sexp exp #f scope conf)))
       (else
        (error "slice" "Not implemented" exp))))
 
