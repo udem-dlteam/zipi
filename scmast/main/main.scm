@@ -109,7 +109,8 @@
   (gambit
 
    (define (scmast.py file)
-     (let* ((port (open-process (list path: "./scmast.py"
-                                      arguments: (list file))))
-            (result (read port)))
-       result))))
+     (let ((dir (path-expand ".." (path-directory (car (command-line))))))
+       (let* ((port (open-process (list path: (path-expand "scmast.py" dir)
+                                        arguments: (list file))))
+              (result (read port)))
+         result)))))

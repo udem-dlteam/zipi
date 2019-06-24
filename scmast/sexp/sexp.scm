@@ -107,7 +107,10 @@
        (match-case (car aliases)
 	  ((builtins #f)
 	   (new-PyAssig loc (new-PyRefUnresolved loc 'builtins)
-	      (new-PyPragma loc '(py-builtins))))
+	      (new-PyPragma loc '(py-builtins-mod))))
+	  ((time #f)
+	   (new-PyAssig loc (new-PyRefUnresolved loc 'time)
+	      (new-PyPragma loc '(py-time-mod))))
 	  (else
 	   (error "Import" "Unsupported form" exp))))
       
