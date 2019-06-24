@@ -1,9 +1,9 @@
 ;*=====================================================================*/
-;*    serrano/nosync/py19/scmast/gloloc/gloloc.bgl                     */
+;*    serrano/nosync/py19/scmast/locals/locals.bgl                     */
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 15:13:00 2019                          */
-;*    Last change :  Thu Jun 13 14:22:39 2019 (serrano)                */
+;*    Last change :  Mon Jun 24 13:42:45 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Annotate functions that might call locals()                      */
@@ -16,4 +16,4 @@
 
    (include "ast/ast.sch")
    
-   (export (py-locals ::PyNode conf)))
+   (export (py-locals ::PycNode conf)))

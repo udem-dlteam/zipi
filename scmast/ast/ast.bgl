@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 10:16:39 2019                          */
-;*    Last change :  Mon Jun 24 13:28:14 2019 (serrano)                */
+;*    Last change :  Mon Jun 24 14:18:28 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Python AST                                                       */
@@ -14,12 +14,12 @@
 ;*---------------------------------------------------------------------*/
 (module __py_ast
    
-   (export (abstract-class PyNode
+   (export (abstract-class PycNode
               (loc::pair read-only (info '("notraverse")))
               (%info (default #f) (info '("nojson" "notraverse"))))
            
            ;; module
-           (class PyModule::PyNode
+           (class PycModule::PycNode
               (version::int read-only (default 1))
               (ident::string read-only)
               stmts::pair-nil
@@ -27,7 +27,7 @@
 	      (caches::long (default -1)))
            
            ;; misc
-           (class PyDecl::PyNode
+           (class PycDecl::PycNode
               (key::int (default (genkey)))
               (name (default #f))
               (id::symbol read-only)
@@ -36,171 +36,188 @@
 	      ;; usage
 	      (usage::pair-nil (default '())))
            
-           (class PyDeclInit::PyDecl
-              val::PyExpr)
+           (class PycDeclInit::PycDecl
+              val::PycExpr)
 
-           (class PyVar::PyDeclInit)
+           (class PycVar::PycDeclInit)
            
            ;; statements
-           (abstract-class PyStmt::PyNode)
+           (abstract-class PycStmt::PycNode)
            
-           (class PySeq::PyStmt
+           (class PycSeq::PycStmt
               (nodes::pair-nil (info '("ast"))))
            
-           (class PyBlock::PyStmt
+           (class PycBlock::PycStmt
               ;; equivalent to a Scheme let*
               decls::pair-nil
-              body::PyStmt)
+              body::PycStmt)
 
-           (class PyReturn::PyStmt
-              val::PyExpr
+           (class PycReturn::PycStmt
+              val::PycExpr
               tail::bool)
 
-	   (class PyReturnYield::PyStmt
-	      (val::PyExpr (info '("ast")))
+	   (class PycReturnYield::PycStmt
+	      (val::PycExpr (info '("ast")))
 	      (generator::bool read-only (default #f))
-	      (kont::PyExpr (info '("ast"))))
+	      (kont::PycExpr (info '("ast"))))
 
-           (class PyDelete::PyStmt
-              expr::PyExpr)
+           (class PycDelete::PycStmt
+              expr::PycExpr)
            
-           (class PyAssig::PyStmt
-              lhs::PyExpr
-              rhs::PyExpr)
+           (class PycAssig::PycStmt
+              lhs::PycExpr
+              rhs::PycExpr)
            
-           (class PyIf::PyStmt
-              (test::PyExpr (info '("ast")))
-              (then::PyStmt (info '("ast")))
-              (else::PyStmt (info '("ast"))))
+           (class PycAugAssig::PycAssig
+	      op::symbol)
+           
+           (class PycIf::PycStmt
+              (test::PycExpr (info '("ast")))
+              (then::PycStmt (info '("ast")))
+              (else::PycStmt (info '("ast"))))
 
-	   (class PyLoop::PyStmt
-	      (body::PyStmt (info '("ast")))
-	      (else::PyStmt (info '("ast")))
+	   (class PycLoop::PycStmt
+	      (body::PycStmt (info '("ast")))
+	      (else::PycStmt (info '("ast")))
 	      (need-break::bool (default #t))
 	      (need-continue::bool (default #t)))
 	      
-	   (class PyFor::PyLoop
-	      (target::PyExpr (info '("ast")))
-	      (iter::PyExpr (info '("ast"))))
+	   (class PycFor::PycLoop
+	      (target::PycExpr (info '("ast")))
+	      (iter::PycExpr (info '("ast"))))
 
-	   (class PyWhile::PyLoop
-	      (test::PyExpr (info '("ast"))))
+	   (class PycWhile::PycLoop
+	      (test::PycExpr (info '("ast"))))
 
-	   (class PyRaise::PyStmt
-	      (exc::PyExpr (info '("ast")))
-	      (cause::PyExpr (info '("ast"))))
+	   (class PycRaise::PycStmt
+	      (exc::PycExpr (info '("ast")))
+	      (cause::PycExpr (info '("ast"))))
 	   
-	   (class PyTry::PyStmt
-	      (body::PyStmt (info '("ast")))
+	   (class PycTry::PycStmt
+	      (body::PycStmt (info '("ast")))
 	      handlers::pair-nil
-	      (else::PyStmt (info '("ast")))
-	      (finally::PyStmt (info '("ast"))))
+	      (else::PycStmt (info '("ast")))
+	      (finally::PycStmt (info '("ast"))))
 
-	   (class PyHandler::PyNode
-	      (type::PyExpr (info '("ast")))
-	      (body::PyStmt (info '("ast"))))
+	   (class PycHandler::PycNode
+	      (type::PycExpr (info '("ast")))
+	      (body::PycStmt (info '("ast"))))
 	   
-	   (class PyBreak::PyStmt)
-	   (class PyContinue::PyStmt)
-	   (class PyPass::PyStmt)
+	   (class PycBreak::PycStmt)
+	   (class PycContinue::PycStmt)
+	   (class PycPass::PycStmt)
 
-	   (class PyStmtExpr::PyStmt
-	      expr::PyExpr)
+	   (class PycStmtExpr::PycStmt
+	      expr::PycExpr)
 	   
            ;; expressions
-           (class PyExpr::PyNode
+           (class PycExpr::PycNode
 	      (type::symbol (default 'unknown)))
 
-           (class PyPragma::PyExpr
+           (class PycPragma::PycExpr
               (lang::symbol (default 'scheme))
               expr)
            
-           (class PyRef::PyExpr
+           (class PycRef::PycExpr
               (decl (info '("jsonref" "notraverse"))))
            
-           (class PyRefUnresolved::PyExpr
+           (class PycRefUnresolved::PycExpr
               id)
 
-	   (class PyAccess::PyExpr
-	      obj::PyExpr
+	   (class PycAccess::PycExpr
+	      obj::PycExpr
 	      (field::bstring read-only))
 	   
-           (abstract-class PyLiteral::PyExpr)
+	   (class PycSubscript::PycExpr
+	      obj::PycExpr
+	      index::PycExpr)
+	   
+	   (class PycSlice::PycExpr
+	      obj::PycExpr
+	      lower::PycExpr
+	      upper::PycExpr
+	      step::PycExpr)
+	   
+           (abstract-class PycLiteral::PycExpr)
            
-           (final-class PyUninit::PyExpr)
+           (final-class PycUninit::PycExpr)
            
-           (class PyLiteralValue::PyLiteral
+           (class PycLiteralValue::PycLiteral
               val)
            
-           (final-class PyBool::PyLiteralValue)
-           (final-class PyNumber::PyLiteralValue)
-           (final-class PyString::PyLiteralValue)
+           (final-class PycBool::PycLiteralValue)
+           (final-class PycNumber::PycLiteralValue)
+           (final-class PycString::PycLiteralValue)
 
-	   (final-class PyUnary::PyExpr
+	   (final-class PycUnary::PycExpr
 	      op::symbol
-	      expr::PyExpr)
+	      expr::PycExpr)
 	   
-           (final-class PyBinary::PyExpr
+           (final-class PycBinary::PycExpr
               op::symbol
-              lhs::PyExpr
-              rhs::PyExpr)
+              lhs::PycExpr
+              rhs::PycExpr)
            
-           (final-class PyFun::PyExpr
+           (final-class PycFun::PycExpr
               args::pair-nil
-              body::PyStmt
+              body::PycStmt
               (decls::pair-nil (default '()))
 	      (generator::bool (default #f))
               (need-return::bool (default #t))
               (can-locals::bool (default #t)))
 
-           (final-class PyClass::PyExpr
-              body::PyStmt
+           (final-class PycClass::PycExpr
+              body::PycStmt
               (decls::pair-nil (default '()))
 	      (supers::pair-nil (default '())))
 	   
-	   (final-class PyYield::PyExpr
-	      (val::PyExpr (info '("ast")))
+	   (final-class PycYield::PycExpr
+	      (val::PycExpr (info '("ast")))
 	      (generator::bool read-only (default #f)))
 	   
-	   (final-class PyKont::PyExpr
-	      (param::PyDecl read-only)
-	      (exn::PyDecl read-only)
-	      (body::PyNode (info '("ast"))))
+	   (final-class PycKont::PycExpr
+	      (param::PycDecl read-only)
+	      (exn::PycDecl read-only)
+	      (body::PycNode (info '("ast"))))
            
-           (final-class PyCall::PyExpr
-              fun::PyExpr
+           (final-class PycCall::PycExpr
+              fun::PycExpr
               args::pair-nil
               keywords::pair-nil)
 
-	   (final-class PycList::PyExpr
+	   (abstract-class PycCollection::PycExpr
 	      elts::pair)
+
+	   (final-class PycList::PycCollection)
+
+	   (final-class PycTuple::PycCollection)
 
            (genkey)
            
-           (generic walk0 n::PyNode p::procedure)
-           (generic walk1 n::PyNode p::procedure a0)
-           (generic walk2 n::PyNode p::procedure a0 a1)
-           (generic walk3 n::PyNode p::procedure a0 a1 a2)
-           (generic walk4 n::PyNode p::procedure a0 a1 a2 a3)
-           (generic walk5 n::PyNode p::procedure a0 a1 a2 a3 a4)
-           (generic walk6 n::PyNode p::procedure a0 a1 a2 a3 a4 a5)
-           (generic walk7 n::PyNode p::procedure a0 a1 a2 a3 a4 a5 a6)
-           (generic walk0*::pair-nil n::PyNode p::procedure)
-           (generic walk1*::pair-nil n::PyNode p::procedure a0)
-           (generic walk2*::pair-nil n::PyNode p::procedure a0 a1)
-           (generic walk3*::pair-nil n::PyNode p::procedure a0 a1 a2)
-           (generic walk4*::pair-nil n::PyNode p::procedure a0 a1 a2 a3)
-           (generic walk5*::pair-nil n::PyNode p::procedure a0 a1 a2 a3 a4)
-           (generic walk6*::pair-nil n::PyNode p::procedure a0 a1 a2 a3 a4 a5)
-           (generic walk7*::pair-nil n::PyNode p::procedure a0 a1 a2 a3 a4 a5 a6)
-           (generic walk0!::PyNode n::PyNode p::procedure)
-           (generic walk1!::PyNode n::PyNode p::procedure a0)
-           (generic walk2!::PyNode n::PyNode p::procedure a0 a1)
-           (generic walk3!::PyNode n::PyNode p::procedure a0 a1 a2)
-           (generic walk4!::PyNode n::PyNode p::procedure a0 a1 a2 a3)
-           (generic walk5!::PyNode n::PyNode p::procedure a0 a1 a2 a3 a4)
-           (generic walk6!::PyNode n::PyNode p::procedure a0 a1 a2 a3 a4 a5)
-           (generic walk7!::PyNode n::PyNode p::procedure a0 a1 a2 a3 a4 a5 a6)))
+           (generic walk0 n::PycNode p::procedure)
+           (generic walk1 n::PycNode p::procedure a0)
+           (generic walk2 n::PycNode p::procedure a0 a1)
+           (generic walk3 n::PycNode p::procedure a0 a1 a2)
+           (generic walk4 n::PycNode p::procedure a0 a1 a2 a3)
+           (generic walk5 n::PycNode p::procedure a0 a1 a2 a3 a4)
+           (generic walk6 n::PycNode p::procedure a0 a1 a2 a3 a4 a5)
+           (generic walk7 n::PycNode p::procedure a0 a1 a2 a3 a4 a5 a6)
+           (generic walk0*::pair-nil n::PycNode p::procedure)
+           (generic walk1*::pair-nil n::PycNode p::procedure a0)
+           (generic walk2*::pair-nil n::PycNode p::procedure a0 a1)
+           (generic walk3*::pair-nil n::PycNode p::procedure a0 a1 a2)
+           (generic walk4*::pair-nil n::PycNode p::procedure a0 a1 a2 a3)
+           (generic walk5*::pair-nil n::PycNode p::procedure a0 a1 a2 a3 a4)
+           (generic walk6*::pair-nil n::PycNode p::procedure a0 a1 a2 a3 a4 a5)
+           (generic walk7*::pair-nil n::PycNode p::procedure a0 a1 a2 a3 a4 a5 a6)
+           (generic walk0!::PycNode n::PycNode p::procedure)
+           (generic walk1!::PycNode n::PycNode p::procedure a0)
+           (generic walk2!::PycNode n::PycNode p::procedure a0 a1)
+           (generic walk3!::PycNode n::PycNode p::procedure a0 a1 a2)
+           (generic walk4!::PycNode n::PycNode p::procedure a0 a1 a2 a3)
+           (generic walk5!::PycNode n::PycNode p::procedure a0 a1 a2 a3 a4)
+           (generic walk6!::PycNode n::PycNode p::procedure a0 a1 a2 a3 a4 a5)
+           (generic walk7!::PycNode n::PycNode p::procedure a0 a1 a2 a3 a4 a5 a6)))
 
 ;*---------------------------------------------------------------------*/
 ;*    key ...                                                          */
@@ -217,78 +234,78 @@
 ;*---------------------------------------------------------------------*/
 ;*    generic walks ...                                                */
 ;*---------------------------------------------------------------------*/
-(define-generic (walk0 n::PyNode p::procedure)
+(define-generic (walk0 n::PycNode p::procedure)
    (error "walk0" "Internal Error: forgot Node type"
       (with-output-to-string (lambda () (write-circle n)))))
-(define-generic (walk1 n::PyNode p::procedure arg0)
+(define-generic (walk1 n::PycNode p::procedure arg0)
    (error "walk1" "Internal Error: forgot Node type"
       (with-output-to-string (lambda () (write-circle n)))))
-(define-generic (walk2 n::PyNode p::procedure arg0 arg1)
+(define-generic (walk2 n::PycNode p::procedure arg0 arg1)
    (error "walk2" "Internal Error: forgot Node type"
       (with-output-to-string (lambda () (write-circle n)))))
-(define-generic (walk3 n::PyNode p::procedure arg0 arg1 arg2)
+(define-generic (walk3 n::PycNode p::procedure arg0 arg1 arg2)
    (error "walk3" "Internal Error: forgot Node type"
       (with-output-to-string (lambda () (write-circle n)))))
-(define-generic (walk4 n::PyNode p::procedure arg0 arg1 arg2 arg3)
+(define-generic (walk4 n::PycNode p::procedure arg0 arg1 arg2 arg3)
    (error "walk4" "Internal Error: forgot Node type"
       (with-output-to-string (lambda () (write-circle n)))))
-(define-generic (walk5 n::PyNode p::procedure arg0 arg1 arg2 arg3 arg4)
+(define-generic (walk5 n::PycNode p::procedure arg0 arg1 arg2 arg3 arg4)
    (error "walk5" "Internal Error: forgot Node type"
       (with-output-to-string (lambda () (write-circle n)))))
-(define-generic (walk6 n::PyNode p::procedure arg0 arg1 arg2 arg3 arg4 arg5)
+(define-generic (walk6 n::PycNode p::procedure arg0 arg1 arg2 arg3 arg4 arg5)
    (error "walk6" "Internal Error: forgot Node type"
       (with-output-to-string (lambda () (write-circle n)))))
-(define-generic (walk7 n::PyNode p::procedure arg0 arg1 arg2 arg3 arg4 arg5 arg6)
+(define-generic (walk7 n::PycNode p::procedure arg0 arg1 arg2 arg3 arg4 arg5 arg6)
    (error "walk7" "Internal Error: forgot Node type"
       (with-output-to-string (lambda () (write-circle n)))))
 
-(define-generic (walk0*::pair-nil n::PyNode p::procedure)
+(define-generic (walk0*::pair-nil n::PycNode p::procedure)
    (error "walk0*" "Internal Error: forgot Node type"
       (with-output-to-string (lambda () (write-circle n)))))
-(define-generic (walk1*::pair-nil n::PyNode p::procedure arg0)
+(define-generic (walk1*::pair-nil n::PycNode p::procedure arg0)
    (error "walk1*" "Internal Error: forgot Node type"
       (with-output-to-string (lambda () (write-circle n)))))
-(define-generic (walk2*::pair-nil n::PyNode p::procedure arg0 arg1)
+(define-generic (walk2*::pair-nil n::PycNode p::procedure arg0 arg1)
    (error "walk2*" "Internal Error: forgot Node type"
       (with-output-to-string (lambda () (write-circle n)))))
-(define-generic (walk3*::pair-nil n::PyNode p::procedure arg0 arg1 arg2)
+(define-generic (walk3*::pair-nil n::PycNode p::procedure arg0 arg1 arg2)
    (error "walk3*" "Internal Error: forgot Node type"
       (with-output-to-string (lambda () (write-circle n)))))
-(define-generic (walk4*::pair-nil n::PyNode p::procedure arg0 arg1 arg2 arg3)
+(define-generic (walk4*::pair-nil n::PycNode p::procedure arg0 arg1 arg2 arg3)
    (error "walk4!" "Internal Error: forgot Node type"
       (with-output-to-string (lambda () (write-circle n)))))
-(define-generic (walk5*::pair-nil n::PyNode p::procedure arg0 arg1 arg2 arg3 arg4)
+(define-generic (walk5*::pair-nil n::PycNode p::procedure arg0 arg1 arg2 arg3 arg4)
    (error "walk5*" "Internal Error: forgot Node type"
       (with-output-to-string (lambda () (write-circle n)))))
-(define-generic (walk6*::pair-nil n::PyNode p::procedure arg0 arg1 arg2 arg3 arg4 arg5)
+(define-generic (walk6*::pair-nil n::PycNode p::procedure arg0 arg1 arg2 arg3 arg4 arg5)
    (error "walk6*" "Internal Error: forgot Node type"
       (with-output-to-string (lambda () (write-circle n)))))
-(define-generic (walk7*::pair-nil n::PyNode p::procedure arg0 arg1 arg2 arg3 arg4 arg5 arg6)
+(define-generic (walk7*::pair-nil n::PycNode p::procedure arg0 arg1 arg2 arg3 arg4 arg5 arg6)
    (error "walk7*" "Internal Error: forgot Node type"
       (with-output-to-string (lambda () (write-circle n)))))
 
-(define-generic (walk0!::PyNode n::PyNode p::procedure)
+(define-generic (walk0!::PycNode n::PycNode p::procedure)
    (error "walk0!" "Internal Error: forgot Node type"
       (with-output-to-string (lambda () (write-circle n)))))
-(define-generic (walk1!::PyNode n::PyNode p::procedure arg0)
+(define-generic (walk1!::PycNode n::PycNode p::procedure arg0)
    (error "walk1!" "Internal Error: forgot Node type"
       (with-output-to-string (lambda () (write-circle n)))))
-(define-generic (walk2!::PyNode n::PyNode p::procedure arg0 arg1)
+(define-generic (walk2!::PycNode n::PycNode p::procedure arg0 arg1)
    (error "walk2!" "Internal Error: forgot Node type"
       (with-output-to-string (lambda () (write-circle n)))))
-(define-generic (walk3!::PyNode n::PyNode p::procedure arg0 arg1 arg2)
+(define-generic (walk3!::PycNode n::PycNode p::procedure arg0 arg1 arg2)
    (error "walk3!" "Internal Error: forgot Node type"
       (with-output-to-string (lambda () (write-circle n)))))
-(define-generic (walk4!::PyNode n::PyNode p::procedure arg0 arg1 arg2 arg3)
+(define-generic (walk4!::PycNode n::PycNode p::procedure arg0 arg1 arg2 arg3)
    (error "walk4!" "Internal Error: forgot Node type"
       (with-output-to-string (lambda () (write-circle n)))))
-(define-generic (walk5!::PyNode n::PyNode p::procedure arg0 arg1 arg2 arg3 arg4)
+(define-generic (walk5!::PycNode n::PycNode p::procedure arg0 arg1 arg2 arg3 arg4)
    (error "walk5!" "Internal Error: forgot Node type"
       (with-output-to-string (lambda () (write-circle n)))))
-(define-generic (walk6!::PyNode n::PyNode p::procedure arg0 arg1 arg2 arg3 arg4 arg5)
+(define-generic (walk6!::PycNode n::PycNode p::procedure arg0 arg1 arg2 arg3 arg4 arg5)
    (error "walk6!" "Internal Error: forgot Node type"
       (with-output-to-string (lambda () (write-circle n)))))
-(define-generic (walk7!::PyNode n::PyNode p::procedure arg0 arg1 arg2 arg3 arg4 arg5 arg6)
+(define-generic (walk7!::PycNode n::PycNode p::procedure arg0 arg1 arg2 arg3 arg4 arg5 arg6)
    (error "walk7!" "Internal Error: forgot Node type"
       (with-output-to-string (lambda () (write-circle n)))))
 
@@ -400,9 +417,9 @@
          `(define-method (,walk ,(symbol-append '|n::| class) p ,@args)
              (let loop ((n n))
                 (cond
-;*                 ((isa? n PyDollar)                                  */
+;*                 ((isa? n PycDollar)                                  */
 ;*                  (,walk n p ,@args))                                */
-                   ((isa? n PyNode)
+                   ((isa? n PycNode)
                     (let ((fields (class-all-fields (object-class n))))
                        (let for ((i (-fx (vector-length fields) 1)))
                           (when (>=fx i 0)
@@ -423,9 +440,9 @@
          `(define-method (,walk ,(symbol-append '|n::| class) p ,@args)
              (let loop ((n n))
                 (cond
-;*                 ((isa? n PyDollar)                                  */
+;*                 ((isa? n PycDollar)                                  */
 ;*                  (,walk n p ,@args))                                */
-                   ((isa? n PyNode)
+                   ((isa? n PycNode)
                     (let ((fields (class-all-fields (object-class n))))
                        (let for ((i (-fx (vector-length fields) 1)))
                           (if (=fx i -1)
@@ -449,10 +466,10 @@
          `(define-method (,walk ,(symbol-append '|n::| class) p ,@args)
              (let loop ((n n))
                 (cond
-                   ((isa? n PyDollar)
+                   ((isa? n PycDollar)
                     (,walk n p ,@args)
                     n)
-                   ((isa? n PyNode)
+                   ((isa? n PycNode)
                     (let ((fields (class-all-fields (object-class n))))
                        (let for ((i (-fx (vector-length fields) 1)))
                           (if (>=fx i 0)
@@ -476,29 +493,32 @@
 ;*---------------------------------------------------------------------*/
 ;*    default walk                                                     */
 ;*---------------------------------------------------------------------*/
-(gen-walks PyNode)
+(gen-walks PycNode)
 
-(gen-walks PyModule (stmts))
-(gen-walks PyDeclInit val)
-(gen-walks PySeq (nodes))
-(gen-walks PyBlock (decls) body)
-(gen-walks PyReturn val)
-(gen-walks PyReturnYield val kont)
-(gen-walks PyAssig lhs rhs)
-(gen-walks PyIf test then else)
-(gen-walks PyWhile test body else)
-(gen-walks PyFor target iter body else)
-(gen-walks PyRaise exc cause)
-(gen-walks PyTry body (handlers) else finally)
-(gen-walks PyHandler type body)
-(gen-walks PyStmtExpr expr)
-(gen-walks PyFun body)
-(gen-walks PyClass body (supers))
-(gen-walks PyBinary lhs rhs)
-(gen-walks PyUnary expr)
-(gen-walks PyCall fun (args) (keywords))
-(gen-walks PycList (elts))
-(gen-walks PyAccess obj)
-(gen-walks PyYield val)
-(gen-walks PyKont body)
+(gen-walks PycModule (stmts))
+(gen-walks PycDeclInit val)
+(gen-walks PycSeq (nodes))
+(gen-walks PycBlock (decls) body)
+(gen-walks PycReturn val)
+(gen-walks PycReturnYield val kont)
+(gen-walks PycAssig lhs rhs)
+(gen-walks PycAugAssig lhs rhs)
+(gen-walks PycIf test then else)
+(gen-walks PycWhile test body else)
+(gen-walks PycFor target iter body else)
+(gen-walks PycRaise exc cause)
+(gen-walks PycTry body (handlers) else finally)
+(gen-walks PycHandler type body)
+(gen-walks PycStmtExpr expr)
+(gen-walks PycFun body)
+(gen-walks PycClass body (supers))
+(gen-walks PycBinary lhs rhs)
+(gen-walks PycUnary expr)
+(gen-walks PycCall fun (args) (keywords))
+(gen-walks PycCollection (elts))
+(gen-walks PycAccess obj)
+(gen-walks PycSubscript obj index)
+(gen-walks PycSlice obj lower upper step)
+(gen-walks PycYield val)
+(gen-walks PycKont body)
 

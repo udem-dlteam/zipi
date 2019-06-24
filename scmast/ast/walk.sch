@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Fri Jun 20 08:04:16 2014                          */
-;*    Last change :  Thu Jun  6 10:38:06 2019 (serrano)                */
+;*    Last change :  Mon Jun 24 13:45:13 2019 (serrano)                */
 ;*    Copyright   :  2014-19 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Ast tree traversal generator                                     */
@@ -58,7 +58,7 @@
 			 ((#\*) 'walk*)
 			 (else 'walk)))
 	  (tname (case c
-		    ((#\!) (string->symbol (string-append sname "::PyNode")))
+		    ((#\!) (string->symbol (string-append sname "::PycNode")))
 		    ((#\*) (string->symbol (string-append sname "::pair-nil")))
 		    (else name)))
 	  (long-walk (case c
@@ -68,7 +68,7 @@
 			 (string->symbol (format "walk~a*" nb-method-args)))
 			(else
 			 (string->symbol (format "walk~a" nb-method-args)))))
-	  (define-gen/met (if (eq? (id-type (cadr args)) 'PyNode)
+	  (define-gen/met (if (eq? (id-type (cadr args)) 'PycNode)
 			      'define-generic
 			      'define-method))
 	  (default-walk (symbol-append 'default- short-walk)))

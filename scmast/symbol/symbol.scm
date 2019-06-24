@@ -6,157 +6,157 @@
       (resolve! this (cdr %env) conf)))
 
 ;; collect declarations
-(define-walk-method (collect* this::PyNode scope)
+(define-walk-method (collect* this::PycNode scope)
    (call-default-walker))
 
-(define-walk-method (collect* this::PyFun scope)
+(define-walk-method (collect* this::PycFun scope)
    '())
 
-(define-walk-method (collect* this::PyDecl scope)
-   (if (eq? (PyDecl-scope this) scope)
+(define-walk-method (collect* this::PycDecl scope)
+   (if (eq? (PycDecl-scope this) scope)
        (list this)
        '()))
 
 ;; create all the global declarations
-(define-walk-method (glodecl! this::PyNode %env)
+(define-walk-method (glodecl! this::PycNode %env)
    (call-default-walker))
 
-(define-walk-method (glodecl! this::PyAssig %env)
-   (let ((lhs (PyAssig-lhs this)))
+(define-walk-method (glodecl! this::PycAssig %env)
+   (let ((lhs (PycAssig-lhs this)))
       (cond
-	 ((not (PyRefUnresolved? lhs))
+	 ((not (PycRefUnresolved? lhs))
 	  (call-default-walker))
-	 ((lookup-id (cdr %env) (PyRefUnresolved-id lhs))
+	 ((lookup-id (cdr %env) (PycRefUnresolved-id lhs))
 	  (call-default-walker))
 	 (else
-	  (let ((decl (new-PyDeclInit (PyNode-loc this)
-			 (PyRefUnresolved-id lhs) 'global
-			 (glodecl! (PyAssig-rhs this) %env))))
+	  (let ((decl (new-PycDeclInit (PycNode-loc this)
+			 (PycRefUnresolved-id lhs) 'global
+			 (glodecl! (PycAssig-rhs this) %env))))
 	     (set-cdr! %env (cons decl (cdr %env)))
 	     decl)))))
 
-(define-walk-method (glodecl! this::PyFun %env)
+(define-walk-method (glodecl! this::PycFun %env)
    this)
 
-(define-walk-method (glodecl! this::PyClass %env)
+(define-walk-method (glodecl! this::PycClass %env)
    this)
 
 ;; symbol resolution
-(define-walk-method (resolve! this::PyNode env conf)
+(define-walk-method (resolve! this::PycNode env conf)
    (call-default-walker))
 
-(define-walk-method (resolve! this::PyModule env conf)
-   (PyModule-globals-set! this env)
+(define-walk-method (resolve! this::PycModule env conf)
+   (PycModule-globals-set! this env)
    (call-default-walker))
 
-(define-walk-method (resolve! this::PyBlock env conf)
+(define-walk-method (resolve! this::PycBlock env conf)
    (let loop ((env env)
-	      (decls (PyBlock-decls this)))
+	      (decls (PycBlock-decls this)))
       (if (null? decls)
 	  (begin
-	     (PyBlock-body-set! this (resolve! (PyBlock-body this) env conf))
+	     (PycBlock-body-set! this (resolve! (PycBlock-body this) env conf))
 	     this)
 	  (let ((decl (car decls)))
-	     (PyDeclInit-val-set! decl
-		(resolve! (PyDeclInit-val decl) env conf))
+	     (PycDeclInit-val-set! decl
+		(resolve! (PycDeclInit-val decl) env conf))
 	     (loop (cons decl env) (cdr decls))))))
 
-(define-walk-method (resolve! this::PyRefUnresolved env conf)
-   (let ((loc (PyNode-loc this)))
-      (let ((decl (lookup-id env (PyRefUnresolved-id this))))
-	 (if (PyDecl? decl)
-	     (new-PyRef loc decl)
+(define-walk-method (resolve! this::PycRefUnresolved env conf)
+   (let ((loc (PycNode-loc this)))
+      (let ((decl (lookup-id env (PycRefUnresolved-id this))))
+	 (if (PycDecl? decl)
+	     (new-PycRef loc decl)
 	     this))))
 
-(define-walk-method (resolve! this::PyFun env conf)
-   (let* ((loc (PyNode-loc this))
-	  (decls (collect* (PyFun-body this) 'local))
-	  (aenv (collect-free-assig* (PyFun-body this)
-		   (append decls (PyFun-args this) env)))
+(define-walk-method (resolve! this::PycFun env conf)
+   (let* ((loc (PycNode-loc this))
+	  (decls (collect* (PycFun-body this) 'local))
+	  (aenv (collect-free-assig* (PycFun-body this)
+		   (append decls (PycFun-args this) env)))
 	  (bdgs (map (lambda (decl)
-			(let ((loc (PyNode-loc decl)))
-			   (new-PyDeclInit loc (PyDecl-id decl) 'local
-			      (new-PyUninit loc))))
+			(let ((loc (PycNode-loc decl)))
+			   (new-PycDeclInit loc (PycDecl-id decl) 'local
+			      (new-PycUninit loc))))
 		   (append aenv decls))))
       (if (pair? bdgs)
-	  (PyFun-body-set! this
-	     (new-PyBlock loc
+	  (PycFun-body-set! this
+	     (new-PycBlock loc
 		bdgs
-		(resolve! (PyFun-body this)
-		   (append bdgs (PyFun-args this) env) conf)))
-	  (PyFun-body-set! this
-	     (resolve! (PyFun-body this) (append (PyFun-args this) env) conf)))
+		(resolve! (PycFun-body this)
+		   (append bdgs (PycFun-args this) env) conf)))
+	  (PycFun-body-set! this
+	     (resolve! (PycFun-body this) (append (PycFun-args this) env) conf)))
       this))
 
-(define-walk-method (resolve! this::PyClass env conf)
-   (let* ((loc (PyNode-loc this))
-	  (decls (collect* (PyClass-body this) 'local))
-	  (aenv (collect-free-assig* (PyClass-body this)
+(define-walk-method (resolve! this::PycClass env conf)
+   (let* ((loc (PycNode-loc this))
+	  (decls (collect* (PycClass-body this) 'local))
+	  (aenv (collect-free-assig* (PycClass-body this)
 		   (append decls env)))
 	  (bdgs (map (lambda (decl)
-			(let ((loc (PyNode-loc decl)))
-			   (new-PyDeclInit loc (PyDecl-id decl) 'local
-			      (new-PyUninit loc))))
+			(let ((loc (PycNode-loc decl)))
+			   (new-PycDeclInit loc (PycDecl-id decl) 'local
+			      (new-PycUninit loc))))
 		   (append aenv decls))))
-      (PyClass-decls-set! this bdgs)
+      (PycClass-decls-set! this bdgs)
       (if (pair? bdgs)
-	  (PyClass-body-set! this
-	     (new-PyBlock loc
+	  (PycClass-body-set! this
+	     (new-PycBlock loc
 		bdgs
-		(resolve! (PyClass-body this)
+		(resolve! (PycClass-body this)
 		   (append bdgs env) conf)))
-	  (PyClass-body-set! this
-	     (resolve! (PyClass-body this) env conf)))
+	  (PycClass-body-set! this
+	     (resolve! (PycClass-body this) env conf)))
       this))
 
-(define-walk-method (resolve! this::PyDeclInit env conf)
-   (if (eq? (PyDecl-scope this) 'local)
-       (let ((loc (PyNode-loc this)))
+(define-walk-method (resolve! this::PycDeclInit env conf)
+   (if (eq? (PycDecl-scope this) 'local)
+       (let ((loc (PycNode-loc this)))
 	  ;; replace the declaration with an assignment
-	  (let ((decl (lookup-id env (PyDecl-id this))))
-	     (new-PyAssig loc (new-PyRef loc decl)
-		(resolve! (PyDeclInit-val this) env conf))))
+	  (let ((decl (lookup-id env (PycDecl-id this))))
+	     (new-PycAssig loc (new-PycRef loc decl)
+		(resolve! (PycDeclInit-val this) env conf))))
        (call-default-walker)))
 
 ;; collect free variable assignments
-(define-walk-method (collect-free-assig* this::PyNode env)
+(define-walk-method (collect-free-assig* this::PycNode env)
    (call-default-walker))
 
-(define-walk-method (collect-free-assig* this::PyAssig env)
-   (if (isa? (PyAssig-lhs this) PyRefUnresolved)
-       (if (lookup-id env (PyRefUnresolved-id (PyAssig-lhs this)))
-	   (collect-free-assig* (PyAssig-rhs this) env)
-	   (let* ((loc (PyNode-loc (PyAssig-lhs this)))
-		  (decl (new-PyDeclInit loc
-			   (PyRefUnresolved-id (PyAssig-lhs this))
+(define-walk-method (collect-free-assig* this::PycAssig env)
+   (if (isa? (PycAssig-lhs this) PycRefUnresolved)
+       (if (lookup-id env (PycRefUnresolved-id (PycAssig-lhs this)))
+	   (collect-free-assig* (PycAssig-rhs this) env)
+	   (let* ((loc (PycNode-loc (PycAssig-lhs this)))
+		  (decl (new-PycDeclInit loc
+			   (PycRefUnresolved-id (PycAssig-lhs this))
 			   'local
-			   (new-PyUninit loc))))
+			   (new-PycUninit loc))))
 	      (cons decl
-		 (collect-free-assig* (PyAssig-rhs this) (cons decl env)))))
+		 (collect-free-assig* (PycAssig-rhs this) (cons decl env)))))
        (call-default-walker)))
 
-(define-walk-method (collect-free-assig* this::PyFor env)
-   (let ((n (PyFor-target this)))
-      (if (and (isa? n PyRefUnresolved)
-	       (not (lookup-id env (PyRefUnresolved-id n))))
-	  (let* ((loc (PyNode-loc this))
-		 (decl (new-PyDeclInit loc
-			  (PyRefUnresolved-id n)
+(define-walk-method (collect-free-assig* this::PycFor env)
+   (let ((n (PycFor-target this)))
+      (if (and (isa? n PycRefUnresolved)
+	       (not (lookup-id env (PycRefUnresolved-id n))))
+	  (let* ((loc (PycNode-loc this))
+		 (decl (new-PycDeclInit loc
+			  (PycRefUnresolved-id n)
 			  'local
-			  (new-PyUninit loc))))
+			  (new-PycUninit loc))))
 	     (cons decl
-		(collect-free-assig* (PyLoop-body this) (cons decl env))))
+		(collect-free-assig* (PycLoop-body this) (cons decl env))))
 	  ;; no need to scan the iterators as they are plain expressions
-	  (collect-free-assig* (PyLoop-body this) env))))
+	  (collect-free-assig* (PycLoop-body this) env))))
    
 ;; find a variable in the environment
 (define (lookup-id env id)
    (let loop ((env env))
       (cond
 	 ((null? env) #f)
-	 ((not (eq? (PyDecl-id (car env)) id)) (loop (cdr env)))
-	 ((eq? (PyDecl-scope (car env)) 'local) (car env))
-	 ((eq? (PyDecl-scope (car env)) 'block) (car env))
+	 ((not (eq? (PycDecl-id (car env)) id)) (loop (cdr env)))
+	 ((eq? (PycDecl-scope (car env)) 'local) (car env))
+	 ((eq? (PycDecl-scope (car env)) 'block) (car env))
 	 (else (car env)))))
 
  
