@@ -490,10 +490,18 @@
                                (cond ((= n 9)   "\\t")
                                      ((= n 10)  "\\n")
                                      ((= n 13)  "\\r")
-                                     ((> n 255)
+                                     ((and (>= n 888)
+                                           (or (>= n 1024)
+                                               (<= n 889)
+                                               (and (>= n 896) (<= n 899))
+                                               (= n 907)
+                                               (= n 909)
+                                               (= n 930)))
                                       (string-append "\\u"
-                                                     (substring (number->string (+ #x100000000 n) 16) 1 9)))
-                                     ((or (< n 32) (> n 126))
+                                                     (substring (number->string (+ #x100000000 n) 16) 5 9)))
+                                     ((or (< n 32)
+                                          (and (>= n 127) (<= n 160))
+                                          (= n 173))
                                       (string-append "\\x"
                                                      (substring (number->string (+ #x100 n) 16) 1 3)))
                                      (else
@@ -2003,7 +2011,14 @@
    (lambda rest (error "print" "unimplemented generic procedure for builtin" #f))
    (lambda objects ;; objects sep end file flush)
      (let ((port (current-output-port)))
-       (for-each (lambda (x) (py-print x port)) objects)
+       (let loop ((lst objects))
+         (if (pair? lst)
+             (let ((rest (cdr lst)))
+               (py-print (car lst) port)
+               (if (pair? rest)
+                   (begin
+                     (py-print " " port)
+                     (loop rest))))))
        (newline port)))))
 
 ;;-------------------- class property(fget=None, fset=None, fdel=None, doc=None)
