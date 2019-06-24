@@ -356,6 +356,24 @@
    (lambda _
      (current-second))))
 
+(define (py-make-class . attrs)
+  (let loop ((lst attrs)
+             (rev-attr-names '())
+             (rev-attr-values '()))
+    (if (and (pair? lst) (pair? (cdr lst)))
+        (let ((name (car lst))
+              (value (cadr lst))
+              (rest (cddr lst)))
+          (if (eq? value uninit)
+              (loop rest
+                    rev-attr-names
+                    rev-attr-values)
+              (loop rest
+                    (cons name rev-attr-names)
+                    (cons value rev-attr-values))))
+        (let ((hclass1 (make-HClass (list->vector (reverse rev-attr-names)) '())))
+          (make-PyObject hclass1 (list->vector (reverse rev-attr-values)))))))
+
 (define (py-make-global)
    (let ((hclass1 (make-HClass (vector (& "__builtins__")) '())))
       (make-PyObject hclass1 (vector (py-builtins-mod)))))
