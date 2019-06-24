@@ -402,7 +402,7 @@
                  (let ((__init__ (object-get-no-cache cls (& "__init__"))))
                    (if (and (isa? __init__ PyFunction)
                             (correct-arity? (PyFunction-procedure __init__)
-                                            nargs))
+                                            (+ 1 nargs)))
                        (let* ((hclass2 (make-HClass (vector (& "__class__")) '()))
                               (self (make-PyObject
                                      hclass2

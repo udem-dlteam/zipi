@@ -151,7 +151,8 @@
 			(unless (eq? ,target 'StopIteration)
 			   ,(let ((assig (new-PycAssig (PycNode-loc this)
 					    (PycFor-target this)
-					    (new-PycPragma (PycNode-loc this) target))))
+					    (new-PycPragma (PycNode-loc this) target)
+					    %info: (PycNode-%info (PycFor-target this)))))
 			       (scheme  assig conf))
 			   ,(if (PycLoop-need-continue this)
 				`(bind-exit (%continue)
@@ -277,7 +278,7 @@
 	      (field (PycAccess-field axs))
 	      (val (scheme (PycAssig-rhs this) conf)))
 	  (epairify this
-	     `(object-put! ,(scheme obj conf) ,field
+	     `(object-put! ,(scheme obj conf) ,(pyc-propname field)
 		 ,(scheme (PycAssig-rhs this) conf)
 		 (vector-ref %caches ,(PycNode-%info axs))))))
       (else
@@ -495,7 +496,7 @@
    (let ((n (cell-ref cnt)))
       (cell-set! cnt (+ 1 n))
       (let ((m (cell-ref cnt)))
-	 (cell-set! cnt (+ 1 n))
+	 (cell-set! cnt (+ 1 m))
 	 (PycNode-%info-set! this (cons n m)))))
 	  
    
