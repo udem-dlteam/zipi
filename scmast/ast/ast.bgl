@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 10:16:39 2019                          */
-;*    Last change :  Mon Jun 24 13:30:48 2019 (serrano)                */
+;*    Last change :  Mon Jun 24 13:54:18 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Python AST                                                       */
@@ -124,6 +124,10 @@
 	   (class PycAccess::PycExpr
 	      obj::PycExpr
 	      (field::bstring read-only))
+	   
+	   (class PycSubscript::PycExpr
+	      obj::PycExpr
+	      slice::PycExpr)
 	   
            (abstract-class PycLiteral::PycExpr)
            
@@ -503,6 +507,7 @@
 (gen-walks PycCall fun (args) (keywords))
 (gen-walks PycCollection (elts))
 (gen-walks PycAccess obj)
+(gen-walks PycSubscript obj slice)
 (gen-walks PycYield val)
 (gen-walks PycKont body)
 

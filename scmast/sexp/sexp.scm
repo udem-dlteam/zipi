@@ -182,6 +182,9 @@
       ((Attribute ?loc ?value ?attr ?ctx)
        ;; Attribute(expr value, identifier attr, expr_context ctx)
        (new-PycAccess loc (sexp value #f scope conf) (symbol->string attr)))
+      ((Subscript ?loc ?value ?slc ?ctx)
+       (new-PycSubscript loc (sexp value #f scope conf)
+	  (slice slc #f scope conf)))
       ((Name ?loc ?id ?ctx)
        ;; Name(identifier id, expr_context ctx)
        (case ctx
@@ -191,12 +194,19 @@
 	  (else (error "ctx" "Not implemented" ctx))))
       ((List ?loc ?elts ?ctx)
        ;; List(expr* elts, expr_context ctx)
-       (new-PycList loc elts))
+       (new-PycList loc (map (lambda (e) (sexp e #f scope conf)) elts)))
       ((Tuple ?loc ?elts ?ctx)
        ;; Tuple(expr* elts, expr_context ctx)
-       (new-PycTuple loc elts))
+       (new-PycTuple loc (map (lambda (e) (sexp e #f scope conf)) elts)))
       (else
        (error "sexp" "Not implemented" exp))))
+
+(define (slice exp tail scope conf)
+   (match-case exp
+      ((Index ?loc ?exp)
+       (sexp exp tail scope conf))
+      (else
+       (error "slice" "Not implemented" exp))))
 
 (define (compile-handler handler scope conf)
    (match-case handler

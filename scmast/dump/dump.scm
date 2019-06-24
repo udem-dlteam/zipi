@@ -83,6 +83,11 @@
      ,(pynode->list (PycAccess-obj this))
      ,(PycAccess-field this)))
 
+(define-walk-method (pynode->list this::PycSubscript)
+   `(,(string->symbol (typeof this))
+     ,(pynode->list (PycSubscript-obj this))
+     ,(PycSubscript-slice this)))
+
 (define-walk-method (pynode->list this::PycRefUnresolved)
    `(,(string->symbol (typeof this)) ,(PycRefUnresolved-id this)))
 

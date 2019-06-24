@@ -247,7 +247,8 @@
 		 (vector-ref %caches ,(PycNode-%info this)))))))
 
 (define-walk-method (pyc-scheme this::PycAssig conf)
-   (if (isa? (PycAssig-lhs this) PycRef)
+   (cond
+      ((isa? (PycAssig-lhs this) PycRef)
        (let* ((ref (PycAssig-lhs this))
 	      (decl (PycRef-decl ref))
 	      (val (pyc-scheme (PycAssig-rhs this) conf)))
@@ -257,13 +258,24 @@
 		 `(global-put! %global ,(pyc-propname (PycDecl-id decl)) ,val
 		     (vector-ref %caches ,(PycNode-%info this))))
 		(else
-		 `(set! ,(pyc-scheme-decl decl conf) ,val)))))
+		 `(set! ,(pyc-scheme-decl decl conf) ,val))))))
+      ((isa? (PycAssig-lhs this) PycAssig)
        (let* ((axs (PycAssig-lhs this))
 	      (obj (PycAccess-obj axs))
 	      (field (PycAccess-field axs))
 	      (val (pyc-scheme (PycAssig-rhs this) conf)))
-	  `(object-put! ,(pyc-scheme obj conf) ,field
-	      ,(pyc-scheme (PycAssig-rhs this) conf)))))
+	  (epairify this
+	     `(object-put! ,(pyc-scheme obj conf) ,field
+		 ,(pyc-scheme (PycAssig-rhs this) conf)))))
+      (else
+       (let* ((axs (PycAssig-lhs this))
+	      (obj (PycSubscript-obj axs))
+	      (slice (PycSubscript-slice axs))
+	      (val (pyc-scheme (PycAssig-rhs this) conf)))
+	  (epairify this
+	     `(py-setitem! ,(pyc-scheme obj conf)
+		 ,(pyc-scheme slice conf)
+		 ,(pyc-scheme (PycAssig-rhs this) conf)))))))
 
 (define-walk-method (pyc-scheme this::PycPragma conf)
    (epairify this
@@ -383,6 +395,11 @@
       `(object-get ,(pyc-scheme (PycAccess-obj this) conf)
 	  ,(pyc-propname (PycAccess-field this))
 	  (vector-ref %caches ,(PycNode-%info this)))))
+
+(define-walk-method (pyc-scheme this::PycSubscript conf)
+   (epairify this
+      `(py-getitem ,(pyc-scheme (PycSubscript-obj this) conf)
+	  ,(pyc-scheme (PycSubscript-slice this) conf))))
 
 ;; collect caches
 (define-walk-method (collect-caches this::PycNode cnt)
