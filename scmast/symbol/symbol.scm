@@ -38,6 +38,9 @@
 (define-walk-method (glodecl! this::PyFun %env)
    this)
 
+(define-walk-method (glodecl! this::PyClass %env)
+   this)
+
 ;; symbol resolution
 (define-walk-method (resolve! this::PyNode env conf)
    (call-default-walker))
@@ -83,6 +86,27 @@
 		   (append bdgs (PyFun-args this) env) conf)))
 	  (PyFun-body-set! this
 	     (resolve! (PyFun-body this) (append (PyFun-args this) env) conf)))
+      this))
+
+(define-walk-method (resolve! this::PyClass env conf)
+   (let* ((loc (PyNode-loc this))
+	  (decls (collect* (PyClass-body this) 'local))
+	  (aenv (collect-free-assig* (PyClass-body this)
+		   (append decls env)))
+	  (bdgs (map (lambda (decl)
+			(let ((loc (PyNode-loc decl)))
+			   (new-PyDeclInit loc (PyDecl-id decl) 'local
+			      (new-PyUninit loc))))
+		   (append aenv decls))))
+      (PyClass-decls-set! this decls)
+      (if (pair? bdgs)
+	  (PyClass-body-set! this
+	     (new-PyBlock loc
+		bdgs
+		(resolve! (PyClass-body this)
+		   (append bdgs env) conf)))
+	  (PyClass-body-set! this
+	     (resolve! (PyClass-body this) env conf)))
       this))
 
 (define-walk-method (resolve! this::PyDeclInit env conf)

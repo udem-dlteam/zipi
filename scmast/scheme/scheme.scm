@@ -247,16 +247,23 @@
 		 (vector-ref %caches ,(PyNode-%info this)))))))
 
 (define-walk-method (pyc-scheme this::PyAssig conf)
-   (let* ((ref (PyAssig-lhs this))
-	  (decl (PyRef-decl ref))
-	  (val (pyc-scheme (PyAssig-rhs this) conf)))
-      (epairify this
-	 (case (PyDecl-scope decl)
-	    ((global)
-	     `(global-put! %global ,(pyc-propname (PyDecl-id decl)) ,val
-		 (vector-ref %caches ,(PyNode-%info this))))
-	    (else
-	     `(set! ,(pyc-scheme-decl decl conf) ,val))))))
+   (if (isa? (PyAssig-lhs this) PyRef)
+       (let* ((ref (PyAssig-lhs this))
+	      (decl (PyRef-decl ref))
+	      (val (pyc-scheme (PyAssig-rhs this) conf)))
+	  (epairify this
+	     (case (PyDecl-scope decl)
+		((global)
+		 `(global-put! %global ,(pyc-propname (PyDecl-id decl)) ,val
+		     (vector-ref %caches ,(PyNode-%info this))))
+		(else
+		 `(set! ,(pyc-scheme-decl decl conf) ,val)))))
+       (let* ((axs (PyAssig-lhs this))
+	      (obj (PyAccess-obj axs))
+	      (field (PyAccess-field axs))
+	      (val (pyc-scheme (PyAssig-rhs this) conf)))
+	  `(object-put! ,(pyc-scheme obj conf) ,field
+	      ,(pyc-scheme (PyAssig-rhs this) conf)))))
 
 (define-walk-method (pyc-scheme this::PyPragma conf)
    (epairify this
@@ -297,6 +304,24 @@
 	     ,(if (PyFun-need-return this)
 		  `(lambda ,args ,(generator this `(bind-exit (return) ,body)))
 		  `(lambda ,args ,(generator this body)))))))
+
+(define-walk-method (pyc-scheme this::PyClass conf)
+
+   (define (pyc-class this::PyClass)
+      (epairify this
+	 `(make-PyClass
+	     ,@(append-map (lambda (decl)
+			      `((& ,(symbol->string (PyDecl-id decl)))
+				,(pyc-scheme-decl decl conf)))
+		  (PyClass-decls this)))))
+				  
+   (let ((body (pyc-scheme (PyClass-body this) conf)))
+      (epairify this
+	 (match-case body
+	    ((letrec* ?bindings . ?body)
+	     `(letrec* ,bindings ,@body ,(pyc-class this)))
+	    (else
+	     `(begin ,@body ,(pyc-class this)))))))
 
 (define-walk-method (pyc-scheme this::PyKont conf)
    (let ((param (pyc-scheme (PyKont-param this) conf))

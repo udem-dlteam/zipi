@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 10:16:39 2019                          */
-;*    Last change :  Thu Jun 20 16:41:16 2019 (serrano)                */
+;*    Last change :  Mon Jun 24 10:27:13 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Python AST                                                       */
@@ -153,6 +153,11 @@
               (need-return::bool (default #t))
               (can-locals::bool (default #t)))
 
+           (final-class PyClass::PyExpr
+              body::PyStmt
+              (decls::pair-nil (default '()))
+	      (supers::pair-nil (default '())))
+	   
 	   (final-class PyYield::PyExpr
 	      (val::PyExpr (info '("ast")))
 	      (generator::bool read-only (default #f)))
@@ -485,6 +490,7 @@
 (gen-walks PyHandler type body)
 (gen-walks PyStmtExpr expr)
 (gen-walks PyFun body)
+(gen-walks PyClass body (supers))
 (gen-walks PyBinary lhs rhs)
 (gen-walks PyUnary expr)
 (gen-walks PyCall fun (args) (keywords))

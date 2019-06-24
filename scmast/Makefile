@@ -12,8 +12,9 @@ SOURCES = main/main ast/ast sexp/sexp symbol/symbol return/return \
 .SUFFIXES:
 .SUFFIXES: .scm .bgl .sch .o
 
-pyc.bigloo: .afile ast/types.sch hclass/hclass.sch object/object.sch \
-  iterator/iterator.sch
+pyc.bigloo: .afile ast/types.sch ast/new.sch \
+  hclass/hclass.sch object/object.sch \
+  iterator/iterator.sch 
 	mkdir -p o/bigloo
 	$(MAKE) pyc COMPILER=$(BIGLOO) LINKER="$(BIGLOO) -w $(BFLAGS)" \
            OBJECTS="$(SOURCES:%=o/bigloo/%.o)"

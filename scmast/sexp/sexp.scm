@@ -5,14 +5,15 @@
 ;;    https://docs.python.org/3.8/library/ast.html
 (define (sexp exp tail scope conf)
 
-   (match-case (car exp)
-      ;; language detection
-      ((Expr ?loc (Str ?loc ?lang))
-       (when (and (pair? exp) (string? (car exp)))
-	  (let ((p (memq language: conf)))
-	     (if (pair? p)
-		 (set-car! (cdr p) lang)
-		 (set-cdr! (last-pair conf) (list language: lang)))))))
+   (when (pair? exp)
+      (match-case (car exp)
+	 ;; language detection
+	 ((Expr ?loc (Str ?loc ?lang))
+	  (when (and (pair? exp) (string? (car exp)))
+	     (let ((p (memq language: conf)))
+		(if (pair? p)
+		    (set-car! (cdr p) lang)
+		    (set-cdr! (last-pair conf) (list language: lang))))))))
 
    (match-case exp
       
@@ -38,8 +39,8 @@
        ;;       keyword* keywords,
        ;;       stmt* body,
        ;;       expr* decorator_list)
-       (tprint "TODO"))
-      
+       (new-PyAssig loc (new-PyRefUnresolved loc id)
+	  (new-PyClass loc (compile-stmt* loc body #f 'local conf))))
       ((Return ?loc ?expr)
        ;; Return(expr? value)
        (new-PyReturn loc (sexp expr #f scope conf) tail))

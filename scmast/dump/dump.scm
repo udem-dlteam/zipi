@@ -77,6 +77,11 @@
    `(,(string->symbol (typeof this))
      ,(PyDecl-id (PyRef-decl this))))
 
+(define-walk-method (pynode->list this::PyAccess)
+   `(,(string->symbol (typeof this))
+     ,(pynode->list (PyAccess-obj this))
+     ,(PyAccess-field this)))
+
 (define-walk-method (pynode->list this::PyRefUnresolved)
    `(,(string->symbol (typeof this)) ,(PyRefUnresolved-id this)))
 
@@ -86,6 +91,12 @@
      :can-locals ,(PyFun-can-locals this)
      :args ,(map pynode->list (PyFun-args this))
      ,(pynode->list (PyFun-body this))))
+
+(define-walk-method (pynode->list this::PyClass)
+   `(,(string->symbol (typeof this))
+     :decls ,(map pynode->list (PyClass-decls this))
+     :supers ,(map pynode->list (PyClass-supers this))
+     ,(pynode->list (PyClass-body this))))
 
 (define-walk-method (pynode->list this::PyKont)
    `(,(string->symbol (typeof this))
