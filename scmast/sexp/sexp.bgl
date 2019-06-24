@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 10:44:43 2019                          */
-;*    Last change :  Thu Jun  6 15:20:43 2019 (serrano)                */
+;*    Last change :  Mon Jun 24 14:57:15 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Build an AST from an external Python AST represented as Sexps    */
@@ -12,11 +12,11 @@
 ;*---------------------------------------------------------------------*/
 ;*    The module                                                       */
 ;*---------------------------------------------------------------------*/
-(module __py_sexp
+(module __pyc_sexp
 
    (include "ast/ast.sch")
 
-   (export (py-sexp exp conf)))
+   (export (pyc-sexp exp conf)))
 
 
    

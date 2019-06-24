@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Tue Jun 11 13:09:51 2019                          */
-;*    Last change :  Tue Jun 11 13:21:05 2019 (serrano)                */
+;*    Last change :  Mon Jun 24 14:55:52 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    AST dump                                                         */
@@ -12,8 +12,8 @@
 ;*---------------------------------------------------------------------*/
 ;*    The module                                                       */
 ;*---------------------------------------------------------------------*/
-(module __py_dump
+(module __pyc_dump
 
    (include "ast/ast.sch")
    
-   (export (py->list ::obj)))
+   (export (pyc->list ::obj)))

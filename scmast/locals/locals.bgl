@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 15:13:00 2019                          */
-;*    Last change :  Mon Jun 24 13:42:45 2019 (serrano)                */
+;*    Last change :  Mon Jun 24 14:58:31 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Annotate functions that might call locals()                      */
@@ -12,8 +12,8 @@
 ;*---------------------------------------------------------------------*/
 ;*    The module                                                       */
 ;*---------------------------------------------------------------------*/
-(module __py_locals
+(module __pyc_locals
 
    (include "ast/ast.sch")
    
-   (export (py-locals ::PycNode conf)))
+   (export (pyc-locals ::PycNode conf)))

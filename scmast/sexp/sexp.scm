@@ -1,4 +1,4 @@
-(define (py-sexp exp conf)
+(define (pyc-sexp exp conf)
    (sexp exp #t 'global conf))
 
 ;; The Python syntax parsed by this function is defined at the url:

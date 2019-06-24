@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 15:13:00 2019                          */
-;*    Last change :  Mon Jun 24 13:42:18 2019 (serrano)                */
+;*    Last change :  Mon Jun 24 14:59:08 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Break/Continue annotation                                        */
@@ -12,10 +12,10 @@
 ;*---------------------------------------------------------------------*/
 ;*    The module                                                       */
 ;*---------------------------------------------------------------------*/
-(module __py_break
+(module __pyc_break
 
    (include "ast/ast.sch")
 
-   (import __py_dump)
+   (import __pyc_dump)
    
-   (export (py-break this::PycNode conf)))
+   (export (pyc-break this::PycNode conf)))

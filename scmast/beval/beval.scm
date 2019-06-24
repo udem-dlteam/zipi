@@ -57,7 +57,7 @@
 		   (cell-set! frame (make-PyObject hclass (list->vector vals)))
 		   frame))))))
 
-(define (py-beval ast conf)
+(define (pyc-beval ast conf)
    (meaning (compile ast '()) '() (py-make-global) no-return))
 
 (define (compile*2 nodes env)
@@ -128,7 +128,7 @@
       ((PycRef? (PycAssig-lhs this))
        (compile-assig-ref this))
       (else
-       (error "compile-assig" "Not implemented" (py->list this)))))
+       (error "compile-assig" "Not implemented" (pyc->list this)))))
 
 (define-walk-method (compile this::PycPragma env)
    (bytecode (code 'PRAGMA) (PycPragma-expr this)))
@@ -160,7 +160,7 @@
 	 ((null? (cddddr args))
 	  (bytecode (code (if needret 'RLAM4 'LAM4)) body))
 	 (else
-	  (error "compile-lambda" "Not implemented" (py->list args))))))
+	  (error "compile-lambda" "Not implemented" (pyc->list args))))))
 
 (define-walk-method (compile this::PycCall env)
    (cond
