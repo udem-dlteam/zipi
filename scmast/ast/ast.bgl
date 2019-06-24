@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 10:16:39 2019                          */
-;*    Last change :  Mon Jun 24 10:27:13 2019 (serrano)                */
+;*    Last change :  Mon Jun 24 13:28:14 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Python AST                                                       */
@@ -171,6 +171,9 @@
               fun::PyExpr
               args::pair-nil
               keywords::pair-nil)
+
+	   (final-class PycList::PyExpr
+	      elts::pair)
 
            (genkey)
            
@@ -494,6 +497,7 @@
 (gen-walks PyBinary lhs rhs)
 (gen-walks PyUnary expr)
 (gen-walks PyCall fun (args) (keywords))
+(gen-walks PycList (elts))
 (gen-walks PyAccess obj)
 (gen-walks PyYield val)
 (gen-walks PyKont body)
