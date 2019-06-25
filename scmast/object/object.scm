@@ -303,8 +303,14 @@
 (define (py-is x y cache) ;; x is y
   (eq? x y))
 
+(define (py-isnot x y cache) ;; x is not y
+  (not (eq? x y)))
+
 (define (py-in x y cache) ;; x in y
   (error "py-in" "not implemented" #f))
+
+(define (py-notin x y cache) ;; x not in y
+  (error "py-notin" "not implemented" #f))
 
 ;;;----------------------------------------------------------------------------
 

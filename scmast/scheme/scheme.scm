@@ -483,7 +483,7 @@
 (define-walk-method (scheme this::PycCollection conf)
    (epairify this
       `(,(if (isa? this PycList) 'py-make-list 'py-make-tuple)
-	,@(map (lambda (e) (scheme e conf)) (PycList-elts this)))))
+	,@(map (lambda (e) (scheme e conf)) (PycCollection-elts this)))))
 
 (define-walk-method (scheme this::PycRef conf)
    (let ((decl (PycRef-decl this)))
