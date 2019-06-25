@@ -134,12 +134,12 @@
        (error "call2" "wrong call" fun)))
 
 (define (py-call3 fun a0 a1 a2)
-   (if (and (isa? fun PyFunction) (correct-arity? (PyFunction-procedure fun) 2))
+   (if (and (isa? fun PyFunction) (correct-arity? (PyFunction-procedure fun) 3))
        ((PyFunction-procedure fun) a0 a1 a2)
        (error "call3" "wrong call" fun)))
 
 (define (py-call4 fun a0 a1 a2 a3)
-   (if (and (isa? fun PyFunction) (correct-arity? (PyFunction-procedure fun) 2))
+   (if (and (isa? fun PyFunction) (correct-arity? (PyFunction-procedure fun) 4))
        ((PyFunction-procedure fun) a0 a1 a2 a3)
        (error "call4" "wrong call" fun)))
 
@@ -305,6 +305,34 @@
 
 (define (py-in x y cache) ;; x in y
   (error "py-in" "not implemented" #f))
+
+;;;----------------------------------------------------------------------------
+
+(define (py-getitem obj i cache)
+  (cond ((and (PyObject? obj)
+              (let ((index (PyObject-find-prop obj (& "__getitem__"))))
+                (and (>= index 0)
+                     index)))
+         =>
+         (lambda (index)
+           (let ((__getitem__ (PyObject-elements-ref obj index)))
+             (py-call2 __getitem__ obj i))))
+        ((py-str? obj)
+         (py-str-from-scheme (string (string-ref (py-str-to-scheme obj) i))))
+        (else
+         (error "getitem" "only object with __getitem__ method implemented" #f))))
+
+(define (py-setitem obj i val cache)
+  (cond ((and (PyObject? obj)
+              (let ((index (PyObject-find-prop obj (& "__setitem__"))))
+                (and (>= index 0)
+                     index)))
+         =>
+         (lambda (index)
+           (let ((__setitem__ (PyObject-elements-ref obj index)))
+             (py-call3 __setitem__ obj i val))))
+        (else
+         (error "setitem" "only object with __setitem__ method implemented" #f))))
 
 ;;;----------------------------------------------------------------------------
 
@@ -552,6 +580,9 @@
    (make-HClass (list->vector (map car alist)) '())
    (list->vector (map cdr alist))))
 
+(define (py-make-list . elements)
+  (py-list-from-scheme (list->vector elements)))
+
 (define (py-list-from-scheme elements)
   (alist->PyObject
    (list (cons (& "__class__")
@@ -569,6 +600,14 @@
                   (if (or (< i 0) (>= i (vector-length elements)))
                       (error "getitem" "index out of range" #f)
                       (vector-ref elements i)))))
+         (cons (& "__setitem__")
+               (py-procedure->function
+                (lambda rest (error "__setitem__" "unimplemented generic procedure" #f))
+                (lambda (self i val)
+                  (if (< i 0) (set! i (+ i (vector-length elements))))
+                  (if (or (< i 0) (>= i (vector-length elements)))
+                      (error "setitem" "index out of range" #f)
+                      (vector-set! elements i val)))))
          (cons (& "__iter__")
                (py-procedure->function
                 (lambda rest (error "__iter__" "unimplemented generic procedure" #f))
@@ -743,20 +782,6 @@
          (py-str-len obj))
         (else
          (error "len" "only object with __len__ method implemented" #f))))
-
-(define (py-getitem obj i)
-  (cond ((and (PyObject? obj)
-              (let ((index (PyObject-find-prop obj (& "__getitem__"))))
-                (and (>= index 0)
-                     index)))
-         =>
-         (lambda (index)
-           (let ((__getitem__ (PyObject-elements-ref obj index)))
-             (py-call2 __getitem__ obj i))))
-        ((py-str? obj)
-         (py-str-from-scheme (string (string-ref (py-str-to-scheme obj) i))))
-        (else
-         (error "getitem" "only object with __getitem__ method implemented" #f))))
 
 (define (py-chr i)
   (py-str-from-scheme (string (integer->char i))))
