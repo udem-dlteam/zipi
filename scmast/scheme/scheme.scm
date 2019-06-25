@@ -141,10 +141,10 @@
 		    (,iterator (PyFunction-call1
 				  (object-get ,iterable
 				     (& "__iter__")
-				     ,(scheme-cache (PycFor-cachei this)))
+				     ,(scheme-cache (PycFor-cachei this) this))
 				  ,iterable))
 		    (,next (object-get ,iterator (& "__next__")
-			      ,(scheme-cache (PycFor-cachen this)))))
+			      ,(scheme-cache (PycFor-cachen this) this))))
 		(let ,loop ()
 		     (let ((,target (py-for-next ,iterator ,next)))
 			(unless (eq? ,target 'StopIteration)
@@ -249,7 +249,7 @@
 	 (if (eq? (PycDecl-scope this) 'local)
 	     `(set! ,(scheme-decl this conf) ,val)
 	     `(global-put! %global ,(pyc-propname (PycDecl-id this)) ,val
-		 ,(scheme-cache (PycDeclInit-cache this)))))))
+		 ,(scheme-cache (PycDeclInit-cache this) this))))))
 
 (define-walk-method (scheme this::PycAssig conf)
    (cond
@@ -261,7 +261,8 @@
 	     (case (PycDecl-scope decl)
 		((global)
 		 `(global-put! %global ,(pyc-propname (PycDecl-id decl)) ,val
-		     ,(scheme-cache (PycRef-cache (PycAssig-lhs this)))))
+		     ,(scheme-cache (PycRef-cache (PycAssig-lhs this))
+			 (PycAssig-lhs this))))
 		(else
 		 `(set! ,(scheme-decl decl conf) ,val))))))
       ((isa? (PycAssig-lhs this) PycRefUnresolved)
@@ -269,7 +270,8 @@
 	      (val (scheme (PycAssig-rhs this) conf)))
 	  (epairify this
 	     `(global-put! %global ,(pyc-propname (PycRefUnresolved-id ref)) ,val
-		 ,(scheme-cache (PycRefUnresolved-cache (PycAssig-lhs this)))))))
+		 ,(scheme-cache (PycRefUnresolved-cache (PycAssig-lhs this))
+		     (PycAssig-lhs this))))))
       ((isa? (PycAssig-lhs this) PycAccess)
        (let* ((axs (PycAssig-lhs this))
 	      (obj (PycAccess-obj axs))
@@ -278,7 +280,8 @@
 	  (epairify this
 	     `(object-put! ,(scheme obj conf) ,(pyc-propname field)
 		 ,(scheme (PycAssig-rhs this) conf)
-		 ,(scheme-cache (PycAccess-cache (PycAssig-lhs this)))))))
+		 ,(scheme-cache (PycAccess-cache (PycAssig-lhs this))
+		     (PycAssig-lhs this))))))
       (else
        (let* ((axs (PycAssig-lhs this))
 	      (obj (PycSubscript-obj axs))
@@ -288,7 +291,7 @@
 	     `(py-setitem ,(scheme obj conf)
 		 ,(scheme index conf)
 		 ,(scheme (PycAssig-rhs this) conf)
-		 ,(scheme-cache (PycSubscript-cache axs))))))))
+		 ,(scheme-cache (PycSubscript-cache axs) axs)))))))
 
 (define-walk-method (scheme this::PycAugAssig conf)
    (cond
@@ -302,7 +305,7 @@
 			      lhs
 			      (PycAssig-rhs this)
 			      (new-PycPragma loc
-				 (scheme-cache (PycAugAssig-cache this))))))))
+				 (scheme-cache (PycAugAssig-cache this) this)))))))
 	  (scheme assig conf)))
       ((isa? (PycAssig-lhs this) PycAccess)
        (let* ((loc (PycNode-loc this))
@@ -319,7 +322,7 @@
 				 :cache (PycAccess-cache lhs))
 			      (PycAssig-rhs this)
 			      (new-PycPragma loc
-				 (scheme-cache (PycAugAssig-cache this))))))))
+				 (scheme-cache (PycAugAssig-cache this) this)))))))
 	  (epairify this
 	     `(let ((,%o ,(scheme (PycAccess-obj lhs) conf)))
 		 ,(scheme assig conf)))))
@@ -332,15 +335,17 @@
 	      (index (PycSubscript-index lhs))
 	      (assig (new-PycAssig loc
 			(new-PycSubscript loc
-			   (new-PycPragma loc %o) (new-PycPragma loc %i))
+			   (new-PycPragma loc %o) (new-PycPragma loc %i)
+			   :cache (PycSubscript-cache lhs))
 			(new-PycCall loc
 			   (new-PycPragma loc (symbol-append 'py- (PycAugAssig-op this)))
 			   (list
 			      (new-PycSubscript loc
-				 (new-PycPragma loc %o) (new-PycPragma loc %i))
+				 (new-PycPragma loc %o) (new-PycPragma loc %i)
+				 :cache (PycSubscript-cache lhs))
 			      (PycAssig-rhs this)
 			      (new-PycPragma loc
-				 (scheme-cache (PycAugAssig-cache this))))))))
+				 (scheme-cache (PycAugAssig-cache this) this)))))))
 	  (epairify this
 	     `(let* ((,%i ,(scheme (PycSubscript-index lhs) conf))
 		     (,%o ,(scheme (PycSubscript-obj lhs) conf)))
@@ -368,7 +373,7 @@
       `(,(symbol-append 'py- (PycBinary-op this))
 	,(scheme (PycBinary-lhs this) conf)
 	,(scheme (PycBinary-rhs this) conf)
-	,(scheme-cache (PycBinary-cache this)))))
+	,(scheme-cache (PycBinary-cache this) this))))
 
 (define-walk-method (scheme this::PycFun conf)
    
@@ -384,7 +389,8 @@
 	  `(let ((%frame (make-cell #f))
 		 (%names ',(map! PycDecl-id
 			      (append (PycFun-args fun) (PycFun-decls fun)))))
-	      ,body)))
+	      ,body)
+	  body))
    
    (let ((args (map (lambda (a) (scheme a conf)) (PycFun-args this)))
 	 (body (locals this (scheme (PycFun-body this) (cons* fun: this conf)))))
@@ -422,15 +428,19 @@
 (define-walk-method (scheme this::PycCall conf)
 
    (define (invoke-maybe-locals fun)
-      (let ((f (gensym '%f)))
+      (let ((f (gensym '%f))
+	    (caller (config-get conf fun:)))
 	 `(let ((,f ,fun))
-	     (if (eq? ,f py-builtin-locals)
-		 (py-builtin-locals ,f %frame %names
-		    (vector ,@(map (lambda (d)
-				      (scheme-decl d conf))
-				 (let ((fun (config-get conf fun:)))
-				    (append (PycFun-args fun) (PycFun-decls fun))))))
-		 (py-call0 ,f)))))
+	     ,(if caller
+		  `(if (eq? ,f py-builtin-locals)
+		       (py-builtin-locals ,f %frame %names
+			  (vector ,@(map (lambda (d)
+					    (scheme-decl d conf))
+				       (append (PycFun-args caller) (PycFun-decls caller)))))
+		       (py-call0 ,f))
+		  `(if (eq? ,f py-builtin-globals)
+		       (py-builtin-globals)
+		       (py-call0 ,f))))))
    
    (define (invoke fun args)
       (case (length args)
@@ -449,7 +459,7 @@
 		`(let ((,obj ,(scheme (PycAccess-obj fun) conf)))
 		    ,(invoke `(object-get ,obj
 				 ,(pyc-propname (PycAccess-field fun))
-				 ,(scheme-cache (PycAccess-cache fun)))
+				 ,(scheme-cache (PycAccess-cache fun) fun))
 			(cons obj
 			   (map (lambda (a) (scheme a conf))
 			      (PycCall-args this))))))))
@@ -475,14 +485,14 @@
 	 ((global)
 	  (epairify this
 	     `(global-get %global ,(pyc-propname (PycDecl-id decl))
-		 ,(scheme-cache (PycRef-cache this)))))
+		 ,(scheme-cache (PycRef-cache this) this))))
 	 (else
 	  (scheme-decl decl conf)))))
 
 (define-walk-method (scheme this::PycRefUnresolved conf)
    (epairify this
       `(global-get %global ,(pyc-propname (PycRefUnresolved-id this))
-	  ,(scheme-cache (PycRefUnresolved-cache this)))))
+	  ,(scheme-cache (PycRefUnresolved-cache this) this))))
 
 (define-walk-method (scheme this::PycDelete conf)
    (scheme
@@ -495,13 +505,13 @@
    (epairify this
       `(object-get ,(scheme (PycAccess-obj this) conf)
 	  ,(pyc-propname (PycAccess-field this))
-	  ,(scheme-cache (PycAccess-cache this)))))
+	  ,(scheme-cache (PycAccess-cache this) this))))
 
 (define-walk-method (scheme this::PycSubscript conf)
    (epairify this
       `(py-getitem ,(scheme (PycSubscript-obj this) conf)
 	  ,(scheme (PycSubscript-index this) conf)
-	  ,(scheme-cache (PycSubscript-cache this)))))
+	  ,(scheme-cache (PycSubscript-cache this) this))))
 
 (define-walk-method (scheme this::PycSlice conf)
    (epairify this
@@ -510,8 +520,10 @@
 	  ,(scheme (PycSlice-upper this) conf)
 	  ,(scheme (PycSlice-step this) conf))))
 
-(define (scheme-cache cache)
-   `(vector-ref %caches ,cache))
+(define (scheme-cache cache node)
+   (if (not (integer? cache))
+       (error "scheme-cache" "Bad cache" (pyc->list node))
+       `(vector-ref %caches ,cache)))
 
 ;; collect caches
 (define-walk-method (collect-caches this::PycNode cnt)
