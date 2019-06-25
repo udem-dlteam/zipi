@@ -285,9 +285,10 @@
 	      (index (PycSubscript-index axs))
 	      (val (scheme (PycAssig-rhs this) conf)))
 	  (epairify this
-	     `(py-setitem! ,(scheme obj conf)
+	     `(py-setitem ,(scheme obj conf)
 		 ,(scheme index conf)
-		 ,(scheme (PycAssig-rhs this) conf)))))))
+		 ,(scheme (PycAssig-rhs this) conf)
+		 ,(scheme-cache (PycSubscript-cache axs))))))))
 
 (define-walk-method (scheme this::PycAugAssig conf)
    (cond
@@ -499,7 +500,8 @@
 (define-walk-method (scheme this::PycSubscript conf)
    (epairify this
       `(py-getitem ,(scheme (PycSubscript-obj this) conf)
-	  ,(scheme (PycSubscript-index this) conf))))
+	  ,(scheme (PycSubscript-index this) conf)
+	  ,(scheme-cache (PycSubscript-cache this)))))
 
 (define-walk-method (scheme this::PycSlice conf)
    (epairify this
@@ -543,6 +545,12 @@
    (let ((n (cell-ref cnt)))
       (cell-set! cnt (+ 1 n))
       (PycAccess-cache-set! this n)))
+
+(define-walk-method (collect-caches this::PycSubscript cnt)
+   (call-default-walker)
+   (let ((n (cell-ref cnt)))
+      (cell-set! cnt (+ 1 n))
+      (PycSubscript-cache-set! this n)))
 
 (define-walk-method (collect-caches this::PycAugAssig cnt)
    (call-default-walker)

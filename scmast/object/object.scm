@@ -760,11 +760,13 @@
            (string quote-style)))
       (string-append quotes content quotes))))
 
+(define repr-cache (make-PCache -1 -1))
+
 (define (py-list-repr-scheme lst)
   (let ((len (py-call1 py-builtin-len lst)))
     (let loop ((i (- len 1)) (elems '()))
       (if (>= i 0)
-          (let ((x (py-repr (py-getitem lst i))))
+          (let ((x (py-repr (py-getitem lst i repr-cache))))
             (loop (- i 1)
                   (cons (string-append x (if (= i (- len 1)) "" ", ")) elems)))
           (string-append "[" (apply string-append elems) "]")))))
