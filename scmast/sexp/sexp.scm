@@ -75,7 +75,7 @@
        (new-PycAugAssig loc
 	  (sexp target #f scope conf)
 	  (sexp value #f scope conf)
-	  (operator op 'AugAssign)))
+	  (binary-operator op 'AugAssign)))
       ((AnnAssign ?loc ?target ?annotation ?value ?simple)
        ;; AnnAssign(expr target, expr annotation, expr? value, int simple)
        (if value
@@ -175,12 +175,14 @@
       ((BinOp ?loc ?left ?op ?right)
        ;; BinOp(expr left, operator op, expr right)
        (new-PycBinary loc 
-	  (operator op 'BinOp)
+	  (binary-operator op 'BinOp)
 	  (sexp left #f scope conf)
 	  (sexp right #f scope conf)
 	  type: (op-type op)))
       ((UnaryOp ?loc ?op ?expr)
-       (new-PycUnary loc op (sexp expr #f scope conf)))
+       (new-PycUnary loc
+	  (unary-operator op)
+          (sexp expr #f scope conf)))
       
       ((Yield ?loc ?value)
        (new-PycYield loc (sexp value tail scope conf)))
@@ -201,7 +203,7 @@
 		 (else (error "Compare" "Illegal operator" (car ops))))
 	      (sexp left #f scope conf)
 	      (sexp (car rights) #f scope conf)
-	      :type 'bool)))
+	      type: 'bool)))
       ((Call ?loc ?fun ?args ?keywords)
        ;; Call(expr func, expr* args, keyword* keywords)
        (new-PycCall loc
@@ -280,10 +282,27 @@
        'bool
        'unknown))
 
-(define (operator op node)
+(define (binary-operator op node)
    (case op
-      ((Add) (if (eq? node 'BinOp) 'add 'iadd))
-      ((Sub) (if (eq? node 'BinOp) 'sub 'isub))
-      ((Div) (if (eq? node 'BinOp) 'div 'idiv))
-      ((Mul) (if (eq? node 'BinOp) 'mul 'imul))
-      (else node "Illegal operator" op)))
+      ((Add)      (if (eq? node 'BinOp) 'add      'iadd))
+      ((Div)      (if (eq? node 'BinOp) 'div      'idiv))
+      ((BitAnd)   (if (eq? node 'BinOp) 'and      'iand))
+      ((BitOr)    (if (eq? node 'BinOp) 'or       'ior))
+      ((BitXor)   (if (eq? node 'BinOp) 'xor      'ixor))
+      ((FloorDiv) (if (eq? node 'BinOp) 'floordiv 'ifloordiv))
+      ((LShift)   (if (eq? node 'BinOp) 'lshift   'ilshift))
+      ((Mod)      (if (eq? node 'BinOp) 'mod      'imod))
+      ((Mult)     (if (eq? node 'BinOp) 'mul      'imul))
+      ((Pow)      (if (eq? node 'BinOp) 'pow      'ipow))
+      ((RShift)   (if (eq? node 'BinOp) 'rshift   'irshift))
+      ((Sub)      (if (eq? node 'BinOp) 'sub      'isub))
+      (else
+       (error "binary-operator" "Illegal operator" op))))
+
+(define (unary-operator op)
+   (case op
+      ((Invert) 'invert)
+      ((UAdd)   'pos)
+      ((USub)   'neg)
+      (else
+       (error "unary-operator" "Illegal operator" op))))

@@ -199,19 +199,19 @@
   (+ x y))
 
 (define (py-and x y cache) ;; x & y
-  (bitwise-and x y))
+  (bit-and x y))
 
 (define (py-div x y cache) ;; x / y
-  (/ x y))
+  (/ (exact->inexact x) (exact->inexact y)))
 
 (define (py-floordiv x y cache) ;; x // y
   (inexact->exact (floor (/ x y))))
 
 (define (py-invert x cache) ;; ~ x
-  (bitwise-not x))
+  (bit-not x))
 
 (define (py-lshift x y cache) ;; x << y
-  (arithmetic-shift x y))
+  (bit-lsh x y))
 
 (define (py-matmul x y cache) ;; x @ y
   (error "py-matmul" "not implemented" #f))
@@ -226,7 +226,7 @@
   (- x))
 
 (define (py-or x y cache) ;; x | y
-  (bitwise-ior x y))
+  (bit-or x y))
 
 (define (py-pos x cache) ;; + x
   (+ x))
@@ -235,28 +235,28 @@
   (expt x y))
 
 (define (py-rshift x y cache) ;; x >> y
-  (arithmetic-shift x (- y)))
+  (bit-rsh x y))
 
 (define (py-sub x y cache) ;; x - y
   (- x y))
 
 (define (py-xor x y cache) ;; x ^ y
-  (bitwise-xor x y))
+  (bit-xor x y))
 
 (define (py-iadd x y cache) ;; x += y
   (+ x y))
 
 (define (py-iand x y cache) ;; x &= y
-  (bitwise-and x y))
+  (bit-and x y))
 
 (define (py-idiv x y cache) ;; x /= y
-  (/ x y))
+  (/ (exact->inexact x) (exact->inexact y)))
 
 (define (py-ifloordiv x y cache) ;; x //= y
   (inexact->exact (floor (/ x y))))
 
 (define (py-ilshift x y cache) ;; x <<= y
-  (arithmetic-shift x y))
+  (bit-lsh x y))
 
 (define (py-imatmul x y cache) ;; x @= y
   (error "py-imatmul" "not implemented" #f))
@@ -268,19 +268,19 @@
   (* x y))
 
 (define (py-ior x y cache) ;; x |= y
-  (bitwise-ior x y))
+  (bit-or x y))
 
 (define (py-ipow x y cache) ;; x **= y
   (expt x y))
 
 (define (py-irshift x y cache) ;; x >>= y
-  (arithmetic-shift x (- y)))
+  (bit-rsh x y))
 
 (define (py-isub x y cache) ;; x -= y
   (- x y))
 
 (define (py-ixor x y cache) ;; x ^= y
-  (bitwise-xor x y))
+  (bit-xor x y))
 
 (define (py-eq x y cache) ;; x == y
   (= x y))

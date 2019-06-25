@@ -311,12 +311,12 @@
 	      (field (PycAccess-field lhs))
 	      (assig (new-PycAssig loc
 			(new-PycAccess loc (new-PycPragma loc %o) field
-			   :cache (PycAccess-cache lhs))
+			   cache: (PycAccess-cache lhs))
 			(new-PycCall loc
 			   (new-PycPragma loc (symbol-append 'py- (PycAugAssig-op this)))
 			   (list
 			      (new-PycAccess loc (new-PycPragma loc %o) field
-				 :cache (PycAccess-cache lhs))
+				 cache: (PycAccess-cache lhs))
 			      (PycAssig-rhs this)
 			      (new-PycPragma loc
 				 (scheme-cache (PycAugAssig-cache this))))))))
@@ -369,6 +369,12 @@
 	,(scheme (PycBinary-lhs this) conf)
 	,(scheme (PycBinary-rhs this) conf)
 	,(scheme-cache (PycBinary-cache this)))))
+
+(define-walk-method (scheme this::PycUnary conf)
+   (epairify this
+      `(,(symbol-append 'py- (PycUnary-op this))
+	,(scheme (PycUnary-expr this) conf)
+	'???)))
 
 (define-walk-method (scheme this::PycFun conf)
    
@@ -434,7 +440,7 @@
    
    (define (invoke fun args)
       (case (length args)
-	 ((0) (invoke-maybe-locals fun))
+	 ((0) `(py-call0 ,fun ,@args)) ;; (invoke-maybe-locals fun))
 	 ((1) `(py-call1 ,fun ,@args))
 	 ((2) `(py-call2 ,fun ,@args))
 	 ((3) `(py-call3 ,fun ,@args))

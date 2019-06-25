@@ -117,8 +117,3 @@
 ;*---------------------------------------------------------------------*/
 ;*    bigloo-compatibility                                             */
 ;*---------------------------------------------------------------------*/
-(define (bitwise-and x y) (bit-and x y))
-(define (bitwise-ior x y) (bit-or x y))
-(define (bitwise-xor x y) (bit-xor x y))
-(define (bitwise-not x) (bit-not x))
-(define (arithmetic-shift x y) (bit-lsh x y))
