@@ -146,7 +146,7 @@
        (new-PycSymbols loc 'global names))
       ((Nonlocal ?loc ?names)
        ;; Nonlocal(identifier* names)
-       (new-PycSymbols loc 'global names))
+       (new-PycSymbols loc 'nonlocal names))
       ((Expr ?loc ?value)
        ;; Expr(expr value)
        (new-PycStmtExpr loc

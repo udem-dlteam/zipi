@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Tue Jun 25 10:37:33 2019 (serrano)                */
+;*    Last change :  Tue Jun 25 10:52:07 2019 (serrano)                */
 ;*    Copyright   :  2019 M. Feeley & M. Serrano                       */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -73,7 +73,8 @@
 	   (inline py-none)
 	   (py-uninit)
 
-	   py-builtin-locals)
+	   py-builtin-locals
+	   py-builtin-globals)
    
    (eval   (export-all)))
 

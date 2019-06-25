@@ -1,7 +1,7 @@
 ;; symbol resolution
 (define (pyc-symbol! this conf)
    (let* ((env (collect* this 'global))
-	  (gla (collect-global* this #t '()))
+	  (gla (collect-free* this #t '() 'global))
 	  (%env (cons '% env))
 	  (extras (filter-map (lambda (id)
 				 (unless (lookup-id (cdr %env) id )
@@ -50,27 +50,27 @@
    this)
 
 ;; symbol resolution
-(define-walk-method (resolve! this::PycNode env globals conf)
+(define-walk-method (resolve! this::PycNode env freeenv conf)
    (call-default-walker))
 
-(define-walk-method (resolve! this::PycModule env globals conf)
+(define-walk-method (resolve! this::PycModule env freeenv conf)
    (PycModule-globals-set! this env)
    (call-default-walker))
 
-(define-walk-method (resolve! this::PycBlock env globals conf)
+(define-walk-method (resolve! this::PycBlock env freeenv conf)
    (let loop ((env env)
 	      (decls (PycBlock-decls this)))
       (if (null? decls)
 	  (begin
 	     (PycBlock-body-set! this
-		(resolve! (PycBlock-body this) env globals conf))
+		(resolve! (PycBlock-body this) env freeenv conf))
 	     this)
 	  (let ((decl (car decls)))
 	     (PycDeclInit-val-set! decl
-		(resolve! (PycDeclInit-val decl) env globals conf))
+		(resolve! (PycDeclInit-val decl) env freeenv conf))
 	     (loop (cons decl env) (cdr decls))))))
 
-(define-walk-method (resolve! this::PycRefUnresolved env globals conf)
+(define-walk-method (resolve! this::PycRefUnresolved env freeenv conf)
    (let ((loc (PycNode-loc this)))
       (let ((decl (lookup-id env (PycRefUnresolved-id this))))
 	 (if (PycDecl? decl)
@@ -80,10 +80,10 @@
 (define-walk-method (resolve! this::PycFun env _ conf)
    (let* ((loc (PycNode-loc this))
 	  (decls (collect* (PycFun-body this) 'local))
-	  (globals (collect-global* (PycFun-body this) #f '()))
+	  (freeenv (collect-free* (PycFun-body this) #f '() '*))
 	  (aenv (collect-free-assig* (PycFun-body this)
 		   (append decls (PycFun-args this) env)
-		   (cons '% globals)))
+		   (cons '% freeenv)))
 	  (bdgs (map (lambda (decl)
 			(let ((loc (PycNode-loc decl)))
 			   (new-PycDeclInit loc (PycDecl-id decl) 'local
@@ -95,13 +95,13 @@
 	     (new-PycBlock loc
 		bdgs
 		(resolve! (PycFun-body this)
-		   (append bdgs (PycFun-args this) env) globals conf)))
+		   (append bdgs (PycFun-args this) env) freeenv conf)))
 	  (PycFun-body-set! this
 	     (resolve! (PycFun-body this)
-		(append (PycFun-args this) env) globals conf)))
+		(append (PycFun-args this) env) freeenv conf)))
       this))
 
-(define-walk-method (resolve! this::PycClass env globals conf)
+(define-walk-method (resolve! this::PycClass env freeenv conf)
    (let* ((loc (PycNode-loc this))
 	  (decls (collect* (PycClass-body this) 'local))
 	  (aenv (collect-free-assig* (PycClass-body this)
@@ -118,36 +118,36 @@
 	     (new-PycBlock loc
 		bdgs
 		(resolve! (PycClass-body this)
-		   (append bdgs env) globals conf)))
+		   (append bdgs env) freeenv conf)))
 	  (PycClass-body-set! this
-	     (resolve! (PycClass-body this) env globals conf)))
+	     (resolve! (PycClass-body this) env freeenv conf)))
       this))
 
-(define-walk-method (resolve! this::PycDeclInit env globals conf)
+(define-walk-method (resolve! this::PycDeclInit env freeenv conf)
    (if (eq? (PycDecl-scope this) 'local)
        (let ((loc (PycNode-loc this)))
 	  ;; replace the declaration with an assignment
 	  (let ((decl (lookup-id env (PycDecl-id this))))
 	     (new-PycAssig loc (new-PycRef loc decl)
-		(resolve! (PycDeclInit-val this) env globals conf))))
+		(resolve! (PycDeclInit-val this) env freeenv conf))))
        (call-default-walker)))
 
 (define-walk-method (resolve! this::PycSymbols env global conf)
    (new-PycPass (PycNode-loc this)))
 
 ;; collect free variable assignments
-(define-walk-method (collect-free-assig* this::PycNode env globals)
+(define-walk-method (collect-free-assig* this::PycNode env freeenv)
    (call-default-walker))
 
-(define-walk-method (collect-free-assig* this::PycAssig env globals)
+(define-walk-method (collect-free-assig* this::PycAssig env freeenv)
    (cond
       ((not (isa? (PycAssig-lhs this) PycRefUnresolved))
        (call-default-walker))
-      ((memq (PycRefUnresolved-id (PycAssig-lhs this)) globals)
-       (error "symbol" "SyntaxError: name assigned before global declaration"
-	  (PycRefUnresolved-id (PycAssig-lhs this))))
+      ((memq (PycRefUnresolved-id (PycAssig-lhs this)) freeenv)
+       (error "symbol" "SyntaxError: name assigned before declaration"
+	  (pyc->list this)))
       ((lookup-id env (PycRefUnresolved-id (PycAssig-lhs this)))
-       (collect-free-assig* (PycAssig-rhs this) env globals))
+       (collect-free-assig* (PycAssig-rhs this) env freeenv))
       (else
        (let* ((loc (PycNode-loc (PycAssig-lhs this)))
 	      (decl (new-PycDeclInit loc
@@ -156,10 +156,9 @@
 		       (new-PycUninit loc))))
 	  (cons decl
 	     (collect-free-assig* (PycAssig-rhs this)
-		(cons decl env) globals))))))
+		(cons decl env) freeenv))))))
 
-(define-walk-method (collect-free-assig* this::PycFor env globals)
-   (tprint "cfa.3 " (typeof this))
+(define-walk-method (collect-free-assig* this::PycFor env freeenv)
    (let ((n (PycFor-target this)))
       (if (and (isa? n PycRefUnresolved)
 	       (not (lookup-id env (PycRefUnresolved-id n))))
@@ -170,27 +169,26 @@
 			  (new-PycUninit loc))))
 	     (cons decl
 		(collect-free-assig* (PycLoop-body this)
-		   (cons decl env) globals)))
+		   (cons decl env) freeenv)))
 	  ;; no need to scan the iterators as they are plain expressions
-	  (collect-free-assig* (PycLoop-body this) env globals))))
+	  (collect-free-assig* (PycLoop-body this) env freeenv))))
 
-(define-walk-method (collect-free-assig* this::PycSymbols env globals)
-   (if (eq? (PycSymbols-scope this) 'global)
-       (for-each (lambda (id)
-		    (set-cdr! globals (remq! id (cdr globals))))
-	  (list-copy (PycSymbols-names this))))
+(define-walk-method (collect-free-assig* this::PycSymbols env freeenv)
+   (for-each (lambda (id)
+		(set-cdr! freeenv (remq! id (cdr freeenv))))
+      (list-copy (PycSymbols-names this)))
    '())
 
 ;; collect variables declared in a global statement
-(define-walk-method (collect-global* this::PycNode rec env)
+(define-walk-method (collect-free* this::PycNode rec env scope)
    (call-default-walker))
 
-(define-walk-method (collect-global* this::PycSymbols rec env)
-   (if (eq? (PycSymbols-scope this) 'global)
+(define-walk-method (collect-free* this::PycSymbols rec env scope)
+   (if (or (eq? (PycSymbols-scope this) scope) (eq? scope '*))
        (delete-duplicates (append (PycSymbols-names this) env))
        env))
 
-(define-walk-method (collect-global* this::PycFun rec env)
+(define-walk-method (collect-free* this::PycFun rec env scope)
    (if rec
        (call-default-walker)
        '()))
