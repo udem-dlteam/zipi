@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 10:16:39 2019                          */
-;*    Last change :  Mon Jun 24 15:49:44 2019 (serrano)                */
+;*    Last change :  Tue Jun 25 08:19:37 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Python AST                                                       */
@@ -37,7 +37,8 @@
 	      (usage::pair-nil (default '())))
            
            (class PycDeclInit::PycDecl
-              val::PycExpr)
+              val::PycExpr
+	      (cache (default #f)))
 
            (class PycVar::PycDeclInit)
 
@@ -69,7 +70,8 @@
               rhs::PycExpr)
            
            (class PycAugAssig::PycAssig
-	      op::symbol)
+	      op::bstring
+	      (cache (default #f)))
            
            (class PycIf::PycStmt
               (test::PycExpr (info '("ast")))
@@ -88,7 +90,9 @@
 	      
 	   (class PycFor::PycLoop
 	      (target::PycExpr (info '("ast")))
-	      (iter::PycExpr (info '("ast"))))
+	      (iter::PycExpr (info '("ast")))
+	      (cachei (default #f))
+	      (cachen (default #f)))
 
 	   (class PycWhile::PycLoop
 	      (test::PycExpr (info '("ast"))))
@@ -127,14 +131,17 @@
               expr)
            
            (class PycRef::PycExpr
-              (decl (info '("jsonref" "notraverse"))))
+              (decl (info '("jsonref" "notraverse")))
+	      (cache (default #f)))
            
            (class PycRefUnresolved::PycExpr
-              id)
+              id
+	      (cache (default #f)))
 
 	   (class PycAccess::PycExpr
 	      obj::PycExpr
-	      (field::bstring read-only))
+	      (field::bstring read-only)
+	      (cache (default #f)))
 	   
 	   (class PycSubscript::PycExpr
 	      obj::PycExpr
@@ -158,13 +165,14 @@
            (final-class PycString::PycLiteralValue)
 
 	   (final-class PycUnary::PycExpr
-	      op::symbol
+	      op::bstring
 	      expr::PycExpr)
 	   
            (final-class PycBinary::PycExpr
-              op::symbol
+              op::bstring
               lhs::PycExpr
-              rhs::PycExpr)
+              rhs::PycExpr
+	      (cache (default #f)))
            
            (final-class PycFun::PycExpr
               args::pair-nil
@@ -191,7 +199,7 @@
            (final-class PycCall::PycExpr
               fun::PycExpr
               args::pair-nil
-              keywords::pair-nil)
+              (keywords::pair-nil (default '())))
 
 	   (abstract-class PycCollection::PycExpr
 	      elts::pair)

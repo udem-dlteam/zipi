@@ -75,7 +75,7 @@
        (new-PycAugAssig loc
 	  (sexp target #f scope conf)
 	  (sexp value #f scope conf)
-	  (operator op "AugAssign")))
+	  (operator op 'AugAssign)))
       ((AnnAssign ?loc ?target ?annotation ?value ?simple)
        ;; AnnAssign(expr target, expr annotation, expr? value, int simple)
        (if value
@@ -171,16 +171,16 @@
        ;; Constant(constant value, string? kind) [3.8]
        (if string
 	   (new-PycString loc val)
-	   (new-PycNumber loc (string->number val))))
+	   (new-PycNumber loc val)))
       ((BinOp ?loc ?left ?op ?right)
        ;; BinOp(expr left, operator op, expr right)
        (new-PycBinary loc 
-	  (operator op "BinOp")
+	  (operator op 'BinOp)
 	  (sexp left #f scope conf)
 	  (sexp right #f scope conf)
 	  type: (op-type op)))
       ((UnaryOp ?loc ?op ?expr)
-       (new-PycUnary loc op (sexp expr #f scope conf)))
+       (new-PycUnary loc (symbol->string op) (sexp expr #f scope conf)))
       
       ((Yield ?loc ?value)
        (new-PycYield loc (sexp value tail scope conf)))
@@ -206,7 +206,7 @@
        (new-PycCall loc
 	  (sexp fun #f scope conf)
 	  (map (lambda (a) (sexp a #f scope conf)) args)
-	  (map (lambda (k) (sexp k #f scope conf)) keywords)))
+	  keywords: (map (lambda (k) (sexp k #f scope conf)) keywords)))
       ((Attribute ?loc ?value ?attr ?ctx)
        ;; Attribute(expr value, identifier attr, expr_context ctx)
        (new-PycAccess loc (sexp value #f scope conf) (symbol->string attr)))
@@ -281,8 +281,8 @@
 
 (define (operator op node)
    (case op
-      ((Add) '+)
-      ((Sub) '-)
-      ((Div) '/)
-      ((Mul) '*)
+      ((Add) (if (eq? node 'BinOp) "add" "iadd"))
+      ((Sub) (if (eq? node 'BinOp) "sub" "isub"))
+      ((Div) (if (eq? node 'BinOp) "div" "idiv"))
+      ((Mul) (if (eq? node 'BinOp) "mul" "imul"))
       (else node "Illegal operator" op)))

@@ -141,18 +141,16 @@
 		    (,iterator (PyFunction-call1
 				  (object-get ,iterable
 				     (& "__iter__")
-				     (vector-ref %caches
-					,(car (PycNode-%info this))))
+				     ,(scheme-cache (PycFor-cachei this)))
 				  ,iterable))
 		    (,next (object-get ,iterator (& "__next__")
-			      (vector-ref %caches ,(cdr (PycNode-%info this))))))
+			      ,(scheme-cache (PycFor-cachen this)))))
 		(let ,loop ()
 		     (let ((,target (py-for-next ,iterator ,next)))
 			(unless (eq? ,target 'StopIteration)
 			   ,(let ((assig (new-PycAssig (PycNode-loc this)
 					    (PycFor-target this)
-					    (new-PycPragma (PycNode-loc this) target)
-					    %info: (PycNode-%info (PycFor-target this)))))
+					    (new-PycPragma (PycNode-loc this) target))))
 			       (scheme  assig conf))
 			   ,(if (PycLoop-need-continue this)
 				`(bind-exit (%continue)
@@ -251,7 +249,7 @@
 	 (if (eq? (PycDecl-scope this) 'local)
 	     `(set! ,(scheme-decl this conf) ,val)
 	     `(global-put! %global ,(pyc-propname (PycDecl-id this)) ,val
-		 (vector-ref %caches ,(PycNode-%info this)))))))
+		 ,(scheme-cache (PycDeclInit-cache this)))))))
 
 (define-walk-method (scheme this::PycAssig conf)
    (cond
@@ -263,7 +261,7 @@
 	     (case (PycDecl-scope decl)
 		((global)
 		 `(global-put! %global ,(pyc-propname (PycDecl-id decl)) ,val
-		     (vector-ref %caches ,(PycNode-%info this))))
+		     ,(scheme-cache (PycRef-cache (PycAssig-lhs this)))))
 		(else
 		 `(set! ,(scheme-decl decl conf) ,val))))))
       ((isa? (PycAssig-lhs this) PycRefUnresolved)
@@ -271,7 +269,7 @@
 	      (val (scheme (PycAssig-rhs this) conf)))
 	  (epairify this
 	     `(global-put! %global ,(pyc-propname (PycRefUnresolved-id ref)) ,val
-		 (vector-ref %caches ,(PycNode-%info this))))))
+		 ,(scheme-cache (PycRefUnresolved-cache (PycAssig-lhs this)))))))
       ((isa? (PycAssig-lhs this) PycAccess)
        (let* ((axs (PycAssig-lhs this))
 	      (obj (PycAccess-obj axs))
@@ -280,7 +278,7 @@
 	  (epairify this
 	     `(object-put! ,(scheme obj conf) ,(pyc-propname field)
 		 ,(scheme (PycAssig-rhs this) conf)
-		 (vector-ref %caches ,(PycNode-%info axs))))))
+		 ,(scheme-cache (PycAccess-cache (PycAssig-lhs this)))))))
       (else
        (let* ((axs (PycAssig-lhs this))
 	      (obj (PycSubscript-obj axs))
@@ -293,36 +291,59 @@
 
 (define-walk-method (scheme this::PycAugAssig conf)
    (cond
-      ((or (isa? (PycAssig-lhs this) PycRef)
-	   (isa? (PycAssig-lhs this) PycAccess))
-       (let ((assig (new-PycAssig (PycNode-loc this)
-		       (PycAssig-lhs this)
-		       (new-PycBinary (PycNode-loc this)
-			  (PycAugAssig-op this)
-			  (PycAssig-lhs this)
-			  (PycAssig-rhs this))
-		       %info: (PycNode-%info this))))
+      ((isa? (PycAssig-lhs this) PycRef)
+       (let* ((loc (PycNode-loc this))
+	      (lhs (PycAssig-lhs this))
+	      (assig (new-PycAssig loc lhs
+			(new-PycCall loc
+			   (new-PycPragma loc `(& ,(PycAugAssig-op this)))
+			   (list
+			      lhs
+			      (PycAssig-rhs this)
+			      (new-PycPragma loc
+				 (scheme-cache (PycAugAssig-cache this))))))))
 	  (scheme assig conf)))
+      ((isa? (PycAssig-lhs this) PycAccess)
+       (let* ((loc (PycNode-loc this))
+	      (%o (gensym '%o))
+	      (lhs (PycAssig-lhs this))
+	      (field (PycAccess-field lhs))
+	      (assig (new-PycAssig loc
+			(new-PycAccess loc (new-PycPragma loc %o) field
+			   :cache (PycAccess-cache lhs))
+			(new-PycCall loc
+			   (new-PycPragma loc `(& ,(PycAugAssig-op this)))
+			   (list
+			      (new-PycAccess loc (new-PycPragma loc %o) field
+				 :cache (PycAccess-cache lhs))
+			      (PycAssig-rhs this)
+			      (new-PycPragma loc
+				 (scheme-cache (PycAugAssig-cache this))))))))
+	  (epairify this
+	     `(let ((,%o ,(scheme (PycAccess-obj lhs) conf)))
+		 ,(scheme assig conf)))))
       (else
-       (let* ((axs (PycAssig-lhs this))
-	      (obj (PycSubscript-obj axs))
-	      (index (PycSubscript-index axs))
-	      (val (scheme (PycAssig-rhs this) conf)))
-	  (let* ((idx (gensym '%i))
-		 (assig (new-PycAssig (PycNode-loc this)
-			   (new-PycSubscript (PycNode-loc axs)
-			      obj
-			      (new-PycPragma (PycNode-loc index) idx))
-			   (new-PycBinary (PycNode-loc this)
-			      (PycAugAssig-op this)
-			      (new-PycSubscript (PycNode-loc axs)
-				 obj
-				 (new-PycPragma (PycNode-loc index) idx))
-			      (PycAssig-rhs this)))))
-	     
-	     (epairify this
-		`(let ((,idx ,(scheme index conf)))
-		    ,(scheme assig conf))))))))
+       (let* ((loc (PycNode-loc this))
+	      (%o (gensym '%o))
+	      (%i (gensym '%i))
+	      (lhs (PycAssig-lhs this))
+	      (obj (PycSubscript-obj lhs))
+	      (index (PycSubscript-index lhs))
+	      (assig (new-PycAssig loc
+			(new-PycSubscript loc
+			   (new-PycPragma loc %o) (new-PycPragma loc %i))
+			(new-PycCall loc
+			   (new-PycPragma loc `(& ,(PycAugAssig-op this)))
+			   (list
+			      (new-PycSubscript loc
+				 (new-PycPragma loc %o) (new-PycPragma loc %i))
+			      (PycAssig-rhs this)
+			      (new-PycPragma loc
+				 (scheme-cache (PycAugAssig-cache this))))))))
+	  (epairify this
+	     `(let* ((,%i ,(scheme (PycSubscript-index lhs) conf))
+		     (,%o ,(scheme (PycSubscript-obj lhs) conf)))
+		 ,(scheme assig conf)))))))
 
 (define-walk-method (scheme this::PycPragma conf)
    (epairify this
@@ -343,9 +364,10 @@
 
 (define-walk-method (scheme this::PycBinary conf)
    (epairify this
-      `(,(symbol-append 'py (PycBinary-op this))
+      `(,(string->symbol (string-append "py-" (PycBinary-op this)))
 	,(scheme (PycBinary-lhs this) conf)
-	,(scheme (PycBinary-rhs this) conf))))
+	,(scheme (PycBinary-rhs this) conf)
+	,(scheme-cache (PycBinary-cache this)))))
 
 (define-walk-method (scheme this::PycFun conf)
    
@@ -408,7 +430,7 @@
 		`(let ((,obj ,(scheme (PycAccess-obj fun) conf)))
 		    ,(invoke `(object-get ,obj
 				 ,(pyc-propname (PycAccess-field fun))
-				 (vector-ref %caches ,(PycNode-%info fun)))
+				 ,(scheme-cache (PycAccess-cache fun)))
 			(cons obj
 			   (map (lambda (a) (scheme a conf))
 			      (PycCall-args this)))))))
@@ -428,20 +450,20 @@
 	 ((global)
 	  (epairify this
 	     `(global-get %global ,(pyc-propname (PycDecl-id decl))
-		 (vector-ref %caches ,(PycNode-%info this)))))
+		 ,(scheme-cache (PycRef-cache this)))))
 	 (else
 	  (scheme-decl decl conf)))))
 
 (define-walk-method (scheme this::PycRefUnresolved conf)
    (epairify this
       `(global-get %global ,(pyc-propname (PycRefUnresolved-id this))
-	  (vector-ref %caches ,(PycNode-%info this)))))
+	  ,(scheme-cache (PycRefUnresolved-cache this)))))
 
 (define-walk-method (scheme this::PycAccess conf)
    (epairify this
       `(object-get ,(scheme (PycAccess-obj this) conf)
 	  ,(pyc-propname (PycAccess-field this))
-	  (vector-ref %caches ,(PycNode-%info this)))))
+	  ,(scheme-cache (PycAccess-cache this)))))
 
 (define-walk-method (scheme this::PycSubscript conf)
    (epairify this
@@ -455,6 +477,9 @@
 	  ,(scheme (PycSlice-upper this) conf)
 	  ,(scheme (PycSlice-step this) conf))))
 
+(define (scheme-cache cache)
+   `(vector-ref %caches ,cache))
+
 ;; collect caches
 (define-walk-method (collect-caches this::PycNode cnt)
    (call-default-walker))
@@ -464,32 +489,35 @@
    (when (eq? (PycDecl-scope this) 'global)
       (let ((n (cell-ref cnt)))
 	 (cell-set! cnt (+ 1 n))
-	 (PycNode-%info-set! this n))))
+	 (PycDeclInit-cache-set! this n))))
       
 (define-walk-method (collect-caches this::PycRef cnt)
    (when (eq? (PycDecl-scope (PycRef-decl this)) 'global)
       (let ((n (cell-ref cnt)))
 	 (cell-set! cnt (+ 1 n))
-	 (PycNode-%info-set! this n))))
+	 (PycRef-cache-set! this n))))
+
+(define-walk-method (collect-caches this::PycBinary cnt)
+   (let ((n (cell-ref cnt)))
+      (cell-set! cnt (+ 1 n))
+      (PycBinary-cache-set! this n)))
 
 (define-walk-method (collect-caches this::PycRefUnresolved cnt)
    (let ((n (cell-ref cnt)))
       (cell-set! cnt (+ 1 n))
-      (PycNode-%info-set! this n)))
+      (PycRefUnresolved-cache-set! this n)))
 
 (define-walk-method (collect-caches this::PycAccess cnt)
    (call-default-walker)
    (let ((n (cell-ref cnt)))
       (cell-set! cnt (+ 1 n))
-      (PycNode-%info-set! this n)))
+      (PycAccess-cache-set! this n)))
 
-(define-walk-method (collect-caches this::PycAssig cnt)
+(define-walk-method (collect-caches this::PycAugAssig cnt)
    (call-default-walker)
-   (when (isa? (PycAssig-lhs this) PycRef)
-      (when (eq? (PycDecl-scope (PycRef-decl (PycAssig-lhs this))) 'global)
-	 (let ((n (cell-ref cnt)))
-	    (cell-set! cnt (+ 1 n))
-	    (PycNode-%info-set! this n)))))
+   (let ((n (cell-ref cnt)))
+      (cell-set! cnt (+ 1 n))
+      (PycAugAssig-cache-set! this n)))
 
 (define-walk-method (collect-caches this::PycFor cnt)
    (call-default-walker)
@@ -497,6 +525,7 @@
       (cell-set! cnt (+ 1 n))
       (let ((m (cell-ref cnt)))
 	 (cell-set! cnt (+ 1 m))
-	 (PycNode-%info-set! this (cons n m)))))
+	 (PycFor-cachei-set! this n)
+	 (PycFor-cachen-set! this m))))
 	  
    
