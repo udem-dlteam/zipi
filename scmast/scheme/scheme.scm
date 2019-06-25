@@ -412,15 +412,21 @@
 	     ,(scheme (PycKont-body this) conf)))))
 
 (define-walk-method (scheme this::PycCall conf)
+
+   (define (invoke-maybe-locals fun)
+      (let ((f (gensym '%f)))
+	 `(let ((,f ,fun))
+	     `(if (eq? ,f py-locals)
+		  `(py-locals ,fun ,frame ,names ,vals)
+		  `(py-call0 ,f)))))
    
    (define (invoke fun args)
-      (let ((call (case (length args)
-		     ((0) 'PyFunction-call0)
-		     ((1) 'PyFunction-call1)
-		     ((2) 'PyFunction-call2)
-		     ((3) 'PyFunction-call4)
-		     (else (error "scheme" "Not implemented" (pyc->list this))))))
-	 `(,call ,fun ,@args)))
+      (case (length args)
+	 ((0) (invoke-maybe-locals fun))
+	 ((1) `(py-call1 ,fun ,@args))
+	 ((2) `(py-call2 ,fun ,@args))
+	 ((3) `(py-call3 ,fun ,@args))
+	 (else (error "scheme" "Not implemented" (pyc->list this)))))
 
    (let ((fun (PycCall-fun this)))
       (if (isa? fun PycAccess)
@@ -458,6 +464,13 @@
    (epairify this
       `(global-get %global ,(pyc-propname (PycRefUnresolved-id this))
 	  ,(scheme-cache (PycRefUnresolved-cache this)))))
+
+(define-walk-method (scheme this::PycDelete conf)
+   (scheme
+      (new-PycAssig (PycNode-loc this)
+	 (PycDelete-expr this)
+	 (new-PycUninit (PycNode-loc this)))
+      conf))
 
 (define-walk-method (scheme this::PycAccess conf)
    (epairify this
