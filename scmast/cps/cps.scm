@@ -103,7 +103,7 @@
 	     (exn (new-PycDecl loc (gensym '%exn) 'local))
 	     (body (kcall k (new-PycRef loc arg)))
 	     (cont (new-PycIf loc
-		      (new-PycBinary loc "is?"
+		      (new-PycBinary loc 'is?
 			 (new-PycRef loc exn) (new-PycBool loc #t) type: 'bool)
 		      (new-PycRaise loc (new-PycRef loc arg) (new-PycUninit loc))
 		      body)))

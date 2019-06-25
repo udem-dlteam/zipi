@@ -34,4 +34,4 @@
 	 (if (eq? e 'StopIteration)
 	     e
 	     (py-throw e)))
-      (PyFunction-call1 next iterator)))
+      (py-call1 next iterator)))

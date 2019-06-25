@@ -118,27 +118,27 @@
 (define (py-procedure->function generic-proc positional-proc)
    (make-PyFunction (PyFunction-default-hclass) '#() positional-proc))
 
-(define (PyFunction-call0 fun)
+(define (py-call0 fun)
    (if (and (isa? fun PyFunction) (correct-arity? (PyFunction-procedure fun) 0))
        ((PyFunction-procedure fun))
        (error "call0" "wrong call" fun)))
 
-(define (PyFunction-call1 fun a0)
+(define (py-call1 fun a0)
    (if (and (isa? fun PyFunction) (correct-arity? (PyFunction-procedure fun) 1))
        ((PyFunction-procedure fun) a0)
        (error "call1" "wrong call" fun)))
 
-(define (PyFunction-call2 fun a0 a1)
+(define (py-call2 fun a0 a1)
    (if (and (isa? fun PyFunction) (correct-arity? (PyFunction-procedure fun) 2))
        ((PyFunction-procedure fun) a0 a1)
        (error "call2" "wrong call" fun)))
 
-(define (PyFunction-call3 fun a0 a1 a2)
+(define (py-call3 fun a0 a1 a2)
    (if (and (isa? fun PyFunction) (correct-arity? (PyFunction-procedure fun) 2))
        ((PyFunction-procedure fun) a0 a1 a2)
        (error "call3" "wrong call" fun)))
 
-(define (PyFunction-call4 fun a0 a1 a2 a3)
+(define (py-call4 fun a0 a1 a2 a3)
    (if (and (isa? fun PyFunction) (correct-arity? (PyFunction-procedure fun) 2))
        ((PyFunction-procedure fun) a0 a1 a2 a3)
        (error "call4" "wrong call" fun)))
@@ -660,7 +660,7 @@
          =>
          (lambda (index)
            (let ((__repr__ (PyObject-elements-ref obj index)))
-             (py-str-to-scheme (PyFunction-call1 __repr__ obj)))))
+             (py-str-to-scheme (py-call1 __repr__ obj)))))
         (else
          (let ((t (py-type obj)))
            (cond ((eq? t py-builtin-list)
@@ -722,7 +722,7 @@
       (string-append quotes content quotes))))
 
 (define (py-list-repr-scheme lst)
-  (let ((len (PyFunction-call1 py-builtin-len lst)))
+  (let ((len (py-call1 py-builtin-len lst)))
     (let loop ((i (- len 1)) (elems '()))
       (if (>= i 0)
           (let ((x (py-repr (py-getitem lst i))))
@@ -738,7 +738,7 @@
          =>
          (lambda (index)
            (let ((__len__ (PyObject-elements-ref obj index)))
-             (PyFunction-call1 __len__ obj))))
+             (py-call1 __len__ obj))))
         ((py-str? obj)
          (py-str-len obj))
         (else
@@ -752,7 +752,7 @@
          =>
          (lambda (index)
            (let ((__getitem__ (PyObject-elements-ref obj index)))
-             (PyFunction-call2 __getitem__ obj i))))
+             (py-call2 __getitem__ obj i))))
         ((py-str? obj)
          (py-str-from-scheme (string (string-ref (py-str-to-scheme obj) i))))
         (else
@@ -1734,7 +1734,7 @@
             =>
             (lambda (index)
               (let ((__iter__ (PyObject-elements-ref object index)))
-                (PyFunction-call1 __iter__ object))))
+                (py-call1 __iter__ object))))
            (else
             (error "iter" "only object with __iter__ method implemented" #f))))))
 
@@ -1769,14 +1769,14 @@
                  =>
                  (lambda (index)
                    (let ((__iter__ (PyObject-elements-ref iterable index)))
-                     (let ((iterator (PyFunction-call1 __iter__ iterable)))
+                     (let ((iterator (py-call1 __iter__ iterable)))
                        (let loop ((elems '()))
                          (with-handler
                           (lambda (e)
                             (if (eq? e py-builtin-StopIteration)
                                 (list->vector (reverse elems))
                                 (py-throw e)))
-                          (let ((e (PyFunction-call1 py-builtin-next iterator)))
+                          (let ((e (py-call1 py-builtin-next iterator)))
                             (loop (cons e elems)))))))))
                 (else
                  (error "list" "TypeError: object is not iterable" #f))))))))
@@ -1907,13 +1907,13 @@
             (lambda (index)
               (let ((__next__ (PyObject-elements-ref iterator index)))
                 (if (eq? default absent-argument)
-                    (PyFunction-call1 __next__ iterator)
+                    (py-call1 __next__ iterator)
                     (with-handler
                      (lambda (e)
                        (if (eq? e py-builtin-StopIteration)
                            default
                            (py-throw e)))
-                     (PyFunction-call1 __next__ iterator))))))
+                     (py-call1 __next__ iterator))))))
            (else
             (error "next" "TypeError: object is not an iterator" #f))))))
 

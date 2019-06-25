@@ -296,7 +296,7 @@
 	      (lhs (PycAssig-lhs this))
 	      (assig (new-PycAssig loc lhs
 			(new-PycCall loc
-			   (new-PycPragma loc `(& ,(PycAugAssig-op this)))
+			   (new-PycPragma loc (symbol-append 'py- (PycAugAssig-op this)))
 			   (list
 			      lhs
 			      (PycAssig-rhs this)
@@ -312,7 +312,7 @@
 			(new-PycAccess loc (new-PycPragma loc %o) field
 			   :cache (PycAccess-cache lhs))
 			(new-PycCall loc
-			   (new-PycPragma loc `(& ,(PycAugAssig-op this)))
+			   (new-PycPragma loc (symbol-append 'py- (PycAugAssig-op this)))
 			   (list
 			      (new-PycAccess loc (new-PycPragma loc %o) field
 				 :cache (PycAccess-cache lhs))
@@ -333,7 +333,7 @@
 			(new-PycSubscript loc
 			   (new-PycPragma loc %o) (new-PycPragma loc %i))
 			(new-PycCall loc
-			   (new-PycPragma loc `(& ,(PycAugAssig-op this)))
+			   (new-PycPragma loc (symbol-append 'py- (PycAugAssig-op this)))
 			   (list
 			      (new-PycSubscript loc
 				 (new-PycPragma loc %o) (new-PycPragma loc %i))
@@ -364,7 +364,7 @@
 
 (define-walk-method (scheme this::PycBinary conf)
    (epairify this
-      `(,(string->symbol (string-append "py-" (PycBinary-op this)))
+      `(,(symbol-append 'py- (PycBinary-op this))
 	,(scheme (PycBinary-lhs this) conf)
 	,(scheme (PycBinary-rhs this) conf)
 	,(scheme-cache (PycBinary-cache this)))))
@@ -416,9 +416,9 @@
    (define (invoke-maybe-locals fun)
       (let ((f (gensym '%f)))
 	 `(let ((,f ,fun))
-	     `(if (eq? ,f py-locals)
-		  `(py-locals ,fun ,frame ,names ,vals)
-		  `(py-call0 ,f)))))
+	     (if (eq? ,f py-builtin-locals)
+		 '(py-locals ,f frame names vals)
+		 (py-call0 ,f)))))
    
    (define (invoke fun args)
       (case (length args)
@@ -429,7 +429,8 @@
 	 (else (error "scheme" "Not implemented" (pyc->list this)))))
 
    (let ((fun (PycCall-fun this)))
-      (if (isa? fun PycAccess)
+      (cond
+	 ((isa? fun PycAccess)
 	  ;; method call
 	  (let ((obj (gensym '%obj)))
 	     (epairify this
@@ -439,11 +440,17 @@
 				 ,(scheme-cache (PycAccess-cache fun)))
 			(cons obj
 			   (map (lambda (a) (scheme a conf))
-			      (PycCall-args this)))))))
+			      (PycCall-args this))))))))
+	 ((isa? fun PycPragma)
+	  ;; builtin call
+	  (epairify this
+	     `(,(scheme fun conf)
+	       ,@(map (lambda (a) (scheme a conf)) (PycCall-args this)))))
+	 (else
 	  ;; function call
 	  (epairify this
 	     (invoke (scheme fun conf)
-		(map (lambda (a) (scheme a conf)) (PycCall-args this)))))))
+		(map (lambda (a) (scheme a conf)) (PycCall-args this))))))))
 
 (define-walk-method (scheme this::PycCollection conf)
    (epairify this

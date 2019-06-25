@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 10:16:39 2019                          */
-;*    Last change :  Tue Jun 25 08:19:37 2019 (serrano)                */
+;*    Last change :  Tue Jun 25 10:02:34 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Python AST                                                       */
@@ -70,7 +70,7 @@
               rhs::PycExpr)
            
            (class PycAugAssig::PycAssig
-	      op::bstring
+	      op::symbol
 	      (cache (default #f)))
            
            (class PycIf::PycStmt
@@ -165,11 +165,11 @@
            (final-class PycString::PycLiteralValue)
 
 	   (final-class PycUnary::PycExpr
-	      op::bstring
+	      op::symbol
 	      expr::PycExpr)
 	   
            (final-class PycBinary::PycExpr
-              op::bstring
+              op::symbol
               lhs::PycExpr
               rhs::PycExpr
 	      (cache (default #f)))
