@@ -151,6 +151,10 @@
       (map (lambda (n) (make-PCache #f -1))
          (iota size))))
 
+;;;----------------------------------------------------------------------------
+
+;;; Old Python operators.
+
 (define (pyis? x y)
    (eq? x y))
 
@@ -186,6 +190,123 @@
 
 (define (py!= x y)
   (not (= x y)))
+
+;;;----------------------------------------------------------------------------
+
+;;; Python operators.
+
+(define (py-add x y cache) ;; x + y
+  (+ x y))
+
+(define (py-and x y cache) ;; x & y
+  (bitwise-and x y))
+
+(define (py-div x y cache) ;; x / y
+  (/ x y))
+
+(define (py-floordiv x y cache) ;; x // y
+  (inexact->exact (floor (/ x y))))
+
+(define (py-invert x cache) ;; ~ x
+  (bitwise-not x))
+
+(define (py-lshift x y cache) ;; x << y
+  (arithmetic-shift x y))
+
+(define (py-matmul x y cache) ;; x @ y
+  (error "py-matmul" "not implemented" #f))
+
+(define (py-mod x y cache) ;; x % y
+  (modulo x y))
+
+(define (py-mul x y cache) ;; x * y
+  (* x y))
+
+(define (py-neg x cache) ;; - x
+  (- x))
+
+(define (py-or x y cache) ;; x | y
+  (bitwise-ior x y))
+
+(define (py-pos x cache) ;; + x
+  (+ x))
+
+(define (py-pow x y cache) ;; x ** y
+  (expt x y))
+
+(define (py-rshift x y cache) ;; x >> y
+  (arithmetic-shift x (- y)))
+
+(define (py-sub x y cache) ;; x - y
+  (- x y))
+
+(define (py-xor x y cache) ;; x ^ y
+  (bitwise-xor x y))
+
+(define (py-iadd x y cache) ;; x += y
+  (+ x y))
+
+(define (py-iand x y cache) ;; x &= y
+  (bitwise-and x y))
+
+(define (py-idiv x y cache) ;; x /= y
+  (/ x y))
+
+(define (py-ifloordiv x y cache) ;; x //= y
+  (inexact->exact (floor (/ x y))))
+
+(define (py-ilshift x y cache) ;; x <<= y
+  (arithmetic-shift x y))
+
+(define (py-imatmul x y cache) ;; x @= y
+  (error "py-imatmul" "not implemented" #f))
+
+(define (py-imod x y cache) ;; x %= y
+  (modulo x y))
+
+(define (py-imul x y cache) ;; x *= y
+  (* x y))
+
+(define (py-ior x y cache) ;; x |= y
+  (bitwise-ior x y))
+
+(define (py-ipow x y cache) ;; x **= y
+  (expt x y))
+
+(define (py-irshift x y cache) ;; x >>= y
+  (arithmetic-shift x (- y)))
+
+(define (py-isub x y cache) ;; x -= y
+  (- x y))
+
+(define (py-ixor x y cache) ;; x ^= y
+  (bitwise-xor x y))
+
+(define (py-eq x y cache) ;; x == y
+  (= x y))
+
+(define (py-ne x y cache) ;; x != y
+  (not (= x y)))
+
+(define (py-lt x y cache) ;; x < y
+  (< x y))
+
+(define (py-le x y cache) ;; x <= y
+  (<= x y))
+
+(define (py-gt x y cache) ;; x > y
+  (> x y))
+
+(define (py-ge x y cache) ;; x >= y
+  (>= x y))
+
+(define (py-is x y cache) ;; x is y
+  (eq? x y))
+
+(define (py-in x y cache) ;; x in y
+  (error "py-in" "not implemented" #f))
+
+;;;----------------------------------------------------------------------------
 
 (define builtins-mod #f)
 
