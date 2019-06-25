@@ -377,9 +377,16 @@
 	     `(letrec ((%gen (py-make-generator (lambda (%v %e) ,exp))))
 		 %gen))
 	  exp))
+
+   (define (locals fun body)
+      (if (PycFun-can-locals fun)
+	  `(let ((%frame (make-cell #f))
+		 (%names ',(map! PycDecl-id
+			      (append (PycFun-args fun) (PycFun-decls fun)))))
+	      ,body)))
    
    (let ((args (map (lambda (a) (scheme a conf)) (PycFun-args this)))
-	 (body (scheme (PycFun-body this) conf)))
+	 (body (locals this (scheme (PycFun-body this) (cons* fun: this conf)))))
       (epairify this
 	 `(make-PyFunction (PyFunction-default-hclass) '#()
 	     ,(if (PycFun-need-return this)
@@ -417,7 +424,11 @@
       (let ((f (gensym '%f)))
 	 `(let ((,f ,fun))
 	     (if (eq? ,f py-builtin-locals)
-		 '(py-locals ,f frame names vals)
+		 (py-builtin-locals ,f %frame %names
+		    (vector ,@(map (lambda (d)
+				      (scheme-decl d conf))
+				 (let ((fun (config-get conf fun:)))
+				    (append (PycFun-args fun) (PycFun-decls fun))))))
 		 (py-call0 ,f)))))
    
    (define (invoke fun args)
