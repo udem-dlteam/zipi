@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 10:16:39 2019                          */
-;*    Last change :  Tue Jun 25 10:32:18 2019 (serrano)                */
+;*    Last change :  Wed Jun 26 07:53:33 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Python AST                                                       */
@@ -167,7 +167,8 @@
 
 	   (final-class PycUnary::PycExpr
 	      op::symbol
-	      expr::PycExpr)
+	      expr::PycExpr
+	      (cache (default #f)))
 	   
            (final-class PycBinary::PycExpr
               op::symbol
@@ -203,7 +204,7 @@
               (keywords::pair-nil (default '())))
 
 	   (abstract-class PycCollection::PycExpr
-	      elts::pair)
+	      elts::pair-nil)
 
 	   (final-class PycList::PycCollection)
 
