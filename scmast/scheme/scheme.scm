@@ -366,7 +366,8 @@
    (PycLiteralValue-val this))
 
 (define-walk-method (scheme this::PycString conf)
-   (PycLiteralValue-val this))
+   (epairify this
+      `(py-str-from-scheme ,(PycLiteralValue-val this))))
 
 (define-walk-method (scheme this::PycBinary conf)
    (epairify this

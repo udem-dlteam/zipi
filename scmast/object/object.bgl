@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Wed Jun 26 08:11:55 2019 (serrano)                */
+;*    Last change :  Wed Jun 26 08:18:46 2019 (serrano)                */
 ;*    Copyright   :  2019 M. Feeley & M. Serrano                       */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -76,7 +76,9 @@
 	   (py-uninit)
 
 	   py-builtin-locals
-	   py-builtin-globals)
+	   py-builtin-globals
+
+	   (py-str-from-scheme::bstring ::bstring))
    
    (eval   (export-all)))
 
