@@ -520,7 +520,7 @@
    (lambda _
      (current-second))))
 
-(define (py-make-class . attrs)
+(define (py-make-class name module . attrs)
   (let loop ((lst attrs)
              (rev-attr-names '())
              (rev-attr-values '()))

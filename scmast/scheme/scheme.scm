@@ -138,7 +138,7 @@
 	    (next (gensym '%next)))
 	 (epairify this
 	    `(let* ((,iterable ,(scheme (PycFor-iter this) conf))
-		    (,iterator (PyFunction-call1
+		    (,iterator (py-call1
 				  (object-get ,iterable
 				     (& "__iter__")
 				     ,(scheme-cache (PycFor-cachei this) this))
@@ -411,6 +411,8 @@
    (define (pyc-class this::PycClass)
       (epairify this
 	 `(py-make-class
+	     (& ,(PycClass-name this))
+	     (& ,(PycClass-module this))
 	     ,@(append-map (lambda (decl)
 			      `((& ,(symbol->string (PycDecl-id decl)))
 				,(scheme-decl decl conf)))

@@ -40,7 +40,10 @@
        ;;       stmt* body,
        ;;       expr* decorator_list)
        (new-PycAssig loc (new-PycRefUnresolved loc id)
-	  (new-PycClass loc (compile-stmt* loc body #f 'local conf))))
+	  (new-PycClass loc
+	     (symbol->string id)
+	     (config-get conf module: "???")
+	     (compile-stmt* loc body #f 'local conf))))
       ((Return ?loc ?expr)
        ;; Return(expr? value)
        (new-PycReturn loc (sexp expr #f scope conf) tail))
@@ -312,3 +315,7 @@
     ((In)    'in)
     ((NotIn) 'notin)
     (else    (error "Compare" "Illegal operator" op))))
+
+(define (config-get conf key . def)
+   (let ((c (memq key conf)))
+      (if c (cadr c) (if (pair? def) (car def) #f))))
