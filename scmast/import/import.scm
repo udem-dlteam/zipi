@@ -6,6 +6,8 @@
 	  py-builtins-mod)
 	 ((string=? path "time")
 	  py-time-mod)
+	 ((string=? path "sys")
+	  sysmod)
 	 ((object-has sysmod path)
 	  (object-get-no-cache sysmod path))
 	 (else
@@ -45,11 +47,11 @@
 	  (error "py-import" "ModuleNotCompileError" path))))
 
 (define (py-import-dir root sysmod key path)
-   (let ((init (make-file-path path "__init.py__")))
+   (let ((init (make-file-path path "__init__.py")))
       (if (file-exists? init)
-	  (py-import-module root sysmod key init)
+	  (py-import-module root sysmod key (make-file-path path "__init__"))
 	  (let ((mod (make-PyObject
-			(make-HClass '#(__name__) '())
+			(make-HClass (vector (& "__name__")) '())
 			(vector (py-str-from-scheme path)))))
 	     (sysmod-add-entry! sysmod key mod)
 	     mod))))

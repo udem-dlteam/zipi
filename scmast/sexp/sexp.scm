@@ -274,9 +274,17 @@
 	  (cons (sexp (car body) #f scope conf) (loop (cdr body))))))
 
 (define (compile-import loc alias scope conf)
+   
+   (define (prefix name)
+      (let* ((s (symbol->string name))
+	     (i (string-index s #\.)))
+	 (if i
+	     (string->symbol (substring s 0 i))
+	     name)))
+   
    (match-case alias
       ((?name #f)
-       (new-PycAssig loc (new-PycRefUnresolved loc name)
+       (new-PycAssig loc (new-PycRefUnresolved loc (prefix name))
 	  (new-PycImport loc (symbol->string name))))
       ((?name ?sym)
        (new-PycAssig loc (new-PycRefUnresolved loc sym)
