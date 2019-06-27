@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Thu Jun 27 10:03:33 2019 (serrano)                */
+;*    Last change :  Thu Jun 27 16:14:34 2019 (serrano)                */
 ;*    Copyright   :  2019 M. Feeley & M. Serrano                       */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -17,6 +17,8 @@
    (include "object/object.sch")
    
    (import __py_hclass)
+
+   (use    __py_import)
    
    (export (class PyObject
 	      (hclass (default #f))
@@ -29,12 +31,15 @@
 
 	   (py-builtins-mod::PyObject)
 	   (py-time-mod::PyObject)
+	   (py-sys-mod::PyObject)
 	   
 	   (global-get ::PyObject ::obj ::obj)
-	   (global-put! ::PyObject ::obj ::obj ::obj)
 	   
 	   (object-get ::PyObject ::obj ::obj)
+	   (object-get-no-cache ::PyObject ::obj)
+	   (object-has::bool ::PyObject ::obj)
 	   (object-put! ::PyObject ::obj ::obj ::obj)
+	   (object-put-no-cache! ::PyObject ::obj ::obj)
 
 	   (py-getitem ::PyObject ::obj ::PCache)
 	   (py-setitem ::PyObject ::obj ::obj ::PCache)

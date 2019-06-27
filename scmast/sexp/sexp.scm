@@ -20,7 +20,11 @@
       ;; mod
       ((Module ?loc ?body . ?type_ignors)
        ;; Module(stmt* body, type_ignore *type_ignores)
-       (new-PycModule loc "???" (compile* loc body #t 'global conf)))
+       (new-PycModule loc "???"
+	  (cons
+	     (new-PycDeclInit loc '__name__ scope
+		(new-PycString loc (config-get conf 'module "__main__")))
+	     (compile* loc body #t 'global conf))))
       
       ;; stmt
       ((FunctionDef ?loc ?id ?args ?body ?decorator_list ?returns . ?type_comment)
@@ -272,11 +276,11 @@
 (define (compile-import loc alias scope conf)
    (match-case alias
       ((?name #f)
-       (new-PycAssig loc (new-PycRefUnresolved loc 'builtins)
-	  (new-PycImport loc (string-split (symbol->string name) "."))))
+       (new-PycAssig loc (new-PycRefUnresolved loc name)
+	  (new-PycImport loc (symbol->string name))))
       ((?name ?sym)
        (new-PycAssig loc (new-PycRefUnresolved loc sym)
-	  (new-PycImport loc (string-split (symbol->string name) "."))))
+	  (new-PycImport loc (symbol->string name))))
       (else
        (error "Import" "Unsupported form" alias))))
 

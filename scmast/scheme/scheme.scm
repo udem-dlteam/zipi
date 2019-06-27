@@ -12,14 +12,23 @@
       ((eval def) (py-make-global) (py-make-caches (PycModule-caches ast)))))
 
 (define (pyc-scheme-bigloo ast conf)
-   (pp `(module ,(string->symbol (config-get conf 'src "__stdin"))
-	   (import __py_object)
-	   (import __py_hclass)
-	   (import __py_iterator)
-	   (main main)))
-   (pp `(define (main argv)
-	   (pyc (py-make-global) (py-make-caches ,(PycModule-caches ast)))))
-   (pp `(define pyc ,(PycNode-%info ast))))
+   (pp `(module ,(string->symbol (or (config-get conf 'src) "__stdin"))
+	   ,@(if (config-get conf 'main)
+		 `((import __py_object)
+		   (import __py_hclass)
+		   (import __py_iterator)
+		   (import __py_import)
+		   (main main))
+		 '())))
+   (pp `(define py-module ,(PycNode-%info ast)))
+   (if (config-get conf 'main)
+       (pp `(define (main argv)
+	       (py-module (py-make-global) (py-make-caches ,(PycModule-caches ast)))))
+       (pp `(lambda ()
+	       (let ((global (py-make-global))
+		     (caches (py-make-caches ,(PycModule-caches ast))))
+		  (py-module global caches)
+		  global)))))
 
 (define (pyc-scheme-gambit ast conf)
   (pretty-print
@@ -491,9 +500,8 @@
 	,@(map (lambda (e) (scheme e conf)) (PycCollection-elts this)))))
 
 (define-walk-method (scheme this::PycImport conf)
-   (tprint "CN=" conf)
    (epairify this
-      `(py-import ,(config-get conf 'dir) ',(PycImport-path this))))
+      `(py-import ,(config-get conf 'dir) ,(PycImport-path this))))
 
 (define-walk-method (scheme this::PycRef conf)
    (let ((decl (PycRef-decl this)))

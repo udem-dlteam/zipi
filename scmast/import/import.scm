@@ -1,0 +1,56 @@
+(define (py-import root path)
+   (tprint "py-import base=" root " path=" path)
+   (let ((sysmod (py-sys-mod)))
+      (cond
+	 ((string=? path "builtins")
+	  py-builtins-mod)
+	 ((string=? path "time")
+	  py-time-mod)
+	 ((object-has sysmod path)
+	  (object-get-no-cache sysmod path))
+	 (else
+	  (let loop ((paths (string-split path "."))
+		     (base root)
+		     (key #f)
+		     (mod0 #f))
+	     (let ((qpath (make-file-name base (car paths)))
+		   (key (if key (string-append key (car paths)) (car paths))))
+	     (tprint "py-import.loop paths=" paths " " qpath)
+		(cond
+		   ((pair? (cdr paths))
+		    (let ((mod (py-import-dir base sysmod key qpath)))
+		       (loop (cdr paths) qpath key mod)))
+		   ((file-exists? (string-append qpath ".py"))
+		    (let ((mod (py-import-module root sysmod key qpath)))
+		       (or mod0 mod)))
+		   ((directory? qpath)
+		    (let ((mod (py-import-dir root sysmod key qpath)))
+		       (or mod0 mod)))
+		   (else
+		    (error "py-import" "ModuleNotFoundError" path)))))))))
+		 
+
+(define (sysmod-add-entry! sysmod path mod)
+   (object-put-no-cache! sysmod (py-str-from-scheme path) mod)
+   mod)
+
+(define (py-import-module root sysmod key path)
+   (let ((file (string-append path ".scm")))
+      (unless (file-exists? file)
+	 (compile root (string-append path ".py") file))
+      (if (file-exists? file)
+	  (let* ((init (loadv file))
+		 (mod (init)))
+	     (sysmod-add-entry! sysmod key mod))
+	  (error "py-import" "ModuleNotCompileError" path))))
+
+(define (py-import-dir root sysmod key path)
+   (let ((init (make-file-path path "__init.py__")))
+      (if (file-exists? init)
+	  (py-import-module root sysmod key init)
+	  (let ((mod (make-PyObject
+			(make-HClass '#(__name__) '())
+			(vector (py-str-from-scheme path)))))
+	     (sysmod-add-entry! sysmod key mod)
+	     mod))))
+		    

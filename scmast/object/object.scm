@@ -82,6 +82,9 @@
      (else
       (error "AttributeError" "object has no attribute" name)))))
 
+(define (object-has obj name)
+   (>= (PyObject-find-prop obj name) 0))
+
 (define (object-put! object name val cache)
   (if (eq? (PyObject-hclass object) (PCache-hclass cache))
       (PyObject-elements-set! object (PCache-index cache) val)
@@ -98,6 +101,16 @@
                (index (HClass-last-index nhclass)))
           (PyObject-hclass-set! obj nhclass)
           (PCache-set! cache nhclass index)
+          (PyObject-elements-set! obj index val)))))
+
+(define (object-put-no-cache! obj name val)
+  (let* ((index (PyObject-find-prop obj name))
+         (hclass (PyObject-hclass obj)))
+    (if (>= index 0)
+	(PyObject-elements-set! obj index val)
+        (let* ((nhclass (HClass-next hclass name '+))
+               (index (HClass-last-index nhclass)))
+          (PyObject-hclass-set! obj nhclass)
           (PyObject-elements-set! obj index val)))))
 
 (define (PyObject-find-prop obj name)
@@ -518,7 +531,27 @@
   (py-procedure->function
    (lambda rest (error "time" "unimplemented generic procedure for time" #f))
    (lambda _
-     (current-second))))
+      (current-second))))
+
+(define sys-mod #f)
+
+(define (py-make-sys-mod)
+   (let* ((hclass0 (make-HClass (vector (& "sys")
+				        )
+		      '()))
+	  (mod (make-PyObject hclass0 (vector #f #f))))
+
+      (PyObject-elements-set! mod 0
+	 (make-PyObject
+	    (make-HClass '#("sys") '())
+	    (vector mod)))
+
+      mod))
+
+(define (py-sys-mod)
+   (unless sys-mod
+      (set! sys-mod (py-make-sys-mod)))
+   sys-mod)
 
 (define (py-make-class name module bases . attrs)
   (let loop ((lst attrs)
