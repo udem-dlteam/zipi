@@ -123,12 +123,12 @@
 
 (define-walk-method (pycnode->list this::PycClass)
    `(,(string->symbol (typeof this))
+     :bases ,(map pycnode->list (PycClass-bases this))
      :decls ,(map (lambda (d)
 		     `(,(string->symbol (typeof d))
 		       :key ,(PycDecl-key d)
 		       ,(PycDecl-id d)))
 		(PycClass-decls this))
-     :supers ,(map pycnode->list (PycClass-supers this))
      ,(pycnode->list (PycClass-body this))))
 
 (define-walk-method (pycnode->list this::PycKont)

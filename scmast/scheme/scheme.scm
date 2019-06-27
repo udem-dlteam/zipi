@@ -414,6 +414,7 @@
 	 `(py-make-class
 	     (& ,(PycClass-name this))
 	     (& ,(PycClass-module this))
+	     (list ,@(map (lambda (b) (scheme b conf)) (PycClass-bases this)))
 	     ,@(append-map (lambda (decl)
 			      `((& ,(symbol->string (PycDecl-id decl)))
 				,(scheme-decl decl conf)))

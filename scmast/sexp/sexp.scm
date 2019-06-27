@@ -42,7 +42,8 @@
        (new-PycAssig loc (new-PycRefUnresolved loc id)
 	  (new-PycClass loc
 	     (symbol->string id)
-	     (config-get conf module: "???")
+	     (config-get conf module: "__main__")
+	     (map (lambda (b) (sexp b #f scope conf)) bases)
 	     (compile-stmt* loc body #f 'local conf))))
       ((Return ?loc ?expr)
        ;; Return(expr? value)
