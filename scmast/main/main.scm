@@ -49,8 +49,9 @@
 		   (pyc-sexp (scmast.py src) '())
 		   (pyc-sexp (read) '())))
 	  (env (getenv "PYTRACE"))
-	  (conf (cons* 'trace
-		   (and (string? env) (string-contains env "pyc:dump"))
+	  (conf (cons*
+		   'trace (and (string? env) (string-contains env "pyc:dump"))
+		   'dir (if src (dirname src) (pwd))
 		   'tmp (make-file-path (os-tmp)
 			   (or (getenv "USER") "anonymous") "PYC")
 		   conf))

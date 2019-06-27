@@ -59,7 +59,8 @@
 (define-walk-method (scheme this::PycModule conf)
    (epairify this
       `(lambda (%global %caches)
-	  ,@(scheme* (PycModule-stmts this) (PycModule-globals this)))))
+	  ,@(scheme* (PycModule-stmts this)
+	       (cons* module: (PycModule-globals this) conf)))))
 
 (define-walk-method (scheme this::PycSeq conf)
    (epairify this
@@ -488,6 +489,11 @@
    (epairify this
       `(,(if (isa? this PycList) 'py-make-list 'py-make-tuple)
 	,@(map (lambda (e) (scheme e conf)) (PycCollection-elts this)))))
+
+(define-walk-method (scheme this::PycImport conf)
+   (tprint "CN=" conf)
+   (epairify this
+      `(py-import ,(config-get conf 'dir) ',(PycImport-path this))))
 
 (define-walk-method (scheme this::PycRef conf)
    (let ((decl (PycRef-decl this)))

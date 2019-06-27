@@ -136,15 +136,11 @@
 
       ((Import ?loc ?aliases)
        ;; Import(alias* names)
-       (match-case (car aliases)
-	  ((builtins #f)
-	   (new-PycAssig loc (new-PycRefUnresolved loc 'builtins)
-	      (new-PycPragma loc '(py-builtins-mod))))
-	  ((time #f)
-	   (new-PycAssig loc (new-PycRefUnresolved loc 'time)
-	      (new-PycPragma loc '(py-time-mod))))
-	  (else
-	   (error "Import" "Unsupported form" exp))))
+       (if (null? (cdr aliases))
+	   (compile-import loc (car aliases) scope conf)
+	   (new-PycSeq loc
+	      (map (lambda (a) (compile-import loc a scope conf))
+		 aliases))))
       ((Global ?loc ?names)
        ;; Global(identifier* names)
        (new-PycSymbols loc 'global names))
@@ -272,6 +268,18 @@
       (if (null? (cdr body))
 	  (list (sexp (car body) tail scope conf))
 	  (cons (sexp (car body) #f scope conf) (loop (cdr body))))))
+
+(define (compile-import loc alias scope conf)
+   (match-case alias
+      ((?name #f)
+       (new-PycAssig loc (new-PycRefUnresolved loc 'builtins)
+	  (new-PycImport loc (string-split (symbol->string name) "."))))
+      ((?name ?sym)
+       (new-PycAssig loc (new-PycRefUnresolved loc sym)
+	  (new-PycImport loc (string-split (symbol->string name) "."))))
+      (else
+       (error "Import" "Unsupported form" alias))))
+
 
 (define (op-type op)
    (if (memq op '(< <= > >= ==))
