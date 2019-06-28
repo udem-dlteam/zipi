@@ -76,7 +76,7 @@
       (if (file-exists? init)
 	  (py-import-module sysmod key (make-file-path path "__init__"))
 	  (let ((mod (make-PyObject
-			(make-HClass (vector (& "__name__")) '())
+			(make-HClass '#() (vector (& "__name__")) '())
 			(vector (py-str-from-scheme path)))))
 	     (sysmod-add-entry! sysmod key mod)
 	     mod))))
