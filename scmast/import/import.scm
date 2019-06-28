@@ -1,5 +1,9 @@
 (define py-import-root (pwd))
 
+(define py-import-cache1 (make-PCache -1 -1))
+(define py-import-cache2 (make-PCache -1 -1))
+(define py-import-cache3 (make-PCache -1 -1))
+
 (define (py-import path depth)
    ;; (tprint "py-import root=" py-import-root " path=" path)
    (let ((sysmod (object-get-no-cache (py-sys-mod) (& "modules"))))
@@ -7,16 +11,16 @@
 	 ((py-import-builtin path)
 	  =>
 	  (lambda (mod)
-	     (sysmod-add-entry! sysmod (py-string-to-name path) mod)))
+	     (sysmod-add-entry! sysmod (py-str-from-scheme path) mod)))
 	 (else
 	  (let loop ((paths (string-split path "."))
 		     (base py-import-root)
 		     (key #f)
 		     (depth depth))
 	     (let ((qpath (make-file-name base (car paths)))
-		   (key (py-string-to-name
+		   (key (py-str-from-scheme
 			   (if key
-			       (string-append (symbol->string! key) "." (car paths))
+			       (string-append (py-str-to-scheme key) "." (car paths))
 			       (car paths)))))
 		;;(tprint "py-import.loop key=" key " paths=" paths " qp=" qpath)
 		(cond
@@ -28,8 +32,8 @@
 		    (if (> depth 0)
 			submod
 			(begin
-			   (py-setitem mod
-			      (py-string-to-name (cadr paths)) submod #f)
+			   (object-put-no-cache! mod
+			      (py-string-to-name (cadr paths)) submod)
 			   mod))))
 		   ((file-exists? (string-append qpath ".py"))
 		    (or (py-import-from-sysmod sysmod key qpath)
@@ -52,12 +56,12 @@
        #f)))
    
 (define (sysmod-add-entry! sysmod key mod)
-   (object-put-no-cache! sysmod key mod)
+   (py-setitem sysmod key mod py-import-cache3)
    mod)
 
 (define (py-import-from-sysmod sysmod key path)
-   (when (py-hasitem sysmod key)
-      (let ((mod (py-getitem sysmod key #f)))
+   (when (py-hasitem sysmod key py-import-cache1)
+      (let ((mod (py-getitem sysmod key py-import-cache2)))
 	 (if (eq? mod (py-none))
 	     (error "py-import" "ModuleNotFoundError" path)
 	     mod))))

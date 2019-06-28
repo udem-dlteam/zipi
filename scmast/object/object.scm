@@ -359,7 +359,7 @@
          (let ((x (assoc i (py-dict-to-scheme obj))))
            (if x
                (cdr x)
-               (error "py-getitem" "item not found" #f))))
+               (error "py-getitem" "item not found" i))))
         ((eq? py-set-class (py-obj-class obj))
          (list-ref (py-set-to-scheme obj) i))
         ((and (PyObject? obj)
@@ -371,7 +371,7 @@
            (let ((__getitem__ (PyObject-elements-ref obj index)))
              (py-call2 __getitem__ obj i))))
         (else
-         (error "getitem" "only object with __getitem__ method implemented" #f))))
+         (error "getitem" "only object with __getitem__ method implemented" i))))
 
 (define (py-setitem obj i val cache)
   (cond ((eq? py-tuple-class (py-obj-class obj))
@@ -384,7 +384,11 @@
                (begin
                  (set-cdr! x val)
                  (py-uninit))
-               (error "py-setitem" "item not found" #f))))
+	       (begin
+		  (PyObject-elements-set! obj 1
+		     (cons (cons i val)
+			(py-dict-to-scheme obj)))
+		  (py-uninit)))))
         ((eq? py-set-class (py-obj-class obj))
          (list-set! (py-set-to-scheme obj) i val))
         ((and (PyObject? obj)
@@ -602,9 +606,16 @@
 (define sys-mod #f)
 
 (define (py-make-sys-mod)
-   (alist->PyObject
-      (list (cons (& "modules")
-	       (py-make-dict '() '())))))
+   (let ((obj (py-obj-alloc py-object-class
+		 (make-HClass '#()
+		    (vector (& "**class**")
+		       (& "__class__")
+		       (& "modules"))
+		    '()))))
+      (PyObject-elements-set! obj 0 py-object-class)
+      (PyObject-elements-set! obj 1 py-object-class)
+      (PyObject-elements-set! obj 2 (py-make-dict '() '()))
+      obj))
 	  
 (define (py-sys-mod)
    (unless sys-mod
@@ -1281,6 +1292,9 @@
 (define (py-make-list . elements)
   (py-list-from-scheme (list->vector elements)))
 
+(define (py-make-set elements)
+  (py-set-from-scheme (list->vector elements)))
+
 #;
 (define (py-list-from-scheme elements)
   (alist->PyObject
@@ -1417,7 +1431,7 @@
           ((eq? t py-dict-class)
            (py-dict-repr-scheme obj))
           ((eq? t py-set-class)
-           (py-dict-set-scheme obj))
+           (py-set-repr-scheme obj))
           ((eq? t py-type-class)
            (string-append
             "<class "
