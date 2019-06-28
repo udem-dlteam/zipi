@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun 27 16:06:01 2019                          */
-;*    Last change :  Thu Jun 27 19:36:32 2019 (serrano)                */
+;*    Last change :  Fri Jun 28 07:36:49 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Python module imports                                            */
@@ -28,8 +28,10 @@
 ;*    compile ...                                                      */
 ;*---------------------------------------------------------------------*/
 (define (compile base source target)
-   (tprint (format "cd ~a; scmast.py ~a | pyc -t bigloo --no-main -d ~a ~a > ~a" (PWD) source base source target))
-   (system (format "cd ~a; scmast.py ~a | pyc -t bigloo --no-main -d ~a ~a > ~a" (PWD) source base source target)))
+   (when (or (not (file-exists? target))
+	     (> (file-modification-time source)
+		(file-modification-time target)))
+      (system (format "cd ~a; scmast.py ~a | pyc -t bigloo --no-main -d ~a ~a > ~a" (PWD) source base source target))))
    
 ;*---------------------------------------------------------------------*/
 ;*    loadv ...                                                        */

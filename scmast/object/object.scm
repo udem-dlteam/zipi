@@ -536,18 +536,9 @@
 (define sys-mod #f)
 
 (define (py-make-sys-mod)
-   (let* ((hclass0 (make-HClass (vector (& "sys")
-				        )
-		      '()))
-	  (mod (make-PyObject hclass0 (vector #f #f))))
-
-      (PyObject-elements-set! mod 0
-	 (make-PyObject
-	    (make-HClass '#("sys") '())
-	    (vector mod)))
-
-      mod))
-
+   (alist->PyObject
+      (list (cons (& "modules") (make-PyObject (make-HClass '#() '()) '#())))))
+	  
 (define (py-sys-mod)
    (unless sys-mod
       (set! sys-mod (py-make-sys-mod)))
@@ -690,6 +681,9 @@
 
 (define (py-str-from-scheme s)
   s)
+
+(define (py-string-to-name s)
+  (string->symbol s))
 
 (define (py-type obj)
   (cond ((and (PyObject? obj)

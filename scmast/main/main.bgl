@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 12:48:54 2019                          */
-;*    Last change :  Thu Jun 27 19:04:58 2019 (serrano)                */
+;*    Last change :  Fri Jun 28 07:56:45 2019 (serrano)                */
 ;*    Copyright   :  2019 M. Feeley & M. Serrano                       */
 ;*    -------------------------------------------------------------    */
 ;*    python ast interpreter (bigloo prelude)                          */
@@ -29,6 +29,8 @@
 	   __pyc_javascript
 	   __py_hclass
 	   __py_object)
+
+   (with   __py_import)
 
    (main main))
 
