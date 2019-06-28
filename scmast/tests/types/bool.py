@@ -1,0 +1,5 @@
+print(False)
+print(True)
+print(False.__class__)
+print(True.__class__)
+print(bool)
