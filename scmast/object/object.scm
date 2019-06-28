@@ -879,11 +879,11 @@
 (define (py-str-to-scheme self)
   (PyObject-elements-ref self 1))
 
-;* (define (py-tuple-from-scheme vector)                               */
-;*   (let ((self (py-obj-alloc py-tuple-class py-tuple-hclass-of-instances))) */
-;*     (PyObject-elements-set! self 1 vector) ;; set **elems**         */
-;*     (PyObject-elements-set! self 2 py-tuple-class) ;; set __class__ */
-;*     self))                                                          */
+(define (py-tuple-from-scheme vector)
+  (let ((self (py-obj-alloc py-tuple-class py-tuple-hclass-of-instances)))
+    (PyObject-elements-set! self 1 vector)          ;; set **elems**
+    (PyObject-elements-set! self 2 py-tuple-class)  ;; set __class__
+    self))
 
 (define (py-tuple-to-scheme self)
   (PyObject-elements-ref self 1))
@@ -1177,6 +1177,7 @@
 (define (py-make-tuple . elements)
   (py-tuple-from-scheme (list->vector elements)))
 
+#;
 (define (py-tuple-from-scheme elements)
   (alist->PyObject
    (list (cons (& "__class__")
