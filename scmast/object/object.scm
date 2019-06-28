@@ -1368,6 +1368,9 @@
                                           (set! i (+ i 1))
                                           result))))))))))))))
 
+(define (py-make-dict keys vals)
+  (py-dict-from-scheme keys vals))
+
 (define (py-string-to-name s)
   (string->symbol s))
 
