@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Fri Jun 28 14:39:58 2019 (serrano)                */
+;*    Last change :  Fri Jun 28 15:53:36 2019 (serrano)                */
 ;*    Copyright   :  2019 M. Feeley & M. Serrano                       */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -41,6 +41,10 @@
 	   (object-put! ::PyObject ::obj ::obj ::obj)
 	   (object-put-no-cache! ::PyObject ::obj ::obj)
 
+	   (py-make-dict ::obj ::obj)
+	   (py-make-set ::obj ::obj)
+	   
+	   (py-hasitem ::PyObject ::obj ::PCache)
 	   (py-getitem ::PyObject ::obj ::PCache)
 	   (py-setitem ::PyObject ::obj ::obj ::PCache)
 	   

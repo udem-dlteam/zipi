@@ -1,9 +1,9 @@
 ;*=====================================================================*/
-;*    serrano/nosync/py19/scmast/ast/ast.bgl                           */
+;*    serrano/nosync/zipi/scmast/ast/ast.bgl                           */
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 10:16:39 2019                          */
-;*    Last change :  Fri Jun 28 10:13:37 2019 (serrano)                */
+;*    Last change :  Fri Jun 28 15:07:26 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Python AST                                                       */
@@ -211,6 +211,11 @@
 	   (final-class PycList::PycCollection)
 
 	   (final-class PycTuple::PycCollection)
+
+	   (final-class PycDict::PycCollection
+	      keys::pair-nil)
+
+	   (final-class PycSet::PycCollection)
 
 	   (final-class PycImport::PycExpr
 	      (path::bstring read-only)
@@ -542,6 +547,7 @@
 (gen-walks PycUnary expr)
 (gen-walks PycCall fun (args) (keywords))
 (gen-walks PycCollection (elts))
+(gen-walks PycDict (keys) (elts))
 (gen-walks PycAccess obj)
 (gen-walks PycSubscript obj index)
 (gen-walks PycSlice obj lower upper step)

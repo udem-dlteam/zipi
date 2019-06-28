@@ -28,8 +28,8 @@
 		    (if (> depth 0)
 			submod
 			(begin
-			   (object-put-no-cache! mod
-			      (py-string-to-name (cadr paths)) submod)
+			   (py-setitem mod
+			      (py-string-to-name (cadr paths)) submod #f)
 			   mod))))
 		   ((file-exists? (string-append qpath ".py"))
 		    (or (py-import-from-sysmod sysmod key qpath)
@@ -56,8 +56,8 @@
    mod)
 
 (define (py-import-from-sysmod sysmod key path)
-   (when (object-has sysmod key)
-      (let ((mod (object-get-no-cache sysmod key)))
+   (when (py-hasitem sysmod key)
+      (let ((mod (py-getitem sysmod key #f)))
 	 (if (eq? mod (py-none))
 	     (error "py-import" "ModuleNotFoundError" path)
 	     mod))))

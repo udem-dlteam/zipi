@@ -603,7 +603,8 @@
 
 (define (py-make-sys-mod)
    (alist->PyObject
-      (list (cons (& "modules") (make-PyObject (make-HClass '#() '#() '()) '#())))))
+      (list (cons (& "modules")
+	       (py-make-dict '() '())))))
 	  
 (define (py-sys-mod)
    (unless sys-mod
