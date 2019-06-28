@@ -1,9 +1,10 @@
 (define py-generator-hclass
-   (make-HClass
-      (vector
-	 (& "__next__")
-	 (& "send"))
-      '()))
+  (make-HClass
+   '#()
+   (vector
+    (& "__next__")
+    (& "send"))
+   '()))
 
 (define (py-generator-yield gen val kont)
    (PyGenerator-%next-set! gen kont)

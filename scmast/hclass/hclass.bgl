@@ -21,6 +21,7 @@
 	      (index::long (default -1)))
 
 	   (class HClass 
+	      (class-mro::vector (default '#()))
 	      (names::vector (default '#()))
 	      (transitions::pair-nil (default '()))))
    

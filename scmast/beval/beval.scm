@@ -40,7 +40,7 @@
    (error "return" "Illegal return" #f))
 
 (define uninit
-   (let ((hclass (make-HClass '#() '())))
+   (let ((hclass (make-HClass '#() '#() '())))
       (make-PyObject hclass '#())))
 
 (define locals2
@@ -51,7 +51,7 @@
 	 (let ((frame (meaning (bytecode-ref bcode 2) env global return))
 	       (names (meaning (bytecode-ref bcode 3) env global return)))
 	    (or (cell-ref frame)
-		(let ((hclass (make-HClass (list->vector names) '()))
+		(let ((hclass (make-HClass '#() (list->vector names) '()))
 		      (vals (map (lambda (name) #f)
 			       names)))
 		   (cell-set! frame (make-PyObject hclass (list->vector vals)))

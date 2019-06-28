@@ -24,6 +24,9 @@
 	  (tran (assoc key (HClass-transitions hc))))
       (if (pair? tran)
 	  (cdr tran)
-	  (let ((nhclass (make-HClass (vector-extend (HClass-names hc) name) '())))
+	  (let ((nhclass
+                 (make-HClass (HClass-class-mro hc)
+                              (vector-extend (HClass-names hc) name)
+                              '())))
 	     (HClass-transition-add! hc key nhclass)
 	     nhclass))))
