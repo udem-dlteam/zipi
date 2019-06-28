@@ -182,7 +182,7 @@
 	  ((eq? val 'False)
 	   (new-PycBool loc #f))
 	  ((eq? val 'True)
-	   (new-PycBool loc #f))
+	   (new-PycBool loc #t))
 	  (else
 	   (new-PycNumber loc val))))
       ((BinOp ?loc ?left ?op ?right)
