@@ -502,8 +502,7 @@
 
 (define-walk-method (scheme this::PycImport conf)
    (epairify this
-;*       `(py-import ,(config-get conf 'dir) ,(PycImport-path this))   */
-      `(py-import ,(PycImport-path this))))
+      `(py-import ,(PycImport-path this) ,(PycImport-depth this))))
 
 (define-walk-method (scheme this::PycRef conf)
    (let ((decl (PycRef-decl this)))

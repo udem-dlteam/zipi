@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 10:16:39 2019                          */
-;*    Last change :  Thu Jun 27 16:49:15 2019 (serrano)                */
+;*    Last change :  Fri Jun 28 10:13:37 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Python AST                                                       */
@@ -213,7 +213,8 @@
 	   (final-class PycTuple::PycCollection)
 
 	   (final-class PycImport::PycExpr
-	      (path::bstring read-only))
+	      (path::bstring read-only)
+	      (depth::int read-only (default 0)))
 
            (genkey)
            

@@ -145,6 +145,9 @@
 	   (new-PycSeq loc
 	      (map (lambda (a) (compile-import loc a scope conf))
 		 aliases))))
+      ((ImportFrom ?loc ?module ?aliases . ?level)
+       ;; ImportFrom(identifier? module, alias* names, int? level)
+       (compile-import-from loc module aliases scope conf))
       ((Global ?loc ?names)
        ;; Global(identifier* names)
        (new-PycSymbols loc 'global names))
@@ -273,25 +276,57 @@
 	  (list (sexp (car body) tail scope conf))
 	  (cons (sexp (car body) #f scope conf) (loop (cdr body))))))
 
+(define (import-prefix name)
+   (let* ((s (symbol->string name))
+	  (i (string-index s #\.)))
+      (if i
+	  (string->symbol (substring s 0 i))
+	  name)))
+
 (define (compile-import loc alias scope conf)
-   
-   (define (prefix name)
-      (let* ((s (symbol->string name))
-	     (i (string-index s #\.)))
-	 (if i
-	     (string->symbol (substring s 0 i))
-	     name)))
-   
    (match-case alias
       ((?name #f)
-       (new-PycAssig loc (new-PycRefUnresolved loc (prefix name))
+       (new-PycAssig loc (new-PycRefUnresolved loc (import-prefix name))
 	  (new-PycImport loc (symbol->string name))))
       ((?name ?sym)
        (new-PycAssig loc (new-PycRefUnresolved loc sym)
 	  (new-PycImport loc (symbol->string name))))
       (else
-       (error "Import" "Unsupported form" alias))))
+       (error "import" "Unsupported form" alias))))
 
+(define (compile-import-from loc module aliases scope conf)
+
+   (define (name-depth name)
+      (let ((s (symbol->string name)))
+	 (let loop ((i 0)
+		    (c 1))
+	    (let ((ni (string-index s #\. i)))
+	       (cond
+		  ((not ni) c)
+		  ((= ni (- (string-length s) 1)) c)
+		  (else (loop (+ ni 1) (+ c 1))))))))
+      
+   (let ((base (string-append (symbol->string module) ".")))
+      (new-PycBlock loc
+	 (list (new-PycVar loc '%mod 'block
+		  (new-PycImport loc (symbol->string module))))
+	 (new-PycSeq loc
+	    (map (lambda (alias)
+		    (match-case alias
+		       ((?name #f)
+			(new-PycAssig loc
+			   (new-PycRefUnresolved loc (import-prefix name))
+			   (new-PycImport loc
+			      (string-append base (symbol->string name))
+			      depth: (name-depth module))))
+		       ((?name ?sym)
+			(new-PycAssig loc (new-PycRefUnresolved loc sym)
+			   (new-PycImport loc
+			      (string-append base (symbol->string name))
+			      depth: (name-depth module))))
+		       (else
+			(error "import-from" "Unsupported form" alias))))
+	       aliases)))))
 
 (define (op-type op)
    (if (memq op '(< <= > >= ==))

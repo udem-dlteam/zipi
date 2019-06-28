@@ -1,6 +1,6 @@
 (define py-import-root (pwd))
 
-(define (py-import path)
+(define (py-import path depth)
    ;; (tprint "py-import root=" py-import-root " path=" path)
    (let ((sysmod (object-get-no-cache (py-sys-mod) (& "modules"))))
       (cond
@@ -12,25 +12,31 @@
 	  (let loop ((paths (string-split path "."))
 		     (base py-import-root)
 		     (key #f)
-		     (mod0 #f))
+		     (depth depth))
 	     (let ((qpath (make-file-name base (car paths)))
 		   (key (py-string-to-name
 			   (if key
 			       (string-append (symbol->string! key) "." (car paths))
 			       (car paths)))))
-		;;(tprint "py-import.loop key=" key " paths=" paths " " qpath)
+		;;(tprint "py-import.loop key=" key " paths=" paths " qp=" qpath)
 		(cond
 		   ((pair? (cdr paths))
-		    (let ((mod (or (py-import-from-sysmod sysmod key path)
-				   (py-import-dir sysmod key qpath))))
-		       (loop (cdr paths) qpath key mod)))
+		    (let* ((mod (or (py-import-from-sysmod sysmod key qpath)
+				    (py-import-dir sysmod key qpath)))
+			   (submod (loop (cdr paths) qpath key (- depth 1))))
+		    ;; (tprint "paths=" (cadr paths) " " key)
+		    (if (> depth 0)
+			submod
+			(begin
+			   (object-put-no-cache! mod
+			      (py-string-to-name (cadr paths)) submod)
+			   mod))))
 		   ((file-exists? (string-append qpath ".py"))
-		    (let ((mod (or (py-import-from-sysmod sysmod key path)
-				   (py-import-module sysmod key qpath))))
-		       (or mod0 mod)))
+		    (or (py-import-from-sysmod sysmod key qpath)
+			(py-import-module sysmod key qpath)))
 		   ((directory? qpath)
-		    (let ((mod (py-import-dir sysmod key qpath)))
-		       (or mod0 mod)))
+		    (or (py-import-from-sysmod sysmod key qpath)
+			(py-import-dir sysmod key qpath)))
 		   (else
 		    (error "py-import" "ModuleNotFoundError" path)))))))))
 
