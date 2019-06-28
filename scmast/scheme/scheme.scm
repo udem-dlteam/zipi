@@ -497,8 +497,19 @@
 
 (define-walk-method (scheme this::PycCollection conf)
    (epairify this
-      `(,(if (isa? this PycList) 'py-make-list 'py-make-tuple)
+      `(,(cond
+	    ((isa? this PycList) 'py-make-list)
+	    ((isa? this PycTuple) 'py-make-tuple)
+	    (else 'py-make-set))
 	,@(map (lambda (e) (scheme e conf)) (PycCollection-elts this)))))
+
+(define-walk-method (scheme this::PycDict conf)
+   (epairify this
+      `(py-make-dict
+	  (list
+	     ,@(map (lambda (e) (scheme e conf)) (PycDict-keys this)))
+	  (list
+	     ,@(map (lambda (e) (scheme e conf)) (PycCollection-elts this))))))
 
 (define-walk-method (scheme this::PycImport conf)
    (epairify this

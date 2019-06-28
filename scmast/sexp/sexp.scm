@@ -193,10 +193,19 @@
 	  (sexp right #f scope conf)
 	  type: (op-type op)))
       ((UnaryOp ?loc ?op ?expr)
+       ;; UnaryOp(unaryop op, expr operand)
        (new-PycUnary loc
 	  (unary-operator op)
           (sexp expr #f scope conf)))
-      
+      ((Dict ?loc ?keys ?values)
+       ;; Dict(expr* keys, expr* values)
+       (new-PycDict loc
+	  (map (lambda (v) (sexp v #f scope conf)) values)
+	  (map (lambda (k) (sexp k #f scope conf)) keys)))
+      ((Set ?loc ?values)
+       ;; Set(expr* values)
+       (new-PycSet loc
+	  (map (lambda (v) (sexp v #f scope conf)) values)))
       ((Yield ?loc ?value)
        (new-PycYield loc (sexp value tail scope conf)))
       ;; Yield(expr? value)
