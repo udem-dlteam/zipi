@@ -29,6 +29,28 @@
                 (loop (fx+ i 1)))
             #f)))))
 
+(define (bigloo#string-index string char #!optional (start 0))
+  ;; Index of first occurrence of char in string
+  (let loop ((i start))
+    (if (fx< i (string-length string))
+        (if (char=? (string-ref string i) char)
+            i
+            (loop (fx+ i 1)))
+        #f)))
+
+(define (bigloo#string-split string char)
+  ;; Index of first occurrence of char in string
+  (let loop ((start 0) (i 0) (rev-parts '()))
+    (if (fx< i (string-length string))
+        (if (char=? (string-ref string i) char)
+            (loop (fx+ i 1)
+                  (fx+ i 1)
+                  (cons (substring string start i) rev-parts))
+            (loop start
+                  (fx+ i 1)
+                  rev-parts))
+        (reverse rev-parts))))
+
 (define (bigloo#substring string start #!optional (end (string-length string)))
   (namespace ("" substring))
   (substring string start end))

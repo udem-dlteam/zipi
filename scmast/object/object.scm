@@ -330,8 +330,39 @@
 
 ;;;----------------------------------------------------------------------------
 
+(define (py-len obj)
+  (cond ((eq? py-tuple-class (py-obj-class obj))
+         (vector-length (py-tuple-to-scheme obj)))
+        ((eq? py-list-class (py-obj-class obj))
+         (vector-length (py-list-to-scheme obj)))
+        ((eq? py-dict-class (py-obj-class obj))
+         (length (py-dict-to-scheme obj)))
+        ((eq? py-set-class (py-obj-class obj))
+         (length (py-set-to-scheme obj)))
+        ((and (PyObject? obj)
+              (let ((index (PyObject-find-prop obj (& "__len__"))))
+                (and (>= index 0)
+                     index)))
+         =>
+         (lambda (index)
+           (let ((__len__ (PyObject-elements-ref obj index)))
+             (py-call1 __len__ obj))))
+        (else
+         (error "len" "only object with __len__ method implemented" #f))))
+
 (define (py-getitem obj i cache)
-  (cond ((and (PyObject? obj)
+  (cond ((eq? py-tuple-class (py-obj-class obj))
+         (vector-ref (py-tuple-to-scheme obj) i))
+        ((eq? py-list-class (py-obj-class obj))
+         (vector-ref (py-list-to-scheme obj) i))
+        ((eq? py-dict-class (py-obj-class obj))
+         (let ((x (assoc i (py-dict-to-scheme obj))))
+           (if x
+               (cdr x)
+               (error "py-getitem" "item not found" #f))))
+        ((eq? py-set-class (py-obj-class obj))
+         (list-ref (py-set-to-scheme obj) i))
+        ((and (PyObject? obj)
               (let ((index (PyObject-find-prop obj (& "__getitem__"))))
                 (and (>= index 0)
                      index)))
@@ -343,7 +374,20 @@
          (error "getitem" "only object with __getitem__ method implemented" #f))))
 
 (define (py-setitem obj i val cache)
-  (cond ((and (PyObject? obj)
+  (cond ((eq? py-tuple-class (py-obj-class obj))
+         (vector-set! (py-tuple-to-scheme obj) i val))
+        ((eq? py-list-class (py-obj-class obj))
+         (vector-set! (py-list-to-scheme obj) i val))
+        ((eq? py-dict-class (py-obj-class obj))
+         (let ((x (assoc i (py-dict-to-scheme obj))))
+           (if x
+               (begin
+                 (set-cdr! x val)
+                 (py-uninit))
+               (error "py-setitem" "item not found" #f))))
+        ((eq? py-set-class (py-obj-class obj))
+         (list-set! (py-set-to-scheme obj) i val))
+        ((and (PyObject? obj)
               (let ((index (PyObject-find-prop obj (& "__setitem__"))))
                 (and (>= index 0)
                      index)))
@@ -353,6 +397,25 @@
              (py-call3 __setitem__ obj i val))))
         (else
          (error "setitem" "only object with __setitem__ method implemented" #f))))
+
+(define (py-hasitem obj i cache)
+  (cond ((eq? py-tuple-class (py-obj-class obj))
+         (and (>= i 0) (< i (py-len obj))))
+        ((eq? py-list-class (py-obj-class obj))
+         (and (>= i 0) (< i (py-len obj))))
+        ((eq? py-dict-class (py-obj-class obj))
+         (let ((x (assoc i (py-dict-to-scheme obj))))
+           (if x #t #f)))
+        ((and (PyObject? obj)
+              (let ((index (PyObject-find-prop obj (& "__getitem__"))))
+                (and (>= index 0)
+                     index)))
+         =>
+         (lambda (index)
+           (let ((__getitem__ (PyObject-elements-ref obj index)))
+             (py-call2 __getitem__ obj i))))
+        (else
+         (error "getitem" "only object with __getitem__ method implemented" #f))))
 
 ;;;----------------------------------------------------------------------------
 
@@ -638,12 +701,16 @@
 (define py-str-class    #f)
 (define py-tuple-class  #f)
 (define py-list-class   #f)
+(define py-dict-class   #f)
+(define py-set-class    #f)
 
 (define py-object-hclass-of-instances #f)
 (define py-type-hclass-of-instances   #f)
 (define py-str-hclass-of-instances    #f)
 (define py-tuple-hclass-of-instances  #f)
 (define py-list-hclass-of-instances   #f)
+(define py-dict-hclass-of-instances   #f)
+(define py-set-hclass-of-instances    #f)
 
 (define (py-obj-class obj) ;; return **class** attribute of object obj
   (cond ((PyObject? obj)
@@ -703,7 +770,7 @@
 (define (bootstrap-basic-types-phase1)
   (let* ((type-class
           (py-fun-alloc
-           #f  ;; **class** is set later
+           #f ;; **class** is set later
            (make-HClass
             '#() ;; class-mro is set later to (vector type-class object-class)
             (vector
@@ -749,7 +816,7 @@
            (make-HClass
             '#() ;; class-mro is set later to (vector tuple-class object-class)
             (vector
-             (& "**class**")    ;; read-only copy... is it needed?
+             (& "**class**") ;; read-only copy... is it needed?
              (& "__class__")
              (& "__len__")
              (& "__getitem__")
@@ -763,7 +830,35 @@
            (make-HClass
             '#() ;; class-mro is set later to (vector list-class object-class)
             (vector
-             (& "**class**")    ;; read-only copy... is it needed?
+             (& "**class**") ;; read-only copy... is it needed?
+             (& "__class__")
+             (& "__len__")
+             (& "__getitem__")
+             (& "__setitem__"))
+            '())
+           #f)) ;; constructor is set later
+
+         (dict-class
+          (py-fun-alloc
+           type-class
+           (make-HClass
+            '#() ;; class-mro is set later to (vector dict-class object-class)
+            (vector
+             (& "**class**") ;; read-only copy... is it needed?
+             (& "__class__")
+             (& "__len__")
+             (& "__getitem__")
+             (& "__setitem__"))
+            '())
+           #f)) ;; constructor is set later
+
+         (set-class
+          (py-fun-alloc
+           type-class
+           (make-HClass
+            '#() ;; class-mro is set later to (vector set-class object-class)
+            (vector
+             (& "**class**") ;; read-only copy... is it needed?
              (& "__class__")
              (& "__len__")
              (& "__getitem__")
@@ -861,7 +956,45 @@
       (PyObject-elements-set! list-class 2 mro)  ;; set **mro**
       (PyFunction-procedure-set!
        list-class
-       (py-obj-constructor list-class hclass-of-instances py-call-init)))))
+       (py-obj-constructor list-class hclass-of-instances py-call-init)))
+
+    (let* ((mro
+            (vector dict-class object-class))
+           (hclass-of-instances
+            (make-HClass
+             mro
+             (vector
+              (& "**class**") ;; read-only copy... is it needed?
+              (& "**elems**")
+              (& "__class__"))
+             '())))
+      (set! py-dict-class dict-class)
+      (set! py-dict-hclass-of-instances hclass-of-instances)
+      (HClass-class-mro-set! (PyObject-hclass (vector-ref mro 0)) mro)
+      (PyObject-elements-set! dict-class 1 bases-types) ;; set **bases**
+      (PyObject-elements-set! dict-class 2 mro)  ;; set **mro**
+      (PyFunction-procedure-set!
+       dict-class
+       (py-obj-constructor dict-class hclass-of-instances py-call-init)))
+
+    (let* ((mro
+            (vector set-class object-class))
+           (hclass-of-instances
+            (make-HClass
+             mro
+             (vector
+              (& "**class**") ;; read-only copy... is it needed?
+              (& "**elems**")
+              (& "__class__"))
+             '())))
+      (set! py-set-class set-class)
+      (set! py-set-hclass-of-instances hclass-of-instances)
+      (HClass-class-mro-set! (PyObject-hclass (vector-ref mro 0)) mro)
+      (PyObject-elements-set! set-class 1 bases-types) ;; set **bases**
+      (PyObject-elements-set! set-class 2 mro)  ;; set **mro**
+      (PyFunction-procedure-set!
+       set-class
+       (py-obj-constructor set-class hclass-of-instances py-call-init)))))
 
 (bootstrap-basic-types-phase1)
 
@@ -872,7 +1005,7 @@
 
 (define (py-str-from-scheme string)
   (let ((self (py-obj-alloc py-str-class py-str-hclass-of-instances)))
-    (PyObject-elements-set! self 1 string) ;; set **elems**
+    (PyObject-elements-set! self 1 string)       ;; set **elems**
     (PyObject-elements-set! self 2 py-str-class) ;; set __class__
     self))
 
@@ -888,13 +1021,32 @@
 (define (py-tuple-to-scheme self)
   (PyObject-elements-ref self 1))
 
-;* (define (py-list-from-scheme vector)                                */
-;*   (let ((self (py-obj-alloc py-list-class py-list-hclass-of-instances))) */
-;*     (PyObject-elements-set! self 1 vector) ;; set **elems**         */
-;*     (PyObject-elements-set! self 2 py-list-class) ;; set __class__  */
-;*     self))                                                          */
+(define (py-list-from-scheme vector)
+  (let ((self (py-obj-alloc py-list-class py-list-hclass-of-instances)))
+    (PyObject-elements-set! self 1 vector)         ;; set **elems**
+    (PyObject-elements-set! self 2 py-list-class)  ;; set __class__
+    self))
 
 (define (py-list-to-scheme self)
+  (PyObject-elements-ref self 1))
+
+(define (py-dict-from-scheme keys vals)
+  (let ((elems (map cons keys vals)))
+    (let ((self (py-obj-alloc py-dict-class py-dict-hclass-of-instances)))
+      (PyObject-elements-set! self 1 elems)          ;; set **elems**
+      (PyObject-elements-set! self 2 py-dict-class)  ;; set __class__
+    self)))
+
+(define (py-dict-to-scheme self)
+  (PyObject-elements-ref self 1))
+
+(define (py-set-from-scheme elems)
+  (let ((self (py-obj-alloc py-set-class py-set-hclass-of-instances)))
+    (PyObject-elements-set! self 1 elems)         ;; set **elems**
+    (PyObject-elements-set! self 2 py-set-class)  ;; set __class__
+    self))
+
+(define (py-set-to-scheme self)
   (PyObject-elements-ref self 1))
 
 ;;;----------------------------------------------------------------------------
@@ -1044,11 +1196,6 @@
                  (& "builtins")
                  '()))
 
-(define py-dict-class
-  (py-make-class (& "dict")
-                 (& "builtins")
-                 '()))
-
 (define py-slice-class
   (py-make-class (& "slice")
                  (& "builtins")
@@ -1133,6 +1280,7 @@
 (define (py-make-list . elements)
   (py-list-from-scheme (list->vector elements)))
 
+#;
 (define (py-list-from-scheme elements)
   (alist->PyObject
    (list (cons (& "__class__")
@@ -1254,9 +1402,18 @@
   (py-str-from-scheme (py-str-scheme obj)))
 
 (define (py-str-scheme obj)
+  ;;(pp obj)
   (let ((t (py-type obj)))
     (cond ((eq? t py-str-class)
            (py-str-to-scheme obj))
+          ((eq? t py-list-class)
+           (py-list-repr-scheme obj))
+          ((eq? t py-tuple-class)
+           (py-tuple-repr-scheme obj))
+          ((eq? t py-dict-class)
+           (py-dict-repr-scheme obj))
+          ((eq? t py-set-class)
+           (py-dict-set-scheme obj))
           ((eq? t py-type-class)
            (string-append
             "<class "
@@ -1283,11 +1440,16 @@
            (let ((__repr__ (PyObject-elements-ref obj index)))
              (py-str-to-scheme (py-call1 __repr__ obj)))))
         (else
+         ;;(pp obj)
          (let ((t (py-type obj)))
            (cond ((eq? t py-list-class)
-                  (py-list-repr-scheme obj))
+                  (py-str-scheme obj))
                  ((eq? t py-tuple-class)
-                  (py-tuple-repr-scheme obj))
+                  (py-str-scheme obj))
+                 ((eq? t py-dict-class)
+                  (py-str-scheme obj))
+                 ((eq? t py-set-class)
+                  (py-str-scheme obj))
                  ((eq? t py-type-class)
                   (py-str-scheme obj))
                  ((eq? t py-str-class)
@@ -1356,6 +1518,11 @@
 (define (py-tuple-repr-scheme tuple)
   (py-seq-repr-scheme tuple "(" "," ")"))
 
+(define (py-set-repr-scheme set)
+  (if (= 0 (py-call1 py-builtin-len set))
+      "set()"
+      (py-seq-repr-scheme set "{" "" "}")))
+
 (define (py-seq-repr-scheme seq open one close)
   (let ((len (py-call1 py-builtin-len seq)))
     (let loop ((i (- len 1)) (elems '()))
@@ -1368,17 +1535,23 @@
                          (if (= len 1) one "")
                          close)))))
 
-(define (py-len obj)
-  (cond ((and (PyObject? obj)
-              (let ((index (PyObject-find-prop obj (& "__len__"))))
-                (and (>= index 0)
-                     index)))
-         =>
-         (lambda (index)
-           (let ((__len__ (PyObject-elements-ref obj index)))
-             (py-call1 __len__ obj))))
-        (else
-         (error "len" "only object with __len__ method implemented" #f))))
+(define (py-dict-repr-scheme dict)
+  (let ((alist (py-dict-to-scheme dict)))
+    (let loop ((lst alist) (elems '()))
+      (if (pair? lst)
+          (let* ((x (car lst))
+                 (key (car x))
+                 (val (cdr x))
+                 (y (string-append
+                     (py-repr-scheme key)
+                     ": "
+                     (py-repr-scheme val))))
+            (loop (cdr lst)
+                  (cons (string-append y (if (pair? (cdr lst)) ", " ""))
+                        elems)))
+          (string-append "{"
+                         (apply string-append (reverse elems))
+                         "}")))))
 
 (define (py-chr i)
   (py-str-from-scheme (string (integer->char i))))
@@ -2796,6 +2969,7 @@
   (py-procedure->function
    (lambda rest (error "print" "unimplemented generic procedure for builtin" #f))
    (lambda objects ;; objects sep end file flush)
+     ;;(pp objects)
      (let ((port (current-output-port)))
        (let loop ((lst objects))
          (if (pair? lst)
@@ -2967,11 +3141,7 @@
 ;; For other containers see the built-in frozenset, list, tuple, and dict
 ;; classes, as well as the collections module.
 
-(define py-builtin-set
-  (py-procedure->function
-   (lambda rest (error "set" "unimplemented generic procedure for builtin" #f))
-   (lambda (iterable)
-     (error "set" "not implemented" #f))))
+(define py-builtin-set py-set-class)
 
 ;;-------------------- setattr(object, name, value)
 

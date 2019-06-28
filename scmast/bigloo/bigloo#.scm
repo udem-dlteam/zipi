@@ -33,6 +33,7 @@
 (bit-rsh bigloo#bit-rsh)
 
 (string-contains bigloo#string-contains)
+(string-index bigloo#string-index)
 (substring bigloo#substring)
 (symbol-append bigloo#symbol-append)
 (copy-vector bigloo#copy-vector)
