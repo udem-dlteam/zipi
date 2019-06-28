@@ -714,8 +714,9 @@ def cvt_expr(ast):
         return ('(' + node_kind(ast, 'Ellipsis') +
                 ')')
     elif isinstance(ast, AST.NameConstant):
-        return ('(' + node_kind(ast, 'NameConstant') +
-                ' ' + cvt_string(ast.value) +
+        return ('(' + node_kind(ast, 'Constant') +
+                ' ' + cvt_constant(ast.value) +
+                ' #f' + 
                 ')')
     else:
         print(ast)

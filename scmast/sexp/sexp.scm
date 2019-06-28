@@ -176,9 +176,15 @@
        (new-PycString loc val))
       ((Constant ?loc ?val ?string)
        ;; Constant(constant value, string? kind) [3.8]
-       (if (or string (string? val))
-	   (new-PycString loc val)
-	   (new-PycNumber loc val)))
+       (cond
+	  ((or string (string? val))
+	   (new-PycString loc val))
+	  ((eq? val 'False)
+	   (new-PycBool loc #f))
+	  ((eq? val 'True)
+	   (new-PycBool loc #f))
+	  (else
+	   (new-PycNumber loc val))))
       ((BinOp ?loc ?left ?op ?right)
        ;; BinOp(expr left, operator op, expr right)
        (new-PycBinary loc 

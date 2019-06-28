@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Fri Jun 28 14:25:02 2019 (serrano)                */
+;*    Last change :  Fri Jun 28 14:39:58 2019 (serrano)                */
 ;*    Copyright   :  2019 M. Feeley & M. Serrano                       */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -35,7 +35,7 @@
 	   
 	   (global-get ::PyObject ::obj ::obj)
 	   
-	   (object-get ::PyObject ::obj ::obj)
+	   (object-get ::obj ::obj ::obj)
 	   (object-get-no-cache ::PyObject ::obj)
 	   (object-has::bool ::PyObject ::obj)
 	   (object-put! ::PyObject ::obj ::obj ::obj)
