@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun 27 16:06:01 2019                          */
-;*    Last change :  Fri Jun 28 07:36:49 2019 (serrano)                */
+;*    Last change :  Fri Jun 28 08:59:51 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Python module imports                                            */
@@ -17,7 +17,8 @@
    (import __py_object
 	   __py_hclass)
 
-   (export (py-import base path)))
+   (export (py-import path)
+	   py-import-root))
 
 ;*---------------------------------------------------------------------*/
 ;*    PWD ...                                                          */
@@ -27,11 +28,11 @@
 ;*---------------------------------------------------------------------*/
 ;*    compile ...                                                      */
 ;*---------------------------------------------------------------------*/
-(define (compile base source target)
+(define (compile root source target)
    (when (or (not (file-exists? target))
 	     (> (file-modification-time source)
 		(file-modification-time target)))
-      (system (format "cd ~a; scmast.py ~a | pyc -t bigloo --no-main -d ~a ~a > ~a" (PWD) source base source target))))
+      (system (format "cd ~a; scmast.py ~a | pyc -t bigloo --no-main -d ~a ~a > ~a" (PWD) source root source target))))
    
 ;*---------------------------------------------------------------------*/
 ;*    loadv ...                                                        */

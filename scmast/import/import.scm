@@ -1,5 +1,7 @@
-(define (py-import root path)
-   ;;(tprint "py-import root=" root " path=" path)
+(define py-import-root (pwd))
+
+(define (py-import path)
+   ;; (tprint "py-import root=" py-import-root " path=" path)
    (let ((sysmod (object-get-no-cache (py-sys-mod) (& "modules"))))
       (cond
 	 ((py-import-builtin path)
@@ -8,7 +10,7 @@
 	     (sysmod-add-entry! sysmod (py-string-to-name path) mod)))
 	 (else
 	  (let loop ((paths (string-split path "."))
-		     (base root)
+		     (base py-import-root)
 		     (key #f)
 		     (mod0 #f))
 	     (let ((qpath (make-file-name base (car paths)))
@@ -20,14 +22,14 @@
 		(cond
 		   ((pair? (cdr paths))
 		    (let ((mod (or (py-import-from-sysmod sysmod key path)
-				   (py-import-dir base sysmod key qpath))))
+				   (py-import-dir sysmod key qpath))))
 		       (loop (cdr paths) qpath key mod)))
 		   ((file-exists? (string-append qpath ".py"))
 		    (let ((mod (or (py-import-from-sysmod sysmod key path)
-				   (py-import-module root sysmod key qpath))))
+				   (py-import-module sysmod key qpath))))
 		       (or mod0 mod)))
 		   ((directory? qpath)
-		    (let ((mod (py-import-dir root sysmod key qpath)))
+		    (let ((mod (py-import-dir sysmod key qpath)))
 		       (or mod0 mod)))
 		   (else
 		    (error "py-import" "ModuleNotFoundError" path)))))))))
@@ -44,7 +46,6 @@
        #f)))
    
 (define (sysmod-add-entry! sysmod key mod)
-   ;; (tprint "*** sysmod-add-entry key=" key)
    (object-put-no-cache! sysmod key mod)
    mod)
 
@@ -55,19 +56,19 @@
 	     (error "py-import" "ModuleNotFoundError" path)
 	     mod))))
 
-(define (py-import-module root sysmod key path)
+(define (py-import-module sysmod key path)
    (let ((file (string-append path ".scm")))
-      (compile root (string-append path ".py") file)
+      (compile py-import-root (string-append path ".py") file)
       (if (file-exists? file)
 	  (let* ((init (loadv file))
 		 (mod (init)))
 	     (sysmod-add-entry! sysmod key mod))
 	  (error "py-import" "ModuleNotCompileError" path))))
 
-(define (py-import-dir root sysmod key path)
+(define (py-import-dir sysmod key path)
    (let ((init (make-file-path path "__init__.py")))
       (if (file-exists? init)
-	  (py-import-module root sysmod key (make-file-path path "__init__"))
+	  (py-import-module sysmod key (make-file-path path "__init__"))
 	  (let ((mod (make-PyObject
 			(make-HClass (vector (& "__name__")) '())
 			(vector (py-str-from-scheme path)))))

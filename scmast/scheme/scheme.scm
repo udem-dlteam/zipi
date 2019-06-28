@@ -68,6 +68,7 @@
 (define-walk-method (scheme this::PycModule conf)
    (epairify this
       `(lambda (%global %caches)
+	  (set! py-import-root ,(config-get conf 'dir))
 	  ,@(scheme* (PycModule-stmts this)
 	       (cons* module: (PycModule-globals this) conf)))))
 
@@ -501,7 +502,8 @@
 
 (define-walk-method (scheme this::PycImport conf)
    (epairify this
-      `(py-import ,(config-get conf 'dir) ,(PycImport-path this))))
+;*       `(py-import ,(config-get conf 'dir) ,(PycImport-path this))   */
+      `(py-import ,(PycImport-path this))))
 
 (define-walk-method (scheme this::PycRef conf)
    (let ((decl (PycRef-decl this)))
