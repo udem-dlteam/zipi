@@ -1,12 +1,3 @@
-(define passes-beval
-   (list (cons "symbol" pyc-symbol!)
-      (cons "return" pyc-return)
-      (cons "break" pyc-break)
-      (cons "locals" pyc-locals)
-      (cons "generator" pyc-generator)
-      (cons "cps" pyc-cps)
-      (cons "beval" pyc-beval)))
-
 (define passes-scheme
    (list (cons "symbol" pyc-symbol!)
       (cons "return" pyc-return)
@@ -60,7 +51,6 @@
 			   (or (getenv "USER") "anonymous") "PYC")
 		   conf))
 	  (passes (case (config-get conf 'target)
-		     ((beval) passes-beval)
 		     ((scheme) passes-scheme)
 		     ((bigloo) passes-bigloo)
 		     ((gambit) passes-gambit)

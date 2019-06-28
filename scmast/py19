@@ -32,8 +32,8 @@ $SCRIPT_DIR/javascript/javascript.bgl \
 $SCRIPT_DIR/javascript/javascript.scm \
 $SCRIPT_DIR/dump/dump.bgl \
 $SCRIPT_DIR/dump/dump.scm \
-$SCRIPT_DIR/beval/beval.bgl \
-$SCRIPT_DIR/beval/beval.scm \
+$SCRIPT_DIR/import/import.bgl \
+$SCRIPT_DIR/import/import.scm \
 $SCRIPT_DIR/main/main.bgl \
 $SCRIPT_DIR/main/main.scm \
 $SCRIPT_DIR/main/main-gambit.scm \
