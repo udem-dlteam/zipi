@@ -1,2 +1,2 @@
-# py19
-Python parsing infrastructure
+# zipi
+A fast Python implementation.
