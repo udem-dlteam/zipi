@@ -1,9 +1,9 @@
 ;*=====================================================================*/
-;*    serrano/nosync/py19/scmast/object/object.bgl                     */
+;*    serrano/nosync/zipi/scmast/object/object.bgl                     */
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Fri Jun 28 08:27:06 2019 (serrano)                */
+;*    Last change :  Fri Jun 28 14:25:02 2019 (serrano)                */
 ;*    Copyright   :  2019 M. Feeley & M. Serrano                       */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -83,7 +83,7 @@
 	   py-builtin-locals
 	   py-builtin-globals
 
-	   (py-str-from-scheme::bstring ::bstring)
+	   (py-str-from-scheme::PyObject ::bstring)
 	   (py-string-to-name::symbol ::bstring))
    
    (eval   (export-all)))

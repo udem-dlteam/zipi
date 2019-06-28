@@ -540,7 +540,7 @@
 
 (define (py-make-sys-mod)
    (alist->PyObject
-      (list (cons (& "modules") (make-PyObject (make-HClass '#() '()) '#())))))
+      (list (cons (& "modules") (make-PyObject (make-HClass '#() '#() '()) '#())))))
 	  
 (define (py-sys-mod)
    (unless sys-mod
@@ -705,7 +705,7 @@
           (py-fun-alloc
            #f  ;; **class** is set later
            (make-HClass
-            #f ;; class-mro is set later to (vector type-class object-class)
+            '#() ;; class-mro is set later to (vector type-class object-class)
             (vector
              (& "**class**") ;; read-only copy... is it needed?
              (& "**bases**") ;; read-only copy... is it needed?
@@ -722,7 +722,7 @@
           (py-fun-alloc
            type-class
            (make-HClass
-            #f ;; class-mro is set later to (vector object-class)
+            '#() ;; class-mro is set later to (vector object-class)
             (vector
              (& "**class**") ;; read-only copy... is it needed?
              (& "__class__"))
@@ -733,7 +733,7 @@
           (py-fun-alloc
            type-class
            (make-HClass
-            #f ;; class-mro is set later to (vector str-class object-class)
+            '#() ;; class-mro is set later to (vector str-class object-class)
             (vector
              (& "**class**") ;; read-only copy... is it needed?
              (& "__class__")
@@ -747,7 +747,7 @@
           (py-fun-alloc
            type-class
            (make-HClass
-            #f ;; class-mro is set later to (vector tuple-class object-class)
+            '#() ;; class-mro is set later to (vector tuple-class object-class)
             (vector
              (& "**class**")    ;; read-only copy... is it needed?
              (& "__class__")
@@ -761,7 +761,7 @@
           (py-fun-alloc
            type-class
            (make-HClass
-            #f ;; class-mro is set later to (vector list-class object-class)
+            '#() ;; class-mro is set later to (vector list-class object-class)
             (vector
              (& "**class**")    ;; read-only copy... is it needed?
              (& "__class__")
@@ -879,20 +879,20 @@
 (define (py-str-to-scheme self)
   (PyObject-elements-ref self 1))
 
-(define (py-tuple-from-scheme vector)
-  (let ((self (py-obj-alloc py-tuple-class py-tuple-hclass-of-instances)))
-    (PyObject-elements-set! self 1 vector) ;; set **elems**
-    (PyObject-elements-set! self 2 py-tuple-class) ;; set __class__
-    self))
+;* (define (py-tuple-from-scheme vector)                               */
+;*   (let ((self (py-obj-alloc py-tuple-class py-tuple-hclass-of-instances))) */
+;*     (PyObject-elements-set! self 1 vector) ;; set **elems**         */
+;*     (PyObject-elements-set! self 2 py-tuple-class) ;; set __class__ */
+;*     self))                                                          */
 
 (define (py-tuple-to-scheme self)
   (PyObject-elements-ref self 1))
 
-(define (py-list-from-scheme vector)
-  (let ((self (py-obj-alloc py-list-class py-list-hclass-of-instances)))
-    (PyObject-elements-set! self 1 vector) ;; set **elems**
-    (PyObject-elements-set! self 2 py-list-class) ;; set __class__
-    self))
+;* (define (py-list-from-scheme vector)                                */
+;*   (let ((self (py-obj-alloc py-list-class py-list-hclass-of-instances))) */
+;*     (PyObject-elements-set! self 1 vector) ;; set **elems**         */
+;*     (PyObject-elements-set! self 2 py-list-class) ;; set __class__  */
+;*     self))                                                          */
 
 (define (py-list-to-scheme self)
   (PyObject-elements-ref self 1))

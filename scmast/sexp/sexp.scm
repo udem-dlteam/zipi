@@ -176,7 +176,7 @@
        (new-PycString loc val))
       ((Constant ?loc ?val ?string)
        ;; Constant(constant value, string? kind) [3.8]
-       (if string
+       (if (or string (string? val))
 	   (new-PycString loc val)
 	   (new-PycNumber loc val)))
       ((BinOp ?loc ?left ?op ?right)
