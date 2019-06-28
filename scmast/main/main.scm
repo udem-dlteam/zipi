@@ -43,14 +43,19 @@
       (cons "generator" pyc-generator)
       (cons "javascript" pyc-javascript)))
 
+(define (absolute path)
+   (if (char=? (string-ref path 0) #\/)
+       path
+       (make-file-name (pwd) path)))
+
 (define (pyc conf)
    (let* ((src (config-get conf 'src))
 	  (ast (if src
 		   (pyc-sexp (scmast.py src) '())
 		   (pyc-sexp (read) '())))
 	  (env (getenv "PYTRACE"))
-	  (conf (cons* 'trace
-		   (and (string? env) (string-contains env "pyc:dump"))
+	  (conf (cons*
+		   'trace (and (string? env) (string-contains env "pyc:dump"))
 		   'tmp (make-file-path (os-tmp)
 			   (or (getenv "USER") "anonymous") "PYC")
 		   conf))
@@ -66,7 +71,7 @@
 
 (define (compile-pyc ast passes conf)
    (let ((tracedir (make-file-name (config-get conf 'tmp)
-		      (config-get conf 'src "stdin"))))
+		      (or (config-get conf 'src) "stdin"))))
       (when (config-get conf 'trace)
 	 (make-directories tracedir)
 	 (dump-trace tracedir "sexp" ast))

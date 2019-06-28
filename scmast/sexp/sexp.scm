@@ -20,7 +20,11 @@
       ;; mod
       ((Module ?loc ?body . ?type_ignors)
        ;; Module(stmt* body, type_ignore *type_ignores)
-       (new-PycModule loc "???" (compile* loc body #t 'global conf)))
+       (new-PycModule loc "???"
+	  (cons
+	     (new-PycDeclInit loc '__name__ scope
+		(new-PycString loc (config-get conf 'module "__main__")))
+	     (compile* loc body #t 'global conf))))
       
       ;; stmt
       ((FunctionDef ?loc ?id ?args ?body ?decorator_list ?returns . ?type_comment)
@@ -136,15 +140,14 @@
 
       ((Import ?loc ?aliases)
        ;; Import(alias* names)
-       (match-case (car aliases)
-	  ((builtins #f)
-	   (new-PycAssig loc (new-PycRefUnresolved loc 'builtins)
-	      (new-PycPragma loc '(py-builtins-mod))))
-	  ((time #f)
-	   (new-PycAssig loc (new-PycRefUnresolved loc 'time)
-	      (new-PycPragma loc '(py-time-mod))))
-	  (else
-	   (error "Import" "Unsupported form" exp))))
+       (if (null? (cdr aliases))
+	   (compile-import loc (car aliases) scope conf)
+	   (new-PycSeq loc
+	      (map (lambda (a) (compile-import loc a scope conf))
+		 aliases))))
+      ((ImportFrom ?loc ?module ?aliases . ?level)
+       ;; ImportFrom(identifier? module, alias* names, int? level)
+       (compile-import-from loc module aliases scope conf))
       ((Global ?loc ?names)
        ;; Global(identifier* names)
        (new-PycSymbols loc 'global names))
@@ -272,6 +275,58 @@
       (if (null? (cdr body))
 	  (list (sexp (car body) tail scope conf))
 	  (cons (sexp (car body) #f scope conf) (loop (cdr body))))))
+
+(define (import-prefix name)
+   (let* ((s (symbol->string name))
+	  (i (string-index s #\.)))
+      (if i
+	  (string->symbol (substring s 0 i))
+	  name)))
+
+(define (compile-import loc alias scope conf)
+   (match-case alias
+      ((?name #f)
+       (new-PycAssig loc (new-PycRefUnresolved loc (import-prefix name))
+	  (new-PycImport loc (symbol->string name))))
+      ((?name ?sym)
+       (new-PycAssig loc (new-PycRefUnresolved loc sym)
+	  (new-PycImport loc (symbol->string name))))
+      (else
+       (error "import" "Unsupported form" alias))))
+
+(define (compile-import-from loc module aliases scope conf)
+
+   (define (name-depth name)
+      (let ((s (symbol->string name)))
+	 (let loop ((i 0)
+		    (c 1))
+	    (let ((ni (string-index s #\. i)))
+	       (cond
+		  ((not ni) c)
+		  ((= ni (- (string-length s) 1)) c)
+		  (else (loop (+ ni 1) (+ c 1))))))))
+      
+   (let ((base (string-append (symbol->string module) ".")))
+      (new-PycBlock loc
+	 (list (new-PycVar loc '%mod 'block
+		  (new-PycImport loc (symbol->string module))))
+	 (new-PycSeq loc
+	    (map (lambda (alias)
+		    (match-case alias
+		       ((?name #f)
+			(new-PycAssig loc
+			   (new-PycRefUnresolved loc (import-prefix name))
+			   (new-PycImport loc
+			      (string-append base (symbol->string name))
+			      depth: (name-depth module))))
+		       ((?name ?sym)
+			(new-PycAssig loc (new-PycRefUnresolved loc sym)
+			   (new-PycImport loc
+			      (string-append base (symbol->string name))
+			      depth: (name-depth module))))
+		       (else
+			(error "import-from" "Unsupported form" alias))))
+	       aliases)))))
 
 (define (op-type op)
    (if (memq op '(< <= > >= ==))

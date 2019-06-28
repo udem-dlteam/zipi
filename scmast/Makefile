@@ -7,7 +7,7 @@ SOURCES = main/main ast/ast sexp/sexp symbol/symbol return/return \
   beval/beval dump/dump locals/locals \
   break/break generator/generator cps/cps scheme/scheme \
   javascript/javascript \
-  hclass/hclass object/object iterator/iterator
+  hclass/hclass object/object iterator/iterator import/import
 
 .SUFFIXES:
 .SUFFIXES: .scm .bgl .sch .o
