@@ -21,18 +21,45 @@
 	   py-import-root))
 
 ;*---------------------------------------------------------------------*/
-;*    PWD ...                                                          */
-;*---------------------------------------------------------------------*/
-(define-macro (PWD) (pwd))
-	      
-;*---------------------------------------------------------------------*/
 ;*    compile ...                                                      */
 ;*---------------------------------------------------------------------*/
-(define (compile root source target)
-   (when (or (not (file-exists? target))
-	     (> (file-modification-time source)
-		(file-modification-time target)))
-      (system (format "cd ~a; scmast.py ~a | pyc -t bigloo --no-main -d ~a ~a > ~a" (PWD) source root source target))))
+(cond-expand
+  (bigloo
+
+   (define (compile-to-scheme root source target)
+
+     (define-macro (get-build-path) (pwd))
+
+     (define (root-dir)
+       (or (getenv "ZIPIROOT")
+           (get-build-path)))
+
+     (when (or (not (file-exists? target))
+	       (> (file-modification-time source)
+		  (file-modification-time target)))
+       (system (format "~a/pyc -t bigloo --no-main -d ~a ~a > ~a" (root-dir) root source target)))))
+
+  (gambit
+
+   (define (compile-to-scheme root source target)
+
+     (define (root-dir)
+       (or (getenv "ZIPIROOT")
+           (path-expand ".." (path-directory (car (command-line))))))
+
+     (when (or (not (file-exists? target))
+	       (> (time->seconds (file-last-modification-time source))
+		  (time->seconds (file-last-modification-time target))))
+
+       (shell-command
+        (string-append
+         (root-dir)
+         "/py19 -t gambit --no-main -d "
+         root
+         " "
+         source
+         " > "
+         target))))))
    
 ;*---------------------------------------------------------------------*/
 ;*    loadv ...                                                        */
@@ -44,4 +71,4 @@
 	    (let ((e (read ip)))
 	       (if (eof-object? e)
 		   v
-		   (loop (eval! e))))))))
+		   (loop (eval e))))))))

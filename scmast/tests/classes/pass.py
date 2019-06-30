@@ -4,9 +4,8 @@ class A:
 class B:
     pass
 
-print(A)
-print(A.__module__)
-print(A.__name__)
+print(A.__class__ is type)
+print(B.__class__ is type)
 
 print(A().__class__ is A)
 print(A().__class__ is B)

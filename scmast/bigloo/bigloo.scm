@@ -29,27 +29,29 @@
                 (loop (fx+ i 1)))
             #f)))))
 
-(define (bigloo#string-index string char #!optional (start 0))
+(define (bigloo#string-index string char #!optional (start 0) (count (- (string-length string) start)))
   ;; Index of first occurrence of char in string
-  (let loop ((i start))
-    (if (fx< i (string-length string))
-        (if (char=? (string-ref string i) char)
-            i
-            (loop (fx+ i 1)))
-        #f)))
+  (let ((end (+ start count)))
+    (let loop ((i start))
+      (if (fx< i end)
+          (if (char=? (string-ref string i) char)
+              i
+              (loop (fx+ i 1)))
+          #f))))
 
-(define (bigloo#string-split string char)
+(define (bigloo#string-split string #!optional (delimiters " \n\t"))
   ;; Index of first occurrence of char in string
   (let loop ((start 0) (i 0) (rev-parts '()))
     (if (fx< i (string-length string))
-        (if (char=? (string-ref string i) char)
-            (loop (fx+ i 1)
-                  (fx+ i 1)
-                  (cons (substring string start i) rev-parts))
-            (loop start
-                  (fx+ i 1)
-                  rev-parts))
-        (reverse rev-parts))))
+        (let ((c (string-ref string i)))
+          (if (bigloo#string-index delimiters c)
+              (loop (fx+ i 1)
+                    (fx+ i 1)
+                    (cons (substring string start i) rev-parts))
+              (loop start
+                    (fx+ i 1)
+                    rev-parts)))
+        (reverse (cons (substring string start i) rev-parts)))))
 
 (define (bigloo#substring string start #!optional (end (string-length string)))
   (namespace ("" substring))
@@ -114,8 +116,36 @@
           (bigloo#find pred (cdr lst)))
       #f))
 
-(define (bigloo#current-seconds)
-  (time->seconds (current-time)))
+(define (bigloo#remq! obj lst)
+
+  (define (rem lst prev)
+    (if (pair? lst)
+        (if (eq? (car lst) obj)
+            (begin
+              (if prev
+                  (set-cdr! prev (cdr lst)))
+              (rem (cdr lst) prev))
+            (begin
+              (rem (cdr lst) lst)
+              lst))
+        prev))
+
+  (or (rem lst #f) '()))
+
+(define (bigloo#delete-duplicates lst #!optional (eq equal?))
+
+  (define (del lst seen)
+    (if (pair? lst)
+        (let ((x (car lst)))
+          (if (member x seen eq)
+              (del (cdr lst) seen)
+              (cons (car lst) (del (cdr lst) (cons x seen)))))
+        '()))
+
+  (del lst '()))
+
+(define (bigloo#current-microseconds)
+  (* 1000000 (time->seconds (current-time))))
 
 (define (bigloo#fprint format-string . objects)
   (print (apply format (cons format-string objects))))
@@ -182,6 +212,10 @@
     (if (null? lst)
         path
         (loop (bigloo#make-file-name path (car lst)) (cdr lst)))))
+
+(define (bigloo#directory? path)
+  (and (file-exists? path)
+       (eq? (file-type path) 'directory)))
 
 (define (bigloo#absolute path)
   (path-normalize  path))

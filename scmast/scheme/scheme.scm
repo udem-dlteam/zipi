@@ -33,17 +33,26 @@
 (define (pyc-scheme-gambit ast conf)
   (pretty-print
    `(begin
-      (|##import| bigloo)
-      (|##include| "hclass/hclass.bgl")
-      (|##include| "hclass/hclass.scm")
-      (|##include| "object/object.bgl")
-      (|##include| "object/object.scm")
-      (|##include| "iterator/iterator.bgl")
-      (|##include| "iterator/iterator.scm")
-      (define (main args)
-        (pyc (py-make-global) (py-make-caches ,(PycModule-caches ast))))
-      (define pyc ,(PycNode-%info ast))
-      (main (command-line)))))
+      ,@(if (config-get conf 'main)
+            `((|##import| bigloo)
+              (|##include| "hclass/hclass.bgl")
+              (|##include| "hclass/hclass.scm")
+              (|##include| "object/object.bgl")
+              (|##include| "object/object.scm")
+              (|##include| "iterator/iterator.bgl")
+              (|##include| "iterator/iterator.scm"))
+            '())
+      (define py-module ,(PycNode-%info ast))
+      ,(if (config-get conf 'main)
+           `(begin
+              (define (main args)
+                (py-module (py-make-global) (py-make-caches ,(PycModule-caches ast))))
+              (main (command-line)))
+           `(lambda ()
+	      (let ((global (py-make-global))
+		    (caches (py-make-caches ,(PycModule-caches ast))))
+		(py-module global caches)
+		global))))))
 
 (define (config-get conf key . def)
    (let ((c (memq key conf)))
@@ -130,7 +139,7 @@
 	      ,(scheme-while this)
 	      ,@(if (isa? (PycLoop-else this) PycPass)
 		    '()
-		    (scheme (PycLoop-else this) conf)))))
+		    (list (scheme (PycLoop-else this) conf))))))
       ((isa? (PycLoop-else this) PycPass)
        (scheme-while this))
       (else
@@ -176,7 +185,7 @@
 	      ,(scheme-for this)
 	      ,@(if (isa? (PycLoop-else this) PycPass)
 		    '()
-		    (scheme (PycLoop-else this) conf)))))
+		    (list (scheme (PycLoop-else this) conf))))))
       ((isa? (PycLoop-else this) PycPass)
        (scheme-for this))
       (else
@@ -347,13 +356,13 @@
 	      (assig (new-PycAssig loc
 			(new-PycSubscript loc
 			   (new-PycPragma loc %o) (new-PycPragma loc %i)
-			   :cache (PycSubscript-cache lhs))
+			   cache: (PycSubscript-cache lhs))
 			(new-PycCall loc
 			   (new-PycPragma loc (symbol-append 'py- (PycAugAssig-op this)))
 			   (list
 			      (new-PycSubscript loc
 				 (new-PycPragma loc %o) (new-PycPragma loc %i)
-				 :cache (PycSubscript-cache lhs))
+				 cache: (PycSubscript-cache lhs))
 			      (PycAssig-rhs this)
 			      (new-PycPragma loc
 				 (scheme-cache (PycAugAssig-cache this) this)))))))

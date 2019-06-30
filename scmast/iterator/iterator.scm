@@ -2,6 +2,8 @@
   (make-HClass
    '#()
    (vector
+    (& "**class**")
+    (& "__class__")
     (& "__next__")
     (& "send"))
    '()))
@@ -14,6 +16,8 @@
    (letrec ((o (make-PyGenerator
 		  py-generator-hclass
 		  (vector
+                     py-object-class
+                     py-object-class
 		     (py-procedure->function
 			(lambda rest (error "__next__" "not implemented" #f))
 			(lambda (self) (py-generator-send self (py-none))))

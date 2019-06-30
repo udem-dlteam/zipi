@@ -1,91 +1,94 @@
-(define (py-uninit)
-   uninit)
+(define py-absent (list 'absent))
 
-(define uninit
-   (let ((hclass (make-HClass '#() '#() '())))
-      (make-PyObject hclass '#())))
+(define (py-uninit) py-absent)
 
 (define (global-get global name cache)
    (if (eq? (PyObject-hclass global) (PCache-hclass cache))
-       (PyObject-elements-ref global (PCache-index cache))
+       (let ((val (PyObject-elements-ref global (PCache-index cache))))
+         (if (not (eq? val py-absent))
+             val
+             (py-throw py-builtin-NameError)))
        (global-get/miss global name cache)))
 
-(define (global-get/miss obj name cache)
-   (let ((index (PyObject-find-prop obj name)))
-      (cond
-         ((>= index 0)
-          (PCache-set! cache (PyObject-hclass obj) index)
-	  (let ((v (PyObject-elements-ref obj index)))
-	     (if (eq? v (py-uninit))
-		 (error "NameError" "global is not defined" name)
-		 v)))
-         (else
-          (let* ((__builtins__ (PyObject-elements-ref obj 0))
-                 (idxb (PyObject-find-prop __builtins__ name)))
-             (if (>=fx idxb 0)
-                 (PyObject-elements-ref __builtins__ idxb)
-                 (error "NameError" "global name is not defined" name)))))))
+(define (global-get/miss global name cache)
+  (let ((i (py-own-attr-index global name)))
+    (if (< i 0)
+        (let ((bi (py-attr-ref global (& "__builtins__"))))
+          (if (not (eq? bi py-absent))
+              (let ((val (py-attr-ref bi name)))
+                (if (not (eq? val py-absent))
+                    val
+                    (py-throw py-builtin-NameError)))
+              (py-throw py-builtin-NameError)))
+        (let ((hclass (PyObject-hclass global)))
+          (PCache-set! cache hclass i)
+          (let ((val (PyObject-elements-ref global i)))
+            (if (not (eq? val py-absent))
+                val
+                (py-throw py-builtin-NameError)))))))
 
 (define (global-put! global name val cache)
    (if (eq? (PyObject-hclass global) (PCache-hclass cache))
        (PyObject-elements-set! global (PCache-index cache) val)
        (global-put!/miss global name val cache)))
 
-(define (global-put!/miss obj name val cache)
-   (let* ((index (PyObject-find-prop obj name))
-          (hclass (PyObject-hclass obj)))
-      (if (>= index 0)
-          (begin
-             (PCache-set! cache hclass index)
-             (PyObject-elements-set! obj index val))
-          (let* ((nhclass (HClass-next hclass name '+))
-                 (index (HClass-last-index nhclass)))
-             (PyObject-hclass-set! obj nhclass)
-             (PCache-set! cache nhclass index)
-             (PyObject-elements-set! obj index val)))))
+(define (global-put!/miss global name val cache)
+  (let* ((i (py-own-attr-index global name))
+         (hclass (PyObject-hclass global)))
+    (if (< i 0)
+        (let* ((new-hclass (HClass-next hclass name '+))
+               (index (HClass-last-index new-hclass)))
+          (PyObject-hclass-set! global new-hclass)
+          (PCache-set! cache new-hclass index)
+          (PyObject-elements-set! global index val))
+        (begin
+          (PCache-set! cache hclass i)
+          (PyObject-elements-set! global i val)))))
 
+#;
 (define (object-get object name cache)
   (if (PyObject? object)
       (if (eq? (PyObject-hclass object) (PCache-hclass cache))
           (PyObject-elements-ref object (PCache-index cache))
           (object-get/miss object name cache))
       (if (eq? name (& "__class__")) ;; TODO: remove (temporary kluge)
-          (py-obj-class object)
+          (py-obj-cls object)
           (object-get/miss object name cache))))
 
 (define (object-get/miss obj name cache)
   ;; TODO: create a 'method' instance with __func__ and __self__ attributes
   ;; when attribute is a function and obj is not a class
   (let ((index (PyObject-find-prop obj name)))
-    (cond
-     ((>= index 0)
-      (PCache-set! cache (PyObject-hclass obj) index)
-      (PyObject-elements-ref obj index))
-     (else
-      (object-get/miss-in-class obj name)))))
+    (cond ((>= index 0)
+           (PCache-set! cache (PyObject-hclass obj) index)
+           (PyObject-elements-ref obj index))
+          (else
+           (object-get/miss-in-mro obj name)))))
 
 (define (object-get-no-cache obj name)
   (let ((index (PyObject-find-prop obj name)))
-    (cond
-     ((>= index 0)
-      (PyObject-elements-ref obj index))
-     (else
-      (object-get/miss-in-class obj name)))))
+    (cond ((>= index 0)
+           (PyObject-elements-ref obj index))
+          (else
+           (object-get/miss-in-mro obj name)))))
 
-(define (object-get/miss-in-class obj name)
-  (let ((mro (py-cls-mro (py-obj-class obj))))
+(define (object-get/miss-in-mro obj name)
+;;  (let ((mro (py-cls-mro (py-obj-cls obj))))
+  (let ((mro (HClass-class-mro (PyObject-hclass obj))))
     (let loop ((i 0))
       (if (< i (vector-length mro))
           (let ((cls (vector-ref mro i)))
             (let ((index (PyObject-find-prop cls name)))
-              (if (>= index 0) (begin (pp index)
-                  (PyObject-elements-ref cls index))
+              (if (>= index 0)
+                  (PyObject-elements-ref cls index)
                   (loop (+ i 1)))))
           (error "AttributeError" "object has no attribute" name)))))
 
+#;
 (define (object-has obj name)
    (>= (PyObject-find-prop obj name) 0))
 
+#;
 (define (object-put! object name val cache)
   (if (eq? (PyObject-hclass object) (PCache-hclass cache))
       (PyObject-elements-set! object (PCache-index cache) val)
@@ -218,7 +221,9 @@
   (bit-and x y))
 
 (define (py-div x y cache) ;; x / y
-  (/ (exact->inexact x) (exact->inexact y)))
+  (if (= y 0)
+      (py-throw py-builtin-ZeroDivisionError)
+      (/ (exact->inexact x) (exact->inexact y))))
 
 (define (py-floordiv x y cache) ;; x // y
   (inexact->exact (floor (/ x y))))
@@ -266,7 +271,9 @@
   (bit-and x y))
 
 (define (py-idiv x y cache) ;; x /= y
-  (/ (exact->inexact x) (exact->inexact y)))
+  (if (= y 0)
+      (py-throw py-builtin-ZeroDivisionError)
+      (/ (exact->inexact x) (exact->inexact y))))
 
 (define (py-ifloordiv x y cache) ;; x //= y
   (inexact->exact (floor (/ x y))))
@@ -331,13 +338,13 @@
 ;;;----------------------------------------------------------------------------
 
 (define (py-len obj)
-  (cond ((eq? py-tuple-class (py-obj-class obj))
+  (cond ((eq? py-tuple-class (py-obj-cls obj))
          (vector-length (py-tuple-to-scheme obj)))
-        ((eq? py-list-class (py-obj-class obj))
+        ((eq? py-list-class (py-obj-cls obj))
          (vector-length (py-list-to-scheme obj)))
-        ((eq? py-dict-class (py-obj-class obj))
+        ((eq? py-dict-class (py-obj-cls obj))
          (length (py-dict-to-scheme obj)))
-        ((eq? py-set-class (py-obj-class obj))
+        ((eq? py-set-class (py-obj-cls obj))
          (length (py-set-to-scheme obj)))
         ((and (PyObject? obj)
               (let ((index (PyObject-find-prop obj (& "__len__"))))
@@ -351,34 +358,30 @@
          (error "len" "only object with __len__ method implemented" #f))))
 
 (define (py-getitem obj i cache)
-  (cond ((eq? py-tuple-class (py-obj-class obj))
+  (cond ((eq? py-tuple-class (py-obj-cls obj))
          (vector-ref (py-tuple-to-scheme obj) i))
-        ((eq? py-list-class (py-obj-class obj))
+        ((eq? py-list-class (py-obj-cls obj))
          (vector-ref (py-list-to-scheme obj) i))
-        ((eq? py-dict-class (py-obj-class obj))
+        ((eq? py-dict-class (py-obj-cls obj))
          (let ((x (assoc i (py-dict-to-scheme obj))))
            (if x
                (cdr x)
                (error "py-getitem" "item not found" i))))
-        ((eq? py-set-class (py-obj-class obj))
+        ((eq? py-set-class (py-obj-cls obj))
          (list-ref (py-set-to-scheme obj) i))
-        ((and (PyObject? obj)
-              (let ((index (PyObject-find-prop obj (& "__getitem__"))))
-                (and (>= index 0)
-                     index)))
-         =>
-         (lambda (index)
-           (let ((__getitem__ (PyObject-elements-ref obj index)))
-             (py-call2 __getitem__ obj i))))
         (else
-         (error "getitem" "only object with __getitem__ method implemented" i))))
+         (let ((getitem (py-attr-ref obj (& "__getitem__"))))
+           (if (eq? getitem py-absent)
+               (error "getitem" "only object with __getitem__ method implemented" i)
+               (py-call2 getitem obj i))))))
+         
 
 (define (py-setitem obj i val cache)
-  (cond ((eq? py-tuple-class (py-obj-class obj))
+  (cond ((eq? py-tuple-class (py-obj-cls obj))
          (vector-set! (py-tuple-to-scheme obj) i val))
-        ((eq? py-list-class (py-obj-class obj))
+        ((eq? py-list-class (py-obj-cls obj))
          (vector-set! (py-list-to-scheme obj) i val))
-        ((eq? py-dict-class (py-obj-class obj))
+        ((eq? py-dict-class (py-obj-cls obj))
          (let ((x (assoc i (py-dict-to-scheme obj))))
            (if x
                (begin
@@ -389,238 +392,339 @@
 		     (cons (cons i val)
 			(py-dict-to-scheme obj)))
 		  (py-uninit)))))
-        ((eq? py-set-class (py-obj-class obj))
+        ((eq? py-set-class (py-obj-cls obj))
          (list-set! (py-set-to-scheme obj) i val))
-        ((and (PyObject? obj)
-              (let ((index (PyObject-find-prop obj (& "__setitem__"))))
-                (and (>= index 0)
-                     index)))
-         =>
-         (lambda (index)
-           (let ((__setitem__ (PyObject-elements-ref obj index)))
-             (py-call3 __setitem__ obj i val))))
         (else
-         (error "setitem" "only object with __setitem__ method implemented" #f))))
+         (let ((setitem (py-attr-ref obj (& "__setitem__"))))
+           (if (eq? setitem py-absent)
+               (error "setitem" "only object with __setitem__ method implemented" i)
+               (py-call3 setitem obj i val))))))
 
-(define (py-hasitem obj i cache)
-  (cond ((eq? py-tuple-class (py-obj-class obj))
+(define (py-contains obj i cache)
+  (cond ((eq? py-tuple-class (py-obj-cls obj))
          (and (>= i 0) (< i (py-len obj))))
-        ((eq? py-list-class (py-obj-class obj))
+        ((eq? py-list-class (py-obj-cls obj))
          (and (>= i 0) (< i (py-len obj))))
-        ((eq? py-dict-class (py-obj-class obj))
+        ((eq? py-dict-class (py-obj-cls obj))
          (let ((x (assoc i (py-dict-to-scheme obj))))
            (if x #t #f)))
-        ((and (PyObject? obj)
-              (let ((index (PyObject-find-prop obj (& "__getitem__"))))
-                (and (>= index 0)
-                     index)))
-         =>
-         (lambda (index)
-           (let ((__getitem__ (PyObject-elements-ref obj index)))
-             (py-call2 __getitem__ obj i))))
         (else
-         (error "getitem" "only object with __getitem__ method implemented" #f))))
+         (let ((contains (py-attr-ref obj (& "__contains__"))))
+           (if (eq? contains py-absent)
+               (error "contains" "only object with __contains__ method implemented" i)
+               (py-call2 contains obj i))))))
 
 ;;;----------------------------------------------------------------------------
+
+;;; Python modules.
 
 (define builtins-mod #f)
 
 (define (py-make-builtins-mod)
-  (let* ((hclass0 (make-HClass '#()
-                               (vector (& "abs")
-				       (& "all")
-				       (& "any")
-				       (& "ascii")
-				       (& "bin")
-				       (& "bool")
-				       (& "breakpoint")
-				       (& "bytearray")
-				       (& "bytes")
-				       (& "callable")
-				       (& "chr")
-				       (& "classmethod")
-				       (& "compile")
-				       (& "complex")
-				       (& "delattr")
-				       (& "dict")
-				       (& "dir")
-				       (& "divmod")
-				       (& "enumerate")
-				       (& "eval")
-				       (& "exec")
-				       (& "filter")
-				       (& "float")
-				       (& "format")
-				       (& "frozenset")
-				       (& "getattr")
-				       (& "globals")
-				       (& "hasattr")
-				       (& "hash")
-				       (& "help")
-				       (& "hex")
-				       (& "id")
-				       (& "input")
-				       (& "int")
-				       (& "isinstance")
-				       (& "issubclass")
-				       (& "iter")
-				       (& "len")
-				       (& "list")
-				       (& "locals")
-				       (& "map")
-				       (& "max")
-				       (& "memoryview")
-				       (& "min")
-				       (& "next")
-				       (& "object")
-				       (& "oct")
-				       (& "open")
-				       (& "ord")
-				       (& "pow")
-				       (& "print")
-				       (& "property")
-				       (& "range")
-				       (& "repr")
-				       (& "reversed")
-				       (& "round")
-				       (& "set")
-				       (& "setattr")
-				       (& "slice")
-				       (& "sorted")
-				       (& "staticmethod")
-				       (& "str")
-				       (& "sum")
-				       (& "super")
-				       (& "tuple")
-				       (& "type")
-				       (& "vars")
-				       (& "zip")
-				       (& "__import__")
-				       (& "StopIteration")
-				       )
-		               '()))
-	 (mod (make-PyObject hclass0 (vector #f #f))))
+  (let ((mod
+         (py-obj-alloc
+          py-module-class
+          (make-HClass
+           (vector py-module-class py-object-class)
+           (vector (& "**class**")
+                   (& "__class__")
+                   (& "__name__")
+                   (& "abs")
+		   (& "all")
+		   (& "any")
+		   (& "ascii")
+		   (& "bin")
+		   (& "bool")
+		   (& "breakpoint")
+		   (& "bytearray")
+		   (& "bytes")
+		   (& "callable")
+		   (& "chr")
+		   (& "classmethod")
+		   (& "compile")
+		   (& "complex")
+		   (& "delattr")
+		   (& "dict")
+		   (& "dir")
+		   (& "divmod")
+		   (& "enumerate")
+		   (& "eval")
+		   (& "exec")
+		   (& "filter")
+		   (& "float")
+		   (& "format")
+		   (& "frozenset")
+		   (& "getattr")
+		   (& "globals")
+		   (& "hasattr")
+		   (& "hash")
+		   (& "help")
+		   (& "hex")
+		   (& "id")
+		   (& "input")
+		   (& "int")
+		   (& "isinstance")
+		   (& "issubclass")
+		   (& "iter")
+		   (& "len")
+		   (& "list")
+		   (& "locals")
+		   (& "map")
+		   (& "max")
+		   (& "memoryview")
+		   (& "min")
+		   (& "next")
+		   (& "object")
+		   (& "oct")
+		   (& "open")
+		   (& "ord")
+		   (& "pow")
+		   (& "print")
+		   (& "property")
+		   (& "range")
+		   (& "repr")
+		   (& "reversed")
+		   (& "round")
+		   (& "set")
+		   (& "setattr")
+		   (& "slice")
+		   (& "sorted")
+		   (& "staticmethod")
+		   (& "str")
+		   (& "sum")
+		   (& "super")
+		   (& "tuple")
+		   (& "type")
+		   (& "vars")
+		   (& "zip")
+		   (& "__import__")
+		   (& "StopIteration")
+		   (& "ZeroDivisionError")
+		   (& "NameError")
+		   )
+	   '()))))
 
-    (PyObject-elements-set! mod 0  py-builtin-abs)
-    (PyObject-elements-set! mod 1  py-builtin-all)
-    (PyObject-elements-set! mod 2  py-builtin-any)
-    (PyObject-elements-set! mod 3  py-builtin-ascii)
-    (PyObject-elements-set! mod 4  py-builtin-bin)
-    (PyObject-elements-set! mod 5  py-builtin-bool)
-    (PyObject-elements-set! mod 6  py-builtin-breakpoint)
-    (PyObject-elements-set! mod 7  py-builtin-bytearray)
-    (PyObject-elements-set! mod 8  py-builtin-bytes)
-    (PyObject-elements-set! mod 9  py-builtin-callable)
-    (PyObject-elements-set! mod 10 py-builtin-chr)
-    (PyObject-elements-set! mod 11 py-builtin-classmethod)
-    (PyObject-elements-set! mod 12 py-builtin-compile)
-    (PyObject-elements-set! mod 13 py-builtin-complex)
-    (PyObject-elements-set! mod 14 py-builtin-delattr)
-    (PyObject-elements-set! mod 15 py-builtin-dict)
-    (PyObject-elements-set! mod 16 py-builtin-dir)
-    (PyObject-elements-set! mod 17 py-builtin-divmod)
-    (PyObject-elements-set! mod 18 py-builtin-enumerate)
-    (PyObject-elements-set! mod 19 py-builtin-eval)
-    (PyObject-elements-set! mod 20 py-builtin-exec)
-    (PyObject-elements-set! mod 21 py-builtin-filter)
-    (PyObject-elements-set! mod 22 py-builtin-float)
-    (PyObject-elements-set! mod 23 py-builtin-format)
-    (PyObject-elements-set! mod 24 py-builtin-frozenset)
-    (PyObject-elements-set! mod 25 py-builtin-getattr)
-    (PyObject-elements-set! mod 26 py-builtin-globals)
-    (PyObject-elements-set! mod 27 py-builtin-hasattr)
-    (PyObject-elements-set! mod 28 py-builtin-hash)
-    (PyObject-elements-set! mod 29 py-builtin-help)
-    (PyObject-elements-set! mod 30 py-builtin-hex)
-    (PyObject-elements-set! mod 31 py-builtin-id)
-    (PyObject-elements-set! mod 32 py-builtin-input)
-    (PyObject-elements-set! mod 33 py-builtin-int)
-    (PyObject-elements-set! mod 34 py-builtin-isinstance)
-    (PyObject-elements-set! mod 35 py-builtin-issubclass)
-    (PyObject-elements-set! mod 36 py-builtin-iter)
-    (PyObject-elements-set! mod 37 py-builtin-len)
-    (PyObject-elements-set! mod 38 py-builtin-list)
-    (PyObject-elements-set! mod 39 py-builtin-locals)
-    (PyObject-elements-set! mod 40 py-builtin-map)
-    (PyObject-elements-set! mod 41 py-builtin-max)
-    (PyObject-elements-set! mod 42 py-builtin-memoryview)
-    (PyObject-elements-set! mod 43 py-builtin-min)
-    (PyObject-elements-set! mod 44 py-builtin-next)
-    (PyObject-elements-set! mod 45 py-builtin-object)
-    (PyObject-elements-set! mod 46 py-builtin-oct)
-    (PyObject-elements-set! mod 47 py-builtin-open)
-    (PyObject-elements-set! mod 48 py-builtin-ord)
-    (PyObject-elements-set! mod 49 py-builtin-pow)
-    (PyObject-elements-set! mod 50 py-builtin-print)
-    (PyObject-elements-set! mod 51 py-builtin-property)
-    (PyObject-elements-set! mod 52 py-builtin-range)
-    (PyObject-elements-set! mod 53 py-builtin-repr)
-    (PyObject-elements-set! mod 54 py-builtin-reversed)
-    (PyObject-elements-set! mod 55 py-builtin-round)
-    (PyObject-elements-set! mod 56 py-builtin-set)
-    (PyObject-elements-set! mod 57 py-builtin-setattr)
-    (PyObject-elements-set! mod 58 py-builtin-slice)
-    (PyObject-elements-set! mod 59 py-builtin-sorted)
-    (PyObject-elements-set! mod 60 py-builtin-staticmethod)
-    (PyObject-elements-set! mod 61 py-builtin-str)
-    (PyObject-elements-set! mod 62 py-builtin-sum)
-    (PyObject-elements-set! mod 63 py-builtin-super)
-    (PyObject-elements-set! mod 64 py-builtin-tuple)
-    (PyObject-elements-set! mod 65 py-builtin-type)
-    (PyObject-elements-set! mod 66 py-builtin-vars)
-    (PyObject-elements-set! mod 67 py-builtin-zip)
-    (PyObject-elements-set! mod 68 py-builtin-__import__)
-    (PyObject-elements-set! mod 69 py-builtin-StopIteration)
+    (PyObject-elements-set! mod 1  py-module-class)
+    (PyObject-elements-set! mod 2  (py-str-from-scheme "builtins"))
+    (PyObject-elements-set! mod 3  py-builtin-abs)
+    (PyObject-elements-set! mod 4  py-builtin-all)
+    (PyObject-elements-set! mod 5  py-builtin-any)
+    (PyObject-elements-set! mod 6  py-builtin-ascii)
+    (PyObject-elements-set! mod 7  py-builtin-bin)
+    (PyObject-elements-set! mod 8  py-builtin-bool)
+    (PyObject-elements-set! mod 9  py-builtin-breakpoint)
+    (PyObject-elements-set! mod 10 py-builtin-bytearray)
+    (PyObject-elements-set! mod 11 py-builtin-bytes)
+    (PyObject-elements-set! mod 12 py-builtin-callable)
+    (PyObject-elements-set! mod 13 py-builtin-chr)
+    (PyObject-elements-set! mod 14 py-builtin-classmethod)
+    (PyObject-elements-set! mod 15 py-builtin-compile)
+    (PyObject-elements-set! mod 16 py-builtin-complex)
+    (PyObject-elements-set! mod 17 py-builtin-delattr)
+    (PyObject-elements-set! mod 18 py-builtin-dict)
+    (PyObject-elements-set! mod 19 py-builtin-dir)
+    (PyObject-elements-set! mod 20 py-builtin-divmod)
+    (PyObject-elements-set! mod 21 py-builtin-enumerate)
+    (PyObject-elements-set! mod 22 py-builtin-eval)
+    (PyObject-elements-set! mod 23 py-builtin-exec)
+    (PyObject-elements-set! mod 24 py-builtin-filter)
+    (PyObject-elements-set! mod 25 py-builtin-float)
+    (PyObject-elements-set! mod 26 py-builtin-format)
+    (PyObject-elements-set! mod 27 py-builtin-frozenset)
+    (PyObject-elements-set! mod 28 py-builtin-getattr)
+    (PyObject-elements-set! mod 29 py-builtin-globals)
+    (PyObject-elements-set! mod 30 py-builtin-hasattr)
+    (PyObject-elements-set! mod 31 py-builtin-hash)
+    (PyObject-elements-set! mod 32 py-builtin-help)
+    (PyObject-elements-set! mod 33 py-builtin-hex)
+    (PyObject-elements-set! mod 34 py-builtin-id)
+    (PyObject-elements-set! mod 35 py-builtin-input)
+    (PyObject-elements-set! mod 36 py-builtin-int)
+    (PyObject-elements-set! mod 37 py-builtin-isinstance)
+    (PyObject-elements-set! mod 38 py-builtin-issubclass)
+    (PyObject-elements-set! mod 39 py-builtin-iter)
+    (PyObject-elements-set! mod 40 py-builtin-len)
+    (PyObject-elements-set! mod 41 py-builtin-list)
+    (PyObject-elements-set! mod 42 py-builtin-locals)
+    (PyObject-elements-set! mod 43 py-builtin-map)
+    (PyObject-elements-set! mod 44 py-builtin-max)
+    (PyObject-elements-set! mod 45 py-builtin-memoryview)
+    (PyObject-elements-set! mod 46 py-builtin-min)
+    (PyObject-elements-set! mod 47 py-builtin-next)
+    (PyObject-elements-set! mod 48 py-builtin-object)
+    (PyObject-elements-set! mod 49 py-builtin-oct)
+    (PyObject-elements-set! mod 50 py-builtin-open)
+    (PyObject-elements-set! mod 51 py-builtin-ord)
+    (PyObject-elements-set! mod 52 py-builtin-pow)
+    (PyObject-elements-set! mod 53 py-builtin-print)
+    (PyObject-elements-set! mod 54 py-builtin-property)
+    (PyObject-elements-set! mod 55 py-builtin-range)
+    (PyObject-elements-set! mod 56 py-builtin-repr)
+    (PyObject-elements-set! mod 57 py-builtin-reversed)
+    (PyObject-elements-set! mod 58 py-builtin-round)
+    (PyObject-elements-set! mod 59 py-builtin-set)
+    (PyObject-elements-set! mod 60 py-builtin-setattr)
+    (PyObject-elements-set! mod 61 py-builtin-slice)
+    (PyObject-elements-set! mod 62 py-builtin-sorted)
+    (PyObject-elements-set! mod 63 py-builtin-staticmethod)
+    (PyObject-elements-set! mod 64 py-builtin-str)
+    (PyObject-elements-set! mod 65 py-builtin-sum)
+    (PyObject-elements-set! mod 66 py-builtin-super)
+    (PyObject-elements-set! mod 67 py-builtin-tuple)
+    (PyObject-elements-set! mod 68 py-builtin-type)
+    (PyObject-elements-set! mod 69 py-builtin-vars)
+    (PyObject-elements-set! mod 70 py-builtin-zip)
+    (PyObject-elements-set! mod 71 py-builtin-__import__)
+    (PyObject-elements-set! mod 72 py-builtin-StopIteration)
+    (PyObject-elements-set! mod 73 py-builtin-ZeroDivisionError)
+    (PyObject-elements-set! mod 73 py-builtin-NameError)
 
     mod))
 
 (define (py-builtins-mod)
-   (unless builtins-mod
-      (set! builtins-mod (py-make-builtins-mod)))
-   builtins-mod)
+  (unless builtins-mod
+    (set! builtins-mod (py-make-builtins-mod)))
+  builtins-mod)
 
 (define time-mod #f)
 
 (define (py-make-time-mod)
-  (let* ((hclass0 (make-HClass '#()
-                               (vector (& "time")
-				       )
-		               '()))
-	 (mod (make-PyObject hclass0 (vector #f #f))))
+  (let ((mod
+         (py-obj-alloc
+          py-module-class
+          (make-HClass
+           (vector py-module-class py-object-class)
+           (vector (& "**class**")
+                   (& "__class__")
+                   (& "__name__")
+                   (& "time")
+		   )
+	   '()))))
 
-    (PyObject-elements-set! mod 0  py-time)
+    (PyObject-elements-set! mod 1 py-module-class)
+    (PyObject-elements-set! mod 2 (py-str-from-scheme "time"))
+    (PyObject-elements-set! mod 3 py-time)
 
     mod))
 
 (define (py-time-mod)
-   (unless time-mod
-      (set! time-mod (py-make-time-mod)))
-   time-mod)
+  (unless time-mod
+    (set! time-mod (py-make-time-mod)))
+  time-mod)
 
 (define py-time
   (py-procedure->function
    (lambda rest (error "time" "unimplemented generic procedure for time" #f))
    (lambda _
-      (current-second))))
+     (/ (current-microseconds) 1000000.0))))
 
 (define sys-mod #f)
 
 (define (py-make-sys-mod)
-   (let ((obj (py-obj-alloc py-object-class
-		 (make-HClass '#()
-		    (vector (& "**class**")
-		       (& "__class__")
-		       (& "modules"))
-		    '()))))
-      (PyObject-elements-set! obj 0 py-object-class)
-      (PyObject-elements-set! obj 1 py-object-class)
-      (PyObject-elements-set! obj 2 (py-make-dict '() '()))
-      obj))
+  (let ((mod
+         (py-obj-alloc
+          py-module-class
+          (make-HClass
+           (vector py-module-class py-object-class)
+           (vector (& "**class**")
+                   (& "__class__")
+                   (& "__name__")
+                   (& "modules")
+		   )
+	   '()))))
+
+    (PyObject-elements-set! mod 1 py-module-class)
+    (PyObject-elements-set! mod 2 (py-str-from-scheme "sys"))
+    (PyObject-elements-set! mod 3 (py-make-dict '() '()))
+
+    mod))
 	  
 (define (py-sys-mod)
-   (unless sys-mod
-      (set! sys-mod (py-make-sys-mod)))
-   sys-mod)
+  (unless sys-mod
+    (set! sys-mod (py-make-sys-mod)))
+  sys-mod)
+
+;;;----------------------------------------------------------------------------
+
+;;; Object attribute store/fetch.
+
+(define (py-own-attr-set! obj attr val)
+  (let ((i (py-own-attr-index obj attr)))
+    (if (< i 0)
+        (let* ((hclass (PyObject-hclass obj))
+               (new-hclass (HClass-next hclass attr '+))
+               (index (HClass-last-index new-hclass)))
+          (PyObject-hclass-set! obj new-hclass)
+          (PyObject-elements-set! obj index val))
+        (PyObject-elements-set! obj i val))))
+
+(define (py-own-attr-ref obj attr #!optional (default py-absent))
+  (let ((i (py-own-attr-index obj attr)))
+    (if (< i 0)
+        default
+        (PyObject-elements-ref obj i)))) ;; TODO: could vector-ref be used?
+
+(define (py-own-attr-index obj attr)
+  (if (not (PyObject? obj)) ;; TODO: find how this test could be removed
+      -1
+      (let* ((hclass (PyObject-hclass obj))
+             (names (HClass-names hclass)))
+        (let loop ((i (- (vector-length names) 1)))
+          (cond ((< i 0) -1)
+                ((eq? attr (vector-ref names i)) i)
+                (else (loop (- i 1))))))))
+
+(define (py-attr-set! obj attr val)
+  (py-own-attr-set! obj attr val))
+
+(define (py-attr-ref obj attr #!optional (default py-absent))
+  (let ((mro (py-obj-mro obj)))
+    (let loop1 ((i 0))
+      (if (< i (vector-length mro))
+          (let* ((cls (vector-ref mro i))
+                 (ga (py-own-attr-ref obj (& "__getattribute__"))))
+            (if (not (eq? ga py-absent))
+                (error "py-attr-ref" "TODO: add case where class defines __getattribute__" #f)
+                (loop1 (+ i 1))))
+          (let ((val (py-own-attr-ref obj attr)))
+            (if (not (eq? val py-absent))
+                val
+                (let loop2 ((i 0))
+                  (if (< i (vector-length mro))
+                      (let* ((cls (vector-ref mro i))
+                             (val (py-own-attr-ref cls attr)))
+                        (if (not (eq? val py-absent))
+                            val
+                            (loop2 (+ i 1))))
+                      (let loop3 ((i 0))
+                        (if (< i (vector-length mro))
+                            (let* ((cls (vector-ref mro i))
+                                   (ga (py-own-attr-ref obj (& "__getattr__"))))
+                              (if (not (eq? ga py-absent))
+                                  (error "py-attr-ref" "TODO: add case where class defines __getattr__" #f)
+                                  (loop3 (+ i 1))))
+                            default))))))))))
+
+;; redefine object-put! and object-get
+
+(define (object-put! obj attr val cache)
+  (py-attr-set! obj attr val))
+
+(define (object-get obj attr cache)
+  (if (PyObject? obj)
+      (let ((val (py-attr-ref obj attr)))
+        (if (not (eq? val py-absent))
+            val
+            (object-get-fail obj attr)))
+      (if (eq? attr (& "__class__")) ;; TODO: remove (temporary kluge)
+          (py-obj-cls obj)
+          (object-get-fail obj attr))))
+
+(define (object-get-fail obj attr)
+  (error "AttributeError" "object has no attribute" attr))
+
+(define (object-has obj attr)
+   (>= (py-own-attr-index obj attr) 0))
 
 ;;;----------------------------------------------------------------------------
 
@@ -715,6 +819,7 @@
 (define py-list-class   #f)
 (define py-dict-class   #f)
 (define py-set-class    #f)
+(define py-module-class #f)
 
 (define py-object-hclass-of-instances #f)
 (define py-type-hclass-of-instances   #f)
@@ -723,8 +828,9 @@
 (define py-list-hclass-of-instances   #f)
 (define py-dict-hclass-of-instances   #f)
 (define py-set-hclass-of-instances    #f)
+(define py-module-hclass-of-instances #f)
 
-(define (py-obj-class obj) ;; return **class** attribute of object obj
+(define (py-obj-cls* obj) ;; return **class** attribute of object obj
   (cond ((PyObject? obj)
          (PyObject-elements-ref obj 0))
         ((flonum? obj)
@@ -734,7 +840,14 @@
         ((boolean? obj)
          py-bool-class)
         (else
-         (error "py-obj-class" "unhandled object type" obj))))
+         #f)))
+
+(define (py-obj-cls obj) ;; return **class** attribute of object obj
+  (or (py-obj-cls* obj)
+      (error "py-obj-cls" "unhandled object type" obj)))
+
+(define (py-obj-mro obj) ;; return MRO of object
+  (py-cls-mro (py-obj-cls obj))) ;; TODO: use HClass-class-mro
 
 (define (py-cls-bases cls) ;; return **bases** attribute of class cls
   (PyObject-elements-ref cls 1))
@@ -769,15 +882,14 @@
       self)))
 
 (define (py-call-init self args)
-  (let ((cls (py-object-class self)))
-    (let ((nargs (length args)))
-      (let ((__init__ (object-get-no-cache cls (& "__init__"))))
-        (if (and (isa? __init__ PyFunction)
-                 (correct-arity? (PyFunction-procedure __init__)
-                                 (+ 1 nargs)))
-            (apply (PyFunction-procedure __init__)
+  (let ((init (py-attr-ref self (& "__init__"))))
+    (if (not (eq? init py-absent))
+        (if (and (isa? init PyFunction)
+                 (correct-arity? (PyFunction-procedure init)
+                                 (+ 1 (length args))))
+            (apply (PyFunction-procedure init)
                    (cons self args))
-            (error "call" "wrong call" __init__))))))
+            (error "call" "wrong call" init)))))
 
 (define (bootstrap-basic-types-phase1)
   (let* ((type-class
@@ -804,7 +916,13 @@
             '#() ;; class-mro is set later to (vector object-class)
             (vector
              (& "**class**") ;; read-only copy... is it needed?
-             (& "__class__"))
+             (& "**bases**") ;; read-only copy... is it needed?
+             (& "**mro**")   ;; read-only copy... is it needed?
+             (& "__class__")
+             (& "__bases__")
+             (& "__mro__")
+             (& "__module__")
+             (& "__name__"))
             '())
            #f)) ;; constructor is set later
 
@@ -815,7 +933,13 @@
             '#() ;; class-mro is set later to (vector str-class object-class)
             (vector
              (& "**class**") ;; read-only copy... is it needed?
+             (& "**bases**") ;; read-only copy... is it needed?
+             (& "**mro**")   ;; read-only copy... is it needed?
              (& "__class__")
+             (& "__bases__")
+             (& "__mro__")
+             (& "__module__")
+             (& "__name__")
              (& "__len__")
              (& "__getitem__")
              (& "__setitem__"))
@@ -829,7 +953,13 @@
             '#() ;; class-mro is set later to (vector tuple-class object-class)
             (vector
              (& "**class**") ;; read-only copy... is it needed?
+             (& "**bases**") ;; read-only copy... is it needed?
+             (& "**mro**")   ;; read-only copy... is it needed?
              (& "__class__")
+             (& "__bases__")
+             (& "__mro__")
+             (& "__module__")
+             (& "__name__")
              (& "__len__")
              (& "__getitem__")
              (& "__setitem__"))
@@ -843,7 +973,13 @@
             '#() ;; class-mro is set later to (vector list-class object-class)
             (vector
              (& "**class**") ;; read-only copy... is it needed?
+             (& "**bases**") ;; read-only copy... is it needed?
+             (& "**mro**")   ;; read-only copy... is it needed?
              (& "__class__")
+             (& "__bases__")
+             (& "__mro__")
+             (& "__module__")
+             (& "__name__")
              (& "__len__")
              (& "__getitem__")
              (& "__setitem__"))
@@ -857,7 +993,13 @@
             '#() ;; class-mro is set later to (vector dict-class object-class)
             (vector
              (& "**class**") ;; read-only copy... is it needed?
+             (& "**bases**") ;; read-only copy... is it needed?
+             (& "**mro**")   ;; read-only copy... is it needed?
              (& "__class__")
+             (& "__bases__")
+             (& "__mro__")
+             (& "__module__")
+             (& "__name__")
              (& "__len__")
              (& "__getitem__")
              (& "__setitem__"))
@@ -871,10 +1013,33 @@
             '#() ;; class-mro is set later to (vector set-class object-class)
             (vector
              (& "**class**") ;; read-only copy... is it needed?
+             (& "**bases**") ;; read-only copy... is it needed?
+             (& "**mro**")   ;; read-only copy... is it needed?
              (& "__class__")
+             (& "__bases__")
+             (& "__mro__")
+             (& "__module__")
+             (& "__name__")
              (& "__len__")
              (& "__getitem__")
              (& "__setitem__"))
+            '())
+           #f)) ;; constructor is set later
+
+         (module-class
+          (py-fun-alloc
+           type-class
+           (make-HClass
+            '#() ;; class-mro is set later to (vector module-class object-class)
+            (vector
+             (& "**class**") ;; read-only copy... is it needed?
+             (& "**bases**") ;; read-only copy... is it needed?
+             (& "**mro**")   ;; read-only copy... is it needed?
+             (& "__class__")
+             (& "__bases__")
+             (& "__mro__")
+             (& "__module__")
+             (& "__name__"))
             '())
            #f)) ;; constructor is set later
 
@@ -1006,7 +1171,26 @@
       (PyObject-elements-set! set-class 2 mro)  ;; set **mro**
       (PyFunction-procedure-set!
        set-class
-       (py-obj-constructor set-class hclass-of-instances py-call-init)))))
+       (py-obj-constructor set-class hclass-of-instances py-call-init)))
+
+    (let* ((mro
+            (vector module-class object-class))
+           (hclass-of-instances
+            (make-HClass
+             mro
+             (vector
+              (& "**class**") ;; read-only copy... is it needed?
+              (& "__class__")
+              (& "__name__"))
+             '())))
+      (set! py-module-class module-class)
+      (set! py-module-hclass-of-instances hclass-of-instances)
+      (HClass-class-mro-set! (PyObject-hclass (vector-ref mro 0)) mro)
+      (PyObject-elements-set! module-class 1 bases-types) ;; set **bases**
+      (PyObject-elements-set! module-class 2 mro)  ;; set **mro**
+      (PyFunction-procedure-set!
+       module-class
+       (py-obj-constructor module-class hclass-of-instances py-call-init)))))
 
 (bootstrap-basic-types-phase1)
 
@@ -1142,7 +1326,7 @@
              (lambda args
                (let ((self (py-obj-alloc cls hclass-of-instances)))
                  (PyObject-elements-set! self 1 cls) ;; set __class__
-                 ;;(py-call-init self args)
+                 (py-call-init self args)
                  self))))
           (PyObject-elements-set! cls 1 bases-vect) ;; set **bases**
           (let ((mro (py-compute-mro cls)))
@@ -1159,6 +1343,11 @@
                 (& "**class**") ;; read-only copy... is it needed?
                 (& "__class__"))
                '()))
+            (let loop ((attr-names attr-names) (attr-values attr-values))
+              (if (pair? attr-names)
+                  (begin
+                    (py-own-attr-set! cls (car attr-names) (car attr-values))
+                    (loop (cdr attr-names) (cdr attr-values)))))
             cls)))
 
   (let loop ((lst attrs)
@@ -1168,7 +1357,7 @@
         (let ((name (car lst))
               (value (cadr lst))
               (rest (cddr lst)))
-          (if (eq? value uninit)
+          (if (eq? value (py-uninit))
               (loop rest
                     rev-attr-names
                     rev-attr-values)
@@ -1224,36 +1413,30 @@
 
 (PyFunction-procedure-set!
  py-list-class
- (lambda (#!optional (iterable absent-argument))
+ (lambda (#!optional (iterable py-absent))
    (py-list-from-scheme
-    (if (eq? iterable absent-argument)
+    (if (eq? iterable py-absent)
         (vector)
-        (cond ((and (PyObject? iterable)
-                    (let ((index (PyObject-find-prop iterable (& "__iter__"))))
-                      (and (>= index 0)
-                           index)))
-               =>
-               (lambda (index)
-                 (let ((__iter__ (PyObject-elements-ref iterable index)))
-                   (let ((iterator (py-call1 __iter__ iterable)))
-                     (let loop ((elems '()))
-                       (with-handler
-                        (lambda (e)
-                          (if (eq? e py-builtin-StopIteration)
-                              (list->vector (reverse elems))
-                              (py-throw e)))
-                        (let ((e (py-call1 py-builtin-next iterator)))
-                          (loop (cons e elems)))))))))
-              (else
-               (error "list" "TypeError: object is not iterable" #f)))))))
+        (let ((iter (py-attr-ref iterable (& "__iter__"))))
+          (if (eq? iter py-absent)
+              (error "iter" "TypeError: object is not iterable" #f)
+              (let ((iterator (py-call1 iter iterable)))
+                (let loop ((elems '()))
+                  (with-handler
+                   (lambda (e)
+                     (if (eq? e py-builtin-StopIteration)
+                         (list->vector (reverse elems))
+                         (py-throw e)))
+                   (let ((e (py-call1 py-builtin-next iterator)))
+                     (loop (cons e elems))))))))))))
 
 (PyFunction-procedure-set!
  py-range-class
- (lambda (arg1 #!optional (arg2 absent-argument) (arg3 absent-argument))
-   (cond ((eq? arg2 absent-argument)
+ (lambda (arg1 #!optional (arg2 py-absent) (arg3 py-absent))
+   (cond ((eq? arg2 py-absent)
           ;; stop
           (py-range 0 arg1 1))
-         ((eq? arg3 absent-argument)
+         ((eq? arg3 py-absent)
           ;; start, stop
           (py-range arg1 arg2 1))
          (else
@@ -1261,29 +1444,71 @@
           (py-range arg1 arg2 arg3)))))
 
 (define (py-range start stop step)
-  (alist->PyObject
-   (list (cons (& "__iter__")
+  (let ((hclass-of-instances
+         (make-HClass
+          (vector py-object-class)
+          (vector (& "**class**")
+                  (& "__class__")
+                  (& "__iter__")
+		  )
+          '())))
+
+    (define iter
+      (py-procedure->function
+       (lambda rest (error "__iter__" "unimplemented generic procedure" #f))
+       (lambda (self)
+         (let ((hclass-of-instances
+                (make-HClass
+                 (vector py-object-class)
+                 (vector (& "**class**")
+                         (& "__class__")
+                         (& "__next__")
+		         )
+                 '())))
+           (let ((i start))
+
+             (define next
                (py-procedure->function
-                (lambda rest (error "__iter__" "unimplemented generic procedure" #f))
+                (lambda rest (error "__next__" "unimplemented generic procedure" #f))
                 (lambda (self)
-                  (let ((i start))
-                    (alist->PyObject
-                     (list (cons (& "__next__")
-                                 (py-procedure->function
-                                  (lambda rest (error "__next__" "unimplemented generic procedure" #f))
-                                  (lambda (self)
-                                    (if (if (> step 0) (>= i stop) (<= i stop))
-                                        (py-throw py-builtin-StopIteration)
-                                        (let ((result i))
-                                          (set! i (+ i step))
-                                          result))))))))))))))
+                  (if (if (> step 0) (>= i stop) (<= i stop))
+                      (py-throw py-builtin-StopIteration)
+                      (let ((result i))
+                        (set! i (+ i step))
+                        result)))))
+
+             (let ((self (py-obj-alloc py-object-class hclass-of-instances)))
+               (PyObject-elements-set! self 1 py-object-class) ;; set __class__
+               (PyObject-elements-set! self 2 next) ;; set __next__
+               self))))))
+
+    (let ((self (py-obj-alloc py-object-class hclass-of-instances)))
+      (PyObject-elements-set! self 1 py-object-class) ;; set __class__
+      (PyObject-elements-set! self 2 iter) ;; set __iter__
+      self)))
 
 ;;;----------------------------------------------------------------------------
 
 (define (py-make-global)
-   (let ((hclass1 (make-HClass '#() (vector (& "__builtins__")) '())))
-      (make-PyObject hclass1 (vector (py-builtins-mod)))))
+  (let ((mod
+         (py-obj-alloc
+          py-module-class
+          (make-HClass
+           (vector py-module-class py-object-class)
+           (vector (& "**class**")
+                   (& "__class__")
+                   (& "__name__")
+                   (& "__builtins__")
+                   )
+           '()))))
 
+    (PyObject-elements-set! mod 1 py-module-class)
+    (PyObject-elements-set! mod 2 (py-str-from-scheme "__main__"))
+    (PyObject-elements-set! mod 3 (py-builtins-mod))
+
+    mod))
+
+#;
 (define (alist->PyObject alist)
   (make-PyObject
    (make-HClass '#() (list->vector (map car alist)) '())
@@ -1389,7 +1614,7 @@
   (string->symbol s))
 
 (define (py-type obj)
-  (py-obj-class obj)
+  (py-obj-cls* obj)
   #;
   (cond ((and (PyObject? obj)
               (let ((index (PyObject-find-prop obj (& "__class__"))))
@@ -1420,36 +1645,58 @@
   (py-str-from-scheme (py-str-scheme obj)))
 
 (define (py-str-scheme obj)
-  ;;(pp obj)
-  (let ((t (py-type obj)))
-    (cond ((eq? t py-str-class)
-           (py-str-to-scheme obj))
-          ((eq? t py-list-class)
-           (py-list-repr-scheme obj))
-          ((eq? t py-tuple-class)
-           (py-tuple-repr-scheme obj))
-          ((eq? t py-dict-class)
-           (py-dict-repr-scheme obj))
-          ((eq? t py-set-class)
-           (py-set-repr-scheme obj))
-          ((eq? t py-type-class)
-           (string-append
-            "<class "
-            (py-str-repr-scheme
-             (let ((mod (py-str-to-scheme (PyObject-elements-ref obj 6)))
-                   (name (py-str-to-scheme (PyObject-elements-ref obj 7))))
-               (if (equal? mod "builtins")
-                   name
-                   (string-append mod "." name))))
-            ">"))
-          (else
-           (py-repr-scheme obj)))))
+  (cond ((eq? obj 'None)
+         "None")
+        (else
+         (let ((t (py-type obj)))
+           (cond ((eq? t py-str-class)
+                  (py-str-to-scheme obj))
+                 ((eq? t py-list-class)
+                  (py-list-repr-scheme obj))
+                 ((eq? t py-tuple-class)
+                  (py-tuple-repr-scheme obj))
+                 ((eq? t py-dict-class)
+                  (py-dict-repr-scheme obj))
+                 ((eq? t py-set-class)
+                  (py-set-repr-scheme obj))
+                 ((eq? t py-type-class)
+                  (string-append
+                   "<class "
+                   (py-str-repr-scheme
+                    (let ((mod (py-str-to-scheme (PyObject-elements-ref obj 6)))
+                          (name (py-str-to-scheme (PyObject-elements-ref obj 7))))
+                      (if (equal? mod "builtins")
+                          name
+                          (string-append mod "." name))))
+                   ">"))
+                 ((eq? t py-module-class)
+                  (string-append
+                   "<module "
+                   (let ((name (py-str-to-scheme (PyObject-elements-ref obj 2))))
+                     (string-append
+                      (py-str-repr-scheme name)
+                      " "
+                      (if (or (equal? name "builtins")
+                              (equal? name "sys")
+                              (equal? name "time"))
+                          "(built-in)"
+                          (let ((file (py-attr-ref obj (& "__file__"))))
+                            (if (not (eq? file py-absent))
+                                (string-append
+                                 "from "
+                                 (py-repr-scheme file))
+                                "???")))))
+                   ">"))
+                 (else
+                  (py-repr-scheme obj)))))))
 
 (define (py-repr obj)
   (py-str-from-scheme (py-repr-scheme obj)))
 
 (define (py-repr-scheme obj)
-  (cond ((and (PyObject? obj)
+  (cond ((eq? obj 'None)
+         "None")
+        ((and (PyObject? obj)
               (let ((index (PyObject-find-prop obj (& "__repr__"))))
                 (and (>= index 0)
                      index)))
@@ -1458,7 +1705,6 @@
            (let ((__repr__ (PyObject-elements-ref obj index)))
              (py-str-to-scheme (py-call1 __repr__ obj)))))
         (else
-         ;;(pp obj)
          (let ((t (py-type obj)))
            (cond ((eq? t py-list-class)
                   (py-str-scheme obj))
@@ -1469,6 +1715,8 @@
                  ((eq? t py-set-class)
                   (py-str-scheme obj))
                  ((eq? t py-type-class)
+                  (py-str-scheme obj))
+                 ((eq? t py-module-class)
                   (py-str-scheme obj))
                  ((eq? t py-str-class)
                   (py-str-repr-scheme (py-str-to-scheme obj)))
@@ -2515,8 +2763,8 @@
 (define py-builtin-iter
   (py-procedure->function
    (lambda rest (error "iter" "unimplemented generic procedure for builtin" #f))
-   (lambda (object #!optional (sentinel absent-argument))
-     (cond ((not (eq? sentinel absent-argument))
+   (lambda (object #!optional (sentinel py-absent))
+     (cond ((not (eq? sentinel py-absent))
             (error "iter" "with 2 arguments not implemented" #f))
            ((and (PyObject? object)
                  (let ((index (PyObject-find-prop object (& "__iter__"))))
@@ -2659,30 +2907,21 @@
 ;; method. If default is given, it is returned if the iterator is
 ;; exhausted, otherwise StopIteration is raised.
 
-(define absent-argument
-  (cons 'absent 'argument))
-
 (define py-builtin-next
   (py-procedure->function
    (lambda rest (error "next" "unimplemented generic procedure for builtin" #f))
-   (lambda (iterator #!optional (default absent-argument))
-     (cond ((and (PyObject? iterator)
-                 (let ((index (PyObject-find-prop iterator (& "__next__"))))
-                   (and (>= index 0)
-                        index)))
-            =>
-            (lambda (index)
-              (let ((__next__ (PyObject-elements-ref iterator index)))
-                (if (eq? default absent-argument)
-                    (py-call1 __next__ iterator)
-                    (with-handler
-                     (lambda (e)
-                       (if (eq? e py-builtin-StopIteration)
-                           default
-                           (py-throw e)))
-                     (py-call1 __next__ iterator))))))
-           (else
-            (error "next" "TypeError: object is not an iterator" #f))))))
+   (lambda (iterator #!optional (default py-absent))
+     (let ((next (py-attr-ref iterator (& "__next__"))))
+       (if (eq? iterator py-absent)
+           (error "next" "TypeError: object is not an iterator" #f)
+           (if (eq? default py-absent)
+               (py-call1 next iterator)
+               (with-handler
+                (lambda (e)
+                  (if (eq? e py-builtin-StopIteration)
+                      default
+                      (py-throw e)))
+                (py-call1 next iterator))))))))
 
 ;;-------------------- class object
 
@@ -2693,11 +2932,7 @@
 ;; Note object does not have a __dict__, so you can’t assign arbitrary
 ;; attributes to an instance of the object class.
 
-(define py-builtin-object
-  (py-procedure->function
-   (lambda rest (error "object" "unimplemented generic procedure for builtin" #f))
-   (lambda ()
-     (error "object" "not implemented" #f))))
+(define py-builtin-object py-object-class)
 
 ;;-------------------- oct(x)
 
@@ -3531,3 +3766,13 @@
 
 (define py-builtin-StopIteration
   'StopIteration) ;; TODO: replace with actual PyObject
+
+;;-------------------- ZeroDivisionError
+
+(define py-builtin-ZeroDivisionError
+  'ZeroDivisionError) ;; TODO: replace with actual PyObject
+
+;;-------------------- NameError
+
+(define py-builtin-NameError
+  'NameError) ;; TODO: replace with actual PyObject

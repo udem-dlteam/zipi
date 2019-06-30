@@ -34,6 +34,7 @@
 
 (string-contains bigloo#string-contains)
 (string-index bigloo#string-index)
+(string-split bigloo#string-split)
 (substring bigloo#substring)
 (symbol-append bigloo#symbol-append)
 (copy-vector bigloo#copy-vector)
@@ -48,8 +49,10 @@
 (filter-map bigloo#filter-map)
 (any bigloo#any)
 (find bigloo#find)
+(remq! bigloo#remq!)
+(delete-duplicates bigloo#delete-duplicates)
 
-(current-seconds bigloo#current-seconds)
+(current-microseconds bigloo#current-microseconds)
 (fprint bigloo#fprint)
 (string->integer bigloo#string->integer)
 (make-directories bigloo#make-directories)
@@ -66,6 +69,7 @@
 (os-tmp bigloo#os-tmp)
 (append-map bigloo#append-map)
 (write-circle bigloo#write-circle)
+(directory? bigloo#directory?)
 (absolute bigloo#absolute)
 (dirname bigloo#dirname)
 (pwd bigloo#pwd)

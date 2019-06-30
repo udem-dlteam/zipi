@@ -1,8 +1,8 @@
 #! /usr/bin/env python
 
-# File: ut.py
+# File: ut
 
-# usage: ./ut.py [-set_expected] [-r <ref_int>] [-i <int>] [test_file_or_dir]
+# usage: ./ut [-set_expected] [-r <ref_int>] [-i <int>] [test_file_or_dir]
 
 # <ref_int> = reference interpreter, default = python3
 # <int>     = interpreter being tested, default = py19

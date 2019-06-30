@@ -21,10 +21,13 @@
       ((Module ?loc ?body . ?type_ignors)
        ;; Module(stmt* body, type_ignore *type_ignores)
        (new-PycModule loc "???"
-	  (cons
-	     (new-PycDeclInit loc '__name__ scope
-		(new-PycString loc (config-get conf 'module "__main__")))
-	     (compile* loc body #t 'global conf))))
+	 (cons
+	  (new-PycDeclInit loc '__name__ scope
+	    (new-PycString loc (config-get conf 'module "foo")))
+          (cons
+  	   (new-PycDeclInit loc '__file__ scope
+	     (new-PycString loc (config-get conf 'source "/bar/foo.py")))
+	   (compile* loc body #t 'global conf)))))
       
       ;; stmt
       ((FunctionDef ?loc ?id ?args ?body ?decorator_list ?returns . ?type_comment)

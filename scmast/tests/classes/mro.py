@@ -4,6 +4,18 @@ print(object.__module__) # builtins
 print(object.__mro__)    # (<class 'object'>,)
 print(object.__bases__)  # ()
 
+print(int)            # <class 'int'>
+print(int.__name__)   # int
+print(int.__module__) # builtins
+print(int.__mro__)    # (<class 'int'>,)
+print(int.__bases__)  # (<class 'object'>,)
+
+print(bool)            # <class 'bool'>
+print(bool.__name__)   # bool
+print(bool.__module__) # builtins
+print(bool.__mro__)    # (<class 'bool'>,)
+print(bool.__bases__)  # (<class 'int'>, <class 'object'>)
+
 class A:
     pass
 

@@ -44,9 +44,9 @@
 	   (py-make-dict ::obj ::obj)
 	   (py-make-set ::obj)
 	   
-	   (py-hasitem ::PyObject ::obj ::PCache)
 	   (py-getitem ::PyObject ::obj ::PCache)
 	   (py-setitem ::PyObject ::obj ::obj ::PCache)
+	   (py-contains ::PyObject ::obj ::PCache)
 	   
 	   (inline PyObject-elements-ref ::PyObject ::long)
 	   (PyObject-elements-set! ::PyObject ::long ::obj)
@@ -86,7 +86,11 @@
 
 	   py-builtin-locals
 	   py-builtin-globals
+	   py-object-class
+	   py-module-class
+           py-absent
 
+           (py-obj-alloc cls hclass-of-instances)
 	   (py-str-from-scheme::PyObject ::bstring)
 	   (py-str-to-scheme::bstring ::PyObject)
 	   (py-string-to-name::symbol ::bstring)

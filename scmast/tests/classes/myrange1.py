@@ -28,7 +28,7 @@ def myrange(start, stop):
 
 r = myrange(0, 5)
 
-#print(list(r))
+print(list(r))
 
 for i in r:
     print(i)
