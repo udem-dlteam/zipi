@@ -1,9 +1,9 @@
 ;*=====================================================================*/
-;*    serrano/nosync/py19/scmast/hclass/hclass.bgl                     */
+;*    serrano/prgm/project/zipi/rts/hclass.bgl                         */
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Thu Jun  6 13:12:40 2019 (serrano)                */
+;*    Last change :  Tue Jul  2 11:38:00 2019 (serrano)                */
 ;*    Copyright   :  2019 M. Feeley & M. Serrano                       */
 ;*    -------------------------------------------------------------    */
 ;*    Hidden classes for python ast interpreter                        */
@@ -14,7 +14,7 @@
 ;*---------------------------------------------------------------------*/
 (module __py_hclass
 
-   (include "hclass/hclass.sch")
+   (include "hclass.sch")
    
    (export (class PCache
 	      (hclass (default (class-nil HClass)))

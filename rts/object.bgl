@@ -1,9 +1,9 @@
 ;*=====================================================================*/
-;*    serrano/nosync/zipi/scmast/object/object.bgl                     */
+;*    serrano/prgm/project/zipi/rts/object.bgl                         */
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Fri Jun 28 16:14:10 2019 (serrano)                */
+;*    Last change :  Tue Jul  2 11:38:14 2019 (serrano)                */
 ;*    Copyright   :  2019 M. Feeley & M. Serrano                       */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -14,7 +14,7 @@
 ;*---------------------------------------------------------------------*/
 (module __py_object
    
-   (include "object/object.sch")
+   (include "object.sch")
    
    (import __py_hclass)
 

@@ -13,3 +13,9 @@ lib
 zpc/.afile
 zpc/.etags
 zpc/o
+rts/.afile
+rts/.etags
+rts/o
+rts/object.sch
+rts/iterator.sch
+rts/hclass.sch

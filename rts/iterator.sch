@@ -1,8 +1,8 @@
 ;; ==========================================================
 ;; Class accessors
 ;; Bigloo (4.3f)
-;; Inria -- Sophia Antipolis     Thu 20 Jun 2019 08:51:31 AM CEST 
-;; (bigloo -classgen iterator/iterator.bgl -o iterator/iterator.sch)
+;; Inria -- Sophia Antipolis     Mon Jun 24 18:10:06 CEST 2019 
+;; (bigloo -classgen iterator.bgl -o iterator.sch)
 ;; ==========================================================
 
 ;; The directives
@@ -11,7 +11,7 @@
 ;; PyGenerator
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PyGenerator::PyGenerator hclass1057::obj %elements1058::obj %next1059::obj)
+    (inline make-PyGenerator::PyGenerator hclass1056::obj %elements1057::obj %next1058::obj)
     (inline PyGenerator?::bool ::obj)
     (PyGenerator-nil::PyGenerator)
     (inline PyGenerator-%next::obj ::PyGenerator)
@@ -24,7 +24,7 @@
 ;; The definitions
 (cond-expand (bigloo-class-sans
 ;; PyGenerator
-(define-inline (make-PyGenerator::PyGenerator hclass1057::obj %elements1058::obj %next1059::obj) (instantiate::PyGenerator (hclass hclass1057) (%elements %elements1058) (%next %next1059)))
+(define-inline (make-PyGenerator::PyGenerator hclass1056::obj %elements1057::obj %next1058::obj) (instantiate::PyGenerator (hclass hclass1056) (%elements %elements1057) (%next %next1058)))
 (define-inline (PyGenerator?::bool obj::obj) ((@ isa? __object) obj (@ PyGenerator __py_iterator)))
 (define (PyGenerator-nil::PyGenerator) (class-nil (@ PyGenerator __py_iterator)))
 (define-inline (PyGenerator-%next::obj o::PyGenerator) (-> |#!bigloo_wallow| o %next))
