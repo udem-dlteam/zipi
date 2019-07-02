@@ -1,6 +1,9 @@
 do.gambit:
 	echo "TODO do.gambit"
 
+install.gambit:
+	echo "install.gambit TODO"
+
 clean.gambit:
 
 devclean.gambit: clean.gambit

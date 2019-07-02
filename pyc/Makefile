@@ -3,7 +3,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Mon Jul  1 13:14:30 2019                          */
-#*    Last change :  Tue Jul  2 11:23:37 2019 (serrano)                */
+#*    Last change :  Tue Jul  2 11:49:18 2019 (serrano)                */
 #*    Copyright   :  2019 Marc Feeley & Manuel Serrano                 */
 #*    -------------------------------------------------------------    */
 #*    The makefile to build the PYC compiler library                   */
@@ -11,7 +11,6 @@
 .PHONY: do bigloo gambit install
 
 do: build
-install: install-library
 
 #*---------------------------------------------------------------------*/
 #*    Standard Zipi configuration                                      */
@@ -28,6 +27,7 @@ OBJECTS_COMMON = ast compile sexp symbol return dump locals break \
 #*    Common entry points                                              */
 #*---------------------------------------------------------------------*/
 build: $(ZIPISYSTEMS:%=do.%)
+install: $(ZIPISYSTEMS:%=install.%)
 
 -include Makefile.bigloo
 -include Makefile.gambit

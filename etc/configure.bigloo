@@ -4,7 +4,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Tue Jul  2 07:46:27 2019                          */
-#*    Last change :  Tue Jul  2 11:34:07 2019 (serrano)                */
+#*    Last change :  Tue Jul  2 11:57:54 2019 (serrano)                */
 #*    Copyright   :  2019 Manuel Serrano                               */
 #*    -------------------------------------------------------------    */
 #*    Bigloo specific configuration                                    */
@@ -114,13 +114,13 @@ fi
 #*---------------------------------------------------------------------*/
 #*    Makefile.zipiconfig                                              */
 #*---------------------------------------------------------------------*/
-for file in Makefile.bigloo pyc.init zpc.init; do
-  mkmf=etc/$file
+for file in Makefile.bigloo pyc.init zipi.init; do
+  path=etc/$file
 
-  rm -f $mkmf 2> /dev/null
-  echo "#* Automatically generated file (don't edit) */" > $mkmf
+  rm -f $path 2> /dev/null
+  echo "#* Automatically generated file (don't edit) */" > $path
 
-  cat $mkmf.in \
+  cat $path.in \
     | sed -e "s|@RELEASE@|$version|" \
           -e "s|@DATE@|$date|" \
   	  -e "s|@SYSTEMS@|$systems|" \
@@ -146,13 +146,13 @@ for file in Makefile.bigloo pyc.init zpc.init; do
           -e "s|@BTFLAGS@|$btflags|" \
 	  -e "s|@BLFLAGS@|$blflags|" \
           -e "s|@BCFLAGSRTS@|$bcflagsrts|" \
-   	>> $mkmf
+   	>> $path
 done	
 
-for file in pyc.init zpc.init; do
+for file in pyc.init zipi.init; do
   cat etc/$file \
     | sed -e "s|#[*] Automatically|;* Automatically|" \
-    > $buildlibdir/$file.init
+    > $buildlibdir/$file
 
-  rm etc/$file.init
+  rm etc/$file
 done  

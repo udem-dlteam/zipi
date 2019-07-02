@@ -3,7 +3,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Wed Mar 15 07:22:39 2006                          */
-#*    Last change :  Tue Jul  2 10:03:18 2019 (serrano)                */
+#*    Last change :  Tue Jul  2 11:50:18 2019 (serrano)                */
 #*    Copyright   :  2006-19 Manuel Serrano                            */
 #*    -------------------------------------------------------------    */
 #*    The common Makefile for building libraries                       */
@@ -222,9 +222,7 @@ distclean.lib: cleanall.lib
 
 -include $(BIGLOOLIBDIR)/Makefile.misc
 
-install-library: install-$(BACKEND)
-
-install-native: install-native-heap install-native-libs
+install-library: install-native-heap install-native-libs
 
 install-native-heap:
 	$(INSTALL) $(BUILDLIBDIR)/$(TARGETNAME).heap $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR)/$(TARGETNAME).heap

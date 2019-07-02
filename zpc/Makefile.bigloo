@@ -3,12 +3,12 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Tue Jul  2 10:46:47 2019                          */
-#*    Last change :  Tue Jul  2 10:57:53 2019 (serrano)                */
+#*    Last change :  Tue Jul  2 12:01:42 2019 (serrano)                */
 #*    Copyright   :  2019 Manuel Serrano                               */
 #*    -------------------------------------------------------------    */
 #*    The Makefile to built the zpc Bigloo version                     */
 #*=====================================================================*/
-.PHONY: build.bigloo dobuild.bigloo
+.PHONY: build.bigloo dobuild.bigloo install.bigloo
 
 do.bigloo: build.bigloo
 
@@ -91,10 +91,10 @@ dep:
 #*---------------------------------------------------------------------*/
 #*    install                                                          */
 #*---------------------------------------------------------------------*/
-install:
-	$(INSTALL) $(BUILDBINDIR)/$(EXEC) $(DESTDIR)$(ZIPIBINDIR)/hopc-$(ZIPIRELEASE)
-	chmod $(MODEXE) $(DESTDIR)$(ZIPIBINDIR)/hopc-$(ZIPIRELEASE)
-	(cd $(DESTDIR)$(ZIPIBINDIR) && $(RM) -f hopc && ln hopc-$(ZIPIRELEASE) hopc)
+install.bigloo:
+	$(INSTALL) $(BUILDBINDIR)/$(EXEC) $(DESTDIR)$(ZIPIBINDIR)/$(EXEC)-$(ZIPIRELEASE)
+	chmod $(MODEXE) $(DESTDIR)$(ZIPIBINDIR)/$(EXEC)-$(ZIPIRELEASE)
+	(cd $(DESTDIR)$(ZIPIBINDIR) && $(RM) -f $(EXEC) && ln $(EXEC)-$(ZIPIRELEASE) $(EXEC))
 
 #*---------------------------------------------------------------------*/
 #*    uninstall                                                        */

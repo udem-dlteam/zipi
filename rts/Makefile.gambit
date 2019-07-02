@@ -5,5 +5,8 @@ do.gambit: build.gambit
 build.gambit:
 	echo "build.gambit TODO"
 
+install.gambit:
+	echo "install.gambit TODO"
+
 clean.gambit:
 	echo "clean.gambit TODO"
