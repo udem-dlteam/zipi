@@ -3,7 +3,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Fri Sep 17 14:27:28 2004                          */
-#*    Last change :  Tue Jul  2 11:57:26 2019 (serrano)                */
+#*    Last change :  Tue Jul  2 14:32:31 2019 (serrano)                */
 #*    Copyright   :  2004-19 Manuel Serrano                            */
 #*    -------------------------------------------------------------    */
 #*    The autoconf Makefile skeleton for ZIPI.                         */
@@ -57,14 +57,12 @@ ZIPIPREFIX	= @PREFIX@
 ZIPIETCDIR	= @ETCDIR@
 ZIPIBINDIR	= @BINDIR@
 ZIPILIBDIR	= @LIBDIR@
+ZIPIFILDIR	= zipi/$(ZIPIRELEASE)
 ZIPISHAREDIR	= @SHAREDIR@
 ZIPIMANDIR	= @MANDIR@
-ZIPIWEBLETSDIR	= @WEBLETSDIR@
 ZIPICONTRIBSDIR	= @CONTRIBSDIR@
 ZIPIDOCDIR	= @DOCDIR@
 
-ZIPIIFILDIR	= zipi/$(ZIPIRELEASE)
-ZIIPIDEMOSDIR	= $(ZIPISHAREDIR)/demos
 
 #*---------------------------------------------------------------------*/
 #*    Runtime system                                                   */

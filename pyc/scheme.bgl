@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Mon Jun 17 07:40:23 2019                          */
-;*    Last change :  Tue Jul  2 10:08:29 2019 (serrano)                */
+;*    Last change :  Tue Jul  2 14:16:49 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Scheme code generation                                           */
@@ -16,7 +16,8 @@
    
    (include "ast.sch")
    
-   (import __pyc_dump)
+   (import __pyc_dump
+	   __pyc_utils)
 
    (export (pyc-scheme ast conf)
 ;* 	   (pyc-scheme-eval ast conf)                                  */

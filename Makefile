@@ -3,7 +3,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Marc Feeley & Manuel Serrano                      */
 #*    Creation    :  Sat Feb 19 12:25:16 2000                          */
-#*    Last change :  Tue Jul  2 12:57:15 2019 (serrano)                */
+#*    Last change :  Tue Jul  2 15:14:50 2019 (serrano)                */
 #*    Copyright   :  2019 Marc Feeley & Manuel Serrano                 */
 #*    -------------------------------------------------------------    */
 #*    The Makefile to build Zipi.                                      */
@@ -37,22 +37,28 @@ install: zipi-dirs
 	$(MAKE) -C zpc install
 	$(MAKE) -C rts install
 	$(MAKE) -C etc install
+	$(MAKE) install.systems
+
+install.systems: $(ZIPISYSTEMS:%=install.system.%)
+
+-include etc/Makefile.bigloo
+-include etc/Makefile.gambit
 
 zipi-dirs:
 	if [ ! -d $(DESTDIR)$(ZIPIBINDIR) ]; then \
-          $(MAKE) mkdir DIR=$(DESTDIR)$(ZIPIBINDIR); \
+          mkdir -p $(DESTDIR)$(ZIPIBINDIR) && chmod $(MODDIR) $(DESTDIR)$(ZIPIBINDIR); \
         fi
 	if [ ! -d $(DESTDIR)$(ZIPILIBDIR) ]; then \
-          $(MAKE) mkdir DIR=$(DESTDIR)$(ZIPILIBDIR); \
+          mkdir -p $(DESTDIR)$(ZIPILIBDIR) && chmod $(MODDIR) $(DESTDIR)$(ZIPILIBDIR); \
         fi
 	if [ ! -d $(DESTDIR)$(ZIPIETCDIR) ]; then \
-	  $(MAKE) mkdir DIR=$(DESTDIR)$(ZIPIETCDIR); \
+	  mkdir -p $(DESTDIR)$(ZIPIETCDIR) && chmod $(MODDIR) $(DESTDIR)$(ZIPIETCDIR); \
         fi
 	if [ ! -d $(DESTDIR)$(ZIPILIBDIR)/zipi ]; then \
-	  $(MAKE) mkdir DIR=$(DESTDIR)$(ZIPILIBDIR)/zipi; \
+	  mkdir -p $(DESTDIR)$(ZIPILIBDIR)/zipi && chmod $(MODDIR) $(DESTDIR)$(ZIPILIBDIR)/zipi; \
         fi
 	if [ ! -d $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR) ]; then \
-	  $(MAKE) mkdir DIR=$(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR); \
+	  mkdir -p $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR) && chmod $(MODDIR) $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR); \
         fi
 
 

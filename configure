@@ -4,7 +4,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Marc Feeley & Manuel Serrano                      */
 #*    Creation    :  Sat Jul 31 06:49:37 2004                          */
-#*    Last change :  Tue Jul  2 13:02:09 2019 (serrano)                */
+#*    Last change :  Tue Jul  2 15:44:10 2019 (serrano)                */
 #*    Copyright   :  2019 Marc Feeley & Manuel Serrano                 */
 #*    -------------------------------------------------------------    */
 #*    HOP autoconfiguration                                            */
@@ -38,6 +38,8 @@ buildbindir=$PWD/bin
 buildetcdir=$PWD/etc
 
 install="install -m a+r,u+r"
+
+mode=optim
 
 # Argument parsing
 while : ; do
@@ -82,6 +84,9 @@ while : ; do
     --install=*)
       install="`echo $1 | sed 's/^[^=]*=//'`";;
 
+    --mode=*)
+      mode="`echo $1 | sed 's/^[^=]*=//'`";;
+    
     -*)
       if [ "$1" != "--help" ]; then
         echo "*** Configure error, unknown option $1" >&2;
@@ -100,12 +105,12 @@ while : ; do
       echo "   --gambit-only............... only compile Gambit backend" >&2;
       echo "   --bigloo=comp............... set both build and host Bigloo compilers ($bigloo/$hostbigloo)" >&2;
       echo "" >&2;
-      echo "" >&2;
       echo "bigloo:" >&2;
       echo "   --bigloobindir=path......... the Bigloo bin-dir path" >&2;
       echo "   --bigloolibdir=path......... the Bigloo lib-dir path" >&2;
       echo "Misc:" >&2;
       echo "   --install................... the installer ($install)" >&2;
+      echo "   --mode=[prod|debug]......... the configuration mode ($mod)" >&2;
       exit 255;
   esac
   shift

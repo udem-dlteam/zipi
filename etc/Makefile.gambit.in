@@ -3,14 +3,17 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Fri Sep 17 14:27:28 2004                          */
-#*    Last change :  Mon Jul  1 13:12:46 2019 (serrano)                */
+#*    Last change :  Tue Jul  2 15:36:19 2019 (serrano)                */
 #*    Copyright   :  2004-19 Manuel Serrano                            */
 #*    -------------------------------------------------------------    */
 #*    The Gambit autoconf Makefile skeleton for ZIPI.                  */
 #*=====================================================================*/
+.PHONY: install.system.gambit
 
 #*---------------------------------------------------------------------*/
 #*    Compilers, tools, and misc configuration                         */
 #*---------------------------------------------------------------------*/
 # Compilers
-GAMBIT          = @GAMBIT@
+GAMBIT = @GAMBIT@
+
+install.system.gambit:

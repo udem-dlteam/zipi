@@ -4,6 +4,7 @@ pyc/o
 pyc/types.sch
 pyc/new.sch
 pyc/.afile
+pyc/configure.scm
 etc/Makefile.zipiconfig
 etc/Makefile.bigloo
 etc/Makefile.gambit
@@ -13,10 +14,11 @@ lib
 zpc/.afile
 zpc/.etags
 zpc/o
-zpc/cnfigure.scm
+zpc/configure.scm
 rts/.afile
 rts/.etags
 rts/o
 rts/object.sch
 rts/iterator.sch
 rts/hclass.sch
+rts/configure.scm

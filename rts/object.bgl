@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Tue Jul  2 11:38:14 2019 (serrano)                */
+;*    Last change :  Tue Jul  2 15:39:07 2019 (serrano)                */
 ;*    Copyright   :  2019 M. Feeley & M. Serrano                       */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -34,6 +34,7 @@
 	   (py-sys-mod::PyObject)
 	   
 	   (global-get ::PyObject ::obj ::obj)
+	   (global-put! global name val cache)
 	   
 	   (object-get ::obj ::obj ::obj)
 	   (object-get-no-cache ::PyObject ::obj)
@@ -71,6 +72,21 @@
 	   (py-throw ::obj)
 	   
 	   (pyis?::bool x y)
+	   (py-add x y cache)
+	   (py-and x y cache)
+	   (py-sub x y cache)
+	   (py-div x y cache)
+	   (py-eq x y cache)
+	   (py-ne x y cache)
+	   (py-lt x y cache)
+	   (py-le x y cache)
+	   (py-gt x y cache)
+	   (py-ge x y cache)
+	   (py-is x y cache)
+	   (py-isnot x y cache)
+	   (py-in x y cache)
+	   (py-notin x y cache)
+
 	   (py+ x y)
 	   (py- x y)
 	   (pyneg x)
