@@ -4,7 +4,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Tue Jul  2 07:46:27 2019                          */
-#*    Last change :  Tue Jul  2 10:11:56 2019 (serrano)                */
+#*    Last change :  Tue Jul  2 11:19:22 2019 (serrano)                */
 #*    Copyright   :  2019 Manuel Serrano                               */
 #*    -------------------------------------------------------------    */
 #*    Bigloo specific configuration                                    */
@@ -148,3 +148,9 @@ for file in Makefile.bigloo pyc.init; do
           -e "s|@BCFLAGSRTS@|$bcflagsrts|" \
    	>> $mkmf
 done	
+
+cat etc/pyc.init \
+  | sed -e "s|#[*] Automatically|;* Automatically|" \
+  > $buildlibdir/pyc.init
+
+rm etc/pyc.init

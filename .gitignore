@@ -10,3 +10,6 @@ etc/Makefile.gambit
 etc/pyc.init
 bin
 lib
+zpc/.afile
+zpc/.etags
+zpc/o

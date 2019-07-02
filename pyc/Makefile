@@ -3,10 +3,10 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Mon Jul  1 13:14:30 2019                          */
-#*    Last change :  Tue Jul  2 06:42:13 2019 (serrano)                */
+#*    Last change :  Tue Jul  2 11:23:37 2019 (serrano)                */
 #*    Copyright   :  2019 Marc Feeley & Manuel Serrano                 */
 #*    -------------------------------------------------------------    */
-#*    The makefile to build the ZPC compiler                           */
+#*    The makefile to build the PYC compiler library                   */
 #*=====================================================================*/
 .PHONY: do bigloo gambit install
 

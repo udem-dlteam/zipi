@@ -3,7 +3,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Mon Jul  1 13:14:30 2019                          */
-#*    Last change :  Tue Jul  2 10:01:35 2019 (serrano)                */
+#*    Last change :  Tue Jul  2 10:59:25 2019 (serrano)                */
 #*    Copyright   :  2019 Marc Feeley & Manuel Serrano                 */
 #*    -------------------------------------------------------------    */
 #*    The makefile to build the ZPC compiler library                   */
@@ -27,24 +27,19 @@ SOURCES = $(OBJECTS_COMMON:%=%.bgl)
 #*    Compilers, Tools and Destinations                                */
 #*---------------------------------------------------------------------*/
 # the library name
-TARGETNAME = zpc
+TARGETNAME = pyc
 HOPCLOSELIBS_S = $(BGLCLOSELIBS_S)
 HOPCLOSELIBS_U = $(BGLCLOSELIBS_U)
-HOPCLOSELIBS_ES = -lzpc_s-$(HOPRELEASE)
-HOPCLOSELIBS_EU = -lzpc_u-$(HOPRELEASE)
+HOPCLOSELIBS_ES = -lpyc_s-$(HOPRELEASE)
+HOPCLOSELIBS_EU = -lpyc_u-$(HOPRELEASE)
 
 BLIBFLAGS = $(BCFLAGSRTS)
 
 #*---------------------------------------------------------------------*/
 #*    Scheme extended objects                                          */
 #*---------------------------------------------------------------------*/
-_OBJECTS = $(OBJECTS_COMMON)
-
-OBJECTS = $(_OBJECTS:%=o/%.o)
+OBJECTS = $(OBJECTS_COMMON:%=o/%.o)
 EOBJECTS = o/make_lib.o
-
-BGL_CLASSES = $(_OBJECTS:%=$(CLASS_DIR)/%.class)
-BGL_ECLASSES = $(CLASS_EDIR)/make_lib.class
 
 INCLUDES = ast.sch
 
@@ -58,9 +53,7 @@ include $(BUILDETCDIR)/Makefile.library
 #*---------------------------------------------------------------------*/
 .PHONY: build.bigloo
 
-OBJECTS=$(OBJECTS_COMMON:%=o/%.o)
-
-build.bigloo: $(OBJECTS)
+build.bigloo: 
 	$(MAKE) o heap-c lib-c
 
 #*---------------------------------------------------------------------*/
@@ -84,6 +77,7 @@ ude:
 
 clean.bigloo:
 	rm -f .afile
+	rm -rf o
 
 #*---------------------------------------------------------------------*/
 #*    Explicit dependencies                                            */

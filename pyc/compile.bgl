@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Tue Jul  2 08:15:40 2019                          */
-;*    Last change :  Tue Jul  2 10:08:55 2019 (serrano)                */
+;*    Last change :  Tue Jul  2 10:19:43 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Compilation driver                                               */
@@ -27,4 +27,9 @@
 	   __pyc_scheme
 	   __pyc_javascript)
    
-   (export (pyc-compile conf)))
+   (export (pyc driver conf)
+	   (pyc-scheme-driver)
+	   (pyc-bigloo-driver)
+	   (pyc-gambit-driver)
+	   (pyc-javascript-driver)))
+	   

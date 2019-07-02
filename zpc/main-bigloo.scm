@@ -1,5 +1,5 @@
 ;*=====================================================================*/
-;*    serrano/nosync/py19/scmast/main/main.bgl                         */
+;*    serrano/prgm/project/zipi/zpc/main-bigloo.scm                    */
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 12:48:54 2019                          */

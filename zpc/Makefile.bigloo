@@ -1,0 +1,130 @@
+#*=====================================================================*/
+#*    serrano/prgm/project/zipi/zpc/Makefile.bigloo                    */
+#*    -------------------------------------------------------------    */
+#*    Author      :  Manuel Serrano                                    */
+#*    Creation    :  Tue Jul  2 10:46:47 2019                          */
+#*    Last change :  Tue Jul  2 10:57:53 2019 (serrano)                */
+#*    Copyright   :  2019 Manuel Serrano                               */
+#*    -------------------------------------------------------------    */
+#*    The Makefile to built the zpc Bigloo version                     */
+#*=====================================================================*/
+.PHONY: build.bigloo dobuild.bigloo
+
+do.bigloo: build.bigloo
+
+#*---------------------------------------------------------------------*/
+#*    Configuration                                                    */
+#*---------------------------------------------------------------------*/
+include $(BUILDETCDIR)/Makefile.bigloo
+include $(BIGLOOLIBDIR)/Makefile.config
+
+#*---------------------------------------------------------------------*/
+#*    Target and Project                                               */
+#*---------------------------------------------------------------------*/
+EXEC = zpc.bigloo
+
+#*---------------------------------------------------------------------*/
+#*    Sources    					               */
+#*---------------------------------------------------------------------*/
+INCLUDES =  
+
+OBJECTS = $(OBJECTS_COMMON:%=o/%.o)
+
+SOURCES = $(MODULES:%=%.scm)
+
+COLOR = 32
+
+BHFLAGS = -srfi zpc
+
+#*---------------------------------------------------------------------*/
+#*    The roost executable                                             */
+#*---------------------------------------------------------------------*/
+build.bigloo: o $(BUILDBINDIR)/$(EXEC)
+
+o: 
+	mkdir -p $@
+
+$(BUILDBINDIR)/$(EXEC): .afile .etags $(OBJECTS)
+	@ $(call link,$(BIGLOO),$(BCFLAGS),$(BLDFLAGS),$(OBJECTS),-o,$@)
+
+#*---------------------------------------------------------------------*/
+#*    SUFFIXES                                                         */
+#*---------------------------------------------------------------------*/
+.SUFFIXES:
+.SUFFIXES: .scm .o
+
+#*---------------------------------------------------------------------*/
+#*    The implicit `.scm.o' rule                                       */
+#*---------------------------------------------------------------------*/
+o/%.o: %.bgl %.scm
+	@ $(call compile2,$(BIGLOO),$(BCFLAGS),$(BHFLAGS),-c,$^ -o $@)
+
+#*---------------------------------------------------------------------*/
+#*    ude                                                              */
+#*---------------------------------------------------------------------*/
+.PHONY: ude
+ude:
+	@ $(MAKE) -f Makefile .afile .etags dep
+
+.afile: $(SOURCES)
+	@ $(AFILE) -o .afile $(SOURCES)
+
+.jfile: $(SOURCES)
+	@ $(JFILE) -o .jfile -pbase bigloo.hop $(SOURCES)
+
+.etags: .afile
+	@ $(BTAGS) -o .etags $(SOURCES)
+
+getsources:
+	@ echo $(SOURCES)
+
+#*---------------------------------------------------------------------*/
+#*    dep                                                              */
+#*---------------------------------------------------------------------*/
+.PHONY: dep
+dep: 
+	@(num=`grep -n '^#bdepend start' Makefile | awk -F: '{ print $$1}' -`;\
+          head -n `expr $$num - 1` Makefile > /tmp/Makefile.aux)
+	@ $(DEPEND) -strict-obj-dir o -fno-mco $(SOURCES) >> /tmp/Makefile.aux
+	@ mv /tmp/Makefile.aux Makefile
+
+#*---------------------------------------------------------------------*/
+#*    install                                                          */
+#*---------------------------------------------------------------------*/
+install:
+	$(INSTALL) $(BUILDBINDIR)/$(EXEC) $(DESTDIR)$(ZIPIBINDIR)/hopc-$(ZIPIRELEASE)
+	chmod $(MODEXE) $(DESTDIR)$(ZIPIBINDIR)/hopc-$(ZIPIRELEASE)
+	(cd $(DESTDIR)$(ZIPIBINDIR) && $(RM) -f hopc && ln hopc-$(ZIPIRELEASE) hopc)
+
+#*---------------------------------------------------------------------*/
+#*    uninstall                                                        */
+#*---------------------------------------------------------------------*/
+uninstall:
+	$(RM) -f $(DESTDIR)$(ZIPIBINDIR)/$(EXEC)
+
+#*---------------------------------------------------------------------*/
+#*    clean                                                            */
+#*---------------------------------------------------------------------*/
+clean.bigloo:
+	$(RM) -f .afile
+	$(RM) -f $(OBJECTS)
+	$(RM) -f $(MODULES:%=%.c)
+	$(RM) -rf o
+	$(RM) -f $(BUILDBINDIR)/$(EXEC)
+
+devclean.bigloo: clean.bigloo
+
+cleanall.bigloo: devclean.bigloo
+
+distclean.bigloo: devclean.bigloo
+
+#*---------------------------------------------------------------------*/
+#*    Dependencies                                                     */
+#*---------------------------------------------------------------------*/
+
+#bdepend start (don't edit)
+#*---------------------------------------------------------------------*/
+#*    Dependencies ...                                                 */
+#*---------------------------------------------------------------------*/
+
+#bdepend stop
