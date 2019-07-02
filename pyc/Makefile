@@ -1,3 +1,25 @@
+#*=====================================================================*/
+#*    serrano/prgm/project/zipi/zpc/Makefile                           */
+#*    -------------------------------------------------------------    */
+#*    Author      :  Manuel Serrano                                    */
+#*    Creation    :  Mon Jul  1 13:14:30 2019                          */
+#*    Last change :  Mon Jul  1 13:16:01 2019 (serrano)                */
+#*    Copyright   :  2019 Marc Feeley & Manuel Serrano                 */
+#*    -------------------------------------------------------------    */
+#*    The makefile to build the ZPC compiler                           */
+#*=====================================================================*/
+
+.phony: do bigloo gambit
+
+do: $(ZIPISYSTEMS)
+
+bigloo:
+	$(MAKE) -f Makfile.bigloo
+
+gambit:
+	$(MAKE) -f Makfile.gambit
+
+
 BIGLOO = bigloo
 BFLAGS = -g # -Obench
 AFILE = bglafile

@@ -1,0 +1,95 @@
+#*=====================================================================*/
+#*    serrano/prgm/project/zipi/etc/Makefile.bigloo.in                 */
+#*    -------------------------------------------------------------    */
+#*    Author      :  Manuel Serrano                                    */
+#*    Creation    :  Fri Sep 17 14:27:28 2004                          */
+#*    Last change :  Mon Jul  1 13:12:30 2019 (serrano)                */
+#*    Copyright   :  2004-19 Manuel Serrano                            */
+#*    -------------------------------------------------------------    */
+#*    The Bigloo autoconf Makefile skeleton for ZIPI.                  */
+#*=====================================================================*/
+
+#*---------------------------------------------------------------------*/
+#*    Compilers, tools, and misc configuration                         */
+#*---------------------------------------------------------------------*/
+# Compilers
+BIGLOO          = @BIGLOO@
+
+#*---------------------------------------------------------------------*/
+#*    Compilation flags                                                */
+#*---------------------------------------------------------------------*/
+DEBUG		= @DEBUG@
+BCFLAGS		= @BCFLAGS@ -srfi ZIPI-$(LINK) $(EFLAGS)
+BLDFLAGS	= @BLDFLAGS@
+BTFLAGS		= @BTFLAGS@
+BCFLAGSDEV	= @BCFLAGSDEV@
+BCFLAGSRTS	= @BCFLAGSRTS@
+FFLAGS		= @FFLAGS@
+BLFLAGS         = @BLFLAGS@ $(BLIBFLAGS)
+BHFLAGS		= @BHFLAGS@ -q -mkaddheap -mkaddlib $(EFLAGS)
+BJFLAGS		= -j
+CCFLAGS		= @CCFLAGS@
+HFLAGS		= @HFLAGS@ --reset-bigloo-options --bigloo=$(BIGLOO) --bigloo-lib-dir=$(BIGLOOLIBDIR) --share-dir $(BUILDSHAREDIR) $(EFLAGS) --
+
+BIGLOOPTHLIBS	= @BIGLOOPTHLIBS@
+BIGLOOPTHLIBU	= @BIGLOOPTHLIBU@
+BIGLOOSSLLIBS	= @BIGLOOSSLLIBS@
+BIGLOOSSLLIBU	= @BIGLOOSSLLIBU@
+
+BSCM2JSFLAGS	= @BSCM2JSFLAGS@
+BZIPICFLAGS	= @BZIPICFLAGS@
+
+#*---------------------------------------------------------------------*/
+#*    Linking                                                          */
+#*---------------------------------------------------------------------*/
+BGLCLOSELIBS_S	= $(BIGLOOPTHLIBS) \
+                  $(BIGLOOSSLLIBS) \
+                  @BGLCLOSELIBS_S@
+
+BGLCLOSELIBS_U	= $(BIGLOOPTHLIBU) \
+                  $(BIGLOOSSLLIBU) \
+                  @BGLCLOSELIBS_U@
+
+#*---------------------------------------------------------------------*/
+#*    Runtime system                                                   */
+#*---------------------------------------------------------------------*/
+RTSCONFIG	= @RTSCONFIG@
+
+#*---------------------------------------------------------------------*/
+#*    REPOSITORY                                                       */
+#*---------------------------------------------------------------------*/
+ZIPITMPDIR	= /tmp
+ZIPIDISTRIBDIR	= @ZIPIDISTRIBDIR@
+
+#*---------------------------------------------------------------------*/
+#*    compile                                                          */
+#*---------------------------------------------------------------------*/
+.PHONY: compile compile2 link mkdir
+
+COLOR		= yes
+
+ifeq ($(COLOR),yes)
+COLOR_STOP	= [0m
+COLOR_CC	= [0m[1;30m
+COLOR_OBJ	= [0m[1;31m
+COLOR_DEST	= [0m[1;32m
+endif
+
+done = echo '$(COLOR_DEST)$(1)$(COLOR_STOP)...done.'
+compile = echo '$(COLOR_CC)$(1)$(COLOR_STOP) $(2) $(3) $(COLOR_OBJ)$(4)$(COLOR_STOP)'; $(1) $(2) $(3) $(4)
+compile2 = echo '$(COLOR_CC)$(1)$(COLOR_STOP) $(2) $(3) $(4) $(COLOR_OBJ)$(5)$(COLOR_STOP)'; $(1) $(2) $(3) $(4) $(5)
+compile3 = echo '$(COLOR_CC)$(1)$(COLOR_STOP) $(5) $(COLOR_OBJ)$(6)$(COLOR_STOP) $(2) $(3) $(4)'; $(1) $(5) $(6) $(2) $(3) $(4)
+
+heap = echo '$(COLOR_CC)$(1)$(COLOR_STOP) $(2) $(3) $(4) $(5) $(6) $(COLOR_DEST)$(7)$(COLOR_STOP)'; $(1) $(2) $(3) $(4) $(5) $(6) $(7)
+link = echo '$(COLOR_CC)$(1)$(COLOR_STOP) $(2) $(3) $(4) $(5) $(COLOR_DEST)$(6)$(COLOR_STOP)'; $(1) $(2) $(3) $(4) $(5) $(6)
+
+#*---------------------------------------------------------------------*/
+#*    mkdir                                                            */
+#*---------------------------------------------------------------------*/
+mkdir:
+	if [ ! -f $(DIR) ]; then \
+	   if [ ! -d $(DIR) ]; then \
+             $(MAKE) mkdir DIR=`dirname $(DIR)`; \
+             mkdir $(DIR) && chmod $(MODDIR) $(DIR); \
+           fi \
+        fi

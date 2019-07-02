@@ -1,0 +1,180 @@
+#!/bin/sh
+#*=====================================================================*/
+#*    serrano/prgm/project/zipi/configure                              */
+#*    -------------------------------------------------------------    */
+#*    Author      :  Marc Feeley & Manuel Serrano                      */
+#*    Creation    :  Sat Jul 31 06:49:37 2004                          */
+#*    Last change :  Mon Jul  1 13:12:03 2019 (serrano)                */
+#*    Copyright   :  2019 Marc Feeley & Manuel Serrano                 */
+#*    -------------------------------------------------------------    */
+#*    HOP autoconfiguration                                            */
+#*=====================================================================*/
+
+#*---------------------------------------------------------------------*/
+#*    User flags                                                       */
+#*---------------------------------------------------------------------*/
+prefix=/usr/local
+systems="bigloo gambit"
+
+#*---------------------------------------------------------------------*/
+#*    Bigloo configuration                                             */
+#*---------------------------------------------------------------------*/
+bigloo=bigloo
+if [ "$HOPBIGLOO " != " " ]; then
+  bigloo=$HOPBIGLOO
+fi
+
+afile=bglafile
+
+#*---------------------------------------------------------------------*/
+#*    Private variables                                                */
+#*---------------------------------------------------------------------*/
+version="0.0.1"
+
+etcdir=$prefix/etc
+bindir=$prefix/bin
+libdir=$prefix/lib
+
+install="install -m a+r,u+r"
+
+# Argument parsing
+while : ; do
+  case $1 in
+    "")
+      break;;
+      
+    --prefix=*)
+      prefix="`echo $1 | sed 's/^[^=]*=//'`";
+      bindir=$prefix/bin;
+      libdir=$prefix/lib;
+      etcdir=$prefix/etc;
+      ;;
+
+    --etcdir=*)
+      etcdir="`echo $1 | sed 's/^[^=]*=//'`";;
+
+    --bindir=*)
+      bindir="`echo $1 | sed 's/^[^=]*=//'`";;
+
+    --libdir=*)
+      libdir="`echo $1 | sed 's/^[^=]*=//'`";;
+
+    --bigloo-only)
+      systems=bigloo
+      ;;
+    
+    --gambit-only)
+      systems=gambit
+      ;;
+      
+    --bigloo=*)
+      bigloo="`echo $1 | sed 's/^[^=]*=//'`";
+      ;; 
+
+    --install=*)
+      install="`echo $1 | sed 's/^[^=]*=//'`";;
+
+    -*)
+      if [ "$1" != "--help" ]; then
+        echo "*** Configure error, unknown option $1" >&2;
+        echo >&2;
+      fi
+      echo "Usage: configure [options]" >&2;
+      echo "" >&2;
+      echo "Path:" >&2;
+      echo "   --prefix=dir................ prefix to Zipi install" >&2;
+      echo "   --etcdir=dir................ Zipi etc directory" >&2;
+      echo "   --bindir=dir................ alternative Zipi bin directory" >&2;
+      echo "   --libdir=dir................ alternative Zipi lib directory" >&2;
+      echo "" >&2;
+      echo "Compilers:" >&2;
+      echo "   --bigloo-only............... only compile Bigloo backend" >&2;
+      echo "   --gambit-only............... only compile Gambit backend" >&2;
+      echo "   --bigloo=comp............... set both build and host Bigloo compilers ($bigloo/$hostbigloo)" >&2;
+      echo "" >&2;
+      echo "Misc:" >&2;
+      echo "   --install................... the installer ($install)" >&2;
+      exit 255;
+  esac
+  shift
+done
+
+#*---------------------------------------------------------------------*/
+#*    Create directories                                               */
+#*---------------------------------------------------------------------*/
+mkdir -p bin
+mkdir -p lib
+mkdir -p lib/zipi
+mkdir -p lib/zipi/$version
+
+#*---------------------------------------------------------------------*/
+#*    buildid & buildtag ...                                           */
+#*---------------------------------------------------------------------*/
+buildid=
+buildtag=
+
+if [ -e .git ]; then
+  buildtag=`git log -1 --abbrev-commit --pretty="%h"`
+
+  git status -s | grep M > /dev/null
+  
+  if [ "$? " = "0 " ]; then
+    buildtag="$buildtag+"
+  fi
+else
+  if [ -f .buildtag ]; then
+    buildtag=`cat .buildtag`
+  fi
+fi  
+
+# md5sum
+echo "1" | md5sum > /dev/null 2> /dev/null
+
+if [ "$? " = "0 " ]; then
+  buildid=`md5sum zpc/*.scm rts/*.scm rts/*.py | md5sum | sed 's/[ ]*[-]$//'`
+fi
+
+if [ "$buildid " = " " ]; then
+  # md5
+  echo "1" | md5 -q > /dev/null 2> /dev/null
+
+  if [ "$? " = "0 " ]; then
+    buildid=`md5 zpc/*.scm rts/*.scm rtz/*.py | md5 -q | sed 's/[ ]*[-]$//'`
+  fi
+fi
+
+if [ "$buildid " = " " ]; then
+  # bigloo
+  for p in hopscript/*.scm js2scheme/*.scm nodejs/*.js; do
+    id=`$bigloo -s -eval "(begin (print (md5sum-file \"$p\")) (exit 1))"`
+    buildid="$buildid $id"
+  done
+  buildid=`$bigloo -s -eval "(begin (print (md5sum-string \"$buildid\")) (exit 1))"`
+fi  
+
+buildid=`$bigloo -s -eval "(begin (print (md5sum-string \"$buildid $buildtag $bigloolibdir\")) (exit 1))"`
+
+#*---------------------------------------------------------------------*/
+#*    Makefile.zipiconfig                                              */
+#*---------------------------------------------------------------------*/
+for file in Makefile.zipiconfig Makefile.bigloo Makefile.gambit; do
+  mkmf=etc/$file
+
+  rm -f $mkmf 2> /dev/null
+  echo "#* Automatically generated file (don't edit) */" > $mkmf
+
+  cat $mkmf.in \
+    | sed -e "s|@RELEASE@|$version|" \
+          -e "s|@DATE@|$date|" \
+  	  -e "s|@SYSTEMS@|$systems|" \
+          -e "s|@BINDIR@|$bindir|" \
+          -e "s|@LIBDIR@|$libdir|" \
+          -e "s|@PREFIX@|$prefix|" \
+          -e "s|@ETCDIR@|$etcdir|" \
+          -e "s|@BUILDID@|$buildid|" \
+          -e "s|@BUILDTAG@|$buildtag|" \
+          -e "s|@BIGLOO@|$bigloo|" \
+          -e "s|@GAMBIT@|$gambit|" \
+          -e "s|@INSTALL@|$install|" \
+  	>> $mkmf
+done	
