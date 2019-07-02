@@ -39,7 +39,7 @@
        path
        (make-file-name (pwd) path)))
 
-(define (pyc conf)
+(define (pyc-compile conf)
    (let* ((src (config-get conf 'src))
           (ast (if src
                    (pyc-sexp (scmast.py src) '())
@@ -57,9 +57,9 @@
                      ((javascript) passes-javascript)
                      (else (error "pyc" "Unknown target language"
                               (config-get conf 'target))))))
-      (compile-pyc ast passes conf)))
+      (pyc ast passes conf)))
 
-(define (compile-pyc ast passes conf)
+(define (pyc ast passes conf)
    (let ((tracedir (make-file-name (config-get conf 'tmp)
                       (or (config-get conf 'src) "stdin"))))
       (when (config-get conf 'trace)

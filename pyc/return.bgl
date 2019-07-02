@@ -1,9 +1,9 @@
 ;*=====================================================================*/
-;*    serrano/nosync/py19/scmast/return/return.bgl                     */
+;*    serrano/prgm/project/zipi/pyc/return.bgl                         */
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 15:13:00 2019                          */
-;*    Last change :  Mon Jun 24 14:57:36 2019 (serrano)                */
+;*    Last change :  Tue Jul  2 10:08:24 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Return annotation                                                */
@@ -14,6 +14,6 @@
 ;*---------------------------------------------------------------------*/
 (module __pyc_return
 
-   (include "ast/ast.sch")
+   (include "ast.sch")
    
    (export (pyc-return this::PycNode conf)))

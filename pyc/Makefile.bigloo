@@ -1,0 +1,98 @@
+#*=====================================================================*/
+#*    serrano/prgm/project/zipi/pyc/Makefile.bigloo                    */
+#*    -------------------------------------------------------------    */
+#*    Author      :  Manuel Serrano                                    */
+#*    Creation    :  Mon Jul  1 13:14:30 2019                          */
+#*    Last change :  Tue Jul  2 10:01:35 2019 (serrano)                */
+#*    Copyright   :  2019 Marc Feeley & Manuel Serrano                 */
+#*    -------------------------------------------------------------    */
+#*    The makefile to build the ZPC compiler library                   */
+#*=====================================================================*/
+.phony: do.bigloo build.bigloo
+
+do.bigloo: build.bigloo
+
+#*---------------------------------------------------------------------*/
+#*    Common Makefile                                                  */
+#*---------------------------------------------------------------------*/
+include $(BUILDETCDIR)/Makefile.bigloo
+include $(BIGLOOLIBDIR)/Makefile.config
+
+#*---------------------------------------------------------------------*/
+#*    SOURCES                                                          */
+#*---------------------------------------------------------------------*/
+SOURCES = $(OBJECTS_COMMON:%=%.bgl)
+
+#*---------------------------------------------------------------------*/
+#*    Compilers, Tools and Destinations                                */
+#*---------------------------------------------------------------------*/
+# the library name
+TARGETNAME = zpc
+HOPCLOSELIBS_S = $(BGLCLOSELIBS_S)
+HOPCLOSELIBS_U = $(BGLCLOSELIBS_U)
+HOPCLOSELIBS_ES = -lzpc_s-$(HOPRELEASE)
+HOPCLOSELIBS_EU = -lzpc_u-$(HOPRELEASE)
+
+BLIBFLAGS = $(BCFLAGSRTS)
+
+#*---------------------------------------------------------------------*/
+#*    Scheme extended objects                                          */
+#*---------------------------------------------------------------------*/
+_OBJECTS = $(OBJECTS_COMMON)
+
+OBJECTS = $(_OBJECTS:%=o/%.o)
+EOBJECTS = o/make_lib.o
+
+BGL_CLASSES = $(_OBJECTS:%=$(CLASS_DIR)/%.class)
+BGL_ECLASSES = $(CLASS_EDIR)/make_lib.class
+
+INCLUDES = ast.sch
+
+#*---------------------------------------------------------------------*/
+#*    Sources                                                          */
+#*---------------------------------------------------------------------*/
+include $(BUILDETCDIR)/Makefile.library
+
+#*---------------------------------------------------------------------*/
+#*    all                                                              */
+#*---------------------------------------------------------------------*/
+.PHONY: build.bigloo
+
+OBJECTS=$(OBJECTS_COMMON:%=o/%.o)
+
+build.bigloo: $(OBJECTS)
+	$(MAKE) o heap-c lib-c
+
+#*---------------------------------------------------------------------*/
+#*    ude                                                              */
+#*---------------------------------------------------------------------*/
+.PHONY: ude
+ude:
+	$(MAKE) .afile .etags
+	$(MAKE) dep
+
+.afile: $(SOURCES)
+	$(AFILE) -o .afile $(SOURCES)
+
+.etags: $(SOURCES) $(INCLUDES)
+	$(BTAGS) -o .etags $(SOURCES) $(INCLUDES)
+
+#*---------------------------------------------------------------------*/
+#*    clean                                                            */
+#*---------------------------------------------------------------------*/
+.PHONY: clean.bigloo
+
+clean.bigloo:
+	rm -f .afile
+
+#*---------------------------------------------------------------------*/
+#*    Explicit dependencies                                            */
+#*---------------------------------------------------------------------*/
+
+#bdepend start (don't edit)
+#*---------------------------------------------------------------------*/
+#*    Dependencies ...                                                 */
+#*---------------------------------------------------------------------*/
+
+
+#bdepend stop

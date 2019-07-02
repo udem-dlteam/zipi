@@ -1,9 +1,9 @@
 ;*=====================================================================*/
-;*    serrano/nosync/py19/scmast/generator/generator.bgl               */
+;*    serrano/prgm/project/zipi/pyc/generator.bgl                      */
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Tue Jun 18 05:22:22 2019                          */
-;*    Last change :  Mon Jun 24 14:58:44 2019 (serrano)                */
+;*    Last change :  Tue Jul  2 10:08:07 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Mark generator functions                                         */
@@ -14,7 +14,7 @@
 ;*---------------------------------------------------------------------*/
 (module __pyc_generator
 
-   (include "ast/ast.sch")
+   (include "ast.sch")
 
    (import __pyc_dump)
    

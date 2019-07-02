@@ -1,9 +1,9 @@
 ;*=====================================================================*/
-;*    serrano/nosync/py19/scmast/locals/locals.bgl                     */
+;*    serrano/prgm/project/zipi/pyc/locals.bgl                         */
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 15:13:00 2019                          */
-;*    Last change :  Mon Jun 24 14:58:31 2019 (serrano)                */
+;*    Last change :  Tue Jul  2 10:08:18 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Annotate functions that might call locals()                      */
@@ -14,6 +14,6 @@
 ;*---------------------------------------------------------------------*/
 (module __pyc_locals
 
-   (include "ast/ast.sch")
+   (include "ast.sch")
    
    (export (pyc-locals ::PycNode conf)))

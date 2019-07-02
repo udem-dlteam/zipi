@@ -1,76 +1,59 @@
 #*=====================================================================*/
-#*    serrano/prgm/project/zipi/zpc/Makefile                           */
+#*    serrano/prgm/project/zipi/pyc/Makefile                           */
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Mon Jul  1 13:14:30 2019                          */
-#*    Last change :  Mon Jul  1 13:16:01 2019 (serrano)                */
+#*    Last change :  Tue Jul  2 06:42:13 2019 (serrano)                */
 #*    Copyright   :  2019 Marc Feeley & Manuel Serrano                 */
 #*    -------------------------------------------------------------    */
 #*    The makefile to build the ZPC compiler                           */
 #*=====================================================================*/
+.PHONY: do bigloo gambit install
 
-.phony: do bigloo gambit
+do: build
+install: install-library
 
-do: $(ZIPISYSTEMS)
+#*---------------------------------------------------------------------*/
+#*    Standard Zipi configuration                                      */
+#*---------------------------------------------------------------------*/
+-include ../etc/Makefile.zipiconfig
 
-bigloo:
-	$(MAKE) -f Makfile.bigloo
+#*---------------------------------------------------------------------*/
+#*    common objects                                                   */
+#*---------------------------------------------------------------------*/
+OBJECTS_COMMON = ast compile sexp symbol return dump locals break \
+  generator cps scheme javascript
 
-gambit:
-	$(MAKE) -f Makfile.gambit
+#*---------------------------------------------------------------------*/
+#*    Common entry points                                              */
+#*---------------------------------------------------------------------*/
+build: $(ZIPISYSTEMS:%=do.%)
 
+-include Makefile.bigloo
+-include Makefile.gambit
 
-BIGLOO = bigloo
-BFLAGS = -g # -Obench
-AFILE = bglafile
-GAMBIT = gsc
+#*---------------------------------------------------------------------*/
+#*    common cleanup                                                   */
+#*---------------------------------------------------------------------*/
+.PHONY: clean cleanall
 
-SOURCES = main/main ast/ast sexp/sexp symbol/symbol return/return \
-  beval/beval dump/dump locals/locals \
-  break/break generator/generator cps/cps scheme/scheme \
-  javascript/javascript \
-  hclass/hclass object/object iterator/iterator import/import
-
-.SUFFIXES:
-.SUFFIXES: .scm .bgl .sch .o
-
-pyc.bigloo: .afile ast/types.sch ast/new.sch \
-  hclass/hclass.sch object/object.sch \
-  iterator/iterator.sch 
-	mkdir -p o/bigloo
-	$(MAKE) pyc COMPILER=$(BIGLOO) LINKER="$(BIGLOO) -w $(BFLAGS)" \
-           OBJECTS="$(SOURCES:%=o/bigloo/%.o)"
-
-pyc: $(OBJECTS)
-	$(LINKER) $(LFLAGS) $(OBJECTS) -o pyc
-
-
-.PHONY: clean clenall
-
-.afile:
-	$(AFILE) -o .afile $(SOURCES:%=%.bgl)
-
-clean:
-	rm -rf o
-	rm -f pyc
-	rm -f pyc.o
+clean: $(ZIPISYSTEMS:%=clean.%)
 
 cleanall: clean
-	rm -f .afile
-	rm -f ast/types.sch
-	rm -f ast/new.sch
+	rm -f types.sch
+	rm -f new.sch
 
-o/bigloo/%.o: %.bgl %.scm
-	mkdir -p $(@D)
-	$(COMPILER) $(BFLAGS) -c $+ -o $@
-
-ast/types.sch: ast/ast.bgl
+#*---------------------------------------------------------------------*/
+#*    common targets and dependencies                                  */
+#*---------------------------------------------------------------------*/
+types.sch: ast.bgl
 	$(BIGLOO) -classgen $< -o $@
 
-ast/new.sch: ast/ast.bgl
-	$(BIGLOO) -i etc/mkastnew.scm $< > $@
+new.sch: ast.bgl
+	$(BIGLOO) -i $(BUILDETCDIR)/mkastnew.scm $< > $@
 
 %.sch: %.bgl
 	touch $@ && $(BIGLOO) -classgen $< -o $@
 
-main/main.scm: ast/new.sch
+compile.scm: new.sch types.sch
+

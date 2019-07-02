@@ -3,7 +3,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Fri Sep 17 14:27:28 2004                          */
-#*    Last change :  Mon Jul  1 13:12:30 2019 (serrano)                */
+#*    Last change :  Tue Jul  2 07:40:39 2019 (serrano)                */
 #*    Copyright   :  2004-19 Manuel Serrano                            */
 #*    -------------------------------------------------------------    */
 #*    The Bigloo autoconf Makefile skeleton for ZIPI.                  */
@@ -12,14 +12,18 @@
 #*---------------------------------------------------------------------*/
 #*    Compilers, tools, and misc configuration                         */
 #*---------------------------------------------------------------------*/
-# Compilers
-BIGLOO          = @BIGLOO@
+# the Bigloo compiler
+LINK		= @LINK@
+BIGLOOLIBDIR	= @BIGLOOLIBDIR@
+AFILE		= @AFILE@
+BTAGS		= @BTAGS@
+DEPEND		= @BDEPEND@
 
 #*---------------------------------------------------------------------*/
 #*    Compilation flags                                                */
 #*---------------------------------------------------------------------*/
 DEBUG		= @DEBUG@
-BCFLAGS		= @BCFLAGS@ -srfi ZIPI-$(LINK) $(EFLAGS)
+BCFLAGS		= @BCFLAGS@ -srfi zipi-$(LINK) $(EFLAGS)
 BLDFLAGS	= @BLDFLAGS@
 BTFLAGS		= @BTFLAGS@
 BCFLAGSDEV	= @BCFLAGSDEV@

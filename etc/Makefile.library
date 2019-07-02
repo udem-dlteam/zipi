@@ -1,0 +1,285 @@
+#*=====================================================================*/
+#*    serrano/prgm/project/zipi/etc/Makefile.library                   */
+#*    -------------------------------------------------------------    */
+#*    Author      :  Manuel Serrano                                    */
+#*    Creation    :  Wed Mar 15 07:22:39 2006                          */
+#*    Last change :  Tue Jul  2 10:03:18 2019 (serrano)                */
+#*    Copyright   :  2006-19 Manuel Serrano                            */
+#*    -------------------------------------------------------------    */
+#*    The common Makefile for building libraries                       */
+#*=====================================================================*/
+
+#*---------------------------------------------------------------------*/
+#*    Compilers, Tools and Destinations                                */
+#*---------------------------------------------------------------------*/
+# The heap file
+HEAP_FILE	= $(BUILDLIBDIR)/$(TARGETNAME).heap
+# Where to store the library class files
+PBASE		= bigloo.$(TARGETNAME)
+CLASS_DIR	= o/class_s/bigloo/$(TARGETNAME)
+CLASS_EDIR	= o/class_es/bigloo/$(TARGETNAME)
+# the library version
+LIBVERSION	= $(ZIPIRELEASE)
+
+RPATH		+= $(ZIPILIBDIR)/$(ZIPIFILDIR)
+
+#*---------------------------------------------------------------------*/
+#*    Suffixes                                                         */
+#*---------------------------------------------------------------------*/
+.SUFFIXES:
+.SUFFIXES: .scm .o .hop .js .bgl .py
+
+#*---------------------------------------------------------------------*/
+#*    The implicit rules                                               */
+#*---------------------------------------------------------------------*/
+o/%.o: %.bgl %.scm
+	@ $(call compile2,$(BIGLOO),$(BCFLAGS),$(BLFLAGS),-c,$^ -o $@)
+
+o/%.o: %.scm
+	@ $(call compile2,$(BIGLOO),$(BCFLAGS),$(BLFLAGS),-c,$< -o $@)
+
+%.scm: %.hop
+	@ $(call compile3,$(ZIPIC),$(HFLAGS),$(BCFLAGS),$(BLFLAGS),-s,$< -o $@)
+
+o/%.o: %.js
+	@ $(call compile3,$(ZIPIC),$(HFLAGS),$(BCFLAGS),$(BLFLAGS),$(BZIPICFLAGS) -c --js-module-name __nodejs_$* --js-module-path $*,$< -o $@)
+
+#*---------------------------------------------------------------------*/
+#*    The heap construction                                            */
+#*---------------------------------------------------------------------*/
+.PHONY: heap-c
+
+heap-c: .afile $(HEAP_FILE)
+
+$(HEAP_FILE): make_lib.scm .afile
+	@ $(RM) -f $(HEAP_FILE)
+	@ $(call heap,$(BIGLOO),$(BCFLAGS),$(BHFLAGS),$<,-heap-library $(TARGETNAME),-addheap, $@)
+
+#*---------------------------------------------------------------------*/
+#*    lib                                                              */
+#*---------------------------------------------------------------------*/
+.PHONY: lib-c
+
+#*--- lib-c -----------------------------------------------------------*/
+lib-c: $(TAGS) o lib-c-static lib-c-shared
+
+o:
+	mkdir -p $@
+
+lib-c-static: .afile
+	$(MAKE) lib-c-static-sans-afile
+
+lib-c-static-sans-afile: $(OBJECTS)
+	echo "obj=$(OBJECTS)"
+	$(MAKE) LIBVERSION=$(LIBVERSION) \
+                $(BUILDLIBDIR)/lib$(TARGETNAME)_s-$(LIBVERSION).a \
+	        $(BUILDLIBDIR)/lib$(TARGETNAME)_u-$(LIBVERSION).a \
+	        $(BUILDLIBDIR)/lib$(TARGETNAME)_es-$(LIBVERSION).a \
+	        $(BUILDLIBDIR)/lib$(TARGETNAME)_eu-$(LIBVERSION).a
+
+# lib-c-shared depends on lib-c-static only to force the compilation
+# order when invoking make with --jobs N
+lib-c-shared: lib-c-static
+	@ if [ "$(SHAREDLIBRARYSUPPORT)" = "yes" ]; then \
+           $(MAKE) LIBVERSION=$(LIBVERSION) lib-c.$(SHAREDSUFFIX); \
+        fi
+
+# we have 4 versions of each library:
+# safe and unsafe, runtime and evaluation time
+# evaltime libs have to link to runtime libs, but with matching safeness
+lib-c.$(SHAREDSUFFIX): \
+   $(BUILDLIBDIR)/lib$(TARGETNAME)_s-$(LIBVERSION).$(SHAREDSUFFIX) \
+   $(BUILDLIBDIR)/lib$(TARGETNAME)_u-$(LIBVERSION).$(SHAREDSUFFIX) \
+   $(BUILDLIBDIR)/lib$(TARGETNAME)_es-$(LIBVERSION).$(SHAREDSUFFIX) \
+   $(BUILDLIBDIR)/lib$(TARGETNAME)_eu-$(LIBVERSION).$(SHAREDSUFFIX)
+
+# safe runtime
+$(BUILDLIBDIR)/lib$(TARGETNAME)_s-$(LIBVERSION).$(SHAREDSUFFIX): \
+   .afile $(OBJECTS)
+	@ $(MAKE) shared-lib \
+             LDINSTALLNAMEDIR=$(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR) \
+             BOOTLIBDIR=$(BUILDLIBDIR) \
+             FORCELD=true \
+             LIBDEST=$@ \
+             SONAME=lib$(TARGETNAME)_s-$(LIBVERSION).$(SHAREDSUFFIX) \
+             LDOPTS="-L$(BUILDLIBDIR) -L$(BIGLOOLIBDIR) $(LDOPTS)" \
+             CLOSELIBS="-lbigloo_s-$(RELEASE) $(ZIPICLOSELIBS_S)"
+	@ $(call done,$@)
+
+# safe evaltime
+$(BUILDLIBDIR)/lib$(TARGETNAME)_es-$(LIBVERSION).$(SHAREDSUFFIX): \
+   $(BUILDLIBDIR)/lib$(TARGETNAME)_s-$(LIBVERSION).$(SHAREDSUFFIX)
+	@ $(MAKE) shared-lib \
+             LDINSTALLNAMEDIR=$(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR) \
+             BOOTLIBDIR=$(BUILDLIBDIR) \
+             OBJECTS=$(EOBJECTS) \
+             FORCELD=true \
+             LIBDEST=$@ \
+             SONAME=lib$(TARGETNAME)_es-$(LIBVERSION).$(SHAREDSUFFIX) \
+             LDOPTS="-L$(BUILDLIBDIR) -L$(BIGLOOLIBDIR) $(LDOPTS)" \
+             CLOSELIBS="-lbigloo_s-$(RELEASE) $(ZIPICLOSELIBS_S) $(ZIPICLOSELIBS_ES)"
+	@ $(call done,$@)
+
+# unsafe runtime
+$(BUILDLIBDIR)/lib$(TARGETNAME)_u-$(LIBVERSION).$(SHAREDSUFFIX): \
+   .afile $(OBJECTS)
+	@ $(MAKE) shared-lib \
+             LDINSTALLNAMEDIR=$(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR) \
+             BOOTLIBDIR=$(BUILDLIBDIR) \
+             FORCELD=true \
+             LIBDEST=$@ \
+             LIBSRC=$< \
+             SONAME=lib$(TARGETNAME)_u-$(LIBVERSION).$(SHAREDSUFFIX) \
+             LDOPTS="-L$(BUILDLIBDIR) -L$(BIGLOOLIBDIR) $(LDOPTS)" \
+             CLOSELIBS="-lbigloo_u-$(RELEASE) $(ZIPICLOSELIBS_U)"
+	@ $(call done,$@)
+
+# unsafe evaltime
+$(BUILDLIBDIR)/lib$(TARGETNAME)_eu-$(LIBVERSION).$(SHAREDSUFFIX): \
+   $(BUILDLIBDIR)/lib$(TARGETNAME)_u-$(LIBVERSION).$(SHAREDSUFFIX)
+	@ $(MAKE) shared-lib \
+             LDINSTALLNAMEDIR=$(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR) \
+             BOOTLIBDIR=$(BUILDLIBDIR) \
+             OBJECTS=$(EOBJECTS) \
+             FORCELD=true \
+             LIBDEST=$@ \
+             LIBSRC=$< \
+             SONAME=lib$(TARGETNAME)_eu-$(LIBVERSION).$(SHAREDSUFFIX) \
+             LDOPTS="-L$(BUILDLIBDIR) -L$(BIGLOOLIBDIR) $(LDOPTS)" \
+             CLOSELIBS="-lbigloo_u-$(RELEASE) $(ZIPICLOSELIBS_U) $(ZIPICLOSELIBS_EU)"
+	@ $(call done,$@)
+
+# and the static versions
+$(BUILDLIBDIR)/lib$(TARGETNAME)_s-$(LIBVERSION).a: .afile $(OBJECTS)
+	@ $(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_s-$(LIBVERSION).a
+	@ $(AR) $(ARFLAGS) $(BUILDLIBDIR)/lib$(TARGETNAME)_s-$(LIBVERSION).a $(OBJECTS)
+	@ $(RANLIB) $(BUILDLIBDIR)/lib$(TARGETNAME)_s-$(LIBVERSION).a
+	@ $(call done,$@)
+
+$(BUILDLIBDIR)/lib$(TARGETNAME)_u-$(LIBVERSION).a: \
+   $(BUILDLIBDIR)/lib$(TARGETNAME)_s-$(LIBVERSION).a
+	@ cd $(BUILDLIBDIR) && \
+        $(RM) -f lib$(TARGETNAME)_u-$(LIBVERSION).a && \
+        $(LN_S) lib$(TARGETNAME)_s-$(LIBVERSION).a lib$(TARGETNAME)_u-$(LIBVERSION).a
+	@ $(call done,$@)
+
+$(BUILDLIBDIR)/lib$(TARGETNAME)_es-$(LIBVERSION).a: $(EOBJECTS)
+	@ $(AR) $(ARFLAGS) $(BUILDLIBDIR)/lib$(TARGETNAME)_es-$(LIBVERSION).a $(EOBJECTS)
+	@ $(RANLIB) $(BUILDLIBDIR)/lib$(TARGETNAME)_es-$(LIBVERSION).a
+	@ $(call done,$@)
+
+$(BUILDLIBDIR)/lib$(TARGETNAME)_eu-$(LIBVERSION).a: \
+   $(BUILDLIBDIR)/lib$(TARGETNAME)_es-$(LIBVERSION).a
+	@ cd $(BUILDLIBDIR) && \
+        $(RM) -f lib$(TARGETNAME)_eu-$(LIBVERSION).a && \
+        $(LN_S) lib$(TARGETNAME)_es-$(LIBVERSION).a lib$(TARGETNAME)_eu-$(LIBVERSION).a
+	@ $(call done,$@)
+
+#*---------------------------------------------------------------------*/
+#*    stdclean                                                         */
+#*---------------------------------------------------------------------*/
+stdclean:
+	$(RM) -f $(OBJECTS) $(_BGL_OBJECTS:%=%.c)
+	$(RM) -f $(EOBJECTS)
+	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_s-$(LIBVERSION).a
+	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_u-$(LIBVERSION).a
+	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_es-$(LIBVERSION).a
+	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_eu-$(LIBVERSION).a
+	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_s-$(LIBVERSION).$(SHAREDSUFFIX)
+	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_u-$(LIBVERSION).$(SHAREDSUFFIX)
+	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_es-$(LIBVERSION).$(SHAREDSUFFIX)
+	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_eu-$(LIBVERSION).$(SHAREDSUFFIX)
+	$(RM) -f $(BUILDLIBDIR)/$(TARGETNAME)_s-$(LIBVERSION).zip
+	$(RM) -f $(BUILDLIBDIR)/$(TARGETNAME)_u-$(LIBVERSION).zip
+	$(RM) -f $(BUILDLIBDIR)/$(TARGETNAME)_es-$(LIBVERSION).zip
+	$(RM) -f $(BUILDLIBDIR)/$(TARGETNAME)_eu-$(LIBVERSION).zip
+	$(RM) -f $(BUILDLIBDIR)/$(TARGETNAME).jheap
+	$(RM) -f $(BUILDLIBDIR)/$(TARGETNAME).heap
+	$(RM) -rf $(CLASS_DIR)
+	$(RM) -f *~
+	$(RM) -f *.mco
+	$(RM) -f *.ast
+
+udeclean:
+	$(RM) -f .afile .etags .jfile
+
+devclean: cleanall
+
+#*---------------------------------------------------------------------*/
+#*    clean                                                            */
+#*---------------------------------------------------------------------*/
+clean.lib: stdclean
+	$(RM) -rf o
+
+cleanal.lib: stdclean udeclean
+
+distclean.lib: cleanall.lib
+
+#*---------------------------------------------------------------------*/
+#*    Installation                                                     */
+#*---------------------------------------------------------------------*/
+.PHONY: install-library install-c install-native uninstall
+
+-include $(BIGLOOLIBDIR)/Makefile.misc
+
+install-library: install-$(BACKEND)
+
+install-native: install-native-heap install-native-libs
+
+install-native-heap:
+	$(INSTALL) $(BUILDLIBDIR)/$(TARGETNAME).heap $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR)/$(TARGETNAME).heap
+	chmod $(MODFILE) $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR)/$(TARGETNAME).heap
+
+install-native-libs:
+	$(MAKE) install-lib \
+                INSTALL="$(INSTALL)" \
+                BOOTLIBDIR=$(BUILDLIBDIR) \
+                FILDIR=$(ZIPIFILDIR)\
+                LIBDIR=$(DESTDIR)$(ZIPILIBDIR)\
+                LIB=lib$(TARGETNAME)_s-$(LIBVERSION) && \
+        $(MAKE) install-lib \
+                INSTALL="$(INSTALL)" \
+                BOOTLIBDIR=$(BUILDLIBDIR) \
+                FILDIR=$(ZIPIFILDIR) \
+                LIBDIR=$(DESTDIR)$(ZIPILIBDIR) \
+                LIB=lib$(TARGETNAME)_es-$(LIBVERSION) && \
+        $(MAKE) install-lib \
+                INSTALL="$(INSTALL)" \
+                BOOTLIBDIR=$(BUILDLIBDIR) \
+                FILDIR=$(ZIPIFILDIR) \
+                LIBDIR=$(DESTDIR)$(ZIPILIBDIR) \
+                LIB=lib$(TARGETNAME)_u-$(LIBVERSION) && \
+        $(MAKE) install-lib \
+                INSTALL="$(INSTALL)" \
+                BOOTLIBDIR=$(BUILDLIBDIR) \
+                FILDIR=$(ZIPIFILDIR) \
+                LIBDIR=$(DESTDIR)$(ZIPILIBDIR) \
+                LIB=lib$(TARGETNAME)_eu-$(LIBVERSION)
+
+uninstall: uninstall-native-heap uninstall-native-libs
+	-$(RM) -f $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR)/$(TARGETNAME).jheap
+	-$(RM) -f $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR)/$(TARGETNAME)_s-$(LIBVERSION).zip
+	-$(RM) -f $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR)/$(TARGETNAME)_u-$(LIBVERSION).zip
+	-$(RM) -f $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR)/$(TARGETNAME)_es-$(LIBVERSION).zip
+
+uninstall-native-heap:
+	-$(RM) -f $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR)/$(TARGETNAME).heap
+
+uninstall-native-libs:
+	-$(MAKE) uninstall-lib LIB=lib$(TARGETNAME)_s-$(LIBVERSION)
+	-$(MAKE) uninstall-lib LIB=lib$(TARGETNAME)_u-$(LIBVERSION)
+	-$(MAKE) uninstall-lib LIB=lib$(TARGETNAME)_es-$(LIBVERSION)
+	-$(MAKE) uninstall-lib LIB=lib$(TARGETNAME)_eu-$(LIBVERSION)
+
+#*---------------------------------------------------------------------*/
+#*    dep                                                              */
+#*---------------------------------------------------------------------*/
+.PHONY: dep
+dep:
+	@(num=`grep -n '^#bdepend start' Makefile | awk -F: '{ print $$1}' -`;\
+          head -n `expr $$num - 1` Makefile > /tmp/Makefile.aux)
+	@ $(DEPEND) -fno-mco \
+                    -search-path . \
+                    -strict-obj-dir o \
+                    $(SOURCES) >> /tmp/Makefile.aux
+	@ mv /tmp/Makefile.aux Makefile

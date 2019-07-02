@@ -1,0 +1,150 @@
+#!/bin/sh
+#*=====================================================================*/
+#*    serrano/prgm/project/zipi/etc/configure.bigloo                   */
+#*    -------------------------------------------------------------    */
+#*    Author      :  Manuel Serrano                                    */
+#*    Creation    :  Tue Jul  2 07:46:27 2019                          */
+#*    Last change :  Tue Jul  2 10:11:56 2019 (serrano)                */
+#*    Copyright   :  2019 Manuel Serrano                               */
+#*    -------------------------------------------------------------    */
+#*    Bigloo specific configuration                                    */
+#*=====================================================================*/
+
+echo "configure bigloo..."
+
+link=dynamic
+afile=bglafile
+btags=bgltags
+bdepend=bgldepend
+
+bcflags="-O2 -fsharing -L \$(BUILDLIBDIR) -srfi bigloo-compile"
+blflags="-copt \$(CPICFLAGS) -L \$(BUILDLIBDIR) -srfi bigloo-compile"
+bhflags=
+btflags="-gtrace"
+hflags="-O2"
+bcflagsrts="-unsafe -safee"
+
+zipisrfis=""
+
+#*---------------------------------------------------------------------*/
+#*    We are now able to set the correct value for cc since we know    */
+#*    what Bigloo is.                                                  */
+#*---------------------------------------------------------------------*/
+if [ "$bigloolibdir " = " " ]; then
+  bigloolibdir=`$bigloo -q -eval "(begin (print (bigloo-config 'library-directory)) (exit 0))"`
+else
+  bcflags="$bcflags -lib-dir $bigloolibdir"
+fi
+
+if [ "$cc " = " " ]; then
+  cc=`$bigloo -lib-dir $bigloolibdir $bcflags -eval '(begin (print *cc*) (exit 0))'`
+else  
+  bcflags="$bcflags -cc $cc"
+fi
+
+if [ "$ccflags " = " " ]; then
+  ccflags=`grep '^CFLAGS=' $bigloolibdir/Makefile.config | sed 's/^[A-Z]*=//'`
+  if [ "$debug " = "yes " ]; then
+    ccflags=`echo $ccflags | sed 's/[-]O[0-9]//'`
+  fi
+  ccflags="$ccflags -I$bigloolibdir \$(CPICFLAGS) \$(CNANFLAGS)"
+fi
+
+if [ ! -f $bigloolibdir/Makefile.config ]; then
+  echo "Bigloo not properly installed, file missing:" >&2;
+  echo "  $bigloolibdir/Makefile.config" >&2;
+  exit -1;
+fi
+
+#*---------------------------------------------------------------------*/
+#*    Check that Bigloo compiles and binary runs                       */
+#*---------------------------------------------------------------------*/
+tmp=`$bigloo -eval '(begin (print (os-tmp)) (exit 0))'`
+cat > $tmp/bigloo-test-zipi.scm <<EOF
+(module test (main main))
+
+(define (main args)
+  (exit (-fx 1 (string->integer (cadr args)))))
+EOF
+
+$bigloo $tmp/bigloo-test-zipi.scm -o $tmp/bigloo-test-zipi || exit 1
+
+$tmp/bigloo-test-zipi 1 || exit 1
+
+rm -f $tmp/bigloo-test-zipi $tmp/bigloo-test-zipi.scm $tmp/bigloo-test-zipi.o
+
+#*---------------------------------------------------------------------*/
+#*    Check the Bigloo required libraries                              */
+#*---------------------------------------------------------------------*/
+if [ ! -f $bigloolibdir/web.heap ]; then
+  echo "*** ERROR:configure:bigloo web." >&2;
+  echo "" >&2;
+  echo "This error is due to a bad Bigloo installation. It might be that" >&2;
+  echo "you have installed Bigloo without the WEB support. Please" >&2;
+  echo "check your Bigloo installation." >&2;
+  echo "" >&2
+  bglfail=true;
+fi
+
+if [ ! -f $bigloolibdir/multimedia.heap ]; then
+  echo "*** ERROR:configure:bigloo multimedia." >&2;
+  echo "" >&2;
+  echo "This error is due to a bad Bigloo installation. It might be that" >&2;
+  echo "you have installed Bigloo without the MULTIMEDIA support. Please" >&2;
+  echo "check your Bigloo installation." >&2;
+  echo "" >&2
+  bglfail=true;
+fi
+
+#*---------------------------------------------------------------------*/
+#*    Srfis                                                            */
+#*---------------------------------------------------------------------*/
+for srfi in $zipisrfis; do
+    bcflags="$bcflags -srfi $srfi";
+    bhflags="$bhflags -srfi $srfi";
+done
+
+#*---------------------------------------------------------------------*/
+#*    rpath                                                            */
+#*---------------------------------------------------------------------*/
+if [ "$bldflags " = " " ]; then
+  bldflags="-rpath \$(ZIPILIBDIR)/\$(ZIPIFILDIR)"
+fi
+
+#*---------------------------------------------------------------------*/
+#*    Makefile.zipiconfig                                              */
+#*---------------------------------------------------------------------*/
+for file in Makefile.bigloo pyc.init; do
+  mkmf=etc/$file
+
+  rm -f $mkmf 2> /dev/null
+  echo "#* Automatically generated file (don't edit) */" > $mkmf
+
+  cat $mkmf.in \
+    | sed -e "s|@RELEASE@|$version|" \
+          -e "s|@DATE@|$date|" \
+  	  -e "s|@SYSTEMS@|$systems|" \
+          -e "s|@BINDIR@|$bindir|" \
+          -e "s|@LIBDIR@|$libdir|" \
+          -e "s|@PREFIX@|$prefix|" \
+          -e "s|@ETCDIR@|$etcdir|" \
+          -e "s|@BUILDID@|$buildid|" \
+          -e "s|@BUILDTAG@|$buildtag|" \
+	  -e "s|@BUILDLIBDIR@|$buildlibdir|" \
+          -e "s|@BIGLOO@|$bigloo|" \
+          -e "s|@INSTALL@|$install|" \
+          -e "s|@BUILDDIR@|$PWD|" \
+          -e "s|@LINK@|$link|" \
+          -e "s|@BIGLOOLIBDIR@|$bigloolibdir|" \
+          -e "s|@AFILE@|$afile|" \
+          -e "s|@BTAGS@|$btags|" \
+          -e "s|@BDEPEND@|$bdepend|" \
+          -e "s|@BCFLAGS@|$bcflags $bcflagsprofile|" \
+          -e "s|@BLDFLAGS@|$bldflags|" \
+          -e "s|@BHFLAGS@|$bhflags|" \
+          -e "s|@HFLAGS@|$hflags|" \
+          -e "s|@BTFLAGS@|$btflags|" \
+	  -e "s|@BLFLAGS@|$blflags|" \
+          -e "s|@BCFLAGSRTS@|$bcflagsrts|" \
+   	>> $mkmf
+done	

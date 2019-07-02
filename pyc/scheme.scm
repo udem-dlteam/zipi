@@ -5,11 +5,11 @@
       (PycNode-%info-set! ast (scheme ast conf))
       ast))
 
-(define (pyc-scheme-eval ast conf)
-   (let ((def (PycNode-%info ast)))
-      (when (>= (config-get conf 'verbose 0) 1)
-	 (newline (current-error-port)))
-      ((eval def) (py-make-global) (py-make-caches (PycModule-caches ast)))))
+;* (define (pyc-scheme-eval ast conf)                                  */
+;*    (let ((def (PycNode-%info ast)))                                 */
+;*       (when (>= (config-get conf 'verbose 0) 1)                     */
+;* 	 (newline (current-error-port)))                               */
+;*       ((eval def) (py-make-global) (py-make-caches (PycModule-caches ast))))) */
 
 (define (pyc-scheme-bigloo ast conf)
    (pp `(module ,(string->symbol (or (config-get conf 'src) "__stdin"))

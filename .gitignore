@@ -1,10 +1,12 @@
 cpython
 pypy
-scmast/o
-scmast/object/object.sch
-scmast/ast/types.sch
-scmast/ast/new.sch
-scmast/.afile
+pyc/o
+pyc/types.sch
+pyc/new.sch
+pyc/.afile
 etc/Makefile.zipiconfig
 etc/Makefile.bigloo
 etc/Makefile.gambit
+etc/pyc.init
+bin
+lib

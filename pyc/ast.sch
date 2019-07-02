@@ -1,16 +1,16 @@
 ;*=====================================================================*/
-;*    serrano/nosync/py19/scmast/ast/ast.sch                           */
+;*    serrano/prgm/project/zipi/pyc/ast.sch                            */
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 15:20:59 2019                          */
-;*    Last change :  Mon Jun 24 14:57:28 2019 (serrano)                */
+;*    Last change :  Tue Jul  2 10:04:43 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Bigloo ast global import                                         */
 ;*=====================================================================*/
 
 (directives
-   (include "ast/types.sch"
-	    "ast/new.sch"
-	    "ast/walk.sch")
+   (include "types.sch"
+	    "new.sch"
+	    "walk.sch")
    (import __pyc_ast))

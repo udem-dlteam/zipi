@@ -4,7 +4,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Marc Feeley & Manuel Serrano                      */
 #*    Creation    :  Sat Jul 31 06:49:37 2004                          */
-#*    Last change :  Mon Jul  1 13:12:03 2019 (serrano)                */
+#*    Last change :  Tue Jul  2 06:47:10 2019 (serrano)                */
 #*    Copyright   :  2019 Marc Feeley & Manuel Serrano                 */
 #*    -------------------------------------------------------------    */
 #*    HOP autoconfiguration                                            */
@@ -24,8 +24,6 @@ if [ "$HOPBIGLOO " != " " ]; then
   bigloo=$HOPBIGLOO
 fi
 
-afile=bglafile
-
 #*---------------------------------------------------------------------*/
 #*    Private variables                                                */
 #*---------------------------------------------------------------------*/
@@ -34,6 +32,10 @@ version="0.0.1"
 etcdir=$prefix/etc
 bindir=$prefix/bin
 libdir=$prefix/lib
+
+buildlibdir=$PWD/lib/zipi/$version
+buildbindir=$PWD/bin
+buildetcdir=$PWD/etc
 
 install="install -m a+r,u+r"
 
@@ -71,6 +73,12 @@ while : ; do
       bigloo="`echo $1 | sed 's/^[^=]*=//'`";
       ;; 
 
+    --bigloolibdir=*)
+      bigloolibdir="`echo $1 | sed 's/^[^=]*=//'`";;
+
+    --bigloobindir=*)
+      bigloobindir="`echo $1 | sed 's/^[^=]*=//'`";;
+
     --install=*)
       install="`echo $1 | sed 's/^[^=]*=//'`";;
 
@@ -92,6 +100,10 @@ while : ; do
       echo "   --gambit-only............... only compile Gambit backend" >&2;
       echo "   --bigloo=comp............... set both build and host Bigloo compilers ($bigloo/$hostbigloo)" >&2;
       echo "" >&2;
+      echo "" >&2;
+      echo "bigloo:" >&2;
+      echo "   --bigloobindir=path......... the Bigloo bin-dir path" >&2;
+      echo "   --bigloolibdir=path......... the Bigloo lib-dir path" >&2;
       echo "Misc:" >&2;
       echo "   --install................... the installer ($install)" >&2;
       exit 255;
@@ -106,6 +118,18 @@ mkdir -p bin
 mkdir -p lib
 mkdir -p lib/zipi
 mkdir -p lib/zipi/$version
+
+#*---------------------------------------------------------------------*/
+#*    We are now able to set the correct value for cc since we know    */
+#*    what Bigloo is.                                                  */
+#*---------------------------------------------------------------------*/
+if [ "$systems " != "gambit " ]; then
+  . ./etc/configure.bigloo
+fi
+
+if [ "$systems " != "bigloo " ]; then
+  . ./etc/configure.gambit
+fi
 
 #*---------------------------------------------------------------------*/
 #*    buildid & buildtag ...                                           */
@@ -131,7 +155,7 @@ fi
 echo "1" | md5sum > /dev/null 2> /dev/null
 
 if [ "$? " = "0 " ]; then
-  buildid=`md5sum zpc/*.scm rts/*.scm rts/*.py | md5sum | sed 's/[ ]*[-]$//'`
+  buildid=`md5sum zpc/*.scm rts/*.scm | md5sum | sed 's/[ ]*[-]$//'`
 fi
 
 if [ "$buildid " = " " ]; then
@@ -157,7 +181,7 @@ buildid=`$bigloo -s -eval "(begin (print (md5sum-string \"$buildid $buildtag $bi
 #*---------------------------------------------------------------------*/
 #*    Makefile.zipiconfig                                              */
 #*---------------------------------------------------------------------*/
-for file in Makefile.zipiconfig Makefile.bigloo Makefile.gambit; do
+for file in Makefile.zipiconfig; do
   mkmf=etc/$file
 
   rm -f $mkmf 2> /dev/null
@@ -173,8 +197,13 @@ for file in Makefile.zipiconfig Makefile.bigloo Makefile.gambit; do
           -e "s|@ETCDIR@|$etcdir|" \
           -e "s|@BUILDID@|$buildid|" \
           -e "s|@BUILDTAG@|$buildtag|" \
+          -e "s|@BUILDDIR@|$PWD|" \
+          -e "s|@BUILDETCDIR@|$buildetcdir|" \
+          -e "s|@BUILDLIBDIR@|$buildlibdir|" \
+          -e "s|@BUILDBINDIR@|$buildbindir|" \
           -e "s|@BIGLOO@|$bigloo|" \
           -e "s|@GAMBIT@|$gambit|" \
           -e "s|@INSTALL@|$install|" \
+          -e "s|@LINK@|$link|" \
   	>> $mkmf
 done	

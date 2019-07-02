@@ -1,9 +1,9 @@
 ;*=====================================================================*/
-;*    serrano/nosync/py19/scmast/cps/cps.bgl                           */
+;*    serrano/prgm/project/zipi/pyc/cps.bgl                            */
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Tue Jun 18 05:22:22 2019                          */
-;*    Last change :  Mon Jun 24 14:57:59 2019 (serrano)                */
+;*    Last change :  Tue Jul  2 10:07:55 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Python CPS transformation for generators/iterators.              */
@@ -14,7 +14,7 @@
 ;*---------------------------------------------------------------------*/
 (module __pyc_cps
 
-   (include "ast/ast.sch")
+   (include "ast.sch")
 
    (import __pyc_dump)
    

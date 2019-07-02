@@ -1,0 +1,4 @@
+#!/bin/sh
+
+echo "configure gambit..."
+echo "configure.gambit todo"

@@ -1,9 +1,9 @@
 ;*=====================================================================*/
-;*    serrano/nosync/py19/scmast/scheme/scheme.bgl                     */
+;*    serrano/prgm/project/zipi/pyc/scheme.bgl                         */
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Mon Jun 17 07:40:23 2019                          */
-;*    Last change :  Mon Jun 24 14:57:48 2019 (serrano)                */
+;*    Last change :  Tue Jul  2 10:08:29 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Scheme code generation                                           */
@@ -14,17 +14,12 @@
 ;*---------------------------------------------------------------------*/
 (module __pyc_scheme
    
-   (include "ast/ast.sch"
-	    "hclass/hclass.sch"
-	    "object/object.sch")
+   (include "ast.sch")
    
-   (import __py_hclass
-	   __py_object
-	   __py_iterator
-	   __pyc_dump)
+   (import __pyc_dump)
 
    (export (pyc-scheme ast conf)
-	   (pyc-scheme-eval ast conf)
+;* 	   (pyc-scheme-eval ast conf)                                  */
 	   (pyc-scheme-bigloo ast conf)
 	   (pyc-scheme-gambit ast conf)))
 

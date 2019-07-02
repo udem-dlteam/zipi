@@ -3,7 +3,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Marc Feeley & Manuel Serrano                      */
 #*    Creation    :  Sat Feb 19 12:25:16 2000                          */
-#*    Last change :  Mon Jul  1 13:17:02 2019 (serrano)                */
+#*    Last change :  Tue Jul  2 06:41:29 2019 (serrano)                */
 #*    Copyright   :  2019 Marc Feeley & Manuel Serrano                 */
 #*    -------------------------------------------------------------    */
 #*    The Makefile to build Zipi.                                      */
@@ -34,6 +34,7 @@ bin: bindir
 	$(MAKE) -C zpc
 
 lib: libdir
+	$(MAKE) -C pyc
 	$(MAKE) -C rts
 
 #*---------------------------------------------------------------------*/
