@@ -3,7 +3,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Mon Jul  1 13:14:30 2019                          */
-#*    Last change :  Tue Jul  2 11:49:18 2019 (serrano)                */
+#*    Last change :  Tue Jul  2 13:25:17 2019 (serrano)                */
 #*    Copyright   :  2019 Marc Feeley & Manuel Serrano                 */
 #*    -------------------------------------------------------------    */
 #*    The makefile to build the PYC compiler library                   */
@@ -20,8 +20,8 @@ do: build
 #*---------------------------------------------------------------------*/
 #*    common objects                                                   */
 #*---------------------------------------------------------------------*/
-OBJECTS_COMMON = ast compile sexp symbol return dump locals break \
-  generator cps scheme javascript
+OBJECTS_COMMON = ast compile parse sexp symbol return dump locals break \
+  generator cps scheme javascript utils configure
 
 #*---------------------------------------------------------------------*/
 #*    Common entry points                                              */

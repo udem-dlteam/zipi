@@ -1,0 +1,5 @@
+;; -*-bee-*-
+(define (zipi-release) "@RELEASE@")
+(define (zipi-bin-dir) "@BINDIR@")
+(define (zipi-lib-dir) "@LIBDIR@")
+(define (zipi-etc-dir) "@ETCDIR@")

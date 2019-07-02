@@ -246,7 +246,9 @@
        ;; Tuple(expr* elts, expr_context ctx)
        (new-PycTuple loc (map (lambda (e) (sexp e #f scope conf)) elts)))
       (else
-       (error "sexp" "Not implemented" exp))))
+       (if (eof-object? exp)
+	   (error "sexp" "premature eof" exp)
+	   (error "sexp" "Not implemented" exp)))))
 
 (define (subscript loc obj exp scope conf)
    (match-case exp

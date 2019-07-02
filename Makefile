@@ -3,7 +3,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Marc Feeley & Manuel Serrano                      */
 #*    Creation    :  Sat Feb 19 12:25:16 2000                          */
-#*    Last change :  Tue Jul  2 11:46:25 2019 (serrano)                */
+#*    Last change :  Tue Jul  2 12:57:15 2019 (serrano)                */
 #*    Copyright   :  2019 Marc Feeley & Manuel Serrano                 */
 #*    -------------------------------------------------------------    */
 #*    The Makefile to build Zipi.                                      */
@@ -20,27 +20,14 @@ do: build
 #*---------------------------------------------------------------------*/
 #*    build                                                            */
 #*---------------------------------------------------------------------*/
-.PHONY: bindir libdir lib pyc rts bin clean distclean cleanall
+.PHONY: build clean distclean cleanall
 
-build: pyc zpc rts bin
-
-bindir:
+build:
 	mkdir -p bin
-
-libdir:
 	mkdir -p lib
-
-bin: bindir
-	$(MAKE) -C zpc
-
-pyc: libdir
 	$(MAKE) -C pyc
-
-rts: libdir zpc
-	$(MAKE) -C rts
-
-zpc: pyc
 	$(MAKE) -C zpc
+	$(MAKE) -C rts
 
 #*---------------------------------------------------------------------*/
 #*    install                                                          */
@@ -49,6 +36,7 @@ install: zipi-dirs
 	$(MAKE) -C pyc install
 	$(MAKE) -C zpc install
 	$(MAKE) -C rts install
+	$(MAKE) -C etc install
 
 zipi-dirs:
 	if [ ! -d $(DESTDIR)$(ZIPIBINDIR) ]; then \

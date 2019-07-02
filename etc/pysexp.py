@@ -5,13 +5,31 @@ import ast as AST
 import subprocess
 
 python38 = False                       # set to True if this is Python 3.8
+python35 = False
 generate_location_information = True    # set to True to get location info
 
+# autoconfiguration
+class dummyClass(): pass
+
+if not hasattr(AST, 'AnnAssign'):
+    python35 = True
+    AST.AnnAssign = dummyClass
+if not hasattr(AST, 'FormattedValue'):
+    AST.FormattedValue = dummyClass
+if not hasattr(AST, 'JoinedStr'):
+    AST.JoinedStr = dummyClass
+if not hasattr(AST, 'Constant'):
+    AST.Constant = dummyClass
+    
+    
 def pretty_print(source):
-    p = subprocess.run(['gsi', '-:-8', '-e', '(pretty-print (read))'],
-                       stdout=subprocess.PIPE,
-                       input=source,
-                       encoding='utf-8')
+    if python35:
+        return source
+    else:
+        p = subprocess.run(['gsi', '-:-8', '-e', '(pretty-print (read))'],
+                           stdout=subprocess.PIPE,
+                           input=source,
+                           encoding='utf-8')
     if p.returncode == 0:
         return p.stdout
     else:

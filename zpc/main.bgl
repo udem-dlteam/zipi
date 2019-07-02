@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 12:48:54 2019                          */
-;*    Last change :  Tue Jul  2 11:22:15 2019 (serrano)                */
+;*    Last change :  Tue Jul  2 13:05:08 2019 (serrano)                */
 ;*    Copyright   :  2019 M. Feeley & M. Serrano                       */
 ;*    -------------------------------------------------------------    */
 ;*    ZPC, the zipi compiler                                           */
@@ -14,6 +14,8 @@
 ;*---------------------------------------------------------------------*/
 (module zpc
 
+   (import zpc_configure)
+   
    (library pyc)
    
    (main main))
@@ -27,6 +29,8 @@
 	 (generate-main #t)
 	 (dir #f)
 	 (src #f)
+	 (libdir (zipi-lib-dir))
+	 (bindir (zipi-bin-dir))
 	 (conf '()))
       (args-parse (cdr args)
 	 ((("-h" "--help") (help "This message"))
@@ -49,6 +53,8 @@
 	 (cons*
 	    verbose: verb
 	    target: tgt
+	    lib-dir: libdir
+	    bind-dir: libdir
 	    dir: (or dir (if src (absolute (dirname src)) (pwd)))
 	    src: src
 	    conf))))

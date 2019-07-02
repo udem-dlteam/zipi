@@ -4,7 +4,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Marc Feeley & Manuel Serrano                      */
 #*    Creation    :  Sat Jul 31 06:49:37 2004                          */
-#*    Last change :  Tue Jul  2 06:47:10 2019 (serrano)                */
+#*    Last change :  Tue Jul  2 13:02:09 2019 (serrano)                */
 #*    Copyright   :  2019 Marc Feeley & Manuel Serrano                 */
 #*    -------------------------------------------------------------    */
 #*    HOP autoconfiguration                                            */
@@ -181,7 +181,7 @@ buildid=`$bigloo -s -eval "(begin (print (md5sum-string \"$buildid $buildtag $bi
 #*---------------------------------------------------------------------*/
 #*    Makefile.zipiconfig                                              */
 #*---------------------------------------------------------------------*/
-for file in Makefile.zipiconfig; do
+for file in Makefile.zipiconfig configure.scm; do
   mkmf=etc/$file
 
   rm -f $mkmf 2> /dev/null
@@ -207,3 +207,14 @@ for file in Makefile.zipiconfig; do
           -e "s|@LINK@|$link|" \
   	>> $mkmf
 done	
+
+for file in configure.scm; do
+  cat etc/$file \
+    | sed -e "s|#[*] Automatically|;* Automatically|" \
+    > zpc/configure.scm
+
+  cp zpc/configure.scm pyc
+  cp zpc/configure.scm rts
+  
+  rm etc/$file
+done  

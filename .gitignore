@@ -13,6 +13,7 @@ lib
 zpc/.afile
 zpc/.etags
 zpc/o
+zpc/cnfigure.scm
 rts/.afile
 rts/.etags
 rts/o

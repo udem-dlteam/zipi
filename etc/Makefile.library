@@ -3,7 +3,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Wed Mar 15 07:22:39 2006                          */
-#*    Last change :  Tue Jul  2 11:50:18 2019 (serrano)                */
+#*    Last change :  Tue Jul  2 13:07:43 2019 (serrano)                */
 #*    Copyright   :  2006-19 Manuel Serrano                            */
 #*    -------------------------------------------------------------    */
 #*    The common Makefile for building libraries                       */
@@ -70,7 +70,6 @@ lib-c-static: .afile
 	$(MAKE) lib-c-static-sans-afile
 
 lib-c-static-sans-afile: $(OBJECTS)
-	echo "obj=$(OBJECTS)"
 	$(MAKE) LIBVERSION=$(LIBVERSION) \
                 $(BUILDLIBDIR)/lib$(TARGETNAME)_s-$(LIBVERSION).a \
 	        $(BUILDLIBDIR)/lib$(TARGETNAME)_u-$(LIBVERSION).a \
