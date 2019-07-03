@@ -3,7 +3,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Marc Feeley & Manuel Serrano                      */
 #*    Creation    :  Sat Feb 19 12:25:16 2000                          */
-#*    Last change :  Tue Jul  2 15:14:50 2019 (serrano)                */
+#*    Last change :  Wed Jul  3 07:09:05 2019 (serrano)                */
 #*    Copyright   :  2019 Marc Feeley & Manuel Serrano                 */
 #*    -------------------------------------------------------------    */
 #*    The Makefile to build Zipi.                                      */
@@ -77,4 +77,4 @@ distclean: clean
 	rm -rf bin lib
 	rm -f etc/Makefile.zipiconfig
 
-clenall: distclean
+cleanall: distclean

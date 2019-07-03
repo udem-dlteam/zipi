@@ -3,7 +3,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Mon Jul  1 13:14:30 2019                          */
-#*    Last change :  Tue Jul  2 13:44:10 2019 (serrano)                */
+#*    Last change :  Wed Jul  3 07:10:37 2019 (serrano)                */
 #*    Copyright   :  2019 Marc Feeley & Manuel Serrano                 */
 #*    -------------------------------------------------------------    */
 #*    The makefile to build the PYC compiler library                   */
@@ -38,15 +38,17 @@ install: $(ZIPISYSTEMS:%=install.%)
 
 clean: $(ZIPISYSTEMS:%=clean.%)
 
-cleanall: clean
+distclean: clean
 	rm -f object.sch
 	rm -f hclass.sch
+
+cleanall: distclean
 
 #*---------------------------------------------------------------------*/
 #*    common targets and dependencies                                  */
 #*---------------------------------------------------------------------*/
 o/object.o: object.sch
 
-%.sch: %.bgl
+%.sch: %.bgl .afile
 	touch $@ && $(BIGLOO) -classgen $< -o $@
 
