@@ -3,7 +3,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Mon Jul  1 13:14:30 2019                          */
-#*    Last change :  Wed Jul  3 07:11:30 2019 (serrano)                */
+#*    Last change :  Thu Jul  4 14:05:56 2019 (serrano)                */
 #*    Copyright   :  2019 Marc Feeley & Manuel Serrano                 */
 #*    -------------------------------------------------------------    */
 #*    The makefile to build the ZPC compiler library                   */
@@ -29,10 +29,10 @@ SOURCES = $(OBJECTS_COMMON:%=%.bgl)
 #*---------------------------------------------------------------------*/
 # the library name
 TARGETNAME = pyc
-HOPCLOSELIBS_S = $(BGLCLOSELIBS_S)
-HOPCLOSELIBS_U = $(BGLCLOSELIBS_U)
-HOPCLOSELIBS_ES = -lpyc_s-$(HOPRELEASE)
-HOPCLOSELIBS_EU = -lpyc_u-$(HOPRELEASE)
+ZIPICLOSELIBS_S = $(BGLCLOSELIBS_S)
+ZIPICLOSELIBS_U = $(BGLCLOSELIBS_U)
+ZIPICLOSELIBS_ES = -lpyc_s-$(ZIPIRELEASE)
+ZIPICLOSELIBS_EU = -lpyc_u-$(ZIPIRELEASE)
 
 BLIBFLAGS = $(BCFLAGSRTS)
 

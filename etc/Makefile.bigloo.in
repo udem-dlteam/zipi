@@ -3,7 +3,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Fri Sep 17 14:27:28 2004                          */
-#*    Last change :  Tue Jul  2 15:36:03 2019 (serrano)                */
+#*    Last change :  Thu Jul  4 14:07:59 2019 (serrano)                */
 #*    Copyright   :  2004-19 Manuel Serrano                            */
 #*    -------------------------------------------------------------    */
 #*    The Bigloo autoconf Makefile skeleton for ZIPI.                  */
@@ -35,24 +35,14 @@ BJFLAGS		= -j
 CCFLAGS		= @CCFLAGS@
 HFLAGS		= @HFLAGS@ --reset-bigloo-options --bigloo=$(BIGLOO) --bigloo-lib-dir=$(BIGLOOLIBDIR) --share-dir $(BUILDSHAREDIR) $(EFLAGS) --
 
-BIGLOOPTHLIBS	= @BIGLOOPTHLIBS@
-BIGLOOPTHLIBU	= @BIGLOOPTHLIBU@
-BIGLOOSSLLIBS	= @BIGLOOSSLLIBS@
-BIGLOOSSLLIBU	= @BIGLOOSSLLIBU@
-
-BSCM2JSFLAGS	= @BSCM2JSFLAGS@
 BZIPICFLAGS	= @BZIPICFLAGS@
 
 #*---------------------------------------------------------------------*/
 #*    Linking                                                          */
 #*---------------------------------------------------------------------*/
-BGLCLOSELIBS_S	= $(BIGLOOPTHLIBS) \
-                  $(BIGLOOSSLLIBS) \
-                  @BGLCLOSELIBS_S@
+BGLCLOSELIBS_S	= @BGLCLOSELIBS_S@
 
-BGLCLOSELIBS_U	= $(BIGLOOPTHLIBU) \
-                  $(BIGLOOSSLLIBU) \
-                  @BGLCLOSELIBS_U@
+BGLCLOSELIBS_U	= @BGLCLOSELIBS_U@
 
 #*---------------------------------------------------------------------*/
 #*    Runtime system                                                   */
