@@ -13,69 +13,97 @@
 ;*    The module                                                       */
 ;*---------------------------------------------------------------------*/
 (module __py_object
-   
+
    (include "object.sch")
-   
+
    (import __py_hclass)
 
    (use    __py_import)
-   
+
    (export (class PyObject
 	      (hclass (default #f))
 	      (%elements (default (make-vector 4))))
-	   
+
 	   (class PyFunction::PyObject
 	      (procedure read-only))
-	   
+
 	   (macro & name)
 
 	   (py-builtins-mod::PyObject)
 	   (py-time-mod::PyObject)
 	   (py-sys-mod::PyObject)
-	   
+
 	   (global-get ::PyObject ::obj ::obj)
 	   (global-put! global name val cache)
-	   
+
 	   (object-get ::obj ::obj ::obj)
 	   (object-get-no-cache ::PyObject ::obj)
 	   (object-has::bool ::PyObject ::obj)
 	   (object-put! ::PyObject ::obj ::obj ::obj)
 	   (object-put-no-cache! ::PyObject ::obj ::obj)
 
+	   (py-make-list . elements)
+	   (py-make-tuple . elements)
+
 	   (py-make-dict ::obj ::obj)
 	   (py-make-set ::obj)
-	   
+
 	   (py-getitem ::PyObject ::obj ::PCache)
 	   (py-setitem ::PyObject ::obj ::obj ::PCache)
 	   (py-contains ::PyObject ::obj ::PCache)
-	   
+
 	   (inline PyObject-elements-ref ::PyObject ::long)
 	   (PyObject-elements-set! ::PyObject ::long ::obj)
-	   
+
 	   (PyObject-find-prop ::PyObject ::obj)
-	   
+
 	   (PyFunction-default-hclass)
-	   
+
 	   (py-procedure->function ::procedure ::procedure)
-	   
+
 	   (py-call0 ::obj)
 	   (py-call1 ::obj ::obj)
 	   (py-call2 ::obj ::obj ::obj)
 	   (py-call3 ::obj ::obj ::obj ::obj)
 	   (py-call4 ::obj ::obj ::obj ::obj ::obj)
-	   
+
 	   (py-make-global)
 	   (py-make-caches ::int)
 
 	   (py-make-class name module bases . atrs)
 
 	   (py-throw ::obj)
-	   
+
 	   (pyis?::bool x y)
 	   (py-add x y cache)
 	   (py-and x y cache)
-	   (py-sub x y cache)
 	   (py-div x y cache)
+	   (py-floordiv x y cache)
+	   (py-invert x cache)
+	   (py-lshift x y cache)
+	   (py-matmul x y cache)
+	   (py-mod x y cache)
+	   (py-mul x y cache)
+	   (py-neg x cache)
+	   (py-or x y cache)
+	   (py-pos x cache)
+	   (py-pow x y cache)
+	   (py-rshift x y cache)
+	   (py-sub x y cache)
+	   (py-xor x y cache)
+	   (py-iadd x y cache)
+	   (py-iand x y cache)
+	   (py-idiv x y cache)
+	   (py-ifloordiv x y cache)
+	   (py-ilshift x y cache)
+	   (py-imatmul x y cache)
+	   (py-imod x y cache)
+	   (py-imul x y cache)
+	   (py-ior x y cache)
+	   (py-ipow x y cache)
+	   (py-irshift x y cache)
+	   (py-isub x y cache)
+	   (py-ixor x y cache)
 	   (py-eq x y cache)
 	   (py-ne x y cache)
 	   (py-lt x y cache)
@@ -111,7 +139,7 @@
 	   (py-str-to-scheme::bstring ::PyObject)
 	   (py-string-to-name::symbol ::bstring)
 	   (py-repr-scheme ::obj))
-   
+
    (eval   (export-all)))
 
 ;*---------------------------------------------------------------------*/
