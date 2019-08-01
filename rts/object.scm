@@ -374,7 +374,7 @@
            (if (eq? getitem py-absent)
                (error "getitem" "only object with __getitem__ method implemented" i)
                (py-call2 getitem obj i))))))
-         
+
 
 (define (py-setitem obj i val cache)
   (cond ((eq? py-tuple-class (py-obj-cls obj))
@@ -638,7 +638,7 @@
     (PyObject-elements-set! mod 3 (py-make-dict '() '()))
 
     mod))
-	  
+
 (define (py-sys-mod)
   (unless sys-mod
     (set! sys-mod (py-make-sys-mod)))
@@ -1123,8 +1123,8 @@
              mro
              (vector
               (& "**class**") ;; read-only copy... is it needed?
-              (& "__class__")
-              (& "**elems**"))
+              (& "**elems**")
+              (& "__class__"))
              '())))
       (set! py-list-class list-class)
       (set! py-list-hclass-of-instances hclass-of-instances)
