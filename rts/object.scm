@@ -305,8 +305,41 @@
 (define (py-ixor x y cache) ;; x ^= y
   (bit-xor x y))
 
-(define (py-eq x y cache) ;; x == y
-  (= x y))
+(define (py-eq x y cache)
+
+  (define (py-eq-num modx)
+    (cond ((or (eq? py-int-class (py-obj-cls y))
+               (eq? py-float-class (py-obj-cls y)))
+            (= modx y))
+          ((eq? py-bool-class (py-obj-cls y))
+            (= modx (if y 1 0)))
+          ((PyObject? y)
+            (let ((__eq__ (object-get/miss-in-mro y (& "__eq__"))))
+              (py-call2 __eq__ y x)))
+          (else
+            (error "eq" "only object with __eq__ method implemented" #f))))
+
+  (define (py-eq-str)
+    (cond ((eq? py-str-class (py-obj-cls y))
+            (string=? (py-str-to-scheme x) (py-str-to-scheme y)))
+          ((PyObject? y)
+            (let ((__eq__ (object-get/miss-in-mro y (& "__eq__"))))
+              (py-call2 __eq__ y x)))
+          (else
+            #f)))
+
+  (cond ((or (eq? py-int-class (py-obj-cls x))
+             (eq? py-float-class (py-obj-cls x)))
+          (py-eq-num x))
+        ((eq? py-bool-class (py-obj-cls x))
+          (py-eq-num (if x 1 0)))
+        ((eq? py-str-class (py-obj-cls x))
+          (py-eq-str))
+        ((PyObject? x)
+         (let ((__eq__ (object-get/miss-in-mro x (& "__eq__"))))
+           (py-call2 __eq__ x y)))
+        (else
+         (error "eq" "only object with __eq__ method implemented" #f))))
 
 (define (py-ne x y cache) ;; x != y
   (not (= x y)))
