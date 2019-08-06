@@ -346,14 +346,9 @@
          (length (py-dict-to-scheme obj)))
         ((eq? py-set-class (py-obj-cls obj))
          (length (py-set-to-scheme obj)))
-        ((and (PyObject? obj)
-              (let ((index (PyObject-find-prop obj (& "__len__"))))
-                (and (>= index 0)
-                     index)))
-         =>
-         (lambda (index)
-           (let ((__len__ (PyObject-elements-ref obj index)))
-             (py-call1 __len__ obj))))
+        ((PyObject? obj)
+         (let ((__len__ (object-get/miss-in-mro obj (& "__len__"))))
+           (py-call1 __len__ obj)))
         (else
          (error "len" "only object with __len__ method implemented" #f))))
 
