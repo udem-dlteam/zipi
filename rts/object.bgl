@@ -46,7 +46,7 @@
 	   (py-make-tuple . elements)
 
 	   (py-make-dict ::obj ::obj)
-	   (py-make-set ::obj)
+	   (py-make-set . elements)
 
 	   (py-getitem ::PyObject ::obj ::PCache)
 	   (py-setitem ::PyObject ::obj ::obj ::PCache)

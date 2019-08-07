@@ -1310,7 +1310,9 @@
                   (vector py-type-class   "builtins" "type")
                   (vector py-str-class    "builtins" "str")
                   (vector py-tuple-class  "builtins" "tuple")
-                  (vector py-list-class   "builtins" "list"))))
+                  (vector py-list-class   "builtins" "list")
+                  (vector py-dict-class   "builtins" "dict")
+                  (vector py-set-class    "builtins" "set"))))
 
 (bootstrap-basic-types-phase2)
 
@@ -1561,8 +1563,8 @@
 (define (py-make-list . elements)
   (py-list-from-scheme (list->vector elements)))
 
-(define (py-make-set elements)
-  (py-set-from-scheme (list->vector elements)))
+(define (py-make-set . elements)
+  (py-set-from-scheme elements))
 
 #;
 (define (py-list-from-scheme elements)
