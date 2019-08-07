@@ -72,7 +72,7 @@
           (else
            (object-get/miss-in-mro obj name)))))
 
-(define (object-get/miss-in-mro obj name)
+(define (object-get/miss-in-mro obj name #!optional (error? #t))
 ;;  (let ((mro (py-cls-mro (py-obj-cls obj))))
   (let ((mro (HClass-class-mro (PyObject-hclass obj))))
     (let loop ((i 0))
@@ -82,7 +82,9 @@
               (if (>= index 0)
                   (PyObject-elements-ref cls index)
                   (loop (+ i 1)))))
-          (error "AttributeError" "object has no attribute" name)))))
+          (if error?
+              (error "AttributeError" "object has no attribute" name)
+              py-absent)))))
 
 #;
 (define (object-has obj name)
@@ -313,9 +315,13 @@
             (= modx y))
           ((eq? py-bool-class (py-obj-cls y))
             (= modx (if y 1 0)))
+          ((eq? py-str-class (py-obj-cls y))
+            #f)
           ((PyObject? y)
-            (let ((__eq__ (object-get/miss-in-mro y (& "__eq__"))))
-              (py-call2 __eq__ y x)))
+            (let ((__eq__ (object-get/miss-in-mro y (& "__eq__") #f)))
+              (if (eq? __eq__ py-absent)
+                  #f
+                  (py-call2 __eq__ y x))))
           (else
             (error "eq" "only object with __eq__ method implemented" #f))))
 
@@ -323,23 +329,33 @@
     (cond ((eq? py-str-class (py-obj-cls y))
             (string=? (py-str-to-scheme x) (py-str-to-scheme y)))
           ((PyObject? y)
-            (let ((__eq__ (object-get/miss-in-mro y (& "__eq__"))))
-              (py-call2 __eq__ y x)))
+            (let ((__eq__ (object-get/miss-in-mro y (& "__eq__") #f)))
+              (if (eq? __eq__ py-absent)
+                  #f
+                  (py-call2 __eq__ y x))))
           (else
             #f)))
 
-  (cond ((or (eq? py-int-class (py-obj-cls x))
-             (eq? py-float-class (py-obj-cls x)))
-          (py-eq-num x))
-        ((eq? py-bool-class (py-obj-cls x))
-          (py-eq-num (if x 1 0)))
-        ((eq? py-str-class (py-obj-cls x))
-          (py-eq-str))
-        ((PyObject? x)
-         (let ((__eq__ (object-get/miss-in-mro x (& "__eq__"))))
-           (py-call2 __eq__ x y)))
-        (else
-         (error "eq" "only object with __eq__ method implemented" #f))))
+  (define (impl x y second?)
+    (cond ((or (eq? py-int-class (py-obj-cls x))
+               (eq? py-float-class (py-obj-cls x)))
+            (py-eq-num x))
+          ((eq? py-bool-class (py-obj-cls x))
+            (py-eq-num (if x 1 0)))
+          ((eq? py-str-class (py-obj-cls x))
+            (py-eq-str))
+          ((PyObject? x)
+           (let ((__eq__ (object-get/miss-in-mro x (& "__eq__") #f)))
+             (cond ((not (eq? __eq__ py-absent))
+                     (py-call2 __eq__ x y))
+                   (second?
+                     (py-is y x cache))
+                   (else
+                     (impl y x #t)))))
+          (else
+           (error "eq" "only object with __eq__ method implemented" #f))))
+
+  (impl x y #f))
 
 (define (py-ne x y cache) ;; x != y
   (not (= x y)))
