@@ -1102,7 +1102,10 @@
       (PyObject-elements-set! type-class 2 mro) ;; set **mro**
       (PyFunction-procedure-set!
        type-class
-       (py-obj-constructor type-class hclass-of-instances py-call-init)))
+       (lambda args
+         (if (= (length args) 1)
+             (py-type (car args))
+             (error "type" "unimplemented generic procedure for builtin" #f)))))
 
     (let* ((mro
             (vector object-class))
