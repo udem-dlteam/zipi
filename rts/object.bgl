@@ -38,6 +38,7 @@
 
 	   (object-get ::obj ::obj ::obj)
 	   (object-get-no-cache ::PyObject ::obj)
+	   (object-get/miss-in-mro obj name #!optional (error? #t))
 	   (object-has::bool ::PyObject ::obj)
 	   (object-put! ::PyObject ::obj ::obj ::obj)
 	   (object-put-no-cache! ::PyObject ::obj ::obj)

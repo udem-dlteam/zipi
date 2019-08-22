@@ -12,7 +12,7 @@
 
 (define (pyc-scheme-bigloo ast conf)
    (let ((prog (pyc-scheme ast conf)))
-      (list 
+      (list
 	 `(module ,(string->symbol (or (config-get conf src:) "__stdin"))
 	     (library zipi)
 	     ,@(if (config-get conf main:) '((main main)) '()))
@@ -123,7 +123,7 @@
 		      (when ,(pyc-test (PycWhile-test this) conf)
 			 ,(scheme (PycLoop-body this) conf)
 			 (,loop)))))))
-   
+
    (cond
       ((PycLoop-need-break this)
        (epairify this
@@ -169,7 +169,7 @@
 				    ,(scheme (PycLoop-body this) conf))
 				(scheme (PycLoop-body this) conf))
 			   (,loop))))))))
-   
+
    (cond
       ((PycLoop-need-break this)
        (epairify this
@@ -199,7 +199,7 @@
 	     ,(scheme (PycWith-body this) conf)))))
 
 (define-walk-method (scheme this::PycTry conf)
-   
+
    (define (scheme-try this conf)
       `(with-handler
 	  (lambda (%exn)
@@ -211,7 +211,7 @@
 	       `(begin
 		   ,(scheme (PycTry-body this) conf)
 		   ,(scheme (PycTry-else this) conf)))))
-   
+
    (epairify this
       (if (isa? (PycTry-finally this) PycPass)
 	  (scheme-try this conf)
@@ -229,7 +229,7 @@
 	     #t
 	     `(isa? %exn ,(scheme (PycHandler-type this) conf)))
 	,(scheme (PycHandler-body this) conf))))
-			
+
 (define-walk-method (scheme this::PycPass conf)
    #f)
 
@@ -395,7 +395,7 @@
 	,(scheme-cache (PycUnary-cache this) this))))
 
 (define-walk-method (scheme this::PycFun conf)
-   
+
    (define (generator this::PycFun exp)
       (if (PycFun-generator this)
 	  (epairify this
@@ -410,7 +410,7 @@
 			      (append (PycFun-args fun) (PycFun-decls fun)))))
 	      ,body)
 	  body))
-   
+
    (let ((args (map (lambda (a) (scheme a conf)) (PycFun-args this)))
 	 (body (locals this (scheme (PycFun-body this) (cons* fun: this conf)))))
       (epairify this
@@ -431,7 +431,7 @@
 			      `((& ,(symbol->string (PycDecl-id decl)))
 				,(scheme-decl decl conf)))
 		  (PycClass-decls this)))))
-				  
+
    (let ((body (scheme (PycClass-body this) conf)))
       (epairify this
 	 (match-case body
@@ -463,7 +463,7 @@
 		  `(if (eq? ,f py-builtin-globals)
 		       (py-builtin-globals)
 		       (py-call0 ,f))))))
-   
+
    (define (invoke fun args)
       (case (length args)
 	 ((0) `(py-call0 ,fun ,@args)) ;; (invoke-maybe-locals fun))
@@ -475,16 +475,20 @@
    (let ((fun (PycCall-fun this)))
       (cond
 	 ((isa? fun PycAccess)
-	  ;; method call
-	  (let ((obj (gensym '%obj)))
-	     (epairify this
-		`(let ((,obj ,(scheme (PycAccess-obj fun) conf)))
-		    ,(invoke `(object-get ,obj
-				 ,(pyc-propname (PycAccess-field fun))
-				 ,(scheme-cache (PycAccess-cache fun) fun))
-			(cons obj
-			   (map (lambda (a) (scheme a conf))
-			      (PycCall-args this))))))))
+      ;; method call
+      (let ((obj  (gensym '%obj))
+            (name (pyc-propname (PycAccess-field fun)))
+            (args (map (lambda (a) (scheme a conf))
+                         (PycCall-args this))))
+        (epairify this
+          `(let ((,obj ,(scheme (PycAccess-obj fun) conf)))
+             (let* ((method (object-get/miss-in-mro ,obj ,name #f)))
+               (if (eq? method py-absent)
+                   ;; if the method does not exist, check if an attribute exists for this name
+                   ,(invoke `(object-get ,obj ,name ,(scheme-cache (PycAccess-cache fun) fun))
+                            args)
+                   ;; if the method exists, use a regular call and gives the object as the first argument
+                   ,(invoke 'method (cons obj args))))))))
 	 ((isa? fun PycPragma)
 	  ;; builtin call
 	  (epairify this
@@ -572,7 +576,7 @@
       (let ((n (cell-ref cnt)))
 	 (cell-set! cnt (+ 1 n))
 	 (PycDeclInit-cache-set! this n))))
-      
+
 (define-walk-method (collect-caches this::PycRef cnt)
    (when (eq? (PycDecl-scope (PycRef-decl this)) 'global)
       (let ((n (cell-ref cnt)))
@@ -622,5 +626,3 @@
 	 (cell-set! cnt (+ 1 m))
 	 (PycFor-cachei-set! this n)
 	 (PycFor-cachen-set! this m))))
-	  
-   
