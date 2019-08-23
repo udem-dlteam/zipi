@@ -16,7 +16,7 @@
 		    (set-cdr! (last-pair conf) (list language: lang))))))))
 
    (match-case exp
-      
+
       ;; mod
       ((Module ?loc ?body . ?type_ignors)
        ;; Module(stmt* body, type_ignore *type_ignores)
@@ -28,7 +28,7 @@
   	   (new-PycDeclInit loc '__file__ scope
 	     (new-PycString loc (config-get conf 'source "/bar/foo.py")))
 	   (compile* loc body #t 'global conf)))))
-      
+
       ;; stmt
       ((FunctionDef ?loc ?id ?args ?body ?decorator_list ?returns . ?type_comment)
        ;; FunctionDef(identifier name, arguments args,
@@ -39,7 +39,8 @@
 	     (map (lambda (a)
 		     (new-PycDecl loc (car a) 'local))
 		(car args))
-	     (compile-stmt* loc body #t 'local conf))))
+	     (compile-stmt* loc body #t 'local conf)
+	     id)))
       ((ClassDef ?loc ?id ?bases ?keywords ?body ?decorator_list)
        ;; ClassDef(identifier name,
        ;;       expr* bases,
@@ -107,7 +108,7 @@
 	  (compile-stmt* loc body #f scope conf)
 	  (compile-stmt* loc orelse tail scope conf)
 	  (sexp test #f scope conf)))
-       
+
       ((If ?loc ?test ?body ?otherwise)
        ;; If(expr test, stmt* body, stmt* orelse)
        (new-PycIf loc (sexp test #f scope conf)
@@ -190,7 +191,7 @@
 	   (new-PycNumber loc val))))
       ((BinOp ?loc ?left ?op ?right)
        ;; BinOp(expr left, operator op, expr right)
-       (new-PycBinary loc 
+       (new-PycBinary loc
 	  (binary-operator op 'BinOp)
 	  (sexp left #f scope conf)
 	  (sexp right #f scope conf)
@@ -280,7 +281,7 @@
 	      (new-PycHandler loc expr (compile-stmt* loc body #f scope conf)))))
       (else
        (error "sexp" "Wrong handler" handler))))
-       
+
 (define (compile-stmt* loc body tail scope conf)
    (if (null? body)
        (new-PycPass loc)
@@ -325,7 +326,7 @@
 		  ((not ni) c)
 		  ((= ni (- (string-length s) 1)) c)
 		  (else (loop (+ ni 1) (+ c 1))))))))
-      
+
    (let ((base (string-append (symbol->string module) ".")))
       (new-PycBlock loc
 	 (list (new-PycVar loc '%mod 'block
