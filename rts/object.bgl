@@ -71,6 +71,7 @@
 	   (py-make-global)
 	   (py-make-caches ::int)
 
+	   (py-make-function name proc)
 	   (py-make-class name module bases . atrs)
 
 	   (py-throw ::obj)

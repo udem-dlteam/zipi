@@ -414,7 +414,7 @@
    (let ((args (map (lambda (a) (scheme a conf)) (PycFun-args this)))
 	 (body (locals this (scheme (PycFun-body this) (cons* fun: this conf)))))
       (epairify this
-	 `(make-PyFunction (PyFunction-default-hclass) '#()
+	 `(py-make-function ',(PycFun-name this)
 	     ,(if (PycFun-need-return this)
 		  `(lambda ,args ,(generator this `(bind-exit (return) ,body)))
 		  `(lambda ,args ,(generator this body)))))))

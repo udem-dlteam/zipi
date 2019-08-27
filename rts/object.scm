@@ -856,23 +856,25 @@
 ;;    | __class__ -+--> str
 ;;    +------------+
 
-(define py-object-class #f)
-(define py-type-class   #f)
-(define py-str-class    #f)
-(define py-tuple-class  #f)
-(define py-list-class   #f)
-(define py-dict-class   #f)
-(define py-set-class    #f)
-(define py-module-class #f)
+(define py-object-class   #f)
+(define py-type-class     #f)
+(define py-str-class      #f)
+(define py-tuple-class    #f)
+(define py-list-class     #f)
+(define py-dict-class     #f)
+(define py-set-class      #f)
+(define py-module-class   #f)
+(define py-function-class #f)
 
-(define py-object-hclass-of-instances #f)
-(define py-type-hclass-of-instances   #f)
-(define py-str-hclass-of-instances    #f)
-(define py-tuple-hclass-of-instances  #f)
-(define py-list-hclass-of-instances   #f)
-(define py-dict-hclass-of-instances   #f)
-(define py-set-hclass-of-instances    #f)
-(define py-module-hclass-of-instances #f)
+(define py-object-hclass-of-instances   #f)
+(define py-type-hclass-of-instances     #f)
+(define py-str-hclass-of-instances      #f)
+(define py-tuple-hclass-of-instances    #f)
+(define py-list-hclass-of-instances     #f)
+(define py-dict-hclass-of-instances     #f)
+(define py-set-hclass-of-instances      #f)
+(define py-module-hclass-of-instances   #f)
+(define py-function-hclass-of-instances #f)
 
 (define (py-obj-cls* obj) ;; return **class** attribute of object obj
   (cond ((PyObject? obj)
@@ -1087,6 +1089,23 @@
             '())
            #f)) ;; constructor is set later
 
+         (function-class
+          (py-fun-alloc
+           type-class
+           (make-HClass
+            '#() ;; class-mro is set later to (vector module-class object-class)
+            (vector
+             (& "**class**") ;; read-only copy... is it needed?
+             (& "**bases**") ;; read-only copy... is it needed?
+             (& "**mro**")   ;; read-only copy... is it needed?
+             (& "__class__")
+             (& "__bases__")
+             (& "__mro__")
+             (& "__module__")
+             (& "__name__"))
+            '())
+           #f)) ;; constructor is set later
+
          (bases-types ;; all types directly inherit from "object" except itself
           (vector object-class)))
 
@@ -1221,6 +1240,25 @@
        (py-obj-constructor set-class hclass-of-instances py-call-init)))
 
     (let* ((mro
+            (vector function-class object-class))
+           (hclass-of-instances
+            (make-HClass
+             mro
+             (vector
+              (& "**class**") ;; read-only copy... is it needed?
+              (& "__class__")
+              (& "__name__"))
+             '())))
+      (set! py-function-class function-class)
+      (set! py-function-hclass-of-instances hclass-of-instances)
+      (HClass-class-mro-set! (PyObject-hclass (vector-ref mro 0)) mro)
+      (PyObject-elements-set! function-class 1 bases-types) ;; set **bases**
+      (PyObject-elements-set! function-class 2 mro)  ;; set **mro**
+      (PyFunction-procedure-set!
+       function-class
+       (py-obj-constructor function-class hclass-of-instances py-call-init)))
+
+    (let* ((mro
             (vector module-class object-class))
            (hclass-of-instances
             (make-HClass
@@ -1309,13 +1347,15 @@
       (PyObject-elements-set! cls 7 name))) ;; set __name__
 
   (for-each set-attrs-with-python-values
-            (list (vector py-object-class "builtins" "object")
-                  (vector py-type-class   "builtins" "type")
-                  (vector py-str-class    "builtins" "str")
-                  (vector py-tuple-class  "builtins" "tuple")
-                  (vector py-list-class   "builtins" "list")
-                  (vector py-dict-class   "builtins" "dict")
-                  (vector py-set-class    "builtins" "set"))))
+            (list (vector py-object-class   "builtins" "object")
+                  (vector py-type-class     "builtins" "type")
+                  (vector py-str-class      "builtins" "str")
+                  (vector py-tuple-class    "builtins" "tuple")
+                  (vector py-list-class     "builtins" "list")
+                  (vector py-dict-class     "builtins" "dict")
+                  (vector py-set-class      "builtins" "set")
+                  ;; "function" is added here for the bootstrap but should not be exposed in the "builtins" module
+                  (vector py-function-class "builtins" "function"))))
 
 (bootstrap-basic-types-phase2)
 
@@ -1351,6 +1391,20 @@
           (loop (- i 1) (add-class (vector-ref bases i) classes)))))
 
   (list->vector (add-class cls '())))
+
+;;;----------------------------------------------------------------------------
+
+(define (py-make-function name proc)
+  (let ((self
+         (make-PyFunction
+          py-function-hclass-of-instances;(PyFunction-default-hclass)
+          (make-vector (vector-length (HClass-names (PyFunction-default-hclass)))
+                       (py-uninit))
+          proc)))
+    (PyObject-elements-set! self 0 py-function-class) ;; set **class**
+    (PyObject-elements-set! self 1 py-function-class) ;; set __class__
+    (PyObject-elements-set! self 2 (py-str-from-scheme (symbol->string name))) ;; set __name__
+    self))
 
 ;;;----------------------------------------------------------------------------
 
@@ -1735,6 +1789,11 @@
                                  "from "
                                  (py-repr-scheme file))
                                 "???")))))
+                   ">"))
+                 ((eq? t py-function-class)
+                  (string-append
+                   "<function "
+                   (py-str-to-scheme (PyObject-elements-ref obj 2))
                    ">"))
                  (else
                   (py-repr-scheme obj)))))))
