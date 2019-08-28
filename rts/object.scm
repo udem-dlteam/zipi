@@ -217,7 +217,30 @@
 ;;; Python operators.
 
 (define (py-add x y cache) ;; x + y
-  (+ x y))
+
+  (define (is-bool-or-num x)
+    (member (py-obj-cls x) (list py-bool-class py-int-class py-float-class)))
+
+  (define (bool-or-num x)
+    (if (eq? (py-obj-cls x) py-bool-class)
+        (if x 1 0)
+        x))
+
+  (cond ((is-bool-or-num x)
+           (if (not (is-bool-or-num y))
+               (error "add" "unsupported operand type(s)" #f))
+           (let ((x (bool-or-num x))
+                 (y (bool-or-num y)))
+             (+ x y)))
+        ((eq? py-str-class (py-obj-cls x))
+          (if (eq? py-str-class (py-obj-cls y))
+              (py-str-from-scheme (string-append (py-str-to-scheme x) (py-str-to-scheme y)))
+              (error "add" "can only concatenate str to str" #f)))
+        ((PyObject? x)
+          (let ((__add__ (object-get/miss-in-mro x (& "__add__"))))
+            (py-call2 __add__ x y)))
+        (else
+          (error "add" "only object with __add__ method implemented" #f))))
 
 (define (py-and x y cache) ;; x & y
   (bit-and x y))
