@@ -1444,16 +1444,18 @@
            (cls
             #f)
            (hclass-of-instances
-            #f))
+            #f)
+           (constructor
+            (lambda args
+              (let ((self (py-obj-alloc cls hclass-of-instances)))
+                (PyObject-elements-set! self 1 cls) ;; set __class__
+                (py-call-init self args)
+                self))))
           (set! cls
             (py-fun-alloc
              py-type-class
              py-type-hclass-of-instances
-             (lambda args
-               (let ((self (py-obj-alloc cls hclass-of-instances)))
-                 (PyObject-elements-set! self 1 cls) ;; set __class__
-                 (py-call-init self args)
-                 self))))
+             constructor))
           (PyObject-elements-set! cls 1 bases-vect) ;; set **bases**
           (let ((mro (py-compute-mro cls)))
             (PyObject-elements-set! cls 2 mro) ;; set **mro**
@@ -1469,6 +1471,7 @@
                 (& "**class**") ;; read-only copy... is it needed?
                 (& "__class__"))
                '()))
+            (py-own-attr-set! cls (& "__call__") (py-make-function '__call__ constructor))
             (let loop ((attr-names attr-names) (attr-values attr-values))
               (if (pair? attr-names)
                   (begin
