@@ -991,7 +991,8 @@
              (& "__bases__")
              (& "__mro__")
              (& "__module__")
-             (& "__name__"))
+             (& "__name__")
+             (& "__init__"))
             '())
            #f)) ;; constructor is set later
 
@@ -1301,6 +1302,18 @@
        (py-obj-constructor module-class hclass-of-instances py-call-init)))))
 
 (bootstrap-basic-types-phase1)
+
+;;;----------------------------------------------------------------------------
+
+;;; Set specific core class attributes that are not common to other classes
+;;; This function is executed after phase1 of the bootstrap because at this point,
+;;; the 'function' class is defined thus py-make-function is available
+(define (set-core-attributes)
+  ;; object
+  (let ((__init__ (py-make-function '__init__ (lambda args (py-none)))))
+    (PyObject-elements-set! py-object-class 8 __init__))) ;; set __init__
+
+(set-core-attributes)
 
 ;;;----------------------------------------------------------------------------
 
