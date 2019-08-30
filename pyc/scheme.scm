@@ -482,13 +482,11 @@
                          (PycCall-args this))))
         (epairify this
           `(let ((,obj ,(scheme (PycAccess-obj fun) conf)))
-             (let* ((method (object-get/miss-in-mro ,obj ,name #f)))
-               (if (eq? method py-absent)
-                   ;; if the method does not exist, check if an attribute exists for this name
-                   ,(invoke `(object-get ,obj ,name ,(scheme-cache (PycAccess-cache fun) fun))
-                            args)
-                   ;; if the method exists, use a regular call and gives the object as the first argument
-                   ,(invoke 'method (cons obj args))))))))
+            (if (object-has ,obj ,name)
+                ,(invoke `(object-get ,obj ,name ,(scheme-cache (PycAccess-cache fun) fun))
+                         args)
+                ,(invoke `(object-get ,obj ,name ,(scheme-cache (PycAccess-cache fun) fun))
+                         (cons obj args)))))))
 	 ((isa? fun PycPragma)
 	  ;; builtin call
 	  (epairify this
