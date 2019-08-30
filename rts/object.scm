@@ -960,6 +960,16 @@
                    (cons self args))
             (error "call" "wrong call" init)))))
 
+(define (py-call-new cls args)
+  (let ((new (py-attr-ref cls (& "__new__"))))
+    (if (not (eq? new py-absent))
+        (if (and (isa? new PyFunction)
+                 (correct-arity? (PyFunction-procedure new)
+                                 (+ 1 (length args))))
+            (apply (PyFunction-procedure new)
+                   (cons cls args))
+            (error "call" "wrong call" new)))))
+
 (define (bootstrap-basic-types-phase1)
   (let* ((type-class
           (py-fun-alloc
@@ -992,7 +1002,8 @@
              (& "__mro__")
              (& "__module__")
              (& "__name__")
-             (& "__init__"))
+             (& "__init__")
+             (& "__new__"))
             '())
            #f)) ;; constructor is set later
 
@@ -1310,8 +1321,21 @@
 ;;; the 'function' class is defined thus py-make-function is available
 (define (set-core-attributes)
   ;; object
-  (let ((__init__ (py-make-function '__init__ (lambda args (py-none)))))
-    (PyObject-elements-set! py-object-class 8 __init__))) ;; set __init__
+  (let ((__init__ (py-make-function '__init__ (lambda args (py-none))))
+        (__new__  (py-make-function '__new__
+                    (lambda (cls . args)
+                      (let* ((mro (PyObject-elements-ref cls 2))
+                             (hclass-of-instances (make-HClass
+                                                    mro
+                                                    (vector
+                                                      (& "**class**")
+                                                      (& "__class__"))
+                                                    '()))
+                             (self (py-obj-alloc cls hclass-of-instances)))
+                        (PyObject-elements-set! self 1 cls) ;; set __class__
+                        self)))))
+    (PyObject-elements-set! py-object-class 8 __init__)  ;; set __init__
+    (PyObject-elements-set! py-object-class 9 __new__))) ;; set __new__
 
 (set-core-attributes)
 
@@ -1447,9 +1471,7 @@
 (define (py-make-class name module bases . attrs)
 
   (define (make-cls attr-names attr-values)
-    (let* ((has-init?
-            (member (& "__init__") attr-names))
-           (bases-vect
+    (let* ((bases-vect
             (list->vector
              (if (null? bases)
                  (list py-object-class)
@@ -1458,17 +1480,16 @@
             #f)
            (hclass-of-instances
             #f)
-           (constructor
+           (__call__
             (lambda args
-              (let ((self (py-obj-alloc cls hclass-of-instances)))
-                (PyObject-elements-set! self 1 cls) ;; set __class__
-                (py-call-init self args)
-                self))))
+                (let* ((obj (py-call-new cls args)))
+                  (py-call-init obj args)
+                  obj))))
           (set! cls
             (py-fun-alloc
              py-type-class
              py-type-hclass-of-instances
-             constructor))
+             __call__))
           (PyObject-elements-set! cls 1 bases-vect) ;; set **bases**
           (let ((mro (py-compute-mro cls)))
             (PyObject-elements-set! cls 2 mro) ;; set **mro**
@@ -1484,7 +1505,7 @@
                 (& "**class**") ;; read-only copy... is it needed?
                 (& "__class__"))
                '()))
-            (py-own-attr-set! cls (& "__call__") (py-make-function '__call__ constructor))
+            (py-own-attr-set! cls (& "__call__") (py-make-function '__call__ __call__))
             (let loop ((attr-names attr-names) (attr-values attr-values))
               (if (pair? attr-names)
                   (begin
