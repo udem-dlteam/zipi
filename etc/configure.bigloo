@@ -135,6 +135,7 @@ for file in Makefile.bigloo pyc.init zipi.init; do
           -e "s|@LIBDIR@|$libdir|" \
           -e "s|@PREFIX@|$prefix|" \
           -e "s|@ETCDIR@|$etcdir|" \
+          -e "s|@RTSDIR@|$rtsdir|" \
           -e "s|@BUILDID@|$buildid|" \
           -e "s|@BUILDTAG@|$buildtag|" \
 	  -e "s|@BUILDLIBDIR@|$buildlibdir|" \

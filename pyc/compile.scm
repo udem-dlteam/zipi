@@ -36,13 +36,17 @@
      ("javascript" . ,pyc-javascript)))
 
 (define (pyc driver conf)
-   (let* ((env (getenv "PYTRACE"))
-	  (conf (cons*
-                   trace: (and (string? env) (string-contains env "pyc:dump"))
-                   tmp: (make-file-path (os-tmp)
-                           (or (getenv "USER") "anonymous") "PYC")
-                   conf)))
-      (pyc-compile (config-get conf src: (current-input-port)) driver conf)))
+  (let* ((env (getenv "PYTRACE"))
+         (src (config-get conf src: #f))
+	 (conf (cons*
+                trace: (and (string? env) (string-contains env "pyc:dump"))
+                tmp: (make-file-path
+                      (os-tmp)
+                      (or (getenv "USER") "anonymous") "PYC")
+                name: (if src (prefix (basename src)) "<stdin>")
+                file: (config-get conf src: "<stdin>")
+                conf)))
+    (pyc-compile (or src (current-input-port)) driver conf)))
 
 (define (pyc-compile prog passes conf)
    (let ((tracedir (make-file-name (config-get conf tmp:)

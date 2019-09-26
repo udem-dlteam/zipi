@@ -1,40 +1,55 @@
 #!/bin/bash
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+ETC_DIR="$SCRIPT_DIR/../etc"
+LIB_DIR="$SCRIPT_DIR/../lib"
+BIN_DIR="$SCRIPT_DIR/../bin"
+RTS_DIR="$SCRIPT_DIR/../rts"
+ZPC_DIR="$SCRIPT_DIR/../zpc"
+PYC_DIR="$SCRIPT_DIR/../pyc"
+GAMBIT_DIR="/Users/feeley/udem-dlteam/gambit"
 
-~/udem-dlteam/gambit/gsi/gsi -::$SCRIPT_DIR,darR-,t8,f8,-8 \
+$GAMBIT_DIR/gsi/gsi -:~~=$GAMBIT_DIR,search=$SCRIPT_DIR,search=$PYC_DIR,darR-,t8,f8,-8 \
+-e "(define (zipi-etc-dir) \"$ETC_DIR\")" \
+-e "(define (zipi-lib-dir) \"$LIB_DIR\")" \
+-e "(define (zipi-bin-dir) \"$BIN_DIR\")" \
+-e "(define (zipi-rts-dir) \"$RTS_DIR\")" \
 -e "(##import bigloo)" \
-$SCRIPT_DIR/ast/ast.bgl \
--e "(##include \"$SCRIPT_DIR/ast/walk.sch\")" \
--e "(##include \"$SCRIPT_DIR/ast/new.sch\")" \
--e "(##include \"$SCRIPT_DIR/sexp/sexp.scm\")" \
-$SCRIPT_DIR/symbol/symbol.bgl \
-$SCRIPT_DIR/symbol/symbol.scm \
-$SCRIPT_DIR/return/return.bgl \
-$SCRIPT_DIR/return/return.scm \
-$SCRIPT_DIR/locals/locals.bgl \
-$SCRIPT_DIR/locals/locals.scm \
--e "(##include \"$SCRIPT_DIR/hclass/hclass.bgl\")" \
--e "(##include \"$SCRIPT_DIR/hclass/hclass.scm\")" \
--e "(##include \"$SCRIPT_DIR/object/object.bgl\")" \
--e "(##include \"$SCRIPT_DIR/object/object.scm\")" \
--e "(##include \"$SCRIPT_DIR/iterator/iterator.bgl\")" \
--e "(##include \"$SCRIPT_DIR/iterator/iterator.scm\")" \
-$SCRIPT_DIR/scheme/scheme.bgl \
-$SCRIPT_DIR/scheme/scheme.scm \
-$SCRIPT_DIR/break/break.bgl \
-$SCRIPT_DIR/break/break.scm \
-$SCRIPT_DIR/generator/generator.bgl \
-$SCRIPT_DIR/generator/generator.scm \
-$SCRIPT_DIR/cps/cps.bgl \
-$SCRIPT_DIR/cps/cps.scm \
-$SCRIPT_DIR/javascript/javascript.bgl \
-$SCRIPT_DIR/javascript/javascript.scm \
-$SCRIPT_DIR/dump/dump.bgl \
-$SCRIPT_DIR/dump/dump.scm \
-$SCRIPT_DIR/import/import.bgl \
-$SCRIPT_DIR/import/import.scm \
-$SCRIPT_DIR/main/main.bgl \
-$SCRIPT_DIR/main/main.scm \
-$SCRIPT_DIR/main/main-gambit.scm \
+$PYC_DIR/ast.bgl \
+-e "(##include \"$PYC_DIR/walk.sch\")" \
+-e "(##include \"$PYC_DIR/new.sch\")" \
+-e "(##include \"$PYC_DIR/sexp.scm\")" \
+$PYC_DIR/symbol.bgl \
+$PYC_DIR/symbol.scm \
+$PYC_DIR/return.bgl \
+$PYC_DIR/return.scm \
+$PYC_DIR/locals.bgl \
+$PYC_DIR/locals.scm \
+-e "(##include \"$RTS_DIR/hclass.bgl\")" \
+-e "(##include \"$RTS_DIR/hclass.scm\")" \
+-e "(##include \"$RTS_DIR/object.bgl\")" \
+-e "(##include \"$RTS_DIR/object.scm\")" \
+-e "(##include \"$RTS_DIR/iterator.bgl\")" \
+-e "(##include \"$RTS_DIR/iterator.scm\")" \
+$PYC_DIR/scheme.bgl \
+$PYC_DIR/scheme.scm \
+$PYC_DIR/break.bgl \
+$PYC_DIR/break.scm \
+$PYC_DIR/generator.bgl \
+$PYC_DIR/generator.scm \
+$PYC_DIR/cps.bgl \
+$PYC_DIR/cps.scm \
+$PYC_DIR/javascript.bgl \
+$PYC_DIR/javascript.scm \
+$PYC_DIR/dump.bgl \
+$PYC_DIR/dump.scm \
+$RTS_DIR/import.bgl \
+$RTS_DIR/import.scm \
+$ZPC_DIR/main.bgl \
+$ZPC_DIR/main.scm \
+$PYC_DIR/compile.bgl \
+$PYC_DIR/compile.scm \
+$PYC_DIR/parse.bgl \
+$PYC_DIR/parse.scm \
+$ZPC_DIR/main-gambit.scm \
 $*

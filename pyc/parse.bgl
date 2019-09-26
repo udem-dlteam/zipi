@@ -21,12 +21,3 @@
    (import __pyc_configure
 	   __pyc_sexp
 	   __pyc_utils))
-
-;*---------------------------------------------------------------------*/
-;*    pysexp ...                                                       */
-;*---------------------------------------------------------------------*/
-(define (pysexp file::bstring bindir::bstring)
-   (process-output-port
-      (run-process (make-file-path bindir "pysexp.py") file
-	 :input :pipe :output :pipe)))
-   

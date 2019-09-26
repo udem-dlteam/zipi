@@ -16,7 +16,8 @@
    
    (include "ast.sch")
    
-   (import __pyc_dump
+   (import __pyc_configure
+	   __pyc_dump
 	   __pyc_utils)
 
    (export (pyc-scheme ast conf)

@@ -72,6 +72,8 @@
 (directory? bigloo#directory?)
 (absolute bigloo#absolute)
 (dirname bigloo#dirname)
+(basename bigloo#basename)
+(prefix bigloo#prefix)
 (pwd bigloo#pwd)
 
 (multiple-value-bind ##receive)
@@ -88,13 +90,41 @@
 (match-case bigloo#match-case)
 ))
 
-(define-macro (define-inline . rest) `(define ,@rest))
-(define-macro (module . rest) (bigloo#module-expand rest))
-(define-macro (directives . rest) (bigloo#directives-expand rest))
-(define-macro (define-generic . rest) (bigloo#define-generic-expand rest))
-(define-macro (define-method . rest) (bigloo#define-method-expand rest))
-(define-macro (args-parse . rest) (bigloo#args-parse-expand rest))
-(define-macro (bind-exit . rest) (bigloo#bind-exit-expand rest))
-(define-macro (with-handler . rest) (bigloo#with-handler-expand rest))
-(define-macro (match-case . rest) (bigloo#match-case-expand rest))
-(define-macro (unwind-protect . rest) (bigloo#unwind-protect-expand rest))
+(define-macro (define-inline . rest)
+  `(define ,@rest))
+
+(define-macro (module . rest)
+  (##import bigloo/bigloo-expand)
+  (bigloo#module-expand rest))
+
+(define-macro (directives . rest)
+  (##import bigloo/bigloo-expand)
+  (bigloo#directives-expand rest))
+
+(define-macro (define-generic . rest)
+  (##import bigloo/bigloo-expand)
+  (bigloo#define-generic-expand rest))
+
+(define-macro (define-method . rest)
+  (##import bigloo/bigloo-expand)
+  (bigloo#define-method-expand rest))
+
+(define-macro (args-parse . rest)
+  (##import bigloo/bigloo-expand)
+  (bigloo#args-parse-expand rest))
+
+(define-macro (bind-exit . rest)
+  (##import bigloo/bigloo-expand)
+  (bigloo#bind-exit-expand rest))
+
+(define-macro (with-handler . rest)
+  (##import bigloo/bigloo-expand)
+  (bigloo#with-handler-expand rest))
+
+(define-macro (match-case . rest)
+  (##import bigloo/bigloo-expand)
+  (bigloo#match-case-expand rest))
+
+(define-macro (unwind-protect . rest)
+  (##import bigloo/bigloo-expand)
+  (bigloo#unwind-protect-expand rest))

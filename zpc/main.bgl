@@ -73,10 +73,14 @@
 ;*    absolute ...                                                     */
 ;*---------------------------------------------------------------------*/
 (define (absolute path)
-   (file-name-canonicalize
+  (cond-expand
+    (bigloo
+     (file-name-canonicalize
       (if (char=? (string-ref path 0) #\/)
 	  path
 	  (make-file-name (pwd) path))))
+    (gambit
+     (path-normalize path))))
 
 ;*---------------------------------------------------------------------*/
 ;*    usage ...                                                        */

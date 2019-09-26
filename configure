@@ -30,12 +30,14 @@ fi
 version="0.0.1"
 
 etcdir=$prefix/etc
+rtsdir=$prefix/rts
 bindir=$prefix/bin
 libdir=$prefix/lib
 
 buildlibdir=$PWD/lib/zipi/$version
 buildbindir=$PWD/bin
 buildetcdir=$PWD/etc
+buildrtsdir=$PWD/rts
 
 install="install -m a+r,u+r"
 
@@ -52,10 +54,14 @@ while : ; do
       bindir=$prefix/bin;
       libdir=$prefix/lib;
       etcdir=$prefix/etc;
+      rtsdir=$prefix/rts;
       ;;
 
     --etcdir=*)
       etcdir="`echo $1 | sed 's/^[^=]*=//'`";;
+
+    --rtsdir=*)
+      rtsdir="`echo $1 | sed 's/^[^=]*=//'`";;
 
     --bindir=*)
       bindir="`echo $1 | sed 's/^[^=]*=//'`";;
@@ -97,6 +103,7 @@ while : ; do
       echo "Path:" >&2;
       echo "   --prefix=dir................ prefix to Zipi install" >&2;
       echo "   --etcdir=dir................ Zipi etc directory" >&2;
+      echo "   --rtsdir=dir................ Zipi rts directory" >&2;
       echo "   --bindir=dir................ alternative Zipi bin directory" >&2;
       echo "   --libdir=dir................ alternative Zipi lib directory" >&2;
       echo "" >&2;
@@ -200,10 +207,12 @@ for file in Makefile.zipiconfig configure.scm; do
           -e "s|@LIBDIR@|$libdir|" \
           -e "s|@PREFIX@|$prefix|" \
           -e "s|@ETCDIR@|$etcdir|" \
+          -e "s|@RTSDIR@|$rtsdir|" \
           -e "s|@BUILDID@|$buildid|" \
           -e "s|@BUILDTAG@|$buildtag|" \
           -e "s|@BUILDDIR@|$PWD|" \
           -e "s|@BUILDETCDIR@|$buildetcdir|" \
+          -e "s|@BUILDRTSDIR@|$buildrtsdir|" \
           -e "s|@BUILDLIBDIR@|$buildlibdir|" \
           -e "s|@BUILDBINDIR@|$buildbindir|" \
           -e "s|@BIGLOO@|$bigloo|" \

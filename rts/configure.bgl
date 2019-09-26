@@ -16,4 +16,5 @@
    (export (zipi-release)
 	   (zipi-bin-dir)
 	   (zipi-lib-dir)
-	   (zipi-etc-dir)))
+	   (zipi-etc-dir)
+	   (zipi-rts-dir)))

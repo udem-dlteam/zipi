@@ -23,12 +23,12 @@
        (new-PycModule loc "???"
 	 (cons
 	  (new-PycDeclInit loc '__name__ scope
-	    (new-PycString loc (config-get conf 'module "foo")))
+	    (new-PycString loc (config-get conf name: "<unknown name>")))
           (cons
   	   (new-PycDeclInit loc '__file__ scope
-	     (new-PycString loc (config-get conf 'source "/bar/foo.py")))
+	     (new-PycString loc (config-get conf file: "<unknown file>")))
 	   (compile* loc body #t 'global conf)))))
-      
+
       ;; stmt
       ((FunctionDef ?loc ?id ?args ?body ?decorator_list ?returns . ?type_comment)
        ;; FunctionDef(identifier name, arguments args,
