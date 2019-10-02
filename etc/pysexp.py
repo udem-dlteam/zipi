@@ -20,8 +20,8 @@ if not hasattr(AST, 'JoinedStr'):
     AST.JoinedStr = dummyClass
 if not hasattr(AST, 'Constant'):
     AST.Constant = dummyClass
-    
-    
+
+
 def pretty_print(source):
     if python35:
         return source
@@ -734,7 +734,7 @@ def cvt_expr(ast):
     elif isinstance(ast, AST.NameConstant):
         return ('(' + node_kind(ast, 'Constant') +
                 ' ' + cvt_constant(ast.value) +
-                ' #f' + 
+                ' #f' +
                 ')')
     else:
         print(ast)

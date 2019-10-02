@@ -374,7 +374,7 @@
            (if (eq? getitem py-absent)
                (error "getitem" "only object with __getitem__ method implemented" i)
                (py-call2 getitem obj i))))))
-         
+
 
 (define (py-setitem obj i val cache)
   (cond ((eq? py-tuple-class (py-obj-cls obj))
@@ -501,6 +501,7 @@
 		   (& "StopIteration")
 		   (& "ZeroDivisionError")
 		   (& "NameError")
+       (& "AttributeError")
 		   )
 	   '()))))
 
@@ -577,7 +578,8 @@
     (PyObject-elements-set! mod 71 py-builtin-__import__)
     (PyObject-elements-set! mod 72 py-builtin-StopIteration)
     (PyObject-elements-set! mod 73 py-builtin-ZeroDivisionError)
-    (PyObject-elements-set! mod 73 py-builtin-NameError)
+    (PyObject-elements-set! mod 74 py-builtin-NameError)
+    (PyObject-elements-set! mod 75 py-builtin-AttributeError)
 
     mod))
 
@@ -638,7 +640,7 @@
     (PyObject-elements-set! mod 3 (py-make-dict '() '()))
 
     mod))
-	  
+
 (define (py-sys-mod)
   (unless sys-mod
     (set! sys-mod (py-make-sys-mod)))
@@ -2541,7 +2543,8 @@
   (py-procedure->function
    (lambda rest (error "hasattr" "unimplemented generic procedure for builtin" #f))
    (lambda (object name)
-     (error "hasattr" "not implemented" #f))))
+     (let ((val (py-attr-ref object name)))
+       (not (eq? val py-absent))))))
 
 ;;-------------------- hash(object)
 
@@ -3776,3 +3779,8 @@
 
 (define py-builtin-NameError
   'NameError) ;; TODO: replace with actual PyObject
+
+  ;;-------------------- AttributeError
+
+  (define py-builtin-AttributeError
+    'AttributeError) ;; TODO: replace with actual PyObject

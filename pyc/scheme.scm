@@ -4,6 +4,12 @@
       (PycModule-caches-set! ast (cell-ref cnt))
       (list (scheme ast conf))))
 
+(define (my-gensym sym)
+    (let ((i gensym-count))
+      (set! gensym-count (+ i 1))
+      (string->symbol (string-append "$" (symbol->string sym) "_" (number->string i)))))
+(define gensym-count 0)
+
 ;* (define (pyc-scheme-eval ast conf)                                  */
 ;*    (let ((def (PycNode-%info ast)))                                 */
 ;*       (when (>= (config-get conf 'verbose 0) 1)                     */
@@ -12,7 +18,7 @@
 
 (define (pyc-scheme-bigloo ast conf)
    (let ((prog (pyc-scheme ast conf)))
-      (list 
+      (list
 	 `(module ,(string->symbol (or (config-get conf src:) "__stdin"))
 	     (library zipi)
 	     ,@(if (config-get conf main:) '((main main)) '()))
@@ -114,7 +120,7 @@
 (define-walk-method (scheme this::PycWhile conf)
 
    (define (scheme-while this)
-      (let ((loop (gensym '%while)))
+      (let ((loop (my-gensym '%while)))
 	 (epairify this
 	    (if (PycLoop-need-continue this)
 		`(let ,loop ()
@@ -126,7 +132,7 @@
 		      (when ,(pyc-test (PycWhile-test this) conf)
 			 ,(scheme (PycLoop-body this) conf)
 			 (,loop)))))))
-   
+
    (cond
       ((PycLoop-need-break this)
        (epairify this
@@ -146,11 +152,11 @@
 (define-walk-method (scheme this::PycFor conf)
 
    (define (scheme-for this)
-      (let ((loop (gensym '%for))
-	    (target (gensym '%target))
-	    (iterable (gensym '%iterable))
-	    (iterator (gensym '%iterator))
-	    (next (gensym '%next)))
+      (let ((loop (my-gensym '%for))
+	    (target (my-gensym '%target))
+	    (iterable (my-gensym '%iterable))
+	    (iterator (my-gensym '%iterator))
+	    (next (my-gensym '%next)))
 	 (epairify this
 	    `(let* ((,iterable ,(scheme (PycFor-iter this) conf))
 		    (,iterator (py-call1
@@ -172,7 +178,7 @@
 				    ,(scheme (PycLoop-body this) conf))
 				(scheme (PycLoop-body this) conf))
 			   (,loop))))))))
-   
+
    (cond
       ((PycLoop-need-break this)
        (epairify this
@@ -202,7 +208,7 @@
 	     ,(scheme (PycWith-body this) conf)))))
 
 (define-walk-method (scheme this::PycTry conf)
-   
+
    (define (scheme-try this conf)
       `(with-handler
 	  (lambda (%exn)
@@ -214,7 +220,7 @@
 	       `(begin
 		   ,(scheme (PycTry-body this) conf)
 		   ,(scheme (PycTry-else this) conf)))))
-   
+
    (epairify this
       (if (isa? (PycTry-finally this) PycPass)
 	  (scheme-try this conf)
@@ -232,7 +238,7 @@
 	     #t
 	     `(isa? %exn ,(scheme (PycHandler-type this) conf)))
 	,(scheme (PycHandler-body this) conf))))
-			
+
 (define-walk-method (scheme this::PycPass conf)
    #f)
 
@@ -324,7 +330,7 @@
 	  (scheme assig conf)))
       ((isa? (PycAssig-lhs this) PycAccess)
        (let* ((loc (PycNode-loc this))
-	      (%o (gensym '%o))
+	      (%o (my-gensym '%o))
 	      (lhs (PycAssig-lhs this))
 	      (field (PycAccess-field lhs))
 	      (assig (new-PycAssig loc
@@ -343,8 +349,8 @@
 		 ,(scheme assig conf)))))
       (else
        (let* ((loc (PycNode-loc this))
-	      (%o (gensym '%o))
-	      (%i (gensym '%i))
+	      (%o (my-gensym '%o))
+	      (%i (my-gensym '%i))
 	      (lhs (PycAssig-lhs this))
 	      (obj (PycSubscript-obj lhs))
 	      (index (PycSubscript-index lhs))
@@ -398,7 +404,7 @@
 	,(scheme-cache (PycUnary-cache this) this))))
 
 (define-walk-method (scheme this::PycFun conf)
-   
+
    (define (generator this::PycFun exp)
       (if (PycFun-generator this)
 	  (epairify this
@@ -413,7 +419,7 @@
 			      (append (PycFun-args fun) (PycFun-decls fun)))))
 	      ,body)
 	  body))
-   
+
    (let ((args (map (lambda (a) (scheme a conf)) (PycFun-args this)))
 	 (body (locals this (scheme (PycFun-body this) (cons* fun: this conf)))))
       (epairify this
@@ -434,7 +440,7 @@
 			      `((& ,(symbol->string (PycDecl-id decl)))
 				,(scheme-decl decl conf)))
 		  (PycClass-decls this)))))
-				  
+
    (let ((body (scheme (PycClass-body this) conf)))
       (epairify this
 	 (match-case body
@@ -453,7 +459,7 @@
 (define-walk-method (scheme this::PycCall conf)
 
    (define (invoke-maybe-locals fun)
-      (let ((f (gensym '%f))
+      (let ((f (my-gensym '%f))
 	    (caller (config-get conf fun:)))
 	 `(let ((,f ,fun))
 	     ,(if caller
@@ -466,7 +472,7 @@
 		  `(if (eq? ,f py-builtin-globals)
 		       (py-builtin-globals)
 		       (py-call0 ,f))))))
-   
+
    (define (invoke fun args)
       (case (length args)
 	 ((0) `(py-call0 ,fun ,@args)) ;; (invoke-maybe-locals fun))
@@ -479,7 +485,7 @@
       (cond
 	 ((isa? fun PycAccess)
 	  ;; method call
-	  (let ((obj (gensym '%obj)))
+	  (let ((obj (my-gensym '%obj)))
 	     (epairify this
 		`(let ((,obj ,(scheme (PycAccess-obj fun) conf)))
 		    ,(invoke `(object-get ,obj
@@ -575,7 +581,7 @@
       (let ((n (cell-ref cnt)))
 	 (cell-set! cnt (+ 1 n))
 	 (PycDeclInit-cache-set! this n))))
-      
+
 (define-walk-method (collect-caches this::PycRef cnt)
    (when (eq? (PycDecl-scope (PycRef-decl this)) 'global)
       (let ((n (cell-ref cnt)))
@@ -625,5 +631,3 @@
 	 (cell-set! cnt (+ 1 m))
 	 (PycFor-cachei-set! this n)
 	 (PycFor-cachen-set! this m))))
-	  
-   
