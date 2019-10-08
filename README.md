@@ -7,7 +7,7 @@ A fast Python implementation.
 To compile with Zipi for Gambit
 
 ```
-# Add Zipi to your PATH
+# Add Gambit to your PATH
 export PATH=/usr/local/Gambit/bin:$PATH
 
 # Compile with py19 for Gambit
