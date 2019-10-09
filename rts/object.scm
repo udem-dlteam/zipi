@@ -163,7 +163,10 @@
        (error "call4" "wrong call" fun)))
 
 (define (py-throw exc)
-   (raise exc))
+   (cond ((and #f #f) ('tmp))
+         ((and #f #f) ('foo))
+         (else (raise py-builtin-ValueError))))
+
 
 (define (py-make-caches size)
    (list->vector
@@ -498,10 +501,12 @@
 		   (& "vars")
 		   (& "zip")
 		   (& "__import__")
+       (& "BaseException")
 		   (& "StopIteration")
 		   (& "ZeroDivisionError")
 		   (& "NameError")
        (& "AttributeError")
+       (& "ValueError")
 		   )
 	   '()))))
 
@@ -576,11 +581,12 @@
     (PyObject-elements-set! mod 69 py-builtin-vars)
     (PyObject-elements-set! mod 70 py-builtin-zip)
     (PyObject-elements-set! mod 71 py-builtin-__import__)
-    (PyObject-elements-set! mod 72 py-builtin-StopIteration)
-    (PyObject-elements-set! mod 73 py-builtin-ZeroDivisionError)
-    (PyObject-elements-set! mod 74 py-builtin-NameError)
-    (PyObject-elements-set! mod 75 py-builtin-AttributeError)
-
+    (PyObject-elements-set! mod 72 py-builtin-BaseException)
+    (PyObject-elements-set! mod 73 py-builtin-StopIteration)
+    (PyObject-elements-set! mod 74 py-builtin-ZeroDivisionError)
+    (PyObject-elements-set! mod 75 py-builtin-NameError)
+    (PyObject-elements-set! mod 76 py-builtin-AttributeError)
+    (PyObject-elements-set! mod 77 py-builtin-ValueError)
     mod))
 
 (define (py-builtins-mod)
@@ -3765,6 +3771,17 @@
    (lambda (name globals locals fromlist level)
      (error "__import__" "not implemented" #f))))
 
+;;-------------------- BaseException
+
+;; The base exception cannot be created in pure Python
+;; All exception must inherit from it to be considered an exception
+
+(define py-builtin-BaseException
+  (py-make-class
+    (& "BaseException")
+    (& "builtins")
+    '()))
+
 ;;-------------------- StopIteration
 
 (define py-builtin-StopIteration
@@ -3780,7 +3797,12 @@
 (define py-builtin-NameError
   'NameError) ;; TODO: replace with actual PyObject
 
-  ;;-------------------- AttributeError
+;;-------------------- AttributeError
 
-  (define py-builtin-AttributeError
-    'AttributeError) ;; TODO: replace with actual PyObject
+(define py-builtin-AttributeError
+  'AttributeError) ;; TODO: replace with actual PyObject
+
+;;-------------------- ValueError
+
+(define py-builtin-ValueError
+  'ValueError) ;; TODO: replace with actual PyObject
