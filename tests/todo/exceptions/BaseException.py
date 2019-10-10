@@ -5,3 +5,5 @@ raise BaseException
 
 class MyException(BaseException):
     pass
+
+MyException()

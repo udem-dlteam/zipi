@@ -162,11 +162,22 @@
        ((PyFunction-procedure fun) a0 a1 a2 a3)
        (error "call4" "wrong call" fun)))
 
-(define (py-throw exc)
-   (cond ((and #f #f) ('tmp))
-         ((and #f #f) ('foo))
-         (else (raise py-builtin-ValueError))))
+(define (py-is-in-mro? target mro)
+  (let loop ((i 0))
+    (and (< i (vector-length mro))
+         (let* ((cls (vector-ref mro i)))
+           (or (eq? cls target)
+               (loop (+ i 1)))))))
 
+(define (py-throw exc)
+  (cond ((not (PyObject? exc))
+         (raise py-builtin-ValueError))
+        ((py-is-in-mro? py-builtin-BaseException (py-obj-mro exc))
+         (raise exc))
+        ((py-is-in-mro? py-builtin-BaseException (py-cls-mro exc))
+         (raise (py-call0 exc)))
+        (else
+         (raise py-builtin-ValueError))))
 
 (define (py-make-caches size)
    (list->vector
@@ -591,7 +602,9 @@
 
 (define (py-builtins-mod)
   (unless builtins-mod
+    ;; begin
     (set! builtins-mod (py-make-builtins-mod)))
+    ;; bootstrap builtins
   builtins-mod)
 
 (define time-mod #f)
