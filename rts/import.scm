@@ -4,6 +4,35 @@
 (define py-import-cache2 (make-PCache -1 -1))
 (define py-import-cache3 (make-PCache -1 -1))
 
+;  +----------------------+     fallback for
+;  |                      |     sys time and builtins
+;  | py-import path depth +----------+
+;  |                      |          v
+;  +---------+------------+       +---+--------------------+
+;            |                    |                        |returns pre-built
+;            |                    | py-import-builtin path |Scheme modules
+;            |   if not in cache  |                        |
+;            | +---------------+  +------------------------+
+;            | |               |
+;  +---------v-+-----------+   |
+;  |                       |   |              from here we will compile .py
+;  | py-import-from-sysmod |   |       +----------------------------------+
+;  | sysmod key path       |   +-------+                                  |
+;  |                       |           | py-import-module sysmod key path |
+;  +-----------------------+           |                                  |
+;      looks at cache                  +----------------+-----------------+
+;                                                       |
+;     +------------+                 +------------------v--------------------+
+;     |            |                 |                                       |
+;     | loadv file +<-------------------compile-to-scheme root source target |
+;     |            |                 |                                       |
+;     +------------+                 +---------------------------------------+
+;      loads the file                  This compiles .py requires env ZIPIROOT
+;                                      to be set otherwise it fallback on ..
+;
+;                                      Calls py19 -t gambit
+;                                      --no-main -d root source > target
+
 (define (py-import path depth)
    ;; (tprint "py-import root=" py-import-root " path=" path)
    (let ((sysmod (object-get-no-cache (py-sys-mod) (& "modules"))))
@@ -53,7 +82,7 @@
          (py-sys-mod))
         (else
          #f)))
-   
+
 (define (sysmod-add-entry! sysmod key mod)
    (py-setitem sysmod key mod py-import-cache3)
    mod)
@@ -95,4 +124,3 @@
             (PyObject-elements-set! mod 3 (py-str-from-scheme path))
             (sysmod-add-entry! sysmod key mod)
             mod))))
-                    
