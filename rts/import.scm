@@ -24,7 +24,7 @@
 ;                                                       |
 ;     +------------+                 +------------------v--------------------+
 ;     |            |                 |                                       |
-;     | loadv file +<-------------------compile-to-scheme root source target |
+;     | loadv file +<----------------|  compile-to-scheme root source target |
 ;     |            |                 |                                       |
 ;     +------------+                 +---------------------------------------+
 ;      loads the file                  This compiles .py requires env ZIPIROOT
