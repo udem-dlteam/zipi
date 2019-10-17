@@ -15,9 +15,9 @@
 (module zpc
 
    (import zpc_configure)
-   
+
    (library pyc)
-   
+
    (main main))
 
 ;*---------------------------------------------------------------------*/
@@ -45,6 +45,8 @@
 	  (set! dest path))
 	 ((("--py-module-main") (help "Generate a main module clause"))
 	  (set! main #t))
+   ((("-n" "--no-main") (help "Donot generate main entry point"))
+    (set! main #f))
 	 ((("--no-py-module-main") (help "Do not generate a main module clause"))
 	  (set! main #f))
 	 (("-v?level" (help "Increase/set verbosity level (-v0 crystal silence)"))
@@ -94,4 +96,3 @@
    (print "   - PYTRACE: hop internal trace [PYTRACE=\"key1, key2, ...\"]")
    (print "      pyc:dump")
    (newline))
-
