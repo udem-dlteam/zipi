@@ -13,26 +13,354 @@
      (vector-ref %caches 1))
     (global-put!
      %global
-     (& "print")
-     (make-PyFunction
-      (PyFunction-default-hclass)
-      '#()
-      (lambda (obj3)
-        (begin
-          (py-call1
-           (global-get %global (& "__base_print") (vector-ref %caches 2))
-           obj3))))
+     (& "__import__")
+     (global-get %global (& "__base___import__") (vector-ref %caches 2))
      (vector-ref %caches 3))
     (global-put!
      %global
-     (& "f")
-     (make-PyFunction (PyFunction-default-hclass) '#() (lambda () (begin #f)))
-     (vector-ref %caches 4))
+     (& "abs")
+     (global-get %global (& "__base_abs") (vector-ref %caches 4))
+     (vector-ref %caches 5))
+    (global-put!
+     %global
+     (& "all")
+     (global-get %global (& "__base_all") (vector-ref %caches 6))
+     (vector-ref %caches 7))
+    (global-put!
+     %global
+     (& "any")
+     (global-get %global (& "__base_any") (vector-ref %caches 8))
+     (vector-ref %caches 9))
+    (global-put!
+     %global
+     (& "ascii")
+     (global-get %global (& "__base_ascii") (vector-ref %caches 10))
+     (vector-ref %caches 11))
+    (global-put!
+     %global
+     (& "bin")
+     (global-get %global (& "__base_bin") (vector-ref %caches 12))
+     (vector-ref %caches 13))
+    (global-put!
+     %global
+     (& "bool")
+     (global-get %global (& "__base_bool") (vector-ref %caches 14))
+     (vector-ref %caches 15))
+    (global-put!
+     %global
+     (& "breakpoint")
+     (global-get %global (& "__base_breakpoint") (vector-ref %caches 16))
+     (vector-ref %caches 17))
+    (global-put!
+     %global
+     (& "bytearray")
+     (global-get %global (& "__base_bytearray") (vector-ref %caches 18))
+     (vector-ref %caches 19))
+    (global-put!
+     %global
+     (& "bytes")
+     (global-get %global (& "__base_bytes") (vector-ref %caches 20))
+     (vector-ref %caches 21))
+    (global-put!
+     %global
+     (& "callable")
+     (global-get %global (& "__base_callable") (vector-ref %caches 22))
+     (vector-ref %caches 23))
+    (global-put!
+     %global
+     (& "chr")
+     (global-get %global (& "__base_chr") (vector-ref %caches 24))
+     (vector-ref %caches 25))
+    (global-put!
+     %global
+     (& "classmethod")
+     (global-get %global (& "__base_classmethod") (vector-ref %caches 26))
+     (vector-ref %caches 27))
+    (global-put!
+     %global
+     (& "compile")
+     (global-get %global (& "__base_compile") (vector-ref %caches 28))
+     (vector-ref %caches 29))
+    (global-put!
+     %global
+     (& "complex")
+     (global-get %global (& "__base_complex") (vector-ref %caches 30))
+     (vector-ref %caches 31))
+    (global-put!
+     %global
+     (& "delattr")
+     (global-get %global (& "__base_delattr") (vector-ref %caches 32))
+     (vector-ref %caches 33))
+    (global-put!
+     %global
+     (& "dict")
+     (global-get %global (& "__base_dict") (vector-ref %caches 34))
+     (vector-ref %caches 35))
+    (global-put!
+     %global
+     (& "dir")
+     (global-get %global (& "__base_dir") (vector-ref %caches 36))
+     (vector-ref %caches 37))
+    (global-put!
+     %global
+     (& "divmod")
+     (global-get %global (& "__base_divmod") (vector-ref %caches 38))
+     (vector-ref %caches 39))
+    (global-put!
+     %global
+     (& "enumerate")
+     (global-get %global (& "__base_enumerate") (vector-ref %caches 40))
+     (vector-ref %caches 41))
+    (global-put!
+     %global
+     (& "eval")
+     (global-get %global (& "__base_eval") (vector-ref %caches 42))
+     (vector-ref %caches 43))
+    (global-put!
+     %global
+     (& "exec")
+     (global-get %global (& "__base_exec") (vector-ref %caches 44))
+     (vector-ref %caches 45))
+    (global-put!
+     %global
+     (& "filter")
+     (global-get %global (& "__base_filter") (vector-ref %caches 46))
+     (vector-ref %caches 47))
+    (global-put!
+     %global
+     (& "float")
+     (global-get %global (& "__base_float") (vector-ref %caches 48))
+     (vector-ref %caches 49))
+    (global-put!
+     %global
+     (& "format")
+     (global-get %global (& "__base_format") (vector-ref %caches 50))
+     (vector-ref %caches 51))
+    (global-put!
+     %global
+     (& "frozenset")
+     (global-get %global (& "__base_frozenset") (vector-ref %caches 52))
+     (vector-ref %caches 53))
+    (global-put!
+     %global
+     (& "getattr")
+     (global-get %global (& "__base_getattr") (vector-ref %caches 54))
+     (vector-ref %caches 55))
+    (global-put!
+     %global
+     (& "globals")
+     (global-get %global (& "__base_globals") (vector-ref %caches 56))
+     (vector-ref %caches 57))
+    (global-put!
+     %global
+     (& "hasattr")
+     (global-get %global (& "__base_hasattr") (vector-ref %caches 58))
+     (vector-ref %caches 59))
+    (global-put!
+     %global
+     (& "hash")
+     (global-get %global (& "__base_hash") (vector-ref %caches 60))
+     (vector-ref %caches 61))
+    (global-put!
+     %global
+     (& "help")
+     (global-get %global (& "__base_help") (vector-ref %caches 62))
+     (vector-ref %caches 63))
+    (global-put!
+     %global
+     (& "hex")
+     (global-get %global (& "__base_hex") (vector-ref %caches 64))
+     (vector-ref %caches 65))
+    (global-put!
+     %global
+     (& "id")
+     (global-get %global (& "__base_id") (vector-ref %caches 66))
+     (vector-ref %caches 67))
+    (global-put!
+     %global
+     (& "input")
+     (global-get %global (& "__base_input") (vector-ref %caches 68))
+     (vector-ref %caches 69))
+    (global-put!
+     %global
+     (& "int")
+     (global-get %global (& "__base_int") (vector-ref %caches 70))
+     (vector-ref %caches 71))
+    (global-put!
+     %global
+     (& "isinstance")
+     (global-get %global (& "__base_isinstance") (vector-ref %caches 72))
+     (vector-ref %caches 73))
+    (global-put!
+     %global
+     (& "issubclass")
+     (global-get %global (& "__base_issubclass") (vector-ref %caches 74))
+     (vector-ref %caches 75))
+    (global-put!
+     %global
+     (& "iter")
+     (global-get %global (& "__base_iter") (vector-ref %caches 76))
+     (vector-ref %caches 77))
+    (global-put!
+     %global
+     (& "len")
+     (global-get %global (& "__base_len") (vector-ref %caches 78))
+     (vector-ref %caches 79))
+    (global-put!
+     %global
+     (& "list")
+     (global-get %global (& "__base_list") (vector-ref %caches 80))
+     (vector-ref %caches 81))
+    (global-put!
+     %global
+     (& "locals")
+     (global-get %global (& "__base_locals") (vector-ref %caches 82))
+     (vector-ref %caches 83))
+    (global-put!
+     %global
+     (& "map")
+     (global-get %global (& "__base_map") (vector-ref %caches 84))
+     (vector-ref %caches 85))
+    (global-put!
+     %global
+     (& "max")
+     (global-get %global (& "__base_max") (vector-ref %caches 86))
+     (vector-ref %caches 87))
+    (global-put!
+     %global
+     (& "memoryview")
+     (global-get %global (& "__base_memoryview") (vector-ref %caches 88))
+     (vector-ref %caches 89))
+    (global-put!
+     %global
+     (& "min")
+     (global-get %global (& "__base_min") (vector-ref %caches 90))
+     (vector-ref %caches 91))
+    (global-put!
+     %global
+     (& "next")
+     (global-get %global (& "__base_next") (vector-ref %caches 92))
+     (vector-ref %caches 93))
+    (global-put!
+     %global
+     (& "object")
+     (global-get %global (& "__base_object") (vector-ref %caches 94))
+     (vector-ref %caches 95))
+    (global-put!
+     %global
+     (& "oct")
+     (global-get %global (& "__base_oct") (vector-ref %caches 96))
+     (vector-ref %caches 97))
+    (global-put!
+     %global
+     (& "open")
+     (global-get %global (& "__base_open") (vector-ref %caches 98))
+     (vector-ref %caches 99))
+    (global-put!
+     %global
+     (& "ord")
+     (global-get %global (& "__base_ord") (vector-ref %caches 100))
+     (vector-ref %caches 101))
+    (global-put!
+     %global
+     (& "pow")
+     (global-get %global (& "__base_pow") (vector-ref %caches 102))
+     (vector-ref %caches 103))
+    (global-put!
+     %global
+     (& "print")
+     (global-get %global (& "__base_print") (vector-ref %caches 104))
+     (vector-ref %caches 105))
+    (global-put!
+     %global
+     (& "property")
+     (global-get %global (& "__base_property") (vector-ref %caches 106))
+     (vector-ref %caches 107))
+    (global-put!
+     %global
+     (& "range")
+     (global-get %global (& "__base_range") (vector-ref %caches 108))
+     (vector-ref %caches 109))
+    (global-put!
+     %global
+     (& "repr")
+     (global-get %global (& "__base_repr") (vector-ref %caches 110))
+     (vector-ref %caches 111))
+    (global-put!
+     %global
+     (& "reversed")
+     (global-get %global (& "__base_reversed") (vector-ref %caches 112))
+     (vector-ref %caches 113))
+    (global-put!
+     %global
+     (& "round")
+     (global-get %global (& "__base_round") (vector-ref %caches 114))
+     (vector-ref %caches 115))
+    (global-put!
+     %global
+     (& "set")
+     (global-get %global (& "__base_set") (vector-ref %caches 116))
+     (vector-ref %caches 117))
+    (global-put!
+     %global
+     (& "setattr")
+     (global-get %global (& "__base_setattr") (vector-ref %caches 118))
+     (vector-ref %caches 119))
+    (global-put!
+     %global
+     (& "slice")
+     (global-get %global (& "__base_slice") (vector-ref %caches 120))
+     (vector-ref %caches 121))
+    (global-put!
+     %global
+     (& "sorted")
+     (global-get %global (& "__base_sorted") (vector-ref %caches 122))
+     (vector-ref %caches 123))
+    (global-put!
+     %global
+     (& "staticmethod")
+     (global-get %global (& "__base_staticmethod") (vector-ref %caches 124))
+     (vector-ref %caches 125))
+    (global-put!
+     %global
+     (& "str")
+     (global-get %global (& "__base_str") (vector-ref %caches 126))
+     (vector-ref %caches 127))
+    (global-put!
+     %global
+     (& "sum")
+     (global-get %global (& "__base_sum") (vector-ref %caches 128))
+     (vector-ref %caches 129))
+    (global-put!
+     %global
+     (& "super")
+     (global-get %global (& "__base_super") (vector-ref %caches 130))
+     (vector-ref %caches 131))
+    (global-put!
+     %global
+     (& "tuple")
+     (global-get %global (& "__base_tuple") (vector-ref %caches 132))
+     (vector-ref %caches 133))
+    (global-put!
+     %global
+     (& "type")
+     (global-get %global (& "__base_type") (vector-ref %caches 134))
+     (vector-ref %caches 135))
+    (global-put!
+     %global
+     (& "vars")
+     (global-get %global (& "__base_vars") (vector-ref %caches 136))
+     (vector-ref %caches 137))
+    (global-put!
+     %global
+     (& "zip")
+     (global-get %global (& "__base_zip") (vector-ref %caches 138))
+     (vector-ref %caches 139))
     (global-put!
      %global
      (& "BaseException")
-     (global-get %global (& "BaseException") (vector-ref %caches 5))
-     (vector-ref %caches 6))
+     (global-get %global (& "BaseException") (vector-ref %caches 140))
+     (vector-ref %caches 141))
     (global-put!
      %global
      (& "Exception")
@@ -44,8 +372,8 @@
         (list (global-get
                %global
                (& "BaseException")
-               (vector-ref %caches 7)))))
-     (vector-ref %caches 8))
+               (vector-ref %caches 142)))))
+     (vector-ref %caches 143))
     (global-put!
      %global
      (& "GeneratorExit")
@@ -57,8 +385,8 @@
         (list (global-get
                %global
                (& "BaseException")
-               (vector-ref %caches 9)))))
-     (vector-ref %caches 10))
+               (vector-ref %caches 144)))))
+     (vector-ref %caches 145))
     (global-put!
      %global
      (& "KeyboardInterrupt")
@@ -70,8 +398,8 @@
         (list (global-get
                %global
                (& "BaseException")
-               (vector-ref %caches 11)))))
-     (vector-ref %caches 12))
+               (vector-ref %caches 146)))))
+     (vector-ref %caches 147))
     (global-put!
      %global
      (& "SystemExit")
@@ -83,8 +411,8 @@
         (list (global-get
                %global
                (& "BaseException")
-               (vector-ref %caches 13)))))
-     (vector-ref %caches 14))
+               (vector-ref %caches 148)))))
+     (vector-ref %caches 149))
     (global-put!
      %global
      (& "ArithmeticError")
@@ -93,8 +421,8 @@
        (py-make-class
         (& "ArithmeticError")
         (& "__main__")
-        (list (global-get %global (& "Exception") (vector-ref %caches 15)))))
-     (vector-ref %caches 16))
+        (list (global-get %global (& "Exception") (vector-ref %caches 150)))))
+     (vector-ref %caches 151))
     (global-put!
      %global
      (& "AssertionError")
@@ -103,8 +431,8 @@
        (py-make-class
         (& "AssertionError")
         (& "__main__")
-        (list (global-get %global (& "Exception") (vector-ref %caches 17)))))
-     (vector-ref %caches 18))
+        (list (global-get %global (& "Exception") (vector-ref %caches 152)))))
+     (vector-ref %caches 153))
     (global-put!
      %global
      (& "AttributeError")
@@ -113,8 +441,8 @@
        (py-make-class
         (& "AttributeError")
         (& "__main__")
-        (list (global-get %global (& "Exception") (vector-ref %caches 19)))))
-     (vector-ref %caches 20))
+        (list (global-get %global (& "Exception") (vector-ref %caches 154)))))
+     (vector-ref %caches 155))
     (global-put!
      %global
      (& "BufferError")
@@ -123,8 +451,8 @@
        (py-make-class
         (& "BufferError")
         (& "__main__")
-        (list (global-get %global (& "Exception") (vector-ref %caches 21)))))
-     (vector-ref %caches 22))
+        (list (global-get %global (& "Exception") (vector-ref %caches 156)))))
+     (vector-ref %caches 157))
     (global-put!
      %global
      (& "EOFError")
@@ -133,8 +461,8 @@
        (py-make-class
         (& "EOFError")
         (& "__main__")
-        (list (global-get %global (& "Exception") (vector-ref %caches 23)))))
-     (vector-ref %caches 24))
+        (list (global-get %global (& "Exception") (vector-ref %caches 158)))))
+     (vector-ref %caches 159))
     (global-put!
      %global
      (& "ImportError")
@@ -143,8 +471,8 @@
        (py-make-class
         (& "ImportError")
         (& "__main__")
-        (list (global-get %global (& "Exception") (vector-ref %caches 25)))))
-     (vector-ref %caches 26))
+        (list (global-get %global (& "Exception") (vector-ref %caches 160)))))
+     (vector-ref %caches 161))
     (global-put!
      %global
      (& "LookupError")
@@ -153,8 +481,8 @@
        (py-make-class
         (& "LookupError")
         (& "__main__")
-        (list (global-get %global (& "Exception") (vector-ref %caches 27)))))
-     (vector-ref %caches 28))
+        (list (global-get %global (& "Exception") (vector-ref %caches 162)))))
+     (vector-ref %caches 163))
     (global-put!
      %global
      (& "MemoryError")
@@ -163,8 +491,8 @@
        (py-make-class
         (& "MemoryError")
         (& "__main__")
-        (list (global-get %global (& "Exception") (vector-ref %caches 29)))))
-     (vector-ref %caches 30))
+        (list (global-get %global (& "Exception") (vector-ref %caches 164)))))
+     (vector-ref %caches 165))
     (global-put!
      %global
      (& "NameError")
@@ -173,8 +501,8 @@
        (py-make-class
         (& "NameError")
         (& "__main__")
-        (list (global-get %global (& "Exception") (vector-ref %caches 31)))))
-     (vector-ref %caches 32))
+        (list (global-get %global (& "Exception") (vector-ref %caches 166)))))
+     (vector-ref %caches 167))
     (global-put!
      %global
      (& "EnvironmentError")
@@ -183,8 +511,8 @@
        (py-make-class
         (& "EnvironmentError")
         (& "__main__")
-        (list (global-get %global (& "Exception") (vector-ref %caches 33)))))
-     (vector-ref %caches 34))
+        (list (global-get %global (& "Exception") (vector-ref %caches 168)))))
+     (vector-ref %caches 169))
     (global-put!
      %global
      (& "IOError")
@@ -193,8 +521,8 @@
        (py-make-class
         (& "IOError")
         (& "__main__")
-        (list (global-get %global (& "Exception") (vector-ref %caches 35)))))
-     (vector-ref %caches 36))
+        (list (global-get %global (& "Exception") (vector-ref %caches 170)))))
+     (vector-ref %caches 171))
     (global-put!
      %global
      (& "OSError")
@@ -203,8 +531,8 @@
        (py-make-class
         (& "OSError")
         (& "__main__")
-        (list (global-get %global (& "Exception") (vector-ref %caches 37)))))
-     (vector-ref %caches 38))
+        (list (global-get %global (& "Exception") (vector-ref %caches 172)))))
+     (vector-ref %caches 173))
     (global-put!
      %global
      (& "WindowsError")
@@ -213,8 +541,8 @@
        (py-make-class
         (& "WindowsError")
         (& "__main__")
-        (list (global-get %global (& "Exception") (vector-ref %caches 39)))))
-     (vector-ref %caches 40))
+        (list (global-get %global (& "Exception") (vector-ref %caches 174)))))
+     (vector-ref %caches 175))
     (global-put!
      %global
      (& "ReferenceError")
@@ -223,8 +551,8 @@
        (py-make-class
         (& "ReferenceError")
         (& "__main__")
-        (list (global-get %global (& "Exception") (vector-ref %caches 41)))))
-     (vector-ref %caches 42))
+        (list (global-get %global (& "Exception") (vector-ref %caches 176)))))
+     (vector-ref %caches 177))
     (global-put!
      %global
      (& "RuntimeError")
@@ -233,8 +561,8 @@
        (py-make-class
         (& "RuntimeError")
         (& "__main__")
-        (list (global-get %global (& "Exception") (vector-ref %caches 43)))))
-     (vector-ref %caches 44))
+        (list (global-get %global (& "Exception") (vector-ref %caches 178)))))
+     (vector-ref %caches 179))
     (global-put!
      %global
      (& "StopAsyncIteration")
@@ -243,8 +571,8 @@
        (py-make-class
         (& "StopAsyncIteration")
         (& "__main__")
-        (list (global-get %global (& "Exception") (vector-ref %caches 45)))))
-     (vector-ref %caches 46))
+        (list (global-get %global (& "Exception") (vector-ref %caches 180)))))
+     (vector-ref %caches 181))
     (global-put!
      %global
      (& "StopIteration")
@@ -253,8 +581,8 @@
        (py-make-class
         (& "StopIteration")
         (& "__main__")
-        (list (global-get %global (& "Exception") (vector-ref %caches 47)))))
-     (vector-ref %caches 48))
+        (list (global-get %global (& "Exception") (vector-ref %caches 182)))))
+     (vector-ref %caches 183))
     (global-put!
      %global
      (& "SyntaxError")
@@ -263,8 +591,8 @@
        (py-make-class
         (& "SyntaxError")
         (& "__main__")
-        (list (global-get %global (& "Exception") (vector-ref %caches 49)))))
-     (vector-ref %caches 50))
+        (list (global-get %global (& "Exception") (vector-ref %caches 184)))))
+     (vector-ref %caches 185))
     (global-put!
      %global
      (& "SystemError")
@@ -273,8 +601,8 @@
        (py-make-class
         (& "SystemError")
         (& "__main__")
-        (list (global-get %global (& "Exception") (vector-ref %caches 51)))))
-     (vector-ref %caches 52))
+        (list (global-get %global (& "Exception") (vector-ref %caches 186)))))
+     (vector-ref %caches 187))
     (global-put!
      %global
      (& "TypeError")
@@ -283,8 +611,8 @@
        (py-make-class
         (& "TypeError")
         (& "__main__")
-        (list (global-get %global (& "Exception") (vector-ref %caches 53)))))
-     (vector-ref %caches 54))
+        (list (global-get %global (& "Exception") (vector-ref %caches 188)))))
+     (vector-ref %caches 189))
     (global-put!
      %global
      (& "ValueError")
@@ -293,8 +621,8 @@
        (py-make-class
         (& "ValueError")
         (& "__main__")
-        (list (global-get %global (& "Exception") (vector-ref %caches 55)))))
-     (vector-ref %caches 56))
+        (list (global-get %global (& "Exception") (vector-ref %caches 190)))))
+     (vector-ref %caches 191))
     (global-put!
      %global
      (& "Warning")
@@ -303,8 +631,8 @@
        (py-make-class
         (& "Warning")
         (& "__main__")
-        (list (global-get %global (& "Exception") (vector-ref %caches 57)))))
-     (vector-ref %caches 58))
+        (list (global-get %global (& "Exception") (vector-ref %caches 192)))))
+     (vector-ref %caches 193))
     (global-put!
      %global
      (& "FloatingPointError")
@@ -316,8 +644,8 @@
         (list (global-get
                %global
                (& "ArithmeticError")
-               (vector-ref %caches 59)))))
-     (vector-ref %caches 60))
+               (vector-ref %caches 194)))))
+     (vector-ref %caches 195))
     (global-put!
      %global
      (& "OverflowError")
@@ -329,8 +657,8 @@
         (list (global-get
                %global
                (& "ArithmeticError")
-               (vector-ref %caches 61)))))
-     (vector-ref %caches 62))
+               (vector-ref %caches 196)))))
+     (vector-ref %caches 197))
     (global-put!
      %global
      (& "ZeroDivisionError")
@@ -342,8 +670,8 @@
         (list (global-get
                %global
                (& "ArithmeticError")
-               (vector-ref %caches 63)))))
-     (vector-ref %caches 64))
+               (vector-ref %caches 198)))))
+     (vector-ref %caches 199))
     (global-put!
      %global
      (& "ModuleNotFoundError")
@@ -352,8 +680,11 @@
        (py-make-class
         (& "ModuleNotFoundError")
         (& "__main__")
-        (list (global-get %global (& "ImportError") (vector-ref %caches 65)))))
-     (vector-ref %caches 66))
+        (list (global-get
+               %global
+               (& "ImportError")
+               (vector-ref %caches 200)))))
+     (vector-ref %caches 201))
     (global-put!
      %global
      (& "IndexError")
@@ -362,8 +693,11 @@
        (py-make-class
         (& "IndexError")
         (& "__main__")
-        (list (global-get %global (& "LookupError") (vector-ref %caches 67)))))
-     (vector-ref %caches 68))
+        (list (global-get
+               %global
+               (& "LookupError")
+               (vector-ref %caches 202)))))
+     (vector-ref %caches 203))
     (global-put!
      %global
      (& "KeyError")
@@ -372,8 +706,11 @@
        (py-make-class
         (& "KeyError")
         (& "__main__")
-        (list (global-get %global (& "LookupError") (vector-ref %caches 69)))))
-     (vector-ref %caches 70))
+        (list (global-get
+               %global
+               (& "LookupError")
+               (vector-ref %caches 204)))))
+     (vector-ref %caches 205))
     (global-put!
      %global
      (& "UnboundLocalError")
@@ -382,8 +719,8 @@
        (py-make-class
         (& "UnboundLocalError")
         (& "__main__")
-        (list (global-get %global (& "NameError") (vector-ref %caches 71)))))
-     (vector-ref %caches 72))
+        (list (global-get %global (& "NameError") (vector-ref %caches 206)))))
+     (vector-ref %caches 207))
     (global-put!
      %global
      (& "BlockingIOError")
@@ -392,8 +729,8 @@
        (py-make-class
         (& "BlockingIOError")
         (& "__main__")
-        (list (global-get %global (& "OSError") (vector-ref %caches 73)))))
-     (vector-ref %caches 74))
+        (list (global-get %global (& "OSError") (vector-ref %caches 208)))))
+     (vector-ref %caches 209))
     (global-put!
      %global
      (& "ChildProcessError")
@@ -402,8 +739,8 @@
        (py-make-class
         (& "ChildProcessError")
         (& "__main__")
-        (list (global-get %global (& "OSError") (vector-ref %caches 75)))))
-     (vector-ref %caches 76))
+        (list (global-get %global (& "OSError") (vector-ref %caches 210)))))
+     (vector-ref %caches 211))
     (global-put!
      %global
      (& "ConnectionError")
@@ -412,8 +749,8 @@
        (py-make-class
         (& "ConnectionError")
         (& "__main__")
-        (list (global-get %global (& "OSError") (vector-ref %caches 77)))))
-     (vector-ref %caches 78))
+        (list (global-get %global (& "OSError") (vector-ref %caches 212)))))
+     (vector-ref %caches 213))
     (global-put!
      %global
      (& "FileExistsError")
@@ -422,8 +759,8 @@
        (py-make-class
         (& "FileExistsError")
         (& "__main__")
-        (list (global-get %global (& "OSError") (vector-ref %caches 79)))))
-     (vector-ref %caches 80))
+        (list (global-get %global (& "OSError") (vector-ref %caches 214)))))
+     (vector-ref %caches 215))
     (global-put!
      %global
      (& "FileNotFoundError")
@@ -432,8 +769,8 @@
        (py-make-class
         (& "FileNotFoundError")
         (& "__main__")
-        (list (global-get %global (& "OSError") (vector-ref %caches 81)))))
-     (vector-ref %caches 82))
+        (list (global-get %global (& "OSError") (vector-ref %caches 216)))))
+     (vector-ref %caches 217))
     (global-put!
      %global
      (& "InterruptedError")
@@ -442,8 +779,8 @@
        (py-make-class
         (& "InterruptedError")
         (& "__main__")
-        (list (global-get %global (& "OSError") (vector-ref %caches 83)))))
-     (vector-ref %caches 84))
+        (list (global-get %global (& "OSError") (vector-ref %caches 218)))))
+     (vector-ref %caches 219))
     (global-put!
      %global
      (& "IsADirectoryError")
@@ -452,8 +789,8 @@
        (py-make-class
         (& "IsADirectoryError")
         (& "__main__")
-        (list (global-get %global (& "OSError") (vector-ref %caches 85)))))
-     (vector-ref %caches 86))
+        (list (global-get %global (& "OSError") (vector-ref %caches 220)))))
+     (vector-ref %caches 221))
     (global-put!
      %global
      (& "NotADirectoryError")
@@ -462,8 +799,8 @@
        (py-make-class
         (& "NotADirectoryError")
         (& "__main__")
-        (list (global-get %global (& "OSError") (vector-ref %caches 87)))))
-     (vector-ref %caches 88))
+        (list (global-get %global (& "OSError") (vector-ref %caches 222)))))
+     (vector-ref %caches 223))
     (global-put!
      %global
      (& "PermissionError")
@@ -472,8 +809,8 @@
        (py-make-class
         (& "PermissionError")
         (& "__main__")
-        (list (global-get %global (& "OSError") (vector-ref %caches 89)))))
-     (vector-ref %caches 90))
+        (list (global-get %global (& "OSError") (vector-ref %caches 224)))))
+     (vector-ref %caches 225))
     (global-put!
      %global
      (& "ProcessLookupError")
@@ -482,8 +819,8 @@
        (py-make-class
         (& "ProcessLookupError")
         (& "__main__")
-        (list (global-get %global (& "OSError") (vector-ref %caches 91)))))
-     (vector-ref %caches 92))
+        (list (global-get %global (& "OSError") (vector-ref %caches 226)))))
+     (vector-ref %caches 227))
     (global-put!
      %global
      (& "TimeoutError")
@@ -492,8 +829,8 @@
        (py-make-class
         (& "TimeoutError")
         (& "__main__")
-        (list (global-get %global (& "OSError") (vector-ref %caches 93)))))
-     (vector-ref %caches 94))
+        (list (global-get %global (& "OSError") (vector-ref %caches 228)))))
+     (vector-ref %caches 229))
     (global-put!
      %global
      (& "NotImplementedError")
@@ -505,8 +842,8 @@
         (list (global-get
                %global
                (& "RuntimeError")
-               (vector-ref %caches 95)))))
-     (vector-ref %caches 96))
+               (vector-ref %caches 230)))))
+     (vector-ref %caches 231))
     (global-put!
      %global
      (& "RecursionError")
@@ -518,8 +855,8 @@
         (list (global-get
                %global
                (& "RuntimeError")
-               (vector-ref %caches 97)))))
-     (vector-ref %caches 98))
+               (vector-ref %caches 232)))))
+     (vector-ref %caches 233))
     (global-put!
      %global
      (& "IndentationError")
@@ -528,8 +865,11 @@
        (py-make-class
         (& "IndentationError")
         (& "__main__")
-        (list (global-get %global (& "SyntaxError") (vector-ref %caches 99)))))
-     (vector-ref %caches 100))
+        (list (global-get
+               %global
+               (& "SyntaxError")
+               (vector-ref %caches 234)))))
+     (vector-ref %caches 235))
     (global-put!
      %global
      (& "UnicodeError")
@@ -538,8 +878,8 @@
        (py-make-class
         (& "UnicodeError")
         (& "__main__")
-        (list (global-get %global (& "ValueError") (vector-ref %caches 101)))))
-     (vector-ref %caches 102))
+        (list (global-get %global (& "ValueError") (vector-ref %caches 236)))))
+     (vector-ref %caches 237))
     (global-put!
      %global
      (& "BytesWarning")
@@ -548,8 +888,8 @@
        (py-make-class
         (& "BytesWarning")
         (& "__main__")
-        (list (global-get %global (& "Warning") (vector-ref %caches 103)))))
-     (vector-ref %caches 104))
+        (list (global-get %global (& "Warning") (vector-ref %caches 238)))))
+     (vector-ref %caches 239))
     (global-put!
      %global
      (& "DeprecationWarning")
@@ -558,8 +898,8 @@
        (py-make-class
         (& "DeprecationWarning")
         (& "__main__")
-        (list (global-get %global (& "Warning") (vector-ref %caches 105)))))
-     (vector-ref %caches 106))
+        (list (global-get %global (& "Warning") (vector-ref %caches 240)))))
+     (vector-ref %caches 241))
     (global-put!
      %global
      (& "FutureWarning")
@@ -568,8 +908,8 @@
        (py-make-class
         (& "FutureWarning")
         (& "__main__")
-        (list (global-get %global (& "Warning") (vector-ref %caches 107)))))
-     (vector-ref %caches 108))
+        (list (global-get %global (& "Warning") (vector-ref %caches 242)))))
+     (vector-ref %caches 243))
     (global-put!
      %global
      (& "ImportWarning")
@@ -578,8 +918,8 @@
        (py-make-class
         (& "ImportWarning")
         (& "__main__")
-        (list (global-get %global (& "Warning") (vector-ref %caches 109)))))
-     (vector-ref %caches 110))
+        (list (global-get %global (& "Warning") (vector-ref %caches 244)))))
+     (vector-ref %caches 245))
     (global-put!
      %global
      (& "PendingDeprecationWarning")
@@ -588,8 +928,8 @@
        (py-make-class
         (& "PendingDeprecationWarning")
         (& "__main__")
-        (list (global-get %global (& "Warning") (vector-ref %caches 111)))))
-     (vector-ref %caches 112))
+        (list (global-get %global (& "Warning") (vector-ref %caches 246)))))
+     (vector-ref %caches 247))
     (global-put!
      %global
      (& "ResourceWarning")
@@ -598,8 +938,8 @@
        (py-make-class
         (& "ResourceWarning")
         (& "__main__")
-        (list (global-get %global (& "Warning") (vector-ref %caches 113)))))
-     (vector-ref %caches 114))
+        (list (global-get %global (& "Warning") (vector-ref %caches 248)))))
+     (vector-ref %caches 249))
     (global-put!
      %global
      (& "RuntimeWarning")
@@ -608,8 +948,8 @@
        (py-make-class
         (& "RuntimeWarning")
         (& "__main__")
-        (list (global-get %global (& "Warning") (vector-ref %caches 115)))))
-     (vector-ref %caches 116))
+        (list (global-get %global (& "Warning") (vector-ref %caches 250)))))
+     (vector-ref %caches 251))
     (global-put!
      %global
      (& "SyntaxWarning")
@@ -618,8 +958,8 @@
        (py-make-class
         (& "SyntaxWarning")
         (& "__main__")
-        (list (global-get %global (& "Warning") (vector-ref %caches 117)))))
-     (vector-ref %caches 118))
+        (list (global-get %global (& "Warning") (vector-ref %caches 252)))))
+     (vector-ref %caches 253))
     (global-put!
      %global
      (& "UnicodeWarning")
@@ -628,8 +968,8 @@
        (py-make-class
         (& "UnicodeWarning")
         (& "__main__")
-        (list (global-get %global (& "Warning") (vector-ref %caches 119)))))
-     (vector-ref %caches 120))
+        (list (global-get %global (& "Warning") (vector-ref %caches 254)))))
+     (vector-ref %caches 255))
     (global-put!
      %global
      (& "UserWarning")
@@ -638,8 +978,8 @@
        (py-make-class
         (& "UserWarning")
         (& "__main__")
-        (list (global-get %global (& "Warning") (vector-ref %caches 121)))))
-     (vector-ref %caches 122))
+        (list (global-get %global (& "Warning") (vector-ref %caches 256)))))
+     (vector-ref %caches 257))
     (global-put!
      %global
      (& "BrokenPipeError")
@@ -651,8 +991,8 @@
         (list (global-get
                %global
                (& "ConnectionError")
-               (vector-ref %caches 123)))))
-     (vector-ref %caches 124))
+               (vector-ref %caches 258)))))
+     (vector-ref %caches 259))
     (global-put!
      %global
      (& "ConnectionAbortedError")
@@ -664,8 +1004,8 @@
         (list (global-get
                %global
                (& "ConnectionError")
-               (vector-ref %caches 125)))))
-     (vector-ref %caches 126))
+               (vector-ref %caches 260)))))
+     (vector-ref %caches 261))
     (global-put!
      %global
      (& "ConnectionRefusedError")
@@ -677,8 +1017,8 @@
         (list (global-get
                %global
                (& "ConnectionError")
-               (vector-ref %caches 127)))))
-     (vector-ref %caches 128))
+               (vector-ref %caches 262)))))
+     (vector-ref %caches 263))
     (global-put!
      %global
      (& "ConnectionResetError")
@@ -690,8 +1030,8 @@
         (list (global-get
                %global
                (& "ConnectionError")
-               (vector-ref %caches 129)))))
-     (vector-ref %caches 130))
+               (vector-ref %caches 264)))))
+     (vector-ref %caches 265))
     (global-put!
      %global
      (& "TabError")
@@ -703,8 +1043,8 @@
         (list (global-get
                %global
                (& "IndentationError")
-               (vector-ref %caches 131)))))
-     (vector-ref %caches 132))
+               (vector-ref %caches 266)))))
+     (vector-ref %caches 267))
     (global-put!
      %global
      (& "UnicodeDecodeError")
@@ -716,8 +1056,8 @@
         (list (global-get
                %global
                (& "UnicodeError")
-               (vector-ref %caches 133)))))
-     (vector-ref %caches 134))
+               (vector-ref %caches 268)))))
+     (vector-ref %caches 269))
     (global-put!
      %global
      (& "UnicodeEncodeError")
@@ -729,8 +1069,8 @@
         (list (global-get
                %global
                (& "UnicodeError")
-               (vector-ref %caches 135)))))
-     (vector-ref %caches 136))
+               (vector-ref %caches 270)))))
+     (vector-ref %caches 271))
     (global-put!
      %global
      (& "UnicodeTranslateError")
@@ -742,9 +1082,9 @@
         (list (global-get
                %global
                (& "UnicodeError")
-               (vector-ref %caches 137)))))
-     (vector-ref %caches 138))))
+               (vector-ref %caches 272)))))
+     (vector-ref %caches 273))))
 (lambda ()
-  (let ((global (py-make-base-global)) (caches (py-make-caches 139)))
+  (let ((global (py-make-base-global)) (caches (py-make-caches 274)))
     (py-module global caches)
     global))
