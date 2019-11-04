@@ -593,8 +593,11 @@
       (PyObject-elements-set! mod 72 py-builtin-BaseException)
       mod))
 
+;; This needs to be globally defined an configured instead
+(define zipi-stdlib-dir "~/udem-dlteam/zipi/stdlib")
+
 (define (py-make-builtins-mod)
-  (let ((file "/home/olivier/udem-dlteam/zipi/stdlib/builtins.scm"))
+  (let ((file (string-append zipi-stdlib-dir "/builtins.scm")))
     (let* ((init (loadv file))
            (mod (init)))
      mod
