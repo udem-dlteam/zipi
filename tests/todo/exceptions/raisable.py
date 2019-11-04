@@ -1,5 +1,3 @@
-raise 0
-
 try:
     raise 0
 except ValueError:
