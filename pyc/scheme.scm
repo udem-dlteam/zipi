@@ -35,7 +35,7 @@
 (define (pyc-scheme-gambit ast conf)
   (let ((prog (pyc-scheme ast conf)))
       `(;;begin
-	  ,@(if (config-get conf main:)
+	  ,@(if #t ;(config-get conf main:) ;; shouldn't this always be included?
 		`((|##import| bigloo)
 		  (|##include| ,(string-append (zipi-rts-dir) "/hclass.bgl"))
 		  (|##include| ,(string-append (zipi-rts-dir) "/hclass.scm"))
@@ -483,7 +483,7 @@
 
    (let ((fun (PycCall-fun this)))
       (cond
-	 ((isa? fun PycAccess)
+	 ;;((isa? fun PycAccess)
 	  ;; method call
 	  (let ((obj (my-gensym '%obj)))
 	     (epairify this
