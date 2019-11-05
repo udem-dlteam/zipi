@@ -611,7 +611,7 @@
   (set! py-builtin-StopIteration (object-get-no-cache builtins-mod  (& "StopIteration")))
   (set! py-builtin-ArithmeticError (object-get-no-cache builtins-mod  (& "ArithmeticError")))
   (set! py-builtin-ZeroDivisionError (object-get-no-cache builtins-mod  (& "ZeroDivisionError")))
-  (set! py-builtin-ZeroDivisionError (object-get-no-cache builtins-mod  (& "AttributeError")))
+  (set! py-builtin-AttributeError (object-get-no-cache builtins-mod  (& "AttributeError")))
 )
 
 (define (py-builtins-mod)
