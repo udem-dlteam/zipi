@@ -1,0 +1,12 @@
+class Foo:
+    def __getattribute__(self, name):
+        if name == 'x':
+            return 1
+        return super().__getattribute__(name)
+
+foo = Foo()
+
+foo.y = 7
+
+print(foo.x) # prints 1
+print(foo.y) # prints 7

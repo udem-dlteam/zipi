@@ -483,7 +483,7 @@
 
    (let ((fun (PycCall-fun this)))
       (cond
-	 ;;((isa? fun PycAccess)
+	 #;((isa? fun PycAccess)
 	  ;; method call
 	  (let ((obj (my-gensym '%obj)))
 	     (epairify this

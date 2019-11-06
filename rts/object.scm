@@ -45,7 +45,16 @@
           (PCache-set! cache hclass i)
           (PyObject-elements-set! global i val)))))
 
-#;
+;; getattr protocol:
+;; getattr(obj, name):
+;;   if obj.__class__ has attribute __getattr__:
+;;     return obj.__getattribute__()
+;;
+;;
+;;
+;;
+;;
+
 (define (object-get object name cache)
   (if (PyObject? object)
       (if (eq? (PyObject-hclass object) (PCache-hclass cache))
