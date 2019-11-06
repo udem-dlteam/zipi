@@ -2,11 +2,12 @@ class Foo:
     def __getattribute__(self, name):
         if name == 'x':
             return 1
-        return super().__getattribute__(name)
+        else:
+            raise AttributeError
+
+    def __getattr__(self, name):
+        return 2
 
 foo = Foo()
 
-foo.y = 7
-
-print(foo.x) # prints 1
-print(foo.y) # prints 7
+print(foo.y) # prints 2
