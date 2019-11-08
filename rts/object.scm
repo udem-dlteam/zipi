@@ -753,7 +753,7 @@
 ;;   Does so by looking through the classes of the MRO
 ;;   returns the first occurence of the attribute
 ;;   found on an element of the MRO
-(define (py-getattribute-from-class obj name)
+(define (getattribute-from-class obj name)
   (let ((mro (py-obj-mro obj)))
     (let loop-mro ((i 0))
       (if (< i (vector-length mro))
@@ -770,15 +770,19 @@
 ;;   TODO: descriptor protocole must be implemented at that level
 ;;   If none is found, return py-absent
 ;;   TODO: AttributeError should have error message
-(define (py-object-getattribute obj name)
+(define (object-getattribute obj name)
   (let ((attr (py-own-attr-ref obj name)))
     (if (not (eq? attr py-absent))
       attr
-      (let ((cls-attr (py-getattribute-from-class obj name)))
+      (let ((cls-attr (getattribute-from-class obj name)))
         (if (not (eq? cls-attr py-absent))
           cls-attr
           (py-throw py-builtin-AttributeError)
         )))))
+
+;; The Python object object.__getattribute__
+(define py-object-getattribute
+  (make-PyFunction (PyFunction-default-hclass) '#() object-getattribute))
 
 ;; TODO: implement the logic described below
 ;; Implement the getattr protocole
@@ -786,7 +790,9 @@
 ;;  2) If AttributeError is raised return obj.__getattr__(name)
 (define (object-get obj name cache)
   (tprint "Warning object-get is being redirected")
-  (py-object-getattribute obj name)
+  (let ((py-getattribute (getattribute-from-class obj (& "__getattribute__"))))
+    (py-call2 py-getattribute obj name)
+  )
 )
 
 (define (object-put! obj attr val cache)
@@ -1004,7 +1010,8 @@
              (& "__bases__")
              (& "__mro__")
              (& "__module__")
-             (& "__name__"))
+             (& "__name__")
+             (& "__getattribute__"))
             '())
            #f)) ;; constructor is set later
 
@@ -1156,6 +1163,7 @@
       (HClass-class-mro-set! (PyObject-hclass (vector-ref mro 0)) mro)
       (PyObject-elements-set! object-class 1 '#()) ;; set **bases**
       (PyObject-elements-set! object-class 2 mro)  ;; set **mro**
+      (PyObject-elements-set! object-class 8 py-object-getattribute)
       (PyFunction-procedure-set!
        object-class
        (py-obj-constructor object-class hclass-of-instances py-call-init)))
