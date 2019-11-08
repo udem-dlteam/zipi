@@ -749,9 +749,11 @@
                                   (loop3 (+ i 1))))
                             default))))))))))
 
-;; redefine object-put! and object-get
-
-(define (py-cls-getattr obj name)
+;; Recover an attribute from the class of 'obj'
+;;   Does so by looking through the classes of the MRO
+;;   returns the first occurence of the attribute
+;;   found on an element of the MRO
+(define (py-getattribute-from-class obj name)
   (let ((mro (py-obj-mro obj)))
     (let loop-mro ((i 0))
       (if (< i (vector-length mro))
@@ -762,16 +764,26 @@
               (loop-mro (+ i 1)))))
         py-absent))))
 
+;; Implements object.__getattribute__
+;;   Look into the object's own attributes
+;;   Defer to py-getattribute-from-class if not found
+;;   TODO: descriptor protocole must be implemented at that level
+;;   If none is found, return py-absent
+;;   TODO: AttributeError should have error message
 (define (py-object-getattribute obj name)
   (let ((attr (py-own-attr-ref obj name)))
     (if (not (eq? attr py-absent))
       attr
-      (let ((cls-attr (py-cls-getattr obj name)))
+      (let ((cls-attr (py-getattribute-from-class obj name)))
         (if (not (eq? cls-attr py-absent))
           cls-attr
-          py-absent
+          (py-throw py-builtin-AttributeError)
         )))))
 
+;; TODO: implement the logic described below
+;; Implement the getattr protocole
+;;  1) Return obj.__getattribute__(name)
+;;  2) If AttributeError is raised return obj.__getattr__(name)
 (define (object-get obj name cache)
   (tprint "Warning object-get is being redirected")
   (py-object-getattribute obj name)
