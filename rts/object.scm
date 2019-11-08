@@ -751,18 +751,44 @@
 
 ;; redefine object-put! and object-get
 
+(define (py-cls-getattr obj name)
+  (let ((mro (py-obj-mro obj)))
+    (let loop-mro ((i 0))
+      (if (< i (vector-length mro))
+        (let ((cls (vector-ref mro i)))
+          (let ((attr (py-own-attr-ref cls name)))
+            (if (not (eq? attr py-absent))
+              attr
+              (loop-mro (+ i 1)))))
+        py-absent))))
+
+(define (py-object-getattribute obj name)
+  (let ((attr (py-own-attr-ref obj name)))
+    (if (not (eq? attr py-absent))
+      attr
+      (let ((cls-attr (py-cls-getattr obj name)))
+        (if (not (eq? cls-attr py-absent))
+          cls-attr
+          py-absent
+        )))))
+
+(define (object-get obj name cache)
+  (tprint "Warning object-get is being redirected")
+  (py-object-getattribute obj name)
+)
+
 (define (object-put! obj attr val cache)
   (py-attr-set! obj attr val))
 
-(define (object-get obj attr cache)
-  (if (PyObject? obj)
-      (let ((val (py-attr-ref obj attr)))
-        (if (not (eq? val py-absent))
-            val
-            (object-get-fail obj attr)))
-      (if (eq? attr (& "__class__")) ;; TODO: remove (temporary kluge)
-          (py-obj-cls obj)
-          (object-get-fail obj attr))))
+;;(define (object-get obj attr cache)
+;;  (if (PyObject? obj)
+;;      (let ((val (py-attr-ref obj attr)))
+;;        (if (not (eq? val py-absent))
+;;            val
+;;            (object-get-fail obj attr)))
+;;      (if (eq? attr (& "__class__")) ;; TODO: remove (temporary kluge)
+;;          (py-obj-cls obj)
+;;          (object-get-fail obj attr))))
 
 (define (object-get-fail obj attr)
   (error "AttributeError" "object has no attribute" attr))
