@@ -45,16 +45,6 @@
           (PCache-set! cache hclass i)
           (PyObject-elements-set! global i val)))))
 
-;; getattr protocol:
-;; getattr(obj, name):
-;;   if obj.__class__ has attribute __getattr__:
-;;     return obj.__getattribute__()
-;;
-;;
-;;
-;;
-;;
-
 (define (object-get object name cache)
   (if (PyObject? object)
       (if (eq? (PyObject-hclass object) (PCache-hclass cache))
@@ -749,6 +739,25 @@
                                   (loop3 (+ i 1))))
                             default))))))))))
 
+;; ===================
+;; DESCRIPTOR PROTOCOL
+;; ===================
+
+;; Binds a recovered attribute by calling attr.__class__.__get__ if it exists
+;; if the __get__ method does not exist on the attr's class, return the attr
+(define (object-get-bind-descriptor attr instance #!optional (owner (py-none)))
+  (let ((py-attr-get-method (getattribute-from-class attr (& "__get__"))))
+    (if (not (eq? py-attr-get-method py-absent))
+      (py-call3 py-attr-get-method attr instance owner)
+      attr
+    )
+  )
+)
+
+;; ================
+;; GETATTR PROTOCOL
+;; ================
+
 ;; Recover an attribute from the class of 'obj'
 ;;   Does so by looking through the classes of the MRO
 ;;   returns the first occurence of the attribute
@@ -765,18 +774,16 @@
         py-absent))))
 
 ;; Implements object.__getattribute__
+;;   Entry point of the getattr protocol
 ;;   Look into the object's own attributes
 ;;   Defer to py-getattribute-from-class if not found
-;;   TODO: descriptor protocole must be implemented at that level
-;;   If none is found, return py-absent
-;;   TODO: AttributeError should have error message
 (define (object-getattribute obj name)
   (let ((attr (py-own-attr-ref obj name)))
     (if (not (eq? attr py-absent))
-      attr
+      (object-get-bind-descriptor attr obj)
       (let ((cls-attr (getattribute-from-class obj name)))
         (if (not (eq? cls-attr py-absent))
-          cls-attr
+          (object-get-bind-descriptor cls-attr obj (py-obj-cls obj))
           (py-throw py-builtin-AttributeError)
         )))))
 
