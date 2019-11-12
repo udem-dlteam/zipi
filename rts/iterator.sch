@@ -11,7 +11,7 @@
 ;; PyGenerator
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PyGenerator::PyGenerator hclass1058::obj %elements1059::obj %next1060::obj)
+    (inline make-PyGenerator::PyGenerator hclass1059::obj %elements1060::obj %next1061::obj)
     (inline PyGenerator?::bool ::obj)
     (PyGenerator-nil::PyGenerator)
     (inline PyGenerator-%next::obj ::PyGenerator)
@@ -24,7 +24,7 @@
 ;; The definitions
 (cond-expand (bigloo-class-sans
 ;; PyGenerator
-(define-inline (make-PyGenerator::PyGenerator hclass1058::obj %elements1059::obj %next1060::obj) (instantiate::PyGenerator (hclass hclass1058) (%elements %elements1059) (%next %next1060)))
+(define-inline (make-PyGenerator::PyGenerator hclass1059::obj %elements1060::obj %next1061::obj) (instantiate::PyGenerator (hclass hclass1059) (%elements %elements1060) (%next %next1061)))
 (define-inline (PyGenerator?::bool obj::obj) ((@ isa? __object) obj (@ PyGenerator __py_iterator)))
 (define (PyGenerator-nil::PyGenerator) (class-nil (@ PyGenerator __py_iterator)))
 (define-inline (PyGenerator-%next::obj o::PyGenerator) (-> |#!bigloo_wallow| o %next))
