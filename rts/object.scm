@@ -171,13 +171,13 @@
 
 (define (py-throw exc)
   (cond ((not (PyObject? exc))
-         (raise py-builtin-ValueError))
+         (raise (py-call0 py-builtin-TypeError)))
         ((py-is-in-mro? py-builtin-BaseException (py-obj-mro exc))
          (raise exc))
         ((py-is-in-mro? py-builtin-BaseException (py-cls-mro exc))
          (raise (py-call0 exc)))
         (else
-         (raise py-builtin-ValueError))))
+         (raise (py-call0 py-builtin-TypeError)))))
 
 (define (py-make-caches size)
    (list->vector
@@ -612,6 +612,7 @@
   (set! py-builtin-ArithmeticError (object-get-no-cache builtins-mod  (& "ArithmeticError")))
   (set! py-builtin-ZeroDivisionError (object-get-no-cache builtins-mod  (& "ZeroDivisionError")))
   (set! py-builtin-AttributeError (object-get-no-cache builtins-mod  (& "AttributeError")))
+  (set! py-builtin-TypeError (object-get-no-cache builtins-mod  (& "TypeError")))
 )
 
 (define (py-builtins-mod)
@@ -3839,3 +3840,5 @@
 (define py-builtin-ZeroDivisionError #f)
 
 (define py-builtin-AttributeError #f)
+
+(define py-builtin-TypeError #f)
