@@ -4,7 +4,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Marc Feeley & Manuel Serrano                      */
 #*    Creation    :  Sat Jul 31 06:49:37 2004                          */
-#*    Last change :  Tue Jul  2 15:44:10 2019 (serrano)                */
+#*    Last change :  Tue Nov 12 18:41:05 2019 (serrano)                */
 #*    Copyright   :  2019 Marc Feeley & Manuel Serrano                 */
 #*    -------------------------------------------------------------    */
 #*    HOP autoconfiguration                                            */
@@ -193,7 +193,7 @@ buildid=`$bigloo -s -eval "(begin (print (md5sum-string \"$buildid $buildtag $bi
 #*---------------------------------------------------------------------*/
 #*    Makefile.zipiconfig                                              */
 #*---------------------------------------------------------------------*/
-for file in Makefile.zipiconfig configure.scm; do
+for file in Makefile.zipiconfig configure.scm pysexp.py; do
   mkmf=etc/$file
 
   rm -f $mkmf 2> /dev/null
@@ -219,6 +219,7 @@ for file in Makefile.zipiconfig configure.scm; do
           -e "s|@GAMBIT@|$gambit|" \
           -e "s|@INSTALL@|$install|" \
           -e "s|@LINK@|$link|" \
+          -e "s|@PYSEXPPP@|$pysexppp|" \
   	>> $mkmf
 done	
 

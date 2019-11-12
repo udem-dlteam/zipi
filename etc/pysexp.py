@@ -1,3 +1,4 @@
+#* Automatically generated file (don't edit) */
 #!/usr/bin/env python3
 
 import argparse
@@ -26,7 +27,7 @@ def pretty_print(source):
     if python35:
         return source
     else:
-        p = subprocess.run(['gsi', '-:-8', '-e', '(pretty-print (read))'],
+        p = subprocess.run(['cat'],
                            stdout=subprocess.PIPE,
                            input=source,
                            encoding='utf-8')
