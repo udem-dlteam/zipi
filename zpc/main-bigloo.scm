@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 12:48:54 2019                          */
-;*    Last change :  Fri Jun 28 09:01:22 2019 (serrano)                */
+;*    Last change :  Tue Nov 12 20:25:38 2019 (serrano)                */
 ;*    Copyright   :  2019 M. Feeley & M. Serrano                       */
 ;*    -------------------------------------------------------------    */
 ;*    python ast interpreter (bigloo prelude)                          */
@@ -72,12 +72,12 @@
 ;*    usage ...                                                        */
 ;*---------------------------------------------------------------------*/
 (define (usage args-parse-usage)
-   (print "pyc")
-   (print "usage: pyc [options] -- [bigloo-options]")
+   (print "zpc")
+   (print "usage: zpc [options] -- [bigloo-options]")
    (args-parse-usage #f)
    (newline)
    (print "Shell Variables:")
-   (print "   - PYTRACE: hop internal trace [PYTRACE=\"key1, key2, ...\"]")
-   (print "      pyc:dump")
+   (print "   - PYTRACE: zpc internal trace [PYTRACE=\"key1, key2, ...\"]")
+   (print "      zpc:dump")
    (newline))
 

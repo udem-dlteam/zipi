@@ -4,7 +4,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Marc Feeley & Manuel Serrano                      */
 #*    Creation    :  Sat Jul 31 06:49:37 2004                          */
-#*    Last change :  Tue Nov 12 18:41:05 2019 (serrano)                */
+#*    Last change :  Tue Nov 12 20:24:28 2019 (serrano)                */
 #*    Copyright   :  2019 Marc Feeley & Manuel Serrano                 */
 #*    -------------------------------------------------------------    */
 #*    HOP autoconfiguration                                            */
@@ -197,7 +197,10 @@ for file in Makefile.zipiconfig configure.scm pysexp.py; do
   mkmf=etc/$file
 
   rm -f $mkmf 2> /dev/null
-  echo "#* Automatically generated file (don't edit) */" > $mkmf
+
+  if [ $file = "Makefile.zipiconfig" ]; then
+    echo "#* Automatically generated file (don't edit) */" > $mkmf
+  fi
 
   cat $mkmf.in \
     | sed -e "s|@RELEASE@|$version|" \
