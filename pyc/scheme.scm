@@ -236,7 +236,7 @@
    (epairify this
       `(,(if (isa? (PycHandler-type this) PycUninit)
 	     #t
-	     `(isa? %exn ,(scheme (PycHandler-type this) conf)))
+	     `(py-isinstance? %exn ,(scheme (PycHandler-type this) conf)))
 	,(scheme (PycHandler-body this) conf))))
 
 (define-walk-method (scheme this::PycPass conf)

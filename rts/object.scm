@@ -168,6 +168,10 @@
            (or (eq? cls target)
                (loop (+ i 1)))))))
 
+(define (py-isinstance? obj cls)
+  (let ((mro (py-obj-mro obj)))
+    (py-is-in-mro? cls mro)))
+
 (define (py-throw exc)
   (cond ((not (PyObject? exc))
          (raise (pycall0 py-builtin-ValueError)))
