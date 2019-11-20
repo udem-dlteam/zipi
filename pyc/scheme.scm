@@ -35,7 +35,7 @@
 (define (pyc-scheme-gambit ast conf)
   (let ((prog (pyc-scheme ast conf)))
       `(;;begin
-	  ,@(if (config-get conf main:)
+	  ,@(if #t ;(config-get conf main:) ;; shouldn't this always be included?
 		`((|##import| bigloo)
 		  (|##include| ,(string-append (zipi-rts-dir) "/hclass.bgl"))
 		  (|##include| ,(string-append (zipi-rts-dir) "/hclass.scm"))
@@ -236,7 +236,7 @@
    (epairify this
       `(,(if (isa? (PycHandler-type this) PycUninit)
 	     #t
-	     `(pyis? %exn ,(scheme (PycHandler-type this) conf)))
+	     `(py-isinstance? %exn ,(scheme (PycHandler-type this) conf)))
 	,(scheme (PycHandler-body this) conf))))
 
 (define-walk-method (scheme this::PycPass conf)
@@ -483,7 +483,7 @@
 
    (let ((fun (PycCall-fun this)))
       (cond
-	 ((isa? fun PycAccess)
+	 #;((isa? fun PycAccess)
 	  ;; method call
 	  (let ((obj (my-gensym '%obj)))
 	     (epairify this

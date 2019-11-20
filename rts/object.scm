@@ -45,7 +45,6 @@
           (PCache-set! cache hclass i)
           (PyObject-elements-set! global i val)))))
 
-#;
 (define (object-get object name cache)
   (if (PyObject? object)
       (if (eq? (PyObject-hclass object) (PCache-hclass cache))
@@ -169,15 +168,22 @@
            (or (eq? cls target)
                (loop (+ i 1)))))))
 
+(define (py-isinstance? obj cls)
+  (let ((mro (py-obj-mro obj)))
+    (py-is-in-mro? cls mro)))
+
 (define (py-throw exc)
   (cond ((not (PyObject? exc))
+
          (raise (py-call0 py-builtin-TypeError)))
         ((py-is-in-mro? py-builtin-BaseException (py-obj-mro exc))
          (raise exc))
         ((py-is-in-mro? py-builtin-BaseException (py-cls-mro exc))
          (raise (py-call0 exc)))
         (else
+
          (raise (py-call0 py-builtin-TypeError)))))
+
 
 (define (py-make-caches size)
    (list->vector
@@ -741,20 +747,87 @@
                                   (loop3 (+ i 1))))
                             default))))))))))
 
-;; redefine object-put! and object-get
+;; ===================
+;; DESCRIPTOR PROTOCOL
+;; ===================
+
+;; Binds a recovered attribute by calling attr.__class__.__get__ if it exists
+;; if the __get__ method does not exist on the attr's class, return the attr
+(define (object-get-bind-descriptor attr instance #!optional (owner (py-none)))
+  (let ((py-attr-get-method (getattribute-from-class attr (& "__get__"))))
+    (if (not (eq? py-attr-get-method py-absent))
+      (py-call3 py-attr-get-method attr instance owner)
+      attr
+    )
+  )
+)
+
+;; ================
+;; GETATTR PROTOCOL
+;; ================
+
+;; Recover an attribute from the class of 'obj'
+;;   Does so by looking through the classes of the MRO
+;;   returns the first occurence of the attribute
+;;   found on an element of the MRO
+(define (getattribute-from-class obj name)
+  (let ((mro (py-obj-mro obj)))
+    (let loop-mro ((i 0))
+      (if (< i (vector-length mro))
+        (let ((cls (vector-ref mro i)))
+          (let ((attr (py-own-attr-ref cls name)))
+            (if (not (eq? attr py-absent))
+              attr
+              (loop-mro (+ i 1)))))
+        py-absent))))
+
+;; Implements object.__getattribute__
+;;   Entry point of the getattr protocol
+;;   Look into the object's own attributes
+;;   Defer to py-getattribute-from-class if not found
+(define (object-getattribute obj name)
+  (let ((attr (py-own-attr-ref obj name)))
+    (if (not (eq? attr py-absent))
+      (object-get-bind-descriptor attr obj)
+      (let ((cls-attr (getattribute-from-class obj name)))
+        (if (not (eq? cls-attr py-absent))
+          (object-get-bind-descriptor cls-attr obj (py-obj-cls obj))
+          (py-throw py-builtin-AttributeError)
+        )))))
+
+;; The Python object object.__getattribute__
+(define py-object-getattribute
+  (make-PyFunction (PyFunction-default-hclass) '#() object-getattribute))
+
+;; TODO: implement the logic described below
+;; Implement the getattr protocole
+;;  1) Return obj.__getattribute__(name)
+;;  2) If AttributeError is raised return obj.__getattr__(name)
+(define (object-get obj name cache)
+  (with-handler
+    (lambda (exception)
+      (if (py-isinstance? exception py-builtin-AttributeError)
+        (let ((py-getattr (getattribute-from-class obj (& "__getattr__"))))
+          (py-call2 py-getattr obj name))
+          (py-throw exception)
+      ))
+      (let ((py-getattribute (getattribute-from-class obj (& "__getattribute__"))))
+        (py-call2 py-getattribute obj name)
+      )
+    ))
 
 (define (object-put! obj attr val cache)
   (py-attr-set! obj attr val))
 
-(define (object-get obj attr cache)
-  (if (PyObject? obj)
-      (let ((val (py-attr-ref obj attr)))
-        (if (not (eq? val py-absent))
-            val
-            (object-get-fail obj attr)))
-      (if (eq? attr (& "__class__")) ;; TODO: remove (temporary kluge)
-          (py-obj-cls obj)
-          (object-get-fail obj attr))))
+;;(define (object-get obj attr cache)
+;;  (if (PyObject? obj)
+;;      (let ((val (py-attr-ref obj attr)))
+;;        (if (not (eq? val py-absent))
+;;            val
+;;            (object-get-fail obj attr)))
+;;      (if (eq? attr (& "__class__")) ;; TODO: remove (temporary kluge)
+;;          (py-obj-cls obj)
+;;          (object-get-fail obj attr))))
 
 (define (object-get-fail obj attr)
   (error "AttributeError" "object has no attribute" attr))
@@ -958,7 +1031,8 @@
              (& "__bases__")
              (& "__mro__")
              (& "__module__")
-             (& "__name__"))
+             (& "__name__")
+             (& "__getattribute__"))
             '())
            #f)) ;; constructor is set later
 
@@ -1110,6 +1184,7 @@
       (HClass-class-mro-set! (PyObject-hclass (vector-ref mro 0)) mro)
       (PyObject-elements-set! object-class 1 '#()) ;; set **bases**
       (PyObject-elements-set! object-class 2 mro)  ;; set **mro**
+      (PyObject-elements-set! object-class 8 py-object-getattribute)
       (PyFunction-procedure-set!
        object-class
        (py-obj-constructor object-class hclass-of-instances py-call-init)))
