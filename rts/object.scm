@@ -174,13 +174,16 @@
 
 (define (py-throw exc)
   (cond ((not (PyObject? exc))
-         (raise (pycall0 py-builtin-ValueError)))
+
+         (raise (py-call0 py-builtin-TypeError)))
         ((py-is-in-mro? py-builtin-BaseException (py-obj-mro exc))
          (raise exc))
         ((py-is-in-mro? py-builtin-BaseException (py-cls-mro exc))
          (raise (py-call0 exc)))
         (else
-         (raise (py-call0 py-builtin-ValueError)))))
+
+         (raise (py-call0 py-builtin-TypeError)))))
+
 
 (define (py-make-caches size)
    (list->vector
@@ -601,10 +604,10 @@
 
 (define (py-make-builtins-mod)
   (let ((file (string-append zipi-stdlib-dir "/builtins.scm")))
-    (let* ((init (loadv file))
-           (mod (init)))
-     mod
-  )))
+     (cond-expand
+	(bigloo (builtins-init))
+	(else
+	 ((loadv file))))))
 
 ;; Once builtins.py is loaded, we need to keep a direct access to some builtins
 ;; Examples are exceptions which are part of Python protocols, such as StopIteration

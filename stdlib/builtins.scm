@@ -1084,7 +1084,10 @@
                (& "UnicodeError")
                (vector-ref %caches 272)))))
      (vector-ref %caches 273))))
-(lambda ()
+
+(define (builtins-init)
   (let ((global (py-make-base-global)) (caches (py-make-caches 274)))
     (py-module global caches)
     global))
+
+builtins-init

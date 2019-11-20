@@ -1,9 +1,9 @@
 ;*=====================================================================*/
-;*    serrano/nosync/py19/scmast/import/import.bgl                     */
+;*    serrano/prgm/project/zipi/rts/import.bgl                         */
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun 27 16:06:01 2019                          */
-;*    Last change :  Fri Jun 28 10:14:06 2019 (serrano)                */
+;*    Last change :  Fri Nov  8 13:38:36 2019 (serrano)                */
 ;*    Copyright   :  2019 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Python module imports                                            */
@@ -18,7 +18,8 @@
 	   __py_hclass)
 
    (export (py-import path depth)
-	   py-import-root))
+	   py-import-root
+	   (loadv ::bstring)))
 
 ;*---------------------------------------------------------------------*/
 ;*    compile ...                                                      */

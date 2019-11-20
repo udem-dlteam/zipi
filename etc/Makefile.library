@@ -3,7 +3,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Wed Mar 15 07:22:39 2006                          */
-#*    Last change :  Tue Jul  2 13:07:43 2019 (serrano)                */
+#*    Last change :  Fri Nov  8 13:32:46 2019 (serrano)                */
 #*    Copyright   :  2006-19 Manuel Serrano                            */
 #*    -------------------------------------------------------------    */
 #*    The common Makefile for building libraries                       */
@@ -33,7 +33,7 @@ RPATH		+= $(ZIPILIBDIR)/$(ZIPIFILDIR)
 #*    The implicit rules                                               */
 #*---------------------------------------------------------------------*/
 o/%.o: %.bgl %.scm
-	@ $(call compile2,$(BIGLOO),$(BCFLAGS),$(BLFLAGS),-c,$^ -o $@)
+	@ $(call compile2,$(BIGLOO),$(BCFLAGS),$(BLFLAGS),-c,$< $(<:%.bgl=%.scm) -o $@)
 
 o/%.o: %.scm
 	@ $(call compile2,$(BIGLOO),$(BCFLAGS),$(BLFLAGS),-c,$< -o $@)

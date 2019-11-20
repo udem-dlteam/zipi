@@ -3,7 +3,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Fri Sep 17 14:27:28 2004                          */
-#*    Last change :  Thu Jul  4 14:07:59 2019 (serrano)                */
+#*    Last change :  Fri Nov  8 13:48:15 2019 (serrano)                */
 #*    Copyright   :  2004-19 Manuel Serrano                            */
 #*    -------------------------------------------------------------    */
 #*    The Bigloo autoconf Makefile skeleton for ZIPI.                  */
@@ -61,8 +61,8 @@ ZIPIDISTRIBDIR	= @ZIPIDISTRIBDIR@
 .PHONY: install.system.bigloo
 
 install.system.bigloo:
-	$(INSTALL) $(BUILDLIBDIR)/zpc.init $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR)/zpc.init && \
-        chmod $(MODFILE) $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR)/zpc.init;
+	$(INSTALL) $(BUILDLIBDIR)/pyc.init $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR)/pyc.init && \
+        chmod $(MODFILE) $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR)/pyc.init;
 	$(INSTALL) $(BUILDLIBDIR)/zipi.init $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR)/zipi.init && \
         chmod $(MODFILE) $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR)/zipi.init;
 
