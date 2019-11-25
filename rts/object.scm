@@ -139,7 +139,7 @@
 
 (define (py-call obj . args)
   (let ((call-method (getattribute-from-class obj (& "__call__"))))
-    (if (eq? py-absent)
+    (if (eq? call-method py-absent)
       (py-throw py-builtins-TypeError)
       ((apply (PyFunction-procedure call-method) args))
     )
