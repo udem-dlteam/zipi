@@ -1,6 +1,15 @@
+(##import bigloo)
+(##include "/home/olivier/udem-dlteam/zipi/etc/../rts/hclass.bgl")
+(##include "/home/olivier/udem-dlteam/zipi/etc/../rts/hclass.scm")
+(##include "/home/olivier/udem-dlteam/zipi/etc/../rts/object.bgl")
+(##include "/home/olivier/udem-dlteam/zipi/etc/../rts/object.scm")
+(##include "/home/olivier/udem-dlteam/zipi/etc/../rts/iterator.bgl")
+(##include "/home/olivier/udem-dlteam/zipi/etc/../rts/iterator.scm")
+(##include "/home/olivier/udem-dlteam/zipi/etc/../rts/import.bgl")
+(##include "/home/olivier/udem-dlteam/zipi/etc/../rts/import.scm")
 (define py-module
   (lambda (%global %caches)
-    (set! py-import-root "/home/olivier/udem-dlteam/zipi/")
+    (set! py-import-root "../")
     (global-put!
      %global
      (& "__name__")
@@ -9,7 +18,7 @@
     (global-put!
      %global
      (& "__file__")
-     (py-str-from-scheme "/home/olivier/udem-dlteam/zipi/stdlib/builtins.py")
+     (py-str-from-scheme "./builtins.py")
      (vector-ref %caches 1))
     (global-put!
      %global
@@ -1084,10 +1093,7 @@
                (& "UnicodeError")
                (vector-ref %caches 272)))))
      (vector-ref %caches 273))))
-
-(define (builtins-init)
+(lambda ()
   (let ((global (py-make-base-global)) (caches (py-make-caches 274)))
     (py-module global caches)
     global))
-
-builtins-init
