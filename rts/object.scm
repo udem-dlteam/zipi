@@ -127,6 +127,7 @@
            ((eq? name (vector-ref names i)) i)
            (else (loop (- i 1))))))))
 
+
 (define fun-hclass
    (make-HClass '#() '#() '()))
 
@@ -1483,6 +1484,73 @@
    (lambda rest (error "__init__" "unimplemented generic procedure" #f))
    (lambda (self)
      self)))
+
+;; =============
+;; CALL PROTOCOL
+;; =============
+
+(define (method-call self . args)
+  (let ((procedure (py-own-attr-ref self (& "**procedure**")))
+        (bound-instance (py-own-attr-ref self (& "__self__")))
+        (args-length (length args)))
+    (if (procedure-arity-valid? procedure (+ 1 args-length))
+      ((apply procedure bound-instance args))
+      ((py-throw py-builtin-TypeError))
+    )))
+
+(define py-method-call
+  (make-PyFunction (PyFunction-default-hclass) '#() method-call))
+
+
+(define py-method
+ (py-make-class
+   (& "method")
+   (& "builtins")
+   (list) (& "**procedure**") #f
+          (& "__self__") #f
+          (& "__call__") py-method-call
+   ))
+
+(define (function-call self . args)
+  (let ((procedure (py-own-attr-ref self (& "**procedure**")))
+        (args-length (length args)))
+    (if (procedure-arity-valid? procedure args-length)
+      ((apply procedure args))
+      ((py-throw py-builtin-TypeError))
+    )
+  )
+)
+
+(define py-function-call
+  (make-PyFunction (PyFunction-default-hclass) '#() function-call))
+
+(define (function-get self instance owner)
+  (if (eq? owner py-none)
+    (self)
+    ((let ((method (py-call0 py-method)))
+      (object-put-no-cache! method (& "**procedure**") procedure)
+      (object-put-no-cache! method (& "__self__") instance)
+      method
+    ))
+  )
+)
+
+(define py-function-get
+  (make-PyFunction (PyFunction-default-hclass) '#() function-get))
+
+(define py-function
+ (py-make-class
+   (& "function")
+   (& "builtins")
+   (list) (& "**procedure**") #f (& "__call__") py-function-call
+   ))
+
+(define (procedure->py-function procedure)
+ (let ((func (py-call0 py-function)))
+   (object-put-no-cache! func (& "**procedure**") procedure)
+   func
+ )
+)
 
 ;;;----------------------------------------------------------------------------
 
