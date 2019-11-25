@@ -137,6 +137,15 @@
 (define (py-procedure->function generic-proc positional-proc)
    (make-PyFunction (PyFunction-default-hclass) '#() positional-proc))
 
+(define (py-call obj . args)
+  (let ((call-method (getattribute-from-class obj (& "__call__"))))
+    (if (eq? py-absent)
+      (py-throw py-builtins-TypeError)
+      ((apply (PyFunction-procedure call-method) args))
+    )
+  )
+)
+
 (define (py-call0 fun)
    (if (and (isa? fun PyFunction) (correct-arity? (PyFunction-procedure fun) 0))
        ((PyFunction-procedure fun))
