@@ -138,13 +138,14 @@
    (make-PyFunction (PyFunction-default-hclass) '#() positional-proc))
 
 (define (py-call obj . args)
-  (let ((call-method (getattribute-from-class obj (& "__call__"))))
-    (if (eq? call-method py-absent)
-      (py-throw py-builtins-TypeError)
-      ((apply (PyFunction-procedure call-method) args))
-    )
-  )
-)
+    (tprint 1000)
+    (if (PyFunction? obj)
+      (let ((procedure (PyFunction-procedure obj)))
+        (apply procedure args))
+      (let ((call-method (getattribute-from-class obj (& "__call__"))))
+        (if (eq? call-method py-absent)
+          (py-throw py-builtins-TypeError)
+          (apply py-call call-method obj args)))))
 
 (define (py-call0 fun)
    (if (and (isa? fun PyFunction) (correct-arity? (PyFunction-procedure fun) 0))
@@ -764,9 +765,10 @@
 ;; Binds a recovered attribute by calling attr.__class__.__get__ if it exists
 ;; if the __get__ method does not exist on the attr's class, return the attr
 (define (object-get-bind-descriptor attr instance #!optional (owner (py-none)))
+  (tprint 2000)
   (let ((py-attr-get-method (getattribute-from-class attr (& "__get__"))))
     (if (not (eq? py-attr-get-method py-absent))
-      (py-call3 py-attr-get-method attr instance owner)
+      (py-call py-attr-get-method attr instance owner)
       attr
     )
   )
@@ -1510,25 +1512,16 @@
 (define py-method-call
   (make-PyFunction (PyFunction-default-hclass) '#() method-call))
 
-
 (define py-method
  (py-make-class
    (& "method")
    (& "builtins")
-   (list) (& "**procedure**") #f
-          (& "__self__") #f
-          (& "__call__") py-method-call
+   (list) (& "__call__") py-method-call
    ))
 
 (define (function-call self . args)
-  (let ((procedure (py-own-attr-ref self (& "**procedure**")))
-        (args-length (length args)))
-    (if (procedure-arity-valid? procedure args-length)
-      ((apply procedure args))
-      ((py-throw py-builtin-TypeError))
-    )
-  )
-)
+  (let ((procedure (py-own-attr-ref self (& "**procedure**"))))
+      (apply procedure args)))
 
 (define py-function-call
   (make-PyFunction (PyFunction-default-hclass) '#() function-call))
@@ -1536,11 +1529,11 @@
 (define (function-get self instance owner)
   (if (eq? owner py-none)
     (self)
-    ((let ((method (py-call0 py-method)))
+    (let ((method (py-call0 py-method)))
       (object-put-no-cache! method (& "**procedure**") procedure)
       (object-put-no-cache! method (& "__self__") instance)
       method
-    ))
+    )
   )
 )
 
@@ -1551,15 +1544,15 @@
  (py-make-class
    (& "function")
    (& "builtins")
-   (list) (& "**procedure**") #f (& "__call__") py-function-call
+   (list)
+     (& "__call__") py-function-call
+     (& "__get__") py-function-get
    ))
 
 (define (procedure->py-function procedure)
  (let ((func (py-call0 py-function)))
    (object-put-no-cache! func (& "**procedure**") procedure)
-   func
- )
-)
+   func))
 
 ;;;----------------------------------------------------------------------------
 
