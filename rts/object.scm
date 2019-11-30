@@ -138,7 +138,6 @@
    (make-PyFunction (PyFunction-default-hclass) '#() positional-proc))
 
 (define (py-call obj . args)
-    (tprint 1000)
     (if (PyFunction? obj)
       (let ((procedure (PyFunction-procedure obj)))
         (apply procedure args))
@@ -765,7 +764,6 @@
 ;; Binds a recovered attribute by calling attr.__class__.__get__ if it exists
 ;; if the __get__ method does not exist on the attr's class, return the attr
 (define (object-get-bind-descriptor attr instance #!optional (owner (py-none)))
-  (tprint 2000)
   (let ((py-attr-get-method (getattribute-from-class attr (& "__get__"))))
     (if (not (eq? py-attr-get-method py-absent))
       (py-call py-attr-get-method attr instance owner)
@@ -797,10 +795,13 @@
 ;;   Entry point of the getattr protocol
 ;;   Look into the object's own attributes
 ;;   Defer to py-getattribute-from-class if not found
+;; TODO: Python should also implement a type.__getattribute__ method
+;; TODO: owner (binding second attribute) should be the exact class
+;;       from which the attribute was recovered, not the object direct type
 (define (object-getattribute obj name)
   (let ((attr (py-own-attr-ref obj name)))
     (if (not (eq? attr py-absent))
-      (object-get-bind-descriptor attr obj)
+      (object-get-bind-descriptor attr obj (py-obj-cls obj))
       (let ((cls-attr (getattribute-from-class obj name)))
         (if (not (eq? cls-attr py-absent))
           (object-get-bind-descriptor cls-attr obj (py-obj-cls obj))
@@ -811,18 +812,17 @@
 (define py-object-getattribute
   (make-PyFunction (PyFunction-default-hclass) '#() object-getattribute))
 
-;; TODO: implement the logic described below
-;; Implement the getattr protocole
-;;  1) Return obj.__getattribute__(name)
-;;  2) If AttributeError is raised return obj.__getattr__(name)
+;; getattr protocole
+;;  1) calls __getattribute__ method
+;;  2) if __getattribute__ raises AttributeError, call __getattr__
 (define (object-get obj name cache)
   (with-handler
     (lambda (exception)
-      (if (py-isinstance? exception py-builtin-AttributeError)
-        (let ((py-getattr (getattribute-from-class obj (& "__getattr__"))))
-          (py-call2 py-getattr obj name))
-          (py-throw exception)
-      ))
+      (cond ((not (PyObject? exception)) (raise exception))
+            ((py-isinstance? exception py-builtin-AttributeError)
+              (let ((py-getattr (getattribute-from-class obj (& "__getattr__"))))
+                (py-call2 py-getattr obj name)))
+            (else (py-throw exception))))
       (let ((py-getattribute (getattribute-from-class obj (& "__getattribute__"))))
         (py-call2 py-getattribute obj name)
       )
@@ -1502,12 +1502,8 @@
 
 (define (method-call self . args)
   (let ((procedure (py-own-attr-ref self (& "**procedure**")))
-        (bound-instance (py-own-attr-ref self (& "__self__")))
-        (args-length (length args)))
-    (if (procedure-arity-valid? procedure (+ 1 args-length))
-      ((apply procedure bound-instance args))
-      ((py-throw py-builtin-TypeError))
-    )))
+        (bound-instance (py-own-attr-ref self (& "__self__"))))
+    (apply procedure bound-instance args)))
 
 (define py-method-call
   (make-PyFunction (PyFunction-default-hclass) '#() method-call))
@@ -1527,9 +1523,10 @@
   (make-PyFunction (PyFunction-default-hclass) '#() function-call))
 
 (define (function-get self instance owner)
-  (if (eq? owner py-none)
-    (self)
-    (let ((method (py-call0 py-method)))
+  (if (eq? instance py-none)
+    self
+    (let ((method (py-call0 py-method))
+          (procedure (py-own-attr-ref self (& "**procedure**"))))
       (object-put-no-cache! method (& "**procedure**") procedure)
       (object-put-no-cache! method (& "__self__") instance)
       method
