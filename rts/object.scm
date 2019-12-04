@@ -1550,7 +1550,7 @@
   (make-PyFunction (PyFunction-default-hclass) '#() function-call))
 
 (define (function-get self instance owner)
-  (if (eq? instance py-none)
+  (if (eq? instance (py-none))
     self
     (let ((method (py-call0 py-method))
           (procedure (py-own-attr-ref self (& "**procedure**"))))
