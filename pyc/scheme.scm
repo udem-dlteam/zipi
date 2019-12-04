@@ -423,7 +423,7 @@
    (let ((args (map (lambda (a) (scheme a conf)) (PycFun-args this)))
 	 (body (locals this (scheme (PycFun-body this) (cons* fun: this conf)))))
       (epairify this
-	 `(make-PyFunction (PyFunction-default-hclass) '#()
+	 `(procedure->py-function
 	     ,(if (PycFun-need-return this)
 		  `(lambda ,args ,(generator this `(bind-exit (return) ,body)))
 		  `(lambda ,args ,(generator this body)))))))
@@ -474,12 +474,7 @@
 		       (py-call0 ,f))))))
 
    (define (invoke fun args)
-      (case (length args)
-	 ((0) `(py-call0 ,fun ,@args)) ;; (invoke-maybe-locals fun))
-	 ((1) `(py-call1 ,fun ,@args))
-	 ((2) `(py-call2 ,fun ,@args))
-	 ((3) `(py-call3 ,fun ,@args))
-	 (else (error "scheme" "Not implemented" (pyc->list this)))))
+      `(py-call ,fun ,@args))
 
    (let ((fun (PycCall-fun this)))
       (cond

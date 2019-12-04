@@ -127,6 +127,7 @@
            ((eq? name (vector-ref names i)) i)
            (else (loop (- i 1))))))))
 
+
 (define fun-hclass
    (make-HClass '#() '#() '()))
 
@@ -135,6 +136,15 @@
 
 (define (py-procedure->function generic-proc positional-proc)
    (make-PyFunction (PyFunction-default-hclass) '#() positional-proc))
+
+(define (py-call obj . args)
+    (if (PyFunction? obj)
+      (let ((procedure (PyFunction-procedure obj)))
+        (apply procedure args))
+      (let ((call-method (getattribute-from-class obj (& "__call__"))))
+        (if (eq? call-method py-absent)
+          (py-throw py-builtins-TypeError)
+          (apply py-call call-method obj args)))))
 
 (define (py-call0 fun)
    (if (and (isa? fun PyFunction) (correct-arity? (PyFunction-procedure fun) 0))
@@ -756,7 +766,7 @@
 (define (object-get-bind-descriptor attr instance #!optional (owner (py-none)))
   (let ((py-attr-get-method (getattribute-from-class attr (& "__get__"))))
     (if (not (eq? py-attr-get-method py-absent))
-      (py-call3 py-attr-get-method attr instance owner)
+      (py-call py-attr-get-method attr instance owner)
       attr
     )
   )
@@ -785,10 +795,13 @@
 ;;   Entry point of the getattr protocol
 ;;   Look into the object's own attributes
 ;;   Defer to py-getattribute-from-class if not found
+;; TODO: Python should also implement a type.__getattribute__ method
+;; TODO: owner (binding second attribute) should be the exact class
+;;       from which the attribute was recovered, not the object direct type
 (define (object-getattribute obj name)
   (let ((attr (py-own-attr-ref obj name)))
     (if (not (eq? attr py-absent))
-      (object-get-bind-descriptor attr obj)
+      (object-get-bind-descriptor attr obj (py-obj-cls obj))
       (let ((cls-attr (getattribute-from-class obj name)))
         (if (not (eq? cls-attr py-absent))
           (object-get-bind-descriptor cls-attr obj (py-obj-cls obj))
@@ -799,18 +812,17 @@
 (define py-object-getattribute
   (make-PyFunction (PyFunction-default-hclass) '#() object-getattribute))
 
-;; TODO: implement the logic described below
-;; Implement the getattr protocole
-;;  1) Return obj.__getattribute__(name)
-;;  2) If AttributeError is raised return obj.__getattr__(name)
+;; getattr protocole
+;;  1) calls __getattribute__ method
+;;  2) if __getattribute__ raises AttributeError, call __getattr__
 (define (object-get obj name cache)
   (with-handler
     (lambda (exception)
-      (if (py-isinstance? exception py-builtin-AttributeError)
-        (let ((py-getattr (getattribute-from-class obj (& "__getattr__"))))
-          (py-call2 py-getattr obj name))
-          (py-throw exception)
-      ))
+      (cond ((not (PyObject? exception)) (raise exception))
+            ((py-isinstance? exception py-builtin-AttributeError)
+              (let ((py-getattr (getattribute-from-class obj (& "__getattr__"))))
+                (py-call2 py-getattr obj name)))
+            (else (py-throw exception))))
       (let ((py-getattribute (getattribute-from-class obj (& "__getattribute__"))))
         (py-call2 py-getattribute obj name)
       )
@@ -1483,6 +1495,61 @@
    (lambda rest (error "__init__" "unimplemented generic procedure" #f))
    (lambda (self)
      self)))
+
+;; =============
+;; CALL PROTOCOL
+;; =============
+
+(define (method-call self . args)
+  (let ((procedure (py-own-attr-ref self (& "**procedure**")))
+        (bound-instance (py-own-attr-ref self (& "__self__"))))
+    (apply procedure bound-instance args)))
+
+(define py-method-call
+  (make-PyFunction (PyFunction-default-hclass) '#() method-call))
+
+(define py-method
+ (py-make-class
+   (& "method")
+   (& "builtins")
+   (list) (& "__call__") py-method-call
+   ))
+
+(define (function-call self . args)
+  (let ((procedure (py-own-attr-ref self (& "**procedure**"))))
+      (apply procedure args)))
+
+(define py-function-call
+  (make-PyFunction (PyFunction-default-hclass) '#() function-call))
+
+(define (function-get self instance owner)
+  (if (eq? instance py-none)
+    self
+    (let ((method (py-call0 py-method))
+          (procedure (py-own-attr-ref self (& "**procedure**"))))
+      (object-put-no-cache! method (& "**procedure**") procedure)
+      (object-put-no-cache! method (& "__self__") instance)
+      method
+    )
+  )
+)
+
+(define py-function-get
+  (make-PyFunction (PyFunction-default-hclass) '#() function-get))
+
+(define py-function
+ (py-make-class
+   (& "function")
+   (& "builtins")
+   (list)
+     (& "__call__") py-function-call
+     (& "__get__") py-function-get
+   ))
+
+(define (procedure->py-function procedure)
+ (let ((func (py-call0 py-function)))
+   (object-put-no-cache! func (& "**procedure**") procedure)
+   func))
 
 ;;;----------------------------------------------------------------------------
 
