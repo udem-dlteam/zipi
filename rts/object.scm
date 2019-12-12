@@ -791,26 +791,51 @@
               (loop-mro (+ i 1)))))
         py-absent))))
 
+;; Does the same a getattribute-from-class but also returns the class
+;; which owned the attribute. This may be necessary for the getattr protocol
+(define (getattribute-from-class-with-owner obj name)
+  (let ((mro (py-obj-mro obj)))
+    (let loop-mro ((i 0))
+      (if (< i (vector-length mro))
+        (let ((cls (vector-ref mro i)))
+          (let ((attr (py-own-attr-ref cls name)))
+            (if (not (eq? attr py-absent))
+              (values attr cls)
+              (loop-mro (+ i 1)))))
+        (values py-absent py-absent)))))
+
 ;; Implements object.__getattribute__
 ;;   Entry point of the getattr protocol
 ;;   Look into the object's own attributes
 ;;   Defer to py-getattribute-from-class if not found
-;; TODO: Python should also implement a type.__getattribute__ method
-;; TODO: owner (binding second attribute) should be the exact class
-;;       from which the attribute was recovered, not the object direct type
 (define (object-getattribute obj name)
   (let ((attr (py-own-attr-ref obj name)))
     (if (not (eq? attr py-absent))
-      (object-get-bind-descriptor attr obj (py-obj-cls obj))
-      (let ((cls-attr (getattribute-from-class obj name)))
+      attr
+      (let-values (((cls-attr owner) (getattribute-from-class-with-owner obj name)))
         (if (not (eq? cls-attr py-absent))
-          (object-get-bind-descriptor cls-attr obj (py-obj-cls obj))
+          (object-get-bind-descriptor cls-attr obj owner)
           (py-throw py-builtin-AttributeError)
         )))))
 
 ;; The Python object object.__getattribute__
 (define py-object-getattribute
   (make-PyFunction (PyFunction-default-hclass) '#() object-getattribute))
+
+;; Implements type.__getattribute__
+(define (type-getattribute obj name)
+(let ((attr (py-own-attr-ref obj name)))
+  (if (not (eq? attr py-absent))
+    (object-get-bind-descriptor attr (py-none) obj)
+    (let-values (((cls-attr owner) (getattribute-from-class-with-owner obj name)))
+      (if (not (eq? cls-attr py-absent))
+        (object-get-bind-descriptor cls-attr obj owner)
+        (py-throw py-builtin-AttributeError)
+      )))))
+
+;; The Python object type.__getattribute__
+(define py-type-getattribute
+  (make-PyFunction (PyFunction-default-hclass) '#() type-getattribute))
 
 ;; getattr protocole
 ;;  1) calls __getattribute__ method
@@ -1026,7 +1051,8 @@
              (& "__bases__")
              (& "__mro__")
              (& "__module__")
-             (& "__name__"))
+             (& "__name__")
+             (& "__getattribute__"))
             '())
            #f)) ;; constructor is set later
 
@@ -1178,6 +1204,7 @@
       (PyObject-elements-set! type-class 0 type-class) ;; set **class**
       (PyObject-elements-set! type-class 1 bases-types) ;; set **bases**
       (PyObject-elements-set! type-class 2 mro) ;; set **mro**
+      (PyObject-elements-set! type-class 8 py-type-getattribute)
       (PyFunction-procedure-set!
        type-class
        (py-obj-constructor type-class hclass-of-instances py-call-init)))
@@ -1523,7 +1550,7 @@
   (make-PyFunction (PyFunction-default-hclass) '#() function-call))
 
 (define (function-get self instance owner)
-  (if (eq? instance py-none)
+  (if (eq? instance (py-none))
     self
     (let ((method (py-call0 py-method))
           (procedure (py-own-attr-ref self (& "**procedure**"))))
