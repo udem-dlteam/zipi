@@ -846,28 +846,17 @@
       (cond ((not (PyObject? exception)) (raise exception))
             ((py-isinstance? exception py-builtin-AttributeError)
               (let ((py-getattr (getattribute-from-class obj (& "__getattr__"))))
-                (py-call2 py-getattr obj name)))
+                (if (not (eq? py-getattr py-absent))
+                  (py-call py-getattr obj name)
+                  (py-throw exception))))
             (else (py-throw exception))))
       (let ((py-getattribute (getattribute-from-class obj (& "__getattribute__"))))
-        (py-call2 py-getattribute obj name)
+        (py-call py-getattribute obj name)
       )
     ))
 
 (define (object-put! obj attr val cache)
   (py-attr-set! obj attr val))
-
-;;(define (object-get obj attr cache)
-;;  (if (PyObject? obj)
-;;      (let ((val (py-attr-ref obj attr)))
-;;        (if (not (eq? val py-absent))
-;;            val
-;;            (object-get-fail obj attr)))
-;;      (if (eq? attr (& "__class__")) ;; TODO: remove (temporary kluge)
-;;          (py-obj-cls obj)
-;;          (object-get-fail obj attr))))
-
-(define (object-get-fail obj attr)
-  (error "AttributeError" "object has no attribute" attr))
 
 (define (object-has obj attr)
    (>= (py-own-attr-index obj attr) 0))
