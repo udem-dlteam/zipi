@@ -137,6 +137,7 @@
 (define (py-procedure->function generic-proc positional-proc)
    (make-PyFunction (PyFunction-default-hclass) '#() positional-proc))
 
+;; TODO raise TypeError on incorrect number of arguments
 (define (py-call obj . args)
     (if (PyFunction? obj)
       (let ((procedure (PyFunction-procedure obj)))
