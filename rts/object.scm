@@ -140,8 +140,9 @@
 (define (py-call obj . args)
     (if (PyFunction? obj)
       (let ((procedure (PyFunction-procedure obj)))
+        (tprint procedure)
         (apply procedure args))
-      (let ((call-method (getattribute-from-class obj (& "__call__"))))
+      (let ((call-method (getattribute-from-obj-mro obj (& "__call__"))))
         (if (eq? call-method py-absent)
           (py-throw py-builtins-TypeError)
           (apply py-call call-method obj args)))))
@@ -446,258 +447,6 @@
 
 ;;;----------------------------------------------------------------------------
 
-;;; Python modules.
-
-(define builtins-mod #f)
-
-;; Base builtins module for building builtins.py
-;; This can be unloaded of Scheme builtins as we build builtins.py
-;; In the end this should offer minimal functions from which actual buitlins can be defined
-(define (py-make-base-builtins-mod)
-(let ((mod
-       (py-obj-alloc
-        py-module-class
-        (make-HClass
-         (vector py-module-class py-object-class)
-         (vector (& "**class**")
-                (& "__class__")
-                (& "__name__")
-                (& "__base_abs")
-                (& "__base_all")
-                (& "__base_any")
-                (& "__base_ascii")
-                (& "__base_bin")
-                (& "__base_bool")
-                (& "__base_breakpoint")
-                (& "__base_bytearray")
-                (& "__base_bytes")
-                (& "__base_callable")
-                (& "__base_chr")
-                (& "__base_classmethod")
-                (& "__base_compile")
-                (& "__base_complex")
-                (& "__base_delattr")
-                (& "__base_dict")
-                (& "__base_dir")
-                (& "__base_divmod")
-                (& "__base_enumerate")
-                (& "__base_eval")
-                (& "__base_exec")
-                (& "__base_filter")
-                (& "__base_float")
-                (& "__base_format")
-                (& "__base_frozenset")
-                (& "__base_getattr")
-                (& "__base_globals")
-                (& "__base_hasattr")
-                (& "__base_hash")
-                (& "__base_help")
-                (& "__base_hex")
-                (& "__base_id")
-                (& "__base_input")
-                (& "__base_int")
-                (& "__base_isinstance")
-                (& "__base_issubclass")
-                (& "__base_iter")
-                (& "__base_len")
-                (& "__base_list")
-                (& "__base_locals")
-                (& "__base_map")
-                (& "__base_max")
-                (& "__base_memoryview")
-                (& "__base_min")
-                (& "__base_next")
-                (& "__base_object")
-                (& "__base_oct")
-                (& "__base_open")
-                (& "__base_ord")
-                (& "__base_pow")
-                (& "__base_print")
-                (& "__base_property")
-                (& "__base_range")
-                (& "__base_repr")
-                (& "__base_reversed")
-                (& "__base_round")
-                (& "__base_set")
-                (& "__base_setattr")
-                (& "__base_slice")
-                (& "__base_sorted")
-                (& "__base_staticmethod")
-                (& "__base_str")
-                (& "__base_sum")
-                (& "__base_super")
-                (& "__base_tuple")
-                (& "__base_type")
-                (& "__base_vars")
-                (& "__base_zip")
-                (& "__base___import__")
-                (& "BaseException")
-                )
-                '()))))
-
-      (PyObject-elements-set! mod 1  py-module-class)
-      (PyObject-elements-set! mod 2  (py-str-from-scheme "builtins"))
-      (PyObject-elements-set! mod 3  py-builtin-abs)
-      (PyObject-elements-set! mod 4  py-builtin-all)
-      (PyObject-elements-set! mod 5  py-builtin-any)
-      (PyObject-elements-set! mod 6  py-builtin-ascii)
-      (PyObject-elements-set! mod 7  py-builtin-bin)
-      (PyObject-elements-set! mod 8  py-builtin-bool)
-      (PyObject-elements-set! mod 9  py-builtin-breakpoint)
-      (PyObject-elements-set! mod 10 py-builtin-bytearray)
-      (PyObject-elements-set! mod 11 py-builtin-bytes)
-      (PyObject-elements-set! mod 12 py-builtin-callable)
-      (PyObject-elements-set! mod 13 py-builtin-chr)
-      (PyObject-elements-set! mod 14 py-builtin-classmethod)
-      (PyObject-elements-set! mod 15 py-builtin-compile)
-      (PyObject-elements-set! mod 16 py-builtin-complex)
-      (PyObject-elements-set! mod 17 py-builtin-delattr)
-      (PyObject-elements-set! mod 18 py-builtin-dict)
-      (PyObject-elements-set! mod 19 py-builtin-dir)
-      (PyObject-elements-set! mod 20 py-builtin-divmod)
-      (PyObject-elements-set! mod 21 py-builtin-enumerate)
-      (PyObject-elements-set! mod 22 py-builtin-eval)
-      (PyObject-elements-set! mod 23 py-builtin-exec)
-      (PyObject-elements-set! mod 24 py-builtin-filter)
-      (PyObject-elements-set! mod 25 py-builtin-float)
-      (PyObject-elements-set! mod 26 py-builtin-format)
-      (PyObject-elements-set! mod 27 py-builtin-frozenset)
-      (PyObject-elements-set! mod 28 py-builtin-getattr)
-      (PyObject-elements-set! mod 29 py-builtin-globals)
-      (PyObject-elements-set! mod 30 py-builtin-hasattr)
-      (PyObject-elements-set! mod 31 py-builtin-hash)
-      (PyObject-elements-set! mod 32 py-builtin-help)
-      (PyObject-elements-set! mod 33 py-builtin-hex)
-      (PyObject-elements-set! mod 34 py-builtin-id)
-      (PyObject-elements-set! mod 35 py-builtin-input)
-      (PyObject-elements-set! mod 36 py-builtin-int)
-      (PyObject-elements-set! mod 37 py-builtin-isinstance)
-      (PyObject-elements-set! mod 38 py-builtin-issubclass)
-      (PyObject-elements-set! mod 39 py-builtin-iter)
-      (PyObject-elements-set! mod 40 py-builtin-len)
-      (PyObject-elements-set! mod 41 py-builtin-list)
-      (PyObject-elements-set! mod 42 py-builtin-locals)
-      (PyObject-elements-set! mod 43 py-builtin-map)
-      (PyObject-elements-set! mod 44 py-builtin-max)
-      (PyObject-elements-set! mod 45 py-builtin-memoryview)
-      (PyObject-elements-set! mod 46 py-builtin-min)
-      (PyObject-elements-set! mod 47 py-builtin-next)
-      (PyObject-elements-set! mod 48 py-builtin-object)
-      (PyObject-elements-set! mod 49 py-builtin-oct)
-      (PyObject-elements-set! mod 50 py-builtin-open)
-      (PyObject-elements-set! mod 51 py-builtin-ord)
-      (PyObject-elements-set! mod 52 py-builtin-pow)
-      (PyObject-elements-set! mod 53 py-builtin-print)
-      (PyObject-elements-set! mod 54 py-builtin-property)
-      (PyObject-elements-set! mod 55 py-builtin-range)
-      (PyObject-elements-set! mod 56 py-builtin-repr)
-      (PyObject-elements-set! mod 57 py-builtin-reversed)
-      (PyObject-elements-set! mod 58 py-builtin-round)
-      (PyObject-elements-set! mod 59 py-builtin-set)
-      (PyObject-elements-set! mod 60 py-builtin-setattr)
-      (PyObject-elements-set! mod 61 py-builtin-slice)
-      (PyObject-elements-set! mod 62 py-builtin-sorted)
-      (PyObject-elements-set! mod 63 py-builtin-staticmethod)
-      (PyObject-elements-set! mod 64 py-builtin-str)
-      (PyObject-elements-set! mod 65 py-builtin-sum)
-      (PyObject-elements-set! mod 66 py-builtin-super)
-      (PyObject-elements-set! mod 67 py-builtin-tuple)
-      (PyObject-elements-set! mod 68 py-builtin-type)
-      (PyObject-elements-set! mod 69 py-builtin-vars)
-      (PyObject-elements-set! mod 70 py-builtin-zip)
-      (PyObject-elements-set! mod 71 py-builtin-__import__)
-      (PyObject-elements-set! mod 72 py-builtin-BaseException)
-      mod))
-
-;; This needs to be globally defined an configured instead
-(define zipi-stdlib-dir "~/udem-dlteam/zipi/stdlib")
-
-(define (py-make-builtins-mod)
-  (let ((file (string-append zipi-stdlib-dir "/builtins.scm")))
-     (cond-expand
-	(bigloo (builtins-init))
-	(else
-	 ((loadv file))))))
-
-;; Once builtins.py is loaded, we need to keep a direct access to some builtins
-;; Examples are exceptions which are part of Python protocols, such as StopIteration
-(define (bootstrap-builtins builtins-mod)
-  (set! py-builtin-ValueError (object-get-no-cache builtins-mod  (& "ValueError")))
-  (set! py-builtin-NameError (object-get-no-cache builtins-mod  (& "NameError")))
-  (set! py-builtin-StopIteration (object-get-no-cache builtins-mod  (& "StopIteration")))
-  (set! py-builtin-ArithmeticError (object-get-no-cache builtins-mod  (& "ArithmeticError")))
-  (set! py-builtin-ZeroDivisionError (object-get-no-cache builtins-mod  (& "ZeroDivisionError")))
-  (set! py-builtin-AttributeError (object-get-no-cache builtins-mod  (& "AttributeError")))
-  (set! py-builtin-TypeError (object-get-no-cache builtins-mod  (& "TypeError")))
-)
-
-(define (py-builtins-mod)
-  (unless builtins-mod
-    (set! builtins-mod (py-make-builtins-mod))
-    (bootstrap-builtins builtins-mod)
-  )
-  builtins-mod)
-
-(define time-mod #f)
-
-(define (py-make-time-mod)
-  (let ((mod
-         (py-obj-alloc
-          py-module-class
-          (make-HClass
-           (vector py-module-class py-object-class)
-           (vector (& "**class**")
-                   (& "__class__")
-                   (& "__name__")
-                   (& "time")
-		   )
-	   '()))))
-
-    (PyObject-elements-set! mod 1 py-module-class)
-    (PyObject-elements-set! mod 2 (py-str-from-scheme "time"))
-    (PyObject-elements-set! mod 3 py-time)
-
-    mod))
-
-(define (py-time-mod)
-  (unless time-mod
-    (set! time-mod (py-make-time-mod)))
-  time-mod)
-
-(define py-time
-  (py-procedure->function
-   (lambda rest (error "time" "unimplemented generic procedure for time" #f))
-   (lambda _
-     (/ (current-microseconds) 1000000.0))))
-
-(define sys-mod #f)
-
-(define (py-make-sys-mod)
-  (let ((mod
-         (py-obj-alloc
-          py-module-class
-          (make-HClass
-           (vector py-module-class py-object-class)
-           (vector (& "**class**")
-                   (& "__class__")
-                   (& "__name__")
-                   (& "modules")
-		   )
-	   '()))))
-
-    (PyObject-elements-set! mod 1 py-module-class)
-    (PyObject-elements-set! mod 2 (py-str-from-scheme "sys"))
-    (PyObject-elements-set! mod 3 (py-make-dict '() '()))
-
-    mod))
-
-(define (py-sys-mod)
-  (unless sys-mod
-    (set! sys-mod (py-make-sys-mod)))
-  sys-mod)
-
-;;;----------------------------------------------------------------------------
-
 ;;; Object attribute store/fetch.
 
 (define (py-own-attr-set! obj attr val)
@@ -764,7 +513,7 @@
 ;; Binds a recovered attribute by calling attr.__class__.__get__ if it exists
 ;; if the __get__ method does not exist on the attr's class, return the attr
 (define (object-get-bind-descriptor attr instance #!optional (owner (py-none)))
-  (let ((py-attr-get-method (getattribute-from-class attr (& "__get__"))))
+  (let ((py-attr-get-method (getattribute-from-obj-mro attr (& "__get__"))))
     (if (not (eq? py-attr-get-method py-absent))
       (py-call py-attr-get-method attr instance owner)
       attr
@@ -776,12 +525,12 @@
 ;; GETATTR PROTOCOL
 ;; ================
 
-;; Recover an attribute from the class of 'obj'
+;; Recover an attribute from the given class
 ;;   Does so by looking through the classes of the MRO
 ;;   returns the first occurence of the attribute
 ;;   found on an element of the MRO
-(define (getattribute-from-class obj name)
-  (let ((mro (py-obj-mro obj)))
+(define (getattribute-from-cls-mro cls name)
+  (let ((mro (py-cls-mro cls)))
     (let loop-mro ((i 0))
       (if (< i (vector-length mro))
         (let ((cls (vector-ref mro i)))
@@ -791,9 +540,13 @@
               (loop-mro (+ i 1)))))
         py-absent))))
 
-;; Does the same a getattribute-from-class but also returns the class
+;; Recover an attribute from the class of 'obj'
+(define (getattribute-from-obj-mro obj name)
+  (getattribute-from-cls-mro (py-obj-cls obj) name))
+
+;; Does the same a getattribute-from-obj-mro but also returns the class
 ;; which owned the attribute. This may be necessary for the getattr protocol
-(define (getattribute-from-class-with-owner obj name)
+(define (getattribute-from-obj-mro-with-owner obj name)
   (let ((mro (py-obj-mro obj)))
     (let loop-mro ((i 0))
       (if (< i (vector-length mro))
@@ -807,12 +560,12 @@
 ;; Implements object.__getattribute__
 ;;   Entry point of the getattr protocol
 ;;   Look into the object's own attributes
-;;   Defer to py-getattribute-from-class if not found
+;;   Defer to py-getattribute-from-obj-mro if not found
 (define (object-getattribute obj name)
   (let ((attr (py-own-attr-ref obj name)))
     (if (not (eq? attr py-absent))
       attr
-      (let-values (((cls-attr owner) (getattribute-from-class-with-owner obj name)))
+      (let-values (((cls-attr owner) (getattribute-from-obj-mro-with-owner obj name)))
         (if (not (eq? cls-attr py-absent))
           (object-get-bind-descriptor cls-attr obj owner)
           (py-throw py-builtin-AttributeError)
@@ -827,7 +580,7 @@
 (let ((attr (py-own-attr-ref obj name)))
   (if (not (eq? attr py-absent))
     (object-get-bind-descriptor attr (py-none) obj)
-    (let-values (((cls-attr owner) (getattribute-from-class-with-owner obj name)))
+    (let-values (((cls-attr owner) (getattribute-from-obj-mro-with-owner obj name)))
       (if (not (eq? cls-attr py-absent))
         (object-get-bind-descriptor cls-attr obj owner)
         (py-throw py-builtin-AttributeError)
@@ -845,12 +598,12 @@
     (lambda (exception)
       (cond ((not (PyObject? exception)) (raise exception))
             ((py-isinstance? exception py-builtin-AttributeError)
-              (let ((py-getattr (getattribute-from-class obj (& "__getattr__"))))
+              (let ((py-getattr (getattribute-from-obj-mro obj (& "__getattr__"))))
                 (if (not (eq? py-getattr py-absent))
                   (py-call py-getattr obj name)
                   (py-throw exception))))
             (else (py-throw exception))))
-      (let ((py-getattribute (getattribute-from-class obj (& "__getattribute__"))))
+      (let ((py-getattribute (getattribute-from-obj-mro obj (& "__getattribute__"))))
         (py-call py-getattribute obj name)
       )
     ))
@@ -860,6 +613,266 @@
 
 (define (object-has obj attr)
    (>= (py-own-attr-index obj attr) 0))
+
+;;;----------------------------------------------------------------------------
+
+;;; Python modules.
+
+
+;; Helpers for the builtins module
+(define py-helper-getownattr py-own-attr-ref)
+
+(define builtins-mod #f)
+
+;; Base builtins module for building builtins.py
+;; This can be unloaded of Scheme builtins as we build builtins.py
+;; In the end this should offer minimal functions from which actual buitlins can be defined
+(define (py-make-base-builtins-mod)
+(let ((mod
+      (py-obj-alloc
+       py-module-class
+       (make-HClass
+        (vector py-module-class py-object-class)
+        (vector (& "**class**")
+               (& "__class__")
+               (& "__name__")
+               (& "__base_abs")
+               (& "__base_all")
+               (& "__base_any")
+               (& "__base_ascii")
+               (& "__base_bin")
+               (& "__base_bool")
+               (& "__base_breakpoint")
+               (& "__base_bytearray")
+               (& "__base_bytes")
+               (& "__base_callable")
+               (& "__base_chr")
+               (& "__base_classmethod")
+               (& "__base_compile")
+               (& "__base_complex")
+               (& "__base_delattr")
+               (& "__base_dict")
+               (& "__base_dir")
+               (& "__base_divmod")
+               (& "__base_enumerate")
+               (& "__base_eval")
+               (& "__base_exec")
+               (& "__base_filter")
+               (& "__base_float")
+               (& "__base_format")
+               (& "__base_frozenset")
+               (& "__base_getattr")
+               (& "__base_globals")
+               (& "__base_hasattr")
+               (& "__base_hash")
+               (& "__base_help")
+               (& "__base_hex")
+               (& "__base_id")
+               (& "__base_input")
+               (& "__base_int")
+               (& "__base_isinstance")
+               (& "__base_issubclass")
+               (& "__base_iter")
+               (& "__base_len")
+               (& "__base_list")
+               (& "__base_locals")
+               (& "__base_map")
+               (& "__base_max")
+               (& "__base_memoryview")
+               (& "__base_min")
+               (& "__base_next")
+               (& "__base_object")
+               (& "__base_oct")
+               (& "__base_open")
+               (& "__base_ord")
+               (& "__base_pow")
+               (& "__base_print")
+               (& "__base_property")
+               (& "__base_range")
+               (& "__base_repr")
+               (& "__base_reversed")
+               (& "__base_round")
+               (& "__base_set")
+               (& "__base_setattr")
+               (& "__base_slice")
+               (& "__base_sorted")
+               (& "__base_staticmethod")
+               (& "__base_str")
+               (& "__base_sum")
+               (& "__base_super")
+               (& "__base_tuple")
+               (& "__base_type")
+               (& "__base_vars")
+               (& "__base_zip")
+               (& "__base___import__")
+               (& "BaseException")
+               (& "__getownattr")
+               (& "__absent")
+               )
+               '()))))
+
+     (PyObject-elements-set! mod 1  py-module-class)
+     (PyObject-elements-set! mod 2  (py-str-from-scheme "builtins"))
+     (PyObject-elements-set! mod 3  py-builtin-abs)
+     (PyObject-elements-set! mod 4  py-builtin-all)
+     (PyObject-elements-set! mod 5  py-builtin-any)
+     (PyObject-elements-set! mod 6  py-builtin-ascii)
+     (PyObject-elements-set! mod 7  py-builtin-bin)
+     (PyObject-elements-set! mod 8  py-builtin-bool)
+     (PyObject-elements-set! mod 9  py-builtin-breakpoint)
+     (PyObject-elements-set! mod 10 py-builtin-bytearray)
+     (PyObject-elements-set! mod 11 py-builtin-bytes)
+     (PyObject-elements-set! mod 12 py-builtin-callable)
+     (PyObject-elements-set! mod 13 py-builtin-chr)
+     (PyObject-elements-set! mod 14 py-builtin-classmethod)
+     (PyObject-elements-set! mod 15 py-builtin-compile)
+     (PyObject-elements-set! mod 16 py-builtin-complex)
+     (PyObject-elements-set! mod 17 py-builtin-delattr)
+     (PyObject-elements-set! mod 18 py-builtin-dict)
+     (PyObject-elements-set! mod 19 py-builtin-dir)
+     (PyObject-elements-set! mod 20 py-builtin-divmod)
+     (PyObject-elements-set! mod 21 py-builtin-enumerate)
+     (PyObject-elements-set! mod 22 py-builtin-eval)
+     (PyObject-elements-set! mod 23 py-builtin-exec)
+     (PyObject-elements-set! mod 24 py-builtin-filter)
+     (PyObject-elements-set! mod 25 py-builtin-float)
+     (PyObject-elements-set! mod 26 py-builtin-format)
+     (PyObject-elements-set! mod 27 py-builtin-frozenset)
+     (PyObject-elements-set! mod 28 py-builtin-getattr)
+     (PyObject-elements-set! mod 29 py-builtin-globals)
+     (PyObject-elements-set! mod 30 py-builtin-hasattr)
+     (PyObject-elements-set! mod 31 py-builtin-hash)
+     (PyObject-elements-set! mod 32 py-builtin-help)
+     (PyObject-elements-set! mod 33 py-builtin-hex)
+     (PyObject-elements-set! mod 34 py-builtin-id)
+     (PyObject-elements-set! mod 35 py-builtin-input)
+     (PyObject-elements-set! mod 36 py-builtin-int)
+     (PyObject-elements-set! mod 37 py-builtin-isinstance)
+     (PyObject-elements-set! mod 38 py-builtin-issubclass)
+     (PyObject-elements-set! mod 39 py-builtin-iter)
+     (PyObject-elements-set! mod 40 py-builtin-len)
+     (PyObject-elements-set! mod 41 py-builtin-list)
+     (PyObject-elements-set! mod 42 py-builtin-locals)
+     (PyObject-elements-set! mod 43 py-builtin-map)
+     (PyObject-elements-set! mod 44 py-builtin-max)
+     (PyObject-elements-set! mod 45 py-builtin-memoryview)
+     (PyObject-elements-set! mod 46 py-builtin-min)
+     (PyObject-elements-set! mod 47 py-builtin-next)
+     (PyObject-elements-set! mod 48 py-builtin-object)
+     (PyObject-elements-set! mod 49 py-builtin-oct)
+     (PyObject-elements-set! mod 50 py-builtin-open)
+     (PyObject-elements-set! mod 51 py-builtin-ord)
+     (PyObject-elements-set! mod 52 py-builtin-pow)
+     (PyObject-elements-set! mod 53 py-builtin-print)
+     (PyObject-elements-set! mod 54 py-builtin-property)
+     (PyObject-elements-set! mod 55 py-builtin-range)
+     (PyObject-elements-set! mod 56 py-builtin-repr)
+     (PyObject-elements-set! mod 57 py-builtin-reversed)
+     (PyObject-elements-set! mod 58 py-builtin-round)
+     (PyObject-elements-set! mod 59 py-builtin-set)
+     (PyObject-elements-set! mod 60 py-builtin-setattr)
+     (PyObject-elements-set! mod 61 py-builtin-slice)
+     (PyObject-elements-set! mod 62 py-builtin-sorted)
+     (PyObject-elements-set! mod 63 py-builtin-staticmethod)
+     (PyObject-elements-set! mod 64 py-builtin-str)
+     (PyObject-elements-set! mod 65 py-builtin-sum)
+     (PyObject-elements-set! mod 66 py-builtin-super)
+     (PyObject-elements-set! mod 67 py-builtin-tuple)
+     (PyObject-elements-set! mod 68 py-builtin-type)
+     (PyObject-elements-set! mod 69 py-builtin-vars)
+     (PyObject-elements-set! mod 70 py-builtin-zip)
+     (PyObject-elements-set! mod 71 py-builtin-__import__)
+     (PyObject-elements-set! mod 72 py-builtin-BaseException)
+     (PyObject-elements-set! mod 73 py-helper-getownattr)
+     (PyObject-elements-set! mod 73 py-absent)
+     mod))
+
+;; This needs to be globally defined an configured instead
+(define zipi-stdlib-dir "~/udem-dlteam/zipi/stdlib")
+
+(define (py-make-builtins-mod)
+ (let ((file (string-append zipi-stdlib-dir "/builtins.scm")))
+    (cond-expand
+	(bigloo (builtins-init))
+	(else
+	 ((loadv file))))))
+
+;; Once builtins.py is loaded, we need to keep a direct access to some builtins
+;; Examples are exceptions which are part of Python protocols, such as StopIteration
+(define (bootstrap-builtins builtins-mod)
+ (set! py-builtin-ValueError (object-get-no-cache builtins-mod  (& "ValueError")))
+ (set! py-builtin-NameError (object-get-no-cache builtins-mod  (& "NameError")))
+ (set! py-builtin-StopIteration (object-get-no-cache builtins-mod  (& "StopIteration")))
+ (set! py-builtin-ArithmeticError (object-get-no-cache builtins-mod  (& "ArithmeticError")))
+ (set! py-builtin-ZeroDivisionError (object-get-no-cache builtins-mod  (& "ZeroDivisionError")))
+ (set! py-builtin-AttributeError (object-get-no-cache builtins-mod  (& "AttributeError")))
+ (set! py-builtin-TypeError (object-get-no-cache builtins-mod  (& "TypeError")))
+)
+
+(define (py-builtins-mod)
+ (unless builtins-mod
+   (set! builtins-mod (py-make-builtins-mod))
+   (bootstrap-builtins builtins-mod)
+ )
+ builtins-mod)
+
+(define time-mod #f)
+
+(define (py-make-time-mod)
+ (let ((mod
+        (py-obj-alloc
+         py-module-class
+         (make-HClass
+          (vector py-module-class py-object-class)
+          (vector (& "**class**")
+                  (& "__class__")
+                  (& "__name__")
+                  (& "time")
+		   )
+	   '()))))
+
+   (PyObject-elements-set! mod 1 py-module-class)
+   (PyObject-elements-set! mod 2 (py-str-from-scheme "time"))
+   (PyObject-elements-set! mod 3 py-time)
+
+   mod))
+
+(define (py-time-mod)
+ (unless time-mod
+   (set! time-mod (py-make-time-mod)))
+ time-mod)
+
+(define py-time
+ (py-procedure->function
+  (lambda rest (error "time" "unimplemented generic procedure for time" #f))
+  (lambda _
+    (/ (current-microseconds) 1000000.0))))
+
+(define sys-mod #f)
+
+(define (py-make-sys-mod)
+ (let ((mod
+        (py-obj-alloc
+         py-module-class
+         (make-HClass
+          (vector py-module-class py-object-class)
+          (vector (& "**class**")
+                  (& "__class__")
+                  (& "__name__")
+                  (& "modules")
+		   )
+	   '()))))
+
+   (PyObject-elements-set! mod 1 py-module-class)
+   (PyObject-elements-set! mod 2 (py-str-from-scheme "sys"))
+   (PyObject-elements-set! mod 3 (py-make-dict '() '()))
+
+   mod))
+
+(define (py-sys-mod)
+ (unless sys-mod
+   (set! sys-mod (py-make-sys-mod)))
+ sys-mod)
 
 ;;;----------------------------------------------------------------------------
 
@@ -3796,11 +3809,50 @@
 ;; For practical suggestions on how to design cooperative classes using
 ;; super(), see guide to using super().
 
+(define (super-init self cls instance)
+  (py-attr-set! self (& "__thisclass__") cls)
+  (py-attr-set! self (& "__self__") instance)
+)
+
+(define py-super-init
+  (make-PyFunction (PyFunction-default-hclass) '#() super-init))
+
+;; super recovers attribute from superclass by skipping obj class in the MRO
+;; it requires a method 'super-object-get' which takes in a 'superclass'
+;; argument which acts as starting point in the MRO. The rest is identical to
+;; 'object-get'
+(define (super-object-get obj name superclass)
+  (with-handler
+    (lambda (exception)
+      (cond ((not (PyObject? exception)) (raise exception))
+            ((py-isinstance? exception py-builtin-AttributeError)
+              (let ((py-getattr (getattribute-from-cls-mro superclass (& "__getattr__"))))
+                (if (not (eq? py-getattr py-absent))
+                  (py-call py-getattr obj name)
+                  (py-throw exception))))
+            (else (py-throw exception))))
+      (let ((py-getattribute (getattribute-from-cls-mro superclass (& "__getattribute__"))))
+        (py-call py-getattribute obj name))))
+
+(define (super-getattribute super-self name)
+  (let* ((this-class (py-own-attr-ref super-self (& "__thisclass__")))
+        (this-self (py-own-attr-ref super-self (& "__self__")))
+        (mro (py-cls-mro this-class))
+        (superclass (vector-ref mro 1)))
+      (super-object-get this-self name superclass))
+)
+
+(define py-super-getattribute
+  (make-PyFunction (PyFunction-default-hclass) '#() super-getattribute))
+
 (define py-builtin-super
-  (py-procedure->function
-   (lambda rest (error "super" "unimplemented generic procedure for builtin" #f))
-   (lambda (type object-or-type)
-     (error "super" "not implemented" #f))))
+  (py-make-class
+    (& "super")
+    (& "builtins")
+    (list)
+      (& "__init__") py-super-init
+      (& "__getattribute__") py-super-getattribute
+    ))
 
 ;;-------------------- tuple([iterable])
 
