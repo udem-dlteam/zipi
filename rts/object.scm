@@ -140,7 +140,6 @@
 (define (py-call obj . args)
     (if (PyFunction? obj)
       (let ((procedure (PyFunction-procedure obj)))
-        (tprint procedure)
         (apply procedure args))
       (let ((call-method (getattribute-from-obj-mro obj (& "__call__"))))
         (if (eq? call-method py-absent)
@@ -540,14 +539,10 @@
               (loop-mro (+ i 1)))))
         py-absent))))
 
-;; Recover an attribute from the class of 'obj'
-(define (getattribute-from-obj-mro obj name)
-  (getattribute-from-cls-mro (py-obj-cls obj) name))
-
-;; Does the same a getattribute-from-obj-mro but also returns the class
-;; which owned the attribute. This may be necessary for the getattr protocol
-(define (getattribute-from-obj-mro-with-owner obj name)
-  (let ((mro (py-obj-mro obj)))
+;; Does the same a getattribute-from-cls-mro but also returns the class
+;; which owned the attribute. This may be necessary for super
+(define (getattribute-from-cls-mro-with-owner cls name)
+  (let ((mro (py-cls-mro cls)))
     (let loop-mro ((i 0))
       (if (< i (vector-length mro))
         (let ((cls (vector-ref mro i)))
@@ -556,6 +551,15 @@
               (values attr cls)
               (loop-mro (+ i 1)))))
         (values py-absent py-absent)))))
+
+;; Recover an attribute from the class of 'obj'
+(define (getattribute-from-obj-mro obj name)
+  (getattribute-from-cls-mro (py-obj-cls obj) name))
+
+;; Does the same a getattribute-from-obj-mro but also returns the class
+;; which owned the attribute. This may be necessary for the getattr protocol
+(define (getattribute-from-obj-mro-with-owner obj name)
+  (getattribute-from-cls-mro-with-owner (py-obj-cls obj)))
 
 ;; Implements object.__getattribute__
 ;;   Entry point of the getattr protocol
@@ -3817,30 +3821,16 @@
 (define py-super-init
   (make-PyFunction (PyFunction-default-hclass) '#() super-init))
 
-;; super recovers attribute from superclass by skipping obj class in the MRO
-;; it requires a method 'super-object-get' which takes in a 'superclass'
-;; argument which acts as starting point in the MRO. The rest is identical to
-;; 'object-get'
-(define (super-object-get obj name superclass)
-  (with-handler
-    (lambda (exception)
-      (cond ((not (PyObject? exception)) (raise exception))
-            ((py-isinstance? exception py-builtin-AttributeError)
-              (let ((py-getattr (getattribute-from-cls-mro superclass (& "__getattr__"))))
-                (if (not (eq? py-getattr py-absent))
-                  (py-call py-getattr obj name)
-                  (py-throw exception))))
-            (else (py-throw exception))))
-      (let ((py-getattribute (getattribute-from-cls-mro superclass (& "__getattribute__"))))
-        (py-call py-getattribute obj name))))
-
 (define (super-getattribute super-self name)
   (let* ((this-class (py-own-attr-ref super-self (& "__thisclass__")))
         (this-self (py-own-attr-ref super-self (& "__self__")))
         (mro (py-cls-mro this-class))
-        (superclass (vector-ref mro 1)))
-      (super-object-get this-self name superclass))
-)
+        (parent-cls (vector-ref mro 1)))
+        (let-values (((attr owner)
+          (getattribute-from-cls-mro-with-owner parent-cls name)))
+      (if (eq? attr py-absent)
+        (py-throw py-builtin-AttributeError)
+        (object-get-bind-descriptor attr instance owner)))))
 
 (define py-super-getattribute
   (make-PyFunction (PyFunction-default-hclass) '#() super-getattribute))
