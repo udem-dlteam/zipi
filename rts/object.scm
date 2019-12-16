@@ -559,7 +559,7 @@
 ;; Does the same a getattribute-from-obj-mro but also returns the class
 ;; which owned the attribute. This may be necessary for the getattr protocol
 (define (getattribute-from-obj-mro-with-owner obj name)
-  (getattribute-from-cls-mro-with-owner (py-obj-cls obj)))
+  (getattribute-from-cls-mro-with-owner (py-obj-cls obj) name))
 
 ;; Implements object.__getattribute__
 ;;   Entry point of the getattr protocol
@@ -3822,15 +3822,17 @@
   (make-PyFunction (PyFunction-default-hclass) '#() super-init))
 
 (define (super-getattribute super-self name)
-  (let* ((this-class (py-own-attr-ref super-self (& "__thisclass__")))
-        (this-self (py-own-attr-ref super-self (& "__self__")))
-        (mro (py-cls-mro this-class))
-        (parent-cls (vector-ref mro 1)))
-        (let-values (((attr owner)
-          (getattribute-from-cls-mro-with-owner parent-cls name)))
-      (if (eq? attr py-absent)
-        (py-throw py-builtin-AttributeError)
-        (object-get-bind-descriptor attr instance owner)))))
+  (if (eq? name (& "__class__"))
+    py-builtin-super
+    (let* ((this-class (py-own-attr-ref super-self (& "__thisclass__")))
+          (this-self (py-own-attr-ref super-self (& "__self__")))
+          (mro (py-cls-mro this-class))
+          (parent-cls (vector-ref mro 1)))
+          (let-values (((attr owner)
+            (getattribute-from-cls-mro-with-owner parent-cls name)))
+        (if (eq? attr py-absent)
+          (object-getattribute super-self name)
+          (object-get-bind-descriptor attr this-self owner))))))
 
 (define py-super-getattribute
   (make-PyFunction (PyFunction-default-hclass) '#() super-getattribute))
