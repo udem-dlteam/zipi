@@ -3814,10 +3814,20 @@
 ;; For practical suggestions on how to design cooperative classes using
 ;; super(), see guide to using super().
 
-(define (super-init self cls instance)
-  (py-attr-set! self (& "__thisclass__") cls)
-  (py-attr-set! self (& "__self__") instance)
+(define (flag-super-called-without-arguments)
+  'super-called-without-arguments
 )
+
+(define (super-init self . args)
+  (let ((args-length (vector-length args)))
+    (cond (((eq? args-length 0))
+           (raise (flag-super-called-without-arguments)))
+          ((eq? args-length 1)
+           (error "super not implemented for 1 argument"))
+          ((eq? args-length 2)
+           (begin
+             (py-attr-set! self (& "__thisclass__") cls)
+             (py-attr-set! self (& "__self__") instance))))))
 
 (define py-super-init
   (make-PyFunction (PyFunction-default-hclass) '#() super-init))
