@@ -3826,8 +3826,8 @@
            (error "super not implemented for 1 argument"))
           ((eq? args-length 2)
            (begin
-             (py-attr-set! self (& "__thisclass__") cls)
-             (py-attr-set! self (& "__self__") instance))))))
+             (py-attr-set! self (& "__thisclass__") (vector-ref args 0))
+             (py-attr-set! self (& "__self__") (vector-ref args 1)))))))
 
 (define py-super-init
   (make-PyFunction (PyFunction-default-hclass) '#() super-init))
