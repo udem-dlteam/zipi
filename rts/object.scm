@@ -3819,15 +3819,15 @@
 )
 
 (define (super-init self . args)
-  (let ((args-length (vector-length args)))
-    (cond (((eq? args-length 0))
+  (let ((args-length (length args)))
+    (cond ((eq? args-length 0)
            (raise (flag-super-called-without-arguments)))
           ((eq? args-length 1)
            (error "super not implemented for 1 argument"))
           ((eq? args-length 2)
            (begin
-             (py-attr-set! self (& "__thisclass__") (vector-ref args 0))
-             (py-attr-set! self (& "__self__") (vector-ref args 1)))))))
+             (py-attr-set! self (& "__thisclass__") (list-ref args 0))
+             (py-attr-set! self (& "__self__") (list-ref args 1)))))))
 
 (define py-super-init
   (make-PyFunction (PyFunction-default-hclass) '#() super-init))
