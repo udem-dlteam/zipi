@@ -812,6 +812,7 @@
  (set! py-builtin-ZeroDivisionError (object-get-no-cache builtins-mod  (& "ZeroDivisionError")))
  (set! py-builtin-AttributeError (object-get-no-cache builtins-mod  (& "AttributeError")))
  (set! py-builtin-TypeError (object-get-no-cache builtins-mod  (& "TypeError")))
+ (set! py-builtin-RuntimeError (object-get-no-cache builtins-mod (& "RuntimeError")))
 )
 
 (define (py-builtins-mod)
@@ -4055,3 +4056,5 @@
 (define py-builtin-AttributeError #f)
 
 (define py-builtin-TypeError #f)
+
+(define py-builtin-RuntimeError #f)
