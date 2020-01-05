@@ -457,38 +457,54 @@
 	     ,(scheme (PycKont-body this) conf)))))
 
 (define-walk-method (scheme this::PycCall conf)
+;;   (define (invoke-maybe-locals fun)
+;;      (let ((f (my-gensym '%f))
+;;	    (caller (config-get conf fun:)))
+;;	 `(let ((,f ,fun))
+;;	     ,(if caller
+;;		  `(if (eq? ,f py-builtin-locals)
+;;		       (py-builtin-locals ,f %frame %names
+;;			  (vector ,@(map (lambda (d)
+;;					    (scheme-decl d conf))
+;;				       (append (PycFun-args caller) (PycFun-decls caller)))))
+;;		       (py-call0 ,f))
+;;		  `(if (eq? ,f py-builtin-globals)
+;;		       (py-builtin-globals)
+;;		       (py-call0 ,f))))))
 
-   (define (invoke-maybe-locals fun)
-      (let ((f (my-gensym '%f))
-	    (caller (config-get conf fun:)))
-	 `(let ((,f ,fun))
-	     ,(if caller
-		  `(if (eq? ,f py-builtin-locals)
-		       (py-builtin-locals ,f %frame %names
-			  (vector ,@(map (lambda (d)
-					    (scheme-decl d conf))
-				       (append (PycFun-args caller) (PycFun-decls caller)))))
-		       (py-call0 ,f))
-		  `(if (eq? ,f py-builtin-globals)
-		       (py-builtin-globals)
-		       (py-call0 ,f))))))
+   ;; Catches the super-called-without-arguments to implicitly pass
+   ;; arguments to a super() call
+   (define (super-hook)
+      (let* ((caller (config-get conf fun:))
+            (caller-args (and caller (PycFun-args caller))))
+        (cond
+          ((and caller (> (length caller-args) 0))
+           `(py-call py-builtin-super __class__
+             ,(PycDecl-name (list-ref caller-args 0))))
+          (else
+           `(py-throw py-builtin-RuntimeError))
+        )
+      ))
+
+   (define (super-handler call)
+      (let ((caller (config-get conf fun:)))
+         (tprint (and caller (PycFun-args caller)))
+        `(with-handler
+          (lambda (%exn)
+          (if (eq? %exn (flag-super-called-without-arguments))
+          ,(super-hook)
+          (raise %exn))
+          ,call)
+      )
+   ))
 
    (define (invoke fun args)
-      `(py-call ,fun ,@args))
+        (let ((call `(py-call ,fun ,@args)))
+          (if (eq? (length args) 0) call
+              (super-handler call))))
 
    (let ((fun (PycCall-fun this)))
       (cond
-	 #;((isa? fun PycAccess)
-	  ;; method call
-	  (let ((obj (my-gensym '%obj)))
-	     (epairify this
-		`(let ((,obj ,(scheme (PycAccess-obj fun) conf)))
-		    ,(invoke `(object-get ,obj
-				 ,(pyc-propname (PycAccess-field fun))
-				 ,(scheme-cache (PycAccess-cache fun) fun))
-			(cons obj
-			   (map (lambda (a) (scheme a conf))
-			      (PycCall-args this))))))))
 	 ((isa? fun PycPragma)
 	  ;; builtin call
 	  (epairify this
