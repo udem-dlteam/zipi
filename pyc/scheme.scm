@@ -431,15 +431,18 @@
 (define-walk-method (scheme this::PycClass conf)
 
    (define (pyc-class this::PycClass)
+     (let ((cls-symbol (my-gensym '%cls)))
       (epairify this
-	 `(py-make-class
-	     (& ,(PycClass-name this))
-	     (& ,(PycClass-module this))
-	     (list ,@(map (lambda (b) (scheme b conf)) (PycClass-bases this)))
-	     ,@(append-map (lambda (decl)
-			      `((& ,(symbol->string (PycDecl-id decl)))
-				,(scheme-decl decl conf)))
-		  (PycClass-decls this)))))
+	 `(let (( ,cls-symbol (py-make-class
+  	     (& ,(PycClass-name this))
+  	     (& ,(PycClass-module this))
+  	     (list ,@(map (lambda (b) (scheme b conf)) (PycClass-bases this)))
+  	     ,@(append-map (lambda (decl)
+  			      `((& ,(symbol->string (PycDecl-id decl)))
+  				,(scheme-decl decl conf)))
+  		  (PycClass-decls this)))))
+      ,cls-symbol
+      ))))
 
    (let ((body (scheme (PycClass-body this) conf)))
       (epairify this
@@ -488,12 +491,11 @@
 
    (define (super-handler call)
       (let ((caller (config-get conf fun:)))
-         (tprint (and caller (PycFun-args caller)))
         `(with-handler
           (lambda (%exn)
-          (if (eq? %exn (flag-super-called-without-arguments))
-          ,(super-hook)
-          (raise %exn))
+            (if (eq? %exn (flag-super-called-without-arguments))
+              ,(super-hook)
+              (raise %exn))
           ,call)
       )
    ))

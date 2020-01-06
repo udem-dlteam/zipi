@@ -4,6 +4,7 @@
      ("return" . ,pyc-return)
      ("break" . ,pyc-break)
      ("locals" . ,pyc-locals)
+     ("super" . ,pyc-super)
      ("generator" . ,pyc-generator)
      ("cps" . ,pyc-cps)
      ("scheme" . ,pyc-scheme)))
@@ -14,6 +15,7 @@
      ("return" . ,pyc-return)
      ("break" . ,pyc-break)
      ("locals" . ,pyc-locals)
+     ("super" . ,pyc-super)
      ("generator" . ,pyc-generator)
      ("cps" . ,pyc-cps)
      ("bigloo" . ,pyc-scheme-bigloo)))
@@ -24,6 +26,7 @@
      ("return" . ,pyc-return)
      ("break" . ,pyc-break)
      ("locals" . ,pyc-locals)
+     ("super" . ,pyc-super)
      ("generator" . ,pyc-generator)
      ("cps" . ,pyc-cps)
      ("gambit" . ,pyc-scheme-gambit)))
@@ -71,6 +74,3 @@
          (fprint p ";; -*-bee-*-")
          (fprint p ";; " pass)
          (pp (pyc->list ast) p))))
-
-               
-
