@@ -431,26 +431,28 @@
 (define-walk-method (scheme this::PycClass conf)
 
    (define (pyc-class this::PycClass)
-     (let ((cls-symbol (my-gensym '%cls)))
+     (let ((cls-symbol (PycClass-super-key this)))
       (epairify this
-	 `(let (( ,cls-symbol (py-make-class
+	 `(begin
+     (set! ,cls-symbol (py-make-class
   	     (& ,(PycClass-name this))
   	     (& ,(PycClass-module this))
   	     (list ,@(map (lambda (b) (scheme b conf)) (PycClass-bases this)))
   	     ,@(append-map (lambda (decl)
   			      `((& ,(symbol->string (PycDecl-id decl)))
   				,(scheme-decl decl conf)))
-  		  (PycClass-decls this)))))
-      ,cls-symbol
-      ))))
+  		  (PycClass-decls this))))
+      ,cls-symbol))))
 
    (let ((body (scheme (PycClass-body this) conf)))
-      (epairify this
-	 (match-case body
-	    ((letrec* ?bindings . ?body)
-	     `(letrec* ,bindings ,@body ,(pyc-class this)))
-	    (else
-	     `(begin ,body ,(pyc-class this)))))))
+     (let ((cls-symbol (PycClass-super-key this)))
+        (epairify this
+      `(let (( ,cls-symbol (py-uninit)))
+  	 ,(match-case body
+  	    ((letrec* ?bindings . ?body)
+  	     `(letrec* ,bindings ,@body ,(pyc-class this)))
+  	    (else
+  	     `(begin ,body ,(pyc-class this)))))))))
 
 (define-walk-method (scheme this::PycKont conf)
    (let ((param (scheme (PycKont-param this) conf))
@@ -479,10 +481,11 @@
    ;; arguments to a super() call
    (define (super-hook)
       (let* ((caller (config-get conf fun:))
-            (caller-args (and caller (PycFun-args caller))))
+            (caller-args (and caller (PycFun-args caller)))
+            (class-key (and caller (PycFun-super-in-class caller))))
         (cond
-          ((and caller (> (length caller-args) 0))
-           `(py-call py-builtin-super __class__
+          ((and caller class-key (> (length caller-args) 0))
+           `(py-call py-builtin-super ,class-key
              ,(PycDecl-name (list-ref caller-args 0))))
           (else
            `(py-throw py-builtin-RuntimeError))
@@ -495,14 +498,12 @@
           (lambda (%exn)
             (if (eq? %exn (flag-super-called-without-arguments))
               ,(super-hook)
-              (raise %exn))
-          ,call)
-      )
-   ))
+              (raise %exn)))
+          ,call)))
 
    (define (invoke fun args)
         (let ((call `(py-call ,fun ,@args)))
-          (if (eq? (length args) 0) call
+          (if (> (length args) 0) call
               (super-handler call))))
 
    (let ((fun (PycCall-fun this)))
