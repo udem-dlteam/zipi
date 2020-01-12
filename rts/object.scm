@@ -813,6 +813,7 @@
  (set! py-builtin-AttributeError (object-get-no-cache builtins-mod  (& "AttributeError")))
  (set! py-builtin-TypeError (object-get-no-cache builtins-mod  (& "TypeError")))
  (set! py-builtin-RuntimeError (object-get-no-cache builtins-mod (& "RuntimeError")))
+ (set! py-builtin-AssertionError (object-get-no-cache builtins-mod (& "AssertionError")))
 )
 
 (define (py-builtins-mod)
@@ -4058,3 +4059,5 @@
 (define py-builtin-TypeError #f)
 
 (define py-builtin-RuntimeError #f)
+
+(define py-builtin-AssertionError #f)

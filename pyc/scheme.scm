@@ -580,6 +580,17 @@
 	  ,(scheme (PycSlice-upper this) conf)
 	  ,(scheme (PycSlice-step this) conf))))
 
+(define-walk-method (scheme this::PycAssert conf)
+   (let ((test (PycAssert-test this))
+         (msg (PycAssert-msg this)))
+      (epairify this
+        (if msg
+          `(if (not ,(pyc-test (PycAssert-test this) conf))
+     	       (py-call py-builtin-AssertionError
+                      ,(scheme (PycAssert-msg this) conf)))
+          `(if (not ,(pyc-test (PycAssert-test this) conf))
+      	     (py-call py-builtin-AssertionError))))))
+
 (define (scheme-cache cache node)
    (if (not (integer? cache))
        (error "scheme-cache" "Bad cache" (pyc->list node))

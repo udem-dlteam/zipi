@@ -13,11 +13,11 @@
 ;*    The module                                                       */
 ;*---------------------------------------------------------------------*/
 (module __pyc_makelib
-   
+
    (import
       __pyc_compile
       __pyc_ast)
-   
+
    (eval
       (class PycNode)
       (class PycModule)
@@ -71,5 +71,6 @@
       (class PycDict)
       (class PycSet)
       (class PycImport)
-      
+      (class PycAssert)
+
       (export-all)))

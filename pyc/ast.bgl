@@ -154,6 +154,10 @@
 	      upper::PycExpr
 	      step::PycExpr)
 
+     (class PycAssert::PycStmt
+        (test::PycExpr (info '("ast")))
+        (msg::PycExpr (info '("ast"))))
+
            (abstract-class PycLiteral::PycExpr)
 
            (final-class PycUninit::PycExpr)
@@ -555,3 +559,4 @@
 (gen-walks PycSlice obj lower upper step)
 (gen-walks PycYield val)
 (gen-walks PycKont body)
+(gen-walks PycAssert test msg)
