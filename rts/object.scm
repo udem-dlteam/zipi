@@ -4071,11 +4071,18 @@
 ;; The base exception cannot be created in pure Python
 ;; All exception must inherit from it to be considered an exception
 
+(define (BaseException-init self . args)
+  (py-attr-set! self (& "args") (py-tuple-from-scheme args)))
+
+;; The Python object int.__bool__
+(define py-BaseException-init
+  (make-PyFunction (PyFunction-default-hclass) '#() BaseException-init))
+
 (define py-builtin-BaseException
   (py-make-class
     (& "BaseException")
     (& "builtins")
-    '()))
+    (list) (& "__init__") py-BaseException-init))
 
 (define py-builtin-ValueError #f)
 
@@ -4094,3 +4101,9 @@
 (define py-builtin-RuntimeError #f)
 
 (define py-builtin-AssertionError #f)
+
+;; Exception Helpers
+
+(define (pp-exception exc)
+  (py-own-attr-ref exc (& "**class**"))
+)
