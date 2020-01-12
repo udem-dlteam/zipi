@@ -631,7 +631,11 @@
   (make-PyFunction (PyFunction-default-hclass) '#() object-bool))
 
 (define (int-bool self)
-   (py-ne self 0 #f))
+   ;; TODO: remove condition when bool is implemented as subclass of int
+   ;; In Python False is 0 and True is 1
+   (if (boolean? self)
+     self
+     (py-ne self 0 #f)))
 
 ;; The Python object int.__bool__
 (define py-int-bool
