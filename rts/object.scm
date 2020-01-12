@@ -626,9 +626,17 @@
 (define (object-bool self)
    #t)
 
-;; The Python object object.bool
+;; The Python object object.__bool__
 (define py-object-bool
   (make-PyFunction (PyFunction-default-hclass) '#() object-bool))
+
+(define (int-bool self)
+   (py-ne self 0 #f))
+
+;; The Python object int.__bool__
+(define py-int-bool
+  (make-PyFunction (PyFunction-default-hclass) '#() int-bool))
+
 
 ;; Returns the truthiness of an object by calling obj.__bool__
 ;; py-test is expected to return #t or #f, not a Python objects
@@ -1615,7 +1623,7 @@
 (define py-int-class
   (py-make-class (& "int")
                  (& "builtins")
-                 '()))
+                 (list) (& "__bool__") py-int-bool))
 
 (define py-float-class
   (py-make-class (& "float")
