@@ -247,7 +247,7 @@
        ((Assert ?loc ?test ?msg)
          (if msg
            (new-PycAssert loc (sexp test #f scope conf) (sexp msg #f scope conf))
-           (new-PycAssert loc (sexp test #f scope conf) #f)))
+           (new-PycAssert loc (sexp test #f scope conf) (new-PycUninit loc))))
       (else
        (if (eof-object? exp)
 	   (error "sexp" "premature eof" exp)

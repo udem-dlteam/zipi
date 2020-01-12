@@ -584,7 +584,7 @@
    (let ((test (PycAssert-test this))
          (msg (PycAssert-msg this)))
       (epairify this
-        (if msg
+        (if (not (PycUninit? msg))
           `(if (not ,(pyc-test (PycAssert-test this) conf))
      	       (py-call py-builtin-AssertionError
                       ,(scheme (PycAssert-msg this) conf)))
