@@ -619,6 +619,25 @@
 (define (object-has obj attr)
    (>= (py-own-attr-index obj attr) 0))
 
+;; ================
+;; BOOL PROTOCOL
+;; ================
+
+(define (object-bool self)
+   #t)
+
+;; The Python object object.bool
+(define py-object-bool
+  (make-PyFunction (PyFunction-default-hclass) '#() object-bool))
+
+;; Returns the truthiness of an object by calling obj.__bool__
+;; py-test is expected to return #t or #f, not a Python objects
+;; True and False are converted to #t and #f
+(define (py-test obj)
+  (let* ((py-bool (getattribute-from-obj-mro obj (& "__bool__")))
+         (test-value (py-call py-bool obj)))
+    test-value))
+
 ;;;----------------------------------------------------------------------------
 
 ;;; Python modules.
@@ -1079,7 +1098,8 @@
              (& "__mro__")
              (& "__module__")
              (& "__name__")
-             (& "__getattribute__"))
+             (& "__getattribute__")
+             (& "__bool__"))
             '())
            #f)) ;; constructor is set later
 
@@ -1233,6 +1253,7 @@
       (PyObject-elements-set! object-class 1 '#()) ;; set **bases**
       (PyObject-elements-set! object-class 2 mro)  ;; set **mro**
       (PyObject-elements-set! object-class 8 py-object-getattribute)
+      (PyObject-elements-set! object-class 9 py-object-bool)
       (PyFunction-procedure-set!
        object-class
        (py-obj-constructor object-class hclass-of-instances py-call-init)))
