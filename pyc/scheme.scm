@@ -586,10 +586,10 @@
       (epairify this
         (if (not (PycUninit? msg))
           `(if (not ,(pyc-test (PycAssert-test this) conf))
-     	       (py-call py-builtin-AssertionError
-                      ,(scheme (PycAssert-msg this) conf)))
+     	       (py-throw (py-call py-builtin-AssertionError
+                      ,(scheme (PycAssert-msg this) conf))))
           `(if (not ,(pyc-test (PycAssert-test this) conf))
-      	     (py-call py-builtin-AssertionError))))))
+      	     (py-throw py-builtin-AssertionError))))))
 
 (define (scheme-cache cache node)
    (if (not (integer? cache))
