@@ -9,18 +9,30 @@
 (##include "/home/olivier/udem-dlteam/zipi/etc/../rts/import.scm")
 (define py-module
   (lambda (%global %caches)
-    (set! py-import-root "/home/olivier/udem-dlteam/zipi/tests/assert/")
+    (set! py-import-root "/home/olivier/udem-dlteam/zipi/tests/exceptions/")
     (global-put!
      %global
      (& "__name__")
-     (py-str-from-scheme "assert_false")
+     (py-str-from-scheme "raisable")
      (vector-ref %caches 0))
     (global-put!
      %global
      (& "__file__")
-     (py-str-from-scheme "./assert/assert_false.py")
+     (py-str-from-scheme "./exceptions/raisable.py")
      (vector-ref %caches 1))
-    (if (not (py-test #f)) (py-throw py-builtin-AssertionError))))
+    (with-handler
+     (lambda (%exn)
+       (cond ((py-isinstance?
+               %exn
+               (global-get %global (& "ValueError") (vector-ref %caches 2)))
+              (begin
+                (py-call (global-get
+                          %global
+                          (& "print")
+                          (vector-ref %caches 3))
+                         (py-str-from-scheme
+                          "Cannot raise object which is not subclass of BaseException"))))))
+     (begin (py-throw 0)))))
 (begin
-  (define (main args) (py-module (py-make-global) (py-make-caches 2)))
+  (define (main args) (py-module (py-make-global) (py-make-caches 4)))
   (main (command-line)))
