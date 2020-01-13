@@ -24,7 +24,7 @@ def clean_name(name):
     """
     Clean a file or path name by removing .py, / and .
     """
-    return re.sub('\.py|\.|\/', '', name)
+    return re.sub('\.py$|^\.|^\/', '', name)
 
 
 def collect_tests(pattern):
