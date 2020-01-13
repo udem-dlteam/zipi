@@ -1,4 +1,5 @@
 import os
+import time
 import re
 import argparse
 import subprocess
@@ -58,8 +59,11 @@ def run_one_test(path, cpython, zipi, scheme):
 
 
 def run_all(cpython='python3', zipi='../etc/py19 -t gambit', scheme='gsi ../pyc/', pattern=None):
+    start = time.time()
+
     test_files = collect_tests(pattern)
     n_tests = sum(len(tests) for tests in test_files.values())
+    n_success = 0
 
     print(f"=== Zipi tests ({n_tests} tests) ===")
 
@@ -69,9 +73,16 @@ def run_all(cpython='python3', zipi='../etc/py19 -t gambit', scheme='gsi ../pyc/
         for file in folder_tests:
             path = os.path.join(folder, file)
             success = run_one_test(path, cpython, zipi, scheme)
-            status = colored('SUCCESS', 'OKGREEN') if success else colored('FAIL', 'FAIL')
+            status = colored('OK', 'OKGREEN') if success else colored('FAIL', 'FAIL')
+            n_success += success
 
             print(f'     {clean_name(file)}: {"." * (45 - len(file))} {status}')
+
+    total_time = time.time() - start
+
+    print()
+    print('-' * 55)
+    print(f'Ran {n_tests} tests in {total_time:.1f}s  -  Passed: {n_success}  -  Failed: {n_tests - n_success}')
 
 
 if __name__ == "__main__":

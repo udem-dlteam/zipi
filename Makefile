@@ -78,3 +78,6 @@ distclean: clean
 	rm -f etc/Makefile.zipiconfig
 
 cleanall: distclean
+
+test:
+	@cd tests; python run.py
