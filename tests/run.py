@@ -3,9 +3,9 @@ import time
 import re
 import argparse
 import subprocess
+import multiprocessing
 
-ZIPI_CODE_TARGET = './.tmp_zipi_output.scm'
-
+# Console color codes
 bcolors = {
     'FAIL': '\033[91m',
     'OKGREEN': '\033[92m',
@@ -13,15 +13,25 @@ bcolors = {
 }
 
 
-def colored(text, color_code):
-    return f'{bcolors[color_code]}{text}{bcolors["ENDC"]}'
+def colored(text, color):
+    """
+    Wraps the given 'text' with the color code corresponding to the given 'color'
+    """
+    return f'{bcolors[color]}{text}{bcolors["ENDC"]}'
 
 
 def clean_name(name):
+    """
+    Clean a file or path name by removing .py, / and .
+    """
     return re.sub('\.py|\.|\/', '', name)
 
 
 def collect_tests(pattern):
+    """
+    Traverse the current folder and recover all files except run.py
+    Return a dict which keys are folders and values list of files in these folders
+    """
     tests = {}
 
     for root, dirs, files in os.walk(os.curdir):
@@ -40,15 +50,26 @@ def collect_tests(pattern):
     return tests
 
 
-def run_one_test(path, cpython, zipi, scheme):
+def run_one_test(path, cpython, zipi, scheme, tmp_output_file):
+    """
+    Run a single test a 'path' using the given commands to run 'cpython', 'zipi' and 'scheme'
+    Use the 'tmp_output_file' as file name to store the compiled code from zipi
+    Return True of the test succeeded and False of it failed
+
+    To determine if a test succeeds, compare the stdout from cpython to the one from the scheme execution
+    if cpython returns an error code 1, then compare the last line of stderr from cpython to the last line from scheme.
+    We do this because full traceback will likely never be exactly identical between cpython and zipi
+    """
     cpython_output = subprocess.run([cpython, path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     zipi_output = subprocess.run([*zipi.split(), path], stdout=subprocess.PIPE)
 
-    with open(ZIPI_CODE_TARGET, 'w') as file:
+    with open(tmp_output_file, 'w') as file:
         file.write(zipi_output.stdout.decode())
 
-    scheme_output = subprocess.run([*scheme.split(), ZIPI_CODE_TARGET], stdout=subprocess.PIPE)
+    scheme_output = subprocess.run([*scheme.split(), tmp_output_file], stdout=subprocess.PIPE)
+
+    os.remove(tmp_output_file)
 
     if cpython_output.returncode == 0:
         return cpython_output.stdout == scheme_output.stdout
@@ -58,7 +79,26 @@ def run_one_test(path, cpython, zipi, scheme):
         return cpython_error == zipi_error
 
 
+def process_file(file, folder, cpython, zipi, scheme, shared_lst):
+    """
+    Wrapper to run the test at [folder]/[file] from a subprocess
+    """
+    tmp_output_file = f'./.tmp_zipi_output{multiprocessing.current_process().pid}.scm~'
+    path = os.path.join(folder, file)
+    success = run_one_test(path, cpython, zipi, scheme, tmp_output_file)
+    status = colored('OK', 'OKGREEN') if success else colored('FAIL', 'FAIL')
+
+    print(f'     {clean_name(file)}: {"." * (45 - len(file))} {status}')
+
+    shared_lst.append(success)
+
+
 def run_all(cpython='python3', zipi='../etc/py19 -t gambit', scheme='gsi ../pyc/', pattern=None):
+    """
+    Collects all tests and runs them in parallel with multiprocessing using the given commands to run 'cpython',
+    'zipi' and 'scheme'.
+    A 'pattern' can be provided, which will run only tests matching the pattern with re.match
+    """
     start = time.time()
 
     test_files = collect_tests(pattern)
@@ -70,13 +110,12 @@ def run_all(cpython='python3', zipi='../etc/py19 -t gambit', scheme='gsi ../pyc/
     for folder, folder_tests in test_files.items():
         print(f' - {clean_name(folder)} ({len(folder_tests)} tests)')
 
-        for file in folder_tests:
-            path = os.path.join(folder, file)
-            success = run_one_test(path, cpython, zipi, scheme)
-            status = colored('OK', 'OKGREEN') if success else colored('FAIL', 'FAIL')
-            n_success += success
+        with multiprocessing.Pool(4) as p:
+            shared_lst = multiprocessing.Manager().list()
+            p.starmap(process_file,
+                      ((folder_test, folder, cpython, zipi, scheme, shared_lst) for folder_test in folder_tests))
 
-            print(f'     {clean_name(file)}: {"." * (45 - len(file))} {status}')
+        n_success += sum(shared_lst)
 
     total_time = time.time() - start
 
