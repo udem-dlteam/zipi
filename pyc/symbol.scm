@@ -202,5 +202,3 @@
 	 ((eq? (PycDecl-scope (car env)) 'local) (car env))
 	 ((eq? (PycDecl-scope (car env)) 'block) (car env))
 	 (else (car env)))))
-
- 

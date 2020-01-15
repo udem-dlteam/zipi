@@ -22,3 +22,4 @@ rts/object.sch
 rts/iterator.sch
 rts/hclass.sch
 rts/configure.scm
+tests/.idea

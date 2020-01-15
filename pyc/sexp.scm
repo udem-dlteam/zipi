@@ -4,7 +4,6 @@
 ;; The Python syntax parsed by this function is defined at the url:
 ;;    https://docs.python.org/3.8/library/ast.html
 (define (sexp exp tail scope conf)
-
    (when (pair? exp)
       (match-case (car exp)
 	 ;; language detection
@@ -14,9 +13,8 @@
 		(if (pair? p)
 		    (set-car! (cdr p) lang)
 		    (set-cdr! (last-pair conf) (list language: lang))))))))
-
    (match-case exp
-      
+
       ;; mod
       ((Module ?loc ?body . ?type_ignors)
        ;; Module(stmt* body, type_ignore *type_ignores)
@@ -107,7 +105,7 @@
 	  (compile-stmt* loc body #f scope conf)
 	  (compile-stmt* loc orelse tail scope conf)
 	  (sexp test #f scope conf)))
-       
+
       ((If ?loc ?test ?body ?otherwise)
        ;; If(expr test, stmt* body, stmt* orelse)
        (new-PycIf loc (sexp test #f scope conf)
@@ -190,7 +188,7 @@
 	   (new-PycNumber loc val))))
       ((BinOp ?loc ?left ?op ?right)
        ;; BinOp(expr left, operator op, expr right)
-       (new-PycBinary loc 
+       (new-PycBinary loc
 	  (binary-operator op 'BinOp)
 	  (sexp left #f scope conf)
 	  (sexp right #f scope conf)
@@ -245,6 +243,11 @@
       ((Tuple ?loc ?elts ?ctx)
        ;; Tuple(expr* elts, expr_context ctx)
        (new-PycTuple loc (map (lambda (e) (sexp e #f scope conf)) elts)))
+
+       ((Assert ?loc ?test ?msg)
+         (if msg
+           (new-PycAssert loc (sexp test #f scope conf) (sexp msg #f scope conf))
+           (new-PycAssert loc (sexp test #f scope conf) (new-PycUninit loc))))
       (else
        (if (eof-object? exp)
 	   (error "sexp" "premature eof" exp)
@@ -280,7 +283,7 @@
 	      (new-PycHandler loc expr (compile-stmt* loc body #f scope conf)))))
       (else
        (error "sexp" "Wrong handler" handler))))
-       
+
 (define (compile-stmt* loc body tail scope conf)
    (if (null? body)
        (new-PycPass loc)
@@ -325,7 +328,7 @@
 		  ((not ni) c)
 		  ((= ni (- (string-length s) 1)) c)
 		  (else (loop (+ ni 1) (+ c 1))))))))
-      
+
    (let ((base (string-append (symbol->string module) ".")))
       (new-PycBlock loc
 	 (list (new-PycVar loc '%mod 'block
