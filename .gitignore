@@ -23,4 +23,4 @@ rts/iterator.sch
 rts/hclass.sch
 rts/configure.scm
 tests/.idea
-!**/__pycache__/
+__pycache__/
