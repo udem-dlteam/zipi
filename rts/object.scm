@@ -642,13 +642,23 @@
   (make-PyFunction (PyFunction-default-hclass) '#() int-bool))
 
 
+(define py-True #f)
+(define py-False #f)
+
+(define (py-object->py-bool obj)
+  (let ((py-bool (get-attribute-from-obj-mro obj (& "__bool__"))))
+    (if (eq? py-bool py-absent)
+      (let ((py-len (get-attribute-from-obj-mro obj (& "__len__"))))
+        (if (eq? py-len py-absent)
+          py-True
+          (py-call py-len obj))))
+    (py-call py-bool obj)))
+
 ;; Returns the truthiness of an object by calling obj.__bool__
 ;; py-test is expected to return #t or #f, not a Python objects
 ;; True and False are converted to #t and #f
 (define (py-test obj)
-  (let* ((py-bool (getattribute-from-obj-mro obj (& "__bool__")))
-         (test-value (py-call py-bool obj)))
-    test-value))
+  (eq? py-True (py-object->py-bool obj)))
 
 ;;;----------------------------------------------------------------------------
 
