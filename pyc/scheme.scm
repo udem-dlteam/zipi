@@ -50,9 +50,14 @@
 	  (define py-module ,@prog)
 	  ,(if (config-get conf main:)
 	       `(begin
-		   (define (main args)
-		      (py-module (py-make-global) (py-make-caches ,(PycModule-caches ast))))
-		   (main (command-line)))
+     		    (define (main args)
+    		      (py-module (py-make-global) (py-make-caches ,(PycModule-caches ast))))
+       (with-handler
+         (lambda (%exc)
+          (if (PyObject? %exc)
+            (print-exception %exc)
+            (raise %exc)))
+		   (main (command-line))))
 	       `(lambda ()
 		   (let ((global (py-make-global))
 			 (caches (py-make-caches ,(PycModule-caches ast))))
