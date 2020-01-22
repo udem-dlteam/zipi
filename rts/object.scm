@@ -185,7 +185,6 @@
 
 (define (py-throw exc)
   (cond ((not (PyObject? exc))
-
          (raise (py-call0 py-builtin-TypeError)))
         ((py-is-in-mro? py-builtin-BaseException (py-obj-mro exc))
          (raise exc))
@@ -4082,17 +4081,34 @@
 ;; All exception must inherit from it to be considered an exception
 
 (define (BaseException-init self . args)
-  (py-attr-set! self (& "args") (py-tuple-from-scheme args)))
+  (py-attr-set! self (& "args") (py-tuple-from-scheme (list->vector args))))
 
-;; The Python object int.__bool__
 (define py-BaseException-init
   (make-PyFunction (PyFunction-default-hclass) '#() BaseException-init))
+
+(define (BaseException-str self)
+  (let* ((args (py-own-attr-ref self (& "args")))
+         (args-len (py-len args)))
+    (cond
+      ((py-eq args-len 0 #f)
+        (py-str-from-scheme ""))
+      ((py-eq args-len 1 #f)
+        (py-str (py-getitem args 0 #f)))
+      (else
+        (py-str-from-scheme (py-str-scheme args))))))
+
+
+(define py-BaseException-str
+  (make-PyFunction (PyFunction-default-hclass) '#() BaseException-str))
+
 
 (define py-builtin-BaseException
   (py-make-class
     (& "BaseException")
     (& "builtins")
-    (list) (& "__init__") py-BaseException-init))
+    (list)
+      (& "__init__") py-BaseException-init
+      (& "__str__") py-BaseException-str))
 
 (define py-builtin-ValueError #f)
 
@@ -4114,6 +4130,17 @@
 
 ;; Exception Helpers
 
-(define (pp-exception exc)
-  (py-own-attr-ref exc (& "**class**"))
-)
+;; TODO: use Zipi print instead of calling __str__ manually
+;; error message should just be print(exc.__name__, ": ", exc)
+;; TODO: print that to stderr
+(define (print-exception exc)
+  (let ((exc-name (getattribute-from-obj-mro exc (& "__name__")))
+        (out (current-output-port))
+        (py-str-function (getattribute-from-obj-mro exc (& "__str__"))))
+    (py-print exc-name out)
+    (let ((str-exc (py-call py-str-function exc)))
+      (if (> (string-length (py-str-to-scheme str-exc)) 0)
+        (begin
+          (display ": " out)
+          (py-print str-exc out))))
+    (display "\n" out)))
