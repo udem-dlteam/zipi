@@ -1,4 +1,4 @@
 try:
     raise 0
-except ValueError:
+except TypeError:
     print("Cannot raise object which is not subclass of BaseException")
