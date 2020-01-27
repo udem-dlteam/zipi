@@ -1017,7 +1017,8 @@
       (& "**class**")
       (& "**bases**")
       (& "**mro**")
-      (& "**hclass-of-instance**"))
+      (& "**hclass-of-instance**")
+      (& "__name__"))
     '()))
 
 (define py-str-hclass-of-instances
@@ -1071,10 +1072,10 @@
 ;; Method for fast access to attributes defined in hidden classes
 ;; Those are unsafe methods
 
-(define (class-fast-get obj)
+(define (object-class-fast-get obj)
   (PyObject-elements-ref obj 0))
 
-(define (class-fast-set! obj class)
+(define (object-class-fast-set! obj class)
   (PyObject-elements-set! obj 0 class))
 
 (define (sequence-elems-fast-get seq)
@@ -1093,7 +1094,7 @@
   (PyObject-elements-ref type 2))
 
 (define (type-mro-fast-set! type mro)
-  (PyObject-elements-set! type 2 bases))
+  (PyObject-elements-set! type 2 mro))
 
 (define (type-hclass-of-instance-fast-get type)
   (PyObject-elements-ref type 3))
@@ -1116,7 +1117,7 @@
 
 (define (py-obj-cls* obj) ;; return **class** attribute of object obj
   (cond ((PyObject? obj)
-         (class-fast-get obj))
+         (obj-class-fast-get obj))
         ((flonum? obj)
          py-float-class)
         ((integer? obj)
@@ -1145,13 +1146,14 @@
           hclass-of-instances
           (make-vector (vector-length (HClass-names hclass-of-instances))
                        (py-uninit)))))
-    (class-fast-set! self cls) ;; set **class**
+    (object-class-fast-set! self cls) ;; set **class**
     self))
 
 ;;;----------------------------------------------------------------------------
 
 ;;; Converters between Scheme objects and Python objects for basic
 ;;; types.
+;; TODO: remove direct indexing and use fast-set! methods
 
 (define (py-str-from-scheme string)
   (let ((self (py-obj-alloc py-str-class py-str-hclass-of-instances)))
@@ -1199,9 +1201,10 @@
 (define (py-set-to-scheme self)
   (PyObject-elements-ref self 1))
 
-;; Bootstraps
-
-(define (bootstrap-type-hierarchy-phase1)
+;; Bootstraps type and object
+;; Create barebone object, type, str and tuple classes
+;; These will need to be filled in later
+(define (bootstrap-type-hierarchy)
   (let* ((type-hclass-length
           (vector-length (HClass-names py-type-hclass-of-instances)))
         (type-class
@@ -1235,17 +1238,46 @@
     (set! py-tuple-class tuple-class)
 
     ;; Fill in object class
-    (class-fast-set! object-class type-class)
-    (type-bases-fast-set! object-class
-      (py-tuple-from-scheme '#()))
+    (object-class-fast-set! object-class type-class)
+    (type-bases-fast-set! object-class '#())
+    (let ((object-mro '#(object-class)))
+      (HClass-class-mro-set! py-object-hclass-of-instances object-mro)
+      (type-mro-fast-set! object-class object-mro))
+    (py-own-attr-set! object-class (& "__name__") (py-str-from-scheme "object"))
+  (py-own-attr-set! object-class (& "__module__") (py-str-from-scheme "builtins"))
+  (py-own-attr-set! object-class (& "__getattribute__") py-object-getattribute)
+  (py-own-attr-set! object-class (& "__bool__") py-object-bool)
+
 
     ;; Fill in type class
-    (class-fast-set! type-class type-class)
-
-    ;; Fill in str class
+    (object-class-fast-set! type-class type-class)
+    (type-bases-fast-set! type-class '#(object-class))
+    (let ((type-mro '#(type-class object-class)))
+      (HClass-class-mro-set! py-type-hclass-of-instances type-mro)
+      (type-mro-fast-set! type-class type-mro))
+    (py-own-attr-set! type-class (& "__name__") (py-str-from-scheme "type"))
+    (py-own-attr-set! type-class (& "__module__") (py-str-from-scheme "builtins"))
+    (py-own-attr-set! type-class (& "__getattribute__") py-type-getattribute)
 
     ;; Fill in tuple class
-  ))
+    (object-class-fast-set! tuple-class type-class)
+    (type-bases-fast-set! tuple-class '#(object-class))
+    (let ((tuple-mro '#(tuple-class object-class)))
+      (HClass-class-mro-set! py-tuple-hclass-of-instances tuple-mro)
+      (type-mro-fast-set! tuple-class tuple-mro))
+    (py-own-attr-set! tuple-class (& "__name__") (py-str-from-scheme "tuple"))
+    (py-own-attr-set! tuple-class (& "__module__") (py-str-from-scheme "builtins"))
+
+    ;; Fill in str class
+    (object-class-fast-set! str-class type-class)
+    (type-bases-fast-set! str-class '#(object-class))
+    (let ((str-mro '#(str-class object-class)))
+      (HClass-class-mro-set! py-str-hclass-of-instances str-mro)
+      (type-mro-fast-set! str-class str-mro))
+    (py-own-attr-set! str-class (& "__name__") (py-str-from-scheme "str"))
+    (py-own-attr-set! str-class (& "__module__") (py-str-from-scheme "builtins"))))
+
+(bootstrap-type-hierarchy)
 
 ;; TODO Do we still need this?
 (define (py-fun-alloc cls hclass-of-instances proc)
@@ -1255,7 +1287,7 @@
           (make-vector (vector-length (HClass-names hclass-of-instances))
                        (py-uninit))
           proc)))
-    (class-fast-set! self cls) ;; set **class**
+    (object-class-fast-set! self cls) ;; set **class**
     self))
 
 ;; TODO Do we still need this?
@@ -1280,140 +1312,41 @@
 (define (py-make-class name module bases . attrs)
   (define (make-cls attr-names attr-values)
     (let* ((bases-vect
-            (list->vector
-             (if (null? bases)
-                 (list py-object-class)
-                 bases)))
+            (if (null? bases)
+              (vector py-object-class)
+              (list->vector bases)))
            (cls (py-obj-alloc py-type-class py-type-hclass-of-instances)))
-          (PyObject-elements-set! cls 1 bases-vect) ;; set **bases**
-          (let ((mro (py-compute-mro cls)))
-            (PyObject-elements-set! cls 2 mro) ;; set **mro**
-            (PyObject-elements-set! cls 3 py-type-class) ;; set __class__
-            (PyObject-elements-set! cls 4 (py-tuple-from-scheme bases-vect)) ;; set __bases__
-            (PyObject-elements-set! cls 5 (py-tuple-from-scheme mro)) ;; set __mro__
-            (PyObject-elements-set! cls 6 (py-str-from-scheme (symbol->string module))) ;; set __module__
-            (PyObject-elements-set! cls 7 (py-str-from-scheme (symbol->string name))) ;; set __name__
-            (let loop ((attr-names attr-names) (attr-values attr-values))
-              (if (pair? attr-names)
-                  (begin
-                    (py-own-attr-set! cls (car attr-names) (car attr-values))
-                    (loop (cdr attr-names) (cdr attr-values)))))
-            cls)))
+      (type-bases-fast-set! cls bases-vect)
+      (type-mro-fast-set! cls (py-compute-mro cls))
+      (let loop ((attr-names attr-names) (attr-values attr-values))
+        (if (pair? attr-names)
+            (begin
+              (py-own-attr-set! cls (car attr-names) (car attr-values))
+              (loop (cdr attr-names) (cdr attr-values)))))
+      (py-own-attr-set! cls
+        (& "__module__")
+        (py-str-from-scheme (symbol->string module)))
+      (py-own-attr-set! cls
+        (& "__name__")
+        (py-str-from-scheme (symbol->string name)))
+      cls))
 
-  (let loop ((lst attrs)
-             (rev-attr-names '())
-             (rev-attr-values '()))
+    (let loop ((lst attrs)
+       (rev-attr-names '())
+       (rev-attr-values '()))
     (if (and (pair? lst) (pair? (cdr lst)))
-        (let ((name (car lst))
-              (value (cadr lst))
-              (rest (cddr lst)))
-          (if (eq? value (py-uninit))
-              (loop rest
-                    rev-attr-names
-                    rev-attr-values)
-              (loop rest
-                    (cons name rev-attr-names)
-                    (cons value rev-attr-values))))
-        (make-cls (reverse rev-attr-names)
-                  (reverse rev-attr-values)))))
-
-(define (bootstrap-phase1-hclass)
-  ;; instances of types are classes
-  ;; this is the hclass of classes
-  (set! py-type-hclass-of-instances
-    (make-HClass
-      '#() ;; set later when classes exist
-      (vector
-        (& "**class**")
-        (& "**bases**")
-        (& "**mro**"))
-      '()))
-
-  (set! py-object-hclass-of-instances
-    (make-HClass
-      '#() ;; set later when classes exist
-      (vector
-        (& "**class**")))
-      '())
-
-  (set! py-str-hclass-of-instances
-    (make-HClass
-      '#() ;; set later when classes exist
-      (vector
-        (& "**class**")
-        (& "**elems**"))
-      '()))
-
-  (set! py-tuple-hclass-of-instances
-    (make-HClass
-      '#() ;; set later when classes exist
-      (vector
-        (& "**class**")
-        (& "**elems**"))
-      '())
-
-  (set! py-list-hclass-of-instances
-    (make-HClass
-      '#() ;; set later when classes exist
-      (vector
-        (& "**class**")
-        (& "**bases**")
-        (& "**mro**")))
-      '())
-
-  (set! py-dict-hclass-of-instances
-    (make-HClass
-      '#() ;; set later when classes exist
-      (vector
-        (& "**class**")
-        (& "**bases**")
-        (& "**mro**")))
-      '())
-
-  (set! py-set-hclass-of-instances
-    (make-HClass
-      '#() ;; set later when classes exist
-      (vector
-        (& "**class**")
-        (& "**bases**")
-        (& "**mro**")))
-      '())
-
-  (set! py-module-hclass-of-instances
-    (make-HClass
-      '#() ;; set later when classes exist
-      (vector
-        (& "**class**")
-        (& "**bases**")
-        (& "**mro**")))
-      '()))
-
-(bootstrap-phase1-hclass)
-
-(define (bootstrap-phase2-types-hierarchy)
-(let* ((type-class (py-make-class
-        (& "type")
-        (& "builtins")
-        (list object-class)
-          (& "**class**") #f
-          (& "**bases**") #f
-          (& "**mro**") #f
-          (& "__class__") #f
-          (& "__bases__") #f
-          (& "__mro__") #f
-          (& "__getattribute__") py-type-getattribute))
-       (object-class (py-make-class
-        (& "object")
-        (& "builtins")
-        (list)
-          (& "**class**") type-class
-          (& "**bases**") (list
-          (& "**mro**") #f
-          (& "__class__") #f
-          (& "__bases__") #f
-          (& "__mro__") #f
-          (& "__getattribute__") py-object-getattribute
-          (& "__bool__") py-object-bool))
+    (let ((name (car lst))
+        (value (cadr lst))
+        (rest (cddr lst)))
+    (if (eq? value (py-uninit))
+        (loop rest
+              rev-attr-names
+              rev-attr-values)
+        (loop rest
+              (cons name rev-attr-names)
+              (cons value rev-attr-values))))
+    (make-cls (reverse rev-attr-names)
+            (reverse rev-attr-values)))))
 
 (define (bootstrap-basic-types-phase1)
   (let* ((type-class
@@ -1723,43 +1656,6 @@
        (py-obj-constructor module-class hclass-of-instances py-call-init)))))
 
 (bootstrap-basic-types-phase1)
-
-;;;----------------------------------------------------------------------------
-
-(define (bootstrap-basic-types-phase2)
-
-  (define (set-attrs-with-python-values x)
-    (let* ((cls   (vector-ref x 0))
-           (bases (py-tuple-from-scheme (py-cls-bases cls)))
-           (mro   (py-tuple-from-scheme (py-cls-mro cls)))
-           (mod   (py-str-from-scheme (vector-ref x 1)))
-           (name  (py-str-from-scheme (vector-ref x 2))))
-      (PyObject-elements-set! cls 3 (PyObject-elements-ref cls 0)) ;; set __class__
-      (PyObject-elements-set! cls 4 bases)  ;; set __bases__
-      (PyObject-elements-set! cls 5 mro)    ;; set __mro__
-      (PyObject-elements-set! cls 6 mod)    ;; set __module__
-      (PyObject-elements-set! cls 7 name))) ;; set __name__
-
-  (for-each set-attrs-with-python-values
-            (list (vector py-object-class "builtins" "object")
-                  (vector py-type-class   "builtins" "type")
-                  (vector py-str-class    "builtins" "str")
-                  (vector py-tuple-class  "builtins" "tuple")
-                  (vector py-list-class   "builtins" "list"))))
-
-(bootstrap-basic-types-phase2)
-
-;(pp (py-str-to-scheme (py-str-from-scheme "abc")))
-;(pp (py-tuple-to-scheme (py-tuple-from-scheme (vector 1 2 3))))
-;(pp (py-list-to-scheme (py-list-from-scheme (vector 1 2 3))))
-;(pp (py-str-from-scheme "abc"))
-;(exit)
-
-;(pp py-object-class)
-;(pp py-type-class)
-;(pp py-str-class)
-;(pp py-tuple-class)
-;(pp py-list-class)
 
 ;;;----------------------------------------------------------------------------
 
