@@ -649,6 +649,60 @@
          (test-value (py-call py-bool obj)))
     test-value))
 
+;; =============
+;; CALL PROTOCOL
+;; =============
+
+(define (method-call self . args)
+  (let ((procedure (py-own-attr-ref self (& "**procedure**")))
+        (bound-instance (py-own-attr-ref self (& "__self__"))))
+    (apply procedure bound-instance args)))
+
+(define py-method-call
+  (make-PyFunction (PyFunction-default-hclass) '#() method-call))
+
+(define (function-call self . args)
+  (let ((procedure (py-own-attr-ref self (& "**procedure**"))))
+      (apply procedure args)))
+
+(define py-function-call
+  (make-PyFunction (PyFunction-default-hclass) '#() function-call))
+
+(define (function-get self instance owner)
+  (if (eq? instance (py-none))
+    self
+    (let ((method (py-call0 py-method))
+          (procedure (py-own-attr-ref self (& "**procedure**"))))
+      (object-put-no-cache! method (& "**procedure**") procedure)
+      (object-put-no-cache! method (& "__self__") instance)
+      method
+    )
+  )
+)
+
+(define py-function-get
+  (make-PyFunction (PyFunction-default-hclass) '#() function-get))
+
+(define (procedure->py-function procedure)
+ (let ((func (py-call0 py-function)))
+   (object-put-no-cache! func (& "**procedure**") procedure)
+   func))
+
+(define (type-call self . args)
+  (let ((__new__ (py-own-attr-ref self (& "__new__")))
+        (__init__ (py-own-attr-ref self (& "__init__"))))
+    (let ((instance (apply py-call __new__ args)))
+      (if (eq? (object-class-fast-get instance) self)
+        (begin
+          (apply py-call __init__ args)
+          instance)
+        (instance)))))
+
+(define py-type-call
+  (make-PyFunction (PyFunction-default-hclass) '#() type-call))
+
+;;;----------------------------------------------------------------------------
+
 ;;;----------------------------------------------------------------------------
 
 ;;; Python modules.
@@ -1348,315 +1402,6 @@
     (make-cls (reverse rev-attr-names)
             (reverse rev-attr-values)))))
 
-(define (bootstrap-basic-types-phase1)
-  (let* ((type-class
-          (py-fun-alloc
-           #f ;; **class** is set later
-           (make-HClass
-            '#() ;; class-mro is set later to (vector type-class object-class)
-            (vector
-             (& "**class**") ;; read-only copy... is it needed?
-             (& "**bases**") ;; read-only copy... is it needed?
-             (& "**mro**")   ;; read-only copy... is it needed?
-             (& "__class__")
-             (& "__bases__")
-             (& "__mro__")
-             (& "__module__")
-             (& "__name__")
-             (& "__getattribute__"))
-            '())
-           #f)) ;; constructor is set later
-
-         (object-class
-          (py-fun-alloc
-           type-class
-           (make-HClass
-            '#() ;; class-mro is set later to (vector object-class)
-            (vector
-             (& "**class**") ;; read-only copy... is it needed?
-             (& "**bases**") ;; read-only copy... is it needed?
-             (& "**mro**")   ;; read-only copy... is it needed?
-             (& "__class__")
-             (& "__bases__")
-             (& "__mro__")
-             (& "__module__")
-             (& "__name__")
-             (& "__getattribute__")
-             (& "__bool__"))
-            '())
-           #f)) ;; constructor is set later
-
-         (str-class
-          (py-fun-alloc
-           type-class
-           (make-HClass
-            '#() ;; class-mro is set later to (vector str-class object-class)
-            (vector
-             (& "**class**") ;; read-only copy... is it needed?
-             (& "**bases**") ;; read-only copy... is it needed?
-             (& "**mro**")   ;; read-only copy... is it needed?
-             (& "__class__")
-             (& "__bases__")
-             (& "__mro__")
-             (& "__module__")
-             (& "__name__")
-             (& "__len__")
-             (& "__getitem__")
-             (& "__setitem__"))
-            '())
-           #f)) ;; constructor is set later
-
-         (tuple-class
-          (py-fun-alloc
-           type-class
-           (make-HClass
-            '#() ;; class-mro is set later to (vector tuple-class object-class)
-            (vector
-             (& "**class**") ;; read-only copy... is it needed?
-             (& "**bases**") ;; read-only copy... is it needed?
-             (& "**mro**")   ;; read-only copy... is it needed?
-             (& "__class__")
-             (& "__bases__")
-             (& "__mro__")
-             (& "__module__")
-             (& "__name__")
-             (& "__len__")
-             (& "__getitem__")
-             (& "__setitem__"))
-            '())
-           #f)) ;; constructor is set later
-
-         (list-class
-          (py-fun-alloc
-           type-class
-           (make-HClass
-            '#() ;; class-mro is set later to (vector list-class object-class)
-            (vector
-             (& "**class**") ;; read-only copy... is it needed?
-             (& "**bases**") ;; read-only copy... is it needed?
-             (& "**mro**")   ;; read-only copy... is it needed?
-             (& "__class__")
-             (& "__bases__")
-             (& "__mro__")
-             (& "__module__")
-             (& "__name__")
-             (& "__len__")
-             (& "__getitem__")
-             (& "__setitem__"))
-            '())
-           #f)) ;; constructor is set later
-
-         (dict-class
-          (py-fun-alloc
-           type-class
-           (make-HClass
-            '#() ;; class-mro is set later to (vector dict-class object-class)
-            (vector
-             (& "**class**") ;; read-only copy... is it needed?
-             (& "**bases**") ;; read-only copy... is it needed?
-             (& "**mro**")   ;; read-only copy... is it needed?
-             (& "__class__")
-             (& "__bases__")
-             (& "__mro__")
-             (& "__module__")
-             (& "__name__")
-             (& "__len__")
-             (& "__getitem__")
-             (& "__setitem__"))
-            '())
-           #f)) ;; constructor is set later
-
-         (set-class
-          (py-fun-alloc
-           type-class
-           (make-HClass
-            '#() ;; class-mro is set later to (vector set-class object-class)
-            (vector
-             (& "**class**") ;; read-only copy... is it needed?
-             (& "**bases**") ;; read-only copy... is it needed?
-             (& "**mro**")   ;; read-only copy... is it needed?
-             (& "__class__")
-             (& "__bases__")
-             (& "__mro__")
-             (& "__module__")
-             (& "__name__")
-             (& "__len__")
-             (& "__getitem__")
-             (& "__setitem__"))
-            '())
-           #f)) ;; constructor is set later
-
-         (module-class
-          (py-fun-alloc
-           type-class
-           (make-HClass
-            '#() ;; class-mro is set later to (vector module-class object-class)
-            (vector
-             (& "**class**") ;; read-only copy... is it needed?
-             (& "**bases**") ;; read-only copy... is it needed?
-             (& "**mro**")   ;; read-only copy... is it needed?
-             (& "__class__")
-             (& "__bases__")
-             (& "__mro__")
-             (& "__module__")
-             (& "__name__"))
-            '())
-           #f)) ;; constructor is set later
-
-         (bases-types ;; all types directly inherit from "object" except itself
-          (vector object-class)))
-
-    (let* ((mro
-            (vector type-class object-class))
-           (hclass-of-instances
-            (PyObject-hclass type-class)))
-      (set! py-type-class type-class)
-      (set! py-type-hclass-of-instances hclass-of-instances)
-      (HClass-class-mro-set! (PyObject-hclass (vector-ref mro 0)) mro)
-      (PyObject-elements-set! type-class 0 type-class) ;; set **class**
-      (PyObject-elements-set! type-class 1 bases-types) ;; set **bases**
-      (PyObject-elements-set! type-class 2 mro) ;; set **mro**
-      (PyObject-elements-set! type-class 8 py-type-getattribute)
-      (PyFunction-procedure-set!
-       type-class
-       (py-obj-constructor type-class hclass-of-instances py-call-init)))
-
-    (let* ((mro
-            (vector object-class))
-           (hclass-of-instances
-            (make-HClass
-             mro
-             (vector
-              (& "**class**") ;; read-only copy... is it needed?
-              (& "__class__"))
-             '())))
-      (set! py-object-class object-class)
-      (set! py-object-hclass-of-instances hclass-of-instances)
-      (HClass-class-mro-set! (PyObject-hclass (vector-ref mro 0)) mro)
-      (PyObject-elements-set! object-class 1 '#()) ;; set **bases**
-      (PyObject-elements-set! object-class 2 mro)  ;; set **mro**
-      (PyObject-elements-set! object-class 8 py-object-getattribute)
-      (PyObject-elements-set! object-class 9 py-object-bool)
-      (PyFunction-procedure-set!
-       object-class
-       (py-obj-constructor object-class hclass-of-instances py-call-init)))
-
-    (let* ((mro
-            (vector str-class object-class))
-           (hclass-of-instances
-            (make-HClass
-             mro
-             (vector
-              (& "**class**") ;; read-only copy... is it needed?
-              (& "**elems**")
-              (& "__class__"))
-             '())))
-      (set! py-str-class str-class)
-      (set! py-str-hclass-of-instances hclass-of-instances)
-      (HClass-class-mro-set! (PyObject-hclass (vector-ref mro 0)) mro)
-      (PyObject-elements-set! str-class 1 bases-types) ;; set **bases**
-      (PyObject-elements-set! str-class 2 mro)  ;; set **mro**
-      (PyFunction-procedure-set!
-       str-class
-       (py-obj-constructor str-class hclass-of-instances py-call-init)))
-
-    (let* ((mro
-            (vector tuple-class object-class))
-           (hclass-of-instances
-            (make-HClass
-             mro
-             (vector
-              (& "**class**") ;; read-only copy... is it needed?
-              (& "**elems**")
-              (& "__class__"))
-             '())))
-      (set! py-tuple-class tuple-class)
-      (set! py-tuple-hclass-of-instances hclass-of-instances)
-      (HClass-class-mro-set! (PyObject-hclass (vector-ref mro 0)) mro)
-      (PyObject-elements-set! tuple-class 1 bases-types) ;; set **bases**
-      (PyObject-elements-set! tuple-class 2 mro)  ;; set **mro**
-      (PyFunction-procedure-set!
-       tuple-class
-       (py-obj-constructor tuple-class hclass-of-instances py-call-init)))
-
-    (let* ((mro
-            (vector list-class object-class))
-           (hclass-of-instances
-            (make-HClass
-             mro
-             (vector
-              (& "**class**") ;; read-only copy... is it needed?
-              (& "**elems**")
-              (& "__class__"))
-             '())))
-      (set! py-list-class list-class)
-      (set! py-list-hclass-of-instances hclass-of-instances)
-      (HClass-class-mro-set! (PyObject-hclass (vector-ref mro 0)) mro)
-      (PyObject-elements-set! list-class 1 bases-types) ;; set **bases**
-      (PyObject-elements-set! list-class 2 mro)  ;; set **mro**
-      (PyFunction-procedure-set!
-       list-class
-       (py-obj-constructor list-class hclass-of-instances py-call-init)))
-
-    (let* ((mro
-            (vector dict-class object-class))
-           (hclass-of-instances
-            (make-HClass
-             mro
-             (vector
-              (& "**class**") ;; read-only copy... is it needed?
-              (& "**elems**")
-              (& "__class__"))
-             '())))
-      (set! py-dict-class dict-class)
-      (set! py-dict-hclass-of-instances hclass-of-instances)
-      (HClass-class-mro-set! (PyObject-hclass (vector-ref mro 0)) mro)
-      (PyObject-elements-set! dict-class 1 bases-types) ;; set **bases**
-      (PyObject-elements-set! dict-class 2 mro)  ;; set **mro**
-      (PyFunction-procedure-set!
-       dict-class
-       (py-obj-constructor dict-class hclass-of-instances py-call-init)))
-
-    (let* ((mro
-            (vector set-class object-class))
-           (hclass-of-instances
-            (make-HClass
-             mro
-             (vector
-              (& "**class**") ;; read-only copy... is it needed?
-              (& "**elems**")
-              (& "__class__"))
-             '())))
-      (set! py-set-class set-class)
-      (set! py-set-hclass-of-instances hclass-of-instances)
-      (HClass-class-mro-set! (PyObject-hclass (vector-ref mro 0)) mro)
-      (PyObject-elements-set! set-class 1 bases-types) ;; set **bases**
-      (PyObject-elements-set! set-class 2 mro)  ;; set **mro**
-      (PyFunction-procedure-set!
-       set-class
-       (py-obj-constructor set-class hclass-of-instances py-call-init)))
-
-    (let* ((mro
-            (vector module-class object-class))
-           (hclass-of-instances
-            (make-HClass
-             mro
-             (vector
-              (& "**class**") ;; read-only copy... is it needed?
-              (& "__class__")
-              (& "__name__"))
-             '())))
-      (set! py-module-class module-class)
-      (set! py-module-hclass-of-instances hclass-of-instances)
-      (HClass-class-mro-set! (PyObject-hclass (vector-ref mro 0)) mro)
-      (PyObject-elements-set! module-class 1 bases-types) ;; set **bases**
-      (PyObject-elements-set! module-class 2 mro)  ;; set **mro**
-      (PyFunction-procedure-set!
-       module-class
-       (py-obj-constructor module-class hclass-of-instances py-call-init)))))
-
-(bootstrap-basic-types-phase1)
-
 ;;;----------------------------------------------------------------------------
 
 (define (py-compute-mro cls)
@@ -1677,69 +1422,6 @@
           (loop (- i 1) (add-class (vector-ref bases i) classes)))))
 
   (list->vector (add-class cls '())))
-
-;;;----------------------------------------------------------------------------
-
-(define py-default-init
-  (py-procedure->function
-   (lambda rest (error "__init__" "unimplemented generic procedure" #f))
-   (lambda (self)
-     self)))
-
-;; =============
-;; CALL PROTOCOL
-;; =============
-
-(define (method-call self . args)
-  (let ((procedure (py-own-attr-ref self (& "**procedure**")))
-        (bound-instance (py-own-attr-ref self (& "__self__"))))
-    (apply procedure bound-instance args)))
-
-(define py-method-call
-  (make-PyFunction (PyFunction-default-hclass) '#() method-call))
-
-(define py-method
- (py-make-class
-   (& "method")
-   (& "builtins")
-   (list) (& "__call__") py-method-call
-   ))
-
-(define (function-call self . args)
-  (let ((procedure (py-own-attr-ref self (& "**procedure**"))))
-      (apply procedure args)))
-
-(define py-function-call
-  (make-PyFunction (PyFunction-default-hclass) '#() function-call))
-
-(define (function-get self instance owner)
-  (if (eq? instance (py-none))
-    self
-    (let ((method (py-call0 py-method))
-          (procedure (py-own-attr-ref self (& "**procedure**"))))
-      (object-put-no-cache! method (& "**procedure**") procedure)
-      (object-put-no-cache! method (& "__self__") instance)
-      method
-    )
-  )
-)
-
-(define py-function-get
-  (make-PyFunction (PyFunction-default-hclass) '#() function-get))
-
-(define py-function
- (py-make-class
-   (& "function")
-   (& "builtins")
-   (list)
-     (& "__call__") py-function-call
-     (& "__get__") py-function-get
-   ))
-
-(define (procedure->py-function procedure)
- (let ((func (py-call0 py-function)))
-   (object-put-no-cache! func (& "**procedure**") procedure)
-   func))
 
 ;;;----------------------------------------------------------------------------
 
@@ -1774,6 +1456,22 @@
   (py-make-class (& "range")
                  (& "builtins")
                  '()))
+
+(define py-method
+ (py-make-class
+   (& "method")
+   (& "builtins")
+   (list) (& "__call__") py-method-call
+   ))
+
+(define py-function
+ (py-make-class
+   (& "function")
+   (& "builtins")
+   (list)
+     (& "__call__") py-function-call
+     (& "__get__") py-function-get
+   ))
 
 ;;;----------------------------------------------------------------------------
 
