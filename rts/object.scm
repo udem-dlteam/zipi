@@ -1091,6 +1091,61 @@
       (& "**elems**"))
     '()))
 
+(define py-int-hclass-of-instances
+  (make-HClass
+    '#() ;; set later when classes exist
+    (vector
+      (& "**class**")
+      (& "**value**"))
+    '()))
+
+(define py-float-hclass-of-instances
+  (make-HClass
+    '#() ;; set later when classes exist
+    (vector
+      (& "**class**")
+      (& "**value**"))
+    '()))
+
+(define py-bool-hclass-of-instances
+  (make-HClass
+    '#() ;; set later when classes exist
+    (vector
+      (& "**class**")
+      (& "**value**"))
+    '()))
+
+(define py-complex-hclass-of-instances
+  (make-HClass
+    '#() ;; set later when classes exist
+    (vector
+      (& "**class**")
+      (& "**value**"))
+    '()))
+
+(define py-slice-hclass-of-instances
+  (make-HClass
+    '#() ;; set later when classes exist
+    (vector
+      (& "**class**"))
+    '()))
+
+(define py-method-hclass-of-instances
+  (make-HClass
+    '#()
+    (vector
+      (& "**class**")
+      (& "**procedure**"))
+    '()))
+
+(define py-function-hclass-of-instances
+  (make-HClass
+    '#()
+    (vector
+      (& "**class**")
+      (& "**procedure**"))
+    '()))
+
 (define py-list-hclass-of-instances
   (make-HClass
     '#() ;; set later when classes exist
@@ -1153,8 +1208,8 @@
 (define (type-hclass-of-instance-fast-get type)
   (PyObject-elements-ref type 3))
 
-(define (type-hclass-of-instance-fast-set! type mro)
-  (PyObject-elements-set! type 3 bases))
+(define (type-hclass-of-instance-fast-set! type hclass)
+  (PyObject-elements-set! type 3 hclass))
 
 ;; =============================================================================
 ;;  BUILTIN CLASSES
@@ -1164,6 +1219,13 @@
 (define py-type-class   #f)
 (define py-str-class    #f)
 (define py-tuple-class  #f)
+(define py-int-class    #f)
+(define py-float-class  #f)
+(define py-bool-class   #f)
+(define py-complex-class #f)
+(define py-slice-class  #f)
+(define py-method-class #f)
+(define py-function-class #f)
 (define py-list-class   #f)
 (define py-dict-class   #f)
 (define py-set-class    #f)
@@ -1258,7 +1320,7 @@
 ;; Bootstraps type and object
 ;; Create barebone object, type, str and tuple classes
 ;; These will need to be filled in later
-(define (bootstrap-type-hierarchy)
+(define (bootstrap-type-hierarchy-phase1)
   (let* ((type-hclass-length
           (vector-length (HClass-names py-type-hclass-of-instances)))
         (type-class
@@ -1297,10 +1359,11 @@
     (let ((object-mro '#(object-class)))
       (HClass-class-mro-set! py-object-hclass-of-instances object-mro)
       (type-mro-fast-set! object-class object-mro))
+    (type-hclass-of-instance-fast-set! object-class py-object-hclass-of-instances)
     (py-own-attr-set! object-class (& "__name__") (py-str-from-scheme "object"))
-  (py-own-attr-set! object-class (& "__module__") (py-str-from-scheme "builtins"))
-  (py-own-attr-set! object-class (& "__getattribute__") py-object-getattribute)
-  (py-own-attr-set! object-class (& "__bool__") py-object-bool)
+    (py-own-attr-set! object-class (& "__module__") (py-str-from-scheme "builtins"))
+    (py-own-attr-set! object-class (& "__getattribute__") py-object-getattribute)
+    (py-own-attr-set! object-class (& "__bool__") py-object-bool)
 
 
     ;; Fill in type class
@@ -1309,6 +1372,7 @@
     (let ((type-mro '#(type-class object-class)))
       (HClass-class-mro-set! py-type-hclass-of-instances type-mro)
       (type-mro-fast-set! type-class type-mro))
+    (type-hclass-of-instance-fast-set! type-class py-type-hclass-of-instances)
     (py-own-attr-set! type-class (& "__name__") (py-str-from-scheme "type"))
     (py-own-attr-set! type-class (& "__module__") (py-str-from-scheme "builtins"))
     (py-own-attr-set! type-class (& "__getattribute__") py-type-getattribute)
@@ -1319,6 +1383,7 @@
     (let ((tuple-mro '#(tuple-class object-class)))
       (HClass-class-mro-set! py-tuple-hclass-of-instances tuple-mro)
       (type-mro-fast-set! tuple-class tuple-mro))
+    (type-hclass-of-instance-fast-set! tuple-class py-tuple-hclass-of-instances)
     (py-own-attr-set! tuple-class (& "__name__") (py-str-from-scheme "tuple"))
     (py-own-attr-set! tuple-class (& "__module__") (py-str-from-scheme "builtins"))
 
@@ -1328,10 +1393,11 @@
     (let ((str-mro '#(str-class object-class)))
       (HClass-class-mro-set! py-str-hclass-of-instances str-mro)
       (type-mro-fast-set! str-class str-mro))
+    (type-hclass-of-instance-fast-set! str-class py-str-hclass-of-instances)
     (py-own-attr-set! str-class (& "__name__") (py-str-from-scheme "str"))
     (py-own-attr-set! str-class (& "__module__") (py-str-from-scheme "builtins"))))
 
-(bootstrap-type-hierarchy)
+(bootstrap-type-hierarchy-phase1)
 
 ;; TODO Do we still need this?
 (define (py-fun-alloc cls hclass-of-instances proc)
@@ -1363,6 +1429,25 @@
                    (cons self args))
             (error "call" "wrong call" init)))))
 
+(define (py-compute-mro cls)
+
+  (define seen '())
+
+  (define (add-class cls classes)
+    (if (memq cls seen)
+        classes
+        (begin
+          (set! seen (cons cls seen))
+          (cons cls (add-bases (py-cls-bases cls) classes)))))
+
+  (define (add-bases bases classes)
+    (let loop ((i (- (vector-length bases) 1)) (classes classes))
+      (if (< i 0)
+          classes
+          (loop (- i 1) (add-class (vector-ref bases i) classes)))))
+
+  (list->vector (add-class cls '())))
+
 (define (py-make-class name module bases . attrs)
   (define (make-cls attr-names attr-values)
     (let* ((bases-vect
@@ -1372,6 +1457,12 @@
            (cls (py-obj-alloc py-type-class py-type-hclass-of-instances)))
       (type-bases-fast-set! cls bases-vect)
       (type-mro-fast-set! cls (py-compute-mro cls))
+      ;; TODO implement better introspection of hclass of instance
+      ;; This current implementation will fail on multiple inheritance
+      (type-hclass-of-instance-fast-set!
+        cls
+        (type-hclass-of-instance-fast-get
+          (vector-ref bases-vect 0)))
       (let loop ((attr-names attr-names) (attr-values attr-values))
         (if (pair? attr-names)
             (begin
@@ -1402,82 +1493,72 @@
     (make-cls (reverse rev-attr-names)
             (reverse rev-attr-values)))))
 
-;;;----------------------------------------------------------------------------
+(define (make-builtin-class name module bases hclass-of-instances . attrs)
+  (let ((cls (apply py-make-class name module bases attrs)))
+    (type-hclass-of-instance-fast-set! cls hclass-of-instances)
+    cls))
 
-(define (py-compute-mro cls)
+(define (bootstrap-type-hierarchy-phase2)
+  (set! py-int-class
+    (make-builtin-class
+      (& "int")
+      (& "builtins")
+      (list)
+      py-int-hclass-of-instances
+        (& "__bool__") py-int-bool))
 
-  (define seen '())
+  (set! py-float-class
+    (make-builtin-class
+      (& "float")
+      (& "builtins")
+      (list)
+      py-float-hclass-of-instances))
 
-  (define (add-class cls classes)
-    (if (memq cls seen)
-        classes
-        (begin
-          (set! seen (cons cls seen))
-          (cons cls (add-bases (py-cls-bases cls) classes)))))
+  (set! py-bool-class
+    (make-builtin-class
+      (& "bool")
+      (& "builtins")
+      (list)
+      py-bool-hclass-of-instances))
 
-  (define (add-bases bases classes)
-    (let loop ((i (- (vector-length bases) 1)) (classes classes))
-      (if (< i 0)
-          classes
-          (loop (- i 1) (add-class (vector-ref bases i) classes)))))
+  (set! py-complex-class
+    (make-builtin-class
+      (& "complex")
+      (& "builtins")
+      (list)
+      py-complex-hclass-of-instances))
 
-  (list->vector (add-class cls '())))
+  (set! py-slice-class
+    (make-builtin-class
+      (& "slice")
+      (& "builtins")
+      (list)
+      py-slice-hclass-of-instances))
 
-;;;----------------------------------------------------------------------------
+  (set! py-method-class
+    (make-builtin-class
+      (& "method")
+      (& "builtins")
+      (list)
+        (& "__call__") py-method-call))
 
-;;; Define other builtin classes.
+  (set! py-function-class
+    (make-builtin-class
+      (& "function")
+      (& "builtins")
+      (list)
+        (& "__call__") py-function-call
+        (& "__get__") py-function-get))
 
-(define py-int-class
-  (py-make-class (& "int")
-                 (& "builtins")
-                 (list) (& "__bool__") py-int-bool))
+)
 
-(define py-float-class
-  (py-make-class (& "float")
-                 (& "builtins")
-                 '()))
-
-(define py-bool-class
-  (py-make-class (& "bool")
-                 (& "builtins")
-                 (list py-int-class)))
-
-(define py-complex-class
-  (py-make-class (& "complex")
-                 (& "builtins")
-                 '()))
-
-(define py-slice-class
-  (py-make-class (& "slice")
-                 (& "builtins")
-                 '()))
-
-(define py-range-class
-  (py-make-class (& "range")
-                 (& "builtins")
-                 '()))
-
-(define py-method
- (py-make-class
-   (& "method")
-   (& "builtins")
-   (list) (& "__call__") py-method-call
-   ))
-
-(define py-function
- (py-make-class
-   (& "function")
-   (& "builtins")
-   (list)
-     (& "__call__") py-function-call
-     (& "__get__") py-function-get
-   ))
+(bootstrap-type-hierarchy-phase2)
 
 ;;;----------------------------------------------------------------------------
 
 ;;; Define constructors and methods of builtin classes.
 
-(PyFunction-procedure-set!
+#;(PyFunction-procedure-set!
  py-list-class
  (lambda (#!optional (iterable py-absent))
    (py-list-from-scheme
@@ -1496,7 +1577,7 @@
                    (let ((e (py-call1 py-builtin-next iterator)))
                      (loop (cons e elems))))))))))))
 
-(PyFunction-procedure-set!
+#;(PyFunction-procedure-set!
  py-range-class
  (lambda (arg1 #!optional (arg2 py-absent) (arg3 py-absent))
    (cond ((eq? arg2 py-absent)
@@ -3410,7 +3491,11 @@
 ;; Rather than being a function, range is actually an immutable sequence
 ;; type, as documented in Ranges and Sequence Types — list, tuple, range.
 
-(define py-builtin-range py-range-class)
+(define py-builtin-range
+  (py-procedure->function
+   (lambda rest (error "range" "unimplemented generic procedure for builtin" #f))
+   (lambda (object)
+     (error "range" "unimplemented generic procedure for builtin" #f))))
 
 ;;-------------------- repr(object)
 
