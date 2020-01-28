@@ -144,7 +144,7 @@
         (apply procedure args))
       (let ((call-method (getattribute-from-obj-mro obj (& "__call__"))))
         (if (eq? call-method py-absent)
-          (py-throw py-builtins-TypeError)
+          (py-throw py-builtin-TypeError)
           (apply py-call call-method obj args)))))
 
 (define (py-call0 fun)
@@ -684,7 +684,7 @@
   (make-PyFunction (PyFunction-default-hclass) '#() function-get))
 
 (define (procedure->py-function procedure)
- (let ((func (py-call0 py-function)))
+  (let ((func (py-obj-alloc py-function-class py-function-hclass-of-instances)))
    (object-put-no-cache! func (& "**procedure**") procedure)
    func))
 
@@ -700,6 +700,22 @@
 
 (define py-type-call
   (make-PyFunction (PyFunction-default-hclass) '#() type-call))
+
+(define (type-new metacls cls . args)
+  (let ((args-length (length args)))
+    (cond
+      ((= args-len 0)
+        (object-class-fast-get cls))
+      ((= args-len 2)
+        (error "type(name, bases, nmspace) not implemented"))
+      (else
+        (py-throw (py-call
+          py-builtin-TypeError
+          (py-str-from-scheme "type() takes 1 or 3 arguments")))))))
+
+(define py-type-new
+  (make-PyFunction (PyFunction-default-hclass) '#() type-new))
+
 
 ;;;----------------------------------------------------------------------------
 
@@ -800,6 +816,7 @@
                )
                '()))))
 
+     (PyObject-elements-set! mod 0  py-module-class)
      (PyObject-elements-set! mod 1  py-module-class)
      (PyObject-elements-set! mod 2  (py-str-from-scheme "builtins"))
      (PyObject-elements-set! mod 3  py-builtin-abs)
@@ -1072,6 +1089,7 @@
       (& "**bases**")
       (& "**mro**")
       (& "**hclass-of-instance**")
+      (& "**constructor**")
       (& "__name__"))
     '()))
 
@@ -1211,6 +1229,12 @@
 (define (type-hclass-of-instance-fast-set! type hclass)
   (PyObject-elements-set! type 3 hclass))
 
+(define (type-constructor-fast-get type)
+  (PyObject-elements-ref type 4))
+
+(define (type-constructor-fast-set! type constructor)
+  (PyObject-elements-set! type 4 constructor))
+
 ;; =============================================================================
 ;;  BUILTIN CLASSES
 ;; =============================================================================
@@ -1233,7 +1257,7 @@
 
 (define (py-obj-cls* obj) ;; return **class** attribute of object obj
   (cond ((PyObject? obj)
-         (obj-class-fast-get obj))
+         (object-class-fast-get obj))
         ((flonum? obj)
          py-float-class)
         ((integer? obj)
@@ -1273,12 +1297,11 @@
 
 (define (py-str-from-scheme string)
   (let ((self (py-obj-alloc py-str-class py-str-hclass-of-instances)))
-    (PyObject-elements-set! self 1 string)       ;; set **elems**
-    (PyObject-elements-set! self 2 py-str-class) ;; set __class__
+    (sequence-elems-fast-set! self string)       ;; set **elems**
     self))
 
 (define (py-str-to-scheme self)
-  (PyObject-elements-ref self 1))
+  (sequence-elems-fast-get self))
 
 (define (py-tuple-from-scheme vector)
   (let ((self (py-obj-alloc py-tuple-class py-tuple-hclass-of-instances)))
@@ -1375,6 +1398,7 @@
     (type-hclass-of-instance-fast-set! type-class py-type-hclass-of-instances)
     (py-own-attr-set! type-class (& "__name__") (py-str-from-scheme "type"))
     (py-own-attr-set! type-class (& "__module__") (py-str-from-scheme "builtins"))
+    (py-own-attr-set! type-class (& "__new__") (py-type-new))
     (py-own-attr-set! type-class (& "__getattribute__") py-type-getattribute)
 
     ;; Fill in tuple class
@@ -1499,6 +1523,13 @@
     cls))
 
 (define (bootstrap-type-hierarchy-phase2)
+  (set! py-module-class
+    (make-builtin-class
+      (& "module")
+      (& "builtins")
+      (list)
+      py-module-hclass-of-instances))
+
   (set! py-int-class
     (make-builtin-class
       (& "int")
@@ -1540,6 +1571,7 @@
       (& "method")
       (& "builtins")
       (list)
+      py-method-hclass-of-instances
         (& "__call__") py-method-call))
 
   (set! py-function-class
@@ -1547,8 +1579,30 @@
       (& "function")
       (& "builtins")
       (list)
+      py-function-hclass-of-instances
         (& "__call__") py-function-call
         (& "__get__") py-function-get))
+
+  (set! py-list-class
+    (make-builtin-class
+      (& "list")
+      (& "builtins")
+      (list)
+      py-list-hclass-of-instances))
+
+  (set! py-dict-class
+    (make-builtin-class
+      (& "dict")
+      (& "builtins")
+      (list)
+      py-dict-hclass-of-instances))
+
+  (set! py-set-class
+    (make-builtin-class
+      (& "set")
+      (& "builtins")
+      (list)
+      py-set-hclass-of-instances))
 
 )
 
@@ -1649,6 +1703,7 @@
                    )
            '()))))
 
+    (PyObject-elements-set! mod 0 py-module-class)
     (PyObject-elements-set! mod 1 py-module-class)
     (PyObject-elements-set! mod 2 (py-str-from-scheme "__main__"))
     (PyObject-elements-set! mod 3 (py-builtins-mod))
@@ -1668,6 +1723,7 @@
                        )
                '()))))
 
+        (PyObject-elements-set! mod 0 py-module-class)
         (PyObject-elements-set! mod 1 py-module-class)
         (PyObject-elements-set! mod 2 (py-str-from-scheme "__main__"))
         (PyObject-elements-set! mod 3 (py-make-base-builtins-mod))
