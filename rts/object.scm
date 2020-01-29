@@ -1,3 +1,8 @@
+;; debug function that prints the backtrace
+;; at the point in the code where called
+(define (why-am-i-here?)
+  (##continuation-capture (lambda (cc) (display-continuation-backtrace cc))))
+
 (define py-absent (list 'absent))
 
 (define (py-uninit) py-absent)
@@ -147,31 +152,6 @@
           (py-throw py-builtin-TypeError)
           (apply py-call call-method obj args)))))
 
-(define (py-call0 fun)
-   (if (and (isa? fun PyFunction) (correct-arity? (PyFunction-procedure fun) 0))
-       ((PyFunction-procedure fun))
-       (error "call0" "wrong call" fun)))
-
-(define (py-call1 fun a0)
-   (if (and (isa? fun PyFunction) (correct-arity? (PyFunction-procedure fun) 1))
-       ((PyFunction-procedure fun) a0)
-       (error "call1" "wrong call" fun)))
-
-(define (py-call2 fun a0 a1)
-   (if (and (isa? fun PyFunction) (correct-arity? (PyFunction-procedure fun) 2))
-       ((PyFunction-procedure fun) a0 a1)
-       (error "call2" "wrong call" fun)))
-
-(define (py-call3 fun a0 a1 a2)
-   (if (and (isa? fun PyFunction) (correct-arity? (PyFunction-procedure fun) 3))
-       ((PyFunction-procedure fun) a0 a1 a2)
-       (error "call3" "wrong call" fun)))
-
-(define (py-call4 fun a0 a1 a2 a3)
-   (if (and (isa? fun PyFunction) (correct-arity? (PyFunction-procedure fun) 4))
-       ((PyFunction-procedure fun) a0 a1 a2 a3)
-       (error "call4" "wrong call" fun)))
-
 (define (py-is-in-mro? target mro)
   (let loop ((i 0))
     (and (< i (vector-length mro))
@@ -185,14 +165,14 @@
 
 (define (py-throw exc)
   (cond ((not (PyObject? exc))
-         (raise (py-call0 py-builtin-TypeError)))
+         (raise (py-call py-builtin-TypeError)))
         ((py-is-in-mro? py-builtin-BaseException (py-obj-mro exc))
          (raise exc))
         ((py-is-in-mro? py-builtin-BaseException (py-cls-mro exc))
-         (raise (py-call0 exc)))
+         (raise (py-call exc)))
         (else
 
-         (raise (py-call0 py-builtin-TypeError)))))
+         (raise (py-call py-builtin-TypeError)))))
 
 
 (define (py-make-caches size)
@@ -383,7 +363,7 @@
          =>
          (lambda (index)
            (let ((__len__ (PyObject-elements-ref obj index)))
-             (py-call1 __len__ obj))))
+             (py-call __len__ obj))))
         (else
          (error "len" "only object with __len__ method implemented" #f))))
 
@@ -403,7 +383,7 @@
          (let ((getitem (py-attr-ref obj (& "__getitem__"))))
            (if (eq? getitem py-absent)
                (error "getitem" "only object with __getitem__ method implemented" i)
-               (py-call2 getitem obj i))))))
+               (py-call getitem obj i))))))
 
 
 (define (py-setitem obj i val cache)
@@ -428,7 +408,7 @@
          (let ((setitem (py-attr-ref obj (& "__setitem__"))))
            (if (eq? setitem py-absent)
                (error "setitem" "only object with __setitem__ method implemented" i)
-               (py-call3 setitem obj i val))))))
+               (py-call setitem obj i val))))))
 
 (define (py-contains obj i cache)
   (cond ((eq? py-tuple-class (py-obj-cls obj))
@@ -442,7 +422,7 @@
          (let ((contains (py-attr-ref obj (& "__contains__"))))
            (if (eq? contains py-absent)
                (error "contains" "only object with __contains__ method implemented" i)
-               (py-call2 contains obj i))))))
+               (py-call contains obj i))))))
 
 ;;;----------------------------------------------------------------------------
 
@@ -671,7 +651,7 @@
 (define (function-get self instance owner)
   (if (eq? instance (py-none))
     self
-    (let ((method (py-call0 py-method))
+    (let ((method (py-call py-method-class))
           (procedure (py-own-attr-ref self (& "**procedure**"))))
       (object-put-no-cache! method (& "**procedure**") procedure)
       (object-put-no-cache! method (& "__self__") instance)
@@ -689,14 +669,13 @@
    func))
 
 (define (type-call self . args)
-  (let ((__new__ (py-own-attr-ref self (& "__new__")))
-        (__init__ (py-own-attr-ref self (& "__init__"))))
-    (let ((instance (apply py-call __new__ args)))
-      (if (eq? (object-class-fast-get instance) self)
-        (begin
-          (apply py-call __init__ args)
-          instance)
-        (instance)))))
+  (let ((__new__ (getattribute-from-cls-mro self (& "__new__"))))
+    (let ((instance (apply py-call __new__ self args)))
+      (if (eq? (py-obj-cls instance) self)
+        (let ((__init__ (getattribute-from-cls-mro self (& "__init__"))))
+            (apply py-call __init__ instance args)
+            instance)
+        instance))))
 
 (define py-type-call
   (make-PyFunction (PyFunction-default-hclass) '#() type-call))
@@ -704,9 +683,9 @@
 (define (type-new metacls cls . args)
   (let ((args-length (length args)))
     (cond
-      ((= args-len 0)
-        (object-class-fast-get cls))
-      ((= args-len 2)
+      ((= args-length 0)
+        (py-obj-cls* cls))
+      ((= args-length 2)
         (error "type(name, bases, nmspace) not implemented"))
       (else
         (py-throw (py-call
@@ -715,6 +694,24 @@
 
 (define py-type-new
   (make-PyFunction (PyFunction-default-hclass) '#() type-new))
+
+(define (object-new cls . args)
+  (if (py-isinstance? cls py-type-class)
+    (py-obj-alloc cls (type-hclass-of-instance-fast-get cls))
+    (py-throw
+      (py-call py-builtin-TypeError
+        (py-str-from-scheme "object.__new__(X): X is not a type object")))))
+
+(define py-object-new
+  (make-PyFunction (PyFunction-default-hclass) '#() object-new))
+
+(define (object-init self . args)
+  ;; object.__init__ exists but does nothing
+  ;; its purpose is that super().__init__ does not raise and AttributeError
+  #f)
+
+(define py-object-init
+  (make-PyFunction (PyFunction-default-hclass) '#() object-init))
 
 
 ;;;----------------------------------------------------------------------------
@@ -1089,7 +1086,6 @@
       (& "**bases**")
       (& "**mro**")
       (& "**hclass-of-instance**")
-      (& "**constructor**")
       (& "__name__"))
     '()))
 
@@ -1228,12 +1224,6 @@
 
 (define (type-hclass-of-instance-fast-set! type hclass)
   (PyObject-elements-set! type 3 hclass))
-
-(define (type-constructor-fast-get type)
-  (PyObject-elements-ref type 4))
-
-(define (type-constructor-fast-set! type constructor)
-  (PyObject-elements-set! type 4 constructor))
 
 ;; =============================================================================
 ;;  BUILTIN CLASSES
@@ -1379,12 +1369,14 @@
     ;; Fill in object class
     (object-class-fast-set! object-class type-class)
     (type-bases-fast-set! object-class '#())
-    (let ((object-mro '#(object-class)))
+    (let ((object-mro (vector object-class)))
       (HClass-class-mro-set! py-object-hclass-of-instances object-mro)
       (type-mro-fast-set! object-class object-mro))
     (type-hclass-of-instance-fast-set! object-class py-object-hclass-of-instances)
     (py-own-attr-set! object-class (& "__name__") (py-str-from-scheme "object"))
     (py-own-attr-set! object-class (& "__module__") (py-str-from-scheme "builtins"))
+    (py-own-attr-set! object-class (& "__new__") py-object-new)
+    (py-own-attr-set! object-class (& "__init__") py-object-init)
     (py-own-attr-set! object-class (& "__getattribute__") py-object-getattribute)
     (py-own-attr-set! object-class (& "__bool__") py-object-bool)
 
@@ -1392,19 +1384,20 @@
     ;; Fill in type class
     (object-class-fast-set! type-class type-class)
     (type-bases-fast-set! type-class '#(object-class))
-    (let ((type-mro '#(type-class object-class)))
+    (let ((type-mro (vector type-class object-class)))
       (HClass-class-mro-set! py-type-hclass-of-instances type-mro)
       (type-mro-fast-set! type-class type-mro))
     (type-hclass-of-instance-fast-set! type-class py-type-hclass-of-instances)
     (py-own-attr-set! type-class (& "__name__") (py-str-from-scheme "type"))
     (py-own-attr-set! type-class (& "__module__") (py-str-from-scheme "builtins"))
-    (py-own-attr-set! type-class (& "__new__") (py-type-new))
+    (py-own-attr-set! type-class (& "__new__") py-type-new)
+    (py-own-attr-set! type-class (& "__call__") py-type-call)
     (py-own-attr-set! type-class (& "__getattribute__") py-type-getattribute)
 
     ;; Fill in tuple class
     (object-class-fast-set! tuple-class type-class)
     (type-bases-fast-set! tuple-class '#(object-class))
-    (let ((tuple-mro '#(tuple-class object-class)))
+    (let ((tuple-mro (vector tuple-class object-class)))
       (HClass-class-mro-set! py-tuple-hclass-of-instances tuple-mro)
       (type-mro-fast-set! tuple-class tuple-mro))
     (type-hclass-of-instance-fast-set! tuple-class py-tuple-hclass-of-instances)
@@ -1414,7 +1407,7 @@
     ;; Fill in str class
     (object-class-fast-set! str-class type-class)
     (type-bases-fast-set! str-class '#(object-class))
-    (let ((str-mro '#(str-class object-class)))
+    (let ((str-mro (vector str-class object-class)))
       (HClass-class-mro-set! py-str-hclass-of-instances str-mro)
       (type-mro-fast-set! str-class str-mro))
     (type-hclass-of-instance-fast-set! str-class py-str-hclass-of-instances)
@@ -1621,14 +1614,14 @@
         (let ((iter (py-attr-ref iterable (& "__iter__"))))
           (if (eq? iter py-absent)
               (error "iter" "TypeError: object is not iterable" #f)
-              (let ((iterator (py-call1 iter iterable)))
+              (let ((iterator (py-call iter iterable)))
                 (let loop ((elems '()))
                   (with-handler
                    (lambda (e)
                      (if (eq? e py-builtin-StopIteration)
                          (list->vector (reverse elems))
                          (py-throw e)))
-                   (let ((e (py-call1 py-builtin-next iterator)))
+                   (let ((e (py-call py-builtin-next iterator)))
                      (loop (cons e elems))))))))))))
 
 #;(PyFunction-procedure-set!
@@ -1836,29 +1829,7 @@
   (string->symbol s))
 
 (define (py-type obj)
-  (py-obj-cls* obj)
-  #;
-  (cond ((and (PyObject? obj)
-              (let ((index (PyObject-find-prop obj (& "__class__"))))
-                (and (>= index 0)
-                     index)))
-         =>
-         (lambda (index)
-           (PyObject-elements-ref obj index)))
-        ((flonum? obj)
-         py-float-class)
-        ((integer? obj)
-         py-int-class)
-        ((boolean? obj)
-         py-bool-class)
-	((eq? obj (py-none))
-	 'none)
-	((procedure? obj)
-	 'function)
-	((PyObject? obj)
-	 'pyobj)
-        (else
-         (error "py-type" "unknown type" (typeof obj)))))
+  (py-obj-cls obj))
 
 (define (py-print obj port)
   (display (py-str-scheme obj) port))
@@ -1885,11 +1856,7 @@
                   (string-append
                    "<class "
                    (py-str-repr-scheme
-                    (let ((mod (py-str-to-scheme (PyObject-elements-ref obj 6)))
-                          (name (py-str-to-scheme (PyObject-elements-ref obj 7))))
-                      (if (equal? mod "builtins")
-                          name
-                          (string-append mod "." name))))
+                    (py-str-to-scheme (py-own-attr-ref obj (& "__name__"))))
                    ">"))
                  ((eq? t py-module-class)
                   (string-append
@@ -1925,7 +1892,7 @@
          =>
          (lambda (index)
            (let ((__repr__ (PyObject-elements-ref obj index)))
-             (py-str-to-scheme (py-call1 __repr__ obj)))))
+             (py-str-to-scheme (py-call __repr__ obj)))))
         (else
          (let ((t (py-type obj)))
            (cond ((eq? t py-list-class)
@@ -2007,12 +1974,12 @@
   (py-seq-repr-scheme tuple "(" "," ")"))
 
 (define (py-set-repr-scheme set)
-  (if (= 0 (py-call1 py-builtin-len set))
+  (if (= 0 (py-call py-builtin-len set))
       "set()"
       (py-seq-repr-scheme set "{" "" "}")))
 
 (define (py-seq-repr-scheme seq open one close)
-  (let ((len (py-call1 py-builtin-len seq)))
+  (let ((len (py-call py-builtin-len seq)))
     (let loop ((i (- len 1)) (elems '()))
       (if (>= i 0)
           (let ((x (py-repr-scheme (py-getitem seq i repr-cache))))
@@ -2996,7 +2963,7 @@
             =>
             (lambda (index)
               (let ((__iter__ (PyObject-elements-ref object index)))
-                (py-call1 __iter__ object))))
+                (py-call __iter__ object))))
            (else
             (error "iter" "only object with __iter__ method implemented" #f))))))
 
@@ -3138,13 +3105,13 @@
        (if (eq? iterator py-absent)
            (error "next" "TypeError: object is not an iterator" #f)
            (if (eq? default py-absent)
-               (py-call1 next iterator)
+               (py-call next iterator)
                (with-handler
                 (lambda (e)
                   (if (eq? e py-builtin-StopIteration)
                       default
                       (py-throw e)))
-                (py-call1 next iterator))))))))
+                (py-call next iterator))))))))
 
 ;;-------------------- class object
 
