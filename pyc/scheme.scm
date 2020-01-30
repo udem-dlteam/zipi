@@ -160,20 +160,17 @@
       (let ((loop (my-gensym '%for))
 	    (target (my-gensym '%target))
 	    (iterable (my-gensym '%iterable))
-	    (iterator (my-gensym '%iterator))
-	    (next (my-gensym '%next)))
+	    (iterator (my-gensym '%iterator)))
 	 (epairify this
 	    `(let* ((,iterable ,(scheme (PycFor-iter this) conf))
-		    (,iterator (py-call1
-				  (object-get ,iterable
-				     (& "__iter__")
-				     ,(scheme-cache (PycFor-cachei this) this))
-				  ,iterable))
-		    (,next (object-get ,iterator (& "__next__")
-			      ,(scheme-cache (PycFor-cachen this) this))))
+      		    (,iterator (py-iter ,iterable)))
 		(let ,loop ()
-		     (let ((,target (py-for-next ,iterator ,next)))
-			(unless (eq? ,target 'StopIteration)
+        ;; TODO: there is definitely an optimisation to have here
+        ;; cPython recovers __next__ everytime we loop, but if we are
+        ;; assured that the __next__ method is never rassigned *anywhere* in
+        ;; the mro, then we can get __next__ once at the start.
+		     (let ((,target (py-for-next ,iterator)))
+			(when ,target
 			   ,(let ((assig (new-PycAssig (PycNode-loc this)
 					    (PycFor-target this)
 					    (new-PycPragma (PycNode-loc this) target))))

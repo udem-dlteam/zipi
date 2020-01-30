@@ -50,15 +50,7 @@
           (PCache-set! cache hclass i)
           (PyObject-elements-set! global i val)))))
 
-(define (object-get object name cache)
-  (if (PyObject? object)
-      (if (eq? (PyObject-hclass object) (PCache-hclass cache))
-          (PyObject-elements-ref object (PCache-index cache))
-          (object-get/miss object name cache))
-      (if (eq? name (& "__class__")) ;; TODO: remove (temporary kluge)
-          (py-obj-cls object)
-          (object-get/miss object name cache))))
-
+;; TODO remove old object-get methods and remove dependencies in rts
 (define (object-get/miss obj name cache)
   ;; TODO: create a 'method' instance with __func__ and __self__ attributes
   ;; when attribute is a function and obj is not a class
@@ -588,9 +580,7 @@
                   (py-throw exception))))
             (else (py-throw exception))))
       (let ((py-getattribute (getattribute-from-obj-mro obj (& "__getattribute__"))))
-        (py-call py-getattribute obj name)
-      )
-    ))
+        (py-call py-getattribute obj name))))
 
 (define (object-put! obj attr val cache)
   (py-attr-set! obj attr val))
@@ -1229,8 +1219,8 @@
 (define (object-scheme-value-fast-get obj)
   (PyObject-elements-ref obj 1))
 
-(define (object-scheme-value-fast-set!)
-  (PyObject-elements-set! obj 2))
+(define (object-scheme-value-fast-set! obj value)
+  (PyObject-elements-set! obj 1 value))
 
 ;; =============================================================================
 ;;  BUILTIN CLASSES
@@ -1254,7 +1244,8 @@
 
 (define (py-obj-cls* obj) ;; return **class** attribute of object obj
   (cond ((PyObject? obj)
-         (object-class-fast-get obj))
+         (object-class-fast-get obj)
+         )
         ((flonum? obj)
          py-float-class)
         ((integer? obj)
@@ -1496,6 +1487,16 @@
 ;;  ITER PROTOCOL
 ;; =============================================================================
 
+;; TODO: implement the sequence protocole where object are iterable if they
+;; have a __getitem__ method starting from index 0
+(define (py-iter obj)
+  (let ((__iter__ (getattribute-from-obj-mro obj (& "__iter__"))))
+    (if (eq? __iter__ py-absent)
+      (py-throw (py-call
+                  py-builtin-TypeError
+                  (py-str-from-scheme "object is not iterable")))
+      (py-call __iter__ obj))))
+
 ;; list iterator
 
 (define py-list-iterator-hclass-of-instances
@@ -1517,7 +1518,7 @@
   (PyObject-elements-ref li 2))
 
 (define (list-iterator-index-fast-set! li i)
-  (PyObject-elements-ref li 2 i))
+  (PyObject-elements-set! li 2 i))
 
 (define (list-iterator-iter self)
   (if (eq? (py-type self) py-list-iterator-class)
@@ -1542,11 +1543,11 @@
           ;; if item is #f, it means we are in the list free space
           (if item
             (begin
-              (list-iterator-index-fast-set self (+ index 1))
+              (list-iterator-index-fast-set! self (+ index 1))
               item)
             (stop-iterator self)))
-        (stop-iterator))
-    (py-throw py-builtin-TypeError))))
+        (stop-iterator self)))
+    (py-throw py-builtin-TypeError)))
 
 (define py-list-iterator-next
   (make-PyFunction (PyFunction-default-hclass) '#() list-iterator-next))
@@ -1581,7 +1582,7 @@
   (PyObject-elements-ref li 2))
 
 (define (tuple-iterator-index-fast-set! li i)
-  (PyObject-elements-ref li 2 i))
+  (PyObject-elements-set! li 2 i))
 
 (define (tuple-iterator-iter self)
   (if (eq? (py-type self) py-tuple-iterator-class)
@@ -1598,7 +1599,7 @@
       (if (< index (vector-length vec))
         (let ((item (vector-ref vec index)))
           (begin
-            (list-iterator-index-fast-set self (+ index 1))
+            (list-iterator-index-fast-set! self (+ index 1))
             item))
         (py-throw py-builtin-StopIteration)))
     (py-throw py-builtin-TypeError)))
@@ -1606,12 +1607,12 @@
 (define py-tuple-iterator-next
   (make-PyFunction (PyFunction-default-hclass) '#() tuple-iterator-next))
 
-(define py-list-iterator-class
+(define py-tuple-iterator-class
   (make-builtin-class
     (& "tuple_iterator")
     (& "builtins")
     (list)
-    py-list-iterator-hclass-of-instances
+    py-tuple-iterator-hclass-of-instances
       (& "__iter__") py-tuple-iterator-iter
       (& "__next__") py-tuple-iterator-next))
 
@@ -1636,8 +1637,8 @@
                         py-tuple-iterator-class
                         py-tuple-iterator-hclass-of-instances))
           (vec (object-scheme-value-fast-get self)))
-      (tuple-iterator-vector-fast-set! iterator self)
-      (tuple-iterator-index-fast-set iterator 0)
+      (tuple-iterator-vector-fast-set! iterator vec)
+      (tuple-iterator-index-fast-set! iterator 0)
       iterator)
     (py-throw py-builtin-TypeError)))
 
@@ -1837,92 +1838,20 @@
 (define (py-make-set elements)
   (py-set-from-scheme (list->vector elements)))
 
-#;
+;; TODO: this will no longer be the desired behaviour once lists have dynamic length
 (define (py-list-from-scheme elements)
-  (alist->PyObject
-   (list (cons (& "__class__")
-               py-list-class)
-         (cons (& "__len__")
-               (py-procedure->function
-                (lambda rest (error "__len__" "unimplemented generic procedure" #f))
-                (lambda (self)
-                  (vector-length elements))))
-         (cons (& "__getitem__")
-               (py-procedure->function
-                (lambda rest (error "__getitem__" "unimplemented generic procedure" #f))
-                (lambda (self i)
-                  (if (< i 0) (set! i (+ i (vector-length elements))))
-                  (if (or (< i 0) (>= i (vector-length elements)))
-                      (error "getitem" "index out of range" #f)
-                      (vector-ref elements i)))))
-         (cons (& "__setitem__")
-               (py-procedure->function
-                (lambda rest (error "__setitem__" "unimplemented generic procedure" #f))
-                (lambda (self i val)
-                  (if (< i 0) (set! i (+ i (vector-length elements))))
-                  (if (or (< i 0) (>= i (vector-length elements)))
-                      (error "setitem" "index out of range" #f)
-                      (vector-set! elements i val)))))
-         (cons (& "__iter__")
-               (py-procedure->function
-                (lambda rest (error "__iter__" "unimplemented generic procedure" #f))
-                (lambda (self)
-                  (let ((i 0))
-                    (alist->PyObject
-                     (list (cons (& "__next__")
-                                 (py-procedure->function
-                                  (lambda rest (error "__next__" "unimplemented generic procedure" #f))
-                                  (lambda (self)
-                                    (if (>= i (vector-length elements))
-                                        (py-throw py-builtin-StopIteration)
-                                        (let ((result (vector-ref elements i)))
-                                          (set! i (+ i 1))
-                                          result))))))))))))))
+  (let ((list (py-obj-alloc py-list-class py-list-hclass-of-instances)))
+    (object-scheme-value-fast-set! list elements)
+    list))
 
 (define (py-make-tuple . elements)
   (py-tuple-from-scheme (list->vector elements)))
 
-#;
 (define (py-tuple-from-scheme elements)
-  (alist->PyObject
-   (list (cons (& "__class__")
-               py-tuple-class)
-         (cons (& "__len__")
-               (py-procedure->function
-                (lambda rest (error "__len__" "unimplemented generic procedure" #f))
-                (lambda (self)
-                  (vector-length elements))))
-         (cons (& "__getitem__")
-               (py-procedure->function
-                (lambda rest (error "__getitem__" "unimplemented generic procedure" #f))
-                (lambda (self i)
-                  (if (< i 0) (set! i (+ i (vector-length elements))))
-                  (if (or (< i 0) (>= i (vector-length elements)))
-                      (error "getitem" "index out of range" #f)
-                      (vector-ref elements i)))))
-         (cons (& "__setitem__")
-               (py-procedure->function
-                (lambda rest (error "__setitem__" "unimplemented generic procedure" #f))
-                (lambda (self i val)
-                  (if (< i 0) (set! i (+ i (vector-length elements))))
-                  (if (or (< i 0) (>= i (vector-length elements)))
-                      (error "setitem" "index out of range" #f)
-                      (vector-set! elements i val)))))
-         (cons (& "__iter__")
-               (py-procedure->function
-                (lambda rest (error "__iter__" "unimplemented generic procedure" #f))
-                (lambda (self)
-                  (let ((i 0))
-                    (alist->PyObject
-                     (list (cons (& "__next__")
-                                 (py-procedure->function
-                                  (lambda rest (error "__next__" "unimplemented generic procedure" #f))
-                                  (lambda (self)
-                                    (if (>= i (vector-length elements))
-                                        (py-throw py-builtin-StopIteration)
-                                        (let ((result (vector-ref elements i)))
-                                          (set! i (+ i 1))
-                                          result))))))))))))))
+  (let ((tuple (py-obj-alloc py-tuple-class py-tuple-hclass-of-instances)))
+    (object-scheme-value-fast-set! tuple elements)
+    tuple))
+
 
 (define (py-make-dict keys vals)
   (py-dict-from-scheme keys vals))
