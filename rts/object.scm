@@ -695,6 +695,8 @@
 (define py-type-new
   (make-PyFunction (PyFunction-default-hclass) '#() type-new))
 
+;; TODO: raise TypeError on unsafe call, ex: object.__new__(int)
+;; TODO: raise TypeError when cannot create, ex: list_iterator.__new__()
 (define (object-new cls . args)
   (if (py-isinstance? cls py-type-class)
     (py-obj-alloc cls (type-hclass-of-instance-fast-get cls))
@@ -712,7 +714,6 @@
 
 (define py-object-init
   (make-PyFunction (PyFunction-default-hclass) '#() object-init))
-
 
 ;;;----------------------------------------------------------------------------
 
@@ -1094,7 +1095,7 @@
     '#() ;; set later when classes exist
     (vector
       (& "**class**")
-      (& "**elems**"))
+      (& "**value**"))
     '()))
 
 (define py-tuple-hclass-of-instances
@@ -1102,7 +1103,7 @@
     '#() ;; set later when classes exist
     (vector
       (& "**class**")
-      (& "**elems**"))
+      (& "**value**"))
     '()))
 
 (define py-int-hclass-of-instances
@@ -1165,7 +1166,7 @@
     '#() ;; set later when classes exist
     (vector
       (& "**class**")
-      (& "**elems**"))
+      (& "**value**"))
     '()))
 
 (define py-dict-hclass-of-instances
@@ -1173,7 +1174,7 @@
     '#() ;; set later when classes exist
     (vector
       (& "**class**")
-      (& "**elems**"))
+      (& "**value**"))
     '()))
 
 (define py-set-hclass-of-instances
@@ -1181,7 +1182,7 @@
     '#() ;; set later when classes exist
     (vector
       (& "**class**")
-      (& "**elems**"))
+      (& "**value**"))
     '()))
 
 (define py-module-hclass-of-instances (make-HClass
@@ -1224,6 +1225,12 @@
 
 (define (type-hclass-of-instance-fast-set! type hclass)
   (PyObject-elements-set! type 3 hclass))
+
+(define (object-scheme-value-fast-get obj)
+  (PyObject-elements-ref obj 1))
+
+(define (object-scheme-value-fast-set!)
+  (PyObject-elements-set! obj 2))
 
 ;; =============================================================================
 ;;  BUILTIN CLASSES
@@ -1416,36 +1423,6 @@
 
 (bootstrap-type-hierarchy-phase1)
 
-;; TODO Do we still need this?
-(define (py-fun-alloc cls hclass-of-instances proc)
-  (let ((self
-         (make-PyFunction
-          hclass-of-instances
-          (make-vector (vector-length (HClass-names hclass-of-instances))
-                       (py-uninit))
-          proc)))
-    (object-class-fast-set! self cls) ;; set **class**
-    self))
-
-;; TODO Do we still need this?
-(define (py-obj-constructor cls hclass-of-instances init)
-  (lambda args
-    (let ((self (py-obj-alloc cls hclass-of-instances)))
-      (PyObject-elements-set! self 1 cls) ;; set __class__
-      (init self args)
-      self)))
-
-;; TODO Do we still need this?
-(define (py-call-init self args)
-  (let ((init (py-attr-ref self (& "__init__"))))
-    (if (not (eq? init py-absent))
-        (if (and (isa? init PyFunction)
-                 (correct-arity? (PyFunction-procedure init)
-                                 (+ 1 (length args))))
-            (apply (PyFunction-procedure init)
-                   (cons self args))
-            (error "call" "wrong call" init)))))
-
 (define (py-compute-mro cls)
 
   (define seen '())
@@ -1515,7 +1492,163 @@
     (type-hclass-of-instance-fast-set! cls hclass-of-instances)
     cls))
 
+;; =============================================================================
+;;  ITER PROTOCOL
+;; =============================================================================
+
+;; list iterator
+
+(define py-list-iterator-hclass-of-instances
+  (make-HClass
+    '#()
+    (vector
+      (& "**class**")
+      (& "**list**")
+      (& "**index**"))
+    '()))
+
+(define (list-iterator-list-fast-get li)
+  (PyObject-elements-ref li 1))
+
+(define (list-iterator-list-fast-set! li vec)
+  (PyObject-elements-set! li 1 vec))
+
+(define (list-iterator-index-fast-get li)
+  (PyObject-elements-ref li 2))
+
+(define (list-iterator-index-fast-set! li i)
+  (PyObject-elements-ref li 2 i))
+
+(define (list-iterator-iter self)
+  (if (eq? (py-type self) py-list-iterator-class)
+    self
+    (py-throw py-builtin-TypeError)))
+
+(define py-list-iterator-iter
+  (make-PyFunction (PyFunction-default-hclass) '#() list-iterator-iter))
+
+;; By setting index to #f, the iterator always raises StopIteration
+(define (stop-iterator iterator)
+  (list-iterator-index-fast-set! iterator #f)
+  (py-throw py-builtin-StopIteration))
+
+(define (list-iterator-next self)
+  (if (eq? (py-type self) py-list-iterator-class)
+    (let* ((index (list-iterator-index-fast-get self))
+           (lst (list-iterator-list-fast-get self))
+           (vec (object-scheme-value-fast-get lst)))
+      (if (and index (< index (vector-length vec)))
+        (let ((item (vector-ref vec index)))
+          ;; if item is #f, it means we are in the list free space
+          (if item
+            (begin
+              (list-iterator-index-fast-set self (+ index 1))
+              item)
+            (stop-iterator self)))
+        (stop-iterator))
+    (py-throw py-builtin-TypeError))))
+
+(define py-list-iterator-next
+  (make-PyFunction (PyFunction-default-hclass) '#() list-iterator-next))
+
+(define py-list-iterator-class
+  (make-builtin-class
+    (& "list_iterator")
+    (& "builtins")
+    (list)
+    py-list-iterator-hclass-of-instances
+      (& "__iter__") py-list-iterator-iter
+      (& "__next__") py-list-iterator-next))
+
+;; tuple iterator
+
+(define py-tuple-iterator-hclass-of-instances
+  (make-HClass
+    '#()
+    (vector
+      (& "**class**")
+      (& "**vector**")
+      (& "**index**"))
+    '()))
+
+(define (tuple-iterator-vector-fast-get li)
+  (PyObject-elements-ref li 1))
+
+(define (tuple-iterator-vector-fast-set! li vec)
+  (PyObject-elements-set! li 1 vec))
+
+(define (tuple-iterator-index-fast-get li)
+  (PyObject-elements-ref li 2))
+
+(define (tuple-iterator-index-fast-set! li i)
+  (PyObject-elements-ref li 2 i))
+
+(define (tuple-iterator-iter self)
+  (if (eq? (py-type self) py-tuple-iterator-class)
+    self
+    (py-throw py-builtin-TypeError)))
+
+(define py-tuple-iterator-iter
+  (make-PyFunction (PyFunction-default-hclass) '#() tuple-iterator-iter))
+
+(define (tuple-iterator-next self)
+  (if (eq? (py-type self) py-tuple-iterator-class)
+    (let* ((index (tuple-iterator-index-fast-get self))
+           (vec (tuple-iterator-vector-fast-get self)))
+      (if (< index (vector-length vec))
+        (let ((item (vector-ref vec index)))
+          (begin
+            (list-iterator-index-fast-set self (+ index 1))
+            item))
+        (py-throw py-builtin-StopIteration)))
+    (py-throw py-builtin-TypeError)))
+
+(define py-tuple-iterator-next
+  (make-PyFunction (PyFunction-default-hclass) '#() tuple-iterator-next))
+
+(define py-list-iterator-class
+  (make-builtin-class
+    (& "tuple_iterator")
+    (& "builtins")
+    (list)
+    py-list-iterator-hclass-of-instances
+      (& "__iter__") py-tuple-iterator-iter
+      (& "__next__") py-tuple-iterator-next))
+
+;; builtins __iter__ methods
+
+(define (list-iter self)
+  (if (py-isinstance? self py-list-class)
+    (let ((iterator (py-obj-alloc
+                        py-list-iterator-class
+                        py-list-iterator-hclass-of-instances)))
+      (list-iterator-list-fast-set! iterator self)
+      (list-iterator-index-fast-set! iterator 0)
+      iterator)
+    (py-throw py-builtin-TypeError)))
+
+(define py-list-iter
+  (make-PyFunction (PyFunction-default-hclass) '#() list-iter))
+
+(define (tuple-iter self)
+  (if (py-isinstance? self py-tuple-class)
+    (let ((iterator (py-obj-alloc
+                        py-tuple-iterator-class
+                        py-tuple-iterator-hclass-of-instances))
+          (vec (object-scheme-value-fast-get self)))
+      (tuple-iterator-vector-fast-set! iterator self)
+      (tuple-iterator-index-fast-set iterator 0)
+      iterator)
+    (py-throw py-builtin-TypeError)))
+
+(define py-tuple-iter
+  (make-PyFunction (PyFunction-default-hclass) '#() tuple-iter))
+
 (define (bootstrap-type-hierarchy-phase2)
+
+  ;; Fill in tuple class
+  (py-own-attr-set! py-tuple-class (& "__iter__") py-tuple-iter)
+
   (set! py-module-class
     (make-builtin-class
       (& "module")
@@ -1581,7 +1714,8 @@
       (& "list")
       (& "builtins")
       (list)
-      py-list-hclass-of-instances))
+      py-list-hclass-of-instances
+        (& "__iter__") py-list-iter))
 
   (set! py-dict-class
     (make-builtin-class
@@ -1603,39 +1737,7 @@
 
 ;;;----------------------------------------------------------------------------
 
-;;; Define constructors and methods of builtin classes.
-
-#;(PyFunction-procedure-set!
- py-list-class
- (lambda (#!optional (iterable py-absent))
-   (py-list-from-scheme
-    (if (eq? iterable py-absent)
-        (vector)
-        (let ((iter (py-attr-ref iterable (& "__iter__"))))
-          (if (eq? iter py-absent)
-              (error "iter" "TypeError: object is not iterable" #f)
-              (let ((iterator (py-call iter iterable)))
-                (let loop ((elems '()))
-                  (with-handler
-                   (lambda (e)
-                     (if (eq? e py-builtin-StopIteration)
-                         (list->vector (reverse elems))
-                         (py-throw e)))
-                   (let ((e (py-call py-builtin-next iterator)))
-                     (loop (cons e elems))))))))))))
-
-#;(PyFunction-procedure-set!
- py-range-class
- (lambda (arg1 #!optional (arg2 py-absent) (arg3 py-absent))
-   (cond ((eq? arg2 py-absent)
-          ;; stop
-          (py-range 0 arg1 1))
-         ((eq? arg3 py-absent)
-          ;; start, stop
-          (py-range arg1 arg2 1))
-         (else
-          ;; start, stop, step
-          (py-range arg1 arg2 arg3)))))
+;; range
 
 (define (py-range start stop step)
   (let ((hclass-of-instances
