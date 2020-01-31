@@ -174,50 +174,42 @@
 
 ;;;----------------------------------------------------------------------------
 
-;;; Old Python operators.
+;; =============================================================================
+;;  OPERATORS PROTOCOLS
+;; =============================================================================
 
-(define (pyis? x y)
-   (eq? x y))
+;; add
 
-(define (py+ x y)
-  (+ x y))
+(define (int-add self other)
+  (if (py-isinstance? self py-int-class)
+    (cond
+      ((py-isinstance? other py-int-class)
+        (let ((self-value (object-scheme-value-fast-get self))
+              (other-value (object-scheme-value-fast-get other))
+              (new-int (py-obj-alloc py-int-class py-int-hclass-of-instances)))
+          (object-scheme-value-fast-set! new-int (+ self-value other-value))
+          new-int))
+      (else (error "int.__add__ only supports int + int at this point")))
+    (py-throw
+      (py-call py-builtin-TypeError
+               (py-str-from-scheme "descriptor '__add__' requires a 'int' object")))))
 
-(define (py- x y)
-  (- x y))
 
-(define (pyneg x)
-  (- x))
+(define py-int-add
+  (make-PyFunction (PyFunction-default-hclass) '#() int-add))
 
-(define (py* x y)
-  (* x y))
-
-(define (py/ x y)
-  (/ x y))
-
-(define (py< x y)
-  (< x y))
-
-(define (py<= x y)
-  (<= x y))
-
-(define (py= x y)
-  (= x y))
-
-(define (py> x y)
-  (> x y))
-
-(define (py>= x y)
-  (>= x y))
-
-(define (py!= x y)
-  (not (= x y)))
-
-;;;----------------------------------------------------------------------------
-
-;;; Python operators.
-
+;; TODO: the full protocole fallsback on __radd__ if __add__ is not defined
+;; it also needs to check for the NotImplemented object on return of __add__
 (define (py-add x y cache) ;; x + y
-  (+ x y))
+  (let ((__add__ (getattribute-from-obj-mro x (& "__add__"))))
+    (if (eq? __add__ py-absent)
+      (py-throw
+        (py-call
+          py-builtin-TypeError
+          (py-str-from-scheme "unsupported operand type(s) for +")))
+      (py-call __add__ x y))))
+
+;; and
 
 (define (py-and x y cache) ;; x & y
   (bit-and x y))
@@ -674,7 +666,7 @@
   (let ((args-length (length args)))
     (cond
       ((= args-length 0)
-        (py-obj-cls* cls))
+        (py-obj-cls cls))
       ((= args-length 2)
         (error "type(name, bases, nmspace) not implemented"))
       (else
@@ -970,92 +962,6 @@
    (set! sys-mod (py-make-sys-mod)))
  sys-mod)
 
-;;;----------------------------------------------------------------------------
-
-;;; Bootstrap types.
-
-;;; Objects are represented with a structure pointing to a hidden
-;;; class and a vector containing the values of the object's
-;;; attributes.  The hidden class indicates the names of the
-;;; attributes and their position in the vector.  The hidden class
-;;; also contains the method resolution order (MRO) vector of the
-;;; object's class.  The first element of this vector is normally
-;;; the object's class.
-;;;
-;;; The object model contains cycles, for example the class of the
-;;; "type" class is itself, so we need to explicitly set some
-;;; attributes to construct the builtin classes.
-;;;
-;;; Here is an example showing the representation of the string "abc"
-;;; which is an instance of the "str" class.
-
-;; +------------------------+
-;; |                        |
-;; |  hclass of type        |     +------+
-;; |  +------------+        |     |      |
-;; |  |class-mro  -+---> #(type object)  |
-;; |  |names      -+---> #(**class**     |
-;; |  |transitions-+->...  **bases**     |
-;; |  +------------+<--+   **mro**       |
-;; |                   |   ...)          |
-;; |                   |                 |
-;; |       type        |                 |
-;; +->+------------+   |                 |
-;;    | hclass    -+---+                 |
-;;    +~~elements~~+                     |
-;;    | **class** -+--> type             |
-;;    | **bases** -+--> #(object)        |
-;;    | **mro**   -+--> #(type object)   |
-;;    | __class__ -+--> ...              |
-;;    | __bases__ -+--> ...              |
-;;    | __mro__   -+--> ...              |
-;;    | __len__    |                     |
-;;    | __getitem__|                     |
-;;    | __setitem__|<--------------------|------------------------+
-;;    +------------+<-------+            |                        |
-;;                          |            |                        |
-;;                          |            | /----------------------------+
-;;                          |            |/                       |     |
-;;    hclass of str         |     +----\ +  hclass of object      |     |
-;;    +------------+        |     |     \|  +------------+        |     |
-;;    |class-mro  -+---> #(type object)  +  |class-mro  -+---> #(type object)
-;;    |names      -+---> #(**class**     |  |names      -+---> #(**class**
-;;    |transitions-+->...  **bases**     |  |transitions-+->...  **bases**
-;;    +------------+<--+   **mro**       |  +------------+<--+   **mro**
-;;                     |   ...)          |                   |   ...)
-;;                     |                 |                   |
-;;         str         |                 |      object       |
-;;    +------------+   |                 +->+------------+   |
-;;    | hclass    -+---+                    | hclass    -+---+
-;;    +~~elements~~+                        +~~elements~~+
-;;    | **class** -+--> type                | **class** -+--> type
-;;    | **bases** -+--> #(object)           | **bases** -+--> #()
-;;    | **mro**   -+--> #(str object)       | **mro**   -+--> #(object)
-;;    | __class__ -+--> ...                 | __class__ -+--> ...
-;;    | __bases__ -+--> ...                 | __bases__ -+--> ...
-;;    | __mro__   -+--> ...                 | __mro__   -+--> ...
-;;    | __len__    |                        | __init__   |
-;;    | __getitem__|             +--------->+------------+
-;;    | __setitem__|             |
-;;    +------------+<-------+    |
-;;                          |    |
-;;                          |    |
-;;    hclass of "abc        |    |
-;;    +------------+        |    |
-;;    |class-mro  -+---> #(str object)
-;;    |names      -+---> #(**class** **elems** __class__)
-;;    |transitions-+->...
-;;    +------------+<--+
-;;                     |
-;;        "abc"        |
-;;    +------------+   |
-;;    | hclass    -+---+
-;;    +~~elements~~+
-;;    | **class** -+--> str
-;;    | **elems** -+--> "abc"
-;;    | __class__ -+--> str
-;;    +------------+
-
 ;; =============================================================================
 ;;  HIDDEN CLASSES
 ;; =============================================================================
@@ -1192,12 +1098,6 @@
 (define (object-class-fast-set! obj class)
   (PyObject-elements-set! obj 0 class))
 
-(define (sequence-elems-fast-get seq)
-  (PyObject-elements-ref seq 1))
-
-(define (sequence-elems-fast-set! seq elems)
-  (PyObject-elements-set! seq 1 elems))
-
 (define (type-bases-fast-get type)
   (PyObject-elements-ref type 1))
 
@@ -1244,16 +1144,14 @@
 
 (define (py-obj-cls* obj) ;; return **class** attribute of object obj
   (cond ((PyObject? obj)
-         (object-class-fast-get obj)
-         )
+         (object-class-fast-get obj))
         ((flonum? obj)
          py-float-class)
         ((integer? obj)
          py-int-class)
         ((boolean? obj)
          py-bool-class)
-        (else
-         #f)))
+        (else #f)))
 
 (define (py-obj-cls obj) ;; return **class** attribute of object obj
   (or (py-obj-cls* obj)
@@ -1283,13 +1181,18 @@
 ;;; types.
 ;; TODO: remove direct indexing and use fast-set! methods
 
+(define (py-int-from-scheme value)
+  (let ((self (py-obj-alloc py-int-class py-int-hclass-of-instances)))
+    (object-scheme-value-fast-set! self value)       ;; set **value**
+    self))
+
 (define (py-str-from-scheme string)
   (let ((self (py-obj-alloc py-str-class py-str-hclass-of-instances)))
-    (sequence-elems-fast-set! self string)       ;; set **elems**
+    (object-scheme-value-fast-set! self string)       ;; set **value**
     self))
 
 (define (py-str-to-scheme self)
-  (sequence-elems-fast-get self))
+  (object-scheme-value-fast-get self))
 
 (define (py-tuple-from-scheme vector)
   (let ((self (py-obj-alloc py-tuple-class py-tuple-hclass-of-instances)))
@@ -1663,7 +1566,8 @@
       (& "builtins")
       (list)
       py-int-hclass-of-instances
-        (& "__bool__") py-int-bool))
+        (& "__bool__") py-int-bool
+        (& "__add__") py-int-add))
 
   (set! py-float-class
     (make-builtin-class
@@ -1869,11 +1773,13 @@
   (py-str-from-scheme (py-str-scheme obj)))
 
 (define (py-str-scheme obj)
-  (cond ((eq? obj 'None)
-         "None")
+  (cond ((eq? obj 'None) "None")
         (else
          (let ((t (py-type obj)))
-           (cond ((eq? t py-str-class)
+           (cond
+                 ((eq? t py-int-class)
+                  (number->string (object-scheme-value-fast-get obj)))
+                 ((eq? t py-str-class)
                   (py-str-to-scheme obj))
                  ((eq? t py-list-class)
                   (py-list-repr-scheme obj))

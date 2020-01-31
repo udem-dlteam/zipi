@@ -385,8 +385,10 @@
 (define-walk-method (scheme this::PycBool conf)
    (PycLiteralValue-val this))
 
+;; TODO: all values are stored as int, float and complex are untreated
 (define-walk-method (scheme this::PycNumber conf)
-   (PycLiteralValue-val this))
+   (epairify this
+      `(py-int-from-scheme ,(PycLiteralValue-val this))))
 
 (define-walk-method (scheme this::PycString conf)
    (epairify this
