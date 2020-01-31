@@ -180,6 +180,7 @@
 
 ;; add
 
+;; TODO: this should go somewhere else
 (define (int-add self other)
   (if (py-isinstance? self py-int-class)
     (cond
@@ -189,7 +190,7 @@
               (new-int (py-obj-alloc py-int-class py-int-hclass-of-instances)))
           (object-scheme-value-fast-set! new-int (+ self-value other-value))
           new-int))
-      (else (error "int.__add__ only supports int + int at this point")))
+      (else py-NotImplemented))
     (py-throw
       (py-call py-builtin-TypeError
                (py-str-from-scheme "descriptor '__add__' requires a 'int' object")))))
@@ -198,65 +199,117 @@
 (define py-int-add
   (make-PyFunction (PyFunction-default-hclass) '#() int-add))
 
-;; TODO: the full protocole fallsback on __radd__ if __add__ is not defined
-;; it also needs to check for the NotImplemented object on return of __add__
-(define (py-add x y cache) ;; x + y
-  (let ((__add__ (getattribute-from-obj-mro x (& "__add__"))))
-    (if (eq? __add__ py-absent)
-      (py-throw
-        (py-call
-          py-builtin-TypeError
-          (py-str-from-scheme "unsupported operand type(s) for +")))
-      (py-call __add__ x y))))
+;; TODO: make NotImplemented an instance of the class NotImplemented
+(define py-NotImplemented 'NotImplemented)
 
-;; and
+;; generic operator protocol
 
-(define (py-and x y cache) ;; x & y
-  (bit-and x y))
+(define-macro (define-binary-operator-protocol fun-name method rmethod operator)
+  (let ((throw-unsupported-operand
+          `(lambda (x y)
+            (let ((x-type-name (type-name-fast-get (py-type x)))
+                  (y-type-name (type-name-fast-get (py-type y))))
+              (py-throw
+                (py-call
+                  py-builtin-TypeError
+                  (py-str-from-scheme
+                    (string-append
+                      "unsupported operand type(s) for "
+                      ,operator
+                      ": '"
+                      (py-str-to-scheme x-type-name)
+                      "' and '"
+                      (py-str-to-scheme y-type-name)
+                      "'"))))))))
+  `(define (,fun-name x y cache)
+    (let ((__op__ (getattribute-from-obj-mro x (& ,method))))
+      (let ((left-op-result
+              (if (eq? __op__ py-absent)
+                py-NotImplemented
+                (py-call __op__ x y))))
+        (if (eq? left-op-result py-NotImplemented)
+          (let ((__rop__ (getattribute-from-obj-mro y (& ,rmethod))))
+            (let ((right-op-result
+                    (if (eq? __rop__ py-absent)
+                      py-NotImplemented
+                      (py-call __rop__ y x))))
+              (if (eq? right-op-result py-NotImplemented)
+                (,throw-unsupported-operand x y)
+                right-op-result)))
+          left-op-result))))))
 
-(define (py-div x y cache) ;; x / y
-  (if (= y 0)
-      (py-throw py-builtin-ZeroDivisionError)
-      (/ (exact->inexact x) (exact->inexact y))))
 
-(define (py-floordiv x y cache) ;; x // y
-  (inexact->exact (floor (/ x y))))
 
-(define (py-invert x cache) ;; ~ x
-  (bit-not x))
+;; add
+(define-binary-operator-protocol py-add "__add__" "__radd__" "+")
 
-(define (py-lshift x y cache) ;; x << y
-  (bit-lsh x y))
+;; bitwise and
+(define-binary-operator-protocol py-and "__and__" "__rand__" "&")
 
-(define (py-matmul x y cache) ;; x @ y
-  (error "py-matmul" "not implemented" #f))
+;; div
+(define-binary-operator-protocol py-div "__truediv__" "__rtruediv__" "/")
 
-(define (py-mod x y cache) ;; x % y
-  (modulo x y))
+;; floor div
+(define-binary-operator-protocol py-floordiv "__floordiv__" "__rfloordiv__" "//")
 
-(define (py-mul x y cache) ;; x * y
-  (* x y))
+;; left shift
+(define-binary-operator-protocol py-lshift "__lshift__" "__rlshift__" "<<")
 
-(define (py-neg x cache) ;; - x
-  (- x))
+;; matrix multiplication (unimplemented for builtins, namely used by numpy)
+(define-binary-operator-protocol py-matmul "__matmul__" "__rmatmul__" "@")
 
-(define (py-or x y cache) ;; x | y
-  (bit-or x y))
+;; mod
+(define-binary-operator-protocol py-mod "__mod__" "__rmod__" "%")
 
-(define (py-pos x cache) ;; + x
-  (+ x))
+;; mul
+(define-binary-operator-protocol py-mul "__mul__" "__rmul__" "*")
 
-(define (py-pow x y cache) ;; x ** y
-  (expt x y))
+;; bitwise or
+(define-binary-operator-protocol py-or "__or__" "__ror__" "|")
 
-(define (py-rshift x y cache) ;; x >> y
-  (bit-rsh x y))
+;; pow
+(define-binary-operator-protocol py-pow "__pow__" "__rpow__" "**")
 
-(define (py-sub x y cache) ;; x - y
-  (- x y))
+;; right shift
+(define-binary-operator-protocol py-rshift "__rshift__" "__lrshift__" ">>")
 
-(define (py-xor x y cache) ;; x ^ y
-  (bit-xor x y))
+;; sub
+(define-binary-operator-protocol py-sub "__sub__" "__rsub__" "-")
+
+;; xor
+(define-binary-operator-protocol py-xor "__xor__" "__rxor__" "^")
+
+;; TODO: comparison operator protocols
+
+(define (py-eq x y cache) ;; x == y
+  (= x y))
+
+(define (py-ne x y cache) ;; x != y
+  (not (= x y)))
+
+(define (py-lt x y cache) ;; x < y
+  (< x y))
+
+(define (py-le x y cache) ;; x <= y
+  (<= x y))
+
+(define (py-gt x y cache) ;; x > y
+  (> x y))
+
+(define (py-ge x y cache) ;; x >= y
+  (>= x y))
+
+(define (py-is x y cache) ;; x is y
+  (eq? x y))
+
+(define (py-isnot x y cache) ;; x is not y
+  (not (eq? x y)))
+
+(define (py-in x y cache) ;; x in y
+  (error "py-in" "not implemented" #f))
+
+(define (py-notin x y cache) ;; x not in y
+  (error "py-notin" "not implemented" #f))
 
 (define (py-iadd x y cache) ;; x += y
   (+ x y))
@@ -299,35 +352,16 @@
 (define (py-ixor x y cache) ;; x ^= y
   (bit-xor x y))
 
-(define (py-eq x y cache) ;; x == y
-  (= x y))
+;; Unary operators
 
-(define (py-ne x y cache) ;; x != y
-  (not (= x y)))
+(define (py-invert x cache) ;; ~ x
+  (bit-not x))
 
-(define (py-lt x y cache) ;; x < y
-  (< x y))
+(define (py-neg x cache) ;; - x
+  (- x))
 
-(define (py-le x y cache) ;; x <= y
-  (<= x y))
-
-(define (py-gt x y cache) ;; x > y
-  (> x y))
-
-(define (py-ge x y cache) ;; x >= y
-  (>= x y))
-
-(define (py-is x y cache) ;; x is y
-  (eq? x y))
-
-(define (py-isnot x y cache) ;; x is not y
-  (not (eq? x y)))
-
-(define (py-in x y cache) ;; x in y
-  (error "py-in" "not implemented" #f))
-
-(define (py-notin x y cache) ;; x not in y
-  (error "py-notin" "not implemented" #f))
+(define (py-pos x cache) ;; + x
+  (+ x))
 
 ;;;----------------------------------------------------------------------------
 
@@ -1115,6 +1149,12 @@
 
 (define (type-hclass-of-instance-fast-set! type hclass)
   (PyObject-elements-set! type 3 hclass))
+
+(define (type-name-fast-get type)
+  (PyObject-elements-ref type 4))
+
+(define (type-name-fast-set! type name)
+  (PyObject-hclass-set! type 4 name))
 
 (define (object-scheme-value-fast-get obj)
   (PyObject-elements-ref obj 1))
