@@ -166,6 +166,7 @@
               val)
 
            (final-class PycBool::PycLiteralValue)
+           (final-class PycNone::PycLiteralValue)
            (final-class PycNumber::PycLiteralValue)
            (final-class PycString::PycLiteralValue)
 

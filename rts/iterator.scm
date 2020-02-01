@@ -20,7 +20,7 @@
                      py-object-class
 		     (py-procedure->function
 			(lambda rest (error "__next__" "not implemented" #f))
-			(lambda (self) (py-generator-send self (py-none))))
+			(lambda (self) (py-generator-send self py-None)))
 		     (py-procedure->function
 			(lambda rest (error "send" "not implemented" #f))
 			py-generator-send))

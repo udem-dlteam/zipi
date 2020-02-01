@@ -98,7 +98,7 @@ def cvt_constant(value):
     elif isinstance(value, complex):
         return scm_complex(value)
     elif value is None:
-        return '(py-none)'
+        return 'None'
     elif value is Ellipsis:
         return 'Ellipsis'
     else:

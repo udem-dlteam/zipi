@@ -506,14 +506,11 @@
 
 ;; Binds a recovered attribute by calling attr.__class__.__get__ if it exists
 ;; if the __get__ method does not exist on the attr's class, return the attr
-(define (object-get-bind-descriptor attr instance #!optional (owner (py-none)))
+(define (object-get-bind-descriptor attr instance #!optional (owner py-None))
   (let ((py-attr-get-method (getattribute-from-obj-mro attr (& "__get__"))))
     (if (not (eq? py-attr-get-method py-absent))
       (py-call py-attr-get-method attr instance owner)
-      attr
-    )
-  )
-)
+      attr)))
 
 ;; ================
 ;; GETATTR PROTOCOL
@@ -578,7 +575,7 @@
 (define (type-getattribute obj name)
 (let ((attr (py-own-attr-ref obj name)))
   (if (not (eq? attr py-absent))
-    (object-get-bind-descriptor attr (py-none) obj)
+    (object-get-bind-descriptor attr py-None obj)
     (let-values (((cls-attr owner) (getattribute-from-obj-mro-with-owner obj name)))
       (if (not (eq? cls-attr py-absent))
         (object-get-bind-descriptor cls-attr obj owner)
@@ -662,7 +659,7 @@
   (make-PyFunction (PyFunction-default-hclass) '#() function-call))
 
 (define (function-get self instance owner)
-  (if (eq? instance (py-none))
+  (if (eq? instance py-None)
     self
     (let ((method (py-call py-method-class))
           (procedure (py-own-attr-ref self (& "**procedure**"))))
@@ -1685,6 +1682,8 @@
 ;;  Singletons
 ;; =============================================================================
 
+;; NotImplemented object
+
 (define (NotImplementedType-new cls)
   (if (eq? cls py-NotImplementedType-class)
     py-NotImplemented
@@ -1721,6 +1720,60 @@
 (define py-NotImplemented
   (py-obj-alloc
     py-NotImplementedType-class
+    py-object-hclass-of-instances))
+
+;; None object
+
+(define (NoneType-new cls)
+  (if (eq? cls py-NoneType-class)
+    py-None
+    (py-throw
+      (py-call
+        py-builtin-TypeError
+        ;; TODO: Incorrect error message
+        (py-str-from-scheme "not a subtype of NoneType")))))
+
+(define py-NoneType-new
+  (make-PyFunction (PyFunction-default-hclass) '#() NoneType-new))
+
+(define (NoneType-repr self)
+  (if (eq? self py-None)
+    (py-str-from-scheme "None")
+    (py-throw
+      (py-call
+        py-builtin-TypeError
+        ;; TODO: Incorrect error message
+        (py-str-from-scheme "descriptor '__repr__' requires a 'NoneType' object")))))
+
+(define py-NoneType-repr
+  (make-PyFunction (PyFunction-default-hclass) '#() NoneType-repr))
+
+(define (NoneType-bool self)
+  (if (eq? self py-None)
+    ;; TODO return py-False once boolean class is implemented
+    #f
+    (py-throw
+      (py-call
+        py-builtin-TypeError
+        ;; TODO: Incorrect error message
+        (py-str-from-scheme "descriptor '__repr__' requires a 'NoneType' object")))))
+
+(define py-NoneType-bool
+  (make-PyFunction (PyFunction-default-hclass) '#() NoneType-bool))
+
+(define py-NoneType-class
+  (make-builtin-class
+    (& "NoneType")
+    (& "builtins")
+    (list)
+    py-object-hclass-of-instances
+      (& "__new__") py-NoneType-new
+      (& "__repr__") py-NoneType-repr
+      (& "__bool__") py-NoneType-bool))
+
+(define py-None
+  (py-obj-alloc
+    py-NoneType-class
     py-object-hclass-of-instances))
 
 ;; range

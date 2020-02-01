@@ -15,29 +15,29 @@
 (module __py_object
 
    (option  (define-macro (& name) `',(string->symbol name)))
-   
+
    (include "object.sch" "../stdlib/builtins.scm")
-   
+
    (import __py_hclass)
 
    (use    __py_import)
-   
+
    (export (class PyObject
 	      (hclass (default #f))
 	      (%elements (default (make-vector 4))))
-	   
+
 	   (class PyFunction::PyObject
 	      (procedure read-only))
-	   
+
 	   (macro & name)
 
 	   (py-builtins-mod::PyObject)
 	   (py-time-mod::PyObject)
 	   (py-sys-mod::PyObject)
-	   
+
 	   (global-get ::PyObject ::obj ::obj)
 	   (global-put! global name val cache)
-	   
+
 	   (object-get ::obj ::obj ::obj)
 	   (object-get-no-cache ::PyObject ::obj)
 	   (object-has::bool ::PyObject ::obj)
@@ -46,33 +46,33 @@
 
 	   (py-make-dict ::obj ::obj)
 	   (py-make-set ::obj)
-	   
+
 	   (py-getitem ::PyObject ::obj ::PCache)
 	   (py-setitem ::PyObject ::obj ::obj ::PCache)
 	   (py-contains ::PyObject ::obj ::PCache)
-	   
+
 	   (inline PyObject-elements-ref ::PyObject ::long)
 	   (PyObject-elements-set! ::PyObject ::long ::obj)
-	   
+
 	   (PyObject-find-prop ::PyObject ::obj)
-	   
+
 	   (PyFunction-default-hclass)
-	   
+
 	   (py-procedure->function ::procedure ::procedure)
-	   
+
 	   (py-call0 ::obj)
 	   (py-call1 ::obj ::obj)
 	   (py-call2 ::obj ::obj ::obj)
 	   (py-call3 ::obj ::obj ::obj ::obj)
 	   (py-call4 ::obj ::obj ::obj ::obj ::obj)
-	   
+
 	   (py-make-global)
 	   (py-make-caches ::int)
 
 	   (py-make-class name module bases . atrs)
 
 	   (py-throw ::obj)
-	   
+
 	   (pyis?::bool x y)
 	   (py-add x y cache)
 	   (py-and x y cache)
@@ -99,7 +99,7 @@
 	   (py>::bool x y)
 	   (py>=::bool x y)
 
-	   (inline py-none)
+	   (inline py-None)
 	   (py-uninit)
 
 	   py-builtin-locals
@@ -113,7 +113,7 @@
 	   (py-str-to-scheme::bstring ::PyObject)
 	   (py-string-to-name::symbol ::bstring)
 	   (py-repr-scheme ::obj))
-   
+
    (eval   (export-all)))
 
 ;*---------------------------------------------------------------------*/
@@ -138,12 +138,6 @@
 	 (when (>= offset len)
 	    (set! %elements (copy-vector %elements (*fx 2 (max 1 len)))))
 	 (vector-set! %elements offset val))))
-
-;*---------------------------------------------------------------------*/
-;*    py-none ...                                                      */
-;*---------------------------------------------------------------------*/
-(define-inline (py-none)
-   'None)
 
 ;*---------------------------------------------------------------------*/
 ;*    current-second ...                                               */
