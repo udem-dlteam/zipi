@@ -1,3 +1,3 @@
 x = None
-y = None
+y = type(None)()
 print(x is y)

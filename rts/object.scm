@@ -1958,7 +1958,7 @@
     (if (not (eq? __repr__ py-absent))
       (py-str-to-scheme (py-call __repr__ obj))
       ;; TODO: remove code below, __repr__ should always be implemented
-      ((cond ((eq? obj 'None)
+      (cond ((eq? obj 'None)
              "None")
             (else
              (let ((t (py-type obj)))
@@ -1989,7 +1989,7 @@
     		 ((eq? t 'pyobj)
     		  (format "~s" obj))
                      (else
-                      "<unknown>")))))))))
+                      "<unknown>"))))))))
 
 (define (py-str-repr-scheme str)
   (let* ((quote-style #f)
