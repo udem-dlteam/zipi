@@ -383,7 +383,9 @@
       '(py-uninit)))
 
 (define-walk-method (scheme this::PycBool conf)
-   (PycLiteralValue-val this))
+   (if (PycLiteralValue-val this)
+    `py-True
+    `py-False))
 
 (define-walk-method (scheme this::PycNone conf)
   `py-None)

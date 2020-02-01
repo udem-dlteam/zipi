@@ -281,10 +281,14 @@
   (>= x y))
 
 (define (py-is x y cache) ;; x is y
-  (eq? x y))
+  (if (eq? x y)
+    py-True
+    py-False))
 
 (define (py-isnot x y cache) ;; x is not y
-  (not (eq? x y)))
+  (if (not (eq? x y))
+    py-True
+    py-False))
 
 (define (py-in x y cache) ;; x in y
   (error "py-in" "not implemented" #f))
@@ -348,29 +352,34 @@
 ;; int operations
 ;; =============================================================================
 
+(define (py-throw-required-type method-name required-type given-type)
+  (py-throw
+    (py-call py-builtin-TypeError
+      (py-str-from-scheme
+        ,(string-append
+            "descriptor '"
+            method-name
+            "' requires a '"
+            required-type
+            "' object but received a '"
+            given-type
+            "'")))))
+
 (define-macro (define-int-into-int-binary-operator fun-name method-name scheme-op)
-  (let ((py-throw-required-type
-          `(lambda ()
-            (py-throw
-              (py-call py-builtin-TypeError
-                (py-str-from-scheme
-                  ,(string-append
-                      "descriptor '"
-                      method-name
-                      "' requires a 'int' object"))))))
-        (py-func-name (string->symbol (string-append "int." method-name))))
-  `(begin
-    (define (,fun-name self other)
-      (if (py-isinstance? self py-int-class)
-        (cond
-          ((py-isinstance? other py-int-class)
-            (let ((self-value (object-scheme-value-fast-get self))
-                  (other-value (object-scheme-value-fast-get other)))
-              (py-int-from-scheme (,scheme-op self-value other-value))))
-          (else py-NotImplemented))
-        (,py-throw-required-type)))
-    (define ,py-func-name
-      (make-PyFunction (PyFunction-default-hclass) '#() ,fun-name)))))
+  (let ((py-func-name (string->symbol (string-append "int." method-name))))
+    `(begin
+      (define (,fun-name self other)
+        (if (py-isinstance? self py-int-class)
+          (cond
+            ((py-isinstance? other py-int-class)
+              (let ((self-value (object-scheme-value-fast-get self))
+                    (other-value (object-scheme-value-fast-get other)))
+                (py-int-from-scheme (,scheme-op self-value other-value))))
+            (else py-NotImplemented))
+          (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type self)))))
+            (py-throw-required-type ,method-name "int" given-type))))
+      (define ,py-func-name
+        (make-PyFunction (PyFunction-default-hclass) '#() ,fun-name)))))
 
 (define-int-into-int-binary-operator int-add "__add__" +)
 
@@ -394,6 +403,46 @@
 (define-int-into-int-binary-operator int-pow "__pow__" expt)
 
 (define-int-into-int-binary-operator int-xor "__xor__" bitwise-xor)
+
+
+;; =============================================================================
+;; bool operations
+;; =============================================================================
+
+;; the bool class is a wrapper aroung int 0 and 1 to print them as False and True
+
+(define (bool-new self #!optional (value #f))
+  (if (py-isinstance? self py-bool-class)
+    (if value (py-test value) py-False)
+    ;; TODO: incorrect error message
+    (py-throw
+      (py-call py-builtin-TypeError
+        (py-str-from-scheme "object.__new__(X): X is not a type object")))))
+
+(define bool.__new__
+  (make-PyFunction (PyFunction-default-hclass) '#() bool-new))
+
+(define (bool-str self)
+  (cond
+    ((eq? self py-True) (py-str-from-scheme "True"))
+    ((eq? self py-False) (py-str-from-scheme "False"))
+    (else
+      (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type self)))))
+        (py-throw-required-type "__str__" "bool" given-type)))))
+
+(define bool.__str__
+  (make-PyFunction (PyFunction-default-hclass) '#() bool-str))
+
+(define (bool-repr self)
+  (cond
+    ((eq? self py-True) (py-str-from-scheme "True"))
+    ((eq? self py-False) (py-str-from-scheme "False"))
+    (else
+      (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type self)))))
+        (py-throw-required-type "__repr__" "bool" given-type)))))
+
+(define bool.__repr__
+  (make-PyFunction (PyFunction-default-hclass) '#() bool-repr))
 
 
 ;;;----------------------------------------------------------------------------
@@ -652,15 +701,17 @@
    #t)
 
 ;; The Python object object.__bool__
-(define py-object-bool
+(define object.__bool__
   (make-PyFunction (PyFunction-default-hclass) '#() object-bool))
 
 (define (int-bool self)
-   ;; TODO: remove condition when bool is implemented as subclass of int
-   ;; In Python False is 0 and True is 1
-   (if (boolean? self)
-     self
-     (py-ne self 0 #f)))
+    (if (py-isinstance? self py-int-class)
+      (let ((value (object-scheme-value-fast-get self)))
+        (if (= value 0)
+          py-False
+          py-True))
+      (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type self)))))
+        (py-throw-required-type "__bool__" "int" given-type))))
 
 ;; The Python object int.__bool__
 (define int.__bool__
@@ -673,7 +724,9 @@
 (define (py-test obj)
   (let* ((py-bool (getattribute-from-obj-mro obj (& "__bool__")))
          (test-value (py-call py-bool obj)))
-    test-value))
+    (if (eq? test-value py-True)
+      #t
+      #f)))
 
 ;; =============
 ;; CALL PROTOCOL
@@ -1351,7 +1404,7 @@
     (py-own-attr-set! object-class (& "__new__") py-object-new)
     (py-own-attr-set! object-class (& "__init__") py-object-init)
     (py-own-attr-set! object-class (& "__getattribute__") py-object-getattribute)
-    (py-own-attr-set! object-class (& "__bool__") py-object-bool)
+    (py-own-attr-set! object-class (& "__bool__") object.__bool__)
 
 
     ;; Fill in type class
@@ -1662,8 +1715,11 @@
     (make-builtin-class
       (& "bool")
       (& "builtins")
-      (list)
-      py-bool-hclass-of-instances))
+      (list py-int-class)
+      py-bool-hclass-of-instances
+        (& "__new__") bool.__new__
+        (& "__str__") bool.__str__
+        (& "__repr__") bool.__repr__))
 
   (set! py-complex-class
     (make-builtin-class
@@ -1727,6 +1783,20 @@
 ;; =============================================================================
 ;;  Singletons
 ;; =============================================================================
+
+;; True and False
+
+(define py-True
+  (let ((True
+          (py-obj-alloc py-bool-class py-bool-hclass-of-instances)))
+    (object-scheme-value-fast-set! True 1)
+    True))
+
+(define py-False
+  (let ((False
+          (py-obj-alloc py-bool-class py-bool-hclass-of-instances)))
+    (object-scheme-value-fast-set! False 0)
+    False))
 
 ;; NotImplemented object
 
