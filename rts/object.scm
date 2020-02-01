@@ -199,9 +199,6 @@
 (define py-int-add
   (make-PyFunction (PyFunction-default-hclass) '#() int-add))
 
-;; TODO: make NotImplemented an instance of the class NotImplemented
-(define py-NotImplemented 'NotImplemented)
-
 ;; generic operator protocol
 
 (define-macro (define-binary-operator-protocol fun-name method rmethod operator)
@@ -825,6 +822,7 @@
                (& "__base_zip")
                (& "__base___import__")
                (& "BaseException")
+               (& "NotImplemented")
                (& "__getownattr")
                (& "__absent")
                )
@@ -903,8 +901,9 @@
      (PyObject-elements-set! mod 70 py-builtin-zip)
      (PyObject-elements-set! mod 71 py-builtin-__import__)
      (PyObject-elements-set! mod 72 py-builtin-BaseException)
-     (PyObject-elements-set! mod 73 py-helper-getownattr)
-     (PyObject-elements-set! mod 73 py-absent)
+     (PyObject-elements-set! mod 73 py-NotImplemented)
+     (PyObject-elements-set! mod 74 py-helper-getownattr)
+     (PyObject-elements-set! mod 75 py-absent)
      mod))
 
 ;; This needs to be globally defined an configured instead
@@ -1682,6 +1681,48 @@
 
 ;;;----------------------------------------------------------------------------
 
+;; =============================================================================
+;;  Singletons
+;; =============================================================================
+
+(define (NotImplementedType-new cls)
+  (if (eq? cls py-NotImplementedType-class)
+    py-NotImplemented
+    (py-throw
+      (py-call
+        py-builtin-TypeError
+        ;; TODO: Incorrect error message
+        (py-str-from-scheme "not a subtype of NotImplementedType")))))
+
+(define py-NotImplementedType-new
+  (make-PyFunction (PyFunction-default-hclass) '#() NotImplementedType-new))
+
+(define (NotImplementedType-repr self)
+  (if (eq? self py-NotImplemented)
+    (py-str-from-scheme "NotImplemented")
+    (py-throw
+      (py-call
+        py-builtin-TypeError
+        ;; TODO: Incorrect error message
+        (py-str-from-scheme "descriptor '__repr__' requires a 'NotImplementedType' object")))))
+
+(define py-NotImplementedType-repr
+  (make-PyFunction (PyFunction-default-hclass) '#() NotImplementedType-repr))
+
+(define py-NotImplementedType-class
+  (make-builtin-class
+    (& "NotImplementedType")
+    (& "builtins")
+    (list)
+    py-object-hclass-of-instances
+      (& "__new__") py-NotImplementedType-new
+      (& "__repr__") py-NotImplementedType-repr))
+
+(define py-NotImplemented
+  (py-obj-alloc
+    py-NotImplementedType-class
+    py-object-hclass-of-instances))
+
 ;; range
 
 (define (py-range start stop step)
@@ -1860,46 +1901,42 @@
   (py-str-from-scheme (py-repr-scheme obj)))
 
 (define (py-repr-scheme obj)
-  (cond ((eq? obj 'None)
-         "None")
-        ((and (PyObject? obj)
-              (let ((index (PyObject-find-prop obj (& "__repr__"))))
-                (and (>= index 0)
-                     index)))
-         =>
-         (lambda (index)
-           (let ((__repr__ (PyObject-elements-ref obj index)))
-             (py-str-to-scheme (py-call __repr__ obj)))))
-        (else
-         (let ((t (py-type obj)))
-           (cond ((eq? t py-list-class)
-                  (py-str-scheme obj))
-                 ((eq? t py-tuple-class)
-                  (py-str-scheme obj))
-                 ((eq? t py-dict-class)
-                  (py-str-scheme obj))
-                 ((eq? t py-set-class)
-                  (py-str-scheme obj))
-                 ((eq? t py-type-class)
-                  (py-str-scheme obj))
-                 ((eq? t py-module-class)
-                  (py-str-scheme obj))
-                 ((eq? t py-str-class)
-                  (py-str-repr-scheme (py-str-to-scheme obj)))
-                 ((eq? t py-int-class)
-                  (number->string obj))
-                 ((eq? t py-float-class)
-                  (number->string obj))
-                 ((eq? t py-bool-class)
-                  (if obj "True" "False"))
-		 ((eq? t 'none)
-		  "None")
-		 ((eq? t 'function)
-		  "<function>")
-		 ((eq? t 'pyobj)
-		  (format "~s" obj))
-                 (else
-                  "<unknown>"))))))
+  (let ((__repr__ (getattribute-from-obj-mro obj (& "__repr__"))))
+    (if (not (eq? __repr__ py-absent))
+      (py-str-to-scheme (py-call __repr__ obj))
+      ;; TODO: remove code below, __repr__ should always be implemented
+      ((cond ((eq? obj 'None)
+             "None")
+            (else
+             (let ((t (py-type obj)))
+               (cond ((eq? t py-list-class)
+                      (py-str-scheme obj))
+                     ((eq? t py-tuple-class)
+                      (py-str-scheme obj))
+                     ((eq? t py-dict-class)
+                      (py-str-scheme obj))
+                     ((eq? t py-set-class)
+                      (py-str-scheme obj))
+                     ((eq? t py-type-class)
+                      (py-str-scheme obj))
+                     ((eq? t py-module-class)
+                      (py-str-scheme obj))
+                     ((eq? t py-str-class)
+                      (py-str-repr-scheme (py-str-to-scheme obj)))
+                     ((eq? t py-int-class)
+                      (number->string obj))
+                     ((eq? t py-float-class)
+                      (number->string obj))
+                     ((eq? t py-bool-class)
+                      (if obj "True" "False"))
+    		 ((eq? t 'none)
+    		  "None")
+    		 ((eq? t 'function)
+    		  "<function>")
+    		 ((eq? t 'pyobj)
+    		  (format "~s" obj))
+                     (else
+                      "<unknown>")))))))))
 
 (define (py-str-repr-scheme str)
   (let* ((quote-style #f)

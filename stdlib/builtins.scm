@@ -367,9 +367,14 @@
      (vector-ref %caches 139))
     (global-put!
      %global
-     (& "BaseException")
-     (global-get %global (& "BaseException") (vector-ref %caches 140))
+     (& "NotImplemented")
+     (global-get %global (& "NotImplemented") (vector-ref %caches 140))
      (vector-ref %caches 141))
+    (global-put!
+     %global
+     (& "BaseException")
+     (global-get %global (& "BaseException") (vector-ref %caches 142))
+     (vector-ref %caches 143))
     (global-put!
      %global
      (& "Exception")
@@ -384,9 +389,9 @@
                   (list (global-get
                          %global
                          (& "BaseException")
-                         (vector-ref %caches 142)))))
+                         (vector-ref %caches 144)))))
            $%cls_0)))
-     (vector-ref %caches 143))
+     (vector-ref %caches 145))
     (global-put!
      %global
      (& "GeneratorExit")
@@ -401,9 +406,9 @@
                   (list (global-get
                          %global
                          (& "BaseException")
-                         (vector-ref %caches 144)))))
+                         (vector-ref %caches 146)))))
            $%cls_1)))
-     (vector-ref %caches 145))
+     (vector-ref %caches 147))
     (global-put!
      %global
      (& "KeyboardInterrupt")
@@ -418,9 +423,9 @@
                   (list (global-get
                          %global
                          (& "BaseException")
-                         (vector-ref %caches 146)))))
+                         (vector-ref %caches 148)))))
            $%cls_2)))
-     (vector-ref %caches 147))
+     (vector-ref %caches 149))
     (global-put!
      %global
      (& "SystemExit")
@@ -435,9 +440,9 @@
                   (list (global-get
                          %global
                          (& "BaseException")
-                         (vector-ref %caches 148)))))
+                         (vector-ref %caches 150)))))
            $%cls_3)))
-     (vector-ref %caches 149))
+     (vector-ref %caches 151))
     (global-put!
      %global
      (& "ArithmeticError")
@@ -452,9 +457,9 @@
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 150)))))
+                         (vector-ref %caches 152)))))
            $%cls_4)))
-     (vector-ref %caches 151))
+     (vector-ref %caches 153))
     (global-put!
      %global
      (& "AssertionError")
@@ -469,9 +474,9 @@
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 152)))))
+                         (vector-ref %caches 154)))))
            $%cls_5)))
-     (vector-ref %caches 153))
+     (vector-ref %caches 155))
     (global-put!
      %global
      (& "AttributeError")
@@ -486,9 +491,9 @@
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 154)))))
+                         (vector-ref %caches 156)))))
            $%cls_6)))
-     (vector-ref %caches 155))
+     (vector-ref %caches 157))
     (global-put!
      %global
      (& "BufferError")
@@ -503,9 +508,9 @@
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 156)))))
+                         (vector-ref %caches 158)))))
            $%cls_7)))
-     (vector-ref %caches 157))
+     (vector-ref %caches 159))
     (global-put!
      %global
      (& "EOFError")
@@ -520,9 +525,9 @@
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 158)))))
+                         (vector-ref %caches 160)))))
            $%cls_8)))
-     (vector-ref %caches 159))
+     (vector-ref %caches 161))
     (global-put!
      %global
      (& "ImportError")
@@ -537,9 +542,9 @@
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 160)))))
+                         (vector-ref %caches 162)))))
            $%cls_9)))
-     (vector-ref %caches 161))
+     (vector-ref %caches 163))
     (global-put!
      %global
      (& "LookupError")
@@ -554,9 +559,9 @@
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 162)))))
+                         (vector-ref %caches 164)))))
            $%cls_10)))
-     (vector-ref %caches 163))
+     (vector-ref %caches 165))
     (global-put!
      %global
      (& "MemoryError")
@@ -571,9 +576,9 @@
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 164)))))
+                         (vector-ref %caches 166)))))
            $%cls_11)))
-     (vector-ref %caches 165))
+     (vector-ref %caches 167))
     (global-put!
      %global
      (& "NameError")
@@ -588,9 +593,9 @@
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 166)))))
+                         (vector-ref %caches 168)))))
            $%cls_12)))
-     (vector-ref %caches 167))
+     (vector-ref %caches 169))
     (global-put!
      %global
      (& "EnvironmentError")
@@ -605,9 +610,9 @@
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 168)))))
+                         (vector-ref %caches 170)))))
            $%cls_13)))
-     (vector-ref %caches 169))
+     (vector-ref %caches 171))
     (global-put!
      %global
      (& "IOError")
@@ -622,9 +627,9 @@
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 170)))))
+                         (vector-ref %caches 172)))))
            $%cls_14)))
-     (vector-ref %caches 171))
+     (vector-ref %caches 173))
     (global-put!
      %global
      (& "OSError")
@@ -639,9 +644,9 @@
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 172)))))
+                         (vector-ref %caches 174)))))
            $%cls_15)))
-     (vector-ref %caches 173))
+     (vector-ref %caches 175))
     (global-put!
      %global
      (& "WindowsError")
@@ -656,9 +661,9 @@
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 174)))))
+                         (vector-ref %caches 176)))))
            $%cls_16)))
-     (vector-ref %caches 175))
+     (vector-ref %caches 177))
     (global-put!
      %global
      (& "ReferenceError")
@@ -673,9 +678,9 @@
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 176)))))
+                         (vector-ref %caches 178)))))
            $%cls_17)))
-     (vector-ref %caches 177))
+     (vector-ref %caches 179))
     (global-put!
      %global
      (& "RuntimeError")
@@ -690,9 +695,9 @@
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 178)))))
+                         (vector-ref %caches 180)))))
            $%cls_18)))
-     (vector-ref %caches 179))
+     (vector-ref %caches 181))
     (global-put!
      %global
      (& "StopAsyncIteration")
@@ -707,9 +712,9 @@
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 180)))))
+                         (vector-ref %caches 182)))))
            $%cls_19)))
-     (vector-ref %caches 181))
+     (vector-ref %caches 183))
     (global-put!
      %global
      (& "StopIteration")
@@ -724,9 +729,9 @@
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 182)))))
+                         (vector-ref %caches 184)))))
            $%cls_20)))
-     (vector-ref %caches 183))
+     (vector-ref %caches 185))
     (global-put!
      %global
      (& "SyntaxError")
@@ -741,9 +746,9 @@
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 184)))))
+                         (vector-ref %caches 186)))))
            $%cls_21)))
-     (vector-ref %caches 185))
+     (vector-ref %caches 187))
     (global-put!
      %global
      (& "SystemError")
@@ -758,9 +763,9 @@
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 186)))))
+                         (vector-ref %caches 188)))))
            $%cls_22)))
-     (vector-ref %caches 187))
+     (vector-ref %caches 189))
     (global-put!
      %global
      (& "TypeError")
@@ -775,9 +780,9 @@
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 188)))))
+                         (vector-ref %caches 190)))))
            $%cls_23)))
-     (vector-ref %caches 189))
+     (vector-ref %caches 191))
     (global-put!
      %global
      (& "ValueError")
@@ -792,9 +797,9 @@
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 190)))))
+                         (vector-ref %caches 192)))))
            $%cls_24)))
-     (vector-ref %caches 191))
+     (vector-ref %caches 193))
     (global-put!
      %global
      (& "Warning")
@@ -809,9 +814,9 @@
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 192)))))
+                         (vector-ref %caches 194)))))
            $%cls_25)))
-     (vector-ref %caches 193))
+     (vector-ref %caches 195))
     (global-put!
      %global
      (& "FloatingPointError")
@@ -826,9 +831,9 @@
                   (list (global-get
                          %global
                          (& "ArithmeticError")
-                         (vector-ref %caches 194)))))
+                         (vector-ref %caches 196)))))
            $%cls_26)))
-     (vector-ref %caches 195))
+     (vector-ref %caches 197))
     (global-put!
      %global
      (& "OverflowError")
@@ -843,9 +848,9 @@
                   (list (global-get
                          %global
                          (& "ArithmeticError")
-                         (vector-ref %caches 196)))))
+                         (vector-ref %caches 198)))))
            $%cls_27)))
-     (vector-ref %caches 197))
+     (vector-ref %caches 199))
     (global-put!
      %global
      (& "ZeroDivisionError")
@@ -860,9 +865,9 @@
                   (list (global-get
                          %global
                          (& "ArithmeticError")
-                         (vector-ref %caches 198)))))
+                         (vector-ref %caches 200)))))
            $%cls_28)))
-     (vector-ref %caches 199))
+     (vector-ref %caches 201))
     (global-put!
      %global
      (& "ModuleNotFoundError")
@@ -877,9 +882,9 @@
                   (list (global-get
                          %global
                          (& "ImportError")
-                         (vector-ref %caches 200)))))
+                         (vector-ref %caches 202)))))
            $%cls_29)))
-     (vector-ref %caches 201))
+     (vector-ref %caches 203))
     (global-put!
      %global
      (& "IndexError")
@@ -894,9 +899,9 @@
                   (list (global-get
                          %global
                          (& "LookupError")
-                         (vector-ref %caches 202)))))
+                         (vector-ref %caches 204)))))
            $%cls_30)))
-     (vector-ref %caches 203))
+     (vector-ref %caches 205))
     (global-put!
      %global
      (& "KeyError")
@@ -911,9 +916,9 @@
                   (list (global-get
                          %global
                          (& "LookupError")
-                         (vector-ref %caches 204)))))
+                         (vector-ref %caches 206)))))
            $%cls_31)))
-     (vector-ref %caches 205))
+     (vector-ref %caches 207))
     (global-put!
      %global
      (& "UnboundLocalError")
@@ -928,9 +933,9 @@
                   (list (global-get
                          %global
                          (& "NameError")
-                         (vector-ref %caches 206)))))
+                         (vector-ref %caches 208)))))
            $%cls_32)))
-     (vector-ref %caches 207))
+     (vector-ref %caches 209))
     (global-put!
      %global
      (& "BlockingIOError")
@@ -945,9 +950,9 @@
                   (list (global-get
                          %global
                          (& "OSError")
-                         (vector-ref %caches 208)))))
+                         (vector-ref %caches 210)))))
            $%cls_33)))
-     (vector-ref %caches 209))
+     (vector-ref %caches 211))
     (global-put!
      %global
      (& "ChildProcessError")
@@ -962,9 +967,9 @@
                   (list (global-get
                          %global
                          (& "OSError")
-                         (vector-ref %caches 210)))))
+                         (vector-ref %caches 212)))))
            $%cls_34)))
-     (vector-ref %caches 211))
+     (vector-ref %caches 213))
     (global-put!
      %global
      (& "ConnectionError")
@@ -979,9 +984,9 @@
                   (list (global-get
                          %global
                          (& "OSError")
-                         (vector-ref %caches 212)))))
+                         (vector-ref %caches 214)))))
            $%cls_35)))
-     (vector-ref %caches 213))
+     (vector-ref %caches 215))
     (global-put!
      %global
      (& "FileExistsError")
@@ -996,9 +1001,9 @@
                   (list (global-get
                          %global
                          (& "OSError")
-                         (vector-ref %caches 214)))))
+                         (vector-ref %caches 216)))))
            $%cls_36)))
-     (vector-ref %caches 215))
+     (vector-ref %caches 217))
     (global-put!
      %global
      (& "FileNotFoundError")
@@ -1013,9 +1018,9 @@
                   (list (global-get
                          %global
                          (& "OSError")
-                         (vector-ref %caches 216)))))
+                         (vector-ref %caches 218)))))
            $%cls_37)))
-     (vector-ref %caches 217))
+     (vector-ref %caches 219))
     (global-put!
      %global
      (& "InterruptedError")
@@ -1030,9 +1035,9 @@
                   (list (global-get
                          %global
                          (& "OSError")
-                         (vector-ref %caches 218)))))
+                         (vector-ref %caches 220)))))
            $%cls_38)))
-     (vector-ref %caches 219))
+     (vector-ref %caches 221))
     (global-put!
      %global
      (& "IsADirectoryError")
@@ -1047,9 +1052,9 @@
                   (list (global-get
                          %global
                          (& "OSError")
-                         (vector-ref %caches 220)))))
+                         (vector-ref %caches 222)))))
            $%cls_39)))
-     (vector-ref %caches 221))
+     (vector-ref %caches 223))
     (global-put!
      %global
      (& "NotADirectoryError")
@@ -1064,9 +1069,9 @@
                   (list (global-get
                          %global
                          (& "OSError")
-                         (vector-ref %caches 222)))))
+                         (vector-ref %caches 224)))))
            $%cls_40)))
-     (vector-ref %caches 223))
+     (vector-ref %caches 225))
     (global-put!
      %global
      (& "PermissionError")
@@ -1081,9 +1086,9 @@
                   (list (global-get
                          %global
                          (& "OSError")
-                         (vector-ref %caches 224)))))
+                         (vector-ref %caches 226)))))
            $%cls_41)))
-     (vector-ref %caches 225))
+     (vector-ref %caches 227))
     (global-put!
      %global
      (& "ProcessLookupError")
@@ -1098,9 +1103,9 @@
                   (list (global-get
                          %global
                          (& "OSError")
-                         (vector-ref %caches 226)))))
+                         (vector-ref %caches 228)))))
            $%cls_42)))
-     (vector-ref %caches 227))
+     (vector-ref %caches 229))
     (global-put!
      %global
      (& "TimeoutError")
@@ -1115,9 +1120,9 @@
                   (list (global-get
                          %global
                          (& "OSError")
-                         (vector-ref %caches 228)))))
+                         (vector-ref %caches 230)))))
            $%cls_43)))
-     (vector-ref %caches 229))
+     (vector-ref %caches 231))
     (global-put!
      %global
      (& "NotImplementedError")
@@ -1132,9 +1137,9 @@
                   (list (global-get
                          %global
                          (& "RuntimeError")
-                         (vector-ref %caches 230)))))
+                         (vector-ref %caches 232)))))
            $%cls_44)))
-     (vector-ref %caches 231))
+     (vector-ref %caches 233))
     (global-put!
      %global
      (& "RecursionError")
@@ -1149,9 +1154,9 @@
                   (list (global-get
                          %global
                          (& "RuntimeError")
-                         (vector-ref %caches 232)))))
+                         (vector-ref %caches 234)))))
            $%cls_45)))
-     (vector-ref %caches 233))
+     (vector-ref %caches 235))
     (global-put!
      %global
      (& "IndentationError")
@@ -1166,9 +1171,9 @@
                   (list (global-get
                          %global
                          (& "SyntaxError")
-                         (vector-ref %caches 234)))))
+                         (vector-ref %caches 236)))))
            $%cls_46)))
-     (vector-ref %caches 235))
+     (vector-ref %caches 237))
     (global-put!
      %global
      (& "UnicodeError")
@@ -1183,9 +1188,9 @@
                   (list (global-get
                          %global
                          (& "ValueError")
-                         (vector-ref %caches 236)))))
+                         (vector-ref %caches 238)))))
            $%cls_47)))
-     (vector-ref %caches 237))
+     (vector-ref %caches 239))
     (global-put!
      %global
      (& "BytesWarning")
@@ -1200,9 +1205,9 @@
                   (list (global-get
                          %global
                          (& "Warning")
-                         (vector-ref %caches 238)))))
+                         (vector-ref %caches 240)))))
            $%cls_48)))
-     (vector-ref %caches 239))
+     (vector-ref %caches 241))
     (global-put!
      %global
      (& "DeprecationWarning")
@@ -1217,9 +1222,9 @@
                   (list (global-get
                          %global
                          (& "Warning")
-                         (vector-ref %caches 240)))))
+                         (vector-ref %caches 242)))))
            $%cls_49)))
-     (vector-ref %caches 241))
+     (vector-ref %caches 243))
     (global-put!
      %global
      (& "FutureWarning")
@@ -1234,9 +1239,9 @@
                   (list (global-get
                          %global
                          (& "Warning")
-                         (vector-ref %caches 242)))))
+                         (vector-ref %caches 244)))))
            $%cls_50)))
-     (vector-ref %caches 243))
+     (vector-ref %caches 245))
     (global-put!
      %global
      (& "ImportWarning")
@@ -1251,9 +1256,9 @@
                   (list (global-get
                          %global
                          (& "Warning")
-                         (vector-ref %caches 244)))))
+                         (vector-ref %caches 246)))))
            $%cls_51)))
-     (vector-ref %caches 245))
+     (vector-ref %caches 247))
     (global-put!
      %global
      (& "PendingDeprecationWarning")
@@ -1268,9 +1273,9 @@
                   (list (global-get
                          %global
                          (& "Warning")
-                         (vector-ref %caches 246)))))
+                         (vector-ref %caches 248)))))
            $%cls_52)))
-     (vector-ref %caches 247))
+     (vector-ref %caches 249))
     (global-put!
      %global
      (& "ResourceWarning")
@@ -1285,9 +1290,9 @@
                   (list (global-get
                          %global
                          (& "Warning")
-                         (vector-ref %caches 248)))))
+                         (vector-ref %caches 250)))))
            $%cls_53)))
-     (vector-ref %caches 249))
+     (vector-ref %caches 251))
     (global-put!
      %global
      (& "RuntimeWarning")
@@ -1302,9 +1307,9 @@
                   (list (global-get
                          %global
                          (& "Warning")
-                         (vector-ref %caches 250)))))
+                         (vector-ref %caches 252)))))
            $%cls_54)))
-     (vector-ref %caches 251))
+     (vector-ref %caches 253))
     (global-put!
      %global
      (& "SyntaxWarning")
@@ -1319,9 +1324,9 @@
                   (list (global-get
                          %global
                          (& "Warning")
-                         (vector-ref %caches 252)))))
+                         (vector-ref %caches 254)))))
            $%cls_55)))
-     (vector-ref %caches 253))
+     (vector-ref %caches 255))
     (global-put!
      %global
      (& "UnicodeWarning")
@@ -1336,9 +1341,9 @@
                   (list (global-get
                          %global
                          (& "Warning")
-                         (vector-ref %caches 254)))))
+                         (vector-ref %caches 256)))))
            $%cls_56)))
-     (vector-ref %caches 255))
+     (vector-ref %caches 257))
     (global-put!
      %global
      (& "UserWarning")
@@ -1353,9 +1358,9 @@
                   (list (global-get
                          %global
                          (& "Warning")
-                         (vector-ref %caches 256)))))
+                         (vector-ref %caches 258)))))
            $%cls_57)))
-     (vector-ref %caches 257))
+     (vector-ref %caches 259))
     (global-put!
      %global
      (& "BrokenPipeError")
@@ -1370,9 +1375,9 @@
                   (list (global-get
                          %global
                          (& "ConnectionError")
-                         (vector-ref %caches 258)))))
+                         (vector-ref %caches 260)))))
            $%cls_58)))
-     (vector-ref %caches 259))
+     (vector-ref %caches 261))
     (global-put!
      %global
      (& "ConnectionAbortedError")
@@ -1387,9 +1392,9 @@
                   (list (global-get
                          %global
                          (& "ConnectionError")
-                         (vector-ref %caches 260)))))
+                         (vector-ref %caches 262)))))
            $%cls_59)))
-     (vector-ref %caches 261))
+     (vector-ref %caches 263))
     (global-put!
      %global
      (& "ConnectionRefusedError")
@@ -1404,9 +1409,9 @@
                   (list (global-get
                          %global
                          (& "ConnectionError")
-                         (vector-ref %caches 262)))))
+                         (vector-ref %caches 264)))))
            $%cls_60)))
-     (vector-ref %caches 263))
+     (vector-ref %caches 265))
     (global-put!
      %global
      (& "ConnectionResetError")
@@ -1421,9 +1426,9 @@
                   (list (global-get
                          %global
                          (& "ConnectionError")
-                         (vector-ref %caches 264)))))
+                         (vector-ref %caches 266)))))
            $%cls_61)))
-     (vector-ref %caches 265))
+     (vector-ref %caches 267))
     (global-put!
      %global
      (& "TabError")
@@ -1438,9 +1443,9 @@
                   (list (global-get
                          %global
                          (& "IndentationError")
-                         (vector-ref %caches 266)))))
+                         (vector-ref %caches 268)))))
            $%cls_62)))
-     (vector-ref %caches 267))
+     (vector-ref %caches 269))
     (global-put!
      %global
      (& "UnicodeDecodeError")
@@ -1455,9 +1460,9 @@
                   (list (global-get
                          %global
                          (& "UnicodeError")
-                         (vector-ref %caches 268)))))
+                         (vector-ref %caches 270)))))
            $%cls_63)))
-     (vector-ref %caches 269))
+     (vector-ref %caches 271))
     (global-put!
      %global
      (& "UnicodeEncodeError")
@@ -1472,9 +1477,9 @@
                   (list (global-get
                          %global
                          (& "UnicodeError")
-                         (vector-ref %caches 270)))))
+                         (vector-ref %caches 272)))))
            $%cls_64)))
-     (vector-ref %caches 271))
+     (vector-ref %caches 273))
     (global-put!
      %global
      (& "UnicodeTranslateError")
@@ -1489,10 +1494,10 @@
                   (list (global-get
                          %global
                          (& "UnicodeError")
-                         (vector-ref %caches 272)))))
+                         (vector-ref %caches 274)))))
            $%cls_65)))
-     (vector-ref %caches 273))))
+     (vector-ref %caches 275))))
 (lambda ()
-  (let ((global (py-make-base-global)) (caches (py-make-caches 274)))
+  (let ((global (py-make-base-global)) (caches (py-make-caches 276)))
     (py-module global caches)
     global))
