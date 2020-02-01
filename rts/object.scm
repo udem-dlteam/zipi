@@ -1,3 +1,8 @@
+;; TODO: change the naming convention:
+;;  py-[class]-[method] to [class].[method]
+;;  This was already done with int, example:
+;; the object int.__add__ has name 'int.__add__' in the source
+
 ;; debug function that prints the backtrace
 ;; at the point in the code where called
 (define (why-am-i-here?)
@@ -178,27 +183,6 @@
 ;;  OPERATORS PROTOCOLS
 ;; =============================================================================
 
-;; add
-
-;; TODO: this should go somewhere else
-(define (int-add self other)
-  (if (py-isinstance? self py-int-class)
-    (cond
-      ((py-isinstance? other py-int-class)
-        (let ((self-value (object-scheme-value-fast-get self))
-              (other-value (object-scheme-value-fast-get other))
-              (new-int (py-obj-alloc py-int-class py-int-hclass-of-instances)))
-          (object-scheme-value-fast-set! new-int (+ self-value other-value))
-          new-int))
-      (else py-NotImplemented))
-    (py-throw
-      (py-call py-builtin-TypeError
-               (py-str-from-scheme "descriptor '__add__' requires a 'int' object")))))
-
-
-(define py-int-add
-  (make-PyFunction (PyFunction-default-hclass) '#() int-add))
-
 ;; generic operator protocol
 
 (define-macro (define-binary-operator-protocol fun-name method rmethod operator)
@@ -359,6 +343,58 @@
 
 (define (py-pos x cache) ;; + x
   (+ x))
+
+;; =============================================================================
+;; int operations
+;; =============================================================================
+
+(define-macro (define-int-into-int-binary-operator fun-name method-name scheme-op)
+  (let ((py-throw-required-type
+          `(lambda ()
+            (py-throw
+              (py-call py-builtin-TypeError
+                (py-str-from-scheme
+                  ,(string-append
+                      "descriptor '"
+                      method-name
+                      "' requires a 'int' object"))))))
+        (py-func-name (string->symbol (string-append "int." method-name))))
+  `(begin
+    (define (,fun-name self other)
+      (if (py-isinstance? self py-int-class)
+        (cond
+          ((py-isinstance? other py-int-class)
+            (let ((self-value (object-scheme-value-fast-get self))
+                  (other-value (object-scheme-value-fast-get other)))
+              (py-int-from-scheme (,scheme-op self-value other-value))))
+          (else py-NotImplemented))
+        (,py-throw-required-type)))
+    (define ,py-func-name
+      (make-PyFunction (PyFunction-default-hclass) '#() ,fun-name)))))
+
+(define-int-into-int-binary-operator int-add "__add__" +)
+
+(define-int-into-int-binary-operator int-sub "__sub__" -)
+
+(define-int-into-int-binary-operator int-mul "__mul__" *)
+
+(define-int-into-int-binary-operator int-floordiv "__floordiv__" floor-quotient)
+
+(define-int-into-int-binary-operator int-and "__and__" bitwise-and)
+
+(define-int-into-int-binary-operator int-lshift "__lshift__" arithmetic-shift)
+
+(define-int-into-int-binary-operator int-rshift "__rshift__"
+  (lambda (x y) (arithmetic-shift x (- y))))
+
+(define-int-into-int-binary-operator int-mod "__mod__" modulo)
+
+(define-int-into-int-binary-operator int-or "__or__" bitwise-ior)
+
+(define-int-into-int-binary-operator int-pow "__pow__" expt)
+
+(define-int-into-int-binary-operator int-xor "__xor__" bitwise-xor)
+
 
 ;;;----------------------------------------------------------------------------
 
@@ -627,7 +663,7 @@
      (py-ne self 0 #f)))
 
 ;; The Python object int.__bool__
-(define py-int-bool
+(define int.__bool__
   (make-PyFunction (PyFunction-default-hclass) '#() int-bool))
 
 
@@ -1602,8 +1638,18 @@
       (& "builtins")
       (list)
       py-int-hclass-of-instances
-        (& "__bool__") py-int-bool
-        (& "__add__") py-int-add))
+        (& "__bool__") int.__bool__
+        (& "__add__") int.__add__
+        (& "__sub__") int.__sub__
+        (& "__mul__") int.__mul__
+        (& "__floordiv__") int.__floordiv__
+        (& "__and__") int.__and__
+        (& "__lshift__") int.__lshift__
+        (& "__rshift__") int.__rshift__
+        (& "__mod__") int.__mod__
+        (& "__or__") int.__or__
+        (& "__pow__") int.__pow__
+        (& "__xor__") int.__xor__))
 
   (set! py-float-class
     (make-builtin-class
@@ -4068,7 +4114,7 @@
 (define (BaseException-init self . args)
   (py-attr-set! self (& "args") (py-tuple-from-scheme (list->vector args))))
 
-(define py-BaseException-init
+(define BaseException.__init__
   (make-PyFunction (PyFunction-default-hclass) '#() BaseException-init))
 
 (define (BaseException-str self)
@@ -4083,7 +4129,7 @@
         (py-str-from-scheme (py-str-scheme args))))))
 
 
-(define py-BaseException-str
+(define BaseException.__str__
   (make-PyFunction (PyFunction-default-hclass) '#() BaseException-str))
 
 
@@ -4092,8 +4138,8 @@
     (& "BaseException")
     (& "builtins")
     (list)
-      (& "__init__") py-BaseException-init
-      (& "__str__") py-BaseException-str))
+      (& "__init__") BaseException.__init__
+      (& "__str__") BaseException.__str__))
 
 (define py-builtin-ValueError #f)
 
