@@ -160,6 +160,12 @@
   (let ((mro (py-obj-mro obj)))
     (py-is-in-mro? cls mro)))
 
+(define (py-issubclass? cls parent)
+  (if (py-isinstance? cls py-type-class)
+    (let ((mro (py-cls-mro cls)))
+      (py-is-in-mro? parent mro))
+    #f))
+
 (define (py-throw exc)
   (cond ((not (PyObject? exc))
          (raise (py-call py-builtin-TypeError)))
@@ -352,11 +358,29 @@
 ;; int operations
 ;; =============================================================================
 
+(define (int-new cls #!optional (value #f))
+  (if (py-issubclass? cls py-int-class)
+    (cond
+      ((not value)
+        (let ((new-int (py-obj-alloc cls py-int-hclass-of-instances)))
+          (object-scheme-value-fast-set! new-int 0)
+          new-int))
+      ((py-isinstance? value py-int-class)
+        (let ((new-int (py-obj-alloc cls py-int-hclass-of-instances))
+              (value (object-scheme-value-fast-get value)))
+          (object-scheme-value-fast-set! new-int value)
+          new-int))
+      (else (error "int.__new__ only supports subtypes of int")))
+    (py-throw py-builtin-TypeError)))
+
+(define int.__new__
+  (make-PyFunction (PyFunction-default-hclass) '#() int-new))
+
 (define (py-throw-required-type method-name required-type given-type)
   (py-throw
     (py-call py-builtin-TypeError
       (py-str-from-scheme
-        ,(string-append
+        (string-append
             "descriptor '"
             method-name
             "' requires a '"
@@ -411,9 +435,9 @@
 
 ;; the bool class is a wrapper aroung int 0 and 1 to print them as False and True
 
-(define (bool-new self #!optional (value #f))
-  (if (py-isinstance? self py-bool-class)
-    (if value (py-test value) py-False)
+(define (bool-new cls #!optional (value #f))
+  (if (py-issubclass? cls py-bool-class)
+    (if (and value (py-test value)) py-True py-False)
     ;; TODO: incorrect error message
     (py-throw
       (py-call py-builtin-TypeError
@@ -668,7 +692,7 @@
       )))))
 
 ;; The Python object type.__getattribute__
-(define py-type-getattribute
+(define type.__getattribute__
   (make-PyFunction (PyFunction-default-hclass) '#() type-getattribute))
 
 ;; getattr protocole
@@ -698,7 +722,7 @@
 ;; ================
 
 (define (object-bool self)
-   #t)
+   py-True)
 
 ;; The Python object object.__bool__
 (define object.__bool__
@@ -776,7 +800,7 @@
             instance)
         instance))))
 
-(define py-type-call
+(define type.__call__
   (make-PyFunction (PyFunction-default-hclass) '#() type-call))
 
 (define (type-new metacls cls . args)
@@ -791,7 +815,7 @@
           py-builtin-TypeError
           (py-str-from-scheme "type() takes 1 or 3 arguments")))))))
 
-(define py-type-new
+(define type.__new__
   (make-PyFunction (PyFunction-default-hclass) '#() type-new))
 
 ;; TODO: raise TypeError on unsafe call, ex: object.__new__(int)
@@ -803,7 +827,7 @@
       (py-call py-builtin-TypeError
         (py-str-from-scheme "object.__new__(X): X is not a type object")))))
 
-(define py-object-new
+(define object.__new__
   (make-PyFunction (PyFunction-default-hclass) '#() object-new))
 
 (define (object-init self . args)
@@ -811,7 +835,7 @@
   ;; its purpose is that super().__init__ does not raise and AttributeError
   #f)
 
-(define py-object-init
+(define object.__init__
   (make-PyFunction (PyFunction-default-hclass) '#() object-init))
 
 ;;;----------------------------------------------------------------------------
@@ -1401,8 +1425,8 @@
     (type-hclass-of-instance-fast-set! object-class py-object-hclass-of-instances)
     (py-own-attr-set! object-class (& "__name__") (py-str-from-scheme "object"))
     (py-own-attr-set! object-class (& "__module__") (py-str-from-scheme "builtins"))
-    (py-own-attr-set! object-class (& "__new__") py-object-new)
-    (py-own-attr-set! object-class (& "__init__") py-object-init)
+    (py-own-attr-set! object-class (& "__new__") object.__new__)
+    (py-own-attr-set! object-class (& "__init__") object.__init__)
     (py-own-attr-set! object-class (& "__getattribute__") py-object-getattribute)
     (py-own-attr-set! object-class (& "__bool__") object.__bool__)
 
@@ -1416,9 +1440,9 @@
     (type-hclass-of-instance-fast-set! type-class py-type-hclass-of-instances)
     (py-own-attr-set! type-class (& "__name__") (py-str-from-scheme "type"))
     (py-own-attr-set! type-class (& "__module__") (py-str-from-scheme "builtins"))
-    (py-own-attr-set! type-class (& "__new__") py-type-new)
-    (py-own-attr-set! type-class (& "__call__") py-type-call)
-    (py-own-attr-set! type-class (& "__getattribute__") py-type-getattribute)
+    (py-own-attr-set! type-class (& "__new__") type.__new__)
+    (py-own-attr-set! type-class (& "__call__") type.__call__)
+    (py-own-attr-set! type-class (& "__getattribute__") type.__getattribute__)
 
     ;; Fill in tuple class
     (object-class-fast-set! tuple-class type-class)
@@ -1691,6 +1715,7 @@
       (& "builtins")
       (list)
       py-int-hclass-of-instances
+        (& "__new__") int.__new__
         (& "__bool__") int.__bool__
         (& "__add__") int.__add__
         (& "__sub__") int.__sub__
@@ -1809,7 +1834,7 @@
         ;; TODO: Incorrect error message
         (py-str-from-scheme "not a subtype of NotImplementedType")))))
 
-(define py-NotImplementedType-new
+(define NotImplementedType.__new__
   (make-PyFunction (PyFunction-default-hclass) '#() NotImplementedType-new))
 
 (define (NotImplementedType-repr self)
@@ -1821,7 +1846,7 @@
         ;; TODO: Incorrect error message
         (py-str-from-scheme "descriptor '__repr__' requires a 'NotImplementedType' object")))))
 
-(define py-NotImplementedType-repr
+(define NotImplementedType.__repr__
   (make-PyFunction (PyFunction-default-hclass) '#() NotImplementedType-repr))
 
 (define py-NotImplementedType-class
@@ -1830,8 +1855,8 @@
     (& "builtins")
     (list)
     py-object-hclass-of-instances
-      (& "__new__") py-NotImplementedType-new
-      (& "__repr__") py-NotImplementedType-repr))
+      (& "__new__") NotImplementedType.__new__
+      (& "__repr__") NotImplementedType.__repr__))
 
 (define py-NotImplemented
   (py-obj-alloc
@@ -1849,7 +1874,7 @@
         ;; TODO: Incorrect error message
         (py-str-from-scheme "not a subtype of NoneType")))))
 
-(define py-NoneType-new
+(define NoneType.__new__
   (make-PyFunction (PyFunction-default-hclass) '#() NoneType-new))
 
 (define (NoneType-repr self)
@@ -1861,20 +1886,19 @@
         ;; TODO: Incorrect error message
         (py-str-from-scheme "descriptor '__repr__' requires a 'NoneType' object")))))
 
-(define py-NoneType-repr
+(define NoneType.__repr__
   (make-PyFunction (PyFunction-default-hclass) '#() NoneType-repr))
 
 (define (NoneType-bool self)
   (if (eq? self py-None)
-    ;; TODO return py-False once boolean class is implemented
-    #f
+    py-False
     (py-throw
       (py-call
         py-builtin-TypeError
         ;; TODO: Incorrect error message
         (py-str-from-scheme "descriptor '__repr__' requires a 'NoneType' object")))))
 
-(define py-NoneType-bool
+(define NoneType.__bool__
   (make-PyFunction (PyFunction-default-hclass) '#() NoneType-bool))
 
 (define py-NoneType-class
@@ -1883,9 +1907,9 @@
     (& "builtins")
     (list)
     py-object-hclass-of-instances
-      (& "__new__") py-NoneType-new
-      (& "__repr__") py-NoneType-repr
-      (& "__bool__") py-NoneType-bool))
+      (& "__new__") NoneType.__new__
+      (& "__repr__") NoneType.__repr__
+      (& "__bool__") NoneType.__bool__))
 
 (define py-None
   (py-obj-alloc
