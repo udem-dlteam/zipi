@@ -1,0 +1,2 @@
+print(NotImplemented)
+repr(NotImplemented)

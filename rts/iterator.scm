@@ -20,7 +20,7 @@
                      py-object-class
 		     (py-procedure->function
 			(lambda rest (error "__next__" "not implemented" #f))
-			(lambda (self) (py-generator-send self (py-none))))
+			(lambda (self) (py-generator-send self py-None)))
 		     (py-procedure->function
 			(lambda rest (error "send" "not implemented" #f))
 			py-generator-send))
@@ -32,11 +32,12 @@
       (if (eq? r 'StopIteration)
 	  (py-throw 'StopIteration)
 	  r)))
-      
-(define (py-for-next iterator next)
-   (with-handler
-      (lambda (e)
-	 (if (eq? e 'StopIteration)
-	     e
-	     (py-throw e)))
-      (py-call1 next iterator)))
+
+(define (py-for-next iterator)
+  (let ((next (getattribute-from-obj-mro iterator (& "__next__"))))
+     (with-handler
+        (lambda (e)
+          (if (and (PyObject? e) (py-isinstance? e py-builtin-StopIteration))
+  	         #f
+  	         (raise e)))
+        (py-call next iterator))))

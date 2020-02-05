@@ -46,5 +46,3 @@
            (vector-set! $elements-new $offset $val)
            (PyObject-elements-set! $obj $elements-new))
          (vector-set! $elements $offset $val))))
-
-(define (py-none) 'none)
