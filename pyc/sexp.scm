@@ -386,9 +386,9 @@
 (define (compare-operator op)
   (case op
     ((Lt)    'lt)
-    ((Le)    'le)
+    ((LtE)    'le)
     ((Gt)    'gt)
-    ((Ge)    'ge)
+    ((GtE)    'ge)
     ((Eq)    'eq)
     ((NotEq) 'ne)
     ((Is)    'is)

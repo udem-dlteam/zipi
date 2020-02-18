@@ -174,7 +174,6 @@
         ((py-is-in-mro? py-builtin-BaseException (py-cls-mro exc))
          (raise (py-call exc)))
         (else
-
          (raise (py-call py-builtin-TypeError)))))
 
 
@@ -189,25 +188,25 @@
 ;;  OPERATORS PROTOCOLS
 ;; =============================================================================
 
+(define (throw-unsupported-operand x y operator)
+  (let ((x-type-name (type-name-fast-get (py-type x)))
+        (y-type-name (type-name-fast-get (py-type y))))
+    (py-throw
+      (py-call
+        py-builtin-TypeError
+        (py-str-from-scheme
+          (string-append
+            "unsupported operand type(s) for "
+            operator
+            ": '"
+            (py-str-to-scheme x-type-name)
+            "' and '"
+            (py-str-to-scheme y-type-name)
+            "'"))))))
+
 ;; generic operator protocol
 
 (define-macro (define-binary-operator-protocol fun-name method rmethod operator)
-  (let ((throw-unsupported-operand
-          `(lambda (x y)
-            (let ((x-type-name (type-name-fast-get (py-type x)))
-                  (y-type-name (type-name-fast-get (py-type y))))
-              (py-throw
-                (py-call
-                  py-builtin-TypeError
-                  (py-str-from-scheme
-                    (string-append
-                      "unsupported operand type(s) for "
-                      ,operator
-                      ": '"
-                      (py-str-to-scheme x-type-name)
-                      "' and '"
-                      (py-str-to-scheme y-type-name)
-                      "'"))))))))
   `(define (,fun-name x y cache)
     (let ((__op__ (getattribute-from-obj-mro x (& ,method))))
       (let ((left-op-result
@@ -221,11 +220,9 @@
                       py-NotImplemented
                       (py-call __rop__ y x))))
               (if (eq? right-op-result py-NotImplemented)
-                (,throw-unsupported-operand x y)
+                (throw-unsupported-operand x y ,operator)
                 right-op-result)))
-          left-op-result))))))
-
-
+          left-op-result)))))
 
 ;; add
 (define-binary-operator-protocol py-add "__add__" "__radd__" "+")
@@ -266,25 +263,54 @@
 ;; xor
 (define-binary-operator-protocol py-xor "__xor__" "__rxor__" "^")
 
-;; TODO: comparison operator protocols
+;; ==
+(define (py-eq x y cache)
+  (let* ((__eq__ (getattribute-from-obj-mro x (& "__eq__")))
+         (left-op-result
+            (if (eq? __eq__ py-absent)
+              py-NotImplemented
+              (py-call __eq__ x y))))
+      (if (eq? left-op-result py-NotImplemented)
+        (let ((right-__eq__ (getattribute-from-obj-mro y (& "__eq__"))))
+          (let ((right-op-result
+                  (if (eq? right-__eq__ py-absent)
+                    py-NotImplemented
+                    (py-call right-__eq__ y x))))
+            (if (eq? right-op-result py-NotImplemented)
+              ;; fall back on 'is'
+              (py-is x y #f)
+              right-op-result)))
+        left-op-result)))
 
-(define (py-eq x y cache) ;; x == y
-  (= x y))
-
+;; !=
 (define (py-ne x y cache) ;; x != y
-  (not (= x y)))
+  (let ((__ne__ (getattribute-from-obj-mro x (& "__ne__"))))
+    (let ((left-op-result
+            (if (eq? __ne__ py-absent)
+              py-NotImplemented
+              (py-call __ne__ x y))))
+      (if (eq? left-op-result py-NotImplemented)
+        (let* ((right-__ne__ (getattribute-from-obj-mro y (& "__ne__")))
+               (right-op-result
+                  (if (eq? right-__ne__ py-absent)
+                    py-NotImplemented
+                    (py-call right-__ne__ y x))))
+            (if (eq? right-op-result py-NotImplemented)
+              ;; fall back on 'not x == y'
+              (let ((eq-result (py-eq x y cache)))
+                (if (py-test eq-result)
+                  py-False
+                  py-True))
+              right-op-result)))
+        left-op-result)))
 
-(define (py-lt x y cache) ;; x < y
-  (< x y))
+(define-binary-operator-protocol py-lt "__lt__" "__gt__" "<")
 
-(define (py-le x y cache) ;; x <= y
-  (<= x y))
+(define-binary-operator-protocol py-le "__le__" "__ge__" "<=")
 
-(define (py-gt x y cache) ;; x > y
-  (> x y))
+(define-binary-operator-protocol py-gt "__gt__" "__lt__" ">")
 
-(define (py-ge x y cache) ;; x >= y
-  (>= x y))
+(define-binary-operator-protocol py-ge "__ge__" "__le__" ">=")
 
 (define (py-is x y cache) ;; x is y
   (if (eq? x y)
@@ -296,11 +322,27 @@
     py-True
     py-False))
 
-(define (py-in x y cache) ;; x in y
-  (error "py-in" "not implemented" #f))
+;; special case of x in y when y is an iterator
+(define (py-in-iterator item iterator)
+  (let ((next-item (py-for-next iterator)))
+    (cond
+      ((not next-item) py-False)
+      ((py-eq item next-item) py-True)
+      (else (py-in-iterator item iterator)))))
 
-(define (py-notin x y cache) ;; x not in y
-  (error "py-notin" "not implemented" #f))
+(define (py-in item container cache) ;; x in y
+  (let ((__contains__ (getattribute-from-obj-mro container (& "__contains__"))))
+    (if (eq? __contains__ py-absent)
+      (let ((iterator (py-obj->iterator container)))
+        (if iterator
+          (py-in-iterator item iterator)
+          (throw-not-iteralble container))
+      (py-test (py-call __contains__ container item) py-True py-False)))))
+
+(define (py-notin item container cache) ;; x not in y
+  (if (py-test (py-in item container cache))
+    py-False
+    py-True))
 
 (define (py-iadd x y cache) ;; x += y
   (+ x y))
@@ -428,6 +470,35 @@
 
 (define-int-into-int-binary-operator int-xor "__xor__" bitwise-xor)
 
+(define-macro (define-int-comparison-operator fun-name method-name scheme-op)
+  (let ((py-func-name (string->symbol (string-append "int." method-name))))
+    `(begin
+      (define (,fun-name self other)
+        (if (py-isinstance? self py-int-class)
+          (cond
+            ((py-isinstance? other py-int-class)
+              (let ((self-value (object-scheme-value-fast-get self))
+                    (other-value (object-scheme-value-fast-get other)))
+                (if (,scheme-op self-value other-value) py-True py-False)))
+            (else py-NotImplemented))
+          (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type self)))))
+            (py-throw-required-type ,method-name "int" given-type))))
+      (define ,py-func-name
+        (make-PyFunction (PyFunction-default-hclass) '#() ,fun-name)))))
+
+(define (!= x y) (not (= x y)))
+
+(define-int-comparison-operator int-eq "__eq__" =)
+
+(define-int-comparison-operator int-ne "__ne__" !=)
+
+(define-int-comparison-operator int-lt "__lt__" <)
+
+(define-int-comparison-operator int-lte "__le__" <=)
+
+(define-int-comparison-operator int-gt "__gt__" >)
+
+(define-int-comparison-operator int-gte "__ge__" >=)
 
 ;; =============================================================================
 ;; bool operations
@@ -471,6 +542,9 @@
 
 ;;;----------------------------------------------------------------------------
 
+;; WARNING: sometimes return a PYthon int, something Scheme int
+;;  this not only needs to be fixed, when doing it we need to check
+;; every place which used py-len
 (define (py-len obj)
   (cond ((eq? py-tuple-class (py-obj-cls obj))
          (vector-length (py-tuple-to-scheme obj)))
@@ -533,20 +607,6 @@
            (if (eq? setitem py-absent)
                (error "setitem" "only object with __setitem__ method implemented" i)
                (py-call setitem obj i val))))))
-
-(define (py-contains obj i cache)
-  (cond ((eq? py-tuple-class (py-obj-cls obj))
-         (and (>= i 0) (< i (py-len obj))))
-        ((eq? py-list-class (py-obj-cls obj))
-         (and (>= i 0) (< i (py-len obj))))
-        ((eq? py-dict-class (py-obj-cls obj))
-         (let ((x (assoc i (py-dict-to-scheme obj))))
-           (if x #t #f)))
-        (else
-         (let ((contains (py-attr-ref obj (& "__contains__"))))
-           (if (eq? contains py-absent)
-               (error "contains" "only object with __contains__ method implemented" i)
-               (py-call contains obj i))))))
 
 ;;;----------------------------------------------------------------------------
 
@@ -1539,15 +1599,28 @@
 ;;  ITER PROTOCOL
 ;; =============================================================================
 
+(define (throw-not-iteralble obj)
+  (let ((obj-type-name (type-name-fast-get (py-type obj))))
+    (py-throw (py-call
+                py-builtin-TypeError
+                (py-str-from-scheme
+                  (string-append
+                    "argument of type '"
+                    (py-str-to-scheme obj-type-name)
+                    "' is not iterable"))))))
+
 ;; TODO: implement the sequence protocole where object are iterable if they
 ;; have a __getitem__ method starting from index 0
-(define (py-iter obj)
+(define (py-obj->iterator obj)
   (let ((__iter__ (getattribute-from-obj-mro obj (& "__iter__"))))
     (if (eq? __iter__ py-absent)
-      (py-throw (py-call
-                  py-builtin-TypeError
-                  (py-str-from-scheme "object is not iterable")))
+      #f
       (py-call __iter__ obj))))
+
+;; Wraps py-obj->iterator to raise a TypeError when the object is not iterable
+(define (py-iter obj)
+  (or (py-obj->iterator obj)
+      (throw-not-iteralble obj)))
 
 ;; list iterator
 
@@ -1727,7 +1800,13 @@
         (& "__mod__") int.__mod__
         (& "__or__") int.__or__
         (& "__pow__") int.__pow__
-        (& "__xor__") int.__xor__))
+        (& "__xor__") int.__xor__
+        (& "__eq__") int.__eq__
+        (& "__ne__") int.__ne__
+        (& "__lt__") int.__lt__
+        (& "__le__") int.__le__
+        (& "__gt__") int.__gt__
+        (& "__ge__") int.__ge__))
 
   (set! py-float-class
     (make-builtin-class
@@ -4211,13 +4290,17 @@
 (define BaseException.__init__
   (make-PyFunction (PyFunction-default-hclass) '#() BaseException-init))
 
+;; TODO: when you see this and that py-len returns a PyObject,
+;; then use py-eq instead of =
+;; TODO: also check if cPython allows args to be something else
+;; then a tuple
 (define (BaseException-str self)
   (let* ((args (py-own-attr-ref self (& "args")))
          (args-len (py-len args)))
     (cond
-      ((py-eq args-len 0 #f)
+      ((= args-len 0)
         (py-str-from-scheme ""))
-      ((py-eq args-len 1 #f)
+      ((= args-len 1)
         (py-str (py-getitem args 0 #f)))
       (else
         (py-str-from-scheme (py-str-scheme args))))))
@@ -4261,9 +4344,9 @@
 (define (print-exception exc)
   (let ((exc-name (getattribute-from-obj-mro exc (& "__name__")))
         (out (current-output-port))
-        (py-str-function (getattribute-from-obj-mro exc (& "__str__"))))
+        (__str__ (getattribute-from-obj-mro exc (& "__str__"))))
     (py-print exc-name out)
-    (let ((str-exc (py-call py-str-function exc)))
+    (let ((str-exc (py-call __str__ exc)))
       (if (> (string-length (py-str-to-scheme str-exc)) 0)
         (begin
           (display ": " out)
