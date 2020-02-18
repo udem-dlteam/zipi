@@ -426,7 +426,7 @@
         (py-call __abs__ x))))
 
 ;; =============================================================================
-;; int operations
+;; Exception thrower helpers
 ;; =============================================================================
 
 (define (py-throw-required-type method-name required-type given-type)
@@ -442,19 +442,37 @@
             given-type
             "'")))))
 
-(define (py-throw-not-a-subtype fun-name self type)
-  (py-throw
-    (py-call py-builtin-TypeError
-      (py-str-from-scheme
-        (string-append
-            fun-name "(" self "): " self " is not a subtype of " type)))))
+(define (py-throw-not-a-subtype fun-name wrong-type type-name)
+  (let ((wrong-type-name (py-str-to-scheme (type-name-fast-get wrong-type))))
+    (py-throw
+      (py-call py-builtin-TypeError
+        (py-str-from-scheme
+          (string-append
+              fun-name "(" wrong-type-name "): " wrong-type-name " is not a subtype of " type-name))))))
 
-(define (py-throw-not-a-type-object fun-name type)
-  (py-throw
-    (py-call py-builtin-TypeError
-      (py-str-from-scheme
-        (string-append
-            fun-name "(X): X is not a type object (" type ")")))))
+(define (py-throw-not-a-type-object fun-name obj)
+  (let* ((instance-type (py-type obj))
+         (instance-type-name (py-str-to-scheme (type-name-fast-get instance-type))))
+    (py-throw
+      (py-call py-builtin-TypeError
+        (py-str-from-scheme
+          (string-append
+              fun-name "(X): X is not a type object (" instance-type-name ")"))))))
+
+;; when there is a call to cls.__new__(X), X must be a subtype of cls
+;; if it is not even a type the error message is:
+;;    cls.__new__(X): X is not a type object ([type of X])
+;; if X is a type, but not a subtype of cls, the error message is:
+;;   cls.__new__([X.__name__]): [X.__name__] is not a subtype of cls
+(define (py-throw-wrong-new-argument cls-name arg)
+  (let ((fun-name (string-append cls-name ".__new__")))
+    (if (py-isinstance? arg py-type-class)
+      (py-throw-not-a-subtype fun-name arg cls-name)
+      (py-throw-not-a-type-object fun-name arg))))
+
+;; =============================================================================
+;; int operations
+;; =============================================================================
 
 (define (int-new cls #!optional (value #f))
   (cond
@@ -483,14 +501,8 @@
             (object-scheme-value-fast-set! new-int value)
             new-int))
         (else (error "int.__new__ only supports subtypes of int"))))
-    ;; errors
-    ((py-isinstance? cls py-type-class)
-      (let ((type-name (py-str-to-scheme (type-name-fast-get cls))))
-        (py-throw-not-a-subtype "int.__new__" type-name "int")))
     (else
-      (let* ((instance-type (py-type cls))
-             (instance-type-name (py-str-to-scheme (type-name-fast-get instance-type))))
-        (py-throw-not-a-type-object "int.__new__" instance-type-name)))))
+      (py-throw-wrong-new-argument "int" cls))))
 
 (define int.__new__
   (make-PyFunction (PyFunction-default-hclass) '#() int-new))
@@ -610,6 +622,12 @@
 (define-int-unary-operator int-pos "__pos__" +)
 
 (define-int-unary-operator int-abs "__abs__" abs)
+
+;; =============================================================================
+;; float operations
+;; =============================================================================
+
+
 
 ;; =============================================================================
 ;; bool operations
