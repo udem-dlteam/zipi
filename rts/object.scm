@@ -554,6 +554,28 @@
 
 (define-int-into-int-binary-operator int-ixor "__ixor__" bitwise-xor)
 
+;; unary operators
+
+(define-macro (define-int-unary-operator fun-name method-name scheme-op)
+  (let ((py-func-name (string->symbol (string-append "int." method-name))))
+    `(begin
+      (define (,fun-name self)
+        (if (py-isinstance? self py-int-class)
+          (let ((self-value (object-scheme-value-fast-get self)))
+            (py-int-from-scheme (,scheme-op self-value)))
+          (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type self)))))
+            (py-throw-required-type ,method-name "int" given-type))))
+      (define ,py-func-name
+        (make-PyFunction (PyFunction-default-hclass) '#() ,fun-name)))))
+
+(define-int-unary-operator int-invert "__invert__" bitwise-not)
+
+(define-int-unary-operator int-neg "__neg__" -)
+
+(define-int-unary-operator int-pos "__pos__" +)
+
+(define-int-unary-operator int-abs "__abs__" abs)
+
 ;; =============================================================================
 ;; bool operations
 ;; =============================================================================
@@ -1461,6 +1483,7 @@
           (loop (+ int 1)))
         cache))))
 
+;; Set on bootstrap when int class is defined
 (define int-cache #f)
 
 (define (py-int-from-scheme value)
@@ -1890,7 +1913,11 @@
         (& "__lt__") int.__lt__
         (& "__le__") int.__le__
         (& "__gt__") int.__gt__
-        (& "__ge__") int.__ge__))
+        (& "__ge__") int.__ge__
+        (& "__neg__") int.__neg__
+        (& "__pos__") int.__pos__
+        (& "__invert__") int.__invert__
+        (& "__abs__") int.__abs__))
 
   ;; Pre-allocate ints from -5 to 256 and cache them
   (set! int-cache (make-int-cache))
