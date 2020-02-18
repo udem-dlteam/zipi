@@ -265,8 +265,8 @@
 
 ;; ==
 (define (py-eq x y cache)
-  (let ((__eq__ (getattribute-from-obj-mro x (& "__eq__"))))
-    (let ((left-op-result
+  (let* ((__eq__ (getattribute-from-obj-mro x (& "__eq__")))
+         (left-op-result
             (if (eq? __eq__ py-absent)
               py-NotImplemented
               (py-call __eq__ x y))))
@@ -280,7 +280,7 @@
               ;; fall back on 'is'
               (py-is x y #f)
               right-op-result)))
-        left-op-result))))
+        left-op-result)))
 
 ;; !=
 (define (py-ne x y cache) ;; x != y
@@ -290,8 +290,8 @@
               py-NotImplemented
               (py-call __ne__ x y))))
       (if (eq? left-op-result py-NotImplemented)
-        (let ((right-__ne__ (getattribute-from-obj-mro y (& "__ne__"))))
-          (let ((right-op-result
+        (let* ((right-__ne__ (getattribute-from-obj-mro y (& "__ne__")))
+               (right-op-result
                   (if (eq? right-__ne__ py-absent)
                     py-NotImplemented
                     (py-call right-__ne__ y x))))
@@ -302,7 +302,7 @@
                   py-False
                   py-True))
               right-op-result)))
-        left-op-result))))
+        left-op-result)))
 
 (define-binary-operator-protocol py-lt "__lt__" "__gt__" "<")
 
