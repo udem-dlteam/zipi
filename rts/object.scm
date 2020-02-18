@@ -255,7 +255,7 @@
 (define-binary-operator-protocol py-pow "__pow__" "__rpow__" "**")
 
 ;; right shift
-(define-binary-operator-protocol py-rshift "__rshift__" "__lrshift__" ">>")
+(define-binary-operator-protocol py-rshift "__rshift__" "__rrshift__" ">>")
 
 ;; sub
 (define-binary-operator-protocol py-sub "__sub__" "__rsub__" "-")
@@ -344,57 +344,86 @@
     py-False
     py-True))
 
-(define (py-iadd x y cache) ;; x += y
-  (+ x y))
+(define-macro (define-inplace-operator-protocol
+                fun-name
+                imethod
+                lmethod
+                rmethod
+                operator)
+  (let ((fall-back-name (gensym 'py-out-of-place)))
+    `(begin
+      (define-binary-operator-protocol ,fall-back-name ,lmethod ,rmethod ,operator)
+      (define (,fun-name x y cache)
+        (let ((__op__ (getattribute-from-obj-mro x (& ,imethod))))
+          (let ((inplace-result
+                  (if (eq? __op__ py-absent)
+                    py-NotImplemented
+                    (py-call __op__ x y))))
+            (if (eq? inplace-result py-NotImplemented)
+              (,fall-back-name x y #f)
+              inplace-result)))))))
 
-(define (py-iand x y cache) ;; x &= y
-  (bit-and x y))
+(define-inplace-operator-protocol py-iadd "__iadd__" "__add__" "__radd__" "+=")
 
-(define (py-idiv x y cache) ;; x /= y
-  (if (= y 0)
-      (py-throw py-builtin-ZeroDivisionError)
-      (/ (exact->inexact x) (exact->inexact y))))
+(define-inplace-operator-protocol py-iand "__iand__" "__and__" "__rand__" "&=")
 
-(define (py-ifloordiv x y cache) ;; x //= y
-  (inexact->exact (floor (/ x y))))
+(define-inplace-operator-protocol py-idiv "__itruediv__" "__truediv__" "__rtruediv__" "/=")
 
-(define (py-ilshift x y cache) ;; x <<= y
-  (bit-lsh x y))
+(define-inplace-operator-protocol py-ifloordiv "__ifloordiv__" "__floordiv__" "__rfloordiv__" "//=")
 
-(define (py-imatmul x y cache) ;; x @= y
-  (error "py-imatmul" "not implemented" #f))
+(define-inplace-operator-protocol py-ilshift "__ilshift__" "__lshift__" "__rlshift__" "<<=")
 
-(define (py-imod x y cache) ;; x %= y
-  (modulo x y))
+(define-inplace-operator-protocol py-imatmul "__imatmul__" "__matmul__" "__rmatmul__" "@=")
 
-(define (py-imul x y cache) ;; x *= y
-  (* x y))
+(define-inplace-operator-protocol py-imod "__imod__" "__mod__" "__rmod__" "%=")
 
-(define (py-ior x y cache) ;; x |= y
-  (bit-or x y))
+(define-inplace-operator-protocol py-imul "__imul__" "__mul__" "__rmul__" "*=")
 
-(define (py-ipow x y cache) ;; x **= y
-  (expt x y))
+(define-inplace-operator-protocol py-ior "__ior__" "__or__" "__ror__" "|=")
 
-(define (py-irshift x y cache) ;; x >>= y
-  (bit-rsh x y))
+(define-inplace-operator-protocol py-ipow "__ipow__" "__pow__" "__rpow__" "**=")
 
-(define (py-isub x y cache) ;; x -= y
-  (- x y))
+(define-inplace-operator-protocol py-irshift "__irshift__" "__rshift__" "__rrshift__" ">>=")
 
-(define (py-ixor x y cache) ;; x ^= y
-  (bit-xor x y))
+(define-inplace-operator-protocol py-isub "__isub__" "__sub__" "__rsub__" "-=")
+
+(define-inplace-operator-protocol py-ixor "__ixor__" "__xor__" "__ixor__" "^=")
 
 ;; Unary operators
 
-(define (py-invert x cache) ;; ~ x
-  (bit-not x))
+(define (throw-unsupported-unary-operand x operator)
+  (let ((x-type-name (type-name-fast-get (py-type x))))
+    (py-throw
+      (py-call
+        py-builtin-TypeError
+        (py-str-from-scheme
+          (string-append
+            "bad operand type for for unary "
+            operator
+            ": '"
+            (py-str-to-scheme x-type-name)
+            "'"))))))
 
-(define (py-neg x cache) ;; - x
-  (- x))
+(define-macro (define-unary-operator-protocol fun-name method operator)
+  `(define (,fun-name x cache)
+    (let ((__op__ (getattribute-from-obj-mro x (& ,method))))
+      (if (eq? __op__ py-absent)
+          (throw-unsupported-unary-operand x operator)
+          (py-call __op__ x)))))
 
-(define (py-pos x cache) ;; + x
-  (+ x))
+(define-unary-operator-protocol py-invert "__invert__" "~")
+
+(define-unary-operator-protocol py-neg "__neg__" "-")
+
+(define-unary-operator-protocol py-pos "__pos__" "+")
+
+;; meant to be called as the builtin abs(), not an operator but follows
+;; the same logic
+(define (py-abs x)
+  (let ((__abs__ (getattribute-from-obj-mro x (& "__abs__"))))
+    (if (eq? __abs__ py-absent)
+        (throw-unsupported-unary-operand x "abs()")
+        (py-call __abs__ x))))
 
 ;; =============================================================================
 ;; int operations
@@ -499,6 +528,31 @@
 (define-int-comparison-operator int-gt "__gt__" >)
 
 (define-int-comparison-operator int-gte "__ge__" >=)
+
+;; in-place operators
+
+(define-int-into-int-binary-operator int-iadd "__iadd__" +)
+
+(define-int-into-int-binary-operator int-isub "__isub__" -)
+
+(define-int-into-int-binary-operator int-imul "__imul__" *)
+
+(define-int-into-int-binary-operator int-ifloordiv "__ifloordiv__" floor-quotient)
+
+(define-int-into-int-binary-operator int-iand "__iand__" bitwise-and)
+
+(define-int-into-int-binary-operator int-ilshift "__ilshift__" arithmetic-shift)
+
+(define-int-into-int-binary-operator int-irshift "__irshift__"
+  (lambda (x y) (arithmetic-shift x (- y))))
+
+(define-int-into-int-binary-operator int-imod "__imod__" modulo)
+
+(define-int-into-int-binary-operator int-ior "__ior__" bitwise-ior)
+
+(define-int-into-int-binary-operator int-ipow "__ipow__" expt)
+
+(define-int-into-int-binary-operator int-ixor "__ixor__" bitwise-xor)
 
 ;; =============================================================================
 ;; bool operations
@@ -1388,12 +1442,31 @@
 
 ;;; Converters between Scheme objects and Python objects for basic
 ;;; types.
-;; TODO: remove direct indexing and use fast-set! methods
+;; TODO: remove direct indexing and use fast-set! methods in this section
 
-(define (py-int-from-scheme value)
+(define (alloc-new-int-from-scheme value)
   (let ((self (py-obj-alloc py-int-class py-int-hclass-of-instances)))
     (object-scheme-value-fast-set! self value)       ;; set **value**
     self))
+
+(define int-cache-low -5)
+(define int-cache-high 256)
+
+(define (make-int-cache)
+  (let* ((cache (make-vector (- int-cache-high int-cache-low -1))))
+    (let loop ((int int-cache-low))
+      (if (<= int int-cache-high)
+        (begin
+          (vector-set! cache (- int int-cache-low) (alloc-new-int-from-scheme int))
+          (loop (+ int 1)))
+        cache))))
+
+(define int-cache #f)
+
+(define (py-int-from-scheme value)
+  (if (and (<= value int-cache-high) (>= value int-cache-low))
+    (vector-ref int-cache (- value int-cache-low))
+    (alloc-new-int-from-scheme value)))
 
 (define (py-str-from-scheme string)
   (let ((self (py-obj-alloc py-str-class py-str-hclass-of-instances)))
@@ -1801,12 +1874,26 @@
         (& "__or__") int.__or__
         (& "__pow__") int.__pow__
         (& "__xor__") int.__xor__
+        (& "__iadd__") int.__iadd__
+        (& "__isub__") int.__isub__
+        (& "__imul__") int.__imul__
+        (& "__ifloordiv__") int.__ifloordiv__
+        (& "__iand__") int.__iand__
+        (& "__ilshift__") int.__ilshift__
+        (& "__irshift__") int.__irshift__
+        (& "__imod__") int.__imod__
+        (& "__ior__") int.__ior__
+        (& "__ipow__") int.__ipow__
+        (& "__ixor__") int.__ixor__
         (& "__eq__") int.__eq__
         (& "__ne__") int.__ne__
         (& "__lt__") int.__lt__
         (& "__le__") int.__le__
         (& "__gt__") int.__gt__
         (& "__ge__") int.__ge__))
+
+  ;; Pre-allocate ints from -5 to 256 and cache them
+  (set! int-cache (make-int-cache))
 
   (set! py-float-class
     (make-builtin-class
@@ -2305,10 +2392,7 @@
 ;; returns x.__abs__().
 
 (define py-builtin-abs
-  (py-procedure->function
-   (lambda rest (error "abs" "unimplemented generic procedure for builtin" #f))
-   (lambda (x)
-     (abs x))))
+  (make-PyFunction (PyFunction-default-hclass) '#() py-abs))
 
 ;;-------------------- all(iterable)
 
