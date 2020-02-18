@@ -117,10 +117,8 @@
    (scheme (PycStmtExpr-expr this) conf))
 
 (define (pyc-test this conf)
-   (if (eq? (PycExpr-type this) 'bool)
-       (scheme this conf)
-       (epairify this
-	  `(py-test ,(scheme this conf)))))
+   (epairify this
+	  `(py-test ,(scheme this conf))))
 
 (define-walk-method (scheme this::PycWhile conf)
 

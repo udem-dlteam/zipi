@@ -306,11 +306,11 @@
 
 (define-binary-operator-protocol py-lt "__lt__" "__gt__" "<")
 
-(define-binary-operator-protocol py-le "__lte__" "__gte__" "<=")
+(define-binary-operator-protocol py-le "__le__" "__ge__" "<=")
 
 (define-binary-operator-protocol py-gt "__gt__" "__lt__" ">")
 
-(define-binary-operator-protocol py-ge "__gte__" "__lte__" ">=")
+(define-binary-operator-protocol py-ge "__ge__" "__le__" ">=")
 
 (define (py-is x y cache) ;; x is y
   (if (eq? x y)
@@ -323,24 +323,24 @@
     py-False))
 
 ;; special case of x in y when y is an iterator
-(define (py-in-iterator x y)
-  (let ((item (py-for-next x)))
+(define (py-in-iterator item iterator)
+  (let ((next-item (py-for-next iterator)))
     (cond
-      ((not item) py-False)
-      ((py-eq y item) py-True)
-      (else (py-in-iterator x y)))))
+      ((not next-item) py-False)
+      ((py-eq item next-item) py-True)
+      (else (py-in-iterator item iterator)))))
 
-(define (py-in x y cache) ;; x in y
-  (let ((__contains__ (getattribute-from-obj-mro x (& "__contains__"))))
+(define (py-in item container cache) ;; x in y
+  (let ((__contains__ (getattribute-from-obj-mro container (& "__contains__"))))
     (if (eq? __contains__ py-absent)
-      (let ((iterator (py-obj->iterator x)))
+      (let ((iterator (py-obj->iterator container)))
         (if iterator
-          (py-in-iterator iterator y)
-          (throw-not-iteralble x))
-      (py-test (py-call __contains__ x y) py-True py-False)))))
+          (py-in-iterator item iterator)
+          (throw-not-iteralble container))
+      (py-test (py-call __contains__ container item) py-True py-False)))))
 
-(define (py-notin x y cache) ;; x not in y
-  (if (py-test (py-in x y cache))
+(define (py-notin item container cache) ;; x not in y
+  (if (py-test (py-in item container cache))
     py-False
     py-True))
 
@@ -470,6 +470,35 @@
 
 (define-int-into-int-binary-operator int-xor "__xor__" bitwise-xor)
 
+(define-macro (define-int-comparison-operator fun-name method-name scheme-op)
+  (let ((py-func-name (string->symbol (string-append "int." method-name))))
+    `(begin
+      (define (,fun-name self other)
+        (if (py-isinstance? self py-int-class)
+          (cond
+            ((py-isinstance? other py-int-class)
+              (let ((self-value (object-scheme-value-fast-get self))
+                    (other-value (object-scheme-value-fast-get other)))
+                (if (,scheme-op self-value other-value) py-True py-False)))
+            (else py-NotImplemented))
+          (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type self)))))
+            (py-throw-required-type ,method-name "int" given-type))))
+      (define ,py-func-name
+        (make-PyFunction (PyFunction-default-hclass) '#() ,fun-name)))))
+
+(define (!= x y) (not (= x y)))
+
+(define-int-comparison-operator int-eq "__eq__" =)
+
+(define-int-comparison-operator int-ne "__ne__" !=)
+
+(define-int-comparison-operator int-lt "__lt__" <)
+
+(define-int-comparison-operator int-lte "__le__" <=)
+
+(define-int-comparison-operator int-gt "__gt__" >)
+
+(define-int-comparison-operator int-gte "__ge__" >=)
 
 ;; =============================================================================
 ;; bool operations
@@ -513,6 +542,9 @@
 
 ;;;----------------------------------------------------------------------------
 
+;; WARNING: sometimes return a PYthon int, something Scheme int
+;;  this not only needs to be fixed, when doing it we need to check
+;; every place which used py-len
 (define (py-len obj)
   (cond ((eq? py-tuple-class (py-obj-cls obj))
          (vector-length (py-tuple-to-scheme obj)))
@@ -575,20 +607,6 @@
            (if (eq? setitem py-absent)
                (error "setitem" "only object with __setitem__ method implemented" i)
                (py-call setitem obj i val))))))
-
-(define (py-contains obj i cache)
-  (cond ((eq? py-tuple-class (py-obj-cls obj))
-         (and (>= i 0) (< i (py-len obj))))
-        ((eq? py-list-class (py-obj-cls obj))
-         (and (>= i 0) (< i (py-len obj))))
-        ((eq? py-dict-class (py-obj-cls obj))
-         (let ((x (assoc i (py-dict-to-scheme obj))))
-           (if x #t #f)))
-        (else
-         (let ((contains (py-attr-ref obj (& "__contains__"))))
-           (if (eq? contains py-absent)
-               (error "contains" "only object with __contains__ method implemented" i)
-               (py-call contains obj i))))))
 
 ;;;----------------------------------------------------------------------------
 
@@ -1782,7 +1800,13 @@
         (& "__mod__") int.__mod__
         (& "__or__") int.__or__
         (& "__pow__") int.__pow__
-        (& "__xor__") int.__xor__))
+        (& "__xor__") int.__xor__
+        (& "__eq__") int.__eq__
+        (& "__ne__") int.__ne__
+        (& "__lt__") int.__lt__
+        (& "__le__") int.__le__
+        (& "__gt__") int.__gt__
+        (& "__ge__") int.__ge__))
 
   (set! py-float-class
     (make-builtin-class
@@ -4266,13 +4290,17 @@
 (define BaseException.__init__
   (make-PyFunction (PyFunction-default-hclass) '#() BaseException-init))
 
+;; TODO: when you see this and that py-len returns a PyObject,
+;; then use py-eq instead of =
+;; TODO: also check if cPython allows args to be something else
+;; then a tuple
 (define (BaseException-str self)
   (let* ((args (py-own-attr-ref self (& "args")))
          (args-len (py-len args)))
     (cond
-      ((py-eq args-len 0 #f)
+      ((= args-len 0)
         (py-str-from-scheme ""))
-      ((py-eq args-len 1 #f)
+      ((= args-len 1)
         (py-str (py-getitem args 0 #f)))
       (else
         (py-str-from-scheme (py-str-scheme args))))))
@@ -4316,9 +4344,9 @@
 (define (print-exception exc)
   (let ((exc-name (getattribute-from-obj-mro exc (& "__name__")))
         (out (current-output-port))
-        (py-str-function (getattribute-from-obj-mro exc (& "__str__"))))
+        (__str__ (getattribute-from-obj-mro exc (& "__str__"))))
     (py-print exc-name out)
-    (let ((str-exc (py-call py-str-function exc)))
+    (let ((str-exc (py-call __str__ exc)))
       (if (> (string-length (py-str-to-scheme str-exc)) 0)
         (begin
           (display ": " out)
