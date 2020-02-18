@@ -429,24 +429,6 @@
 ;; int operations
 ;; =============================================================================
 
-(define (int-new cls #!optional (value #f))
-  (if (py-issubclass? cls py-int-class)
-    (cond
-      ((not value)
-        (let ((new-int (py-obj-alloc cls py-int-hclass-of-instances)))
-          (object-scheme-value-fast-set! new-int 0)
-          new-int))
-      ((py-isinstance? value py-int-class)
-        (let ((new-int (py-obj-alloc cls py-int-hclass-of-instances))
-              (value (object-scheme-value-fast-get value)))
-          (object-scheme-value-fast-set! new-int value)
-          new-int))
-      (else (error "int.__new__ only supports subtypes of int")))
-    (py-throw py-builtin-TypeError)))
-
-(define int.__new__
-  (make-PyFunction (PyFunction-default-hclass) '#() int-new))
-
 (define (py-throw-required-type method-name required-type given-type)
   (py-throw
     (py-call py-builtin-TypeError
@@ -459,6 +441,59 @@
             "' object but received a '"
             given-type
             "'")))))
+
+(define (py-throw-not-a-subtype fun-name self type)
+  (py-throw
+    (py-call py-builtin-TypeError
+      (py-str-from-scheme
+        (string-append
+            fun-name "(" self "): " self " is not a subtype of " type)))))
+
+(define (py-throw-not-a-type-object fun-name type)
+  (py-throw
+    (py-call py-builtin-TypeError
+      (py-str-from-scheme
+        (string-append
+            fun-name "(X): X is not a type object (" type ")")))))
+
+(define (int-new cls #!optional (value #f))
+  (cond
+    ((eq? cls py-int-class)
+      (cond
+        ((not value)
+          ;; TODO this could be removed by setting value default to the int 0
+          ;; int() return 0
+          (py-int-from-scheme 0))
+        ((eq? (py-type value) py-int-class)
+          ;; int(x) return the same object when x is an int
+          value)
+        ((py-isinstance? value py-int-class)
+          ;; up-typing an instance of subclass to an int
+          (py-int-from-scheme (object-scheme-value-fast-get value)))
+        (else (error "int.__new__ unimplemented for non int"))))
+    ((py-issubclass? cls py-int-class)
+      (cond
+        ((not value)
+          (let ((new-int (py-obj-alloc cls py-int-hclass-of-instances)))
+            (object-scheme-value-fast-set! new-int 0)
+            new-int))
+        ((py-isinstance? value py-int-class)
+          (let ((new-int (py-obj-alloc cls py-int-hclass-of-instances))
+                (value (object-scheme-value-fast-get value)))
+            (object-scheme-value-fast-set! new-int value)
+            new-int))
+        (else (error "int.__new__ only supports subtypes of int"))))
+    ;; errors
+    ((py-isinstance? cls py-type-class)
+      (let ((type-name (py-str-to-scheme (type-name-fast-get cls))))
+        (py-throw-not-a-subtype "int.__new__" type-name "int")))
+    (else
+      (let* ((instance-type (py-type cls))
+             (instance-type-name (py-str-to-scheme (type-name-fast-get instance-type))))
+        (py-throw-not-a-type-object "int.__new__" instance-type-name)))))
+
+(define int.__new__
+  (make-PyFunction (PyFunction-default-hclass) '#() int-new))
 
 (define-macro (define-int-into-int-binary-operator fun-name method-name scheme-op)
   (let ((py-func-name (string->symbol (string-append "int." method-name))))
@@ -1428,7 +1463,10 @@
 (define py-module-class #f)
 
 (define (py-obj-cls* obj) ;; return **class** attribute of object obj
-  (cond ((PyObject? obj)
+  (cond
+        ((PyFunction? obj)
+          py-method-class)
+        ((PyObject? obj)
          (object-class-fast-get obj))
         ((flonum? obj)
          py-float-class)
@@ -1490,6 +1528,11 @@
   (if (and (<= value int-cache-high) (>= value int-cache-low))
     (vector-ref int-cache (- value int-cache-low))
     (alloc-new-int-from-scheme value)))
+
+(define (py-float-from-scheme value)
+  (let ((self (py-obj-alloc py-float-class py-float-hclass-of-instances)))
+    (object-scheme-value-fast-set! self value)       ;; set **value**
+    self))
 
 (define (py-str-from-scheme string)
   (let ((self (py-obj-alloc py-str-class py-str-hclass-of-instances)))
