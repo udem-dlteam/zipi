@@ -523,13 +523,31 @@
       (define ,py-func-name
         (make-PyFunction (PyFunction-default-hclass) '#() ,fun-name)))))
 
+(define-macro (define-int-into-int-division-operator fun-name method-name scheme-op)
+  (let ((py-func-name (string->symbol (string-append "int." method-name))))
+    `(begin
+      (define (,fun-name self other)
+        (if (py-isinstance? self py-int-class)
+          (cond
+            ((py-isinstance? other py-int-class)
+              (let ((self-value (object-scheme-value-fast-get self))
+                    (other-value (object-scheme-value-fast-get other)))
+                (if (not (= 0 other-value))
+                  (py-int-from-scheme (,scheme-op self-value other-value))
+                  (py-throw
+                    (py-call py-builtin-ZeroDivisionError
+                      (py-str-from-scheme "integer division or modulo by zero"))))))
+            (else py-NotImplemented))
+          (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type self)))))
+            (py-throw-required-type ,method-name "int" given-type))))
+      (define ,py-func-name
+        (make-PyFunction (PyFunction-default-hclass) '#() ,fun-name)))))
+
 (define-int-into-int-binary-operator int-add "__add__" +)
 
 (define-int-into-int-binary-operator int-sub "__sub__" -)
 
 (define-int-into-int-binary-operator int-mul "__mul__" *)
-
-(define-int-into-int-binary-operator int-floordiv "__floordiv__" floor-quotient)
 
 (define-int-into-int-binary-operator int-and "__and__" bitwise-and)
 
@@ -538,13 +556,35 @@
 (define-int-into-int-binary-operator int-rshift "__rshift__"
   (lambda (x y) (arithmetic-shift x (- y))))
 
-(define-int-into-int-binary-operator int-mod "__mod__" modulo)
-
 (define-int-into-int-binary-operator int-or "__or__" bitwise-ior)
 
 (define-int-into-int-binary-operator int-pow "__pow__" expt)
 
 (define-int-into-int-binary-operator int-xor "__xor__" bitwise-xor)
+
+(define-int-into-int-division-operator int-mod "__mod__" modulo)
+
+(define-int-into-int-division-operator int-floordiv "__floordiv__" floor-quotient)
+
+(define (int-truediv self other)
+  (if (py-isinstance? self py-int-class)
+    (cond
+      ((py-isinstance? other py-int-class)
+        (let ((self-value (object-scheme-value-fast-get self))
+              (other-value (object-scheme-value-fast-get other)))
+          (if (not (= other-value 0))
+            (py-float-from-scheme (inexact (/ self-value other-value)))
+            (py-throw
+              (py-call py-builtin-ZeroDivisionError
+                (py-str-from-scheme "division by zero"))))))
+      (else py-NotImplemented))
+    (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type self)))))
+      (py-throw-required-type "int.__truediv__" "int" given-type))))
+
+(define int.__truediv__
+  (make-PyFunction (PyFunction-default-hclass) '#() int-truediv))
+
+;; Comparisons
 
 (define-macro (define-int-comparison-operator fun-name method-name scheme-op)
   (let ((py-func-name (string->symbol (string-append "int." method-name))))
@@ -584,8 +624,6 @@
 
 (define-int-into-int-binary-operator int-imul "__imul__" *)
 
-(define-int-into-int-binary-operator int-ifloordiv "__ifloordiv__" floor-quotient)
-
 (define-int-into-int-binary-operator int-iand "__iand__" bitwise-and)
 
 (define-int-into-int-binary-operator int-ilshift "__ilshift__" arithmetic-shift)
@@ -593,13 +631,33 @@
 (define-int-into-int-binary-operator int-irshift "__irshift__"
   (lambda (x y) (arithmetic-shift x (- y))))
 
-(define-int-into-int-binary-operator int-imod "__imod__" modulo)
-
 (define-int-into-int-binary-operator int-ior "__ior__" bitwise-ior)
 
 (define-int-into-int-binary-operator int-ipow "__ipow__" expt)
 
 (define-int-into-int-binary-operator int-ixor "__ixor__" bitwise-xor)
+
+(define-int-into-int-binary-operator int-imod "__imod__" modulo)
+
+(define-int-into-int-division-operator int-ifloordiv "__ifloordiv__" floor-quotient)
+
+(define (int-itruediv self other)
+  (if (py-isinstance? self py-int-class)
+    (cond
+      ((py-isinstance? other py-int-class)
+        (let ((self-value (object-scheme-value-fast-get self))
+              (other-value (object-scheme-value-fast-get other)))
+          (if (not (= other-value 0))
+            (py-float-from-scheme (inexact (/ self-value other-value)))
+            (py-throw
+              (py-call py-builtin-ZeroDivisionError
+                (py-str-from-scheme "division by zero"))))))
+      (else py-NotImplemented))
+    (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type self)))))
+      (py-throw-required-type "int.__itruediv__" "int" given-type))))
+
+(define int.__itruediv__
+  (make-PyFunction (PyFunction-default-hclass) '#() int-itruediv))
 
 ;; unary operators
 
@@ -627,7 +685,36 @@
 ;; float operations
 ;; =============================================================================
 
+(define (float-new cls #!optional (value #f))
+  (cond
+    ((eq? cls py-float-class)
+      (cond
+        ((not value)
+          (py-float-from-scheme 0.0))
+        ((eq? (py-type value) py-float-class)
+          ;; float(x) return the same object when x is a float
+          value)
+        ((py-isinstance? value py-float-class)
+          ;; up-typing an instance of subclass to an float
+          (py-float-from-scheme (object-scheme-value-fast-get value)))
+        (else (error "float.__new__ unimplemented for non float"))))
+    ((py-issubclass? cls py-float-class)
+      (cond
+        ((not value)
+          (let ((new-float (py-obj-alloc cls py-float-hclass-of-instances)))
+            (object-scheme-value-fast-set! new-float 0.0)
+            new-float))
+        ((py-isinstance? value py-float-class)
+          (let ((new-float (py-obj-alloc cls py-float-hclass-of-instances))
+                (value (object-scheme-value-fast-get value)))
+            (object-scheme-value-fast-set! new-float value)
+            new-float))
+        (else (error "float.__new__ only supports subtypes of float"))))
+    (else
+      (py-throw-wrong-new-argument "float" cls))))
 
+(define float.__new__
+  (make-PyFunction (PyFunction-default-hclass) '#() float-new))
 
 ;; =============================================================================
 ;; bool operations
@@ -1978,7 +2065,9 @@
         (& "__neg__") int.__neg__
         (& "__pos__") int.__pos__
         (& "__invert__") int.__invert__
-        (& "__abs__") int.__abs__))
+        (& "__abs__") int.__abs__
+        (& "__truediv__") int.__truediv__
+        (& "__itruediv__") int.__itruediv__))
 
   ;; Pre-allocate ints from -5 to 256 and cache them
   (set! int-cache (make-int-cache))
@@ -1988,7 +2077,8 @@
       (& "float")
       (& "builtins")
       (list)
-      py-float-hclass-of-instances))
+      py-float-hclass-of-instances
+        (& "__new__") float.__new__))
 
   (set! py-bool-class
     (make-builtin-class
@@ -2300,6 +2390,15 @@
 (define (py-str obj)
   (py-str-from-scheme (py-str-scheme obj)))
 
+(define (float->string-with-padded-zeros value)
+  (cond
+    ((integer? value)
+      (string-append (number->string value) "0"))
+    ((< (abs value) 1)
+      (string-append "0" (number->string value)))
+    (else
+      (number->string value))))
+
 (define (py-str-scheme obj)
   (cond ((eq? obj 'None) "None")
         (else
@@ -2307,6 +2406,8 @@
            (cond
                  ((eq? t py-int-class)
                   (number->string (object-scheme-value-fast-get obj)))
+                 ((eq? t py-float-class)
+                  (float->string-with-padded-zeros (object-scheme-value-fast-get obj)))
                  ((eq? t py-str-class)
                   (py-str-to-scheme obj))
                  ((eq? t py-list-class)
