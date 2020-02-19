@@ -591,6 +591,12 @@
       (define ,py-func-name
         (make-PyFunction (PyFunction-default-hclass) '#() ,fun-name)))))
 
+;; helpers
+
+(define (arithmetic-lshift x y) (arithmetic-shift x (- y)))
+
+(define (!= x y) (not (= x y)))
+
 ;; operations
 
 (define-int-into-int-binary-operator int-add "__add__" +)
@@ -603,8 +609,7 @@
 
 (define-int-into-int-binary-operator int-lshift "__lshift__" arithmetic-shift)
 
-(define-int-into-int-binary-operator int-rshift "__rshift__"
-  (lambda (x y) (arithmetic-shift x (- y))))
+(define-int-into-int-binary-operator int-rshift "__rshift__" arithmetic-lshift)
 
 (define-int-into-int-binary-operator int-or "__or__" bitwise-ior)
 
@@ -619,8 +624,6 @@
 (define-int-into-float-division-operator int-truediv "__truediv__" /)
 
 ;; Comparisons
-
-(define (!= x y) (not (= x y)))
 
 (define-int-comparison-operator int-eq "__eq__" =)
 
