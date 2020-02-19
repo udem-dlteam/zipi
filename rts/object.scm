@@ -543,6 +543,56 @@
       (define ,py-func-name
         (make-PyFunction (PyFunction-default-hclass) '#() ,fun-name)))))
 
+(define-macro (define-int-into-float-division-operator fun-name method-name scheme-op)
+  (let ((py-func-name (string->symbol (string-append "int." method-name))))
+    `(begin
+      (define (,fun-name self other)
+        (if (py-isinstance? self py-int-class)
+          (cond
+            ((py-isinstance? other py-int-class)
+              (let ((self-value (object-scheme-value-fast-get self))
+                    (other-value (object-scheme-value-fast-get other)))
+                (if (not (= 0 other-value))
+                  (py-float-from-scheme (inexact (,scheme-op self-value other-value)))
+                  (py-throw
+                    (py-call py-builtin-ZeroDivisionError
+                      (py-str-from-scheme "division by zero"))))))
+            (else py-NotImplemented))
+          (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type self)))))
+            (py-throw-required-type ,method-name "int" given-type))))
+      (define ,py-func-name
+        (make-PyFunction (PyFunction-default-hclass) '#() ,fun-name)))))
+
+(define-macro (define-int-comparison-operator fun-name method-name scheme-op)
+  (let ((py-func-name (string->symbol (string-append "int." method-name))))
+    `(begin
+      (define (,fun-name self other)
+        (if (py-isinstance? self py-int-class)
+          (cond
+            ((py-isinstance? other py-int-class)
+              (let ((self-value (object-scheme-value-fast-get self))
+                    (other-value (object-scheme-value-fast-get other)))
+                (if (,scheme-op self-value other-value) py-True py-False)))
+            (else py-NotImplemented))
+          (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type self)))))
+            (py-throw-required-type ,method-name "int" given-type))))
+      (define ,py-func-name
+        (make-PyFunction (PyFunction-default-hclass) '#() ,fun-name)))))
+
+(define-macro (define-int-unary-operator fun-name method-name scheme-op)
+  (let ((py-func-name (string->symbol (string-append "int." method-name))))
+    `(begin
+      (define (,fun-name self)
+        (if (py-isinstance? self py-int-class)
+          (let ((self-value (object-scheme-value-fast-get self)))
+            (py-int-from-scheme (,scheme-op self-value)))
+          (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type self)))))
+            (py-throw-required-type ,method-name "int" given-type))))
+      (define ,py-func-name
+        (make-PyFunction (PyFunction-default-hclass) '#() ,fun-name)))))
+
+;; operations
+
 (define-int-into-int-binary-operator int-add "__add__" +)
 
 (define-int-into-int-binary-operator int-sub "__sub__" -)
@@ -566,41 +616,9 @@
 
 (define-int-into-int-division-operator int-floordiv "__floordiv__" floor-quotient)
 
-(define (int-truediv self other)
-  (if (py-isinstance? self py-int-class)
-    (cond
-      ((py-isinstance? other py-int-class)
-        (let ((self-value (object-scheme-value-fast-get self))
-              (other-value (object-scheme-value-fast-get other)))
-          (if (not (= other-value 0))
-            (py-float-from-scheme (inexact (/ self-value other-value)))
-            (py-throw
-              (py-call py-builtin-ZeroDivisionError
-                (py-str-from-scheme "division by zero"))))))
-      (else py-NotImplemented))
-    (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type self)))))
-      (py-throw-required-type "int.__truediv__" "int" given-type))))
-
-(define int.__truediv__
-  (make-PyFunction (PyFunction-default-hclass) '#() int-truediv))
+(define-int-into-float-division-operator int-truediv "__truediv__" /)
 
 ;; Comparisons
-
-(define-macro (define-int-comparison-operator fun-name method-name scheme-op)
-  (let ((py-func-name (string->symbol (string-append "int." method-name))))
-    `(begin
-      (define (,fun-name self other)
-        (if (py-isinstance? self py-int-class)
-          (cond
-            ((py-isinstance? other py-int-class)
-              (let ((self-value (object-scheme-value-fast-get self))
-                    (other-value (object-scheme-value-fast-get other)))
-                (if (,scheme-op self-value other-value) py-True py-False)))
-            (else py-NotImplemented))
-          (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type self)))))
-            (py-throw-required-type ,method-name "int" given-type))))
-      (define ,py-func-name
-        (make-PyFunction (PyFunction-default-hclass) '#() ,fun-name)))))
 
 (define (!= x y) (not (= x y)))
 
@@ -641,37 +659,9 @@
 
 (define-int-into-int-division-operator int-ifloordiv "__ifloordiv__" floor-quotient)
 
-(define (int-itruediv self other)
-  (if (py-isinstance? self py-int-class)
-    (cond
-      ((py-isinstance? other py-int-class)
-        (let ((self-value (object-scheme-value-fast-get self))
-              (other-value (object-scheme-value-fast-get other)))
-          (if (not (= other-value 0))
-            (py-float-from-scheme (inexact (/ self-value other-value)))
-            (py-throw
-              (py-call py-builtin-ZeroDivisionError
-                (py-str-from-scheme "division by zero"))))))
-      (else py-NotImplemented))
-    (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type self)))))
-      (py-throw-required-type "int.__itruediv__" "int" given-type))))
-
-(define int.__itruediv__
-  (make-PyFunction (PyFunction-default-hclass) '#() int-itruediv))
+(define-int-into-float-division-operator int-itruediv "__itruediv__" /)
 
 ;; unary operators
-
-(define-macro (define-int-unary-operator fun-name method-name scheme-op)
-  (let ((py-func-name (string->symbol (string-append "int." method-name))))
-    `(begin
-      (define (,fun-name self)
-        (if (py-isinstance? self py-int-class)
-          (let ((self-value (object-scheme-value-fast-get self)))
-            (py-int-from-scheme (,scheme-op self-value)))
-          (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type self)))))
-            (py-throw-required-type ,method-name "int" given-type))))
-      (define ,py-func-name
-        (make-PyFunction (PyFunction-default-hclass) '#() ,fun-name)))))
 
 (define-int-unary-operator int-invert "__invert__" bitwise-not)
 

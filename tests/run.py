@@ -26,6 +26,9 @@ def clean_name(name):
     """
     return re.sub('\.py$|^\.|^\/', '', name)
 
+def file_matches_pattern(filename, rootname, pattern):
+    return re.match(pattern, filename) or re.findall(pattern, rootname)
+
 
 def collect_tests(pattern):
     """
@@ -39,7 +42,7 @@ def collect_tests(pattern):
             continue
 
         for file in files:
-            if not file.endswith('.py') or pattern and not re.match(pattern, file):
+            if not file.endswith('.py') or pattern and not file_matches_pattern(file, root, pattern):
                 continue
             else:
                 if root in tests:
