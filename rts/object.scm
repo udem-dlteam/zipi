@@ -255,7 +255,7 @@
 (define-binary-operator-protocol py-pow "__pow__" "__rpow__" "**")
 
 ;; right shift
-(define-binary-operator-protocol py-rshift "__rshift__" "__lrshift__" ">>")
+(define-binary-operator-protocol py-rshift "__rshift__" "__rrshift__" ">>")
 
 ;; sub
 (define-binary-operator-protocol py-sub "__sub__" "__rsub__" "-")
@@ -344,79 +344,90 @@
     py-False
     py-True))
 
-(define (py-iadd x y cache) ;; x += y
-  (+ x y))
+(define-macro (define-inplace-operator-protocol
+                fun-name
+                imethod
+                lmethod
+                rmethod
+                operator)
+  (let ((fall-back-name (gensym 'py-out-of-place)))
+    `(begin
+      (define-binary-operator-protocol ,fall-back-name ,lmethod ,rmethod ,operator)
+      (define (,fun-name x y cache)
+        (let ((__op__ (getattribute-from-obj-mro x (& ,imethod))))
+          (let ((inplace-result
+                  (if (eq? __op__ py-absent)
+                    py-NotImplemented
+                    (py-call __op__ x y))))
+            (if (eq? inplace-result py-NotImplemented)
+              (,fall-back-name x y #f)
+              inplace-result)))))))
 
-(define (py-iand x y cache) ;; x &= y
-  (bit-and x y))
+(define-inplace-operator-protocol py-iadd "__iadd__" "__add__" "__radd__" "+=")
 
-(define (py-idiv x y cache) ;; x /= y
-  (if (= y 0)
-      (py-throw py-builtin-ZeroDivisionError)
-      (/ (exact->inexact x) (exact->inexact y))))
+(define-inplace-operator-protocol py-iand "__iand__" "__and__" "__rand__" "&=")
 
-(define (py-ifloordiv x y cache) ;; x //= y
-  (inexact->exact (floor (/ x y))))
+(define-inplace-operator-protocol py-idiv "__itruediv__" "__truediv__" "__rtruediv__" "/=")
 
-(define (py-ilshift x y cache) ;; x <<= y
-  (bit-lsh x y))
+(define-inplace-operator-protocol py-ifloordiv "__ifloordiv__" "__floordiv__" "__rfloordiv__" "//=")
 
-(define (py-imatmul x y cache) ;; x @= y
-  (error "py-imatmul" "not implemented" #f))
+(define-inplace-operator-protocol py-ilshift "__ilshift__" "__lshift__" "__rlshift__" "<<=")
 
-(define (py-imod x y cache) ;; x %= y
-  (modulo x y))
+(define-inplace-operator-protocol py-imatmul "__imatmul__" "__matmul__" "__rmatmul__" "@=")
 
-(define (py-imul x y cache) ;; x *= y
-  (* x y))
+(define-inplace-operator-protocol py-imod "__imod__" "__mod__" "__rmod__" "%=")
 
-(define (py-ior x y cache) ;; x |= y
-  (bit-or x y))
+(define-inplace-operator-protocol py-imul "__imul__" "__mul__" "__rmul__" "*=")
 
-(define (py-ipow x y cache) ;; x **= y
-  (expt x y))
+(define-inplace-operator-protocol py-ior "__ior__" "__or__" "__ror__" "|=")
 
-(define (py-irshift x y cache) ;; x >>= y
-  (bit-rsh x y))
+(define-inplace-operator-protocol py-ipow "__ipow__" "__pow__" "__rpow__" "**=")
 
-(define (py-isub x y cache) ;; x -= y
-  (- x y))
+(define-inplace-operator-protocol py-irshift "__irshift__" "__rshift__" "__rrshift__" ">>=")
 
-(define (py-ixor x y cache) ;; x ^= y
-  (bit-xor x y))
+(define-inplace-operator-protocol py-isub "__isub__" "__sub__" "__rsub__" "-=")
+
+(define-inplace-operator-protocol py-ixor "__ixor__" "__xor__" "__ixor__" "^=")
 
 ;; Unary operators
 
-(define (py-invert x cache) ;; ~ x
-  (bit-not x))
+(define (throw-unsupported-unary-operand x operator)
+  (let ((x-type-name (type-name-fast-get (py-type x))))
+    (py-throw
+      (py-call
+        py-builtin-TypeError
+        (py-str-from-scheme
+          (string-append
+            "bad operand type for for unary "
+            operator
+            ": '"
+            (py-str-to-scheme x-type-name)
+            "'"))))))
 
-(define (py-neg x cache) ;; - x
-  (- x))
+(define-macro (define-unary-operator-protocol fun-name method operator)
+  `(define (,fun-name x cache)
+    (let ((__op__ (getattribute-from-obj-mro x (& ,method))))
+      (if (eq? __op__ py-absent)
+          (throw-unsupported-unary-operand x operator)
+          (py-call __op__ x)))))
 
-(define (py-pos x cache) ;; + x
-  (+ x))
+(define-unary-operator-protocol py-invert "__invert__" "~")
+
+(define-unary-operator-protocol py-neg "__neg__" "-")
+
+(define-unary-operator-protocol py-pos "__pos__" "+")
+
+;; meant to be called as the builtin abs(), not an operator but follows
+;; the same logic
+(define (py-abs x)
+  (let ((__abs__ (getattribute-from-obj-mro x (& "__abs__"))))
+    (if (eq? __abs__ py-absent)
+        (throw-unsupported-unary-operand x "abs()")
+        (py-call __abs__ x))))
 
 ;; =============================================================================
-;; int operations
+;; Exception thrower helpers
 ;; =============================================================================
-
-(define (int-new cls #!optional (value #f))
-  (if (py-issubclass? cls py-int-class)
-    (cond
-      ((not value)
-        (let ((new-int (py-obj-alloc cls py-int-hclass-of-instances)))
-          (object-scheme-value-fast-set! new-int 0)
-          new-int))
-      ((py-isinstance? value py-int-class)
-        (let ((new-int (py-obj-alloc cls py-int-hclass-of-instances))
-              (value (object-scheme-value-fast-get value)))
-          (object-scheme-value-fast-set! new-int value)
-          new-int))
-      (else (error "int.__new__ only supports subtypes of int")))
-    (py-throw py-builtin-TypeError)))
-
-(define int.__new__
-  (make-PyFunction (PyFunction-default-hclass) '#() int-new))
 
 (define (py-throw-required-type method-name required-type given-type)
   (py-throw
@@ -430,6 +441,71 @@
             "' object but received a '"
             given-type
             "'")))))
+
+(define (py-throw-not-a-subtype fun-name wrong-type type-name)
+  (let ((wrong-type-name (py-str-to-scheme (type-name-fast-get wrong-type))))
+    (py-throw
+      (py-call py-builtin-TypeError
+        (py-str-from-scheme
+          (string-append
+              fun-name "(" wrong-type-name "): " wrong-type-name " is not a subtype of " type-name))))))
+
+(define (py-throw-not-a-type-object fun-name obj)
+  (let* ((instance-type (py-type obj))
+         (instance-type-name (py-str-to-scheme (type-name-fast-get instance-type))))
+    (py-throw
+      (py-call py-builtin-TypeError
+        (py-str-from-scheme
+          (string-append
+              fun-name "(X): X is not a type object (" instance-type-name ")"))))))
+
+;; when there is a call to cls.__new__(X), X must be a subtype of cls
+;; if it is not even a type the error message is:
+;;    cls.__new__(X): X is not a type object ([type of X])
+;; if X is a type, but not a subtype of cls, the error message is:
+;;   cls.__new__([X.__name__]): [X.__name__] is not a subtype of cls
+(define (py-throw-wrong-new-argument cls-name arg)
+  (let ((fun-name (string-append cls-name ".__new__")))
+    (if (py-isinstance? arg py-type-class)
+      (py-throw-not-a-subtype fun-name arg cls-name)
+      (py-throw-not-a-type-object fun-name arg))))
+
+;; =============================================================================
+;; int operations
+;; =============================================================================
+
+(define (int-new cls #!optional (value #f))
+  (cond
+    ((eq? cls py-int-class)
+      (cond
+        ((not value)
+          ;; TODO this could be removed by setting value default to the int 0
+          ;; int() return 0
+          (py-int-from-scheme 0))
+        ((eq? (py-type value) py-int-class)
+          ;; int(x) return the same object when x is an int
+          value)
+        ((py-isinstance? value py-int-class)
+          ;; up-typing an instance of subclass to an int
+          (py-int-from-scheme (object-scheme-value-fast-get value)))
+        (else (error "int.__new__ unimplemented for non int"))))
+    ((py-issubclass? cls py-int-class)
+      (cond
+        ((not value)
+          (let ((new-int (py-obj-alloc cls py-int-hclass-of-instances)))
+            (object-scheme-value-fast-set! new-int 0)
+            new-int))
+        ((py-isinstance? value py-int-class)
+          (let ((new-int (py-obj-alloc cls py-int-hclass-of-instances))
+                (value (object-scheme-value-fast-get value)))
+            (object-scheme-value-fast-set! new-int value)
+            new-int))
+        (else (error "int.__new__ only supports subtypes of int"))))
+    (else
+      (py-throw-wrong-new-argument "int" cls))))
+
+(define int.__new__
+  (make-PyFunction (PyFunction-default-hclass) '#() int-new))
 
 (define-macro (define-int-into-int-binary-operator fun-name method-name scheme-op)
   (let ((py-func-name (string->symbol (string-append "int." method-name))))
@@ -447,28 +523,45 @@
       (define ,py-func-name
         (make-PyFunction (PyFunction-default-hclass) '#() ,fun-name)))))
 
-(define-int-into-int-binary-operator int-add "__add__" +)
+(define-macro (define-int-into-int-division-operator fun-name method-name scheme-op)
+  (let ((py-func-name (string->symbol (string-append "int." method-name))))
+    `(begin
+      (define (,fun-name self other)
+        (if (py-isinstance? self py-int-class)
+          (cond
+            ((py-isinstance? other py-int-class)
+              (let ((self-value (object-scheme-value-fast-get self))
+                    (other-value (object-scheme-value-fast-get other)))
+                (if (not (= 0 other-value))
+                  (py-int-from-scheme (,scheme-op self-value other-value))
+                  (py-throw
+                    (py-call py-builtin-ZeroDivisionError
+                      (py-str-from-scheme "integer division or modulo by zero"))))))
+            (else py-NotImplemented))
+          (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type self)))))
+            (py-throw-required-type ,method-name "int" given-type))))
+      (define ,py-func-name
+        (make-PyFunction (PyFunction-default-hclass) '#() ,fun-name)))))
 
-(define-int-into-int-binary-operator int-sub "__sub__" -)
-
-(define-int-into-int-binary-operator int-mul "__mul__" *)
-
-(define-int-into-int-binary-operator int-floordiv "__floordiv__" floor-quotient)
-
-(define-int-into-int-binary-operator int-and "__and__" bitwise-and)
-
-(define-int-into-int-binary-operator int-lshift "__lshift__" arithmetic-shift)
-
-(define-int-into-int-binary-operator int-rshift "__rshift__"
-  (lambda (x y) (arithmetic-shift x (- y))))
-
-(define-int-into-int-binary-operator int-mod "__mod__" modulo)
-
-(define-int-into-int-binary-operator int-or "__or__" bitwise-ior)
-
-(define-int-into-int-binary-operator int-pow "__pow__" expt)
-
-(define-int-into-int-binary-operator int-xor "__xor__" bitwise-xor)
+(define-macro (define-int-into-float-division-operator fun-name method-name scheme-op)
+  (let ((py-func-name (string->symbol (string-append "int." method-name))))
+    `(begin
+      (define (,fun-name self other)
+        (if (py-isinstance? self py-int-class)
+          (cond
+            ((py-isinstance? other py-int-class)
+              (let ((self-value (object-scheme-value-fast-get self))
+                    (other-value (object-scheme-value-fast-get other)))
+                (if (not (= 0 other-value))
+                  (py-float-from-scheme (inexact (,scheme-op self-value other-value)))
+                  (py-throw
+                    (py-call py-builtin-ZeroDivisionError
+                      (py-str-from-scheme "division by zero"))))))
+            (else py-NotImplemented))
+          (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type self)))))
+            (py-throw-required-type ,method-name "int" given-type))))
+      (define ,py-func-name
+        (make-PyFunction (PyFunction-default-hclass) '#() ,fun-name)))))
 
 (define-macro (define-int-comparison-operator fun-name method-name scheme-op)
   (let ((py-func-name (string->symbol (string-append "int." method-name))))
@@ -486,7 +579,51 @@
       (define ,py-func-name
         (make-PyFunction (PyFunction-default-hclass) '#() ,fun-name)))))
 
+(define-macro (define-int-unary-operator fun-name method-name scheme-op)
+  (let ((py-func-name (string->symbol (string-append "int." method-name))))
+    `(begin
+      (define (,fun-name self)
+        (if (py-isinstance? self py-int-class)
+          (let ((self-value (object-scheme-value-fast-get self)))
+            (py-int-from-scheme (,scheme-op self-value)))
+          (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type self)))))
+            (py-throw-required-type ,method-name "int" given-type))))
+      (define ,py-func-name
+        (make-PyFunction (PyFunction-default-hclass) '#() ,fun-name)))))
+
+;; helpers
+
+(define (arithmetic-lshift x y) (arithmetic-shift x (- y)))
+
 (define (!= x y) (not (= x y)))
+
+;; operations
+
+(define-int-into-int-binary-operator int-add "__add__" +)
+
+(define-int-into-int-binary-operator int-sub "__sub__" -)
+
+(define-int-into-int-binary-operator int-mul "__mul__" *)
+
+(define-int-into-int-binary-operator int-and "__and__" bitwise-and)
+
+(define-int-into-int-binary-operator int-lshift "__lshift__" arithmetic-shift)
+
+(define-int-into-int-binary-operator int-rshift "__rshift__" arithmetic-lshift)
+
+(define-int-into-int-binary-operator int-or "__or__" bitwise-ior)
+
+(define-int-into-int-binary-operator int-pow "__pow__" expt)
+
+(define-int-into-int-binary-operator int-xor "__xor__" bitwise-xor)
+
+(define-int-into-int-division-operator int-mod "__mod__" modulo)
+
+(define-int-into-int-division-operator int-floordiv "__floordiv__" floor-quotient)
+
+(define-int-into-float-division-operator int-truediv "__truediv__" /)
+
+;; Comparisons
 
 (define-int-comparison-operator int-eq "__eq__" =)
 
@@ -499,6 +636,78 @@
 (define-int-comparison-operator int-gt "__gt__" >)
 
 (define-int-comparison-operator int-gte "__ge__" >=)
+
+;; in-place operators
+
+(define-int-into-int-binary-operator int-iadd "__iadd__" +)
+
+(define-int-into-int-binary-operator int-isub "__isub__" -)
+
+(define-int-into-int-binary-operator int-imul "__imul__" *)
+
+(define-int-into-int-binary-operator int-iand "__iand__" bitwise-and)
+
+(define-int-into-int-binary-operator int-ilshift "__ilshift__" arithmetic-shift)
+
+(define-int-into-int-binary-operator int-irshift "__irshift__"
+  (lambda (x y) (arithmetic-shift x (- y))))
+
+(define-int-into-int-binary-operator int-ior "__ior__" bitwise-ior)
+
+(define-int-into-int-binary-operator int-ipow "__ipow__" expt)
+
+(define-int-into-int-binary-operator int-ixor "__ixor__" bitwise-xor)
+
+(define-int-into-int-binary-operator int-imod "__imod__" modulo)
+
+(define-int-into-int-division-operator int-ifloordiv "__ifloordiv__" floor-quotient)
+
+(define-int-into-float-division-operator int-itruediv "__itruediv__" /)
+
+;; unary operators
+
+(define-int-unary-operator int-invert "__invert__" bitwise-not)
+
+(define-int-unary-operator int-neg "__neg__" -)
+
+(define-int-unary-operator int-pos "__pos__" +)
+
+(define-int-unary-operator int-abs "__abs__" abs)
+
+;; =============================================================================
+;; float operations
+;; =============================================================================
+
+(define (float-new cls #!optional (value #f))
+  (cond
+    ((eq? cls py-float-class)
+      (cond
+        ((not value)
+          (py-float-from-scheme 0.0))
+        ((eq? (py-type value) py-float-class)
+          ;; float(x) return the same object when x is a float
+          value)
+        ((py-isinstance? value py-float-class)
+          ;; up-typing an instance of subclass to an float
+          (py-float-from-scheme (object-scheme-value-fast-get value)))
+        (else (error "float.__new__ unimplemented for non float"))))
+    ((py-issubclass? cls py-float-class)
+      (cond
+        ((not value)
+          (let ((new-float (py-obj-alloc cls py-float-hclass-of-instances)))
+            (object-scheme-value-fast-set! new-float 0.0)
+            new-float))
+        ((py-isinstance? value py-float-class)
+          (let ((new-float (py-obj-alloc cls py-float-hclass-of-instances))
+                (value (object-scheme-value-fast-get value)))
+            (object-scheme-value-fast-set! new-float value)
+            new-float))
+        (else (error "float.__new__ only supports subtypes of float"))))
+    (else
+      (py-throw-wrong-new-argument "float" cls))))
+
+(define float.__new__
+  (make-PyFunction (PyFunction-default-hclass) '#() float-new))
 
 ;; =============================================================================
 ;; bool operations
@@ -1352,7 +1561,10 @@
 (define py-module-class #f)
 
 (define (py-obj-cls* obj) ;; return **class** attribute of object obj
-  (cond ((PyObject? obj)
+  (cond
+        ((PyFunction? obj)
+          py-method-class)
+        ((PyObject? obj)
          (object-class-fast-get obj))
         ((flonum? obj)
          py-float-class)
@@ -1388,10 +1600,35 @@
 
 ;;; Converters between Scheme objects and Python objects for basic
 ;;; types.
-;; TODO: remove direct indexing and use fast-set! methods
+;; TODO: remove direct indexing and use fast-set! methods in this section
+
+(define (alloc-new-int-from-scheme value)
+  (let ((self (py-obj-alloc py-int-class py-int-hclass-of-instances)))
+    (object-scheme-value-fast-set! self value)       ;; set **value**
+    self))
+
+(define int-cache-low -5)
+(define int-cache-high 256)
+
+(define (make-int-cache)
+  (let* ((cache (make-vector (- int-cache-high int-cache-low -1))))
+    (let loop ((int int-cache-low))
+      (if (<= int int-cache-high)
+        (begin
+          (vector-set! cache (- int int-cache-low) (alloc-new-int-from-scheme int))
+          (loop (+ int 1)))
+        cache))))
+
+;; Set on bootstrap when int class is defined
+(define int-cache #f)
 
 (define (py-int-from-scheme value)
-  (let ((self (py-obj-alloc py-int-class py-int-hclass-of-instances)))
+  (if (and (<= value int-cache-high) (>= value int-cache-low))
+    (vector-ref int-cache (- value int-cache-low))
+    (alloc-new-int-from-scheme value)))
+
+(define (py-float-from-scheme value)
+  (let ((self (py-obj-alloc py-float-class py-float-hclass-of-instances)))
     (object-scheme-value-fast-set! self value)       ;; set **value**
     self))
 
@@ -1801,19 +2038,40 @@
         (& "__or__") int.__or__
         (& "__pow__") int.__pow__
         (& "__xor__") int.__xor__
+        (& "__iadd__") int.__iadd__
+        (& "__isub__") int.__isub__
+        (& "__imul__") int.__imul__
+        (& "__ifloordiv__") int.__ifloordiv__
+        (& "__iand__") int.__iand__
+        (& "__ilshift__") int.__ilshift__
+        (& "__irshift__") int.__irshift__
+        (& "__imod__") int.__imod__
+        (& "__ior__") int.__ior__
+        (& "__ipow__") int.__ipow__
+        (& "__ixor__") int.__ixor__
         (& "__eq__") int.__eq__
         (& "__ne__") int.__ne__
         (& "__lt__") int.__lt__
         (& "__le__") int.__le__
         (& "__gt__") int.__gt__
-        (& "__ge__") int.__ge__))
+        (& "__ge__") int.__ge__
+        (& "__neg__") int.__neg__
+        (& "__pos__") int.__pos__
+        (& "__invert__") int.__invert__
+        (& "__abs__") int.__abs__
+        (& "__truediv__") int.__truediv__
+        (& "__itruediv__") int.__itruediv__))
+
+  ;; Pre-allocate ints from -5 to 256 and cache them
+  (set! int-cache (make-int-cache))
 
   (set! py-float-class
     (make-builtin-class
       (& "float")
       (& "builtins")
       (list)
-      py-float-hclass-of-instances))
+      py-float-hclass-of-instances
+        (& "__new__") float.__new__))
 
   (set! py-bool-class
     (make-builtin-class
@@ -2125,6 +2383,15 @@
 (define (py-str obj)
   (py-str-from-scheme (py-str-scheme obj)))
 
+(define (float->string-with-padded-zeros value)
+  (cond
+    ((integer? value)
+      (string-append (number->string value) "0"))
+    ((< (abs value) 1)
+      (string-append "0" (number->string value)))
+    (else
+      (number->string value))))
+
 (define (py-str-scheme obj)
   (cond ((eq? obj 'None) "None")
         (else
@@ -2132,6 +2399,8 @@
            (cond
                  ((eq? t py-int-class)
                   (number->string (object-scheme-value-fast-get obj)))
+                 ((eq? t py-float-class)
+                  (float->string-with-padded-zeros (object-scheme-value-fast-get obj)))
                  ((eq? t py-str-class)
                   (py-str-to-scheme obj))
                  ((eq? t py-list-class)
@@ -2305,10 +2574,7 @@
 ;; returns x.__abs__().
 
 (define py-builtin-abs
-  (py-procedure->function
-   (lambda rest (error "abs" "unimplemented generic procedure for builtin" #f))
-   (lambda (x)
-     (abs x))))
+  (make-PyFunction (PyFunction-default-hclass) '#() py-abs))
 
 ;;-------------------- all(iterable)
 
