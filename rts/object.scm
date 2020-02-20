@@ -1162,6 +1162,16 @@
 (define str.__str__
   (make-PyFunction (PyFunction-default-hclass) '#() str-str))
 
+(define (str-repr self)
+    (if (py-isinstance? self py-str-class)
+      (let* ((string (py-str-to-scheme self))
+             (string-repr (py-str-repr-scheme string)))
+        (py-str-from-scheme string-repr))
+      (py-throw-required-type "__str__" "str" self)))
+
+(define str.__repr__
+  (make-PyFunction (PyFunction-default-hclass) '#() str-repr))
+
 (define (integer->hex-string x)
   (string-append "0x" (number->string x 16)))
 
@@ -1183,12 +1193,6 @@
 
 (define py-repr #f)
 
-(define (py-print obj port)
-  (display (py-str-scheme obj) port))
-
-(define (py-str obj)
-  (py-str-from-scheme (py-str-scheme obj)))
-
 (define (float->string-with-padded-zeros value)
   (cond
     ((integer? value)
@@ -1197,6 +1201,27 @@
       (string-append "0" (number->string value)))
     (else
       (number->string value))))
+
+(define (float-repr self)
+  (if (py-isinstance? self py-float-class)
+    (let ((value (object-scheme-value-fast-get self)))
+      (cond
+        ((integer? value)
+          (string-append (number->string value) "0"))
+        ((< (abs value) 1)
+          (string-append "0" (number->string value)))
+        (else
+          (number->string value))))
+    (py-throw-required-type "__repr__" "float" self)))
+
+(define float.__repr__
+  (make-PyFunction (PyFunction-default-hclass) '#() float-repr))
+
+(define (py-print obj port)
+  (display (py-str-scheme obj) port))
+
+(define (py-str obj)
+  (py-str-from-scheme (py-str-scheme obj)))
 
 (define (py-str-scheme obj)
   (cond ((eq? obj 'None) "None")
@@ -2033,7 +2058,8 @@
     (py-own-attr-set! str-class (& "__name__") (py-str-from-scheme "str"))
     (py-own-attr-set! str-class (& "__module__") (py-str-from-scheme "builtins"))
     (py-own-attr-set! str-class (& "__new__") str.__new__)
-    (py-own-attr-set! str-class (& "__str__") str.__str__)))
+    (py-own-attr-set! str-class (& "__str__") str.__str__)
+    (py-own-attr-set! str-class (& "__repr__") str.__repr__)))
 
 (bootstrap-type-hierarchy-phase1)
 
@@ -2346,7 +2372,8 @@
       (& "builtins")
       (list)
       py-float-hclass-of-instances
-        (& "__new__") float.__new__))
+        (& "__new__") float.__new__
+        (& "__repr__") float.__repr__))
 
   (set! py-bool-class
     (make-builtin-class
