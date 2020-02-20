@@ -1218,7 +1218,7 @@
 (define float.__repr__
   (make-PyFunction (PyFunction-default-hclass) '#() float-repr))
 
-(define (py-print obj port)
+(define (py-display obj port)
   ;; checking some cases beforehand for efficiency
   (case (py-type obj)
     ((py-str-class)
@@ -1292,7 +1292,21 @@
 (define repr-cache (make-PCache -1 -1))
 
 (define (py-chr i)
-  (py-str-from-scheme (string (integer->char i))))
+  (if (py-isinstance? i py-int-class)
+    (let ((value (object-scheme-value-fast-get i)))
+      (py-str-from-scheme (string (integer->char value))))
+    (let ((i-type (py-type i))
+          (i-type-name (type-name-fast-get i-type)))
+      (py-throw
+        (py-call
+          py-builtin-TypeError
+          (py-str-from-scheme
+            (string-append
+              "an integer is required (got type "
+              instance-type-name
+              ")")))))))
+
+
 
 ;;;----------------------------------------------------------------------------
 
@@ -3979,7 +3993,7 @@
        (let loop ((lst objects))
          (if (pair? lst)
              (let ((rest (cdr lst)))
-               (py-print (car lst) port)
+               (py-display (car lst) port)
                (if (pair? rest)
                    (begin
                      (display " " port)
@@ -4621,10 +4635,10 @@
   (let ((exc-name (getattribute-from-obj-mro exc (& "__name__")))
         (out (current-output-port))
         (__str__ (getattribute-from-obj-mro exc (& "__str__"))))
-    (py-print exc-name out)
+    (py-display exc-name out)
     (let ((str-exc (py-call __str__ exc)))
       (if (> (string-length (py-str-to-scheme str-exc)) 0)
         (begin
           (display ": " out)
-          (py-print str-exc out))))
+          (py-display str-exc out))))
     (display "\n" out)))
