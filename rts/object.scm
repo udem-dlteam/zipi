@@ -892,7 +892,7 @@
                             default))))))))))
 
 ;; ===================
-;; DESCRIPTOR  PROTOCOL
+;; DESCRIPTOR PROTOCOL
 ;; ===================
 
 ;; Binds a recovered attribute by calling attr.__class__.__get__ if it exists
