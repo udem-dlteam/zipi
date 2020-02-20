@@ -1204,111 +1204,49 @@
 
 (define (float-repr self)
   (if (py-isinstance? self py-float-class)
-    (let ((value (object-scheme-value-fast-get self)))
-      (cond
-        ((integer? value)
-          (string-append (number->string value) "0"))
-        ((< (abs value) 1)
-          (string-append "0" (number->string value)))
-        (else
-          (number->string value))))
+    (py-str-from-scheme
+      (let ((value (object-scheme-value-fast-get self)))
+        (cond
+          ((integer? value)
+            (string-append (number->string value) "0"))
+          ((< (abs value) 1)
+            (string-append "0" (number->string value)))
+          (else
+            (number->string value)))))
     (py-throw-required-type "__repr__" "float" self)))
 
 (define float.__repr__
   (make-PyFunction (PyFunction-default-hclass) '#() float-repr))
 
 (define (py-print obj port)
-  (display (py-str-scheme obj) port))
+  ;; checking some cases beforehand for efficiency
+  (case (py-type obj)
+    ((py-str-class)
+      (display (object-scheme-value-fast-get obj) port))
+    ((py-int-class)
+      (display (object-scheme-value-fast-get obj) port))
+    ((py-float-class)
+      (display (float->string-with-padded-zeros (object-scheme-value-fast-get obj)) port))
+    ((py-bool-class)
+      (if (eq? obj py-True)
+        (display "True" port)
+        (display "False" port)))
+    (else
+      (display (object-scheme-value-fast-get (py-str obj)) port))))
 
 (define (py-str obj)
-  (py-str-from-scheme (py-str-scheme obj)))
-
-(define (py-str-scheme obj)
-  (cond ((eq? obj 'None) "None")
-        (else
-         (let ((t (py-type obj)))
-           (cond
-                 ((eq? t py-int-class)
-                  (number->string (object-scheme-value-fast-get obj)))
-                 ((eq? t py-float-class)
-                  (float->string-with-padded-zeros (object-scheme-value-fast-get obj)))
-                 ((eq? t py-str-class)
-                  (py-str-to-scheme obj))
-                 ((eq? t py-list-class)
-                  (py-list-repr-scheme obj))
-                 ((eq? t py-tuple-class)
-                  (py-tuple-repr-scheme obj))
-                 ((eq? t py-dict-class)
-                  (py-dict-repr-scheme obj))
-                 ((eq? t py-set-class)
-                  (py-set-repr-scheme obj))
-                 ((eq? t py-type-class)
-                  (string-append
-                   "<class "
-                   (py-str-repr-scheme
-                    (py-str-to-scheme (py-own-attr-ref obj (& "__name__"))))
-                   ">"))
-                 ((eq? t py-module-class)
-                  (string-append
-                   "<module "
-                   (let ((name (py-str-to-scheme (PyObject-elements-ref obj 2))))
-                     (string-append
-                      (py-str-repr-scheme name)
-                      " "
-                      (if (or (equal? name "builtins")
-                              (equal? name "sys")
-                              (equal? name "time"))
-                          "(built-in)"
-                          (let ((file (py-attr-ref obj (& "__file__"))))
-                            (if (not (eq? file py-absent))
-                                (string-append
-                                 "from "
-                                 (py-repr-scheme file))
-                                "???")))))
-                   ">"))
-                 (else
-                  (py-repr-scheme obj)))))))
+  (let* ((__str__ (getattribute-from-obj-mro obj (& "__str__")))
+        (str-instance (py-call __str__ obj)))
+    (if (py-isinstance? str-instance py-str-class)
+      str-instance
+      (throw-returned-wrong-type "__str__" value "non-string"))))
 
 (define (py-repr obj)
-  (py-str-from-scheme (py-repr-scheme obj)))
-
-(define (py-repr-scheme obj)
-  (let ((__repr__ (getattribute-from-obj-mro obj (& "__repr__"))))
-    (if (not (eq? __repr__ py-absent))
-      (py-str-to-scheme (py-call __repr__ obj))
-      ;; TODO: remove code below, __repr__ should always be implemented
-      (cond ((eq? obj 'None)
-             "None")
-            (else
-             (let ((t (py-type obj)))
-               (cond ((eq? t py-list-class)
-                      (py-str-scheme obj))
-                     ((eq? t py-tuple-class)
-                      (py-str-scheme obj))
-                     ((eq? t py-dict-class)
-                      (py-str-scheme obj))
-                     ((eq? t py-set-class)
-                      (py-str-scheme obj))
-                     ((eq? t py-type-class)
-                      (py-str-scheme obj))
-                     ((eq? t py-module-class)
-                      (py-str-scheme obj))
-                     ((eq? t py-str-class)
-                      (py-str-repr-scheme (py-str-to-scheme obj)))
-                     ((eq? t py-int-class)
-                      (number->string obj))
-                     ((eq? t py-float-class)
-                      (number->string obj))
-                     ((eq? t py-bool-class)
-                      (if obj "True" "False"))
-    		 ((eq? t 'none)
-    		  "None")
-    		 ((eq? t 'function)
-    		  "<function>")
-    		 ((eq? t 'pyobj)
-    		  (format "~s" obj))
-                     (else
-                      "<unknown>"))))))))
+  (let* ((__repr__ (getattribute-from-obj-mro obj (& "__repr__")))
+        (repr (py-call __repr__ obj)))
+    (if (py-isinstance? repr py-str-class)
+      repr
+      (throw-returned-wrong-type "__repr__" value "non-string"))))
 
 (define (py-str-repr-scheme str)
   (let* ((quote-style #f)
@@ -1352,47 +1290,6 @@
       (string-append quotes content quotes))))
 
 (define repr-cache (make-PCache -1 -1))
-
-(define (py-list-repr-scheme list)
-  (py-seq-repr-scheme list "[" "" "]"))
-
-(define (py-tuple-repr-scheme tuple)
-  (py-seq-repr-scheme tuple "(" "," ")"))
-
-(define (py-set-repr-scheme set)
-  (if (= 0 (py-call py-builtin-len set))
-      "set()"
-      (py-seq-repr-scheme set "{" "" "}")))
-
-(define (py-seq-repr-scheme seq open one close)
-  (let ((len (py-call py-builtin-len seq)))
-    (let loop ((i (- len 1)) (elems '()))
-      (if (>= i 0)
-          (let ((x (py-repr-scheme (py-getitem seq i repr-cache))))
-            (loop (- i 1)
-                  (cons (string-append x (if (= i (- len 1)) "" ", ")) elems)))
-          (string-append open
-                         (apply string-append elems)
-                         (if (= len 1) one "")
-                         close)))))
-
-(define (py-dict-repr-scheme dict)
-  (let ((alist (py-dict-to-scheme dict)))
-    (let loop ((lst alist) (elems '()))
-      (if (pair? lst)
-          (let* ((x (car lst))
-                 (key (car x))
-                 (val (cdr x))
-                 (y (string-append
-                     (py-repr-scheme key)
-                     ": "
-                     (py-repr-scheme val))))
-            (loop (cdr lst)
-                  (cons (string-append y (if (pair? (cdr lst)) ", " ""))
-                        elems)))
-          (string-append "{"
-                         (apply string-append (reverse elems))
-                         "}")))))
 
 (define (py-chr i)
   (py-str-from-scheme (string (integer->char i))))
