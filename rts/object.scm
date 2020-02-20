@@ -176,6 +176,63 @@
         (else
          (raise (py-call py-builtin-TypeError)))))
 
+;; =============================================================================
+;; Exception thrower helpers
+;; =============================================================================
+
+(define (py-throw-required-type method-name required-type arg)
+  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type arg)))))
+    (py-throw
+      (py-call py-builtin-TypeError
+        (py-str-from-scheme
+          (string-append
+              "descriptor '"
+              method-name
+              "' requires a '"
+              required-type
+              "' object but received a '"
+              given-type
+              "'"))))))
+
+(define (py-throw-not-a-subtype fun-name wrong-type type-name)
+  (let ((wrong-type-name (py-str-to-scheme (type-name-fast-get wrong-type))))
+    (py-throw
+      (py-call py-builtin-TypeError
+        (py-str-from-scheme
+          (string-append
+              fun-name "(" wrong-type-name "): " wrong-type-name " is not a subtype of " type-name))))))
+
+(define (py-throw-not-a-type-object fun-name obj)
+  (let* ((instance-type (py-type obj))
+         (instance-type-name (py-str-to-scheme (type-name-fast-get instance-type))))
+    (py-throw
+      (py-call py-builtin-TypeError
+        (py-str-from-scheme
+          (string-append
+              fun-name "(X): X is not a type object (" instance-type-name ")"))))))
+
+;; when there is a call to cls.__new__(X), X must be a subtype of cls
+;; if it is not even a type the error message is:
+;;    cls.__new__(X): X is not a type object ([type of X])
+;; if X is a type, but not a subtype of cls, the error message is:
+;;   cls.__new__([X.__name__]): [X.__name__] is not a subtype of cls
+(define (py-throw-wrong-new-argument cls-name arg)
+  (let ((fun-name (string-append cls-name ".__new__")))
+    (if (py-isinstance? arg py-type-class)
+      (py-throw-not-a-subtype fun-name arg cls-name)
+      (py-throw-not-a-type-object fun-name arg))))
+
+(define (throw-returned-wrong-type fun-name obj qualifier)
+  (let* ((type (py-type obj))
+         (type-name (type-name-fast-get type)))
+    (py-throw
+      (py-call
+        py-builtin-TypeError
+        (py-str-from-scheme
+          (string-append
+            fun-name " returned " qualifier " (type " type-name ")"))))))
+
+;; -----------------------------------------------------------------------------
 
 (define (py-make-caches size)
    (list->vector
@@ -426,51 +483,6 @@
         (py-call __abs__ x))))
 
 ;; =============================================================================
-;; Exception thrower helpers
-;; =============================================================================
-
-(define (py-throw-required-type method-name required-type given-type)
-  (py-throw
-    (py-call py-builtin-TypeError
-      (py-str-from-scheme
-        (string-append
-            "descriptor '"
-            method-name
-            "' requires a '"
-            required-type
-            "' object but received a '"
-            given-type
-            "'")))))
-
-(define (py-throw-not-a-subtype fun-name wrong-type type-name)
-  (let ((wrong-type-name (py-str-to-scheme (type-name-fast-get wrong-type))))
-    (py-throw
-      (py-call py-builtin-TypeError
-        (py-str-from-scheme
-          (string-append
-              fun-name "(" wrong-type-name "): " wrong-type-name " is not a subtype of " type-name))))))
-
-(define (py-throw-not-a-type-object fun-name obj)
-  (let* ((instance-type (py-type obj))
-         (instance-type-name (py-str-to-scheme (type-name-fast-get instance-type))))
-    (py-throw
-      (py-call py-builtin-TypeError
-        (py-str-from-scheme
-          (string-append
-              fun-name "(X): X is not a type object (" instance-type-name ")"))))))
-
-;; when there is a call to cls.__new__(X), X must be a subtype of cls
-;; if it is not even a type the error message is:
-;;    cls.__new__(X): X is not a type object ([type of X])
-;; if X is a type, but not a subtype of cls, the error message is:
-;;   cls.__new__([X.__name__]): [X.__name__] is not a subtype of cls
-(define (py-throw-wrong-new-argument cls-name arg)
-  (let ((fun-name (string-append cls-name ".__new__")))
-    (if (py-isinstance? arg py-type-class)
-      (py-throw-not-a-subtype fun-name arg cls-name)
-      (py-throw-not-a-type-object fun-name arg))))
-
-;; =============================================================================
 ;; int operations
 ;; =============================================================================
 
@@ -518,8 +530,7 @@
                     (other-value (object-scheme-value-fast-get other)))
                 (py-int-from-scheme (,scheme-op self-value other-value))))
             (else py-NotImplemented))
-          (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type self)))))
-            (py-throw-required-type ,method-name "int" given-type))))
+          (py-throw-required-type ,method-name "int" self)))
       (define ,py-func-name
         (make-PyFunction (PyFunction-default-hclass) '#() ,fun-name)))))
 
@@ -538,8 +549,7 @@
                     (py-call py-builtin-ZeroDivisionError
                       (py-str-from-scheme "integer division or modulo by zero"))))))
             (else py-NotImplemented))
-          (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type self)))))
-            (py-throw-required-type ,method-name "int" given-type))))
+          (py-throw-required-type ,method-name "int" self)))
       (define ,py-func-name
         (make-PyFunction (PyFunction-default-hclass) '#() ,fun-name)))))
 
@@ -558,8 +568,7 @@
                     (py-call py-builtin-ZeroDivisionError
                       (py-str-from-scheme "division by zero"))))))
             (else py-NotImplemented))
-          (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type self)))))
-            (py-throw-required-type ,method-name "int" given-type))))
+          (py-throw-required-type ,method-name "int" self)))
       (define ,py-func-name
         (make-PyFunction (PyFunction-default-hclass) '#() ,fun-name)))))
 
@@ -574,8 +583,7 @@
                     (other-value (object-scheme-value-fast-get other)))
                 (if (,scheme-op self-value other-value) py-True py-False)))
             (else py-NotImplemented))
-          (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type self)))))
-            (py-throw-required-type ,method-name "int" given-type))))
+          (py-throw-required-type ,method-name "int" self)))
       (define ,py-func-name
         (make-PyFunction (PyFunction-default-hclass) '#() ,fun-name)))))
 
@@ -586,8 +594,7 @@
         (if (py-isinstance? self py-int-class)
           (let ((self-value (object-scheme-value-fast-get self)))
             (py-int-from-scheme (,scheme-op self-value)))
-          (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type self)))))
-            (py-throw-required-type ,method-name "int" given-type))))
+          (py-throw-required-type ,method-name "int" self)))
       (define ,py-func-name
         (make-PyFunction (PyFunction-default-hclass) '#() ,fun-name)))))
 
@@ -674,6 +681,14 @@
 
 (define-int-unary-operator int-abs "__abs__" abs)
 
+(define (int-repr x)
+  (if (py-isinstance? x py-int-class)
+    (py-str-from-scheme (number->string (object-scheme-value-fast-get x)))
+    (py-throw-required-type "__repr__" "int" x)))
+
+(define int.__repr__
+  (make-PyFunction (PyFunction-default-hclass) '#() int-repr))
+
 ;; =============================================================================
 ;; float operations
 ;; =============================================================================
@@ -731,8 +746,7 @@
     ((eq? self py-True) (py-str-from-scheme "True"))
     ((eq? self py-False) (py-str-from-scheme "False"))
     (else
-      (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type self)))))
-        (py-throw-required-type "__str__" "bool" given-type)))))
+      (py-throw-required-type "__str__" "bool" self))))
 
 (define bool.__str__
   (make-PyFunction (PyFunction-default-hclass) '#() bool-str))
@@ -742,8 +756,7 @@
     ((eq? self py-True) (py-str-from-scheme "True"))
     ((eq? self py-False) (py-str-from-scheme "False"))
     (else
-      (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type self)))))
-        (py-throw-required-type "__repr__" "bool" given-type)))))
+      (py-throw-required-type "__repr__" "bool" self))))
 
 (define bool.__repr__
   (make-PyFunction (PyFunction-default-hclass) '#() bool-repr))
@@ -1003,8 +1016,7 @@
         (if (= value 0)
           py-False
           py-True))
-      (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type self)))))
-        (py-throw-required-type "__bool__" "int" given-type))))
+      (py-throw-required-type "__bool__" "int" self)))
 
 ;; The Python object int.__bool__
 (define int.__bool__
@@ -1106,6 +1118,195 @@
 
 (define object.__init__
   (make-PyFunction (PyFunction-default-hclass) '#() object-init))
+
+
+;; =============================================================================
+;;  str and repr protocols
+;; =============================================================================
+
+(define (str-new cls #!optional (value #f))
+  (cond
+    ((eq? cls py-str-class)
+      (if value
+        (let* ((__str__ (getattribute-from-obj-mro value (& "__str__")))
+               (result (py-call __str__ value)))
+          (if (py-isinstance? result py-str-class)
+            result
+            (throw-returned-wrong-type "__str__" value "non-string")))
+        (py-str-from-scheme "")))
+    ((py-issubclass? cls py-str-class)
+      (if value
+        (let* ((__str__ (getattribute-from-obj-mro value (& "__str__")))
+               (result (py-call __str__ value)))
+          (if (py-isinstance? result py-str-class)
+            (py-obj-alloc-with-value
+              cls
+              py-str-hclass-of-instances
+              (object-scheme-value-fast-get result))
+            (throw-returned-wrong-type "__str__" value "non-string")))
+        (py-obj-alloc-with-value
+          cls
+          py-str-hclass-of-instances
+          "")))
+    (else
+      (py-throw-wrong-new-argument "str" cls))))
+
+(define str.__new__
+  (make-PyFunction (PyFunction-default-hclass) '#() str-new))
+
+(define (str-str self)
+  (if (py-isinstance? self py-str-class)
+    self
+    (py-throw-required-type "__str__" "str" self)))
+
+(define str.__str__
+  (make-PyFunction (PyFunction-default-hclass) '#() str-str))
+
+(define (str-repr self)
+    (if (py-isinstance? self py-str-class)
+      (let* ((string (py-str-to-scheme self))
+             (string-repr (py-str-repr-scheme string)))
+        (py-str-from-scheme string-repr))
+      (py-throw-required-type "__str__" "str" self)))
+
+(define str.__repr__
+  (make-PyFunction (PyFunction-default-hclass) '#() str-repr))
+
+(define (integer->hex-string x)
+  (string-append "0x" (number->string x 16)))
+
+(define (object-repr self)
+  (let* ((self-type (py-type self))
+         (self-type-name (py-str-to-scheme (type-name-fast-get self-type)))
+         (addr (integer->hex-string (##object->encoding self)))
+         (result (string-append "<" self-type-name " object at " addr ">")))
+    (py-str-from-scheme result)))
+
+(define object.__repr__
+  (make-PyFunction (PyFunction-default-hclass) '#() object-repr))
+
+(define (object-str self)
+  (py-repr self))
+
+(define object.__str__
+  (make-PyFunction (PyFunction-default-hclass) '#() object-str))
+
+(define py-repr #f)
+
+(define (float->string-with-padded-zeros value)
+  (cond
+    ((integer? value)
+      (string-append (number->string value) "0"))
+    ((< (abs value) 1)
+      (string-append "0" (number->string value)))
+    (else
+      (number->string value))))
+
+(define (float-repr self)
+  (if (py-isinstance? self py-float-class)
+    (py-str-from-scheme
+      (let ((value (object-scheme-value-fast-get self)))
+        (cond
+          ((integer? value)
+            (string-append (number->string value) "0"))
+          ((< (abs value) 1)
+            (string-append "0" (number->string value)))
+          (else
+            (number->string value)))))
+    (py-throw-required-type "__repr__" "float" self)))
+
+(define float.__repr__
+  (make-PyFunction (PyFunction-default-hclass) '#() float-repr))
+
+(define (py-display obj port)
+  ;; checking some cases beforehand for efficiency
+  (case (py-type obj)
+    ((py-str-class)
+      (display (object-scheme-value-fast-get obj) port))
+    ((py-int-class)
+      (display (object-scheme-value-fast-get obj) port))
+    ((py-float-class)
+      (display (float->string-with-padded-zeros (object-scheme-value-fast-get obj)) port))
+    ((py-bool-class)
+      (if (eq? obj py-True)
+        (display "True" port)
+        (display "False" port)))
+    (else
+      (display (object-scheme-value-fast-get (py-str obj)) port))))
+
+(define (py-str obj)
+  (let* ((__str__ (getattribute-from-obj-mro obj (& "__str__")))
+        (str-instance (py-call __str__ obj)))
+    (if (py-isinstance? str-instance py-str-class)
+      str-instance
+      (throw-returned-wrong-type "__str__" value "non-string"))))
+
+(define (py-repr obj)
+  (let* ((__repr__ (getattribute-from-obj-mro obj (& "__repr__")))
+        (repr (py-call __repr__ obj)))
+    (if (py-isinstance? repr py-str-class)
+      repr
+      (throw-returned-wrong-type "__repr__" value "non-string"))))
+
+(define (py-str-repr-scheme str)
+  (let* ((quote-style #f)
+         (chars (string->list str)))
+    (for-each (lambda (c)
+                (cond ((char=? c #\")
+                       (set! quote-style #\'))
+                      ((and (char=? c #\') (not (eqv? quote-style #\')))
+                       (set! quote-style #\"))))
+              chars)
+    (if (not quote-style)
+        (set! quote-style #\'))
+    (let ((content
+           (apply string-append
+                  (map (lambda (c)
+                         (if (char=? c quote-style)
+                             (string #\\ quote-style)
+                             (let ((n (char->integer c)))
+                               (cond ((= n 9)   "\\t")
+                                     ((= n 10)  "\\n")
+                                     ((= n 13)  "\\r")
+                                     ((and (>= n 888)
+                                           (or (>= n 1024)
+                                               (<= n 889)
+                                               (and (>= n 896) (<= n 899))
+                                               (= n 907)
+                                               (= n 909)
+                                               (= n 930)))
+                                      (string-append "\\u"
+                                                     (substring (number->string (+ #x100000000 n) 16) 5 9)))
+                                     ((or (< n 32)
+                                          (and (>= n 127) (<= n 160))
+                                          (= n 173))
+                                      (string-append "\\x"
+                                                     (substring (number->string (+ #x100 n) 16) 1 3)))
+                                     (else
+                                      (string c))))))
+                       chars)))
+          (quotes
+           (string quote-style)))
+      (string-append quotes content quotes))))
+
+(define repr-cache (make-PCache -1 -1))
+
+(define (py-chr i)
+  (if (py-isinstance? i py-int-class)
+    (let ((value (object-scheme-value-fast-get i)))
+      (py-str-from-scheme (string (integer->char value))))
+    (let ((i-type (py-type i))
+          (i-type-name (type-name-fast-get i-type)))
+      (py-throw
+        (py-call
+          py-builtin-TypeError
+          (py-str-from-scheme
+            (string-append
+              "an integer is required (got type "
+              instance-type-name
+              ")")))))))
+
+
 
 ;;;----------------------------------------------------------------------------
 
@@ -1587,6 +1788,11 @@
 (define (py-cls-mro cls) ;; return **mro** attribute of class cls
   (type-mro-fast-get cls))
 
+(define (py-obj-alloc-with-value cls hclass-of-instances value)
+  (let ((obj (py-obj-alloc cls hclass-of-instances)))
+    (object-class-fast-set! obj value)
+    obj))
+
 (define (py-obj-alloc cls hclass-of-instances)
   (let ((self
          (make-PyObject
@@ -1726,6 +1932,8 @@
     (py-own-attr-set! object-class (& "__init__") object.__init__)
     (py-own-attr-set! object-class (& "__getattribute__") py-object-getattribute)
     (py-own-attr-set! object-class (& "__bool__") object.__bool__)
+    (py-own-attr-set! object-class (& "__repr__") object.__repr__)
+    (py-own-attr-set! object-class (& "__str__") object.__str__)
 
 
     ;; Fill in type class
@@ -1759,7 +1967,10 @@
       (type-mro-fast-set! str-class str-mro))
     (type-hclass-of-instance-fast-set! str-class py-str-hclass-of-instances)
     (py-own-attr-set! str-class (& "__name__") (py-str-from-scheme "str"))
-    (py-own-attr-set! str-class (& "__module__") (py-str-from-scheme "builtins"))))
+    (py-own-attr-set! str-class (& "__module__") (py-str-from-scheme "builtins"))
+    (py-own-attr-set! str-class (& "__new__") str.__new__)
+    (py-own-attr-set! str-class (& "__str__") str.__str__)
+    (py-own-attr-set! str-class (& "__repr__") str.__repr__)))
 
 (bootstrap-type-hierarchy-phase1)
 
@@ -2060,7 +2271,8 @@
         (& "__invert__") int.__invert__
         (& "__abs__") int.__abs__
         (& "__truediv__") int.__truediv__
-        (& "__itruediv__") int.__itruediv__))
+        (& "__itruediv__") int.__itruediv__
+        (& "__repr__") int.__repr__))
 
   ;; Pre-allocate ints from -5 to 256 and cache them
   (set! int-cache (make-int-cache))
@@ -2071,7 +2283,8 @@
       (& "builtins")
       (list)
       py-float-hclass-of-instances
-        (& "__new__") float.__new__))
+        (& "__new__") float.__new__
+        (& "__repr__") float.__repr__))
 
   (set! py-bool-class
     (make-builtin-class
@@ -2376,195 +2589,6 @@
 
 (define (py-type obj)
   (py-obj-cls obj))
-
-(define (py-print obj port)
-  (display (py-str-scheme obj) port))
-
-(define (py-str obj)
-  (py-str-from-scheme (py-str-scheme obj)))
-
-(define (float->string-with-padded-zeros value)
-  (cond
-    ((integer? value)
-      (string-append (number->string value) "0"))
-    ((< (abs value) 1)
-      (string-append "0" (number->string value)))
-    (else
-      (number->string value))))
-
-(define (py-str-scheme obj)
-  (cond ((eq? obj 'None) "None")
-        (else
-         (let ((t (py-type obj)))
-           (cond
-                 ((eq? t py-int-class)
-                  (number->string (object-scheme-value-fast-get obj)))
-                 ((eq? t py-float-class)
-                  (float->string-with-padded-zeros (object-scheme-value-fast-get obj)))
-                 ((eq? t py-str-class)
-                  (py-str-to-scheme obj))
-                 ((eq? t py-list-class)
-                  (py-list-repr-scheme obj))
-                 ((eq? t py-tuple-class)
-                  (py-tuple-repr-scheme obj))
-                 ((eq? t py-dict-class)
-                  (py-dict-repr-scheme obj))
-                 ((eq? t py-set-class)
-                  (py-set-repr-scheme obj))
-                 ((eq? t py-type-class)
-                  (string-append
-                   "<class "
-                   (py-str-repr-scheme
-                    (py-str-to-scheme (py-own-attr-ref obj (& "__name__"))))
-                   ">"))
-                 ((eq? t py-module-class)
-                  (string-append
-                   "<module "
-                   (let ((name (py-str-to-scheme (PyObject-elements-ref obj 2))))
-                     (string-append
-                      (py-str-repr-scheme name)
-                      " "
-                      (if (or (equal? name "builtins")
-                              (equal? name "sys")
-                              (equal? name "time"))
-                          "(built-in)"
-                          (let ((file (py-attr-ref obj (& "__file__"))))
-                            (if (not (eq? file py-absent))
-                                (string-append
-                                 "from "
-                                 (py-repr-scheme file))
-                                "???")))))
-                   ">"))
-                 (else
-                  (py-repr-scheme obj)))))))
-
-(define (py-repr obj)
-  (py-str-from-scheme (py-repr-scheme obj)))
-
-(define (py-repr-scheme obj)
-  (let ((__repr__ (getattribute-from-obj-mro obj (& "__repr__"))))
-    (if (not (eq? __repr__ py-absent))
-      (py-str-to-scheme (py-call __repr__ obj))
-      ;; TODO: remove code below, __repr__ should always be implemented
-      (cond ((eq? obj 'None)
-             "None")
-            (else
-             (let ((t (py-type obj)))
-               (cond ((eq? t py-list-class)
-                      (py-str-scheme obj))
-                     ((eq? t py-tuple-class)
-                      (py-str-scheme obj))
-                     ((eq? t py-dict-class)
-                      (py-str-scheme obj))
-                     ((eq? t py-set-class)
-                      (py-str-scheme obj))
-                     ((eq? t py-type-class)
-                      (py-str-scheme obj))
-                     ((eq? t py-module-class)
-                      (py-str-scheme obj))
-                     ((eq? t py-str-class)
-                      (py-str-repr-scheme (py-str-to-scheme obj)))
-                     ((eq? t py-int-class)
-                      (number->string obj))
-                     ((eq? t py-float-class)
-                      (number->string obj))
-                     ((eq? t py-bool-class)
-                      (if obj "True" "False"))
-    		 ((eq? t 'none)
-    		  "None")
-    		 ((eq? t 'function)
-    		  "<function>")
-    		 ((eq? t 'pyobj)
-    		  (format "~s" obj))
-                     (else
-                      "<unknown>"))))))))
-
-(define (py-str-repr-scheme str)
-  (let* ((quote-style #f)
-         (chars (string->list str)))
-    (for-each (lambda (c)
-                (cond ((char=? c #\")
-                       (set! quote-style #\'))
-                      ((and (char=? c #\') (not (eqv? quote-style #\')))
-                       (set! quote-style #\"))))
-              chars)
-    (if (not quote-style)
-        (set! quote-style #\'))
-    (let ((content
-           (apply string-append
-                  (map (lambda (c)
-                         (if (char=? c quote-style)
-                             (string #\\ quote-style)
-                             (let ((n (char->integer c)))
-                               (cond ((= n 9)   "\\t")
-                                     ((= n 10)  "\\n")
-                                     ((= n 13)  "\\r")
-                                     ((and (>= n 888)
-                                           (or (>= n 1024)
-                                               (<= n 889)
-                                               (and (>= n 896) (<= n 899))
-                                               (= n 907)
-                                               (= n 909)
-                                               (= n 930)))
-                                      (string-append "\\u"
-                                                     (substring (number->string (+ #x100000000 n) 16) 5 9)))
-                                     ((or (< n 32)
-                                          (and (>= n 127) (<= n 160))
-                                          (= n 173))
-                                      (string-append "\\x"
-                                                     (substring (number->string (+ #x100 n) 16) 1 3)))
-                                     (else
-                                      (string c))))))
-                       chars)))
-          (quotes
-           (string quote-style)))
-      (string-append quotes content quotes))))
-
-(define repr-cache (make-PCache -1 -1))
-
-(define (py-list-repr-scheme list)
-  (py-seq-repr-scheme list "[" "" "]"))
-
-(define (py-tuple-repr-scheme tuple)
-  (py-seq-repr-scheme tuple "(" "," ")"))
-
-(define (py-set-repr-scheme set)
-  (if (= 0 (py-call py-builtin-len set))
-      "set()"
-      (py-seq-repr-scheme set "{" "" "}")))
-
-(define (py-seq-repr-scheme seq open one close)
-  (let ((len (py-call py-builtin-len seq)))
-    (let loop ((i (- len 1)) (elems '()))
-      (if (>= i 0)
-          (let ((x (py-repr-scheme (py-getitem seq i repr-cache))))
-            (loop (- i 1)
-                  (cons (string-append x (if (= i (- len 1)) "" ", ")) elems)))
-          (string-append open
-                         (apply string-append elems)
-                         (if (= len 1) one "")
-                         close)))))
-
-(define (py-dict-repr-scheme dict)
-  (let ((alist (py-dict-to-scheme dict)))
-    (let loop ((lst alist) (elems '()))
-      (if (pair? lst)
-          (let* ((x (car lst))
-                 (key (car x))
-                 (val (cdr x))
-                 (y (string-append
-                     (py-repr-scheme key)
-                     ": "
-                     (py-repr-scheme val))))
-            (loop (cdr lst)
-                  (cons (string-append y (if (pair? (cdr lst)) ", " ""))
-                        elems)))
-          (string-append "{"
-                         (apply string-append (reverse elems))
-                         "}")))))
-
-(define (py-chr i)
-  (py-str-from-scheme (string (integer->char i))))
 
 ;;-------------------- abs(x)
 
@@ -3969,7 +3993,7 @@
        (let loop ((lst objects))
          (if (pair? lst)
              (let ((rest (cdr lst)))
-               (py-print (car lst) port)
+               (py-display (car lst) port)
                (if (pair? rest)
                    (begin
                      (display " " port)
@@ -4611,10 +4635,10 @@
   (let ((exc-name (getattribute-from-obj-mro exc (& "__name__")))
         (out (current-output-port))
         (__str__ (getattribute-from-obj-mro exc (& "__str__"))))
-    (py-print exc-name out)
+    (py-display exc-name out)
     (let ((str-exc (py-call __str__ exc)))
       (if (> (string-length (py-str-to-scheme str-exc)) 0)
         (begin
           (display ": " out)
-          (py-print str-exc out))))
+          (py-display str-exc out))))
     (display "\n" out)))
