@@ -55,41 +55,9 @@
           (PCache-set! cache hclass i)
           (PyObject-elements-set! global i val)))))
 
-;; TODO remove old object-get methods and remove dependencies in rts
-(define (object-get/miss obj name cache)
-  ;; TODO: create a 'method' instance with __func__ and __self__ attributes
-  ;; when attribute is a function and obj is not a class
-  (let ((index (PyObject-find-prop obj name)))
-    (cond ((>= index 0)
-           (PCache-set! cache (PyObject-hclass obj) index)
-           (PyObject-elements-ref obj index))
-          (else
-           (object-get/miss-in-mro obj name)))))
-
-(define (object-get-no-cache obj name)
-  (let ((index (PyObject-find-prop obj name)))
-    (cond ((>= index 0)
-           (PyObject-elements-ref obj index))
-    (else
-           (object-get/miss-in-mro obj name)))))
-
-(define (object-get/miss-in-mro obj name)
-;;  (let ((mro (py-cls-mro (py-obj-cls obj))))
-  (let ((mro (HClass-class-mro (PyObject-hclass obj))))
-    (let loop ((i 0))
-      (if (< i (vector-length mro))
-          (let ((cls (vector-ref mro i)))
-            (let ((index (PyObject-find-prop cls name)))
-              (if (>= index 0)
-                  (PyObject-elements-ref cls index)
-                  (loop (+ i 1)))))
-          (error "AttributeError" "object has no attribute" name)))))
-
-#;
 (define (object-has obj name)
    (>= (PyObject-find-prop obj name) 0))
 
-#;
 (define (object-put! object name val cache)
   (if (eq? (PyObject-hclass object) (PCache-hclass cache))
       (PyObject-elements-set! object (PCache-index cache) val)
@@ -1499,15 +1467,15 @@
 ;; Once builtins.py is loaded, we need to keep a direct access to some builtins
 ;; Examples are exceptions which are part of Python protocols, such as StopIteration
 (define (bootstrap-builtins builtins-mod)
- (set! py-builtin-ValueError (object-get-no-cache builtins-mod  (& "ValueError")))
- (set! py-builtin-NameError (object-get-no-cache builtins-mod  (& "NameError")))
- (set! py-builtin-StopIteration (object-get-no-cache builtins-mod  (& "StopIteration")))
- (set! py-builtin-ArithmeticError (object-get-no-cache builtins-mod  (& "ArithmeticError")))
- (set! py-builtin-ZeroDivisionError (object-get-no-cache builtins-mod  (& "ZeroDivisionError")))
- (set! py-builtin-AttributeError (object-get-no-cache builtins-mod  (& "AttributeError")))
- (set! py-builtin-TypeError (object-get-no-cache builtins-mod  (& "TypeError")))
- (set! py-builtin-RuntimeError (object-get-no-cache builtins-mod (& "RuntimeError")))
- (set! py-builtin-AssertionError (object-get-no-cache builtins-mod (& "AssertionError")))
+ (set! py-builtin-ValueError (py-own-attr-ref builtins-mod  (& "ValueError")))
+ (set! py-builtin-NameError (py-own-attr-ref builtins-mod  (& "NameError")))
+ (set! py-builtin-StopIteration (py-own-attr-ref builtins-mod  (& "StopIteration")))
+ (set! py-builtin-ArithmeticError (py-own-attr-ref builtins-mod  (& "ArithmeticError")))
+ (set! py-builtin-ZeroDivisionError (py-own-attr-ref builtins-mod  (& "ZeroDivisionError")))
+ (set! py-builtin-AttributeError (py-own-attr-ref builtins-mod  (& "AttributeError")))
+ (set! py-builtin-TypeError (py-own-attr-ref builtins-mod  (& "TypeError")))
+ (set! py-builtin-RuntimeError (py-own-attr-ref builtins-mod (& "RuntimeError")))
+ (set! py-builtin-AssertionError (py-own-attr-ref builtins-mod (& "AssertionError")))
 )
 
 (define (py-builtins-mod)

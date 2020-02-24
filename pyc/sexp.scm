@@ -185,7 +185,7 @@
 	  ((eq? val 'True)
 	   (new-PycBool loc #t))
     ((eq? val 'None)
-      (new-PycNone loc))
+      (new-PycNone loc #f))
 	  (else
 	   (new-PycNumber loc val))))
       ((BinOp ?loc ?left ?op ?right)
