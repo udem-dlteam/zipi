@@ -188,7 +188,7 @@
 	      (generator::bool (default #f))
               (need-return::bool (default #t))
               (can-locals::bool (default #t))
-              (super-in-class::symbol))
+              (super-in-class::symbol (default #f)))
 
            (final-class PycClass::PycExpr
 	      (name::bstring read-only)
@@ -196,7 +196,7 @@
 	      bases::pair-nil
               body::PycStmt
               (decls::pair-nil (default '()))
-              (super-key::symbol))
+              (super-key::symbol (default #f)))
 
 	   (final-class PycYield::PycExpr
 	      (val::PycExpr (info '("ast")))
