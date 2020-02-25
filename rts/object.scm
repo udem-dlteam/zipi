@@ -203,7 +203,7 @@
 
 (define (py-obj-alloc-with-value cls hclass-of-instances value)
   (let ((obj (py-obj-alloc cls hclass-of-instances)))
-    (object-class-fast-set! obj value)
+    (object-scheme-value-fast-set! obj value)
     obj))
 
 (define (py-obj-alloc cls hclass-of-instances)
@@ -345,14 +345,14 @@
 ;; callable types. Instead, function.__call__ returns a 'method wrapper'
 ;; object which has a __call__ method but is treated differently
 (define (py-call obj . args)
-  (let ((obj-type (py-type obj)))
-    (if (or (eq? obj-type py-function-class)
-            (eq? obj-type py-method-class))
-      (apply (object-scheme-procedure-fast-get obj) args)
-      (let ((call-method (getattribute-from-obj-mro obj (& "__call__"))))
-        (if (eq? call-method py-absent)
-          (py-throw-not-callable obj)
-          (apply py-call call-method obj args))))))
+  (let ((__call__ (getattribute-from-obj-mro obj (& "__call__")))
+        (obj-type (py-type obj)))
+    (if (eq? __call__ py-absent)
+      (py-throw-not-callable obj)
+      (if (or (eq? obj-type py-function-class)
+              (eq? obj-type py-method-class))
+        (apply (object-scheme-procedure-fast-get __call__) obj args)
+        (apply py-call __call__ obj args)))))
 
 (define (py-is-in-mro? target mro)
   (let loop ((i 0))
@@ -1110,9 +1110,9 @@
 ;; Binds a recovered attribute by calling attr.__class__.__get__ if it exists
 ;; if the __get__ method does not exist on the attr's class, return the attr
 (define (object-get-bind-descriptor attr instance #!optional (owner py-None))
-  (let ((py-attr-get-method (getattribute-from-obj-mro attr (& "__get__"))))
-    (if (not (eq? py-attr-get-method py-absent))
-      (py-call py-attr-get-method attr instance owner)
+  (let ((__get__ (getattribute-from-obj-mro attr (& "__get__"))))
+    (if (not (eq? __get__ py-absent))
+      (py-call __get__ attr instance owner)
       attr)))
 
 ;; ================
@@ -1250,16 +1250,20 @@
 ;; =============
 
 (define (method-call self . args)
-  (let ((procedure (py-own-attr-ref self (& "**procedure**")))
-        (bound-instance (py-own-attr-ref self (& "__self__"))))
-    (apply procedure bound-instance args)))
+  (if (eq? (py-type self) py-method-class)
+    (let ((procedure (py-own-attr-ref self (& "**procedure**")))
+          (bound-instance (py-own-attr-ref self (& "__self__"))))
+      (apply procedure bound-instance args))
+    (py-throw-required-type "__call__" "method" self)))
 
 (define py-method-call
   (procedure->py-function method-call))
 
 (define (function-call self . args)
-  (let ((procedure (py-own-attr-ref self (& "**procedure**"))))
-      (apply procedure args)))
+  (if (eq? (py-type self) py-function-class)
+    (let ((procedure (py-own-attr-ref self (& "**procedure**"))))
+      (apply procedure args))
+    (py-throw-required-type "__call__" "function" self)))
 
 (define py-function-call
   (procedure->py-function function-call))
