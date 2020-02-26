@@ -182,13 +182,19 @@
 	      (cache (default #f)))
 
            (final-class PycFun::PycExpr
-              args::pair-nil
-              body::PycStmt
-              (decls::pair-nil (default '()))
-	      (generator::bool (default #f))
-              (need-return::bool (default #t))
-              (can-locals::bool (default #t))
-              (super-in-class::symbol (default #f)))
+            args::pair-nil
+            posonlyargs::pair-nil
+            vararg::symbol
+            kwonlyargs::pair-nil
+            kw_default::pair-nil
+            kwarg::symbol
+            default::pair-nil
+            body::PycStmt
+            (decls::pair-nil (default '()))
+            (generator::bool (default #f))
+            (need-return::bool (default #t))
+            (can-locals::bool (default #t))
+            (super-in-class::symbol (default #f)))
 
            (final-class PycClass::PycExpr
 	      (name::bstring read-only)
