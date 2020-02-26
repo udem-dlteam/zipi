@@ -29,7 +29,8 @@
       (& "**bases**")
       (& "**mro**")
       (& "**hclass-of-instance**")
-      (& "__name__"))
+      (& "__name__")
+      (& "__call__"))
     '()))
 
 (define py-str-hclass-of-instances
@@ -186,6 +187,9 @@
 
 (define (type-name-fast-set! type name)
   (PyObject-hclass-set! type 4 name))
+
+(define (class-__call__-fast-get class)
+  (PyObject-elements-ref class 5))
 
 (define (object-scheme-value-fast-get obj)
   (PyObject-elements-ref obj 1))
@@ -345,14 +349,17 @@
 ;; callable types. Instead, function.__call__ returns a 'method wrapper'
 ;; object which has a __call__ method but is treated differently
 (define (py-call obj . args)
-  (let ((__call__ (getattribute-from-obj-mro obj (& "__call__")))
-        (obj-type (py-type obj)))
-    (if (eq? __call__ py-absent)
-      (py-throw-not-callable obj)
-      (if (or (eq? obj-type py-function-class)
-              (eq? obj-type py-method-class))
-        (apply (object-scheme-procedure-fast-get __call__) obj args)
-        (apply py-call __call__ obj args)))))
+  (let ((obj-type (py-type obj)))
+    (if (or (eq? obj-type py-function-class)
+            (eq? obj-type py-method-class))
+      (let* ((__call__ (class-__call__-fast-get obj-type))
+             (procedure (object-scheme-procedure-fast-get __call__)))
+        (apply procedure obj args))
+      (let ((__call__ (getattribute-from-obj-mro obj (& "__call__")))
+            (obj-type (py-type obj)))
+        (if (eq? __call__ py-absent)
+          (py-throw-not-callable obj)
+          (apply py-call __call__ obj args))))))
 
 (define (py-is-in-mro? target mro)
   (let loop ((i 0))
