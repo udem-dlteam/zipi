@@ -184,7 +184,7 @@ def cvt_arg_seq(arg_seq):
 
 def cvt_arguments(arguments):
     return ('(' + cvt_arg_seq(arguments.args) +
-            (' ' + cvt_arg_seq(arguments.posonlyargs) if python38 else '') +
+            (' ' + cvt_arg_seq(arguments.posonlyargs) if python38 else "()") +
             ' ' + cvt_arg_opt(arguments.vararg) +
             ' ' + cvt_arg_seq(arguments.kwonlyargs) +
             ' ' + cvt_expr_opt_seq(arguments.kw_defaults) +
