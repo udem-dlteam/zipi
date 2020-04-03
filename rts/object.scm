@@ -93,7 +93,9 @@
     '#()
     (vector
       (& "**class**")
-      (& "**procedure**"))
+      (& "**procedure**")
+      (& "**arity**")
+      (& "**signature**"))
     '()))
 
 (define py-function-hclass-of-instances
@@ -101,7 +103,9 @@
     '#()
     (vector
       (& "**class**")
-      (& "**procedure**"))
+      (& "**procedure**")
+      (& "**arity**")
+      (& "**signature**"))
     '()))
 
 (define py-list-hclass-of-instances
@@ -202,6 +206,18 @@
 
 (define (object-scheme-procedure-fast-set! obj value)
   (PyObject-elements-set! obj 1 value))
+
+(define (object-scheme-arity-fast-get obj)
+  (PyObject-elements-ref obj 2))
+
+(define (object-scheme-arity-fast-set! obj value)
+  (PyObject-elements-set! obj 2 value))
+
+(define (object-scheme-signature-fast-get obj)
+  (PyObject-elements-ref obj 3))
+
+(define (object-scheme-signature-fast-set! obj value)
+  (PyObject-elements-set! obj 3 value))
 
 ;; object allocation
 
@@ -317,9 +333,38 @@
 ;; which we keep in the functions-awaiting-bootstap list. Once py-function-class
 ;; is created, we can recover these functions and add their type.
 
+(define (make-signature posonlyargs vararg kwonlyargs kw_defaults kwarg defaults)
+  (vector posonlyargs vararg kwonlyargs kw_defaults kwarg defaults))
+
+(define (make-posonly-signature posonlyargs)
+  (make-signature '() posonlyargs #f '() '() '()))
+
 (define functions-awaiting-bootstap '())
 
-(define (prebootstrap-procedure->py-function procedure)
+;; signature: #(args posonlyargs vararg kwonlyargs kw_defaults kwarg defaults)
+;; takes in a signature and returns an arity.
+;; positive arity: a function takes a fixed number of positional arguments
+;; negative arity: functions takes x arguments, last argument is a *args
+;; #f arity: unknown arity due to defaults value
+(define (signature->arity signature)
+  (let ((args (vector-ref signature 0))
+        (posonlyargs (vector-ref signature 1))
+        (vararg (vector-ref signature 2))
+        (kwonlyargs (vector-ref signature 3))
+        (kw-defaults (vector-ref signature 4))
+        (kwarg (vector-ref signature 5))
+        (defaults (vector-ref signature 6)))
+    (if (and
+          (null? kwonlyargs)
+          (null? kw-defaults)
+          (not kwarg)
+          (null? default))
+      (if vararg
+        (- (+ (length args) (length posonlyargs)))
+        (+ (length args) (length posonlyargs)))
+      #f)))
+
+(define (prebootstrap-procedure->py-function procedure signature)
   (let ((py-function
           (py-obj-alloc
             #f
@@ -328,11 +373,15 @@
       functions-awaiting-bootstap
       (cons py-function functions-awaiting-bootstap))
     (object-scheme-procedure-fast-set! py-function procedure)
+    (object-scheme-signature-fast-set! py-function signature)
+    (object-scheme-arity-fast-set! py-function (signature->arity signature))
     py-function))
 
-(define (postbootstrap-procedure->py-function procedure)
+(define (postbootstrap-procedure->py-function procedure signature)
   (let ((func (py-obj-alloc py-function-class py-function-hclass-of-instances)))
    (object-scheme-procedure-fast-set! func procedure)
+   (object-scheme-signature-fast-set! func signature)
+   (object-scheme-arity-fast-set! func (signature->arity signature))
    func))
 
 (define procedure->py-function prebootstrap-procedure->py-function)
