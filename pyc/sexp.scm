@@ -32,8 +32,6 @@
        ;; FunctionDef(identifier name, arguments args,
        ;;             stmt* body, expr* decorator_list, expr? returns,
        ;;             string? type_comment)
-       (begin
-         (pp args)
        (new-PycDeclInit loc id scope
     	  (new-PycFun
           loc
@@ -65,7 +63,7 @@
           (map (lambda (a)
     		    (new-PycStmtExpr loc a))
 		        (list-ref args 6))
-	        (compile-stmt* loc body #t 'local conf)))))
+	        (compile-stmt* loc body #t 'local conf))))
       ((ClassDef ?loc ?id ?bases ?keywords ?body ?decorator_list)
        ;; ClassDef(identifier name,
        ;;       expr* bases,

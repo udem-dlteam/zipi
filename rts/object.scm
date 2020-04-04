@@ -333,11 +333,23 @@
 ;; which we keep in the functions-awaiting-bootstap list. Once py-function-class
 ;; is created, we can recover these functions and add their type.
 
-(define (make-signature posonlyargs vararg kwonlyargs kw_defaults kwarg defaults)
-  (vector posonlyargs vararg kwonlyargs kw_defaults kwarg defaults))
+(define (make-signature args posonlyargs vararg kwonlyargs kw_defaults kwarg defaults)
+  (vector args posonlyargs vararg kwonlyargs kw_defaults kwarg defaults))
+
+(define (empty-signature)
+  #('() '() #f '() '() #f '()))
+
+(define (make-vararg-only-signature vararg)
+  (make-signature '() '() vararg '() '() #f '()))
 
 (define (make-posonly-signature posonlyargs)
-  (make-signature '() posonlyargs #f '() '() '()))
+  (make-signature '() posonlyargs #f '() '() #f '()))
+
+(define (make-posonly-defaults-signature posonlyargs defaults)
+  (make-signature '() posonlyargs #f '() '() #f defaults))
+
+(define (make-args-defaults-signature args defaults)
+  (make-signature args '() #f '() '() #f defaults))
 
 (define functions-awaiting-bootstap '())
 
@@ -358,7 +370,7 @@
           (null? kwonlyargs)
           (null? kw-defaults)
           (not kwarg)
-          (null? default))
+          (null? defaults))
       (if vararg
         (- (+ (length args) (length posonlyargs)))
         (+ (length args) (length posonlyargs)))
@@ -753,11 +765,11 @@
 ;; int operations
 ;; =============================================================================
 
-(define (int-new cls #!optional (value #f))
+(define (int-new cls #!optional (value py-absent))
   (cond
     ((eq? cls py-int-class)
       (cond
-        ((not value)
+        ((eq? value py-absent)
           ;; TODO this could be removed by setting value default to the int 0
           ;; int() return 0
           (py-int-from-scheme 0))
@@ -784,7 +796,9 @@
       (py-throw-wrong-new-argument "int" cls))))
 
 (define int.__new__
-  (procedure->py-function int-new))
+  (procedure->py-function
+    int-new
+    (make-posonly-defaults-signature '(cls value) (list py-absent))))
 
 (define-macro (define-int-into-int-binary-operator fun-name method-name scheme-op)
   (let ((py-func-name (string->symbol (string-append "int." method-name))))
@@ -799,7 +813,9 @@
             (else py-NotImplemented))
           (py-throw-required-type ,method-name "int" self)))
       (define ,py-func-name
-        (procedure->py-function ,fun-name)))))
+        (procedure->py-function
+          ,fun-name
+          (make-posonly-signature '(self other)))))))
 
 (define-macro (define-int-into-int-division-operator fun-name method-name scheme-op)
   (let ((py-func-name (string->symbol (string-append "int." method-name))))
@@ -818,7 +834,9 @@
             (else py-NotImplemented))
           (py-throw-required-type ,method-name "int" self)))
       (define ,py-func-name
-        (procedure->py-function ,fun-name)))))
+        (procedure->py-function
+          ,fun-name
+          (make-posonly-signature '(self other)))))))
 
 (define-macro (define-int-into-float-division-operator fun-name method-name scheme-op)
   (let ((py-func-name (string->symbol (string-append "int." method-name))))
@@ -837,7 +855,9 @@
             (else py-NotImplemented))
           (py-throw-required-type ,method-name "int" self)))
       (define ,py-func-name
-        (procedure->py-function ,fun-name)))))
+        (procedure->py-function
+          ,fun-name
+          (make-posonly-signature '(self other)))))))
 
 (define-macro (define-int-comparison-operator fun-name method-name scheme-op)
   (let ((py-func-name (string->symbol (string-append "int." method-name))))
@@ -852,7 +872,9 @@
             (else py-NotImplemented))
           (py-throw-required-type ,method-name "int" self)))
       (define ,py-func-name
-        (procedure->py-function ,fun-name)))))
+        (procedure->py-function
+          ,fun-name
+          (make-posonly-signature '(self other)))))))
 
 (define-macro (define-int-unary-operator fun-name method-name scheme-op)
   (let ((py-func-name (string->symbol (string-append "int." method-name))))
@@ -863,7 +885,9 @@
             (py-int-from-scheme (,scheme-op self-value)))
           (py-throw-required-type ,method-name "int" self)))
       (define ,py-func-name
-        (procedure->py-function ,fun-name)))))
+        (procedure->py-function
+          ,fun-name
+          (make-posonly-signature '(self)))))))
 
 ;; helpers
 
@@ -954,17 +978,19 @@
     (py-throw-required-type "__repr__" "int" x)))
 
 (define int.__repr__
-  (procedure->py-function int-repr))
+  (procedure->py-function
+    int-repr
+    (make-posonly-signature '(x))))
 
 ;; =============================================================================
 ;; float operations
 ;; =============================================================================
 
-(define (float-new cls #!optional (value #f))
+(define (float-new cls #!optional (value py-absent))
   (cond
     ((eq? cls py-float-class)
       (cond
-        ((not value)
+        ((eq? value py-absent)
           (py-float-from-scheme 0.0))
         ((eq? (py-type value) py-float-class)
           ;; float(x) return the same object when x is a float
@@ -989,7 +1015,9 @@
       (py-throw-wrong-new-argument "float" cls))))
 
 (define float.__new__
-  (procedure->py-function float-new))
+  (procedure->py-function
+    float-new
+    (make-posonly-defaults-signature '(cls value) (list py-absent))))
 
 ;; =============================================================================
 ;; bool operations
@@ -997,16 +1025,18 @@
 
 ;; the bool class is a wrapper aroung int 0 and 1 to print them as False and True
 
-(define (bool-new cls #!optional (value #f))
+(define (bool-new cls #!optional (value py-absent))
   (if (py-issubclass? cls py-bool-class)
-    (if (and value (py-test value)) py-True py-False)
+    (if (and (not (eq? value py-absent)) (py-test value)) py-True py-False)
     ;; TODO: incorrect error message
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme "object.__new__(X): X is not a type object")))))
 
 (define bool.__new__
-  (procedure->py-function bool-new))
+  (procedure->py-function
+    bool-new
+    (make-posonly-defaults-signature '(cls value) (list py-absent))))
 
 (define (bool-str self)
   (cond
@@ -1016,7 +1046,9 @@
       (py-throw-required-type "__str__" "bool" self))))
 
 (define bool.__str__
-  (procedure->py-function bool-str))
+  (procedure->py-function
+    bool-str
+    (make-posonly-signature '(self))))
 
 (define (bool-repr self)
   (cond
@@ -1026,12 +1058,14 @@
       (py-throw-required-type "__repr__" "bool" self))))
 
 (define bool.__repr__
-  (procedure->py-function bool-repr))
+  (procedure->py-function
+    bool-repr
+    (make-posonly-signature '(self))))
 
 
 ;;;----------------------------------------------------------------------------
 
-;; WARNING: sometimes return a PYthon int, something Scheme int
+;; WARNING: sometimes return a Python int, something Scheme int
 ;;  this not only needs to be fixed, when doing it we need to check
 ;; every place which used py-len
 (define (py-len obj)
@@ -1227,7 +1261,9 @@
 
 ;; The Python object object.__getattribute__
 (define py-object-getattribute
-  (procedure->py-function object-getattribute))
+  (procedure->py-function
+    object-getattribute
+    (make-posonly-signature '(obj name))))
 
 ;; Implements type.__getattribute__
 (define (type-getattribute obj name)
@@ -1242,7 +1278,9 @@
 
 ;; The Python object type.__getattribute__
 (define type.__getattribute__
-  (procedure->py-function type-getattribute))
+  (procedure->py-function
+    type-getattribute
+    (make-posonly-signature '(obj name))))
 
 ;; getattr protocole
 ;;  1) calls __getattribute__ method
@@ -1275,7 +1313,9 @@
 
 ;; The Python object object.__bool__
 (define object.__bool__
-  (procedure->py-function object-bool))
+  (procedure->py-function
+    object-bool
+    (make-posonly-signature '(self))))
 
 (define (int-bool self)
     (if (py-isinstance? self py-int-class)
@@ -1287,7 +1327,9 @@
 
 ;; The Python object int.__bool__
 (define int.__bool__
-  (procedure->py-function int-bool))
+  (procedure->py-function
+    int-bool
+    (make-posonly-signature '(self))))
 
 
 ;; Returns the truthiness of an object by calling obj.__bool__
@@ -1304,24 +1346,31 @@
 ;; CALL PROTOCOL
 ;; =============
 
-(define (method-call self . args)
+;; slow way to call method through method.__call__
+;; interfaces between manual __call__ and py-call
+(define (method-call self args)
   (if (eq? (py-type self) py-method-class)
-    (let ((procedure (py-own-attr-ref self (& "**procedure**")))
-          (bound-instance (py-own-attr-ref self (& "__self__"))))
-      (apply procedure bound-instance args))
+    (let ((args-list (vector->list (py-tuple-to-scheme args))))
+      (apply py-call self args-list))
     (py-throw-required-type "__call__" "method" self)))
 
 (define py-method-call
-  (procedure->py-function method-call))
+  (procedure->py-function
+    method-call
+    (make-signature '() '(self) 'args '() '() #f '())))
 
-(define (function-call self . args)
+;; slow way to call function through function.__call__
+;; interfaces between manual __call__ and py-call
+(define (function-call self args)
   (if (eq? (py-type self) py-function-class)
-    (let ((procedure (py-own-attr-ref self (& "**procedure**"))))
-      (apply procedure args))
-    (py-throw-required-type "__call__" "function" self)))
+    (let ((args-list (vector->list (py-tuple-to-scheme args))))
+      (apply py-call self args-list))
+    (py-throw-required-type "__call__" "method" self)))
 
 (define py-function-call
-  (procedure->py-function function-call))
+  (procedure->py-function
+    function-call
+    (make-signature '() '(self) 'args '() '() #f '())))
 
 (define (function-get self instance owner)
   (if (eq? instance py-None)
@@ -1334,22 +1383,30 @@
       method)))
 
 (define py-function-get
-  (procedure->py-function function-get))
+  (procedure->py-function
+    function-get
+    (make-posonly-signature '(self instance owner))))
 
-(define (type-call self . args)
-  (let ((__new__ (getattribute-from-cls-mro self (& "__new__"))))
-    (let ((instance (apply py-call __new__ self args)))
+;; TODO: remove the tuple->list conversion once we support argument unpacking
+(define (type-call self args)
+  (let ((__new__ (getattribute-from-cls-mro self (& "__new__")))
+        (args-list (vector->list (py-tuple-to-scheme args))))
+    (let ((instance (apply py-call __new__ self args-list)))
       (if (eq? (py-obj-cls instance) self)
         (let ((__init__ (getattribute-from-cls-mro self (& "__init__"))))
-            (apply py-call __init__ instance args)
+            (apply py-call __init__ instance args-list)
             instance)
         instance))))
 
 (define type.__call__
-  (procedure->py-function type-call))
+  (procedure->py-function
+    type-call
+    (make-signature '() '(self) 'args '() '() #f '())))
 
-(define (type-new metacls cls . args)
-  (let ((args-length (length args)))
+;; TODO: remove the tuple->list conversion once we support argument unpacking
+(define (type-new metacls cls args)
+  (let ((args-list (vector->list (py-tuple-to-scheme args)))
+        (args-length (length args-list)))
     (cond
       ((= args-length 0)
         (py-obj-cls cls))
@@ -1361,11 +1418,15 @@
           (py-str-from-scheme "type() takes 1 or 3 arguments")))))))
 
 (define type.__new__
-  (procedure->py-function type-new))
+  (procedure->py-function
+    type-new
+    (make-signature '() '(metacls cls) 'args '() '() #f '())))
 
 ;; TODO: raise TypeError on unsafe call, ex: object.__new__(int)
 ;; TODO: raise TypeError when cannot create, ex: list_iterator.__new__()
-(define (object-new cls . args)
+;; TODO: remove the tuple->list conversion once we support argument unpacking
+;; TODO: that's really a lot of todos...
+(define (object-new cls args)
   (if (py-isinstance? cls py-type-class)
     (py-obj-alloc cls (type-hclass-of-instance-fast-get cls))
     (py-throw
@@ -1373,25 +1434,29 @@
         (py-str-from-scheme "object.__new__(X): X is not a type object")))))
 
 (define object.__new__
-  (procedure->py-function object-new))
+  (procedure->py-function
+    object-new
+    (make-signature '() '(cls) 'args '() '() #f '())))
 
-(define (object-init self . args)
+(define (object-init self args)
   ;; object.__init__ exists but does nothing
   ;; its purpose is that super().__init__ does not raise and AttributeError
   #f)
 
 (define object.__init__
-  (procedure->py-function object-init))
+  (procedure->py-function
+    object-init
+    (make-signature '() '(cls) 'args '() '() #f '())))
 
 
 ;; =============================================================================
 ;;  str and repr protocols
 ;; =============================================================================
 
-(define (str-new cls #!optional (value #f))
+(define (str-new cls value)
   (cond
     ((eq? cls py-str-class)
-      (if value
+      (if (not (eq? value py-absent))
         (let* ((__str__ (getattribute-from-obj-mro value (& "__str__")))
                (result (py-call __str__ value)))
           (if (py-isinstance? result py-str-class)
@@ -1416,7 +1481,9 @@
       (py-throw-wrong-new-argument "str" cls))))
 
 (define str.__new__
-  (procedure->py-function str-new))
+  (procedure->py-function
+    str-new
+    (make-posonly-defaults-signature '(cls value) (list py-absent))))
 
 (define (str-str self)
   (if (py-isinstance? self py-str-class)
@@ -1424,7 +1491,9 @@
     (py-throw-required-type "__str__" "str" self)))
 
 (define str.__str__
-  (procedure->py-function str-str))
+  (procedure->py-function
+    str-str
+    (make-posonly-signature '(self))))
 
 (define (str-repr self)
     (if (py-isinstance? self py-str-class)
@@ -1434,7 +1503,9 @@
       (py-throw-required-type "__str__" "str" self)))
 
 (define str.__repr__
-  (procedure->py-function str-repr))
+  (procedure->py-function
+    str-repr
+    (make-posonly-signature '(self))))
 
 (define (integer->hex-string x)
   (string-append "0x" (number->string x 16)))
@@ -1447,15 +1518,17 @@
     (py-str-from-scheme result)))
 
 (define object.__repr__
-  (procedure->py-function object-repr))
+  (procedure->py-function
+    object-repr
+    (make-posonly-signature '(self))))
 
 (define (object-str self)
   (py-repr self))
 
 (define object.__str__
-  (procedure->py-function object-str))
-
-(define py-repr #f)
+  (procedure->py-function
+    object-str
+    (make-posonly-signature '(self))))
 
 (define (float->string-with-padded-zeros value)
   (cond
@@ -1480,7 +1553,9 @@
     (py-throw-required-type "__repr__" "float" self)))
 
 (define float.__repr__
-  (procedure->py-function float-repr))
+  (procedure->py-function
+    float-repr
+    (make-posonly-signature '(self))))
 
 (define (py-display obj port)
   ;; checking some cases beforehand for efficiency
@@ -1809,8 +1884,9 @@
 
 (define py-time
  (procedure->py-function
-  (lambda _
-    (/ (current-microseconds) 1000000.0))))
+  (lambda ()
+    (/ (current-microseconds) 1000000.0))
+  (empty-signature)))
 
 (define sys-mod #f)
 
@@ -2171,7 +2247,9 @@
     (py-throw py-builtin-TypeError)))
 
 (define py-list-iterator-iter
-  (procedure->py-function list-iterator-iter))
+  (procedure->py-function
+    list-iterator-iter
+    (make-posonly-signature '(self))))
 
 ;; By setting index to #f, the iterator always raises StopIteration
 (define (stop-iterator iterator)
@@ -2195,7 +2273,9 @@
     (py-throw py-builtin-TypeError)))
 
 (define py-list-iterator-next
-  (procedure->py-function list-iterator-next))
+  (procedure->py-function
+    list-iterator-next
+    (make-posonly-signature '(self))))
 
 (define py-list-iterator-class
   (make-builtin-class
@@ -2224,7 +2304,9 @@
     (py-throw py-builtin-TypeError)))
 
 (define py-tuple-iterator-iter
-  (procedure->py-function tuple-iterator-iter))
+  (procedure->py-function
+    tuple-iterator-iter
+    (make-posonly-signature '(self))))
 
 (define (tuple-iterator-next self)
   (if (eq? (py-type self) py-tuple-iterator-class)
@@ -2239,7 +2321,9 @@
     (py-throw py-builtin-TypeError)))
 
 (define py-tuple-iterator-next
-  (procedure->py-function tuple-iterator-next))
+  (procedure->py-function
+    tuple-iterator-next
+    (make-posonly-signature '(self))))
 
 (define py-tuple-iterator-class
   (make-builtin-class
@@ -2263,7 +2347,9 @@
     (py-throw py-builtin-TypeError)))
 
 (define py-list-iter
-  (procedure->py-function list-iter))
+  (procedure->py-function
+    list-iter
+    (make-posonly-signature '(self))))
 
 (define (tuple-iter self)
   (if (py-isinstance? self py-tuple-class)
@@ -2277,7 +2363,9 @@
     (py-throw py-builtin-TypeError)))
 
 (define py-tuple-iter
-  (procedure->py-function tuple-iter))
+  (procedure->py-function
+    tuple-iter
+    (make-posonly-signature '(self))))
 
 (define (bootstrap-type-hierarchy-phase2)
 
@@ -2447,7 +2535,9 @@
         (py-str-from-scheme "not a subtype of NotImplementedType")))))
 
 (define NotImplementedType.__new__
-  (procedure->py-function NotImplementedType-new))
+  (procedure->py-function
+    NotImplementedType-new
+    (make-posonly-signature '(cls))))
 
 (define (NotImplementedType-repr self)
   (if (eq? self py-NotImplemented)
@@ -2459,7 +2549,9 @@
         (py-str-from-scheme "descriptor '__repr__' requires a 'NotImplementedType' object")))))
 
 (define NotImplementedType.__repr__
-  (procedure->py-function NotImplementedType-repr))
+  (procedure->py-function
+    NotImplementedType-repr
+    (make-posonly-signature '(self))))
 
 (define py-NotImplementedType-class
   (make-builtin-class
@@ -2487,7 +2579,9 @@
         (py-str-from-scheme "not a subtype of NoneType")))))
 
 (define NoneType.__new__
-  (procedure->py-function NoneType-new))
+  (procedure->py-function
+    NoneType-new
+    (make-posonly-signature '(cls))))
 
 (define (NoneType-repr self)
   (if (eq? self py-None)
@@ -2499,7 +2593,9 @@
         (py-str-from-scheme "descriptor '__repr__' requires a 'NoneType' object")))))
 
 (define NoneType.__repr__
-  (procedure->py-function NoneType-repr))
+  (procedure->py-function
+    NoneType-repr
+    (make-posonly-signature '(self))))
 
 (define (NoneType-bool self)
   (if (eq? self py-None)
@@ -2511,7 +2607,9 @@
         (py-str-from-scheme "descriptor '__repr__' requires a 'NoneType' object")))))
 
 (define NoneType.__bool__
-  (procedure->py-function NoneType-bool))
+  (procedure->py-function
+    NoneType-bool
+    (make-posonly-signature '(self))))
 
 (define py-NoneType-class
   (make-builtin-class
@@ -2527,50 +2625,6 @@
   (py-obj-alloc
     py-NoneType-class
     py-object-hclass-of-instances))
-
-;; range
-
-(define (py-range start stop step)
-  (let ((hclass-of-instances
-         (make-HClass
-          (vector py-object-class)
-          (vector (& "**class**")
-                  (& "__class__")
-                  (& "__iter__")
-		  )
-          '())))
-
-    (define iter
-      (procedure->py-function
-       (lambda (self)
-         (let ((hclass-of-instances
-                (make-HClass
-                 (vector py-object-class)
-                 (vector (& "**class**")
-                         (& "__class__")
-                         (& "__next__")
-		         )
-                 '())))
-           (let ((i start))
-
-             (define next
-               (procedure->py-function
-                (lambda (self)
-                  (if (if (> step 0) (>= i stop) (<= i stop))
-                      (py-throw py-builtin-StopIteration)
-                      (let ((result i))
-                        (set! i (+ i step))
-                        result)))))
-
-             (let ((self (py-obj-alloc py-object-class hclass-of-instances)))
-               (PyObject-elements-set! self 1 py-object-class) ;; set __class__
-               (PyObject-elements-set! self 2 next) ;; set __next__
-               self))))))
-
-    (let ((self (py-obj-alloc py-object-class hclass-of-instances)))
-      (PyObject-elements-set! self 1 py-object-class) ;; set __class__
-      (PyObject-elements-set! self 2 iter) ;; set __iter__
-      self)))
 
 ;;;----------------------------------------------------------------------------
 
@@ -2658,7 +2712,9 @@
 ;; returns x.__abs__().
 
 (define py-builtin-abs
-  (procedure->py-function py-abs))
+  (procedure->py-function
+    py-abs
+    (make-posonly-signature '(x))))
 
 ;;-------------------- all(iterable)
 
@@ -2673,8 +2729,9 @@
 
 (define py-builtin-all
   (procedure->py-function
-   (lambda (iterable)
-     (error "all" "not implemented" #f))))
+    (lambda (iterable)
+      (error "all" "not implemented" #f))
+    (make-posonly-signature '(iterable))))
 
 ;;-------------------- any(iterable)
 
@@ -2689,8 +2746,9 @@
 
 (define py-builtin-any
   (procedure->py-function
-   (lambda (iterable)
-     (error "any" "not implemented" #f))))
+    (lambda (iterable)
+      (error "any" "not implemented" #f))
+    (make-posonly-signature '(iterable))))
 
 ;;-------------------- ascii(object)
 
@@ -2701,8 +2759,9 @@
 
 (define py-builtin-ascii
   (procedure->py-function
-   (lambda (object)
-     (error "ascii" "not implemented" #f))))
+    (lambda (object)
+      (error "ascii" "not implemented" #f))
+    (make-posonly-signature '(object))))
 
 ;;-------------------- bin(x)
 
@@ -2727,8 +2786,9 @@
 
 (define py-builtin-bin
   (procedure->py-function
-   (lambda (x)
-     (error "bin" "not implemented" #f))))
+    (lambda (x)
+      (error "bin" "not implemented" #f))
+    (make-posonly-signature '(x))))
 
 ;;-------------------- class bool([x])
 
@@ -2758,8 +2818,9 @@
 
 (define py-builtin-breakpoint
   (procedure->py-function
-   (lambda (args kws)
-     (error "breakpoint" "not implemented" #f))))
+   (lambda (args kwargs)
+     (error "breakpoint" "not implemented" #f))
+  (make-signature '() '() 'args '() '() 'kwargs '())))
 
 ;;-------------------- class bytearray([source[, encoding[, errors]]])
 
@@ -2787,8 +2848,11 @@
 
 (define py-builtin-bytearray
   (procedure->py-function
-   (lambda (source encoding errors)
-     (error "bytearray" "not implemented" #f))))
+    (lambda (source encoding errors)
+      (error "bytearray" "not implemented" #f))
+    (make-posonly-defaults-signature
+      '(source encodings errors)
+      (list py-absent py-absent py-absent))))
 
 ;;-------------------- class bytes([source[, encoding[, errors]]])
 
@@ -2807,8 +2871,11 @@
 
 (define py-builtin-bytes
   (procedure->py-function
-   (lambda (source encoding errors)
-     (error "bytes" "not implemented" #f))))
+    (lambda (source encoding errors)
+      (error "bytes" "not implemented" #f))
+    (make-posonly-defaults-signature
+      '(source encodings errors)
+      (list py-absent py-absent py-absent))))
 
 ;;-------------------- callable(object)
 
@@ -2823,8 +2890,9 @@
 
 (define py-builtin-callable
   (procedure->py-function
-   (lambda (object)
-     (error "callable" "not implemented" #f))))
+    (lambda (object)
+      (error "callable" "not implemented" #f))
+    (make-posonly-signature '(object))))
 
 ;;-------------------- chr(i)
 
@@ -2837,8 +2905,8 @@
 
 (define py-builtin-chr
   (procedure->py-function
-   (lambda (i)
-     (py-chr i))))
+    py-chr
+    (make-posonly-signature '(i))))
 
 ;;-------------------- @classmethod
 
@@ -2867,8 +2935,9 @@
 
 (define py-builtin-classmethod
   (procedure->py-function
-   (lambda ()
-     (error "classmethod" "not implemented" #f))))
+    (lambda (function)
+      (error "classmethod" "not implemented" #f))
+    (make-posonly-signature '(function))))
 
 ;;-------------------- compile(source, filename, mode, flags=0, dont_inherit=False, optimize=-1)
 
@@ -2943,8 +3012,19 @@
 
 (define py-builtin-compile
   (procedure->py-function
-   (lambda (source filename mode flags dont_inherit optimize)
-     (error "compile" "not implemented" #f))))
+    (lambda (source filename mode flags dont_inherit optimize)
+      (error "compile" "not implemented" #f))
+    (make-signature
+      '(source filename mode flags dont_inherit optimize)
+      '()
+      #f
+      '()
+      '()
+      #f
+      (list
+        (py-int-from-scheme 0)
+        py-False
+        (py-int-from-scheme -1)))))
 
 ;;-------------------- class complex([real[, imag]])
 
@@ -2985,8 +3065,9 @@
 
 (define py-builtin-delattr
   (procedure->py-function
-   (lambda (object name)
-     (error "delattr" "not implemented" #f))))
+    (lambda (object name)
+      (error "delattr" "not implemented" #f))
+    (make-posonly-signature '(object name))))
 
 ;;-------------------- class dict(**kwarg)
 ;;                     class dict(mapping, **kwarg)
@@ -3053,8 +3134,9 @@
 
 (define py-builtin-dir
   (procedure->py-function
-   (lambda (object)
-     (error "dir" "not implemented" #f))))
+    (lambda (object)
+      (error "dir" "not implemented" #f))
+    (make-posonly-signature '(object))))
 
 ;;-------------------- divmod(a, b)
 
@@ -3069,8 +3151,9 @@
 
 (define py-builtin-divmod
   (procedure->py-function
-   (lambda (a b)
-     (error "divmod" "not implemented" #f))))
+    (lambda (a b)
+      (error "divmod" "not implemented" #f))
+    (make-posonly-signature '(a b))))
 
 ;;-------------------- enumerate(iterable, start=0)
 
@@ -3095,8 +3178,12 @@
 
 (define py-builtin-enumerate
   (procedure->py-function
-   (lambda (iterable start)
-     (error "enumerate" "not implemented" #f))))
+    (lambda (iterable start)
+      (error "enumerate" "not implemented" #f))
+    (make-signature
+      '(iterable start)
+      '() #f '() '() #f
+      (list (py-int-from-scheme 0)))))
 
 ;;-------------------- eval(expression, globals=None, locals=None)
 
@@ -3139,8 +3226,11 @@
 
 (define py-builtin-eval
   (procedure->py-function
-   (lambda (expression globals locals)
-     (error "eval" "not implemented" #f))))
+    (lambda (expression globals locals)
+      (error "eval" "not implemented" #f))
+    (make-posonly-defaults-signature
+      '(expression globals locals)
+      (list py-absent py-absent))))
 
 ;;-------------------- exec(object[, globals[, locals]])
 
@@ -3184,8 +3274,11 @@
 
 (define py-builtin-exec
   (procedure->py-function
-   (lambda (object globals locals)
-     (error "eval" "not implemented" #f))))
+    (lambda (expression globals locals)
+      (error "exec" "not implemented" #f))
+    (make-posonly-defaults-signature
+      '(expression globals locals)
+      (list py-absent py-absent))))
 
 ;;-------------------- filter(function, iterable)
 
@@ -3205,8 +3298,9 @@
 
 (define py-builtin-filter
   (procedure->py-function
-   (lambda (function iterable)
-     (error "filter" "not implemented" #f))))
+    (lambda (function iterable)
+      (error "filter" "not implemented" #f))
+    (make-posonly-signature '(function iterable))))
 
 ;;-------------------- class float([x])
 
@@ -3290,8 +3384,9 @@
 
 (define py-builtin-format
   (procedure->py-function
-   (lambda (value format_spec)
-     (error "format" "not implemented" #f))))
+    (lambda (value format_spec)
+      (error "format" "not implemented" #f))
+    (make-posonly-signature '(value format_spec))))
 
 ;;-------------------- class frozenset([iterable])
 
@@ -3304,8 +3399,9 @@
 
 (define py-builtin-frozenset
   (procedure->py-function
-   (lambda (iterable)
-     (error "frozenset" "not implemented" #f))))
+    (lambda (iterable)
+      (error "frozenset" "not implemented" #f))
+    (make-posonly-signature '(iterable))))
 
 ;;-------------------- getattr(object, name[, default])
 
@@ -3318,8 +3414,11 @@
 
 (define py-builtin-getattr
   (procedure->py-function
-   (lambda (object name default)
-     (error "getattr" "not implemented" #f))))
+    (lambda (object name default)
+      (error "getattr" "not implemented" #f))
+    (make-posonly-defaults-signature
+      '(object name default)
+      (list py-absent))))
 
 ;;-------------------- globals()
 
@@ -3330,8 +3429,9 @@
 
 (define py-builtin-globals
   (procedure->py-function
-   (lambda ()
-     (error "globals" "not implemented" #f))))
+    (lambda ()
+      (error "globals" "not implemented" #f))
+    (empty-signature)))
 
 ;;-------------------- hasattr(object, name)
 
@@ -3340,11 +3440,13 @@
 ;; not. (This is implemented by calling getattr(object, name) and seeing
 ;; whether it raises an AttributeError or not.)
 
+;; TODO: full behaviour catches AttributeError to detect no attribute
 (define py-builtin-hasattr
   (procedure->py-function
-   (lambda (object name)
-     (let ((val (py-attr-ref object name)))
-       (not (eq? val py-absent))))))
+    (lambda (object name)
+      (let ((val (py-attr-ref object name)))
+        (not (eq? val py-absent))))
+    (make-posonly-signature '(object name))))
 
 ;;-------------------- hash(object)
 
@@ -3360,8 +3462,9 @@
 
 (define py-builtin-hash
   (procedure->py-function
-   (lambda (object)
-     (error "hash" "not implemented" #f))))
+    (lambda (object)
+      (error "hash" "not implemented" #f))
+    (make-posonly-signature '(object))))
 
 ;;-------------------- help([object])
 
@@ -3386,8 +3489,9 @@
 
 (define py-builtin-help
   (procedure->py-function
-   (lambda _
-     (error "help" "not implemented" #f))))
+    (lambda (object)
+      (error "help" "not implemented" #f))
+    (make-posonly-defaults-signature '(object) (list py-absent))))
 
 ;;-------------------- hex(x)
 
@@ -3421,8 +3525,9 @@
 
 (define py-builtin-hex
   (procedure->py-function
-   (lambda (x)
-     (error "hex" "not implemented" #f))))
+    (lambda (x)
+      (error "hex" "not implemented" #f))
+    (make-posonly-signature '(x))))
 
 ;;-------------------- id(object)
 
@@ -3436,8 +3541,9 @@
 
 (define py-builtin-id
   (procedure->py-function
-   (lambda (object)
-     (error "id" "not implemented" #f))))
+    (lambda (object)
+      (error "id" "not implemented" #f))
+    (make-posonly-signature '(object))))
 
 ;;-------------------- input([prompt])
 
@@ -3463,8 +3569,9 @@
 
 (define py-builtin-input
   (procedure->py-function
-   (lambda (prompt)
-     (error "input" "not implemented" #f))))
+    (lambda (prompt)
+      (error "input" "not implemented" #f))
+      (make-posonly-defaults-signature '(prompt) (list py-absent))))
 
 ;;-------------------- class int([x])
 ;;                     class int(x, base=10)
@@ -3516,8 +3623,9 @@
 
 (define py-builtin-isinstance
   (procedure->py-function
-   (lambda (object classinfo)
-     (error "isinstance" "not implemented" #f))))
+    (lambda (object classinfo)
+      (error "isinstance" "not implemented" #f))
+    (make-posonly-signature '(object classinfo))))
 
 ;;-------------------- issubclass(class, classinfo)
 
@@ -3528,8 +3636,9 @@
 
 (define py-builtin-issubclass
   (procedure->py-function
-   (lambda (object classinfo)
-     (error "issubclass" "not implemented" #f))))
+    (lambda (object classinfo)
+      (error "issubclass" "not implemented" #f))
+    (make-posonly-signature '(object classinfo))))
 
 ;;-------------------- iter(object[, sentinel])
 
@@ -3558,7 +3667,7 @@
 
 (define py-builtin-iter
   (procedure->py-function
-   (lambda (object #!optional (sentinel py-absent))
+   (lambda (object sentinel)
      (cond ((not (eq? sentinel py-absent))
             (error "iter" "with 2 arguments not implemented" #f))
            ((and (PyObject? object)
@@ -3570,7 +3679,8 @@
               (let ((__iter__ (PyObject-elements-ref object index)))
                 (py-call __iter__ object))))
            (else
-            (error "iter" "only object with __iter__ method implemented" #f))))))
+            (error "iter" "only object with __iter__ method implemented" #f))))
+  (make-posonly-defaults-signature '(object sentinel) (list py-absent))))
 
 ;;-------------------- len(s)
 
@@ -3580,8 +3690,8 @@
 
 (define py-builtin-len
   (procedure->py-function
-   (lambda (s)
-     (py-len s))))
+    py-len
+    (make-posonly-signature '(obj))))
 
 ;;-------------------- class list([iterable])
 
@@ -3603,8 +3713,9 @@
 
 (define py-builtin-locals
   (procedure->py-function
-   (lambda ()
-     (error "locals" "not implemented" #f))))
+    (lambda ()
+      (error "locals" "not implemented" #f))
+    (empty-signature)))
 
 ;;-------------------- map(function, iterable, ...)
 
@@ -3618,8 +3729,9 @@
 
 (define py-builtin-map
   (procedure->py-function
-   (lambda (function iterable)
-     (error "map" "not implemented" #f))))
+    (lambda (function iterable)
+      (error "map" "not implemented" #f))
+    (make-posonly-signature '(function iterable))))
 
 ;;-------------------- max(iterable, *[, key, default])
 ;;                     max(arg1, arg2, *args[, key])
@@ -3646,8 +3758,16 @@
 
 (define py-builtin-max
   (procedure->py-function
-   (lambda (iterable key default)
-     (error "max" "not implemented" #f))))
+    (lambda (arg1 args key default)
+      (error "max" "not implemented" #f))
+    (make-signature
+      '()
+      '(arg1)
+      'args
+      '(key default)
+      #f
+      (list py-absent py-absent)
+      '())))
 
 ;;-------------------- memoryview(obj)
 
@@ -3656,8 +3776,9 @@
 
 (define py-builtin-memoryview
   (procedure->py-function
-   (lambda (obj)
-     (error "memoryview" "not implemented" #f))))
+    (lambda (obj)
+      (error "memoryview" "not implemented" #f))
+    (make-posonly-signature '(obj))))
 
 ;;-------------------- min(iterable, *[, key, default])
 ;;                     min(arg1, arg2, *args[, key])
@@ -3687,8 +3808,16 @@
 
 (define py-builtin-min
   (procedure->py-function
-   (lambda (iterable key default)
-     (error "min" "not implemented" #f))))
+    (lambda (arg1 args key default)
+      (error "min" "not implemented" #f))
+    (make-signature
+      '()
+      '(arg1)
+      'args
+      '(key default)
+      #f
+      (list py-absent py-absent)
+      '())))
 
 ;;-------------------- next(iterator[, default])
 
@@ -3698,9 +3827,9 @@
 
 (define py-builtin-next
   (procedure->py-function
-   (lambda (iterator #!optional (default py-absent))
+   (lambda (iterator default)
      (let ((next (py-attr-ref iterator (& "__next__"))))
-       (if (eq? iterator py-absent)
+       (if (eq? next py-absent)
            (error "next" "TypeError: object is not an iterator" #f)
            (if (eq? default py-absent)
                (py-call next iterator)
@@ -3709,7 +3838,8 @@
                   (if (eq? e py-builtin-StopIteration)
                       default
                       (py-throw e)))
-                (py-call next iterator))))))))
+                (py-call next iterator))))))
+  (make-posonly-defaults-signature '(iterator default) (list py-absent))))
 
 ;;-------------------- class object
 
@@ -3748,8 +3878,9 @@
 
 (define py-builtin-oct
   (procedure->py-function
-   (lambda (x)
-     (error "oct" "not implemented" #f))))
+    (lambda (x)
+      (error "oct" "not implemented" #f))
+    (make-posonly-signature '(x))))
 
 ;;-------------------- open(file, mode='r', buffering=-1, encoding=None, errors=None, newline=None, closefd=True, opener=None)
 
@@ -3930,8 +4061,18 @@
 
 (define py-builtin-open
   (procedure->py-function
-   (lambda (file mode buffering encoding errors newline closefd opener)
-     (error "open" "not implemented" #f))))
+    (lambda (file mode buffering encoding errors newline closefd opener)
+      (error "open" "not implemented" #f))
+    (make-args-defaults-signature
+      '(file mode buffering encoding errors newline closefd opener)
+      (list
+        (py-str-from-scheme "r")
+        (py-int-from-scheme -1)
+        py-None
+        py-None
+        py-None
+        py-True
+        py-None))))
 
 ;;-------------------- ord(c)
 
@@ -3942,8 +4083,9 @@
 
 (define py-builtin-ord
   (procedure->py-function
-   (lambda (c)
-     (error "ord" "not implemented" #f))))
+    (lambda (c)
+      (error "ord" "not implemented" #f))
+    (make-posonly-signature '(c))))
 
 ;;-------------------- pow(x, y[, z])
 
@@ -3978,8 +4120,11 @@
 
 (define py-builtin-pow
   (procedure->py-function
-   (lambda (x y z)
-     (error "pow" "not implemented" #f))))
+    (lambda (base exp mod)
+      (error "pow" "not implemented" #f))
+    (make-args-defaults-signature
+      '(base exp mod)
+      (list py-absent))))
 
 ;;-------------------- print(*objects, sep=' ', end='\n', file=sys.stdout, flush=False)
 
@@ -4004,8 +4149,7 @@
 
 (define py-builtin-print
   (procedure->py-function
-   (lambda objects ;; objects sep end file flush)
-     ;;(pp objects)
+   (lambda (objects sep end file flush)
      (let ((port (current-output-port)))
        (let loop ((lst objects))
          (if (pair? lst)
@@ -4015,7 +4159,19 @@
                    (begin
                      (display " " port)
                      (loop rest))))))
-       (newline port)))))
+       (newline port)))
+    (make-signature
+      '()
+      '()
+      'objects
+      '(sep end file flush)
+      (list
+        (py-str-from-scheme " ")
+        (py-str-from-scheme "\n")
+        py-absent
+        py-False)
+      #f
+      '())))
 
 ;;-------------------- class property(fget=None, fset=None, fdel=None, doc=None)
 
@@ -4097,8 +4253,11 @@
 
 (define py-builtin-property
   (procedure->py-function
-   (lambda (fget fset fdel doc)
-     (error "property" "not implemented" #f))))
+    (lambda (fget fset fdel doc)
+      (error "property" "not implemented" #f))
+    (make-args-defaults-signature
+      '(fget fset fdel doc)
+      (list py-None py-None py-None py-None))))
 
 ;;-------------------- range(stop)
 ;;                     range(start, stop[, step])
@@ -4108,8 +4267,11 @@
 
 (define py-builtin-range
   (procedure->py-function
-   (lambda (object)
-     (error "range" "unimplemented generic procedure for builtin" #f))))
+    (lambda (arg1 arg2 arg3)
+      (error "range" "unimplemented generic procedure for builtin" #f))
+    (make-posonly-defaults-signature
+      '(arg1 arg2 arg3)
+      (list py-absent py-absent))))
 
 ;;-------------------- repr(object)
 
@@ -4124,8 +4286,8 @@
 
 (define py-builtin-repr
   (procedure->py-function
-   (lambda (object)
-     (py-repr object))))
+    py-repr
+    (make-posonly-signature '(repr))))
 
 ;;-------------------- reversed(seq)
 
@@ -4136,8 +4298,9 @@
 
 (define py-builtin-reversed
   (procedure->py-function
-   (lambda (seq)
-     (error "reversed" "not implemented" #f))))
+    (lambda (seq)
+      (error "reversed" "not implemented" #f))
+    (make-posonly-signature '(seq))))
 
 ;;-------------------- round(number[, ndigits])
 
@@ -4164,8 +4327,11 @@
 
 (define py-builtin-round
   (procedure->py-function
-   (lambda (number ndigits)
-     (error "round" "not implemented" #f))))
+    (lambda (number ndigits)
+      (error "round" "not implemented" #f))
+    (make-args-defaults-signature
+      '(number ndigits)
+      (list py-absent))))
 
 ;;-------------------- class set([iterable])
 
@@ -4188,8 +4354,9 @@
 
 (define py-builtin-setattr
   (procedure->py-function
-   (lambda (object name value)
-     (error "setattr" "not implemented" #f))))
+    (lambda (object name value)
+      (error "setattr" "not implemented" #f))
+    (make-posonly-signature '(object name value))))
 
 ;;-------------------- class slice(stop)
 ;;                     class slice(start, stop[, step])
@@ -4233,8 +4400,16 @@
 
 (define py-builtin-sorted
   (procedure->py-function
-   (lambda (iterable key reverse)
-     (error "sorted" "not implemented" #f))))
+    (lambda (iterable key reverse)
+      (error "sorted" "not implemented" #f))
+    (make-signature
+      '()
+      '(iterable)
+      #f
+      '(key reverse)
+      (list py-absent py-False)
+      #f
+      '())))
 
 ;;-------------------- @staticmethod
 
@@ -4268,8 +4443,9 @@
 
 (define py-builtin-staticmethod
   (procedure->py-function
-   (lambda ()
-     (error "staticmethod" "not implemented" #f))))
+    (lambda (function)
+      (error "staticmethod" "not implemented" #f))
+    (make-posonly-signature '(function))))
 
 ;;-------------------- class str(object='')
 ;;                     class str(object=b'', encoding='utf-8', errors='strict')
@@ -4298,8 +4474,16 @@
 
 (define py-builtin-sum
   (procedure->py-function
-   (lambda (iterable start)
-     (error "sum" "not implemented" #f))))
+    (lambda (iterable start)
+      (error "sum" "not implemented" #f))
+    (make-signature
+      '(start)
+      '(iterable)
+      #f
+      '()
+      '()
+      #f
+      (list (py-int-from-scheme 0)))))
 
 ;;-------------------- super([type[, object-or-type]])
 
@@ -4364,35 +4548,40 @@
   'super-called-without-arguments
 )
 
-(define (super-init self . args)
-  (let ((args-length (length args)))
-    (cond ((eq? args-length 0)
-           (raise (flag-super-called-without-arguments)))
-          ((eq? args-length 1)
-           (error "super not implemented for 1 argument"))
-          ((eq? args-length 2)
-           (begin
-             (py-attr-set! self (& "__thisclass__") (list-ref args 0))
-             (py-attr-set! self (& "__self__") (list-ref args 1)))))))
+(define (super-init self type object)
+  (cond ((eq? type py-absent)
+          (raise (flag-super-called-without-arguments)))
+        ((eq? object py-absent)
+          (error "super not implemented for 1 argument"))
+        (else
+          (begin
+            (py-attr-set! self (& "__thisclass__") type)
+            (py-attr-set! self (& "__self__") object)))))
 
 (define super.__init__
-  (procedure->py-function super-init))
+  (procedure->py-function
+    super-init
+    (make-posonly-defaults-signature
+      '(self type object)
+      (list py-absent py-absent))))
 
-(define (super-getattribute super-self name)
+(define (super-getattribute self name)
   (if (eq? name (& "__class__"))
     py-builtin-super
-    (let* ((this-class (py-own-attr-ref super-self (& "__thisclass__")))
-          (this-self (py-own-attr-ref super-self (& "__self__")))
+    (let* ((this-class (py-own-attr-ref self (& "__thisclass__")))
+          (this-self (py-own-attr-ref self (& "__self__")))
           (mro (py-cls-mro this-class))
           (parent-cls (vector-ref mro 1)))
       (let-values (((attr owner)
         (getattribute-from-cls-mro-with-owner parent-cls name)))
           (if (eq? attr py-absent)
-            (object-getattribute super-self name)
+            (object-getattribute self name)
             (object-get-bind-descriptor attr this-self owner))))))
 
 (define super.__getattribute__
-  (procedure->py-function super-getattribute))
+  (procedure->py-function
+    super-getattribute
+    (make-posonly-signature '(self name))))
 
 (define py-builtin-super
   (py-make-class
@@ -4457,8 +4646,9 @@
 
 (define py-builtin-vars
   (procedure->py-function
-   (lambda (object)
-     (error "vars" "not implemented" #f))))
+    (lambda (object)
+      (error "vars" "not implemented" #f))
+    (make-posonly-defaults-signature '(object) (list py-absent))))
 
 ;;-------------------- zip(*iterables)
 
@@ -4508,8 +4698,9 @@
 
 (define py-builtin-zip
   (procedure->py-function
-   (lambda (iterables)
-     (error "zip" "not implemented" #f))))
+    (lambda (iterables)
+      (error "zip" "not implemented" #f))
+    (make-vararg-only-signature 'iterables)))
 
 ;;-------------------- __import__(name, globals=None, locals=None, fromlist=(), level=0)
 
@@ -4572,18 +4763,34 @@
 (define py-builtin-__import__
   (procedure->py-function
    (lambda (name globals locals fromlist level)
-     (error "__import__" "not implemented" #f))))
+     (error "__import__" "not implemented" #f))
+    (make-args-defaults-signature
+      '(name globals locals fromlist level)
+      (list
+        py-None
+        py-None
+        py-absent
+        (py-int-from-scheme 0)))))
 
 ;;-------------------- BaseException
 
 ;; The base exception cannot be created in pure Python
 ;; All exception must inherit from it to be considered an exception
 
-(define (BaseException-init self . args)
-  (py-attr-set! self (& "args") (py-tuple-from-scheme (list->vector args))))
+(define (BaseException-init self *args)
+  (py-attr-set! self (& "args") *args))
 
 (define BaseException.__init__
-  (procedure->py-function BaseException-init))
+  (procedure->py-function
+    BaseException-init
+    (make-signature
+      '()
+      '(self)
+      'args
+      '()
+      '()
+      #f
+      '())))
 
 ;; TODO: when you see this and that py-len returns a PyObject,
 ;; then use py-eq instead of =
@@ -4602,7 +4809,9 @@
 
 
 (define BaseException.__str__
-  (procedure->py-function BaseException-str))
+  (procedure->py-function
+    BaseException-str
+    (make-posonly-signature '(self))))
 
 
 (define py-builtin-BaseException
