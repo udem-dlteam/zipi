@@ -186,9 +186,9 @@
             posonlyargs::pair-nil
             vararg::symbol
             kwonlyargs::pair-nil
-            kw_default::pair-nil
+            kw-defaults::pair-nil
             kwarg::symbol
-            default::pair-nil
+            defaults::pair-nil
             body::PycStmt
             (decls::pair-nil (default '()))
             (generator::bool (default #f))

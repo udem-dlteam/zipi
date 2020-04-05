@@ -51,7 +51,7 @@
           (map (lambda (a)
     		    (new-PycDecl loc (car a) 'local))
 		        (list-ref args 3))
-          ;; kw_defaults
+          ;; kw-defaults
           (map (lambda (a)
     		    (new-PycStmtExpr loc a))
 		        (list-ref args 4))
