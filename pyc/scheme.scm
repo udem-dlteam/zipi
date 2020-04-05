@@ -430,7 +430,7 @@
    (define (signature fun)
     (let ((vararg (PycFun-vararg fun))
           (kwarg (PycFun-kwarg fun)))
-      `'(
+      `#(
         ,(map PycDecl-id (PycFun-args fun))
         ,(map PycDecl-id (PycFun-posonlyargs fun))
         ,(and vararg (PycDecl-id vararg))
