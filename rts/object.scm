@@ -263,14 +263,6 @@
           (PCache-set! cache hclass i)
           (PyObject-elements-set! global i val)))))
 
-(define (object-has obj name)
-   (>= (PyObject-find-prop obj name) 0))
-
-(define (object-put! object name val cache)
-  (if (eq? (PyObject-hclass object) (PCache-hclass cache))
-      (PyObject-elements-set! object (PCache-index cache) val)
-      (object-put!/miss object name val cache)))
-
 (define (object-put!/miss obj name val cache)
   (let* ((index (PyObject-find-prop obj name))
          (hclass (PyObject-hclass obj)))
@@ -1394,8 +1386,6 @@
 (define object.__str__
   (procedure->py-function object-str))
 
-(define py-repr #f)
-
 (define (float->string-with-padded-zeros value)
   (cond
     ((integer? value)
@@ -1866,20 +1856,8 @@
 (define (py-str-to-scheme self)
   (object-scheme-value-fast-get self))
 
-(define (py-tuple-from-scheme vector)
-  (let ((self (py-obj-alloc py-tuple-class py-tuple-hclass-of-instances)))
-    (sequence-elems-fast-set! self vector)          ;; set **elems**
-    (PyObject-elements-set! self 2 py-tuple-class)  ;; set __class__
-    self))
-
 (define (py-tuple-to-scheme self)
   (PyObject-elements-ref self 1))
-
-(define (py-list-from-scheme vector)
-  (let ((self (py-obj-alloc py-list-class py-list-hclass-of-instances)))
-    (PyObject-elements-set! self 1 vector)         ;; set **elems**
-    (PyObject-elements-set! self 2 py-list-class)  ;; set __class__
-    self))
 
 (define (py-list-to-scheme self)
   (PyObject-elements-ref self 1))
@@ -2578,7 +2556,6 @@
   (let ((tuple (py-obj-alloc py-tuple-class py-tuple-hclass-of-instances)))
     (object-scheme-value-fast-set! tuple elements)
     tuple))
-
 
 (define (py-make-dict keys vals)
   (py-dict-from-scheme keys vals))
