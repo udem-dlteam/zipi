@@ -1,10 +1,10 @@
 ;*=====================================================================*/
-;*    serrano/nosync/zipi/scmast/ast/ast.bgl                           */
+;*    serrano/prgm/project/zipi/pyc/ast.bgl                            */
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 10:16:39 2019                          */
-;*    Last change :  Fri Jun 28 15:07:26 2019 (serrano)                */
-;*    Copyright   :  2019 Manuel Serrano                               */
+;*    Last change :  Mon Apr  6 13:52:20 2020 (serrano)                */
+;*    Copyright   :  2019-20 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Python AST                                                       */
 ;*=====================================================================*/
@@ -154,9 +154,9 @@
 	      upper::PycExpr
 	      step::PycExpr)
 
-     (class PycAssert::PycStmt
-        (test::PycExpr (info '("ast")))
-        (msg::PycExpr (info '("ast"))))
+	   (class PycAssert::PycStmt
+	      (test::PycExpr (info '("ast")))
+	      (msg::PycExpr (info '("ast"))))
 
            (abstract-class PycLiteral::PycExpr)
 

@@ -3,11 +3,6 @@
 ;;  This was already done with int, example:
 ;; the object int.__add__ has name 'int.__add__' in the source
 
-;; debug function that prints the backtrace
-;; at the point in the code where called
-(define (why-am-i-here?)
-  (##continuation-capture (lambda (cc) (display-continuation-backtrace cc))))
-
 ;; =============================================================================
 ;;  HIDDEN CLASSES
 ;; =============================================================================
@@ -1389,13 +1384,6 @@
 
 (define (integer->hex-string x)
   (string-append "0x" (number->string x 16)))
-
-(define (object-repr self)
-  (let* ((self-type (py-type self))
-         (self-type-name (py-str-to-scheme (type-name-fast-get self-type)))
-         (addr (integer->hex-string (##object->encoding self)))
-         (result (string-append "<" self-type-name " object at " addr ">")))
-    (py-str-from-scheme result)))
 
 (define object.__repr__
   (procedure->py-function object-repr))

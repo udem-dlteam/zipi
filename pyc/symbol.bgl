@@ -3,8 +3,8 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 14:41:56 2019                          */
-;*    Last change :  Tue Jul  2 10:08:49 2019 (serrano)                */
-;*    Copyright   :  2019 Manuel Serrano                               */
+;*    Last change :  Mon Apr  6 14:00:12 2020 (serrano)                */
+;*    Copyright   :  2019-20 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Symbol resolution                                                */
 ;*=====================================================================*/
@@ -14,9 +14,12 @@
 ;*---------------------------------------------------------------------*/
 (module __pyc_symbol
 
-   (include "ast.sch")
+   (include "ast.sch"
+	    "walk.sch"
+	    "new.sch")
 
-   (import __pyc_dump)
+   (import __pyc_dump
+	   __pyc_ast)
    
    (export (pyc-symbol! ::PycNode conf)))
 

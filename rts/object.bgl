@@ -3,8 +3,8 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Tue Nov 12 19:46:00 2019 (serrano)                */
-;*    Copyright   :  2019 M. Feeley & M. Serrano                       */
+;*    Last change :  Mon Apr  6 16:03:44 2020 (serrano)                */
+;*    Copyright   :  2019-20 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
 ;*=====================================================================*/
@@ -99,7 +99,7 @@
 	   (py>::bool x y)
 	   (py>=::bool x y)
 
-	   (inline py-None)
+	   py-None
 	   (py-uninit)
 
 	   py-builtin-locals
@@ -144,6 +144,16 @@
 ;*---------------------------------------------------------------------*/
 (define-inline (current-second)
    (current-seconds))
+
+;*---------------------------------------------------------------------*/
+;*    object-repr ...                                                  */
+;*---------------------------------------------------------------------*/
+(define (object-repr self)
+   (let* ((self-type (py-type self))
+	  (self-type-name (py-str-to-scheme (type-name-fast-get self-type)))
+	  (addr (object-hash self))
+	  (result (string-append "<" self-type-name " object at " addr ">")))
+      (py-str-from-scheme result)))
 
 ;*---------------------------------------------------------------------*/
 ;*    bigloo-compatibility                                             */

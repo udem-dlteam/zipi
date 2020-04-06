@@ -1,10 +1,10 @@
 ;*=====================================================================*/
-;*    serrano/nosync/py19/scmast/object/object#.scm                    */
+;*    serrano/prgm/project/zipi/rts/object#.scm                        */
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Thu Jun 20 08:38:58 2019 (serrano)                */
-;*    Copyright   :  2019 M. Feeley & M. Serrano                       */
+;*    Last change :  Mon Apr  6 16:04:36 2020 (serrano)                */
+;*    Copyright   :  2019-20 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
 ;*=====================================================================*/
@@ -46,3 +46,16 @@
            (vector-set! $elements-new $offset $val)
            (PyObject-elements-set! $obj $elements-new))
          (vector-set! $elements $offset $val))))
+
+;; debug function that prints the backtrace
+;; at the point in the code where called
+(define (why-am-i-here?)
+  (##continuation-capture (lambda (cc) (display-continuation-backtrace cc))))
+
+(define (object-repr self)
+  (let* ((self-type (py-type self))
+         (self-type-name (py-str-to-scheme (type-name-fast-get self-type)))
+         (addr (integer->hex-string (##object->encoding self)))
+         (result (string-append "<" self-type-name " object at " addr ">")))
+    (py-str-from-scheme result)))
+

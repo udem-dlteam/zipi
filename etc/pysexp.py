@@ -97,9 +97,9 @@ def cvt_constant(value):
         return scm_float(value)
     elif isinstance(value, complex):
         return scm_complex(value)
-    elif value is None:
+    elif value == None:
         return 'None'
-    elif value is Ellipsis:
+    elif value == Ellipsis:
         return 'Ellipsis'
     else:
         print(type(value))
