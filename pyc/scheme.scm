@@ -431,13 +431,13 @@
     (let ((vararg (PycFun-vararg fun))
           (kwarg (PycFun-kwarg fun)))
       `#(
-        ,(map PycDecl-id (PycFun-args fun))
-        ,(map PycDecl-id (PycFun-posonlyargs fun))
+        #(,@(map PycDecl-id (PycFun-args fun)))
+        #(,@(map PycDecl-id (PycFun-posonlyargs fun)))
         ,(and vararg (PycDecl-id vararg))
-        ,(map PycDecl-id (PycFun-kwonlyargs fun))
-        ,(map PycDecl-id (PycFun-kw-defaults fun))
+        #(,@(map PycDecl-id (PycFun-kwonlyargs fun)))
+        #(,@(map PycDecl-id (PycFun-kw-defaults fun)))
         ,(and kwarg (PycDecl-id kwarg))
-        ,(map PycDecl-id (PycFun-defaults fun))
+        #(,@(map PycDecl-id (PycFun-defaults fun)))
         )))
 
    (let ((args (map (lambda (a) (scheme a conf)) (PycFun-args this)))
