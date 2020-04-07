@@ -406,6 +406,57 @@
         (object-class-fast-set! (car functions) py-function-class)
         (loop (cdr functions))))))
 
+(define (pack-extra-args arity args)
+  (if (= arity -1)
+    (cons (py-tuple-from-scheme (list->vector args)) '())
+    (cons (car args) (pack-extra-args (+ arity 1) (cdr args)))))
+
+(define-macro (define-fast-py-calls limit)
+  (let ((define-py-callX
+          (lambda (X)
+            (let ((py-call-name (string->symbol (string-append "py-call" (number->string X))))
+                  (args (map gensym (make-list X 'arg))))
+              `(define (,py-call-name fun ,@args)
+                (let ((fun-type (py-type fun)))
+                  (if (or
+                        (eq? fun-type py-function-class)
+                        (eq? fun-type py-method-class))
+                    (let ((arity (object-scheme-arity-fast-get fun)))
+                      (cond
+                        ((not arity) (py-call fun ,@args))
+                        ((= arity ,X)
+                          ((object-scheme-procedure-fast-get fun) ,@args))
+                        ((and (< arity 0) (>= arity ,(- 0 X 1)))
+                          (apply
+                            (object-scheme-procedure-fast-get fun)
+                            (pack-extra-args arity (list ,@args))))
+                        (else
+                          (py-throw py-builtin-TypeError)))) ;; TODO add error message
+                    (py-call fun ,@args))))))))
+    (let loop ((i 1) (acc '()))
+      (if (> i limit)
+        `(begin ,@acc)
+        (loop (+ i 1) (cons (define-py-callX i) acc))))))
+
+(define (py-call0 fun)
+  (let ((fun-type (py-type fun)))
+    (if (or
+          (eq? fun-type py-function-class)
+          (eq? fun-type py-method-class))
+      (let ((arity (object-scheme-arity-fast-get fun)))
+        (cond
+          ((not arity) (py-call fun ,@args))
+          ((= arity 0)
+            ((object-scheme-procedure-fast-get fun)))
+          ((= arity -1)
+            ((object-scheme-procedure-fast-get fun)
+              (py-tuple-from-scheme #())))
+          (else
+            (py-throw py-builtin-TypeError)))) ;; TODO add error message)))
+      (py-call fun))))
+
+(define-fast-py-calls 5)
+
 ;; TODO: compare with cPython for which function and method are not the base
 ;; callable types. Instead, function.__call__ returns a 'method wrapper'
 ;; object which has a __call__ method but is treated differently
@@ -1354,7 +1405,7 @@
       (apply py-call self args-list))
     (py-throw-required-type "__call__" "method" self)))
 
-(define py-method-call
+(define method.__call__
   (procedure->py-function
     method-call
     (make-signature #() #(self) 'args #() #() #f #())))
@@ -1367,7 +1418,7 @@
       (apply py-call self args-list))
     (py-throw-required-type "__call__" "method" self)))
 
-(define py-function-call
+(define function.__call__
   (procedure->py-function
     function-call
     (make-signature #() #(self) 'args #() #() #f #())))
@@ -2465,7 +2516,7 @@
       (& "builtins")
       (list)
       py-method-hclass-of-instances
-        (& "__call__") py-method-call))
+        (& "__call__") method.__call__))
 
   (set! py-function-class
     (make-builtin-class
@@ -2473,7 +2524,7 @@
       (& "builtins")
       (list)
       py-function-hclass-of-instances
-        (& "__call__") py-function-call
+        (& "__call__") function.__call__
         (& "__get__") py-function-get))
 
   (set! py-list-class

@@ -523,7 +523,12 @@
           ,call)))
 
    (define (invoke fun args)
-        (let ((call `(py-call ,fun ,@args)))
+        (let* ((args-len (length args))
+              (py-call-fun
+                (if (<= args-len 5)
+                  (string->symbol (string-append "py-call" (number->string args-len)))
+                  'py-call))
+              (call `(,py-call-fun ,fun ,@args)))
           (if (> (length args) 0) call
               (super-handler call))))
 
