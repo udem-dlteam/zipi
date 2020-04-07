@@ -1,0 +1,58 @@
+;*=====================================================================*/
+;*    serrano/prgm/project/zipi/rts/bigloo.bgl                         */
+;*    -------------------------------------------------------------    */
+;*    Author      :  Manuel Serrano                                    */
+;*    Creation    :  Tue Apr  7 16:51:08 2020                          */
+;*    Last change :  Tue Apr  7 17:03:53 2020 (serrano)                */
+;*    Copyright   :  2020 Manuel Serrano                               */
+;*    -------------------------------------------------------------    */
+;*    Bigloo compatibility kit                                         */
+;*=====================================================================*/
+
+;*---------------------------------------------------------------------*/
+;*    The module                                                       */
+;*---------------------------------------------------------------------*/
+(module __py_bigloo
+
+   (export (inline arithmetic-shift::long ::long ::long)
+	   (inline bitwise-and::long ::long ::long)
+	   (inline bitwise-ior::long ::long ::long)
+	   (inline bitwise-xor::long ::long ::long)
+	   (inline bitwise-not::long ::long)
+
+	   (inline floor-quotient x y)
+	   (inline inexact::double x)
+
+	   (macro let-values)))
+
+;*---------------------------------------------------------------------*/
+;*    bitwise operations ...                                           */
+;*---------------------------------------------------------------------*/
+(define-inline (arithmetic-shift x y) (bit-rsh x y))
+(define-inline (bitwise-and x y) (bit-and x y))
+(define-inline (bitwise-ior x y) (bit-or x y))
+(define-inline (bitwise-xor x y) (bit-xor x y))
+(define-inline (bitwise-not x) (bit-not x))
+
+;*---------------------------------------------------------------------*/
+;*    floor-quotient ...                                               */
+;*---------------------------------------------------------------------*/
+(define-inline (floor-quotient x y)
+   (floor (quotient x y)))
+
+;*---------------------------------------------------------------------*/
+;*    inexact ...                                                      */
+;*---------------------------------------------------------------------*/
+(define-inline (inexact v)
+   (if (exact? v) (exact->inexact v) v))
+
+;*---------------------------------------------------------------------*/
+;*    let-values ...                                                   */
+;*---------------------------------------------------------------------*/
+(define-macro (let-values bindings . body)
+   (match-case bindings
+      (((?bindings ?generator))
+       `(multiple-value-bind ,bindings ,generator ,@body))
+      (else
+       (error "let-values" "Illegal form" `(let-values ,bindings ,@body)))))
+   
