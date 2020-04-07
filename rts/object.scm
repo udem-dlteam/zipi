@@ -333,8 +333,8 @@
 ;; which we keep in the functions-awaiting-bootstap list. Once py-function-class
 ;; is created, we can recover these functions and add their type.
 
-(define (make-signature args posonlyargs vararg kwonlyargs kw_defaults kwarg defaults)
-  (vector args posonlyargs vararg kwonlyargs kw_defaults kwarg defaults))
+(define (make-signature args posonlyargs vararg kwonlyargs kw-defaults kwarg defaults)
+  (vector args posonlyargs vararg kwonlyargs kw-defaults kwarg defaults))
 
 (define (empty-signature)
   #(#() #() #f #() #() #f #()))
@@ -464,13 +464,52 @@
   (let ((obj-type (py-type obj)))
     (if (or (eq? obj-type py-function-class)
             (eq? obj-type py-method-class))
-      (let* ((__call__ (class-__call__-fast-get obj-type))
-             (procedure (object-scheme-procedure-fast-get __call__)))
-        (apply procedure obj args))
+      (let* ((procedure (object-scheme-procedure-fast-get obj))
+             (signature (object-scheme-signature-fast-get obj))
+             (aligned-args (align-args-with-signature args signature)))
+        (apply procedure aligned-args))
       (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
         (if (eq? __call__ py-absent)
           (py-throw-not-callable obj)
           (apply py-call __call__ obj args))))))
+
+(define (align-args-with-signature caller-args signature)
+  (let ((args (vector-ref signature 0))
+        (posonlyargs (vector-ref signature 1))
+        (vararg (vector-ref signature 2))
+        (kwonlyargs (vector-ref signature 3))
+        (kw-defaults (vector-ref signature 4))
+        (kwarg (vector-ref signature 5))
+        (defaults (vector-ref signature 6)))
+    (if (or kwarg
+            (> (vector-length kwonlyargs) 0))
+      (error "kwargs not implemented"))
+    (let* ((caller-args-len (length caller-args))
+          (args-len (vector-length args))
+          (posonlyargs-len (vector-length posonlyargs))
+          (default-len (vector-length defaults))
+          (total-args-len (+ args-len posonlyargs-len)))
+      (cond
+        ((= caller-args-len total-args-len)
+          (if vararg
+            (append
+              caller-args
+              (cons
+                (py-tuple-from-scheme #())
+                '()))
+            caller-args))
+        ((< caller-args total-args-len)
+          (let ((missing-args-len (- total-args-len caller-args-len)))
+            (if (>= default-len missing-args-len)
+              (append
+                caller-args
+                (vector->list
+                  (subvector defaults (- default-len missing-args-len) default-len)))
+              (py-throw py-builtin-TypeError)))) ;; TODO add error message
+        ((vararg)
+          (pack-extra-args (- 0 1 total-args-len) caller-args))
+        (else
+          (py-throw py-builtin-TypeError)))))) ;; TODO add error message
 
 (define (py-is-in-mro? target mro)
   (let loop ((i 0))
@@ -4200,7 +4239,7 @@
 
 (define py-builtin-print
   (procedure->py-function
-   (lambda (objects sep end file flush)
+   (lambda (objects) ;; add args (non-positional): sep end file flush
      (let ((port (current-output-port)))
        (let loop ((lst objects))
          (if (pair? lst)
@@ -4215,12 +4254,14 @@
       #()
       #()
       'objects
-      #(sep end file flush)
-      (vector
-        (py-str-from-scheme " ")
-        (py-str-from-scheme "\n")
-        py-absent
-        py-False)
+      #()
+      ;;#(sep end file flush)
+      #()
+      ;;(vector
+      ;;  (py-str-from-scheme " ")
+      ;;  (py-str-from-scheme "\n")
+      ;;  py-absent
+      ;;  py-False)
       #f
       #())))
 
