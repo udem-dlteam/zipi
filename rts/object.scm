@@ -95,7 +95,8 @@
       (& "**class**")
       (& "**procedure**")
       (& "**arity**")
-      (& "**signature**"))
+      (& "**signature**")
+      (& "__self__"))
     '()))
 
 (define py-function-hclass-of-instances
@@ -201,23 +202,29 @@
 (define (object-scheme-value-fast-set! obj value)
   (PyObject-elements-set! obj 1 value))
 
-(define (object-scheme-procedure-fast-get obj)
+(define (function-procedure-fast-get obj)
   (PyObject-elements-ref obj 1))
 
-(define (object-scheme-procedure-fast-set! obj value)
+(define (function-procedure-fast-set! obj value)
   (PyObject-elements-set! obj 1 value))
 
-(define (object-scheme-arity-fast-get obj)
+(define (function-arity-fast-get obj)
   (PyObject-elements-ref obj 2))
 
-(define (object-scheme-arity-fast-set! obj value)
+(define (function-arity-fast-set! obj value)
   (PyObject-elements-set! obj 2 value))
 
-(define (object-scheme-signature-fast-get obj)
+(define (function-signature-fast-get obj)
   (PyObject-elements-ref obj 3))
 
-(define (object-scheme-signature-fast-set! obj value)
+(define (function-signature-fast-set! obj value)
   (PyObject-elements-set! obj 3 value))
+
+(define (method-__self__-fast-get obj)
+  (PyObject-elements-ref obj 4))
+
+(define (method-__self__-fast-set! obj value)
+  (PyObject-elements-set! obj 4 value))
 
 ;; object allocation
 
@@ -384,17 +391,17 @@
     (set!
       functions-awaiting-bootstap
       (cons py-function functions-awaiting-bootstap))
-    (object-scheme-procedure-fast-set! py-function procedure)
-    (object-scheme-signature-fast-set! py-function signature)
-    (object-scheme-arity-fast-set! py-function (signature->arity signature))
+    (function-procedure-fast-set! py-function procedure)
+    (function-signature-fast-set! py-function signature)
+    (function-arity-fast-set! py-function (signature->arity signature))
     py-function))
 
 (define (postbootstrap-procedure->py-function procedure signature)
   (let ((func (py-obj-alloc py-function-class py-function-hclass-of-instances))
         (arity (signature->arity signature)))
-   (object-scheme-procedure-fast-set! func procedure)
-   (object-scheme-signature-fast-set! func signature)
-   (object-scheme-arity-fast-set! func arity)
+   (function-procedure-fast-set! func procedure)
+   (function-signature-fast-set! func signature)
+   (function-arity-fast-set! func arity)
    func))
 
 (define procedure->py-function prebootstrap-procedure->py-function)
@@ -419,17 +426,15 @@
                   (args (map gensym (make-list X 'arg))))
               `(define (,py-call-name fun ,@args)
                 (let ((fun-type (py-type fun)))
-                  (if (or
-                        (eq? fun-type py-function-class)
-                        (eq? fun-type py-method-class))
-                    (let ((arity (object-scheme-arity-fast-get fun)))
+                  (if (eq? fun-type py-function-class)
+                    (let ((arity (function-arity-fast-get fun)))
                       (cond
                         ((not arity) (py-call fun ,@args))
                         ((= arity ,X)
-                          ((object-scheme-procedure-fast-get fun) ,@args))
+                          ((function-procedure-fast-get fun) ,@args))
                         ((and (< arity 0) (>= arity ,(- 0 X 1)))
                           (apply
-                            (object-scheme-procedure-fast-get fun)
+                            (function-procedure-fast-get fun)
                             (pack-extra-args arity (list ,@args))))
                         (else
                           (py-throw py-builtin-TypeError)))) ;; TODO add error message
@@ -441,16 +446,14 @@
 
 (define (py-call0 fun)
   (let ((fun-type (py-type fun)))
-    (if (or
-          (eq? fun-type py-function-class)
-          (eq? fun-type py-method-class))
-      (let ((arity (object-scheme-arity-fast-get fun)))
+    (if (eq? fun-type py-function-class)
+      (let ((arity (function-arity-fast-get fun)))
         (cond
           ((not arity) (py-call fun))
           ((= arity 0)
-            ((object-scheme-procedure-fast-get fun)))
+            ((function-procedure-fast-get fun)))
           ((= arity -1)
-            ((object-scheme-procedure-fast-get fun)
+            ((function-procedure-fast-get fun)
               (py-tuple-from-scheme #())))
           (else
             (py-throw py-builtin-TypeError)))) ;; TODO add error message)))
@@ -463,16 +466,24 @@
 ;; object which has a __call__ method but is treated differently
 (define (py-call obj . args)
   (let ((obj-type (py-type obj)))
-    (if (or (eq? obj-type py-function-class)
-            (eq? obj-type py-method-class))
-      (let* ((procedure (object-scheme-procedure-fast-get obj))
-             (signature (object-scheme-signature-fast-get obj))
-             (aligned-args (align-args-with-signature args signature)))
-        (apply procedure aligned-args))
-      (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
-        (if (eq? __call__ py-absent)
-          (py-throw-not-callable obj)
-          (apply py-call __call__ obj args))))))
+    (cond
+      ((eq? obj-type py-function-class)
+        (let* ((procedure (function-procedure-fast-get obj))
+               (signature (function-signature-fast-get obj))
+               (aligned-args (align-args-with-signature args signature)))
+          (apply procedure aligned-args)))
+      ((eq? obj-type py-method-class)
+        (let* ((procedure (function-procedure-fast-get obj))
+               (signature (function-signature-fast-get obj))
+               (__self__ (method-__self__-fast-get obj))
+               (bound-args (cons __self__ args))
+               (aligned-args (align-args-with-signature bound-args signature)))
+          (apply procedure aligned-args)))
+      (else
+        (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
+          (if (eq? __call__ py-absent)
+            (py-throw-not-callable obj)
+            (apply py-call __call__ obj args)))))))
 
 (define (align-args-with-signature caller-args signature)
   (let ((args (vector-ref signature 0))
@@ -1347,8 +1358,7 @@
       (let-values (((cls-attr owner) (getattribute-from-obj-mro-with-owner obj name)))
         (if (not (eq? cls-attr py-absent))
           (object-get-bind-descriptor cls-attr obj owner)
-          (py-throw py-builtin-AttributeError)
-        )))))
+          (py-throw py-builtin-AttributeError))))))
 
 ;; The Python object object.__getattribute__
 (define py-object-getattribute
@@ -1463,18 +1473,19 @@
     function-call
     (make-signature #() #(self) 'args #() #() #f #())))
 
-;; TODO: create a method with signature when calling function.__get__
 (define (function-get self instance owner)
   (if (eq? instance py-None)
     self
-    (let ((method (py-obj-alloc-with-value
+    (let ((signature (function-signature-fast-get self))
+          (method (py-obj-alloc-with-value
                     py-method-class
                     py-method-hclass-of-instances
-                    (object-scheme-procedure-fast-get self))))
-      (py-own-attr-set! method (& "__self__") instance)
+                    (function-procedure-fast-get self))))
+      (method-__self__-fast-set! method instance)
+      (function-signature-fast-set! method signature)
       method)))
 
-(define py-function-get
+(define function.__get__
   (procedure->py-function
     function-get
     (make-posonly-signature #(self instance owner))))
@@ -1497,7 +1508,7 @@
 
 ;; TODO: remove the tuple->list conversion once we support argument unpacking
 (define (type-new metacls cls args)
-  (let ((args-list (vector->list (py-tuple-to-scheme args)))
+  (let* ((args-list (vector->list (py-tuple-to-scheme args)))
         (args-length (length args-list)))
     (cond
       ((= args-length 0)
@@ -2566,7 +2577,7 @@
       (list)
       py-function-hclass-of-instances
         (& "__call__") function.__call__
-        (& "__get__") py-function-get))
+        (& "__get__") function.__get__))
 
   (set! py-list-class
     (make-builtin-class
