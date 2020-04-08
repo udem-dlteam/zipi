@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Mon Apr  6 16:03:44 2020 (serrano)                */
+;*    Last change :  Wed Apr  8 13:38:44 2020 (serrano)                */
 ;*    Copyright   :  2019-20 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -16,9 +16,12 @@
 
    (option  (define-macro (& name) `',(string->symbol name)))
 
-   (include "object.sch" "../stdlib/builtins.scm")
+   (include "object.sch")
 
-   (import __py_hclass)
+   (import __py_hclass
+	   __py_iterator
+           __py_bigloo
+           ./builtins.py)
 
    (use    __py_import)
 
@@ -34,86 +37,93 @@
 	   (py-builtins-mod::PyObject)
 	   (py-time-mod::PyObject)
 	   (py-sys-mod::PyObject)
-
-	   (global-get ::PyObject ::obj ::obj)
-	   (global-put! global name val cache)
-
-	   (object-get ::obj ::obj ::obj)
+;*                                                                     */
+;* 	   (global-get ::PyObject ::obj ::obj)                         */
+;* 	   (global-put! global name val cache)                         */
+;*                                                                     */
+;* 	   (object-get ::obj ::obj ::obj)                              */
 	   (object-get-no-cache ::PyObject ::obj)
-	   (object-has::bool ::PyObject ::obj)
-	   (object-put! ::PyObject ::obj ::obj ::obj)
+;* 	   (object-has::bool ::PyObject ::obj)                         */
+;* 	   (object-put! ::PyObject ::obj ::obj ::obj)                  */
 	   (object-put-no-cache! ::PyObject ::obj ::obj)
-
-	   (py-make-dict ::obj ::obj)
-	   (py-make-set ::obj)
-
+	   (getattribute-from-obj-mro ::obj ::obj)
+;*                                                                     */
+;* 	   (py-make-dict ::obj ::obj)                                  */
+;* 	   (py-make-set ::obj)                                         */
+;*                                                                     */
 	   (py-getitem ::PyObject ::obj ::PCache)
 	   (py-setitem ::PyObject ::obj ::obj ::PCache)
 	   (py-contains ::PyObject ::obj ::PCache)
 
 	   (inline PyObject-elements-ref ::PyObject ::long)
 	   (PyObject-elements-set! ::PyObject ::long ::obj)
-
-	   (PyObject-find-prop ::PyObject ::obj)
-
-	   (PyFunction-default-hclass)
-
+;*                                                                     */
+;* 	   (PyObject-find-prop ::PyObject ::obj)                       */
+;*                                                                     */
+;* 	   (PyFunction-default-hclass)                                 */
+;*                                                                     */
 	   (py-procedure->function ::procedure ::procedure)
 
-	   (py-call0 ::obj)
-	   (py-call1 ::obj ::obj)
-	   (py-call2 ::obj ::obj ::obj)
-	   (py-call3 ::obj ::obj ::obj ::obj)
-	   (py-call4 ::obj ::obj ::obj ::obj ::obj)
-
-	   (py-make-global)
-	   (py-make-caches ::int)
-
-	   (py-make-class name module bases . atrs)
-
+	   (py-call obj . args)
+;* 	   (py-call0 ::obj)                                            */
+;* 	   (py-call1 ::obj ::obj)                                      */
+;* 	   (py-call2 ::obj ::obj ::obj)                                */
+;* 	   (py-call3 ::obj ::obj ::obj ::obj)                          */
+;* 	   (py-call4 ::obj ::obj ::obj ::obj ::obj)                    */
+;*                                                                     */
+;* 	   (py-make-global)                                            */
+;* 	   (py-make-caches ::int)                                      */
+;*                                                                     */
+;* 	   (py-make-class name module bases . atrs)                    */
+;*                                                                     */
 	   (py-throw ::obj)
-
-	   (pyis?::bool x y)
-	   (py-add x y cache)
-	   (py-and x y cache)
-	   (py-sub x y cache)
-	   (py-div x y cache)
-	   (py-eq x y cache)
-	   (py-ne x y cache)
-	   (py-lt x y cache)
-	   (py-le x y cache)
-	   (py-gt x y cache)
-	   (py-ge x y cache)
-	   (py-is x y cache)
-	   (py-isnot x y cache)
-	   (py-in x y cache)
-	   (py-notin x y cache)
-
-	   (py+ x y)
-	   (py- x y)
-	   (pyneg x)
-	   (py* x y)
-	   (py/ x y)
-	   (py<::bool x y)
-	   (py<=::bool x y)
-	   (py>::bool x y)
-	   (py>=::bool x y)
-
+;*                                                                     */
+;* 	   (pyis?::bool x y)                                           */
+;* 	   (py-add x y cache)                                          */
+;* 	   (py-and x y cache)                                          */
+;* 	   (py-sub x y cache)                                          */
+;* 	   (py-div x y cache)                                          */
+;* 	   (py-eq x y cache)                                           */
+;* 	   (py-ne x y cache)                                           */
+;* 	   (py-lt x y cache)                                           */
+;* 	   (py-le x y cache)                                           */
+;* 	   (py-gt x y cache)                                           */
+;* 	   (py-ge x y cache)                                           */
+;* 	   (py-is x y cache)                                           */
+;* 	   (py-isnot x y cache)                                        */
+;* 	   (py-in x y cache)                                           */
+;* 	   (py-notin x y cache)                                        */
+;*                                                                     */
+;* 	   (py+ x y)                                                   */
+;* 	   (py- x y)                                                   */
+;* 	   (pyneg x)                                                   */
+;* 	   (py* x y)                                                   */
+;* 	   (py/ x y)                                                   */
+;* 	   (py<::bool x y)                                             */
+;* 	   (py<=::bool x y)                                            */
+;* 	   (py>::bool x y)                                             */
+;* 	   (py>=::bool x y)                                            */
+;*                                                                     */
 	   py-None
-	   (py-uninit)
-
-	   py-builtin-locals
-	   py-builtin-globals
+;* 	   (py-uninit)                                                 */
+;*                                                                     */
+;* 	   py-builtin-locals                                           */
+;* 	   py-builtin-globals                                          */
 	   py-object-class
 	   py-module-class
            py-absent
 
+
+	   (py-isinstance? ::PyObject ::PyObject)
+	   
            (py-obj-alloc cls hclass-of-instances)
 	   (py-str-from-scheme::PyObject ::bstring)
 	   (py-str-to-scheme::bstring ::PyObject)
 	   (py-string-to-name::symbol ::bstring)
-	   (py-repr-scheme ::obj))
+;* 	   (py-repr-scheme ::obj))                                     */
+	   )
 
+   
    (eval   (export-all)))
 
 ;*---------------------------------------------------------------------*/
@@ -151,7 +161,7 @@
 (define (object-repr self)
    (let* ((self-type (py-type self))
 	  (self-type-name (py-str-to-scheme (type-name-fast-get self-type)))
-	  (addr (object-hash self))
+	  (addr (object-hashnumber self))
 	  (result (string-append "<" self-type-name " object at " addr ">")))
       (py-str-from-scheme result)))
 

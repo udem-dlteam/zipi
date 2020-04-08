@@ -1,3 +1,6 @@
+(define py-builtin-StopIteration
+   (error "py-builtin-StopIteration" "Not implemented" #f))
+
 (define py-generator-hclass
   (make-HClass
    '#()

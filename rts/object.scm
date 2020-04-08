@@ -3,6 +3,9 @@
 ;;  This was already done with int, example:
 ;; the object int.__add__ has name 'int.__add__' in the source
 
+(define (py-procedure->function p1 p1)
+   (error "py-procedure->function" "not implemented" #f))
+
 ;; =============================================================================
 ;;  HIDDEN CLASSES
 ;; =============================================================================
@@ -181,7 +184,7 @@
   (PyObject-elements-ref type 4))
 
 (define (type-name-fast-set! type name)
-  (PyObject-hclass-set! type 4 name))
+  (PyObject-elements-set! type 4 name))
 
 (define (class-__call__-fast-get class)
   (PyObject-elements-ref class 5))
@@ -589,7 +592,7 @@
   (let ((next-item (py-for-next iterator)))
     (cond
       ((not next-item) py-False)
-      ((py-eq item next-item) py-True)
+      ((py-eq item next-item #f) py-True)
       (else (py-in-iterator item iterator)))))
 
 (define (py-in item container cache) ;; x in y
@@ -598,8 +601,8 @@
       (let ((iterator (py-obj->iterator container)))
         (if iterator
           (py-in-iterator item iterator)
-          (throw-not-iteralble container))
-      (py-test (py-call __contains__ container item) py-True py-False)))))
+          (throw-not-iteralble container)))
+      (if (py-test (py-call __contains__ container item)) py-True py-False))))
 
 (define (py-notin item container cache) ;; x not in y
   (if (py-test (py-in item container cache))
@@ -670,7 +673,7 @@
   `(define (,fun-name x cache)
     (let ((__op__ (getattribute-from-obj-mro x (& ,method))))
       (if (eq? __op__ py-absent)
-          (throw-unsupported-unary-operand x operator)
+          (throw-unsupported-unary-operand x ,operator)
           (py-call __op__ x)))))
 
 (define-unary-operator-protocol py-invert "__invert__" "~")
@@ -705,7 +708,7 @@
         ((py-isinstance? value py-int-class)
           ;; up-typing an instance of subclass to an int
           (py-int-from-scheme (object-scheme-value-fast-get value)))
-        (else (error "int.__new__ unimplemented for non int"))))
+        (else (error "int.__new__" "unimplemented for non int" #f))))
     ((py-issubclass? cls py-int-class)
       (cond
         ((not value)
@@ -717,7 +720,7 @@
                 (value (object-scheme-value-fast-get value)))
             (object-scheme-value-fast-set! new-int value)
             new-int))
-        (else (error "int.__new__ only supports subtypes of int"))))
+        (else (error "int.__new__" "only supports subtypes of int" #f))))
     (else
       (py-throw-wrong-new-argument "int" cls))))
 
@@ -910,7 +913,7 @@
         ((py-isinstance? value py-float-class)
           ;; up-typing an instance of subclass to an float
           (py-float-from-scheme (object-scheme-value-fast-get value)))
-        (else (error "float.__new__ unimplemented for non float"))))
+        (else (error "float.__new__" "unimplemented for non float" #f))))
     ((py-issubclass? cls py-float-class)
       (cond
         ((not value)
@@ -922,7 +925,7 @@
                 (value (object-scheme-value-fast-get value)))
             (object-scheme-value-fast-set! new-float value)
             new-float))
-        (else (error "float.__new__ only supports subtypes of float"))))
+        (else (error "float.__new__" "only supports subtypes of float" #f))))
     (else
       (py-throw-wrong-new-argument "float" cls))))
 
@@ -1034,6 +1037,10 @@
            (if (eq? setitem py-absent)
                (error "setitem" "only object with __setitem__ method implemented" i)
                (py-call setitem obj i val))))))
+
+(define (py-contains a b c)
+   (error "py-contains" "Not implemented" #f)
+   #t)
 
 ;;;----------------------------------------------------------------------------
 
@@ -1196,7 +1203,10 @@
                   (py-throw exception))))
             (else (py-throw exception))))
       (let ((py-getattribute (getattribute-from-obj-mro obj (& "__getattribute__"))))
-        (py-call py-getattribute obj name))))
+	 (py-call py-getattribute obj name))))
+
+(define (object-get-no-cache obj name)
+   (error "object-get-no-cache" "Not implemented" #f))
 
 (define (object-put! obj attr val cache)
   (py-attr-set! obj attr val))
@@ -1292,7 +1302,7 @@
       ((= args-length 0)
         (py-obj-cls cls))
       ((= args-length 2)
-        (error "type(name, bases, nmspace) not implemented"))
+        (error "type(name, bases, nmspace)" "not implemented" #f))
       (else
         (py-throw (py-call
           py-builtin-TypeError
@@ -1313,13 +1323,10 @@
 (define object.__new__
   (procedure->py-function object-new))
 
-(define (object-init self . args)
-  ;; object.__init__ exists but does nothing
-  ;; its purpose is that super().__init__ does not raise and AttributeError
-  #f)
-
+;; object.__init__ exists but does nothing
+;; its purpose is that super().__init__ does not raise and AttributeError
 (define object.__init__
-  (procedure->py-function object-init))
+  (procedure->py-function (lambda (self . args) #f)))
 
 
 ;; =============================================================================
@@ -1432,14 +1439,14 @@
         (str-instance (py-call __str__ obj)))
     (if (py-isinstance? str-instance py-str-class)
       str-instance
-      (throw-returned-wrong-type "__str__" value "non-string"))))
+      (throw-returned-wrong-type "__str__" obj "non-string"))))
 
 (define (py-repr obj)
   (let* ((__repr__ (getattribute-from-obj-mro obj (& "__repr__")))
         (repr (py-call __repr__ obj)))
     (if (py-isinstance? repr py-str-class)
       repr
-      (throw-returned-wrong-type "__repr__" value "non-string"))))
+      (throw-returned-wrong-type "__repr__" obj "non-string"))))
 
 (define (py-str-repr-scheme str)
   (let* ((quote-style #f)
@@ -1488,15 +1495,15 @@
   (if (py-isinstance? i py-int-class)
     (let ((value (object-scheme-value-fast-get i)))
       (py-str-from-scheme (string (integer->char value))))
-    (let ((i-type (py-type i))
-          (i-type-name (type-name-fast-get i-type)))
+    (let* ((i-type (py-type i))
+	   (i-type-name (type-name-fast-get i-type)))
       (py-throw
         (py-call
           py-builtin-TypeError
           (py-str-from-scheme
             (string-append
               "an integer is required (got type "
-              instance-type-name
+              i-type-name
               ")")))))))
 
 
@@ -1509,7 +1516,8 @@
 
 
 ;; Helpers for the builtins module
-(define py-helper-getownattr py-own-attr-ref)
+(define (py-helper-getownattr obj attr default)
+   (py-own-attr-ref obj attr default))
 
 (define builtins-mod #f)
 
@@ -1683,11 +1691,10 @@
 (define zipi-stdlib-dir "~/udem-dlteam/zipi/stdlib")
 
 (define (py-make-builtins-mod)
- (let ((file (string-append zipi-stdlib-dir "/builtins.scm")))
-    (cond-expand
-	(bigloo (builtins-init))
-	(else
-	 ((loadv file))))))
+   (let ((file (string-append zipi-stdlib-dir "/builtins.scm")))
+      (cond-expand
+	 (bigloo (zipi-init))
+	 (else ((loadv file))))))
 
 ;; Once builtins.py is loaded, we need to keep a direct access to some builtins
 ;; Examples are exceptions which are part of Python protocols, such as StopIteration
@@ -4285,7 +4292,7 @@
     (cond ((eq? args-length 0)
            (raise (flag-super-called-without-arguments)))
           ((eq? args-length 1)
-           (error "super not implemented for 1 argument"))
+           (error "super-init" "not implemented for 1 argument" #f))
           ((eq? args-length 2)
            (begin
              (py-attr-set! self (& "__thisclass__") (list-ref args 0))
@@ -4512,9 +4519,10 @@
       ((= args-len 0)
         (py-str-from-scheme ""))
       ((= args-len 1)
-        (py-str (py-getitem args 0 #f)))
+       (py-str (py-getitem args 0
+		  (error "BaseException-str" "Should have a cache" #f))))
       (else
-        (py-str-from-scheme (py-str-scheme args))))))
+        (py-str-from-scheme (py-str args))))))
 
 
 (define BaseException.__str__

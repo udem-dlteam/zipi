@@ -3,8 +3,8 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 12:48:54 2019                          */
-;*    Last change :  Tue Nov 12 20:26:00 2019 (serrano)                */
-;*    Copyright   :  2019 M. Feeley & M. Serrano                       */
+;*    Last change :  Tue Apr  7 17:35:47 2020 (serrano)                */
+;*    Copyright   :  2019-20 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    ZPC, the zipi compiler                                           */
 ;*=====================================================================*/
@@ -45,10 +45,13 @@
 	  (set! dest path))
 	 ((("--py-module-main") (help "Generate a main module clause"))
 	  (set! main #t))
-   ((("-n" "--no-main") (help "Donot generate main entry point"))
-    (set! main #f))
+	 ((("-n" "--no-main") (help "Donot generate main entry point"))
+	  (set! main #f))
 	 ((("--no-py-module-main") (help "Do not generate a main module clause"))
 	  (set! main #f))
+	 ((("--bootstrap") (help "Generate a bootstrap module"))
+	  (set! main #f)
+	  (set! conf (cons* :bootstrap #t conf)))
 	 (("-v?level" (help "Increase/set verbosity level (-v0 crystal silence)"))
 	  (if (string=? level "")
 	      (set! verb (+fx 1 verb))
