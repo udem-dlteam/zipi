@@ -42,7 +42,6 @@
 ;* 	   (global-put! global name val cache)                         */
 ;*                                                                     */
 ;* 	   (object-get ::obj ::obj ::obj)                              */
-	   (object-get-no-cache ::PyObject ::obj)
 ;* 	   (object-has::bool ::PyObject ::obj)                         */
 ;* 	   (object-put! ::PyObject ::obj ::obj ::obj)                  */
 	   (object-put-no-cache! ::PyObject ::obj ::obj)
@@ -62,7 +61,6 @@
 ;*                                                                     */
 ;* 	   (PyFunction-default-hclass)                                 */
 ;*                                                                     */
-	   (py-procedure->function ::procedure ::procedure)
 
 	   (py-call obj . args)
 ;* 	   (py-call0 ::obj)                                            */
@@ -115,7 +113,7 @@
 
 
 	   (py-isinstance? ::PyObject ::PyObject)
-	   
+
            (py-obj-alloc cls hclass-of-instances)
 	   (py-str-from-scheme::PyObject ::bstring)
 	   (py-str-to-scheme::bstring ::PyObject)
@@ -123,7 +121,7 @@
 ;* 	   (py-repr-scheme ::obj))                                     */
 	   )
 
-   
+
    (eval   (export-all)))
 
 ;*---------------------------------------------------------------------*/
