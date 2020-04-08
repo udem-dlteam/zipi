@@ -1463,6 +1463,7 @@
     function-call
     (make-signature #() #(self) 'args #() #() #f #())))
 
+;; TODO: create a method with signature when calling function.__get__
 (define (function-get self instance owner)
   (if (eq? instance py-None)
     self
