@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Tue Apr  7 16:16:01 2020 (serrano)                */
+;*    Last change :  Wed Apr  8 13:38:44 2020 (serrano)                */
 ;*    Copyright   :  2019-20 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -46,6 +46,7 @@
 ;* 	   (object-has::bool ::PyObject ::obj)                         */
 ;* 	   (object-put! ::PyObject ::obj ::obj ::obj)                  */
 	   (object-put-no-cache! ::PyObject ::obj ::obj)
+	   (getattribute-from-obj-mro ::obj ::obj)
 ;*                                                                     */
 ;* 	   (py-make-dict ::obj ::obj)                                  */
 ;* 	   (py-make-set ::obj)                                         */
@@ -63,6 +64,7 @@
 ;*                                                                     */
 	   (py-procedure->function ::procedure ::procedure)
 
+	   (py-call obj . args)
 ;* 	   (py-call0 ::obj)                                            */
 ;* 	   (py-call1 ::obj ::obj)                                      */
 ;* 	   (py-call2 ::obj ::obj ::obj)                                */
@@ -74,7 +76,7 @@
 ;*                                                                     */
 ;* 	   (py-make-class name module bases . atrs)                    */
 ;*                                                                     */
-;* 	   (py-throw ::obj)                                            */
+	   (py-throw ::obj)
 ;*                                                                     */
 ;* 	   (pyis?::bool x y)                                           */
 ;* 	   (py-add x y cache)                                          */
@@ -111,6 +113,9 @@
 	   py-module-class
            py-absent
 
+
+	   (py-isinstance? ::PyObject ::PyObject)
+	   
            (py-obj-alloc cls hclass-of-instances)
 	   (py-str-from-scheme::PyObject ::bstring)
 	   (py-str-to-scheme::bstring ::PyObject)

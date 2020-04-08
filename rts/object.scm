@@ -3,6 +3,9 @@
 ;;  This was already done with int, example:
 ;; the object int.__add__ has name 'int.__add__' in the source
 
+(define (py-procedure->function p1 p1)
+   (error "py-procedure->function" "not implemented" #f))
+
 ;; =============================================================================
 ;;  HIDDEN CLASSES
 ;; =============================================================================
