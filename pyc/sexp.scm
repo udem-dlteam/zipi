@@ -53,7 +53,7 @@
 		        (list-ref args 3))
           ;; kw-defaults
           (map (lambda (a)
-    		    (new-PycStmtExpr loc a))
+    		    (new-PycStmtExpr loc (sexp a tail scope conf)))
 		        (list-ref args 4))
           ;; kwarg
           (if (list-ref args 5)
@@ -61,7 +61,7 @@
             #f)
           ;; defaults
           (map (lambda (a)
-    		    (new-PycStmtExpr loc a))
+    		    (new-PycStmtExpr loc (sexp a tail scope conf)))
 		        (list-ref args 6))
 	        (compile-stmt* loc body #t 'local conf))))
       ((ClassDef ?loc ?id ?bases ?keywords ?body ?decorator_list)

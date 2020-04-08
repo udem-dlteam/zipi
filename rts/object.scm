@@ -190,7 +190,7 @@
   (PyObject-elements-ref type 4))
 
 (define (type-name-fast-set! type name)
-  (PyObject-hclass-set! type 4 name))
+  (PyObject-elements-set! type 4 name))
 
 (define (class-__call__-fast-get class)
   (PyObject-elements-ref class 5))
@@ -372,7 +372,7 @@
           (not kwarg)
           (eq? (vector-length defaults) 0))
       (if vararg
-        (- (+ (vector-length args) (vector-length posonlyargs)))
+        (- -1 (vector-length args) (vector-length posonlyargs))
         (+ (vector-length args) (vector-length posonlyargs)))
       #f)))
 
@@ -390,10 +390,11 @@
     py-function))
 
 (define (postbootstrap-procedure->py-function procedure signature)
-  (let ((func (py-obj-alloc py-function-class py-function-hclass-of-instances)))
+  (let ((func (py-obj-alloc py-function-class py-function-hclass-of-instances))
+        (arity (signature->arity signature)))
    (object-scheme-procedure-fast-set! func procedure)
    (object-scheme-signature-fast-set! func signature)
-   (object-scheme-arity-fast-set! func (signature->arity signature))
+   (object-scheme-arity-fast-set! func arity)
    func))
 
 (define procedure->py-function prebootstrap-procedure->py-function)
@@ -445,7 +446,7 @@
           (eq? fun-type py-method-class))
       (let ((arity (object-scheme-arity-fast-get fun)))
         (cond
-          ((not arity) (py-call fun ,@args))
+          ((not arity) (py-call fun))
           ((= arity 0)
             ((object-scheme-procedure-fast-get fun)))
           ((= arity -1)
@@ -498,7 +499,7 @@
                 (py-tuple-from-scheme #())
                 '()))
             caller-args))
-        ((< caller-args total-args-len)
+        ((< caller-args-len total-args-len)
           (let ((missing-args-len (- total-args-len caller-args-len)))
             (if (>= default-len missing-args-len)
               (append
@@ -506,7 +507,7 @@
                 (vector->list
                   (subvector defaults (- default-len missing-args-len) default-len)))
               (py-throw py-builtin-TypeError)))) ;; TODO add error message
-        ((vararg)
+        (vararg
           (pack-extra-args (- 0 1 total-args-len) caller-args))
         (else
           (py-throw py-builtin-TypeError)))))) ;; TODO add error message
@@ -4240,15 +4241,16 @@
 (define py-builtin-print
   (procedure->py-function
    (lambda (objects) ;; add args (non-positional): sep end file flush
-     (let ((port (current-output-port)))
-       (let loop ((lst objects))
-         (if (pair? lst)
-             (let ((rest (cdr lst)))
-               (py-display (car lst) port)
-               (if (pair? rest)
-                   (begin
-                     (display " " port)
-                     (loop rest))))))
+     (let* ((port (current-output-port))
+           (objects-vector (object-scheme-value-fast-get objects))
+           (objects-len (vector-length objects-vector)))
+       (let loop ((i 0))
+         (if (< i objects-len)
+           (py-display (vector-ref objects-vector i) port)
+           (if (< (+ i 1) objects-len)
+               (begin
+                 (display " " port)
+                 (loop (+ i 1))))))
        (newline port)))
     (make-signature
       #()
@@ -4897,7 +4899,7 @@
       ((= args-len 1)
         (py-str (py-getitem args 0 #f)))
       (else
-        (py-str-from-scheme (py-str-scheme args))))))
+        (py-str-from-scheme (py-str args))))))
 
 
 (define BaseException.__str__

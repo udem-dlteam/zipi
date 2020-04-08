@@ -427,18 +427,17 @@
 	      ,body)
 	  body))
 
-   (define (signature fun)
+   (define (signature fun conf)
     (let ((vararg (PycFun-vararg fun))
           (kwarg (PycFun-kwarg fun)))
-      `#(
+      `(vector
         #(,@(map PycDecl-id (PycFun-args fun)))
         #(,@(map PycDecl-id (PycFun-posonlyargs fun)))
         ,(and vararg (PycDecl-id vararg))
         #(,@(map PycDecl-id (PycFun-kwonlyargs fun)))
-        #(,@(map PycDecl-id (PycFun-kw-defaults fun)))
+        (vector ,@(scheme* (PycFun-kw-defaults fun) conf))
         ,(and kwarg (PycDecl-id kwarg))
-        #(,@(map PycDecl-id (PycFun-defaults fun)))
-        )))
+        (vector ,@(scheme* (PycFun-defaults fun) conf)))))
 
    (let ((args (map (lambda (a) (scheme a conf)) (PycFun-args this)))
 	 (body (locals this (scheme (PycFun-body this) (cons* fun: this conf)))))
@@ -447,10 +446,9 @@
 	     ,(if (PycFun-need-return this)
 		  `(lambda ,args ,(generator this `(bind-exit (return) ,body)))
 		  `(lambda ,args ,(generator this body)))
-      ,(signature this)))))
+      ,(signature this conf)))))
 
 (define-walk-method (scheme this::PycClass conf)
-
    (define (pyc-class this::PycClass)
      (let ((cls-symbol (PycClass-super-key this)))
       (epairify this
