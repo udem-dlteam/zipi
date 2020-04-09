@@ -3,7 +3,7 @@
 ;;  This was already done with int, example:
 ;; the object int.__add__ has name 'int.__add__' in the source
 
-(define (py-procedure->function p1 p1)
+(define (py-procedure->function p1 p2)
    (error "py-procedure->function" "not implemented" #f))
 
 ;; =============================================================================
@@ -615,7 +615,9 @@
                 lmethod
                 rmethod
                 operator)
-  (let ((fall-back-name (gensym 'py-out-of-place)))
+  (let ((fall-back-name
+         (string->symbol
+          (string-append (symbol->string fun-name) "$fall-back"))))
     `(begin
       (define-binary-operator-protocol ,fall-back-name ,lmethod ,rmethod ,operator)
       (define (,fun-name x y cache)
