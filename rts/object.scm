@@ -612,7 +612,8 @@
                 lmethod
                 rmethod
                 operator)
-  (let ((fall-back-name (gensym 'py-out-of-place)))
+  (let ((fall-back-name (string->symbol
+          (string-append (symbol->string fun-name) "$fall-back"))))
     `(begin
       (define-binary-operator-protocol ,fall-back-name ,lmethod ,rmethod ,operator)
       (define (,fun-name x y cache)
