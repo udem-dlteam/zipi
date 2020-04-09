@@ -287,82 +287,202 @@
      (vector-ref %caches 107))
     (global-put!
      %global
-     (& "range")
+     (& "range_iterator")
      (let (($%cls_0 (py-uninit)))
-       (letrec* ((start153 (py-uninit))
-                 (stop154 (py-uninit))
-                 (step155 (py-uninit))
-                 (__init__156 (py-uninit))
-                 (__len__157 (py-uninit))
-                 (__contains__158 (py-uninit)))
+       (letrec* ((start165 (py-uninit))
+                 (stop166 (py-uninit))
+                 (step167 (py-uninit))
+                 (__init__168 (py-uninit))
+                 (__iter__169 (py-uninit))
+                 (__next__170 (py-uninit)))
          (begin
-           (set! __init__156
+           (set! __init__168
                  (procedure->py-function
-                  (lambda (self3 arg14 arg25 arg36)
+                  (lambda (self3 start4 stop5 step6)
+                    (begin
+                      (object-put!
+                       self3
+                       (& "start")
+                       start4
+                       (vector-ref %caches 108))
+                      (object-put!
+                       self3
+                       (& "stop")
+                       stop5
+                       (vector-ref %caches 109))
+                      (object-put!
+                       self3
+                       (& "step")
+                       step6
+                       (vector-ref %caches 110))))
+                  (vector #(self start stop step)
+                          #()
+                          #f
+                          #()
+                          (vector)
+                          #f
+                          (vector))))
+           (set! __iter__169
+                 (procedure->py-function
+                  (lambda (self8) (begin self8))
+                  (vector #(self) #() #f #() (vector) #f (vector))))
+           (set! __next__170
+                 (procedure->py-function
+                  (lambda (self10)
+                    (bind-exit
+                     (return)
+                     (begin
+                       (set! start165
+                             (object-get
+                              self10
+                              (& "start")
+                              (vector-ref %caches 111)))
+                       (set! stop166
+                             (object-get
+                              self10
+                              (& "stop")
+                              (vector-ref %caches 112)))
+                       (set! step167
+                             (object-get
+                              self10
+                              (& "step")
+                              (vector-ref %caches 113)))
+                       (if (py-test (py-lt step167
+                                           (py-int-from-scheme 0)
+                                           (vector-ref %caches 114)))
+                           (begin
+                             (if (py-test (py-gt start165
+                                                 stop166
+                                                 (vector-ref %caches 115)))
+                                 (begin
+                                   (object-put!
+                                    self10
+                                    (& "start")
+                                    (py-add start165
+                                            step167
+                                            (vector-ref %caches 117))
+                                    (vector-ref %caches 116))
+                                   (return start165))
+                                 #f))
+                           (begin
+                             (if (py-test (py-lt start165
+                                                 stop166
+                                                 (vector-ref %caches 118)))
+                                 (begin
+                                   (object-put!
+                                    self10
+                                    (& "start")
+                                    (py-add start165
+                                            step167
+                                            (vector-ref %caches 120))
+                                    (vector-ref %caches 119))
+                                   (return start165))
+                                 #f)))
+                       (py-throw
+                        (global-get
+                         %global
+                         (& "StopIteration")
+                         (vector-ref %caches 121))))))
+                  (vector #(self) #() #f #() (vector) #f (vector)))))
+         (begin
+           (set! $%cls_0
+                 (py-make-class
+                  (& "range_iterator")
+                  (& "__main__")
+                  (list)
+                  (& "start")
+                  start165
+                  (& "stop")
+                  stop166
+                  (& "step")
+                  step167
+                  (& "__init__")
+                  __init__168
+                  (& "__iter__")
+                  __iter__169
+                  (& "__next__")
+                  __next__170))
+           $%cls_0)))
+     (vector-ref %caches 122))
+    (global-put!
+     %global
+     (& "range")
+     (let (($%cls_1 (py-uninit)))
+       (letrec* ((start174 (py-uninit))
+                 (stop175 (py-uninit))
+                 (step176 (py-uninit))
+                 (__init__177 (py-uninit))
+                 (__len__178 (py-uninit))
+                 (__contains__179 (py-uninit))
+                 (__iter__180 (py-uninit)))
+         (begin
+           (set! __init__177
+                 (procedure->py-function
+                  (lambda (self12 arg113 arg214 arg315)
                     (begin
                       (if (py-test (py-isnot
-                                    arg36
+                                    arg315
                                     (global-get
                                      %global
                                      (& "_absent")
-                                     (vector-ref %caches 110))
-                                    (vector-ref %caches 111)))
+                                     (vector-ref %caches 125))
+                                    (vector-ref %caches 126)))
                           (begin
                             (object-put!
-                             self3
+                             self12
                              (& "start")
-                             arg14
-                             (vector-ref %caches 112))
+                             arg113
+                             (vector-ref %caches 127))
                             (object-put!
-                             self3
+                             self12
                              (& "stop")
-                             arg25
-                             (vector-ref %caches 113))
+                             arg214
+                             (vector-ref %caches 128))
                             (object-put!
-                             self3
+                             self12
                              (& "step")
-                             arg36
-                             (vector-ref %caches 114)))
+                             arg315
+                             (vector-ref %caches 129)))
                           (begin
                             (if (py-test (py-isnot
-                                          arg25
+                                          arg214
                                           (global-get
                                            %global
                                            (& "_absent")
-                                           (vector-ref %caches 115))
-                                          (vector-ref %caches 116)))
+                                           (vector-ref %caches 130))
+                                          (vector-ref %caches 131)))
                                 (begin
                                   (object-put!
-                                   self3
+                                   self12
                                    (& "start")
-                                   arg14
-                                   (vector-ref %caches 117))
+                                   arg113
+                                   (vector-ref %caches 132))
                                   (object-put!
-                                   self3
+                                   self12
                                    (& "stop")
-                                   arg25
-                                   (vector-ref %caches 118))
+                                   arg214
+                                   (vector-ref %caches 133))
                                   (object-put!
-                                   self3
+                                   self12
                                    (& "step")
                                    (py-int-from-scheme 1)
-                                   (vector-ref %caches 119)))
+                                   (vector-ref %caches 134)))
                                 (begin
                                   (object-put!
-                                   self3
+                                   self12
                                    (& "start")
                                    (py-int-from-scheme 0)
-                                   (vector-ref %caches 120))
+                                   (vector-ref %caches 135))
                                   (object-put!
-                                   self3
+                                   self12
                                    (& "stop")
-                                   arg14
-                                   (vector-ref %caches 121))
+                                   arg113
+                                   (vector-ref %caches 136))
                                   (object-put!
-                                   self3
+                                   self12
                                    (& "step")
                                    (py-int-from-scheme 1)
-                                   (vector-ref %caches 122))))))))
+                                   (vector-ref %caches 137))))))))
                   (vector #()
                           #(self arg1 arg2 arg3)
                           #f
@@ -372,1331 +492,1347 @@
                           (vector (global-get
                                    %global
                                    (& "_absent")
-                                   (vector-ref %caches 108))
+                                   (vector-ref %caches 123))
                                   (global-get
                                    %global
                                    (& "_absent")
-                                   (vector-ref %caches 109))))))
-           (set! __len__157
+                                   (vector-ref %caches 124))))))
+           (set! __len__178
                  (procedure->py-function
-                  (lambda (self8)
+                  (lambda (self17)
                     (begin
                       (py-floordiv
                        (py-sub (object-get
-                                self8
+                                self17
                                 (& "stop")
-                                (vector-ref %caches 123))
+                                (vector-ref %caches 138))
                                (object-get
-                                self8
+                                self17
                                 (& "start")
-                                (vector-ref %caches 124))
-                               (vector-ref %caches 125))
-                       (object-get self8 (& "step") (vector-ref %caches 126))
-                       (vector-ref %caches 127))))
+                                (vector-ref %caches 139))
+                               (vector-ref %caches 140))
+                       (object-get self17 (& "step") (vector-ref %caches 141))
+                       (vector-ref %caches 142))))
                   (vector #(self) #() #f #() (vector) #f (vector))))
-           (set! __contains__158
+           (set! __contains__179
                  (procedure->py-function
-                  (lambda (self10 item11)
+                  (lambda (self19 item20)
+                    (bind-exit
+                     (return)
+                     (begin
+                       (set! start174
+                             (object-get
+                              self19
+                              (& "start")
+                              (vector-ref %caches 143)))
+                       (set! stop175
+                             (object-get
+                              self19
+                              (& "stop")
+                              (vector-ref %caches 144)))
+                       (set! step176
+                             (object-get
+                              self19
+                              (& "step")
+                              (vector-ref %caches 145)))
+                       (if (py-test (py-lt (object-get
+                                            self19
+                                            (& "step")
+                                            (vector-ref %caches 146))
+                                           (py-int-from-scheme 0)
+                                           (vector-ref %caches 147)))
+                           (begin
+                             (if (py-test (py-not (py-lt stop175
+                                                         item20
+                                                         (vector-ref
+                                                          %caches
+                                                          148))
+                                                  (vector-ref %caches 149)))
+                                 (begin
+                                   (if (py-test (py-not (py-le item20
+                                                               start174
+                                                               (vector-ref
+                                                                %caches
+                                                                150))
+                                                        (vector-ref
+                                                         %caches
+                                                         151)))
+                                       (begin (return py-False))
+                                       #f))
+                                 #f))
+                           (begin
+                             (if (py-test (py-not (py-le start174
+                                                         item20
+                                                         (vector-ref
+                                                          %caches
+                                                          152))
+                                                  (vector-ref %caches 153)))
+                                 (begin
+                                   (if (py-test (py-not (py-lt item20
+                                                               stop175
+                                                               (vector-ref
+                                                                %caches
+                                                                154))
+                                                        (vector-ref
+                                                         %caches
+                                                         155)))
+                                       (begin (return py-False))
+                                       #f))
+                                 #f)))
+                       (py-eq (py-mod (py-sub item20
+                                              start174
+                                              (vector-ref %caches 156))
+                                      step176
+                                      (vector-ref %caches 157))
+                              (py-int-from-scheme 0)
+                              (vector-ref %caches 158)))))
+                  (vector #(self item) #() #f #() (vector) #f (vector))))
+           (set! __iter__180
+                 (procedure->py-function
+                  (lambda (self22)
                     (begin
-                      (set! start153
-                            (object-get
-                             self10
-                             (& "start")
-                             (vector-ref %caches 128)))
-                      (set! stop154
-                            (object-get
-                             self10
-                             (& "stop")
-                             (vector-ref %caches 129)))
-                      (set! step155
-                            (object-get
-                             self10
-                             (& "step")
-                             (vector-ref %caches 130)))
-                      (if (py-test (py-lt (object-get
-                                           self10
-                                           (& "step")
-                                           (vector-ref %caches 131))
-                                          (py-int-from-scheme 0)
-                                          (vector-ref %caches 132)))
-                          (begin
-                            (if (py-test (py-not (py-lt stop154
-                                                        item11
-                                                        (vector-ref
-                                                         %caches
-                                                         133))
-                                                 (vector-ref %caches 134)))
-                                (begin
-                                  (if (py-test (py-not (py-le item11
-                                                              start153
-                                                              (vector-ref
-                                                               %caches
-                                                               135))
-                                                       (vector-ref
-                                                        %caches
-                                                        136)))
-                                      (begin
-                                        (return (scheme (PycReturn-val this)
-                                                        conf)))
-                                      #f))
-                                #f))
-                          (begin
-                            (if (py-test (py-not (py-le start153
-                                                        item11
-                                                        (vector-ref
-                                                         %caches
-                                                         137))
-                                                 (vector-ref %caches 138)))
-                                (begin
-                                  (if (py-test (py-not (py-lt item11
-                                                              stop154
-                                                              (vector-ref
-                                                               %caches
-                                                               139))
-                                                       (vector-ref
-                                                        %caches
-                                                        140)))
-                                      (begin
-                                        (return (scheme (PycReturn-val this)
-                                                        conf)))
-                                      #f))
-                                #f)))
-                      (py-eq (py-mod (py-sub item11
-                                             start153
-                                             (vector-ref %caches 141))
-                                     step155
-                                     (vector-ref %caches 142))
-                             (py-int-from-scheme 0)
-                             (vector-ref %caches 143))))
-                  (vector #(self item) #() #f #() (vector) #f (vector)))))
+                      (py-call3
+                       (global-get
+                        %global
+                        (& "range_iterator")
+                        (vector-ref %caches 159))
+                       (object-get self22 (& "start") (vector-ref %caches 160))
+                       (object-get self22 (& "stop") (vector-ref %caches 161))
+                       (object-get
+                        self22
+                        (& "step")
+                        (vector-ref %caches 162)))))
+                  (vector #(self) #() #f #() (vector) #f (vector)))))
          (begin
-           (set! $%cls_0
+           (set! $%cls_1
                  (py-make-class
                   (& "range")
                   (& "__main__")
                   (list)
                   (& "start")
-                  start153
+                  start174
                   (& "stop")
-                  stop154
+                  stop175
                   (& "step")
-                  step155
+                  step176
                   (& "__init__")
-                  __init__156
+                  __init__177
                   (& "__len__")
-                  __len__157
+                  __len__178
                   (& "__contains__")
-                  __contains__158))
-           $%cls_0)))
-     (vector-ref %caches 144))
+                  __contains__179
+                  (& "__iter__")
+                  __iter__180))
+           $%cls_1)))
+     (vector-ref %caches 163))
     (global-put!
      %global
      (& "repr")
-     (global-get %global (& "__base_repr") (vector-ref %caches 145))
-     (vector-ref %caches 146))
+     (global-get %global (& "__base_repr") (vector-ref %caches 164))
+     (vector-ref %caches 165))
     (global-put!
      %global
      (& "reversed")
-     (global-get %global (& "__base_reversed") (vector-ref %caches 147))
-     (vector-ref %caches 148))
+     (global-get %global (& "__base_reversed") (vector-ref %caches 166))
+     (vector-ref %caches 167))
     (global-put!
      %global
      (& "round")
-     (global-get %global (& "__base_round") (vector-ref %caches 149))
-     (vector-ref %caches 150))
+     (global-get %global (& "__base_round") (vector-ref %caches 168))
+     (vector-ref %caches 169))
     (global-put!
      %global
      (& "set")
-     (global-get %global (& "__base_set") (vector-ref %caches 151))
-     (vector-ref %caches 152))
+     (global-get %global (& "__base_set") (vector-ref %caches 170))
+     (vector-ref %caches 171))
     (global-put!
      %global
      (& "setattr")
-     (global-get %global (& "__base_setattr") (vector-ref %caches 153))
-     (vector-ref %caches 154))
+     (global-get %global (& "__base_setattr") (vector-ref %caches 172))
+     (vector-ref %caches 173))
     (global-put!
      %global
      (& "slice")
-     (global-get %global (& "__base_slice") (vector-ref %caches 155))
-     (vector-ref %caches 156))
+     (global-get %global (& "__base_slice") (vector-ref %caches 174))
+     (vector-ref %caches 175))
     (global-put!
      %global
      (& "sorted")
-     (global-get %global (& "__base_sorted") (vector-ref %caches 157))
-     (vector-ref %caches 158))
+     (global-get %global (& "__base_sorted") (vector-ref %caches 176))
+     (vector-ref %caches 177))
     (global-put!
      %global
      (& "staticmethod")
-     (global-get %global (& "__base_staticmethod") (vector-ref %caches 159))
-     (vector-ref %caches 160))
+     (global-get %global (& "__base_staticmethod") (vector-ref %caches 178))
+     (vector-ref %caches 179))
     (global-put!
      %global
      (& "str")
-     (global-get %global (& "__base_str") (vector-ref %caches 161))
-     (vector-ref %caches 162))
+     (global-get %global (& "__base_str") (vector-ref %caches 180))
+     (vector-ref %caches 181))
     (global-put!
      %global
      (& "sum")
-     (global-get %global (& "__base_sum") (vector-ref %caches 163))
-     (vector-ref %caches 164))
+     (global-get %global (& "__base_sum") (vector-ref %caches 182))
+     (vector-ref %caches 183))
     (global-put!
      %global
      (& "super")
-     (global-get %global (& "__base_super") (vector-ref %caches 165))
-     (vector-ref %caches 166))
+     (global-get %global (& "__base_super") (vector-ref %caches 184))
+     (vector-ref %caches 185))
     (global-put!
      %global
      (& "tuple")
-     (global-get %global (& "__base_tuple") (vector-ref %caches 167))
-     (vector-ref %caches 168))
+     (global-get %global (& "__base_tuple") (vector-ref %caches 186))
+     (vector-ref %caches 187))
     (global-put!
      %global
      (& "type")
-     (global-get %global (& "__base_type") (vector-ref %caches 169))
-     (vector-ref %caches 170))
+     (global-get %global (& "__base_type") (vector-ref %caches 188))
+     (vector-ref %caches 189))
     (global-put!
      %global
      (& "vars")
-     (global-get %global (& "__base_vars") (vector-ref %caches 171))
-     (vector-ref %caches 172))
+     (global-get %global (& "__base_vars") (vector-ref %caches 190))
+     (vector-ref %caches 191))
     (global-put!
      %global
      (& "zip")
-     (global-get %global (& "__base_zip") (vector-ref %caches 173))
-     (vector-ref %caches 174))
+     (global-get %global (& "__base_zip") (vector-ref %caches 192))
+     (vector-ref %caches 193))
     (global-put!
      %global
      (& "NotImplemented")
-     (global-get %global (& "NotImplemented") (vector-ref %caches 175))
-     (vector-ref %caches 176))
+     (global-get %global (& "NotImplemented") (vector-ref %caches 194))
+     (vector-ref %caches 195))
     (global-put!
      %global
      (& "BaseException")
-     (global-get %global (& "BaseException") (vector-ref %caches 177))
-     (vector-ref %caches 178))
+     (global-get %global (& "BaseException") (vector-ref %caches 196))
+     (vector-ref %caches 197))
     (global-put!
      %global
      (& "Exception")
-     (let (($%cls_1 (py-uninit)))
-       (begin
-         (begin #f)
-         (begin
-           (set! $%cls_1
-                 (py-make-class
-                  (& "Exception")
-                  (& "__main__")
-                  (list (global-get
-                         %global
-                         (& "BaseException")
-                         (vector-ref %caches 179)))))
-           $%cls_1)))
-     (vector-ref %caches 180))
-    (global-put!
-     %global
-     (& "GeneratorExit")
      (let (($%cls_2 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_2
                  (py-make-class
-                  (& "GeneratorExit")
+                  (& "Exception")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "BaseException")
-                         (vector-ref %caches 181)))))
+                         (vector-ref %caches 198)))))
            $%cls_2)))
-     (vector-ref %caches 182))
+     (vector-ref %caches 199))
     (global-put!
      %global
-     (& "KeyboardInterrupt")
+     (& "GeneratorExit")
      (let (($%cls_3 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_3
                  (py-make-class
-                  (& "KeyboardInterrupt")
+                  (& "GeneratorExit")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "BaseException")
-                         (vector-ref %caches 183)))))
+                         (vector-ref %caches 200)))))
            $%cls_3)))
-     (vector-ref %caches 184))
+     (vector-ref %caches 201))
     (global-put!
      %global
-     (& "SystemExit")
+     (& "KeyboardInterrupt")
      (let (($%cls_4 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_4
                  (py-make-class
-                  (& "SystemExit")
+                  (& "KeyboardInterrupt")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "BaseException")
-                         (vector-ref %caches 185)))))
+                         (vector-ref %caches 202)))))
            $%cls_4)))
-     (vector-ref %caches 186))
+     (vector-ref %caches 203))
     (global-put!
      %global
-     (& "ArithmeticError")
+     (& "SystemExit")
      (let (($%cls_5 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_5
                  (py-make-class
-                  (& "ArithmeticError")
+                  (& "SystemExit")
                   (& "__main__")
                   (list (global-get
                          %global
-                         (& "Exception")
-                         (vector-ref %caches 187)))))
+                         (& "BaseException")
+                         (vector-ref %caches 204)))))
            $%cls_5)))
-     (vector-ref %caches 188))
+     (vector-ref %caches 205))
     (global-put!
      %global
-     (& "AssertionError")
+     (& "ArithmeticError")
      (let (($%cls_6 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_6
                  (py-make-class
-                  (& "AssertionError")
+                  (& "ArithmeticError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 189)))))
+                         (vector-ref %caches 206)))))
            $%cls_6)))
-     (vector-ref %caches 190))
+     (vector-ref %caches 207))
     (global-put!
      %global
-     (& "AttributeError")
+     (& "AssertionError")
      (let (($%cls_7 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_7
                  (py-make-class
-                  (& "AttributeError")
+                  (& "AssertionError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 191)))))
+                         (vector-ref %caches 208)))))
            $%cls_7)))
-     (vector-ref %caches 192))
+     (vector-ref %caches 209))
     (global-put!
      %global
-     (& "BufferError")
+     (& "AttributeError")
      (let (($%cls_8 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_8
                  (py-make-class
-                  (& "BufferError")
+                  (& "AttributeError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 193)))))
+                         (vector-ref %caches 210)))))
            $%cls_8)))
-     (vector-ref %caches 194))
+     (vector-ref %caches 211))
     (global-put!
      %global
-     (& "EOFError")
+     (& "BufferError")
      (let (($%cls_9 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_9
                  (py-make-class
-                  (& "EOFError")
+                  (& "BufferError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 195)))))
+                         (vector-ref %caches 212)))))
            $%cls_9)))
-     (vector-ref %caches 196))
+     (vector-ref %caches 213))
     (global-put!
      %global
-     (& "ImportError")
+     (& "EOFError")
      (let (($%cls_10 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_10
                  (py-make-class
-                  (& "ImportError")
+                  (& "EOFError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 197)))))
+                         (vector-ref %caches 214)))))
            $%cls_10)))
-     (vector-ref %caches 198))
+     (vector-ref %caches 215))
     (global-put!
      %global
-     (& "LookupError")
+     (& "ImportError")
      (let (($%cls_11 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_11
                  (py-make-class
-                  (& "LookupError")
+                  (& "ImportError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 199)))))
+                         (vector-ref %caches 216)))))
            $%cls_11)))
-     (vector-ref %caches 200))
+     (vector-ref %caches 217))
     (global-put!
      %global
-     (& "MemoryError")
+     (& "LookupError")
      (let (($%cls_12 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_12
                  (py-make-class
-                  (& "MemoryError")
+                  (& "LookupError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 201)))))
+                         (vector-ref %caches 218)))))
            $%cls_12)))
-     (vector-ref %caches 202))
+     (vector-ref %caches 219))
     (global-put!
      %global
-     (& "NameError")
+     (& "MemoryError")
      (let (($%cls_13 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_13
                  (py-make-class
-                  (& "NameError")
+                  (& "MemoryError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 203)))))
+                         (vector-ref %caches 220)))))
            $%cls_13)))
-     (vector-ref %caches 204))
+     (vector-ref %caches 221))
     (global-put!
      %global
-     (& "EnvironmentError")
+     (& "NameError")
      (let (($%cls_14 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_14
                  (py-make-class
-                  (& "EnvironmentError")
+                  (& "NameError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 205)))))
+                         (vector-ref %caches 222)))))
            $%cls_14)))
-     (vector-ref %caches 206))
+     (vector-ref %caches 223))
     (global-put!
      %global
-     (& "IOError")
+     (& "EnvironmentError")
      (let (($%cls_15 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_15
                  (py-make-class
-                  (& "IOError")
+                  (& "EnvironmentError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 207)))))
+                         (vector-ref %caches 224)))))
            $%cls_15)))
-     (vector-ref %caches 208))
+     (vector-ref %caches 225))
     (global-put!
      %global
-     (& "OSError")
+     (& "IOError")
      (let (($%cls_16 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_16
                  (py-make-class
-                  (& "OSError")
+                  (& "IOError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 209)))))
+                         (vector-ref %caches 226)))))
            $%cls_16)))
-     (vector-ref %caches 210))
+     (vector-ref %caches 227))
     (global-put!
      %global
-     (& "WindowsError")
+     (& "OSError")
      (let (($%cls_17 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_17
                  (py-make-class
-                  (& "WindowsError")
+                  (& "OSError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 211)))))
+                         (vector-ref %caches 228)))))
            $%cls_17)))
-     (vector-ref %caches 212))
+     (vector-ref %caches 229))
     (global-put!
      %global
-     (& "ReferenceError")
+     (& "WindowsError")
      (let (($%cls_18 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_18
                  (py-make-class
-                  (& "ReferenceError")
+                  (& "WindowsError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 213)))))
+                         (vector-ref %caches 230)))))
            $%cls_18)))
-     (vector-ref %caches 214))
+     (vector-ref %caches 231))
     (global-put!
      %global
-     (& "RuntimeError")
+     (& "ReferenceError")
      (let (($%cls_19 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_19
                  (py-make-class
-                  (& "RuntimeError")
+                  (& "ReferenceError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 215)))))
+                         (vector-ref %caches 232)))))
            $%cls_19)))
-     (vector-ref %caches 216))
+     (vector-ref %caches 233))
     (global-put!
      %global
-     (& "StopAsyncIteration")
+     (& "RuntimeError")
      (let (($%cls_20 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_20
                  (py-make-class
-                  (& "StopAsyncIteration")
+                  (& "RuntimeError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 217)))))
+                         (vector-ref %caches 234)))))
            $%cls_20)))
-     (vector-ref %caches 218))
+     (vector-ref %caches 235))
     (global-put!
      %global
-     (& "StopIteration")
+     (& "StopAsyncIteration")
      (let (($%cls_21 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_21
                  (py-make-class
-                  (& "StopIteration")
+                  (& "StopAsyncIteration")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 219)))))
+                         (vector-ref %caches 236)))))
            $%cls_21)))
-     (vector-ref %caches 220))
+     (vector-ref %caches 237))
     (global-put!
      %global
-     (& "SyntaxError")
+     (& "StopIteration")
      (let (($%cls_22 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_22
                  (py-make-class
-                  (& "SyntaxError")
+                  (& "StopIteration")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 221)))))
+                         (vector-ref %caches 238)))))
            $%cls_22)))
-     (vector-ref %caches 222))
+     (vector-ref %caches 239))
     (global-put!
      %global
-     (& "SystemError")
+     (& "SyntaxError")
      (let (($%cls_23 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_23
                  (py-make-class
-                  (& "SystemError")
+                  (& "SyntaxError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 223)))))
+                         (vector-ref %caches 240)))))
            $%cls_23)))
-     (vector-ref %caches 224))
+     (vector-ref %caches 241))
     (global-put!
      %global
-     (& "TypeError")
+     (& "SystemError")
      (let (($%cls_24 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_24
                  (py-make-class
-                  (& "TypeError")
+                  (& "SystemError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 225)))))
+                         (vector-ref %caches 242)))))
            $%cls_24)))
-     (vector-ref %caches 226))
+     (vector-ref %caches 243))
     (global-put!
      %global
-     (& "ValueError")
+     (& "TypeError")
      (let (($%cls_25 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_25
                  (py-make-class
-                  (& "ValueError")
+                  (& "TypeError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 227)))))
+                         (vector-ref %caches 244)))))
            $%cls_25)))
-     (vector-ref %caches 228))
+     (vector-ref %caches 245))
     (global-put!
      %global
-     (& "Warning")
+     (& "ValueError")
      (let (($%cls_26 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_26
                  (py-make-class
-                  (& "Warning")
+                  (& "ValueError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "Exception")
-                         (vector-ref %caches 229)))))
+                         (vector-ref %caches 246)))))
            $%cls_26)))
-     (vector-ref %caches 230))
+     (vector-ref %caches 247))
     (global-put!
      %global
-     (& "FloatingPointError")
+     (& "Warning")
      (let (($%cls_27 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_27
                  (py-make-class
-                  (& "FloatingPointError")
+                  (& "Warning")
                   (& "__main__")
                   (list (global-get
                          %global
-                         (& "ArithmeticError")
-                         (vector-ref %caches 231)))))
+                         (& "Exception")
+                         (vector-ref %caches 248)))))
            $%cls_27)))
-     (vector-ref %caches 232))
+     (vector-ref %caches 249))
     (global-put!
      %global
-     (& "OverflowError")
+     (& "FloatingPointError")
      (let (($%cls_28 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_28
                  (py-make-class
-                  (& "OverflowError")
+                  (& "FloatingPointError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "ArithmeticError")
-                         (vector-ref %caches 233)))))
+                         (vector-ref %caches 250)))))
            $%cls_28)))
-     (vector-ref %caches 234))
+     (vector-ref %caches 251))
     (global-put!
      %global
-     (& "ZeroDivisionError")
+     (& "OverflowError")
      (let (($%cls_29 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_29
                  (py-make-class
-                  (& "ZeroDivisionError")
+                  (& "OverflowError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "ArithmeticError")
-                         (vector-ref %caches 235)))))
+                         (vector-ref %caches 252)))))
            $%cls_29)))
-     (vector-ref %caches 236))
+     (vector-ref %caches 253))
     (global-put!
      %global
-     (& "ModuleNotFoundError")
+     (& "ZeroDivisionError")
      (let (($%cls_30 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_30
                  (py-make-class
-                  (& "ModuleNotFoundError")
+                  (& "ZeroDivisionError")
                   (& "__main__")
                   (list (global-get
                          %global
-                         (& "ImportError")
-                         (vector-ref %caches 237)))))
+                         (& "ArithmeticError")
+                         (vector-ref %caches 254)))))
            $%cls_30)))
-     (vector-ref %caches 238))
+     (vector-ref %caches 255))
     (global-put!
      %global
-     (& "IndexError")
+     (& "ModuleNotFoundError")
      (let (($%cls_31 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_31
                  (py-make-class
-                  (& "IndexError")
+                  (& "ModuleNotFoundError")
                   (& "__main__")
                   (list (global-get
                          %global
-                         (& "LookupError")
-                         (vector-ref %caches 239)))))
+                         (& "ImportError")
+                         (vector-ref %caches 256)))))
            $%cls_31)))
-     (vector-ref %caches 240))
+     (vector-ref %caches 257))
     (global-put!
      %global
-     (& "KeyError")
+     (& "IndexError")
      (let (($%cls_32 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_32
                  (py-make-class
-                  (& "KeyError")
+                  (& "IndexError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "LookupError")
-                         (vector-ref %caches 241)))))
+                         (vector-ref %caches 258)))))
            $%cls_32)))
-     (vector-ref %caches 242))
+     (vector-ref %caches 259))
     (global-put!
      %global
-     (& "UnboundLocalError")
+     (& "KeyError")
      (let (($%cls_33 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_33
                  (py-make-class
-                  (& "UnboundLocalError")
+                  (& "KeyError")
                   (& "__main__")
                   (list (global-get
                          %global
-                         (& "NameError")
-                         (vector-ref %caches 243)))))
+                         (& "LookupError")
+                         (vector-ref %caches 260)))))
            $%cls_33)))
-     (vector-ref %caches 244))
+     (vector-ref %caches 261))
     (global-put!
      %global
-     (& "BlockingIOError")
+     (& "UnboundLocalError")
      (let (($%cls_34 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_34
                  (py-make-class
-                  (& "BlockingIOError")
+                  (& "UnboundLocalError")
                   (& "__main__")
                   (list (global-get
                          %global
-                         (& "OSError")
-                         (vector-ref %caches 245)))))
+                         (& "NameError")
+                         (vector-ref %caches 262)))))
            $%cls_34)))
-     (vector-ref %caches 246))
+     (vector-ref %caches 263))
     (global-put!
      %global
-     (& "ChildProcessError")
+     (& "BlockingIOError")
      (let (($%cls_35 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_35
                  (py-make-class
-                  (& "ChildProcessError")
+                  (& "BlockingIOError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "OSError")
-                         (vector-ref %caches 247)))))
+                         (vector-ref %caches 264)))))
            $%cls_35)))
-     (vector-ref %caches 248))
+     (vector-ref %caches 265))
     (global-put!
      %global
-     (& "ConnectionError")
+     (& "ChildProcessError")
      (let (($%cls_36 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_36
                  (py-make-class
-                  (& "ConnectionError")
+                  (& "ChildProcessError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "OSError")
-                         (vector-ref %caches 249)))))
+                         (vector-ref %caches 266)))))
            $%cls_36)))
-     (vector-ref %caches 250))
+     (vector-ref %caches 267))
     (global-put!
      %global
-     (& "FileExistsError")
+     (& "ConnectionError")
      (let (($%cls_37 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_37
                  (py-make-class
-                  (& "FileExistsError")
+                  (& "ConnectionError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "OSError")
-                         (vector-ref %caches 251)))))
+                         (vector-ref %caches 268)))))
            $%cls_37)))
-     (vector-ref %caches 252))
+     (vector-ref %caches 269))
     (global-put!
      %global
-     (& "FileNotFoundError")
+     (& "FileExistsError")
      (let (($%cls_38 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_38
                  (py-make-class
-                  (& "FileNotFoundError")
+                  (& "FileExistsError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "OSError")
-                         (vector-ref %caches 253)))))
+                         (vector-ref %caches 270)))))
            $%cls_38)))
-     (vector-ref %caches 254))
+     (vector-ref %caches 271))
     (global-put!
      %global
-     (& "InterruptedError")
+     (& "FileNotFoundError")
      (let (($%cls_39 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_39
                  (py-make-class
-                  (& "InterruptedError")
+                  (& "FileNotFoundError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "OSError")
-                         (vector-ref %caches 255)))))
+                         (vector-ref %caches 272)))))
            $%cls_39)))
-     (vector-ref %caches 256))
+     (vector-ref %caches 273))
     (global-put!
      %global
-     (& "IsADirectoryError")
+     (& "InterruptedError")
      (let (($%cls_40 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_40
                  (py-make-class
-                  (& "IsADirectoryError")
+                  (& "InterruptedError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "OSError")
-                         (vector-ref %caches 257)))))
+                         (vector-ref %caches 274)))))
            $%cls_40)))
-     (vector-ref %caches 258))
+     (vector-ref %caches 275))
     (global-put!
      %global
-     (& "NotADirectoryError")
+     (& "IsADirectoryError")
      (let (($%cls_41 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_41
                  (py-make-class
-                  (& "NotADirectoryError")
+                  (& "IsADirectoryError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "OSError")
-                         (vector-ref %caches 259)))))
+                         (vector-ref %caches 276)))))
            $%cls_41)))
-     (vector-ref %caches 260))
+     (vector-ref %caches 277))
     (global-put!
      %global
-     (& "PermissionError")
+     (& "NotADirectoryError")
      (let (($%cls_42 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_42
                  (py-make-class
-                  (& "PermissionError")
+                  (& "NotADirectoryError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "OSError")
-                         (vector-ref %caches 261)))))
+                         (vector-ref %caches 278)))))
            $%cls_42)))
-     (vector-ref %caches 262))
+     (vector-ref %caches 279))
     (global-put!
      %global
-     (& "ProcessLookupError")
+     (& "PermissionError")
      (let (($%cls_43 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_43
                  (py-make-class
-                  (& "ProcessLookupError")
+                  (& "PermissionError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "OSError")
-                         (vector-ref %caches 263)))))
+                         (vector-ref %caches 280)))))
            $%cls_43)))
-     (vector-ref %caches 264))
+     (vector-ref %caches 281))
     (global-put!
      %global
-     (& "TimeoutError")
+     (& "ProcessLookupError")
      (let (($%cls_44 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_44
                  (py-make-class
-                  (& "TimeoutError")
+                  (& "ProcessLookupError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "OSError")
-                         (vector-ref %caches 265)))))
+                         (vector-ref %caches 282)))))
            $%cls_44)))
-     (vector-ref %caches 266))
+     (vector-ref %caches 283))
     (global-put!
      %global
-     (& "NotImplementedError")
+     (& "TimeoutError")
      (let (($%cls_45 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_45
                  (py-make-class
-                  (& "NotImplementedError")
+                  (& "TimeoutError")
                   (& "__main__")
                   (list (global-get
                          %global
-                         (& "RuntimeError")
-                         (vector-ref %caches 267)))))
+                         (& "OSError")
+                         (vector-ref %caches 284)))))
            $%cls_45)))
-     (vector-ref %caches 268))
+     (vector-ref %caches 285))
     (global-put!
      %global
-     (& "RecursionError")
+     (& "NotImplementedError")
      (let (($%cls_46 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_46
                  (py-make-class
-                  (& "RecursionError")
+                  (& "NotImplementedError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "RuntimeError")
-                         (vector-ref %caches 269)))))
+                         (vector-ref %caches 286)))))
            $%cls_46)))
-     (vector-ref %caches 270))
+     (vector-ref %caches 287))
     (global-put!
      %global
-     (& "IndentationError")
+     (& "RecursionError")
      (let (($%cls_47 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_47
                  (py-make-class
-                  (& "IndentationError")
+                  (& "RecursionError")
                   (& "__main__")
                   (list (global-get
                          %global
-                         (& "SyntaxError")
-                         (vector-ref %caches 271)))))
+                         (& "RuntimeError")
+                         (vector-ref %caches 288)))))
            $%cls_47)))
-     (vector-ref %caches 272))
+     (vector-ref %caches 289))
     (global-put!
      %global
-     (& "UnicodeError")
+     (& "IndentationError")
      (let (($%cls_48 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_48
                  (py-make-class
-                  (& "UnicodeError")
+                  (& "IndentationError")
                   (& "__main__")
                   (list (global-get
                          %global
-                         (& "ValueError")
-                         (vector-ref %caches 273)))))
+                         (& "SyntaxError")
+                         (vector-ref %caches 290)))))
            $%cls_48)))
-     (vector-ref %caches 274))
+     (vector-ref %caches 291))
     (global-put!
      %global
-     (& "BytesWarning")
+     (& "UnicodeError")
      (let (($%cls_49 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_49
                  (py-make-class
-                  (& "BytesWarning")
+                  (& "UnicodeError")
                   (& "__main__")
                   (list (global-get
                          %global
-                         (& "Warning")
-                         (vector-ref %caches 275)))))
+                         (& "ValueError")
+                         (vector-ref %caches 292)))))
            $%cls_49)))
-     (vector-ref %caches 276))
+     (vector-ref %caches 293))
     (global-put!
      %global
-     (& "DeprecationWarning")
+     (& "BytesWarning")
      (let (($%cls_50 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_50
                  (py-make-class
-                  (& "DeprecationWarning")
+                  (& "BytesWarning")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "Warning")
-                         (vector-ref %caches 277)))))
+                         (vector-ref %caches 294)))))
            $%cls_50)))
-     (vector-ref %caches 278))
+     (vector-ref %caches 295))
     (global-put!
      %global
-     (& "FutureWarning")
+     (& "DeprecationWarning")
      (let (($%cls_51 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_51
                  (py-make-class
-                  (& "FutureWarning")
+                  (& "DeprecationWarning")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "Warning")
-                         (vector-ref %caches 279)))))
+                         (vector-ref %caches 296)))))
            $%cls_51)))
-     (vector-ref %caches 280))
+     (vector-ref %caches 297))
     (global-put!
      %global
-     (& "ImportWarning")
+     (& "FutureWarning")
      (let (($%cls_52 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_52
                  (py-make-class
-                  (& "ImportWarning")
+                  (& "FutureWarning")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "Warning")
-                         (vector-ref %caches 281)))))
+                         (vector-ref %caches 298)))))
            $%cls_52)))
-     (vector-ref %caches 282))
+     (vector-ref %caches 299))
     (global-put!
      %global
-     (& "PendingDeprecationWarning")
+     (& "ImportWarning")
      (let (($%cls_53 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_53
                  (py-make-class
-                  (& "PendingDeprecationWarning")
+                  (& "ImportWarning")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "Warning")
-                         (vector-ref %caches 283)))))
+                         (vector-ref %caches 300)))))
            $%cls_53)))
-     (vector-ref %caches 284))
+     (vector-ref %caches 301))
     (global-put!
      %global
-     (& "ResourceWarning")
+     (& "PendingDeprecationWarning")
      (let (($%cls_54 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_54
                  (py-make-class
-                  (& "ResourceWarning")
+                  (& "PendingDeprecationWarning")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "Warning")
-                         (vector-ref %caches 285)))))
+                         (vector-ref %caches 302)))))
            $%cls_54)))
-     (vector-ref %caches 286))
+     (vector-ref %caches 303))
     (global-put!
      %global
-     (& "RuntimeWarning")
+     (& "ResourceWarning")
      (let (($%cls_55 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_55
                  (py-make-class
-                  (& "RuntimeWarning")
+                  (& "ResourceWarning")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "Warning")
-                         (vector-ref %caches 287)))))
+                         (vector-ref %caches 304)))))
            $%cls_55)))
-     (vector-ref %caches 288))
+     (vector-ref %caches 305))
     (global-put!
      %global
-     (& "SyntaxWarning")
+     (& "RuntimeWarning")
      (let (($%cls_56 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_56
                  (py-make-class
-                  (& "SyntaxWarning")
+                  (& "RuntimeWarning")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "Warning")
-                         (vector-ref %caches 289)))))
+                         (vector-ref %caches 306)))))
            $%cls_56)))
-     (vector-ref %caches 290))
+     (vector-ref %caches 307))
     (global-put!
      %global
-     (& "UnicodeWarning")
+     (& "SyntaxWarning")
      (let (($%cls_57 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_57
                  (py-make-class
-                  (& "UnicodeWarning")
+                  (& "SyntaxWarning")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "Warning")
-                         (vector-ref %caches 291)))))
+                         (vector-ref %caches 308)))))
            $%cls_57)))
-     (vector-ref %caches 292))
+     (vector-ref %caches 309))
     (global-put!
      %global
-     (& "UserWarning")
+     (& "UnicodeWarning")
      (let (($%cls_58 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_58
                  (py-make-class
-                  (& "UserWarning")
+                  (& "UnicodeWarning")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "Warning")
-                         (vector-ref %caches 293)))))
+                         (vector-ref %caches 310)))))
            $%cls_58)))
-     (vector-ref %caches 294))
+     (vector-ref %caches 311))
     (global-put!
      %global
-     (& "BrokenPipeError")
+     (& "UserWarning")
      (let (($%cls_59 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_59
                  (py-make-class
-                  (& "BrokenPipeError")
+                  (& "UserWarning")
                   (& "__main__")
                   (list (global-get
                          %global
-                         (& "ConnectionError")
-                         (vector-ref %caches 295)))))
+                         (& "Warning")
+                         (vector-ref %caches 312)))))
            $%cls_59)))
-     (vector-ref %caches 296))
+     (vector-ref %caches 313))
     (global-put!
      %global
-     (& "ConnectionAbortedError")
+     (& "BrokenPipeError")
      (let (($%cls_60 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_60
                  (py-make-class
-                  (& "ConnectionAbortedError")
+                  (& "BrokenPipeError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "ConnectionError")
-                         (vector-ref %caches 297)))))
+                         (vector-ref %caches 314)))))
            $%cls_60)))
-     (vector-ref %caches 298))
+     (vector-ref %caches 315))
     (global-put!
      %global
-     (& "ConnectionRefusedError")
+     (& "ConnectionAbortedError")
      (let (($%cls_61 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_61
                  (py-make-class
-                  (& "ConnectionRefusedError")
+                  (& "ConnectionAbortedError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "ConnectionError")
-                         (vector-ref %caches 299)))))
+                         (vector-ref %caches 316)))))
            $%cls_61)))
-     (vector-ref %caches 300))
+     (vector-ref %caches 317))
     (global-put!
      %global
-     (& "ConnectionResetError")
+     (& "ConnectionRefusedError")
      (let (($%cls_62 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_62
                  (py-make-class
-                  (& "ConnectionResetError")
+                  (& "ConnectionRefusedError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "ConnectionError")
-                         (vector-ref %caches 301)))))
+                         (vector-ref %caches 318)))))
            $%cls_62)))
-     (vector-ref %caches 302))
+     (vector-ref %caches 319))
     (global-put!
      %global
-     (& "TabError")
+     (& "ConnectionResetError")
      (let (($%cls_63 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_63
                  (py-make-class
-                  (& "TabError")
+                  (& "ConnectionResetError")
                   (& "__main__")
                   (list (global-get
                          %global
-                         (& "IndentationError")
-                         (vector-ref %caches 303)))))
+                         (& "ConnectionError")
+                         (vector-ref %caches 320)))))
            $%cls_63)))
-     (vector-ref %caches 304))
+     (vector-ref %caches 321))
     (global-put!
      %global
-     (& "UnicodeDecodeError")
+     (& "TabError")
      (let (($%cls_64 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_64
                  (py-make-class
-                  (& "UnicodeDecodeError")
+                  (& "TabError")
                   (& "__main__")
                   (list (global-get
                          %global
-                         (& "UnicodeError")
-                         (vector-ref %caches 305)))))
+                         (& "IndentationError")
+                         (vector-ref %caches 322)))))
            $%cls_64)))
-     (vector-ref %caches 306))
+     (vector-ref %caches 323))
     (global-put!
      %global
-     (& "UnicodeEncodeError")
+     (& "UnicodeDecodeError")
      (let (($%cls_65 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_65
                  (py-make-class
-                  (& "UnicodeEncodeError")
+                  (& "UnicodeDecodeError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "UnicodeError")
-                         (vector-ref %caches 307)))))
+                         (vector-ref %caches 324)))))
            $%cls_65)))
-     (vector-ref %caches 308))
+     (vector-ref %caches 325))
     (global-put!
      %global
-     (& "UnicodeTranslateError")
+     (& "UnicodeEncodeError")
      (let (($%cls_66 (py-uninit)))
        (begin
          (begin #f)
          (begin
            (set! $%cls_66
                  (py-make-class
+                  (& "UnicodeEncodeError")
+                  (& "__main__")
+                  (list (global-get
+                         %global
+                         (& "UnicodeError")
+                         (vector-ref %caches 326)))))
+           $%cls_66)))
+     (vector-ref %caches 327))
+    (global-put!
+     %global
+     (& "UnicodeTranslateError")
+     (let (($%cls_67 (py-uninit)))
+       (begin
+         (begin #f)
+         (begin
+           (set! $%cls_67
+                 (py-make-class
                   (& "UnicodeTranslateError")
                   (& "__main__")
                   (list (global-get
                          %global
                          (& "UnicodeError")
-                         (vector-ref %caches 309)))))
-           $%cls_66)))
-     (vector-ref %caches 310))))
+                         (vector-ref %caches 328)))))
+           $%cls_67)))
+     (vector-ref %caches 329))))
 (lambda ()
-  (let ((global (py-make-base-global)) (caches (py-make-caches 311)))
+  (let ((global (py-make-base-global)) (caches (py-make-caches 330)))
     (py-module global caches)
     global))

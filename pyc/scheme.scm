@@ -101,9 +101,9 @@
 
 (define-walk-method (scheme this::PycReturn conf)
    (if (PycReturn-tail this)
-       (scheme (PycReturn-val this) conf)
-       (epairify this
-	  `(return (scheme (PycReturn-val this) conf)))))
+      (scheme (PycReturn-val this) conf)
+      (epairify this
+	      `(return ,(scheme (PycReturn-val this) conf)))))
 
 (define-walk-method (scheme this::PycReturnYield conf)
    (let ((kont (PycReturnYield-kont this))

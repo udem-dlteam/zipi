@@ -18,3 +18,6 @@ x = next(i, 999)
 while x != 999:
     print(x)
     x = next(i, 999)
+
+for x in range(1, 100, 3):
+    print(x)

@@ -553,6 +553,12 @@
 ;; =============================================================================
 ;; Exception thrower helpers
 ;; =============================================================================
+(define (py-throw-not-an-iterator obj)
+  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
+    (py-throw
+      (py-call py-builtin-TypeError
+        (py-str-from-scheme
+          (string-append "'" given-type "' object is not an iterator"))))))
 
 (define (py-throw-not-callable obj)
   (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
@@ -2334,12 +2340,26 @@
   (let ((__iter__ (getattribute-from-obj-mro obj (& "__iter__"))))
     (if (eq? __iter__ py-absent)
       #f
-      (py-call __iter__ obj))))
+      (py-call1 __iter__ obj))))
 
 ;; Wraps py-obj->iterator to raise a TypeError when the object is not iterable
 (define (py-iter obj)
   (or (py-obj->iterator obj)
       (throw-not-iteralble obj)))
+
+(define (iterator-next obj default)
+    (let ((__next__ (getattribute-from-obj-mro obj (& "__next__"))))
+      (if (eq? __next__ py-absent)
+        (py-throw-not-an-iterator obj)
+        (if (eq? default py-absent)
+          (py-call1 __next__ obj)
+          (with-handler
+            (lambda (exc)
+              (if (and (PyObject? exc)
+                       (py-isinstance? exc py-builtin-StopIteration))
+                default
+                (raise exc)))
+            (py-call1 __next__ obj))))))
 
 ;; list iterator
 
@@ -2458,12 +2478,31 @@
       (list-iterator-list-fast-set! iterator self)
       (list-iterator-index-fast-set! iterator 0)
       iterator)
-    (py-throw py-builtin-TypeError)))
+    (py-throw-not-a-type-object "__iter__" "list" self)))
 
-(define py-list-iter
+(define list.__iter__
   (procedure->py-function
     list-iter
     (make-posonly-signature #(self))))
+
+;; TODO: use list real length instead of vector-length
+;; otherwise this will crash once list is an actual dynamic array
+(define (list-contains self item)
+  (if (py-isinstance? self py-list-class)
+    (let* ((vec (object-scheme-value-fast-get self))
+           (vec-len (vector-length vec)))
+      (let loop ((i 0))
+        (if (< i vec-len)
+          (if (py-test (py-eq item (vector-ref vec i) #f))
+            py-True
+            (loop (+ i 1)))
+          py-False)))
+    (py-throw-not-a-type-object "__contains__" "list" self)))
+
+(define list.__contains__
+  (procedure->py-function
+    list-contains
+    (make-posonly-signature #(self item))))
 
 (define (tuple-iter self)
   (if (py-isinstance? self py-tuple-class)
@@ -2476,15 +2515,33 @@
       iterator)
     (py-throw py-builtin-TypeError)))
 
-(define py-tuple-iter
+(define tuple.__iter__
   (procedure->py-function
     tuple-iter
     (make-posonly-signature #(self))))
 
+(define (tuple-contains self item)
+  (if (py-isinstance? self py-tuple-class)
+    (let* ((vec (object-scheme-value-fast-get self))
+           (vec-len (vector-length vec)))
+      (let loop ((i 0))
+        (if (< i vec-len)
+          (if (py-test (py-eq item (vector-ref vec i) #f))
+            py-True
+            (loop (+ i 1)))
+          py-False)))
+    (py-throw-not-a-type-object "__contains__" "tuple" self)))
+
+(define tuple.__contains__
+  (procedure->py-function
+    tuple-contains
+    (make-posonly-signature #(self item))))
+
 (define (bootstrap-type-hierarchy-phase2)
 
   ;; Fill in tuple class
-  (py-own-attr-set! py-tuple-class (& "__iter__") py-tuple-iter)
+  (py-own-attr-set! py-tuple-class (& "__iter__") tuple.__iter__)
+  (py-own-attr-set! py-tuple-class (& "__contains__") tuple.__contains__)
 
   (set! py-module-class
     (make-builtin-class
@@ -2596,7 +2653,8 @@
       (& "builtins")
       (list)
       py-list-hclass-of-instances
-        (& "__iter__") py-list-iter))
+        (& "__iter__") list.__iter__
+        (& "__contains__") list.__contains__))
 
   (set! py-dict-class
     (make-builtin-class
@@ -3781,20 +3839,11 @@
 
 (define py-builtin-iter
   (procedure->py-function
-   (lambda (object sentinel)
-     (cond ((not (eq? sentinel py-absent))
-            (error "iter" "with 2 arguments not implemented" #f))
-           ((and (PyObject? object)
-                 (let ((index (PyObject-find-prop object (& "__iter__"))))
-                   (and (>= index 0)
-                        index)))
-            =>
-            (lambda (index)
-              (let ((__iter__ (PyObject-elements-ref object index)))
-                (py-call __iter__ object))))
-           (else
-            (error "iter" "only object with __iter__ method implemented" #f))))
-  (make-posonly-defaults-signature #(object sentinel) (vector py-absent))))
+    (lambda (object sentinel)
+      (if (eq? sentinel py-absent)
+        (py-iter object)
+        (error "iter" "with 2 arguments not implemented" #f)))
+    (make-posonly-defaults-signature #(object sentinel) (vector py-absent))))
 
 ;;-------------------- len(s)
 
@@ -3941,19 +3990,8 @@
 
 (define py-builtin-next
   (procedure->py-function
-   (lambda (iterator default)
-     (let ((next (py-attr-ref iterator (& "__next__"))))
-       (if (eq? next py-absent)
-           (error "next" "TypeError: object is not an iterator" #f)
-           (if (eq? default py-absent)
-               (py-call next iterator)
-               (with-handler
-                (lambda (e)
-                  (if (eq? e py-builtin-StopIteration)
-                      default
-                      (py-throw e)))
-                (py-call next iterator))))))
-  (make-posonly-defaults-signature #(iterator default) (vector py-absent))))
+    iterator-next
+    (make-posonly-defaults-signature #(iterator default) (vector py-absent))))
 
 ;;-------------------- class object
 
