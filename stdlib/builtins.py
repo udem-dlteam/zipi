@@ -156,13 +156,15 @@ class range:
         step = self.step
 
         if self.step < 0:
-            if not stop < item:
-                if not item <= start:
-                    return False
+            if stop >= item:
+                return False
+            if item > start:
+                return False
         else:
-            if not start <= item:
-                if not item < stop:
-                    return False
+            if start > item:
+                return False
+            if item >= stop:
+                return False
 
         return (item - start) % step == 0
 

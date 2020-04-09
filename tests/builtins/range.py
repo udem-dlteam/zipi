@@ -21,3 +21,7 @@ while x != 999:
 
 for x in range(1, 100, 3):
     print(x)
+
+q = range(9, -5, -3)
+for x in range(-10, 10):
+    print(x in q)
