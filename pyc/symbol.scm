@@ -78,11 +78,24 @@
 	     this))))
 
 (define-walk-method (resolve! this::PycFun env _ conf)
-   (let* ((loc (PycNode-loc this))
+  (let*
+   ((loc (PycNode-loc this))
+    (vararg (PycFun-vararg this))
+    (kwarg (PycFun-kwarg this))
+    (args
+      (append
+        (PycFun-posonlyargs this)
+        (PycFun-args this)
+        (if (PycDecl? vararg) (PycDecl-id (list vararg)) '())
+        (PycFun-kwonlyargs this)
+        (if (PycDecl? kwarg) (PycDecl-id (list kwarg)) '())))
 	  (decls (collect* (PycFun-body this) 'local))
 	  (freeenv (collect-free* (PycFun-body this) #f '() '*))
 	  (aenv (collect-free-assig* (PycFun-body this)
-		   (append decls (PycFun-args this) env)
+		   (append
+         decls
+         args
+          env)
 		   (cons '% freeenv)))
 	  (bdgs (map (lambda (decl)
 			(let ((loc (PycNode-loc decl)))
@@ -95,10 +108,10 @@
 	     (new-PycBlock loc
 		bdgs
 		(resolve! (PycFun-body this)
-		   (append bdgs (PycFun-args this) env) freeenv conf)))
+		   (append bdgs args env) freeenv conf)))
 	  (PycFun-body-set! this
 	     (resolve! (PycFun-body this)
-		(append (PycFun-args this) env) freeenv conf)))
+		(append args env) freeenv conf)))
       this))
 
 (define-walk-method (resolve! this::PycClass env freeenv conf)

@@ -46,7 +46,7 @@
           ;; vararg
           (if (caddr args)
             (new-PycDecl loc (caaddr args) 'local)
-            #f)
+            (new-PycUninit loc))
           ;; kwonlyargs
           (map (lambda (a)
     		    (new-PycDecl loc (car a) 'local))
@@ -58,7 +58,7 @@
           ;; kwarg
           (if (list-ref args 5)
             (new-PycDecl loc (list-ref args 5) 'local)
-            #f)
+            (new-PycUninit loc))
           ;; defaults
           (map (lambda (a)
     		    (new-PycStmtExpr loc (sexp a tail scope conf)))
@@ -406,6 +406,7 @@
       ((Invert) 'invert)
       ((UAdd)   'pos)
       ((USub)   'neg)
+      ((Not)    'not)
       (else
        (error "unary-operator" "Illegal operator" op))))
 

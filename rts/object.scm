@@ -774,8 +774,8 @@
       (let ((iterator (py-obj->iterator container)))
         (if iterator
           (py-in-iterator item iterator)
-          (throw-not-iteralble container))
-      (py-test (py-call __contains__ container item) py-True py-False)))))
+          (throw-not-iteralble container)))
+      (if (py-test (py-call2 __contains__ container item)) py-True py-False))))
 
 (define (py-notin item container cache) ;; x not in y
   (if (py-test (py-in item container cache))
@@ -1171,24 +1171,20 @@
 ;;  this not only needs to be fixed, when doing it we need to check
 ;; every place which used py-len
 (define (py-len obj)
-  (cond ((eq? py-tuple-class (py-obj-cls obj))
-         (vector-length (py-tuple-to-scheme obj)))
-        ((eq? py-list-class (py-obj-cls obj))
-         (vector-length (py-list-to-scheme obj)))
-        ((eq? py-dict-class (py-obj-cls obj))
-         (length (py-dict-to-scheme obj)))
-        ((eq? py-set-class (py-obj-cls obj))
-         (length (py-set-to-scheme obj)))
-        ((and (PyObject? obj)
-              (let ((index (PyObject-find-prop obj (& "__len__"))))
-                (and (>= index 0)
-                     index)))
-         =>
-         (lambda (index)
-           (let ((__len__ (PyObject-elements-ref obj index)))
-             (py-call __len__ obj))))
-        (else
-         (error "len" "only object with __len__ method implemented" #f))))
+  (let ((__len__ (getattribute-from-obj-mro obj (& "__len__"))))
+    (cond
+          ((not (eq? __len__ py-absent))
+           (py-call1 __len__ obj))
+          ((eq? py-tuple-class (py-obj-cls obj))
+           (vector-length (py-tuple-to-scheme obj)))
+          ((eq? py-list-class (py-obj-cls obj))
+           (vector-length (py-list-to-scheme obj)))
+          ((eq? py-dict-class (py-obj-cls obj))
+           (length (py-dict-to-scheme obj)))
+          ((eq? py-set-class (py-obj-cls obj))
+           (length (py-set-to-scheme obj)))
+          (else
+           (error "len" "only object with __len__ method implemented" #f)))))
 
 (define (py-getitem obj i cache)
   (cond ((eq? py-tuple-class (py-obj-cls obj))
@@ -1437,11 +1433,20 @@
 ;; py-test is expected to return #t or #f, not a Python objects
 ;; True and False are converted to #t and #f
 (define (py-test obj)
-  (let* ((py-bool (getattribute-from-obj-mro obj (& "__bool__")))
-         (test-value (py-call py-bool obj)))
-    (if (eq? test-value py-True)
-      #t
-      #f)))
+  (cond
+    ((eq? obj py-True) #t)
+    ((eq? obj py-False) #f)
+    (else
+      (let* ((py-bool (getattribute-from-obj-mro obj (& "__bool__")))
+             (test-value (py-call1 py-bool obj)))
+        (if (eq? test-value py-True)
+          #t
+          #f)))))
+
+(define (py-not obj cache)
+  (if (py-test obj)
+    py-False
+    py-True))
 
 ;; =============
 ;; CALL PROTOCOL
@@ -1762,6 +1767,8 @@
 
 (define builtins-mod #f)
 
+(define builtins-sentinel #f)
+
 ;; Base builtins module for building builtins.py
 ;; This can be unloaded of Scheme builtins as we build builtins.py
 ;; In the end this should offer minimal functions from which actual buitlins can be defined
@@ -1846,9 +1853,13 @@
                (& "BaseException")
                (& "NotImplemented")
                (& "__getownattr")
-               (& "__absent")
-               )
+               (& "_absent"))
                '()))))
+
+     (set! builtins-sentinel
+       (py-obj-alloc
+         py-object-class
+         py-object-hclass-of-instances))
 
      (PyObject-elements-set! mod 0  py-module-class)
      (PyObject-elements-set! mod 1  py-module-class)
@@ -1925,7 +1936,7 @@
      (PyObject-elements-set! mod 72 py-builtin-BaseException)
      (PyObject-elements-set! mod 73 py-NotImplemented)
      (PyObject-elements-set! mod 74 py-helper-getownattr)
-     (PyObject-elements-set! mod 75 py-absent)
+     (PyObject-elements-set! mod 75 builtins-sentinel)
      mod))
 
 ;; This needs to be globally defined an configured instead

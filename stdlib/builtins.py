@@ -108,7 +108,39 @@ print = __base_print
 
 property = __base_property
 
-range = __base_range
+class range:
+    def __init__(self, arg1, arg2=_absent, arg3=_absent, /):
+        if arg3 is not _absent:
+            self.start = arg1
+            self.stop = arg2
+            self.step =  arg3
+        elif arg2 is not _absent:
+            self.start = arg1
+            self.stop = arg2
+            self.step = 1
+        else:
+            self.start = 0
+            self.stop = arg1
+            self.step = 1
+
+    def __len__(self):
+        return (self.stop - self.start) // self.step
+
+    def __contains__(self, item):
+        start = self.start
+        stop = self.stop
+        step = self.step
+
+        if self.step < 0:
+            if not stop < item:
+                if not item <= start:
+                    return False
+        else:
+            if not start <= item:
+                if not item < stop:
+                    return False
+
+        return (item - start) % step == 0
 
 repr = __base_repr
 

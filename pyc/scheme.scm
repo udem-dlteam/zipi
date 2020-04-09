@@ -433,14 +433,31 @@
       `(vector
         #(,@(map PycDecl-id (PycFun-args fun)))
         #(,@(map PycDecl-id (PycFun-posonlyargs fun)))
-        ,(and vararg (PycDecl-id vararg))
+        ,(cond
+            ((PycDecl? vararg) (PycDecl-id vararg))
+            ((PycUninit? vararg) #f)
+            (else (error "signature" "unknown value for vararg")))
         #(,@(map PycDecl-id (PycFun-kwonlyargs fun)))
         (vector ,@(scheme* (PycFun-kw-defaults fun) conf))
-        ,(and kwarg (PycDecl-id kwarg))
+        ,(cond
+            ((PycDecl? kwarg) (PycDecl-id kwarg))
+            ((PycUninit? kwarg) #f)
+            (else (error "signature" "unknown value for kwarg")))
         (vector ,@(scheme* (PycFun-defaults fun) conf)))))
 
-   (let ((args (map (lambda (a) (scheme a conf)) (PycFun-args this)))
-	 (body (locals this (scheme (PycFun-body this) (cons* fun: this conf)))))
+   (let*
+     ((vararg (PycFun-vararg this))
+      (kwarg (PycFun-kwarg this))
+      (args
+       (scheme*
+         (append
+           (PycFun-posonlyargs this)
+           (PycFun-args this)
+           (if (PycDecl? vararg) (PycDecl-id (list vararg)) '())
+           (PycFun-kwonlyargs this)
+           (if (PycDecl? kwarg) (PycDecl-id (list kwarg)) '()))
+           conf))
+	    (body (locals this (scheme (PycFun-body this) (cons* fun: this conf)))))
       (epairify this
 	 `(procedure->py-function
 	     ,(if (PycFun-need-return this)

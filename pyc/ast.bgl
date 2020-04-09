@@ -184,10 +184,10 @@
            (final-class PycFun::PycExpr
             args::pair-nil
             posonlyargs::pair-nil
-            vararg::symbol
+            vararg::PycDecl
             kwonlyargs::pair-nil
             kw-defaults::pair-nil
-            kwarg::symbol
+            kwarg::PycDecl
             defaults::pair-nil
             body::PycStmt
             (decls::pair-nil (default '()))
@@ -244,6 +244,7 @@
            (generic walk5 n::PycNode p::procedure a0 a1 a2 a3 a4)
            (generic walk6 n::PycNode p::procedure a0 a1 a2 a3 a4 a5)
            (generic walk7 n::PycNode p::procedure a0 a1 a2 a3 a4 a5 a6)
+           (generic walk8 n::PycNode p::procedure a0 a1 a2 a3 a4 a5 a6 a7)
            (generic walk0*::pair-nil n::PycNode p::procedure)
            (generic walk1*::pair-nil n::PycNode p::procedure a0)
            (generic walk2*::pair-nil n::PycNode p::procedure a0 a1)
@@ -252,6 +253,7 @@
            (generic walk5*::pair-nil n::PycNode p::procedure a0 a1 a2 a3 a4)
            (generic walk6*::pair-nil n::PycNode p::procedure a0 a1 a2 a3 a4 a5)
            (generic walk7*::pair-nil n::PycNode p::procedure a0 a1 a2 a3 a4 a5 a6)
+           (generic walk8*::pair-nil n::PycNode p::procedure a0 a1 a2 a3 a4 a5 a6 a7)
            (generic walk0!::PycNode n::PycNode p::procedure)
            (generic walk1!::PycNode n::PycNode p::procedure a0)
            (generic walk2!::PycNode n::PycNode p::procedure a0 a1)
@@ -259,7 +261,8 @@
            (generic walk4!::PycNode n::PycNode p::procedure a0 a1 a2 a3)
            (generic walk5!::PycNode n::PycNode p::procedure a0 a1 a2 a3 a4)
            (generic walk6!::PycNode n::PycNode p::procedure a0 a1 a2 a3 a4 a5)
-           (generic walk7!::PycNode n::PycNode p::procedure a0 a1 a2 a3 a4 a5 a6)))
+           (generic walk7!::PycNode n::PycNode p::procedure a0 a1 a2 a3 a4 a5 a6)
+           (generic walk8!::PycNode n::PycNode p::procedure a0 a1 a2 a3 a4 a5 a6 a7)))
 
 ;*---------------------------------------------------------------------*/
 ;*    key ...                                                          */
@@ -300,6 +303,9 @@
 (define-generic (walk7 n::PycNode p::procedure arg0 arg1 arg2 arg3 arg4 arg5 arg6)
    (error "walk7" "Internal Error: forgot Node type"
       (with-output-to-string (lambda () (write-circle n)))))
+(define-generic (walk8 n::PycNode p::procedure arg0 arg1 arg2 arg3 arg4 arg5 arg6 arg7)
+   (error "walk8" "Internal Error: forgot Node type"
+      (with-output-to-string (lambda () (write-circle n)))))
 
 (define-generic (walk0*::pair-nil n::PycNode p::procedure)
    (error "walk0*" "Internal Error: forgot Node type"
@@ -325,6 +331,9 @@
 (define-generic (walk7*::pair-nil n::PycNode p::procedure arg0 arg1 arg2 arg3 arg4 arg5 arg6)
    (error "walk7*" "Internal Error: forgot Node type"
       (with-output-to-string (lambda () (write-circle n)))))
+(define-generic (walk8*::pair-nil n::PycNode p::procedure arg0 arg1 arg2 arg3 arg4 arg5 arg6 arg7)
+   (error "walk8*" "Internal Error: forgot Node type"
+      (with-output-to-string (lambda () (write-circle n)))))
 
 (define-generic (walk0!::PycNode n::PycNode p::procedure)
    (error "walk0!" "Internal Error: forgot Node type"
@@ -349,6 +358,9 @@
       (with-output-to-string (lambda () (write-circle n)))))
 (define-generic (walk7!::PycNode n::PycNode p::procedure arg0 arg1 arg2 arg3 arg4 arg5 arg6)
    (error "walk7!" "Internal Error: forgot Node type"
+      (with-output-to-string (lambda () (write-circle n)))))
+(define-generic (walk8!::PycNode n::PycNode p::procedure arg0 arg1 arg2 arg3 arg4 arg5 arg6 arg7)
+   (error "walk8!" "Internal Error: forgot Node type"
       (with-output-to-string (lambda () (write-circle n)))))
 
 ;*---------------------------------------------------------------------*/
@@ -554,7 +566,7 @@
 (gen-walks PycTry body (handlers) else finally)
 (gen-walks PycHandler type body)
 (gen-walks PycStmtExpr expr)
-(gen-walks PycFun body)
+(gen-walks PycFun (args) (posonlyargs) vararg (kwonlyargs) (kw-defaults) kwarg (defaults) body)
 (gen-walks PycClass body (bases))
 (gen-walks PycBinary lhs rhs)
 (gen-walks PycUnary expr)
