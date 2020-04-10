@@ -4301,18 +4301,18 @@
 
 (define py-builtin-print
   (procedure->py-function
-   (lambda (objects) ;; add args (non-positional): sep end file flush
-     (let* ((port (current-output-port))
-           (objects-vector (object-scheme-value-fast-get objects))
-           (objects-len (vector-length objects-vector)))
-       (let loop ((i 0))
-         (if (< i objects-len)
-           (py-display (vector-ref objects-vector i) port)
-           (if (< (+ i 1) objects-len)
-               (begin
-                 (display " " port)
-                 (loop (+ i 1))))))
-       (newline port)))
+    (lambda (objects) ;; add args (non-positional): sep end file flush
+      (let* ((port (current-output-port))
+             (objects-vector (object-scheme-value-fast-get objects))
+             (objects-len (vector-length objects-vector)))
+        (let loop ((i 0))
+          (if (< i objects-len)
+            (begin
+              (py-display (vector-ref objects-vector i) port)
+              (if (< (+ i 1) objects-len)
+                (display " " port))
+              (loop (+ i 1)))))
+            (newline port)))
     (make-signature
       #()
       #()
