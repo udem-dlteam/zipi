@@ -111,9 +111,9 @@
 
 (define-walk-method (scheme this::PycReturn conf)
    (if (PycReturn-tail this)
-       (scheme (PycReturn-val this) conf)
-       (epairify this
-	  `(return (scheme (PycReturn-val this) conf)))))
+      (scheme (PycReturn-val this) conf)
+      (epairify this
+	      `(return ,(scheme (PycReturn-val this) conf)))))
 
 (define-walk-method (scheme this::PycReturnYield conf)
    (let ((kont (PycReturnYield-kont this))
@@ -437,16 +437,45 @@
 	      ,body)
 	  body))
 
-   (let ((args (map (lambda (a) (scheme a conf)) (PycFun-args this)))
-	 (body (locals this (scheme (PycFun-body this) (cons* fun: this conf)))))
+   (define (signature fun conf)
+    (let ((vararg (PycFun-vararg fun))
+          (kwarg (PycFun-kwarg fun)))
+      `(vector
+        #(,@(map PycDecl-id (PycFun-args fun)))
+        #(,@(map PycDecl-id (PycFun-posonlyargs fun)))
+        ,(cond
+            ((PycDecl? vararg) (PycDecl-id vararg))
+            ((PycUninit? vararg) #f)
+            (else (error "signature" "unknown value for vararg" vararg)))
+        #(,@(map PycDecl-id (PycFun-kwonlyargs fun)))
+        (vector ,@(scheme* (PycFun-kw-defaults fun) conf))
+        ,(cond
+            ((PycDecl? kwarg) (PycDecl-id kwarg))
+            ((PycUninit? kwarg) #f)
+            (else (error "signature" "unknown value for kwarg" kwarg)))
+        (vector ,@(scheme* (PycFun-defaults fun) conf)))))
+
+   (let*
+     ((vararg (PycFun-vararg this))
+      (kwarg (PycFun-kwarg this))
+      (args
+       (scheme*
+         (append
+           (PycFun-posonlyargs this)
+           (PycFun-args this)
+           (if (PycDecl? vararg) (list (PycDecl-id vararg)) '())
+           (PycFun-kwonlyargs this)
+           (if (PycDecl? kwarg) (list (PycDecl-id kwarg)) '()))
+           conf))
+	    (body (locals this (scheme (PycFun-body this) (cons* fun: this conf)))))
       (epairify this
 	 `(procedure->py-function
 	     ,(if (PycFun-need-return this)
 		  `(lambda ,args ,(generator this `(bind-exit (return) ,body)))
-		  `(lambda ,args ,(generator this body)))))))
+		  `(lambda ,args ,(generator this body)))
+      ,(signature this conf)))))
 
 (define-walk-method (scheme this::PycClass conf)
-
    (define (pyc-class this::PycClass)
      (let ((cls-symbol (PycClass-super-key this)))
       (epairify this
@@ -519,7 +548,12 @@
           ,call)))
 
    (define (invoke fun args)
-        (let ((call `(py-call ,fun ,@args)))
+        (let* ((args-len (length args))
+              (py-call-fun
+                (if (<= args-len 5)
+                  (string->symbol (string-append "py-call" (number->string args-len)))
+                  'py-call))
+              (call `(,py-call-fun ,fun ,@args)))
           (if (> (length args) 0) call
               (super-handler call))))
 

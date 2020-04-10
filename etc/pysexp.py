@@ -3,9 +3,10 @@
 import argparse
 import ast as AST
 import subprocess
+import sys
 
-python38 = False                       # set to True if this is Python 3.8
-python35 = False
+python38 = sys.version_info[:2] == (3, 8)
+python35 = sys.version_info[:2] == (3, 5)
 generate_location_information = True    # set to True to get location info
 
 # autoconfiguration
@@ -184,7 +185,7 @@ def cvt_arg_seq(arg_seq):
 
 def cvt_arguments(arguments):
     return ('(' + cvt_arg_seq(arguments.args) +
-            (' ' + cvt_arg_seq(arguments.posonlyargs) if python38 else '') +
+            (' ' + cvt_arg_seq(arguments.posonlyargs) if python38 else '()') +
             ' ' + cvt_arg_opt(arguments.vararg) +
             ' ' + cvt_arg_seq(arguments.kwonlyargs) +
             ' ' + cvt_expr_opt_seq(arguments.kw_defaults) +

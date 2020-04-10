@@ -26,12 +26,12 @@
    (let loop ((nodes (PycSeq-nodes this)))
       (cond
 	 ((null? (cdr nodes))
-	  (return (car nodes) this tail conf))
+	  (return (car nodes) fun tail conf))
 	 ((PycReturn? (car nodes))
 	  (set-cdr! nodes '())
-	  (return (car nodes) this tail conf))
+	  (return (car nodes) fun tail conf))
 	 (else
-	  (return (car nodes) this #f conf)
+	  (return (car nodes) fun #f conf)
 	  (loop (cdr nodes))))))
 
 (define-walk-method (return this::PycReturn fun tail conf)
