@@ -35,7 +35,7 @@
 
 (define (py-import path depth)
    ;; (tprint "py-import root=" py-import-root " path=" path)
-   (let ((sysmod (object-get-no-cache (py-sys-mod) (& "modules"))))
+   (let ((sysmod (object-get (py-sys-mod) (& "modules") #f)))
       (cond
          ((py-import-builtin path)
           =>

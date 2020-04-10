@@ -3,9 +3,6 @@
 ;;  This was already done with int, example:
 ;; the object int.__add__ has name 'int.__add__' in the source
 
-(define (py-procedure->function p1 p1)
-   (error "py-procedure->function" "not implemented" #f))
-
 ;; =============================================================================
 ;;  HIDDEN CLASSES
 ;; =============================================================================
@@ -615,7 +612,8 @@
                 lmethod
                 rmethod
                 operator)
-  (let ((fall-back-name (gensym 'py-out-of-place)))
+  (let ((fall-back-name (string->symbol
+          (string-append (symbol->string fun-name) "$fall-back"))))
     `(begin
       (define-binary-operator-protocol ,fall-back-name ,lmethod ,rmethod ,operator)
       (define (,fun-name x y cache)
@@ -1205,9 +1203,6 @@
       (let ((py-getattribute (getattribute-from-obj-mro obj (& "__getattribute__"))))
 	 (py-call py-getattribute obj name))))
 
-(define (object-get-no-cache obj name)
-   (error "object-get-no-cache" "Not implemented" #f))
-
 (define (object-put! obj attr val cache)
   (py-attr-set! obj attr val))
 
@@ -1326,7 +1321,7 @@
 ;; object.__init__ exists but does nothing
 ;; its purpose is that super().__init__ does not raise and AttributeError
 (define object.__init__
-  (procedure->py-function (lambda (self . args) #f)))
+  (procedure->py-function (lambda (self . args) py-None)))
 
 
 ;; =============================================================================
@@ -4519,10 +4514,9 @@
       ((= args-len 0)
         (py-str-from-scheme ""))
       ((= args-len 1)
-       (py-str (py-getitem args 0
-		  (error "BaseException-str" "Should have a cache" #f))))
+       (py-str (py-getitem args 0 #f)))
       (else
-        (py-str-from-scheme (py-str args))))))
+        (py-str args)))))
 
 
 (define BaseException.__str__
