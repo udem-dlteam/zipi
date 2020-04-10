@@ -1547,7 +1547,9 @@
 ;; object.__init__ exists but does nothing
 ;; its purpose is that super().__init__ does not raise and AttributeError
 (define object.__init__
-  (procedure->py-function (lambda (self . args) py-None)))
+  (procedure->py-function
+    (lambda (self args) py-None)
+    (make-signature #() #(self) 'args #() #() #f #()) ))
 
 
 ;; =============================================================================
