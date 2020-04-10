@@ -18,12 +18,8 @@
 		  (vector
                      py-object-class
                      py-object-class
-		     (py-procedure->function
-			(lambda rest (error "__next__" "not implemented" #f))
-			(lambda (self) (py-generator-send self py-None)))
-		     (py-procedure->function
-			(lambda rest (error "send" "not implemented" #f))
-			py-generator-send))
+		  (procedure->py-function (lambda (self) (py-generator-send self py-None)))
+		  (procedure->py-function py-generator-send))
 		  proc)))
       o))
 

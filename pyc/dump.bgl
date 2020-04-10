@@ -3,8 +3,8 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Tue Jun 11 13:09:51 2019                          */
-;*    Last change :  Tue Jul  2 10:08:01 2019 (serrano)                */
-;*    Copyright   :  2019 Manuel Serrano                               */
+;*    Last change :  Mon Apr  6 15:50:08 2020 (serrano)                */
+;*    Copyright   :  2019-20 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    AST dump                                                         */
 ;*=====================================================================*/
@@ -14,6 +14,9 @@
 ;*---------------------------------------------------------------------*/
 (module __pyc_dump
 
-   (include "ast.sch")
+   (include "ast.sch"
+	    "walk.sch")
+   
+   (import __pyc_ast)
    
    (export (pyc->list ::obj)))

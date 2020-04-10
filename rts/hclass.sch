@@ -1,7 +1,7 @@
 ;; ==========================================================
 ;; Class accessors
-;; Bigloo (4.3g)
-;; Inria -- Sophia Antipolis     Thu 17 Oct 2019 02:46:53 PM CEST 
+;; Bigloo (4.3h)
+;; Inria -- Sophia Antipolis     Mon 06 Apr 2020 12:23:49 PM CEST 
 ;; (bigloo -classgen hclass.bgl -o hclass.sch)
 ;; ==========================================================
 
@@ -11,7 +11,7 @@
 ;; PCache
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PCache::PCache hclass1064::obj index1065::long)
+    (inline make-PCache::PCache hclass1060::obj index1061::long)
     (inline PCache?::bool ::obj)
     (PCache-nil::PCache)
     (inline PCache-index::long ::PCache)
@@ -22,7 +22,7 @@
 ;; HClass
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-HClass::HClass class-mro1060::vector names1061::vector transitions1062::pair-nil)
+    (inline make-HClass::HClass class-mro1056::vector names1057::vector transitions1058::pair-nil)
     (inline HClass?::bool ::obj)
     (HClass-nil::HClass)
     (inline HClass-transitions::pair-nil ::HClass)
@@ -35,7 +35,7 @@
 ;; The definitions
 (cond-expand (bigloo-class-sans
 ;; PCache
-(define-inline (make-PCache::PCache hclass1064::obj index1065::long) (instantiate::PCache (hclass hclass1064) (index index1065)))
+(define-inline (make-PCache::PCache hclass1060::obj index1061::long) (instantiate::PCache (hclass hclass1060) (index index1061)))
 (define-inline (PCache?::bool obj::obj) ((@ isa? __object) obj (@ PCache __py_hclass)))
 (define (PCache-nil::PCache) (class-nil (@ PCache __py_hclass)))
 (define-inline (PCache-index::long o::PCache) (-> |#!bigloo_wallow| o index))
@@ -44,7 +44,7 @@
 (define-inline (PCache-hclass-set! o::PCache v::obj) (set! (-> |#!bigloo_wallow| o hclass) v))
 
 ;; HClass
-(define-inline (make-HClass::HClass class-mro1060::vector names1061::vector transitions1062::pair-nil) (instantiate::HClass (class-mro class-mro1060) (names names1061) (transitions transitions1062)))
+(define-inline (make-HClass::HClass class-mro1056::vector names1057::vector transitions1058::pair-nil) (instantiate::HClass (class-mro class-mro1056) (names names1057) (transitions transitions1058)))
 (define-inline (HClass?::bool obj::obj) ((@ isa? __object) obj (@ HClass __py_hclass)))
 (define (HClass-nil::HClass) (class-nil (@ HClass __py_hclass)))
 (define-inline (HClass-transitions::pair-nil o::HClass) (-> |#!bigloo_wallow| o transitions))

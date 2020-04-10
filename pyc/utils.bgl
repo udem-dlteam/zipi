@@ -3,8 +3,8 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Tue Jul  2 13:28:16 2019                          */
-;*    Last change :  Tue Jul  2 13:28:58 2019 (serrano)                */
-;*    Copyright   :  2019 Manuel Serrano                               */
+;*    Last change :  Mon Apr  6 15:55:27 2020 (serrano)                */
+;*    Copyright   :  2019-20 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Utility functions common to all passes                           */
 ;*=====================================================================*/
@@ -13,5 +13,6 @@
 ;*    The module                                                       */
 ;*---------------------------------------------------------------------*/
 (module __pyc_utils
-   (export (config-get conf key #!optional def)))
+   (export (config-get conf key #!optional def)
+	   (my-gensym ::symbol)))
 	   

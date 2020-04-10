@@ -1,4 +1,18 @@
-builtins:
-	../etc/py19 -t gambit --no-main -d ../ ./builtins.py > ./builtins.scm
-	# Temporary way for the builtins' scope to use pre-bootstrap py-make-simple-global
-	sed -i -- 's/py-make-global/py-make-base-global/g' ./builtins.scm
+.PHONY: do bigloo gambit install
+
+do: build
+
+#*---------------------------------------------------------------------*/
+#*    Standard Zipi configuration                                      */
+#*---------------------------------------------------------------------*/
+-include ../etc/Makefile.zipiconfig
+
+#*---------------------------------------------------------------------*/
+#*    Common entry points                                              */
+#*---------------------------------------------------------------------*/
+build: $(ZIPISYSTEMS:%=do.%)
+install: $(ZIPISYSTEMS:%=install.%)
+
+-include Makefile.bigloo
+-include Makefile.gambit
+

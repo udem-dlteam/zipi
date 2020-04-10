@@ -272,8 +272,8 @@
        ;; Tuple(expr* elts, expr_context ctx)
        (new-PycTuple loc (map (lambda (e) (sexp e #f scope conf)) elts)))
 
-       ((Assert ?loc ?test ?msg)
-         (if msg
+      ((Assert ?loc ?test ?msg)
+       (if msg
            (new-PycAssert loc (sexp test #f scope conf) (sexp msg #f scope conf))
            (new-PycAssert loc (sexp test #f scope conf) (new-PycUninit loc))))
       (else

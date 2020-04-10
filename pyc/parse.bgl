@@ -3,8 +3,8 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Tue Jul  2 13:12:34 2019                          */
-;*    Last change :  Tue Jul  2 13:46:49 2019 (serrano)                */
-;*    Copyright   :  2019 Manuel Serrano                               */
+;*    Last change :  Mon Apr  6 13:57:15 2020 (serrano)                */
+;*    Copyright   :  2019-20 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Python parser                                                    */
 ;*=====================================================================*/
@@ -19,5 +19,6 @@
    (export (pyc-parse port-or-file conf))
    
    (import __pyc_configure
+	   __pyc_ast
 	   __pyc_sexp
 	   __pyc_utils))

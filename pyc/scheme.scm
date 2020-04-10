@@ -20,17 +20,27 @@
    (let ((prog (pyc-scheme ast conf)))
       (list
 	 `(module ,(string->symbol (or (config-get conf src:) "__stdin"))
-	     (library zipi)
+	     ,@(if (config-get conf bootstrap:) '((export (zipi-init))) '((library zipi)))
 	     ,@(if (config-get conf main:) '((main main)) '()))
 	 `(define py-module ,@prog)
-	 (if (config-get conf main:)
+	 (cond
+	    ((config-get conf main:)
 	     `(define (main argv)
-		 (py-module (py-make-global) (py-make-caches ,(PycModule-caches ast))))
+		 (py-module
+		    (py-make-global)
+		    (py-make-caches ,(PycModule-caches ast)))))
+	    ((config-get conf bootstrap:)
+	     `(define (zipi-init)
+		 (let ((global (py-make-global))
+		       (caches (py-make-caches ,(PycModule-caches ast))))
+		    (py-module global caches)
+		    global)))
+	    (else
 	     `(lambda ()
 		 (let ((global (py-make-global))
 		       (caches (py-make-caches ,(PycModule-caches ast))))
 		    (py-module global caches)
-		    global))))))
+		    global)))))))
 
 (define (pyc-scheme-gambit ast conf)
   (let ((prog (pyc-scheme ast conf)))

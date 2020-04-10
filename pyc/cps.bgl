@@ -3,8 +3,8 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Tue Jun 18 05:22:22 2019                          */
-;*    Last change :  Tue Jul  2 10:07:55 2019 (serrano)                */
-;*    Copyright   :  2019 Manuel Serrano                               */
+;*    Last change :  Mon Apr  6 15:52:04 2020 (serrano)                */
+;*    Copyright   :  2019-20 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Python CPS transformation for generators/iterators.              */
 ;*=====================================================================*/
@@ -14,8 +14,11 @@
 ;*---------------------------------------------------------------------*/
 (module __pyc_cps
 
-   (include "ast.sch")
+   (include "ast.sch"
+	    "walk.sch"
+	    "new.sch")
 
-   (import __pyc_dump)
+   (import __pyc_dump
+	   __pyc_ast)
    
    (export (pyc-cps this::PycNode conf)))

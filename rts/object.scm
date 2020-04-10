@@ -3,11 +3,6 @@
 ;;  This was already done with int, example:
 ;; the object int.__add__ has name 'int.__add__' in the source
 
-;; debug function that prints the backtrace
-;; at the point in the code where called
-(define (why-am-i-here?)
-  (##continuation-capture (lambda (cc) (display-continuation-backtrace cc))))
-
 ;; =============================================================================
 ;;  HIDDEN CLASSES
 ;; =============================================================================
@@ -290,14 +285,6 @@
         (begin
           (PCache-set! cache hclass i)
           (PyObject-elements-set! global i val)))))
-
-(define (object-has obj name)
-   (>= (PyObject-find-prop obj name) 0))
-
-(define (object-put! object name val cache)
-  (if (eq? (PyObject-hclass object) (PCache-hclass cache))
-      (PyObject-elements-set! object (PCache-index cache) val)
-      (object-put!/miss object name val cache)))
 
 (define (object-put!/miss obj name val cache)
   (let* ((index (PyObject-find-prop obj name))
@@ -771,7 +758,7 @@
   (let ((next-item (py-for-next iterator)))
     (cond
       ((not next-item) py-False)
-      ((py-eq item next-item) py-True)
+      ((py-eq item next-item #f) py-True)
       (else (py-in-iterator item iterator)))))
 
 (define (py-in item container cache) ;; x in y
@@ -794,7 +781,8 @@
                 lmethod
                 rmethod
                 operator)
-  (let ((fall-back-name (gensym 'py-out-of-place)))
+  (let ((fall-back-name (string->symbol
+          (string-append (symbol->string fun-name) "$fall-back"))))
     `(begin
       (define-binary-operator-protocol ,fall-back-name ,lmethod ,rmethod ,operator)
       (define (,fun-name x y cache)
@@ -852,7 +840,7 @@
   `(define (,fun-name x cache)
     (let ((__op__ (getattribute-from-obj-mro x (& ,method))))
       (if (eq? __op__ py-absent)
-          (throw-unsupported-unary-operand x operator)
+          (throw-unsupported-unary-operand x ,operator)
           (py-call __op__ x)))))
 
 (define-unary-operator-protocol py-invert "__invert__" "~")
@@ -887,7 +875,7 @@
         ((py-isinstance? value py-int-class)
           ;; up-typing an instance of subclass to an int
           (py-int-from-scheme (object-scheme-value-fast-get value)))
-        (else (error "int.__new__ unimplemented for non int"))))
+        (else (error "int.__new__" "unimplemented for non int" #f))))
     ((py-issubclass? cls py-int-class)
       (cond
         ((not value)
@@ -899,7 +887,7 @@
                 (value (object-scheme-value-fast-get value)))
             (object-scheme-value-fast-set! new-int value)
             new-int))
-        (else (error "int.__new__ only supports subtypes of int"))))
+        (else (error "int.__new__" "only supports subtypes of int" #f))))
     (else
       (py-throw-wrong-new-argument "int" cls))))
 
@@ -1106,7 +1094,7 @@
         ((py-isinstance? value py-float-class)
           ;; up-typing an instance of subclass to an float
           (py-float-from-scheme (object-scheme-value-fast-get value)))
-        (else (error "float.__new__ unimplemented for non float"))))
+        (else (error "float.__new__" "unimplemented for non float" #f))))
     ((py-issubclass? cls py-float-class)
       (cond
         ((not value)
@@ -1118,7 +1106,7 @@
                 (value (object-scheme-value-fast-get value)))
             (object-scheme-value-fast-set! new-float value)
             new-float))
-        (else (error "float.__new__ only supports subtypes of float"))))
+        (else (error "float.__new__" "only supports subtypes of float" #f))))
     (else
       (py-throw-wrong-new-argument "float" cls))))
 
@@ -1234,6 +1222,10 @@
            (if (eq? setitem py-absent)
                (error "setitem" "only object with __setitem__ method implemented" i)
                (py-call setitem obj i val))))))
+
+(define (py-contains a b c)
+   (error "py-contains" "Not implemented" #f)
+   #t)
 
 ;;;----------------------------------------------------------------------------
 
@@ -1399,7 +1391,7 @@
                   (py-throw exception))))
             (else (py-throw exception))))
       (let ((py-getattribute (getattribute-from-obj-mro obj (& "__getattribute__"))))
-        (py-call py-getattribute obj name))))
+	 (py-call py-getattribute obj name))))
 
 (define (object-put! obj attr val cache)
   (py-attr-set! obj attr val))
@@ -1525,7 +1517,7 @@
       ((= args-length 0)
         (py-obj-cls cls))
       ((= args-length 2)
-        (error "type(name, bases, nmspace) not implemented"))
+        (error "type(name, bases, nmspace)" "not implemented" #f))
       (else
         (py-throw (py-call
           py-builtin-TypeError
@@ -1552,15 +1544,10 @@
     object-new
     (make-signature #() #(cls) 'args #() #() #f #())))
 
-(define (object-init self args)
-  ;; object.__init__ exists but does nothing
-  ;; its purpose is that super().__init__ does not raise and AttributeError
-  #f)
-
+;; object.__init__ exists but does nothing
+;; its purpose is that super().__init__ does not raise and AttributeError
 (define object.__init__
-  (procedure->py-function
-    object-init
-    (make-signature #() #(cls) 'args #() #() #f #())))
+  (procedure->py-function (lambda (self . args) py-None)))
 
 
 ;; =============================================================================
@@ -1624,13 +1611,6 @@
 (define (integer->hex-string x)
   (string-append "0x" (number->string x 16)))
 
-(define (object-repr self)
-  (let* ((self-type (py-type self))
-         (self-type-name (py-str-to-scheme (type-name-fast-get self-type)))
-         (addr (integer->hex-string (##object->encoding self)))
-         (result (string-append "<" self-type-name " object at " addr ">")))
-    (py-str-from-scheme result)))
-
 (define object.__repr__
   (procedure->py-function
     object-repr
@@ -1692,14 +1672,14 @@
         (str-instance (py-call __str__ obj)))
     (if (py-isinstance? str-instance py-str-class)
       str-instance
-      (throw-returned-wrong-type "__str__" value "non-string"))))
+      (throw-returned-wrong-type "__str__" obj "non-string"))))
 
 (define (py-repr obj)
   (let* ((__repr__ (getattribute-from-obj-mro obj (& "__repr__")))
         (repr (py-call __repr__ obj)))
     (if (py-isinstance? repr py-str-class)
       repr
-      (throw-returned-wrong-type "__repr__" value "non-string"))))
+      (throw-returned-wrong-type "__repr__" obj "non-string"))))
 
 (define (py-str-repr-scheme str)
   (let* ((quote-style #f)
@@ -1748,15 +1728,15 @@
   (if (py-isinstance? i py-int-class)
     (let ((value (object-scheme-value-fast-get i)))
       (py-str-from-scheme (string (integer->char value))))
-    (let ((i-type (py-type i))
-          (i-type-name (type-name-fast-get i-type)))
+    (let* ((i-type (py-type i))
+	   (i-type-name (type-name-fast-get i-type)))
       (py-throw
         (py-call
           py-builtin-TypeError
           (py-str-from-scheme
             (string-append
               "an integer is required (got type "
-              instance-type-name
+              i-type-name
               ")")))))))
 
 
@@ -1769,7 +1749,8 @@
 
 
 ;; Helpers for the builtins module
-(define py-helper-getownattr py-own-attr-ref)
+(define (py-helper-getownattr obj attr default)
+   (py-own-attr-ref obj attr default))
 
 (define builtins-mod #f)
 
@@ -1949,11 +1930,10 @@
 (define zipi-stdlib-dir "~/udem-dlteam/zipi/stdlib")
 
 (define (py-make-builtins-mod)
- (let ((file (string-append zipi-stdlib-dir "/builtins.scm")))
-    (cond-expand
-	(bigloo (builtins-init))
-	(else
-	 ((loadv file))))))
+   (let ((file (string-append zipi-stdlib-dir "/builtins.scm")))
+      (cond-expand
+	 (bigloo (zipi-init))
+	 (else ((loadv file))))))
 
 ;; Once builtins.py is loaded, we need to keep a direct access to some builtins
 ;; Examples are exceptions which are part of Python protocols, such as StopIteration
@@ -2123,20 +2103,8 @@
 (define (py-str-to-scheme self)
   (object-scheme-value-fast-get self))
 
-(define (py-tuple-from-scheme vector)
-  (let ((self (py-obj-alloc py-tuple-class py-tuple-hclass-of-instances)))
-    (sequence-elems-fast-set! self vector)          ;; set **elems**
-    (PyObject-elements-set! self 2 py-tuple-class)  ;; set __class__
-    self))
-
 (define (py-tuple-to-scheme self)
   (PyObject-elements-ref self 1))
-
-(define (py-list-from-scheme vector)
-  (let ((self (py-obj-alloc py-list-class py-list-hclass-of-instances)))
-    (PyObject-elements-set! self 1 vector)         ;; set **elems**
-    (PyObject-elements-set! self 2 py-list-class)  ;; set __class__
-    self))
 
 (define (py-list-to-scheme self)
   (PyObject-elements-ref self 1))
@@ -2865,7 +2833,6 @@
   (let ((tuple (py-obj-alloc py-tuple-class py-tuple-hclass-of-instances)))
     (object-scheme-value-fast-set! tuple elements)
     tuple))
-
 
 (define (py-make-dict keys vals)
   (py-dict-from-scheme keys vals))
@@ -4958,9 +4925,9 @@
       ((= args-len 0)
         (py-str-from-scheme ""))
       ((= args-len 1)
-        (py-str (py-getitem args 0 #f)))
+       (py-str (py-getitem args 0 #f)))
       (else
-        (py-str-from-scheme (py-str args))))))
+        (py-str args)))))
 
 
 (define BaseException.__str__

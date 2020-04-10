@@ -3,8 +3,8 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Tue Jul  2 08:15:40 2019                          */
-;*    Last change :  Tue Jul  2 13:16:51 2019 (serrano)                */
-;*    Copyright   :  2019 Manuel Serrano                               */
+;*    Last change :  Mon Apr  6 13:52:48 2020 (serrano)                */
+;*    Copyright   :  2019-20 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Compilation driver                                               */
 ;*=====================================================================*/
@@ -17,12 +17,14 @@
    (include "ast.sch")
    
    (import __pyc_dump
+	   __pyc_ast
 	   __pyc_utils
 	   __pyc_parse
 	   __pyc_symbol
 	   __pyc_locals
 	   __pyc_return
 	   __pyc_break
+	   __pyc_super
 	   __pyc_generator
 	   __pyc_cps
 	   __pyc_scheme
