@@ -221,6 +221,11 @@
 	  (sexp left #f scope conf)
 	  (sexp right #f scope conf)
 	  type: (op-type op)))
+    ((BoolOp ?loc ?op ?args)
+      (new-PycBoolOp
+        loc
+        (boolean-operator op)
+        (map (lambda (a) (sexp a #f scope conf)) args)))
       ((UnaryOp ?loc ?op ?expr)
        ;; UnaryOp(unaryop op, expr operand)
        (new-PycUnary loc
@@ -409,6 +414,13 @@
       ((Not)    'not)
       (else
        (error "unary-operator" "Illegal operator" op))))
+
+(define (boolean-operator op)
+   (case op
+      ((Or)  'or)
+      ((And) 'and)
+      (else
+       (error "boolean-operator" "Illegal operator" op))))
 
 (define (compare-operator op)
   (case op
