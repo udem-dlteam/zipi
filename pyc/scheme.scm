@@ -446,13 +446,13 @@
         ,(cond
             ((PycDecl? vararg) (PycDecl-id vararg))
             ((PycUninit? vararg) #f)
-            (else (error "signature" "unknown value for vararg")))
+            (else (error "signature" "unknown value for vararg" vararg)))
         #(,@(map PycDecl-id (PycFun-kwonlyargs fun)))
         (vector ,@(scheme* (PycFun-kw-defaults fun) conf))
         ,(cond
             ((PycDecl? kwarg) (PycDecl-id kwarg))
             ((PycUninit? kwarg) #f)
-            (else (error "signature" "unknown value for kwarg")))
+            (else (error "signature" "unknown value for kwarg" kwarg)))
         (vector ,@(scheme* (PycFun-defaults fun) conf)))))
 
    (let*
@@ -463,9 +463,9 @@
          (append
            (PycFun-posonlyargs this)
            (PycFun-args this)
-           (if (PycDecl? vararg) (PycDecl-id (list vararg)) '())
+           (if (PycDecl? vararg) (list (PycDecl-id vararg)) '())
            (PycFun-kwonlyargs this)
-           (if (PycDecl? kwarg) (PycDecl-id (list kwarg)) '()))
+           (if (PycDecl? kwarg) (list (PycDecl-id kwarg)) '()))
            conf))
 	    (body (locals this (scheme (PycFun-body this) (cons* fun: this conf)))))
       (epairify this

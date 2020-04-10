@@ -86,9 +86,9 @@
       (append
         (PycFun-posonlyargs this)
         (PycFun-args this)
-        (if (PycDecl? vararg) (PycDecl-id (list vararg)) '())
+        (if (PycDecl? vararg) (list (PycDecl-id vararg)) '())
         (PycFun-kwonlyargs this)
-        (if (PycDecl? kwarg) (PycDecl-id (list kwarg)) '())))
+        (if (PycDecl? kwarg) (list (PycDecl-id kwarg)) '())))
 	  (decls (collect* (PycFun-body this) 'local))
 	  (freeenv (collect-free* (PycFun-body this) #f '() '*))
 	  (aenv (collect-free-assig* (PycFun-body this)
