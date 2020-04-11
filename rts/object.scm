@@ -2521,6 +2521,34 @@
     tuple-add
     (make-posonly-signature #(self other))))
 
+(define (vector*n v n)
+  (let* ((v-len (vector-length v))
+         (target-len (* n v-len))
+         (out (make-vector target-len)))
+    (let loop ((target-pos 0))
+      (if (< target-pos target-len)
+        (let inner-loop ((source-pos 0))
+          (if (< source-pos v-len)
+            (begin
+              (vector-set! out (+ target-pos source-pos) (vector-ref v source-pos))
+              (inner-loop (+ source-pos 1)))
+            (loop (+ target-pos v-len))))
+        out))))
+
+(define (tuple-mul self n)
+  (if (py-isinstance? self py-tuple-class)
+    (if (py-isinstance? n py-int-class)
+      (let ((v (object-scheme-value-fast-get self))
+            (n (object-scheme-value-fast-get n)))
+        (py-tuple-from-scheme (vector*n v n)))
+      py-NotImplemented)
+    (py-throw-not-a-type-object "tuple.__mul__" self)))
+
+(define tuple.__mul__
+  (procedure->py-function
+    tuple-mul
+    (make-posonly-signature #(self n))))
+
 (define (vector-py-eq? v1 v2)
   (let ((v1-len (vector-length v1))
         (v2-len (vector-length v2)))
@@ -2598,10 +2626,11 @@
   (py-own-attr-set! py-tuple-class (& "__iter__") tuple.__iter__)
   (py-own-attr-set! py-tuple-class (& "__contains__") tuple.__contains__)
   (py-own-attr-set! py-tuple-class (& "__add__") tuple.__add__)
+  (py-own-attr-set! py-tuple-class (& "__mul__") tuple.__mul__)
   (py-own-attr-set! py-tuple-class (& "__eq__") tuple.__eq__)
   (py-own-attr-set! py-tuple-class (& "__ne__") tuple.__ne__)
   (py-own-attr-set! py-tuple-class (& "__lt__") tuple.__lt__)
-  (py-own-attr-set! py-tuple-class (& "__lt__") tuple.__lt__)
+  (py-own-attr-set! py-tuple-class (& "__le__") tuple.__le__)
   (py-own-attr-set! py-tuple-class (& "__gt__") tuple.__gt__)
   (py-own-attr-set! py-tuple-class (& "__ge__") tuple.__ge__)
 
