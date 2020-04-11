@@ -441,7 +441,6 @@
 
   (let ((op (PycBoolOp-op this))
         (args (PycBoolOp-args this)))
-    (pp (length args))
     (case op
       ((or) (scheme-or args conf))
       ((and) (scheme-and args conf))
