@@ -2507,11 +2507,104 @@
     tuple-contains
     (make-posonly-signature #(self item))))
 
+(define (tuple-add self other)
+  (if (py-isinstance? self py-tuple-class)
+    (if (py-isinstance? other py-tuple-class)
+      (let ((vec1 (object-scheme-value-fast-get self))
+            (vec2 (object-scheme-value-fast-get other)))
+        (py-tuple-from-scheme (vector-append vec1 vec2)))
+      py-NotImplemented)
+    (py-throw-not-a-type-object "tuple.__add__" self)))
+
+(define tuple.__add__
+  (procedure->py-function
+    tuple-add
+    (make-posonly-signature #(self other))))
+
+(define (vector-py-eq? v1 v2)
+  (let ((v1-len (vector-length v1))
+        (v2-len (vector-length v2)))
+    (if (= v1-len v2-len)
+      (let loop ((i 0))
+        (if (< i v1-len)
+          (let* ((el1 (vector-ref vec1 i))
+                 (el2 (vector-ref vec2 i)))
+            (if (py-test (py-eq el1 el2 #f))
+              (loop (+ i 1))
+              #f))
+          #t))
+      #f)))
+
+(define (vector-py-ne? v1 v2)
+  (not (vector-py-eq? v1 v2)))
+
+(define-macro (define-vector-comparator name py-strict-op scheme-op)
+  `(define (,name v1 v2)
+    (let* ((v1-len (vector-length v1))
+          (v2-len (vector-length v2))
+          (min-len (min v1-len v2-len)))
+      (let loop ((i 0))
+        (if (< i min-len)
+          (let* ((el1 (vector-ref v1 i))
+                 (el2 (vector-ref v2 i)))
+            (if (py-test (,py-strict-op el1 el2 #f))
+              #t
+              (if (py-test (py-eq el1 el2 #f))
+                (loop (+ i 1))
+                #f)))
+          (,scheme-op v1-len v2-len)))
+      #f)))
+
+(define-vector-comparator vector-py-lt? py-lt <)
+
+(define-vector-comparator vector-py-le? py-lt <=)
+
+(define-vector-comparator vector-py-gt? py-gt >)
+
+(define-vector-comparator vector-py-ge? py-gt >=)
+
+(define-macro (define-tuple-binary-comparator name py-name vector-comparator)
+  `(begin
+    (define (,name self other)
+      (if (py-isinstance? self py-tuple-class)
+        (if (py-isinstance? other py-tuple-class)
+          (let ((vec1 (object-scheme-value-fast-get self))
+                (vec2 (object-scheme-value-fast-get other)))
+            (if (,vector-comparator vec1 vec2)
+              py-True
+              py-False))
+          py-NotImplemented)
+        (py-throw-not-a-type-object ,(symbol->string py-name) self)))
+
+    (define ,py-name
+      (procedure->py-function
+        ,name
+        (make-posonly-signature #(self other))))))
+
+(define-tuple-binary-comparator tuple-eq tuple.__eq__ vector-py-eq?)
+
+(define-tuple-binary-comparator tuple-ne tuple.__ne__ vector-py-ne?)
+
+(define-tuple-binary-comparator tuple-lt tuple.__lt__ vector-py-lt?)
+
+(define-tuple-binary-comparator tuple-le tuple.__le__ vector-py-le?)
+
+(define-tuple-binary-comparator tuple-gt tuple.__gt__ vector-py-gt?)
+
+(define-tuple-binary-comparator tuple-ge tuple.__ge__ vector-py-ge?)
+
 (define (bootstrap-type-hierarchy-phase2)
 
   ;; Fill in tuple class
   (py-own-attr-set! py-tuple-class (& "__iter__") tuple.__iter__)
   (py-own-attr-set! py-tuple-class (& "__contains__") tuple.__contains__)
+  (py-own-attr-set! py-tuple-class (& "__add__") tuple.__add__)
+  (py-own-attr-set! py-tuple-class (& "__eq__") tuple.__eq__)
+  (py-own-attr-set! py-tuple-class (& "__ne__") tuple.__ne__)
+  (py-own-attr-set! py-tuple-class (& "__lt__") tuple.__lt__)
+  (py-own-attr-set! py-tuple-class (& "__lt__") tuple.__lt__)
+  (py-own-attr-set! py-tuple-class (& "__gt__") tuple.__gt__)
+  (py-own-attr-set! py-tuple-class (& "__ge__") tuple.__ge__)
 
   (set! py-module-class
     (make-builtin-class
