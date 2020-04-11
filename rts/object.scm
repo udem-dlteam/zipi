@@ -2448,7 +2448,7 @@
       (list-iterator-list-fast-set! iterator self)
       (list-iterator-index-fast-set! iterator 0)
       iterator)
-    (py-throw-not-a-type-object "__iter__" "list" self)))
+    (py-throw-not-a-type-object "list.__iter__" self)))
 
 (define list.__iter__
   (procedure->py-function
@@ -2467,7 +2467,7 @@
             py-True
             (loop (+ i 1)))
           py-False)))
-    (py-throw-not-a-type-object "__contains__" "list" self)))
+    (py-throw-not-a-type-object "list.__contains__" self)))
 
 (define list.__contains__
   (procedure->py-function
@@ -2500,7 +2500,7 @@
             py-True
             (loop (+ i 1)))
           py-False)))
-    (py-throw-not-a-type-object "__contains__" "tuple" self)))
+    (py-throw-not-a-type-object "tuple.__contains__" self)))
 
 (define tuple.__contains__
   (procedure->py-function
