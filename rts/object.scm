@@ -4281,7 +4281,8 @@
               (if (< (+ i 1) objects-len)
                 (display " " port))
               (loop (+ i 1)))))
-            (newline port)))
+            (newline port)
+            py-None))
     (make-signature
       #()
       #()

@@ -181,6 +181,11 @@
               rhs::PycExpr
 	      (cache (default #f)))
 
+        (final-class PycBoolOp::PycExpr
+   	      op::symbol
+   	      args::PycExpr
+   	      (cache (default #f)))
+
            (final-class PycFun::PycExpr
             args::pair-nil
             posonlyargs::pair-nil
@@ -569,6 +574,7 @@
 (gen-walks PycClass body (bases))
 (gen-walks PycBinary lhs rhs)
 (gen-walks PycUnary expr)
+(gen-walks PycBoolOp (args))
 (gen-walks PycCall fun (args) (keywords))
 (gen-walks PycCollection (elts))
 (gen-walks PycDict (keys) (elts))

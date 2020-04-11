@@ -420,6 +420,34 @@
 	,(scheme (PycUnary-expr this) conf)
 	,(scheme-cache (PycUnary-cache this) this))))
 
+(define-walk-method (scheme this::PycBoolOp conf)
+  (define (scheme-or args conf)
+    (if (null? (cdr args))
+      (scheme (car args) conf)
+      (let ((sym (my-gensym 'or-arg)))
+        `(let ((,sym ,(scheme (car args) conf)))
+            (if (py-test ,sym)
+              ,sym
+              ,(scheme-or (cdr args) conf))))))
+
+  (define (scheme-and args conf)
+    (if (null? (cdr args))
+      (scheme (car args) conf)
+      (let ((sym (my-gensym 'or-arg)))
+        `(let ((,sym ,(scheme (car args) conf)))
+            (if (py-test ,sym)
+              ,(scheme-and (cdr args) conf)
+              ,sym)))))
+
+  (let ((op (PycBoolOp-op this))
+        (args (PycBoolOp-args this)))
+    (pp (length args))
+    (case op
+      ((or) (scheme-or args conf))
+      ((and) (scheme-and args conf))
+      (else (error "scheme::PycBoolOp" "unknown op" op)))))
+
+
 (define-walk-method (scheme this::PycFun conf)
 
    (define (generator this::PycFun exp)

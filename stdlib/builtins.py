@@ -109,15 +109,15 @@ print = __base_print
 property = __base_property
 
 class range_iterator:
-    def __init__(self, start, stop, step):
+    def __init__(self, start, stop, step, /):
         self.start = start
         self.stop = stop
         self.step = step
 
-    def __iter__(self):
+    def __iter__(self, /):
         return self
 
-    def __next__(self):
+    def __next__(self, /):
         start = self.start
         stop = self.stop
         step = self.step
@@ -147,28 +147,24 @@ class range:
             self.stop = arg1
             self.step = 1
 
-    def __len__(self):
+    def __len__(self, /):
         return (self.stop - self.start) // self.step
 
-    def __contains__(self, item):
+    def __contains__(self, item, /):
         start = self.start
         stop = self.stop
         step = self.step
 
         if self.step < 0:
-            if stop >= item:
-                return False
-            if item > start:
+            if stop >= item or item > start:
                 return False
         else:
-            if start > item:
-                return False
-            if item >= stop:
+            if start > item or item >= stop:
                 return False
 
         return (item - start) % step == 0
 
-    def __iter__(self):
+    def __iter__(self, /):
         return range_iterator(self.start, self.stop, self.step)
 
 repr = __base_repr
