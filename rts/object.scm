@@ -540,6 +540,38 @@
 ;; =============================================================================
 ;; Exception thrower helpers
 ;; =============================================================================
+(define (py-throw-not-subscriptable obj)
+  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type item)))))
+    (py-throw
+      (py-call py-builtin-TypeError
+        (py-str-from-scheme
+          (string-append
+            "'"
+            given-type
+            "' object is not subscriptable"))))))
+
+(define (py-throw-wrong-index-type type expected-description item)
+  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type item)))))
+    (py-throw
+      (py-call py-builtin-TypeError
+        (py-str-from-scheme
+          (string-append
+            type
+            " indices must be "
+            expected-description
+            ", not "
+            given-type))))))
+
+(define (throw-not-iteralble obj)
+  (let ((obj-type-name (type-name-fast-get (py-type obj))))
+    (py-throw (py-call
+                py-builtin-TypeError
+                (py-str-from-scheme
+                  (string-append
+                    "argument of type '"
+                    (py-str-to-scheme obj-type-name)
+                    "' is not iterable"))))))
+
 (define (py-throw-not-an-iterator obj)
   (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
     (py-throw
@@ -861,7 +893,7 @@
 ;; int operations
 ;; =============================================================================
 
-(define (int-new cls #!optional (value py-absent))
+(define (int-new cls value)
   (cond
     ((eq? cls py-int-class)
       (cond
@@ -1068,15 +1100,29 @@
 
 (define-int-unary-operator int-abs "__abs__" abs)
 
-(define (int-repr x)
-  (if (py-isinstance? x py-int-class)
-    (py-str-from-scheme (number->string (object-scheme-value-fast-get x)))
-    (py-throw-required-type "__repr__" "int" x)))
+(define (int-repr self)
+  (if (py-isinstance? self py-int-class)
+    (py-str-from-scheme (number->string (object-scheme-value-fast-get self)))
+    (py-throw-required-type "__repr__" "int" self)))
 
 (define int.__repr__
   (procedure->py-function
     int-repr
-    (make-posonly-signature #(x))))
+    (make-posonly-signature #(self))))
+
+(define (int-index self)
+  (cond
+    ((eq? (py-type self) py-int-class)
+      self)
+    ((py-isinstance? self py-int-class)
+      (py-str-from-scheme (number->string (object-scheme-value-fast-get self))))
+    (else
+      (py-throw-required-type "__repr__" "int" self))))
+
+(define int.__index__
+  (procedure->py-function
+    int-index
+    (make-posonly-signature #(self))))
 
 ;; =============================================================================
 ;; float operations
@@ -1181,22 +1227,10 @@
            (error "len" "only object with __len__ method implemented" #f)))))
 
 (define (py-getitem obj i cache)
-  (cond ((eq? py-tuple-class (py-obj-cls obj))
-         (vector-ref (py-tuple-to-scheme obj) i))
-        ((eq? py-list-class (py-obj-cls obj))
-         (vector-ref (py-list-to-scheme obj) i))
-        ((eq? py-dict-class (py-obj-cls obj))
-         (let ((x (assoc i (py-dict-to-scheme obj))))
-           (if x
-               (cdr x)
-               (error "py-getitem" "item not found" i))))
-        ((eq? py-set-class (py-obj-cls obj))
-         (list-ref (py-set-to-scheme obj) i))
-        (else
-         (let ((getitem (py-attr-ref obj (& "__getitem__"))))
-           (if (eq? getitem py-absent)
-               (error "getitem" "only object with __getitem__ method implemented" i)
-               (py-call getitem obj i))))))
+  (let ((getitem (getattribute-from-obj-mro obj (& "__getitem__"))))
+    (if (eq? getitem py-absent)
+      (py-throw-not-subscriptable obj)
+      (py-call2 getitem obj i))))
 
 
 (define (py-setitem obj i val cache)
@@ -2329,16 +2363,6 @@
 ;;  ITER PROTOCOL
 ;; =============================================================================
 
-(define (throw-not-iteralble obj)
-  (let ((obj-type-name (type-name-fast-get (py-type obj))))
-    (py-throw (py-call
-                py-builtin-TypeError
-                (py-str-from-scheme
-                  (string-append
-                    "argument of type '"
-                    (py-str-to-scheme obj-type-name)
-                    "' is not iterable"))))))
-
 ;; TODO: implement the sequence protocole where object are iterable if they
 ;; have a __getitem__ method starting from index 0
 (define (py-obj->iterator obj)
@@ -2666,12 +2690,40 @@
           "("
           (string-join-vector ", " content-strings)
           ")")))
-    (py-throw-not-a-type-object "tuple.__mul__" self)))
+    (py-throw-not-a-type-object "tuple.__repr__" self)))
 
 (define tuple.__repr__
   (procedure->py-function
     tuple-repr
     (make-posonly-signature #(self))))
+
+(define (tuple-len self)
+  (if (py-isinstance? self py-tuple-class)
+    (let* ((vec (object-scheme-value-fast-get self)))
+      (py-int-from-scheme (vector-length vec)))
+    (py-throw-not-a-type-object "tuple.__len__" self)))
+
+(define tuple.__len__
+  (procedure->py-function
+    tuple-len
+    (make-posonly-signature #(self))))
+
+(define (tuple-getitem self item)
+  (if (py-isinstance? self py-tuple-class)
+    (cond
+      ((py-isinstance? item py-int-class)
+        (let* ((vec (object-scheme-value-fast-get self))
+               (i (object-scheme-value-fast-get item)))
+          (vector-ref vec i)))
+      ((py-isinstance? item py-slice-class)
+        (error "tuple-getitem" "slice not implemented" #f))
+      (py-throw-wrong-index-type "tuple" "integers or slices" item))
+    (py-throw-not-a-type-object "tuple.__len__" self)))
+
+(define tuple.__getitem__
+  (procedure->py-function
+    tuple-getitem
+    (make-posonly-signature #(self item))))
 
 (define (bootstrap-type-hierarchy-phase2)
 
@@ -2687,6 +2739,8 @@
   (py-own-attr-set! py-tuple-class (& "__gt__") tuple.__gt__)
   (py-own-attr-set! py-tuple-class (& "__ge__") tuple.__ge__)
   (py-own-attr-set! py-tuple-class (& "__repr__") tuple.__repr__)
+  (py-own-attr-set! py-tuple-class (& "__len__") tuple.__len__)
+  (py-own-attr-set! py-tuple-class (& "__getitem__") tuple.__getitem__)
 
   (set! py-module-class
     (make-builtin-class
@@ -2819,6 +2873,13 @@
 
 (bootstrap-type-hierarchy-phase2)
 (bootstrap-functions)
+
+;; Save low ints for fast access
+(define py-int-0 (py-int-from-scheme 0))
+(define py-int-1 (py-int-from-scheme 1))
+(define py-int-2 (py-int-from-scheme 2))
+(define py-int-3 (py-int-from-scheme 3))
+(define py-int-4 (py-int-from-scheme 4))
 
 ;;;----------------------------------------------------------------------------
 
@@ -5100,10 +5161,10 @@
   (let* ((args (py-own-attr-ref self (& "args")))
          (args-len (py-len args)))
     (cond
-      ((= args-len 0)
+      ((eq? args-len py-int-0)
         (py-str-from-scheme ""))
-      ((= args-len 1)
-       (py-str (py-getitem args 0 #f)))
+      ((eq? args-len py-int-1)
+       (py-str (py-getitem args py-int-0 #f)))
       (else
         (py-str args)))))
 
