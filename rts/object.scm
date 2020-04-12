@@ -1610,6 +1610,41 @@
     str-repr
     (make-posonly-signature #(self))))
 
+(define (string-join-vector separator vec)
+  (let* ((separator-len (string-length separator))
+        (vec-len (vector-length vec))
+        (last-index (- vec-len 1))
+        (vec-strings-len
+          (let loop ((i 0) (acc 0))
+            (if (< i vec-len)
+              (loop (+ i 1) (+ acc (string-length (vector-ref vec i))))
+              acc)))
+        (number-separators (max 0 (- vec-len 1)))
+        (total-len (+ vec-strings-len (* number-separators separator-len)))
+        (out (make-string total-len)))
+    (let loop ((vec-pos 0) (out-pos 0))
+      (if (< vec-pos vec-len)
+        (begin
+          (let* ((source (vector-ref vec vec-pos))
+                 (source-len (string-length source)))
+            (let item-loop ((source-pos 0))
+              (if (< source-pos source-len)
+                (begin
+                  (string-set! out out-pos (string-ref source source-pos))
+                  (set! out-pos (+ out-pos 1))
+                  (item-loop (+ source-pos 1))))))
+          (if (> number-separators 0)
+            (begin
+              (let separator-loop ((separator-pos 0))
+                (if (< separator-pos separator-len)
+                  (begin
+                    (string-set! out out-pos (string-ref separator separator-pos))
+                    (set! out-pos (+ out-pos 1))
+                    (separator-loop (+ separator-pos 1)))))
+              (set! number-separators (- number-separators 1))))
+          (loop (+ vec-pos 1) out-pos))
+        out))))
+
 (define (integer->hex-string x)
   (string-append "0x" (number->string x 16)))
 
@@ -2620,6 +2655,24 @@
 
 (define-tuple-binary-comparator tuple-ge tuple.__ge__ vector-py-ge?)
 
+;; TODO: print cyclic structures
+(define (tuple-repr self)
+  (if (py-isinstance? self py-tuple-class)
+    (let* ((vec (object-scheme-value-fast-get self))
+           (content-strs (vector-map py-repr vec))
+           (content-strings (vector-map object-scheme-value-fast-get content-strs)))
+      (py-str-from-scheme
+        (string-append
+          "("
+          (string-join-vector ", " content-strings)
+          ")")))
+    (py-throw-not-a-type-object "tuple.__mul__" self)))
+
+(define tuple.__repr__
+  (procedure->py-function
+    tuple-repr
+    (make-posonly-signature #(self))))
+
 (define (bootstrap-type-hierarchy-phase2)
 
   ;; Fill in tuple class
@@ -2633,6 +2686,7 @@
   (py-own-attr-set! py-tuple-class (& "__le__") tuple.__le__)
   (py-own-attr-set! py-tuple-class (& "__gt__") tuple.__gt__)
   (py-own-attr-set! py-tuple-class (& "__ge__") tuple.__ge__)
+  (py-own-attr-set! py-tuple-class (& "__repr__") tuple.__repr__)
 
   (set! py-module-class
     (make-builtin-class
