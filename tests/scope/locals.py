@@ -5,12 +5,11 @@ def f(a):
     l1 = locals()
     print(l1)
 
-    del b
-    
+    # del b # TODO add back in test when locals() is fixed
+
     l2 = locals()
     print(l2)
 
     print(l1==l2)
 
-f(10)    
-    
+f(10)

@@ -633,11 +633,15 @@
 	  ,(scheme-cache (PycRefUnresolved-cache this) this))))
 
 (define-walk-method (scheme this::PycDelete conf)
-   (scheme
-      (new-PycAssig (PycNode-loc this)
-	 (PycDelete-expr this)
-	 (new-PycUninit (PycNode-loc this)))
-      conf))
+  (let ((expr-to-delete (PycDelete-expr this)))
+    (cond
+      ((PycSubscript? expr-to-delete)
+        `(py-delitem
+            ,(scheme (PycSubscript-obj expr-to-delete) conf)
+            ,(scheme (PycSubscript-index expr-to-delete) conf)
+            #f))
+      (else
+        (error "scheme::PycDelete" "only del subscript is supported" #f)))))
 
 (define-walk-method (scheme this::PycAccess conf)
    (epairify this

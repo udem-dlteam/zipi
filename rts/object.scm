@@ -540,8 +540,24 @@
 ;; =============================================================================
 ;; Exception thrower helpers
 ;; =============================================================================
+(define (py-throw-index-out-of-range type)
+  (py-throw
+    (py-call py-builtin-IndexError
+      (py-str-from-scheme
+        (string-append
+          type
+          " index out of range")))))
+
+(define (py-throw-assignment-out-of-range type)
+  (py-throw
+    (py-call py-builtin-IndexError
+      (py-str-from-scheme
+        (string-append
+          type
+          " assignment out of range")))))
+
 (define (py-throw-not-subscriptable obj)
-  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type item)))))
+  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
@@ -549,6 +565,16 @@
             "'"
             given-type
             "' object is not subscriptable"))))))
+
+(define (py-throw-not-assignable obj)
+  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
+    (py-throw
+      (py-call py-builtin-TypeError
+        (py-str-from-scheme
+          (string-append
+            "'"
+            given-type
+            "' object does not support item assignment"))))))
 
 (define (py-throw-wrong-index-type type expected-description item)
   (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type item)))))
@@ -1232,34 +1258,17 @@
       (py-throw-not-subscriptable obj)
       (py-call2 getitem obj i))))
 
+(define (py-setitem obj i value cache)
+  (let ((setitem (getattribute-from-obj-mro obj (& "__setitem__"))))
+    (if (eq? setitem py-absent)
+      (py-throw-not-assignable obj)
+      (py-call3 setitem obj i value))))
 
-(define (py-setitem obj i val cache)
-  (cond ((eq? py-tuple-class (py-obj-cls obj))
-         (vector-set! (py-tuple-to-scheme obj) i val))
-        ((eq? py-list-class (py-obj-cls obj))
-         (vector-set! (py-list-to-scheme obj) i val))
-        ((eq? py-dict-class (py-obj-cls obj))
-         (let ((x (assoc i (py-dict-to-scheme obj))))
-           (if x
-               (begin
-                 (set-cdr! x val)
-                 (py-uninit))
-	       (begin
-		  (PyObject-elements-set! obj 1
-		     (cons (cons i val)
-			(py-dict-to-scheme obj)))
-		  (py-uninit)))))
-        ((eq? py-set-class (py-obj-cls obj))
-         (list-set! (py-set-to-scheme obj) i val))
-        (else
-         (let ((setitem (py-attr-ref obj (& "__setitem__"))))
-           (if (eq? setitem py-absent)
-               (error "setitem" "only object with __setitem__ method implemented" i)
-               (py-call setitem obj i val))))))
-
-(define (py-contains a b c)
-   (error "py-contains" "Not implemented" #f)
-   #t)
+(define (py-delitem obj i cache)
+  (let ((delitem (getattribute-from-obj-mro obj (& "__delitem__"))))
+    (if (eq? delitem py-absent)
+      (py-throw-not-subscriptable obj)
+      (py-call2 delitem obj i))))
 
 ;;;----------------------------------------------------------------------------
 
@@ -2016,6 +2025,7 @@
  (set! py-builtin-ZeroDivisionError (py-own-attr-ref builtins-mod  (& "ZeroDivisionError")))
  (set! py-builtin-AttributeError (py-own-attr-ref builtins-mod  (& "AttributeError")))
  (set! py-builtin-TypeError (py-own-attr-ref builtins-mod  (& "TypeError")))
+ (set! py-builtin-IndexError (py-own-attr-ref builtins-mod  (& "IndexError")))
  (set! py-builtin-RuntimeError (py-own-attr-ref builtins-mod (& "RuntimeError")))
  (set! py-builtin-AssertionError (py-own-attr-ref builtins-mod (& "AssertionError")))
 )
@@ -2499,14 +2509,15 @@
 
 ;; list class
 
-(define list-growth-factor 1.2)
+(define list-growth-factor 1.125)
+(define list-shrink-threshold 1.5)
 (define min-list-inner-length 5)
 (define list-empty-cell (cons 'empty-cell '()))
 
 (define (list->dynamic-vector elements)
   (let* ((len (length elements))
         (vec-len
-          (max
+          (+
             min-list-inner-length
             (inexact->exact (round (* len list-growth-factor)))))
         (vec (make-vector vec-len list-empty-cell)))
@@ -2524,7 +2535,7 @@
         (v2 (cdr container2))
         (total-len (+ len1 len2))
         (vec-len
-          (max
+          (+
             min-list-inner-length
             (inexact->exact (round (* total-len list-growth-factor)))))
         (vec (make-vector vec-len list-empty-cell)))
@@ -2624,7 +2635,7 @@
          (vec (cdr c))
          (total-len (* len n))
          (target-inner-len
-           (max
+           (+
              min-list-inner-length
              (inexact->exact (round (* total-len list-growth-factor)))))
          (out (make-vector target-inner-len list-empty-cell)))
@@ -2743,6 +2754,92 @@
 (define-list-binary-comparator list-gt list.__gt__ dynamic-vector-py-gt?)
 
 (define-list-binary-comparator list-ge list.__ge__ dynamic-vector-py-ge?)
+
+(define (list-getitem self item)
+  (if (py-isinstance? self py-list-class)
+    (cond
+      ((py-isinstance? item py-int-class)
+        (let* ((container (object-scheme-value-fast-get self))
+               (len (car container))
+               (vec (cdr container))
+               (i (object-scheme-value-fast-get item)))
+          (if (< i len)
+            (vector-ref vec i)
+            (py-throw-index-out-of-range "list"))))
+      ((py-isinstance? item py-slice-class)
+        (error "list-getitem" "slice not implemented" #f))
+      (py-throw-wrong-index-type "list" "integers or slices" item))
+    (py-throw-not-a-type-object "list.__getitem__" self)))
+
+(define list.__getitem__
+  (procedure->py-function
+    list-getitem
+    (make-posonly-signature #(self item))))
+
+(define (list-setitem self item value)
+  (if (py-isinstance? self py-list-class)
+    (cond
+      ((py-isinstance? item py-int-class)
+        (let* ((container (object-scheme-value-fast-get self))
+               (len (car container))
+               (vec (cdr container))
+               (i (object-scheme-value-fast-get item)))
+          (if (< i len)
+            (vector-set! vec i value)
+            (py-throw-assignment-out-of-range "list"))))
+      ((py-isinstance? item py-slice-class)
+        (error "list-setitem" "slice not implemented" #f))
+      (py-throw-wrong-index-type "list" "integers or slices" item))
+    (py-throw-not-a-type-object "list.__setitem__" self)))
+
+(define list.__setitem__
+  (procedure->py-function
+    list-setitem
+    (make-posonly-signature #(self item value))))
+
+(define (dynamic-vector-shrink! dvec)
+  (let* ((len (car dvec))
+        (vec (cdr dvec))
+        (new-inner-len
+          (+
+            min-list-inner-length
+            (inexact->exact (round (* len list-growth-factor))))))
+    (set-cdr! dvec (subvector vec 0 new-inner-len))))
+
+(define (dynamic-vector-shift-left! dvec index)
+  (let ((len (car dvec))
+        (vec (cdr dvec)))
+    (let loop ((i index))
+      (if (< i len)
+        (begin
+          (vector-set! vec (- i 1) (vector-ref vec i))
+          (loop (+ i 1)))))
+    (vector-set! vec (- len 1) list-empty-cell)
+    (set-car! dvec (- len 1))
+    (if (<
+          (+ (* len list-shrink-threshold) min-list-inner-length)
+          (vector-length vec))
+      (dynamic-vector-shrink! dvec))))
+
+(define (list-delitem self item)
+  (if (py-isinstance? self py-list-class)
+    (cond
+      ((py-isinstance? item py-int-class)
+        (let* ((dvec (object-scheme-value-fast-get self))
+               (len (car dvec))
+               (i (object-scheme-value-fast-get item)))
+          (if (< i len)
+            (dynamic-vector-shift-left! dvec (+ i 1))
+            (py-throw-assignment-out-of-range "list"))))
+      ((py-isinstance? item py-slice-class)
+        (error "list-delitem" "slice not implemented" #f))
+      (py-throw-wrong-index-type "list" "integers or slices" item))
+    (py-throw-not-a-type-object "list.__delitem__" self)))
+
+(define list.__delitem__
+  (procedure->py-function
+    list-delitem
+    (make-posonly-signature #(self item))))
 
 ;; tuple class
 
@@ -2931,8 +3028,11 @@
     (cond
       ((py-isinstance? item py-int-class)
         (let* ((vec (object-scheme-value-fast-get self))
+               (len (vector-length vec))
                (i (object-scheme-value-fast-get item)))
-          (vector-ref vec i)))
+          (if (< i len)
+            (vector-ref vec i)
+            (py-throw-index-out-of-range "tuple"))))
       ((py-isinstance? item py-slice-class)
         (error "tuple-getitem" "slice not implemented" #f))
       (py-throw-wrong-index-type "tuple" "integers or slices" item))
@@ -3117,6 +3217,9 @@
       py-list-hclass-of-instances
         (& "__iter__") list.__iter__
         (& "__contains__") list.__contains__
+        (& "__getitem__") list.__getitem__
+        (& "__setitem__") list.__setitem__
+        (& "__delitem__") list.__delitem__
         (& "__eq__") list.__eq__
         (& "__ne__") list.__ne__
         (& "__lt__") list.__lt__
@@ -5461,6 +5564,8 @@
 (define py-builtin-AttributeError #f)
 
 (define py-builtin-TypeError #f)
+
+(define py-builtin-IndexError #f)
 
 (define py-builtin-RuntimeError #f)
 
