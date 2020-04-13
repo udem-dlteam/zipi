@@ -18,3 +18,11 @@ t = (1, 2, 3)
 print(t[0])
 print(t[1])
 print(t[2])
+
+t2 = (1, 1, 2, 3, 4, 5, 1)
+print(t2.count(1))
+print(t2.count(2))
+print(t2.count(10))
+
+print(t2.index(1))
+print(t2.index(5))

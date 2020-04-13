@@ -2608,6 +2608,11 @@
     tuple-mul
     (make-posonly-signature #(self n))))
 
+(define tuple.__rmul__
+  (procedure->py-function
+    tuple-mul
+    (make-posonly-signature #(self n))))
+
 (define (vector-py-eq? v1 v2)
   (let ((v1-len (vector-length v1))
         (v2-len (vector-length v2)))
@@ -2718,11 +2723,53 @@
       ((py-isinstance? item py-slice-class)
         (error "tuple-getitem" "slice not implemented" #f))
       (py-throw-wrong-index-type "tuple" "integers or slices" item))
-    (py-throw-not-a-type-object "tuple.__len__" self)))
+    (py-throw-not-a-type-object "tuple.__getitem__" self)))
 
 (define tuple.__getitem__
   (procedure->py-function
     tuple-getitem
+    (make-posonly-signature #(self item))))
+
+(define (tuple-count self item)
+  (if (py-isinstance? self py-tuple-class)
+    (let* ((vec (object-scheme-value-fast-get self))
+           (vec-len (vector-length vec)))
+      (let loop ((i 0) (count 0))
+        (cond
+          ((= i vec-len)
+            (py-int-from-scheme count))
+
+          ((py-test (py-eq (vector-ref vec i) item #f))
+            (loop (+ i 1) (+ count 1)))
+          (else
+            (loop (+ i 1) count)))))
+    (py-throw-not-a-type-object "tuple.count" self)))
+
+(define tuple.count
+  (procedure->py-function
+    tuple-count
+    (make-posonly-signature #(self item))))
+
+(define (tuple-index self item)
+  (if (py-isinstance? self py-tuple-class)
+    (let* ((vec (object-scheme-value-fast-get self))
+           (vec-len (vector-length vec)))
+      (let loop ((i 0))
+        (cond
+          ((= i vec-len)
+            (py-throw
+              (py-call1
+                py-builtin-TypeError
+                (py-str-from-scheme "tuple.index(x): x not in tuple"))))
+          ((py-test (py-eq (vector-ref vec i) item #f))
+            (py-int-from-scheme i))
+          (else
+            (loop (+ i 1))))))
+    (py-throw-not-a-type-object "tuple.__len__" self)))
+
+(define tuple.index
+  (procedure->py-function
+    tuple-index
     (make-posonly-signature #(self item))))
 
 (define (bootstrap-type-hierarchy-phase2)
@@ -2732,6 +2779,7 @@
   (py-own-attr-set! py-tuple-class (& "__contains__") tuple.__contains__)
   (py-own-attr-set! py-tuple-class (& "__add__") tuple.__add__)
   (py-own-attr-set! py-tuple-class (& "__mul__") tuple.__mul__)
+  (py-own-attr-set! py-tuple-class (& "__rmul__") tuple.__rmul__)
   (py-own-attr-set! py-tuple-class (& "__eq__") tuple.__eq__)
   (py-own-attr-set! py-tuple-class (& "__ne__") tuple.__ne__)
   (py-own-attr-set! py-tuple-class (& "__lt__") tuple.__lt__)
@@ -2741,6 +2789,8 @@
   (py-own-attr-set! py-tuple-class (& "__repr__") tuple.__repr__)
   (py-own-attr-set! py-tuple-class (& "__len__") tuple.__len__)
   (py-own-attr-set! py-tuple-class (& "__getitem__") tuple.__getitem__)
+  (py-own-attr-set! py-tuple-class (& "count") tuple.count)
+  (py-own-attr-set! py-tuple-class (& "index") tuple.index)
 
   (set! py-module-class
     (make-builtin-class
