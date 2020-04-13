@@ -548,13 +548,20 @@
           type
           " index out of range")))))
 
-(define (py-throw-assignment-out-of-range type)
+(define (py-throw-action-out-of-range type action)
   (py-throw
     (py-call py-builtin-IndexError
       (py-str-from-scheme
         (string-append
           type
-          " assignment out of range")))))
+          " "
+          action
+          " out of range")))))
+
+(define (py-throw-pop-from-empty-list)
+  (py-throw
+    (py-call py-builtin-IndexError
+      (py-str-from-scheme "pop from empty list"))))
 
 (define (py-throw-not-subscriptable obj)
   (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
@@ -2768,7 +2775,7 @@
             (py-throw-index-out-of-range "list"))))
       ((py-isinstance? item py-slice-class)
         (error "list-getitem" "slice not implemented" #f))
-      (py-throw-wrong-index-type "list" "integers or slices" item))
+      (else (py-throw-wrong-index-type "list" "integers or slices" item)))
     (py-throw-not-a-type-object "list.__getitem__" self)))
 
 (define list.__getitem__
@@ -2786,10 +2793,10 @@
                (i (object-scheme-value-fast-get item)))
           (if (< i len)
             (vector-set! vec i value)
-            (py-throw-assignment-out-of-range "list"))))
+            (py-throw-action-out-of-range "list" "assignment"))))
       ((py-isinstance? item py-slice-class)
         (error "list-setitem" "slice not implemented" #f))
-      (py-throw-wrong-index-type "list" "integers or slices" item))
+      (else (py-throw-wrong-index-type "list" "integers or slices" item)))
     (py-throw-not-a-type-object "list.__setitem__" self)))
 
 (define list.__setitem__
@@ -2806,6 +2813,17 @@
             (inexact->exact (round (* len list-growth-factor))))))
     (set-cdr! dvec (subvector vec 0 new-inner-len))))
 
+(define (dynamic-vector-grow! dvec)
+  (let* ((len (car dvec))
+        (vec (cdr dvec))
+        (new-inner-len
+          (+
+            min-list-inner-length
+            (inexact->exact (round (* len list-growth-factor))))))
+    (set-cdr!
+      dvec
+      (vector-append vec (make-vector (- new-inner-len len) list-empty-cell)))))
+
 (define (dynamic-vector-shift-left! dvec index)
   (let ((len (car dvec))
         (vec (cdr dvec)))
@@ -2821,6 +2839,19 @@
           (vector-length vec))
       (dynamic-vector-shrink! dvec))))
 
+(define (dynamic-vector-pop-last! dvec)
+  (let* ((len (car dvec))
+        (vec (cdr dvec))
+        (last-index (- len 1))
+        (last (vector-ref vec last-index)))
+    (vector-set! vec last-index list-empty-cell)
+    (set-car! dvec last-index)
+    (if (<
+          (+ (* len list-shrink-threshold) min-list-inner-length)
+          (vector-length vec))
+      (dynamic-vector-shrink! dvec))
+    last))
+
 (define (list-delitem self item)
   (if (py-isinstance? self py-list-class)
     (cond
@@ -2830,16 +2861,61 @@
                (i (object-scheme-value-fast-get item)))
           (if (< i len)
             (dynamic-vector-shift-left! dvec (+ i 1))
-            (py-throw-assignment-out-of-range "list"))))
+            (py-throw-action-out-of-range "list" "assignement"))))
       ((py-isinstance? item py-slice-class)
         (error "list-delitem" "slice not implemented" #f))
-      (py-throw-wrong-index-type "list" "integers or slices" item))
+      (else (py-throw-wrong-index-type "list" "integers or slices" item)))
     (py-throw-not-a-type-object "list.__delitem__" self)))
 
 (define list.__delitem__
   (procedure->py-function
     list-delitem
     (make-posonly-signature #(self item))))
+
+(define (list-pop self index)
+  (if (py-isinstance? self py-list-class)
+    (cond
+      ((eq? index py-absent)
+        (let* ((dvec (object-scheme-value-fast-get self))
+               (len (car dvec)))
+          (if (> len 0)
+            (dynamic-vector-pop-last! dvec)
+            (py-throw-pop-from-empty-list))))
+      ((py-isinstance? index py-int-class)
+        (let* ((dvec (object-scheme-value-fast-get self))
+               (len (car dvec))
+               (vec (cdr dvec))
+               (i (object-scheme-value-fast-get index)))
+          (if (< i len)
+            (let ((index (vector-ref vec i)))
+              (dynamic-vector-shift-left! dvec (+ i 1))
+              index)
+            (py-throw-action-out-of-range "list" "pop"))))
+      ((py-isinstance? index py-slice-class)
+        (error "list-delitem" "slice not implemented" #f))
+      (else (py-throw-wrong-index-type "list" "integers or slices" index)))
+    (py-throw-not-a-type-object "list.pop" self)))
+
+(define list.pop
+  (procedure->py-function
+    list-pop
+    (make-posonly-defaults-signature #(self index) (vector py-absent))))
+
+(define (list-append self value)
+  (if (py-isinstance? self py-list-class)
+    (let* ((dvec (object-scheme-value-fast-get self))
+          (len (car dvec))
+          (vec (cdr dvec)))
+      (if (= len (vector-length vec))
+        (dynamic-vector-grow! dvec))
+      (vector-set! vec len value)
+      (set-car! dvec (+ len 1)))
+    (py-throw-not-a-type-object "list.append" self)))
+
+(define list.append
+  (procedure->py-function
+    list-append
+    (make-posonly-signature #(self value))))
 
 ;; tuple class
 
@@ -3230,7 +3306,9 @@
         (& "__len__") list.__len__
         (& "__add__") list.__add__
         (& "__mul__") list.__mul__
-        (& "__rmul__") list.__rmul__))
+        (& "__rmul__") list.__rmul__
+        (& "pop") list.pop
+        (& "append") list.append))
 
   (set! py-dict-class
     (make-builtin-class
