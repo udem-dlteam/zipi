@@ -2917,6 +2917,34 @@
     list-append
     (make-posonly-signature #(self value))))
 
+(define (list-clear self)
+  (if (py-isinstance? self py-list-class)
+    (object-scheme-value-fast-set!
+      self
+      (cons 0 (make-vector min-list-inner-length list-empty-cell)))
+    (py-throw-not-a-type-object "list.clear" self)))
+
+(define list.clear
+  (procedure->py-function
+    list-clear
+    (make-posonly-signature #(self))))
+
+;; Could not call list-copy due to collision with Scheme list-copy
+(define (list-copy-procedure self)
+  (if (py-isinstance? self py-list-class)
+    (let* ((dvec (object-scheme-value-fast-get self))
+          (dvec-copy
+            (cons
+              (car dvec)
+              (vector-copy (cdr dvec)))))
+      (py-list-from-scheme dvec-copy))
+    (py-throw-not-a-type-object "list.copy" self)))
+
+(define list.copy
+  (procedure->py-function
+    list-copy-procedure
+    (make-posonly-signature #(self))))
+
 ;; tuple class
 
 (define (tuple-iter self)
@@ -3308,7 +3336,9 @@
         (& "__mul__") list.__mul__
         (& "__rmul__") list.__rmul__
         (& "pop") list.pop
-        (& "append") list.append))
+        (& "append") list.append
+        (& "clear") list.clear
+        (& "copy") list.copy))
 
   (set! py-dict-class
     (make-builtin-class

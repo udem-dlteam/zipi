@@ -1,4 +1,5 @@
 l = [1,2,3]
+l2 = l.copy()
 
 print(l.pop())
 print(len(l))
@@ -23,3 +24,8 @@ print(l)
 l.pop(1)
 print(len(l))
 print(l)
+
+l.clear()
+
+print(l)
+print(l2)
