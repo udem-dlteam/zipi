@@ -2619,6 +2619,56 @@
     list-add
     (make-posonly-signature #(self other))))
 
+(define (list-container*n c n)
+  (let* ((len (car c))
+         (vec (cdr c))
+         (total-len (* len n))
+         (target-inner-len
+           (max
+             min-list-inner-length
+             (inexact->exact (round (* total-len list-growth-factor)))))
+         (out (make-vector target-inner-len list-empty-cell)))
+    (let loop ((target-pos 0))
+      (if (< target-pos total-len)
+        (let inner-loop ((source-pos 0))
+          (if (< source-pos len)
+            (begin
+              (vector-set! out (+ target-pos source-pos) (vector-ref vec source-pos))
+              (inner-loop (+ source-pos 1)))
+            (loop (+ target-pos len))))
+        (cons total-len out)))))
+
+(define (list-mul self n)
+  (if (py-isinstance? self py-list-class)
+    (if (py-isinstance? n py-int-class)
+      (let ((c (object-scheme-value-fast-get self))
+            (n (object-scheme-value-fast-get n)))
+        (py-list-from-scheme (list-container*n c n)))
+      py-NotImplemented)
+    (py-throw-not-a-type-object "list.__mul__" self)))
+
+(define list.__mul__
+  (procedure->py-function
+    list-mul
+    (make-posonly-signature #(self n))))
+
+(define list.__rmul__
+  (procedure->py-function
+    list-mul
+    (make-posonly-signature #(self n))))
+
+(define (list-len self)
+  (if (py-isinstance? self py-list-class)
+    (py-int-from-scheme
+      (car
+        (object-scheme-value-fast-get self)))
+    (py-throw-not-a-type-object "list.__len__" self)))
+
+(define list.__len__
+  (procedure->py-function
+    list-len
+    (make-posonly-signature #(self))))
+
 ;; tuple class
 
 (define (tuple-iter self)
@@ -2993,7 +3043,10 @@
         (& "__iter__") list.__iter__
         (& "__contains__") list.__contains__
         (& "__repr__") list.__repr__
-        (& "__add__") list.__add__))
+        (& "__len__") list.__len__
+        (& "__add__") list.__add__
+        (& "__mul__") list.__mul__
+        (& "__rmul__") list.__rmul__))
 
   (set! py-dict-class
     (make-builtin-class
