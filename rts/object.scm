@@ -2503,7 +2503,7 @@
 (define min-list-inner-length 5)
 (define list-empty-cell (cons 'empty-cell '()))
 
-(define (list->list-container elements)
+(define (list->dynamic-vector elements)
   (let* ((len (length elements))
         (vec-len
           (max
@@ -2517,7 +2517,7 @@
           (vector-set! vec i (car elements))
           (loop (+ i 1) (cdr elements)))))))
 
-(define (concat-list-containers container1 container2)
+(define (concat-dynamic-vectors container1 container2)
   (let* ((len1 (car container1))
         (v1 (cdr container1))
         (len2 (car container2))
@@ -2542,7 +2542,7 @@
 
 (define (py-make-list . elements)
   (let ((len (length elements))
-        (len-vec-pair (list->list-container elements)))
+        (len-vec-pair (list->dynamic-vector elements)))
   (py-list-from-scheme len-vec-pair)))
 
 (define (py-list-from-scheme len-vec-pair)
@@ -2610,7 +2610,7 @@
     (if (py-isinstance? other py-list-class)
       (let ((c1 (object-scheme-value-fast-get self))
             (c2 (object-scheme-value-fast-get other)))
-        (py-list-from-scheme (concat-list-containers c1 c2)))
+        (py-list-from-scheme (concat-dynamic-vectors c1 c2)))
       py-NotImplemented)
     (py-throw-not-a-type-object "list.__add__" self)))
 
@@ -2619,7 +2619,7 @@
     list-add
     (make-posonly-signature #(self other))))
 
-(define (list-container*n c n)
+(define (dynamic-vector*n c n)
   (let* ((len (car c))
          (vec (cdr c))
          (total-len (* len n))
@@ -2643,7 +2643,7 @@
     (if (py-isinstance? n py-int-class)
       (let ((c (object-scheme-value-fast-get self))
             (n (object-scheme-value-fast-get n)))
-        (py-list-from-scheme (list-container*n c n)))
+        (py-list-from-scheme (dynamic-vector*n c n)))
       py-NotImplemented)
     (py-throw-not-a-type-object "list.__mul__" self)))
 
@@ -2668,6 +2668,81 @@
   (procedure->py-function
     list-len
     (make-posonly-signature #(self))))
+
+(define (dynamic-vector-py-eq? c1 c2)
+  (let ((len1 (car c1))
+        (v1 (cdr c1))
+        (len2 (car c2))
+        (v2 (cdr c2)))
+    (if (= len1 len2)
+      (let loop ((i 0))
+        (if (< i len1)
+          (let* ((el1 (vector-ref v1 i))
+                 (el2 (vector-ref v2 i)))
+            (if (py-test (py-eq el1 el2 #f))
+              (loop (+ i 1))
+              #f))
+          #t))
+      #f)))
+
+(define (dynamic-vector-py-ne? v1 v2)
+  (not (dynamic-vector-py-eq? v1 v2)))
+
+(define-macro (define-dynamic-vector-comparator name py-strict-op scheme-op)
+  `(define (,name c1 c2)
+    (let* ((len1 (car c1))
+          (len2 (car c2))
+          (v1 (cdr c1))
+          (v2 (cdr c2))
+          (min-len (min len1 len2)))
+      (let loop ((i 0))
+        (if (< i min-len)
+          (let* ((el1 (vector-ref v1 i))
+                 (el2 (vector-ref v2 i)))
+            (if (py-test (,py-strict-op el1 el2 #f))
+              #t
+              (if (py-test (py-eq el1 el2 #f))
+                (loop (+ i 1))
+                #f)))
+          (,scheme-op len1 len2))))))
+
+(define-dynamic-vector-comparator dynamic-vector-py-lt? py-lt <)
+
+(define-dynamic-vector-comparator dynamic-vector-py-le? py-lt <=)
+
+(define-dynamic-vector-comparator dynamic-vector-py-gt? py-gt >)
+
+(define-dynamic-vector-comparator dynamic-vector-py-ge? py-gt >=)
+
+(define-macro (define-list-binary-comparator name py-name dynamic-vector-comparator)
+  `(begin
+    (define (,name self other)
+      (if (py-isinstance? self py-list-class)
+        (if (py-isinstance? other py-list-class)
+          (let ((c1 (object-scheme-value-fast-get self))
+                (c2 (object-scheme-value-fast-get other)))
+            (if (,dynamic-vector-comparator c1 c2)
+              py-True
+              py-False))
+          py-NotImplemented)
+        (py-throw-not-a-type-object ,(symbol->string py-name) self)))
+
+    (define ,py-name
+      (procedure->py-function
+        ,name
+        (make-posonly-signature #(self other))))))
+
+(define-list-binary-comparator list-eq list.__eq__ dynamic-vector-py-eq?)
+
+(define-list-binary-comparator list-ne list.__ne__ dynamic-vector-py-ne?)
+
+(define-list-binary-comparator list-lt list.__lt__ dynamic-vector-py-lt?)
+
+(define-list-binary-comparator list-le list.__le__ dynamic-vector-py-le?)
+
+(define-list-binary-comparator list-gt list.__gt__ dynamic-vector-py-gt?)
+
+(define-list-binary-comparator list-ge list.__ge__ dynamic-vector-py-ge?)
 
 ;; tuple class
 
@@ -3042,6 +3117,12 @@
       py-list-hclass-of-instances
         (& "__iter__") list.__iter__
         (& "__contains__") list.__contains__
+        (& "__eq__") list.__eq__
+        (& "__ne__") list.__ne__
+        (& "__lt__") list.__lt__
+        (& "__le__") list.__le__
+        (& "__gt__") list.__gt__
+        (& "__ge__") list.__ge__
         (& "__repr__") list.__repr__
         (& "__len__") list.__len__
         (& "__add__") list.__add__
