@@ -2421,18 +2421,18 @@
 
 (define (list-iterator-next self)
   (if (eq? (py-type self) py-list-iterator-class)
-    (let* ((index (list-iterator-index-fast-get self))
-           (lst (list-iterator-list-fast-get self))
-           (vec (object-scheme-value-fast-get lst)))
-      (if (and index (< index (vector-length vec)))
-        (let ((item (vector-ref vec index)))
-          ;; if item is #f, it means we are in the list free space
-          (if item
-            (begin
+    (let ((index (list-iterator-index-fast-get self)))
+      (if index
+        (let* ((lst (list-iterator-list-fast-get self))
+               (len-vec-pair (object-scheme-value-fast-get lst))
+               (len (car len-vec-pair))
+               (vec (cdr len-vec-pair)))
+          (if (< index len)
+            (let ((item (vector-ref vec index)))
               (list-iterator-index-fast-set! self (+ index 1))
               item)
             (stop-iterator self)))
-        (stop-iterator self)))
+          (stop-iterator self)))
     (py-throw py-builtin-TypeError)))
 
 (define py-list-iterator-next
@@ -2497,7 +2497,58 @@
       (& "__iter__") py-tuple-iterator-iter
       (& "__next__") py-tuple-iterator-next))
 
-;; builtins __iter__ methods
+;; list class
+
+(define list-growth-factor 1.2)
+(define min-list-inner-length 5)
+(define list-empty-cell (cons 'empty-cell '()))
+
+(define (list->list-container elements)
+  (let* ((len (length elements))
+        (vec-len
+          (max
+            min-list-inner-length
+            (inexact->exact (round (* len list-growth-factor)))))
+        (vec (make-vector vec-len list-empty-cell)))
+    (let loop ((i 0) (elements elements))
+      (if (null? elements)
+        (cons len vec)
+        (begin
+          (vector-set! vec i (car elements))
+          (loop (+ i 1) (cdr elements)))))))
+
+(define (concat-list-containers container1 container2)
+  (let* ((len1 (car container1))
+        (v1 (cdr container1))
+        (len2 (car container2))
+        (v2 (cdr container2))
+        (total-len (+ len1 len2))
+        (vec-len
+          (max
+            min-list-inner-length
+            (inexact->exact (round (* total-len list-growth-factor)))))
+        (vec (make-vector vec-len list-empty-cell)))
+    (let loop1 ((target-pos 0) (source-pos 0))
+      (if (< source-pos len1)
+        (begin
+          (vector-set! vec target-pos (vector-ref v1 source-pos))
+          (loop1 (+ target-pos 1) (+ source-pos 1)))))
+    (let loop2 ((target-pos len1) (source-pos 0))
+      (if (< source-pos len2)
+        (begin
+          (vector-set! vec target-pos (vector-ref v2 source-pos))
+          (loop2 (+ target-pos 1) (+ source-pos 1)))))
+    (cons total-len vec)))
+
+(define (py-make-list . elements)
+  (let ((len (length elements))
+        (len-vec-pair (list->list-container elements)))
+  (py-list-from-scheme len-vec-pair)))
+
+(define (py-list-from-scheme len-vec-pair)
+  (let ((lst (py-obj-alloc py-list-class py-list-hclass-of-instances)))
+    (object-scheme-value-fast-set! lst len-vec-pair)
+    lst))
 
 (define (list-iter self)
   (if (py-isinstance? self py-list-class)
@@ -2518,10 +2569,11 @@
 ;; otherwise this will crash once list is an actual dynamic array
 (define (list-contains self item)
   (if (py-isinstance? self py-list-class)
-    (let* ((vec (object-scheme-value-fast-get self))
-           (vec-len (vector-length vec)))
+    (let* ((len-vec-pair (object-scheme-value-fast-get self))
+           (len (car len-vec-pair))
+           (vec (cdr len-vec-pair)))
       (let loop ((i 0))
-        (if (< i vec-len)
+        (if (< i len)
           (if (py-test (py-eq item (vector-ref vec i) #f))
             py-True
             (loop (+ i 1)))
@@ -2532,6 +2584,42 @@
   (procedure->py-function
     list-contains
     (make-posonly-signature #(self item))))
+
+;; TODO: print cyclic structures
+(define (list-repr self)
+  (if (py-isinstance? self py-list-class)
+    (let* ((len-vec-pair (object-scheme-value-fast-get self))
+           (len (car len-vec-pair))
+           (vec (cdr len-vec-pair))
+           (content-strs (vector-map py-repr (subvector vec 0 len)))
+           (content-strings (vector-map object-scheme-value-fast-get content-strs)))
+      (py-str-from-scheme
+        (string-append
+          "["
+          (string-join-vector ", " content-strings)
+          "]")))
+    (py-throw-not-a-type-object "list.__repr__" self)))
+
+(define list.__repr__
+  (procedure->py-function
+    list-repr
+    (make-posonly-signature #(self))))
+
+(define (list-add self other)
+  (if (py-isinstance? self py-list-class)
+    (if (py-isinstance? other py-list-class)
+      (let ((c1 (object-scheme-value-fast-get self))
+            (c2 (object-scheme-value-fast-get other)))
+        (py-list-from-scheme (concat-list-containers c1 c2)))
+      py-NotImplemented)
+    (py-throw-not-a-type-object "list.__add__" self)))
+
+(define list.__add__
+  (procedure->py-function
+    list-add
+    (make-posonly-signature #(self other))))
+
+;; tuple class
 
 (define (tuple-iter self)
   (if (py-isinstance? self py-tuple-class)
@@ -2903,7 +2991,9 @@
       (list)
       py-list-hclass-of-instances
         (& "__iter__") list.__iter__
-        (& "__contains__") list.__contains__))
+        (& "__contains__") list.__contains__
+        (& "__repr__") list.__repr__
+        (& "__add__") list.__add__))
 
   (set! py-dict-class
     (make-builtin-class
@@ -3102,17 +3192,8 @@
    (make-HClass '#() (list->vector (map car alist)) '())
    (list->vector (map cdr alist))))
 
-(define (py-make-list . elements)
-  (py-list-from-scheme (list->vector elements)))
-
 (define (py-make-set elements)
   (py-set-from-scheme (list->vector elements)))
-
-;; TODO: this will no longer be the desired behaviour once lists have dynamic length
-(define (py-list-from-scheme elements)
-  (let ((list (py-obj-alloc py-list-class py-list-hclass-of-instances)))
-    (object-scheme-value-fast-set! list elements)
-    list))
 
 (define (py-make-tuple . elements)
   (py-tuple-from-scheme (list->vector elements)))
