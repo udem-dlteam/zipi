@@ -2521,12 +2521,17 @@
 (define min-list-inner-length 5)
 (define list-empty-cell (cons 'empty-cell '()))
 
+(define (get-inner-len len)
+  (+
+    min-list-inner-length
+    (inexact->exact (round (* len list-growth-factor)))))
+
+(define (get-shrink-threshold-len inner-len)
+  (- (round (/ inner-len list-shrink-threshold)) min-list-inner-length))
+
 (define (list->dynamic-vector elements)
   (let* ((len (length elements))
-        (vec-len
-          (+
-            min-list-inner-length
-            (inexact->exact (round (* len list-growth-factor)))))
+        (vec-len (get-inner-len len))
         (vec (make-vector vec-len list-empty-cell)))
     (let loop ((i 0) (elements elements))
       (if (null? elements)
@@ -2541,10 +2546,7 @@
         (len2 (car container2))
         (v2 (cdr container2))
         (total-len (+ len1 len2))
-        (vec-len
-          (+
-            min-list-inner-length
-            (inexact->exact (round (* total-len list-growth-factor)))))
+        (vec-len (get-inner-len total-len))
         (vec (make-vector vec-len list-empty-cell)))
     (let loop1 ((target-pos 0) (source-pos 0))
       (if (< source-pos len1)
@@ -2641,10 +2643,7 @@
   (let* ((len (car c))
          (vec (cdr c))
          (total-len (* len n))
-         (target-inner-len
-           (+
-             min-list-inner-length
-             (inexact->exact (round (* total-len list-growth-factor)))))
+         (target-inner-len (get-inner-len total-len))
          (out (make-vector target-inner-len list-empty-cell)))
     (let loop ((target-pos 0))
       (if (< target-pos total-len)
@@ -2807,19 +2806,13 @@
 (define (dynamic-vector-shrink! dvec)
   (let* ((len (car dvec))
         (vec (cdr dvec))
-        (new-inner-len
-          (+
-            min-list-inner-length
-            (inexact->exact (round (* len list-growth-factor))))))
+        (new-inner-len (get-inner-len len)))
     (set-cdr! dvec (subvector vec 0 new-inner-len))))
 
 (define (dynamic-vector-grow! dvec)
   (let* ((len (car dvec))
         (vec (cdr dvec))
-        (new-inner-len
-          (+
-            min-list-inner-length
-            (inexact->exact (round (* len list-growth-factor))))))
+        (new-inner-len (get-inner-len len)))
     (set-cdr!
       dvec
       (vector-append vec (make-vector (- new-inner-len len) list-empty-cell)))))
@@ -2835,8 +2828,23 @@
     (vector-set! vec (- len 1) list-empty-cell)
     (set-car! dvec (- len 1))
     (if (<
-          (+ (* len list-shrink-threshold) min-list-inner-length)
-          (vector-length vec))
+          len
+          (get-shrink-threshold-len (vector-length vec)))
+      (dynamic-vector-shrink! dvec))))
+
+(define (dynamic-vector-shift-right! dvec index)
+  (let ((len (car dvec))
+        (vec (cdr dvec)))
+    (let loop ((i index))
+      (if (< i len)
+        (begin
+          (vector-set! vec (- i 1) (vector-ref vec i))
+          (loop (+ i 1)))))
+    (vector-set! vec (- len 1) list-empty-cell)
+    (set-car! dvec (- len 1))
+    (if (<
+          len
+          (get-shrink-threshold-len (vector-length vec)))
       (dynamic-vector-shrink! dvec))))
 
 (define (dynamic-vector-pop-last! dvec)
@@ -2847,8 +2855,8 @@
     (vector-set! vec last-index list-empty-cell)
     (set-car! dvec last-index)
     (if (<
-          (+ (* len list-shrink-threshold) min-list-inner-length)
-          (vector-length vec))
+          len
+          (get-shrink-threshold-len (vector-length vec)))
       (dynamic-vector-shrink! dvec))
     last))
 
