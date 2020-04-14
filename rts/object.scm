@@ -2519,6 +2519,16 @@
 (define (index-in-length-range index len)
   (and (< index len) (>= index (- len))))
 
+(define (py-index-in-subvector item vec start stop)
+  (let loop ((i start))
+    (cond
+      ((>= i stop)
+        #f)
+      ((py-test (py-eq (vector-ref vec i) item #f))
+        i)
+      (else
+        (loop (+ i 1))))))
+
 (define list-growth-factor 1.125)
 (define list-shrink-threshold 1.5)
 (define min-list-inner-length 5)
@@ -2981,28 +2991,42 @@
     list-count
     (make-posonly-signature #(self item))))
 
-(define (list-index self item)
+(define (list-index self item start stop)
   (if (py-isinstance? self py-list-class)
     (let* ((dvec (object-scheme-value-fast-get self))
            (len (car dvec))
-           (vec (cdr dvec)))
-      (let loop ((i 0))
-        (cond
-          ((= i len)
-            (py-throw
-              (py-call1
-                py-builtin-TypeError
-                (py-str-from-scheme "list.index(x): x not in list"))))
-          ((py-test (py-eq (vector-ref vec i) item #f))
-            (py-int-from-scheme i))
-          (else
-            (loop (+ i 1))))))
+           (vec (cdr dvec))
+           (start-index
+            (if (eq? start py-absent)
+              0
+              (if (py-isinstance? start py-int-class)
+                (let ((val (object-scheme-value-fast-get start)))
+                  (if (< val 0)
+                    (modulo (max (- len) val) len)
+                    (min len val)))
+                    (py-throw-wrong-index-type "list" "integers" index))))
+           (stop-index
+             (if (eq? stop py-absent)
+               len
+               (if (py-isinstance? stop py-int-class)
+                 (let ((val (object-scheme-value-fast-get stop)))
+                   (if (< val 0)
+                     (modulo (max (- len) val) len)
+                     (min len val)))
+                     (py-throw-wrong-index-type "list" "integers" index)))))
+      (let ((res (py-index-in-subvector item vec start-index stop-index)))
+        (if res
+          (py-int-from-scheme res)
+          (py-throw
+            (py-call1
+              py-builtin-ValueError
+              (py-str-from-scheme "list.index(x): x not in list"))))))
     (py-throw-not-a-type-object "list.index" self)))
 
 (define list.index
   (procedure->py-function
     list-index
-    (make-posonly-signature #(self item))))
+    (make-posonly-defaults-signature #(self item start stop) (vector py-absent py-absent))))
 
 (define (list-insert self index value)
     (if (py-isinstance? self py-list-class)
@@ -3016,7 +3040,7 @@
                     (min len i))))
             (dynamic-vector-shift-right! dvec insertion-index)
             (vector-set! (cdr dvec) insertion-index value)))
-          (py-throw-index-out-of-range "list"))
+          (py-throw-wrong-index-type "list" "integers" index))
       (py-throw-not-a-type-object "list.index" self)))
 
 (define list.insert
@@ -3245,27 +3269,43 @@
     tuple-count
     (make-posonly-signature #(self item))))
 
-(define (tuple-index self item)
+(define (tuple-index self item start stop)
   (if (py-isinstance? self py-tuple-class)
     (let* ((vec (object-scheme-value-fast-get self))
-           (vec-len (vector-length vec)))
-      (let loop ((i 0))
-        (cond
-          ((= i vec-len)
-            (py-throw
-              (py-call1
-                py-builtin-TypeError
-                (py-str-from-scheme "tuple.index(x): x not in tuple"))))
-          ((py-test (py-eq (vector-ref vec i) item #f))
-            (py-int-from-scheme i))
-          (else
-            (loop (+ i 1))))))
-    (py-throw-not-a-type-object "tuple.__index__" self)))
+           (len (vector-length vec))
+           (start-index
+            (if (eq? start py-absent)
+              0
+              (if (py-isinstance? start py-int-class)
+                (let ((val (object-scheme-value-fast-get start)))
+                  (if (< val 0)
+                    (modulo (max (- len) val) len)
+                    (min len val)))
+                    (py-throw-wrong-index-type "tuple" "integers" index))))
+           (stop-index
+             (if (eq? stop py-absent)
+               len
+               (if (py-isinstance? stop py-int-class)
+                 (let ((val (object-scheme-value-fast-get stop)))
+                   (if (< val 0)
+                     (modulo (max (- len) val) len)
+                     (min len val)))
+                     (py-throw-wrong-index-type "tuple" "integers" index)))))
+      (let ((res (py-index-in-subvector item vec start-index stop-index)))
+        (if res
+          (py-int-from-scheme res)
+          (py-throw
+            (py-call1
+              py-builtin-ValueError
+              (py-str-from-scheme "list.index(x): x not in list"))))))
+    (py-throw-not-a-type-object "list.index" self)))
 
 (define tuple.index
   (procedure->py-function
     tuple-index
-    (make-posonly-signature #(self item))))
+    (make-posonly-defaults-signature
+      #(self item start stop)
+      (vector py-absent py-absent))))
 
 (define (bootstrap-type-hierarchy-phase2)
 

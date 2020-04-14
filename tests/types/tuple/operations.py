@@ -29,3 +29,12 @@ print(t2.count(10))
 
 print(t2.index(1))
 print(t2.index(5))
+
+t3 = (1, 2, 3, 1, 2, 3, 1, 2, 3)
+
+print(
+    t3.index(1),
+    t3.index(1, 4),
+    t3.index(2, 4, 7),
+    t3.index(2, 4, 1000),
+    t3.index(2, -1000, 1000))

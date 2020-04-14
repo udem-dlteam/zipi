@@ -53,3 +53,12 @@ l3.insert(100, 44)
 l3.insert(-100, 45)
 
 print(l3)
+
+l4 = [1, 2, 3, 1, 2, 3, 1, 2, 3]
+
+print(
+    l4.index(1),
+    l4.index(1, 4),
+    l4.index(2, 4, 7),
+    l4.index(2, 4, 1000),
+    l4.index(2, -1000, 1000))
