@@ -2516,6 +2516,9 @@
 
 ;; list class
 
+(define (index-in-length-range index len)
+  (and (< index len) (>= index (- len))))
+
 (define list-growth-factor 1.125)
 (define list-shrink-threshold 1.5)
 (define min-list-inner-length 5)
@@ -2832,20 +2835,21 @@
           (get-shrink-threshold-len (vector-length vec)))
       (dynamic-vector-shrink! dvec))))
 
+;; NOTE: shift-right does not insert 'list-empty-cell' at index
+;;       it is assumed shift is done with intent to write at index
 (define (dynamic-vector-shift-right! dvec index)
   (let ((len (car dvec))
         (vec (cdr dvec)))
-    (let loop ((i index))
-      (if (< i len)
+    (if (= len (vector-length vec))
+      (begin
+        (dynamic-vector-grow! dvec)
+        (set! vec (cdr dvec))))
+    (let loop ((i len))
+      (if (> i index)
         (begin
-          (vector-set! vec (- i 1) (vector-ref vec i))
-          (loop (+ i 1)))))
-    (vector-set! vec (- len 1) list-empty-cell)
-    (set-car! dvec (- len 1))
-    (if (<
-          len
-          (get-shrink-threshold-len (vector-length vec)))
-      (dynamic-vector-shrink! dvec))))
+          (vector-set! vec i (vector-ref vec (- i 1)))
+          (loop (- i 1)))))
+    (set-car! dvec (+ len 1))))
 
 (define (dynamic-vector-pop-last! dvec)
   (let* ((len (car dvec))
@@ -2901,7 +2905,7 @@
             (py-throw-action-out-of-range "list" "pop"))))
       ((py-isinstance? index py-slice-class)
         (error "list-delitem" "slice not implemented" #f))
-      (else (py-throw-wrong-index-type "list" "integers or slices" index)))
+      (else (py-throw-wrong-index-type "list" "integers" index)))
     (py-throw-not-a-type-object "list.pop" self)))
 
 (define list.pop
@@ -2915,10 +2919,11 @@
           (len (car dvec))
           (vec (cdr dvec)))
       (if (= len (vector-length vec))
-        (dynamic-vector-grow! dvec))
-      (let ((vec (cdr dvec)))
-        (vector-set! vec len value)
-        (set-car! dvec (+ len 1))))
+        (begin
+          (dynamic-vector-grow! dvec)
+          (set! vec (cdr dvec))))
+      (vector-set! vec len value)
+      (set-car! dvec (+ len 1)))
     (py-throw-not-a-type-object "list.append" self)))
 
 (define list.append
@@ -2997,6 +3002,26 @@
   (procedure->py-function
     list-index
     (make-posonly-signature #(self item))))
+
+(define (list-insert self index value)
+    (if (py-isinstance? self py-list-class)
+      (if (py-isinstance? index py-int-class)
+        (let* ((dvec (object-scheme-value-fast-get self))
+              (len (car dvec))
+              (i (object-scheme-value-fast-get index)))
+          (let ((insertion-index
+                  (if (< i 0)
+                    (modulo (max (- len) i) len)
+                    (min len i))))
+            (dynamic-vector-shift-right! dvec insertion-index)
+            (vector-set! (cdr dvec) insertion-index value)))
+          (py-throw-index-out-of-range "list"))
+      (py-throw-not-a-type-object "list.index" self)))
+
+(define list.insert
+  (procedure->py-function
+    list-insert
+    (make-posonly-signature #(self index value))))
 
 ;; tuple class
 
@@ -3234,7 +3259,7 @@
             (py-int-from-scheme i))
           (else
             (loop (+ i 1))))))
-    (py-throw-not-a-type-object "tuple.__len__" self)))
+    (py-throw-not-a-type-object "tuple.__index__" self)))
 
 (define tuple.index
   (procedure->py-function
@@ -3392,7 +3417,8 @@
         (& "clear") list.clear
         (& "copy") list.copy
         (& "count") list.count
-        (& "index") list.index))
+        (& "index") list.index
+        (& "insert") list.insert))
 
   (set! py-dict-class
     (make-builtin-class
@@ -3406,9 +3432,7 @@
       (& "set")
       (& "builtins")
       (list)
-      py-set-hclass-of-instances))
-
-)
+      py-set-hclass-of-instances)))
 
 (bootstrap-type-hierarchy-phase2)
 (bootstrap-functions)

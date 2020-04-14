@@ -44,3 +44,12 @@ l2.append(2)
 print(l2.count(1))
 print(l2.count(2))
 print(l2.count(10))
+
+l3 = [1, 2, 3]
+
+l3.insert(1, 42)
+l3.insert(-1, 43)
+l3.insert(100, 44)
+l3.insert(-100, 45)
+
+print(l3)
