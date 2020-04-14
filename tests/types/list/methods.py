@@ -21,7 +21,7 @@ l.append(42)
 print(len(l))
 print(l)
 
-l.pop(1)
+l.pop(-2)
 print(len(l))
 print(l)
 
