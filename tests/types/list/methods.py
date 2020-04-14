@@ -29,3 +29,18 @@ l.clear()
 
 print(l)
 print(l2)
+
+l2 = [1, 1, 2, 3, 4, 5, 1]
+print(l2.count(1))
+print(l2.count(2))
+print(l2.count(10))
+
+print(l2.index(1))
+print(l2.index(5))
+
+l2.pop()
+l2.append(2)
+
+print(l2.count(1))
+print(l2.count(2))
+print(l2.count(10))

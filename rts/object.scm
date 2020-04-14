@@ -2908,8 +2908,9 @@
           (vec (cdr dvec)))
       (if (= len (vector-length vec))
         (dynamic-vector-grow! dvec))
-      (vector-set! vec len value)
-      (set-car! dvec (+ len 1)))
+      (let ((vec (cdr dvec)))
+        (vector-set! vec len value)
+        (set-car! dvec (+ len 1))))
     (py-throw-not-a-type-object "list.append" self)))
 
 (define list.append
@@ -2944,6 +2945,50 @@
   (procedure->py-function
     list-copy-procedure
     (make-posonly-signature #(self))))
+
+(define (list-count self item)
+  (if (py-isinstance? self py-list-class)
+    (let* ((dvec (object-scheme-value-fast-get self))
+           (len (car dvec))
+           (vec (cdr dvec)))
+      (let loop ((i 0) (count 0))
+        (cond
+          ((= i len)
+            (py-int-from-scheme count))
+
+          ((py-test (py-eq (vector-ref vec i) item #f))
+            (loop (+ i 1) (+ count 1)))
+          (else
+            (loop (+ i 1) count)))))
+    (py-throw-not-a-type-object "list.count" self)))
+
+(define list.count
+  (procedure->py-function
+    list-count
+    (make-posonly-signature #(self item))))
+
+(define (list-index self item)
+  (if (py-isinstance? self py-list-class)
+    (let* ((dvec (object-scheme-value-fast-get self))
+           (len (car dvec))
+           (vec (cdr dvec)))
+      (let loop ((i 0))
+        (cond
+          ((= i len)
+            (py-throw
+              (py-call1
+                py-builtin-TypeError
+                (py-str-from-scheme "list.index(x): x not in list"))))
+          ((py-test (py-eq (vector-ref vec i) item #f))
+            (py-int-from-scheme i))
+          (else
+            (loop (+ i 1))))))
+    (py-throw-not-a-type-object "list.index" self)))
+
+(define list.index
+  (procedure->py-function
+    list-index
+    (make-posonly-signature #(self item))))
 
 ;; tuple class
 
@@ -3155,7 +3200,6 @@
         (cond
           ((= i vec-len)
             (py-int-from-scheme count))
-
           ((py-test (py-eq (vector-ref vec i) item #f))
             (loop (+ i 1) (+ count 1)))
           (else
@@ -3338,7 +3382,9 @@
         (& "pop") list.pop
         (& "append") list.append
         (& "clear") list.clear
-        (& "copy") list.copy))
+        (& "copy") list.copy
+        (& "count") list.count
+        (& "index") list.index))
 
   (set! py-dict-class
     (make-builtin-class
