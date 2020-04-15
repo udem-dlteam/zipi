@@ -62,3 +62,15 @@ print(
     l4.index(2, 4, 7),
     l4.index(2, 4, 1000),
     l4.index(2, -1000, 1000))
+
+l = [1, 2, 3]
+l.extend([4, 5, 6])
+print(l)
+print(l.pop())
+print(l)
+l.extend((8, 9, 10))
+print(l)
+print(l.pop())
+print(len(l))
+l.extend([])
+print(l)

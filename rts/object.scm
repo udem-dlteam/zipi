@@ -2830,6 +2830,14 @@
       dvec
       (vector-append vec (make-vector (- new-inner-len len) list-empty-cell)))))
 
+(define (dynamic-vector-grow-by! dvec amount)
+  (let* ((len (car dvec))
+        (vec (cdr dvec))
+        (new-inner-len (get-inner-len (+ len amount))))
+    (set-cdr!
+      dvec
+      (vector-append vec (make-vector (- new-inner-len len) list-empty-cell)))))
+
 (define (dynamic-vector-shift-left! dvec index)
   (let ((len (car dvec))
         (vec (cdr dvec)))
@@ -2979,7 +2987,6 @@
         (cond
           ((= i len)
             (py-int-from-scheme count))
-
           ((py-test (py-eq (vector-ref vec i) item #f))
             (loop (+ i 1) (+ count 1)))
           (else
@@ -3047,6 +3054,49 @@
   (procedure->py-function
     list-insert
     (make-posonly-signature #(self index value))))
+
+(define (extend-dynamic-vector-with-vector-head dvec source-vec stop)
+  (let* ((len (car dvec))
+        (vec (cdr dvec))
+        (inner-len (vector-length vec)))
+    (if (>= stop (- inner-len len))
+      (begin
+        (dynamic-vector-grow-by! dvec stop)
+        (set! vec (cdr dvec))))
+    (let loop ((i len) (j 0))
+      (if (< j stop)
+        (begin
+          (vector-set! vec i (vector-ref source-vec j))
+          (loop (+ i 1) (+ j 1)))))
+    (set-car! dvec (+ len stop))))
+
+(define (list-extend self iterable)
+  (if (py-isinstance? self py-list-class)
+    (let ((iterable-type (py-type iterable)))
+      (cond
+        ((eq? iterable-type py-tuple-class)
+          (let ((vec (object-scheme-value-fast-get iterable)))
+            (extend-dynamic-vector-with-vector-head
+              (object-scheme-value-fast-get self)
+              vec
+              (vector-length vec))))
+        ((eq? iterable-type py-list-class)
+          (let* ((dvec (object-scheme-value-fast-get iterable))
+                 (len (car dvec))
+                 (vec (cdr dvec)))
+            (extend-dynamic-vector-with-vector-head
+              (object-scheme-value-fast-get self)
+              vec
+              len)))
+        (else
+          (error "list-extend" "only support list and list" #f)))
+      py-None)
+    (py-throw-not-a-type-object "list.index" self)))
+
+(define list.extend
+  (procedure->py-function
+    list-extend
+    (make-posonly-signature #(self iterable))))
 
 ;; tuple class
 
@@ -3459,7 +3509,8 @@
         (& "copy") list.copy
         (& "count") list.count
         (& "index") list.index
-        (& "insert") list.insert))
+        (& "insert") list.insert
+        (& "extend") list.extend))
 
   (set! py-dict-class
     (make-builtin-class
