@@ -17,3 +17,14 @@ print(len([]))
 print(len([] * 9))
 print(len(l + l + 8 * l))
 print(len(l * 0))
+
+l2 = [1, 2, 3]
+l3 = l2
+l2 += [1, 2, 3]
+print(l2, l3)
+
+l2 += (1, 2, 3)
+print(l2, l3)
+
+l2 += range(5)
+print(l2, l3)

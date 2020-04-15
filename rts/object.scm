@@ -3121,31 +3121,35 @@
           (loop (+ i 1) (+ j 1)))))
     (set-car! dvec (+ len stop))))
 
+(define (dynamic-vector-extend-with-iterable dvec iterable)
+  (let ((iterable-type (py-type iterable)))
+    (cond
+      ((eq? iterable-type py-tuple-class)
+        (let ((vec (object-scheme-value-fast-get iterable)))
+          (extend-dynamic-vector-with-vector-head
+            dvec
+            vec
+            (vector-length vec))))
+      ((eq? iterable-type py-list-class)
+        (let* ((other-dvec (object-scheme-value-fast-get iterable))
+               (len (car other-dvec))
+               (vec (cdr other-dvec)))
+          (extend-dynamic-vector-with-vector-head
+            dvec
+            vec
+            len)))
+      (else
+        (let* ((iterator (py-iter iterable))
+               (content (list->vector (iterator->list iterator))))
+          (extend-dynamic-vector-with-vector-head
+            dvec
+            content
+            (vector-length content)))))))
+
 (define (list-extend self iterable)
   (if (py-isinstance? self py-list-class)
-    (let ((iterable-type (py-type iterable)))
-      (cond
-        ((eq? iterable-type py-tuple-class)
-          (let ((vec (object-scheme-value-fast-get iterable)))
-            (extend-dynamic-vector-with-vector-head
-              (object-scheme-value-fast-get self)
-              vec
-              (vector-length vec))))
-        ((eq? iterable-type py-list-class)
-          (let* ((dvec (object-scheme-value-fast-get iterable))
-                 (len (car dvec))
-                 (vec (cdr dvec)))
-            (extend-dynamic-vector-with-vector-head
-              (object-scheme-value-fast-get self)
-              vec
-              len)))
-        (else
-          (let* ((iterator (py-iter iterable))
-                 (content (list->vector (iterator->list iterator))))
-            (extend-dynamic-vector-with-vector-head
-              (object-scheme-value-fast-get self)
-              content
-              (vector-length content))))))
+    (let ((dvec (object-scheme-value-fast-get self)))
+      (dynamic-vector-extend-with-iterable dvec iterable))
     (py-throw-not-a-type-object "list.extend" self))
   py-None)
 
@@ -3153,6 +3157,18 @@
   (procedure->py-function
     list-extend
     (make-posonly-signature #(self iterable))))
+
+(define (list-iadd self other)
+  (if (py-isinstance? self py-list-class)
+    (let ((dvec (object-scheme-value-fast-get self)))
+      (dynamic-vector-extend-with-iterable dvec other))
+    (py-throw-not-a-type-object "list.__iadd__" self))
+  self)
+
+(define list.__iadd__
+  (procedure->py-function
+    list-iadd
+    (make-posonly-signature #(self other))))
 
 (define (list-remove self item)
   (if (py-isinstance? self py-list-class)
@@ -3578,6 +3594,7 @@
         (& "__repr__") list.__repr__
         (& "__len__") list.__len__
         (& "__add__") list.__add__
+        (& "__iadd__") list.__iadd__
         (& "__mul__") list.__mul__
         (& "__rmul__") list.__rmul__
         (& "pop") list.pop
