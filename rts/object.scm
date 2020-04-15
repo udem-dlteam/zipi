@@ -2855,7 +2855,8 @@
       ((py-isinstance? item py-slice-class)
         (error "list-setitem" "slice not implemented" #f))
       (else (py-throw-wrong-index-type "list" "integers or slices" item)))
-    (py-throw-not-a-type-object "list.__setitem__" self)))
+    (py-throw-not-a-type-object "list.__setitem__" self))
+  py-None)
 
 (define list.__setitem__
   (procedure->py-function
@@ -2941,7 +2942,8 @@
       ((py-isinstance? item py-slice-class)
         (error "list-delitem" "slice not implemented" #f))
       (else (py-throw-wrong-index-type "list" "integers or slices" item)))
-    (py-throw-not-a-type-object "list.__delitem__" self)))
+    (py-throw-not-a-type-object "list.__delitem__" self))
+  py-None)
 
 (define list.__delitem__
   (procedure->py-function
@@ -2989,7 +2991,8 @@
           (set! vec (cdr dvec))))
       (vector-set! vec len value)
       (set-car! dvec (+ len 1)))
-    (py-throw-not-a-type-object "list.append" self)))
+    (py-throw-not-a-type-object "list.append" self))
+  py-None)
 
 (define list.append
   (procedure->py-function
@@ -3001,7 +3004,8 @@
     (object-scheme-value-fast-set!
       self
       (cons 0 (make-vector min-list-inner-length list-empty-cell)))
-    (py-throw-not-a-type-object "list.clear" self)))
+    (py-throw-not-a-type-object "list.clear" self))
+  py-None)
 
 (define list.clear
   (procedure->py-function
@@ -3082,19 +3086,20 @@
     (make-posonly-defaults-signature #(self item start stop) (vector py-absent py-absent))))
 
 (define (list-insert self index value)
-    (if (py-isinstance? self py-list-class)
-      (if (py-isinstance? index py-int-class)
-        (let* ((dvec (object-scheme-value-fast-get self))
-              (len (car dvec))
-              (i (object-scheme-value-fast-get index)))
-          (let ((insertion-index
-                  (if (< i 0)
-                    (modulo (max (- len) i) len)
-                    (min len i))))
-            (dynamic-vector-shift-right! dvec insertion-index)
-            (vector-set! (cdr dvec) insertion-index value)))
-          (py-throw-wrong-index-type "list" "integers" index))
-      (py-throw-not-a-type-object "list.insert" self)))
+  (if (py-isinstance? self py-list-class)
+    (if (py-isinstance? index py-int-class)
+      (let* ((dvec (object-scheme-value-fast-get self))
+            (len (car dvec))
+            (i (object-scheme-value-fast-get index)))
+        (let ((insertion-index
+                (if (< i 0)
+                  (modulo (max (- len) i) len)
+                  (min len i))))
+          (dynamic-vector-shift-right! dvec insertion-index)
+          (vector-set! (cdr dvec) insertion-index value)))
+        (py-throw-wrong-index-type "list" "integers" index))
+    (py-throw-not-a-type-object "list.insert" self))
+  py-None)
 
 (define list.insert
   (procedure->py-function
@@ -3140,9 +3145,9 @@
             (extend-dynamic-vector-with-vector-head
               (object-scheme-value-fast-get self)
               content
-              (vector-length content)))))
-      py-None)
-    (py-throw-not-a-type-object "list.extend" self)))
+              (vector-length content))))))
+    (py-throw-not-a-type-object "list.extend" self))
+  py-None)
 
 (define list.extend
   (procedure->py-function
@@ -3161,7 +3166,8 @@
             (py-call1
               py-builtin-ValueError
               (py-str-from-scheme "list.remove(x): x not in list"))))))
-    (py-throw-not-a-type-object "list.remove" self)))
+    (py-throw-not-a-type-object "list.remove" self))
+  py-None)
 
 (define list.remove
   (procedure->py-function
