@@ -80,7 +80,8 @@
   (make-HClass
     '#() ;; set later when classes exist
     (vector
-      (& "**class**"))
+      (& "**class**")
+      (& "**value**"))
     '()))
 
 (define py-method-hclass-of-instances
@@ -2835,6 +2836,54 @@
 
 (define-list-binary-comparator list-ge list.__ge__ dynamic-vector-py-ge?)
 
+(define (dynamic-vector-slice vec start stop step)
+  (let* ((len (max 0 (ceiling (/ (- stop start) step))))
+        (inner-len (get-inner-len len))
+        (out (make-vector inner-len list-empty-cell)))
+    (let loop ((source start) (target 0))
+      (if (< target len)
+        (begin
+          (vector-set! out target (vector-ref vec source))
+          (loop (+ source step) (+ target 1)))))
+    (cons len out)))
+
+(define (parse-py-slice-for-vector len slice)
+  (let* ((indices (object-scheme-value-fast-get slice))
+         (py-start (vector-ref indices 0))
+         (py-stop (vector-ref indices 1))
+         (py-step (vector-ref indices 2))
+         (step
+           (cond
+             ((eq? py-step py-None) 1)
+             ((eq? py-step py-int-0)
+              (py-throw (py-call1 py-builtin-ValueError (py-str-from-scheme "slice step cannot be zero"))))
+             ((py-isinstance? py-step py-int-class)
+                (object-scheme-value-fast-get py-step))
+             (else (py-throw-wrong-index-type "slice" "integers or None" py-step))))
+         (start
+           (cond
+             ((eq? py-start py-None) (if (> step 0) 0 (- len 1)))
+             ((py-isinstance? py-start py-int-class)
+                (object-scheme-value-fast-get py-start))
+             (else (py-throw-wrong-index-type "slice" "integers or None" py-start))))
+         (stop
+           (cond
+             ((eq? py-stop py-None) (if (> step 0) len -1))
+             ((py-isinstance? py-stop py-int-class)
+                (object-scheme-value-fast-get py-stop))
+             (else (py-throw-wrong-index-type "slice" "integers or None" py-stop)))))
+    (list start stop step)))
+
+(define (dynamic-vector-py-slice dvec slice)
+  (let* ((len (car dvec))
+        (vec (cdr dvec))
+        (slice-indices (parse-py-slice-for-vector len slice)))
+    (dynamic-vector-slice
+      vec
+      (car slice-indices)
+      (cadr slice-indices)
+      (caddr slice-indices))))
+
 (define (list-getitem self item)
   (if (py-isinstance? self py-list-class)
     (cond
@@ -2847,7 +2896,10 @@
             (vector-ref vec (modulo i len))
             (py-throw-index-out-of-range "list"))))
       ((py-isinstance? item py-slice-class)
-        (error "list-getitem" "slice not implemented" #f))
+        (py-list-from-scheme
+          (dynamic-vector-py-slice
+            (object-scheme-value-fast-get self)
+            item)))
       (else (py-throw-wrong-index-type "list" "integers or slices" item)))
     (py-throw-not-a-type-object "list.__getitem__" self)))
 
@@ -3409,6 +3461,25 @@
     tuple-len
     (make-posonly-signature #(self))))
 
+(define (vector-slice vec start stop step)
+  (let* ((len (max 0 (ceiling (/ (- stop start) step))))
+        (out (make-vector len list-empty-cell)))
+    (let loop ((source start) (target 0))
+      (if (< target len)
+        (begin
+          (vector-set! out target (vector-ref vec source))
+          (loop (+ source step) (+ target 1)))))
+    out))
+
+(define (vector-py-slice vec slice)
+  (let* ((len (vector-length vec))
+        (slice-indices (parse-py-slice-for-vector len slice)))
+    (vector-slice
+      vec
+      (car slice-indices)
+      (cadr slice-indices)
+      (caddr slice-indices))))
+
 (define (tuple-getitem self item)
   (if (py-isinstance? self py-tuple-class)
     (cond
@@ -3420,7 +3491,10 @@
             (vector-ref vec (modulo i len))
             (py-throw-index-out-of-range "tuple"))))
       ((py-isinstance? item py-slice-class)
-        (error "tuple-getitem" "slice not implemented" #f))
+        (py-tuple-from-scheme
+          (vector-py-slice
+            (object-scheme-value-fast-get self)
+            item)))
       (py-throw-wrong-index-type "tuple" "integers or slices" item))
     (py-throw-not-a-type-object "tuple.__getitem__" self)))
 
@@ -3485,6 +3559,14 @@
     (make-posonly-defaults-signature
       #(self item start stop)
       (vector py-absent py-absent))))
+
+;; slices
+
+(define (py-slice-from-scheme indices)
+  (py-obj-alloc-with-value
+    py-slice-class
+    py-slice-hclass-of-instances
+    indices))
 
 (define (bootstrap-type-hierarchy-phase2)
 

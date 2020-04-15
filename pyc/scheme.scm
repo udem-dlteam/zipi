@@ -656,11 +656,18 @@
 	  ,(scheme-cache (PycSubscript-cache this) this))))
 
 (define-walk-method (scheme this::PycSlice conf)
+  (let ((lower (PycSlice-lower this))
+        (upper (PycSlice-upper this))
+        (step (PycSlice-step this)))
    (epairify this
-      `(py-slice ,(scheme (PycSlice-obj this) conf)
-	  ,(scheme (PycSlice-lower this) conf)
-	  ,(scheme (PycSlice-upper this) conf)
-	  ,(scheme (PycSlice-step this) conf))))
+     `(py-getitem
+        ,(scheme (PycSlice-obj this) conf)
+        (py-slice-from-scheme
+          (vector
+        	  ,(if (PycUninit? lower) 'py-None (scheme (PycSlice-lower this) conf))
+        	  ,(if (PycUninit? upper) 'py-None (scheme (PycSlice-upper this) conf))
+        	  ,(if (PycUninit? step) 'py-None (scheme (PycSlice-step this) conf))))
+        #f))))
 
 (define-walk-method (scheme this::PycAssert conf)
    (let ((test (PycAssert-test this))

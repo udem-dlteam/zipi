@@ -116,6 +116,8 @@
 
      py-builtin-StopIteration
 
+     (py-slice-from-scheme::PyObject ::obj)
+
            (py-obj-alloc cls hclass-of-instances)
 	   (py-str-from-scheme::PyObject ::bstring)
 	   (py-str-to-scheme::bstring ::PyObject)
