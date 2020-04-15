@@ -93,3 +93,21 @@ l5.extend(range(10))
 print(l5)
 l5.extend(iter([1, 2, 3, 4]))
 print(l5)
+
+# list
+l = [1, 2, 3]
+t = [1, 2, 3]
+r = range(5)
+
+l_copy = list(l)
+print(l)
+l_copy[0] = 42
+print(l, l_copy)
+
+t_copy = list(t)
+print(l)
+t_copy[0] = 42
+print(t, t_copy)
+
+r_copy = list(r)
+print(r_copy)

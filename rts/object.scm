@@ -2589,6 +2589,46 @@
     (object-scheme-value-fast-set! lst len-vec-pair)
     lst))
 
+(define (vector-head->dynamic-vector vec stop)
+  (let ((inner-len (get-inner-len stop)))
+    (cons
+      stop
+      (vector-append
+        (subvector vec 0 stop)
+        (make-vector (- inner-len stop) list-empty-cell)))))
+
+(define (list-new cls iterable)
+  (if (or (eq? cls py-list-class) (py-issubclass? cls py-list-class))
+    (let ((iterable-type (py-type iterable)))
+      (cond
+        ((eq? iterable-type py-tuple-class)
+          (let ((vec (object-scheme-value-fast-get iterable)))
+            (py-obj-alloc-with-value
+              cls
+              py-list-hclass-of-instances
+              (vector-head->dynamic-vector vec (vector-length vec)))))
+        ((eq? iterable-type py-list-class)
+          (let* ((dvec (object-scheme-value-fast-get iterable))
+                 (len (car dvec))
+                 (vec (cdr dvec)))
+            (py-obj-alloc-with-value
+              cls
+              py-list-hclass-of-instances
+              (vector-head->dynamic-vector vec len))))
+        (else
+          (let* ((iterator (py-iter iterable))
+                 (content (list->vector (iterator->list iterator))))
+            (py-obj-alloc-with-value
+              cls
+              py-list-hclass-of-instances
+              (vector-head->dynamic-vector content (vector-length content)))))))
+    (py-throw-wrong-new-argument "list" cls)))
+
+(define list.__new__
+  (procedure->py-function
+    list-new
+    (make-posonly-defaults-signature #(cls value) (vector py-absent))))
+
 (define (list-iter self)
   (if (py-isinstance? self py-list-class)
     (let ((iterator (py-obj-alloc
@@ -3517,6 +3557,7 @@
       (& "builtins")
       (list)
       py-list-hclass-of-instances
+        (& "__new__") list.__new__
         (& "__iter__") list.__iter__
         (& "__contains__") list.__contains__
         (& "__getitem__") list.__getitem__
