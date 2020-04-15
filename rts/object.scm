@@ -2407,6 +2407,12 @@
                 (raise exc)))
             (py-call1 __next__ obj))))))
 
+(define (iterator->list it)
+  (let ((nxt (iterator-next it #f)))
+    (if nxt
+      (cons nxt (iterator->list it))
+      '())))
+
 ;; list iterator
 
 (define (list-iterator-list-fast-get li)
@@ -3048,7 +3054,7 @@
             (dynamic-vector-shift-right! dvec insertion-index)
             (vector-set! (cdr dvec) insertion-index value)))
           (py-throw-wrong-index-type "list" "integers" index))
-      (py-throw-not-a-type-object "list.index" self)))
+      (py-throw-not-a-type-object "list.insert" self)))
 
 (define list.insert
   (procedure->py-function
@@ -3089,14 +3095,38 @@
               vec
               len)))
         (else
-          (error "list-extend" "only support list and list" #f)))
+          (let* ((iterator (py-iter iterable))
+                 (content (list->vector (iterator->list iterator))))
+            (extend-dynamic-vector-with-vector-head
+              (object-scheme-value-fast-get self)
+              content
+              (vector-length content)))))
       py-None)
-    (py-throw-not-a-type-object "list.index" self)))
+    (py-throw-not-a-type-object "list.extend" self)))
 
 (define list.extend
   (procedure->py-function
     list-extend
     (make-posonly-signature #(self iterable))))
+
+(define (list-remove self item)
+  (if (py-isinstance? self py-list-class)
+    (let* ((dvec (object-scheme-value-fast-get self))
+           (len (car dvec))
+           (vec (cdr dvec)))
+      (let ((index (py-index-in-subvector item vec 0 len)))
+        (if index
+          (dynamic-vector-shift-left! dvec (+ index 1))
+          (py-throw
+            (py-call1
+              py-builtin-ValueError
+              (py-str-from-scheme "list.remove(x): x not in list"))))))
+    (py-throw-not-a-type-object "list.remove" self)))
+
+(define list.remove
+  (procedure->py-function
+    list-remove
+    (make-posonly-signature #(self item))))
 
 ;; tuple class
 
@@ -3509,6 +3539,7 @@
         (& "copy") list.copy
         (& "count") list.count
         (& "index") list.index
+        (& "remove") list.remove
         (& "insert") list.insert
         (& "extend") list.extend))
 
