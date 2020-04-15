@@ -2733,6 +2733,21 @@
     list-mul
     (make-posonly-signature #(self n))))
 
+(define (list-imul self n)
+  (if (py-isinstance? self py-list-class)
+    (if (py-isinstance? n py-int-class)
+      (let ((c (object-scheme-value-fast-get self))
+            (n (object-scheme-value-fast-get n)))
+        (object-scheme-value-fast-set! self (dynamic-vector*n c n))
+        self)
+      py-NotImplemented)
+    (py-throw-not-a-type-object "list.__mul__" self)))
+
+(define list.__imul__
+  (procedure->py-function
+    list-imul
+    (make-posonly-signature #(self n))))
+
 (define (list-len self)
   (if (py-isinstance? self py-list-class)
     (py-int-from-scheme
@@ -3597,6 +3612,7 @@
         (& "__iadd__") list.__iadd__
         (& "__mul__") list.__mul__
         (& "__rmul__") list.__rmul__
+        (& "__imul__") list.__imul__
         (& "pop") list.pop
         (& "append") list.append
         (& "clear") list.clear

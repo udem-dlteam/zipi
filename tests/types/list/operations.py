@@ -28,3 +28,8 @@ print(l2, l3)
 
 l2 += range(5)
 print(l2, l3)
+
+l4 = [1, 2, 3]
+l5 = l4
+l4 *= 2
+print(l4, l5)
