@@ -3205,6 +3205,28 @@
     list-remove
     (make-posonly-signature #(self item))))
 
+(define (dynamic-vector-reverse! dvec)
+  (let ((len (car dvec))
+        (vec (cdr dvec)))
+    (let loop ((left 0) (right (- len 1)))
+      (if (< left right)
+        (begin
+          (let ((tmp (vector-ref vec left)))
+            (vector-set! vec left (vector-ref vec right))
+            (vector-set! vec right tmp))
+          (loop (+ left 1) (- right 1)))))))
+
+(define (list-reverse self)
+    (if (py-isinstance? self py-list-class)
+      (dynamic-vector-reverse! (object-scheme-value-fast-get self))
+      (py-throw-not-a-type-object "list.reverse" self))
+    py-None)
+
+(define list.reverse
+  (procedure->py-function
+    list-reverse
+    (make-posonly-signature #(self))))
+
 ;; tuple class
 
 (define (tuple-iter self)
@@ -3621,7 +3643,8 @@
         (& "index") list.index
         (& "remove") list.remove
         (& "insert") list.insert
-        (& "extend") list.extend))
+        (& "extend") list.extend
+        (& "reverse") list.reverse))
 
   (set! py-dict-class
     (make-builtin-class

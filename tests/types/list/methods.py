@@ -94,6 +94,11 @@ print(l5)
 l5.extend(iter([1, 2, 3, 4]))
 print(l5)
 
+# reverse
+l6 = [1, 2, 3, 4, 5, 6]
+l6.reverse()
+print(l6)
+
 # list
 l = [1, 2, 3]
 t = [1, 2, 3]
