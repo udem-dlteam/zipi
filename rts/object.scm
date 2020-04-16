@@ -2847,7 +2847,8 @@
           (loop (+ source step) (+ target 1)))))
     (cons len out)))
 
-(define (parse-py-slice-for-vector len slice)
+;; NOTE: follows requirements of slice.indices(len)
+(define (py-slice-indices slice len)
   (let* ((indices (object-scheme-value-fast-get slice))
          (py-start (vector-ref indices 0))
          (py-stop (vector-ref indices 1))
@@ -2864,20 +2865,36 @@
            (cond
              ((eq? py-start py-None) (if (> step 0) 0 (- len 1)))
              ((py-isinstance? py-start py-int-class)
-                (object-scheme-value-fast-get py-start))
+                (let ((i (object-scheme-value-fast-get py-start)))
+                  (if (< i 0) (+ len i) i)))
              (else (py-throw-wrong-index-type "slice" "integers or None" py-start))))
          (stop
            (cond
              ((eq? py-stop py-None) (if (> step 0) len -1))
              ((py-isinstance? py-stop py-int-class)
-                (object-scheme-value-fast-get py-stop))
-             (else (py-throw-wrong-index-type "slice" "integers or None" py-stop)))))
-    (list start stop step)))
+                (let ((i (object-scheme-value-fast-get py-stop)))
+                  (if (< i 0) (+ len i) i)))
+             (else (py-throw-wrong-index-type "slice" "integers or None" py-stop))))
+         (first
+           (if (> step 0)
+              (if (>= start len)
+                #f
+                (max 0 start))
+              (if (< start 0)
+                #f
+                (min (- len 1) start)))))
+    (if first
+      (let ((last
+             (if (> step 0)
+                (max 0 (min len stop))
+                (max -1 (min (- len 1) stop)))))
+        (list first last step))
+      (list 0 0 step))))
 
 (define (dynamic-vector-py-slice dvec slice)
   (let* ((len (car dvec))
         (vec (cdr dvec))
-        (slice-indices (parse-py-slice-for-vector len slice)))
+        (slice-indices (py-slice-indices slice len)))
     (dynamic-vector-slice
       vec
       (car slice-indices)
@@ -3442,7 +3459,7 @@
         (string-append
           "("
           (string-join-vector ", " content-strings)
-          ")")))
+          (if (= (vector-length vec) 1) ",)" ")"))))
     (py-throw-not-a-type-object "tuple.__repr__" self)))
 
 (define tuple.__repr__
@@ -3473,7 +3490,7 @@
 
 (define (vector-py-slice vec slice)
   (let* ((len (vector-length vec))
-        (slice-indices (parse-py-slice-for-vector len slice)))
+        (slice-indices (py-slice-indices slice len)))
     (vector-slice
       vec
       (car slice-indices)

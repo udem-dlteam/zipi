@@ -39,14 +39,13 @@ print(
     t3.index(2, 4, 1000),
     t3.index(2, -1000, 1000))
 
-t4 = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-print(t4[0:5])
-print(t4[2:])
-print(t4[:7])
-print(t4[3:8:2])
-print(t4[6:0:-1])
-print(t4[6:0:-2])
-print(t4[::-1])
-print(t4[4:1])
-print(t4[::])
-print(t4[:])
+t4 = (1, 2, 3, 4)
+for start in range(-5, 5):
+    for stop in range(-5, 5):
+        for step in range(1, 2):
+            print(t4[start:stop:step])
+            print(t4[:stop:step])
+            print(t4[start::step])
+            print(t4[start:stop])
+            print(t4[::step])
+            print(t4[start::])
