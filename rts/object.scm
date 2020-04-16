@@ -2888,8 +2888,8 @@
              (if (> step 0)
                 (max 0 (min len stop))
                 (max -1 (min (- len 1) stop)))))
-        (list first last step))
-      (list 0 0 step))))
+        (vector first last step))
+      (vector 0 0 step))))
 
 (define (dynamic-vector-py-slice dvec slice)
   (let* ((len (car dvec))
@@ -2897,9 +2897,9 @@
         (slice-indices (py-slice-indices slice len)))
     (dynamic-vector-slice
       vec
-      (car slice-indices)
-      (cadr slice-indices)
-      (caddr slice-indices))))
+      (vector-ref slice-indices 0)
+      (vector-ref slice-indices 1)
+      (vector-ref slice-indices 2))))
 
 (define (list-getitem self item)
   (if (py-isinstance? self py-list-class)
@@ -3493,9 +3493,9 @@
         (slice-indices (py-slice-indices slice len)))
     (vector-slice
       vec
-      (car slice-indices)
-      (cadr slice-indices)
-      (caddr slice-indices))))
+      (vector-ref slice-indices 0)
+      (vector-ref slice-indices 1)
+      (vector-ref slice-indices 2))))
 
 (define (tuple-getitem self item)
   (if (py-isinstance? self py-tuple-class)
@@ -3567,8 +3567,8 @@
           (py-throw
             (py-call1
               py-builtin-ValueError
-              (py-str-from-scheme "list.index(x): x not in list"))))))
-    (py-throw-not-a-type-object "list.index" self)))
+              (py-str-from-scheme "tuple.index(x): x not in tuple"))))))
+    (py-throw-not-a-type-object "tuple.index" self)))
 
 (define tuple.index
   (procedure->py-function
@@ -3584,6 +3584,42 @@
     py-slice-class
     py-slice-hclass-of-instances
     indices))
+
+(define (slice-new cls arg1 arg2 arg3)
+  (if (or (eq? cls py-slice-class) (py-issubclass? cls py-slice-class))
+    (cond
+      ((eq? arg2 py-absent)
+        (py-slice-from-scheme
+          (vector py-None arg1 py-None)))
+      ((eq? arg3 py-absent)
+        (py-slice-from-scheme
+          (vector arg1 arg2 py-None)))
+      (else
+        (py-slice-from-scheme (vector arg1 arg2 arg3))))
+    (py-throw-wrong-new-argument "list" cls)))
+
+(define slice.__new__
+  (procedure->py-function
+    slice-new
+    (make-posonly-defaults-signature
+      #(cls arg1 arg2 arg3)
+      (vector py-absent py-absent))))
+
+(define (slice-indices self len)
+    (if (py-isinstance? self py-slice-class)
+      (if (py-isinstance? len py-int-class)
+        (let ((len-i (object-scheme-value-fast-get len)))
+          (py-tuple-from-scheme
+            (vector-map
+              py-int-from-scheme
+              (py-slice-indices self len-i))))
+        (py-throw py-builtin-TypeError)) ;; TODO: add error message
+      (py-throw-not-a-type-object "slice.indices" self)))
+
+(define slice.indices
+  (procedure->py-function
+    slice-indices
+    (make-posonly-signature #(self len))))
 
 (define (bootstrap-type-hierarchy-phase2)
 
@@ -3690,7 +3726,9 @@
       (& "slice")
       (& "builtins")
       (list)
-      py-slice-hclass-of-instances))
+      py-slice-hclass-of-instances
+        (& "__new__") slice.__new__
+        (& "indices") slice.indices))
 
   (set! py-method-class
     (make-builtin-class
