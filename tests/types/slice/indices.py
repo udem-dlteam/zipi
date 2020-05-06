@@ -9,3 +9,10 @@ print(slice(9, 3, -1).indices(10))
 
 print(slice(-9, -3, 1).indices(10))
 print(slice(9, 3, 1).indices(10))
+
+print(slice(None, None, 2).indices(10))
+print(slice(None, None, -2).indices(10))
+print(slice(None, 5, 2).indices(10))
+print(slice(None, -5, -2).indices(10))
+print(slice(5, None, 2).indices(10))
+print(slice(-5, None, -2).indices(10))
