@@ -1161,6 +1161,43 @@
     float-new
     (make-posonly-defaults-signature #(cls value) (vector py-absent))))
 
+(define (float-str self)
+  (if (py-isinstance? self py-float-class)
+      (py-str-from-scheme (number->string (object-scheme-value-fast-get self)))
+      (py-throw-required-type "__str__" "float" self)))
+
+(define float.__str__
+  (procedure->py-function
+   float-str
+   (make-posonly-signature #(self))))
+   
+
+(define-macro (define-float-binary-operator fun-name method-name scheme-op)
+  (let ((py-func-name (string->symbol (string-append "float." method-name))))
+    `(begin
+      (define (,fun-name self other)
+        (if (py-isinstance? self py-float-class)
+          (if (or (py-isinstance? other py-float-class)
+                  (py-isinstance? other py-int-class))
+              (let ((self-value (object-scheme-value-fast-get self))
+                    (other-value (object-scheme-value-fast-get other)))
+                (py-float-from-scheme (,scheme-op self-value other-value)))
+            
+              (py-NotImplemented))
+          (py-throw-required-type ,method-name "float" self)))
+      (define ,py-func-name
+        (procedure->py-function
+          ,fun-name
+          (make-posonly-signature #(self other)))))))
+
+(define-float-binary-operator float-add "__add__" +)
+(define-float-binary-operator float-radd "__radd__" +)
+(define-float-binary-operator float-rmul "__rmul__" +)
+(define-float-binary-operator float-rsub "__rsub__" +)
+
+(define-float-binary-operator float-add "__sub__" -)
+(define-float-binary-operator float-add "__mul__" *)
+
 ;; =============================================================================
 ;; bool operations
 ;; =============================================================================
@@ -1173,7 +1210,7 @@
     ;; TODO: incorrect error message
     (py-throw
       (py-call py-builtin-TypeError
-        (py-str-from-scheme "object.__new__(X): X is not a type object")))))
+         (py-str-from-scheme "object.__new__(X): X is not a type object")))))
 
 (define bool.__new__
   (procedure->py-function
@@ -2853,7 +2890,16 @@
       (list)
       py-float-hclass-of-instances
         (& "__new__") float.__new__
-        (& "__repr__") float.__repr__))
+        (& "__repr__") float.__repr__
+        (& "__str__") float.__str__ 
+        (& "__add__") float.__add__
+        (& "__radd__") float.__radd__
+        (& "__sub__") float.__sub__
+        (& "__rsub__") float.__rsub__
+        (& "__mul__") float.__mul__
+        (& "__rmul__") float.__rmul__
+        
+        ))
 
   (set! py-bool-class
     (make-builtin-class

@@ -400,8 +400,11 @@
 
 ;; TODO: all values are stored as int, float and complex are untreated
 (define-walk-method (scheme this::PycNumber conf)
-   (epairify this
-      `(py-int-from-scheme ,(PycLiteralValue-val this))))
+   (if (integer? (PycLiteralValue-val this))
+      (epairify this
+        `(py-int-from-scheme ,(PycLiteralValue-val this)))
+   	  (epairify this
+    	`(py-float-from-scheme ,(PycLiteralValue-val this)))))
 
 (define-walk-method (scheme this::PycString conf)
    (epairify this
