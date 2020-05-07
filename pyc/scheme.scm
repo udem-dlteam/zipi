@@ -283,46 +283,63 @@
 		 ,(scheme-cache (PycDeclInit-cache this) this))))))
 
 (define-walk-method (scheme this::PycAssig conf)
-   (cond
-      ((isa? (PycAssig-lhs this) PycRef)
-       (let* ((ref (PycAssig-lhs this))
-	      (decl (PycRef-decl ref))
-	      (val (scheme (PycAssig-rhs this) conf)))
-	  (epairify this
-	     (case (PycDecl-scope decl)
-		((global)
-		 `(global-put! %global ,(pyc-propname (PycDecl-id decl)) ,val
-		     ,(scheme-cache (PycRef-cache (PycAssig-lhs this))
-			 (PycAssig-lhs this))))
-		(else
-		 `(set! ,(scheme-decl decl conf) ,val))))))
-      ((isa? (PycAssig-lhs this) PycRefUnresolved)
-       (let* ((ref (PycAssig-lhs this))
-	      (val (scheme (PycAssig-rhs this) conf)))
-	  (epairify this
-	     `(global-put! %global ,(pyc-propname (PycRefUnresolved-id ref)) ,val
-		 ,(scheme-cache (PycRefUnresolved-cache (PycAssig-lhs this))
-		     (PycAssig-lhs this))))))
-      ((isa? (PycAssig-lhs this) PycAccess)
-       (let* ((axs (PycAssig-lhs this))
-	      (obj (PycAccess-obj axs))
-	      (field (PycAccess-field axs))
-	      (val (scheme (PycAssig-rhs this) conf)))
-	  (epairify this
-	     `(object-put! ,(scheme obj conf) ,(pyc-propname field)
-		 ,(scheme (PycAssig-rhs this) conf)
-		 ,(scheme-cache (PycAccess-cache (PycAssig-lhs this))
-		     (PycAssig-lhs this))))))
-      (else
-       (let* ((axs (PycAssig-lhs this))
-	      (obj (PycSubscript-obj axs))
-	      (index (PycSubscript-index axs))
-	      (val (scheme (PycAssig-rhs this) conf)))
-	  (epairify this
-	     `(py-setitem ,(scheme obj conf)
-		 ,(scheme index conf)
-		 ,(scheme (PycAssig-rhs this) conf)
-		 ,(scheme-cache (PycSubscript-cache axs) axs)))))))
+  (cond
+    ((isa? (PycAssig-lhs this) PycRef)
+      (let* ((ref (PycAssig-lhs this))
+        (decl (PycRef-decl ref))
+        (val (scheme (PycAssig-rhs this) conf)))
+        (epairify this
+        (case (PycDecl-scope decl)
+          ((global)
+            `(global-put! %global ,(pyc-propname (PycDecl-id decl)) ,val
+            ,(scheme-cache (PycRef-cache (PycAssig-lhs this))
+            (PycAssig-lhs this))))
+          (else
+            `(set! ,(scheme-decl decl conf) ,val))))))
+    ((isa? (PycAssig-lhs this) PycRefUnresolved)
+      (let* ((ref (PycAssig-lhs this))
+            (val (scheme (PycAssig-rhs this) conf)))
+        (epairify this
+          `(global-put! %global ,(pyc-propname (PycRefUnresolved-id ref)) ,val
+          ,(scheme-cache (PycRefUnresolved-cache (PycAssig-lhs this))
+          (PycAssig-lhs this))))))
+    ((isa? (PycAssig-lhs this) PycAccess)
+      (let* ((axs (PycAssig-lhs this))
+            (obj (PycAccess-obj axs))
+            (field (PycAccess-field axs))
+            (val (scheme (PycAssig-rhs this) conf)))
+        (epairify this
+          `(object-put! ,(scheme obj conf) ,(pyc-propname field)
+          ,(scheme (PycAssig-rhs this) conf)
+          ,(scheme-cache (PycAccess-cache (PycAssig-lhs this))
+          (PycAssig-lhs this))))))
+    ((isa? (PycAssig-lhs this) PycSlice)
+      (let* ((axs (PycAssig-lhs this))
+            (obj (PycSlice-obj axs))
+            (lower (PycSlice-lower axs))
+            (upper (PycSlice-upper axs))
+            (step (PycSlice-step axs))
+            (val (scheme (PycAssig-rhs this) conf)))
+        (epairify this
+          `(py-setitem
+             ,(scheme obj conf)
+             (py-slice-from-scheme
+               (vector
+             	  ,(if (PycUninit? lower) 'py-None (scheme lower conf))
+             	  ,(if (PycUninit? upper) 'py-None (scheme upper conf))
+             	  ,(if (PycUninit? step) 'py-None (scheme step conf))))
+             ,val
+             #f))))
+    (else
+      (let* ((axs (PycAssig-lhs this))
+            (obj (PycSubscript-obj axs))
+            (index (PycSubscript-index axs))
+            (val (scheme (PycAssig-rhs this) conf)))
+      (epairify this
+        `(py-setitem ,(scheme obj conf)
+        ,(scheme index conf)
+        ,(scheme (PycAssig-rhs this) conf)
+        ,(scheme-cache (PycSubscript-cache axs) axs)))))))
 
 (define-walk-method (scheme this::PycAugAssig conf)
    (cond
@@ -664,9 +681,9 @@
         ,(scheme (PycSlice-obj this) conf)
         (py-slice-from-scheme
           (vector
-        	  ,(if (PycUninit? lower) 'py-None (scheme (PycSlice-lower this) conf))
-        	  ,(if (PycUninit? upper) 'py-None (scheme (PycSlice-upper this) conf))
-        	  ,(if (PycUninit? step) 'py-None (scheme (PycSlice-step this) conf))))
+        	  ,(if (PycUninit? lower) 'py-None (scheme lower conf))
+        	  ,(if (PycUninit? upper) 'py-None (scheme upper conf))
+        	  ,(if (PycUninit? step) 'py-None (scheme step conf))))
         #f))))
 
 (define-walk-method (scheme this::PycAssert conf)

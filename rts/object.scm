@@ -601,6 +601,16 @@
     (py-call py-builtin-TypeError
       (py-str-from-scheme "can only assign an iterable"))))
 
+(define (py-throw-extended-slice-wrong-len actual-len expected-len)
+  (py-throw
+    (py-call py-builtin-ValueError
+      (py-str-from-scheme
+        (string-append
+          "attempt to assign sequence of size "
+          (number->string actual-len)
+          " to extended slice of size "
+          (number->string expected-len))))))
+
 (define (throw-not-iteralble obj)
   (let ((obj-type-name (type-name-fast-get (py-type obj))))
     (py-throw (py-call
@@ -2930,28 +2940,53 @@
     list-getitem
     (make-posonly-signature #(self item))))
 
-(define (list-set-simple-slice self start stop vec len)
+;; slices of the form lst[1:4]
+(define (dynamic-vector-set-simple-slice! dvec start stop vec len)
   #f)
 
-(define (list-set-extended-slice self start stop step vec len)
-  #f)
+;;slices of the form lst[1:6:2] (i.e. with a step)
+(define (dynamic-vector-set-extended-slice! dvec start stop step vec len)
+  (let ((self-vec (cdr dvec))
+        (slice-len (max 0 (ceiling (/ (- stop start) step)))))
+    (if (= len slice-len)
+      (let loop ((src-index 0) (tgt-index start))
+        (if (< src-index len)
+          (begin
+            (vector-set! self-vec tgt-index (vector-ref vec src-index))
+            (loop (+ src-index 1) (+ tgt-index step)))))
+      (py-throw-extended-slice-wrong-len len slice-len))))
 
 (define (list-set-slice self slice value)
-  (let* ((indices (py-slice-indices self))
-        (py-start (vector-ref indices 0))
-        (py-stop (vector-ref indices 1))
-        (py-step (vector-ref indices 2))
+  (let* ((dvec (object-scheme-value-fast-get self))
+        (self-len (car dvec))
+        (indices (py-slice-indices slice self-len))
+        (start (vector-ref indices 0))
+        (stop (vector-ref indices 1))
+        (step (vector-ref indices 2))
         (value-type (py-type value)))
     (cond
       ((eq? value-type py-list-class)
-        #f)
+        (let* ((value-dvec (object-scheme-value-fast-get value))
+              (value-len (car value-dvec))
+              (value-vec (cdr value-dvec)))
+          (if (eq? step 1)
+            (dvec-set-simple-slice dvec start stop value-vec value-len)
+            (dynamic-vector-set-extended-slice! dvec start stop step value-vec value-len))))
       ((eq? value-type py-tuple-class)
-        #f)
+        (let* ((value-vec (object-scheme-value-fast-get value))
+               (value-len (vector-length value-dvec)))
+          (if (eq? step 1)
+            (dvec-set-simple-slice dvec start stop value-vec value-len)
+            (dynamic-vector-set-extended-slice! dvec start stop step value-vec value-len))))
       (else
         (let ((iterator (py-obj->iterator value)))
-          (py-throw-can-only-assign-iterable))
-        ))))
-
+          (if iterator
+            (let ((value-vec (list->vector (iterator->list iterator)))
+                  (value-len (vector-length (value-vec))))
+              (if (eq? py-step 1)
+                (dvec-set-simple-slice dvec start stop value-vec value-len)
+                (dynamic-vector-set-extended-slice! dvec start stop step value-vec value-len)))
+            (py-throw-can-only-assign-iterable)))))))
 
 (define (list-setitem self item value)
   (if (py-isinstance? self py-list-class)
