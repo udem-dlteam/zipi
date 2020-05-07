@@ -596,6 +596,11 @@
             ", not "
             given-type))))))
 
+(define (py-throw-can-only-assign-iterable)
+  (py-throw
+    (py-call py-builtin-TypeError
+      (py-str-from-scheme "can only assign an iterable"))))
+
 (define (throw-not-iteralble obj)
   (let ((obj-type-name (type-name-fast-get (py-type obj))))
     (py-throw (py-call
@@ -2925,6 +2930,29 @@
     list-getitem
     (make-posonly-signature #(self item))))
 
+(define (list-set-simple-slice self start stop vec len)
+  #f)
+
+(define (list-set-extended-slice self start stop step vec len)
+  #f)
+
+(define (list-set-slice self slice value)
+  (let* ((indices (py-slice-indices self))
+        (py-start (vector-ref indices 0))
+        (py-stop (vector-ref indices 1))
+        (py-step (vector-ref indices 2))
+        (value-type (py-type value)))
+    (cond
+      ((eq? value-type py-list-class)
+        #f)
+      ((eq? value-type py-tuple-class)
+        #f)
+      (else
+        (let ((iterator (py-obj->iterator value)))
+          (py-throw-can-only-assign-iterable))
+        ))))
+
+
 (define (list-setitem self item value)
   (if (py-isinstance? self py-list-class)
     (cond
@@ -2937,7 +2965,7 @@
             (vector-set! vec (modulo i len) value)
             (py-throw-action-out-of-range "list" "assignment"))))
       ((py-isinstance? item py-slice-class)
-        (error "list-setitem" "slice not implemented" #f))
+        (list-set-slice self item value))
       (else (py-throw-wrong-index-type "list" "integers or slices" item)))
     (py-throw-not-a-type-object "list.__setitem__" self))
   py-None)
