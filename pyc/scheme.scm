@@ -657,8 +657,20 @@
             ,(scheme (PycSubscript-obj expr-to-delete) conf)
             ,(scheme (PycSubscript-index expr-to-delete) conf)
             #f))
+      ((PycSlice? expr-to-delete)
+        (let ((lower (PycSlice-lower expr-to-delete))
+              (upper (PycSlice-upper expr-to-delete))
+              (step (PycSlice-step expr-to-delete)))
+          `(py-delitem
+             ,(scheme (PycSlice-obj expr-to-delete) conf)
+              (py-slice-from-scheme
+                (vector
+              	  ,(if (PycUninit? lower) 'py-None (scheme lower conf))
+              	  ,(if (PycUninit? upper) 'py-None (scheme upper conf))
+              	  ,(if (PycUninit? step) 'py-None (scheme step conf))))
+              #f)))
       (else
-        (error "scheme::PycDelete" "only del subscript is supported" #f)))))
+        (error "scheme::PycDelete" "only del subscript/slice are supported" #f)))))
 
 (define-walk-method (scheme this::PycAccess conf)
    (epairify this

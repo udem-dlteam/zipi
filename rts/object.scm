@@ -3062,19 +3062,20 @@
       (dynamic-vector-shrink! dvec))))
 
 (define (dynamic-vector-shift-left-by! dvec index amount)
-  (let ((len (car dvec))
-        (vec (cdr dvec)))
-    (let loop ((i (max index amount)))
-      (if (< i len)
-        (begin
-          (vector-set! vec (- i amount) (vector-ref vec i))
-          (vector-set! vec i list-empty-cell)
-          (loop (+ i 1)))))
-    (set-car! dvec (- len amount))
-    (if (<
-          len
-          (get-shrink-threshold-len (vector-length vec)))
-      (dynamic-vector-shrink! dvec))))
+  (if (> amount 0)
+    (let ((len (car dvec))
+          (vec (cdr dvec)))
+      (let loop ((i (max index amount)))
+        (if (< i len)
+          (begin
+            (vector-set! vec (- i amount) (vector-ref vec i))
+            (vector-set! vec i list-empty-cell)
+            (loop (+ i 1)))))
+      (set-car! dvec (- len amount))
+      (if (<
+            len
+            (get-shrink-threshold-len (vector-length vec)))
+        (dynamic-vector-shrink! dvec)))))
 
 ;; NOTE: shift-right does not insert 'list-empty-cell' at index
 ;;       it is assumed shift is done with intent to write at index
@@ -3093,18 +3094,19 @@
     (set-car! dvec (+ len 1))))
 
 (define (dynamic-vector-shift-right-by! dvec index amount)
-  (let ((len (car dvec))
-        (vec (cdr dvec)))
-    (if (>= (+ amount len) (vector-length vec))
-      (begin
-        (dynamic-vector-grow-by! dvec amount)
-        (set! vec (cdr dvec))))
-    (let loop ((i (+ amount len -1)))
-      (if (>= (- i amount) index)
+  (if (> amount 0)
+    (let ((len (car dvec))
+          (vec (cdr dvec)))
+      (if (>= (+ amount len) (vector-length vec))
         (begin
-          (vector-set! vec i (vector-ref vec (- i amount)))
-          (loop (- i 1)))))
-    (set-car! dvec (+ len amount))))
+          (dynamic-vector-grow-by! dvec amount)
+          (set! vec (cdr dvec))))
+      (let loop ((i (+ amount len -1)))
+        (if (>= (- i amount) index)
+          (begin
+            (vector-set! vec i (vector-ref vec (- i amount)))
+            (loop (- i 1)))))
+      (set-car! dvec (+ len amount)))))
 
 (define (dynamic-vector-pop-last! dvec)
   (let* ((len (car dvec))
@@ -3119,6 +3121,27 @@
       (dynamic-vector-shrink! dvec))
     last))
 
+(define (dynamic-vector-del-extended-slice! dvec start stop step)
+  (let* ((len (car dvec))
+        (vec (cdr dvec))
+        (slice-len (max 0 (ceiling (/ (- stop start) step))))
+        (abs-step (abs step))
+        (first
+          (if (> step 0)
+            start
+            (+ start (* (- slice-len 1) step))))
+        (last (+ first (* (- slice-len 1) abs-step))))
+    ;; copy all values but skips the ones to be erased
+    (let loop ((read-index first) (write-index first))
+      (if (<= read-index last)
+        (if (= 0 (modulo (- read-index first) abs-step))
+          (loop (+ read-index 1) write-index)
+          (begin
+            (vector-set! vec write-index (vector-ref vec read-index))
+            (loop (+ read-index 1) (+ write-index 1))))
+        ;; shift-left handles dynamic-vector-shrink
+        (dynamic-vector-shift-left-by! dvec read-index slice-len)))))
+
 (define (list-delitem self item)
   (if (py-isinstance? self py-list-class)
     (cond
@@ -3130,7 +3153,16 @@
             (dynamic-vector-shift-left! dvec (+ (modulo i len) 1))
             (py-throw-action-out-of-range "list" "assignement"))))
       ((py-isinstance? item py-slice-class)
-        (error "list-delitem" "slice not implemented" #f))
+        (let* ((dvec (object-scheme-value-fast-get self))
+              (len (car dvec))
+              (indices (py-slice-indices item len))
+              (start (vector-ref indices 0))
+              (stop (vector-ref indices 1))
+              (step (vector-ref indices 2)))
+          (if (= step 1)
+            (let ((size (- stop start)))
+              (dynamic-vector-shift-left-by! dvec stop size))
+            (dynamic-vector-del-extended-slice! dvec start stop step))))
       (else (py-throw-wrong-index-type "list" "integers or slices" item)))
     (py-throw-not-a-type-object "list.__delitem__" self))
   py-None)
