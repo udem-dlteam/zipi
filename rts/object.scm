@@ -2041,23 +2041,43 @@
 ;; Once builtins.py is loaded, we need to keep a direct access to some builtins
 ;; Examples are exceptions which are part of Python protocols, such as StopIteration
 (define (bootstrap-builtins builtins-mod)
- (set! py-builtin-ValueError (py-own-attr-ref builtins-mod  (& "ValueError")))
- (set! py-builtin-NameError (py-own-attr-ref builtins-mod  (& "NameError")))
- (set! py-builtin-StopIteration (py-own-attr-ref builtins-mod  (& "StopIteration")))
- (set! py-builtin-ArithmeticError (py-own-attr-ref builtins-mod  (& "ArithmeticError")))
- (set! py-builtin-ZeroDivisionError (py-own-attr-ref builtins-mod  (& "ZeroDivisionError")))
- (set! py-builtin-AttributeError (py-own-attr-ref builtins-mod  (& "AttributeError")))
- (set! py-builtin-TypeError (py-own-attr-ref builtins-mod  (& "TypeError")))
- (set! py-builtin-IndexError (py-own-attr-ref builtins-mod  (& "IndexError")))
- (set! py-builtin-RuntimeError (py-own-attr-ref builtins-mod (& "RuntimeError")))
- (set! py-builtin-AssertionError (py-own-attr-ref builtins-mod (& "AssertionError")))
-)
+  ;; builtin functions
+  (set! py-builtin-sorted (py-own-attr-ref builtins-mod (& "sorted")))
+
+  ;; Exceptions
+  (set! py-builtin-ValueError (py-own-attr-ref builtins-mod  (& "ValueError")))
+  (set! py-builtin-NameError (py-own-attr-ref builtins-mod  (& "NameError")))
+  (set! py-builtin-StopIteration (py-own-attr-ref builtins-mod  (& "StopIteration")))
+  (set! py-builtin-ArithmeticError (py-own-attr-ref builtins-mod  (& "ArithmeticError")))
+  (set! py-builtin-ZeroDivisionError (py-own-attr-ref builtins-mod  (& "ZeroDivisionError")))
+  (set! py-builtin-AttributeError (py-own-attr-ref builtins-mod  (& "AttributeError")))
+  (set! py-builtin-TypeError (py-own-attr-ref builtins-mod  (& "TypeError")))
+  (set! py-builtin-IndexError (py-own-attr-ref builtins-mod  (& "IndexError")))
+  (set! py-builtin-RuntimeError (py-own-attr-ref builtins-mod (& "RuntimeError")))
+  (set! py-builtin-AssertionError (py-own-attr-ref builtins-mod (& "AssertionError")))
+
+  ;; Reuse sorted procedure for list.sort
+  (set! list.sort
+    (procedure->py-function
+      (lambda (self key reversed)
+        (object-scheme-value-fast-set!
+          self
+          (object-scheme-value-fast-get
+            ((function-procedure-fast-get py-builtin-sorted)
+              self key reversed)))
+        py-None)
+
+      ;;TODO: change default arguments to kwonlyargs
+      (make-args-defaults-signature
+        #(self key reversed)
+        (vector py-None py-False))))
+
+  (py-own-attr-set! py-list-class (& "sort") list.sort))
 
 (define (py-builtins-mod)
  (unless builtins-mod
    (set! builtins-mod (py-make-builtins-mod))
-   (bootstrap-builtins builtins-mod)
- )
+   (bootstrap-builtins builtins-mod))
  builtins-mod)
 
 (define time-mod #f)
@@ -3433,6 +3453,8 @@
   (procedure->py-function
     list-reverse
     (make-posonly-signature #(self))))
+
+(define list.sort #f)
 
 ;; tuple class
 
