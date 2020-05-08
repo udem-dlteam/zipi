@@ -2942,7 +2942,21 @@
 
 ;; slices of the form lst[1:4]
 (define (dynamic-vector-set-simple-slice! dvec start stop vec len)
-  #f)
+  (let* ((self-vec (cdr dvec))
+        (slice-len (- stop start))
+        (len-diff (- slice-len len)))
+    (cond
+      ((< len-diff 0)
+        (dynamic-vector-shift-right-by! dvec start (- len-diff)))
+      ((> len-diff 0)
+        (dynamic-vector-shift-left-by! dvec start len-diff)))
+    ;; Update the vector which may have been updated when shifting
+    (set! self-vec (cdr dvec))
+    (let loop ((src-index 0) (tgt-index start))
+      (if (< src-index len)
+        (begin
+          (vector-set! self-vec tgt-index (vector-ref vec src-index))
+          (loop (+ src-index 1) (+ tgt-index 1)))))))
 
 ;;slices of the form lst[1:6:2] (i.e. with a step)
 (define (dynamic-vector-set-extended-slice! dvec start stop step vec len)
@@ -2970,21 +2984,21 @@
               (value-len (car value-dvec))
               (value-vec (cdr value-dvec)))
           (if (eq? step 1)
-            (dvec-set-simple-slice dvec start stop value-vec value-len)
+            (dynamic-vector-set-simple-slice! dvec start stop value-vec value-len)
             (dynamic-vector-set-extended-slice! dvec start stop step value-vec value-len))))
       ((eq? value-type py-tuple-class)
         (let* ((value-vec (object-scheme-value-fast-get value))
-               (value-len (vector-length value-dvec)))
+               (value-len (vector-length value-vec)))
           (if (eq? step 1)
-            (dvec-set-simple-slice dvec start stop value-vec value-len)
+            (dynamic-vector-set-simple-slice! dvec start stop value-vec value-len)
             (dynamic-vector-set-extended-slice! dvec start stop step value-vec value-len))))
       (else
         (let ((iterator (py-obj->iterator value)))
           (if iterator
-            (let ((value-vec (list->vector (iterator->list iterator)))
-                  (value-len (vector-length (value-vec))))
-              (if (eq? py-step 1)
-                (dvec-set-simple-slice dvec start stop value-vec value-len)
+            (let* ((value-vec (list->vector (iterator->list iterator)))
+                  (value-len (vector-length value-vec)))
+              (if (eq? step 1)
+                (dynamic-vector-set-simple-slice! dvec start stop value-vec value-len)
                 (dynamic-vector-set-extended-slice! dvec start stop step value-vec value-len)))
             (py-throw-can-only-assign-iterable)))))))
 
@@ -3047,6 +3061,21 @@
           (get-shrink-threshold-len (vector-length vec)))
       (dynamic-vector-shrink! dvec))))
 
+(define (dynamic-vector-shift-left-by! dvec index amount)
+  (let ((len (car dvec))
+        (vec (cdr dvec)))
+    (let loop ((i (max index amount)))
+      (if (< i len)
+        (begin
+          (vector-set! vec (- i amount) (vector-ref vec i))
+          (vector-set! vec i list-empty-cell)
+          (loop (+ i 1)))))
+    (set-car! dvec (- len amount))
+    (if (<
+          len
+          (get-shrink-threshold-len (vector-length vec)))
+      (dynamic-vector-shrink! dvec))))
+
 ;; NOTE: shift-right does not insert 'list-empty-cell' at index
 ;;       it is assumed shift is done with intent to write at index
 (define (dynamic-vector-shift-right! dvec index)
@@ -3062,6 +3091,20 @@
           (vector-set! vec i (vector-ref vec (- i 1)))
           (loop (- i 1)))))
     (set-car! dvec (+ len 1))))
+
+(define (dynamic-vector-shift-right-by! dvec index amount)
+  (let ((len (car dvec))
+        (vec (cdr dvec)))
+    (if (>= (+ amount len) (vector-length vec))
+      (begin
+        (dynamic-vector-grow-by! dvec amount)
+        (set! vec (cdr dvec))))
+    (let loop ((i (+ amount len -1)))
+      (if (>= (- i amount) index)
+        (begin
+          (vector-set! vec i (vector-ref vec (- i amount)))
+          (loop (- i 1)))))
+    (set-car! dvec (+ len amount))))
 
 (define (dynamic-vector-pop-last! dvec)
   (let* ((len (car dvec))
