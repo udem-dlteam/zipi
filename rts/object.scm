@@ -3941,7 +3941,8 @@
         (& "remove") list.remove
         (& "insert") list.insert
         (& "extend") list.extend
-        (& "reverse") list.reverse))
+        (& "reverse") list.reverse
+        (& "sort") #f)) ;; set later from py-builtin-sorted
 
   (set! py-dict-class
     (make-builtin-class
