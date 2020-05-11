@@ -78,8 +78,12 @@
               (then::PycStmt (info '("ast")))
               (else::PycStmt (info '("ast"))))
 
+     (class PycWithItem::PycStmt
+	      (context-expr::PycExpr (info '("ast")))
+	      (optional-vars::PycExpr (info '("ast"))))
+
 	   (class PycWith::PycStmt
-	      (expr::PycExpr (info '("ast")))
+	      (items::PycWithItem (info '("ast")))
 	      (body::PycStmt (info '("ast"))))
 
 	   (class PycLoop::PycStmt
@@ -563,7 +567,8 @@
 (gen-walks PycAssig lhs rhs)
 (gen-walks PycAugAssig lhs rhs)
 (gen-walks PycIf test then else)
-(gen-walks PycWith expr body)
+(gen-walks PycWithItem context-expr optional-vars)
+(gen-walks PycWith (items) body)
 (gen-walks PycWhile test body else)
 (gen-walks PycFor target iter body else)
 (gen-walks PycRaise exc cause)
