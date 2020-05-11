@@ -51,8 +51,8 @@
 ;* 	   (py-make-set ::obj)                                         */
 ;*                                                                     */
 	   (py-getitem ::PyObject ::obj ::PCache)
+     (py-delitem ::PyObject ::obj ::PCache)
 	   (py-setitem ::PyObject ::obj ::obj ::PCache)
-	   (py-contains ::PyObject ::obj ::PCache)
 
 	   (inline PyObject-elements-ref ::PyObject ::long)
 	   (PyObject-elements-set! ::PyObject ::long ::obj)
@@ -115,6 +115,8 @@
 	   (py-isinstance? ::PyObject ::PyObject)
 
      py-builtin-StopIteration
+
+     (py-slice-from-scheme::PyObject ::obj)
 
            (py-obj-alloc cls hclass-of-instances)
 	   (py-str-from-scheme::PyObject ::bstring)

@@ -88,7 +88,7 @@
    mod)
 
 (define (py-import-from-sysmod sysmod key path)
-  (if (py-contains sysmod key py-import-cache1)
+  (if (py-in sysmod key py-import-cache1)
       (let ((mod (py-getitem sysmod key py-import-cache2)))
         (if (eq? mod py-absent)
             (error "py-import" "ModuleNotFoundError" path)
