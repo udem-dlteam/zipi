@@ -794,6 +794,7 @@
               right-op-result)))
         left-op-result)))
 
+
 ;; !=
 (define (py-ne x y cache) ;; x != y
   (let ((__ne__ (getattribute-from-obj-mro x (& "__ne__"))))
@@ -813,8 +814,10 @@
                 (if (py-test eq-result)
                   py-False
                   py-True))
-              right-op-result)))
-        left-op-result)))
+              right-op-result))
+        left-op-result))))
+
+
 
 (define-binary-operator-protocol py-lt "__lt__" "__gt__" "<")
 
@@ -1210,6 +1213,146 @@
     float-new
     (make-posonly-defaults-signature #(cls value) (vector py-absent))))
 
+
+;; scheme-to-py-op defines an operator that RETURNS A PYTHON TYPE
+
+(define-macro (define-float-binary-operator fun-name method-name float-float-op)
+  (let ((py-func-name (string->symbol (string-append "float." method-name))))
+    `(begin
+      (define (,fun-name self other)
+        (if (py-isinstance? self py-float-class)
+          (cond 
+            ((py-isinstance? other py-float-class)
+              (,float-float-op (object-scheme-value-fast-get self) (object-scheme-value-fast-get other)))
+            ((py-isinstance? other py-int-class)              
+              ;; If the operation is float-int, it converts the float into an int
+              (,float-float-op (object-scheme-value-fast-get self) (fixnum->flonum (object-scheme-value-fast-get other))))
+              
+            (else py-NotImplemented))
+          (py-throw-required-type ,method-name "float" self)))
+      (define ,py-func-name
+        (procedure->py-function
+          ,fun-name
+          (make-posonly-signature #(self other)))))))
+
+(define-macro (define-float-binary-operator-reverse fun-name method-name float-float-op)
+  (let ((py-func-name (string->symbol (string-append "float." method-name))))
+    `(begin
+      (define (,fun-name self other)
+        (if (py-isinstance? self py-float-class)
+          (cond 
+            ((py-isinstance? other py-float-class)
+              (,float-float-op (object-scheme-value-fast-get other) (object-scheme-value-fast-get self)))
+            ((py-isinstance? other py-int-class)              
+              ;; If the operation is float-int, it converts the float into an int
+              (,float-float-op (fixnum->flonum (object-scheme-value-fast-get other)) (object-scheme-value-fast-get self)))
+              
+            (else py-NotImplemented))
+          (py-throw-required-type ,method-name "float" self)))
+      (define ,py-func-name
+        (procedure->py-function
+          ,fun-name
+          (make-posonly-signature #(self other)))))))
+;; Helpers 
+ 
+(define (reverse-args fun) 
+  (lambda (x y) (fun y x)))
+
+(define (result-to-float op)
+  (lambda (x y) (py-float-from-scheme (op x y))))
+
+(define (comparison-conversion scheme-comp-op)
+  (lambda (x y) 
+    (if (scheme-comp-op x y) py-True py-False)))
+
+;; int-or-float is the function of the conversion to sheme number to py numbers
+(define (div-to-float op)
+  (lambda (x y) 
+    (if (= y 0)
+      (py-throw
+        (py-call py-builtin-ZeroDivisionError
+          (py-str-from-scheme "float division by zero")))
+      (py-float-from-scheme (inexact (op x y))))))
+
+(define (mod-to-float op)
+  (lambda (x y) 
+    (if (= y 0)
+      (py-throw
+        (py-call py-builtin-ZeroDivisionError
+          (py-str-from-scheme "float modulo")))
+      (py-float-from-scheme (inexact (op x y))))))
+
+(define (floor-div x y)
+  (floor (/ (exact x) (exact y))))
+
+
+(define (flmod fl1 fl2)
+  (let ((div (fl/ fl1 fl2)))
+    (fl- fl1 (fl* fl2
+                (if (fl< 0. fl2)
+                  (flfloor div)
+                  (flceiling div))))))
+
+(define-float-binary-operator float-add "__add__"            (result-to-float fl+))
+(define-float-binary-operator float-radd "__radd__"          (result-to-float fl+))
+(define-float-binary-operator float-add "__sub__"            (result-to-float fl-))
+(define-float-binary-operator-reverse float-rsub "__rsub__"  (result-to-float fl-))
+
+(define-float-binary-operator float-truediv "__truediv__"    (div-to-float fl/))
+(define-float-binary-operator-reverse float-rtruediv "__rtruediv__"  (div-to-float fl/))
+(define-float-binary-operator float-floordiv "__floordiv__"   (div-to-float floor-div)               )
+(define-float-binary-operator-reverse float-rfloordiv "__rfloordiv__" (div-to-float floor-div))
+
+(define-float-binary-operator float-mod "__mod__"            (mod-to-float flmod))
+(define-float-binary-operator-reverse float-rmod "__rmod__"  (mod-to-float flmod))
+
+(define-float-binary-operator float-mul "__mul__"            (result-to-float fl*))
+(define-float-binary-operator float-rmul "__rmul__"          (result-to-float fl*))
+(define-float-binary-operator float-pow "__pow__"            (result-to-float flexpt))
+(define-float-binary-operator-reverse float-rpow "__rpow__"  (result-to-float flexpt))
+
+(define-float-binary-operator float-eq "__eq__" (comparison-conversion fl=))
+(define-float-binary-operator float-eq "__ne__" (comparison-conversion fl!=))
+(define-float-binary-operator float-gt "__gt__" (comparison-conversion fl>))
+(define-float-binary-operator float-ge "__ge__" (comparison-conversion fl>=))
+(define-float-binary-operator float-lt "__lt__" (comparison-conversion fl<))
+(define-float-binary-operator float-le "__le__" (comparison-conversion fl<=))
+
+
+(define-macro (define-float-unary-operator fun-name method-name scheme-op)
+  (let ((py-func-name (string->symbol (string-append "float." method-name))))
+    `(begin
+      (define (,fun-name self)
+        (if (py-isinstance? self py-float-class)
+          (,scheme-op (object-scheme-value-fast-get self))
+          (py-throw-required-type ,method-name "float" self)))
+      (define ,py-func-name
+        (procedure->py-function
+          ,fun-name
+          (make-posonly-signature #(self)))))))
+
+(define (unary-to-float op) 
+  (lambda (x) (py-float-from-scheme (op x))))
+
+(define (unary-to-bool x)
+  (if (fl= x 0.) 
+    py-False
+    py-True))
+
+(define-float-unary-operator float-abs "__abs__" (unary-to-float abs))
+(define-float-unary-operator float-neg "__neg__" (unary-to-float fl-))
+(define-float-unary-operator float-bool "__bool__" unary-to-bool)
+
+(define-float-unary-operator float-int "__int__" (lambda (x) (py-int-from-scheme (exact (fltruncate x)))))
+(define-float-unary-operator float-trunk "__trunc__" (lambda (x) (py-float-from-scheme (fltruncate x))))
+(define-float-unary-operator float-round "__round__" (lambda (x) (py-float-from-scheme (flround x))))
+(define-float-unary-operator float-is_integer "is_integer" (lambda (x) (if (integer? x) py-True py-False)))
+
+;; identity functions
+(define-float-unary-operator float-float "__float__" (unary-to-float (lambda (x) x)))
+(define-float-unary-operator float-pos "__pos__" (unary-to-float (lambda (x) x)))
+(define-float-unary-operator float-conjugate "conjugate" (unary-to-float (lambda (x) x)))
+
 ;; =============================================================================
 ;; bool operations
 ;; =============================================================================
@@ -1222,7 +1365,7 @@
     ;; TODO: incorrect error message
     (py-throw
       (py-call py-builtin-TypeError
-        (py-str-from-scheme "object.__new__(X): X is not a type object")))))
+         (py-str-from-scheme "object.__new__(X): X is not a type object")))))
 
 (define bool.__new__
   (procedure->py-function
@@ -3862,7 +4005,41 @@
       (list)
       py-float-hclass-of-instances
         (& "__new__") float.__new__
-        (& "__repr__") float.__repr__))
+        (& "__repr__") float.__repr__
+        (& "__add__") float.__add__
+        (& "__radd__") float.__radd__
+        (& "__sub__") float.__sub__
+        (& "__rsub__") float.__rsub__
+        (& "__mul__") float.__mul__
+        (& "__rmul__") float.__rmul__
+        (& "__pow__") float.__pow__
+        (& "__rpow__") float.__rpow__
+        (& "__eq__") float.__eq__
+        (& "__ne__") float.__ne__
+        (& "__lt__") float.__lt__
+        (& "__le__") float.__le__
+        (& "__gt__") float.__gt__
+        (& "__ge__") float.__ge__
+        (& "__truediv__") float.__truediv__
+        (& "__rtruediv__") float.__rtruediv__
+        (& "__floordiv__") float.__floordiv__
+        (& "__rfloordiv__") float.__rfloordiv__
+        (& "__mod__") float.__mod__
+        (& "__rmod__") float.__rmod__
+
+        (& "__neg__") float.__neg__
+        (& "__pos__") float.__pos__
+        (& "__abs__") float.__abs__
+        (& "__bool__") float.__bool__
+
+        (& "__float__") float.__float__
+        (& "__int__") float.__int__ 
+        (& "__round__") float.__round__
+        (& "__trunc__") float.__trunc__
+        (& "conjugate") float.conjugate
+        (& "is_integer") float.is_integer
+
+        ))
 
   (set! py-bool-class
     (make-builtin-class
