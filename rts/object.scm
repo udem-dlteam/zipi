@@ -1335,14 +1335,13 @@
   (lambda (x) (py-float-from-scheme (op x))))
 
 (define (unary-to-bool x)
-  (if (= x 0) 
+  (if (fl= x 0.) 
     py-False
     py-True))
 
 (define-float-unary-operator float-abs "__abs__" (unary-to-float abs))
 (define-float-unary-operator float-neg "__neg__" (unary-to-float fl-))
 (define-float-unary-operator float-bool "__bool__" unary-to-bool)
-(define-float-unary-operator float-class "__class__" (lambda (x) py-float-class))
 
 (define-float-unary-operator float-int "__int__" (lambda (x) (py-int-from-scheme (exact (fltruncate x)))))
 (define-float-unary-operator float-trunk "__trunc__" (lambda (x) (py-float-from-scheme (fltruncate x))))
@@ -4031,7 +4030,6 @@
         (& "__neg__") float.__neg__
         (& "__pos__") float.__pos__
         (& "__abs__") float.__abs__
-        (& "__class__") float.__class__
         (& "__bool__") float.__bool__
 
         (& "__float__") float.__float__
