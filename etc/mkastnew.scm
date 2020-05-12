@@ -91,7 +91,7 @@
       (let ((kla (symbol-id name))
 	    (sup (symbol-type name)))
 	 `(,kla ,sup ,props)))
-      
+
    (match-case expr
       ((module ?name . ?clauses)
        (append-map (match-lambda
@@ -116,14 +116,14 @@
 ;*    new-class ...                                                    */
 ;*---------------------------------------------------------------------*/
 (define (new-class name props env)
-   
+
    (define (find-default p)
       (let loop ((attrs (cdr p)))
 	 (when (pair? attrs)
 	    (match-case (car attrs)
 	       ((default ?val) (car attrs))
 	       (else (loop (cdr attrs)))))))
-   
+
    (define (super-class-props id env)
       (let loop ((props '())
 		 (id id))
@@ -132,7 +132,7 @@
 	    (if (not (cadr def))
 		props
 		(loop props (cadr def))))))
-   
+
    (let* ((id (symbol-id name))
 	  (props (super-class-props id env))
 	  (names (map (lambda (p)
@@ -179,7 +179,7 @@
 		(print "   " `(inline ,@(cadr funs))))
       funs)
    (print "   ))"))
-   
+
 ;*---------------------------------------------------------------------*/
 ;*    display-definition ...                                           */
 ;*---------------------------------------------------------------------*/

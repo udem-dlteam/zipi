@@ -212,10 +212,39 @@
 	   ,(scheme (PycIf-else this) conf))))
 
 (define-walk-method (scheme this::PycWith conf)
-   (epairify this
-      `(py-with ,(scheme (PycWith-expr this) conf)
-	  (lambda ()
-	     ,(scheme (PycWith-body this) conf)))))
+  (define (in-contexts items body)
+    (if (null? items)
+      (scheme body conf)
+      (let* ((item (car items))
+             (context-expr (PycWithItem-context-expr item))
+             (optional-vars (PycWithItem-optional-vars item))
+             (ctx-sym (my-gensym '%with-ctx)))
+        (cond
+          ((not optional-vars)
+            `(let ((,ctx-sym ,(scheme context-expr conf)))
+               (py-enter ,ctx-sym)
+               (with-handler
+                (lambda (%exn)
+                  (if (PyObject? %exn)
+                    (py-exit ,ctx-sym %exn))
+                  (raise %exn))
+                (lambda ()
+                  ,(in-contexts (cdr items) body)))
+                (py-exit ,ctx-sym #f)))
+          ((PycRefUnresolved? optional-vars)
+            `(let ((,ctx-sym ,(scheme context-expr conf)))
+               (global-put! %global ,(PycRefUnresolved-id optional-vars) (py-enter ,ctx-sym))
+               (with-handler
+                (lambda (%exn)
+                  (if (PyObject? %exn)
+                    (py-exit ,ctx-sym %exn))
+                  (raise %exn))
+                (lambda ()
+                  ,(in-contexts (cdr items) body)))
+                (py-exit ,ctx-sym #f)))
+          (else
+            (error "scheme::PycWith" "only supports assignation to variable" #f))))))
+  (in-contexts (PycWith-items this) (PycWith-body this)))
 
 (define-walk-method (scheme this::PycTry conf)
 
