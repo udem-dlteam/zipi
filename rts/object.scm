@@ -1213,6 +1213,7 @@
     float-new
     (make-posonly-defaults-signature #(cls value) (vector py-absent))))
 
+
 ;; scheme-to-py-op defines an operator that RETURNS A PYTHON TYPE
 
 (define-macro (define-float-binary-operator fun-name method-name float-float-op)
@@ -1234,6 +1235,24 @@
           ,fun-name
           (make-posonly-signature #(self other)))))))
 
+(define-macro (define-float-binary-operator-reverse fun-name method-name float-float-op)
+  (let ((py-func-name (string->symbol (string-append "float." method-name))))
+    `(begin
+      (define (,fun-name self other)
+        (if (py-isinstance? self py-float-class)
+          (cond 
+            ((py-isinstance? other py-float-class)
+              (,float-float-op (object-scheme-value-fast-get other) (object-scheme-value-fast-get self)))
+            ((py-isinstance? other py-int-class)              
+              ;; If the operation is float-int, it converts the float into an int
+              (,float-float-op (fixnum->flonum (object-scheme-value-fast-get other)) (object-scheme-value-fast-get self)))
+              
+            (else py-NotImplemented))
+          (py-throw-required-type ,method-name "float" self)))
+      (define ,py-func-name
+        (procedure->py-function
+          ,fun-name
+          (make-posonly-signature #(self other)))))))
 ;; Helpers 
  
 (define (reverse-args fun) 
@@ -1252,7 +1271,15 @@
     (if (= y 0)
       (py-throw
         (py-call py-builtin-ZeroDivisionError
-          (py-str-from-scheme "division or modulo by zero")))
+          (py-str-from-scheme "float division by zero")))
+      (py-float-from-scheme (inexact (op x y))))))
+
+(define (mod-to-float op)
+  (lambda (x y) 
+    (if (= y 0)
+      (py-throw
+        (py-call py-builtin-ZeroDivisionError
+          (py-str-from-scheme "float modulo")))
       (py-float-from-scheme (inexact (op x y))))))
 
 (define (floor-div x y)
@@ -1269,20 +1296,20 @@
 (define-float-binary-operator float-add "__add__"            (result-to-float fl+))
 (define-float-binary-operator float-radd "__radd__"          (result-to-float fl+))
 (define-float-binary-operator float-add "__sub__"            (result-to-float fl-))
-(define-float-binary-operator float-rsub "__rsub__"          (result-to-float (reverse-args fl-)))
+(define-float-binary-operator-reverse float-rsub "__rsub__"  (result-to-float fl-))
 
 (define-float-binary-operator float-truediv "__truediv__"    (div-to-float fl/))
-(define-float-binary-operator float-rtruediv "__rtruediv__"  (reverse-args (div-to-float fl/)))
+(define-float-binary-operator-reverse float-rtruediv "__rtruediv__"  (div-to-float fl/))
 (define-float-binary-operator float-floordiv "__floordiv__"   (div-to-float floor-div)               )
-(define-float-binary-operator float-rfloordiv "__rfloordiv__" (reverse-args (div-to-float floor-div)))
+(define-float-binary-operator-reverse float-rfloordiv "__rfloordiv__" (div-to-float floor-div))
 
-(define-float-binary-operator float-mod "__mod__"            (div-to-float flmod))
-(define-float-binary-operator float-rmod "__rmod__"          (div-to-float (reverse-args flmod)))
+(define-float-binary-operator float-mod "__mod__"            (mod-to-float flmod))
+(define-float-binary-operator-reverse float-rmod "__rmod__"  (mod-to-float flmod))
 
 (define-float-binary-operator float-mul "__mul__"            (result-to-float fl*))
 (define-float-binary-operator float-rmul "__rmul__"          (result-to-float fl*))
 (define-float-binary-operator float-pow "__pow__"            (result-to-float flexpt))
-(define-float-binary-operator float-rpow "__rpow__"          (result-to-float (reverse-args flexpt)))
+(define-float-binary-operator-reverse float-rpow "__rpow__"  (result-to-float flexpt))
 
 (define-float-binary-operator float-eq "__eq__" (comparison-conversion fl=))
 (define-float-binary-operator float-eq "__ne__" (comparison-conversion fl!=))
@@ -1318,16 +1345,14 @@
 (define-float-unary-operator float-class "__class__" (lambda (x) py-float-class))
 
 (define-float-unary-operator float-int "__int__" (lambda (x) (py-int-from-scheme (exact (fltruncate x)))))
-(define-float-unary-operator float-trunk "__trunk__" (lambda (x) (py-float-from-scheme (fltruncate x))))
+(define-float-unary-operator float-trunk "__trunc__" (lambda (x) (py-float-from-scheme (fltruncate x))))
 (define-float-unary-operator float-round "__round__" (lambda (x) (py-float-from-scheme (flround x))))
 (define-float-unary-operator float-is_integer "is_integer" (lambda (x) (if (integer? x) py-True py-False)))
 
 ;; identity functions
 (define-float-unary-operator float-float "__float__" (unary-to-float (lambda (x) x)))
 (define-float-unary-operator float-pos "__pos__" (unary-to-float (lambda (x) x)))
-(define-float-unary-operator float-imag "imag" (unary-to-float (lambda (x) x)))
 (define-float-unary-operator float-conjugate "conjugate" (unary-to-float (lambda (x) x)))
-(define-float-unary-operator float-pos "real" (unary-to-float (lambda (x) x)))
 
 ;; =============================================================================
 ;; bool operations
@@ -4012,11 +4037,9 @@
         (& "__float__") float.__float__
         (& "__int__") float.__int__ 
         (& "__round__") float.__round__
-        (& "__trunk__") float.__trunk__
+        (& "__trunc__") float.__trunc__
         (& "conjugate") float.conjugate
-        (& "imag") float.imag 
         (& "is_integer") float.is_integer
-        (& "real") float.real
 
         ))
 
