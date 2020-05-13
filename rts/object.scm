@@ -3971,6 +3971,34 @@
 ;;;----------------------------------------------------------------------------
 
 ;; =============================================================================
+;;  Context managers (with) protocol
+;; =============================================================================
+
+(define (py-enter obj)
+  (let ((__enter__ (getattribute-from-obj-mro obj (& "__enter__"))))
+    (if (eq? __enter__ py-absent)
+      (py-throw
+        (py-call py-builtin-AttributeError
+          (py-str-from-scheme "__enter__")))
+      (py-call1 __enter__ obj))))
+
+(define (py-exit obj exc)
+  (let ((__exit__ (getattribute-from-obj-mro obj (& "__exit__"))))
+    (if (eq? __exit__ py-absent)
+      (py-throw
+        (py-call py-builtin-AttributeError
+          (py-str-from-scheme "__exit__")))
+      (if exc
+        (let* ((exc-type (object-class-fast-get exc))
+              (exc-traceback py-None) ;; TODO: pass traceback to __exit__ once it exists
+              (exit-res (py-call4 __exit__ obj exc-type exc exc-traceback)))
+          ;; __exit__ can return True to silence an exception
+          (if (py-test exit-res)
+            #f
+            (raise exc)))
+        (py-call4 __exit__ obj py-None py-None py-None)))))
+
+;; =============================================================================
 ;;  Singletons
 ;; =============================================================================
 

@@ -145,7 +145,9 @@
               (new-PycWithItem
                 loc
                 (sexp (car item) #f scope conf)
-                (and (cadr item) (sexp (cadr item) #f scope conf))))
+                (if (cadr item)
+                  (sexp (cadr item) #f scope conf)
+                  (new-PycUninit loc)))) ;; TODO: is that the correct usecase of PycUninit?
             items)
           (compile-stmt* loc body tail scope conf)))
        ;; With(withitem* items, stmt* body, string? type_comment)
