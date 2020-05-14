@@ -752,6 +752,7 @@ def get_token(ts):
 
         ts.end = pos
         ts.token = kind_to_token[k]
+        return
 
 def get_string(ts, pos, c, kind, regexpr):
 
