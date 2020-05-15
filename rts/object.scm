@@ -44,6 +44,15 @@
       (& "**value**"))
     '()))
 
+
+(define py-bytes-hclass-of-instances
+  (make-HClass
+    '#() ;; set later when classes exist
+    (vector
+      (& "**class**")
+      (& "**value**"))
+    '()))
+
 (define py-int-hclass-of-instances
   (make-HClass
     '#() ;; set later when classes exist
@@ -156,6 +165,7 @@
       (& "**index**"))
     '()))
 
+
 ;; Method for fast access to attributes defined in hidden classes
 ;; Those are unsafe methods
 
@@ -190,7 +200,7 @@
   (PyObject-elements-set! type 4 name))
 
 (define (class-__call__-fast-get class)
-  (PyObject-elements-ref class 5))
+  (PyObjectelements-ref class 5))
 
 (define (object-scheme-value-fast-get obj)
   (PyObject-elements-ref obj 1))
@@ -2289,6 +2299,7 @@
 (define py-type-class   #f)
 (define py-str-class    #f)
 (define py-tuple-class  #f)
+(define py-bytes-class  #f)
 (define py-int-class    #f)
 (define py-float-class  #f)
 (define py-bool-class   #f)
@@ -2334,7 +2345,6 @@
 
 (define (alloc-new-int-from-scheme value)
   (let ((self (py-obj-alloc py-int-class py-int-hclass-of-instances)))
-    (object-scheme-value-fast-set! self value)       ;; set **value**
     self))
 
 (define int-cache-low -5)
@@ -3924,6 +3934,61 @@
     slice-indices
     (make-posonly-signature #(self len))))
 
+;;======================
+;; Bytes operators
+;;======================
+
+(define (bytes-new cls arg1 arg2 arg3)
+  (if (or (eq? cls py-bytes-class) (py-issubclass? cls py-bytes-class))
+    (cond 
+      ((eq? arg1 py-absent)
+        (py-bytes-from-scheme (u8vector)))
+      ((eq? arg2 py-absent)
+        (py-bytes-from-scheme (list->u8vector (iota (object-scheme-value-fast-get arg1) 0 0))))
+      (else 
+        (error "builtin function __new__ from \"bytes\" doesnt not yet supported more then one argument")))
+    (py-throw-wrong-new-argument "bytes" cls)))
+
+
+(define bytes.__new__
+  (procedure->py-function
+    bytes-new
+    (make-posonly-defaults-signature
+      #(cls arg1 arg2 arg3)
+      (vector py-absent py-absent py-absent))))
+
+(define (bytes-add self other)
+  (if (and (py-isinstance? self py-bytes-class) (py-isinstance? other py-bytes-class))
+    (py-bytes-from-scheme (u8vector-append (object-scheme-value-fast-get self) (object-scheme-value-fast-get other)))
+    (py-throw py-builtin-TypeError)))
+
+
+(define bytes.__add__
+  (procedure->py-function
+    bytes-add
+    (make-posonly-signature
+      #(cls other))))
+
+;; TODO: check if this representation always work
+;; plot twist, it doesnt 
+;;    exemple : 
+;;    >>> x=b"\x00"
+;;    >>> x
+;;    b''     (in zipi)
+;;    b'\x00' (in cpython)
+(define (bytes-repr self)
+  (if (py-isinstance? self py-bytes-class)
+    (py-str-from-scheme (string-append "b'" (utf8->string (object-scheme-value-fast-get self)) "'"))
+    (py-throw-required-type "__repr__" "bytes" self)))
+
+
+
+(define bytes.__repr__
+  (procedure->py-function
+    bytes-repr
+    (make-posonly-signature #(self))))
+
+
 (define (bootstrap-type-hierarchy-phase2)
 
   ;; Fill in tuple class
@@ -4133,7 +4198,20 @@
       (& "set")
       (& "builtins")
       (list)
-      py-set-hclass-of-instances)))
+      py-set-hclass-of-instances))
+      
+   (set! py-bytes-class
+    (make-builtin-class
+      (& "bytes")
+      (& "builtins")
+      (list)
+      py-bytes-hclass-of-instances
+        (& "__new__") bytes.__new__
+        (& "__repr__") bytes.__repr__ 
+        (& "__add__") bytes.__add__
+      
+      
+      )))
 
 (bootstrap-type-hierarchy-phase2)
 (bootstrap-functions)
@@ -4327,6 +4405,11 @@
     (object-scheme-value-fast-set! tuple elements)
     tuple))
 
+(define (py-bytes-from-scheme elements)
+  (let ((bytes (py-obj-alloc py-bytes-class py-bytes-hclass-of-instances)))
+    (object-scheme-value-fast-set! bytes elements)
+    bytes))
+
 (define (py-make-dict keys vals)
   (py-dict-from-scheme keys vals))
 
@@ -4501,13 +4584,7 @@
 ;; See also Binary Sequence Types — bytes, bytearray, memoryview, Bytes
 ;; Objects, and Bytes and Bytearray Operations.
 
-(define py-builtin-bytes
-  (procedure->py-function
-    (lambda (source encoding errors)
-      (error "bytes" "not implemented" #f))
-    (make-posonly-defaults-signature
-      #(source encodings errors)
-      (vector py-absent py-absent py-absent))))
+(define py-builtin-bytes py-bytes-class)
 
 ;;-------------------- callable(object)
 

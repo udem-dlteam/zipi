@@ -417,11 +417,16 @@
 
 ;; TODO: all values are stored as int, float and complex are untreated
 (define-walk-method (scheme this::PycNumber conf)
-   (if (flonum? (PycLiteralValue-val this))
-      (epairify this
-        `(py-float-from-scheme ,(PycLiteralValue-val this)))
-   	  (epairify this
-    	`(py-int-from-scheme ,(PycLiteralValue-val this)))))
+   (cond 
+      ((flonum? (PycLiteralValue-val this))
+         (epairify this
+         `(py-float-from-scheme ,(PycLiteralValue-val this))))
+      ((bytevector? (PycLiteralValue-val this))
+         (epairify this
+         `(py-bytes-from-scheme ,(PycLiteralValue-val this))))
+   	(else 
+         (epairify this
+         `(py-int-from-scheme ,(PycLiteralValue-val this))))))
 
 (define-walk-method (scheme this::PycString conf)
    (epairify this
