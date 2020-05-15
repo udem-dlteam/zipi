@@ -3999,6 +3999,41 @@
         (py-call4 __exit__ obj py-None py-None py-None)))))
 
 ;; =============================================================================
+;;  IO
+;; =============================================================================
+;; TODO: content of this section should be moved to the io module
+
+(define py-TextIOWrapper-hclass-of-instances
+  (make-HClass
+    '#()
+    (vector
+      (& "**class**")
+      (& "**port**")
+      (& "**mode**")
+      (& "**encoding**"))
+    '()))
+
+(define py-TextIOWrapper-class
+  (make-builtin-class
+    (& "TextIOWrapper")
+    (& "_io")
+    ;; TODO: the correct mro is actually [<class '_io.TextIOWrapper'>, <class '_io._TextIOBase'>, <class '_io._IOBase'>, <class 'object'>]
+    (list)
+    py-TextIOWrapper-hclass-of-instances))
+
+;; TODO: incorrect open signature
+(define (py-open filename mode)
+  (cond
+    ((py-isinstance? filename py-str-class)
+      #t)
+    (else
+      (error "py-open" "only str filename supported" filename))))
+
+
+
+
+
+;; =============================================================================
 ;;  Singletons
 ;; =============================================================================
 
