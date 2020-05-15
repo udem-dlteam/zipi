@@ -84,6 +84,15 @@
       (& "**value**"))
     '()))
 
+
+(define py-bytearray-hclass-of-instances
+  (make-HClass
+    '#() ;; set later when classes exist
+    (vector
+      (& "**class**")
+      (& "**value**"))
+    '()))
+
 (define py-method-hclass-of-instances
   (make-HClass
     '#()
@@ -2290,6 +2299,7 @@
 (define py-str-class    #f)
 (define py-tuple-class  #f)
 (define py-int-class    #f)
+(define py-bytearray-class #f)
 (define py-float-class  #f)
 (define py-bool-class   #f)
 (define py-complex-class #f)
@@ -2365,6 +2375,11 @@
 (define (py-str-from-scheme string)
   (let ((self (py-obj-alloc py-str-class py-str-hclass-of-instances)))
     (object-scheme-value-fast-set! self string)       ;; set **value**
+    self))
+
+(define (py-bytearray-from-scheme bytearray)
+  (let ((self (py-obj-alloc py-bytearray-class py-bytearray-hclass-of-instances)))
+    (object-scheme-value-fast-set! self (cons (u8vector-length bytearray) bytearray))
     self))
 
 (define (py-str-to-scheme self)
@@ -3924,6 +3939,51 @@
     slice-indices
     (make-posonly-signature #(self len))))
 
+
+;; =========================
+;; bytearray operations
+;; =========================
+
+
+(define (bytearray-new cls arg1 arg2 agr3)
+  (if (py-issubclass? cls py-bytearray-class)
+    (cond 
+      ((eq? arg1 py-absent)
+        (py-bytearray-from-scheme #u8()))
+      ((eq? arg2 py-absent)
+      ;; check type
+        (py-bytearray-from-scheme (list->u8vector (iota (object-scheme-value-fast-get arg1) 0 0))))
+      (else 
+        (error "builtin function __new__ for 'bytearray' doesnt not yet support more then one argument "))  )
+    (py-throw-wrong-new-argument "bytearray" cls)))
+
+
+(define bytearray.__new__
+  (procedure->py-function
+    bytearray-new
+    (make-posonly-defaults-signature
+      #(cls arg1 arg2 arg3)
+      (vector py-absent py-absent py-absent))))
+
+(define (bytearray-getitem cls item) 
+  (if (py-isinstance? cls py-bytearray-class)
+    (if (py-isinstance? item py-int-class)
+      (let ((bytearray (object-scheme-value-fast-get cls))
+            (i (object-scheme-value-fast-get item)))
+        (if (index-in-length-range i (car bytearray))
+          (py-int-from-scheme (u8vector-ref (cdr bytearray) (modulo i (car bytearray))))
+          (py-throw-index-out-of-range "bytearray"))) 
+      (py-throw-wrong-index-type "bytearray" "integers" item))
+    (py-throw-not-a-type-object "bytearray.__getitem__" cls)))
+
+
+(define bytearray.__getitem__
+  (procedure->py-function 
+    bytearray-getitem
+    (make-posonly-signature
+      #(cls item))))
+
+
 (define (bootstrap-type-hierarchy-phase2)
 
   ;; Fill in tuple class
@@ -4133,7 +4193,19 @@
       (& "set")
       (& "builtins")
       (list)
-      py-set-hclass-of-instances)))
+      py-set-hclass-of-instances))
+      
+  (set! py-bytearray-class
+    (make-builtin-class
+      (& "bytearray")
+      (& "builtins")
+      (list)
+      py-set-hclass-of-instances
+        (& "__getitem__") bytearray.__getitem__
+        (& "__new__") bytearray.__new__
+        
+        ))
+      )
 
 (bootstrap-type-hierarchy-phase2)
 (bootstrap-functions)
@@ -4478,14 +4550,7 @@
 ;; See also Binary Sequence Types — bytes, bytearray, memoryview and
 ;; Bytearray Objects.
 
-(define py-builtin-bytearray
-  (procedure->py-function
-    (lambda (source encoding errors)
-      (error "bytearray" "not implemented" #f))
-    (make-posonly-defaults-signature
-      #(source encodings errors)
-      (vector py-absent py-absent py-absent))))
-
+(define py-builtin-bytearray py-bytearray-class)
 ;;-------------------- class bytes([source[, encoding[, errors]]])
 
 ;; Return a new “bytes” object, which is an immutable sequence of
