@@ -4025,6 +4025,35 @@
       (make-posonly-signature
         #(cls pos item))))
 
+(define (bytearray-append cls elem)
+  (cond 
+    ((not (py-isinstance? cls py-bytearray-class)) 
+      (py-throw-not-a-type-object "bytearray.append" cls))
+    ((not (py-isinstance? elem py-int-class))
+      (py-throw-basic py-builtin-TypeError "this type cannot be interpreted as an integer"))
+    (else 
+      (let* ((bytearray (object-scheme-value-fast-get cls))
+            (real-length (u8vector-length (cdr bytearray)))
+            (elem-int (object-scheme-value-fast-get elem)))
+        (cond  
+          ((not (py-int-in-byte-range? elem-int))
+            (py-throw-basic py-builtin-ValueError "byte must be in range(0, 255)"))
+          ((= real-length (car bytearray))
+              (object-scheme-value-fast-set!
+                cls 
+                (cons 
+                  (+ 1 (car bytearray))
+                  (u8vector-append (cdr bytearray) (list->u8vector (iota (car bytearray) elem-int 0))))))
+          (else 
+            (begin
+              (u8vector-set! (cdr bytearray) (car bytearray) elem-int)
+              (object-scheme-value-fast-set! cls (cons (+ 1 (car bytearray)) (cdr bytearray))))))))))
+
+(define bytearray.append
+  (procedure->py-function
+    bytearray-append
+    (make-posonly-signature
+      #(cls elem))))
 
 (define (bootstrap-type-hierarchy-phase2)
 
@@ -4246,7 +4275,7 @@
         (& "__getitem__") bytearray.__getitem__
         (& "__new__") bytearray.__new__
         (& "__setitem__") bytearray.__setitem__
-        
+        (& "append") bytearray.append
         ))
       )
 

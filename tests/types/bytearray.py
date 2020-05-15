@@ -43,3 +43,9 @@ g = 1
 for i in range(0, 255):
     g += a[i]
 
+y=bytearray()
+for i in range (0, 255):
+    y.append(i)
+
+for i in range(-260, 257):
+    print(y[i])
