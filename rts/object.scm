@@ -696,6 +696,12 @@
           (string-append
             fun-name " returned " qualifier " (type " type-name ")"))))))
 
+(define-macro (py-throw-basic throw-builtin . msg)
+  `(py-throw 
+    (py-call
+      ,throw-builtin
+      (py-str-from-scheme (string-append ,@msg)))))
+
 ;; -----------------------------------------------------------------------------
 
 (define (py-make-caches size)
@@ -3944,6 +3950,8 @@
 ;; bytearray operations
 ;; =========================
 
+(define (py-int-in-byte-range? value)
+  (and (<= 0 value) (>= 255 value)))
 
 (define (bytearray-new cls arg1 arg2 agr3)
   (if (py-issubclass? cls py-bytearray-class)
@@ -3951,8 +3959,17 @@
       ((eq? arg1 py-absent)
         (py-bytearray-from-scheme #u8()))
       ((eq? arg2 py-absent)
-      ;; check type
-        (py-bytearray-from-scheme (list->u8vector (iota (object-scheme-value-fast-get arg1) 0 0))))
+        (cond 
+          ((py-isinstance? arg1 py-int-class)
+            (let ((i (object-scheme-value-fast-get arg1)))
+              (if (<= 0 i)  
+                (py-bytearray-from-scheme (list->u8vector (iota i 0 0)))
+                (py-throw
+                  (py-call1
+                    py-builtin-ValueError
+                    (py-str-from-scheme "negative count"))))))
+          (else 
+            (error "builtin function __new__ just supports int as an argument"))))
       (else 
         (error "builtin function __new__ for 'bytearray' doesnt not yet support more then one argument "))  )
     (py-throw-wrong-new-argument "bytearray" cls)))
@@ -3976,12 +3993,37 @@
       (py-throw-wrong-index-type "bytearray" "integers" item))
     (py-throw-not-a-type-object "bytearray.__getitem__" cls)))
 
-
 (define bytearray.__getitem__
   (procedure->py-function 
     bytearray-getitem
     (make-posonly-signature
       #(cls item))))
+
+(define (bytearray-setitem cls pos item)
+  (cond 
+    ((not (py-isinstance? cls py-bytearray-class))
+      (py-throw-not-a-type-object "bytearray.__getitem__" cls))
+    ((not (py-isinstance? pos py-int-class))
+      (py-throw-wrong-index-type "bytearray" "integers" pos))
+    ((not (py-isinstance? item py-int-class))
+      (py-throw-type-error "int" item))
+    (else 
+      (let ((pos-int (object-scheme-value-fast-get pos))
+            (bytearray (object-scheme-value-fast-get cls))
+            (item-int (object-scheme-value-fast-get item)))
+        (cond
+          ((not (index-in-length-range pos-int (car bytearray)))
+            (py-throw-index-out-of-range "bytearray" ))
+          ((not (py-int-in-byte-range? item-int))
+            (py-throw-basic py-builtin-ValueError "byte must be in range(0, 255)"))
+          (else 
+            (u8vector-set! (cdr bytearray) pos-int item-int)))))))
+
+(define bytearray.__setitem__
+  (procedure->py-function
+    bytearray-setitem
+      (make-posonly-signature
+        #(cls pos item))))
 
 
 (define (bootstrap-type-hierarchy-phase2)
@@ -4203,6 +4245,7 @@
       py-set-hclass-of-instances
         (& "__getitem__") bytearray.__getitem__
         (& "__new__") bytearray.__new__
+        (& "__setitem__") bytearray.__setitem__
         
         ))
       )

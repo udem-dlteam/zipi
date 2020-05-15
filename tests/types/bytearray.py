@@ -8,7 +8,7 @@ d = bytearray(-10)
 e = bytearray("crash")
 f = bytearray(0.1)
 g = bytearray(-0.00001)
-
+h = bytearray()
 # set item
 
 a[10] = 3
