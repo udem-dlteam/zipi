@@ -247,8 +247,37 @@
                     (raise %exn)))
                 ,(in-contexts (cdr items) body))
                 (py-exit ,ctx-sym #f)))
+          ((PycRef? optional-vars)
+            (let ((decl (PycRef-decl optional-vars)))
+              (if (eq? (PycDecl-scope decl) 'global)
+                `(let ((,ctx-sym ,(scheme context-expr conf)))
+                   (global-put!
+                     %global
+                     ,(pyc-propname (PycDecl-id decl))
+                     (py-enter ,ctx-sym)
+                     ,(scheme-cache
+                       (PycRef-cache optional-vars)
+                       optional-vars))
+                   (with-handler
+                    (lambda (%exn)
+                      (if (PyObject? %exn)
+                        ;; it is the responsability of py-exit to re-raise the exc or not
+                        (py-exit ,ctx-sym %exn)
+                        (raise %exn)))
+                    ,(in-contexts (cdr items) body))
+                    (py-exit ,ctx-sym #f))
+                `(let ((,ctx-sym ,(scheme context-expr conf)))
+                   (set! ,(scheme-decl decl conf) (py-enter ,ctx-sym))
+                   (with-handler
+                    (lambda (%exn)
+                      (if (PyObject? %exn)
+                        ;; it is the responsability of py-exit to re-raise the exc or not
+                        (py-exit ,ctx-sym %exn)
+                        (raise %exn)))
+                    ,(in-contexts (cdr items) body))
+                    (py-exit ,ctx-sym #f)))))
           (else
-            (error "scheme::PycWith" "only supports assignation to variable" #f))))))
+            (error "scheme::PycWith" "only supports assignation to variable" optional-vars))))))
   (in-contexts (PycWith-items this) (PycWith-body this)))
 
 (define-walk-method (scheme this::PycTry conf)
