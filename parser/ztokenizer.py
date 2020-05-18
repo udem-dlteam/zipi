@@ -1,4 +1,228 @@
-import ztoken as token
+# List of integer codes for all tokens parsed by the tokenizer
+
+ENDMARKER = 0
+NAME = 1
+NUMBER = 2
+STRING = 3
+NEWLINE = 4
+INDENT = 5
+DEDENT = 6
+LPAR = 7
+RPAR = 8
+LSQB = 9
+RSQB = 10
+COLON = 11
+COMMA = 12
+SEMI = 13
+PLUS = 14
+MINUS = 15
+STAR = 16
+SLASH = 17
+VBAR = 18
+AMPER = 19
+LESS = 20
+GREATER = 21
+EQUAL = 22
+DOT = 23
+PERCENT = 24
+BACKQUOTE = 25
+LBRACE = 26
+RBRACE = 27
+EQEQUAL = 28
+NOTEQUAL = 29
+LESSEQUAL = 30
+GREATEREQUAL = 31
+TILDE = 32
+CIRCUMFLEX = 33
+LEFTSHIFT = 34
+RIGHTSHIFT = 35
+DOUBLESTAR = 36
+PLUSEQUAL = 37
+MINEQUAL = 38
+STAREQUAL = 39
+SLASHEQUAL = 40
+PERCENTEQUAL = 41
+AMPEREQUAL = 42
+VBAREQUAL = 43
+CIRCUMFLEXEQUAL = 44
+LEFTSHIFTEQUAL = 45
+RIGHTSHIFTEQUAL = 46
+DOUBLESTAREQUAL = 47
+DOUBLESLASH = 48
+DOUBLESLASHEQUAL = 49
+AT = 50
+OP = 51
+ERRORTOKEN = 52
+N_TOKENS = 53
+NT_OFFSET = 256
+ELLIPSIS = 54
+TYPE_COMMENT = 55
+
+FALSE = 56
+NONE = 57
+TRUE = 58
+AND = 59
+AS = 60
+ASSERT = 61
+BREAK = 62
+CLASS = 63
+CONTINUE = 64
+DEF = 65
+DEL = 66
+ELIF = 67
+ELSE = 68
+EXCEPT = 69
+FINALLY = 70
+FOR = 71
+FROM = 72
+GLOBAL = 73
+IF = 74
+IMPORT = 75
+IN = 76
+IS = 77
+LAMBDA = 78
+NONLOCAL = 79
+NOT = 80
+OR = 81
+PASS = 82
+RAISE = 83
+RETURN = 84
+TRY = 85
+WHILE = 86
+WITH = 87
+YIELD = 88
+ASYNC = 89
+AWAIT = 90
+
+tok_name = {}
+tok_name[ENDMARKER] = 'ENDMARKER'
+tok_name[NAME] = 'NAME'
+tok_name[NUMBER] = 'NUMBER'
+tok_name[STRING] = 'STRING'
+tok_name[NEWLINE] = 'NEWLINE'
+tok_name[INDENT] = 'INDENT'
+tok_name[DEDENT] = 'DEDENT'
+tok_name[LPAR] = 'LPAR'
+tok_name[RPAR] = 'RPAR'
+tok_name[LSQB] = 'LSQB'
+tok_name[RSQB] = 'RSQB'
+tok_name[COLON] = 'COLON'
+tok_name[COMMA] = 'COMMA'
+tok_name[SEMI] = 'SEMI'
+tok_name[PLUS] = 'PLUS'
+tok_name[MINUS] = 'MINUS'
+tok_name[STAR] = 'STAR'
+tok_name[SLASH] = 'SLASH'
+tok_name[VBAR] = 'VBAR'
+tok_name[AMPER] = 'AMPER'
+tok_name[LESS] = 'LESS'
+tok_name[GREATER] = 'GREATER'
+tok_name[EQUAL] = 'EQUAL'
+tok_name[DOT] = 'DOT'
+tok_name[PERCENT] = 'PERCENT'
+tok_name[BACKQUOTE] = 'BACKQUOTE'
+tok_name[LBRACE] = 'LBRACE'
+tok_name[RBRACE] = 'RBRACE'
+tok_name[EQEQUAL] = 'EQEQUAL'
+tok_name[NOTEQUAL] = 'NOTEQUAL'
+tok_name[LESSEQUAL] = 'LESSEQUAL'
+tok_name[GREATEREQUAL] = 'GREATEREQUAL'
+tok_name[TILDE] = 'TILDE'
+tok_name[CIRCUMFLEX] = 'CIRCUMFLEX'
+tok_name[LEFTSHIFT] = 'LEFTSHIFT'
+tok_name[RIGHTSHIFT] = 'RIGHTSHIFT'
+tok_name[DOUBLESTAR] = 'DOUBLESTAR'
+tok_name[PLUSEQUAL] = 'PLUSEQUAL'
+tok_name[MINEQUAL] = 'MINEQUAL'
+tok_name[STAREQUAL] = 'STAREQUAL'
+tok_name[SLASHEQUAL] = 'SLASHEQUAL'
+tok_name[PERCENTEQUAL] = 'PERCENTEQUAL'
+tok_name[AMPEREQUAL] = 'AMPEREQUAL'
+tok_name[VBAREQUAL] = 'VBAREQUAL'
+tok_name[CIRCUMFLEXEQUAL] = 'CIRCUMFLEXEQUAL'
+tok_name[LEFTSHIFTEQUAL] = 'LEFTSHIFTEQUAL'
+tok_name[RIGHTSHIFTEQUAL] = 'RIGHTSHIFTEQUAL'
+tok_name[DOUBLESTAREQUAL] = 'DOUBLESTAREQUAL'
+tok_name[DOUBLESLASH] = 'DOUBLESLASH'
+tok_name[DOUBLESLASHEQUAL] = 'DOUBLESLASHEQUAL'
+tok_name[AT] = 'AT'
+tok_name[OP] = 'OP'
+tok_name[ERRORTOKEN] = 'ERRORTOKEN'
+tok_name[ELLIPSIS] = 'ELLIPSIS'
+tok_name[TYPE_COMMENT] = 'TYPE_COMMENT'
+
+tok_name[FALSE] = 'FALSE'
+tok_name[NONE] = 'NONE'
+tok_name[TRUE] = 'TRUE'
+tok_name[AND] = 'AND'
+tok_name[AS] = 'AS'
+tok_name[ASSERT] = 'ASSERT'
+tok_name[BREAK] = 'BREAK'
+tok_name[CLASS] = 'CLASS'
+tok_name[CONTINUE] = 'CONTINUE'
+tok_name[DEF] = 'DEF'
+tok_name[DEL] = 'DEL'
+tok_name[ELIF] = 'ELIF'
+tok_name[ELSE] = 'ELSE'
+tok_name[EXCEPT] = 'EXCEPT'
+tok_name[FINALLY] = 'FINALLY'
+tok_name[FOR] = 'FOR'
+tok_name[FROM] = 'FROM'
+tok_name[GLOBAL] = 'GLOBAL'
+tok_name[IF] = 'IF'
+tok_name[IMPORT] = 'IMPORT'
+tok_name[IN] = 'IN'
+tok_name[IS] = 'IS'
+tok_name[LAMBDA] = 'LAMBDA'
+tok_name[NONLOCAL] = 'NONLOCAL'
+tok_name[NOT] = 'NOT'
+tok_name[OR] = 'OR'
+tok_name[PASS] = 'PASS'
+tok_name[RAISE] = 'RAISE'
+tok_name[RETURN] = 'RETURN'
+tok_name[TRY] = 'TRY'
+tok_name[WHILE] = 'WHILE'
+tok_name[WITH] = 'WITH'
+tok_name[YIELD] = 'YIELD'
+tok_name[ASYNC] = 'ASYNC'
+tok_name[AWAIT] = 'AWAIT'
+
+kw = {}
+kw['False'] = FALSE
+kw['None'] = NONE
+kw['True'] = TRUE
+kw['and'] = AND
+kw['as'] = AS
+kw['assert'] = ASSERT
+kw['break'] = BREAK
+kw['class'] = CLASS
+kw['continue'] = CONTINUE
+kw['def'] = DEF
+kw['del'] = DEL
+kw['elif'] = ELIF
+kw['else'] = ELSE
+kw['except'] = EXCEPT
+kw['finally'] = FINALLY
+kw['for'] = FOR
+kw['from'] = FROM
+kw['global'] = GLOBAL
+kw['if'] = IF
+kw['import'] = IMPORT
+kw['in'] = IN
+kw['is'] = IS
+kw['lambda'] = LAMBDA
+kw['nonlocal'] = NONLOCAL
+kw['not'] = NOT
+kw['or'] = OR
+kw['pass'] = PASS
+kw['raise'] = RAISE
+kw['return'] = RETURN
+kw['try'] = TRY
+kw['while'] = WHILE
+kw['with'] = WITH
+kw['yield'] = YIELD
+kw['async'] = ASYNC
+kw['await'] = AWAIT
 
 #------------------------------------------------------------------------------
 
@@ -25,8 +249,6 @@ def append_eol(buf):
 
 def init_stats():
 
-    global found, stats
-
     found = [0]*67
 
     stats = {}
@@ -45,6 +267,8 @@ def init_stats():
     stats['OTHER'] = 0
     stats['SPECIAL'] = 0
 
+    return [found, stats]
+
 def inc_found(index):
     found[index] += 1
 
@@ -55,10 +279,10 @@ def show_stats():
     print('\n***** STATISTICS *****')
     print('\n----- CHARACTER KINDS ENCOUNTERED:')
     for i in range(len(found)):
-        print("%8s = %s" % (str(found[i]), kind_names[i]))
+        print(str(found[i]), '=', kind_names[i])
     print('\n----- DISTRIBUTION OF CHARACTER KINDS TESTED:')
     for s in stats:
-        print("%8s = %s" % (repr(stats[s]), s))
+        print(repr(stats[s]), '=', s)
 
 #------------------------------------------------------------------------------
 
@@ -135,76 +359,76 @@ PLAIN_STRING   = 1
 UNICODE_STRING = 2
 
 # The array kind_to_token maps token kinds to the integer code that
-# identifies that token (defined in ztoken.py).
+# identifies that token (defined in zpy).
 
 kind_to_token = [
-token.NUMBER,
-token.NUMBER,
-token.NUMBER,
-token.NUMBER,
-token.NUMBER,
-token.NUMBER,
-token.NUMBER,
-token.NUMBER,
-token.NUMBER,
-token.NUMBER,
-token.NAME,
-token.STRING,
-token.DOT,
+NUMBER,
+NUMBER,
+NUMBER,
+NUMBER,
+NUMBER,
+NUMBER,
+NUMBER,
+NUMBER,
+NUMBER,
+NUMBER,
+NAME,
+STRING,
+DOT,
 999, # COMMENT
 999, # CONTINUATION
 999, # WHITESPACE
-token.NEWLINE,
-token.ERRORTOKEN,
-token.STAR,
-token.STAREQUAL,
-token.DOUBLESTAR,
-token.DOUBLESTAREQUAL,
-token.SLASH,
-token.SLASHEQUAL,
-token.DOUBLESLASH,
-token.DOUBLESLASHEQUAL,
-token.GREATER,
-token.GREATEREQUAL,
-token.RIGHTSHIFT,
-token.RIGHTSHIFTEQUAL,
-token.LESS,
-token.LESSEQUAL,
-token.LEFTSHIFT,
-token.LEFTSHIFTEQUAL,
-token.PERCENT,
-token.PERCENTEQUAL,
-token.AMPER,
-token.AMPEREQUAL,
-token.VBAR,
-token.VBAREQUAL,
-token.CIRCUMFLEX,
-token.CIRCUMFLEXEQUAL,
-token.EQUAL,
-token.EQEQUAL,
-token.PLUS,
-token.PLUSEQUAL,
-token.MINUS,
-token.MINEQUAL,
-999, # token.NOT,
-token.NOTEQUAL,
-token.AT,
-999, # token.ATEQUAL,
-token.TILDE,
-token.COMMA,
-token.COLON,
-token.BACKQUOTE,
-token.SEMI,
-token.LPAR,
-token.LSQB,
-token.LBRACE,
-token.RPAR,
-token.RSQB,
-token.RBRACE,
-token.ELLIPSIS,
-token.INDENT,
-token.DEDENT,
-token.ENDMARKER
+NEWLINE,
+ERRORTOKEN,
+STAR,
+STAREQUAL,
+DOUBLESTAR,
+DOUBLESTAREQUAL,
+SLASH,
+SLASHEQUAL,
+DOUBLESLASH,
+DOUBLESLASHEQUAL,
+GREATER,
+GREATEREQUAL,
+RIGHTSHIFT,
+RIGHTSHIFTEQUAL,
+LESS,
+LESSEQUAL,
+LEFTSHIFT,
+LEFTSHIFTEQUAL,
+PERCENT,
+PERCENTEQUAL,
+AMPER,
+AMPEREQUAL,
+VBAR,
+VBAREQUAL,
+CIRCUMFLEX,
+CIRCUMFLEXEQUAL,
+EQUAL,
+EQEQUAL,
+PLUS,
+PLUSEQUAL,
+MINUS,
+MINEQUAL,
+999, # NOT,
+NOTEQUAL,
+AT,
+999, # ATEQUAL,
+TILDE,
+COMMA,
+COLON,
+BACKQUOTE,
+SEMI,
+LPAR,
+LSQB,
+LBRACE,
+RPAR,
+RSQB,
+RBRACE,
+ELLIPSIS,
+INDENT,
+DEDENT,
+ENDMARKER
 ]
 
 # The array kind_names maps character kinds to their symbolic name, which
@@ -345,7 +569,8 @@ def make_char_kind():
 
     return char_kind
 
-char_kind = make_char_kind()
+# Precompute from make_char_kind()
+char_kind = [17, 17, 17, 17, 17, 17, 17, 17, 17, 15, 16, 17, 15, 16, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 15, 48, 11, 13, 17, 34, 36, 11, 57, 60, 18, 44, 53, 46, 12, 22, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 54, 56, 30, 42, 26, 17, 50, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 58, 14, 61, 40, 10, 17, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 59, 38, 62, 52, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17]
 
 #------------------------------------------------------------------------------
 
@@ -371,7 +596,7 @@ class TokenizerState:
         self.buf_len = len(buf)
         self.start = 0
         self.end = 0
-        self.token = token.NEWLINE
+        self.token = NEWLINE
         self.line_start = 0
         self.line_num = 0
         self.paren_level = 0
@@ -392,7 +617,7 @@ def get_token(ts):
 
     if ts.dedents > 0:
         ts.dedents -= 1
-        ts.token = token.DEDENT
+        ts.token = DEDENT
         return
 
     buf = ts.buf
@@ -447,10 +672,10 @@ def get_token(ts):
                 if n > 0:
                     ts.indents = [0]
                     ts.dedents = n-1
-                    ts.token = token.DEDENT
+                    ts.token = DEDENT
                     return
                 inc_found(KIND_EOF)  # .0004
-                ts.token = token.ENDMARKER
+                ts.token = ENDMARKER
                 return
 
             n = len(ts.indents)
@@ -460,7 +685,7 @@ def get_token(ts):
                 ts.indents.append(col)
                 ts.start = pos-1
                 ts.end = pos-1
-                ts.token = token.INDENT
+                ts.token = INDENT
                 return
 
             if col < ts.indents[i]:
@@ -472,14 +697,14 @@ def get_token(ts):
 
                 if ts.indents[i-1] != col:
                     print('inconsistent dedent')
-                    ts.token = token.ERRORTOKEN
+                    ts.token = ERRORTOKEN
                     return
 
                 ts.indents = ts.indents[:i]
                 ts.dedents = n-i-1
                 ts.start = pos-1
                 ts.end = pos-1
-                ts.token = token.DEDENT
+                ts.token = DEDENT
                 return
 
             k = char_kind[c]
@@ -505,7 +730,7 @@ def get_token(ts):
                 inc_found(KIND_EOF)  # .0004
                 ts.start = ts.buf_len
                 ts.end = ts.buf_len
-                ts.token = token.ENDMARKER
+                ts.token = ENDMARKER
                 return
 
         # Use the first character of the token to determine which kind
@@ -558,7 +783,7 @@ def get_token(ts):
 
             inc_found(KIND_NAME) # .4436
             ts.end = pos
-            ts.token = token.kw.get(buf[ts.start:pos], token.NAME)
+            ts.token = kw.get(buf[ts.start:pos], NAME)
             return
 
         # check for simple single char token, such as parentheses, comma and ~
@@ -598,13 +823,13 @@ def get_token(ts):
                     if pos > ts.buf_len: # at end of source?
                         ts.start = ts.buf_len
                         ts.end = ts.buf_len
-                        ts.token = token.ENDMARKER
+                        ts.token = ENDMARKER
                         return
-                    elif ts.paren_level > 0 or ts.token == token.NEWLINE:
+                    elif ts.paren_level > 0 or ts.token == NEWLINE:
                         continue # go to top of tokenizer's main loop
                     else:
                         ts.end = pos
-                        ts.token = token.NEWLINE
+                        ts.token = NEWLINE
                         return
 
                 if k == KIND_DOT: # 6% of tokens
@@ -618,17 +843,17 @@ def get_token(ts):
                                 break
                         inc_found(KIND_NUMBER)
                         ts.end = pos
-                        ts.token = token.NUMBER
+                        ts.token = NUMBER
                         return
                     elif next == 46 and byte_at(buf, pos+1) == 46: # '.'
                         inc_found(KIND_ELLIPSIS)
                         ts.end = pos+2
-                        ts.token = token.ELLIPSIS
+                        ts.token = ELLIPSIS
                         return
-                            
+
                     inc_found(KIND_DOT)
                     ts.end = pos
-                    ts.token = token.DOT
+                    ts.token = DOT
                     return
 
                 if k == KIND_STRING: # 4% of tokens
@@ -699,7 +924,7 @@ def get_token(ts):
 
                     inc_found(KIND_NUMBER) # .0268
                     ts.end = pos
-                    ts.token = token.NUMBER
+                    ts.token = NUMBER
                     return
 
                 if k == KIND_COMMENT: # 0.3% of tokens
@@ -813,4 +1038,4 @@ def get_string(ts, pos, c, kind, regexpr):
 
     ts.end = pos
 
-    ts.token = token.STRING
+    ts.token = STRING
