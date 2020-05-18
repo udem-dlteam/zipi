@@ -541,6 +541,9 @@
 ;; =============================================================================
 ;; Exception thrower helpers
 ;; =============================================================================
+(define (py-throw-exception-with-message exc-type message)
+  (py-throw (py-call exc-type (py-str-from-scheme message))))
+
 (define (py-throw-index-out-of-range type)
   (py-throw
     (py-call py-builtin-IndexError
@@ -1221,13 +1224,13 @@
     `(begin
       (define (,fun-name self other)
         (if (py-isinstance? self py-float-class)
-          (cond 
+          (cond
             ((py-isinstance? other py-float-class)
               (,float-float-op (object-scheme-value-fast-get self) (object-scheme-value-fast-get other)))
-            ((py-isinstance? other py-int-class)              
+            ((py-isinstance? other py-int-class)
               ;; If the operation is float-int, it converts the float into an int
               (,float-float-op (object-scheme-value-fast-get self) (fixnum->flonum (object-scheme-value-fast-get other))))
-              
+
             (else py-NotImplemented))
           (py-throw-required-type ,method-name "float" self)))
       (define ,py-func-name
@@ -1240,34 +1243,34 @@
     `(begin
       (define (,fun-name self other)
         (if (py-isinstance? self py-float-class)
-          (cond 
+          (cond
             ((py-isinstance? other py-float-class)
               (,float-float-op (object-scheme-value-fast-get other) (object-scheme-value-fast-get self)))
-            ((py-isinstance? other py-int-class)              
+            ((py-isinstance? other py-int-class)
               ;; If the operation is float-int, it converts the float into an int
               (,float-float-op (fixnum->flonum (object-scheme-value-fast-get other)) (object-scheme-value-fast-get self)))
-              
+
             (else py-NotImplemented))
           (py-throw-required-type ,method-name "float" self)))
       (define ,py-func-name
         (procedure->py-function
           ,fun-name
           (make-posonly-signature #(self other)))))))
-;; Helpers 
- 
-(define (reverse-args fun) 
+;; Helpers
+
+(define (reverse-args fun)
   (lambda (x y) (fun y x)))
 
 (define (result-to-float op)
   (lambda (x y) (py-float-from-scheme (op x y))))
 
 (define (comparison-conversion scheme-comp-op)
-  (lambda (x y) 
+  (lambda (x y)
     (if (scheme-comp-op x y) py-True py-False)))
 
 ;; int-or-float is the function of the conversion to sheme number to py numbers
 (define (div-to-float op)
-  (lambda (x y) 
+  (lambda (x y)
     (if (= y 0)
       (py-throw
         (py-call py-builtin-ZeroDivisionError
@@ -1275,7 +1278,7 @@
       (py-float-from-scheme (inexact (op x y))))))
 
 (define (mod-to-float op)
-  (lambda (x y) 
+  (lambda (x y)
     (if (= y 0)
       (py-throw
         (py-call py-builtin-ZeroDivisionError
@@ -1331,11 +1334,11 @@
           ,fun-name
           (make-posonly-signature #(self)))))))
 
-(define (unary-to-float op) 
+(define (unary-to-float op)
   (lambda (x) (py-float-from-scheme (op x))))
 
 (define (unary-to-bool x)
-  (if (fl= x 0.) 
+  (if (fl= x 0.)
     py-False
     py-True))
 
@@ -4033,7 +4036,7 @@
         (& "__bool__") float.__bool__
 
         (& "__float__") float.__float__
-        (& "__int__") float.__int__ 
+        (& "__int__") float.__int__
         (& "__round__") float.__round__
         (& "__trunc__") float.__trunc__
         (& "conjugate") float.conjugate
@@ -4146,6 +4149,153 @@
 (define py-int-4 (py-int-from-scheme 4))
 
 ;;;----------------------------------------------------------------------------
+
+;; =============================================================================
+;;  Context managers (with) protocol
+;; =============================================================================
+
+(define (py-enter obj)
+  (let ((__enter__ (getattribute-from-obj-mro obj (& "__enter__"))))
+    (if (eq? __enter__ py-absent)
+      (py-throw
+        (py-call py-builtin-AttributeError
+          (py-str-from-scheme "__enter__")))
+      (py-call1 __enter__ obj))))
+
+(define (py-exit obj exc)
+  (let ((__exit__ (getattribute-from-obj-mro obj (& "__exit__"))))
+    (if (eq? __exit__ py-absent)
+      (py-throw
+        (py-call py-builtin-AttributeError
+          (py-str-from-scheme "__exit__")))
+      (if exc
+        (let* ((exc-type (object-class-fast-get exc))
+              (exc-traceback py-None) ;; TODO: pass traceback to __exit__ once it exists
+              (exit-res (py-call4 __exit__ obj exc-type exc exc-traceback)))
+          ;; __exit__ can return True to silence an exception
+          (if (py-test exit-res)
+            #f
+            (raise exc)))
+        (py-call4 __exit__ obj py-None py-None py-None)))))
+
+;; =============================================================================
+;;  IO
+;; =============================================================================
+;; TODO: some content of this section should be moved to the io module
+
+(define (TextIOWrapper-enter self)
+  (if (py-isinstance? self py-TextIOWrapper-class)
+    self
+    (py-throw-not-a-type-object "TextIOWrapper.__enter__" self)))
+
+(define TextIOWrapper.__enter__
+  (procedure->py-function
+    TextIOWrapper-enter
+    (make-posonly-signature #(self))))
+
+(define (TextIOWrapper-close-port! self)
+  (let ((port (TextIOWrapper-port-fast-get self)))
+    ;; Some ports may stay open even after close-port, by dereferencing
+    ;; the port we make sure its ressources are freed by the gc
+    ;; we thus have to first check the port was not already closed (ie. set to #f)
+    ;; and then we fully close it by setting the port attribute to #f
+    (if port
+      (begin
+        (close-port port)
+        (TextIOWrapper-port-fast-set! self #f)))))
+
+(define (TextIOWrapper-exit self exc-type exc exc-traceback)
+  (if (py-isinstance? self py-TextIOWrapper-class)
+    (TextIOWrapper-close-port! self)
+    (py-throw-not-a-type-object "TextIOWrapper.__exit__" self))
+  py-None)
+
+(define TextIOWrapper.__exit__
+  (procedure->py-function
+    TextIOWrapper-exit
+    (make-posonly-signature #(self exc_type exc_value traceback))))
+
+(define (TextIOWrapper-close self)
+  (if (py-isinstance? self py-TextIOWrapper-class)
+    (TextIOWrapper-close-port! self)
+    (py-throw-not-a-type-object "TextIOWrapper.close" self))
+  py-None)
+
+(define TextIOWrapper.close
+  (procedure->py-function
+    TextIOWrapper-close
+    (make-posonly-signature #(self))))
+
+(define (TextIOWrapper-read self)
+  (if (py-isinstance? self py-TextIOWrapper-class)
+    (let ((port (TextIOWrapper-port-fast-get self)))
+      (if port
+        (let ((content (read-all port read-char)))
+          (py-str-from-scheme (list->string content)))
+        (py-throw-exception-with-message
+          py-builtin-ValueError
+          "I/O operation on closed file.")))
+    (py-throw-not-a-type-object "TextIOWrapper.read" self)))
+
+(define TextIOWrapper.read
+  (procedure->py-function
+    TextIOWrapper-read
+    (make-posonly-signature #(self))))
+
+(define py-TextIOWrapper-hclass-of-instances
+  (make-HClass
+    '#()
+    (vector
+      (& "**class**")
+      (& "**port**")
+      (& "**mode**")
+      (& "**encoding**"))
+    '()))
+
+(define (TextIOWrapper-port-fast-get obj)
+  (PyObject-elements-ref obj 1))
+
+(define (TextIOWrapper-port-fast-set! obj class)
+  (PyObject-elements-set! obj 1 class))
+
+(define (TextIOWrapper-mode-fast-get obj)
+  (PyObject-elements-ref obj 2))
+
+(define (TextIOWrapper-mode-fast-set! obj class)
+  (PyObject-elements-set! obj 2 class))
+
+(define (TextIOWrapper-encoding-fast-get obj)
+  (PyObject-elements-ref obj 3))
+
+(define (TextIOWrapper-encoding-fast-set! obj class)
+  (PyObject-elements-set! obj 3 class))
+
+(define py-TextIOWrapper-class
+  (make-builtin-class
+    (& "TextIOWrapper")
+    (& "_io")
+    ;; TODO: the correct mro is actually [<class '_io.TextIOWrapper'>, <class '_io._TextIOBase'>, <class '_io._IOBase'>, <class 'object'>]
+    (list)
+    py-TextIOWrapper-hclass-of-instances
+      (& "__enter__") TextIOWrapper.__enter__
+      (& "__exit__") TextIOWrapper.__exit__
+      (& "close") TextIOWrapper.close
+      (& "read") TextIOWrapper.read))
+
+;; TODO: arguments other than file are currentl ignored
+(define (py-open file mode buffering encoding errors newline closefd opener)
+  (cond
+    ((py-isinstance? file py-str-class)
+      (let ((filename (object-scheme-value-fast-get file)))
+        (let ((file-port (open-file filename)))
+          (let ((IOWrapper
+                  (py-obj-alloc
+                    py-TextIOWrapper-class
+                    py-TextIOWrapper-hclass-of-instances)))
+            (TextIOWrapper-port-fast-set! IOWrapper file-port)
+            IOWrapper))))
+    (else
+      (error "py-open" "only str filename supported" filename))))
 
 ;; =============================================================================
 ;;  Singletons
@@ -5673,8 +5823,7 @@
 
 (define py-builtin-open
   (procedure->py-function
-    (lambda (file mode buffering encoding errors newline closefd opener)
-      (error "open" "not implemented" #f))
+    py-open
     (make-args-defaults-signature
       #(file mode buffering encoding errors newline closefd opener)
       (vector

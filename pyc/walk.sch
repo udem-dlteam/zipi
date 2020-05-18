@@ -22,7 +22,7 @@
 ;*      BODY)                                                          */
 ;*---------------------------------------------------------------------*/
 (define-macro (define-walk-method args . body)
-   
+
    (define (parse-ident id)
       (let* ((string (symbol->string id))
 	     (len (string-length string)))

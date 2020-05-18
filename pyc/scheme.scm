@@ -212,10 +212,73 @@
 	   ,(scheme (PycIf-else this) conf))))
 
 (define-walk-method (scheme this::PycWith conf)
-   (epairify this
-      `(py-with ,(scheme (PycWith-expr this) conf)
-	  (lambda ()
-	     ,(scheme (PycWith-body this) conf)))))
+  (define (in-contexts items body)
+    (if (null? items)
+      (scheme body conf)
+      (let* ((item (car items))
+             (context-expr (PycWithItem-context-expr item))
+             (optional-vars (PycWithItem-optional-vars item))
+             (ctx-sym (my-gensym '%with-ctx)))
+        (cond
+          ((PycUninit? optional-vars)
+            `(let ((,ctx-sym ,(scheme context-expr conf)))
+               (py-enter ,ctx-sym)
+               (with-handler
+                (lambda (%exn)
+                  (if (PyObject? %exn)
+                    (py-exit ,ctx-sym %exn)
+                    (raise %exn)))
+                ,(in-contexts (cdr items) body))
+                (py-exit ,ctx-sym #f)))
+          ((PycRefUnresolved? optional-vars)
+            `(let ((,ctx-sym ,(scheme context-expr conf)))
+               (global-put!
+                 %global
+                 ,(pyc-propname (PycRefUnresolved-id optional-vars))
+                 (py-enter ,ctx-sym)
+                 ,(scheme-cache
+                   (PycRefUnresolved-cache optional-vars)
+                   optional-vars))
+               (with-handler
+                (lambda (%exn)
+                  (if (PyObject? %exn)
+                    ;; it is the responsability of py-exit to re-raise the exc or not
+                    (py-exit ,ctx-sym %exn)
+                    (raise %exn)))
+                ,(in-contexts (cdr items) body))
+                (py-exit ,ctx-sym #f)))
+          ((PycRef? optional-vars)
+            (let ((decl (PycRef-decl optional-vars)))
+              (if (eq? (PycDecl-scope decl) 'global)
+                `(let ((,ctx-sym ,(scheme context-expr conf)))
+                   (global-put!
+                     %global
+                     ,(pyc-propname (PycDecl-id decl))
+                     (py-enter ,ctx-sym)
+                     ,(scheme-cache
+                       (PycRef-cache optional-vars)
+                       optional-vars))
+                   (with-handler
+                    (lambda (%exn)
+                      (if (PyObject? %exn)
+                        ;; it is the responsability of py-exit to re-raise the exc or not
+                        (py-exit ,ctx-sym %exn)
+                        (raise %exn)))
+                    ,(in-contexts (cdr items) body))
+                    (py-exit ,ctx-sym #f))
+                `(let ((,ctx-sym ,(scheme context-expr conf)))
+                   (set! ,(scheme-decl decl conf) (py-enter ,ctx-sym))
+                   (with-handler
+                    (lambda (%exn)
+                      (if (PyObject? %exn)
+                        ;; it is the responsability of py-exit to re-raise the exc or not
+                        (py-exit ,ctx-sym %exn)
+                        (raise %exn)))
+                    ,(in-contexts (cdr items) body))
+                    (py-exit ,ctx-sym #f)))))
+          (else
+            (error "scheme::PycWith" "only supports assignation to variable" optional-vars))))))
+  (in-contexts (PycWith-items this) (PycWith-body this)))
 
 (define-walk-method (scheme this::PycTry conf)
 
