@@ -1,0 +1,3 @@
+Tests are executed from this location.
+The point of this file is to provide file to read for IO tests.
+It's not the cleanest, but temporary until we get unittest.autotest running.
