@@ -544,6 +544,30 @@
 (define (py-throw-exception-with-message exc-type message)
   (py-throw (py-call exc-type (py-str-from-scheme message))))
 
+(define (throw-unsupported-unary-operand x operator)
+  (let ((x-type-name (type-name-fast-get (py-type x))))
+    (py-throw
+      (py-call
+        py-builtin-TypeError
+        (py-str-from-scheme
+          (string-append
+            "bad operand type for for unary "
+            operator
+            ": '"
+            (py-str-to-scheme x-type-name)
+            "'"))))))
+
+(define (throw-unhashable x)
+  (let ((x-type-name (type-name-fast-get (py-type x))))
+    (py-throw
+      (py-call
+        py-builtin-TypeError
+        (py-str-from-scheme
+          (string-append
+            "unhashable type: '"
+            (py-str-to-scheme x-type-name)
+            "'"))))))
+
 (define (py-throw-index-out-of-range type)
   (py-throw
     (py-call py-builtin-IndexError
@@ -909,20 +933,6 @@
 (define-inplace-operator-protocol py-ixor "__ixor__" "__xor__" "__ixor__" "^=")
 
 ;; Unary operators
-
-(define (throw-unsupported-unary-operand x operator)
-  (let ((x-type-name (type-name-fast-get (py-type x))))
-    (py-throw
-      (py-call
-        py-builtin-TypeError
-        (py-str-from-scheme
-          (string-append
-            "bad operand type for for unary "
-            operator
-            ": '"
-            (py-str-to-scheme x-type-name)
-            "'"))))))
-
 (define-macro (define-unary-operator-protocol fun-name method operator)
   `(define (,fun-name x cache)
     (let ((__op__ (getattribute-from-obj-mro x (& ,method))))
@@ -943,6 +953,22 @@
     (if (eq? __abs__ py-absent)
         (throw-unsupported-unary-operand x "abs()")
         (py-call __abs__ x))))
+
+;; Biggest fixnum Mersene prime
+;; See explanation here: https://stackoverflow.com/a/37614051/5079316
+(define max-hash (- (expt 2 61) 1))
+
+(define (py-hash x)
+  (let ((__hash__ (getattribute-from-obj-mro x (& "__hash__"))))
+    (if (eq? __hash__ py-absent)
+        (throw-unhashable x)
+        (let ((h (py-call __hash__ x)))
+          (if (py-isinstance? h py-int-class)
+            (let ((h-value (object-scheme-value-fast-get h)))
+              (py-int-from-scheme (remainder h-value max-hash)))
+            (else
+              (py-throw-exception-with-message
+                "__hash__ method should return an integer")))))))
 
 ;; =============================================================================
 ;; int operations
@@ -1154,6 +1180,9 @@
 (define-int-unary-operator int-pos "__pos__" +)
 
 (define-int-unary-operator int-abs "__abs__" abs)
+
+(define-int-unary-operator int-hash "__hash__"
+  (lambda (x) (remainder x max-hash)))
 
 (define (int-repr self)
   (if (py-isinstance? self py-int-class)
@@ -3994,6 +4023,7 @@
         (& "__pos__") int.__pos__
         (& "__invert__") int.__invert__
         (& "__abs__") int.__abs__
+        (& "__hash__") int.__hash__
         (& "__truediv__") int.__truediv__
         (& "__itruediv__") int.__itruediv__
         (& "__repr__") int.__repr__))
@@ -5244,8 +5274,7 @@
 
 (define py-builtin-hash
   (procedure->py-function
-    (lambda (object)
-      (error "hash" "not implemented" #f))
+    py-hash
     (make-posonly-signature #(object))))
 
 ;;-------------------- help([object])
