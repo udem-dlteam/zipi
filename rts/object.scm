@@ -962,7 +962,7 @@
   (let ((__hash__ (getattribute-from-obj-mro x (& "__hash__"))))
     (if (eq? __hash__ py-absent)
         (throw-unhashable x)
-        (let ((h (py-call __hash__ x)))
+        (let ((h (py-call1 __hash__ x)))
           (if (py-isinstance? h py-int-class)
             (let ((h-value (object-scheme-value-fast-get h)))
               (py-int-from-scheme (remainder h-value max-hash)))
@@ -2403,20 +2403,13 @@
   (object-scheme-value-fast-get self))
 
 (define (py-tuple-to-scheme self)
-  (PyObject-elements-ref self 1))
+  (object-scheme-value-fast-get self))
 
 (define (py-list-to-scheme self)
-  (PyObject-elements-ref self 1))
-
-(define (py-dict-from-scheme keys vals)
-  (let ((elems (map cons keys vals)))
-    (let ((self (py-obj-alloc py-dict-class py-dict-hclass-of-instances)))
-      (PyObject-elements-set! self 1 elems)          ;; set **elems**
-      (PyObject-elements-set! self 2 py-dict-class)  ;; set __class__
-    self)))
+  (object-scheme-value-fast-get self))
 
 (define (py-dict-to-scheme self)
-  (PyObject-elements-ref self 1))
+  (object-scheme-value-fast-get self))
 
 (define (py-set-from-scheme elems)
   (let ((self (py-obj-alloc py-set-class py-set-hclass-of-instances)))
@@ -2425,7 +2418,7 @@
     self))
 
 (define (py-set-to-scheme self)
-  (PyObject-elements-ref self 1))
+  (object-scheme-value-fast-get self))
 
 ;; Bootstraps type and object
 ;; Create barebone object, type, str and tuple classes
@@ -2751,7 +2744,7 @@
 (define min-list-inner-length 5)
 (define list-empty-cell (cons 'empty-cell '()))
 
-(define (get-inner-len len)
+(define (get-dvec-inner-len len)
   (+
     min-list-inner-length
     (inexact->exact (round (* len list-growth-factor)))))
@@ -2761,7 +2754,7 @@
 
 (define (list->dynamic-vector elements)
   (let* ((len (length elements))
-        (vec-len (get-inner-len len))
+        (vec-len (get-dvec-inner-len len))
         (vec (make-vector vec-len list-empty-cell)))
     (let loop ((i 0) (elements elements))
       (if (null? elements)
@@ -2776,7 +2769,7 @@
         (len2 (car container2))
         (v2 (cdr container2))
         (total-len (+ len1 len2))
-        (vec-len (get-inner-len total-len))
+        (vec-len (get-dvec-inner-len total-len))
         (vec (make-vector vec-len list-empty-cell)))
     (let loop1 ((target-pos 0) (source-pos 0))
       (if (< source-pos len1)
@@ -2801,7 +2794,7 @@
     lst))
 
 (define (vector-head->dynamic-vector vec stop)
-  (let ((inner-len (get-inner-len stop)))
+  (let ((inner-len (get-dvec-inner-len stop)))
     (cons
       stop
       (vector-append
@@ -2913,7 +2906,7 @@
   (let* ((len (car c))
          (vec (cdr c))
          (total-len (* len n))
-         (target-inner-len (get-inner-len total-len))
+         (target-inner-len (get-dvec-inner-len total-len))
          (out (make-vector target-inner-len list-empty-cell)))
     (let loop ((target-pos 0))
       (if (< target-pos total-len)
@@ -3048,7 +3041,7 @@
 
 (define (dynamic-vector-slice vec start stop step)
   (let* ((len (max 0 (ceiling (/ (- stop start) step))))
-        (inner-len (get-inner-len len))
+        (inner-len (get-dvec-inner-len len))
         (out (make-vector inner-len list-empty-cell)))
     (let loop ((source start) (target 0))
       (if (< target len)
@@ -3222,13 +3215,13 @@
 (define (dynamic-vector-shrink! dvec)
   (let* ((len (car dvec))
         (vec (cdr dvec))
-        (new-inner-len (get-inner-len len)))
+        (new-inner-len (get-dvec-inner-len len)))
     (set-cdr! dvec (subvector vec 0 new-inner-len))))
 
 (define (dynamic-vector-grow! dvec)
   (let* ((len (car dvec))
         (vec (cdr dvec))
-        (new-inner-len (get-inner-len len)))
+        (new-inner-len (get-dvec-inner-len len)))
     (set-cdr!
       dvec
       (vector-append vec (make-vector (- new-inner-len len) list-empty-cell)))))
@@ -3236,7 +3229,7 @@
 (define (dynamic-vector-grow-by! dvec amount)
   (let* ((len (car dvec))
         (vec (cdr dvec))
-        (new-inner-len (get-inner-len (+ len amount))))
+        (new-inner-len (get-dvec-inner-len (+ len amount))))
     (set-cdr!
       dvec
       (vector-append vec (make-vector (- new-inner-len len) list-empty-cell)))))
@@ -4181,6 +4174,98 @@
 ;;;----------------------------------------------------------------------------
 
 ;; =============================================================================
+;;  Dict
+;; =============================================================================
+
+;; Dict are internally implemented as scheme tables which point to a linked-list
+;; the encapsulated value of a dict is a #(table first last)
+;; the entries are #(key value prev next) vectors, the two last elements
+;; are pointers to the previous and next elements to have been entered in the dict
+;; this allows for order-preserving dict (standard as of Python3.7)
+
+;; define a doubly-linked-list type for order-preservation
+(define-type doubly-linked-list-node value next prev)
+
+(define (doubly-linked-list-node-remove! node)
+  (let ((prev (doubly-linked-list-node-prev node))
+        (next (doubly-linked-list-node-next node)))
+    (if prev
+      (doubly-linked-list-node-next-set! prev next))
+    (if next
+      (doubly-linked-list-node-prev-set! next prev))
+    (doubly-linked-list-last-set! node #f)
+    (doubly-linked-list-first-set! node #f)))
+
+(define-type doubly-linked-list first last)
+
+(define (doubly-linked-list-append! dll node)
+  (let ((first (doubly-linked-list-first dll)))
+    (if first
+      (let ((last (doubly-linked-list-last dll)))
+        (doubly-linked-list-last-set! dll node)
+        (doubly-linked-list-node-next-set! last node)
+        (doubly-linked-list-node-prev-set! node last))
+      (begin
+        (doubly-linked-list-first-set! dll node)
+        (doubly-linked-list-last-set! dll node)))))
+
+(define table-growth-factor 1.125)
+(define min-table-inner-length 5)
+
+(define (get-table-inner-len len)
+  (+
+    min-table-inner-length
+    (inexact->exact (round (* len table-growth-factor)))))
+
+(define (py-object->table-hash-key obj)
+  (object-scheme-value-fast-get (py-hash obj)))
+
+(define (dict-key-test key item)
+  (py-test (py-eq key (vector-ref item 0) #f)))
+
+(define (make-new-ordered-table length-hint)
+  (cons
+    (make-table
+      size: (get-table-inner-len length-hint)
+      test: dict-key-test
+      hash: (lambda (x) x))
+    (make-doubly-linked-list #f #f)))
+
+(define (py-dict-from-scheme key-value-pairs)
+  (let ((ordered-table (make-new-ordered-table (length key-value-pairs))))
+    (let loop ((key-value-pairs key-value-pairs))
+      (if (null? key-value-pairs)
+        (py-obj-alloc-with-value
+          py-dict-class
+          py-dict-hclass-of-instances
+          ordered-table)
+        (let* ((pair (car key-value-pairs))
+              (k (car pair))
+              (v (cdr pair)))
+          (ordered-table-setitem ordered-table k v)
+          (loop (cdr key-value-pairs)))))))
+
+(define (ordered-table-setitem ordered-table key value)
+  (let* ((table (car ordered-table))
+        (dll (cdr ordered-table))
+        (first (doubly-linked-list-first dll))
+        (last (doubly-linked-list-last dll))
+        (key-hash (py-object->table-hash-key key))
+        (existing-element (table-ref table key-hash py-absent)))
+    (if (eq? existing-element py-absent)
+      (let ((node (make-doubly-linked-list-node (cons key value) #f #f)))
+        (doubly-linked-list-append! dll node)
+        (table-set! table key-hash node))
+      (begin
+        (doubly-linked-list-node-remove! existing-element)
+        ;; NOTE: the key is not mutated, even if it is no tthe same object
+        (set-cdr!
+          (doubly-linked-list-node-value existing-element)
+          value)
+        (doubly-linked-list-append! dll existing-element))))
+  py-None)
+
+;; =============================================================================
 ;;  Context managers (with) protocol
 ;; =============================================================================
 
@@ -4507,8 +4592,7 @@
     (object-scheme-value-fast-set! tuple elements)
     tuple))
 
-(define (py-make-dict keys vals)
-  (py-dict-from-scheme keys vals))
+(define py-make-dict py-dict-from-scheme)
 
 (define (py-string-to-name s)
   (string->symbol s))
