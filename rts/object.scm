@@ -2229,6 +2229,7 @@
   (set! py-builtin-TypeError (py-own-attr-ref builtins-mod  (& "TypeError")))
   (set! py-builtin-IndexError (py-own-attr-ref builtins-mod  (& "IndexError")))
   (set! py-builtin-RuntimeError (py-own-attr-ref builtins-mod (& "RuntimeError")))
+  (set! py-builtin-KeyError (py-own-attr-ref builtins-mod (& "KeyError")))
   (set! py-builtin-AssertionError (py-own-attr-ref builtins-mod (& "AssertionError")))
 
   ;; Reuse sorted procedure for list.sort
@@ -3949,8 +3950,143 @@
     slice-indices
     (make-posonly-signature #(self len))))
 
-(define (bootstrap-type-hierarchy-phase2)
+;; =============================================================================
+;;  Dict
+;; =============================================================================
 
+;; Dict are internally implemented as scheme tables which point to a linked-list
+;; the encapsulated value of a dict is a #(table first last)
+;; the entries are #(key value prev next) vectors, the two last elements
+;; are pointers to the previous and next elements to have been entered in the dict
+;; this allows for order-preserving dict (standard as of Python3.7)
+
+;; define a doubly-linked-list type for order-preservation
+(define-type doubly-linked-list-node value next prev)
+
+(define (doubly-linked-list-node-remove! node)
+  (let ((prev (doubly-linked-list-node-prev node))
+        (next (doubly-linked-list-node-next node)))
+    (if prev
+      (doubly-linked-list-node-next-set! prev next))
+    (if next
+      (doubly-linked-list-node-prev-set! next prev))
+    (doubly-linked-list-node-next-set! node #f)
+    (doubly-linked-list-node-prev-set! node #f)))
+
+(define-type doubly-linked-list first last)
+
+(define (doubly-linked-list-append! dll node)
+  (let ((first (doubly-linked-list-first dll)))
+    (if first
+      (let ((last (doubly-linked-list-last dll)))
+        (doubly-linked-list-last-set! dll node)
+        (doubly-linked-list-node-next-set! last node)
+        (doubly-linked-list-node-prev-set! node last))
+      (begin
+        (doubly-linked-list-first-set! dll node)
+        (doubly-linked-list-last-set! dll node)))))
+
+(define table-growth-factor 1.125)
+(define min-table-inner-length 5)
+
+(define (get-table-inner-len len)
+  (+
+    min-table-inner-length
+    (inexact->exact (round (* len table-growth-factor)))))
+
+(define (py-object->table-hash-key obj)
+  (object-scheme-value-fast-get (py-hash obj)))
+
+;; TODO: This is VERY incorrect as it compares fixnum keys instead of doing py-eq comparison of keys
+(define (dict-key-test key item)
+  (= key item))
+
+(define (make-new-ordered-table length-hint)
+  (cons
+    (make-table
+      size: (get-table-inner-len length-hint)
+      test: dict-key-test
+      hash: (lambda (x) x))
+    (make-doubly-linked-list #f #f)))
+
+(define (py-dict-from-scheme key-value-pairs)
+  (let ((ordered-table (make-new-ordered-table (length key-value-pairs))))
+    (let loop ((key-value-pairs key-value-pairs))
+      (if (null? key-value-pairs)
+        (py-obj-alloc-with-value
+          py-dict-class
+          py-dict-hclass-of-instances
+          ordered-table)
+        (let* ((pair (car key-value-pairs))
+              (k (car pair))
+              (v (cdr pair)))
+          (ordered-table-setitem ordered-table k v)
+          (loop (cdr key-value-pairs)))))))
+
+(define (ordered-table-setitem ordered-table key value)
+  (let* ((table (car ordered-table))
+        (dll (cdr ordered-table))
+        (first (doubly-linked-list-first dll))
+        (last (doubly-linked-list-last dll))
+        (key-hash (py-object->table-hash-key key))
+        (existing-element (table-ref table key-hash py-absent)))
+    (if (eq? existing-element py-absent)
+      (let ((node (make-doubly-linked-list-node (cons key value) #f #f)))
+        (doubly-linked-list-append! dll node)
+        (table-set! table key-hash node))
+      (begin
+        (doubly-linked-list-node-remove! existing-element)
+        ;; NOTE: the key is not mutated, even if it is no tthe same object
+        (set-cdr!
+          (doubly-linked-list-node-value existing-element)
+          value)
+        (doubly-linked-list-append! dll existing-element)))))
+
+(define (dict-setitem self key value)
+  (if (py-isinstance? self py-dict-class)
+    (let ((ordered-table (object-scheme-value-fast-get self)))
+      (ordered-table-setitem ordered-table key value))
+    (py-throw-not-a-type-object "dict.__setitem__" self))
+  py-None)
+
+(define dict.__setitem__
+  (procedure->py-function
+    dict-setitem
+    (make-posonly-signature #(self key value))))
+
+(define (ordered-table-get ordered-table key default)
+  (let* ((table (car ordered-table))
+        (key-hash (py-object->table-hash-key key))
+        (element (table-ref table key-hash default)))
+    (if (eq? element py-absent)
+      (py-throw (py-call1 py-builtin-KeyError key))
+      (cdr (doubly-linked-list-node-value element)))))
+
+(define (dict-get self key default)
+    (if (py-isinstance? self py-dict-class)
+      (let ((ordered-table (object-scheme-value-fast-get self)))
+        (ordered-table-get ordered-table key default))
+      (py-throw-not-a-type-object "dict.get" self)))
+
+(define dict.get
+  (procedure->py-function
+    dict-get
+    (make-posonly-defaults-signature #(self key default) (vector py-absent))))
+
+(define (dict-__getitem__ self key)
+  (if (py-isinstance? self py-dict-class)
+    (let ((ordered-table (object-scheme-value-fast-get self)))
+      (ordered-table-get ordered-table key py-absent))
+    (py-throw-not-a-type-object "dict.__getitem__" self)))
+
+(define dict.__getitem__
+  (procedure->py-function
+    dict-__getitem__
+    (make-posonly-signature #(self key))))
+
+;; -----------------------------------------------------------------------------
+
+(define (bootstrap-type-hierarchy-phase2)
   ;; Fill in tuple class
   (py-own-attr-set! py-tuple-class (& "__iter__") tuple.__iter__)
   (py-own-attr-set! py-tuple-class (& "__contains__") tuple.__contains__)
@@ -4152,7 +4288,10 @@
       (& "dict")
       (& "builtins")
       (list)
-      py-dict-hclass-of-instances))
+      py-dict-hclass-of-instances
+        (& "__getitem__") dict.__getitem__
+        (& "__setitem__") dict.__setitem__
+        (& "get") dict.get))
 
   (set! py-set-class
     (make-builtin-class
@@ -4170,100 +4309,6 @@
 (define py-int-2 (py-int-from-scheme 2))
 (define py-int-3 (py-int-from-scheme 3))
 (define py-int-4 (py-int-from-scheme 4))
-
-;;;----------------------------------------------------------------------------
-
-;; =============================================================================
-;;  Dict
-;; =============================================================================
-
-;; Dict are internally implemented as scheme tables which point to a linked-list
-;; the encapsulated value of a dict is a #(table first last)
-;; the entries are #(key value prev next) vectors, the two last elements
-;; are pointers to the previous and next elements to have been entered in the dict
-;; this allows for order-preserving dict (standard as of Python3.7)
-
-;; define a doubly-linked-list type for order-preservation
-(define-type doubly-linked-list-node value next prev)
-
-(define (doubly-linked-list-node-remove! node)
-  (let ((prev (doubly-linked-list-node-prev node))
-        (next (doubly-linked-list-node-next node)))
-    (if prev
-      (doubly-linked-list-node-next-set! prev next))
-    (if next
-      (doubly-linked-list-node-prev-set! next prev))
-    (doubly-linked-list-last-set! node #f)
-    (doubly-linked-list-first-set! node #f)))
-
-(define-type doubly-linked-list first last)
-
-(define (doubly-linked-list-append! dll node)
-  (let ((first (doubly-linked-list-first dll)))
-    (if first
-      (let ((last (doubly-linked-list-last dll)))
-        (doubly-linked-list-last-set! dll node)
-        (doubly-linked-list-node-next-set! last node)
-        (doubly-linked-list-node-prev-set! node last))
-      (begin
-        (doubly-linked-list-first-set! dll node)
-        (doubly-linked-list-last-set! dll node)))))
-
-(define table-growth-factor 1.125)
-(define min-table-inner-length 5)
-
-(define (get-table-inner-len len)
-  (+
-    min-table-inner-length
-    (inexact->exact (round (* len table-growth-factor)))))
-
-(define (py-object->table-hash-key obj)
-  (object-scheme-value-fast-get (py-hash obj)))
-
-(define (dict-key-test key item)
-  (py-test (py-eq key (vector-ref item 0) #f)))
-
-(define (make-new-ordered-table length-hint)
-  (cons
-    (make-table
-      size: (get-table-inner-len length-hint)
-      test: dict-key-test
-      hash: (lambda (x) x))
-    (make-doubly-linked-list #f #f)))
-
-(define (py-dict-from-scheme key-value-pairs)
-  (let ((ordered-table (make-new-ordered-table (length key-value-pairs))))
-    (let loop ((key-value-pairs key-value-pairs))
-      (if (null? key-value-pairs)
-        (py-obj-alloc-with-value
-          py-dict-class
-          py-dict-hclass-of-instances
-          ordered-table)
-        (let* ((pair (car key-value-pairs))
-              (k (car pair))
-              (v (cdr pair)))
-          (ordered-table-setitem ordered-table k v)
-          (loop (cdr key-value-pairs)))))))
-
-(define (ordered-table-setitem ordered-table key value)
-  (let* ((table (car ordered-table))
-        (dll (cdr ordered-table))
-        (first (doubly-linked-list-first dll))
-        (last (doubly-linked-list-last dll))
-        (key-hash (py-object->table-hash-key key))
-        (existing-element (table-ref table key-hash py-absent)))
-    (if (eq? existing-element py-absent)
-      (let ((node (make-doubly-linked-list-node (cons key value) #f #f)))
-        (doubly-linked-list-append! dll node)
-        (table-set! table key-hash node))
-      (begin
-        (doubly-linked-list-node-remove! existing-element)
-        ;; NOTE: the key is not mutated, even if it is no tthe same object
-        (set-cdr!
-          (doubly-linked-list-node-value existing-element)
-          value)
-        (doubly-linked-list-append! dll existing-element))))
-  py-None)
 
 ;; =============================================================================
 ;;  Context managers (with) protocol
@@ -6717,6 +6762,8 @@
 (define py-builtin-IndexError #f)
 
 (define py-builtin-RuntimeError #f)
+
+(define py-builtin-KeyError #f)
 
 (define py-builtin-AssertionError #f)
 
