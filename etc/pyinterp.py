@@ -37,8 +37,13 @@ def run(code):
     def cont(rte):
         print('done!')
 
-    code(rte, cont)
+    trampoline(lambda: code(rte, cont))
 
+def trampoline(execution_point):
+    while execution_point is not None:
+        #print('execution_point = ' + repr(execution_point))
+        execution_point = execution_point()
+    #print('exiting trampoline')
 
 
 
@@ -159,14 +164,14 @@ def comp_expr(cte, ast):
 def gen_stmt_seq(cte, ast, code1, code2):
 
     def code(rte, cont):
-        code1(rte, lambda rte1: code2(rte1, cont))
+        return code1(rte, lambda rte1: code2(rte1, cont))
 
     return (cte, code)
 
 def gen_stmt_empty(cte, ast):
 
     def code(rte, cont):
-        cont(rte)
+        return cont(rte)
 
     return (cte, code)
 
@@ -175,7 +180,7 @@ def gen_stmt_empty(cte, ast):
 def gen_Pass(cte, ast):
 
     def code(rte, cont):
-        stmt_end(rte, cont, ast)
+        return stmt_end(rte, cont, ast)
 
     return (cte, code)
 
@@ -184,7 +189,7 @@ def gen_Pass(cte, ast):
 def gen_var_set(cte, ast, id, code1):
 
     def code(rte, cont):
-        code1(rte, lambda rte1, val1: sem_var_set(rte, cont, id, val1, ast))
+        return code1(rte, lambda rte1, val1: sem_var_set(rte, cont, id, val1, ast))
 
     return (cte, code)
 
@@ -193,7 +198,7 @@ def gen_var_set(cte, ast, id, code1):
 def gen_var_get(cte, ast, id):
 
     def code(rte, cont):
-        sem_var_get(rte, cont, id, ast)
+        return sem_var_get(rte, cont, id, ast)
 
     return (cte, code)
 
@@ -202,7 +207,7 @@ def gen_var_get(cte, ast, id):
 def gen_Expr(cte, ast, code1):
 
     def code(rte, cont):
-        code1(rte, lambda rte1, val1: cont(rte1))
+        return code1(rte, lambda rte1, val1: cont(rte1))
 
     return (cte, code)
 
@@ -228,37 +233,37 @@ def gen_BinOp(cte, ast, op, code1, code2):
         assert False, 'gen_BinOp unimplemented operator'
 
     def code(rte, cont):
-        code1(rte,
-              lambda rte1, val1:
-                code2(rte1,
-                      lambda rte2, val2:
-                        sem_op(rte2, cont, val1, val2, ast)))
+        return code1(rte,
+                     lambda rte1, val1:
+                       code2(rte1,
+                             lambda rte2, val2:
+                               sem_op(rte2, cont, val1, val2, ast)))
 
     return (cte, code)
 
 def sem_Add(rte, cont, val1, val2, ast):
     result = val1 + val2
-    expr_end(rte, cont, result, ast)
+    return expr_end(rte, cont, result, ast)
 
 def sem_Sub(rte, cont, val1, val2, ast):
     result = val1 - val2
-    expr_end(rte, cont, result, ast)
+    return expr_end(rte, cont, result, ast)
 
 def sem_Mult(rte, cont, val1, val2, ast):
     result = val1 * val2
-    expr_end(rte, cont, result, ast)
+    return expr_end(rte, cont, result, ast)
 
 def sem_Div(rte, cont, val1, val2, ast):
     result = val1 / val2
-    expr_end(rte, cont, result, ast)
+    return expr_end(rte, cont, result, ast)
 
 def sem_Mod(rte, cont, val1, val2, ast):
     result = val1 % val2
-    expr_end(rte, cont, result, ast)
+    return expr_end(rte, cont, result, ast)
 
 def sem_FloorDiv(rte, cont, val1, val2, ast):
     result = val1 // val2
-    expr_end(rte, cont, result, ast)
+    return expr_end(rte, cont, result, ast)
 
 
 
@@ -271,15 +276,15 @@ def gen_constant(cte, ast, val):
 
 def sem_constant(rte, cont, val, ast):
     result = val
-    expr_end(rte, cont, result, ast)
+    return expr_end(rte, cont, result, ast)
 
 def sem_var_set(rte, cont, id, val, ast):
     rte[id] = val
-    stmt_end(rte, cont, ast)
+    return stmt_end(rte, cont, ast)
 
 def sem_var_get(rte, cont, id, ast):
     result = rte[id]
-    expr_end(rte, cont, result, ast)
+    return expr_end(rte, cont, result, ast)
 
 
 
@@ -289,7 +294,7 @@ def expr_end(rte, cont, val, ast):
     # and waits for the user to click "next step" to continue execution.
     # Note that codeBoot will also use rte to show the value of variables.
 
-    gui_wait_for_click(ast, ': value = '+repr(val), lambda: cont(rte, val))
+    return gui_wait_for_click(ast, ': value = '+repr(val), lambda: cont(rte, val))
 
 
 def stmt_end(rte, cont, ast):
@@ -298,7 +303,7 @@ def stmt_end(rte, cont, ast):
     # and waits for the user to click "next step" to continue execution.
     # Note that codeBoot will also use rte to show the value of variables.
 
-    gui_wait_for_click(ast, '', lambda: cont(rte))
+    return gui_wait_for_click(ast, '', lambda: cont(rte))
 
 
 def gui_wait_for_click(ast, msg, continue_execution):
@@ -306,11 +311,11 @@ def gui_wait_for_click(ast, msg, continue_execution):
     print('at '+str(ast.lineno)+'.'+str(ast.col_offset+1)+'-'+str(ast.end_lineno)+'.'+str(ast.end_col_offset+1)+msg)
 
     if debug:
-        continue_execution()
+        return continue_execution  # trampoline will call continue_execution
     else:
         from threading import Timer
-        Timer(0.1, continue_execution).start()
-    
+        Timer(0.1, lambda: trampoline(continue_execution)).start()
+        return None  # exit trampoline
 
 
 def main():
