@@ -83,6 +83,16 @@ def comp_stmt(cte, ast):
         if debug: print('AST.Pass')
         return gen_Pass(cte, ast)
 
+    elif isinstance(ast, AST.Assign):
+        # Assign(expr* targets, expr value, string? type_comment)
+        if debug: print('AST.Assign')
+        if len(ast.targets) == 1 and isinstance(ast.targets[0], AST.Name):
+            id = ast.targets[0].id
+            (cte1, code1) = comp_expr(cte, ast.value)
+            return gen_var_set(cte1, ast, id, code1)
+        else:
+            assert False, 'comp_stmt only supports assigning to one variable'
+
     else:
         assert False, 'comp_stmt expected a statement AST'
 
@@ -104,6 +114,11 @@ def comp_expr(cte, ast):
         if debug: print('AST.UnaryOp')
         (cte1, code1) = comp_expr(cte, ast.operand)
         return gen_UnaryOp(cte2, ast, ast.op, code1, code2)
+
+    elif isinstance(ast, AST.Name):
+        # Name(identifier id, expr_context ctx)
+        if debug: print('AST.Name')
+        return gen_var_get(cte, ast, ast.id)
 
     elif isinstance(ast, AST.Num):
         if debug: print('AST.Num')
@@ -166,10 +181,28 @@ def gen_Pass(cte, ast):
 
 
 
-def gen_Expr(cte, ast, code_expr):
+def gen_var_set(cte, ast, id, code1):
 
     def code(rte, cont):
-        code_expr(rte, lambda rte1, val1: cont(rte1))
+        code1(rte, lambda rte1, val1: sem_var_set(rte, cont, id, val1, ast))
+
+    return (cte, code)
+
+
+
+def gen_var_get(cte, ast, id):
+
+    def code(rte, cont):
+        sem_var_get(rte, cont, id, ast)
+
+    return (cte, code)
+
+
+
+def gen_Expr(cte, ast, code1):
+
+    def code(rte, cont):
+        code1(rte, lambda rte1, val1: cont(rte1))
 
     return (cte, code)
 
@@ -238,6 +271,14 @@ def gen_constant(cte, ast, val):
 
 def sem_constant(rte, cont, val, ast):
     result = val
+    expr_end(rte, cont, result, ast)
+
+def sem_var_set(rte, cont, id, val, ast):
+    rte[id] = val
+    stmt_end(rte, cont, ast)
+
+def sem_var_get(rte, cont, id, ast):
+    result = rte[id]
     expr_end(rte, cont, result, ast)
 
 
