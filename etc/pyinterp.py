@@ -248,9 +248,7 @@ def expr_end(rte, cont, val, ast):
     # and waits for the user to click "next step" to continue execution.
     # Note that codeBoot will also use rte to show the value of variables.
 
-    print('expression at '+str(ast.lineno)+'.'+str(ast.col_offset+1)+': value = '+repr(val))
-
-    gui_wait_for_click(lambda: cont(rte, val))
+    gui_wait_for_click(ast, ': value = '+repr(val), lambda: cont(rte, val))
 
 
 def stmt_end(rte, cont, ast):
@@ -259,17 +257,18 @@ def stmt_end(rte, cont, ast):
     # and waits for the user to click "next step" to continue execution.
     # Note that codeBoot will also use rte to show the value of variables.
 
-    print('statement at '+str(ast.lineno)+'.'+str(ast.col_offset+1))
-
-    gui_wait_for_click(lambda: cont(rte))
+    gui_wait_for_click(ast, '', lambda: cont(rte))
 
 
-def gui_wait_for_click(continue_execution):
+def gui_wait_for_click(ast, msg, continue_execution):
+
+    print('at '+str(ast.lineno)+'.'+str(ast.col_offset+1)+'-'+str(ast.end_lineno)+'.'+str(ast.end_col_offset+1)+msg)
+
     if debug:
         continue_execution()
     else:
         from threading import Timer
-        Timer(1.0, continue_execution).start()
+        Timer(0.1, continue_execution).start()
     
 
 
