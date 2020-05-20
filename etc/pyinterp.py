@@ -114,6 +114,13 @@ def comp_stmt(cte, ast):
         (cte3, code3) = comp_stmt_seq(cte1, ast.orelse)
         return gen_if(cte3, ast, code1, code2, code3)
 
+    elif isinstance(ast, AST.Assert):
+        # Assert(expr test, expr? msg)
+        if debug: print('AST.Assert')
+        (cte1, code1) = comp_expr(cte, ast.test)
+        (cte2, code2) = comp_expr_opt(cte1, ast.msg)
+        return gen_assert(cte2, ast, code1, code2)
+
     else:
         assert False, 'comp_stmt expected a statement AST'
 
@@ -166,6 +173,11 @@ def comp_expr(cte, ast):
         print(dir(ast))
         assert False, 'comp_expr expected an expression AST'
 
+def comp_expr_opt(cte, ast):
+    if ast == None:
+        return (cte, None)
+    else:
+        return comp_expr(cte, ast)
 
 
 # Code generation functions.
@@ -234,10 +246,36 @@ def gen_if(cte, ast, code1, code2, code3):
 
 
 
+def gen_assert(cte, ast, code1, code2):
+
+    def code(rte, cont):
+
+        def call_assertion_error(rte, val):
+            raise AssertionError(val) # TODO: interface with interpreter exceptions
+
+        def dispatch(rte, val):
+            if sem_false(val):
+                if code2 is None:
+                    raise AssertionError # TODO: interface with interpreter exceptions
+                else:
+                    return code2(rte, call_assertion_error)
+            else:
+                return cont(rte)
+
+        return code1(rte, dispatch)
+
+    return (cte, code)
+
+
+
 def gen_var_set(cte, ast, id, code1):
 
     def code(rte, cont):
-        return code1(rte, lambda rte1, val1: sem_var_set(rte, cont, id, val1, ast))
+
+        def var_set(rte, val):
+            return sem_var_set(rte, cont, id, val, ast)
+
+        return code1(rte, var_set)
 
     return (cte, code)
 
