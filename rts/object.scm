@@ -696,7 +696,7 @@
           (string-append
             fun-name " returned " qualifier " (type " type-name ")"))))))
 
-(define-macro (py-throw-basic throw-builtin . msg)
+(define-macro (py-throw-exception-with-message throw-builtin . msg)
   `(py-throw 
     (py-call
       ,throw-builtin
@@ -2720,46 +2720,13 @@
       (& "__iter__") py-tuple-iterator-iter
       (& "__next__") py-tuple-iterator-next))
 
-;; list class
+;; ======================
+;; Dynamic vector helper
+;; =====================
+;; These classes are used for lists and bytearrays
 
-(define (index-in-length-range index len)
-  (and (< index len) (>= index (- len))))
-
-(define (py-index-in-subvector item vec start stop)
-  (let loop ((i start))
-    (cond
-      ((>= i stop)
-        #f)
-      ((py-test (py-eq (vector-ref vec i) item #f))
-        i)
-      (else
-        (loop (+ i 1))))))
-
-(define list-growth-factor 1.125)
-(define list-shrink-threshold 1.5)
-(define min-list-inner-length 5)
-(define list-empty-cell (cons 'empty-cell '()))
-
-(define (get-inner-len len)
-  (+
-    min-list-inner-length
-    (inexact->exact (round (* len list-growth-factor)))))
-
-(define (get-shrink-threshold-len inner-len)
-  (- (round (/ inner-len list-shrink-threshold)) min-list-inner-length))
-
-(define (list->dynamic-vector elements)
-  (let* ((len (length elements))
-        (vec-len (get-inner-len len))
-        (vec (make-vector vec-len list-empty-cell)))
-    (let loop ((i 0) (elements elements))
-      (if (null? elements)
-        (cons len vec)
-        (begin
-          (vector-set! vec i (car elements))
-          (loop (+ i 1) (cdr elements)))))))
-
-(define (concat-dynamic-vectors container1 container2)
+(define-macro (define-concat-vc vref vset func-name)
+`(define (,func-name container1 container2)
   (let* ((len1 (car container1))
         (v1 (cdr container1))
         (len2 (car container2))
@@ -2777,126 +2744,13 @@
         (begin
           (vector-set! vec target-pos (vector-ref v2 source-pos))
           (loop2 (+ target-pos 1) (+ source-pos 1)))))
-    (cons total-len vec)))
+    (cons total-len vec))))
 
-(define (py-make-list . elements)
-  (let ((len (length elements))
-        (len-vec-pair (list->dynamic-vector elements)))
-  (py-list-from-scheme len-vec-pair)))
+(define-concat-vc vector-ref vector-set! concat-dynamic-vectors)
+(define-concat-vc u8vector-ref u8vector-set! concat-dynamic-u8vectors)
 
-(define (py-list-from-scheme len-vec-pair)
-  (let ((lst (py-obj-alloc py-list-class py-list-hclass-of-instances)))
-    (object-scheme-value-fast-set! lst len-vec-pair)
-    lst))
 
-(define (vector-head->dynamic-vector vec stop)
-  (let ((inner-len (get-inner-len stop)))
-    (cons
-      stop
-      (vector-append
-        (subvector vec 0 stop)
-        (make-vector (- inner-len stop) list-empty-cell)))))
 
-(define (list-new cls iterable)
-  (if (or (eq? cls py-list-class) (py-issubclass? cls py-list-class))
-    (let ((iterable-type (py-type iterable)))
-      (cond
-        ((eq? iterable-type py-tuple-class)
-          (let ((vec (object-scheme-value-fast-get iterable)))
-            (py-obj-alloc-with-value
-              cls
-              py-list-hclass-of-instances
-              (vector-head->dynamic-vector vec (vector-length vec)))))
-        ((eq? iterable-type py-list-class)
-          (let* ((dvec (object-scheme-value-fast-get iterable))
-                 (len (car dvec))
-                 (vec (cdr dvec)))
-            (py-obj-alloc-with-value
-              cls
-              py-list-hclass-of-instances
-              (vector-head->dynamic-vector vec len))))
-        (else
-          (let* ((iterator (py-iter iterable))
-                 (content (list->vector (iterator->list iterator))))
-            (py-obj-alloc-with-value
-              cls
-              py-list-hclass-of-instances
-              (vector-head->dynamic-vector content (vector-length content)))))))
-    (py-throw-wrong-new-argument "list" cls)))
-
-(define list.__new__
-  (procedure->py-function
-    list-new
-    (make-posonly-defaults-signature #(cls value) (vector py-absent))))
-
-(define (list-iter self)
-  (if (py-isinstance? self py-list-class)
-    (let ((iterator (py-obj-alloc
-                        py-list-iterator-class
-                        py-list-iterator-hclass-of-instances)))
-      (list-iterator-list-fast-set! iterator self)
-      (list-iterator-index-fast-set! iterator 0)
-      iterator)
-    (py-throw-not-a-type-object "list.__iter__" self)))
-
-(define list.__iter__
-  (procedure->py-function
-    list-iter
-    (make-posonly-signature #(self))))
-
-;; TODO: use list real length instead of vector-length
-;; otherwise this will crash once list is an actual dynamic array
-(define (list-contains self item)
-  (if (py-isinstance? self py-list-class)
-    (let* ((len-vec-pair (object-scheme-value-fast-get self))
-           (len (car len-vec-pair))
-           (vec (cdr len-vec-pair)))
-      (let loop ((i 0))
-        (if (< i len)
-          (if (py-test (py-eq item (vector-ref vec i) #f))
-            py-True
-            (loop (+ i 1)))
-          py-False)))
-    (py-throw-not-a-type-object "list.__contains__" self)))
-
-(define list.__contains__
-  (procedure->py-function
-    list-contains
-    (make-posonly-signature #(self item))))
-
-;; TODO: print cyclic structures
-(define (list-repr self)
-  (if (py-isinstance? self py-list-class)
-    (let* ((len-vec-pair (object-scheme-value-fast-get self))
-           (len (car len-vec-pair))
-           (vec (cdr len-vec-pair))
-           (content-strs (vector-map py-repr (subvector vec 0 len)))
-           (content-strings (vector-map object-scheme-value-fast-get content-strs)))
-      (py-str-from-scheme
-        (string-append
-          "["
-          (string-join-vector ", " content-strings)
-          "]")))
-    (py-throw-not-a-type-object "list.__repr__" self)))
-
-(define list.__repr__
-  (procedure->py-function
-    list-repr
-    (make-posonly-signature #(self))))
-
-(define (list-add self other)
-  (if (py-isinstance? self py-list-class)
-    (if (py-isinstance? other py-list-class)
-      (let ((c1 (object-scheme-value-fast-get self))
-            (c2 (object-scheme-value-fast-get other)))
-        (py-list-from-scheme (concat-dynamic-vectors c1 c2)))
-      py-NotImplemented)
-    (py-throw-not-a-type-object "list.__add__" self)))
-
-(define list.__add__
-  (procedure->py-function
-    list-add
-    (make-posonly-signature #(self other))))
 
 (define (dynamic-vector*n c n)
   (let* ((len (car c))
@@ -2913,52 +2767,6 @@
               (inner-loop (+ source-pos 1)))
             (loop (+ target-pos len))))
         (cons total-len out)))))
-
-(define (list-mul self n)
-  (if (py-isinstance? self py-list-class)
-    (if (py-isinstance? n py-int-class)
-      (let ((c (object-scheme-value-fast-get self))
-            (n (object-scheme-value-fast-get n)))
-        (py-list-from-scheme (dynamic-vector*n c n)))
-      py-NotImplemented)
-    (py-throw-not-a-type-object "list.__mul__" self)))
-
-(define list.__mul__
-  (procedure->py-function
-    list-mul
-    (make-posonly-signature #(self n))))
-
-(define list.__rmul__
-  (procedure->py-function
-    list-mul
-    (make-posonly-signature #(self n))))
-
-(define (list-imul self n)
-  (if (py-isinstance? self py-list-class)
-    (if (py-isinstance? n py-int-class)
-      (let ((c (object-scheme-value-fast-get self))
-            (n (object-scheme-value-fast-get n)))
-        (object-scheme-value-fast-set! self (dynamic-vector*n c n))
-        self)
-      py-NotImplemented)
-    (py-throw-not-a-type-object "list.__mul__" self)))
-
-(define list.__imul__
-  (procedure->py-function
-    list-imul
-    (make-posonly-signature #(self n))))
-
-(define (list-len self)
-  (if (py-isinstance? self py-list-class)
-    (py-int-from-scheme
-      (car
-        (object-scheme-value-fast-get self)))
-    (py-throw-not-a-type-object "list.__len__" self)))
-
-(define list.__len__
-  (procedure->py-function
-    list-len
-    (make-posonly-signature #(self))))
 
 (define (dynamic-vector-py-eq? c1 c2)
   (let ((len1 (car c1))
@@ -3100,30 +2908,6 @@
       (vector-ref slice-indices 1)
       (vector-ref slice-indices 2))))
 
-(define (list-getitem self item)
-  (if (py-isinstance? self py-list-class)
-    (cond
-      ((py-isinstance? item py-int-class)
-        (let* ((container (object-scheme-value-fast-get self))
-               (len (car container))
-               (vec (cdr container))
-               (i (object-scheme-value-fast-get item)))
-          (if (index-in-length-range i len)
-            (vector-ref vec (modulo i len))
-            (py-throw-index-out-of-range "list"))))
-      ((py-isinstance? item py-slice-class)
-        (py-list-from-scheme
-          (dynamic-vector-py-slice
-            (object-scheme-value-fast-get self)
-            item)))
-      (else (py-throw-wrong-index-type "list" "integers or slices" item)))
-    (py-throw-not-a-type-object "list.__getitem__" self)))
-
-(define list.__getitem__
-  (procedure->py-function
-    list-getitem
-    (make-posonly-signature #(self item))))
-
 ;; slices of the form lst[1:4]
 (define (dynamic-vector-set-simple-slice! dvec start stop vec len)
   (let* ((self-vec (cdr dvec))
@@ -3153,60 +2937,6 @@
             (vector-set! self-vec tgt-index (vector-ref vec src-index))
             (loop (+ src-index 1) (+ tgt-index step)))))
       (py-throw-extended-slice-wrong-len len slice-len))))
-
-(define (list-set-slice self slice value)
-  (let* ((dvec (object-scheme-value-fast-get self))
-        (self-len (car dvec))
-        (indices (py-slice-indices slice self-len))
-        (start (vector-ref indices 0))
-        (stop (vector-ref indices 1))
-        (step (vector-ref indices 2))
-        (value-type (py-type value)))
-    (cond
-      ((eq? value-type py-list-class)
-        (let* ((value-dvec (object-scheme-value-fast-get value))
-              (value-len (car value-dvec))
-              (value-vec (cdr value-dvec)))
-          (if (eq? step 1)
-            (dynamic-vector-set-simple-slice! dvec start stop value-vec value-len)
-            (dynamic-vector-set-extended-slice! dvec start stop step value-vec value-len))))
-      ((eq? value-type py-tuple-class)
-        (let* ((value-vec (object-scheme-value-fast-get value))
-               (value-len (vector-length value-vec)))
-          (if (eq? step 1)
-            (dynamic-vector-set-simple-slice! dvec start stop value-vec value-len)
-            (dynamic-vector-set-extended-slice! dvec start stop step value-vec value-len))))
-      (else
-        (let ((iterator (py-obj->iterator value)))
-          (if iterator
-            (let* ((value-vec (list->vector (iterator->list iterator)))
-                  (value-len (vector-length value-vec)))
-              (if (eq? step 1)
-                (dynamic-vector-set-simple-slice! dvec start stop value-vec value-len)
-                (dynamic-vector-set-extended-slice! dvec start stop step value-vec value-len)))
-            (py-throw-can-only-assign-iterable)))))))
-
-(define (list-setitem self item value)
-  (if (py-isinstance? self py-list-class)
-    (cond
-      ((py-isinstance? item py-int-class)
-        (let* ((container (object-scheme-value-fast-get self))
-               (len (car container))
-               (vec (cdr container))
-               (i (object-scheme-value-fast-get item)))
-          (if (index-in-length-range i len)
-            (vector-set! vec (modulo i len) value)
-            (py-throw-action-out-of-range "list" "assignment"))))
-      ((py-isinstance? item py-slice-class)
-        (list-set-slice self item value))
-      (else (py-throw-wrong-index-type "list" "integers or slices" item)))
-    (py-throw-not-a-type-object "list.__setitem__" self))
-  py-None)
-
-(define list.__setitem__
-  (procedure->py-function
-    list-setitem
-    (make-posonly-signature #(self item value))))
 
 (define (dynamic-vector-shrink! dvec)
   (let* ((len (car dvec))
@@ -3325,6 +3055,348 @@
             (loop (+ read-index 1) (+ write-index 1))))
         ;; shift-left handles dynamic-vector-shrink
         (dynamic-vector-shift-left-by! dvec read-index slice-len)))))
+
+(define (extend-dynamic-vector-with-vector-head dvec source-vec stop)
+  (let* ((len (car dvec))
+        (vec (cdr dvec))
+        (inner-len (vector-length vec)))
+    (if (>= stop (- inner-len len))
+      (begin
+        (dynamic-vector-grow-by! dvec stop)
+        (set! vec (cdr dvec))))
+    (let loop ((i len) (j 0))
+      (if (< j stop)
+        (begin
+          (vector-set! vec i (vector-ref source-vec j))
+          (loop (+ i 1) (+ j 1)))))
+    (set-car! dvec (+ len stop))))
+
+(define (dynamic-vector-extend-with-iterable dvec iterable)
+  (let ((iterable-type (py-type iterable)))
+    (cond
+      ((eq? iterable-type py-tuple-class)
+        (let ((vec (object-scheme-value-fast-get iterable)))
+          (extend-dynamic-vector-with-vector-head
+            dvec
+            vec
+            (vector-length vec))))
+      ((eq? iterable-type py-list-class)
+        (let* ((other-dvec (object-scheme-value-fast-get iterable))
+               (len (car other-dvec))
+               (vec (cdr other-dvec)))
+          (extend-dynamic-vector-with-vector-head
+            dvec
+            vec
+            len)))
+      (else
+        (let* ((iterator (py-iter iterable))
+               (content (list->vector (iterator->list iterator))))
+          (extend-dynamic-vector-with-vector-head
+            dvec
+            content
+            (vector-length content)))))))
+
+(define (dynamic-vector-reverse! dvec)
+  (let ((len (car dvec))
+        (vec (cdr dvec)))
+    (let loop ((left 0) (right (- len 1)))
+      (if (< left right)
+        (begin
+          (let ((tmp (vector-ref vec left)))
+            (vector-set! vec left (vector-ref vec right))
+            (vector-set! vec right tmp))
+          (loop (+ left 1) (- right 1)))))))
+
+;; =================
+;; list class
+;; ================
+
+
+(define (index-in-length-range index len)
+  (and (< index len) (>= index (- len))))
+
+(define (py-index-in-subvector item vec start stop)
+  (let loop ((i start))
+    (cond
+      ((>= i stop)
+        #f)
+      ((py-test (py-eq (vector-ref vec i) item #f))
+        i)
+      (else
+        (loop (+ i 1))))))
+
+(define list-growth-factor 1.125)
+(define list-shrink-threshold 1.5)
+(define min-list-inner-length 5)
+(define list-empty-cell (cons 'empty-cell '()))
+
+(define (get-inner-len len)
+  (+
+    min-list-inner-length
+    (inexact->exact (round (* len list-growth-factor)))))
+
+(define (get-shrink-threshold-len inner-len)
+  (- (round (/ inner-len list-shrink-threshold)) min-list-inner-length))
+
+(define (list->dynamic-vector elements)
+  (let* ((len (length elements))
+        (vec-len (get-inner-len len))
+        (vec (make-vector vec-len list-empty-cell)))
+    (let loop ((i 0) (elements elements))
+      (if (null? elements)
+        (cons len vec)
+        (begin
+          (vector-set! vec i (car elements))
+          (loop (+ i 1) (cdr elements)))))))
+
+
+(define (py-make-list . elements)
+  (let ((len (length elements))
+        (len-vec-pair (list->dynamic-vector elements)))
+  (py-list-from-scheme len-vec-pair)))
+
+(define (py-list-from-scheme len-vec-pair)
+  (let ((lst (py-obj-alloc py-list-class py-list-hclass-of-instances)))
+    (object-scheme-value-fast-set! lst len-vec-pair)
+    lst))
+
+(define (vector-head->dynamic-vector vec stop)
+  (let ((inner-len (get-inner-len stop)))
+    (cons
+      stop
+      (vector-append
+        (subvector vec 0 stop)
+        (make-vector (- inner-len stop) list-empty-cell)))))
+
+(define (list-new cls iterable)
+  (if (or (eq? cls py-list-class) (py-issubclass? cls py-list-class))
+    (let ((iterable-type (py-type iterable)))
+      (cond
+        ((eq? iterable-type py-tuple-class)
+          (let ((vec (object-scheme-value-fast-get iterable)))
+            (py-obj-alloc-with-value
+              cls
+              py-list-hclass-of-instances
+              (vector-head->dynamic-vector vec (vector-length vec)))))
+        ((eq? iterable-type py-list-class)
+          (let* ((dvec (object-scheme-value-fast-get iterable))
+                 (len (car dvec))
+                 (vec (cdr dvec)))
+            (py-obj-alloc-with-value
+              cls
+              py-list-hclass-of-instances
+              (vector-head->dynamic-vector vec len))))
+        (else
+          (let* ((iterator (py-iter iterable))
+                 (content (list->vector (iterator->list iterator))))
+            (py-obj-alloc-with-value
+              cls
+              py-list-hclass-of-instances
+              (vector-head->dynamic-vector content (vector-length content)))))))
+    (py-throw-wrong-new-argument "list" cls)))
+
+(define list.__new__
+  (procedure->py-function
+    list-new
+    (make-posonly-defaults-signature #(cls value) (vector py-absent))))
+
+(define (list-iter self)
+  (if (py-isinstance? self py-list-class)
+    (let ((iterator (py-obj-alloc
+                        py-list-iterator-class
+                        py-list-iterator-hclass-of-instances)))
+      (list-iterator-list-fast-set! iterator self)
+      (list-iterator-index-fast-set! iterator 0)
+      iterator)
+    (py-throw-not-a-type-object "list.__iter__" self)))
+
+(define list.__iter__
+  (procedure->py-function
+    list-iter
+    (make-posonly-signature #(self))))
+
+;; TODO: use list real length instead of vector-length
+;; otherwise this will crash once list is an actual dynamic array
+(define (list-contains self item)
+  (if (py-isinstance? self py-list-class)
+    (let* ((len-vec-pair (object-scheme-value-fast-get self))
+           (len (car len-vec-pair))
+           (vec (cdr len-vec-pair)))
+      (let loop ((i 0))
+        (if (< i len)
+          (if (py-test (py-eq item (vector-ref vec i) #f))
+            py-True
+            (loop (+ i 1)))
+          py-False)))
+    (py-throw-not-a-type-object "list.__contains__" self)))
+
+(define list.__contains__
+  (procedure->py-function
+    list-contains
+    (make-posonly-signature #(self item))))
+
+;; TODO: print cyclic structures
+(define (list-repr self)
+  (if (py-isinstance? self py-list-class)
+    (let* ((len-vec-pair (object-scheme-value-fast-get self))
+           (len (car len-vec-pair))
+           (vec (cdr len-vec-pair))
+           (content-strs (vector-map py-repr (subvector vec 0 len)))
+           (content-strings (vector-map object-scheme-value-fast-get content-strs)))
+      (py-str-from-scheme
+        (string-append
+          "["
+          (string-join-vector ", " content-strings)
+          "]")))
+    (py-throw-not-a-type-object "list.__repr__" self)))
+
+(define list.__repr__
+  (procedure->py-function
+    list-repr
+    (make-posonly-signature #(self))))
+
+(define (list-add self other)
+  (if (py-isinstance? self py-list-class)
+    (if (py-isinstance? other py-list-class)
+      (let ((c1 (object-scheme-value-fast-get self))
+            (c2 (object-scheme-value-fast-get other)))
+        (py-list-from-scheme (concat-dynamic-vectors c1 c2)))
+      py-NotImplemented)
+    (py-throw-not-a-type-object "list.__add__" self)))
+
+(define list.__add__
+  (procedure->py-function
+    list-add
+    (make-posonly-signature #(self other))))
+
+
+(define (list-mul self n)
+  (if (py-isinstance? self py-list-class)
+    (if (py-isinstance? n py-int-class)
+      (let ((c (object-scheme-value-fast-get self))
+            (n (object-scheme-value-fast-get n)))
+        (py-list-from-scheme (dynamic-vector*n c n)))
+      py-NotImplemented)
+    (py-throw-not-a-type-object "list.__mul__" self)))
+
+(define list.__mul__
+  (procedure->py-function
+    list-mul
+    (make-posonly-signature #(self n))))
+
+(define list.__rmul__
+  (procedure->py-function
+    list-mul
+    (make-posonly-signature #(self n))))
+
+(define (list-imul self n)
+  (if (py-isinstance? self py-list-class)
+    (if (py-isinstance? n py-int-class)
+      (let ((c (object-scheme-value-fast-get self))
+            (n (object-scheme-value-fast-get n)))
+        (object-scheme-value-fast-set! self (dynamic-vector*n c n))
+        self)
+      py-NotImplemented)
+    (py-throw-not-a-type-object "list.__mul__" self)))
+
+(define list.__imul__
+  (procedure->py-function
+    list-imul
+    (make-posonly-signature #(self n))))
+
+(define (list-len self)
+  (if (py-isinstance? self py-list-class)
+    (py-int-from-scheme
+      (car
+        (object-scheme-value-fast-get self)))
+    (py-throw-not-a-type-object "list.__len__" self)))
+
+(define list.__len__
+  (procedure->py-function
+    list-len
+    (make-posonly-signature #(self))))
+
+;; NOTE: follows requirements of slice.indices(len)
+
+(define (list-getitem self item)
+  (if (py-isinstance? self py-list-class)
+    (cond
+      ((py-isinstance? item py-int-class)
+        (let* ((container (object-scheme-value-fast-get self))
+               (len (car container))
+               (vec (cdr container))
+               (i (object-scheme-value-fast-get item)))
+          (if (index-in-length-range i len)
+            (vector-ref vec (modulo i len))
+            (py-throw-index-out-of-range "list"))))
+      ((py-isinstance? item py-slice-class)
+        (py-list-from-scheme
+          (dynamic-vector-py-slice
+            (object-scheme-value-fast-get self)
+            item)))
+      (else (py-throw-wrong-index-type "list" "integers or slices" item)))
+    (py-throw-not-a-type-object "list.__getitem__" self)))
+
+(define list.__getitem__
+  (procedure->py-function
+    list-getitem
+    (make-posonly-signature #(self item))))
+
+
+(define (list-set-slice self slice value)
+  (let* ((dvec (object-scheme-value-fast-get self))
+        (self-len (car dvec))
+        (indices (py-slice-indices slice self-len))
+        (start (vector-ref indices 0))
+        (stop (vector-ref indices 1))
+        (step (vector-ref indices 2))
+        (value-type (py-type value)))
+    (cond
+      ((eq? value-type py-list-class)
+        (let* ((value-dvec (object-scheme-value-fast-get value))
+              (value-len (car value-dvec))
+              (value-vec (cdr value-dvec)))
+          (if (eq? step 1)
+            (dynamic-vector-set-simple-slice! dvec start stop value-vec value-len)
+            (dynamic-vector-set-extended-slice! dvec start stop step value-vec value-len))))
+      ((eq? value-type py-tuple-class)
+        (let* ((value-vec (object-scheme-value-fast-get value))
+               (value-len (vector-length value-vec)))
+          (if (eq? step 1)
+            (dynamic-vector-set-simple-slice! dvec start stop value-vec value-len)
+            (dynamic-vector-set-extended-slice! dvec start stop step value-vec value-len))))
+      (else
+        (let ((iterator (py-obj->iterator value)))
+          (if iterator
+            (let* ((value-vec (list->vector (iterator->list iterator)))
+                  (value-len (vector-length value-vec)))
+              (if (eq? step 1)
+                (dynamic-vector-set-simple-slice! dvec start stop value-vec value-len)
+                (dynamic-vector-set-extended-slice! dvec start stop step value-vec value-len)))
+            (py-throw-can-only-assign-iterable)))))))
+
+(define (list-setitem self item value)
+  (if (py-isinstance? self py-list-class)
+    (cond
+      ((py-isinstance? item py-int-class)
+        (let* ((container (object-scheme-value-fast-get self))
+               (len (car container))
+               (vec (cdr container))
+               (i (object-scheme-value-fast-get item)))
+          (if (index-in-length-range i len)
+            (vector-set! vec (modulo i len) value)
+            (py-throw-action-out-of-range "list" "assignment"))))
+      ((py-isinstance? item py-slice-class)
+        (list-set-slice self item value))
+      (else (py-throw-wrong-index-type "list" "integers or slices" item)))
+    (py-throw-not-a-type-object "list.__setitem__" self))
+  py-None)
+
+(define list.__setitem__
+  (procedure->py-function
+    list-setitem
+    (make-posonly-signature #(self item value))))
+
 
 (define (list-delitem self item)
   (if (py-isinstance? self py-list-class)
@@ -3512,45 +3584,6 @@
     list-insert
     (make-posonly-signature #(self index value))))
 
-(define (extend-dynamic-vector-with-vector-head dvec source-vec stop)
-  (let* ((len (car dvec))
-        (vec (cdr dvec))
-        (inner-len (vector-length vec)))
-    (if (>= stop (- inner-len len))
-      (begin
-        (dynamic-vector-grow-by! dvec stop)
-        (set! vec (cdr dvec))))
-    (let loop ((i len) (j 0))
-      (if (< j stop)
-        (begin
-          (vector-set! vec i (vector-ref source-vec j))
-          (loop (+ i 1) (+ j 1)))))
-    (set-car! dvec (+ len stop))))
-
-(define (dynamic-vector-extend-with-iterable dvec iterable)
-  (let ((iterable-type (py-type iterable)))
-    (cond
-      ((eq? iterable-type py-tuple-class)
-        (let ((vec (object-scheme-value-fast-get iterable)))
-          (extend-dynamic-vector-with-vector-head
-            dvec
-            vec
-            (vector-length vec))))
-      ((eq? iterable-type py-list-class)
-        (let* ((other-dvec (object-scheme-value-fast-get iterable))
-               (len (car other-dvec))
-               (vec (cdr other-dvec)))
-          (extend-dynamic-vector-with-vector-head
-            dvec
-            vec
-            len)))
-      (else
-        (let* ((iterator (py-iter iterable))
-               (content (list->vector (iterator->list iterator))))
-          (extend-dynamic-vector-with-vector-head
-            dvec
-            content
-            (vector-length content)))))))
 
 (define (list-extend self iterable)
   (if (py-isinstance? self py-list-class)
@@ -3595,17 +3628,6 @@
   (procedure->py-function
     list-remove
     (make-posonly-signature #(self item))))
-
-(define (dynamic-vector-reverse! dvec)
-  (let ((len (car dvec))
-        (vec (cdr dvec)))
-    (let loop ((left 0) (right (- len 1)))
-      (if (< left right)
-        (begin
-          (let ((tmp (vector-ref vec left)))
-            (vector-set! vec left (vector-ref vec right))
-            (vector-set! vec right tmp))
-          (loop (+ left 1) (- right 1)))))))
 
 (define (list-reverse self)
     (if (py-isinstance? self py-list-class)
@@ -3963,7 +3985,7 @@
           ((py-isinstance? arg1 py-int-class)
             (let ((i (object-scheme-value-fast-get arg1)))
               (if (<= 0 i)  
-                (py-bytearray-from-scheme (list->u8vector (iota i 0 0)))
+                (py-bytearray-from-scheme (make-u8vector i))
                 (py-throw
                   (py-call1
                     py-builtin-ValueError
@@ -3979,7 +4001,7 @@
   (procedure->py-function
     bytearray-new
     (make-posonly-defaults-signature
-      #(cls arg1 arg2 arg3)
+      #(cls source encoding errors)
       (vector py-absent py-absent py-absent))))
 
 (define (bytearray-getitem cls item) 
@@ -4015,7 +4037,7 @@
           ((not (index-in-length-range pos-int (car bytearray)))
             (py-throw-index-out-of-range "bytearray" ))
           ((not (py-int-in-byte-range? item-int))
-            (py-throw-basic py-builtin-ValueError "byte must be in range(0, 255)"))
+            (py-throw-exception-with-message py-builtin-ValueError "byte must be in range(0, 255)"))
           (else 
             (u8vector-set! (cdr bytearray) pos-int item-int)))))))
 
@@ -4023,14 +4045,14 @@
   (procedure->py-function
     bytearray-setitem
       (make-posonly-signature
-        #(cls pos item))))
+        #(self key value))))
 
 (define (bytearray-append cls elem)
   (cond 
     ((not (py-isinstance? cls py-bytearray-class)) 
       (py-throw-not-a-type-object "bytearray.append" cls))
     ((not (py-isinstance? elem py-int-class))
-      (py-throw-basic py-builtin-TypeError "this type cannot be interpreted as an integer"))
+      (py-throw-exception-with-message py-builtin-TypeError "this type cannot be interpreted as an integer"))
     (else 
       (let* ((bytearray (object-scheme-value-fast-get cls))
             (real-length (u8vector-length (cdr bytearray)))
@@ -4053,7 +4075,7 @@
   (procedure->py-function
     bytearray-append
     (make-posonly-signature
-      #(cls elem))))
+      #(self value))))
 
 (define (bootstrap-type-hierarchy-phase2)
 
