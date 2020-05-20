@@ -568,6 +568,26 @@
             (py-str-to-scheme x-type-name)
             "'"))))))
 
+(define (py-throw-not-an-integer obj)
+  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
+    (py-throw
+      (py-call py-builtin-TypeError
+        (py-str-from-scheme
+          (string-append
+            "'"
+            given-type
+            "' object cannot be interpreted as an integer"))))))
+
+(define (py-throw-has-no-len obj)
+  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
+    (py-throw
+      (py-call py-builtin-TypeError
+        (py-str-from-scheme
+          (string-append
+            "object of type '"
+            given-type
+            "' has no len()"))))))
+
 (define (py-throw-index-out-of-range type)
   (py-throw
     (py-call py-builtin-IndexError
@@ -1431,24 +1451,25 @@
 
 ;;;----------------------------------------------------------------------------
 
-;; WARNING: sometimes return a Python int, something Scheme int
-;;  this not only needs to be fixed, when doing it we need to check
-;; every place which used py-len
-(define (py-len obj)
+(define (py-maybe-len obj)
   (let ((__len__ (getattribute-from-obj-mro obj (& "__len__"))))
-    (cond
-          ((not (eq? __len__ py-absent))
-           (py-call1 __len__ obj))
-          ((eq? py-tuple-class (py-obj-cls obj))
-           (vector-length (py-tuple-to-scheme obj)))
-          ((eq? py-list-class (py-obj-cls obj))
-           (vector-length (py-list-to-scheme obj)))
-          ((eq? py-dict-class (py-obj-cls obj))
-           (length (py-dict-to-scheme obj)))
-          ((eq? py-set-class (py-obj-cls obj))
-           (length (py-set-to-scheme obj)))
+    (if (eq? __len__ py-absent)
+      py-absent
+      (let* ((len (py-call1 __len__ obj))
+             (len-type (py-type len)))
+        (cond
+          ((eq? len-type py-int-class)
+            len)
+          ((py-issubclass? len-type py-int-class)
+            (py-int-from-scheme (object-scheme-value-fast-get len)))
           (else
-           (error "len" "only object with __len__ method implemented" #f)))))
+            (py-throw-not-an-integer len)))))))
+
+(define (py-len obj)
+  (let ((len (py-maybe-len obj)))
+    (if (eq? len py-absent)
+      (py-throw-has-no-len obj)
+      len)))
 
 (define (py-getitem obj i cache)
   (let ((getitem (getattribute-from-obj-mro obj (& "__getitem__"))))
@@ -1644,15 +1665,6 @@
 ;; BOOL PROTOCOL
 ;; ================
 
-(define (object-bool self)
-   py-True)
-
-;; The Python object object.__bool__
-(define object.__bool__
-  (procedure->py-function
-    object-bool
-    (make-posonly-signature #(self))))
-
 (define (int-bool self)
     (if (py-isinstance? self py-int-class)
       (let ((value (object-scheme-value-fast-get self)))
@@ -1675,12 +1687,16 @@
   (cond
     ((eq? obj py-True) #t)
     ((eq? obj py-False) #f)
+    ((eq? (py-type obj) py-int-class) (not (eq? obj py-int-0)))
     (else
-      (let* ((py-bool (getattribute-from-obj-mro obj (& "__bool__")))
-             (test-value (py-call1 py-bool obj)))
-        (if (eq? test-value py-True)
-          #t
-          #f)))))
+      (let ((__bool__ (getattribute-from-obj-mro obj (& "__bool__"))))
+        (if (not (eq? __bool__ py-absent))
+          (let ((test-value (py-call1 __bool__ obj)))
+            (py-test test-value))
+          (let ((len (py-maybe-len obj)))
+            (if (eq? len py-absent)
+              #t
+              (py-test len))))))))
 
 (define (py-not obj cache)
   (if (py-test obj)
@@ -1885,6 +1901,18 @@
               (set! number-separators (- number-separators 1))))
           (loop (+ vec-pos 1) out-pos))
         out))))
+
+(define (str-len self)
+  (if (py-isinstance? self py-str-class)
+    (let* ((string (py-str-to-scheme self))
+           (string-len (string-length string)))
+      (py-int-from-scheme string-len))
+    (py-throw-required-type "__str__" "str" self)))
+
+(define str.__len__
+  (procedure->py-function
+    str-len
+    (make-posonly-signature #(self))))
 
 (define (integer->hex-string x)
   (string-append "0x" (number->string x 16)))
@@ -2469,7 +2497,6 @@
     (py-own-attr-set! object-class (& "__new__") object.__new__)
     (py-own-attr-set! object-class (& "__init__") object.__init__)
     (py-own-attr-set! object-class (& "__getattribute__") py-object-getattribute)
-    (py-own-attr-set! object-class (& "__bool__") object.__bool__)
     (py-own-attr-set! object-class (& "__repr__") object.__repr__)
     (py-own-attr-set! object-class (& "__str__") object.__str__)
 
@@ -2508,7 +2535,8 @@
     (py-own-attr-set! str-class (& "__module__") (py-str-from-scheme "builtins"))
     (py-own-attr-set! str-class (& "__new__") str.__new__)
     (py-own-attr-set! str-class (& "__str__") str.__str__)
-    (py-own-attr-set! str-class (& "__repr__") str.__repr__)))
+    (py-own-attr-set! str-class (& "__repr__") str.__repr__)
+    (py-own-attr-set! str-class (& "__len__") str.__len__)))
 
 (bootstrap-type-hierarchy-phase1)
 
@@ -6715,8 +6743,6 @@
       #f
       #())))
 
-;; TODO: when you see this and that py-len returns a PyObject,
-;; then use py-eq instead of =
 ;; TODO: also check if cPython allows args to be something else
 ;; then a tuple
 (define (BaseException-str self)
