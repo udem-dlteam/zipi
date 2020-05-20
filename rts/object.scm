@@ -1615,15 +1615,6 @@
 ;; BOOL PROTOCOL
 ;; ================
 
-(define (object-bool self)
-   py-True)
-
-;; The Python object object.__bool__
-(define object.__bool__
-  (procedure->py-function
-    object-bool
-    (make-posonly-signature #(self))))
-
 (define (int-bool self)
     (if (py-isinstance? self py-int-class)
       (let ((value (object-scheme-value-fast-get self)))
@@ -1646,12 +1637,17 @@
   (cond
     ((eq? obj py-True) #t)
     ((eq? obj py-False) #f)
+    ((eq? (py-type obj) py-int-class) (not (eq? obj py-int-0)))
     (else
-      (let* ((py-bool (getattribute-from-obj-mro obj (& "__bool__")))
-             (test-value (py-call1 py-bool obj)))
-        (if (eq? test-value py-True)
-          #t
-          #f)))))
+      (let ((__bool__ (getattribute-from-obj-mro obj (& "__bool__"))))
+        (if (not (eq? __bool__ py-absent))
+          (let ((test-value (py-call1 __bool__ obj)))
+            (py-test test-value))
+          (let ((__len__ (getattribute-from-obj-mro obj (& "__len__"))))
+            (if (not (eq? __len__ py-absent))
+              (let ((len (py-call1 __len__ obj)))
+                (py-test len))
+              #t)))))))
 
 (define (py-not obj cache)
   (if (py-test obj)
@@ -2446,7 +2442,6 @@
     (py-own-attr-set! object-class (& "__new__") object.__new__)
     (py-own-attr-set! object-class (& "__init__") object.__init__)
     (py-own-attr-set! object-class (& "__getattribute__") py-object-getattribute)
-    (py-own-attr-set! object-class (& "__bool__") object.__bool__)
     (py-own-attr-set! object-class (& "__repr__") object.__repr__)
     (py-own-attr-set! object-class (& "__str__") object.__str__)
 
