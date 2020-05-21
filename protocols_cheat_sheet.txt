@@ -1,0 +1,88 @@
+=== Arithmetic ===
+
+OPERATION     AST NODE               SPECIAL METHOD
+X + Y         BinOp/op=Add           __add__ __radd__
+X += Y        AugAssign/op=Add       __iadd__
+X - Y         BinOp/op=Sub           __sub__ __rsub__
+X += Y        AugAssign/op=Sub       __isub__
+X * Y         BinOp/op=Mul           __mul__ __rmul__
+X *= Y        AugAssign/op=Mul       __imul__
+X ** Y        BinOp/op=Pow           __pow__ __rpow__
+X **= Y       AugAssign/op=Pow       __ipow__
+X @ Y         BinOp/op=MatMult       __matmul__ __rmatmul__
+X @= Y        AugAssign/op=MatMult   __imatmul__
+X / Y         BinOp/op=Div           __truediv__ __rtruediv__
+X /= Y        AugAssign/op=Div       __itruediv__
+X // Y        BinOp/op=FloorDiv      __floordiv__ __rfloordiv__
+X //= Y       AugAssign/op=FloorDiv  __ifloordiv__
+X % Y         BinOp/op=Mod           __mod__ __rmod__
+X %= Y        AugAssign/op=Mod       __imod__
+X << Y        BinOp/op=LShift        __lshift__ __rlshift__
+X <<= Y       AugAssign/op=LShift    __ilshift__
+X >> Y        BinOp/op=RShift        __rshift__ __rrshift__
+X >>= Y       AugAssign/op=RShift    __irshift__
+X | Y         BinOp/op=BitOr         __or__ __ror__
+X |= Y        AugAssign/op=BitOr     __ior__
+X & Y         BinOp/op=BitAnd        __and__ __rand__
+X &= Y        AugAssign/op=BitAnd    __iand__
+X == Y        Compare/op=Eq          __eq__
+X != Y        Compare/op=NotEq       __ne__
+X < Y         Compare/op=Lt          __lt__
+X <= Y        Compare/op=LtE         __le__
+X > Y         Compare/op=Gt          __gt__
+X >= Y        Compare/op=GtE         __ge__
+X in Y        Compare/op=In          __contains__
+X not in Y    Compare/op=NotIn       __contains__
+-X            UnaryOp/op=USub        __neg__
++X            UnaryOp/op=UAdd        __pos__
+~X            UnaryOp/op=Invert      __invert__
+
+=== Builtins ===
+
+FUNCTION/CLASS    SPECIAL METHOD
+abs(X)            __abs__
+bool(X)           __bool__
+bytes(X)          __bytes__
+complex(X)        __complex__
+dir(X)            __dir__
+float(X)          __float__
+format(X)         __format__
+hash(X)           __hash__
+int(X)            __int__
+isinstance(X)     __instancecheck__
+issubclass(X)     __subclasscheck__
+iter(X)           __iter__
+len(X)            __len__
+next(X)           __next__
+repr(X)           __repr__
+reversed(X)       __reversed__
+round(X)          __round__
+str(X)            __str__
+
+=== Statements ===
+
+KEYWORD           SPECIAL METHOD
+with              __enter___ __exit__
+X.Y               __getattribute__ __getattr__ __get__
+X.Y = Z           __setattr__ __set__
+del X.Y           __delattr__ __delete__
+X[Y]              __getitem__ __missing__
+X[Y] = Z          __setitem__
+del X[Y]          __delitem__
+X()               __call__
+for X in Y        __iter__ __next__
+
+=== Instantication ===
+
+PROCESS
+constructor       __new__
+initializator     __init__
+
+== Others ===
+
+The content of this feel is not exhaustive, it does not cover the following:
+  - serialization methods used by pickle such as __reduce__
+  - metaclass related methods such as __prepare__ or __init_subclass__
+  - extra operators available only through the 'operator' and 'math' modules
+  - some memory management methods such as __del__ and __slots__
+  - coroutine and asychronous methods
