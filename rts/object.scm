@@ -2725,15 +2725,21 @@
 ;; =====================
 ;; These classes are used for lists and bytearrays
 
-(define-macro (define-concat-vc vref vset func-name)
-`(define (,func-name container1 container2)
+
+(define list-growth-factor 1.125)
+(define list-shrink-threshold 1.5)
+(define min-list-inner-length 5)
+(define list-empty-cell (cons 'empty-cell '()))
+
+(define-macro (define-concat-dynamic-vector vref vset vmake vempty-list name)
+`(define (,name container1 container2)
   (let* ((len1 (car container1))
         (v1 (cdr container1))
         (len2 (car container2))
         (v2 (cdr container2))
         (total-len (+ len1 len2))
         (vec-len (get-inner-len total-len))
-        (vec (make-vector vec-len list-empty-cell)))
+        (vec (,vmake vec-len ,vempty-list)))
     (let loop1 ((target-pos 0) (source-pos 0))
       (if (< source-pos len1)
         (begin
@@ -2746,48 +2752,58 @@
           (loop2 (+ target-pos 1) (+ source-pos 1)))))
     (cons total-len vec))))
 
-(define-concat-vc vector-ref vector-set! concat-dynamic-vectors)
-(define-concat-vc u8vector-ref u8vector-set! concat-dynamic-u8vectors)
+(define-concat-dynamic-vector vector-ref vector-set! vector-make list-empty-cell concat-dynamic-vectors)
+(define-concat-dynamic-vector u8vector-ref u8vector-set! u8vector-make 0 concat-dynamic-u8vectors)
 
 
+(define-macro (define-*n-dynamic-vector vref vset vmake vempty-list name)
+  `(define (,name c n)
+    (let* ((len (car c))
+          (vec (cdr c))
+          (total-len (* len n))
+          (target-inner-len (get-inner-len total-len))
+          (out (,vmake target-inner-len ,vempty-list)))
+      (let loop ((target-pos 0))
+        (if (< target-pos total-len)
+          (let inner-loop ((source-pos 0))
+            (if (< source-pos len)
+              (begin
+                (,vset out (+ target-pos source-pos) (,vref vec source-pos))
+                (inner-loop (+ source-pos 1)))
+              (loop (+ target-pos len))))
+          (cons total-len out))))))
 
+(define-*n-dynamic-vector vector-ref vector-set! make-vector list-empty-cell dynamic-vector*n)
+(define-*n-dynamic-vector u8vector-ref u8vector-set! make-u8vector 0 dynamic-u8vector*n)
 
-(define (dynamic-vector*n c n)
-  (let* ((len (car c))
-         (vec (cdr c))
-         (total-len (* len n))
-         (target-inner-len (get-inner-len total-len))
-         (out (make-vector target-inner-len list-empty-cell)))
-    (let loop ((target-pos 0))
-      (if (< target-pos total-len)
-        (let inner-loop ((source-pos 0))
-          (if (< source-pos len)
-            (begin
-              (vector-set! out (+ target-pos source-pos) (vector-ref vec source-pos))
-              (inner-loop (+ source-pos 1)))
-            (loop (+ target-pos len))))
-        (cons total-len out)))))
+(define-macro (define-eq-dynamic-vector vref name)
+  `(define (,name c1 c2)
+    (let ((len1 (car c1))
+          (v1 (cdr c1))
+          (len2 (car c2))
+          (v2 (cdr c2)))
+      (if (= len1 len2)
+        (let loop ((i 0))
+          (if (< i len1)
+            (let* ((el1 (,vref v1 i))
+                  (el2 (,vref v2 i)))
+              (if (py-test (py-eq el1 el2 #f))
+                (loop (+ i 1))
+                #f))
+            #t))
+        #f))))
 
-(define (dynamic-vector-py-eq? c1 c2)
-  (let ((len1 (car c1))
-        (v1 (cdr c1))
-        (len2 (car c2))
-        (v2 (cdr c2)))
-    (if (= len1 len2)
-      (let loop ((i 0))
-        (if (< i len1)
-          (let* ((el1 (vector-ref v1 i))
-                 (el2 (vector-ref v2 i)))
-            (if (py-test (py-eq el1 el2 #f))
-              (loop (+ i 1))
-              #f))
-          #t))
-      #f)))
+(define-eq-dynamic-vector vector-ref dynamic-vector-py-eq?)
+(define-eq-dynamic-vector u8vector-ref dynamic-u8vector-py-eq?)
 
 (define (dynamic-vector-py-ne? v1 v2)
   (not (dynamic-vector-py-eq? v1 v2)))
 
-(define-macro (define-dynamic-vector-comparator name py-strict-op scheme-op)
+(define (dynamic-u8vector-py-ne? v1 v2)
+  (not (dynamic-u8vector-py-eq? v1 v2)))
+
+
+(define-macro (define-dynamic-vector-comparator name vref py-strict-op scheme-op)
   `(define (,name c1 c2)
     (let* ((len1 (car c1))
           (len2 (car c2))
@@ -2796,8 +2812,8 @@
           (min-len (min len1 len2)))
       (let loop ((i 0))
         (if (< i min-len)
-          (let* ((el1 (vector-ref v1 i))
-                 (el2 (vector-ref v2 i)))
+          (let* ((el1 (,vref v1 i))
+                 (el2 (,vref v2 i)))
             (if (py-test (,py-strict-op el1 el2 #f))
               #t
               (if (py-test (py-eq el1 el2 #f))
@@ -2805,54 +2821,30 @@
                 #f)))
           (,scheme-op len1 len2))))))
 
-(define-dynamic-vector-comparator dynamic-vector-py-lt? py-lt <)
+(define-dynamic-vector-comparator dynamic-vector-py-lt? vector-ref py-lt <)
+(define-dynamic-vector-comparator dynamic-vector-py-le? vector-ref py-lt <=)
+(define-dynamic-vector-comparator dynamic-vector-py-gt? vector-ref py-gt >)
+(define-dynamic-vector-comparator dynamic-vector-py-ge? vector-ref py-gt >=)
 
-(define-dynamic-vector-comparator dynamic-vector-py-le? py-lt <=)
+(define-dynamic-vector-comparator dynamic-u8vector-py-lt? u8vector-ref py-lt <)
+(define-dynamic-vector-comparator dynamic-u8vector-py-le? u8vector-ref py-lt <=)
+(define-dynamic-vector-comparator dynamic-u8vector-py-gt? u8vector-ref py-gt >)
+(define-dynamic-vector-comparator dynamic-u8vector-py-ge? u8vector-ref py-gt >=)
 
-(define-dynamic-vector-comparator dynamic-vector-py-gt? py-gt >)
+(define-macro (define-slice-dynamic-vector vref vset vmake vlist-empty name) 
+  `(define (,name vec start stop step)
+    (let* ((len (max 0 (ceiling (/ (- stop start) step))))
+          (inner-len (get-inner-len len))
+          (out (,vmake inner-len ,vlist-empty)))
+      (let loop ((source start) (target 0))
+        (if (< target len)
+          (begin
+            (,vset out target (,vref vec source))
+            (loop (+ source step) (+ target 1)))))
+      (cons len out))))
 
-(define-dynamic-vector-comparator dynamic-vector-py-ge? py-gt >=)
-
-(define-macro (define-list-binary-comparator name py-name dynamic-vector-comparator)
-  `(begin
-    (define (,name self other)
-      (if (py-isinstance? self py-list-class)
-        (if (py-isinstance? other py-list-class)
-          (let ((c1 (object-scheme-value-fast-get self))
-                (c2 (object-scheme-value-fast-get other)))
-            (if (,dynamic-vector-comparator c1 c2)
-              py-True
-              py-False))
-          py-NotImplemented)
-        (py-throw-not-a-type-object ,(symbol->string py-name) self)))
-
-    (define ,py-name
-      (procedure->py-function
-        ,name
-        (make-posonly-signature #(self other))))))
-
-(define-list-binary-comparator list-eq list.__eq__ dynamic-vector-py-eq?)
-
-(define-list-binary-comparator list-ne list.__ne__ dynamic-vector-py-ne?)
-
-(define-list-binary-comparator list-lt list.__lt__ dynamic-vector-py-lt?)
-
-(define-list-binary-comparator list-le list.__le__ dynamic-vector-py-le?)
-
-(define-list-binary-comparator list-gt list.__gt__ dynamic-vector-py-gt?)
-
-(define-list-binary-comparator list-ge list.__ge__ dynamic-vector-py-ge?)
-
-(define (dynamic-vector-slice vec start stop step)
-  (let* ((len (max 0 (ceiling (/ (- stop start) step))))
-        (inner-len (get-inner-len len))
-        (out (make-vector inner-len list-empty-cell)))
-    (let loop ((source start) (target 0))
-      (if (< target len)
-        (begin
-          (vector-set! out target (vector-ref vec source))
-          (loop (+ source step) (+ target 1)))))
-    (cons len out)))
+(define-slice-dynamic-vector vector-ref vector-set! make-vector list-empty-cell dynamic-vector-slice)
+(define-slice-dynamic-vector u8vector-ref u8vector-set make-u8vector 0 dynamic-vector-slice)
 
 ;; NOTE: follows requirements of slice.indices(len)
 (define (py-slice-indices slice len)
@@ -2898,15 +2890,18 @@
         (vector first last step))
       (vector 0 0 step))))
 
-(define (dynamic-vector-py-slice dvec slice)
-  (let* ((len (car dvec))
-        (vec (cdr dvec))
-        (slice-indices (py-slice-indices slice len)))
-    (dynamic-vector-slice
-      vec
-      (vector-ref slice-indices 0)
-      (vector-ref slice-indices 1)
-      (vector-ref slice-indices 2))))
+(define-macro (define-py-slice-dynamic-vector vref vdynamic-slice name) 
+  `(define (,name dynamic-vector-py-slice dvec slice)
+    (let* ((len (car dvec))
+          (vec (cdr dvec))
+          (slice-indices (py-slice-indices slice len)))
+      (,vdynamic-slice
+        vec
+        (,vref slice-indices 0)
+        (,vref slice-indices 1)
+        (,vref slice-indices 2)))))
+
+(define-py-slice-dynamic-vector vector-ref dynamic-vector-slice dynamic-vector-py-slice)
 
 ;; slices of the form lst[1:4]
 (define (dynamic-vector-set-simple-slice! dvec start stop vec len)
@@ -3125,10 +3120,6 @@
       (else
         (loop (+ i 1))))))
 
-(define list-growth-factor 1.125)
-(define list-shrink-threshold 1.5)
-(define min-list-inner-length 5)
-(define list-empty-cell (cons 'empty-cell '()))
 
 (define (get-inner-len len)
   (+
@@ -3199,6 +3190,31 @@
   (procedure->py-function
     list-new
     (make-posonly-defaults-signature #(cls value) (vector py-absent))))
+
+(define-macro (define-list-binary-comparator name py-name dynamic-vector-comparator)
+  `(begin
+    (define (,name self other)
+      (if (py-isinstance? self py-list-class)
+        (if (py-isinstance? other py-list-class)
+          (let ((c1 (object-scheme-value-fast-get self))
+                (c2 (object-scheme-value-fast-get other)))
+            (if (,dynamic-vector-comparator c1 c2)
+              py-True
+              py-False))
+          py-NotImplemented)
+        (py-throw-not-a-type-object ,(symbol->string py-name) self)))
+
+    (define ,py-name
+      (procedure->py-function
+        ,name
+        (make-posonly-signature #(self other))))))
+
+(define-list-binary-comparator list-eq list.__eq__ dynamic-vector-py-eq?)
+(define-list-binary-comparator list-ne list.__ne__ dynamic-vector-py-ne?)
+(define-list-binary-comparator list-lt list.__lt__ dynamic-vector-py-lt?)
+(define-list-binary-comparator list-le list.__le__ dynamic-vector-py-le?)
+(define-list-binary-comparator list-gt list.__gt__ dynamic-vector-py-gt?)
+(define-list-binary-comparator list-ge list.__ge__ dynamic-vector-py-ge?)
 
 (define (list-iter self)
   (if (py-isinstance? self py-list-class)
