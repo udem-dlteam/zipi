@@ -3982,12 +3982,6 @@
 ;;  Dict
 ;; =============================================================================
 
-;; Dict are internally implemented as scheme tables which point to a linked-list
-;; the encapsulated value of a dict is a #(table first last)
-;; the entries are #(key value prev next) vectors, the two last elements
-;; are pointers to the previous and next elements to have been entered in the dict
-;; this allows for order-preserving dict (standard as of Python3.7)
-
 ;; define a doubly-linked-list type for order-preservation
 (define-type doubly-linked-list-node value next prev)
 
@@ -4001,44 +3995,116 @@
     (doubly-linked-list-node-next-set! node #f)
     (doubly-linked-list-node-prev-set! node #f)))
 
-(define-type doubly-linked-list first last)
+(define-type dict-cell hash key value)
+(define empty-table-cell (cons 'empty-table-cell '()))
 
-(define (doubly-linked-list-append! dll node)
-  (let ((first (doubly-linked-list-first dll)))
+(define table-growth-factor 2)
+(define table-full-ratio (/ 2 3))
+
+(define (get-table-inner-len len)
+  (arithmetic-shift
+    1
+    (integer-length
+      (inexact->exact (ceiling (/ len table-full-ratio))))))
+
+(define-type ordered-table table length first last)
+
+(define (ordered-table-append! ordered-table node)
+  (let ((first (ordered-table-first ordered-table)))
     (if first
-      (let ((last (doubly-linked-list-last dll)))
-        (doubly-linked-list-last-set! dll node)
+      (let ((last (ordered-table-last ordered-table)))
+        (ordered-table-last-set! ordered-table node)
         (doubly-linked-list-node-next-set! last node)
         (doubly-linked-list-node-prev-set! node last))
       (begin
-        (doubly-linked-list-first-set! dll node)
-        (doubly-linked-list-last-set! dll node)))))
+        (ordered-table-first-set! ordered-table node)
+        (ordered-table-last-set! ordered-table node)))))
 
-(define table-growth-factor 1.125)
-(define min-table-inner-length 5)
+(define (make-empty-ordered-table length-hint)
+  (make-ordered-table
+    (make-vector (get-table-inner-len length-hint) empty-table-cell)
+    0
+    #f
+    #f))
 
-(define (get-table-inner-len len)
-  (+
-    min-table-inner-length
-    (inexact->exact (round (* len table-growth-factor)))))
+(define (cell-next i size)
+  (modulo (+ (* 5 i) 1) size))
 
-(define (py-object->table-hash-key obj)
-  (object-scheme-value-fast-get (py-hash obj)))
+(define (ordered-table-get-cell ordered-table key)
+  (let* ((hash (object-scheme-value-fast-get (py-hash key)))
+        (table (ordered-table-table ordered-table))
+        (size (vector-length table)))
+    (let loop ((i (modulo hash size)))
+      (let ((node (vector-ref table i)))
+        (if (eq? node empty-table-cell)
+          empty-table-cell
+          (let* ((cell (doubly-linked-list-node-value node))
+                (cell-key (dict-cell-key cell))
+                (cell-hash (dict-cell-hash cell)))
+            (if (and (= hash cell-hash) (py-eq key cell-key #f))
+              cell
+              (loop (cell-next i size)))))))))
 
-;; TODO: This is VERY incorrect as it compares fixnum keys instead of doing py-eq comparison of keys
-(define (dict-key-test key item)
-  (= key item))
+(define (table-vector-set! ordered-table vec size hash key value)
+  (let ((content-size (ordered-table-length ordered-table)))
+    ;; loop to find the corresponding cell
+    (let loop ((i (modulo hash size)))
+      (let ((node (vector-ref vec i)))
+        (if (eq? node empty-table-cell)
+          ;; case where we found an empty cell
+          (let ((node
+                  (make-doubly-linked-list-node
+                    (make-dict-cell hash key value) #f #f)))
+            (ordered-table-length-set! ordered-table (+ content-size 1))
+            (ordered-table-append! ordered-table node)
+            (vector-set! vec i node))
+          (let* ((cell (doubly-linked-list-node-value node))
+                (cell-key (dict-cell-key cell))
+                (cell-hash (dict-cell-hash cell)))
+            (if (and (= hash cell-hash) (py-eq key cell-key #f))
+              ;; case where we found an existing cell with the same key
+              (begin
+                (doubly-linked-list-node-remove! node)
+                (doubly-linked-list-node-value-set!
+                  node
+                  (make-dict-cell cell-hash cell-key value))
+                (doubly-linked-list-node-next-set! node #f)
+                (ordered-table-append! ordered-table node))
+              ;; case where there is a collision
+              (loop (cell-next i size)))))))))
 
-(define (make-new-ordered-table length-hint)
-  (cons
-    (make-table
-      size: (get-table-inner-len length-hint)
-      test: dict-key-test
-      hash: (lambda (x) x))
-    (make-doubly-linked-list #f #f)))
+(define (ordered-table-grow! ordered-table)
+  (let* ((table (ordered-table-table ordered-table))
+        (content-size (ordered-table-length ordered-table))
+        (size (vector-length table))
+        (new-size (* 2 size))
+        (new-table (make-vector new-size empty-table-cell)))
+    (let loop ((node (ordered-table-first ordered-table)))
+      (if node
+        (let* ((cell (doubly-linked-list-node-value node))
+              (cell-hash (dict-cell-hash cell))
+              (cell-key (dict-cell-key cell))
+              (cell-value (dict-cell-value cell)))
+          (table-vector-set! ordered-table new-table new-size cell-hash cell-key cell-value)
+          (loop (doubly-linked-list-node-next node)))))
+    (ordered-table-table-set! ordered-table new-table)))
+
+(define (ordered-table-set-cell! ordered-table key value)
+  (let* ((hash (object-scheme-value-fast-get (py-hash key)))
+        (table (ordered-table-table ordered-table))
+        (content-size (ordered-table-length ordered-table))
+        (size (vector-length table)))
+    ;; if the table is getting full, resize it
+    (if (>= content-size (* size table-full-ratio))
+      (begin
+        (ordered-table-grow! ordered-table)
+        (set! table (ordered-table-table ordered-table))
+        (set! size (vector-length table))))
+    (table-vector-set! ordered-table table size hash key value)))
 
 (define (py-dict-from-scheme key-value-pairs)
-  (let ((ordered-table (make-new-ordered-table (length key-value-pairs))))
+  (let* ((ordered-table (make-empty-ordered-table (length key-value-pairs)))
+         (table-vector (ordered-table-table ordered-table)))
     (let loop ((key-value-pairs key-value-pairs))
       (if (null? key-value-pairs)
         (py-obj-alloc-with-value
@@ -4046,34 +4112,22 @@
           py-dict-hclass-of-instances
           ordered-table)
         (let* ((pair (car key-value-pairs))
-              (k (car pair))
-              (v (cdr pair)))
-          (ordered-table-setitem ordered-table k v)
+              (key (car pair))
+              (value (cdr pair))
+              (hash (object-scheme-value-fast-get (py-hash key))))
+          (table-vector-set!
+            ordered-table
+            table-vector
+            (vector-length table-vector)
+            hash
+            key
+            value)
           (loop (cdr key-value-pairs)))))))
-
-(define (ordered-table-setitem ordered-table key value)
-  (let* ((table (car ordered-table))
-        (dll (cdr ordered-table))
-        (first (doubly-linked-list-first dll))
-        (last (doubly-linked-list-last dll))
-        (key-hash (py-object->table-hash-key key))
-        (existing-element (table-ref table key-hash py-absent)))
-    (if (eq? existing-element py-absent)
-      (let ((node (make-doubly-linked-list-node (cons key value) #f #f)))
-        (doubly-linked-list-append! dll node)
-        (table-set! table key-hash node))
-      (begin
-        (doubly-linked-list-node-remove! existing-element)
-        ;; NOTE: the key is not mutated, even if it is no tthe same object
-        (set-cdr!
-          (doubly-linked-list-node-value existing-element)
-          value)
-        (doubly-linked-list-append! dll existing-element)))))
 
 (define (dict-setitem self key value)
   (if (py-isinstance? self py-dict-class)
     (let ((ordered-table (object-scheme-value-fast-get self)))
-      (ordered-table-setitem ordered-table key value))
+      (ordered-table-set-cell! ordered-table key value))
     (py-throw-not-a-type-object "dict.__setitem__" self))
   py-None)
 
@@ -4083,12 +4137,12 @@
     (make-posonly-signature #(self key value))))
 
 (define (ordered-table-get ordered-table key default)
-  (let* ((table (car ordered-table))
-        (key-hash (py-object->table-hash-key key))
-        (element (table-ref table key-hash default)))
-    (if (eq? element py-absent)
-      (py-throw (py-call1 py-builtin-KeyError key))
-      (cdr (doubly-linked-list-node-value element)))))
+  (let* ((cell (ordered-table-get-cell ordered-table key)))
+    (if (eq? cell empty-table-cell)
+      (if (eq? default py-absent)
+        (py-throw (py-call1 py-builtin-KeyError key))
+        default)
+      (dict-cell-value cell))))
 
 (define (dict-get self key default)
     (if (py-isinstance? self py-dict-class)

@@ -1,0 +1,24 @@
+d = {1: 'foo', 2: 'bar', 3: 'baz'}
+
+print(d[1])
+print(d[2])
+print(d[3])
+
+d[4] = 'fizz'
+d[5] = 'buzz'
+d[6] = 'spam'
+d[7] = 'blah'
+d[8] = 'wibble'
+d[9] = 'thingy'
+d[10] = 'thangy'
+
+print(d[1])
+print(d[2])
+print(d[3])
+print(d[4])
+print(d[5])
+print(d[6])
+print(d[7])
+print(d[8])
+print(d[9])
+print(d[10])

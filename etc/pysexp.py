@@ -30,7 +30,7 @@ def pretty_print(source):
     if python35:
         return source
     else:
-        p = subprocess.run(['cat', '-'],
+        p = subprocess.run(['gsi', '-:-8', '-e', '(pretty-print (read))'],
                            stdout=subprocess.PIPE,
                            input=source,
                            encoding='utf-8')
@@ -101,9 +101,9 @@ def cvt_constant(value):
         return scm_float(value)
     elif isinstance(value, complex):
         return scm_complex(value)
-    elif value == None:
+    elif value is None:
         return 'None'
-    elif value == Ellipsis:
+    elif value is Ellipsis:
         return 'Ellipsis'
     else:
         print(type(value))
