@@ -4079,15 +4079,20 @@
         (size (vector-length table))
         (new-size (* 2 size))
         (new-table (make-vector new-size empty-table-cell)))
-    (let loop ((node (ordered-table-first ordered-table)))
-      (if node
-        (let* ((cell (doubly-linked-list-node-value node))
-              (cell-hash (dict-cell-hash cell))
-              (cell-key (dict-cell-key cell))
-              (cell-value (dict-cell-value cell)))
-          (table-vector-set! ordered-table new-table new-size cell-hash cell-key cell-value)
-          (loop (doubly-linked-list-node-next node)))))
-    (ordered-table-table-set! ordered-table new-table)))
+    (let ((first (ordered-table-first ordered-table)))
+      ;; reinitialize the table's vector to an empty, bigger vector
+      (ordered-table-first-set! ordered-table #f)
+      (ordered-table-last-set! ordered-table #f)
+      (ordered-table-length-set! ordered-table 0)
+      (ordered-table-table-set! ordered-table new-table)
+      (let loop ((node first))
+        (if node
+          (let* ((cell (doubly-linked-list-node-value node))
+                (cell-hash (dict-cell-hash cell))
+                (cell-key (dict-cell-key cell))
+                (cell-value (dict-cell-value cell)))
+            (table-vector-set! ordered-table new-table new-size cell-hash cell-key cell-value)
+            (loop (doubly-linked-list-node-next node))))))))
 
 (define (ordered-table-set-cell! ordered-table key value)
   (let* ((hash (object-scheme-value-fast-get (py-hash key)))
@@ -4155,7 +4160,7 @@
     dict-get
     (make-posonly-defaults-signature #(self key default) (vector py-absent))))
 
-(define (dict-__getitem__ self key)
+(define (dict-getitem self key)
   (if (py-isinstance? self py-dict-class)
     (let ((ordered-table (object-scheme-value-fast-get self)))
       (ordered-table-get ordered-table key py-absent))
@@ -4163,8 +4168,20 @@
 
 (define dict.__getitem__
   (procedure->py-function
-    dict-__getitem__
+    dict-getitem
     (make-posonly-signature #(self key))))
+
+(define (dict-len self)
+  (if (py-isinstance? self py-dict-class)
+    (let* ((ordered-table (object-scheme-value-fast-get self))
+           (len (ordered-table-length ordered-table)))
+      (py-int-from-scheme len))
+    (py-throw-not-a-type-object "dict.__len__" self)))
+
+(define dict.__len__
+  (procedure->py-function
+    dict-len
+    (make-posonly-signature #(self))))
 
 ;; -----------------------------------------------------------------------------
 
@@ -4373,6 +4390,7 @@
       py-dict-hclass-of-instances
         (& "__getitem__") dict.__getitem__
         (& "__setitem__") dict.__setitem__
+        (& "__len__") dict.__len__
         (& "get") dict.get))
 
   (set! py-set-class
