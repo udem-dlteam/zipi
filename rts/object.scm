@@ -2783,7 +2783,7 @@
           (loop2 (+ target-pos 1) (+ source-pos 1)))))
     (cons total-len vec))))
 
-(define-concat-dynamic-vector vector-ref vector-set! vector-make list-empty-cell concat-dynamic-vectors)
+(define-concat-dynamic-vector vector-ref vector-set! make-vector list-empty-cell concat-dynamic-vectors)
 (define-concat-dynamic-vector u8vector-ref u8vector-set! u8vector-make 0 concat-dynamic-u8vectors)
 
 
@@ -2875,7 +2875,7 @@
       (cons len out))))
 
 (define-slice-dynamic-vector vector-ref vector-set! make-vector list-empty-cell dynamic-vector-slice)
-(define-slice-dynamic-vector u8vector-ref u8vector-set make-u8vector 0 dynamic-vector-slice)
+(define-slice-dynamic-vector u8vector-ref u8vector-set! make-u8vector 0 dynamic-u8vector-slice)
 
 ;; NOTE: follows requirements of slice.indices(len)
 (define (py-slice-indices slice len)
@@ -2922,7 +2922,7 @@
       (vector 0 0 step))))
 
 (define-macro (define-py-slice-dynamic-vector vref vdynamic-slice name) 
-  `(define (,name dynamic-vector-py-slice dvec slice)
+  `(define (,name dvec slice)
     (let* ((len (car dvec))
           (vec (cdr dvec))
           (slice-indices (py-slice-indices slice len)))
