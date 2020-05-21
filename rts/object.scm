@@ -550,6 +550,29 @@
 ;; =============================================================================
 ;; Exception thrower helpers
 ;; =============================================================================
+(define (py-throw-exception-with-message exc-type message)
+  (py-throw (py-call exc-type (py-str-from-scheme message))))
+
+(define (py-throw-not-an-integer obj)
+  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
+    (py-throw
+      (py-call py-builtin-TypeError
+        (py-str-from-scheme
+          (string-append
+            "'"
+            given-type
+            "' object cannot be interpreted as an integer"))))))
+
+(define (py-throw-has-no-len obj)
+  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
+    (py-throw
+      (py-call py-builtin-TypeError
+        (py-str-from-scheme
+          (string-append
+            "object of type '"
+            given-type
+            "' has no len()"))))))
+
 (define (py-throw-index-out-of-range type)
   (py-throw
     (py-call py-builtin-IndexError
@@ -1236,13 +1259,13 @@
     `(begin
       (define (,fun-name self other)
         (if (py-isinstance? self py-float-class)
-          (cond 
+          (cond
             ((py-isinstance? other py-float-class)
               (,float-float-op (object-scheme-value-fast-get self) (object-scheme-value-fast-get other)))
-            ((py-isinstance? other py-int-class)              
+            ((py-isinstance? other py-int-class)
               ;; If the operation is float-int, it converts the float into an int
               (,float-float-op (object-scheme-value-fast-get self) (fixnum->flonum (object-scheme-value-fast-get other))))
-              
+
             (else py-NotImplemented))
           (py-throw-required-type ,method-name "float" self)))
       (define ,py-func-name
@@ -1255,34 +1278,34 @@
     `(begin
       (define (,fun-name self other)
         (if (py-isinstance? self py-float-class)
-          (cond 
+          (cond
             ((py-isinstance? other py-float-class)
               (,float-float-op (object-scheme-value-fast-get other) (object-scheme-value-fast-get self)))
-            ((py-isinstance? other py-int-class)              
+            ((py-isinstance? other py-int-class)
               ;; If the operation is float-int, it converts the float into an int
               (,float-float-op (fixnum->flonum (object-scheme-value-fast-get other)) (object-scheme-value-fast-get self)))
-              
+
             (else py-NotImplemented))
           (py-throw-required-type ,method-name "float" self)))
       (define ,py-func-name
         (procedure->py-function
           ,fun-name
           (make-posonly-signature #(self other)))))))
-;; Helpers 
- 
-(define (reverse-args fun) 
+;; Helpers
+
+(define (reverse-args fun)
   (lambda (x y) (fun y x)))
 
 (define (result-to-float op)
   (lambda (x y) (py-float-from-scheme (op x y))))
 
 (define (comparison-conversion scheme-comp-op)
-  (lambda (x y) 
+  (lambda (x y)
     (if (scheme-comp-op x y) py-True py-False)))
 
 ;; int-or-float is the function of the conversion to sheme number to py numbers
 (define (div-to-float op)
-  (lambda (x y) 
+  (lambda (x y)
     (if (= y 0)
       (py-throw
         (py-call py-builtin-ZeroDivisionError
@@ -1290,7 +1313,7 @@
       (py-float-from-scheme (inexact (op x y))))))
 
 (define (mod-to-float op)
-  (lambda (x y) 
+  (lambda (x y)
     (if (= y 0)
       (py-throw
         (py-call py-builtin-ZeroDivisionError
@@ -1346,11 +1369,11 @@
           ,fun-name
           (make-posonly-signature #(self)))))))
 
-(define (unary-to-float op) 
+(define (unary-to-float op)
   (lambda (x) (py-float-from-scheme (op x))))
 
 (define (unary-to-bool x)
-  (if (fl= x 0.) 
+  (if (fl= x 0.)
     py-False
     py-True))
 
@@ -1414,24 +1437,25 @@
 
 ;;;----------------------------------------------------------------------------
 
-;; WARNING: sometimes return a Python int, something Scheme int
-;;  this not only needs to be fixed, when doing it we need to check
-;; every place which used py-len
-(define (py-len obj)
+(define (py-maybe-len obj)
   (let ((__len__ (getattribute-from-obj-mro obj (& "__len__"))))
-    (cond
-          ((not (eq? __len__ py-absent))
-           (py-call1 __len__ obj))
-          ((eq? py-tuple-class (py-obj-cls obj))
-           (vector-length (py-tuple-to-scheme obj)))
-          ((eq? py-list-class (py-obj-cls obj))
-           (vector-length (py-list-to-scheme obj)))
-          ((eq? py-dict-class (py-obj-cls obj))
-           (length (py-dict-to-scheme obj)))
-          ((eq? py-set-class (py-obj-cls obj))
-           (length (py-set-to-scheme obj)))
+    (if (eq? __len__ py-absent)
+      py-absent
+      (let* ((len (py-call1 __len__ obj))
+             (len-type (py-type len)))
+        (cond
+          ((eq? len-type py-int-class)
+            len)
+          ((py-issubclass? len-type py-int-class)
+            (py-int-from-scheme (object-scheme-value-fast-get len)))
           (else
-           (error "len" "only object with __len__ method implemented" #f)))))
+            (py-throw-not-an-integer len)))))))
+
+(define (py-len obj)
+  (let ((len (py-maybe-len obj)))
+    (if (eq? len py-absent)
+      (py-throw-has-no-len obj)
+      len)))
 
 (define (py-getitem obj i cache)
   (let ((getitem (getattribute-from-obj-mro obj (& "__getitem__"))))
@@ -1627,15 +1651,6 @@
 ;; BOOL PROTOCOL
 ;; ================
 
-(define (object-bool self)
-   py-True)
-
-;; The Python object object.__bool__
-(define object.__bool__
-  (procedure->py-function
-    object-bool
-    (make-posonly-signature #(self))))
-
 (define (int-bool self)
     (if (py-isinstance? self py-int-class)
       (let ((value (object-scheme-value-fast-get self)))
@@ -1658,12 +1673,16 @@
   (cond
     ((eq? obj py-True) #t)
     ((eq? obj py-False) #f)
+    ((eq? (py-type obj) py-int-class) (not (eq? obj py-int-0)))
     (else
-      (let* ((py-bool (getattribute-from-obj-mro obj (& "__bool__")))
-             (test-value (py-call1 py-bool obj)))
-        (if (eq? test-value py-True)
-          #t
-          #f)))))
+      (let ((__bool__ (getattribute-from-obj-mro obj (& "__bool__"))))
+        (if (not (eq? __bool__ py-absent))
+          (let ((test-value (py-call1 __bool__ obj)))
+            (py-test test-value))
+          (let ((len (py-maybe-len obj)))
+            (if (eq? len py-absent)
+              #t
+              (py-test len))))))))
 
 (define (py-not obj cache)
   (if (py-test obj)
@@ -1868,6 +1887,18 @@
               (set! number-separators (- number-separators 1))))
           (loop (+ vec-pos 1) out-pos))
         out))))
+
+(define (str-len self)
+  (if (py-isinstance? self py-str-class)
+    (let* ((string (py-str-to-scheme self))
+           (string-len (string-length string)))
+      (py-int-from-scheme string-len))
+    (py-throw-required-type "__str__" "str" self)))
+
+(define str.__len__
+  (procedure->py-function
+    str-len
+    (make-posonly-signature #(self))))
 
 (define (integer->hex-string x)
   (string-append "0x" (number->string x 16)))
@@ -2464,7 +2495,6 @@
     (py-own-attr-set! object-class (& "__new__") object.__new__)
     (py-own-attr-set! object-class (& "__init__") object.__init__)
     (py-own-attr-set! object-class (& "__getattribute__") py-object-getattribute)
-    (py-own-attr-set! object-class (& "__bool__") object.__bool__)
     (py-own-attr-set! object-class (& "__repr__") object.__repr__)
     (py-own-attr-set! object-class (& "__str__") object.__str__)
 
@@ -2503,7 +2533,8 @@
     (py-own-attr-set! str-class (& "__module__") (py-str-from-scheme "builtins"))
     (py-own-attr-set! str-class (& "__new__") str.__new__)
     (py-own-attr-set! str-class (& "__str__") str.__str__)
-    (py-own-attr-set! str-class (& "__repr__") str.__repr__)))
+    (py-own-attr-set! str-class (& "__repr__") str.__repr__)
+    (py-own-attr-set! str-class (& "__len__") str.__len__)))
 
 (bootstrap-type-hierarchy-phase1)
 
@@ -4202,7 +4233,7 @@
         (& "__bool__") float.__bool__
 
         (& "__float__") float.__float__
-        (& "__int__") float.__int__ 
+        (& "__int__") float.__int__
         (& "__round__") float.__round__
         (& "__trunc__") float.__trunc__
         (& "conjugate") float.conjugate
@@ -4328,6 +4359,153 @@
 (define py-int-4 (py-int-from-scheme 4))
 
 ;;;----------------------------------------------------------------------------
+
+;; =============================================================================
+;;  Context managers (with) protocol
+;; =============================================================================
+
+(define (py-enter obj)
+  (let ((__enter__ (getattribute-from-obj-mro obj (& "__enter__"))))
+    (if (eq? __enter__ py-absent)
+      (py-throw
+        (py-call py-builtin-AttributeError
+          (py-str-from-scheme "__enter__")))
+      (py-call1 __enter__ obj))))
+
+(define (py-exit obj exc)
+  (let ((__exit__ (getattribute-from-obj-mro obj (& "__exit__"))))
+    (if (eq? __exit__ py-absent)
+      (py-throw
+        (py-call py-builtin-AttributeError
+          (py-str-from-scheme "__exit__")))
+      (if exc
+        (let* ((exc-type (object-class-fast-get exc))
+              (exc-traceback py-None) ;; TODO: pass traceback to __exit__ once it exists
+              (exit-res (py-call4 __exit__ obj exc-type exc exc-traceback)))
+          ;; __exit__ can return True to silence an exception
+          (if (py-test exit-res)
+            #f
+            (raise exc)))
+        (py-call4 __exit__ obj py-None py-None py-None)))))
+
+;; =============================================================================
+;;  IO
+;; =============================================================================
+;; TODO: some content of this section should be moved to the io module
+
+(define (TextIOWrapper-enter self)
+  (if (py-isinstance? self py-TextIOWrapper-class)
+    self
+    (py-throw-not-a-type-object "TextIOWrapper.__enter__" self)))
+
+(define TextIOWrapper.__enter__
+  (procedure->py-function
+    TextIOWrapper-enter
+    (make-posonly-signature #(self))))
+
+(define (TextIOWrapper-close-port! self)
+  (let ((port (TextIOWrapper-port-fast-get self)))
+    ;; Some ports may stay open even after close-port, by dereferencing
+    ;; the port we make sure its ressources are freed by the gc
+    ;; we thus have to first check the port was not already closed (ie. set to #f)
+    ;; and then we fully close it by setting the port attribute to #f
+    (if port
+      (begin
+        (close-port port)
+        (TextIOWrapper-port-fast-set! self #f)))))
+
+(define (TextIOWrapper-exit self exc-type exc exc-traceback)
+  (if (py-isinstance? self py-TextIOWrapper-class)
+    (TextIOWrapper-close-port! self)
+    (py-throw-not-a-type-object "TextIOWrapper.__exit__" self))
+  py-None)
+
+(define TextIOWrapper.__exit__
+  (procedure->py-function
+    TextIOWrapper-exit
+    (make-posonly-signature #(self exc_type exc_value traceback))))
+
+(define (TextIOWrapper-close self)
+  (if (py-isinstance? self py-TextIOWrapper-class)
+    (TextIOWrapper-close-port! self)
+    (py-throw-not-a-type-object "TextIOWrapper.close" self))
+  py-None)
+
+(define TextIOWrapper.close
+  (procedure->py-function
+    TextIOWrapper-close
+    (make-posonly-signature #(self))))
+
+(define (TextIOWrapper-read self)
+  (if (py-isinstance? self py-TextIOWrapper-class)
+    (let ((port (TextIOWrapper-port-fast-get self)))
+      (if port
+        (let ((content (read-all port read-char)))
+          (py-str-from-scheme (list->string content)))
+        (py-throw-exception-with-message
+          py-builtin-ValueError
+          "I/O operation on closed file.")))
+    (py-throw-not-a-type-object "TextIOWrapper.read" self)))
+
+(define TextIOWrapper.read
+  (procedure->py-function
+    TextIOWrapper-read
+    (make-posonly-signature #(self))))
+
+(define py-TextIOWrapper-hclass-of-instances
+  (make-HClass
+    '#()
+    (vector
+      (& "**class**")
+      (& "**port**")
+      (& "**mode**")
+      (& "**encoding**"))
+    '()))
+
+(define (TextIOWrapper-port-fast-get obj)
+  (PyObject-elements-ref obj 1))
+
+(define (TextIOWrapper-port-fast-set! obj class)
+  (PyObject-elements-set! obj 1 class))
+
+(define (TextIOWrapper-mode-fast-get obj)
+  (PyObject-elements-ref obj 2))
+
+(define (TextIOWrapper-mode-fast-set! obj class)
+  (PyObject-elements-set! obj 2 class))
+
+(define (TextIOWrapper-encoding-fast-get obj)
+  (PyObject-elements-ref obj 3))
+
+(define (TextIOWrapper-encoding-fast-set! obj class)
+  (PyObject-elements-set! obj 3 class))
+
+(define py-TextIOWrapper-class
+  (make-builtin-class
+    (& "TextIOWrapper")
+    (& "_io")
+    ;; TODO: the correct mro is actually [<class '_io.TextIOWrapper'>, <class '_io._TextIOBase'>, <class '_io._IOBase'>, <class 'object'>]
+    (list)
+    py-TextIOWrapper-hclass-of-instances
+      (& "__enter__") TextIOWrapper.__enter__
+      (& "__exit__") TextIOWrapper.__exit__
+      (& "close") TextIOWrapper.close
+      (& "read") TextIOWrapper.read))
+
+;; TODO: arguments other than file are currentl ignored
+(define (py-open file mode buffering encoding errors newline closefd opener)
+  (cond
+    ((py-isinstance? file py-str-class)
+      (let ((filename (object-scheme-value-fast-get file)))
+        (let ((file-port (open-file filename)))
+          (let ((IOWrapper
+                  (py-obj-alloc
+                    py-TextIOWrapper-class
+                    py-TextIOWrapper-hclass-of-instances)))
+            (TextIOWrapper-port-fast-set! IOWrapper file-port)
+            IOWrapper))))
+    (else
+      (error "py-open" "only str filename supported" filename))))
 
 ;; =============================================================================
 ;;  Singletons
@@ -5848,8 +6026,7 @@
 
 (define py-builtin-open
   (procedure->py-function
-    (lambda (file mode buffering encoding errors newline closefd opener)
-      (error "open" "not implemented" #f))
+    py-open
     (make-args-defaults-signature
       #(file mode buffering encoding errors newline closefd opener)
       (vector
@@ -6583,8 +6760,6 @@
       #f
       #())))
 
-;; TODO: when you see this and that py-len returns a PyObject,
-;; then use py-eq instead of =
 ;; TODO: also check if cPython allows args to be something else
 ;; then a tuple
 (define (BaseException-str self)

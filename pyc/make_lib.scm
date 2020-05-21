@@ -33,6 +33,7 @@
       (class PycAssig)
       (class PycAugAssig)
       (class PycIf)
+      (class PycWithItem)
       (class PycWith)
       (class PycLoop)
       (class PycFor)

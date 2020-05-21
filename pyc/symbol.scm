@@ -171,20 +171,37 @@
 	     (collect-free-assig* (PycAssig-rhs this)
 		(cons decl env) freeenv))))))
 
+(define-walk-method (collect-free-assig* this::PycWithItem env freeenv)
+  (let ((context-expr (PycWithItem-context-expr this))
+        (optional-vars (PycWithItem-optional-vars this)))
+    (if (isa? optional-vars PycRefUnresolved)
+      (let* ((loc (PycNode-loc this))
+             (decl
+               (new-PycDeclInit
+                 loc
+                 (PycRefUnresolved-id optional-vars)
+                 'local
+                 (new-PycUninit loc))))
+        (cons
+          decl
+          (collect-free-assig* context-expr env freeenv)))
+      (collect-free-assig* context-expr env freeenv))))
+
 (define-walk-method (collect-free-assig* this::PycFor env freeenv)
-   (let ((n (PycFor-target this)))
-      (if (and (isa? n PycRefUnresolved)
-	       (not (lookup-id env (PycRefUnresolved-id n))))
-	  (let* ((loc (PycNode-loc this))
-		 (decl (new-PycDeclInit loc
-			  (PycRefUnresolved-id n)
-			  'local
-			  (new-PycUninit loc))))
-	     (cons decl
-		(collect-free-assig* (PycLoop-body this)
-		   (cons decl env) freeenv)))
-	  ;; no need to scan the iterators as they are plain expressions
-	  (collect-free-assig* (PycLoop-body this) env freeenv))))
+  (let ((n (PycFor-target this)))
+    (if (and (isa? n PycRefUnresolved)
+             (not (lookup-id env (PycRefUnresolved-id n))))
+      (let* ((loc (PycNode-loc this))
+            (decl
+              (new-PycDeclInit loc
+                (PycRefUnresolved-id n)
+                'local
+                (new-PycUninit loc))))
+        (cons
+          decl
+          (collect-free-assig* (PycLoop-body this) (cons decl env) freeenv)))
+      ;; no need to scan the iterators as they are plain expressions
+      (collect-free-assig* (PycLoop-body this) env freeenv))))
 
 (define-walk-method (collect-free-assig* this::PycSymbols env freeenv)
    (for-each (lambda (id)

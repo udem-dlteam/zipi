@@ -37,9 +37,14 @@
      ,(pycnode->list (PycIf-then this))
      ,(pycnode->list (PycIf-else this))))
 
+(define-walk-method (pycnode->list this::PycWithItem)
+   `(,(string->symbol (typeof this))
+     ,(pycnode->list (PycWithItem-context-expr this))
+     ,(pycnode->list (PycWithItem-optional-vars this))))
+
 (define-walk-method (pycnode->list this::PycWith)
    `(,(string->symbol (typeof this))
-     ,(pycnode->list (PycWith-expr this))
+     ,(map pycnode->list (PycWith-items this))
      ,(pycnode->list (PycWith-body this))))
 
 (define-walk-method (pycnode->list this::PycDecl)
@@ -73,7 +78,7 @@
    `(,(string->symbol (typeof this))
      ,(PycSymbols-scope this)
      ,(PycSymbols-names this)))
-   
+
 (define-walk-method (pycnode->list this::PycYield)
    `(,(string->symbol (typeof this))
      :generator ,(PycYield-generator this)
