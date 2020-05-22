@@ -156,6 +156,16 @@
       (& "**index**"))
     '()))
 
+;; dict-keys iterator
+(define py-dict-keyiterator-hclass-of-instances
+  (make-HClass
+    '#()
+    (vector
+      (& "**class**")
+      (& "**node**")
+      (& "**iterator-token**"))
+    '()))
+
 ;; Method for fast access to attributes defined in hidden classes
 ;; Those are unsafe methods
 
@@ -2665,7 +2675,7 @@
     self
     (py-throw py-builtin-TypeError)))
 
-(define py-list-iterator-iter
+(define list_iterator.__iter__
   (procedure->py-function
     list-iterator-iter
     (make-posonly-signature #(self))))
@@ -2691,7 +2701,7 @@
           (stop-iterator self)))
     (py-throw py-builtin-TypeError)))
 
-(define py-list-iterator-next
+(define list_iterator.__next__
   (procedure->py-function
     list-iterator-next
     (make-posonly-signature #(self))))
@@ -2702,8 +2712,8 @@
     (& "builtins")
     (list)
     py-list-iterator-hclass-of-instances
-      (& "__iter__") py-list-iterator-iter
-      (& "__next__") py-list-iterator-next))
+      (& "__iter__") list_iterator.__iter__
+      (& "__next__") list_iterator.__next__))
 
 (define (tuple-iterator-vector-fast-get li)
   (PyObject-elements-ref li 1))
@@ -4007,7 +4017,7 @@
     (integer-length
       (inexact->exact (ceiling (/ len table-full-ratio))))))
 
-(define-type ordered-table table length first last)
+(define-type ordered-table table length first last iterator-token)
 
 (define (ordered-table-append! ordered-table node)
   (let ((first (ordered-table-first ordered-table)))
@@ -4025,7 +4035,15 @@
     (make-vector (get-table-inner-len length-hint) empty-table-cell)
     0
     #f
-    #f))
+    #f
+    (list #t)))
+
+(define (ordered-table-drop-token! ordered-table)
+  ;; signal to any iterator that there was a change to the table which
+  ;; prevents further iteration
+  (set-car! (ordered-table-iterator-token ordered-table) #f)
+  ;; drop old token and create a new one
+  (ordered-table-iterator-token-set! ordered-table (list #t)))
 
 (define (cell-next i size)
   (modulo (+ (* 5 i) 1) size))
@@ -4055,6 +4073,7 @@
           (let ((node
                   (make-doubly-linked-list-node
                     (make-dict-cell hash key value) #f #f)))
+            (ordered-table-drop-token! ordered-table)
             (ordered-table-length-set! ordered-table (+ content-size 1))
             (ordered-table-append! ordered-table node)
             (vector-set! vec i node))
@@ -4063,13 +4082,8 @@
                 (cell-hash (dict-cell-hash cell)))
             (if (and (= hash cell-hash) (py-eq key cell-key #f))
               ;; case where we found an existing cell with the same key
-              (begin
-                (doubly-linked-list-node-remove! node)
-                (doubly-linked-list-node-value-set!
-                  node
-                  (make-dict-cell cell-hash cell-key value))
-                (doubly-linked-list-node-next-set! node #f)
-                (ordered-table-append! ordered-table node))
+              (let ((cell (doubly-linked-list-node-value node)))
+                (dict-cell-value-set! cell value))
               ;; case where there is a collision
               (loop (cell-next i size)))))))))
 
@@ -4182,6 +4196,87 @@
   (procedure->py-function
     dict-len
     (make-posonly-signature #(self))))
+
+(define (dict-iter self)
+  (if (py-isinstance? self py-dict-class)
+    (dict->dict-keyiterator self)
+    (py-throw-not-a-type-object "dict.__len__" self)))
+
+(define dict.__iter__
+  (procedure->py-function
+    dict-iter
+    (make-posonly-signature #(self))))
+
+;; =============================================================================
+;;  Dict iterators
+;; =============================================================================
+
+(define (dict-keyiterator-node-fast-get it)
+  (PyObject-elements-ref it 1))
+
+(define (dict-keyiterator-node-fast-set! it n)
+  (PyObject-elements-set! it 1 n))
+
+(define (dict-keyiterator-iterator-token-fast-get it)
+  (PyObject-elements-ref it 2))
+
+(define (dict-keyiterator-iterator-token-fast-set! it t)
+  (PyObject-elements-set! it 2 t))
+
+(define (dict-keyiterator-iter self)
+  (if (py-isinstance? self py-dict-keyiterator-class)
+    self
+    (py-throw-not-a-type-object "dict_keyiterator.__iter__" self)))
+
+(define (dict->dict-keyiterator d)
+  (let* ((it
+          (py-obj-alloc
+            py-dict-keyiterator-class
+            py-dict-keyiterator-hclass-of-instances))
+        (ordered-table (object-scheme-value-fast-get d))
+        (first (ordered-table-first ordered-table))
+        (token (ordered-table-iterator-token ordered-table)))
+    (dict-keyiterator-node-fast-set! it first)
+    (dict-keyiterator-iterator-token-fast-set! it token)
+    it))
+
+(define dict_keyiterator.__iter__
+  (procedure->py-function
+    dict-keyiterator-iter
+    (make-posonly-signature #(self))))
+
+(define (dict-keyiterator-next self)
+  (if (py-isinstance? self py-dict-keyiterator-class)
+    (let ((node (dict-keyiterator-node-fast-get self))
+          (token (dict-keyiterator-iterator-token-fast-get self)))
+      (cond
+        ((not node)
+          (py-throw py-builtin-StopIteration))
+        ((not (car token)) ;; will be #f if the dict length changed
+          (py-throw-exception-with-message
+            py-builtin-RuntimeError
+            "dictionary changed size during iteration"))
+        (else
+          (let* ((cell (doubly-linked-list-node-value node))
+                (key (dict-cell-key cell))
+                (next (doubly-linked-list-node-next node)))
+            (dict-keyiterator-node-fast-set! self next)
+            key))))
+    (py-throw-not-a-type-object "dict_keyiterator.__next__" self)))
+
+(define dict_keyiterator.__next__
+  (procedure->py-function
+    dict-keyiterator-next
+    (make-posonly-signature #(self))))
+
+(define py-dict-keyiterator-class
+  (make-builtin-class
+    (& "dict_keyiterator")
+    (& "builtins")
+    (list)
+    py-dict-keyiterator-hclass-of-instances
+      (& "__iter__") dict_keyiterator.__iter__
+      (& "__next__") dict_keyiterator.__next__))
 
 ;; -----------------------------------------------------------------------------
 
@@ -4391,6 +4486,7 @@
         (& "__getitem__") dict.__getitem__
         (& "__setitem__") dict.__setitem__
         (& "__len__") dict.__len__
+        (& "__iter__") dict.__iter__
         (& "get") dict.get))
 
   (set! py-set-class
