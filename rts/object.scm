@@ -641,6 +641,16 @@
             given-type
             "' object does not support item assignment"))))))
 
+(define (py-throw-not-deletable obj)
+  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
+    (py-throw
+      (py-call py-builtin-TypeError
+        (py-str-from-scheme
+          (string-append
+            "'"
+            given-type
+            "' object does not support item deletion"))))))
+
 (define (py-throw-wrong-index-type type expected-description item)
   (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type item)))))
     (py-throw
@@ -1496,7 +1506,7 @@
 (define (py-delitem obj i cache)
   (let ((delitem (getattribute-from-obj-mro obj (& "__delitem__"))))
     (if (eq? delitem py-absent)
-      (py-throw-not-subscriptable obj)
+      (py-throw-not-deletable obj)
       (py-call2 delitem obj i))))
 
 ;;;----------------------------------------------------------------------------
