@@ -4005,13 +4005,22 @@
 ;; define a doubly-linked-list type for order-preservation
 (define-type doubly-linked-list-node value next prev)
 
-(define (doubly-linked-list-node-remove! node)
+(define (doubly-linked-list-node-remove! node ordered-table)
   (let ((prev (doubly-linked-list-node-prev node))
-        (next (doubly-linked-list-node-next node)))
+        (next (doubly-linked-list-node-next node))
+        (first (ordered-table-first ordered-table))
+        (last (ordered-table-last ordered-table)))
+    ;; link previous and next nodes together
     (if prev
       (doubly-linked-list-node-next-set! prev next))
     (if next
       (doubly-linked-list-node-prev-set! next prev))
+    ;; if the element was the first or last it needs to be removed
+    (if (eq? first node)
+      (ordered-table-first-set! ordered-table next))
+    (if (eq? last node)
+      (ordered-table-last-set! ordered-table prev))
+    ;; unlink the node from the list
     (doubly-linked-list-node-next-set! node #f)
     (doubly-linked-list-node-prev-set! node #f)))
 
@@ -4073,6 +4082,66 @@
               cell
               (loop (cell-next i size)))))))))
 
+(define (table-bucket-indices table size i)
+  (let loop ((i i))
+    (if (eq? (vector-ref table i) empty-table-cell)
+      '()
+      (cons
+        i
+        (ordered-table-bucket-at-vector-index
+          table
+          size
+          (cell-next i size))))))
+
+(define (table-reinsert-node! table node)
+  (let* ((cell (doubly-linked-list-node-value node))
+        (hash (dict-cell-hash)))
+    (let loop ((i (modulo hash size)))
+      (let ((current-node (vector-ref table i)))
+        (if (eq? current-node empty-table-cell)
+          ;; case where we found an empty cell
+          (vector-set! table i node)
+          (loop (cell-next i size)))))))
+
+(define (table-bucket-reinsert table indices)
+  (let ((nodes-to-reinsert
+          (let loop ((indices indices))
+            (if (null? indices)
+              '()
+              (begin
+                (let* ((i (car indices))
+                       (node (vector-ref table i)))
+                  (vector-set! table i empty-table-cell)
+                  (cons node (loop (cdr indices)))))))))
+    (let reinsertion-loop ((nodes-to-reinsert nodes-to-reinsert))
+      (if (not (null? nodes-to-reinsert))
+        (let* ((node (car nodes-to-reinsert)))
+          (table-reinsert-node! table node)
+          (reinsertion-loop (cdr nodes-to-reinsert)))))))
+
+(define (ordered-table-remove-key! ordered-table key)
+  (let* ((hash (object-scheme-value-fast-get (py-hash key)))
+        (table (ordered-table-table ordered-table))
+        (size (vector-length table)))
+    (let loop ((i (modulo hash size)))
+      (let ((node (vector-ref table i)))
+        (if (eq? node empty-table-cell)
+          #f
+          (let* ((cell (doubly-linked-list-node-value node))
+                (cell-key (dict-cell-key cell))
+                (cell-hash (dict-cell-hash cell)))
+            (if (and (= hash cell-hash) (py-eq key cell-key #f))
+              (let ((bucket-tail
+                      (table-bucket-indices table size (cell-next i size)))
+                    (len (ordered-table-length ordered-table)))
+                (doubly-linked-list-node-remove! node ordered-table)
+                (vector-set! table i empty-table-cell)
+                (ordered-table-drop-token! ordered-table)
+                (ordered-table-length-set! ordered-table (- len 1))
+                (table-bucket-reinsert table bucket-tail)
+                #t)
+              (loop (cell-next i size)))))))))
+
 (define (table-vector-set! ordered-table vec size hash key value)
   (let ((content-size (ordered-table-length ordered-table)))
     ;; loop to find the corresponding cell
@@ -4131,6 +4200,14 @@
         (set! size (vector-length table))))
     (table-vector-set! ordered-table table size hash key value)))
 
+(define (ordered-table-get ordered-table key default)
+  (let* ((cell (ordered-table-get-cell ordered-table key)))
+    (if (eq? cell empty-table-cell)
+      (if (eq? default py-absent)
+        (py-throw (py-call1 py-builtin-KeyError key))
+        default)
+      (dict-cell-value cell))))
+
 (define (py-dict-from-scheme key-value-pairs)
   (let* ((ordered-table (make-empty-ordered-table (length key-value-pairs)))
          (table-vector (ordered-table-table ordered-table)))
@@ -4165,14 +4242,6 @@
     dict-setitem
     (make-posonly-signature #(self key value))))
 
-(define (ordered-table-get ordered-table key default)
-  (let* ((cell (ordered-table-get-cell ordered-table key)))
-    (if (eq? cell empty-table-cell)
-      (if (eq? default py-absent)
-        (py-throw (py-call1 py-builtin-KeyError key))
-        default)
-      (dict-cell-value cell))))
-
 (define (dict-get self key default)
     (if (py-isinstance? self py-dict-class)
       (let ((ordered-table (object-scheme-value-fast-get self)))
@@ -4193,6 +4262,20 @@
 (define dict.__getitem__
   (procedure->py-function
     dict-getitem
+    (make-posonly-signature #(self key))))
+
+(define (dict-delitem self key)
+  (if (py-isinstance? self py-dict-class)
+    (let* ((ordered-table (object-scheme-value-fast-get self))
+           (res (ordered-table-remove-key! ordered-table key)))
+      (if (not res)
+        (py-throw (py-call1 py-builtin-KeyError key))
+        py-None))
+    (py-throw-not-a-type-object "dict.__delitem__" self)))
+
+(define dict.__delitem__
+  (procedure->py-function
+    dict-delitem
     (make-posonly-signature #(self key))))
 
 (define (dict-len self)
@@ -4495,6 +4578,7 @@
       py-dict-hclass-of-instances
         (& "__getitem__") dict.__getitem__
         (& "__setitem__") dict.__setitem__
+        (& "__delitem__") dict.__delitem__
         (& "__len__") dict.__len__
         (& "__iter__") dict.__iter__
         (& "get") dict.get))
