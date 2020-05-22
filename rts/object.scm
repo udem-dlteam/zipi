@@ -4064,15 +4064,40 @@
       #(cls source encoding errors)
       (vector py-absent py-absent py-absent))))
 
+(define (list-getitem self item)
+  (if (py-isinstance? self py-list-class)
+      (cond
+       ((py-isinstance? item py-int-class)
+        (let* ((container (object-scheme-value-fast-get self))
+               (len (car container))
+               (vec (cdr container))
+               (i (object-scheme-value-fast-get item)))
+          (if (index-in-length-range i len)
+              (vector-ref vec (modulo i len))
+              (py-throw-index-out-of-range "list"))))
+       ((py-isinstance? item py-slice-class)
+        (py-list-from-scheme
+         (dynamic-vector-py-slice
+          (object-scheme-value-fast-get self)
+          item)))
+       (else (py-throw-wrong-index-type "list" "integers or slices" item)))
+      (py-throw-not-a-type-object "list.__getitem__" self)))
+
 (define (bytearray-getitem cls item)
   (if (py-isinstance? cls py-bytearray-class)
-    (if (py-isinstance? item py-int-class)
-      (let ((bytearray (object-scheme-value-fast-get cls))
-            (i (object-scheme-value-fast-get item)))
-        (if (index-in-length-range i (car bytearray))
-          (py-int-from-scheme (u8vector-ref (cdr bytearray) (modulo i (car bytearray))))
-          (py-throw-index-out-of-range "bytearray")))
-      (py-throw-wrong-index-type "bytearray" "integers" item))
+      (cond
+        ((py-isinstance? item py-int-class)
+        (let ((bytearray (object-scheme-value-fast-get cls))
+              (i (object-scheme-value-fast-get item)))
+          (if (index-in-length-range i (car bytearray))
+            (py-int-from-scheme (u8vector-ref (cdr bytearray) (modulo i (car bytearray))))
+            (py-throw-index-out-of-range "bytearray"))))
+        ((py-isinstance? item py-slice-class)
+         (py-bytearray-from-scheme
+          (dynamic-u8vector-py-slice
+           (object-scheme-fast-get cls)
+           item)))
+      (else (py-throw-wrong-index-type "bytearray" "integers or slices" item)))
     (py-throw-not-a-type-object "bytearray.__getitem__" cls)))
 
 (define bytearray.__getitem__
@@ -4160,6 +4185,51 @@
    bytearray-repr
    (make-posonly-signature #(self))))
 
+(define (bytearray-mul self n)
+  (if (py-isinstance? self py-bytearray-class)
+      (if (py-isinstance? n py-int-class)
+          (let ((c (object-scheme-value-fast-get self))
+                (n (object-scheme-value-fast-get n)))
+            (py-bytearray-from-scheme (dynamic-u8vector*n c n)))
+          py-NotImplemented)
+      (py-throw-not-a-type-object "bytearray.__mul__" self)))
+
+(define bytearray.__mul__
+  (procedure->py-function
+   bytearray-mul
+   (make-posonly-signature #(self n))))
+
+(define bytearray.__rmul__
+  (procedure->py-function
+   bytearray-mul
+   (make-posonly-signature #(self n))))
+
+(define (bytearray-imul self n)
+  (if (py-isinstance? self py-bytearray-class)
+      (if (py-isinstance? n py-int-class)
+          (let ((c (object-scheme-value-fast-get self))
+                (n (object-scheme-value-fast-get n)))
+            (object-scheme-value-fast-set! self (dynamic-u8vector*n c n))
+            self)
+          py-NotImplemented)
+      (py-throw-not-a-type-object "bytearray.__mul__" self)))
+
+(define bytearray.__imul__
+  (procedure->py-function
+   bytearray-imul
+   (make-posonly-signature #(self n))))
+
+(define (bytearray-len self)
+  (if (py-isinstance? self py-bytearray-class)
+      (py-int-from-scheme
+       (car
+        (object-scheme-value-fast-get self)))
+      (py-throw-not-a-type-object "bytearray.__len__" self)))
+
+(define bytearray.__len__
+  (procedure->py-function
+   bytearray-len
+   (make-posonly-signature #(self))))
 (define (bootstrap-type-hierarchy-phase2)
 
   ;; Fill in tuple class
@@ -4382,6 +4452,10 @@
         (& "__setitem__") bytearray.__setitem__
         (& "__repr__") bytearray.__repr__
         (& "__add__") bytearray.__add__
+        (& "__mul__") bytearray.__mul__
+        (& "__rmul__") bytearray.__rmul__
+        (& "__imul__") bytearray.__imul__
+        (& "__len__") bytearray.__len__
         (& "append") bytearray.append
         ))
       )
