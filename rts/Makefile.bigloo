@@ -3,7 +3,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Mon Jul  1 13:14:30 2019                          */
-#*    Last change :  Tue Apr  7 16:54:05 2020 (serrano)                */
+#*    Last change :  Sat May 23 08:58:05 2020 (serrano)                */
 #*    Copyright   :  2019-20 Marc Feeley & Manuel Serrano              */
 #*    -------------------------------------------------------------    */
 #*    The makefile to build the ZIPI rts library                       */
@@ -65,7 +65,7 @@ ude:
 	$(MAKE) .afile .etags
 	$(MAKE) dep
 
-.afile: $(SOURCES) ../stdlib/builtins.bgl
+.afile: $(SOURCES) ../stdlib/builtins.bgl hclass.sch
 	$(AFILE) -o .afile $^
 
 .etags: $(SOURCES) $(INCLUDES)
@@ -85,6 +85,9 @@ clean.bigloo:
 #*---------------------------------------------------------------------*/
 builtins.o: ../stdlib/builtins.bgl
 	$(BIGLOO) -O3 -c $< -o $@
+
+../stdlib/builtins.bgl:
+	$(MAKE) -C ../stdlib builtins.bgl
 
 #bdepend start (don't edit)
 #*---------------------------------------------------------------------*/
