@@ -1965,7 +1965,7 @@
         h
         (loop
           (cdr bytes)
-          (truncate-hash (* (bitwise-xor (car bytes)) FNV1a-prime)))))))
+          (truncate-hash (* (bitwise-xor h (car bytes)) FNV1a-prime)))))))
 
 (define (str-hash self)
   (if (py-isinstance? self py-str-class)
