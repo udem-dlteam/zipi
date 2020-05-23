@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Wed Apr  8 13:38:44 2020 (serrano)                */
+;*    Last change :  Sat May 23 06:24:10 2020 (serrano)                */
 ;*    Copyright   :  2019-20 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -50,9 +50,9 @@
 ;* 	   (py-make-dict ::obj ::obj)                                  */
 ;* 	   (py-make-set ::obj)                                         */
 ;*                                                                     */
-	   (py-getitem ::PyObject ::obj ::PCache)
-     (py-delitem ::PyObject ::obj ::PCache)
-	   (py-setitem ::PyObject ::obj ::obj ::PCache)
+	   (py-getitem ::PyObject ::obj ::obj)
+	   (py-delitem ::PyObject ::obj ::obj)
+	   (py-setitem ::PyObject ::obj ::obj ::obj)
 
 	   (inline PyObject-elements-ref ::PyObject ::long)
 	   (PyObject-elements-set! ::PyObject ::long ::obj)
@@ -170,3 +170,73 @@
 ;*---------------------------------------------------------------------*/
 ;*    bigloo-compatibility                                             */
 ;*---------------------------------------------------------------------*/
+(define-macro (define-flop op x . y)
+   `(define-inline (,(symbol-append 'fl op) ,x ,@y)
+       (,(symbol-append op 'fl) ,x ,@y)))
+
+(define-flop + x y)
+(define-flop * x y)
+(define-flop / x y)
+(define-flop > x y)
+(define-flop = x y)
+(define-flop >= x y)
+(define-flop < x y)
+(define-flop <= x y)
+(define-flop expt x y)
+(define-flop round x)
+(define-flop truncate x)
+(define-flop floor x)
+(define-flop ceiling x)
+
+(define-inline (fl!= x y) (not (=fx x y)))
+
+(define-inline (fl- x . y)
+   (cond
+      ((null? y) (negfl x))
+      ((null? (cdr y)) (-fl x y))
+      ((null? (cddr y)) (-fl x (+fl (car y) (cadr y))))
+      ((null? (cdddr y)) (-fl x (+fl (car y) (+fl (cadr y) (caddr y)))))
+      (else (-fl x (apply + y)))))
+
+(define-macro (fl- x . y)
+   (cond
+      ((null? y) `(negfl ,x))
+      ((null? (cdr y)) `(-fl ,x ,@y))
+      (else ((@ fl- __py_object) ,x ,@y))))
+
+(define-expander error
+   (lambda (x e)
+      (match-case x
+	 ((?- ?msg)
+	  (e `((@ error __error) "zipi" ,msg #f) e))
+	 ((?- ?msg ?obj)
+	  (e `((@ error __error) "zipi" ,msg ,obj) e))
+	 ((?- ?proc ?msg ?obj)
+	  (e `((@ error __error) (format "zipi(~a)" ,proc) ,msg ,obj) e))
+	 ((?- ?proc ?msg ?obj . ?rest)
+	  (e `((@ error __error) (format "zipi(~a)" ,proc) ,msg ,(format "~(, )" ,@rest)) e)))))
+
+(define-inline (subvector vec start stop)
+   (vector-copy vec start stop))
+
+(define-inline (exact x)
+   (cond
+      ((fixnum? x) x)
+      ((flonum? x) (flonum->fixnum x))
+      (else (error "exact" (format "unexpected number type (~a)" (typeof x)) x))))
+
+(define-inline (open-file name)
+   (open-input-file name))
+
+(define (close-port obj)
+   (cond
+      ((input-port? obj) (close-input-port obj))
+      ((output-port? obj) (close-output-port obj))
+      (else (bigloo-type-error "close-port" "port" obj))))
+
+;*---------------------------------------------------------------------*/
+;*    optimizations                                                    */
+;*---------------------------------------------------------------------*/
+(define-macro (result-to-float op)
+   `(lambda (x y) (py-float-from-scheme (,op x y))))
+
