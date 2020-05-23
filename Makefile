@@ -3,8 +3,8 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Marc Feeley & Manuel Serrano                      */
 #*    Creation    :  Sat Feb 19 12:25:16 2000                          */
-#*    Last change :  Wed Jul  3 07:09:05 2019 (serrano)                */
-#*    Copyright   :  2019 Marc Feeley & Manuel Serrano                 */
+#*    Last change :  Sat May 23 09:05:31 2020 (serrano)                */
+#*    Copyright   :  2019-20 Marc Feeley & Manuel Serrano              */
 #*    -------------------------------------------------------------    */
 #*    The Makefile to build Zipi.                                      */
 #*=====================================================================*/
@@ -69,11 +69,13 @@ clean:
 	$(MAKE) -C pyc clean
 	$(MAKE) -C zpc clean
 	$(MAKE) -C rts clean
+	$(MAKE) -C stdlib clean
 
 distclean: clean
 	$(MAKE) -C pyc distclean
 	$(MAKE) -C zpc distclean
 	$(MAKE) -C rts distclean
+	$(MAKE) -C stdlib distclean
 	rm -rf bin lib
 	rm -f etc/Makefile.zipiconfig
 
