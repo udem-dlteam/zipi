@@ -1954,8 +1954,10 @@
     str-eq
     (make-posonly-signature #(self other))))
 
-(define FNV1a-prime #x01000193)
-(define FNV1a-offset-basis #x811c9dc5)
+;; Litterally just taken from here
+;; https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function#FNV_hash_parameters
+(define FNV1a-prime #x00000100000001B3)
+(define FNV1a-offset-basis #xcbf29ce484222325)
 
 (define (hash-FNV1a string)
   (let ((bytes (map char->integer (string->list string)))
