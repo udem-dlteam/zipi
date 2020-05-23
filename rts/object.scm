@@ -997,6 +997,7 @@
 ;; Biggest fixnum Mersene prime
 ;; See explanation here: https://stackoverflow.com/a/37614051/5079316
 (define max-hash (- (expt 2 61) 1))
+(define (truncate-hash x) (remainder x max-hash))
 
 (define (py-hash x)
   (let ((__hash__ (getattribute-from-obj-mro x (& "__hash__"))))
@@ -1005,7 +1006,7 @@
         (let ((h (py-call1 __hash__ x)))
           (if (py-isinstance? h py-int-class)
             (let ((h-value (object-scheme-value-fast-get h)))
-              (py-int-from-scheme (remainder h-value max-hash)))
+              (py-int-from-scheme (truncate-hash h-value)))
             (else
               (py-throw-exception-with-message
                 "__hash__ method should return an integer")))))))
@@ -1937,6 +1938,46 @@
 (define (integer->hex-string x)
   (string-append "0x" (number->string x 16)))
 
+(define (str-eq self other)
+  (if (py-isinstance? self py-str-class)
+    (if (eq? (py-type other) py-str-class)
+      (let* ((self-string (py-str-to-scheme self))
+             (other-string (py-str-to-scheme other)))
+        (if (string=? self-string other-string)
+          py-True
+          py-False))
+      py-NotImplemented)
+    (py-throw-required-type "__hash__" "str" self)))
+
+(define str.__eq__
+  (procedure->py-function
+    str-eq
+    (make-posonly-signature #(self other))))
+
+(define FNV1a-prime #x01000193)
+(define FNV1a-offset-basis #x811c9dc5)
+
+(define (hash-FNV1a string)
+  (let ((bytes (map char->integer (string->list string)))
+        (h FNV1a-offset-basis))
+    (let loop ((bytes bytes) (h h))
+      (if (null? bytes)
+        h
+        (loop
+          (cdr bytes)
+          (truncate-hash (* (bitwise-xor (car bytes)) FNV1a-prime)))))))
+
+(define (str-hash self)
+  (if (py-isinstance? self py-str-class)
+    (let* ((string (py-str-to-scheme self)))
+      (py-int-from-scheme (hash-FNV1a string)))
+    (py-throw-required-type "__hash__" "str" self)))
+
+(define str.__hash__
+  (procedure->py-function
+    str-hash
+    (make-posonly-signature #(self))))
+
 (define object.__repr__
   (procedure->py-function
     object-repr
@@ -2554,6 +2595,8 @@
     (py-own-attr-set! str-class (& "__name__") (py-str-from-scheme "str"))
     (py-own-attr-set! str-class (& "__module__") (py-str-from-scheme "builtins"))
     (py-own-attr-set! str-class (& "__new__") str.__new__)
+    (py-own-attr-set! str-class (& "__eq__") str.__eq__)
+    (py-own-attr-set! str-class (& "__hash__") str.__hash__)
     (py-own-attr-set! str-class (& "__str__") str.__str__)
     (py-own-attr-set! str-class (& "__repr__") str.__repr__)
     (py-own-attr-set! str-class (& "__len__") str.__len__)))
@@ -4065,20 +4108,25 @@
   (ordered-table-iterator-token-set! ordered-table (list #t)))
 
 (define (cell-next i size)
-  (modulo (+ (* 5 i) 1) size))
+  ;; we use bitwise-and because size is always a power of 2
+  (bitwise-and (+ (* 5 i) 1) (- size 1)))
+
+(define (hash->cell hash size)
+  ;; use and because size is always a power of 2
+  (bitwise-and hash (- size 1)))
 
 (define (ordered-table-get-cell ordered-table key)
   (let* ((hash (object-scheme-value-fast-get (py-hash key)))
         (table (ordered-table-table ordered-table))
         (size (vector-length table)))
-    (let loop ((i (modulo hash size)))
+    (let loop ((i (hash->cell hash size)))
       (let ((node (vector-ref table i)))
         (if (eq? node empty-table-cell)
           empty-table-cell
           (let* ((cell (doubly-linked-list-node-value node))
                 (cell-key (dict-cell-key cell))
                 (cell-hash (dict-cell-hash cell)))
-            (if (and (= hash cell-hash) (py-eq key cell-key #f))
+            (if (and (= hash cell-hash) (py-test (py-eq key cell-key #f)))
               cell
               (loop (cell-next i size)))))))))
 
@@ -4088,15 +4136,16 @@
       '()
       (cons
         i
-        (ordered-table-bucket-at-vector-index
+        (table-bucket-indices
           table
           size
           (cell-next i size))))))
 
 (define (table-reinsert-node! table node)
   (let* ((cell (doubly-linked-list-node-value node))
-        (hash (dict-cell-hash)))
-    (let loop ((i (modulo hash size)))
+        (hash (dict-cell-hash cell))
+        (size (vector-length table)))
+    (let loop ((i (hash->cell hash size)))
       (let ((current-node (vector-ref table i)))
         (if (eq? current-node empty-table-cell)
           ;; case where we found an empty cell
@@ -4123,14 +4172,14 @@
   (let* ((hash (object-scheme-value-fast-get (py-hash key)))
         (table (ordered-table-table ordered-table))
         (size (vector-length table)))
-    (let loop ((i (modulo hash size)))
+    (let loop ((i (hash->cell hash size)))
       (let ((node (vector-ref table i)))
         (if (eq? node empty-table-cell)
           #f
           (let* ((cell (doubly-linked-list-node-value node))
                 (cell-key (dict-cell-key cell))
                 (cell-hash (dict-cell-hash cell)))
-            (if (and (= hash cell-hash) (py-eq key cell-key #f))
+            (if (and (= hash cell-hash) (py-test (py-eq key cell-key #f)))
               (let ((bucket-tail
                       (table-bucket-indices table size (cell-next i size)))
                     (len (ordered-table-length ordered-table)))
@@ -4145,7 +4194,7 @@
 (define (table-vector-set! ordered-table vec size hash key value)
   (let ((content-size (ordered-table-length ordered-table)))
     ;; loop to find the corresponding cell
-    (let loop ((i (modulo hash size)))
+    (let loop ((i (hash->cell hash size)))
       (let ((node (vector-ref vec i)))
         (if (eq? node empty-table-cell)
           ;; case where we found an empty cell
@@ -4159,7 +4208,7 @@
           (let* ((cell (doubly-linked-list-node-value node))
                 (cell-key (dict-cell-key cell))
                 (cell-hash (dict-cell-hash cell)))
-            (if (and (= hash cell-hash) (py-eq key cell-key #f))
+            (if (and (= hash cell-hash) (py-test (py-eq key cell-key #f)))
               ;; case where we found an existing cell with the same key
               (let ((cell (doubly-linked-list-node-value node)))
                 (dict-cell-value-set! cell value))

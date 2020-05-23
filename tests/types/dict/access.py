@@ -30,3 +30,17 @@ print(d[10])
 print(d.get(1, False))
 print(d.get(10, False))
 print(d.get(100, False))
+
+d2 = {"foo": 1, "bar": 2, "baz": 3}
+
+for k in d2:
+    print(k)
+    print(d2[k])
+
+d2["foo"] = 10
+del d2["bar"]
+d2["bar"] = 20
+
+for k in d2:
+    print(k)
+    print(d2[k])
