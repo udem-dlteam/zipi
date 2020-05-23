@@ -3,8 +3,8 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Mon Jul  1 13:14:30 2019                          */
-#*    Last change :  Wed Jul  3 07:10:37 2019 (serrano)                */
-#*    Copyright   :  2019 Marc Feeley & Manuel Serrano                 */
+#*    Last change :  Sat May 23 08:45:53 2020 (serrano)                */
+#*    Copyright   :  2019-20 Marc Feeley & Manuel Serrano              */
 #*    -------------------------------------------------------------    */
 #*    The makefile to build the PYC compiler library                   */
 #*=====================================================================*/
@@ -52,3 +52,4 @@ o/object.o: object.sch
 %.sch: %.bgl .afile
 	touch $@ && $(BIGLOO) -classgen $< -o $@
 
+.afile: hclass.sch
