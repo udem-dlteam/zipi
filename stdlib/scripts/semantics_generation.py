@@ -18,11 +18,11 @@ def sem_{0}(x, y):
         if magic_method is absent:
             return err()
         else:
-            y_result = magic_method(y, x)
-            if y_result is NotImplemented:
+            result = magic_method(y, x)
+            if result is NotImplemented:
                 return err()
             else:
-                return y_result
+                return result
 
     def err():
         raise ValueError

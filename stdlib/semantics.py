@@ -19,11 +19,11 @@ def sem_add(x, y):
         if magic_method is absent:
             return err()
         else:
-            y_result = magic_method(y, x)
-            if y_result is NotImplemented:
+            result = magic_method(y, x)
+            if result is NotImplemented:
                 return err()
             else:
-                return y_result
+                return result
 
     def err():
         raise ValueError
@@ -49,11 +49,11 @@ def sem_sub(x, y):
         if magic_method is absent:
             return err()
         else:
-            y_result = magic_method(y, x)
-            if y_result is NotImplemented:
+            result = magic_method(y, x)
+            if result is NotImplemented:
                 return err()
             else:
-                return y_result
+                return result
 
     def err():
         raise ValueError
@@ -79,11 +79,11 @@ def sem_mul(x, y):
         if magic_method is absent:
             return err()
         else:
-            y_result = magic_method(y, x)
-            if y_result is NotImplemented:
+            result = magic_method(y, x)
+            if result is NotImplemented:
                 return err()
             else:
-                return y_result
+                return result
 
     def err():
         raise ValueError
@@ -109,11 +109,11 @@ def sem_truediv(x, y):
         if magic_method is absent:
             return err()
         else:
-            y_result = magic_method(y, x)
-            if y_result is NotImplemented:
+            result = magic_method(y, x)
+            if result is NotImplemented:
                 return err()
             else:
-                return y_result
+                return result
 
     def err():
         raise ValueError
@@ -139,11 +139,11 @@ def sem_floordiv(x, y):
         if magic_method is absent:
             return err()
         else:
-            y_result = magic_method(y, x)
-            if y_result is NotImplemented:
+            result = magic_method(y, x)
+            if result is NotImplemented:
                 return err()
             else:
-                return y_result
+                return result
 
     def err():
         raise ValueError
@@ -169,11 +169,11 @@ def sem_mod(x, y):
         if magic_method is absent:
             return err()
         else:
-            y_result = magic_method(y, x)
-            if y_result is NotImplemented:
+            result = magic_method(y, x)
+            if result is NotImplemented:
                 return err()
             else:
-                return y_result
+                return result
 
     def err():
         raise ValueError
@@ -199,11 +199,11 @@ def sem_pow(x, y):
         if magic_method is absent:
             return err()
         else:
-            y_result = magic_method(y, x)
-            if y_result is NotImplemented:
+            result = magic_method(y, x)
+            if result is NotImplemented:
                 return err()
             else:
-                return y_result
+                return result
 
     def err():
         raise ValueError
@@ -229,11 +229,11 @@ def sem_lshift(x, y):
         if magic_method is absent:
             return err()
         else:
-            y_result = magic_method(y, x)
-            if y_result is NotImplemented:
+            result = magic_method(y, x)
+            if result is NotImplemented:
                 return err()
             else:
-                return y_result
+                return result
 
     def err():
         raise ValueError
@@ -259,11 +259,11 @@ def sem_rshift(x, y):
         if magic_method is absent:
             return err()
         else:
-            y_result = magic_method(y, x)
-            if y_result is NotImplemented:
+            result = magic_method(y, x)
+            if result is NotImplemented:
                 return err()
             else:
-                return y_result
+                return result
 
     def err():
         raise ValueError
@@ -289,11 +289,11 @@ def sem_and(x, y):
         if magic_method is absent:
             return err()
         else:
-            y_result = magic_method(y, x)
-            if y_result is NotImplemented:
+            result = magic_method(y, x)
+            if result is NotImplemented:
                 return err()
             else:
-                return y_result
+                return result
 
     def err():
         raise ValueError
@@ -319,11 +319,11 @@ def sem_or(x, y):
         if magic_method is absent:
             return err()
         else:
-            y_result = magic_method(y, x)
-            if y_result is NotImplemented:
+            result = magic_method(y, x)
+            if result is NotImplemented:
                 return err()
             else:
-                return y_result
+                return result
 
     def err():
         raise ValueError
@@ -349,11 +349,11 @@ def sem_xor(x, y):
         if magic_method is absent:
             return err()
         else:
-            y_result = magic_method(y, x)
-            if y_result is NotImplemented:
+            result = magic_method(y, x)
+            if result is NotImplemented:
                 return err()
             else:
-                return y_result
+                return result
 
     def err():
         raise ValueError
@@ -379,11 +379,11 @@ def sem_matmul(x, y):
         if magic_method is absent:
             return err()
         else:
-            y_result = magic_method(y, x)
-            if y_result is NotImplemented:
+            result = magic_method(y, x)
+            if result is NotImplemented:
                 return err()
             else:
-                return y_result
+                return result
 
     def err():
         raise ValueError
