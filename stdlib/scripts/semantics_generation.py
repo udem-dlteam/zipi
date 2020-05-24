@@ -2,9 +2,16 @@ arithmetic_template = \
 """# Auto-generated
 @define_semantics
 def sem_{0}(x, y):
-
-    def err():
-        raise ValueError
+    def normal(x, y):
+        __{0}__ = class_getattr(x, "__{0}__")
+        if __{0}__ is absent:
+            return reflected(x, y)
+        else:
+            result = __{0}__(x, y)
+            if result is NotImplemented:
+                return reflected(x, y)
+            else:
+                return result
 
     def reflected(x, y):
         __r{0}__ = class_getattr(y, "__r{0}__")
@@ -17,15 +24,10 @@ def sem_{0}(x, y):
             else:
                 return y_result
 
-    __{0}__ = class_getattr(x, "__{0}__")
-    if __{0}__ is absent:
-        return reflected(x, y)
-    else:
-        x_result = __{0}__(x, y)
-        if x_result is NotImplemented:
-            return reflected(x, y)
-        else:
-            return x_result"""
+    def err():
+        raise ValueError
+
+    return normal(x, y)"""
 
 def define_arithmetic_semantics(op):
     return arithmetic_template.format(op)
