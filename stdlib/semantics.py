@@ -1,4 +1,4 @@
-from __compiler_intrinsics__ import define_semantics, class_getattr, absent,
+from __compiler_intrinsics__ import define_semantics, class_getattr, absent
 
 # Auto-generated
 @define_semantics
@@ -6,7 +6,7 @@ def sem_add(x, y):
     def normal():
         magic_method = class_getattr(x, "__add__")
         if magic_method is absent:
-            return reflected(x, y)
+            return reflected()
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
@@ -36,7 +36,7 @@ def sem_sub(x, y):
     def normal():
         magic_method = class_getattr(x, "__sub__")
         if magic_method is absent:
-            return reflected(x, y)
+            return reflected()
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
@@ -66,7 +66,7 @@ def sem_mul(x, y):
     def normal():
         magic_method = class_getattr(x, "__mul__")
         if magic_method is absent:
-            return reflected(x, y)
+            return reflected()
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
@@ -96,7 +96,7 @@ def sem_truediv(x, y):
     def normal():
         magic_method = class_getattr(x, "__truediv__")
         if magic_method is absent:
-            return reflected(x, y)
+            return reflected()
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
@@ -126,7 +126,7 @@ def sem_floordiv(x, y):
     def normal():
         magic_method = class_getattr(x, "__floordiv__")
         if magic_method is absent:
-            return reflected(x, y)
+            return reflected()
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
@@ -156,7 +156,7 @@ def sem_mod(x, y):
     def normal():
         magic_method = class_getattr(x, "__mod__")
         if magic_method is absent:
-            return reflected(x, y)
+            return reflected()
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
@@ -186,7 +186,7 @@ def sem_pow(x, y):
     def normal():
         magic_method = class_getattr(x, "__pow__")
         if magic_method is absent:
-            return reflected(x, y)
+            return reflected()
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
@@ -216,7 +216,7 @@ def sem_lshift(x, y):
     def normal():
         magic_method = class_getattr(x, "__lshift__")
         if magic_method is absent:
-            return reflected(x, y)
+            return reflected()
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
@@ -246,7 +246,7 @@ def sem_rshift(x, y):
     def normal():
         magic_method = class_getattr(x, "__rshift__")
         if magic_method is absent:
-            return reflected(x, y)
+            return reflected()
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
@@ -276,7 +276,7 @@ def sem_and(x, y):
     def normal():
         magic_method = class_getattr(x, "__and__")
         if magic_method is absent:
-            return reflected(x, y)
+            return reflected()
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
@@ -306,7 +306,7 @@ def sem_or(x, y):
     def normal():
         magic_method = class_getattr(x, "__or__")
         if magic_method is absent:
-            return reflected(x, y)
+            return reflected()
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
@@ -336,7 +336,7 @@ def sem_xor(x, y):
     def normal():
         magic_method = class_getattr(x, "__xor__")
         if magic_method is absent:
-            return reflected(x, y)
+            return reflected()
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
@@ -366,7 +366,7 @@ def sem_matmul(x, y):
     def normal():
         magic_method = class_getattr(x, "__matmul__")
         if magic_method is absent:
-            return reflected(x, y)
+            return reflected()
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
@@ -391,7 +391,7 @@ def sem_matmul(x, y):
     return normal()
 
 @define_semantics
-def sem_getattribute(obj, attr)
+def sem_getattribute(obj, attr):
     __getattribute__ = class_getattr(obj, "__getattribute__")
     try:
         return __getattribute__(obj, attr)

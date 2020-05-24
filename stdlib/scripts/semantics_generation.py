@@ -5,7 +5,7 @@ def sem_{0}(x, y):
     def normal():
         magic_method = class_getattr(x, "__{0}__")
         if magic_method is absent:
-            return reflected(x, y)
+            return reflected()
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
