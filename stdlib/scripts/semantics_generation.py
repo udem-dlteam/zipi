@@ -3,22 +3,22 @@ arithmetic_template = \
 @define_semantics
 def sem_{0}(x, y):
     def normal(x, y):
-        __{0}__ = class_getattr(x, "__{0}__")
-        if __{0}__ is absent:
+        magic_method = class_getattr(x, "__{0}__")
+        if magic_method is absent:
             return reflected(x, y)
         else:
-            result = __{0}__(x, y)
+            result = magic_method(x, y)
             if result is NotImplemented:
                 return reflected(x, y)
             else:
                 return result
 
     def reflected(x, y):
-        __r{0}__ = class_getattr(y, "__r{0}__")
-        if __r{0}__ is absent:
+        magic_method = class_getattr(y, "__r{0}__")
+        if magic_method is absent:
             return err()
         else:
-            y_result = __r{0}__(y, x)
+            y_result = magic_method(y, x)
             if y_result is NotImplemented:
                 return err()
             else:
