@@ -46,11 +46,7 @@ if __name__ == "__main__":
         "and",
         "or",
         "xor",
-        "matmul",
-        "lt",
-        "le",
-        "gt",
-        "ge"]
+        "matmul"]
     arithmetic_semantics = '\n\n'.join(define_arithmetic_semantics(op) for op in ops)
 
     with open("../semantics.py.in", "r") as f:
