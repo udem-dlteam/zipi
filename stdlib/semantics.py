@@ -10,7 +10,7 @@ def sem_add(x, y):
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
-                return reflected(x, y)
+                return reflected()
             else:
                 return result
 
@@ -40,7 +40,7 @@ def sem_sub(x, y):
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
-                return reflected(x, y)
+                return reflected()
             else:
                 return result
 
@@ -70,7 +70,7 @@ def sem_mul(x, y):
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
-                return reflected(x, y)
+                return reflected()
             else:
                 return result
 
@@ -100,7 +100,7 @@ def sem_truediv(x, y):
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
-                return reflected(x, y)
+                return reflected()
             else:
                 return result
 
@@ -130,7 +130,7 @@ def sem_floordiv(x, y):
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
-                return reflected(x, y)
+                return reflected()
             else:
                 return result
 
@@ -160,7 +160,7 @@ def sem_mod(x, y):
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
-                return reflected(x, y)
+                return reflected()
             else:
                 return result
 
@@ -190,7 +190,7 @@ def sem_pow(x, y):
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
-                return reflected(x, y)
+                return reflected()
             else:
                 return result
 
@@ -220,7 +220,7 @@ def sem_lshift(x, y):
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
-                return reflected(x, y)
+                return reflected()
             else:
                 return result
 
@@ -250,7 +250,7 @@ def sem_rshift(x, y):
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
-                return reflected(x, y)
+                return reflected()
             else:
                 return result
 
@@ -280,7 +280,7 @@ def sem_and(x, y):
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
-                return reflected(x, y)
+                return reflected()
             else:
                 return result
 
@@ -310,7 +310,7 @@ def sem_or(x, y):
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
-                return reflected(x, y)
+                return reflected()
             else:
                 return result
 
@@ -340,7 +340,7 @@ def sem_xor(x, y):
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
-                return reflected(x, y)
+                return reflected()
             else:
                 return result
 
@@ -370,7 +370,7 @@ def sem_matmul(x, y):
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
-                return reflected(x, y)
+                return reflected()
             else:
                 return result
 

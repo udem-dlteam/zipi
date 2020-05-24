@@ -9,7 +9,7 @@ def sem_{0}(x, y):
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
-                return reflected(x, y)
+                return reflected()
             else:
                 return result
 
