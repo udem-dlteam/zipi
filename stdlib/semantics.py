@@ -3,7 +3,7 @@ from __compiler_intrinsics__ import define_semantics, class_getattr, absent,
 # Auto-generated
 @define_semantics
 def sem_add(x, y):
-    def normal(x, y):
+    def normal():
         magic_method = class_getattr(x, "__add__")
         if magic_method is absent:
             return reflected(x, y)
@@ -14,7 +14,7 @@ def sem_add(x, y):
             else:
                 return result
 
-    def reflected(x, y):
+    def reflected():
         magic_method = class_getattr(y, "__radd__")
         if magic_method is absent:
             return err()
@@ -28,12 +28,12 @@ def sem_add(x, y):
     def err():
         raise ValueError
 
-    return normal(x, y)
+    return normal()
 
 # Auto-generated
 @define_semantics
 def sem_sub(x, y):
-    def normal(x, y):
+    def normal():
         magic_method = class_getattr(x, "__sub__")
         if magic_method is absent:
             return reflected(x, y)
@@ -44,7 +44,7 @@ def sem_sub(x, y):
             else:
                 return result
 
-    def reflected(x, y):
+    def reflected():
         magic_method = class_getattr(y, "__rsub__")
         if magic_method is absent:
             return err()
@@ -58,12 +58,12 @@ def sem_sub(x, y):
     def err():
         raise ValueError
 
-    return normal(x, y)
+    return normal()
 
 # Auto-generated
 @define_semantics
 def sem_mul(x, y):
-    def normal(x, y):
+    def normal():
         magic_method = class_getattr(x, "__mul__")
         if magic_method is absent:
             return reflected(x, y)
@@ -74,7 +74,7 @@ def sem_mul(x, y):
             else:
                 return result
 
-    def reflected(x, y):
+    def reflected():
         magic_method = class_getattr(y, "__rmul__")
         if magic_method is absent:
             return err()
@@ -88,12 +88,12 @@ def sem_mul(x, y):
     def err():
         raise ValueError
 
-    return normal(x, y)
+    return normal()
 
 # Auto-generated
 @define_semantics
 def sem_truediv(x, y):
-    def normal(x, y):
+    def normal():
         magic_method = class_getattr(x, "__truediv__")
         if magic_method is absent:
             return reflected(x, y)
@@ -104,7 +104,7 @@ def sem_truediv(x, y):
             else:
                 return result
 
-    def reflected(x, y):
+    def reflected():
         magic_method = class_getattr(y, "__rtruediv__")
         if magic_method is absent:
             return err()
@@ -118,12 +118,12 @@ def sem_truediv(x, y):
     def err():
         raise ValueError
 
-    return normal(x, y)
+    return normal()
 
 # Auto-generated
 @define_semantics
 def sem_floordiv(x, y):
-    def normal(x, y):
+    def normal():
         magic_method = class_getattr(x, "__floordiv__")
         if magic_method is absent:
             return reflected(x, y)
@@ -134,7 +134,7 @@ def sem_floordiv(x, y):
             else:
                 return result
 
-    def reflected(x, y):
+    def reflected():
         magic_method = class_getattr(y, "__rfloordiv__")
         if magic_method is absent:
             return err()
@@ -148,12 +148,12 @@ def sem_floordiv(x, y):
     def err():
         raise ValueError
 
-    return normal(x, y)
+    return normal()
 
 # Auto-generated
 @define_semantics
 def sem_mod(x, y):
-    def normal(x, y):
+    def normal():
         magic_method = class_getattr(x, "__mod__")
         if magic_method is absent:
             return reflected(x, y)
@@ -164,7 +164,7 @@ def sem_mod(x, y):
             else:
                 return result
 
-    def reflected(x, y):
+    def reflected():
         magic_method = class_getattr(y, "__rmod__")
         if magic_method is absent:
             return err()
@@ -178,12 +178,12 @@ def sem_mod(x, y):
     def err():
         raise ValueError
 
-    return normal(x, y)
+    return normal()
 
 # Auto-generated
 @define_semantics
 def sem_pow(x, y):
-    def normal(x, y):
+    def normal():
         magic_method = class_getattr(x, "__pow__")
         if magic_method is absent:
             return reflected(x, y)
@@ -194,7 +194,7 @@ def sem_pow(x, y):
             else:
                 return result
 
-    def reflected(x, y):
+    def reflected():
         magic_method = class_getattr(y, "__rpow__")
         if magic_method is absent:
             return err()
@@ -208,12 +208,12 @@ def sem_pow(x, y):
     def err():
         raise ValueError
 
-    return normal(x, y)
+    return normal()
 
 # Auto-generated
 @define_semantics
 def sem_lshift(x, y):
-    def normal(x, y):
+    def normal():
         magic_method = class_getattr(x, "__lshift__")
         if magic_method is absent:
             return reflected(x, y)
@@ -224,7 +224,7 @@ def sem_lshift(x, y):
             else:
                 return result
 
-    def reflected(x, y):
+    def reflected():
         magic_method = class_getattr(y, "__rlshift__")
         if magic_method is absent:
             return err()
@@ -238,12 +238,12 @@ def sem_lshift(x, y):
     def err():
         raise ValueError
 
-    return normal(x, y)
+    return normal()
 
 # Auto-generated
 @define_semantics
 def sem_rshift(x, y):
-    def normal(x, y):
+    def normal():
         magic_method = class_getattr(x, "__rshift__")
         if magic_method is absent:
             return reflected(x, y)
@@ -254,7 +254,7 @@ def sem_rshift(x, y):
             else:
                 return result
 
-    def reflected(x, y):
+    def reflected():
         magic_method = class_getattr(y, "__rrshift__")
         if magic_method is absent:
             return err()
@@ -268,12 +268,12 @@ def sem_rshift(x, y):
     def err():
         raise ValueError
 
-    return normal(x, y)
+    return normal()
 
 # Auto-generated
 @define_semantics
 def sem_and(x, y):
-    def normal(x, y):
+    def normal():
         magic_method = class_getattr(x, "__and__")
         if magic_method is absent:
             return reflected(x, y)
@@ -284,7 +284,7 @@ def sem_and(x, y):
             else:
                 return result
 
-    def reflected(x, y):
+    def reflected():
         magic_method = class_getattr(y, "__rand__")
         if magic_method is absent:
             return err()
@@ -298,12 +298,12 @@ def sem_and(x, y):
     def err():
         raise ValueError
 
-    return normal(x, y)
+    return normal()
 
 # Auto-generated
 @define_semantics
 def sem_or(x, y):
-    def normal(x, y):
+    def normal():
         magic_method = class_getattr(x, "__or__")
         if magic_method is absent:
             return reflected(x, y)
@@ -314,7 +314,7 @@ def sem_or(x, y):
             else:
                 return result
 
-    def reflected(x, y):
+    def reflected():
         magic_method = class_getattr(y, "__ror__")
         if magic_method is absent:
             return err()
@@ -328,12 +328,12 @@ def sem_or(x, y):
     def err():
         raise ValueError
 
-    return normal(x, y)
+    return normal()
 
 # Auto-generated
 @define_semantics
 def sem_xor(x, y):
-    def normal(x, y):
+    def normal():
         magic_method = class_getattr(x, "__xor__")
         if magic_method is absent:
             return reflected(x, y)
@@ -344,7 +344,7 @@ def sem_xor(x, y):
             else:
                 return result
 
-    def reflected(x, y):
+    def reflected():
         magic_method = class_getattr(y, "__rxor__")
         if magic_method is absent:
             return err()
@@ -358,12 +358,12 @@ def sem_xor(x, y):
     def err():
         raise ValueError
 
-    return normal(x, y)
+    return normal()
 
 # Auto-generated
 @define_semantics
 def sem_matmul(x, y):
-    def normal(x, y):
+    def normal():
         magic_method = class_getattr(x, "__matmul__")
         if magic_method is absent:
             return reflected(x, y)
@@ -374,7 +374,7 @@ def sem_matmul(x, y):
             else:
                 return result
 
-    def reflected(x, y):
+    def reflected():
         magic_method = class_getattr(y, "__rmatmul__")
         if magic_method is absent:
             return err()
@@ -388,7 +388,7 @@ def sem_matmul(x, y):
     def err():
         raise ValueError
 
-    return normal(x, y)
+    return normal()
 
 @define_semantics
 def sem_getattribute(obj, attr)

@@ -2,7 +2,7 @@ arithmetic_template = \
 """# Auto-generated
 @define_semantics
 def sem_{0}(x, y):
-    def normal(x, y):
+    def normal():
         magic_method = class_getattr(x, "__{0}__")
         if magic_method is absent:
             return reflected(x, y)
@@ -13,7 +13,7 @@ def sem_{0}(x, y):
             else:
                 return result
 
-    def reflected(x, y):
+    def reflected():
         magic_method = class_getattr(y, "__r{0}__")
         if magic_method is absent:
             return err()
@@ -27,7 +27,7 @@ def sem_{0}(x, y):
     def err():
         raise ValueError
 
-    return normal(x, y)"""
+    return normal()"""
 
 def define_arithmetic_semantics(op):
     return arithmetic_template.format(op)
