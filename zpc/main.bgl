@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 12:48:54 2019                          */
-;*    Last change :  Mon May 25 11:44:08 2020 (serrano)                */
+;*    Last change :  Mon May 25 14:18:15 2020 (serrano)                */
 ;*    Copyright   :  2019-20 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    ZPC, the zipi compiler                                           */
@@ -43,7 +43,7 @@
 	  (set! dir path))
 	 ((("-b" "--bin-dir") ?d (help "Bin directory"))
 	  (set! bindir d))
-	 ((("-l" "--lib-dir") ?d (help "Bin directory"))
+	 ((("-l" "--lib-dir") ?d (help "Lib directory"))
 	  (set! libdir d))
 	 ((("-o" "--output") ?path (help "Destination"))
 	  (set! dest path))

@@ -20,7 +20,9 @@
    (let ((prog (pyc-scheme ast conf)))
       (list
 	 `(module ,(string->symbol (or (config-get conf src:) "__stdin"))
-	     ,@(if (config-get conf bootstrap:) '((export (zipi-init))) '((library zipi)))
+	     ,@(if (config-get conf bootstrap:)
+		   '((import __py_object __py_import) (export (zipi-init)))
+		   '((library zipi)))
 	     ,@(if (config-get conf main:) '((main main)) '()))
 	 `(define py-module ,@prog)
 	 (cond
@@ -551,13 +553,13 @@
     (let ((vararg (PycFun-vararg fun))
           (kwarg (PycFun-kwarg fun)))
       `(vector
-        #(,@(map PycDecl-id (PycFun-args fun)))
-        #(,@(map PycDecl-id (PycFun-posonlyargs fun)))
+        '#(,@(map PycDecl-id (PycFun-args fun)))
+        '#(,@(map PycDecl-id (PycFun-posonlyargs fun)))
         ,(cond
             ((PycDecl? vararg) (PycDecl-id vararg))
             ((PycUninit? vararg) #f)
             (else (error "signature" "unknown value for vararg" vararg)))
-        #(,@(map PycDecl-id (PycFun-kwonlyargs fun)))
+        '#(,@(map PycDecl-id (PycFun-kwonlyargs fun)))
         (vector ,@(scheme* (PycFun-kw-defaults fun) conf))
         ,(cond
             ((PycDecl? kwarg) (PycDecl-id kwarg))

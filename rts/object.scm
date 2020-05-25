@@ -2207,10 +2207,11 @@
 (define zipi-stdlib-dir "~/udem-dlteam/zipi/stdlib")
 
 (define (py-make-builtins-mod)
-   (let ((file (string-append zipi-stdlib-dir "/builtins.scm")))
-      (cond-expand
-	 (bigloo (zipi-init))
-	 (else ((loadv file))))))
+   (cond-expand
+      (bigloo (zipi-init))
+      (else
+       (let ((file (string-append zipi-stdlib-dir "/builtins.scm")))
+	  ((loadv file))))))
 
 ;; Once builtins.py is loaded, we need to keep a direct access to some builtins
 ;; Examples are exceptions which are part of Python protocols, such as StopIteration
