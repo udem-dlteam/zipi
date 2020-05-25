@@ -6,6 +6,7 @@
      ("locals" . ,pyc-locals)
      ("super" . ,pyc-super)
      ("generator" . ,pyc-generator)
+     ("intrinsics" . ,pyc-intrinsics)
      ("cps" . ,pyc-cps)
      ("scheme" . ,pyc-scheme)))
 
@@ -17,6 +18,7 @@
      ("locals" . ,pyc-locals)
      ("super" . ,pyc-super)
      ("generator" . ,pyc-generator)
+     ("intrinsics" . ,pyc-intrinsics)
      ("cps" . ,pyc-cps)
      ("bigloo" . ,pyc-scheme-bigloo)))
 
@@ -28,6 +30,7 @@
      ("locals" . ,pyc-locals)
      ("super" . ,pyc-super)
      ("generator" . ,pyc-generator)
+     ("intrinsics" . ,pyc-intrinsics)
      ("cps" . ,pyc-cps)
      ("gambit" . ,pyc-scheme-gambit)))
 

@@ -13,9 +13,9 @@
 ;*    The module                                                       */
 ;*---------------------------------------------------------------------*/
 (module __pyc_compile
-   
+
    (include "ast.sch")
-   
+
    (import __pyc_dump
 	   __pyc_ast
 	   __pyc_utils
@@ -26,13 +26,13 @@
 	   __pyc_break
 	   __pyc_super
 	   __pyc_generator
+     __pyc_intrinsics
 	   __pyc_cps
 	   __pyc_scheme
 	   __pyc_javascript)
-   
+
    (export (pyc driver conf)
 	   (pyc-scheme-driver)
 	   (pyc-bigloo-driver)
 	   (pyc-gambit-driver)
 	   (pyc-javascript-driver)))
-	   

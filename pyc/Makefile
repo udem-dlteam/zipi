@@ -21,7 +21,7 @@ do: build
 #*    common objects                                                   */
 #*---------------------------------------------------------------------*/
 OBJECTS_COMMON = ast compile parse sexp symbol return dump locals break \
-  generator cps scheme javascript utils configure super
+  generator cps scheme javascript utils configure super intrinsics
 
 #*---------------------------------------------------------------------*/
 #*    Common entry points                                              */
@@ -58,4 +58,3 @@ new.sch: ast.bgl
 	touch $@ && $(BIGLOO) -classgen $< -o $@
 
 compile.scm: new.sch types.sch
-
