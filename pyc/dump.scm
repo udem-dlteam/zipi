@@ -44,7 +44,7 @@
 
 (define-walk-method (pycnode->list this::PycWith)
    `(,(string->symbol (typeof this))
-     ,(map pycnode->list (PycWith-items this))
+     ,(pycnode->list (PycWith-items this))
      ,(pycnode->list (PycWith-body this))))
 
 (define-walk-method (pycnode->list this::PycDecl)

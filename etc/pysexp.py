@@ -3,6 +3,7 @@
 import argparse
 import ast as AST
 import subprocess
+import sys
 
 python38 = sys.version_info[:2] == (3, 8)
 python35 = sys.version_info[:2] == (3, 5)
@@ -29,7 +30,7 @@ def pretty_print(source):
     if python35:
         return source
     else:
-        p = subprocess.run(['gsi', '-:-8', '-e', '(pretty-print (read))'],
+        p = subprocess.run(['cat', '-'],
                            stdout=subprocess.PIPE,
                            input=source,
                            encoding='utf-8')

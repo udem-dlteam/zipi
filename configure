@@ -4,7 +4,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Marc Feeley & Manuel Serrano                      */
 #*    Creation    :  Sat Jul 31 06:49:37 2004                          */
-#*    Last change :  Mon May 25 11:20:27 2020 (serrano)                */
+#*    Last change :  Mon May 25 14:04:55 2020 (serrano)                */
 #*    Copyright   :  2019-20 Marc Feeley & Manuel Serrano              */
 #*    -------------------------------------------------------------    */
 #*    HOP autoconfiguration                                            */
@@ -95,6 +95,9 @@ while : ; do
     --mode=*)
       mode="`echo $1 | sed 's/^[^=]*=//'`";;
     
+    --debug*)
+      mode=debug;;
+    
     -*)
       if [ "$1" != "--help" ]; then
         echo "*** Configure error, unknown option $1" >&2;
@@ -120,6 +123,7 @@ while : ; do
       echo "Misc:" >&2;
       echo "   --install................... the installer ($install)" >&2;
       echo "   --mode=[prod|debug]......... the configuration mode ($mod)" >&2;
+      echo "   --debug..................... debug mode (aka --mode=debug)" >&2;
       exit 255;
   esac
   shift

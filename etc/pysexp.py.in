@@ -3,6 +3,7 @@
 import argparse
 import ast as AST
 import subprocess
+import sys
 
 python38 = sys.version_info[:2] == (3, 8)
 python35 = sys.version_info[:2] == (3, 5)
