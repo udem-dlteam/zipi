@@ -1952,7 +1952,7 @@
 (define str.__eq__
   (procedure->py-function
     str-eq
-    (make-posonly-signature #(self other))))
+    (make-posonly-signature '#(self other))))
 
 ;; Litterally just taken from here
 ;; https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function#FNV_hash_parameters
@@ -1978,7 +1978,7 @@
 (define str.__hash__
   (procedure->py-function
     str-hash
-    (make-posonly-signature #(self))))
+    (make-posonly-signature '#(self))))
 
 (define object.__repr__
   (procedure->py-function
@@ -4291,7 +4291,7 @@
 (define dict.__setitem__
   (procedure->py-function
     dict-setitem
-    (make-posonly-signature #(self key value))))
+    (make-posonly-signature '#(self key value))))
 
 (define (dict-get self key default)
     (if (py-isinstance? self py-dict-class)
@@ -4302,7 +4302,7 @@
 (define dict.get
   (procedure->py-function
     dict-get
-    (make-posonly-defaults-signature #(self key default) (vector py-absent))))
+    (make-posonly-defaults-signature '#(self key default) (vector py-absent))))
 
 (define (dict-getitem self key)
   (if (py-isinstance? self py-dict-class)
@@ -4313,7 +4313,7 @@
 (define dict.__getitem__
   (procedure->py-function
     dict-getitem
-    (make-posonly-signature #(self key))))
+    (make-posonly-signature '#(self key))))
 
 (define (dict-delitem self key)
   (if (py-isinstance? self py-dict-class)
@@ -4327,7 +4327,7 @@
 (define dict.__delitem__
   (procedure->py-function
     dict-delitem
-    (make-posonly-signature #(self key))))
+    (make-posonly-signature '#(self key))))
 
 (define (dict-len self)
   (if (py-isinstance? self py-dict-class)
@@ -4339,7 +4339,7 @@
 (define dict.__len__
   (procedure->py-function
     dict-len
-    (make-posonly-signature #(self))))
+    (make-posonly-signature '#(self))))
 
 (define (dict-iter self)
   (if (py-isinstance? self py-dict-class)
@@ -4349,7 +4349,7 @@
 (define dict.__iter__
   (procedure->py-function
     dict-iter
-    (make-posonly-signature #(self))))
+    (make-posonly-signature '#(self))))
 
 ;; =============================================================================
 ;;  Dict iterators
@@ -4387,7 +4387,7 @@
 (define dict_keyiterator.__iter__
   (procedure->py-function
     dict-keyiterator-iter
-    (make-posonly-signature #(self))))
+    (make-posonly-signature '#(self))))
 
 (define (dict-keyiterator-next self)
   (if (py-isinstance? self py-dict-keyiterator-class)
@@ -4411,7 +4411,7 @@
 (define dict_keyiterator.__next__
   (procedure->py-function
     dict-keyiterator-next
-    (make-posonly-signature #(self))))
+    (make-posonly-signature '#(self))))
 
 (define py-dict-keyiterator-class
   (make-builtin-class
@@ -5744,7 +5744,7 @@
 (define py-builtin-hash
   (procedure->py-function
     py-hash
-    (make-posonly-signature #(object))))
+    (make-posonly-signature '#(object))))
 
 ;;-------------------- help([object])
 
