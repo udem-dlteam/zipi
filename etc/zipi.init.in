@@ -4,8 +4,8 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Tue Jul  2 15:20:22 2019                          */
-;*    Last change :                                                    */
-;*    Copyright   :  2019 Manuel Serrano                               */
+;*    Last change :  Mon May 25 18:12:40 2020 (serrano)                */
+;*    Copyright   :  2019-20 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    ZIPI init file.                                                  */
 ;*=====================================================================*/
@@ -15,7 +15,7 @@
 ;*---------------------------------------------------------------------*/
 (declare-library! 'zipi
 		  :version "@RELEASE@"
-		  :module-init '__py_object
+		  :module-init '__py_bigloo
 		  :module-eval '__py_make_lib)
 
 ;*---------------------------------------------------------------------*/

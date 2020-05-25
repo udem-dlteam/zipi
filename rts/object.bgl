@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Mon May 25 14:20:08 2020 (serrano)                */
+;*    Last change :  Mon May 25 17:49:43 2020 (serrano)                */
 ;*    Copyright   :  2019-20 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -19,11 +19,11 @@
    (include "object.sch")
 
    (import __py_hclass
-	   __py_iterator
            __py_bigloo
            ./builtins.py)
 
-   (use    __py_import)
+   (use    __py_import
+	   __py_iterator)
 
    (export (class PyObject
 	      (hclass (default #f))
@@ -46,6 +46,8 @@
 	   (object-put! ::PyObject ::obj ::obj ::obj)
 	   (object-put-no-cache! ::PyObject ::obj ::obj)
 	   (getattribute-from-obj-mro ::obj ::obj)
+
+	   (py-make-list . elements)
 ;*                                                                     */
 ;* 	   (py-make-dict ::obj ::obj)                                  */
 ;* 	   (py-make-set ::obj)                                         */
@@ -79,20 +81,25 @@
 	   (py-throw ::obj)
 ;*                                                                     */
 ;* 	   (pyis?::bool x y)                                           */
-;* 	   (py-add x y cache)                                          */
-;* 	   (py-and x y cache)                                          */
-;* 	   (py-sub x y cache)                                          */
-;* 	   (py-div x y cache)                                          */
-;* 	   (py-eq x y cache)                                           */
-;* 	   (py-ne x y cache)                                           */
-;* 	   (py-lt x y cache)                                           */
-;* 	   (py-le x y cache)                                           */
-;* 	   (py-gt x y cache)                                           */
-;* 	   (py-ge x y cache)                                           */
-;* 	   (py-is x y cache)                                           */
-;* 	   (py-isnot x y cache)                                        */
+	   (py-add x y cache)
+	   (py-iadd x y cache)
+	   (py-and x y cache)
+	   (py-sub x y cache)
+	   (py-div x y cache)
+	   (py-mod x y cache)
+	   (py-floordiv x y cache)
+	   (py-eq x y cache)
+	   (py-ne x y cache)
+	   (py-lt x y cache)
+	   (py-le x y cache)
+	   (py-gt x y cache)
+	   (py-ge x y cache)
+	   (py-is x y cache)
+	   (py-isnot x y cache)
 	   (py-in x y cache)
-;* 	   (py-notin x y cache)                                        */
+	   (py-notin x y cache)
+	   (py-neg x cache)
+	   (py-not x cache)
 ;*                                                                     */
 ;* 	   (py+ x y)                                                   */
 ;* 	   (py- x y)                                                   */
@@ -113,7 +120,6 @@
 	   (py-uninit)
 
 	   (py-test obj)
-	   (py-lt a b)
 ;*                                                                     */
 ;* 	   py-builtin-locals                                           */
 ;* 	   py-builtin-globals                                          */
