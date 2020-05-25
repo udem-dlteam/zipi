@@ -4100,14 +4100,14 @@
     0
     #f
     #f
-    (list #t)))
+    (box #t)))
 
 (define (ordered-table-drop-token! ordered-table)
   ;; signal to any iterator that there was a change to the table which
   ;; prevents further iteration
-  (set-car! (ordered-table-iterator-token ordered-table) #f)
+  (set-box! (ordered-table-iterator-token ordered-table) #f)
   ;; drop old token and create a new one
-  (ordered-table-iterator-token-set! ordered-table (list #t)))
+  (ordered-table-iterator-token-set! ordered-table (box #t)))
 
 (define (cell-next i size)
   ;; we use bitwise-and because size is always a power of 2
@@ -4396,7 +4396,7 @@
       (cond
         ((not node)
           (py-throw py-builtin-StopIteration))
-        ((not (car token)) ;; will be #f if the dict length changed
+        ((not (unbox token)) ;; will be #f if the dict length changed
           (py-throw-exception-with-message
             py-builtin-RuntimeError
             "dictionary changed size during iteration"))
