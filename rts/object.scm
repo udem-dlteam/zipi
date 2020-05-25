@@ -4076,10 +4076,9 @@
 (define table-full-ratio (/ 2 3))
 
 (define (get-table-inner-len len)
-  (arithmetic-shift
+  (fxarithmetic-shift
     1
-    (integer-length
-      (inexact->exact (ceiling (/ len table-full-ratio))))))
+    (integer-length (ceiling (/ len table-full-ratio)))))
 
 (define-type ordered-table table length first last iterator-token)
 
