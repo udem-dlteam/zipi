@@ -691,12 +691,13 @@
 	,@(map (lambda (e) (scheme e conf)) (PycCollection-elts this)))))
 
 (define-walk-method (scheme this::PycDict conf)
-   (epairify this
-      `(py-make-dict
-	  (list
-	     ,@(map (lambda (e) (scheme e conf)) (PycDict-keys this)))
-	  (list
-	     ,@(map (lambda (e) (scheme e conf)) (PycCollection-elts this))))))
+  (epairify this
+    `(py-make-dict
+      (list
+        ,@(map
+            (lambda (k v) `(cons ,(scheme k conf) ,(scheme v conf)))
+            (PycDict-keys this)
+            (PycCollection-elts this))))))
 
 (define-walk-method (scheme this::PycImport conf)
    (epairify this
