@@ -3,7 +3,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Mon Jul  1 13:14:30 2019                          */
-#*    Last change :  Sat May 23 08:57:55 2020 (serrano)                */
+#*    Last change :  Tue May 26 09:36:01 2020 (serrano)                */
 #*    Copyright   :  2019-20 Marc Feeley & Manuel Serrano              */
 #*    -------------------------------------------------------------    */
 #*    The makefile to build the PYC compiler library                   */
@@ -47,7 +47,12 @@ cleanall: distclean
 #*---------------------------------------------------------------------*/
 #*    common targets and dependencies                                  */
 #*---------------------------------------------------------------------*/
-o/object.o: object.sch
+o/object.o: object.sch hclass.sch
+
+.afile: object.sch hclass.sch
+
+object.sch: hclass.sch
 
 %.sch: %.bgl .afile
 	touch $@ && $(BIGLOO) -classgen $< -o $@
+
