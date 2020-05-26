@@ -35,10 +35,11 @@ bigloo -L /usr/local/lib/zipi/0.0.1 -rpath /usr/local/lib/zipi/0.0.1 output.scm
 ./a.out
 ```
 
+You can also use the 
 
 ## Tests
 
-To run all tests
+To run all tests `./compile-and-run somepythonfile.py` to test a Python script with Zipi both on Bigloo and Gambit.
 
 ```
 make test
