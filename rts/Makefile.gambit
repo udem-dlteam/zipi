@@ -3,6 +3,8 @@
 do.gambit: build.gambit
 
 build.gambit:
+	ln -s ../etc/pysexp.py ./bin/pysexp.py
+	chmod u+x ./etc/pysexp.py
 	echo "build.gambit TODO"
 
 install.gambit:

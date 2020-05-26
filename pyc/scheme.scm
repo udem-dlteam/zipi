@@ -51,7 +51,7 @@
 		`((|##import| bigloo)
 		  (|##include| ,(string-append (zipi-rts-dir) "/hclass.bgl"))
 		  (|##include| ,(string-append (zipi-rts-dir) "/hclass.scm"))
-		  (|##include| ,(string-append (zipi-rts-dir) "/object.bgl"))
+		  (|##include| ,(string-append (zipi-rts-dir) "/object.gambit"))
 		  (|##include| ,(string-append (zipi-rts-dir) "/object.scm"))
 		  (|##include| ,(string-append (zipi-rts-dir) "/iterator.bgl"))
 		  (|##include| ,(string-append (zipi-rts-dir) "/iterator.scm"))

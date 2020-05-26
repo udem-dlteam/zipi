@@ -20,14 +20,14 @@
 ;*---------------------------------------------------------------------*/
 (cond-expand
    (bigloo
-    
+
     (define (pysexp file::bstring path::bstring)
        (process-output-port
 	  (run-process (make-file-path path "pysexp.py") file
 	     :input :pipe :output :pipe))))
-   
+
    (gambit
-    
+
     (define (pysexp file path)
        (open-process
 	  (list path: (path-expand "pysexp.py" path)
