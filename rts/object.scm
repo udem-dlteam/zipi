@@ -156,6 +156,16 @@
       (& "**index**"))
     '()))
 
+;; dict-keys iterator
+(define py-dict-keyiterator-hclass-of-instances
+  (make-HClass
+    '#()
+    (vector
+      (& "**class**")
+      (& "**node**")
+      (& "**iterator-token**"))
+    '()))
+
 ;; Method for fast access to attributes defined in hidden classes
 ;; Those are unsafe methods
 
@@ -544,6 +554,30 @@
 (define (py-throw-exception-with-message exc-type message)
   (py-throw (py-call exc-type (py-str-from-scheme message))))
 
+(define (throw-unsupported-unary-operand x operator)
+  (let ((x-type-name (type-name-fast-get (py-type x))))
+    (py-throw
+      (py-call
+        py-builtin-TypeError
+        (py-str-from-scheme
+          (string-append
+            "bad operand type for for unary "
+            operator
+            ": '"
+            (py-str-to-scheme x-type-name)
+            "'"))))))
+
+(define (throw-unhashable x)
+  (let ((x-type-name (type-name-fast-get (py-type x))))
+    (py-throw
+      (py-call
+        py-builtin-TypeError
+        (py-str-from-scheme
+          (string-append
+            "unhashable type: '"
+            (py-str-to-scheme x-type-name)
+            "'"))))))
+
 (define (py-throw-not-an-integer obj)
   (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
     (py-throw
@@ -606,6 +640,16 @@
             "'"
             given-type
             "' object does not support item assignment"))))))
+
+(define (py-throw-not-deletable obj)
+  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
+    (py-throw
+      (py-call py-builtin-TypeError
+        (py-str-from-scheme
+          (string-append
+            "'"
+            given-type
+            "' object does not support item deletion"))))))
 
 (define (py-throw-wrong-index-type type expected-description item)
   (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type item)))))
@@ -929,20 +973,6 @@
 (define-inplace-operator-protocol py-ixor "__ixor__" "__xor__" "__ixor__" "^=")
 
 ;; Unary operators
-
-(define (throw-unsupported-unary-operand x operator)
-  (let ((x-type-name (type-name-fast-get (py-type x))))
-    (py-throw
-      (py-call
-        py-builtin-TypeError
-        (py-str-from-scheme
-          (string-append
-            "bad operand type for for unary "
-            operator
-            ": '"
-            (py-str-to-scheme x-type-name)
-            "'"))))))
-
 (define-macro (define-unary-operator-protocol fun-name method operator)
   `(define (,fun-name x cache)
     (let ((__op__ (getattribute-from-obj-mro x (& ,method))))
@@ -963,6 +993,23 @@
     (if (eq? __abs__ py-absent)
         (throw-unsupported-unary-operand x "abs()")
         (py-call __abs__ x))))
+
+;; Biggest fixnum Mersene prime
+;; See explanation here: https://stackoverflow.com/a/37614051/5079316
+(define max-hash (- (expt 2 61) 1))
+(define (truncate-hash x) (remainder x max-hash))
+
+(define (py-hash x)
+  (let ((__hash__ (getattribute-from-obj-mro x (& "__hash__"))))
+    (if (eq? __hash__ py-absent)
+        (throw-unhashable x)
+        (let ((h (py-call1 __hash__ x)))
+          (if (py-isinstance? h py-int-class)
+            (let ((h-value (object-scheme-value-fast-get h)))
+              (py-int-from-scheme (truncate-hash h-value)))
+	    (py-throw-exception-with-message
+	       py-builtin-RuntimeError
+	       "__hash__ method should return an integer"))))))
 
 ;; =============================================================================
 ;; int operations
@@ -1174,6 +1221,9 @@
 (define-int-unary-operator int-pos "__pos__" +)
 
 (define-int-unary-operator int-abs "__abs__" abs)
+
+(define-int-unary-operator int-hash "__hash__"
+  (lambda (x) (remainder x max-hash)))
 
 (define (int-repr self)
   (if (py-isinstance? self py-int-class)
@@ -1457,7 +1507,7 @@
 (define (py-delitem obj i cache)
   (let ((delitem (getattribute-from-obj-mro obj (& "__delitem__"))))
     (if (eq? delitem py-absent)
-      (py-throw-not-subscriptable obj)
+      (py-throw-not-deletable obj)
       (py-call2 delitem obj i))))
 
 ;;;----------------------------------------------------------------------------
@@ -1888,6 +1938,48 @@
 (define (integer->hex-string x)
   (string-append "0x" (number->string x 16)))
 
+(define (str-eq self other)
+  (if (py-isinstance? self py-str-class)
+    (if (eq? (py-type other) py-str-class)
+      (let* ((self-string (py-str-to-scheme self))
+             (other-string (py-str-to-scheme other)))
+        (if (string=? self-string other-string)
+          py-True
+          py-False))
+      py-NotImplemented)
+    (py-throw-required-type "__hash__" "str" self)))
+
+(define str.__eq__
+  (procedure->py-function
+    str-eq
+    (make-posonly-signature '#(self other))))
+
+;; Litterally just taken from here
+;; https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function#FNV_hash_parameters
+(define FNV1a-prime #x00000100000001B3)
+(define FNV1a-offset-basis #xcbf29ce484222325)
+
+(define (hash-FNV1a string)
+  (let ((bytes (map char->integer (string->list string)))
+        (h FNV1a-offset-basis))
+    (let loop ((bytes bytes) (h h))
+      (if (null? bytes)
+        h
+        (loop
+          (cdr bytes)
+          (truncate-hash (* (bitwise-xor h (car bytes)) FNV1a-prime)))))))
+
+(define (str-hash self)
+  (if (py-isinstance? self py-str-class)
+    (let* ((string (py-str-to-scheme self)))
+      (py-int-from-scheme (hash-FNV1a string)))
+    (py-throw-required-type "__hash__" "str" self)))
+
+(define str.__hash__
+  (procedure->py-function
+    str-hash
+    (make-posonly-signature '#(self))))
+
 (define object.__repr__
   (procedure->py-function
     object-repr
@@ -2229,6 +2321,7 @@
   (set! py-builtin-TypeError (py-own-attr-ref builtins-mod  (& "TypeError")))
   (set! py-builtin-IndexError (py-own-attr-ref builtins-mod  (& "IndexError")))
   (set! py-builtin-RuntimeError (py-own-attr-ref builtins-mod (& "RuntimeError")))
+  (set! py-builtin-KeyError (py-own-attr-ref builtins-mod (& "KeyError")))
   (set! py-builtin-AssertionError (py-own-attr-ref builtins-mod (& "AssertionError")))
 
   ;; Reuse sorted procedure for list.sort
@@ -2304,7 +2397,7 @@
 
    (PyObject-elements-set! mod 1 py-module-class)
    (PyObject-elements-set! mod 2 (py-str-from-scheme "sys"))
-   (PyObject-elements-set! mod 3 (py-make-dict '() '()))
+   (PyObject-elements-set! mod 3 (py-make-dict '()))
 
    mod))
 
@@ -2403,20 +2496,13 @@
   (object-scheme-value-fast-get self))
 
 (define (py-tuple-to-scheme self)
-  (PyObject-elements-ref self 1))
+  (object-scheme-value-fast-get self))
 
 (define (py-list-to-scheme self)
-  (PyObject-elements-ref self 1))
-
-(define (py-dict-from-scheme keys vals)
-  (let ((elems (map cons keys vals)))
-    (let ((self (py-obj-alloc py-dict-class py-dict-hclass-of-instances)))
-      (PyObject-elements-set! self 1 elems)          ;; set **elems**
-      (PyObject-elements-set! self 2 py-dict-class)  ;; set __class__
-    self)))
+  (object-scheme-value-fast-get self))
 
 (define (py-dict-to-scheme self)
-  (PyObject-elements-ref self 1))
+  (object-scheme-value-fast-get self))
 
 (define (py-set-from-scheme elems)
   (let ((self (py-obj-alloc py-set-class py-set-hclass-of-instances)))
@@ -2425,7 +2511,7 @@
     self))
 
 (define (py-set-to-scheme self)
-  (PyObject-elements-ref self 1))
+  (object-scheme-value-fast-get self))
 
 ;; Bootstraps type and object
 ;; Create barebone object, type, str and tuple classes
@@ -2512,6 +2598,8 @@
     (py-own-attr-set! str-class (& "__name__") (py-str-from-scheme "str"))
     (py-own-attr-set! str-class (& "__module__") (py-str-from-scheme "builtins"))
     (py-own-attr-set! str-class (& "__new__") str.__new__)
+    (py-own-attr-set! str-class (& "__eq__") str.__eq__)
+    (py-own-attr-set! str-class (& "__hash__") str.__hash__)
     (py-own-attr-set! str-class (& "__str__") str.__str__)
     (py-own-attr-set! str-class (& "__repr__") str.__repr__)
     (py-own-attr-set! str-class (& "__len__") str.__len__)))
@@ -2643,7 +2731,7 @@
     self
     (py-throw py-builtin-TypeError)))
 
-(define py-list-iterator-iter
+(define list_iterator.__iter__
   (procedure->py-function
     list-iterator-iter
     (make-posonly-signature '#(self))))
@@ -2669,7 +2757,7 @@
           (stop-iterator self)))
     (py-throw py-builtin-TypeError)))
 
-(define py-list-iterator-next
+(define list_iterator.__next__
   (procedure->py-function
     list-iterator-next
     (make-posonly-signature '#(self))))
@@ -2680,8 +2768,8 @@
     (& "builtins")
     (list)
     py-list-iterator-hclass-of-instances
-      (& "__iter__") py-list-iterator-iter
-      (& "__next__") py-list-iterator-next))
+      (& "__iter__") list_iterator.__iter__
+      (& "__next__") list_iterator.__next__))
 
 (define (tuple-iterator-vector-fast-get li)
   (PyObject-elements-ref li 1))
@@ -2751,7 +2839,7 @@
 (define min-list-inner-length 5)
 (define list-empty-cell (cons 'empty-cell '()))
 
-(define (get-inner-len len)
+(define (get-dvec-inner-len len)
   (+
     min-list-inner-length
     (inexact->exact (round (* len list-growth-factor)))))
@@ -2761,7 +2849,7 @@
 
 (define (list->dynamic-vector elements)
   (let* ((len (length elements))
-        (vec-len (get-inner-len len))
+        (vec-len (get-dvec-inner-len len))
         (vec (make-vector vec-len list-empty-cell)))
     (let loop ((i 0) (elements elements))
       (if (null? elements)
@@ -2776,7 +2864,7 @@
         (len2 (car container2))
         (v2 (cdr container2))
         (total-len (+ len1 len2))
-        (vec-len (get-inner-len total-len))
+        (vec-len (get-dvec-inner-len total-len))
         (vec (make-vector vec-len list-empty-cell)))
     (let loop1 ((target-pos 0) (source-pos 0))
       (if (< source-pos len1)
@@ -2801,7 +2889,7 @@
     lst))
 
 (define (vector-head->dynamic-vector vec stop)
-  (let ((inner-len (get-inner-len stop)))
+  (let ((inner-len (get-dvec-inner-len stop)))
     (cons
       stop
       (vector-append
@@ -2913,7 +3001,7 @@
   (let* ((len (car c))
          (vec (cdr c))
          (total-len (* len n))
-         (target-inner-len (get-inner-len total-len))
+         (target-inner-len (get-dvec-inner-len total-len))
          (out (make-vector target-inner-len list-empty-cell)))
     (let loop ((target-pos 0))
       (if (< target-pos total-len)
@@ -3048,7 +3136,7 @@
 
 (define (dynamic-vector-slice vec start stop step)
   (let* ((len (max 0 (ceiling (/ (- stop start) step))))
-        (inner-len (get-inner-len len))
+        (inner-len (get-dvec-inner-len len))
         (out (make-vector inner-len list-empty-cell)))
     (let loop ((source start) (target 0))
       (if (< target len)
@@ -3222,13 +3310,13 @@
 (define (dynamic-vector-shrink! dvec)
   (let* ((len (car dvec))
         (vec (cdr dvec))
-        (new-inner-len (get-inner-len len)))
+        (new-inner-len (get-dvec-inner-len len)))
     (set-cdr! dvec (subvector vec 0 new-inner-len))))
 
 (define (dynamic-vector-grow! dvec)
   (let* ((len (car dvec))
         (vec (cdr dvec))
-        (new-inner-len (get-inner-len len)))
+        (new-inner-len (get-dvec-inner-len len)))
     (set-cdr!
       dvec
       (vector-append vec (make-vector (- new-inner-len len) list-empty-cell)))))
@@ -3236,7 +3324,7 @@
 (define (dynamic-vector-grow-by! dvec amount)
   (let* ((len (car dvec))
         (vec (cdr dvec))
-        (new-inner-len (get-inner-len (+ len amount))))
+        (new-inner-len (get-dvec-inner-len (+ len amount))))
     (set-cdr!
       dvec
       (vector-append vec (make-vector (- new-inner-len len) list-empty-cell)))))
@@ -3956,8 +4044,387 @@
     slice-indices
     (make-posonly-signature '#(self len))))
 
-(define (bootstrap-type-hierarchy-phase2)
+;; =============================================================================
+;;  Dict
+;; =============================================================================
 
+;; define a doubly-linked-list type for order-preservation
+(define-type doubly-linked-list-node value next prev)
+
+(define (doubly-linked-list-node-remove! node ordered-table)
+  (let ((prev (doubly-linked-list-node-prev node))
+        (next (doubly-linked-list-node-next node))
+        (first (ordered-table-first ordered-table))
+        (last (ordered-table-last ordered-table)))
+    ;; link previous and next nodes together
+    (if prev
+      (doubly-linked-list-node-next-set! prev next))
+    (if next
+      (doubly-linked-list-node-prev-set! next prev))
+    ;; if the element was the first or last it needs to be removed
+    (if (eq? first node)
+      (ordered-table-first-set! ordered-table next))
+    (if (eq? last node)
+      (ordered-table-last-set! ordered-table prev))
+    ;; unlink the node from the list
+    (doubly-linked-list-node-next-set! node #f)
+    (doubly-linked-list-node-prev-set! node #f)))
+
+(define-type dict-cell hash key value)
+(define empty-table-cell (cons 'empty-table-cell '()))
+
+(define table-growth-factor 2)
+(define table-full-ratio (/ 2 3))
+
+(define (get-table-inner-len len)
+  (fxarithmetic-shift
+    1
+    (integer-length (ceiling (/ len table-full-ratio)))))
+
+(define-type ordered-table table length first last iterator-token)
+
+(define (ordered-table-append! ordered-table node)
+  (let ((first (ordered-table-first ordered-table)))
+    (if first
+      (let ((last (ordered-table-last ordered-table)))
+        (ordered-table-last-set! ordered-table node)
+        (doubly-linked-list-node-next-set! last node)
+        (doubly-linked-list-node-prev-set! node last))
+      (begin
+        (ordered-table-first-set! ordered-table node)
+        (ordered-table-last-set! ordered-table node)))))
+
+(define (make-empty-ordered-table length-hint)
+  (make-ordered-table
+    (make-vector (get-table-inner-len length-hint) empty-table-cell)
+    0
+    #f
+    #f
+    (box #t)))
+
+(define (ordered-table-drop-token! ordered-table)
+  ;; signal to any iterator that there was a change to the table which
+  ;; prevents further iteration
+  (set-box! (ordered-table-iterator-token ordered-table) #f)
+  ;; drop old token and create a new one
+  (ordered-table-iterator-token-set! ordered-table (box #t)))
+
+(define (cell-next i size)
+  ;; we use bitwise-and because size is always a power of 2
+  (bitwise-and (+ (* 5 i) 1) (- size 1)))
+
+(define (hash->cell hash size)
+  ;; use and because size is always a power of 2
+  (bitwise-and hash (- size 1)))
+
+(define (ordered-table-get-cell ordered-table key)
+  (let* ((hash (object-scheme-value-fast-get (py-hash key)))
+        (table (ordered-table-table ordered-table))
+        (size (vector-length table)))
+    (let loop ((i (hash->cell hash size)))
+      (let ((node (vector-ref table i)))
+        (if (eq? node empty-table-cell)
+          empty-table-cell
+          (let* ((cell (doubly-linked-list-node-value node))
+                (cell-key (dict-cell-key cell))
+                (cell-hash (dict-cell-hash cell)))
+            (if (and (= hash cell-hash) (py-test (py-eq key cell-key #f)))
+              cell
+              (loop (cell-next i size)))))))))
+
+(define (table-bucket-indices table size i)
+  (let loop ((i i))
+    (if (eq? (vector-ref table i) empty-table-cell)
+      '()
+      (cons
+        i
+        (table-bucket-indices
+          table
+          size
+          (cell-next i size))))))
+
+(define (table-reinsert-node! table node)
+  (let* ((cell (doubly-linked-list-node-value node))
+        (hash (dict-cell-hash cell))
+        (size (vector-length table)))
+    (let loop ((i (hash->cell hash size)))
+      (let ((current-node (vector-ref table i)))
+        (if (eq? current-node empty-table-cell)
+          ;; case where we found an empty cell
+          (vector-set! table i node)
+          (loop (cell-next i size)))))))
+
+(define (table-bucket-reinsert table indices)
+  (let ((nodes-to-reinsert
+          (let loop ((indices indices))
+            (if (null? indices)
+              '()
+              (begin
+                (let* ((i (car indices))
+                       (node (vector-ref table i)))
+                  (vector-set! table i empty-table-cell)
+                  (cons node (loop (cdr indices)))))))))
+    (let reinsertion-loop ((nodes-to-reinsert nodes-to-reinsert))
+      (if (not (null? nodes-to-reinsert))
+        (let* ((node (car nodes-to-reinsert)))
+          (table-reinsert-node! table node)
+          (reinsertion-loop (cdr nodes-to-reinsert)))))))
+
+(define (ordered-table-remove-key! ordered-table key)
+  (let* ((hash (object-scheme-value-fast-get (py-hash key)))
+        (table (ordered-table-table ordered-table))
+        (size (vector-length table)))
+    (let loop ((i (hash->cell hash size)))
+      (let ((node (vector-ref table i)))
+        (if (eq? node empty-table-cell)
+          #f
+          (let* ((cell (doubly-linked-list-node-value node))
+                (cell-key (dict-cell-key cell))
+                (cell-hash (dict-cell-hash cell)))
+            (if (and (= hash cell-hash) (py-test (py-eq key cell-key #f)))
+              (let ((bucket-tail
+                      (table-bucket-indices table size (cell-next i size)))
+                    (len (ordered-table-length ordered-table)))
+                (doubly-linked-list-node-remove! node ordered-table)
+                (vector-set! table i empty-table-cell)
+                (ordered-table-drop-token! ordered-table)
+                (ordered-table-length-set! ordered-table (- len 1))
+                (table-bucket-reinsert table bucket-tail)
+                #t)
+              (loop (cell-next i size)))))))))
+
+(define (table-vector-set! ordered-table vec size hash key value)
+  (let ((content-size (ordered-table-length ordered-table)))
+    ;; loop to find the corresponding cell
+    (let loop ((i (hash->cell hash size)))
+      (let ((node (vector-ref vec i)))
+        (if (eq? node empty-table-cell)
+          ;; case where we found an empty cell
+          (let ((node
+                  (make-doubly-linked-list-node
+                    (make-dict-cell hash key value) #f #f)))
+            (ordered-table-drop-token! ordered-table)
+            (ordered-table-length-set! ordered-table (+ content-size 1))
+            (ordered-table-append! ordered-table node)
+            (vector-set! vec i node))
+          (let* ((cell (doubly-linked-list-node-value node))
+                (cell-key (dict-cell-key cell))
+                (cell-hash (dict-cell-hash cell)))
+            (if (and (= hash cell-hash) (py-test (py-eq key cell-key #f)))
+              ;; case where we found an existing cell with the same key
+              (let ((cell (doubly-linked-list-node-value node)))
+                (dict-cell-value-set! cell value))
+              ;; case where there is a collision
+              (loop (cell-next i size)))))))))
+
+(define (ordered-table-grow! ordered-table)
+  (let* ((table (ordered-table-table ordered-table))
+        (content-size (ordered-table-length ordered-table))
+        (size (vector-length table))
+        (new-size (* 2 size))
+        (new-table (make-vector new-size empty-table-cell)))
+    (let ((first (ordered-table-first ordered-table)))
+      ;; reinitialize the table's vector to an empty, bigger vector
+      (ordered-table-first-set! ordered-table #f)
+      (ordered-table-last-set! ordered-table #f)
+      (ordered-table-length-set! ordered-table 0)
+      (ordered-table-table-set! ordered-table new-table)
+      (let loop ((node first))
+        (if node
+          (let* ((cell (doubly-linked-list-node-value node))
+                (cell-hash (dict-cell-hash cell))
+                (cell-key (dict-cell-key cell))
+                (cell-value (dict-cell-value cell)))
+            (table-vector-set! ordered-table new-table new-size cell-hash cell-key cell-value)
+            (loop (doubly-linked-list-node-next node))))))))
+
+(define (ordered-table-set-cell! ordered-table key value)
+  (let* ((hash (object-scheme-value-fast-get (py-hash key)))
+        (table (ordered-table-table ordered-table))
+        (content-size (ordered-table-length ordered-table))
+        (size (vector-length table)))
+    ;; if the table is getting full, resize it
+    (if (>= content-size (* size table-full-ratio))
+      (begin
+        (ordered-table-grow! ordered-table)
+        (set! table (ordered-table-table ordered-table))
+        (set! size (vector-length table))))
+    (table-vector-set! ordered-table table size hash key value)))
+
+(define (ordered-table-get ordered-table key default)
+  (let* ((cell (ordered-table-get-cell ordered-table key)))
+    (if (eq? cell empty-table-cell)
+      (if (eq? default py-absent)
+        (py-throw (py-call1 py-builtin-KeyError key))
+        default)
+      (dict-cell-value cell))))
+
+(define (py-dict-from-scheme key-value-pairs)
+  (let* ((ordered-table (make-empty-ordered-table (length key-value-pairs)))
+         (table-vector (ordered-table-table ordered-table)))
+    (let loop ((key-value-pairs key-value-pairs))
+      (if (null? key-value-pairs)
+        (py-obj-alloc-with-value
+          py-dict-class
+          py-dict-hclass-of-instances
+          ordered-table)
+        (let* ((pair (car key-value-pairs))
+              (key (car pair))
+              (value (cdr pair))
+              (hash (object-scheme-value-fast-get (py-hash key))))
+          (table-vector-set!
+            ordered-table
+            table-vector
+            (vector-length table-vector)
+            hash
+            key
+            value)
+          (loop (cdr key-value-pairs)))))))
+
+(define (dict-setitem self key value)
+  (if (py-isinstance? self py-dict-class)
+    (let ((ordered-table (object-scheme-value-fast-get self)))
+      (ordered-table-set-cell! ordered-table key value))
+    (py-throw-not-a-type-object "dict.__setitem__" self))
+  py-None)
+
+(define dict.__setitem__
+  (procedure->py-function
+    dict-setitem
+    (make-posonly-signature '#(self key value))))
+
+(define (dict-get self key default)
+    (if (py-isinstance? self py-dict-class)
+      (let ((ordered-table (object-scheme-value-fast-get self)))
+        (ordered-table-get ordered-table key default))
+      (py-throw-not-a-type-object "dict.get" self)))
+
+(define dict.get
+  (procedure->py-function
+    dict-get
+    (make-posonly-defaults-signature '#(self key default) (vector py-absent))))
+
+(define (dict-getitem self key)
+  (if (py-isinstance? self py-dict-class)
+    (let ((ordered-table (object-scheme-value-fast-get self)))
+      (ordered-table-get ordered-table key py-absent))
+    (py-throw-not-a-type-object "dict.__getitem__" self)))
+
+(define dict.__getitem__
+  (procedure->py-function
+    dict-getitem
+    (make-posonly-signature '#(self key))))
+
+(define (dict-delitem self key)
+  (if (py-isinstance? self py-dict-class)
+    (let* ((ordered-table (object-scheme-value-fast-get self))
+           (res (ordered-table-remove-key! ordered-table key)))
+      (if (not res)
+        (py-throw (py-call1 py-builtin-KeyError key))
+        py-None))
+    (py-throw-not-a-type-object "dict.__delitem__" self)))
+
+(define dict.__delitem__
+  (procedure->py-function
+    dict-delitem
+    (make-posonly-signature '#(self key))))
+
+(define (dict-len self)
+  (if (py-isinstance? self py-dict-class)
+    (let* ((ordered-table (object-scheme-value-fast-get self))
+           (len (ordered-table-length ordered-table)))
+      (py-int-from-scheme len))
+    (py-throw-not-a-type-object "dict.__len__" self)))
+
+(define dict.__len__
+  (procedure->py-function
+    dict-len
+    (make-posonly-signature '#(self))))
+
+(define (dict-iter self)
+  (if (py-isinstance? self py-dict-class)
+    (dict->dict-keyiterator self)
+    (py-throw-not-a-type-object "dict.__len__" self)))
+
+(define dict.__iter__
+  (procedure->py-function
+    dict-iter
+    (make-posonly-signature '#(self))))
+
+;; =============================================================================
+;;  Dict iterators
+;; =============================================================================
+
+(define (dict-keyiterator-node-fast-get it)
+  (PyObject-elements-ref it 1))
+
+(define (dict-keyiterator-node-fast-set! it n)
+  (PyObject-elements-set! it 1 n))
+
+(define (dict-keyiterator-iterator-token-fast-get it)
+  (PyObject-elements-ref it 2))
+
+(define (dict-keyiterator-iterator-token-fast-set! it t)
+  (PyObject-elements-set! it 2 t))
+
+(define (dict-keyiterator-iter self)
+  (if (py-isinstance? self py-dict-keyiterator-class)
+    self
+    (py-throw-not-a-type-object "dict_keyiterator.__iter__" self)))
+
+(define (dict->dict-keyiterator d)
+  (let* ((it
+          (py-obj-alloc
+            py-dict-keyiterator-class
+            py-dict-keyiterator-hclass-of-instances))
+        (ordered-table (object-scheme-value-fast-get d))
+        (first (ordered-table-first ordered-table))
+        (token (ordered-table-iterator-token ordered-table)))
+    (dict-keyiterator-node-fast-set! it first)
+    (dict-keyiterator-iterator-token-fast-set! it token)
+    it))
+
+(define dict_keyiterator.__iter__
+  (procedure->py-function
+    dict-keyiterator-iter
+    (make-posonly-signature '#(self))))
+
+(define (dict-keyiterator-next self)
+  (if (py-isinstance? self py-dict-keyiterator-class)
+    (let ((node (dict-keyiterator-node-fast-get self))
+          (token (dict-keyiterator-iterator-token-fast-get self)))
+      (cond
+        ((not node)
+          (py-throw py-builtin-StopIteration))
+        ((not (unbox token)) ;; will be #f if the dict length changed
+          (py-throw-exception-with-message
+            py-builtin-RuntimeError
+            "dictionary changed size during iteration"))
+        (else
+          (let* ((cell (doubly-linked-list-node-value node))
+                (key (dict-cell-key cell))
+                (next (doubly-linked-list-node-next node)))
+            (dict-keyiterator-node-fast-set! self next)
+            key))))
+    (py-throw-not-a-type-object "dict_keyiterator.__next__" self)))
+
+(define dict_keyiterator.__next__
+  (procedure->py-function
+    dict-keyiterator-next
+    (make-posonly-signature '#(self))))
+
+(define py-dict-keyiterator-class
+  (make-builtin-class
+    (& "dict_keyiterator")
+    (& "builtins")
+    (list)
+    py-dict-keyiterator-hclass-of-instances
+      (& "__iter__") dict_keyiterator.__iter__
+      (& "__next__") dict_keyiterator.__next__))
+
+;; -----------------------------------------------------------------------------
+
+(define (bootstrap-type-hierarchy-phase2)
   ;; Fill in tuple class
   (py-own-attr-set! py-tuple-class (& "__iter__") tuple.__iter__)
   (py-own-attr-set! py-tuple-class (& "__contains__") tuple.__contains__)
@@ -4023,6 +4490,7 @@
         (& "__pos__") int.__pos__
         (& "__invert__") int.__invert__
         (& "__abs__") int.__abs__
+        (& "__hash__") int.__hash__
         (& "__truediv__") int.__truediv__
         (& "__itruediv__") int.__itruediv__
         (& "__repr__") int.__repr__))
@@ -4158,7 +4626,13 @@
       (& "dict")
       (& "builtins")
       (list)
-      py-dict-hclass-of-instances))
+      py-dict-hclass-of-instances
+        (& "__getitem__") dict.__getitem__
+        (& "__setitem__") dict.__setitem__
+        (& "__delitem__") dict.__delitem__
+        (& "__len__") dict.__len__
+        (& "__iter__") dict.__iter__
+        (& "get") dict.get))
 
   (set! py-set-class
     (make-builtin-class
@@ -4176,8 +4650,6 @@
 (define py-int-2 (py-int-from-scheme 2))
 (define py-int-3 (py-int-from-scheme 3))
 (define py-int-4 (py-int-from-scheme 4))
-
-;;;----------------------------------------------------------------------------
 
 ;; =============================================================================
 ;;  Context managers (with) protocol
@@ -4505,8 +4977,7 @@
     (object-scheme-value-fast-set! tuple elements)
     tuple))
 
-(define (py-make-dict keys vals)
-  (py-dict-from-scheme keys vals))
+(define py-make-dict py-dict-from-scheme)
 
 (define (py-string-to-name s)
   (string->symbol s))
@@ -5272,8 +5743,7 @@
 
 (define py-builtin-hash
   (procedure->py-function
-    (lambda (object)
-      (error "hash" "not implemented" #f))
+    py-hash
     (make-posonly-signature '#(object))))
 
 ;;-------------------- help([object])
@@ -6630,6 +7100,8 @@
 (define py-builtin-IndexError #f)
 
 (define py-builtin-RuntimeError #f)
+
+(define py-builtin-KeyError #f)
 
 (define py-builtin-AssertionError #f)
 

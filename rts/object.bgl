@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Mon May 25 17:49:43 2020 (serrano)                */
+;*    Last change :  Tue May 26 09:59:06 2020 (serrano)                */
 ;*    Copyright   :  2019-20 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -253,6 +253,37 @@
       ((input-port? obj) (close-input-port obj))
       ((output-port? obj) (close-output-port obj))
       (else (bigloo-type-error "close-port" "port" obj))))
+
+(define-inline (fxarithmetic-shift num shift)
+   (bit-lsh num shift))
+
+(define (integer-length n)
+   (cond
+      ((=fx n 0)
+       0)
+      ((>fx n 0)
+       (let loop ((l 1)
+		  (n (bit-rsh n 1)))
+	  (if (=fx n 0)
+	      l
+	      (loop (+fx l 1) (bit-ursh n 1)))))
+      (else
+       (integer-length (bit-not n)))))
+
+(define-inline (box v)
+   (make-cell v))
+
+(define-inline (set-box! b v)
+   (cell-set! b v))
+
+(define-inline (unbox b)
+   (cell-ref b))
+
+;*---------------------------------------------------------------------*/
+;*    define-type ...                                                  */
+;*---------------------------------------------------------------------*/
+(define-macro (define-type . args)
+   `(define-struct ,@args))
 
 ;*---------------------------------------------------------------------*/
 ;*    optimizations                                                    */
