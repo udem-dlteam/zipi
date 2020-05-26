@@ -28,6 +28,8 @@ build:
 	$(MAKE) -C pyc
 	$(MAKE) -C zpc
 	$(MAKE) -C rts
+	ln -s ../etc/pysexp.py ./bin/pysexp.py
+	chmod u+x ./etc/pysexp.py
 
 #*---------------------------------------------------------------------*/
 #*    install                                                          */
