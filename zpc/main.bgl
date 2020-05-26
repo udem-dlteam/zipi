@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 12:48:54 2019                          */
-;*    Last change :  Tue Apr  7 17:35:47 2020 (serrano)                */
+;*    Last change :  Mon May 25 14:18:15 2020 (serrano)                */
 ;*    Copyright   :  2019-20 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    ZPC, the zipi compiler                                           */
@@ -41,6 +41,10 @@
 	  (set! tgt (string->symbol target)))
 	 ((("-d" "--dir") ?path (help "Root import directory"))
 	  (set! dir path))
+	 ((("-b" "--bin-dir") ?d (help "Bin directory"))
+	  (set! bindir d))
+	 ((("-l" "--lib-dir") ?d (help "Lib directory"))
+	  (set! libdir d))
 	 ((("-o" "--output") ?path (help "Destination"))
 	  (set! dest path))
 	 ((("--py-module-main") (help "Generate a main module clause"))
@@ -68,7 +72,7 @@
 		  verbose: verb
 		  target: tgt
 		  lib-dir: libdir
-		  bind-dir: libdir
+		  bin-dir: bindir
 		  dir: (or dir (if src (absolute (dirname src)) (pwd)))
 		  src: src
 		  main: main

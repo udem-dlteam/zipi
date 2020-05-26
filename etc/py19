@@ -28,7 +28,7 @@ $PYC_DIR/locals.scm \
 $PYC_DIR/super.scm \
 -e "(##include \"$RTS_DIR/hclass.bgl\")" \
 -e "(##include \"$RTS_DIR/hclass.scm\")" \
--e "(##include \"$RTS_DIR/object.bgl\")" \
+-e "(##include \"$RTS_DIR/object.gambit\")" \
 -e "(##include \"$RTS_DIR/object.scm\")" \
 -e "(##include \"$RTS_DIR/iterator.bgl\")" \
 -e "(##include \"$RTS_DIR/iterator.scm\")" \

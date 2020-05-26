@@ -1,0 +1,186 @@
+;*---------------------------------------------------------------------*/
+;*    The module                                                       */
+;*---------------------------------------------------------------------*/
+(module __py_object
+
+   (option  (define-macro (& name) `',(string->symbol name)))
+
+   (include "object.sch")
+
+   (import __py_hclass
+           __py_bigloo
+           ./builtins.py)
+
+   (use    __py_import
+	   __py_iterator)
+
+   (export (class PyObject
+	      (hclass (default #f))
+	      (%elements (default (make-vector 4))))
+
+	   (class PyFunction::PyObject
+	      (procedure read-only))
+
+	   (macro & name)
+
+	   (py-builtins-mod::PyObject)
+	   (py-time-mod::PyObject)
+	   (py-sys-mod::PyObject)
+;*                                                                     */
+	   (global-get ::PyObject ::obj ::obj)
+	   (global-put! global name val cache)
+;*                                                                     */
+	   (object-get ::obj ::obj ::obj)
+;* 	   (object-has::bool ::PyObject ::obj)                         */
+	   (object-put! ::PyObject ::obj ::obj ::obj)
+	   (object-put-no-cache! ::PyObject ::obj ::obj)
+	   (getattribute-from-obj-mro ::obj ::obj)
+
+	   (py-make-list . elements)
+;*                                                                     */
+;* 	   (py-make-dict ::obj ::obj)                                  */
+;* 	   (py-make-set ::obj)                                         */
+;*                                                                     */
+	   (py-getitem ::PyObject ::obj ::obj)
+	   (py-delitem ::PyObject ::obj ::obj)
+	   (py-setitem ::PyObject ::obj ::obj ::obj)
+
+	   (inline PyObject-elements-ref ::PyObject ::long)
+	   (PyObject-elements-set! ::PyObject ::long ::obj)
+;*                                                                     */
+;* 	   (PyObject-find-prop ::PyObject ::obj)                       */
+;*                                                                     */
+;* 	   (PyFunction-default-hclass)                                 */
+;*                                                                     */
+
+	   (py-call obj . args)
+	   (py-call0 ::obj)
+	   (py-call1 ::obj ::obj)
+	   (py-call2 ::obj ::obj ::obj)
+	   (py-call3 ::obj ::obj ::obj ::obj)
+	   (py-call4 ::obj ::obj ::obj ::obj ::obj)
+	   (py-call5 ::obj ::obj ::obj ::obj ::obj ::obj)
+
+	   (py-make-global)
+	   (py-make-base-global)
+	   (py-make-caches ::int)
+
+	   (py-make-class name module bases . atrs)
+
+	   (py-throw ::obj)
+;*                                                                     */
+;* 	   (pyis?::bool x y)                                           */
+	   (py-add x y cache)
+	   (py-iadd x y cache)
+	   (py-and x y cache)
+	   (py-sub x y cache)
+	   (py-div x y cache)
+	   (py-mod x y cache)
+	   (py-floordiv x y cache)
+	   (py-eq x y cache)
+	   (py-ne x y cache)
+	   (py-lt x y cache)
+	   (py-le x y cache)
+	   (py-gt x y cache)
+	   (py-ge x y cache)
+	   (py-is x y cache)
+	   (py-isnot x y cache)
+	   (py-in x y cache)
+	   (py-notin x y cache)
+	   (py-neg x cache)
+	   (py-not x cache)
+;*                                                                     */
+;* 	   (py+ x y)                                                   */
+;* 	   (py- x y)                                                   */
+;* 	   (pyneg x)                                                   */
+;* 	   (py* x y)                                                   */
+;* 	   (py/ x y)                                                   */
+;* 	   (py<::bool x y)                                             */
+;* 	   (py<=::bool x y)                                            */
+;* 	   (py>::bool x y)                                             */
+;* 	   (py>=::bool x y)                                            */
+;*                                                                     */
+	   py-None
+           py-absent
+
+	   py-True
+	   py-False
+
+	   (py-uninit)
+
+	   (py-test obj)
+;*                                                                     */
+;* 	   py-builtin-locals                                           */
+;* 	   py-builtin-globals                                          */
+	   py-object-class
+	   py-module-class
+
+
+	   (py-isinstance? ::PyObject ::PyObject)
+
+	   py-builtin-StopIteration
+
+	   (py-slice-from-scheme::PyObject ::obj)
+
+           (py-obj-alloc cls hclass-of-instances)
+	   (py-str-from-scheme::PyObject ::bstring)
+	   (py-str-to-scheme::bstring ::PyObject)
+	   (py-string-to-name::symbol ::bstring)
+
+	   procedure->py-function
+
+	   (py-int-from-scheme value)
+	   (py-float-from-scheme value)
+;* 	   (py-repr-scheme ::obj))                                     */
+	   )
+
+
+   (eval   (export-all)))
+
+;*---------------------------------------------------------------------*/
+;*    & ...                                                            */
+;*---------------------------------------------------------------------*/
+(define-macro (& name)
+   `',(string->symbol name))
+
+;*---------------------------------------------------------------------*/
+;*    PyObject-elements-ref ...                                        */
+;*---------------------------------------------------------------------*/
+(define-inline (PyObject-elements-ref obj offset)
+   (with-access::PyObject obj (%elements)
+      (vector-ref %elements offset)))
+
+;*---------------------------------------------------------------------*/
+;*    PyObject-elements-set! ...                                       */
+;*---------------------------------------------------------------------*/
+(define (PyObject-elements-set! obj offset val)
+   (with-access::PyObject obj (%elements)
+      (let ((len (vector-length %elements)))
+	 (when (>= offset len)
+	    (set! %elements (copy-vector %elements (*fx 2 (max 1 len)))))
+	 (vector-set! %elements offset val))))
+
+;*---------------------------------------------------------------------*/
+;*    current-second ...                                               */
+;*---------------------------------------------------------------------*/
+(define-inline (current-second)
+   (current-seconds))
+
+;*---------------------------------------------------------------------*/
+;*    object-repr ...                                                  */
+;*---------------------------------------------------------------------*/
+(define (object-repr self)
+   (let* ((self-type (py-type self))
+	  (self-type-name (py-str-to-scheme (type-name-fast-get self-type)))
+	  (addr (object-hashnumber self))
+	  (result (string-append "<" self-type-name " object at " addr ">")))
+      (py-str-from-scheme result)))
+
+;*---------------------------------------------------------------------*/
+;*    compatibility                                                    */
+;*---------------------------------------------------------------------*/
+(define (symbol-append . rest)
+ (string->symbol (apply string-append (map symbol->string rest))))
+
+ (define (read-string port)
+    (list->string (read-all port read-char)))

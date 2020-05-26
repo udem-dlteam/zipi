@@ -1,0 +1,19 @@
+#!@SHELL@
+#*=====================================================================*/
+#*    serrano/prgm/project/zipi/etc/zpc.bigloo.sh.in                   */
+#*    -------------------------------------------------------------    */
+#*    Author      :  Manuel Serrano                                    */
+#*    Creation    :  Tue Oct 13 14:06:20 2015                          */
+#*    Last change :  Mon May 25 11:28:12 2020 (serrano)                */
+#*    Copyright   :  2015-20 Manuel Serrano                            */
+#*    -------------------------------------------------------------    */
+#*    Bigloo wrapper                                                   */
+#*=====================================================================*/
+
+LD_LIBRARY_PATH=@BUILDLIBDIR@:$LD_LIBRARY_PATH
+DYLD_LIBRARY_PATH=@BUILDLIBDIR@:$DYLD_LIBRARY_PATH
+
+export LD_LIBRARY_PATH
+export DYLD_LIBRARY_PATH
+
+exec @BUILDBINDIR@/zpc.bigloo "$@"

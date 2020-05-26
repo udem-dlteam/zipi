@@ -3,8 +3,8 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 12:48:54 2019                          */
-;*    Last change :  Tue Nov 12 20:25:38 2019 (serrano)                */
-;*    Copyright   :  2019 M. Feeley & M. Serrano                       */
+;*    Last change :  Mon May 25 11:35:58 2020 (serrano)                */
+;*    Copyright   :  2019-20 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    python ast interpreter (bigloo prelude)                          */
 ;*=====================================================================*/
@@ -41,6 +41,7 @@
    (let ((verb 0)
 	 (tgt 'scheme)
 	 (generate-main #t)
+	 (bin-dir (zipi-bin-dir))
 	 (dir #f)
 	 (src #f)
 	 (conf '()))
@@ -54,6 +55,8 @@
 	  (set! generate-main #f))
 	 ((("-d" "--dir") ?d (help "Root import directory"))
 	  (set! dir d))
+	 ((("-b" "--bin-dir") ?d (help "Bin directory"))
+	  (set! bin-dir d))
 	 (("-v?level" (help "Increase/set verbosity level (-v0 crystal silence)"))
 	  (if (string=? level "")
 	      (set! verb (+fx 1 verb))
@@ -62,10 +65,11 @@
 	  (unless (string=? else "--")
 	     (set! src else))))
       (pyc (cons*
-	      'verbose verb
-	      'target tgt
-	      'dir (or dir (if src (absolute (dirname src)) (pwd)))
-	      'src src
+	      verbose: verb
+	      target: tgt
+	      dir: (or dir (if src (absolute (dirname src)) (pwd)))
+	      src: src
+	      bin-dir: bin-dir
 	      conf))))
 
 ;*---------------------------------------------------------------------*/
