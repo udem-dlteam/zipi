@@ -4,8 +4,8 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Marc Feeley & Manuel Serrano                      */
 #*    Creation    :  Sat Jul 31 06:49:37 2004                          */
-#*    Last change :  Tue Nov 12 20:24:28 2019 (serrano)                */
-#*    Copyright   :  2019 Marc Feeley & Manuel Serrano                 */
+#*    Last change :  Mon May 25 14:04:55 2020 (serrano)                */
+#*    Copyright   :  2019-20 Marc Feeley & Manuel Serrano              */
 #*    -------------------------------------------------------------    */
 #*    HOP autoconfiguration                                            */
 #*=====================================================================*/
@@ -40,6 +40,8 @@ buildetcdir=$PWD/etc
 buildrtsdir=$PWD/rts
 
 install="install -m a+r,u+r"
+
+shell=/bin/sh
 
 mode=optim
 
@@ -93,6 +95,9 @@ while : ; do
     --mode=*)
       mode="`echo $1 | sed 's/^[^=]*=//'`";;
     
+    --debug*)
+      mode=debug;;
+    
     -*)
       if [ "$1" != "--help" ]; then
         echo "*** Configure error, unknown option $1" >&2;
@@ -118,6 +123,7 @@ while : ; do
       echo "Misc:" >&2;
       echo "   --install................... the installer ($install)" >&2;
       echo "   --mode=[prod|debug]......... the configuration mode ($mod)" >&2;
+      echo "   --debug..................... debug mode (aka --mode=debug)" >&2;
       exit 255;
   esac
   shift
@@ -193,7 +199,7 @@ buildid=`$bigloo -s -eval "(begin (print (md5sum-string \"$buildid $buildtag $bi
 #*---------------------------------------------------------------------*/
 #*    Makefile.zipiconfig                                              */
 #*---------------------------------------------------------------------*/
-for file in Makefile.zipiconfig configure.scm pysexp.py; do
+for file in Makefile.zipiconfig configure.scm pysexp.py zpc.bigloo.sh; do
   mkmf=etc/$file
 
   rm -f $mkmf 2> /dev/null
@@ -222,6 +228,7 @@ for file in Makefile.zipiconfig configure.scm pysexp.py; do
           -e "s|@GAMBIT@|$gambit|" \
           -e "s|@INSTALL@|$install|" \
           -e "s|@LINK@|$link|" \
+          -e "s|@SHELL@|$shell|" \
           -e "s|@PYSEXPPP@|$pysexppp|" \
   	>> $mkmf
 done	
@@ -236,3 +243,6 @@ for file in configure.scm; do
   
   rm etc/$file
 done  
+
+mv etc/zpc.bigloo.sh bin && chmod a+rx bin/zpc.bigloo.sh
+chmod a+rx etc/pysexp.py

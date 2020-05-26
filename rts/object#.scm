@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Mon Apr  6 16:04:36 2020 (serrano)                */
+;*    Last change :  Sat May 23 06:58:13 2020 (serrano)                */
 ;*    Copyright   :  2019-20 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -59,3 +59,5 @@
          (result (string-append "<" self-type-name " object at " addr ">")))
     (py-str-from-scheme result)))
 
+(define (read-string port)
+   (list->string (read-all port read-char)))

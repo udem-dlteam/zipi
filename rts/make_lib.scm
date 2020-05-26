@@ -3,8 +3,8 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Tue Jul  2 07:06:22 2019                          */
-;*    Last change :  Tue Jul  2 11:43:55 2019 (serrano)                */
-;*    Copyright   :  2019 Manuel Serrano                               */
+;*    Last change :  Mon May 25 14:20:27 2020 (serrano)                */
+;*    Copyright   :  2019-20 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    The module used to build the pyc heap file.                      */
 ;*=====================================================================*/
@@ -14,13 +14,14 @@
 ;*---------------------------------------------------------------------*/
 (module __py_makelib
    
-   (import
-      __py_object
+   (import __py_object
       __py_iterator
       __py_import
-      __py_hclass)
+      __py_hclass
+      __py_bigloo)
    
-   (eval (class PyObject)
+   (eval (export-all)
+      (class PyObject)
       (class PyFunction)
       (class PyGenerator)
       (class PCache)

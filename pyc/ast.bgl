@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 10:16:39 2019                          */
-;*    Last change :  Tue Apr  7 16:07:39 2020 (serrano)                */
+;*    Last change :  Mon May 25 14:08:11 2020 (serrano)                */
 ;*    Copyright   :  2019-20 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Python AST                                                       */
@@ -185,25 +185,25 @@
               rhs::PycExpr
 	      (cache (default #f)))
 
-        (final-class PycBoolOp::PycExpr
+	   (final-class PycBoolOp::PycExpr
    	      op::symbol
-   	      args::PycExpr
+   	      args::pair-nil
    	      (cache (default #f)))
 
            (final-class PycFun::PycExpr
-            args::pair-nil
-            posonlyargs::pair-nil
-            vararg::PycDecl
-            kwonlyargs::pair-nil
-            kw-defaults::pair-nil
-            kwarg::PycDecl
-            defaults::pair-nil
-            body::PycStmt
-            (decls::pair-nil (default '()))
-            (generator::bool (default #f))
-            (need-return::bool (default #t))
-            (can-locals::bool (default #t))
-            (super-in-class::symbol (default #f)))
+	      args::pair-nil
+	      posonlyargs::pair-nil
+	      vararg::obj
+	      kwonlyargs::pair-nil
+	      kw-defaults::pair-nil
+	      kwarg::obj
+	      defaults::pair-nil
+	      body::PycStmt
+	      (decls::pair-nil (default '()))
+	      (generator::bool (default #f))
+	      (need-return::bool (default #t))
+	      (can-locals::bool (default #t))
+	      (super-in-class::bool (default #f)))
            (final-class PycClass::PycExpr
 	      (name::bstring read-only)
 	      (module::bstring read-only)

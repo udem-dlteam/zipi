@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Tue Apr  7 16:51:08 2020                          */
-;*    Last change :  Tue Apr  7 17:03:53 2020 (serrano)                */
+;*    Last change :  Mon May 25 18:13:03 2020 (serrano)                */
 ;*    Copyright   :  2020 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Bigloo compatibility kit                                         */
@@ -13,6 +13,8 @@
 ;*    The module                                                       */
 ;*---------------------------------------------------------------------*/
 (module __py_bigloo
+
+   (import __py_object)
 
    (export (inline arithmetic-shift::long ::long ::long)
 	   (inline bitwise-and::long ::long ::long)

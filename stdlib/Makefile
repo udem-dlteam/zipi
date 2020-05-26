@@ -16,3 +16,5 @@ install: $(ZIPISYSTEMS:%=install.%)
 -include Makefile.bigloo
 -include Makefile.gambit
 
+clean: $(ZIPISYSTEMS:%=clean.%)
+distclean: $(ZIPISYSTEMS:%=distclean.%)

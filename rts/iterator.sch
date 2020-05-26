@@ -1,7 +1,7 @@
 ;; ==========================================================
 ;; Class accessors
-;; Bigloo (4.3h)
-;; Inria -- Sophia Antipolis     Mon 06 Apr 2020 12:23:49 PM CEST 
+;; Bigloo (4.3f)
+;; Inria -- Sophia Antipolis     Thu 04 Jul 2019 08:10:18 AM CEST 
 ;; (bigloo -classgen iterator.bgl -o iterator.sch)
 ;; ==========================================================
 

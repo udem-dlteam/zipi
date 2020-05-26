@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Wed Apr  8 13:38:44 2020 (serrano)                */
+;*    Last change :  Tue May 26 10:15:30 2020 (serrano)                */
 ;*    Copyright   :  2019-20 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -19,11 +19,11 @@
    (include "object.sch")
 
    (import __py_hclass
-	   __py_iterator
            __py_bigloo
            ./builtins.py)
 
-   (use    __py_import)
+   (use    __py_import
+	   __py_iterator)
 
    (export (class PyObject
 	      (hclass (default #f))
@@ -38,21 +38,23 @@
 	   (py-time-mod::PyObject)
 	   (py-sys-mod::PyObject)
 ;*                                                                     */
-;* 	   (global-get ::PyObject ::obj ::obj)                         */
-;* 	   (global-put! global name val cache)                         */
+	   (global-get ::PyObject ::obj ::obj)
+	   (global-put! global name val cache)
 ;*                                                                     */
-;* 	   (object-get ::obj ::obj ::obj)                              */
+	   (object-get ::obj ::obj ::obj)
 ;* 	   (object-has::bool ::PyObject ::obj)                         */
-;* 	   (object-put! ::PyObject ::obj ::obj ::obj)                  */
+	   (object-put! ::PyObject ::obj ::obj ::obj)
 	   (object-put-no-cache! ::PyObject ::obj ::obj)
 	   (getattribute-from-obj-mro ::obj ::obj)
+
+	   (py-make-list . elements)
 ;*                                                                     */
 ;* 	   (py-make-dict ::obj ::obj)                                  */
 ;* 	   (py-make-set ::obj)                                         */
 ;*                                                                     */
-	   (py-getitem ::PyObject ::obj ::PCache)
-     (py-delitem ::PyObject ::obj ::PCache)
-	   (py-setitem ::PyObject ::obj ::obj ::PCache)
+	   (py-getitem ::PyObject ::obj ::obj)
+	   (py-delitem ::PyObject ::obj ::obj)
+	   (py-setitem ::PyObject ::obj ::obj ::obj)
 
 	   (inline PyObject-elements-ref ::PyObject ::long)
 	   (PyObject-elements-set! ::PyObject ::long ::obj)
@@ -63,34 +65,41 @@
 ;*                                                                     */
 
 	   (py-call obj . args)
-;* 	   (py-call0 ::obj)                                            */
-;* 	   (py-call1 ::obj ::obj)                                      */
-;* 	   (py-call2 ::obj ::obj ::obj)                                */
-;* 	   (py-call3 ::obj ::obj ::obj ::obj)                          */
-;* 	   (py-call4 ::obj ::obj ::obj ::obj ::obj)                    */
-;*                                                                     */
-;* 	   (py-make-global)                                            */
-;* 	   (py-make-caches ::int)                                      */
-;*                                                                     */
-;* 	   (py-make-class name module bases . atrs)                    */
-;*                                                                     */
+	   (py-call0 ::obj)
+	   (py-call1 ::obj ::obj)
+	   (py-call2 ::obj ::obj ::obj)
+	   (py-call3 ::obj ::obj ::obj ::obj)
+	   (py-call4 ::obj ::obj ::obj ::obj ::obj)
+	   (py-call5 ::obj ::obj ::obj ::obj ::obj ::obj)
+
+	   (py-make-global)
+	   (py-make-base-global)
+	   (py-make-caches ::int)
+
+	   (py-make-class name module bases . atrs)
+
 	   (py-throw ::obj)
 ;*                                                                     */
 ;* 	   (pyis?::bool x y)                                           */
-;* 	   (py-add x y cache)                                          */
-;* 	   (py-and x y cache)                                          */
-;* 	   (py-sub x y cache)                                          */
-;* 	   (py-div x y cache)                                          */
-;* 	   (py-eq x y cache)                                           */
-;* 	   (py-ne x y cache)                                           */
-;* 	   (py-lt x y cache)                                           */
-;* 	   (py-le x y cache)                                           */
-;* 	   (py-gt x y cache)                                           */
-;* 	   (py-ge x y cache)                                           */
-;* 	   (py-is x y cache)                                           */
-;* 	   (py-isnot x y cache)                                        */
-;* 	   (py-in x y cache)                                           */
-;* 	   (py-notin x y cache)                                        */
+	   (py-add x y cache)
+	   (py-iadd x y cache)
+	   (py-and x y cache)
+	   (py-sub x y cache)
+	   (py-div x y cache)
+	   (py-mod x y cache)
+	   (py-floordiv x y cache)
+	   (py-eq x y cache)
+	   (py-ne x y cache)
+	   (py-lt x y cache)
+	   (py-le x y cache)
+	   (py-gt x y cache)
+	   (py-ge x y cache)
+	   (py-is x y cache)
+	   (py-isnot x y cache)
+	   (py-in x y cache)
+	   (py-notin x y cache)
+	   (py-neg x cache)
+	   (py-not x cache)
 ;*                                                                     */
 ;* 	   (py+ x y)                                                   */
 ;* 	   (py- x y)                                                   */
@@ -103,25 +112,36 @@
 ;* 	   (py>=::bool x y)                                            */
 ;*                                                                     */
 	   py-None
-;* 	   (py-uninit)                                                 */
+           py-absent
+
+	   py-True
+	   py-False
+
+	   (py-uninit)
+
+	   (py-test obj)
 ;*                                                                     */
 ;* 	   py-builtin-locals                                           */
 ;* 	   py-builtin-globals                                          */
 	   py-object-class
 	   py-module-class
-           py-absent
 
 
 	   (py-isinstance? ::PyObject ::PyObject)
 
-     py-builtin-StopIteration
+	   py-builtin-StopIteration
 
-     (py-slice-from-scheme::PyObject ::obj)
+	   (py-slice-from-scheme::PyObject ::obj)
 
            (py-obj-alloc cls hclass-of-instances)
 	   (py-str-from-scheme::PyObject ::bstring)
 	   (py-str-to-scheme::bstring ::PyObject)
 	   (py-string-to-name::symbol ::bstring)
+
+	   procedure->py-function
+
+	   (py-int-from-scheme value)
+	   (py-float-from-scheme value)
 ;* 	   (py-repr-scheme ::obj))                                     */
 	   )
 
@@ -170,3 +190,100 @@
 ;*---------------------------------------------------------------------*/
 ;*    bigloo-compatibility                                             */
 ;*---------------------------------------------------------------------*/
+(define-macro (define-flop op x . y)
+   `(define-inline (,(symbol-append 'fl op) ,x ,@y)
+       (,(symbol-append op 'fl) ,x ,@y)))
+
+(define-flop + x y)
+(define-flop * x y)
+(define-flop / x y)
+(define-flop > x y)
+(define-flop = x y)
+(define-flop >= x y)
+(define-flop < x y)
+(define-flop <= x y)
+(define-flop expt x y)
+(define-flop round x)
+(define-flop truncate x)
+(define-flop floor x)
+(define-flop ceiling x)
+
+(define-inline (fl!= x y) (not (=fx x y)))
+
+(define-inline (fl- x . y)
+   (cond
+      ((null? y) (negfl x))
+      ((null? (cdr y)) (-fl x y))
+      ((null? (cddr y)) (-fl x (+fl (car y) (cadr y))))
+      ((null? (cdddr y)) (-fl x (+fl (car y) (+fl (cadr y) (caddr y)))))
+      (else (-fl x (apply + y)))))
+
+(define-macro (fl- x . y)
+   (cond
+      ((null? y) `(negfl ,x))
+      ((null? (cdr y)) `(-fl ,x ,@y))
+      (else ((@ fl- __py_object) ,x ,@y))))
+
+(define-expander error
+   (lambda (x e)
+      (match-case x
+	 ((?- ?msg)
+	  (e `((@ error __error) "zipi" ,msg #f) e))
+	 ((?- ?msg ?obj)
+	  (e `((@ error __error) "zipi" ,msg ,obj) e))
+	 ((?- ?proc ?msg ?obj)
+	  (e `((@ error __error) (format "zipi(~a)" ,proc) ,msg ,obj) e))
+	 ((?- ?proc ?msg ?obj . ?rest)
+	  (e `((@ error __error) (format "zipi(~a)" ,proc) ,msg ,(format "~(, )" ,@rest)) e)))))
+
+(define-inline (subvector vec start stop)
+   (vector-copy vec start stop))
+
+(define-inline (exact x)
+   (cond
+      ((fixnum? x) x)
+      ((flonum? x) (flonum->fixnum x))
+      (else (error "exact" (format "unexpected number type (~a)" (typeof x)) x))))
+
+(define-inline (open-file name)
+   (open-input-file name))
+
+(define (close-port obj)
+   (cond
+      ((input-port? obj) (close-input-port obj))
+      ((output-port? obj) (close-output-port obj))
+      (else (bigloo-type-error "close-port" "port" obj))))
+
+(define-inline (fxarithmetic-shift num shift)
+   (bit-lsh num shift))
+
+(define (integer-length n)
+   (cond
+      ((=fx n 0)
+       0)
+      ((>fx n 0)
+       (let loop ((l 1)
+		  (n (bit-rsh n 1)))
+	  (if (=fx n 0)
+	      l
+	      (loop (+fx l 1) (bit-ursh n 1)))))
+      (else
+       (integer-length (bit-not n)))))
+
+(define-inline (box v)
+   (make-cell v))
+
+(define-inline (set-box! b v)
+   (cell-set! b v))
+
+(define-inline (unbox b)
+   (cell-ref b))
+
+(define-macro (define-type . args)
+   `(define-struct ,@args))
+
+;*---------------------------------------------------------------------*/
+;*    optimizations                                                    */
+;*---------------------------------------------------------------------*/
+(define-macro (result-to-float op)
+   `(lambda (x y) (py-float-from-scheme (,op x y))))

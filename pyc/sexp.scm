@@ -34,36 +34,36 @@
        ;;             string? type_comment)
        (new-PycDeclInit loc id scope
     	  (new-PycFun
-          loc
-          ;; args
-    	    (map (lambda (a)
-    		    (new-PycDecl loc (car a) 'local))
-		        (car args))
-          ;; posonlyargs
-          (map (lambda (a)
-    		    (new-PycDecl loc (car a) 'local))
-		        (cadr args))
-          ;; vararg
-          (if (caddr args)
-            (new-PycDecl loc (caaddr args) 'local)
-            (new-PycUninit loc))
-          ;; kwonlyargs
-          (map (lambda (a)
-    		    (new-PycDecl loc (car a) 'local))
-		        (list-ref args 3))
-          ;; kw-defaults
-          (map (lambda (a)
-    		    (new-PycStmtExpr loc (sexp a tail scope conf)))
-		        (list-ref args 4))
-          ;; kwarg
-          (if (list-ref args 5)
-            (new-PycDecl loc (list-ref args 5) 'local)
-            (new-PycUninit loc))
-          ;; defaults
-          (map (lambda (a)
-    		    (new-PycStmtExpr loc (sexp a tail scope conf)))
-		        (list-ref args 6))
-	        (compile-stmt* loc body #t 'local conf))))
+	     loc
+	     ;; args
+	     (map (lambda (a)
+		     (new-PycDecl loc (car a) 'local))
+		(car args))
+	     ;; posonlyargs
+	     (map (lambda (a)
+		     (new-PycDecl loc (car a) 'local))
+		(cadr args))
+	     ;; vararg
+	     (if (caddr args)
+		 (new-PycDecl loc (caaddr args) 'local)
+		 (new-PycUninit loc))
+	     ;; kwonlyargs
+	     (map (lambda (a)
+		     (new-PycDecl loc (car a) 'local))
+		(list-ref args 3))
+	     ;; kw-defaults
+	     (map (lambda (a)
+		     (new-PycStmtExpr loc (sexp a tail scope conf)))
+		(list-ref args 4))
+	     ;; kwarg
+	     (if (list-ref args 5)
+		 (new-PycDecl loc (list-ref args 5) 'local)
+		 (new-PycUninit loc))
+	     ;; defaults
+	     (map (lambda (a)
+		     (new-PycStmtExpr loc (sexp a tail scope conf)))
+		(list-ref args 6))
+	     (compile-stmt* loc body #t 'local conf))))
       ((ClassDef ?loc ?id ?bases ?keywords ?body ?decorator_list)
        ;; ClassDef(identifier name,
        ;;       expr* bases,
