@@ -242,6 +242,19 @@
 	      (path::bstring read-only)
 	      (depth::int read-only (default 0)))
 
+     (class PycIntrinsics::PycNode)
+
+     (final-class PycSemantics::PycIntrinsics
+        args::pair-nil
+        body::PycStmt)
+
+     (final-class PycMacro::PycIntrinsics
+        macro::symbol
+        args::pair-nil)
+
+     (final-class PycStatic::PycIntrinsics
+        id::symbol)
+
            (genkey)
 
            (generic walk0 n::PycNode p::procedure)
@@ -589,3 +602,6 @@
 (gen-walks PycYield val)
 (gen-walks PycKont body)
 (gen-walks PycAssert test msg)
+(gen-walks PycSemantics (args) body)
+(gen-walks PycMacro (args))
+(gen-walks PycStatic)
