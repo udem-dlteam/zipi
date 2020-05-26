@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Tue May 26 09:59:06 2020 (serrano)                */
+;*    Last change :  Tue May 26 10:15:30 2020 (serrano)                */
 ;*    Copyright   :  2019-20 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -75,7 +75,7 @@
 	   (py-make-global)
 	   (py-make-base-global)
 	   (py-make-caches ::int)
-	   
+
 	   (py-make-class name module bases . atrs)
 
 	   (py-throw ::obj)
@@ -116,7 +116,7 @@
 
 	   py-True
 	   py-False
-	   
+
 	   (py-uninit)
 
 	   (py-test obj)
@@ -279,9 +279,6 @@
 (define-inline (unbox b)
    (cell-ref b))
 
-;*---------------------------------------------------------------------*/
-;*    define-type ...                                                  */
-;*---------------------------------------------------------------------*/
 (define-macro (define-type . args)
    `(define-struct ,@args))
 
@@ -290,4 +287,3 @@
 ;*---------------------------------------------------------------------*/
 (define-macro (result-to-float op)
    `(lambda (x y) (py-float-from-scheme (,op x y))))
-
