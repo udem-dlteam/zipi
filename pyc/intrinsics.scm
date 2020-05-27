@@ -60,8 +60,8 @@
           (let ((val (PycDeclInit-val fst-line-stmt)))
             (if (and (PycImport? val)
                      (equal? (PycImport-path val) "__compiler_intrinsics__"))
-              (error "SyntaxError" "cannot import __compiler_intrinsics__ as a module" #f))
-              this))
+              (error "SyntaxError" "cannot import __compiler_intrinsics__ as a module" #f)
+              this)))
         ((PycBlock? fst-line-stmt)
           (let* ((decls (PycBlock-decls fst-line-stmt))
                 (fst-decl (car decls)))
@@ -78,7 +78,8 @@
                         fst-line-stmt))
                     (use-intrinsics this intrinsics))
                   this))
-              this))))))
+              this)))
+        (else this))))
 
 (define (use-intrinsics this intrinsics)
   ;; check intrinsics exist
@@ -119,7 +120,7 @@
         (if pair
           (new-PycStatic loc id (cdr pair))
           this))
-      this)))
+      (call-default-walker))))
 
 (define-walk-method (convert-intrinsics! this::PycCall intrinsics)
   (let ((caller (PycCall-fun this))
