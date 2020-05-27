@@ -778,6 +778,24 @@
           `(if (not ,(pyc-test (PycAssert-test this) conf))
       	     (py-throw py-builtin-AssertionError))))))
 
+;; __compiler_intrinsics__
+
+(define-walk-method (scheme this::PycStatic conf)
+  (PycStatic-value this))
+
+(define-walk-method (scheme this::PycMacro conf)
+  (let ((id (PycIntrinsics-id this))
+        (args (PycMacro-args this)))
+    (cond
+      ((eq? id 'class_getattr)
+        (let ((arg1 (car args))
+              (arg2 (cadr args)))
+          `(getattribute-from-obj-mro
+            ,(scheme arg1 conf)
+            (& ,(PycLiteralValue-val arg2)))))
+      (else
+        (error "scheme::PycMacro" "unknown id" id)))))
+
 (define (scheme-cache cache node)
    (if (not (integer? cache))
        (error "scheme-cache" "Bad cache" (pyc->list node))

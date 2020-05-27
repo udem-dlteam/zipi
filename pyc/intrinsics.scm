@@ -1,20 +1,34 @@
 (define (pyc-intrinsics this conf)
    (intrinsics this conf))
 
-(define intrinsic-nodes
-  (list
-    (cons 'absent PycStatic)
-    (cons 'class_getattr PycMacro)
-    (cons 'define_semantics PycSemantics)))
+(define intrinsic-names
+  '(absent class_getattr define_semantics))
 
-(define (collect-intrinsics block)
-  (let ((seq (PycBlock-body block)))
-    (let loop ((nodes (PycSeq-nodes seq)))
-      (if (null? nodes)
-        nodes
-        (cons
-          (PycRefUnresolved-id (PycAssig-lhs (car nodes)))
-          (loop (cdr nodes)))))))
+(define intrinsic-statics
+  (list
+    (cons 'absent 'py-absent)))
+
+(define (make-class-getattr loc cls attr)
+  (if (PycString? attr)
+    (new-PycMacro
+      loc
+      'class_getattr
+      (list cls attr))
+    (error "SyntaxError" "class_getattr second argument must be a string literal" attr)))
+
+(define intrinsic-macros
+  (list
+    (cons 'class_getattr make-class-getattr)))
+
+(define intrinsic-decorators
+  '(define_semantics))
+
+(define (collect-import-intrinsics nodes)
+  (if (null? nodes)
+    '()
+    (cons
+      (PycRefUnresolved-id (PycAssig-lhs (car nodes)))
+      (collect-import-intrinsics (cdr nodes)))))
 
 (define (remove-stmt stmts target-stmt)
   (cond
@@ -55,7 +69,8 @@
               (let ((val (PycDeclInit-val fst-decl)))
                 (if (and (PycImport? val)
                          (equal? (PycImport-path val) "__compiler_intrinsics__"))
-                  (let ((intrinsics (collect-intrinsics fst-line-stmt)))
+                  (let* ((nodes (PycSeq-nodes (PycBlock-body fst-line-stmt)))
+                         (intrinsics (collect-import-intrinsics nodes)))
                     (PycModule-stmts-set!
                       this
                       (remove-stmt
@@ -66,14 +81,22 @@
               this))))))
 
 (define (use-intrinsics this intrinsics)
+  ;; check intrinsics exist
+  (let loop ((intr intrinsics))
+    (cond
+      ((null? intr) #t)
+      ((member (car intr) intrinsic-names)
+        (loop (cdr intr)))
+      (else
+        (error "SyntaxError" "compiler intrinsic does not exist" (car intr)))))
   (no-intrinsics-assignation this intrinsics)
-  this)
+  (convert-intrinsics! this intrinsics))
 
 (define-walk-method (no-intrinsics-assignation this::PycNode intrinsics)
   (call-default-walker))
 
 (define-walk-method (no-intrinsics-assignation this::PycDecl intrinsics)
-  (if (assoc (PycDecl-id this) intrinsic-nodes)
+  (if (member (PycDecl-id this) intrinsic-names)
     (error "SyntaxError" "cannot use compiler intrinsic as name" (PycDecl-id this)))
   (call-default-walker))
 
@@ -81,6 +104,65 @@
   (let ((lhs (PycAssig-lhs this)))
     (if (and
           (PycRefUnresolved? lhs)
-          (assoc (PycRefUnresolved-id lhs) intrinsic-nodes))
+          (member (PycRefUnresolved-id lhs) intrinsic-names))
       (error "SyntaxError" "cannot use compiler intrinsic as name" (PycRefUnresolved-id lhs)))
     (call-default-walker)))
+
+(define-walk-method (convert-intrinsics! this::PycNode intrinsics)
+  (call-default-walker))
+
+(define-walk-method (convert-intrinsics! this::PycRefUnresolved intrinsics)
+  (let* ((loc (PycNode-loc this))
+        (id (PycRefUnresolved-id this)))
+    (if (member id intrinsics)
+      (let ((pair (assoc id intrinsic-statics)))
+        (if pair
+          (new-PycStatic loc id (cdr pair))
+          this))
+      this)))
+
+(define-walk-method (convert-intrinsics! this::PycCall intrinsics)
+  (let ((caller (PycCall-fun this))
+        (loc (PycNode-loc this)))
+    (if (PycRefUnresolved? caller)
+      (let* ((caller-id (PycRefUnresolved-id caller))
+             (pair (assoc caller-id intrinsic-macros)))
+        (if pair
+          (apply (cdr pair) loc (PycCall-args this))
+          (call-default-walker)))
+      (call-default-walker))))
+
+(define-walk-method (convert-intrinsics! this::PycDeclInit intrinsics)
+  (let* ((new-this (call-default-walker))
+         (val (PycDeclInit-val new-this)))
+    (if (PycSemantics? val)
+      (let ((id (PycDecl-id this)))
+        (PycIntrinsics-id-set! val id)
+        val)
+      new-this)))
+
+(define-walk-method (convert-intrinsics! this::PycFun intrinsics)
+  (let* ((decorators (PycFun-decorators this))
+        (intrinsic-decorators
+          (let loop ((decs decorators))
+            (if (null? decs)
+              '()
+              (let ((d (car decs)))
+                (if (and (PycRefUnresolved? d)
+                         (member (PycRefUnresolved-id d) intrinsic-decorators))
+                    (cons (PycRefUnresolved-id d) (loop (cdr decs)))
+                    (loop (cdr decs))))))))
+    (let ((intrinsic-decorators-length (length intrinsic-decorators))
+          (decorators-length (length decorators)))
+      (if (> intrinsic-decorators-length 0)
+        (if (< intrinsic-decorators-length decorators-length)
+          (error "SyntaxError" "intrinsic decorator cannot be used with other decorators" #f)
+          (let ((args (PycFun-args this))
+                (body (PycFun-body this)))
+            (new-PycSemantics
+              (PycNode-loc this)
+              #f ;; set later when treating the assignation of this semantic
+              args
+              (convert-intrinsics! body intrinsics)
+              intrinsic-decorators)))
+        (call-default-walker)))))

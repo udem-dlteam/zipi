@@ -199,6 +199,7 @@
 	      kwarg::obj
 	      defaults::pair-nil
 	      body::PycStmt
+        (decorators::pair-nil (default '()))
 	      (decls::pair-nil (default '()))
 	      (generator::bool (default #f))
 	      (need-return::bool (default #t))
@@ -242,18 +243,19 @@
 	      (path::bstring read-only)
 	      (depth::int read-only (default 0)))
 
-     (class PycIntrinsics::PycNode)
+     (class PycIntrinsics::PycNode
+        id::symbol)
 
      (final-class PycSemantics::PycIntrinsics
         args::pair-nil
-        body::PycStmt)
+        body::PycStmt
+        flags::pair-nil)
 
      (final-class PycMacro::PycIntrinsics
-        macro::symbol
         args::pair-nil)
 
      (final-class PycStatic::PycIntrinsics
-        id::symbol)
+        value::symbol)
 
            (genkey)
 
@@ -588,7 +590,7 @@
 (gen-walks PycTry body (handlers) else finally)
 (gen-walks PycHandler type body)
 (gen-walks PycStmtExpr expr)
-(gen-walks PycFun (args) (posonlyargs) vararg (kwonlyargs) (kw-defaults) kwarg (defaults) body)
+(gen-walks PycFun (args) (posonlyargs) vararg (kwonlyargs) (kw-defaults) kwarg (defaults) body (decorators))
 (gen-walks PycClass body (bases))
 (gen-walks PycBinary lhs rhs)
 (gen-walks PycUnary expr)
