@@ -220,10 +220,20 @@
 	      ,(scheme (PycLoop-else this) conf))))))
 
 (define-walk-method (scheme this::PycIf conf)
-   (epairify this
-      `(if ,(pyc-test (PycIf-test this) conf)
-	   ,(scheme (PycIf-then this) conf)
-	   ,(scheme (PycIf-else this) conf))))
+  (let ((test (PycIf-test this)))
+    (if (and (PycBinary? test)
+             (eq? (PycBinary-op test) 'is))
+      ;; special case of is which is an eq?
+      (epairify this
+        `(if (eq? ,(scheme (PycBinary-lhs test) conf)
+                  ,(scheme (PycBinary-rhs test) conf))
+          ,(scheme (PycIf-then this) conf)
+          ,(scheme (PycIf-else this) conf)))
+      ;; general case
+      (epairify this
+        `(if ,(pyc-test (PycIf-test this) conf)
+          ,(scheme (PycIf-then this) conf)
+          ,(scheme (PycIf-else this) conf))))))
 
 (define-walk-method (scheme this::PycWith conf)
   (define (in-contexts items body)
