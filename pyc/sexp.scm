@@ -161,7 +161,7 @@
       ((Try ?loc ?body ?handlers ?orelse ?finally)
        ;; Try(stmt* body, excepthandler* handlers, stmt* orelse, stmt* finalbody)
        (new-PycTry loc (compile-stmt* loc body tail scope conf)
-	  (map (lambda (h) (compile-handler h scope conf)) handlers)
+	  (map (lambda (h) (compile-handler h tail scope conf)) handlers)
 	  (compile-stmt* loc orelse #f scope conf)
 	  (compile-stmt* loc finally #f scope conf)))
 
@@ -301,7 +301,7 @@
       (else
        (error "slice" "Not implemented" exp))))
 
-(define (compile-handler handler scope conf)
+(define (compile-handler handler tail scope conf)
    (match-case handler
       ((ExceptHandler ?loc ?type ?name ?body)
        (let ((expr (if type
@@ -311,9 +311,9 @@
 	      (let ((body (new-PycBlock loc
 			     (list (new-PycVar loc name 'block
 				      (new-PycPragma loc '%exn)))
-			     (compile-stmt* loc body #f scope conf))))
+			     (compile-stmt* loc body tail scope conf))))
 		 (new-PycHandler loc expr body))
-	      (new-PycHandler loc expr (compile-stmt* loc body #f scope conf)))))
+	      (new-PycHandler loc expr (compile-stmt* loc body tail scope conf)))))
       (else
        (error "sexp" "Wrong handler" handler))))
 

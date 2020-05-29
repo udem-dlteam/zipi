@@ -904,5 +904,6 @@
   (semantics-macro-to-scheme this conf))
 
 (define-walk-method (scheme-intrinsics this::PycSemantics conf)
+  (pp this)
   `(define (,(PycIntrinsics-id this) ,@(scheme* (PycSemantics-args this) conf) )
     ,(scheme (PycSemantics-body this) conf)))
