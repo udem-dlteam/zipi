@@ -84,6 +84,15 @@
       (& "**value**"))
     '()))
 
+
+(define py-bytearray-hclass-of-instances
+  (make-HClass
+    '#() ;; set later when classes exist
+    (vector
+      (& "**class**")
+      (& "**value**"))
+    '()))
+
 (define py-method-hclass-of-instances
   (make-HClass
     '#()
@@ -145,6 +154,16 @@
       (& "**list**")
       (& "**index**"))
     '()))
+
+;; bytearray iterator
+(define py-bytearray-iterator-hclass-of-instances
+  (make-HClass
+   '#()
+   (vector
+    (& "**class**")
+    (& "**u8vector**")
+    (& "**index**"))
+   '()))
 
 ;; tuple iterator
 (define py-tuple-iterator-hclass-of-instances
@@ -753,6 +772,12 @@
         (py-str-from-scheme
           (string-append
             fun-name " returned " qualifier " (type " type-name ")"))))))
+
+(define-macro (py-throw-exception-with-message throw-builtin . msg)
+  `(py-throw 
+    (py-call
+      ,throw-builtin
+      (py-str-from-scheme (string-append ,@msg)))))
 
 ;; -----------------------------------------------------------------------------
 
@@ -2415,6 +2440,7 @@
 (define py-str-class    #f)
 (define py-tuple-class  #f)
 (define py-int-class    #f)
+(define py-bytearray-class #f)
 (define py-float-class  #f)
 (define py-bool-class   #f)
 (define py-complex-class #f)
@@ -2491,6 +2517,11 @@
   (let ((self (py-obj-alloc py-str-class py-str-hclass-of-instances)))
     (object-scheme-value-fast-set! self string)       ;; set **value**
     self))
+
+(define (py-bytearray-from-scheme len-vec-pair)
+  (let ((bytearr (py-obj-alloc py-bytearray-class py-bytearray-hclass-of-instances)))
+    (object-scheme-value-fast-set! bytearr len-vec-pair)
+    bytearr))
 
 (define (py-str-to-scheme self)
   (object-scheme-value-fast-get self))
@@ -2819,6 +2850,58 @@
       (& "__iter__") py-tuple-iterator-iter
       (& "__next__") py-tuple-iterator-next))
 
+(define (bytearray-iterator-vector-fast-get li)
+  (PyObject-elements-ref li 1))
+
+(define (bytearray-iterator-vector-fast-set! li vec)
+  (PyObject-elements-set! li 1 vec))
+
+(define (bytearray-iterator-index-fast-get li)
+  (PyObject-elements-ref li 2))
+
+(define (bytearray-iterator-index-fast-set! li i)
+  (PyObject-elements-set! li 2 i))
+
+(define (bytearray-iterator-iter self)
+  (if (eq? (py-type self) py-bytearray-iterator-class)
+    self
+    (py-throw py-builtin-TypeError)))
+
+(define py-bytearray-iterator-iter
+  (procedure->py-function
+    bytearray-iterator-iter
+    (make-posonly-signature #(self))))
+
+(define (bytearray-iterator-next self)
+  (if (eq? (py-type self) py-bytearray-iterator-class)
+    (let* ((index (bytearray-iterator-index-fast-get self))
+           (vec (bytearray-iterator-vector-fast-get self)))
+      (if (< index (car vec))
+        (let ((item (u8vector-ref (cdr vec) index)))
+          (begin
+            (bytearray-iterator-index-fast-set! self (+ index 1))
+            item))
+        (py-throw py-builtin-StopIteration)))
+    (py-throw py-builtin-TypeError)))
+
+(define py-bytearray-iterator-next
+  (procedure->py-function
+    bytearray-iterator-next
+    (make-posonly-signature #(self))))
+
+(define py-bytearray-iterator-class
+  (make-builtin-class
+    (& "bytearray_iterator")
+    (& "builtins")
+    (list)
+    py-bytearray-iterator-hclass-of-instances
+      (& "__iter__") py-bytearray-iterator-iter
+      (& "__next__") py-bytearray-iterator-next))
+
+;; ======================
+;; Dynamic vector helper
+;; =====================
+;; These classes are used for lists and bytearrays
 ;; list class
 
 (define (index-in-length-range index len)
@@ -2858,25 +2941,29 @@
           (vector-set! vec i (car elements))
           (loop (+ i 1) (cdr elements)))))))
 
-(define (concat-dynamic-vectors container1 container2)
+(define-macro (define-concat-dynamic-vector vref vset vmake vempty-list name)
+`(define (,name container1 container2)
   (let* ((len1 (car container1))
         (v1 (cdr container1))
         (len2 (car container2))
         (v2 (cdr container2))
         (total-len (+ len1 len2))
         (vec-len (get-dvec-inner-len total-len))
-        (vec (make-vector vec-len list-empty-cell)))
+        (vec (,vmake vec-len ,vempty-list)))
     (let loop1 ((target-pos 0) (source-pos 0))
       (if (< source-pos len1)
         (begin
-          (vector-set! vec target-pos (vector-ref v1 source-pos))
+          (,vset vec target-pos (,vref v1 source-pos))
           (loop1 (+ target-pos 1) (+ source-pos 1)))))
     (let loop2 ((target-pos len1) (source-pos 0))
       (if (< source-pos len2)
         (begin
-          (vector-set! vec target-pos (vector-ref v2 source-pos))
+          (,vset vec target-pos (,vref v2 source-pos))
           (loop2 (+ target-pos 1) (+ source-pos 1)))))
-    (cons total-len vec)))
+    (cons total-len vec))))
+
+(define-concat-dynamic-vector vector-ref vector-set! make-vector list-empty-cell concat-dynamic-vectors)
+(define-concat-dynamic-vector u8vector-ref u8vector-set! make-u8vector 0 concat-dynamic-u8vectors)
 
 (define (py-make-list . elements)
   (let ((len (length elements))
@@ -2997,21 +3084,25 @@
     list-add
     (make-posonly-signature '#(self other))))
 
-(define (dynamic-vector*n c n)
+(define-macro (define-*n-dynamic-vector vref vset vmake vempty-list name)
+  `(define (,name c n)
   (let* ((len (car c))
          (vec (cdr c))
          (total-len (* len n))
          (target-inner-len (get-dvec-inner-len total-len))
-         (out (make-vector target-inner-len list-empty-cell)))
+         (out (,vmake target-inner-len ,vempty-list)))
     (let loop ((target-pos 0))
       (if (< target-pos total-len)
         (let inner-loop ((source-pos 0))
           (if (< source-pos len)
             (begin
-              (vector-set! out (+ target-pos source-pos) (vector-ref vec source-pos))
+              (,vset out (+ target-pos source-pos) (,vref vec source-pos))
               (inner-loop (+ source-pos 1)))
             (loop (+ target-pos len))))
-        (cons total-len out)))))
+        (cons total-len out))))))
+
+(define-*n-dynamic-vector vector-ref vector-set! make-vector list-empty-cell dynamic-vector*n)
+(define-*n-dynamic-vector u8vector-ref u8vector-set! make-u8vector 0 dynamic-u8vector*n)
 
 (define (list-mul self n)
   (if (py-isinstance? self py-list-class)
@@ -3134,16 +3225,20 @@
 
 (define-list-binary-comparator list-ge list.__ge__ dynamic-vector-py-ge?)
 
-(define (dynamic-vector-slice vec start stop step)
+(define-macro (define-slice-dynamic-vector vref vset vmake vlist-empty name)
+  `(define (,name vec start stop step)
   (let* ((len (max 0 (ceiling (/ (- stop start) step))))
         (inner-len (get-dvec-inner-len len))
-        (out (make-vector inner-len list-empty-cell)))
+        (out (,vmake inner-len ,vlist-empty)))
     (let loop ((source start) (target 0))
       (if (< target len)
         (begin
-          (vector-set! out target (vector-ref vec source))
+          (,vset out target (,vref vec source))
           (loop (+ source step) (+ target 1)))))
-    (cons len out)))
+    (cons len out))))
+
+(define-slice-dynamic-vector vector-ref vector-set! make-vector list-empty-cell dynamic-vector-slice)
+(define-slice-dynamic-vector u8vector-ref u8vector-set! make-u8vector 0 dynamic-u8vector-slice)
 
 ;; NOTE: follows requirements of slice.indices(len)
 (define (py-slice-indices slice len)
@@ -3189,15 +3284,19 @@
         (vector first last step))
       (vector 0 0 step))))
 
-(define (dynamic-vector-py-slice dvec slice)
+(define-macro (define-py-slice-dynamic-vector vref vdynamic-slice name)
+  `(define (,name dvec slice)
   (let* ((len (car dvec))
         (vec (cdr dvec))
         (slice-indices (py-slice-indices slice len)))
-    (dynamic-vector-slice
+    (,vdynamic-slice
       vec
       (vector-ref slice-indices 0)
       (vector-ref slice-indices 1)
-      (vector-ref slice-indices 2))))
+      (vector-ref slice-indices 2)))))
+
+(define-py-slice-dynamic-vector vector-ref dynamic-vector-slice dynamic-vector-py-slice)
+(define-py-slice-dynamic-vector u8vector-ref dynamic-u8vector-slice dynamic-u8vector-py-slice)
 
 (define (list-getitem self item)
   (if (py-isinstance? self py-list-class)
@@ -3242,16 +3341,19 @@
           (loop (+ src-index 1) (+ tgt-index 1)))))))
 
 ;;slices of the form lst[1:6:2] (i.e. with a step)
-(define (dynamic-vector-set-extended-slice! dvec start stop step vec len)
+(define-macro (define-set-extended-dynamic-vector vref vset name)
+  `(define (,name dvec start stop step vec len)
   (let ((self-vec (cdr dvec))
         (slice-len (max 0 (ceiling (/ (- stop start) step)))))
     (if (= len slice-len)
       (let loop ((src-index 0) (tgt-index start))
         (if (< src-index len)
           (begin
-            (vector-set! self-vec tgt-index (vector-ref vec src-index))
+            (,vset self-vec tgt-index (,vref vec src-index))
             (loop (+ src-index 1) (+ tgt-index step)))))
-      (py-throw-extended-slice-wrong-len len slice-len))))
+      (py-throw-extended-slice-wrong-len len slice-len)))))
+
+(define-set-extended-dynamic-vector vector-ref vector-set! dynamic-vector-set-extended-slice!)
 
 (define (list-set-slice self slice value)
   (let* ((dvec (object-scheme-value-fast-get self))
@@ -4044,6 +4146,361 @@
     slice-indices
     (make-posonly-signature '#(self len))))
 
+
+;; =========================
+;; bytearray operations
+;; =========================
+
+(define (py-int-in-byte-range? value)
+  (and (<= 0 value) (>= 255 value)))
+
+(define (bytearray-new cls arg1 arg2 agr3)
+  (if (py-issubclass? cls py-bytearray-class)
+    (cond
+      ((eq? arg1 py-absent)
+        (py-bytearray-from-scheme (cons 0 #u8())))
+      ((eq? arg2 py-absent)
+        (cond
+          ((py-isinstance? arg1 py-int-class)
+            (let ((i (object-scheme-value-fast-get arg1)))
+              (if (<= 0 i)
+                (py-bytearray-from-scheme (cons i (make-u8vector i)))
+                (py-throw
+                  (py-call1
+                    py-builtin-ValueError
+                    (py-str-from-scheme "negative count"))))))
+          (else
+            (error "builtin function __new__ just supports int as an argument"))))
+      (else
+        (error "builtin function __new__ for 'bytearray' doesnt not yet support more then one argument "))  )
+    (py-throw-wrong-new-argument "bytearray" cls)))
+
+
+(define bytearray.__new__
+  (procedure->py-function
+    bytearray-new
+    (make-posonly-defaults-signature
+      #(cls source encoding errors)
+      (vector py-absent py-absent py-absent))))
+
+
+(define (bytearray-getitem cls item)
+  (if (py-isinstance? cls py-bytearray-class)
+      (cond
+        ((py-isinstance? item py-int-class)
+        (let ((bytearray (object-scheme-value-fast-get cls))
+              (i (object-scheme-value-fast-get item)))
+          (if (index-in-length-range i (car bytearray))
+            (py-int-from-scheme (u8vector-ref (cdr bytearray) (modulo i (car bytearray))))
+            (py-throw-index-out-of-range "bytearray"))))
+        ((py-isinstance? item py-slice-class)
+         (py-bytearray-from-scheme
+          (dynamic-u8vector-py-slice
+           (object-scheme-value-fast-get cls)
+           item)))
+      (else (py-throw-wrong-index-type "bytearray" "integers or slices" item)))
+    (py-throw-not-a-type-object "bytearray.__getitem__" cls)))
+
+(define bytearray.__getitem__
+  (procedure->py-function
+    bytearray-getitem
+    (make-posonly-signature
+      #(cls item))))
+
+(define (bytearray-setitem cls pos item)
+  (cond
+    ((not (py-isinstance? cls py-bytearray-class))
+      (py-throw-not-a-type-object "bytearray.__getitem__" cls))
+    ((not (py-isinstance? pos py-int-class))
+      (py-throw-wrong-index-type "bytearray" "integers" pos))
+    ((not (py-isinstance? item py-int-class))
+      (py-throw-type-error "int" item))
+    (else
+      (let ((pos-int (object-scheme-value-fast-get pos))
+            (bytearray (object-scheme-value-fast-get cls))
+            (item-int (object-scheme-value-fast-get item)))
+        (cond
+          ((not (index-in-length-range pos-int (car bytearray)))
+            (py-throw-index-out-of-range "bytearray" ))
+          ((not (py-int-in-byte-range? item-int))
+            (py-throw-exception-with-message py-builtin-ValueError "byte must be in range(0, 255)"))
+          (else
+            (u8vector-set! (cdr bytearray) (modulo pos-int (car bytearray)) item-int)))))))
+
+(define bytearray.__setitem__
+  (procedure->py-function
+    bytearray-setitem
+      (make-posonly-signature
+        #(self key value))))
+
+(define (bytearray-append cls elem)
+  (cond
+    ((not (py-isinstance? cls py-bytearray-class))
+      (py-throw-not-a-type-object "bytearray.append" cls))
+    ((not (py-isinstance? elem py-int-class))
+      (py-throw-exception-with-message py-builtin-TypeError "this type cannot be interpreted as an integer"))
+    (else
+      (let* ((bytearray (object-scheme-value-fast-get cls))
+            (real-length (u8vector-length (cdr bytearray)))
+            (elem-int (object-scheme-value-fast-get elem)))
+        (if (not (py-int-in-byte-range? elem-int))
+            (py-throw-exception-with-message py-builtin-ValueError "byte must be in range(0, 255)")
+            (begin
+              (if (= real-length (car bytearray))
+                  (dynamic-u8vector-grow! bytearray))
+              (u8vector-set! (cdr bytearray) (car bytearray) elem-int)
+              (set-car! bytearray (+ 1 (car bytearray)))))))))
+
+(define bytearray.append
+  (procedure->py-function
+    bytearray-append
+    (make-posonly-signature
+      #(self value))))
+
+(define (bytearray-add self other)
+  (if (py-isinstance? self py-bytearray-class)
+      (if (py-isinstance? other py-bytearray-class)
+          (let ((c1 (object-scheme-value-fast-get self))
+                (c2 (object-scheme-value-fast-get other)))
+            (py-bytearray-from-scheme (concat-dynamic-u8vectors c1 c2)))
+          py-NotImplemented)
+      (py-throw-not-a-type-object "bytearray.__add__" self)))
+
+(define bytearray.__add__
+  (procedure->py-function
+   bytearray-add
+   (make-posonly-signature #(self other))))
+
+;; temporary - just to see the structure of the array 
+(define (bytearray-repr self)
+  (py-str-from-scheme (cdr (object-scheme-value-fast-get self))))
+
+(define bytearray.__repr__
+  (procedure->py-function
+   bytearray-repr
+   (make-posonly-signature #(self))))
+
+(define (bytearray-mul self n)
+  (if (py-isinstance? self py-bytearray-class)
+      (if (py-isinstance? n py-int-class)
+          (let ((c (object-scheme-value-fast-get self))
+                (n (object-scheme-value-fast-get n)))
+            (py-bytearray-from-scheme (dynamic-u8vector*n c n)))
+          py-NotImplemented)
+      (py-throw-not-a-type-object "bytearray.__mul__" self)))
+
+(define bytearray.__mul__
+  (procedure->py-function
+   bytearray-mul
+   (make-posonly-signature #(self n))))
+
+(define bytearray.__rmul__
+  (procedure->py-function
+   bytearray-mul
+   (make-posonly-signature #(self n))))
+
+(define (bytearray-imul self n)
+  (if (py-isinstance? self py-bytearray-class)
+      (if (py-isinstance? n py-int-class)
+          (let ((c (object-scheme-value-fast-get self))
+                (n (object-scheme-value-fast-get n)))
+            (object-scheme-value-fast-set! self (dynamic-u8vector*n c n))
+            self)
+          py-NotImplemented)
+      (py-throw-not-a-type-object "bytearray.__mul__" self)))
+
+(define bytearray.__imul__
+  (procedure->py-function
+   bytearray-imul
+   (make-posonly-signature #(self n))))
+
+(define (bytearray-len self)
+  (if (py-isinstance? self py-bytearray-class)
+      (py-int-from-scheme
+       (car
+        (object-scheme-value-fast-get self)))
+      (py-throw-not-a-type-object "bytearray.__len__" self)))
+
+(define bytearray.__len__
+  (procedure->py-function
+   bytearray-len
+   (make-posonly-signature #(self))))
+
+(define-macro (define-search-function endfunction)
+  `(lambda (self item start stop)
+    (cond
+    ((not (py-isinstance? self py-bytearray-class))
+          ((py-throw-not-a-type-object "bytearray.count" self)))
+    ((not (py-isinstance? item py-int-class))
+          ((py-throw-type-error "int")))
+    (else
+      (let* ((bytearray (object-scheme-value-fast-get self))
+            (item-int (object-scheme-value-fast-get item)))
+        (if (py-int-in-byte-range? item-int)
+            (let ((start-int
+                  (if (eq? py-absent start)
+                      0
+                      (max 0 (object-scheme-value-fast-get start))))
+                  (stop-int
+                  (if (eq? py-absent stop)
+                      (car bytearray)
+                      (min (car bytearray) (object-scheme-value-fast-get stop)))))
+              (,endfunction (cdr bytearray) item-int start-int stop-int))
+            (py-throw-exception-with-message py-builtin-ValueError "byte must be in range(0, 255)")
+            ))))))
+
+
+(define-macro (dynamic-u8vector-count vec item start stop)
+  `(let loop ((i start)
+             (acc 0))
+    (if (fx>= i stop)
+        acc
+        (if (fx= (u8vector-ref vec i) item)
+            (loop (+ 1 i) (+ 1 acc))
+            (loop (+ 1 i) acc)))))
+
+(define-macro (dynamic-u8vector-find vec item start stop)
+  `(let loop ((i ,start))
+     (if (fx>= i ,stop)
+         py-False
+         (if (fx= (u8vector-ref ,vec i) ,item)
+             py-True
+             (loop (+ 1 i))))))
+
+
+(define-macro (dynamic-u8vector-index vec item start stop)
+  `(let loop ((i ,start))
+     (if (fx>= i ,stop)
+         (py-throw-exception-with-message py-builtin-ValueError "subsection not found")
+         (if (fx= (u8vector-ref ,vec i) ,item)
+             py-True
+             (loop (+ 1 i))))))
+
+
+(define-macro (dynamic-u8vector-rfind vec item start stop)
+  `(let loop ((i (- ,stop 1)))
+     (if (fx< i ,start)
+         py-False
+         (if (fx= (u8vector-ref ,vec i) ,item)
+             py-True
+             (loop (- 1 i))))))
+
+
+(define-macro (dynamic-u8vector-rindex vec item start stop)
+  `(let loop ((i (- ,stop 1)))
+     (if (fx< i ,start)
+         (py-throw-exception-with-message py-builtin-ValueError "subsection not found")
+         (if (fx= (u8vector-ref ,vec i) ,item)
+             py-True
+             (loop (- 1 i))))))
+
+
+(define bytearray.count
+  (procedure->py-function
+   (define-search-function dynamic-u8vector-count)
+   (make-posonly-defaults-signature #(self item start stop) (vector py-absent py-absent))))
+
+(define bytearray.find
+  (procedure->py-function
+   (define-search-function dynamic-u8vector-find)
+   (make-posonly-defaults-signature #(self item start stop) (vector py-absent py-absent))))
+
+(define bytearray.index
+  (procedure->py-function
+   (define-search-function dynamic-u8vector-index)
+   (make-posonly-defaults-signature #(self item start stop) (vector py-absent py-absent))))
+
+(define bytearray.rfind
+  (procedure->py-function
+   (define-search-function dynamic-u8vector-rfind)
+   (make-posonly-defaults-signature #(self item start stop) (vector py-absent py-absent))))
+
+(define bytearray.rindex
+  (procedure->py-function
+   (define-search-function dynamic-u8vector-rindex)
+   (make-posonly-defaults-signature #(self item start stop) (vector py-absent py-absent))))
+
+(define-macro (dynamic-u8vector-comparator scheme-op scheme-strict-op name func-name)
+  `(begin
+     (define  (,func-name self other)
+        (if (py-isinstance? self py-bytearray-class)
+            (if (py-isinstance? other py-bytearray-class)
+                (let* ((c1 (object-scheme-value-fast-get self))
+                        (c2 (object-scheme-value-fast-get other))
+                        (len1 (car c1))
+                        (len2 (car c2))
+                        (vec1 (cdr c1))
+                        (vec2 (cdr c2))
+                        (min-len (min len1 len2)))
+                      (let loop ((i 0))
+                        (if (fx< i min-len)
+                            (let ((elem1 (u8vector-ref vec1 i))
+                                  (elem2 (u8vector-ref vec2 i)))
+                                (if (,scheme-strict-op elem1 elem2)
+                                    py-True
+                                    (if (fx= elem1 elem2)
+                                        (loop (+ 1 i))
+                                        py-False)))
+                            (if (,scheme-op len1 len2)
+                                py-True
+                                py-False)))
+                      )
+                (py-NotImplemented))
+            (py-throw-not-a-type-object ,name self)))
+     (define ,(string->symbol (string-append "bytearray." name))
+       (procedure->py-function
+        ,func-name
+        (make-posonly-signature '#(self other))))))
+
+(define-macro (dynamic-u8vector-comparator-eq-ne true false name func-name)
+  `(begin
+     (define  (,func-name self other)
+        (if (py-isinstance? self py-bytearray-class)
+            (if (py-isinstance? other py-bytearray-class)
+                (let* ((c1 (object-scheme-value-fast-get self))
+                        (c2 (object-scheme-value-fast-get other))
+                        (len1 (car c1))
+                        (len2 (car c2))
+                        (vec1 (cdr c1))
+                        (vec2 (cdr c2)))
+                  (if (fx= len1 len2)
+                      (let loop ((i 0))
+                        (if (fx< i len1)
+                            (if (fx= (u8vector-ref vec1 i) (u8vector-ref vec2 i))
+                                (loop (+ i 1))
+                                ,false)
+                            ,true))
+                      ,false))
+                (py-NotImplemented))
+            (py-throw-not-a-type-object ,name self)))
+     (define ,(string->symbol (string-append "bytearray." name))
+       (procedure->py-function
+        ,func-name
+        (make-posonly-signature #(self other))))))
+
+(dynamic-u8vector-comparator fx> fx>  "__gt__" bytearray-gt)
+(dynamic-u8vector-comparator fx>= fx> "__ge__" bytearray-ge)
+(dynamic-u8vector-comparator fx< fx<  "__lt__" bytearray-lt)
+(dynamic-u8vector-comparator fx<= fx< "__le__" bytearray-le)
+
+(dynamic-u8vector-comparator-eq-ne py-True py-False "__eq__" bytearray-eq)
+(dynamic-u8vector-comparator-eq-ne py-False py-True "__ne__" bytearray-ne)
+
+
+(define (bytearray-iter self)
+  (if (py-isinstance? self py-bytearray-class)
+      (let ((iterator (py-obj-alloc
+                       py-bytearray-iterator-class
+                       py-bytearray-iterator-hclass-of-instances)))
+        (bytearray-iterator-vector-fast-set! iterator (object-scheme-value-fast-get self))
+        (bytearray-iterator-index-fast-set! iterator 0)
+        iterator)
+      (py-throw-not-a-type-object "bytearray.__iter__" self)))
+
+(define bytearray.__iter__
+  (procedure->py-function
+   bytearray-iter
+   (make-posonly-signature #(self))))
 ;; =============================================================================
 ;;  Dict
 ;; =============================================================================
@@ -4639,7 +5096,38 @@
       (& "set")
       (& "builtins")
       (list)
-      py-set-hclass-of-instances)))
+      py-set-hclass-of-instances))
+
+  (set! py-bytearray-class
+    (make-builtin-class
+      (& "bytearray")
+      (& "builtins")
+      (list)
+      py-set-hclass-of-instances
+        (& "__getitem__") bytearray.__getitem__
+        (& "__new__") bytearray.__new__
+        (& "__setitem__") bytearray.__setitem__
+        (& "__repr__") bytearray.__repr__
+        (& "__add__") bytearray.__add__
+        (& "__mul__") bytearray.__mul__
+        (& "__rmul__") bytearray.__rmul__
+        (& "__imul__") bytearray.__imul__
+        (& "__len__") bytearray.__len__
+        (& "append") bytearray.append
+        (& "count") bytearray.count
+        (& "find") bytearray.find
+        (& "index") bytearray.index
+        (& "rindex") bytearray.rindex
+        (& "rfind") bytearray.rfind
+        (& "__eq__") bytearray.__eq__
+        (& "__lt__") bytearray.__lt__
+        (& "__le__") bytearray.__le__
+        (& "__gt__") bytearray.__gt__
+        (& "__ge__") bytearray.__ge__
+        (& "__ne__") bytearray.__ne__
+        (& "__iter__") bytearray.__iter__
+        ))
+      )
 
 (bootstrap-type-hierarchy-phase2)
 (bootstrap-functions)
@@ -5127,14 +5615,7 @@
 ;; See also Binary Sequence Types — bytes, bytearray, memoryview and
 ;; Bytearray Objects.
 
-(define py-builtin-bytearray
-  (procedure->py-function
-    (lambda (source encoding errors)
-      (error "bytearray" "not implemented" #f))
-    (make-posonly-defaults-signature
-      '#(source encodings errors)
-      (vector py-absent py-absent py-absent))))
-
+(define py-builtin-bytearray py-bytearray-class)
 ;;-------------------- class bytes([source[, encoding[, errors]]])
 
 ;; Return a new “bytes” object, which is an immutable sequence of
