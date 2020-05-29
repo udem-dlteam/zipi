@@ -108,8 +108,12 @@
         	  ,@module-code))))
 
 (define-walk-method (scheme this::PycSeq conf)
-   (epairify this
-      `(begin ,@(scheme* (PycSeq-nodes this) conf))))
+  (let ((nodes (PycSeq-nodes this)))
+    (if (= (length nodes) 1)
+      (epairify this
+        (scheme (car nodes) conf))
+      (epairify this
+        `(begin ,@(scheme* (PycSeq-nodes this) conf))))))
 
 (define-walk-method (scheme this::PycBlock conf)
    (epairify this
@@ -904,6 +908,5 @@
   (semantics-macro-to-scheme this conf))
 
 (define-walk-method (scheme-intrinsics this::PycSemantics conf)
-  (pp this)
   `(define (,(PycIntrinsics-id this) ,@(scheme* (PycSemantics-args this) conf) )
     ,(scheme (PycSemantics-body this) conf)))
