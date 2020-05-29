@@ -6,7 +6,8 @@
 
 (define intrinsic-statics
   (list
-    (cons 'absent 'py-absent)))
+    (cons 'absent 'py-absent)
+    (cons 'AttributeError 'py-builtin-AttributeError)))
 
 (define (make-class-getattr loc cls attr)
   (if (PycString? attr)
@@ -114,12 +115,10 @@
 
 (define-walk-method (convert-intrinsics! this::PycRefUnresolved intrinsics)
   (let* ((loc (PycNode-loc this))
-        (id (PycRefUnresolved-id this)))
-    (if (member id intrinsics)
-      (let ((pair (assoc id intrinsic-statics)))
-        (if pair
-          (new-PycStatic loc id (cdr pair))
-          this))
+        (id (PycRefUnresolved-id this))
+        (pair (assoc id intrinsic-statics)))
+    (if pair
+      (new-PycStatic loc id (cdr pair))
       (call-default-walker))))
 
 (define-walk-method (convert-intrinsics! this::PycCall intrinsics)

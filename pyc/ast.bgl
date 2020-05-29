@@ -249,7 +249,8 @@
      (final-class PycSemantics::PycIntrinsics
         args::pair-nil
         body::PycStmt
-        flags::pair-nil)
+        flags::pair-nil
+        (decls::pair-nil (default '())))
 
      (final-class PycMacro::PycIntrinsics
         args::pair-nil)

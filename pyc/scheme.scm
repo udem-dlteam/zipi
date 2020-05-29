@@ -17,13 +17,15 @@
 ;*       ((eval def) (py-make-global) (py-make-caches (PycModule-caches ast))))) */
 
 (define (pyc-scheme-bigloo ast conf)
-   (let ((prog (pyc-scheme ast conf)))
+   (let* ((semantics (cons '() '()))
+          (prog (pyc-scheme ast (cons* semantics: semantics conf))))
       (list
 	 `(module ,(string->symbol (or (config-get conf src:) "__stdin"))
 	     ,@(if (config-get conf bootstrap:)
 		   '((import __py_object __py_import) (export (zipi-init)))
 		   '((library zipi)))
 	     ,@(if (config-get conf main:) '((main main)) '()))
+    (car semantics)
 	 `(define py-module ,@prog)
 	 (cond
 	    ((config-get conf main:)
@@ -45,7 +47,8 @@
 		    global)))))))
 
 (define (pyc-scheme-gambit ast conf)
-  (let ((prog (pyc-scheme ast conf)))
+  (let* ((semantics (cons '() '()))
+         (prog (pyc-scheme ast (cons* semantics: semantics conf))))
       `(;;begin
 	  ,@(if #t ;(config-get conf main:) ;; shouldn't this always be included?
 		`((|##import| bigloo)
@@ -59,6 +62,7 @@
 		  (|##include| ,(string-append (zipi-rts-dir) "/import.scm"))
                   )
 		'())
+    ,@(car semantics)
 	  (define py-module ,@prog)
 	  ,(if (config-get conf main:)
 	       `(begin
@@ -93,11 +97,15 @@
    (error "scheme" "Not implemented" (pyc->list this)))
 
 (define-walk-method (scheme this::PycModule conf)
-   (epairify this
-      `(lambda (%global %caches)
-	  (set! py-import-root ,(config-get conf dir:))
-	  ,@(scheme* (PycModule-stmts this)
-	       (cons* module: (PycModule-globals this) conf)))))
+  (let ((module-code
+          (scheme* (PycModule-stmts this)
+             (cons*
+               module: (PycModule-globals this)
+               conf))))
+     (epairify this
+        `(lambda (%global %caches)
+        	  (set! py-import-root ,(config-get conf dir:))
+        	  ,@module-code))))
 
 (define-walk-method (scheme this::PycSeq conf)
    (epairify this
@@ -844,15 +852,16 @@
 	 (PycFor-cachei-set! this n)
 	 (PycFor-cachen-set! this m))))
 
-
+;; =============================================================================
 ;; __compiler_intrinsics__
+;; =============================================================================
 
-;; scheme
+(define (add-semantics conf sem)
+  (let* ((semantics-box (config-get conf semantics:))
+         (semantics (car semantics-box)))
+    (set-car! semantics-box (cons sem semantics))))
 
-(define-walk-method (scheme this::PycStatic conf)
-  (PycStatic-value this))
-
-(define-walk-method (scheme this::PycMacro conf)
+(define (semantics-macro-to-scheme this conf)
   (let ((id (PycIntrinsics-id this))
         (args (PycMacro-args this)))
     (cond
@@ -865,8 +874,35 @@
       (else
         (error "scheme::PycMacro" "unknown id" id)))))
 
+;; scheme
+;; some intrinsics can be used outside a define_semantics
+
+(define-walk-method (scheme this::PycSemantics conf)
+  (add-semantics conf (scheme-intrinsics this conf))
+  'py-None)
+
+(define-walk-method (scheme this::PycStatic conf)
+  (PycStatic-value this))
+
+(define-walk-method (scheme this::PycMacro conf)
+  (semantics-macro-to-scheme this conf))
+
 ;; collect-caches
 
-;; no cache collection inside semantics
-(define-walk-method (collect-caches this::PycSemantics cnt)
-  #f)
+;; scheme-intrinsics
+
+(define (scheme-intrinsics* nodes conf)
+   (map (lambda (n) (scheme-intrinsics n conf)) nodes))
+
+(define-walk-method (scheme-intrinsics this::PycNode conf)
+  (error "scheme-intrinsics::PycNode" "define_semantics does not support" this))
+
+(define-walk-method (scheme-intrinsics this::PycStatic conf)
+  (PycStatic-value this))
+
+(define-walk-method (scheme-intrinsics this::PycMacro conf)
+  (semantics-macro-to-scheme this conf))
+
+(define-walk-method (scheme-intrinsics this::PycSemantics conf)
+  `(define (,(PycIntrinsics-id this) ,@(scheme* (PycSemantics-args this) conf) )
+    ,(scheme (PycSemantics-body this) conf)))

@@ -53,7 +53,7 @@
 		(list-ref args 3))
 	     ;; kw-defaults
 	     (map (lambda (a)
-		     (new-PycStmtExpr loc (sexp a tail scope conf)))
+		     (new-PycStmtExpr loc (sexp a #f scope conf)))
 		(list-ref args 4))
 	     ;; kwarg
 	     (if (list-ref args 5)
@@ -61,7 +61,7 @@
 		 (new-PycUninit loc))
 	     ;; defaults
 	     (map (lambda (a)
-		     (new-PycStmtExpr loc (sexp a tail scope conf)))
+		     (new-PycStmtExpr loc (sexp a #f scope conf)))
 		(list-ref args 6))
 	     (compile-stmt* loc body #t 'local conf)
        decorators: (map
@@ -160,7 +160,7 @@
  	  (if cause (sexp cause #f scope conf) (new-PycUninit loc))))
       ((Try ?loc ?body ?handlers ?orelse ?finally)
        ;; Try(stmt* body, excepthandler* handlers, stmt* orelse, stmt* finalbody)
-       (new-PycTry loc (compile-stmt* loc body #f scope conf)
+       (new-PycTry loc (compile-stmt* loc body tail scope conf)
 	  (map (lambda (h) (compile-handler h scope conf)) handlers)
 	  (compile-stmt* loc orelse #f scope conf)
 	  (compile-stmt* loc finally #f scope conf)))

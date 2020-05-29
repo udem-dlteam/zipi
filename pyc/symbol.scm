@@ -20,6 +20,9 @@
 (define-walk-method (collect* this::PycFun scope)
    '())
 
+(define-walk-method (collect* this::PycSemantics scope)
+   '())
+
 (define-walk-method (collect* this::PycDecl scope)
    (if (eq? (PycDecl-scope this) scope)
        (list this)
@@ -44,6 +47,9 @@
 	     decl)))))
 
 (define-walk-method (glodecl! this::PycFun %env)
+   this)
+
+(define-walk-method (glodecl! this::PycSemantics %env)
    this)
 
 (define-walk-method (glodecl! this::PycClass %env)
@@ -111,6 +117,35 @@
 		   (append bdgs args env) freeenv conf)))
 	  (PycFun-body-set! this
 	     (resolve! (PycFun-body this)
+		(append args env) freeenv conf)))
+      this))
+
+(define-walk-method (resolve! this::PycSemantics env _ conf)
+  (let*
+   ((loc (PycNode-loc this))
+    (args (PycSemantics-args this))
+	  (decls (collect* (PycSemantics-body this) 'local))
+	  (freeenv (collect-free* (PycSemantics-body this) #f '() '*))
+	  (aenv (collect-free-assig* (PycSemantics-body this)
+		   (append
+         decls
+         args
+          env)
+		   (cons '% freeenv)))
+	  (bdgs (map (lambda (decl)
+			(let ((loc (PycNode-loc decl)))
+			   (new-PycDeclInit loc (PycDecl-id decl) 'local
+			      (new-PycUninit loc))))
+		   (append aenv decls))))
+      (PycSemantics-decls-set! this bdgs)
+      (if (pair? bdgs)
+	  (PycSemantics-body-set! this
+	     (new-PycBlock loc
+		bdgs
+		(resolve! (PycSemantics-body this)
+		   (append bdgs args env) freeenv conf)))
+	  (PycSemantics-body-set! this
+	     (resolve! (PycSemantics-body this)
 		(append args env) freeenv conf)))
       this))
 
@@ -219,6 +254,11 @@
        env))
 
 (define-walk-method (collect-free* this::PycFun rec env scope)
+   (if rec
+       (call-default-walker)
+       '()))
+
+(define-walk-method (collect-free* this::PycSemantics rec env scope)
    (if rec
        (call-default-walker)
        '()))
