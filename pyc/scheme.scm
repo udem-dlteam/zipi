@@ -295,16 +295,18 @@
 (define-walk-method (scheme this::PycTry conf)
 
    (define (scheme-try this conf)
+    (let* ((exc-sym (my-gensym '%exn))
+          (conf-with-exc (cons* current-exc: exc-sym conf)))
       `(with-handler
-	  (lambda (%exn)
-	     (cond
-		,@(map (lambda (h) (scheme h conf))
-		   (PycTry-handlers this))))
-	  ,(if (isa? (PycTry-else this) PycPass)
-	       (scheme (PycTry-body this) conf)
-	       `(begin
-		   ,(scheme (PycTry-body this) conf)
-		   ,(scheme (PycTry-else this) conf)))))
+    	  (lambda (,exc-sym)
+    	     (cond
+    		,@(map (lambda (h) (scheme h conf-with-exc))
+    		   (PycTry-handlers this))))
+    	  ,(if (isa? (PycTry-else this) PycPass)
+    	       (scheme (PycTry-body this) conf-with-exc)
+    	       `(begin
+    		   ,(scheme (PycTry-body this) conf-with-exc)
+    		   ,(scheme (PycTry-else this) conf-with-exc))))))
 
    (epairify this
       (if (isa? (PycTry-finally this) PycPass)
@@ -314,14 +316,18 @@
 	      ,(scheme (PycTry-finally this) conf)))))
 
 (define-walk-method (scheme this::PycRaise conf)
-   (epairify this
-      `(py-throw ,(scheme (PycRaise-exc this) conf))))
+  (let ((exc (PycRaise-exc this)))
+    (if (PycUninit? exc)
+      (epairify this
+        `(py-throw ,(config-get conf current-exc:)))
+      (epairify this
+        `(py-throw ,(scheme exc conf))))))
 
 (define-walk-method (scheme this::PycHandler conf)
    (epairify this
       `(,(if (isa? (PycHandler-type this) PycUninit)
 	     #t
-	     `(py-isinstance? %exn ,(scheme (PycHandler-type this) conf)))
+	     `(py-isinstance? ,(config-get conf current-exc:) ,(scheme (PycHandler-type this) conf)))
 	,(scheme (PycHandler-body this) conf))))
 
 (define-walk-method (scheme this::PycPass conf)
