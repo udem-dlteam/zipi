@@ -567,25 +567,32 @@
             (else (error "signature" "unknown value for kwarg" kwarg)))
         (vector ,@(scheme* (PycFun-defaults fun) conf)))))
 
-   (let*
-     ((vararg (PycFun-vararg this))
-      (kwarg (PycFun-kwarg this))
-      (args
-       (scheme*
-         (append
-           (PycFun-posonlyargs this)
-           (PycFun-args this)
-           (if (PycDecl? vararg) (list (PycDecl-id vararg)) '())
-           (PycFun-kwonlyargs this)
-           (if (PycDecl? kwarg) (list (PycDecl-id kwarg)) '()))
-           conf))
-	    (body (locals this (scheme (PycFun-body this) (cons* fun: this conf)))))
-      (epairify this
-	 `(procedure->py-function
-	     ,(if (PycFun-need-return this)
-		  `(lambda ,args ,(generator this `(bind-exit (return) ,body)))
-		  `(lambda ,args ,(generator this body)))
-      ,(signature this conf)))))
+    (define (apply-decorators fun conf)
+        (let*
+          ((vararg (PycFun-vararg this))
+           (kwarg (PycFun-kwarg this))
+           (args
+            (scheme*
+              (append
+                (PycFun-posonlyargs this)
+                (PycFun-args this)
+                (if (PycDecl? vararg) (list (PycDecl-id vararg)) '())
+                (PycFun-kwonlyargs this)
+                (if (PycDecl? kwarg) (list (PycDecl-id kwarg)) '()))
+                conf))
+     	    (body (locals this (scheme (PycFun-body this) (cons* fun: this conf))))
+          (decs (PycFun-decorators fun)))
+        (let loop ((decs decs))
+          (if (null? decs)
+            (epairify this
+           	 `(procedure->py-function
+           	     ,(if (PycFun-need-return this)
+           		  `(lambda ,args ,(generator this `(bind-exit (return) ,body)))
+           		  `(lambda ,args ,(generator this body)))
+                 ,(signature this conf)))
+            `(py-call1 ,(scheme (car decs) conf) ,(loop (cdr decs)))))))
+
+   (apply-decorators this conf))
 
 (define-walk-method (scheme this::PycClass conf)
    (define (pyc-class this::PycClass)

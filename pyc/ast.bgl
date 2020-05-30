@@ -199,6 +199,7 @@
 	      kwarg::obj
 	      defaults::pair-nil
 	      body::PycStmt
+        (decorators::pair-nil (default '()))
 	      (decls::pair-nil (default '()))
 	      (generator::bool (default #f))
 	      (need-return::bool (default #t))
@@ -575,7 +576,7 @@
 (gen-walks PycTry body (handlers) else finally)
 (gen-walks PycHandler type body)
 (gen-walks PycStmtExpr expr)
-(gen-walks PycFun (args) (posonlyargs) vararg (kwonlyargs) (kw-defaults) kwarg (defaults) body)
+(gen-walks PycFun (args) (posonlyargs) vararg (kwonlyargs) (kw-defaults) kwarg (defaults) body (decorators))
 (gen-walks PycClass body (bases))
 (gen-walks PycBinary lhs rhs)
 (gen-walks PycUnary expr)
