@@ -208,10 +208,20 @@
 	      ,(scheme (PycLoop-else this) conf))))))
 
 (define-walk-method (scheme this::PycIf conf)
-   (epairify this
-      `(if ,(pyc-test (PycIf-test this) conf)
-	   ,(scheme (PycIf-then this) conf)
-	   ,(scheme (PycIf-else this) conf))))
+  (let ((test (PycIf-test this)))
+    (if (and (PycBinary? test)
+             (eq? (PycBinary-op test) 'is))
+      ;; special case of is which is an eq?
+      (epairify this
+        `(if (eq? ,(scheme (PycBinary-lhs test) conf)
+                  ,(scheme (PycBinary-rhs test) conf))
+          ,(scheme (PycIf-then this) conf)
+          ,(scheme (PycIf-else this) conf)))
+      ;; general case
+      (epairify this
+        `(if ,(pyc-test (PycIf-test this) conf)
+          ,(scheme (PycIf-then this) conf)
+          ,(scheme (PycIf-else this) conf))))))
 
 (define-walk-method (scheme this::PycWith conf)
   (define (in-contexts items body)
@@ -285,16 +295,18 @@
 (define-walk-method (scheme this::PycTry conf)
 
    (define (scheme-try this conf)
+    (let* ((exc-sym (my-gensym '%exn))
+          (conf-with-exc (cons* current-exc: exc-sym conf)))
       `(with-handler
-	  (lambda (%exn)
-	     (cond
-		,@(map (lambda (h) (scheme h conf))
-		   (PycTry-handlers this))))
-	  ,(if (isa? (PycTry-else this) PycPass)
-	       (scheme (PycTry-body this) conf)
-	       `(begin
-		   ,(scheme (PycTry-body this) conf)
-		   ,(scheme (PycTry-else this) conf)))))
+    	  (lambda (,exc-sym)
+    	     (cond
+    		,@(map (lambda (h) (scheme h conf-with-exc))
+    		   (PycTry-handlers this))))
+    	  ,(if (isa? (PycTry-else this) PycPass)
+    	       (scheme (PycTry-body this) conf-with-exc)
+    	       `(begin
+    		   ,(scheme (PycTry-body this) conf-with-exc)
+    		   ,(scheme (PycTry-else this) conf-with-exc))))))
 
    (epairify this
       (if (isa? (PycTry-finally this) PycPass)
@@ -304,14 +316,18 @@
 	      ,(scheme (PycTry-finally this) conf)))))
 
 (define-walk-method (scheme this::PycRaise conf)
-   (epairify this
-      `(py-throw ,(scheme (PycRaise-exc this) conf))))
+  (let ((exc (PycRaise-exc this)))
+    (if (PycUninit? exc)
+      (epairify this
+        `(py-throw ,(config-get conf current-exc:)))
+      (epairify this
+        `(py-throw ,(scheme exc conf))))))
 
 (define-walk-method (scheme this::PycHandler conf)
    (epairify this
       `(,(if (isa? (PycHandler-type this) PycUninit)
 	     #t
-	     `(py-isinstance? %exn ,(scheme (PycHandler-type this) conf)))
+	     `(py-isinstance? ,(config-get conf current-exc:) ,(scheme (PycHandler-type this) conf)))
 	,(scheme (PycHandler-body this) conf))))
 
 (define-walk-method (scheme this::PycPass conf)
@@ -567,25 +583,32 @@
             (else (error "signature" "unknown value for kwarg" kwarg)))
         (vector ,@(scheme* (PycFun-defaults fun) conf)))))
 
-   (let*
-     ((vararg (PycFun-vararg this))
-      (kwarg (PycFun-kwarg this))
-      (args
-       (scheme*
-         (append
-           (PycFun-posonlyargs this)
-           (PycFun-args this)
-           (if (PycDecl? vararg) (list (PycDecl-id vararg)) '())
-           (PycFun-kwonlyargs this)
-           (if (PycDecl? kwarg) (list (PycDecl-id kwarg)) '()))
-           conf))
-	    (body (locals this (scheme (PycFun-body this) (cons* fun: this conf)))))
-      (epairify this
-	 `(procedure->py-function
-	     ,(if (PycFun-need-return this)
-		  `(lambda ,args ,(generator this `(bind-exit (return) ,body)))
-		  `(lambda ,args ,(generator this body)))
-      ,(signature this conf)))))
+    (define (apply-decorators fun conf)
+        (let*
+          ((vararg (PycFun-vararg this))
+           (kwarg (PycFun-kwarg this))
+           (args
+            (scheme*
+              (append
+                (PycFun-posonlyargs this)
+                (PycFun-args this)
+                (if (PycDecl? vararg) (list (PycDecl-id vararg)) '())
+                (PycFun-kwonlyargs this)
+                (if (PycDecl? kwarg) (list (PycDecl-id kwarg)) '()))
+                conf))
+     	    (body (locals this (scheme (PycFun-body this) (cons* fun: this conf))))
+          (decs (PycFun-decorators fun)))
+        (let loop ((decs decs))
+          (if (null? decs)
+            (epairify this
+           	 `(procedure->py-function
+           	     ,(if (PycFun-need-return this)
+           		  `(lambda ,args ,(generator this `(bind-exit (return) ,body)))
+           		  `(lambda ,args ,(generator this body)))
+                 ,(signature this conf)))
+            `(py-call1 ,(scheme (car decs) conf) ,(loop (cdr decs)))))))
+
+   (apply-decorators this conf))
 
 (define-walk-method (scheme this::PycClass conf)
    (define (pyc-class this::PycClass)
