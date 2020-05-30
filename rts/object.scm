@@ -377,7 +377,7 @@
 
 (define functions-awaiting-bootstap '())
 
-;; signature: #(args posonlyargs vararg kwonlyargs kw_defaults kwarg defaults)
+;; signature: '#(args posonlyargs vararg kwonlyargs kw_defaults kwarg defaults)
 ;; takes in a signature and returns an arity.
 ;; positive arity: a function takes a fixed number of positional arguments
 ;; negative arity: functions takes x arguments, last argument is a *args
@@ -2870,7 +2870,7 @@
 (define py-bytearray-iterator-iter
   (procedure->py-function
     bytearray-iterator-iter
-    (make-posonly-signature #(self))))
+    (make-posonly-signature '#(self))))
 
 (define (bytearray-iterator-next self)
   (if (eq? (py-type self) py-bytearray-iterator-class)
@@ -2887,7 +2887,7 @@
 (define py-bytearray-iterator-next
   (procedure->py-function
     bytearray-iterator-next
-    (make-posonly-signature #(self))))
+    (make-posonly-signature '#(self))))
 
 (define py-bytearray-iterator-class
   (make-builtin-class
@@ -3415,13 +3415,17 @@
         (new-inner-len (get-dvec-inner-len len)))
     (set-cdr! dvec (subvector vec 0 new-inner-len))))
 
-(define (dynamic-vector-grow! dvec)
+(define-macro (define-grow-dynamic-vector vset vmake vlist vappend name)
+  `(define (,name dvec)
   (let* ((len (car dvec))
         (vec (cdr dvec))
         (new-inner-len (get-dvec-inner-len len)))
     (set-cdr!
       dvec
-      (vector-append vec (make-vector (- new-inner-len len) list-empty-cell)))))
+      (,vappend vec (,vmake (- new-inner-len len) ,vlist))))))
+
+(define-grow-dynamic-vector vector-set! make-vector list-empty-cell vector-append dynamic-vector-grow!)
+(define-grow-dynamic-vector u8vector-set! make-u8vector 0 u8vector-append dynamic-u8vector-grow!)
 
 (define (dynamic-vector-grow-by! dvec amount)
   (let* ((len (car dvec))
@@ -4180,7 +4184,7 @@
   (procedure->py-function
     bytearray-new
     (make-posonly-defaults-signature
-      #(cls source encoding errors)
+      '#(cls source encoding errors)
       (vector py-absent py-absent py-absent))))
 
 
@@ -4205,7 +4209,7 @@
   (procedure->py-function
     bytearray-getitem
     (make-posonly-signature
-      #(cls item))))
+      '#(cls item))))
 
 (define (bytearray-setitem cls pos item)
   (cond
@@ -4214,7 +4218,7 @@
     ((not (py-isinstance? pos py-int-class))
       (py-throw-wrong-index-type "bytearray" "integers" pos))
     ((not (py-isinstance? item py-int-class))
-      (py-throw-type-error "int" item))
+     (py-throw-action-out-of-range "bytearray" "assignment"))
     (else
       (let ((pos-int (object-scheme-value-fast-get pos))
             (bytearray (object-scheme-value-fast-get cls))
@@ -4231,7 +4235,7 @@
   (procedure->py-function
     bytearray-setitem
       (make-posonly-signature
-        #(self key value))))
+        '#(self key value))))
 
 (define (bytearray-append cls elem)
   (cond
@@ -4255,7 +4259,7 @@
   (procedure->py-function
     bytearray-append
     (make-posonly-signature
-      #(self value))))
+      '#(self value))))
 
 (define (bytearray-add self other)
   (if (py-isinstance? self py-bytearray-class)
@@ -4269,7 +4273,7 @@
 (define bytearray.__add__
   (procedure->py-function
    bytearray-add
-   (make-posonly-signature #(self other))))
+   (make-posonly-signature '#(self other))))
 
 ;; temporary - just to see the structure of the array 
 (define (bytearray-repr self)
@@ -4278,7 +4282,7 @@
 (define bytearray.__repr__
   (procedure->py-function
    bytearray-repr
-   (make-posonly-signature #(self))))
+   (make-posonly-signature '#(self))))
 
 (define (bytearray-mul self n)
   (if (py-isinstance? self py-bytearray-class)
@@ -4292,12 +4296,12 @@
 (define bytearray.__mul__
   (procedure->py-function
    bytearray-mul
-   (make-posonly-signature #(self n))))
+   (make-posonly-signature '#(self n))))
 
 (define bytearray.__rmul__
   (procedure->py-function
    bytearray-mul
-   (make-posonly-signature #(self n))))
+   (make-posonly-signature '#(self n))))
 
 (define (bytearray-imul self n)
   (if (py-isinstance? self py-bytearray-class)
@@ -4312,7 +4316,7 @@
 (define bytearray.__imul__
   (procedure->py-function
    bytearray-imul
-   (make-posonly-signature #(self n))))
+   (make-posonly-signature '#(self n))))
 
 (define (bytearray-len self)
   (if (py-isinstance? self py-bytearray-class)
@@ -4324,15 +4328,15 @@
 (define bytearray.__len__
   (procedure->py-function
    bytearray-len
-   (make-posonly-signature #(self))))
+   (make-posonly-signature '#(self))))
 
 (define-macro (define-search-function endfunction)
   `(lambda (self item start stop)
     (cond
     ((not (py-isinstance? self py-bytearray-class))
-          ((py-throw-not-a-type-object "bytearray.count" self)))
+     ((py-throw-not-a-type-object "bytearray.count" self)))
     ((not (py-isinstance? item py-int-class))
-          ((py-throw-type-error "int")))
+     ((py-throw-action-out-of-range "bytearray" "assignment")))
     (else
       (let* ((bytearray (object-scheme-value-fast-get self))
             (item-int (object-scheme-value-fast-get item)))
@@ -4355,7 +4359,7 @@
              (acc 0))
     (if (fx>= i stop)
         acc
-        (if (fx= (u8vector-ref vec i) item)
+        (if (fx= (u8vector-ref ,vec i) item)
             (loop (+ 1 i) (+ 1 acc))
             (loop (+ 1 i) acc)))))
 
@@ -4398,27 +4402,27 @@
 (define bytearray.count
   (procedure->py-function
    (define-search-function dynamic-u8vector-count)
-   (make-posonly-defaults-signature #(self item start stop) (vector py-absent py-absent))))
+   (make-posonly-defaults-signature '#(self item start stop) (vector py-absent py-absent))))
 
 (define bytearray.find
   (procedure->py-function
    (define-search-function dynamic-u8vector-find)
-   (make-posonly-defaults-signature #(self item start stop) (vector py-absent py-absent))))
+   (make-posonly-defaults-signature '#(self item start stop) (vector py-absent py-absent))))
 
 (define bytearray.index
   (procedure->py-function
    (define-search-function dynamic-u8vector-index)
-   (make-posonly-defaults-signature #(self item start stop) (vector py-absent py-absent))))
+   (make-posonly-defaults-signature '#(self item start stop) (vector py-absent py-absent))))
 
 (define bytearray.rfind
   (procedure->py-function
    (define-search-function dynamic-u8vector-rfind)
-   (make-posonly-defaults-signature #(self item start stop) (vector py-absent py-absent))))
+   (make-posonly-defaults-signature '#(self item start stop) (vector py-absent py-absent))))
 
 (define bytearray.rindex
   (procedure->py-function
    (define-search-function dynamic-u8vector-rindex)
-   (make-posonly-defaults-signature #(self item start stop) (vector py-absent py-absent))))
+   (make-posonly-defaults-signature '#(self item start stop) (vector py-absent py-absent))))
 
 (define-macro (dynamic-u8vector-comparator scheme-op scheme-strict-op name func-name)
   `(begin
@@ -4476,7 +4480,7 @@
      (define ,(string->symbol (string-append "bytearray." name))
        (procedure->py-function
         ,func-name
-        (make-posonly-signature #(self other))))))
+        (make-posonly-signature '#(self other))))))
 
 (dynamic-u8vector-comparator fx> fx>  "__gt__" bytearray-gt)
 (dynamic-u8vector-comparator fx>= fx> "__ge__" bytearray-ge)
@@ -4500,7 +4504,7 @@
 (define bytearray.__iter__
   (procedure->py-function
    bytearray-iter
-   (make-posonly-signature #(self))))
+   (make-posonly-signature '#(self))))
 ;; =============================================================================
 ;;  Dict
 ;; =============================================================================
