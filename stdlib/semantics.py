@@ -3,7 +3,7 @@ from __compiler_intrinsics__ import define_semantics, use_static_builtins, no_di
 # Auto-generated
 @define_semantics
 @use_static_builtins
-@no_dict_scope
+@use_simple_scoping
 def sem_add(x, y):
     def normal():
         magic_method = class_getattr(x, "__add__")
@@ -35,7 +35,7 @@ def sem_add(x, y):
 # Auto-generated
 @define_semantics
 @use_static_builtins
-@no_dict_scope
+@use_simple_scoping
 def sem_sub(x, y):
     def normal():
         magic_method = class_getattr(x, "__sub__")
@@ -67,7 +67,7 @@ def sem_sub(x, y):
 # Auto-generated
 @define_semantics
 @use_static_builtins
-@no_dict_scope
+@use_simple_scoping
 def sem_mul(x, y):
     def normal():
         magic_method = class_getattr(x, "__mul__")
@@ -99,7 +99,7 @@ def sem_mul(x, y):
 # Auto-generated
 @define_semantics
 @use_static_builtins
-@no_dict_scope
+@use_simple_scoping
 def sem_truediv(x, y):
     def normal():
         magic_method = class_getattr(x, "__truediv__")
@@ -131,7 +131,7 @@ def sem_truediv(x, y):
 # Auto-generated
 @define_semantics
 @use_static_builtins
-@no_dict_scope
+@use_simple_scoping
 def sem_floordiv(x, y):
     def normal():
         magic_method = class_getattr(x, "__floordiv__")
@@ -163,7 +163,7 @@ def sem_floordiv(x, y):
 # Auto-generated
 @define_semantics
 @use_static_builtins
-@no_dict_scope
+@use_simple_scoping
 def sem_mod(x, y):
     def normal():
         magic_method = class_getattr(x, "__mod__")
@@ -195,7 +195,7 @@ def sem_mod(x, y):
 # Auto-generated
 @define_semantics
 @use_static_builtins
-@no_dict_scope
+@use_simple_scoping
 def sem_pow(x, y):
     def normal():
         magic_method = class_getattr(x, "__pow__")
@@ -227,7 +227,7 @@ def sem_pow(x, y):
 # Auto-generated
 @define_semantics
 @use_static_builtins
-@no_dict_scope
+@use_simple_scoping
 def sem_lshift(x, y):
     def normal():
         magic_method = class_getattr(x, "__lshift__")
@@ -259,7 +259,7 @@ def sem_lshift(x, y):
 # Auto-generated
 @define_semantics
 @use_static_builtins
-@no_dict_scope
+@use_simple_scoping
 def sem_rshift(x, y):
     def normal():
         magic_method = class_getattr(x, "__rshift__")
@@ -291,7 +291,7 @@ def sem_rshift(x, y):
 # Auto-generated
 @define_semantics
 @use_static_builtins
-@no_dict_scope
+@use_simple_scoping
 def sem_and(x, y):
     def normal():
         magic_method = class_getattr(x, "__and__")
@@ -323,7 +323,7 @@ def sem_and(x, y):
 # Auto-generated
 @define_semantics
 @use_static_builtins
-@no_dict_scope
+@use_simple_scoping
 def sem_or(x, y):
     def normal():
         magic_method = class_getattr(x, "__or__")
@@ -355,7 +355,7 @@ def sem_or(x, y):
 # Auto-generated
 @define_semantics
 @use_static_builtins
-@no_dict_scope
+@use_simple_scoping
 def sem_xor(x, y):
     def normal():
         magic_method = class_getattr(x, "__xor__")
@@ -387,7 +387,7 @@ def sem_xor(x, y):
 # Auto-generated
 @define_semantics
 @use_static_builtins
-@no_dict_scope
+@use_simple_scoping
 def sem_matmul(x, y):
     def normal():
         magic_method = class_getattr(x, "__matmul__")
@@ -417,6 +417,8 @@ def sem_matmul(x, y):
     return normal()
 
 @define_semantics
+@use_static_builtins
+@use_simple_scoping
 def sem_getattribute(obj, attr):
     __getattribute__ = class_getattr(obj, "__getattribute__")
     try:

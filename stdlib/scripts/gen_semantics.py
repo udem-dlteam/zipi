@@ -2,7 +2,7 @@ arithmetic_template = \
 """# Auto-generated
 @define_semantics
 @use_static_builtins
-@no_dict_scope
+@use_simple_scoping
 def sem_{0}(x, y):
     def normal():
         magic_method = class_getattr(x, "__{0}__")
