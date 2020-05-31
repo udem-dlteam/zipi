@@ -44,5 +44,7 @@ $PYC_DIR/compile.bgl \
 $PYC_DIR/compile.scm \
 $PYC_DIR/parse.bgl \
 $PYC_DIR/parse.scm \
+$PYC_DIR/intrinsics.bgl \
+$PYC_DIR/intrinsics.scm \
 $ZPC_DIR/main-gambit.scm \
 $*

@@ -257,6 +257,12 @@
 	      (path::bstring read-only)
 	      (depth::int read-only (default 0)))
 
+     (class PycIntrinsics::PycNode
+        id::symbol)
+
+     (final-class PycStatic::PycIntrinsics
+        value::symbol)
+
            (genkey)
 
            (generic walk0 n::PycNode p::procedure)
@@ -606,3 +612,4 @@
 (gen-walks PycKont body)
 (gen-walks PycAssert test msg)
 (gen-walks PycUnimplemented)
+(gen-walks PycStatic)
