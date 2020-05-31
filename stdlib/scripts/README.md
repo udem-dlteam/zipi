@@ -18,4 +18,4 @@ A callable intrinsic function which has a similar behaviour to calling `getattr(
 
 ## `absent`
 
-A special value returned as a sentinel by `class_getattr` when no attribute was found. This is not a Python object and should be handled carefully. Use `x is absent` is the only safe operation on this value.
+A special value returned as a sentinel by `class_getattr` when no attribute was found. This is not a Python object and should be handled carefully. Usage of `x is absent` is the only safe operation on this value.
