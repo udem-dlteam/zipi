@@ -8,7 +8,7 @@ Notify the compiler that the decorated function should be treated as a semantics
 
 Notify the compiler that the decorated function can be compiled with the assumptions that builtin functions are never renamed or shadowed.
 
-## `no_dict_scope`
+## `use_simple_scoping`
 
 Notify the compiler that the decorated function can be compiled with the assumptions that there will be no call to `globals()`, `locals()`, `vars()`, `exec()` or `eval()`.
 
