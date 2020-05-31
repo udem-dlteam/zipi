@@ -8,14 +8,23 @@
       (PycRefUnresolved-id (PycAssig-lhs (car nodes)))
       (collect-import-intrinsics (cdr nodes)))))
 
-(define (remove-stmt stmts target-stmt)
+(define (list-remove lst x)
   (cond
-    ((null? stmts)
+    ((null? lst)
       '())
-    ((eq? (car stmts) target-stmt)
-      (cdr stmts))
+    ((eq? (car lst) x)
+      (cdr lst))
     (else
-      (cons (car stmts) (remove-stmt (cdr stmts) target-stmt)))))
+      (cons (car lst) (list-remove (cdr lst) x)))))
+
+(define (list-remove-pred lst pred?)
+  (cond
+    ((null? lst)
+      '())
+    ((pred? (car lst))
+      (list-remove-pred (cdr lst) pred?))
+    (else
+      (cons (car lst) (list-remove-pred (cdr lst) pred?)))))
 
 (define (intrinsics this conf)
   (let ((fst-line-stmt
@@ -48,7 +57,7 @@
                          (intrinsics (collect-import-intrinsics nodes)))
                     (PycModule-stmts-set!
                       this
-                      (remove-stmt
+                      (list-remove
                         (PycModule-stmts this)
                         fst-line-stmt))
                     (use-intrinsics! this intrinsics))
@@ -59,6 +68,82 @@
 (define static-intrinsics
   (list
     (cons 'absent 'py-absent)))
+
+;; TODO: generate a full table of builtins with Zipi rts name
+(define static-builtins
+  (list
+    ;; builtin constants
+    (cons 'NotImplemented 'py-NotImplemented)
+    ;; exceptions
+    (cons 'ArithmeticError 'py-builtin-ArithmeticError)
+    (cons 'AssertionError 'py-builtin-AssertionError)
+    (cons 'AttributeError 'py-builtin-AttributeError)
+    (cons 'BaseException 'py-builtin-BaseException)
+    (cons 'BlockingIOError 'py-builtin-BlockingIOError)
+    (cons 'BrokenPipeError 'py-builtin-BrokenPipeError)
+    (cons 'BufferError 'py-builtin-BufferError)
+    (cons 'BytesWarning 'py-builtin-BytesWarning)
+    (cons 'ChildProcessError 'py-builtin-ChildProcessError)
+    (cons 'ConnectionAbortedError 'py-builtin-ConnectionAbortedError)
+    (cons 'ConnectionError 'py-builtin-ConnectionError)
+    (cons 'ConnectionRefusedError 'py-builtin-ConnectionRefusedError)
+    (cons 'ConnectionResetError 'py-builtin-ConnectionResetError)
+    (cons 'DeprecationWarning 'py-builtin-DeprecationWarning)
+    (cons 'EOFError 'py-builtin-EOFError)
+    (cons 'EnvironmentError 'py-builtin-EnvironmentError)
+    (cons 'Exception 'py-builtin-Exception)
+    (cons 'FileExistsError 'py-builtin-FileExistsError)
+    (cons 'FileNotFoundError 'py-builtin-FileNotFoundError)
+    (cons 'FloatingPointError 'py-builtin-FloatingPointError)
+    (cons 'FutureWarning 'py-builtin-FutureWarning)
+    (cons 'GeneratorExit 'py-builtin-GeneratorExit)
+    (cons 'IOError 'py-builtin-IOError)
+    (cons 'ImportError 'py-builtin-ImportError)
+    (cons 'ImportWarning 'py-builtin-ImportWarning)
+    (cons 'IndentationError 'py-builtin-IndentationError)
+    (cons 'IndexError 'py-builtin-IndexError)
+    (cons 'InterruptedError 'py-builtin-InterruptedError)
+    (cons 'IsADirectoryError 'py-builtin-IsADirectoryError)
+    (cons 'KeyError 'py-builtin-KeyError)
+    (cons 'KeyboardInterrupt 'py-builtin-KeyboardInterrupt)
+    (cons 'LookupError 'py-builtin-LookupError)
+    (cons 'MemoryError 'py-builtin-MemoryError)
+    (cons 'ModuleNotFoundError 'py-builtin-ModuleNotFoundError)
+    (cons 'NameError 'py-builtin-NameError)
+    (cons 'NotADirectoryError 'py-builtin-NotADirectoryError)
+    (cons 'NotImplementedError 'py-builtin-NotImplementedError)
+    (cons 'OSError 'py-builtin-OSError)
+    (cons 'OverflowError 'py-builtin-OverflowError)
+    (cons 'PendingDeprecationWarning 'py-builtin-PendingDeprecationWarning)
+    (cons 'PermissionError 'py-builtin-PermissionError)
+    (cons 'ProcessLookupError 'py-builtin-ProcessLookupError)
+    (cons 'RecursionError 'py-builtin-RecursionError)
+    (cons 'ReferenceError 'py-builtin-ReferenceError)
+    (cons 'ResourceWarning 'py-builtin-ResourceWarning)
+    (cons 'RuntimeError 'py-builtin-RuntimeError)
+    (cons 'RuntimeWarning 'py-builtin-RuntimeWarning)
+    (cons 'StopAsyncIteration 'py-builtin-StopAsyncIteration)
+    (cons 'StopIteration 'py-builtin-StopIteration)
+    (cons 'SyntaxError 'py-builtin-SyntaxError)
+    (cons 'SyntaxWarning 'py-builtin-SyntaxWarning)
+    (cons 'SystemError 'py-builtin-SystemError)
+    (cons 'SystemExit 'py-builtin-SystemExit)
+    (cons 'TabError 'py-builtin-TabError)
+    (cons 'TimeoutError 'py-builtin-TimeoutError)
+    (cons 'TypeError 'py-builtin-TypeError)
+    (cons 'UnboundLocalError 'py-builtin-UnboundLocalError)
+    (cons 'UnicodeDecodeError 'py-builtin-UnicodeDecodeError)
+    (cons 'UnicodeEncodeError 'py-builtin-UnicodeEncodeError)
+    (cons 'UnicodeError 'py-builtin-UnicodeError)
+    (cons 'UnicodeTranslateError 'py-builtin-UnicodeTranslateError)
+    (cons 'UnicodeWarning 'py-builtin-UnicodeWarning)
+    (cons 'UserWarning 'py-builtin-UserWarning)
+    (cons 'ValueError 'py-builtin-ValueError)
+    (cons 'Warning 'py-builtin-Warning)
+    (cons 'ZeroDivisionError 'py-builtin-ZeroDivisionError)))
+
+(define static-builtins-table
+  (list->table static-builtins))
 
 (define valid-intrinsics
   (append
@@ -76,7 +161,6 @@
                   (loop (cdr intrinsics))))))))
     (list->table used-statics)))
 
-
 (define (check-invalid-intrinsics intrinsics)
   (cond
     ((null? intrinsics)
@@ -89,7 +173,11 @@
 (define (use-intrinsics! this intrinsics)
   (check-invalid-intrinsics intrinsics)
   (check-no-intrinsics-assignation this intrinsics)
-  (resolve-statics! this (make-static-intrinsics-table intrinsics))
+  (resolve-statics!
+    this
+    intrinsics
+    (make-static-intrinsics-table intrinsics)
+    #f)
   this)
 
 (define-walk-method (check-no-intrinsics-assignation this::PycNode intrinsics)
@@ -108,13 +196,43 @@
       (error "SyntaxError" "cannot use compiler intrinsic as name" (PycRefUnresolved-id lhs)))
     (call-default-walker)))
 
-(define-walk-method (resolve-statics! this::PycNode statics-table)
+(define-walk-method (resolve-statics! this::PycNode instrinsics statics-table use-static-builtins)
   (call-default-walker))
 
-(define-walk-method (resolve-statics! this::PycRefUnresolved statics-table)
+(define-walk-method (resolve-statics! this::PycRefUnresolved intrinsics statics-table use-static-builtins)
   (let* ((id (PycRefUnresolved-id this))
-        (static-value (table-ref statics-table id #f)))
+        (static-value
+          (or
+            (table-ref statics-table id #f)
+            (and
+              use-static-builtins
+              (table-ref static-builtins-table id #f)))))
     (if static-value
       (let ((loc (PycNode-loc this)))
         (new-PycStatic loc id static-value))
       this)))
+
+(define-walk-method (resolve-statics! this::PycFun intrinsics statics-table use-static-builtins)
+  (define (use_static_builtins-PycRef? x)
+    (and (PycRefUnresolved? x) (eq? (PycRefUnresolved-id x) 'use_static_builtins)))
+
+  (define (use_static_builtins-PycRef-contains? lst)
+    (cond
+      ((null? lst)
+        #f)
+      ((use_static_builtins-PycRef? (car lst))
+        #t)
+      (else
+        (use_static_builtins-PycRef-contains? (cdr lst)))))
+
+  (let ((decorators (PycFun-decorators this)))
+    (if (or use-static-builtins
+            (and
+              (member 'use_static_builtins intrinsics)
+              (use_static_builtins-PycRef-contains? decorators)))
+      (let* ((body (PycFun-body this))
+            (new-body (resolve-statics! body intrinsics statics-table #t)))
+        (PycFun-decorators-set! this (list-remove-pred decorators use_static_builtins-PycRef?))
+        (PycFun-body-set! this new-body)
+        this)
+      (call-default-walker))))
