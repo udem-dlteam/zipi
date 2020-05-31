@@ -2,7 +2,7 @@
 
 ## `define_semantics`
 
-Notify the compiler to treat the decorated function as a semantic, not as a Python function.
+Notify the compiler that the decorated function should be treated as a semantics definition, not as a function definition.
 
 ## `use_static_builtins`
 
@@ -10,7 +10,7 @@ Notify the compiler that the decorated function can be compiled with the assumpt
 
 ## `no_dict_scope`
 
-Notify the compiler that the decorated function can be compiled with the assumption there will be no call to `globals()`, `locals()` or `vars()`.
+Notify the compiler that the decorated function can be compiled with the assumptions that there will be no call to `globals()`, `locals()`, `vars()`, `exec()` or `eval()`.
 
 ## `class_getattr`
 
