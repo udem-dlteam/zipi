@@ -795,7 +795,8 @@
                   (string->symbol (string-append "py-call" (number->string args-len)))
                   'py-call))
               (call `(,py-call-fun ,fun ,@args)))
-          (if (> (length args) 0) call
+          (if (or (> (length args) 0) (not (PycCall-can-be-super this)))
+              call
               (super-handler call))))
 
    (let ((fun (PycCall-fun this)))

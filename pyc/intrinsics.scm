@@ -72,6 +72,8 @@
 ;; TODO: generate a full table of builtins with Zipi rts name
 (define static-builtins
   (list
+    ;; builtin callables
+    (cons 'super 'py-builtin-super)
     ;; builtin constants
     (cons 'NotImplemented 'py-NotImplemented)
     ;; exceptions
@@ -236,3 +238,13 @@
         (PycFun-body-set! this new-body)
         this)
       (call-default-walker))))
+
+(define-walk-method (resolve-statics! this::PycCall intrinsics statics-table use-static-builtins)
+  (let* ((res (call-default-walker))
+         (fun (PycCall-fun this)))
+    (if (and use-static-builtins
+             (or
+               (not (PycStatic? fun))
+               (not (eq? (PycIntrinsics-id fun) 'super))))
+      (PycCall-can-be-super-set! res #f))
+    res))

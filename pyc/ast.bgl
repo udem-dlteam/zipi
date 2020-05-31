@@ -239,7 +239,8 @@
            (final-class PycCall::PycExpr
               fun::PycExpr
               args::pair-nil
-              (keywords::pair-nil (default '())))
+              (keywords::pair-nil (default '()))
+              (can-be-super::bool (default #t)))
 
 	   (abstract-class PycCollection::PycExpr
 	      elts::pair-nil)
