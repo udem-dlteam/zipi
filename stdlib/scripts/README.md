@@ -10,7 +10,7 @@ Notify the compiler that the decorated function can be compiled with the assumpt
 
 ## `use_simple_scoping`
 
-Notify the compiler that the decorated function can be compiled with the assumptions that there will be no call to `globals()`, `locals()`, `vars()`, `exec()`, `eval()` or `super()` with implicit arguments.
+Notify the compiler that the decorated function can be compiled with the assumptions that there will be no call to `globals()`, `locals()`, `vars()`, `exec()` or `eval()`.
 
 ## `class_getattr`
 
