@@ -57,7 +57,7 @@
         (else this))))
 
 (define valid-intrinsic
-  '(define_semantics use_static_builtins no_dict_scope class_getattr absent))
+  '(define_semantics use_static_builtins use_simple_scoping class_getattr absent))
 
 (define (check-invalid-intrinsics intrinsics)
   (cond
