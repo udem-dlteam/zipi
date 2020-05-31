@@ -3,6 +3,14 @@ import ast as AST
 
 debug = False
 
+class Context:
+    def __init__(self, rte, cont, ast):
+        self.rte = rte
+        self.cont = cont
+        self.ast = ast
+
+    def set_continuation(self, cont):
+        self.cont = cont
 
 def interp_file(path):
     source = read_file(path)
@@ -168,13 +176,24 @@ def comp_expr(cte, ast):
         if debug: print('AST.NameConstant')
         return gen_constant(cte, ast, ast.value)
 
+    elif isinstance(ast, AST.BoolOp):
+        if debug: print('AST.BoolOp')
+        return gen_BoolOp(cte, ast, ast.op, ast.values)
+        #return cte, lambda rte, cont: cont(rte, "WIP")
+        assert False, 'WIP'
+
+    elif isinstance(ast, AST.Compare):
+        if debug: print('AST.Compare')
+        result = gen_Compare(cte, ast, ast.left, ast.comparators, ast.ops)
+        return result
+
     else:
         print(ast)
         print(dir(ast))
         assert False, 'comp_expr expected an expression AST'
 
 def comp_expr_opt(cte, ast):
-    if ast == None:
+    if ast is None:
         return (cte, None)
     else:
         return comp_expr(cte, ast)
@@ -203,12 +222,10 @@ def gen_stmt_empty(cte):
 
     return (cte, code)
 
-
-
 def gen_Pass(cte, ast):
 
     def code(rte, cont):
-        return stmt_end(rte, cont, ast)
+        return stmt_end(Context(rte, cont, ast))
 
     return (cte, code)
 
@@ -273,7 +290,7 @@ def gen_var_set(cte, ast, id, code1):
     def code(rte, cont):
 
         def var_set(rte, val):
-            return sem_var_set(rte, cont, id, val, ast)
+            return sem_var_set(Context(rte, cont, ast), id, val)
 
         return code1(rte, var_set)
 
@@ -284,7 +301,7 @@ def gen_var_set(cte, ast, id, code1):
 def gen_var_get(cte, ast, id):
 
     def code(rte, cont):
-        return sem_var_get(rte, cont, id, ast)
+        return sem_var_get(Context(rte, cont, ast), id)
 
     return (cte, code)
 
@@ -297,7 +314,49 @@ def gen_Expr(cte, ast, code1):
 
     return (cte, code)
 
+def gen_logical_and(cte, ast, code1, code2):
+    if debug: print('gen_logical_and')
 
+    # XXX: look into runtime environment.
+    def code(rte, cont):
+        return code1(rte,
+                     lambda rte1, val1:
+                        cont(rte1, val1) if sem_false(val1) else code2(rte,
+                                                                lambda rte2, val2:
+                                                                    cont(rte2, val2)))
+
+    return (cte, code)
+
+def gen_logical_or(cte, ast, code1, code2):
+    if debug: print('gen_logical_or')
+
+    def code(rte, cont):
+        return code1(rte,
+                     lambda rte1, val1:
+                        cont(rte1, val1) if val1 else code2(rte,
+                                                            lambda rte2, val2:
+                                                               cont(rte2, val2)))
+    return (cte, code)
+
+def gen_BoolOp(cte, ast, op, values):
+    if isinstance(op, AST.And):
+        logical_op = gen_logical_and
+    elif isinstance(op, AST.Or):
+        logical_op = gen_logical_or
+    else:
+        assert False, 'Should not happen'
+    return gen_BoolOp_seq(cte, ast, logical_op, values)
+
+
+# Compilation of sequence of expressions
+
+def gen_BoolOp_seq(cte, ast, logical_op, expr_seq):
+    (cte1, code1) = comp_expr(cte, expr_seq[0])
+    if len(expr_seq) == 1:
+        return (cte1, code1)
+    else:
+        (cte2, code2) = gen_BoolOp_seq(cte, ast, logical_op, expr_seq[1:])
+        return logical_op(cte, ast, code1, code2)
 
 def gen_BinOp(cte, ast, op, code1, code2):
 
@@ -323,76 +382,155 @@ def gen_BinOp(cte, ast, op, code1, code2):
                      lambda rte1, val1:
                        code2(rte1,
                              lambda rte2, val2:
-                               sem_op(rte2, cont, val1, val2, ast)))
+                               sem_op(Context(rte2, cont, ast),
+                                      val1, val2)))
 
     return (cte, code)
 
-def sem_Add(rte, cont, val1, val2, ast):
+# XXX: I don't know what name it should have
+def comp_Compare_Op(op):
+    if isinstance(op, AST.Eq):
+        sem_op = sem_Eq
+    elif isinstance(op, AST.NotEq):
+        sem_op = sem_NotEq
+    elif isinstance(op, AST.Lt):
+        sem_op = sem_Lt
+    elif isinstance(op, AST.Gt):
+        sem_op = sem_Gt
+    elif isinstance(op, AST.LtE):
+        sem_op = sem_LtE
+    elif isinstance(op, AST.GtE):
+        sem_op = sem_GtE
+    else:
+        assert False, 'gen_Compare unimplemented compare'
+
+    return sem_op
+
+
+# NOTE: I hate this function but it works
+def gen_Compare(cte, ast, left, comparators, ops):
+    (cte1, code1) = comp_expr(cte, left)
+    (cte2, code2) = comp_expr(cte, comparators[0])
+    sem_op1 = comp_Compare_Op(ops[0])
+
+    if len(ops) == 1:
+        return (cte, lambda rte, cont:
+                        code1(rte,
+                             lambda rte1, val1:
+                                code2(rte1,
+                                      lambda rte2, val2:
+                                         sem_op1(Context(rte2, cont, ast), val1, val2))))
+
+    elif len(ops) == 2:
+        (cte3, code3) = comp_expr(cte, comparators[1])
+        sem_op2 = comp_Compare_Op(ops[1])
+
+        def gen_cont3(cont, rte, comp1, val2):
+            return cont(rte, comp1) if sem_false(comp1) else code3(rte,
+                                                                   lambda rte1, val3:
+                                                                      sem_op2(Context(rte1, cont, ast), val2, val3))
+
+        return (cte, lambda rte, cont:
+                        code1(rte,
+                             lambda rte1, val1:
+                                code2(rte1,
+                                      lambda rte2, val2:
+                                          sem_op1(Context(rte2,
+                                                          lambda rte3, comp1:
+                                                            gen_cont3(cont, rte3, comp1, val2),
+                                                          ast),
+                                                  val1, val2))))
+    else:
+        assert False, 'not implemented'
+
+def sem_Add(ctx, val1, val2):
     result = val1 + val2
-    return expr_end(rte, cont, result, ast)
+    return expr_end(ctx, result)
 
-def sem_Sub(rte, cont, val1, val2, ast):
+def sem_Sub(ctx, val1, val2):
     result = val1 - val2
-    return expr_end(rte, cont, result, ast)
+    return expr_end(ctx, result)
 
-def sem_Mult(rte, cont, val1, val2, ast):
+def sem_Mult(ctx, val1, val2):
     result = val1 * val2
-    return expr_end(rte, cont, result, ast)
+    return expr_end(ctx, result)
 
-def sem_Div(rte, cont, val1, val2, ast):
+def sem_Div(ctx, val1, val2):
     result = val1 / val2
-    return expr_end(rte, cont, result, ast)
+    return expr_end(ctx, result)
 
-def sem_Mod(rte, cont, val1, val2, ast):
+def sem_Mod(ctx, val1, val2):
     result = val1 % val2
-    return expr_end(rte, cont, result, ast)
+    return expr_end(ctx, result)
 
-def sem_FloorDiv(rte, cont, val1, val2, ast):
+def sem_FloorDiv(ctx, val1, val2):
     result = val1 // val2
-    return expr_end(rte, cont, result, ast)
+    return expr_end(ctx, result)
 
+def sem_Eq(ctx, val1, val2):
+    result = val1 == val2
+    return expr_end(ctx, result)
 
+def sem_NotEq(ctx, val1, val2):
+    result = val1 != val2
+    return expr_end(ctx, result)
+
+def sem_Lt(ctx, val1, val2):
+    result = val1 < val2
+    return expr_end(ctx, result)
+
+def sem_LtE(ctx, val1, val2):
+    result = val1 <= val2
+    return expr_end(ctx, result)
+
+def sem_Gt(ctx, val1, val2):
+    result = val1 > val2
+    return expr_end(ctx, result)
+
+def sem_GtE(ctx, val1, val2):
+    result = val1 >= val2
+    return expr_end(ctx, result)
 
 def gen_constant(cte, ast, val):
 
     def code(rte, cont):
-        return sem_constant(rte, cont, val, ast)
+        return sem_constant(Context(rte, cont, ast), val)
 
     return (cte, code)
 
-def sem_constant(rte, cont, val, ast):
+def sem_constant(ctx, val):
     result = val
-    return expr_end(rte, cont, result, ast)
+    return expr_end(ctx, result)
 
-def sem_var_set(rte, cont, id, val, ast):
-    rte[id] = val
-    return stmt_end(rte, cont, ast)
+def sem_var_set(ctx, id, val):
+    ctx.rte[id] = val
+    return stmt_end(ctx)
 
-def sem_var_get(rte, cont, id, ast):
-    result = rte[id]
-    return expr_end(rte, cont, result, ast)
+def sem_var_get(ctx, id):
+    result = ctx.rte[id]
+    return expr_end(ctx, result)
 
 def sem_false(val):
     return not val
 
 
 
-def expr_end(rte, cont, val, ast):
+def expr_end(ctx, val):
 
     # Simulate codeBoot GUI that shows the value of the expression
     # and waits for the user to click "next step" to continue execution.
     # Note that codeBoot will also use rte to show the value of variables.
 
-    return gui_wait_for_click(ast, ': value = '+repr(val), lambda: cont(rte, val))
+    return gui_wait_for_click(ctx.ast, ': value = '+repr(val), lambda: ctx.cont(ctx.rte, val))
 
 
-def stmt_end(rte, cont, ast):
+def stmt_end(ctx):
 
     # Simulate codeBoot GUI that shows the execution of a statement
     # and waits for the user to click "next step" to continue execution.
     # Note that codeBoot will also use rte to show the value of variables.
 
-    return gui_wait_for_click(ast, '', lambda: cont(rte))
+    return gui_wait_for_click(ctx.ast, '', lambda: ctx.cont(ctx.rte))
 
 
 def gui_wait_for_click(ast, msg, continue_execution):
