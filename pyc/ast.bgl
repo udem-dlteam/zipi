@@ -202,7 +202,7 @@
         (decorators::pair-nil (default '()))
 	      (decls::pair-nil (default '()))
 	      (generator::bool (default #f))
-	      (need-return::bool (default #t))
+	      (need-return::bool (default #f))
 	      (can-locals::bool (default #t))
 	      (super-in-class::bool (default #f)))
            (final-class PycClass::PycExpr
