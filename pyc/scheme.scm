@@ -919,6 +919,9 @@
         " at line "
         ,(number->string (car (PycNode-loc this)))))
 
+(define-walk-method (scheme this::PycStatic conf)
+  (PycStatic-value this))
+
 (define (scheme-cache cache node)
    (if (not (integer? cache))
        (error "scheme-cache" "Bad cache" (pyc->list node))

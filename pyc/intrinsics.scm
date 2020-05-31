@@ -56,14 +56,32 @@
               this)))
         (else this))))
 
-(define valid-intrinsic
-  '(define_semantics use_static_builtins use_simple_scoping class_getattr absent))
+(define static-intrinsics
+  (list
+    (cons 'absent 'py-absent)))
+
+(define valid-intrinsics
+  (append
+    (map car static-intrinsics)
+    '(define_semantics use_static_builtins use_simple_scoping class_getattr absent)))
+
+(define (make-static-intrinsics-table intrinsics)
+  (let ((used-statics
+          (let loop ((intrinsics intrinsics))
+            (if (null? intrinsics)
+              '()
+              (let ((pair (assoc (car intrinsics) static-intrinsics)))
+                (if pair
+                  (cons pair (loop (cdr intrinsics)))
+                  (loop (cdr intrinsics))))))))
+    (list->table used-statics)))
+
 
 (define (check-invalid-intrinsics intrinsics)
   (cond
     ((null? intrinsics)
       #t)
-    ((member (car intrinsics) valid-intrinsic)
+    ((member (car intrinsics) valid-intrinsics)
       (check-invalid-intrinsics (cdr intrinsics)))
     (else
       (error "SyntaxError" "invalid __compiler_intrinsics__" (car intrinsics)))))
@@ -71,7 +89,7 @@
 (define (use-intrinsics! this intrinsics)
   (check-invalid-intrinsics intrinsics)
   (check-no-intrinsics-assignation this intrinsics)
-  (pp intrinsics)
+  (resolve-statics! this (make-static-intrinsics-table intrinsics))
   this)
 
 (define-walk-method (check-no-intrinsics-assignation this::PycNode intrinsics)
@@ -89,3 +107,14 @@
           (member (PycRefUnresolved-id lhs) intrinsics))
       (error "SyntaxError" "cannot use compiler intrinsic as name" (PycRefUnresolved-id lhs)))
     (call-default-walker)))
+
+(define-walk-method (resolve-statics! this::PycNode statics-table)
+  (call-default-walker))
+
+(define-walk-method (resolve-statics! this::PycRefUnresolved statics-table)
+  (let* ((id (PycRefUnresolved-id this))
+        (static-value (table-ref statics-table id #f)))
+    (if static-value
+      (let ((loc (PycNode-loc this)))
+        (new-PycStatic loc id static-value))
+      this)))
