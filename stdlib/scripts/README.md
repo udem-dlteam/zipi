@@ -10,7 +10,7 @@ Notify the compiler that the decorated function can be compiled with the assumpt
 
 ## `no_dict_scope`
 
-Notify the compiler that the decorated function canbe compiled with the assumption there will be no call to `globals()`, `locals()` or `vars()`.
+Notify the compiler that the decorated function can be compiled with the assumption there will be no call to `globals()`, `locals()` or `vars()`.
 
 ## `class_getattr`
 
