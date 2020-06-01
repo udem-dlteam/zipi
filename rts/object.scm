@@ -4213,24 +4213,24 @@
       '#(cls item))))
 
 (define (bytearray-setitem cls pos item)
-  (cond
-    ((not (py-isinstance? cls py-bytearray-class))
-      (py-throw-not-a-type-object "bytearray.__getitem__" cls))
-    ((not (py-isinstance? pos py-int-class))
-      (py-throw-wrong-index-type "bytearray" "integers" pos))
-    ((not (py-isinstance? item py-int-class))
-     (py-throw-action-out-of-range "bytearray" "assignment"))
-    (else
-      (let ((pos-int (object-scheme-value-fast-get pos))
-            (bytearray (object-scheme-value-fast-get cls))
-            (item-int (object-scheme-value-fast-get item)))
-        (cond
-          ((not (index-in-length-range pos-int (car bytearray)))
-            (py-throw-index-out-of-range "bytearray" ))
-          ((not (py-int-in-byte-range? item-int))
-            (py-throw-exception-with-message py-builtin-ValueError "byte must be in range(0, 255)"))
-          (else
-            (u8vector-set! (cdr bytearray) (modulo pos-int (car bytearray)) item-int)))))))
+  (if (py-isinstance? cls py-bytearray-class)
+      (cond
+       ((py-isinstance? pos py-int-class)
+        (if (py-isinstance? item py-int-class)
+            (let ((pos-int (object-scheme-value-fast-get pos))
+                  (bytearray (object-scheme-value-fast-get cls))
+                  (item-int (object-scheme-value-fast-get item)))
+              (cond
+               ((not (index-in-length-range pos-int (car bytearray)))
+                (py-throw-index-out-of-range "bytearray" ))
+               ((not (py-int-in-byte-range? item-int))
+                (py-throw-exception-with-message py-builtin-ValueError "byte must be in range(0, 255)"))
+               (else
+                (u8vector-set! (cdr bytearray) (modulo pos-int (car bytearray)) item-int))))
+            (py-throw-wrong-index-type "bytearray" "integers or slice" pos)))
+        (else
+         (py-throw-wrong-index-type "bytearray" "integers or slice" pos)))
+      (py-throw-not-a-type-object "bytearray.__getitem__" cls)))
 
 (define bytearray.__setitem__
   (procedure->py-function
