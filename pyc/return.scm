@@ -30,6 +30,10 @@
 	 ((PycReturn? (car nodes))
 	  (set-cdr! nodes '())
 	  (return (car nodes) fun tail conf))
+   ((PycRaise? (car nodes))
+    (set-cdr! nodes '())
+    ;; Is this needed? There can be no return inside a raise
+    (return (car nodes) fun tail conf))
 	 (else
 	  (return (car nodes) fun #f conf)
 	  (loop (cdr nodes))))))
