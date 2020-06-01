@@ -1,18 +1,8 @@
 ;; annotate return statements with tail/notail information
 ;; annotation function definitions with need-return values
 (define (pyc-return this conf)
-   (mark-noreturn this)
    (return this #f #t conf)
    this)
-
-;; PycFun have been first initialized with need-return set to #t
-;; The first stage of this optimization is to replace all this #t with #f
-;; The analysis will then set to #t only functions that need to be
-(define-walk-method (mark-noreturn this::PycNode)
-   (call-default-walker))
-
-(define-walk-method (mark-noreturn this::PycFun)
-   (PycFun-need-return-set! this #f))
 
 ;; Traverse the AST to mark all non-tail returns and mark the functions
 ;; that use such returns
