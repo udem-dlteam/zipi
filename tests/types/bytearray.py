@@ -34,16 +34,21 @@ for i in range (0, 255):
 for i in range(-255, 254):
     print(y[i])
 
+
+#iter
+
+for b in y:
+    print(b)
+
 # mul
 
 print(len(y))
-print(len(y*5))
-z=y*5
-for i in range(len(y*5)):
-    print(z[i])
+print(len(y*3))
+for i in y*3:
+    print(i)
 
 # imul
-y*=5
+y*=3
 for i in range(-len(y), len(y)):
     print(y[i])
 
@@ -84,19 +89,12 @@ l2[1] = 2
 l2[2] = 3
 l2[3] = 4
 
-#desole pour la syntaxe illisible
 for start in range(-5, 5):
     for stop in range(-5, 5):
         for step in range(1, 2):
-            tests = [l2[start:stop:step],
-                    l2[:stop:step],
-                    l2[start::step],
-                    l2[start:stop],
-                    l2[::step],
-                    l2[start::]]
-            for test in tests:
-                for ii in range(len(test)):
-                    print(test[ii])
+            tests = l2[start:stop:step] + l2[:stop:step] + l2[start::step] + l2[start:stop] + l2[::step] + l2[start::]
+            for byte in tests:
+                print(byte)
 
 #test comparison
 
@@ -137,4 +135,31 @@ print(a >= b)
 print(a == b)
 print(a != b)
 
+# count
+
+x=bytearray(10)
+x[0] = 10
+x[2] = 3
+
+
+print(x.rfind(10))
+print(x.rfind(10, 2, 3))
+print(x.rfind(0))
+print(x.rfind(0, 3))
+print(x.rfind(3))
+print(x.rfind(3, 3, 3))
+print(x.find(10))
+print(x.find(10, 2, 3))
+print(x.find(0))
+print(x.find(0, 3))
+print(x.find(3))
+print(x.find(3, 3, 3))
+print(x.index(10))
+print(x.index(0))
+print(x.index(0, 3))
+print(x.index(3))
+print(x.rindex(10))
+print(x.rindex(0))
+print(x.rindex(0, 3))
+print(x.rindex(3))
 

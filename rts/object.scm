@@ -2880,9 +2880,10 @@
         (let ((item (u8vector-ref (cdr vec) index)))
           (begin
             (bytearray-iterator-index-fast-set! self (+ index 1))
-            item))
+            (py-int-from-scheme item)))
         (py-throw py-builtin-StopIteration)))
     (py-throw py-builtin-TypeError)))
+
 
 (define py-bytearray-iterator-next
   (procedure->py-function
@@ -4330,45 +4331,50 @@
    bytearray-len
    (make-posonly-signature '#(self))))
 
-(define-macro (define-search-function endfunction)
-  `(lambda (self item start stop)
-    (cond
-    ((not (py-isinstance? self py-bytearray-class))
-     ((py-throw-not-a-type-object "bytearray.count" self)))
-    ((not (py-isinstance? item py-int-class))
-     ((py-throw-action-out-of-range "bytearray" "assignment")))
-    (else
-      (let* ((bytearray (object-scheme-value-fast-get self))
-            (item-int (object-scheme-value-fast-get item)))
-        (if (py-int-in-byte-range? item-int)
-            (let ((start-int
-                  (if (eq? py-absent start)
-                      0
-                      (max 0 (object-scheme-value-fast-get start))))
-                  (stop-int
-                  (if (eq? py-absent stop)
-                      (car bytearray)
-                      (min (car bytearray) (object-scheme-value-fast-get stop)))))
-              (,endfunction (cdr bytearray) item-int start-int stop-int))
-            (py-throw-exception-with-message py-builtin-ValueError "byte must be in range(0, 255)")
-            ))))))
-
+(define-macro (define-search-function endfunction name func-name)
+  `(begin
+     (define (,name self item start stop)
+       (cond
+        ((not (py-isinstance? self py-bytearray-class))
+         ((py-throw-not-a-type-object "bytearray.count" self)))
+        ((not (py-isinstance? item py-int-class))
+         ((py-throw-action-out-of-range "bytearray" "assignment")))
+        (else
+         (let* ((bytearray (object-scheme-value-fast-get self))
+                (item-int (object-scheme-value-fast-get item)))
+           (if (py-int-in-byte-range? item-int)
+               (let ((start-int
+                      (if (eq? py-absent start)
+                          0
+                          (max 0 (object-scheme-value-fast-get start))))
+                     (stop-int
+                      (if (eq? py-absent stop)
+                          (car bytearray)
+                          (min (car bytearray) (object-scheme-value-fast-get stop)))))
+                 (,endfunction (cdr bytearray) item-int start-int stop-int))
+               (py-throw-exception-with-message py-builtin-ValueError "byte must be in range(0, 255)")
+               )))))
+     (define ,func-name
+       (procedure->py-function
+        ,name
+        (make-posonly-defaults-signature '#(self item start stop) (vector py-absent py-absent))))))
 
 (define-macro (dynamic-u8vector-count vec item start stop)
-  `(let loop ((i start)
-             (acc 0))
-    (if (fx>= i stop)
-        acc
-        (if (fx= (u8vector-ref ,vec i) item)
-            (loop (+ 1 i) (+ 1 acc))
-            (loop (+ 1 i) acc)))))
+  `(py-int-from-scheme
+    (let loop ((i ,start)
+               (acc 0))
+      (if (fx>= i ,stop)
+          acc
+          (if (fx= (u8vector-ref ,vec i) ,item)
+              (loop (+ 1 i) (+ 1 acc))
+              (loop (+ 1 i) acc))))))
 
 (define-macro (dynamic-u8vector-find vec item start stop)
   `(let loop ((i ,start))
      (if (fx>= i ,stop)
-         py-False
+         (py-int-from-scheme -1)
          (if (fx= (u8vector-ref ,vec i) ,item)
-             py-True
+             (py-int-from-scheme i)
              (loop (+ 1 i))))))
 
 
@@ -4377,17 +4383,17 @@
      (if (fx>= i ,stop)
          (py-throw-exception-with-message py-builtin-ValueError "subsection not found")
          (if (fx= (u8vector-ref ,vec i) ,item)
-             py-True
+             (py-int-from-scheme i)
              (loop (+ 1 i))))))
 
 
 (define-macro (dynamic-u8vector-rfind vec item start stop)
   `(let loop ((i (- ,stop 1)))
      (if (fx< i ,start)
-         py-False
+         (py-int-from-scheme -1)
          (if (fx= (u8vector-ref ,vec i) ,item)
-             py-True
-             (loop (- 1 i))))))
+             (py-int-from-scheme i)
+             (loop (- i 1))))))
 
 
 (define-macro (dynamic-u8vector-rindex vec item start stop)
@@ -4395,34 +4401,14 @@
      (if (fx< i ,start)
          (py-throw-exception-with-message py-builtin-ValueError "subsection not found")
          (if (fx= (u8vector-ref ,vec i) ,item)
-             py-True
-             (loop (- 1 i))))))
+             (py-int-from-scheme i)
+             (loop (- i 1))))))
 
-
-(define bytearray.count
-  (procedure->py-function
-   (define-search-function dynamic-u8vector-count)
-   (make-posonly-defaults-signature '#(self item start stop) (vector py-absent py-absent))))
-
-(define bytearray.find
-  (procedure->py-function
-   (define-search-function dynamic-u8vector-find)
-   (make-posonly-defaults-signature '#(self item start stop) (vector py-absent py-absent))))
-
-(define bytearray.index
-  (procedure->py-function
-   (define-search-function dynamic-u8vector-index)
-   (make-posonly-defaults-signature '#(self item start stop) (vector py-absent py-absent))))
-
-(define bytearray.rfind
-  (procedure->py-function
-   (define-search-function dynamic-u8vector-rfind)
-   (make-posonly-defaults-signature '#(self item start stop) (vector py-absent py-absent))))
-
-(define bytearray.rindex
-  (procedure->py-function
-   (define-search-function dynamic-u8vector-rindex)
-   (make-posonly-defaults-signature '#(self item start stop) (vector py-absent py-absent))))
+(define-search-function dynamic-u8vector-count bytearray-count bytearray.count)
+(define-search-function dynamic-u8vector-find bytearray-find bytearray.find)
+(define-search-function dynamic-u8vector-index bytearray-index bytearray.index)
+(define-search-function dynamic-u8vector-rindex bytearray-rindex bytearray.rindex)
+(define-search-function dynamic-u8vector-rfind bytearray-rfind bytearray.rfind)
 
 (define-macro (dynamic-u8vector-comparator scheme-op scheme-strict-op name func-name)
   `(begin
