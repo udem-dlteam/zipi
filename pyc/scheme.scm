@@ -923,6 +923,18 @@
 (define-walk-method (scheme this::PycStatic conf)
   (PycStatic-value this))
 
+(define-walk-method (scheme this::PycMacro conf)
+  (let* ((id (PycIntrinsics-id this))
+        (value (PycMacro-value this))
+        (args (PycMacro-args this)))
+    (case id
+      ((class_getattr)
+        (let ((obj (car args))
+              (attr (cadr args)))
+          `(,value ,(scheme obj conf) ,(PycLiteralValue-val attr))))
+      (else
+        (error "scheme::PycMacro" "unknown id" id)))))
+
 (define (scheme-cache cache node)
    (if (not (integer? cache))
        (error "scheme-cache" "Bad cache" (pyc->list node))

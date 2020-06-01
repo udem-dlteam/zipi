@@ -264,6 +264,10 @@
      (final-class PycStatic::PycIntrinsics
         value::symbol)
 
+     (final-class PycMacro::PycIntrinsics
+        value::symbol
+        args::pair-nil)
+
            (genkey)
 
            (generic walk0 n::PycNode p::procedure)
@@ -614,3 +618,4 @@
 (gen-walks PycAssert test msg)
 (gen-walks PycUnimplemented)
 (gen-walks PycStatic)
+(gen-walks PycMacro (args))

@@ -65,6 +65,21 @@
               this)))
         (else this))))
 
+(define (make-class_getattr this)
+  (let* ((loc (PycNode-loc this))
+        (args (PycCall-args this))
+        (args-len (length args))
+        (attr (cadr args)))
+      (if (and
+            (= args-len 2)
+            (PycString? attr))
+        (new-PycMacro loc 'class_getattr 'getattribute-from-obj-mro args)
+        (error "SyntaxError" "wrong argument for class_getattr" #f))))
+
+(define macro-intrinsics
+  (list
+    (cons 'class_getattr make-class_getattr)))
+
 (define static-intrinsics
   (list
     (cons 'absent 'py-absent)))
@@ -150,18 +165,16 @@
 (define valid-intrinsics
   (append
     (map car static-intrinsics)
-    '(define_semantics use_static_builtins use_simple_scoping class_getattr absent)))
+    (map car macro-intrinsics)
+    '(define_semantics use_static_builtins use_simple_scoping absent)))
 
-(define (make-static-intrinsics-table intrinsics)
-  (let ((used-statics
-          (let loop ((intrinsics intrinsics))
-            (if (null? intrinsics)
-              '()
-              (let ((pair (assoc (car intrinsics) static-intrinsics)))
-                (if pair
-                  (cons pair (loop (cdr intrinsics)))
-                  (loop (cdr intrinsics))))))))
-    (list->table used-statics)))
+(define (make-intrinsics-assoc-list intrinsics assoc-list)
+  (if (null? intrinsics)
+    '()
+    (let ((pair (assoc (car intrinsics) assoc-list)))
+      (if pair
+        (cons pair (make-intrinsics-assoc-list (cdr intrinsics) assoc-list))
+        (make-intrinsics-assoc-list (cdr intrinsics) assoc-list)))))
 
 (define (check-invalid-intrinsics intrinsics)
   (cond
@@ -178,7 +191,8 @@
   (resolve-statics!
     this
     intrinsics
-    (make-static-intrinsics-table intrinsics)
+    (make-intrinsics-assoc-list intrinsics static-intrinsics)
+    (make-intrinsics-assoc-list intrinsics macro-intrinsics)
     #f)
   this)
 
@@ -198,14 +212,14 @@
       (error "SyntaxError" "cannot use compiler intrinsic as name" (PycRefUnresolved-id lhs)))
     (call-default-walker)))
 
-(define-walk-method (resolve-statics! this::PycNode instrinsics statics-table use-static-builtins)
+(define-walk-method (resolve-statics! this::PycNode instrinsics statics macros use-static-builtins)
   (call-default-walker))
 
-(define-walk-method (resolve-statics! this::PycRefUnresolved intrinsics statics-table use-static-builtins)
+(define-walk-method (resolve-statics! this::PycRefUnresolved intrinsics statics macros use-static-builtins)
   (let* ((id (PycRefUnresolved-id this))
         (static-value
           (or
-            (table-ref statics-table id #f)
+            (assoc id statics)
             (and
               use-static-builtins
               (table-ref static-builtins-table id #f)))))
@@ -214,7 +228,7 @@
         (new-PycStatic loc id static-value))
       this)))
 
-(define-walk-method (resolve-statics! this::PycFun intrinsics statics-table use-static-builtins)
+(define-walk-method (resolve-statics! this::PycFun intrinsics statics macros use-static-builtins)
   (define (use_static_builtins-PycRef? x)
     (and (PycRefUnresolved? x) (eq? (PycRefUnresolved-id x) 'use_static_builtins)))
 
@@ -233,18 +247,23 @@
               (member 'use_static_builtins intrinsics)
               (use_static_builtins-PycRef-contains? decorators)))
       (let* ((body (PycFun-body this))
-            (new-body (resolve-statics! body intrinsics statics-table #t)))
+            (new-body (resolve-statics! body intrinsics statics macros #t)))
         (PycFun-decorators-set! this (list-remove-pred decorators use_static_builtins-PycRef?))
         (PycFun-body-set! this new-body)
         this)
       (call-default-walker))))
 
-(define-walk-method (resolve-statics! this::PycCall intrinsics statics-table use-static-builtins)
-  (let* ((res (call-default-walker))
-         (fun (PycCall-fun this)))
+(define-walk-method (resolve-statics! this::PycCall intrinsics statics macros use-static-builtins)
+  (let ((this (call-default-walker))
+       (fun (PycCall-fun this)))
     (if (and use-static-builtins
-             (or
-               (not (PycStatic? fun))
-               (not (eq? (PycIntrinsics-id fun) 'super))))
-      (PycCall-can-be-super-set! res #f))
-    res))
+           (or
+             (not (PycStatic? fun))
+             (not (eq? (PycIntrinsics-id fun) 'super))))
+      (PycCall-can-be-super-set! this #f))
+    (if (PycRefUnresolved? fun)
+      (let* ((pair (assoc (PycRefUnresolved-id fun) macros)))
+        (if pair
+          ((cdr pair) this)
+          this))
+      this)))
