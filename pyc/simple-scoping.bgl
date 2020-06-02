@@ -1,0 +1,10 @@
+(module __pyc_simple_scoping
+
+   (include "ast.sch"
+	    "walk.sch")
+
+   (import __pyc_dump
+	   __pyc_ast
+	   __pyc_utils)
+
+   (export (pyc-simple-scoping this::PycNode conf)))

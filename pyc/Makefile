@@ -21,7 +21,7 @@ do: build
 #*    common objects                                                   */
 #*---------------------------------------------------------------------*/
 OBJECTS_COMMON = ast compile parse sexp symbol return dump locals break \
-  generator cps scheme javascript utils configure super intrinsics
+  generator cps scheme javascript utils configure super intrinsics simple-scoping
 
 #*---------------------------------------------------------------------*/
 #*    Common entry points                                              */

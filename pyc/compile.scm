@@ -8,6 +8,7 @@
      ("super" . ,pyc-super)
      ("generator" . ,pyc-generator)
      ("cps" . ,pyc-cps)
+     ("simple-scoping" . ,pyc-simple-scoping)
      ("scheme" . ,pyc-scheme)))
 
 (define (pyc-bigloo-driver)
@@ -20,6 +21,7 @@
      ("super" . ,pyc-super)
      ("generator" . ,pyc-generator)
      ("cps" . ,pyc-cps)
+     ("simple-scoping" . ,pyc-simple-scoping)
      ("bigloo" . ,pyc-scheme-bigloo)))
 
 (define (pyc-gambit-driver)
@@ -32,6 +34,7 @@
      ("super" . ,pyc-super)
      ("generator" . ,pyc-generator)
      ("cps" . ,pyc-cps)
+     ("simple-scoping" . ,pyc-simple-scoping)
      ("gambit" . ,pyc-scheme-gambit)))
 
 (define (pyc-javascript-driver)

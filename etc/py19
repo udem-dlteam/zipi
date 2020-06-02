@@ -46,5 +46,7 @@ $PYC_DIR/parse.bgl \
 $PYC_DIR/parse.scm \
 $PYC_DIR/intrinsics.bgl \
 $PYC_DIR/intrinsics.scm \
+$PYC_DIR/simple-scoping.bgl \
+$PYC_DIR/simple-scoping.scm \
 $ZPC_DIR/main-gambit.scm \
 $*
