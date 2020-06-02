@@ -45,7 +45,8 @@
 
            (class PycDeclInit::PycDecl
               val::PycExpr
-	      (cache (default #f)))
+              (simple-scoping-top-block (info '("jsonref" "notraverse")) (default #f))
+	            (cache (default #f)))
 
            (class PycVar::PycDeclInit)
 
