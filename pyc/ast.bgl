@@ -218,7 +218,8 @@
 	      (generator::bool (default #f))
 	      (need-return::bool (default #f))
 	      (can-locals::bool (default #t))
-	      (super-in-class::bool (default #f)))
+	      (super-in-class::bool (default #f))
+        (use-simple-scoping::bool (default #f)))
            (final-class PycClass::PycExpr
 	      (name::bstring read-only)
 	      (module::bstring read-only)

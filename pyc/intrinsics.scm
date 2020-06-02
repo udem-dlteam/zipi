@@ -194,6 +194,8 @@
     (make-intrinsics-assoc-list intrinsics static-intrinsics)
     (make-intrinsics-assoc-list intrinsics macro-intrinsics)
     #f)
+  (if (member 'use_simple_scoping intrinsics)
+    (mark-use-simple-scoping! this #f))
   this)
 
 (define-walk-method (check-no-intrinsics-assignation this::PycNode intrinsics)
@@ -267,3 +269,29 @@
           ((cdr pair) this)
           this))
       this)))
+
+(define-walk-method (mark-use-simple-scoping! this::PycNode marked)
+  (call-default-walker))
+
+(define-walk-method (mark-use-simple-scoping! this::PycFun marked)
+  (define (use_simple_scoping-PycRef? x)
+    (and (PycRefUnresolved? x) (eq? (PycRefUnresolved-id x) 'use_simple_scoping)))
+
+  (define (use_simple_scoping-PycRef-contains? lst)
+    (cond
+      ((null? lst)
+        #f)
+      ((use_simple_scoping-PycRef? (car lst))
+        #t)
+      (else
+        (use_simple_scoping-PycRef-contains? (cdr lst)))))
+
+  (let ((decorators (PycFun-decorators this)))
+    (if (or marked (use_simple_scoping-PycRef-contains? decorators))
+      (let* ((body (PycFun-body this))
+            (new-body (mark-use-simple-scoping! body #t)))
+        (PycFun-decorators-set! this (list-remove-pred decorators use_simple_scoping-PycRef?))
+        (PycFun-body-set! this new-body)
+        (PycFun-use-simple-scoping-set! this #t)
+        this)
+      (call-default-walker))))

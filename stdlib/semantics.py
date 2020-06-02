@@ -1,8 +1,4 @@
-from __compiler_intrinsics__ import define_semantics,
-                                    use_static_builtins,
-                                    use_simple_scoping,
-                                    class_getattr,
-                                    absent
+from __compiler_intrinsics__ import define_semantics, use_static_builtins, use_simple_scoping, class_getattr, absent
 
 # Auto-generated
 @define_semantics
