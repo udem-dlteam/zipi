@@ -290,6 +290,5 @@
     (if (use_simple_scoping-PycRef-contains? decorators)
       (begin
         (PycFun-decorators-set! this (list-remove-pred decorators use_simple_scoping-PycRef?))
-        (PycFun-body-set! this new-body)
         (PycFun-use-simple-scoping-set! this #t)))
       (call-default-walker)))
