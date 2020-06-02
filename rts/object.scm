@@ -774,7 +774,7 @@
             fun-name " returned " qualifier " (type " type-name ")"))))))
 
 (define-macro (py-throw-exception-with-message throw-builtin . msg)
-  `(py-throw 
+  `(py-throw
     (py-call
       ,throw-builtin
       (py-str-from-scheme (string-append ,@msg)))))
@@ -4229,11 +4229,11 @@
       (vector py-absent py-absent py-absent))))
 
 
-(define (bytearray-getitem cls item)
-  (if (py-isinstance? cls py-bytearray-class)
+(define (bytearray-getitem self item)
+  (if (py-isinstance? self py-bytearray-class)
       (cond
         ((py-isinstance? item py-int-class)
-        (let ((bytearray (object-scheme-value-fast-get cls))
+        (let ((bytearray (object-scheme-value-fast-get self))
               (i (object-scheme-value-fast-get item)))
           (if (index-in-length-range i (car bytearray))
             (py-int-from-scheme (u8vector-ref (cdr bytearray) (modulo i (car bytearray))))
@@ -4241,16 +4241,16 @@
         ((py-isinstance? item py-slice-class)
          (py-bytearray-from-scheme
           (dynamic-u8vector-py-slice
-           (object-scheme-value-fast-get cls)
+           (object-scheme-value-fast-get self)
            item)))
       (else (py-throw-wrong-index-type "bytearray" "integers or slices" item)))
-    (py-throw-not-a-type-object "bytearray.__getitem__" cls)))
+    (py-throw-not-a-type-object "bytearray.__getitem__" self)))
 
 (define bytearray.__getitem__
   (procedure->py-function
     bytearray-getitem
     (make-posonly-signature
-      '#(cls item))))
+      '#(self item))))
 
 (define (bytearray-set-slice self slice value)
   (let* ((dvec (object-scheme-value-fast-get self))
@@ -4285,31 +4285,31 @@
                   (if (eq? step 1)
                       (dynamic-u8vector-vector-set-simple-slice! dvec start stop value-vec value-len)
                       (dynamic-u8vector-vector-set-extended-slice! dvec start stop step value-vec value-len))
-                  (py-throw-exception-with-message py-buitltin-ValueError "byte must be in range (0, 255)")))
+                  (py-throw-exception-with-message py-builtin-ValueError "byte must be in range (0, 255)")))
             (py-throw-can-only-assign-iterable)))))))
 
 
-(define (bytearray-setitem cls pos item)
-  (if (py-isinstance? cls py-bytearray-class)
+(define (bytearray-setitem self key value)
+  (if (py-isinstance? self py-bytearray-class)
       (cond
-       ((py-isinstance? pos py-int-class)
-        (if (py-isinstance? item py-int-class)
-            (let ((pos-int (object-scheme-value-fast-get pos))
-                  (bytearray (object-scheme-value-fast-get cls))
-                  (item-int (object-scheme-value-fast-get item)))
+       ((py-isinstance? key py-int-class)
+        (if (py-isinstance? value py-int-class)
+            (let ((key-int (object-scheme-value-fast-get key))
+                  (bytearray (object-scheme-value-fast-get self))
+                  (value-int (object-scheme-value-fast-get value)))
               (cond
-               ((not (index-in-length-range pos-int (car bytearray)))
+               ((not (index-in-length-range key-int (car bytearray)))
                 (py-throw-index-out-of-range "bytearray" ))
-               ((not (py-int-in-byte-range? item-int))
+               ((not (py-int-in-byte-range? value-int))
                 (py-throw-exception-with-message py-builtin-ValueError "byte must be in range(0, 255)"))
                (else
-                (u8vector-set! (cdr bytearray) (modulo pos-int (car bytearray)) item-int))))
-            (py-throw-wrong-index-type "bytearray" "integers or slice" pos)))
-       ((py-isinstance? pos py-slice-class)
-        (bytearray-set-slice cls pos item))
+                (u8vector-set! (cdr bytearray) (modulo key-int (car bytearray)) value-int))))
+            (py-throw-wrong-index-type "bytearray" "integers or slice" key)))
+       ((py-isinstance? key py-slice-class)
+        (bytearray-set-slice self key value))
        (else
-         (py-throw-wrong-index-type "bytearray" "integers or slice" pos)))
-      (py-throw-not-a-type-object "bytearray.__getitem__" cls)))
+         (py-throw-wrong-index-type "bytearray" "integers or slice" key)))
+      (py-throw-not-a-type-object "bytearray.__getitem__" self)))
 
 (define bytearray.__setitem__
   (procedure->py-function
@@ -4317,14 +4317,14 @@
       (make-posonly-signature
         '#(self key value))))
 
-(define (bytearray-append cls elem)
+(define (bytearray-append self elem)
   (cond
-    ((not (py-isinstance? cls py-bytearray-class))
-      (py-throw-not-a-type-object "bytearray.append" cls))
+    ((not (py-isinstance? self py-bytearray-class))
+      (py-throw-not-a-type-object "bytearray.append" self))
     ((not (py-isinstance? elem py-int-class))
       (py-throw-exception-with-message py-builtin-TypeError "this type cannot be interpreted as an integer"))
     (else
-      (let* ((bytearray (object-scheme-value-fast-get cls))
+      (let* ((bytearray (object-scheme-value-fast-get self))
             (real-length (u8vector-length (cdr bytearray)))
             (elem-int (object-scheme-value-fast-get elem)))
         (if (not (py-int-in-byte-range? elem-int))
@@ -4355,6 +4355,19 @@
    bytearray-add
    (make-posonly-signature '#(self other))))
 
+(define (bytearray-iadd self other)
+  (if (py-isinstance? self py-bytearray-class)
+      (if (py-isinstance? other py-bytearray-class)
+          (let ((c1 (object-scheme-value-fast-get self))
+                (c2 (object-scheme-value-fast-get other)))
+            (set-cdr! c1 (concat-dynamic-u8vectors c1 c2)))
+          py-NotImplemented)
+      (py-throw-not-a-type-object "bytearray.__iadd__" self)))
+
+(define bytearray.__iadd__
+  (procedure->py-function
+   bytearray-add
+   (make-posonly-signature '#(self other))))
 ;; temporary - just to see the structure of the array 
 (define (bytearray-repr self)
   (py-str-from-scheme (cdr (object-scheme-value-fast-get self))))
@@ -4376,7 +4389,7 @@
 (define bytearray.__mul__
   (procedure->py-function
    bytearray-mul
-   (make-posonly-signature '#(self n))))
+   (make-posonly-signature '#(self other))))
 
 (define bytearray.__rmul__
   (procedure->py-function
@@ -4415,7 +4428,7 @@
      (define (,name self item start stop)
        (cond
         ((not (py-isinstance? self py-bytearray-class))
-         ((py-throw-not-a-type-object "bytearray.count" self)))
+         ((py-throw-not-a-type-object ,(symbol->string func-name) self)))
         ((not (py-isinstance? item py-int-class))
          ((py-throw-action-out-of-range "bytearray" "assignment")))
         (else
@@ -4514,7 +4527,7 @@
                                 py-True
                                 py-False)))
                       )
-                (py-NotImplemented))
+                py-NotImplemented)
             (py-throw-not-a-type-object ,name self)))
      (define ,(string->symbol (string-append "bytearray." name))
        (procedure->py-function
@@ -4540,7 +4553,7 @@
                                 ,false)
                             ,true))
                       ,false))
-                (py-NotImplemented))
+                py-NotImplemented)
             (py-throw-not-a-type-object ,name self)))
      (define ,(string->symbol (string-append "bytearray." name))
        (procedure->py-function
@@ -5178,6 +5191,7 @@
         (& "__setitem__") bytearray.__setitem__
         (& "__repr__") bytearray.__repr__
         (& "__add__") bytearray.__add__
+        (& "__iadd__") bytearray.__iadd__
         (& "__mul__") bytearray.__mul__
         (& "__rmul__") bytearray.__rmul__
         (& "__imul__") bytearray.__imul__
