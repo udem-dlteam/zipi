@@ -95,16 +95,24 @@
 	       (cons* module: (PycModule-globals this) conf)))))
 
 (define-walk-method (scheme this::PycSeq conf)
-   (epairify this
-      `(begin ,@(scheme* (PycSeq-nodes this) conf))))
+  (let ((nodes (PycSeq-nodes this)))
+    ;; this condition is only for generated code readability, it makes no semantic difference
+    (if (= (length nodes) 1)
+      (scheme (car nodes) conf)
+      (epairify this
+        `(begin ,@(scheme* nodes conf))))))
 
 (define-walk-method (scheme this::PycBlock conf)
-   (epairify this
-      `(letrec* ,(map (lambda (decl)
-			 `(,(scheme-decl decl conf)
-			   ,(scheme (PycDeclInit-val decl) conf)))
-		    (PycBlock-decls this))
-	  ,(scheme (PycBlock-body this) conf))))
+  (let ((decls (PycBlock-decls this)))
+    ;; this condition is only for generated code readability, it makes no semantic difference
+    (if (null? decls)
+      (scheme (PycBlock-body this) conf)
+      (epairify this
+        `(letrec* ,(map (lambda (decl)
+        	 `(,(scheme-decl decl conf)
+        	   ,(scheme (PycDeclInit-val decl) conf)))
+            decls)
+          ,(scheme (PycBlock-body this) conf))))))
 
 (define-walk-method (scheme this::PycReturn conf)
    (if (PycReturn-tail this)
