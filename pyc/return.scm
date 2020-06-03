@@ -1,8 +1,32 @@
 ;; annotate return statements with tail/notail information
 ;; annotation function definitions with need-return values
 (define (pyc-return this conf)
+   (add-implicit-return-none this)
    (return this #f #t conf)
    this)
+
+(define (last-cdr lst)
+  (if (null? (cdr lst))
+    lst
+    (last-cdr (cdr lst))))
+
+(define-walk-method (add-implicit-return-none this::PycNode)
+  (call-default-walker))
+
+(define-walk-method (add-implicit-return-none this::PycFun)
+  (let* ((body (PycFun-body this))
+         (seq
+           (cond
+             ((PycBlock? body) (PycBlock-body body))
+             ((PycSeq? body) body)
+             (else (error "add-implicit-return-none::PycFun" "unknown body type" body))))
+         (nodes (PycSeq-nodes seq))
+         (tail (last-cdr nodes))
+         (loc (PycNode-loc (car tail))))
+    ;; add "return None" to all functions tail
+    ;; this return will later be removed if it is unreachable
+    (set-cdr! tail (list (new-PycReturn loc (new-PycNone loc #f))))))
+
 
 ;; Traverse the AST to mark all non-tail returns and mark the functions
 ;; that use such returns

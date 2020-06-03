@@ -80,7 +80,9 @@
 	     (compile-stmt* loc body #f 'local conf))))
       ((Return ?loc ?expr)
        ;; Return(expr? value)
-       (new-PycReturn loc (sexp expr #f scope conf)))
+       (if expr
+         (new-PycReturn loc (sexp expr #f scope conf))
+         (new-PycReturn loc (new-PycNone loc #f))))
       ((Delete ?loc ?targets)
        ;; Delete(expr* targets)
        (if (null? (cdr targets))
