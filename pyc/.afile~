@@ -1,6 +1,6 @@
 ;; automatically generated, don't edit
 ;; /home/olivier/udem-dlteam/zipi/pyc
-;; Sun May 31 14:00:33 2020
+;; Tue Jun  2 14:23:16 2020
 
 (
   (__pyc_ast "ast.bgl")
@@ -17,6 +17,7 @@
   (__pyc_return "return.bgl")
   (__pyc_scheme "scheme.bgl")
   (__pyc_sexp "sexp.bgl")
+  (__pyc_simple_scoping "simple-scoping.bgl")
   (__pyc_super "super.bgl")
   (__pyc_symbol "symbol.bgl")
   (__pyc_utils "utils.bgl")

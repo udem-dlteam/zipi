@@ -114,8 +114,9 @@
 (define-walk-method (scheme this::PycReturn conf)
    (if (PycReturn-tail this)
       (scheme (PycReturn-val this) conf)
-      (epairify this
-	      `(return ,(scheme (PycReturn-val this) conf)))))
+      (let ((return-sym (config-get conf return:)))
+        (epairify this
+  	      `(,return-sym ,(scheme (PycReturn-val this) conf))))))
 
 (define-walk-method (scheme this::PycReturnYield conf)
    (let ((kont (PycReturnYield-kont this))
@@ -596,14 +597,20 @@
                 (PycFun-kwonlyargs this)
                 (if (PycDecl? kwarg) (list (PycDecl-id kwarg)) '()))
                 conf))
-     	    (body (locals this (scheme (PycFun-body this) (cons* fun: this conf))))
+          (need-return (PycFun-need-return this))
+          (return-sym (if need-return (my-gensym '%return) #f))
+          (body-conf
+            (if need-return
+              (cons* fun: this return: return-sym conf)
+              (cons* fun: this conf)))
+     	    (body (locals this (scheme (PycFun-body this) body-conf)))
           (decs (PycFun-decorators fun)))
         (let loop ((decs decs))
           (if (null? decs)
             (epairify this
            	 `(procedure->py-function
-           	     ,(if (PycFun-need-return this)
-           		  `(lambda ,args ,(generator this `(bind-exit (return) ,body)))
+           	     ,(if need-return
+           		  `(lambda ,args ,(generator this `(bind-exit (,return-sym) ,body)))
            		  `(lambda ,args ,(generator this body)))
                  ,(signature this conf)))
             `(py-call1 ,(scheme (car decs) conf) ,(loop (cdr decs)))))))
