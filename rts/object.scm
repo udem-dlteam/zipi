@@ -5696,7 +5696,21 @@
 (define py-builtin-getattr
   (procedure->py-function
     (lambda (object name default)
-      (error "getattr" "not implemented" #f))
+      (if (py-isinstance? name py-str-class)
+        (let ((attr (string->symbol (py-str-to-scheme name))))
+          (if (not (eq? default py-absent))
+            (with-handler
+              (lambda (exc)
+                (if (and
+                      (PyObject? exc)
+                      (py-isinstance? exc py-builtin-AttributeError))
+                  default
+                  (raise exc)))
+              (object-get object attr #f))
+            (object-get object attr #f)))
+        (py-throw-exception-with-message
+          py-builtin-TypeError
+          "getattr(): attribute name must be string")))
     (make-posonly-defaults-signature
       '#(object name default)
       (vector py-absent))))
