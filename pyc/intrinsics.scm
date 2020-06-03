@@ -221,7 +221,8 @@
   (let* ((id (PycRefUnresolved-id this))
         (static-value
           (or
-            (assoc id statics)
+            (let ((pair (assoc id statics)))
+              (if pair (cdr pair) #f))
             (and
               use-static-builtins
               (table-ref static-builtins-table id #f)))))

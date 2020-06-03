@@ -80,5 +80,30 @@
               (call-default-walker)))
           (call-default-walker))))))
 
+;; Using a let-block instead of an initialisation requires that the variable
+;; be used nowhere outside the let block. This is a very restrictive condition
+;; which may possibily be improved in the future
 (define (can-drop-decl this from-decl to-assign)
-  #t)
+  (call/cc
+    (lambda (cc)
+      (no-parallel-usage this from-decl to-assign (lambda () (cc #f)))
+      #t)))
+
+(define-walk-method (no-parallel-usage this::PycNode from-decl to-assign fail)
+  (call-default-walker))
+
+(define-walk-method (no-parallel-usage this::PycRef from-decl to-assign fail)
+  (if (eq? (PycRef-decl this) from-decl)
+    (fail)
+    (call-default-walker)))
+
+(define-walk-method (no-parallel-usage this::PycSeq from-decl to-assign fail)
+  (let loop ((nodes (PycSeq-nodes this)))
+    (if (null? nodes)
+      #t ;; do nothing
+      (let ((head (car nodes)))
+        (if (eq? head to-assign)
+          #t ;; do nothing
+          (begin
+            (no-parallel-usage head from-decl to-assign fail)
+            (loop (cdr nodes))))))))
