@@ -1,28 +1,34 @@
 # Test properties of bool promised by PEP 285
 class TestCase():
-    error = False
+    def __init__(self):
+        self.error = True
+        self.assert_count = 0
 
     def assertEqual(self, elem1, elem2):
+        self.assert_count += 1
         if elem1 == elem2:
             # can maybe print something later on
             pass
         else:
             self.error = True
-            print("  assertEqual FAILED : ", elem1, "did not assert to", elem2)
+            print("  ", self.assert_count, " assertEqual FAILED : ", elem1, "did not assert to", elem2)
 
     def assertIs(self, elem1, elem2):
+        self.assert_count += 1
         if not (elem1 is elem2):
             self.error = True
-            print("  assertIs FAILED : ", elem1, "is not", elem2)
+            print("  ", self.assert_count, "assertIs FAILED : ", elem1, "is not", elem2)
 
     def assertIsNot(self, elem1, elem2):
-        if elem1 is elem2:
+        self.assert_count += 1
+        if not(elem1 is not elem2):
             self.error = True
-            print("  assertIsNot FAILED : ", elem1 + "is" + elem2)
+            print("  ", self.assert_count, "assertIsNot FAILED : ", elem1 + "is" + elem2)
 
     def run(self, func_list, verbosity):
         for func_name in func_list:
             self.error = False
+            self.assert_count = 0
             print(func_name, ":")
             func = getattr(self, func_name)
             func()
