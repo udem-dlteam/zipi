@@ -351,9 +351,16 @@
                         ;; finally block
                         #f)))))
               (let ((,finally-ret-sym ,(scheme finally-block conf)))
-                (if ,current-exc-sym
-                  (raise ,current-exc-sym)
-                  (or ,finally-ret-sym ,current-ret-sym))))
+                (cond
+                  (,current-exc-sym
+                    (raise ,current-exc-sym))
+                  (,finally-ret-sym
+                    ,finally-ret-sym)
+                  (,current-ret-sym
+                    ,(if (PycTry-tail this)
+                        current-ret-sym
+                        `(,(config-get conf return:) ,current-ret-sym)))
+                  (else #f))))
           ;; if there is no return inside the try-except-else, there is no need
           ;; to rebind the return
           `(let ((,handled-flag-sym #f)
