@@ -109,7 +109,9 @@
 	      (body::PycStmt (info '("ast")))
 	      handlers::pair-nil
 	      (else::PycStmt (info '("ast")))
-	      (finally::PycStmt (info '("ast"))))
+	      (finally::PycStmt (info '("ast")))
+        (need-return::bool (default #f))
+        (tail::bool (default #t)))
 
 	   (class PycHandler::PycNode
 	      (type::PycExpr (info '("ast")))
