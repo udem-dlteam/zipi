@@ -62,18 +62,19 @@
 	  (loop (cdr nodes))))))
 
 (define-walk-method (return this::PycReturn block tail conf)
-   (when (and (PycFun? block) (not tail))
+   (when (and block (not tail))
       (need-return-set! block #t)
       (PycReturn-tail-set! this #f)))
 
 ;; try statements are a special case for two reasons
 ;;   1) a finally block will capture the return of other blocks
-;;      thus when a finally block exists, any return in try-except-else
-;;      must be bound to the try-block, not the function
 ;;   2) try-except-else-finally are chaining, not branching
+;; For these reasons, when there is a finally block, the return must be bound to
+;; the finally block, not to the function, but the finally block must still
+;; delegate the returned value to the function if it did no return of its own
 (define-walk-method (return this::PycTry block tail conf)
-  (let* ((has-else (PycPass? (PycTry-else this)))
-        (has-finally (PycPass? (PycTry-finally this)))
+  (let* ((has-else (not (PycPass? (PycTry-else this))))
+        (has-finally (not (PycPass? (PycTry-finally this))))
         (handlers/else-tail (and tail (not has-finally))))
     (return (PycTry-body this) this #f conf)
     (for-each

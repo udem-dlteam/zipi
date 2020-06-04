@@ -294,27 +294,34 @@
   (in-contexts (PycWith-items this) (PycWith-body this)))
 
 (define-walk-method (scheme this::PycTry conf)
+  (let* ((body-block (PycTry-body this))
+        (handlers (PycTry-handlers this))
+        (else-block (PycTry-else this))
+        (finally-block (PycTry-finally this))
+        (current-exc-sym (my-gensym '%current-exc))
+        (res-sym (my-gensym '%res))
+        (conf-with-exc (cons* current-exc: current-exc-sym conf)))
+    (if (PycPass? finally-block)
+      ;; there is no finally block
+      `(let ((,current-exc-sym #f))
+          (let ((,res-sym
+                  (with-handler
+                    (lambda (%exc)
+                      (set! ,current-exc-sym %exc)
+                      (cond
+                        ,@(map (lambda (h) (scheme h conf-with-exc)) handlers)
+                        (else (raise ,current-exc-sym))))
+                    ,(scheme body-block conf))))
+          (if (not ,current-exc-sym)
+            ,(scheme else-block conf)
+             ,res-sym)))
+      ;; there is a finally block
+      (let ((return-sym (if (PycTry-need-return this) (my-gensym '%return) #f))
+            (body-conf (if return-sym (cons* return: return-sym conf) conf))
+            (body-code (scheme body-block body-conf)))
+        (error "scheme::PycTry" "finally-block not implemented" #f)))))
 
-   (define (scheme-try this conf)
-    (let* ((exc-sym (my-gensym '%exn))
-          (conf-with-exc (cons* current-exc: exc-sym conf)))
-      `(with-handler
-    	  (lambda (,exc-sym)
-    	     (cond
-    		,@(map (lambda (h) (scheme h conf-with-exc))
-    		   (PycTry-handlers this))))
-    	  ,(if (isa? (PycTry-else this) PycPass)
-    	       (scheme (PycTry-body this) conf-with-exc)
-    	       `(begin
-    		   ,(scheme (PycTry-body this) conf-with-exc)
-    		   ,(scheme (PycTry-else this) conf-with-exc))))))
 
-   (epairify this
-      (if (isa? (PycTry-finally this) PycPass)
-	  (scheme-try this conf)
-	  `(unwind-protect
-	      ,(scheme-try this conf)
-	      ,(scheme (PycTry-finally this) conf)))))
 
 (define-walk-method (scheme this::PycRaise conf)
   (let ((exc (PycRaise-exc this)))
