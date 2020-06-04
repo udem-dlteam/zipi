@@ -316,12 +316,68 @@
             ,(scheme else-block conf)
              ,res-sym)))
       ;; there is a finally block
-      (let ((return-sym (if (PycTry-need-return this) (my-gensym '%return) #f))
+      (let* ((return-sym (if (PycTry-need-return this) (my-gensym '%return) #f))
             (body-conf (if return-sym (cons* return: return-sym conf) conf))
-            (body-code (scheme body-block body-conf)))
-        (error "scheme::PycTry" "finally-block not implemented" #f)))))
-
-
+            (current-exc-sym (my-gensym '%current-exc))
+            (handlers-exc-sym (my-gensym '%exc))
+            (current-ret-sym (my-gensym '%current-ret))
+            (finally-ret-sym (my-gensym '%finally-ret))
+            (handled-flag-sym (my-gensym '%handled-an-exception))
+            (handlers-conf (cons* current-exc: handlers-exc-sym body-conf)))
+        (if return-sym
+          ;; if there is a finally block all returns will be non-tail return
+          ;; it is thus possible to catch them by specifying the bind-exit symbol
+          ;; as return: attribute of the conf
+          `(let* ((,handled-flag-sym #f)
+                 (,current-exc-sym #f)
+                 (,current-ret-sym
+                  (with-handler
+                    (lambda (%exc) (set! ,current-exc-sym %exc) #f)
+                    (bind-exit
+                      (,return-sym)
+                      (begin
+                        (with-handler
+                          (lambda (,handlers-exc-sym)
+                            (set! ,handled-flag-sym #t)
+                            (cond
+                              ,@(map (lambda (h) (scheme h handlers-conf)) handlers)
+                              (else (set! ,current-exc-sym ,handlers-exc-sym))))
+                          ,(scheme body-block body-conf))
+                        (if (not ,handled-flag-sym)
+                          ,(scheme else-block body-conf)
+                           ,res-sym)
+                        ;; return #f if the bind-exit was not exited through the continuation
+                        ;; there can be no tail-return inside a try-except-else followed by a
+                        ;; finally block
+                        #f)))))
+              (let ((,finally-ret-sym ,(scheme finally-block conf)))
+                (if ,current-exc-sym
+                  (raise ,current-exc-sym)
+                  (or ,finally-ret-sym ,current-ret-sym))))
+          ;; if there is no return inside the try-except-else, there is no need
+          ;; to rebind the return
+          `(let ((,handled-flag-sym #f)
+                 (,current-exc-sym #f))
+            (with-handler
+              (lambda (%exc) (set! ,current-exc-sym %exc))
+                (begin
+                  (with-handler
+                    (lambda (,handlers-exc-sym)
+                      (set! ,handled-flag-sym #t)
+                      (cond
+                        ,@(map (lambda (h) (scheme h handlers-conf)) handlers)
+                        (else (set! ,current-exc-sym ,handlers-exc-sym))))
+                    ,(scheme body-block body-conf))
+                  (if (not ,handled-flag-sym)
+                    ,(scheme else-block body-conf))
+                  ;; return #f if the bind-exit was not exited through the continuation
+                  ;; there can be no tail-return inside a try-except-else followed by a
+                  ;; finally block
+                  #f))
+              (let ((,finally-ret-sym ,(scheme finally-block conf)))
+                (if ,current-exc-sym
+                  (raise ,current-exc-sym)
+                  ,finally-ret-sym))))))))
 
 (define-walk-method (scheme this::PycRaise conf)
   (let ((exc (PycRaise-exc this)))
