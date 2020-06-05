@@ -1,4 +1,5 @@
 def f(x):
+    res = None
     try:
         res = 42 // x
     except ZeroDivisionError:

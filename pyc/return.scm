@@ -75,8 +75,13 @@
 (define-walk-method (return this::PycTry block tail conf)
   (let* ((has-else (not (PycPass? (PycTry-else this))))
         (has-finally (not (PycPass? (PycTry-finally this))))
+        (body-tail (and tail (not (or has-else has-finally))))
         (handlers/else-tail (and tail (not has-finally))))
-    (return (PycTry-body this) this #f conf)
+    (return
+      (PycTry-body this)
+      (if has-finally this block)
+      body-tail
+      conf)
     (for-each
       (lambda (h)
         (return

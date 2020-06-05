@@ -303,18 +303,27 @@
         (conf-with-exc (cons* current-exc: current-exc-sym conf)))
     (if (PycPass? finally-block)
       ;; there is no finally block
-      `(let ((,current-exc-sym #f))
-          (let ((,res-sym
-                  (with-handler
-                    (lambda (%exc)
-                      (set! ,current-exc-sym %exc)
-                      (cond
-                        ,@(map (lambda (h) (scheme h conf-with-exc)) handlers)
-                        (else (raise ,current-exc-sym))))
-                    ,(scheme body-block conf))))
-          (if (not ,current-exc-sym)
-            ,(scheme else-block conf)
-             ,res-sym)))
+      (if (PycPass? else-block)
+        ;; optimized case for try-except simple blocks
+        `(with-handler
+          (lambda (,current-exc-sym)
+            (cond
+              ,@(map (lambda (h) (scheme h conf-with-exc)) handlers)
+              (else (raise ,current-exc-sym))))
+          ,(scheme body-block conf))
+        ;; try-except-else
+        `(let ((,current-exc-sym #f))
+            (let ((,res-sym
+                    (with-handler
+                      (lambda (%exc)
+                        (set! ,current-exc-sym %exc)
+                        (cond
+                          ,@(map (lambda (h) (scheme h conf-with-exc)) handlers)
+                          (else (raise ,current-exc-sym))))
+                      ,(scheme body-block conf))))
+            (if (not ,current-exc-sym)
+              ,(scheme else-block conf)
+               ,res-sym))))
       ;; there is a finally block
       (let* ((return-sym (if (PycTry-need-return this) (my-gensym '%return) #f))
             (body-conf (if return-sym (cons* return: return-sym conf) conf))
