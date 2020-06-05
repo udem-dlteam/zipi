@@ -54,3 +54,18 @@ def l():
             return 5
 
 print(l())
+
+def m():
+    try:
+        print('foo')
+    except:
+        return 1
+    else:
+        return 100
+    finally:
+        if True:
+            return 3
+        else:
+            return 5
+
+print(m())
