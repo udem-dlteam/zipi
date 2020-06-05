@@ -2871,7 +2871,7 @@
     self
     (py-throw py-builtin-TypeError)))
 
-(define py-bytearray-iterator-iter
+(define py-bytearray-iterator.__iter__
   (procedure->py-function
     bytearray-iterator-iter
     (make-posonly-signature '#(self))))
@@ -2880,7 +2880,7 @@
   (if (eq? (py-type self) py-bytearray-iterator-class)
     (let* ((index (bytearray-iterator-index-fast-get self))
            (vec (bytearray-iterator-bytearray-fast-get self)))
-      (if (< index (car vec))
+      (if (and index (< index (car vec)))
         (let ((item (u8vector-ref (cdr vec) index)))
           (begin
             (bytearray-iterator-index-fast-set! self (+ index 1))
@@ -2889,7 +2889,7 @@
     (py-throw py-builtin-TypeError)))
 
 
-(define py-bytearray-iterator-next
+(define py-bytearray-iterator.__next__
   (procedure->py-function
     bytearray-iterator-next
     (make-posonly-signature '#(self))))
@@ -2900,8 +2900,8 @@
     (& "builtins")
     (list)
     py-bytearray-iterator-hclass-of-instances
-      (& "__iter__") py-bytearray-iterator-iter
-      (& "__next__") py-bytearray-iterator-next))
+      (& "__iter__") py-bytearray-iterator.__iter__
+      (& "__next__") py-bytearray-iterator.__next__))
 
 ;; ======================
 ;; Dynamic vector helper
