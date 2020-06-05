@@ -2,7 +2,7 @@ def f(x):
     try:
         res = 42 // x
     except ZeroDivisionError:
-        res = 0
+        return 0
     except:
         res = None
     else:
