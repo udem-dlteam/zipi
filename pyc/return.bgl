@@ -15,8 +15,9 @@
 (module __pyc_return
 
    (include "ast.sch"
-	    "walk.sch")
-   
+	    "walk.sch"
+      "new.sch")
+
    (import __pyc_ast)
-   
+
    (export (pyc-return this::PycNode conf)))
