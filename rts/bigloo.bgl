@@ -25,6 +25,16 @@
 	   (inline floor-quotient x y)
 	   (inline inexact::double x)
 
+     (inline fx= x y)
+     (inline fx+ x y)
+     (inline fx- x y)
+     (inline fx* x y)
+     (inline fx/ x y)
+     (inline fx>= x y)
+     (inline fx< x y)
+     (inline fx<= x y)
+     (inline fx> x y)
+
 	   (macro let-values)))
 
 ;*---------------------------------------------------------------------*/
@@ -57,4 +67,34 @@
        `(multiple-value-bind ,bindings ,generator ,@body))
       (else
        (error "let-values" "Illegal form" `(let-values ,bindings ,@body)))))
-   
+
+
+;*---------------------------------------------------------------------*/
+;*    fx operations ...                                                */
+;*---------------------------------------------------------------------*/
+(define-inline (fx+ x y)
+  (+fx x y))
+
+(define-inline (fx- x y)
+  (-fx x y))
+
+(define-inline (fx* x y)
+  (*fx x y))
+
+(define-inline (fx/ x y)
+  (/fx x y))
+
+(define-inline (fx= x y)
+  (=fx x y))
+
+(define-inline (fx< x y)
+  (<fx x y))
+
+(define-inline (fx> x y)
+  (>fx x y))
+
+(define-inline (fx<= x y)
+  (<=fx x y))
+
+(define-inline (fx>= x y)
+  (>=fx x y))
