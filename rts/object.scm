@@ -3,6 +3,53 @@
 ;;  This was already done with int, example:
 ;; the object int.__add__ has name 'int.__add__' in the source
 
+(define py-absent (list 'absent))
+
+(define (py-uninit) py-absent)
+
+;; =============================================================================
+;;  INTERNED STRINGS
+;; =============================================================================
+
+(define (py-alloc-placeholder-str value)
+  (make-PyObject
+    #f            ;; hclass-of-instances
+    (vector
+      (py-uninit) ;; **class**
+      value)))    ;; **value**
+
+(define interned-str-table (make-table test: string=? weak-values: #t))
+
+(define (py-make-interned-str-prebootstrap name)
+  (let ((s (table-ref interned-str-table name #f)))
+    (if s
+      s
+      (let ((py-s (py-alloc-placeholder-str name)))
+        (table-set! interned-str-table name py-s)
+        py-s))))
+
+(define (py-make-interned-str-postbootstrap name)
+  (let ((s (table-ref interned-str-table name #f)))
+    (if s
+      s
+      (let ((py-s (py-obj-alloc-with-value
+                    py-str-class
+                    py-str-hclass-of-instances
+                    name)))
+        (table-set! interned-str-table name py-s)
+        py-s))))
+
+(define py-make-interned-str py-make-interned-str-prebootstrap)
+
+(define (bootstrap-interned-str)
+  (for-each
+    (lambda (pair)
+      (let ((py-str (cdr pair)))
+        (PyObject-hclass-set! py-str py-str-hclass-of-instances)
+        (object-class-fast-set! py-str py-str-class)))
+    (table->list interned-str-table))
+  (set! py-make-interned-str py-make-interned-str-postbootstrap))
+
 ;; =============================================================================
 ;;  HIDDEN CLASSES
 ;; =============================================================================
@@ -28,6 +75,8 @@
       (& "__call__"))
     '()))
 
+;; WARNING: when updating py-str-hclass-of-instances make sure to update
+;; the py-alloc-placeholder-str procedure
 (define py-str-hclass-of-instances
   (make-HClass
     '#() ;; set later when classes exist
@@ -269,34 +318,38 @@
 
 ;; ----------------------------------------------------------------------------
 
-(define py-absent (list 'absent))
-
-(define (py-uninit) py-absent)
-
 (define (global-get global name cache)
    (if (eq? (PyObject-hclass global) (PCache-hclass cache))
        (let ((val (PyObject-elements-ref global (PCache-index cache))))
          (if (not (eq? val py-absent))
              val
-             (py-throw py-builtin-NameError)))
+             (py-throw-exception-with-message
+               py-builtin-NameError
+               (object-scheme-value-fast-get name))))
        (global-get/miss global name cache)))
 
 (define (global-get/miss global name cache)
   (let ((i (py-own-attr-index global name)))
     (if (< i 0)
-        (let ((bi (py-attr-ref global (& "__builtins__"))))
+        (let ((bi (py-own-attr-ref global (& "__builtins__"))))
           (if (not (eq? bi py-absent))
-              (let ((val (py-attr-ref bi name)))
+              (let ((val (py-own-attr-ref bi name)))
                 (if (not (eq? val py-absent))
                     val
-                    (py-throw py-builtin-NameError)))
-              (py-throw py-builtin-NameError)))
+                    (py-throw-exception-with-message
+                      py-builtin-NameError
+                      (object-scheme-value-fast-get name))))
+              (py-throw-exception-with-message
+                py-builtin-NameError
+                (object-scheme-value-fast-get name))))
         (let ((hclass (PyObject-hclass global)))
           (PCache-set! cache hclass i)
           (let ((val (PyObject-elements-ref global i)))
             (if (not (eq? val py-absent))
                 val
-                (py-throw py-builtin-NameError)))))))
+                (py-throw-exception-with-message
+                  py-builtin-NameError
+                  (object-scheme-value-fast-get name))))))))
 
 (define (global-put! global name val cache)
    (if (eq? (PyObject-hclass global) (PCache-hclass cache))
@@ -1556,45 +1609,15 @@
         (PyObject-elements-ref obj i)))) ;; TODO: could vector-ref be used?
 
 (define (py-own-attr-index obj attr)
-  (if (not (PyObject? obj)) ;; TODO: find how this test could be removed
-      -1
-      (let* ((hclass (PyObject-hclass obj))
-             (names (HClass-names hclass)))
-        (let loop ((i (- (vector-length names) 1)))
-          (cond ((< i 0) -1)
-                ((eq? attr (vector-ref names i)) i)
-                (else (loop (- i 1))))))))
+  (let* ((hclass (PyObject-hclass obj))
+         (names (HClass-names hclass)))
+    (let loop ((i (- (vector-length names) 1)))
+      (cond ((< i 0) -1)
+            ((eq? attr (vector-ref names i)) i)
+            (else (loop (- i 1)))))))
 
 (define (py-attr-set! obj attr val)
   (py-own-attr-set! obj attr val))
-
-(define (py-attr-ref obj attr #!optional (default py-absent))
-  (let ((mro (py-obj-mro obj)))
-    (let loop1 ((i 0))
-      (if (< i (vector-length mro))
-          (let* ((cls (vector-ref mro i))
-                 (ga (py-own-attr-ref obj (& "__getattribute__"))))
-            (if (not (eq? ga py-absent))
-                (error "py-attr-ref" "TODO: add case where class defines __getattribute__" #f)
-                (loop1 (+ i 1))))
-          (let ((val (py-own-attr-ref obj attr)))
-            (if (not (eq? val py-absent))
-                val
-                (let loop2 ((i 0))
-                  (if (< i (vector-length mro))
-                      (let* ((cls (vector-ref mro i))
-                             (val (py-own-attr-ref cls attr)))
-                        (if (not (eq? val py-absent))
-                            val
-                            (loop2 (+ i 1))))
-                      (let loop3 ((i 0))
-                        (if (< i (vector-length mro))
-                            (let* ((cls (vector-ref mro i))
-                                   (ga (py-own-attr-ref obj (& "__getattr__"))))
-                              (if (not (eq? ga py-absent))
-                                  (error "py-attr-ref" "TODO: add case where class defines __getattr__" #f)
-                                  (loop3 (+ i 1))))
-                            default))))))))))
 
 ;; ===================
 ;; DESCRIPTOR PROTOCOL
@@ -2678,10 +2701,10 @@
               (loop (cdr attr-names) (cdr attr-values)))))
       (py-own-attr-set! cls
         (& "__module__")
-        (py-str-from-scheme (symbol->string module)))
+        module)
       (py-own-attr-set! cls
         (& "__name__")
-        (py-str-from-scheme (symbol->string name)))
+        name)
       cls))
 
     (let loop ((lst attrs)
@@ -4368,7 +4391,7 @@
   (procedure->py-function
    bytearray-add
    (make-posonly-signature '#(self other))))
-;; temporary - just to see the structure of the array 
+;; temporary - just to see the structure of the array
 (define (bytearray-repr self)
   (py-str-from-scheme (cdr (object-scheme-value-fast-get self))))
 
@@ -5197,6 +5220,7 @@
       )
 
 (bootstrap-type-hierarchy-phase2)
+(bootstrap-interned-str)
 (bootstrap-functions)
 
 ;; Save low ints for fast access
@@ -6287,7 +6311,7 @@
 (define py-builtin-hasattr
   (procedure->py-function
     (lambda (object name)
-      (let ((val (py-attr-ref object name)))
+      (let ((val (py-own-attr-ref object name)))
         (not (eq? val py-absent))))
     (make-posonly-signature '#(object name))))
 
