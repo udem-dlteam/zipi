@@ -572,13 +572,13 @@
         '#(,@(map PycDecl-id (PycFun-args fun)))
         '#(,@(map PycDecl-id (PycFun-posonlyargs fun)))
         ,(cond
-            ((PycDecl? vararg) (PycDecl-id vararg))
+            ((PycDecl? vararg) `(quote ,(PycDecl-id vararg)))
             ((PycUninit? vararg) #f)
             (else (error "signature" "unknown value for vararg" vararg)))
         '#(,@(map PycDecl-id (PycFun-kwonlyargs fun)))
         (vector ,@(scheme* (PycFun-kw-defaults fun) conf))
         ,(cond
-            ((PycDecl? kwarg) (PycDecl-id kwarg))
+            ((PycDecl? kwarg) `(quote ,(PycDecl-id kwarg)))
             ((PycUninit? kwarg) #f)
             (else (error "signature" "unknown value for kwarg" kwarg)))
         (vector ,@(scheme* (PycFun-defaults fun) conf)))))
@@ -592,9 +592,9 @@
               (append
                 (PycFun-posonlyargs this)
                 (PycFun-args this)
-                (if (PycDecl? vararg) (list (PycDecl-id vararg)) '())
+                (if (PycDecl? vararg) (list vararg) '())
                 (PycFun-kwonlyargs this)
-                (if (PycDecl? kwarg) (list (PycDecl-id kwarg)) '()))
+                (if (PycDecl? kwarg) (list kwarg) '()))
                 conf))
      	    (body (locals this (scheme (PycFun-body this) (cons* fun: this conf))))
           (decs (PycFun-decorators fun)))
