@@ -512,7 +512,9 @@
         (defaults (vector-ref signature 6)))
     (if (or kwarg
             (> (vector-length kwonlyargs) 0))
-      (error "kwargs not implemented"))
+      (py-throw-exception-with-message
+        py-builtin-NotImplementedError
+        "kwargs not implemented"))
     (let* ((caller-args-len (length caller-args))
           (args-len (vector-length args))
           (posonlyargs-len (vector-length posonlyargs))
@@ -1054,7 +1056,10 @@
         ((py-isinstance? value py-int-class)
           ;; up-typing an instance of subclass to an int
           (py-int-from-scheme (object-scheme-value-fast-get value)))
-        (else (error "int.__new__" "unimplemented for non int" #f))))
+        (else
+          (py-throw-exception-with-message
+            py-builtin-NotImplementedError
+            "int.__new__ unimplemented for non int"))))
     ((py-issubclass? cls py-int-class)
       (cond
         ((not value)
@@ -1066,7 +1071,10 @@
                 (value (object-scheme-value-fast-get value)))
             (object-scheme-value-fast-set! new-int value)
             new-int))
-        (else (error "int.__new__" "only supports subtypes of int" #f))))
+        (else
+          (py-throw-exception-with-message
+            py-builtin-NotImplementedError
+            "int.__new__ only supports subtypes of int"))))
     (else
       (py-throw-wrong-new-argument "int" cls))))
 
@@ -1290,7 +1298,10 @@
         ((py-isinstance? value py-float-class)
           ;; up-typing an instance of subclass to an float
           (py-float-from-scheme (object-scheme-value-fast-get value)))
-        (else (error "float.__new__" "unimplemented for non float" #f))))
+        (else
+          (py-throw-exception-with-message
+            py-builtin-NotImplementedError
+            "float.__new__ unimplemented for non float"))))
     ((py-issubclass? cls py-float-class)
       (cond
         ((not value)
@@ -1302,7 +1313,7 @@
                 (value (object-scheme-value-fast-get value)))
             (object-scheme-value-fast-set! new-float value)
             new-float))
-        (else (error "float.__new__" "only supports subtypes of float" #f))))
+        (else (py-throw-exception-with-message py-builtin-NotImplementedError "float.__new__ only supports subtypes of float"))))
     (else
       (py-throw-wrong-new-argument "float" cls))))
 
@@ -1575,7 +1586,7 @@
           (let* ((cls (vector-ref mro i))
                  (ga (py-own-attr-ref obj (& "__getattribute__"))))
             (if (not (eq? ga py-absent))
-                (error "py-attr-ref" "TODO: add case where class defines __getattribute__" #f)
+                (py-throw-exception-with-message py-builtin-NotImplementedError "py-attr-ref TODO: add case where class defines __getattribute__")
                 (loop1 (+ i 1))))
           (let ((val (py-own-attr-ref obj attr)))
             (if (not (eq? val py-absent))
@@ -1592,7 +1603,7 @@
                             (let* ((cls (vector-ref mro i))
                                    (ga (py-own-attr-ref obj (& "__getattr__"))))
                               (if (not (eq? ga py-absent))
-                                  (error "py-attr-ref" "TODO: add case where class defines __getattr__" #f)
+                                  (py-throw-exception-with-message py-builtin-NotImplementedError "py-attr-ref TODO: add case where class defines __getattr__")
                                   (loop3 (+ i 1))))
                             default))))))))))
 
@@ -1820,7 +1831,7 @@
       ((= args-length 0)
         (py-obj-cls cls))
       ((= args-length 2)
-        (error "type(name, bases, nmspace)" "not implemented" #f))
+        (py-throw-exception-with-message py-builtin-NotImplementedError "type(name, bases, nmspace) not implemented"))
       (else
         (py-throw (py-call
           py-builtin-TypeError
@@ -2348,6 +2359,7 @@
   (set! py-builtin-RuntimeError (py-own-attr-ref builtins-mod (& "RuntimeError")))
   (set! py-builtin-KeyError (py-own-attr-ref builtins-mod (& "KeyError")))
   (set! py-builtin-AssertionError (py-own-attr-ref builtins-mod (& "AssertionError")))
+  (set! py-builtin-NotImplementedError (py-own-attr-ref builtins-mod (& "NotImplementedError")))
 
   ;; Reuse sorted procedure for list.sort
   (set! list.sort
@@ -3615,7 +3627,7 @@
               element)
             (py-throw-action-out-of-range "list" "pop"))))
       ((py-isinstance? index py-slice-class)
-        (error "list-delitem" "slice not implemented" #f))
+        (py-throw-exception-with-message py-builtin-NotImplementedError "list-delitem slice not implemented"))
       (else (py-throw-wrong-index-type "list" "integers" index)))
     (py-throw-not-a-type-object "list.pop" self)))
 
@@ -4368,7 +4380,7 @@
   (procedure->py-function
    bytearray-add
    (make-posonly-signature '#(self other))))
-;; temporary - just to see the structure of the array 
+;; temporary - just to see the structure of the array
 (define (bytearray-repr self)
   (py-str-from-scheme (cdr (object-scheme-value-fast-get self))))
 
@@ -5350,7 +5362,7 @@
             (TextIOWrapper-port-fast-set! IOWrapper file-port)
             IOWrapper))))
     (else
-      (error "py-open" "only str filename supported" file))))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "py-open only str filename supported"))))
 
 ;; =============================================================================
 ;;  Singletons
@@ -5566,7 +5578,7 @@
 (define py-builtin-all
   (procedure->py-function
     (lambda (iterable)
-      (error "all" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "all not implemented"))
     (make-posonly-signature '#(iterable))))
 
 ;;-------------------- any(iterable)
@@ -5583,7 +5595,7 @@
 (define py-builtin-any
   (procedure->py-function
     (lambda (iterable)
-      (error "any" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "any not implemented"))
     (make-posonly-signature '#(iterable))))
 
 ;;-------------------- ascii(object)
@@ -5596,7 +5608,7 @@
 (define py-builtin-ascii
   (procedure->py-function
     (lambda (object)
-      (error "ascii" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "ascii not implemented"))
     (make-posonly-signature '#(object))))
 
 ;;-------------------- bin(x)
@@ -5623,7 +5635,7 @@
 (define py-builtin-bin
   (procedure->py-function
     (lambda (x)
-      (error "bin" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "bin not implemented"))
     (make-posonly-signature '#(x))))
 
 ;;-------------------- class bool([x])
@@ -5655,7 +5667,7 @@
 (define py-builtin-breakpoint
   (procedure->py-function
    (lambda (args kwargs)
-     (error "breakpoint" "not implemented" #f))
+     (py-throw-exception-with-message py-builtin-NotImplementedError "breakpoint not implemented"))
   (make-signature '#() '#() 'args '#() '#() 'kwargs '#())))
 
 ;;-------------------- class bytearray([source[, encoding[, errors]]])
@@ -5701,7 +5713,7 @@
 (define py-builtin-bytes
   (procedure->py-function
     (lambda (source encoding errors)
-      (error "bytes" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "bytes not implemented"))
     (make-posonly-defaults-signature
       '#(source encodings errors)
       (vector py-absent py-absent py-absent))))
@@ -5720,7 +5732,7 @@
 (define py-builtin-callable
   (procedure->py-function
     (lambda (object)
-      (error "callable" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "callable not implemented"))
     (make-posonly-signature '#(object))))
 
 ;;-------------------- chr(i)
@@ -5765,7 +5777,7 @@
 (define py-builtin-classmethod
   (procedure->py-function
     (lambda (function)
-      (error "classmethod" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "classmethod not implemented"))
     (make-posonly-signature '#(function))))
 
 ;;-------------------- compile(source, filename, mode, flags=0, dont_inherit=False, optimize=-1)
@@ -5842,7 +5854,7 @@
 (define py-builtin-compile
   (procedure->py-function
     (lambda (source filename mode flags dont_inherit optimize)
-      (error "compile" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "compile not implemented"))
     (make-signature
       '#(source filename mode flags dont_inherit optimize)
       '#()
@@ -5895,7 +5907,7 @@
 (define py-builtin-delattr
   (procedure->py-function
     (lambda (object name)
-      (error "delattr" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "delattr not implemented"))
     (make-posonly-signature '#(object name))))
 
 ;;-------------------- class dict(**kwarg)
@@ -5964,7 +5976,7 @@
 (define py-builtin-dir
   (procedure->py-function
     (lambda (object)
-      (error "dir" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "dir not implemented"))
     (make-posonly-signature '#(object))))
 
 ;;-------------------- divmod(a, b)
@@ -5981,7 +5993,7 @@
 (define py-builtin-divmod
   (procedure->py-function
     (lambda (a b)
-      (error "divmod" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "divmod not implemented"))
     (make-posonly-signature '#(a b))))
 
 ;;-------------------- enumerate(iterable, start=0)
@@ -6008,7 +6020,7 @@
 (define py-builtin-enumerate
   (procedure->py-function
     (lambda (iterable start)
-      (error "enumerate" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "enumerate not implemented"))
     (make-signature
       '#(iterable start)
       '#() #f '#() '#() #f
@@ -6056,7 +6068,7 @@
 (define py-builtin-eval
   (procedure->py-function
     (lambda (expression globals locals)
-      (error "eval" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "eval not implemented"))
     (make-posonly-defaults-signature
       '#(expression globals locals)
       (vector py-absent py-absent))))
@@ -6104,7 +6116,7 @@
 (define py-builtin-exec
   (procedure->py-function
     (lambda (expression globals locals)
-      (error "exec" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "exec not implemented"))
     (make-posonly-defaults-signature
       '#(expression globals locals)
       (vector py-absent py-absent))))
@@ -6128,7 +6140,7 @@
 (define py-builtin-filter
   (procedure->py-function
     (lambda (function iterable)
-      (error "filter" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "filter not implemented"))
     (make-posonly-signature '#(function iterable))))
 
 ;;-------------------- class float([x])
@@ -6214,7 +6226,7 @@
 (define py-builtin-format
   (procedure->py-function
     (lambda (value format_spec)
-      (error "format" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "format not implemented"))
     (make-posonly-signature '#(value format_spec))))
 
 ;;-------------------- class frozenset([iterable])
@@ -6229,7 +6241,7 @@
 (define py-builtin-frozenset
   (procedure->py-function
     (lambda (iterable)
-      (error "frozenset" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "frozenset not implemented"))
     (make-posonly-signature '#(iterable))))
 
 ;;-------------------- getattr(object, name[, default])
@@ -6273,7 +6285,7 @@
 (define py-builtin-globals
   (procedure->py-function
     (lambda ()
-      (error "globals" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "globals not implemented"))
     (empty-signature)))
 
 ;;-------------------- hasattr(object, name)
@@ -6332,7 +6344,7 @@
 (define py-builtin-help
   (procedure->py-function
     (lambda (object)
-      (error "help" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "help not implemented"))
     (make-posonly-defaults-signature '#(object) (vector py-absent))))
 
 ;;-------------------- hex(x)
@@ -6368,7 +6380,7 @@
 (define py-builtin-hex
   (procedure->py-function
     (lambda (x)
-      (error "hex" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "hex not implemented"))
     (make-posonly-signature '#(x))))
 
 ;;-------------------- id(object)
@@ -6384,7 +6396,7 @@
 (define py-builtin-id
   (procedure->py-function
     (lambda (object)
-      (error "id" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "id not implemented"))
     (make-posonly-signature '#(object))))
 
 ;;-------------------- input([prompt])
@@ -6412,7 +6424,7 @@
 (define py-builtin-input
   (procedure->py-function
     (lambda (prompt)
-      (error "input" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "input not implemented"))
       (make-posonly-defaults-signature '#(prompt) (vector py-absent))))
 
 ;;-------------------- class int([x])
@@ -6466,7 +6478,7 @@
 (define py-builtin-isinstance
   (procedure->py-function
     (lambda (object classinfo)
-      (error "isinstance" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "isinstance not implemented"))
     (make-posonly-signature '#(object classinfo))))
 
 ;;-------------------- issubclass(class, classinfo)
@@ -6479,7 +6491,7 @@
 (define py-builtin-issubclass
   (procedure->py-function
     (lambda (object classinfo)
-      (error "issubclass" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "issubclass not implemented"))
     (make-posonly-signature '#(object classinfo))))
 
 ;;-------------------- iter(object[, sentinel])
@@ -6512,7 +6524,7 @@
     (lambda (object sentinel)
       (if (eq? sentinel py-absent)
         (py-iter object)
-        (error "iter" "with 2 arguments not implemented" #f)))
+        (py-throw-exception-with-message py-builtin-NotImplementedError "iter with 2 arguments not implemented")))
     (make-posonly-defaults-signature '#(object sentinel) (vector py-absent))))
 
 ;;-------------------- len(s)
@@ -6547,7 +6559,7 @@
 (define py-builtin-locals
   (procedure->py-function
     (lambda ()
-      (error "locals" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "locals not implemented"))
     (empty-signature)))
 
 ;;-------------------- map(function, iterable, ...)
@@ -6563,7 +6575,7 @@
 (define py-builtin-map
   (procedure->py-function
     (lambda (function iterable)
-      (error "map" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "map not implemented"))
     (make-posonly-signature '#(function iterable))))
 
 ;;-------------------- max(iterable, *[, key, default])
@@ -6592,7 +6604,7 @@
 (define py-builtin-max
   (procedure->py-function
     (lambda (arg1 args key default)
-      (error "max" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "max not implemented"))
     (make-signature
       '#()
       '#(arg1)
@@ -6610,7 +6622,7 @@
 (define py-builtin-memoryview
   (procedure->py-function
     (lambda (obj)
-      (error "memoryview" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "memoryview not implemented"))
     (make-posonly-signature '#(obj))))
 
 ;;-------------------- min(iterable, *[, key, default])
@@ -6642,7 +6654,7 @@
 (define py-builtin-min
   (procedure->py-function
     (lambda (arg1 args key default)
-      (error "min" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "min not implemented"))
     (make-signature
       '#()
       '#(arg1)
@@ -6701,7 +6713,7 @@
 (define py-builtin-oct
   (procedure->py-function
     (lambda (x)
-      (error "oct" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "oct not implemented"))
     (make-posonly-signature '#(x))))
 
 ;;-------------------- open(file, mode='r', buffering=-1, encoding=None, errors=None, newline=None, closefd=True, opener=None)
@@ -6905,7 +6917,7 @@
 (define py-builtin-ord
   (procedure->py-function
     (lambda (c)
-      (error "ord" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "ord not implemented"))
     (make-posonly-signature '#(c))))
 
 ;;-------------------- pow(x, y[, z])
@@ -6942,7 +6954,7 @@
 (define py-builtin-pow
   (procedure->py-function
     (lambda (base exp mod)
-      (error "pow" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "pow not implemented"))
     (make-args-defaults-signature
       '#(base exp mod)
       (vector py-absent))))
@@ -7079,7 +7091,7 @@
 (define py-builtin-property
   (procedure->py-function
     (lambda (fget fset fdel doc)
-      (error "property" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "property not implemented"))
     (make-args-defaults-signature
       '#(fget fset fdel doc)
       (vector py-None py-None py-None py-None))))
@@ -7093,7 +7105,7 @@
 (define py-builtin-range
   (procedure->py-function
     (lambda (arg1 arg2 arg3)
-      (error "range" "unimplemented generic procedure for builtin" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "range unimplemented generic procedure for builtin"))
     (make-posonly-defaults-signature
       '#(arg1 arg2 arg3)
       (vector py-absent py-absent))))
@@ -7124,7 +7136,7 @@
 (define py-builtin-reversed
   (procedure->py-function
     (lambda (seq)
-      (error "reversed" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "reversed not implemented"))
     (make-posonly-signature '#(seq))))
 
 ;;-------------------- round(number[, ndigits])
@@ -7153,7 +7165,7 @@
 (define py-builtin-round
   (procedure->py-function
     (lambda (number ndigits)
-      (error "round" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "round not implemented"))
     (make-args-defaults-signature
       '#(number ndigits)
       (vector py-absent))))
@@ -7180,7 +7192,7 @@
 (define py-builtin-setattr
   (procedure->py-function
     (lambda (object name value)
-      (error "setattr" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "setattr not implemented"))
     (make-posonly-signature '#(object name value))))
 
 ;;-------------------- class slice(stop)
@@ -7226,7 +7238,7 @@
 (define py-builtin-sorted
   (procedure->py-function
     (lambda (iterable key reverse)
-      (error "sorted" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "sorted not implemented"))
     (make-signature
       '#()
       '#(iterable)
@@ -7269,7 +7281,7 @@
 (define py-builtin-staticmethod
   (procedure->py-function
     (lambda (function)
-      (error "staticmethod" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "staticmethod not implemented"))
     (make-posonly-signature '#(function))))
 
 ;;-------------------- class str(object='')
@@ -7300,7 +7312,7 @@
 (define py-builtin-sum
   (procedure->py-function
     (lambda (iterable start)
-      (error "sum" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "sum not implemented"))
     (make-signature
       '#(start)
       '#(iterable)
@@ -7472,7 +7484,7 @@
 (define py-builtin-vars
   (procedure->py-function
     (lambda (object)
-      (error "vars" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "vars not implemented"))
     (make-posonly-defaults-signature '#(object) (vector py-absent))))
 
 ;;-------------------- zip(*iterables)
@@ -7524,7 +7536,7 @@
 (define py-builtin-zip
   (procedure->py-function
     (lambda (iterables)
-      (error "zip" "not implemented" #f))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "zip not implemented"))
     (make-vararg-only-signature 'iterables)))
 
 ;;-------------------- __import__(name, globals=None, locals=None, fromlist=(), level=0)
@@ -7588,7 +7600,7 @@
 (define py-builtin-__import__
   (procedure->py-function
    (lambda (name globals locals fromlist level)
-     (error "__import__" "not implemented" #f))
+     (py-throw-exception-with-message py-builtin-NotImplementedError "__import__ not implemented"))
     (make-args-defaults-signature
       '#(name globals locals fromlist level)
       (vector
