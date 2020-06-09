@@ -2,6 +2,7 @@
 ;; annotation function definitions with need-return values
 (define (pyc-return this conf)
    (add-implicit-return-none this)
+   (remove-unreachable this (box #t))
    (return this #f #t conf)
    this)
 
@@ -36,6 +37,70 @@
     ;; this return will later be removed if it is unreachable
     (set-cdr! tail (list (new-PycReturn loc (new-PycNone loc #f))))))
 
+(define-walk-method (remove-unreachable this::PycNode found-path-to-next-ref)
+  (call-default-walker))
+
+(define-walk-method (remove-unreachable this::PycSeq found-path-to-next-ref)
+  (let loop ((nodes (PycSeq-nodes this)))
+    (if (not (null? nodes))
+      (let ((node-found-path-to-next-ref (box #t)))
+        (remove-unreachable (car nodes) node-found-path-to-next-ref)
+        (if (unbox node-found-path-to-next-ref)
+          (loop (cdr nodes))
+          (begin
+            (set-box! found-path-to-next-ref #f)
+            (set-cdr! nodes '())))))))
+
+(define-walk-method (remove-unreachable this::PycIf found-path-to-next-ref)
+  (let ((then-found-path-to-next-ref (box #t))
+        (else-found-path-to-next-ref (box #t)))
+    (remove-unreachable (PycIf-then this) then-found-path-to-next-ref)
+    (remove-unreachable (PycIf-else this) else-found-path-to-next-ref)
+    (if (and (not (unbox then-found-path-to-next-ref))
+             (not (unbox else-found-path-to-next-ref)))
+      (set-box! found-path-to-next-ref #f))))
+
+(define-walk-method (remove-unreachable this::PycTry found-path-to-next-ref)
+  (let ((body (PycTry-body this))
+        (handlers (PycTry-handlers this))
+        (else_ (PycTry-else this))
+        (finally (PycTry-finally this))
+        (body-found-path-to-next-ref (box #t))
+        (handlers-found-path-to-next-ref (box #t))
+        (else-found-path-to-next-ref (box #t))
+        (finally-found-path-to-next-ref (box #t)))
+    (remove-unreachable body body-found-path-to-next-ref)
+    (for-each
+      (lambda (h) (remove-unreachable h handlers-found-path-to-next-ref))
+      handlers)
+    (if (not (PycPass? else_))
+      (remove-unreachable else_ else-found-path-to-next-ref)
+      (set-box! else-found-path-to-next-ref #f))
+    (if (not (PycPass? finally))
+      (remove-unreachable finally finally-found-path-to-next-ref))
+    (if (or (not (unbox finally-found-path-to-next-ref))
+            (and (not (unbox body-found-path-to-next-ref))
+                 (not (unbox handlers-found-path-to-next-ref))
+                 (not (unbox else-found-path-to-next-ref))))
+      (set-box! found-path-to-next-ref #f))))
+
+(define-walk-method (remove-unreachable this::PycFun _)
+  (remove-unreachable (PycFun-body this) (box #t)))
+
+(define-walk-method (remove-unreachable this::PycClass _)
+  (remove-unreachable (PycClass-body this) (box #t)))
+
+(define-walk-method (remove-unreachable this::PycReturn found-path-to-next-ref)
+  (set-box! found-path-to-next-ref #f))
+
+(define-walk-method (remove-unreachable this::PycRaise found-path-to-next-ref)
+  (set-box! found-path-to-next-ref #f))
+
+(define-walk-method (remove-unreachable this::PycBreak found-path-to-next-ref)
+  (set-box! found-path-to-next-ref #f))
+
+(define-walk-method (remove-unreachable this::PycContinue found-path-to-next-ref)
+  (set-box! found-path-to-next-ref #f))
 
 ;; Traverse the AST to mark all non-tail returns and mark the functions
 ;; that use such returns
