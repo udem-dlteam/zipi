@@ -7679,6 +7679,8 @@
 
 (define py-builtin-AssertionError #f)
 
+(define py-builtin-NotImplementedError #f)
+
 ;; Exception Helpers
 
 ;; TODO: use Zipi print instead of calling __str__ manually
