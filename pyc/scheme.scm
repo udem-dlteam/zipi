@@ -377,7 +377,7 @@
               (if (PycStmt-need-return finally-block)
                 `(bind-exit (,finally-ret-sym)
                     ,finally-code)
-                 ,finally-code)))
+                 finally-code)))
           ;; if there is no return inside the try-except-else, there is no need
           ;; to rebind the return
           `(let ((,handled-flag-sym #f)
