@@ -25,6 +25,18 @@
 	   (inline floor-quotient x y)
 	   (inline inexact::double x)
 
+     (inline fx= x y)
+     (inline fx+ x y)
+     (inline fx- x y)
+     (inline fx* x y)
+     (inline fx/ x y)
+     (inline fx>= x y)
+     (inline fx< x y)
+     (inline fx<= x y)
+     (inline fx> x y)
+
+     (inline u8vector-append . vecs)
+     (inline subu8vector vec start stop)
 	   (macro let-values)))
 
 ;*---------------------------------------------------------------------*/
@@ -57,4 +69,70 @@
        `(multiple-value-bind ,bindings ,generator ,@body))
       (else
        (error "let-values" "Illegal form" `(let-values ,bindings ,@body)))))
-   
+
+
+;*---------------------------------------------------------------------*/
+;*    fx operations ...                                                */
+;*---------------------------------------------------------------------*/
+(define-inline (fx+ x y)
+  (+fx x y))
+
+(define-inline (fx- x y)
+  (-fx x y))
+
+(define-inline (fx* x y)
+  (*fx x y))
+
+(define-inline (fx/ x y)
+  (/fx x y))
+
+(define-inline (fx= x y)
+  (=fx x y))
+
+(define-inline (fx< x y)
+  (<fx x y))
+
+(define-inline (fx> x y)
+  (>fx x y))
+
+(define-inline (fx<= x y)
+  (<=fx x y))
+
+(define-inline (fx>= x y)
+  (>=fx x y))
+
+
+;*---------------------------------------------------------------------*/
+;*    u8vector functions ...                                           */
+;*---------------------------------------------------------------------*/
+
+
+
+(define-inline (u8vector-append . vecs)
+  (let* ((nvec (length vecs))
+         (new-vec-len
+          (let loop ((vecs vecs) (acc 0))
+            (if (null? vecs)
+                acc
+                (loop (cdr vecs) (+ acc (u8vector-length (car vecs)))))))
+         (new-vec (make-u8vector new-vec-len)))
+    (let loop ((i 0) (vecs vecs))
+      (if (null? vecs)
+          new-vec
+          (let inner-loop ((i i) (j 0) (current (car vecs)))
+            (if (< j (u8vector-length current))
+                (begin
+                  (u8vector-set! new-vec i (u8vector-ref current j))
+                  (inner-loop (+ i 1) (+ j 1) current))
+                (loop i (cdr vecs))))))))
+
+(define-inline (subu8vector vec start stop)
+  (let* ((len (u8vector-length vec))
+         (stop (if (< stop len) stop len))
+         (subvec (make-u8vector (- stop start))))
+    (let loop ((vec_i start) (subvec_i 0) (stop stop) (vec vec) (subvec subvec))
+      (if (< vec_i stop)
+          (begin
+            (u8vector-set! subvec subvec_i (u8vector-ref vec vec_i))
+            (loop (+ vec_i 1) (+ subvec_i 1) stop vec subvec))
+          subvec))))
