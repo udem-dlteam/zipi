@@ -325,7 +325,7 @@
               ,(scheme else-block conf)
                ,res-sym))))
       ;; there is a finally block
-      (let* ((return-sym (if (PycTry-need-return this) (my-gensym '%return) #f))
+      (let* ((return-sym (if (PycStmt-need-return this) (my-gensym '%return) #f))
             (body-conf (if return-sym (cons* return: return-sym conf) conf))
             (current-exc-sym (my-gensym '%current-exc))
             (handlers-exc-sym (my-gensym '%exc))
@@ -359,17 +359,25 @@
                         ;; there can be no tail-return inside a try-except-else followed by a
                         ;; finally block
                         #f)))))
-              (let ((,finally-ret-sym ,(scheme finally-block conf)))
-                (cond
-                  (,current-exc-sym
-                    (raise ,current-exc-sym))
-                  (,finally-ret-sym
-                    ,finally-ret-sym)
-                  (,current-ret-sym
-                    ,(if (PycTry-tail this)
-                        current-ret-sym
-                        `(,(config-get conf return:) ,current-ret-sym)))
-                  (else #f))))
+              ,(let* ((finally-conf
+                      (if (PycStmt-need-return finally-block)
+                        (cons* return: finally-ret-sym conf)
+                        conf))
+                    (finally-code
+                      `(begin
+                        ,(scheme finally-block finally-conf)
+                        (cond
+                          (,current-exc-sym
+                            (raise ,current-exc-sym))
+                          (,current-ret-sym
+                            ,(if (PycTry-tail this)
+                                current-ret-sym
+                                `(,(config-get conf return:) ,current-ret-sym)))
+                          (else #f)))))
+              (if (PycStmt-need-return finally-block)
+                `(bind-exit (,finally-ret-sym)
+                    ,finally-code)
+                 ,finally-code)))
           ;; if there is no return inside the try-except-else, there is no need
           ;; to rebind the return
           `(let ((,handled-flag-sym #f)
@@ -390,10 +398,19 @@
                   ;; there can be no tail-return inside a try-except-else followed by a
                   ;; finally block
                   #f))
-              (let ((,finally-ret-sym ,(scheme finally-block conf)))
-                (if ,current-exc-sym
-                  (raise ,current-exc-sym)
-                  ,finally-ret-sym))))))))
+              ,(let* ((finally-conf
+                      (if (PycStmt-need-return finally-block)
+                        (cons* return: finally-ret-sym conf)
+                        conf))
+                    (finally-code
+                      `(begin
+                        ,(scheme finally-block finally-conf)
+                        (if ,current-exc-sym
+                            (raise ,current-exc-sym)))))
+                (if (PycStmt-need-return finally-block)
+                  `(bind-exit (,finally-ret-sym)
+                      ,finally-code)
+                   ,finally-code))))))))
 
 (define-walk-method (scheme this::PycRaise conf)
   (let ((exc (PycRaise-exc this)))

@@ -13,10 +13,10 @@
 
 (define (need-return-set! node value)
   (cond
-    ((PycTry? node)
-      (PycTry-need-return-set! node value))
     ((PycFun? node)
       (PycFun-need-return-set! node value))
+    ((PycStmt? node)
+      (PycStmt-need-return-set! node value))
     (else
       (error "need-return-set!" "cannot set need return" node))))
 
@@ -139,7 +139,8 @@
 ;; delegate the returned value to the function if it did no return of its own
 (define-walk-method (return this::PycTry block tail conf)
   (let* ((has-else (not (PycPass? (PycTry-else this))))
-        (has-finally (not (PycPass? (PycTry-finally this))))
+        (finally-block (PycTry-finally this))
+        (has-finally (not (PycPass? finally-block)))
         (body-tail (and tail (not (or has-else has-finally))))
         (handlers/else-tail (and tail (not has-finally))))
     (return
@@ -162,9 +163,11 @@
         handlers/else-tail
         conf))
     (if has-finally
-      (return (PycTry-finally this) block tail conf))
+      ;; we do not consider finally to be a tail block due to the complexity of
+      ;; the code to generate in that case
+      (return finally-block finally-block #f conf))
     (PycTry-tail-set! this tail)
-    (if (and (PycTry-need-return this) (not tail))
+    (if (and (PycStmt-need-return this) (not tail))
       (need-return-set! block #t))))
 
 (define-walk-method (return this::PycFun block tail conf)
