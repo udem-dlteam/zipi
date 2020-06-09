@@ -1,75 +1,106 @@
 ;; annotate return statements with tail/notail information
 ;; annotation function definitions with need-return values
 (define (pyc-return this conf)
+   (add-implicit-return-none this)
    (return this #f #t conf)
    this)
 
+(define (last-cdr lst)
+  (if (null? (cdr lst))
+    lst
+    (last-cdr (cdr lst))))
+
+(define (need-return-set! node value)
+  (cond
+    ((PycTry? node)
+      (PycTry-need-return-set! node value))
+    ((PycFun? node)
+      (PycFun-need-return-set! node value))
+    (else
+      (error "need-return-set!" "cannot set need return" node))))
+
+(define-walk-method (add-implicit-return-none this::PycNode)
+  (call-default-walker))
+
+(define-walk-method (add-implicit-return-none this::PycFun)
+  (let* ((body (PycFun-body this))
+         (seq
+           (cond
+             ((PycBlock? body) (PycBlock-body body))
+             ((PycSeq? body) body)
+             (else (error "add-implicit-return-none::PycFun" "unknown body type" body))))
+         (nodes (PycSeq-nodes seq))
+         (tail (last-cdr nodes))
+         (loc (PycNode-loc (car tail))))
+    ;; add "return None" to all functions tail
+    ;; this return will later be removed if it is unreachable
+    (set-cdr! tail (list (new-PycReturn loc (new-PycNone loc #f))))))
+
+
 ;; Traverse the AST to mark all non-tail returns and mark the functions
 ;; that use such returns
-(define-walk-method (return this::PycNode fun tail conf)
+(define-walk-method (return this::PycNode block tail conf)
    (call-default-walker))
 
-(define-walk-method (return this::PycStmt fun tail conf)
+(define-walk-method (return this::PycStmt block tail conf)
    (call-default-walker))
 
-(define-walk-method (return this::PycSeq fun tail conf)
+(define-walk-method (return this::PycSeq block tail conf)
    (let loop ((nodes (PycSeq-nodes this)))
       (cond
 	 ((null? (cdr nodes))
-	  (return (car nodes) fun tail conf))
+	  (return (car nodes) block tail conf))
 	 ((PycReturn? (car nodes))
 	  (set-cdr! nodes '())
-	  (return (car nodes) fun tail conf))
+	  (return (car nodes) block tail conf))
    ((PycRaise? (car nodes))
     (set-cdr! nodes '())
     ;; Is this needed? There can be no return inside a raise
-    (return (car nodes) fun tail conf))
+    (return (car nodes) block tail conf))
 	 (else
-	  (return (car nodes) fun #f conf)
+	  (return (car nodes) block #f conf)
 	  (loop (cdr nodes))))))
 
-(define-walk-method (return this::PycReturn fun tail conf)
-   (when (and (PycFun? fun) (not tail))
-      (PycFun-need-return-set! fun #t)
+(define-walk-method (return this::PycReturn block tail conf)
+   (when (and block (not tail))
+      (need-return-set! block #t)
       (PycReturn-tail-set! this #f)))
 
-(define-walk-method (return this::PycFun fun tail conf)
+;; try statements are a special case for two reasons
+;;   1) a finally block will capture the return of other blocks
+;;   2) try-except-else-finally are chaining, not branching
+;; For these reasons, when there is a finally block, the return must be bound to
+;; the finally block, not to the function, but the finally block must still
+;; delegate the returned value to the function if it did no return of its own
+(define-walk-method (return this::PycTry block tail conf)
+  (let* ((has-else (not (PycPass? (PycTry-else this))))
+        (has-finally (not (PycPass? (PycTry-finally this))))
+        (body-tail (and tail (not (or has-else has-finally))))
+        (handlers/else-tail (and tail (not has-finally))))
+    (return
+      (PycTry-body this)
+      (if has-finally this block)
+      body-tail
+      conf)
+    (for-each
+      (lambda (h)
+        (return
+          h
+          (if has-finally this block)
+          handlers/else-tail
+          conf))
+      (PycTry-handlers this))
+    (if has-else
+      (return
+        (PycTry-else this)
+        (if has-finally this block)
+        handlers/else-tail
+        conf))
+    (if has-finally
+      (return (PycTry-finally this) block tail conf))
+    (PycTry-tail-set! this tail)
+    (if (and (PycTry-need-return this) (not tail))
+      (need-return-set! block #t))))
+
+(define-walk-method (return this::PycFun block tail conf)
    (return (PycFun-body this) this #t conf))
-
-;* (define-walk-method (return this::PycBlock fun tail conf)            */
-;*    (for-each (lambda (d) (return (PycDeclInit-val d) fun #f conf))   */
-;*       (PycBlock-decls this))                                         */
-;*    (return (PycBlock-body this) fun tail conf))                      */
-;*                                                                     */
-;* (define-walk-method (return this::PycAssig fun tail conf)            */
-;*    (return (PycAssig-rhs this) fun #f conf)                          */
-;*    (return (PycAssig-lhs this) fun #f conf))                         */
-;*                                                                     */
-;* (define-walk-method (return this::PycIf fun tail conf)               */
-;*    (return (PycIf-test this) fun #f conf)                            */
-;*    (return (PycIf-then this) fun tail conf)                          */
-;*    (return (PycIf-else this) fun tail conf))                         */
-;*                                                                     */
-;* (define-walk-method (return this::PycWhile fun tail conf)            */
-;*    (return (PycWhile-test this) fun #f conf)                         */
-;*    (return (PycLoop-body this) fun #f conf)                          */
-;*    (return (PycLoop-else this) fun tail conf))                       */
-;*                                                                     */
-;* (define-walk-method (return this::PycStmtExpr fun tail conf)         */
-;*    (return (PycStmtExpr-expr this) fun #f conf))                     */
-;*                                                                     */
-;* (define-walk-method (return this::PycTry fun tail conf)              */
-;*    (return (PycTry-body this) fun #f conf)                           */
-;*    (return (PycTry-else this) fun tail conf)                         */
-;*    (return (PycTry-finally this) fun #f conf)                        */
-;*    (for-each (lambda (h) (return (PycHandler-body h) fun tail conf)) */
-;*       (PycTry-handlers this)))                                       */
-
-(define-walk-method (return this::PycPass fun tail conf)
-   #f)
-
-(define-walk-method (return this::PycBreak fun tail conf)
-   #f)
-
-(define-walk-method (return this::PycContinue fun tail conf)
-   #f)
