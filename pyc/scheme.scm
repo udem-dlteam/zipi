@@ -410,7 +410,7 @@
                 (if (PycStmt-need-return finally-block)
                   `(bind-exit (,finally-ret-sym)
                       ,finally-code)
-                   ,finally-code))))))))
+                   finally-code))))))))
 
 (define-walk-method (scheme this::PycRaise conf)
   (let ((exc (PycRaise-exc this)))
