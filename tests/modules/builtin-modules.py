@@ -18,3 +18,8 @@ print(type(sys.modules) is dict)
 print("sys" in sys.modules)
 
 print(type(sys.path) is list)
+
+try:
+    import hullo
+except ModuleNotFoundError:
+    print("everything is fine...")

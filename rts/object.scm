@@ -2360,6 +2360,7 @@
   (set! py-builtin-KeyError (py-own-attr-ref builtins-mod (& "KeyError")))
   (set! py-builtin-AssertionError (py-own-attr-ref builtins-mod (& "AssertionError")))
   (set! py-builtin-NotImplementedError (py-own-attr-ref builtins-mod (& "NotImplementedError")))
+  (set! py-builtin-ModuleNotFoundError (py-own-attr-ref builtins-mod (& "ModuleNotFoundError")))
 
   ;; Reuse sorted procedure for list.sort
   (set! list.sort
@@ -5564,25 +5565,17 @@
 (define (sys-mod-path-get)
   (PyObject-elements-ref sys-mod 4))
 
-(define (py-import-module sys.modules key path)
-  (let ((file (string-append path ".scm")))
-    (compile-to-scheme path (string-append path ".py") file)
-    (if (file-exists? file)
-        (error "py-import" "ModuleNotCompileError" path))))
-
 (define (import-module-scheme sys.modules name)
   (let loop ((path-list (vector->list (cdr (object-scheme-value-fast-get (sys-mod-path-get))))))
     (if (pair? path-list)
         (let ((path (path-expand (string-append (object-scheme-value-fast-get (car path-list)) name))))
           (cond
            ((file-exists? (string-append path ".py"))
-            (py-import-module sys.modules name path))
+            (py-throw-exception-with-message py-NotImplemented "Compiling and adding files is not yet implemented, but the file " path " has been found"))
            ((directory? path)
-            (py-str-from-scheme (string-append "directory found at " path)))
-           (#t
-            (begin (print path) (loop (cdr path-list))))
+            (py-throw-exception-with-message py-NotImplemented "Compiling and adding directories is not yet implemented, but the directory " path " has been found"))
            (else (loop (cdr path-list)))))
-        (error "cant find moduleeee (and this error must be changed to python)"))))
+        (py-throw-exception-with-message py-builtin-ModuleNotFoundError "No module named " name))))
 
 (define (builtin-__import__ name)
   (let ((sys.modules (sys-mod-modules-get)))
@@ -7729,6 +7722,8 @@
 (define py-builtin-AssertionError #f)
 
 (define py-builtin-NotImplementedError #f)
+
+(define py-builtin-ModuleNotFoundError #f)
 
 ;; Exception Helpers
 
