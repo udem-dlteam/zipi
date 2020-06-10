@@ -508,7 +508,7 @@
              	  ,(if (PycUninit? step) 'py-None (scheme step conf))))
              ,val
              #f))))
-    (else
+    ((isa? (PycAssig-lhs this) PycSubscript)
       (let* ((axs (PycAssig-lhs this))
             (obj (PycSubscript-obj axs))
             (index (PycSubscript-index axs))
@@ -517,7 +517,15 @@
         `(py-setitem ,(scheme obj conf)
         ,(scheme index conf)
         ,(scheme (PycAssig-rhs this) conf)
-        ,(scheme-cache (PycSubscript-cache axs) axs)))))))
+        ,(scheme-cache (PycSubscript-cache axs) axs)))))
+    ((isa? (PycAssig-lhs this) PycTuple)
+      `(py-throw-exception-with-message
+          py-builtin-NotImplementedError
+            "multiple assignations unimplemented at line "
+            ,(number->string (car (PycNode-loc this)))))
+    (else
+      (error "scheme:PyxAssig" "unknown assignation type" this))))
+
 
 (define-walk-method (scheme this::PycAugAssig conf)
    (cond
