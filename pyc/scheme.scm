@@ -920,10 +920,9 @@
 (define-walk-method (scheme this::PycUnimplemented conf)
   `(py-throw-exception-with-message
       py-builtin-NotImplementedError
-      ,(string-append
-        (PycUnimplemented-msg this)
+        ,(PycUnimplemented-msg this)
         " at line "
-        (number->string (car (PycNode-loc this))))))
+        ,(number->string (car (PycNode-loc this)))))
 
 (define (scheme-cache cache node)
    (if (not (integer? cache))
