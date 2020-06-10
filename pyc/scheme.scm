@@ -904,6 +904,11 @@
           `(if (not ,(pyc-test (PycAssert-test this) conf))
       	     (py-throw py-builtin-AssertionError))))))
 
+(define-walk-method (scheme this::PycIfExp conf)
+  `(if (py-test ,(scheme (PycIfExp-test this) conf))
+       ,(scheme (PycIfExp-body this) conf)
+       ,(scheme (PycIfExp-orelse this) conf)))
+
 (define-walk-method (scheme this::PycUnimplemented conf)
   `(py-throw-exception-with-message
       py-builtin-NotImplementedError

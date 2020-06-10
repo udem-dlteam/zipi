@@ -180,6 +180,12 @@
        (new-PycIf loc (sexp test #f scope conf)
 	  (compile-stmt* loc body tail scope conf)
 	  (compile-stmt* loc otherwise tail scope conf)))
+    ((IfExp ?loc ?test ?body ?orelse)
+      (new-PycIfExp
+        loc
+        (sexp test #f scope conf)
+        (sexp body tail scope conf)
+        (sexp orelse tail scope conf)))
       ((With ?loc ?items ?body . ?type_comment)
         (new-PycWith
           loc

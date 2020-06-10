@@ -81,10 +81,10 @@
 	      op::symbol
 	      (cache (default #f)))
 
-           (class PycIf::PycStmt
-              (test::PycExpr (info '("ast")))
-              (then::PycStmt (info '("ast")))
-              (else::PycStmt (info '("ast"))))
+     (class PycIf::PycStmt
+        (test::PycExpr (info '("ast")))
+        (then::PycStmt (info '("ast")))
+        (else::PycStmt (info '("ast"))))
 
      (class PycWithItem::PycStmt
 	      (context-expr::PycExpr (info '("ast")))
@@ -136,7 +136,7 @@
 	      (names::pair-nil read-only))
 
            ;; expressions
-           (class PycExpr::PycNode
+          (class PycExpr::PycNode
 	      (type::symbol (default 'unknown)))
 
            (class PycPragma::PycExpr
@@ -166,6 +166,11 @@
 	      lower::PycExpr
 	      upper::PycExpr
 	      step::PycExpr)
+
+    (class PycIfExp::PycExpr
+       (test::PycExpr (info '("ast")))
+       (body::PycExpr (info '("ast")))
+       (orelse::PycExpr (info '("ast"))))
 
 	   (class PycAssert::PycStmt
 	      (test::PycExpr (info '("ast")))
@@ -577,6 +582,7 @@
 (gen-walks PycAssig lhs rhs)
 (gen-walks PycAugAssig lhs rhs)
 (gen-walks PycIf test then else)
+(gen-walks PycIfExp test body orelse)
 (gen-walks PycWithItem context-expr optional-vars)
 (gen-walks PycWith (items) body)
 (gen-walks PycWhile test body else)
