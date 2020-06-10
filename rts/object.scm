@@ -5559,7 +5559,6 @@
   (let ((file (string-append path ".scm")))
     (compile-to-scheme path (string-append path ".py") file)
     (if (file-exists? file)
-        ()
         (error "py-import" "ModuleNotCompileError" path))))
 
 (define (py-sys-mod)
