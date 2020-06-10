@@ -524,7 +524,7 @@
             "multiple assignations unimplemented at line "
             ,(number->string (car (PycNode-loc this)))))
     (else
-      (error "scheme:PyxAssig" "unknown assignation type" this))))
+      (error "scheme:PycAssig" "unknown assignation type" this))))
 
 
 (define-walk-method (scheme this::PycAugAssig conf)
