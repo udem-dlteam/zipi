@@ -33,45 +33,45 @@
 ;                                      Calls py19 -t gambit
 ;                                      --no-main -d root source > target
 
-(define (py-import path depth)
-   ;; (tprint "py-import root=" py-import-root " path=" path)
-   (let ((sysmod (object-get (py-sys-mod) (& "modules") #f)))
-      (cond
-         ((py-import-builtin path)
-          =>
-          (lambda (mod)
-             (sysmod-add-entry! sysmod (py-str-from-scheme path) mod)))
-         (else
-          (let loop ((paths (string-split path "."))
-                     (base py-import-root)
-                     (key #f)
-                     (depth depth))
-             (let ((qpath (make-file-name base (car paths)))
-                   (key (py-str-from-scheme
-                           (if key
-                               (string-append (py-str-to-scheme key) "." (car paths))
-                               (car paths)))))
-                ;;(tprint "py-import.loop key=" key " paths=" paths " qp=" qpath)
-                (cond
-                   ((pair? (cdr paths))
-                    (let* ((mod (or (py-import-from-sysmod sysmod key qpath)
-                                    (py-import-dir sysmod key qpath)))
-                           (submod (loop (cdr paths) qpath key (- depth 1))))
-                    ;; (tprint "paths=" (cadr paths) " " key)
-                    (if (> depth 0)
-                        submod
-                        (begin
-                           (object-put-no-cache! mod
-                              (py-string-to-name (cadr paths)) submod)
-                           mod))))
-                   ((file-exists? (string-append qpath ".py"))
-                    (or (py-import-from-sysmod sysmod key qpath)
-                        (py-import-module sysmod key qpath)))
-                   ((directory? qpath)
-                    (or (py-import-from-sysmod sysmod key qpath)
-                        (py-import-dir sysmod key qpath)))
-                   (else
-                    (error "py-import" "ModuleNotFoundError" path)))))))))
+;(define (py-import path depth)
+;   ;; (tprint "py-import root=" py-import-root " path=" path)
+;   (let ((sysmod (object-get (py-sys-mod) (& "modules") #f)))
+;      (cond
+;         ((py-import-builtin path)
+;          =>
+;          (lambda (mod)
+;             (sysmod-add-entry! sysmod (py-str-from-scheme path) mod)))
+;         (else
+;          (let loop ((paths (string-split path "."))
+;                     (base py-import-root)
+;                     (key #f)
+;                     (depth depth))
+;            (let ((qpath (make-file-name base (car paths)))
+;                   (key (py-str-from-scheme
+;                           (if key
+;                               (string-append (py-str-to-scheme key) "." (car paths))
+;                               (car paths)))))
+;                ;;(tprint "py-import.loop key=" key " paths=" paths " qp=" qpath)
+;                (cond
+;                   ((pair? (cdr paths))
+;                    (let* ((mod (or (py-import-from-sysmod sysmod key qpath)
+;                                    (py-import-dir sysmod key qpath)))
+;                           (submod (loop (cdr paths) qpath key (- depth 1))))
+;                    ;; (tprint "paths=" (cadr paths) " " key)
+;                    (if (> depth 0)
+;                        submod
+;                        (begin
+;                           (object-put-no-cache! mod
+;                              (py-string-to-name (cadr paths)) submod)
+;                           mod))))
+;                   ((file-exists? (string-append qpath ".py"))
+;                    (or (py-import-from-sysmod sysmod key qpath)
+;                        (py-import-module sysmod key qpath)))
+;                   ((directory? qpath)
+;                    (or (py-import-from-sysmod sysmod key qpath)
+;                        (py-import-dir sysmod key qpath)))
+;                   (else
+;                    (error "py-import" "ModuleNotFoundError" path)))))))))
 
 (define (py-import-builtin path)
   (cond ((string=? path "builtins")

@@ -44,8 +44,6 @@ $PYC_DIR/javascript.bgl \
 $PYC_DIR/javascript.scm \
 $PYC_DIR/dump.bgl \
 $PYC_DIR/dump.scm \
-$RTS_DIR/import.bgl \
-$RTS_DIR/import.scm \
 $ZPC_DIR/main.bgl \
 $ZPC_DIR/main.scm \
 $PYC_DIR/compile.bgl \
