@@ -322,6 +322,10 @@
        (if msg
            (new-PycAssert loc (sexp test #f scope conf) (sexp msg #f scope conf))
            (new-PycAssert loc (sexp test #f scope conf) (new-PycUninit loc))))
+      ((ListComp ?loc ?elt ?generators)
+        (new-PycUnimplemented loc "list comprehension not implemented"))
+      ((GeneratorExp ?loc ?elt ?generators)
+        (new-PycUnimplemented loc "generator expression not implemented"))
       (else
        (if (eof-object? exp)
 	   (error "sexp" "premature eof" exp)

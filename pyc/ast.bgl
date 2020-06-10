@@ -18,6 +18,13 @@
               (loc::pair read-only (info '("notraverse")))
               (%info (default #f) (info '("nojson" "notraverse"))))
 
+          ;; A syntactical node that indicates an unimplemented feature
+          ;; used to raise py-builtin-NotImplementedError at run-time
+          ;; instead of raising a Scheme error at compile time
+          (class PycUnimplemented::PycNode
+            msg::string)
+
+
            ;; module
            (class PycModule::PycNode
               (version::int read-only (default 1))
@@ -592,3 +599,4 @@
 (gen-walks PycYield val)
 (gen-walks PycKont body)
 (gen-walks PycAssert test msg)
+(gen-walks PycUnimplemented)

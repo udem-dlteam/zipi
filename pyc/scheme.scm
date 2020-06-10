@@ -904,6 +904,14 @@
           `(if (not ,(pyc-test (PycAssert-test this) conf))
       	     (py-throw py-builtin-AssertionError))))))
 
+(define-walk-method (scheme this::PycUnimplemented conf)
+  `(py-throw-exception-with-message
+      py-builtin-NotImplementedError
+      ,(string-append
+        (PycUnimplemented-msg this)
+        " at line "
+        (number->string (car (PycNode-loc this))))))
+
 (define (scheme-cache cache node)
    (if (not (integer? cache))
        (error "scheme-cache" "Bad cache" (pyc->list node))
