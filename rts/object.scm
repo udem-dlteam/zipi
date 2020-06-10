@@ -5486,7 +5486,12 @@
 ;; ===========================================
 ;; IMPORT SYSTEM
 ;; ===========================================
-(define time-mod #f)
+
+(define py-time.time
+  (procedure->py-function
+   (lambda ()
+     (/ (current-microseconds) 1000000.0))
+   (empty-signature)))
 
 (define (py-make-time-mod)
   (let ((mod
@@ -5503,19 +5508,10 @@
 
     (PyObject-elements-set! mod 1 py-module-class)
     (PyObject-elements-set! mod 2 (py-str-from-scheme "time"))
-    (PyObject-elements-set! mod 3 time-mod)
+    (PyObject-elements-set! mod 3 py-time.time)
     mod))
 
-(define (py-time-mod)
- (unless time-mod
-   (set! time-mod (py-make-time-mod)))
- time-mod)
-
-(define py-time
- (procedure->py-function
-  (lambda ()
-    (/ (current-microseconds) 1000000.0))
-  (empty-signature)))
+(define time-mod (py-make-time-mod))
 
 
 (define-macro (create-sys-dict . modules)
@@ -5543,12 +5539,13 @@
     (PyObject-elements-set! mod 3
                             (create-sys-dict
                              ("sys" . mod)
-                             ("time" . (py-time-mod))))
+                             ("time" . time-mod)))
     (PyObject-elements-set! mod 4
                            (create-sys-list "" "~/udem-dlteam/zipi/python-builtins/"))
     mod))
 
 (define sys-mod (py-make-sys-mod))
+
 (define (sys-mod-modules-get)
   (PyObject-elements-ref sys-mod 3))
 
@@ -5560,11 +5557,6 @@
     (compile-to-scheme path (string-append path ".py") file)
     (if (file-exists? file)
         (error "py-import" "ModuleNotCompileError" path))))
-
-(define (py-sys-mod)
- (unless sys-mod
-   (set! sys-mod (py-make-sys-mod)))
- sys-mod)
 
 (define (import-module-scheme sys.modules name)
   (let loop ((path-list (vector->list (cdr (object-scheme-value-fast-get (sys-mod-path-get))))))
@@ -5588,7 +5580,6 @@
 
 (define (py-import path depth)
   (builtin-__import__ (py-str-from-scheme path)))
-
 
 ;;-------------------- abs(x)
 
