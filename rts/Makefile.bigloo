@@ -3,7 +3,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Mon Jul  1 13:14:30 2019                          */
-#*    Last change :  Mon May 25 14:24:12 2020 (serrano)                */
+#*    Last change :  Thu Jun 11 07:27:34 2020 (serrano)                */
 #*    Copyright   :  2019-20 Marc Feeley & Manuel Serrano              */
 #*    -------------------------------------------------------------    */
 #*    The makefile to build the ZIPI rts library                       */
@@ -16,8 +16,8 @@ install.bigloo: install-library
 #*---------------------------------------------------------------------*/
 #*    Common Makefile                                                  */
 #*---------------------------------------------------------------------*/
-include $(BUILDETCDIR)/Makefile.bigloo
-include $(BIGLOOLIBDIR)/Makefile.config
+-include $(BUILDETCDIR)/Makefile.bigloo
+-include $(BIGLOOLIBDIR)/Makefile.config
 
 #*---------------------------------------------------------------------*/
 #*    SOURCES                                                          */
@@ -47,7 +47,7 @@ INCLUDES =
 #*---------------------------------------------------------------------*/
 #*    Sources                                                          */
 #*---------------------------------------------------------------------*/
-include $(BUILDETCDIR)/Makefile.library
+-include $(BUILDETCDIR)/Makefile.library
 
 #*---------------------------------------------------------------------*/
 #*    all                                                              */

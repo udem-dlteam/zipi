@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Tue Apr  7 16:51:08 2020                          */
-;*    Last change :  Mon May 25 18:13:03 2020 (serrano)                */
+;*    Last change :  Thu Jun 11 07:15:36 2020 (serrano)                */
 ;*    Copyright   :  2020 Manuel Serrano                               */
 ;*    -------------------------------------------------------------    */
 ;*    Bigloo compatibility kit                                         */
@@ -13,30 +13,40 @@
 ;*    The module                                                       */
 ;*---------------------------------------------------------------------*/
 (module __py_bigloo
-
+   
    (import __py_object)
-
+   
    (export (inline arithmetic-shift::long ::long ::long)
 	   (inline bitwise-and::long ::long ::long)
 	   (inline bitwise-ior::long ::long ::long)
 	   (inline bitwise-xor::long ::long ::long)
 	   (inline bitwise-not::long ::long)
-
+	   
 	   (inline floor-quotient x y)
 	   (inline inexact::double x)
-
-     (inline fx= x y)
-     (inline fx+ x y)
-     (inline fx- x y)
-     (inline fx* x y)
-     (inline fx/ x y)
-     (inline fx>= x y)
-     (inline fx< x y)
-     (inline fx<= x y)
-     (inline fx> x y)
-
-     (inline u8vector-append . vecs)
-     (inline subu8vector vec start stop)
+	   
+	   (inline fx+::long ::long ::long)
+	   (inline fx-::long ::long ::long)
+	   (inline fx*::long ::long ::long)
+	   (inline fx/::long ::long ::long)
+	   (inline fx=::bool ::long ::long)
+	   (inline fx>=::bool ::long ::long)
+	   (inline fx<::bool ::long ::long)
+	   (inline fx<=::bool ::long ::long)
+	   (inline fx>::bool ::long ::long)
+	   
+	   (inline u8+::uint8 ::uint8 ::uint8)
+	   (inline u8-::uint8 ::uint8 ::uint8)
+	   (inline u8*::uint8 ::uint8 ::uint8)
+	   (inline u8/::uint8 ::uint8 ::uint8)
+	   (inline u8=::bool ::uint8 ::uint8)
+	   (inline u8>=::bool ::uint8 ::uint8)
+	   (inline u8<::bool ::uint8 ::uint8)
+	   (inline u8<=::bool ::uint8 ::uint8)
+	   (inline u8>::bool ::uint8 ::uint8)
+	   
+	   (inline u8vector-append . vecs)
+	   (inline subu8vector vec start stop)
 	   (macro let-values)))
 
 ;*---------------------------------------------------------------------*/
@@ -74,40 +84,32 @@
 ;*---------------------------------------------------------------------*/
 ;*    fx operations ...                                                */
 ;*---------------------------------------------------------------------*/
-(define-inline (fx+ x y)
-  (+fx x y))
+(define-inline (fx+ x y) (+fx x y))
+(define-inline (fx- x y) (-fx x y))
+(define-inline (fx* x y) (*fx x y))
+(define-inline (fx/ x y) (/fx x y))
+(define-inline (fx= x y) (=fx x y))
+(define-inline (fx< x y) (<fx x y))
+(define-inline (fx> x y) (>fx x y))
+(define-inline (fx<= x y) (<=fx x y))
+(define-inline (fx>= x y) (>=fx x y))
 
-(define-inline (fx- x y)
-  (-fx x y))
-
-(define-inline (fx* x y)
-  (*fx x y))
-
-(define-inline (fx/ x y)
-  (/fx x y))
-
-(define-inline (fx= x y)
-  (=fx x y))
-
-(define-inline (fx< x y)
-  (<fx x y))
-
-(define-inline (fx> x y)
-  (>fx x y))
-
-(define-inline (fx<= x y)
-  (<=fx x y))
-
-(define-inline (fx>= x y)
-  (>=fx x y))
-
+;*---------------------------------------------------------------------*/
+;*    u8 operations                                                    */
+;*---------------------------------------------------------------------*/
+(define-inline (u8+ x y) (+u8 x y))
+(define-inline (u8- x y) (-u8 x y))
+(define-inline (u8* x y) (*u8 x y))
+(define-inline (u8/ x y) (/u8 x y))
+(define-inline (u8= x y) (=u8 x y))
+(define-inline (u8< x y) (<u8 x y))
+(define-inline (u8> x y) (>u8 x y))
+(define-inline (u8<= x y) (<=u8 x y))
+(define-inline (u8>= x y) (>=u8 x y))
 
 ;*---------------------------------------------------------------------*/
 ;*    u8vector functions ...                                           */
 ;*---------------------------------------------------------------------*/
-
-
-
 (define-inline (u8vector-append . vecs)
   (let* ((nvec (length vecs))
          (new-vec-len
