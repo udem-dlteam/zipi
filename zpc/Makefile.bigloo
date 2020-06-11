@@ -3,8 +3,8 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Tue Jul  2 10:46:47 2019                          */
-#*    Last change :  Tue Jul  2 13:09:19 2019 (serrano)                */
-#*    Copyright   :  2019 Manuel Serrano                               */
+#*    Last change :  Thu Jun 11 07:27:15 2020 (serrano)                */
+#*    Copyright   :  2019-20 Manuel Serrano                            */
 #*    -------------------------------------------------------------    */
 #*    The Makefile to built the zpc Bigloo version                     */
 #*=====================================================================*/
@@ -15,8 +15,8 @@ do.bigloo: build.bigloo
 #*---------------------------------------------------------------------*/
 #*    Configuration                                                    */
 #*---------------------------------------------------------------------*/
-include $(BUILDETCDIR)/Makefile.bigloo
-include $(BIGLOOLIBDIR)/Makefile.config
+-include $(BUILDETCDIR)/Makefile.bigloo
+-include $(BIGLOOLIBDIR)/Makefile.config
 
 #*---------------------------------------------------------------------*/
 #*    Target and Project                                               */

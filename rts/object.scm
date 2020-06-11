@@ -4214,11 +4214,15 @@
               #f))
         #t)))
 
+(define u8-empty-vector (make-u8vector 0))
+
 (define (bytearray-new cls arg1 arg2 agr3)
   (if (py-issubclass? cls py-bytearray-class)
     (cond
-      ((eq? arg1 py-absent)
-        (py-bytearray-from-scheme (cons 0 #u8())))
+       ((eq? arg1 py-absent)
+	;; MS 11jun2020: to be removed when Bigloo's fixed
+        ;; (py-bytearray-from-scheme (cons 0 #u8())))
+        (py-bytearray-from-scheme (cons 0 u8-empty-vector)))
       ((eq? arg2 py-absent)
         (cond
           ((py-isinstance? arg1 py-int-class)
@@ -4469,7 +4473,7 @@
                (acc 0))
       (if (fx>= i ,stop)
           acc
-          (if (fx= (u8vector-ref ,vec i) ,item)
+          (if (u8= (u8vector-ref ,vec i) ,item)
               (loop (+ 1 i) (+ 1 acc))
               (loop (+ 1 i) acc))))))
 
@@ -4477,7 +4481,7 @@
   `(let loop ((i ,start))
      (if (fx>= i ,stop)
          (py-int-from-scheme -1)
-         (if (fx= (u8vector-ref ,vec i) ,item)
+         (if (u8= (u8vector-ref ,vec i) ,item)
              (py-int-from-scheme i)
              (loop (+ 1 i))))))
 
@@ -4486,7 +4490,7 @@
   `(let loop ((i ,start))
      (if (fx>= i ,stop)
          (py-throw-exception-with-message py-builtin-ValueError "subsection not found")
-         (if (fx= (u8vector-ref ,vec i) ,item)
+         (if (u8= (u8vector-ref ,vec i) ,item)
              (py-int-from-scheme i)
              (loop (+ 1 i))))))
 
@@ -4495,7 +4499,7 @@
   `(let loop ((i (- ,stop 1)))
      (if (fx< i ,start)
          (py-int-from-scheme -1)
-         (if (fx= (u8vector-ref ,vec i) ,item)
+         (if (u8= (u8vector-ref ,vec i) ,item)
              (py-int-from-scheme i)
              (loop (- i 1))))))
 
@@ -4504,7 +4508,7 @@
   `(let loop ((i (- ,stop 1)))
      (if (fx< i ,start)
          (py-throw-exception-with-message py-builtin-ValueError "subsection not found")
-         (if (fx= (u8vector-ref ,vec i) ,item)
+         (if (u8= (u8vector-ref ,vec i) ,item)
              (py-int-from-scheme i)
              (loop (- i 1))))))
 
@@ -4521,8 +4525,8 @@
           (let ((e1 (u8vector-ref ,v1 i))
                 (e2 (u8vector-ref ,v2 i)))
             (cond
-             ((fx< e1 e2) -1)
-             ((fx> e1 e2) 1)
+             ((u8< e1 e2) -1)
+             ((u8> e1 e2) 1)
              (else (loop (+ i 1)))))
           (if (fx= ,len1 ,len2)
               0
