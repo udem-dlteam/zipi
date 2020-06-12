@@ -27,7 +27,6 @@
 	   __pyc_beval
 	   __pyc_scheme
 	   __pyc_javascript
-	   __py_hclass
 	   __py_object)
 
    (main main))

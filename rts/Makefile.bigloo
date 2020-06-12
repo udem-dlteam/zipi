@@ -54,7 +54,7 @@ INCLUDES =
 #*---------------------------------------------------------------------*/
 .PHONY: build.bigloo
 
-build.bigloo: object.sch hclass.sch
+build.bigloo: object.sch
 	$(MAKE) o heap-c lib-c
 
 #*---------------------------------------------------------------------*/

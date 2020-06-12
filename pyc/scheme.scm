@@ -49,8 +49,6 @@
       `(;;begin
 	  ,@(if #t ;(config-get conf main:) ;; shouldn't this always be included?
 		`((|##import| bigloo)
-		  (|##include| ,(string-append (zipi-rts-dir) "/hclass.bgl"))
-		  (|##include| ,(string-append (zipi-rts-dir) "/hclass.scm"))
 		  (|##include| ,(string-append (zipi-rts-dir) "/object.gambit"))
 		  (|##include| ,(string-append (zipi-rts-dir) "/object.scm"))
                   )

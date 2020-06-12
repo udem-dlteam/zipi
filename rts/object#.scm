@@ -61,3 +61,79 @@
 
 (define (read-string port)
    (list->string (read-all port read-char)))
+
+(define-type PCache
+  id: A1E4C683-1891-4179-81F6-797D0A717E37
+  constructor: make-PCache
+  implementer: implement-PCache
+  copier: #f
+  opaque:
+  macros:
+;;  prefix: macro-
+
+  hclass
+  index
+)
+
+(define-type HClass
+  id: C253A20A-30F8-4148-941E-C8BED47E9E79
+  constructor: make-HClass
+  implementer: implement-HClass
+  copier: #f
+  opaque:
+  macros:
+;;  prefix: macro-
+  class-mro
+  names
+  transitions
+)
+
+(define-macro (make-pcache)
+  `(make-PCache '() -1))
+
+(define-macro (pcache-hclass pc)
+  `(PCache-hclass ,pc))
+
+(define-macro (pcache-index pc)
+  `(PCache-index ,pc))
+
+(define-macro (pcache-set! pc hc i)
+  `(let (($pc ,pc))
+     (PCache-hclass-set! $pc ,hc)
+     (PCache-index-set! $pc ,i)))
+
+(define-macro (make-hclass names)
+  `(make-HClass ,names '()))
+
+(define-macro (hclass-names hclass)
+  `(HClass-names ,hclass))
+
+(define-macro (hclass-transitions hclass)
+  `(HClass-transitions ,hclass))
+
+(define-macro (hclass-last-index hclass)
+  `(fx- (vector-length (HClass-names ,hclass)) 1))
+
+(define (hclass-transition-add! hc tran target)
+  (HClass-transitions-set!
+   hc
+   (cons (cons tran target) (HClass-transitions hc))))
+
+(define (vector-extend vec el)
+   (let* ((len (vector-length vec))
+	  (nvec (make-vector (+ len 1))))
+      (vector-copy! nvec 0 vec)
+      (vector-set! nvec len el)
+      nvec))
+
+(define (HClass-next hc name op)
+   (let* ((key (cons name op))
+	  (tran (assoc key (HClass-transitions hc))))
+      (if (pair? tran)
+	  (cdr tran)
+	  (let ((nhclass
+                 (make-HClass (HClass-class-mro hc)
+                              (vector-extend (HClass-names hc) name)
+                              '())))
+	     (HClass-transition-add! hc key nhclass)
+	     nhclass))))

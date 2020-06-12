@@ -20,7 +20,7 @@ do: build
 #*---------------------------------------------------------------------*/
 #*    common objects                                                   */
 #*---------------------------------------------------------------------*/
-OBJECTS_COMMON = hclass object configure
+OBJECTS_COMMON = object configure
 
 #*---------------------------------------------------------------------*/
 #*    Common entry points                                              */
@@ -40,18 +40,15 @@ clean: $(ZIPISYSTEMS:%=clean.%)
 
 distclean: clean
 	rm -f object.sch
-	rm -f hclass.sch
 
 cleanall: distclean
 
 #*---------------------------------------------------------------------*/
 #*    common targets and dependencies                                  */
 #*---------------------------------------------------------------------*/
-o/object.o: object.sch hclass.sch
+o/object.o: object.sch
 
-.afile: object.sch hclass.sch
-
-object.sch: hclass.sch
+.afile: object.sch
 
 %.sch: %.bgl .afile
 	touch $@ && $(BIGLOO) -classgen $< -o $@

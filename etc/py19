@@ -26,8 +26,6 @@ $PYC_DIR/return.scm \
 $PYC_DIR/locals.bgl \
 $PYC_DIR/locals.scm \
 $PYC_DIR/super.scm \
--e "(##include \"$RTS_DIR/hclass.bgl\")" \
--e "(##include \"$RTS_DIR/hclass.scm\")" \
 -e "(##include \"$RTS_DIR/object.gambit\")" \
 -e "(##include \"$RTS_DIR/object.scm\")" \
 $PYC_DIR/scheme.bgl \
