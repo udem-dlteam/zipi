@@ -2152,6 +2152,14 @@
 
 ;;; Python modules.
 
+(define (loadv file)
+  (call-with-input-file file
+     (lambda (ip)
+	 (let loop ((v #f))
+	    (let ((e (read ip)))
+	       (if (eof-object? e)
+		   v
+		   (loop (eval e))))))))
 
 ;; Helpers for the builtins module
 (define (py-helper-getownattr obj attr default)
