@@ -2360,6 +2360,7 @@
   (set! py-builtin-KeyError (py-own-attr-ref builtins-mod (& "KeyError")))
   (set! py-builtin-AssertionError (py-own-attr-ref builtins-mod (& "AssertionError")))
   (set! py-builtin-NotImplementedError (py-own-attr-ref builtins-mod (& "NotImplementedError")))
+  (set! py-builtin-ModuleNotFoundError (py-own-attr-ref builtins-mod (& "ModuleNotFoundError")))
 
   ;; Reuse sorted procedure for list.sort
   (set! list.sort
@@ -2384,64 +2385,6 @@
    (set! builtins-mod (py-make-builtins-mod))
    (bootstrap-builtins builtins-mod))
  builtins-mod)
-
-(define time-mod #f)
-
-(define (py-make-time-mod)
- (let ((mod
-        (py-obj-alloc
-         py-module-class
-         (make-HClass
-          (vector py-module-class py-object-class)
-          (vector (& "**class**")
-                  (& "__class__")
-                  (& "__name__")
-                  (& "time")
-		   )
-	   '()))))
-
-   (PyObject-elements-set! mod 1 py-module-class)
-   (PyObject-elements-set! mod 2 (py-str-from-scheme "time"))
-   (PyObject-elements-set! mod 3 py-time)
-
-   mod))
-
-(define (py-time-mod)
- (unless time-mod
-   (set! time-mod (py-make-time-mod)))
- time-mod)
-
-(define py-time
- (procedure->py-function
-  (lambda ()
-    (/ (current-microseconds) 1000000.0))
-  (empty-signature)))
-
-(define sys-mod #f)
-
-(define (py-make-sys-mod)
- (let ((mod
-        (py-obj-alloc
-         py-module-class
-         (make-HClass
-          (vector py-module-class py-object-class)
-          (vector (& "**class**")
-                  (& "__class__")
-                  (& "__name__")
-                  (& "modules")
-		   )
-	   '()))))
-
-   (PyObject-elements-set! mod 1 py-module-class)
-   (PyObject-elements-set! mod 2 (py-str-from-scheme "sys"))
-   (PyObject-elements-set! mod 3 (py-make-dict '()))
-
-   mod))
-
-(define (py-sys-mod)
- (unless sys-mod
-   (set! sys-mod (py-make-sys-mod)))
- sys-mod)
 
 ;; =============================================================================
 ;;  BUILTIN CLASSES
@@ -4829,7 +4772,7 @@
 
 (define dict.__setitem__
   (procedure->py-function
-    dict-setitem
+   dict-setitem
     (make-posonly-signature '#(self key value))))
 
 (define (dict-get self key default)
@@ -5555,6 +5498,97 @@
 
 (define (py-type obj)
   (py-obj-cls obj))
+
+
+;; ===========================================
+;; IMPORT SYSTEM
+;; ===========================================
+
+(define py-time.time
+  (procedure->py-function
+   (lambda ()
+     (/ (current-microseconds) 1000000.0))
+   (empty-signature)))
+
+(define (py-make-time-mod)
+  (let ((mod
+         (py-obj-alloc
+          py-module-class
+          (make-HClass
+           (vector py-module-class py-object-class)
+           (vector (& "**class**")
+                   (& "__class__")
+                   (& "__name__")
+                   (& "time")
+                   )
+           '()))))
+
+    (PyObject-elements-set! mod 1 py-module-class)
+    (PyObject-elements-set! mod 2 (py-str-from-scheme "time"))
+    (PyObject-elements-set! mod 3 py-time.time)
+    mod))
+
+(define time-mod (py-make-time-mod))
+
+
+(define-macro (create-sys-dict . modules)
+  `(py-dict-from-scheme (list ,@(map (lambda (x) `(cons (py-str-from-scheme ,(car x)) ,(cdr x))) modules))))
+
+(define-macro (create-sys-list . path-list)
+  `(py-list-from-scheme (cons ,(length path-list) (vector ,@(map (lambda (x) `(py-str-from-scheme ,x)) path-list)))))
+
+(define (py-make-sys-mod)
+  (let ((mod
+         (py-obj-alloc
+          py-module-class
+          (make-HClass
+           (vector py-module-class py-object-class)
+           (vector (& "**class**")
+                   (& "__class__")
+                   (& "__name__")
+                   (& "modules")
+                   (& "path")
+                   )
+           '()))))
+
+    (PyObject-elements-set! mod 1 py-module-class)
+    (PyObject-elements-set! mod 2 (py-str-from-scheme "sys"))
+    (PyObject-elements-set! mod 3
+                            (create-sys-dict
+                             ("sys" . mod)
+                             ("time" . time-mod)))
+    (PyObject-elements-set! mod 4
+                           (create-sys-list "" "~/udem-dlteam/zipi/python-builtins/"))
+    mod))
+
+(define sys-mod (py-make-sys-mod))
+
+(define (sys-mod-modules-get)
+  (PyObject-elements-ref sys-mod 3))
+
+(define (sys-mod-path-get)
+  (PyObject-elements-ref sys-mod 4))
+
+(define (import-module-scheme sys.modules name)
+  (let loop ((path-list (vector->list (cdr (object-scheme-value-fast-get (sys-mod-path-get))))))
+    (if (pair? path-list)
+        (let ((path (path-expand (string-append (object-scheme-value-fast-get (car path-list)) name))))
+          (cond
+           ((file-exists? (string-append path ".py"))
+            (py-throw-exception-with-message py-NotImplemented "Compiling and adding files is not yet implemented, but the file " path " has been found"))
+           ((directory? path)
+            (py-throw-exception-with-message py-NotImplemented "Compiling and adding directories is not yet implemented, but the directory " path " has been found"))
+           (else (loop (cdr path-list)))))
+        (py-throw-exception-with-message py-builtin-ModuleNotFoundError "No module named " name))))
+
+(define (builtin-__import__ name)
+  (let ((sys.modules (sys-mod-modules-get)))
+    ;; check in sys.modules if the value exist and returns it if it exists
+    (or (dict-get sys.modules name #f)
+        (import-module-scheme sys.modules (object-scheme-value-fast-get name)))))
+
+(define (py-import path depth)
+  (builtin-__import__ (py-str-from-scheme path)))
 
 ;;-------------------- abs(x)
 
@@ -7604,14 +7638,22 @@
 (define py-builtin-__import__
   (procedure->py-function
    (lambda (name globals locals fromlist level)
-     (py-throw-exception-with-message py-builtin-NotImplementedError "__import__ not implemented"))
-    (make-args-defaults-signature
-      '#(name globals locals fromlist level)
-      (vector
-        py-None
-        py-None
-        py-absent
-        (py-int-from-scheme 0)))))
+     (cond
+      ((eq? globals py-None)
+       (if (py-isinstance? name py-str-class)
+           (builtin-__import__ name)
+           (py-throw-exception-with-message py-builtin-TypeError "__import__() argument 1 must be str not " )))
+      (else
+       (py-throw-exception-with-message py-NotImplemented "__import__ with more then one argument is not yet implemented"))))
+   (make-args-defaults-signature
+    '#(name globals locals fromlist level)
+    (vector
+     py-None
+     py-None
+     py-absent
+     (py-int-from-scheme 0)))))
+
+
 
 ;;-------------------- BaseException
 
@@ -7684,6 +7726,8 @@
 (define py-builtin-AssertionError #f)
 
 (define py-builtin-NotImplementedError #f)
+
+(define py-builtin-ModuleNotFoundError #f)
 
 ;; Exception Helpers
 
