@@ -22,8 +22,7 @@
            __py_bigloo
            ./builtins.py)
 
-   (use    __py_import
-	   __py_iterator)
+   (use __py_iterator)
 
    (export (class PyObject
 	      (hclass (default #f))
@@ -35,8 +34,6 @@
 	   (macro & name)
 
 	   (py-builtins-mod::PyObject)
-	   (py-time-mod::PyObject)
-	   (py-sys-mod::PyObject)
 ;*                                                                     */
 	   (global-get ::PyObject ::obj ::obj)
 	   (global-put! global name val cache)
@@ -142,7 +139,10 @@
 
 	   (py-int-from-scheme value)
 	   (py-float-from-scheme value)
-;* 	   (py-repr-scheme ::obj))                                     */
+
+     (py-import path depth)
+	   py-import-root
+	   (loadv ::bstring)
 	   )
 
 
@@ -254,6 +254,9 @@
       ((output-port? obj) (close-output-port obj))
       (else (bigloo-type-error "close-port" "port" obj))))
 
+(define (path-expand x)
+  (error "bigloo" "path-expand not defined" #f))
+
 (define-inline (fxarithmetic-shift num shift)
    (bit-lsh num shift))
 
@@ -287,3 +290,56 @@
 ;*---------------------------------------------------------------------*/
 (define-macro (result-to-float op)
    `(lambda (x y) (py-float-from-scheme (,op x y))))
+
+;*---------------------------------------------------------------------*/
+;*    compile ...                                                      */
+;*---------------------------------------------------------------------*/
+(cond-expand
+ (bigloo
+
+  (define (compile-to-scheme root source target)
+
+    (define-macro (get-build-path) (pwd))
+
+    (define (root-dir)
+      (or (getenv "ZIPIROOT")
+          (get-build-path)))
+
+    (when (or (not (file-exists? target))
+	       (> (file-modification-time source)
+		  (file-modification-time target)))
+      (system (format "~a/pyc -t bigloo --no-main -d ~a ~a > ~a" (root-dir) root source target)))))
+
+ (gambit
+
+  (define (compile-to-scheme root source target)
+
+    (define (root-dir)
+      (or (getenv "ZIPIROOT")
+          (path-expand ".." (path-directory (car (command-line))))))
+
+    (when (or (not (file-exists? target))
+	       (> (time->seconds (file-last-modification-time source))
+		  (time->seconds (file-last-modification-time target))))
+
+      (shell-command
+       (string-append
+        (root-dir)
+        "/py19 -t gambit --no-main -d "
+        root
+        " "
+        source
+        " > "
+        target))))))
+
+;*---------------------------------------------------------------------*/
+;*    loadv ...                                                        */
+;*---------------------------------------------------------------------*/
+(define (loadv file)
+  (call-with-input-file file
+     (lambda (ip)
+	 (let loop ((v #f))
+	    (let ((e (read ip)))
+	       (if (eof-object? e)
+		   v
+		   (loop (eval e))))))))

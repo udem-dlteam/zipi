@@ -20,7 +20,7 @@ do: build
 #*---------------------------------------------------------------------*/
 #*    common objects                                                   */
 #*---------------------------------------------------------------------*/
-OBJECTS_COMMON = hclass object import iterator configure
+OBJECTS_COMMON = hclass object iterator configure
 
 #*---------------------------------------------------------------------*/
 #*    Common entry points                                              */
@@ -55,4 +55,3 @@ object.sch: hclass.sch
 
 %.sch: %.bgl .afile
 	touch $@ && $(BIGLOO) -classgen $< -o $@
-

@@ -1,0 +1,12 @@
+;; automatically generated, don't edit
+;; /home/olivier/udem-dlteam/zipi/rts
+;; Fri Jun 12 09:01:23 2020
+
+(
+  (./builtins.py "../stdlib/builtins.bgl")
+  (__py_bigloo "bigloo.bgl")
+  (py_configure "configure.bgl")
+  (__py_hclass "hclass.bgl")
+  (__py_iterator "iterator.bgl")
+  (__py_object "object.bgl")
+)

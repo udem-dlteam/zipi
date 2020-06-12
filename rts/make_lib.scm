@@ -13,13 +13,12 @@
 ;*    The module                                                       */
 ;*---------------------------------------------------------------------*/
 (module __py_makelib
-   
+
    (import __py_object
       __py_iterator
-      __py_import
       __py_hclass
       __py_bigloo)
-   
+
    (eval (export-all)
       (class PyObject)
       (class PyFunction)

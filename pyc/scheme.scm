@@ -21,7 +21,7 @@
       (list
 	 `(module ,(string->symbol (or (config-get conf src:) "__stdin"))
 	     ,@(if (config-get conf bootstrap:)
-		   '((import __py_object __py_import) (export (zipi-init)))
+		   '((import __py_object) (export (zipi-init)))
 		   '((library zipi)))
 	     ,@(if (config-get conf main:) '((main main)) '()))
 	 `(define py-module ,@prog)
@@ -55,8 +55,6 @@
 		  (|##include| ,(string-append (zipi-rts-dir) "/object.scm"))
 		  (|##include| ,(string-append (zipi-rts-dir) "/iterator.bgl"))
 		  (|##include| ,(string-append (zipi-rts-dir) "/iterator.scm"))
-		  (|##include| ,(string-append (zipi-rts-dir) "/import.bgl"))
-		  (|##include| ,(string-append (zipi-rts-dir) "/import.scm"))
                   )
 		'())
 	  (define py-module ,@prog)

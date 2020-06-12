@@ -11,8 +11,7 @@
            __py_bigloo
            ./builtins.py)
 
-   (use    __py_import
-	   __py_iterator)
+   (use __py_iterator)
 
    (export (class PyObject
 	      (hclass (default #f))

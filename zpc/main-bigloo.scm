@@ -13,9 +13,9 @@
 ;*    The module                                                       */
 ;*---------------------------------------------------------------------*/
 (module pyc
-   
+
    (include "ast/ast.sch")
-   
+
    (import __pyc_dump
 	   __pyc_sexp
 	   __pyc_symbol
@@ -29,8 +29,6 @@
 	   __pyc_javascript
 	   __py_hclass
 	   __py_object)
-
-   (with   __py_import)
 
    (main main))
 
@@ -84,4 +82,3 @@
    (print "   - PYTRACE: zpc internal trace [PYTRACE=\"key1, key2, ...\"]")
    (print "      zpc:dump")
    (newline))
-
