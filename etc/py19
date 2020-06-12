@@ -30,8 +30,6 @@ $PYC_DIR/super.scm \
 -e "(##include \"$RTS_DIR/hclass.scm\")" \
 -e "(##include \"$RTS_DIR/object.gambit\")" \
 -e "(##include \"$RTS_DIR/object.scm\")" \
--e "(##include \"$RTS_DIR/iterator.bgl\")" \
--e "(##include \"$RTS_DIR/iterator.scm\")" \
 $PYC_DIR/scheme.bgl \
 $PYC_DIR/scheme.scm \
 $PYC_DIR/break.bgl \

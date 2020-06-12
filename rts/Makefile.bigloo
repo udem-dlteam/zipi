@@ -42,7 +42,7 @@ BLIBFLAGS = $(BCFLAGSRTS)
 OBJECTS = $(OBJECTS_COMMON:%=o/%.o) o/bigloo.o o/builtins.o
 EOBJECTS = o/make_lib.o
 
-INCLUDES = 
+INCLUDES =
 
 #*---------------------------------------------------------------------*/
 #*    Sources                                                          */
@@ -54,7 +54,7 @@ INCLUDES =
 #*---------------------------------------------------------------------*/
 .PHONY: build.bigloo
 
-build.bigloo: object.sch hclass.sch iterator.sch
+build.bigloo: object.sch hclass.sch
 	$(MAKE) o heap-c lib-c
 
 #*---------------------------------------------------------------------*/

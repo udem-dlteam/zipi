@@ -20,7 +20,7 @@ do: build
 #*---------------------------------------------------------------------*/
 #*    common objects                                                   */
 #*---------------------------------------------------------------------*/
-OBJECTS_COMMON = hclass object iterator configure
+OBJECTS_COMMON = hclass object configure
 
 #*---------------------------------------------------------------------*/
 #*    Common entry points                                              */

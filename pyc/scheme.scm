@@ -53,8 +53,6 @@
 		  (|##include| ,(string-append (zipi-rts-dir) "/hclass.scm"))
 		  (|##include| ,(string-append (zipi-rts-dir) "/object.gambit"))
 		  (|##include| ,(string-append (zipi-rts-dir) "/object.scm"))
-		  (|##include| ,(string-append (zipi-rts-dir) "/iterator.bgl"))
-		  (|##include| ,(string-append (zipi-rts-dir) "/iterator.scm"))
                   )
 		'())
 	  (define py-module ,@prog)
