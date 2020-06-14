@@ -3,6 +3,8 @@ import ast as AST
 
 debug = False
 
+absent = object()
+
 class Context:
     def __init__(self, rte, cont, ast):
         self.rte = rte
@@ -12,6 +14,211 @@ class Context:
     def set_continuation(self, cont):
         self.cont = cont
 
+    def call(self):
+        return self.cont(self.rte)
+
+# object model
+def make_dict():
+    return dict()
+
+def dict_get(d, key):
+    if key in d:
+        return d[key]
+    else:
+        return absent
+
+def dict_set(d, key, value):
+    d[key] = value
+
+def class_getattribute(o, attr):
+    return dict_get(o, attr)
+
+def class_setattribute(o, attr, value):
+    dict_set(o, attr, value)
+
+def getattribute_from_class_mro(cls, name):
+    __mro__ = class__mro__(cls)
+    for cls in __mro__:
+        attr = class_getattribute(cls, name)
+        if attr is not absent:
+            return attr
+    return absent
+
+def getattribute_from_obj_mro(o, name):
+    __class__ = object_class(o)
+    return getattribute_from_class_mro(__class__, name)
+
+def make_class(name, module, bases):
+    cls = make_dict()
+    dict_set(cls, '__name__', name)
+    dict_set(cls, '__module__', module)
+    dict_set(cls, '__mro__', None)
+    return cls
+
+def make_builtin_class(name):
+    # Set base classes when they do exist
+    cls = make_class(name, 'builtins', None)
+    return cls
+
+
+def class_set__mro__(cls, mro):
+    dict_set(cls, '__mro__', mro)
+
+def class__mro__(cls):
+    return dict_get(cls, '__mro__')
+
+# Initialize integer class
+def populate_builtin_int():
+    dict_set(class_int, '__bool__', lifted_int_bool)
+    dict_set(class_int, '__add__', lifted_int_add)
+    dict_set(class_int, '__radd__', lifted_int_radd)
+    dict_set(class_int, '__sub__', lifted_int_sub)
+    dict_set(class_int, '__rsub__', lifted_int_rsub)
+    dict_set(class_int, '__lt__', lifted_int_lt)
+    dict_set(class_int, '__repr__', lifted_int_repr)
+
+    class_set__mro__(class_int, [class_int, class_object])
+
+def populate_builtin_object():
+    # TODO: complete object magic method
+    dict_set(class_object, '__repr__', lifted_object_repr)
+    class_set__mro__(class_object, [class_object])
+
+def populate_builtin_bool():
+    # TODO: complete bool magic method
+    dict_set(class_bool, '__bool__', lifted_bool_bool)
+
+    class_set__mro__(class_bool, [class_bool, class_int, class_object])
+
+def populate_builtin_str():
+    # TODO: add the method of the str object
+    class_set__mro__(class_str, [class_str, class_object])
+
+def populate_builtin_NoneType():
+    # TODO: add the method of the str object
+    dict_set(class_NoneType, '__bool__', lifted_NoneType_bool)
+
+    class_set__mro__(class_NoneType, [class_NoneType, class_object])
+
+def make_object(cls):
+    o = make_dict()
+    dict_set(o, '__class__', cls)
+    return o
+
+def object_class(o):
+    if o is None:
+        return class_NoneType
+    elif isinstance(o, int):
+        return class_int
+    elif isinstance(o, bool):
+        return class_bool
+    elif isinstance(o, str):
+        return class_str
+    else:
+        __class__ = class_getattribute(o, '__class__')
+        assert __class__ is absent, 'object does not have a class'
+        return __class__
+
+def lifted_object_repr(ctx, val):
+    __name__ = getattribute_from_obj_mro(val, '__name__')
+    result = "<class '" + __name__ + "'>"
+    return expr_end(ctx, result)
+
+def lifted_bool_bool(ctx, val):
+    return expr_end(ctx, val)
+
+def lifted_int_bool(ctx, val):
+    if debug: print('int.__bool__')
+    result = val != 0
+    return ctx.cont(ctx.rte, result)
+
+def lifted_int_add(ctx, val1, val2):
+    # TODO: add type checking
+    result = val1 + val2
+    return expr_end(ctx, result)
+
+lifted_int_radd = lifted_int_add
+
+def lifted_int_sub(ctx, val1, val2):
+    # TODO: add type check.
+    result = val1 - val2
+    return expr_end(ctx, result)
+
+def lifted_int_rsub(ctx, val1, val2):
+    return lifted_int_sub(ctx, val2, val1)
+
+def lifted_int_lt(ctx, val1, val2):
+    if debug: print('int.__lt__')
+    # v1 = class_getattribute(val1, '**value**')
+    # v2 = class_getattribute(val2, '**value**')
+    # if v1 < v2:
+    #     result = obj_True
+    # else:
+    #     result = obj_False
+    result = val1 < val2
+    return expr_end(ctx, result)
+
+def lifted_int_floordiv(ctx, val1, val2):
+    if val2 == 0:
+        # TODO: implemented sem_raise
+        #return sem_raise(ctx, lifted_ZeroDivisionError())
+        assert False, 'Division by zero'
+    else:
+        result = val1 // val2
+        return expr_end(ctx, result)
+
+def lifted_int_repr(ctx, val):
+    result = str(val)
+    return expr_end(ctx, result)
+
+def lifted_NoneType_bool(ctx, val):
+    if debug: print('None.__bool__')
+    result = False
+    return ctx.cont(ctx.rte, result)
+
+# XXX: need to decide if I keep this
+def lower_object(obj):
+    # dtype = class_getattribute(obj, '__class__')
+    # if dtype in [class_int, class_bool, class_str]:
+    #     value = class_getattribute(obj, '**value**')
+    # else:
+    #     value = obj
+    value = obj
+    return value
+
+# XXX: need to decide if I keep this
+def lift_object(obj):
+    return obj
+    # if isinstance(obj, int):
+    #     return make_int(obj)
+    # elif isinstance(obj, bool):
+    #     # make_sure only one instance of bool
+    #     if obj:
+    #         return obj_True
+    #     else:
+    #         return obj_False
+    # else:
+    #     return obj
+
+# Create builtins classes
+class_object = make_builtin_class('object')
+class_int = make_builtin_class('int')
+class_bool = make_builtin_class('bool')
+class_NoneType = make_builtin_class('NoneType')
+
+class_str = make_builtin_class('str')
+class_tuple = make_builtin_class('tuple')
+class_list = make_builtin_class('list')
+
+populate_builtin_object()
+populate_builtin_int()
+populate_builtin_bool()
+populate_builtin_str()
+populate_builtin_NoneType()
+# TODO: populate other builtin classes
+
+
+# Interpreter
 def interp_file(path):
     source = read_file(path)
     interp(parse(source))
@@ -252,12 +459,16 @@ def gen_if(cte, ast, code1, code2, code3):
     def code(rte, cont):
 
         def dispatch(rte, val):
-            if sem_false(val):
+            if val is False:
                 return code3(rte, cont)
             else:
                 return code2(rte, cont)
 
-        return code1(rte, dispatch)
+        def cast_bool(rte, val):
+            ctx = Context(rte, dispatch, ast)
+            return sem_bool(ctx, val)
+
+        return code1(rte, cast_bool)
 
     return (cte, code)
 
@@ -279,7 +490,11 @@ def gen_assert(cte, ast, code1, code2):
             else:
                 return cont(rte)
 
-        return code1(rte, dispatch)
+        def cast_bool(rte, val):
+            ctx = Context(rte, dispatch, ast)
+            return sem_bool(ctx, val)
+
+        return code1(rte, cast_bool)
 
     return (cte, code)
 
@@ -318,12 +533,26 @@ def gen_logical_and(cte, ast, code1, code2):
     if debug: print('gen_logical_and')
 
     # XXX: look into runtime environment.
+
     def code(rte, cont):
-        return code1(rte,
-                     lambda rte1, val1:
-                        cont(rte1, val1) if sem_false(val1) else code2(rte,
-                                                                lambda rte2, val2:
-                                                                    cont(rte2, val2)))
+        def cast_bool(rte1, val1):
+            def dispatch(rte2, cond_val):
+                if cond_val:
+                    return code2(rte1, cont)
+                else:
+                    return cont(rte1, val1)
+
+            ctx = Context(rte, dispatch, ast)
+            return sem_bool(ctx, val1)
+
+        return code1(rte, cast_bool)
+
+        # return code1(rte,
+        #              lambda rte1, val1:
+        #                 cont(rte1, val1) if sem_false(val1) else code2(rte,
+        #                                                         lambda rte2, val2:
+        #                                                             cont(rte2, val2)))
+
 
     return (cte, code)
 
@@ -331,11 +560,15 @@ def gen_logical_or(cte, ast, code1, code2):
     if debug: print('gen_logical_or')
 
     def code(rte, cont):
-        return code1(rte,
-                     lambda rte1, val1:
-                        cont(rte1, val1) if val1 else code2(rte,
-                                                            lambda rte2, val2:
-                                                               cont(rte2, val2)))
+        def cast_bool(rte1, val1):
+            def dispatch(rte2, cond_val):
+                if cond_val:
+                    return cont(rte1, val1)
+                else:
+                    return code2(rte1, cont)
+            return sem_bool(Context(rte1, dispatch, ast), val1)
+        return code1(rte, cast_bool)
+
     return (cte, code)
 
 def gen_BoolOp(cte, ast, op, values):
@@ -444,12 +677,28 @@ def gen_Compare(cte, ast, left, comparators, ops):
         assert False, 'not implemented'
 
 def sem_Add(ctx, val1, val2):
-    result = val1 + val2
-    return expr_end(ctx, result)
+    __val1_add__ = getattribute_from_obj_mro(val1, '__add__')
+    if __val1_add__ is absent:
+        __val2_radd__ = getattribute_from_obj_mro(val2, '__radd__')
+        if __val2_radd__ is absent:
+            # TypeError: unsupported operand type(s) for +: type(val1).__name__ and type(val2).__name__"
+            assert False, '__add__ and __radd__ are absent absent'
+        else:
+            return __val2_radd__(ctx, val2, val1)
+    else:
+        return __val1_add__(ctx, val1, val2)
 
 def sem_Sub(ctx, val1, val2):
-    result = val1 - val2
-    return expr_end(ctx, result)
+    __val1_sub__ = class_getattr(val1, '__sub__')
+    if __val1_sub__ is absent:
+        __val2_rsub__ = class_getattribute(val2, '__rsub__')
+        if __val2_rsub__ is absent:
+            # TypeError: unsupported operand type(s) for -: type(val1).__name__ and type(val2).__name__"
+            assert False, '__sub__ and __rsub__ are absent absent'
+        else:
+            return __val2_rsub__(ctx, val1, val2)
+    else:
+        return __val1_sub__(ctx, val1, val2)
 
 def sem_Mult(ctx, val1, val2):
     result = val1 * val2
@@ -476,8 +725,17 @@ def sem_NotEq(ctx, val1, val2):
     return expr_end(ctx, result)
 
 def sem_Lt(ctx, val1, val2):
-    result = val1 < val2
-    return expr_end(ctx, result)
+    __val1_lt__ = getattribute_from_obj_mro(val1, '__lt__')
+    if __val1_lt__ is absent:
+        __val2__gt__ = getattribute_from_obj_mro(val2, '__gt__')
+        if __val2_gt__ is absent:
+            # TypeError: '<' not supported between instances of type(val1).__name__ and type(val2).__name__
+            # return sem_raise(ctx, make_TypeError())
+            assert False, "'<' and '>' not supported"
+        else:
+            return __val2_gt__(ctx, val2, val1)
+    else:
+        return __val1_lt__(ctx, val1, val2)
 
 def sem_LtE(ctx, val1, val2):
     result = val1 <= val2
@@ -490,6 +748,12 @@ def sem_Gt(ctx, val1, val2):
 def sem_GtE(ctx, val1, val2):
     result = val1 >= val2
     return expr_end(ctx, result)
+
+def sem_repr(ctx, val1):
+    __repr__ = getattribute_from_obj_mro(val1, '__repr__')
+    # TODO: proper exception
+    #assert __repr__ is absent, '__repr__ not defined'
+    return __repr__(ctx, val1)
 
 def gen_constant(cte, ast, val):
 
@@ -510,6 +774,23 @@ def sem_var_get(ctx, id):
     result = ctx.rte[id]
     return expr_end(ctx, result)
 
+def sem_bool(ctx, val):
+    __val_bool__ = getattribute_from_obj_mro(val, '__bool__')
+    if __val_bool__ is absent:
+        __val_len__ = getattribute_from_obj_mro(val, '__len__')
+        if __val_len__ is absent:
+            return expr_end(ctx, True)
+        else:
+            def nonzero(rte, val):
+                result = val != 0
+                return expr_end(ctx, result)
+
+            ctx1 = Context(ctx.rte, nonzero, ctx.ast)
+            return __val_len__(ctx1, val)
+    else:
+        return __val_bool__(ctx, val)
+
+# XXX: decide if I keep this
 def sem_false(val):
     return not val
 
