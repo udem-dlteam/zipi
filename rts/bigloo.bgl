@@ -13,18 +13,18 @@
 ;*    The module                                                       */
 ;*---------------------------------------------------------------------*/
 (module __py_bigloo
-   
-   (import __py_object)
-   
+
+   (import __py_rts)
+
    (export (inline arithmetic-shift::long ::long ::long)
 	   (inline bitwise-and::long ::long ::long)
 	   (inline bitwise-ior::long ::long ::long)
 	   (inline bitwise-xor::long ::long ::long)
 	   (inline bitwise-not::long ::long)
-	   
+
 	   (inline floor-quotient x y)
 	   (inline inexact::double x)
-	   
+
 	   (inline fx+::long ::long ::long)
 	   (inline fx-::long ::long ::long)
 	   (inline fx*::long ::long ::long)
@@ -34,7 +34,7 @@
 	   (inline fx<::bool ::long ::long)
 	   (inline fx<=::bool ::long ::long)
 	   (inline fx>::bool ::long ::long)
-	   
+
 	   (inline u8+::uint8 ::uint8 ::uint8)
 	   (inline u8-::uint8 ::uint8 ::uint8)
 	   (inline u8*::uint8 ::uint8 ::uint8)
@@ -44,7 +44,7 @@
 	   (inline u8<::bool ::uint8 ::uint8)
 	   (inline u8<=::bool ::uint8 ::uint8)
 	   (inline u8>::bool ::uint8 ::uint8)
-	   
+
 	   (inline u8vector-append . vecs)
 	   (inline subu8vector vec start stop)
 	   (macro let-values)))

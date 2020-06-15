@@ -20,7 +20,7 @@ do: build
 #*---------------------------------------------------------------------*/
 #*    common objects                                                   */
 #*---------------------------------------------------------------------*/
-OBJECTS_COMMON = object configure
+OBJECTS_COMMON = rts configure
 
 #*---------------------------------------------------------------------*/
 #*    Common entry points                                              */
@@ -39,16 +39,16 @@ install: $(ZIPISYSTEMS:%=install.%)
 clean: $(ZIPISYSTEMS:%=clean.%)
 
 distclean: clean
-	rm -f object.sch
+	rm -f rts.sch
 
 cleanall: distclean
 
 #*---------------------------------------------------------------------*/
 #*    common targets and dependencies                                  */
 #*---------------------------------------------------------------------*/
-o/object.o: object.sch
+o/rts.o: rts.sch
 
-.afile: object.sch
+.afile: rts.sch
 
 %.sch: %.bgl .afile
 	touch $@ && $(BIGLOO) -classgen $< -o $@
