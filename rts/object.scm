@@ -3,6 +3,20 @@
 ;;  This was already done with int, example:
 ;; the object int.__add__ has name 'int.__add__' in the source
 
+;; TODO: Move in object.gambit
+(define (why-am-i-here?)
+  (##continuation-capture (lambda (cc) (display-continuation-backtrace cc))))
+
+(define (object-repr self)
+  (let* ((self-type (py-type self))
+         (self-type-name (py-str-to-scheme (type-name-fast-get self-type)))
+         (addr (integer->hex-string (##object->encoding self)))
+         (result (string-append "<" self-type-name " object at " addr ">")))
+    (py-str-from-scheme result)))
+
+(define (read-string port)
+   (list->string (read-all port read-char)))
+
 ;; =============================================================================
 ;;  HIDDEN CLASSES
 ;; =============================================================================
