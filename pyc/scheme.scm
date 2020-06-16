@@ -45,30 +45,26 @@
 		    global)))))))
 
 (define (pyc-scheme-gambit ast conf)
-  (let ((prog (pyc-scheme ast conf)))
-      `(;;begin
-	  ,@(if #t ;(config-get conf main:) ;; shouldn't this always be included?
-		`((|##import| bigloo)
-		  (|##include| ,(string-append (zipi-rts-dir) "/object.gambit"))
-		  (|##include| ,(string-append (zipi-rts-dir) "/object.scm"))
-                  )
-		'())
-	  (define py-module ,@prog)
-	  ,(if (config-get conf main:)
-	       `(begin
-     		    (define (main args)
-    		      (py-module (py-make-global) (py-make-caches ,(PycModule-caches ast))))
-       (with-handler
-         (lambda (%exc)
-          (if (PyObject? %exc)
-            (print-exception %exc)
-            (raise %exc)))
-		   (main (command-line))))
-	       `(lambda ()
-		   (let ((global (py-make-global))
-			 (caches (py-make-caches ,(PycModule-caches ast))))
-		      (py-module global caches)
-		      global))))))
+  (let* ((prog (pyc-scheme ast conf))
+        (file (config-get conf file:))
+        (path (config-get conf dir:))
+        (full-path (if (and file path) (path-expand file path) "<stdin>")))
+    (list `(define-library (zipi-module)
+              (export init)
+
+              (import (zipi rts))
+
+              (define py-module ,@prog)
+
+              (define (init name static-table)
+                (let ((module (py-make-global))
+                      (caches (py-make-caches ,(PycModule-caches ast))))
+                  (global-put!
+                    module (& "__name__") name #f)
+                  (global-put!
+                    module (& "__file__") (py-str-from-scheme ,full-path) #f)
+                  (py-module module caches)
+                  module))))))
 
 (define (scheme* nodes conf)
    (map (lambda (n) (scheme n conf)) nodes))
@@ -89,7 +85,6 @@
 (define-walk-method (scheme this::PycModule conf)
    (epairify this
       `(lambda (%global %caches)
-	  (set! py-import-root ,(config-get conf dir:))
 	  ,@(scheme* (PycModule-stmts this)
 	       (cons* module: (PycModule-globals this) conf)))))
 
