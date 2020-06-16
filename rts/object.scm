@@ -5616,7 +5616,7 @@
                              ("sys" . mod)
                              ("time" . time-mod)))
     (PyObject-elements-set! mod 4
-                           (create-sys-list "" "~/udem-dlteam/zipi/python-builtins/"))
+                           (create-sys-list "~/udem-dlteam/zipi/python-builtins/"))
     mod))
 
 (define sys-mod (py-make-sys-mod))
@@ -5627,26 +5627,58 @@
 (define (sys-mod-path-get)
   (PyObject-elements-ref sys-mod 4))
 
+(define (import-with-gambit sys.modules name)
+  (with-exception-catcher
+   (lambda (e) #f)
+   (lambda ()
+     (let* ((init (eval `(let () (import ,(string->symbol (object-scheme-value-fast-get name))) init)))
+            (mod (init (object-scheme-value-fast-get name))))
+       (dict-setitem sys.modules name mod)
+       mod))))
+
+
+(define (compile-to-scheme source target)
+  (define (root-dir)
+    (or (getenv "ZIPIROOT")
+        (path-expand ".." (path-directory (car (command-line))))))
+
+  (shell-command
+   (string-append
+    (root-dir)
+    "/py19 -t gambit "
+    (root-dir)
+    "/../pyc "
+    source
+    " > "
+    target)))
+
 (define (import-module-scheme sys.modules name)
-  (let loop ((path-list (vector->list (cdr (object-scheme-value-fast-get (sys-mod-path-get))))))
+  (let loop ((path-list ##module-search-order))
     (if (pair? path-list)
-        (let ((path (path-expand (string-append (object-scheme-value-fast-get (car path-list)) name))))
+        (let ((path (path-expand (string-append (car path-list) (object-scheme-value-fast-get name)))))
           (cond
            ((file-exists? (string-append path ".py"))
-            (py-throw-exception-with-message py-NotImplemented "Compiling and adding files is not yet implemented, but the file " path " has been found"))
-           ((directory? path)
-            (py-throw-exception-with-message py-NotImplemented "Compiling and adding directories is not yet implemented, but the directory " path " has been found"))
-           (else (loop (cdr path-list)))))
-        (py-throw-exception-with-message py-builtin-ModuleNotFoundError "No module named " name))))
+            (begin
+              (compile-to-scheme (string-append path ".py") (string-append path ".scm"))
+              (or (import-with-gambit sys.modules name)
+                  (py-throw-exception-with-message py-builtin-ModuleNotFoundError "Unable to compile or execute module " (object-scheme-value-fast-get name)))
+            ))
+           (else (begin (print path) (loop (cdr path-list)))))
+        (py-throw-exception-with-message py-builtin-ModuleNotFoundError "No module named " (object-scheme-value-fast-get name))))))
+
+(break compile-to-scheme)
 
 (define (builtin-__import__ name)
   (let ((sys.modules (sys-mod-modules-get)))
     ;; check in sys.modules if the value exist and returns it if it exists
     (or (dict-get sys.modules name #f)
-        (import-module-scheme sys.modules (object-scheme-value-fast-get name)))))
+        (import-with-gambit sys.modules name)
+        (import-module-scheme sys.modules name))))
+
 
 (define (py-import path depth)
   (builtin-__import__ (py-str-from-scheme path)))
+
 
 (define py-import-root (pwd))
 
@@ -7763,8 +7795,6 @@
      py-None
      py-absent
      (py-int-from-scheme 0)))))
-
-
 
 ;;-------------------- BaseException
 
