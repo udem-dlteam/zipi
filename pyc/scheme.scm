@@ -56,9 +56,8 @@
 
               (define py-module ,@prog)
 
-              (define (init name static-table)
-                (let ((module (py-make-global))
-                      (caches (py-make-caches ,(PycModule-caches ast))))
+              (define (init module name static-table)
+                (let ((caches (py-make-caches ,(PycModule-caches ast))))
                   (global-put!
                     module (& "__name__") name #f)
                   (global-put!
