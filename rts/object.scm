@@ -5662,7 +5662,7 @@
               (compile-to-scheme (string-append path ".py") (string-append path ".scm"))
               (or (import-with-gambit sys.modules name)
                   (py-throw-exception-with-message py-builtin-ModuleNotFoundError "Unable to compile or execute module " (object-scheme-value-fast-get name)))))
-           (else (begin (print path) (loop (cdr path-list)))))
+           (else (loop (cdr path-list))))
         (py-throw-exception-with-message py-builtin-ModuleNotFoundError "No module named " (object-scheme-value-fast-get name))))))
 
 (define (builtin-__import__ name)
@@ -5679,52 +5679,6 @@
 
 (define py-import-root (pwd))
 
-(define py-import-cache1 (make-PCache -1 -1))
-(define py-import-cache2 (make-PCache -1 -1))
-(define py-import-cache3 (make-PCache -1 -1))
-
-(define (py-import-builtin path)
-  (cond ((string=? path "builtins")
-         (py-builtins-mod))
-        ((string=? path "time")
-         time-mod)
-        ((string=? path "sys")
-         sys-mod)
-        (else
-         #f)))
-
-(define (sysmod-add-entry! sysmod key mod)
-   (py-setitem sysmod key mod py-import-cache3)
-   mod)
-
-(define (py-import-from-sysmod sysmod key path)
-  (if (py-in sysmod key py-import-cache1)
-      (let ((mod (py-getitem sysmod key py-import-cache2)))
-        (if (eq? mod py-absent)
-            (error "py-import" "ModuleNotFoundError" path)
-            mod))
-      #f))
-
-(define (py-import-dir sysmod key path)
-   (let ((init (make-file-path path "__init__.py")))
-      (if (file-exists? init)
-          (error "py-import-dir" "package import unimplemented" path)
-          (let ((mod
-                 (py-obj-alloc
-                  py-module-class
-                  (make-HClass
-                   (vector py-module-class py-object-class)
-                   (vector (& "**class**")
-                           (& "__class__")
-                           (& "__name__")
-                           (& "__file__")
-                           )
-                   '()))))
-            (PyObject-elements-set! mod 1 py-object-class)
-            (PyObject-elements-set! mod 2 (py-str-from-scheme path))
-            (PyObject-elements-set! mod 3 (py-str-from-scheme path))
-            (sysmod-add-entry! sysmod key mod)
-            mod))))
 
 ;; ===========================================
 ;; BUITLINS
