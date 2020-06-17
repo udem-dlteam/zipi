@@ -5645,9 +5645,9 @@
   (shell-command
    (string-append
     (root-dir)
-    "/py19 -t gambit "
+    "/etc/py19 -t gambit "
     (root-dir)
-    "/../pyc "
+    "/pyc "
     source
     " > "
     target)))
@@ -5661,12 +5661,9 @@
             (begin
               (compile-to-scheme (string-append path ".py") (string-append path ".scm"))
               (or (import-with-gambit sys.modules name)
-                  (py-throw-exception-with-message py-builtin-ModuleNotFoundError "Unable to compile or execute module " (object-scheme-value-fast-get name)))
-            ))
+                  (py-throw-exception-with-message py-builtin-ModuleNotFoundError "Unable to compile or execute module " (object-scheme-value-fast-get name)))))
            (else (begin (print path) (loop (cdr path-list)))))
         (py-throw-exception-with-message py-builtin-ModuleNotFoundError "No module named " (object-scheme-value-fast-get name))))))
-
-(break compile-to-scheme)
 
 (define (builtin-__import__ name)
   (let ((sys.modules (sys-mod-modules-get)))
