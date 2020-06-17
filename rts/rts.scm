@@ -582,9 +582,6 @@
 ;; =============================================================================
 ;; Exception thrower helpers
 ;; =============================================================================
-(define (py-throw-exception-with-message exc-type message)
-  (py-throw (py-call exc-type (py-str-from-scheme message))))
-
 (define (throw-unsupported-unary-operand x operator)
   (let ((x-type-name (type-name-fast-get (py-type x))))
     (py-throw
@@ -785,10 +782,10 @@
           (string-append
             fun-name " returned " qualifier " (type " type-name ")"))))))
 
-(define-macro (py-throw-exception-with-message throw-builtin . msg)
+(define-macro (py-throw-exception-with-message exc . msg)
   `(py-throw
     (py-call
-      ,throw-builtin
+      ,exc
       (py-str-from-scheme (string-append ,@msg)))))
 
 ;; -----------------------------------------------------------------------------
