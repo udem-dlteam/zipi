@@ -5616,7 +5616,7 @@
                              ("sys" . mod)
                              ("time" . time-mod)))
     (PyObject-elements-set! mod 4
-                           (create-sys-list "" "~/udem-dlteam/zipi/python-builtins/"))
+                           (create-sys-list "~/udem-dlteam/zipi/python-builtins/"))
     mod))
 
 (define sys-mod (py-make-sys-mod))
@@ -5627,75 +5627,58 @@
 (define (sys-mod-path-get)
   (PyObject-elements-ref sys-mod 4))
 
+(define (import-with-gambit sys.modules name)
+  (with-exception-catcher
+   (lambda (e) (if (PyObject? e) (raise e) #f))
+   (lambda ()
+     (let* ((init (eval `(let () (import ,(string->symbol (object-scheme-value-fast-get name))) init)))
+            (mod (init (object-scheme-value-fast-get name))))
+       (dict-setitem sys.modules name mod)
+       mod))))
+
+
+(define (compile-to-scheme source target)
+  (define (root-dir)
+    (or (getenv "ZIPIROOT")
+        (path-expand ".." (path-directory (car (command-line))))))
+
+  (shell-command
+   (string-append
+    (root-dir)
+    "/etc/py19 -t gambit "
+    (root-dir)
+    "/pyc "
+    source
+    " > "
+    target)))
+
 (define (import-module-scheme sys.modules name)
-  (let loop ((path-list (vector->list (cdr (object-scheme-value-fast-get (sys-mod-path-get))))))
+  (let loop ((path-list ##module-search-order))
     (if (pair? path-list)
-        (let ((path (path-expand (string-append (object-scheme-value-fast-get (car path-list)) name))))
+        (let ((path (path-expand (string-append (car path-list) (object-scheme-value-fast-get name)))))
           (cond
            ((file-exists? (string-append path ".py"))
-            (py-throw-exception-with-message py-NotImplemented "Compiling and adding files is not yet implemented, but the file " path " has been found"))
-           ((directory? path)
-            (py-throw-exception-with-message py-NotImplemented "Compiling and adding directories is not yet implemented, but the directory " path " has been found"))
-           (else (loop (cdr path-list)))))
-        (py-throw-exception-with-message py-builtin-ModuleNotFoundError "No module named " name))))
+            (begin
+              (compile-to-scheme (string-append path ".py") (string-append path ".scm"))
+              (or (import-with-gambit sys.modules name)
+                  (py-throw-exception-with-message py-builtin-ModuleNotFoundError "Unable to compile or execute module " (object-scheme-value-fast-get name)))))
+           (else (loop (cdr path-list))))
+        (py-throw-exception-with-message py-builtin-ModuleNotFoundError "No module named " (object-scheme-value-fast-get name))))))
 
 (define (builtin-__import__ name)
   (let ((sys.modules (sys-mod-modules-get)))
     ;; check in sys.modules if the value exist and returns it if it exists
     (or (dict-get sys.modules name #f)
-        (import-module-scheme sys.modules (object-scheme-value-fast-get name)))))
+        (import-with-gambit sys.modules name)
+        (import-module-scheme sys.modules name))))
+
 
 (define (py-import path depth)
   (builtin-__import__ (py-str-from-scheme path)))
 
+
 (define py-import-root (pwd))
 
-(define py-import-cache1 (make-PCache -1 -1))
-(define py-import-cache2 (make-PCache -1 -1))
-(define py-import-cache3 (make-PCache -1 -1))
-
-(define (py-import-builtin path)
-  (cond ((string=? path "builtins")
-         (py-builtins-mod))
-        ((string=? path "time")
-         time-mod)
-        ((string=? path "sys")
-         sys-mod)
-        (else
-         #f)))
-
-(define (sysmod-add-entry! sysmod key mod)
-   (py-setitem sysmod key mod py-import-cache3)
-   mod)
-
-(define (py-import-from-sysmod sysmod key path)
-  (if (py-in sysmod key py-import-cache1)
-      (let ((mod (py-getitem sysmod key py-import-cache2)))
-        (if (eq? mod py-absent)
-            (error "py-import" "ModuleNotFoundError" path)
-            mod))
-      #f))
-
-(define (py-import-dir sysmod key path)
-   (let ((init (make-file-path path "__init__.py")))
-      (if (file-exists? init)
-          (error "py-import-dir" "package import unimplemented" path)
-          (let ((mod
-                 (py-obj-alloc
-                  py-module-class
-                  (make-HClass
-                   (vector py-module-class py-object-class)
-                   (vector (& "**class**")
-                           (& "__class__")
-                           (& "__name__")
-                           (& "__file__")
-                           )
-                   '()))))
-            (PyObject-elements-set! mod 1 py-object-class)
-            (PyObject-elements-set! mod 2 (py-str-from-scheme path))
-            (PyObject-elements-set! mod 3 (py-str-from-scheme path))
-            (sysmod-add-entry! sysmod key mod)
-            mod))))
 
 ;; ===========================================
 ;; BUITLINS
@@ -7763,8 +7746,6 @@
      py-None
      py-absent
      (py-int-from-scheme 0)))))
-
-
 
 ;;-------------------- BaseException
 
