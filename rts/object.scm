@@ -5629,7 +5629,7 @@
 
 (define (import-with-gambit sys.modules name)
   (with-exception-catcher
-   (lambda (e) #f)
+   (lambda (e) (if (PyObject? e) (raise e) #f))
    (lambda ()
      (let* ((init (eval `(let () (import ,(string->symbol (object-scheme-value-fast-get name))) init)))
             (mod (init (object-scheme-value-fast-get name))))
