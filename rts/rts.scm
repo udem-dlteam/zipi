@@ -5350,10 +5350,9 @@
    (lambda ()
      (let* ((init (eval `(let () (import ,(string->symbol (object-scheme-value-fast-get name))) init)))
             (mod (py-make-global)))
-      (init (object-scheme-value-fast-get name) '())
+      (init mod (object-scheme-value-fast-get name) '())
       (dict-setitem sys.modules name mod)
       mod))))
-
 
 (define (compile-to-scheme source target)
   (define (root-dir)
