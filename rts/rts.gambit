@@ -8,6 +8,11 @@
       (lambda ()
         ,@body)))
 
+(define-macro (bind-exit exit . body)
+`(call/cc
+    (lambda ,exit
+      ,@body)))
+
 ;; debugging utility
 (define (why-am-i-here?)
   (##continuation-capture (lambda (cc) (display-continuation-backtrace cc))))

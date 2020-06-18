@@ -938,7 +938,7 @@
 
 ;; special case of x in y when y is an iterator
 (define (py-in-iterator item iterator)
-  (let ((next-item (py-for-next iterator)))
+  (let ((next-item (py-next iterator)))
     (cond
       ((not next-item) py-False)
       ((py-eq item next-item #f) py-True)
@@ -4319,7 +4319,7 @@
 	  (py-throw 'StopIteration)
 	  r)))
 
-(define (py-for-next iterator)
+(define (py-next iterator)
   (let ((next (getattribute-from-obj-mro iterator (& "__next__"))))
      (with-handler
         (lambda (e)
@@ -7865,8 +7865,9 @@
       (make-args-defaults-signature
         '#(self key reversed)
         (vector py-None py-False))))
+  (py-own-attr-set! py-list-class (& "sort") list.sort)
 
-  (py-own-attr-set! py-list-class (& "sort") list.sort))
+  (set! py-builtin-range (py-own-attr-ref builtins-mod (& "range"))))
 
 (define (py-make-builtins-mod)
   (import-module-scheme

@@ -5,6 +5,9 @@
     PyObject?
     &
 
+    with-handler
+    bind-exit
+
     py-absent
     global-get
     global-put!
@@ -76,6 +79,7 @@
     py-delitem
     py-test
     py-not
+    py-next
 
     object-get
     object-put!
