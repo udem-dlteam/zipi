@@ -1,11 +1,14 @@
 (define-library (rts)
   (export
+    exec-main
+
     PyObject?
     &
 
     py-absent
     global-get
     global-put!
+    object-put-no-cache!
 
     py-call
     py-call0
@@ -78,6 +81,7 @@
     object-put!
     getattribute-from-obj-mro
 
+    procedure->py-function
     py-int-from-scheme
     py-float-from-scheme
     py-str-from-scheme

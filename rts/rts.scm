@@ -725,6 +725,7 @@
 
 (define (py-throw-not-callable obj)
   (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
+    (pp given-type)
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
@@ -5350,9 +5351,18 @@
    (lambda ()
      (let* ((init (eval `(let () (import ,(string->symbol (object-scheme-value-fast-get name))) init)))
             (mod (py-make-global)))
-      (init mod (object-scheme-value-fast-get name) '())
+      (init mod name '())
       (dict-setitem sys.modules name mod)
       mod))))
+
+(define (exec-main name)
+  (let ((sys.modules (sys-mod-modules-get)))
+    (with-exception-catcher
+      (lambda (e) (if (PyObject? e) (print-exception e) (raise e)))
+      (lambda ()
+        (let* ((init (eval `(let () (import ,(string->symbol name)) init))))
+         (init (py-make-global) (py-str-from-scheme "__main__") '())))))
+  #f)
 
 (define (compile-to-scheme source target)
   (define (root-dir)

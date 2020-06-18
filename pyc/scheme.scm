@@ -49,21 +49,20 @@
         (file (config-get conf file:))
         (path (config-get conf dir:))
         (full-path (if (and file path) (path-expand file path) "<stdin>")))
-    (list `(define-library (zipi-module)
+    (list `(define-library (,(string->symbol (path-strip-extension file)))
               (export init)
+              (import (gambit) (zipi rts))
+              (begin
+                (define py-module ,@prog)
 
-              (import (zipi rts))
-
-              (define py-module ,@prog)
-
-              (define (init module name static-table)
-                (let ((caches (py-make-caches ,(PycModule-caches ast))))
-                  (global-put!
-                    module (& "__name__") name #f)
-                  (global-put!
-                    module (& "__file__") (py-str-from-scheme ,full-path) #f)
-                  (py-module module caches)
-                  module))))))
+                (define (init module name static-table)
+                  (let ((caches (py-make-caches ,(PycModule-caches ast))))
+                    (object-put-no-cache!
+                      module (& "__name__") name)
+                    (object-put-no-cache!
+                      module (& "__file__") (py-str-from-scheme ,full-path))
+                    (py-module module caches)
+                    module)))))))
 
 (define (scheme* nodes conf)
    (map (lambda (n) (scheme n conf)) nodes))
