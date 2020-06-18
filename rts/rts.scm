@@ -142,8 +142,8 @@
   '#() ;; set later when classes exist
   (vector
     (& "**class**")
-    (& "__class__")
-    (& "__name__"))
+    (& "__name__")
+    (& "__builtins__"))
   '()))
 
 (define py-list-iterator-hclass-of-instances
@@ -5244,9 +5244,8 @@
          (py-obj-alloc
           py-module-class
           py-module-hclass-of-instances)))
-    (PyObject-elements-set! mod 0 py-module-class)
-    (PyObject-elements-set! mod 1 py-module-class)
-    (PyObject-elements-set! mod 3 (py-builtins-mod))
+    (py-own-attr-set! mod (& "**class**") py-module-class)
+    (py-own-attr-set! mod (& "__builtins__") (py-builtins-mod))
     mod))
 
 #;
