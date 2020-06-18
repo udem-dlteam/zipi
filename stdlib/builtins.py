@@ -134,7 +134,8 @@ def sorted(lst, key=None, reversed=False):
 # ==============================================================================
 
 # Passes BaseException from pre-bootstrap globals to current globals
-BaseException = BaseException
+class BaseException:
+    pass
 
 class Exception(BaseException):
     pass

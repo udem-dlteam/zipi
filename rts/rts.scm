@@ -5393,8 +5393,8 @@
                     py-builtin-ModuleNotFoundError
                     "Unable to compile or execute module "
                     (object-scheme-value-fast-get name)))))
-           (else (loop (cdr path-list))))
-        (py-throw-exception-with-message py-builtin-ModuleNotFoundError "No module named " (object-scheme-value-fast-get name))))))
+           (else (loop (cdr path-list)))))
+        (py-throw-exception-with-message py-builtin-ModuleNotFoundError "No module named " (object-scheme-value-fast-get name)))))
 
 (define (builtin-__import__ name)
   (let ((sys.modules (sys-mod-modules-get)))
@@ -7687,10 +7687,6 @@
     (py-attr-set! mod (& "SystemExit") py-builtin-SystemExit)
     (py-attr-set! mod (& "TabError") py-builtin-TabError)
     (py-attr-set! mod (& "TimeoutError") py-builtin-TimeoutError)
-    (py-attr-set! mod (& "None") py-None)
-    (py-attr-set! mod (& "NotImplemented") py-NotImplemented)
-    (py-attr-set! mod (& "False") py-False)
-    (py-attr-set! mod (& "True") py-True)
     (py-attr-set! mod (& "TypeError") py-builtin-TypeError)
     (py-attr-set! mod (& "UnboundLocalError") py-builtin-UnboundLocalError)
     (py-attr-set! mod (& "UnicodeDecodeError") py-builtin-UnicodeDecodeError)
@@ -7702,6 +7698,10 @@
     (py-attr-set! mod (& "ValueError") py-builtin-ValueError)
     (py-attr-set! mod (& "Warning") py-builtin-Warning)
     (py-attr-set! mod (& "ZeroDivisionError") py-builtin-ZeroDivisionError)
+    (py-attr-set! mod (& "None") py-None)
+    (py-attr-set! mod (& "NotImplemented") py-NotImplemented)
+    (py-attr-set! mod (& "False") py-False)
+    (py-attr-set! mod (& "True") py-True)
     (py-attr-set! mod (& "abs") py-builtin-abs)
     (py-attr-set! mod (& "all") py-builtin-all)
     (py-attr-set! mod (& "any") py-builtin-any)
@@ -7770,6 +7770,8 @@
     (py-attr-set! mod (& "type") py-builtin-type)
     (py-attr-set! mod (& "vars") py-builtin-vars)
     (py-attr-set! mod (& "zip") py-builtin-zip)
+    ;; TODO remove and use __compiler_instrinsics__ once available
+    (py-attr-set! mod (& "_absent") (cons 'buitlin-absent-sentinel '()))
     mod))
 
 (define builtins-mod (py-init-builtin-module))
