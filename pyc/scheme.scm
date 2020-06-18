@@ -167,7 +167,7 @@
         ;; cPython recovers __next__ everytime we loop, but if we are
         ;; assured that the __next__ method is never rassigned *anywhere* in
         ;; the mro, then we can get __next__ once at the start.
-		     (let ((,target (py-for-next ,iterator)))
+		     (let ((,target (py-next ,iterator)))
 			(when ,target
 			   ,(let ((assig (new-PycAssig (PycNode-loc this)
 					    (PycFor-target this)

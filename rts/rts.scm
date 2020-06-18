@@ -5414,7 +5414,7 @@
       (lambda ()
         (let* ((init (eval `(let () (import ,(string->symbol name)) init))))
          (init (py-make-global) (py-str-from-scheme "__main__") '())))))
-  #f)
+  #!void)
 
 (define py-import-root (pwd))
 

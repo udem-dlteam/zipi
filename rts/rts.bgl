@@ -144,7 +144,7 @@
      (class PyGenerator::PyObject %next)
      (py-make-generator ::procedure)
      (py-generator-yield ::PyGenerator ::obj ::procedure)
-     (py-for-next ::obj)
+     (py-next ::obj)
 
       (class PCache
         (hclass (default (class-nil HClass)))

@@ -108,7 +108,6 @@
     py-generator-yield
     py-make-generator
     py-generator-send
-    py-for-next
 
     py-enter
     py-exit
