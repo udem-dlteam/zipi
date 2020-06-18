@@ -80,6 +80,7 @@
     py-test
     py-not
     py-next
+    py-import
 
     object-get
     object-put!
