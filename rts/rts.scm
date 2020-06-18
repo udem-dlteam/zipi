@@ -273,15 +273,13 @@
          (make-PyObject
           hclass-of-instances
           (make-vector (vector-length (HClass-names hclass-of-instances))
-                       (py-uninit)))))
+                       py-absent))))
     (object-class-fast-set! self cls) ;; set **class**
     self))
 
 ;; ----------------------------------------------------------------------------
 
 (define py-absent (list 'absent))
-
-(define (py-uninit) py-absent)
 
 (define (global-get global name cache)
    (if (eq? (PyObject-hclass global) (PCache-hclass cache))
@@ -2275,25 +2273,25 @@
             py-type-hclass-of-instances
             (make-vector
               type-hclass-length
-              (py-uninit))))
+              py-absent)))
         (object-class
           (make-PyObject
             py-type-hclass-of-instances
             (make-vector
               type-hclass-length
-              (py-uninit))))
+              py-absent)))
         (str-class
           (make-PyObject
             py-type-hclass-of-instances
             (make-vector
               type-hclass-length
-              (py-uninit))))
+              py-absent)))
         (tuple-class
           (make-PyObject
             py-type-hclass-of-instances
             (make-vector
               type-hclass-length
-              (py-uninit)))))
+              py-absent))))
 
     (set! py-object-class object-class)
     (set! py-type-class type-class)
@@ -2411,7 +2409,7 @@
     (let ((name (car lst))
         (value (cadr lst))
         (rest (cddr lst)))
-    (if (eq? value (py-uninit))
+    (if (eq? value py-absent)
         (loop rest
               rev-attr-names
               rev-attr-values)
@@ -5245,7 +5243,7 @@
           py-module-class
           py-module-hclass-of-instances)))
     (py-own-attr-set! mod (& "**class**") py-module-class)
-    (py-own-attr-set! mod (& "__builtins__") (py-builtins-mod))
+    (py-own-attr-set! mod (& "__builtins__") builtins-mod)
     mod))
 
 #;
@@ -5343,24 +5341,16 @@
 (define (sys-mod-path-get)
   (PyObject-elements-ref sys-mod 4))
 
-(define (import-with-gambit sys.modules name)
+(define (import-with-gambit sys.modules name #!optional (mod #f))
   (with-exception-catcher
    (lambda (e) (if (PyObject? e) (raise e) #f))
    (lambda ()
-     (let* ((init (eval `(let () (import ,(string->symbol (object-scheme-value-fast-get name))) init)))
-            (mod (py-make-global)))
+     (let* ((module-name (object-scheme-value-fast-get name))
+            (init (eval `(let () (import ,(string->symbol module-name)) init)))
+            (mod (or mod (py-make-global))))
       (init mod name '())
       (dict-setitem sys.modules name mod)
       mod))))
-
-(define (exec-main name)
-  (let ((sys.modules (sys-mod-modules-get)))
-    (with-exception-catcher
-      (lambda (e) (if (PyObject? e) (print-exception e) (raise e)))
-      (lambda ()
-        (let* ((init (eval `(let () (import ,(string->symbol name)) init))))
-         (init (py-make-global) (py-str-from-scheme "__main__") '())))))
-  #f)
 
 (define (compile-to-scheme source target)
   (define (root-dir)
@@ -5377,16 +5367,32 @@
     " > "
     target)))
 
-(define (import-module-scheme sys.modules name)
+(define (import-module-scheme sys.modules name #!optional (module #f))
   (let loop ((path-list ##module-search-order))
     (if (pair? path-list)
-        (let ((path (path-expand (string-append (car path-list) (object-scheme-value-fast-get name)))))
+        (let* ((file-path
+                (path-expand
+                  (path-expand
+                    (object-scheme-value-fast-get name)
+                    (car path-list))))
+              (python-file-path (string-append file-path ".py"))
+              (scheme-file-path (string-append file-path ".scm")))
           (cond
-           ((file-exists? (string-append path ".py"))
+           ((file-exists? scheme-file-path)
+            ;; TODO: add some kind of checksum to detect file change
+            (or (import-with-gambit sys.modules name module)
+                (py-throw-exception-with-message
+                  py-builtin-ModuleNotFoundError
+                  "Unable to compile or execute module "
+                  (object-scheme-value-fast-get name))))
+           ((file-exists? python-file-path)
             (begin
-              (compile-to-scheme (string-append path ".py") (string-append path ".scm"))
-              (or (import-with-gambit sys.modules name)
-                  (py-throw-exception-with-message py-builtin-ModuleNotFoundError "Unable to compile or execute module " (object-scheme-value-fast-get name)))))
+              (compile-to-scheme python-file-path scheme-file-path)
+              (or (import-with-gambit sys.modules name module)
+                  (py-throw-exception-with-message
+                    py-builtin-ModuleNotFoundError
+                    "Unable to compile or execute module "
+                    (object-scheme-value-fast-get name)))))
            (else (loop (cdr path-list))))
         (py-throw-exception-with-message py-builtin-ModuleNotFoundError "No module named " (object-scheme-value-fast-get name))))))
 
@@ -5401,6 +5407,14 @@
 (define (py-import path depth)
   (builtin-__import__ (py-str-from-scheme path)))
 
+(define (exec-main name)
+  (let ((sys.modules (sys-mod-modules-get)))
+    (with-exception-catcher
+      (lambda (e) (if (PyObject? e) (print-exception e) (raise e)))
+      (lambda ()
+        (let* ((init (eval `(let () (import ,(string->symbol name)) init))))
+         (init (py-make-global) (py-str-from-scheme "__main__") '())))))
+  #f)
 
 (define py-import-root (pwd))
 
@@ -7760,12 +7774,6 @@
 
 (define builtins-mod (py-init-builtin-module))
 
-;; This needs to be globally defined an configured instead
-(define zipi-stdlib-dir (path-expand "stdlib" (getenv "ZIPIROOT")))
-
-(define (py-make-builtins-mod)
-   builtins-mod)
-
 ;; Once builtins.py is loaded, we need to keep a direct access to some builtins
 ;; Examples are exceptions which are part of Python protocols, such as StopIteration
 (define (bootstrap-builtins builtins-mod)
@@ -7858,8 +7866,16 @@
 
   (py-own-attr-set! py-list-class (& "sort") list.sort))
 
-(define (py-builtins-mod)
- (unless builtins-mod
-   (set! builtins-mod (py-make-builtins-mod))
-   (bootstrap-builtins builtins-mod))
- builtins-mod)
+(define (py-make-builtins-mod)
+  (import-module-scheme
+    (sys-mod-modules-get)
+    (py-str-from-scheme "builtins")
+    builtins-mod)
+  (bootstrap-builtins builtins-mod)
+  builtins-mod)
+
+(define zipi-stdlib-dir (path-expand "stdlib" (getenv "ZIPIROOT")))
+
+;; load the builtins from zipi/stdlib/builtins.py
+(##module-search-order-add! zipi-stdlib-dir)
+(py-make-builtins-mod)

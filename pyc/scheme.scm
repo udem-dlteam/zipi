@@ -49,7 +49,7 @@
         (file (config-get conf file:))
         (path (config-get conf dir:))
         (full-path (if (and file path) (path-expand file path) "<stdin>")))
-    (list `(define-library (,(string->symbol (path-strip-extension file)))
+    (list `(define-library (,(string->symbol (config-get conf name:)))
               (export init)
               (import (gambit) (zipi rts))
               (begin
@@ -578,7 +578,7 @@
 
 (define-walk-method (scheme this::PycUninit conf)
    (epairify this
-      '(py-uninit)))
+      'py-absent))
 
 (define-walk-method (scheme this::PycBool conf)
    (if (PycLiteralValue-val this)
@@ -726,7 +726,7 @@
    (let ((body (scheme (PycClass-body this) conf)))
      (let ((cls-symbol (PycClass-super-key this)))
         (epairify this
-      `(let (( ,cls-symbol (py-uninit)))
+      `(let (( ,cls-symbol py-absent))
   	 ,(match-case body
   	    ((letrec* ?bindings . ?body)
   	     `(letrec* ,bindings ,@body ,(pyc-class this)))
