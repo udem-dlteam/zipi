@@ -2,6 +2,12 @@
 ;*    Gambit compatibility                                             */
 ;*---------------------------------------------------------------------*/
 
+(define-macro (with-handler handler . body)
+  `(with-exception-catcher
+      ,handler
+      (lambda ()
+        ,@body)))
+
 ;; debugging utility
 (define (why-am-i-here?)
   (##continuation-capture (lambda (cc) (display-continuation-backtrace cc))))

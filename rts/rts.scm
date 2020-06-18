@@ -725,7 +725,6 @@
 
 (define (py-throw-not-callable obj)
   (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
-    (pp given-type)
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
