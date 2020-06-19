@@ -7,7 +7,7 @@ A fast Python implementation.
 To compile with Zipi for Gambit
 
 ```
-# First make sure to have followed those steps
+# First make sure to follow those steps
 export PATH=/usr/local/Gambit/bin:$PATH
 export ZIPIROOT=/home/[username]/udem-dlteam/zipi
 ./configure
@@ -48,4 +48,4 @@ To run a specific test or tests matching a given pattern
 python zipi/tests/run.py --pattern=[regex-pattern]
 ```
 
-The `regex-pattern` must obey Python `re` syntax. 
+The `regex-pattern` must obey Python `re` syntax.
