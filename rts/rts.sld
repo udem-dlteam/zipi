@@ -9,7 +9,7 @@
     with-handler
     bind-exit
 
-    flag-super-called-without-arguments
+    py-flag-super-called-without-arguments
     py-absent
     global-get
     global-put!

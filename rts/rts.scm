@@ -7268,13 +7268,13 @@
 ;; For practical suggestions on how to design cooperative classes using
 ;; super(), see guide to using super().
 
-(define (flag-super-called-without-arguments)
+(define (py-flag-super-called-without-arguments)
   'super-called-without-arguments
 )
 
 (define (super-init self type object)
   (cond ((eq? type py-absent)
-          (raise (flag-super-called-without-arguments)))
+          (raise (py-flag-super-called-without-arguments)))
         ((eq? object py-absent)
           (error "super not implemented for 1 argument"))
         (else

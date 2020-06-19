@@ -775,7 +775,7 @@
       (let ((caller (config-get conf fun:)))
         `(with-handler
           (lambda (%exn)
-            (if (eq? %exn (flag-super-called-without-arguments))
+            (if (eq? %exn (py-flag-super-called-without-arguments))
               ,(super-hook)
               (raise %exn)))
           ,call)))
