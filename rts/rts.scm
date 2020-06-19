@@ -5432,7 +5432,7 @@
          (init (py-make-global) (py-str-from-scheme "__main__") '())))))
   #!void)
 
-(define py-import-root (pwd))
+(define py-import-root (current-directory))
 
 
 ;; ===========================================

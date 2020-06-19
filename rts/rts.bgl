@@ -224,6 +224,8 @@
 (define-flop floor x)
 (define-flop ceiling x)
 
+(define-macro (current-directory) (pwd))
+
 (define-inline (fl!= x y) (not (=fx x y)))
 
 (define-inline (fl- x . y)
