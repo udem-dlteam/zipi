@@ -61,6 +61,16 @@ class range:
     def __iter__(self, /):
         return range_iterator(self.start, self.stop, self.step)
 
+    def __repr__(self):
+        start = self.start
+        stop = self.stop
+        step = self.step
+
+        if step == 1:
+            return "range(" + str(start) + ", " + str(stop) + ")"
+        else:
+            return "range(" + str(start) + ", " + str(stop) + ", " + str(step) + ")"
+
 def __merge(l1, l2):
     """
     Merge all items from two sorted list into one sorted list.

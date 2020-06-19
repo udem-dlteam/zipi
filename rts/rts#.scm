@@ -16,12 +16,15 @@
 (define-type PyObject
   id: C6486EB6-1522-42BA-A082-B6563F943CDF
   constructor: %make-PyObject
-  predicate: PyObject?
+  predicate: %PyObject?
   implementer: implement-PyObject
   copier: #f
   opaque:
   prefix: %
   macros: hclass elements)
+
+(define (PyObject? x)
+  (%PyObject? x))
 
 (define-macro (make-PyObject hclass elts)
   `(%make-PyObject ,hclass ,elts))

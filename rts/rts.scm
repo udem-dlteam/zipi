@@ -2021,6 +2021,21 @@
     str-hash
     (make-posonly-signature '#(self))))
 
+(define (str-add self other)
+  (if (py-isinstance? self py-str-class)
+    (if (py-isinstance? other py-str-class)
+      (py-str-from-scheme
+        (string-append
+          (object-scheme-value-fast-get self)
+          (object-scheme-value-fast-get other)))
+      py-NotImplemented)
+    (py-throw-required-type "__add__" "str" self)))
+
+(define str.__add__
+  (procedure->py-function
+    str-add
+    (make-posonly-signature '#(self other))))
+
 (define object.__repr__
   (procedure->py-function
     object-repr
@@ -2351,7 +2366,8 @@
     (py-own-attr-set! str-class (& "__hash__") str.__hash__)
     (py-own-attr-set! str-class (& "__str__") str.__str__)
     (py-own-attr-set! str-class (& "__repr__") str.__repr__)
-    (py-own-attr-set! str-class (& "__len__") str.__len__)))
+    (py-own-attr-set! str-class (& "__len__") str.__len__)
+    (py-own-attr-set! str-class (& "__add__") str.__add__)))
 
 (bootstrap-type-hierarchy-phase1)
 
