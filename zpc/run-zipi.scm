@@ -22,13 +22,13 @@
         (path (car args))
         (scm-target (string-append (path-strip-extension path) ".scm"))
         (module-name (path-strip-extension (path-normalize path #t)))
-        (_ (compile-to-scheme path scm-target))
+        (_ (compile-source path scm-target))
         (res
           (with-exception-catcher
             (lambda (e)
               (if clean-after-flag (delete-file scm-target))
               (raise e))
             (lambda ()
-              (exec-main module-name)
+              (run-as-main module-name)
               (if clean-after-flag (delete-file scm-target))))))
     res))

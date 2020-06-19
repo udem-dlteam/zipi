@@ -5368,7 +5368,7 @@
       (dict-setitem sys.modules name mod)
       mod))))
 
-(define (compile-to-scheme source target)
+(define (compile-source source target)
   (define (root-dir)
     (or (getenv "ZIPIROOT")
         (path-expand ".." (path-directory (car (command-line))))))
@@ -5403,7 +5403,7 @@
                   (object-scheme-value-fast-get name))))
            ((file-exists? python-file-path)
             (begin
-              (compile-to-scheme python-file-path scheme-file-path)
+              (compile-source python-file-path scheme-file-path)
               (or (import-with-gambit sys.modules name module)
                   (py-throw-exception-with-message
                     py-builtin-ModuleNotFoundError
@@ -5423,7 +5423,7 @@
 (define (py-import path depth)
   (builtin-__import__ (py-str-from-scheme path)))
 
-(define (exec-main name)
+(define (run-as-main name)
   (let ((sys.modules (sys-mod-modules-get)))
     (with-exception-catcher
       (lambda (e) (if (PyObject? e) (print-exception e) (raise e)))

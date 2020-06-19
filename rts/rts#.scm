@@ -128,7 +128,7 @@
 ;; =============================================================================
 
 (define-macro (& e)
-  `(string->symbol ,e))
+  `,(string->symbol e))
 
 (define-macro (pwd)
  `(current-directory))

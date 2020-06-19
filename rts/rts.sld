@@ -1,7 +1,7 @@
 (define-library (rts)
   (export
-    exec-main
-    compile-to-scheme
+    run-as-main
+    compile-source
 
     PyObject?
     &
@@ -39,7 +39,7 @@
     py-div
     py-floordiv
     py-lshift
-    py-matmal
+    py-matmul
     py-mod
     py-mul
     py-or
@@ -63,7 +63,7 @@
     py-idiv
     py-ifloordiv
     py-ilshift
-    py-imatmal
+    py-imatmul
     py-imod
     py-imul
     py-ior
