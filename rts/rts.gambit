@@ -22,16 +22,6 @@
 (define-macro (cell-set! c e)
   `(set-box! ,c ,e))
 
-;; u8 comparison
-(define-macro (u8= x y)
-  `(fx= ,x ,y))
-
-(define-macro (u8> x y)
-  `(fx> ,x ,y))
-
-(define-macro (u8< x y)
-  `(fx< ,x ,y))
-
 ;; debugging utility
 (define (why-am-i-here?)
   (##continuation-capture (lambda (cc) (display-continuation-backtrace cc))))
