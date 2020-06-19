@@ -1,0 +1,5 @@
+clean.gambit:
+	rm -f builtins.scm
+
+distclean.gambit:
+	rm -f builtins.scm
