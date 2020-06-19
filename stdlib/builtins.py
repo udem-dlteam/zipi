@@ -133,9 +133,20 @@ def sorted(lst, key=None, reversed=False):
 # Exceptions
 # ==============================================================================
 
-# Passes BaseException from pre-bootstrap globals to current globals
 class BaseException:
-    pass
+    def __init__(self, *args):
+        self.args = args
+
+    def __str__(self):
+        args = self.args
+        args_len = len(self.args)
+
+        if args_len == 0:
+            return ""
+        elif args_len == 1:
+            return str(args[0])
+        else:
+            return str(args)
 
 class Exception(BaseException):
     pass

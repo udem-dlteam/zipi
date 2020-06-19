@@ -7486,53 +7486,7 @@
      py-absent
      (py-int-from-scheme 0)))))
 
-;;-------------------- BaseException
-
-;; The base exception cannot be created in pure Python
-;; All exception must inherit from it to be considered an exception
-
-(define (BaseException-init self *args)
-  (py-attr-set! self (& "args") *args))
-
-(define BaseException.__init__
-  (procedure->py-function
-    BaseException-init
-    (make-signature
-      '#()
-      '#(self)
-      'args
-      '#()
-      '#()
-      #f
-      '#())))
-
-;; TODO: also check if cPython allows args to be something else
-;; then a tuple
-(define (BaseException-str self)
-  (let* ((args (py-own-attr-ref self (& "args")))
-         (args-len (py-len args)))
-    (cond
-      ((eq? args-len py-int-0)
-        (py-str-from-scheme ""))
-      ((eq? args-len py-int-1)
-       (py-str (py-getitem args py-int-0 #f)))
-      (else
-        (py-str args)))))
-
-
-(define BaseException.__str__
-  (procedure->py-function
-    BaseException-str
-    (make-posonly-signature '#(self))))
-
-
-(define py-builtin-BaseException
-  (py-make-class
-    (& "BaseException")
-    (& "builtins")
-    (list)
-      (& "__init__") BaseException.__init__
-      (& "__str__") BaseException.__str__))
+;; Exceptions declarations
 
 (define py-builtin-ArithmeticError #f)
 (define py-builtin-AssertionError #f)
