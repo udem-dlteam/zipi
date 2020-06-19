@@ -5388,9 +5388,8 @@
     (if (pair? path-list)
         (let* ((file-path
                 (path-expand
-                  (path-expand
-                    (object-scheme-value-fast-get name)
-                    (car path-list))))
+                  (object-scheme-value-fast-get name)
+                  (car path-list)))
               (python-file-path (string-append file-path ".py"))
               (scheme-file-path (string-append file-path ".scm")))
           (cond
