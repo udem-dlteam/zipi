@@ -13,6 +13,15 @@
     (lambda ,exit
       ,@body)))
 
+(define-macro (make-cell e)
+  `(box ,e))
+
+(define-macro (cell-ref c)
+  `(unbox ,c))
+
+(define-macro (cell-set! c e)
+  `(set-box! ,c ,e))
+
 ;; debugging utility
 (define (why-am-i-here?)
   (##continuation-capture (lambda (cc) (display-continuation-backtrace cc))))

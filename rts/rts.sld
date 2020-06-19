@@ -9,10 +9,14 @@
     with-handler
     bind-exit
 
+    flag-super-called-without-arguments
     py-absent
     global-get
     global-put!
     object-put-no-cache!
+    make-cell
+    cell-ref
+    cell-set!
 
     py-call
     py-call0
@@ -94,9 +98,11 @@
     py-slice-from-scheme
     py-bytearray-from-scheme
     py-set-from-scheme
+    py-tuple-from-scheme
     py-make-list
     py-make-dict
     py-make-set
+    py-make-tuple
     py-type
 
     py-make-class

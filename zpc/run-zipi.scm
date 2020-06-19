@@ -25,8 +25,10 @@
         (_ (compile-to-scheme path scm-target))
         (res
           (with-exception-catcher
-            (lambda (e) #f)
-            (lambda () (exec-main module-name)))))
-    (if clean-after-flag
-      (delete-file scm-target))
+            (lambda (e)
+              (if clean-after-flag (delete-file scm-target))
+              (raise e))
+            (lambda ()
+              (exec-main module-name)
+              (if clean-after-flag (delete-file scm-target))))))
     res))
