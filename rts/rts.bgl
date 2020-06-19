@@ -1,5 +1,5 @@
 ;*=====================================================================*/
-;*    serrano/prgm/project/zipi/rts/object.bgl                         */
+;*    serrano/prgm/project/zipi/rts/rts.bgl                         */
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
@@ -12,11 +12,11 @@
 ;*---------------------------------------------------------------------*/
 ;*    The module                                                       */
 ;*---------------------------------------------------------------------*/
-(module __py_object
+(module __py_rts
 
    (option  (define-macro (& name) `',(string->symbol name)))
 
-   (include "object.sch")
+   (include "rts.sch")
 
    (import __py_bigloo
            ./builtins.py)
@@ -144,7 +144,7 @@
      (class PyGenerator::PyObject %next)
      (py-make-generator ::procedure)
      (py-generator-yield ::PyGenerator ::obj ::procedure)
-     (py-for-next ::obj)
+     (py-next ::obj)
 
       (class PCache
         (hclass (default (class-nil HClass)))
@@ -224,6 +224,8 @@
 (define-flop floor x)
 (define-flop ceiling x)
 
+(define-macro (current-directory) (pwd))
+
 (define-inline (fl!= x y) (not (=fx x y)))
 
 (define-inline (fl- x . y)
@@ -238,7 +240,7 @@
    (cond
       ((null? y) `(negfl ,x))
       ((null? (cdr y)) `(-fl ,x ,@y))
-      (else ((@ fl- __py_object) ,x ,@y))))
+      (else ((@ fl- __py_rts) ,x ,@y))))
 
 (define-expander error
    (lambda (x e)

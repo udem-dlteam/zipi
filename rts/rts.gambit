@@ -1,0 +1,37 @@
+;*---------------------------------------------------------------------*/
+;*    Gambit compatibility                                             */
+;*---------------------------------------------------------------------*/
+
+(define-macro (with-handler handler . body)
+  `(with-exception-catcher
+      ,handler
+      (lambda ()
+        ,@body)))
+
+(define-macro (bind-exit exit . body)
+`(call/cc
+    (lambda ,exit
+      ,@body)))
+
+(define-macro (make-cell e)
+  `(box ,e))
+
+(define-macro (cell-ref c)
+  `(unbox ,c))
+
+(define-macro (cell-set! c e)
+  `(set-box! ,c ,e))
+
+;; debugging utility
+(define (why-am-i-here?)
+  (##continuation-capture (lambda (cc) (display-continuation-backtrace cc))))
+
+(define (object-repr self)
+  (let* ((self-type (py-type self))
+         (self-type-name (py-str-to-scheme (type-name-fast-get self-type)))
+         (addr (integer->hex-string (##object->encoding self)))
+         (result (string-append "<" self-type-name " object at " addr ">")))
+    (py-str-from-scheme result)))
+
+(define (read-string port)
+   (list->string (read-all port read-char)))

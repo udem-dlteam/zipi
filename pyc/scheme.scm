@@ -45,30 +45,26 @@
 		    global)))))))
 
 (define (pyc-scheme-gambit ast conf)
-  (let ((prog (pyc-scheme ast conf)))
-      `(;;begin
-	  ,@(if #t ;(config-get conf main:) ;; shouldn't this always be included?
-		`((|##import| bigloo)
-		  (|##include| ,(string-append (zipi-rts-dir) "/object.gambit"))
-		  (|##include| ,(string-append (zipi-rts-dir) "/object.scm"))
-                  )
-		'())
-	  (define py-module ,@prog)
-	  ,(if (config-get conf main:)
-	       `(begin
-     		    (define (main args)
-    		      (py-module (py-make-global) (py-make-caches ,(PycModule-caches ast))))
-       (with-handler
-         (lambda (%exc)
-          (if (PyObject? %exc)
-            (print-exception %exc)
-            (raise %exc)))
-		   (main (command-line))))
-	       `(lambda ()
-		   (let ((global (py-make-global))
-			 (caches (py-make-caches ,(PycModule-caches ast))))
-		      (py-module global caches)
-		      global))))))
+  (let* ((prog (pyc-scheme ast conf))
+        (file (config-get conf file:))
+        (path (config-get conf dir:))
+        (full-path (if (and file path) (make-file-path path file) #f)))
+    (list `(define-library (,(string->symbol (config-get conf name:)))
+              (export init)
+              (import (gambit) (zipi rts))
+              (begin
+                (define py-module ,@prog)
+
+                (define (init module name static-table)
+                  (let ((caches (py-make-caches ,(PycModule-caches ast))))
+                    (object-put-no-cache!
+                      module (& "__name__") name)
+                    ,(if full-path
+                      `(object-put-no-cache!
+                        module (& "__file__") (py-str-from-scheme ,full-path))
+                      `,@(list))
+                    (py-module module caches)
+                    module)))))))
 
 (define (scheme* nodes conf)
    (map (lambda (n) (scheme n conf)) nodes))
@@ -89,7 +85,6 @@
 (define-walk-method (scheme this::PycModule conf)
    (epairify this
       `(lambda (%global %caches)
-	  (set! py-import-root ,(config-get conf dir:))
 	  ,@(scheme* (PycModule-stmts this)
 	       (cons* module: (PycModule-globals this) conf)))))
 
@@ -174,7 +169,7 @@
         ;; cPython recovers __next__ everytime we loop, but if we are
         ;; assured that the __next__ method is never rassigned *anywhere* in
         ;; the mro, then we can get __next__ once at the start.
-		     (let ((,target (py-for-next ,iterator)))
+		     (let ((,target (py-next ,iterator)))
 			(when ,target
 			   ,(let ((assig (new-PycAssig (PycNode-loc this)
 					    (PycFor-target this)
@@ -585,7 +580,7 @@
 
 (define-walk-method (scheme this::PycUninit conf)
    (epairify this
-      '(py-uninit)))
+      'py-absent))
 
 (define-walk-method (scheme this::PycBool conf)
    (if (PycLiteralValue-val this)
@@ -733,7 +728,7 @@
    (let ((body (scheme (PycClass-body this) conf)))
      (let ((cls-symbol (PycClass-super-key this)))
         (epairify this
-      `(let (( ,cls-symbol (py-uninit)))
+      `(let (( ,cls-symbol py-absent))
   	 ,(match-case body
   	    ((letrec* ?bindings . ?body)
   	     `(letrec* ,bindings ,@body ,(pyc-class this)))
@@ -782,7 +777,7 @@
       (let ((caller (config-get conf fun:)))
         `(with-handler
           (lambda (%exn)
-            (if (eq? %exn (flag-super-called-without-arguments))
+            (if (eq? %exn (py-flag-super-called-without-arguments))
               ,(super-hook)
               (raise %exn)))
           ,call)))

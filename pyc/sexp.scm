@@ -19,13 +19,7 @@
       ((Module ?loc ?body . ?type_ignors)
        ;; Module(stmt* body, type_ignore *type_ignores)
        (new-PycModule loc "???"
-	 (cons
-	  (new-PycDeclInit loc '__name__ scope
-	    (new-PycString loc (config-get conf name: "<unknown name>")))
-          (cons
-  	   (new-PycDeclInit loc '__file__ scope
-	     (new-PycString loc (config-get conf file: "<unknown file>")))
-	   (compile* loc body #t 'global conf)))))
+	       (compile* loc body #t 'global conf)))
 
      ;; lambda
       ((Lambda ?loc ?args ?body . ?type_comment)

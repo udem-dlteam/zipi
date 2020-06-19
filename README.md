@@ -7,20 +7,16 @@ A fast Python implementation.
 To compile with Zipi for Gambit
 
 ```
-# Add Gambit to your PATH
+# First make sure to follow those steps
 export PATH=/usr/local/Gambit/bin:$PATH
-
-# Add zipi to your PATH
 export ZIPIROOT=/home/[username]/udem-dlteam/zipi
-
-# Configure
+# For development:
+export GAMBOPT=search=~/udem-dlteam
 ./configure
+make
 
-# Compile with py19 for Gambit
-zipi/etc/py19 -t gambit somepythonfile.py > output.scm
-
-# Run the output file with Gambit
-gsi zipi/pyc/ output.scm
+# You can then compile and run a script with
+zipi/zpc/run-zipi.scm somepythonfile.py
 ```
 
 To compile with Bigloo, you will first need to install Zipi
@@ -54,4 +50,4 @@ To run a specific test or tests matching a given pattern
 python zipi/tests/run.py --pattern=[regex-pattern]
 ```
 
-The `regex-pattern` must obey Python `re` syntax. 
+The `regex-pattern` must obey Python `re` syntax.

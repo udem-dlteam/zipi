@@ -76,6 +76,8 @@
 (prefix bigloo#prefix)
 (pwd bigloo#pwd)
 
+(make-file-path bigloo#make-file-path)
+
 (multiple-value-bind ##receive)
 
 (define-inline bigloo#define-inline)
