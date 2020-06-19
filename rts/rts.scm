@@ -4195,7 +4195,7 @@
                (acc 0))
       (if (fx>= i ,stop)
           acc
-          (if (u8= (u8vector-ref ,vec i) ,item)
+          (if (fx= (u8vector-ref ,vec i) ,item)
               (loop (+ 1 i) (+ 1 acc))
               (loop (+ 1 i) acc))))))
 
@@ -4203,7 +4203,7 @@
   `(let loop ((i ,start))
      (if (fx>= i ,stop)
          (py-int-from-scheme -1)
-         (if (u8= (u8vector-ref ,vec i) ,item)
+         (if (fx= (u8vector-ref ,vec i) ,item)
              (py-int-from-scheme i)
              (loop (+ 1 i))))))
 
@@ -4212,7 +4212,7 @@
   `(let loop ((i ,start))
      (if (fx>= i ,stop)
          (py-throw-exception-with-message py-builtin-ValueError "subsection not found")
-         (if (u8= (u8vector-ref ,vec i) ,item)
+         (if (fx= (u8vector-ref ,vec i) ,item)
              (py-int-from-scheme i)
              (loop (+ 1 i))))))
 
@@ -4221,7 +4221,7 @@
   `(let loop ((i (- ,stop 1)))
      (if (fx< i ,start)
          (py-int-from-scheme -1)
-         (if (u8= (u8vector-ref ,vec i) ,item)
+         (if (fx= (u8vector-ref ,vec i) ,item)
              (py-int-from-scheme i)
              (loop (- i 1))))))
 
@@ -4230,7 +4230,7 @@
   `(let loop ((i (- ,stop 1)))
      (if (fx< i ,start)
          (py-throw-exception-with-message py-builtin-ValueError "subsection not found")
-         (if (u8= (u8vector-ref ,vec i) ,item)
+         (if (fx= (u8vector-ref ,vec i) ,item)
              (py-int-from-scheme i)
              (loop (- i 1))))))
 
@@ -4247,8 +4247,8 @@
           (let ((e1 (u8vector-ref ,v1 i))
                 (e2 (u8vector-ref ,v2 i)))
             (cond
-             ((u8< e1 e2) -1)
-             ((u8> e1 e2) 1)
+             ((fx< e1 e2) -1)
+             ((fx> e1 e2) 1)
              (else (loop (+ i 1)))))
           (if (fx= ,len1 ,len2)
               0
