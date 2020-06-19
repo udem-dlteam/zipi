@@ -87,7 +87,7 @@ def process_file(file, folder, cpython, zipi, shared_lst):
     shared_lst.append(success)
 
 
-def run_all(cpython='python3', zipi='../zpc/run-zipi.scm', pattern=None):
+def run_all(cpython='python3', zipi='../zpc/run-zipi.scm --clean-after', pattern=None):
     """
     Collects all tests and runs them in parallel with multiprocessing using the given commands to run 'cpython' and 'zipi'
     A 'pattern' can be provided, which will run only tests matching the pattern with re.match

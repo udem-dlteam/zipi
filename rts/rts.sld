@@ -1,6 +1,7 @@
 (define-library (rts)
   (export
     exec-main
+    compile-to-scheme
 
     PyObject?
     &
