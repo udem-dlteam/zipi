@@ -11,7 +11,7 @@
 ;; PyObject
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PyObject::PyObject hclass1090::obj %elements1091::obj)
+    (inline make-PyObject::PyObject hclass1091::obj %elements1092::obj)
     (inline PyObject?::bool ::obj)
     (PyObject-nil::PyObject)
     (inline PyObject-%elements::obj ::PyObject)
@@ -22,7 +22,7 @@
 ;; PyFunction
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PyFunction::PyFunction hclass1086::obj %elements1087::obj procedure1088::obj)
+    (inline make-PyFunction::PyFunction hclass1087::obj %elements1088::obj procedure1089::obj)
     (inline PyFunction?::bool ::obj)
     (PyFunction-nil::PyFunction)
     (inline PyFunction-procedure::obj ::PyFunction)
@@ -34,7 +34,7 @@
 ;; PyGenerator
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PyGenerator::PyGenerator hclass1082::obj %elements1083::obj %next1084::obj)
+    (inline make-PyGenerator::PyGenerator hclass1083::obj %elements1084::obj %next1085::obj)
     (inline PyGenerator?::bool ::obj)
     (PyGenerator-nil::PyGenerator)
     (inline PyGenerator-%next::obj ::PyGenerator)
@@ -47,7 +47,7 @@
 ;; PCache
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PCache::PCache hclass1079::obj index1080::long)
+    (inline make-PCache::PCache hclass1080::obj index1081::long)
     (inline PCache?::bool ::obj)
     (PCache-nil::PCache)
     (inline PCache-index::long ::PCache)
@@ -58,7 +58,7 @@
 ;; HClass
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-HClass::HClass class-mro1075::vector names1076::vector transitions1077::pair-nil)
+    (inline make-HClass::HClass class-mro1076::vector names1077::vector transitions1078::pair-nil)
     (inline HClass?::bool ::obj)
     (HClass-nil::HClass)
     (inline HClass-transitions::pair-nil ::HClass)
@@ -71,7 +71,7 @@
 ;; The definitions
 (cond-expand (bigloo-class-sans
 ;; PyObject
-(define-inline (make-PyObject::PyObject hclass1090::obj %elements1091::obj) (instantiate::PyObject (hclass hclass1090) (%elements %elements1091)))
+(define-inline (make-PyObject::PyObject hclass1091::obj %elements1092::obj) (instantiate::PyObject (hclass hclass1091) (%elements %elements1092)))
 (define-inline (PyObject?::bool obj::obj) ((@ isa? __object) obj (@ PyObject __py_rts)))
 (define (PyObject-nil::PyObject) (class-nil (@ PyObject __py_rts)))
 (define-inline (PyObject-%elements::obj o::PyObject) (-> |#!bigloo_wallow| o %elements))
@@ -80,7 +80,7 @@
 (define-inline (PyObject-hclass-set! o::PyObject v::obj) (set! (-> |#!bigloo_wallow| o hclass) v))
 
 ;; PyFunction
-(define-inline (make-PyFunction::PyFunction hclass1086::obj %elements1087::obj procedure1088::obj) (instantiate::PyFunction (hclass hclass1086) (%elements %elements1087) (procedure procedure1088)))
+(define-inline (make-PyFunction::PyFunction hclass1087::obj %elements1088::obj procedure1089::obj) (instantiate::PyFunction (hclass hclass1087) (%elements %elements1088) (procedure procedure1089)))
 (define-inline (PyFunction?::bool obj::obj) ((@ isa? __object) obj (@ PyFunction __py_rts)))
 (define (PyFunction-nil::PyFunction) (class-nil (@ PyFunction __py_rts)))
 (define-inline (PyFunction-procedure::obj o::PyFunction) (-> |#!bigloo_wallow| o procedure))
@@ -91,7 +91,7 @@
 (define-inline (PyFunction-hclass-set! o::PyFunction v::obj) (set! (-> |#!bigloo_wallow| o hclass) v))
 
 ;; PyGenerator
-(define-inline (make-PyGenerator::PyGenerator hclass1082::obj %elements1083::obj %next1084::obj) (instantiate::PyGenerator (hclass hclass1082) (%elements %elements1083) (%next %next1084)))
+(define-inline (make-PyGenerator::PyGenerator hclass1083::obj %elements1084::obj %next1085::obj) (instantiate::PyGenerator (hclass hclass1083) (%elements %elements1084) (%next %next1085)))
 (define-inline (PyGenerator?::bool obj::obj) ((@ isa? __object) obj (@ PyGenerator __py_rts)))
 (define (PyGenerator-nil::PyGenerator) (class-nil (@ PyGenerator __py_rts)))
 (define-inline (PyGenerator-%next::obj o::PyGenerator) (-> |#!bigloo_wallow| o %next))
@@ -102,7 +102,7 @@
 (define-inline (PyGenerator-hclass-set! o::PyGenerator v::obj) (set! (-> |#!bigloo_wallow| o hclass) v))
 
 ;; PCache
-(define-inline (make-PCache::PCache hclass1079::obj index1080::long) (instantiate::PCache (hclass hclass1079) (index index1080)))
+(define-inline (make-PCache::PCache hclass1080::obj index1081::long) (instantiate::PCache (hclass hclass1080) (index index1081)))
 (define-inline (PCache?::bool obj::obj) ((@ isa? __object) obj (@ PCache __py_rts)))
 (define (PCache-nil::PCache) (class-nil (@ PCache __py_rts)))
 (define-inline (PCache-index::long o::PCache) (-> |#!bigloo_wallow| o index))
@@ -111,7 +111,7 @@
 (define-inline (PCache-hclass-set! o::PCache v::obj) (set! (-> |#!bigloo_wallow| o hclass) v))
 
 ;; HClass
-(define-inline (make-HClass::HClass class-mro1075::vector names1076::vector transitions1077::pair-nil) (instantiate::HClass (class-mro class-mro1075) (names names1076) (transitions transitions1077)))
+(define-inline (make-HClass::HClass class-mro1076::vector names1077::vector transitions1078::pair-nil) (instantiate::HClass (class-mro class-mro1076) (names names1077) (transitions transitions1078)))
 (define-inline (HClass?::bool obj::obj) ((@ isa? __object) obj (@ HClass __py_rts)))
 (define (HClass-nil::HClass) (class-nil (@ HClass __py_rts)))
 (define-inline (HClass-transitions::pair-nil o::HClass) (-> |#!bigloo_wallow| o transitions))

@@ -48,7 +48,7 @@
   (let* ((prog (pyc-scheme ast conf))
         (file (config-get conf file:))
         (path (config-get conf dir:))
-        (full-path (if (and file path) (path-expand file path) "<stdin>")))
+        (full-path (if (and file path) (make-file-path path file) "<stdin>")))
     (list `(define-library (,(string->symbol (config-get conf name:)))
               (export init)
               (import (gambit) (zipi rts))

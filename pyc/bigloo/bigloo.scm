@@ -68,6 +68,9 @@
 (define (bigloo#cell-set! cell val)
   (set-box! cell val))
 
+(define (bigloo#make-file-path file path)
+  (path-expand path file))
+
 (define (bigloo#filter pred lst)
   (if (pair? lst)
       (if (pred (car lst))
