@@ -48,7 +48,7 @@
   (let* ((prog (pyc-scheme ast conf))
         (file (config-get conf file:))
         (path (config-get conf dir:))
-        (full-path (if (and file path) (make-file-path path file) "<stdin>")))
+        (full-path (if (and file path) (make-file-path path file) #f)))
     (list `(define-library (,(string->symbol (config-get conf name:)))
               (export init)
               (import (gambit) (zipi rts))
@@ -59,8 +59,10 @@
                   (let ((caches (py-make-caches ,(PycModule-caches ast))))
                     (object-put-no-cache!
                       module (& "__name__") name)
-                    (object-put-no-cache!
-                      module (& "__file__") (py-str-from-scheme ,full-path))
+                    ,(if full-path
+                      `(object-put-no-cache!
+                        module (& "__file__") (py-str-from-scheme ,full-path))
+                      `,@(list))
                     (py-module module caches)
                     module)))))))
 
