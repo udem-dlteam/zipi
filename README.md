@@ -7,20 +7,14 @@ A fast Python implementation.
 To compile with Zipi for Gambit
 
 ```
-# Add Gambit to your PATH
+# First make sure to have followed those steps
 export PATH=/usr/local/Gambit/bin:$PATH
-
-# Add zipi to your PATH
 export ZIPIROOT=/home/[username]/udem-dlteam/zipi
-
-# Configure
 ./configure
+make
 
-# Compile with py19 for Gambit
-zipi/etc/py19 -t gambit somepythonfile.py > output.scm
-
-# Run the output file with Gambit
-gsi zipi/pyc/ output.scm
+# You can then compile and run a script with
+zipi/zpc/run-zipi.scm somepythonfile.py
 ```
 
 To compile with Bigloo, you will first need to install Zipi
