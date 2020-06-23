@@ -35,16 +35,16 @@
 (define (debug-get obj . nums)
   (debug-get-list obj nums))
 
-(define (what-am-i? obj . nums)
+(define (debug-ref obj . nums)
   (debug-get-list obj (fold-right (lambda (x y) (cons 2 (cons x y))) '() nums)))
 
-(define (value-please obj)
+(define (debug-value-get obj)
   (debug-get obj 2 1))
 
-(define (class-name-please obj)
+(define (debug-class-name-get obj)
   (debug-get obj 2 0 2 4 2 1))
 
-(define (class-please obj)
+(define (debug-class-get obj)
   (debug-get obj 2 0 2 4))
 
 (define (object-repr self)

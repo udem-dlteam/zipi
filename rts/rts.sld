@@ -266,11 +266,10 @@
     ;;debug functions
     debug-get
     debug-get-list
-    what-am-i?
-    why-am-i-here?
-    value-please
-    class-name-please
-    class-please
+    debug-ref
+    debug-value-get
+    debug-class-get
+    debug-class-name-get
     )
 
   (import gambit)
