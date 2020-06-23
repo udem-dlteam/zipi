@@ -43,12 +43,14 @@
   (pp (table->list (constants-table))))
 
 (define-macro (& e)
-  (let ((cached (constants-ref %constants e)))
-    (if cached
-      `',cached
-      (let ((obj (make-PyStaticObject #f #f)))
-        (constants-set! %constants e obj)
-        `',obj))))
+  (if (string? e)
+    (let ((cached (constants-ref %constants e)))
+      (if cached
+        `',cached
+        (let ((obj (make-PyStaticObject #f #f)))
+          (constants-set! %constants e obj)
+          `',obj)))
+    (error "&" "requires string literal but got" e)))
 
 ;; =============================================================================
 ;;  PyObject

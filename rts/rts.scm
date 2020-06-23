@@ -8,7 +8,6 @@
 ;; =============================================================================
 
 (define (init-constants)
-  (pp (table->list %constants))
   (for-each
     (lambda (pair)
       (let ((value (car pair))

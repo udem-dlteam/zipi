@@ -5,6 +5,7 @@
 
     PyObject?
     &
+    init-constants
 
     with-handler
     bind-exit

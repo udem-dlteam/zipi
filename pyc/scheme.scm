@@ -56,13 +56,14 @@
                 (define py-module ,@prog)
 
                 (define (init name)
+                  (init-constants)
                   (let ((caches (py-make-caches ,(PycModule-caches ast)))
                         (module (py-make-global)))
                     (object-put-no-cache!
                       module (& "__name__") name)
                     ,(if full-path
                       `(object-put-no-cache!
-                        module (& "__file__") (py-str-from-scheme ,full-path))
+                        module (& "__file__") (& ,full-path))
                       `,@(list))
                     (py-module module caches)
                     module)))))))
@@ -601,7 +602,7 @@
 
 (define-walk-method (scheme this::PycString conf)
    (epairify this
-      `(py-str-from-scheme ,(PycLiteralValue-val this))))
+      `(& ,(PycLiteralValue-val this))))
 
 (define-walk-method (scheme this::PycBinary conf)
    (epairify this
