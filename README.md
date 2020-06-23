@@ -56,26 +56,26 @@ The `regex-pattern` must obey Python `re` syntax.
 
 Here are some usefull debug functions that can be used in gambit repl
 
-`(debug-class-name-get obj)`
+### `(debug-class-name-get obj)`
 
 Returns the scheme string of the python object `obj`
 
-`(debug-value-get obj)`
+### `(debug-value-get obj)`
 
 Returns the scheme value of the python object `obj`
 
-`(debug-ref obj . values)`
+### `(debug-ref obj . values)`
 
 This function helps the navigation inside a py-object. Its a more intuitive function than debug-get as the numbers in `values` directly correlate to the values inside the HClasses. This way, we can get the value of an object by doing `(debug-ref obj 1)` and the class name by doing `(debug-ref obj 0 4 1)` (`**class**`, `__name__`, `**value**`)  
 
-`(debug-get obj . values)`
+### `(debug-get obj . values)`
 
 Calls `(##vector-ref obj x)` with all values in `values` one after the other. Usefull when trying to navigate a Py-Object
 
-`(debug-get-list obj values)`
+### `(debug-get-list obj values)`
 
 Same as debug-get, but `values` is a list 
 
-`(debug-catch func)`
+### `(debug-catch func)`
 
 Executes the function `func` and prints the name of the python exception if one is thrown
