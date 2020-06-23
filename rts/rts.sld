@@ -1,5 +1,4 @@
-(define-library 
-  (rts)
+(define-library (rts)
   (export
     run-as-main
     compile-source
