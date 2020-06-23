@@ -55,8 +55,9 @@
               (begin
                 (define py-module ,@prog)
 
-                (define (init module name static-table)
-                  (let ((caches (py-make-caches ,(PycModule-caches ast))))
+                (define (init name)
+                  (let ((caches (py-make-caches ,(PycModule-caches ast)))
+                        (module (py-make-global)))
                     (object-put-no-cache!
                       module (& "__name__") name)
                     ,(if full-path

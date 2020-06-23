@@ -260,7 +260,16 @@
     py-builtin-tuple
     py-builtin-type
     py-builtin-vars
-    py-builtin-zip)
+    py-builtin-zip
+
+    ;;debug functions
+    debug-get
+    debug-get-list
+    debug-ref
+    debug-value-get
+    debug-class-name-get
+    debug-catch
+    )
 
   (import gambit)
   (include "rts#.scm")
