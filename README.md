@@ -52,7 +52,7 @@ python zipi/tests/run.py --pattern=[regex-pattern]
 
 The `regex-pattern` must obey Python `re` syntax.
 
-## Debug functions
+## Debug procedures
 
 Here are some useful debugging procedures that can be used in the Gambit REPL
 
