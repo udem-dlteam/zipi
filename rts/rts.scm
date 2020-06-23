@@ -5284,7 +5284,7 @@
 ;; builins initialization
 ;; ---------------------
 
-(define builtins-mod #f)
+(define builtins-mod py-absent)
 
 (define (py-make-global)
   (let ((mod
