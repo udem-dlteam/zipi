@@ -270,6 +270,7 @@
     debug-value-get
     debug-class-get
     debug-class-name-get
+    debug-catch
     )
 
   (import gambit)

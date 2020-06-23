@@ -5281,7 +5281,7 @@
   (py-obj-cls obj))
 
 ;; ----------------------
-;; builins initialization
+;; builtins initialization
 ;; ---------------------
 
 (define builtins-mod py-absent)
@@ -5293,7 +5293,7 @@
           py-module-hclass-of-instances)))
     (py-own-attr-set! mod (& "**class**") py-module-class)
     (py-own-attr-set! mod (& "__builtins__") builtins-mod)
-    (py-own-attr-set! mod (& "_absent") (cons 'buitlin-absent-sentinel '()))
+    (py-own-attr-set! mod (& "_absent") (cons 'buitlins-absent-sentinel '()))
     mod))
 
 
@@ -5369,13 +5369,18 @@
 
 (define (import-with-gambit sys.modules name)
   (with-exception-catcher
-   (lambda (e) (if (PyObject? e) (raise e) #f))
-   (lambda ()
-     (let* ((module-name (object-scheme-value-fast-get name))
-            (init (eval `(let () (import ,(string->symbol module-name)) init)))
-            (mod (init name)))
-      (dict-setitem sys.modules name mod)
-      mod))))
+    (lambda (e) 
+      (if (or (os-exception? e)
+              (expression-parsing-exception? e)
+              (unbound-global-exception? e))
+          #f
+          (raise e)))
+    (lambda ()
+      (let* ((module-name (object-scheme-value-fast-get name))
+             (init (eval `(let () (import ,(string->symbol module-name)) init)))
+             (mod (init name)))
+        (dict-setitem sys.modules name mod)
+        mod))))
 
 (define (compile-source source target)
   (define (root-dir)
@@ -5432,12 +5437,12 @@
   (builtin-__import__ (py-str-from-scheme path)))
 
 (define (run-as-main name)
-  (let ((sys.modules (sys.modules-get)))
+  (let ((sys.modules (sys.modules-get)) 
+        (init (eval `(let () (import ,(string->symbol name)) init))))
     (with-exception-catcher
       (lambda (e) (if (PyObject? e) (print-exception e) (raise e)))
       (lambda ()
-        (let* ((init (eval `(let () (import ,(string->symbol name)) init))))
-         (init (py-str-from-scheme "__main__"))))))
+        (init (py-str-from-scheme "__main__")))))
   #!void)
 
 

@@ -44,6 +44,9 @@
 (define (debug-class-name-get obj)
   (debug-get obj 2 0 2 4 2 1))
 
+(define (debug-catch func)
+  (with-exception-catcher (lambda (e) (if (PyObject? e) (print-exception e) (raise e))) (lambda () (func))))
+
 (define (debug-class-get obj)
   (debug-get obj 2 0 2 4))
 
