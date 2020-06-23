@@ -54,28 +54,28 @@ The `regex-pattern` must obey Python `re` syntax.
 
 ## Debug functions
 
-Here are some usefull debug functions that can be used in gambit repl
+Here are some useful debugging procedures that can be used in the Gambit REPL
 
 ### `(debug-class-name-get obj)`
 
-Returns the scheme string of the python object `obj`
+Returns the Scheme string of the class of the Python object `obj`
 
 ### `(debug-value-get obj)`
 
-Returns the scheme value of the python object `obj`
+Returns the Scheme value of the Python object `obj`
 
 ### `(debug-ref obj . values)`
 
-This function helps the navigation inside a py-object. Its a more intuitive function than debug-get as the numbers in `values` directly correlate to the values inside the HClasses. This way, we can get the value of an object by doing `(debug-ref obj 1)` and the class name by doing `(debug-ref obj 0 4 1)` (`**class**`, `__name__`, `**value**`)  
+This procedure helps navigating inside a py-object. It's a more intuitive procedure than `debug-get` as the numbers in `values` directly correlate to the values inside the HClasses. This way, we can get the value of an object by doing `(debug-ref obj 1)` and the class name by doing `(debug-ref obj 0 4 1)` (`**class**`, `__name__`, `**value**`)  
 
 ### `(debug-get obj . values)`
 
-Calls `(##vector-ref obj x)` with all values in `values` one after the other. Usefull when trying to navigate a Py-Object
+Calls `(##vector-ref obj x)` with all values in `values` one after the other. Useful when trying to navigate a Py-Object
 
 ### `(debug-get-list obj values)`
 
-Same as debug-get, but `values` is a list 
+Same as `debug-get`, but `values` is a list 
 
-### `(debug-catch func)`
+### `(debug-catch thunk)`
 
-Executes the function `func` and prints the name of the python exception if one is thrown
+Executes `thunk` and prints the name of the Python exception, if one is thrown
