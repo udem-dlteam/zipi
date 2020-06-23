@@ -267,7 +267,6 @@
     debug-get-list
     debug-ref
     debug-value-get
-    debug-class-get
     debug-class-name-get
     debug-catch
     )

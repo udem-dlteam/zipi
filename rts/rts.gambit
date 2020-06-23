@@ -47,9 +47,6 @@
 (define (debug-catch func)
   (with-exception-catcher (lambda (e) (if (PyObject? e) (print-exception e) (raise e))) (lambda () (func))))
 
-(define (debug-class-get obj)
-  (debug-get obj 2 0 2 4))
-
 (define (object-repr self)
   (let* ((self-type (py-type self))
          (self-type-name (py-str-to-scheme (type-name-fast-get self-type)))

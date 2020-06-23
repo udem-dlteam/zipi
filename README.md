@@ -75,3 +75,7 @@ Calls `(##vector-ref obj x)` with all values in `values` one after the other. Us
 `(debug-get-list obj values)`
 
 Same as debug-get, but `values` is a list 
+
+`(debug-catch func)`
+
+Executes the function `func` and prints the name of the python exception if one is thrown
