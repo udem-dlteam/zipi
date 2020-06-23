@@ -12,7 +12,6 @@
     (lambda (pair)
       (let ((value (car pair))
             (obj (cdr pair)))
-        (##vector-set! obj 0 (%PyObject-type-get))
         (PyObject-hclass-set! obj py-str-hclass-of-instances)
         (##vector-set! obj 2
           (make-vector

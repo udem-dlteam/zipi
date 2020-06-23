@@ -22,7 +22,8 @@
         prefix: %
         macros: table)
       (define-type PyStaticObject
-        id: %static-pyobject
+        ;; NOTE: id must be the same as PyObject
+        id: C6486EB6-1522-42BA-A082-B6563F943CDF
         constructor: %make-PyStaticObject
         prefix: %
         macros: hclass elements)
