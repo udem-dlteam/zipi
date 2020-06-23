@@ -4,6 +4,26 @@
 ;; the object int.__add__ has name 'int.__add__' in the source
 
 ;; =============================================================================
+;;  Object interning
+;; =============================================================================
+
+(define (init-constants)
+  (pp (table->list %constants))
+  (for-each
+    (lambda (pair)
+      (let ((value (car pair))
+            (obj (cdr pair)))
+        (##vector-set! obj 0 (%PyObject-type-get))
+        (PyObject-hclass-set! obj py-str-hclass-of-instances)
+        (##vector-set! obj 2
+          (make-vector
+            (vector-length (HClass-names py-str-hclass-of-instances))
+            py-absent))
+        (object-class-fast-set! obj py-str-class)
+        (object-scheme-value-fast-set! obj value)))
+    (table->list %constants)))
+
+;; =============================================================================
 ;;  HIDDEN CLASSES
 ;; =============================================================================
 
@@ -2313,6 +2333,9 @@
     (set! py-str-class str-class)
     (set! py-tuple-class tuple-class)
 
+    ;; init all object (& ...) to a py-str object
+    (init-constants)
+
     ;; Fill in object class
     (object-class-fast-set! object-class type-class)
     (type-bases-fast-set! object-class '#())
@@ -2412,10 +2435,10 @@
               (loop (cdr attr-names) (cdr attr-values)))))
       (py-own-attr-set! cls
         (& "__module__")
-        (py-str-from-scheme (symbol->string module)))
+        module)
       (py-own-attr-set! cls
         (& "__name__")
-        (py-str-from-scheme (symbol->string name)))
+        name)
       cls))
 
     (let loop ((lst attrs)
@@ -5274,9 +5297,6 @@
 
 (define py-make-dict py-dict-from-scheme)
 
-(define (py-string-to-name s)
-  (string->symbol s))
-
 (define (py-type obj)
   (py-obj-cls obj))
 
@@ -6158,17 +6178,16 @@
   (procedure->py-function
     (lambda (object name default)
       (if (py-isinstance? name py-str-class)
-        (let ((attr (string->symbol (py-str-to-scheme name))))
-          (if (not (eq? default py-absent))
-            (with-handler
-              (lambda (exc)
-                (if (and
-                      (PyObject? exc)
-                      (py-isinstance? exc py-builtin-AttributeError))
-                  default
-                  (raise exc)))
-              (object-get object attr #f))
-            (object-get object attr #f)))
+        (if (not (eq? default py-absent))
+          (with-handler
+            (lambda (exc)
+              (if (and
+                    (PyObject? exc)
+                    (py-isinstance? exc py-builtin-AttributeError))
+                default
+                (raise exc)))
+            (object-get object name #f))
+          (object-get object name #f))
         (py-throw-exception-with-message
           py-builtin-TypeError
           "getattr(): attribute name must be string")))
