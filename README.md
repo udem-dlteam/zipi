@@ -51,3 +51,31 @@ python zipi/tests/run.py --pattern=[regex-pattern]
 ```
 
 The `regex-pattern` must obey Python `re` syntax.
+
+## Debug functions
+
+Here are some usefull debug functions that can be used in gambit repl
+
+`class-please obj`
+
+Returns the class of the `obj` python object
+
+`class-name-please obj`
+
+Returns the scheme string of the python object `obj`
+
+`value-please obj`
+
+Returns the scheme value of the python object `obj`
+
+`what-am-i? obj . values`
+
+This function helps the navigation inside a py-object. Its a more intuitive function then debug-get as the numbers in `values` directly correlate to the values inside the HClasses. This way, we can get the value of an object by doing `(what-am-i? obj 1)` and the class name by doing `(what-am-i? obj 0 4 1)` (`**class**`, `__name__`, `**value**`)  
+
+`debug-get obj . values`
+
+Calls `##vector-ref obj x` with all values in `values` one after the other. Usefull when trying to navigate a Py-Object
+
+`debug-get-list obj values`
+
+Same as debug-get, but `values` is a list 

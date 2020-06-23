@@ -1,4 +1,5 @@
-(define-library (rts)
+(define-library 
+  (rts)
   (export
     run-as-main
     compile-source
@@ -260,7 +261,17 @@
     py-builtin-tuple
     py-builtin-type
     py-builtin-vars
-    py-builtin-zip)
+    py-builtin-zip
+
+    ;;debug functions
+    debug-get
+    debug-get-list
+    what-am-i?
+    why-am-i-here?
+    value-please
+    class-name-please
+    class-please
+    )
 
   (import gambit)
   (include "rts#.scm")

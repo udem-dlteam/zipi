@@ -26,6 +26,27 @@
 (define (why-am-i-here?)
   (##continuation-capture (lambda (cc) (display-continuation-backtrace cc))))
 
+(define (debug-get-list obj nums)
+  (let loop ((obj obj) (nums nums))
+   (if (pair? nums)
+       (loop (##vector-ref obj (car nums)) (cdr nums))
+       obj)))
+
+(define (debug-get obj . nums)
+  (debug-get-list obj nums))
+
+(define (what-am-i? obj . nums)
+  (debug-get-list obj (fold-right (lambda (x y) (cons 2 (cons x y))) '() nums)))
+
+(define (value-please obj)
+  (debug-get obj 2 1))
+
+(define (class-name-please obj)
+  (debug-get obj 2 0 2 4 2 1))
+
+(define (class-please obj)
+  (debug-get obj 2 0 2 4))
+
 (define (object-repr self)
   (let* ((self-type (py-type self))
          (self-type-name (py-str-to-scheme (type-name-fast-get self-type)))
