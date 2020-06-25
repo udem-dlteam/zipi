@@ -47,6 +47,9 @@
           `',obj)))
     (error "&" "requires string literal but got" e)))
 
+(define-macro (&-eq? name1 name2)
+  `(eq? (str-representative-get ,name1) (str-representative-get ,name2)))
+
 ;; =============================================================================
 ;;  PyObject
 ;; =============================================================================

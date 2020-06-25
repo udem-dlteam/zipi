@@ -50,7 +50,8 @@
     (vector
       (& "**class**")
       (& "**value**")
-      (& "**token**"))
+      (& "**representative**")
+      (& "**hash**"))
     '()))
 
 (define py-tuple-hclass-of-instances
@@ -278,11 +279,17 @@
 (define (method-__self__-fast-set! obj value)
   (PyObject-elements-set! obj 4 value))
 
-(define (str-token-fast-get obj)
-  (PyObject-elements-get obj 2))
+(define (str-representative-fast-get obj)
+  (PyObject-elements-ref obj 2))
 
-(define (str-token-fast-set! obj value)
+(define (str-representative-fast-set! obj value)
   (PyObject-elements-set! obj 2 value))
+
+(define (str-hash-fast-get obj)
+  (PyObject-elements-ref obj 3))
+
+(define (str-hash-fast-set! obj value)
+  (PyObject-elements-set! obj 3 value))
 
 ;; object allocation
 
@@ -1583,14 +1590,6 @@
         default
         (PyObject-elements-ref obj i)))) ;; TODO: could vector-ref be used?
 
-(define (name-eq? name1 name2)
-  (and
-    (PyObject? name1) ;; TODO: are those needed?
-    (PyObject? name2)
-    (string=?
-      (object-scheme-value-fast-get name1)
-      (object-scheme-value-fast-get name2))))
-
 (define (py-own-attr-index obj attr)
   (if (not (PyObject? obj)) ;; TODO: find how this test could be removed
       -1
@@ -1598,7 +1597,7 @@
              (names (HClass-names hclass)))
         (let loop ((i (- (vector-length names) 1)))
           (cond ((< i 0) -1)
-                ((name-eq? attr (vector-ref names i)) i)
+                ((&-eq? attr (vector-ref names i)) i)
                 (else (loop (- i 1))))))))
 
 (define (py-attr-set! obj attr val)
@@ -1873,35 +1872,34 @@
   (if (pair? value)
     (let ((left (car value))
           (right (cdr value)))
-      (str-value-collect-components-aux! left components)
-      (str-value-collect-components-aux! right components))
-    (begin
-      (set-cdr! components components)
-      (set-car! components value))))
+      (str-value-collect-components-aux!
+        (object-scheme-value-fast-get right)
+        (str-value-collect-components-aux!
+          (object-scheme-value-fast-get left)
+          components)))
+    (cons value components)))
 
 (define (str-value-collect-components value)
-  (let ((components (list)))
-    (str-value-collect-components-aux! value components)
-    (reverse components)))
+  (reverse (str-value-collect-components-aux! value '())))
 
 (define (str-make! str)
   (let ((value (object-scheme-value-fast-get str)))
     (if (string? value)
       value
-      (let ((str-components (str-collect-components value))
+      (let* ((str-components (str-value-collect-components value))
             (new-string (append-strings str-components)))
         (object-scheme-value-fast-set! str new-string)
         new-string))))
 
 (define (str-representative-get str)
-  (let ((self-token (str-token-fast-get str)))
+  (let ((self-token (str-representative-fast-get str)))
     (if (eq? self-token py-absent)
       (begin
         (let* ((str-value (str-make! str))
                (rep (table-ref str-representatives str-value #f)))
           (if rep
             (begin
-              (str-token-fast-set! str rep)
+              (str-representative-fast-set! str rep)
               rep)
             (begin
               (table-set! str-representatives str-value str)
@@ -2015,13 +2013,13 @@
 (define (str-eq self other)
   (if (py-isinstance? self py-str-class)
     (if (eq? (py-type other) py-str-class)
-      (let* ((self-string (py-str-to-scheme self))
-             (other-string (py-str-to-scheme other)))
-        (if (string=? self-string other-string)
+      (let* ((self-representative (str-representative-get self))
+             (other-representative (str-representative-get other)))
+        (if (eq? self-representative other-representative)
           py-True
           py-False))
       py-NotImplemented)
-    (py-throw-required-type "__hash__" "str" self)))
+    (py-throw-required-type "__eq__" "str" self)))
 
 (define str.__eq__
   (procedure->py-function
@@ -2045,8 +2043,16 @@
 
 (define (str-hash self)
   (if (py-isinstance? self py-str-class)
-    (let* ((string (py-str-to-scheme self)))
-      (py-int-from-scheme (hash-FNV1a string)))
+    (let* ((representative (str-representative-get self))
+           (hash (str-hash-fast-get representative)))
+      (if (eq? hash py-absent)
+        (let ((new-hash
+                (py-int-from-scheme
+                  (hash-FNV1a
+                    (object-scheme-value-fast-get representative)))))
+          (str-hash-fast-set! representative new-hash)
+          new-hash)
+        hash))
     (py-throw-required-type "__hash__" "str" self)))
 
 (define str.__hash__
@@ -2057,10 +2063,7 @@
 (define (str-add self other)
   (if (py-isinstance? self py-str-class)
     (if (py-isinstance? other py-str-class)
-      (py-str-from-scheme
-        (string-append
-          (object-scheme-value-fast-get self)
-          (object-scheme-value-fast-get other)))
+      (py-str-from-scheme (cons self other))
       py-NotImplemented)
     (py-throw-required-type "__add__" "str" self)))
 
@@ -2113,7 +2116,7 @@
   ;; checking some cases beforehand for efficiency
   (case (py-type obj)
     ((py-str-class)
-      (display (object-scheme-value-fast-get obj) port))
+      (display (py-str-to-scheme obj) port))
     ((py-int-class)
       (display (object-scheme-value-fast-get obj) port))
     ((py-float-class)
@@ -2123,7 +2126,7 @@
         (display "True" port)
         (display "False" port)))
     (else
-      (display (object-scheme-value-fast-get (py-str obj)) port))))
+      (display (py-str-to-scheme (py-str obj)) port))))
 
 (define (py-str obj)
   (let* ((__str__ (getattribute-from-obj-mro obj (& "__str__")))
