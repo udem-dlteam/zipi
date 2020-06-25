@@ -3,11 +3,7 @@
 ;;  This was already done with int, example:
 ;; the object int.__add__ has name 'int.__add__' in the source
 
-;; =============================================================================
-;;  Object interning
-;; =============================================================================
-
-(define (init-constants)
+(define (init-constants constants)
   (for-each
     (lambda (pair)
       (let ((value (car pair))
@@ -19,7 +15,9 @@
             py-absent))
         (object-class-fast-set! obj py-str-class)
         (object-scheme-value-fast-set! obj value)))
-    (table->list %constants)))
+    (table->list (##vector-ref constants 1))))
+
+(start-registering-constants)
 
 ;; =============================================================================
 ;;  HIDDEN CLASSES
@@ -310,9 +308,9 @@
 (define (global-get/miss global name cache)
   (let ((i (py-own-attr-index global name)))
     (if (< i 0)
-        (let ((bi (py-attr-ref global (& "__builtins__"))))
+        (let ((bi (object-get global (& "__builtins__") #f)))
           (if (not (eq? bi py-absent))
-              (let ((val (py-attr-ref bi name)))
+              (let ((val (object-get bi name #f)))
                 (if (not (eq? val py-absent))
                     val
                     (py-throw py-builtin-NameError)))
@@ -343,7 +341,7 @@
           (PyObject-elements-set! global i val)))))
 
 (define (object-put!/miss obj name val cache)
-  (let* ((index (PyObject-find-prop obj name))
+  (let* ((index (py-own-attr-index obj name))
          (hclass (PyObject-hclass obj)))
     (if (>= index 0)
         (begin
@@ -356,7 +354,7 @@
           (PyObject-elements-set! obj index val)))))
 
 (define (object-put-no-cache! obj name val)
-  (let* ((index (PyObject-find-prop obj name))
+  (let* ((index (py-own-attr-index obj name))
          (hclass (PyObject-hclass obj)))
     (if (>= index 0)
 	(PyObject-elements-set! obj index val)
@@ -364,17 +362,6 @@
                (index (HClass-last-index nhclass)))
           (PyObject-hclass-set! obj nhclass)
           (PyObject-elements-set! obj index val)))))
-
-(define (PyObject-find-prop obj name)
-  (if (not (PyObject? obj))
-      -1
-      (let* ((hclass (PyObject-hclass obj))
-             (names (HClass-names hclass)))
-        (let loop ((i (- (vector-length names) 1)))
-          (cond
-           ((= i -1) i)
-           ((eq? name (vector-ref names i)) i)
-           (else (loop (- i 1))))))))
 
 ;; Boostrap functions
 ;; Functions are objects of type 'function', but their type cannot be assigned
@@ -1589,6 +1576,14 @@
         default
         (PyObject-elements-ref obj i)))) ;; TODO: could vector-ref be used?
 
+(define (name-eq? name1 name2)
+  (and
+    (PyObject? name1) ;; TODO: are those needed?
+    (PyObject? name2)
+    (string=?
+      (object-scheme-value-fast-get name1)
+      (object-scheme-value-fast-get name2))))
+
 (define (py-own-attr-index obj attr)
   (if (not (PyObject? obj)) ;; TODO: find how this test could be removed
       -1
@@ -1596,39 +1591,11 @@
              (names (HClass-names hclass)))
         (let loop ((i (- (vector-length names) 1)))
           (cond ((< i 0) -1)
-                ((eq? attr (vector-ref names i)) i)
+                ((name-eq? attr (vector-ref names i)) i)
                 (else (loop (- i 1))))))))
 
 (define (py-attr-set! obj attr val)
   (py-own-attr-set! obj attr val))
-
-(define (py-attr-ref obj attr #!optional (default py-absent))
-  (let ((mro (py-obj-mro obj)))
-    (let loop1 ((i 0))
-      (if (< i (vector-length mro))
-          (let* ((cls (vector-ref mro i))
-                 (ga (py-own-attr-ref obj (& "__getattribute__"))))
-            (if (not (eq? ga py-absent))
-                (py-throw-exception-with-message py-builtin-NotImplementedError "py-attr-ref TODO: add case where class defines __getattribute__")
-                (loop1 (+ i 1))))
-          (let ((val (py-own-attr-ref obj attr)))
-            (if (not (eq? val py-absent))
-                val
-                (let loop2 ((i 0))
-                  (if (< i (vector-length mro))
-                      (let* ((cls (vector-ref mro i))
-                             (val (py-own-attr-ref cls attr)))
-                        (if (not (eq? val py-absent))
-                            val
-                            (loop2 (+ i 1))))
-                      (let loop3 ((i 0))
-                        (if (< i (vector-length mro))
-                            (let* ((cls (vector-ref mro i))
-                                   (ga (py-own-attr-ref obj (& "__getattr__"))))
-                              (if (not (eq? ga py-absent))
-                                  (py-throw-exception-with-message py-builtin-NotImplementedError "py-attr-ref TODO: add case where class defines __getattr__")
-                                  (loop3 (+ i 1))))
-                            default))))))))))
 
 ;; ===================
 ;; DESCRIPTOR PROTOCOL
@@ -2332,7 +2299,7 @@
     (set! py-tuple-class tuple-class)
 
     ;; init all object (& ...) to a py-str object
-    (init-constants)
+    (init-registered-constants)
 
     ;; Fill in object class
     (object-class-fast-set! object-class type-class)
@@ -5311,10 +5278,7 @@
           py-module-hclass-of-instances)))
     (py-own-attr-set! mod (& "**class**") py-module-class)
     (py-own-attr-set! mod (& "__builtins__") builtins-mod)
-    (py-own-attr-set! mod (& "_absent") (cons 'buitlins-absent-sentinel '()))
     mod))
-
-
 
 ;; ===========================================
 ;; IMPORT SYSTEM
@@ -5387,7 +5351,7 @@
 
 (define (import-with-gambit sys.modules name)
   (with-exception-catcher
-    (lambda (e) 
+    (lambda (e)
       (if (or (os-exception? e)
               (expression-parsing-exception? e)
               (unbound-global-exception? e))
@@ -5455,7 +5419,7 @@
   (builtin-__import__ (py-str-from-scheme path)))
 
 (define (run-as-main name)
-  (let ((sys.modules (sys.modules-get)) 
+  (let ((sys.modules (sys.modules-get))
         (init (eval `(let () (import ,(string->symbol name)) init))))
     (with-exception-catcher
       (lambda (e) (if (PyObject? e) (print-exception e) (raise e)))
@@ -6217,8 +6181,7 @@
 (define py-builtin-hasattr
   (procedure->py-function
     (lambda (object name)
-      (let ((val (py-attr-ref object name)))
-        (not (eq? val py-absent))))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "hasattr not implemented"))
     (make-posonly-signature '#(object name))))
 
 ;;-------------------- hash(object)

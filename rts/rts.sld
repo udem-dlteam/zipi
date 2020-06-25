@@ -6,6 +6,8 @@
     PyObject?
     &
     init-constants
+    start-registering-constants
+    init-registered-constants
 
     with-handler
     bind-exit

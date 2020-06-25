@@ -32,16 +32,10 @@
       (define (constants-table) (%Constants-table %constants))
       (define (constants-ref c key) (table-ref (%Constants-table c) key #f))
       (define (constants-set! c key val) (table-set! (%Constants-table c) key val))))
-  `(inject-constants ',%constants))
+  `(##begin))
 
-(define %constants #f)
-(define (inject-constants constants)
-  (set! %constants (##vector-ref constants 1)))
-
-(start-registering-constants)
-
-(define-macro (end-registering-constants)
-  (pp (table->list (constants-table))))
+(define-macro (init-registered-constants)
+  `(init-constants ',%constants))
 
 (define-macro (& e)
   (if (string? e)

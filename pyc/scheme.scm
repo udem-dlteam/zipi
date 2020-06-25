@@ -53,12 +53,16 @@
               (export init)
               (import (gambit) (zipi rts))
               (begin
+                (start-registering-constants)
+
                 (define py-module ,@prog)
 
                 (define (init name)
-                  (init-constants)
+                  (init-registered-constants)
                   (let ((caches (py-make-caches ,(PycModule-caches ast)))
                         (module (py-make-global)))
+                    ;; TODO: remove when __compiler_intrinsics__ exists
+                    (object-put-no-cache! module (& "_absent") (cons 'buitlins-absent-sentinel '()))
                     (object-put-no-cache!
                       module (& "__name__") name)
                     ,(if full-path
