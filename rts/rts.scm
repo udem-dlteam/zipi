@@ -5443,7 +5443,7 @@
       (lambda (e) (if (PyObject? e) (print-exception e) (raise e)))
       (lambda ()
         (init (py-str-from-scheme "__main__")))))
-  #!void)
+  (void))
 
 
 (define py-import-root (current-directory))
