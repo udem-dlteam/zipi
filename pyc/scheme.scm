@@ -62,11 +62,11 @@
                   (let ((caches (py-make-caches ,(PycModule-caches ast)))
                         (module (py-make-global)))
                     ;; TODO: remove when __compiler_intrinsics__ exists
-                    (object-put-no-cache! module (& "_absent") (cons 'builtins-absent-sentinel '()))
-                    (object-put-no-cache!
+                    (py-own-attr-set! module (& "_absent") (cons 'builtins-absent-sentinel '()))
+                    (py-own-attr-set!
                       module (& "__name__") name)
                     ,(if full-path
-                      `(object-put-no-cache!
+                      `(py-own-attr-set!
                         module (& "__file__") (& ,full-path))
                       `,@(list))
                     (py-module module caches)

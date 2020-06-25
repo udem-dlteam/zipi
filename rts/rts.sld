@@ -92,6 +92,7 @@
 
     object-get
     object-put!
+    py-own-attr-set!
     getattribute-from-obj-mro
 
     procedure->py-function
