@@ -9,13 +9,13 @@
       (let ((value (car pair))
             (obj (cdr pair)))
         (PyObject-hclass-set! obj py-str-hclass-of-instances)
-        (##vector-set! obj 2
+        (structure-set! obj 2
           (make-vector
             (vector-length (HClass-names py-str-hclass-of-instances))
             py-absent))
         (object-class-fast-set! obj py-str-class)
         (object-scheme-value-fast-set! obj value)))
-    (table->list (##vector-ref constants 1))))
+    (table->list (structure-ref constants 1))))
 
 (start-registering-constants)
 
