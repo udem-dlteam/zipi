@@ -322,9 +322,9 @@
 (define (global-get/miss global name cache)
   (let ((i (py-own-attr-index global name)))
     (if (< i 0)
-        (let ((bi (object-get global (& "__builtins__") #f)))
+        (let ((bi (py-own-attr-ref global (& "__builtins__") #f)))
           (if (not (eq? bi py-absent))
-              (let ((val (object-get bi name #f)))
+              (let ((val (py-own-attr-ref bi name #f)))
                 (if (not (eq? val py-absent))
                     val
                     (py-throw py-builtin-NameError)))
