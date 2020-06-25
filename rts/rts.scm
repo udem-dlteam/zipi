@@ -49,7 +49,8 @@
     '#() ;; set later when classes exist
     (vector
       (& "**class**")
-      (& "**value**"))
+      (& "**value**")
+      (& "**token**"))
     '()))
 
 (define py-tuple-hclass-of-instances
@@ -276,6 +277,12 @@
 
 (define (method-__self__-fast-set! obj value)
   (PyObject-elements-set! obj 4 value))
+
+(define (str-token-fast-get obj)
+  (PyObject-elements-get obj 2))
+
+(define (str-token-fast-set! obj value)
+  (PyObject-elements-set! obj 2 value))
 
 ;; object allocation
 
@@ -1860,6 +1867,47 @@
 ;;  str and repr protocols
 ;; =============================================================================
 
+(define str-representatives (make-table test: string=? weak-values: #t))
+
+(define (str-value-collect-components-aux! value components)
+  (if (pair? value)
+    (let ((left (car value))
+          (right (cdr value)))
+      (str-value-collect-components-aux! left components)
+      (str-value-collect-components-aux! right components))
+    (begin
+      (set-cdr! components components)
+      (set-car! components value))))
+
+(define (str-value-collect-components value)
+  (let ((components (list)))
+    (str-value-collect-components-aux! value components)
+    (reverse components)))
+
+(define (str-make! str)
+  (let ((value (object-scheme-value-fast-get str)))
+    (if (string? value)
+      value
+      (let ((str-components (str-collect-components value))
+            (new-string (append-strings str-components)))
+        (object-scheme-value-fast-set! str new-string)
+        new-string))))
+
+(define (str-representative-get str)
+  (let ((self-token (str-token-fast-get str)))
+    (if (eq? self-token py-absent)
+      (begin
+        (let* ((str-value (str-make! str))
+               (rep (table-ref str-representatives str-value #f)))
+          (if rep
+            (begin
+              (str-token-fast-set! str rep)
+              rep)
+            (begin
+              (table-set! str-representatives str-value str)
+              str))))
+      self-token)))
+
 (define (str-new cls value)
   (cond
     ((eq? cls py-str-class)
@@ -2242,7 +2290,7 @@
     bytearr))
 
 (define (py-str-to-scheme self)
-  (object-scheme-value-fast-get self))
+  (str-make! self))
 
 (define (py-tuple-to-scheme self)
   (object-scheme-value-fast-get self))
