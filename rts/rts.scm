@@ -5380,25 +5380,23 @@
   (PyObject-elements-ref sys-mod 4))
 
 (define (import-with-gambit sys.modules name)
-  (with-exception-catcher
+  (with-handler
     (lambda (e)
       (if (or (os-exception? e)
               (expression-parsing-exception? e)
               (unbound-global-exception? e))
           #f
           (raise e)))
-    (lambda ()
-      (let* ((module-name (object-scheme-value-fast-get name))
-             (init (eval `(let () (import ,(string->symbol module-name)) init)))
-             (mod (init name)))
-        (dict-setitem sys.modules name mod)
-        mod))))
+    (let* ((module-name (object-scheme-value-fast-get name))
+           (init (eval `(let () (import ,(string->symbol module-name)) init)))
+           (mod (init name)))
+      (dict-setitem sys.modules name mod)
+      mod)))
 
 (define (compile-source source target)
   (define (root-dir)
     (or (getenv "ZIPIROOT")
         (path-expand ".." (path-directory (car (command-line))))))
-
   (shell-command
    (string-append
     (root-dir)
@@ -5410,7 +5408,7 @@
     target)))
 
 (define (import-module-scheme sys.modules name)
-  (let loop ((path-list ##module-search-order))
+  (let loop ((path-list (module-search-order)))
     (if (pair? path-list)
         (let* ((file-path
                 (path-expand
@@ -5451,11 +5449,9 @@
 (define (run-as-main name)
   (let ((sys.modules (sys.modules-get))
         (init (eval `(let () (import ,(string->symbol name)) init))))
-    (with-exception-catcher
+    (with-handler
       (lambda (e) (if (PyObject? e) (print-exception e) (raise e)))
-      (lambda ()
-        (init (py-str-from-scheme "__main__")))))
-  #!void)
+      (init (py-str-from-scheme "__main__")))))
 
 
 (define py-import-root (current-directory))
@@ -7793,5 +7789,5 @@
 (define zipi-stdlib-dir (path-expand "stdlib" (getenv "ZIPIROOT")))
 
 ;; load the builtins from zipi/stdlib/builtins.py
-(##module-search-order-add! zipi-stdlib-dir)
+(module-search-order-add! zipi-stdlib-dir)
 (set! builtins-mod (py-make-builtins-mod))
