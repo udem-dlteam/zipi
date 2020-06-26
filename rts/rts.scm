@@ -5310,6 +5310,12 @@
     (py-own-attr-set! mod (& "__builtins__") builtins-mod)
     mod))
 
+(define (py-make-module name)
+  (let ((mod (py-make-global)))
+   (py-own-attr-set! mod (& "__name__") name)
+   (dict-setitem (sys.modules-get) name mod)
+   mod))
+
 ;; ===========================================
 ;; IMPORT SYSTEM
 ;; ===========================================
@@ -5321,22 +5327,8 @@
    (empty-signature)))
 
 (define (py-make-time-mod)
-  (let ((mod
-         (py-obj-alloc
-          py-module-class
-          (make-HClass
-           (vector py-module-class py-object-class)
-           (vector (& "**class**")
-                   (& "__class__")
-                   (& "__name__")
-                   (& "time")
-                   )
-           '()))))
-
-    (PyObject-elements-set! mod 1 py-module-class)
-    (PyObject-elements-set! mod 2 (py-str-from-scheme "time"))
-    (PyObject-elements-set! mod 3 py-time.time)
-    mod))
+  (void)
+  )
 
 (define time-mod (py-make-time-mod))
 
@@ -5350,43 +5342,30 @@
 (define zipi-stdlib-dir (path-expand "stdlib" (getenv "ZIPIROOT")))
 
 (define (py-make-sys-mod)
-  (let ((mod
-         (py-obj-alloc
-          py-module-class
-          (make-HClass
-           (vector py-module-class py-object-class)
-           (vector (& "**class**")
-                   (& "__class__")
-                   (& "__name__")
-                   (& "modules")
-                   (& "path")
-                   )
-           '()))))
-
-    (PyObject-elements-set! mod 1 py-module-class)
-    (PyObject-elements-set! mod 2 (py-str-from-scheme "sys"))
-    (PyObject-elements-set! mod 3
-                            (create-sys-dict
-                             ("sys" . mod)
-                             ("time" . time-mod)))
-    (PyObject-elements-set! mod 4
-                           (create-sys-list "" zipi-stdlib-dir))
-    mod))
+  (let ((mod (py-make-global)))
+   (py-own-attr-set! mod (& "__name__") (py-str-from-scheme "sys"))
+   (py-own-attr-set! mod (& "modules")
+                     (create-sys-dict
+                       ("sys" . mod)
+                       ("time" . time-mod)))
+   (py-own-attr-set! mod (& "path")
+                     (create-sys-list "" zipi-stdlib-dir))
+   mod))
 
 (define sys-mod (py-make-sys-mod))
 
 (define (sys.modules-get)
-  (PyObject-elements-ref sys-mod 3))
+  (py-own-attr-ref sys-mod (& "modules")))
 
 (define (sys.path-get)
-  (PyObject-elements-ref sys-mod 4))
+  (py-own-attr-ref sys-mod (& "path")))
 
 
 (define (compile-source source target)
   (define (root-dir)
     (or (getenv "ZIPIROOT")
-        (path-expand ".." (path-directory (car (command-line))))))
-  (print "cp from " source " to " target "\n")
+        (error "Environnement variable $ZIPIROOT is not set. Refer to the README" )))
+  (print "compile from " source " to " target "\n")
   (shell-command
     (string-append
       (root-dir)
@@ -5431,7 +5410,7 @@
                 (ensure-parent-dir-exists path-cache)
                 (compile-source path path-cache))))))
 
-(define (import-with-zipi-cache path __name__ py-__name__ sys.modules)
+(define (import-with-zipi-cache path py-__name__ sys.modules)
   (let ((mod-init (and
                     (compile-to-cache path)
                     ;; TODO : for windows user, the path is not formated with a / before
@@ -5439,9 +5418,7 @@
                     (load-module-and-get-init 
                       (substring path 1 (string-length (path-strip-extension path)))))))
     (if mod-init
-        (let ((mod (mod-init __name__)))
-         (dict-setitem sys.modules py-__name__ mod)
-         mod)
+        (mod-init py-__name__)
         #f)))
 
 (define (load-module-and-get-init name)
@@ -5472,7 +5449,7 @@
                            __name__
                            ".py")))
                (or (import-with-zipi-cache 
-                     path __name__ py-__name__ sys.modules)
+                     path py-__name__ sys.modules)
                    (loop sys.path-iter))) 
              (loop sys.path-iter))
          (py-throw-exception-with-message 
@@ -5494,7 +5471,7 @@
     (with-exception-catcher
       (lambda (e) (if (PyObject? e) (print-exception e) (raise e)))
       (lambda ()
-        (import-with-zipi-cache path "__main__" (py-str-from-scheme "__main__") sys.modules)
+        (import-with-zipi-cache path (py-str-from-scheme "__main__") sys.modules)
         (break)
         ))))
 
