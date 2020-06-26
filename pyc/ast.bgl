@@ -220,7 +220,8 @@
 	      (need-return::bool (default #f))
 	      (can-locals::bool (default #t))
 	      (super-in-class::bool (default #f))
-        (use-simple-scoping::bool (default #f)))
+        (use-simple-scoping::bool (default #f))
+        (semantics::bool (default #f)))
            (final-class PycClass::PycExpr
 	      (name::bstring read-only)
 	      (module::bstring read-only)

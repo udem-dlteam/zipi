@@ -196,6 +196,8 @@
     #f)
   (if (member 'use_simple_scoping intrinsics)
     (mark-use-simple-scoping! this))
+  (if (member 'define_semantics intrinsics)
+    (mark-define-semantics! this))
   this)
 
 (define-walk-method (check-no-intrinsics-assignation this::PycNode intrinsics)
@@ -231,27 +233,29 @@
         (new-PycStatic loc id static-value))
       this)))
 
+(define (PycRef-with-name? x name)
+  (and (PycRefUnresolved? x) (eq? (PycRefUnresolved-id x) name)))
+
+(define (contains-PycRef-with-name? lst name)
+  (cond
+    ((null? lst)
+      #f)
+    ((PycRef-with-name? (car lst) name)
+      #t)
+    (else
+      (contains-PycRef-with-name? (cdr lst) name))))
+
 (define-walk-method (resolve-statics! this::PycFun intrinsics statics macros use-static-builtins)
-  (define (use_static_builtins-PycRef? x)
-    (and (PycRefUnresolved? x) (eq? (PycRefUnresolved-id x) 'use_static_builtins)))
-
-  (define (use_static_builtins-PycRef-contains? lst)
-    (cond
-      ((null? lst)
-        #f)
-      ((use_static_builtins-PycRef? (car lst))
-        #t)
-      (else
-        (use_static_builtins-PycRef-contains? (cdr lst)))))
-
   (let ((decorators (PycFun-decorators this)))
     (if (or use-static-builtins
             (and
               (member 'use_static_builtins intrinsics)
-              (use_static_builtins-PycRef-contains? decorators)))
+              (contains-PycRef-with-name? decorators 'use_static_builtins)))
       (let* ((body (PycFun-body this))
             (new-body (resolve-statics! body intrinsics statics macros #t)))
-        (PycFun-decorators-set! this (list-remove-pred decorators use_static_builtins-PycRef?))
+        (PycFun-decorators-set!
+          this
+          (list-remove-pred decorators (lambda (d) (PycRef-with-name? d 'use_static_builtins))))
         (PycFun-body-set! this new-body)
         this)
       (call-default-walker))))
@@ -275,21 +279,29 @@
   (call-default-walker))
 
 (define-walk-method (mark-use-simple-scoping! this::PycFun)
-  (define (use_simple_scoping-PycRef? x)
-    (and (PycRefUnresolved? x) (eq? (PycRefUnresolved-id x) 'use_simple_scoping)))
-
-  (define (use_simple_scoping-PycRef-contains? lst)
-    (cond
-      ((null? lst)
-        #f)
-      ((use_simple_scoping-PycRef? (car lst))
-        #t)
-      (else
-        (use_simple_scoping-PycRef-contains? (cdr lst)))))
-
   (let ((decorators (PycFun-decorators this)))
-    (if (use_simple_scoping-PycRef-contains? decorators)
+    (if (contains-PycRef-with-name? decorators 'use_simple_scoping)
       (begin
-        (PycFun-decorators-set! this (list-remove-pred decorators use_simple_scoping-PycRef?))
+        (PycFun-decorators-set!
+          this
+          (list-remove-pred decorators (lambda (d) (PycRef-with-name? d 'use_simple_scoping))))
         (PycFun-use-simple-scoping-set! this #t)))
+      (call-default-walker)))
+
+(define-walk-method (mark-define-semantics! this::PycNode)
+  (call-default-walker))
+
+(define-walk-method (mark-define-semantics! this::PycFun)
+  (let ((decorators (PycFun-decorators this)))
+    (if (contains-PycRef-with-name? decorators 'define_semantics)
+      (begin
+        (PycFun-decorators-set!
+          this
+          (list-remove-pred
+            decorators
+            (lambda (d)
+              (or (PycRef-with-name? d 'use_simple_scoping)
+                  (PycRef-with-name? d 'define_semantics)))))
+        (PycFun-use-simple-scoping-set! this #t)
+        (PycFun-semantics-set! this #t)))
       (call-default-walker)))
