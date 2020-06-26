@@ -5335,6 +5335,8 @@
 (define-macro (create-sys-list . path-list)
   `(py-list-from-scheme (cons ,(length path-list) (vector ,@(map (lambda (x) `(py-str-from-scheme ,x)) path-list)))))
 
+(define zipi-stdlib-dir (path-expand "stdlib" (getenv "ZIPIROOT")))
+
 (define (py-make-sys-mod)
   (let ((mod
          (py-obj-alloc
@@ -5356,7 +5358,7 @@
                              ("sys" . mod)
                              ("time" . time-mod)))
     (PyObject-elements-set! mod 4
-                           (create-sys-list "~/udem-dlteam/zipi/python-builtins/"))
+                           (create-sys-list "" zipi-stdlib-dir))
     mod))
 
 (define sys-mod (py-make-sys-mod))
@@ -5364,85 +5366,124 @@
 (define (sys.modules-get)
   (PyObject-elements-ref sys-mod 3))
 
-(define (sys-mod-path-get)
+(define (sys.path-get)
   (PyObject-elements-ref sys-mod 4))
 
-(define (import-with-gambit sys.modules name)
-  (with-exception-catcher
-    (lambda (e) 
-      (if (or (os-exception? e)
-              (expression-parsing-exception? e)
-              (unbound-global-exception? e))
-          #f
-          (raise e)))
-    (lambda ()
-      (let* ((module-name (object-scheme-value-fast-get name))
-             (init (eval `(let () (import ,(string->symbol module-name)) init)))
-             (mod (init name)))
-        (dict-setitem sys.modules name mod)
-        mod))))
 
 (define (compile-source source target)
   (define (root-dir)
     (or (getenv "ZIPIROOT")
         (path-expand ".." (path-directory (car (command-line))))))
-
+  (print "cp from " source " to " target "\n")
   (shell-command
-   (string-append
-    (root-dir)
-    "/etc/py19 -t gambit "
-    (root-dir)
-    "/pyc "
-    source
-    " > "
-    target)))
+    (string-append
+      (root-dir)
+      "/etc/py19 -t gambit "
+      (root-dir)
+      "/pyc "
+      source
+      " > "
+      target)))
 
-(define (import-module-scheme sys.modules name)
-  (let loop ((path-list ##module-search-order))
-    (if (pair? path-list)
-        (let* ((file-path
-                (path-expand
-                  (object-scheme-value-fast-get name)
-                  (car path-list)))
-              (python-file-path (string-append file-path ".py"))
-              (scheme-file-path (string-append file-path ".scm")))
-          (cond
-           ((file-exists? scheme-file-path)
-            ;; TODO: add some kind of checksum to detect file change
-            (or (import-with-gambit sys.modules name)
-                (py-throw-exception-with-message
-                  py-builtin-ModuleNotFoundError
-                  "Unable to compile or execute module "
-                  (object-scheme-value-fast-get name))))
-           ((file-exists? python-file-path)
-            (begin
-              (compile-source python-file-path scheme-file-path)
-              (or (import-with-gambit sys.modules name)
-                  (py-throw-exception-with-message
-                    py-builtin-ModuleNotFoundError
-                    "Unable to compile or execute module "
-                    (object-scheme-value-fast-get name)))))
-           (else (loop (cdr path-list)))))
-        (py-throw-exception-with-message py-builtin-ModuleNotFoundError "No module named " (object-scheme-value-fast-get name)))))
+(define (ensure-parent-dir-exists path)  
+  (define (wind path todo)
+    (let* ((dir (path-strip-trailing-directory-separator
+                  (path-directory path)))
+           (fi (with-exception-catcher
+                 (lambda (exc) #f)
+                 (lambda () (file-info dir)))))
+      (if fi
+          (if (eq? (file-info-type fi) 'directory)
+              (unwind todo)
+              (error "directory component can't be created"))
+          (wind dir (cons dir todo)))))  
 
-(define (builtin-__import__ name)
+  (define (unwind todo)
+    (if (pair? todo)
+        (begin
+          ;;(pretty-print (list 'creating= (car todo)))
+          (create-directory (car todo))
+          (unwind (cdr todo)))))  
+
+  (wind path '()))
+
+(define (compile-to-cache path)
+  (let ((path-cache 
+          (string-append
+            (path-expand  "~/.zipicache/cache")
+            (path-strip-extension path)
+            ".scm")))
+    (and (file-exists? path) 
+         (fx= 0 
+              (begin
+                (ensure-parent-dir-exists path-cache)
+                (compile-source path path-cache))))))
+
+(define (import-with-zipi-cache path __name__ py-__name__ sys.modules)
+  (let ((mod-init (and
+                    (compile-to-cache path)
+                    ;; TODO : for windows user, the path is not formated with a / before
+                    ;; the first three characters should be removed instead of just the first one
+                    (load-module-and-get-init (substring path 1 (string-length (path-strip-extension path)))))))
+    (if mod-init
+        (let ((mod (mod-init __name__)))
+         (dict-setitem sys.modules py-__name__ mod)
+         mod)
+        #f)))
+
+(define (load-module-and-get-init name)
+  (let* ((sym (string->symbol name))
+         (modref (##parse-module-ref sym)))
+    (if modref
+        (with-exception-catcher
+         (lambda (exn)
+           (if (module-not-found-exception? exn)
+               #f
+               (raise exn)))
+         (lambda ()
+           (##load-module sym)
+           (let ((init (##module-var-ref modref 'init)))
+             (if (procedure? init)
+                 init
+                 #f))))
+        #f)))
+
+(define (import-from-sys.path __name__ py-__name__ sys.modules)
+  (let ((sys.path-iter (py-iter (sys.path-get))))
+   (let loop ((value sys.path-iter))
+    (let ((value (py-next value)))
+     (if value
+         (if (py-isinstance? value py-str-class) ;; TODO : support bytes
+             (let ((path (string-append 
+                           (path-normalize (object-scheme-value-fast-get value))
+                           __name__
+                           ".py")))
+               (or (import-with-zipi-cache 
+                     path __name__ py-__name__ sys.modules)
+                   (loop sys.path-iter))) 
+             (loop sys.path-iter))
+         (py-throw-exception-with-message 
+           py-builtin-ModuleNotFoundError 
+           "No module named " __name__)
+         )))))
+
+(break import-from-sys.path)
+
+(define (builtin-__import__ __name__ py-__name__)
   (let ((sys.modules (sys.modules-get)))
     ;; check in sys.modules if the value exist and returns it if it exists
-    (or (dict-get sys.modules name #f)
-        (import-with-gambit sys.modules name)
-        (import-module-scheme sys.modules name))))
-
+    (or (dict-get sys.modules py-__name__ #f)
+        (import-from-sys.path __name__ py-__name__ sys.modules))))
 
 (define (py-import path depth)
-  (builtin-__import__ (py-str-from-scheme path)))
+  (builtin-__import__ path (py-str-from-scheme path)))
 
-(define (run-as-main name)
-  (let ((sys.modules (sys.modules-get)) 
-        (init (eval `(let () (import ,(string->symbol name)) init))))
+(define (run-as-main path)
+  (let ((sys.modules (sys.modules-get)))
     (with-exception-catcher
       (lambda (e) (if (PyObject? e) (print-exception e) (raise e)))
       (lambda ()
-        (init (py-str-from-scheme "__main__")))))
+        (import-with-zipi-cache path "__main__" (py-str-from-scheme "__main__") sys.modules))))
   (void))
 
 
@@ -7774,13 +7815,12 @@
   (set! py-builtin-range (py-own-attr-ref builtins-mod (& "range"))))
 
 (define (py-make-builtins-mod)
-  (let ((builtins-mod (import-module-scheme
-                        (sys.modules-get)
-                        (py-str-from-scheme "builtins"))))
+  (let ((builtins-mod (import-from-sys.path
+                        "builtins"
+                        (py-str-from-scheme "builtins")
+                        (sys.modules-get))))
     (bootstrap-builtins builtins-mod)
     builtins-mod))
-
-(define zipi-stdlib-dir (path-expand "stdlib" (getenv "ZIPIROOT")))
 
 ;; load the builtins from zipi/stdlib/builtins.py
 (##module-search-order-add! zipi-stdlib-dir)
