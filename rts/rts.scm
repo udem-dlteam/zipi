@@ -3,6 +3,22 @@
 ;;  This was already done with int, example:
 ;; the object int.__add__ has name 'int.__add__' in the source
 
+(define (init-constants constants)
+  (for-each
+    (lambda (pair)
+      (let ((value (car pair))
+            (obj (cdr pair)))
+        (PyObject-hclass-set! obj py-str-hclass-of-instances)
+        (structure-set! obj 2
+          (make-vector
+            (vector-length (HClass-names py-str-hclass-of-instances))
+            py-absent))
+        (object-class-fast-set! obj py-str-class)
+        (object-scheme-value-fast-set! obj value)))
+    (table->list (structure-ref constants 1))))
+
+(start-registering-constants)
+
 ;; =============================================================================
 ;;  HIDDEN CLASSES
 ;; =============================================================================
@@ -33,7 +49,9 @@
     '#() ;; set later when classes exist
     (vector
       (& "**class**")
-      (& "**value**"))
+      (& "**value**")
+      (& "**representative**")
+      (& "**hash**"))
     '()))
 
 (define py-tuple-hclass-of-instances
@@ -261,6 +279,18 @@
 (define (method-__self__-fast-set! obj value)
   (PyObject-elements-set! obj 4 value))
 
+(define (str-representative-fast-get obj)
+  (PyObject-elements-ref obj 2))
+
+(define (str-representative-fast-set! obj value)
+  (PyObject-elements-set! obj 2 value))
+
+(define (str-hash-fast-get obj)
+  (PyObject-elements-ref obj 3))
+
+(define (str-hash-fast-set! obj value)
+  (PyObject-elements-set! obj 3 value))
+
 ;; object allocation
 
 (define (py-obj-alloc-with-value cls hclass-of-instances value)
@@ -292,9 +322,9 @@
 (define (global-get/miss global name cache)
   (let ((i (py-own-attr-index global name)))
     (if (< i 0)
-        (let ((bi (py-attr-ref global (& "__builtins__"))))
+        (let ((bi (py-own-attr-ref global (& "__builtins__") #f)))
           (if (not (eq? bi py-absent))
-              (let ((val (py-attr-ref bi name)))
+              (let ((val (py-own-attr-ref bi name #f)))
                 (if (not (eq? val py-absent))
                     val
                     (py-throw py-builtin-NameError)))
@@ -309,54 +339,21 @@
 (define (global-put! global name val cache)
    (if (eq? (PyObject-hclass global) (PCache-hclass cache))
        (PyObject-elements-set! global (PCache-index cache) val)
-       (global-put!/miss global name val cache)))
-
-(define (global-put!/miss global name val cache)
-  (let* ((i (py-own-attr-index global name))
-         (hclass (PyObject-hclass global)))
-    (if (< i 0)
-        (let* ((new-hclass (HClass-next hclass name '+))
-               (index (HClass-last-index new-hclass)))
-          (PyObject-hclass-set! global new-hclass)
-          (PCache-set! cache new-hclass index)
-          (PyObject-elements-set! global index val))
-        (begin
-          (PCache-set! cache hclass i)
-          (PyObject-elements-set! global i val)))))
+       (object-put!/miss global name val cache)))
 
 (define (object-put!/miss obj name val cache)
-  (let* ((index (PyObject-find-prop obj name))
+  (let* ((index (py-own-attr-index obj name))
          (hclass (PyObject-hclass obj)))
     (if (>= index 0)
         (begin
           (PCache-set! cache hclass index)
           (PyObject-elements-set! obj index val))
-        (let* ((nhclass (HClass-next hclass name '+))
+        (let* ((name-representative (str-representative-get name))
+               (nhclass (HClass-next hclass name-representative '+))
                (index (HClass-last-index nhclass)))
           (PyObject-hclass-set! obj nhclass)
           (PCache-set! cache nhclass index)
           (PyObject-elements-set! obj index val)))))
-
-(define (object-put-no-cache! obj name val)
-  (let* ((index (PyObject-find-prop obj name))
-         (hclass (PyObject-hclass obj)))
-    (if (>= index 0)
-	(PyObject-elements-set! obj index val)
-        (let* ((nhclass (HClass-next hclass name '+))
-               (index (HClass-last-index nhclass)))
-          (PyObject-hclass-set! obj nhclass)
-          (PyObject-elements-set! obj index val)))))
-
-(define (PyObject-find-prop obj name)
-  (if (not (PyObject? obj))
-      -1
-      (let* ((hclass (PyObject-hclass obj))
-             (names (HClass-names hclass)))
-        (let loop ((i (- (vector-length names) 1)))
-          (cond
-           ((= i -1) i)
-           ((eq? name (vector-ref names i)) i)
-           (else (loop (- i 1))))))))
 
 ;; Boostrap functions
 ;; Functions are objects of type 'function', but their type cannot be assigned
@@ -1556,10 +1553,11 @@
 ;;; Object attribute store/fetch.
 
 (define (py-own-attr-set! obj attr val)
-  (let ((i (py-own-attr-index obj attr)))
+  (let* ((attr-representative (str-representative-get attr))
+         (i (py-own-attr-index obj attr-representative)))
     (if (< i 0)
         (let* ((hclass (PyObject-hclass obj))
-               (new-hclass (HClass-next hclass attr '+))
+               (new-hclass (HClass-next hclass attr-representative '+))
                (index (HClass-last-index new-hclass)))
           (PyObject-hclass-set! obj new-hclass)
           (PyObject-elements-set! obj index val))
@@ -1575,42 +1573,12 @@
   (if (not (PyObject? obj)) ;; TODO: find how this test could be removed
       -1
       (let* ((hclass (PyObject-hclass obj))
-             (names (HClass-names hclass)))
+             (names (HClass-names hclass))
+             (attr-representative (str-representative-get attr)))
         (let loop ((i (- (vector-length names) 1)))
           (cond ((< i 0) -1)
-                ((eq? attr (vector-ref names i)) i)
+                ((eq? attr-representative (vector-ref names i)) i)
                 (else (loop (- i 1))))))))
-
-(define (py-attr-set! obj attr val)
-  (py-own-attr-set! obj attr val))
-
-(define (py-attr-ref obj attr #!optional (default py-absent))
-  (let ((mro (py-obj-mro obj)))
-    (let loop1 ((i 0))
-      (if (< i (vector-length mro))
-          (let* ((cls (vector-ref mro i))
-                 (ga (py-own-attr-ref obj (& "__getattribute__"))))
-            (if (not (eq? ga py-absent))
-                (py-throw-exception-with-message py-builtin-NotImplementedError "py-attr-ref TODO: add case where class defines __getattribute__")
-                (loop1 (+ i 1))))
-          (let ((val (py-own-attr-ref obj attr)))
-            (if (not (eq? val py-absent))
-                val
-                (let loop2 ((i 0))
-                  (if (< i (vector-length mro))
-                      (let* ((cls (vector-ref mro i))
-                             (val (py-own-attr-ref cls attr)))
-                        (if (not (eq? val py-absent))
-                            val
-                            (loop2 (+ i 1))))
-                      (let loop3 ((i 0))
-                        (if (< i (vector-length mro))
-                            (let* ((cls (vector-ref mro i))
-                                   (ga (py-own-attr-ref obj (& "__getattr__"))))
-                              (if (not (eq? ga py-absent))
-                                  (py-throw-exception-with-message py-builtin-NotImplementedError "py-attr-ref TODO: add case where class defines __getattr__")
-                                  (loop3 (+ i 1))))
-                            default))))))))))
 
 ;; ===================
 ;; DESCRIPTOR PROTOCOL
@@ -1718,7 +1686,7 @@
 	 (py-call py-getattribute obj name))))
 
 (define (object-put! obj attr val cache)
-  (py-attr-set! obj attr val))
+  (py-own-attr-set! obj attr val))
 
 (define (object-has obj attr)
    (>= (py-own-attr-index obj attr) 0))
@@ -1875,6 +1843,46 @@
 ;;  str and repr protocols
 ;; =============================================================================
 
+(define str-representatives (make-table test: string=? weak-values: #t))
+
+(define (str-value-collect-components-aux! value components)
+  (if (pair? value)
+    (let ((left (car value))
+          (right (cdr value)))
+      (str-value-collect-components-aux!
+        (object-scheme-value-fast-get right)
+        (str-value-collect-components-aux!
+          (object-scheme-value-fast-get left)
+          components)))
+    (cons value components)))
+
+(define (str-value-collect-components value)
+  (reverse (str-value-collect-components-aux! value '())))
+
+(define (str-make! str)
+  (let ((value (object-scheme-value-fast-get str)))
+    (if (string? value)
+      value
+      (let* ((str-components (str-value-collect-components value))
+            (new-string (append-strings str-components)))
+        (object-scheme-value-fast-set! str new-string)
+        new-string))))
+
+(define (str-representative-get str)
+  (let ((self-token (str-representative-fast-get str)))
+    (if (eq? self-token py-absent)
+      (begin
+        (let* ((str-value (str-make! str))
+               (rep (table-ref str-representatives str-value #f)))
+          (if rep
+            (begin
+              (str-representative-fast-set! str rep)
+              rep)
+            (begin
+              (table-set! str-representatives str-value str)
+              str))))
+      self-token)))
+
 (define (str-new cls value)
   (cond
     ((eq? cls py-str-class)
@@ -1981,14 +1989,16 @@
 
 (define (str-eq self other)
   (if (py-isinstance? self py-str-class)
-    (if (eq? (py-type other) py-str-class)
-      (let* ((self-string (py-str-to-scheme self))
-             (other-string (py-str-to-scheme other)))
-        (if (string=? self-string other-string)
-          py-True
-          py-False))
-      py-NotImplemented)
-    (py-throw-required-type "__hash__" "str" self)))
+    (if (eq? self other)
+      py-True
+      (if (eq? (py-type other) py-str-class)
+        (let* ((self-representative (str-representative-get self))
+               (other-representative (str-representative-get other)))
+          (if (eq? self-representative other-representative)
+            py-True
+            py-False))
+        py-NotImplemented))
+    (py-throw-required-type "__eq__" "str" self)))
 
 (define str.__eq__
   (procedure->py-function
@@ -2012,8 +2022,16 @@
 
 (define (str-hash self)
   (if (py-isinstance? self py-str-class)
-    (let* ((string (py-str-to-scheme self)))
-      (py-int-from-scheme (hash-FNV1a string)))
+    (let* ((representative (str-representative-get self))
+           (hash (str-hash-fast-get representative)))
+      (if (eq? hash py-absent)
+        (let ((new-hash
+                (py-int-from-scheme
+                  (hash-FNV1a
+                    (object-scheme-value-fast-get representative)))))
+          (str-hash-fast-set! representative new-hash)
+          new-hash)
+        hash))
     (py-throw-required-type "__hash__" "str" self)))
 
 (define str.__hash__
@@ -2024,10 +2042,7 @@
 (define (str-add self other)
   (if (py-isinstance? self py-str-class)
     (if (py-isinstance? other py-str-class)
-      (py-str-from-scheme
-        (string-append
-          (object-scheme-value-fast-get self)
-          (object-scheme-value-fast-get other)))
+      (py-str-from-scheme (cons self other))
       py-NotImplemented)
     (py-throw-required-type "__add__" "str" self)))
 
@@ -2080,7 +2095,7 @@
   ;; checking some cases beforehand for efficiency
   (case (py-type obj)
     ((py-str-class)
-      (display (object-scheme-value-fast-get obj) port))
+      (display (py-str-to-scheme obj) port))
     ((py-int-class)
       (display (object-scheme-value-fast-get obj) port))
     ((py-float-class)
@@ -2090,7 +2105,7 @@
         (display "True" port)
         (display "False" port)))
     (else
-      (display (object-scheme-value-fast-get (py-str obj)) port))))
+      (display (py-str-to-scheme (py-str obj)) port))))
 
 (define (py-str obj)
   (let* ((__str__ (getattribute-from-obj-mro obj (& "__str__")))
@@ -2257,7 +2272,7 @@
     bytearr))
 
 (define (py-str-to-scheme self)
-  (object-scheme-value-fast-get self))
+  (str-make! self))
 
 (define (py-tuple-to-scheme self)
   (object-scheme-value-fast-get self))
@@ -2312,6 +2327,9 @@
     (set! py-type-class type-class)
     (set! py-str-class str-class)
     (set! py-tuple-class tuple-class)
+
+    ;; init all object (& ...) to a py-str object
+    (init-registered-constants)
 
     ;; Fill in object class
     (object-class-fast-set! object-class type-class)
@@ -2412,10 +2430,10 @@
               (loop (cdr attr-names) (cdr attr-values)))))
       (py-own-attr-set! cls
         (& "__module__")
-        (py-str-from-scheme (symbol->string module)))
+        module)
       (py-own-attr-set! cls
         (& "__name__")
-        (py-str-from-scheme (symbol->string name)))
+        name)
       cls))
 
     (let loop ((lst attrs)
@@ -5274,9 +5292,6 @@
 
 (define py-make-dict py-dict-from-scheme)
 
-(define (py-string-to-name s)
-  (string->symbol s))
-
 (define (py-type obj)
   (py-obj-cls obj))
 
@@ -5293,10 +5308,7 @@
           py-module-hclass-of-instances)))
     (py-own-attr-set! mod (& "**class**") py-module-class)
     (py-own-attr-set! mod (& "__builtins__") builtins-mod)
-    (py-own-attr-set! mod (& "_absent") (cons 'buitlins-absent-sentinel '()))
     mod))
-
-
 
 ;; ===========================================
 ;; IMPORT SYSTEM
@@ -5369,7 +5381,7 @@
 
 (define (import-with-gambit sys.modules name)
   (with-exception-catcher
-    (lambda (e) 
+    (lambda (e)
       (if (or (os-exception? e)
               (expression-parsing-exception? e)
               (unbound-global-exception? e))
@@ -5437,7 +5449,7 @@
   (builtin-__import__ (py-str-from-scheme path)))
 
 (define (run-as-main name)
-  (let ((sys.modules (sys.modules-get)) 
+  (let ((sys.modules (sys.modules-get))
         (init (eval `(let () (import ,(string->symbol name)) init))))
     (with-exception-catcher
       (lambda (e) (if (PyObject? e) (print-exception e) (raise e)))
@@ -6158,17 +6170,16 @@
   (procedure->py-function
     (lambda (object name default)
       (if (py-isinstance? name py-str-class)
-        (let ((attr (string->symbol (py-str-to-scheme name))))
-          (if (not (eq? default py-absent))
-            (with-handler
-              (lambda (exc)
-                (if (and
-                      (PyObject? exc)
-                      (py-isinstance? exc py-builtin-AttributeError))
-                  default
-                  (raise exc)))
-              (object-get object attr #f))
-            (object-get object attr #f)))
+        (if (not (eq? default py-absent))
+          (with-handler
+            (lambda (exc)
+              (if (and
+                    (PyObject? exc)
+                    (py-isinstance? exc py-builtin-AttributeError))
+                default
+                (raise exc)))
+            (object-get object name #f))
+          (object-get object name #f))
         (py-throw-exception-with-message
           py-builtin-TypeError
           "getattr(): attribute name must be string")))
@@ -6200,8 +6211,7 @@
 (define py-builtin-hasattr
   (procedure->py-function
     (lambda (object name)
-      (let ((val (py-attr-ref object name)))
-        (not (eq? val py-absent))))
+      (py-throw-exception-with-message py-builtin-NotImplementedError "hasattr not implemented"))
     (make-posonly-signature '#(object name))))
 
 ;;-------------------- hash(object)
@@ -7293,8 +7303,8 @@
           (error "super not implemented for 1 argument"))
         (else
           (begin
-            (py-attr-set! self (& "__thisclass__") type)
-            (py-attr-set! self (& "__self__") object)))))
+            (py-own-attr-set! self (& "__thisclass__") type)
+            (py-own-attr-set! self (& "__self__") object)))))
 
 (define super.__init__
   (procedure->py-function
@@ -7699,77 +7709,77 @@
 
   (py-own-attr-set! py-list-class (& "sort") list.sort)
 
-  (py-attr-set! builtins-mod (& "None") py-None)
-  (py-attr-set! builtins-mod (& "NotImplemented") py-NotImplemented)
-  (py-attr-set! builtins-mod (& "False") py-False)
-  (py-attr-set! builtins-mod (& "True") py-True)
-  (py-attr-set! builtins-mod (& "abs") py-builtin-abs)
-  (py-attr-set! builtins-mod (& "all") py-builtin-all)
-  (py-attr-set! builtins-mod (& "any") py-builtin-any)
-  (py-attr-set! builtins-mod (& "ascii") py-builtin-ascii)
-  (py-attr-set! builtins-mod (& "bin") py-builtin-bin)
-  (py-attr-set! builtins-mod (& "bool") py-builtin-bool)
-  (py-attr-set! builtins-mod (& "breakpoint") py-builtin-breakpoint)
-  (py-attr-set! builtins-mod (& "bytearray") py-builtin-bytearray)
-  (py-attr-set! builtins-mod (& "bytes") py-builtin-bytes)
-  (py-attr-set! builtins-mod (& "callable") py-builtin-callable)
-  (py-attr-set! builtins-mod (& "chr") py-builtin-chr)
-  (py-attr-set! builtins-mod (& "classmethod") py-builtin-classmethod)
-  (py-attr-set! builtins-mod (& "compile") py-builtin-compile)
-  (py-attr-set! builtins-mod (& "complex") py-builtin-complex)
-  (py-attr-set! builtins-mod (& "delattr") py-builtin-delattr)
-  (py-attr-set! builtins-mod (& "dict") py-builtin-dict)
-  (py-attr-set! builtins-mod (& "dir") py-builtin-dir)
-  (py-attr-set! builtins-mod (& "divmod") py-builtin-divmod)
-  (py-attr-set! builtins-mod (& "enumerate") py-builtin-enumerate)
-  (py-attr-set! builtins-mod (& "eval") py-builtin-eval)
-  (py-attr-set! builtins-mod (& "exec") py-builtin-exec)
-  (py-attr-set! builtins-mod (& "filter") py-builtin-filter)
-  (py-attr-set! builtins-mod (& "float") py-builtin-float)
-  (py-attr-set! builtins-mod (& "format") py-builtin-format)
-  (py-attr-set! builtins-mod (& "frozenset") py-builtin-frozenset)
-  (py-attr-set! builtins-mod (& "getattr") py-builtin-getattr)
-  (py-attr-set! builtins-mod (& "globals") py-builtin-globals)
-  (py-attr-set! builtins-mod (& "hasattr") py-builtin-hasattr)
-  (py-attr-set! builtins-mod (& "hash") py-builtin-hash)
-  (py-attr-set! builtins-mod (& "help") py-builtin-help)
-  (py-attr-set! builtins-mod (& "hex") py-builtin-hex)
-  (py-attr-set! builtins-mod (& "id") py-builtin-id)
-  (py-attr-set! builtins-mod (& "input") py-builtin-input)
-  (py-attr-set! builtins-mod (& "int") py-builtin-int)
-  (py-attr-set! builtins-mod (& "isinstance") py-builtin-isinstance)
-  (py-attr-set! builtins-mod (& "issubclass") py-builtin-issubclass)
-  (py-attr-set! builtins-mod (& "iter") py-builtin-iter)
-  (py-attr-set! builtins-mod (& "len") py-builtin-len)
-  (py-attr-set! builtins-mod (& "list") py-builtin-list)
-  (py-attr-set! builtins-mod (& "locals") py-builtin-locals)
-  (py-attr-set! builtins-mod (& "map") py-builtin-map)
-  (py-attr-set! builtins-mod (& "max") py-builtin-max)
-  (py-attr-set! builtins-mod (& "memoryview") py-builtin-memoryview)
-  (py-attr-set! builtins-mod (& "min") py-builtin-min)
-  (py-attr-set! builtins-mod (& "next") py-builtin-next)
-  (py-attr-set! builtins-mod (& "object") py-builtin-object)
-  (py-attr-set! builtins-mod (& "oct") py-builtin-oct)
-  (py-attr-set! builtins-mod (& "open") py-builtin-open)
-  (py-attr-set! builtins-mod (& "ord") py-builtin-ord)
-  (py-attr-set! builtins-mod (& "pow") py-builtin-pow)
-  (py-attr-set! builtins-mod (& "print") py-builtin-print)
-  (py-attr-set! builtins-mod (& "property") py-builtin-property)
-  (py-attr-set! builtins-mod (& "repr") py-builtin-repr)
-  (py-attr-set! builtins-mod (& "reversed") py-builtin-reversed)
-  (py-attr-set! builtins-mod (& "round") py-builtin-round)
-  (py-attr-set! builtins-mod (& "set") py-builtin-set)
-  (py-attr-set! builtins-mod (& "setattr") py-builtin-setattr)
-  (py-attr-set! builtins-mod (& "slice") py-builtin-slice)
-  (py-attr-set! builtins-mod (& "sorted") py-builtin-sorted)
-  (py-attr-set! builtins-mod (& "staticmethod") py-builtin-staticmethod)
-  (py-attr-set! builtins-mod (& "str") py-builtin-str)
-  (py-attr-set! builtins-mod (& "sum") py-builtin-sum)
-  (py-attr-set! builtins-mod (& "super") py-builtin-super)
-  (py-attr-set! builtins-mod (& "tuple") py-builtin-tuple)
-  (py-attr-set! builtins-mod (& "type") py-builtin-type)
-  (py-attr-set! builtins-mod (& "vars") py-builtin-vars)
-  (py-attr-set! builtins-mod (& "zip") py-builtin-zip)
+  (py-own-attr-set! builtins-mod (& "None") py-None)
+  (py-own-attr-set! builtins-mod (& "NotImplemented") py-NotImplemented)
+  (py-own-attr-set! builtins-mod (& "False") py-False)
+  (py-own-attr-set! builtins-mod (& "True") py-True)
+  (py-own-attr-set! builtins-mod (& "abs") py-builtin-abs)
+  (py-own-attr-set! builtins-mod (& "all") py-builtin-all)
+  (py-own-attr-set! builtins-mod (& "any") py-builtin-any)
+  (py-own-attr-set! builtins-mod (& "ascii") py-builtin-ascii)
+  (py-own-attr-set! builtins-mod (& "bin") py-builtin-bin)
+  (py-own-attr-set! builtins-mod (& "bool") py-builtin-bool)
+  (py-own-attr-set! builtins-mod (& "breakpoint") py-builtin-breakpoint)
+  (py-own-attr-set! builtins-mod (& "bytearray") py-builtin-bytearray)
+  (py-own-attr-set! builtins-mod (& "bytes") py-builtin-bytes)
+  (py-own-attr-set! builtins-mod (& "callable") py-builtin-callable)
+  (py-own-attr-set! builtins-mod (& "chr") py-builtin-chr)
+  (py-own-attr-set! builtins-mod (& "classmethod") py-builtin-classmethod)
+  (py-own-attr-set! builtins-mod (& "compile") py-builtin-compile)
+  (py-own-attr-set! builtins-mod (& "complex") py-builtin-complex)
+  (py-own-attr-set! builtins-mod (& "delattr") py-builtin-delattr)
+  (py-own-attr-set! builtins-mod (& "dict") py-builtin-dict)
+  (py-own-attr-set! builtins-mod (& "dir") py-builtin-dir)
+  (py-own-attr-set! builtins-mod (& "divmod") py-builtin-divmod)
+  (py-own-attr-set! builtins-mod (& "enumerate") py-builtin-enumerate)
+  (py-own-attr-set! builtins-mod (& "eval") py-builtin-eval)
+  (py-own-attr-set! builtins-mod (& "exec") py-builtin-exec)
+  (py-own-attr-set! builtins-mod (& "filter") py-builtin-filter)
+  (py-own-attr-set! builtins-mod (& "float") py-builtin-float)
+  (py-own-attr-set! builtins-mod (& "format") py-builtin-format)
+  (py-own-attr-set! builtins-mod (& "frozenset") py-builtin-frozenset)
+  (py-own-attr-set! builtins-mod (& "getattr") py-builtin-getattr)
+  (py-own-attr-set! builtins-mod (& "globals") py-builtin-globals)
+  (py-own-attr-set! builtins-mod (& "hasattr") py-builtin-hasattr)
+  (py-own-attr-set! builtins-mod (& "hash") py-builtin-hash)
+  (py-own-attr-set! builtins-mod (& "help") py-builtin-help)
+  (py-own-attr-set! builtins-mod (& "hex") py-builtin-hex)
+  (py-own-attr-set! builtins-mod (& "id") py-builtin-id)
+  (py-own-attr-set! builtins-mod (& "input") py-builtin-input)
+  (py-own-attr-set! builtins-mod (& "int") py-builtin-int)
+  (py-own-attr-set! builtins-mod (& "isinstance") py-builtin-isinstance)
+  (py-own-attr-set! builtins-mod (& "issubclass") py-builtin-issubclass)
+  (py-own-attr-set! builtins-mod (& "iter") py-builtin-iter)
+  (py-own-attr-set! builtins-mod (& "len") py-builtin-len)
+  (py-own-attr-set! builtins-mod (& "list") py-builtin-list)
+  (py-own-attr-set! builtins-mod (& "locals") py-builtin-locals)
+  (py-own-attr-set! builtins-mod (& "map") py-builtin-map)
+  (py-own-attr-set! builtins-mod (& "max") py-builtin-max)
+  (py-own-attr-set! builtins-mod (& "memoryview") py-builtin-memoryview)
+  (py-own-attr-set! builtins-mod (& "min") py-builtin-min)
+  (py-own-attr-set! builtins-mod (& "next") py-builtin-next)
+  (py-own-attr-set! builtins-mod (& "object") py-builtin-object)
+  (py-own-attr-set! builtins-mod (& "oct") py-builtin-oct)
+  (py-own-attr-set! builtins-mod (& "open") py-builtin-open)
+  (py-own-attr-set! builtins-mod (& "ord") py-builtin-ord)
+  (py-own-attr-set! builtins-mod (& "pow") py-builtin-pow)
+  (py-own-attr-set! builtins-mod (& "print") py-builtin-print)
+  (py-own-attr-set! builtins-mod (& "property") py-builtin-property)
+  (py-own-attr-set! builtins-mod (& "repr") py-builtin-repr)
+  (py-own-attr-set! builtins-mod (& "reversed") py-builtin-reversed)
+  (py-own-attr-set! builtins-mod (& "round") py-builtin-round)
+  (py-own-attr-set! builtins-mod (& "set") py-builtin-set)
+  (py-own-attr-set! builtins-mod (& "setattr") py-builtin-setattr)
+  (py-own-attr-set! builtins-mod (& "slice") py-builtin-slice)
+  (py-own-attr-set! builtins-mod (& "sorted") py-builtin-sorted)
+  (py-own-attr-set! builtins-mod (& "staticmethod") py-builtin-staticmethod)
+  (py-own-attr-set! builtins-mod (& "str") py-builtin-str)
+  (py-own-attr-set! builtins-mod (& "sum") py-builtin-sum)
+  (py-own-attr-set! builtins-mod (& "super") py-builtin-super)
+  (py-own-attr-set! builtins-mod (& "tuple") py-builtin-tuple)
+  (py-own-attr-set! builtins-mod (& "type") py-builtin-type)
+  (py-own-attr-set! builtins-mod (& "vars") py-builtin-vars)
+  (py-own-attr-set! builtins-mod (& "zip") py-builtin-zip)
 
   (set! py-builtin-range (py-own-attr-ref builtins-mod (& "range"))))
 

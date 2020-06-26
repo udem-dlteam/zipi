@@ -5,6 +5,9 @@
 
     PyObject?
     &
+    init-constants
+    start-registering-constants
+    init-registered-constants
 
     with-handler
     bind-exit
@@ -89,6 +92,7 @@
 
     object-get
     object-put!
+    py-own-attr-set!
     getattribute-from-obj-mro
 
     procedure->py-function

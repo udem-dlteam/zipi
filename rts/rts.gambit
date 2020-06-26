@@ -22,6 +22,12 @@
 (define-macro (cell-set! c e)
   `(set-box! ,c ,e))
 
+(define-macro (structure-ref obj i)
+  `(##vector-ref ,obj , i))
+
+(define-macro (structure-set! obj i val)
+  `(##vector-set! ,obj ,i ,val))
+
 ;; debugging utility
 (define (why-am-i-here?)
   (##continuation-capture (lambda (cc) (display-continuation-backtrace cc))))
