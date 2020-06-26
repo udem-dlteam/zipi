@@ -1989,13 +1989,15 @@
 
 (define (str-eq self other)
   (if (py-isinstance? self py-str-class)
-    (if (eq? (py-type other) py-str-class)
-      (let* ((self-representative (str-representative-get self))
-             (other-representative (str-representative-get other)))
-        (if (eq? self-representative other-representative)
-          py-True
-          py-False))
-      py-NotImplemented)
+    (if (eq? self other)
+      py-True
+      (if (eq? (py-type other) py-str-class)
+        (let* ((self-representative (str-representative-get self))
+               (other-representative (str-representative-get other)))
+          (if (eq? self-representative other-representative)
+            py-True
+            py-False))
+        py-NotImplemented))
     (py-throw-required-type "__eq__" "str" self)))
 
 (define str.__eq__
