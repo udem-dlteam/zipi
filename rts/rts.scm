@@ -5410,7 +5410,7 @@
 (define (compile-to-cache path)
   (let ((path-cache 
           (string-append
-            (path-expand  "~/.zipicache/cache")
+            (path-expand  "~~zipicache/cache")
             (path-strip-extension path)
             ".scm")))
     (and (file-exists? path) 
@@ -5424,7 +5424,8 @@
                     (compile-to-cache path)
                     ;; TODO : for windows user, the path is not formated with a / before
                     ;; the first three characters should be removed instead of just the first one
-                    (load-module-and-get-init (substring path 1 (string-length (path-strip-extension path)))))))
+                    (load-module-and-get-init 
+                      (substring path 1 (string-length (path-strip-extension path)))))))
     (if mod-init
         (let ((mod (mod-init __name__)))
          (dict-setitem sys.modules py-__name__ mod)
@@ -5467,8 +5468,6 @@
            "No module named " __name__)
          )))))
 
-(break import-from-sys.path)
-
 (define (builtin-__import__ __name__ py-__name__)
   (let ((sys.modules (sys.modules-get)))
     ;; check in sys.modules if the value exist and returns it if it exists
@@ -5483,8 +5482,9 @@
     (with-exception-catcher
       (lambda (e) (if (PyObject? e) (print-exception e) (raise e)))
       (lambda ()
-        (import-with-zipi-cache path "__main__" (py-str-from-scheme "__main__") sys.modules))))
-  (void))
+        (import-with-zipi-cache path "__main__" (py-str-from-scheme "__main__") sys.modules)
+        (break)
+        ))))
 
 
 (define py-import-root (current-directory))
@@ -7545,7 +7545,7 @@
      (cond
       ((eq? globals py-None)
        (if (py-isinstance? name py-str-class)
-           (builtin-__import__ name)
+           (builtin-__import__ (scheme-object-value-fast-get name) name)
            (py-throw-exception-with-message py-builtin-TypeError "__import__() argument 1 must be str not " )))
       (else
        (py-throw-exception-with-message py-NotImplemented "__import__ with more then one argument is not yet implemented"))))
@@ -7822,6 +7822,6 @@
     (bootstrap-builtins builtins-mod)
     builtins-mod))
 
-;; load the builtins from zipi/stdlib/builtins.py
-(##module-search-order-add! zipi-stdlib-dir)
+;; load the builtins from ~~zipicache
+(##module-search-order-add! "~~zipicache/cache/")
 (set! builtins-mod (py-make-builtins-mod))

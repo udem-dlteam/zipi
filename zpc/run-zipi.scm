@@ -2,4 +2,6 @@
 
 (define (main . args)
   (import (zipi rts))
-  (run-as-main (path-normalize (car args))))
+  (let ((path (path-normalize (car args))))
+   (or  (run-as-main path)
+        (print "error : File named " (car args) " at " path " cannot be found"))))
