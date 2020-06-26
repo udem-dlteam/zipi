@@ -1,3 +1,5 @@
+from __compiler_intrinsics__ import absent
+
 # ==============================================================================
 # Builtins
 # ==============================================================================
@@ -27,12 +29,12 @@ class range_iterator:
         raise StopIteration
 
 class range:
-    def __init__(self, arg1, arg2=_absent, arg3=_absent, /):
-        if arg3 is not _absent:
+    def __init__(self, arg1, arg2=absent, arg3=absent, /):
+        if arg3 is not absent:
             self.start = arg1
             self.stop = arg2
             self.step =  arg3
-        elif arg2 is not _absent:
+        elif arg2 is not absent:
             self.start = arg1
             self.stop = arg2
             self.step = 1
