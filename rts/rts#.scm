@@ -10,6 +10,44 @@
 ;*=====================================================================*/
 
 ;; =============================================================================
+;;  Objects interning
+;; =============================================================================
+
+(define-macro (start-registering-constants)
+  (eval
+    `(begin
+      (define-type Constants
+        id: %constants
+        constructor: %make-Constants
+        prefix: %
+        macros: table)
+      (define-type PyStaticObject
+        ;; NOTE: id must be the same as PyObject
+        id: C6486EB6-1522-42BA-A082-B6563F943CDF
+        constructor: %make-PyStaticObject
+        prefix: %
+        macros: hclass elements)
+      (define (make-PyStaticObject elts hclass) (%make-PyStaticObject elts hclass))
+      (define %constants (%make-Constants (make-table)))
+      (define (constants-table) (%Constants-table %constants))
+      (define (constants-ref c key) (table-ref (%Constants-table c) key #f))
+      (define (constants-set! c key val) (table-set! (%Constants-table c) key val))))
+  `(##begin))
+
+(define-macro (init-registered-constants)
+  `(init-constants ',%constants))
+
+(define-macro (& e)
+  (if (string? e)
+    (let ((cached (constants-ref %constants e)))
+      (if cached
+        `',cached
+        (let ((obj (make-PyStaticObject #f #f)))
+          (constants-set! %constants e obj)
+          `',obj)))
+    (error "&" "requires string literal but got" e)))
+
+;; =============================================================================
 ;;  PyObject
 ;; =============================================================================
 
@@ -17,6 +55,7 @@
   id: C6486EB6-1522-42BA-A082-B6563F943CDF
   constructor: %make-PyObject
   predicate: %PyObject?
+  type-exhibitor: %PyObject-type-get
   implementer: implement-PyObject
   copier: #f
   opaque:
@@ -122,10 +161,3 @@
                   '())))
           (HClass-transition-add! $hc key nhclass)
           nhclass)))))
-
-;; =============================================================================
-;;  Miscellanous
-;; =============================================================================
-
-(define-macro (& e)
-  `',(string->symbol e))

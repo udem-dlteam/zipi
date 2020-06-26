@@ -1,6 +1,0 @@
-print('')
-print('a')
-print('ab')
-print('abc')
-print('abc'.__class__)
-print(str)

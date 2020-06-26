@@ -53,16 +53,21 @@
               (export init)
               (import (gambit) (zipi rts))
               (begin
+                (start-registering-constants)
+
                 (define py-module ,@prog)
 
                 (define (init name)
+                  (init-registered-constants)
                   (let ((caches (py-make-caches ,(PycModule-caches ast)))
                         (module (py-make-global)))
-                    (object-put-no-cache!
+                    ;; TODO: remove when __compiler_intrinsics__ exists
+                    (py-own-attr-set! module (& "_absent") (cons 'builtins-absent-sentinel '()))
+                    (py-own-attr-set!
                       module (& "__name__") name)
                     ,(if full-path
-                      `(object-put-no-cache!
-                        module (& "__file__") (py-str-from-scheme ,full-path))
+                      `(py-own-attr-set!
+                        module (& "__file__") (& ,full-path))
                       `,@(list))
                     (py-module module caches)
                     module)))))))
@@ -601,7 +606,7 @@
 
 (define-walk-method (scheme this::PycString conf)
    (epairify this
-      `(py-str-from-scheme ,(PycLiteralValue-val this))))
+      `(& ,(PycLiteralValue-val this))))
 
 (define-walk-method (scheme this::PycBinary conf)
    (epairify this

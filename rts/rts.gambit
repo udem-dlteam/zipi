@@ -22,6 +22,18 @@
 (define-macro (cell-set! c e)
   `(set-box! ,c ,e))
 
+(define-macro (structure-ref obj i)
+  `(##unchecked-structure-ref ,obj , i #f #f))
+
+(define-macro (structure-set! obj i val)
+  `(##unchecked-structure-set! ,obj ,val ,i #f #f))
+
+(define-macro (module-search-order-add! path)
+  `(##module-search-order-add! ,path))
+
+(define-macro (module-search-order)
+  '##module-search-order)
+
 ;; debugging utility
 (define (why-am-i-here?)
   (##continuation-capture (lambda (cc) (display-continuation-backtrace cc))))
