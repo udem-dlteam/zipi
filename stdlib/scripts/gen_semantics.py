@@ -51,8 +51,8 @@ if __name__ == "__main__":
         "matmul"]
     arithmetic_semantics = '\n\n'.join(define_arithmetic_semantics(op) for op in ops)
 
-    with open("./semantics.py.in", "r") as f:
+    with open("./zemantics.py.in", "r") as f:
         semantics = f.read().format(arithmetic_semantics)
 
-    with open("../semantics.py", "w") as f:
+    with open("../zemantics.py", "w") as f:
         f.write(semantics)
