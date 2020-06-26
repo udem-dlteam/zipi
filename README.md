@@ -51,4 +51,8 @@ To run a specific test or tests matching a given pattern
 python zipi/tests/run.py --pattern=[regex-pattern]
 ```
 
-The `regex-pattern` must obey Python `re` syntax. 
+The `regex-pattern` must obey Python `re` syntax.
+
+The `--zipi` a `--cpython` arguments can also be used to specify what shell command should be used to run a script with Zipi or cPython respectively.
+
+For more details do `python zipi/tests/run.py -h`.
