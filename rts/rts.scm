@@ -2022,22 +2022,16 @@
 
 (define (str-hash self)
   (if (py-isinstance? self py-str-class)
-    (let ((own-hash (str-hash-fast-get self)))
-      (if (eq? own-hash py-absent)
-        (let* ((representative (str-representative-get self))
-               (rep-hash (str-hash-fast-get representative)))
-          (if (eq? rep-hash py-absent)
-            (let ((new-hash
-                    (py-int-from-scheme
-                      (hash-FNV1a
-                        (object-scheme-value-fast-get representative)))))
-              (str-hash-fast-set! representative new-hash)
-              (str-hash-fast-set! self new-hash)
-              new-hash)
-            (begin
-              (str-hash-fast-set! self rep-hash)
-              rep-hash)))
-        own-hash))
+    (let* ((representative (str-representative-get self))
+           (hash (str-hash-fast-get representative)))
+      (if (eq? hash py-absent)
+        (let ((new-hash
+                (py-int-from-scheme
+                  (hash-FNV1a
+                    (object-scheme-value-fast-get representative)))))
+          (str-hash-fast-set! representative new-hash)
+          new-hash)
+        hash))
     (py-throw-required-type "__hash__" "str" self)))
 
 (define str.__hash__
