@@ -23,10 +23,10 @@
   `(set-box! ,c ,e))
 
 (define-macro (structure-ref obj i)
-  `(##vector-ref ,obj , i))
+  `(##unchecked-structure-ref ,obj , i #f #f))
 
 (define-macro (structure-set! obj i val)
-  `(##vector-set! ,obj ,i ,val))
+  `(##unchecked-structure-set! ,obj ,val ,i #f #f))
 
 (define-macro (module-search-order-add! path)
   `(##module-search-order-add! ,path))
