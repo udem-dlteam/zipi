@@ -1262,14 +1262,10 @@
     ((py-issubclass? cls py-float-class)
       (cond
         ((not value)
-          (let ((new-float (py-obj-alloc cls py-float-hclass-of-instances)))
-            (object-scheme-value-fast-set! new-float 0.0)
-            new-float))
+          (py-float-subtype-from-scheme 0.0 cls))
         ((py-isinstance? value py-float-class)
-          (let ((new-float (py-obj-alloc cls py-float-hclass-of-instances))
-                (value (PyObjectFloat-value value)))
-            (object-scheme-value-fast-set! new-float value)
-            new-float))
+          (let ((value (PyObjectFloat-value value)))
+            (py-float-subtype-from-scheme value cls)))
         (else (py-throw-exception-with-message py-builtin-NotImplementedError "float.__new__ only supports subtypes of float"))))
     (else
       (py-throw-wrong-new-argument "float" cls))))
@@ -1383,7 +1379,6 @@
 (define-float-binary-operator float-ge "__ge__" (comparison-conversion fl>=))
 (define-float-binary-operator float-lt "__lt__" (comparison-conversion fl<))
 (define-float-binary-operator float-le "__le__" (comparison-conversion fl<=))
-
 
 (define-macro (define-float-unary-operator fun-name method-name scheme-op)
   (let ((py-func-name (string->symbol (string-append "float." method-name))))
@@ -2035,7 +2030,7 @@
 (define (float-repr self)
   (if (py-isinstance? self py-float-class)
     (py-str-from-scheme
-      (let ((value (object-scheme-value-fast-get self)))
+      (let ((value (PyObjectFloat-value self)))
         (cond
           ((integer? value)
             (string-append (number->string value) "0"))
@@ -2229,6 +2224,15 @@
       (vector-length (HClass-names py-float-hclass-of-instances))
       py-absent)
     py-float-class
+    value))
+
+(define (py-float-subtype-from-scheme value float-subclass)
+  (make-PyObjectFloat
+    py-float-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-float-hclass-of-instances))
+      py-absent)
+    float-subclass
     value))
 
 (define (py-float-from-scheme value)
