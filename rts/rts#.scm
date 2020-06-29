@@ -23,7 +23,7 @@
         macros: table)
       (define-type PyStaticObject
         ;; NOTE: id must be the same as PyObject
-        id: C6486EB6-1522-42BA-A082-B6563F943CDF
+        id: %pystaticobject
         constructor: %make-PyStaticObject
         prefix: %
         macros:
@@ -72,6 +72,9 @@
 
 (define (PyObject? x)
   (%PyObject? x))
+
+(define-macro (PyObject-type-get)
+  `(%PyObject-type-get))
 
 (define-macro (make-PyObject hclass elts cls)
   `(%make-PyObject ,hclass ,elts ,cls))

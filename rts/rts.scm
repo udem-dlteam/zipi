@@ -8,6 +8,7 @@
     (lambda (pair)
       (let ((value (car pair))
             (obj (cdr pair)))
+        (structure-type-set! obj (PyObject-type-get))
         (PyObject-hclass-set! obj py-str-hclass-of-instances)
         (structure-set! obj 2
           (make-vector

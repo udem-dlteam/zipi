@@ -28,6 +28,12 @@
 (define-macro (structure-set! obj i val)
   `(##unchecked-structure-set! ,obj ,val ,i #f #f))
 
+(define-macro (structure-type obj)
+  `(##structure-type ,obj))
+
+(define-macro (structure-type-set! obj tp)
+  `(##structure-type-set! ,obj ,tp))
+
 (define-macro (module-search-order-add! path)
   `(##module-search-order-add! ,path))
 
