@@ -4,20 +4,19 @@
 ;; the object int.__add__ has name 'int.__add__' in the source
 
 (define (init-constants constants)
-  (for-each
-    (lambda (pair)
-      (let ((obj (cdr pair)))
-        (structure-type-set! obj (PyObjectStr-type-get))
-        (PyObject-hclass-set! obj py-str-hclass-of-instances)
-        (PyObject-%elements-set!
-          obj
-          (make-vector
-            (vector-length (HClass-names py-str-hclass-of-instances))
-            py-absent))
-        (PyObject-class-set! obj py-str-class)
-        (PyObjectStr-representative-set! obj py-absent)
-        (PyObjectStr-hash-set! obj py-absent)))
-    (table->list (structure-ref constants 1))))
+  (vector-for-each
+    (lambda (obj)
+      (structure-type-set! obj (PyObjectStr-type-get))
+      (PyObject-hclass-set! obj py-str-hclass-of-instances)
+      (PyObject-%elements-set!
+        obj
+        (make-vector
+          (vector-length (HClass-names py-str-hclass-of-instances))
+          py-absent))
+      (PyObject-class-set! obj py-str-class)
+      (PyObjectStr-representative-set! obj py-absent)
+      (PyObjectStr-hash-set! obj py-absent))
+    (unbox constants)))
 
 (start-registering-constants)
 
@@ -7727,3 +7726,5 @@
 ;; load the builtins from zipi/stdlib/builtins.py
 (module-search-order-add! zipi-stdlib-dir)
 (set! builtins-mod (py-make-builtins-mod))
+
+(end-registering-constants)

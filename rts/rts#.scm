@@ -36,13 +36,17 @@
       (define (make-PyStaticStr value)
         (%make-PyStaticStr #f #f #f value #f #f))
       (define %constants (%make-Constants (make-table)))
+      (define constants-cell (box #f))
       (define (constants-table) (%Constants-table %constants))
       (define (constants-ref c key) (table-ref (%Constants-table c) key #f))
       (define (constants-set! c key val) (table-set! (%Constants-table c) key val))))
   `(##begin))
 
 (define-macro (init-registered-constants)
-  `(init-constants ',%constants))
+  `(init-constants ',constants-cell))
+
+(define-macro (end-registering-constants)
+  (set-box! constants-cell (list->vector (map cdr (table->list (constants-table))))))
 
 (define-macro (& e)
   (if (string? e)
