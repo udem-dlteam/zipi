@@ -5332,11 +5332,11 @@
 (define-macro (create-sys-list . path-list)
   `(py-list-from-scheme (cons ,(length path-list) (vector ,@(map (lambda (x) `(py-str-from-scheme ,x)) path-list)))))
 
-(define zipi-stdlib-dir (path-expand "stdlib" (getenv "ZIPIROOT")))
+(define zipi-stdlib-dir (path-expand "stdlib" (getenv "ZIPIROOT" "~~zipidir")))
 
 (define (py-make-sys-mod)
   (let ((mod (py-make-global)))
-   (py-own-attr-set! mod (& "__name__") (py-str-from-scheme "sys"))
+   (py-own-attr-set! mod (& "__name__") (& "sys"))
    (py-own-attr-set! mod (& "modules")
                      (create-sys-dict
                        ("sys" . mod)))
@@ -5478,7 +5478,7 @@
     (with-exception-catcher
       (lambda (e) (if (PyObject? e) (print-exception e) (raise e)))
       (lambda ()
-        (import-with-zipi-cache path (py-str-from-scheme "__main__") sys.modules)))))
+        (import-with-zipi-cache path (& "__main__") sys.modules)))))
 
 
 (define py-import-root (current-directory))
@@ -5496,7 +5496,7 @@
     (empty-signature)))
 
 (define (make-time-mod)
-  (let ((mod (py-make-module (py-str-from-scheme "time"))))
+  (let ((mod (py-make-module (& "time"))))
    (py-own-attr-set! mod (& "time") time.time)))
 
 (make-time-mod)
