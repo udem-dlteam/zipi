@@ -5320,17 +5320,6 @@
 ;; IMPORT SYSTEM
 ;; ===========================================
 
-(define py-time.time
-  (procedure->py-function
-   (lambda ()
-     (/ (current-microseconds) 1000000.0))
-   (empty-signature)))
-
-(define (py-make-time-mod)
-  (void)
-  )
-
-(define time-mod (py-make-time-mod))
 
 
 (define-macro (create-sys-dict . modules)
@@ -5346,8 +5335,7 @@
    (py-own-attr-set! mod (& "__name__") (py-str-from-scheme "sys"))
    (py-own-attr-set! mod (& "modules")
                      (create-sys-dict
-                       ("sys" . mod)
-                       ("time" . time-mod)))
+                       ("sys" . mod)))
    (py-own-attr-set! mod (& "path")
                      (create-sys-list "" zipi-stdlib-dir))
    mod))
@@ -5359,6 +5347,7 @@
 
 (define (sys.path-get)
   (py-own-attr-ref sys-mod (& "path")))
+
 
 (define (compile-source source target)
   (define (root-dir)
@@ -5406,7 +5395,7 @@
          (path-info (##file-info path #t #f))
          (path-cache-info (##file-info path-cache #t #f)))
 
-    ;; compile file and return #f if compilation failled
+    ;; compile file and return #f if compilation failed
     (define (compile)
       (fx= 0 
            (begin
@@ -5422,8 +5411,8 @@
                 #t ;; compilation "succesfull" (file already compiled)
                 (compile)
                 ) 
-            (compile)) ;; compiled file doenst exist (must compile)
-        #f) ;; file to compile doesnt exist (failed compilation)
+            (compile)) ;; compiled file does not exist (must compile)
+        #f) ;; file to compile does not exist (failed compilation)
     ))
 
 (define (import-with-zipi-cache path py-__name__ sys.modules)
@@ -5490,6 +5479,24 @@
 
 
 (define py-import-root (current-directory))
+
+
+;; MODULES
+
+
+;; time
+
+(define time.time
+  (procedure->py-function
+    (lambda () 
+     (py-int-from-scheme (time->seconds (current-time))))
+    (empty-signature)))
+
+(define (make-time-mod)
+  (let ((mod (py-make-module (py-str-from-scheme "time"))))
+   (py-own-attr-set! mod (& "time") time.time)))
+
+(make-time-mod)
 
 
 ;; ===========================================
