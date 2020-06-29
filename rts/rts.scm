@@ -5409,11 +5409,9 @@
             (if (< (time->seconds (file-info-last-modification-time path-info))
                    (time->seconds (file-info-last-modification-time path-cache-info)))
                 #t ;; compilation "succesfull" (file already compiled)
-                (compile)
-                ) 
+                (compile)) 
             (compile)) ;; compiled file does not exist (must compile)
-        #f) ;; file to compile does not exist (failed compilation)
-    ))
+        #f))) ;; file to compile does not exist (failed compilation)
 
 (define (import-with-zipi-cache path py-__name__ sys.modules)
   (let ((mod-init (and
@@ -5457,8 +5455,7 @@
              (loop sys.path-iter))
          (py-throw-exception-with-message 
            py-builtin-ModuleNotFoundError 
-           "No module named " __name__)
-         )))))
+           "No module named " __name__))))))
 
 (define (builtin-__import__ __name__ py-__name__)
   (let ((sys.modules (sys.modules-get)))
@@ -5474,8 +5471,7 @@
     (with-exception-catcher
       (lambda (e) (if (PyObject? e) (print-exception e) (raise e)))
       (lambda ()
-        (import-with-zipi-cache path (py-str-from-scheme "__main__") sys.modules)
-        ))))
+        (import-with-zipi-cache path (py-str-from-scheme "__main__") sys.modules)))))
 
 
 (define py-import-root (current-directory))
