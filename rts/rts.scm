@@ -1,4 +1,4 @@
-(define debug-verbosity 1)
+(define debug-verbosity 0)
 (define (print-debug verbosity . msg)
   (if (>= debug-verbosity verbosity)
       (display (append-strings msg) (current-error-port))))
@@ -5325,23 +5325,20 @@
 ;; ===========================================
 
 
-
-(define-macro (create-sys-dict . modules)
-  `(py-dict-from-scheme (list ,@(map (lambda (x) `(cons (py-str-from-scheme ,(car x)) ,(cdr x))) modules))))
-
-(define-macro (create-sys-list . path-list)
-  `(py-list-from-scheme (cons ,(length path-list) (vector ,@(map (lambda (x) `(py-str-from-scheme ,x)) path-list)))))
-
 (define zipi-stdlib-dir (path-expand "stdlib" (getenv "ZIPIROOT" "~~zipidir")))
 
 (define (py-make-sys-mod)
   (let ((mod (py-make-global)))
    (py-own-attr-set! mod (& "__name__") (& "sys"))
    (py-own-attr-set! mod (& "modules")
-                     (create-sys-dict
-                       ("sys" . mod)))
+                     (py-make-dict 
+                       (list
+                         (cons (& "sys") mod))))
+
    (py-own-attr-set! mod (& "path")
-                     (create-sys-list "" zipi-stdlib-dir))
+                     (py-make-list 
+                       (& "") 
+                       (py-str-from-scheme zipi-stdlib-dir)))
    mod))
 
 (define sys-mod (py-make-sys-mod))
@@ -5351,7 +5348,6 @@
 
 (define (sys.path-get)
   (py-own-attr-ref sys-mod (& "path")))
-
 
 (define (compile-source source target)
   (define (root-dir)
