@@ -21,16 +21,20 @@
         constructor: %make-Constants
         prefix: %
         macros: table)
-      (define-type PyStaticObject
+      (define-type PyStaticStr
         ;; NOTE: id must be the same as PyObject
         id: %pystaticobject
-        constructor: %make-PyStaticObject
+        constructor: %make-PyStaticStr
         prefix: %
         macros:
         hclass
         elements
-        class)
-      (define (make-PyStaticObject elts hclass cls) (%make-PyStaticObject elts hclass cls))
+        class
+        value
+        representative
+        hash)
+      (define (make-PyStaticStr value)
+        (%make-PyStaticStr #f #f #f value #f #f))
       (define %constants (%make-Constants (make-table)))
       (define (constants-table) (%Constants-table %constants))
       (define (constants-ref c key) (table-ref (%Constants-table c) key #f))
@@ -45,7 +49,7 @@
     (let ((cached (constants-ref %constants e)))
       (if cached
         `',cached
-        (let ((obj (make-PyStaticObject #f #f #f)))
+        (let ((obj (make-PyStaticStr e)))
           (constants-set! %constants e obj)
           `',obj)))
     (error "&" "requires string literal but got" e)))
@@ -94,6 +98,16 @@
   copier: #f
   ;; attrs
   value)
+
+(define-type-of-PyObject PyObjectStr
+  id: PyObjectStr-C6486EB6-1522-42BA-A082-B6563F943CDF
+  type-exhibitor: PyObjectStr-type-get
+  copier: #f
+  ;; attrs
+  value
+  (representative unprintable:)
+  (hash unprintable:))
+
 
 ;; =============================================================================
 ;;  PCache
