@@ -5360,12 +5360,10 @@
 (define (sys.path-get)
   (py-own-attr-ref sys-mod (& "path")))
 
-
 (define (compile-source source target)
   (define (root-dir)
     (or (getenv "ZIPIROOT")
         (error "Environnement variable $ZIPIROOT is not set. Refer to the README" )))
-  (print "compile from " source " to " target "\n")
   (shell-command
     (string-append
       (root-dir)
@@ -5398,23 +5396,40 @@
 
   (wind path '()))
 
+
 (define (compile-to-cache path)
-  (let ((path-cache 
+  (let* ((path-cache 
           (string-append
             (path-expand  "~~zipicache/cache")
             (path-strip-extension path)
-            ".scm")))
-    (and (file-exists? path) 
-         (fx= 0 
-              (begin
-                (ensure-parent-dir-exists path-cache)
-                (compile-source path path-cache))))))
+            ".scm"))
+         (path-info (##file-info path #t #f))
+         (path-cache-info (##file-info path-cache #t #f)))
+
+    ;; compile file and return #f if compilation failled
+    (define (compile)
+      (fx= 0 
+           (begin
+             (ensure-parent-dir-exists path-cache)
+             (compile-source path path-cache))))
+
+
+    (if path-info
+        (if path-cache-info
+            ;; check according to modified date
+            (if (< (time->seconds (file-info-last-modification-time path-info))
+                   (time->seconds (file-info-last-modification-time path-cache-info)))
+                #t ;; compilation "succesfull" (file already compiled)
+                (compile)
+                ) 
+            (compile)) ;; compiled file doenst exist (must compile)
+        #f) ;; file to compile doesnt exist (failed compilation)
+    ))
 
 (define (import-with-zipi-cache path py-__name__ sys.modules)
   (let ((mod-init (and
                     (compile-to-cache path)
                     ;; TODO : for windows user, the path is not formated with a / before
-                    ;; the first three characters should be removed instead of just the first one
                     (load-module-and-get-init 
                       (substring path 1 (string-length (path-strip-extension path)))))))
     (if mod-init
@@ -5448,8 +5463,7 @@
                            (path-normalize (object-scheme-value-fast-get value))
                            __name__
                            ".py")))
-               (or (import-with-zipi-cache 
-                     path py-__name__ sys.modules)
+               (or (import-with-zipi-cache path py-__name__ sys.modules)
                    (loop sys.path-iter))) 
              (loop sys.path-iter))
          (py-throw-exception-with-message 
@@ -5472,7 +5486,6 @@
       (lambda (e) (if (PyObject? e) (print-exception e) (raise e)))
       (lambda ()
         (import-with-zipi-cache path (py-str-from-scheme "__main__") sys.modules)
-        (break)
         ))))
 
 
