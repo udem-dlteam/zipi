@@ -26,8 +26,11 @@
         id: C6486EB6-1522-42BA-A082-B6563F943CDF
         constructor: %make-PyStaticObject
         prefix: %
-        macros: hclass elements)
-      (define (make-PyStaticObject elts hclass) (%make-PyStaticObject elts hclass))
+        macros:
+        hclass
+        elements
+        class)
+      (define (make-PyStaticObject elts hclass cls) (%make-PyStaticObject elts hclass cls))
       (define %constants (%make-Constants (make-table)))
       (define (constants-table) (%Constants-table %constants))
       (define (constants-ref c key) (table-ref (%Constants-table c) key #f))
@@ -42,7 +45,7 @@
     (let ((cached (constants-ref %constants e)))
       (if cached
         `',cached
-        (let ((obj (make-PyStaticObject #f #f)))
+        (let ((obj (make-PyStaticObject #f #f #f)))
           (constants-set! %constants e obj)
           `',obj)))
     (error "&" "requires string literal but got" e)))
@@ -60,13 +63,18 @@
   copier: #f
   opaque:
   prefix: %
-  macros: hclass elements)
+  macros:
+
+  ;; attrs
+  hclass
+  elements
+  class)
 
 (define (PyObject? x)
   (%PyObject? x))
 
-(define-macro (make-PyObject hclass elts)
-  `(%make-PyObject ,hclass ,elts))
+(define-macro (make-PyObject hclass elts cls)
+  `(%make-PyObject ,hclass ,elts ,cls))
 
 (define-macro (PyObject-hclass obj)
   `(%PyObject-hclass ,obj))
@@ -84,11 +92,17 @@
           ($elements (%PyObject-elements $obj))
           ($elements-len (vector-length $elements)))
      (if (fx>= $offset $elements-len)
-         (let (($elements-new (make-vector (fx* 2 $elements-len))))
+         (let (($elements-new (make-vector (max 1 (fx* 2 $elements-len)))))
            (subvector-move! $elements 0 $elements-len $elements-new 0)
            (vector-set! $elements-new $offset $val)
            (%PyObject-elements-set! $obj $elements-new))
          (vector-set! $elements $offset $val))))
+
+(define-macro (PyObject-class obj)
+  `(%PyObject-class ,obj))
+
+(define-macro (PyObject-class-set! obj cls)
+  `(%PyObject-class-set! ,obj ,cls))
 
 ;; =============================================================================
 ;;  PCache

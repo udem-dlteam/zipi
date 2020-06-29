@@ -13,7 +13,7 @@
           (make-vector
             (vector-length (HClass-names py-str-hclass-of-instances))
             py-absent))
-        (object-class-fast-set! obj py-str-class)
+        (PyObject-class-set! obj py-str-class)
         (object-scheme-value-fast-set! obj value)))
     (table->list (structure-ref constants 1))))
 
@@ -26,8 +26,7 @@
 (define py-object-hclass-of-instances
   (make-HClass
     '#() ;; set later when classes exist
-    (vector
-      (& "**class**"))
+    (vector)
     '()))
 
 ;; instances of type are classes
@@ -36,7 +35,6 @@
   (make-HClass
     '#() ;; set later when classes exist
     (vector
-      (& "**class**")
       (& "**bases**")
       (& "**mro**")
       (& "**hclass-of-instance**")
@@ -48,7 +46,6 @@
   (make-HClass
     '#() ;; set later when classes exist
     (vector
-      (& "**class**")
       (& "**value**")
       (& "**representative**")
       (& "**hash**"))
@@ -58,7 +55,6 @@
   (make-HClass
     '#() ;; set later when classes exist
     (vector
-      (& "**class**")
       (& "**value**"))
     '()))
 
@@ -66,7 +62,6 @@
   (make-HClass
     '#() ;; set later when classes exist
     (vector
-      (& "**class**")
       (& "**value**"))
     '()))
 
@@ -74,7 +69,6 @@
   (make-HClass
     '#() ;; set later when classes exist
     (vector
-      (& "**class**")
       (& "**value**"))
     '()))
 
@@ -82,7 +76,6 @@
   (make-HClass
     '#() ;; set later when classes exist
     (vector
-      (& "**class**")
       (& "**value**"))
     '()))
 
@@ -90,7 +83,6 @@
   (make-HClass
     '#() ;; set later when classes exist
     (vector
-      (& "**class**")
       (& "**value**"))
     '()))
 
@@ -98,7 +90,6 @@
   (make-HClass
     '#() ;; set later when classes exist
     (vector
-      (& "**class**")
       (& "**value**"))
     '()))
 
@@ -107,7 +98,6 @@
   (make-HClass
     '#() ;; set later when classes exist
     (vector
-      (& "**class**")
       (& "**value**"))
     '()))
 
@@ -115,7 +105,6 @@
   (make-HClass
     '#()
     (vector
-      (& "**class**")
       (& "**procedure**")
       (& "**arity**")
       (& "**signature**")
@@ -126,7 +115,6 @@
   (make-HClass
     '#()
     (vector
-      (& "**class**")
       (& "**procedure**")
       (& "**arity**")
       (& "**signature**"))
@@ -136,7 +124,6 @@
   (make-HClass
     '#() ;; set later when classes exist
     (vector
-      (& "**class**")
       (& "**value**"))
     '()))
 
@@ -144,7 +131,6 @@
   (make-HClass
     '#() ;; set later when classes exist
     (vector
-      (& "**class**")
       (& "**value**"))
     '()))
 
@@ -152,14 +138,12 @@
   (make-HClass
     '#() ;; set later when classes exist
     (vector
-      (& "**class**")
       (& "**value**"))
     '()))
 
 (define py-module-hclass-of-instances (make-HClass
   '#() ;; set later when classes exist
   (vector
-    (& "**class**")
     (& "__name__")
     (& "__builtins__"))
   '()))
@@ -168,7 +152,6 @@
   (make-HClass
     '#()
     (vector
-      (& "**class**")
       (& "**list**")
       (& "**index**"))
     '()))
@@ -178,7 +161,6 @@
   (make-HClass
    '#()
    (vector
-    (& "**class**")
     (& "**bytearray**")
     (& "**index**"))
    '()))
@@ -188,7 +170,6 @@
   (make-HClass
     '#()
     (vector
-      (& "**class**")
       (& "**vector**")
       (& "**index**"))
     '()))
@@ -198,7 +179,6 @@
   (make-HClass
     '#()
     (vector
-      (& "**class**")
       (& "**node**")
       (& "**iterator-token**"))
     '()))
@@ -207,8 +187,6 @@
   (make-HClass
    '#()
    (vector
-    (& "**class**")
-    (& "__class__")
     (& "__next__")
     (& "send"))
    '()))
@@ -216,80 +194,74 @@
 ;; Method for fast access to attributes defined in hidden classes
 ;; Those are unsafe methods
 
-(define (object-class-fast-get obj)
-  (PyObject-elements-ref obj 0))
-
-(define (object-class-fast-set! obj class)
-  (PyObject-elements-set! obj 0 class))
-
 (define (type-bases-fast-get type)
-  (PyObject-elements-ref type 1))
+  (PyObject-elements-ref type 0))
 
 (define (type-bases-fast-set! type bases)
-  (PyObject-elements-set! type 1 bases))
+  (PyObject-elements-set! type 0 bases))
 
 (define (type-mro-fast-get type)
-  (PyObject-elements-ref type 2))
+  (PyObject-elements-ref type 1))
 
 (define (type-mro-fast-set! type mro)
-  (PyObject-elements-set! type 2 mro))
+  (PyObject-elements-set! type 1 mro))
 
 (define (type-hclass-of-instance-fast-get type)
-  (PyObject-elements-ref type 3))
+  (PyObject-elements-ref type 2))
 
 (define (type-hclass-of-instance-fast-set! type hclass)
-  (PyObject-elements-set! type 3 hclass))
+  (PyObject-elements-set! type 2 hclass))
 
 (define (type-name-fast-get type)
-  (PyObject-elements-ref type 4))
+  (PyObject-elements-ref type 3))
 
 (define (type-name-fast-set! type name)
-  (PyObject-elements-set! type 4 name))
+  (PyObject-elements-set! type 3 name))
 
 (define (class-__call__-fast-get class)
-  (PyObject-elements-ref class 5))
+  (PyObject-elements-ref class 4))
 
 (define (object-scheme-value-fast-get obj)
-  (PyObject-elements-ref obj 1))
+  (PyObject-elements-ref obj 0))
 
 (define (object-scheme-value-fast-set! obj value)
-  (PyObject-elements-set! obj 1 value))
+  (PyObject-elements-set! obj 0 value))
 
 (define (function-procedure-fast-get obj)
-  (PyObject-elements-ref obj 1))
+  (PyObject-elements-ref obj 0))
 
 (define (function-procedure-fast-set! obj value)
-  (PyObject-elements-set! obj 1 value))
+  (PyObject-elements-set! obj 0 value))
 
 (define (function-arity-fast-get obj)
-  (PyObject-elements-ref obj 2))
+  (PyObject-elements-ref obj 1))
 
 (define (function-arity-fast-set! obj value)
-  (PyObject-elements-set! obj 2 value))
+  (PyObject-elements-set! obj 1 value))
 
 (define (function-signature-fast-get obj)
-  (PyObject-elements-ref obj 3))
-
-(define (function-signature-fast-set! obj value)
-  (PyObject-elements-set! obj 3 value))
-
-(define (method-__self__-fast-get obj)
-  (PyObject-elements-ref obj 4))
-
-(define (method-__self__-fast-set! obj value)
-  (PyObject-elements-set! obj 4 value))
-
-(define (str-representative-fast-get obj)
   (PyObject-elements-ref obj 2))
 
-(define (str-representative-fast-set! obj value)
+(define (function-signature-fast-set! obj value)
   (PyObject-elements-set! obj 2 value))
 
-(define (str-hash-fast-get obj)
+(define (method-__self__-fast-get obj)
   (PyObject-elements-ref obj 3))
 
-(define (str-hash-fast-set! obj value)
+(define (method-__self__-fast-set! obj value)
   (PyObject-elements-set! obj 3 value))
+
+(define (str-representative-fast-get obj)
+  (PyObject-elements-ref obj 1))
+
+(define (str-representative-fast-set! obj value)
+  (PyObject-elements-set! obj 1 value))
+
+(define (str-hash-fast-get obj)
+  (PyObject-elements-ref obj 2))
+
+(define (str-hash-fast-set! obj value)
+  (PyObject-elements-set! obj 2 value))
 
 ;; object allocation
 
@@ -302,9 +274,10 @@
   (let ((self
          (make-PyObject
           hclass-of-instances
-          (make-vector (vector-length (HClass-names hclass-of-instances))
-                       py-absent))))
-    (object-class-fast-set! self cls) ;; set **class**
+          (make-vector
+            (vector-length (HClass-names hclass-of-instances))
+            py-absent)
+          cls)))
     self))
 
 ;; ----------------------------------------------------------------------------
@@ -433,7 +406,7 @@
   (let loop ((functions functions-awaiting-bootstap))
     (if (not (null? functions))
       (begin
-        (object-class-fast-set! (car functions) py-function-class)
+        (PyObject-class-set! (car functions) py-function-class)
         (loop (cdr functions))))))
 
 (define (pack-extra-args arity args)
@@ -2200,10 +2173,10 @@
 (define py-set-class    #f)
 (define py-module-class #f)
 
-(define (py-obj-cls* obj) ;; return **class** attribute of object obj
+(define (py-obj-cls* obj)
   (cond
         ((PyObject? obj)
-         (object-class-fast-get obj))
+         (PyObject-class obj))
         ((flonum? obj)
          py-float-class)
         ((integer? obj)
@@ -2212,7 +2185,7 @@
          py-bool-class)
         (else #f)))
 
-(define (py-obj-cls obj) ;; return **class** attribute of object obj
+(define (py-obj-cls obj)
   (or (py-obj-cls* obj)
       (error "py-obj-cls" "unhandled object type" obj)))
 
@@ -2303,25 +2276,29 @@
             py-type-hclass-of-instances
             (make-vector
               type-hclass-length
-              py-absent)))
+              py-absent)
+            #f))
         (object-class
           (make-PyObject
             py-type-hclass-of-instances
             (make-vector
               type-hclass-length
-              py-absent)))
+              py-absent)
+            #f))
         (str-class
           (make-PyObject
             py-type-hclass-of-instances
             (make-vector
               type-hclass-length
-              py-absent)))
+              py-absent)
+            #f))
         (tuple-class
           (make-PyObject
             py-type-hclass-of-instances
             (make-vector
               type-hclass-length
-              py-absent))))
+              py-absent)
+            #f)))
 
     (set! py-object-class object-class)
     (set! py-type-class type-class)
@@ -2332,7 +2309,7 @@
     (init-registered-constants)
 
     ;; Fill in object class
-    (object-class-fast-set! object-class type-class)
+    (PyObject-class-set! object-class type-class)
     (type-bases-fast-set! object-class '#())
     (let ((object-mro (vector object-class)))
       (HClass-class-mro-set! py-object-hclass-of-instances object-mro)
@@ -2348,7 +2325,7 @@
 
 
     ;; Fill in type class
-    (object-class-fast-set! type-class type-class)
+    (PyObject-class-set! type-class type-class)
     (type-bases-fast-set! type-class '#(object-class))
     (let ((type-mro (vector type-class object-class)))
       (HClass-class-mro-set! py-type-hclass-of-instances type-mro)
@@ -2361,7 +2338,7 @@
     (py-own-attr-set! type-class (& "__getattribute__") type.__getattribute__)
 
     ;; Fill in tuple class
-    (object-class-fast-set! tuple-class type-class)
+    (PyObject-class-set! tuple-class type-class)
     (type-bases-fast-set! tuple-class '#(object-class))
     (let ((tuple-mro (vector tuple-class object-class)))
       (HClass-class-mro-set! py-tuple-hclass-of-instances tuple-mro)
@@ -2371,7 +2348,7 @@
     (py-own-attr-set! tuple-class (& "__module__") (py-str-from-scheme "builtins"))
 
     ;; Fill in str class
-    (object-class-fast-set! str-class type-class)
+    (PyObject-class-set! str-class type-class)
     (type-bases-fast-set! str-class '#(object-class))
     (let ((str-mro (vector str-class object-class)))
       (HClass-class-mro-set! py-str-hclass-of-instances str-mro)
@@ -5021,7 +4998,7 @@
         (py-call py-builtin-AttributeError
           (py-str-from-scheme "__exit__")))
       (if exc
-        (let* ((exc-type (object-class-fast-get exc))
+        (let* ((exc-type (PyObject-class exc))
               (exc-traceback py-None) ;; TODO: pass traceback to __exit__ once it exists
               (exit-res (py-call4 __exit__ obj exc-type exc exc-traceback)))
           ;; __exit__ can return True to silence an exception
@@ -5097,7 +5074,6 @@
   (make-HClass
     '#()
     (vector
-      (& "**class**")
       (& "**port**")
       (& "**mode**")
       (& "**encoding**"))
@@ -5271,14 +5247,6 @@
 
 ;;;----------------------------------------------------------------------------
 
-
-
-#;
-(define (alist->PyObject alist)
-  (make-PyObject
-   (make-HClass '#() (list->vector (map car alist)) '())
-   (list->vector (map cdr alist))))
-
 (define (py-make-set elements)
   (py-set-from-scheme (list->vector elements)))
 
@@ -5306,7 +5274,7 @@
          (py-obj-alloc
           py-module-class
           py-module-hclass-of-instances)))
-    (py-own-attr-set! mod (& "**class**") py-module-class)
+    (PyObject-class-set! mod py-module-class)
     (py-own-attr-set! mod (& "__builtins__") builtins-mod)
     mod))
 
@@ -5326,11 +5294,8 @@
           py-module-class
           (make-HClass
            (vector py-module-class py-object-class)
-           (vector (& "**class**")
-                   (& "__class__")
-                   (& "__name__")
-                   (& "time")
-                   )
+           (vector (& "__name__")
+                   (& "time"))
            '()))))
 
     (PyObject-elements-set! mod 1 py-module-class)
@@ -5353,9 +5318,7 @@
           py-module-class
           (make-HClass
            (vector py-module-class py-object-class)
-           (vector (& "**class**")
-                   (& "__class__")
-                   (& "__name__")
+           (vector (& "__name__")
                    (& "modules")
                    (& "path")
                    )
