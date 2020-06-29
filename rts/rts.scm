@@ -1,3 +1,7 @@
+(define debug-verbosity 1)
+(define (print-debug verbosity . msg)
+  (if (>= debug-verbosity verbosity)
+      (display (append-strings msg) (current-error-port))))
 ;; TODO: change the naming convention:
 ;;  py-[class]-[method] to [class].[method]
 ;;  This was already done with int, example:
@@ -5353,6 +5357,7 @@
   (define (root-dir)
     (or (getenv "ZIPIROOT")
         (error "Environnement variable $ZIPIROOT is not set. Refer to the README" )))
+  (print-debug 1 "WARNING : compiling file " source " to " target " \n")
   (shell-command
     (string-append
       (root-dir)
@@ -5408,7 +5413,9 @@
             ;; check according to modified date
             (if (< (time->seconds (file-info-last-modification-time path-info))
                    (time->seconds (file-info-last-modification-time path-cache-info)))
-                #t ;; compilation "succesfull" (file already compiled)
+                (begin 
+                  (print-debug 1 "WARNING : skipping compilation of unmodified file at " path ", compiled file found : " path-cache "\n") 
+                  #t) ;; compilation "succesfull" (file already compiled)
                 (compile)) 
             (compile)) ;; compiled file does not exist (must compile)
         #f))) ;; file to compile does not exist (failed compilation)
