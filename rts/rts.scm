@@ -62,18 +62,10 @@
 (define py-int-hclass-of-instances
   (make-HClass
     '#() ;; set later when classes exist
-    (vector
-      (& "**value**"))
+    (vector)
     '()))
 
 (define py-float-hclass-of-instances
-  (make-HClass
-    '#() ;; set later when classes exist
-    (vector
-      (& "**value**"))
-    '()))
-
-(define py-bool-hclass-of-instances
   (make-HClass
     '#() ;; set later when classes exist
     (vector
@@ -1008,7 +1000,7 @@
         (throw-unhashable x)
         (let ((h (py-call1 __hash__ x)))
           (if (py-isinstance? h py-int-class)
-            (let ((h-value (object-scheme-value-fast-get h)))
+            (let ((h-value (PyObjectInt-value h)))
               (py-int-from-scheme (truncate-hash h-value)))
 	    (py-throw-exception-with-message
 	       py-builtin-RuntimeError
@@ -1031,7 +1023,7 @@
           value)
         ((py-isinstance? value py-int-class)
           ;; up-typing an instance of subclass to an int
-          (py-int-from-scheme (object-scheme-value-fast-get value)))
+          (py-int-from-scheme (PyObjectInt-value value)))
         (else
           (py-throw-exception-with-message
             py-builtin-NotImplementedError
@@ -1039,13 +1031,11 @@
     ((py-issubclass? cls py-int-class)
       (cond
         ((not value)
-          (let ((new-int (py-obj-alloc cls py-int-hclass-of-instances)))
-            (object-scheme-value-fast-set! new-int 0)
+          (let ((new-int (py-int-subtype-from-scheme 0 cls)))
             new-int))
         ((py-isinstance? value py-int-class)
-          (let ((new-int (py-obj-alloc cls py-int-hclass-of-instances))
-                (value (object-scheme-value-fast-get value)))
-            (object-scheme-value-fast-set! new-int value)
+          (let* ((int-value (PyObjectInt-value value))
+                (new-int (py-int-subtype-from-scheme int-value cls)))
             new-int))
         (else
           (py-throw-exception-with-message
@@ -1066,8 +1056,8 @@
         (if (py-isinstance? self py-int-class)
           (cond
             ((py-isinstance? other py-int-class)
-              (let ((self-value (object-scheme-value-fast-get self))
-                    (other-value (object-scheme-value-fast-get other)))
+              (let ((self-value (PyObjectInt-value self))
+                    (other-value (PyObjectInt-value other)))
                 (py-int-from-scheme (,scheme-op self-value other-value))))
             (else py-NotImplemented))
           (py-throw-required-type ,method-name "int" self)))
@@ -1083,8 +1073,8 @@
         (if (py-isinstance? self py-int-class)
           (cond
             ((py-isinstance? other py-int-class)
-              (let ((self-value (object-scheme-value-fast-get self))
-                    (other-value (object-scheme-value-fast-get other)))
+              (let ((self-value (PyObjectInt-value self))
+                    (other-value (PyObjectInt-value other)))
                 (if (not (= 0 other-value))
                   (py-int-from-scheme (,scheme-op self-value other-value))
                   (py-throw
@@ -1104,8 +1094,8 @@
         (if (py-isinstance? self py-int-class)
           (cond
             ((py-isinstance? other py-int-class)
-              (let ((self-value (object-scheme-value-fast-get self))
-                    (other-value (object-scheme-value-fast-get other)))
+              (let ((self-value (PyObjectInt-value self))
+                    (other-value (PyObjectInt-value other)))
                 (if (not (= 0 other-value))
                   (py-float-from-scheme (inexact (,scheme-op self-value other-value)))
                   (py-throw
@@ -1125,8 +1115,8 @@
         (if (py-isinstance? self py-int-class)
           (cond
             ((py-isinstance? other py-int-class)
-              (let ((self-value (object-scheme-value-fast-get self))
-                    (other-value (object-scheme-value-fast-get other)))
+              (let ((self-value (PyObjectInt-value self))
+                    (other-value (PyObjectInt-value other)))
                 (if (,scheme-op self-value other-value) py-True py-False)))
             (else py-NotImplemented))
           (py-throw-required-type ,method-name "int" self)))
@@ -1140,7 +1130,7 @@
     `(begin
       (define (,fun-name self)
         (if (py-isinstance? self py-int-class)
-          (let ((self-value (object-scheme-value-fast-get self)))
+          (let ((self-value (PyObjectInt-value self)))
             (py-int-from-scheme (,scheme-op self-value)))
           (py-throw-required-type ,method-name "int" self)))
       (define ,py-func-name
@@ -1236,7 +1226,7 @@
 
 (define (int-repr self)
   (if (py-isinstance? self py-int-class)
-    (py-str-from-scheme (number->string (object-scheme-value-fast-get self)))
+    (py-str-from-scheme (number->string (PyObjectInt-value self)))
     (py-throw-required-type "__repr__" "int" self)))
 
 (define int.__repr__
@@ -1249,7 +1239,7 @@
     ((eq? (py-type self) py-int-class)
       self)
     ((py-isinstance? self py-int-class)
-      (py-str-from-scheme (number->string (object-scheme-value-fast-get self))))
+      (py-str-from-scheme (number->string (PyObjectInt-value self))))
     (else
       (py-throw-required-type "__repr__" "int" self))))
 
@@ -1311,7 +1301,7 @@
               (,float-float-op (object-scheme-value-fast-get self) (object-scheme-value-fast-get other)))
             ((py-isinstance? other py-int-class)
               ;; If the operation is float-int, it converts the float into an int
-              (,float-float-op (object-scheme-value-fast-get self) (fixnum->flonum (object-scheme-value-fast-get other))))
+              (,float-float-op (object-scheme-value-fast-get self) (fixnum->flonum (PyObjectInt-value other))))
 
             (else py-NotImplemented))
           (py-throw-required-type ,method-name "float" self)))
@@ -1330,7 +1320,7 @@
               (,float-float-op (object-scheme-value-fast-get other) (object-scheme-value-fast-get self)))
             ((py-isinstance? other py-int-class)
               ;; If the operation is float-int, it converts the float into an int
-              (,float-float-op (fixnum->flonum (object-scheme-value-fast-get other)) (object-scheme-value-fast-get self)))
+              (,float-float-op (fixnum->flonum (PyObjectInt-value other)) (object-scheme-value-fast-get self)))
 
             (else py-NotImplemented))
           (py-throw-required-type ,method-name "float" self)))
@@ -1494,7 +1484,7 @@
           ((eq? len-type py-int-class)
             len)
           ((py-issubclass? len-type py-int-class)
-            (py-int-from-scheme (object-scheme-value-fast-get len)))
+            (py-int-from-scheme (PyObjectInt-value len)))
           (else
             (py-throw-not-an-integer len)))))))
 
@@ -1671,7 +1661,7 @@
 
 (define (int-bool self)
     (if (py-isinstance? self py-int-class)
-      (let ((value (object-scheme-value-fast-get self)))
+      (let ((value (PyObjectInt-value self)))
         (if (= value 0)
           py-False
           py-True))
@@ -2071,7 +2061,7 @@
     ((py-str-class)
       (display (py-str-to-scheme obj) port))
     ((py-int-class)
-      (display (object-scheme-value-fast-get obj) port))
+      (display (PyObjectInt-value obj) port))
     ((py-float-class)
       (display (float->string-with-padded-zeros (object-scheme-value-fast-get obj)) port))
     ((py-bool-class)
@@ -2140,7 +2130,7 @@
 
 (define (py-chr i)
   (if (py-isinstance? i py-int-class)
-    (let ((value (object-scheme-value-fast-get i)))
+    (let ((value (PyObjectInt-value i)))
       (py-str-from-scheme (string (integer->char value))))
     (let* ((i-type (py-type i))
 	   (i-type-name (type-name-fast-get i-type)))
@@ -2206,9 +2196,13 @@
 ;; TODO: remove direct indexing and use fast-set! methods in this section
 
 (define (alloc-new-int-from-scheme value)
-  (let ((self (py-obj-alloc py-int-class py-int-hclass-of-instances)))
-    (object-scheme-value-fast-set! self value)       ;; set **value**
-    self))
+  (make-PyObjectInt
+    py-int-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-int-hclass-of-instances))
+      py-absent)
+    py-int-class
+    value))
 
 (define int-cache-low -5)
 (define int-cache-high 256)
@@ -2229,6 +2223,15 @@
   (if (and (<= value int-cache-high) (>= value int-cache-low))
     (vector-ref int-cache (- value int-cache-low))
     (alloc-new-int-from-scheme value)))
+
+(define (py-int-subtype-from-scheme value int-subclass)
+  (make-PyObjectInt
+    py-int-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-int-hclass-of-instances))
+      py-absent)
+    int-subclass
+    value))
 
 (define (py-float-from-scheme value)
   (let ((self (py-obj-alloc py-float-class py-float-hclass-of-instances)))
@@ -2843,7 +2846,7 @@
   (if (py-isinstance? self py-list-class)
     (if (py-isinstance? n py-int-class)
       (let ((c (object-scheme-value-fast-get self))
-            (n (object-scheme-value-fast-get n)))
+            (n (PyObjectInt-value n)))
         (py-list-from-scheme (dynamic-vector*n c n)))
       py-NotImplemented)
     (py-throw-not-a-type-object "list.__mul__" self)))
@@ -2862,7 +2865,7 @@
   (if (py-isinstance? self py-list-class)
     (if (py-isinstance? n py-int-class)
       (let ((c (object-scheme-value-fast-get self))
-            (n (object-scheme-value-fast-get n)))
+            (n (PyObjectInt-value n)))
         (object-scheme-value-fast-set! self (dynamic-vector*n c n))
         self)
       py-NotImplemented)
@@ -2987,20 +2990,20 @@
              ((eq? py-step py-int-0)
               (py-throw (py-call1 py-builtin-ValueError (py-str-from-scheme "slice step cannot be zero"))))
              ((py-isinstance? py-step py-int-class)
-                (object-scheme-value-fast-get py-step))
+                (PyObjectInt-value py-step))
              (else (py-throw-wrong-index-type "slice" "integers or None" py-step))))
          (start
            (cond
              ((eq? py-start py-None) (if (> step 0) 0 (- len 1)))
              ((py-isinstance? py-start py-int-class)
-                (let ((i (object-scheme-value-fast-get py-start)))
+                (let ((i (PyObjectInt-value py-start)))
                   (if (< i 0) (+ len i) i)))
              (else (py-throw-wrong-index-type "slice" "integers or None" py-start))))
          (stop
            (cond
              ((eq? py-stop py-None) (if (> step 0) len -1))
              ((py-isinstance? py-stop py-int-class)
-                (let ((i (object-scheme-value-fast-get py-stop)))
+                (let ((i (PyObjectInt-value py-stop)))
                   (if (< i 0) (+ len i) i)))
              (else (py-throw-wrong-index-type "slice" "integers or None" py-stop))))
          (first
@@ -3040,7 +3043,7 @@
         (let* ((container (object-scheme-value-fast-get self))
                (len (car container))
                (vec (cdr container))
-               (i (object-scheme-value-fast-get item)))
+               (i (PyObjectInt-value item)))
           (if (index-in-length-range i len)
             (vector-ref vec (modulo i len))
             (py-throw-index-out-of-range "list"))))
@@ -3058,7 +3061,7 @@
     (make-posonly-signature '#(self item))))
 
 (define-macro (vector-ref-to-scheme-int vec index)
-  `(object-scheme-value-fast-get (vector-ref ,vec ,index)))
+  `(PyObjectInt-value (vector-ref ,vec ,index)))
 
 ;; slices of the form lst[1:4]
 (define-macro (define-set-simple-slice-dynamic-vector name vshift-right-by vshift-left-by vset vref)
@@ -3141,7 +3144,7 @@
         (let* ((container (object-scheme-value-fast-get self))
                (len (car container))
                (vec (cdr container))
-               (i (object-scheme-value-fast-get item)))
+               (i (PyObjectInt-value item)))
           (if (index-in-length-range i len)
             (vector-set! vec (modulo i len) value)
             (py-throw-action-out-of-range "list" "assignment"))))
@@ -3300,7 +3303,7 @@
       ((py-isinstance? item py-int-class)
         (let* ((dvec (object-scheme-value-fast-get self))
                (len (car dvec))
-               (i (object-scheme-value-fast-get item)))
+               (i (PyObjectInt-value item)))
           (if (index-in-length-range i len)
             (dynamic-vector-shift-left! dvec (+ (modulo i len) 1))
             (py-throw-action-out-of-range "list" "assignement"))))
@@ -3337,7 +3340,7 @@
         (let* ((dvec (object-scheme-value-fast-get self))
                (len (car dvec))
                (vec (cdr dvec))
-               (i (object-scheme-value-fast-get index)))
+               (i (PyObjectInt-value index)))
           (if (index-in-length-range i len)
             (let* ((actual-i (modulo i len))
                    (element (vector-ref vec actual-i)))
@@ -3431,7 +3434,7 @@
             (if (eq? start py-absent)
               0
               (if (py-isinstance? start py-int-class)
-                (let ((val (object-scheme-value-fast-get start)))
+                (let ((val (PyObjectInt-value start)))
                   (if (< val 0)
                     (modulo (max (- len) val) len)
                     (min len val)))
@@ -3440,7 +3443,7 @@
              (if (eq? stop py-absent)
                len
                (if (py-isinstance? stop py-int-class)
-                 (let ((val (object-scheme-value-fast-get stop)))
+                 (let ((val (PyObjectInt-value stop)))
                    (if (< val 0)
                      (modulo (max (- len) val) len)
                      (min len val)))
@@ -3464,7 +3467,7 @@
     (if (py-isinstance? index py-int-class)
       (let* ((dvec (object-scheme-value-fast-get self))
             (len (car dvec))
-            (i (object-scheme-value-fast-get index)))
+            (i (PyObjectInt-value index)))
         (let ((insertion-index
                 (if (< i 0)
                   (modulo (max (- len) i) len)
@@ -3655,7 +3658,7 @@
   (if (py-isinstance? self py-tuple-class)
     (if (py-isinstance? n py-int-class)
       (let ((v (object-scheme-value-fast-get self))
-            (n (object-scheme-value-fast-get n)))
+            (n (PyObjectInt-value n)))
         (py-tuple-from-scheme (vector*n v n)))
       py-NotImplemented)
     (py-throw-not-a-type-object "tuple.__mul__" self)))
@@ -3795,7 +3798,7 @@
       ((py-isinstance? item py-int-class)
         (let* ((vec (object-scheme-value-fast-get self))
                (len (vector-length vec))
-               (i (object-scheme-value-fast-get item)))
+               (i (PyObjectInt-value item)))
           (if (index-in-length-range i len)
             (vector-ref vec (modulo i len))
             (py-throw-index-out-of-range "tuple"))))
@@ -3839,7 +3842,7 @@
             (if (eq? start py-absent)
               0
               (if (py-isinstance? start py-int-class)
-                (let ((val (object-scheme-value-fast-get start)))
+                (let ((val (PyObjectInt-value start)))
                   (if (< val 0)
                     (modulo (max (- len) val) len)
                     (min len val)))
@@ -3848,7 +3851,7 @@
              (if (eq? stop py-absent)
                len
                (if (py-isinstance? stop py-int-class)
-                 (let ((val (object-scheme-value-fast-get stop)))
+                 (let ((val (PyObjectInt-value stop)))
                    (if (< val 0)
                      (modulo (max (- len) val) len)
                      (min len val)))
@@ -3900,7 +3903,7 @@
 (define (slice-indices self len)
     (if (py-isinstance? self py-slice-class)
       (if (py-isinstance? len py-int-class)
-        (let ((len-i (object-scheme-value-fast-get len)))
+        (let ((len-i (PyObjectInt-value len)))
           (py-tuple-from-scheme
             (vector-map
               py-int-from-scheme
@@ -3927,7 +3930,7 @@
         (let ((item (vector-ref vec i)))
           (if (and
                (py-isinstance? item py-int-class)
-               (py-int-in-byte-range? (object-scheme-value-fast-get item)))
+               (py-int-in-byte-range? (PyObjectInt-value item)))
               (loop (+ 1 i))
               #f))
         #t)))
@@ -3944,7 +3947,7 @@
       ((eq? arg2 py-absent)
         (cond
           ((py-isinstance? arg1 py-int-class)
-            (let ((i (object-scheme-value-fast-get arg1)))
+            (let ((i (PyObjectInt-value arg1)))
               (if (<= 0 i)
                 (py-bytearray-from-scheme (cons i (make-u8vector i)))
                 (py-throw-exception-with-message py-builtin-ValueError "negative count"))))
@@ -3968,7 +3971,7 @@
       (cond
         ((py-isinstance? item py-int-class)
         (let ((bytearray (object-scheme-value-fast-get self))
-              (i (object-scheme-value-fast-get item)))
+              (i (PyObjectInt-value item)))
           (if (index-in-length-range i (car bytearray))
             (py-int-from-scheme (u8vector-ref (cdr bytearray) (modulo i (car bytearray))))
             (py-throw-index-out-of-range "bytearray"))))
@@ -4028,9 +4031,9 @@
       (cond
        ((py-isinstance? key py-int-class)
         (if (py-isinstance? value py-int-class)
-            (let ((key-int (object-scheme-value-fast-get key))
+            (let ((key-int (PyObjectInt-value key))
                   (bytearray (object-scheme-value-fast-get self))
-                  (value-int (object-scheme-value-fast-get value)))
+                  (value-int (PyObjectInt-value value)))
               (cond
                ((not (index-in-length-range key-int (car bytearray)))
                 (py-throw-index-out-of-range "bytearray" ))
@@ -4060,7 +4063,7 @@
     (else
       (let* ((bytearray (object-scheme-value-fast-get self))
             (real-length (u8vector-length (cdr bytearray)))
-            (elem-int (object-scheme-value-fast-get elem)))
+            (elem-int (PyObjectInt-value elem)))
         (if (not (py-int-in-byte-range? elem-int))
             (py-throw-exception-with-message py-builtin-ValueError "byte must be in range(0, 255)")
             (begin
@@ -4115,7 +4118,7 @@
   (if (py-isinstance? self py-bytearray-class)
       (if (py-isinstance? n py-int-class)
           (let ((c (object-scheme-value-fast-get self))
-                (n (object-scheme-value-fast-get n)))
+                (n (PyObjectInt-value n)))
             (py-bytearray-from-scheme (dynamic-u8vector*n c n)))
           py-NotImplemented)
       (py-throw-not-a-type-object "bytearray.__mul__" self)))
@@ -4134,7 +4137,7 @@
   (if (py-isinstance? self py-bytearray-class)
       (if (py-isinstance? n py-int-class)
           (let ((c (object-scheme-value-fast-get self))
-                (n (object-scheme-value-fast-get n)))
+                (n (PyObjectInt-value n)))
             (object-scheme-value-fast-set! self (dynamic-u8vector*n c n))
             self)
           py-NotImplemented)
@@ -4167,16 +4170,16 @@
          ((py-throw-action-out-of-range "bytearray" "assignment")))
         (else
          (let* ((bytearray (object-scheme-value-fast-get self))
-                (item-int (object-scheme-value-fast-get item)))
+                (item-int (PyObjectInt-value item)))
            (if (py-int-in-byte-range? item-int)
                (let ((start-int
                       (if (eq? py-absent start)
                           0
-                          (max 0 (object-scheme-value-fast-get start))))
+                          (max 0 (PyObjectInt-value start))))
                      (stop-int
                       (if (eq? py-absent stop)
                           (car bytearray)
-                          (min (car bytearray) (object-scheme-value-fast-get stop)))))
+                          (min (car bytearray) (PyObjectInt-value stop)))))
                  (,endfunction (cdr bytearray) item-int start-int stop-int))
                (py-throw-exception-with-message py-builtin-ValueError "byte must be in range(0, 255)")
                )))))
@@ -4415,7 +4418,7 @@
   (bitwise-and hash (- size 1)))
 
 (define (ordered-table-get-cell ordered-table key)
-  (let* ((hash (object-scheme-value-fast-get (py-hash key)))
+  (let* ((hash (PyObjectInt-value (py-hash key)))
         (table (ordered-table-table ordered-table))
         (size (vector-length table)))
     (let loop ((i (hash->cell hash size)))
@@ -4468,7 +4471,7 @@
           (reinsertion-loop (cdr nodes-to-reinsert)))))))
 
 (define (ordered-table-remove-key! ordered-table key)
-  (let* ((hash (object-scheme-value-fast-get (py-hash key)))
+  (let* ((hash (PyObjectInt-value (py-hash key)))
         (table (ordered-table-table ordered-table))
         (size (vector-length table)))
     (let loop ((i (hash->cell hash size)))
@@ -4536,7 +4539,7 @@
             (loop (doubly-linked-list-node-next node))))))))
 
 (define (ordered-table-set-cell! ordered-table key value)
-  (let* ((hash (object-scheme-value-fast-get (py-hash key)))
+  (let* ((hash (PyObjectInt-value (py-hash key)))
         (table (ordered-table-table ordered-table))
         (content-size (ordered-table-length ordered-table))
         (size (vector-length table)))
@@ -4568,7 +4571,7 @@
         (let* ((pair (car key-value-pairs))
               (key (car pair))
               (value (cdr pair))
-              (hash (object-scheme-value-fast-get (py-hash key))))
+              (hash (PyObjectInt-value (py-hash key))))
           (table-vector-set!
             ordered-table
             table-vector
@@ -4843,7 +4846,7 @@
       (& "bool")
       (& "builtins")
       (list py-int-class)
-      py-bool-hclass-of-instances
+      py-int-hclass-of-instances
         (& "__new__") bool.__new__
         (& "__str__") bool.__str__
         (& "__repr__") bool.__repr__))
@@ -5132,16 +5135,10 @@
 ;; True and False
 
 (define py-True
-  (let ((True
-          (py-obj-alloc py-bool-class py-bool-hclass-of-instances)))
-    (object-scheme-value-fast-set! True 1)
-    True))
+  (py-int-subtype-from-scheme 1 py-bool-class))
 
 (define py-False
-  (let ((False
-          (py-obj-alloc py-bool-class py-bool-hclass-of-instances)))
-    (object-scheme-value-fast-set! False 0)
-    False))
+  (py-int-subtype-from-scheme 0 py-bool-class))
 
 ;; NotImplemented object
 

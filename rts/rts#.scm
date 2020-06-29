@@ -55,57 +55,37 @@
 ;; =============================================================================
 
 (define-type PyObject
-  id: C6486EB6-1522-42BA-A082-B6563F943CDF
-  constructor: %make-PyObject
-  predicate: %PyObject?
-  type-exhibitor: %PyObject-type-get
-  implementer: implement-PyObject
+  id: PyObject-C6486EB6-1522-42BA-A082-B6563F943CDF
+  extender: define-type-of-PyObject
+  type-exhibitor: PyObject-type-get
   copier: #f
-  opaque:
-  prefix: %
-  macros:
 
   ;; attrs
   hclass
-  elements
+  %elements
   class)
 
-(define (PyObject? x)
-  (%PyObject? x))
-
-(define-macro (PyObject-type-get)
-  `(%PyObject-type-get))
-
-(define-macro (make-PyObject hclass elts cls)
-  `(%make-PyObject ,hclass ,elts ,cls))
-
-(define-macro (PyObject-hclass obj)
-  `(%PyObject-hclass ,obj))
-
-(define-macro (PyObject-hclass-set! obj hc)
-  `(%PyObject-hclass-set! ,obj ,hc))
-
 (define-macro (PyObject-elements-ref obj offset)
-  `(vector-ref (%PyObject-elements ,obj) ,offset))
+  `(vector-ref (PyObject-%elements ,obj) ,offset))
 
 (define-macro (PyObject-elements-set! obj offset val)
   `(let* (($obj ,obj)
           ($offset ,offset)
           ($val ,val)
-          ($elements (%PyObject-elements $obj))
+          ($elements (PyObject-%elements $obj))
           ($elements-len (vector-length $elements)))
      (if (fx>= $offset $elements-len)
          (let (($elements-new (make-vector (max 1 (fx* 2 $elements-len)))))
            (subvector-move! $elements 0 $elements-len $elements-new 0)
            (vector-set! $elements-new $offset $val)
-           (%PyObject-elements-set! $obj $elements-new))
+           (PyObject-%elements-set! $obj $elements-new))
          (vector-set! $elements $offset $val))))
 
-(define-macro (PyObject-class obj)
-  `(%PyObject-class ,obj))
-
-(define-macro (PyObject-class-set! obj cls)
-  `(%PyObject-class-set! ,obj ,cls))
+(define-type-of-PyObject PyObjectInt
+  id: PyObjectInt-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  value)
 
 ;; =============================================================================
 ;;  PCache
