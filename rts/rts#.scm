@@ -61,9 +61,9 @@
   copier: #f
 
   ;; attrs
-  hclass
-  %elements
-  class)
+  (hclass unprintable:)
+  (%elements unprintable:)
+  (class unprintable:))
 
 (define-macro (PyObject-elements-ref obj offset)
   `(vector-ref (PyObject-%elements ,obj) ,offset))
@@ -80,6 +80,14 @@
            (vector-set! $elements-new $offset $val)
            (PyObject-%elements-set! $obj $elements-new))
          (vector-set! $elements $offset $val))))
+
+(define-type-of-PyObject PyObjectType
+    id: PyObjectType-C6486EB6-1522-42BA-A082-B6563F943CDF
+    copier: #f
+    ;; attrs
+    (bases unprintable:)
+    (mro unprintable:)
+    (hclass-of-instances unprintable:))
 
 (define-type-of-PyObject PyObjectInt
   id: PyObjectInt-C6486EB6-1522-42BA-A082-B6563F943CDF

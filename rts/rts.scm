@@ -36,9 +36,6 @@
   (make-HClass
     '#() ;; set later when classes exist
     (vector
-      (& "**bases**")
-      (& "**mro**")
-      (& "**hclass-of-instance**")
       (& "__name__")
       (& "__call__"))
     '()))
@@ -187,32 +184,14 @@
 ;; Method for fast access to attributes defined in hidden classes
 ;; Those are unsafe methods
 
-(define (type-bases-fast-get type)
+(define (type-name-fast-get type)
   (PyObject-elements-ref type 0))
 
-(define (type-bases-fast-set! type bases)
-  (PyObject-elements-set! type 0 bases))
-
-(define (type-mro-fast-get type)
-  (PyObject-elements-ref type 1))
-
-(define (type-mro-fast-set! type mro)
-  (PyObject-elements-set! type 1 mro))
-
-(define (type-hclass-of-instance-fast-get type)
-  (PyObject-elements-ref type 2))
-
-(define (type-hclass-of-instance-fast-set! type hclass)
-  (PyObject-elements-set! type 2 hclass))
-
-(define (type-name-fast-get type)
-  (PyObject-elements-ref type 3))
-
 (define (type-name-fast-set! type name)
-  (PyObject-elements-set! type 3 name))
+  (PyObject-elements-set! type 0 name))
 
 (define (class-__call__-fast-get class)
-  (PyObject-elements-ref class 4))
+  (PyObject-elements-ref class 1))
 
 (define (object-scheme-value-fast-get obj)
   (PyObject-elements-ref obj 0))
@@ -272,6 +251,19 @@
             py-absent)
           cls)))
     self))
+
+;; type allocation
+
+(define (py-type-alloc metaclass bases mro hclass-of-instance)
+  (make-PyObjectType
+    py-type-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-type-hclass-of-instances))
+      py-absent)
+    metaclass
+    bases
+    mro
+    hclass-of-instance))
 
 ;; ----------------------------------------------------------------------------
 
@@ -526,7 +518,7 @@
 
 (define (py-issubclass? cls parent)
   (if (py-isinstance? cls py-type-class)
-    (let ((mro (py-cls-mro cls)))
+    (let ((mro (PyObjectType-mro cls)))
       (py-is-in-mro? parent mro))
     #f))
 
@@ -535,7 +527,7 @@
          (raise (py-call py-builtin-TypeError)))
         ((py-is-in-mro? py-builtin-BaseException (py-obj-mro exc))
          (raise exc))
-        ((py-is-in-mro? py-builtin-BaseException (py-cls-mro exc))
+        ((py-is-in-mro? py-builtin-BaseException (PyObjectType-mro exc))
          (raise (py-call exc)))
         (else
          (raise (py-call py-builtin-TypeError)))))
@@ -1565,7 +1557,7 @@
 ;;   returns the first occurence of the attribute
 ;;   found on an element of the MRO
 (define (getattribute-from-cls-mro cls name)
-  (let ((mro (py-cls-mro cls)))
+  (let ((mro (PyObjectType-mro cls)))
     (let loop-mro ((i 0))
       (if (< i (vector-length mro))
         (let ((cls (vector-ref mro i)))
@@ -1578,7 +1570,7 @@
 ;; Does the same a getattribute-from-cls-mro but also returns the class
 ;; which owned the attribute. This may be necessary for super
 (define (getattribute-from-cls-mro-with-owner cls name)
-  (let ((mro (py-cls-mro cls)))
+  (let ((mro (PyObjectType-mro cls)))
     (let loop-mro ((i 0))
       (if (< i (vector-length mro))
         (let ((cls (vector-ref mro i)))
@@ -1785,7 +1777,7 @@
 ;; TODO: that's really a lot of todos...
 (define (object-new cls args)
   (if (py-isinstance? cls py-type-class)
-    (py-obj-alloc cls (type-hclass-of-instance-fast-get cls))
+    (py-obj-alloc cls (PyObjectType-hclass-of-instances cls))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme "object.__new__(X): X is not a type object")))))
@@ -1825,12 +1817,16 @@
 
 (define (str-make! str)
   (let ((value (object-scheme-value-fast-get str)))
-    (if (string? value)
-      value
-      (let* ((str-components (str-value-collect-components value))
-            (new-string (append-strings str-components)))
-        (object-scheme-value-fast-set! str new-string)
-        new-string))))
+    (cond
+      ((string? value)
+        value)
+      ((pair? value)
+        (let* ((str-components (str-value-collect-components value))
+              (new-string (append-strings str-components)))
+          (object-scheme-value-fast-set! str new-string)
+          new-string))
+      (else
+        (error "str-make!" "received object with value" value)))))
 
 (define (str-representative-get str)
   (let ((self-token (str-representative-fast-get str)))
@@ -2181,13 +2177,7 @@
       (error "py-obj-cls" "unhandled object type" obj)))
 
 (define (py-obj-mro obj) ;; return MRO of object
-  (py-cls-mro (py-obj-cls obj))) ;; TODO: use HClass-class-mro
-
-(define (py-cls-bases cls) ;; return **bases** attribute of class cls
-  (type-bases-fast-get cls))
-
-(define (py-cls-mro cls) ;; return **mro** attribute of class cls
-  (type-mro-fast-get cls))
+  (PyObjectType-mro (py-obj-cls obj))) ;; TODO: use HClass-class-mro
 
 ;;;----------------------------------------------------------------------------
 
@@ -2273,36 +2263,30 @@
 ;; Create barebone object, type, str and tuple classes
 ;; These will need to be filled in later
 (define (bootstrap-type-hierarchy-phase1)
-  (let* ((type-hclass-length
-          (vector-length (HClass-names py-type-hclass-of-instances)))
-        (type-class
-          (make-PyObject
-            py-type-hclass-of-instances
-            (make-vector
-              type-hclass-length
-              py-absent)
-            #f))
+  (let* ((type-class
+          (py-type-alloc
+            #f ;; cls
+            #f ;; bases
+            #f ;; mro
+            py-type-hclass-of-instances))
         (object-class
-          (make-PyObject
-            py-type-hclass-of-instances
-            (make-vector
-              type-hclass-length
-              py-absent)
-            #f))
+          (py-type-alloc
+            #f ;; cls
+            #f ;; bases
+            #f ;; mro
+            py-object-hclass-of-instances))
         (str-class
-          (make-PyObject
-            py-type-hclass-of-instances
-            (make-vector
-              type-hclass-length
-              py-absent)
-            #f))
+          (py-type-alloc
+            #f ;; cls
+            #f ;; bases
+            #f ;; mro
+            py-str-hclass-of-instances))
         (tuple-class
-          (make-PyObject
-            py-type-hclass-of-instances
-            (make-vector
-              type-hclass-length
-              py-absent)
-            #f)))
+          (py-type-alloc
+            #f ;; cls
+            #f ;; bases
+            #f ;; mor
+            py-tuple-hclass-of-instances)))
 
     (set! py-object-class object-class)
     (set! py-type-class type-class)
@@ -2314,11 +2298,11 @@
 
     ;; Fill in object class
     (PyObject-class-set! object-class type-class)
-    (type-bases-fast-set! object-class '#())
+    (PyObjectType-bases-set! object-class '#())
     (let ((object-mro (vector object-class)))
       (HClass-class-mro-set! py-object-hclass-of-instances object-mro)
-      (type-mro-fast-set! object-class object-mro))
-    (type-hclass-of-instance-fast-set! object-class py-object-hclass-of-instances)
+      (PyObjectType-mro-set! object-class object-mro))
+    (PyObjectType-hclass-of-instances-set! object-class py-object-hclass-of-instances)
     (py-own-attr-set! object-class (& "__name__") (py-str-from-scheme "object"))
     (py-own-attr-set! object-class (& "__module__") (py-str-from-scheme "builtins"))
     (py-own-attr-set! object-class (& "__new__") object.__new__)
@@ -2330,11 +2314,11 @@
 
     ;; Fill in type class
     (PyObject-class-set! type-class type-class)
-    (type-bases-fast-set! type-class '#(object-class))
+    (PyObjectType-bases-set! type-class '#(object-class))
     (let ((type-mro (vector type-class object-class)))
       (HClass-class-mro-set! py-type-hclass-of-instances type-mro)
-      (type-mro-fast-set! type-class type-mro))
-    (type-hclass-of-instance-fast-set! type-class py-type-hclass-of-instances)
+      (PyObjectType-mro-set! type-class type-mro))
+    (PyObjectType-hclass-of-instances-set! type-class py-type-hclass-of-instances)
     (py-own-attr-set! type-class (& "__name__") (py-str-from-scheme "type"))
     (py-own-attr-set! type-class (& "__module__") (py-str-from-scheme "builtins"))
     (py-own-attr-set! type-class (& "__new__") type.__new__)
@@ -2343,21 +2327,21 @@
 
     ;; Fill in tuple class
     (PyObject-class-set! tuple-class type-class)
-    (type-bases-fast-set! tuple-class '#(object-class))
+    (PyObjectType-bases-set! tuple-class '#(object-class))
     (let ((tuple-mro (vector tuple-class object-class)))
       (HClass-class-mro-set! py-tuple-hclass-of-instances tuple-mro)
-      (type-mro-fast-set! tuple-class tuple-mro))
-    (type-hclass-of-instance-fast-set! tuple-class py-tuple-hclass-of-instances)
+      (PyObjectType-mro-set! tuple-class tuple-mro))
+    (PyObjectType-hclass-of-instances-set! tuple-class py-tuple-hclass-of-instances)
     (py-own-attr-set! tuple-class (& "__name__") (py-str-from-scheme "tuple"))
     (py-own-attr-set! tuple-class (& "__module__") (py-str-from-scheme "builtins"))
 
     ;; Fill in str class
     (PyObject-class-set! str-class type-class)
-    (type-bases-fast-set! str-class '#(object-class))
+    (PyObjectType-bases-set! str-class '#(object-class))
     (let ((str-mro (vector str-class object-class)))
       (HClass-class-mro-set! py-str-hclass-of-instances str-mro)
-      (type-mro-fast-set! str-class str-mro))
-    (type-hclass-of-instance-fast-set! str-class py-str-hclass-of-instances)
+      (PyObjectType-mro-set! str-class str-mro))
+    (PyObjectType-hclass-of-instances-set! str-class py-str-hclass-of-instances)
     (py-own-attr-set! str-class (& "__name__") (py-str-from-scheme "str"))
     (py-own-attr-set! str-class (& "__module__") (py-str-from-scheme "builtins"))
     (py-own-attr-set! str-class (& "__new__") str.__new__)
@@ -2379,7 +2363,7 @@
         classes
         (begin
           (set! seen (cons cls seen))
-          (cons cls (add-bases (py-cls-bases cls) classes)))))
+          (cons cls (add-bases (PyObjectType-bases cls) classes)))))
 
   (define (add-bases bases classes)
     (let loop ((i (- (vector-length bases) 1)) (classes classes))
@@ -2395,14 +2379,13 @@
             (if (null? bases)
               (vector py-object-class)
               (list->vector bases)))
-           (cls (py-obj-alloc py-type-class py-type-hclass-of-instances)))
-      (type-bases-fast-set! cls bases-vect)
-      (type-mro-fast-set! cls (py-compute-mro cls))
+           (cls (py-type-alloc py-type-class bases-vect #f #f)))
+      (PyObjectType-mro-set! cls (py-compute-mro cls))
       ;; TODO implement better introspection of hclass of instance
       ;; This current implementation will fail on multiple inheritance
-      (type-hclass-of-instance-fast-set!
+      (PyObjectType-hclass-of-instances-set!
         cls
-        (type-hclass-of-instance-fast-get
+        (PyObjectType-hclass-of-instances
           (vector-ref bases-vect 0)))
       (let loop ((attr-names attr-names) (attr-values attr-values))
         (if (pair? attr-names)
@@ -2436,7 +2419,7 @@
 
 (define (make-builtin-class name module bases hclass-of-instances . attrs)
   (let ((cls (apply py-make-class name module bases attrs)))
-    (type-hclass-of-instance-fast-set! cls hclass-of-instances)
+    (PyObjectType-hclass-of-instances-set! cls hclass-of-instances)
     cls))
 
 ;; =============================================================================
@@ -7275,7 +7258,7 @@
     py-builtin-super
     (let* ((this-class (py-own-attr-ref self (& "__thisclass__")))
           (this-self (py-own-attr-ref self (& "__self__")))
-          (mro (py-cls-mro this-class))
+          (mro (PyObjectType-mro this-class))
           (parent-cls (vector-ref mro 1)))
       (let-values (((attr owner)
         (getattribute-from-cls-mro-with-owner parent-cls name)))
