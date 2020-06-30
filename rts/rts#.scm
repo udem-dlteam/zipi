@@ -121,6 +121,13 @@
   ;; attrs
   value)
 
+(define-type-of-PyObject PyObjectListIterator
+  id: PyObjectListIterator-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  index
+  list)
+
 (define-type-of-PyObject PyObjectBytearray
   id: PyObjectBytearray-C6486EB6-1522-42BA-A082-B6563F943CDF
   copier: #f
@@ -169,6 +176,13 @@
   copier: #f
   ;; attrs
   value)
+
+(define-type-of-PyObject PyObjectTupleIterator
+  id: PyObjectTupleIterator-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  index
+  vec)
 
 (define-type-of-PyObject PyObjectDictKeyIterator
   id: PyObjectDictKeyIterator-C6486EB6-1522-42BA-A082-B6563F943CDF

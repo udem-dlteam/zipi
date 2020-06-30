@@ -124,9 +124,7 @@
 (define py-list-iterator-hclass-of-instances
   (make-HClass
     '#()
-    (vector
-      (& "**list**")
-      (& "**index**"))
+    (vector)
     '()))
 
 ;; bytearray iterator
@@ -142,9 +140,7 @@
 (define py-tuple-iterator-hclass-of-instances
   (make-HClass
     '#()
-    (vector
-      (& "**vector**")
-      (& "**index**"))
+    (vector)
     '()))
 
 ;; dict-keys iterator
@@ -223,6 +219,26 @@
     py-dict-keyiterator-class
     first
     iterator-token))
+
+(define (py-list-iterator-alloc index lst)
+  (make-PyObjectListIterator
+    py-list-iterator-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-list-iterator-hclass-of-instances))
+      py-absent)
+    py-list-iterator-class
+    index
+    lst))
+
+(define (py-tuple-iterator-alloc index vec)
+  (make-PyObjectTupleIterator
+    py-tuple-iterator-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-tuple-iterator-hclass-of-instances))
+      py-absent)
+    py-tuple-iterator-class
+    index
+    vec))
 ;; ----------------------------------------------------------------------------
 
 (define py-absent (list 'absent))
@@ -2450,18 +2466,6 @@
 
 ;; list iterator
 
-(define (list-iterator-list-fast-get li)
-  (PyObject-elements-ref li 1))
-
-(define (list-iterator-list-fast-set! li vec)
-  (PyObject-elements-set! li 1 vec))
-
-(define (list-iterator-index-fast-get li)
-  (PyObject-elements-ref li 2))
-
-(define (list-iterator-index-fast-set! li i)
-  (PyObject-elements-set! li 2 i))
-
 (define (list-iterator-iter self)
   (if (eq? (py-type self) py-list-iterator-class)
     self
@@ -2474,20 +2478,20 @@
 
 ;; By setting index to #f, the iterator always raises StopIteration
 (define (stop-list-iterator iterator)
-  (list-iterator-index-fast-set! iterator #f)
+  (PyObjectListIterator-index-set! iterator #f)
   (py-throw py-builtin-StopIteration))
 
 (define (list-iterator-next self)
   (if (eq? (py-type self) py-list-iterator-class)
-    (let ((index (list-iterator-index-fast-get self)))
+    (let ((index (PyObjectListIterator-index self)))
       (if index
-        (let* ((lst (list-iterator-list-fast-get self))
+        (let* ((lst (PyObjectListIterator-list self))
                (len-vec-pair (PyObjectList-value lst))
                (len (car len-vec-pair))
                (vec (cdr len-vec-pair)))
           (if (< index len)
             (let ((item (vector-ref vec index)))
-              (list-iterator-index-fast-set! self (+ index 1))
+              (PyObjectListIterator-index-set! self (+ index 1))
               item)
             (stop-list-iterator self)))
           (stop-list-iterator self)))
@@ -2507,18 +2511,6 @@
       (& "__iter__") list_iterator.__iter__
       (& "__next__") list_iterator.__next__))
 
-(define (tuple-iterator-vector-fast-get li)
-  (PyObject-elements-ref li 1))
-
-(define (tuple-iterator-vector-fast-set! li vec)
-  (PyObject-elements-set! li 1 vec))
-
-(define (tuple-iterator-index-fast-get li)
-  (PyObject-elements-ref li 2))
-
-(define (tuple-iterator-index-fast-set! li i)
-  (PyObject-elements-set! li 2 i))
-
 (define (tuple-iterator-iter self)
   (if (eq? (py-type self) py-tuple-iterator-class)
     self
@@ -2531,12 +2523,12 @@
 
 (define (tuple-iterator-next self)
   (if (eq? (py-type self) py-tuple-iterator-class)
-    (let* ((index (tuple-iterator-index-fast-get self))
-           (vec (tuple-iterator-vector-fast-get self)))
+    (let* ((index (PyObjectTupleIterator-index self))
+           (vec (PyObjectTupleIterator-vec self)))
       (if (< index (vector-length vec))
         (let ((item (vector-ref vec index)))
           (begin
-            (list-iterator-index-fast-set! self (+ index 1))
+            (PyObjectTupleIterator-index-set! self (+ index 1))
             item))
         (py-throw py-builtin-StopIteration)))
     (py-throw py-builtin-TypeError)))
@@ -2737,12 +2729,7 @@
 
 (define (list-iter self)
   (if (py-isinstance? self py-list-class)
-    (let ((iterator (py-obj-alloc
-                        py-list-iterator-class
-                        py-list-iterator-hclass-of-instances)))
-      (list-iterator-list-fast-set! iterator self)
-      (list-iterator-index-fast-set! iterator 0)
-      iterator)
+    (py-list-iterator-alloc 0 self)
     (py-throw-not-a-type-object "list.__iter__" self)))
 
 (define list.__iter__
@@ -3576,13 +3563,7 @@
 
 (define (tuple-iter self)
   (if (py-isinstance? self py-tuple-class)
-    (let ((iterator (py-obj-alloc
-                        py-tuple-iterator-class
-                        py-tuple-iterator-hclass-of-instances))
-          (vec (PyObjectTuple-value self)))
-      (tuple-iterator-vector-fast-set! iterator vec)
-      (tuple-iterator-index-fast-set! iterator 0)
-      iterator)
+    (py-tuple-iterator-alloc 0 (PyObjectTuple-value self))
     (py-throw py-builtin-TypeError)))
 
 (define tuple.__iter__
