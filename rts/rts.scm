@@ -5336,576 +5336,576 @@
                          (cons (& "sys") mod))))
 
    (py-own-attr-set! mod (& "path")
-                     (py-make-list 
-                       (& "") 
-                       (py-str-from-scheme zipi-stdlib-dir)))
-   mod))
+                     (py-make-list  
+                           (py-str-from-scheme zipi-stdlib-dir)))
+       mod))
 
-(define sys-mod (py-make-sys-mod))
+    (define sys-mod (py-make-sys-mod))
 
-(define (sys.modules-get)
-  (py-own-attr-ref sys-mod (& "modules")))
+    (define (sys.modules-get)
+      (py-own-attr-ref sys-mod (& "modules")))
 
-(define (sys.path-get)
-  (py-own-attr-ref sys-mod (& "path")))
+    (define (sys.path-get)
+      (py-own-attr-ref sys-mod (& "path")))
 
-(define (compile-source source target)
-  (define (root-dir)
-    (or (getenv "ZIPIROOT")
-        (error "Environnement variable $ZIPIROOT is not set. Refer to the README" )))
-  (print-debug 1 "WARNING : compiling file " source " to " target " \n")
-  (shell-command
-    (string-append
-      (root-dir)
-      "/etc/py19 -t gambit "
-      (root-dir)
-      "/pyc "
-      source
-      " > "
-      target)))
+    (define (compile-source source target)
+      (define (root-dir)
+        (or (getenv "ZIPIROOT")
+            (error "Environnement variable $ZIPIROOT is not set. Refer to the README" )))
+      (print-debug 1 "WARNING : compiling file " source " to " target " \n")
+      (shell-command
+        (string-append
+          (root-dir)
+          "/etc/py19 -t gambit "
+          (root-dir)
+          "/pyc "
+          source
+          " > "
+          target)))
 
-(define (ensure-parent-dir-exists path)  
-  (define (wind path todo)
-    (let* ((dir (path-strip-trailing-directory-separator
-                  (path-directory path)))
-           (fi (with-exception-catcher
-                 (lambda (exc) #f)
-                 (lambda () (file-info dir)))))
-      (if fi
-          (if (eq? (file-info-type fi) 'directory)
-              (unwind todo)
-              (error "directory component can't be created"))
-          (wind dir (cons dir todo)))))  
+    (define (ensure-parent-dir-exists path)  
+      (define (wind path todo)
+        (let* ((dir (path-strip-trailing-directory-separator
+                      (path-directory path)))
+               (fi (with-exception-catcher
+                     (lambda (exc) #f)
+                     (lambda () (file-info dir)))))
+          (if fi
+              (if (eq? (file-info-type fi) 'directory)
+                  (unwind todo)
+                  (error "directory component can't be created"))
+              (wind dir (cons dir todo)))))  
 
-  (define (unwind todo)
-    (if (pair? todo)
-        (begin
-          ;;(pretty-print (list 'creating= (car todo)))
-          (create-directory (car todo))
-          (unwind (cdr todo)))))  
+      (define (unwind todo)
+        (if (pair? todo)
+            (begin
+              ;;(pretty-print (list 'creating= (car todo)))
+              (create-directory (car todo))
+              (unwind (cdr todo)))))  
 
-  (wind path '()))
-
-
-(define (compile-to-cache path)
-  (let* ((path-cache 
-          (string-append
-            (path-expand  "~~zipicache/cache")
-            (path-strip-extension path)
-            ".scm"))
-         (path-info (##file-info path #t #f))
-         (path-cache-info (##file-info path-cache #t #f)))
-
-    ;; compile file and return #f if compilation failed
-    (define (compile)
-      (fx= 0 
-           (begin
-             (ensure-parent-dir-exists path-cache)
-             (compile-source path path-cache))))
+      (wind path '()))
 
 
-    (if path-info
-        (if path-cache-info
-            ;; check according to modified date
-            (if (< (time->seconds (file-info-last-modification-time path-info))
-                   (time->seconds (file-info-last-modification-time path-cache-info)))
-                (begin 
-                  (print-debug 1 "WARNING : skipping compilation of unmodified file at " path ", compiled file found : " path-cache "\n") 
-                  #t) ;; compilation "succesfull" (file already compiled)
-                (compile)) 
-            (compile)) ;; compiled file does not exist (must compile)
-        #f))) ;; file to compile does not exist (failed compilation)
+    (define (compile-to-cache path)
+      (let* ((path-cache 
+              (string-append
+                (path-expand  "~~zipicache/cache")
+                (path-strip-extension path)
+                ".scm"))
+             (path-info (##file-info path #t #f))
+             (path-cache-info (##file-info path-cache #t #f)))
 
-(define (import-with-zipi-cache path py-__name__ sys.modules)
-  (let ((mod-init (and
-                    (compile-to-cache path)
-                    ;; TODO : for windows user, the path is not formated with a / before
-                    (load-module-and-get-init 
-                      (substring path 1 (string-length (path-strip-extension path)))))))
-    (if mod-init
-        (mod-init py-__name__)
-        #f)))
+        ;; compile file and return #f if compilation failed
+        (define (compile)
+          (fx= 0 
+               (begin
+                 (ensure-parent-dir-exists path-cache)
+                 (compile-source path path-cache))))
 
-(define (load-module-and-get-init name)
-  (let* ((sym (string->symbol name))
-         (modref (##parse-module-ref sym)))
-    (if modref
-        (with-exception-catcher
-         (lambda (exn)
-           (if (module-not-found-exception? exn)
-               #f
-               (raise exn)))
+
+        (if path-info
+            (if path-cache-info
+                ;; check according to modified date
+                (if (< (time->seconds (file-info-last-modification-time path-info))
+                       (time->seconds (file-info-last-modification-time path-cache-info)))
+                    (begin 
+                      (print-debug 1 "WARNING : skipping compilation of unmodified file at " path ", compiled file found : " path-cache "\n") 
+                      #t) ;; compilation "succesfull" (file already compiled)
+                    (compile)) 
+                (compile)) ;; compiled file does not exist (must compile)
+            #f))) ;; file to compile does not exist (failed compilation)
+
+    (define (import-with-zipi-cache path py-__name__ sys.modules)
+      (let ((mod-init (and
+                        (compile-to-cache path)
+                        ;; TODO : for windows user, the path is not formated with a / before
+                        (load-module-and-get-init 
+                          (substring path 1 (string-length (path-strip-extension path)))))))
+        (if mod-init
+            (mod-init py-__name__)
+            #f)))
+
+    (define (load-module-and-get-init name)
+      (let* ((sym (string->symbol name))
+             (modref (##parse-module-ref sym)))
+        (if modref
+            (with-exception-catcher
+             (lambda (exn)
+               (if (module-not-found-exception? exn)
+                   #f
+                   (raise exn)))
+             (lambda ()
+               (##load-module sym)
+               (let ((init (##module-var-ref modref 'init)))
+                 (if (procedure? init)
+                     init
+                     #f))))
+            #f)))
+
+    (define (import-from-sys.path __name__ py-__name__ sys.modules)
+      (let ((sys.path-iter (py-iter (sys.path-get))))
+       (let loop ((value sys.path-iter))
+        (let ((value (py-next value)))
+         (if value
+             (if (py-isinstance? value py-str-class) ;; TODO : support bytes
+                 (let ((path (string-append 
+                               (path-normalize (object-scheme-value-fast-get value))
+                               __name__
+                               ".py")))
+                   (or (import-with-zipi-cache path py-__name__ sys.modules)
+                       (loop sys.path-iter))) 
+                 (loop sys.path-iter))
+             (py-throw-exception-with-message 
+               py-builtin-ModuleNotFoundError 
+               "No module named " __name__))))))
+
+    (define (builtin-__import__ __name__ py-__name__)
+      (let ((sys.modules (sys.modules-get)))
+        ;; check in sys.modules if the value exist and returns it if it exists
+        (or (dict-get sys.modules py-__name__ #f)
+            (import-from-sys.path __name__ py-__name__ sys.modules))))
+
+    (define (py-import path depth)
+      (builtin-__import__ path (py-str-from-scheme path)))
+
+    (define (run-as-main path)
+      (let ((sys.modules (sys.modules-get)))
+       (list-append (sys.path-get) (py-str-from-scheme (path-directory path)))
+       (with-exception-catcher
+         (lambda (e) (if (PyObject? e) (print-exception e) (raise e)))
          (lambda ()
-           (##load-module sym)
-           (let ((init (##module-var-ref modref 'init)))
-             (if (procedure? init)
-                 init
-                 #f))))
-        #f)))
-
-(define (import-from-sys.path __name__ py-__name__ sys.modules)
-  (let ((sys.path-iter (py-iter (sys.path-get))))
-   (let loop ((value sys.path-iter))
-    (let ((value (py-next value)))
-     (if value
-         (if (py-isinstance? value py-str-class) ;; TODO : support bytes
-             (let ((path (string-append 
-                           (path-normalize (object-scheme-value-fast-get value))
-                           __name__
-                           ".py")))
-               (or (import-with-zipi-cache path py-__name__ sys.modules)
-                   (loop sys.path-iter))) 
-             (loop sys.path-iter))
-         (py-throw-exception-with-message 
-           py-builtin-ModuleNotFoundError 
-           "No module named " __name__))))))
-
-(define (builtin-__import__ __name__ py-__name__)
-  (let ((sys.modules (sys.modules-get)))
-    ;; check in sys.modules if the value exist and returns it if it exists
-    (or (dict-get sys.modules py-__name__ #f)
-        (import-from-sys.path __name__ py-__name__ sys.modules))))
-
-(define (py-import path depth)
-  (builtin-__import__ path (py-str-from-scheme path)))
-
-(define (run-as-main path)
-  (let ((sys.modules (sys.modules-get)))
-    (with-exception-catcher
-      (lambda (e) (if (PyObject? e) (print-exception e) (raise e)))
-      (lambda ()
-        (import-with-zipi-cache path (& "__main__") sys.modules)))))
-
-
-(define py-import-root (current-directory))
-
-
-;; MODULES
-
-
-;; time
-
-(define time.time
-  (procedure->py-function
-    (lambda () 
-     (py-int-from-scheme (time->seconds (current-time))))
-    (empty-signature)))
-
-(define (make-time-mod)
-  (let ((mod (py-make-module (& "time"))))
-   (py-own-attr-set! mod (& "time") time.time)))
-
-(make-time-mod)
-
-
-;; ===========================================
-;; BUITLINS
-;; ===========================================
-
-;;-------------------- abs(x)
-
-;; Return the absolute value of a number. The argument may be an
-;; integer or a floating point number. If the argument is a complex
-;; number, its magnitude is returned. If x defines __abs__(), abs(x)
-;; returns x.__abs__().
-
-(define py-builtin-abs
-  (procedure->py-function
-    py-abs
-    (make-posonly-signature '#(x))))
-
-;;-------------------- all(iterable)
-
-;; Return True if all elements of the iterable are true (or if the
-;; iterable is empty). Equivalent to:
-;;
-;; def all(iterable):
-;;     for element in iterable:
-;;         if not element:
-;;             return False
-;;     return True
-
-(define py-builtin-all
-  (procedure->py-function
-    (lambda (iterable)
-      (py-throw-exception-with-message py-builtin-NotImplementedError "all not implemented"))
-    (make-posonly-signature '#(iterable))))
-
-;;-------------------- any(iterable)
-
-;; Return True if any element of the iterable is true. If the iterable is
-;; empty, return False. Equivalent to:
-;;
-;; def any(iterable):
-;;     for element in iterable:
-;;         if element:
-;;             return True
-;;     return False
-
-(define py-builtin-any
-  (procedure->py-function
-    (lambda (iterable)
-      (py-throw-exception-with-message py-builtin-NotImplementedError "any not implemented"))
-    (make-posonly-signature '#(iterable))))
-
-;;-------------------- ascii(object)
-
-;; As repr(), return a string containing a printable representation of an
-;; object, but escape the non-ASCII characters in the string returned by
-;; repr() using \x, \u or \U escapes. This generates a string similar to
-;; that returned by repr() in Python 2.
-
-(define py-builtin-ascii
-  (procedure->py-function
-    (lambda (object)
-      (py-throw-exception-with-message py-builtin-NotImplementedError "ascii not implemented"))
-    (make-posonly-signature '#(object))))
-
-;;-------------------- bin(x)
-
-;; Convert an integer number to a binary string prefixed with “0b”. The
-;; result is a valid Python expression. If x is not a Python int object,
-;; it has to define an __index__() method that returns an integer. Some
-;; examples:
-;;
-;; >>> bin(3)
-;; '0b11'
-;; >>> bin(-10)
-;; '-0b1010'
-;;
-;; If prefix “0b” is desired or not, you can use either of the following ways.
-;;
-;; >>> format(14, '#b'), format(14, 'b')
-;; ('0b1110', '1110')
-;; >>> f'{14:#b}', f'{14:b}'
-;; ('0b1110', '1110')
-;;
-;; See also format() for more information.
-
-(define py-builtin-bin
-  (procedure->py-function
-    (lambda (x)
-      (py-throw-exception-with-message py-builtin-NotImplementedError "bin not implemented"))
-    (make-posonly-signature '#(x))))
-
-;;-------------------- class bool([x])
-
-;; Return a Boolean value, i.e. one of True or False. x is converted
-;; using the standard truth testing procedure. If x is false or omitted,
-;; this returns False; otherwise it returns True. The bool class is a
-;; subclass of int (see Numeric Types — int, float, complex). It cannot
-;; be subclassed further. Its only instances are False and True (see
-;; Boolean Values).
-;;
-;; Changed in version 3.7: x is now a positional-only parameter.
-
-(define py-builtin-bool py-bool-class)
-
-;;-------------------- breakpoint(*args, **kws)
-
-;; This function drops you into the debugger at the call
-;; site. Specifically, it calls sys.breakpointhook(), passing args and
-;; kws straight through. By default, sys.breakpointhook() calls
-;; pdb.set_trace() expecting no arguments. In this case, it is purely a
-;; convenience function so you don’t have to explicitly import pdb or
-;; type as much code to enter the debugger. However, sys.breakpointhook()
-;; can be set to some other function and breakpoint() will automatically
-;; call that, allowing you to drop into the debugger of choice.
-;;
-;; New in version 3.7.
-
-(define py-builtin-breakpoint
-  (procedure->py-function
-   (lambda (args kwargs)
-     (py-throw-exception-with-message py-builtin-NotImplementedError "breakpoint not implemented"))
-  (make-signature '#() '#() 'args '#() '#() 'kwargs '#())))
-
-;;-------------------- class bytearray([source[, encoding[, errors]]])
-
-;; Return a new array of bytes. The bytearray class is a mutable sequence
-;; of integers in the range 0 <= x < 256. It has most of the usual
-;; methods of mutable sequences, described in Mutable Sequence Types, as
-;; well as most methods that the bytes type has, see Bytes and Bytearray
-;; Operations.
-;;
-;; The optional source parameter can be used to initialize the array in a
-;; few different ways:
-;;
-;; If it is a string, you must also give the encoding (and optionally,
-;; errors) parameters; bytearray() then converts the string to bytes
-;; using str.encode().  If it is an integer, the array will have that
-;; size and will be initialized with null bytes.  If it is an object
-;; conforming to the buffer interface, a read-only buffer of the object
-;; will be used to initialize the bytes array.  If it is an iterable, it
-;; must be an iterable of integers in the range 0 <= x < 256, which are
-;; used as the initial contents of the array.  Without an argument, an
-;; array of size 0 is created.
-;;
-;; See also Binary Sequence Types — bytes, bytearray, memoryview and
-;; Bytearray Objects.
-
-(define py-builtin-bytearray py-bytearray-class)
-;;-------------------- class bytes([source[, encoding[, errors]]])
-
-;; Return a new “bytes” object, which is an immutable sequence of
-;; integers in the range 0 <= x < 256. bytes is an immutable version of
-;; bytearray – it has the same non-mutating methods and the same indexing
-;; and slicing behavior.
-;;
-;; Accordingly, constructor arguments are interpreted as for bytearray().
-;;
-;; Bytes objects can also be created with literals, see String and Bytes
-;; literals.
-;;
-;; See also Binary Sequence Types — bytes, bytearray, memoryview, Bytes
-;; Objects, and Bytes and Bytearray Operations.
-
-(define py-builtin-bytes
-  (procedure->py-function
-    (lambda (source encoding errors)
-      (py-throw-exception-with-message py-builtin-NotImplementedError "bytes not implemented"))
-    (make-posonly-defaults-signature
-      '#(source encodings errors)
-      (vector py-absent py-absent py-absent))))
-
-;;-------------------- callable(object)
-
-;; Return True if the object argument appears callable, False if not. If
-;; this returns true, it is still possible that a call fails, but if it
-;; is false, calling object will never succeed. Note that classes are
-;; callable (calling a class returns a new instance); instances are
-;; callable if their class has a __call__() method.
-;;
-;; New in version 3.2: This function was first removed in Python 3.0 and
-;; then brought back in Python 3.2.
-
-(define py-builtin-callable
-  (procedure->py-function
-    (lambda (object)
-      (py-throw-exception-with-message py-builtin-NotImplementedError "callable not implemented"))
-    (make-posonly-signature '#(object))))
-
-;;-------------------- chr(i)
-
-;; Return the string representing a character whose Unicode code point is
-;; the integer i. For example, chr(97) returns the string 'a', while
-;; chr(8364) returns the string '€'. This is the inverse of ord().
-;;
-;; The valid range for the argument is from 0 through 1,114,111 (0x10FFFF
-;; in base 16). ValueError will be raised if i is outside that range.
-
-(define py-builtin-chr
-  (procedure->py-function
-    py-chr
-    (make-posonly-signature '#(i))))
-
-;;-------------------- @classmethod
-
-;; Transform a method into a class method.
-;;
-;; A class method receives the class as implicit first argument, just
-;; like an instance method receives the instance. To declare a class
-;; method, use this idiom:
-;;
-;; class C:
-;;     @classmethod
-;;     def f(cls, arg1, arg2, ...): ...
-;;
-;; The @classmethod form is a function decorator – see Function
-;; definitions for details.
-;;
-;; A class method can be called either on the class (such as C.f()) or on
-;; an instance (such as C().f()). The instance is ignored except for its
-;; class. If a class method is called for a derived class, the derived
-;; class object is passed as the implied first argument.
-;;
-;; Class methods are different than C++ or Java static methods. If you
-;; want those, see staticmethod().
-;;
-;; For more information on class methods, see The standard type hierarchy.
-
-(define py-builtin-classmethod
-  (procedure->py-function
-    (lambda (function)
-      (py-throw-exception-with-message py-builtin-NotImplementedError "classmethod not implemented"))
-    (make-posonly-signature '#(function))))
-
-;;-------------------- compile(source, filename, mode, flags=0, dont_inherit=False, optimize=-1)
-
-;; Compile the source into a code or AST object. Code objects can be
-;; executed by exec() or eval(). source can either be a normal string, a
-;; byte string, or an AST object. Refer to the ast module documentation
-;; for information on how to work with AST objects.
-;;
-;; The filename argument should give the file from which the code was
-;; read; pass some recognizable value if it wasn’t read from a file
-;; ('<string>' is commonly used).
-;;
-;; The mode argument specifies what kind of code must be compiled; it can
-;; be 'exec' if source consists of a sequence of statements, 'eval' if it
-;; consists of a single expression, or 'single' if it consists of a
-;; single interactive statement (in the latter case, expression
-;; statements that evaluate to something other than None will be
-;; printed).
-;;
-;; The optional arguments flags and dont_inherit control which future
-;; statements affect the compilation of source. If neither is present (or
-;; both are zero) the code is compiled with those future statements that
-;; are in effect in the code that is calling compile(). If the flags
-;; argument is given and dont_inherit is not (or is zero) then the future
-;; statements specified by the flags argument are used in addition to
-;; those that would be used anyway. If dont_inherit is a non-zero integer
-;; then the flags argument is it – the future statements in effect around
-;; the call to compile are ignored.
-;;
-;; Future statements are specified by bits which can be bitwise ORed
-;; together to specify multiple statements. The bitfield required to
-;; specify a given feature can be found as the compiler_flag attribute on
-;; the _Feature instance in the __future__ module.
-;;
-;; The optional argument flags also controls whether the compiled source
-;; is allowed to contain top-level await, async for and async with. When
-;; the bit ast.PyCF_ALLOW_TOP_LEVEL_AWAIT is set, the return code object
-;; has CO_COROUTINE set in co_code, and can be interactively executed via
-;; await eval(code_object).
-;;
-;; The argument optimize specifies the optimization level of the
-;; compiler; the default value of -1 selects the optimization level of
-;; the interpreter as given by -O options. Explicit levels are 0 (no
-;; optimization; __debug__ is true), 1 (asserts are removed, __debug__ is
-;; false) or 2 (docstrings are removed too).
-;;
-;; This function raises SyntaxError if the compiled source is invalid,
-;; and ValueError if the source contains null bytes.
-;;
-;; If you want to parse Python code into its AST representation, see
-;; ast.parse().
-;;
-;; Raises an auditing event compile with arguments source and
-;; filename. This event may also be raised by implicit compilation.
-;;
-;; Note When compiling a string with multi-line code in 'single' or
-;; 'eval' mode, input must be terminated by at least one newline
-;; character. This is to facilitate detection of incomplete and complete
-;; statements in the code module.  Warning It is possible to crash the
-;; Python interpreter with a sufficiently large/complex string when
-;; compiling to an AST object due to stack depth limitations in Python’s
-;; AST compiler.  Changed in version 3.2: Allowed use of Windows and Mac
-;; newlines. Also input in 'exec' mode does not have to end in a newline
-;; anymore. Added the optimize parameter.
-;;
-;; Changed in version 3.5: Previously, TypeError was raised when null
-;; bytes were encountered in source.
-;;
-;; New in version 3.8: ast.PyCF_ALLOW_TOP_LEVEL_AWAIT can now be passed
-;; in flags to enable support for top-level await, async for, and async
-;; with.
-
-(define py-builtin-compile
-  (procedure->py-function
-    (lambda (source filename mode flags dont_inherit optimize)
-      (py-throw-exception-with-message py-builtin-NotImplementedError "compile not implemented"))
-    (make-signature
-      '#(source filename mode flags dont_inherit optimize)
-      '#()
-      #f
-      '#()
-      '#()
-      #f
-      (vector
-        (py-int-from-scheme 0)
-        py-False
-        (py-int-from-scheme -1)))))
-
-;;-------------------- class complex([real[, imag]])
-
-;; Return a complex number with the value real + imag*1j or convert a
-;; string or number to a complex number. If the first parameter is a
-;; string, it will be interpreted as a complex number and the function
-;; must be called without a second parameter. The second parameter can
-;; never be a string. Each argument may be any numeric type (including
-;; complex). If imag is omitted, it defaults to zero and the constructor
-;; serves as a numeric conversion like int and float. If both arguments
-;; are omitted, returns 0j.
-;;
-;; For a general Python object x, complex(x) delegates to
-;; x.__complex__(). If __complex__() is not defined then it falls back to
-;; __float__(). If __float__() is not defined then it falls back to
-;; __index__().
-;;
-;; Note When converting from a string, the string must not contain
-;; whitespace around the central + or - operator. For example,
-;; complex('1+2j') is fine, but complex('1 + 2j') raises ValueError.  The
-;; complex type is described in Numeric Types — int, float, complex.
-;;
-;; Changed in version 3.6: Grouping digits with underscores as in code
-;; literals is allowed.
-;;
-;; Changed in version 3.8: Falls back to __index__() if __complex__() and
-;; __float__() are not defined.
-
-(define py-builtin-complex py-complex-class)
-
-;;-------------------- delattr(object, name)
-
-;; This is a relative of setattr(). The arguments are an object and a
-;; string. The string must be the name of one of the object’s
-;; attributes. The function deletes the named attribute, provided the
-;; object allows it. For example, delattr(x, 'foobar') is equivalent to
-;; del x.foobar.
-
-(define py-builtin-delattr
-  (procedure->py-function
-    (lambda (object name)
-      (py-throw-exception-with-message py-builtin-NotImplementedError "delattr not implemented"))
-    (make-posonly-signature '#(object name))))
-
-;;-------------------- class dict(**kwarg)
-;;                     class dict(mapping, **kwarg)
-;;                     class dict(iterable, **kwarg)
-
-;; Create a new dictionary. The dict object is the dictionary class. See
-;; dict and Mapping Types — dict for documentation about this class.
-;;
-;; For other containers see the built-in list, set, and tuple classes, as
-;; well as the collections module.
-
-(define py-builtin-dict py-dict-class)
-
-;;-------------------- dir([object])
-
-;; Without arguments, return the list of names in the current local
-;; scope. With an argument, attempt to return a list of valid attributes
-;; for that object.
-;;
-;; If the object has a method named __dir__(), this method will be called
-;; and must return the list of attributes. This allows objects that
-;; implement a custom __getattr__() or __getattribute__() function to
-;; customize the way dir() reports their attributes.
-;;
-;; If the object does not provide __dir__(), the function tries its best
-;; to gather information from the object’s __dict__ attribute, if
-;; defined, and from its type object. The resulting list is not
-;; necessarily complete, and may be inaccurate when the object has a
-;; custom __getattr__().
-;;
-;; The default dir() mechanism behaves differently with different types
-;; of objects, as it attempts to produce the most relevant, rather than
-;; complete, information:
-;;
-;; If the object is a module object, the list contains the names of the
-;; module’s attributes.  If the object is a type or class object, the
-;; list contains the names of its attributes, and recursively of the
-;; attributes of its bases.  Otherwise, the list contains the object’s
-;; attributes’ names, the names of its class’s attributes, and
-;; recursively of the attributes of its class’s base classes.  The
-;; resulting list is sorted alphabetically. For example:
-;;
-;; >>> import struct
-;; >>> dir()   # show the names in the module namespace  # doctest: +SKIP
-;; ['__builtins__', '__name__', 'struct']
-;; >>> dir(struct)   # show the names in the struct module # doctest: +SKIP
-;; ['Struct', '__all__', '__builtins__', '__cached__', '__doc__', '__file__',
+           (import-with-zipi-cache path (& "__main__") sys.modules)))))
+
+
+    (define py-import-root (current-directory))
+
+
+    ;; MODULES
+
+
+    ;; time
+
+    (define time.time
+      (procedure->py-function
+        (lambda () 
+         (py-int-from-scheme (time->seconds (current-time))))
+        (empty-signature)))
+
+    (define (make-time-mod)
+      (let ((mod (py-make-module (& "time"))))
+       (py-own-attr-set! mod (& "time") time.time)))
+
+    (make-time-mod)
+
+
+    ;; ===========================================
+    ;; BUITLINS
+    ;; ===========================================
+
+    ;;-------------------- abs(x)
+
+    ;; Return the absolute value of a number. The argument may be an
+    ;; integer or a floating point number. If the argument is a complex
+    ;; number, its magnitude is returned. If x defines __abs__(), abs(x)
+    ;; returns x.__abs__().
+
+    (define py-builtin-abs
+      (procedure->py-function
+        py-abs
+        (make-posonly-signature '#(x))))
+
+    ;;-------------------- all(iterable)
+
+    ;; Return True if all elements of the iterable are true (or if the
+    ;; iterable is empty). Equivalent to:
+    ;;
+    ;; def all(iterable):
+    ;;     for element in iterable:
+    ;;         if not element:
+    ;;             return False
+    ;;     return True
+
+    (define py-builtin-all
+      (procedure->py-function
+        (lambda (iterable)
+          (py-throw-exception-with-message py-builtin-NotImplementedError "all not implemented"))
+        (make-posonly-signature '#(iterable))))
+
+    ;;-------------------- any(iterable)
+
+    ;; Return True if any element of the iterable is true. If the iterable is
+    ;; empty, return False. Equivalent to:
+    ;;
+    ;; def any(iterable):
+    ;;     for element in iterable:
+    ;;         if element:
+    ;;             return True
+    ;;     return False
+
+    (define py-builtin-any
+      (procedure->py-function
+        (lambda (iterable)
+          (py-throw-exception-with-message py-builtin-NotImplementedError "any not implemented"))
+        (make-posonly-signature '#(iterable))))
+
+    ;;-------------------- ascii(object)
+
+    ;; As repr(), return a string containing a printable representation of an
+    ;; object, but escape the non-ASCII characters in the string returned by
+    ;; repr() using \x, \u or \U escapes. This generates a string similar to
+    ;; that returned by repr() in Python 2.
+
+    (define py-builtin-ascii
+      (procedure->py-function
+        (lambda (object)
+          (py-throw-exception-with-message py-builtin-NotImplementedError "ascii not implemented"))
+        (make-posonly-signature '#(object))))
+
+    ;;-------------------- bin(x)
+
+    ;; Convert an integer number to a binary string prefixed with “0b”. The
+    ;; result is a valid Python expression. If x is not a Python int object,
+    ;; it has to define an __index__() method that returns an integer. Some
+    ;; examples:
+    ;;
+    ;; >>> bin(3)
+    ;; '0b11'
+    ;; >>> bin(-10)
+    ;; '-0b1010'
+    ;;
+    ;; If prefix “0b” is desired or not, you can use either of the following ways.
+    ;;
+    ;; >>> format(14, '#b'), format(14, 'b')
+    ;; ('0b1110', '1110')
+    ;; >>> f'{14:#b}', f'{14:b}'
+    ;; ('0b1110', '1110')
+    ;;
+    ;; See also format() for more information.
+
+    (define py-builtin-bin
+      (procedure->py-function
+        (lambda (x)
+          (py-throw-exception-with-message py-builtin-NotImplementedError "bin not implemented"))
+        (make-posonly-signature '#(x))))
+
+    ;;-------------------- class bool([x])
+
+    ;; Return a Boolean value, i.e. one of True or False. x is converted
+    ;; using the standard truth testing procedure. If x is false or omitted,
+    ;; this returns False; otherwise it returns True. The bool class is a
+    ;; subclass of int (see Numeric Types — int, float, complex). It cannot
+    ;; be subclassed further. Its only instances are False and True (see
+    ;; Boolean Values).
+    ;;
+    ;; Changed in version 3.7: x is now a positional-only parameter.
+
+    (define py-builtin-bool py-bool-class)
+
+    ;;-------------------- breakpoint(*args, **kws)
+
+    ;; This function drops you into the debugger at the call
+    ;; site. Specifically, it calls sys.breakpointhook(), passing args and
+    ;; kws straight through. By default, sys.breakpointhook() calls
+    ;; pdb.set_trace() expecting no arguments. In this case, it is purely a
+    ;; convenience function so you don’t have to explicitly import pdb or
+    ;; type as much code to enter the debugger. However, sys.breakpointhook()
+    ;; can be set to some other function and breakpoint() will automatically
+    ;; call that, allowing you to drop into the debugger of choice.
+    ;;
+    ;; New in version 3.7.
+
+    (define py-builtin-breakpoint
+      (procedure->py-function
+       (lambda (args kwargs)
+         (py-throw-exception-with-message py-builtin-NotImplementedError "breakpoint not implemented"))
+      (make-signature '#() '#() 'args '#() '#() 'kwargs '#())))
+
+    ;;-------------------- class bytearray([source[, encoding[, errors]]])
+
+    ;; Return a new array of bytes. The bytearray class is a mutable sequence
+    ;; of integers in the range 0 <= x < 256. It has most of the usual
+    ;; methods of mutable sequences, described in Mutable Sequence Types, as
+    ;; well as most methods that the bytes type has, see Bytes and Bytearray
+    ;; Operations.
+    ;;
+    ;; The optional source parameter can be used to initialize the array in a
+    ;; few different ways:
+    ;;
+    ;; If it is a string, you must also give the encoding (and optionally,
+    ;; errors) parameters; bytearray() then converts the string to bytes
+    ;; using str.encode().  If it is an integer, the array will have that
+    ;; size and will be initialized with null bytes.  If it is an object
+    ;; conforming to the buffer interface, a read-only buffer of the object
+    ;; will be used to initialize the bytes array.  If it is an iterable, it
+    ;; must be an iterable of integers in the range 0 <= x < 256, which are
+    ;; used as the initial contents of the array.  Without an argument, an
+    ;; array of size 0 is created.
+    ;;
+    ;; See also Binary Sequence Types — bytes, bytearray, memoryview and
+    ;; Bytearray Objects.
+
+    (define py-builtin-bytearray py-bytearray-class)
+    ;;-------------------- class bytes([source[, encoding[, errors]]])
+
+    ;; Return a new “bytes” object, which is an immutable sequence of
+    ;; integers in the range 0 <= x < 256. bytes is an immutable version of
+    ;; bytearray – it has the same non-mutating methods and the same indexing
+    ;; and slicing behavior.
+    ;;
+    ;; Accordingly, constructor arguments are interpreted as for bytearray().
+    ;;
+    ;; Bytes objects can also be created with literals, see String and Bytes
+    ;; literals.
+    ;;
+    ;; See also Binary Sequence Types — bytes, bytearray, memoryview, Bytes
+    ;; Objects, and Bytes and Bytearray Operations.
+
+    (define py-builtin-bytes
+      (procedure->py-function
+        (lambda (source encoding errors)
+          (py-throw-exception-with-message py-builtin-NotImplementedError "bytes not implemented"))
+        (make-posonly-defaults-signature
+          '#(source encodings errors)
+          (vector py-absent py-absent py-absent))))
+
+    ;;-------------------- callable(object)
+
+    ;; Return True if the object argument appears callable, False if not. If
+    ;; this returns true, it is still possible that a call fails, but if it
+    ;; is false, calling object will never succeed. Note that classes are
+    ;; callable (calling a class returns a new instance); instances are
+    ;; callable if their class has a __call__() method.
+    ;;
+    ;; New in version 3.2: This function was first removed in Python 3.0 and
+    ;; then brought back in Python 3.2.
+
+    (define py-builtin-callable
+      (procedure->py-function
+        (lambda (object)
+          (py-throw-exception-with-message py-builtin-NotImplementedError "callable not implemented"))
+        (make-posonly-signature '#(object))))
+
+    ;;-------------------- chr(i)
+
+    ;; Return the string representing a character whose Unicode code point is
+    ;; the integer i. For example, chr(97) returns the string 'a', while
+    ;; chr(8364) returns the string '€'. This is the inverse of ord().
+    ;;
+    ;; The valid range for the argument is from 0 through 1,114,111 (0x10FFFF
+    ;; in base 16). ValueError will be raised if i is outside that range.
+
+    (define py-builtin-chr
+      (procedure->py-function
+        py-chr
+        (make-posonly-signature '#(i))))
+
+    ;;-------------------- @classmethod
+
+    ;; Transform a method into a class method.
+    ;;
+    ;; A class method receives the class as implicit first argument, just
+    ;; like an instance method receives the instance. To declare a class
+    ;; method, use this idiom:
+    ;;
+    ;; class C:
+    ;;     @classmethod
+    ;;     def f(cls, arg1, arg2, ...): ...
+    ;;
+    ;; The @classmethod form is a function decorator – see Function
+    ;; definitions for details.
+    ;;
+    ;; A class method can be called either on the class (such as C.f()) or on
+    ;; an instance (such as C().f()). The instance is ignored except for its
+    ;; class. If a class method is called for a derived class, the derived
+    ;; class object is passed as the implied first argument.
+    ;;
+    ;; Class methods are different than C++ or Java static methods. If you
+    ;; want those, see staticmethod().
+    ;;
+    ;; For more information on class methods, see The standard type hierarchy.
+
+    (define py-builtin-classmethod
+      (procedure->py-function
+        (lambda (function)
+          (py-throw-exception-with-message py-builtin-NotImplementedError "classmethod not implemented"))
+        (make-posonly-signature '#(function))))
+
+    ;;-------------------- compile(source, filename, mode, flags=0, dont_inherit=False, optimize=-1)
+
+    ;; Compile the source into a code or AST object. Code objects can be
+    ;; executed by exec() or eval(). source can either be a normal string, a
+    ;; byte string, or an AST object. Refer to the ast module documentation
+    ;; for information on how to work with AST objects.
+    ;;
+    ;; The filename argument should give the file from which the code was
+    ;; read; pass some recognizable value if it wasn’t read from a file
+    ;; ('<string>' is commonly used).
+    ;;
+    ;; The mode argument specifies what kind of code must be compiled; it can
+    ;; be 'exec' if source consists of a sequence of statements, 'eval' if it
+    ;; consists of a single expression, or 'single' if it consists of a
+    ;; single interactive statement (in the latter case, expression
+    ;; statements that evaluate to something other than None will be
+    ;; printed).
+    ;;
+    ;; The optional arguments flags and dont_inherit control which future
+    ;; statements affect the compilation of source. If neither is present (or
+    ;; both are zero) the code is compiled with those future statements that
+    ;; are in effect in the code that is calling compile(). If the flags
+    ;; argument is given and dont_inherit is not (or is zero) then the future
+    ;; statements specified by the flags argument are used in addition to
+    ;; those that would be used anyway. If dont_inherit is a non-zero integer
+    ;; then the flags argument is it – the future statements in effect around
+    ;; the call to compile are ignored.
+    ;;
+    ;; Future statements are specified by bits which can be bitwise ORed
+    ;; together to specify multiple statements. The bitfield required to
+    ;; specify a given feature can be found as the compiler_flag attribute on
+    ;; the _Feature instance in the __future__ module.
+    ;;
+    ;; The optional argument flags also controls whether the compiled source
+    ;; is allowed to contain top-level await, async for and async with. When
+    ;; the bit ast.PyCF_ALLOW_TOP_LEVEL_AWAIT is set, the return code object
+    ;; has CO_COROUTINE set in co_code, and can be interactively executed via
+    ;; await eval(code_object).
+    ;;
+    ;; The argument optimize specifies the optimization level of the
+    ;; compiler; the default value of -1 selects the optimization level of
+    ;; the interpreter as given by -O options. Explicit levels are 0 (no
+    ;; optimization; __debug__ is true), 1 (asserts are removed, __debug__ is
+    ;; false) or 2 (docstrings are removed too).
+    ;;
+    ;; This function raises SyntaxError if the compiled source is invalid,
+    ;; and ValueError if the source contains null bytes.
+    ;;
+    ;; If you want to parse Python code into its AST representation, see
+    ;; ast.parse().
+    ;;
+    ;; Raises an auditing event compile with arguments source and
+    ;; filename. This event may also be raised by implicit compilation.
+    ;;
+    ;; Note When compiling a string with multi-line code in 'single' or
+    ;; 'eval' mode, input must be terminated by at least one newline
+    ;; character. This is to facilitate detection of incomplete and complete
+    ;; statements in the code module.  Warning It is possible to crash the
+    ;; Python interpreter with a sufficiently large/complex string when
+    ;; compiling to an AST object due to stack depth limitations in Python’s
+    ;; AST compiler.  Changed in version 3.2: Allowed use of Windows and Mac
+    ;; newlines. Also input in 'exec' mode does not have to end in a newline
+    ;; anymore. Added the optimize parameter.
+    ;;
+    ;; Changed in version 3.5: Previously, TypeError was raised when null
+    ;; bytes were encountered in source.
+    ;;
+    ;; New in version 3.8: ast.PyCF_ALLOW_TOP_LEVEL_AWAIT can now be passed
+    ;; in flags to enable support for top-level await, async for, and async
+    ;; with.
+
+    (define py-builtin-compile
+      (procedure->py-function
+        (lambda (source filename mode flags dont_inherit optimize)
+          (py-throw-exception-with-message py-builtin-NotImplementedError "compile not implemented"))
+        (make-signature
+          '#(source filename mode flags dont_inherit optimize)
+          '#()
+          #f
+          '#()
+          '#()
+          #f
+          (vector
+            (py-int-from-scheme 0)
+            py-False
+            (py-int-from-scheme -1)))))
+
+    ;;-------------------- class complex([real[, imag]])
+
+    ;; Return a complex number with the value real + imag*1j or convert a
+    ;; string or number to a complex number. If the first parameter is a
+    ;; string, it will be interpreted as a complex number and the function
+    ;; must be called without a second parameter. The second parameter can
+    ;; never be a string. Each argument may be any numeric type (including
+    ;; complex). If imag is omitted, it defaults to zero and the constructor
+    ;; serves as a numeric conversion like int and float. If both arguments
+    ;; are omitted, returns 0j.
+    ;;
+    ;; For a general Python object x, complex(x) delegates to
+    ;; x.__complex__(). If __complex__() is not defined then it falls back to
+    ;; __float__(). If __float__() is not defined then it falls back to
+    ;; __index__().
+    ;;
+    ;; Note When converting from a string, the string must not contain
+    ;; whitespace around the central + or - operator. For example,
+    ;; complex('1+2j') is fine, but complex('1 + 2j') raises ValueError.  The
+    ;; complex type is described in Numeric Types — int, float, complex.
+    ;;
+    ;; Changed in version 3.6: Grouping digits with underscores as in code
+    ;; literals is allowed.
+    ;;
+    ;; Changed in version 3.8: Falls back to __index__() if __complex__() and
+    ;; __float__() are not defined.
+
+    (define py-builtin-complex py-complex-class)
+
+    ;;-------------------- delattr(object, name)
+
+    ;; This is a relative of setattr(). The arguments are an object and a
+    ;; string. The string must be the name of one of the object’s
+    ;; attributes. The function deletes the named attribute, provided the
+    ;; object allows it. For example, delattr(x, 'foobar') is equivalent to
+    ;; del x.foobar.
+
+    (define py-builtin-delattr
+      (procedure->py-function
+        (lambda (object name)
+          (py-throw-exception-with-message py-builtin-NotImplementedError "delattr not implemented"))
+        (make-posonly-signature '#(object name))))
+
+    ;;-------------------- class dict(**kwarg)
+    ;;                     class dict(mapping, **kwarg)
+    ;;                     class dict(iterable, **kwarg)
+
+    ;; Create a new dictionary. The dict object is the dictionary class. See
+    ;; dict and Mapping Types — dict for documentation about this class.
+    ;;
+    ;; For other containers see the built-in list, set, and tuple classes, as
+    ;; well as the collections module.
+
+    (define py-builtin-dict py-dict-class)
+
+    ;;-------------------- dir([object])
+
+    ;; Without arguments, return the list of names in the current local
+    ;; scope. With an argument, attempt to return a list of valid attributes
+    ;; for that object.
+    ;;
+    ;; If the object has a method named __dir__(), this method will be called
+    ;; and must return the list of attributes. This allows objects that
+    ;; implement a custom __getattr__() or __getattribute__() function to
+    ;; customize the way dir() reports their attributes.
+    ;;
+    ;; If the object does not provide __dir__(), the function tries its best
+    ;; to gather information from the object’s __dict__ attribute, if
+    ;; defined, and from its type object. The resulting list is not
+    ;; necessarily complete, and may be inaccurate when the object has a
+    ;; custom __getattr__().
+    ;;
+    ;; The default dir() mechanism behaves differently with different types
+    ;; of objects, as it attempts to produce the most relevant, rather than
+    ;; complete, information:
+    ;;
+    ;; If the object is a module object, the list contains the names of the
+    ;; module’s attributes.  If the object is a type or class object, the
+    ;; list contains the names of its attributes, and recursively of the
+    ;; attributes of its bases.  Otherwise, the list contains the object’s
+    ;; attributes’ names, the names of its class’s attributes, and
+    ;; recursively of the attributes of its class’s base classes.  The
+    ;; resulting list is sorted alphabetically. For example:
+    ;;
+    ;; >>> import struct
+    ;; >>> dir()   # show the names in the module namespace  # doctest: +SKIP
+    ;; ['__builtins__', '__name__', 'struct']
+    ;; >>> dir(struct)   # show the names in the struct module # doctest: +SKIP
+    ;; ['Struct', '__all__', '__builtins__', '__cached__', '__doc__', '__file__',
 ;;  '__initializing__', '__loader__', '__name__', '__package__',
 ;;  '_clearcache', 'calcsize', 'error', 'pack', 'pack_into',
 ;;  'unpack', 'unpack_from']
@@ -7551,7 +7551,7 @@
      (cond
       ((eq? globals py-None)
        (if (py-isinstance? name py-str-class)
-           (builtin-__import__ (scheme-object-value-fast-get name) name)
+           (builtin-__import__ (object-scheme-value-fast-get name) name)
            (py-throw-exception-with-message py-builtin-TypeError "__import__() argument 1 must be str not " )))
       (else
        (py-throw-exception-with-message py-NotImplemented "__import__ with more then one argument is not yet implemented"))))
@@ -7817,6 +7817,7 @@
   (py-own-attr-set! builtins-mod (& "type") py-builtin-type)
   (py-own-attr-set! builtins-mod (& "vars") py-builtin-vars)
   (py-own-attr-set! builtins-mod (& "zip") py-builtin-zip)
+  (py-own-attr-set! builtins-mod (& "__import__") py-builtin-__import__)
 
   (set! py-builtin-range (py-own-attr-ref builtins-mod (& "range"))))
 
