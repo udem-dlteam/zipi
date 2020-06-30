@@ -62,8 +62,7 @@
 (define py-float-hclass-of-instances
   (make-HClass
     '#() ;; set later when classes exist
-    (vector
-      (& "**value**"))
+    (vector)
     '()))
 
 (define py-complex-hclass-of-instances
@@ -1222,7 +1221,7 @@
           value)
         ((py-isinstance? value py-float-class)
           ;; up-typing an instance of subclass to an float
-          (py-float-from-scheme (object-scheme-value-fast-get value)))
+          (py-float-from-scheme (PyObjectFloat-value value)))
         (else
           (py-throw-exception-with-message
             py-builtin-NotImplementedError
@@ -1230,14 +1229,10 @@
     ((py-issubclass? cls py-float-class)
       (cond
         ((not value)
-          (let ((new-float (py-obj-alloc cls py-float-hclass-of-instances)))
-            (object-scheme-value-fast-set! new-float 0.0)
-            new-float))
+          (py-float-subtype-from-scheme 0.0 cls))
         ((py-isinstance? value py-float-class)
-          (let ((new-float (py-obj-alloc cls py-float-hclass-of-instances))
-                (value (object-scheme-value-fast-get value)))
-            (object-scheme-value-fast-set! new-float value)
-            new-float))
+          (let ((value (PyObjectFloat-value value)))
+            (py-float-subtype-from-scheme value cls)))
         (else (py-throw-exception-with-message py-builtin-NotImplementedError "float.__new__ only supports subtypes of float"))))
     (else
       (py-throw-wrong-new-argument "float" cls))))
@@ -1257,10 +1252,10 @@
         (if (py-isinstance? self py-float-class)
           (cond
             ((py-isinstance? other py-float-class)
-              (,float-float-op (object-scheme-value-fast-get self) (object-scheme-value-fast-get other)))
+              (,float-float-op (PyObjectFloat-value self) (PyObjectFloat-value other)))
             ((py-isinstance? other py-int-class)
               ;; If the operation is float-int, it converts the float into an int
-              (,float-float-op (object-scheme-value-fast-get self) (fixnum->flonum (PyObjectInt-value other))))
+              (,float-float-op (PyObjectFloat-value self) (fixnum->flonum (PyObjectInt-value other))))
 
             (else py-NotImplemented))
           (py-throw-required-type ,method-name "float" self)))
@@ -1276,10 +1271,10 @@
         (if (py-isinstance? self py-float-class)
           (cond
             ((py-isinstance? other py-float-class)
-              (,float-float-op (object-scheme-value-fast-get other) (object-scheme-value-fast-get self)))
+              (,float-float-op (PyObjectFloat-value other) (PyObjectFloat-value self)))
             ((py-isinstance? other py-int-class)
               ;; If the operation is float-int, it converts the float into an int
-              (,float-float-op (fixnum->flonum (PyObjectInt-value other)) (object-scheme-value-fast-get self)))
+              (,float-float-op (fixnum->flonum (PyObjectInt-value other)) (PyObjectFloat-value self)))
 
             (else py-NotImplemented))
           (py-throw-required-type ,method-name "float" self)))
@@ -1352,13 +1347,12 @@
 (define-float-binary-operator float-lt "__lt__" (comparison-conversion fl<))
 (define-float-binary-operator float-le "__le__" (comparison-conversion fl<=))
 
-
 (define-macro (define-float-unary-operator fun-name method-name scheme-op)
   (let ((py-func-name (string->symbol (string-append "float." method-name))))
     `(begin
       (define (,fun-name self)
         (if (py-isinstance? self py-float-class)
-          (,scheme-op (object-scheme-value-fast-get self))
+          (,scheme-op (PyObjectFloat-value self))
           (py-throw-required-type ,method-name "float" self)))
       (define ,py-func-name
         (procedure->py-function
@@ -2006,7 +2000,7 @@
 (define (float-repr self)
   (if (py-isinstance? self py-float-class)
     (py-str-from-scheme
-      (let ((value (object-scheme-value-fast-get self)))
+      (let ((value (PyObjectFloat-value self)))
         (cond
           ((integer? value)
             (string-append (number->string value) "0"))
@@ -2029,7 +2023,7 @@
     ((py-int-class)
       (display (PyObjectInt-value obj) port))
     ((py-float-class)
-      (display (float->string-with-padded-zeros (object-scheme-value-fast-get obj)) port))
+      (display (float->string-with-padded-zeros (PyObjectFloat-value obj)) port))
     ((py-bool-class)
       (if (eq? obj py-True)
         (display "True" port)
@@ -2193,10 +2187,23 @@
     int-subclass
     value))
 
+(define (py-float-subtype-from-scheme value float-subclass)
+  (make-PyObjectFloat
+    py-float-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-float-hclass-of-instances))
+      py-absent)
+    float-subclass
+    value))
+
 (define (py-float-from-scheme value)
-  (let ((self (py-obj-alloc py-float-class py-float-hclass-of-instances)))
-    (object-scheme-value-fast-set! self value)       ;; set **value**
-    self))
+  (make-PyObjectFloat
+    py-float-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-float-hclass-of-instances))
+      py-absent)
+    py-float-class
+    value))
 
 (define (py-str-from-scheme value)
   (make-PyObjectStr
@@ -5326,6 +5333,10 @@
     source
     " > "
     target)))
+
+
+
+
 
 (define (import-module-scheme sys.modules name)
   (let loop ((path-list (module-search-order)))
