@@ -82,8 +82,7 @@
 (define py-bytearray-hclass-of-instances
   (make-HClass
     '#() ;; set later when classes exist
-    (vector
-      (& "**value**"))
+    (vector)
     '()))
 
 (define py-method-hclass-of-instances
@@ -2229,11 +2228,6 @@
     py-absent ;; representative
     py-absent)) ;; hash
 
-(define (py-bytearray-from-scheme len-vec-pair)
-  (let ((bytearr (py-obj-alloc py-bytearray-class py-bytearray-hclass-of-instances)))
-    (object-scheme-value-fast-set! bytearr len-vec-pair)
-    bytearr))
-
 (define (py-str-to-scheme self)
   (str-make! self))
 
@@ -2246,6 +2240,23 @@
 (define (py-set-to-scheme self)
   (object-scheme-value-fast-get self))
 
+(define (py-bytearray-from-scheme len-vec-pair)
+  (make-PyObjectBytearray
+    py-bytearray-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-bytearray-hclass-of-instances))
+      py-absent)
+    py-bytearray-class
+    len-vec-pair))
+
+(define (py-bytearray-subtype-from-scheme len-vec-pair bytearray-subtype)
+  (make-PyObjectBytearray
+    py-bytearray-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-bytearray-hclass-of-instances))
+      py-absent)
+    bytearray-subtype
+    len-vec-pair))
 ;; Bootstraps type and object
 ;; Create barebone object, type, str and tuple classes
 ;; These will need to be filled in later
@@ -3923,13 +3934,13 @@
        ((eq? arg1 py-absent)
 	;; MS 11jun2020: to be removed when Bigloo's fixed
         ;; (py-bytearray-from-scheme (cons 0 #u8())))
-        (py-bytearray-from-scheme (cons 0 u8-empty-vector)))
+        (py-bytearray-subtype-from-scheme (cons 0 u8-empty-vector) cls))
       ((eq? arg2 py-absent)
         (cond
           ((py-isinstance? arg1 py-int-class)
             (let ((i (PyObjectInt-value arg1)))
               (if (<= 0 i)
-                (py-bytearray-from-scheme (cons i (make-u8vector i)))
+                (py-bytearray-subtype-from-scheme (cons i (make-u8vector i)) cls)
                 (py-throw-exception-with-message py-builtin-ValueError "negative count"))))
           (else
             (error "builtin function __new__ just supports int as an argument"))))
@@ -3950,7 +3961,7 @@
   (if (py-isinstance? self py-bytearray-class)
       (cond
         ((py-isinstance? item py-int-class)
-        (let ((bytearray (object-scheme-value-fast-get self))
+        (let ((bytearray (PyObjectBytearray-value self))
               (i (PyObjectInt-value item)))
           (if (index-in-length-range i (car bytearray))
             (py-int-from-scheme (u8vector-ref (cdr bytearray) (modulo i (car bytearray))))
@@ -3958,7 +3969,7 @@
         ((py-isinstance? item py-slice-class)
          (py-bytearray-from-scheme
           (dynamic-u8vector-py-slice
-           (object-scheme-value-fast-get self)
+           (PyObjectBytearray-value self)
            item)))
       (else (py-throw-wrong-index-type "bytearray" "integers or slices" item)))
     (py-throw-not-a-type-object "bytearray.__getitem__" self)))
@@ -3970,7 +3981,7 @@
       '#(self item))))
 
 (define (bytearray-set-slice self slice value)
-  (let* ((dvec (object-scheme-value-fast-get self))
+  (let* ((dvec (PyObjectBytearray-value self))
         (self-len (car dvec))
         (indices (py-slice-indices slice self-len))
         (start (vector-ref indices 0))
@@ -3979,7 +3990,7 @@
         (value-type (py-type value)))
     (cond
       ((eq? value-type py-bytearray-class)
-        (let* ((value-dvec (object-scheme-value-fast-get value))
+        (let* ((value-dvec (PyObjectBytearray-value value))
               (value-len (car value-dvec))
               (value-vec (cdr value-dvec)))
           (if (eq? step 1)
@@ -4012,7 +4023,7 @@
        ((py-isinstance? key py-int-class)
         (if (py-isinstance? value py-int-class)
             (let ((key-int (PyObjectInt-value key))
-                  (bytearray (object-scheme-value-fast-get self))
+                  (bytearray (PyObjectBytearray-value self))
                   (value-int (PyObjectInt-value value)))
               (cond
                ((not (index-in-length-range key-int (car bytearray)))
@@ -4041,7 +4052,7 @@
     ((not (py-isinstance? elem py-int-class))
       (py-throw-exception-with-message py-builtin-TypeError "this type cannot be interpreted as an integer"))
     (else
-      (let* ((bytearray (object-scheme-value-fast-get self))
+      (let* ((bytearray (PyObjectBytearray-value self))
             (real-length (u8vector-length (cdr bytearray)))
             (elem-int (PyObjectInt-value elem)))
         (if (not (py-int-in-byte-range? elem-int))
@@ -4061,8 +4072,8 @@
 (define (bytearray-add self other)
   (if (py-isinstance? self py-bytearray-class)
       (if (py-isinstance? other py-bytearray-class)
-          (let ((c1 (object-scheme-value-fast-get self))
-                (c2 (object-scheme-value-fast-get other)))
+          (let ((c1 (PyObjectBytearray-value self))
+                (c2 (PyObjectBytearray-value other)))
             (py-bytearray-from-scheme (concat-dynamic-u8vectors c1 c2)))
           py-NotImplemented)
       (py-throw-not-a-type-object "bytearray.__add__" self)))
@@ -4075,8 +4086,8 @@
 (define (bytearray-iadd self other)
   (if (py-isinstance? self py-bytearray-class)
       (if (py-isinstance? other py-bytearray-class)
-          (let ((c1 (object-scheme-value-fast-get self))
-                (c2 (object-scheme-value-fast-get other)))
+          (let ((c1 (PyObjectBytearray-value self))
+                (c2 (PyObjectBytearray-value other)))
             (set-cdr! c1 (concat-dynamic-u8vectors c1 c2)))
           py-NotImplemented)
       (py-throw-not-a-type-object "bytearray.__iadd__" self)))
@@ -4087,7 +4098,7 @@
    (make-posonly-signature '#(self other))))
 ;; temporary - just to see the structure of the array
 (define (bytearray-repr self)
-  (py-str-from-scheme (cdr (object-scheme-value-fast-get self))))
+  (py-str-from-scheme (cdr (PyObjectBytearray-value self))))
 
 (define bytearray.__repr__
   (procedure->py-function
@@ -4097,7 +4108,7 @@
 (define (bytearray-mul self n)
   (if (py-isinstance? self py-bytearray-class)
       (if (py-isinstance? n py-int-class)
-          (let ((c (object-scheme-value-fast-get self))
+          (let ((c (PyObjectBytearray-value self))
                 (n (PyObjectInt-value n)))
             (py-bytearray-from-scheme (dynamic-u8vector*n c n)))
           py-NotImplemented)
@@ -4116,9 +4127,9 @@
 (define (bytearray-imul self n)
   (if (py-isinstance? self py-bytearray-class)
       (if (py-isinstance? n py-int-class)
-          (let ((c (object-scheme-value-fast-get self))
+          (let ((c (PyObjectBytearray-value self))
                 (n (PyObjectInt-value n)))
-            (object-scheme-value-fast-set! self (dynamic-u8vector*n c n))
+            (PyObjectBytearray-value-set! self (dynamic-u8vector*n c n))
             self)
           py-NotImplemented)
       (py-throw-not-a-type-object "bytearray.__mul__" self)))
@@ -4132,7 +4143,7 @@
   (if (py-isinstance? self py-bytearray-class)
       (py-int-from-scheme
        (car
-        (object-scheme-value-fast-get self)))
+        (PyObjectBytearray-value self)))
       (py-throw-not-a-type-object "bytearray.__len__" self)))
 
 (define bytearray.__len__
@@ -4149,7 +4160,7 @@
         ((not (py-isinstance? item py-int-class))
          ((py-throw-action-out-of-range "bytearray" "assignment")))
         (else
-         (let* ((bytearray (object-scheme-value-fast-get self))
+         (let* ((bytearray (PyObjectBytearray-value self))
                 (item-int (PyObjectInt-value item)))
            (if (py-int-in-byte-range? item-int)
                (let ((start-int
@@ -4240,8 +4251,8 @@
      (define  (,func-name self other)
        (if (py-isinstance? self py-bytearray-class)
            (if (py-isinstance? other py-bytearray-class)
-               (let* ((c1 (object-scheme-value-fast-get self))
-                      (c2 (object-scheme-value-fast-get other))
+               (let* ((c1 (PyObjectBytearray-value self))
+                      (c2 (PyObjectBytearray-value other))
                       (len1 (car c1))
                       (len2 (car c2))
                       (vec1 (cdr c1))
@@ -4275,7 +4286,7 @@
       (let ((iterator (py-obj-alloc
                        py-bytearray-iterator-class
                        py-bytearray-iterator-hclass-of-instances)))
-        (bytearray-iterator-bytearray-fast-set! iterator (object-scheme-value-fast-get self))
+        (bytearray-iterator-bytearray-fast-set! iterator (PyObjectBytearray-value self))
         (bytearray-iterator-index-fast-set! iterator 0)
         iterator)
       (py-throw-not-a-type-object "bytearray.__iter__" self)))
