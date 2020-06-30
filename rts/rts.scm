@@ -49,8 +49,7 @@
 (define py-tuple-hclass-of-instances
   (make-HClass
     '#() ;; set later when classes exist
-    (vector
-      (& "**value**"))
+    (vector)
     '()))
 
 (define py-int-hclass-of-instances
@@ -156,9 +155,7 @@
 (define py-dict-keyiterator-hclass-of-instances
   (make-HClass
     '#()
-    (vector
-      (& "**node**")
-      (& "**iterator-token**"))
+    (vector)
     '()))
 
 (define py-generator-hclass
@@ -223,6 +220,24 @@
     mro
     hclass-of-instance))
 
+(define (py-dict-alloc ordered-table)
+  (make-PyObjectDict
+    py-dict-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-dict-hclass-of-instances))
+      py-absent)
+    py-dict-class
+    ordered-table))
+
+(define (py-dict-keyiterator-alloc first iterator-token)
+  (make-PyObjectDictKeyIterator
+    py-dict-keyiterator-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-dict-keyiterator-hclass-of-instances))
+      py-absent)
+    py-dict-keyiterator-class
+    first
+    iterator-token))
 ;; ----------------------------------------------------------------------------
 
 (define py-absent (list 'absent))
@@ -417,8 +432,8 @@
                (aligned-args (align-args-with-signature args signature)))
           (apply procedure aligned-args)))
       ((eq? obj-type py-method-class)
-        (let* ((procedure (PyObjectFunction-procedure obj))
-               (signature (PyObjectFunction-signature obj))
+        (let* ((procedure (PyObjectMethod-procedure obj))
+               (signature (PyObjectMethod-signature obj))
                (__self__ (method-__self__-fast-get obj))
                (bound-args (cons __self__ args))
                (aligned-args (align-args-with-signature bound-args signature)))
@@ -1656,7 +1671,7 @@
 ;; interfaces between manual __call__ and py-call
 (define (method-call self args)
   (if (eq? (py-type self) py-method-class)
-    (let ((args-list (vector->list (py-tuple-to-scheme args))))
+    (let ((args-list (vector->list (PyObjectTuple-value args))))
       (apply py-call self args-list))
     (py-throw-required-type "__call__" "method" self)))
 
@@ -1669,7 +1684,7 @@
 ;; interfaces between manual __call__ and py-call
 (define (function-call self args)
   (if (eq? (py-type self) py-function-class)
-    (let ((args-list (vector->list (py-tuple-to-scheme args))))
+    (let ((args-list (vector->list (PyObjectTuple-value args))))
       (apply py-call self args-list))
     (py-throw-required-type "__call__" "method" self)))
 
@@ -1701,7 +1716,7 @@
 ;; TODO: remove the tuple->list conversion once we support argument unpacking
 (define (type-call self args)
   (let ((__new__ (getattribute-from-cls-mro self (& "__new__")))
-        (args-list (vector->list (py-tuple-to-scheme args))))
+        (args-list (vector->list (PyObjectTuple-value args))))
     (let ((instance (apply py-call __new__ self args-list)))
       (if (eq? (py-obj-cls instance) self)
         (let ((__init__ (getattribute-from-cls-mro self (& "__init__"))))
@@ -1716,7 +1731,7 @@
 
 ;; TODO: remove the tuple->list conversion once we support argument unpacking
 (define (type-new metacls cls args)
-  (let* ((args-list (vector->list (py-tuple-to-scheme args)))
+  (let* ((args-list (vector->list (PyObjectTuple-value args)))
         (args-length (length args-list)))
     (cond
       ((= args-length 0)
@@ -2222,14 +2237,8 @@
 (define (py-str-to-scheme self)
   (str-make! self))
 
-(define (py-tuple-to-scheme self)
-  (object-scheme-value-fast-get self))
-
 (define (py-list-to-scheme self)
   (PyObjectList-value self))
-
-(define (py-dict-to-scheme self)
-  (object-scheme-value-fast-get self))
 
 (define (py-set-from-scheme elems)
   (let ((self (py-obj-alloc py-set-class py-set-hclass-of-instances)))
@@ -2702,7 +2711,7 @@
       (let ((iterable-type (py-type iterable)))
        (cond
          ((eq? iterable-type py-tuple-class)
-          (let ((vec (object-scheme-value-fast-get iterable)))
+          (let ((vec (PyObjectTuple-value iterable)))
            (py-list-alloc
              (vector-head->dynamic-vector vec (vector-length vec))
              cls)))
@@ -3095,7 +3104,7 @@
             (dynamic-vector-set-simple-slice! dvec start stop value-vec value-len)
             (dynamic-vector-set-extended-slice! dvec start stop step value-vec value-len))))
       ((eq? value-type py-tuple-class)
-        (let* ((value-vec (object-scheme-value-fast-get value))
+        (let* ((value-vec (PyObjectTuple-value value))
                (value-len (vector-length value-vec)))
           (if (eq? step 1)
             (dynamic-vector-set-simple-slice! dvec start stop value-vec value-len)
@@ -3475,7 +3484,7 @@
   (let ((iterable-type (py-type iterable)))
     (cond
       ((eq? iterable-type py-tuple-class)
-        (let ((vec (object-scheme-value-fast-get iterable)))
+        (let ((vec (PyObjectTuple-value iterable)))
           (extend-dynamic-vector-with-vector-head
             dvec
             vec
@@ -3571,7 +3580,7 @@
     (let ((iterator (py-obj-alloc
                         py-tuple-iterator-class
                         py-tuple-iterator-hclass-of-instances))
-          (vec (object-scheme-value-fast-get self)))
+          (vec (PyObjectTuple-value self)))
       (tuple-iterator-vector-fast-set! iterator vec)
       (tuple-iterator-index-fast-set! iterator 0)
       iterator)
@@ -3584,7 +3593,7 @@
 
 (define (tuple-contains self item)
   (if (py-isinstance? self py-tuple-class)
-    (let* ((vec (object-scheme-value-fast-get self))
+    (let* ((vec (PyObjectTuple-value self))
            (vec-len (vector-length vec)))
       (let loop ((i 0))
         (if (< i vec-len)
@@ -3602,8 +3611,8 @@
 (define (tuple-add self other)
   (if (py-isinstance? self py-tuple-class)
     (if (py-isinstance? other py-tuple-class)
-      (let ((v1 (object-scheme-value-fast-get self))
-            (v2 (object-scheme-value-fast-get other)))
+      (let ((v1 (PyObjectTuple-value self))
+            (v2 (PyObjectTuple-value other)))
         (py-tuple-from-scheme (vector-append v1 v2)))
       py-NotImplemented)
     (py-throw-not-a-type-object "tuple.__add__" self)))
@@ -3630,7 +3639,7 @@
 (define (tuple-mul self n)
   (if (py-isinstance? self py-tuple-class)
     (if (py-isinstance? n py-int-class)
-      (let ((v (object-scheme-value-fast-get self))
+      (let ((v (PyObjectTuple-value self))
             (n (PyObjectInt-value n)))
         (py-tuple-from-scheme (vector*n v n)))
       py-NotImplemented)
@@ -3692,8 +3701,8 @@
     (define (,name self other)
       (if (py-isinstance? self py-tuple-class)
         (if (py-isinstance? other py-tuple-class)
-          (let ((v1 (object-scheme-value-fast-get self))
-                (v2 (object-scheme-value-fast-get other)))
+          (let ((v1 (PyObjectTuple-value self))
+                (v2 (PyObjectTuple-value other)))
             (if (,vector-comparator v1 v2)
               py-True
               py-False))
@@ -3720,7 +3729,7 @@
 ;; TODO: print cyclic structures
 (define (tuple-repr self)
   (if (py-isinstance? self py-tuple-class)
-    (let* ((vec (object-scheme-value-fast-get self))
+    (let* ((vec (PyObjectTuple-value self))
            (content-strs (vector-map py-repr vec))
            (content-strings (vector-map PyObjectStr-value content-strs)))
       (py-str-from-scheme
@@ -3737,7 +3746,7 @@
 
 (define (tuple-len self)
   (if (py-isinstance? self py-tuple-class)
-    (let* ((vec (object-scheme-value-fast-get self)))
+    (let* ((vec (PyObjectTuple-value self)))
       (py-int-from-scheme (vector-length vec)))
     (py-throw-not-a-type-object "tuple.__len__" self)))
 
@@ -3769,7 +3778,7 @@
   (if (py-isinstance? self py-tuple-class)
     (cond
       ((py-isinstance? item py-int-class)
-        (let* ((vec (object-scheme-value-fast-get self))
+        (let* ((vec (PyObjectTuple-value self))
                (len (vector-length vec))
                (i (PyObjectInt-value item)))
           (if (index-in-length-range i len)
@@ -3778,7 +3787,7 @@
       ((py-isinstance? item py-slice-class)
         (py-tuple-from-scheme
           (vector-py-slice
-            (object-scheme-value-fast-get self)
+            (PyObjectTuple-value self)
             item)))
       (py-throw-wrong-index-type "tuple" "integers or slices" item))
     (py-throw-not-a-type-object "tuple.__getitem__" self)))
@@ -3790,7 +3799,7 @@
 
 (define (tuple-count self item)
   (if (py-isinstance? self py-tuple-class)
-    (let* ((vec (object-scheme-value-fast-get self))
+    (let* ((vec (PyObjectTuple-value self))
            (vec-len (vector-length vec)))
       (let loop ((i 0) (count 0))
         (cond
@@ -3809,7 +3818,7 @@
 
 (define (tuple-index self item start stop)
   (if (py-isinstance? self py-tuple-class)
-    (let* ((vec (object-scheme-value-fast-get self))
+    (let* ((vec (PyObjectTuple-value self))
            (len (vector-length vec))
            (start-index
             (if (eq? start py-absent)
@@ -3979,7 +3988,7 @@
             (dynamic-u8vector-u8vector-set-simple-slice! dvec start stop value-vec value-len)
             (dynamic-u8vector-u8vector-set-extended-slice! dvec start stop step value-vec value-len))))
       ((eq? value-type py-tuple-class)
-        (let* ((value-vec (object-scheme-value-fast-get value))
+        (let* ((value-vec (PyObjectTuple-value value))
                (value-len (vector-length value-vec)))
           (if (vector-in-byte-range? value-vec)
               (if (eq? step 1)
@@ -4537,10 +4546,7 @@
          (table-vector (ordered-table-table ordered-table)))
     (let loop ((key-value-pairs key-value-pairs))
       (if (null? key-value-pairs)
-        (py-obj-alloc-with-value
-          py-dict-class
-          py-dict-hclass-of-instances
-          ordered-table)
+        (py-dict-alloc ordered-table)
         (let* ((pair (car key-value-pairs))
               (key (car pair))
               (value (cdr pair))
@@ -4556,7 +4562,7 @@
 
 (define (dict-setitem self key value)
   (if (py-isinstance? self py-dict-class)
-    (let ((ordered-table (object-scheme-value-fast-get self)))
+    (let ((ordered-table (PyObjectDict-value self)))
       (ordered-table-set-cell! ordered-table key value))
     (py-throw-not-a-type-object "dict.__setitem__" self))
   py-None)
@@ -4568,7 +4574,7 @@
 
 (define (dict-get self key default)
     (if (py-isinstance? self py-dict-class)
-      (let ((ordered-table (object-scheme-value-fast-get self)))
+      (let ((ordered-table (PyObjectDict-value self)))
         (ordered-table-get ordered-table key default))
       (py-throw-not-a-type-object "dict.get" self)))
 
@@ -4579,7 +4585,7 @@
 
 (define (dict-getitem self key)
   (if (py-isinstance? self py-dict-class)
-    (let ((ordered-table (object-scheme-value-fast-get self)))
+    (let ((ordered-table (PyObjectDict-value self)))
       (ordered-table-get ordered-table key py-absent))
     (py-throw-not-a-type-object "dict.__getitem__" self)))
 
@@ -4590,7 +4596,7 @@
 
 (define (dict-delitem self key)
   (if (py-isinstance? self py-dict-class)
-    (let* ((ordered-table (object-scheme-value-fast-get self))
+    (let* ((ordered-table (PyObjectDict-value self))
            (res (ordered-table-remove-key! ordered-table key)))
       (if (not res)
         (py-throw (py-call1 py-builtin-KeyError key))
@@ -4604,7 +4610,7 @@
 
 (define (dict-len self)
   (if (py-isinstance? self py-dict-class)
-    (let* ((ordered-table (object-scheme-value-fast-get self))
+    (let* ((ordered-table (PyObjectDict-value self))
            (len (ordered-table-length ordered-table)))
       (py-int-from-scheme len))
     (py-throw-not-a-type-object "dict.__len__" self)))
@@ -4628,34 +4634,16 @@
 ;;  Dict iterators
 ;; =============================================================================
 
-(define (dict-keyiterator-node-fast-get it)
-  (PyObject-elements-ref it 1))
-
-(define (dict-keyiterator-node-fast-set! it n)
-  (PyObject-elements-set! it 1 n))
-
-(define (dict-keyiterator-iterator-token-fast-get it)
-  (PyObject-elements-ref it 2))
-
-(define (dict-keyiterator-iterator-token-fast-set! it t)
-  (PyObject-elements-set! it 2 t))
-
 (define (dict-keyiterator-iter self)
-  (if (py-isinstance? self py-dict-keyiterator-class)
+  (if (PyObjectDictKeyIterator? self)
     self
     (py-throw-not-a-type-object "dict_keyiterator.__iter__" self)))
 
 (define (dict->dict-keyiterator d)
-  (let* ((it
-          (py-obj-alloc
-            py-dict-keyiterator-class
-            py-dict-keyiterator-hclass-of-instances))
-        (ordered-table (object-scheme-value-fast-get d))
+  (let* ((ordered-table (PyObjectDict-value d))
         (first (ordered-table-first ordered-table))
         (token (ordered-table-iterator-token ordered-table)))
-    (dict-keyiterator-node-fast-set! it first)
-    (dict-keyiterator-iterator-token-fast-set! it token)
-    it))
+    (py-dict-keyiterator-alloc first token)))
 
 (define dict_keyiterator.__iter__
   (procedure->py-function
@@ -4664,8 +4652,8 @@
 
 (define (dict-keyiterator-next self)
   (if (py-isinstance? self py-dict-keyiterator-class)
-    (let ((node (dict-keyiterator-node-fast-get self))
-          (token (dict-keyiterator-iterator-token-fast-get self)))
+    (let ((node (PyObjectDictKeyIterator-node self))
+          (token (PyObjectDictKeyIterator-iterator-token self)))
       (cond
         ((not node)
           (py-throw py-builtin-StopIteration))
@@ -4677,7 +4665,7 @@
           (let* ((cell (doubly-linked-list-node-value node))
                 (key (dict-cell-key cell))
                 (next (doubly-linked-list-node-next node)))
-            (dict-keyiterator-node-fast-set! self next)
+            (PyObjectDictKeyIterator-node-set! self next)
             key))))
     (py-throw-not-a-type-object "dict_keyiterator.__next__" self)))
 
@@ -5225,9 +5213,13 @@
   (py-tuple-from-scheme (list->vector elements)))
 
 (define (py-tuple-from-scheme elements)
-  (let ((tuple (py-obj-alloc py-tuple-class py-tuple-hclass-of-instances)))
-    (object-scheme-value-fast-set! tuple elements)
-    tuple))
+  (make-PyObjectTuple
+    py-tuple-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-tuple-hclass-of-instances))
+      py-absent)
+    py-tuple-class
+    elements))
 
 (define py-make-dict py-dict-from-scheme)
 
@@ -6829,7 +6821,7 @@
   (procedure->py-function
     (lambda (objects) ;; add args (non-positional): sep end file flush
       (let* ((port (current-output-port))
-             (objects-vector (object-scheme-value-fast-get objects))
+             (objects-vector (PyObjectTuple-value objects))
              (objects-len (vector-length objects-vector)))
         (let loop ((i 0))
           (if (< i objects-len)

@@ -126,16 +126,38 @@
 
 (define-type-of-PyObject PyObjectFunction
   id: PyObjectFunction-C6486EB6-1522-42BA-A082-B6563F943CDF
-  extender: define-type-of-PyObjectFunction
   copier: #f
   ;; attrs
   procedure
   arity
   signature)
 
-(define-type-of-PyObjectFunction PyObjectMethod
+(define-type-of-PyObject PyObjectMethod
   id: PyObjectMethod-C6486EB6-1522-42BA-A082-B6563F943CDF
-  copier: #f)
+  copier: #f
+  ;; attrs
+  procedure
+  arity
+  signature)
+
+(define-type-of-PyObject PyObjectDict
+  id: PyObjectDict-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  value)
+
+(define-type-of-PyObject PyObjectTuple
+  id: PyObjectTuple-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  value)
+
+(define-type-of-PyObject PyObjectDictKeyIterator
+  id: PyObjectDictKeyIterator-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  node
+  iterator-token)
 
 ;; =============================================================================
 ;;  PCache
