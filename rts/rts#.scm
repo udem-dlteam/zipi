@@ -121,11 +121,25 @@
   ;; attrs
   value)
 
+(define-type-of-PyObject PyObjectListIterator
+  id: PyObjectListIterator-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  index
+  list)
+
 (define-type-of-PyObject PyObjectBytearray
   id: PyObjectBytearray-C6486EB6-1522-42BA-A082-B6563F943CDF
   copier: #f
   ;; attrs
   value)
+
+(define-type-of-PyObject PyObjectBytearrayIterator
+  id: PyObjectBytearrayIterator-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  index
+  bytearray)
 
 (define-type-of-PyObject PyObjectStr
   id: PyObjectStr-C6486EB6-1522-42BA-A082-B6563F943CDF
@@ -158,11 +172,24 @@
   ;; attrs
   value)
 
+(define-type-of-PyObject PyObjectSet
+  id: PyObjectSet-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  value)
+
 (define-type-of-PyObject PyObjectTuple
   id: PyObjectTuple-C6486EB6-1522-42BA-A082-B6563F943CDF
   copier: #f
   ;; attrs
   value)
+
+(define-type-of-PyObject PyObjectTupleIterator
+  id: PyObjectTupleIterator-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  index
+  vec)
 
 (define-type-of-PyObject PyObjectDictKeyIterator
   id: PyObjectDictKeyIterator-C6486EB6-1522-42BA-A082-B6563F943CDF
@@ -178,6 +205,14 @@
   start
   stop
   step)
+
+(define-type-of-PyObject PyObjectTextIOWrapper
+  id: PyObjectTextIOWrapper-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  port
+  mode
+  encoding)
 
 ;; =============================================================================
 ;;  PCache

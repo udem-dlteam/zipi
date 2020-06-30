@@ -111,8 +111,7 @@
 (define py-set-hclass-of-instances
   (make-HClass
     '#() ;; set later when classes exist
-    (vector
-      (& "**value**"))
+    (vector)
     '()))
 
 (define py-module-hclass-of-instances (make-HClass
@@ -125,27 +124,21 @@
 (define py-list-iterator-hclass-of-instances
   (make-HClass
     '#()
-    (vector
-      (& "**list**")
-      (& "**index**"))
+    (vector)
     '()))
 
 ;; bytearray iterator
 (define py-bytearray-iterator-hclass-of-instances
   (make-HClass
    '#()
-   (vector
-    (& "**bytearray**")
-    (& "**index**"))
+   (vector)
    '()))
 
 ;; tuple iterator
 (define py-tuple-iterator-hclass-of-instances
   (make-HClass
     '#()
-    (vector
-      (& "**vector**")
-      (& "**index**"))
+    (vector)
     '()))
 
 ;; dict-keys iterator
@@ -163,6 +156,12 @@
     (& "send"))
    '()))
 
+(define py-TextIOWrapper-hclass-of-instances
+  (make-HClass
+    '#()
+    (vector)
+    '()))
+
 ;; Method for fast access to attributes defined in hidden classes
 ;; Those are unsafe methods
 
@@ -175,12 +174,6 @@
 (define (class-__call__-fast-get class)
   (PyObject-elements-ref class 1))
 
-(define (object-scheme-value-fast-get obj)
-  (PyObject-elements-ref obj 0))
-
-(define (object-scheme-value-fast-set! obj value)
-  (PyObject-elements-set! obj 0 value))
-
 (define (method-__self__-fast-get obj)
   (PyObject-elements-ref obj 0))
 
@@ -188,11 +181,6 @@
   (PyObject-elements-set! obj 0 value))
 
 ;; object allocation
-
-(define (py-obj-alloc-with-value cls hclass-of-instances value)
-  (let ((obj (py-obj-alloc cls hclass-of-instances)))
-    (object-scheme-value-fast-set! obj value)
-    obj))
 
 (define (py-obj-alloc cls hclass-of-instances)
   (let ((self
@@ -235,6 +223,47 @@
     py-dict-keyiterator-class
     first
     iterator-token))
+
+(define (py-list-iterator-alloc index lst)
+  (make-PyObjectListIterator
+    py-list-iterator-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-list-iterator-hclass-of-instances))
+      py-absent)
+    py-list-iterator-class
+    index
+    lst))
+
+(define (py-tuple-iterator-alloc index vec)
+  (make-PyObjectTupleIterator
+    py-tuple-iterator-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-tuple-iterator-hclass-of-instances))
+      py-absent)
+    py-tuple-iterator-class
+    index
+    vec))
+
+(define (py-bytearray-iterator-alloc index bytearray)
+  (make-PyObjectBytearrayIterator
+    py-bytearray-iterator-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-bytearray-iterator-hclass-of-instances))
+      py-absent)
+    py-bytearray-iterator-class
+    index
+    bytearray))
+
+(define (py-TextIOWrapper-alloc port mode encoding)
+  (make-PyObjectTextIOWrapper
+    py-TextIOWrapper-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-TextIOWrapper-hclass-of-instances))
+      py-absent)
+    py-TextIOWrapper-class
+    port
+    mode
+    encoding))
 ;; ----------------------------------------------------------------------------
 
 (define py-absent (list 'absent))
@@ -1832,14 +1861,12 @@
         (let* ((__str__ (getattribute-from-obj-mro value (& "__str__")))
                (result (py-call __str__ value)))
           (if (py-isinstance? result py-str-class)
-            (py-obj-alloc-with-value
+            (py-str-subtype-from-scheme
               cls
-              py-str-hclass-of-instances
               (PyObjectStr-value result))
             (throw-returned-wrong-type "__str__" value "non-string")))
-        (py-obj-alloc-with-value
+        (py-str-subtype-from-scheme
           cls
-          py-str-hclass-of-instances
           "")))
     (else
       (py-throw-wrong-new-argument "str" cls))))
@@ -2226,17 +2253,24 @@
     py-absent ;; representative
     py-absent)) ;; hash
 
+(define (py-str-subtype-from-scheme value str-subclass)
+  (make-PyObjectStr
+    py-str-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-str-hclass-of-instances))
+      py-absent)
+    str-subclass
+    value
+    py-absent ;; representative
+    py-absent)) ;; hash
+
 (define (py-str-to-scheme self)
   (str-make! self))
 
 (define (py-set-from-scheme elems)
-  (let ((self (py-obj-alloc py-set-class py-set-hclass-of-instances)))
-    (PyObject-elements-set! self 1 elems)         ;; set **elems**
-    (PyObject-elements-set! self 2 py-set-class)  ;; set __class__
-    self))
-
-(define (py-set-to-scheme self)
-  (object-scheme-value-fast-get self))
+  (py-throw-exception-with-message
+    py-builtin-NameError
+    "py-set-from-scheme not implemented"))
 
 (define (py-bytearray-from-scheme len-vec-pair)
   (make-PyObjectBytearray
@@ -2457,18 +2491,6 @@
 
 ;; list iterator
 
-(define (list-iterator-list-fast-get li)
-  (PyObject-elements-ref li 1))
-
-(define (list-iterator-list-fast-set! li vec)
-  (PyObject-elements-set! li 1 vec))
-
-(define (list-iterator-index-fast-get li)
-  (PyObject-elements-ref li 2))
-
-(define (list-iterator-index-fast-set! li i)
-  (PyObject-elements-set! li 2 i))
-
 (define (list-iterator-iter self)
   (if (eq? (py-type self) py-list-iterator-class)
     self
@@ -2481,20 +2503,20 @@
 
 ;; By setting index to #f, the iterator always raises StopIteration
 (define (stop-list-iterator iterator)
-  (list-iterator-index-fast-set! iterator #f)
+  (PyObjectListIterator-index-set! iterator #f)
   (py-throw py-builtin-StopIteration))
 
 (define (list-iterator-next self)
   (if (eq? (py-type self) py-list-iterator-class)
-    (let ((index (list-iterator-index-fast-get self)))
+    (let ((index (PyObjectListIterator-index self)))
       (if index
-        (let* ((lst (list-iterator-list-fast-get self))
+        (let* ((lst (PyObjectListIterator-list self))
                (len-vec-pair (PyObjectList-value lst))
                (len (car len-vec-pair))
                (vec (cdr len-vec-pair)))
           (if (< index len)
             (let ((item (vector-ref vec index)))
-              (list-iterator-index-fast-set! self (+ index 1))
+              (PyObjectListIterator-index-set! self (+ index 1))
               item)
             (stop-list-iterator self)))
           (stop-list-iterator self)))
@@ -2514,18 +2536,6 @@
       (& "__iter__") list_iterator.__iter__
       (& "__next__") list_iterator.__next__))
 
-(define (tuple-iterator-vector-fast-get li)
-  (PyObject-elements-ref li 1))
-
-(define (tuple-iterator-vector-fast-set! li vec)
-  (PyObject-elements-set! li 1 vec))
-
-(define (tuple-iterator-index-fast-get li)
-  (PyObject-elements-ref li 2))
-
-(define (tuple-iterator-index-fast-set! li i)
-  (PyObject-elements-set! li 2 i))
-
 (define (tuple-iterator-iter self)
   (if (eq? (py-type self) py-tuple-iterator-class)
     self
@@ -2538,12 +2548,12 @@
 
 (define (tuple-iterator-next self)
   (if (eq? (py-type self) py-tuple-iterator-class)
-    (let* ((index (tuple-iterator-index-fast-get self))
-           (vec (tuple-iterator-vector-fast-get self)))
+    (let* ((index (PyObjectTupleIterator-index self))
+           (vec (PyObjectTupleIterator-vec self)))
       (if (< index (vector-length vec))
         (let ((item (vector-ref vec index)))
           (begin
-            (list-iterator-index-fast-set! self (+ index 1))
+            (PyObjectTupleIterator-index-set! self (+ index 1))
             item))
         (py-throw py-builtin-StopIteration)))
     (py-throw py-builtin-TypeError)))
@@ -2563,20 +2573,8 @@
       (& "__next__") py-tuple-iterator-next))
 
 (define (stop-bytearray-iterator iterator)
-  (bytearray-iterator-index-fast-set! iterator #f)
+  (PyObjectBytearrayIterator-index-set! iterator #f)
   (py-throw py-builtin-StopIteration))
-
-(define (bytearray-iterator-bytearray-fast-get li)
-  (PyObject-elements-ref li 1))
-
-(define (bytearray-iterator-bytearray-fast-set! li vec)
-  (PyObject-elements-set! li 1 vec))
-
-(define (bytearray-iterator-index-fast-get li)
-  (PyObject-elements-ref li 2))
-
-(define (bytearray-iterator-index-fast-set! li i)
-  (PyObject-elements-set! li 2 i))
 
 (define (bytearray-iterator-iter self)
   (if (eq? (py-type self) py-bytearray-iterator-class)
@@ -2590,12 +2588,12 @@
 
 (define (bytearray-iterator-next self)
   (if (eq? (py-type self) py-bytearray-iterator-class)
-    (let* ((index (bytearray-iterator-index-fast-get self))
-           (vec (bytearray-iterator-bytearray-fast-get self)))
+    (let* ((index (PyObjectBytearrayIterator-index self))
+           (vec (PyObjectBytearrayIterator-bytearray self)))
       (if (and index (< index (car vec)))
         (let ((item (u8vector-ref (cdr vec) index)))
           (begin
-            (bytearray-iterator-index-fast-set! self (+ index 1))
+            (PyObjectBytearrayIterator-index-set! self (+ index 1))
             (py-int-from-scheme item)))
         (stop-bytearray-iterator self)))
     (py-throw py-builtin-TypeError)))
@@ -2744,12 +2742,7 @@
 
 (define (list-iter self)
   (if (py-isinstance? self py-list-class)
-    (let ((iterator (py-obj-alloc
-                        py-list-iterator-class
-                        py-list-iterator-hclass-of-instances)))
-      (list-iterator-list-fast-set! iterator self)
-      (list-iterator-index-fast-set! iterator 0)
-      iterator)
+    (py-list-iterator-alloc 0 self)
     (py-throw-not-a-type-object "list.__iter__" self)))
 
 (define list.__iter__
@@ -3583,13 +3576,7 @@
 
 (define (tuple-iter self)
   (if (py-isinstance? self py-tuple-class)
-    (let ((iterator (py-obj-alloc
-                        py-tuple-iterator-class
-                        py-tuple-iterator-hclass-of-instances))
-          (vec (PyObjectTuple-value self)))
-      (tuple-iterator-vector-fast-set! iterator vec)
-      (tuple-iterator-index-fast-set! iterator 0)
-      iterator)
+    (py-tuple-iterator-alloc 0 (PyObjectTuple-value self))
     (py-throw py-builtin-TypeError)))
 
 (define tuple.__iter__
@@ -4283,12 +4270,7 @@
 
 (define (bytearray-iter self)
   (if (py-isinstance? self py-bytearray-class)
-      (let ((iterator (py-obj-alloc
-                       py-bytearray-iterator-class
-                       py-bytearray-iterator-hclass-of-instances)))
-        (bytearray-iterator-bytearray-fast-set! iterator (PyObjectBytearray-value self))
-        (bytearray-iterator-index-fast-set! iterator 0)
-        iterator)
+      (py-bytearray-iterator-alloc 0 (PyObjectBytearray-value self))
       (py-throw-not-a-type-object "bytearray.__iter__" self)))
 
 (define bytearray.__iter__
@@ -4997,7 +4979,7 @@
     (make-posonly-signature '#(self))))
 
 (define (TextIOWrapper-close-port! self)
-  (let ((port (TextIOWrapper-port-fast-get self)))
+  (let ((port (PyObjectTextIOWrapper-port self)))
     ;; Some ports may stay open even after close-port, by dereferencing
     ;; the port we make sure its ressources are freed by the gc
     ;; we thus have to first check the port was not already closed (ie. set to #f)
@@ -5005,7 +4987,7 @@
     (if port
       (begin
         (close-port port)
-        (TextIOWrapper-port-fast-set! self #f)))))
+        (PyObjectTextIOWrapper-port-set! self #f)))))
 
 (define (TextIOWrapper-exit self exc-type exc exc-traceback)
   (if (py-isinstance? self py-TextIOWrapper-class)
@@ -5031,7 +5013,7 @@
 
 (define (TextIOWrapper-read self)
   (if (py-isinstance? self py-TextIOWrapper-class)
-    (let ((port (TextIOWrapper-port-fast-get self)))
+    (let ((port (PyObjectTextIOWrapper-port self)))
       (if port
           (py-str-from-scheme (read-string port))
         (py-throw-exception-with-message
@@ -5043,33 +5025,6 @@
   (procedure->py-function
     TextIOWrapper-read
     (make-posonly-signature '#(self))))
-
-(define py-TextIOWrapper-hclass-of-instances
-  (make-HClass
-    '#()
-    (vector
-      (& "**port**")
-      (& "**mode**")
-      (& "**encoding**"))
-    '()))
-
-(define (TextIOWrapper-port-fast-get obj)
-  (PyObject-elements-ref obj 1))
-
-(define (TextIOWrapper-port-fast-set! obj class)
-  (PyObject-elements-set! obj 1 class))
-
-(define (TextIOWrapper-mode-fast-get obj)
-  (PyObject-elements-ref obj 2))
-
-(define (TextIOWrapper-mode-fast-set! obj class)
-  (PyObject-elements-set! obj 2 class))
-
-(define (TextIOWrapper-encoding-fast-get obj)
-  (PyObject-elements-ref obj 3))
-
-(define (TextIOWrapper-encoding-fast-set! obj class)
-  (PyObject-elements-set! obj 3 class))
 
 (define py-TextIOWrapper-class
   (make-builtin-class
@@ -5089,12 +5044,10 @@
     ((py-isinstance? file py-str-class)
       (let ((filename (PyObjectStr-value file)))
         (let ((file-port (open-file filename)))
-          (let ((IOWrapper
-                  (py-obj-alloc
-                    py-TextIOWrapper-class
-                    py-TextIOWrapper-hclass-of-instances)))
-            (TextIOWrapper-port-fast-set! IOWrapper file-port)
-            IOWrapper))))
+          (py-TextIOWrapper-alloc
+            file-port
+            mode
+            encoding))))
     (else
       (py-throw-exception-with-message py-builtin-NotImplementedError "py-open only str filename supported"))))
 
@@ -5216,7 +5169,7 @@
 ;;;----------------------------------------------------------------------------
 
 (define (py-make-set elements)
-  (py-set-from-scheme (list->vector elements)))
+  (py-set-from-scheme elements))
 
 (define (py-make-tuple . elements)
   (py-tuple-from-scheme (list->vector elements)))
