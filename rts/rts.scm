@@ -49,8 +49,7 @@
 (define py-tuple-hclass-of-instances
   (make-HClass
     '#() ;; set later when classes exist
-    (vector
-      (& "**value**"))
+    (vector)
     '()))
 
 (define py-int-hclass-of-instances
@@ -1673,7 +1672,7 @@
 ;; interfaces between manual __call__ and py-call
 (define (method-call self args)
   (if (eq? (py-type self) py-method-class)
-    (let ((args-list (vector->list (py-tuple-to-scheme args))))
+    (let ((args-list (vector->list (PyObjectTuple-value args))))
       (apply py-call self args-list))
     (py-throw-required-type "__call__" "method" self)))
 
@@ -1686,7 +1685,7 @@
 ;; interfaces between manual __call__ and py-call
 (define (function-call self args)
   (if (eq? (py-type self) py-function-class)
-    (let ((args-list (vector->list (py-tuple-to-scheme args))))
+    (let ((args-list (vector->list (PyObjectTuple-value args))))
       (apply py-call self args-list))
     (py-throw-required-type "__call__" "method" self)))
 
@@ -1718,7 +1717,7 @@
 ;; TODO: remove the tuple->list conversion once we support argument unpacking
 (define (type-call self args)
   (let ((__new__ (getattribute-from-cls-mro self (& "__new__")))
-        (args-list (vector->list (py-tuple-to-scheme args))))
+        (args-list (vector->list (PyObjectTuple-value args))))
     (let ((instance (apply py-call __new__ self args-list)))
       (if (eq? (py-obj-cls instance) self)
         (let ((__init__ (getattribute-from-cls-mro self (& "__init__"))))
@@ -1733,7 +1732,7 @@
 
 ;; TODO: remove the tuple->list conversion once we support argument unpacking
 (define (type-new metacls cls args)
-  (let* ((args-list (vector->list (py-tuple-to-scheme args)))
+  (let* ((args-list (vector->list (PyObjectTuple-value args)))
         (args-length (length args-list)))
     (cond
       ((= args-length 0)
@@ -2239,9 +2238,6 @@
 (define (py-str-to-scheme self)
   (str-make! self))
 
-(define (py-tuple-to-scheme self)
-  (object-scheme-value-fast-get self))
-
 (define (py-list-to-scheme self)
   (object-scheme-value-fast-get self))
 
@@ -2704,7 +2700,7 @@
     (let ((iterable-type (py-type iterable)))
       (cond
         ((eq? iterable-type py-tuple-class)
-          (let ((vec (object-scheme-value-fast-get iterable)))
+          (let ((vec (PyObjectTuple-value iterable)))
             (py-obj-alloc-with-value
               cls
               py-list-hclass-of-instances
@@ -3100,7 +3096,7 @@
             (dynamic-vector-set-simple-slice! dvec start stop value-vec value-len)
             (dynamic-vector-set-extended-slice! dvec start stop step value-vec value-len))))
       ((eq? value-type py-tuple-class)
-        (let* ((value-vec (object-scheme-value-fast-get value))
+        (let* ((value-vec (PyObjectTuple-value value))
                (value-len (vector-length value-vec)))
           (if (eq? step 1)
             (dynamic-vector-set-simple-slice! dvec start stop value-vec value-len)
@@ -3480,7 +3476,7 @@
   (let ((iterable-type (py-type iterable)))
     (cond
       ((eq? iterable-type py-tuple-class)
-        (let ((vec (object-scheme-value-fast-get iterable)))
+        (let ((vec (PyObjectTuple-value iterable)))
           (extend-dynamic-vector-with-vector-head
             dvec
             vec
@@ -3576,7 +3572,7 @@
     (let ((iterator (py-obj-alloc
                         py-tuple-iterator-class
                         py-tuple-iterator-hclass-of-instances))
-          (vec (object-scheme-value-fast-get self)))
+          (vec (PyObjectTuple-value self)))
       (tuple-iterator-vector-fast-set! iterator vec)
       (tuple-iterator-index-fast-set! iterator 0)
       iterator)
@@ -3589,7 +3585,7 @@
 
 (define (tuple-contains self item)
   (if (py-isinstance? self py-tuple-class)
-    (let* ((vec (object-scheme-value-fast-get self))
+    (let* ((vec (PyObjectTuple-value self))
            (vec-len (vector-length vec)))
       (let loop ((i 0))
         (if (< i vec-len)
@@ -3607,8 +3603,8 @@
 (define (tuple-add self other)
   (if (py-isinstance? self py-tuple-class)
     (if (py-isinstance? other py-tuple-class)
-      (let ((v1 (object-scheme-value-fast-get self))
-            (v2 (object-scheme-value-fast-get other)))
+      (let ((v1 (PyObjectTuple-value self))
+            (v2 (PyObjectTuple-value other)))
         (py-tuple-from-scheme (vector-append v1 v2)))
       py-NotImplemented)
     (py-throw-not-a-type-object "tuple.__add__" self)))
@@ -3635,7 +3631,7 @@
 (define (tuple-mul self n)
   (if (py-isinstance? self py-tuple-class)
     (if (py-isinstance? n py-int-class)
-      (let ((v (object-scheme-value-fast-get self))
+      (let ((v (PyObjectTuple-value self))
             (n (PyObjectInt-value n)))
         (py-tuple-from-scheme (vector*n v n)))
       py-NotImplemented)
@@ -3697,8 +3693,8 @@
     (define (,name self other)
       (if (py-isinstance? self py-tuple-class)
         (if (py-isinstance? other py-tuple-class)
-          (let ((v1 (object-scheme-value-fast-get self))
-                (v2 (object-scheme-value-fast-get other)))
+          (let ((v1 (PyObjectTuple-value self))
+                (v2 (PyObjectTuple-value other)))
             (if (,vector-comparator v1 v2)
               py-True
               py-False))
@@ -3725,7 +3721,7 @@
 ;; TODO: print cyclic structures
 (define (tuple-repr self)
   (if (py-isinstance? self py-tuple-class)
-    (let* ((vec (object-scheme-value-fast-get self))
+    (let* ((vec (PyObjectTuple-value self))
            (content-strs (vector-map py-repr vec))
            (content-strings (vector-map PyObjectStr-value content-strs)))
       (py-str-from-scheme
@@ -3742,7 +3738,7 @@
 
 (define (tuple-len self)
   (if (py-isinstance? self py-tuple-class)
-    (let* ((vec (object-scheme-value-fast-get self)))
+    (let* ((vec (PyObjectTuple-value self)))
       (py-int-from-scheme (vector-length vec)))
     (py-throw-not-a-type-object "tuple.__len__" self)))
 
@@ -3774,7 +3770,7 @@
   (if (py-isinstance? self py-tuple-class)
     (cond
       ((py-isinstance? item py-int-class)
-        (let* ((vec (object-scheme-value-fast-get self))
+        (let* ((vec (PyObjectTuple-value self))
                (len (vector-length vec))
                (i (PyObjectInt-value item)))
           (if (index-in-length-range i len)
@@ -3783,7 +3779,7 @@
       ((py-isinstance? item py-slice-class)
         (py-tuple-from-scheme
           (vector-py-slice
-            (object-scheme-value-fast-get self)
+            (PyObjectTuple-value self)
             item)))
       (py-throw-wrong-index-type "tuple" "integers or slices" item))
     (py-throw-not-a-type-object "tuple.__getitem__" self)))
@@ -3795,7 +3791,7 @@
 
 (define (tuple-count self item)
   (if (py-isinstance? self py-tuple-class)
-    (let* ((vec (object-scheme-value-fast-get self))
+    (let* ((vec (PyObjectTuple-value self))
            (vec-len (vector-length vec)))
       (let loop ((i 0) (count 0))
         (cond
@@ -3814,7 +3810,7 @@
 
 (define (tuple-index self item start stop)
   (if (py-isinstance? self py-tuple-class)
-    (let* ((vec (object-scheme-value-fast-get self))
+    (let* ((vec (PyObjectTuple-value self))
            (len (vector-length vec))
            (start-index
             (if (eq? start py-absent)
@@ -3984,7 +3980,7 @@
             (dynamic-u8vector-u8vector-set-simple-slice! dvec start stop value-vec value-len)
             (dynamic-u8vector-u8vector-set-extended-slice! dvec start stop step value-vec value-len))))
       ((eq? value-type py-tuple-class)
-        (let* ((value-vec (object-scheme-value-fast-get value))
+        (let* ((value-vec (PyObjectTuple-value value))
                (value-len (vector-length value-vec)))
           (if (vector-in-byte-range? value-vec)
               (if (eq? step 1)
@@ -5209,9 +5205,13 @@
   (py-tuple-from-scheme (list->vector elements)))
 
 (define (py-tuple-from-scheme elements)
-  (let ((tuple (py-obj-alloc py-tuple-class py-tuple-hclass-of-instances)))
-    (object-scheme-value-fast-set! tuple elements)
-    tuple))
+  (make-PyObjectTuple
+    py-tuple-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-tuple-hclass-of-instances))
+      py-absent)
+    py-tuple-class
+    elements))
 
 (define py-make-dict py-dict-from-scheme)
 
@@ -6813,7 +6813,7 @@
   (procedure->py-function
     (lambda (objects) ;; add args (non-positional): sep end file flush
       (let* ((port (current-output-port))
-             (objects-vector (object-scheme-value-fast-get objects))
+             (objects-vector (PyObjectTuple-value objects))
              (objects-len (vector-length objects-vector)))
         (let loop ((i 0))
           (if (< i objects-len)
