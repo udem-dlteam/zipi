@@ -498,10 +498,9 @@
           `(py-setitem
              ,(scheme obj conf)
              (py-slice-from-scheme
-               (vector
-             	  ,(if (PycUninit? lower) 'py-None (scheme lower conf))
-             	  ,(if (PycUninit? upper) 'py-None (scheme upper conf))
-             	  ,(if (PycUninit? step) 'py-None (scheme step conf))))
+           	  ,(if (PycUninit? lower) 'py-None (scheme lower conf))
+           	  ,(if (PycUninit? upper) 'py-None (scheme upper conf))
+           	  ,(if (PycUninit? step) 'py-None (scheme step conf)))
              ,val
              #f))))
     ((isa? (PycAssig-lhs this) PycSubscript)
@@ -863,10 +862,9 @@
           `(py-delitem
              ,(scheme (PycSlice-obj expr-to-delete) conf)
               (py-slice-from-scheme
-                (vector
-              	  ,(if (PycUninit? lower) 'py-None (scheme lower conf))
-              	  ,(if (PycUninit? upper) 'py-None (scheme upper conf))
-              	  ,(if (PycUninit? step) 'py-None (scheme step conf))))
+            	  ,(if (PycUninit? lower) 'py-None (scheme lower conf))
+            	  ,(if (PycUninit? upper) 'py-None (scheme upper conf))
+            	  ,(if (PycUninit? step) 'py-None (scheme step conf)))
               #f)))
       (else
         (error "scheme::PycDelete" "only del subscript/slice are supported" #f)))))
@@ -891,10 +889,9 @@
      `(py-getitem
         ,(scheme (PycSlice-obj this) conf)
         (py-slice-from-scheme
-          (vector
-        	  ,(if (PycUninit? lower) 'py-None (scheme lower conf))
-        	  ,(if (PycUninit? upper) 'py-None (scheme upper conf))
-        	  ,(if (PycUninit? step) 'py-None (scheme step conf))))
+      	  ,(if (PycUninit? lower) 'py-None (scheme lower conf))
+      	  ,(if (PycUninit? upper) 'py-None (scheme upper conf))
+      	  ,(if (PycUninit? step) 'py-None (scheme step conf)))
         #f))))
 
 (define-walk-method (scheme this::PycAssert conf)
