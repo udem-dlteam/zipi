@@ -70,7 +70,8 @@
                         module (& "__file__") (& ,full-path))
                       `,@(list))
                     (py-module module caches)
-                    module)))))))
+                    module))
+                (end-registering-constants))))))
 
 (define (scheme* nodes conf)
    (map (lambda (n) (scheme n conf)) nodes))
