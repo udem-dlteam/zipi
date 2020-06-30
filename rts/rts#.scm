@@ -206,6 +206,14 @@
   stop
   step)
 
+(define-type-of-PyObject PyObjectTextIOWrapper
+  id: PyObjectTextIOWrapper-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  port
+  mode
+  encoding)
+
 ;; =============================================================================
 ;;  PCache
 ;; =============================================================================

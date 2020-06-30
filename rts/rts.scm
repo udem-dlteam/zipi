@@ -156,6 +156,12 @@
     (& "send"))
    '()))
 
+(define py-TextIOWrapper-hclass-of-instances
+  (make-HClass
+    '#()
+    (vector)
+    '()))
+
 ;; Method for fast access to attributes defined in hidden classes
 ;; Those are unsafe methods
 
@@ -247,6 +253,17 @@
     py-bytearray-iterator-class
     index
     bytearray))
+
+(define (py-TextIOWrapper-alloc port mode encoding)
+  (make-PyObjectTextIOWrapper
+    py-TextIOWrapper-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-TextIOWrapper-hclass-of-instances))
+      py-absent)
+    py-TextIOWrapper-class
+    port
+    mode
+    encoding))
 ;; ----------------------------------------------------------------------------
 
 (define py-absent (list 'absent))
@@ -4962,7 +4979,7 @@
     (make-posonly-signature '#(self))))
 
 (define (TextIOWrapper-close-port! self)
-  (let ((port (TextIOWrapper-port-fast-get self)))
+  (let ((port (PyObjectTextIOWrapper-port self)))
     ;; Some ports may stay open even after close-port, by dereferencing
     ;; the port we make sure its ressources are freed by the gc
     ;; we thus have to first check the port was not already closed (ie. set to #f)
@@ -4970,7 +4987,7 @@
     (if port
       (begin
         (close-port port)
-        (TextIOWrapper-port-fast-set! self #f)))))
+        (PyObjectTextIOWrapper-port-set! self #f)))))
 
 (define (TextIOWrapper-exit self exc-type exc exc-traceback)
   (if (py-isinstance? self py-TextIOWrapper-class)
@@ -4996,7 +5013,7 @@
 
 (define (TextIOWrapper-read self)
   (if (py-isinstance? self py-TextIOWrapper-class)
-    (let ((port (TextIOWrapper-port-fast-get self)))
+    (let ((port (PyObjectTextIOWrapper-port self)))
       (if port
           (py-str-from-scheme (read-string port))
         (py-throw-exception-with-message
@@ -5008,33 +5025,6 @@
   (procedure->py-function
     TextIOWrapper-read
     (make-posonly-signature '#(self))))
-
-(define py-TextIOWrapper-hclass-of-instances
-  (make-HClass
-    '#()
-    (vector
-      (& "**port**")
-      (& "**mode**")
-      (& "**encoding**"))
-    '()))
-
-(define (TextIOWrapper-port-fast-get obj)
-  (PyObject-elements-ref obj 1))
-
-(define (TextIOWrapper-port-fast-set! obj class)
-  (PyObject-elements-set! obj 1 class))
-
-(define (TextIOWrapper-mode-fast-get obj)
-  (PyObject-elements-ref obj 2))
-
-(define (TextIOWrapper-mode-fast-set! obj class)
-  (PyObject-elements-set! obj 2 class))
-
-(define (TextIOWrapper-encoding-fast-get obj)
-  (PyObject-elements-ref obj 3))
-
-(define (TextIOWrapper-encoding-fast-set! obj class)
-  (PyObject-elements-set! obj 3 class))
 
 (define py-TextIOWrapper-class
   (make-builtin-class
@@ -5054,12 +5044,10 @@
     ((py-isinstance? file py-str-class)
       (let ((filename (PyObjectStr-value file)))
         (let ((file-port (open-file filename)))
-          (let ((IOWrapper
-                  (py-obj-alloc
-                    py-TextIOWrapper-class
-                    py-TextIOWrapper-hclass-of-instances)))
-            (TextIOWrapper-port-fast-set! IOWrapper file-port)
-            IOWrapper))))
+          (py-TextIOWrapper-alloc
+            file-port
+            mode
+            encoding))))
     (else
       (py-throw-exception-with-message py-builtin-NotImplementedError "py-open only str filename supported"))))
 
