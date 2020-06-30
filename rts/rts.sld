@@ -7,6 +7,7 @@
     &
     init-constants
     start-registering-constants
+    end-registering-constants
     init-registered-constants
 
     with-handler

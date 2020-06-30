@@ -21,28 +21,39 @@
         constructor: %make-Constants
         prefix: %
         macros: table)
-      (define-type PyStaticObject
+      (define-type PyStaticStr
         ;; NOTE: id must be the same as PyObject
-        id: C6486EB6-1522-42BA-A082-B6563F943CDF
-        constructor: %make-PyStaticObject
+        id: %pystaticobject
+        constructor: %make-PyStaticStr
         prefix: %
-        macros: hclass elements)
-      (define (make-PyStaticObject elts hclass) (%make-PyStaticObject elts hclass))
+        macros:
+        hclass
+        elements
+        class
+        value
+        representative
+        hash)
+      (define (make-PyStaticStr value)
+        (%make-PyStaticStr #f #f #f value #f #f))
       (define %constants (%make-Constants (make-table)))
+      (define constants-cell (box #f))
       (define (constants-table) (%Constants-table %constants))
       (define (constants-ref c key) (table-ref (%Constants-table c) key #f))
       (define (constants-set! c key val) (table-set! (%Constants-table c) key val))))
   `(##begin))
 
 (define-macro (init-registered-constants)
-  `(init-constants ',%constants))
+  `(init-constants ',constants-cell))
+
+(define-macro (end-registering-constants)
+  (set-box! constants-cell (list->vector (map cdr (table->list (constants-table))))))
 
 (define-macro (& e)
   (if (string? e)
     (let ((cached (constants-ref %constants e)))
       (if cached
         `',cached
-        (let ((obj (make-PyStaticObject #f #f)))
+        (let ((obj (make-PyStaticStr e)))
           (constants-set! %constants e obj)
           `',obj)))
     (error "&" "requires string literal but got" e)))
@@ -52,43 +63,156 @@
 ;; =============================================================================
 
 (define-type PyObject
-  id: C6486EB6-1522-42BA-A082-B6563F943CDF
-  constructor: %make-PyObject
-  predicate: %PyObject?
-  type-exhibitor: %PyObject-type-get
-  implementer: implement-PyObject
+  id: PyObject-C6486EB6-1522-42BA-A082-B6563F943CDF
+  extender: define-type-of-PyObject
+  type-exhibitor: PyObject-type-get
   copier: #f
-  opaque:
-  prefix: %
-  macros: hclass elements)
 
-(define (PyObject? x)
-  (%PyObject? x))
-
-(define-macro (make-PyObject hclass elts)
-  `(%make-PyObject ,hclass ,elts))
-
-(define-macro (PyObject-hclass obj)
-  `(%PyObject-hclass ,obj))
-
-(define-macro (PyObject-hclass-set! obj hc)
-  `(%PyObject-hclass-set! ,obj ,hc))
+  ;; attrs
+  (hclass unprintable:)
+  (%elements unprintable:)
+  (class unprintable:))
 
 (define-macro (PyObject-elements-ref obj offset)
-  `(vector-ref (%PyObject-elements ,obj) ,offset))
+  `(vector-ref (PyObject-%elements ,obj) ,offset))
 
 (define-macro (PyObject-elements-set! obj offset val)
   `(let* (($obj ,obj)
           ($offset ,offset)
           ($val ,val)
-          ($elements (%PyObject-elements $obj))
+          ($elements (PyObject-%elements $obj))
           ($elements-len (vector-length $elements)))
      (if (fx>= $offset $elements-len)
-         (let (($elements-new (make-vector (fx* 2 $elements-len))))
+         (let (($elements-new (make-vector (max 1 (fx* 2 $elements-len)))))
            (subvector-move! $elements 0 $elements-len $elements-new 0)
            (vector-set! $elements-new $offset $val)
-           (%PyObject-elements-set! $obj $elements-new))
+           (PyObject-%elements-set! $obj $elements-new))
          (vector-set! $elements $offset $val))))
+
+(define-type-of-PyObject PyObjectType
+    id: PyObjectType-C6486EB6-1522-42BA-A082-B6563F943CDF
+    copier: #f
+    ;; attrs
+    (bases unprintable:)
+    (mro unprintable:)
+    (hclass-of-instances unprintable:))
+
+(define-type-of-PyObject PyObjectInt
+  id: PyObjectInt-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  value)
+
+(define-type-of-PyObject PyObjectFloat
+  id: PyObjectFloat-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  value)
+
+(define-type-of-PyObject PyObjectComplex
+  id: PyObjectComplex-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  value)
+
+(define-type-of-PyObject PyObjectList
+  id: PyObjectList-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  value)
+
+(define-type-of-PyObject PyObjectListIterator
+  id: PyObjectListIterator-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  index
+  list)
+
+(define-type-of-PyObject PyObjectBytearray
+  id: PyObjectBytearray-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  value)
+
+(define-type-of-PyObject PyObjectBytearrayIterator
+  id: PyObjectBytearrayIterator-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  index
+  bytearray)
+
+(define-type-of-PyObject PyObjectStr
+  id: PyObjectStr-C6486EB6-1522-42BA-A082-B6563F943CDF
+  type-exhibitor: PyObjectStr-type-get
+  copier: #f
+  ;; attrs
+  value
+  (representative unprintable:)
+  (hash unprintable:))
+
+(define-type-of-PyObject PyObjectFunction
+  id: PyObjectFunction-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  procedure
+  arity
+  signature)
+
+(define-type-of-PyObject PyObjectMethod
+  id: PyObjectMethod-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  procedure
+  arity
+  signature)
+
+(define-type-of-PyObject PyObjectDict
+  id: PyObjectDict-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  value)
+
+(define-type-of-PyObject PyObjectSet
+  id: PyObjectSet-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  value)
+
+(define-type-of-PyObject PyObjectTuple
+  id: PyObjectTuple-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  value)
+
+(define-type-of-PyObject PyObjectTupleIterator
+  id: PyObjectTupleIterator-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  index
+  vec)
+
+(define-type-of-PyObject PyObjectDictKeyIterator
+  id: PyObjectDictKeyIterator-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  node
+  iterator-token)
+
+(define-type-of-PyObject PyObjectSlice
+  id: PyObjectSlice-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  start
+  stop
+  step)
+
+(define-type-of-PyObject PyObjectTextIOWrapper
+  id: PyObjectTextIOWrapper-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  port
+  mode
+  encoding)
 
 ;; =============================================================================
 ;;  PCache
