@@ -67,8 +67,7 @@
 (define py-complex-hclass-of-instances
   (make-HClass
     '#() ;; set later when classes exist
-    (vector
-      (& "**value**"))
+    (vector)
     '()))
 
 (define py-slice-hclass-of-instances
@@ -2721,7 +2720,7 @@
        (cond
          ((eq? iterable-type py-tuple-class)
           (let ((vec (PyObjectTuple-value iterable)))
-           (py-list-subtype-from-scheme 
+           (py-list-subtype-from-scheme
              (vector-head->dynamic-vector vec (vector-length vec))
              cls)))
          ((eq? iterable-type py-list-class)
@@ -7632,7 +7631,7 @@
       (lambda (self key reversed)
         (PyObjectList-value-set!
           self
-          (PyObjectList-value 
+          (PyObjectList-value
             ((PyObjectFunction-procedure py-builtin-sorted)
              self key reversed)))
         py-None)
