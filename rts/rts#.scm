@@ -158,6 +158,12 @@
   ;; attrs
   value)
 
+(define-type-of-PyObject PyObjectSet
+  id: PyObjectSet-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  value)
+
 (define-type-of-PyObject PyObjectTuple
   id: PyObjectTuple-C6486EB6-1522-42BA-A082-B6563F943CDF
   copier: #f

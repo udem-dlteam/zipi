@@ -111,8 +111,7 @@
 (define py-set-hclass-of-instances
   (make-HClass
     '#() ;; set later when classes exist
-    (vector
-      (& "**value**"))
+    (vector)
     '()))
 
 (define py-module-hclass-of-instances (make-HClass
@@ -175,12 +174,6 @@
 (define (class-__call__-fast-get class)
   (PyObject-elements-ref class 1))
 
-(define (object-scheme-value-fast-get obj)
-  (PyObject-elements-ref obj 0))
-
-(define (object-scheme-value-fast-set! obj value)
-  (PyObject-elements-set! obj 0 value))
-
 (define (method-__self__-fast-get obj)
   (PyObject-elements-ref obj 0))
 
@@ -188,11 +181,6 @@
   (PyObject-elements-set! obj 0 value))
 
 ;; object allocation
-
-(define (py-obj-alloc-with-value cls hclass-of-instances value)
-  (let ((obj (py-obj-alloc cls hclass-of-instances)))
-    (object-scheme-value-fast-set! obj value)
-    obj))
 
 (define (py-obj-alloc cls hclass-of-instances)
   (let ((self
@@ -1832,14 +1820,12 @@
         (let* ((__str__ (getattribute-from-obj-mro value (& "__str__")))
                (result (py-call __str__ value)))
           (if (py-isinstance? result py-str-class)
-            (py-obj-alloc-with-value
+            (py-str-subtype-from-scheme
               cls
-              py-str-hclass-of-instances
               (PyObjectStr-value result))
             (throw-returned-wrong-type "__str__" value "non-string")))
-        (py-obj-alloc-with-value
+        (py-str-subtype-from-scheme
           cls
-          py-str-hclass-of-instances
           "")))
     (else
       (py-throw-wrong-new-argument "str" cls))))
@@ -2226,17 +2212,24 @@
     py-absent ;; representative
     py-absent)) ;; hash
 
+(define (py-str-subtype-from-scheme value str-subclass)
+  (make-PyObjectStr
+    py-str-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-str-hclass-of-instances))
+      py-absent)
+    str-subclass
+    value
+    py-absent ;; representative
+    py-absent)) ;; hash
+
 (define (py-str-to-scheme self)
   (str-make! self))
 
 (define (py-set-from-scheme elems)
-  (let ((self (py-obj-alloc py-set-class py-set-hclass-of-instances)))
-    (PyObject-elements-set! self 1 elems)         ;; set **elems**
-    (PyObject-elements-set! self 2 py-set-class)  ;; set __class__
-    self))
-
-(define (py-set-to-scheme self)
-  (object-scheme-value-fast-get self))
+  (py-throw-exception-with-message
+    py-builtin-NameError
+    "py-set-from-scheme not implemented"))
 
 (define (py-bytearray-from-scheme len-vec-pair)
   (make-PyObjectBytearray
@@ -5216,7 +5209,7 @@
 ;;;----------------------------------------------------------------------------
 
 (define (py-make-set elements)
-  (py-set-from-scheme (list->vector elements)))
+  (py-set-from-scheme elements))
 
 (define (py-make-tuple . elements)
   (py-tuple-from-scheme (list->vector elements)))
