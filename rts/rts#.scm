@@ -115,6 +115,12 @@
   ;; attrs
   value)
 
+(define-type-of-PyObject PyObjectBytearray
+  id: PyObjectBytearray-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  value)
+
 (define-type-of-PyObject PyObjectStr
   id: PyObjectStr-C6486EB6-1522-42BA-A082-B6563F943CDF
   type-exhibitor: PyObjectStr-type-get
