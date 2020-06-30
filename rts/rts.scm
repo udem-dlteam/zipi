@@ -110,8 +110,7 @@
 (define py-dict-hclass-of-instances
   (make-HClass
     '#() ;; set later when classes exist
-    (vector
-      (& "**value**"))
+    (vector)
     '()))
 
 (define py-set-hclass-of-instances
@@ -224,6 +223,15 @@
     bases
     mro
     hclass-of-instance))
+
+(define (py-dict-alloc ordered-table)
+  (make-PyObjectDict
+    py-dict-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-dict-hclass-of-instances))
+      py-absent)
+    py-dict-class
+    ordered-table))
 
 ;; ----------------------------------------------------------------------------
 
@@ -2228,9 +2236,6 @@
   (object-scheme-value-fast-get self))
 
 (define (py-list-to-scheme self)
-  (object-scheme-value-fast-get self))
-
-(define (py-dict-to-scheme self)
   (object-scheme-value-fast-get self))
 
 (define (py-set-from-scheme elems)
@@ -4530,10 +4535,7 @@
          (table-vector (ordered-table-table ordered-table)))
     (let loop ((key-value-pairs key-value-pairs))
       (if (null? key-value-pairs)
-        (py-obj-alloc-with-value
-          py-dict-class
-          py-dict-hclass-of-instances
-          ordered-table)
+        (py-dict-alloc ordered-table)
         (let* ((pair (car key-value-pairs))
               (key (car pair))
               (value (cdr pair))
@@ -4549,7 +4551,7 @@
 
 (define (dict-setitem self key value)
   (if (py-isinstance? self py-dict-class)
-    (let ((ordered-table (object-scheme-value-fast-get self)))
+    (let ((ordered-table (PyObjectDict-value self)))
       (ordered-table-set-cell! ordered-table key value))
     (py-throw-not-a-type-object "dict.__setitem__" self))
   py-None)
@@ -4561,7 +4563,7 @@
 
 (define (dict-get self key default)
     (if (py-isinstance? self py-dict-class)
-      (let ((ordered-table (object-scheme-value-fast-get self)))
+      (let ((ordered-table (PyObjectDict-value self)))
         (ordered-table-get ordered-table key default))
       (py-throw-not-a-type-object "dict.get" self)))
 
@@ -4572,7 +4574,7 @@
 
 (define (dict-getitem self key)
   (if (py-isinstance? self py-dict-class)
-    (let ((ordered-table (object-scheme-value-fast-get self)))
+    (let ((ordered-table (PyObjectDict-value self)))
       (ordered-table-get ordered-table key py-absent))
     (py-throw-not-a-type-object "dict.__getitem__" self)))
 
@@ -4583,7 +4585,7 @@
 
 (define (dict-delitem self key)
   (if (py-isinstance? self py-dict-class)
-    (let* ((ordered-table (object-scheme-value-fast-get self))
+    (let* ((ordered-table (PyObjectDict-value self))
            (res (ordered-table-remove-key! ordered-table key)))
       (if (not res)
         (py-throw (py-call1 py-builtin-KeyError key))
@@ -4597,7 +4599,7 @@
 
 (define (dict-len self)
   (if (py-isinstance? self py-dict-class)
-    (let* ((ordered-table (object-scheme-value-fast-get self))
+    (let* ((ordered-table (PyObjectDict-value self))
            (len (ordered-table-length ordered-table)))
       (py-int-from-scheme len))
     (py-throw-not-a-type-object "dict.__len__" self)))
@@ -4643,7 +4645,7 @@
           (py-obj-alloc
             py-dict-keyiterator-class
             py-dict-keyiterator-hclass-of-instances))
-        (ordered-table (object-scheme-value-fast-get d))
+        (ordered-table (PyObjectDict-value d))
         (first (ordered-table-first ordered-table))
         (token (ordered-table-iterator-token ordered-table)))
     (dict-keyiterator-node-fast-set! it first)
