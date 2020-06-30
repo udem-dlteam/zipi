@@ -114,16 +114,19 @@
 
 (define-type-of-PyObject PyObjectFunction
   id: PyObjectFunction-C6486EB6-1522-42BA-A082-B6563F943CDF
-  extender: define-type-of-PyObjectFunction
   copier: #f
   ;; attrs
   procedure
   arity
   signature)
 
-(define-type-of-PyObjectFunction PyObjectMethod
+(define-type-of-PyObject PyObjectMethod
   id: PyObjectMethod-C6486EB6-1522-42BA-A082-B6563F943CDF
-  copier: #f)
+  copier: #f
+  ;;attrs
+  procedure
+  arity
+  signature)
 
 ;; =============================================================================
 ;;  PCache
