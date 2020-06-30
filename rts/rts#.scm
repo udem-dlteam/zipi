@@ -139,6 +139,13 @@
   ;; attrs
   value)
 
+(define-type-of-PyObject PyObjectDictKeyIterator
+  id: PyObjectDictKeyIterator-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  node
+  iterator-token)
+
 ;; =============================================================================
 ;;  PCache
 ;; =============================================================================

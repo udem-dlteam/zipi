@@ -157,9 +157,7 @@
 (define py-dict-keyiterator-hclass-of-instances
   (make-HClass
     '#()
-    (vector
-      (& "**node**")
-      (& "**iterator-token**"))
+    (vector)
     '()))
 
 (define py-generator-hclass
@@ -233,6 +231,15 @@
     py-dict-class
     ordered-table))
 
+(define (py-dict-keyiterator-alloc first iterator-token)
+  (make-PyObjectDictKeyIterator
+    py-dict-keyiterator-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-dict-keyiterator-hclass-of-instances))
+      py-absent)
+    py-dict-keyiterator-class
+    first
+    iterator-token))
 ;; ----------------------------------------------------------------------------
 
 (define py-absent (list 'absent))
@@ -4623,34 +4630,16 @@
 ;;  Dict iterators
 ;; =============================================================================
 
-(define (dict-keyiterator-node-fast-get it)
-  (PyObject-elements-ref it 1))
-
-(define (dict-keyiterator-node-fast-set! it n)
-  (PyObject-elements-set! it 1 n))
-
-(define (dict-keyiterator-iterator-token-fast-get it)
-  (PyObject-elements-ref it 2))
-
-(define (dict-keyiterator-iterator-token-fast-set! it t)
-  (PyObject-elements-set! it 2 t))
-
 (define (dict-keyiterator-iter self)
-  (if (py-isinstance? self py-dict-keyiterator-class)
+  (if (PyObjectDictKeyIterator? self)
     self
     (py-throw-not-a-type-object "dict_keyiterator.__iter__" self)))
 
 (define (dict->dict-keyiterator d)
-  (let* ((it
-          (py-obj-alloc
-            py-dict-keyiterator-class
-            py-dict-keyiterator-hclass-of-instances))
-        (ordered-table (PyObjectDict-value d))
+  (let* ((ordered-table (PyObjectDict-value d))
         (first (ordered-table-first ordered-table))
         (token (ordered-table-iterator-token ordered-table)))
-    (dict-keyiterator-node-fast-set! it first)
-    (dict-keyiterator-iterator-token-fast-set! it token)
-    it))
+    (py-dict-keyiterator-alloc first token)))
 
 (define dict_keyiterator.__iter__
   (procedure->py-function
@@ -4659,8 +4648,8 @@
 
 (define (dict-keyiterator-next self)
   (if (py-isinstance? self py-dict-keyiterator-class)
-    (let ((node (dict-keyiterator-node-fast-get self))
-          (token (dict-keyiterator-iterator-token-fast-get self)))
+    (let ((node (PyObjectDictKeyIterator-node self))
+          (token (PyObjectDictKeyIterator-iterator-token self)))
       (cond
         ((not node)
           (py-throw py-builtin-StopIteration))
@@ -4672,7 +4661,7 @@
           (let* ((cell (doubly-linked-list-node-value node))
                 (key (dict-cell-key cell))
                 (next (doubly-linked-list-node-next node)))
-            (dict-keyiterator-node-fast-set! self next)
+            (PyObjectDictKeyIterator-node-set! self next)
             key))))
     (py-throw-not-a-type-object "dict_keyiterator.__next__" self)))
 
