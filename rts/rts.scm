@@ -131,9 +131,7 @@
 (define py-bytearray-iterator-hclass-of-instances
   (make-HClass
    '#()
-   (vector
-    (& "**bytearray**")
-    (& "**index**"))
+   (vector)
    '()))
 
 ;; tuple iterator
@@ -239,6 +237,16 @@
     py-tuple-iterator-class
     index
     vec))
+
+(define (py-bytearray-iterator-alloc index bytearray)
+  (make-PyObjectBytearrayIterator
+    py-bytearray-iterator-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-bytearray-iterator-hclass-of-instances))
+      py-absent)
+    py-bytearray-iterator-class
+    index
+    bytearray))
 ;; ----------------------------------------------------------------------------
 
 (define py-absent (list 'absent))
@@ -2548,20 +2556,8 @@
       (& "__next__") py-tuple-iterator-next))
 
 (define (stop-bytearray-iterator iterator)
-  (bytearray-iterator-index-fast-set! iterator #f)
+  (PyObjectBytearrayIterator-index-set! iterator #f)
   (py-throw py-builtin-StopIteration))
-
-(define (bytearray-iterator-bytearray-fast-get li)
-  (PyObject-elements-ref li 1))
-
-(define (bytearray-iterator-bytearray-fast-set! li vec)
-  (PyObject-elements-set! li 1 vec))
-
-(define (bytearray-iterator-index-fast-get li)
-  (PyObject-elements-ref li 2))
-
-(define (bytearray-iterator-index-fast-set! li i)
-  (PyObject-elements-set! li 2 i))
 
 (define (bytearray-iterator-iter self)
   (if (eq? (py-type self) py-bytearray-iterator-class)
@@ -2575,12 +2571,12 @@
 
 (define (bytearray-iterator-next self)
   (if (eq? (py-type self) py-bytearray-iterator-class)
-    (let* ((index (bytearray-iterator-index-fast-get self))
-           (vec (bytearray-iterator-bytearray-fast-get self)))
+    (let* ((index (PyObjectBytearrayIterator-index self))
+           (vec (PyObjectBytearrayIterator-bytearray self)))
       (if (and index (< index (car vec)))
         (let ((item (u8vector-ref (cdr vec) index)))
           (begin
-            (bytearray-iterator-index-fast-set! self (+ index 1))
+            (PyObjectBytearrayIterator-index-set! self (+ index 1))
             (py-int-from-scheme item)))
         (stop-bytearray-iterator self)))
     (py-throw py-builtin-TypeError)))
@@ -4257,12 +4253,7 @@
 
 (define (bytearray-iter self)
   (if (py-isinstance? self py-bytearray-class)
-      (let ((iterator (py-obj-alloc
-                       py-bytearray-iterator-class
-                       py-bytearray-iterator-hclass-of-instances)))
-        (bytearray-iterator-bytearray-fast-set! iterator (PyObjectBytearray-value self))
-        (bytearray-iterator-index-fast-set! iterator 0)
-        iterator)
+      (py-bytearray-iterator-alloc 0 (PyObjectBytearray-value self))
       (py-throw-not-a-type-object "bytearray.__iter__" self)))
 
 (define bytearray.__iter__
