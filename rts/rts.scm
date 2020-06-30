@@ -2237,9 +2237,6 @@
 (define (py-str-to-scheme self)
   (str-make! self))
 
-(define (py-list-to-scheme self)
-  (PyObjectList-value self))
-
 (define (py-set-from-scheme elems)
   (let ((self (py-obj-alloc py-set-class py-set-hclass-of-instances)))
     (PyObject-elements-set! self 1 elems)         ;; set **elems**
@@ -2689,7 +2686,8 @@
       py-absent)
     py-list-class
     len-vec-pair))
-(define (py-list-alloc len-vec-pair cls)
+
+(define (py-list-subtype-from-scheme len-vec-pair cls)
   (make-PyObjectList
     py-list-hclass-of-instances
     (make-vector
@@ -2712,20 +2710,20 @@
        (cond
          ((eq? iterable-type py-tuple-class)
           (let ((vec (PyObjectTuple-value iterable)))
-           (py-list-alloc
+           (py-list-subtype-from-scheme 
              (vector-head->dynamic-vector vec (vector-length vec))
              cls)))
          ((eq? iterable-type py-list-class)
           (let* ((dvec (PyObjectList-value iterable))
                  (len (car dvec))
                  (vec (cdr dvec)))
-            (py-list-alloc
+            (py-list-subtype-from-scheme
               (vector-head->dynamic-vector vec len)
               cls)))
          (else
            (let* ((iterator (py-iter iterable))
                   (content (list->vector (iterator->list iterator))))
-             (py-list-alloc
+             (py-list-subtype-from-scheme
                (vector-head->dynamic-vector content (vector-length content))
                cls)))))
       (py-throw-wrong-new-argument "list" cls)))
