@@ -109,6 +109,12 @@
   ;; attrs
   value)
 
+(define-type-of-PyObject PyObjectComplex
+  id: PyObjectComplex-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  value)
+
 (define-type-of-PyObject PyObjectList
   id: PyObjectList-C6486EB6-1522-42BA-A082-B6563F943CDF
   copier: #f
@@ -164,6 +170,14 @@
   ;; attrs
   node
   iterator-token)
+
+(define-type-of-PyObject PyObjectSlice
+  id: PyObjectSlice-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; attrs
+  start
+  stop
+  step)
 
 ;; =============================================================================
 ;;  PCache

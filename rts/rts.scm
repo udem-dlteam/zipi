@@ -67,15 +67,13 @@
 (define py-complex-hclass-of-instances
   (make-HClass
     '#() ;; set later when classes exist
-    (vector
-      (& "**value**"))
+    (vector)
     '()))
 
 (define py-slice-hclass-of-instances
   (make-HClass
     '#() ;; set later when classes exist
-    (vector
-      (& "**value**"))
+    (vector)
     '()))
 
 
@@ -2721,7 +2719,7 @@
        (cond
          ((eq? iterable-type py-tuple-class)
           (let ((vec (PyObjectTuple-value iterable)))
-           (py-list-subtype-from-scheme 
+           (py-list-subtype-from-scheme
              (vector-head->dynamic-vector vec (vector-length vec))
              cls)))
          ((eq? iterable-type py-list-class)
@@ -2971,10 +2969,9 @@
 
 ;; NOTE: follows requirements of slice.indices(len)
 (define (py-slice-indices slice len)
-  (let* ((indices (object-scheme-value-fast-get slice))
-         (py-start (vector-ref indices 0))
-         (py-stop (vector-ref indices 1))
-         (py-step (vector-ref indices 2))
+  (let* ((py-start (PyObjectSlice-start slice))
+         (py-stop (PyObjectSlice-stop slice))
+         (py-step (PyObjectSlice-step slice))
          (step
            (cond
              ((eq? py-step py-None) 1)
@@ -3865,23 +3862,26 @@
 
 ;; slices
 
-(define (py-slice-from-scheme indices)
-  (py-obj-alloc-with-value
-    py-slice-class
+(define (py-slice-from-scheme start stop step)
+  (make-PyObjectSlice
     py-slice-hclass-of-instances
-    indices))
+    (make-vector
+      (vector-length (HClass-names py-slice-hclass-of-instances))
+      py-absent)
+    py-slice-class
+    start
+    stop
+    step))
 
 (define (slice-new cls arg1 arg2 arg3)
   (if (or (eq? cls py-slice-class) (py-issubclass? cls py-slice-class))
     (cond
       ((eq? arg2 py-absent)
-        (py-slice-from-scheme
-          (vector py-None arg1 py-None)))
+        (py-slice-from-scheme py-None arg1 py-None))
       ((eq? arg3 py-absent)
-        (py-slice-from-scheme
-          (vector arg1 arg2 py-None)))
+        (py-slice-from-scheme arg1 arg2 py-None))
       (else
-        (py-slice-from-scheme (vector arg1 arg2 arg3))))
+        (py-slice-from-scheme arg1 arg2 arg3)))
     (py-throw-wrong-new-argument "list" cls)))
 
 (define slice.__new__
@@ -7632,7 +7632,7 @@
       (lambda (self key reversed)
         (PyObjectList-value-set!
           self
-          (PyObjectList-value 
+          (PyObjectList-value
             ((PyObjectFunction-procedure py-builtin-sorted)
              self key reversed)))
         py-None)
