@@ -302,24 +302,23 @@
 
 ;; TODO: use a cache for builtins and one for global access
 (define (global-get-from-builtins name cache)
-  (let ((thrown-NameError
-          (lambda ()
-            (py-throw-exception-with-message
-              py-builtin-NameError
-              "name '" (PyObjectStr-value name) "' is not defined")))
-        (builtins-hclass (PyObject-hclass builtins-mod)))
+  (define (throw-NameError)
+    (py-throw-exception-with-message
+      py-builtin-NameError
+      "name '" (PyObjectStr-value name) "' is not defined"))
+  (let ((builtins-hclass (PyObject-hclass builtins-mod)))
     (if (eq? builtins-hclass (PCache-hclass cache))
       (let ((val (PyObject-elements-ref builtins-mod (PCache-index cache))))
         (if (eq? val py-absent)
-          (thrown-NameError)
+          (throw-NameError)
           val))
       (let ((i (py-own-attr-index builtins-mod name)))
         (if (< i 0)
-          (thrown-NameError)
+          (throw-NameError)
           (let ((val (PyObject-elements-ref builtins-mod i)))
             (PCache-set! cache builtins-hclass i)
             (if (eq? val py-absent)
-                (thrown-NameError)
+                (throw-NameError)
                 val)))))))
 
 (define (global-put! global name val cache)
