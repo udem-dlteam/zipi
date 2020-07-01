@@ -60,11 +60,9 @@
                 (define (init name)
                   (init-registered-constants)
                   (let ((caches (py-make-caches ,(PycModule-caches ast)))
-                        (module (py-make-global)))
+                        (module (py-make-module name)))
                     ;; TODO: remove when __compiler_intrinsics__ exists
                     (py-own-attr-set! module (& "_absent") (cons 'builtins-absent-sentinel '()))
-                    (py-own-attr-set!
-                      module (& "__name__") name)
                     ,(if full-path
                       `(py-own-attr-set!
                         module (& "__file__") (& ,full-path))

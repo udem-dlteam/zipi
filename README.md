@@ -11,7 +11,7 @@ To compile with Zipi for Gambit
 export PATH=/usr/local/Gambit/bin:$PATH
 export ZIPIROOT=/home/[username]/udem-dlteam/zipi
 # For development:
-export GAMBOPT=search=~/udem-dlteam
+export GAMBOPT=~~zipicache=~/.zipicache,~~zipidir=~/udem-dlteam/zipi,search=~/udem-dlteam
 ./configure
 make
 

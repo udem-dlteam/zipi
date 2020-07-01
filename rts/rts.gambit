@@ -62,8 +62,10 @@
 (define (debug-class-name-get obj)
   (debug-get obj 2 0 2 4 2 1))
 
-(define (debug-catch func)
-  (with-exception-catcher (lambda (e) (if (PyObject? e) (print-exception e) (raise e))) (lambda () (func))))
+(define (debug-catch thunk)
+  (with-exception-catcher 
+    (lambda (e) (if (PyObject? e) (print-exception e) (raise e))) 
+    thunk))
 
 (define (object-repr self)
   (let* ((self-type (py-type self))
@@ -74,3 +76,49 @@
 
 (define (read-string port)
    (list->string (read-all port read-char)))
+
+(define (compile-to-cache path)
+  (let* ((path-cache 
+           (string-append
+             (path-expand  "~~zipicache/cache")
+             (path-strip-extension path)
+             ".scm"))
+         (path-info (##file-info path #t #f))
+         (path-cache-info (##file-info path-cache #t #f)))
+
+    ;; compile file and return #f if compilation failed
+    (define (compile)
+      (fx= 0 
+           (begin
+             (ensure-parent-dir-exists path-cache)
+             (compile-source path path-cache))))
+
+
+    (if path-info
+        (if path-cache-info
+            ;; check according to modified date
+            (if (< (time->seconds (file-info-last-modification-time path-info))
+                   (time->seconds (file-info-last-modification-time path-cache-info)))
+                (begin 
+                  (print-debug 1 "WARNING : skipping compilation of unmodified file at " path ", compiled file found : " path-cache "\n") 
+                  #t) ;; compilation "succesfull" (file already compiled)
+                (compile)) 
+            (compile)) ;; compiled file does not exist (must compile)
+        #f))) ;; file to compile does not exist (failed compilation)
+ 
+(define (load-module-and-get-init name)
+  (let* ((sym (string->symbol name))
+         (modref (##parse-module-ref sym)))
+    (if modref
+        (with-exception-catcher
+          (lambda (exn)
+            (if (module-not-found-exception? exn)
+                #f
+                (raise exn)))
+          (lambda ()
+            (##load-module sym)
+            (let ((init (##module-var-ref modref 'init)))
+             (if (procedure? init)
+                 init
+                 #f))))
+        #f)))

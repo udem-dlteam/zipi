@@ -1,6 +1,5 @@
-print (">> mod2.py")
-import submodules.mod3
-import submodules.mod4
+import sys as hello
+import mod3
 
-x = 54
-print ("<< mod2.py")
+
+print(hello.modules["__main__"].hello.modules["mod3"].x)

@@ -1,3 +1,7 @@
+(define debug-verbosity 0)
+(define (print-debug verbosity . msg)
+  (if (>= debug-verbosity verbosity)
+      (display (append-strings msg) (current-error-port))))
 ;; TODO: change the naming convention:
 ;;  py-[class]-[method] to [class].[method]
 ;;  This was already done with int, example:
@@ -5225,150 +5229,143 @@
     (py-own-attr-set! mod (& "__builtins__") builtins-mod)
     mod))
 
+(define (py-make-module name)
+  (let ((mod (py-make-global)))
+   (py-own-attr-set! mod (& "__name__") name)
+   (dict-setitem (sys.modules-get) name mod)
+   mod))
+
 ;; ===========================================
 ;; IMPORT SYSTEM
 ;; ===========================================
 
-(define py-time.time
-  (procedure->py-function
-   (lambda ()
-     (/ (current-microseconds) 1000000.0))
-   (empty-signature)))
 
-(define (py-make-time-mod)
-  (let ((mod
-         (py-obj-alloc
-          py-module-class
-          (make-HClass
-           (vector py-module-class py-object-class)
-           (vector (& "__name__")
-                   (& "time"))
-           '()))))
-
-    (PyObject-elements-set! mod 1 py-module-class)
-    (PyObject-elements-set! mod 2 (py-str-from-scheme "time"))
-    (PyObject-elements-set! mod 3 py-time.time)
-    mod))
-
-(define time-mod (py-make-time-mod))
-
-
-(define-macro (create-sys-dict . modules)
-  `(py-dict-from-scheme (list ,@(map (lambda (x) `(cons (py-str-from-scheme ,(car x)) ,(cdr x))) modules))))
-
-(define-macro (create-sys-list . path-list)
-  `(py-list-from-scheme (cons ,(length path-list) (vector ,@(map (lambda (x) `(py-str-from-scheme ,x)) path-list)))))
+(define zipi-stdlib-dir (path-expand "stdlib" (getenv "ZIPIROOT" "~~zipidir")))
 
 (define (py-make-sys-mod)
-  (let ((mod
-         (py-obj-alloc
-          py-module-class
-          (make-HClass
-           (vector py-module-class py-object-class)
-           (vector (& "__name__")
-                   (& "modules")
-                   (& "path")
-                   )
-           '()))))
+  (let ((mod (py-make-global)))
+   (py-own-attr-set! mod (& "__name__") (& "sys"))
+   (py-own-attr-set! mod (& "modules")
+                     (py-make-dict 
+                       (list
+                         (cons (& "sys") mod))))
 
-    (PyObject-elements-set! mod 1 py-module-class)
-    (PyObject-elements-set! mod 2 (py-str-from-scheme "sys"))
-    (PyObject-elements-set! mod 3
-                            (create-sys-dict
-                             ("sys" . mod)
-                             ("time" . time-mod)))
-    (PyObject-elements-set! mod 4
-                           (create-sys-list "~/udem-dlteam/zipi/python-builtins/"))
-    mod))
+   (py-own-attr-set! mod (& "path")
+                     (py-make-list  
+                           (py-str-from-scheme zipi-stdlib-dir)))
+       mod))
 
 (define sys-mod (py-make-sys-mod))
 
 (define (sys.modules-get)
-  (PyObject-elements-ref sys-mod 3))
+  (py-own-attr-ref sys-mod (& "modules")))
 
-(define (sys-mod-path-get)
-  (PyObject-elements-ref sys-mod 4))
-
-(define (import-with-gambit sys.modules name)
-  (with-handler
-    (lambda (e)
-      (if (or (os-exception? e)
-              (expression-parsing-exception? e)
-              (unbound-global-exception? e))
-          #f
-          (raise e)))
-    (let* ((module-name (PyObjectStr-value name))
-           (init (eval `(let () (import ,(string->symbol module-name)) init)))
-           (mod (init name)))
-      (dict-setitem sys.modules name mod)
-      mod)))
+(define (sys.path-get)
+  (py-own-attr-ref sys-mod (& "path")))
 
 (define (compile-source source target)
   (define (root-dir)
     (or (getenv "ZIPIROOT")
-        (path-expand ".." (path-directory (car (command-line))))))
+        (error "Environnement variable $ZIPIROOT is not set. Refer to the README" )))
+  (print-debug 1 "WARNING : compiling file " source " to " target " \n")
   (shell-command
-   (string-append
-    (root-dir)
-    "/etc/py19 -t gambit "
-    (root-dir)
-    "/pyc "
-    source
-    " > "
-    target)))
+    (string-append
+      (root-dir)
+      "/etc/py19 -t gambit "
+      (root-dir)
+      "/pyc "
+      source
+      " > "
+      target)))
+
+(define (ensure-parent-dir-exists path)  
+  (define (wind path todo)
+    (let* ((dir (path-strip-trailing-directory-separator
+                  (path-directory path)))
+           (fi (with-exception-catcher
+                 (lambda (exc) #f)
+                 (lambda () (file-info dir)))))
+      (if fi
+          (if (eq? (file-info-type fi) 'directory)
+              (unwind todo)
+              (error "directory component can't be created"))
+          (wind dir (cons dir todo)))))  
+
+  (define (unwind todo)
+    (if (pair? todo)
+        (begin
+          ;;(pretty-print (list 'creating= (car todo)))
+          (create-directory (car todo))
+          (unwind (cdr todo)))))  
+
+  (wind path '()))
+
+(define (import-with-zipi-cache path py-__name__ sys.modules)
+  (let ((mod-init (and
+                    (compile-to-cache path)
+                    ;; TODO : for windows user, the path is not formated with a / before
+                    (load-module-and-get-init 
+                      (substring path 1 (string-length (path-strip-extension path)))))))
+    (if mod-init
+        (mod-init py-__name__)
+        #f)))
 
 
 
+(define (import-from-sys.path __name__ py-__name__ sys.modules)
+  (let ((sys.path-iter (py-iter (sys.path-get))))
+   (let loop ((value sys.path-iter))
+    (let ((value (py-next value)))
+     (if value
+         (if (py-isinstance? value py-str-class) ;; TODO : support bytes
+             (let ((path (string-append 
+                           (path-normalize (PyObjectStr-value value))
+                           __name__
+                           ".py")))
+               (or (import-with-zipi-cache path py-__name__ sys.modules)
+                   (loop sys.path-iter))) 
+             (loop sys.path-iter))
+         (py-throw-exception-with-message 
+           py-builtin-ModuleNotFoundError 
+           "No module named " __name__))))))
 
-
-(define (import-module-scheme sys.modules name)
-  (let loop ((path-list (module-search-order)))
-    (if (pair? path-list)
-        (let* ((file-path
-                (path-expand
-                  (PyObjectStr-value name)
-                  (car path-list)))
-              (python-file-path (string-append file-path ".py"))
-              (scheme-file-path (string-append file-path ".scm")))
-          (cond
-           ((file-exists? scheme-file-path)
-            ;; TODO: add some kind of checksum to detect file change
-            (or (import-with-gambit sys.modules name)
-                (py-throw-exception-with-message
-                  py-builtin-ModuleNotFoundError
-                  "Unable to compile or execute module "
-                  (PyObjectStr-value name))))
-           ((file-exists? python-file-path)
-            (begin
-              (compile-source python-file-path scheme-file-path)
-              (or (import-with-gambit sys.modules name)
-                  (py-throw-exception-with-message
-                    py-builtin-ModuleNotFoundError
-                    "Unable to compile or execute module "
-                    (PyObjectStr-value name)))))
-           (else (loop (cdr path-list)))))
-        (py-throw-exception-with-message py-builtin-ModuleNotFoundError "No module named " (PyObjectStr-value name)))))
-
-(define (builtin-__import__ name)
+(define (builtin-__import__ __name__ py-__name__)
   (let ((sys.modules (sys.modules-get)))
-    ;; check in sys.modules if the value exist and returns it if it exists
-    (or (dict-get sys.modules name #f)
-        (import-with-gambit sys.modules name)
-        (import-module-scheme sys.modules name))))
-
+   ;; check in sys.modules if the value exist and returns it if it exists
+   (or (dict-get sys.modules py-__name__ #f)
+       (import-from-sys.path __name__ py-__name__ sys.modules))))
 
 (define (py-import path depth)
-  (builtin-__import__ (py-str-from-scheme path)))
+  (builtin-__import__ path (py-str-from-scheme path)))
 
-(define (run-as-main name)
-  (let ((sys.modules (sys.modules-get))
-        (init (eval `(let () (import ,(string->symbol name)) init))))
-    (with-handler
-      (lambda (e) (if (PyObject? e) (print-exception e) (raise e)))
-      (init (py-str-from-scheme "__main__")))))
+(define (run-as-main path)
+  (let ((sys.modules (sys.modules-get)))
+   (list-append (sys.path-get) (py-str-from-scheme (path-directory path)))
+   (with-exception-catcher
+     (lambda (e) (if (PyObject? e) (print-exception e) (raise e)))
+     (lambda ()
+       (import-with-zipi-cache path (& "__main__") sys.modules)))))
 
 
 (define py-import-root (current-directory))
+
+
+;; MODULES
+
+
+;; time
+
+(define time.time
+  (procedure->py-function
+    (lambda () 
+      (py-int-from-scheme (time->seconds (current-time))))
+    (empty-signature)))
+
+(define (make-time-mod)
+  (let ((mod (py-make-module (& "time"))))
+   (py-own-attr-set! mod (& "time") time.time)))
+
+(make-time-mod)
 
 
 ;; ===========================================
@@ -5489,11 +5486,11 @@
 
 (define py-builtin-breakpoint
   (procedure->py-function
-   (lambda (args kwargs)
-     (py-throw-exception-with-message py-builtin-NotImplementedError "breakpoint not implemented"))
-  (make-signature '#() '#() 'args '#() '#() 'kwargs '#())))
+    (lambda (args kwargs)
+      (py-throw-exception-with-message py-builtin-NotImplementedError "breakpoint not implemented"))
+    (make-signature '#() '#() 'args '#() '#() 'kwargs '#())))
 
-;;-------------------- class bytearray([source[, encoding[, errors]]])
+    ;;-------------------- class bytearray([source[, encoding[, errors]]])
 
 ;; Return a new array of bytes. The bytearray class is a mutable sequence
 ;; of integers in the range 0 <= x < 256. It has most of the usual
@@ -5541,7 +5538,7 @@
       '#(source encodings errors)
       (vector py-absent py-absent py-absent))))
 
-;;-------------------- callable(object)
+    ;;-------------------- callable(object)
 
 ;; Return True if the object argument appears callable, False if not. If
 ;; this returns true, it is still possible that a call fails, but if it
@@ -7424,7 +7421,7 @@
      (cond
       ((eq? globals py-None)
        (if (py-isinstance? name py-str-class)
-           (builtin-__import__ name)
+           (builtin-__import__ (PyObjectStr-value name) name)
            (py-throw-exception-with-message py-builtin-TypeError "__import__() argument 1 must be str not " )))
       (else
        (py-throw-exception-with-message py-NotImplemented "__import__ with more then one argument is not yet implemented"))))
@@ -7690,20 +7687,20 @@
   (py-own-attr-set! builtins-mod (& "type") py-builtin-type)
   (py-own-attr-set! builtins-mod (& "vars") py-builtin-vars)
   (py-own-attr-set! builtins-mod (& "zip") py-builtin-zip)
+  (py-own-attr-set! builtins-mod (& "__import__") py-builtin-__import__)
 
   (set! py-builtin-range (py-own-attr-ref builtins-mod (& "range"))))
 
 (define (py-make-builtins-mod)
-  (let ((builtins-mod (import-module-scheme
-                        (sys.modules-get)
-                        (py-str-from-scheme "builtins"))))
+  (let ((builtins-mod (import-from-sys.path
+                        "builtins"
+                        (py-str-from-scheme "builtins")
+                        (sys.modules-get))))
     (bootstrap-builtins builtins-mod)
     builtins-mod))
 
-(define zipi-stdlib-dir (path-expand "stdlib" (getenv "ZIPIROOT")))
-
-;; load the builtins from zipi/stdlib/builtins.py
-(module-search-order-add! zipi-stdlib-dir)
+;; load the builtins from ~~zipicache
+(module-search-order-add! "~~zipicache/cache/")
 (set! builtins-mod (py-make-builtins-mod))
 
 (end-registering-constants)

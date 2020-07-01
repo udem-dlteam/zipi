@@ -36,6 +36,7 @@
     py-throw-exception-with-message
 
     py-make-global
+    py-make-module
     py-make-caches
 
     py-add
