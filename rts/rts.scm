@@ -3,6 +3,13 @@
 ;;  This was already done with int, example:
 ;; the object int.__add__ has name 'int.__add__' in the source
 
+;; General exception thrower helper
+(define-macro (py-throw-exception-with-message exc . msg)
+  `(py-throw
+    (py-call
+      ,exc
+      (py-str-from-scheme (string-append ,@msg)))))
+
 (define (init-constants constants)
   (vector-for-each
     (lambda (obj)
@@ -270,28 +277,50 @@
 
 (define (global-get global name cache)
    (if (eq? (PyObject-hclass global) (PCache-hclass cache))
-       (let ((val (PyObject-elements-ref global (PCache-index cache))))
-         (if (not (eq? val py-absent))
-             val
-             (py-throw py-builtin-NameError)))
-       (global-get/miss global name cache)))
+     (let ((val (PyObject-elements-ref global (PCache-index cache))))
+       (if (not (eq? val py-absent))
+           val
+           ;; TODO: use a different cache
+           (global-get-from-builtins name cache)))
+     (global-get/miss global name cache)))
 
 (define (global-get/miss global name cache)
   (let ((i (py-own-attr-index global name)))
     (if (< i 0)
-        (let ((bi (py-own-attr-ref global (& "__builtins__") #f)))
-          (if (not (eq? bi py-absent))
-              (let ((val (py-own-attr-ref bi name #f)))
-                (if (not (eq? val py-absent))
-                    val
-                    (py-throw py-builtin-NameError)))
-              (py-throw py-builtin-NameError)))
-        (let ((hclass (PyObject-hclass global)))
-          (PCache-set! cache hclass i)
-          (let ((val (PyObject-elements-ref global i)))
-            (if (not (eq? val py-absent))
-                val
-                (py-throw py-builtin-NameError)))))))
+      ;; as per Python 3.8 (maybe 3.7?) builtins module is no longer recovered
+      ;; through __builtins__, this was also documented as an implementation
+      ;; detail: https://docs.python.org/3/library/builtins.html
+      ;; TODO: use a different cache
+      (global-get-from-builtins name cache)
+      (let ((hclass (PyObject-hclass global)))
+        (PCache-set! cache hclass i)
+        (let ((val (PyObject-elements-ref global i)))
+          (if (not (eq? val py-absent))
+              val
+              ;; TODO: use a different cache
+              (global-get-from-builtins name cache)))))))
+
+;; TODO: use a cache for builtins and one for global access
+(define (global-get-from-builtins name cache)
+  (let ((thrown-NameError
+          (lambda ()
+            (py-throw-exception-with-message
+              py-builtin-NameError
+              "name '" (PyObjectStr-value name) "' is not defined")))
+        (builtins-hclass (PyObject-hclass builtins-mod)))
+    (if (eq? builtins-hclass (PCache-hclass cache))
+      (let ((val (PyObject-elements-ref builtins-mod (PCache-index cache))))
+        (if (eq? val py-absent)
+          (thrown-NameError)
+          val))
+      (let ((i (py-own-attr-index builtins-mod name)))
+        (if (< i 0)
+          (thrown-NameError)
+          (let ((val (PyObject-elements-ref builtins-mod i)))
+            (PCache-set! cache builtins-hclass i)
+            (if (eq? val py-absent)
+                (thrown-NameError)
+                val)))))))
 
 (define (global-put! global name val cache)
    (if (eq? (PyObject-hclass global) (PCache-hclass cache))
@@ -739,12 +768,6 @@
         (py-str-from-scheme
           (string-append
             fun-name " returned " qualifier " (type " type-name ")"))))))
-
-(define-macro (py-throw-exception-with-message exc . msg)
-  `(py-throw
-    (py-call
-      ,exc
-      (py-str-from-scheme (string-append ,@msg)))))
 
 ;; -----------------------------------------------------------------------------
 
