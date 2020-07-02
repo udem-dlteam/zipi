@@ -273,7 +273,9 @@
     encoding))
 ;; ----------------------------------------------------------------------------
 
-(define py-absent (list 'absent))
+;; WARNING: this must be a constant otherwise it may be garbage collected
+;; in some case and no longer be eq? with its version stored in literal objects
+(define py-absent '%py-absent)
 
 (define (global-get global name cache)
    (if (eq? (PyObject-hclass global) (PCache-hclass cache))
