@@ -81,7 +81,7 @@
 ;; == GAMBIT CACHE SYSTEM ==
 
 ;; WARNING : dont change this location without knowing what you do because (delete-zipi-cache) procedures recursively deletes this directory 
-(define-macro (gambit-cache-location) `,(path-expand "~~zipicache/cache@zipi_0_0_1"))
+(define (gambit-cache-location) (path-expand "~~zipicache/cache@zipi_0_0_1"))
 
 (define (ensure-parent-dir-exists path)  
   (define (wind path todo)
@@ -138,15 +138,19 @@
          (path-info (##file-info path #t #f))
          (path-cache-info (##file-info path-cache #t #f)))
 
-    ;; compile file and return #f if compilation failed
-    (define (compile)
-      (ensure-parent-dir-exists path-cache)
+
+    (define (create-_must-build_)
       (if compile-flag
           (let ((_must-build_-path 
                   (string-append (path-strip-extension path-cache) "._must-build_")))
            (if compile-flag
                (with-output-to-file _must-build_-path list)
-               (##delete-file _must-build_-path #f))))
+               (##delete-file _must-build_-path #f)))))
+    
+    ;; compile file and return #f if compilation failed
+    (define (compile)
+      (ensure-parent-dir-exists path-cache)
+      (create-_must-build_)
       (fx= 0 (compile-source path path-cache)))
 
 
@@ -157,6 +161,7 @@
                    (time->seconds (file-info-last-modification-time path-cache-info)))
                 (begin 
                   (print-debug 1 "WARNING : skipping compilation of unmodified file at " path ", compiled file found : " path-cache "\n") 
+                  (create-_must-build_)
                   #t) ;; compilation "succesfull" (file already compiled)
                 (compile)) 
             (compile)) ;; compiled file does not exist (must compile)
