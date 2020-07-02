@@ -23,7 +23,7 @@
       (PyObject-class-set! obj py-str-class)
       (PyObjectStr-representative-set! obj py-absent)
       (PyObjectStr-hash-set! obj py-absent))
-    (unbox constants)))
+    (structure-ref constants 1)))
 
 (start-registering-constants)
 

@@ -20,7 +20,7 @@
         id: %constants
         constructor: %make-Constants
         prefix: %
-        macros: table)
+        table)
       (define-type PyStaticStr
         ;; NOTE: id must be the same as PyObject
         id: %pystaticobject
@@ -36,17 +36,20 @@
       (define (make-PyStaticStr value)
         (%make-PyStaticStr #f #f #f value #f #f))
       (define %constants (%make-Constants (make-table)))
-      (define constants-cell (box #f))
       (define (constants-table) (%Constants-table %constants))
       (define (constants-ref c key) (table-ref (%Constants-table c) key #f))
-      (define (constants-set! c key val) (table-set! (%Constants-table c) key val))))
+      (define (constants-set! c key val) (table-set! (%Constants-table c) key val))
+      (define (vectorify-constant-table)
+        (%Constants-table-set!
+          %constants
+          (list->vector (map cdr (table->list (constants-table))))))))
   `(##begin))
 
 (define-macro (init-registered-constants)
-  `(init-constants ',constants-cell))
+  `(init-constants ',%constants))
 
 (define-macro (end-registering-constants)
-  (set-box! constants-cell (list->vector (map cdr (table->list (constants-table))))))
+  (vectorify-constant-table))
 
 (define-macro (& e)
   (if (string? e)
