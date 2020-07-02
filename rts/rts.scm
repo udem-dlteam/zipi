@@ -2,10 +2,6 @@
 (define (print-debug verbosity . msg)
   (if (>= debug-verbosity verbosity)
       (display (append-strings msg) (current-error-port))))
-;; TODO: change the naming convention:
-;;  py-[class]-[method] to [class].[method]
-;;  This was already done with int, example:
-;; the object int.__add__ has name 'int.__add__' in the source
 
 ;; General exception thrower helper
 (define-macro (py-throw-exception-with-message exc . msg)
