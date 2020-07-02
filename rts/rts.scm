@@ -5263,43 +5263,6 @@
 (define (sys.path-get)
   (py-own-attr-ref sys-mod (& "path")))
 
-(define (compile-source source target)
-  (define (root-dir)
-    (or (getenv "ZIPIROOT")
-        (error "Environnement variable $ZIPIROOT is not set. Refer to the README" )))
-  (print-debug 1 "WARNING : compiling file " source " to " target " \n")
-  (shell-command
-    (string-append
-      (root-dir)
-      "/etc/py19 -t gambit "
-      (root-dir)
-      "/pyc "
-      source
-      " > "
-      target)))
-
-(define (ensure-parent-dir-exists path)  
-  (define (wind path todo)
-    (let* ((dir (path-strip-trailing-directory-separator
-                  (path-directory path)))
-           (fi (with-exception-catcher
-                 (lambda (exc) #f)
-                 (lambda () (file-info dir)))))
-      (if fi
-          (if (eq? (file-info-type fi) 'directory)
-              (unwind todo)
-              (error "directory component can't be created"))
-          (wind dir (cons dir todo)))))  
-
-  (define (unwind todo)
-    (if (pair? todo)
-        (begin
-          ;;(pretty-print (list 'creating= (car todo)))
-          (create-directory (car todo))
-          (unwind (cdr todo)))))  
-
-  (wind path '()))
-
 (define (import-with-zipi-cache path py-__name__ sys.modules)
   (let ((mod-init (and
                     (compile-to-cache path)
@@ -5309,8 +5272,6 @@
     (if mod-init
         (mod-init py-__name__)
         #f)))
-
-
 
 (define (import-from-sys.path __name__ py-__name__ sys.modules)
   (let ((sys.path-iter (py-iter (sys.path-get))))
@@ -7699,8 +7660,9 @@
     (bootstrap-builtins builtins-mod)
     builtins-mod))
 
-;; load the builtins from ~~zipicache
-(module-search-order-add! "~~zipicache/cache/")
-(set! builtins-mod (py-make-builtins-mod))
+(define (build-builtins)
+  (if (eq? builtins-mod py-absent)
+      (set! builtins-mod (py-make-builtins-mod))))
+
 
 (end-registering-constants)
