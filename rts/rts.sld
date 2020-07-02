@@ -268,6 +268,10 @@
     py-builtin-vars
     py-builtin-zip
 
+    delete-zipi-cache
+    build-builtins
+    set-compile-flag
+    
     ;;debug functions
     debug-get
     debug-get-list
