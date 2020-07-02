@@ -1868,9 +1868,9 @@
             (begin
               (PyObjectStr-representative-set! str rep)
               rep)
-            (begin
-              (table-set! str-representatives str-value str)
-              str))))
+            (let ((new-rep (make-representative str)))
+              (table-set! str-representatives str-value new-rep)
+              new-rep))))
       self-token)))
 
 (define (str-new cls value)
