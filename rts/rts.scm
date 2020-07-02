@@ -2013,13 +2013,10 @@
     (let* ((representative (str-representative-get self))
            (hash (PyObjectStr-hash representative)))
       (if (eq? hash py-absent)
-        (let ((new-hash
-                (py-int-from-scheme
-                  (hash-FNV1a
-                    (PyObjectStr-value representative)))))
+        (let ((new-hash (hash-FNV1a (PyObjectStr-value representative))))
           (PyObjectStr-hash-set! representative new-hash)
-          new-hash)
-        hash))
+          (py-int-from-scheme new-hash))
+        (py-int-from-scheme hash)))
     (py-throw-required-type "__hash__" "str" self)))
 
 (define str.__hash__
