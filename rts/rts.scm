@@ -1387,6 +1387,9 @@
                   (flfloor div)
                   (flceiling div))))))
 
+(define (fl!= x y)
+  (not (fl= x y)))
+
 (define-float-binary-operator float-add "__add__"            (result-to-float fl+))
 (define-float-binary-operator float-radd "__radd__"          (result-to-float fl+))
 (define-float-binary-operator float-sub "__sub__"            (result-to-float fl-))
@@ -4309,29 +4312,19 @@
 ;; =============================================================================
 
 (define (py-generator-yield gen val kont)
-   (PyGenerator-%next-set! gen kont)
-   val)
+   (py-throw-exception-with-message
+     py-builtin-NotImplementedError
+     "py-generator-yield not implemented"))
 
 (define (py-make-generator proc)
-   (letrec ((o (make-PyGenerator
-		  py-generator-hclass
-		  (vector
-                     py-object-class
-                     py-object-class
-		  (procedure->py-function
-        (lambda (self) (py-generator-send self py-None))
-        (make-posonly-signature '#(self)))
-		  (procedure->py-function
-        py-generator-send
-        (make-posonly-signature '#(self value))))
-		  proc)))
-      o))
+  (py-throw-exception-with-message
+    py-builtin-NotImplementedError
+    "py-make-generator not implemented"))
 
 (define (py-generator-send self value)
-   (let ((r ((PyGenerator-%next self) value #f)))
-      (if (eq? r 'StopIteration)
-	  (py-throw 'StopIteration)
-	  r)))
+  (py-throw-exception-with-message
+    py-builtin-NotImplementedError
+    "py-generator-send not implemented"))
 
 (define (py-next iterator)
   (let ((next (getattribute-from-obj-mro iterator (& "__next__"))))
