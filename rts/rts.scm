@@ -27,7 +27,6 @@
 
 (define py-object-hclass-of-instances
   (make-builtin-HClass
-    '#() ;; set later when classes exist
     (vector)
     '()))
 
@@ -35,7 +34,6 @@
 ;; this is the hidden class of classes
 (define py-type-hclass-of-instances
   (make-builtin-HClass
-    '#() ;; set later when classes exist
     (vector
       (& "__name__")
       (& "__call__"))
@@ -43,81 +41,68 @@
 
 (define py-str-hclass-of-instances
   (make-builtin-HClass
-    '#() ;; set later when classes exist
     (vector)
     '()))
 
 (define py-tuple-hclass-of-instances
   (make-builtin-HClass
-    '#() ;; set later when classes exist
     (vector)
     '()))
 
 (define py-int-hclass-of-instances
   (make-builtin-HClass
-    '#() ;; set later when classes exist
     (vector)
     '()))
 
 (define py-float-hclass-of-instances
   (make-builtin-HClass
-    '#() ;; set later when classes exist
     (vector)
     '()))
 
 (define py-complex-hclass-of-instances
   (make-builtin-HClass
-    '#() ;; set later when classes exist
     (vector)
     '()))
 
 (define py-slice-hclass-of-instances
   (make-builtin-HClass
-    '#() ;; set later when classes exist
     (vector)
     '()))
 
 
 (define py-bytearray-hclass-of-instances
   (make-builtin-HClass
-    '#() ;; set later when classes exist
     (vector)
     '()))
 
 (define py-method-hclass-of-instances
   (make-builtin-HClass
-    '#()
     (vector
       (& "__self__"))
     '()))
 
 (define py-function-hclass-of-instances
   (make-builtin-HClass
-    '#()
     (vector)
     '()))
 
 (define py-list-hclass-of-instances
   (make-builtin-HClass
-    '#() ;; set later when classes exist
     (vector)
     '()))
 
 (define py-dict-hclass-of-instances
   (make-builtin-HClass
-    '#() ;; set later when classes exist
     (vector)
     '()))
 
 (define py-set-hclass-of-instances
   (make-builtin-HClass
-    '#() ;; set later when classes exist
     (vector)
     '()))
 
 (define py-module-hclass-of-instances
   (make-builtin-HClass
-    '#() ;; set later when classes exist
     (vector
       (& "__name__")
       (& "__builtins__"))
@@ -125,34 +110,29 @@
 
 (define py-list-iterator-hclass-of-instances
   (make-builtin-HClass
-    '#()
     (vector)
     '()))
 
 ;; bytearray iterator
 (define py-bytearray-iterator-hclass-of-instances
   (make-builtin-HClass
-   '#()
    (vector)
    '()))
 
 ;; tuple iterator
 (define py-tuple-iterator-hclass-of-instances
   (make-builtin-HClass
-    '#()
     (vector)
     '()))
 
 ;; dict-keys iterator
 (define py-dict-keyiterator-hclass-of-instances
   (make-builtin-HClass
-    '#()
     (vector)
     '()))
 
 (define py-generator-hclass
   (make-builtin-HClass
-   '#()
    (vector
     (& "__next__")
     (& "send"))
@@ -160,13 +140,11 @@
 
 (define py-TextIOWrapper-hclass-of-instances
   (make-builtin-HClass
-    '#()
     (vector)
     '()))
 
 (define py-super-hclass-of-instances
   (make-builtin-HClass
-    '#() ;; set later when classes exist
     (vector)
     '()))
 
@@ -2200,7 +2178,7 @@
       (error "py-obj-cls" "unhandled object type" obj)))
 
 (define (py-obj-mro obj) ;; return MRO of object
-  (PyObjectType-mro (py-obj-cls obj))) ;; TODO: use HClass-class-mro
+  (PyObjectType-mro (py-obj-cls obj)))
 
 ;;;----------------------------------------------------------------------------
 
@@ -2349,9 +2327,7 @@
     ;; Fill in object class
     (PyObject-class-set! object-class type-class)
     (PyObjectType-bases-set! object-class '#())
-    (let ((object-mro (vector object-class)))
-      (HClass-class-mro-set! py-object-hclass-of-instances object-mro)
-      (PyObjectType-mro-set! object-class object-mro))
+    (PyObjectType-mro-set! object-class (vector object-class))
     (PyObjectType-hclass-of-instances-set! object-class py-object-hclass-of-instances)
     (py-own-attr-set! object-class (& "__name__") (py-str-from-scheme "object"))
     (py-own-attr-set! object-class (& "__module__") (py-str-from-scheme "builtins"))
@@ -2365,9 +2341,7 @@
     ;; Fill in type class
     (PyObject-class-set! type-class type-class)
     (PyObjectType-bases-set! type-class '#(object-class))
-    (let ((type-mro (vector type-class object-class)))
-      (HClass-class-mro-set! py-type-hclass-of-instances type-mro)
-      (PyObjectType-mro-set! type-class type-mro))
+    (PyObjectType-mro-set! type-class (vector type-class object-class))
     (PyObjectType-hclass-of-instances-set! type-class py-type-hclass-of-instances)
     (py-own-attr-set! type-class (& "__name__") (py-str-from-scheme "type"))
     (py-own-attr-set! type-class (& "__module__") (py-str-from-scheme "builtins"))
@@ -2378,9 +2352,7 @@
     ;; Fill in tuple class
     (PyObject-class-set! tuple-class type-class)
     (PyObjectType-bases-set! tuple-class '#(object-class))
-    (let ((tuple-mro (vector tuple-class object-class)))
-      (HClass-class-mro-set! py-tuple-hclass-of-instances tuple-mro)
-      (PyObjectType-mro-set! tuple-class tuple-mro))
+    (PyObjectType-mro-set! tuple-class (vector tuple-class object-class))
     (PyObjectType-hclass-of-instances-set! tuple-class py-tuple-hclass-of-instances)
     (py-own-attr-set! tuple-class (& "__name__") (py-str-from-scheme "tuple"))
     (py-own-attr-set! tuple-class (& "__module__") (py-str-from-scheme "builtins"))
@@ -2388,9 +2360,7 @@
     ;; Fill in str class
     (PyObject-class-set! str-class type-class)
     (PyObjectType-bases-set! str-class '#(object-class))
-    (let ((str-mro (vector str-class object-class)))
-      (HClass-class-mro-set! py-str-hclass-of-instances str-mro)
-      (PyObjectType-mro-set! str-class str-mro))
+    (PyObjectType-mro-set! str-class (vector str-class object-class))
     (PyObjectType-hclass-of-instances-set! str-class py-str-hclass-of-instances)
     (py-own-attr-set! str-class (& "__name__") (py-str-from-scheme "str"))
     (py-own-attr-set! str-class (& "__module__") (py-str-from-scheme "builtins"))

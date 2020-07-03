@@ -254,10 +254,13 @@
   implementer: implement-HClass
   copier: #f
   opaque:
-  macros: class-mro names transitions)
+  macros:
+  ;; attrs
+  names
+  transitions)
 
-(define-macro (make-builtin-HClass mro names transitions)
-  `(make-still-copy (make-HClass ,mro ,names ,transitions)))
+(define-macro (make-builtin-HClass names transitions)
+  `(make-still-copy (make-HClass ,names ,transitions)))
 
 (define-macro (HClass-last-index hclass)
   `(fx- (vector-length (HClass-names ,hclass)) 1))
@@ -284,7 +287,6 @@
         (cdr tran)
         (let ((nhclass
                 (make-HClass
-                  (HClass-class-mro $hc)
                   (vector-extend (HClass-names $hc) $name)
                   '())))
           (HClass-transition-add! $hc key nhclass)
