@@ -150,8 +150,7 @@
   copier: #f
   ;; attrs
   value
-  (representative unprintable:)
-  (hash unprintable:))
+  (representative unprintable:))
 
 (define-type-of-PyObject PyObjectFunction
   id: PyObjectFunction-C6486EB6-1522-42BA-A082-B6563F943CDF

@@ -21,8 +21,7 @@
           (vector-length (HClass-names py-str-hclass-of-instances))
           py-absent))
       (PyObject-class-set! obj py-str-class)
-      (PyObjectStr-representative-set! obj py-absent)
-      (PyObjectStr-hash-set! obj py-absent))
+      (PyObjectStr-representative-set! obj py-absent))
     (structure-ref constants 1)))
 
 (start-registering-constants)
@@ -2000,14 +1999,8 @@
           (truncate-hash (* (bitwise-xor h (car bytes)) FNV1a-prime)))))))
 
 (define (str-hash self)
-  (if (py-isinstance? self py-str-class)
-    (let* ((representative (str-representative-get self))
-           (hash (PyObjectStr-hash representative)))
-      (if (eq? hash py-absent)
-        (let ((new-hash (hash-FNV1a (PyObjectStr-value representative))))
-          (PyObjectStr-hash-set! representative new-hash)
-          (py-int-from-scheme new-hash))
-        (py-int-from-scheme hash)))
+  (if (PyObjectStr? self)
+    (py-int-from-scheme (hash-FNV1a (PyObjectStr-value self)))
     (py-throw-required-type "__hash__" "str" self)))
 
 (define str.__hash__
@@ -2265,8 +2258,7 @@
       py-absent)
     py-str-class
     value
-    py-absent ;; representative
-    py-absent)) ;; hash
+    py-absent)) ;; representative
 
 (define (py-str-subtype-from-scheme value str-subclass)
   (make-PyObjectStr
@@ -2276,8 +2268,7 @@
       py-absent)
     str-subclass
     value
-    py-absent ;; representative
-    py-absent)) ;; hash
+    py-absent)) ;; representative
 
 (define (py-str-to-scheme self)
   (str-make! self))
