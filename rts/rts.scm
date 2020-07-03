@@ -5246,12 +5246,12 @@
   (let ((mod (py-make-global)))
    (py-own-attr-set! mod (& "__name__") (& "sys"))
    (py-own-attr-set! mod (& "modules")
-                     (py-make-dict 
+                     (py-make-dict
                        (list
                          (cons (& "sys") mod))))
 
    (py-own-attr-set! mod (& "path")
-                     (py-make-list  
+                     (py-make-list
                            (py-str-from-scheme zipi-stdlib-dir)))
        mod))
 
@@ -5267,7 +5267,7 @@
   (let ((mod-init (and
                     (compile-to-cache path)
                     ;; TODO : for windows user, the path is not formated with a / before
-                    (load-module-and-get-init 
+                    (load-module-and-get-init
                       (substring path 1 (string-length (path-strip-extension path)))))))
     (if mod-init
         (mod-init py-__name__)
@@ -5279,15 +5279,15 @@
     (let ((value (py-next value)))
      (if value
          (if (py-isinstance? value py-str-class) ;; TODO : support bytes
-             (let ((path (string-append 
+             (let ((path (string-append
                            (path-normalize (PyObjectStr-value value))
                            __name__
                            ".py")))
                (or (import-with-zipi-cache path py-__name__ sys.modules)
-                   (loop sys.path-iter))) 
+                   (loop sys.path-iter)))
              (loop sys.path-iter))
-         (py-throw-exception-with-message 
-           py-builtin-ModuleNotFoundError 
+         (py-throw-exception-with-message
+           py-builtin-ModuleNotFoundError
            "No module named " __name__))))))
 
 (define (builtin-__import__ __name__ py-__name__)
@@ -5318,7 +5318,7 @@
 
 (define time.time
   (procedure->py-function
-    (lambda () 
+    (lambda ()
       (py-int-from-scheme (time->seconds (current-time))))
     (empty-signature)))
 

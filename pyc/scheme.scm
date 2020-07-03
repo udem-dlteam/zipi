@@ -72,7 +72,7 @@
                 (end-registering-constants))))))
 
 (define (scheme* nodes conf)
-   (map (lambda (n) (scheme n conf)) nodes))
+  (map (lambda (n) (scheme n conf)) nodes))
 
 (define (scheme+ vals decls conf)
    (let loop ((vals vals)
@@ -88,10 +88,13 @@
    (error "scheme" "Not implemented" (pyc->list this)))
 
 (define-walk-method (scheme this::PycModule conf)
-   (epairify this
+  (let ((stmts (PycModule-stmts this)))
+    (epairify this
       `(lambda (%global %caches)
-	  ,@(scheme* (PycModule-stmts this)
-	       (cons* module: (PycModule-globals this) conf)))))
+        ,@(if (null? stmts)
+          '(#f)
+          (scheme* (PycModule-stmts this)
+            (cons* module: (PycModule-globals this) conf)))))))
 
 (define-walk-method (scheme this::PycSeq conf)
    (epairify this
