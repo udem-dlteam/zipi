@@ -172,15 +172,6 @@
 ;; Method for fast access to attributes defined in hidden classes
 ;; Those are unsafe methods
 
-(define (type-name-fast-get type)
-  (PyObject-elements-ref type 0))
-
-(define (type-name-fast-set! type name)
-  (PyObject-elements-set! type 0 name))
-
-(define (class-__call__-fast-get class)
-  (PyObject-elements-ref class 1))
-
 (define (method-__self__-fast-get obj)
   (PyObject-elements-ref obj 0))
 
@@ -571,7 +562,7 @@
 ;; Exception thrower helpers
 ;; =============================================================================
 (define (throw-unsupported-unary-operand x operator)
-  (let ((x-type-name (type-name-fast-get (py-type x))))
+  (let ((x-type-name (py-own-attr-ref (py-type x) (& "__name__"))))
     (py-throw
       (py-call
         py-builtin-TypeError
@@ -584,7 +575,7 @@
             "'"))))))
 
 (define (throw-unhashable x)
-  (let ((x-type-name (type-name-fast-get (py-type x))))
+  (let ((x-type-name (py-own-attr-ref (py-type x) (& "__name__"))))
     (py-throw
       (py-call
         py-builtin-TypeError
@@ -595,7 +586,7 @@
             "'"))))))
 
 (define (py-throw-not-an-integer obj)
-  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
+  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type obj) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
@@ -605,7 +596,7 @@
             "' object cannot be interpreted as an integer"))))))
 
 (define (py-throw-has-no-len obj)
-  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
+  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type obj) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
@@ -638,7 +629,7 @@
       (py-str-from-scheme "pop from empty list"))))
 
 (define (py-throw-not-subscriptable obj)
-  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
+  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type obj) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
@@ -648,7 +639,7 @@
             "' object is not subscriptable"))))))
 
 (define (py-throw-not-assignable obj)
-  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
+  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type obj) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
@@ -658,7 +649,7 @@
             "' object does not support item assignment"))))))
 
 (define (py-throw-not-deletable obj)
-  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
+  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type obj) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
@@ -668,7 +659,7 @@
             "' object does not support item deletion"))))))
 
 (define (py-throw-wrong-index-type type expected-description item)
-  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type item)))))
+  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type item) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
@@ -695,7 +686,7 @@
           (number->string expected-len))))))
 
 (define (throw-not-iteralble obj)
-  (let ((obj-type-name (type-name-fast-get (py-type obj))))
+  (let ((obj-type-name (py-own-attr-ref (py-type obj) (& "__name__"))))
     (py-throw (py-call
                 py-builtin-TypeError
                 (py-str-from-scheme
@@ -705,21 +696,21 @@
                     "' is not iterable"))))))
 
 (define (py-throw-not-an-iterator obj)
-  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
+  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type obj) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
           (string-append "'" given-type "' object is not an iterator"))))))
 
 (define (py-throw-not-callable obj)
-  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
+  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type obj) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
           (string-append "'" given-type "' object is not callable"))))))
 
 (define (py-throw-required-type method-name required-type arg)
-  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type arg)))))
+  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type arg) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
@@ -733,7 +724,7 @@
               "'"))))))
 
 (define (py-throw-not-a-subtype fun-name wrong-type type-name)
-  (let ((wrong-type-name (py-str-to-scheme (type-name-fast-get wrong-type))))
+  (let ((wrong-type-name (py-str-to-scheme (py-own-attr-ref wrong-type (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
@@ -742,7 +733,7 @@
 
 (define (py-throw-not-a-type-object fun-name obj)
   (let* ((instance-type (py-type obj))
-         (instance-type-name (py-str-to-scheme (type-name-fast-get instance-type))))
+         (instance-type-name (py-str-to-scheme (py-own-attr-ref instance-type (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
@@ -762,7 +753,7 @@
 
 (define (throw-returned-wrong-type fun-name obj qualifier)
   (let* ((type (py-type obj))
-         (type-name (type-name-fast-get type)))
+         (type-name (py-own-attr-ref type (& "__name__"))))
     (py-throw
       (py-call
         py-builtin-TypeError
@@ -784,8 +775,8 @@
 ;; =============================================================================
 
 (define (throw-unsupported-operand x y operator)
-  (let ((x-type-name (type-name-fast-get (py-type x)))
-        (y-type-name (type-name-fast-get (py-type y))))
+  (let ((x-type-name (py-own-attr-ref (py-type x) (& "__name__")))
+        (y-type-name (py-own-attr-ref (py-type y) (& "__name__"))))
     (py-throw
       (py-call
         py-builtin-TypeError
@@ -2154,7 +2145,7 @@
     (let ((value (PyObjectInt-value i)))
       (py-str-from-scheme (string (integer->char value))))
     (let* ((i-type (py-type i))
-	   (i-type-name (type-name-fast-get i-type)))
+	   (i-type-name (py-own-attr-ref i-type (& "__name__"))))
       (py-throw
         (py-call
           py-builtin-TypeError
