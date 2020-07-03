@@ -72,7 +72,9 @@
                 (end-registering-constants))))))
 
 (define (scheme* nodes conf)
-   (map (lambda (n) (scheme n conf)) nodes))
+  (if (null? nodes)
+    (list 'py-None)
+    (map (lambda (n) (scheme n conf)) nodes)))
 
 (define (scheme+ vals decls conf)
    (let loop ((vals vals)
