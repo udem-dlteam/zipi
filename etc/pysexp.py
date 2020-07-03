@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.8
 
 import argparse
 import ast as AST
@@ -6,11 +6,10 @@ import subprocess
 import sys
 
 python38 = sys.version_info[:2] == (3, 8)
-python35 = sys.version_info[:2] == (3, 5)
 generate_location_information = True    # set to True to get location info
 
-if not python35 and not python38:
-    raise ValueError("Zipi only supports Python 3.5 and 3.8")
+if not python38:
+    raise ValueError("Zipi only supports Python 3.8")
 
 # autoconfiguration
 class dummyClass(): pass
