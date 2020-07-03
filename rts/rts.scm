@@ -5278,7 +5278,7 @@
 (define time.time
   (procedure->py-function
     (lambda ()
-      (py-int-from-scheme (time->seconds (current-time))))
+      (py-float-from-scheme (time->seconds (current-time))))
     (empty-signature)))
 
 (define (make-time-mod)
