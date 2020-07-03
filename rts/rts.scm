@@ -5286,8 +5286,8 @@
              "/"
              (path-strip-extension (path-strip-directory path))
              ".sld"))
-         (path-info (##file-info path #t #f))
-         (path-cache-info (##file-info path-cache #t #f)))
+         (path-info (file-info path #t #f))
+         (path-cache-info (file-info path-cache #t #f)))
 
 
     (define (create-_must-build_)
@@ -5296,7 +5296,7 @@
                   (string-append (path-strip-extension path-cache) "._must-build_")))
            (if compile-flag
                (with-output-to-file _must-build_-path list)
-               (##delete-file _must-build_-path #f)))))
+               (delete-file _must-build_-path #f)))))
 
     ;; compile file and return #f if compilation failed
     (define (compile)
@@ -5320,7 +5320,7 @@
 
 (define (load-module-and-get-init name)
   (let* ((sym (string->symbol name))
-         (modref (##parse-module-ref sym)))
+         (modref (parse-module-ref sym)))
     (if modref
         (with-exception-catcher
           (lambda (exn)
@@ -5328,8 +5328,8 @@
                 #f
                 (raise exn)))
           (lambda ()
-            (##load-module sym)
-            (let ((init (##module-var-ref modref 'init)))
+            (load-module sym)
+            (let ((init (module-var-ref modref 'init)))
              (if (procedure? init)
                  init
                  #f))))

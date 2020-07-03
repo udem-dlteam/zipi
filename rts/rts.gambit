@@ -2,6 +2,8 @@
 ;*    Gambit compatibility                                             */
 ;*---------------------------------------------------------------------*/
 
+(import (gambit prim))
+
 (define-macro (with-handler handler . body)
   `(with-exception-catcher
       ,handler
@@ -21,6 +23,15 @@
 
 (define-macro (cell-set! c e)
   `(set-box! ,c ,e))
+
+(define-macro (parse-module-ref mod)
+  `(##parse-module-ref ,mod))
+
+(define-macro (load-module mod)
+  `(##load-module ,mod))
+
+(define-macro (module-var-ref modref var)
+  `(##module-var-ref ,modref ,var))
 
 (define-macro (structure-ref obj i)
   `(##unchecked-structure-ref ,obj , i #f #f))
@@ -80,5 +91,6 @@
 
 (define (read-string port)
    (list->string (read-all port read-char)))
+
 
 
