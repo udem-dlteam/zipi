@@ -171,18 +171,6 @@
             (compile)) ;; compiled file does not exist (must compile)
         #f))) ;; file to compile does not exist (failed compilation)
 
-(define (delete-zipi-cache)
-  (if (file-exists? (gambit-cache-location))
-      (if (fx= 1 (length (directory-files (path-normalize (path-expand ".." (gambit-cache-location))))))
-          (delete-file-or-directory (gambit-cache-location) #t)
-          (error
-            "Cannot delete zipicache. Your zipicache folder is at : "
-            (gambit-cache-location)
-            ". Please delete cache folder manualy or change ~~zipicache location."))
-      (print-debug 1
-          "WARNING : cannot delete zipicache, folder "
-          (gambit-cache-location)
-          " cannot be found")))
 
 (define (load-module-and-get-init name)
   (let* ((sym (string->symbol name))

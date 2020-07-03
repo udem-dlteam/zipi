@@ -1,0 +1,42 @@
+#!/usr/bin/env gsi
+
+(define (flag? s)
+  (and (>= (string-length s) 2)
+       (string=? (substring s 0 2) "--")))
+
+(define (get-file-name args)
+  (fold (lambda (x y) (if (flag? x) y x)) #f args))
+
+;; If the path is updated here, it should be changed in rts.scm
+(define (cache-location) (path-expand "~~zipicache/cache@zipi_0_0_1"))
+
+(define (delete-zipi-cache)
+  (if (and (##file-info (cache-location) #t #f)
+           (eq? 'directory (##file-info-type (file-info (cache-location)))))
+      (if (fx= 1 (length (directory-files (path-normalize (path-expand ".." (cache-location))))))
+          (delete-file-or-directory (cache-location) #t)
+          (error
+            "Cannot delete zipicache. Your zipicache folder is at : "
+            (cache-location)
+            ". Please delete cache folder manualy or change ~~zipicache location."))
+      (println
+          "WARNING - cache not found: folder "
+          (cache-location)
+          " cannot be found")))
+
+(define (main . args)
+  (if (member "--clear-cache" args)
+      (begin
+        (println "clearing cache...")
+        (delete-zipi-cache)))
+  (if (get-file-name args)
+      (let ((path (path-normalize (get-file-name args))))
+       (import (zipi rts))
+       (if (member "--compile"  args)
+           (set-compile-flag #t))
+       (build-builtins)
+       (or  (run-as-main path)
+            (println "error : File named " (car args) " at " path " cannot be found")))
+
+      (if (fx= 0 (length args))
+          (println "Usage : ./run-zipi [--compile --clear-cache] file "))))
