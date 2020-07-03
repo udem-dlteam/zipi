@@ -26,9 +26,7 @@
 
 (define (main . args)
   (if (member "--clear-cache" args)
-      (begin
-        (println "clearing cache...")
-        (delete-zipi-cache)))
+      (delete-zipi-cache))
   (if (get-file-name args)
       (let ((path (path-normalize (get-file-name args))))
        (import (zipi rts))
