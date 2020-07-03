@@ -3,7 +3,7 @@
 do.gambit: build.gambit
 
 build.gambit:
-	echo "build.gambit TODO"
+	gsc . zipi/rts
 
 install.gambit:
 	echo "install.gambit TODO"

@@ -7,9 +7,8 @@ BIN_DIR="$SCRIPT_DIR/../bin"
 RTS_DIR="$SCRIPT_DIR/../rts"
 ZPC_DIR="$SCRIPT_DIR/../zpc"
 PYC_DIR="$SCRIPT_DIR/../pyc"
-GAMBIT_DIR="/usr/local/Gambit"
 
-$GAMBIT_DIR/bin/gsi -:~~=$GAMBIT_DIR,search=$SCRIPT_DIR,search=$PYC_DIR,darR-,t8,f8,-8 \
+gsi -:search=$SCRIPT_DIR,search=$PYC_DIR,darR-,t8,f8,-8 \
 -e "(define (zipi-etc-dir) \"$ETC_DIR\")" \
 -e "(define (zipi-lib-dir) \"$LIB_DIR\")" \
 -e "(define (zipi-bin-dir) \"$BIN_DIR\")" \

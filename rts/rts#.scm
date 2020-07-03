@@ -20,7 +20,7 @@
         id: %constants
         constructor: %make-Constants
         prefix: %
-        macros: table)
+        table)
       (define-type PyStaticStr
         ;; NOTE: id must be the same as PyObject
         id: %pystaticobject
@@ -31,22 +31,24 @@
         elements
         class
         value
-        representative
-        hash)
+        representative)
       (define (make-PyStaticStr value)
-        (%make-PyStaticStr #f #f #f value #f #f))
+        (%make-PyStaticStr #f '#() #f value #f))
       (define %constants (%make-Constants (make-table)))
-      (define constants-cell (box #f))
       (define (constants-table) (%Constants-table %constants))
       (define (constants-ref c key) (table-ref (%Constants-table c) key #f))
-      (define (constants-set! c key val) (table-set! (%Constants-table c) key val))))
+      (define (constants-set! c key val) (table-set! (%Constants-table c) key val))
+      (define (vectorify-constant-table)
+        (%Constants-table-set!
+          %constants
+          (list->vector (map cdr (table->list (constants-table))))))))
   `(##begin))
 
 (define-macro (init-registered-constants)
-  `(init-constants ',constants-cell))
+  `(init-constants ',%constants))
 
 (define-macro (end-registering-constants)
-  (set-box! constants-cell (list->vector (map cdr (table->list (constants-table))))))
+  (vectorify-constant-table))
 
 (define-macro (& e)
   (if (string? e)
@@ -147,8 +149,7 @@
   copier: #f
   ;; attrs
   value
-  (representative unprintable:)
-  (hash unprintable:))
+  (representative unprintable:))
 
 (define-type-of-PyObject PyObjectFunction
   id: PyObjectFunction-C6486EB6-1522-42BA-A082-B6563F943CDF
@@ -253,7 +254,13 @@
   implementer: implement-HClass
   copier: #f
   opaque:
-  macros: class-mro names transitions)
+  macros:
+  ;; attrs
+  names
+  transitions)
+
+(define-macro (make-builtin-HClass names transitions)
+  `(make-still-copy (make-HClass ,names ,transitions)))
 
 (define-macro (HClass-last-index hclass)
   `(fx- (vector-length (HClass-names ,hclass)) 1))
@@ -280,7 +287,6 @@
         (cdr tran)
         (let ((nhclass
                 (make-HClass
-                  (HClass-class-mro $hc)
                   (vector-extend (HClass-names $hc) $name)
                   '())))
           (HClass-transition-add! $hc key nhclass)

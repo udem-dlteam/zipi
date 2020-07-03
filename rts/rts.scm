@@ -2,10 +2,6 @@
 (define (print-debug verbosity . msg)
   (if (>= debug-verbosity verbosity)
       (display (append-strings msg) (current-error-port))))
-;; TODO: change the naming convention:
-;;  py-[class]-[method] to [class].[method]
-;;  This was already done with int, example:
-;; the object int.__add__ has name 'int.__add__' in the source
 
 ;; General exception thrower helper
 (define-macro (py-throw-exception-with-message exc . msg)
@@ -19,15 +15,9 @@
     (lambda (obj)
       (structure-type-set! obj (PyObjectStr-type-get))
       (PyObject-hclass-set! obj py-str-hclass-of-instances)
-      (PyObject-%elements-set!
-        obj
-        (make-vector
-          (vector-length (HClass-names py-str-hclass-of-instances))
-          py-absent))
       (PyObject-class-set! obj py-str-class)
-      (PyObjectStr-representative-set! obj py-absent)
-      (PyObjectStr-hash-set! obj py-absent))
-    (unbox constants)))
+      (PyObjectStr-representative-set! obj py-absent))
+    (structure-ref constants 1)))
 
 (start-registering-constants)
 
@@ -36,154 +26,130 @@
 ;; =============================================================================
 
 (define py-object-hclass-of-instances
-  (make-HClass
-    '#() ;; set later when classes exist
+  (make-builtin-HClass
     (vector)
     '()))
 
 ;; instances of type are classes
 ;; this is the hidden class of classes
 (define py-type-hclass-of-instances
-  (make-HClass
-    '#() ;; set later when classes exist
+  (make-builtin-HClass
     (vector
       (& "__name__")
       (& "__call__"))
     '()))
 
 (define py-str-hclass-of-instances
-  (make-HClass
-    '#() ;; set later when classes exist
+  (make-builtin-HClass
     (vector)
     '()))
 
 (define py-tuple-hclass-of-instances
-  (make-HClass
-    '#() ;; set later when classes exist
+  (make-builtin-HClass
     (vector)
     '()))
 
 (define py-int-hclass-of-instances
-  (make-HClass
-    '#() ;; set later when classes exist
+  (make-builtin-HClass
     (vector)
     '()))
 
 (define py-float-hclass-of-instances
-  (make-HClass
-    '#() ;; set later when classes exist
+  (make-builtin-HClass
     (vector)
     '()))
 
 (define py-complex-hclass-of-instances
-  (make-HClass
-    '#() ;; set later when classes exist
+  (make-builtin-HClass
     (vector)
     '()))
 
 (define py-slice-hclass-of-instances
-  (make-HClass
-    '#() ;; set later when classes exist
+  (make-builtin-HClass
     (vector)
     '()))
 
 
 (define py-bytearray-hclass-of-instances
-  (make-HClass
-    '#() ;; set later when classes exist
+  (make-builtin-HClass
     (vector)
     '()))
 
 (define py-method-hclass-of-instances
-  (make-HClass
-    '#()
+  (make-builtin-HClass
     (vector
       (& "__self__"))
     '()))
 
 (define py-function-hclass-of-instances
-  (make-HClass
-    '#()
+  (make-builtin-HClass
     (vector)
     '()))
 
 (define py-list-hclass-of-instances
-  (make-HClass
-    '#() ;; set later when classes exist
+  (make-builtin-HClass
     (vector)
     '()))
 
 (define py-dict-hclass-of-instances
-  (make-HClass
-    '#() ;; set later when classes exist
+  (make-builtin-HClass
     (vector)
     '()))
 
 (define py-set-hclass-of-instances
-  (make-HClass
-    '#() ;; set later when classes exist
+  (make-builtin-HClass
     (vector)
     '()))
 
-(define py-module-hclass-of-instances (make-HClass
-  '#() ;; set later when classes exist
-  (vector
-    (& "__name__")
-    (& "__builtins__"))
-  '()))
+(define py-module-hclass-of-instances
+  (make-builtin-HClass
+    (vector
+      (& "__name__")
+      (& "__builtins__"))
+    '()))
 
 (define py-list-iterator-hclass-of-instances
-  (make-HClass
-    '#()
+  (make-builtin-HClass
     (vector)
     '()))
 
 ;; bytearray iterator
 (define py-bytearray-iterator-hclass-of-instances
-  (make-HClass
-   '#()
+  (make-builtin-HClass
    (vector)
    '()))
 
 ;; tuple iterator
 (define py-tuple-iterator-hclass-of-instances
-  (make-HClass
-    '#()
+  (make-builtin-HClass
     (vector)
     '()))
 
 ;; dict-keys iterator
 (define py-dict-keyiterator-hclass-of-instances
-  (make-HClass
-    '#()
+  (make-builtin-HClass
     (vector)
     '()))
 
 (define py-generator-hclass
-  (make-HClass
-   '#()
+  (make-builtin-HClass
    (vector
     (& "__next__")
     (& "send"))
    '()))
 
 (define py-TextIOWrapper-hclass-of-instances
-  (make-HClass
-    '#()
+  (make-builtin-HClass
+    (vector)
+    '()))
+
+(define py-super-hclass-of-instances
+  (make-builtin-HClass
     (vector)
     '()))
 
 ;; Method for fast access to attributes defined in hidden classes
 ;; Those are unsafe methods
-
-(define (type-name-fast-get type)
-  (PyObject-elements-ref type 0))
-
-(define (type-name-fast-set! type name)
-  (PyObject-elements-set! type 0 name))
-
-(define (class-__call__-fast-get class)
-  (PyObject-elements-ref class 1))
 
 (define (method-__self__-fast-get obj)
   (PyObject-elements-ref obj 0))
@@ -215,6 +181,18 @@
     bases
     mro
     hclass-of-instance))
+
+(define (py-builtin-type-alloc metaclass bases mro hclass-of-instance)
+  (make-still-copy
+    (make-PyObjectType
+      py-type-hclass-of-instances
+      (make-vector
+        (vector-length (HClass-names py-type-hclass-of-instances))
+        py-absent)
+      metaclass
+      bases
+      mro
+      hclass-of-instance)))
 
 (define (py-dict-alloc ordered-table)
   (make-PyObjectDict
@@ -277,7 +255,9 @@
     encoding))
 ;; ----------------------------------------------------------------------------
 
-(define py-absent (list 'absent))
+;; WARNING: this must be a constant otherwise it may be garbage collected
+;; in some case and no longer be eq? with its version stored in literal objects
+(define py-absent '%py-absent)
 
 (define (global-get global name cache)
    (if (eq? (PyObject-hclass global) (PCache-hclass cache))
@@ -573,7 +553,7 @@
 ;; Exception thrower helpers
 ;; =============================================================================
 (define (throw-unsupported-unary-operand x operator)
-  (let ((x-type-name (type-name-fast-get (py-type x))))
+  (let ((x-type-name (py-own-attr-ref (py-type x) (& "__name__"))))
     (py-throw
       (py-call
         py-builtin-TypeError
@@ -586,7 +566,7 @@
             "'"))))))
 
 (define (throw-unhashable x)
-  (let ((x-type-name (type-name-fast-get (py-type x))))
+  (let ((x-type-name (py-own-attr-ref (py-type x) (& "__name__"))))
     (py-throw
       (py-call
         py-builtin-TypeError
@@ -597,7 +577,7 @@
             "'"))))))
 
 (define (py-throw-not-an-integer obj)
-  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
+  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type obj) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
@@ -607,7 +587,7 @@
             "' object cannot be interpreted as an integer"))))))
 
 (define (py-throw-has-no-len obj)
-  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
+  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type obj) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
@@ -640,7 +620,7 @@
       (py-str-from-scheme "pop from empty list"))))
 
 (define (py-throw-not-subscriptable obj)
-  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
+  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type obj) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
@@ -650,7 +630,7 @@
             "' object is not subscriptable"))))))
 
 (define (py-throw-not-assignable obj)
-  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
+  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type obj) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
@@ -660,7 +640,7 @@
             "' object does not support item assignment"))))))
 
 (define (py-throw-not-deletable obj)
-  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
+  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type obj) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
@@ -670,7 +650,7 @@
             "' object does not support item deletion"))))))
 
 (define (py-throw-wrong-index-type type expected-description item)
-  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type item)))))
+  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type item) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
@@ -697,7 +677,7 @@
           (number->string expected-len))))))
 
 (define (throw-not-iteralble obj)
-  (let ((obj-type-name (type-name-fast-get (py-type obj))))
+  (let ((obj-type-name (py-own-attr-ref (py-type obj) (& "__name__"))))
     (py-throw (py-call
                 py-builtin-TypeError
                 (py-str-from-scheme
@@ -707,21 +687,21 @@
                     "' is not iterable"))))))
 
 (define (py-throw-not-an-iterator obj)
-  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
+  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type obj) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
           (string-append "'" given-type "' object is not an iterator"))))))
 
 (define (py-throw-not-callable obj)
-  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
+  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type obj) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
           (string-append "'" given-type "' object is not callable"))))))
 
 (define (py-throw-required-type method-name required-type arg)
-  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type arg)))))
+  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type arg) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
@@ -735,7 +715,7 @@
               "'"))))))
 
 (define (py-throw-not-a-subtype fun-name wrong-type type-name)
-  (let ((wrong-type-name (py-str-to-scheme (type-name-fast-get wrong-type))))
+  (let ((wrong-type-name (py-str-to-scheme (py-own-attr-ref wrong-type (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
@@ -744,7 +724,7 @@
 
 (define (py-throw-not-a-type-object fun-name obj)
   (let* ((instance-type (py-type obj))
-         (instance-type-name (py-str-to-scheme (type-name-fast-get instance-type))))
+         (instance-type-name (py-str-to-scheme (py-own-attr-ref instance-type (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
@@ -764,7 +744,7 @@
 
 (define (throw-returned-wrong-type fun-name obj qualifier)
   (let* ((type (py-type obj))
-         (type-name (type-name-fast-get type)))
+         (type-name (py-own-attr-ref type (& "__name__"))))
     (py-throw
       (py-call
         py-builtin-TypeError
@@ -786,8 +766,8 @@
 ;; =============================================================================
 
 (define (throw-unsupported-operand x y operator)
-  (let ((x-type-name (type-name-fast-get (py-type x)))
-        (y-type-name (type-name-fast-get (py-type y))))
+  (let ((x-type-name (py-own-attr-ref (py-type x) (& "__name__")))
+        (y-type-name (py-own-attr-ref (py-type y) (& "__name__"))))
     (py-throw
       (py-call
         py-builtin-TypeError
@@ -1025,9 +1005,9 @@
           (if (py-isinstance? h py-int-class)
             (let ((h-value (PyObjectInt-value h)))
               (py-int-from-scheme (truncate-hash h-value)))
-	    (py-throw-exception-with-message
-	       py-builtin-RuntimeError
-	       "__hash__ method should return an integer"))))))
+      	    (py-throw-exception-with-message
+      	       py-builtin-RuntimeError
+      	       "__hash__ method should return an integer"))))))
 
 ;; =============================================================================
 ;; int operations
@@ -1387,6 +1367,9 @@
                   (flfloor div)
                   (flceiling div))))))
 
+(define (fl!= x y)
+  (not (fl= x y)))
+
 (define-float-binary-operator float-add "__add__"            (result-to-float fl+))
 (define-float-binary-operator float-radd "__radd__"          (result-to-float fl+))
 (define-float-binary-operator float-sub "__sub__"            (result-to-float fl-))
@@ -1623,7 +1606,7 @@
   (let ((attr (py-own-attr-ref obj name)))
     (if (not (eq? attr py-absent))
       attr
-      (let-values (((cls-attr owner) (getattribute-from-obj-mro-with-owner obj name)))
+      (receive (cls-attr owner) (getattribute-from-obj-mro-with-owner obj name)
         (if (not (eq? cls-attr py-absent))
           (object-get-bind-descriptor cls-attr obj owner)
           (py-throw py-builtin-AttributeError))))))
@@ -1639,7 +1622,7 @@
 (let ((attr (py-own-attr-ref obj name)))
   (if (not (eq? attr py-absent))
     (object-get-bind-descriptor attr py-None obj)
-    (let-values (((cls-attr owner) (getattribute-from-obj-mro-with-owner obj name)))
+    (receive (cls-attr owner) (getattribute-from-obj-mro-with-owner obj name)
       (if (not (eq? cls-attr py-absent))
         (object-get-bind-descriptor cls-attr obj owner)
         (py-throw py-builtin-AttributeError)
@@ -1867,9 +1850,9 @@
             (begin
               (PyObjectStr-representative-set! str rep)
               rep)
-            (begin
-              (table-set! str-representatives str-value str)
-              str))))
+            (let ((new-rep (make-still-copy str)))
+              (table-set! str-representatives str-value new-rep)
+              new-rep))))
       self-token)))
 
 (define (str-new cls value)
@@ -2008,17 +1991,8 @@
           (truncate-hash (* (bitwise-xor h (car bytes)) FNV1a-prime)))))))
 
 (define (str-hash self)
-  (if (py-isinstance? self py-str-class)
-    (let* ((representative (str-representative-get self))
-           (hash (PyObjectStr-hash representative)))
-      (if (eq? hash py-absent)
-        (let ((new-hash
-                (py-int-from-scheme
-                  (hash-FNV1a
-                    (PyObjectStr-value representative)))))
-          (PyObjectStr-hash-set! representative new-hash)
-          new-hash)
-        hash))
+  (if (PyObjectStr? self)
+    (py-int-from-scheme (hash-FNV1a (PyObjectStr-value self)))
     (py-throw-required-type "__hash__" "str" self)))
 
 (define str.__hash__
@@ -2156,7 +2130,7 @@
     (let ((value (PyObjectInt-value i)))
       (py-str-from-scheme (string (integer->char value))))
     (let* ((i-type (py-type i))
-	   (i-type-name (type-name-fast-get i-type)))
+	   (i-type-name (py-own-attr-ref i-type (& "__name__"))))
       (py-throw
         (py-call
           py-builtin-TypeError
@@ -2204,7 +2178,7 @@
       (error "py-obj-cls" "unhandled object type" obj)))
 
 (define (py-obj-mro obj) ;; return MRO of object
-  (PyObjectType-mro (py-obj-cls obj))) ;; TODO: use HClass-class-mro
+  (PyObjectType-mro (py-obj-cls obj)))
 
 ;;;----------------------------------------------------------------------------
 
@@ -2276,8 +2250,7 @@
       py-absent)
     py-str-class
     value
-    py-absent ;; representative
-    py-absent)) ;; hash
+    py-absent)) ;; representative
 
 (define (py-str-subtype-from-scheme value str-subclass)
   (make-PyObjectStr
@@ -2287,8 +2260,7 @@
       py-absent)
     str-subclass
     value
-    py-absent ;; representative
-    py-absent)) ;; hash
+    py-absent)) ;; representative
 
 (define (py-str-to-scheme self)
   (str-make! self))
@@ -2320,25 +2292,25 @@
 ;; These will need to be filled in later
 (define (bootstrap-type-hierarchy-phase1)
   (let* ((type-class
-          (py-type-alloc
+          (py-builtin-type-alloc
             #f ;; cls
             #f ;; bases
             #f ;; mro
             py-type-hclass-of-instances))
         (object-class
-          (py-type-alloc
+          (py-builtin-type-alloc
             #f ;; cls
             #f ;; bases
             #f ;; mro
             py-object-hclass-of-instances))
         (str-class
-          (py-type-alloc
+          (py-builtin-type-alloc
             #f ;; cls
             #f ;; bases
             #f ;; mro
             py-str-hclass-of-instances))
         (tuple-class
-          (py-type-alloc
+          (py-builtin-type-alloc
             #f ;; cls
             #f ;; bases
             #f ;; mor
@@ -2355,9 +2327,7 @@
     ;; Fill in object class
     (PyObject-class-set! object-class type-class)
     (PyObjectType-bases-set! object-class '#())
-    (let ((object-mro (vector object-class)))
-      (HClass-class-mro-set! py-object-hclass-of-instances object-mro)
-      (PyObjectType-mro-set! object-class object-mro))
+    (PyObjectType-mro-set! object-class (vector object-class))
     (PyObjectType-hclass-of-instances-set! object-class py-object-hclass-of-instances)
     (py-own-attr-set! object-class (& "__name__") (py-str-from-scheme "object"))
     (py-own-attr-set! object-class (& "__module__") (py-str-from-scheme "builtins"))
@@ -2371,9 +2341,7 @@
     ;; Fill in type class
     (PyObject-class-set! type-class type-class)
     (PyObjectType-bases-set! type-class '#(object-class))
-    (let ((type-mro (vector type-class object-class)))
-      (HClass-class-mro-set! py-type-hclass-of-instances type-mro)
-      (PyObjectType-mro-set! type-class type-mro))
+    (PyObjectType-mro-set! type-class (vector type-class object-class))
     (PyObjectType-hclass-of-instances-set! type-class py-type-hclass-of-instances)
     (py-own-attr-set! type-class (& "__name__") (py-str-from-scheme "type"))
     (py-own-attr-set! type-class (& "__module__") (py-str-from-scheme "builtins"))
@@ -2384,9 +2352,7 @@
     ;; Fill in tuple class
     (PyObject-class-set! tuple-class type-class)
     (PyObjectType-bases-set! tuple-class '#(object-class))
-    (let ((tuple-mro (vector tuple-class object-class)))
-      (HClass-class-mro-set! py-tuple-hclass-of-instances tuple-mro)
-      (PyObjectType-mro-set! tuple-class tuple-mro))
+    (PyObjectType-mro-set! tuple-class (vector tuple-class object-class))
     (PyObjectType-hclass-of-instances-set! tuple-class py-tuple-hclass-of-instances)
     (py-own-attr-set! tuple-class (& "__name__") (py-str-from-scheme "tuple"))
     (py-own-attr-set! tuple-class (& "__module__") (py-str-from-scheme "builtins"))
@@ -2394,9 +2360,7 @@
     ;; Fill in str class
     (PyObject-class-set! str-class type-class)
     (PyObjectType-bases-set! str-class '#(object-class))
-    (let ((str-mro (vector str-class object-class)))
-      (HClass-class-mro-set! py-str-hclass-of-instances str-mro)
-      (PyObjectType-mro-set! str-class str-mro))
+    (PyObjectType-mro-set! str-class (vector str-class object-class))
     (PyObjectType-hclass-of-instances-set! str-class py-str-hclass-of-instances)
     (py-own-attr-set! str-class (& "__name__") (py-str-from-scheme "str"))
     (py-own-attr-set! str-class (& "__module__") (py-str-from-scheme "builtins"))
@@ -2429,13 +2393,13 @@
 
   (list->vector (add-class cls '())))
 
-(define (py-make-class name module bases . attrs)
+(define (py-make-class-from-type-allocator name module bases type-allocator attrs)
   (define (make-cls attr-names attr-values)
     (let* ((bases-vect
             (if (null? bases)
               (vector py-object-class)
               (list->vector bases)))
-           (cls (py-type-alloc py-type-class bases-vect #f #f)))
+           (cls (type-allocator py-type-class bases-vect #f #f)))
       (PyObjectType-mro-set! cls (py-compute-mro cls))
       ;; TODO implement better introspection of hclass of instance
       ;; This current implementation will fail on multiple inheritance
@@ -2473,8 +2437,13 @@
     (make-cls (reverse rev-attr-names)
             (reverse rev-attr-values)))))
 
-(define (make-builtin-class name module bases hclass-of-instances . attrs)
-  (let ((cls (apply py-make-class name module bases attrs)))
+(define (py-make-class name module bases . attrs)
+  (py-make-class-from-type-allocator name module bases py-type-alloc attrs))
+
+(define (py-make-builtin-class name module bases hclass-of-instances . attrs)
+  (let ((cls
+          (py-make-class-from-type-allocator
+            name module bases py-builtin-type-alloc attrs)))
     (PyObjectType-hclass-of-instances-set! cls hclass-of-instances)
     cls))
 
@@ -2554,7 +2523,7 @@
     (make-posonly-signature '#(self))))
 
 (define py-list-iterator-class
-  (make-builtin-class
+  (py-make-builtin-class
     (& "list_iterator")
     (& "builtins")
     (list)
@@ -2590,7 +2559,7 @@
     (make-posonly-signature '#(self))))
 
 (define py-tuple-iterator-class
-  (make-builtin-class
+  (py-make-builtin-class
     (& "tuple_iterator")
     (& "builtins")
     (list)
@@ -2631,7 +2600,7 @@
     (make-posonly-signature '#(self))))
 
 (define py-bytearray-iterator-class
-  (make-builtin-class
+  (py-make-builtin-class
     (& "bytearray_iterator")
     (& "builtins")
     (list)
@@ -4309,29 +4278,19 @@
 ;; =============================================================================
 
 (define (py-generator-yield gen val kont)
-   (PyGenerator-%next-set! gen kont)
-   val)
+   (py-throw-exception-with-message
+     py-builtin-NotImplementedError
+     "py-generator-yield not implemented"))
 
 (define (py-make-generator proc)
-   (letrec ((o (make-PyGenerator
-		  py-generator-hclass
-		  (vector
-                     py-object-class
-                     py-object-class
-		  (procedure->py-function
-        (lambda (self) (py-generator-send self py-None))
-        (make-posonly-signature '#(self)))
-		  (procedure->py-function
-        py-generator-send
-        (make-posonly-signature '#(self value))))
-		  proc)))
-      o))
+  (py-throw-exception-with-message
+    py-builtin-NotImplementedError
+    "py-make-generator not implemented"))
 
 (define (py-generator-send self value)
-   (let ((r ((PyGenerator-%next self) value #f)))
-      (if (eq? r 'StopIteration)
-	  (py-throw 'StopIteration)
-	  r)))
+  (py-throw-exception-with-message
+    py-builtin-NotImplementedError
+    "py-generator-send not implemented"))
 
 (define (py-next iterator)
   (let ((next (getattribute-from-obj-mro iterator (& "__next__"))))
@@ -4692,7 +4651,7 @@
     (make-posonly-signature '#(self))))
 
 (define py-dict-keyiterator-class
-  (make-builtin-class
+  (py-make-builtin-class
     (& "dict_keyiterator")
     (& "builtins")
     (list)
@@ -4722,14 +4681,14 @@
   (py-own-attr-set! py-tuple-class (& "index") tuple.index)
 
   (set! py-module-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "module")
       (& "builtins")
       (list)
       py-module-hclass-of-instances))
 
   (set! py-int-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "int")
       (& "builtins")
       (list)
@@ -4777,7 +4736,7 @@
   (set! int-cache (make-int-cache))
 
   (set! py-float-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "float")
       (& "builtins")
       (list)
@@ -4820,7 +4779,7 @@
         ))
 
   (set! py-bool-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "bool")
       (& "builtins")
       (list py-int-class)
@@ -4830,14 +4789,14 @@
         (& "__repr__") bool.__repr__))
 
   (set! py-complex-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "complex")
       (& "builtins")
       (list)
       py-complex-hclass-of-instances))
 
   (set! py-slice-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "slice")
       (& "builtins")
       (list)
@@ -4846,7 +4805,7 @@
         (& "indices") slice.indices))
 
   (set! py-method-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "method")
       (& "builtins")
       (list)
@@ -4854,7 +4813,7 @@
         (& "__call__") method.__call__))
 
   (set! py-function-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "function")
       (& "builtins")
       (list)
@@ -4863,7 +4822,7 @@
         (& "__get__") function.__get__))
 
   (set! py-list-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "list")
       (& "builtins")
       (list)
@@ -4900,7 +4859,7 @@
         (& "sort") #f)) ;; set later from py-builtin-sorted
 
   (set! py-dict-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "dict")
       (& "builtins")
       (list)
@@ -4913,14 +4872,14 @@
         (& "get") dict.get))
 
   (set! py-set-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "set")
       (& "builtins")
       (list)
       py-set-hclass-of-instances))
 
   (set! py-bytearray-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "bytearray")
       (& "builtins")
       (list)
@@ -5053,7 +5012,7 @@
     (make-posonly-signature '#(self))))
 
 (define py-TextIOWrapper-class
-  (make-builtin-class
+  (py-make-builtin-class
     (& "TextIOWrapper")
     (& "_io")
     ;; TODO: the correct mro is actually [<class '_io.TextIOWrapper'>, <class '_io._TextIOBase'>, <class '_io._IOBase'>, <class 'object'>]
@@ -5120,7 +5079,7 @@
     (make-posonly-signature '#(self))))
 
 (define py-NotImplementedType-class
-  (make-builtin-class
+  (py-make-builtin-class
     (& "NotImplementedType")
     (& "builtins")
     (list)
@@ -5178,7 +5137,7 @@
     (make-posonly-signature '#(self))))
 
 (define py-NoneType-class
-  (make-builtin-class
+  (py-make-builtin-class
     (& "NoneType")
     (& "builtins")
     (list)
@@ -5319,7 +5278,7 @@
 (define time.time
   (procedure->py-function
     (lambda ()
-      (py-int-from-scheme (time->seconds (current-time))))
+      (py-float-from-scheme (time->seconds (current-time))))
     (empty-signature)))
 
 (define (make-time-mod)
@@ -7188,8 +7147,7 @@
           (this-self (py-own-attr-ref self (& "__self__")))
           (mro (PyObjectType-mro this-class))
           (parent-cls (vector-ref mro 1)))
-      (let-values (((attr owner)
-        (getattribute-from-cls-mro-with-owner parent-cls name)))
+      (receive (attr owner) (getattribute-from-cls-mro-with-owner parent-cls name)
           (if (eq? attr py-absent)
             (object-getattribute self name)
             (object-get-bind-descriptor attr this-self owner))))))
@@ -7200,10 +7158,11 @@
     (make-posonly-signature '#(self name))))
 
 (define py-builtin-super
-  (py-make-class
+  (py-make-builtin-class
     (& "super")
     (& "builtins")
     (list)
+    py-super-hclass-of-instances
       (& "__init__") super.__init__
       (& "__getattribute__") super.__getattribute__
     ))
