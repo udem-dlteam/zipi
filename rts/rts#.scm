@@ -262,6 +262,9 @@
 (define-macro (make-builtin-HClass names transitions)
   `(make-still-copy (make-HClass ,names ,transitions)))
 
+(define-macro (make-builtin-HClass mro names transitions)
+  `(make-still-copy (make-HClass ,mro ,names ,transitions)))
+
 (define-macro (HClass-last-index hclass)
   `(fx- (vector-length (HClass-names ,hclass)) 1))
 

@@ -40,11 +40,7 @@
 (define-macro (module-search-order)
   '##module-search-order)
 
-<<<<<<< HEAD
 (define-macro (make-still-copy s)
-=======
-(define-macro (make-representative s)
->>>>>>> 8a3ccf2... make still copies of str representatives
   `(##still-obj-refcount-inc!
     (##still-copy ,s)))
 
