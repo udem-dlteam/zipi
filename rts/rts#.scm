@@ -31,10 +31,9 @@
         elements
         class
         value
-        representative
-        hash)
+        representative)
       (define (make-PyStaticStr value)
-        (%make-PyStaticStr #f #f #f value #f #f))
+        (%make-PyStaticStr #f '#() #f value #f))
       (define %constants (%make-Constants (make-table)))
       (define (constants-table) (%Constants-table %constants))
       (define (constants-ref c key) (table-ref (%Constants-table c) key #f))
@@ -256,6 +255,9 @@
   copier: #f
   opaque:
   macros: class-mro names transitions)
+
+(define-macro (make-builtin-HClass mro names transitions)
+  `(make-still-copy (make-HClass ,mro ,names ,transitions)))
 
 (define-macro (HClass-last-index hclass)
   `(fx- (vector-length (HClass-names ,hclass)) 1))

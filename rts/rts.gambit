@@ -40,7 +40,7 @@
 (define-macro (module-search-order)
   '##module-search-order)
 
-(define-macro (make-representative s)
+(define-macro (make-still-copy s)
   `(##still-obj-refcount-inc!
     (##still-copy ,s)))
 

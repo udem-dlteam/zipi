@@ -15,11 +15,6 @@
     (lambda (obj)
       (structure-type-set! obj (PyObjectStr-type-get))
       (PyObject-hclass-set! obj py-str-hclass-of-instances)
-      (PyObject-%elements-set!
-        obj
-        (make-vector
-          (vector-length (HClass-names py-str-hclass-of-instances))
-          py-absent))
       (PyObject-class-set! obj py-str-class)
       (PyObjectStr-representative-set! obj py-absent))
     (structure-ref constants 1)))
@@ -31,7 +26,7 @@
 ;; =============================================================================
 
 (define py-object-hclass-of-instances
-  (make-HClass
+  (make-builtin-HClass
     '#() ;; set later when classes exist
     (vector)
     '()))
@@ -39,7 +34,7 @@
 ;; instances of type are classes
 ;; this is the hidden class of classes
 (define py-type-hclass-of-instances
-  (make-HClass
+  (make-builtin-HClass
     '#() ;; set later when classes exist
     (vector
       (& "__name__")
@@ -47,115 +42,116 @@
     '()))
 
 (define py-str-hclass-of-instances
-  (make-HClass
+  (make-builtin-HClass
     '#() ;; set later when classes exist
     (vector)
     '()))
 
 (define py-tuple-hclass-of-instances
-  (make-HClass
+  (make-builtin-HClass
     '#() ;; set later when classes exist
     (vector)
     '()))
 
 (define py-int-hclass-of-instances
-  (make-HClass
+  (make-builtin-HClass
     '#() ;; set later when classes exist
     (vector)
     '()))
 
 (define py-float-hclass-of-instances
-  (make-HClass
+  (make-builtin-HClass
     '#() ;; set later when classes exist
     (vector)
     '()))
 
 (define py-complex-hclass-of-instances
-  (make-HClass
+  (make-builtin-HClass
     '#() ;; set later when classes exist
     (vector)
     '()))
 
 (define py-slice-hclass-of-instances
-  (make-HClass
+  (make-builtin-HClass
     '#() ;; set later when classes exist
     (vector)
     '()))
 
 
 (define py-bytearray-hclass-of-instances
-  (make-HClass
+  (make-builtin-HClass
     '#() ;; set later when classes exist
     (vector)
     '()))
 
 (define py-method-hclass-of-instances
-  (make-HClass
+  (make-builtin-HClass
     '#()
     (vector
       (& "__self__"))
     '()))
 
 (define py-function-hclass-of-instances
-  (make-HClass
+  (make-builtin-HClass
     '#()
     (vector)
     '()))
 
 (define py-list-hclass-of-instances
-  (make-HClass
+  (make-builtin-HClass
     '#() ;; set later when classes exist
     (vector)
     '()))
 
 (define py-dict-hclass-of-instances
-  (make-HClass
+  (make-builtin-HClass
     '#() ;; set later when classes exist
     (vector)
     '()))
 
 (define py-set-hclass-of-instances
-  (make-HClass
+  (make-builtin-HClass
     '#() ;; set later when classes exist
     (vector)
     '()))
 
-(define py-module-hclass-of-instances (make-HClass
-  '#() ;; set later when classes exist
-  (vector
-    (& "__name__")
-    (& "__builtins__"))
-  '()))
+(define py-module-hclass-of-instances
+  (make-builtin-HClass
+    '#() ;; set later when classes exist
+    (vector
+      (& "__name__")
+      (& "__builtins__"))
+    '()))
 
 (define py-list-iterator-hclass-of-instances
-  (make-HClass
+  (make-builtin-HClass
     '#()
     (vector)
     '()))
 
 ;; bytearray iterator
 (define py-bytearray-iterator-hclass-of-instances
-  (make-HClass
+  (make-builtin-HClass
    '#()
    (vector)
    '()))
 
 ;; tuple iterator
 (define py-tuple-iterator-hclass-of-instances
-  (make-HClass
+  (make-builtin-HClass
     '#()
     (vector)
     '()))
 
 ;; dict-keys iterator
 (define py-dict-keyiterator-hclass-of-instances
-  (make-HClass
+  (make-builtin-HClass
     '#()
     (vector)
     '()))
 
 (define py-generator-hclass
-  (make-HClass
+  (make-builtin-HClass
    '#()
    (vector
     (& "__next__")
@@ -163,8 +159,14 @@
    '()))
 
 (define py-TextIOWrapper-hclass-of-instances
-  (make-HClass
+  (make-builtin-HClass
     '#()
+    (vector)
+    '()))
+
+(define py-super-hclass-of-instances
+  (make-builtin-HClass
+    '#() ;; set later when classes exist
     (vector)
     '()))
 
@@ -201,6 +203,18 @@
     bases
     mro
     hclass-of-instance))
+
+(define (py-builtin-type-alloc metaclass bases mro hclass-of-instance)
+  (make-still-copy
+    (make-PyObjectType
+      py-type-hclass-of-instances
+      (make-vector
+        (vector-length (HClass-names py-type-hclass-of-instances))
+        py-absent)
+      metaclass
+      bases
+      mro
+      hclass-of-instance)))
 
 (define (py-dict-alloc ordered-table)
   (make-PyObjectDict
@@ -1013,9 +1027,9 @@
           (if (py-isinstance? h py-int-class)
             (let ((h-value (PyObjectInt-value h)))
               (py-int-from-scheme (truncate-hash h-value)))
-	    (py-throw-exception-with-message
-	       py-builtin-RuntimeError
-	       "__hash__ method should return an integer"))))))
+      	    (py-throw-exception-with-message
+      	       py-builtin-RuntimeError
+      	       "__hash__ method should return an integer"))))))
 
 ;; =============================================================================
 ;; int operations
@@ -1858,7 +1872,7 @@
             (begin
               (PyObjectStr-representative-set! str rep)
               rep)
-            (let ((new-rep (make-representative str)))
+            (let ((new-rep (make-still-copy str)))
               (table-set! str-representatives str-value new-rep)
               new-rep))))
       self-token)))
@@ -2300,25 +2314,25 @@
 ;; These will need to be filled in later
 (define (bootstrap-type-hierarchy-phase1)
   (let* ((type-class
-          (py-type-alloc
+          (py-builtin-type-alloc
             #f ;; cls
             #f ;; bases
             #f ;; mro
             py-type-hclass-of-instances))
         (object-class
-          (py-type-alloc
+          (py-builtin-type-alloc
             #f ;; cls
             #f ;; bases
             #f ;; mro
             py-object-hclass-of-instances))
         (str-class
-          (py-type-alloc
+          (py-builtin-type-alloc
             #f ;; cls
             #f ;; bases
             #f ;; mro
             py-str-hclass-of-instances))
         (tuple-class
-          (py-type-alloc
+          (py-builtin-type-alloc
             #f ;; cls
             #f ;; bases
             #f ;; mor
@@ -2409,13 +2423,13 @@
 
   (list->vector (add-class cls '())))
 
-(define (py-make-class name module bases . attrs)
+(define (py-make-class-from-type-allocator name module bases type-allocator attrs)
   (define (make-cls attr-names attr-values)
     (let* ((bases-vect
             (if (null? bases)
               (vector py-object-class)
               (list->vector bases)))
-           (cls (py-type-alloc py-type-class bases-vect #f #f)))
+           (cls (type-allocator py-type-class bases-vect #f #f)))
       (PyObjectType-mro-set! cls (py-compute-mro cls))
       ;; TODO implement better introspection of hclass of instance
       ;; This current implementation will fail on multiple inheritance
@@ -2453,8 +2467,13 @@
     (make-cls (reverse rev-attr-names)
             (reverse rev-attr-values)))))
 
-(define (make-builtin-class name module bases hclass-of-instances . attrs)
-  (let ((cls (apply py-make-class name module bases attrs)))
+(define (py-make-class name module bases . attrs)
+  (py-make-class-from-type-allocator name module bases py-type-alloc attrs))
+
+(define (py-make-builtin-class name module bases hclass-of-instances . attrs)
+  (let ((cls
+          (py-make-class-from-type-allocator
+            name module bases py-builtin-type-alloc attrs)))
     (PyObjectType-hclass-of-instances-set! cls hclass-of-instances)
     cls))
 
@@ -2534,7 +2553,7 @@
     (make-posonly-signature '#(self))))
 
 (define py-list-iterator-class
-  (make-builtin-class
+  (py-make-builtin-class
     (& "list_iterator")
     (& "builtins")
     (list)
@@ -2570,7 +2589,7 @@
     (make-posonly-signature '#(self))))
 
 (define py-tuple-iterator-class
-  (make-builtin-class
+  (py-make-builtin-class
     (& "tuple_iterator")
     (& "builtins")
     (list)
@@ -2611,7 +2630,7 @@
     (make-posonly-signature '#(self))))
 
 (define py-bytearray-iterator-class
-  (make-builtin-class
+  (py-make-builtin-class
     (& "bytearray_iterator")
     (& "builtins")
     (list)
@@ -4662,7 +4681,7 @@
     (make-posonly-signature '#(self))))
 
 (define py-dict-keyiterator-class
-  (make-builtin-class
+  (py-make-builtin-class
     (& "dict_keyiterator")
     (& "builtins")
     (list)
@@ -4692,14 +4711,14 @@
   (py-own-attr-set! py-tuple-class (& "index") tuple.index)
 
   (set! py-module-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "module")
       (& "builtins")
       (list)
       py-module-hclass-of-instances))
 
   (set! py-int-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "int")
       (& "builtins")
       (list)
@@ -4747,7 +4766,7 @@
   (set! int-cache (make-int-cache))
 
   (set! py-float-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "float")
       (& "builtins")
       (list)
@@ -4790,7 +4809,7 @@
         ))
 
   (set! py-bool-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "bool")
       (& "builtins")
       (list py-int-class)
@@ -4800,14 +4819,14 @@
         (& "__repr__") bool.__repr__))
 
   (set! py-complex-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "complex")
       (& "builtins")
       (list)
       py-complex-hclass-of-instances))
 
   (set! py-slice-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "slice")
       (& "builtins")
       (list)
@@ -4816,7 +4835,7 @@
         (& "indices") slice.indices))
 
   (set! py-method-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "method")
       (& "builtins")
       (list)
@@ -4824,7 +4843,7 @@
         (& "__call__") method.__call__))
 
   (set! py-function-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "function")
       (& "builtins")
       (list)
@@ -4833,7 +4852,7 @@
         (& "__get__") function.__get__))
 
   (set! py-list-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "list")
       (& "builtins")
       (list)
@@ -4870,7 +4889,7 @@
         (& "sort") #f)) ;; set later from py-builtin-sorted
 
   (set! py-dict-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "dict")
       (& "builtins")
       (list)
@@ -4883,14 +4902,14 @@
         (& "get") dict.get))
 
   (set! py-set-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "set")
       (& "builtins")
       (list)
       py-set-hclass-of-instances))
 
   (set! py-bytearray-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "bytearray")
       (& "builtins")
       (list)
@@ -5023,7 +5042,7 @@
     (make-posonly-signature '#(self))))
 
 (define py-TextIOWrapper-class
-  (make-builtin-class
+  (py-make-builtin-class
     (& "TextIOWrapper")
     (& "_io")
     ;; TODO: the correct mro is actually [<class '_io.TextIOWrapper'>, <class '_io._TextIOBase'>, <class '_io._IOBase'>, <class 'object'>]
@@ -5090,7 +5109,7 @@
     (make-posonly-signature '#(self))))
 
 (define py-NotImplementedType-class
-  (make-builtin-class
+  (py-make-builtin-class
     (& "NotImplementedType")
     (& "builtins")
     (list)
@@ -5148,7 +5167,7 @@
     (make-posonly-signature '#(self))))
 
 (define py-NoneType-class
-  (make-builtin-class
+  (py-make-builtin-class
     (& "NoneType")
     (& "builtins")
     (list)
@@ -7169,10 +7188,11 @@
     (make-posonly-signature '#(self name))))
 
 (define py-builtin-super
-  (py-make-class
+  (py-make-builtin-class
     (& "super")
     (& "builtins")
     (list)
+    py-super-hclass-of-instances
       (& "__init__") super.__init__
       (& "__getattribute__") super.__getattribute__
     ))
