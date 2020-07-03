@@ -9,9 +9,9 @@ To compile with Zipi for Gambit
 ```
 # First make sure to follow those steps
 export PATH=/usr/local/Gambit/bin:$PATH
-export ZIPIROOT=/home/[username]/udem-dlteam/zipi
 # For development:
-export GAMBOPT=~~zipicache=~/.zipicache,~~zipidir=~/udem-dlteam/zipi,search=~/udem-dlteam
+export ZIPIROOT=/home/[username]/udem-dlteam/zipi
+export GAMBOPT=~~zipicache=~/.zipicache,~~zipidir=$ZIPIROOT,search=~~zipidir/..
 ./configure
 make
 
