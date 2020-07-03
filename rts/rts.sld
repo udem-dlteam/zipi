@@ -270,6 +270,7 @@
 
     build-builtins
     set-compile-flag
+    set-debug-flag
 
     ;;debug functions
     debug-get

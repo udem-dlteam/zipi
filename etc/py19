@@ -8,6 +8,10 @@ RTS_DIR="$SCRIPT_DIR/../rts"
 ZPC_DIR="$SCRIPT_DIR/../zpc"
 PYC_DIR="$SCRIPT_DIR/../pyc"
 
+if [ "$ZIPI_DEBUG_PY19" = true ]; then
+    echo "(declare (debug-location))"
+fi
+
 gsi -:search=$SCRIPT_DIR,search=$PYC_DIR,darR-,t8,f8,-8 \
 -e "(define (zipi-etc-dir) \"$ETC_DIR\")" \
 -e "(define (zipi-lib-dir) \"$LIB_DIR\")" \
