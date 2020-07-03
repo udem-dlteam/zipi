@@ -6,6 +6,7 @@ import subprocess
 import sys
 
 python38 = sys.version_info[:2] == (3, 8)
+python35 = False
 generate_location_information = True    # set to True to get location info
 
 if not python38:
