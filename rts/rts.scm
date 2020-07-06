@@ -1,7 +1,12 @@
 (define debug-verbosity 0)
-(define (print-debug verbosity . msg)
+
+(define (possible-error verbosity . msg)
   (if (>= debug-verbosity verbosity)
-      (display (append-strings msg) (current-error-port))))
+      (display (append-strings (cons "*** WARNING --- " msg)) (current-error-port))))
+
+(define (fatal-error . msg)
+  (display (append-strings (cons "*** FATAL ERROR --- " msg)) (current-error-port))
+  (exit 1))
 
 ;; General exception thrower helper
 (define-macro (py-throw-exception-with-message exc . msg)
@@ -5228,15 +5233,17 @@
 (define (cache-location) (path-expand "~~zipicache/cache@zipi_0_0_1"))
 
 (define compile-flag #f)
-(define (set-compile-flag value)
+(define (compile-flag-set! value)
   (set! compile-flag value))
 
 (define debug-flag #f)
-(define (set-debug-flag value)
+(define (debug-flag-set! value)
   (set! debug-flag value))
 
 (module-search-order-add! (cache-location))
+
 (define (ensure-parent-dir-exists path)
+
   (define (wind path todo)
     (let* ((dir (path-strip-trailing-directory-separator
                   (path-directory path)))
@@ -5260,17 +5267,28 @@
 
 
 (define (compile-source source target)
+
   (define (root-dir)
-    (or (getenv "ZIPIROOT")
-        (error "Environnement variable $ZIPIROOT is not set. Refer to the README" )))
-  (print-debug 1 "WARNING : compiling file " source " to " target " \n")
+    (getenv "ZIPIROOT"))
+
+  (define py19-path
+    (string-append (root-dir) "/etc/py19" ))
+
+  (if (not (file-exists? py19-path))
+      (fatal-error
+        "cannot find py19 executable. "
+        "The environnement variable $ZIPIROOT is probably not set properly. "
+        "Please refer to README"))
+
+  (possible-error 1 "compiling file " source " to " target " \n")
+
   (shell-command
     (string-append
       (if debug-flag
           "ZIPI_DEBUG_PY19=true "
           "ZIPI_DEBUG_PY19=false ")
-      (root-dir)
-      "/etc/py19 -t gambit "
+      py19-path
+      " -t gambit "
       (root-dir)
       "/pyc "
       source
@@ -5288,7 +5306,6 @@
              ".sld"))
          (path-info (file-info path #t #f))
          (path-cache-info (file-info path-cache #t #f)))
-
 
     (define (create-_must-build_)
       (if compile-flag
@@ -5310,13 +5327,12 @@
             (if (< (time->seconds (file-info-last-modification-time path-info))
                    (time->seconds (file-info-last-modification-time path-cache-info)))
                 (begin
-                  (print-debug 1 "WARNING : skipping compilation of unmodified file at " path ", compiled file found : " path-cache "\n")
+                  (possible-error 1 "skipping compilation of unmodified file at " path ", compiled file found : " path-cache "\n")
                   (create-_must-build_)
                   #t) ;; compilation "succesfull" (file already compiled)
                 (compile))
             (compile)) ;; compiled file does not exist (must compile)
         #f))) ;; file to compile does not exist (failed compilation)
-
 
 (define (load-module-and-get-init name)
   (let* ((sym (string->symbol name))
@@ -5334,6 +5350,7 @@
                  init
                  #f))))
         #f)))
+
 (define (import-with-zipi-cache path py-__name__ sys.modules)
   (let ((mod-init (and
                     (compile-to-cache path)
