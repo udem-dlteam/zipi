@@ -24,14 +24,7 @@
 (define-macro (cell-set! c e)
   `(set-box! ,c ,e))
 
-(define-macro (parse-module-ref mod)
-  `(##parse-module-ref ,mod))
-
-(define-macro (load-module mod)
-  `(##load-module ,mod))
-
-(define-macro (module-var-ref modref var)
-  `(##module-var-ref ,modref ,var))
+(namespace ("##" parse-module-ref load-module module-var-ref))
 
 (define-macro (structure-ref obj i)
   `(##unchecked-structure-ref ,obj , i #f #f))

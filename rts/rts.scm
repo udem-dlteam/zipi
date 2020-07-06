@@ -2,11 +2,14 @@
 
 (define (possible-error verbosity . msg)
   (if (>= debug-verbosity verbosity)
-      (display (append-strings (cons "*** WARNING --- " msg)) (current-error-port))))
+      (display (string-append "*** WARNING --- " (append-strings msg) "\n")
+               (current-error-port))))
 
 (define (fatal-error . msg)
-  (display (append-strings (cons "*** FATAL ERROR --- " msg)) (current-error-port))
+  (display (string-append "*** FATAL ERROR --- " (append-strings msg) "\n")
+           (current-error-port))
   (exit 1))
+
 
 ;; General exception thrower helper
 (define-macro (py-throw-exception-with-message exc . msg)
