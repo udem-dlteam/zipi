@@ -372,10 +372,15 @@
 		 (cons (sexp (car body) #f scope conf) (loop (cdr body))))))))
 
 (define (compile* loc body tail scope conf)
-   (let loop ((body body))
-      (if (null? (cdr body))
-	  (list (sexp (car body) tail scope conf))
-	  (cons (sexp (car body) #f scope conf) (loop (cdr body))))))
+  (cond
+    ((null? body)
+      '())
+    ((null? (cdr body))
+      (list (sexp (car body) tail scope conf)))
+    (else
+      (cons
+        (sexp (car body) #f scope conf)
+        (compile* loc (cdr body) tail scope conf)))))
 
 (define (import-prefix name)
    (let* ((s (symbol->string name))

@@ -1,21 +1,23 @@
-;; TODO: change the naming convention:
-;;  py-[class]-[method] to [class].[method]
-;;  This was already done with int, example:
-;; the object int.__add__ has name 'int.__add__' in the source
+(define debug-verbosity 0)
+(define (print-debug verbosity . msg)
+  (if (>= debug-verbosity verbosity)
+      (display (append-strings msg) (current-error-port))))
+
+;; General exception thrower helper
+(define-macro (py-throw-exception-with-message exc . msg)
+  `(py-throw
+    (py-call
+      ,exc
+      (py-str-from-scheme (string-append ,@msg)))))
 
 (define (init-constants constants)
-  (for-each
-    (lambda (pair)
-      (let ((value (car pair))
-            (obj (cdr pair)))
-        (PyObject-hclass-set! obj py-str-hclass-of-instances)
-        (structure-set! obj 2
-          (make-vector
-            (vector-length (HClass-names py-str-hclass-of-instances))
-            py-absent))
-        (object-class-fast-set! obj py-str-class)
-        (object-scheme-value-fast-set! obj value)))
-    (table->list (structure-ref constants 1))))
+  (vector-for-each
+    (lambda (obj)
+      (structure-type-set! obj (PyObjectStr-type-get))
+      (PyObject-hclass-set! obj py-str-hclass-of-instances)
+      (PyObject-class-set! obj py-str-class)
+      (PyObjectStr-representative-set! obj py-absent))
+    (structure-ref constants 1)))
 
 (start-registering-constants)
 
@@ -24,317 +26,284 @@
 ;; =============================================================================
 
 (define py-object-hclass-of-instances
-  (make-HClass
-    '#() ;; set later when classes exist
-    (vector
-      (& "**class**"))
+  (make-builtin-HClass
+    (vector)
     '()))
 
 ;; instances of type are classes
 ;; this is the hidden class of classes
 (define py-type-hclass-of-instances
-  (make-HClass
-    '#() ;; set later when classes exist
+  (make-builtin-HClass
     (vector
-      (& "**class**")
-      (& "**bases**")
-      (& "**mro**")
-      (& "**hclass-of-instance**")
       (& "__name__")
       (& "__call__"))
     '()))
 
 (define py-str-hclass-of-instances
-  (make-HClass
-    '#() ;; set later when classes exist
-    (vector
-      (& "**class**")
-      (& "**value**")
-      (& "**representative**")
-      (& "**hash**"))
+  (make-builtin-HClass
+    (vector)
     '()))
 
 (define py-tuple-hclass-of-instances
-  (make-HClass
-    '#() ;; set later when classes exist
-    (vector
-      (& "**class**")
-      (& "**value**"))
+  (make-builtin-HClass
+    (vector)
     '()))
 
 (define py-int-hclass-of-instances
-  (make-HClass
-    '#() ;; set later when classes exist
-    (vector
-      (& "**class**")
-      (& "**value**"))
+  (make-builtin-HClass
+    (vector)
     '()))
 
 (define py-float-hclass-of-instances
-  (make-HClass
-    '#() ;; set later when classes exist
-    (vector
-      (& "**class**")
-      (& "**value**"))
-    '()))
-
-(define py-bool-hclass-of-instances
-  (make-HClass
-    '#() ;; set later when classes exist
-    (vector
-      (& "**class**")
-      (& "**value**"))
+  (make-builtin-HClass
+    (vector)
     '()))
 
 (define py-complex-hclass-of-instances
-  (make-HClass
-    '#() ;; set later when classes exist
-    (vector
-      (& "**class**")
-      (& "**value**"))
+  (make-builtin-HClass
+    (vector)
     '()))
 
 (define py-slice-hclass-of-instances
-  (make-HClass
-    '#() ;; set later when classes exist
-    (vector
-      (& "**class**")
-      (& "**value**"))
+  (make-builtin-HClass
+    (vector)
     '()))
 
 
 (define py-bytearray-hclass-of-instances
-  (make-HClass
-    '#() ;; set later when classes exist
-    (vector
-      (& "**class**")
-      (& "**value**"))
+  (make-builtin-HClass
+    (vector)
     '()))
 
 (define py-method-hclass-of-instances
-  (make-HClass
-    '#()
+  (make-builtin-HClass
     (vector
-      (& "**class**")
-      (& "**procedure**")
-      (& "**arity**")
-      (& "**signature**")
       (& "__self__"))
     '()))
 
 (define py-function-hclass-of-instances
-  (make-HClass
-    '#()
-    (vector
-      (& "**class**")
-      (& "**procedure**")
-      (& "**arity**")
-      (& "**signature**"))
+  (make-builtin-HClass
+    (vector)
     '()))
 
 (define py-list-hclass-of-instances
-  (make-HClass
-    '#() ;; set later when classes exist
-    (vector
-      (& "**class**")
-      (& "**value**"))
+  (make-builtin-HClass
+    (vector)
     '()))
 
 (define py-dict-hclass-of-instances
-  (make-HClass
-    '#() ;; set later when classes exist
-    (vector
-      (& "**class**")
-      (& "**value**"))
+  (make-builtin-HClass
+    (vector)
     '()))
 
 (define py-set-hclass-of-instances
-  (make-HClass
-    '#() ;; set later when classes exist
-    (vector
-      (& "**class**")
-      (& "**value**"))
+  (make-builtin-HClass
+    (vector)
     '()))
 
-(define py-module-hclass-of-instances (make-HClass
-  '#() ;; set later when classes exist
-  (vector
-    (& "**class**")
-    (& "__name__")
-    (& "__builtins__"))
-  '()))
+(define py-module-hclass-of-instances
+  (make-builtin-HClass
+    (vector
+      (& "__name__")
+      (& "__builtins__"))
+    '()))
 
 (define py-list-iterator-hclass-of-instances
-  (make-HClass
-    '#()
-    (vector
-      (& "**class**")
-      (& "**list**")
-      (& "**index**"))
+  (make-builtin-HClass
+    (vector)
     '()))
 
 ;; bytearray iterator
 (define py-bytearray-iterator-hclass-of-instances
-  (make-HClass
-   '#()
-   (vector
-    (& "**class**")
-    (& "**bytearray**")
-    (& "**index**"))
+  (make-builtin-HClass
+   (vector)
    '()))
 
 ;; tuple iterator
 (define py-tuple-iterator-hclass-of-instances
-  (make-HClass
-    '#()
-    (vector
-      (& "**class**")
-      (& "**vector**")
-      (& "**index**"))
+  (make-builtin-HClass
+    (vector)
     '()))
 
 ;; dict-keys iterator
 (define py-dict-keyiterator-hclass-of-instances
-  (make-HClass
-    '#()
-    (vector
-      (& "**class**")
-      (& "**node**")
-      (& "**iterator-token**"))
+  (make-builtin-HClass
+    (vector)
     '()))
 
 (define py-generator-hclass
-  (make-HClass
-   '#()
+  (make-builtin-HClass
    (vector
-    (& "**class**")
-    (& "__class__")
     (& "__next__")
     (& "send"))
    '()))
 
+(define py-TextIOWrapper-hclass-of-instances
+  (make-builtin-HClass
+    (vector)
+    '()))
+
+(define py-super-hclass-of-instances
+  (make-builtin-HClass
+    (vector)
+    '()))
+
 ;; Method for fast access to attributes defined in hidden classes
 ;; Those are unsafe methods
 
-(define (object-class-fast-get obj)
+(define (method-__self__-fast-get obj)
   (PyObject-elements-ref obj 0))
 
-(define (object-class-fast-set! obj class)
-  (PyObject-elements-set! obj 0 class))
-
-(define (type-bases-fast-get type)
-  (PyObject-elements-ref type 1))
-
-(define (type-bases-fast-set! type bases)
-  (PyObject-elements-set! type 1 bases))
-
-(define (type-mro-fast-get type)
-  (PyObject-elements-ref type 2))
-
-(define (type-mro-fast-set! type mro)
-  (PyObject-elements-set! type 2 mro))
-
-(define (type-hclass-of-instance-fast-get type)
-  (PyObject-elements-ref type 3))
-
-(define (type-hclass-of-instance-fast-set! type hclass)
-  (PyObject-elements-set! type 3 hclass))
-
-(define (type-name-fast-get type)
-  (PyObject-elements-ref type 4))
-
-(define (type-name-fast-set! type name)
-  (PyObject-elements-set! type 4 name))
-
-(define (class-__call__-fast-get class)
-  (PyObject-elements-ref class 5))
-
-(define (object-scheme-value-fast-get obj)
-  (PyObject-elements-ref obj 1))
-
-(define (object-scheme-value-fast-set! obj value)
-  (PyObject-elements-set! obj 1 value))
-
-(define (function-procedure-fast-get obj)
-  (PyObject-elements-ref obj 1))
-
-(define (function-procedure-fast-set! obj value)
-  (PyObject-elements-set! obj 1 value))
-
-(define (function-arity-fast-get obj)
-  (PyObject-elements-ref obj 2))
-
-(define (function-arity-fast-set! obj value)
-  (PyObject-elements-set! obj 2 value))
-
-(define (function-signature-fast-get obj)
-  (PyObject-elements-ref obj 3))
-
-(define (function-signature-fast-set! obj value)
-  (PyObject-elements-set! obj 3 value))
-
-(define (method-__self__-fast-get obj)
-  (PyObject-elements-ref obj 4))
-
 (define (method-__self__-fast-set! obj value)
-  (PyObject-elements-set! obj 4 value))
-
-(define (str-representative-fast-get obj)
-  (PyObject-elements-ref obj 2))
-
-(define (str-representative-fast-set! obj value)
-  (PyObject-elements-set! obj 2 value))
-
-(define (str-hash-fast-get obj)
-  (PyObject-elements-ref obj 3))
-
-(define (str-hash-fast-set! obj value)
-  (PyObject-elements-set! obj 3 value))
+  (PyObject-elements-set! obj 0 value))
 
 ;; object allocation
-
-(define (py-obj-alloc-with-value cls hclass-of-instances value)
-  (let ((obj (py-obj-alloc cls hclass-of-instances)))
-    (object-scheme-value-fast-set! obj value)
-    obj))
 
 (define (py-obj-alloc cls hclass-of-instances)
   (let ((self
          (make-PyObject
           hclass-of-instances
-          (make-vector (vector-length (HClass-names hclass-of-instances))
-                       py-absent))))
-    (object-class-fast-set! self cls) ;; set **class**
+          (make-vector
+            (vector-length (HClass-names hclass-of-instances))
+            py-absent)
+          cls)))
     self))
 
+;; type allocation
+
+(define (py-type-alloc metaclass bases mro hclass-of-instance)
+  (make-PyObjectType
+    py-type-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-type-hclass-of-instances))
+      py-absent)
+    metaclass
+    bases
+    mro
+    hclass-of-instance))
+
+(define (py-builtin-type-alloc metaclass bases mro hclass-of-instance)
+  (make-still-copy
+    (make-PyObjectType
+      py-type-hclass-of-instances
+      (make-vector
+        (vector-length (HClass-names py-type-hclass-of-instances))
+        py-absent)
+      metaclass
+      bases
+      mro
+      hclass-of-instance)))
+
+(define (py-dict-alloc ordered-table)
+  (make-PyObjectDict
+    py-dict-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-dict-hclass-of-instances))
+      py-absent)
+    py-dict-class
+    ordered-table))
+
+(define (py-dict-keyiterator-alloc first iterator-token)
+  (make-PyObjectDictKeyIterator
+    py-dict-keyiterator-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-dict-keyiterator-hclass-of-instances))
+      py-absent)
+    py-dict-keyiterator-class
+    first
+    iterator-token))
+
+(define (py-list-iterator-alloc index lst)
+  (make-PyObjectListIterator
+    py-list-iterator-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-list-iterator-hclass-of-instances))
+      py-absent)
+    py-list-iterator-class
+    index
+    lst))
+
+(define (py-tuple-iterator-alloc index vec)
+  (make-PyObjectTupleIterator
+    py-tuple-iterator-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-tuple-iterator-hclass-of-instances))
+      py-absent)
+    py-tuple-iterator-class
+    index
+    vec))
+
+(define (py-bytearray-iterator-alloc index bytearray)
+  (make-PyObjectBytearrayIterator
+    py-bytearray-iterator-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-bytearray-iterator-hclass-of-instances))
+      py-absent)
+    py-bytearray-iterator-class
+    index
+    bytearray))
+
+(define (py-TextIOWrapper-alloc port mode encoding)
+  (make-PyObjectTextIOWrapper
+    py-TextIOWrapper-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-TextIOWrapper-hclass-of-instances))
+      py-absent)
+    py-TextIOWrapper-class
+    port
+    mode
+    encoding))
 ;; ----------------------------------------------------------------------------
 
-(define py-absent (list 'absent))
+;; WARNING: this must be a constant otherwise it may be garbage collected
+;; in some case and no longer be eq? with its version stored in literal objects
+(define py-absent '%py-absent)
 
 (define (global-get global name cache)
    (if (eq? (PyObject-hclass global) (PCache-hclass cache))
-       (let ((val (PyObject-elements-ref global (PCache-index cache))))
-         (if (not (eq? val py-absent))
-             val
-             (py-throw py-builtin-NameError)))
-       (global-get/miss global name cache)))
+     (let ((val (PyObject-elements-ref global (PCache-index cache))))
+       (if (not (eq? val py-absent))
+           val
+           ;; TODO: use a different cache
+           (global-get-from-builtins name cache)))
+     (global-get/miss global name cache)))
 
 (define (global-get/miss global name cache)
   (let ((i (py-own-attr-index global name)))
     (if (< i 0)
-        (let ((bi (py-own-attr-ref global (& "__builtins__") #f)))
-          (if (not (eq? bi py-absent))
-              (let ((val (py-own-attr-ref bi name #f)))
-                (if (not (eq? val py-absent))
-                    val
-                    (py-throw py-builtin-NameError)))
-              (py-throw py-builtin-NameError)))
-        (let ((hclass (PyObject-hclass global)))
-          (PCache-set! cache hclass i)
-          (let ((val (PyObject-elements-ref global i)))
-            (if (not (eq? val py-absent))
-                val
-                (py-throw py-builtin-NameError)))))))
+      ;; as per Python 3.8 (maybe 3.7?) builtins module is no longer recovered
+      ;; through __builtins__, this was also documented as an implementation
+      ;; detail: https://docs.python.org/3/library/builtins.html
+      ;; TODO: use a different cache
+      (global-get-from-builtins name cache)
+      (let ((hclass (PyObject-hclass global)))
+        (PCache-set! cache hclass i)
+        (let ((val (PyObject-elements-ref global i)))
+          (if (not (eq? val py-absent))
+              val
+              ;; TODO: use a different cache
+              (global-get-from-builtins name cache)))))))
+
+;; TODO: use a cache for builtins and one for global access
+(define (global-get-from-builtins name cache)
+  (define (throw-NameError)
+    (py-throw-exception-with-message
+      py-builtin-NameError
+      "name '" (PyObjectStr-value name) "' is not defined"))
+  (let ((builtins-hclass (PyObject-hclass builtins-mod)))
+    (if (eq? builtins-hclass (PCache-hclass cache))
+      (let ((val (PyObject-elements-ref builtins-mod (PCache-index cache))))
+        (if (eq? val py-absent)
+          (throw-NameError)
+          val))
+      (let ((i (py-own-attr-index builtins-mod name)))
+        (if (< i 0)
+          (throw-NameError)
+          (let ((val (PyObject-elements-ref builtins-mod i)))
+            (PCache-set! cache builtins-hclass i)
+            (if (eq? val py-absent)
+                (throw-NameError)
+                val)))))))
 
 (define (global-put! global name val cache)
    (if (eq? (PyObject-hclass global) (PCache-hclass cache))
@@ -407,24 +376,30 @@
 
 (define (prebootstrap-procedure->py-function procedure signature)
   (let ((py-function
-          (py-obj-alloc
+          (make-PyObjectFunction
+            py-function-hclass-of-instances
+            (make-vector
+              (vector-length (HClass-names py-function-hclass-of-instances))
+              py-absent)
             #f
-            py-function-hclass-of-instances)))
+            procedure
+            (signature->arity signature)
+            signature)))
     (set!
       functions-awaiting-bootstap
       (cons py-function functions-awaiting-bootstap))
-    (function-procedure-fast-set! py-function procedure)
-    (function-signature-fast-set! py-function signature)
-    (function-arity-fast-set! py-function (signature->arity signature))
     py-function))
 
 (define (postbootstrap-procedure->py-function procedure signature)
-  (let ((func (py-obj-alloc py-function-class py-function-hclass-of-instances))
-        (arity (signature->arity signature)))
-   (function-procedure-fast-set! func procedure)
-   (function-signature-fast-set! func signature)
-   (function-arity-fast-set! func arity)
-   func))
+  (make-PyObjectFunction
+    py-function-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-function-hclass-of-instances))
+      py-absent)
+    py-function-class
+    procedure
+    (signature->arity signature)
+    signature))
 
 (define procedure->py-function prebootstrap-procedure->py-function)
 
@@ -433,7 +408,7 @@
   (let loop ((functions functions-awaiting-bootstap))
     (if (not (null? functions))
       (begin
-        (object-class-fast-set! (car functions) py-function-class)
+        (PyObject-class-set! (car functions) py-function-class)
         (loop (cdr functions))))))
 
 (define (pack-extra-args arity args)
@@ -449,14 +424,14 @@
               `(define (,py-call-name fun ,@args)
                 (let ((fun-type (py-type fun)))
                   (if (eq? fun-type py-function-class)
-                    (let ((arity (function-arity-fast-get fun)))
+                    (let ((arity (PyObjectFunction-arity fun)))
                       (cond
                         ((not arity) (py-call fun ,@args))
                         ((= arity ,X)
-                          ((function-procedure-fast-get fun) ,@args))
+                          ((PyObjectFunction-procedure fun) ,@args))
                         ((and (< arity 0) (>= arity ,(- 0 X 1)))
                           (apply
-                            (function-procedure-fast-get fun)
+                            (PyObjectFunction-procedure fun)
                             (pack-extra-args arity (list ,@args))))
                         (else
                           (py-throw py-builtin-TypeError)))) ;; TODO add error message
@@ -469,13 +444,13 @@
 (define (py-call0 fun)
   (let ((fun-type (py-type fun)))
     (if (eq? fun-type py-function-class)
-      (let ((arity (function-arity-fast-get fun)))
+      (let ((arity (PyObjectFunction-arity fun)))
         (cond
           ((not arity) (py-call fun))
           ((= arity 0)
-            ((function-procedure-fast-get fun)))
+            ((PyObjectFunction-procedure fun)))
           ((= arity -1)
-            ((function-procedure-fast-get fun)
+            ((PyObjectFunction-procedure fun)
               (py-tuple-from-scheme '#())))
           (else
             (py-throw py-builtin-TypeError)))) ;; TODO add error message)))
@@ -490,13 +465,13 @@
   (let ((obj-type (py-type obj)))
     (cond
       ((eq? obj-type py-function-class)
-        (let* ((procedure (function-procedure-fast-get obj))
-               (signature (function-signature-fast-get obj))
+        (let* ((procedure (PyObjectFunction-procedure obj))
+               (signature (PyObjectFunction-signature obj))
                (aligned-args (align-args-with-signature args signature)))
           (apply procedure aligned-args)))
       ((eq? obj-type py-method-class)
-        (let* ((procedure (function-procedure-fast-get obj))
-               (signature (function-signature-fast-get obj))
+        (let* ((procedure (PyObjectMethod-procedure obj))
+               (signature (PyObjectMethod-signature obj))
                (__self__ (method-__self__-fast-get obj))
                (bound-args (cons __self__ args))
                (aligned-args (align-args-with-signature bound-args signature)))
@@ -560,7 +535,7 @@
 
 (define (py-issubclass? cls parent)
   (if (py-isinstance? cls py-type-class)
-    (let ((mro (py-cls-mro cls)))
+    (let ((mro (PyObjectType-mro cls)))
       (py-is-in-mro? parent mro))
     #f))
 
@@ -569,7 +544,7 @@
          (raise (py-call py-builtin-TypeError)))
         ((py-is-in-mro? py-builtin-BaseException (py-obj-mro exc))
          (raise exc))
-        ((py-is-in-mro? py-builtin-BaseException (py-cls-mro exc))
+        ((py-is-in-mro? py-builtin-BaseException (PyObjectType-mro exc))
          (raise (py-call exc)))
         (else
          (raise (py-call py-builtin-TypeError)))))
@@ -578,7 +553,7 @@
 ;; Exception thrower helpers
 ;; =============================================================================
 (define (throw-unsupported-unary-operand x operator)
-  (let ((x-type-name (type-name-fast-get (py-type x))))
+  (let ((x-type-name (py-own-attr-ref (py-type x) (& "__name__"))))
     (py-throw
       (py-call
         py-builtin-TypeError
@@ -591,7 +566,7 @@
             "'"))))))
 
 (define (throw-unhashable x)
-  (let ((x-type-name (type-name-fast-get (py-type x))))
+  (let ((x-type-name (py-own-attr-ref (py-type x) (& "__name__"))))
     (py-throw
       (py-call
         py-builtin-TypeError
@@ -602,7 +577,7 @@
             "'"))))))
 
 (define (py-throw-not-an-integer obj)
-  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
+  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type obj) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
@@ -612,7 +587,7 @@
             "' object cannot be interpreted as an integer"))))))
 
 (define (py-throw-has-no-len obj)
-  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
+  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type obj) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
@@ -645,7 +620,7 @@
       (py-str-from-scheme "pop from empty list"))))
 
 (define (py-throw-not-subscriptable obj)
-  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
+  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type obj) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
@@ -655,7 +630,7 @@
             "' object is not subscriptable"))))))
 
 (define (py-throw-not-assignable obj)
-  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
+  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type obj) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
@@ -665,7 +640,7 @@
             "' object does not support item assignment"))))))
 
 (define (py-throw-not-deletable obj)
-  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
+  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type obj) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
@@ -675,7 +650,7 @@
             "' object does not support item deletion"))))))
 
 (define (py-throw-wrong-index-type type expected-description item)
-  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type item)))))
+  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type item) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
@@ -702,7 +677,7 @@
           (number->string expected-len))))))
 
 (define (throw-not-iteralble obj)
-  (let ((obj-type-name (type-name-fast-get (py-type obj))))
+  (let ((obj-type-name (py-own-attr-ref (py-type obj) (& "__name__"))))
     (py-throw (py-call
                 py-builtin-TypeError
                 (py-str-from-scheme
@@ -712,21 +687,21 @@
                     "' is not iterable"))))))
 
 (define (py-throw-not-an-iterator obj)
-  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
+  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type obj) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
           (string-append "'" given-type "' object is not an iterator"))))))
 
 (define (py-throw-not-callable obj)
-  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type obj)))))
+  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type obj) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
           (string-append "'" given-type "' object is not callable"))))))
 
 (define (py-throw-required-type method-name required-type arg)
-  (let ((given-type (py-str-to-scheme (type-name-fast-get (py-type arg)))))
+  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type arg) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
@@ -740,7 +715,7 @@
               "'"))))))
 
 (define (py-throw-not-a-subtype fun-name wrong-type type-name)
-  (let ((wrong-type-name (py-str-to-scheme (type-name-fast-get wrong-type))))
+  (let ((wrong-type-name (py-str-to-scheme (py-own-attr-ref wrong-type (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
@@ -749,7 +724,7 @@
 
 (define (py-throw-not-a-type-object fun-name obj)
   (let* ((instance-type (py-type obj))
-         (instance-type-name (py-str-to-scheme (type-name-fast-get instance-type))))
+         (instance-type-name (py-str-to-scheme (py-own-attr-ref instance-type (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
@@ -769,19 +744,13 @@
 
 (define (throw-returned-wrong-type fun-name obj qualifier)
   (let* ((type (py-type obj))
-         (type-name (type-name-fast-get type)))
+         (type-name (py-own-attr-ref type (& "__name__"))))
     (py-throw
       (py-call
         py-builtin-TypeError
         (py-str-from-scheme
           (string-append
             fun-name " returned " qualifier " (type " type-name ")"))))))
-
-(define-macro (py-throw-exception-with-message exc . msg)
-  `(py-throw
-    (py-call
-      ,exc
-      (py-str-from-scheme (string-append ,@msg)))))
 
 ;; -----------------------------------------------------------------------------
 
@@ -797,8 +766,8 @@
 ;; =============================================================================
 
 (define (throw-unsupported-operand x y operator)
-  (let ((x-type-name (type-name-fast-get (py-type x)))
-        (y-type-name (type-name-fast-get (py-type y))))
+  (let ((x-type-name (py-own-attr-ref (py-type x) (& "__name__")))
+        (y-type-name (py-own-attr-ref (py-type y) (& "__name__"))))
     (py-throw
       (py-call
         py-builtin-TypeError
@@ -1034,11 +1003,11 @@
         (throw-unhashable x)
         (let ((h (py-call1 __hash__ x)))
           (if (py-isinstance? h py-int-class)
-            (let ((h-value (object-scheme-value-fast-get h)))
+            (let ((h-value (PyObjectInt-value h)))
               (py-int-from-scheme (truncate-hash h-value)))
-	    (py-throw-exception-with-message
-	       py-builtin-RuntimeError
-	       "__hash__ method should return an integer"))))))
+      	    (py-throw-exception-with-message
+      	       py-builtin-RuntimeError
+      	       "__hash__ method should return an integer"))))))
 
 ;; =============================================================================
 ;; int operations
@@ -1057,7 +1026,7 @@
           value)
         ((py-isinstance? value py-int-class)
           ;; up-typing an instance of subclass to an int
-          (py-int-from-scheme (object-scheme-value-fast-get value)))
+          (py-int-from-scheme (PyObjectInt-value value)))
         (else
           (py-throw-exception-with-message
             py-builtin-NotImplementedError
@@ -1065,13 +1034,11 @@
     ((py-issubclass? cls py-int-class)
       (cond
         ((not value)
-          (let ((new-int (py-obj-alloc cls py-int-hclass-of-instances)))
-            (object-scheme-value-fast-set! new-int 0)
+          (let ((new-int (py-int-subtype-from-scheme 0 cls)))
             new-int))
         ((py-isinstance? value py-int-class)
-          (let ((new-int (py-obj-alloc cls py-int-hclass-of-instances))
-                (value (object-scheme-value-fast-get value)))
-            (object-scheme-value-fast-set! new-int value)
+          (let* ((int-value (PyObjectInt-value value))
+                (new-int (py-int-subtype-from-scheme int-value cls)))
             new-int))
         (else
           (py-throw-exception-with-message
@@ -1092,8 +1059,8 @@
         (if (py-isinstance? self py-int-class)
           (cond
             ((py-isinstance? other py-int-class)
-              (let ((self-value (object-scheme-value-fast-get self))
-                    (other-value (object-scheme-value-fast-get other)))
+              (let ((self-value (PyObjectInt-value self))
+                    (other-value (PyObjectInt-value other)))
                 (py-int-from-scheme (,scheme-op self-value other-value))))
             (else py-NotImplemented))
           (py-throw-required-type ,method-name "int" self)))
@@ -1109,8 +1076,8 @@
         (if (py-isinstance? self py-int-class)
           (cond
             ((py-isinstance? other py-int-class)
-              (let ((self-value (object-scheme-value-fast-get self))
-                    (other-value (object-scheme-value-fast-get other)))
+              (let ((self-value (PyObjectInt-value self))
+                    (other-value (PyObjectInt-value other)))
                 (if (not (= 0 other-value))
                   (py-int-from-scheme (,scheme-op self-value other-value))
                   (py-throw
@@ -1130,8 +1097,8 @@
         (if (py-isinstance? self py-int-class)
           (cond
             ((py-isinstance? other py-int-class)
-              (let ((self-value (object-scheme-value-fast-get self))
-                    (other-value (object-scheme-value-fast-get other)))
+              (let ((self-value (PyObjectInt-value self))
+                    (other-value (PyObjectInt-value other)))
                 (if (not (= 0 other-value))
                   (py-float-from-scheme (inexact (,scheme-op self-value other-value)))
                   (py-throw
@@ -1151,8 +1118,8 @@
         (if (py-isinstance? self py-int-class)
           (cond
             ((py-isinstance? other py-int-class)
-              (let ((self-value (object-scheme-value-fast-get self))
-                    (other-value (object-scheme-value-fast-get other)))
+              (let ((self-value (PyObjectInt-value self))
+                    (other-value (PyObjectInt-value other)))
                 (if (,scheme-op self-value other-value) py-True py-False)))
             (else py-NotImplemented))
           (py-throw-required-type ,method-name "int" self)))
@@ -1166,7 +1133,7 @@
     `(begin
       (define (,fun-name self)
         (if (py-isinstance? self py-int-class)
-          (let ((self-value (object-scheme-value-fast-get self)))
+          (let ((self-value (PyObjectInt-value self)))
             (py-int-from-scheme (,scheme-op self-value)))
           (py-throw-required-type ,method-name "int" self)))
       (define ,py-func-name
@@ -1262,7 +1229,7 @@
 
 (define (int-repr self)
   (if (py-isinstance? self py-int-class)
-    (py-str-from-scheme (number->string (object-scheme-value-fast-get self)))
+    (py-str-from-scheme (number->string (PyObjectInt-value self)))
     (py-throw-required-type "__repr__" "int" self)))
 
 (define int.__repr__
@@ -1275,7 +1242,7 @@
     ((eq? (py-type self) py-int-class)
       self)
     ((py-isinstance? self py-int-class)
-      (py-str-from-scheme (number->string (object-scheme-value-fast-get self))))
+      (py-str-from-scheme (number->string (PyObjectInt-value self))))
     (else
       (py-throw-required-type "__repr__" "int" self))))
 
@@ -1299,7 +1266,7 @@
           value)
         ((py-isinstance? value py-float-class)
           ;; up-typing an instance of subclass to an float
-          (py-float-from-scheme (object-scheme-value-fast-get value)))
+          (py-float-from-scheme (PyObjectFloat-value value)))
         (else
           (py-throw-exception-with-message
             py-builtin-NotImplementedError
@@ -1307,14 +1274,10 @@
     ((py-issubclass? cls py-float-class)
       (cond
         ((not value)
-          (let ((new-float (py-obj-alloc cls py-float-hclass-of-instances)))
-            (object-scheme-value-fast-set! new-float 0.0)
-            new-float))
+          (py-float-subtype-from-scheme 0.0 cls))
         ((py-isinstance? value py-float-class)
-          (let ((new-float (py-obj-alloc cls py-float-hclass-of-instances))
-                (value (object-scheme-value-fast-get value)))
-            (object-scheme-value-fast-set! new-float value)
-            new-float))
+          (let ((value (PyObjectFloat-value value)))
+            (py-float-subtype-from-scheme value cls)))
         (else (py-throw-exception-with-message py-builtin-NotImplementedError "float.__new__ only supports subtypes of float"))))
     (else
       (py-throw-wrong-new-argument "float" cls))))
@@ -1334,10 +1297,10 @@
         (if (py-isinstance? self py-float-class)
           (cond
             ((py-isinstance? other py-float-class)
-              (,float-float-op (object-scheme-value-fast-get self) (object-scheme-value-fast-get other)))
+              (,float-float-op (PyObjectFloat-value self) (PyObjectFloat-value other)))
             ((py-isinstance? other py-int-class)
               ;; If the operation is float-int, it converts the float into an int
-              (,float-float-op (object-scheme-value-fast-get self) (fixnum->flonum (object-scheme-value-fast-get other))))
+              (,float-float-op (PyObjectFloat-value self) (fixnum->flonum (PyObjectInt-value other))))
 
             (else py-NotImplemented))
           (py-throw-required-type ,method-name "float" self)))
@@ -1353,10 +1316,10 @@
         (if (py-isinstance? self py-float-class)
           (cond
             ((py-isinstance? other py-float-class)
-              (,float-float-op (object-scheme-value-fast-get other) (object-scheme-value-fast-get self)))
+              (,float-float-op (PyObjectFloat-value other) (PyObjectFloat-value self)))
             ((py-isinstance? other py-int-class)
               ;; If the operation is float-int, it converts the float into an int
-              (,float-float-op (fixnum->flonum (object-scheme-value-fast-get other)) (object-scheme-value-fast-get self)))
+              (,float-float-op (fixnum->flonum (PyObjectInt-value other)) (PyObjectFloat-value self)))
 
             (else py-NotImplemented))
           (py-throw-required-type ,method-name "float" self)))
@@ -1404,6 +1367,9 @@
                   (flfloor div)
                   (flceiling div))))))
 
+(define (fl!= x y)
+  (not (fl= x y)))
+
 (define-float-binary-operator float-add "__add__"            (result-to-float fl+))
 (define-float-binary-operator float-radd "__radd__"          (result-to-float fl+))
 (define-float-binary-operator float-sub "__sub__"            (result-to-float fl-))
@@ -1429,13 +1395,12 @@
 (define-float-binary-operator float-lt "__lt__" (comparison-conversion fl<))
 (define-float-binary-operator float-le "__le__" (comparison-conversion fl<=))
 
-
 (define-macro (define-float-unary-operator fun-name method-name scheme-op)
   (let ((py-func-name (string->symbol (string-append "float." method-name))))
     `(begin
       (define (,fun-name self)
         (if (py-isinstance? self py-float-class)
-          (,scheme-op (object-scheme-value-fast-get self))
+          (,scheme-op (PyObjectFloat-value self))
           (py-throw-required-type ,method-name "float" self)))
       (define ,py-func-name
         (procedure->py-function
@@ -1520,7 +1485,7 @@
           ((eq? len-type py-int-class)
             len)
           ((py-issubclass? len-type py-int-class)
-            (py-int-from-scheme (object-scheme-value-fast-get len)))
+            (py-int-from-scheme (PyObjectInt-value len)))
           (else
             (py-throw-not-an-integer len)))))))
 
@@ -1601,7 +1566,7 @@
 ;;   returns the first occurence of the attribute
 ;;   found on an element of the MRO
 (define (getattribute-from-cls-mro cls name)
-  (let ((mro (py-cls-mro cls)))
+  (let ((mro (PyObjectType-mro cls)))
     (let loop-mro ((i 0))
       (if (< i (vector-length mro))
         (let ((cls (vector-ref mro i)))
@@ -1614,7 +1579,7 @@
 ;; Does the same a getattribute-from-cls-mro but also returns the class
 ;; which owned the attribute. This may be necessary for super
 (define (getattribute-from-cls-mro-with-owner cls name)
-  (let ((mro (py-cls-mro cls)))
+  (let ((mro (PyObjectType-mro cls)))
     (let loop-mro ((i 0))
       (if (< i (vector-length mro))
         (let ((cls (vector-ref mro i)))
@@ -1641,7 +1606,7 @@
   (let ((attr (py-own-attr-ref obj name)))
     (if (not (eq? attr py-absent))
       attr
-      (let-values (((cls-attr owner) (getattribute-from-obj-mro-with-owner obj name)))
+      (receive (cls-attr owner) (getattribute-from-obj-mro-with-owner obj name)
         (if (not (eq? cls-attr py-absent))
           (object-get-bind-descriptor cls-attr obj owner)
           (py-throw py-builtin-AttributeError))))))
@@ -1657,7 +1622,7 @@
 (let ((attr (py-own-attr-ref obj name)))
   (if (not (eq? attr py-absent))
     (object-get-bind-descriptor attr py-None obj)
-    (let-values (((cls-attr owner) (getattribute-from-obj-mro-with-owner obj name)))
+    (receive (cls-attr owner) (getattribute-from-obj-mro-with-owner obj name)
       (if (not (eq? cls-attr py-absent))
         (object-get-bind-descriptor cls-attr obj owner)
         (py-throw py-builtin-AttributeError)
@@ -1697,7 +1662,7 @@
 
 (define (int-bool self)
     (if (py-isinstance? self py-int-class)
-      (let ((value (object-scheme-value-fast-get self)))
+      (let ((value (PyObjectInt-value self)))
         (if (= value 0)
           py-False
           py-True))
@@ -1741,7 +1706,7 @@
 ;; interfaces between manual __call__ and py-call
 (define (method-call self args)
   (if (eq? (py-type self) py-method-class)
-    (let ((args-list (vector->list (py-tuple-to-scheme args))))
+    (let ((args-list (vector->list (PyObjectTuple-value args))))
       (apply py-call self args-list))
     (py-throw-required-type "__call__" "method" self)))
 
@@ -1754,7 +1719,7 @@
 ;; interfaces between manual __call__ and py-call
 (define (function-call self args)
   (if (eq? (py-type self) py-function-class)
-    (let ((args-list (vector->list (py-tuple-to-scheme args))))
+    (let ((args-list (vector->list (PyObjectTuple-value args))))
       (apply py-call self args-list))
     (py-throw-required-type "__call__" "method" self)))
 
@@ -1766,13 +1731,16 @@
 (define (function-get self instance owner)
   (if (eq? instance py-None)
     self
-    (let ((signature (function-signature-fast-get self))
-          (method (py-obj-alloc-with-value
-                    py-method-class
+    (let ((method (make-PyObjectMethod
                     py-method-hclass-of-instances
-                    (function-procedure-fast-get self))))
+                    (make-vector
+                      (vector-length (HClass-names py-method-hclass-of-instances))
+                      py-absent)
+                    py-method-class
+                    (PyObjectFunction-procedure self)
+                    py-absent
+                    (PyObjectFunction-signature self))))
       (method-__self__-fast-set! method instance)
-      (function-signature-fast-set! method signature)
       method)))
 
 (define function.__get__
@@ -1783,7 +1751,7 @@
 ;; TODO: remove the tuple->list conversion once we support argument unpacking
 (define (type-call self args)
   (let ((__new__ (getattribute-from-cls-mro self (& "__new__")))
-        (args-list (vector->list (py-tuple-to-scheme args))))
+        (args-list (vector->list (PyObjectTuple-value args))))
     (let ((instance (apply py-call __new__ self args-list)))
       (if (eq? (py-obj-cls instance) self)
         (let ((__init__ (getattribute-from-cls-mro self (& "__init__"))))
@@ -1798,7 +1766,7 @@
 
 ;; TODO: remove the tuple->list conversion once we support argument unpacking
 (define (type-new metacls cls args)
-  (let* ((args-list (vector->list (py-tuple-to-scheme args)))
+  (let* ((args-list (vector->list (PyObjectTuple-value args)))
         (args-length (length args-list)))
     (cond
       ((= args-length 0)
@@ -1821,7 +1789,7 @@
 ;; TODO: that's really a lot of todos...
 (define (object-new cls args)
   (if (py-isinstance? cls py-type-class)
-    (py-obj-alloc cls (type-hclass-of-instance-fast-get cls))
+    (py-obj-alloc cls (PyObjectType-hclass-of-instances cls))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme "object.__new__(X): X is not a type object")))))
@@ -1850,9 +1818,9 @@
     (let ((left (car value))
           (right (cdr value)))
       (str-value-collect-components-aux!
-        (object-scheme-value-fast-get right)
+        (PyObjectStr-value right)
         (str-value-collect-components-aux!
-          (object-scheme-value-fast-get left)
+          (PyObjectStr-value left)
           components)))
     (cons value components)))
 
@@ -1860,27 +1828,31 @@
   (reverse (str-value-collect-components-aux! value '())))
 
 (define (str-make! str)
-  (let ((value (object-scheme-value-fast-get str)))
-    (if (string? value)
-      value
-      (let* ((str-components (str-value-collect-components value))
-            (new-string (append-strings str-components)))
-        (object-scheme-value-fast-set! str new-string)
-        new-string))))
+  (let ((value (PyObjectStr-value str)))
+    (cond
+      ((string? value)
+        value)
+      ((pair? value)
+        (let* ((str-components (str-value-collect-components value))
+              (new-string (append-strings str-components)))
+          (PyObjectStr-value-set! str new-string)
+          new-string))
+      (else
+        (error "str-make!" "received object with value" value)))))
 
 (define (str-representative-get str)
-  (let ((self-token (str-representative-fast-get str)))
+  (let ((self-token (PyObjectStr-representative str)))
     (if (eq? self-token py-absent)
       (begin
         (let* ((str-value (str-make! str))
                (rep (table-ref str-representatives str-value #f)))
           (if rep
             (begin
-              (str-representative-fast-set! str rep)
+              (PyObjectStr-representative-set! str rep)
               rep)
-            (begin
-              (table-set! str-representatives str-value str)
-              str))))
+            (let ((new-rep (make-still-copy str)))
+              (table-set! str-representatives str-value new-rep)
+              new-rep))))
       self-token)))
 
 (define (str-new cls value)
@@ -1898,14 +1870,12 @@
         (let* ((__str__ (getattribute-from-obj-mro value (& "__str__")))
                (result (py-call __str__ value)))
           (if (py-isinstance? result py-str-class)
-            (py-obj-alloc-with-value
+            (py-str-subtype-from-scheme
               cls
-              py-str-hclass-of-instances
-              (object-scheme-value-fast-get result))
+              (PyObjectStr-value result))
             (throw-returned-wrong-type "__str__" value "non-string")))
-        (py-obj-alloc-with-value
+        (py-str-subtype-from-scheme
           cls
-          py-str-hclass-of-instances
           "")))
     (else
       (py-throw-wrong-new-argument "str" cls))))
@@ -2021,17 +1991,8 @@
           (truncate-hash (* (bitwise-xor h (car bytes)) FNV1a-prime)))))))
 
 (define (str-hash self)
-  (if (py-isinstance? self py-str-class)
-    (let* ((representative (str-representative-get self))
-           (hash (str-hash-fast-get representative)))
-      (if (eq? hash py-absent)
-        (let ((new-hash
-                (py-int-from-scheme
-                  (hash-FNV1a
-                    (object-scheme-value-fast-get representative)))))
-          (str-hash-fast-set! representative new-hash)
-          new-hash)
-        hash))
+  (if (PyObjectStr? self)
+    (py-int-from-scheme (hash-FNV1a (PyObjectStr-value self)))
     (py-throw-required-type "__hash__" "str" self)))
 
 (define str.__hash__
@@ -2076,7 +2037,7 @@
 (define (float-repr self)
   (if (py-isinstance? self py-float-class)
     (py-str-from-scheme
-      (let ((value (object-scheme-value-fast-get self)))
+      (let ((value (PyObjectFloat-value self)))
         (cond
           ((integer? value)
             (string-append (number->string value) "0"))
@@ -2097,9 +2058,9 @@
     ((py-str-class)
       (display (py-str-to-scheme obj) port))
     ((py-int-class)
-      (display (object-scheme-value-fast-get obj) port))
+      (display (PyObjectInt-value obj) port))
     ((py-float-class)
-      (display (float->string-with-padded-zeros (object-scheme-value-fast-get obj)) port))
+      (display (float->string-with-padded-zeros (PyObjectFloat-value obj)) port))
     ((py-bool-class)
       (if (eq? obj py-True)
         (display "True" port)
@@ -2166,10 +2127,10 @@
 
 (define (py-chr i)
   (if (py-isinstance? i py-int-class)
-    (let ((value (object-scheme-value-fast-get i)))
+    (let ((value (PyObjectInt-value i)))
       (py-str-from-scheme (string (integer->char value))))
     (let* ((i-type (py-type i))
-	   (i-type-name (type-name-fast-get i-type)))
+	   (i-type-name (py-own-attr-ref i-type (& "__name__"))))
       (py-throw
         (py-call
           py-builtin-TypeError
@@ -2200,10 +2161,10 @@
 (define py-set-class    #f)
 (define py-module-class #f)
 
-(define (py-obj-cls* obj) ;; return **class** attribute of object obj
+(define (py-obj-cls* obj)
   (cond
         ((PyObject? obj)
-         (object-class-fast-get obj))
+         (PyObject-class obj))
         ((flonum? obj)
          py-float-class)
         ((integer? obj)
@@ -2212,18 +2173,12 @@
          py-bool-class)
         (else #f)))
 
-(define (py-obj-cls obj) ;; return **class** attribute of object obj
+(define (py-obj-cls obj)
   (or (py-obj-cls* obj)
       (error "py-obj-cls" "unhandled object type" obj)))
 
 (define (py-obj-mro obj) ;; return MRO of object
-  (py-cls-mro (py-obj-cls obj))) ;; TODO: use HClass-class-mro
-
-(define (py-cls-bases cls) ;; return **bases** attribute of class cls
-  (type-bases-fast-get cls))
-
-(define (py-cls-mro cls) ;; return **mro** attribute of class cls
-  (type-mro-fast-get cls))
+  (PyObjectType-mro (py-obj-cls obj)))
 
 ;;;----------------------------------------------------------------------------
 
@@ -2232,9 +2187,13 @@
 ;; TODO: remove direct indexing and use fast-set! methods in this section
 
 (define (alloc-new-int-from-scheme value)
-  (let ((self (py-obj-alloc py-int-class py-int-hclass-of-instances)))
-    (object-scheme-value-fast-set! self value)       ;; set **value**
-    self))
+  (make-PyObjectInt
+    py-int-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-int-hclass-of-instances))
+      py-absent)
+    py-int-class
+    value))
 
 (define int-cache-low -5)
 (define int-cache-high 256)
@@ -2256,72 +2215,106 @@
     (vector-ref int-cache (- value int-cache-low))
     (alloc-new-int-from-scheme value)))
 
+(define (py-int-subtype-from-scheme value int-subclass)
+  (make-PyObjectInt
+    py-int-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-int-hclass-of-instances))
+      py-absent)
+    int-subclass
+    value))
+
+(define (py-float-subtype-from-scheme value float-subclass)
+  (make-PyObjectFloat
+    py-float-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-float-hclass-of-instances))
+      py-absent)
+    float-subclass
+    value))
+
 (define (py-float-from-scheme value)
-  (let ((self (py-obj-alloc py-float-class py-float-hclass-of-instances)))
-    (object-scheme-value-fast-set! self value)       ;; set **value**
-    self))
+  (make-PyObjectFloat
+    py-float-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-float-hclass-of-instances))
+      py-absent)
+    py-float-class
+    value))
 
-(define (py-str-from-scheme string)
-  (let ((self (py-obj-alloc py-str-class py-str-hclass-of-instances)))
-    (object-scheme-value-fast-set! self string)       ;; set **value**
-    self))
+(define (py-str-from-scheme value)
+  (make-PyObjectStr
+    py-str-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-str-hclass-of-instances))
+      py-absent)
+    py-str-class
+    value
+    py-absent)) ;; representative
 
-(define (py-bytearray-from-scheme len-vec-pair)
-  (let ((bytearr (py-obj-alloc py-bytearray-class py-bytearray-hclass-of-instances)))
-    (object-scheme-value-fast-set! bytearr len-vec-pair)
-    bytearr))
+(define (py-str-subtype-from-scheme value str-subclass)
+  (make-PyObjectStr
+    py-str-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-str-hclass-of-instances))
+      py-absent)
+    str-subclass
+    value
+    py-absent)) ;; representative
 
 (define (py-str-to-scheme self)
   (str-make! self))
 
-(define (py-tuple-to-scheme self)
-  (object-scheme-value-fast-get self))
-
-(define (py-list-to-scheme self)
-  (object-scheme-value-fast-get self))
-
-(define (py-dict-to-scheme self)
-  (object-scheme-value-fast-get self))
-
 (define (py-set-from-scheme elems)
-  (let ((self (py-obj-alloc py-set-class py-set-hclass-of-instances)))
-    (PyObject-elements-set! self 1 elems)         ;; set **elems**
-    (PyObject-elements-set! self 2 py-set-class)  ;; set __class__
-    self))
+  (py-throw-exception-with-message
+    py-builtin-NameError
+    "py-set-from-scheme not implemented"))
 
-(define (py-set-to-scheme self)
-  (object-scheme-value-fast-get self))
+(define (py-bytearray-from-scheme len-vec-pair)
+  (make-PyObjectBytearray
+    py-bytearray-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-bytearray-hclass-of-instances))
+      py-absent)
+    py-bytearray-class
+    len-vec-pair))
 
+(define (py-bytearray-subtype-from-scheme len-vec-pair bytearray-subtype)
+  (make-PyObjectBytearray
+    py-bytearray-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-bytearray-hclass-of-instances))
+      py-absent)
+    bytearray-subtype
+    len-vec-pair))
 ;; Bootstraps type and object
 ;; Create barebone object, type, str and tuple classes
 ;; These will need to be filled in later
 (define (bootstrap-type-hierarchy-phase1)
-  (let* ((type-hclass-length
-          (vector-length (HClass-names py-type-hclass-of-instances)))
-        (type-class
-          (make-PyObject
-            py-type-hclass-of-instances
-            (make-vector
-              type-hclass-length
-              py-absent)))
+  (let* ((type-class
+          (py-builtin-type-alloc
+            #f ;; cls
+            #f ;; bases
+            #f ;; mro
+            py-type-hclass-of-instances))
         (object-class
-          (make-PyObject
-            py-type-hclass-of-instances
-            (make-vector
-              type-hclass-length
-              py-absent)))
+          (py-builtin-type-alloc
+            #f ;; cls
+            #f ;; bases
+            #f ;; mro
+            py-object-hclass-of-instances))
         (str-class
-          (make-PyObject
-            py-type-hclass-of-instances
-            (make-vector
-              type-hclass-length
-              py-absent)))
+          (py-builtin-type-alloc
+            #f ;; cls
+            #f ;; bases
+            #f ;; mro
+            py-str-hclass-of-instances))
         (tuple-class
-          (make-PyObject
-            py-type-hclass-of-instances
-            (make-vector
-              type-hclass-length
-              py-absent))))
+          (py-builtin-type-alloc
+            #f ;; cls
+            #f ;; bases
+            #f ;; mor
+            py-tuple-hclass-of-instances)))
 
     (set! py-object-class object-class)
     (set! py-type-class type-class)
@@ -2332,12 +2325,10 @@
     (init-registered-constants)
 
     ;; Fill in object class
-    (object-class-fast-set! object-class type-class)
-    (type-bases-fast-set! object-class '#())
-    (let ((object-mro (vector object-class)))
-      (HClass-class-mro-set! py-object-hclass-of-instances object-mro)
-      (type-mro-fast-set! object-class object-mro))
-    (type-hclass-of-instance-fast-set! object-class py-object-hclass-of-instances)
+    (PyObject-class-set! object-class type-class)
+    (PyObjectType-bases-set! object-class '#())
+    (PyObjectType-mro-set! object-class (vector object-class))
+    (PyObjectType-hclass-of-instances-set! object-class py-object-hclass-of-instances)
     (py-own-attr-set! object-class (& "__name__") (py-str-from-scheme "object"))
     (py-own-attr-set! object-class (& "__module__") (py-str-from-scheme "builtins"))
     (py-own-attr-set! object-class (& "__new__") object.__new__)
@@ -2348,12 +2339,10 @@
 
 
     ;; Fill in type class
-    (object-class-fast-set! type-class type-class)
-    (type-bases-fast-set! type-class '#(object-class))
-    (let ((type-mro (vector type-class object-class)))
-      (HClass-class-mro-set! py-type-hclass-of-instances type-mro)
-      (type-mro-fast-set! type-class type-mro))
-    (type-hclass-of-instance-fast-set! type-class py-type-hclass-of-instances)
+    (PyObject-class-set! type-class type-class)
+    (PyObjectType-bases-set! type-class '#(object-class))
+    (PyObjectType-mro-set! type-class (vector type-class object-class))
+    (PyObjectType-hclass-of-instances-set! type-class py-type-hclass-of-instances)
     (py-own-attr-set! type-class (& "__name__") (py-str-from-scheme "type"))
     (py-own-attr-set! type-class (& "__module__") (py-str-from-scheme "builtins"))
     (py-own-attr-set! type-class (& "__new__") type.__new__)
@@ -2361,22 +2350,18 @@
     (py-own-attr-set! type-class (& "__getattribute__") type.__getattribute__)
 
     ;; Fill in tuple class
-    (object-class-fast-set! tuple-class type-class)
-    (type-bases-fast-set! tuple-class '#(object-class))
-    (let ((tuple-mro (vector tuple-class object-class)))
-      (HClass-class-mro-set! py-tuple-hclass-of-instances tuple-mro)
-      (type-mro-fast-set! tuple-class tuple-mro))
-    (type-hclass-of-instance-fast-set! tuple-class py-tuple-hclass-of-instances)
+    (PyObject-class-set! tuple-class type-class)
+    (PyObjectType-bases-set! tuple-class '#(object-class))
+    (PyObjectType-mro-set! tuple-class (vector tuple-class object-class))
+    (PyObjectType-hclass-of-instances-set! tuple-class py-tuple-hclass-of-instances)
     (py-own-attr-set! tuple-class (& "__name__") (py-str-from-scheme "tuple"))
     (py-own-attr-set! tuple-class (& "__module__") (py-str-from-scheme "builtins"))
 
     ;; Fill in str class
-    (object-class-fast-set! str-class type-class)
-    (type-bases-fast-set! str-class '#(object-class))
-    (let ((str-mro (vector str-class object-class)))
-      (HClass-class-mro-set! py-str-hclass-of-instances str-mro)
-      (type-mro-fast-set! str-class str-mro))
-    (type-hclass-of-instance-fast-set! str-class py-str-hclass-of-instances)
+    (PyObject-class-set! str-class type-class)
+    (PyObjectType-bases-set! str-class '#(object-class))
+    (PyObjectType-mro-set! str-class (vector str-class object-class))
+    (PyObjectType-hclass-of-instances-set! str-class py-str-hclass-of-instances)
     (py-own-attr-set! str-class (& "__name__") (py-str-from-scheme "str"))
     (py-own-attr-set! str-class (& "__module__") (py-str-from-scheme "builtins"))
     (py-own-attr-set! str-class (& "__new__") str.__new__)
@@ -2398,7 +2383,7 @@
         classes
         (begin
           (set! seen (cons cls seen))
-          (cons cls (add-bases (py-cls-bases cls) classes)))))
+          (cons cls (add-bases (PyObjectType-bases cls) classes)))))
 
   (define (add-bases bases classes)
     (let loop ((i (- (vector-length bases) 1)) (classes classes))
@@ -2408,20 +2393,19 @@
 
   (list->vector (add-class cls '())))
 
-(define (py-make-class name module bases . attrs)
+(define (py-make-class-from-type-allocator name module bases type-allocator attrs)
   (define (make-cls attr-names attr-values)
     (let* ((bases-vect
             (if (null? bases)
               (vector py-object-class)
               (list->vector bases)))
-           (cls (py-obj-alloc py-type-class py-type-hclass-of-instances)))
-      (type-bases-fast-set! cls bases-vect)
-      (type-mro-fast-set! cls (py-compute-mro cls))
+           (cls (type-allocator py-type-class bases-vect #f #f)))
+      (PyObjectType-mro-set! cls (py-compute-mro cls))
       ;; TODO implement better introspection of hclass of instance
       ;; This current implementation will fail on multiple inheritance
-      (type-hclass-of-instance-fast-set!
+      (PyObjectType-hclass-of-instances-set!
         cls
-        (type-hclass-of-instance-fast-get
+        (PyObjectType-hclass-of-instances
           (vector-ref bases-vect 0)))
       (let loop ((attr-names attr-names) (attr-values attr-values))
         (if (pair? attr-names)
@@ -2453,9 +2437,14 @@
     (make-cls (reverse rev-attr-names)
             (reverse rev-attr-values)))))
 
-(define (make-builtin-class name module bases hclass-of-instances . attrs)
-  (let ((cls (apply py-make-class name module bases attrs)))
-    (type-hclass-of-instance-fast-set! cls hclass-of-instances)
+(define (py-make-class name module bases . attrs)
+  (py-make-class-from-type-allocator name module bases py-type-alloc attrs))
+
+(define (py-make-builtin-class name module bases hclass-of-instances . attrs)
+  (let ((cls
+          (py-make-class-from-type-allocator
+            name module bases py-builtin-type-alloc attrs)))
+    (PyObjectType-hclass-of-instances-set! cls hclass-of-instances)
     cls))
 
 ;; =============================================================================
@@ -2497,18 +2486,6 @@
 
 ;; list iterator
 
-(define (list-iterator-list-fast-get li)
-  (PyObject-elements-ref li 1))
-
-(define (list-iterator-list-fast-set! li vec)
-  (PyObject-elements-set! li 1 vec))
-
-(define (list-iterator-index-fast-get li)
-  (PyObject-elements-ref li 2))
-
-(define (list-iterator-index-fast-set! li i)
-  (PyObject-elements-set! li 2 i))
-
 (define (list-iterator-iter self)
   (if (eq? (py-type self) py-list-iterator-class)
     self
@@ -2521,20 +2498,20 @@
 
 ;; By setting index to #f, the iterator always raises StopIteration
 (define (stop-list-iterator iterator)
-  (list-iterator-index-fast-set! iterator #f)
+  (PyObjectListIterator-index-set! iterator #f)
   (py-throw py-builtin-StopIteration))
 
 (define (list-iterator-next self)
   (if (eq? (py-type self) py-list-iterator-class)
-    (let ((index (list-iterator-index-fast-get self)))
+    (let ((index (PyObjectListIterator-index self)))
       (if index
-        (let* ((lst (list-iterator-list-fast-get self))
-               (len-vec-pair (object-scheme-value-fast-get lst))
+        (let* ((lst (PyObjectListIterator-list self))
+               (len-vec-pair (PyObjectList-value lst))
                (len (car len-vec-pair))
                (vec (cdr len-vec-pair)))
           (if (< index len)
             (let ((item (vector-ref vec index)))
-              (list-iterator-index-fast-set! self (+ index 1))
+              (PyObjectListIterator-index-set! self (+ index 1))
               item)
             (stop-list-iterator self)))
           (stop-list-iterator self)))
@@ -2546,25 +2523,13 @@
     (make-posonly-signature '#(self))))
 
 (define py-list-iterator-class
-  (make-builtin-class
+  (py-make-builtin-class
     (& "list_iterator")
     (& "builtins")
     (list)
     py-list-iterator-hclass-of-instances
       (& "__iter__") list_iterator.__iter__
       (& "__next__") list_iterator.__next__))
-
-(define (tuple-iterator-vector-fast-get li)
-  (PyObject-elements-ref li 1))
-
-(define (tuple-iterator-vector-fast-set! li vec)
-  (PyObject-elements-set! li 1 vec))
-
-(define (tuple-iterator-index-fast-get li)
-  (PyObject-elements-ref li 2))
-
-(define (tuple-iterator-index-fast-set! li i)
-  (PyObject-elements-set! li 2 i))
 
 (define (tuple-iterator-iter self)
   (if (eq? (py-type self) py-tuple-iterator-class)
@@ -2578,12 +2543,12 @@
 
 (define (tuple-iterator-next self)
   (if (eq? (py-type self) py-tuple-iterator-class)
-    (let* ((index (tuple-iterator-index-fast-get self))
-           (vec (tuple-iterator-vector-fast-get self)))
+    (let* ((index (PyObjectTupleIterator-index self))
+           (vec (PyObjectTupleIterator-vec self)))
       (if (< index (vector-length vec))
         (let ((item (vector-ref vec index)))
           (begin
-            (list-iterator-index-fast-set! self (+ index 1))
+            (PyObjectTupleIterator-index-set! self (+ index 1))
             item))
         (py-throw py-builtin-StopIteration)))
     (py-throw py-builtin-TypeError)))
@@ -2594,7 +2559,7 @@
     (make-posonly-signature '#(self))))
 
 (define py-tuple-iterator-class
-  (make-builtin-class
+  (py-make-builtin-class
     (& "tuple_iterator")
     (& "builtins")
     (list)
@@ -2603,20 +2568,8 @@
       (& "__next__") py-tuple-iterator-next))
 
 (define (stop-bytearray-iterator iterator)
-  (bytearray-iterator-index-fast-set! iterator #f)
+  (PyObjectBytearrayIterator-index-set! iterator #f)
   (py-throw py-builtin-StopIteration))
-
-(define (bytearray-iterator-bytearray-fast-get li)
-  (PyObject-elements-ref li 1))
-
-(define (bytearray-iterator-bytearray-fast-set! li vec)
-  (PyObject-elements-set! li 1 vec))
-
-(define (bytearray-iterator-index-fast-get li)
-  (PyObject-elements-ref li 2))
-
-(define (bytearray-iterator-index-fast-set! li i)
-  (PyObject-elements-set! li 2 i))
 
 (define (bytearray-iterator-iter self)
   (if (eq? (py-type self) py-bytearray-iterator-class)
@@ -2630,12 +2583,12 @@
 
 (define (bytearray-iterator-next self)
   (if (eq? (py-type self) py-bytearray-iterator-class)
-    (let* ((index (bytearray-iterator-index-fast-get self))
-           (vec (bytearray-iterator-bytearray-fast-get self)))
+    (let* ((index (PyObjectBytearrayIterator-index self))
+           (vec (PyObjectBytearrayIterator-bytearray self)))
       (if (and index (< index (car vec)))
         (let ((item (u8vector-ref (cdr vec) index)))
           (begin
-            (bytearray-iterator-index-fast-set! self (+ index 1))
+            (PyObjectBytearrayIterator-index-set! self (+ index 1))
             (py-int-from-scheme item)))
         (stop-bytearray-iterator self)))
     (py-throw py-builtin-TypeError)))
@@ -2647,7 +2600,7 @@
     (make-posonly-signature '#(self))))
 
 (define py-bytearray-iterator-class
-  (make-builtin-class
+  (py-make-builtin-class
     (& "bytearray_iterator")
     (& "builtins")
     (list)
@@ -2728,9 +2681,22 @@
   (py-list-from-scheme len-vec-pair)))
 
 (define (py-list-from-scheme len-vec-pair)
-  (let ((lst (py-obj-alloc py-list-class py-list-hclass-of-instances)))
-    (object-scheme-value-fast-set! lst len-vec-pair)
-    lst))
+  (make-PyObjectList
+    py-list-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-list-hclass-of-instances))
+      py-absent)
+    py-list-class
+    len-vec-pair))
+
+(define (py-list-subtype-from-scheme len-vec-pair cls)
+  (make-PyObjectList
+    py-list-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-list-hclass-of-instances))
+      py-absent)
+    cls
+    len-vec-pair))
 
 (define (vector-head->dynamic-vector vec stop)
   (let ((inner-len (get-dvec-inner-len stop)))
@@ -2742,30 +2708,27 @@
 
 (define (list-new cls iterable)
   (if (or (eq? cls py-list-class) (py-issubclass? cls py-list-class))
-    (let ((iterable-type (py-type iterable)))
-      (cond
-        ((eq? iterable-type py-tuple-class)
-          (let ((vec (object-scheme-value-fast-get iterable)))
-            (py-obj-alloc-with-value
-              cls
-              py-list-hclass-of-instances
-              (vector-head->dynamic-vector vec (vector-length vec)))))
-        ((eq? iterable-type py-list-class)
-          (let* ((dvec (object-scheme-value-fast-get iterable))
+      (let ((iterable-type (py-type iterable)))
+       (cond
+         ((eq? iterable-type py-tuple-class)
+          (let ((vec (PyObjectTuple-value iterable)))
+           (py-list-subtype-from-scheme
+             (vector-head->dynamic-vector vec (vector-length vec))
+             cls)))
+         ((eq? iterable-type py-list-class)
+          (let* ((dvec (PyObjectList-value iterable))
                  (len (car dvec))
                  (vec (cdr dvec)))
-            (py-obj-alloc-with-value
-              cls
-              py-list-hclass-of-instances
-              (vector-head->dynamic-vector vec len))))
-        (else
-          (let* ((iterator (py-iter iterable))
-                 (content (list->vector (iterator->list iterator))))
-            (py-obj-alloc-with-value
-              cls
-              py-list-hclass-of-instances
-              (vector-head->dynamic-vector content (vector-length content)))))))
-    (py-throw-wrong-new-argument "list" cls)))
+            (py-list-subtype-from-scheme
+              (vector-head->dynamic-vector vec len)
+              cls)))
+         (else
+           (let* ((iterator (py-iter iterable))
+                  (content (list->vector (iterator->list iterator))))
+             (py-list-subtype-from-scheme
+               (vector-head->dynamic-vector content (vector-length content))
+               cls)))))
+      (py-throw-wrong-new-argument "list" cls)))
 
 (define list.__new__
   (procedure->py-function
@@ -2774,12 +2737,7 @@
 
 (define (list-iter self)
   (if (py-isinstance? self py-list-class)
-    (let ((iterator (py-obj-alloc
-                        py-list-iterator-class
-                        py-list-iterator-hclass-of-instances)))
-      (list-iterator-list-fast-set! iterator self)
-      (list-iterator-index-fast-set! iterator 0)
-      iterator)
+    (py-list-iterator-alloc 0 self)
     (py-throw-not-a-type-object "list.__iter__" self)))
 
 (define list.__iter__
@@ -2791,7 +2749,7 @@
 ;; otherwise this will crash once list is an actual dynamic array
 (define (list-contains self item)
   (if (py-isinstance? self py-list-class)
-    (let* ((len-vec-pair (object-scheme-value-fast-get self))
+    (let* ((len-vec-pair (PyObjectList-value self))
            (len (car len-vec-pair))
            (vec (cdr len-vec-pair)))
       (let loop ((i 0))
@@ -2810,11 +2768,11 @@
 ;; TODO: print cyclic structures
 (define (list-repr self)
   (if (py-isinstance? self py-list-class)
-    (let* ((len-vec-pair (object-scheme-value-fast-get self))
+    (let* ((len-vec-pair (PyObjectList-value self))
            (len (car len-vec-pair))
            (vec (cdr len-vec-pair))
            (content-strs (vector-map py-repr (subvector vec 0 len)))
-           (content-strings (vector-map object-scheme-value-fast-get content-strs)))
+           (content-strings (vector-map PyObjectStr-value content-strs)))
       (py-str-from-scheme
         (string-append
           "["
@@ -2830,8 +2788,8 @@
 (define (list-add self other)
   (if (py-isinstance? self py-list-class)
     (if (py-isinstance? other py-list-class)
-      (let ((c1 (object-scheme-value-fast-get self))
-            (c2 (object-scheme-value-fast-get other)))
+      (let ((c1 (PyObjectList-value self))
+            (c2 (PyObjectList-value other)))
         (py-list-from-scheme (concat-dynamic-vectors c1 c2)))
       py-NotImplemented)
     (py-throw-not-a-type-object "list.__add__" self)))
@@ -2864,8 +2822,8 @@
 (define (list-mul self n)
   (if (py-isinstance? self py-list-class)
     (if (py-isinstance? n py-int-class)
-      (let ((c (object-scheme-value-fast-get self))
-            (n (object-scheme-value-fast-get n)))
+      (let ((c (PyObjectList-value self))
+            (n (PyObjectInt-value n)))
         (py-list-from-scheme (dynamic-vector*n c n)))
       py-NotImplemented)
     (py-throw-not-a-type-object "list.__mul__" self)))
@@ -2883,9 +2841,9 @@
 (define (list-imul self n)
   (if (py-isinstance? self py-list-class)
     (if (py-isinstance? n py-int-class)
-      (let ((c (object-scheme-value-fast-get self))
-            (n (object-scheme-value-fast-get n)))
-        (object-scheme-value-fast-set! self (dynamic-vector*n c n))
+      (let ((c (PyObjectList-value self))
+            (n (PyObjectInt-value n)))
+        (PyObjectList-value-set! self (dynamic-vector*n c n))
         self)
       py-NotImplemented)
     (py-throw-not-a-type-object "list.__mul__" self)))
@@ -2899,7 +2857,7 @@
   (if (py-isinstance? self py-list-class)
     (py-int-from-scheme
       (car
-        (object-scheme-value-fast-get self)))
+        (PyObjectList-value self)))
     (py-throw-not-a-type-object "list.__len__" self)))
 
 (define list.__len__
@@ -2957,8 +2915,8 @@
     (define (,name self other)
       (if (py-isinstance? self py-list-class)
         (if (py-isinstance? other py-list-class)
-          (let ((c1 (object-scheme-value-fast-get self))
-                (c2 (object-scheme-value-fast-get other)))
+          (let ((c1 (PyObjectList-value self))
+                (c2 (PyObjectList-value other)))
             (if (,dynamic-vector-comparator c1 c2)
               py-True
               py-False))
@@ -2999,30 +2957,29 @@
 
 ;; NOTE: follows requirements of slice.indices(len)
 (define (py-slice-indices slice len)
-  (let* ((indices (object-scheme-value-fast-get slice))
-         (py-start (vector-ref indices 0))
-         (py-stop (vector-ref indices 1))
-         (py-step (vector-ref indices 2))
+  (let* ((py-start (PyObjectSlice-start slice))
+         (py-stop (PyObjectSlice-stop slice))
+         (py-step (PyObjectSlice-step slice))
          (step
            (cond
              ((eq? py-step py-None) 1)
              ((eq? py-step py-int-0)
               (py-throw (py-call1 py-builtin-ValueError (py-str-from-scheme "slice step cannot be zero"))))
              ((py-isinstance? py-step py-int-class)
-                (object-scheme-value-fast-get py-step))
+                (PyObjectInt-value py-step))
              (else (py-throw-wrong-index-type "slice" "integers or None" py-step))))
          (start
            (cond
              ((eq? py-start py-None) (if (> step 0) 0 (- len 1)))
              ((py-isinstance? py-start py-int-class)
-                (let ((i (object-scheme-value-fast-get py-start)))
+                (let ((i (PyObjectInt-value py-start)))
                   (if (< i 0) (+ len i) i)))
              (else (py-throw-wrong-index-type "slice" "integers or None" py-start))))
          (stop
            (cond
              ((eq? py-stop py-None) (if (> step 0) len -1))
              ((py-isinstance? py-stop py-int-class)
-                (let ((i (object-scheme-value-fast-get py-stop)))
+                (let ((i (PyObjectInt-value py-stop)))
                   (if (< i 0) (+ len i) i)))
              (else (py-throw-wrong-index-type "slice" "integers or None" py-stop))))
          (first
@@ -3059,17 +3016,17 @@
   (if (py-isinstance? self py-list-class)
     (cond
       ((py-isinstance? item py-int-class)
-        (let* ((container (object-scheme-value-fast-get self))
+        (let* ((container (PyObjectList-value self))
                (len (car container))
                (vec (cdr container))
-               (i (object-scheme-value-fast-get item)))
+               (i (PyObjectInt-value item)))
           (if (index-in-length-range i len)
             (vector-ref vec (modulo i len))
             (py-throw-index-out-of-range "list"))))
       ((py-isinstance? item py-slice-class)
         (py-list-from-scheme
           (dynamic-vector-py-slice
-            (object-scheme-value-fast-get self)
+            (PyObjectList-value self)
             item)))
       (else (py-throw-wrong-index-type "list" "integers or slices" item)))
     (py-throw-not-a-type-object "list.__getitem__" self)))
@@ -3080,7 +3037,7 @@
     (make-posonly-signature '#(self item))))
 
 (define-macro (vector-ref-to-scheme-int vec index)
-  `(object-scheme-value-fast-get (vector-ref ,vec ,index)))
+  `(PyObjectInt-value (vector-ref ,vec ,index)))
 
 ;; slices of the form lst[1:4]
 (define-macro (define-set-simple-slice-dynamic-vector name vshift-right-by vshift-left-by vset vref)
@@ -3125,7 +3082,7 @@
 (define-set-extended-dynamic-vector dynamic-u8vector-vector-set-extended-slice! vector-ref-to-scheme-int u8vector-set!)
 
 (define (list-set-slice self slice value)
-  (let* ((dvec (object-scheme-value-fast-get self))
+  (let* ((dvec (PyObjectList-value self))
         (self-len (car dvec))
         (indices (py-slice-indices slice self-len))
         (start (vector-ref indices 0))
@@ -3134,14 +3091,14 @@
         (value-type (py-type value)))
     (cond
       ((eq? value-type py-list-class)
-        (let* ((value-dvec (object-scheme-value-fast-get value))
+        (let* ((value-dvec (PyObjectList-value value))
               (value-len (car value-dvec))
               (value-vec (cdr value-dvec)))
           (if (eq? step 1)
             (dynamic-vector-set-simple-slice! dvec start stop value-vec value-len)
             (dynamic-vector-set-extended-slice! dvec start stop step value-vec value-len))))
       ((eq? value-type py-tuple-class)
-        (let* ((value-vec (object-scheme-value-fast-get value))
+        (let* ((value-vec (PyObjectTuple-value value))
                (value-len (vector-length value-vec)))
           (if (eq? step 1)
             (dynamic-vector-set-simple-slice! dvec start stop value-vec value-len)
@@ -3160,10 +3117,10 @@
   (if (py-isinstance? self py-list-class)
     (cond
       ((py-isinstance? item py-int-class)
-        (let* ((container (object-scheme-value-fast-get self))
+        (let* ((container (PyObjectList-value self))
                (len (car container))
                (vec (cdr container))
-               (i (object-scheme-value-fast-get item)))
+               (i (PyObjectInt-value item)))
           (if (index-in-length-range i len)
             (vector-set! vec (modulo i len) value)
             (py-throw-action-out-of-range "list" "assignment"))))
@@ -3320,14 +3277,14 @@
   (if (py-isinstance? self py-list-class)
     (cond
       ((py-isinstance? item py-int-class)
-        (let* ((dvec (object-scheme-value-fast-get self))
+        (let* ((dvec (PyObjectList-value self))
                (len (car dvec))
-               (i (object-scheme-value-fast-get item)))
+               (i (PyObjectInt-value item)))
           (if (index-in-length-range i len)
             (dynamic-vector-shift-left! dvec (+ (modulo i len) 1))
             (py-throw-action-out-of-range "list" "assignement"))))
       ((py-isinstance? item py-slice-class)
-        (let* ((dvec (object-scheme-value-fast-get self))
+        (let* ((dvec (PyObjectList-value self))
               (len (car dvec))
               (indices (py-slice-indices item len))
               (start (vector-ref indices 0))
@@ -3350,16 +3307,16 @@
   (if (py-isinstance? self py-list-class)
     (cond
       ((eq? index py-absent)
-        (let* ((dvec (object-scheme-value-fast-get self))
+        (let* ((dvec (PyObjectList-value self))
                (len (car dvec)))
           (if (> len 0)
             (dynamic-vector-pop-last! dvec)
             (py-throw-pop-from-empty-list))))
       ((py-isinstance? index py-int-class)
-        (let* ((dvec (object-scheme-value-fast-get self))
+        (let* ((dvec (PyObjectList-value self))
                (len (car dvec))
                (vec (cdr dvec))
-               (i (object-scheme-value-fast-get index)))
+               (i (PyObjectInt-value index)))
           (if (index-in-length-range i len)
             (let* ((actual-i (modulo i len))
                    (element (vector-ref vec actual-i)))
@@ -3378,7 +3335,7 @@
 
 (define (list-append self value)
   (if (py-isinstance? self py-list-class)
-    (let* ((dvec (object-scheme-value-fast-get self))
+    (let* ((dvec (PyObjectList-value self))
           (len (car dvec))
           (vec (cdr dvec)))
       (if (= len (vector-length vec))
@@ -3397,7 +3354,7 @@
 
 (define (list-clear self)
   (if (py-isinstance? self py-list-class)
-    (object-scheme-value-fast-set!
+    (PyObjectList-value-set!
       self
       (cons 0 (make-vector min-list-inner-length list-empty-cell)))
     (py-throw-not-a-type-object "list.clear" self))
@@ -3411,7 +3368,7 @@
 ;; Could not call list-copy due to collision with Scheme list-copy
 (define (list-copy-procedure self)
   (if (py-isinstance? self py-list-class)
-    (let* ((dvec (object-scheme-value-fast-get self))
+    (let* ((dvec (PyObjectList-value self))
           (dvec-copy
             (cons
               (car dvec)
@@ -3426,7 +3383,7 @@
 
 (define (list-count self item)
   (if (py-isinstance? self py-list-class)
-    (let* ((dvec (object-scheme-value-fast-get self))
+    (let* ((dvec (PyObjectList-value self))
            (len (car dvec))
            (vec (cdr dvec)))
       (let loop ((i 0) (count 0))
@@ -3446,14 +3403,14 @@
 
 (define (list-index self item start stop)
   (if (py-isinstance? self py-list-class)
-    (let* ((dvec (object-scheme-value-fast-get self))
+    (let* ((dvec (PyObjectList-value self))
            (len (car dvec))
            (vec (cdr dvec))
            (start-index
             (if (eq? start py-absent)
               0
               (if (py-isinstance? start py-int-class)
-                (let ((val (object-scheme-value-fast-get start)))
+                (let ((val (PyObjectInt-value start)))
                   (if (< val 0)
                     (modulo (max (- len) val) len)
                     (min len val)))
@@ -3462,7 +3419,7 @@
              (if (eq? stop py-absent)
                len
                (if (py-isinstance? stop py-int-class)
-                 (let ((val (object-scheme-value-fast-get stop)))
+                 (let ((val (PyObjectInt-value stop)))
                    (if (< val 0)
                      (modulo (max (- len) val) len)
                      (min len val)))
@@ -3484,9 +3441,9 @@
 (define (list-insert self index value)
   (if (py-isinstance? self py-list-class)
     (if (py-isinstance? index py-int-class)
-      (let* ((dvec (object-scheme-value-fast-get self))
+      (let* ((dvec (PyObjectList-value self))
             (len (car dvec))
-            (i (object-scheme-value-fast-get index)))
+            (i (PyObjectInt-value index)))
         (let ((insertion-index
                 (if (< i 0)
                   (modulo (max (- len) i) len)
@@ -3521,13 +3478,13 @@
   (let ((iterable-type (py-type iterable)))
     (cond
       ((eq? iterable-type py-tuple-class)
-        (let ((vec (object-scheme-value-fast-get iterable)))
+        (let ((vec (PyObjectTuple-value iterable)))
           (extend-dynamic-vector-with-vector-head
             dvec
             vec
             (vector-length vec))))
       ((eq? iterable-type py-list-class)
-        (let* ((other-dvec (object-scheme-value-fast-get iterable))
+        (let* ((other-dvec (PyObjectList-value iterable))
                (len (car other-dvec))
                (vec (cdr other-dvec)))
           (extend-dynamic-vector-with-vector-head
@@ -3544,7 +3501,7 @@
 
 (define (list-extend self iterable)
   (if (py-isinstance? self py-list-class)
-    (let ((dvec (object-scheme-value-fast-get self)))
+    (let ((dvec (PyObjectList-value self)))
       (dynamic-vector-extend-with-iterable dvec iterable))
     (py-throw-not-a-type-object "list.extend" self))
   py-None)
@@ -3556,7 +3513,7 @@
 
 (define (list-iadd self other)
   (if (py-isinstance? self py-list-class)
-    (let ((dvec (object-scheme-value-fast-get self)))
+    (let ((dvec (PyObjectList-value self)))
       (dynamic-vector-extend-with-iterable dvec other))
     (py-throw-not-a-type-object "list.__iadd__" self))
   self)
@@ -3568,7 +3525,7 @@
 
 (define (list-remove self item)
   (if (py-isinstance? self py-list-class)
-    (let* ((dvec (object-scheme-value-fast-get self))
+    (let* ((dvec (PyObjectList-value self))
            (len (car dvec))
            (vec (cdr dvec)))
       (let ((index (py-index-in-subvector item vec 0 len)))
@@ -3599,7 +3556,7 @@
 
 (define (list-reverse self)
     (if (py-isinstance? self py-list-class)
-      (dynamic-vector-reverse! (object-scheme-value-fast-get self))
+      (dynamic-vector-reverse! (PyObjectList-value self))
       (py-throw-not-a-type-object "list.reverse" self))
     py-None)
 
@@ -3614,13 +3571,7 @@
 
 (define (tuple-iter self)
   (if (py-isinstance? self py-tuple-class)
-    (let ((iterator (py-obj-alloc
-                        py-tuple-iterator-class
-                        py-tuple-iterator-hclass-of-instances))
-          (vec (object-scheme-value-fast-get self)))
-      (tuple-iterator-vector-fast-set! iterator vec)
-      (tuple-iterator-index-fast-set! iterator 0)
-      iterator)
+    (py-tuple-iterator-alloc 0 (PyObjectTuple-value self))
     (py-throw py-builtin-TypeError)))
 
 (define tuple.__iter__
@@ -3630,7 +3581,7 @@
 
 (define (tuple-contains self item)
   (if (py-isinstance? self py-tuple-class)
-    (let* ((vec (object-scheme-value-fast-get self))
+    (let* ((vec (PyObjectTuple-value self))
            (vec-len (vector-length vec)))
       (let loop ((i 0))
         (if (< i vec-len)
@@ -3648,8 +3599,8 @@
 (define (tuple-add self other)
   (if (py-isinstance? self py-tuple-class)
     (if (py-isinstance? other py-tuple-class)
-      (let ((v1 (object-scheme-value-fast-get self))
-            (v2 (object-scheme-value-fast-get other)))
+      (let ((v1 (PyObjectTuple-value self))
+            (v2 (PyObjectTuple-value other)))
         (py-tuple-from-scheme (vector-append v1 v2)))
       py-NotImplemented)
     (py-throw-not-a-type-object "tuple.__add__" self)))
@@ -3676,8 +3627,8 @@
 (define (tuple-mul self n)
   (if (py-isinstance? self py-tuple-class)
     (if (py-isinstance? n py-int-class)
-      (let ((v (object-scheme-value-fast-get self))
-            (n (object-scheme-value-fast-get n)))
+      (let ((v (PyObjectTuple-value self))
+            (n (PyObjectInt-value n)))
         (py-tuple-from-scheme (vector*n v n)))
       py-NotImplemented)
     (py-throw-not-a-type-object "tuple.__mul__" self)))
@@ -3738,8 +3689,8 @@
     (define (,name self other)
       (if (py-isinstance? self py-tuple-class)
         (if (py-isinstance? other py-tuple-class)
-          (let ((v1 (object-scheme-value-fast-get self))
-                (v2 (object-scheme-value-fast-get other)))
+          (let ((v1 (PyObjectTuple-value self))
+                (v2 (PyObjectTuple-value other)))
             (if (,vector-comparator v1 v2)
               py-True
               py-False))
@@ -3766,9 +3717,9 @@
 ;; TODO: print cyclic structures
 (define (tuple-repr self)
   (if (py-isinstance? self py-tuple-class)
-    (let* ((vec (object-scheme-value-fast-get self))
+    (let* ((vec (PyObjectTuple-value self))
            (content-strs (vector-map py-repr vec))
-           (content-strings (vector-map object-scheme-value-fast-get content-strs)))
+           (content-strings (vector-map PyObjectStr-value content-strs)))
       (py-str-from-scheme
         (string-append
           "("
@@ -3783,7 +3734,7 @@
 
 (define (tuple-len self)
   (if (py-isinstance? self py-tuple-class)
-    (let* ((vec (object-scheme-value-fast-get self)))
+    (let* ((vec (PyObjectTuple-value self)))
       (py-int-from-scheme (vector-length vec)))
     (py-throw-not-a-type-object "tuple.__len__" self)))
 
@@ -3815,16 +3766,16 @@
   (if (py-isinstance? self py-tuple-class)
     (cond
       ((py-isinstance? item py-int-class)
-        (let* ((vec (object-scheme-value-fast-get self))
+        (let* ((vec (PyObjectTuple-value self))
                (len (vector-length vec))
-               (i (object-scheme-value-fast-get item)))
+               (i (PyObjectInt-value item)))
           (if (index-in-length-range i len)
             (vector-ref vec (modulo i len))
             (py-throw-index-out-of-range "tuple"))))
       ((py-isinstance? item py-slice-class)
         (py-tuple-from-scheme
           (vector-py-slice
-            (object-scheme-value-fast-get self)
+            (PyObjectTuple-value self)
             item)))
       (py-throw-wrong-index-type "tuple" "integers or slices" item))
     (py-throw-not-a-type-object "tuple.__getitem__" self)))
@@ -3836,7 +3787,7 @@
 
 (define (tuple-count self item)
   (if (py-isinstance? self py-tuple-class)
-    (let* ((vec (object-scheme-value-fast-get self))
+    (let* ((vec (PyObjectTuple-value self))
            (vec-len (vector-length vec)))
       (let loop ((i 0) (count 0))
         (cond
@@ -3855,13 +3806,13 @@
 
 (define (tuple-index self item start stop)
   (if (py-isinstance? self py-tuple-class)
-    (let* ((vec (object-scheme-value-fast-get self))
+    (let* ((vec (PyObjectTuple-value self))
            (len (vector-length vec))
            (start-index
             (if (eq? start py-absent)
               0
               (if (py-isinstance? start py-int-class)
-                (let ((val (object-scheme-value-fast-get start)))
+                (let ((val (PyObjectInt-value start)))
                   (if (< val 0)
                     (modulo (max (- len) val) len)
                     (min len val)))
@@ -3870,7 +3821,7 @@
              (if (eq? stop py-absent)
                len
                (if (py-isinstance? stop py-int-class)
-                 (let ((val (object-scheme-value-fast-get stop)))
+                 (let ((val (PyObjectInt-value stop)))
                    (if (< val 0)
                      (modulo (max (- len) val) len)
                      (min len val)))
@@ -3893,23 +3844,26 @@
 
 ;; slices
 
-(define (py-slice-from-scheme indices)
-  (py-obj-alloc-with-value
-    py-slice-class
+(define (py-slice-from-scheme start stop step)
+  (make-PyObjectSlice
     py-slice-hclass-of-instances
-    indices))
+    (make-vector
+      (vector-length (HClass-names py-slice-hclass-of-instances))
+      py-absent)
+    py-slice-class
+    start
+    stop
+    step))
 
 (define (slice-new cls arg1 arg2 arg3)
   (if (or (eq? cls py-slice-class) (py-issubclass? cls py-slice-class))
     (cond
       ((eq? arg2 py-absent)
-        (py-slice-from-scheme
-          (vector py-None arg1 py-None)))
+        (py-slice-from-scheme py-None arg1 py-None))
       ((eq? arg3 py-absent)
-        (py-slice-from-scheme
-          (vector arg1 arg2 py-None)))
+        (py-slice-from-scheme arg1 arg2 py-None))
       (else
-        (py-slice-from-scheme (vector arg1 arg2 arg3))))
+        (py-slice-from-scheme arg1 arg2 arg3)))
     (py-throw-wrong-new-argument "list" cls)))
 
 (define slice.__new__
@@ -3922,7 +3876,7 @@
 (define (slice-indices self len)
     (if (py-isinstance? self py-slice-class)
       (if (py-isinstance? len py-int-class)
-        (let ((len-i (object-scheme-value-fast-get len)))
+        (let ((len-i (PyObjectInt-value len)))
           (py-tuple-from-scheme
             (vector-map
               py-int-from-scheme
@@ -3949,7 +3903,7 @@
         (let ((item (vector-ref vec i)))
           (if (and
                (py-isinstance? item py-int-class)
-               (py-int-in-byte-range? (object-scheme-value-fast-get item)))
+               (py-int-in-byte-range? (PyObjectInt-value item)))
               (loop (+ 1 i))
               #f))
         #t)))
@@ -3962,13 +3916,13 @@
        ((eq? arg1 py-absent)
 	;; MS 11jun2020: to be removed when Bigloo's fixed
         ;; (py-bytearray-from-scheme (cons 0 #u8())))
-        (py-bytearray-from-scheme (cons 0 u8-empty-vector)))
+        (py-bytearray-subtype-from-scheme (cons 0 u8-empty-vector) cls))
       ((eq? arg2 py-absent)
         (cond
           ((py-isinstance? arg1 py-int-class)
-            (let ((i (object-scheme-value-fast-get arg1)))
+            (let ((i (PyObjectInt-value arg1)))
               (if (<= 0 i)
-                (py-bytearray-from-scheme (cons i (make-u8vector i)))
+                (py-bytearray-subtype-from-scheme (cons i (make-u8vector i)) cls)
                 (py-throw-exception-with-message py-builtin-ValueError "negative count"))))
           (else
             (error "builtin function __new__ just supports int as an argument"))))
@@ -3989,15 +3943,15 @@
   (if (py-isinstance? self py-bytearray-class)
       (cond
         ((py-isinstance? item py-int-class)
-        (let ((bytearray (object-scheme-value-fast-get self))
-              (i (object-scheme-value-fast-get item)))
+        (let ((bytearray (PyObjectBytearray-value self))
+              (i (PyObjectInt-value item)))
           (if (index-in-length-range i (car bytearray))
             (py-int-from-scheme (u8vector-ref (cdr bytearray) (modulo i (car bytearray))))
             (py-throw-index-out-of-range "bytearray"))))
         ((py-isinstance? item py-slice-class)
          (py-bytearray-from-scheme
           (dynamic-u8vector-py-slice
-           (object-scheme-value-fast-get self)
+           (PyObjectBytearray-value self)
            item)))
       (else (py-throw-wrong-index-type "bytearray" "integers or slices" item)))
     (py-throw-not-a-type-object "bytearray.__getitem__" self)))
@@ -4009,7 +3963,7 @@
       '#(self item))))
 
 (define (bytearray-set-slice self slice value)
-  (let* ((dvec (object-scheme-value-fast-get self))
+  (let* ((dvec (PyObjectBytearray-value self))
         (self-len (car dvec))
         (indices (py-slice-indices slice self-len))
         (start (vector-ref indices 0))
@@ -4018,14 +3972,14 @@
         (value-type (py-type value)))
     (cond
       ((eq? value-type py-bytearray-class)
-        (let* ((value-dvec (object-scheme-value-fast-get value))
+        (let* ((value-dvec (PyObjectBytearray-value value))
               (value-len (car value-dvec))
               (value-vec (cdr value-dvec)))
           (if (eq? step 1)
             (dynamic-u8vector-u8vector-set-simple-slice! dvec start stop value-vec value-len)
             (dynamic-u8vector-u8vector-set-extended-slice! dvec start stop step value-vec value-len))))
       ((eq? value-type py-tuple-class)
-        (let* ((value-vec (object-scheme-value-fast-get value))
+        (let* ((value-vec (PyObjectTuple-value value))
                (value-len (vector-length value-vec)))
           (if (vector-in-byte-range? value-vec)
               (if (eq? step 1)
@@ -4050,9 +4004,9 @@
       (cond
        ((py-isinstance? key py-int-class)
         (if (py-isinstance? value py-int-class)
-            (let ((key-int (object-scheme-value-fast-get key))
-                  (bytearray (object-scheme-value-fast-get self))
-                  (value-int (object-scheme-value-fast-get value)))
+            (let ((key-int (PyObjectInt-value key))
+                  (bytearray (PyObjectBytearray-value self))
+                  (value-int (PyObjectInt-value value)))
               (cond
                ((not (index-in-length-range key-int (car bytearray)))
                 (py-throw-index-out-of-range "bytearray" ))
@@ -4080,9 +4034,9 @@
     ((not (py-isinstance? elem py-int-class))
       (py-throw-exception-with-message py-builtin-TypeError "this type cannot be interpreted as an integer"))
     (else
-      (let* ((bytearray (object-scheme-value-fast-get self))
+      (let* ((bytearray (PyObjectBytearray-value self))
             (real-length (u8vector-length (cdr bytearray)))
-            (elem-int (object-scheme-value-fast-get elem)))
+            (elem-int (PyObjectInt-value elem)))
         (if (not (py-int-in-byte-range? elem-int))
             (py-throw-exception-with-message py-builtin-ValueError "byte must be in range(0, 255)")
             (begin
@@ -4100,8 +4054,8 @@
 (define (bytearray-add self other)
   (if (py-isinstance? self py-bytearray-class)
       (if (py-isinstance? other py-bytearray-class)
-          (let ((c1 (object-scheme-value-fast-get self))
-                (c2 (object-scheme-value-fast-get other)))
+          (let ((c1 (PyObjectBytearray-value self))
+                (c2 (PyObjectBytearray-value other)))
             (py-bytearray-from-scheme (concat-dynamic-u8vectors c1 c2)))
           py-NotImplemented)
       (py-throw-not-a-type-object "bytearray.__add__" self)))
@@ -4114,8 +4068,8 @@
 (define (bytearray-iadd self other)
   (if (py-isinstance? self py-bytearray-class)
       (if (py-isinstance? other py-bytearray-class)
-          (let ((c1 (object-scheme-value-fast-get self))
-                (c2 (object-scheme-value-fast-get other)))
+          (let ((c1 (PyObjectBytearray-value self))
+                (c2 (PyObjectBytearray-value other)))
             (set-cdr! c1 (concat-dynamic-u8vectors c1 c2)))
           py-NotImplemented)
       (py-throw-not-a-type-object "bytearray.__iadd__" self)))
@@ -4126,7 +4080,7 @@
    (make-posonly-signature '#(self other))))
 ;; temporary - just to see the structure of the array
 (define (bytearray-repr self)
-  (py-str-from-scheme (cdr (object-scheme-value-fast-get self))))
+  (py-str-from-scheme (cdr (PyObjectBytearray-value self))))
 
 (define bytearray.__repr__
   (procedure->py-function
@@ -4136,8 +4090,8 @@
 (define (bytearray-mul self n)
   (if (py-isinstance? self py-bytearray-class)
       (if (py-isinstance? n py-int-class)
-          (let ((c (object-scheme-value-fast-get self))
-                (n (object-scheme-value-fast-get n)))
+          (let ((c (PyObjectBytearray-value self))
+                (n (PyObjectInt-value n)))
             (py-bytearray-from-scheme (dynamic-u8vector*n c n)))
           py-NotImplemented)
       (py-throw-not-a-type-object "bytearray.__mul__" self)))
@@ -4155,9 +4109,9 @@
 (define (bytearray-imul self n)
   (if (py-isinstance? self py-bytearray-class)
       (if (py-isinstance? n py-int-class)
-          (let ((c (object-scheme-value-fast-get self))
-                (n (object-scheme-value-fast-get n)))
-            (object-scheme-value-fast-set! self (dynamic-u8vector*n c n))
+          (let ((c (PyObjectBytearray-value self))
+                (n (PyObjectInt-value n)))
+            (PyObjectBytearray-value-set! self (dynamic-u8vector*n c n))
             self)
           py-NotImplemented)
       (py-throw-not-a-type-object "bytearray.__mul__" self)))
@@ -4171,7 +4125,7 @@
   (if (py-isinstance? self py-bytearray-class)
       (py-int-from-scheme
        (car
-        (object-scheme-value-fast-get self)))
+        (PyObjectBytearray-value self)))
       (py-throw-not-a-type-object "bytearray.__len__" self)))
 
 (define bytearray.__len__
@@ -4188,17 +4142,17 @@
         ((not (py-isinstance? item py-int-class))
          ((py-throw-action-out-of-range "bytearray" "assignment")))
         (else
-         (let* ((bytearray (object-scheme-value-fast-get self))
-                (item-int (object-scheme-value-fast-get item)))
+         (let* ((bytearray (PyObjectBytearray-value self))
+                (item-int (PyObjectInt-value item)))
            (if (py-int-in-byte-range? item-int)
                (let ((start-int
                       (if (eq? py-absent start)
                           0
-                          (max 0 (object-scheme-value-fast-get start))))
+                          (max 0 (PyObjectInt-value start))))
                      (stop-int
                       (if (eq? py-absent stop)
                           (car bytearray)
-                          (min (car bytearray) (object-scheme-value-fast-get stop)))))
+                          (min (car bytearray) (PyObjectInt-value stop)))))
                  (,endfunction (cdr bytearray) item-int start-int stop-int))
                (py-throw-exception-with-message py-builtin-ValueError "byte must be in range(0, 255)")
                )))))
@@ -4279,8 +4233,8 @@
      (define  (,func-name self other)
        (if (py-isinstance? self py-bytearray-class)
            (if (py-isinstance? other py-bytearray-class)
-               (let* ((c1 (object-scheme-value-fast-get self))
-                      (c2 (object-scheme-value-fast-get other))
+               (let* ((c1 (PyObjectBytearray-value self))
+                      (c2 (PyObjectBytearray-value other))
                       (len1 (car c1))
                       (len2 (car c2))
                       (vec1 (cdr c1))
@@ -4311,12 +4265,7 @@
 
 (define (bytearray-iter self)
   (if (py-isinstance? self py-bytearray-class)
-      (let ((iterator (py-obj-alloc
-                       py-bytearray-iterator-class
-                       py-bytearray-iterator-hclass-of-instances)))
-        (bytearray-iterator-bytearray-fast-set! iterator (object-scheme-value-fast-get self))
-        (bytearray-iterator-index-fast-set! iterator 0)
-        iterator)
+      (py-bytearray-iterator-alloc 0 (PyObjectBytearray-value self))
       (py-throw-not-a-type-object "bytearray.__iter__" self)))
 
 (define bytearray.__iter__
@@ -4329,29 +4278,19 @@
 ;; =============================================================================
 
 (define (py-generator-yield gen val kont)
-   (PyGenerator-%next-set! gen kont)
-   val)
+   (py-throw-exception-with-message
+     py-builtin-NotImplementedError
+     "py-generator-yield not implemented"))
 
 (define (py-make-generator proc)
-   (letrec ((o (make-PyGenerator
-		  py-generator-hclass
-		  (vector
-                     py-object-class
-                     py-object-class
-		  (procedure->py-function
-        (lambda (self) (py-generator-send self py-None))
-        (make-posonly-signature '#(self)))
-		  (procedure->py-function
-        py-generator-send
-        (make-posonly-signature '#(self value))))
-		  proc)))
-      o))
+  (py-throw-exception-with-message
+    py-builtin-NotImplementedError
+    "py-make-generator not implemented"))
 
 (define (py-generator-send self value)
-   (let ((r ((PyGenerator-%next self) value #f)))
-      (if (eq? r 'StopIteration)
-	  (py-throw 'StopIteration)
-	  r)))
+  (py-throw-exception-with-message
+    py-builtin-NotImplementedError
+    "py-generator-send not implemented"))
 
 (define (py-next iterator)
   (let ((next (getattribute-from-obj-mro iterator (& "__next__"))))
@@ -4437,7 +4376,7 @@
   (bitwise-and hash (- size 1)))
 
 (define (ordered-table-get-cell ordered-table key)
-  (let* ((hash (object-scheme-value-fast-get (py-hash key)))
+  (let* ((hash (PyObjectInt-value (py-hash key)))
         (table (ordered-table-table ordered-table))
         (size (vector-length table)))
     (let loop ((i (hash->cell hash size)))
@@ -4490,7 +4429,7 @@
           (reinsertion-loop (cdr nodes-to-reinsert)))))))
 
 (define (ordered-table-remove-key! ordered-table key)
-  (let* ((hash (object-scheme-value-fast-get (py-hash key)))
+  (let* ((hash (PyObjectInt-value (py-hash key)))
         (table (ordered-table-table ordered-table))
         (size (vector-length table)))
     (let loop ((i (hash->cell hash size)))
@@ -4558,7 +4497,7 @@
             (loop (doubly-linked-list-node-next node))))))))
 
 (define (ordered-table-set-cell! ordered-table key value)
-  (let* ((hash (object-scheme-value-fast-get (py-hash key)))
+  (let* ((hash (PyObjectInt-value (py-hash key)))
         (table (ordered-table-table ordered-table))
         (content-size (ordered-table-length ordered-table))
         (size (vector-length table)))
@@ -4583,14 +4522,11 @@
          (table-vector (ordered-table-table ordered-table)))
     (let loop ((key-value-pairs key-value-pairs))
       (if (null? key-value-pairs)
-        (py-obj-alloc-with-value
-          py-dict-class
-          py-dict-hclass-of-instances
-          ordered-table)
+        (py-dict-alloc ordered-table)
         (let* ((pair (car key-value-pairs))
               (key (car pair))
               (value (cdr pair))
-              (hash (object-scheme-value-fast-get (py-hash key))))
+              (hash (PyObjectInt-value (py-hash key))))
           (table-vector-set!
             ordered-table
             table-vector
@@ -4602,7 +4538,7 @@
 
 (define (dict-setitem self key value)
   (if (py-isinstance? self py-dict-class)
-    (let ((ordered-table (object-scheme-value-fast-get self)))
+    (let ((ordered-table (PyObjectDict-value self)))
       (ordered-table-set-cell! ordered-table key value))
     (py-throw-not-a-type-object "dict.__setitem__" self))
   py-None)
@@ -4614,7 +4550,7 @@
 
 (define (dict-get self key default)
     (if (py-isinstance? self py-dict-class)
-      (let ((ordered-table (object-scheme-value-fast-get self)))
+      (let ((ordered-table (PyObjectDict-value self)))
         (ordered-table-get ordered-table key default))
       (py-throw-not-a-type-object "dict.get" self)))
 
@@ -4625,7 +4561,7 @@
 
 (define (dict-getitem self key)
   (if (py-isinstance? self py-dict-class)
-    (let ((ordered-table (object-scheme-value-fast-get self)))
+    (let ((ordered-table (PyObjectDict-value self)))
       (ordered-table-get ordered-table key py-absent))
     (py-throw-not-a-type-object "dict.__getitem__" self)))
 
@@ -4636,7 +4572,7 @@
 
 (define (dict-delitem self key)
   (if (py-isinstance? self py-dict-class)
-    (let* ((ordered-table (object-scheme-value-fast-get self))
+    (let* ((ordered-table (PyObjectDict-value self))
            (res (ordered-table-remove-key! ordered-table key)))
       (if (not res)
         (py-throw (py-call1 py-builtin-KeyError key))
@@ -4650,7 +4586,7 @@
 
 (define (dict-len self)
   (if (py-isinstance? self py-dict-class)
-    (let* ((ordered-table (object-scheme-value-fast-get self))
+    (let* ((ordered-table (PyObjectDict-value self))
            (len (ordered-table-length ordered-table)))
       (py-int-from-scheme len))
     (py-throw-not-a-type-object "dict.__len__" self)))
@@ -4674,34 +4610,16 @@
 ;;  Dict iterators
 ;; =============================================================================
 
-(define (dict-keyiterator-node-fast-get it)
-  (PyObject-elements-ref it 1))
-
-(define (dict-keyiterator-node-fast-set! it n)
-  (PyObject-elements-set! it 1 n))
-
-(define (dict-keyiterator-iterator-token-fast-get it)
-  (PyObject-elements-ref it 2))
-
-(define (dict-keyiterator-iterator-token-fast-set! it t)
-  (PyObject-elements-set! it 2 t))
-
 (define (dict-keyiterator-iter self)
-  (if (py-isinstance? self py-dict-keyiterator-class)
+  (if (PyObjectDictKeyIterator? self)
     self
     (py-throw-not-a-type-object "dict_keyiterator.__iter__" self)))
 
 (define (dict->dict-keyiterator d)
-  (let* ((it
-          (py-obj-alloc
-            py-dict-keyiterator-class
-            py-dict-keyiterator-hclass-of-instances))
-        (ordered-table (object-scheme-value-fast-get d))
+  (let* ((ordered-table (PyObjectDict-value d))
         (first (ordered-table-first ordered-table))
         (token (ordered-table-iterator-token ordered-table)))
-    (dict-keyiterator-node-fast-set! it first)
-    (dict-keyiterator-iterator-token-fast-set! it token)
-    it))
+    (py-dict-keyiterator-alloc first token)))
 
 (define dict_keyiterator.__iter__
   (procedure->py-function
@@ -4710,8 +4628,8 @@
 
 (define (dict-keyiterator-next self)
   (if (py-isinstance? self py-dict-keyiterator-class)
-    (let ((node (dict-keyiterator-node-fast-get self))
-          (token (dict-keyiterator-iterator-token-fast-get self)))
+    (let ((node (PyObjectDictKeyIterator-node self))
+          (token (PyObjectDictKeyIterator-iterator-token self)))
       (cond
         ((not node)
           (py-throw py-builtin-StopIteration))
@@ -4723,7 +4641,7 @@
           (let* ((cell (doubly-linked-list-node-value node))
                 (key (dict-cell-key cell))
                 (next (doubly-linked-list-node-next node)))
-            (dict-keyiterator-node-fast-set! self next)
+            (PyObjectDictKeyIterator-node-set! self next)
             key))))
     (py-throw-not-a-type-object "dict_keyiterator.__next__" self)))
 
@@ -4733,7 +4651,7 @@
     (make-posonly-signature '#(self))))
 
 (define py-dict-keyiterator-class
-  (make-builtin-class
+  (py-make-builtin-class
     (& "dict_keyiterator")
     (& "builtins")
     (list)
@@ -4763,14 +4681,14 @@
   (py-own-attr-set! py-tuple-class (& "index") tuple.index)
 
   (set! py-module-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "module")
       (& "builtins")
       (list)
       py-module-hclass-of-instances))
 
   (set! py-int-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "int")
       (& "builtins")
       (list)
@@ -4818,7 +4736,7 @@
   (set! int-cache (make-int-cache))
 
   (set! py-float-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "float")
       (& "builtins")
       (list)
@@ -4861,24 +4779,24 @@
         ))
 
   (set! py-bool-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "bool")
       (& "builtins")
       (list py-int-class)
-      py-bool-hclass-of-instances
+      py-int-hclass-of-instances
         (& "__new__") bool.__new__
         (& "__str__") bool.__str__
         (& "__repr__") bool.__repr__))
 
   (set! py-complex-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "complex")
       (& "builtins")
       (list)
       py-complex-hclass-of-instances))
 
   (set! py-slice-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "slice")
       (& "builtins")
       (list)
@@ -4887,7 +4805,7 @@
         (& "indices") slice.indices))
 
   (set! py-method-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "method")
       (& "builtins")
       (list)
@@ -4895,7 +4813,7 @@
         (& "__call__") method.__call__))
 
   (set! py-function-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "function")
       (& "builtins")
       (list)
@@ -4904,7 +4822,7 @@
         (& "__get__") function.__get__))
 
   (set! py-list-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "list")
       (& "builtins")
       (list)
@@ -4941,7 +4859,7 @@
         (& "sort") #f)) ;; set later from py-builtin-sorted
 
   (set! py-dict-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "dict")
       (& "builtins")
       (list)
@@ -4954,14 +4872,14 @@
         (& "get") dict.get))
 
   (set! py-set-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "set")
       (& "builtins")
       (list)
       py-set-hclass-of-instances))
 
   (set! py-bytearray-class
-    (make-builtin-class
+    (py-make-builtin-class
       (& "bytearray")
       (& "builtins")
       (list)
@@ -5021,7 +4939,7 @@
         (py-call py-builtin-AttributeError
           (py-str-from-scheme "__exit__")))
       (if exc
-        (let* ((exc-type (object-class-fast-get exc))
+        (let* ((exc-type (PyObject-class exc))
               (exc-traceback py-None) ;; TODO: pass traceback to __exit__ once it exists
               (exit-res (py-call4 __exit__ obj exc-type exc exc-traceback)))
           ;; __exit__ can return True to silence an exception
@@ -5046,7 +4964,7 @@
     (make-posonly-signature '#(self))))
 
 (define (TextIOWrapper-close-port! self)
-  (let ((port (TextIOWrapper-port-fast-get self)))
+  (let ((port (PyObjectTextIOWrapper-port self)))
     ;; Some ports may stay open even after close-port, by dereferencing
     ;; the port we make sure its ressources are freed by the gc
     ;; we thus have to first check the port was not already closed (ie. set to #f)
@@ -5054,7 +4972,7 @@
     (if port
       (begin
         (close-port port)
-        (TextIOWrapper-port-fast-set! self #f)))))
+        (PyObjectTextIOWrapper-port-set! self #f)))))
 
 (define (TextIOWrapper-exit self exc-type exc exc-traceback)
   (if (py-isinstance? self py-TextIOWrapper-class)
@@ -5080,7 +4998,7 @@
 
 (define (TextIOWrapper-read self)
   (if (py-isinstance? self py-TextIOWrapper-class)
-    (let ((port (TextIOWrapper-port-fast-get self)))
+    (let ((port (PyObjectTextIOWrapper-port self)))
       (if port
           (py-str-from-scheme (read-string port))
         (py-throw-exception-with-message
@@ -5093,36 +5011,8 @@
     TextIOWrapper-read
     (make-posonly-signature '#(self))))
 
-(define py-TextIOWrapper-hclass-of-instances
-  (make-HClass
-    '#()
-    (vector
-      (& "**class**")
-      (& "**port**")
-      (& "**mode**")
-      (& "**encoding**"))
-    '()))
-
-(define (TextIOWrapper-port-fast-get obj)
-  (PyObject-elements-ref obj 1))
-
-(define (TextIOWrapper-port-fast-set! obj class)
-  (PyObject-elements-set! obj 1 class))
-
-(define (TextIOWrapper-mode-fast-get obj)
-  (PyObject-elements-ref obj 2))
-
-(define (TextIOWrapper-mode-fast-set! obj class)
-  (PyObject-elements-set! obj 2 class))
-
-(define (TextIOWrapper-encoding-fast-get obj)
-  (PyObject-elements-ref obj 3))
-
-(define (TextIOWrapper-encoding-fast-set! obj class)
-  (PyObject-elements-set! obj 3 class))
-
 (define py-TextIOWrapper-class
-  (make-builtin-class
+  (py-make-builtin-class
     (& "TextIOWrapper")
     (& "_io")
     ;; TODO: the correct mro is actually [<class '_io.TextIOWrapper'>, <class '_io._TextIOBase'>, <class '_io._IOBase'>, <class 'object'>]
@@ -5137,14 +5027,12 @@
 (define (py-open file mode buffering encoding errors newline closefd opener)
   (cond
     ((py-isinstance? file py-str-class)
-      (let ((filename (object-scheme-value-fast-get file)))
+      (let ((filename (PyObjectStr-value file)))
         (let ((file-port (open-file filename)))
-          (let ((IOWrapper
-                  (py-obj-alloc
-                    py-TextIOWrapper-class
-                    py-TextIOWrapper-hclass-of-instances)))
-            (TextIOWrapper-port-fast-set! IOWrapper file-port)
-            IOWrapper))))
+          (py-TextIOWrapper-alloc
+            file-port
+            mode
+            encoding))))
     (else
       (py-throw-exception-with-message py-builtin-NotImplementedError "py-open only str filename supported"))))
 
@@ -5155,16 +5043,10 @@
 ;; True and False
 
 (define py-True
-  (let ((True
-          (py-obj-alloc py-bool-class py-bool-hclass-of-instances)))
-    (object-scheme-value-fast-set! True 1)
-    True))
+  (py-int-subtype-from-scheme 1 py-bool-class))
 
 (define py-False
-  (let ((False
-          (py-obj-alloc py-bool-class py-bool-hclass-of-instances)))
-    (object-scheme-value-fast-set! False 0)
-    False))
+  (py-int-subtype-from-scheme 0 py-bool-class))
 
 ;; NotImplemented object
 
@@ -5197,7 +5079,7 @@
     (make-posonly-signature '#(self))))
 
 (define py-NotImplementedType-class
-  (make-builtin-class
+  (py-make-builtin-class
     (& "NotImplementedType")
     (& "builtins")
     (list)
@@ -5255,7 +5137,7 @@
     (make-posonly-signature '#(self))))
 
 (define py-NoneType-class
-  (make-builtin-class
+  (py-make-builtin-class
     (& "NoneType")
     (& "builtins")
     (list)
@@ -5271,24 +5153,20 @@
 
 ;;;----------------------------------------------------------------------------
 
-
-
-#;
-(define (alist->PyObject alist)
-  (make-PyObject
-   (make-HClass '#() (list->vector (map car alist)) '())
-   (list->vector (map cdr alist))))
-
 (define (py-make-set elements)
-  (py-set-from-scheme (list->vector elements)))
+  (py-set-from-scheme elements))
 
 (define (py-make-tuple . elements)
   (py-tuple-from-scheme (list->vector elements)))
 
 (define (py-tuple-from-scheme elements)
-  (let ((tuple (py-obj-alloc py-tuple-class py-tuple-hclass-of-instances)))
-    (object-scheme-value-fast-set! tuple elements)
-    tuple))
+  (make-PyObjectTuple
+    py-tuple-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-tuple-hclass-of-instances))
+      py-absent)
+    py-tuple-class
+    elements))
 
 (define py-make-dict py-dict-from-scheme)
 
@@ -5306,155 +5184,108 @@
          (py-obj-alloc
           py-module-class
           py-module-hclass-of-instances)))
-    (py-own-attr-set! mod (& "**class**") py-module-class)
+    (PyObject-class-set! mod py-module-class)
     (py-own-attr-set! mod (& "__builtins__") builtins-mod)
     mod))
+
+(define (py-make-module name)
+  (let ((mod (py-make-global)))
+   (py-own-attr-set! mod (& "__name__") name)
+   (dict-setitem (sys.modules-get) name mod)
+   mod))
 
 ;; ===========================================
 ;; IMPORT SYSTEM
 ;; ===========================================
 
-(define py-time.time
-  (procedure->py-function
-   (lambda ()
-     (/ (current-microseconds) 1000000.0))
-   (empty-signature)))
 
-(define (py-make-time-mod)
-  (let ((mod
-         (py-obj-alloc
-          py-module-class
-          (make-HClass
-           (vector py-module-class py-object-class)
-           (vector (& "**class**")
-                   (& "__class__")
-                   (& "__name__")
-                   (& "time")
-                   )
-           '()))))
-
-    (PyObject-elements-set! mod 1 py-module-class)
-    (PyObject-elements-set! mod 2 (py-str-from-scheme "time"))
-    (PyObject-elements-set! mod 3 py-time.time)
-    mod))
-
-(define time-mod (py-make-time-mod))
-
-
-(define-macro (create-sys-dict . modules)
-  `(py-dict-from-scheme (list ,@(map (lambda (x) `(cons (py-str-from-scheme ,(car x)) ,(cdr x))) modules))))
-
-(define-macro (create-sys-list . path-list)
-  `(py-list-from-scheme (cons ,(length path-list) (vector ,@(map (lambda (x) `(py-str-from-scheme ,x)) path-list)))))
+(define zipi-stdlib-dir (path-expand "stdlib" (getenv "ZIPIROOT" "~~zipidir")))
 
 (define (py-make-sys-mod)
-  (let ((mod
-         (py-obj-alloc
-          py-module-class
-          (make-HClass
-           (vector py-module-class py-object-class)
-           (vector (& "**class**")
-                   (& "__class__")
-                   (& "__name__")
-                   (& "modules")
-                   (& "path")
-                   )
-           '()))))
+  (let ((mod (py-make-global)))
+   (py-own-attr-set! mod (& "__name__") (& "sys"))
+   (py-own-attr-set! mod (& "modules")
+                     (py-make-dict
+                       (list
+                         (cons (& "sys") mod))))
 
-    (PyObject-elements-set! mod 1 py-module-class)
-    (PyObject-elements-set! mod 2 (py-str-from-scheme "sys"))
-    (PyObject-elements-set! mod 3
-                            (create-sys-dict
-                             ("sys" . mod)
-                             ("time" . time-mod)))
-    (PyObject-elements-set! mod 4
-                           (create-sys-list "~/udem-dlteam/zipi/python-builtins/"))
-    mod))
+   (py-own-attr-set! mod (& "path")
+                     (py-make-list
+                           (py-str-from-scheme zipi-stdlib-dir)))
+       mod))
 
 (define sys-mod (py-make-sys-mod))
 
 (define (sys.modules-get)
-  (PyObject-elements-ref sys-mod 3))
+  (py-own-attr-ref sys-mod (& "modules")))
 
-(define (sys-mod-path-get)
-  (PyObject-elements-ref sys-mod 4))
+(define (sys.path-get)
+  (py-own-attr-ref sys-mod (& "path")))
 
-(define (import-with-gambit sys.modules name)
-  (with-handler
-    (lambda (e)
-      (if (or (os-exception? e)
-              (expression-parsing-exception? e)
-              (unbound-global-exception? e))
-          #f
-          (raise e)))
-    (let* ((module-name (object-scheme-value-fast-get name))
-           (init (eval `(let () (import ,(string->symbol module-name)) init)))
-           (mod (init name)))
-      (dict-setitem sys.modules name mod)
-      mod)))
+(define (import-with-zipi-cache path py-__name__ sys.modules)
+  (let ((mod-init (and
+                    (compile-to-cache path)
+                    ;; TODO : for windows user, the path is not formated with a / before
+                    (load-module-and-get-init
+                      (substring path 1 (string-length (path-strip-extension path)))))))
+    (if mod-init
+        (mod-init py-__name__)
+        #f)))
 
-(define (compile-source source target)
-  (define (root-dir)
-    (or (getenv "ZIPIROOT")
-        (path-expand ".." (path-directory (car (command-line))))))
-  (shell-command
-   (string-append
-    (root-dir)
-    "/etc/py19 -t gambit "
-    (root-dir)
-    "/pyc "
-    source
-    " > "
-    target)))
+(define (import-from-sys.path __name__ py-__name__ sys.modules)
+  (let ((sys.path-iter (py-iter (sys.path-get))))
+   (let loop ((value sys.path-iter))
+    (let ((value (py-next value)))
+     (if value
+         (if (py-isinstance? value py-str-class) ;; TODO : support bytes
+             (let ((path (string-append
+                           (path-normalize (PyObjectStr-value value))
+                           __name__
+                           ".py")))
+               (or (import-with-zipi-cache path py-__name__ sys.modules)
+                   (loop sys.path-iter)))
+             (loop sys.path-iter))
+         (py-throw-exception-with-message
+           py-builtin-ModuleNotFoundError
+           "No module named " __name__))))))
 
-(define (import-module-scheme sys.modules name)
-  (let loop ((path-list (module-search-order)))
-    (if (pair? path-list)
-        (let* ((file-path
-                (path-expand
-                  (object-scheme-value-fast-get name)
-                  (car path-list)))
-              (python-file-path (string-append file-path ".py"))
-              (scheme-file-path (string-append file-path ".scm")))
-          (cond
-           ((file-exists? scheme-file-path)
-            ;; TODO: add some kind of checksum to detect file change
-            (or (import-with-gambit sys.modules name)
-                (py-throw-exception-with-message
-                  py-builtin-ModuleNotFoundError
-                  "Unable to compile or execute module "
-                  (object-scheme-value-fast-get name))))
-           ((file-exists? python-file-path)
-            (begin
-              (compile-source python-file-path scheme-file-path)
-              (or (import-with-gambit sys.modules name)
-                  (py-throw-exception-with-message
-                    py-builtin-ModuleNotFoundError
-                    "Unable to compile or execute module "
-                    (object-scheme-value-fast-get name)))))
-           (else (loop (cdr path-list)))))
-        (py-throw-exception-with-message py-builtin-ModuleNotFoundError "No module named " (object-scheme-value-fast-get name)))))
-
-(define (builtin-__import__ name)
+(define (builtin-__import__ __name__ py-__name__)
   (let ((sys.modules (sys.modules-get)))
-    ;; check in sys.modules if the value exist and returns it if it exists
-    (or (dict-get sys.modules name #f)
-        (import-with-gambit sys.modules name)
-        (import-module-scheme sys.modules name))))
-
+   ;; check in sys.modules if the value exist and returns it if it exists
+   (or (dict-get sys.modules py-__name__ #f)
+       (import-from-sys.path __name__ py-__name__ sys.modules))))
 
 (define (py-import path depth)
-  (builtin-__import__ (py-str-from-scheme path)))
+  (builtin-__import__ path (py-str-from-scheme path)))
 
-(define (run-as-main name)
-  (let ((sys.modules (sys.modules-get))
-        (init (eval `(let () (import ,(string->symbol name)) init))))
-    (with-handler
-      (lambda (e) (if (PyObject? e) (print-exception e) (raise e)))
-      (init (py-str-from-scheme "__main__")))))
+(define (run-as-main path)
+  (let ((sys.modules (sys.modules-get)))
+   (list-append (sys.path-get) (py-str-from-scheme (path-directory path)))
+   (with-exception-catcher
+     (lambda (e) (if (PyObject? e) (print-exception e) (raise e)))
+     (lambda ()
+       (import-with-zipi-cache path (& "__main__") sys.modules)))))
 
 
 (define py-import-root (current-directory))
+
+
+;; MODULES
+
+
+;; time
+
+(define time.time
+  (procedure->py-function
+    (lambda ()
+      (py-float-from-scheme (time->seconds (current-time))))
+    (empty-signature)))
+
+(define (make-time-mod)
+  (let ((mod (py-make-module (& "time"))))
+   (py-own-attr-set! mod (& "time") time.time)))
+
+(make-time-mod)
 
 
 ;; ===========================================
@@ -5575,11 +5406,11 @@
 
 (define py-builtin-breakpoint
   (procedure->py-function
-   (lambda (args kwargs)
-     (py-throw-exception-with-message py-builtin-NotImplementedError "breakpoint not implemented"))
-  (make-signature '#() '#() 'args '#() '#() 'kwargs '#())))
+    (lambda (args kwargs)
+      (py-throw-exception-with-message py-builtin-NotImplementedError "breakpoint not implemented"))
+    (make-signature '#() '#() 'args '#() '#() 'kwargs '#())))
 
-;;-------------------- class bytearray([source[, encoding[, errors]]])
+    ;;-------------------- class bytearray([source[, encoding[, errors]]])
 
 ;; Return a new array of bytes. The bytearray class is a mutable sequence
 ;; of integers in the range 0 <= x < 256. It has most of the usual
@@ -5627,7 +5458,7 @@
       '#(source encodings errors)
       (vector py-absent py-absent py-absent))))
 
-;;-------------------- callable(object)
+    ;;-------------------- callable(object)
 
 ;; Return True if the object argument appears callable, False if not. If
 ;; this returns true, it is still possible that a call fails, but if it
@@ -6891,7 +6722,7 @@
   (procedure->py-function
     (lambda (objects) ;; add args (non-positional): sep end file flush
       (let* ((port (current-output-port))
-             (objects-vector (object-scheme-value-fast-get objects))
+             (objects-vector (PyObjectTuple-value objects))
              (objects-len (vector-length objects-vector)))
         (let loop ((i 0))
           (if (< i objects-len)
@@ -7314,10 +7145,9 @@
     py-builtin-super
     (let* ((this-class (py-own-attr-ref self (& "__thisclass__")))
           (this-self (py-own-attr-ref self (& "__self__")))
-          (mro (py-cls-mro this-class))
+          (mro (PyObjectType-mro this-class))
           (parent-cls (vector-ref mro 1)))
-      (let-values (((attr owner)
-        (getattribute-from-cls-mro-with-owner parent-cls name)))
+      (receive (attr owner) (getattribute-from-cls-mro-with-owner parent-cls name)
           (if (eq? attr py-absent)
             (object-getattribute self name)
             (object-get-bind-descriptor attr this-self owner))))))
@@ -7328,10 +7158,11 @@
     (make-posonly-signature '#(self name))))
 
 (define py-builtin-super
-  (py-make-class
+  (py-make-builtin-class
     (& "super")
     (& "builtins")
     (list)
+    py-super-hclass-of-instances
       (& "__init__") super.__init__
       (& "__getattribute__") super.__getattribute__
     ))
@@ -7510,7 +7341,7 @@
      (cond
       ((eq? globals py-None)
        (if (py-isinstance? name py-str-class)
-           (builtin-__import__ name)
+           (builtin-__import__ (PyObjectStr-value name) name)
            (py-throw-exception-with-message py-builtin-TypeError "__import__() argument 1 must be str not " )))
       (else
        (py-throw-exception-with-message py-NotImplemented "__import__ with more then one argument is not yet implemented"))))
@@ -7691,10 +7522,10 @@
   (set! list.sort
     (procedure->py-function
       (lambda (self key reversed)
-        (object-scheme-value-fast-set!
+        (PyObjectList-value-set!
           self
-          (object-scheme-value-fast-get
-            ((function-procedure-fast-get py-builtin-sorted)
+          (PyObjectList-value
+            ((PyObjectFunction-procedure py-builtin-sorted)
              self key reversed)))
         py-None)
 
@@ -7776,18 +7607,21 @@
   (py-own-attr-set! builtins-mod (& "type") py-builtin-type)
   (py-own-attr-set! builtins-mod (& "vars") py-builtin-vars)
   (py-own-attr-set! builtins-mod (& "zip") py-builtin-zip)
+  (py-own-attr-set! builtins-mod (& "__import__") py-builtin-__import__)
 
   (set! py-builtin-range (py-own-attr-ref builtins-mod (& "range"))))
 
 (define (py-make-builtins-mod)
-  (let ((builtins-mod (import-module-scheme
-                        (sys.modules-get)
-                        (py-str-from-scheme "builtins"))))
+  (let ((builtins-mod (import-from-sys.path
+                        "builtins"
+                        (py-str-from-scheme "builtins")
+                        (sys.modules-get))))
     (bootstrap-builtins builtins-mod)
     builtins-mod))
 
-(define zipi-stdlib-dir (path-expand "stdlib" (getenv "ZIPIROOT")))
+(define (build-builtins)
+  (if (eq? builtins-mod py-absent)
+      (set! builtins-mod (py-make-builtins-mod))))
 
-;; load the builtins from zipi/stdlib/builtins.py
-(module-search-order-add! zipi-stdlib-dir)
-(set! builtins-mod (py-make-builtins-mod))
+
+(end-registering-constants)

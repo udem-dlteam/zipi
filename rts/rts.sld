@@ -7,6 +7,7 @@
     &
     init-constants
     start-registering-constants
+    end-registering-constants
     init-registered-constants
 
     with-handler
@@ -35,6 +36,7 @@
     py-throw-exception-with-message
 
     py-make-global
+    py-make-module
     py-make-caches
 
     py-add
@@ -265,6 +267,9 @@
     py-builtin-type
     py-builtin-vars
     py-builtin-zip
+
+    build-builtins
+    set-compile-flag
 
     ;;debug functions
     debug-get

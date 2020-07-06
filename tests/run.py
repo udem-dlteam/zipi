@@ -74,7 +74,7 @@ def run_one_test(path, cpython, zipi):
         return cpython_error == zipi_error
 
 
-def process_file(file, folder, cpython, zipi, shared_lst):
+def process_file(file, folder, cpython, zipi):
     """
     Wrapper to run the test at [folder]/[file] from a subprocess
     """
@@ -84,14 +84,17 @@ def process_file(file, folder, cpython, zipi, shared_lst):
 
     print(f'     {clean_name(file)}: {"." * (45 - len(file))} {status}')
 
-    shared_lst.append(success)
+    return success
 
 
-def run_all(cpython='python3', zipi='../zpc/run-zipi.scm --clean-after', pattern=None):
+def run_all(cpython='python3', zipi='../zpc/run-zipi --compile', pattern=None):
     """
     Collects all tests and runs them in parallel with multiprocessing using the given commands to run 'cpython' and 'zipi'
     A 'pattern' can be provided, which will run only tests matching the pattern with re.match
     """
+    print("Clearing zipi cache... ")
+    os.system(zipi+" --clear-cache")
+
     start = time.time()
 
     test_files = collect_tests(pattern)
@@ -103,12 +106,8 @@ def run_all(cpython='python3', zipi='../zpc/run-zipi.scm --clean-after', pattern
     for folder, folder_tests in test_files.items():
         print(f' - {clean_name(folder)} ({len(folder_tests)} tests)')
 
-        with multiprocessing.Pool(4) as p:
-            shared_lst = multiprocessing.Manager().list()
-            p.starmap(process_file,
-                      ((folder_test, folder, cpython, zipi, shared_lst) for folder_test in folder_tests))
-
-        n_success += sum(shared_lst)
+        for folder_test in folder_tests:
+            n_success += process_file(folder_test, folder, cpython, zipi)
 
     total_time = time.time() - start
 
