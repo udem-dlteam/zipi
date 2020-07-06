@@ -10,7 +10,7 @@ PYC_DIR="$SCRIPT_DIR/../pyc"
 
 # TODO : put this logic in the compiler's code generation
 if [ "$ZIPI_DEBUG_PY19" = true ]; then
-    echo "(declare (debug-location))"
+    echo "(declare (debug) (debug-location))"
 fi
 
 gsi -:search=$SCRIPT_DIR,search=$PYC_DIR,darR-,t8,f8,-8 \
