@@ -5287,6 +5287,24 @@
 
 (make-time-mod)
 
+;; statprof
+
+(define statprof.start
+  (procedure->py-function
+    statprof-start
+    (empty-signature)))
+
+(define statprof.stop
+  (procedure->py-function
+    statprof-stop
+    (make-posonly-signature #(file))))
+
+(define (make-statprof-mod)
+  (let ((mod (py-make-module (& "statprof"))))
+   (py-own-attr-set! mod (& "start") statprof.start)
+   (py-own-attr-set! mod (& "stop") statprof.stop)))
+
+(make-statprof-mod)
 
 ;; ===========================================
 ;; BUITLINS
