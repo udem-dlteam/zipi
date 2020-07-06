@@ -20,7 +20,7 @@
             (cache-location)
             ". Please delete cache folder manualy or change ~~zipicache location."))
       (println
-          "WARNING - cache not found: folder "
+          "*** WARNING -- Cache not found: folder "
           (cache-location)
           " cannot be found")))
 
@@ -30,11 +30,13 @@
   (if (get-file-name args)
       (let ((path (path-normalize (get-file-name args))))
        (import (zipi rts))
-       (if (member "--compile"  args)
-           (set-compile-flag #t))
+       (if (member "--compile" args)
+           (compile-flag-set! #t))
+       (if (member "--debug" args)
+           (debug-flag-set! #t))
        (build-builtins)
        (or  (run-as-main path)
-            (println "error : File named " (car args) " at " path " cannot be found")))
+            (println "*** ERROR -- File named " (car args) " at " path " cannot be found")))
 
       (if (fx= 0 (length args))
           (println "Usage : ./run-zipi [--compile --clear-cache] file "))))

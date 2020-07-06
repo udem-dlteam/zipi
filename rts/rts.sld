@@ -269,7 +269,8 @@
     py-builtin-zip
 
     build-builtins
-    set-compile-flag
+    compile-flag-set!
+    debug-flag-set!
 
     ;;debug functions
     debug-get
