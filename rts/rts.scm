@@ -3146,14 +3146,14 @@
 (define-shrink-dynamic-vector dynamic-vector-shrink! subvector)
 (define-shrink-dynamic-vector dynamic-u8vector-shrink! subu8vector)
 
-(define-macro (define-grow-dynamic-vector name vset vmake vlist vappend)
+(define-macro (define-grow-dynamic-vector name vset vmake vlist-empty vappend)
   `(define (,name dvec)
   (let* ((len (car dvec))
         (vec (cdr dvec))
         (new-inner-len (get-dvec-inner-len len)))
     (set-cdr!
       dvec
-      (,vappend vec (,vmake (- new-inner-len len) ,vlist))))))
+      (,vappend vec (,vmake (- new-inner-len len) ,vlist-empty))))))
 
 (define-grow-dynamic-vector dynamic-vector-grow! vector-set! make-vector list-empty-cell vector-append)
 (define-grow-dynamic-vector dynamic-u8vector-grow! u8vector-set! make-u8vector 0 u8vector-append)
@@ -3909,7 +3909,7 @@
               #f))
         #t)))
 
-(define u8-empty-vector (make-u8vector 0))
+(define u8-empty-vector (make-u8vector 0 0))
 
 (define (bytearray-new cls arg1 arg2 agr3)
   (if (py-issubclass? cls py-bytearray-class)
@@ -3923,7 +3923,7 @@
           ((py-isinstance? arg1 py-int-class)
             (let ((i (PyObjectInt-value arg1)))
               (if (<= 0 i)
-                (py-bytearray-subtype-from-scheme (cons i (make-u8vector i)) cls)
+                (py-bytearray-subtype-from-scheme (cons i (make-u8vector i 0)) cls)
                 (py-throw-exception-with-message py-builtin-ValueError "negative count"))))
           (else
             (error "builtin function __new__ just supports int as an argument"))))
@@ -4066,22 +4066,60 @@
    bytearray-add
    (make-posonly-signature '#(self other))))
 
+(define (dynamic-u8vector-extend dvec-target dvec-source)
+  (let* ((target (cdr dvec-target))
+        (target-length (car dvec-target))
+        (target-inner-length (car dvec-target))
+        (source (cdr dvec-source))
+        (source-length (car dvec-source))
+        (source-inner-length (car dvec-source))
+        (total-len (+ target-length source-length)))
+    (if (< total-len target-inner-length)
+      (let loop ((source-index 0) (target-index (source-length)))
+        (if (< source-index source-length)
+          (begin
+            (u8vector-set! target target-index (u8vector-ref source source-index))
+            (loop (+ source-index 1) (+ target-index 1)))
+          (set-car! dvec-target total-len)))
+      (let ((new-dvec (concat-dynamic-u8vectors dvec-target dvec-source)))
+        (set-car! dvec-target (car new-dvec))
+        (set-cdr! dvec-target (cdr new-dvec))))))
+
+
 (define (bytearray-iadd self other)
   (if (py-isinstance? self py-bytearray-class)
       (if (py-isinstance? other py-bytearray-class)
           (let ((c1 (PyObjectBytearray-value self))
                 (c2 (PyObjectBytearray-value other)))
-            (set-cdr! c1 (concat-dynamic-u8vectors c1 c2)))
+            (dynamic-u8vector-extend c1 c2)
+            self)
           py-NotImplemented)
       (py-throw-not-a-type-object "bytearray.__iadd__" self)))
 
 (define bytearray.__iadd__
   (procedure->py-function
-   bytearray-add
+   bytearray-iadd
    (make-posonly-signature '#(self other))))
-;; temporary - just to see the structure of the array
+
 (define (bytearray-repr self)
-  (py-str-from-scheme (cdr (PyObjectBytearray-value self))))
+  (define (u8->char-repr x)
+    (string-append "\\x" (substring (number->string (+ x 256) 16) 1 3)))
+
+  (if (py-isinstance? self py-bytearray-class)
+    (let* ((value (PyObjectBytearray-value self))
+          (u8vec (cdr value))
+          (bytearray-len (car value))
+          (content
+            (let loop ((i 0) (acc '()))
+              (if (< i bytearray-len)
+                (loop (+ i 1) (cons (u8->char-repr (u8vector-ref u8vec i)) acc))
+                (append-strings (reverse acc))))))
+      (py-str-from-scheme
+        (string-append
+          "bytearray(b'"
+          content
+          "')")))
+    (py-throw-not-a-type-object "bytearray.__repr__" self)))
 
 (define bytearray.__repr__
   (procedure->py-function
