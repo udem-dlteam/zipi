@@ -104,10 +104,10 @@
     (let* ((file-string (py-str-to-scheme file))
            (profile-dir (path-expand (string-append file-string ".profile"))))
       (eval
-        '(let ()
+        `(let ()
           (import (github.com/gambit/statprof))
           (profile-stop!)
-          (write-profile-report profile-dir)))
+          (write-profile-report ,profile-dir)))
       py-None)
     (py-throw-exception-with-message
       py-builtin-TypeError
