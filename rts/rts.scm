@@ -3,13 +3,6 @@
   (if (>= debug-verbosity verbosity)
       (display (append-strings msg) (current-error-port))))
 
-;; General exception thrower helper
-(define-macro (py-throw-exception-with-message exc . msg)
-  `(py-throw
-    (py-call
-      ,exc
-      (py-str-from-scheme (string-append ,@msg)))))
-
 (define (init-constants constants)
   (vector-for-each
     (lambda (obj)
