@@ -4088,7 +4088,22 @@
    (make-posonly-signature '#(self other))))
 ;; temporary - just to see the structure of the array
 (define (bytearray-repr self)
-  (py-str-from-scheme (cdr (PyObjectBytearray-value self))))
+  (if (py-isinstance? self py-bytearray-class)
+    (let* ((value (PyObjectBytearray-value self))
+          (vec (cdr value))
+          (vec-length (u8vector-length vec))
+          (string-length (+ vec-length 3))
+          (string (make-string string-length)))
+      (string-set! string 0 #\b)
+      (string-set! string 1 #\')
+      (string-set! string (- string-length 1) #\')
+      (let loop ((i 0))
+        (if (< i vec-length)
+          (begin
+            (string-set! string (+ i 2) (integer->char (u8vector-ref vec i)))
+            (loop (+ i 1)))
+          (py-str-from-scheme string))))
+    (py-throw-not-a-type-object "bytearray.__repr__" self)))
 
 (define bytearray.__repr__
   (procedure->py-function
