@@ -4103,7 +4103,7 @@
 
 (define (bytearray-repr self)
   (define (u8->char-repr x)
-    (substring (number->string (+ x 256) 16) 1 3))
+    (string-append "\\x" (substring (number->string (+ x 256) 16) 1 3)))
 
   (if (py-isinstance? self py-bytearray-class)
     (let* ((value (PyObjectBytearray-value self))
