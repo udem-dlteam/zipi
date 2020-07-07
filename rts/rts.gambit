@@ -86,4 +86,29 @@
    (list->string (read-all port read-char)))
 
 
+;; statprof
 
+(define (statprof-begin)
+  (if (##subprocedure-info py-call)
+    (eval
+      '(let ()
+        (import (github.com/gambit/statprof))
+        (profile-start!)))
+    (py-throw-exception-with-message
+      py-builtin-RuntimeError
+      "attempting to profile without debug location. Recompile Zipi with 'gsc -debug -debug-location'"))
+  py-None)
+
+(define (statprof-end file)
+  (if (py-isinstance? file py-str-class)
+    (let* ((file-string (py-str-to-scheme file))
+           (profile-dir (path-expand (string-append file-string ".profile"))))
+      (eval
+        `(let ()
+          (import (github.com/gambit/statprof))
+          (profile-stop!)
+          (write-profile-report ,profile-dir)))
+      py-None)
+    (py-throw-exception-with-message
+      py-builtin-TypeError
+      "statprof.stop requires str as attribute")))
