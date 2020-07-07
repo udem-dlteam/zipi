@@ -88,10 +88,10 @@
 
 ;; statprof
 
-(define (statprof-start)
+(define (statprof-begin)
   (if (##subprocedure-info py-call)
     (eval
-      (let ()
+      '(let ()
         (import (github.com/gambit/statprof))
         (profile-start!)))
     (py-throw-exception-with-message
@@ -99,12 +99,12 @@
       "attempting to profile without debug location. Recompile Zipi with 'gsc -debug -debug-location'"))
   py-None)
 
-(define (statprof-stop file)
+(define (statprof-end file)
   (if (py-isinstance? file py-str-class)
     (let* ((file-string (py-str-to-scheme file))
            (profile-dir (path-expand (string-append file-string ".profile"))))
       (eval
-        (let ()
+        '(let ()
           (import (github.com/gambit/statprof))
           (profile-stop!)
           (write-profile-report profile-dir)))

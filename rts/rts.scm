@@ -5236,6 +5236,10 @@
 (define (debug-flag-set! value)
   (set! debug-flag value))
 
+(define profile-flag #f)
+(define (profile-flag-set! value)
+  (set! profile-flag value))
+
 (module-search-order-add! (cache-location))
 
 (define (ensure-parent-dir-exists path)
@@ -5389,7 +5393,14 @@
    (with-exception-catcher
      (lambda (e) (if (PyObject? e) (print-exception e) (raise e)))
      (lambda ()
-       (import-with-zipi-cache path (& "__main__") sys.modules)))))
+      (if profile-flag
+        (let ((profile-dir
+                (py-str-from-scheme
+                  (path-expand "__main__.profile" (current-directory)))))
+          (statprof-begin)
+          (import-with-zipi-cache path (& "__main__") sys.modules)
+          (statprof-end profile-dir))
+        (import-with-zipi-cache path (& "__main__") sys.modules))))))
 
 
 (define py-import-root (current-directory))
@@ -5414,20 +5425,20 @@
 
 ;; statprof
 
-(define statprof.start
+(define statprof.begin
   (procedure->py-function
     statprof-start
     (empty-signature)))
 
-(define statprof.stop
+(define statprof.end
   (procedure->py-function
     statprof-stop
     (make-posonly-signature #(file))))
 
 (define (make-statprof-mod)
   (let ((mod (py-make-module (& "statprof"))))
-   (py-own-attr-set! mod (& "start") statprof.start)
-   (py-own-attr-set! mod (& "stop") statprof.stop)))
+   (py-own-attr-set! mod (& "begin") statprof.begin)
+   (py-own-attr-set! mod (& "end") statprof.end)))
 
 (make-statprof-mod)
 
