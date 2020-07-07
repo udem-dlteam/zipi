@@ -5427,12 +5427,12 @@
 
 (define statprof.begin
   (procedure->py-function
-    statprof-start
+    statprof-begin
     (empty-signature)))
 
 (define statprof.end
   (procedure->py-function
-    statprof-stop
+    statprof-end
     (make-posonly-signature #(file))))
 
 (define (make-statprof-mod)
