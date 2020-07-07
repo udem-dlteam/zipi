@@ -1,7 +1,15 @@
 (define debug-verbosity 0)
-(define (print-debug verbosity . msg)
+
+(define (possible-error verbosity . msg)
   (if (>= debug-verbosity verbosity)
-      (display (append-strings msg) (current-error-port))))
+      (display (string-append "*** WARNING --- " (append-strings msg) "\n")
+               (current-error-port))))
+
+(define (fatal-error . msg)
+  (display (string-append "*** FATAL ERROR --- " (append-strings msg) "\n")
+           (current-error-port))
+  (exit 1))
+
 
 (define (init-constants constants)
   (vector-for-each
@@ -5214,6 +5222,130 @@
 
 (define (sys.path-get)
   (py-own-attr-ref sys-mod (& "path")))
+
+;; == CACHE SYSTEM ==
+
+;; WARNING : dont change this location without knowing what you do because (delete-zipi-cache) in run-zipi recursively deletes this directory
+(define (cache-location) (path-expand "~~zipicache/cache@zipi_0_0_1"))
+
+(define compile-flag #f)
+(define (compile-flag-set! value)
+  (set! compile-flag value))
+
+(define debug-flag #f)
+(define (debug-flag-set! value)
+  (set! debug-flag value))
+
+(module-search-order-add! (cache-location))
+
+(define (ensure-parent-dir-exists path)
+
+  (define (wind path todo)
+    (let* ((dir (path-strip-trailing-directory-separator
+                  (path-directory path)))
+           (fi (with-exception-catcher
+                 (lambda (exc) #f)
+                 (lambda () (file-info dir)))))
+      (if fi
+          (if (eq? (file-info-type fi) 'directory)
+              (unwind todo)
+              (error "directory component can't be created"))
+          (wind dir (cons dir todo)))))
+
+  (define (unwind todo)
+    (if (pair? todo)
+        (begin
+          ;;(pretty-print (list 'creating= (car todo)))
+          (create-directory (car todo))
+          (unwind (cdr todo)))))
+
+  (wind path '()))
+
+
+(define (compile-source source target)
+
+  (define (root-dir)
+    (getenv "ZIPIROOT"))
+
+  (define py19-path
+    (string-append (root-dir) "/etc/py19" ))
+
+  (if (not (file-exists? py19-path))
+      (fatal-error
+        "cannot find py19 executable. "
+        "The environnement variable $ZIPIROOT is probably not set properly. "
+        "Please refer to README"))
+
+  (possible-error 1 "compiling file " source " to " target " \n")
+
+  (shell-command
+    (string-append
+      (if debug-flag
+          "ZIPI_DEBUG_PY19=true "
+          "ZIPI_DEBUG_PY19=false ")
+      py19-path
+      " -t gambit "
+      (root-dir)
+      "/pyc "
+      source
+      " > "
+      target)))
+
+
+(define (compile-to-cache path)
+  (let* ((path-cache
+           (string-append
+             (cache-location)
+             (path-strip-extension path)
+             "/"
+             (path-strip-extension (path-strip-directory path))
+             ".sld"))
+         (path-info (file-info path #t #f))
+         (path-cache-info (file-info path-cache #t #f)))
+
+    (define (create-_must-build_)
+      (if compile-flag
+          (let ((_must-build_-path
+                  (string-append (path-strip-extension path-cache) "._must-build_")))
+           (if compile-flag
+               (with-output-to-file _must-build_-path list)
+               (delete-file _must-build_-path #f)))))
+
+    ;; compile file and return #f if compilation failed
+    (define (compile)
+      (ensure-parent-dir-exists path-cache)
+      (create-_must-build_)
+      (fx= 0 (compile-source path path-cache)))
+
+    (if path-info
+        (if path-cache-info
+            ;; check according to modified date
+            (if (< (time->seconds (file-info-last-modification-time path-info))
+                   (time->seconds (file-info-last-modification-time path-cache-info)))
+                (begin
+                  (possible-error 1 "skipping compilation of unmodified file at " path ", compiled file found : " path-cache "\n")
+                  (create-_must-build_)
+                  #t) ;; compilation "succesfull" (file already compiled)
+                (compile))
+            (compile)) ;; compiled file does not exist (must compile)
+        #f))) ;; file to compile does not exist (failed compilation)
+
+(define (load-module-and-get-init name)
+  (let* ((sym (string->symbol name))
+         (modref (parse-module-ref sym)))
+    (if modref
+        (with-exception-catcher
+          (lambda (exn)
+            (if (module-not-found-exception? exn)
+                #f
+                (raise exn)))
+          (lambda ()
+            (load-module sym)
+            (let ((init (module-var-ref modref 'init)))
+             (if (procedure? init)
+                 init
+                 #f))))
+        #f)))
 
 (define (import-with-zipi-cache path py-__name__ sys.modules)
   (let ((mod-init (and
