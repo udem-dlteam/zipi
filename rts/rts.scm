@@ -4088,11 +4088,17 @@
 
   (if (py-isinstance? self py-bytearray-class)
     (let* ((value (PyObjectBytearray-value self))
-          (u8vec (cdr value)))
+          (u8vec (cdr value))
+          (bytearray-len (car value))
+          (content
+            (let loop ((i 0) (acc '()))
+              (if (< i bytearray-len)
+                (loop (+ i 1) (cons (u8->char-repr (u8vector-ref u8vec i)) acc))
+                (append-strings (reverse acc))))))
       (py-str-from-scheme
         (string-append
-          "bytearray('"
-          (append-strings (map u8->char-repr (u8vector->list u8vec)))
+          "bytearray(b'"
+          content
           "')")))
     (py-throw-not-a-type-object "bytearray.__repr__" self)))
 
