@@ -4066,25 +4066,44 @@
    bytearray-add
    (make-posonly-signature '#(self other))))
 
+(define (dynamic-u8vector-extend dvec-target dvec-source)
+  (let* ((target (cdr dvec-target))
+        (target-length (car dvec-target))
+        (target-inner-length (car dvec-target))
+        (source (cdr dvec-source))
+        (source-length (car dvec-source))
+        (source-inner-length (car dvec-source))
+        (total-len (+ target-length source-length)))
+    (if (< total-len target-inner-length)
+      (let loop ((source-index 0) (target-index (source-length)))
+        (if (< source-index source-length)
+          (begin
+            (u8vector-set! target target-index (u8vector-ref source source-index))
+            (loop (+ source-index 1) (+ target-index 1)))
+          (set-car! dvec-target total-len)))
+      (let ((new-dvec (concat-dynamic-u8vectors dvec-target dvec-source)))
+        (set-car! dvec-target (car new-dvec))
+        (set-cdr! dvec-target (cdr new-dvec))))))
+
+
 (define (bytearray-iadd self other)
   (if (py-isinstance? self py-bytearray-class)
       (if (py-isinstance? other py-bytearray-class)
           (let ((c1 (PyObjectBytearray-value self))
                 (c2 (PyObjectBytearray-value other)))
-            (set-cdr! c1 (concat-dynamic-u8vectors c1 c2)))
+            (dynamic-u8vector-extend c1 c2)
+            self)
           py-NotImplemented)
       (py-throw-not-a-type-object "bytearray.__iadd__" self)))
 
 (define bytearray.__iadd__
   (procedure->py-function
-   bytearray-add
+   bytearray-iadd
    (make-posonly-signature '#(self other))))
 
 (define (bytearray-repr self)
   (define (u8->char-repr x)
-    (if (< x 16)
-      (string-append "\\x0" (number->string x 16))
-      (string-append "\\x" (number->string x 16))))
+    (substring (number->string (+ x 256) 16) 1 3))
 
   (if (py-isinstance? self py-bytearray-class)
     (let* ((value (PyObjectBytearray-value self))

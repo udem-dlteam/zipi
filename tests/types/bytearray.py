@@ -67,7 +67,7 @@ for i in range(2):
         for k in range(len(z)):
             print(z[k])
 
-#iadd 
+#iadd
 
 x=bytearray()
 for i in range(255):
@@ -232,3 +232,22 @@ for i in l3:
 l3[7:1:-2] = (1, 2, 3)
 for i in l3:
     print(i)
+
+# iadd
+
+x = bytearray(10)
+y = bytearray(5)
+
+print(x)
+print(y)
+
+x_ref = x
+x += y
+
+print(x)
+print(len(x))
+print(x_ref)
+print(len(x_ref))
+
+print(x)
+print(y)
