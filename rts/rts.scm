@@ -11,13 +11,6 @@
   (exit 1))
 
 
-;; General exception thrower helper
-(define-macro (py-throw-exception-with-message exc . msg)
-  `(py-throw
-    (py-call
-      ,exc
-      (py-str-from-scheme (string-append ,@msg)))))
-
 (define (init-constants constants)
   (vector-for-each
     (lambda (obj)
@@ -5258,6 +5251,10 @@
 (define (debug-flag-set! value)
   (set! debug-flag value))
 
+(define profile-flag #f)
+(define (profile-flag-set! value)
+  (set! profile-flag value))
+
 (module-search-order-add! (cache-location))
 
 (define (ensure-parent-dir-exists path)
@@ -5411,7 +5408,14 @@
    (with-exception-catcher
      (lambda (e) (if (PyObject? e) (print-exception e) (raise e)))
      (lambda ()
-       (import-with-zipi-cache path (& "__main__") sys.modules)))))
+      (if profile-flag
+        (let ((profile-dir
+                (py-str-from-scheme
+                  (path-expand "__main__.profile" (current-directory)))))
+          (statprof-begin)
+          (import-with-zipi-cache path (& "__main__") sys.modules)
+          (statprof-end profile-dir))
+        (import-with-zipi-cache path (& "__main__") sys.modules))))))
 
 
 (define py-import-root (current-directory))
@@ -5434,6 +5438,24 @@
 
 (make-time-mod)
 
+;; statprof
+
+(define statprof.begin
+  (procedure->py-function
+    statprof-begin
+    (empty-signature)))
+
+(define statprof.end
+  (procedure->py-function
+    statprof-end
+    (make-posonly-signature #(file))))
+
+(define (make-statprof-mod)
+  (let ((mod (py-make-module (& "statprof"))))
+   (py-own-attr-set! mod (& "begin") statprof.begin)
+   (py-own-attr-set! mod (& "end") statprof.end)))
+
+(make-statprof-mod)
 
 ;; ===========================================
 ;; BUITLINS
