@@ -291,3 +291,10 @@
                   '())))
           (HClass-transition-add! $hc key nhclass)
           nhclass)))))
+
+;; General exception thrower helper
+(define-macro (py-throw-exception-with-message exc . msg)
+  `(py-throw
+    (py-call
+      ,exc
+      (py-str-from-scheme (string-append ,@msg)))))

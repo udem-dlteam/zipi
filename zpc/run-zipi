@@ -34,6 +34,8 @@
            (compile-flag-set! #t))
        (if (member "--debug" args)
            (debug-flag-set! #t))
+       (if (member "--profile" args)
+           (profile-flag-set! #t))
        (build-builtins)
        (or  (run-as-main path)
             (println "*** ERROR -- File named " (car args) " at " path " cannot be found")))

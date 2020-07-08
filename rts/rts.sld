@@ -271,6 +271,7 @@
     build-builtins
     compile-flag-set!
     debug-flag-set!
+    profile-flag-set!
 
     ;;debug functions
     debug-get
