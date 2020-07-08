@@ -112,3 +112,21 @@
     (py-throw-exception-with-message
       py-builtin-TypeError
       "statprof.stop requires str as attribute")))
+      
+(define (load-module-and-get-init name)
+  (let* ((sym (string->symbol name))
+         (modref (parse-module-ref sym)))
+    (if modref
+        (with-exception-catcher
+          (lambda (exn)
+            (if (module-not-found-exception? exn)
+                #f
+                (raise exn)))
+          (lambda ()
+            (load-module sym)
+            (let ((init (module-var-ref modref 'init)))
+             (if (procedure? init)
+                 init
+                 #f))))
+        #f)))
+

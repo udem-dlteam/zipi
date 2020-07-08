@@ -1,3 +1,46 @@
+;; =============================================================================
+;;  Common macros
+;; =============================================================================
+;; General exception thrower helper
+(define-macro (py-throw-exception-with-message exc . msg)
+  `(py-throw
+    (py-call
+      ,exc
+      (py-str-from-scheme (string-append ,@msg)))))
+
+(define-macro (make-builtin-HClass names transitions)
+  `(make-still-copy (make-HClass ,names ,transitions)))
+
+(define-macro (HClass-last-index hclass)
+  `(fx- (vector-length (HClass-names ,hclass)) 1))
+
+(define-macro (HClass-transition-add! hc transitions target)
+  `(let (($hc ,hc))
+    (HClass-transitions-set!
+     $hc
+     (cons (cons ,transitions ,target) (HClass-transitions $hc)))))
+
+(define-macro (vector-extend vec el)
+  `(let (($vec ,vec) ($el ,el))
+     (let* ((len (vector-length $vec))
+  	  (nvec (make-vector (+ len 1))))
+        (vector-copy! nvec 0 $vec)
+        (vector-set! nvec len $el)
+        nvec)))
+
+(define-macro (HClass-next hc name op)
+  `(let (($hc ,hc) ($name ,name))
+    (let* ((key (cons $name ,op))
+           (tran (assoc key (HClass-transitions $hc))))
+      (if (pair? tran)
+        (cdr tran)
+        (let ((nhclass
+                (make-HClass
+                  (vector-extend (HClass-names $hc) $name)
+                  '())))
+          (HClass-transition-add! $hc key nhclass)
+          nhclass)))))
+
 (define debug-verbosity 0)
 
 (define (possible-error verbosity . msg)
@@ -5304,36 +5347,6 @@
   (wind path '()))
 
 
-(define (compile-source source target)
-
-  (define (root-dir)
-    (getenv "ZIPIROOT"))
-
-  (define py19-path
-    (string-append (root-dir) "/etc/py19" ))
-
-  (if (not (file-exists? py19-path))
-      (fatal-error
-        "cannot find py19 executable. "
-        "The environnement variable $ZIPIROOT is probably not set properly. "
-        "Please refer to README"))
-
-  (possible-error 1 "compiling file " source " to " target " \n")
-
-  (shell-command
-    (string-append
-      (if debug-flag
-          "ZIPI_DEBUG_PY19=true "
-          "ZIPI_DEBUG_PY19=false ")
-      py19-path
-      " -t gambit "
-      (root-dir)
-      "/pyc "
-      source
-      " > "
-      target)))
-
-
 (define (compile-to-cache path)
   (let* ((path-cache
            (string-append
@@ -5351,7 +5364,7 @@
                   (string-append (path-strip-extension path-cache) "._must-build_")))
            (if compile-flag
                (with-output-to-file _must-build_-path list)
-               (delete-file _must-build_-path #f)))))
+               (delete-file _must-build_-path)))))
 
     ;; compile file and return #f if compilation failed
     (define (compile)
@@ -5371,23 +5384,6 @@
                 (compile))
             (compile)) ;; compiled file does not exist (must compile)
         #f))) ;; file to compile does not exist (failed compilation)
-
-(define (load-module-and-get-init name)
-  (let* ((sym (string->symbol name))
-         (modref (parse-module-ref sym)))
-    (if modref
-        (with-exception-catcher
-          (lambda (exn)
-            (if (module-not-found-exception? exn)
-                #f
-                (raise exn)))
-          (lambda ()
-            (load-module sym)
-            (let ((init (module-var-ref modref 'init)))
-             (if (procedure? init)
-                 init
-                 #f))))
-        #f)))
 
 (define (import-with-zipi-cache path py-__name__ sys.modules)
   (let ((mod-init (and
@@ -5471,7 +5467,7 @@
 (define statprof.end
   (procedure->py-function
     statprof-end
-    (make-posonly-signature #(file))))
+    (make-posonly-signature '#(file))))
 
 (define (make-statprof-mod)
   (let ((mod (py-make-module (& "statprof"))))
