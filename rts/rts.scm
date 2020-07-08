@@ -1010,6 +1010,18 @@
       	       py-builtin-RuntimeError
       	       "__hash__ method should return an integer"))))))
 
+
+(define (py-dir x)
+  (if (eq? x py-absent)
+      (py-dir main-module)
+      (let ((__dir__ (getattribute-from-obj-mro x (& "__dir__"))))
+       (if (eq? __dir__ py-absent)
+           ;; TODO : implement this once __dict__ and others are implemented
+          (py-throw-exception-with-message
+            py-NotImplemented
+            "__dir__ function not found. We should continue searching in the __dict__ an other attributes. This is not yet implemented")
+          (py-call1 py-builtin-sorted (list-new py-list-class (py-call1 __dir__ x)))))))
+
 ;; =============================================================================
 ;; int operations
 ;; =============================================================================
@@ -1543,7 +1555,7 @@
              (attr-representative (str-representative-get attr)))
         (let loop ((i (- (vector-length names) 1)))
           (cond ((< i 0) -1)
-                ((eq? attr-representative (vector-ref names i)) i)
+                ((eq? attr-representative (str-representative-get (vector-ref names i))) i)
                 (else (loop (- i 1))))))))
 
 ;; ===================
@@ -2016,31 +2028,26 @@
 
 (define (object-dir self)
 
-  (define (add-hclass-name-to-table table list)
-    (map (lambda (x) (table-set! table (PyObjectStr-value x) x)) list))
-  (step)
+  (define (add-hclass-name-to-table table obj)
+    (for-each (lambda (x) (table-set! table (PyObjectStr-value x) x))
+              (vector->list (HClass-names (PyObject-hclass obj)))))
 
   (if (not (PyObject? self))
-      (error "abnormal situation")
+      (error "calling __dir__ with another argument then a PyObject")
       (let ((table (make-table)))
-        ;; current name
-        (add-hclass-name-to-table table (vector->list (HClass-names (PyObject-hclass self))))
-        ;;recusively, all classes
-        (add-hclass-name-to-table
-          table
-          (fold (lambda (x y) (append (vector->list (HClass-names (PyObject-hclass x))) y))
-                '()
-                (vector->list (PyObjectType-mro (if (PyObjectType? self) self (PyObject-class self))))))
-
-        (py-list-from-scheme
-          (list->dynamic-vector
-            (map (lambda (x) (cdr x)) (table->list table)))))))
+       (if (not (PyObjectType? self))
+           (add-hclass-name-to-table table self))
+       (for-each (lambda (x) (add-hclass-name-to-table table x))
+                 (vector->list (PyObjectType-mro (if (PyObjectType? self) self (PyObject-class self)))))
+       (py-list-from-scheme
+         (list->dynamic-vector
+           (map cdr (table->list table)))))))
 
 (define object.__dir__
   (procedure->py-function
     object-dir
     (make-posonly-signature '#(self))))
-    
+
 (define (object-repr self)
   (let* ((self-type (py-type self))
          (self-type-name (py-str-to-scheme (py-own-attr-ref self-type (& "__name__"))))
@@ -2483,6 +2490,23 @@
             name module bases py-builtin-type-alloc attrs)))
     (PyObjectType-hclass-of-instances-set! cls hclass-of-instances)
     cls))
+;; ================
+;; MODULE FUNCTIONS
+;; ================
+
+
+(define (module-dir self)
+  (if (py-isinstance? self py-module-class)
+      (py-list-from-scheme
+        (list->dynamic-vector
+          (vector->list (HClass-names (PyObject-hclass self)))))
+      (throw-returned-wrong-type "__dir__" self "not a module")))
+
+(define module.__dir__
+  (procedure->py-function
+    module-dir
+    (make-posonly-signature '#(self))))
+
 
 ;; =============================================================================
 ;;  ITER PROTOCOL
@@ -4760,7 +4784,8 @@
       (& "module")
       (& "builtins")
       (list)
-      py-module-hclass-of-instances))
+      py-module-hclass-of-instances
+      (& "__dir__") module.__dir__))
 
   (set! py-int-class
     (py-make-builtin-class
@@ -5263,10 +5288,16 @@
     (py-own-attr-set! mod (& "__builtins__") builtins-mod)
     mod))
 
+(define main-module #f)
+
 (define (py-make-module name)
   (let ((mod (py-make-global)))
    (py-own-attr-set! mod (& "__name__") name)
    (dict-setitem (sys.modules-get) name mod)
+   (step)
+   (and (not main-module)
+        (string=? (PyObjectStr-value name) "__main__")
+        (set! main-module mod))
    mod))
 
 ;; ===========================================
@@ -5943,9 +5974,8 @@
 
 (define py-builtin-dir
   (procedure->py-function
-    (lambda (object)
-      (py-throw-exception-with-message py-builtin-NotImplementedError "dir not implemented"))
-    (make-posonly-signature '#(object))))
+    py-dir
+    (make-posonly-defaults-signature '#(object) (vector py-absent))))
 
 ;;-------------------- divmod(a, b)
 
