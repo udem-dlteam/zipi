@@ -1620,14 +1620,15 @@
 
 ;; Implements type.__getattribute__
 (define (type-getattribute obj name)
-(let ((attr (getattribute-from-cls-mro obj name)))
-  (if (not (eq? attr py-absent))
-    (object-get-bind-descriptor attr py-None obj)
-    (receive (cls-attr owner) (getattribute-from-obj-mro-with-owner obj name)
-      (if (not (eq? cls-attr py-absent))
-        (object-get-bind-descriptor cls-attr obj owner)
-        (py-throw py-builtin-AttributeError)
-      )))))
+  (if (py-isinstance? obj py-type-class)
+    (let ((attr (getattribute-from-cls-mro obj name)))
+      (if (not (eq? attr py-absent))
+        (object-get-bind-descriptor attr py-None obj)
+        (receive (cls-attr owner) (getattribute-from-obj-mro-with-owner obj name)
+          (if (not (eq? cls-attr py-absent))
+            (object-get-bind-descriptor cls-attr obj owner)
+            (py-throw py-builtin-AttributeError)))))
+    (py-throw-required-type "__getattribute__" "type" obj)))
 
 ;; The Python object type.__getattribute__
 (define type.__getattribute__
