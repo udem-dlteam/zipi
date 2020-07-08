@@ -1620,7 +1620,7 @@
 
 ;; Implements type.__getattribute__
 (define (type-getattribute obj name)
-(let ((attr (py-own-attr-ref obj name)))
+(let ((attr (getattribute-from-cls-mro obj name)))
   (if (not (eq? attr py-absent))
     (object-get-bind-descriptor attr py-None obj)
     (receive (cls-attr owner) (getattribute-from-obj-mro-with-owner obj name)
@@ -2012,6 +2012,13 @@
   (procedure->py-function
     str-add
     (make-posonly-signature '#(self other))))
+
+(define (object-repr self)
+  (let* ((self-type (py-type self))
+         (self-type-name (py-str-to-scheme (py-own-attr-ref self-type (& "__name__"))))
+         (addr (integer->hex-string (object->serial-number self)))
+         (result (string-append "<" self-type-name " object #" addr ">")))
+    (py-str-from-scheme result)))
 
 (define object.__repr__
   (procedure->py-function
