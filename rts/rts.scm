@@ -1,14 +1,15 @@
 (define debug-verbosity 0)
-(define (print-debug verbosity . msg)
-  (if (>= debug-verbosity verbosity)
-      (display (append-strings msg) (current-error-port))))
 
-;; General exception thrower helper
-(define-macro (py-throw-exception-with-message exc . msg)
-  `(py-throw
-    (py-call
-      ,exc
-      (py-str-from-scheme (string-append ,@msg)))))
+(define (possible-error verbosity . msg)
+  (if (>= debug-verbosity verbosity)
+      (display (string-append "*** WARNING --- " (append-strings msg) "\n")
+               (current-error-port))))
+
+(define (fatal-error . msg)
+  (display (string-append "*** FATAL ERROR --- " (append-strings msg) "\n")
+           (current-error-port))
+  (exit 1))
+
 
 (define (init-constants constants)
   (vector-for-each
@@ -1619,14 +1620,15 @@
 
 ;; Implements type.__getattribute__
 (define (type-getattribute obj name)
-(let ((attr (py-own-attr-ref obj name)))
-  (if (not (eq? attr py-absent))
-    (object-get-bind-descriptor attr py-None obj)
-    (receive (cls-attr owner) (getattribute-from-obj-mro-with-owner obj name)
-      (if (not (eq? cls-attr py-absent))
-        (object-get-bind-descriptor cls-attr obj owner)
-        (py-throw py-builtin-AttributeError)
-      )))))
+  (if (py-isinstance? obj py-type-class)
+    (let ((attr (getattribute-from-cls-mro obj name)))
+      (if (not (eq? attr py-absent))
+        (object-get-bind-descriptor attr py-None obj)
+        (receive (cls-attr owner) (getattribute-from-obj-mro-with-owner obj name)
+          (if (not (eq? cls-attr py-absent))
+            (object-get-bind-descriptor cls-attr obj owner)
+            (py-throw py-builtin-AttributeError)))))
+    (py-throw-required-type "__getattribute__" "type" obj)))
 
 ;; The Python object type.__getattribute__
 (define type.__getattribute__
@@ -2011,6 +2013,13 @@
   (procedure->py-function
     str-add
     (make-posonly-signature '#(self other))))
+
+(define (object-repr self)
+  (let* ((self-type (py-type self))
+         (self-type-name (py-str-to-scheme (py-own-attr-ref self-type (& "__name__"))))
+         (addr (integer->hex-string (object->serial-number self)))
+         (result (string-append "<" self-type-name " object #" addr ">")))
+    (py-str-from-scheme result)))
 
 (define object.__repr__
   (procedure->py-function
@@ -3145,14 +3154,14 @@
 (define-shrink-dynamic-vector dynamic-vector-shrink! subvector)
 (define-shrink-dynamic-vector dynamic-u8vector-shrink! subu8vector)
 
-(define-macro (define-grow-dynamic-vector name vset vmake vlist vappend)
+(define-macro (define-grow-dynamic-vector name vset vmake vlist-empty vappend)
   `(define (,name dvec)
   (let* ((len (car dvec))
         (vec (cdr dvec))
         (new-inner-len (get-dvec-inner-len len)))
     (set-cdr!
       dvec
-      (,vappend vec (,vmake (- new-inner-len len) ,vlist))))))
+      (,vappend vec (,vmake (- new-inner-len len) ,vlist-empty))))))
 
 (define-grow-dynamic-vector dynamic-vector-grow! vector-set! make-vector list-empty-cell vector-append)
 (define-grow-dynamic-vector dynamic-u8vector-grow! u8vector-set! make-u8vector 0 u8vector-append)
@@ -3908,7 +3917,7 @@
               #f))
         #t)))
 
-(define u8-empty-vector (make-u8vector 0))
+(define u8-empty-vector (make-u8vector 0 0))
 
 (define (bytearray-new cls arg1 arg2 agr3)
   (if (py-issubclass? cls py-bytearray-class)
@@ -3922,7 +3931,7 @@
           ((py-isinstance? arg1 py-int-class)
             (let ((i (PyObjectInt-value arg1)))
               (if (<= 0 i)
-                (py-bytearray-subtype-from-scheme (cons i (make-u8vector i)) cls)
+                (py-bytearray-subtype-from-scheme (cons i (make-u8vector i 0)) cls)
                 (py-throw-exception-with-message py-builtin-ValueError "negative count"))))
           (else
             (error "builtin function __new__ just supports int as an argument"))))
@@ -4065,22 +4074,60 @@
    bytearray-add
    (make-posonly-signature '#(self other))))
 
+(define (dynamic-u8vector-extend dvec-target dvec-source)
+  (let* ((target (cdr dvec-target))
+        (target-length (car dvec-target))
+        (target-inner-length (car dvec-target))
+        (source (cdr dvec-source))
+        (source-length (car dvec-source))
+        (source-inner-length (car dvec-source))
+        (total-len (+ target-length source-length)))
+    (if (< total-len target-inner-length)
+      (let loop ((source-index 0) (target-index (source-length)))
+        (if (< source-index source-length)
+          (begin
+            (u8vector-set! target target-index (u8vector-ref source source-index))
+            (loop (+ source-index 1) (+ target-index 1)))
+          (set-car! dvec-target total-len)))
+      (let ((new-dvec (concat-dynamic-u8vectors dvec-target dvec-source)))
+        (set-car! dvec-target (car new-dvec))
+        (set-cdr! dvec-target (cdr new-dvec))))))
+
+
 (define (bytearray-iadd self other)
   (if (py-isinstance? self py-bytearray-class)
       (if (py-isinstance? other py-bytearray-class)
           (let ((c1 (PyObjectBytearray-value self))
                 (c2 (PyObjectBytearray-value other)))
-            (set-cdr! c1 (concat-dynamic-u8vectors c1 c2)))
+            (dynamic-u8vector-extend c1 c2)
+            self)
           py-NotImplemented)
       (py-throw-not-a-type-object "bytearray.__iadd__" self)))
 
 (define bytearray.__iadd__
   (procedure->py-function
-   bytearray-add
+   bytearray-iadd
    (make-posonly-signature '#(self other))))
-;; temporary - just to see the structure of the array
+
 (define (bytearray-repr self)
-  (py-str-from-scheme (cdr (PyObjectBytearray-value self))))
+  (define (u8->char-repr x)
+    (string-append "\\x" (substring (number->string (+ x 256) 16) 1 3)))
+
+  (if (py-isinstance? self py-bytearray-class)
+    (let* ((value (PyObjectBytearray-value self))
+          (u8vec (cdr value))
+          (bytearray-len (car value))
+          (content
+            (let loop ((i 0) (acc '()))
+              (if (< i bytearray-len)
+                (loop (+ i 1) (cons (u8->char-repr (u8vector-ref u8vec i)) acc))
+                (append-strings (reverse acc))))))
+      (py-str-from-scheme
+        (string-append
+          "bytearray(b'"
+          content
+          "')")))
+    (py-throw-not-a-type-object "bytearray.__repr__" self)))
 
 (define bytearray.__repr__
   (procedure->py-function
@@ -5222,6 +5269,134 @@
 (define (sys.path-get)
   (py-own-attr-ref sys-mod (& "path")))
 
+;; == CACHE SYSTEM ==
+
+;; WARNING : dont change this location without knowing what you do because (delete-zipi-cache) in run-zipi recursively deletes this directory
+(define (cache-location) (path-expand "~~zipicache/cache@zipi_0_0_1"))
+
+(define compile-flag #f)
+(define (compile-flag-set! value)
+  (set! compile-flag value))
+
+(define debug-flag #f)
+(define (debug-flag-set! value)
+  (set! debug-flag value))
+
+(define profile-flag #f)
+(define (profile-flag-set! value)
+  (set! profile-flag value))
+
+(module-search-order-add! (cache-location))
+
+(define (ensure-parent-dir-exists path)
+
+  (define (wind path todo)
+    (let* ((dir (path-strip-trailing-directory-separator
+                  (path-directory path)))
+           (fi (with-exception-catcher
+                 (lambda (exc) #f)
+                 (lambda () (file-info dir)))))
+      (if fi
+          (if (eq? (file-info-type fi) 'directory)
+              (unwind todo)
+              (error "directory component can't be created"))
+          (wind dir (cons dir todo)))))
+
+  (define (unwind todo)
+    (if (pair? todo)
+        (begin
+          ;;(pretty-print (list 'creating= (car todo)))
+          (create-directory (car todo))
+          (unwind (cdr todo)))))
+
+  (wind path '()))
+
+
+(define (compile-source source target)
+
+  (define (root-dir)
+    (getenv "ZIPIROOT"))
+
+  (define py19-path
+    (string-append (root-dir) "/etc/py19" ))
+
+  (if (not (file-exists? py19-path))
+      (fatal-error
+        "cannot find py19 executable. "
+        "The environnement variable $ZIPIROOT is probably not set properly. "
+        "Please refer to README"))
+
+  (possible-error 1 "compiling file " source " to " target " \n")
+
+  (shell-command
+    (string-append
+      (if debug-flag
+          "ZIPI_DEBUG_PY19=true "
+          "ZIPI_DEBUG_PY19=false ")
+      py19-path
+      " -t gambit "
+      (root-dir)
+      "/pyc "
+      source
+      " > "
+      target)))
+
+
+(define (compile-to-cache path)
+  (let* ((path-cache
+           (string-append
+             (cache-location)
+             (path-strip-extension path)
+             "/"
+             (path-strip-extension (path-strip-directory path))
+             ".sld"))
+         (path-info (file-info path #t #f))
+         (path-cache-info (file-info path-cache #t #f)))
+
+    (define (create-_must-build_)
+      (if compile-flag
+          (let ((_must-build_-path
+                  (string-append (path-strip-extension path-cache) "._must-build_")))
+           (if compile-flag
+               (with-output-to-file _must-build_-path list)
+               (delete-file _must-build_-path #f)))))
+
+    ;; compile file and return #f if compilation failed
+    (define (compile)
+      (ensure-parent-dir-exists path-cache)
+      (create-_must-build_)
+      (fx= 0 (compile-source path path-cache)))
+
+    (if path-info
+        (if path-cache-info
+            ;; check according to modified date
+            (if (< (time->seconds (file-info-last-modification-time path-info))
+                   (time->seconds (file-info-last-modification-time path-cache-info)))
+                (begin
+                  (possible-error 1 "skipping compilation of unmodified file at " path ", compiled file found : " path-cache "\n")
+                  (create-_must-build_)
+                  #t) ;; compilation "succesfull" (file already compiled)
+                (compile))
+            (compile)) ;; compiled file does not exist (must compile)
+        #f))) ;; file to compile does not exist (failed compilation)
+
+(define (load-module-and-get-init name)
+  (let* ((sym (string->symbol name))
+         (modref (parse-module-ref sym)))
+    (if modref
+        (with-exception-catcher
+          (lambda (exn)
+            (if (module-not-found-exception? exn)
+                #f
+                (raise exn)))
+          (lambda ()
+            (load-module sym)
+            (let ((init (module-var-ref modref 'init)))
+             (if (procedure? init)
+                 init
+                 #f))))
+        #f)))
+
 (define (import-with-zipi-cache path py-__name__ sys.modules)
   (let ((mod-init (and
                     (compile-to-cache path)
@@ -5264,7 +5439,14 @@
    (with-exception-catcher
      (lambda (e) (if (PyObject? e) (print-exception e) (raise e)))
      (lambda ()
-       (import-with-zipi-cache path (& "__main__") sys.modules)))))
+      (if profile-flag
+        (let ((profile-dir
+                (py-str-from-scheme
+                  (path-expand "__main__.profile" (current-directory)))))
+          (statprof-begin)
+          (import-with-zipi-cache path (& "__main__") sys.modules)
+          (statprof-end profile-dir))
+        (import-with-zipi-cache path (& "__main__") sys.modules))))))
 
 
 (define py-import-root (current-directory))
@@ -5287,6 +5469,24 @@
 
 (make-time-mod)
 
+;; statprof
+
+(define statprof.begin
+  (procedure->py-function
+    statprof-begin
+    (empty-signature)))
+
+(define statprof.end
+  (procedure->py-function
+    statprof-end
+    (make-posonly-signature #(file))))
+
+(define (make-statprof-mod)
+  (let ((mod (py-make-module (& "statprof"))))
+   (py-own-attr-set! mod (& "begin") statprof.begin)
+   (py-own-attr-set! mod (& "end") statprof.end)))
+
+(make-statprof-mod)
 
 ;; ===========================================
 ;; BUITLINS
