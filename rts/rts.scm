@@ -2532,8 +2532,8 @@
 
 (define py-list-iterator-class
   (py-make-builtin-class
-    (& "list_iterator")
-    (& "builtins")
+    ($ "list_iterator")
+    ($ "builtins")
     (list)
     py-list-iterator-hclass-of-instances
       (& "__iter__") list_iterator.__iter__
@@ -2568,8 +2568,8 @@
 
 (define py-tuple-iterator-class
   (py-make-builtin-class
-    (& "tuple_iterator")
-    (& "builtins")
+    ($ "tuple_iterator")
+    ($ "builtins")
     (list)
     py-tuple-iterator-hclass-of-instances
       (& "__iter__") py-tuple-iterator-iter
@@ -2609,8 +2609,8 @@
 
 (define py-bytearray-iterator-class
   (py-make-builtin-class
-    (& "bytearray_iterator")
-    (& "builtins")
+    ($ "bytearray_iterator")
+    ($ "builtins")
     (list)
     py-bytearray-iterator-hclass-of-instances
       (& "__iter__") py-bytearray-iterator.__iter__
@@ -4698,8 +4698,8 @@
 
 (define py-dict-keyiterator-class
   (py-make-builtin-class
-    (& "dict_keyiterator")
-    (& "builtins")
+    ($ "dict_keyiterator")
+    ($ "builtins")
     (list)
     py-dict-keyiterator-hclass-of-instances
       (& "__iter__") dict_keyiterator.__iter__
@@ -4728,15 +4728,15 @@
 
   (set! py-module-class
     (py-make-builtin-class
-      (& "module")
-      (& "builtins")
+      ($ "module")
+      ($ "builtins")
       (list)
       py-module-hclass-of-instances))
 
   (set! py-int-class
     (py-make-builtin-class
-      (& "int")
-      (& "builtins")
+      ($ "int")
+      ($ "builtins")
       (list)
       py-int-hclass-of-instances
         (& "__new__") int.__new__
@@ -4783,8 +4783,8 @@
 
   (set! py-float-class
     (py-make-builtin-class
-      (& "float")
-      (& "builtins")
+      ($ "float")
+      ($ "builtins")
       (list)
       py-float-hclass-of-instances
         (& "__new__") float.__new__
@@ -4826,8 +4826,8 @@
 
   (set! py-bool-class
     (py-make-builtin-class
-      (& "bool")
-      (& "builtins")
+      ($ "bool")
+      ($ "builtins")
       (list py-int-class)
       py-int-hclass-of-instances
         (& "__new__") bool.__new__
@@ -4843,8 +4843,8 @@
 
   (set! py-slice-class
     (py-make-builtin-class
-      (& "slice")
-      (& "builtins")
+      ($ "slice")
+      ($ "builtins")
       (list)
       py-slice-hclass-of-instances
         (& "__new__") slice.__new__
@@ -4852,16 +4852,16 @@
 
   (set! py-method-class
     (py-make-builtin-class
-      (& "method")
-      (& "builtins")
+      ($ "method")
+      ($ "builtins")
       (list)
       py-method-hclass-of-instances
         (& "__call__") method.__call__))
 
   (set! py-function-class
     (py-make-builtin-class
-      (& "function")
-      (& "builtins")
+      ($ "function")
+      ($ "builtins")
       (list)
       py-function-hclass-of-instances
         (& "__call__") function.__call__
@@ -4869,8 +4869,8 @@
 
   (set! py-list-class
     (py-make-builtin-class
-      (& "list")
-      (& "builtins")
+      ($ "list")
+      ($ "builtins")
       (list)
       py-list-hclass-of-instances
         (& "__new__") list.__new__
@@ -4906,8 +4906,8 @@
 
   (set! py-dict-class
     (py-make-builtin-class
-      (& "dict")
-      (& "builtins")
+      ($ "dict")
+      ($ "builtins")
       (list)
       py-dict-hclass-of-instances
         (& "__getitem__") dict.__getitem__
@@ -4919,15 +4919,15 @@
 
   (set! py-set-class
     (py-make-builtin-class
-      (& "set")
-      (& "builtins")
+      ($ "set")
+      ($ "builtins")
       (list)
       py-set-hclass-of-instances))
 
   (set! py-bytearray-class
     (py-make-builtin-class
-      (& "bytearray")
-      (& "builtins")
+      ($ "bytearray")
+      ($ "builtins")
       (list)
       py-set-hclass-of-instances
         (& "__getitem__") bytearray.__getitem__
@@ -5059,8 +5059,8 @@
 
 (define py-TextIOWrapper-class
   (py-make-builtin-class
-    (& "TextIOWrapper")
-    (& "_io")
+    ($ "TextIOWrapper")
+    ($ "_io")
     ;; TODO: the correct mro is actually [<class '_io.TextIOWrapper'>, <class '_io._TextIOBase'>, <class '_io._IOBase'>, <class 'object'>]
     (list)
     py-TextIOWrapper-hclass-of-instances
@@ -5126,8 +5126,8 @@
 
 (define py-NotImplementedType-class
   (py-make-builtin-class
-    (& "NotImplementedType")
-    (& "builtins")
+    ($ "NotImplementedType")
+    ($ "builtins")
     (list)
     py-object-hclass-of-instances
       (& "__new__") NotImplementedType.__new__
@@ -5184,8 +5184,8 @@
 
 (define py-NoneType-class
   (py-make-builtin-class
-    (& "NoneType")
-    (& "builtins")
+    ($ "NoneType")
+    ($ "builtins")
     (list)
     py-object-hclass-of-instances
       (& "__new__") NoneType.__new__
@@ -5249,11 +5249,11 @@
 
 (define (py-make-sys-mod)
   (let ((mod (py-make-global)))
-   (py-own-attr-set! mod (& "__name__") (& "sys"))
+   (py-own-attr-set! mod (& "__name__") ($ "sys"))
    (py-own-attr-set! mod (& "modules")
                      (py-make-dict
                        (list
-                         (cons (& "sys") mod))))
+                         (cons ($ "sys") mod))))
 
    (py-own-attr-set! mod (& "path")
                      (py-make-list
@@ -5463,7 +5463,7 @@
     (empty-signature)))
 
 (define (make-time-mod)
-  (let ((mod (py-make-module (& "time"))))
+  (let ((mod (py-make-module ($ "time"))))
    (py-own-attr-set! mod (& "time") time.time)))
 
 (make-time-mod)
@@ -5481,7 +5481,7 @@
     (make-posonly-signature #(file))))
 
 (define (make-statprof-mod)
-  (let ((mod (py-make-module (& "statprof"))))
+  (let ((mod (py-make-module ($ "statprof"))))
    (py-own-attr-set! mod (& "begin") statprof.begin)
    (py-own-attr-set! mod (& "end") statprof.end)))
 
@@ -7340,7 +7340,7 @@
       (vector py-absent py-absent))))
 
 (define (super-getattribute self name)
-  (if (eq? name (& "__class__"))
+  (if (eq? (str-representative-get name) (& "__class__"))
     py-builtin-super
     (let* ((this-class (py-own-attr-ref self (& "__thisclass__")))
           (this-self (py-own-attr-ref self (& "__self__")))
@@ -7358,8 +7358,8 @@
 
 (define py-builtin-super
   (py-make-builtin-class
-    (& "super")
-    (& "builtins")
+    ($ "super")
+    ($ "builtins")
     (list)
     py-super-hclass-of-instances
       (& "__init__") super.__init__
