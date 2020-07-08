@@ -98,7 +98,8 @@
 		(list-ref args 6))
 	     (compile-stmt* loc body #t 'local conf)
        decorators: (map
-         (lambda (d) (sexp d #f scope conf)) decorator_list))))
+         (lambda (d) (sexp d #f scope conf)) decorator_list)
+       name: id)))
       ((ClassDef ?loc ?id ?bases ?keywords ?body ?decorator_list)
        ;; ClassDef(identifier name,
        ;;       expr* bases,

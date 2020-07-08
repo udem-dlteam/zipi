@@ -46,14 +46,19 @@
 
 (define (pyc-scheme-gambit ast conf)
   (let* ((prog (pyc-scheme ast conf))
+        (semantics (collect-semantics* ast conf))
+        (semantics-names (map car semantics))
+        (semantics-definitions (map cdr semantics))
         (file (config-get conf file:))
         (path (config-get conf dir:))
         (full-path (if (and file path) (make-file-path path file) #f)))
     (list `(define-library (,(string->symbol (config-get conf name:)))
-              (export init)
+              (export init ,@semantics-names)
               (import (gambit) (zipi rts))
               (begin
                 (start-registering-constants)
+
+                ,@semantics-definitions
 
                 (define py-module ,@prog)
 
@@ -68,6 +73,25 @@
                     (py-module module caches)
                     module))
                 (end-registering-constants))))))
+
+(define-walk-method (collect-semantics* this::PycNode conf)
+  (call-default-walker))
+
+(define-walk-method (collect-semantics* this::PycFun conf)
+  (if (PycFun-semantics this)
+    (let* ((args (scheme* (PycFun-args this) conf))
+          (need-return (PycFun-need-return this))
+          (return-sym (if need-return (my-gensym '%return) #f))
+          (body-conf
+            (if need-return
+              (cons* fun: this return: return-sym conf)
+              (cons* fun: this conf)))
+          (body (scheme (PycFun-body this) body-conf)))
+      (list
+        (cons
+          (PycFun-name this)
+          `(define (,(PycFun-name this) ,@args) ,body))))
+    (call-default-walker)))
 
 (define (scheme* nodes conf)
   (map (lambda (n) (scheme n conf)) nodes))
@@ -721,7 +745,12 @@
                  ,(signature this conf)))
             `(py-call1 ,(scheme (car decs) conf) ,(loop (cdr decs)))))))
 
-   (apply-decorators this conf))
+   (if (PycFun-semantics this)
+      ;; semantics are defined at Scheme module level, not Python module
+      `(procedure->py-function
+        ,(PycFun-name this)
+        ,(signature this conf))
+      (apply-decorators this conf)))
 
 (define-walk-method (scheme this::PycClass conf)
    (define (pyc-class this::PycClass)
@@ -936,7 +965,7 @@
       ((class_getattr)
         (let ((obj (car args))
               (attr (cadr args)))
-          `(,value ,(scheme obj conf) ,(PycLiteralValue-val attr))))
+          `(,value ,(scheme obj conf) (& ,(PycLiteralValue-val attr)))))
       (else
         (error "scheme::PycMacro" "unknown id" id)))))
 
