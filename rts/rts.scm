@@ -1971,23 +1971,50 @@
 (define (integer->hex-string x)
   (string-append "0x" (number->string x 16)))
 
-(define (str-eq self other)
-  (if (py-isinstance? self py-str-class)
-    (if (eq? self other)
-      py-True
-      (if (eq? (py-type other) py-str-class)
-        (let* ((self-representative (str-representative-get self))
-               (other-representative (str-representative-get other)))
-          (if (eq? self-representative other-representative)
-            py-True
-            py-False))
-        py-NotImplemented))
-    (py-throw-required-type "__eq__" "str" self)))
+(define-macro (define-eq-ne-str fun-name method-name true false)
+  (let ((py-func-name (string->symbol (string-append "str." method-name))))
+    `(begin
+      (define (,fun-name self other)
+        (if (py-isinstance? self py-str-class)
+            (if (eq? self other)
+                ,true
+                (if (eq? (py-type other) py-str-class)
+                    (let* ((self-representative (str-representative-get self))
+                           (other-representative (str-representative-get other)))
+                      (if (eq? self-representative other-representative)
+                          ,true
+                          ,false))
+                    py-NotImplemented))
+            (py-throw-required-type ,method-name "str" self)))
+      (define ,py-func-name
+        (procedure->py-function
+          ,fun-name
+          (make-posonly-signature '#(self other)))))))
 
-(define str.__eq__
-  (procedure->py-function
-    str-eq
-    (make-posonly-signature '#(self other))))
+(define-eq-ne-str str-eq "__eq__" py-True py-False)
+(define-eq-ne-str str-ne "__ne__" py-False py-True)
+
+(define-macro (define-str-comparison-operator fun-name method-name scheme-op)
+  (let ((py-func-name (string->symbol (string-append "str." method-name))))
+    `(begin
+      (define (,fun-name self other)
+        (if (py-isinstance? self py-str-class)
+          (cond
+            ((py-isinstance? other py-str-class)
+              (let ((self-value (PyObjectStr-value self))
+                    (other-value (PyObjectStr-value other)))
+                (if (,scheme-op self-value other-value) py-True py-False)))
+            (else py-NotImplemented))
+          (py-throw-required-type ,method-name "str" self)))
+      (define ,py-func-name
+        (procedure->py-function
+          ,fun-name
+          (make-posonly-signature '#(self other)))))))
+
+(define-str-comparison-operator str-gt "__gt__" string>?)
+(define-str-comparison-operator str-lt "__lt__" string<?)
+(define-str-comparison-operator str-ge "__ge__" string>=?)
+(define-str-comparison-operator str-le "__le__" string<=?)
 
 ;; Litterally just taken from here
 ;; https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function#FNV_hash_parameters
@@ -2414,7 +2441,13 @@
     (py-own-attr-set! str-class (& "__str__") str.__str__)
     (py-own-attr-set! str-class (& "__repr__") str.__repr__)
     (py-own-attr-set! str-class (& "__len__") str.__len__)
-    (py-own-attr-set! str-class (& "__add__") str.__add__)))
+    (py-own-attr-set! str-class (& "__add__") str.__add__)
+
+    (py-own-attr-set! str-class (& "__ne__") str.__ne__)
+    (py-own-attr-set! str-class (& "__gt__") str.__gt__)
+    (py-own-attr-set! str-class (& "__lt__") str.__lt__)
+    (py-own-attr-set! str-class (& "__ge__") str.__ge__)
+    (py-own-attr-set! str-class (& "__le__") str.__le__)))
 
 (bootstrap-type-hierarchy-phase1)
 
@@ -5294,7 +5327,6 @@
   (let ((mod (py-make-global)))
    (py-own-attr-set! mod (& "__name__") name)
    (dict-setitem (sys.modules-get) name mod)
-   (step)
    (and (not main-module)
         (string=? (PyObjectStr-value name) "__main__")
         (set! main-module mod))
