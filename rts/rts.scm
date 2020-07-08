@@ -2020,6 +2020,33 @@
     str-add
     (make-posonly-signature '#(self other))))
 
+(define (object-dir self)
+
+  (define (add-hclass-name-to-table table list)
+    (map (lambda (x) (table-set! table (PyObjectStr-value x) x)) list))
+  (step)
+
+  (if (not (PyObject? self))
+      (error "abnormal situation")
+      (let ((table (make-table)))
+        ;; current name
+        (add-hclass-name-to-table table (vector->list (HClass-names (PyObject-hclass self))))
+        ;;recusively, all classes
+        (add-hclass-name-to-table
+          table
+          (fold (lambda (x y) (append (vector->list (HClass-names (PyObject-hclass x))) y))
+                '()
+                (vector->list (PyObjectType-mro (if (PyObjectType? self) self (PyObject-class self))))))
+
+        (py-list-from-scheme
+          (list->dynamic-vector
+            (map (lambda (x) (cdr x)) (table->list table)))))))
+
+(define object.__dir__
+  (procedure->py-function
+    object-dir
+    (make-posonly-signature '#(self))))
+
 (define object.__repr__
   (procedure->py-function
     object-repr
@@ -2344,6 +2371,7 @@
     (py-own-attr-set! object-class (& "__getattribute__") py-object-getattribute)
     (py-own-attr-set! object-class (& "__repr__") object.__repr__)
     (py-own-attr-set! object-class (& "__str__") object.__str__)
+    (py-own-attr-set! object-class (& "__dir__") object.__dir__)
 
 
     ;; Fill in type class
