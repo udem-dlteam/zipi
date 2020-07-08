@@ -13,42 +13,56 @@
 ;;  Objects interning
 ;; =============================================================================
 
-(define-macro (start-registering-constants)
+(define-macro (start-registering-constants #!key (constants-must-be-representatives #f))
   (eval
     `(begin
       (define-type Constants
         id: %constants
         constructor: %make-Constants
         prefix: %
-        table)
+        table
+        vector)
       (define-type PyStaticStr
         ;; NOTE: id must be the same as PyObject
         id: %pystaticobject
         constructor: %make-PyStaticStr
         prefix: %
-        macros:
         hclass
         elements
         class
         value
         representative)
       (define (make-PyStaticStr value)
-        (%make-PyStaticStr #f '#() #f value #f))
-      (define %constants (%make-Constants (make-table)))
+        (let ((static-str
+                (%make-PyStaticStr #f '#() #f value '%py-absent)))
+          ,(if constants-must-be-representatives
+            `(begin
+                (%PyStaticStr-representative-set! static-str static-str)
+                static-str)
+              'static-str)))
+      (define %constants (%make-Constants (make-table) #f))
       (define (constants-table) (%Constants-table %constants))
       (define (constants-ref c key) (table-ref (%Constants-table c) key #f))
       (define (constants-set! c key val) (table-set! (%Constants-table c) key val))
       (define (vectorify-constant-table)
+        (%Constants-vector-set!
+          %constants
+          (list->vector (map cdr (table->list (constants-table))))))
+      (define (listify-constant-table)
         (%Constants-table-set!
           %constants
-          (list->vector (map cdr (table->list (constants-table))))))))
+          (table->list (constants-table))))))
   `(##begin))
 
 (define-macro (init-registered-constants)
   `(init-constants ',%constants))
 
+(define-macro (get-registered-constants-table)
+  `(list->table (structure-ref ',%constants 1) test: string=? weak-values: #t))
+
 (define-macro (end-registering-constants)
-  (vectorify-constant-table))
+  (vectorify-constant-table)
+  (listify-constant-table))
 
 (define-macro (& e)
   (if (string? e)

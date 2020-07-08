@@ -16,11 +16,10 @@
     (lambda (obj)
       (structure-type-set! obj (PyObjectStr-type-get))
       (PyObject-hclass-set! obj py-str-hclass-of-instances)
-      (PyObject-class-set! obj py-str-class)
-      (PyObjectStr-representative-set! obj py-absent))
-    (structure-ref constants 1)))
+      (PyObject-class-set! obj py-str-class))
+    (structure-ref constants 2)))
 
-(start-registering-constants)
+(start-registering-constants constants-must-be-representatives: #t)
 
 ;; =============================================================================
 ;;  HIDDEN CLASSES
@@ -1813,7 +1812,7 @@
 ;;  str and repr protocols
 ;; =============================================================================
 
-(define str-representatives (make-table test: string=? weak-values: #t))
+(define str-representatives (get-registered-constants-table))
 
 (define (str-value-collect-components-aux! value components)
   (if (pair? value)
