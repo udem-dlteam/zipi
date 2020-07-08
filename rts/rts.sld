@@ -5,6 +5,7 @@
 
     PyObject?
     &
+    $
     init-constants
     start-registering-constants
     end-registering-constants

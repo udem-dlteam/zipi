@@ -65,7 +65,7 @@
                     (py-own-attr-set! module (& "_absent") (cons 'builtins-absent-sentinel '()))
                     ,(if full-path
                       `(py-own-attr-set!
-                        module (& "__file__") (& ,full-path))
+                        module (& "__file__") ($ ,full-path))
                       `,@(list))
                     (py-module module caches)
                     module))
@@ -607,7 +607,7 @@
 
 (define-walk-method (scheme this::PycString conf)
    (epairify this
-      `(& ,(PycLiteralValue-val this))))
+      `($ ,(PycLiteralValue-val this))))
 
 (define-walk-method (scheme this::PycBinary conf)
    (epairify this
@@ -723,8 +723,8 @@
       (epairify this
 	 `(begin
      (set! ,cls-symbol (py-make-class
-  	     (& ,(PycClass-name this))
-  	     (& ,(PycClass-module this))
+  	     ($ ,(PycClass-name this))
+  	     ($ ,(PycClass-module this))
   	     (list ,@(map (lambda (b) (scheme b conf)) (PycClass-bases this)))
   	     ,@(append-map (lambda (decl)
   			      `((& ,(symbol->string (PycDecl-id decl)))
