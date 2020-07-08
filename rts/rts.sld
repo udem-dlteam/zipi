@@ -281,7 +281,8 @@
     debug-value-get
     debug-class-name-get
     debug-catch
-    )
+
+    str-representatives)
 
   (import gambit)
   (include "rts#.scm")
