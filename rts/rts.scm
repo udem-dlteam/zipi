@@ -1555,7 +1555,7 @@
              (attr-representative (str-representative-get attr)))
         (let loop ((i (- (vector-length names) 1)))
           (cond ((< i 0) -1)
-                ((eq? attr-representative (str-representative-get (vector-ref names i))) i)
+                ((eq? attr-representative (vector-ref names i)) i)
                 (else (loop (- i 1))))))))
 
 ;; ===================
