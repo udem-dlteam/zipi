@@ -55,10 +55,15 @@
   `(##begin))
 
 (define-macro (init-registered-constants)
-  `(init-constants ',%constants))
+  `(vector-for-each
+    (lambda (obj)
+      (##structure-type-set! obj (PyObjectStr-type-get))
+      (PyObject-hclass-set! obj py-str-hclass-of-instances)
+      (PyObject-class-set! obj py-str-class))
+      (##unchecked-structure-ref ',%constants 2 #f #f)))
 
 (define-macro (get-registered-constants-table)
-  `(list->table (structure-ref ',%constants 1) test: string=? weak-values: #t))
+  `(list->table (##unchecked-structure-ref ',%constants 1 #f #f) test: string=? weak-values: #t))
 
 (define-macro (end-registering-constants)
   (vectorify-constant-table)
@@ -275,12 +280,3 @@
   ;; attrs
   names
   transitions)
-
-(define (init-constants constants)
-  (vector-for-each
-    (lambda (obj)
-      (structure-type-set! obj (PyObjectStr-type-get))
-      (PyObject-hclass-set! obj py-str-hclass-of-instances)
-      (PyObject-class-set! obj py-str-class))
-    (structure-ref constants 2)))
-
