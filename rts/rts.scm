@@ -1044,6 +1044,15 @@
       	       py-builtin-RuntimeError
       	       "__hash__ method should return an integer"))))))
 
+
+(define (py-dir x)
+  (if (eq? x py-absent)
+      (py-throw-exception-with-message
+        py-builtin-NotImplementedError
+        "dir() call with no arguments is not yet implemented ")
+      (let ((__dir__ (getattribute-from-obj-mro x (& "__dir__"))))
+       (py-call1 py-builtin-sorted (py-call1 __dir__ x)))))
+
 ;; =============================================================================
 ;; int operations
 ;; =============================================================================
@@ -1993,23 +2002,50 @@
 (define (integer->hex-string x)
   (string-append "0x" (number->string x 16)))
 
-(define (str-eq self other)
-  (if (py-isinstance? self py-str-class)
-    (if (eq? self other)
-      py-True
-      (if (eq? (py-type other) py-str-class)
-        (let* ((self-representative (str-representative-get self))
-               (other-representative (str-representative-get other)))
-          (if (eq? self-representative other-representative)
-            py-True
-            py-False))
-        py-NotImplemented))
-    (py-throw-required-type "__eq__" "str" self)))
+(define-macro (define-eq-ne-str fun-name method-name yes no)
+  (let ((py-func-name (string->symbol (string-append "str." method-name))))
+    `(begin
+      (define (,fun-name self other)
+        (if (py-isinstance? self py-str-class)
+            (if (eq? self other)
+                ,yes
+                (if (eq? (py-type other) py-str-class)
+                    (let* ((self-representative (str-representative-get self))
+                           (other-representative (str-representative-get other)))
+                      (if (eq? self-representative other-representative)
+                          ,yes
+                          ,no))
+                    py-NotImplemented))
+            (py-throw-required-type ,method-name "str" self)))
+      (define ,py-func-name
+        (procedure->py-function
+          ,fun-name
+          (make-posonly-signature '#(self other)))))))
 
-(define str.__eq__
-  (procedure->py-function
-    str-eq
-    (make-posonly-signature '#(self other))))
+(define-eq-ne-str str-eq "__eq__" py-True py-False)
+(define-eq-ne-str str-ne "__ne__" py-False py-True)
+
+(define-macro (define-str-comparison-operator fun-name method-name scheme-op)
+  (let ((py-func-name (string->symbol (string-append "str." method-name))))
+    `(begin
+      (define (,fun-name self other)
+        (if (py-isinstance? self py-str-class)
+          (cond
+            ((py-isinstance? other py-str-class)
+              (let ((self-value (PyObjectStr-value self))
+                    (other-value (PyObjectStr-value other)))
+                (if (,scheme-op self-value other-value) py-True py-False)))
+            (else py-NotImplemented))
+          (py-throw-required-type ,method-name "str" self)))
+      (define ,py-func-name
+        (procedure->py-function
+          ,fun-name
+          (make-posonly-signature '#(self other)))))))
+
+(define-str-comparison-operator str-gt "__gt__" string>?)
+(define-str-comparison-operator str-lt "__lt__" string<?)
+(define-str-comparison-operator str-ge "__ge__" string>=?)
+(define-str-comparison-operator str-le "__le__" string<=?)
 
 ;; Litterally just taken from here
 ;; https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function#FNV_hash_parameters
@@ -2047,6 +2083,41 @@
   (procedure->py-function
     str-add
     (make-posonly-signature '#(self other))))
+
+(define (add-hclass-names-to-table table obj)
+  (vector-for-each
+    (lambda (name)
+      (table-set! table name #t))
+    (HClass-names (PyObject-hclass obj))))
+
+(define (object-dir self)
+  (let ((table (make-table test: eq?)))
+   (add-hclass-names-to-table table self)
+   (vector-for-each (lambda (x) (add-hclass-names-to-table table x))
+                    (PyObjectType-mro (PyObject-class self)))
+   (py-list-from-scheme
+     (list->dynamic-vector
+       (map car (table->list table))))))
+
+(define object.__dir__
+  (procedure->py-function
+    object-dir
+    (make-posonly-signature '#(self))))
+
+(define (type-dir self)
+  (if (py-isinstance? self py-type-class)
+      (let ((table (make-table test: eq?)))
+       (vector-for-each (lambda (x) (add-hclass-names-to-table table x))
+                        (PyObjectType-mro self))
+       (py-list-from-scheme
+         (list->dynamic-vector
+           (map car (table->list table)))))
+      (py-throw-required-type "__dir__" "type" self)))
+
+(define type.__dir__
+  (procedure->py-function
+    type-dir
+    (make-posonly-signature '#(self))))
 
 (define (object-repr self)
   (let* ((self-type (py-type self))
@@ -2379,6 +2450,7 @@
     (py-own-attr-set! object-class (& "__getattribute__") py-object-getattribute)
     (py-own-attr-set! object-class (& "__repr__") object.__repr__)
     (py-own-attr-set! object-class (& "__str__") object.__str__)
+    (py-own-attr-set! object-class (& "__dir__") object.__dir__)
 
 
     ;; Fill in type class
@@ -2391,6 +2463,7 @@
     (py-own-attr-set! type-class (& "__new__") type.__new__)
     (py-own-attr-set! type-class (& "__call__") type.__call__)
     (py-own-attr-set! type-class (& "__getattribute__") type.__getattribute__)
+    (py-own-attr-set! type-class (& "__dir__") type.__dir__)
 
     ;; Fill in tuple class
     (PyObject-class-set! tuple-class type-class)
@@ -2413,7 +2486,13 @@
     (py-own-attr-set! str-class (& "__str__") str.__str__)
     (py-own-attr-set! str-class (& "__repr__") str.__repr__)
     (py-own-attr-set! str-class (& "__len__") str.__len__)
-    (py-own-attr-set! str-class (& "__add__") str.__add__)))
+    (py-own-attr-set! str-class (& "__add__") str.__add__)
+
+    (py-own-attr-set! str-class (& "__ne__") str.__ne__)
+    (py-own-attr-set! str-class (& "__gt__") str.__gt__)
+    (py-own-attr-set! str-class (& "__lt__") str.__lt__)
+    (py-own-attr-set! str-class (& "__ge__") str.__ge__)
+    (py-own-attr-set! str-class (& "__le__") str.__le__)))
 
 (bootstrap-type-hierarchy-phase1)
 
@@ -2489,6 +2568,22 @@
             name module bases py-builtin-type-alloc attrs)))
     (PyObjectType-hclass-of-instances-set! cls hclass-of-instances)
     cls))
+;; ================
+;; MODULE FUNCTIONS
+;; ================
+
+
+(define (module-dir self)
+  (if (py-isinstance? self py-module-class)
+      (py-list-from-scheme
+        (list->dynamic-vector (vector->list (HClass-names (PyObject-hclass self)))))
+      (throw-returned-wrong-type "__dir__" self "not a module")))
+
+(define module.__dir__
+  (procedure->py-function
+    module-dir
+    (make-posonly-signature '#(self))))
+
 
 ;; =============================================================================
 ;;  ITER PROTOCOL
@@ -4766,7 +4861,8 @@
       (&& "module")
       (&& "builtins")
       (list)
-      py-module-hclass-of-instances))
+      py-module-hclass-of-instances
+      (& "__dir__") module.__dir__))
 
   (set! py-int-class
     (py-make-builtin-class
@@ -5902,9 +5998,8 @@
 
 (define py-builtin-dir
   (procedure->py-function
-    (lambda (object)
-      (py-throw-exception-with-message py-builtin-NotImplementedError "dir not implemented"))
-    (make-posonly-signature '#(object))))
+    py-dir
+    (make-posonly-defaults-signature '#(object) (vector py-absent))))
 
 ;;-------------------- divmod(a, b)
 
