@@ -2062,7 +2062,7 @@
   (let ((table (make-table)))
    (add-hclass-names-to-table table self)
    (for-each (lambda (x) (add-hclass-names-to-table table x))
-             (vector->list (PyObjectType-mro (if (PyObjectType? self) self (PyObject-class self)))))
+             (vector->list (PyObjectType-mro (PyObject-class self))))
    (py-list-from-scheme
      (list->dynamic-vector
        (map cdr (table->list table))))))
