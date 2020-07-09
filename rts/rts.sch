@@ -1,7 +1,7 @@
 ;; ==========================================================
 ;; Class accessors
 ;; Bigloo (4.3i)
-;; Inria -- Sophia Antipolis     Sun 05 Jul 2020 08:16:59 PM CEST 
+;; Inria -- Sophia Antipolis     Mon 29 Jun 2020 09:36:17 AM CEST 
 ;; (bigloo -classgen rts.bgl -o rts.sch)
 ;; ==========================================================
 
@@ -11,7 +11,7 @@
 ;; PyObject
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PyObject::PyObject hclass1349::obj %elements1350::obj class1351::obj)
+    (inline make-PyObject::PyObject hclass1347::obj %elements1348::obj class1349::obj)
     (inline PyObject?::bool ::obj)
     (PyObject-nil::PyObject)
     (inline PyObject-class::obj ::PyObject)
@@ -24,7 +24,7 @@
 ;; PyFunction
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PyFunction::PyFunction hclass1344::obj %elements1345::obj class1346::obj procedure1347::obj)
+    (inline make-PyFunction::PyFunction hclass1342::obj %elements1343::obj class1344::obj procedure1345::obj)
     (inline PyFunction?::bool ::obj)
     (PyFunction-nil::PyFunction)
     (inline PyFunction-procedure::obj ::PyFunction)
@@ -38,7 +38,7 @@
 ;; PyObjectType
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PyObjectType::PyObjectType hclass1337::obj %elements1338::obj class1339::obj bases1340::obj mro1341::obj hclass-of-instances1342::obj)
+    (inline make-PyObjectType::PyObjectType hclass1335::obj %elements1336::obj class1337::obj bases1338::obj mro1339::obj hclass-of-instances1340::obj)
     (inline PyObjectType?::bool ::obj)
     (PyObjectType-nil::PyObjectType)
     (inline PyObjectType-hclass-of-instances::obj ::PyObjectType)
@@ -71,7 +71,7 @@
 ;; PyObjectInt
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PyObjectInt::PyObjectInt hclass1331::obj %elements1332::obj class1333::obj value1334::obj)
+    (inline make-PyObjectInt::PyObjectInt hclass1329::obj %elements1330::obj class1331::obj value1332::obj)
     (inline PyObjectInt?::bool ::obj)
     (PyObjectInt-nil::PyObjectInt)
     (inline PyObjectInt-value::obj ::PyObjectInt)
@@ -86,7 +86,7 @@
 ;; PyObjectFloat
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PyObjectFloat::PyObjectFloat hclass1326::obj %elements1327::obj class1328::obj value1329::obj)
+    (inline make-PyObjectFloat::PyObjectFloat hclass1324::obj %elements1325::obj class1326::obj value1327::obj)
     (inline PyObjectFloat?::bool ::obj)
     (PyObjectFloat-nil::PyObjectFloat)
     (inline PyObjectFloat-value::obj ::PyObjectFloat)
@@ -101,7 +101,7 @@
 ;; PyObjectComplex
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PyObjectComplex::PyObjectComplex hclass1321::obj %elements1322::obj class1323::obj value1324::obj)
+    (inline make-PyObjectComplex::PyObjectComplex hclass1319::obj %elements1320::obj class1321::obj value1322::obj)
     (inline PyObjectComplex?::bool ::obj)
     (PyObjectComplex-nil::PyObjectComplex)
     (inline PyObjectComplex-value::obj ::PyObjectComplex)
@@ -116,7 +116,7 @@
 ;; PyObjectList
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PyObjectList::PyObjectList hclass1316::obj %elements1317::obj class1318::obj value1319::obj)
+    (inline make-PyObjectList::PyObjectList hclass1314::obj %elements1315::obj class1316::obj value1317::obj)
     (inline PyObjectList?::bool ::obj)
     (PyObjectList-nil::PyObjectList)
     (inline PyObjectList-value::obj ::PyObjectList)
@@ -131,7 +131,7 @@
 ;; PyObjectListIterator
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PyObjectListIterator::PyObjectListIterator hclass1310::obj %elements1311::obj class1312::obj index1313::obj list1314::obj)
+    (inline make-PyObjectListIterator::PyObjectListIterator hclass1308::obj %elements1309::obj class1310::obj index1311::obj list1312::obj)
     (inline PyObjectListIterator?::bool ::obj)
     (PyObjectListIterator-nil::PyObjectListIterator)
     (inline PyObjectListIterator-list::obj ::PyObjectListIterator)
@@ -148,7 +148,7 @@
 ;; PyObjectBytearray
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PyObjectBytearray::PyObjectBytearray hclass1304::obj %elements1305::obj class1306::obj value1307::obj)
+    (inline make-PyObjectBytearray::PyObjectBytearray hclass1303::obj %elements1304::obj class1305::obj value1306::obj)
     (inline PyObjectBytearray?::bool ::obj)
     (PyObjectBytearray-nil::PyObjectBytearray)
     (inline PyObjectBytearray-value::obj ::PyObjectBytearray)
@@ -163,7 +163,7 @@
 ;; PyObjectBytearrayIterator
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PyObjectBytearrayIterator::PyObjectBytearrayIterator hclass1298::obj %elements1299::obj class1300::obj index1301::obj bytearray1302::obj)
+    (inline make-PyObjectBytearrayIterator::PyObjectBytearrayIterator hclass1297::obj %elements1298::obj class1299::obj index1300::obj bytearray1301::obj)
     (inline PyObjectBytearrayIterator?::bool ::obj)
     (PyObjectBytearrayIterator-nil::PyObjectBytearrayIterator)
     (inline PyObjectBytearrayIterator-bytearray::obj ::PyObjectBytearrayIterator)
@@ -180,7 +180,7 @@
 ;; PyObjectStr
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PyObjectStr::PyObjectStr hclass1292::obj %elements1293::obj class1294::obj value1295::obj representative1296::obj)
+    (inline make-PyObjectStr::PyObjectStr hclass1291::obj %elements1292::obj class1293::obj value1294::obj representative1295::obj)
     (inline PyObjectStr?::bool ::obj)
     (PyObjectStr-nil::PyObjectStr)
     (inline PyObjectStr-representative::obj ::PyObjectStr)
@@ -197,7 +197,7 @@
 ;; PyObjectFunction
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PyObjectFunction::PyObjectFunction hclass1285::obj %elements1286::obj class1287::obj procedure1288::obj arity1289::obj signature1290::obj)
+    (inline make-PyObjectFunction::PyObjectFunction hclass1284::obj %elements1285::obj class1286::obj procedure1287::obj arity1288::obj signature1289::obj)
     (inline PyObjectFunction?::bool ::obj)
     (PyObjectFunction-nil::PyObjectFunction)
     (inline PyObjectFunction-signature::obj ::PyObjectFunction)
@@ -216,7 +216,7 @@
 ;; PyObjectMethod
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PyObjectMethod::PyObjectMethod hclass1278::obj %elements1279::obj class1280::obj procedure1281::obj arity1282::obj signature1283::obj)
+    (inline make-PyObjectMethod::PyObjectMethod hclass1277::obj %elements1278::obj class1279::obj procedure1280::obj arity1281::obj signature1282::obj)
     (inline PyObjectMethod?::bool ::obj)
     (PyObjectMethod-nil::PyObjectMethod)
     (inline PyObjectMethod-signature::obj ::PyObjectMethod)
@@ -235,7 +235,7 @@
 ;; PyObjectDict
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PyObjectDict::PyObjectDict hclass1273::obj %elements1274::obj class1275::obj value1276::obj)
+    (inline make-PyObjectDict::PyObjectDict hclass1272::obj %elements1273::obj class1274::obj value1275::obj)
     (inline PyObjectDict?::bool ::obj)
     (PyObjectDict-nil::PyObjectDict)
     (inline PyObjectDict-value::obj ::PyObjectDict)
@@ -250,7 +250,7 @@
 ;; PyObjectSet
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PyObjectSet::PyObjectSet hclass1268::obj %elements1269::obj class1270::obj value1271::obj)
+    (inline make-PyObjectSet::PyObjectSet hclass1267::obj %elements1268::obj class1269::obj value1270::obj)
     (inline PyObjectSet?::bool ::obj)
     (PyObjectSet-nil::PyObjectSet)
     (inline PyObjectSet-value::obj ::PyObjectSet)
@@ -265,7 +265,7 @@
 ;; PyObjectTuple
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PyObjectTuple::PyObjectTuple hclass1263::obj %elements1264::obj class1265::obj value1266::obj)
+    (inline make-PyObjectTuple::PyObjectTuple hclass1262::obj %elements1263::obj class1264::obj value1265::obj)
     (inline PyObjectTuple?::bool ::obj)
     (PyObjectTuple-nil::PyObjectTuple)
     (inline PyObjectTuple-value::obj ::PyObjectTuple)
@@ -280,7 +280,7 @@
 ;; PyObjectTupleIterator
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PyObjectTupleIterator::PyObjectTupleIterator hclass1257::obj %elements1258::obj class1259::obj index1260::obj vec1261::obj)
+    (inline make-PyObjectTupleIterator::PyObjectTupleIterator hclass1256::obj %elements1257::obj class1258::obj index1259::obj vec1260::obj)
     (inline PyObjectTupleIterator?::bool ::obj)
     (PyObjectTupleIterator-nil::PyObjectTupleIterator)
     (inline PyObjectTupleIterator-vec::obj ::PyObjectTupleIterator)
@@ -297,7 +297,7 @@
 ;; PyObjectDictKeyIterator
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PyObjectDictKeyIterator::PyObjectDictKeyIterator hclass1251::obj %elements1252::obj class1253::obj node1254::obj iterator-token1255::obj)
+    (inline make-PyObjectDictKeyIterator::PyObjectDictKeyIterator hclass1250::obj %elements1251::obj class1252::obj node1253::obj iterator-token1254::obj)
     (inline PyObjectDictKeyIterator?::bool ::obj)
     (PyObjectDictKeyIterator-nil::PyObjectDictKeyIterator)
     (inline PyObjectDictKeyIterator-iterator-token::obj ::PyObjectDictKeyIterator)
@@ -314,7 +314,7 @@
 ;; PyObjectSlice
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PyObjectSlice::PyObjectSlice hclass1244::obj %elements1245::obj class1246::obj start1247::obj stop1248::obj step1249::obj)
+    (inline make-PyObjectSlice::PyObjectSlice hclass1243::obj %elements1244::obj class1245::obj start1246::obj stop1247::obj step1248::obj)
     (inline PyObjectSlice?::bool ::obj)
     (PyObjectSlice-nil::PyObjectSlice)
     (inline PyObjectSlice-step::obj ::PyObjectSlice)
@@ -333,7 +333,7 @@
 ;; PyObjectTextIOWrapper
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PyObjectTextIOWrapper::PyObjectTextIOWrapper hclass1237::obj %elements1238::obj class1239::obj port1240::obj mode1241::obj encoding1242::obj)
+    (inline make-PyObjectTextIOWrapper::PyObjectTextIOWrapper hclass1236::obj %elements1237::obj class1238::obj port1239::obj mode1240::obj encoding1241::obj)
     (inline PyObjectTextIOWrapper?::bool ::obj)
     (PyObjectTextIOWrapper-nil::PyObjectTextIOWrapper)
     (inline PyObjectTextIOWrapper-encoding::obj ::PyObjectTextIOWrapper)
@@ -352,7 +352,7 @@
 ;; PyGenerator
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PyGenerator::PyGenerator hclass1232::obj %elements1233::obj class1234::obj %next1235::obj)
+    (inline make-PyGenerator::PyGenerator hclass1231::obj %elements1232::obj class1233::obj %next1234::obj)
     (inline PyGenerator?::bool ::obj)
     (PyGenerator-nil::PyGenerator)
     (inline PyGenerator-%next::obj ::PyGenerator)
@@ -367,7 +367,7 @@
 ;; PCache
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PCache::PCache hclass1229::obj index1230::long)
+    (inline make-PCache::PCache hclass1228::obj index1229::long)
     (inline PCache?::bool ::obj)
     (PCache-nil::PCache)
     (inline PCache-index::long ::PCache)
@@ -378,7 +378,7 @@
 ;; HClass
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-HClass::HClass names1226::vector transitions1227::pair-nil)
+    (inline make-HClass::HClass names1225::vector transitions1226::pair-nil)
     (inline HClass?::bool ::obj)
     (HClass-nil::HClass)
     (inline HClass-transitions::pair-nil ::HClass)
@@ -389,7 +389,7 @@
 ;; The definitions
 (cond-expand (bigloo-class-sans
 ;; PyObject
-(define-inline (make-PyObject::PyObject hclass1349::obj %elements1350::obj class1351::obj) (instantiate::PyObject (hclass hclass1349) (%elements %elements1350) (class class1351)))
+(define-inline (make-PyObject::PyObject hclass1347::obj %elements1348::obj class1349::obj) (instantiate::PyObject (hclass hclass1347) (%elements %elements1348) (class class1349)))
 (define-inline (PyObject?::bool obj::obj) ((@ isa? __object) obj (@ PyObject __py_rts)))
 (define (PyObject-nil::PyObject) (class-nil (@ PyObject __py_rts)))
 (define-inline (PyObject-class::obj o::PyObject) (-> |#!bigloo_wallow| o class))
@@ -400,7 +400,7 @@
 (define-inline (PyObject-hclass-set! o::PyObject v::obj) (set! (-> |#!bigloo_wallow| o hclass) v))
 
 ;; PyFunction
-(define-inline (make-PyFunction::PyFunction hclass1344::obj %elements1345::obj class1346::obj procedure1347::obj) (instantiate::PyFunction (hclass hclass1344) (%elements %elements1345) (class class1346) (procedure procedure1347)))
+(define-inline (make-PyFunction::PyFunction hclass1342::obj %elements1343::obj class1344::obj procedure1345::obj) (instantiate::PyFunction (hclass hclass1342) (%elements %elements1343) (class class1344) (procedure procedure1345)))
 (define-inline (PyFunction?::bool obj::obj) ((@ isa? __object) obj (@ PyFunction __py_rts)))
 (define (PyFunction-nil::PyFunction) (class-nil (@ PyFunction __py_rts)))
 (define-inline (PyFunction-procedure::obj o::PyFunction) (-> |#!bigloo_wallow| o procedure))
@@ -413,7 +413,7 @@
 (define-inline (PyFunction-hclass-set! o::PyFunction v::obj) (set! (-> |#!bigloo_wallow| o hclass) v))
 
 ;; PyObjectType
-(define-inline (make-PyObjectType::PyObjectType hclass1337::obj %elements1338::obj class1339::obj bases1340::obj mro1341::obj hclass-of-instances1342::obj) (instantiate::PyObjectType (hclass hclass1337) (%elements %elements1338) (class class1339) (bases bases1340) (mro mro1341) (hclass-of-instances hclass-of-instances1342)))
+(define-inline (make-PyObjectType::PyObjectType hclass1335::obj %elements1336::obj class1337::obj bases1338::obj mro1339::obj hclass-of-instances1340::obj) (instantiate::PyObjectType (hclass hclass1335) (%elements %elements1336) (class class1337) (bases bases1338) (mro mro1339) (hclass-of-instances hclass-of-instances1340)))
 (define-inline (PyObjectType?::bool obj::obj) ((@ isa? __object) obj (@ PyObjectType __py_rts)))
 (define (PyObjectType-nil::PyObjectType) (class-nil (@ PyObjectType __py_rts)))
 (define-inline (PyObjectType-hclass-of-instances::obj o::PyObjectType) (-> |#!bigloo_wallow| o hclass-of-instances))
@@ -442,7 +442,7 @@
 (define-inline (PyObjectNumber-hclass-set! o::PyObjectNumber v::obj) (set! (-> |#!bigloo_wallow| o hclass) v))
 
 ;; PyObjectInt
-(define-inline (make-PyObjectInt::PyObjectInt hclass1331::obj %elements1332::obj class1333::obj value1334::obj) (instantiate::PyObjectInt (hclass hclass1331) (%elements %elements1332) (class class1333) (value value1334)))
+(define-inline (make-PyObjectInt::PyObjectInt hclass1329::obj %elements1330::obj class1331::obj value1332::obj) (instantiate::PyObjectInt (hclass hclass1329) (%elements %elements1330) (class class1331) (value value1332)))
 (define-inline (PyObjectInt?::bool obj::obj) ((@ isa? __object) obj (@ PyObjectInt __py_rts)))
 (define (PyObjectInt-nil::PyObjectInt) (class-nil (@ PyObjectInt __py_rts)))
 (define-inline (PyObjectInt-value::obj o::PyObjectInt) (-> |#!bigloo_wallow| o value))
@@ -455,7 +455,7 @@
 (define-inline (PyObjectInt-hclass-set! o::PyObjectInt v::obj) (set! (-> |#!bigloo_wallow| o hclass) v))
 
 ;; PyObjectFloat
-(define-inline (make-PyObjectFloat::PyObjectFloat hclass1326::obj %elements1327::obj class1328::obj value1329::obj) (instantiate::PyObjectFloat (hclass hclass1326) (%elements %elements1327) (class class1328) (value value1329)))
+(define-inline (make-PyObjectFloat::PyObjectFloat hclass1324::obj %elements1325::obj class1326::obj value1327::obj) (instantiate::PyObjectFloat (hclass hclass1324) (%elements %elements1325) (class class1326) (value value1327)))
 (define-inline (PyObjectFloat?::bool obj::obj) ((@ isa? __object) obj (@ PyObjectFloat __py_rts)))
 (define (PyObjectFloat-nil::PyObjectFloat) (class-nil (@ PyObjectFloat __py_rts)))
 (define-inline (PyObjectFloat-value::obj o::PyObjectFloat) (-> |#!bigloo_wallow| o value))
@@ -468,7 +468,7 @@
 (define-inline (PyObjectFloat-hclass-set! o::PyObjectFloat v::obj) (set! (-> |#!bigloo_wallow| o hclass) v))
 
 ;; PyObjectComplex
-(define-inline (make-PyObjectComplex::PyObjectComplex hclass1321::obj %elements1322::obj class1323::obj value1324::obj) (instantiate::PyObjectComplex (hclass hclass1321) (%elements %elements1322) (class class1323) (value value1324)))
+(define-inline (make-PyObjectComplex::PyObjectComplex hclass1319::obj %elements1320::obj class1321::obj value1322::obj) (instantiate::PyObjectComplex (hclass hclass1319) (%elements %elements1320) (class class1321) (value value1322)))
 (define-inline (PyObjectComplex?::bool obj::obj) ((@ isa? __object) obj (@ PyObjectComplex __py_rts)))
 (define (PyObjectComplex-nil::PyObjectComplex) (class-nil (@ PyObjectComplex __py_rts)))
 (define-inline (PyObjectComplex-value::obj o::PyObjectComplex) (-> |#!bigloo_wallow| o value))
@@ -481,7 +481,7 @@
 (define-inline (PyObjectComplex-hclass-set! o::PyObjectComplex v::obj) (set! (-> |#!bigloo_wallow| o hclass) v))
 
 ;; PyObjectList
-(define-inline (make-PyObjectList::PyObjectList hclass1316::obj %elements1317::obj class1318::obj value1319::obj) (instantiate::PyObjectList (hclass hclass1316) (%elements %elements1317) (class class1318) (value value1319)))
+(define-inline (make-PyObjectList::PyObjectList hclass1314::obj %elements1315::obj class1316::obj value1317::obj) (instantiate::PyObjectList (hclass hclass1314) (%elements %elements1315) (class class1316) (value value1317)))
 (define-inline (PyObjectList?::bool obj::obj) ((@ isa? __object) obj (@ PyObjectList __py_rts)))
 (define (PyObjectList-nil::PyObjectList) (class-nil (@ PyObjectList __py_rts)))
 (define-inline (PyObjectList-value::obj o::PyObjectList) (-> |#!bigloo_wallow| o value))
@@ -494,7 +494,7 @@
 (define-inline (PyObjectList-hclass-set! o::PyObjectList v::obj) (set! (-> |#!bigloo_wallow| o hclass) v))
 
 ;; PyObjectListIterator
-(define-inline (make-PyObjectListIterator::PyObjectListIterator hclass1310::obj %elements1311::obj class1312::obj index1313::obj list1314::obj) (instantiate::PyObjectListIterator (hclass hclass1310) (%elements %elements1311) (class class1312) (index index1313) (list list1314)))
+(define-inline (make-PyObjectListIterator::PyObjectListIterator hclass1308::obj %elements1309::obj class1310::obj index1311::obj list1312::obj) (instantiate::PyObjectListIterator (hclass hclass1308) (%elements %elements1309) (class class1310) (index index1311) (list list1312)))
 (define-inline (PyObjectListIterator?::bool obj::obj) ((@ isa? __object) obj (@ PyObjectListIterator __py_rts)))
 (define (PyObjectListIterator-nil::PyObjectListIterator) (class-nil (@ PyObjectListIterator __py_rts)))
 (define-inline (PyObjectListIterator-list::obj o::PyObjectListIterator) (-> |#!bigloo_wallow| o list))
@@ -509,7 +509,7 @@
 (define-inline (PyObjectListIterator-hclass-set! o::PyObjectListIterator v::obj) (set! (-> |#!bigloo_wallow| o hclass) v))
 
 ;; PyObjectBytearray
-(define-inline (make-PyObjectBytearray::PyObjectBytearray hclass1304::obj %elements1305::obj class1306::obj value1307::obj) (instantiate::PyObjectBytearray (hclass hclass1304) (%elements %elements1305) (class class1306) (value value1307)))
+(define-inline (make-PyObjectBytearray::PyObjectBytearray hclass1303::obj %elements1304::obj class1305::obj value1306::obj) (instantiate::PyObjectBytearray (hclass hclass1303) (%elements %elements1304) (class class1305) (value value1306)))
 (define-inline (PyObjectBytearray?::bool obj::obj) ((@ isa? __object) obj (@ PyObjectBytearray __py_rts)))
 (define (PyObjectBytearray-nil::PyObjectBytearray) (class-nil (@ PyObjectBytearray __py_rts)))
 (define-inline (PyObjectBytearray-value::obj o::PyObjectBytearray) (-> |#!bigloo_wallow| o value))
@@ -522,7 +522,7 @@
 (define-inline (PyObjectBytearray-hclass-set! o::PyObjectBytearray v::obj) (set! (-> |#!bigloo_wallow| o hclass) v))
 
 ;; PyObjectBytearrayIterator
-(define-inline (make-PyObjectBytearrayIterator::PyObjectBytearrayIterator hclass1298::obj %elements1299::obj class1300::obj index1301::obj bytearray1302::obj) (instantiate::PyObjectBytearrayIterator (hclass hclass1298) (%elements %elements1299) (class class1300) (index index1301) (bytearray bytearray1302)))
+(define-inline (make-PyObjectBytearrayIterator::PyObjectBytearrayIterator hclass1297::obj %elements1298::obj class1299::obj index1300::obj bytearray1301::obj) (instantiate::PyObjectBytearrayIterator (hclass hclass1297) (%elements %elements1298) (class class1299) (index index1300) (bytearray bytearray1301)))
 (define-inline (PyObjectBytearrayIterator?::bool obj::obj) ((@ isa? __object) obj (@ PyObjectBytearrayIterator __py_rts)))
 (define (PyObjectBytearrayIterator-nil::PyObjectBytearrayIterator) (class-nil (@ PyObjectBytearrayIterator __py_rts)))
 (define-inline (PyObjectBytearrayIterator-bytearray::obj o::PyObjectBytearrayIterator) (-> |#!bigloo_wallow| o bytearray))
@@ -537,7 +537,7 @@
 (define-inline (PyObjectBytearrayIterator-hclass-set! o::PyObjectBytearrayIterator v::obj) (set! (-> |#!bigloo_wallow| o hclass) v))
 
 ;; PyObjectStr
-(define-inline (make-PyObjectStr::PyObjectStr hclass1292::obj %elements1293::obj class1294::obj value1295::obj representative1296::obj) (instantiate::PyObjectStr (hclass hclass1292) (%elements %elements1293) (class class1294) (value value1295) (representative representative1296)))
+(define-inline (make-PyObjectStr::PyObjectStr hclass1291::obj %elements1292::obj class1293::obj value1294::obj representative1295::obj) (instantiate::PyObjectStr (hclass hclass1291) (%elements %elements1292) (class class1293) (value value1294) (representative representative1295)))
 (define-inline (PyObjectStr?::bool obj::obj) ((@ isa? __object) obj (@ PyObjectStr __py_rts)))
 (define (PyObjectStr-nil::PyObjectStr) (class-nil (@ PyObjectStr __py_rts)))
 (define-inline (PyObjectStr-representative::obj o::PyObjectStr) (-> |#!bigloo_wallow| o representative))
@@ -552,7 +552,7 @@
 (define-inline (PyObjectStr-hclass-set! o::PyObjectStr v::obj) (set! (-> |#!bigloo_wallow| o hclass) v))
 
 ;; PyObjectFunction
-(define-inline (make-PyObjectFunction::PyObjectFunction hclass1285::obj %elements1286::obj class1287::obj procedure1288::obj arity1289::obj signature1290::obj) (instantiate::PyObjectFunction (hclass hclass1285) (%elements %elements1286) (class class1287) (procedure procedure1288) (arity arity1289) (signature signature1290)))
+(define-inline (make-PyObjectFunction::PyObjectFunction hclass1284::obj %elements1285::obj class1286::obj procedure1287::obj arity1288::obj signature1289::obj) (instantiate::PyObjectFunction (hclass hclass1284) (%elements %elements1285) (class class1286) (procedure procedure1287) (arity arity1288) (signature signature1289)))
 (define-inline (PyObjectFunction?::bool obj::obj) ((@ isa? __object) obj (@ PyObjectFunction __py_rts)))
 (define (PyObjectFunction-nil::PyObjectFunction) (class-nil (@ PyObjectFunction __py_rts)))
 (define-inline (PyObjectFunction-signature::obj o::PyObjectFunction) (-> |#!bigloo_wallow| o signature))
@@ -569,7 +569,7 @@
 (define-inline (PyObjectFunction-hclass-set! o::PyObjectFunction v::obj) (set! (-> |#!bigloo_wallow| o hclass) v))
 
 ;; PyObjectMethod
-(define-inline (make-PyObjectMethod::PyObjectMethod hclass1278::obj %elements1279::obj class1280::obj procedure1281::obj arity1282::obj signature1283::obj) (instantiate::PyObjectMethod (hclass hclass1278) (%elements %elements1279) (class class1280) (procedure procedure1281) (arity arity1282) (signature signature1283)))
+(define-inline (make-PyObjectMethod::PyObjectMethod hclass1277::obj %elements1278::obj class1279::obj procedure1280::obj arity1281::obj signature1282::obj) (instantiate::PyObjectMethod (hclass hclass1277) (%elements %elements1278) (class class1279) (procedure procedure1280) (arity arity1281) (signature signature1282)))
 (define-inline (PyObjectMethod?::bool obj::obj) ((@ isa? __object) obj (@ PyObjectMethod __py_rts)))
 (define (PyObjectMethod-nil::PyObjectMethod) (class-nil (@ PyObjectMethod __py_rts)))
 (define-inline (PyObjectMethod-signature::obj o::PyObjectMethod) (-> |#!bigloo_wallow| o signature))
@@ -586,7 +586,7 @@
 (define-inline (PyObjectMethod-hclass-set! o::PyObjectMethod v::obj) (set! (-> |#!bigloo_wallow| o hclass) v))
 
 ;; PyObjectDict
-(define-inline (make-PyObjectDict::PyObjectDict hclass1273::obj %elements1274::obj class1275::obj value1276::obj) (instantiate::PyObjectDict (hclass hclass1273) (%elements %elements1274) (class class1275) (value value1276)))
+(define-inline (make-PyObjectDict::PyObjectDict hclass1272::obj %elements1273::obj class1274::obj value1275::obj) (instantiate::PyObjectDict (hclass hclass1272) (%elements %elements1273) (class class1274) (value value1275)))
 (define-inline (PyObjectDict?::bool obj::obj) ((@ isa? __object) obj (@ PyObjectDict __py_rts)))
 (define (PyObjectDict-nil::PyObjectDict) (class-nil (@ PyObjectDict __py_rts)))
 (define-inline (PyObjectDict-value::obj o::PyObjectDict) (-> |#!bigloo_wallow| o value))
@@ -599,7 +599,7 @@
 (define-inline (PyObjectDict-hclass-set! o::PyObjectDict v::obj) (set! (-> |#!bigloo_wallow| o hclass) v))
 
 ;; PyObjectSet
-(define-inline (make-PyObjectSet::PyObjectSet hclass1268::obj %elements1269::obj class1270::obj value1271::obj) (instantiate::PyObjectSet (hclass hclass1268) (%elements %elements1269) (class class1270) (value value1271)))
+(define-inline (make-PyObjectSet::PyObjectSet hclass1267::obj %elements1268::obj class1269::obj value1270::obj) (instantiate::PyObjectSet (hclass hclass1267) (%elements %elements1268) (class class1269) (value value1270)))
 (define-inline (PyObjectSet?::bool obj::obj) ((@ isa? __object) obj (@ PyObjectSet __py_rts)))
 (define (PyObjectSet-nil::PyObjectSet) (class-nil (@ PyObjectSet __py_rts)))
 (define-inline (PyObjectSet-value::obj o::PyObjectSet) (-> |#!bigloo_wallow| o value))
@@ -612,7 +612,7 @@
 (define-inline (PyObjectSet-hclass-set! o::PyObjectSet v::obj) (set! (-> |#!bigloo_wallow| o hclass) v))
 
 ;; PyObjectTuple
-(define-inline (make-PyObjectTuple::PyObjectTuple hclass1263::obj %elements1264::obj class1265::obj value1266::obj) (instantiate::PyObjectTuple (hclass hclass1263) (%elements %elements1264) (class class1265) (value value1266)))
+(define-inline (make-PyObjectTuple::PyObjectTuple hclass1262::obj %elements1263::obj class1264::obj value1265::obj) (instantiate::PyObjectTuple (hclass hclass1262) (%elements %elements1263) (class class1264) (value value1265)))
 (define-inline (PyObjectTuple?::bool obj::obj) ((@ isa? __object) obj (@ PyObjectTuple __py_rts)))
 (define (PyObjectTuple-nil::PyObjectTuple) (class-nil (@ PyObjectTuple __py_rts)))
 (define-inline (PyObjectTuple-value::obj o::PyObjectTuple) (-> |#!bigloo_wallow| o value))
@@ -625,7 +625,7 @@
 (define-inline (PyObjectTuple-hclass-set! o::PyObjectTuple v::obj) (set! (-> |#!bigloo_wallow| o hclass) v))
 
 ;; PyObjectTupleIterator
-(define-inline (make-PyObjectTupleIterator::PyObjectTupleIterator hclass1257::obj %elements1258::obj class1259::obj index1260::obj vec1261::obj) (instantiate::PyObjectTupleIterator (hclass hclass1257) (%elements %elements1258) (class class1259) (index index1260) (vec vec1261)))
+(define-inline (make-PyObjectTupleIterator::PyObjectTupleIterator hclass1256::obj %elements1257::obj class1258::obj index1259::obj vec1260::obj) (instantiate::PyObjectTupleIterator (hclass hclass1256) (%elements %elements1257) (class class1258) (index index1259) (vec vec1260)))
 (define-inline (PyObjectTupleIterator?::bool obj::obj) ((@ isa? __object) obj (@ PyObjectTupleIterator __py_rts)))
 (define (PyObjectTupleIterator-nil::PyObjectTupleIterator) (class-nil (@ PyObjectTupleIterator __py_rts)))
 (define-inline (PyObjectTupleIterator-vec::obj o::PyObjectTupleIterator) (-> |#!bigloo_wallow| o vec))
@@ -640,7 +640,7 @@
 (define-inline (PyObjectTupleIterator-hclass-set! o::PyObjectTupleIterator v::obj) (set! (-> |#!bigloo_wallow| o hclass) v))
 
 ;; PyObjectDictKeyIterator
-(define-inline (make-PyObjectDictKeyIterator::PyObjectDictKeyIterator hclass1251::obj %elements1252::obj class1253::obj node1254::obj iterator-token1255::obj) (instantiate::PyObjectDictKeyIterator (hclass hclass1251) (%elements %elements1252) (class class1253) (node node1254) (iterator-token iterator-token1255)))
+(define-inline (make-PyObjectDictKeyIterator::PyObjectDictKeyIterator hclass1250::obj %elements1251::obj class1252::obj node1253::obj iterator-token1254::obj) (instantiate::PyObjectDictKeyIterator (hclass hclass1250) (%elements %elements1251) (class class1252) (node node1253) (iterator-token iterator-token1254)))
 (define-inline (PyObjectDictKeyIterator?::bool obj::obj) ((@ isa? __object) obj (@ PyObjectDictKeyIterator __py_rts)))
 (define (PyObjectDictKeyIterator-nil::PyObjectDictKeyIterator) (class-nil (@ PyObjectDictKeyIterator __py_rts)))
 (define-inline (PyObjectDictKeyIterator-iterator-token::obj o::PyObjectDictKeyIterator) (-> |#!bigloo_wallow| o iterator-token))
@@ -655,7 +655,7 @@
 (define-inline (PyObjectDictKeyIterator-hclass-set! o::PyObjectDictKeyIterator v::obj) (set! (-> |#!bigloo_wallow| o hclass) v))
 
 ;; PyObjectSlice
-(define-inline (make-PyObjectSlice::PyObjectSlice hclass1244::obj %elements1245::obj class1246::obj start1247::obj stop1248::obj step1249::obj) (instantiate::PyObjectSlice (hclass hclass1244) (%elements %elements1245) (class class1246) (start start1247) (stop stop1248) (step step1249)))
+(define-inline (make-PyObjectSlice::PyObjectSlice hclass1243::obj %elements1244::obj class1245::obj start1246::obj stop1247::obj step1248::obj) (instantiate::PyObjectSlice (hclass hclass1243) (%elements %elements1244) (class class1245) (start start1246) (stop stop1247) (step step1248)))
 (define-inline (PyObjectSlice?::bool obj::obj) ((@ isa? __object) obj (@ PyObjectSlice __py_rts)))
 (define (PyObjectSlice-nil::PyObjectSlice) (class-nil (@ PyObjectSlice __py_rts)))
 (define-inline (PyObjectSlice-step::obj o::PyObjectSlice) (-> |#!bigloo_wallow| o step))
@@ -672,7 +672,7 @@
 (define-inline (PyObjectSlice-hclass-set! o::PyObjectSlice v::obj) (set! (-> |#!bigloo_wallow| o hclass) v))
 
 ;; PyObjectTextIOWrapper
-(define-inline (make-PyObjectTextIOWrapper::PyObjectTextIOWrapper hclass1237::obj %elements1238::obj class1239::obj port1240::obj mode1241::obj encoding1242::obj) (instantiate::PyObjectTextIOWrapper (hclass hclass1237) (%elements %elements1238) (class class1239) (port port1240) (mode mode1241) (encoding encoding1242)))
+(define-inline (make-PyObjectTextIOWrapper::PyObjectTextIOWrapper hclass1236::obj %elements1237::obj class1238::obj port1239::obj mode1240::obj encoding1241::obj) (instantiate::PyObjectTextIOWrapper (hclass hclass1236) (%elements %elements1237) (class class1238) (port port1239) (mode mode1240) (encoding encoding1241)))
 (define-inline (PyObjectTextIOWrapper?::bool obj::obj) ((@ isa? __object) obj (@ PyObjectTextIOWrapper __py_rts)))
 (define (PyObjectTextIOWrapper-nil::PyObjectTextIOWrapper) (class-nil (@ PyObjectTextIOWrapper __py_rts)))
 (define-inline (PyObjectTextIOWrapper-encoding::obj o::PyObjectTextIOWrapper) (-> |#!bigloo_wallow| o encoding))
@@ -689,7 +689,7 @@
 (define-inline (PyObjectTextIOWrapper-hclass-set! o::PyObjectTextIOWrapper v::obj) (set! (-> |#!bigloo_wallow| o hclass) v))
 
 ;; PyGenerator
-(define-inline (make-PyGenerator::PyGenerator hclass1232::obj %elements1233::obj class1234::obj %next1235::obj) (instantiate::PyGenerator (hclass hclass1232) (%elements %elements1233) (class class1234) (%next %next1235)))
+(define-inline (make-PyGenerator::PyGenerator hclass1231::obj %elements1232::obj class1233::obj %next1234::obj) (instantiate::PyGenerator (hclass hclass1231) (%elements %elements1232) (class class1233) (%next %next1234)))
 (define-inline (PyGenerator?::bool obj::obj) ((@ isa? __object) obj (@ PyGenerator __py_rts)))
 (define (PyGenerator-nil::PyGenerator) (class-nil (@ PyGenerator __py_rts)))
 (define-inline (PyGenerator-%next::obj o::PyGenerator) (-> |#!bigloo_wallow| o %next))
@@ -702,7 +702,7 @@
 (define-inline (PyGenerator-hclass-set! o::PyGenerator v::obj) (set! (-> |#!bigloo_wallow| o hclass) v))
 
 ;; PCache
-(define-inline (make-PCache::PCache hclass1229::obj index1230::long) (instantiate::PCache (hclass hclass1229) (index index1230)))
+(define-inline (make-PCache::PCache hclass1228::obj index1229::long) (instantiate::PCache (hclass hclass1228) (index index1229)))
 (define-inline (PCache?::bool obj::obj) ((@ isa? __object) obj (@ PCache __py_rts)))
 (define (PCache-nil::PCache) (class-nil (@ PCache __py_rts)))
 (define-inline (PCache-index::long o::PCache) (-> |#!bigloo_wallow| o index))
@@ -711,7 +711,7 @@
 (define-inline (PCache-hclass-set! o::PCache v::obj) (set! (-> |#!bigloo_wallow| o hclass) v))
 
 ;; HClass
-(define-inline (make-HClass::HClass names1226::vector transitions1227::pair-nil) (instantiate::HClass (names names1226) (transitions transitions1227)))
+(define-inline (make-HClass::HClass names1225::vector transitions1226::pair-nil) (instantiate::HClass (names names1225) (transitions transitions1226)))
 (define-inline (HClass?::bool obj::obj) ((@ isa? __object) obj (@ HClass __py_rts)))
 (define (HClass-nil::HClass) (class-nil (@ HClass __py_rts)))
 (define-inline (HClass-transitions::pair-nil o::HClass) (-> |#!bigloo_wallow| o transitions))

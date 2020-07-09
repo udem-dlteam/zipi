@@ -276,3 +276,11 @@
   names
   transitions)
 
+(define (init-constants constants)
+  (vector-for-each
+    (lambda (obj)
+      (structure-type-set! obj (PyObjectStr-type-get))
+      (PyObject-hclass-set! obj py-str-hclass-of-instances)
+      (PyObject-class-set! obj py-str-class))
+    (structure-ref constants 2)))
+

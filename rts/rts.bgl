@@ -1,5 +1,5 @@
 ;*=====================================================================*/
-;*    serrano/prgm/project/zipi/rts/rts.bgl                         */
+;*    serrano/prgm/project/zipi/rts/rts.bgl                            */
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
@@ -14,9 +14,9 @@
 ;*---------------------------------------------------------------------*/
 (module __py_rts
    
-   (option  (define-macro (& name) `',(string->symbol name)))
-   
-   (include "rts.sch")
+   (include "rts.sch"
+	    "constants.sch"
+	    "names.sch")
    
    (import __py_bigloo
 	   __py_configure
@@ -98,34 +98,27 @@
 	      encoding)
 	   
 	   (macro & name)
+	   (macro $)
+	   (macro start-registering-constants)
 	   
-;* 	   (py-builtins-mod::PyObject)                                 */
-;*                                                                     */
+	   (inline PyObject-type-get o)
+	   (inline PyObjectStr-type-get o)
+	   
 	   (global-get ::PyObject ::obj ::obj)
 	   (global-put! global name val cache)
-;*                                                                     */
+
 	   (object-get ::obj ::obj ::obj)
-;* 	   (object-has::bool ::PyObject ::obj)                         */
 	   (object-put! ::PyObject ::obj ::obj ::obj)
-;* 	   (object-put-no-cache! ::PyObject ::obj ::obj)               */
 	   (getattribute-from-obj-mro ::obj ::obj)
 	   
 	   (py-make-list . elements)
-;*                                                                     */
-;* 	   (py-make-dict ::obj ::obj)                                  */
-;* 	   (py-make-set ::obj)                                         */
-;*                                                                     */
+
 	   (py-getitem ::PyObject ::obj ::obj)
 	   (py-delitem ::PyObject ::obj ::obj)
 	   (py-setitem ::PyObject ::obj ::obj ::obj)
 	   
 	   (inline PyObject-elements-ref ::PyObject ::long)
 	   (PyObject-elements-set! ::PyObject ::long ::obj)
-;*                                                                     */
-;* 	   (PyObject-find-prop ::PyObject ::obj)                       */
-;*                                                                     */
-;* 	   (PyFunction-default-hclass)                                 */
-;*                                                                     */
 	   
 	   (py-call obj . args)
 	   (py-call0 ::obj)
@@ -136,14 +129,12 @@
 	   (py-call5 ::obj ::obj ::obj ::obj ::obj ::obj)
 	   
 	   (py-make-global)
-;* 	   (py-make-base-global)                                       */
 	   (py-make-caches ::int)
 	   
 	   (py-make-class name module bases . atrs)
 	   
 	   (py-throw ::obj)
-;*                                                                     */
-;* 	   (pyis?::bool x y)                                           */
+	   
 	   (py-add x y cache)
 	   (py-iadd x y cache)
 	   (py-and x y cache)
@@ -163,32 +154,17 @@
 	   (py-notin x y cache)
 	   (py-neg x cache)
 	   (py-not x cache)
-;*                                                                     */
-;* 	   (py+ x y)                                                   */
-;* 	   (py- x y)                                                   */
-;* 	   (pyneg x)                                                   */
-;* 	   (py* x y)                                                   */
-;* 	   (py/ x y)                                                   */
-;* 	   (py<::bool x y)                                             */
-;* 	   (py<=::bool x y)                                            */
-;* 	   (py>::bool x y)                                             */
-;* 	   (py>=::bool x y)                                            */
-;*                                                                     */
+
 	   py-None
            py-absent
 	   
 	   py-True
 	   py-False
 	   
-;* 	   (py-uninit)                                                 */
-	   
 	   (py-test obj)
-;*                                                                     */
-;* 	   py-builtin-locals                                           */
-;* 	   py-builtin-globals                                          */
+	   
 	   py-object-class
 	   py-module-class
-	   
 	   
 	   (py-isinstance? ::PyObject ::PyObject)
 	   
@@ -199,7 +175,6 @@
            (py-obj-alloc cls hclass-of-instances)
 	   (py-str-from-scheme::PyObject ::bstring)
 	   (py-str-to-scheme::bstring ::PyObject)
-;* 	   (py-string-to-name::symbol ::bstring)                       */
 	   
 	   procedure->py-function
 	   
@@ -224,11 +199,8 @@
 
 	   (inline PCache-set! ::PCache ::HClass ::long)
 	   (inline HClass-last-index::long ::HClass)
-;* 	   (HClass-next ::HClass ::obj ::obj)                          */
-	   
 	   )
-   
-   
+      
    (eval   (export-all)))
 
 ;*---------------------------------------------------------------------*/
@@ -236,6 +208,42 @@
 ;*---------------------------------------------------------------------*/
 (define-macro (& name)
    `',(string->symbol name))
+
+;*---------------------------------------------------------------------*/
+;*    $ ...                                                            */
+;*---------------------------------------------------------------------*/
+(define-macro ($ e)
+   `(& ,e))
+
+;*---------------------------------------------------------------------*/
+;*    start-registering-constants ...                                  */
+;*---------------------------------------------------------------------*/
+(define-macro (start-registering-constants . l)
+   '(define __js_strings (&begin!)))
+
+;*---------------------------------------------------------------------*/
+;*    end-registering-constants ...                                    */
+;*---------------------------------------------------------------------*/
+(define-macro (end-registering-constants)
+   '(&end!))
+
+;*---------------------------------------------------------------------*/
+;*    init-registered-constants ...                                    */
+;*---------------------------------------------------------------------*/
+(define-macro (init-registered-constants)
+   '(&init!))
+   
+;*---------------------------------------------------------------------*/
+;*    PyObject-type-get ...                                            */
+;*---------------------------------------------------------------------*/
+(define-inline (PyObject-type-get o)
+   (object-class o))
+
+;*---------------------------------------------------------------------*/
+;*    PyObjectStr-type-get ...                                         */
+;*---------------------------------------------------------------------*/
+(define-inline (PyObjectStr-type-get o)
+   (object-class o))
 
 ;*---------------------------------------------------------------------*/
 ;*    PyObject-elements-ref ...                                        */
@@ -253,22 +261,6 @@
 	 (when (>= offset len)
 	    (set! %elements (copy-vector %elements (*fx 2 (max 1 len)))))
 	 (vector-set! %elements offset val))))
-
-;*---------------------------------------------------------------------*/
-;*    current-second ...                                               */
-;*---------------------------------------------------------------------*/
-(define-inline (current-second)
-   (current-seconds))
-
-;*---------------------------------------------------------------------*/
-;*    object-repr ...                                                  */
-;*---------------------------------------------------------------------*/
-(define (object-repr self)
-   (let* ((self-type (py-type self))
-	  (self-type-name (py-str-to-scheme (type-name-fast-get self-type)))
-	  (addr (object-hashnumber self))
-	  (result (string-append "<" self-type-name " object at " addr ">")))
-      (py-str-from-scheme result)))
 
 ;*---------------------------------------------------------------------*/
 ;*    bigloo-compatibility                                             */
@@ -458,4 +450,29 @@
 
 (define (make-still-copy o)
    o)
+
+;*---------------------------------------------------------------------*/
+;*    get-registered-constants-table ...                               */
+;*---------------------------------------------------------------------*/
+(define (get-registered-constants-table)
+   (let ((table (create-hashtable :eqtest string=?)))
+      (vector-for-each (lambda (v)
+			  (hashtable-put! table "foo" v))
+	 __js_strings)
+      table))
+
+;*---------------------------------------------------------------------*/
+;*    &pystring-init ...                                               */
+;*---------------------------------------------------------------------*/
+(define (&pystring-init str)
+   (string->obj str))
+
+;*---------------------------------------------------------------------*/
+;*    profiling                                                        */
+;*---------------------------------------------------------------------*/
+(define (statprof-begin)
+   #unspecified)
+
+(define (statprof-end dir)
+   #unspecified)
 

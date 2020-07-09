@@ -19,6 +19,8 @@
 
    (export (macro let-values)
 
+	   (object->serial-number ::obj)
+	   
 	   (inline arithmetic-shift::long ::long ::long)
 	   (inline bitwise-and::long ::long ::long)
 	   (inline bitwise-ior::long ::long ::long)
@@ -53,8 +55,9 @@
 
 	   (append-strings ::pair-nil)
 
-	   (current-time)
-	   (time->secons d)
+	   (inline current-second)
+	   (inline current-time)
+	   (time->seconds d)
 	   (macro time->seconds)
 
 	   (path-directory ::bstring)
@@ -82,6 +85,7 @@
 
 	   (getenv name #!optional default)
 
+	   (module-search-order-add! dir)
 	   (load-module-and-get-init name)
 	   (compile-source ::bstring ::bstring)
 	   ))
@@ -95,6 +99,12 @@
        `(multiple-value-bind ,bindings ,generator ,@body))
       (else
        (error "let-values" "Illegal form" `(let-values ,bindings ,@body)))))
+
+;*---------------------------------------------------------------------*/
+;*    object->serial-number ...                                        */
+;*---------------------------------------------------------------------*/
+(define (object->serial-number o)
+   (object-hashnumber o))
 
 ;*---------------------------------------------------------------------*/
 ;*    bitwise operations ...                                           */
@@ -184,7 +194,8 @@
 ;*---------------------------------------------------------------------*/
 ;*    dates                                                            */
 ;*---------------------------------------------------------------------*/
-(define (current-time) (current-date))
+(define-inline (current-second) (current-seconds))
+(define-inline (current-time) (current-date))
 (define (time->seconds d) (date->seconds d))
 
 (define-macro (time->seconds a)
@@ -248,7 +259,7 @@
 
 (define (table-ref table key #!optional default)
    (or (hashtable-get table key)
-       (unless (hashtable-has? table key)
+       (unless (hashtable-contains? table key)
 	  default)))
 
 ;*---------------------------------------------------------------------*/
@@ -263,7 +274,7 @@
 ;*    module-not-found-exception? ...                                  */
 ;*---------------------------------------------------------------------*/
 (define (module-not-found-exception? exn)
-   (isa? exn &file-not-found-exception))
+   (isa? exn &io-file-not-found-error))
 
 ;*---------------------------------------------------------------------*/
 ;*    shell-command ...                                                */
@@ -283,6 +294,23 @@
 	  (else #f))))
 
 ;*---------------------------------------------------------------------*/
+;*    module-search-order-add! ...                                     */
+;*---------------------------------------------------------------------*/
+(define (module-search-order-add! dir)
+   #f)
+
+;*---------------------------------------------------------------------*/
+;*    shared-lib-suffix ...                                            */
+;*---------------------------------------------------------------------*/
+(define shared-lib-suffix (bigloo-config 'shared-lib-suffix))
+
+;*---------------------------------------------------------------------*/
+;*    name->library-name ...                                           */
+;*---------------------------------------------------------------------*/
+(define (name->library-name name)
+   (string-append name "." shared-lib-suffix))
+
+;*---------------------------------------------------------------------*/
 ;*    load-module-and-get-init ...                                     */
 ;*---------------------------------------------------------------------*/
 (define (load-module-and-get-init name)
@@ -297,4 +325,4 @@
 ;*---------------------------------------------------------------------*/
 (define (compile-source source target)
    (system
-      (format "~a/zpc -t bigloo ~a -o ~a -y" (zipi-bin/dir) source target)))
+      (format "~a/zpc -t bigloo ~a -o ~a -y" (zipi-bin-dir) source target)))

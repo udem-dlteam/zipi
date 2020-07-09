@@ -21,7 +21,7 @@
       (list
 	 `(module ,(string->symbol (or (config-get conf src:) "__stdin"))
 	     ,@(if (config-get conf bootstrap:)
-		   '((import __py_object) (export (zipi-init)))
+		   '((import __py_rts) (export (zipi-init)))
 		   '((library zipi)))
 	     ,@(if (config-get conf main:) '((main main)) '()))
 	 `(define py-module ,@prog)

@@ -54,14 +54,6 @@
   (exit 1))
 
 
-(define (init-constants constants)
-  (vector-for-each
-    (lambda (obj)
-      (structure-type-set! obj (PyObjectStr-type-get))
-      (PyObject-hclass-set! obj py-str-hclass-of-instances)
-      (PyObject-class-set! obj py-str-class))
-    (structure-ref constants 2)))
-
 (start-registering-constants constants-must-be-representatives: #t)
 
 ;; =============================================================================
@@ -4256,7 +4248,7 @@
                (acc 0))
       (if (fx>= i ,stop)
           acc
-          (if (fx= (u8vector-ref ,vec i) ,item)
+          (if (u8= (u8vector-ref ,vec i) ,item)
               (loop (+ 1 i) (+ 1 acc))
               (loop (+ 1 i) acc))))))
 
@@ -4264,7 +4256,7 @@
   `(let loop ((i ,start))
      (if (fx>= i ,stop)
          (py-int-from-scheme -1)
-         (if (fx= (u8vector-ref ,vec i) ,item)
+         (if (u8= (u8vector-ref ,vec i) ,item)
              (py-int-from-scheme i)
              (loop (+ 1 i))))))
 
@@ -4273,7 +4265,7 @@
   `(let loop ((i ,start))
      (if (fx>= i ,stop)
          (py-throw-exception-with-message py-builtin-ValueError "subsection not found")
-         (if (fx= (u8vector-ref ,vec i) ,item)
+         (if (u8= (u8vector-ref ,vec i) ,item)
              (py-int-from-scheme i)
              (loop (+ 1 i))))))
 
@@ -4282,7 +4274,7 @@
   `(let loop ((i (- ,stop 1)))
      (if (fx< i ,start)
          (py-int-from-scheme -1)
-         (if (fx= (u8vector-ref ,vec i) ,item)
+         (if (u8= (u8vector-ref ,vec i) ,item)
              (py-int-from-scheme i)
              (loop (- i 1))))))
 
@@ -4291,7 +4283,7 @@
   `(let loop ((i (- ,stop 1)))
      (if (fx< i ,start)
          (py-throw-exception-with-message py-builtin-ValueError "subsection not found")
-         (if (fx= (u8vector-ref ,vec i) ,item)
+         (if (u8= (u8vector-ref ,vec i) ,item)
              (py-int-from-scheme i)
              (loop (- i 1))))))
 
@@ -4308,8 +4300,8 @@
           (let ((e1 (u8vector-ref ,v1 i))
                 (e2 (u8vector-ref ,v2 i)))
             (cond
-             ((fx< e1 e2) -1)
-             ((fx> e1 e2) 1)
+             ((u8< e1 e2) -1)
+             ((u8> e1 e2) 1)
              (else (loop (+ i 1)))))
           (if (fx= ,len1 ,len2)
               0
