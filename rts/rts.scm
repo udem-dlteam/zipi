@@ -2056,11 +2056,9 @@
 
 (define (add-hclass-names-to-table table obj)
   (vector-for-each
-    (lambda (name elem)
-      (if (not (eq? py-absent elem))
-          (table-set! table name #t)))
-    (HClass-names (PyObject-hclass obj))
-    (PyObject-%elements obj)))
+    (lambda (name)
+      (table-set! table name #t))
+    (HClass-names (PyObject-hclass obj))))
 
 (define (object-dir self)
   (let ((table (make-table test: eq?)))
@@ -2548,15 +2546,8 @@
 (define (module-dir self)
   (if (py-isinstance? self py-module-class)
       (py-list-from-scheme
-        (list->dynamic-vector
-          ;; filter out the py-absent
-          (fold (lambda (name-elem y)
-                  (if (not (eq? py-absent (cdr name-elem)))
-                      (cons (car name-elem) y) y))
-                '()
-                (map cons
-                     (vector->list (HClass-names (PyObject-hclass self)))
-                     (vector->list (PyObject-%elements self))))))
+        (let ((vec (HClass-names (PyObject-hclass self))))
+         (cons (vector-length vec) vec)))
       (throw-returned-wrong-type "__dir__" self "not a module")))
 
 (define module.__dir__
