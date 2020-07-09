@@ -51,6 +51,20 @@
 (define-macro (u8=< x y)
   `(fx=< ,x ,y))
 
+(define-macro (structure-ref s i)
+  `(##unchecked-structure-ref ,s ,i #f #f))
+
+(define-macro (structure-type-set! s t)
+  `(##structure-type-set! ,s ,t))
+
+(define (init-constants constants)
+  (vector-for-each
+    (lambda (obj)
+      (structure-type-set! obj (PyObjectStr-type-get))
+      (PyObject-hclass-set! obj py-str-hclass-of-instances)
+      (PyObject-class-set! obj py-str-class))
+      (structure-ref constants 2)))
+
 ;; debugging utility
 (define (why-am-i-here?)
   (##continuation-capture (lambda (cc) (display-continuation-backtrace cc))))

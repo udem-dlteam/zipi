@@ -4,14 +4,12 @@
     compile-source
 
     PyObject?
-    PyObjectStr-type-get
-    PyObject-hclass-set!
-    PyObject-class-set!
     &
     &&
     start-registering-constants
     end-registering-constants
     init-registered-constants
+    init-constants
 
     with-handler
     bind-exit
@@ -270,10 +268,6 @@
     py-builtin-type
     py-builtin-vars
     py-builtin-zip
-
-    ;; builtin types
-    py-str-hclass-of-instances
-    py-str-class
 
     build-builtins
     compile-flag-set!

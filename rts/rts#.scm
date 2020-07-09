@@ -55,12 +55,7 @@
   `(##begin))
 
 (define-macro (init-registered-constants)
-  `(vector-for-each
-    (lambda (obj)
-      (##structure-type-set! obj (PyObjectStr-type-get))
-      (PyObject-hclass-set! obj py-str-hclass-of-instances)
-      (PyObject-class-set! obj py-str-class))
-      (##unchecked-structure-ref ',%constants 2 #f #f)))
+  `(init-constants ',%constants))
 
 (define-macro (get-registered-constants-table)
   `(list->table (##unchecked-structure-ref ',%constants 1 #f #f) test: string=? weak-values: #t))
