@@ -1016,12 +1016,7 @@
         py-builtin-NotImplementedError
         "dir() call with no arguments is not yet implemented ")
       (let ((__dir__ (getattribute-from-obj-mro x (& "__dir__"))))
-       (if (eq? __dir__ py-absent)
-           ;; TODO : implement this once __dict__ and others are implemented
-           (py-throw-exception-with-message
-             py-builtin-NotImplementedError
-             "__dir__ function not found. We should continue searching in the __dict__ an other attributes. This is not yet implemented")
-           (py-call1 py-builtin-sorted (py-call1 __dir__ x))))))
+       (py-call1 py-builtin-sorted (py-call1 __dir__ x)))))
 
 ;; =============================================================================
 ;; int operations
@@ -2546,8 +2541,7 @@
 (define (module-dir self)
   (if (py-isinstance? self py-module-class)
       (py-list-from-scheme
-        (let ((vec (HClass-names (PyObject-hclass self))))
-         (cons (vector-length vec) (vector-copy vec))))
+        (list->dynamic-vector (vector->list (HClass-names (PyObject-hclass self)))))
       (throw-returned-wrong-type "__dir__" self "not a module")))
 
 (define module.__dir__
