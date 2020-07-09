@@ -1972,19 +1972,19 @@
 (define (integer->hex-string x)
   (string-append "0x" (number->string x 16)))
 
-(define-macro (define-eq-ne-str fun-name method-name true false)
+(define-macro (define-eq-ne-str fun-name method-name yes no)
   (let ((py-func-name (string->symbol (string-append "str." method-name))))
     `(begin
       (define (,fun-name self other)
         (if (py-isinstance? self py-str-class)
             (if (eq? self other)
-                ,true
+                ,yes
                 (if (eq? (py-type other) py-str-class)
                     (let* ((self-representative (str-representative-get self))
                            (other-representative (str-representative-get other)))
                       (if (eq? self-representative other-representative)
-                          ,true
-                          ,false))
+                          ,yes
+                          ,no))
                     py-NotImplemented))
             (py-throw-required-type ,method-name "str" self)))
       (define ,py-func-name
@@ -2055,17 +2055,21 @@
     (make-posonly-signature '#(self other))))
 
 (define (add-hclass-names-to-table table obj)
-  (for-each (lambda (x) (if (not (eq? x py-absent)) (table-set! table (PyObjectStr-value x) x)))
-            (vector->list (HClass-names (PyObject-hclass obj)))))
+  (vector-for-each
+    (lambda (name elem)
+      (if (not (eq? py-absent elem))
+          (table-set! table name #t)))
+    (HClass-names (PyObject-hclass obj))
+    (PyObject-%elements obj)))
 
 (define (object-dir self)
-  (let ((table (make-table)))
+  (let ((table (make-table test: eq?)))
    (add-hclass-names-to-table table self)
-   (for-each (lambda (x) (add-hclass-names-to-table table x))
-             (vector->list (PyObjectType-mro (PyObject-class self))))
+   (vector-for-each (lambda (x) (add-hclass-names-to-table table x))
+                    (PyObjectType-mro (PyObject-class self)))
    (py-list-from-scheme
      (list->dynamic-vector
-       (map cdr (table->list table))))))
+       (map car (table->list table))))))
 
 (define object.__dir__
   (procedure->py-function
@@ -2074,12 +2078,12 @@
 
 (define (type-dir self)
   (if (py-isinstance? self py-type-class)
-      (let ((table (make-table)))
-       (for-each (lambda (x) (add-hclass-names-to-table table x))
-                 (vector->list (PyObjectType-mro self)))
+      (let ((table (make-table test: eq?)))
+       (vector-for-each (lambda (x) (add-hclass-names-to-table table x))
+                        (PyObjectType-mro self))
        (py-list-from-scheme
          (list->dynamic-vector
-           (map cdr (table->list table)))))
+           (map car (table->list table)))))
       (py-throw-required-type "__dir__" "type" self)))
 
 (define type.__dir__
@@ -2546,9 +2550,13 @@
       (py-list-from-scheme
         (list->dynamic-vector
           ;; filter out the py-absent
-          (fold (lambda (x y) (if (not (eq? py-absent x)) (cons x y) y))
+          (fold (lambda (name-elem y)
+                  (if (not (eq? py-absent (cdr name-elem)))
+                      (cons (car name-elem) y) y))
                 '()
-                (vector->list (HClass-names (PyObject-hclass self))))))
+                (map cons
+                     (vector->list (HClass-names (PyObject-hclass self)))
+                     (vector->list (PyObject-%elements self))))))
       (throw-returned-wrong-type "__dir__" self "not a module")))
 
 (define module.__dir__
