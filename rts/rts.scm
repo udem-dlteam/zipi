@@ -2547,7 +2547,7 @@
   (if (py-isinstance? self py-module-class)
       (py-list-from-scheme
         (let ((vec (HClass-names (PyObject-hclass self))))
-         (cons (vector-length vec) vec)))
+         (cons (vector-length vec) (vector-copy vec))))
       (throw-returned-wrong-type "__dir__" self "not a module")))
 
 (define module.__dir__
