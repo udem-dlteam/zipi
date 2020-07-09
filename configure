@@ -169,11 +169,13 @@ else
   fi
 fi  
 
+buildid_files="zpc/*.scm rts/*.scm"
+
 # md5sum
 echo "1" | md5sum > /dev/null 2> /dev/null
 
 if [ "$? " = "0 " ]; then
-  buildid=`md5sum zpc/*.scm rts/*.scm | md5sum | sed 's/[ ]*[-]$//'`
+  buildid=`md5sum $buildid_files | md5sum | sed 's/[ ]*[-]$//'`
 fi
 
 if [ "$buildid " = " " ]; then
@@ -181,7 +183,7 @@ if [ "$buildid " = " " ]; then
   echo "1" | md5 -q > /dev/null 2> /dev/null
 
   if [ "$? " = "0 " ]; then
-    buildid=`md5 zpc/*.scm rts/*.scm rtz/*.py | md5 -q | sed 's/[ ]*[-]$//'`
+    buildid=`md5 $buildid_files | md5 -q | sed 's/[ ]*[-]$//'`
   fi
 fi
 
