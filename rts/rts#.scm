@@ -74,7 +74,7 @@
           `',obj)))
     (error "&" "requires string literal but got" e)))
 
-(define-macro ($ e)
+(define-macro (&& e)
   `(& ,e))
 
 ;; =============================================================================
