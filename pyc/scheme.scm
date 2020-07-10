@@ -650,8 +650,7 @@
    (epairify this
       `(,(symbol-append 'py- (PycBinary-op this))
 	,(scheme (PycBinary-lhs this) conf)
-	,(scheme (PycBinary-rhs this) conf)
-	,(scheme-cache (PycBinary-cache this) this))))
+	,(scheme (PycBinary-rhs this) conf))))
 
 (define-walk-method (scheme this::PycUnary conf)
    (epairify this
@@ -991,12 +990,6 @@
       (let ((n (cell-ref cnt)))
 	 (cell-set! cnt (+ 1 n))
 	 (PycRef-cache-set! this n))))
-
-(define-walk-method (collect-caches this::PycBinary cnt)
-   (call-default-walker)
-   (let ((n (cell-ref cnt)))
-      (cell-set! cnt (+ 1 n))
-      (PycBinary-cache-set! this n)))
 
 (define-walk-method (collect-caches this::PycUnary cnt)
    (call-default-walker)
