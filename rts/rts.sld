@@ -93,7 +93,7 @@
     py-next
     py-import
 
-    object-get
+    py-getattribute
     object-put!
     py-own-attr-set!
     getattribute-from-obj-mro

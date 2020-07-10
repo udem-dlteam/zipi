@@ -5,7 +5,7 @@ from __compiler_intrinsics__ import define_semantics, use_static_builtins, use_s
 @define_semantics
 @use_static_builtins
 @use_simple_scoping
-def sem_getattribute(obj, attr):
+def getattribute(obj, attr):
     __getattribute__ = class_getattr(obj, "__getattribute__")
     try:
         return __getattribute__(obj, attr)

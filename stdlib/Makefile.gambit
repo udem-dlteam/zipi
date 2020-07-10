@@ -1,7 +1,7 @@
 do.gambit: zemantics.scm
 
 zemantics.scm:
-	cd scripts; python gen_semantics.py
+	cd scripts; ./gen_semantics.py
 	../etc/py19 -t gambit zemantics.py > zemantics.scm
 
 

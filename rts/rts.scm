@@ -1679,22 +1679,6 @@
     type-getattribute
     (make-posonly-signature '#(obj name))))
 
-;; getattr protocole
-;;  1) calls __getattribute__ method
-;;  2) if __getattribute__ raises AttributeError, call __getattr__
-(define (object-get obj name cache)
-  (with-handler
-    (lambda (exception)
-      (cond ((not (PyObject? exception)) (raise exception))
-            ((py-isinstance? exception py-builtin-AttributeError)
-              (let ((py-getattr (getattribute-from-obj-mro obj (& "__getattr__"))))
-                (if (not (eq? py-getattr py-absent))
-                  (py-call py-getattr obj name)
-                  (py-throw exception))))
-            (else (py-throw exception))))
-      (let ((py-getattribute (getattribute-from-obj-mro obj (& "__getattribute__"))))
-	 (py-call py-getattribute obj name))))
-
 (define (object-put! obj attr val cache)
   (py-own-attr-set! obj attr val))
 
@@ -6287,8 +6271,8 @@
                     (py-isinstance? exc py-builtin-AttributeError))
                 default
                 (raise exc)))
-            (object-get object name #f))
-          (object-get object name #f))
+            (py-getattribute object name))
+          (py-getattribute object name))
         (py-throw-exception-with-message
           py-builtin-TypeError
           "getattr(): attribute name must be string")))
@@ -7721,6 +7705,12 @@
           (display ": " out)
           (py-display str-exc out))))
     (display "\n" out)))
+
+;;==============================================================================
+;; semantics
+;;==============================================================================
+
+(include "../stdlib/zemantics.scm")
 
 ;;==============================================================================
 ;; BUILTINS

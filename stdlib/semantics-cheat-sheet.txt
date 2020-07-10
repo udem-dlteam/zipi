@@ -1,0 +1,16 @@
+This file is intended to compare the semantics generated from zemantics.py to the ideal generated procedures.
+There are the semantics (or protocols) as they were originally hand-written
+
+;; getattr protocole
+(define (object-get obj name cache)
+  (with-handler
+    (lambda (exception)
+      (cond ((not (PyObject? exception)) (raise exception))
+            ((py-isinstance? exception py-builtin-AttributeError)
+              (let ((py-getattr (getattribute-from-obj-mro obj (& "__getattr__"))))
+                (if (not (eq? py-getattr py-absent))
+                  (py-call py-getattr obj name)
+                  (py-throw exception))))
+            (else (py-throw exception))))
+      (let ((py-getattribute (getattribute-from-obj-mro obj (& "__getattribute__"))))
+	 (py-call py-getattribute obj name))))

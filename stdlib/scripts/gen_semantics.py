@@ -1,11 +1,13 @@
+#!/usr/bin/env python
+
 arithmetic_template = \
 """# Auto-generated
 @define_semantics
 @use_static_builtins
 @use_simple_scoping
-def sem_{0}(x, y):
+def {op}(x, y):
     def normal():
-        magic_method = class_getattr(x, "__{0}__")
+        magic_method = class_getattr(x, "__{magic_method}__")
         if magic_method is absent:
             return reflected()
         else:
@@ -16,7 +18,7 @@ def sem_{0}(x, y):
                 return result
 
     def reflected():
-        magic_method = class_getattr(y, "__r{0}__")
+        magic_method = class_getattr(y, "__r{magic_method}__")
         if magic_method is absent:
             return err()
         else:
@@ -31,25 +33,25 @@ def sem_{0}(x, y):
 
     return normal()"""
 
-def define_arithmetic_semantics(op):
-    return arithmetic_template.format(op)
+def define_arithmetic_semantics(op, magic_method):
+    return arithmetic_template.format(op=op, magic_method=magic_method)
 
 if __name__ == "__main__":
     ops = [
-        "add",
-        "sub",
-        "mul",
-        "truediv",
-        "floordiv",
-        "mod",
-        "pow",
-        "lshift",
-        "rshift",
-        "and",
-        "or",
-        "xor",
-        "matmul"]
-    arithmetic_semantics = '\n\n'.join(define_arithmetic_semantics(op) for op in ops)
+        ("add", "add"),
+        ("sub", "sub"),
+        ("mul", "mul"),
+        ("truediv", "truediv"),
+        ("floordiv", "floordiv"),
+        ("mod", "mod"),
+        ("pow", "pow"),
+        ("lshift", "lshift"),
+        ("rshift", "rshift"),
+        ("bitand", "and"),
+        ("bitor", "or"),
+        ("xor", "xor"),
+        ("matmul", "matmul")]
+    arithmetic_semantics = '\n\n'.join(define_arithmetic_semantics(op, magic_method) for op, magic_method in ops)
 
     with open("./zemantics.py.in", "r") as f:
         semantics = f.read().format(arithmetic_semantics)

@@ -72,7 +72,7 @@
                         module))
                     (end-registering-constants)))))
       (let ((semantics-definitions (map cdr semantics)))
-        (println
+        (print
           port: (current-error-port)
           "Warning: compiling .py script with define_semantics will not generate an executable script")
         semantics-definitions
@@ -92,11 +92,12 @@
             (if need-return
               (cons* fun: this return: return-sym conf)
               (cons* fun: this conf)))
-          (body (scheme (PycFun-body this) body-conf)))
+          (body (scheme (PycFun-body this) body-conf))
+          (scheme-name (symbol-append 'py- (PycFun-name this))))
       (list
         (cons
-          (PycFun-name this)
-          `(define (,(PycFun-name this) ,@args) ,body))))
+          scheme-name
+          `(define (,scheme-name ,@args) ,body))))
     (call-default-walker)))
 
 (define (scheme* nodes conf)
@@ -908,10 +909,9 @@
         (error "scheme::PycDelete" "only del subscript/slice are supported" #f)))))
 
 (define-walk-method (scheme this::PycAccess conf)
-   (epairify this
-      `(object-get ,(scheme (PycAccess-obj this) conf)
-	  ,(pyc-propname (PycAccess-field this))
-	  ,(scheme-cache (PycAccess-cache this) this))))
+  (epairify this
+    `(py-getattribute ,(scheme (PycAccess-obj this) conf)
+	  ,(pyc-propname (PycAccess-field this)))))
 
 (define-walk-method (scheme this::PycSubscript conf)
    (epairify this
