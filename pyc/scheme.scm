@@ -45,34 +45,40 @@
 		    global)))))))
 
 (define (pyc-scheme-gambit ast conf)
-  (let* ((prog (pyc-scheme ast conf))
-        (semantics (collect-semantics* ast conf))
-        (semantics-names (map car semantics))
-        (semantics-definitions (map cdr semantics))
-        (file (config-get conf file:))
-        (path (config-get conf dir:))
-        (full-path (if (and file path) (make-file-path path file) #f)))
-    (list `(define-library (,(string->symbol (config-get conf name:)))
-              (export init ,@semantics-names)
-              (import (gambit) (zipi rts))
-              (begin
-                (start-registering-constants)
+  (let* ((semantics (collect-semantics* ast conf)))
+    (if (null? semantics)
+      ;; normal compilation
+      (let* ((prog (pyc-scheme ast conf))
+            (file (config-get conf file:))
+            (path (config-get conf dir:))
+            (full-path (if (and file path) (make-file-path path file) #f)))
+        (list `(define-library (,(string->symbol (config-get conf name:)))
+                  (export init)
+                  (import (gambit) (zipi rts))
+                  (begin
+                    (start-registering-constants)
 
-                ,@semantics-definitions
+                    (define py-module ,@prog)
 
-                (define py-module ,@prog)
+                    (define (init name)
+                      (init-registered-constants)
+                      (let ((caches (py-make-caches ,(PycModule-caches ast)))
+                            (module (py-make-module name)))
+                        ,(if full-path
+                          `(py-own-attr-set!
+                            module (& "__file__") (&& ,full-path))
+                          `,@(list))
+                        (py-module module caches)
+                        module))
+                    (end-registering-constants)))))
+      (let ((semantics-definitions (map cdr semantics)))
+        (println
+          port: (current-error-port)
+          "Warning: compiling .py script with define_semantics will not generate an executable script")
+        semantics-definitions
+        ;;semantics-definitions
+        ))))
 
-                (define (init name)
-                  (init-registered-constants)
-                  (let ((caches (py-make-caches ,(PycModule-caches ast)))
-                        (module (py-make-module name)))
-                    ,(if full-path
-                      `(py-own-attr-set!
-                        module (& "__file__") (&& ,full-path))
-                      `,@(list))
-                    (py-module module caches)
-                    module))
-                (end-registering-constants))))))
 
 (define-walk-method (collect-semantics* this::PycNode conf)
   (call-default-walker))
@@ -745,12 +751,7 @@
                  ,(signature this conf)))
             `(py-call1 ,(scheme (car decs) conf) ,(loop (cdr decs)))))))
 
-   (if (PycFun-semantics this)
-      ;; semantics are defined at Scheme module level, not Python module
-      `(procedure->py-function
-        ,(PycFun-name this)
-        ,(signature this conf))
-      (apply-decorators this conf)))
+   (apply-decorators this conf))
 
 (define-walk-method (scheme this::PycClass conf)
    (define (pyc-class this::PycClass)
