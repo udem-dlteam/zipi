@@ -5,10 +5,11 @@
 
     PyObject?
     &
-    init-constants
+    &&
     start-registering-constants
     end-registering-constants
     init-registered-constants
+    init-constants
 
     with-handler
     bind-exit
@@ -280,7 +281,8 @@
     debug-value-get
     debug-class-name-get
     debug-catch
-    )
+
+    str-representatives)
 
   (import gambit)
   (include "rts#.scm")

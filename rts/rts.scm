@@ -1,3 +1,46 @@
+;; =============================================================================
+;;  Common macros
+;; =============================================================================
+;; General exception thrower helper
+(define-macro (py-throw-exception-with-message exc . msg)
+  `(py-throw
+    (py-call
+      ,exc
+      (py-str-from-scheme (string-append ,@msg)))))
+
+(define-macro (make-builtin-HClass names transitions)
+  `(make-still-copy (make-HClass ,names ,transitions)))
+
+(define-macro (HClass-last-index hclass)
+  `(fx- (vector-length (HClass-names ,hclass)) 1))
+
+(define-macro (HClass-transition-add! hc transitions target)
+  `(let (($hc ,hc))
+    (HClass-transitions-set!
+     $hc
+     (cons (cons ,transitions ,target) (HClass-transitions $hc)))))
+
+(define-macro (vector-extend vec el)
+  `(let (($vec ,vec) ($el ,el))
+     (let* ((len (vector-length $vec))
+  	  (nvec (make-vector (+ len 1))))
+        (vector-copy! nvec 0 $vec)
+        (vector-set! nvec len $el)
+        nvec)))
+
+(define-macro (HClass-next hc name op)
+  `(let (($hc ,hc) ($name ,name))
+    (let* ((key (cons $name ,op))
+           (tran (assoc key (HClass-transitions $hc))))
+      (if (pair? tran)
+        (cdr tran)
+        (let ((nhclass
+                (make-HClass
+                  (vector-extend (HClass-names $hc) $name)
+                  '())))
+          (HClass-transition-add! $hc key nhclass)
+          nhclass)))))
+
 (define debug-verbosity 0)
 
 (define (possible-error verbosity . msg)
@@ -11,16 +54,7 @@
   (exit 1))
 
 
-(define (init-constants constants)
-  (vector-for-each
-    (lambda (obj)
-      (structure-type-set! obj (PyObjectStr-type-get))
-      (PyObject-hclass-set! obj py-str-hclass-of-instances)
-      (PyObject-class-set! obj py-str-class)
-      (PyObjectStr-representative-set! obj py-absent))
-    (structure-ref constants 1)))
-
-(start-registering-constants)
+(start-registering-constants constants-must-be-representatives: #t)
 
 ;; =============================================================================
 ;;  HIDDEN CLASSES
@@ -665,7 +699,7 @@
 (define (py-throw-can-only-assign-iterable)
   (py-throw
     (py-call py-builtin-TypeError
-      (py-str-from-scheme "can only assign an iterable"))))
+      (&& "can only assign an iterable"))))
 
 (define (py-throw-extended-slice-wrong-len actual-len expected-len)
   (py-throw
@@ -1010,6 +1044,15 @@
       	       py-builtin-RuntimeError
       	       "__hash__ method should return an integer"))))))
 
+
+(define (py-dir x)
+  (if (eq? x py-absent)
+      (py-throw-exception-with-message
+        py-builtin-NotImplementedError
+        "dir() call with no arguments is not yet implemented ")
+      (let ((__dir__ (getattribute-from-obj-mro x (& "__dir__"))))
+       (py-call1 py-builtin-sorted (py-call1 __dir__ x)))))
+
 ;; =============================================================================
 ;; int operations
 ;; =============================================================================
@@ -1083,7 +1126,7 @@
                   (py-int-from-scheme (,scheme-op self-value other-value))
                   (py-throw
                     (py-call py-builtin-ZeroDivisionError
-                      (py-str-from-scheme "integer division or modulo by zero"))))))
+                      (&& "integer division or modulo by zero"))))))
             (else py-NotImplemented))
           (py-throw-required-type ,method-name "int" self)))
       (define ,py-func-name
@@ -1104,7 +1147,7 @@
                   (py-float-from-scheme (inexact (,scheme-op self-value other-value)))
                   (py-throw
                     (py-call py-builtin-ZeroDivisionError
-                      (py-str-from-scheme "division by zero"))))))
+                      (&& "division by zero"))))))
             (else py-NotImplemented))
           (py-throw-required-type ,method-name "int" self)))
       (define ,py-func-name
@@ -1346,7 +1389,7 @@
     (if (= y 0)
       (py-throw
         (py-call py-builtin-ZeroDivisionError
-          (py-str-from-scheme "float division by zero")))
+          (&& "float division by zero")))
       (py-float-from-scheme (inexact (op x y))))))
 
 (define (mod-to-float op)
@@ -1354,7 +1397,7 @@
     (if (= y 0)
       (py-throw
         (py-call py-builtin-ZeroDivisionError
-          (py-str-from-scheme "float modulo")))
+          (&& "float modulo")))
       (py-float-from-scheme (inexact (op x y))))))
 
 (define (floor-div x y)
@@ -1442,7 +1485,7 @@
     ;; TODO: incorrect error message
     (py-throw
       (py-call py-builtin-TypeError
-         (py-str-from-scheme "object.__new__(X): X is not a type object")))))
+         (&& "object.__new__(X): X is not a type object")))))
 
 (define bool.__new__
   (procedure->py-function
@@ -1451,8 +1494,8 @@
 
 (define (bool-str self)
   (cond
-    ((eq? self py-True) (py-str-from-scheme "True"))
-    ((eq? self py-False) (py-str-from-scheme "False"))
+    ((eq? self py-True) (&& "True"))
+    ((eq? self py-False) (&& "False"))
     (else
       (py-throw-required-type "__str__" "bool" self))))
 
@@ -1463,8 +1506,8 @@
 
 (define (bool-repr self)
   (cond
-    ((eq? self py-True) (py-str-from-scheme "True"))
-    ((eq? self py-False) (py-str-from-scheme "False"))
+    ((eq? self py-True) (&& "True"))
+    ((eq? self py-False) (&& "False"))
     (else
       (py-throw-required-type "__repr__" "bool" self))))
 
@@ -1778,7 +1821,7 @@
       (else
         (py-throw (py-call
           py-builtin-TypeError
-          (py-str-from-scheme "type() takes 1 or 3 arguments")))))))
+          (&& "type() takes 1 or 3 arguments")))))))
 
 (define type.__new__
   (procedure->py-function
@@ -1794,7 +1837,7 @@
     (py-obj-alloc cls (PyObjectType-hclass-of-instances cls))
     (py-throw
       (py-call py-builtin-TypeError
-        (py-str-from-scheme "object.__new__(X): X is not a type object")))))
+        (&& "object.__new__(X): X is not a type object")))))
 
 (define object.__new__
   (procedure->py-function
@@ -1813,7 +1856,7 @@
 ;;  str and repr protocols
 ;; =============================================================================
 
-(define str-representatives (make-table test: string=? weak-values: #t))
+(define str-representatives (get-registered-constants-table))
 
 (define (str-value-collect-components-aux! value components)
   (if (pair? value)
@@ -1866,7 +1909,7 @@
           (if (py-isinstance? result py-str-class)
             result
             (throw-returned-wrong-type "__str__" value "non-string")))
-        (py-str-from-scheme "")))
+        (&& "")))
     ((py-issubclass? cls py-str-class)
       (if value
         (let* ((__str__ (getattribute-from-obj-mro value (& "__str__")))
@@ -1959,23 +2002,50 @@
 (define (integer->hex-string x)
   (string-append "0x" (number->string x 16)))
 
-(define (str-eq self other)
-  (if (py-isinstance? self py-str-class)
-    (if (eq? self other)
-      py-True
-      (if (eq? (py-type other) py-str-class)
-        (let* ((self-representative (str-representative-get self))
-               (other-representative (str-representative-get other)))
-          (if (eq? self-representative other-representative)
-            py-True
-            py-False))
-        py-NotImplemented))
-    (py-throw-required-type "__eq__" "str" self)))
+(define-macro (define-eq-ne-str fun-name method-name yes no)
+  (let ((py-func-name (string->symbol (string-append "str." method-name))))
+    `(begin
+      (define (,fun-name self other)
+        (if (py-isinstance? self py-str-class)
+            (if (eq? self other)
+                ,yes
+                (if (eq? (py-type other) py-str-class)
+                    (let* ((self-representative (str-representative-get self))
+                           (other-representative (str-representative-get other)))
+                      (if (eq? self-representative other-representative)
+                          ,yes
+                          ,no))
+                    py-NotImplemented))
+            (py-throw-required-type ,method-name "str" self)))
+      (define ,py-func-name
+        (procedure->py-function
+          ,fun-name
+          (make-posonly-signature '#(self other)))))))
 
-(define str.__eq__
-  (procedure->py-function
-    str-eq
-    (make-posonly-signature '#(self other))))
+(define-eq-ne-str str-eq "__eq__" py-True py-False)
+(define-eq-ne-str str-ne "__ne__" py-False py-True)
+
+(define-macro (define-str-comparison-operator fun-name method-name scheme-op)
+  (let ((py-func-name (string->symbol (string-append "str." method-name))))
+    `(begin
+      (define (,fun-name self other)
+        (if (py-isinstance? self py-str-class)
+          (cond
+            ((py-isinstance? other py-str-class)
+              (let ((self-value (PyObjectStr-value self))
+                    (other-value (PyObjectStr-value other)))
+                (if (,scheme-op self-value other-value) py-True py-False)))
+            (else py-NotImplemented))
+          (py-throw-required-type ,method-name "str" self)))
+      (define ,py-func-name
+        (procedure->py-function
+          ,fun-name
+          (make-posonly-signature '#(self other)))))))
+
+(define-str-comparison-operator str-gt "__gt__" string>?)
+(define-str-comparison-operator str-lt "__lt__" string<?)
+(define-str-comparison-operator str-ge "__ge__" string>=?)
+(define-str-comparison-operator str-le "__le__" string<=?)
 
 ;; Litterally just taken from here
 ;; https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function#FNV_hash_parameters
@@ -2013,6 +2083,41 @@
   (procedure->py-function
     str-add
     (make-posonly-signature '#(self other))))
+
+(define (add-hclass-names-to-table table obj)
+  (vector-for-each
+    (lambda (name)
+      (table-set! table name #t))
+    (HClass-names (PyObject-hclass obj))))
+
+(define (object-dir self)
+  (let ((table (make-table test: eq?)))
+   (add-hclass-names-to-table table self)
+   (vector-for-each (lambda (x) (add-hclass-names-to-table table x))
+                    (PyObjectType-mro (PyObject-class self)))
+   (py-list-from-scheme
+     (list->dynamic-vector
+       (map car (table->list table))))))
+
+(define object.__dir__
+  (procedure->py-function
+    object-dir
+    (make-posonly-signature '#(self))))
+
+(define (type-dir self)
+  (if (py-isinstance? self py-type-class)
+      (let ((table (make-table test: eq?)))
+       (vector-for-each (lambda (x) (add-hclass-names-to-table table x))
+                        (PyObjectType-mro self))
+       (py-list-from-scheme
+         (list->dynamic-vector
+           (map car (table->list table)))))
+      (py-throw-required-type "__dir__" "type" self)))
+
+(define type.__dir__
+  (procedure->py-function
+    type-dir
+    (make-posonly-signature '#(self))))
 
 (define (object-repr self)
   (let* ((self-type (py-type self))
@@ -2338,13 +2443,14 @@
     (PyObjectType-bases-set! object-class '#())
     (PyObjectType-mro-set! object-class (vector object-class))
     (PyObjectType-hclass-of-instances-set! object-class py-object-hclass-of-instances)
-    (py-own-attr-set! object-class (& "__name__") (py-str-from-scheme "object"))
-    (py-own-attr-set! object-class (& "__module__") (py-str-from-scheme "builtins"))
+    (py-own-attr-set! object-class (& "__name__") (&& "object"))
+    (py-own-attr-set! object-class (& "__module__") (&& "builtins"))
     (py-own-attr-set! object-class (& "__new__") object.__new__)
     (py-own-attr-set! object-class (& "__init__") object.__init__)
     (py-own-attr-set! object-class (& "__getattribute__") py-object-getattribute)
     (py-own-attr-set! object-class (& "__repr__") object.__repr__)
     (py-own-attr-set! object-class (& "__str__") object.__str__)
+    (py-own-attr-set! object-class (& "__dir__") object.__dir__)
 
 
     ;; Fill in type class
@@ -2352,34 +2458,41 @@
     (PyObjectType-bases-set! type-class '#(object-class))
     (PyObjectType-mro-set! type-class (vector type-class object-class))
     (PyObjectType-hclass-of-instances-set! type-class py-type-hclass-of-instances)
-    (py-own-attr-set! type-class (& "__name__") (py-str-from-scheme "type"))
-    (py-own-attr-set! type-class (& "__module__") (py-str-from-scheme "builtins"))
+    (py-own-attr-set! type-class (& "__name__") (&& "type"))
+    (py-own-attr-set! type-class (& "__module__") (&& "builtins"))
     (py-own-attr-set! type-class (& "__new__") type.__new__)
     (py-own-attr-set! type-class (& "__call__") type.__call__)
     (py-own-attr-set! type-class (& "__getattribute__") type.__getattribute__)
+    (py-own-attr-set! type-class (& "__dir__") type.__dir__)
 
     ;; Fill in tuple class
     (PyObject-class-set! tuple-class type-class)
     (PyObjectType-bases-set! tuple-class '#(object-class))
     (PyObjectType-mro-set! tuple-class (vector tuple-class object-class))
     (PyObjectType-hclass-of-instances-set! tuple-class py-tuple-hclass-of-instances)
-    (py-own-attr-set! tuple-class (& "__name__") (py-str-from-scheme "tuple"))
-    (py-own-attr-set! tuple-class (& "__module__") (py-str-from-scheme "builtins"))
+    (py-own-attr-set! tuple-class (& "__name__") (&& "tuple"))
+    (py-own-attr-set! tuple-class (& "__module__") (&& "builtins"))
 
     ;; Fill in str class
     (PyObject-class-set! str-class type-class)
     (PyObjectType-bases-set! str-class '#(object-class))
     (PyObjectType-mro-set! str-class (vector str-class object-class))
     (PyObjectType-hclass-of-instances-set! str-class py-str-hclass-of-instances)
-    (py-own-attr-set! str-class (& "__name__") (py-str-from-scheme "str"))
-    (py-own-attr-set! str-class (& "__module__") (py-str-from-scheme "builtins"))
+    (py-own-attr-set! str-class (& "__name__") (&& "str"))
+    (py-own-attr-set! str-class (& "__module__") (&& "builtins"))
     (py-own-attr-set! str-class (& "__new__") str.__new__)
     (py-own-attr-set! str-class (& "__eq__") str.__eq__)
     (py-own-attr-set! str-class (& "__hash__") str.__hash__)
     (py-own-attr-set! str-class (& "__str__") str.__str__)
     (py-own-attr-set! str-class (& "__repr__") str.__repr__)
     (py-own-attr-set! str-class (& "__len__") str.__len__)
-    (py-own-attr-set! str-class (& "__add__") str.__add__)))
+    (py-own-attr-set! str-class (& "__add__") str.__add__)
+
+    (py-own-attr-set! str-class (& "__ne__") str.__ne__)
+    (py-own-attr-set! str-class (& "__gt__") str.__gt__)
+    (py-own-attr-set! str-class (& "__lt__") str.__lt__)
+    (py-own-attr-set! str-class (& "__ge__") str.__ge__)
+    (py-own-attr-set! str-class (& "__le__") str.__le__)))
 
 (bootstrap-type-hierarchy-phase1)
 
@@ -2455,6 +2568,22 @@
             name module bases py-builtin-type-alloc attrs)))
     (PyObjectType-hclass-of-instances-set! cls hclass-of-instances)
     cls))
+;; ================
+;; MODULE FUNCTIONS
+;; ================
+
+
+(define (module-dir self)
+  (if (py-isinstance? self py-module-class)
+      (py-list-from-scheme
+        (list->dynamic-vector (vector->list (HClass-names (PyObject-hclass self)))))
+      (throw-returned-wrong-type "__dir__" self "not a module")))
+
+(define module.__dir__
+  (procedure->py-function
+    module-dir
+    (make-posonly-signature '#(self))))
+
 
 ;; =============================================================================
 ;;  ITER PROTOCOL
@@ -2533,8 +2662,8 @@
 
 (define py-list-iterator-class
   (py-make-builtin-class
-    (& "list_iterator")
-    (& "builtins")
+    (&& "list_iterator")
+    (&& "builtins")
     (list)
     py-list-iterator-hclass-of-instances
       (& "__iter__") list_iterator.__iter__
@@ -2569,8 +2698,8 @@
 
 (define py-tuple-iterator-class
   (py-make-builtin-class
-    (& "tuple_iterator")
-    (& "builtins")
+    (&& "tuple_iterator")
+    (&& "builtins")
     (list)
     py-tuple-iterator-hclass-of-instances
       (& "__iter__") py-tuple-iterator-iter
@@ -2610,8 +2739,8 @@
 
 (define py-bytearray-iterator-class
   (py-make-builtin-class
-    (& "bytearray_iterator")
-    (& "builtins")
+    (&& "bytearray_iterator")
+    (&& "builtins")
     (list)
     py-bytearray-iterator-hclass-of-instances
       (& "__iter__") py-bytearray-iterator.__iter__
@@ -2973,7 +3102,7 @@
            (cond
              ((eq? py-step py-None) 1)
              ((eq? py-step py-int-0)
-              (py-throw (py-call1 py-builtin-ValueError (py-str-from-scheme "slice step cannot be zero"))))
+              (py-throw (py-call1 py-builtin-ValueError (&& "slice step cannot be zero"))))
              ((py-isinstance? py-step py-int-class)
                 (PyObjectInt-value py-step))
              (else (py-throw-wrong-index-type "slice" "integers or None" py-step))))
@@ -3439,7 +3568,7 @@
           (py-throw
             (py-call1
               py-builtin-ValueError
-              (py-str-from-scheme "list.index(x): x not in list"))))))
+              (&& "list.index(x): x not in list"))))))
     (py-throw-not-a-type-object "list.index" self)))
 
 (define list.index
@@ -3543,7 +3672,7 @@
           (py-throw
             (py-call1
               py-builtin-ValueError
-              (py-str-from-scheme "list.remove(x): x not in list"))))))
+              (&& "list.remove(x): x not in list"))))))
     (py-throw-not-a-type-object "list.remove" self))
   py-None)
 
@@ -3841,7 +3970,7 @@
           (py-throw
             (py-call1
               py-builtin-ValueError
-              (py-str-from-scheme "tuple.index(x): x not in tuple"))))))
+              (&& "tuple.index(x): x not in tuple"))))))
     (py-throw-not-a-type-object "tuple.index" self)))
 
 (define tuple.index
@@ -4214,7 +4343,7 @@
                (acc 0))
       (if (fx>= i ,stop)
           acc
-          (if (fx= (u8vector-ref ,vec i) ,item)
+          (if (u8= (u8vector-ref ,vec i) ,item)
               (loop (+ 1 i) (+ 1 acc))
               (loop (+ 1 i) acc))))))
 
@@ -4222,7 +4351,7 @@
   `(let loop ((i ,start))
      (if (fx>= i ,stop)
          (py-int-from-scheme -1)
-         (if (fx= (u8vector-ref ,vec i) ,item)
+         (if (u8= (u8vector-ref ,vec i) ,item)
              (py-int-from-scheme i)
              (loop (+ 1 i))))))
 
@@ -4231,7 +4360,7 @@
   `(let loop ((i ,start))
      (if (fx>= i ,stop)
          (py-throw-exception-with-message py-builtin-ValueError "subsection not found")
-         (if (fx= (u8vector-ref ,vec i) ,item)
+         (if (u8= (u8vector-ref ,vec i) ,item)
              (py-int-from-scheme i)
              (loop (+ 1 i))))))
 
@@ -4240,7 +4369,7 @@
   `(let loop ((i (- ,stop 1)))
      (if (fx< i ,start)
          (py-int-from-scheme -1)
-         (if (fx= (u8vector-ref ,vec i) ,item)
+         (if (u8= (u8vector-ref ,vec i) ,item)
              (py-int-from-scheme i)
              (loop (- i 1))))))
 
@@ -4249,7 +4378,7 @@
   `(let loop ((i (- ,stop 1)))
      (if (fx< i ,start)
          (py-throw-exception-with-message py-builtin-ValueError "subsection not found")
-         (if (fx= (u8vector-ref ,vec i) ,item)
+         (if (u8= (u8vector-ref ,vec i) ,item)
              (py-int-from-scheme i)
              (loop (- i 1))))))
 
@@ -4266,8 +4395,8 @@
           (let ((e1 (u8vector-ref ,v1 i))
                 (e2 (u8vector-ref ,v2 i)))
             (cond
-             ((fx< e1 e2) -1)
-             ((fx> e1 e2) 1)
+             ((u8< e1 e2) -1)
+             ((u8> e1 e2) 1)
              (else (loop (+ i 1)))))
           (if (fx= ,len1 ,len2)
               0
@@ -4699,8 +4828,8 @@
 
 (define py-dict-keyiterator-class
   (py-make-builtin-class
-    (& "dict_keyiterator")
-    (& "builtins")
+    (&& "dict_keyiterator")
+    (&& "builtins")
     (list)
     py-dict-keyiterator-hclass-of-instances
       (& "__iter__") dict_keyiterator.__iter__
@@ -4729,15 +4858,16 @@
 
   (set! py-module-class
     (py-make-builtin-class
-      (& "module")
-      (& "builtins")
+      (&& "module")
+      (&& "builtins")
       (list)
-      py-module-hclass-of-instances))
+      py-module-hclass-of-instances
+      (& "__dir__") module.__dir__))
 
   (set! py-int-class
     (py-make-builtin-class
-      (& "int")
-      (& "builtins")
+      (&& "int")
+      (&& "builtins")
       (list)
       py-int-hclass-of-instances
         (& "__new__") int.__new__
@@ -4784,8 +4914,8 @@
 
   (set! py-float-class
     (py-make-builtin-class
-      (& "float")
-      (& "builtins")
+      (&& "float")
+      (&& "builtins")
       (list)
       py-float-hclass-of-instances
         (& "__new__") float.__new__
@@ -4827,8 +4957,8 @@
 
   (set! py-bool-class
     (py-make-builtin-class
-      (& "bool")
-      (& "builtins")
+      (&& "bool")
+      (&& "builtins")
       (list py-int-class)
       py-int-hclass-of-instances
         (& "__new__") bool.__new__
@@ -4844,8 +4974,8 @@
 
   (set! py-slice-class
     (py-make-builtin-class
-      (& "slice")
-      (& "builtins")
+      (&& "slice")
+      (&& "builtins")
       (list)
       py-slice-hclass-of-instances
         (& "__new__") slice.__new__
@@ -4853,16 +4983,16 @@
 
   (set! py-method-class
     (py-make-builtin-class
-      (& "method")
-      (& "builtins")
+      (&& "method")
+      (&& "builtins")
       (list)
       py-method-hclass-of-instances
         (& "__call__") method.__call__))
 
   (set! py-function-class
     (py-make-builtin-class
-      (& "function")
-      (& "builtins")
+      (&& "function")
+      (&& "builtins")
       (list)
       py-function-hclass-of-instances
         (& "__call__") function.__call__
@@ -4870,8 +5000,8 @@
 
   (set! py-list-class
     (py-make-builtin-class
-      (& "list")
-      (& "builtins")
+      (&& "list")
+      (&& "builtins")
       (list)
       py-list-hclass-of-instances
         (& "__new__") list.__new__
@@ -4907,8 +5037,8 @@
 
   (set! py-dict-class
     (py-make-builtin-class
-      (& "dict")
-      (& "builtins")
+      (&& "dict")
+      (&& "builtins")
       (list)
       py-dict-hclass-of-instances
         (& "__getitem__") dict.__getitem__
@@ -4920,15 +5050,15 @@
 
   (set! py-set-class
     (py-make-builtin-class
-      (& "set")
-      (& "builtins")
+      (&& "set")
+      (&& "builtins")
       (list)
       py-set-hclass-of-instances))
 
   (set! py-bytearray-class
     (py-make-builtin-class
-      (& "bytearray")
-      (& "builtins")
+      (&& "bytearray")
+      (&& "builtins")
       (list)
       py-set-hclass-of-instances
         (& "__getitem__") bytearray.__getitem__
@@ -4976,7 +5106,7 @@
     (if (eq? __enter__ py-absent)
       (py-throw
         (py-call py-builtin-AttributeError
-          (py-str-from-scheme "__enter__")))
+          (&& "__enter__")))
       (py-call1 __enter__ obj))))
 
 (define (py-exit obj exc)
@@ -4984,7 +5114,7 @@
     (if (eq? __exit__ py-absent)
       (py-throw
         (py-call py-builtin-AttributeError
-          (py-str-from-scheme "__exit__")))
+          (&& "__exit__")))
       (if exc
         (let* ((exc-type (PyObject-class exc))
               (exc-traceback py-None) ;; TODO: pass traceback to __exit__ once it exists
@@ -5060,8 +5190,8 @@
 
 (define py-TextIOWrapper-class
   (py-make-builtin-class
-    (& "TextIOWrapper")
-    (& "_io")
+    (&& "TextIOWrapper")
+    (&& "_io")
     ;; TODO: the correct mro is actually [<class '_io.TextIOWrapper'>, <class '_io._TextIOBase'>, <class '_io._IOBase'>, <class 'object'>]
     (list)
     py-TextIOWrapper-hclass-of-instances
@@ -5104,7 +5234,7 @@
       (py-call
         py-builtin-TypeError
         ;; TODO: Incorrect error message
-        (py-str-from-scheme "not a subtype of NotImplementedType")))))
+        (&& "not a subtype of NotImplementedType")))))
 
 (define NotImplementedType.__new__
   (procedure->py-function
@@ -5113,12 +5243,12 @@
 
 (define (NotImplementedType-repr self)
   (if (eq? self py-NotImplemented)
-    (py-str-from-scheme "NotImplemented")
+    (&& "NotImplemented")
     (py-throw
       (py-call
         py-builtin-TypeError
         ;; TODO: Incorrect error message
-        (py-str-from-scheme "descriptor '__repr__' requires a 'NotImplementedType' object")))))
+        (&& "descriptor '__repr__' requires a 'NotImplementedType' object")))))
 
 (define NotImplementedType.__repr__
   (procedure->py-function
@@ -5127,8 +5257,8 @@
 
 (define py-NotImplementedType-class
   (py-make-builtin-class
-    (& "NotImplementedType")
-    (& "builtins")
+    (&& "NotImplementedType")
+    (&& "builtins")
     (list)
     py-object-hclass-of-instances
       (& "__new__") NotImplementedType.__new__
@@ -5148,7 +5278,7 @@
       (py-call
         py-builtin-TypeError
         ;; TODO: Incorrect error message
-        (py-str-from-scheme "not a subtype of NoneType")))))
+        (&& "not a subtype of NoneType")))))
 
 (define NoneType.__new__
   (procedure->py-function
@@ -5157,12 +5287,12 @@
 
 (define (NoneType-repr self)
   (if (eq? self py-None)
-    (py-str-from-scheme "None")
+    (&& "None")
     (py-throw
       (py-call
         py-builtin-TypeError
         ;; TODO: Incorrect error message
-        (py-str-from-scheme "descriptor '__repr__' requires a 'NoneType' object")))))
+        (&& "descriptor '__repr__' requires a 'NoneType' object")))))
 
 (define NoneType.__repr__
   (procedure->py-function
@@ -5176,7 +5306,7 @@
       (py-call
         py-builtin-TypeError
         ;; TODO: Incorrect error message
-        (py-str-from-scheme "descriptor '__repr__' requires a 'NoneType' object")))))
+        (&& "descriptor '__repr__' requires a 'NoneType' object")))))
 
 (define NoneType.__bool__
   (procedure->py-function
@@ -5185,8 +5315,8 @@
 
 (define py-NoneType-class
   (py-make-builtin-class
-    (& "NoneType")
-    (& "builtins")
+    (&& "NoneType")
+    (&& "builtins")
     (list)
     py-object-hclass-of-instances
       (& "__new__") NoneType.__new__
@@ -5250,11 +5380,11 @@
 
 (define (py-make-sys-mod)
   (let ((mod (py-make-global)))
-   (py-own-attr-set! mod (& "__name__") (& "sys"))
+   (py-own-attr-set! mod (& "__name__") (&& "sys"))
    (py-own-attr-set! mod (& "modules")
                      (py-make-dict
                        (list
-                         (cons (& "sys") mod))))
+                         (cons (&& "sys") mod))))
 
    (py-own-attr-set! mod (& "path")
                      (py-make-list
@@ -5312,36 +5442,6 @@
   (wind path '()))
 
 
-(define (compile-source source target)
-
-  (define (root-dir)
-    (getenv "ZIPIROOT"))
-
-  (define py19-path
-    (string-append (root-dir) "/etc/py19" ))
-
-  (if (not (file-exists? py19-path))
-      (fatal-error
-        "cannot find py19 executable. "
-        "The environnement variable $ZIPIROOT is probably not set properly. "
-        "Please refer to README"))
-
-  (possible-error 1 "compiling file " source " to " target " \n")
-
-  (shell-command
-    (string-append
-      (if debug-flag
-          "ZIPI_DEBUG_PY19=true "
-          "ZIPI_DEBUG_PY19=false ")
-      py19-path
-      " -t gambit "
-      (root-dir)
-      "/pyc "
-      source
-      " > "
-      target)))
-
-
 (define (compile-to-cache path)
   (let* ((path-cache
            (string-append
@@ -5359,7 +5459,7 @@
                   (string-append (path-strip-extension path-cache) "._must-build_")))
            (if compile-flag
                (with-output-to-file _must-build_-path list)
-               (delete-file _must-build_-path #f)))))
+               (delete-file _must-build_-path)))))
 
     ;; compile file and return #f if compilation failed
     (define (compile)
@@ -5379,23 +5479,6 @@
                 (compile))
             (compile)) ;; compiled file does not exist (must compile)
         #f))) ;; file to compile does not exist (failed compilation)
-
-(define (load-module-and-get-init name)
-  (let* ((sym (string->symbol name))
-         (modref (parse-module-ref sym)))
-    (if modref
-        (with-exception-catcher
-          (lambda (exn)
-            (if (module-not-found-exception? exn)
-                #f
-                (raise exn)))
-          (lambda ()
-            (load-module sym)
-            (let ((init (module-var-ref modref 'init)))
-             (if (procedure? init)
-                 init
-                 #f))))
-        #f)))
 
 (define (import-with-zipi-cache path py-__name__ sys.modules)
   (let ((mod-init (and
@@ -5464,7 +5547,7 @@
     (empty-signature)))
 
 (define (make-time-mod)
-  (let ((mod (py-make-module (& "time"))))
+  (let ((mod (py-make-module (&& "time"))))
    (py-own-attr-set! mod (& "time") time.time)))
 
 (make-time-mod)
@@ -5479,10 +5562,10 @@
 (define statprof.end
   (procedure->py-function
     statprof-end
-    (make-posonly-signature #(file))))
+    (make-posonly-signature '#(file))))
 
 (define (make-statprof-mod)
-  (let ((mod (py-make-module (& "statprof"))))
+  (let ((mod (py-make-module (&& "statprof"))))
    (py-own-attr-set! mod (& "begin") statprof.begin)
    (py-own-attr-set! mod (& "end") statprof.end)))
 
@@ -5915,9 +5998,8 @@
 
 (define py-builtin-dir
   (procedure->py-function
-    (lambda (object)
-      (py-throw-exception-with-message py-builtin-NotImplementedError "dir not implemented"))
-    (make-posonly-signature '#(object))))
+    py-dir
+    (make-posonly-defaults-signature '#(object) (vector py-absent))))
 
 ;;-------------------- divmod(a, b)
 
@@ -6837,7 +6919,7 @@
     (make-args-defaults-signature
       '#(file mode buffering encoding errors newline closefd opener)
       (vector
-        (py-str-from-scheme "r")
+        (&& "r")
         (py-int-from-scheme -1)
         py-None
         py-None
@@ -7341,7 +7423,7 @@
       (vector py-absent py-absent))))
 
 (define (super-getattribute self name)
-  (if (eq? name (& "__class__"))
+  (if (eq? (str-representative-get name) (& "__class__"))
     py-builtin-super
     (let* ((this-class (py-own-attr-ref self (& "__thisclass__")))
           (this-self (py-own-attr-ref self (& "__self__")))
@@ -7359,8 +7441,8 @@
 
 (define py-builtin-super
   (py-make-builtin-class
-    (& "super")
-    (& "builtins")
+    (&& "super")
+    (&& "builtins")
     (list)
     py-super-hclass-of-instances
       (& "__init__") super.__init__
@@ -7814,7 +7896,7 @@
 (define (py-make-builtins-mod)
   (let ((builtins-mod (import-from-sys.path
                         "builtins"
-                        (py-str-from-scheme "builtins")
+                        (&& "builtins")
                         (sys.modules-get))))
     (bootstrap-builtins builtins-mod)
     builtins-mod))

@@ -13,42 +13,56 @@
 ;;  Objects interning
 ;; =============================================================================
 
-(define-macro (start-registering-constants)
+(define-macro (start-registering-constants #!key (constants-must-be-representatives #f))
   (eval
     `(begin
       (define-type Constants
         id: %constants
         constructor: %make-Constants
         prefix: %
-        table)
+        table
+        vector)
       (define-type PyStaticStr
         ;; NOTE: id must be the same as PyObject
         id: %pystaticobject
         constructor: %make-PyStaticStr
         prefix: %
-        macros:
         hclass
         elements
         class
         value
         representative)
       (define (make-PyStaticStr value)
-        (%make-PyStaticStr #f '#() #f value #f))
-      (define %constants (%make-Constants (make-table)))
+        (let ((static-str
+                (%make-PyStaticStr #f '#() #f value '%py-absent)))
+          ,(if constants-must-be-representatives
+            `(begin
+                (%PyStaticStr-representative-set! static-str static-str)
+                static-str)
+              'static-str)))
+      (define %constants (%make-Constants (make-table) #f))
       (define (constants-table) (%Constants-table %constants))
       (define (constants-ref c key) (table-ref (%Constants-table c) key #f))
       (define (constants-set! c key val) (table-set! (%Constants-table c) key val))
       (define (vectorify-constant-table)
+        (%Constants-vector-set!
+          %constants
+          (list->vector (map cdr (table->list (constants-table))))))
+      (define (listify-constant-table)
         (%Constants-table-set!
           %constants
-          (list->vector (map cdr (table->list (constants-table))))))))
+          (table->list (constants-table))))))
   `(##begin))
 
 (define-macro (init-registered-constants)
   `(init-constants ',%constants))
 
+(define-macro (get-registered-constants-table)
+  `(list->table (##unchecked-structure-ref ',%constants 1 #f #f) test: string=? weak-values: #t))
+
 (define-macro (end-registering-constants)
-  (vectorify-constant-table))
+  (vectorify-constant-table)
+  (listify-constant-table))
 
 (define-macro (& e)
   (if (string? e)
@@ -59,6 +73,9 @@
           (constants-set! %constants e obj)
           `',obj)))
     (error "&" "requires string literal but got" e)))
+
+(define-macro (&& e)
+  `(& ,e))
 
 ;; =============================================================================
 ;;  PyObject
@@ -258,43 +275,3 @@
   ;; attrs
   names
   transitions)
-
-(define-macro (make-builtin-HClass names transitions)
-  `(make-still-copy (make-HClass ,names ,transitions)))
-
-(define-macro (HClass-last-index hclass)
-  `(fx- (vector-length (HClass-names ,hclass)) 1))
-
-(define-macro (HClass-transition-add! hc transitions target)
-  `(let (($hc ,hc))
-    (HClass-transitions-set!
-     $hc
-     (cons (cons ,transitions ,target) (HClass-transitions $hc)))))
-
-(define-macro (vector-extend vec el)
-  `(let (($vec ,vec) ($el ,el))
-     (let* ((len (vector-length $vec))
-  	  (nvec (make-vector (+ len 1))))
-        (vector-copy! nvec 0 $vec)
-        (vector-set! nvec len $el)
-        nvec)))
-
-(define-macro (HClass-next hc name op)
-  `(let (($hc ,hc) ($name ,name))
-    (let* ((key (cons $name ,op))
-           (tran (assoc key (HClass-transitions $hc))))
-      (if (pair? tran)
-        (cdr tran)
-        (let ((nhclass
-                (make-HClass
-                  (vector-extend (HClass-names $hc) $name)
-                  '())))
-          (HClass-transition-add! $hc key nhclass)
-          nhclass)))))
-
-;; General exception thrower helper
-(define-macro (py-throw-exception-with-message exc . msg)
-  `(py-throw
-    (py-call
-      ,exc
-      (py-str-from-scheme (string-append ,@msg)))))
