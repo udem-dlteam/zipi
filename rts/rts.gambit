@@ -26,18 +26,6 @@
 
 (namespace ("##" parse-module-ref load-module module-var-ref))
 
-(define-macro (structure-ref obj i)
-  `(##unchecked-structure-ref ,obj , i #f #f))
-
-(define-macro (structure-set! obj i val)
-  `(##unchecked-structure-set! ,obj ,val ,i #f #f))
-
-(define-macro (structure-type obj)
-  `(##structure-type ,obj))
-
-(define-macro (structure-type-set! obj tp)
-  `(##structure-type-set! ,obj ,tp))
-
 (define-macro (module-search-order-add! path)
   `(##module-search-order-add! ,path))
 
@@ -47,6 +35,35 @@
 (define-macro (make-still-copy s)
   `(##still-obj-refcount-inc!
     (##still-copy ,s)))
+
+(define-macro (u8= x y)
+  `(fx= ,x ,y))
+
+(define-macro (u8> x y)
+  `(fx> ,x ,y))
+
+(define-macro (u8< x y)
+  `(fx< ,x ,y))
+
+(define-macro (u8>= x y)
+  `(fx>= ,x ,y))
+
+(define-macro (u8=< x y)
+  `(fx=< ,x ,y))
+
+(define-macro (structure-ref s i)
+  `(##unchecked-structure-ref ,s ,i #f #f))
+
+(define-macro (structure-type-set! s t)
+  `(##structure-type-set! ,s ,t))
+
+(define (init-constants constants)
+  (vector-for-each
+    (lambda (obj)
+      (structure-type-set! obj (PyObjectStr-type-get))
+      (PyObject-hclass-set! obj py-str-hclass-of-instances)
+      (PyObject-class-set! obj py-str-class))
+      (structure-ref constants 2)))
 
 ;; debugging utility
 (define (why-am-i-here?)
@@ -105,3 +122,49 @@
     (py-throw-exception-with-message
       py-builtin-TypeError
       "statprof.stop requires str as attribute")))
+
+(define (load-module-and-get-init name)
+  (let* ((sym (string->symbol name))
+         (modref (parse-module-ref sym)))
+    (if modref
+        (with-exception-catcher
+          (lambda (exn)
+            (if (module-not-found-exception? exn)
+                #f
+                (raise exn)))
+          (lambda ()
+            (load-module sym)
+            (let ((init (module-var-ref modref 'init)))
+             (if (procedure? init)
+                 init
+                 #f))))
+        #f)))
+
+(define (compile-source source target)
+
+  (define (root-dir)
+    (getenv "ZIPIROOT"))
+
+  (define py19-path
+    (string-append (root-dir) "/etc/py19" ))
+
+  (if (not (file-exists? py19-path))
+      (fatal-error
+        "cannot find py19 executable. "
+        "The environnement variable $ZIPIROOT is probably not set properly. "
+        "Please refer to README"))
+
+  (possible-error 1 "compiling file " source " to " target " \n")
+
+  (shell-command
+    (string-append
+      (if debug-flag
+          "ZIPI_DEBUG_PY19=true "
+          "ZIPI_DEBUG_PY19=false ")
+      py19-path
+      " -t gambit "
+      (root-dir)
+      "/pyc "
+      source
+      " > "
+      target)))

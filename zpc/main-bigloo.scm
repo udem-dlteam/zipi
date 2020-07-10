@@ -27,7 +27,7 @@
 	   __pyc_beval
 	   __pyc_scheme
 	   __pyc_javascript
-	   __py_object)
+	   __py_rts)
 
    (main main))
 

@@ -14,9 +14,14 @@
 ;*---------------------------------------------------------------------*/
 (module __py_bigloo
 
-   (import __py_rts)
+   (import __py_rts
+	   __py_configure)
 
-   (export (inline arithmetic-shift::long ::long ::long)
+   (export (macro let-values)
+
+	   (object->serial-number ::obj)
+	   
+	   (inline arithmetic-shift::long ::long ::long)
 	   (inline bitwise-and::long ::long ::long)
 	   (inline bitwise-ior::long ::long ::long)
 	   (inline bitwise-xor::long ::long ::long)
@@ -47,7 +52,59 @@
 
 	   (inline u8vector-append . vecs)
 	   (inline subu8vector vec start stop)
-	   (macro let-values)))
+
+	   (append-strings ::pair-nil)
+
+	   (inline current-second)
+	   (inline current-time)
+	   (time->seconds d)
+	   (macro time->seconds)
+
+	   (path-directory ::bstring)
+	   (path-strip-extension ::bstring)
+	   (path-strip-directory ::bstring)
+	   (path-normalize ::bstring)
+	   (path-expand ::bstring #!optional (origin (pwd)))
+	   (path-strip-trailing-directory-separator::bstring ::bstring)
+	   
+	   (create-directory ::bstring)
+
+	   (file-info path . rest)
+	   (file-info-last-modification-time info)
+	   (file-info-type path)
+	   
+	   (make-table #!key test weak-values)
+	   (table-set! table key value)
+	   (table-ref table key #!optional default)
+
+	   (macro with-exception-catcher)
+
+	   (module-not-found-exception? e)
+
+	   (shell-command ::bstring #!optional capture)
+
+	   (getenv name #!optional default)
+
+	   (module-search-order-add! dir)
+	   (load-module-and-get-init name)
+	   (compile-source ::bstring ::bstring)
+	   ))
+
+;*---------------------------------------------------------------------*/
+;*    let-values ...                                                   */
+;*---------------------------------------------------------------------*/
+(define-macro (let-values bindings . body)
+   (match-case bindings
+      (((?bindings ?generator))
+       `(multiple-value-bind ,bindings ,generator ,@body))
+      (else
+       (error "let-values" "Illegal form" `(let-values ,bindings ,@body)))))
+
+;*---------------------------------------------------------------------*/
+;*    object->serial-number ...                                        */
+;*---------------------------------------------------------------------*/
+(define (object->serial-number o)
+   (object-hashnumber o))
 
 ;*---------------------------------------------------------------------*/
 ;*    bitwise operations ...                                           */
@@ -69,17 +126,6 @@
 ;*---------------------------------------------------------------------*/
 (define-inline (inexact v)
    (if (exact? v) (exact->inexact v) v))
-
-;*---------------------------------------------------------------------*/
-;*    let-values ...                                                   */
-;*---------------------------------------------------------------------*/
-(define-macro (let-values bindings . body)
-   (match-case bindings
-      (((?bindings ?generator))
-       `(multiple-value-bind ,bindings ,generator ,@body))
-      (else
-       (error "let-values" "Illegal form" `(let-values ,bindings ,@body)))))
-
 
 ;*---------------------------------------------------------------------*/
 ;*    fx operations ...                                                */
@@ -138,3 +184,145 @@
             (u8vector-set! subvec subvec_i (u8vector-ref vec vec_i))
             (loop (+ vec_i 1) (+ subvec_i 1) stop vec subvec))
           subvec))))
+
+;*---------------------------------------------------------------------*/
+;*    strings                                                          */
+;*---------------------------------------------------------------------*/
+(define (append-strings lst)
+   (apply string-append lst))
+
+;*---------------------------------------------------------------------*/
+;*    dates                                                            */
+;*---------------------------------------------------------------------*/
+(define-inline (current-second) (current-seconds))
+(define-inline (current-time) (current-date))
+(define (time->seconds d) (date->seconds d))
+
+(define-macro (time->seconds a)
+   (match-case a
+      ((current-time) '(current-seconds))
+      (else `(date->seconds ,a))))
+
+;*---------------------------------------------------------------------*/
+;*    files and directories                                            */
+;*---------------------------------------------------------------------*/
+(define zipidir (zipi-lib-dir))
+
+(define (path-directory path)
+   (dirname path))
+
+(define (path-strip-extension path)
+   (prefix path))
+
+(define (path-strip-directory path)
+   (basename path))
+
+(define (path-normalize path)
+   (file-name-canonicalize (make-file-name (pwd) path)))
+
+(define (path-expand path #!optional (origin (pwd)))
+   (cond
+      ((string=? origin "~~zipidir")
+       (make-file-name zipidir path))
+      (else
+       (make-file-name origin path))))
+   
+(define (create-directory path)
+   (make-directories path))
+
+(define (path-strip-trailing-directory-separator path)
+   (let ((len (string-length path)))
+      (if (=fx len 0)
+	  path
+	  (let ((c (string-ref path (-fx len 1))))
+	     (if (char=? c (file-separator))
+		 (substring path 0 (-fx len 1))
+		 path)))))
+
+(define (file-info path . rest)
+   path)
+
+(define (file-info-last-modification-time info)
+   (file-modification-time info))
+
+(define (file-info-type info)
+   (file-type info))
+
+;*---------------------------------------------------------------------*/
+;*    hash tables                                                      */
+;*---------------------------------------------------------------------*/
+(define (make-table #!key test weak-values)
+   (create-hashtable :eqtest test))
+
+(define (table-set! table key value)
+   (hashtable-put! table key value))
+
+(define (table-ref table key #!optional default)
+   (or (hashtable-get table key)
+       (unless (hashtable-contains? table key)
+	  default)))
+
+;*---------------------------------------------------------------------*/
+;*    with-exception-catcher ...                                       */
+;*---------------------------------------------------------------------*/
+(define-macro (with-exception-catcher handler body)
+   (match-case body
+      ((lambda () . ?body) `(with-handler ,handler ,@body))
+      (else `(with-handler ,handler (,body)))))
+
+;*---------------------------------------------------------------------*/
+;*    module-not-found-exception? ...                                  */
+;*---------------------------------------------------------------------*/
+(define (module-not-found-exception? exn)
+   (isa? exn &io-file-not-found-error))
+
+;*---------------------------------------------------------------------*/
+;*    shell-command ...                                                */
+;*---------------------------------------------------------------------*/
+(define (shell-command cmd #!optional capture)
+   (if capture
+       (system->string cmd)
+       (system cmd)))
+
+;*---------------------------------------------------------------------*/
+;*    getenv ...                                                       */
+;*---------------------------------------------------------------------*/
+(define (getenv name #!optional default)
+   (or (getenv name)
+       (cond
+	  ((string=? default "~~zipidir") (zipi-lib-dir))
+	  (else #f))))
+
+;*---------------------------------------------------------------------*/
+;*    module-search-order-add! ...                                     */
+;*---------------------------------------------------------------------*/
+(define (module-search-order-add! dir)
+   #f)
+
+;*---------------------------------------------------------------------*/
+;*    shared-lib-suffix ...                                            */
+;*---------------------------------------------------------------------*/
+(define shared-lib-suffix (bigloo-config 'shared-lib-suffix))
+
+;*---------------------------------------------------------------------*/
+;*    name->library-name ...                                           */
+;*---------------------------------------------------------------------*/
+(define (name->library-name name)
+   (string-append name "." shared-lib-suffix))
+
+;*---------------------------------------------------------------------*/
+;*    load-module-and-get-init ...                                     */
+;*---------------------------------------------------------------------*/
+(define (load-module-and-get-init name)
+   (let ((libname (name->library-name name)))
+      (dynamic-load libname)
+      (let ((dlsym (dynamic-load-symbol libname "init")))
+	 (when dlsym
+	    (dynamic-load-symbol-get dlsym)))))
+
+;*---------------------------------------------------------------------*/
+;*    compile-source ...                                               */
+;*---------------------------------------------------------------------*/
+(define (compile-source source target)
+   (system
+      (format "~a/zpc -t bigloo ~a -o ~a -y" (zipi-bin-dir) source target)))
