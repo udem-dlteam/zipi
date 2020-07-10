@@ -1,10 +1,11 @@
+print("here in test_int")
 import sys
 
 import unittest
 from test import support
 from test.test_grammar import (VALID_UNDERSCORE_LITERALS,
                                INVALID_UNDERSCORE_LITERALS)
-
+print("hey hey")
 L = [
         ('0', 0),
         ('1', 1),
@@ -26,9 +27,12 @@ L = [
         ("\u0200", ValueError)
 ]
 
+print("hey hey 2")
+
 class IntSubclass(int):
     pass
 
+print("hey hey 3")
 class IntTestCases(unittest.TestCase):
 
     def test_basic(self):
@@ -246,13 +250,13 @@ class IntTestCases(unittest.TestCase):
 
     def test_keyword_args(self):
         # Test invoking int() using keyword arguments.
-        self.assertEqual(int('100', base=2), 4)
+        self.assertEqual(int('100',2), 4)
         with self.assertRaisesRegex(TypeError, 'keyword argument'):
-            int(x=1.2)
+            int(1.2)
         with self.assertRaisesRegex(TypeError, 'keyword argument'):
-            int(x='100', base=2)
-        self.assertRaises(TypeError, int, base=10)
-        self.assertRaises(TypeError, int, base=0)
+            int('100', 2)
+        self.assertRaises(TypeError, int, 10)
+        self.assertRaises(TypeError, int, 0)
 
     def test_int_base_limits(self):
         """Testing the supported limits of the int() base parameter."""
@@ -264,12 +268,12 @@ class IntTestCases(unittest.TestCase):
         with self.assertRaises(ValueError):
             int('0', -909)  # An old magic value base from Python 2.
         with self.assertRaises(ValueError):
-            int('0', base=0-(2**234))
+            int('0', 0-(2**234))
         with self.assertRaises(ValueError):
-            int('0', base=2**234)
+            int('0', 2**234)
         # Bases 2 through 36 are supported.
         for base in range(2,37):
-            self.assertEqual(int('0', base=base), 0)
+            self.assertEqual(int('0', base), 0)
 
     def test_int_base_bad_types(self):
         """Not integer types are not valid bases; issue16772."""
@@ -291,9 +295,9 @@ class IntTestCases(unittest.TestCase):
                 int('43', base)
 
         # Check in-range bases.
-        self.assertEqual(int('101', base=MyIndexable(2)), 5)
-        self.assertEqual(int('101', base=MyIndexable(10)), 101)
-        self.assertEqual(int('101', base=MyIndexable(36)), 1 + 36**2)
+        self.assertEqual(int('101', MyIndexable(2)), 5)
+        self.assertEqual(int('101', MyIndexable(10)), 101)
+        self.assertEqual(int('101', MyIndexable(36)), 1 + 36**2)
 
     def test_non_numeric_input_types(self):
         # Test possible non-numeric types for the argument x, including
@@ -530,7 +534,7 @@ class IntTestCases(unittest.TestCase):
     def test_error_message(self):
         def check(s, base=None):
             with self.assertRaises(ValueError,
-                                   msg="int(%r, %r)" % (s, base)) as cm:
+                                   "int(%r, %r)" % (s, base)) as cm:
                 if base is None:
                     int(s)
                 else:
@@ -567,6 +571,6 @@ class IntTestCases(unittest.TestCase):
         self.assertEqual(int('1_2_3_4_5_6_7_8_9', 16), 0x123456789)
         self.assertEqual(int('1_2_3_4_5_6_7', 32), 1144132807)
 
-
+print("YESSSSSSSSSSSSSSSSSSSSSSSSSSSSSSs")
 if __name__ == "__main__":
     unittest.main()

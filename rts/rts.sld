@@ -273,6 +273,7 @@
     compile-flag-set!
     debug-flag-set!
     profile-flag-set!
+    mute-exceptions-flag-set!
 
     ;;debug functions
     debug-get

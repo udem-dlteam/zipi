@@ -37,6 +37,9 @@
        (if (member "--profile" args)
            (profile-flag-set! #t))
        (build-builtins)
+       (if (member "--mute-errors" args)
+           (mute-exceptions-flag-set!
+             (list py-builtin-ModuleNotFoundError py-builtin-AttributeError)))
        (or  (run-as-main path)
             (println "*** ERROR -- File named " (car args) " at " path " cannot be found")))
 

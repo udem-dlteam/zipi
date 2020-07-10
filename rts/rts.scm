@@ -577,7 +577,12 @@
 (define (py-throw exc)
   (cond ((not (PyObject? exc))
          (raise (py-call py-builtin-TypeError)))
-        ((py-is-in-mro? py-builtin-BaseException (py-obj-mro exc))
+        ((and mute-exceptions-flag
+              (member exc mute-exceptions-flag py-isinstance?))
+          (begin
+            (possible-error 0 "Exception was muted. Printing error...")
+            (print-exception exc)
+            py-None))((py-is-in-mro? py-builtin-BaseException (py-obj-mro exc))
          (raise exc))
         ((py-is-in-mro? py-builtin-BaseException (PyObjectType-mro exc))
          (raise (py-call exc)))
@@ -5408,6 +5413,10 @@
 (define (compile-flag-set! value)
   (set! compile-flag value))
 
+(define mute-exceptions-flag #f)
+(define (mute-exceptions-flag-set! value)
+  (set! mute-exceptions-flag value))
+
 (define debug-flag #f)
 (define (debug-flag-set! value)
   (set! debug-flag value))
@@ -7904,6 +7913,5 @@
 (define (build-builtins)
   (if (eq? builtins-mod py-absent)
       (set! builtins-mod (py-make-builtins-mod))))
-
 
 (end-registering-constants)
