@@ -4,7 +4,7 @@ from __compiler_intrinsics__ import define_semantics, use_static_builtins, use_s
 @define_semantics
 @use_static_builtins
 @use_simple_scoping
-def sem_add(x, y):
+def add(x, y):
     def normal():
         magic_method = class_getattr(x, "__add__")
         if magic_method is absent:
@@ -36,7 +36,7 @@ def sem_add(x, y):
 @define_semantics
 @use_static_builtins
 @use_simple_scoping
-def sem_sub(x, y):
+def sub(x, y):
     def normal():
         magic_method = class_getattr(x, "__sub__")
         if magic_method is absent:
@@ -68,7 +68,7 @@ def sem_sub(x, y):
 @define_semantics
 @use_static_builtins
 @use_simple_scoping
-def sem_mul(x, y):
+def mul(x, y):
     def normal():
         magic_method = class_getattr(x, "__mul__")
         if magic_method is absent:
@@ -100,7 +100,7 @@ def sem_mul(x, y):
 @define_semantics
 @use_static_builtins
 @use_simple_scoping
-def sem_truediv(x, y):
+def truediv(x, y):
     def normal():
         magic_method = class_getattr(x, "__truediv__")
         if magic_method is absent:
@@ -132,7 +132,7 @@ def sem_truediv(x, y):
 @define_semantics
 @use_static_builtins
 @use_simple_scoping
-def sem_floordiv(x, y):
+def floordiv(x, y):
     def normal():
         magic_method = class_getattr(x, "__floordiv__")
         if magic_method is absent:
@@ -164,7 +164,7 @@ def sem_floordiv(x, y):
 @define_semantics
 @use_static_builtins
 @use_simple_scoping
-def sem_mod(x, y):
+def mod(x, y):
     def normal():
         magic_method = class_getattr(x, "__mod__")
         if magic_method is absent:
@@ -196,7 +196,7 @@ def sem_mod(x, y):
 @define_semantics
 @use_static_builtins
 @use_simple_scoping
-def sem_pow(x, y):
+def pow(x, y):
     def normal():
         magic_method = class_getattr(x, "__pow__")
         if magic_method is absent:
@@ -228,7 +228,7 @@ def sem_pow(x, y):
 @define_semantics
 @use_static_builtins
 @use_simple_scoping
-def sem_lshift(x, y):
+def lshift(x, y):
     def normal():
         magic_method = class_getattr(x, "__lshift__")
         if magic_method is absent:
@@ -260,7 +260,7 @@ def sem_lshift(x, y):
 @define_semantics
 @use_static_builtins
 @use_simple_scoping
-def sem_rshift(x, y):
+def rshift(x, y):
     def normal():
         magic_method = class_getattr(x, "__rshift__")
         if magic_method is absent:
@@ -292,7 +292,7 @@ def sem_rshift(x, y):
 @define_semantics
 @use_static_builtins
 @use_simple_scoping
-def sem_and(x, y):
+def bitand(x, y):
     def normal():
         magic_method = class_getattr(x, "__and__")
         if magic_method is absent:
@@ -324,7 +324,7 @@ def sem_and(x, y):
 @define_semantics
 @use_static_builtins
 @use_simple_scoping
-def sem_or(x, y):
+def bitor(x, y):
     def normal():
         magic_method = class_getattr(x, "__or__")
         if magic_method is absent:
@@ -356,7 +356,7 @@ def sem_or(x, y):
 @define_semantics
 @use_static_builtins
 @use_simple_scoping
-def sem_xor(x, y):
+def xor(x, y):
     def normal():
         magic_method = class_getattr(x, "__xor__")
         if magic_method is absent:
@@ -388,7 +388,7 @@ def sem_xor(x, y):
 @define_semantics
 @use_static_builtins
 @use_simple_scoping
-def sem_matmul(x, y):
+def matmul(x, y):
     def normal():
         magic_method = class_getattr(x, "__matmul__")
         if magic_method is absent:
@@ -419,7 +419,7 @@ def sem_matmul(x, y):
 @define_semantics
 @use_static_builtins
 @use_simple_scoping
-def sem_getattribute(obj, attr):
+def getattribute(obj, attr):
     __getattribute__ = class_getattr(obj, "__getattribute__")
     try:
         return __getattribute__(obj, attr)
