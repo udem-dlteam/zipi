@@ -209,9 +209,9 @@
     ((Import ?loc ?aliases)
      ;; Import(alias* names)
      (if (null? (cdr aliases))
-         (compile-import loc (car aliases) scope conf)
+         (compile-import loc (car aliases) conf)
          (new-PycSeq loc
-                     (map (lambda (a) (compile-import loc a level  conf))
+                     (map (lambda (a) (compile-import loc a conf))
                           aliases))))
     ((ImportFrom ?loc ?module ?aliases . ?level)
      ;; ImportFrom(identifier? module, alias* names, int? level)
@@ -389,7 +389,7 @@
 	  (string->symbol (substring s 0 i))
 	  name)))
 
-(define (compile-import loc alias level conf)
+(define (compile-import loc alias conf)
    (match-case alias
       ((?name #f)
        (new-PycAssig
