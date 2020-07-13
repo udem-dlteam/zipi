@@ -961,13 +961,7 @@
   (let* ((id (PycIntrinsics-id this))
         (value (PycMacro-value this))
         (args (PycMacro-args this)))
-    (case id
-      ((class_getattr)
-        (let ((obj (car args))
-              (attr (cadr args)))
-          `(,value ,(scheme obj conf) (& ,(PycLiteralValue-val attr)))))
-      (else
-        (error "scheme::PycMacro" "unknown id" id)))))
+    `(,value ,@(scheme* args conf))))
 
 (define (scheme-cache cache node)
    (if (not (integer? cache))
