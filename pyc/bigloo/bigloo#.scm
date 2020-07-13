@@ -25,7 +25,7 @@
 (lcmfx lcm)
 (exptfx expt)
 (make-hashtable make-table)
-(hashtable-get table-ref)
+(hashtable-get bigloo#hashtable-get)
 (hashtable-put! table-set!)
 
 (bit-and bigloo#bit-and)
