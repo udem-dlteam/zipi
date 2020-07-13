@@ -816,67 +816,8 @@
             (py-str-to-scheme y-type-name)
             "'"))))))
 
-;; generic operator protocol
-
-(define-macro (define-binary-operator-protocol fun-name method rmethod operator)
-  `(define (,fun-name x y cache)
-    (let ((__op__ (getattribute-from-obj-mro x (& ,method))))
-      (let ((left-op-result
-              (if (eq? __op__ py-absent)
-                py-NotImplemented
-                (py-call __op__ x y))))
-        (if (eq? left-op-result py-NotImplemented)
-          (let ((__rop__ (getattribute-from-obj-mro y (& ,rmethod))))
-            (let ((right-op-result
-                    (if (eq? __rop__ py-absent)
-                      py-NotImplemented
-                      (py-call __rop__ y x))))
-              (if (eq? right-op-result py-NotImplemented)
-                (throw-unsupported-operand x y ,operator)
-                right-op-result)))
-          left-op-result)))))
-
-;; add
-(define-binary-operator-protocol py-add "__add__" "__radd__" "+")
-
-;; bitwise and
-(define-binary-operator-protocol py-and "__and__" "__rand__" "&")
-
-;; div
-(define-binary-operator-protocol py-div "__truediv__" "__rtruediv__" "/")
-
-;; floor div
-(define-binary-operator-protocol py-floordiv "__floordiv__" "__rfloordiv__" "//")
-
-;; left shift
-(define-binary-operator-protocol py-lshift "__lshift__" "__rlshift__" "<<")
-
-;; matrix multiplication (unimplemented for builtins, namely used by numpy)
-(define-binary-operator-protocol py-matmul "__matmul__" "__rmatmul__" "@")
-
-;; mod
-(define-binary-operator-protocol py-mod "__mod__" "__rmod__" "%")
-
-;; mul
-(define-binary-operator-protocol py-mul "__mul__" "__rmul__" "*")
-
-;; bitwise or
-(define-binary-operator-protocol py-or "__or__" "__ror__" "|")
-
-;; pow
-(define-binary-operator-protocol py-pow "__pow__" "__rpow__" "**")
-
-;; right shift
-(define-binary-operator-protocol py-rshift "__rshift__" "__rrshift__" ">>")
-
-;; sub
-(define-binary-operator-protocol py-sub "__sub__" "__rsub__" "-")
-
-;; xor
-(define-binary-operator-protocol py-xor "__xor__" "__rxor__" "^")
-
 ;; ==
-(define (py-eq x y cache)
+(define (py-eq x y)
   (let* ((__eq__ (getattribute-from-obj-mro x (& "__eq__")))
          (left-op-result
             (if (eq? __eq__ py-absent)
@@ -890,13 +831,13 @@
                     (py-call right-__eq__ y x))))
             (if (eq? right-op-result py-NotImplemented)
               ;; fall back on 'is'
-              (py-is x y #f)
+              (py-is x y)
               right-op-result)))
         left-op-result)))
 
 
 ;; !=
-(define (py-ne x y cache) ;; x != y
+(define (py-ne x y) ;; x != y
   (let ((__ne__ (getattribute-from-obj-mro x (& "__ne__"))))
     (let ((left-op-result
             (if (eq? __ne__ py-absent)
@@ -910,14 +851,31 @@
                     (py-call right-__ne__ y x))))
             (if (eq? right-op-result py-NotImplemented)
               ;; fall back on 'not x == y'
-              (let ((eq-result (py-eq x y cache)))
+              (let ((eq-result (py-eq x y)))
                 (if (py-test eq-result)
                   py-False
                   py-True))
               right-op-result))
         left-op-result))))
 
-
+;; generic operator protocol
+(define-macro (define-binary-operator-protocol fun-name method rmethod operator)
+ `(define (,fun-name x y)
+   (let ((__op__ (getattribute-from-obj-mro x (& ,method))))
+     (let ((left-op-result
+             (if (eq? __op__ py-absent)
+               py-NotImplemented
+               (py-call __op__ x y))))
+       (if (eq? left-op-result py-NotImplemented)
+         (let ((__rop__ (getattribute-from-obj-mro y (& ,rmethod))))
+           (let ((right-op-result
+                   (if (eq? __rop__ py-absent)
+                     py-NotImplemented
+                     (py-call __rop__ y x))))
+             (if (eq? right-op-result py-NotImplemented)
+               (throw-unsupported-operand x y ,operator)
+               right-op-result)))
+         left-op-result)))))
 
 (define-binary-operator-protocol py-lt "__lt__" "__gt__" "<")
 
@@ -927,12 +885,12 @@
 
 (define-binary-operator-protocol py-ge "__ge__" "__le__" ">=")
 
-(define (py-is x y cache) ;; x is y
+(define (py-is x y) ;; x is y
   (if (eq? x y)
     py-True
     py-False))
 
-(define (py-isnot x y cache) ;; x is not y
+(define (py-isnot x y) ;; x is not y
   (if (not (eq? x y))
     py-True
     py-False))
@@ -942,10 +900,10 @@
   (let ((next-item (py-next iterator)))
     (cond
       ((not next-item) py-False)
-      ((py-eq item next-item #f) py-True)
+      ((py-eq item next-item) py-True)
       (else (py-in-iterator item iterator)))))
 
-(define (py-in item container cache) ;; x in y
+(define (py-in item container) ;; x in y
   (let ((__contains__ (getattribute-from-obj-mro container (& "__contains__"))))
     (if (eq? __contains__ py-absent)
       (let ((iterator (py-obj->iterator container)))
@@ -954,8 +912,8 @@
           (throw-not-iteralble container)))
       (if (py-test (py-call2 __contains__ container item)) py-True py-False))))
 
-(define (py-notin item container cache) ;; x not in y
-  (if (py-test (py-in item container cache))
+(define (py-notin item container) ;; x not in y
+  (if (py-test (py-in item container))
     py-False
     py-True))
 
@@ -976,7 +934,7 @@
                     py-NotImplemented
                     (py-call __op__ x y))))
             (if (eq? inplace-result py-NotImplemented)
-              (,fall-back-name x y #f)
+              (,fall-back-name x y)
               inplace-result)))))))
 
 (define-inplace-operator-protocol py-iadd "__iadd__" "__add__" "__radd__" "+=")
@@ -1678,22 +1636,6 @@
   (procedure->py-function
     type-getattribute
     (make-posonly-signature '#(obj name))))
-
-;; getattr protocole
-;;  1) calls __getattribute__ method
-;;  2) if __getattribute__ raises AttributeError, call __getattr__
-(define (object-get obj name cache)
-  (with-handler
-    (lambda (exception)
-      (cond ((not (PyObject? exception)) (raise exception))
-            ((py-isinstance? exception py-builtin-AttributeError)
-              (let ((py-getattr (getattribute-from-obj-mro obj (& "__getattr__"))))
-                (if (not (eq? py-getattr py-absent))
-                  (py-call py-getattr obj name)
-                  (py-throw exception))))
-            (else (py-throw exception))))
-      (let ((py-getattribute (getattribute-from-obj-mro obj (& "__getattribute__"))))
-	 (py-call py-getattribute obj name))))
 
 (define (object-put! obj attr val cache)
   (py-own-attr-set! obj attr val))
@@ -2760,7 +2702,7 @@
     (cond
       ((>= i stop)
         #f)
-      ((py-test (py-eq (vector-ref vec i) item #f))
+      ((py-test (py-eq (vector-ref vec i) item))
         i)
       (else
         (loop (+ i 1))))))
@@ -2892,7 +2834,7 @@
            (vec (cdr len-vec-pair)))
       (let loop ((i 0))
         (if (< i len)
-          (if (py-test (py-eq item (vector-ref vec i) #f))
+          (if (py-test (py-eq item (vector-ref vec i)))
             py-True
             (loop (+ i 1)))
           py-False)))
@@ -3013,7 +2955,7 @@
         (if (< i len1)
           (let* ((el1 (vector-ref v1 i))
                  (el2 (vector-ref v2 i)))
-            (if (py-test (py-eq el1 el2 #f))
+            (if (py-test (py-eq el1 el2))
               (loop (+ i 1))
               #f))
           #t))
@@ -3033,9 +2975,9 @@
         (if (< i min-len)
           (let* ((el1 (vector-ref v1 i))
                  (el2 (vector-ref v2 i)))
-            (if (py-test (,py-strict-op el1 el2 #f))
+            (if (py-test (,py-strict-op el1 el2))
               #t
-              (if (py-test (py-eq el1 el2 #f))
+              (if (py-test (py-eq el1 el2))
                 (loop (+ i 1))
                 #f)))
           (,scheme-op len1 len2))))))
@@ -3528,7 +3470,7 @@
         (cond
           ((= i len)
             (py-int-from-scheme count))
-          ((py-test (py-eq (vector-ref vec i) item #f))
+          ((py-test (py-eq (vector-ref vec i) item))
             (loop (+ i 1) (+ count 1)))
           (else
             (loop (+ i 1) count)))))
@@ -3723,7 +3665,7 @@
            (vec-len (vector-length vec)))
       (let loop ((i 0))
         (if (< i vec-len)
-          (if (py-test (py-eq item (vector-ref vec i) #f))
+          (if (py-test (py-eq item (vector-ref vec i)))
             py-True
             (loop (+ i 1)))
           py-False)))
@@ -3789,7 +3731,7 @@
         (if (< i v1-len)
           (let* ((el1 (vector-ref v1 i))
                  (el2 (vector-ref v2 i)))
-            (if (py-test (py-eq el1 el2 #f))
+            (if (py-test (py-eq el1 el2))
               (loop (+ i 1))
               #f))
           #t))
@@ -3807,9 +3749,9 @@
         (if (< i min-len)
           (let* ((el1 (vector-ref v1 i))
                  (el2 (vector-ref v2 i)))
-            (if (py-test (,py-strict-op el1 el2 #f))
+            (if (py-test (,py-strict-op el1 el2))
               #t
-              (if (py-test (py-eq el1 el2 #f))
+              (if (py-test (py-eq el1 el2))
                 (loop (+ i 1))
                 #f)))
           (,scheme-op v1-len v2-len))))))
@@ -3931,7 +3873,7 @@
         (cond
           ((= i vec-len)
             (py-int-from-scheme count))
-          ((py-test (py-eq (vector-ref vec i) item #f))
+          ((py-test (py-eq (vector-ref vec i) item))
             (loop (+ i 1) (+ count 1)))
           (else
             (loop (+ i 1) count)))))
@@ -4562,7 +4504,7 @@
           (let* ((cell (doubly-linked-list-node-value node))
                 (cell-key (dict-cell-key cell))
                 (cell-hash (dict-cell-hash cell)))
-            (if (and (= hash cell-hash) (py-test (py-eq key cell-key #f)))
+            (if (and (= hash cell-hash) (py-test (py-eq key cell-key)))
               cell
               (loop (cell-next i size)))))))))
 
@@ -4615,7 +4557,7 @@
           (let* ((cell (doubly-linked-list-node-value node))
                 (cell-key (dict-cell-key cell))
                 (cell-hash (dict-cell-hash cell)))
-            (if (and (= hash cell-hash) (py-test (py-eq key cell-key #f)))
+            (if (and (= hash cell-hash) (py-test (py-eq key cell-key)))
               (let ((bucket-tail
                       (table-bucket-indices table size (cell-next i size)))
                     (len (ordered-table-length ordered-table)))
@@ -4644,7 +4586,7 @@
           (let* ((cell (doubly-linked-list-node-value node))
                 (cell-key (dict-cell-key cell))
                 (cell-hash (dict-cell-hash cell)))
-            (if (and (= hash cell-hash) (py-test (py-eq key cell-key #f)))
+            (if (and (= hash cell-hash) (py-test (py-eq key cell-key)))
               ;; case where we found an existing cell with the same key
               (let ((cell (doubly-linked-list-node-value node)))
                 (dict-cell-value-set! cell value))
@@ -6287,8 +6229,8 @@
                     (py-isinstance? exc py-builtin-AttributeError))
                 default
                 (raise exc)))
-            (object-get object name #f))
-          (object-get object name #f))
+            (py-getattribute object name))
+          (py-getattribute object name))
         (py-throw-exception-with-message
           py-builtin-TypeError
           "getattr(): attribute name must be string")))
@@ -7721,6 +7663,12 @@
           (display ": " out)
           (py-display str-exc out))))
     (display "\n" out)))
+
+;;==============================================================================
+;; semantics
+;;==============================================================================
+
+(include "../stdlib/zemantics.scm")
 
 ;;==============================================================================
 ;; BUILTINS

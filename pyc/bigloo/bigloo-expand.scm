@@ -155,7 +155,7 @@
                                     (,meth ,@params))))
                               derived)
                        (else
-                        (error "unhandled class in" '(,name ,@params)))))
+                        (error "unhandled class in" '(,name ,@params) ,(car params)))))
                (define (,(bigloo#symbol-append name '|::| type2) ,@params)
                  ,@body)
                ,@(map (lambda (d)

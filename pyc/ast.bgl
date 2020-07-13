@@ -45,7 +45,8 @@
 
            (class PycDeclInit::PycDecl
               val::PycExpr
-	      (cache (default #f)))
+              (simple-scoping-top-block (info '("jsonref" "notraverse")) (default #f))
+	            (cache (default #f)))
 
            (class PycVar::PycDeclInit)
 
@@ -218,7 +219,10 @@
 	      (generator::bool (default #f))
 	      (need-return::bool (default #f))
 	      (can-locals::bool (default #t))
-	      (super-in-class::bool (default #f)))
+	      (super-in-class::bool (default #f))
+        (use-simple-scoping::bool (default #f))
+        (semantics::bool (default #f))
+        (name::symbol (default #f)))
            (final-class PycClass::PycExpr
 	      (name::bstring read-only)
 	      (module::bstring read-only)
@@ -239,7 +243,8 @@
            (final-class PycCall::PycExpr
               fun::PycExpr
               args::pair-nil
-              (keywords::pair-nil (default '())))
+              (keywords::pair-nil (default '()))
+              (can-be-super::bool (default #t)))
 
 	   (abstract-class PycCollection::PycExpr
 	      elts::pair-nil)
@@ -256,6 +261,16 @@
 	   (final-class PycImport::PycExpr
 	      (path::bstring read-only)
 	      (depth::int read-only (default 0)))
+
+     (class PycIntrinsics::PycNode
+        id::symbol)
+
+     (final-class PycStatic::PycIntrinsics
+        value::symbol)
+
+     (final-class PycMacro::PycIntrinsics
+        value::symbol
+        args::pair-nil)
 
            (genkey)
 
@@ -606,3 +621,5 @@
 (gen-walks PycKont body)
 (gen-walks PycAssert test msg)
 (gen-walks PycUnimplemented)
+(gen-walks PycStatic)
+(gen-walks PycMacro (args))

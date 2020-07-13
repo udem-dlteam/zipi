@@ -45,31 +45,60 @@
 		    global)))))))
 
 (define (pyc-scheme-gambit ast conf)
-  (let* ((prog (pyc-scheme ast conf))
-        (file (config-get conf file:))
-        (path (config-get conf dir:))
-        (full-path (if (and file path) (make-file-path path file) #f)))
-    (list `(define-library (,(string->symbol (config-get conf name:)))
-              (export init)
-              (import (gambit) (zipi rts))
-              (begin
-                (start-registering-constants)
+  (let* ((semantics (collect-semantics* ast conf)))
+    (if (null? semantics)
+      ;; normal compilation
+      (let* ((prog (pyc-scheme ast conf))
+            (file (config-get conf file:))
+            (path (config-get conf dir:))
+            (full-path (if (and file path) (make-file-path path file) #f)))
+        (list `(define-library (,(string->symbol (config-get conf name:)))
+                  (export init)
+                  (import (gambit) (zipi rts))
+                  (begin
+                    (start-registering-constants)
 
-                (define py-module ,@prog)
+                    (define py-module ,@prog)
 
-                (define (init name)
-                  (init-registered-constants)
-                  (let ((caches (py-make-caches ,(PycModule-caches ast)))
-                        (module (py-make-module name)))
-                    ;; TODO: remove when __compiler_intrinsics__ exists
-                    (py-own-attr-set! module (& "_absent") (cons 'builtins-absent-sentinel '()))
-                    ,(if full-path
-                      `(py-own-attr-set!
-                        module (& "__file__") (&& ,full-path))
-                      `,@(list))
-                    (py-module module caches)
-                    module))
-                (end-registering-constants))))))
+                    (define (init name)
+                      (init-registered-constants)
+                      (let ((caches (py-make-caches ,(PycModule-caches ast)))
+                            (module (py-make-module name)))
+                        ,(if full-path
+                          `(py-own-attr-set!
+                            module (& "__file__") (&& ,full-path))
+                          `,@(list))
+                        (py-module module caches)
+                        module))
+                    (end-registering-constants)))))
+      (let ((semantics-definitions (map cdr semantics)))
+        (print
+          port: (current-error-port)
+          "Warning: compiling .py script with define_semantics will not generate an executable script")
+        semantics-definitions
+        ;;semantics-definitions
+        ))))
+
+
+(define-walk-method (collect-semantics* this::PycNode conf)
+  (call-default-walker))
+
+(define-walk-method (collect-semantics* this::PycFun conf)
+  (if (PycFun-semantics this)
+    (let* ((args (scheme* (PycFun-args this) conf))
+          (need-return (PycFun-need-return this))
+          (return-sym (if need-return (my-gensym '%return) #f))
+          (body-conf
+            (if need-return
+              (cons* fun: this return: return-sym conf)
+              (cons* fun: this conf)))
+          (body (scheme (PycFun-body this) body-conf))
+          (scheme-name (symbol-append 'py- (PycFun-name this))))
+      (list
+        (cons
+          scheme-name
+          `(define (,scheme-name ,@args) ,body))))
+    (call-default-walker)))
 
 (define (scheme* nodes conf)
   (map (lambda (n) (scheme n conf)) nodes))
@@ -97,16 +126,24 @@
             (cons* module: (PycModule-globals this) conf)))))))
 
 (define-walk-method (scheme this::PycSeq conf)
-   (epairify this
-      `(begin ,@(scheme* (PycSeq-nodes this) conf))))
+  (let ((nodes (PycSeq-nodes this)))
+    ;; this condition is only for generated code readability, it makes no semantic difference
+    (if (= (length nodes) 1)
+      (scheme (car nodes) conf)
+      (epairify this
+        `(begin ,@(scheme* nodes conf))))))
 
 (define-walk-method (scheme this::PycBlock conf)
-   (epairify this
-      `(letrec* ,(map (lambda (decl)
-			 `(,(scheme-decl decl conf)
-			   ,(scheme (PycDeclInit-val decl) conf)))
-		    (PycBlock-decls this))
-	  ,(scheme (PycBlock-body this) conf))))
+  (let ((decls (PycBlock-decls this)))
+    ;; this condition is only for generated code readability, it makes no semantic difference
+    (if (null? decls)
+      (scheme (PycBlock-body this) conf)
+      (epairify this
+        `(letrec* ,(map (lambda (decl)
+        	 `(,(scheme-decl decl conf)
+        	   ,(scheme (PycDeclInit-val decl) conf)))
+            decls)
+          ,(scheme (PycBlock-body this) conf))))))
 
 (define-walk-method (scheme this::PycReturn conf)
    (if (PycReturn-tail this)
@@ -613,8 +650,7 @@
    (epairify this
       `(,(symbol-append 'py- (PycBinary-op this))
 	,(scheme (PycBinary-lhs this) conf)
-	,(scheme (PycBinary-rhs this) conf)
-	,(scheme-cache (PycBinary-cache this) this))))
+	,(scheme (PycBinary-rhs this) conf))))
 
 (define-walk-method (scheme this::PycUnary conf)
    (epairify this
@@ -796,7 +832,8 @@
                   (string->symbol (string-append "py-call" (number->string args-len)))
                   'py-call))
               (call `(,py-call-fun ,fun ,@args)))
-          (if (> (length args) 0) call
+          (if (or (> (length args) 0) (not (PycCall-can-be-super this)))
+              call
               (super-handler call))))
 
    (let ((fun (PycCall-fun this)))
@@ -871,10 +908,9 @@
         (error "scheme::PycDelete" "only del subscript/slice are supported" #f)))))
 
 (define-walk-method (scheme this::PycAccess conf)
-   (epairify this
-      `(object-get ,(scheme (PycAccess-obj this) conf)
-	  ,(pyc-propname (PycAccess-field this))
-	  ,(scheme-cache (PycAccess-cache this) this))))
+  (epairify this
+    `(py-getattribute ,(scheme (PycAccess-obj this) conf)
+	  ,(pyc-propname (PycAccess-field this)))))
 
 (define-walk-method (scheme this::PycSubscript conf)
    (epairify this
@@ -918,6 +954,21 @@
         " at line "
         ,(number->string (car (PycNode-loc this)))))
 
+(define-walk-method (scheme this::PycStatic conf)
+  (PycStatic-value this))
+
+(define-walk-method (scheme this::PycMacro conf)
+  (let* ((id (PycIntrinsics-id this))
+        (value (PycMacro-value this))
+        (args (PycMacro-args this)))
+    (case id
+      ((class_getattr)
+        (let ((obj (car args))
+              (attr (cadr args)))
+          `(,value ,(scheme obj conf) (& ,(PycLiteralValue-val attr)))))
+      (else
+        (error "scheme::PycMacro" "unknown id" id)))))
+
 (define (scheme-cache cache node)
    (if (not (integer? cache))
        (error "scheme-cache" "Bad cache" (pyc->list node))
@@ -939,12 +990,6 @@
       (let ((n (cell-ref cnt)))
 	 (cell-set! cnt (+ 1 n))
 	 (PycRef-cache-set! this n))))
-
-(define-walk-method (collect-caches this::PycBinary cnt)
-   (call-default-walker)
-   (let ((n (cell-ref cnt)))
-      (cell-set! cnt (+ 1 n))
-      (PycBinary-cache-set! this n)))
 
 (define-walk-method (collect-caches this::PycUnary cnt)
    (call-default-walker)

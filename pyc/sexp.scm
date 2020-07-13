@@ -98,7 +98,8 @@
 		(list-ref args 6))
 	     (compile-stmt* loc body #t 'local conf)
        decorators: (map
-         (lambda (d) (sexp d #f scope conf)) decorator_list))))
+         (lambda (d) (sexp d #f scope conf)) decorator_list)
+       name: id)))
       ((ClassDef ?loc ?id ?bases ?keywords ?body ?decorator_list)
        ;; ClassDef(identifier name,
        ;;       expr* bases,
@@ -442,9 +443,9 @@
 (define (binary-operator op node)
    (case op
       ((Add)      (if (eq? node 'BinOp) 'add      'iadd))
-      ((Div)      (if (eq? node 'BinOp) 'div      'idiv))
-      ((BitAnd)   (if (eq? node 'BinOp) 'and      'iand))
-      ((BitOr)    (if (eq? node 'BinOp) 'or       'ior))
+      ((Div)      (if (eq? node 'BinOp) 'truediv      'idiv))
+      ((BitAnd)   (if (eq? node 'BinOp) 'bitand   'iand))
+      ((BitOr)    (if (eq? node 'BinOp) 'bitor    'ior))
       ((BitXor)   (if (eq? node 'BinOp) 'xor      'ixor))
       ((FloorDiv) (if (eq? node 'BinOp) 'floordiv 'ifloordiv))
       ((LShift)   (if (eq? node 'BinOp) 'lshift   'ilshift))

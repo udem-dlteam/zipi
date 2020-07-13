@@ -41,14 +41,14 @@
     py-make-caches
 
     py-add
-    py-and
-    py-div
+    py-bitand
+    py-truediv
     py-floordiv
     py-lshift
     py-matmul
     py-mod
     py-mul
-    py-or
+    py-bitor
     py-pow
     py-rshift
     py-sub
@@ -93,7 +93,7 @@
     py-next
     py-import
 
-    object-get
+    py-getattribute
     object-put!
     py-own-attr-set!
     getattribute-from-obj-mro
