@@ -5384,7 +5384,7 @@
   (wind path '()))
 
 
-(define (compile-to-cache path)
+(define (compile-to-cache path path-info)
   (let* ((path-cache
            (string-append
              (cache-location)
@@ -5392,16 +5392,15 @@
              "/"
              (path-strip-extension (path-strip-directory path))
              ".sld"))
-         (path-info (file-info path #t #f))
          (path-cache-info (file-info path-cache #t #f)))
 
     (define (create-_must-build_)
       (if compile-flag
           (let ((_must-build_-path
                   (string-append (path-strip-extension path-cache) "._must-build_")))
-           (if compile-flag
-               (with-output-to-file _must-build_-path list)
-               (delete-file _must-build_-path)))))
+            (if compile-flag
+                (with-output-to-file _must-build_-path list)
+                (delete-file _must-build_-path)))))
 
     ;; compile file and return #f if compilation failed
     (define (compile)
@@ -5409,30 +5408,44 @@
       (create-_must-build_)
       (fx= 0 (compile-source path path-cache)))
 
-    (if path-info
-        (if path-cache-info
-            ;; check according to modified date
-            (if (< (time->seconds (file-info-last-modification-time path-info))
-                   (time->seconds (file-info-last-modification-time path-cache-info)))
-                (begin
-                  (possible-error 1 "skipping compilation of unmodified file at " path ", compiled file found : " path-cache "\n")
-                  (create-_must-build_)
-                  #t) ;; compilation "succesfull" (file already compiled)
-                (compile))
-            (compile)) ;; compiled file does not exist (must compile)
-        #f))) ;; file to compile does not exist (failed compilation)
+    (if path-cache-info
+        ;; check according to modified date
+        (if (< (time->seconds (file-info-last-modification-time path-info))
+               (time->seconds (file-info-last-modification-time path-cache-info)))
+            (begin
+              (possible-error 1 "skipping compilation of unmodified file at " path ", compiled file found : " path-cache "\n")
+              (create-_must-build_)
+              #t) ;; compilation "succesfull" (file already compiled)
+            (compile))
+        (compile)))) ;; compiled file does not exist (must compile)
 
-(define (import-with-zipi-cache path py-__name__ sys.modules)
-  (let ((mod-init (and
-                    (compile-to-cache path)
-                    ;; TODO : for windows user, the path is not formated with a / before
-                    (load-module-and-get-init
-                      (substring path 1 (string-length (path-strip-extension path)))))))
+
+
+(define (compile-and-get-mod path path-info py-__name__)
+  (let ((mod-init
+          (and
+            (compile-to-cache path path-info)
+            ;; TODO : for windows user, the path is not formated with a / before
+            (load-module-and-get-init
+              (substring path 1 (string-length (path-strip-extension path)))))))
     (if mod-init
         (mod-init py-__name__)
         #f)))
 
-(define (import-from-sys.path __name__ py-__name__ sys.modules)
+(define (import-with-zipi-cache path py-__name__)
+  (let* ((path-package (path-expand "__init__.py" path))
+         (path-package-info (file-info path-package #t #f)))
+    (if path-package-info
+        (let ((mod (compile-and-get-mod path-package path-package-info py-__name__)))
+         (py-own-attr-set! mod (& "__path__") (py-make-list (py-str-from-scheme path)))
+         mod)
+        (let* ((path-mod (string-append path ".py"))
+               (path-mod-info (file-info path-mod #t #f)))
+          (if path-mod-info
+              (compile-and-get-mod path-mod path-package-info py-__name__)
+              #f)))))
+
+(define (import-from-sys.path __name__ py-__name__)
   (let ((sys.path-iter (py-iter (sys.path-get))))
    (let loop ((value sys.path-iter))
     (let ((value (py-next value)))
@@ -5440,9 +5453,8 @@
          (if (py-isinstance? value py-str-class) ;; TODO : support bytes
              (let ((path (string-append
                            (path-normalize (PyObjectStr-value value))
-                           __name__
-                           ".py")))
-               (or (import-with-zipi-cache path py-__name__ sys.modules)
+                           __name__)))
+               (or (import-with-zipi-cache path py-__name__)
                    (loop sys.path-iter)))
              (loop sys.path-iter))
          (py-throw-exception-with-message
@@ -5453,7 +5465,7 @@
   (let ((sys.modules (sys.modules-get)))
    ;; check in sys.modules if the value exist and returns it if it exists
    (or (dict-get sys.modules py-__name__ #f)
-       (import-from-sys.path __name__ py-__name__ sys.modules))))
+       (import-from-sys.path __name__ py-__name__))))
 
 (define (py-import path depth)
   (builtin-__import__ path (py-str-from-scheme path)))
@@ -5469,9 +5481,9 @@
                 (py-str-from-scheme
                   (path-expand "__main__.profile" (current-directory)))))
           (statprof-begin)
-          (import-with-zipi-cache path (& "__main__") sys.modules)
+          (compile-and-get-mod path (file-info path) (& "__main__"))
           (statprof-end profile-dir))
-        (import-with-zipi-cache path (& "__main__") sys.modules))))))
+        (compile-and-get-mod path (file-info path) (& "__main__")))))))
 
 
 (define py-import-root (current-directory))
@@ -7853,8 +7865,7 @@
 (define (py-make-builtins-mod)
   (let ((builtins-mod (import-from-sys.path
                         "builtins"
-                        (&& "builtins")
-                        (sys.modules-get))))
+                        (&& "builtins"))))
     (bootstrap-builtins builtins-mod)
     builtins-mod))
 
