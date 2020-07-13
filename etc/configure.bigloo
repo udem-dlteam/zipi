@@ -17,7 +17,7 @@ afile=bglafile
 btags=bgltags
 bdepend=bgldepend
 
-bcflags="-g -fsharing -L \$(BUILDLIBDIR) -srfi bigloo-compile"
+bcflags="-g -fsharing -call/cc -L \$(BUILDLIBDIR) -srfi bigloo-compile"
 blflags="-copt \$(CPICFLAGS) -L \$(BUILDLIBDIR) -srfi bigloo-compile"
 bhflags=
 btflags="-gtrace"
@@ -45,7 +45,7 @@ fi
 
 if [ "$cc " = " " ]; then
   cc=`$bigloo -lib-dir $bigloolibdir $bcflags -eval '(begin (print *cc*) (exit 0))'`
-else  
+else
   bcflags="$bcflags -cc $cc"
 fi
 
@@ -157,7 +157,7 @@ for file in Makefile.bigloo pyc.init zipi.init; do
           -e "s|@BGLCLOSELIBS_S@|$bglcloselibss|" \
           -e "s|@BGLCLOSELIBS_U@|$bglcloselibsu|" \
    	>> $path
-done	
+done
 
 for file in pyc.init zipi.init; do
   cat etc/$file \
@@ -165,7 +165,6 @@ for file in pyc.init zipi.init; do
     > $buildlibdir/$file
 
   rm etc/$file
-done  
+done
 
 pysexppp="['cat', '-']"
-

@@ -160,7 +160,14 @@
     (cons 'ZeroDivisionError 'py-builtin-ZeroDivisionError)))
 
 (define static-builtins-table
-  (list->table static-builtins))
+  (let ((table (make-hashtable)))
+    (for-each
+      (lambda (pair)
+        (let ((key (car pair))
+              (value (cdr pair)))
+          (hashtable-put! table key value)))
+      static-builtins)
+      table))
 
 (define valid-intrinsics
   (append
@@ -227,7 +234,7 @@
               (if pair (cdr pair) #f))
             (and
               use-static-builtins
-              (table-ref static-builtins-table id #f)))))
+              (hashtable-get static-builtins-table id)))))
     (if static-value
       (let ((loc (PycNode-loc this)))
         (new-PycStatic loc id static-value))

@@ -5,6 +5,9 @@
 (define (bigloo#bit-lsh x y) (arithmetic-shift x y))
 (define (bigloo#bit-rsh x y) (arithmetic-shift x (- y)))
 
+(define (bigloo#hashtable-get table key)
+  (table-ref table key #f))
+
 (define bigloo#print println)
 
 (define (bigloo#tprint . args)

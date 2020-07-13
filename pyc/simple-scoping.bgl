@@ -1,6 +1,7 @@
 (module __pyc_simple_scoping
 
    (include "ast.sch"
+      "new.sch"
 	    "walk.sch")
 
    (import __pyc_dump
