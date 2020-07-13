@@ -205,7 +205,7 @@
    	      args::pair-nil
    	      (cache (default #f)))
 
-           (final-class PycFun::PycExpr
+           (class PycFun::PycExpr
 	      args::pair-nil
 	      posonlyargs::pair-nil
 	      vararg::obj
@@ -221,8 +221,10 @@
 	      (can-locals::bool (default #t))
 	      (super-in-class::bool (default #f))
         (use-simple-scoping::bool (default #f))
-        (semantics::bool (default #f))
         (name::symbol (default #f)))
+
+        (final-class PycSemantics::PycFun)
+
            (final-class PycClass::PycExpr
 	      (name::bstring read-only)
 	      (module::bstring read-only)
@@ -607,6 +609,7 @@
 (gen-walks PycHandler type body)
 (gen-walks PycStmtExpr expr)
 (gen-walks PycFun (args) (posonlyargs) vararg (kwonlyargs) (kw-defaults) kwarg (defaults) body (decorators))
+(gen-walks PycSemantics (args) (posonlyargs) vararg (kwonlyargs) (kw-defaults) kwarg (defaults) body (decorators))
 (gen-walks PycClass body (bases))
 (gen-walks PycBinary lhs rhs)
 (gen-walks PycUnary expr)

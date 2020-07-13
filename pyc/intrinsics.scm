@@ -322,14 +322,35 @@
 (define-walk-method (mark-define-semantics! this::PycFun)
   (let ((decorators (PycFun-decorators this)))
     (if (contains-PycRef-with-name? decorators 'define_semantics)
-      (begin
-        (PycFun-decorators-set!
-          this
-          (list-remove-pred
-            decorators
-            (lambda (d)
-              (or (PycRef-with-name? d 'use_simple_scoping)
-                  (PycRef-with-name? d 'define_semantics)))))
-        (PycFun-use-simple-scoping-set! this #t)
-        (PycFun-semantics-set! this #t)))
-      (call-default-walker)))
+      (let* ((res (call-default-walker))
+            (loc (PycNode-loc res))
+            (args (PycFun-args res))
+            (posonlyargs (PycFun-posonlyargs res))
+            (vararg (PycFun-vararg res))
+            (kwonlyargs (PycFun-kwonlyargs res))
+            (kw-defaults (PycFun-kw-defaults res))
+            (kwarg (PycFun-kwarg res))
+            (defaults (PycFun-defaults res))
+            (body (PycFun-body res))
+            (decls (PycFun-decls res))
+            (name (PycFun-name res)))
+        (new-PycSemantics
+          loc
+          args
+          posonlyargs
+          vararg
+          kwonlyargs
+          kw-defaults
+          kwarg
+          defaults
+          body
+          decorators:
+            (list-remove-pred
+              decorators
+              (lambda (d)
+                (or (PycRef-with-name? d 'use_simple_scoping)
+                    (PycRef-with-name? d 'define_semantics))))
+          decls: decls
+          use-simple-scoping: #t
+          name: name))
+      (call-default-walker))))
