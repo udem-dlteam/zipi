@@ -13,11 +13,11 @@
 ;*    The module                                                       */
 ;*---------------------------------------------------------------------*/
 (module __pyc_javascript
-   
+
    (include "ast.sch"
 	    "walk.sch")
-   
+
    (import __pyc_dump
 	   __pyc_ast)
-   
+
    (export (pyc-javascript ast conf)))
