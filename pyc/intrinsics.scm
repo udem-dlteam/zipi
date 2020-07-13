@@ -76,9 +76,30 @@
         (new-PycMacro loc 'class_getattr 'getattribute-from-obj-mro args)
         (error "SyntaxError" "wrong argument for class_getattr" #f))))
 
+(define (make-call_host this)
+  (let* ((loc (PycNode-loc this))
+        (args (PycCall-args this))
+        (args-len (length args))
+        (attr (cadr args)))
+      (if (and
+            (>= args-len 1)
+            (PycString? (car args)))
+        (new-PycMacro
+          loc
+          'call_host
+          'call-host
+          (cons
+            (new-PycStatic
+              loc
+              'host-signature
+              (PycLiteralValue-val (car args)))
+            (cdr args)))
+        (error "SyntaxError" "wrong argument for call_host" #f))))
+
 (define macro-intrinsics
   (list
-    (cons 'class_getattr make-class_getattr)))
+    (cons 'class_getattr make-class_getattr)
+    (cons 'call_host make-call_host)))
 
 (define static-intrinsics
   (list

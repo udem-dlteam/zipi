@@ -11,6 +11,8 @@
     init-registered-constants
     init-constants
 
+    call-host
+
     with-handler
     bind-exit
 
