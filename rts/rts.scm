@@ -1814,7 +1814,7 @@
 (define (str-value-collect-components value)
   (reverse (str-value-collect-components-aux! value '())))
 
-(define (str-make! str)
+(define (str-force! str)
   (let ((value (PyObjectStr-value str)))
     (cond
       ((string? value)
@@ -1825,13 +1825,13 @@
           (PyObjectStr-value-set! str new-string)
           new-string))
       (else
-        (error "str-make!" "received object with value" value)))))
+        (error "str-force!" "received object with value" value)))))
 
 (define (str-representative-get str)
   (let ((self-token (PyObjectStr-representative str)))
     (if (eq? self-token py-absent)
       (begin
-        (let* ((str-value (str-make! str))
+        (let* ((str-value (str-force! str))
                (rep (table-ref str-representatives str-value #f)))
           (if rep
             (begin
@@ -1974,8 +1974,8 @@
         (if (py-isinstance? self py-str-class)
           (cond
             ((py-isinstance? other py-str-class)
-              (let ((self-value (str-make! self))
-                    (other-value (str-make! other)))
+              (let ((self-value (str-force! self))
+                    (other-value (str-force! other)))
                 (if (,scheme-op self-value other-value) py-True py-False)))
             (else py-NotImplemented))
           (py-throw-required-type ,method-name "str" self)))
@@ -2319,7 +2319,7 @@
     py-absent)) ;; representative
 
 (define (py-str-to-scheme self)
-  (str-make! self))
+  (str-force! self))
 
 (define (py-set-from-scheme elems)
   (py-throw-exception-with-message
@@ -4007,7 +4007,7 @@
           (else
             (error "builtin function __new__ just supports int as an argument"))))
       (else
-        (error "builtin function __new__ for 'bytearray' doesnt not yet support more then one argument "))  )
+        (error "builtin function __new__ for 'bytearray' doesnt not yet support more than one argument "))  )
     (py-throw-wrong-new-argument "bytearray" cls)))
 
 
@@ -5395,6 +5395,7 @@
          (path-cache-info (file-info path-cache #t #f)))
 
     (define (create-_must-build_)
+      ;; create empty "._must-build_" file
       (if compile-flag
           (let ((_must-build_-path
                   (string-append (path-strip-extension path-cache) "._must-build_")))
@@ -5415,7 +5416,7 @@
             (begin
               (possible-error 1 "skipping compilation of unmodified file at " path ", compiled file found : " path-cache "\n")
               (create-_must-build_)
-              #t) ;; compilation "succesfull" (file already compiled)
+              #t) ;; compilation "successfull" (file already compiled)
             (compile))
         (compile)))) ;; compiled file does not exist (must compile)
 
@@ -5454,7 +5455,7 @@
          (if value
              (if (py-isinstance? value py-str-class) ;; TODO : support bytes
                  (let ((path (string-append
-                               (path-normalize (str-make! value))
+                               (path-normalize (str-force! value))
                                __name__)))
                    (or (import-with-zipi-cache path py-__name__)
                        (loop sys.path-iter)))
@@ -7597,10 +7598,10 @@
      (cond
       ((eq? globals py-None)
        (if (py-isinstance? name py-str-class)
-           (builtin-__import__ (str-make! name))
+           (builtin-__import__ (str-force! name))
            (py-throw-exception-with-message py-builtin-TypeError "__import__() argument 1 must be str not " )))
       (else
-       (py-throw-exception-with-message py-NotImplemented "__import__ with more then one argument is not yet implemented"))))
+       (py-throw-exception-with-message py-NotImplemented "__import__ with more than one argument is not yet implemented"))))
    (make-args-defaults-signature
     '#(name globals locals fromlist level)
     (vector
