@@ -1974,8 +1974,8 @@
         (if (py-isinstance? self py-str-class)
           (cond
             ((py-isinstance? other py-str-class)
-              (let ((self-value (PyObjectStr-value self))
-                    (other-value (PyObjectStr-value other)))
+              (let ((self-value (str-make! self))
+                    (other-value (str-make! other)))
                 (if (,scheme-op self-value other-value) py-True py-False)))
             (else py-NotImplemented))
           (py-throw-required-type ,method-name "str" self)))
@@ -5419,8 +5419,6 @@
             (compile))
         (compile)))) ;; compiled file does not exist (must compile)
 
-
-
 (define (compile-and-get-mod path path-info py-__name__)
   (let ((mod-init
           (and
@@ -5442,33 +5440,55 @@
         (let* ((path-mod (string-append path ".py"))
                (path-mod-info (file-info path-mod #t #f)))
           (if path-mod-info
-              (compile-and-get-mod path-mod path-package-info py-__name__)
+              (compile-and-get-mod path-mod path-mod-info py-__name__)
               #f)))))
 
-(define (import-from-sys.path __name__ py-__name__)
-  (let ((sys.path-iter (py-iter (sys.path-get))))
-   (let loop ((value sys.path-iter))
-    (let ((value (py-next value)))
-     (if value
-         (if (py-isinstance? value py-str-class) ;; TODO : support bytes
-             (let ((path (string-append
-                           (path-normalize (PyObjectStr-value value))
-                           __name__)))
-               (or (import-with-zipi-cache path py-__name__)
-                   (loop sys.path-iter)))
-             (loop sys.path-iter))
-         (py-throw-exception-with-message
-           py-builtin-ModuleNotFoundError
-           "No module named " __name__))))))
+(define (string-split string split)
+  (call-with-input-string string (lambda (port) (read-all port (lambda (p) (read-line p split))))))
 
-(define (builtin-__import__ __name__ py-__name__)
-  (let ((sys.modules (sys.modules-get)))
-   ;; check in sys.modules if the value exist and returns it if it exists
-   (or (dict-get sys.modules py-__name__ #f)
-       (import-from-sys.path __name__ py-__name__))))
+(define (import-from-sys.path sys.path __name__ py-__name__)
+  (or (dict-get (sys.modules-get) py-__name__ #f)
+      (let ((sys.path-iter (py-iter sys.path)))
+       (let loop ((value sys.path-iter))
+        (let ((value (py-next value)))
+         (if value
+             (if (py-isinstance? value py-str-class) ;; TODO : support bytes
+                 (let ((path (string-append
+                               (path-normalize (str-make! value))
+                               __name__)))
+                   (or (import-with-zipi-cache path py-__name__)
+                       (loop sys.path-iter)))
+                 (loop sys.path-iter))
+             #f))))))
+
+(define (builtin-__import__ __name__)
+  (let ((name-split (string-split __name__ #\.)))
+   (let loop ((sys.path (sys.path-get))
+              (name-split name-split)
+              (name-cumulative (car name-split))
+              (last-module #f))
+     (let ((module (import-from-sys.path sys.path (car name-split) (py-str-from-scheme name-cumulative))))
+      (if (and module (py-isinstance? module py-module-class))
+          (begin
+            (if last-module
+                (py-own-attr-set! last-module (py-str-from-scheme (car name-split)) module))
+            (if (pair? (cdr name-split))
+                (let ((module.__path__ (py-own-attr-ref module (& "__path__"))))
+                 (if (eq? py-absent module.__path__)
+                     (py-throw-exception-with-message
+                       py-builtin-ModuleNotFoundError
+                       "No module named '" __name__ "'; " (car name-split) " is not a package")
+                     (loop module.__path__
+                           (cdr name-split)
+                           (string-append name-cumulative "." (cadr name-split))
+                           module)))
+                module))
+          (py-throw-exception-with-message
+            py-builtin-ModuleNotFoundError
+            "No module named '" __name__ "'"))))))
 
 (define (py-import path depth)
-  (builtin-__import__ path (py-str-from-scheme path)))
+  (builtin-__import__ path))
 
 (define (run-as-main path)
   (let ((sys.modules (sys.modules-get)))
@@ -7577,7 +7597,7 @@
      (cond
       ((eq? globals py-None)
        (if (py-isinstance? name py-str-class)
-           (builtin-__import__ (PyObjectStr-value name) name)
+           (builtin-__import__ (str-make! name))
            (py-throw-exception-with-message py-builtin-TypeError "__import__() argument 1 must be str not " )))
       (else
        (py-throw-exception-with-message py-NotImplemented "__import__ with more then one argument is not yet implemented"))))
@@ -7863,9 +7883,8 @@
   (set! py-builtin-range (py-own-attr-ref builtins-mod (& "range"))))
 
 (define (py-make-builtins-mod)
-  (let ((builtins-mod (import-from-sys.path
-                        "builtins"
-                        (&& "builtins"))))
+  (let ((builtins-mod (builtin-__import__
+                        "builtins")))
     (bootstrap-builtins builtins-mod)
     builtins-mod))
 
