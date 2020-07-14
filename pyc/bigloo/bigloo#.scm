@@ -27,6 +27,7 @@
 (make-hashtable make-table)
 (hashtable-get bigloo#hashtable-get)
 (hashtable-put! table-set!)
+(hashtable->list table->list)
 
 (bit-and bigloo#bit-and)
 (bit-or bigloo#bit-or)
