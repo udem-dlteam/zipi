@@ -6,13 +6,12 @@
 """
 
 
-import sys
-import _zparse
+from _zparse import *
 from _zast import *
 
 
 def parse(source, filename='<unknown>', mode='exec'):
-    return _zparse.parse((source+'\n').encode('utf-8'))
+    return parse_((source+'\n').encode('utf-8'))
 
 
 def dump(node, annotate_fields=True, include_attributes=False):
@@ -121,6 +120,7 @@ def show_ast(x):
     print(dump2(x, annotate_fields=True, include_attributes=True))
 
 def main():
+    import sys
     with open(sys.argv[1], "r") as f:
         source = f.read()
     show_ast(parse(source))

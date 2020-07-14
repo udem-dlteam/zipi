@@ -438,7 +438,7 @@ def read_grammar_and_generate_parser(filename):
     start_fn_name, f = generate_parse_functions()
     
     print()
-    print('def parse(source):')
+    print('def parse_(source):')
     print()
     print('    # filename = "<unknown>"')
     print('    # mode = "exec"')
