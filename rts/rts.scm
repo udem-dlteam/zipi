@@ -1825,7 +1825,7 @@
           (PyObjectStr-value-set! str new-string)
           new-string))
       (else
-        (error "str-force!" "received object with value" value)))))
+        (error "str-force! received object with value" value)))))
 
 (define (str-representative-get str)
   (let ((self-token (PyObjectStr-representative str)))
@@ -4007,7 +4007,7 @@
           (else
             (error "builtin function __new__ just supports int as an argument"))))
       (else
-        (error "builtin function __new__ for 'bytearray' doesnt not yet support more than one argument "))  )
+        (error "builtin function __new__ for 'bytearray' does not yet support more than one argument "))  )
     (py-throw-wrong-new-argument "bytearray" cls)))
 
 
@@ -5416,7 +5416,7 @@
             (begin
               (possible-error 1 "skipping compilation of unmodified file at " path ", compiled file found : " path-cache "\n")
               (create-_must-build_)
-              #t) ;; compilation "successfull" (file already compiled)
+              #t) ;; compilation "successful" (file already compiled)
             (compile))
         (compile)))) ;; compiled file does not exist (must compile)
 
