@@ -41,15 +41,27 @@ not not x
 
 x < y
 x > y
-x == y
 x <= y
 x >= y
+x == y
+x != y
+#x <> y
+x is y
+x is not y
+x in y
+x not in y
 
 x < y > z
 x > y < z
-x == y < z
 x <= y < z
 x >= y < z
+x == y < z
+x != y < z
+#x <> y < z
+x is y < z
+x is not y < z
+x in y < z
+x not in y < z
 
 x | y
 x | y | z
@@ -126,15 +138,27 @@ lambda : x
 
 ( x < y )
 ( x > y )
-( x == y )
 ( x <= y )
 ( x >= y )
+( x == y )
+( x != y )
+#( x <> y )
+( x is y )
+( x is not y )
+( x in y )
+( x not in y )
 
 ( x < y > z )
 ( x > y < z )
-( x == y < z )
 ( x <= y < z )
 ( x >= y < z )
+( x == y < z )
+( x != y < z )
+#( x <> y < z )
+( x is y < z )
+( x is not y < z )
+( x in y < z )
+( x not in y < z )
 
 ( x | y )
 ( x | y | z )
@@ -175,7 +199,7 @@ lambda : x
 
 # Statements
 
-del a
+del x
 
 pass
 
@@ -190,7 +214,7 @@ return x , y
 yield
 yield x
 yield x , y
-yield x , y, *z
+yield x , y, * z
 yield from x
 
 raise
@@ -199,3 +223,76 @@ raise x from y
 
 x = y
 x , y = z
+
+global x
+global x , y
+
+nonlocal x
+nonlocal x , y
+
+assert x
+assert x , y
+
+import x
+import x , y
+import x . y . z
+
+import x as a
+import x as a , y as b
+import x . y . z as a
+
+if x :
+    a
+
+if x :
+    a
+elif y :
+    b
+elif z :
+    c
+
+if x :
+    a
+elif y :
+    b
+elif z :
+    c
+else:
+    d
+
+while x :
+    a
+
+while x :
+    a
+else:
+    b
+
+while x :
+    a
+    while y :
+        b
+        while z :
+            c
+        d
+    e
+
+for x in y :
+    a
+
+def x ( ) :
+    a
+
+def x ( y ) :
+    a
+
+def x ( y , z ) :
+    a
+
+def fib(n):
+    if n<2:
+        return n
+    else:
+        return fib(n-1) + fib(n-2)
+
+print(fib(30))

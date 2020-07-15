@@ -3,6 +3,18 @@
 {
 "prelude":
 "from _zast import *\n\
+\n\
+def set_end_ast(ast, end_ast):\n\
+    return set_end(ast, end_ast.end_lineno, end_ast.end_col_offset)\n\
+\n\
+def set_ctx(targets, ctx):\n\
+    for i in range(len(targets)):\n\
+        t = targets[i]\n\
+        t.ctx = ctx\n\
+        if isinstance(t, Tuple):\n\
+            for j in range(len(t.elts)):\n\
+                t.elts[j].ctx = ctx\n\
+\n\
 "
 
 
@@ -18,6 +30,50 @@
    ["asts.append(stmt1)"]
 ,"stmts: (NEWLINE | stmt)*.":
    ["return asts"]
+
+
+,"funcdef: .'def' NAME parameters ['->' test] ':' [TYPE_COMMENT] func_body_suite":
+   ["lineno = get_lineno(ts); col_offset = get_col_offset(ts)\n"
+    "type_comment = None"]
+,"funcdef: 'def' .NAME parameters ['->' test] ':' [TYPE_COMMENT] func_body_suite":
+   ["name = token(ts)"]
+,"funcdef: 'def' NAME parameters ['->' test] ':' [TYPE_COMMENT] func_body_suite.":
+   ["ast = FunctionDef(name, parameters1, func_body_suite1, [], None, type_comment)\n"
+    "set_start(ast, lineno, col_offset)\n"
+    "set_end_ast(ast, func_body_suite1[-1])\n"
+    "return ast"]
+
+
+,"parameters: '(' .[typedargslist] ')'":
+   ["typedargslist1 = None"]
+,"parameters: '(' [typedargslist] ')'.":
+   ["if typedargslist1 is None:\n"
+    "    return arguments([], [], None, [], [], None, [])\n"
+    "else:\n"
+    "    return typedargslist1"]
+
+
+,"typedargslist: .NAME (',' NAME)*":
+   ["a = arg(token(ts),None,None)\n"
+    "set_start_end_1token(ts, a)\n"
+    "args = [a]"]
+,"typedargslist: NAME (',' .NAME)*":
+   ["a = arg(token(ts),None,None)\n"
+    "set_start_end_1token(ts, a)\n"
+    "args.append(a)"]
+,"typedargslist: NAME (',' NAME)*.":
+   ["return arguments(args, [], None, [], [], None, [])"]
+
+
+,"func_body_suite: simple_stmt.":
+   ["return [simple_stmt1]"]
+
+,"func_body_suite: NEWLINE [TYPE_COMMENT NEWLINE] INDENT. stmt+ DEDENT":
+   ["stmts = []"]
+,"func_body_suite: NEWLINE [TYPE_COMMENT NEWLINE] INDENT stmt.+ DEDENT":
+   ["stmts.append(stmt1)"]
+,"func_body_suite: NEWLINE [TYPE_COMMENT NEWLINE] INDENT stmt+ DEDENT.":
+   ["return stmts"]
 
 
 ,"stmt: simple_stmt.":
@@ -70,12 +126,7 @@
     "type_comment = None"]
 ,"expr_stmt: testlist_star_expr (annassign | augassign (yield_expr|testlist) | [('=' (yield_expr|testlist_star_expr))+. [TYPE_COMMENT]] )":
    ["ast = Assign(targets, testlist_star_expr2, type_comment)\n"
-    "for i in range(len(targets)):\n"
-    "    t = targets[i]\n"
-    "    t.ctx = Store()\n"
-    "    if isinstance(t, Tuple):\n"
-    "        for j in range(len(t.elts)):\n"
-    "            t.elts[j].ctx = Store()\n"
+    "set_ctx(targets, Store())\n"
     "return set_start_end(ts, lineno, col_offset, ast)"]
 ,"expr_stmt: testlist_star_expr (annassign | augassign (yield_expr|testlist) | [('=' (yield_expr|testlist_star_expr))+ [TYPE_COMMENT]]. )":
    ["ast = Expr(testlist_star_expr1)\n"
@@ -93,8 +144,7 @@
    ["lineno = get_lineno(ts); col_offset = get_col_offset(ts)"]
 ,"del_stmt: 'del' exprlist.":
    ["ast = Delete(exprlist1)\n"
-    "for i in range(len(exprlist1)):\n"
-    "    exprlist1[i].ctx = Del()\n"
+    "set_ctx(exprlist1, Del())\n"
     "return set_start_end(ts, lineno, col_offset, ast)"]
 
 
@@ -277,15 +327,27 @@
     "    return set_start_end(ts, lineno, col_offset, ast)"]
 
 
-,"comp_op: '<'.":   ["return Lt()"]
+,"comp_op: '<'.":          ["return Lt()"]
 
-,"comp_op: '>'.":   ["return Gt()"]
+,"comp_op: '>'.":          ["return Gt()"]
 
-,"comp_op: '=='.":  ["return Eq()"]
+,"comp_op: '>='.":         ["return GtE()"]
 
-,"comp_op: '>='.":  ["return GtE()"]
+,"comp_op: '<='.":         ["return LtE()"]
 
-,"comp_op: '<='.":  ["return LtE()"]
+,"comp_op: '=='.":         ["return Eq()"]
+
+,"comp_op: '!='.":         ["return NotEq()"]
+
+,"comp_op: '<>'.":         ["return NotEq()"]
+
+,"comp_op: 'is' ['not'.]": ["return IsNot()"]
+
+,"comp_op: 'is' ['not'].": ["return Is()"]
+
+,"comp_op: 'in'.":         ["return In()"]
+
+,"comp_op: 'not' 'in'.":   ["return NotIn()"]
 
 
 ,"expr: .xor_expr ('|' xor_expr)*":
@@ -428,6 +490,201 @@
 ,"yield_arg: testlist_star_expr.":
    ["ast = Yield(testlist_star_expr1)\n"
     "return set_start_end(ts, lineno, col_offset, ast)"]
+
+
+,"global_stmt: .'global' NAME (',' NAME)*":
+   ["lineno = get_lineno(ts); col_offset = get_col_offset(ts)"]
+,"global_stmt: 'global' .NAME (',' NAME)*":
+   ["names = [token(ts)]"]
+,"global_stmt: 'global' NAME (',' .NAME)*":
+   ["names.append(token(ts))"]
+,"global_stmt: 'global' NAME (',' NAME)*.":
+   ["ast = Global(names)\n"
+    "return set_start_end(ts, lineno, col_offset, ast)"]
+
+
+,"nonlocal_stmt: .'nonlocal' NAME (',' NAME)*":
+   ["lineno = get_lineno(ts); col_offset = get_col_offset(ts)"]
+,"nonlocal_stmt: 'nonlocal' .NAME (',' NAME)*":
+   ["names = [token(ts)]"]
+,"nonlocal_stmt: 'nonlocal' NAME (',' .NAME)*":
+   ["names.append(token(ts))"]
+,"nonlocal_stmt: 'nonlocal' NAME (',' NAME)*.":
+   ["ast = Nonlocal(names)\n"
+    "return set_start_end(ts, lineno, col_offset, ast)"]
+
+
+,"assert_stmt: .'assert' test [',' test]":
+   ["lineno = get_lineno(ts); col_offset = get_col_offset(ts)"]
+,"assert_stmt: 'assert' test. [',' test]":
+   ["msg = None"]
+,"assert_stmt: 'assert' test [',' test.]":
+   ["msg = test2"]
+,"assert_stmt: 'assert' test [',' test].":
+   ["ast = Assert(test1, msg)\n"
+    "return set_start_end(ts, lineno, col_offset, ast)"]
+
+
+,"import_stmt: import_name.":
+   ["return import_name1"]
+
+
+,"import_name: .'import' dotted_as_names":
+   ["lineno = get_lineno(ts); col_offset = get_col_offset(ts)"]
+,"import_name: 'import' dotted_as_names.":
+   ["ast = Import(dotted_as_names1)\n"
+    "return set_start_end(ts, lineno, col_offset, ast)"]
+
+
+,"dotted_as_names: .dotted_as_name (',' dotted_as_name)*":
+   ["lineno = get_lineno(ts); col_offset = get_col_offset(ts)"]
+,"dotted_as_names: dotted_as_name. (',' dotted_as_name)*":
+   ["names = [dotted_as_name1]"]
+,"dotted_as_names: dotted_as_name (',' dotted_as_name.)*":
+   ["names.append(dotted_as_name2)"]
+,"dotted_as_names: dotted_as_name (',' dotted_as_name)*.":
+   ["return names"]
+
+
+,"dotted_as_name: dotted_name. ['as' NAME]":
+   ["asname = None"]
+,"dotted_as_name: dotted_name ['as' .NAME]":
+   ["asname = token(ts)"]
+,"dotted_as_name: dotted_name ['as' NAME].":
+   ["return alias(dotted_name1, asname)"]
+
+
+,"dotted_name: .NAME ('.' NAME)*":
+   ["dotted_name = token(ts)"]
+,"dotted_name: NAME ('.' .NAME)*":
+   ["dotted_name = dotted_name + '.' + token(ts)"]
+,"dotted_name: NAME ('.' NAME)*.":
+   ["return dotted_name"]
+
+
+,"compound_stmt: if_stmt.":     ["return if_stmt1"]
+
+,"compound_stmt: while_stmt.":  ["return while_stmt1"]
+
+,"compound_stmt: for_stmt.":    ["return for_stmt1"]
+
+,"compound_stmt: try_stmt.":    ["return try_stmt1"]
+
+,"compound_stmt: with_stmt.":   ["return with_stmt1"]
+
+,"compound_stmt: funcdef.":     ["return funcdef1"]
+
+,"compound_stmt: classdef.":    ["return classdef1"]
+
+,"compound_stmt: decorated.":   ["return decorated1"]
+
+,"compound_stmt: async_stmt.":  ["return async_stmt1"]
+
+
+,"if_stmt: .'if' namedexpr_test ':' suite ('elif' namedexpr_test ':' suite)* ['else' ':' suite]":
+   ["lineno = get_lineno(ts); col_offset = get_col_offset(ts)"]
+,"if_stmt: 'if' namedexpr_test ':' suite. ('elif' namedexpr_test ':' suite)* ['else' ':' suite]":
+   ["branches = [(lineno, col_offset, namedexpr_test1, suite1)]"]
+,"if_stmt: 'if' namedexpr_test ':' suite (.'elif' namedexpr_test ':' suite)* ['else' ':' suite]":
+   ["lineno = get_lineno(ts); col_offset = get_col_offset(ts)"]
+,"if_stmt: 'if' namedexpr_test ':' suite ('elif' namedexpr_test ':' suite.)* ['else' ':' suite]":
+   ["branches.append((lineno, col_offset, namedexpr_test2, suite2))"]
+,"if_stmt: 'if' namedexpr_test ':' suite ('elif' namedexpr_test ':' suite)* .['else' ':' suite]":
+   ["orelse = []"]
+,"if_stmt: 'if' namedexpr_test ':' suite ('elif' namedexpr_test ':' suite)* ['else' ':' suite.]":
+   ["orelse = suite3"]
+,"if_stmt: 'if' namedexpr_test ':' suite ('elif' namedexpr_test ':' suite)* ['else' ':' suite].":
+   ["while True:\n"
+    "    branch = branches.pop()\n"
+    "    lineno = branch[0]\n"
+    "    col_offset = branch[1]\n"
+    "    test = branch[2]\n"
+    "    body = branch[3]\n"
+    "    ast = If(test, body, orelse)\n"
+    "    set_start(ast, lineno, col_offset)\n"
+    "    set_end_ast(ast, (orelse if len(orelse) > 0 else body)[-1])\n"
+    "    if len(branches) > 0:\n"
+    "        orelse = [ast]\n"
+    "    else:\n"
+    "        return ast"]
+
+
+,"while_stmt: .'while' namedexpr_test ':' suite ['else' ':' suite]":
+   ["lineno = get_lineno(ts); col_offset = get_col_offset(ts)"]
+,"while_stmt: 'while' namedexpr_test ':' suite .['else' ':' suite]":
+   ["suite2 = []"]
+,"while_stmt: 'while' namedexpr_test ':' suite ['else' ':' suite].":
+   ["ast = While(namedexpr_test1, suite1, suite2)\n"
+    "set_start(ast, lineno, col_offset)\n"
+    "set_end_ast(ast, (suite2 if len(suite2) > 0 else suite1)[-1])\n"
+    "return ast"]
+
+
+,"for_stmt: .'for' exprlist 'in' testlist ':' [TYPE_COMMENT] suite ['else' ':' suite]":
+   ["lineno = get_lineno(ts); col_offset = get_col_offset(ts)\n"
+    "type_comment = None"]
+,"for_stmt: 'for' exprlist 'in' testlist ':' [TYPE_COMMENT] suite .['else' ':' suite]":
+   ["suite2 = []"]
+,"for_stmt: 'for' exprlist 'in' testlist ':' [TYPE_COMMENT] suite ['else' ':' suite].":
+   ["set_ctx(exprlist1, Store())\n"
+    "ast = For(exprlist1[0], testlist1, suite1, suite2, type_comment)\n"
+    "set_start(ast, lineno, col_offset)\n"
+    "set_end_ast(ast, (suite2 if len(suite2) > 0 else suite1)[-1])\n"
+    "return ast"]
+
+
+,"try_stmt: (.'try' ':' suite ((except_clause ':' suite)+ ['else' ':' suite] ['finally' ':' suite] | 'finally' ':' suite))":
+   ["lineno = get_lineno(ts); col_offset = get_col_offset(ts)"]
+,"try_stmt: ('try' ':' suite ((except_clause ':' suite)+ .['else' ':' suite] ['finally' ':' suite] | 'finally' ':' suite))":
+   ["suite3 = []"]
+,"try_stmt: ('try' ':' suite ((except_clause ':' suite)+ ['else' ':' suite] .['finally' ':' suite] | 'finally' ':' suite))":
+   ["suite4 = []"]
+,"try_stmt: ('try' ':' suite ((except_clause ':' suite)+ ['else' ':' suite] ['finally' ':' suite] | 'finally' ':' suite)).":
+   ["ast = Try(suite1, [], suite3, suite4)\n"
+    "# TODO: implement except_clause handling\n"
+    "set_start(ast, lineno, col_offset)\n"
+    "set_end_ast(ast, (suite4 if len(suite4) > 0 else suite3 if len(suite3) > 0 else suite1)[-1])\n"
+    "return ast"]
+
+
+,"testlist: .test (',' test)* [',']":
+   ["lineno = get_lineno(ts); col_offset = get_col_offset(ts)"]
+,"testlist: test. (',' test)* [',']":
+   ["tests = [test1]\n"
+    "force_tuple = False"]
+,"testlist: test (',' test.)* [',']":
+   ["tests.append(test2)"]
+,"testlist: test (',' test)* [','.]":
+   ["force_tuple = True"]
+,"testlist: test (',' test)* [','].":
+   ["if len(tests) == 1 and not force_tuple:\n"
+    "    return test1\n"
+    "else:\n"
+    "    ast = Tuple(tests, Load())\n"
+    "    return set_start_end(ts, lineno, col_offset, ast)"]
+
+
+,"namedexpr_test: .test [':=' test]":
+   ["lineno = get_lineno(ts); col_offset = get_col_offset(ts)"]
+,"namedexpr_test: test .[':=' test]":
+   ["test2 = None"]
+,"namedexpr_test: test [':=' test].":
+   ["if test2 is None:\n"
+    "    return test1\n"
+    "else:\n"
+    "    return test2"]
+
+
+,"suite: simple_stmt":
+   ["return simple_stmt1"]
+
+,"suite: NEWLINE INDENT. stmt+ DEDENT":
+   ["stmts = []"]
+,"suite: NEWLINE INDENT stmt.+ DEDENT":
+   ["stmts.append(stmt1)"]
+,"suite: NEWLINE INDENT stmt+ DEDENT.":
+   ["return stmts"]
+
 
 
 ,"testlist_star_expr: .(test|star_expr) (',' (test|star_expr))* [',']":
@@ -577,11 +834,11 @@
 
 
 ,"arglist: argument. (',' argument)* [',']":
-   ["arguments = [argument1]"]
+   ["args = [argument1]"]
 ,"arglist: argument (',' argument.)* [',']":
-   ["arguments.append(argument2)"]
+   ["args.append(argument2)"]
 ,"arglist: argument (',' argument)* [','].":
-   ["return arguments"]
+   ["return args"]
 
 
 ,"subscript: test.":
