@@ -376,7 +376,8 @@
           (append
             (apply append (map (lambda (arg) (collect-semantics-decls* arg #f)) (PycFun-args sem)))
             (collect-semantics-decls* (PycFun-body sem) #f)))
-        (lifted-semantics (get-lifted-semantics* (PycFun-body sem) (PycFun-name sem) cte)))
+        (args-order (map (lambda (a) (PycDecl-id a)) (PycFun-args sem)))
+        (lifted-semantics (get-lifted-semantics* (PycFun-body sem) (PycFun-name sem) cte args-order)))
     (for-each
       (lambda (info)
         (let ((nested-sem (car info))
@@ -437,14 +438,39 @@
           (loop (cdr pairs) (cons (caar pairs) acc))
           (loop (cdr pairs) acc))))))
 
-(define-walk-method (get-lifted-semantics* this::PycNode parent-name cte)
+(define (sort-lifted-vars vars order)
+  (define (symbol-sort lst)
+    (map string->symbol (sort string<? (map symbol->string lst))))
+
+  (let* ((with-order
+          (let loop ((lst order) (acc '()))
+                (cond
+                  ((null? lst)
+                    (reverse acc))
+                  ((member (car lst) vars)
+                    (loop (cdr lst) (cons (car lst) acc)))
+                  (else
+                    (loop (cdr lst) acc)))))
+        (w/o-order
+          (let loop ((lst vars) (acc '()))
+                (cond
+                  ((null? lst)
+                    (reverse acc))
+                  ((member (car lst) order)
+                    (loop (cdr lst) acc))
+                  (else
+                    (loop (cdr lst) (cons (car lst) acc))))))
+        (sorted-w/o-order (symbol-sort w/o-order)))
+    (append with-order sorted-w/o-order)))
+
+(define-walk-method (get-lifted-semantics* this::PycNode parent-name cte args-order)
   (call-default-walker))
 
-(define-walk-method (get-lifted-semantics* this::PycSemantics parent-name cte)
+(define-walk-method (get-lifted-semantics* this::PycSemantics parent-name cte args-order)
   (let* ((loc (PycNode-loc this))
         (sem-cte (collect-semantics-decls* this #t))
         (sem-refs (collect-semantics-refs* this #t))
-        (lifted-vars (get-variables-to-lift cte sem-cte sem-refs)))
+        (lifted-vars (sort-lifted-vars (get-variables-to-lift cte sem-cte sem-refs) args-order)))
     (PycFun-args-set!
       this
       (append

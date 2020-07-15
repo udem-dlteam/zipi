@@ -28,6 +28,7 @@
 (hashtable-get bigloo#hashtable-get)
 (hashtable-put! table-set!)
 (hashtable->list table->list)
+(sort bigloo#sort)
 
 (bit-and bigloo#bit-and)
 (bit-or bigloo#bit-or)
