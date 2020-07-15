@@ -1,228 +1,4 @@
-# List of integer codes for all tokens parsed by the tokenizer
-
-ENDMARKER = 0
-NAME = 1
-NUMBER = 2
-STRING = 3
-NEWLINE = 4
-INDENT = 5
-DEDENT = 6
-LPAR = 7
-RPAR = 8
-LSQB = 9
-RSQB = 10
-COLON = 11
-COMMA = 12
-SEMI = 13
-PLUS = 14
-MINUS = 15
-STAR = 16
-SLASH = 17
-VBAR = 18
-AMPER = 19
-LESS = 20
-GREATER = 21
-EQUAL = 22
-DOT = 23
-PERCENT = 24
-BACKQUOTE = 25
-LBRACE = 26
-RBRACE = 27
-EQEQUAL = 28
-NOTEQUAL = 29
-LESSEQUAL = 30
-GREATEREQUAL = 31
-TILDE = 32
-CIRCUMFLEX = 33
-LEFTSHIFT = 34
-RIGHTSHIFT = 35
-DOUBLESTAR = 36
-PLUSEQUAL = 37
-MINEQUAL = 38
-STAREQUAL = 39
-SLASHEQUAL = 40
-PERCENTEQUAL = 41
-AMPEREQUAL = 42
-VBAREQUAL = 43
-CIRCUMFLEXEQUAL = 44
-LEFTSHIFTEQUAL = 45
-RIGHTSHIFTEQUAL = 46
-DOUBLESTAREQUAL = 47
-DOUBLESLASH = 48
-DOUBLESLASHEQUAL = 49
-AT = 50
-OP = 51
-ERRORTOKEN = 52
-N_TOKENS = 53
-NT_OFFSET = 256
-ELLIPSIS = 54
-TYPE_COMMENT = 55
-
-FALSE = 56
-NONE = 57
-TRUE = 58
-AND = 59
-AS = 60
-ASSERT = 61
-BREAK = 62
-CLASS = 63
-CONTINUE = 64
-DEF = 65
-DEL = 66
-ELIF = 67
-ELSE = 68
-EXCEPT = 69
-FINALLY = 70
-FOR = 71
-FROM = 72
-GLOBAL = 73
-IF = 74
-IMPORT = 75
-IN = 76
-IS = 77
-LAMBDA = 78
-NONLOCAL = 79
-NOT = 80
-OR = 81
-PASS = 82
-RAISE = 83
-RETURN = 84
-TRY = 85
-WHILE = 86
-WITH = 87
-YIELD = 88
-ASYNC = 89
-AWAIT = 90
-
-tok_name = {}
-tok_name[ENDMARKER] = 'ENDMARKER'
-tok_name[NAME] = 'NAME'
-tok_name[NUMBER] = 'NUMBER'
-tok_name[STRING] = 'STRING'
-tok_name[NEWLINE] = 'NEWLINE'
-tok_name[INDENT] = 'INDENT'
-tok_name[DEDENT] = 'DEDENT'
-tok_name[LPAR] = 'LPAR'
-tok_name[RPAR] = 'RPAR'
-tok_name[LSQB] = 'LSQB'
-tok_name[RSQB] = 'RSQB'
-tok_name[COLON] = 'COLON'
-tok_name[COMMA] = 'COMMA'
-tok_name[SEMI] = 'SEMI'
-tok_name[PLUS] = 'PLUS'
-tok_name[MINUS] = 'MINUS'
-tok_name[STAR] = 'STAR'
-tok_name[SLASH] = 'SLASH'
-tok_name[VBAR] = 'VBAR'
-tok_name[AMPER] = 'AMPER'
-tok_name[LESS] = 'LESS'
-tok_name[GREATER] = 'GREATER'
-tok_name[EQUAL] = 'EQUAL'
-tok_name[DOT] = 'DOT'
-tok_name[PERCENT] = 'PERCENT'
-tok_name[BACKQUOTE] = 'BACKQUOTE'
-tok_name[LBRACE] = 'LBRACE'
-tok_name[RBRACE] = 'RBRACE'
-tok_name[EQEQUAL] = 'EQEQUAL'
-tok_name[NOTEQUAL] = 'NOTEQUAL'
-tok_name[LESSEQUAL] = 'LESSEQUAL'
-tok_name[GREATEREQUAL] = 'GREATEREQUAL'
-tok_name[TILDE] = 'TILDE'
-tok_name[CIRCUMFLEX] = 'CIRCUMFLEX'
-tok_name[LEFTSHIFT] = 'LEFTSHIFT'
-tok_name[RIGHTSHIFT] = 'RIGHTSHIFT'
-tok_name[DOUBLESTAR] = 'DOUBLESTAR'
-tok_name[PLUSEQUAL] = 'PLUSEQUAL'
-tok_name[MINEQUAL] = 'MINEQUAL'
-tok_name[STAREQUAL] = 'STAREQUAL'
-tok_name[SLASHEQUAL] = 'SLASHEQUAL'
-tok_name[PERCENTEQUAL] = 'PERCENTEQUAL'
-tok_name[AMPEREQUAL] = 'AMPEREQUAL'
-tok_name[VBAREQUAL] = 'VBAREQUAL'
-tok_name[CIRCUMFLEXEQUAL] = 'CIRCUMFLEXEQUAL'
-tok_name[LEFTSHIFTEQUAL] = 'LEFTSHIFTEQUAL'
-tok_name[RIGHTSHIFTEQUAL] = 'RIGHTSHIFTEQUAL'
-tok_name[DOUBLESTAREQUAL] = 'DOUBLESTAREQUAL'
-tok_name[DOUBLESLASH] = 'DOUBLESLASH'
-tok_name[DOUBLESLASHEQUAL] = 'DOUBLESLASHEQUAL'
-tok_name[AT] = 'AT'
-tok_name[OP] = 'OP'
-tok_name[ERRORTOKEN] = 'ERRORTOKEN'
-tok_name[ELLIPSIS] = 'ELLIPSIS'
-tok_name[TYPE_COMMENT] = 'TYPE_COMMENT'
-
-tok_name[FALSE] = 'FALSE'
-tok_name[NONE] = 'NONE'
-tok_name[TRUE] = 'TRUE'
-tok_name[AND] = 'AND'
-tok_name[AS] = 'AS'
-tok_name[ASSERT] = 'ASSERT'
-tok_name[BREAK] = 'BREAK'
-tok_name[CLASS] = 'CLASS'
-tok_name[CONTINUE] = 'CONTINUE'
-tok_name[DEF] = 'DEF'
-tok_name[DEL] = 'DEL'
-tok_name[ELIF] = 'ELIF'
-tok_name[ELSE] = 'ELSE'
-tok_name[EXCEPT] = 'EXCEPT'
-tok_name[FINALLY] = 'FINALLY'
-tok_name[FOR] = 'FOR'
-tok_name[FROM] = 'FROM'
-tok_name[GLOBAL] = 'GLOBAL'
-tok_name[IF] = 'IF'
-tok_name[IMPORT] = 'IMPORT'
-tok_name[IN] = 'IN'
-tok_name[IS] = 'IS'
-tok_name[LAMBDA] = 'LAMBDA'
-tok_name[NONLOCAL] = 'NONLOCAL'
-tok_name[NOT] = 'NOT'
-tok_name[OR] = 'OR'
-tok_name[PASS] = 'PASS'
-tok_name[RAISE] = 'RAISE'
-tok_name[RETURN] = 'RETURN'
-tok_name[TRY] = 'TRY'
-tok_name[WHILE] = 'WHILE'
-tok_name[WITH] = 'WITH'
-tok_name[YIELD] = 'YIELD'
-tok_name[ASYNC] = 'ASYNC'
-tok_name[AWAIT] = 'AWAIT'
-
-kw = {}
-kw['False'] = FALSE
-kw['None'] = NONE
-kw['True'] = TRUE
-kw['and'] = AND
-kw['as'] = AS
-kw['assert'] = ASSERT
-kw['break'] = BREAK
-kw['class'] = CLASS
-kw['continue'] = CONTINUE
-kw['def'] = DEF
-kw['del'] = DEL
-kw['elif'] = ELIF
-kw['else'] = ELSE
-kw['except'] = EXCEPT
-kw['finally'] = FINALLY
-kw['for'] = FOR
-kw['from'] = FROM
-kw['global'] = GLOBAL
-kw['if'] = IF
-kw['import'] = IMPORT
-kw['in'] = IN
-kw['is'] = IS
-kw['lambda'] = LAMBDA
-kw['nonlocal'] = NONLOCAL
-kw['not'] = NOT
-kw['or'] = OR
-kw['pass'] = PASS
-kw['raise'] = RAISE
-kw['return'] = RETURN
-kw['try'] = TRY
-kw['while'] = WHILE
-kw['with'] = WITH
-kw['yield'] = YIELD
-kw['async'] = ASYNC
-kw['await'] = AWAIT
+from ztoken import *
 
 #------------------------------------------------------------------------------
 
@@ -249,6 +25,8 @@ def append_eol(buf):
 
 def init_stats():
 
+    global found, stats
+
     found = [0]*67
 
     stats = {}
@@ -266,8 +44,6 @@ def init_stats():
     stats['k == KIND_CONTINUATION'] = 0
     stats['OTHER'] = 0
     stats['SPECIAL'] = 0
-
-    return [found, stats]
 
 def inc_found(index):
     found[index] += 1
@@ -359,7 +135,7 @@ PLAIN_STRING   = 1
 UNICODE_STRING = 2
 
 # The array kind_to_token maps token kinds to the integer code that
-# identifies that token (defined in zpy).
+# identifies that token (defined in ztoken.py).
 
 kind_to_token = [
 NUMBER,
@@ -569,8 +345,7 @@ def make_char_kind():
 
     return char_kind
 
-# Precompute from make_char_kind()
-char_kind = [17, 17, 17, 17, 17, 17, 17, 17, 17, 15, 16, 17, 15, 16, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 15, 48, 11, 13, 17, 34, 36, 11, 57, 60, 18, 44, 53, 46, 12, 22, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 54, 56, 30, 42, 26, 17, 50, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 58, 14, 61, 40, 10, 17, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 59, 38, 62, 52, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17]
+char_kind = make_char_kind()
 
 #------------------------------------------------------------------------------
 
@@ -598,18 +373,57 @@ class TokenizerState:
         self.end = 0
         self.token = NEWLINE
         self.line_start = 0
-        self.line_num = 0
+        self.line_num = 1
         self.paren_level = 0
         self.indents = [0]
         self.dedents = 0
         self.python = 2
 
+def get_lineno(ts):
+    return ts.line_num
+
+def get_col_offset(ts):
+    return ts.start - ts.line_start
+
+def get_end_lineno(ts):
+    return ts.line_num
+
+def get_end_col_offset(ts):
+    return ts.end - ts.line_start
+
+def set_start(ast, lineno, col_offset):
+    ast.lineno = lineno
+    ast.col_offset = col_offset
+    return ast
+
+def set_end(ast, end_lineno, end_col_offset):
+    ast.end_lineno = end_lineno
+    ast.end_col_offset = end_col_offset
+    return ast
+
+def set_start_end(ts, lineno, col_offset, ast):
+    set_start(ast, lineno, col_offset)
+    set_end(ast, ts.prev_end_lineno, ts.prev_end_col_offset)
+    return ast
+
+def set_start_1token(ts, ast):
+    return set_start(ast, get_lineno(ts), get_col_offset(ts))
+
+def set_end_1token(ts, ast):
+    return set_end(ast, get_end_lineno(ts), get_end_col_offset(ts))
+
+def set_start_end_1token(ts, ast):
+    return set_end_1token(ts, set_start_1token(ts, ast))
+
+def source(ts, start, end):
+    return ts.buf[start:end].decode('utf-8')
+
+def token(ts):
+    return source(ts, ts.start, ts.end)
+
 #------------------------------------------------------------------------------
 
 # The tokenizer.
-
-def get_first_token(ts):
-    get_token(ts)
 
 def get_token(ts):
 
@@ -711,6 +525,8 @@ def get_token(ts):
 
         else:
 
+            inc_stats('not_bol')
+
             # inside parentheses or not at start of line
 
             while True:
@@ -721,12 +537,18 @@ def get_token(ts):
                     break
 
             if k == KIND_NEWLINE: # EOL
+                ts.start = pos-1
                 if c == 13 and byte_at(buf, pos) == 10: # CR-LF
                     pos += 1
                 ts.line_start = pos
                 ts.line_num += 1
-                if pos < ts.buf_len: # not at end of source?
-                    continue # go to top of tokenizer's main loop
+                if pos <= ts.buf_len: # not at end of source?
+                    if ts.paren_level == 0:
+                        ts.end = pos
+                        ts.token = NEWLINE
+                        return
+                    else:
+                        continue # go to top of tokenizer's main loop
                 inc_found(KIND_EOF)  # .0004
                 ts.start = ts.buf_len
                 ts.end = ts.buf_len
@@ -783,7 +605,7 @@ def get_token(ts):
 
             inc_found(KIND_NAME) # .4436
             ts.end = pos
-            ts.token = kw.get(buf[ts.start:pos], NAME)
+            ts.token = kw.get(source(ts, ts.start, ts.end), NAME)
             return
 
         # check for simple single char token, such as parentheses, comma and ~
@@ -1007,7 +829,6 @@ def get_string(ts, pos, c, kind, regexpr):
         while True:
             next = byte_at(buf, pos)
             if next == c and byte_at(buf, pos+1) == c and byte_at(buf, pos+2) == c:
-
                 pos += 3
                 break
             elif next == 92: # '\'
