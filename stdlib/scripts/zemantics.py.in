@@ -3,8 +3,6 @@ from __compiler_intrinsics__ import define_semantics, use_static_builtins, use_s
 {}
 
 @define_semantics
-@use_static_builtins
-@use_simple_scoping
 def getattribute(obj, attr):
     __getattribute__ = class_getattr(obj, "__getattribute__")
     try:

@@ -2,8 +2,6 @@ from __compiler_intrinsics__ import define_semantics, use_static_builtins, use_s
 
 # Auto-generated
 @define_semantics
-@use_static_builtins
-@use_simple_scoping
 def add(x, y):
     def normal():
         magic_method = class_getattr(x, "__add__")
@@ -34,8 +32,6 @@ def add(x, y):
 
 # Auto-generated
 @define_semantics
-@use_static_builtins
-@use_simple_scoping
 def sub(x, y):
     def normal():
         magic_method = class_getattr(x, "__sub__")
@@ -66,8 +62,6 @@ def sub(x, y):
 
 # Auto-generated
 @define_semantics
-@use_static_builtins
-@use_simple_scoping
 def mul(x, y):
     def normal():
         magic_method = class_getattr(x, "__mul__")
@@ -98,8 +92,6 @@ def mul(x, y):
 
 # Auto-generated
 @define_semantics
-@use_static_builtins
-@use_simple_scoping
 def truediv(x, y):
     def normal():
         magic_method = class_getattr(x, "__truediv__")
@@ -130,8 +122,6 @@ def truediv(x, y):
 
 # Auto-generated
 @define_semantics
-@use_static_builtins
-@use_simple_scoping
 def floordiv(x, y):
     def normal():
         magic_method = class_getattr(x, "__floordiv__")
@@ -162,8 +152,6 @@ def floordiv(x, y):
 
 # Auto-generated
 @define_semantics
-@use_static_builtins
-@use_simple_scoping
 def mod(x, y):
     def normal():
         magic_method = class_getattr(x, "__mod__")
@@ -194,8 +182,6 @@ def mod(x, y):
 
 # Auto-generated
 @define_semantics
-@use_static_builtins
-@use_simple_scoping
 def pow(x, y):
     def normal():
         magic_method = class_getattr(x, "__pow__")
@@ -226,8 +212,6 @@ def pow(x, y):
 
 # Auto-generated
 @define_semantics
-@use_static_builtins
-@use_simple_scoping
 def lshift(x, y):
     def normal():
         magic_method = class_getattr(x, "__lshift__")
@@ -258,8 +242,6 @@ def lshift(x, y):
 
 # Auto-generated
 @define_semantics
-@use_static_builtins
-@use_simple_scoping
 def rshift(x, y):
     def normal():
         magic_method = class_getattr(x, "__rshift__")
@@ -290,8 +272,6 @@ def rshift(x, y):
 
 # Auto-generated
 @define_semantics
-@use_static_builtins
-@use_simple_scoping
 def bitand(x, y):
     def normal():
         magic_method = class_getattr(x, "__and__")
@@ -322,8 +302,6 @@ def bitand(x, y):
 
 # Auto-generated
 @define_semantics
-@use_static_builtins
-@use_simple_scoping
 def bitor(x, y):
     def normal():
         magic_method = class_getattr(x, "__or__")
@@ -354,8 +332,6 @@ def bitor(x, y):
 
 # Auto-generated
 @define_semantics
-@use_static_builtins
-@use_simple_scoping
 def xor(x, y):
     def normal():
         magic_method = class_getattr(x, "__xor__")
@@ -386,8 +362,6 @@ def xor(x, y):
 
 # Auto-generated
 @define_semantics
-@use_static_builtins
-@use_simple_scoping
 def matmul(x, y):
     def normal():
         magic_method = class_getattr(x, "__matmul__")
@@ -417,8 +391,6 @@ def matmul(x, y):
     return normal()
 
 @define_semantics
-@use_static_builtins
-@use_simple_scoping
 def getattribute(obj, attr):
     __getattribute__ = class_getattr(obj, "__getattribute__")
     try:

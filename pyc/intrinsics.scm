@@ -214,21 +214,28 @@
       (error "SyntaxError" "invalid __compiler_intrinsics__" (car intrinsics)))))
 
 (define (use-intrinsics! this intrinsics)
+  (let* ((statics-assoc-list (make-intrinsics-assoc-list intrinsics static-intrinsics))
+        (macro-assoc-list (make-intrinsics-assoc-list intrinsics macro-intrinsics))
+        (intrinsics-info
+          (list
+            intrinsics
+            statics-assoc-list
+            macro-assoc-list)))
   (check-invalid-intrinsics intrinsics)
   (check-no-intrinsics-assignation this intrinsics)
   (resolve-statics!
     this
     intrinsics
-    (make-intrinsics-assoc-list intrinsics static-intrinsics)
-    (make-intrinsics-assoc-list intrinsics macro-intrinsics)
+    statics-assoc-list
+    macro-assoc-list
     #f)
   (if (member 'use_simple_scoping intrinsics)
     (mark-use-simple-scoping! this))
   (if (member 'define_semantics intrinsics)
     (begin
-      (mark-define-semantics! this #f)
+      (mark-define-semantics! this #f intrinsics-info)
       (lambda-lift-semantics! this)))
-  this)
+  this))
 
 (define-walk-method (check-no-intrinsics-assignation this::PycNode intrinsics)
   (call-default-walker))
@@ -318,12 +325,19 @@
         (PycFun-use-simple-scoping-set! this #t)))
       (call-default-walker)))
 
-(define-walk-method (mark-define-semantics! this::PycNode parent-semantics)
+(define-walk-method (mark-define-semantics! this::PycNode parent-semantics intrinsics-info)
   (call-default-walker))
 
-(define-walk-method (mark-define-semantics! this::PycFun parent-semantics)
+(define-walk-method (mark-define-semantics! this::PycFun parent-semantics intrinsics-info)
   (let* ((decorators (PycFun-decorators this))
         (is-decorated-semantics (contains-PycRef-with-name? decorators 'define_semantics)))
+    (if is-decorated-semantics
+      (resolve-statics!
+        (PycFun-body this)
+        (car intrinsics-info)
+        (cadr intrinsics-info)
+        (caddr intrinsics-info)
+        #t))
     (if (or is-decorated-semantics parent-semantics)
       (let* ((res (call-default-walker))
             (loc (PycNode-loc res))
@@ -346,7 +360,7 @@
           kw-defaults
           kwarg
           defaults
-          (mark-define-semantics! body #t)
+          (mark-define-semantics! body #t intrinsics-info)
           decorators:
             (list-remove-pred
               decorators
