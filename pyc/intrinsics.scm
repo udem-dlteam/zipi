@@ -502,6 +502,9 @@
     '()
     (list (PycDecl-id this))))
 
+(define-walk-method (collect-semantics-decls* this::PycAssig search-nested-semantics)
+  (collect-semantics-refs* (PycAssig-lhs this) search-nested-semantics))
+
 ;; collect-semantics-refs*
 
 (define-walk-method (collect-semantics-refs* this::PycNode search-nested-semantics)
@@ -514,6 +517,9 @@
 
 (define-walk-method (collect-semantics-refs* this::PycRefUnresolved search-nested-semantics)
   (list (PycRefUnresolved-id this)))
+
+(define-walk-method (collect-semantics-refs* this::PycAssig search-nested-semantics)
+  (collect-semantics-refs* (PycAssig-rhs this) search-nested-semantics))
 
 ;; remove-semantics-decl!
 
