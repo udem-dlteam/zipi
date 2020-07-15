@@ -454,7 +454,7 @@
       (list
         this ;; semantics
         (PycFun-name this) ;; old name
-        (symbol-append parent-name '- (PycFun-name this)) ;; new name
+        (symbol-append parent-name ': (PycFun-name this)) ;; new name
         lifted-vars))))
 
 ;; collect-semantics-decls*
