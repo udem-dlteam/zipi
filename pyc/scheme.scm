@@ -92,7 +92,7 @@
             (cons* fun: this return: return-sym conf)
             (cons* fun: this conf)))
         (body (scheme (PycFun-body this) body-conf))
-        (scheme-name (symbol-append 'py- (PycFun-name this))))
+        (scheme-name (PycFun-name this)))
     (list
       (cons
         scheme-name
