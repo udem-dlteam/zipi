@@ -1825,7 +1825,7 @@
           (PyObjectStr-value-set! str new-string)
           new-string))
       (else
-        (error "str-force! received object with value" value)))))
+        (error "str-force!" "received object with value" value)))))
 
 (define (str-representative-get str)
   (let ((self-token (PyObjectStr-representative str)))
