@@ -1814,7 +1814,7 @@
 (define (str-value-collect-components value)
   (reverse (str-value-collect-components-aux! value '())))
 
-(define (str-make! str)
+(define (str-force! str)
   (let ((value (PyObjectStr-value str)))
     (cond
       ((string? value)
@@ -1825,13 +1825,13 @@
           (PyObjectStr-value-set! str new-string)
           new-string))
       (else
-        (error "str-make!" "received object with value" value)))))
+        (error "str-force!" "received object with value" value)))))
 
 (define (str-representative-get str)
   (let ((self-token (PyObjectStr-representative str)))
     (if (eq? self-token py-absent)
       (begin
-        (let* ((str-value (str-make! str))
+        (let* ((str-value (str-force! str))
                (rep (table-ref str-representatives str-value #f)))
           (if rep
             (begin
@@ -1974,8 +1974,8 @@
         (if (py-isinstance? self py-str-class)
           (cond
             ((py-isinstance? other py-str-class)
-              (let ((self-value (PyObjectStr-value self))
-                    (other-value (PyObjectStr-value other)))
+              (let ((self-value (str-force! self))
+                    (other-value (str-force! other)))
                 (if (,scheme-op self-value other-value) py-True py-False)))
             (else py-NotImplemented))
           (py-throw-required-type ,method-name "str" self)))
@@ -2319,7 +2319,7 @@
     py-absent)) ;; representative
 
 (define (py-str-to-scheme self)
-  (str-make! self))
+  (str-force! self))
 
 (define (py-set-from-scheme elems)
   (py-throw-exception-with-message
@@ -4007,7 +4007,7 @@
           (else
             (error "builtin function __new__ just supports int as an argument"))))
       (else
-        (error "builtin function __new__ for 'bytearray' doesnt not yet support more then one argument "))  )
+        (error "builtin function __new__ for 'bytearray' does not yet support more than one argument "))  )
     (py-throw-wrong-new-argument "bytearray" cls)))
 
 
@@ -5384,7 +5384,7 @@
   (wind path '()))
 
 
-(define (compile-to-cache path)
+(define (compile-to-cache path path-info)
   (let* ((path-cache
            (string-append
              (cache-location)
@@ -5392,16 +5392,16 @@
              "/"
              (path-strip-extension (path-strip-directory path))
              ".sld"))
-         (path-info (file-info path #t #f))
          (path-cache-info (file-info path-cache #t #f)))
 
     (define (create-_must-build_)
+      ;; create empty "._must-build_" file
       (if compile-flag
           (let ((_must-build_-path
                   (string-append (path-strip-extension path-cache) "._must-build_")))
-           (if compile-flag
-               (with-output-to-file _must-build_-path list)
-               (delete-file _must-build_-path)))))
+            (if compile-flag
+                (with-output-to-file _must-build_-path list)
+                (delete-file _must-build_-path)))))
 
     ;; compile file and return #f if compilation failed
     (define (compile)
@@ -5409,54 +5409,87 @@
       (create-_must-build_)
       (fx= 0 (compile-source path path-cache)))
 
-    (if path-info
-        (if path-cache-info
-            ;; check according to modified date
-            (if (< (time->seconds (file-info-last-modification-time path-info))
-                   (time->seconds (file-info-last-modification-time path-cache-info)))
-                (begin
-                  (possible-error 1 "skipping compilation of unmodified file at " path ", compiled file found : " path-cache "\n")
-                  (create-_must-build_)
-                  #t) ;; compilation "succesfull" (file already compiled)
-                (compile))
-            (compile)) ;; compiled file does not exist (must compile)
-        #f))) ;; file to compile does not exist (failed compilation)
+    (if path-cache-info
+        ;; check according to modified date
+        (if (< (time->seconds (file-info-last-modification-time path-info))
+               (time->seconds (file-info-last-modification-time path-cache-info)))
+            (begin
+              (possible-error 1 "skipping compilation of unmodified file at " path ", compiled file found : " path-cache "\n")
+              (create-_must-build_)
+              #t) ;; compilation "successful" (file already compiled)
+            (compile))
+        (compile)))) ;; compiled file does not exist (must compile)
 
-(define (import-with-zipi-cache path py-__name__ sys.modules)
-  (let ((mod-init (and
-                    (compile-to-cache path)
-                    ;; TODO : for windows user, the path is not formated with a / before
-                    (load-module-and-get-init
-                      (substring path 1 (string-length (path-strip-extension path)))))))
+(define (compile-and-get-mod path path-info py-__name__)
+  (let ((mod-init
+          (and
+            (compile-to-cache path path-info)
+            ;; TODO : for windows user, the path is not formated with a / before
+            (load-module-and-get-init
+              (substring path 1 (string-length (path-strip-extension path)))))))
     (if mod-init
         (mod-init py-__name__)
         #f)))
 
-(define (import-from-sys.path __name__ py-__name__ sys.modules)
-  (let ((sys.path-iter (py-iter (sys.path-get))))
-   (let loop ((value sys.path-iter))
-    (let ((value (py-next value)))
-     (if value
-         (if (py-isinstance? value py-str-class) ;; TODO : support bytes
-             (let ((path (string-append
-                           (path-normalize (PyObjectStr-value value))
-                           __name__
-                           ".py")))
-               (or (import-with-zipi-cache path py-__name__ sys.modules)
-                   (loop sys.path-iter)))
-             (loop sys.path-iter))
-         (py-throw-exception-with-message
-           py-builtin-ModuleNotFoundError
-           "No module named " __name__))))))
+(define (import-with-zipi-cache path py-__name__)
+  (let* ((path-package (path-expand "__init__.py" path))
+         (path-package-info (file-info path-package #t #f)))
+    (if path-package-info
+        (let ((mod (compile-and-get-mod path-package path-package-info py-__name__)))
+         (py-own-attr-set! mod (& "__path__") (py-make-list (py-str-from-scheme path)))
+         mod)
+        (let* ((path-mod (string-append path ".py"))
+               (path-mod-info (file-info path-mod #t #f)))
+          (if path-mod-info
+              (compile-and-get-mod path-mod path-mod-info py-__name__)
+              #f)))))
 
-(define (builtin-__import__ __name__ py-__name__)
-  (let ((sys.modules (sys.modules-get)))
-   ;; check in sys.modules if the value exist and returns it if it exists
-   (or (dict-get sys.modules py-__name__ #f)
-       (import-from-sys.path __name__ py-__name__ sys.modules))))
+(define (string-split string split)
+  (call-with-input-string string (lambda (port) (read-all port (lambda (p) (read-line p split))))))
+
+(define (import-from-sys.path sys.path __name__ py-__name__)
+  (or (dict-get (sys.modules-get) py-__name__ #f)
+      (let ((sys.path-iter (py-iter sys.path)))
+       (let loop ((value sys.path-iter))
+        (let ((value (py-next value)))
+         (if value
+             (if (py-isinstance? value py-str-class) ;; TODO : support bytes
+                 (let ((path (string-append
+                               (path-normalize (str-force! value))
+                               __name__)))
+                   (or (import-with-zipi-cache path py-__name__)
+                       (loop sys.path-iter)))
+                 (loop sys.path-iter))
+             #f))))))
+
+(define (builtin-__import__ __name__)
+  (let ((name-split (string-split __name__ #\.)))
+   (let loop ((sys.path (sys.path-get))
+              (name-split name-split)
+              (name-cumulative (car name-split))
+              (last-module #f))
+     (let ((module (import-from-sys.path sys.path (car name-split) (py-str-from-scheme name-cumulative))))
+      (if (and module (py-isinstance? module py-module-class))
+          (begin
+            (if last-module
+                (py-own-attr-set! last-module (py-str-from-scheme (car name-split)) module))
+            (if (pair? (cdr name-split))
+                (let ((module.__path__ (py-own-attr-ref module (& "__path__"))))
+                 (if (eq? py-absent module.__path__)
+                     (py-throw-exception-with-message
+                       py-builtin-ModuleNotFoundError
+                       "No module named '" __name__ "'; " (car name-split) " is not a package")
+                     (loop module.__path__
+                           (cdr name-split)
+                           (string-append name-cumulative "." (cadr name-split))
+                           module)))
+                module))
+          (py-throw-exception-with-message
+            py-builtin-ModuleNotFoundError
+            "No module named '" __name__ "'"))))))
 
 (define (py-import path depth)
-  (builtin-__import__ path (py-str-from-scheme path)))
+  (builtin-__import__ path))
 
 (define (run-as-main path)
   (let ((sys.modules (sys.modules-get)))
@@ -5469,9 +5502,9 @@
                 (py-str-from-scheme
                   (path-expand "__main__.profile" (current-directory)))))
           (statprof-begin)
-          (import-with-zipi-cache path (& "__main__") sys.modules)
+          (compile-and-get-mod path (file-info path) (& "__main__"))
           (statprof-end profile-dir))
-        (import-with-zipi-cache path (& "__main__") sys.modules))))))
+        (compile-and-get-mod path (file-info path) (& "__main__")))))))
 
 
 (define py-import-root (current-directory))
@@ -7565,10 +7598,10 @@
      (cond
       ((eq? globals py-None)
        (if (py-isinstance? name py-str-class)
-           (builtin-__import__ (PyObjectStr-value name) name)
+           (builtin-__import__ (str-force! name))
            (py-throw-exception-with-message py-builtin-TypeError "__import__() argument 1 must be str not " )))
       (else
-       (py-throw-exception-with-message py-NotImplemented "__import__ with more then one argument is not yet implemented"))))
+       (py-throw-exception-with-message py-NotImplemented "__import__ with more than one argument is not yet implemented"))))
    (make-args-defaults-signature
     '#(name globals locals fromlist level)
     (vector
@@ -7851,10 +7884,8 @@
   (set! py-builtin-range (py-own-attr-ref builtins-mod (& "range"))))
 
 (define (py-make-builtins-mod)
-  (let ((builtins-mod (import-from-sys.path
-                        "builtins"
-                        (&& "builtins")
-                        (sys.modules-get))))
+  (let ((builtins-mod (builtin-__import__
+                        "builtins")))
     (bootstrap-builtins builtins-mod)
     builtins-mod))
 
