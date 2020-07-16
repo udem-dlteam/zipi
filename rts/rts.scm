@@ -53,8 +53,14 @@
            (current-error-port))
   (exit 1))
 
+;;==============================================================================
+;; compiler intrinsics
+;;==============================================================================
 
-(start-registering-constants constants-must-be-representatives: #t)
+(define-macro (call-host signature . args)
+  `(py-throw-exception-with-message
+    py-builtin-NotImplementedError
+    "call_host intrinsic function not implemented"))
 
 ;; =============================================================================
 ;;  HIDDEN CLASSES
@@ -7696,21 +7702,6 @@
           (display ": " out)
           (py-display str-exc out))))
     (display "\n" out)))
-
-;;==============================================================================
-;; semantics
-;;==============================================================================
-
-(include "../stdlib/zemantics.scm")
-
-;;==============================================================================
-;; compiler intrinsics
-;;==============================================================================
-
-(define-macro (call-host signature . args)
-  `(py-throw-exception-with-message
-    py-builtin-NotImplementedError
-    "call_host intrinsic function not implemented"))
 
 ;;==============================================================================
 ;; BUILTINS

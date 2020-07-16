@@ -3,8 +3,7 @@
 arithmetic_template = \
 """# Auto-generated
 @define_semantics
-@use_static_builtins
-@use_simple_scoping
+@inline
 def {op}(x, y):
     def normal():
         magic_method = class_getattr(x, "__{magic_method}__")
