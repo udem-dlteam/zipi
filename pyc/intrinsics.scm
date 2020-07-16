@@ -194,7 +194,7 @@
   (append
     (map car static-intrinsics)
     (map car macro-intrinsics)
-    '(define_semantics use_static_builtins use_simple_scoping absent)))
+    '(define_semantics inline use_static_builtins use_simple_scoping absent)))
 
 (define (make-intrinsics-assoc-list intrinsics assoc-list)
   (if (null? intrinsics)
@@ -215,8 +215,8 @@
 
 (define (use-intrinsics! this intrinsics)
   (let* ((statics-assoc-list (make-intrinsics-assoc-list intrinsics static-intrinsics))
-        (macro-assoc-list (make-intrinsics-assoc-list intrinsics macro-intrinsics))
-        (intrinsics-info
+         (macro-assoc-list (make-intrinsics-assoc-list intrinsics macro-intrinsics))
+         (intrinsics-info
           (list
             intrinsics
             statics-assoc-list
@@ -230,11 +230,13 @@
     macro-assoc-list
     #f)
   (if (member 'use_simple_scoping intrinsics)
-    (mark-use-simple-scoping! this))
+      (mark-use-simple-scoping! this))
   (if (member 'define_semantics intrinsics)
-    (begin
-      (mark-define-semantics! this #f intrinsics-info)
-      (lambda-lift-semantics! this)))
+      (begin
+        (mark-define-semantics! this #f intrinsics-info)
+        (lambda-lift-semantics! this)))
+  (if (member 'inline intrinsics)
+      (mark-inline-semantics this))
   this))
 
 (define-walk-method (check-no-intrinsics-assignation this::PycNode intrinsics)
@@ -553,3 +555,24 @@
         (else
           (cons (remove-semantics-decl! (car nodes)) (filter (cdr nodes)))))))
   this)
+
+;; mark-inline-semantics!
+
+(define-walk-method (mark-inline-semantics this::PycNode)
+  (call-default-walker))
+
+(define-walk-method (mark-inline-semantics this::PycFun)
+  (let ((decorators (PycFun-decorators this)))
+    (if (contains-PycRef-with-name? decorators 'inline)
+      (error "@inline" "can only be used on semantics not function" this))
+    this))
+
+(define-walk-method (mark-inline-semantics this::PycSemantics)
+  (let ((decorators (PycFun-decorators this)))
+    (if (contains-PycRef-with-name? decorators 'inline)
+      (begin
+        (PycSemantics-inline-set! this #t)
+        (PycFun-decorators-set!
+          this
+          (list-remove-pred decorators (lambda (d) (PycRef-with-name? d 'inline))))))
+    this))

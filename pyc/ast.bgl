@@ -223,7 +223,8 @@
         (use-simple-scoping::bool (default #f))
         (name::symbol (default #f)))
 
-        (final-class PycSemantics::PycFun)
+        (final-class PycSemantics::PycFun
+          (inline::bool (default #f)))
 
            (final-class PycClass::PycExpr
 	      (name::bstring read-only)
