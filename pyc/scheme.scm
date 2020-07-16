@@ -749,7 +749,7 @@
            		  `(lambda ,args ,(generator this `(bind-exit (,return-sym) ,body)))
            		  `(lambda ,args ,(generator this body)))
                  ,(signature this conf)))
-            `(py-call1 ,(scheme (car decs) conf) ,(loop (cdr decs)))))))
+            `(py-call ,(scheme (car decs) conf) ,(loop (cdr decs)))))))
 
    (apply-decorators this conf))
 
@@ -796,10 +796,10 @@
 ;;			  (vector ,@(map (lambda (d)
 ;;					    (scheme-decl d conf))
 ;;				       (append (PycFun-args caller) (PycFun-decls caller)))))
-;;		       (py-call0 ,f))
+;;		       (py-call ,f))
 ;;		  `(if (eq? ,f py-builtin-globals)
 ;;		       (py-builtin-globals)
-;;		       (py-call0 ,f))))))
+;;		       (py-call ,f))))))
 
    ;; Catches the super-called-without-arguments to implicitly pass
    ;; arguments to a super() call
@@ -826,12 +826,7 @@
           ,call)))
 
    (define (invoke fun args)
-        (let* ((args-len (length args))
-              (py-call-fun
-                (if (<= args-len 5)
-                  (string->symbol (string-append "py-call" (number->string args-len)))
-                  'py-call))
-              (call `(,py-call-fun ,fun ,@args)))
+        (let* ((call `(py-call ,fun ,@args)))
           (if (or (> (length args) 0) (not (PycCall-can-be-super this)))
               call
               (super-handler call))))
