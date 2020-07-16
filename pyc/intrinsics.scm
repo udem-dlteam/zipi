@@ -194,7 +194,7 @@
   (append
     (map car static-intrinsics)
     (map car macro-intrinsics)
-    '(define_semantics use_static_builtins use_simple_scoping absent)))
+    '(define_semantics inline use_static_builtins use_simple_scoping absent)))
 
 (define (make-intrinsics-assoc-list intrinsics assoc-list)
   (if (null? intrinsics)
@@ -214,19 +214,30 @@
       (error "SyntaxError" "invalid __compiler_intrinsics__" (car intrinsics)))))
 
 (define (use-intrinsics! this intrinsics)
+  (let* ((statics-assoc-list (make-intrinsics-assoc-list intrinsics static-intrinsics))
+         (macro-assoc-list (make-intrinsics-assoc-list intrinsics macro-intrinsics))
+         (intrinsics-info
+          (list
+            intrinsics
+            statics-assoc-list
+            macro-assoc-list)))
   (check-invalid-intrinsics intrinsics)
   (check-no-intrinsics-assignation this intrinsics)
   (resolve-statics!
     this
     intrinsics
-    (make-intrinsics-assoc-list intrinsics static-intrinsics)
-    (make-intrinsics-assoc-list intrinsics macro-intrinsics)
+    statics-assoc-list
+    macro-assoc-list
     #f)
   (if (member 'use_simple_scoping intrinsics)
-    (mark-use-simple-scoping! this))
+      (mark-use-simple-scoping! this))
   (if (member 'define_semantics intrinsics)
-    (mark-define-semantics! this))
-  this)
+      (begin
+        (mark-define-semantics! this #f intrinsics-info)
+        (lambda-lift-semantics! this)))
+  (if (member 'inline intrinsics)
+      (mark-inline-semantics this))
+  this))
 
 (define-walk-method (check-no-intrinsics-assignation this::PycNode intrinsics)
   (call-default-walker))
@@ -316,20 +327,252 @@
         (PycFun-use-simple-scoping-set! this #t)))
       (call-default-walker)))
 
-(define-walk-method (mark-define-semantics! this::PycNode)
+(define-walk-method (mark-define-semantics! this::PycNode parent-semantics intrinsics-info)
   (call-default-walker))
 
-(define-walk-method (mark-define-semantics! this::PycFun)
+(define-walk-method (mark-define-semantics! this::PycFun parent-semantics intrinsics-info)
+  (let* ((decorators (PycFun-decorators this))
+        (is-decorated-semantics (contains-PycRef-with-name? decorators 'define_semantics)))
+    (if is-decorated-semantics
+      (resolve-statics!
+        (PycFun-body this)
+        (car intrinsics-info)
+        (cadr intrinsics-info)
+        (caddr intrinsics-info)
+        #t))
+    (if (or is-decorated-semantics parent-semantics)
+      (let* ((res (call-default-walker))
+            (loc (PycNode-loc res))
+            (args (PycFun-args res))
+            (posonlyargs (PycFun-posonlyargs res))
+            (vararg (PycFun-vararg res))
+            (kwonlyargs (PycFun-kwonlyargs res))
+            (kw-defaults (PycFun-kw-defaults res))
+            (kwarg (PycFun-kwarg res))
+            (defaults (PycFun-defaults res))
+            (body (PycFun-body res))
+            (decls (PycFun-decls res))
+            (name (PycFun-name res)))
+        (new-PycSemantics
+          loc
+          args
+          posonlyargs
+          vararg
+          kwonlyargs
+          kw-defaults
+          kwarg
+          defaults
+          (mark-define-semantics! body #t intrinsics-info)
+          decorators:
+            (list-remove-pred
+              decorators
+              (lambda (d)
+                (or (PycRef-with-name? d 'use_simple_scoping)
+                    (PycRef-with-name? d 'define_semantics))))
+          decls: decls
+          use-simple-scoping: #t
+          name: (if is-decorated-semantics (symbol-append 'py- name) name)))
+      (call-default-walker))))
+
+(define (lambda-lift-semantics! module)
+  (lambda-lift-semantics-walk! module))
+
+(define-walk-method (lambda-lift-semantics-walk! this::PycNode)
+  (call-default-walker))
+
+(define-walk-method (lambda-lift-semantics-walk! this::PycDeclInit)
+  (let ((val (PycDeclInit-val this)))
+    (if (isa? val PycSemantics)
+      (lambda-lift-nested-semantics val)
+      this)))
+
+(define (lambda-lift-nested-semantics sem)
+  (let* ((loc (PycNode-loc sem))
+        (cte
+          (append
+            (apply append (map (lambda (arg) (collect-semantics-decls* arg #f)) (PycFun-args sem)))
+            (collect-semantics-decls* (PycFun-body sem) #f)))
+        (args-order (map (lambda (a) (PycDecl-id a)) (PycFun-args sem)))
+        (lifted-semantics (get-lifted-semantics* (PycFun-body sem) (PycFun-name sem) cte args-order)))
+    (for-each
+      (lambda (info)
+        (let ((nested-sem (car info))
+              (old-name (cadr info))
+              (new-name (caddr info))
+              (lifted-vars (cadddr info)))
+          (PycFun-name-set! nested-sem new-name)
+          (update-semantics-calls! sem old-name new-name lifted-vars)))
+      lifted-semantics)
+    (remove-semantics-decl!
+      (new-PycBlock
+        loc
+        '()
+        (new-PycSeq
+          loc
+          (cons
+            sem
+            (map car lifted-semantics)))))))
+
+;; update-semantics-calls!
+(define-walk-method (update-semantics-calls! this::PycNode old-name new-name lifted-vars)
+  (call-default-walker))
+
+(define-walk-method (update-semantics-calls! this::PycCall old-name new-name lifted-vars)
+  (let ((loc (PycNode-loc this))
+        (fun (PycCall-fun this))
+        (args (PycCall-args this)))
+    (if (and (isa? fun PycRefUnresolved) (eq? (PycRefUnresolved-id fun) old-name))
+      (let ((ref-loc (PycNode-loc fun)))
+        (new-PycMacro
+          loc
+          new-name
+          new-name
+          (append
+            (map
+              (lambda (name) (new-PycRefUnresolved ref-loc name))
+              lifted-vars)
+            (map (lambda (a) (update-semantics-calls! a old-name new-name lifted-vars)) args))))
+      (call-default-walker))))
+
+;; get-lifted-semantics*
+
+(define (get-variables-to-lift cte sem-cte sem-refs)
+  (let ((table (make-hashtable)))
+    (for-each
+      (lambda (r) (hashtable-put! table r 'ref))
+      sem-refs)
+    (for-each
+      (lambda (r) (if (hashtable-get table r) (hashtable-put! table r 'liftable)))
+      cte)
+    (for-each
+      (lambda (r) (if (hashtable-get table r) (hashtable-put! table r #f)))
+      sem-cte)
+    (let loop ((pairs (hashtable->list table)) (acc '()))
+      (if (null? pairs)
+        acc
+        (if (eq? (cdar pairs) 'liftable)
+          (loop (cdr pairs) (cons (caar pairs) acc))
+          (loop (cdr pairs) acc))))))
+
+(define (sort-lifted-vars vars order)
+  (define (symbol-sort lst)
+    (map string->symbol (sort string<? (map symbol->string lst))))
+
+  (let* ((with-order
+          (let loop ((lst order) (acc '()))
+                (cond
+                  ((null? lst)
+                    (reverse acc))
+                  ((member (car lst) vars)
+                    (loop (cdr lst) (cons (car lst) acc)))
+                  (else
+                    (loop (cdr lst) acc)))))
+        (w/o-order
+          (let loop ((lst vars) (acc '()))
+                (cond
+                  ((null? lst)
+                    (reverse acc))
+                  ((member (car lst) order)
+                    (loop (cdr lst) acc))
+                  (else
+                    (loop (cdr lst) (cons (car lst) acc))))))
+        (sorted-w/o-order (symbol-sort w/o-order)))
+    (append with-order sorted-w/o-order)))
+
+(define-walk-method (get-lifted-semantics* this::PycNode parent-name cte args-order)
+  (call-default-walker))
+
+(define-walk-method (get-lifted-semantics* this::PycSemantics parent-name cte args-order)
+  (let* ((loc (PycNode-loc this))
+        (sem-cte (collect-semantics-decls* this #t))
+        (sem-refs (collect-semantics-refs* this #t))
+        (lifted-vars (sort-lifted-vars (get-variables-to-lift cte sem-cte sem-refs) args-order)))
+    (PycFun-args-set!
+      this
+      (append
+        (map (lambda (name) (new-PycDecl loc name 'local)) lifted-vars)
+        (PycFun-args this)))
+    (list
+      (list
+        this ;; semantics
+        (PycFun-name this) ;; old name
+        (symbol-append parent-name ': (PycFun-name this)) ;; new name
+        lifted-vars))))
+
+;; collect-semantics-decls*
+
+(define-walk-method (collect-semantics-decls* this::PycNode search-nested-semantics)
+  (call-default-walker))
+
+(define-walk-method (collect-semantics-decls* this::PycSemantics search-nested-semantics)
+  (if search-nested-semantics
+    (call-default-walker)
+    '()))
+
+(define-walk-method (collect-semantics-decls* this::PycDecl search-nested-semantics)
+  (list (PycDecl-id this)))
+
+(define-walk-method (collect-semantics-decls* this::PycDeclInit search-nested-semantics)
+  ;; Assumption: all sub-procedures in semantics are liftable and will be global
+  (if (isa? (PycDeclInit-val this) PycSemantics)
+    '()
+    (list (PycDecl-id this))))
+
+(define-walk-method (collect-semantics-decls* this::PycAssig search-nested-semantics)
+  (collect-semantics-refs* (PycAssig-lhs this) search-nested-semantics))
+
+;; collect-semantics-refs*
+
+(define-walk-method (collect-semantics-refs* this::PycNode search-nested-semantics)
+  (call-default-walker))
+
+(define-walk-method (collect-semantics-refs* this::PycSemantics search-nested-semantics)
+  (if search-nested-semantics
+    (call-default-walker)
+    '()))
+
+(define-walk-method (collect-semantics-refs* this::PycRefUnresolved search-nested-semantics)
+  (list (PycRefUnresolved-id this)))
+
+(define-walk-method (collect-semantics-refs* this::PycAssig search-nested-semantics)
+  (collect-semantics-refs* (PycAssig-rhs this) search-nested-semantics))
+
+;; remove-semantics-decl!
+
+(define-walk-method (remove-semantics-decl! this::PycNode)
+  (call-default-walker))
+
+(define-walk-method (remove-semantics-decl! this::PycSeq)
+  (PycSeq-nodes-set!
+    this
+    (let filter ((nodes (PycSeq-nodes this)))
+      (cond
+        ((null? nodes)
+          '())
+        ((and (isa? (car nodes) PycDeclInit)
+              (isa? (PycDeclInit-val (car nodes)) PycSemantics))
+          (filter (cdr nodes)))
+        (else
+          (cons (remove-semantics-decl! (car nodes)) (filter (cdr nodes)))))))
+  this)
+
+;; mark-inline-semantics!
+
+(define-walk-method (mark-inline-semantics this::PycNode)
+  (call-default-walker))
+
+(define-walk-method (mark-inline-semantics this::PycFun)
   (let ((decorators (PycFun-decorators this)))
-    (if (contains-PycRef-with-name? decorators 'define_semantics)
+    (if (contains-PycRef-with-name? decorators 'inline)
+      (error "@inline" "can only be used on semantics not function" this))
+    this))
+
+(define-walk-method (mark-inline-semantics this::PycSemantics)
+  (let ((decorators (PycFun-decorators this)))
+    (if (contains-PycRef-with-name? decorators 'inline)
       (begin
+        (PycSemantics-inline-set! this #t)
         (PycFun-decorators-set!
           this
-          (list-remove-pred
-            decorators
-            (lambda (d)
-              (or (PycRef-with-name? d 'use_simple_scoping)
-                  (PycRef-with-name? d 'define_semantics)))))
-        (PycFun-use-simple-scoping-set! this #t)
-        (PycFun-semantics-set! this #t)))
-      (call-default-walker)))
+          (list-remove-pred decorators (lambda (d) (PycRef-with-name? d 'inline))))))
+    this))

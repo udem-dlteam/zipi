@@ -14,6 +14,10 @@
   (for-each display args)
   (newline))
 
+(define (bigloo#sort cmp lst)
+  (import (srfi 132))
+  (list-sort cmp lst))
+
 (define (bigloo#string->integer str) (string->number str))
 
 (define (bigloo#string-index string char #!optional (start 0) (count (- (string-length string) start)))

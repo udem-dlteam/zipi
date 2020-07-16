@@ -1,17 +1,6 @@
 ;; =============================================================================
 ;;  Common macros
 ;; =============================================================================
-(define-macro (py-call f . args)
-  (define (make-py-call n)
-    (string->symbol
-      (string-append
-        "py-call"
-        (number->string n))))
-
-  (let ((nargs (length args)))
-    (if (<= nargs 5)
-      `(,(make-py-call nargs) ,f ,@args)
-      `(py-call-generic ,f ,@args))))
 
 ;; General exception thrower helper
 (define-macro (py-throw-exception-with-message exc . msg)
@@ -65,7 +54,14 @@
            (current-error-port))
   (exit 1))
 
-(start-registering-constants constants-must-be-representatives: #t)
+;;==============================================================================
+;; compiler intrinsics
+;;==============================================================================
+
+(define-macro (call-host signature . args)
+  `(py-throw-exception-with-message
+    py-builtin-NotImplementedError
+    "call_host intrinsic function not implemented"))
 
 ;; =============================================================================
 ;;  HIDDEN CLASSES
@@ -462,30 +458,29 @@
     (cons (py-tuple-from-scheme (list->vector args)) '())
     (cons (car args) (pack-extra-args (+ arity 1) (cdr args)))))
 
-(define-macro (define-all-py-callX limit)
-  (let ((define-py-callX
-          (lambda (X)
-            (let ((py-call-name (string->symbol (string-append "py-call" (number->string X))))
-                  (args (map gensym (make-list X 'arg))))
-              `(define (,py-call-name fun ,@args)
-                (let ((fun-type (py-type fun)))
-                  (if (eq? fun-type py-function-class)
-                    (let ((arity (PyObjectFunction-arity fun)))
-                      (cond
-                        ((not arity) (py-call-generic fun ,@args))
-                        ((= arity ,X)
-                          ((PyObjectFunction-procedure fun) ,@args))
-                        ((and (< arity 0) (>= arity ,(- 0 X 1)))
-                          (apply
-                            (PyObjectFunction-procedure fun)
-                            (pack-extra-args arity (list ,@args))))
-                        (else
-                          (py-throw py-builtin-TypeError)))) ;; TODO add error message
-                    (py-call-generic fun ,@args))))))))
+(define-macro (define-all-py-callX)
+  (define (define-py-callX X)
+    (let ((py-call-name (string->symbol (string-append "py-call" (number->string X))))
+          (args (map gensym (make-list X 'arg))))
+      `(define (,py-call-name fun ,@args)
+        (let ((fun-type (py-type fun)))
+          (if (eq? fun-type py-function-class)
+            (let ((arity (PyObjectFunction-arity fun)))
+              (cond
+                ((not arity) (py-call-generic fun ,@args))
+                ((= arity ,X)
+                  ((PyObjectFunction-procedure fun) ,@args))
+                ((and (< arity 0) (>= arity ,(- 0 X 1)))
+                  (apply
+                    (PyObjectFunction-procedure fun)
+                    (pack-extra-args arity (list ,@args))))
+                (else
+                  (py-throw py-builtin-TypeError)))) ;; TODO add error message
+            (py-call-generic fun ,@args))))))
     (let loop ((i 1) (acc '()))
-      (if (> i limit)
+      (if (> i 5)
         `(begin ,@acc)
-        (loop (+ i 1) (cons (define-py-callX i) acc))))))
+        (loop (+ i 1) (cons (define-py-callX i) acc)))))
 
 (define (py-call0 fun)
   (let ((fun-type (py-type fun)))
@@ -502,7 +497,7 @@
             (py-throw py-builtin-TypeError)))) ;; TODO add error message)))
       (py-call-generic fun))))
 
-(define-all-py-callX 5)
+(define-all-py-callX)
 
 ;; TODO: compare with cPython for which function and method are not the base
 ;; callable types. Instead, function.__call__ returns a 'method wrapper'
@@ -7707,21 +7702,6 @@
           (display ": " out)
           (py-display str-exc out))))
     (display "\n" out)))
-
-;;==============================================================================
-;; semantics
-;;==============================================================================
-
-(include "../stdlib/zemantics.scm")
-
-;;==============================================================================
-;; compiler intrinsics
-;;==============================================================================
-
-(define-macro (call-host signature . args)
-  `(py-throw-exception-with-message
-    py-builtin-NotImplementedError
-    "call_host intrinsic function not implemented"))
 
 ;;==============================================================================
 ;; BUILTINS

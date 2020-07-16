@@ -83,22 +83,25 @@
 (define-walk-method (collect-semantics* this::PycNode conf)
   (call-default-walker))
 
-(define-walk-method (collect-semantics* this::PycFun conf)
-  (if (PycFun-semantics this)
-    (let* ((args (scheme* (PycFun-args this) conf))
-          (need-return (PycFun-need-return this))
-          (return-sym (if need-return (my-gensym '%return) #f))
-          (body-conf
-            (if need-return
-              (cons* fun: this return: return-sym conf)
-              (cons* fun: this conf)))
-          (body (scheme (PycFun-body this) body-conf))
-          (scheme-name (symbol-append 'py- (PycFun-name this))))
-      (list
-        (cons
-          scheme-name
-          `(define (,scheme-name ,@args) ,body))))
-    (call-default-walker)))
+(define-walk-method (collect-semantics* this::PycSemantics conf)
+  (let* ((args (scheme* (PycFun-args this) conf))
+        (need-return (PycFun-need-return this))
+        (return-sym (if need-return (my-gensym '%return) #f))
+        (body-conf
+          (if need-return
+            (cons* fun: this return: return-sym conf)
+            (cons* fun: this conf)))
+        (body (scheme (PycFun-body this) body-conf))
+        (scheme-name (PycFun-name this)))
+    (list
+      (cons
+        scheme-name
+        (if (PycSemantics-inline this)
+          (list 'define-macro (cons scheme-name args)
+              (list 'quasiquote
+              (list 'let (map (lambda (name) (list name (list 'unquote name))) args)
+              body)))
+          `(define (,scheme-name ,@args) ,body))))))
 
 (define (scheme* nodes conf)
   (map (lambda (n) (scheme n conf)) nodes))
@@ -956,7 +959,9 @@
   (let* ((id (PycIntrinsics-id this))
         (value (PycMacro-value this))
         (args (PycMacro-args this)))
-    `(,value ,@(scheme* args conf))))
+    (if (eq? id 'class_getattr)
+      `(,value ,(scheme (car args) conf) (& ,(PycLiteralValue-val (cadr args))))
+      `(,value ,@(scheme* args conf)))))
 
 (define (scheme-cache cache node)
    (if (not (integer? cache))

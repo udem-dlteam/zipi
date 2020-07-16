@@ -77,6 +77,8 @@
 (define-macro (&& e)
   `(& ,e))
 
+(start-registering-constants constants-must-be-representatives: #t)
+
 ;; =============================================================================
 ;;  PyObject
 ;; =============================================================================
@@ -275,3 +277,24 @@
   ;; attrs
   names
   transitions)
+
+;; =============================================================================
+;;  Calls
+;; =============================================================================
+
+(define-macro (set-py-callX-args-limit!)
+  (eval `(begin (define py-callX-args-limit 5))))
+
+(set-py-callX-args-limit!)
+
+(define-macro (py-call f . args)
+  (define (make-py-call-name n)
+    (string->symbol
+      (string-append
+        "py-call"
+        (number->string n))))
+
+  (let ((nargs (length args)))
+    (if (<= nargs 5)
+      `(,(make-py-call-name nargs) ,f ,@args)
+      `(py-call-generic ,f ,@args))))
