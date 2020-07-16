@@ -458,30 +458,6 @@
     (cons (py-tuple-from-scheme (list->vector args)) '())
     (cons (car args) (pack-extra-args (+ arity 1) (cdr args)))))
 
-(define-macro (define-all-py-callX)
-  (define (define-py-callX X)
-    (let ((py-call-name (string->symbol (string-append "py-call" (number->string X))))
-          (args (map gensym (make-list X 'arg))))
-      `(define (,py-call-name fun ,@args)
-        (let ((fun-type (py-type fun)))
-          (if (eq? fun-type py-function-class)
-            (let ((arity (PyObjectFunction-arity fun)))
-              (cond
-                ((not arity) (py-call-generic fun ,@args))
-                ((= arity ,X)
-                  ((PyObjectFunction-procedure fun) ,@args))
-                ((and (< arity 0) (>= arity ,(- 0 X 1)))
-                  (apply
-                    (PyObjectFunction-procedure fun)
-                    (pack-extra-args arity (list ,@args))))
-                (else
-                  (py-throw py-builtin-TypeError)))) ;; TODO add error message
-            (py-call-generic fun ,@args))))))
-    (let loop ((i 1) (acc '()))
-      (if (> i 5)
-        `(begin ,@acc)
-        (loop (+ i 1) (cons (define-py-callX i) acc)))))
-
 (define (py-call0 fun)
   (let ((fun-type (py-type fun)))
     (if (eq? fun-type py-function-class)
