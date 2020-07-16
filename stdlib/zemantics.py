@@ -2,6 +2,7 @@ from __compiler_intrinsics__ import define_semantics, inline, use_static_builtin
 
 # Auto-generated
 @define_semantics
+@inline
 def add(x, y):
     def normal():
         magic_method = class_getattr(x, "__add__")
@@ -32,6 +33,7 @@ def add(x, y):
 
 # Auto-generated
 @define_semantics
+@inline
 def sub(x, y):
     def normal():
         magic_method = class_getattr(x, "__sub__")
@@ -62,6 +64,7 @@ def sub(x, y):
 
 # Auto-generated
 @define_semantics
+@inline
 def mul(x, y):
     def normal():
         magic_method = class_getattr(x, "__mul__")
@@ -92,6 +95,7 @@ def mul(x, y):
 
 # Auto-generated
 @define_semantics
+@inline
 def truediv(x, y):
     def normal():
         magic_method = class_getattr(x, "__truediv__")
@@ -122,6 +126,7 @@ def truediv(x, y):
 
 # Auto-generated
 @define_semantics
+@inline
 def floordiv(x, y):
     def normal():
         magic_method = class_getattr(x, "__floordiv__")
@@ -152,6 +157,7 @@ def floordiv(x, y):
 
 # Auto-generated
 @define_semantics
+@inline
 def mod(x, y):
     def normal():
         magic_method = class_getattr(x, "__mod__")
@@ -182,6 +188,7 @@ def mod(x, y):
 
 # Auto-generated
 @define_semantics
+@inline
 def pow(x, y):
     def normal():
         magic_method = class_getattr(x, "__pow__")
@@ -212,6 +219,7 @@ def pow(x, y):
 
 # Auto-generated
 @define_semantics
+@inline
 def lshift(x, y):
     def normal():
         magic_method = class_getattr(x, "__lshift__")
@@ -242,6 +250,7 @@ def lshift(x, y):
 
 # Auto-generated
 @define_semantics
+@inline
 def rshift(x, y):
     def normal():
         magic_method = class_getattr(x, "__rshift__")
@@ -272,6 +281,7 @@ def rshift(x, y):
 
 # Auto-generated
 @define_semantics
+@inline
 def bitand(x, y):
     def normal():
         magic_method = class_getattr(x, "__and__")
@@ -302,6 +312,7 @@ def bitand(x, y):
 
 # Auto-generated
 @define_semantics
+@inline
 def bitor(x, y):
     def normal():
         magic_method = class_getattr(x, "__or__")
@@ -332,6 +343,7 @@ def bitor(x, y):
 
 # Auto-generated
 @define_semantics
+@inline
 def xor(x, y):
     def normal():
         magic_method = class_getattr(x, "__xor__")
@@ -362,6 +374,7 @@ def xor(x, y):
 
 # Auto-generated
 @define_semantics
+@inline
 def matmul(x, y):
     def normal():
         magic_method = class_getattr(x, "__matmul__")
