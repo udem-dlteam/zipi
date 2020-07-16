@@ -1,208 +1,179 @@
-from common import *
+import re
+import ast as AST
 
-class JavaScript():
 
-    name = 'JavaScript'
-    ext = '.js'
-    classes = set()
+class Transformer:
+    def __init__(self, transform, cps=False):
+        self.transform = transform
+        self.rootdir = ""
+        self.classes = set()
+        self.cps = cps
+        self.ext = ".js"
+        self.counter = 0
 
-    def __init__(self, parse_node):
-        self.parse_node = parse_node
+    def gensym(self):
+        gs = "g" + str(self.counter)
+        self.counter += 1
+        return gs
 
-    def py_parse(self, source):
-        parse_tree = parse(source)
-        body = parse_tree.body
+    @staticmethod
+    def to_string(s):
+        return '"' + s.encode("unicode-escape").decode().replace('"', '\\"') + '"'
 
-        out = ''
+    def Module(self, node):
+        return self.transform(node.body)
 
-        for node in body:
-            out += self.parse_node(node)
+    def Expr(self, node):
+        return self.transform(node.value) + ";"
 
-        return out
+    def Num(self, node):
+        # return self.to_string(node.n)
+        return str(node.n)
 
-    def parse_arguments(self, node, begin=0, end=None):
-        if end is not None:
-            args = ','.join([self.parse_arg(arg) for arg in node.args[begin:end]])
-        args = ','.join([self.parse_arg(arg) for arg in node.args[begin:]])
-        kwarg = ''
-        return (args, kwarg)
+    def Str(self, node):
+        return self.to_string(node.s)
 
-    def parse_FunctionDef(self, node):
-        body = '; '.join([self.parse_node(node) for node in node.body])
-        name = node.name
-
-        # # byte_at -> noop
-        # if name == 'byte_at':
-        #     return ''
-        if name == '__init__':
-            if node.args.args[0].arg == 'self':
-                args, kwarg = self.parse_arguments(node.args, 1)
-            out =' constructor(' + args + ') { var self = this; '  # quick hack
-            out += body.replace('var ', '') + '};'
-            return out
-
-        args, kwarg = self.parse_arguments(node.args)
-
-        out = " function " + name + '(' + args + ') { ' + body + '};'
-        return out
-
-    def parse_Compare(self, node):
-        def compare(op, l, r):
-            if isinstance(op, Is):
-                out = self.parse_node(op) + self.parse_node(l) + ', ' + self.parse_node(r) + ')'
-            else:
-                out = ' (' + self.parse_node(l) + ' ' + self.parse_node(op) + ' ' + self.parse_node(r) + ')'
-            return out
-
-        def type_compare(op, arg, typ):
-            if typ == 'str':
-                typ = 'string'
-            elif typ == 'int':
-                typ = 'number'
-            elif typ == 'float':
-                typ = 'number'
-            elif typ == 'bool':
-                typ = 'boolean'
-
-            if isinstance(op, Is) \
-               and typ not in ['string', 'number', 'boolean']:
-                out = self.parse_node(op) + '(typeof ' + arg + ')'
-                out += ', ' + typ + ')'
-            # special case for type(x) is type
-            elif isinstance(op, Is) \
-               and typ in ['string', 'number', 'boolean']:
-                out = ' ((typeof ' + arg + ') === "' + typ + '")'
-            else:
-                out = ' ((typeof ' + arg + ') ' + self.parse_node(op)
-                out += ' ' + typ + ')'
-            return out
-
-        left = node.left
-        ops = node.ops
-        comparators = node.comparators
-        # there can be more than one comparator, in which case we 'and'
-        if len(ops) > 1:
-            if isinstance(left, Call) and \
-               left.func.id == 'type':
-                out = ' && '.join([type_compare(ops[i], left.args[i].id, comparators[i].id)
-                                   for i in range(len(ops))])
-                return out
-
-            out = ' && '.join([compare(ops[i], left, comparators[i])
-                               for i in range(len(ops))])
-        else:
-            if isinstance(left, Call):
-                if left.func.id == 'type':
-                    return type_compare(ops[0], left.args[0].id, comparators[0].id)
-            out = compare(ops[0], left, comparators[0])
-        return out
-
-    def parse_Call(self, node):
-        func = self.parse_node(node.func)
-        args = ','.join([self.parse_node(arg) for arg in node.args])
-        nargs = len(node.args)
-        keywords = node.keywords
-
-        if keywords != []:
-            raise Exception
-
-        if isinstance(node.func, Attribute) and node.func.attr == 'get':
-            out = '(' +node.func.value.id + '[' + self.parse_node(node.args[0]) + ']'
-            out += ' || ' + self.parse_node(node.args[1]) + ')'
-            return out
-
-        if func == 'ord':
-            if isinstance(node.args[0], Str):
-                return str(ord(node.args[0].s))
-            else:
-                return args + '.charCodeAt(0)'
-        elif func == 'str':
-            return 'String(' + args + ')'
-        elif func == 'repr':
-            return 'JSON.stringify(' + args + ')'
-        elif func == 'range':
-            # we will use
-            # [...Array(5).keys()];
-            # to allow using x = range(10), for example.
-            # args: start, stop, step
-            if nargs == 1:
-                if isinstance(node.args[0], Num):
-                    # return '[...Array(' + str(node.args[0].n) + ').keys()]'
-                    return ''
-                else:
-                    return '[...Array(' + args + ').keys()]'
-            # TODO: handle other cases!
-        elif func[-14:] == 'indents.append':
-            return func[:-7] + '.push(' + args + ')'
-        elif func == 'len':
-            return args + '.length'
-        elif func == 'isinstance':
-            # we need to handle builtin types (change their names)
-            # vs class instance checks
-            obj = self.parse_node(node.args[0])
-            klass = self.parse_node(node.args[1])
-            if klass == 'str':
-                return '((typeof ' + obj + ') === "string")'
-            elif klass == 'int' or klass == 'float':
-                return '((typeof ' + obj + ') === "number")'
-            elif klass == 'bytes':
-                return '(' + obj + ' instanceof Uint8Array)'
-            else:  # default to class
-                return '(' + obj + ' instanceof ' + klass + ')'
-        elif func == 'print':
-            return 'console.log(' + args + ')'
-
-        return func + '(' + args + ')'
-
-    def parse_BinOp(self, node):
+    def BinOp(self, node):
         def binop(op, l, r):
-            return '(' + self.parse_node(l) + ' ' + self.parse_node(op) + ' ' + self.parse_node(r) + ')'
+            return (
+                "("
+                + self.transform(l)
+                + " "
+                + self.transform(op)
+                + " "
+                + self.transform(r)
+                + ")"
+            )
 
         def array_mult(arr, r):
-            out = ' new Array(' + self.parse_node(r) + ')'
-            out += '.fill(' + str(arr[0]) + ')'
+            out = " new Array(" + self.transform(r) + ")"
+            out += ".fill(" + str(arr[0]) + ")"
             return out
 
         def floor_div(l, r):
-            out = ' ((' + self.parse_node(l) + '/' + self.parse_node(r) + ') >> 0)'
+            out = " ((" + self.transform(l) + "/" + self.transform(r) + ") >> 0)"
             return out
 
         left = node.left
         op = node.op
         right = node.right
 
-        if isinstance(op, FloorDiv):
+        if isinstance(op, AST.FloorDiv):
             return floor_div(left, right)
-        elif isinstance(op, Mult) and isinstance(right, Num) \
-           and isinstance(left, List):
-            arr = literal_eval(left)  # get actual array
+        elif (
+            isinstance(op, AST.Mult)
+            and isinstance(right, AST.Num)
+            and isinstance(left, AST.List)
+        ):
+            arr = AST.literal_eval(left)  # get actual array
             if len(arr) == 1:
                 return array_mult(arr, right)
             else:
                 raise Exception
 
-        return ' ' + binop(op, left, right)
+        return " " + binop(op, left, right)
 
-    def parse_If(self, node):
-        test = self.parse_node(node.test)  # Compare, BoolOp
-        body = '; '.join([self.parse_node(node) for node in node.body])
-        orelse = node.orelse
-        out = " if(" + test + ') {' + body
-        if orelse != []:
-            out += "} else {"
-            out += '; '.join([self.parse_node(node) for node in orelse]) + '}'
-        else:
-            out += '}'
+    def Add(self, node):
+        return "+"
+
+    def Call(self, node):
+        func = self.transform(node.func)
+        args = ",".join([self.transform(arg) for arg in node.args])
+        nargs = len(node.args)
+        keywords = node.keywords
+
+        if keywords != []:
+            raise Exception
+
+        if isinstance(node.func, AST.Attribute) and node.func.attr == "get":
+            out = "(" + node.func.value.id + "[" + self.transform(node.args[0]) + "]"
+            out += " || " + self.transform(node.args[1]) + ")"
+            return out
+
+        if func == "ord":
+            if isinstance(node.args[0], AST.Str):
+                return str(ord(node.args[0].s))
+            else:
+                return args + ".charCodeAt(0)"
+        elif func == "str":
+            return "String(" + args + ")"
+        elif func == "repr":
+            return "JSON.stringify(" + args + ")"
+        elif func == "range":
+            # we will use
+            # [...Array(5).keys()];
+            # to allow using x = range(10), for example.
+            # args: start, stop, step
+            if nargs == 1:
+                if isinstance(node.args[0], AST.Num):
+                    # return '[...Array(' + str(node.args[0].n) + ').keys()]'
+                    return ""
+                else:
+                    return "[...Array(" + args + ").keys()]"
+            # TODO: handle other cases!
+        elif func[-14:] == "indents.append":
+            return func[:-7] + ".push(" + args + ")"
+        elif func == "len":
+            return args + ".length"
+        elif func == "isinstance":
+            # we need to handle builtin types (change their names)
+            # vs class instance checks
+            obj = self.transform(node.args[0])
+            klass = self.transform(node.args[1])
+            if klass == "str":
+                return "((typeof " + obj + ') === "string")'
+            elif klass == "int" or klass == "float":
+                return "((typeof " + obj + ') === "number")'
+            elif klass == "bytes":
+                return "(" + obj + " instanceof Uint8Array)"
+            else:  # default to class
+                return "(" + obj + " instanceof " + klass + ")"
+        elif func == "print":
+            return "console.log(" + args + ")"
+
+        return func + "(" + args + ")"
+
+    @staticmethod
+    def Name(node):
+        return node.id
+
+    def FunctionDef(self, node):
+        body = "; ".join([self.transform(node) for node in node.body])
+        name = node.name
+
+        # For class constructors
+        if name == "__init__":
+            if node.args.args[0].arg == "self":
+                args = self.arguments(node.args, 1)
+            out = " constructor(" + args + ") { var self = this; "  # quick hack
+            out += body.replace("var ", "") + "};"
+            return out
+        elif name == "source":
+            body = "return ts.buf.slice(start, end);"
+
+        # Only parse args
+        args = self.transform(node.args)
+
+        out = " function " + name + "(" + args + ") { " + body + "};"
         return out
 
-    def parse_BoolOp(self, node):
-        # ('test', 'body', 'orelse')
-        op = self.parse_node(node.op)
-        # values = self.parse_node(node.values)
-        values = f") {op} (".join([self.parse_node(node) for node in node.values])
-        return '((' + values + '))'
+    def Return(self, node):
+        if node.value is None:
+            return "return null;"
+        else:
+            return "return " + self.transform(node.value) + ";"
 
-    def parse_Assign(self, node):
+    def arguments(self, node, begin=0, end=None):
+        if end is not None:
+            args = ",".join([self.transform(arg) for arg in node.args[begin:end]])
+        args = ",".join([self.transform(arg) for arg in node.args[begin:]])
+        return args
+
+    @staticmethod
+    def arg(node):
+        return node.arg
+
+    def Assign(self, node):
         # value and targets can be tuples!
         targets = node.targets
         value = node.value
@@ -211,121 +182,249 @@ class JavaScript():
             raise Exception
 
         def define(x, y):
-            py = self.parse_node(y)
+            py = self.transform(y)
 
-            if isinstance(x, Subscript):
-                arr = self.parse_node(x.value)
-                pos = self.parse_node(x.slice)
-                return arr + '[' + pos + '] = ' + py + ';'
+            if isinstance(x, AST.Subscript):
+                arr = self.transform(x.value)
+                pos = self.transform(x.slice)
+                return arr + "[" + pos + "] = " + py + ";"
 
-            if isinstance(y, Call) and isinstance(y.func, Name):
-                if y.func.id == 'bytearray':
-                    px = self.parse_node(x)
-                    out = ' var ' + px + ' = ' + \
-                        'new Uint8Array(' + str(y.args[0].n) + ');'
+            if isinstance(y, AST.Call) and isinstance(y.func, AST.Name):
+                if y.func.id == "bytearray":
+                    px = self.transform(x)
+                    out = (
+                        " var "
+                        + px
+                        + " = "
+                        + "new Uint8Array("
+                        + str(y.args[0].n)
+                        + ");"
+                    )
                     return out
                 elif y.func.id in self.classes:
-                    px = self.parse_node(x)
-                    return ' var ' + px + ' = new ' + py + ';'
+                    px = self.transform(x)
+                    return " var " + px + " = new " + py + ";"
 
-
-
-            px = self.parse_node(x)
-            if isinstance(targets[0], Attribute):
-                    return ' ' + px + " = " + py + ';'
+            px = self.transform(x)
+            if isinstance(targets[0], AST.Attribute):
+                return " " + px + " = " + py + ";"
             else:
-                    return ' var ' + px + " = " + py + ';'
+                return " var " + px + " = " + py + ";"
 
-        if isinstance(value, Tuple):
+        if isinstance(value, AST.Tuple):
             target_elts = targets[0].elts
             value_elts = value.elts
-            out = ' '.join([define(target_elts[i], value_elts[i]) for i in range(len(target_elts))])
+            out = " ".join(
+                [define(target_elts[i], value_elts[i]) for i in range(len(target_elts))]
+            )
         else:
             out = define(targets[0], value)
         return out
 
-    def parse_AugAssign(self, node):
-        # ('target', 'op', 'value')
-        target = self.parse_node(node.target)
-        op = self.parse_node(node.op)
-        value = self.parse_node(node.value)
-        out = ' ' + target + op + '= ' + value + ';'
+    def Dict(self, node):
+        keys = node.keys
+        values = node.values
+        kvs = []
+        for i in range(len(keys)):
+            k = self.transform(keys[i])
+            v = self.transform(values[i])
+            kvs.append(k + ":" + v)
+
+        return "{" + ", ".join(kvs) + "}"
+
+    def Index(self, node):
+        return self.transform(node.value)
+
+    def If(self, node):
+        test = self.transform(node.test)  # Compare, BoolOp
+        body = "; ".join([self.transform(node) for node in node.body])
+        orelse = node.orelse
+        out = " if(" + test + ") {" + body
+        if orelse != []:
+            out += "} else {"
+            out += "; ".join([self.transform(node) for node in orelse]) + "}"
+        else:
+            out += "}"
         return out
 
-    def parse_Attribute(self, node):
-        value = self.parse_node(node.value)
-        attr = node.attr
-        return value + '.' + attr
+    def Compare(self, node):
+        def compare(op, l, r):
+            if isinstance(op, AST.Is):
+                out = (
+                    self.transform(op)
+                    + self.transform(l)
+                    + ", "
+                    + self.transform(r)
+                    + ")"
+                )
+            else:
+                out = (
+                    " ("
+                    + self.transform(l)
+                    + " "
+                    + self.transform(op)
+                    + " "
+                    + self.transform(r)
+                    + ")"
+                )
+            return out
 
-    def parse_Subscript(self, node):
-        value = self.parse_node(node.value)
-        _slice = self.parse_node(node.slice)
+        def type_compare(op, arg, typ):
+            if typ == "str":
+                typ = "string"
+            elif typ == "int":
+                typ = "number"
+            elif typ == "float":
+                typ = "number"
+            elif typ == "bool":
+                typ = "boolean"
 
-        if isinstance(node.slice, Slice):
-            return value + '.slice(' + _slice + ')'
+            if isinstance(op, AST.Is) and typ not in ["string", "number", "boolean"]:
+                out = self.transform(op) + "(typeof " + arg + ")"
+                out += ", " + typ + ")"
+            # special case for type(x) is type
+            elif isinstance(op, AST.Is) and typ in ["string", "number", "boolean"]:
+                out = " ((typeof " + arg + ') === "' + typ + '")'
+            else:
+                out = " ((typeof " + arg + ") " + self.transform(op)
+                out += " " + typ + ")"
+            return out
 
-        return value + '[' + _slice + ']'
+        left = node.left
+        ops = node.ops
+        comparators = node.comparators
+        # there can be more than one comparator, in which case we 'and'
+        if len(ops) > 1:
+            if isinstance(left, AST.Call) and left.func.id == "type":
+                out = " && ".join(
+                    [
+                        type_compare(ops[i], left.args[i].id, comparators[i].id)
+                        for i in range(len(ops))
+                    ]
+                )
+                return out
 
-    def parse_Return(self, node):
-        if node.value == None:
-            return 'return null;'
+            out = " && ".join(
+                [compare(ops[i], left, comparators[i]) for i in range(len(ops))]
+            )
         else:
-            return 'return ' + self.parse_node(node.value) + ';'
+            if isinstance(left, AST.Call):
+                if left.func.id == "type":
+                    return type_compare(ops[0], left.args[0].id, comparators[0].id)
+            out = compare(ops[0], left, comparators[0])
+        return out
 
-    def parse_Expr(self, node):
-        return self.parse_node(node.value) + ';'
+    @staticmethod
+    def parse_Is(node):
+        return "Object.is("
 
-    def parse_For(self, node):
+    def Subscript(self, node):
+        value = self.transform(node.value)
+        _slice = self.transform(node.slice)
+
+        if isinstance(node.slice, AST.Slice):
+            return value + ".slice(" + _slice + ")"
+
+        return value + "[" + _slice + "]"
+
+    def Slice(self, node):
+        lower = self.transform(node.lower)
+        upper = self.transform(node.upper)
+        step = self.transform(node.step)  # ignored
+        if lower is not None and upper is not None:
+            return ", ".join([lower, upper])
+        elif lower is not None:
+            return lower
+        elif upper is not None:
+            return ", ".join(["0", upper])
+        else:
+            raise Exception
+
+    def IfExp(self, node):
+        # ('test', 'body', 'orelse')
+        test = self.transform(node.test)  # Compare, BoolOp
+        body = self.transform(node.body)
+        orelse = self.transform(node.orelse)
+        return " (" + test + " ? " + body + " : " + orelse + ")"
+
+    def Bytes(self, node):
+        return (
+            '"'
+            + node.s.decode("utf-8")
+            .encode("unicode-escape")
+            .decode()
+            .replace('"', '\\"')
+            + '"'
+        )
+
+    def List(self, node):
+        elts = ", ".join([self.transform(e) for e in node.elts])
+        return "[" + elts + "]"
+
+    @staticmethod
+    def Mult(node):
+        return "*"
+
+    def AugAssign(self, node):
+        # ('target', 'op', 'value')
+        target = self.transform(node.target)
+        op = self.transform(node.op)
+        value = self.transform(node.value)
+        out = " " + target + op + "= " + value + ";"
+        return out
+
+    def For(self, node):
         # We don't implement for/else.
 
-        #TODO: do multiple args (tuples)
+        # TODO: do multiple args (tuples)
+        if isinstance(node.target, AST.Tuple):
+            raise Exception
 
         # for i in range(10):
         #     body
         # for node.target.id in node.iter (Call):
         #     node.body (array)
-        target = self.parse_node(node.target)
-        _iter = self.parse_node(node.iter)  # handle 'range' in parse_Call
-        body = '; '.join([self.parse_node(node) for node in node.body])
+
+        # Use gensymd iter vars
+        target = self.transform(node.target)
+        gs = self.gensym()
+
+        # We now have to modify the 'Name' emitter to replace all
+        # occurrences of the initial target with the gensym
+        def NameSwap(node):
+            id = node.id
+            if id == target:
+                return gs
+            else:
+                return id
+
+        self.Name = NameSwap
+
+        _iter = self.transform(node.iter)
+        body = "; ".join([self.transform(node) for node in node.body])
+        # Set Name back to default
+        self.Name = lambda node: node.id
 
         # specialise 'for i in range(N)'
-        if isinstance(node.iter, Call) \
-           and node.iter.func.id == 'range' \
-           and len(node.iter.args) == 1 \
-           and isinstance(node.iter.args[0], Num):
-            out = ' for (const ' + target + '=0; ' + target + '<'
-            out += str(node.iter.args[0].n) + '; ' + target + '++) {'
-            out += body + '}'
+        if (
+            isinstance(node.iter, AST.Call)
+            and node.iter.func.id == "range"
+            and len(node.iter.args) == 1
+            and isinstance(node.iter.args[0], AST.Num)
+        ):
+            out = " for (let " + gs + "=0; " + gs + "<"
+            out += str(node.iter.args[0].n) + "; " + gs + "++) {"
+            out += body + "}"
             return out
 
-        out = ' for (const ' + target + ' in ' + _iter + ') {' + body + '}'
+        out = " for (const " + gs + " in " + _iter + ") {" + body + "}"
+
         return out
 
-    def parse_While(self, node):
-        test = self.parse_node(node.test)
-        body = '; '.join([self.parse_node(node) for node in node.body])
-        # not easily mapped
-        # orelse = '; '.join([self.parse_node(node) for node in node.orelse])
-        return ' while (' + test + ') {' + body + '};'
-
-
-    def parse_Slice(self, node):
-        lower = self.parse_node(node.lower)
-        upper = self.parse_node(node.upper)
-        step = self.parse_node(node.step)  # ignored
-        if lower is not None and upper is not None:
-            return ', '.join([lower, upper])
-        elif lower is not None:
-            return lower
-        elif upper is not None:
-            return ', '.join(['0', upper])
-        else:
-            raise Exception
-
-    def parse_ClassDef(self, node):
+    def ClassDef(self, node):
         # ('name', 'bases', 'keywords', 'body', 'decorator_list')
         name = node.name
-        body = '; '.join([self.parse_node(node) for node in node.body])
+        body = "; ".join([self.transform(node) for node in node.body])
         bases = node.bases  # TODO: implement (multiple) inheritance
         keywords = node.keywords  # ignored
         decorator_list = node.decorator_list  # ignored
@@ -333,104 +432,107 @@ class JavaScript():
         # store class name for future reference when instantiating
         self.classes.add(name)
 
-        return 'class ' + name + ' {' + body + '}'
+        return "class " + name + " {" + body + "}"
 
-    def parse_List(self, node):
-        elts = ', '.join([self.parse_node(e) for e in node.elts])
-        return '[' + elts + ']'
+    def Attribute(self, node):
+        value = self.transform(node.value)
+        attr = node.attr
+        return value + "." + attr
 
-    def parse_Dict(self, node):
-        keys = node.keys
-        values = node.values
-        kvs = []
-        for i in range(len(keys)):
-            k = self.parse_node(keys[i])
-            v = self.parse_node(values[i])
-            kvs.append(k + ':' + v)
+    @staticmethod
+    def Gt(node):
+        return ">"
 
-        return '{' + ', '.join(kvs) + '}'
+    @staticmethod
+    def Sub(node):
+        return "-"
 
-    def parse_IfExp(self, node):
+    def While(self, node):
+        test = self.transform(node.test)
+        body = "; ".join([self.transform(node) for node in node.body])
+        # not easily mapped
+        # orelse = '; '.join([self.transform(node) for node in node.orelse])
+        return " while (" + test + ") {" + body + "};"
+
+    def NameConstant(self, node):
+        val = node.value
+        if val is True:
+            return "true"
+        elif val is False:
+            return "false"
+        else:
+            return str(node.value)
+
+    def BoolOp(self, node):
         # ('test', 'body', 'orelse')
-        test = self.parse_node(node.test)  # Compare, BoolOp
-        body = self.parse_node(node.body)
-        orelse = self.parse_node(node.orelse)
-        return ' (' + test + ' ? ' + body + ' : ' + orelse + ')'
+        op = self.transform(node.op)
+        # values = self.transform(node.values)
+        values = f") {op} (".join([self.transform(node) for node in node.values])
+        return "((" + values + "))"
 
-    def parse_Raise(self, node):
-        exc = self.parse_node(node.exc)
-        cause = self.parse_node(node.cause)
-        return ' throw "' + exc.encode('unicode-escape').decode().replace('"', '\\"') + '";'
+    @staticmethod
+    def And(node):
+        return "&&"
 
-    def parse_FloorDiv(self, node):
+    @staticmethod
+    def Eq(node):
+        return "==="
+
+    def FloorDiv(self, node):
         # Should be handled elsewhere, e.g. in BinOp
         raise Exception
 
     @staticmethod
-    def parse_arg(node):
-        arg = node.arg
-        return arg
+    def Break(node):
+        return "break;"
 
     @staticmethod
-    def parse_Add(node):
-        return '+'
-
-    @staticmethod
-    def parse_Sub(node):
-        return '-'
-
-    @staticmethod
-    def parse_Mult(node):
-        return '*'
-
-    @staticmethod
-    def parse_Gt(node):
-        return ">"
-
-    @staticmethod
-    def parse_GtE(node):
-        return ">="
-
-    @staticmethod
-    def parse_Lt(node):
-        return "<"
-
-    @staticmethod
-    def parse_LtE(node):
-        return ">="
-
-    @staticmethod
-    def parse_Eq(node):
-        return "==="
-
-    @staticmethod
-    def parse_NotEq(node):
-        return "!=="
-
-    @staticmethod
-    def parse_Is(node):
-        return "Object.is("
-
-    @staticmethod
-    def parse_And(node):
-        return "&&"
-
-    @staticmethod
-    def parse_Or(node):
+    def Or(node):
         return "||"
 
     @staticmethod
-    def parse_Break(node):
-        return 'break;'
+    def Lt(node):
+        return "<"
 
     @staticmethod
-    def parse_Continue(node):
-        return 'continue;'
+    def Continue(node):
+        return "continue;"
 
     @staticmethod
-    def parse_Pass(node):
-        return '{};'
+    def LtE(node):
+        return ">="
 
     @staticmethod
-    def parse_BitAnd(node):
-        return '&'
+    def NotEq(node):
+        return "!=="
+
+    @staticmethod
+    def BitAnd(node):
+        return "&"
+
+    @staticmethod
+    def GtE(node):
+        return ">="
+
+    @staticmethod
+    def Pass(node):
+        return "{};"
+
+    def ImportFrom(self, node):
+        # Handling of 'from x import *'
+        # Since everything is top-level, we can jut prepend all the code
+        # i.e. recursively compile:
+        module = node.module
+        module_file = self.rootdir + "/" + module + ".py"
+
+        with open(module_file, "r") as f:
+            source = f.read()
+
+        module_code = self.transform(AST.parse(source))
+        module_code = re.sub(r"(;)\1+", r"\1", module_code)
+
+        return module_code
+
+    def Global(self, node):
+        # assume a noop, onus on programmer + "use strict";
+        return ""

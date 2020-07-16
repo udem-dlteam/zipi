@@ -3,15 +3,14 @@
 ## Instructions
 
 ```
-usage: zp.py [-h] [-f FILE] [-t TARGET]
+usage: zp.py [-h] [-f FILE] [-d]
 
 CLI to zp bootstrap compiler.
 
 optional arguments:
   -h, --help            show this help message and exit
   -f FILE, --file FILE  file to compile
-  -t TARGET, --target TARGET
-                        target language
+  -d, --debug           add debug information (default False)
 ```
 
 ### Example
@@ -19,13 +18,14 @@ optional arguments:
 Compile with:
 
 ```python
-➜  bootstrap git:(compiler-bootstrap) python3 zp.py -f ../../parser/ztokenizer.py -t javascript
+➜  bootstrap git:(zp-dev) ✗ python3 zp.py -f ../../parser/ztokenizer.py
 ../../parser/ztokenizer.py compiled successfully to ../../parser/ztokenizer.js.
 ```
 
 Pretty-printed output:
 
 ```javascript
+"use strict";
 var ENDMARKER = 0;
 var NAME = 1;
 var NUMBER = 2;
@@ -171,6 +171,7 @@ tok_name[DOUBLESLASH] = "DOUBLESLASH";
 tok_name[DOUBLESLASHEQUAL] = "DOUBLESLASHEQUAL";
 tok_name[AT] = "AT";
 tok_name[OP] = "OP";
+tok_name[N_TOKENS] = "???";
 tok_name[ERRORTOKEN] = "ERRORTOKEN";
 tok_name[ELLIPSIS] = "ELLIPSIS";
 tok_name[TYPE_COMMENT] = "TYPE_COMMENT";
@@ -259,12 +260,12 @@ function append_eol(buf) {
 };
 
 function init_stats() {
-    var found = new Array(67).fill(0);
+    var found = new Array(68).fill(0);
     var stats = {};
     stats["bol"] = 0;
     stats["not_bol"] = 0;
     stats["k == KIND_NAME"] = 0;
-    stats["k >= KIND_AT"] = 0;
+    stats["k >= KIND_TILDE"] = 0;
     stats["k >= KIND_LPAR"] = 0;
     stats["k <= KIND_LEFTSHIFTEQUAL"] = 0;
     stats["k <= KIND_STRING"] = 0;
@@ -289,12 +290,12 @@ function inc_stats(name) {
 function show_stats() {
     console.log("\n***** STATISTICS *****");
     console.log("\n----- CHARACTER KINDS ENCOUNTERED:");
-    for (const i in [...Array(found.length).keys()]) {
-        console.log(String(found[i]), "=", kind_names[i]);
+    for (const g0 in [...Array(found.length).keys()]) {
+        console.log(String(found[g0]), "=", kind_names[g0]);
     };
     console.log("\n----- DISTRIBUTION OF CHARACTER KINDS TESTED:");
-    for (const s in stats) {
-        console.log(JSON.stringify(stats[s]), "=", s);
+    for (const g1 in stats) {
+        console.log(JSON.stringify(stats[g1]), "=", g1);
     }
 };
 var KIND_NUMBER = 0;
@@ -340,26 +341,27 @@ var KIND_NOT = 48;
 var KIND_NOTEQUAL = 49;
 var KIND_AT = 50;
 var KIND_ATEQUAL = 51;
-var KIND_TILDE = 52;
-var KIND_COMMA = 53;
-var KIND_COLON = 54;
-var KIND_BACKQUOTE = 55;
-var KIND_SEMI = 56;
-var KIND_LPAR = 57;
-var KIND_LSQB = 58;
-var KIND_LBRACE = 59;
-var KIND_RPAR = 60;
-var KIND_RSQB = 61;
-var KIND_RBRACE = 62;
-var KIND_ELLIPSIS = 63;
-var KIND_INDENT = 64;
-var KIND_DEDENT = 65;
-var KIND_EOF = 66;
+var KIND_COLON = 52;
+var KIND_COLONEQUAL = 53;
+var KIND_TILDE = 54;
+var KIND_COMMA = 55;
+var KIND_BACKQUOTE = 56;
+var KIND_SEMI = 57;
+var KIND_LPAR = 58;
+var KIND_LSQB = 59;
+var KIND_LBRACE = 60;
+var KIND_RPAR = 61;
+var KIND_RSQB = 62;
+var KIND_RBRACE = 63;
+var KIND_ELLIPSIS = 64;
+var KIND_INDENT = 65;
+var KIND_DEDENT = 66;
+var KIND_EOF = 67;
 var BYTE_STRING = 0;
 var PLAIN_STRING = 1;
 var UNICODE_STRING = 2;
-var kind_to_token = [NUMBER, NUMBER, NUMBER, NUMBER, NUMBER, NUMBER, NUMBER, NUMBER, NUMBER, NUMBER, NAME, STRING, DOT, 999, 999, 999, NEWLINE, ERRORTOKEN, STAR, STAREQUAL, DOUBLESTAR, DOUBLESTAREQUAL, SLASH, SLASHEQUAL, DOUBLESLASH, DOUBLESLASHEQUAL, GREATER, GREATEREQUAL, RIGHTSHIFT, RIGHTSHIFTEQUAL, LESS, LESSEQUAL, LEFTSHIFT, LEFTSHIFTEQUAL, PERCENT, PERCENTEQUAL, AMPER, AMPEREQUAL, VBAR, VBAREQUAL, CIRCUMFLEX, CIRCUMFLEXEQUAL, EQUAL, EQEQUAL, PLUS, PLUSEQUAL, MINUS, MINEQUAL, 999, NOTEQUAL, AT, 999, TILDE, COMMA, COLON, BACKQUOTE, SEMI, LPAR, LSQB, LBRACE, RPAR, RSQB, RBRACE, ELLIPSIS, INDENT, DEDENT, ENDMARKER];
-var kind_names = ["KIND_NUMBER", "KIND_1", "KIND_2", "KIND_3", "KIND_4", "KIND_5", "KIND_6", "KIND_7", "KIND_8", "KIND_9", "KIND_NAME", "KIND_STRING", "KIND_DOT", "KIND_COMMENT", "KIND_CONTINUATION", "KIND_WHITESPACE", "KIND_NEWLINE", "KIND_ERROR", "KIND_STAR", "KIND_STAREQUAL", "KIND_DOUBLESTAR", "KIND_DOUBLESTAREQUAL", "KIND_SLASH", "KIND_SLASHEQUAL", "KIND_DOUBLESLASH", "KIND_DOUBLESLASHEQUAL", "KIND_GREATER", "KIND_GREATEREQUAL", "KIND_RIGHTSHIFT", "KIND_RIGHTSHIFTEQUAL", "KIND_LESS", "KIND_LESSEQUAL", "KIND_LEFTSHIFT", "KIND_LEFTSHIFTEQUAL", "KIND_PERCENT", "KIND_PERCENTEQUAL", "KIND_AMPER", "KIND_AMPEREQUAL", "KIND_VBAR", "KIND_VBAREQUAL", "KIND_CIRCUMFLEX", "KIND_CIRCUMFLEXEQUAL", "KIND_EQUAL", "KIND_EQEQUAL", "KIND_PLUS", "KIND_PLUSEQUAL", "KIND_MINUS", "KIND_MINEQUAL", "KIND_NOT", "KIND_NOTEQUAL", "KIND_AT", "KIND_ATEQUAL", "KIND_TILDE", "KIND_COMMA", "KIND_COLON", "KIND_BACKQUOTE", "KIND_SEMI", "KIND_LPAR", "KIND_LSQB", "KIND_LBRACE", "KIND_RPAR", "KIND_RSQB", "KIND_RBRACE", "KIND_ELLIPSIS", "KIND_INDENT", "KIND_DEDENT", "KIND_EOF"];
+var kind_to_token = [NUMBER, NUMBER, NUMBER, NUMBER, NUMBER, NUMBER, NUMBER, NUMBER, NUMBER, NUMBER, NAME, STRING, DOT, 999, 999, 999, NEWLINE, ERRORTOKEN, STAR, STAREQUAL, DOUBLESTAR, DOUBLESTAREQUAL, SLASH, SLASHEQUAL, DOUBLESLASH, DOUBLESLASHEQUAL, GREATER, GREATEREQUAL, RIGHTSHIFT, RIGHTSHIFTEQUAL, LESS, LESSEQUAL, LEFTSHIFT, LEFTSHIFTEQUAL, PERCENT, PERCENTEQUAL, AMPER, AMPEREQUAL, VBAR, VBAREQUAL, CIRCUMFLEX, CIRCUMFLEXEQUAL, EQUAL, EQEQUAL, PLUS, PLUSEQUAL, MINUS, MINEQUAL, 999, NOTEQUAL, AT, 999, COLON, 999, TILDE, COMMA, BACKQUOTE, SEMI, LPAR, LSQB, LBRACE, RPAR, RSQB, RBRACE, ELLIPSIS, INDENT, DEDENT, ENDMARKER];
+var kind_names = ["KIND_NUMBER", "KIND_1", "KIND_2", "KIND_3", "KIND_4", "KIND_5", "KIND_6", "KIND_7", "KIND_8", "KIND_9", "KIND_NAME", "KIND_STRING", "KIND_DOT", "KIND_COMMENT", "KIND_CONTINUATION", "KIND_WHITESPACE", "KIND_NEWLINE", "KIND_ERROR", "KIND_STAR", "KIND_STAREQUAL", "KIND_DOUBLESTAR", "KIND_DOUBLESTAREQUAL", "KIND_SLASH", "KIND_SLASHEQUAL", "KIND_DOUBLESLASH", "KIND_DOUBLESLASHEQUAL", "KIND_GREATER", "KIND_GREATEREQUAL", "KIND_RIGHTSHIFT", "KIND_RIGHTSHIFTEQUAL", "KIND_LESS", "KIND_LESSEQUAL", "KIND_LEFTSHIFT", "KIND_LEFTSHIFTEQUAL", "KIND_PERCENT", "KIND_PERCENTEQUAL", "KIND_AMPER", "KIND_AMPEREQUAL", "KIND_VBAR", "KIND_VBAREQUAL", "KIND_CIRCUMFLEX", "KIND_CIRCUMFLEXEQUAL", "KIND_EQUAL", "KIND_EQEQUAL", "KIND_PLUS", "KIND_PLUSEQUAL", "KIND_MINUS", "KIND_MINEQUAL", "KIND_NOT", "KIND_NOTEQUAL", "KIND_AT", "KIND_ATEQUAL", "KIND_COLON", "KIND_COLONEQUAL", "KIND_TILDE", "KIND_COMMA", "KIND_BACKQUOTE", "KIND_SEMI", "KIND_LPAR", "KIND_LSQB", "KIND_LBRACE", "KIND_RPAR", "KIND_RSQB", "KIND_RBRACE", "KIND_ELLIPSIS", "KIND_INDENT", "KIND_DEDENT", "KIND_EOF"];
 
 function make_char_kind() {
     var char_kind = new Uint8Array(256);
@@ -367,15 +369,15 @@ function make_char_kind() {
     function set_char_kind(code, tok) {
         char_kind[code] = tok;
     };
-    for (const i = 0; i < 256; i++) {
-        set_char_kind(i, KIND_ERROR);
+    for (let g2 = 0; g2 < 256; g2++) {
+        set_char_kind(g2, KIND_ERROR);
     };
-    for (const i = 0; i < 10; i++) {
-        set_char_kind((48 + i), i);
+    for (let g3 = 0; g3 < 10; g3++) {
+        set_char_kind((48 + g3), g3);
     };
-    for (const i = 0; i < 26; i++) {
-        set_char_kind((97 + i), KIND_NAME);
-        set_char_kind((65 + i), KIND_NAME);
+    for (let g4 = 0; g4 < 26; g4++) {
+        set_char_kind((97 + g4), KIND_NAME);
+        set_char_kind((65 + g4), KIND_NAME);
     };
     set_char_kind(95, KIND_NAME);
     set_char_kind(34, KIND_STRING);
@@ -401,9 +403,9 @@ function make_char_kind() {
     set_char_kind(45, KIND_MINUS);
     set_char_kind(33, KIND_NOT);
     set_char_kind(64, KIND_AT);
+    set_char_kind(58, KIND_COLON);
     set_char_kind(126, KIND_TILDE);
     set_char_kind(44, KIND_COMMA);
-    set_char_kind(58, KIND_COLON);
     set_char_kind(59, KIND_SEMI);
     set_char_kind(40, KIND_LPAR);
     set_char_kind(91, KIND_LSQB);
@@ -413,7 +415,7 @@ function make_char_kind() {
     set_char_kind(125, KIND_RBRACE);
     return char_kind;
 };
-var char_kind = [17, 17, 17, 17, 17, 17, 17, 17, 17, 15, 16, 17, 15, 16, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 15, 48, 11, 13, 17, 34, 36, 11, 57, 60, 18, 44, 53, 46, 12, 22, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 54, 56, 30, 42, 26, 17, 50, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 58, 14, 61, 40, 10, 17, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 59, 38, 62, 52, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17];
+var char_kind = make_char_kind();
 class TokenizerState {
     constructor(buf) {
         var self = this;
@@ -423,7 +425,7 @@ class TokenizerState {
         self.end = 0;
         self.token = NEWLINE;
         self.line_start = 0;
-        self.line_num = 0;
+        self.line_num = 1;
         self.paren_level = 0;
         self.indents = [0];
         self.dedents = 0;
@@ -431,8 +433,58 @@ class TokenizerState {
     };
 }
 
-function get_first_token(ts) {
-    get_token(ts);
+function get_lineno(ts) {
+    return ts.line_num;
+};
+
+function get_col_offset(ts) {
+    return (ts.start - ts.line_start);
+};
+
+function get_end_lineno(ts) {
+    return ts.line_num;
+};
+
+function get_end_col_offset(ts) {
+    return (ts.end - ts.line_start);
+};
+
+function set_start(ast, lineno, col_offset) {
+    ast.lineno = lineno;
+    ast.col_offset = col_offset;
+    return ast;
+};
+
+function set_end(ast, end_lineno, end_col_offset) {
+    ast.end_lineno = end_lineno;
+    ast.end_col_offset = end_col_offset;
+    return ast;
+};
+
+function set_start_end(ts, lineno, col_offset, ast) {
+    set_start(ast, lineno, col_offset);
+    set_end(ast, ts.prev_end_lineno, ts.prev_end_col_offset);
+    return ast;
+};
+
+function set_start_1token(ts, ast) {
+    return set_start(ast, get_lineno(ts), get_col_offset(ts));
+};
+
+function set_end_1token(ts, ast) {
+    return set_end(ast, get_end_lineno(ts), get_end_col_offset(ts));
+};
+
+function set_start_end_1token(ts, ast) {
+    return set_end_1token(ts, set_start_1token(ts, ast));
+};
+
+function source(ts, start, end) {
+    return ts.buf.slice(start, end);
+};
+
+function token(ts) {
+    return source(ts, ts.start, ts.end);
 };
 
 function get_token(ts) {
@@ -516,7 +568,7 @@ function get_token(ts) {
                     ts.token = ERRORTOKEN;
                     return null;
                 };
-                ts.indents = ts.indents.slice(0, i);
+                ts.indents = ts.indents.slice("None", i);
                 ts.dedents = ((n - i) - 1);
                 ts.start = (pos - 1);
                 ts.end = (pos - 1);
@@ -525,6 +577,7 @@ function get_token(ts) {
             };
             var k = char_kind[c];
         } else {
+            inc_stats("not_bol");
             while (true) {
                 var c = byte_at(buf, pos);
                 var k = char_kind[c];
@@ -534,13 +587,20 @@ function get_token(ts) {
                 }
             };
             if ((k === KIND_NEWLINE)) {
+                ts.start = (pos - 1);
                 if ((((c === 13)) && ((byte_at(buf, pos) === 10)))) {
                     pos += 1;
                 };
                 ts.line_start = pos;
                 ts.line_num += 1;
-                if ((pos < ts.buf_len)) {
-                    continue;
+                if ((pos >= ts.buf_len)) {
+                    if ((ts.paren_level === 0)) {
+                        ts.end = pos;
+                        ts.token = NEWLINE;
+                        return null;
+                    } else {
+                        continue;
+                    }
                 };
                 inc_found(KIND_EOF);
                 ts.start = ts.buf_len;
@@ -586,11 +646,11 @@ function get_token(ts) {
             };
             inc_found(KIND_NAME);
             ts.end = pos;
-            ts.token = (kw[buf.slice(ts.start, pos)] || NAME);
+            ts.token = (kw[source(ts, ts.start, ts.end)] || NAME);
             return null;
         };
-        if ((k >= KIND_AT)) {
-            inc_stats("k >= KIND_AT");
+        if ((k >= KIND_TILDE)) {
+            inc_stats("k >= KIND_TILDE");
             if ((k >= KIND_LPAR)) {
                 inc_stats("k >= KIND_LPAR");
                 if ((k >= KIND_RPAR)) {
@@ -868,22 +928,130 @@ function get_string(ts, pos, c, kind, regexpr) {
     ts.end = pos;
     ts.token = STRING;
 };
+```
 
-// This code is not part of ztokenizer.py, but is appended
-// to show how to use the program:
+Which we can now evaluate in `node`:
 
-var _stats = init_stats();
-var found = _stats[0];
-var stats = _stats[1];
-var ts = new TokenizerState("def foo(x,y):\n    return x+y\n");
-get_first_token(ts);
-while ((ts.token !== ENDMARKER)) {
-    var t = ts.token;
-    var name = tok_name[t];
-    console.log(name);
-    get_token(ts);
-};
+```javascript
+.load ztokenizer.js
+[...]
+> var _stats = init_stats();
+undefined
+> var found = _stats[0];
+undefined
+> var stats = _stats[1];
+undefined
+> var ts = new TokenizerState("def foo(x,y):\n    return x+y\n");
+undefined
+> get_token(ts);
+null
+> while ((ts.token !== ENDMARKER)) {
+...     var t = ts.token;
+...     var name = tok_name[t];
+...     console.log(name);
+...     get_token(ts);
+... };
+DEF
+NAME
+LPAR
+NAME
+COMMA
+NAME
+RPAR
+COLON
+null
+```
 
-// optional:
-// show_stats();
+And `show_stats();`:
+
+```javascript
+> show_stats();
+
+***** STATISTICS *****
+
+----- CHARACTER KINDS ENCOUNTERED:
+0 = KIND_NUMBER
+3 = KIND_1
+0 = KIND_2
+0 = KIND_3
+0 = KIND_4
+0 = KIND_5
+1 = KIND_6
+0 = KIND_7
+0 = KIND_8
+0 = KIND_9
+4 = KIND_NAME
+0 = KIND_STRING
+0 = KIND_DOT
+0 = KIND_COMMENT
+0 = KIND_CONTINUATION
+0 = KIND_WHITESPACE
+0 = KIND_NEWLINE
+0 = KIND_ERROR
+0 = KIND_STAR
+0 = KIND_STAREQUAL
+0 = KIND_DOUBLESTAR
+0 = KIND_DOUBLESTAREQUAL
+0 = KIND_SLASH
+0 = KIND_SLASHEQUAL
+0 = KIND_DOUBLESLASH
+0 = KIND_DOUBLESLASHEQUAL
+0 = KIND_GREATER
+0 = KIND_GREATEREQUAL
+0 = KIND_RIGHTSHIFT
+0 = KIND_RIGHTSHIFTEQUAL
+0 = KIND_LESS
+0 = KIND_LESSEQUAL
+0 = KIND_LEFTSHIFT
+0 = KIND_LEFTSHIFTEQUAL
+0 = KIND_PERCENT
+0 = KIND_PERCENTEQUAL
+0 = KIND_AMPER
+0 = KIND_AMPEREQUAL
+0 = KIND_VBAR
+0 = KIND_VBAREQUAL
+0 = KIND_CIRCUMFLEX
+0 = KIND_CIRCUMFLEXEQUAL
+0 = KIND_EQUAL
+0 = KIND_EQEQUAL
+0 = KIND_PLUS
+0 = KIND_PLUSEQUAL
+0 = KIND_MINUS
+0 = KIND_MINEQUAL
+0 = KIND_NOT
+0 = KIND_NOTEQUAL
+0 = KIND_AT
+0 = KIND_ATEQUAL
+0 = KIND_COLON
+0 = KIND_COLONEQUAL
+0 = KIND_TILDE
+0 = KIND_COMMA
+0 = KIND_BACKQUOTE
+0 = KIND_SEMI
+0 = KIND_LPAR
+0 = KIND_LSQB
+0 = KIND_LBRACE
+0 = KIND_RPAR
+0 = KIND_RSQB
+0 = KIND_RBRACE
+0 = KIND_ELLIPSIS
+0 = KIND_INDENT
+0 = KIND_DEDENT
+1 = KIND_EOF
+
+----- DISTRIBUTION OF CHARACTER KINDS TESTED:
+1 = bol
+8 = not_bol
+4 = k == KIND_NAME
+3 = k >= KIND_TILDE
+2 = k >= KIND_LPAR
+1 = k <= KIND_LEFTSHIFTEQUAL
+0 = k <= KIND_STRING
+0 = k == KIND_STRING
+0 = k == KIND_DOT
+0 = k == KIND_COMMENT
+0 = k == KIND_NEWLINE
+0 = k == KIND_CONTINUATION
+1 = OTHER
+1 = SPECIAL
 ```
