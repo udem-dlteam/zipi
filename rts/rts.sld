@@ -43,18 +43,57 @@
     py-make-caches
 
     py-add
+    py-add:normal
+    py-add:reflected
+    py-add:err
     py-bitand
+    py-bitand:normal
+    py-bitand:reflected
+    py-bitand:err
     py-truediv
+    py-truediv:normal
+    py-truediv:reflected
+    py-truediv:err
     py-floordiv
+    py-floordiv:normal
+    py-floordiv:reflected
+    py-floordiv:err
     py-lshift
+    py-lshift:normal
+    py-lshift:reflected
+    py-lshift:err
     py-matmul
+    py-matmul:normal
+    py-matmul:reflected
+    py-matmul:err
     py-mod
+    py-mod:normal
+    py-mod:reflected
+    py-mod:err
     py-mul
+    py-mul:normal
+    py-mul:reflected
+    py-mul:err
     py-bitor
+    py-bitor:normal
+    py-bitor:reflected
+    py-bitor:err
     py-pow
+    py-pow:normal
+    py-pow:reflected
+    py-pow:err
     py-rshift
+    py-rshift:normal
+    py-rshift:reflected
+    py-rshift:err
     py-sub
+    py-sub:normal
+    py-sub:reflected
+    py-sub:err
     py-xor
+    py-xor:normal
+    py-xor:reflected
+    py-xor:err
     py-eq
     py-ne
     py-lt
@@ -289,4 +328,5 @@
   (import gambit)
   (include "rts#.scm")
   (include "rts.gambit")
+  (include "../stdlib/zemantics.scm")
   (include "rts.scm"))

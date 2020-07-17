@@ -1,598 +1,244 @@
-(define (py-add x2 y3)
-  (letrec* ((magic_method87 py-absent)
-            (result88 py-absent)
-            (magic_method89 py-absent)
-            (result90 py-absent)
-            (reflected92 py-absent)
-            (err93 py-absent))
-    (letrec* ((normal91
-               (procedure->py-function
-                (lambda ()
-                  (let ((%frame (make-cell #f)) (%names '()))
-                    (begin
-                      (set! magic_method87
-                            (getattribute-from-obj-mro x2 (& "__add__")))
-                      (if (eq? magic_method87 py-absent)
-                          (py-call0 reflected92)
-                          (begin
-                            (set! result88 (py-call2 magic_method87 x2 y3))
-                            (if (eq? result88 py-NotImplemented)
-                                (py-call0 reflected92)
-                                result88))))))
-                (vector '#() '#() #f '#() (vector) #f (vector)))))
-      (begin
-        (set! reflected92
-              (procedure->py-function
-               (lambda ()
-                 (let ((%frame (make-cell #f)) (%names '()))
-                   (begin
-                     (set! magic_method87
-                           (getattribute-from-obj-mro y3 (& "__radd__")))
-                     (if (eq? magic_method87 py-absent)
-                         (py-call0 err93)
-                         (begin
-                           (set! result88 (py-call2 magic_method87 y3 x2))
-                           (if (eq? result88 py-NotImplemented)
-                               (py-call0 err93)
-                               result88))))))
-               (vector '#() '#() #f '#() (vector) #f (vector))))
-        (set! err93
-              (procedure->py-function
-               (lambda ()
-                 (let ((%frame (make-cell #f)) (%names '()))
-                   (py-throw py-builtin-ValueError)))
-               (vector '#() '#() #f '#() (vector) #f (vector))))
-        (py-call0 normal91)))))
-(define (py-sub x8 y9)
-  (letrec* ((magic_method98 py-absent)
-            (result99 py-absent)
-            (magic_method100 py-absent)
-            (result101 py-absent)
-            (reflected103 py-absent)
-            (err104 py-absent))
-    (letrec* ((normal102
-               (procedure->py-function
-                (lambda ()
-                  (let ((%frame (make-cell #f)) (%names '()))
-                    (begin
-                      (set! magic_method98
-                            (getattribute-from-obj-mro x8 (& "__sub__")))
-                      (if (eq? magic_method98 py-absent)
-                          (py-call0 reflected103)
-                          (begin
-                            (set! result99 (py-call2 magic_method98 x8 y9))
-                            (if (eq? result99 py-NotImplemented)
-                                (py-call0 reflected103)
-                                result99))))))
-                (vector '#() '#() #f '#() (vector) #f (vector)))))
-      (begin
-        (set! reflected103
-              (procedure->py-function
-               (lambda ()
-                 (let ((%frame (make-cell #f)) (%names '()))
-                   (begin
-                     (set! magic_method98
-                           (getattribute-from-obj-mro y9 (& "__rsub__")))
-                     (if (eq? magic_method98 py-absent)
-                         (py-call0 err104)
-                         (begin
-                           (set! result99 (py-call2 magic_method98 y9 x8))
-                           (if (eq? result99 py-NotImplemented)
-                               (py-call0 err104)
-                               result99))))))
-               (vector '#() '#() #f '#() (vector) #f (vector))))
-        (set! err104
-              (procedure->py-function
-               (lambda ()
-                 (let ((%frame (make-cell #f)) (%names '()))
-                   (py-throw py-builtin-ValueError)))
-               (vector '#() '#() #f '#() (vector) #f (vector))))
-        (py-call0 normal102)))))
-(define (py-mul x14 y15)
-  (letrec* ((magic_method109 py-absent)
-            (result110 py-absent)
-            (magic_method111 py-absent)
-            (result112 py-absent)
-            (reflected114 py-absent)
-            (err115 py-absent))
-    (letrec* ((normal113
-               (procedure->py-function
-                (lambda ()
-                  (let ((%frame (make-cell #f)) (%names '()))
-                    (begin
-                      (set! magic_method109
-                            (getattribute-from-obj-mro x14 (& "__mul__")))
-                      (if (eq? magic_method109 py-absent)
-                          (py-call0 reflected114)
-                          (begin
-                            (set! result110 (py-call2 magic_method109 x14 y15))
-                            (if (eq? result110 py-NotImplemented)
-                                (py-call0 reflected114)
-                                result110))))))
-                (vector '#() '#() #f '#() (vector) #f (vector)))))
-      (begin
-        (set! reflected114
-              (procedure->py-function
-               (lambda ()
-                 (let ((%frame (make-cell #f)) (%names '()))
-                   (begin
-                     (set! magic_method109
-                           (getattribute-from-obj-mro y15 (& "__rmul__")))
-                     (if (eq? magic_method109 py-absent)
-                         (py-call0 err115)
-                         (begin
-                           (set! result110 (py-call2 magic_method109 y15 x14))
-                           (if (eq? result110 py-NotImplemented)
-                               (py-call0 err115)
-                               result110))))))
-               (vector '#() '#() #f '#() (vector) #f (vector))))
-        (set! err115
-              (procedure->py-function
-               (lambda ()
-                 (let ((%frame (make-cell #f)) (%names '()))
-                   (py-throw py-builtin-ValueError)))
-               (vector '#() '#() #f '#() (vector) #f (vector))))
-        (py-call0 normal113)))))
-(define (py-truediv x20 y21)
-  (letrec* ((magic_method120 py-absent)
-            (result121 py-absent)
-            (magic_method122 py-absent)
-            (result123 py-absent)
-            (reflected125 py-absent)
-            (err126 py-absent))
-    (letrec* ((normal124
-               (procedure->py-function
-                (lambda ()
-                  (let ((%frame (make-cell #f)) (%names '()))
-                    (begin
-                      (set! magic_method120
-                            (getattribute-from-obj-mro x20 (& "__truediv__")))
-                      (if (eq? magic_method120 py-absent)
-                          (py-call0 reflected125)
-                          (begin
-                            (set! result121 (py-call2 magic_method120 x20 y21))
-                            (if (eq? result121 py-NotImplemented)
-                                (py-call0 reflected125)
-                                result121))))))
-                (vector '#() '#() #f '#() (vector) #f (vector)))))
-      (begin
-        (set! reflected125
-              (procedure->py-function
-               (lambda ()
-                 (let ((%frame (make-cell #f)) (%names '()))
-                   (begin
-                     (set! magic_method120
-                           (getattribute-from-obj-mro y21 (& "__rtruediv__")))
-                     (if (eq? magic_method120 py-absent)
-                         (py-call0 err126)
-                         (begin
-                           (set! result121 (py-call2 magic_method120 y21 x20))
-                           (if (eq? result121 py-NotImplemented)
-                               (py-call0 err126)
-                               result121))))))
-               (vector '#() '#() #f '#() (vector) #f (vector))))
-        (set! err126
-              (procedure->py-function
-               (lambda ()
-                 (let ((%frame (make-cell #f)) (%names '()))
-                   (py-throw py-builtin-ValueError)))
-               (vector '#() '#() #f '#() (vector) #f (vector))))
-        (py-call0 normal124)))))
-(define (py-floordiv x26 y27)
-  (letrec* ((magic_method131 py-absent)
-            (result132 py-absent)
-            (magic_method133 py-absent)
-            (result134 py-absent)
-            (reflected136 py-absent)
-            (err137 py-absent))
-    (letrec* ((normal135
-               (procedure->py-function
-                (lambda ()
-                  (let ((%frame (make-cell #f)) (%names '()))
-                    (begin
-                      (set! magic_method131
-                            (getattribute-from-obj-mro x26 (& "__floordiv__")))
-                      (if (eq? magic_method131 py-absent)
-                          (py-call0 reflected136)
-                          (begin
-                            (set! result132 (py-call2 magic_method131 x26 y27))
-                            (if (eq? result132 py-NotImplemented)
-                                (py-call0 reflected136)
-                                result132))))))
-                (vector '#() '#() #f '#() (vector) #f (vector)))))
-      (begin
-        (set! reflected136
-              (procedure->py-function
-               (lambda ()
-                 (let ((%frame (make-cell #f)) (%names '()))
-                   (begin
-                     (set! magic_method131
-                           (getattribute-from-obj-mro y27 (& "__rfloordiv__")))
-                     (if (eq? magic_method131 py-absent)
-                         (py-call0 err137)
-                         (begin
-                           (set! result132 (py-call2 magic_method131 y27 x26))
-                           (if (eq? result132 py-NotImplemented)
-                               (py-call0 err137)
-                               result132))))))
-               (vector '#() '#() #f '#() (vector) #f (vector))))
-        (set! err137
-              (procedure->py-function
-               (lambda ()
-                 (let ((%frame (make-cell #f)) (%names '()))
-                   (py-throw py-builtin-ValueError)))
-               (vector '#() '#() #f '#() (vector) #f (vector))))
-        (py-call0 normal135)))))
-(define (py-mod x32 y33)
-  (letrec* ((magic_method142 py-absent)
-            (result143 py-absent)
-            (magic_method144 py-absent)
-            (result145 py-absent)
-            (reflected147 py-absent)
-            (err148 py-absent))
-    (letrec* ((normal146
-               (procedure->py-function
-                (lambda ()
-                  (let ((%frame (make-cell #f)) (%names '()))
-                    (begin
-                      (set! magic_method142
-                            (getattribute-from-obj-mro x32 (& "__mod__")))
-                      (if (eq? magic_method142 py-absent)
-                          (py-call0 reflected147)
-                          (begin
-                            (set! result143 (py-call2 magic_method142 x32 y33))
-                            (if (eq? result143 py-NotImplemented)
-                                (py-call0 reflected147)
-                                result143))))))
-                (vector '#() '#() #f '#() (vector) #f (vector)))))
-      (begin
-        (set! reflected147
-              (procedure->py-function
-               (lambda ()
-                 (let ((%frame (make-cell #f)) (%names '()))
-                   (begin
-                     (set! magic_method142
-                           (getattribute-from-obj-mro y33 (& "__rmod__")))
-                     (if (eq? magic_method142 py-absent)
-                         (py-call0 err148)
-                         (begin
-                           (set! result143 (py-call2 magic_method142 y33 x32))
-                           (if (eq? result143 py-NotImplemented)
-                               (py-call0 err148)
-                               result143))))))
-               (vector '#() '#() #f '#() (vector) #f (vector))))
-        (set! err148
-              (procedure->py-function
-               (lambda ()
-                 (let ((%frame (make-cell #f)) (%names '()))
-                   (py-throw py-builtin-ValueError)))
-               (vector '#() '#() #f '#() (vector) #f (vector))))
-        (py-call0 normal146)))))
-(define (py-pow x38 y39)
-  (letrec* ((magic_method153 py-absent)
-            (result154 py-absent)
-            (magic_method155 py-absent)
-            (result156 py-absent)
-            (reflected158 py-absent)
-            (err159 py-absent))
-    (letrec* ((normal157
-               (procedure->py-function
-                (lambda ()
-                  (let ((%frame (make-cell #f)) (%names '()))
-                    (begin
-                      (set! magic_method153
-                            (getattribute-from-obj-mro x38 (& "__pow__")))
-                      (if (eq? magic_method153 py-absent)
-                          (py-call0 reflected158)
-                          (begin
-                            (set! result154 (py-call2 magic_method153 x38 y39))
-                            (if (eq? result154 py-NotImplemented)
-                                (py-call0 reflected158)
-                                result154))))))
-                (vector '#() '#() #f '#() (vector) #f (vector)))))
-      (begin
-        (set! reflected158
-              (procedure->py-function
-               (lambda ()
-                 (let ((%frame (make-cell #f)) (%names '()))
-                   (begin
-                     (set! magic_method153
-                           (getattribute-from-obj-mro y39 (& "__rpow__")))
-                     (if (eq? magic_method153 py-absent)
-                         (py-call0 err159)
-                         (begin
-                           (set! result154 (py-call2 magic_method153 y39 x38))
-                           (if (eq? result154 py-NotImplemented)
-                               (py-call0 err159)
-                               result154))))))
-               (vector '#() '#() #f '#() (vector) #f (vector))))
-        (set! err159
-              (procedure->py-function
-               (lambda ()
-                 (let ((%frame (make-cell #f)) (%names '()))
-                   (py-throw py-builtin-ValueError)))
-               (vector '#() '#() #f '#() (vector) #f (vector))))
-        (py-call0 normal157)))))
-(define (py-lshift x44 y45)
-  (letrec* ((magic_method164 py-absent)
-            (result165 py-absent)
-            (magic_method166 py-absent)
-            (result167 py-absent)
-            (reflected169 py-absent)
-            (err170 py-absent))
-    (letrec* ((normal168
-               (procedure->py-function
-                (lambda ()
-                  (let ((%frame (make-cell #f)) (%names '()))
-                    (begin
-                      (set! magic_method164
-                            (getattribute-from-obj-mro x44 (& "__lshift__")))
-                      (if (eq? magic_method164 py-absent)
-                          (py-call0 reflected169)
-                          (begin
-                            (set! result165 (py-call2 magic_method164 x44 y45))
-                            (if (eq? result165 py-NotImplemented)
-                                (py-call0 reflected169)
-                                result165))))))
-                (vector '#() '#() #f '#() (vector) #f (vector)))))
-      (begin
-        (set! reflected169
-              (procedure->py-function
-               (lambda ()
-                 (let ((%frame (make-cell #f)) (%names '()))
-                   (begin
-                     (set! magic_method164
-                           (getattribute-from-obj-mro y45 (& "__rlshift__")))
-                     (if (eq? magic_method164 py-absent)
-                         (py-call0 err170)
-                         (begin
-                           (set! result165 (py-call2 magic_method164 y45 x44))
-                           (if (eq? result165 py-NotImplemented)
-                               (py-call0 err170)
-                               result165))))))
-               (vector '#() '#() #f '#() (vector) #f (vector))))
-        (set! err170
-              (procedure->py-function
-               (lambda ()
-                 (let ((%frame (make-cell #f)) (%names '()))
-                   (py-throw py-builtin-ValueError)))
-               (vector '#() '#() #f '#() (vector) #f (vector))))
-        (py-call0 normal168)))))
-(define (py-rshift x50 y51)
-  (letrec* ((magic_method175 py-absent)
-            (result176 py-absent)
-            (magic_method177 py-absent)
-            (result178 py-absent)
-            (reflected180 py-absent)
-            (err181 py-absent))
-    (letrec* ((normal179
-               (procedure->py-function
-                (lambda ()
-                  (let ((%frame (make-cell #f)) (%names '()))
-                    (begin
-                      (set! magic_method175
-                            (getattribute-from-obj-mro x50 (& "__rshift__")))
-                      (if (eq? magic_method175 py-absent)
-                          (py-call0 reflected180)
-                          (begin
-                            (set! result176 (py-call2 magic_method175 x50 y51))
-                            (if (eq? result176 py-NotImplemented)
-                                (py-call0 reflected180)
-                                result176))))))
-                (vector '#() '#() #f '#() (vector) #f (vector)))))
-      (begin
-        (set! reflected180
-              (procedure->py-function
-               (lambda ()
-                 (let ((%frame (make-cell #f)) (%names '()))
-                   (begin
-                     (set! magic_method175
-                           (getattribute-from-obj-mro y51 (& "__rrshift__")))
-                     (if (eq? magic_method175 py-absent)
-                         (py-call0 err181)
-                         (begin
-                           (set! result176 (py-call2 magic_method175 y51 x50))
-                           (if (eq? result176 py-NotImplemented)
-                               (py-call0 err181)
-                               result176))))))
-               (vector '#() '#() #f '#() (vector) #f (vector))))
-        (set! err181
-              (procedure->py-function
-               (lambda ()
-                 (let ((%frame (make-cell #f)) (%names '()))
-                   (py-throw py-builtin-ValueError)))
-               (vector '#() '#() #f '#() (vector) #f (vector))))
-        (py-call0 normal179)))))
-(define (py-bitand x56 y57)
-  (letrec* ((magic_method186 py-absent)
-            (result187 py-absent)
-            (magic_method188 py-absent)
-            (result189 py-absent)
-            (reflected191 py-absent)
-            (err192 py-absent))
-    (letrec* ((normal190
-               (procedure->py-function
-                (lambda ()
-                  (let ((%frame (make-cell #f)) (%names '()))
-                    (begin
-                      (set! magic_method186
-                            (getattribute-from-obj-mro x56 (& "__and__")))
-                      (if (eq? magic_method186 py-absent)
-                          (py-call0 reflected191)
-                          (begin
-                            (set! result187 (py-call2 magic_method186 x56 y57))
-                            (if (eq? result187 py-NotImplemented)
-                                (py-call0 reflected191)
-                                result187))))))
-                (vector '#() '#() #f '#() (vector) #f (vector)))))
-      (begin
-        (set! reflected191
-              (procedure->py-function
-               (lambda ()
-                 (let ((%frame (make-cell #f)) (%names '()))
-                   (begin
-                     (set! magic_method186
-                           (getattribute-from-obj-mro y57 (& "__rand__")))
-                     (if (eq? magic_method186 py-absent)
-                         (py-call0 err192)
-                         (begin
-                           (set! result187 (py-call2 magic_method186 y57 x56))
-                           (if (eq? result187 py-NotImplemented)
-                               (py-call0 err192)
-                               result187))))))
-               (vector '#() '#() #f '#() (vector) #f (vector))))
-        (set! err192
-              (procedure->py-function
-               (lambda ()
-                 (let ((%frame (make-cell #f)) (%names '()))
-                   (py-throw py-builtin-ValueError)))
-               (vector '#() '#() #f '#() (vector) #f (vector))))
-        (py-call0 normal190)))))
-(define (py-bitor x62 y63)
-  (letrec* ((magic_method197 py-absent)
-            (result198 py-absent)
-            (magic_method199 py-absent)
-            (result200 py-absent)
-            (reflected202 py-absent)
-            (err203 py-absent))
-    (letrec* ((normal201
-               (procedure->py-function
-                (lambda ()
-                  (let ((%frame (make-cell #f)) (%names '()))
-                    (begin
-                      (set! magic_method197
-                            (getattribute-from-obj-mro x62 (& "__or__")))
-                      (if (eq? magic_method197 py-absent)
-                          (py-call0 reflected202)
-                          (begin
-                            (set! result198 (py-call2 magic_method197 x62 y63))
-                            (if (eq? result198 py-NotImplemented)
-                                (py-call0 reflected202)
-                                result198))))))
-                (vector '#() '#() #f '#() (vector) #f (vector)))))
-      (begin
-        (set! reflected202
-              (procedure->py-function
-               (lambda ()
-                 (let ((%frame (make-cell #f)) (%names '()))
-                   (begin
-                     (set! magic_method197
-                           (getattribute-from-obj-mro y63 (& "__ror__")))
-                     (if (eq? magic_method197 py-absent)
-                         (py-call0 err203)
-                         (begin
-                           (set! result198 (py-call2 magic_method197 y63 x62))
-                           (if (eq? result198 py-NotImplemented)
-                               (py-call0 err203)
-                               result198))))))
-               (vector '#() '#() #f '#() (vector) #f (vector))))
-        (set! err203
-              (procedure->py-function
-               (lambda ()
-                 (let ((%frame (make-cell #f)) (%names '()))
-                   (py-throw py-builtin-ValueError)))
-               (vector '#() '#() #f '#() (vector) #f (vector))))
-        (py-call0 normal201)))))
-(define (py-xor x68 y69)
-  (letrec* ((magic_method208 py-absent)
-            (result209 py-absent)
-            (magic_method210 py-absent)
-            (result211 py-absent)
-            (reflected213 py-absent)
-            (err214 py-absent))
-    (letrec* ((normal212
-               (procedure->py-function
-                (lambda ()
-                  (let ((%frame (make-cell #f)) (%names '()))
-                    (begin
-                      (set! magic_method208
-                            (getattribute-from-obj-mro x68 (& "__xor__")))
-                      (if (eq? magic_method208 py-absent)
-                          (py-call0 reflected213)
-                          (begin
-                            (set! result209 (py-call2 magic_method208 x68 y69))
-                            (if (eq? result209 py-NotImplemented)
-                                (py-call0 reflected213)
-                                result209))))))
-                (vector '#() '#() #f '#() (vector) #f (vector)))))
-      (begin
-        (set! reflected213
-              (procedure->py-function
-               (lambda ()
-                 (let ((%frame (make-cell #f)) (%names '()))
-                   (begin
-                     (set! magic_method208
-                           (getattribute-from-obj-mro y69 (& "__rxor__")))
-                     (if (eq? magic_method208 py-absent)
-                         (py-call0 err214)
-                         (begin
-                           (set! result209 (py-call2 magic_method208 y69 x68))
-                           (if (eq? result209 py-NotImplemented)
-                               (py-call0 err214)
-                               result209))))))
-               (vector '#() '#() #f '#() (vector) #f (vector))))
-        (set! err214
-              (procedure->py-function
-               (lambda ()
-                 (let ((%frame (make-cell #f)) (%names '()))
-                   (py-throw py-builtin-ValueError)))
-               (vector '#() '#() #f '#() (vector) #f (vector))))
-        (py-call0 normal212)))))
-(define (py-matmul x74 y75)
-  (letrec* ((magic_method219 py-absent)
-            (result220 py-absent)
-            (magic_method221 py-absent)
-            (result222 py-absent)
-            (reflected224 py-absent)
-            (err225 py-absent))
-    (letrec* ((normal223
-               (procedure->py-function
-                (lambda ()
-                  (let ((%frame (make-cell #f)) (%names '()))
-                    (begin
-                      (set! magic_method219
-                            (getattribute-from-obj-mro x74 (& "__matmul__")))
-                      (if (eq? magic_method219 py-absent)
-                          (py-call0 reflected224)
-                          (begin
-                            (set! result220 (py-call2 magic_method219 x74 y75))
-                            (if (eq? result220 py-NotImplemented)
-                                (py-call0 reflected224)
-                                result220))))))
-                (vector '#() '#() #f '#() (vector) #f (vector)))))
-      (begin
-        (set! reflected224
-              (procedure->py-function
-               (lambda ()
-                 (let ((%frame (make-cell #f)) (%names '()))
-                   (begin
-                     (set! magic_method219
-                           (getattribute-from-obj-mro y75 (& "__rmatmul__")))
-                     (if (eq? magic_method219 py-absent)
-                         (py-call0 err225)
-                         (begin
-                           (set! result220 (py-call2 magic_method219 y75 x74))
-                           (if (eq? result220 py-NotImplemented)
-                               (py-call0 err225)
-                               result220))))))
-               (vector '#() '#() #f '#() (vector) #f (vector))))
-        (set! err225
-              (procedure->py-function
-               (lambda ()
-                 (let ((%frame (make-cell #f)) (%names '()))
-                   (py-throw py-builtin-ValueError)))
-               (vector '#() '#() #f '#() (vector) #f (vector))))
-        (py-call0 normal223)))))
+(define-macro (py-add x2 y3) `(let ((x2 ,x2) (y3 ,y3)) (py-add:normal x2 y3)))
+(define (py-add:normal x83 y84)
+  (letrec* ((magic_method137 (getattribute-from-obj-mro x83 (& "__add__"))))
+    (if (eq? magic_method137 py-absent)
+        (py-add:reflected x83 y84)
+        (letrec* ((result138 (py-call2 magic_method137 x83 y84)))
+          (if (eq? result138 py-NotImplemented)
+              (py-add:reflected x83 y84)
+              result138)))))
+(define (py-add:reflected x85 y86)
+  (letrec* ((magic_method141 (getattribute-from-obj-mro y86 (& "__radd__"))))
+    (if (eq? magic_method141 py-absent)
+        (py-add:err)
+        (letrec* ((result142 (py-call2 magic_method141 y86 x85)))
+          (if (eq? result142 py-NotImplemented) (py-add:err) result142)))))
+(define (py-add:err) (py-throw py-builtin-ValueError))
+(define-macro (py-sub x8 y9) `(let ((x8 ,x8) (y9 ,y9)) (py-sub:normal x8 y9)))
+(define (py-sub:normal x87 y88)
+  (letrec* ((magic_method145 (getattribute-from-obj-mro x87 (& "__sub__"))))
+    (if (eq? magic_method145 py-absent)
+        (py-sub:reflected x87 y88)
+        (letrec* ((result146 (py-call2 magic_method145 x87 y88)))
+          (if (eq? result146 py-NotImplemented)
+              (py-sub:reflected x87 y88)
+              result146)))))
+(define (py-sub:reflected x89 y90)
+  (letrec* ((magic_method149 (getattribute-from-obj-mro y90 (& "__rsub__"))))
+    (if (eq? magic_method149 py-absent)
+        (py-sub:err)
+        (letrec* ((result150 (py-call2 magic_method149 y90 x89)))
+          (if (eq? result150 py-NotImplemented) (py-sub:err) result150)))))
+(define (py-sub:err) (py-throw py-builtin-ValueError))
+(define-macro (py-mul x14 y15)
+  `(let ((x14 ,x14) (y15 ,y15)) (py-mul:normal x14 y15)))
+(define (py-mul:normal x91 y92)
+  (letrec* ((magic_method153 (getattribute-from-obj-mro x91 (& "__mul__"))))
+    (if (eq? magic_method153 py-absent)
+        (py-mul:reflected x91 y92)
+        (letrec* ((result154 (py-call2 magic_method153 x91 y92)))
+          (if (eq? result154 py-NotImplemented)
+              (py-mul:reflected x91 y92)
+              result154)))))
+(define (py-mul:reflected x93 y94)
+  (letrec* ((magic_method157 (getattribute-from-obj-mro y94 (& "__rmul__"))))
+    (if (eq? magic_method157 py-absent)
+        (py-mul:err)
+        (letrec* ((result158 (py-call2 magic_method157 y94 x93)))
+          (if (eq? result158 py-NotImplemented) (py-mul:err) result158)))))
+(define (py-mul:err) (py-throw py-builtin-ValueError))
+(define-macro (py-truediv x20 y21)
+  `(let ((x20 ,x20) (y21 ,y21)) (py-truediv:normal x20 y21)))
+(define (py-truediv:normal x95 y96)
+  (letrec* ((magic_method161
+             (getattribute-from-obj-mro x95 (& "__truediv__"))))
+    (if (eq? magic_method161 py-absent)
+        (py-truediv:reflected x95 y96)
+        (letrec* ((result162 (py-call2 magic_method161 x95 y96)))
+          (if (eq? result162 py-NotImplemented)
+              (py-truediv:reflected x95 y96)
+              result162)))))
+(define (py-truediv:reflected x97 y98)
+  (letrec* ((magic_method165
+             (getattribute-from-obj-mro y98 (& "__rtruediv__"))))
+    (if (eq? magic_method165 py-absent)
+        (py-truediv:err)
+        (letrec* ((result166 (py-call2 magic_method165 y98 x97)))
+          (if (eq? result166 py-NotImplemented) (py-truediv:err) result166)))))
+(define (py-truediv:err) (py-throw py-builtin-ValueError))
+(define-macro (py-floordiv x26 y27)
+  `(let ((x26 ,x26) (y27 ,y27)) (py-floordiv:normal x26 y27)))
+(define (py-floordiv:normal x99 y100)
+  (letrec* ((magic_method169
+             (getattribute-from-obj-mro x99 (& "__floordiv__"))))
+    (if (eq? magic_method169 py-absent)
+        (py-floordiv:reflected x99 y100)
+        (letrec* ((result170 (py-call2 magic_method169 x99 y100)))
+          (if (eq? result170 py-NotImplemented)
+              (py-floordiv:reflected x99 y100)
+              result170)))))
+(define (py-floordiv:reflected x101 y102)
+  (letrec* ((magic_method173
+             (getattribute-from-obj-mro y102 (& "__rfloordiv__"))))
+    (if (eq? magic_method173 py-absent)
+        (py-floordiv:err)
+        (letrec* ((result174 (py-call2 magic_method173 y102 x101)))
+          (if (eq? result174 py-NotImplemented)
+              (py-floordiv:err)
+              result174)))))
+(define (py-floordiv:err) (py-throw py-builtin-ValueError))
+(define-macro (py-mod x32 y33)
+  `(let ((x32 ,x32) (y33 ,y33)) (py-mod:normal x32 y33)))
+(define (py-mod:normal x103 y104)
+  (letrec* ((magic_method177 (getattribute-from-obj-mro x103 (& "__mod__"))))
+    (if (eq? magic_method177 py-absent)
+        (py-mod:reflected x103 y104)
+        (letrec* ((result178 (py-call2 magic_method177 x103 y104)))
+          (if (eq? result178 py-NotImplemented)
+              (py-mod:reflected x103 y104)
+              result178)))))
+(define (py-mod:reflected x105 y106)
+  (letrec* ((magic_method181 (getattribute-from-obj-mro y106 (& "__rmod__"))))
+    (if (eq? magic_method181 py-absent)
+        (py-mod:err)
+        (letrec* ((result182 (py-call2 magic_method181 y106 x105)))
+          (if (eq? result182 py-NotImplemented) (py-mod:err) result182)))))
+(define (py-mod:err) (py-throw py-builtin-ValueError))
+(define-macro (py-pow x38 y39)
+  `(let ((x38 ,x38) (y39 ,y39)) (py-pow:normal x38 y39)))
+(define (py-pow:normal x107 y108)
+  (letrec* ((magic_method185 (getattribute-from-obj-mro x107 (& "__pow__"))))
+    (if (eq? magic_method185 py-absent)
+        (py-pow:reflected x107 y108)
+        (letrec* ((result186 (py-call2 magic_method185 x107 y108)))
+          (if (eq? result186 py-NotImplemented)
+              (py-pow:reflected x107 y108)
+              result186)))))
+(define (py-pow:reflected x109 y110)
+  (letrec* ((magic_method189 (getattribute-from-obj-mro y110 (& "__rpow__"))))
+    (if (eq? magic_method189 py-absent)
+        (py-pow:err)
+        (letrec* ((result190 (py-call2 magic_method189 y110 x109)))
+          (if (eq? result190 py-NotImplemented) (py-pow:err) result190)))))
+(define (py-pow:err) (py-throw py-builtin-ValueError))
+(define-macro (py-lshift x44 y45)
+  `(let ((x44 ,x44) (y45 ,y45)) (py-lshift:normal x44 y45)))
+(define (py-lshift:normal x111 y112)
+  (letrec* ((magic_method193
+             (getattribute-from-obj-mro x111 (& "__lshift__"))))
+    (if (eq? magic_method193 py-absent)
+        (py-lshift:reflected x111 y112)
+        (letrec* ((result194 (py-call2 magic_method193 x111 y112)))
+          (if (eq? result194 py-NotImplemented)
+              (py-lshift:reflected x111 y112)
+              result194)))))
+(define (py-lshift:reflected x113 y114)
+  (letrec* ((magic_method197
+             (getattribute-from-obj-mro y114 (& "__rlshift__"))))
+    (if (eq? magic_method197 py-absent)
+        (py-lshift:err)
+        (letrec* ((result198 (py-call2 magic_method197 y114 x113)))
+          (if (eq? result198 py-NotImplemented) (py-lshift:err) result198)))))
+(define (py-lshift:err) (py-throw py-builtin-ValueError))
+(define-macro (py-rshift x50 y51)
+  `(let ((x50 ,x50) (y51 ,y51)) (py-rshift:normal x50 y51)))
+(define (py-rshift:normal x115 y116)
+  (letrec* ((magic_method201
+             (getattribute-from-obj-mro x115 (& "__rshift__"))))
+    (if (eq? magic_method201 py-absent)
+        (py-rshift:reflected x115 y116)
+        (letrec* ((result202 (py-call2 magic_method201 x115 y116)))
+          (if (eq? result202 py-NotImplemented)
+              (py-rshift:reflected x115 y116)
+              result202)))))
+(define (py-rshift:reflected x117 y118)
+  (letrec* ((magic_method205
+             (getattribute-from-obj-mro y118 (& "__rrshift__"))))
+    (if (eq? magic_method205 py-absent)
+        (py-rshift:err)
+        (letrec* ((result206 (py-call2 magic_method205 y118 x117)))
+          (if (eq? result206 py-NotImplemented) (py-rshift:err) result206)))))
+(define (py-rshift:err) (py-throw py-builtin-ValueError))
+(define-macro (py-bitand x56 y57)
+  `(let ((x56 ,x56) (y57 ,y57)) (py-bitand:normal x56 y57)))
+(define (py-bitand:normal x119 y120)
+  (letrec* ((magic_method209 (getattribute-from-obj-mro x119 (& "__and__"))))
+    (if (eq? magic_method209 py-absent)
+        (py-bitand:reflected x119 y120)
+        (letrec* ((result210 (py-call2 magic_method209 x119 y120)))
+          (if (eq? result210 py-NotImplemented)
+              (py-bitand:reflected x119 y120)
+              result210)))))
+(define (py-bitand:reflected x121 y122)
+  (letrec* ((magic_method213 (getattribute-from-obj-mro y122 (& "__rand__"))))
+    (if (eq? magic_method213 py-absent)
+        (py-bitand:err)
+        (letrec* ((result214 (py-call2 magic_method213 y122 x121)))
+          (if (eq? result214 py-NotImplemented) (py-bitand:err) result214)))))
+(define (py-bitand:err) (py-throw py-builtin-ValueError))
+(define-macro (py-bitor x62 y63)
+  `(let ((x62 ,x62) (y63 ,y63)) (py-bitor:normal x62 y63)))
+(define (py-bitor:normal x123 y124)
+  (letrec* ((magic_method217 (getattribute-from-obj-mro x123 (& "__or__"))))
+    (if (eq? magic_method217 py-absent)
+        (py-bitor:reflected x123 y124)
+        (letrec* ((result218 (py-call2 magic_method217 x123 y124)))
+          (if (eq? result218 py-NotImplemented)
+              (py-bitor:reflected x123 y124)
+              result218)))))
+(define (py-bitor:reflected x125 y126)
+  (letrec* ((magic_method221 (getattribute-from-obj-mro y126 (& "__ror__"))))
+    (if (eq? magic_method221 py-absent)
+        (py-bitor:err)
+        (letrec* ((result222 (py-call2 magic_method221 y126 x125)))
+          (if (eq? result222 py-NotImplemented) (py-bitor:err) result222)))))
+(define (py-bitor:err) (py-throw py-builtin-ValueError))
+(define-macro (py-xor x68 y69)
+  `(let ((x68 ,x68) (y69 ,y69)) (py-xor:normal x68 y69)))
+(define (py-xor:normal x127 y128)
+  (letrec* ((magic_method225 (getattribute-from-obj-mro x127 (& "__xor__"))))
+    (if (eq? magic_method225 py-absent)
+        (py-xor:reflected x127 y128)
+        (letrec* ((result226 (py-call2 magic_method225 x127 y128)))
+          (if (eq? result226 py-NotImplemented)
+              (py-xor:reflected x127 y128)
+              result226)))))
+(define (py-xor:reflected x129 y130)
+  (letrec* ((magic_method229 (getattribute-from-obj-mro y130 (& "__rxor__"))))
+    (if (eq? magic_method229 py-absent)
+        (py-xor:err)
+        (letrec* ((result230 (py-call2 magic_method229 y130 x129)))
+          (if (eq? result230 py-NotImplemented) (py-xor:err) result230)))))
+(define (py-xor:err) (py-throw py-builtin-ValueError))
+(define-macro (py-matmul x74 y75)
+  `(let ((x74 ,x74) (y75 ,y75)) (py-matmul:normal x74 y75)))
+(define (py-matmul:normal x131 y132)
+  (letrec* ((magic_method233
+             (getattribute-from-obj-mro x131 (& "__matmul__"))))
+    (if (eq? magic_method233 py-absent)
+        (py-matmul:reflected x131 y132)
+        (letrec* ((result234 (py-call2 magic_method233 x131 y132)))
+          (if (eq? result234 py-NotImplemented)
+              (py-matmul:reflected x131 y132)
+              result234)))))
+(define (py-matmul:reflected x133 y134)
+  (letrec* ((magic_method237
+             (getattribute-from-obj-mro y134 (& "__rmatmul__"))))
+    (if (eq? magic_method237 py-absent)
+        (py-matmul:err)
+        (letrec* ((result238 (py-call2 magic_method237 y134 x133)))
+          (if (eq? result238 py-NotImplemented) (py-matmul:err) result238)))))
+(define (py-matmul:err) (py-throw py-builtin-ValueError))
 (define (py-getattribute obj80 attr81)
-  (letrec* ((__getattribute__228
+  (letrec* ((__getattribute__241
              (getattribute-from-obj-mro obj80 (& "__getattribute__"))))
     (with-handler
      (lambda ($%current-exc_0)
        (cond ((py-isinstance? $%current-exc_0 py-builtin-AttributeError)
-              (letrec* ((__getattr__229
+              (letrec* ((__getattr__242
                          (getattribute-from-obj-mro obj80 (& "__getattr__"))))
-                (if (eq? __getattr__229 py-absent)
+                (if (eq? __getattr__242 py-absent)
                     (py-throw $%current-exc_0)
-                    (py-call2 __getattr__229 obj80 attr81))))
+                    (py-call2 __getattr__242 obj80 attr81))))
              (else (raise $%current-exc_0))))
-     (py-call2 __getattribute__228 obj80 attr81))))
+     (py-call2 __getattribute__241 obj80 attr81))))
