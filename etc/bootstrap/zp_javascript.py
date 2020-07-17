@@ -10,6 +10,8 @@ class Transformer:
         self.cps = cps
         self.ext = ".js"
         self.counter = 0
+        # Flag to modify behavior
+        self.in_class = False
 
     def gensym(self):
         gs = "g" + str(self.counter)
@@ -130,6 +132,10 @@ class Transformer:
                 return "(" + obj + " instanceof " + klass + ")"
         elif func == "print":
             return "console.log(" + args + ")"
+        if func == 'arguments':
+            # javascript strict mode requires special handling of
+            # 'eval' and 'arguments' identifiers
+            func = '_arguments'
 
         return func + "(" + args + ")"
 
@@ -203,22 +209,38 @@ class Transformer:
                     return out
                 elif y.func.id in self.classes:
                     px = self.transform(x)
-                    return " var " + px + " = new " + py + ";"
+                    if self.in_class:
+                        return " " + px + " = new " + py + ";"
+                    else:
+                        return " var " + px + " = new " + py + ";"
 
             px = self.transform(x)
             if isinstance(targets[0], AST.Attribute):
                 return " " + px + " = " + py + ";"
             else:
-                return " var " + px + " = " + py + ";"
+                if self.in_class:
+                    return " " + px + " = " + py + ";"
+                else:
+                    return " var " + px + " = " + py + ";"
 
-        if isinstance(value, AST.Tuple):
+        if isinstance(value, AST.Tuple) and len(targets) > 1:
             target_elts = targets[0].elts
             value_elts = value.elts
             out = " ".join(
                 [define(target_elts[i], value_elts[i]) for i in range(len(target_elts))]
             )
+        elif isinstance(value, AST.Tuple) and len(targets) == 1:
+            if self.in_class:
+                out = f"{self.transform(targets[0])} = ["
+            else:
+                out = f"var {self.transform(targets[0])} = ["
+            out += ",".join(
+                [self.transform(value.elts[i]) for i in range(len(value.elts))]
+            )
+            out += '];'
         else:
             out = define(targets[0], value)
+
         return out
 
     def Dict(self, node):
@@ -290,11 +312,25 @@ class Transformer:
                 out += " " + typ + ")"
             return out
 
+        def x_in_y(left, op, comparators):
+            return ""
+
         left = node.left
         ops = node.ops
         comparators = node.comparators
+
+        # Special case for x in tokenset:
+        if (
+            len(ops) == 1
+            and isinstance(ops[0], AST.In)
+            and comparators[0].func.id == "tokenset"
+        ):
+            # [3,79,42].indexOf(x) >= 0
+            args = ",".join(self.transform(i) for i in comparators[0].args)
+            left = self.transform(left)
+            out = f"[{args}].indexOf({left}) >= 0"
         # there can be more than one comparator, in which case we 'and'
-        if len(ops) > 1:
+        elif len(ops) > 1:
             if isinstance(left, AST.Call) and left.func.id == "type":
                 out = " && ".join(
                     [
@@ -423,7 +459,14 @@ class Transformer:
 
     def ClassDef(self, node):
         # ('name', 'bases', 'keywords', 'body', 'decorator_list')
+        self.in_class = True
+
+        # javascript strict mode requires special handling of
+        # 'eval' and 'arguments' identifiers
         name = node.name
+        if name == 'arguments':
+            name = '_arguments'
+
         body = "; ".join([self.transform(node) for node in node.body])
         bases = node.bases  # TODO: implement (multiple) inheritance
         keywords = node.keywords  # ignored
@@ -432,6 +475,7 @@ class Transformer:
         # store class name for future reference when instantiating
         self.classes.add(name)
 
+        self.in_class = False
         return "class " + name + " {" + body + "}"
 
     def Attribute(self, node):
@@ -452,6 +496,7 @@ class Transformer:
         body = "; ".join([self.transform(node) for node in node.body])
         # not easily mapped
         # orelse = '; '.join([self.transform(node) for node in node.orelse])
+
         return " while (" + test + ") {" + body + "};"
 
     def NameConstant(self, node):
@@ -536,3 +581,39 @@ class Transformer:
     def Global(self, node):
         # assume a noop, onus on programmer + "use strict";
         return ""
+
+    def Import(self, node):
+        # noop for the time being
+        return ""
+
+    def Tuple(self, node):
+        elts = ",".join(self.transform(i) for i in node.elts)
+        return f"[{elts}]"
+
+    def UnaryOp(self, node):
+        op = self.transform(node.op)
+        operand = self.transform(node.operand)
+        return f"({op}{operand})"
+
+    @staticmethod
+    def USub(node):
+        return "-"
+
+    @staticmethod
+    def Not(node):
+        return "!"
+
+    @staticmethod
+    def Is(node):
+        return "Object.is("
+
+    @staticmethod
+    def Ellipsis(node):
+        return "..."
+
+    def Raise(self, node):
+        # We will limit ourselves to relatively simple exceptions.
+        # We will take 'raise Exception(foo)' and turn it into
+        # throw foo;
+        args = self.transform(node.exc.args)
+        return f"throw ({args});"
