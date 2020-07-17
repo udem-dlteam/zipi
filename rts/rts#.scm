@@ -317,7 +317,18 @@
         "py-call"
         (number->string n))))
 
-  (let ((nargs (length args)))
-    (if (<= nargs py-callX-args-limit)
-      `(,(make-py-call-name nargs) ,f ,@args)
-      `(py-call-generic ,f ,@args))))
+  (let* ((split-args
+          (let loop ((args args) (acc '()))
+            (if (or (null? args) (keyword? (car args)))
+              (cons (reverse acc) args)
+              (loop (cdr args) (cons (car args) acc)))))
+        (pos-args (car split-args))
+        (special-args (cdr split-args)))
+    (if (not (null? special-args))
+      `(py-throw-exception-with-message
+          py-builtin-NotImplementedError
+          "py-call does not support nammed args, *args or **kwargs")
+      (let ((nargs (length pos-args)))
+        (if (<= nargs py-callX-args-limit)
+          `(,(make-py-call-name nargs) ,f ,@pos-args)
+          `(py-call-generic ,f ,@pos-args))))))
