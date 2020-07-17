@@ -389,13 +389,10 @@
 	  (string->symbol (substring s 0 i))
 	  name)))
 
-(define (string-split string split)
-  (call-with-input-string string (lambda (port) (read-all port (lambda (p) (read-line p split))))))
-
 (define (compile-import loc alias conf)
    (match-case alias
       ((?name #f)
-       (let ((name-split (string-split (symbol->string name) #\.)))
+       (let ((name-split (string-split (symbol->string name) ".")))
         (if (pair? (cdr name-split))
             (new-PycSeq
               loc
