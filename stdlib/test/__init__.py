@@ -1,0 +1,2 @@
+print("hello")
+support = object()
