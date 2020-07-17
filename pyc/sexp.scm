@@ -298,12 +298,15 @@
      (new-PycCall loc
                   (sexp fun #f scope conf)
                   (map (lambda (a) (sexp a #f scope conf)) args)
-                  keywords: (map (lambda (k) (sexp k #f scope conf)) keywords)))
+                  keywords-values: (map (lambda (k) (sexp (cadr k) #f scope conf)) keywords)
+                  keywords-names: (map car keywords)))
     ((Attribute ?loc ?value ?attr ?ctx)
      ;; Attribute(expr value, identifier attr, expr_context ctx)
      (new-PycAccess loc (sexp value #f scope conf) (symbol->string attr)))
     ((Subscript ?loc ?value ?slc ?ctx)
      (subscript loc value slc scope conf))
+    ((Starred ?loc ?value ?ctx)
+      (new-PycStarredExpr loc (sexp value #f scope conf)))
     ((Name ?loc ?id ?ctx)
      ;; Name(identifier id, expr_context ctx)
      (case ctx

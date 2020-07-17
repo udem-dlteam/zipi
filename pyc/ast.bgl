@@ -138,7 +138,11 @@
 
            ;; expressions
           (class PycExpr::PycNode
-	      (type::symbol (default 'unknown)))
+	         (type::symbol (default 'unknown)))
+
+           ;; starred expressions
+          (class PycStarredExpr::PycExpr
+	         expr::PycExpr)
 
            (class PycPragma::PycExpr
               (lang::symbol (default 'scheme))
@@ -246,7 +250,8 @@
            (final-class PycCall::PycExpr
               fun::PycExpr
               args::pair-nil
-              (keywords::pair-nil (default '()))
+              (keywords-values::pair-nil (default '()))
+              (keywords-names::pair-nil (default '()))
               (can-be-super::bool (default #t)))
 
 	   (abstract-class PycCollection::PycExpr
@@ -609,13 +614,14 @@
 (gen-walks PycTry body (handlers) else finally)
 (gen-walks PycHandler type body)
 (gen-walks PycStmtExpr expr)
+(gen-walks PycStarredExpr expr)
 (gen-walks PycFun (args) (posonlyargs) vararg (kwonlyargs) (kw-defaults) kwarg (defaults) body (decorators))
 (gen-walks PycSemantics (args) (posonlyargs) vararg (kwonlyargs) (kw-defaults) kwarg (defaults) body (decorators))
 (gen-walks PycClass body (bases))
 (gen-walks PycBinary lhs rhs)
 (gen-walks PycUnary expr)
 (gen-walks PycBoolOp (args))
-(gen-walks PycCall fun (args) (keywords))
+(gen-walks PycCall fun (args) (keywords-values))
 (gen-walks PycCollection (elts))
 (gen-walks PycDict (keys) (elts))
 (gen-walks PycAccess obj)
