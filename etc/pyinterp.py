@@ -6,6 +6,9 @@ debug = False
 single_step = True
 
 absent = object()
+om_None = absent
+om_True = absent
+om_False = absent
 
 class Context:
     def __init__(self, rte, cont, ast):
@@ -68,24 +71,24 @@ def rte_set(rte, var, val):
         env[var] = val
 
 def make_signature(args, posonlyargs, varargs, kwonlyargs, kw_defaults, kwargs, defaults):
-    return [args, posonlyargs, varargs, kwonlyargs, kw_defaults, kwargs, defaults]
+    return (args, posonlyargs, varargs, kwonlyargs, kw_defaults, kwargs, defaults)
 
 empty_sigature = make_signature([], [], False, [], [], False, [])
 
 def make_posonly_only_signature(posonlyargs):
-    return make_signature([], posonlyargs, absent, [], [], absent, [])
+    return make_signature([], posonlyargs, False, [], [], False, [])
 
 def make_posonly_defaults_only_signature(posonlyargs, defaults):
-    return make_signature([], posonlyargs, absent, [], [], absent, defaults)
+    return make_signature([], posonlyargs, False, [], [], False, defaults)
 
 def make_vararg_only_signature(vararg):
-    return make_signature([], [], varargs, [], [], absent, [])
+    return make_signature([], [], varargs, [], [], False, [])
 
 def make_posonly_defaults_signature(posonlyargs, defaults):
-    return make_signature([], posonlyargs, absent, [], [], absent, defaults)
+    return make_signature([], posonlyargs, False, [], [], False, defaults)
 
 def make_args_defaults_signature(args, defaults):
-    return make_signature(args, [], absent, [], [], absent, defaults)
+    return make_signature(args, [], False, [], [], False, defaults)
 
 def signature_args(signature):
     return signature[0]
@@ -117,15 +120,14 @@ def signature_arity(signature):
     kwargs = signature_kwargs(signature)
     defaults = signature_defaults(signature)
 
-    if len(kwonlyargs) == 0 and \
-       len(kw_defaults)  == 0 and \
-       not kwargs and len(defaults) == 0:
+    if len(kwonlyargs) == 0 and len(kw_defaults) == 0 and \
+       kwargs is absent and len(defaults) == 0:
         if vararg:
             return -1 - len(args) - len(posonlyargs)
         else:
             return len(args) + len(posonlyargs)
     else:
-        return False
+        return absent
 
 def align_args_with_signature(ctx, caller_args, signature):
     args = signature_args(signature)
@@ -181,7 +183,11 @@ def dict_get(d, key):
 def dict_set(d, key, value):
     d[key] = value
 
+def class_getattr(o, attr):
+    return dict_get(o, attr)
+
 def class_getattribute(o, attr):
+    # TODO: does not follow sementic missing __get__.
     return dict_get(o, attr)
 
 def class_setattribute(o, attr, value):
@@ -204,7 +210,7 @@ def make_class(name, module, bases):
     cls = make_dict()
     class_set(cls, '__name__', name)
     class_set(cls, '__module__', module)
-    class_set(cls, '__mro__', None)
+    class_set(cls, '__mro__', bases)
     return cls
 
 def make_builtin_class(name):
@@ -226,14 +232,14 @@ def class__mro__(cls):
 def populate_builtin_int():
     class_set(class_int, '__class__', class_type)
 
-    #class_set(class_int, '__init__', mo_int_init)
-    class_set(class_int, '__bool__', mo_int_bool)
-    class_set(class_int, '__add__', mo_int_add)
-    class_set(class_int, '__radd__', mo_int_radd)
-    class_set(class_int, '__sub__', mo_int_sub)
-    class_set(class_int, '__rsub__', mo_int_rsub)
-    class_set(class_int, '__lt__', mo_int_lt)
-    class_set(class_int, '__repr__', mo_int_repr)
+    #class_set(class_int, '__init__', om_int_init)
+    class_set(class_int, '__bool__', om_int_bool)
+    class_set(class_int, '__add__', om_int_add)
+    class_set(class_int, '__radd__', om_int_radd)
+    class_set(class_int, '__sub__', om_int_sub)
+    class_set(class_int, '__rsub__', om_int_rsub)
+    class_set(class_int, '__lt__', om_int_lt)
+    class_set(class_int, '__repr__', om_int_repr)
 
     class_set__mro__(class_int, [class_int, class_object])
 
@@ -241,14 +247,14 @@ def populate_builtin_object():
     class_set(class_object, '__class__', class_type)
 
     # TODO: complete object magic method
-    class_set(class_object, '__repr__', mo_object_repr)
+    class_set(class_object, '__repr__', om_object_repr)
     class_set__mro__(class_object, [class_object])
 
 def populate_builtin_bool():
     class_set(class_type, '__class__', class_type)
 
     # TODO: complete bool magic method
-    class_set(class_bool, '__bool__', mo_bool_bool)
+    class_set(class_bool, '__bool__', om_bool_bool)
 
     class_set__mro__(class_bool, [class_bool, class_int, class_object])
 
@@ -260,18 +266,18 @@ def populate_builtin_str():
 def populate_builtin_NoneType():
     class_set(class_str, '__class__', class_type)
     # TODO: add all other methods
-    class_set(class_NoneType, '__bool__', mo_NoneType_bool)
+    class_set(class_NoneType, '__bool__', om_NoneType_bool)
 
     class_set__mro__(class_NoneType, [class_NoneType, class_object])
 
 def populate_builtin_FunctionType():
     class_set(class_function, '__class__', class_type)
 
-    class_set(class_function, '__call__', mo_function_call)
+    class_set(class_function, '__call__', om_function_call)
     class_set__mro__(class_function, [class_function, class_object])
 
 def object_class(o):
-    if o is None:
+    if om_is(o, om_None):
         # Wrap None inside an object.
         return class_NoneType
     elif isinstance(o, bool):
@@ -285,95 +291,106 @@ def object_class(o):
         assert __class__ is not absent, 'object does not have a class'
         return __class__
 
-def is_mo_type(o):
+def is_om_type(o):
     return isinstance(o, dict) and \
             dict_get(o, '__class__') is not absent
 
-def make_mo(cls):
+def om(cls):
     o = make_dict()
-    mo_set(o, '__class__', cls)
+    ## XXX" should be setattribute
+    om_rawset(o, '__class__', cls)
     return o
 
-def mo_set(o, name, val):
+def om_is(x, y):
+    return x is y
+
+def om_is_falsy(val):
+    return om_is(val, om_False)
+
+def om_rawset(o, name, val):
     dict_set(o, name, val)
 
-def mo_get(o, name):
+def om_rawget(o, name):
     return dict_get(o, name)
 
-def mo_object_repr(ctx, val):
+def om_object_repr(ctx, val):
     __name__ = getattribute_from_obj_mro(val, '__name__')
     result = "<class '" + __name__ + "'>"
     return expr_end(ctx, result)
 
-def mo_bool_bool(ctx, val):
+def om_bool_bool(ctx, val):
     if debug: print('bool.__bool__')
     return expr_end(ctx, val)
 
-def make_mo_int(val):
-    obj = make_mo(class_int)
-    class_set(obj, '**value**', val)
+def om_int(val):
+    obj = om(class_int)
+    om_rawset(obj, '**value**', val)
     return obj
 
-def mo_int_bool(ctx, val):
+def om_int_bool(ctx, val):
     if debug: print('int.__bool__')
-    val = class_getattribute(val, '**value**')
-    result = val != 0
+    val_unbox = om_rawget(val, '**value**')
+    if val_unbox != 0:
+        result = om_True
+    else:
+        result = om_False
     return ctx.cont(ctx.rte, result)
 
-def mo_int_add(ctx, val1, val2):
+def om_int_add(ctx, val1, val2):
     # TODO: add type checking
-    val1_unbox = class_getattribute(val1, '**value**')
-    val2_unbox = class_getattribute(val2, '**value**')
+    val1_unbox = om_rawget(val1, '**value**')
+    val2_unbox = om_rawget(val2, '**value**')
     result = val1_unbox + val2_unbox
-    return expr_end(ctx, make_mo_int(result))
+    return expr_end(ctx, om_int(result))
 
-mo_int_radd = mo_int_add
+om_int_radd = om_int_add
 
-def mo_int_sub(ctx, val1, val2):
-    val1_unbox = mo_get(val1, '**value**')
-    val2_unbox = mo_get(val2, '**value**')
+def om_int_sub(ctx, val1, val2):
+    val1_unbox = om_rawget(val1, '**value**')
+    val2_unbox = om_rawget(val2, '**value**')
     # TODO: add type check.
     result = val1_unbox - val2_unbox
-    return expr_end(ctx, make_mo_int(result))
+    return expr_end(ctx, om_int(result))
 
-def mo_int_rsub(ctx, val1, val2):
-    return mo_int_sub(ctx, val2, val1)
+def om_int_rsub(ctx, val1, val2):
+    return om_int_sub(ctx, val2, val1)
 
-def mo_int_lt(ctx, val1, val2):
+def om_int_lt(ctx, val1, val2):
     if debug: print('int.__lt__')
-    v1 = class_getattribute(val1, '**value**')
-    v2 = class_getattribute(val2, '**value**')
+    v1 = om_rawget(val1, '**value**')
+    v2 = om_rawget(val2, '**value**')
     if v1 < v2:
-        result = True
+        result = om_True
     else:
-        result = False
+        result = om_False
     return expr_end(ctx, result)
 
-def mo_int_floordiv(ctx, val1, val2):
-    val1_unbox = class_getattribute(val1, '**value**')
-    val2_unbox = class_getattribute(val2, '**value**')
+def om_int_floordiv(ctx, val1, val2):
+    val1_unbox = om_rawget(val1, '**value**')
+    val2_unbox = om_rawget(val2, '**value**')
     if val2_unbox == 0:
         # TODO: implemented sem_raise
-        #return sem_raise(ctx, mo_ZeroDivisionError())
+        #return sem_raise(ctx, om_ZeroDivisionError())
         assert False, 'Division by zero'
     else:
         result = val1_unbox // val2_unbox
-        return expr_end(ctx, make_mo_int(result))
+        return expr_end(ctx, om_int(result))
 
-def mo_int_repr(ctx, val):
+def om_int_repr(ctx, val):
     result = str(val)
     return expr_end(ctx, result)
 
-def mo_NoneType_bool(ctx, val):
+def om_NoneType_bool(ctx, val):
     if debug: print('None.__bool__')
-    result = False
+    result = om_False
     return ctx.cont(ctx.rte, result)
 
 
-def mo_function_call(ctx, self, args):
-    signature = class_getattribute(self, '**signature**')
+def om_function_call(ctx, self, args):
+    signature = om_rawget(self, '**signature**')
 
-    arity = signature_arity(signature)
+
+    arity = om_rawget(self, '**arity**')
 
     ## test arity
     locals_env = align_args_with_signature(ctx, args, signature)
@@ -381,7 +398,7 @@ def mo_function_call(ctx, self, args):
     def code():
         stack = make_frame(ctx.rte, ctx.cont, ctx.ast)
         rte = make_rte(rte_globals(ctx.rte), dict(locals_env), stack)
-        body = class_getattribute(self, '**body**')
+        body = om_rawget(self, '**body**')
         return body(rte,
                     lambda rte1:
                        frame_cont(rte_stack(rte1))(frame_rte(rte_stack(rte1)), None))
@@ -393,14 +410,15 @@ def mo_function_call(ctx, self, args):
 # XXX: need to decide if I keep this
 def unbox_object(obj):
     value = obj
-    # Give a human readable representation of mo_type
-    if is_mo_type(obj):
+    # Give a human readable representation of om_type
+    if is_om_type(obj):
+        # XXX: should be an getattribute protocol
         dtype = class_getattribute(obj, '__class__')
-        # class_int and class_str are representated with mo_*
+        # class_int and class_str are representated with om_*
         if dtype in [class_int, class_str]:
-            value = class_getattribute(obj, '**value**')
+            value = om_rawget(obj, '**value**')
         elif dtype is class_function:
-            # NOTE: temporary
+            # NOTE: should be
             name = class_getattribute(obj, '__name__')
             value = 'function {}(...)'.format(name)
     return value
@@ -410,7 +428,7 @@ def box_object(obj):
     if isinstance(obj, bool):
         return obj
     if isinstance(obj, int):
-        return make_mo_int(obj)
+        return om_int(obj)
     else:
         return obj
 
@@ -456,7 +474,6 @@ def interp(ast):
 
 
 def comp(ast):
-
     cte = dict()  # unused for now
 
     (cte1, code) = comp_mod(cte, ast)
@@ -465,15 +482,21 @@ def comp(ast):
 
 def run(code):
     # NOTE: dummy internal implementation of print.
-    def mo_print_code(rte, cont):
+    def om_print_code(rte, cont):
         x = rte_lookup(rte, 'x')
         print(unbox_object(x)) # should call object.__str__
         return cont(rte)
 
-    mo_print = make_mo(class_function)
-    mo_set(mo_print, '__name__', 'print')
-    mo_set(mo_print, '**signature**', make_args_defaults_signature(['x'], []))
-    mo_set(mo_print, '**body**', mo_print_code)
+    om_None = om(class_NoneType)
+    om_True = True
+    om_False = False
+
+    om_print = om(class_function)
+    # XXX: this one should be a setattribute
+    om_rawset(om_print, '__name__', 'print')
+
+    om_rawset(om_print, '**signature**', make_args_defaults_signature(['x'], []))
+    om_rawset(om_print, '**body**', om_print_code)
 
     locals_env = absent
     globals_env = dict()
@@ -483,7 +506,7 @@ def run(code):
     globals_env['int'] = class_int
     globals_env['bool'] = class_bool
     globals_env['str'] = class_str
-    globals_env['print'] = mo_print
+    globals_env['print'] = om_print
 
     def cont(rte):
         print('done!')
@@ -558,12 +581,6 @@ def comp_function_args(cte, args):
         (cte2, code2) = comp_function_args(cte, args[0:index_last])
         return gen_function_args_seq(cte2, code1, code2)
 
-def append_list(lst, val):
-    result = lst.copy()
-    result.append(val)
-    return result
-
-
 def gen_function_args_seq(cte, code1, code2):
     # code1: gives the function object
     # code2: gives positional arguments
@@ -573,7 +590,7 @@ def gen_function_args_seq(cte, code1, code2):
                      lambda rte2, val2:
                         code1(rte2,
                               lambda rte1, val1:
-                                 cont(rte1, append_list(val2, val1))))
+                                 cont(rte1, val2 + [val1])))
     return (cte, code)
 
 # Compilation of a statement.
@@ -641,14 +658,19 @@ def comp_stmt(cte, ast):
     elif isinstance(ast, AST.FunctionDef):
         if debug: print('AST.FunctionDef')
         #print(dir(ast))
-        function = make_mo(class_function)
-        mo_set(function, '__name__', ast.name)
+        function = om(class_function)
+
+        om_rawset(function, '__name__', ast.name)
 
         signature = gen_signature(cte, ast)
         (cte1, body_code) = gen_funcdef_code(cte, ast, ast.body)
 
-        mo_set(function, '**signature**', signature)
-        mo_set(function, '**body**', body_code)
+        om_rawset(function, '**signature**', signature)
+        om_rawset(function, '**body**', body_code)
+
+        arity = signature_arity(signature)
+        om_rawset(function, '**arity**', arity)
+
         # TODO: create closure
 
         (cte2, code) = gen_constant(cte1, ast, function)
@@ -743,7 +765,7 @@ def gen_signature(cte, ast):
     if ast.args.vararg is not None:
         vararg = ast.args.vararg.arg
     else:
-        vararg = absent
+        vararg = False
 
     kwonlyargs = []
     for kwonly in ast.args.kwonlyargs:
@@ -759,7 +781,7 @@ def gen_signature(cte, ast):
     if ast.args.kwarg is not None:
         kwarg = ast.args.kwarg.arg
     else:
-        kwarg = absent
+        kwarg = False
 
     defaults = []
     for default in ast.args.defaults:
@@ -804,7 +826,7 @@ def gen_while(cte, ast, code1, code2, code3):
     def code(rte, cont):
 
         def dispatch(rte, val):
-            if val is False:
+            if om_is_falsy(val):
                 return code3(rte, cont)
             else:
                 return code2(rte, lambda rte2: code(rte2, cont))
@@ -824,7 +846,7 @@ def gen_if(cte, ast, code1, code2, code3):
     def code(rte, cont):
 
         def dispatch(rte, val):
-            if val is False:
+            if om_is_false(val):
                 return code3(rte, cont)
             else:
                 return code2(rte, cont)
@@ -1192,10 +1214,13 @@ def sem_bool(ctx, val):
     if __val_bool__ is absent:
         __val_len__ = getattribute_from_obj_mro(val, '__len__')
         if __val_len__ is absent:
-            return expr_end(ctx, True)
+            return expr_end(ctx, om_True)
         else:
             def nonzero(rte, val):
-                result = val != 0
+                if val != 0:
+                    result = om_True
+                else:
+                    result = om_False
                 return expr_end(ctx, result)
 
             ctx1 = Context(ctx.rte, nonzero, ctx.ast)
@@ -1203,9 +1228,6 @@ def sem_bool(ctx, val):
     else:
         return __val_bool__(ctx, val)
 
-# XXX: decide if I keep this
-def sem_false(val):
-    return not val
 
 #def gen_funcdef_code(cte, ast, name, args, body):
 def gen_funcdef_code(cte, ast, body):
@@ -1262,7 +1284,6 @@ def gui_wait_for_click(ast, msg, continue_execution):
         from threading import Timer
         Timer(0.1, lambda: trampoline(continue_execution)).start()
         return None  # exit trampoline
-
 
 def main():
     parse = argparse.ArgumentParser(description='interp_file')
