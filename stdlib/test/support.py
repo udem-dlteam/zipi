@@ -1,4 +1,3 @@
-print("hello")
 os_helper = object()
 
 def run_test():
