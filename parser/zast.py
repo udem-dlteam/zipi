@@ -10,10 +10,15 @@ from _zparse import *
 from _zast import *
 
 
+def nocompile(f):
+    return f
+
+
 def parse(source, filename='<unknown>', mode='exec'):
     return py_parse((source+'\n').encode('utf-8'))
 
 
+@nocompile
 def dump(node, annotate_fields=True, include_attributes=False):
     """
     Return a formatted dump of the tree in node.  This is mainly useful for
@@ -53,6 +58,7 @@ def dump(node, annotate_fields=True, include_attributes=False):
     return _format(node)
 
 
+@nocompile
 def dump2(node, annotate_fields=True, include_attributes=False):
     """
     Return a formatted dump of the tree in *node*.  This is mainly useful for
@@ -91,6 +97,7 @@ def dump2(node, annotate_fields=True, include_attributes=False):
     return _format(node)
 
 
+@nocompile
 def iter_fields(node):
     """
     Yield a tuple of ``(fieldname, value)`` for each field in ``node._fields``
@@ -103,6 +110,7 @@ def iter_fields(node):
             pass
 
 
+@nocompile
 def iter_child_nodes(node):
     """
     Yield all direct child nodes of *node*, that is, all fields that are nodes
@@ -116,9 +124,11 @@ def iter_child_nodes(node):
                 if isinstance(item, AST):
                     yield item
 
+@nocompile
 def show_ast(x):
     print(dump2(x, annotate_fields=True, include_attributes=True))
 
+@nocompile
 def main():
     import sys
     with open(sys.argv[1], "r") as f:

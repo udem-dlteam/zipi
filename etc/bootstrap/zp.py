@@ -101,14 +101,22 @@ def compile_file(input_file):
     if input_file[-3:] != ".py":
         raise Exception
 
+    output_file = input_file[:-3] + backend.ext
+
     with open(input_file, "r") as f:
         source = f.read()
 
     backend.rootdir = str(Path(input_file).parent)
 
     target_code = transform(ast.parse(source))
-    output_file = input_file[:-3] + backend.ext
 
+    # We will add a small runtime
+    runtime = """
+    String.prototype.lstrip = function () {
+      return this.replace(/^\s+/g, '');
+    };
+    """
+    target_code = runtime + target_code
     target_code = re.sub(r"(;)\1+", r"\1", target_code)
     target_code = '"use strict"; ' + target_code
 

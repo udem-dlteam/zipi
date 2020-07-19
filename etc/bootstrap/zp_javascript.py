@@ -12,6 +12,7 @@ class Transformer:
         self.counter = 0
         # Flag to modify behavior
         self.in_class = False
+        self.imports = set()
 
     def gensym(self):
         gs = "g" + str(self.counter)
@@ -99,6 +100,8 @@ class Transformer:
                 return args + ".charCodeAt(0)"
         elif func == "str":
             return "String(" + args + ")"
+        elif func == 'int':
+            return "Number(" + args + ")"
         elif func == "repr":
             return "JSON.stringify(" + args + ")"
         elif func == "range":
@@ -132,19 +135,50 @@ class Transformer:
                 return "(" + obj + " instanceof " + klass + ")"
         elif func == "print":
             return "console.log(" + args + ")"
-        if func == 'arguments':
+        elif func == "arguments":
             # javascript strict mode requires special handling of
             # 'eval' and 'arguments' identifiers
-            func = '_arguments'
+            func = "aarguments"
+        elif isinstance(node.func, AST.Attribute) and node.func.attr == "encode":
+            return self.transform(node.func.value)
+        elif isinstance(node.func, AST.Attribute) and node.func.attr == "find":
+            return (
+                self.transform(node.func.value)
+                + ".indexOf("
+                + ",".join(self.transform(arg) for arg in node.args)
+                + ")"
+            )
+        elif isinstance(node.func, AST.Attribute) and node.func.attr == 'append':
+            return (
+                self.transform(node.func.value)
+                + ".push("
+                + ",".join(self.transform(arg) for arg in node.args)
+                + ")"
+                )
 
-        return func + "(" + args + ")"
+        # Implement 'foo'.join(bar)?
+        # elif (
+        #     isinstance(func, AST.Attribute)
+        #     and isinstance(func.value, AST.Str)
+        #     and func.attr == "join"
+        # ):
+        #     return False
+
+        if func in self.classes:
+            return "new " + func + "(" + args + ")"
+        else:
+            return func + "(" + args + ")"
 
     @staticmethod
     def Name(node):
         return node.id
 
     def FunctionDef(self, node):
-        body = "; ".join([self.transform(node) for node in node.body])
+
+        if "nocompile" in [d.id for d in node.decorator_list]:
+            return " "
+
+        body = "; ".join([self.transform(node) for node in node.body]) + ";"
         name = node.name
 
         # For class constructors
@@ -160,7 +194,10 @@ class Transformer:
         # Only parse args
         args = self.transform(node.args)
 
-        out = " function " + name + "(" + args + ") { " + body + "};"
+        out = " function "
+
+        out += name + "(" + args + ") { " + body + "};"
+
         return out
 
     def Return(self, node):
@@ -210,9 +247,9 @@ class Transformer:
                 elif y.func.id in self.classes:
                     px = self.transform(x)
                     if self.in_class:
-                        return " " + px + " = new " + py + ";"
+                        return " " + px + " = " + py + ";"
                     else:
-                        return " var " + px + " = new " + py + ";"
+                        return " var " + px + " = " + py + ";"
 
             px = self.transform(x)
             if isinstance(targets[0], AST.Attribute):
@@ -237,7 +274,7 @@ class Transformer:
             out += ",".join(
                 [self.transform(value.elts[i]) for i in range(len(value.elts))]
             )
-            out += '];'
+            out += "];"
         else:
             out = define(targets[0], value)
 
@@ -258,15 +295,25 @@ class Transformer:
         return self.transform(node.value)
 
     def If(self, node):
+
+        # Don't compile if __name__ == "__main__" expressions
+        if (
+            isinstance(node.test, AST.Compare)
+            and isinstance(node.test.left, AST.Name)
+            and node.test.left.id == "__name__"
+        ):
+            return " "
+
         test = self.transform(node.test)  # Compare, BoolOp
-        body = "; ".join([self.transform(node) for node in node.body])
+        body = "; ".join([self.transform(node) for node in node.body]) + ";"
         orelse = node.orelse
         out = " if(" + test + ") {" + body
+
         if orelse != []:
             out += "} else {"
-            out += "; ".join([self.transform(node) for node in orelse]) + "}"
+            out += "; ".join([self.transform(node) for node in orelse]) + "};"
         else:
-            out += "}"
+            out += "};"
         return out
 
     def Compare(self, node):
@@ -351,7 +398,7 @@ class Transformer:
         return out
 
     @staticmethod
-    def parse_Is(node):
+    def Is(node):
         return "Object.is("
 
     def Subscript(self, node):
@@ -437,7 +484,7 @@ class Transformer:
         self.Name = NameSwap
 
         _iter = self.transform(node.iter)
-        body = "; ".join([self.transform(node) for node in node.body])
+        body = "; ".join([self.transform(node) for node in node.body]) + ";"
         # Set Name back to default
         self.Name = lambda node: node.id
 
@@ -453,7 +500,7 @@ class Transformer:
             out += body + "}"
             return out
 
-        out = " for (const " + gs + " in " + _iter + ") {" + body + "}"
+        out = " for (const " + gs + " in " + _iter + ") {" + body + "};"
 
         return out
 
@@ -464,10 +511,10 @@ class Transformer:
         # javascript strict mode requires special handling of
         # 'eval' and 'arguments' identifiers
         name = node.name
-        if name == 'arguments':
-            name = '_arguments'
+        if name == "arguments":
+            name = "aarguments"
 
-        body = "; ".join([self.transform(node) for node in node.body])
+        body = "; ".join([self.transform(node) for node in node.body]) + ";"
         bases = node.bases  # TODO: implement (multiple) inheritance
         keywords = node.keywords  # ignored
         decorator_list = node.decorator_list  # ignored
@@ -476,7 +523,7 @@ class Transformer:
         self.classes.add(name)
 
         self.in_class = False
-        return "class " + name + " {" + body + "}"
+        return "class " + name + " {" + body + "};"
 
     def Attribute(self, node):
         value = self.transform(node.value)
@@ -493,7 +540,7 @@ class Transformer:
 
     def While(self, node):
         test = self.transform(node.test)
-        body = "; ".join([self.transform(node) for node in node.body])
+        body = "; ".join([self.transform(node) for node in node.body]) + ";"
         # not easily mapped
         # orelse = '; '.join([self.transform(node) for node in node.orelse])
 
@@ -505,6 +552,8 @@ class Transformer:
             return "true"
         elif val is False:
             return "false"
+        elif val is None:
+            return "null"
         else:
             return str(node.value)
 
@@ -564,10 +613,14 @@ class Transformer:
         return "{};"
 
     def ImportFrom(self, node):
+        if node.module in self.imports:
+            return " "
+
         # Handling of 'from x import *'
         # Since everything is top-level, we can jut prepend all the code
         # i.e. recursively compile:
         module = node.module
+        self.imports.add(node.module)
         module_file = self.rootdir + "/" + module + ".py"
 
         with open(module_file, "r") as f:
@@ -609,7 +662,7 @@ class Transformer:
 
     @staticmethod
     def Ellipsis(node):
-        return "..."
+        return "ELLIPSIS"
 
     def Raise(self, node):
         # We will limit ourselves to relatively simple exceptions.
@@ -617,3 +670,13 @@ class Transformer:
         # throw foo;
         args = self.transform(node.exc.args)
         return f"throw ({args});"
+
+    def Try(self, node):
+        # ('body', 'handlers', 'orelse', 'finalbody')
+        try_body = "; ".join([self.transform(node) for node in node.body]) + ";"
+        catch_body = (
+            "; ".join([self.transform(node) for node in node.handlers[0].body])
+            + " console.log(err);"
+        )
+        out = f"try {{try_body}} catch(err){{catch_body}};"
+        return out
