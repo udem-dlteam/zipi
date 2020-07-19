@@ -1,7 +1,10 @@
 # File: Grammar_actions.py
 
 {
-"prelude":
+"gen_prefix": "py_"
+,"gen_parse_prefix": "py_parse_"
+
+,"prelude":
 "from _zast import *\n\
 \n\
 def set_end_ast(ast, end_ast):\n\
@@ -9,11 +12,13 @@ def set_end_ast(ast, end_ast):\n\
 \n\
 def set_ctx(targets, ctx):\n\
     for i in range(len(targets)):\n\
-        t = targets[i]\n\
-        t.ctx = ctx\n\
-        if isinstance(t, Tuple):\n\
-            for j in range(len(t.elts)):\n\
-                t.elts[j].ctx = ctx\n\
+        set_ctx1(targets[i], ctx)\n\
+\n\
+def set_ctx1(t, ctx):\n\
+    t.ctx = ctx\n\
+    if isinstance(t, Tuple):\n\
+        for i in range(len(t.elts)):\n\
+            t.elts[i].ctx = ctx\n\
 \n\
 "
 
@@ -62,6 +67,18 @@ def set_ctx(targets, ctx):\n\
     "set_start_end_1token(ts, a)\n"
     "args.append(a)"]
 ,"typedargslist: NAME (',' NAME)*.":
+   ["return arguments(args, [], None, [], [], None, [])"]
+
+
+,"varargslist: .NAME (',' NAME)*":
+   ["a = arg(token(ts),None,None)\n"
+    "set_start_end_1token(ts, a)\n"
+    "args = [a]"]
+,"varargslist: NAME (',' .NAME)*":
+   ["a = arg(token(ts),None,None)\n"
+    "set_start_end_1token(ts, a)\n"
+    "args.append(a)"]
+,"varargslist: NAME (',' NAME)*.":
    ["return arguments(args, [], None, [], [], None, [])"]
 
 
@@ -124,6 +141,8 @@ def set_ctx(targets, ctx):\n\
 ,"expr_stmt: testlist_star_expr. (annassign | augassign (yield_expr|testlist) | [('=' (yield_expr|testlist_star_expr))+ [TYPE_COMMENT]] )":
    ["targets = [testlist_star_expr1]\n"
     "type_comment = None"]
+,"expr_stmt: testlist_star_expr (annassign | augassign (yield_expr|.testlist) | [('=' (yield_expr|testlist_star_expr))+ [TYPE_COMMENT]] )":
+   ["as_list = False"]
 ,"expr_stmt: testlist_star_expr (annassign | augassign (yield_expr|testlist) | [('=' (yield_expr|testlist_star_expr))+. [TYPE_COMMENT]] )":
    ["ast = Assign(targets, testlist_star_expr2, type_comment)\n"
     "set_ctx(targets, Store())\n"
@@ -142,9 +161,11 @@ def set_ctx(targets, ctx):\n\
 
 ,"del_stmt: .'del' exprlist":
    ["lineno = get_lineno(ts); col_offset = get_col_offset(ts)"]
+,"del_stmt: 'del' .exprlist":
+   ["as_list = True"]
 ,"del_stmt: 'del' exprlist.":
-   ["ast = Delete(exprlist1)\n"
-    "set_ctx(exprlist1, Del())\n"
+   ["ast = Delete(exprlist1[0])\n"
+    "set_ctx(exprlist1[0], Del())\n"
     "return set_start_end(ts, lineno, col_offset, ast)"]
 
 
@@ -623,11 +644,15 @@ def set_ctx(targets, ctx):\n\
 ,"for_stmt: .'for' exprlist 'in' testlist ':' [TYPE_COMMENT] suite ['else' ':' suite]":
    ["lineno = get_lineno(ts); col_offset = get_col_offset(ts)\n"
     "type_comment = None"]
+,"for_stmt: 'for' .exprlist 'in' testlist ':' [TYPE_COMMENT] suite ['else' ':' suite]":
+   ["as_list = False"]
+,"for_stmt: 'for' exprlist 'in' .testlist ':' [TYPE_COMMENT] suite ['else' ':' suite]":
+   ["as_list = False"]
 ,"for_stmt: 'for' exprlist 'in' testlist ':' [TYPE_COMMENT] suite .['else' ':' suite]":
    ["suite2 = []"]
 ,"for_stmt: 'for' exprlist 'in' testlist ':' [TYPE_COMMENT] suite ['else' ':' suite].":
-   ["set_ctx(exprlist1, Store())\n"
-    "ast = For(exprlist1[0], testlist1, suite1, suite2, type_comment)\n"
+   ["set_ctx1(exprlist1, Store())\n"
+    "ast = For(exprlist1, testlist1, suite1, suite2, type_comment)\n"
     "set_start(ast, lineno, col_offset)\n"
     "set_end_ast(ast, (suite2 if len(suite2) > 0 else suite1)[-1])\n"
     "return ast"]
@@ -647,17 +672,23 @@ def set_ctx(targets, ctx):\n\
     "return ast"]
 
 
+,"testlist": ",as_list"
+
+
 ,"testlist: .test (',' test)* [',']":
    ["lineno = get_lineno(ts); col_offset = get_col_offset(ts)"]
-,"testlist: test. (',' test)* [',']":
+,"testlist: test .(',' test)* [',']":
    ["tests = [test1]\n"
-    "force_tuple = False"]
+    "dangling_comma = False",
+    ""]
 ,"testlist: test (',' test.)* [',']":
    ["tests.append(test2)"]
 ,"testlist: test (',' test)* [','.]":
-   ["force_tuple = True"]
+   ["dangling_comma = True"]
 ,"testlist: test (',' test)* [','].":
-   ["if len(tests) == 1 and not force_tuple:\n"
+   ["if as_list:\n"
+    "    return (tests, dangling_comma or len(tests) != 1)\n"
+    "elif len(tests) == 1 and not dangling_comma:\n"
     "    return test1\n"
     "else:\n"
     "    ast = Tuple(tests, Load())\n"
@@ -675,8 +706,8 @@ def set_ctx(targets, ctx):\n\
     "    return test2"]
 
 
-,"suite: simple_stmt":
-   ["return simple_stmt1"]
+,"suite: simple_stmt.":
+   ["return [simple_stmt1]"]
 
 ,"suite: NEWLINE INDENT. stmt+ DEDENT":
    ["stmts = []"]
@@ -695,49 +726,65 @@ def set_ctx(targets, ctx):\n\
    ["test_or_star_expr1 = star_expr1"]
 ,"testlist_star_expr: (test|star_expr) .(',' (test|star_expr))* [',']":
    ["tests = [test_or_star_expr1]\n"
-    "force_tuple = False",
+    "dangling_comma = False",
     ""]
 ,"testlist_star_expr: (test|star_expr) (',' (test.|star_expr))* [',']":
    ["tests.append(test2)"]
 ,"testlist_star_expr: (test|star_expr) (',' (test|star_expr.))* [',']":
    ["tests.append(star_expr2)"]
 ,"testlist_star_expr: (test|star_expr) (',' (test|star_expr))* [','.]":
-   ["force_tuple = True"]
+   ["dangling_comma = True"]
 ,"testlist_star_expr: (test|star_expr) (',' (test|star_expr))* [','].":
-   ["if len(tests) == 1 and not force_tuple:\n"
+   ["if len(tests) == 1 and not dangling_comma:\n"
     "    return test_or_star_expr1\n"
     "else:\n"
     "    ast = Tuple(tests, Load())\n"
     "    return set_start_end(ts, lineno, col_offset, ast)"]
 
 
+,"exprlist": ",as_list"
+
+
+,"exprlist: .(expr|star_expr) (',' (expr|star_expr))* [',']":
+   ["lineno = get_lineno(ts); col_offset = get_col_offset(ts)"]
 ,"exprlist: (expr.|star_expr) (',' (expr|star_expr))* [',']":
    ["expr_or_star_expr1 = expr1"]
 ,"exprlist: (expr|star_expr.) (',' (expr|star_expr))* [',']":
    ["expr_or_star_expr1 = star_expr1"]
 ,"exprlist: (expr|star_expr) .(',' (expr|star_expr))* [',']":
-   ["exprs = [expr_or_star_expr1]",""]
+   ["exprs = [expr_or_star_expr1]\n"
+    "dangling_comma = False",
+    ""]
 ,"exprlist: (expr|star_expr) (',' (expr.|star_expr))* [',']":
    ["expr_or_star_expr2 = expr2"]
 ,"exprlist: (expr|star_expr) (',' (expr|star_expr.))* [',']":
    ["expr_or_star_expr2 = star_expr2"]
 ,"exprlist: (expr|star_expr) (',' (expr|star_expr).)* [',']":
    ["exprs.append(expr_or_star_expr2)"]
+,"exprlist: (expr|star_expr) (',' (expr|star_expr))* [','.]":
+   ["dangling_comma = True"]
 ,"exprlist: (expr|star_expr) (',' (expr|star_expr))* [','].":
-   ["return exprs"]
+   ["if as_list:\n"
+    "    return (exprs, dangling_comma or len(exprs) != 1)\n"
+    "elif len(exprs) == 1 and not dangling_comma:\n"
+    "    return expr_or_star_expr1\n"
+    "else:\n"
+    "    ast = Tuple(exprs, Load())\n"
+    "    return set_start_end(ts, lineno, col_offset, ast)"]
 
 
 ,"subscriptlist: .subscript (',' subscript)* [',']":
    ["lineno = get_lineno(ts); col_offset = get_col_offset(ts)"]
-,"subscriptlist: subscript. (',' subscript)* [',']":
+,"subscriptlist: subscript .(',' subscript)* [',']":
    ["subscripts = [subscript1]\n"
-    "force_tuple = False"]
+    "dangling_comma = False",
+    ""]
 ,"subscriptlist: subscript (',' subscript.)* [',']":
    ["subscripts.append(subscript2)"]
 ,"subscriptlist: subscript (',' subscript)* [','.]":
-   ["force_tuple = True"]
+   ["dangling_comma = True"]
 ,"subscriptlist: subscript (',' subscript)* [','].":
-   ["if len(subscripts) == 1 and not force_tuple:\n"
+   ["if len(subscripts) == 1 and not dangling_comma:\n"
     "    return subscript1\n"
     "else:\n"
     "    ast = Tuple(subscripts, Load())\n"
@@ -764,19 +811,36 @@ def set_ctx(targets, ctx):\n\
    ["return set_start_end(ts, lineno, col_offset, ast)"]
 
 
+,"atom: .'(' [yield_expr|testlist_comp] ')'":
+   ["lineno = get_lineno(ts); col_offset = get_col_offset(ts)"]
+,"atom: '(' .[yield_expr|testlist_comp] ')'":
+   ["x = ([], True)"]
 ,"atom: '(' [yield_expr.|testlist_comp] ')'":
-   ["ast = yield_expr1"]
+   ["x = ([yield_expr1], False)"]
+,"atom: '(' [yield_expr|.testlist_comp] ')'":
+   ["as_list = True"]
 ,"atom: '(' [yield_expr|testlist_comp.] ')'":
-   ["ast = testlist_comp1"]
+   ["x = testlist_comp1"]
 ,"atom: '(' [yield_expr|testlist_comp] ')'.":
-   ["return ast"]
+   ["if x[1]:\n"
+    "    ast = Tuple(x[0], Load())\n"
+    "    set_start_end(ts, lineno, col_offset, ast)\n"
+    "else:\n"
+    "    ast = x[0][0]\n"
+    "return ast"]
 
 ,"atom: .'[' [testlist_comp] ']'":
    ["lineno = get_lineno(ts); col_offset = get_col_offset(ts)"]
+,"atom: '[' .[testlist_comp] ']'":
+   ["ast = None"]
+,"atom: '[' [.testlist_comp] ']'":
+   ["as_list = True"]
 ,"atom: '[' [testlist_comp.] ']'":
-   [""]
+   ["ast = List(testlist_comp1[0], Load())"]
 ,"atom: '[' [testlist_comp] ']'.":
-   [""]
+   ["if ast is None:\n"
+    "    ast = List([], Load())\n"
+    "return set_start_end(ts, lineno, col_offset, ast)"]
 
 ,"atom: .'{' [dictorsetmaker] '}'":
    ["lineno = get_lineno(ts); col_offset = get_col_offset(ts)"]
@@ -825,8 +889,11 @@ def set_ctx(targets, ctx):\n\
 ,"atom: 'False'.":  ["return ast"]
 
 
-,"testlist_comp: test.":
-   ["return test1"]
+,"testlist_comp": ",as_list"
+
+
+,"testlist_comp: testlist.":
+   ["return testlist1"]
 
 
 ,"argument: test.":

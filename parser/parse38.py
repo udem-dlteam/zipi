@@ -2,6 +2,8 @@ import ast
 import sys
 import zast
 
+sys.tracebacklimit = 0
+
 def show_ast(x):
     print(zast.dump2(x, annotate_fields=True, include_attributes=True))
 

@@ -97,6 +97,24 @@ x ** - y
 
 lambda : x
 
+( )
+( x )
+( x , )
+( x , y )
+( x , y , )
+
+[ ]
+[ x ]
+[ x , ]
+[ x , y ]
+[ x , y , ]
+
+#{ }
+#{ x }
+#{ x , }
+#{ x , y }
+#{ x , y , }
+
 # Expressions in parentheses to check for proper location information
 
 ( x )
@@ -194,12 +212,26 @@ lambda : x
 
 ( lambda : x )
 
+( ( ) )
+( ( x ) )
+( ( x , ) )
+( ( x , y ) )
+( ( x , y , ) )
+
+( [ ] )
+( [ x ] )
+( [ x , ] )
+( [ x , y ] )
+( [ x , y , ] )
+
 ( yield x )
 ( yield from x )
 
 # Statements
 
 del x
+del x ,
+del x , y
 
 pass
 
@@ -214,7 +246,7 @@ return x , y
 yield
 yield x
 yield x , y
-yield x , y, * z
+yield x , y , * z
 yield from x
 
 raise

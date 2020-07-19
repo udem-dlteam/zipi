@@ -1,8 +1,10 @@
 # File: Grammar.py
 
-#file_input: (NEWLINE | stmt)* ENDMARKER
+###file_input: (NEWLINE | stmt)* ENDMARKER
 file_input: stmts ENDMARKER
 stmts: (NEWLINE | stmt)*
+single_input: NEWLINE | simple_stmt | compound_stmt NEWLINE
+eval_input: testlist NEWLINE* ENDMARKER
 
 funcdef: 'def' NAME parameters ['->' test] ':' [TYPE_COMMENT] func_body_suite
 
@@ -52,7 +54,7 @@ tfpdef: NAME [':' test]
 #
 # It needs to be fully expanded to allow our LL(1) parser to work on it.
 
-varargslist: arglist ### simplification for now
+varargslist: NAME (',' NAME)* ### simplification for now
 DISABLED_varargslist: vfpdef ['=' test ](',' vfpdef ['=' test])* ',' '/' [',' [ (vfpdef ['=' test] (',' vfpdef ['=' test])* [',' [
         '*' [vfpdef] (',' vfpdef ['=' test])* [',' ['**' vfpdef [',']]]
       | '**' vfpdef [',']]]
@@ -139,9 +141,9 @@ power: atom_expr ['**' factor]
 atom_expr: [AWAIT] atom trailer*
 atom: ('(' [yield_expr|testlist_comp] ')' |
        '[' [testlist_comp] ']' |
-       '{' [dictorsetmaker] '}' |
+#       '{' [dictorsetmaker] '}' |
        NAME | NUMBER | STRING+ | '...' | 'None' | 'True' | 'False')
-testlist_comp: test
+testlist_comp: testlist
 ###testlist_comp: (namedexpr_test|star_expr) ( comp_for | (',' (namedexpr_test|star_expr))* [','] )
 trailer: '(' [arglist] ')' | '[' subscriptlist ']' | '.' NAME
 subscriptlist: subscript (',' subscript)* [',']
@@ -149,7 +151,7 @@ subscript: test ###| [test] ':' [test] [sliceop]
 ###sliceop: ':' [test]
 exprlist: (expr|star_expr) (',' (expr|star_expr))* [',']
 testlist: test (',' test)* [',']
-dictorsetmaker: 'else'
+dictorsetmaker: test ':' test
 ###dictorsetmaker: ( ((test ':' test | '**' expr)
 ###                   (comp_for | (',' (test ':' test | '**' expr))* [','])) |
 ###                  ((test | star_expr)
