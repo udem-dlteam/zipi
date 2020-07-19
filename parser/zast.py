@@ -11,7 +11,7 @@ from _zast import *
 
 
 def parse(source, filename='<unknown>', mode='exec'):
-    return parse_((source+'\n').encode('utf-8'))
+    return py_parse((source+'\n').encode('utf-8'))
 
 
 def dump(node, annotate_fields=True, include_attributes=False):

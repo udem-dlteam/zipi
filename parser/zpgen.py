@@ -326,7 +326,8 @@ def setup_first_nt(rules):
 
 token_access = '' # 'token.'
 tok_access = '' # 'tok.'
-gen_prefix = 'parse_'
+gen_prefix = ''
+gen_parse_prefix = 'parse_'
 
 def init_fn_names():
 
@@ -348,7 +349,7 @@ def get_nt_fn_name(nt_known):
         else:
             n = nt_fn_nbs[nt] + 1
         nt_fn_nbs[nt] = n
-        fn_name = gen_prefix + nt + (('_' + str(n)) if n > 1 else '')
+        fn_name = gen_parse_prefix + nt + (('_' + str(n)) if n > 1 else '')
         nt_fn_names[nt_known] = fn_name
         return fn_name
 
@@ -365,25 +366,27 @@ def at_end(x):
     return at_position(x.end)
 
 last_position = ''
+is_new_position = False
 
 def at_position(pos):
     alt = section(current_alt.start, current_alt.end)
     p = pos - current_alt.start
     return section(current_rule.start, current_rule.rhs.start) + ' '.join((alt[:p] + '.' + alt[p:]).replace('\n',' ').split())
 
-def debug_position(position):
-    global last_position
-    if (debug_level == 0 or position == last_position):
+def mark_position(position):
+    global last_position, is_new_position
+    is_new_position = position != last_position
+    last_position = position
+    if debug_level == 0 or not is_new_position:
         return ''
     else:
-        last_position = position
         return '# ' + position + '\n'
     
 def section(start, end):
     return tok.source(current_ts, start, end)
 
 def universal_set():
-    return frozenset(range(91)).difference(frozenset({53}))
+    return frozenset(range(93)).difference(frozenset({53}))
 
 def next_sub_index():
     global current_sub_index
@@ -398,23 +401,128 @@ def next_var(name):
     current_var_nbs[name] = n
     return name + str(n)
 
-def read_grammar_and_generate_parser(filename):
+def read_grammar(filename):
 
-    global rules, current_ts, actions
+    global current_ts, rules
 
     with open(filename, 'rb') as f:
         content = f.read()
-
-    actions_filename = os.path.splitext(filename)[0]+'_actions.py'
-
-    with open(actions_filename, 'r') as f:
-        actions = eval(f.read())
 
     tok.init_stats()
 
     current_ts = tok.TokenizerState(content)
     advance(current_ts)
 
+    rules = parse_grammar(current_ts)
+
+def read_grammar_and_generate_sample(filename):
+
+    global actions
+
+    read_grammar(filename)
+
+    code = generate_sample()
+
+    print(code)
+
+def generate_sample():
+    global sample_indent, sample_code, sample_nl
+    start_rule_name = rules[0].name
+    sample_code = ''
+    while sample_code.rstrip() == '':
+        sample_code = ''
+        sample_nl = True
+        sample_indent = 0
+        samp_rule(start_rule_name)
+    return sample_code
+
+def samp_out(x):
+    global sample_indent, sample_code, sample_nl
+    if x == '\n':
+        sample_nl = True
+    elif sample_nl:
+        sample_code += ' '*(4*max(0,sample_indent))
+        sample_nl = False
+    else:
+        sample_code += ' '
+    sample_code += x
+
+current_nt = ''
+
+def samp_rule(nt):
+    global current_nt
+    #print('----------',nt);
+    save = current_nt
+    current_nt = nt
+    rule = rules[rule_num(nt)]
+    samp(rule.rhs)
+    current_nt = save
+
+import random
+
+def samp(x):
+
+    global sample_indent
+
+    if isinstance(x, Alt):
+        samp(x.seqs[random.randrange(len(x.seqs))])
+
+    elif isinstance(x, Seq):
+        for i in range(len(x.items)):
+            samp(x.items[i])
+
+    elif isinstance(x, Opt):
+        if random.randrange(100) < 10:
+            samp(x.alt)
+
+    elif isinstance(x, Star):
+        while random.randrange(100) < 10:
+            samp(x.atom)
+
+    elif isinstance(x, Plus):
+        samp(x.atom)
+        while random.randrange(100) < 10:
+            samp(x.atom)
+
+    elif isinstance(x, Term):
+        t = x.name
+        if t == token.INDENT:
+            sample_indent = sample_indent+1
+        elif t == token.DEDENT:
+            sample_indent = max(0,sample_indent-1)
+        elif t == token.NAME:
+            samp_out(['x','y','_z'][random.randrange(3)])
+        elif t == token.STRING:
+            samp_out(['""','"a"','"abc"'][random.randrange(3)])
+        elif t == token.NUMBER:
+            samp_out(str(random.randrange(10)))
+        else:
+            samp_out(token.tok_source[t])
+
+    elif isinstance(x, NTerm):
+        samp_rule(x.name)
+
+    else:
+        fatal_error('unhandled syntax form')
+
+def read_grammar_and_generate_parser(filename):
+
+    global actions, gen_prefix, gen_parse_prefix
+
+    read_grammar(filename)
+
+    actions_filename = os.path.splitext(filename)[0]+'_actions.py'
+
+    with open(actions_filename, 'r') as f:
+        actions = eval(f.read())
+
+    gen_prefix = actions.get('gen_prefix','')
+    gen_parse_prefix = actions.get('gen_parse_prefix','parse_')
+
+    setup_first_nt(rules)
+
+    start_fn_name, f = generate_parse_functions()
+    
     print('import sys')
 
     if token_access == '':
@@ -431,14 +539,8 @@ def read_grammar_and_generate_parser(filename):
 
     print()
 
-    rules = parse_grammar(current_ts)
-
-    setup_first_nt(rules)
-
-    start_fn_name, f = generate_parse_functions()
-    
     print()
-    print('def parse_(source):')
+    print('def ' + gen_prefix + 'parse(source):')
     print()
     print('    # filename = "<unknown>"')
     print('    # mode = "exec"')
@@ -447,15 +549,15 @@ def read_grammar_and_generate_parser(filename):
     print()
     print('    init_stats()')
     print('    ts = ' + tok_access + 'TokenizerState(source)')
-    print('    advance(ts)')
+    print('    ' + gen_prefix + 'advance(ts)')
     print()
     c, yes, no = gen_in(f, universal_set())
     print('    if ' + c + ':')
     print('        return ' + start_fn_name + '(ts)')
     print('    else:')
-    print('        return syntax_error(ts)')
+    print('        ' + gen_error())
     print()
-    print('def syntax_error(ts):')
+    print('def ' + gen_prefix + 'syntax_error(ts):')
     print('    line_num = ts.line_num')
     print('    line_start = 0')
     print('    while line_num > 0:')
@@ -471,16 +573,16 @@ def read_grammar_and_generate_parser(filename):
     print('    # exit()')
     print('    raise SyntaxError("invalid syntax")')
     print()
-    print('def advance(ts):')
+    print('def ' + gen_prefix + 'advance(ts):')
     print('    ts.prev_end_lineno = ' + tok_access + 'get_end_lineno(ts)')
     print('    ts.prev_end_col_offset = ' + tok_access + 'get_end_col_offset(ts)')
     print('    ' + tok_access + 'get_token(ts)')
-    print('    # show_token(ts)')
+    print('    # ' + gen_prefix + 'show_token(ts)')
     print()
-    print('def tokenset(*elements):')
+    print('def ' + gen_prefix + 'tokenset(*elements):')
     print('    return elements')
     print()
-    print('def show_token(ts):')
+    print('def ' + gen_prefix + 'show_token(ts):')
     print('    t = ts.token')
     print('    name = ' + token_access + 'tok_name[t]')
     print('    if t == ' + token_access + 'NAME or t == ' + token_access + 'STRING or t == ' + token_access + 'NUMBER:')
@@ -505,12 +607,11 @@ def generate_parse_functions():
 
 def gen_rule(nt, known):
 
-    global current_nt, current_rule, current_sub_index, current_var_nbs
+    global current_nt, current_rule, current_sub_index
 
     current_nt = nt
     current_rule = rules[rule_num(nt)]
     current_sub_index = 0
-    current_var_nbs = dict()
     fn_name = get_nt_fn_name((nt, known))
     rhs = current_rule.rhs
 
@@ -535,7 +636,7 @@ def gen_rule(nt, known):
 
 def gen_alt(x, seqs, known, top):
 
-    global current_alt
+    global current_alt, current_var_nbs
 
     code = ''
     first_x = frozenset()
@@ -554,6 +655,7 @@ def gen_alt(x, seqs, known, top):
         y = seqs[i]
         if top:
             current_alt = y
+            current_var_nbs = dict()
         if isinstance(y, Seq):
             items = y.items
         else:
@@ -685,7 +787,7 @@ def gen(x, known):
 
     j1t = just_1_term(x)
     if j1t:
-        code = debug_position(here)
+        code = mark_position(here)
         #print('====> ' + repr(x.name))
         #x.v = 'current_path'
         c1, yes, no = gen_in(j1t, known)
@@ -697,28 +799,37 @@ def gen(x, known):
         else:
             code += 'if ' + c1 + ':\n' + block(c2) + 'else:\n' + block(gen_error())
         here = at_end(x)
-        code += debug_position(here)
-        build = actions.get(here,False)
-        if build:
-            code += build[-1] + '\n'
+        code += mark_position(here)
+        if is_new_position:
+            build = actions.get(here,False)
+            if build:
+                code += build[-1] + '\n'
         #code = '# KNOWN=' + token_set_ref(known) + '\n' + code
         return code, k
 
     if isinstance(x, Alt):
-        code = debug_position(here)
-        if build:
-            code += build[-1] + '\n'
+        code = mark_position(here)
+        if is_new_position:
+            if build:
+                code += build[-1] + '\n'
         c, k = gen_alt(x, x.seqs, known, False)
         code += c
+        here = at_end(x)
+        code += mark_position(here)
+        if is_new_position:
+            build = actions.get(here,False)
+            if build:
+                code += build[-1] + '\n'
         return code, k
 
     elif isinstance(x, Seq):
         return gen_seq(x, x.items, known, 0)
 
     elif isinstance(x, Opt):
-        code = debug_position(here)
-        if build:
-            code += build[-1] + '\n'
+        code = mark_position(here)
+        if is_new_position:
+            if build:
+                code += build[-1] + '\n'
         f = first(x.alt, universal_set())
         c1, yes, no = gen_in(f, known)
         if c1 == 'False':
@@ -731,15 +842,16 @@ def gen(x, known):
             c2, k = gen(x.alt, yes)
             code += 'if ' + c1 + ':\n' + block(c2)
         here = at_end(x)
-        code += debug_position(here)
-        build = actions.get(here,False)
-        if build:
-            code += build[-1] + '\n'
+        code += mark_position(here)
+        if is_new_position:
+            build = actions.get(here,False)
+            if build:
+                code += build[-1] + '\n'
         k = k | no
         return code, k
 
     elif isinstance(x, Star):
-        code = debug_position(here)
+        code = mark_position(here)
         if build and len(build) == 2:
             code += build[0] + '\n'
         f = first(x.atom, universal_set())
@@ -750,9 +862,10 @@ def gen(x, known):
             c3, _, _ = gen_in(first(items[1], universal_set()), universal_set())
             here = at_end(current_alt.items[2].alt)
             build = actions.get(here,False)
-            fallthrough = debug_position(here)
-            if build:
-                fallthrough += build[-1] + '\n'
+            fallthrough = mark_position(here)
+            if is_new_position:
+                if build:
+                    fallthrough += build[-1] + '\n'
             fallthrough += 'break\n'
             c2 += 'if not (' + c3 + '):\n' + block(fallthrough)
             for i in range(1, len(items)):
@@ -770,15 +883,16 @@ def gen(x, known):
         else:
             assert False, 'k != known in Star rule'
         here = at_end(x)
-        code += debug_position(here)
-        build = actions.get(here,False)
-        if build:
-            code += build[-1] + '\n'
+        code += mark_position(here)
+        if is_new_position:
+            build = actions.get(here,False)
+            if build:
+                code += build[-1] + '\n'
         k = (known | k) - f
         return code, k
 
     elif isinstance(x, Plus):
-        code = debug_position(here)
+        code = mark_position(here)
         if build and len(build) == 2:
             code += build[0] + '\n'
         first_x = first(x.atom, universal_set())
@@ -786,15 +900,16 @@ def gen(x, known):
         c2, yes, no = gen_in(first_x, k)
         code += 'while True:\n' + block(c1 + 'if not (' + c2 + '):\n' +  block('break'))
         here = at_end(x)
-        code += debug_position(here)
-        build = actions.get(here,False)
-        if build:
-            code += build[-1] + '\n'
+        code += mark_position(here)
+        if is_new_position:
+            build = actions.get(here,False)
+            if build:
+                code += build[-1] + '\n'
         return code, universal_set()
 
     # deprecated
     elif isinstance(x, Term):
-        code = debug_position(here)
+        code = mark_position(here)
         #print('====> ' + repr(x.name))
         tname = token.tok_name[x.name]
         x.v = next_var(tname)
@@ -817,26 +932,29 @@ def gen(x, known):
             c2, k = gen_advance()
             code += 'if ' + c1 + ':\n' + block(c2) + 'else:\n' + block(gen_error())
         here = at_end(x)
-        code += debug_position(here)
-        build = actions.get(here,False)
-        if build:
-            code += build[-1] + '\n'
+        code += mark_position(here)
+        if is_new_position:
+            build = actions.get(here,False)
+            if build:
+                code += build[-1] + '\n'
         #code = '# KNOWN=' + token_set_ref(known) + '\n' + code
         return code, k
 
     elif isinstance(x, NTerm):
-        code = debug_position(here)
-        if build:
-            code += build[-1] + '\n'
+        code = mark_position(here)
+        if is_new_position:
+            if build:
+                code += build[-1] + '\n'
         x.v = next_var(x.name)
         fn_name = get_nt_fn_name((x.name, known))
         extra_params = actions.get(x.name, '')
         code += x.v + ' = ' + fn_name + '(ts' + extra_params + ')\n'
         here = at_end(x)
-        code += debug_position(here)
-        build = actions.get(here,False)
-        if build:
-            code += build[-1] + '\n'
+        code += mark_position(here)
+        if is_new_position:
+            build = actions.get(here,False)
+            if build:
+                code += build[-1] + '\n'
         k = universal_set() # FIXME: could be more precise about what is known
         #code = '# KNOWN=' + token_set_ref(known) + '\n' + code
         return code, k
@@ -926,7 +1044,7 @@ def token_ref(t):
         return str(t)
 
 def token_set_ref(s):
-    return 'tokenset(' + ','.join(map(token_ref,s)) + ')'
+    return gen_prefix + 'tokenset(' + ','.join(map(token_ref,s)) + ')'
 
 def indx(name, index):
     return name + str(index)
@@ -953,18 +1071,28 @@ def gen_in(s, known):
             return gen_membership_test('ts.token', yes), yes, no
 
 def gen_advance():
-    code = 'advance(ts)\n'
+    code = gen_prefix + 'advance(ts)\n'
     k = universal_set() # nothing is known about ts.token after advance(ts)
     return code, k
 
 def gen_error():
-    code = 'return syntax_error(ts)\n'
+    code = 'return ' + gen_prefix + 'syntax_error(ts)\n'
     return code
 
 def main():
+    parser = True
     i = 1
     while i < len(sys.argv):
-        read_grammar_and_generate_parser(sys.argv[i])
+        arg = sys.argv[i]
+        if arg == '-parser':
+            parser = True
+        elif arg == '-fuzzer':
+            parser = False
+        else:
+            if parser:
+                read_grammar_and_generate_parser(arg)
+            else:
+                read_grammar_and_generate_sample(arg)
         i += 1
 
 if __name__ == '__main__':

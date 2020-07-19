@@ -27,13 +27,13 @@ def init_stats():
 
     global found, stats
 
-    found = [0]*67
+    found = [0]*68
 
     stats = {}
     stats['bol'] = 0
     stats['not_bol'] = 0
     stats['k == KIND_NAME'] = 0
-    stats['k >= KIND_AT'] = 0
+    stats['k >= KIND_TILDE'] = 0
     stats['k >= KIND_LPAR'] = 0
     stats['k <= KIND_LEFTSHIFTEQUAL'] = 0
     stats['k <= KIND_STRING'] = 0
@@ -114,21 +114,22 @@ KIND_NOT              = 48   # not an actual token
 KIND_NOTEQUAL         = 49
 KIND_AT               = 50
 KIND_ATEQUAL          = 51   # Python3 only
-KIND_TILDE            = 52
-KIND_COMMA            = 53
-KIND_COLON            = 54
-KIND_BACKQUOTE        = 55   # Python2 only
-KIND_SEMI             = 56
-KIND_LPAR             = 57
-KIND_LSQB             = 58
-KIND_LBRACE           = 59
-KIND_RPAR             = 60
-KIND_RSQB             = 61
-KIND_RBRACE           = 62
-KIND_ELLIPSIS         = 63
-KIND_INDENT           = 64
-KIND_DEDENT           = 65
-KIND_EOF              = 66
+KIND_COLON            = 52
+KIND_COLONEQUAL       = 53   # Python3 only
+KIND_TILDE            = 54
+KIND_COMMA            = 55
+KIND_BACKQUOTE        = 56   # Python2 only
+KIND_SEMI             = 57
+KIND_LPAR             = 58
+KIND_LSQB             = 59
+KIND_LBRACE           = 60
+KIND_RPAR             = 61
+KIND_RSQB             = 62
+KIND_RBRACE           = 63
+KIND_ELLIPSIS         = 64
+KIND_INDENT           = 65
+KIND_DEDENT           = 66
+KIND_EOF              = 67
 
 BYTE_STRING    = 0
 PLAIN_STRING   = 1
@@ -189,10 +190,11 @@ MINEQUAL,
 999, # NOT,
 NOTEQUAL,
 AT,
-999, # ATEQUAL,
+ATEQUAL,
+COLON,
+COLONEQUAL,
 TILDE,
 COMMA,
-COLON,
 BACKQUOTE,
 SEMI,
 LPAR,
@@ -265,9 +267,10 @@ kind_names = [
 'KIND_NOTEQUAL',
 'KIND_AT',
 'KIND_ATEQUAL',
+'KIND_COLON',
+'KIND_COLONEQUAL',
 'KIND_TILDE',
 'KIND_COMMA',
-'KIND_COLON',
 'KIND_BACKQUOTE',
 'KIND_SEMI',
 'KIND_LPAR',
@@ -330,10 +333,10 @@ def make_char_kind():
     set_char_kind(ord('-'), KIND_MINUS) # Python3 should check -> token
     set_char_kind(ord('!'), KIND_NOT) # needs special check to reject lone !
     set_char_kind(ord('@'), KIND_AT) # Python2 doesn't have @=
+    set_char_kind(ord(':'), KIND_COLON) # Python2 doesn't have :=
 
     set_char_kind(ord('~'), KIND_TILDE)
     set_char_kind(ord(','), KIND_COMMA)
-    set_char_kind(ord(':'), KIND_COLON)
     #set_char_kind(ord('`'), KIND_BACKQUOTE) # Python3 doesn't have `
     set_char_kind(ord(';'), KIND_SEMI)
     set_char_kind(ord('('), KIND_LPAR)
@@ -610,8 +613,8 @@ def get_token(ts):
 
         # check for simple single char token, such as parentheses, comma and ~
 
-        if k >= KIND_AT: # 27% of tokens
-            inc_stats('k >= KIND_AT')
+        if k >= KIND_TILDE: # 27% of tokens
+            inc_stats('k >= KIND_TILDE')
             if k >= KIND_LPAR: # 58% of single char tokens are parentheses
                 inc_stats('k >= KIND_LPAR')
                 if k >= KIND_RPAR:
