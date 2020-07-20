@@ -48,6 +48,15 @@
                 (%PyStaticStr-representative-set! static-str static-str)
                 static-str)
               'static-str)))
+      (define (get-PyStaticStr e)
+        (if (string? e)
+          (let ((cached (constants-ref %constants e)))
+            (if cached
+              cached
+              (let ((obj (make-PyStaticStr e)))
+                (constants-set! %constants e obj)
+                obj)))
+          (error "PyStaticStr" "requires string literal but got" e)))
       (define %constants (%make-Constants (make-table) #f))
       (define (constants-table) (%Constants-table %constants))
       (define (constants-ref c key) (table-ref (%Constants-table c) key #f))
@@ -73,14 +82,7 @@
   (listify-constant-table))
 
 (define-macro (& e)
-  (if (string? e)
-    (let ((cached (constants-ref %constants e)))
-      (if cached
-        `',cached
-        (let ((obj (make-PyStaticStr e)))
-          (constants-set! %constants e obj)
-          `',obj)))
-    (error "&" "requires string literal but got" e)))
+  `',(get-PyStaticStr e))
 
 (define-macro (&& e)
   `(& ,e))
@@ -293,7 +295,7 @@
 
 (define-macro (make-signature args posonlyargs vararg kwonlyargs kw-defaults kwarg defaults)
   (define (constantify sym)
-    `',(make-PyStaticStr (symbol->string sym)))
+    `,(get-PyStaticStr (symbol->string sym)))
 
   (define (constantify* lst)
     `#(,@(map constantify lst)))
@@ -302,10 +304,10 @@
     `(vector
         ,(constantify* args)
         ,(constantify* posonlyargs)
-        ,(and vararg (constantify vararg))
+        ,(and vararg `',(constantify vararg))
         ,(constantify* kwonlyargs)
         ,(or kw-defaults #())
-        ,(and kwarg (constantify kwarg))
+        ,(and kwarg `',(constantify kwarg))
         ,(or defaults #()))
     ;; signature with no default can be optimized to a constant
     `'#(,(constantify* args)
