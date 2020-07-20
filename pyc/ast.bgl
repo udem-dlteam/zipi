@@ -119,7 +119,8 @@
 	      handlers::pair-nil
 	      (else::PycStmt (info '("ast")))
 	      (finally::PycStmt (info '("ast")))
-        (tail::bool (default #t)))
+         exc-sym::symbol
+         (tail::bool (default #t)))
 
 	   (class PycHandler::PycNode
 	      (type::PycExpr (info '("ast")))

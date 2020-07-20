@@ -335,7 +335,7 @@
         (handlers (PycTry-handlers this))
         (else-block (PycTry-else this))
         (finally-block (PycTry-finally this))
-        (current-exc-sym (my-gensym '%current-exc))
+        (current-exc-sym (PycTry-exc-sym this))
         (res-sym (my-gensym '%res))
         (conf-with-exc (cons* current-exc: current-exc-sym conf)))
     (if (PycPass? finally-block)
