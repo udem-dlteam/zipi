@@ -752,7 +752,7 @@
            		  `(lambda ,args ,(generator this `(bind-exit (,return-sym) ,body)))
            		  `(lambda ,args ,(generator this body)))
                  ,(signature this conf)))
-            `(py-call1 ,(scheme (car decs) conf) ,(loop (cdr decs)))))))
+            `(py-call ,(scheme (car decs) conf) ,(loop (cdr decs)))))))
 
    (apply-decorators this conf))
 
@@ -789,21 +789,6 @@
 	     ,(scheme (PycKont-body this) conf)))))
 
 (define-walk-method (scheme this::PycCall conf)
-;;   (define (invoke-maybe-locals fun)
-;;      (let ((f (my-gensym '%f))
-;;	    (caller (config-get conf fun:)))
-;;	 `(let ((,f ,fun))
-;;	     ,(if caller
-;;		  `(if (eq? ,f py-builtin-locals)
-;;		       (py-builtin-locals ,f %frame %names
-;;			  (vector ,@(map (lambda (d)
-;;					    (scheme-decl d conf))
-;;				       (append (PycFun-args caller) (PycFun-decls caller)))))
-;;		       (py-call0 ,f))
-;;		  `(if (eq? ,f py-builtin-globals)
-;;		       (py-builtin-globals)
-;;		       (py-call0 ,f))))))
-
    ;; Catches the super-called-without-arguments to implicitly pass
    ;; arguments to a super() call
    (define (super-hook)
@@ -815,9 +800,7 @@
            `(py-call py-builtin-super ,class-key
              ,(PycDecl-name (list-ref caller-args 0))))
           (else
-           `(py-throw py-builtin-RuntimeError))
-        )
-      ))
+           `(py-throw py-builtin-RuntimeError)))))
 
    (define (super-handler call)
       (let ((caller (config-get conf fun:)))
@@ -829,28 +812,59 @@
           ,call)))
 
    (define (invoke fun args)
-        (let* ((args-len (length args))
-              (py-call-fun
-                (if (<= args-len 5)
-                  (string->symbol (string-append "py-call" (number->string args-len)))
-                  'py-call))
-              (call `(,py-call-fun ,fun ,@args)))
+        (let* ((call `(py-call ,fun ,@args)))
           (if (or (> (length args) 0) (not (PycCall-can-be-super this)))
               call
               (super-handler call))))
 
-   (let ((fun (PycCall-fun this)))
+    (define (gen-args call conf)
+      (append
+        (let loop ((args (PycCall-args call)) (acc '()))
+          (cond
+            ((null? args)
+              (reverse acc))
+            ((PycStarredExpr? (car args))
+              (loop
+                (cdr args)
+                (cons
+                  (scheme (PycStarredExpr-expr (car args)) conf)
+                  (cons *: acc))))
+            (else
+              (loop (cdr args) (cons (scheme (car args) conf) acc)))))
+        (let loop ((kwargs (PycCall-keywords-values this))
+                   (names (PycCall-keywords-names this))
+                   (acc '()))
+          (cond
+            ((null? names)
+              (reverse acc))
+            ((car names)
+              (loop
+                (cdr kwargs)
+                (cdr names)
+                (cons
+                  (scheme (car kwargs) conf)
+                  (cons (string->keyword (symbol->string (car names))) acc))))
+            (else
+              (loop
+                (cdr kwargs)
+                (cdr names)
+                (cons
+                  (scheme (car kwargs) conf)
+                  (cons **: acc))))))))
+
+    (let ((fun (PycCall-fun this)))
       (cond
-	 ((isa? fun PycPragma)
-	  ;; builtin call
-	  (epairify this
-	     `(,(scheme fun conf)
-	       ,@(map (lambda (a) (scheme a conf)) (PycCall-args this)))))
-	 (else
-	  ;; function call
-	  (epairify this
-	     (invoke (scheme fun conf)
-		(map (lambda (a) (scheme a conf)) (PycCall-args this))))))))
+        ((isa? fun PycPragma)
+        ;; builtin call
+          (epairify this
+            `(,(scheme fun conf)
+              ,@(map (lambda (a) (scheme a conf)) (PycCall-args this)))))
+        (else
+        ;; function call
+          (epairify this
+            (invoke
+              (scheme fun conf)
+              (gen-args this conf)))))))
 
 (define-walk-method (scheme this::PycCollection conf)
    (epairify this

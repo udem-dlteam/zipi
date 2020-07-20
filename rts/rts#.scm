@@ -277,3 +277,58 @@
   ;; attrs
   names
   transitions)
+
+;; =============================================================================
+;;  Calls
+;; =============================================================================
+
+(define-macro (define-all-py-callX)
+  (define py-callX-args-limit 5)
+
+  (define (define-py-callX X)
+    (let ((py-call-name (string->symbol (string-append "py-call" (number->string X))))
+          (args (map gensym (make-list X 'arg))))
+      `(define (,py-call-name fun ,@args)
+        (let ((fun-type (py-type fun)))
+          (if (eq? fun-type py-function-class)
+            (let ((arity (PyObjectFunction-arity fun)))
+              (cond
+                ((not arity) (py-call-generic fun ,@args))
+                ((= arity ,X)
+                  ((PyObjectFunction-procedure fun) ,@args))
+                ((and (< arity 0) (>= arity ,(- 0 X 1)))
+                  (apply
+                    (PyObjectFunction-procedure fun)
+                    (pack-extra-args arity (list ,@args))))
+                (else
+                  (py-throw py-builtin-TypeError)))) ;; TODO add error message
+            (py-call-generic fun ,@args))))))
+    (let loop ((i 1) (acc '()))
+      (if (> i py-callX-args-limit)
+        `(begin ,@acc)
+        (loop (+ i 1) (cons (define-py-callX i) acc)))))
+
+(define-macro (py-call f . args)
+  (define py-callX-args-limit 5)
+
+  (define (make-py-call-name n)
+    (string->symbol
+      (string-append
+        "py-call"
+        (number->string n))))
+
+  (let* ((split-args
+          (let loop ((args args) (acc '()))
+            (if (or (null? args) (keyword? (car args)))
+              (cons (reverse acc) args)
+              (loop (cdr args) (cons (car args) acc)))))
+        (pos-args (car split-args))
+        (special-args (cdr split-args)))
+    (if (not (null? special-args))
+      `(py-throw-exception-with-message
+          py-builtin-NotImplementedError
+          "py-call does not support nammed args, *args or **kwargs")
+      (let ((nargs (length pos-args)))
+        (if (<= nargs py-callX-args-limit)
+          `(,(make-py-call-name nargs) ,f ,@pos-args)
+          `(py-call-generic ,f ,@pos-args))))))

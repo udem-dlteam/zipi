@@ -1,6 +1,7 @@
 ;; =============================================================================
 ;;  Common macros
 ;; =============================================================================
+
 ;; General exception thrower helper
 (define-macro (py-throw-exception-with-message exc . msg)
   `(py-throw
@@ -457,37 +458,12 @@
     (cons (py-tuple-from-scheme (list->vector args)) '())
     (cons (car args) (pack-extra-args (+ arity 1) (cdr args)))))
 
-(define-macro (define-fast-py-calls limit)
-  (let ((define-py-callX
-          (lambda (X)
-            (let ((py-call-name (string->symbol (string-append "py-call" (number->string X))))
-                  (args (map gensym (make-list X 'arg))))
-              `(define (,py-call-name fun ,@args)
-                (let ((fun-type (py-type fun)))
-                  (if (eq? fun-type py-function-class)
-                    (let ((arity (PyObjectFunction-arity fun)))
-                      (cond
-                        ((not arity) (py-call fun ,@args))
-                        ((= arity ,X)
-                          ((PyObjectFunction-procedure fun) ,@args))
-                        ((and (< arity 0) (>= arity ,(- 0 X 1)))
-                          (apply
-                            (PyObjectFunction-procedure fun)
-                            (pack-extra-args arity (list ,@args))))
-                        (else
-                          (py-throw py-builtin-TypeError)))) ;; TODO add error message
-                    (py-call fun ,@args))))))))
-    (let loop ((i 1) (acc '()))
-      (if (> i limit)
-        `(begin ,@acc)
-        (loop (+ i 1) (cons (define-py-callX i) acc))))))
-
 (define (py-call0 fun)
   (let ((fun-type (py-type fun)))
     (if (eq? fun-type py-function-class)
       (let ((arity (PyObjectFunction-arity fun)))
         (cond
-          ((not arity) (py-call fun))
+          ((not arity) (py-call-generic fun))
           ((= arity 0)
             ((PyObjectFunction-procedure fun)))
           ((= arity -1)
@@ -495,14 +471,14 @@
               (py-tuple-from-scheme '#())))
           (else
             (py-throw py-builtin-TypeError)))) ;; TODO add error message)))
-      (py-call fun))))
+      (py-call-generic fun))))
 
-(define-fast-py-calls 5)
+(define-all-py-callX)
 
 ;; TODO: compare with cPython for which function and method are not the base
 ;; callable types. Instead, function.__call__ returns a 'method wrapper'
 ;; object which has a __call__ method but is treated differently
-(define (py-call obj . args)
+(define (py-call-generic obj . args)
   (let ((obj-type (py-type obj)))
     (cond
       ((eq? obj-type py-function-class)
@@ -521,7 +497,7 @@
         (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
           (if (eq? __call__ py-absent)
             (py-throw-not-callable obj)
-            (apply py-call __call__ obj args)))))))
+            (apply py-call-generic __call__ obj args)))))))
 
 (define (align-args-with-signature caller-args signature)
   (let ((args (vector-ref signature 0))
@@ -916,7 +892,7 @@
         (if iterator
           (py-in-iterator item iterator)
           (throw-not-iteralble container)))
-      (if (py-test (py-call2 __contains__ container item)) py-True py-False))))
+      (if (py-test (py-call __contains__ container item)) py-True py-False))))
 
 (define (py-notin item container) ;; x not in y
   (if (py-test (py-in item container))
@@ -1000,7 +976,7 @@
   (let ((__hash__ (getattribute-from-obj-mro x (& "__hash__"))))
     (if (eq? __hash__ py-absent)
         (throw-unhashable x)
-        (let ((h (py-call1 __hash__ x)))
+        (let ((h (py-call __hash__ x)))
           (if (py-isinstance? h py-int-class)
             (let ((h-value (PyObjectInt-value h)))
               (py-int-from-scheme (truncate-hash h-value)))
@@ -1015,7 +991,7 @@
         py-builtin-NotImplementedError
         "dir() call with no arguments is not yet implemented ")
       (let ((__dir__ (getattribute-from-obj-mro x (& "__dir__"))))
-       (py-call1 py-builtin-sorted (py-call1 __dir__ x)))))
+       (py-call py-builtin-sorted (py-call __dir__ x)))))
 
 ;; =============================================================================
 ;; int operations
@@ -1487,7 +1463,7 @@
   (let ((__len__ (getattribute-from-obj-mro obj (& "__len__"))))
     (if (eq? __len__ py-absent)
       py-absent
-      (let* ((len (py-call1 __len__ obj))
+      (let* ((len (py-call __len__ obj))
              (len-type (py-type len)))
         (cond
           ((eq? len-type py-int-class)
@@ -1507,19 +1483,19 @@
   (let ((getitem (getattribute-from-obj-mro obj (& "__getitem__"))))
     (if (eq? getitem py-absent)
       (py-throw-not-subscriptable obj)
-      (py-call2 getitem obj i))))
+      (py-call getitem obj i))))
 
 (define (py-setitem obj i value cache)
   (let ((setitem (getattribute-from-obj-mro obj (& "__setitem__"))))
     (if (eq? setitem py-absent)
       (py-throw-not-assignable obj)
-      (py-call3 setitem obj i value))))
+      (py-call setitem obj i value))))
 
 (define (py-delitem obj i cache)
   (let ((delitem (getattribute-from-obj-mro obj (& "__delitem__"))))
     (if (eq? delitem py-absent)
       (py-throw-not-deletable obj)
-      (py-call2 delitem obj i))))
+      (py-call delitem obj i))))
 
 ;;;----------------------------------------------------------------------------
 
@@ -1679,7 +1655,7 @@
     (else
       (let ((__bool__ (getattribute-from-obj-mro obj (& "__bool__"))))
         (if (not (eq? __bool__ py-absent))
-          (let ((test-value (py-call1 __bool__ obj)))
+          (let ((test-value (py-call __bool__ obj)))
             (py-test test-value))
           (let ((len (py-maybe-len obj)))
             (if (eq? len py-absent)
@@ -1700,7 +1676,7 @@
 (define (method-call self args)
   (if (eq? (py-type self) py-method-class)
     (let ((args-list (vector->list (PyObjectTuple-value args))))
-      (apply py-call self args-list))
+      (apply py-call-generic self args-list))
     (py-throw-required-type "__call__" "method" self)))
 
 (define method.__call__
@@ -1713,7 +1689,7 @@
 (define (function-call self args)
   (if (eq? (py-type self) py-function-class)
     (let ((args-list (vector->list (PyObjectTuple-value args))))
-      (apply py-call self args-list))
+      (apply py-call-generic self args-list))
     (py-throw-required-type "__call__" "method" self)))
 
 (define function.__call__
@@ -1745,10 +1721,10 @@
 (define (type-call self args)
   (let ((__new__ (getattribute-from-cls-mro self (& "__new__")))
         (args-list (vector->list (PyObjectTuple-value args))))
-    (let ((instance (apply py-call __new__ self args-list)))
+    (let ((instance (apply py-call-generic __new__ self args-list)))
       (if (eq? (py-obj-cls instance) self)
         (let ((__init__ (getattribute-from-cls-mro self (& "__init__"))))
-            (apply py-call __init__ instance args-list)
+            (apply py-call-generic __init__ instance args-list)
             instance)
         instance))))
 
@@ -2543,7 +2519,7 @@
   (let ((__iter__ (getattribute-from-obj-mro obj (& "__iter__"))))
     (if (eq? __iter__ py-absent)
       #f
-      (py-call1 __iter__ obj))))
+      (py-call __iter__ obj))))
 
 ;; Wraps py-obj->iterator to raise a TypeError when the object is not iterable
 (define (py-iter obj)
@@ -2555,14 +2531,14 @@
       (if (eq? __next__ py-absent)
         (py-throw-not-an-iterator obj)
         (if (eq? default py-absent)
-          (py-call1 __next__ obj)
+          (py-call __next__ obj)
           (with-handler
             (lambda (exc)
               (if (and (PyObject? exc)
                        (py-isinstance? exc py-builtin-StopIteration))
                 default
                 (raise exc)))
-            (py-call1 __next__ obj))))))
+            (py-call __next__ obj))))))
 
 (define (iterator->list it)
   (let ((nxt (iterator-next it #f)))
@@ -3050,7 +3026,7 @@
            (cond
              ((eq? py-step py-None) 1)
              ((eq? py-step py-int-0)
-              (py-throw (py-call1 py-builtin-ValueError (&& "slice step cannot be zero"))))
+              (py-throw (py-call py-builtin-ValueError (&& "slice step cannot be zero"))))
              ((py-isinstance? py-step py-int-class)
                 (PyObjectInt-value py-step))
              (else (py-throw-wrong-index-type "slice" "integers or None" py-step))))
@@ -3514,7 +3490,7 @@
         (if res
           (py-int-from-scheme res)
           (py-throw
-            (py-call1
+            (py-call
               py-builtin-ValueError
               (&& "list.index(x): x not in list"))))))
     (py-throw-not-a-type-object "list.index" self)))
@@ -3618,7 +3594,7 @@
         (if index
           (dynamic-vector-shift-left! dvec (+ index 1))
           (py-throw
-            (py-call1
+            (py-call
               py-builtin-ValueError
               (&& "list.remove(x): x not in list"))))))
     (py-throw-not-a-type-object "list.remove" self))
@@ -3916,7 +3892,7 @@
         (if res
           (py-int-from-scheme res)
           (py-throw
-            (py-call1
+            (py-call
               py-builtin-ValueError
               (&& "tuple.index(x): x not in tuple"))))))
     (py-throw-not-a-type-object "tuple.index" self)))
@@ -4637,7 +4613,7 @@
   (let* ((cell (ordered-table-get-cell ordered-table key)))
     (if (eq? cell empty-table-cell)
       (if (eq? default py-absent)
-        (py-throw (py-call1 py-builtin-KeyError key))
+        (py-throw (py-call py-builtin-KeyError key))
         default)
       (dict-cell-value cell))))
 
@@ -4699,7 +4675,7 @@
     (let* ((ordered-table (PyObjectDict-value self))
            (res (ordered-table-remove-key! ordered-table key)))
       (if (not res)
-        (py-throw (py-call1 py-builtin-KeyError key))
+        (py-throw (py-call py-builtin-KeyError key))
         py-None))
     (py-throw-not-a-type-object "dict.__delitem__" self)))
 
@@ -5055,7 +5031,7 @@
       (py-throw
         (py-call py-builtin-AttributeError
           (&& "__enter__")))
-      (py-call1 __enter__ obj))))
+      (py-call __enter__ obj))))
 
 (define (py-exit obj exc)
   (let ((__exit__ (getattribute-from-obj-mro obj (& "__exit__"))))
@@ -5066,12 +5042,12 @@
       (if exc
         (let* ((exc-type (PyObject-class exc))
               (exc-traceback py-None) ;; TODO: pass traceback to __exit__ once it exists
-              (exit-res (py-call4 __exit__ obj exc-type exc exc-traceback)))
+              (exit-res (py-call __exit__ obj exc-type exc exc-traceback)))
           ;; __exit__ can return True to silence an exception
           (if (py-test exit-res)
             #f
             (raise exc)))
-        (py-call4 __exit__ obj py-None py-None py-None)))))
+        (py-call __exit__ obj py-None py-None py-None)))))
 
 ;; =============================================================================
 ;;  IO

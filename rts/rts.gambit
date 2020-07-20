@@ -98,8 +98,12 @@
 
 ;; statprof
 
+;; A procedure solely used by statprof to check if Zipi has been compiled
+;; with the right debug flags
+(define (%statprof-thunk) #f)
+
 (define (statprof-begin)
-  (if (##subprocedure-info py-call)
+  (if (##subprocedure-info %statprof-thunk)
     (eval
       '(let ()
         (import (github.com/gambit/statprof))

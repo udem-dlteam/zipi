@@ -26,6 +26,7 @@
     cell-set!
 
     py-call
+    py-call-generic
     py-call0
     py-call1
     py-call2
