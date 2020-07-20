@@ -4,11 +4,6 @@
       (PycModule-caches-set! ast (cell-ref cnt))
       (list (scheme ast conf))))
 
-(define (my-gensym sym)
-    (let ((i gensym-count))
-      (set! gensym-count (+ i 1))
-      (string->symbol (string-append "$" (symbol->string sym) "_" (number->string i)))))
-(define gensym-count 0)
 
 ;* (define (pyc-scheme-eval ast conf)                                  */
 ;*    (let ((def (PycNode-%info ast)))                                 */
@@ -333,39 +328,38 @@
 (define-walk-method (scheme this::PycTry conf)
   (let* ((body-block (PycTry-body this))
         (handlers (PycTry-handlers this))
+        (handlers-exc-sym (PycTry-exc-sym this))
         (else-block (PycTry-else this))
         (finally-block (PycTry-finally this))
-        (current-exc-sym (PycTry-exc-sym this))
         (res-sym (my-gensym '%res))
-        (conf-with-exc (cons* current-exc: current-exc-sym conf)))
+        (conf-with-exc (cons* current-exc: handlers-exc-sym conf)))
     (if (PycPass? finally-block)
       ;; there is no finally block
       (if (PycPass? else-block)
         ;; optimized case for try-except simple blocks
         `(with-handler
-          (lambda (,current-exc-sym)
+          (lambda (,handlers-exc-sym)
             (cond
               ,@(map (lambda (h) (scheme h conf-with-exc)) handlers)
-              (else (raise ,current-exc-sym))))
+              (else (raise ,handlers-exc-sym))))
           ,(scheme body-block conf))
         ;; try-except-else
-        `(let ((,current-exc-sym #f))
+        `(let ((,handlers-exc-sym #f))
             (let ((,res-sym
                     (with-handler
                       (lambda (%exc)
-                        (set! ,current-exc-sym %exc)
+                        (set! ,handlers-exc-sym %exc)
                         (cond
                           ,@(map (lambda (h) (scheme h conf-with-exc)) handlers)
-                          (else (raise ,current-exc-sym))))
+                          (else (raise ,handlers-exc-sym))))
                       ,(scheme body-block conf))))
-            (if (not ,current-exc-sym)
+            (if (not ,handlers-exc-sym)
               ,(scheme else-block conf)
                ,res-sym))))
       ;; there is a finally block
       (let* ((return-sym (if (PycStmt-need-return this) (my-gensym '%return) #f))
             (body-conf (if return-sym (cons* return: return-sym conf) conf))
             (current-exc-sym (my-gensym '%current-exc))
-            (handlers-exc-sym (my-gensym '%exc))
             (current-ret-sym (my-gensym '%current-ret))
             (finally-ret-sym (my-gensym '%finally-ret))
             (handled-flag-sym (my-gensym '%handled-an-exception))

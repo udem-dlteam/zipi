@@ -1,6 +1,12 @@
 (define (pyc-sexp exp conf)
   (sexp exp #t 'global conf))
 
+(define (my-gensym sym)
+    (let ((i gensym-count))
+      (set! gensym-count (+ i 1))
+      (string->symbol (string-append "$" (symbol->string sym) "_" (number->string i)))))
+(define gensym-count 0)
+
 ;; The Python syntax parsed by this function is defined at the url:
 ;;    https://docs.python.org/3.8/library/ast.html
 (define (sexp exp tail scope conf)
@@ -201,12 +207,12 @@
                    (if cause (sexp cause #f scope conf) (new-PycUninit loc))))
     ((Try ?loc ?body ?handlers ?orelse ?finally)
      ;; Try(stmt* body, excepthandler* handlers, stmt* orelse, stmt* finalbody)
-     (let ((current-exc-sym (my-gensym '%current-exc)))
+     (let ((handlers-exc-sym (my-gensym '%exc)))
       (new-PycTry loc (compile-stmt* loc body #f scope conf)
-                  (map (lambda (h) (compile-handler h scope current-exc-sym conf)) handlers)
+                  (map (lambda (h) (compile-handler h scope handlers-exc-sym conf)) handlers)
                   (compile-stmt* loc orelse #f scope conf)
                   (compile-stmt* loc finally #f scope conf)
-                  current-exc-sym)))
+                  handlers-exc-sym)))
 
     ((Import ?loc ?aliases)
      ;; Import(alias* names)
