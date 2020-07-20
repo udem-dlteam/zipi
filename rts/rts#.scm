@@ -282,6 +282,46 @@
 ;;  Calls
 ;; =============================================================================
 
+(define-macro (make-signature args posonlyargs vararg kwonlyargs kw-defaults kwarg defaults)
+  (define (constantify sym)
+    `',(make-PyStaticStr (symbol->string sym)))
+
+  (define (constantify* lst)
+    `#(,@(map constantify lst)))
+
+  (if (or kw-defaults defaults)
+    `(vector
+        ,(constantify* args)
+        ,(constantify* posonlyargs)
+        ,(and vararg (constantify vararg))
+        ,(constantify* kwonlyargs)
+        ,(or kw-defaults #())
+        ,(and kwarg (constantify kwarg))
+        ,(or defaults #()))
+    ;; signature with no default can be optimized to a constant
+    `'#(,(constantify* args)
+        ,(constantify* posonlyargs)
+        ,(and vararg (constantify vararg))
+        ,(constantify* kwonlyargs)
+        #()
+        ,(and kwarg (constantify kwarg))
+        #())))
+
+(define-macro (empty-signature)
+  '#(#() #() #f #() #() #f #()))
+
+(define-macro (make-vararg-only-signature vararg)
+  `(make-signature () () ,vararg () #f #f #f))
+
+(define-macro (make-posonly-signature posonlyargs)
+  `(make-signature () ,posonlyargs #f () #f #f #f))
+
+(define-macro (make-posonly-defaults-signature posonlyargs defaults)
+  `(make-signature () ,posonlyargs #f () #f #f ,defaults))
+
+(define-macro (make-args-defaults-signature args defaults)
+  `(make-signature ,args () #f () #f #f ,defaults))
+
 (define-macro (define-all-py-callX)
   (define py-callX-args-limit 5)
 

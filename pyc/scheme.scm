@@ -708,20 +708,24 @@
    (define (signature fun conf)
     (let ((vararg (PycFun-vararg fun))
           (kwarg (PycFun-kwarg fun)))
-      `(vector
-        '#(,@(map PycDecl-id (PycFun-args fun)))
-        '#(,@(map PycDecl-id (PycFun-posonlyargs fun)))
+      `(make-signature
+        ,(map PycDecl-id (PycFun-args fun))
+        ,(map PycDecl-id (PycFun-posonlyargs fun))
         ,(cond
-            ((PycDecl? vararg) `(quote ,(PycDecl-id vararg)))
+            ((PycDecl? vararg) (PycDecl-id vararg))
             ((PycUninit? vararg) #f)
             (else (error "signature" "unknown value for vararg" vararg)))
-        '#(,@(map PycDecl-id (PycFun-kwonlyargs fun)))
-        (vector ,@(scheme* (PycFun-kw-defaults fun) conf))
+        ,(map PycDecl-id (PycFun-kwonlyargs fun))
+        ,(if (> (length (PycFun-kw-defaults fun)) 0)
+            `(vector ,@(scheme* (PycFun-kw-defaults fun) conf))
+            #f)
         ,(cond
-            ((PycDecl? kwarg) `(quote ,(PycDecl-id kwarg)))
+            ((PycDecl? kwarg) (PycDecl-id kwarg))
             ((PycUninit? kwarg) #f)
             (else (error "signature" "unknown value for kwarg" kwarg)))
-        (vector ,@(scheme* (PycFun-defaults fun) conf)))))
+        ,(if (> (length (PycFun-defaults fun)) 0)
+            `(vector ,@(scheme* (PycFun-defaults fun) conf))
+            #f))))
 
     (define (apply-decorators fun conf)
         (let*
