@@ -332,7 +332,7 @@
   `(make-signature ,args () #f () #f #f ,defaults))
 
 (define-macro (define-all-py-callX)
-  (define py-callX-args-limit 5)
+  (import (zipi rts config))
 
   (define (define-py-callX X)
     (let ((py-call-name (string->symbol (string-append "py-call" (number->string X))))
@@ -358,7 +358,7 @@
         (loop (+ i 1) (cons (define-py-callX i) acc)))))
 
 (define-macro (py-call f . args)
-  (define py-callX-args-limit 5)
+  (import (zipi rts config))
 
   (define (make-py-call-name n)
     (string->symbol
