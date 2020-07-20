@@ -949,11 +949,6 @@
         (throw-unsupported-unary-operand x "abs()")
         (py-call __abs__ x))))
 
-;; Biggest fixnum Mersene prime
-;; See explanation here: https://stackoverflow.com/a/37614051/5079316
-(define max-hash (- (expt 2 61) 1))
-(define (truncate-hash x) (remainder x max-hash))
-
 (define (py-hash x)
   (let ((__hash__ (getattribute-from-obj-mro x (& "__hash__"))))
     (if (eq? __hash__ py-absent)
@@ -961,6 +956,7 @@
         (let ((h (py-call __hash__ x)))
           (if (py-isinstance? h py-int-class)
             (let ((h-value (PyObjectInt-value h)))
+              (import (zipi rts utility))
               (py-int-from-scheme (truncate-hash h-value)))
       	    (py-throw-exception-with-message
       	       py-builtin-RuntimeError
@@ -1191,7 +1187,7 @@
 (define-int-unary-operator int-abs "__abs__" abs)
 
 (define-int-unary-operator int-hash "__hash__"
-  (lambda (x) (remainder x max-hash)))
+  (let () (import (zipi rts utility)) truncate-hash))
 
 (define (int-repr self)
   (if (py-isinstance? self py-int-class)
@@ -1953,24 +1949,18 @@
 (define-str-comparison-operator str-ge "__ge__" string>=?)
 (define-str-comparison-operator str-le "__le__" string<=?)
 
-;; Litterally just taken from here
-;; https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function#FNV_hash_parameters
-(define FNV1a-prime #x00000100000001B3)
-(define FNV1a-offset-basis #xcbf29ce484222325)
-
-(define (hash-FNV1a string)
-  (let ((bytes (map char->integer (string->list string)))
-        (h FNV1a-offset-basis))
-    (let loop ((bytes bytes) (h h))
-      (if (null? bytes)
-        h
-        (loop
-          (cdr bytes)
-          (truncate-hash (* (bitwise-xor h (car bytes)) FNV1a-prime)))))))
+(define (str-hash-value str)
+  (import (zipi rts utility))
+  (let ((cached-hash (PyObjectStr-hash str)))
+    (if cached-hash
+      cached-hash
+      (let ((hash (hash-FNV1a (PyObjectStr-value str))))
+        (PyObjectStr-hash-set! str hash)
+        hash))))
 
 (define (str-hash self)
   (if (PyObjectStr? self)
-    (py-int-from-scheme (hash-FNV1a (PyObjectStr-value self)))
+    (py-int-from-scheme (str-hash-value self))
     (py-throw-required-type "__hash__" "str" self)))
 
 (define str.__hash__
@@ -2270,7 +2260,8 @@
       py-absent)
     py-str-class
     value
-    py-absent)) ;; representative
+    py-absent ;;representative
+    #f))      ;; hash
 
 (define (py-str-subtype-from-scheme value str-subclass)
   (make-PyObjectStr
@@ -2280,7 +2271,8 @@
       py-absent)
     str-subclass
     value
-    py-absent)) ;; representative
+    py-absent ;; representative
+    #f))      ;; hash
 
 (define (py-str-to-scheme self)
   (str-force! self))

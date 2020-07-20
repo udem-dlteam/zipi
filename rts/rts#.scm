@@ -31,10 +31,18 @@
         elements
         class
         value
-        representative)
+        representative
+        hash)
       (define (make-PyStaticStr value)
+        (import (zipi rts utility))
         (let ((static-str
-                (%make-PyStaticStr #f '#() #f value '%py-absent)))
+                (%make-PyStaticStr
+                  #f
+                  '#()
+                  #f
+                  value
+                  '%py-absent
+                  (hash-FNV1a value))))
           ,(if constants-must-be-representatives
             `(begin
                 (%PyStaticStr-representative-set! static-str static-str)
@@ -168,7 +176,8 @@
   copier: #f
   ;; attrs
   value
-  (representative unprintable:))
+  (representative unprintable:)
+  hash)
 
 (define-type-of-PyObject PyObjectFunction
   id: PyObjectFunction-C6486EB6-1522-42BA-A082-B6563F943CDF
