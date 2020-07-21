@@ -114,7 +114,7 @@ class Transformer:
                 return args + ".charCodeAt(0)"
         elif func == "str":
             return "String(" + args + ")"
-        elif func == 'int':
+        elif func == "int":
             return "Number(" + args + ")"
         elif func == "repr":
             return "JSON.stringify(" + args + ")"
@@ -162,13 +162,13 @@ class Transformer:
                 + ",".join(self.transform(arg) for arg in node.args)
                 + ")"
             )
-        elif isinstance(node.func, AST.Attribute) and node.func.attr == 'append':
+        elif isinstance(node.func, AST.Attribute) and node.func.attr == "append":
             return (
                 self.transform(node.func.value)
                 + ".push("
                 + ",".join(self.transform(arg) for arg in node.args)
                 + ")"
-                )
+            )
 
         # Implement 'foo'.join(bar)?
         # elif (
@@ -419,6 +419,13 @@ class Transformer:
         value = self.transform(node.value)
         _slice = self.transform(node.slice)
 
+        if (
+            isinstance(node.slice, AST.Index)
+            and isinstance(node.slice.value, AST.UnaryOp)
+            and isinstance(node.slice.value.op, AST.USub)
+        ):
+            return value + ".slice(" + _slice + ")[0]"
+
         if isinstance(node.slice, AST.Slice):
             return value + ".slice(" + _slice + ")"
 
@@ -655,7 +662,7 @@ class Transformer:
         modules = ""
 
         for module in imports:
-            if module == 'sys':
+            if module == "sys":
                 return " "
             elif module in self.imports:
                 return " "
