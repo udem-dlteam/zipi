@@ -114,7 +114,7 @@
           ($elements (PyObject-%elements $obj))
           ($elements-len (vector-length $elements)))
      (if (fx>= $offset $elements-len)
-         (let (($elements-new (make-vector (max 1 (fx* 2 $elements-len)))))
+         (let (($elements-new (make-vector (max 1 (fx* 2 $elements-len)) py-absent)))
            (subvector-move! $elements 0 $elements-len $elements-new 0)
            (vector-set! $elements-new $offset $val)
            (PyObject-%elements-set! $obj $elements-new))
@@ -360,7 +360,40 @@
         (loop (+ i 1) (cons (define-py-callX i) acc)))))
 
 (define-macro (py-call f . args)
-  (import (zipi rts config))
+  (define (make-kwargs-loc-table names)
+    (import (zipi rts utility))
+    (let* ((names-length (length names))
+           (max-table-length (* names-length 3))
+           (perfect-table-length
+             (let loop ((size names-length))
+                (cond
+                  ((> size max-table-length)
+                    #f)
+                  ;; the following condition check that there is no collision
+                  ;; in a table of length 'size'
+                  ((= names-length
+                      (table-length
+                        (list->table
+                          (map
+                            (lambda (n) (cons (fast-range-hash (hash-FNV1a n) size) #t))
+                            names))))
+                    size)
+                  (else
+                    (loop (+ size 1)))))))
+      (if perfect-table-length
+        ;; i: index at which element will be found. The table itself is an
+        ;; index table which will be at index 0, which is why i starts at 1
+        (let loop ((names names) (i 1) (table (make-vector (* 2 perfect-table-length) #f)))
+          (if (null? names)
+            table
+            (let* ((name (car names))
+                   (hash (hash-FNV1a name))
+                   (name-index (* 2 (fast-range-hash hash perfect-table-length))))
+              (vector-set! table name-index name)
+              (vector-set! table (+ name-index 1) i)
+              (loop (cdr names) (+ i 1) table))))
+        #f)))
+
 
   (define (make-py-call-name n)
     (string->symbol
@@ -374,12 +407,45 @@
               (cons (reverse acc) args)
               (loop (cdr args) (cons (car args) acc)))))
         (pos-args (car split-args))
-        (special-args (cdr split-args)))
-    (if (not (null? special-args))
-      `(py-throw-exception-with-message
-          py-builtin-NotImplementedError
-          "py-call does not support nammed args, *args or **kwargs")
+        (split-special-args
+          ;; result: #(kwargs *args **kwargs)
+          (let loop ((args (cdr split-args)) (acc (vector '() '() '())))
+            (cond
+              ((null? args)
+                (vector-map reverse acc))
+              ((eq? (car args) *:)
+                (begin
+                  (vector-set! acc 1 (cons (cadr args) (vector-ref acc 1)))
+                  (loop (cddr args) acc)))
+              ((eq? (car args) **:)
+                (begin
+                  (vector-set! acc 2 (cons (cadr args) (vector-ref acc 2)))
+                  (loop (cddr args) acc)))
+              (else
+                (begin
+                  (vector-set! acc 0 (cons (cons (car args) (cadr args)) (vector-ref acc 0)))
+                  (loop (cddr args) acc))))))
+        (kwargs (vector-ref split-special-args 0))
+        (kwargs-names (map (lambda (e) (keyword->string (car e))) kwargs))
+        (kwargs-values (map cdr kwargs))
+        (*args (vector-ref split-special-args 1))
+        (**kwargs (vector-ref split-special-args 2))
+        (kwargs-table (make-kwargs-loc-table kwargs-names))
+        (kwargs-table-str
+          (vector-map
+            (lambda (e) (if (string? e) (get-PyStaticStr e) e))
+            kwargs-table)))
+
+    (if (not (null? kwargs))
+      ;; TODO implement fallback when a perfect hash-table does not exist
+      `(py-call-generic-kwargs
+          ,f
+          (list ,@pos-args)
+          (list ,@*args)
+          (vector ,kwargs-table-str ,@kwargs-values)
+          (list ,@**kwargs))
       (let ((nargs (length pos-args)))
+        (import (zipi rts config))
         (if (<= nargs py-callX-args-limit)
           `(,(make-py-call-name nargs) ,f ,@pos-args)
           `(py-call-generic ,f ,@pos-args))))))

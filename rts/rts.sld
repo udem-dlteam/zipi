@@ -28,6 +28,7 @@
     make-signature
     py-call
     py-call-generic
+    py-call-generic-kwargs
     py-call0
     py-call1
     py-call2

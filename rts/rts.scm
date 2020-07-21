@@ -481,6 +481,11 @@
             (py-throw-not-callable obj)
             (apply py-call-generic __call__ obj args)))))))
 
+(define (py-call-generic-kwargs obj args *args-lst kwargs-table **kwargs-lst)
+  (py-throw-exception-with-message
+    py-builtin-NotImplementedError
+    "py-call does not support named args, *args or **kwargs"))
+
 (define (align-args-with-signature caller-args signature)
   (let ((args (vector-ref signature 0))
         (posonlyargs (vector-ref signature 1))
