@@ -42,6 +42,9 @@
           (HClass-transition-add! $hc key nhclass)
           nhclass)))))
 
+(define-macro (str-representatives-eq? self other)
+  `(eq? (str-representative-get ,self) (str-representative-get ,other)))
+
 (define debug-verbosity 0)
 
 (define (possible-error verbosity . msg)
@@ -481,11 +484,6 @@
             (py-throw-not-callable obj)
             (apply py-call-generic __call__ obj args)))))))
 
-(define (py-call-generic-kwargs obj args *args-lst kwargs-table **kwargs-lst)
-  (py-throw-exception-with-message
-    py-builtin-NotImplementedError
-    "py-call does not support named args, *args or **kwargs"))
-
 (define (align-args-with-signature caller-args signature)
   (let ((args (vector-ref signature 0))
         (posonlyargs (vector-ref signature 1))
@@ -494,11 +492,6 @@
         (kw-defaults (vector-ref signature 4))
         (kwarg (vector-ref signature 5))
         (defaults (vector-ref signature 6)))
-    (if (or kwarg
-            (> (vector-length kwonlyargs) 0))
-      (py-throw-exception-with-message
-        py-builtin-NotImplementedError
-        "kwargs not implemented"))
     (let* ((caller-args-len (length caller-args))
           (args-len (vector-length args))
           (posonlyargs-len (vector-length posonlyargs))
@@ -509,22 +502,39 @@
           (if vararg
             (append
               caller-args
-              (cons
-                (py-tuple-from-scheme '#())
-                '()))
-            caller-args))
+              (cons (py-tuple-from-scheme '#()) '())
+              (vector->list kw-defaults)
+              (if kwarg (cons (py-make-empty-dict) '()) '()))
+            (if (or kwarg (> (vector-length kw-defaults) 0))
+              (append
+                caller-args
+                (vector->list kw-defaults)
+                (if kwarg (cons (py-make-empty-dict) '()) '()))
+              caller-args)))
         ((< caller-args-len total-args-len)
           (let ((missing-args-len (- total-args-len caller-args-len)))
             (if (>= default-len missing-args-len)
               (append
                 caller-args
                 (vector->list
-                  (subvector defaults (- default-len missing-args-len) default-len)))
+                  (subvector defaults (- default-len missing-args-len) default-len))
+                (vector->list kw-defaults)
+                (if kwarg (cons (py-make-empty-dict)'()) '()))
               (py-throw py-builtin-TypeError)))) ;; TODO add error message
         (vararg
-          (pack-extra-args (- 0 1 total-args-len) caller-args))
+          (if (or kwarg (> (vector-length kw-defaults) 0))
+            (append
+              (pack-extra-args (- 0 1 total-args-len) caller-args)
+              (vector->list kw-defaults)
+              (if kwarg (cons (py-make-empty-dict) '()) '()))
+            (pack-extra-args (- 0 1 total-args-len) caller-args)))
         (else
           (py-throw py-builtin-TypeError)))))) ;; TODO add error message
+
+(define (py-call-generic-kwargs obj args *args-lst kwargs-table **kwargs-lst)
+  (py-throw-exception-with-message
+    py-builtin-NotImplementedError
+    "py-call does not support named args, *args or **kwargs"))
 
 (define (py-is-in-mro? target mro)
   (let loop ((i 0))
@@ -1917,11 +1927,9 @@
             (if (eq? self other)
                 ,yes
                 (if (eq? (py-type other) py-str-class)
-                    (let* ((self-representative (str-representative-get self))
-                           (other-representative (str-representative-get other)))
-                      (if (eq? self-representative other-representative)
-                          ,yes
-                          ,no))
+                    (if (str-representatives-eq? self other)
+                        ,yes
+                        ,no)
                     py-NotImplemented))
             (py-throw-required-type ,method-name "str" self)))
       (define ,py-func-name
@@ -4596,6 +4604,9 @@
         default)
       (dict-cell-value cell))))
 
+(define (py-make-empty-dict)
+  (py-dict-alloc (make-empty-ordered-table 0)))
+
 (define (py-dict-from-scheme key-value-pairs)
   (let* ((ordered-table (make-empty-ordered-table (length key-value-pairs)))
          (table-vector (ordered-table-table ordered-table)))
@@ -6434,7 +6445,7 @@
 (define py-builtin-isinstance
   (procedure->py-function
     (lambda (object classinfo)
-      (py-throw-exception-with-message py-builtin-NotImplementedError "isinstance not implemented"))
+      (if (py-isinstance? object classinfo) py-True py-False))
     (make-posonly-signature (object classinfo))))
 
 ;;-------------------- issubclass(class, classinfo)
