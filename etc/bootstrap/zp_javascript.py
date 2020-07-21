@@ -384,7 +384,7 @@ class Transformer:
         if (
             len(ops) == 1
             and isinstance(ops[0], AST.In)
-            and comparators[0].func.id == "tokenset"
+            and comparators[0].func.id == "py_tokenset"
         ):
             # [3,79,42].indexOf(x) >= 0
             args = ",".join(self.transform(i) for i in comparators[0].args)
