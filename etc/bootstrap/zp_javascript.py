@@ -594,7 +594,7 @@ class Transformer:
 
     @staticmethod
     def LtE(node):
-        return ">="
+        return "<="
 
     @staticmethod
     def NotEq(node):
