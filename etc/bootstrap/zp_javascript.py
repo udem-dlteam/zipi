@@ -697,7 +697,7 @@ class Transformer:
     def UnaryOp(self, node):
         op = self.transform(node.op)
         operand = self.transform(node.operand)
-        return f"({op}{operand})"
+        return f"({op}({operand}))"
 
     @staticmethod
     def USub(node):
