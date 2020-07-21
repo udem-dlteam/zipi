@@ -66,12 +66,17 @@ class Transformer:
             out = " ((" + self.transform(l) + "/" + self.transform(r) + ") >> 0)"
             return out
 
+        def str_mult(s, n):
+            return f"{self.transform(s)}.repeat({self.transform(n)})"
+
         left = node.left
         op = node.op
         right = node.right
 
         if isinstance(op, AST.FloorDiv):
             return floor_div(left, right)
+        elif isinstance(left, AST.Str) and isinstance(op, AST.Mult):
+            return str_mult(left, right)
         elif (
             isinstance(op, AST.Mult)
             and isinstance(right, AST.Num)
