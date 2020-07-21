@@ -19,6 +19,15 @@ class Transformer:
         self.counter += 1
         return gs
 
+    def get_identifier(self, node):
+        if isinstance(node, AST.FunctionDef):
+            return node.name
+        elif isinstance(node, AST.Assign):
+            for t in node.targets:
+                return self.get_identifier(t)
+        elif isinstance(node, AST.Name):
+            return node.id
+
     @staticmethod
     def to_string(s):
         return '"' + s.encode("unicode-escape").decode().replace('"', '\\"') + '"'
@@ -636,8 +645,45 @@ class Transformer:
         return ""
 
     def Import(self, node):
-        # noop for the time being
-        return ""
+        imports = [self.transform(n) for n in node.names]
+        # Can return multiple imports 'import foo, bar, baz'
+        modules = ""
+
+        for module in imports:
+            if module == 'sys':
+                return " "
+            elif module in self.imports:
+                return " "
+
+            module_code = f"var {module} = (function () {{"
+            self.imports.add(module)
+            module_file = self.rootdir + "/" + module + ".py"
+
+            with open(module_file, "r") as f:
+                source = f.read()
+
+            _ast = AST.parse(source)
+            module_code += self.transform(_ast)
+            module_code = re.sub(r"(;)\1+", r"\1", module_code)
+            # Get all top-level definitions and export them
+            ids = [self.get_identifier(n) for n in _ast.body]
+            exports = "return {"
+            for id in ids[:-1]:
+                exports += f"{id}:{id},"
+            exports += f"{ids[-1]}:{ids[-1]} }}"
+            module_code += f"{exports} }})();"
+
+            modules += module_code
+
+        return modules
+
+    def alias(self, node):
+        name = node.name
+        asname = node.asname
+        if asname:
+            return asname
+        else:
+            return name
 
     def Tuple(self, node):
         elts = ",".join(self.transform(i) for i in node.elts)
