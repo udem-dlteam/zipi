@@ -5287,6 +5287,8 @@
    (py-own-attr-set! mod (& "path")
                      (py-make-list
                            (py-str-from-scheme zipi-stdlib-dir)))
+   (py-own-attr-set! mod (& "maxsize")
+                     (py-int-from-scheme 2147483647))
        mod))
 
 (define sys-mod (py-make-sys-mod))
@@ -5501,6 +5503,22 @@
    (py-own-attr-set! mod (& "end") statprof.end)))
 
 (make-statprof-mod)
+
+;; os
+
+(define (os-system command)
+  (py-str-from-scheme (cdr (shell-command (str-force! command) #t))))
+
+(define os.system
+  (procedure->py-function
+    os-system
+    (make-posonly-signature (command))))
+
+(define (make-os-mod)
+  (let ((mod (py-make-module (&& "os"))))
+   (py-own-attr-set! mod (& "system") os.system)))
+
+(make-os-mod)
 
 ;; ===========================================
 ;; BUITLINS
