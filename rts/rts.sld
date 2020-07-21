@@ -25,6 +25,7 @@
     cell-ref
     cell-set!
 
+    make-signature
     py-call
     py-call-generic
     py-call0

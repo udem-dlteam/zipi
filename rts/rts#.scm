@@ -31,15 +31,32 @@
         elements
         class
         value
-        representative)
+        representative
+        hash)
       (define (make-PyStaticStr value)
+        (import (zipi rts utility))
         (let ((static-str
-                (%make-PyStaticStr #f '#() #f value '%py-absent)))
+                (%make-PyStaticStr
+                  #f
+                  '#()
+                  #f
+                  value
+                  '%py-absent
+                  (hash-FNV1a value))))
           ,(if constants-must-be-representatives
             `(begin
                 (%PyStaticStr-representative-set! static-str static-str)
                 static-str)
               'static-str)))
+      (define (get-PyStaticStr e)
+        (if (string? e)
+          (let ((cached (constants-ref %constants e)))
+            (if cached
+              cached
+              (let ((obj (make-PyStaticStr e)))
+                (constants-set! %constants e obj)
+                obj)))
+          (error "PyStaticStr" "requires string literal but got" e)))
       (define %constants (%make-Constants (make-table) #f))
       (define (constants-table) (%Constants-table %constants))
       (define (constants-ref c key) (table-ref (%Constants-table c) key #f))
@@ -65,14 +82,7 @@
   (listify-constant-table))
 
 (define-macro (& e)
-  (if (string? e)
-    (let ((cached (constants-ref %constants e)))
-      (if cached
-        `',cached
-        (let ((obj (make-PyStaticStr e)))
-          (constants-set! %constants e obj)
-          `',obj)))
-    (error "&" "requires string literal but got" e)))
+  `',(get-PyStaticStr e))
 
 (define-macro (&& e)
   `(& ,e))
@@ -168,7 +178,8 @@
   copier: #f
   ;; attrs
   value
-  (representative unprintable:))
+  (representative unprintable:)
+  hash)
 
 (define-type-of-PyObject PyObjectFunction
   id: PyObjectFunction-C6486EB6-1522-42BA-A082-B6563F943CDF
@@ -282,8 +293,48 @@
 ;;  Calls
 ;; =============================================================================
 
+(define-macro (make-signature args posonlyargs vararg kwonlyargs kw-defaults kwarg defaults)
+  (define (constantify sym)
+    `,(get-PyStaticStr (symbol->string sym)))
+
+  (define (constantify* lst)
+    `#(,@(map constantify lst)))
+
+  (if (or kw-defaults defaults)
+    `(vector
+        ,(constantify* args)
+        ,(constantify* posonlyargs)
+        ,(and vararg `',(constantify vararg))
+        ,(constantify* kwonlyargs)
+        ,(or kw-defaults #())
+        ,(and kwarg `',(constantify kwarg))
+        ,(or defaults #()))
+    ;; signature with no default can be optimized to a constant
+    `'#(,(constantify* args)
+        ,(constantify* posonlyargs)
+        ,(and vararg (constantify vararg))
+        ,(constantify* kwonlyargs)
+        #()
+        ,(and kwarg (constantify kwarg))
+        #())))
+
+(define-macro (empty-signature)
+  '#(#() #() #f #() #() #f #()))
+
+(define-macro (make-vararg-only-signature vararg)
+  `(make-signature () () ,vararg () #f #f #f))
+
+(define-macro (make-posonly-signature posonlyargs)
+  `(make-signature () ,posonlyargs #f () #f #f #f))
+
+(define-macro (make-posonly-defaults-signature posonlyargs defaults)
+  `(make-signature () ,posonlyargs #f () #f #f ,defaults))
+
+(define-macro (make-args-defaults-signature args defaults)
+  `(make-signature ,args () #f () #f #f ,defaults))
+
 (define-macro (define-all-py-callX)
-  (define py-callX-args-limit 5)
+  (import (zipi rts config))
 
   (define (define-py-callX X)
     (let ((py-call-name (string->symbol (string-append "py-call" (number->string X))))
@@ -309,7 +360,7 @@
         (loop (+ i 1) (cons (define-py-callX i) acc)))))
 
 (define-macro (py-call f . args)
-  (define py-callX-args-limit 5)
+  (import (zipi rts config))
 
   (define (make-py-call-name n)
     (string->symbol
