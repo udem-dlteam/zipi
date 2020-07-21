@@ -111,11 +111,7 @@ def compile_file(input_file):
     target_code = transform(ast.parse(source))
 
     # We will add a small runtime
-    runtime = """
-    String.prototype.lstrip = function () {
-      return this.replace(/^\s+/g, '');
-    };
-    """
+    runtime = "String.prototype.lstrip = function () { return this.replace(/^\s+/g, ''); };"
     target_code = runtime + target_code
     target_code = re.sub(r"(;)\1+", r"\1", target_code)
     target_code = '"use strict"; ' + target_code
