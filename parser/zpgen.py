@@ -521,8 +521,7 @@ def read_grammar_and_generate_parser(filename):
 
     setup_first_nt(rules)
 
-    start_fn_name, f = generate_parse_functions()
-    
+
     print('import sys')
 
     if token_access == '':
@@ -536,6 +535,9 @@ def read_grammar_and_generate_parser(filename):
         print('import ztokenizer as ' + tok_access[:-1])
 
     print(actions.get('prelude',''))
+
+    # A subcall to gen_rule calls print:
+    start_fn_name, f = generate_parse_functions()
 
     print()
 

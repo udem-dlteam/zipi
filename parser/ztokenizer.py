@@ -23,13 +23,11 @@ def append_eol(buf):
 
 # TODO: remove when tokenizer is optimized.
 
+stats = {}
+found = [0]*68
+
 def init_stats():
 
-    global found, stats
-
-    found = [0]*68
-
-    stats = {}
     stats['bol'] = 0
     stats['not_bol'] = 0
     stats['k == KIND_NAME'] = 0
@@ -44,6 +42,7 @@ def init_stats():
     stats['k == KIND_CONTINUATION'] = 0
     stats['OTHER'] = 0
     stats['SPECIAL'] = 0
+
 
 def inc_found(index):
     found[index] += 1
