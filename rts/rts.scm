@@ -995,7 +995,7 @@
             "int.__new__ unimplemented for non int"))))
     ((py-issubclass? cls py-int-class)
       (cond
-        ((not value)
+        ((eq? value py-absent)
           (let ((new-int (py-int-subtype-from-scheme 0 cls)))
             new-int))
         ((py-isinstance? value py-int-class)
@@ -1235,7 +1235,7 @@
             "float.__new__ unimplemented for non float"))))
     ((py-issubclass? cls py-float-class)
       (cond
-        ((not value)
+        ((eq? value py-absent)
           (py-float-subtype-from-scheme 0.0 cls))
         ((py-isinstance? value py-float-class)
           (let ((value (PyObjectFloat-value value)))
@@ -1711,6 +1711,7 @@
     type-call
     (make-signature () (self) args () #f #f #f)))
 
+
 ;; TODO: remove the tuple->list conversion once we support argument unpacking
 (define (type-new metacls cls args)
   (let* ((args-list (vector->list (PyObjectTuple-value args)))
@@ -1729,6 +1730,31 @@
   (procedure->py-function
     type-new
     (make-signature () (metacls cls) args () #f #f #f)))
+
+(define (tuple-new cls iterable)
+  (if (or (eq? cls py-tuple-class) (py-issubclass? cls py-tuple-class))
+      (if (eq? iterable py-absent)
+          (py-tuple-subtype-from-scheme '#() cls)
+          (let ((iterable-type (py-type iterable)))
+           (cond
+             ((eq? iterable-type py-tuple-class)
+              (if (eq? cls py-tuple-class)
+                  iterable
+                  (let ((value (PyObjectTuple-value iterable)))
+                   (py-tuple-subtype-from-scheme value cls))))
+             ((eq? iterable-type py-list-class)
+              (let ((value (PyObjectList-value iterable)))
+               (py-tuple-subtype-from-scheme (vector-copy value) cls)))
+             (else
+               (let* ((iterator (py-iter iterable))
+                      (content (list->vector (iterator->list iterator))))
+                 (py-tuple-subtype-from-scheme (vector-copy content) cls))))))
+      (py-throw-wrong-new-argument "tuple" cls)))
+
+(define tuple.__new__
+  (procedure->py-function
+    tuple-new
+    (make-posonly-defaults-signature (cls iterable) (vector py-absent))))
 
 ;; TODO: raise TypeError on unsafe call, ex: object.__new__(int)
 ;; TODO: raise TypeError when cannot create, ex: list_iterator.__new__()
@@ -1805,25 +1831,25 @@
 (define (str-new cls value)
   (cond
     ((eq? cls py-str-class)
-      (if (not (eq? value py-absent))
-        (let* ((__str__ (getattribute-from-obj-mro value (& "__str__")))
-               (result (py-call __str__ value)))
-          (if (py-isinstance? result py-str-class)
-            result
-            (throw-returned-wrong-type "__str__" value "non-string")))
-        (&& "")))
+     (if (eq? value py-absent)
+         (&& "")
+         (let* ((__str__ (getattribute-from-obj-mro value (& "__str__")))
+                (result (py-call __str__ value)))
+           (if (py-isinstance? result py-str-class)
+               result
+               (throw-returned-wrong-type "__str__" value "non-string")))))
     ((py-issubclass? cls py-str-class)
-      (if value
-        (let* ((__str__ (getattribute-from-obj-mro value (& "__str__")))
-               (result (py-call __str__ value)))
-          (if (py-isinstance? result py-str-class)
-            (py-str-subtype-from-scheme
-              cls
-              (PyObjectStr-value result))
-            (throw-returned-wrong-type "__str__" value "non-string")))
-        (py-str-subtype-from-scheme
-          cls
-          "")))
+     (if (eq? value py-absent)
+         (py-str-subtype-from-scheme
+           (&& "")
+           cls)
+         (let* ((__str__ (getattribute-from-obj-mro value (& "__str__")))
+                (result (py-call __str__ value)))
+           (if (py-isinstance? result py-str-class)
+               (py-str-subtype-from-scheme
+                 (PyObjectStr-value result)
+                 cls)
+               (throw-returned-wrong-type "__str__" value "non-string")))))
     (else
       (py-throw-wrong-new-argument "str" cls))))
 
@@ -2353,7 +2379,7 @@
 
     ;; Fill in type class
     (PyObject-class-set! type-class type-class)
-    (PyObjectType-bases-set! type-class '#(object-class))
+    (PyObjectType-bases-set! type-class (vector object-class))
     (PyObjectType-mro-set! type-class (vector type-class object-class))
     (PyObjectType-hclass-of-instances-set! type-class py-type-hclass-of-instances)
     (py-own-attr-set! type-class (& "__name__") (&& "type"))
@@ -2365,15 +2391,16 @@
 
     ;; Fill in tuple class
     (PyObject-class-set! tuple-class type-class)
-    (PyObjectType-bases-set! tuple-class '#(object-class))
+    (PyObjectType-bases-set! tuple-class (vector object-class))
     (PyObjectType-mro-set! tuple-class (vector tuple-class object-class))
     (PyObjectType-hclass-of-instances-set! tuple-class py-tuple-hclass-of-instances)
     (py-own-attr-set! tuple-class (& "__name__") (&& "tuple"))
     (py-own-attr-set! tuple-class (& "__module__") (&& "builtins"))
+    (py-own-attr-set! tuple-class (& "__new__") tuple.__new__)
 
     ;; Fill in str class
     (PyObject-class-set! str-class type-class)
-    (PyObjectType-bases-set! str-class '#(object-class))
+    (PyObjectType-bases-set! str-class (vector object-class))
     (PyObjectType-mro-set! str-class (vector str-class object-class))
     (PyObjectType-hclass-of-instances-set! str-class py-str-hclass-of-instances)
     (py-own-attr-set! str-class (& "__name__") (&& "str"))
@@ -2744,26 +2771,28 @@
 
 (define (list-new cls iterable)
   (if (or (eq? cls py-list-class) (py-issubclass? cls py-list-class))
-      (let ((iterable-type (py-type iterable)))
-       (cond
-         ((eq? iterable-type py-tuple-class)
-          (let ((vec (PyObjectTuple-value iterable)))
-           (py-list-subtype-from-scheme
-             (vector-head->dynamic-vector vec (vector-length vec))
-             cls)))
-         ((eq? iterable-type py-list-class)
-          (let* ((dvec (PyObjectList-value iterable))
-                 (len (car dvec))
-                 (vec (cdr dvec)))
-            (py-list-subtype-from-scheme
-              (vector-head->dynamic-vector vec len)
-              cls)))
-         (else
-           (let* ((iterator (py-iter iterable))
-                  (content (list->vector (iterator->list iterator))))
-             (py-list-subtype-from-scheme
-               (vector-head->dynamic-vector content (vector-length content))
-               cls)))))
+      (if (eq? iterable py-absent)
+          (py-list-subtype-from-scheme (vector-head->dynamic-vector (vector) 0) cls)
+          (let ((iterable-type (py-type iterable)))
+           (cond
+             ((eq? iterable-type py-tuple-class)
+              (let ((vec (PyObjectTuple-value iterable)))
+               (py-list-subtype-from-scheme
+                 (vector-head->dynamic-vector vec (vector-length vec))
+                 cls)))
+             ((eq? iterable-type py-list-class)
+              (let* ((dvec (PyObjectList-value iterable))
+                     (len (car dvec))
+                     (vec (cdr dvec)))
+                (py-list-subtype-from-scheme
+                  (vector-head->dynamic-vector vec len)
+                  cls)))
+             (else
+               (let* ((iterator (py-iter iterable))
+                      (content (list->vector (iterator->list iterator))))
+                 (py-list-subtype-from-scheme
+                   (vector-head->dynamic-vector content (vector-length content))
+                   cls))))))
       (py-throw-wrong-new-argument "list" cls)))
 
 (define list.__new__
@@ -3960,6 +3989,9 @@
               (if (<= 0 i)
                 (py-bytearray-subtype-from-scheme (cons i (make-u8vector i 0)) cls)
                 (py-throw-exception-with-message py-builtin-ValueError "negative count"))))
+          ((py-isinstance? arg1 py-bytearray-class)
+           (let ((value (PyObjectBytearray-value arg1)))
+            (py-bytearray-subtype-from-scheme (cons (car value) (u8vector-copy (cdr value))) cls)))
           (else
             (error "builtin function __new__ just supports int as an argument"))))
       (else
@@ -5241,6 +5273,15 @@
       (vector-length (HClass-names py-tuple-hclass-of-instances))
       py-absent)
     py-tuple-class
+    elements))
+
+(define (py-tuple-subtype-from-scheme elements cls)
+  (make-PyObjectTuple
+    py-tuple-hclass-of-instances
+    (make-vector
+      (vector-length (HClass-names py-tuple-hclass-of-instances))
+      py-absent)
+    cls
     elements))
 
 (define py-make-dict py-dict-from-scheme)

@@ -287,7 +287,7 @@
   macros:
   ;; attrs
   names
-  transitions)
+  (transitions unprintable:))
 
 ;; =============================================================================
 ;;  Calls
