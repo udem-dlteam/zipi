@@ -690,6 +690,23 @@
         value)
       #f)))
 
+(define (unpack-kwargs obj)
+  (let ((keys-method (object-get obj (& "keys")))
+        (keys-iterator (py-iter (py-call obj keys))))
+    (let loop ((acc '()))
+      (let ((next-key (py-next keys-iterator)))
+        (cond
+          ((PyObjectStr? next-key)
+            (cons
+              (py-getitem obj next-key #f)
+              acc))
+          ((not next-key)
+            acc)
+          (else
+            (py-throw-exception-with-message
+              py-builtin-TypeError
+              "keywords must be strings")))))))
+
 (define (align-with-signature caller-args caller-kwargs-table *args-lst **kwargs-lst signature)
 
   (define (parse-pos-args caller-args caller-kwargs-table args vararg *args-lst posonlyargs defaults)
@@ -4950,9 +4967,18 @@
     dict-iter
     (make-posonly-signature (self))))
 
+;; TODO: incorrect implementation, should return a dict_keys object
+(define (dict-keys self)
+  (if (py-isinstance? self py-dict-class)
+    (py-tuple-from-scheme
+      (vector->list
+        (iterator->list
+          (dict->dict-keyiterator self))))
+    (py-throw-not-a-type-object "dict.keys" self)))
+
 (define dict.keys
   (procedure->py-function
-    dict-iter
+    dict-keys
     (make-posonly-signature (self))))
 
 ;; =============================================================================
