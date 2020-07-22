@@ -22,7 +22,10 @@ class Transformer:
 
     def get_identifier(self, node):
         if isinstance(node, AST.FunctionDef):
-            return node.name
+            if "nocompile" in [d.id for d in node.decorator_list]:
+                return None
+            else:
+                return node.name
         elif isinstance(node, AST.Assign):
             for t in node.targets:
                 return self.get_identifier(t)

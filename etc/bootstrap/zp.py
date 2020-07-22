@@ -1,6 +1,7 @@
 import argparse
 import ast
 import re
+import os
 from colorama import Fore, init
 from pathlib import Path
 from zp_javascript import Transformer as JS
@@ -10,11 +11,19 @@ parser.add_argument(
     "-f", "--file", metavar="FILE", type=str, nargs=1, help="file to compile"
 )
 parser.add_argument(
+    "-n", "--node", action="store_true", help="export as node module (default False)"
+)
+parser.add_argument(
+    "-b",
+    "--browser",
+    action="store_true",
+    help="export as browser module (default True)",
+    default=True,
+)
+parser.add_argument(
     "-d", "--debug", action="store_true", help="add debug information (default False)"
 )
 cli_args = parser.parse_args()
-
-# DEBUG = False
 
 init()
 
@@ -108,13 +117,38 @@ def compile_file(input_file):
 
     backend.rootdir = str(Path(input_file).parent)
 
-    target_code = transform(ast.parse(source))
+    _ast = ast.parse(source)
+    target_code = transform(_ast)
 
-    # We will add a small runtime
-    runtime = "String.prototype.lstrip = function () { return this.replace(/^\s+/g, ''); };"
-    target_code = runtime + target_code
+    # Modules
+    if cli_args.node or cli_args.browser:
+        module = f"var {Path(input_file).name[:-3]} = (function () {{ "
+    else:
+        module = " "
+
+    ids = [backend.get_identifier(n) for n in _ast.body]
+    ids = [i for i in ids if i is not None]
+    exports = "return {"
+    for id in ids[:-1]:
+        exports += f"{id}:{id},"
+    exports += f"{ids[-1]}:{ids[-1]} }}"
+
+    # Runtime
+    runtime = (
+        "String.prototype.lstrip = function () { return this.replace(/^\s+/g, ''); };"
+    )
+
+    # Build the target code
+    target_code = runtime + module + target_code
     target_code = re.sub(r"(;)\1+", r"\1", target_code)
     target_code = '"use strict"; ' + target_code
+
+    # Finish modules
+    if cli_args.node or cli_args.browser:
+        target_code += f"{exports} }})();"
+
+    if cli_args.node:
+        target_code += f"module.exports = {Path(input_file).name[:-3]};"
 
     with open(output_file, "w") as f:
         print(target_code, file=f)
