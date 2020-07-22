@@ -1574,7 +1574,7 @@
           (py-throw-exception-with-message
             py-builtin-AttributeError
             "'"
-            (str-force! (py-getattribute (py-type obj) (& "__name__")))
+            (str-force! (type-getattribute (py-type obj) (& "__name__")))
             "' object has no attribute '"
             (str-force! name)
             "'"
