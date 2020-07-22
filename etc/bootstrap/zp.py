@@ -11,6 +11,9 @@ parser.add_argument(
     "-f", "--file", metavar="FILE", type=str, nargs=1, help="file to compile"
 )
 parser.add_argument(
+    "-o", "--output", metavar="OUTPUT", type=str, nargs=1, help="output file"
+)
+parser.add_argument(
     "-n", "--node", action="store_true", help="export as node module (default False)"
 )
 parser.add_argument(
@@ -110,7 +113,10 @@ def compile_file(input_file):
     if input_file[-3:] != ".py":
         raise Exception
 
-    output_file = input_file[:-3] + backend.ext
+    if cli_args.output:
+        output_file = cli_args.output[0]
+    else:
+        output_file = input_file[:-3] + backend.ext
 
     with open(input_file, "r") as f:
         source = f.read()
