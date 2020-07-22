@@ -5288,7 +5288,7 @@
                      (py-make-list
                            (py-str-from-scheme zipi-stdlib-dir)))
    (py-own-attr-set! mod (& "maxsize")
-                     (py-int-from-scheme 2147483647))
+                     (py-int-from-scheme (max-fixnum)))
        mod))
 
 (define sys-mod (py-make-sys-mod))

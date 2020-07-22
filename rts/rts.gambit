@@ -57,6 +57,9 @@
 (define-macro (structure-type-set! s t)
   `(##structure-type-set! ,s ,t))
 
+(define-macro (max-fixnum)
+  `##max-fixnum)
+
 (define (init-constants constants)
   (vector-for-each
     (lambda (obj)
