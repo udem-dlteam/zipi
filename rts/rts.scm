@@ -1571,7 +1571,14 @@
       (receive (cls-attr owner) (getattribute-from-obj-mro-with-owner obj name)
         (if (not (eq? cls-attr py-absent))
           (object-get-bind-descriptor cls-attr obj owner)
-          (py-throw py-builtin-AttributeError))))))
+          (py-throw-exception-with-message
+            py-builtin-AttributeError
+            "'"
+            (str-force! (py-getattribute (py-type obj) (& "__name__")))
+            "' object has no attribute '"
+            (str-force! name)
+            "'"
+            ))))))
 
 ;; The Python object object.__getattribute__
 (define py-object-getattribute
@@ -1588,7 +1595,13 @@
         (receive (cls-attr owner) (getattribute-from-obj-mro-with-owner obj name)
           (if (not (eq? cls-attr py-absent))
             (object-get-bind-descriptor cls-attr obj owner)
-            (py-throw py-builtin-AttributeError)))))
+            (py-throw-exception-with-message
+              py-builtin-AttributeError
+              "type object '"
+              (str-force! (type-getattribute obj (& "__name__")))
+              "' has not attribute '"
+              (str-force! name)
+              "'")))))
     (py-throw-required-type "__getattribute__" "type" obj)))
 
 ;; The Python object type.__getattribute__
