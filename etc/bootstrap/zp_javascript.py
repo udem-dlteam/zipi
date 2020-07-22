@@ -13,6 +13,7 @@ class Transformer:
         # Flag to modify behavior
         self.in_class = False
         self.imports = set()
+        self.base_class = False
 
     def gensym(self):
         gs = "g" + str(self.counter)
@@ -199,7 +200,10 @@ class Transformer:
         if name == "__init__":
             if node.args.args[0].arg == "self":
                 args = self.arguments(node.args, 1)
-            out = " constructor(" + args + ") { var self = this; "  # quick hack
+            out = " constructor(" + args + ") {"
+            if self.base_class:
+                out += " super(); "
+            out += " var self = this; "  # quick hack
             out += body.replace("var ", "") + "};"
             return out
         elif name == "source":
@@ -529,6 +533,12 @@ class Transformer:
         # ('name', 'bases', 'keywords', 'body', 'decorator_list')
         self.in_class = True
 
+        # Handle inheritance
+        if len(node.bases) > 1:
+            raise Exception
+        elif len(node.bases) == 1:
+            self.base_class = self.transform(node.bases[0])
+
         # javascript strict mode requires special handling of
         # 'eval' and 'arguments' identifiers
         name = node.name
@@ -543,8 +553,15 @@ class Transformer:
         # store class name for future reference when instantiating
         self.classes.add(name)
 
+        if self.base_class:
+            out = f"class {name} extends {self.base_class} {{ {body} }}"
+        else:
+            out = f"class {name} {{ {body} }}"
+
         self.in_class = False
-        return "class " + name + " {" + body + "};"
+        self.base_class = False
+
+        return out
 
     def Attribute(self, node):
         value = self.transform(node.value)
