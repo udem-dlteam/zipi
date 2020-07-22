@@ -645,9 +645,150 @@
           (py-throw py-builtin-TypeError)))))) ;; TODO add error message
 
 (define (py-call-generic-kwargs obj args *args-lst kwargs-table **kwargs-lst)
-  (py-throw-exception-with-message
-    py-builtin-NotImplementedError
-    "py-call does not support named args, *args or **kwargs"))
+  (let ((obj-type (py-type obj)))
+    (cond
+      ((eq? obj-type py-function-class)
+        (let* ((procedure (PyObjectFunction-procedure obj))
+               (signature (PyObjectFunction-signature obj))
+               (aligned-args (align-with-signature args *args-lst kwargs-table **kwargs-lst signature)))
+          (apply procedure aligned-args)))
+      ((eq? obj-type py-method-class)
+        (let* ((procedure (PyObjectMethod-procedure obj))
+               (signature (PyObjectMethod-signature obj))
+               (__self__ (method-__self__-fast-get obj))
+               (bound-args (cons __self__ args))
+               (aligned-args (align-with-signature bound-args *args-lst kwargs-table **kwargs-lst signature)))
+          (apply procedure aligned-args)))
+      (else
+        (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
+          (if (eq? __call__ py-absent)
+            (py-throw-not-callable obj)
+            (py-call-generic-kwargs __call__ (cons obj args) *args-lst kwargs-table **kwargs-lst)))))))
+
+(define kwargs-already-seen '%kwargs-already-seen)
+
+(define (kwargs-table-pop! table key)
+  (import (zipi rts utility))
+  ;; NOTE: key will always either be from a signature or a call-table
+  ;; key will always have been hashed at compile time
+  (let* ((index-table (vector-ref table 0))
+        (hash (PyObjectStr-hash key))
+        ;; index-table contains keys at even indices; index of value at odd indices
+        (hash-index
+          (fxarithmetic-shift-left
+            (fast-range-hash hash (vector-length index-table))
+            1))
+        (key-hit (vector-ref index-table hash-index)))
+    (if (str-representatives-eq key key-hit)
+      (let ((index-index (fx+ hash-index 1))
+            (value-index (vector-ref index-table index-index))
+            (value (vector-ref table value-index)))
+        ;; TODO: For now it is fine to alter the table BUT NOT the index-table
+        ;; since the index-table is constant. It may change in the future, so
+        ;; find a better way to indicate that a kwarg as already been collected
+        (vector-set! table value-index kwargs-already-seen)
+        value)
+      #f)))
+
+(define (align-with-signature caller-args caller-kwargs-table *args-lst **kwargs-lst signature)
+
+  (define (parse-pos-args caller-args caller-kwargs-table args vararg *args-lst posonlyargs defaults)
+    ;; collect caller arguments which map to a posonly argument
+    (let* ((posonly-length (vector-length posonlyargs))
+          (unpacked-caller-args
+            (apply append
+              caller-args
+              (list-append (map py-iter *args-lst))))
+          (posonly-parse-result
+            (let loop ((i posonly-length) (remaining-caller-args unpacked-caller-args) (acc '()))
+              (if (> i 0)
+                (if (null? remaining-caller-args)
+                  (py-throw py-builtin-TypeError)
+                  (loop (- i 1) (cdr remaining-caller-args) (cons (car remaining-caller-args) acc)))
+                (cons acc remaining-caller-args))))
+          ;; NOTE: Those are the posonly args passed to the function
+          (caller-posonly (reverse (car posonly-parse-result)))
+          (remaining-caller-args-w/o-posonly (cdr posonly-parse-result)))
+      ;; collect caller argument which map to a general argument without default
+      (let ((defaults-length (vector-length defaults))
+            (args-length (vector-length args))
+            (args-no-default-parse-result
+              (let loop ((i (- args-length defaults-length))
+                         (remaining-args (vector->list args))
+                         (remaining-caller-args remaining-caller-args-w/o-posonly)
+                         (acc '()))
+                (if (> i 0)
+                  (if (null? remaining-caller-args)
+                    (py-throw py-builtin-TypeError)
+                    (let ((arg-value (car remaining-caller-args))
+                          (arg-name (car remaining-args)))
+                      ;; the same argument cannot be passed both as positional and kwarg
+                      (kwargs-table-pop! caller-kwargs-table arg-name)
+                      (loop
+                        (- i 1)
+                        (cdr remaining-args)
+                        (cdr remaining-caller-args)
+                        (cons arg-value acc))))
+                  (vector acc remaining-args remaining-caller-args))))
+            ;; NOTE: those are the args passed to the function which have no default value
+            (caller-no-defaults (reverse (vector-ref args-no-default-parse-result 0)))
+            (remaining-caller-args-w/o-default (vector-ref args-no-default-parse-result 1))
+            (remaining-args (vector-ref args-no-default-parse-result 2)))
+        ;; collect arguments which map to general argument with default values
+        ;; at this point it should be that 'remaining-args' and 'defaults' have the same length
+        (let ((args-with-default-parse-result
+                (let loop ((remaining-caller-args remaining-caller-args-w/o-default)
+                           (remaining-args remaining-args)
+                           (remaining-defaults (vector->list defaults))
+                           (acc '()))
+                  (if (null? remaining-args)
+                    (cons (reverse acc) remaining-caller-args)
+                    (if (null? remaining-caller-args)
+                      (cons (append (reverse acc) remaining-defaults) '())
+                      (let ((arg-name (car remaining-args))
+                            (arg-value (car remaining-caller-args)))
+                        ;; the same argument cannot be passed both as positional and kwarg
+                        (kwargs-table-pop! caller-kwargs-table arg-name)
+                        (loop
+                          (cdr remaining-caller-args)
+                          (cdr remaining-args)
+                          (cdr remaining-defaults)
+                          (cons arg-value acc)))))))
+              ;; NOTE: those are the args passed to the function which had default value
+              ;; extended with default values
+              (caller-defaults (car args-with-default-parse-result))
+              (remaining-caller-args (cdr args-with-default-parse-result)))
+          ;; pack extra args and return
+          (if (null? remaining-caller-args)
+            (if vararg
+              (append
+                caller-posonly
+                caller-no-defaults
+                caller-defaults
+                (list (py-tuple-from-scheme '#())))
+              (append caller-posonly caller-no-defaults caller-defaults))
+            (if vararg
+              (append
+                caller-posonly
+                caller-no-defaults
+                caller-defaults
+                (list (py-tuple-from-scheme (list->vector remaining-caller-args))))
+              (py-throw py-builtin-TypeError)))))))
+
+  (define (parse-keyword-args caller-kwargs-table **kwargs-lst kwonlyargs kw-defaults kwarg)
+    #f)
+
+  (let ((args (vector-ref signature 0))
+        (posonlyargs (vector-ref signature 1))
+        (vararg (vector-ref signature 2))
+        (kwonlyargs (vector-ref signature 3))
+        (kw-defaults (vector-ref signature 4))
+        (kwarg (vector-ref signature 5))
+        (defaults (vector-ref signature 6)))
+    (let* ((args-acc (parse-pos-args caller-args caller-kwargs-table args vararg *args-lst posonlyargs defaults))
+           (kwargs-acc (parse-keyword-args caller-kwargs-table **kwargs-lst kwonlyargs kw-defaults kwarg)))
+      (append args-acc kwargs-acc))))
+
 
 (define (py-is-in-mro? target mro)
   (let loop ((i 0))
