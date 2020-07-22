@@ -4950,6 +4950,11 @@
     dict-iter
     (make-posonly-signature (self))))
 
+(define dict.keys
+  (procedure->py-function
+    dict-iter
+    (make-posonly-signature (self))))
+
 ;; =============================================================================
 ;;  Dict iterators
 ;; =============================================================================
@@ -5214,6 +5219,7 @@
         (& "__delitem__") dict.__delitem__
         (& "__len__") dict.__len__
         (& "__iter__") dict.__iter__
+        (& "keys") dict.keys
         (& "get") dict.get))
 
   (set! py-set-class
