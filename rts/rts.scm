@@ -1841,7 +1841,7 @@
     ((py-issubclass? cls py-str-class)
      (if (eq? value py-absent)
          (py-str-subtype-from-scheme
-           (&& "")
+           ""
            cls)
          (let* ((__str__ (getattribute-from-obj-mro value (& "__str__")))
                 (result (py-call __str__ value)))
@@ -1937,7 +1937,7 @@
         (if (py-isinstance? self py-str-class)
             (if (eq? self other)
                 ,yes
-                (if (eq? (py-type other) py-str-class)
+                (if (py-isinstance? other py-str-class)
                     (let* ((self-representative (str-representative-get self))
                            (other-representative (str-representative-get other)))
                       (if (eq? self-representative other-representative)
