@@ -650,14 +650,14 @@
       ((eq? obj-type py-function-class)
         (let* ((procedure (PyObjectFunction-procedure obj))
                (signature (PyObjectFunction-signature obj))
-               (aligned-args (align-with-signature args *args-lst kwargs-table **kwargs-lst signature)))
+               (aligned-args (align-with-signature args kwargs-table *args-lst **kwargs-lst signature)))
           (apply procedure aligned-args)))
       ((eq? obj-type py-method-class)
         (let* ((procedure (PyObjectMethod-procedure obj))
                (signature (PyObjectMethod-signature obj))
                (__self__ (method-__self__-fast-get obj))
                (bound-args (cons __self__ args))
-               (aligned-args (align-with-signature bound-args *args-lst kwargs-table **kwargs-lst signature)))
+               (aligned-args (align-with-signature bound-args kwargs-table *args-lst **kwargs-lst signature)))
           (apply procedure aligned-args)))
       (else
         (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
@@ -676,11 +676,15 @@
         ;; index-table contains keys at even indices; index of value at odd indices
         (hash-index
           (fxarithmetic-shift-left
-            (fast-range-hash hash (vector-length index-table))
+            (fast-range-hash
+              hash
+              (fxarithmetic-shift-right
+                (vector-length index-table)
+                1))
             1))
         (key-hit (vector-ref index-table hash-index)))
-    (if (str-representatives-eq key key-hit)
-      (let ((index-index (fx+ hash-index 1))
+    (if (str-representatives-eq? key key-hit)
+      (let* ((index-index (fx+ hash-index 1))
             (value-index (vector-ref index-table index-index))
             (value (vector-ref table value-index)))
         ;; TODO: For now it is fine to alter the table BUT NOT the index-table
@@ -697,9 +701,7 @@
       (let ((next-key (py-next keys-iterator)))
         (cond
           ((PyObjectStr? next-key)
-            (cons
-              (py-getitem obj next-key #f)
-              acc))
+            (loop (cons (cons next-key (py-getitem obj next-key #f)) acc)))
           ((not next-key)
             acc)
           (else
@@ -715,7 +717,7 @@
           (unpacked-caller-args
             (apply append
               caller-args
-              (list-append (map py-iter *args-lst))))
+              (apply append (map py-iter *args-lst))))
           (posonly-parse-result
             (let loop ((i posonly-length) (remaining-caller-args unpacked-caller-args) (acc '()))
               (if (> i 0)
@@ -727,7 +729,7 @@
           (caller-posonly (reverse (car posonly-parse-result)))
           (remaining-caller-args-w/o-posonly (cdr posonly-parse-result)))
       ;; collect caller argument which map to a general argument without default
-      (let ((defaults-length (vector-length defaults))
+      (let* ((defaults-length (vector-length defaults))
             (args-length (vector-length args))
             (args-no-default-parse-result
               (let loop ((i (- args-length defaults-length))
@@ -736,7 +738,16 @@
                          (acc '()))
                 (if (> i 0)
                   (if (null? remaining-caller-args)
-                    (py-throw py-builtin-TypeError)
+                    (let* ((arg-name (car remaining-args))
+                          (arg-value-from-keyword
+                            (kwargs-table-pop! caller-kwargs-table arg-name)))
+                      (if arg-value-from-keyword
+                        (loop
+                          (- i 1)
+                          (cdr remaining-args)
+                          '()
+                          (cons arg-value-from-keyword acc))
+                        (py-throw py-builtin-TypeError)))
                     (let ((arg-value (car remaining-caller-args))
                           (arg-name (car remaining-args)))
                       ;; the same argument cannot be passed both as positional and kwarg
@@ -753,7 +764,7 @@
             (remaining-args (vector-ref args-no-default-parse-result 2)))
         ;; collect arguments which map to general argument with default values
         ;; at this point it should be that 'remaining-args' and 'defaults' have the same length
-        (let ((args-with-default-parse-result
+        (let* ((args-with-default-parse-result
                 (let loop ((remaining-caller-args remaining-caller-args-w/o-default)
                            (remaining-args remaining-args)
                            (remaining-defaults (vector->list defaults))
@@ -792,8 +803,74 @@
                 (list (py-tuple-from-scheme (list->vector remaining-caller-args))))
               (py-throw py-builtin-TypeError)))))))
 
-  (define (parse-keyword-args caller-kwargs-table **kwargs-lst kwonlyargs kw-defaults kwarg)
-    #f)
+  ;; NOTE: this function is destructive of the caller-kwargs-table
+  (define (get-unused-kwargs! caller-kwargs-table)
+    (let* ((index-table (vector-ref caller-kwargs-table 0))
+           (index-table-length (vector-length index-table))
+           (caller-kwargs-table-length (vector-length caller-kwargs-table)))
+      (let loop ((i 0))
+        (if (< i index-table-length)
+          (let ((key (vector-ref index-table i)))
+            (if key
+              (let ((index (vector-ref index-table (+ i 1))))
+                ;; TODO: table should be preinitialised with key-value pairs
+                ;; this could avoid this whole loop
+                (vector-set!
+                  caller-kwargs-table index
+                  (cons key (vector-ref caller-kwargs-table index))))
+              (loop (+ i 2))))))
+      (let loop ((i 1))
+        (if (< i caller-kwargs-table-length)
+          (let ((pair (vector-ref caller-kwargs-table i)))
+            (if (eq? (cdr pair) kwargs-already-seen)
+              (loop (+ i 1))
+              (cons pair (loop (+ i 1)))))
+          '()))))
+
+  (define (parse-keyword-args-with-**kwargs caller-kwargs-table **kwargs-lst kwonlyargs kw-defaults)
+    (let* ((unpacked-kwargs
+            (apply append
+              (map unpack-kwargs **kwargs-lst)))
+          (unpacked-kwargs-dict (py-dict-from-scheme unpacked-kwargs))
+          (unpacked-kwargs-ordered-table (PyObjectDict-value unpacked-kwargs-dict))
+          (parsed-kwargs
+            (let loop ((remaining-kwonlyargs kwonlyargs)
+                       (remaining-defaults kw-defaults)
+                       (acc '()))
+              (if (null? remaining-kwonlyargs)
+                (reverse acc)
+                (let* ((kw (car remaining-kwonlyargs))
+                       (value-from-** (ordered-table-pop! unpacked-kwargs-ordered-table kw #f)))
+                  (if value-from-**
+                    (loop
+                      (cdr remaining-kwonlyargs)
+                      (cdr remaining-defaults)
+                      (cons value-from-** acc))
+                    (loop
+                      (cdr remaining-kwonlyargs)
+                      (cdr remaining-defaults)
+                      (cons
+                        (or
+                          (kwargs-table-pop! caller-kwargs-table kw)
+                          (car remaining-defaults))
+                        acc))))))))
+      (cons parsed-kwargs unpacked-kwargs-dict)))
+
+  (define (parse-keyword-args caller-kwargs-table kwonlyargs kw-defaults)
+    (let loop ((remaining-kwonlyargs (vector->list kwonlyargs))
+               (remaining-defaults (vector->list kw-defaults))
+               (acc '()))
+      (if (null? remaining-kwonlyargs)
+        (reverse acc)
+        (let* ((kw (car remaining-kwonlyargs)))
+            (loop
+              (cdr remaining-kwonlyargs)
+              (cdr remaining-defaults)
+              (cons
+                (or
+                  (kwargs-table-pop! caller-kwargs-table kw)
+                  (car remaining-defaults))
+                acc))))))
 
   (let ((args (vector-ref signature 0))
         (posonlyargs (vector-ref signature 1))
@@ -802,10 +879,44 @@
         (kw-defaults (vector-ref signature 4))
         (kwarg (vector-ref signature 5))
         (defaults (vector-ref signature 6)))
-    (let* ((args-acc (parse-pos-args caller-args caller-kwargs-table args vararg *args-lst posonlyargs defaults))
-           (kwargs-acc (parse-keyword-args caller-kwargs-table **kwargs-lst kwonlyargs kw-defaults kwarg)))
-      (append args-acc kwargs-acc))))
-
+    (let ((args-acc (parse-pos-args caller-args caller-kwargs-table args vararg *args-lst posonlyargs defaults)))
+      (if (null? **kwargs-lst)
+        (let* ((parsed-kwargs
+                (parse-keyword-args caller-kwargs-table kwonlyargs kw-defaults))
+               (unused-kwargs (get-unused-kwargs! caller-kwargs-table)))
+          (if (null? unused-kwargs)
+            (if kwarg
+              (append args-acc parsed-kwargs (py-make-empty-dict))
+              (append args-acc parsed-kwargs))
+            (if kwarg
+              (append
+                args-acc
+                parsed-kwargs
+                (py-dict-from-scheme unused-kwargs))
+              (py-throw py-builtin-TypeError))))
+        (let* ((parse-kwargs-res
+                (parse-keyword-args-with-**kwargs caller-kwargs-table **kwargs-lst kwonlyargs kw-defaults))
+               (parsed-kwargs (car parse-kwargs-res))
+               (unpacked-kwargs-dict (cdr parse-kwargs-res))
+               (unpacked-kwargs-table (PyObjectDict-value unpacked-kwargs-dict))
+               (unused-kwargs (get-unused-kwargs! caller-kwargs-table)))
+          (if (null? unused-kwargs)
+            (if kwarg
+              (append args-acc parsed-kwargs unpacked-kwargs-dict)
+              (if (>
+                    (ordered-table-length unpacked-kwargs-table)
+                    0)
+                (py-throw py-builtin-TypeError)
+                (append args-acc parsed-kwargs)))
+            (if kwarg
+              (append
+                args-acc
+                parsed-kwargs
+                (py-dict-from-scheme
+                  (append
+                    unused-kwargs
+                    (ordered-table->list unpacked-kwargs-table))))
+              (py-throw py-builtin-TypeError))))))))
 
 (define (py-is-in-mro? target mro)
   (let loop ((i 0))
@@ -2085,6 +2196,8 @@
               rep)
             (let ((new-rep (make-still-copy str)))
               (table-set! str-representatives str-value new-rep)
+              (PyObjectStr-representative-set! str new-rep)
+              (PyObjectStr-representative-set! new-rep new-rep)
               new-rep))))
       self-token)))
 
@@ -4699,6 +4812,18 @@
 
 (define-type ordered-table table length first last iterator-token)
 
+(define (ordered-table->list ot)
+  (let ((first (ordered-table-first ordered-table)))
+    (let loop ((node first) (acc '()))
+      (if node
+        (let ((cell (doubly-linked-list-node-value node)))
+          (loop
+            (doubly-linked-list-node-next node)
+            (cons
+              (cons (dict-cell-key cell) (dict-cell-value cell))
+              acc)))
+        (reverse acc)))))
+
 (define (ordered-table-append! ordered-table node)
   (let ((first (ordered-table-first ordered-table)))
     (if first
@@ -4874,6 +4999,29 @@
         (py-throw (py-call py-builtin-KeyError key))
         default)
       (dict-cell-value cell))))
+
+(define (ordered-table-pop! ordered-table key default)
+  (let* ((hash (PyObjectInt-value (py-hash key)))
+        (table (ordered-table-table ordered-table))
+        (size (vector-length table)))
+    (let loop ((i (hash->cell hash size)))
+      (let ((node (vector-ref table i)))
+        (if (eq? node empty-table-cell)
+          default
+          (let* ((cell (doubly-linked-list-node-value node))
+                (cell-key (dict-cell-key cell))
+                (cell-hash (dict-cell-hash cell)))
+            (if (and (= hash cell-hash) (py-test (py-eq key cell-key)))
+              (let ((bucket-tail
+                    (table-bucket-indices table size (cell-next i size)))
+                    (len (ordered-table-length ordered-table)))
+                (doubly-linked-list-node-remove! node ordered-table)
+                (vector-set! table i empty-table-cell)
+                (ordered-table-drop-token! ordered-table)
+                (ordered-table-length-set! ordered-table (- len 1))
+                (table-bucket-reinsert table bucket-tail)
+                (dict-cell-value cell))
+              (loop (cell-next i size)))))))))
 
 (define (py-make-empty-dict)
   (py-dict-alloc (make-empty-ordered-table 0)))
