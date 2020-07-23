@@ -17,8 +17,13 @@ jobs:
         with:
           fetch-depth: 0 # Checkout history and tags
 
-      - name: Step 1
-        run: echo install dependencies
+      - uses: actions/download-artefact@v2
+        with:
+          name: gambit/gambit
+          path: gambit
+
+      - name: Gambit
+        run: ls -la gambit
 
       - name: Step2
         run: |
