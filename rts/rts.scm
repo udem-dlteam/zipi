@@ -151,7 +151,7 @@
                     (PyObjectFunction-procedure fun)
                     (pack-extra-args arity (list ,@args))))
                 (else
-                  (py-throw py-builtin-TypeError)))) ;; TODO add error message
+                  (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 14)")))) ;; TODO add error message
             (py-call-generic fun ,@args))))))
     (let loop ((i 1) (acc '()))
       (if (> i py-callX-args-limit)
@@ -568,7 +568,7 @@
             ((PyObjectFunction-procedure fun)
               (py-tuple-from-scheme '#())))
           (else
-            (py-throw py-builtin-TypeError)))) ;; TODO add error message)))
+            (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 15)")))) ;; TODO add error message)))
       (py-call-generic fun))))
 
 (define-all-py-callX)
@@ -633,7 +633,7 @@
                   (subvector defaults (- default-len missing-args-len) default-len))
                 (vector->list kw-defaults)
                 (if kwarg (cons (py-make-empty-dict)'()) '()))
-              (py-throw py-builtin-TypeError)))) ;; TODO add error message
+              (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 16)")))) ;; TODO add error message
         (vararg
           (if (or kwarg (> (vector-length kw-defaults) 0))
             (append
@@ -642,7 +642,7 @@
               (if kwarg (cons (py-make-empty-dict) '()) '()))
             (pack-extra-args (- 0 1 total-args-len) caller-args)))
         (else
-          (py-throw py-builtin-TypeError)))))) ;; TODO add error message
+          (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 17)")))))) ;; TODO add error message
 
 (define (py-call-generic-kwargs obj args *args-lst kwargs-table **kwargs-lst)
   (let ((obj-type (py-type obj)))
@@ -724,7 +724,7 @@
             (let loop ((i posonly-length) (remaining-caller-args unpacked-caller-args) (acc '()))
               (if (> i 0)
                 (if (null? remaining-caller-args)
-                  (py-throw py-builtin-TypeError)
+                  (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 0)")
                   (loop (- i 1) (cdr remaining-caller-args) (cons (car remaining-caller-args) acc)))
                 (cons acc remaining-caller-args))))
           ;; NOTE: Those are the posonly args passed to the function
@@ -749,7 +749,7 @@
                           (cdr remaining-args)
                           '()
                           (cons arg-value-from-keyword acc))
-                        (py-throw py-builtin-TypeError)))
+                        (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 1)")))
                     (let ((arg-value (car remaining-caller-args))
                           (arg-name (car remaining-args)))
                       ;; the same argument cannot be passed both as positional and kwarg
@@ -803,7 +803,7 @@
                 caller-no-defaults
                 caller-defaults
                 (list (py-tuple-from-scheme (list->vector remaining-caller-args))))
-              (py-throw py-builtin-TypeError)))))))
+              (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 2)")))))))
 
   ;; NOTE: this function is destructive of the caller-kwargs-table
   (define (get-unused-kwargs! caller-kwargs-table)
@@ -895,7 +895,7 @@
                 args-acc
                 parsed-kwargs
                 (list (py-dict-from-scheme unused-kwargs)))
-              (py-throw py-builtin-TypeError))))
+              (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 3)"))))
         (let* ((parse-kwargs-res
                 (parse-keyword-args-with-**kwargs caller-kwargs-table **kwargs-lst kwonlyargs kw-defaults))
                (parsed-kwargs (car parse-kwargs-res))
@@ -908,7 +908,7 @@
               (if (>
                     (ordered-table-length unpacked-kwargs-table)
                     0)
-                (py-throw py-builtin-TypeError)
+                (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 4)")
                 (append args-acc parsed-kwargs)))
             (if kwarg
               (append
@@ -919,7 +919,7 @@
                     (append
                       unused-kwargs
                       (ordered-table->list unpacked-kwargs-table)))))
-              (py-throw py-builtin-TypeError))))))))
+              (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 5)"))))))))
 
 (define (py-is-in-mro? target mro)
   (let loop ((i 0))
@@ -2929,7 +2929,7 @@
 (define (list-iterator-iter self)
   (if (eq? (py-type self) py-list-iterator-class)
     self
-    (py-throw py-builtin-TypeError)))
+    (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 6)")))
 
 (define list_iterator.__iter__
   (procedure->py-function
@@ -2955,7 +2955,7 @@
               item)
             (stop-list-iterator self)))
           (stop-list-iterator self)))
-    (py-throw py-builtin-TypeError)))
+    (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 7)")))
 
 (define list_iterator.__next__
   (procedure->py-function
@@ -2974,7 +2974,7 @@
 (define (tuple-iterator-iter self)
   (if (eq? (py-type self) py-tuple-iterator-class)
     self
-    (py-throw py-builtin-TypeError)))
+    (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 8)")))
 
 (define py-tuple-iterator-iter
   (procedure->py-function
@@ -2991,7 +2991,7 @@
             (PyObjectTupleIterator-index-set! self (+ index 1))
             item))
         (py-throw py-builtin-StopIteration)))
-    (py-throw py-builtin-TypeError)))
+    (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 9)")))
 
 (define py-tuple-iterator-next
   (procedure->py-function
@@ -3014,7 +3014,7 @@
 (define (bytearray-iterator-iter self)
   (if (eq? (py-type self) py-bytearray-iterator-class)
     self
-    (py-throw py-builtin-TypeError)))
+    (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 10)")))
 
 (define py-bytearray-iterator.__iter__
   (procedure->py-function
@@ -3031,7 +3031,7 @@
             (PyObjectBytearrayIterator-index-set! self (+ index 1))
             (py-int-from-scheme item)))
         (stop-bytearray-iterator self)))
-    (py-throw py-builtin-TypeError)))
+    (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 11)")))
 
 
 (define py-bytearray-iterator.__next__
@@ -4012,7 +4012,7 @@
 (define (tuple-iter self)
   (if (py-isinstance? self py-tuple-class)
     (py-tuple-iterator-alloc 0 (PyObjectTuple-value self))
-    (py-throw py-builtin-TypeError)))
+    (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 12)")))
 
 (define tuple.__iter__
   (procedure->py-function
@@ -4321,7 +4321,7 @@
             (vector-map
               py-int-from-scheme
               (py-slice-indices self len-i))))
-        (py-throw py-builtin-TypeError)) ;; TODO: add error message
+        (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 13)")) ;; TODO: add error message
       (py-throw-not-a-type-object "slice.indices" self)))
 
 (define slice.indices
