@@ -9,8 +9,8 @@ on:
       - master
 
 jobs:
-  Linux:
-    runs-on: gambit-linux
+  MacOs:
+    runs-on: gambit
 
     steps:
       - uses: actions/checkout@v2
