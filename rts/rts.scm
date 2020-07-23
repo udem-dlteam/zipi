@@ -1743,8 +1743,9 @@
                   (let ((value (PyObjectTuple-value iterable)))
                    (py-tuple-subtype-from-scheme value cls))))
              ((eq? iterable-type py-list-class)
-              (let ((value (PyObjectList-value iterable)))
-               (py-tuple-subtype-from-scheme (vector-copy value) cls)))
+              (let* ((value (PyObjectList-value iterable))
+                     (vec (subvector (cdr value) 0 (car value))))
+               (py-tuple-subtype-from-scheme (vector-copy vec) cls)))
              (else
                (let* ((iterator (py-iter iterable))
                       (content (list->vector (iterator->list iterator))))
