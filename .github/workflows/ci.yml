@@ -8,22 +8,22 @@ on:
     branches:
       - master
 
-  jobs:
-    Linux:
-      runs-on: gambit-linux
+jobs:
+  Linux:
+    runs-on: gambit-linux
 
-      steps:
-        - uses: actions/checkout@v2
-          with:
-            fetch-depth: 0 # Checkout history and tags
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 # Checkout history and tags
 
-        - name: Step 1
-          run: echo install dependencies
+      - name: Step 1
+        run: echo install dependencies
 
-        - name: Step2
-          run: |
-            echo step
-            echo 2
+      - name: Step2
+        run: |
+          echo step
+          echo 2
 
 #        - name: Upload Build Artifact
 #          uses: actions/upload-artifact@v1
