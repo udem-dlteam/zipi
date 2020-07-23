@@ -762,8 +762,8 @@
                   (vector acc remaining-args remaining-caller-args))))
             ;; NOTE: those are the args passed to the function which have no default value
             (caller-no-defaults (reverse (vector-ref args-no-default-parse-result 0)))
-            (remaining-caller-args-w/o-default (vector-ref args-no-default-parse-result 1))
-            (remaining-args (vector-ref args-no-default-parse-result 2)))
+            (remaining-args (vector-ref args-no-default-parse-result 1))
+            (remaining-caller-args-w/o-default (vector-ref args-no-default-parse-result 2)))
         ;; collect arguments which map to general argument with default values
         ;; at this point it should be that 'remaining-args' and 'defaults' have the same length
         (let* ((args-with-default-parse-result
