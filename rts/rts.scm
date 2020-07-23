@@ -116,21 +116,44 @@
         (kwargs-values (map cdr kwargs))
         (*args (vector-ref split-special-args 1))
         (**kwargs (vector-ref split-special-args 2))
-        (kwargs-table (make-kwargs-loc-table kwargs-names)))
+        (kwargs-table
+          (if (and (null? **kwargs) (not (null? kwargs)))
+            (make-kwargs-loc-table kwargs-names)
+            #f))
+        ;; extra-kwargs are kwargs which could not be hashed in a perfect hashtable
+        ;; at compile time, they are treated as provided in a **kwargs at run-time
+        (extra-kwargs
+          (if (and (not kwargs-table) (not (null? kwargs)))
+            `(list
+              ,@(map
+                  (lambda (name value)
+                    `(cons (& ,name) ,value))
+                  kwargs-names
+                  kwargs-values))
+            '())))
 
-    (if (not (null? kwargs))
-      ;; TODO implement fallback when a perfect hash-table does not exist
-      `(py-call-generic-kwargs
+    (cond
+      (kwargs-table
+        `(py-call-hashed-kwargs
+            ,f
+            (list ,@pos-args)
+            (list ,@*args)
+            (vector (register-constants-perfect-hashtable ,kwargs-table) ,@kwargs-values)
+            ;; TODO remove **kwargs as it will always be empty in that case
+            (list ,@**kwargs)))
+      ((or (not (null? extra-kwargs)) (not (null? **kwargs)))
+        `(py-call-generic-kwargs
           ,f
           (list ,@pos-args)
           (list ,@*args)
-          (vector (register-constants-perfect-hashtable ,kwargs-table) ,@kwargs-values)
-          (list ,@**kwargs))
-      (let ((nargs (length pos-args)))
-        (import (zipi rts config))
-        (if (<= nargs py-callX-args-limit)
-          `(,(make-py-call-name nargs) ,f ,@pos-args)
-          `(py-call-generic ,f ,@pos-args))))))
+          ,extra-kwargs
+          (list ,@**kwargs)))
+      (else
+        (let ((nargs (length pos-args)))
+          (import (zipi rts config))
+          (if (<= nargs py-callX-args-limit)
+            `(,(make-py-call-name nargs) ,f ,@pos-args)
+            `(py-call-generic ,f ,@pos-args)))))))
 
 (define-macro (define-all-py-callX)
   (import (zipi rts config))
@@ -644,7 +667,9 @@
         (else
           (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 17)")))))) ;; TODO add error message
 
-(define (py-call-generic-kwargs obj args *args-lst kwargs-table **kwargs-lst)
+;; TODO: remove **kwargs-lst from arguments, there should never be both
+;; a kwargs-table is not created when there is a **kwargs
+(define (py-call-hashed-kwargs obj args *args-lst kwargs-table **kwargs-lst)
   (let ((obj-type (py-type obj)))
     (cond
       ((eq? obj-type py-function-class)
@@ -663,7 +688,12 @@
         (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
           (if (eq? __call__ py-absent)
             (py-throw-not-callable obj)
-            (py-call-generic-kwargs __call__ (cons obj args) *args-lst kwargs-table **kwargs-lst)))))))
+            (py-call-hashed-kwargs __call__ (cons obj args) *args-lst kwargs-table **kwargs-lst)))))))
+
+(define (py-call-generic-kwargs obj args *args-lst kwargs **kwargs-lst)
+  (py-throw-exception-with-message
+    py-builtin-NotImplementedError
+    "py-call-generic-kwargs"))
 
 (define kwargs-already-seen '%kwargs-already-seen)
 
