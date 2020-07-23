@@ -13,7 +13,7 @@ test/zast_browser_es6.js:
 test_builds: test/zast_browser.js test/zast_node.js test/zast_browser_es6.js test/zast_node_es6.js
 
 test_node: ./test/zast_node.js ./test/zast_node_es6.js
-	node < ./test/parse_test.js &&
+	node < ./test/parse_test.js &&\
 	node < ./test/parse_test_es6.js
 
 clean:
