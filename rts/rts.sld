@@ -12,6 +12,13 @@
     init-constants
 
     call-host
+    PyObjectInt-value
+    PyObjectFloat-value
+    py-obj-alloc-with-value
+    py-object-class
+    py-object-hclass-of-instances
+    object-scheme-value-fast-get
+
 
     with-handler
     bind-exit

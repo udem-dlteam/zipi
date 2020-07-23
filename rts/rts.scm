@@ -59,10 +59,83 @@
 ;;==============================================================================
 
 (define-macro (call-host signature . args)
-  `(py-throw-exception-with-message
-    py-builtin-NotImplementedError
-    "call_host intrinsic function not implemented"))
+  (let ((type-table ; "any" must be first 
+                    ;   and match every unknown type-instance
+          '(("any" . (object-scheme-value-fast-get 
+                     . (lambda (val) 
+                         (py-obj-alloc-with-value 
+                           py-object-class
+                           py-object-hclass-of-instances
+                           val))))
+            ("int" . (PyObjectInt-value . py-int-from-scheme))
+            ("float" . (PyObjectFloat-value . py-float-from-scheme))
+            ("complex" . (PyObjectComplex-value . py-complex-from-scheme)))))
 
+    (let* ((signature-types+head
+             (let loop ((acc     '())
+                        (acc-res '())
+                        (signature (string->list signature)))
+               (if (null? signature)
+                   (cons (list->string (reverse acc))
+                         acc-res)
+                   (let ((char (car signature)))
+                     (cond ((char=? char #\-)
+                            (loop '() 
+                                  (cons (list->string (reverse acc))
+                                        acc-res)
+                                  (cddr signature)))
+                           ((and (null? acc-res) 
+                                 (char=? char #\:))
+                            (loop '()
+                                  (cons (list->string (reverse acc) )
+                                        acc-res)
+                                  (cdr signature)))
+                           (else
+                            (loop (cons char acc)
+                                  acc-res
+                                  (cdr signature))))))))
+  
+            (output-type (let ((ares (assoc (car signature-types+head)
+                                            type-table
+                                            string-ci=?)))
+                           (if (not ares)
+                               (cddar type-table)
+                               (cddr ares))))
+            (signature-head+arg-types (reverse (cdr signature-types+head)))
+            (head (car signature-head+arg-types))
+            (arg-types (cdr signature-head+arg-types))
+            (fun (if (char=? (car (string->list head))
+                             #\()
+                     (let* ((sexps (with-input-from-string 
+                                     head
+                                     read)))
+                       `(parse-sexp-host ,sexps))
+                     (string->symbol head))))
+   
+       (if (not (= (length args) (length arg-types)))
+           (error "error in call-host: arity mismatch in signature")
+           (let ((args (map (lambda (type arg)
+                              `(,(cadr (assoc type type-table string-ci=?))
+                                ,arg))
+                            (reverse arg-types)
+                            args)))
+            `(,output-type (,fun ,@args)))))))
+
+;; @ is the combinaison operator
+(define-syntax parse-sexp-host
+  (syntax-rules (lambda @)
+    ((parse-sexp-host (lambda (x) body))
+     (lambda (x) (parse-sexp-host body)))
+    ((parse-sexp-host (f1 @ f2 @ f fs ...))
+     (lambda (var) ((parse-sexp-host f1)
+                   ((parse-sexp-host (f2 @ f fs ...)) var))))
+    ((parse-sexp-host (f1 @ body))
+     (lambda (var) ((parse-sexp-host f1) 
+                    ((parse-sexp-host body) 
+                     var))))
+    ((parse-sexp-host atom)
+     atom)))
+ 
 ;; =============================================================================
 ;;  HIDDEN CLASSES
 ;; =============================================================================
@@ -1229,6 +1302,29 @@
         ((py-isinstance? value py-float-class)
           ;; up-typing an instance of subclass to an float
           (py-float-from-scheme (PyObjectFloat-value value)))
+        ((py-isinstance? value py-int-class)
+         ;; down-typing from an integer's instance XXX
+         (py-float-from-scheme 
+           (inexact (PyObjectInt-value value))))
+        ((py-isinstance? value py-str-class)
+         (let ((value (string-downcase (PyObjectStr-value value))))
+           (py-float-from-scheme
+             (cond
+               ((string=? value "inf")
+                +inf.0)
+               ((string=? value "infinity")
+                +inf.0)
+               ((string=? value "-inf")
+                -inf.0)
+               ((string=? value "-infinity")
+                -inf.0)
+               ((string=? value "nan")
+                +nan.0)
+               (else (py-throw-exception-with-message
+                        py-builtin-NotImplementedError
+                          (string-append 
+                            "unimplemented special float "
+                            value)))))))
         (else
           (py-throw-exception-with-message
             py-builtin-NotImplementedError
@@ -2037,25 +2133,30 @@
 
 (define (float->string-with-padded-zeros value)
   (cond
-    ((integer? value)
-      (string-append (number->string value) "0"))
-    ((< (abs value) 1)
-      (string-append "0" (number->string value)))
+    ((not (= value value)) "nan")
+    ((= value +inf.0)      "inf")
+    ((= value -inf.0)      "-inf")
     (else
-      (number->string value))))
-
+     (let ((str-value (number->string value)))
+       (cond
+         ((integer? value)
+          (string-append str-value "0"))
+         ((and (< (abs value) 1)
+               (not (member #\e (string->list str-value))))
+          (if (negative? value)
+              (string-append "-" 
+                             "0" 
+                             (list->string 
+                               (cdr (string->list str-value))))
+              (string-append "0" str-value)))
+         (else 
+          str-value))))))
+ 
 (define (float-repr self)
   (if (py-isinstance? self py-float-class)
-    (py-str-from-scheme
-      (let ((value (PyObjectFloat-value self)))
-        (cond
-          ((integer? value)
-            (string-append (number->string value) "0"))
-          ((< (abs value) 1)
-            (string-append "0" (number->string value)))
-          (else
-            (number->string value)))))
-    (py-throw-required-type "__repr__" "float" self)))
+      (py-str-from-scheme
+        (float->string-with-padded-zeros (PyObjectFloat-value self)))
+      (py-throw-required-type "__repr__" "float" self)))
 
 (define float.__repr__
   (procedure->py-function
@@ -2066,31 +2167,33 @@
   ;; checking some cases beforehand for efficiency
   (case (py-type obj)
     ((py-str-class)
-      (display (py-str-to-scheme obj) port))
+     (display (py-str-to-scheme obj) port))
     ((py-int-class)
-      (display (PyObjectInt-value obj) port))
+     (display (PyObjectInt-value obj) port))
     ((py-float-class)
-      (display (float->string-with-padded-zeros (PyObjectFloat-value obj)) port))
+     (display (float->string-with-padded-zeros 
+                (PyObjectFloat-value obj)) 
+              port))
     ((py-bool-class)
-      (if (eq? obj py-True)
-        (display "True" port)
-        (display "False" port)))
+     (if (eq? obj py-True)
+         (display "True" port)
+         (display "False" port)))
     (else
-      (display (py-str-to-scheme (py-str obj)) port))))
+     (display (py-str-to-scheme (py-str obj)) port))))
 
 (define (py-str obj)
   (let* ((__str__ (getattribute-from-obj-mro obj (& "__str__")))
-        (str-instance (py-call __str__ obj)))
+         (str-instance (py-call __str__ obj)))
     (if (py-isinstance? str-instance py-str-class)
-      str-instance
-      (throw-returned-wrong-type "__str__" obj "non-string"))))
+        str-instance
+        (throw-returned-wrong-type "__str__" obj "non-string"))))
 
 (define (py-repr obj)
   (let* ((__repr__ (getattribute-from-obj-mro obj (& "__repr__")))
-        (repr (py-call __repr__ obj)))
+         (repr (py-call __repr__ obj)))
     (if (py-isinstance? repr py-str-class)
-      repr
-      (throw-returned-wrong-type "__repr__" obj "non-string"))))
+        repr
+        (throw-returned-wrong-type "__repr__" obj "non-string"))))
 
 (define (py-str-repr-scheme str)
   (let* ((quote-style #f)
