@@ -5448,6 +5448,7 @@
   (builtin-__import__ path))
 
 (define (run-as-main path)
+  (build-builtins)
   (let ((sys.modules (sys.modules-get)))
    (list-append (sys.path-get) (py-str-from-scheme (path-directory path)))
    (with-exception-catcher
