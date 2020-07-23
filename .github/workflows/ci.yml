@@ -34,7 +34,6 @@ jobs:
           echo step
           echo 2
 
-# trigger 
 #        - name: Upload Build Artifact
 #          uses: actions/upload-artifact@v1
 #          with:
