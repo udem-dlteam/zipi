@@ -2678,6 +2678,9 @@
 ;; These classes are used for lists and bytearrays
 ;; list class
 
+(define-macro (make-dynamic-vector len vector)
+  `(cons ,len ,vector))
+
 (define (index-in-length-range index len)
   (and (< index len) (>= index (- len))))
 
@@ -2710,10 +2713,11 @@
         (vec (make-vector vec-len list-empty-cell)))
     (let loop ((i 0) (elements elements))
       (if (null? elements)
-        (cons len vec)
+        (make-dynamic-vector len vec)
         (begin
           (vector-set! vec i (car elements))
           (loop (+ i 1) (cdr elements)))))))
+
 
 (define-macro (define-concat-dynamic-vector name vref vset vmake vempty-list)
 `(define (,name container1 container2)
@@ -2734,7 +2738,7 @@
         (begin
           (,vset vec target-pos (,vref v2 source-pos))
           (loop2 (+ target-pos 1) (+ source-pos 1)))))
-    (cons total-len vec))))
+    (make-dynamic-vector total-len vec))))
 
 (define-concat-dynamic-vector concat-dynamic-vectors vector-ref vector-set! make-vector list-empty-cell)
 (define-concat-dynamic-vector concat-dynamic-u8vectors u8vector-ref u8vector-set! make-u8vector 0)
@@ -2764,7 +2768,7 @@
 
 (define (vector-head->dynamic-vector vec stop)
   (let ((inner-len (get-dvec-inner-len stop)))
-    (cons
+    (make-dynamic-vector
       stop
       (vector-append
         (subvector vec 0 stop)
@@ -2773,26 +2777,26 @@
 (define (list-new cls iterable)
   (if (or (eq? cls py-list-class) (py-issubclass? cls py-list-class))
       (if (eq? iterable py-absent)
-          (py-list-subtype-from-scheme (vector-head->dynamic-vector (vector) 0) cls)
+          (py-list-subtype-from-scheme (make-dynamic-vector 0 '#()) cls)
           (let ((iterable-type (py-type iterable)))
            (cond
              ((eq? iterable-type py-tuple-class)
               (let ((vec (PyObjectTuple-value iterable)))
                (py-list-subtype-from-scheme
-                 (vector-head->dynamic-vector vec (vector-length vec))
+                 (make-dynamic-vector (vector-length vec) vec)
                  cls)))
              ((eq? iterable-type py-list-class)
               (let* ((dvec (PyObjectList-value iterable))
                      (len (car dvec))
                      (vec (cdr dvec)))
                 (py-list-subtype-from-scheme
-                  (vector-head->dynamic-vector vec len)
+                  (make-dynamic-vector len vec)
                   cls)))
              (else
                (let* ((iterator (py-iter iterable))
                       (content (list->vector (iterator->list iterator))))
                  (py-list-subtype-from-scheme
-                   (vector-head->dynamic-vector content (vector-length content))
+                   (make-dynamic-vector (vector-length content) content)
                    cls))))))
       (py-throw-wrong-new-argument "list" cls)))
 
@@ -2880,7 +2884,7 @@
               (,vset out (+ target-pos source-pos) (,vref vec source-pos))
               (inner-loop (+ source-pos 1)))
             (loop (+ target-pos len))))
-        (cons total-len out))))))
+        (make-dynamic-vector total-len out))))))
 
 (define-*n-dynamic-vector dynamic-vector*n vector-ref vector-set! make-vector list-empty-cell)
 (define-*n-dynamic-vector dynamic-u8vector*n u8vector-ref u8vector-set! make-u8vector 0)
@@ -3016,7 +3020,7 @@
         (begin
           (,vset out target (,vref vec source))
           (loop (+ source step) (+ target 1)))))
-    (cons len out))))
+    (make-dynamic-vector len out))))
 
 (define-slice-dynamic-vector dynamic-vector-slice vector-ref vector-set! make-vector list-empty-cell)
 (define-slice-dynamic-vector dynamic-u8vector-slice u8vector-ref u8vector-set! make-u8vector 0)
@@ -3422,7 +3426,7 @@
   (if (py-isinstance? self py-list-class)
     (PyObjectList-value-set!
       self
-      (cons 0 (make-vector min-list-inner-length list-empty-cell)))
+      (make-dynamic-vector 0 (make-vector min-list-inner-length list-empty-cell)))
     (py-throw-not-a-type-object "list.clear" self))
   py-None)
 
@@ -3436,7 +3440,7 @@
   (if (py-isinstance? self py-list-class)
     (let* ((dvec (PyObjectList-value self))
           (dvec-copy
-            (cons
+            (make-dynamic-vector
               (car dvec)
               (vector-copy (cdr dvec)))))
       (py-list-from-scheme dvec-copy))
@@ -3982,17 +3986,17 @@
        ((eq? arg1 py-absent)
 	;; MS 11jun2020: to be removed when Bigloo's fixed
         ;; (py-bytearray-from-scheme (cons 0 #u8())))
-        (py-bytearray-subtype-from-scheme (cons 0 u8-empty-vector) cls))
+        (py-bytearray-subtype-from-scheme (make-dynamic-vector 0 u8-empty-vector) cls))
       ((eq? arg2 py-absent)
         (cond
           ((py-isinstance? arg1 py-int-class)
             (let ((i (PyObjectInt-value arg1)))
               (if (<= 0 i)
-                (py-bytearray-subtype-from-scheme (cons i (make-u8vector i 0)) cls)
+                (py-bytearray-subtype-from-scheme (make-dynamic-vector i (make-u8vector i 0)) cls)
                 (py-throw-exception-with-message py-builtin-ValueError "negative count"))))
           ((py-isinstance? arg1 py-bytearray-class)
            (let ((value (PyObjectBytearray-value arg1)))
-            (py-bytearray-subtype-from-scheme (cons (car value) (u8vector-copy (cdr value))) cls)))
+            (py-bytearray-subtype-from-scheme (make-dynamic-vector (car value) (u8vector-copy (cdr value))) cls)))
           (else
             (error "builtin function __new__ just supports int as an argument"))))
       (else
