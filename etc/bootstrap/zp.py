@@ -27,7 +27,7 @@ parser.add_argument(
     "-es6",
     "--es6-classes",
     action="store_true",
-    help="add debug information (default False)",
+    help="compile to ES6 classes (default False)",
 )
 parser.add_argument(
     "-d", "--debug", action="store_true", help="add debug information (default False)"
