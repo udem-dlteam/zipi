@@ -886,7 +886,7 @@
                (unused-kwargs (get-unused-kwargs! caller-kwargs-table)))
           (if (null? unused-kwargs)
             (if kwarg
-              (append args-acc parsed-kwargs (py-make-empty-dict))
+              (append args-acc parsed-kwargs (list (py-make-empty-dict)))
               (append args-acc parsed-kwargs))
             (if kwarg
               (append
@@ -912,10 +912,11 @@
               (append
                 args-acc
                 parsed-kwargs
-                (py-dict-from-scheme
-                  (append
-                    unused-kwargs
-                    (ordered-table->list unpacked-kwargs-table))))
+                (list
+                  (py-dict-from-scheme
+                    (append
+                      unused-kwargs
+                      (ordered-table->list unpacked-kwargs-table)))))
               (py-throw py-builtin-TypeError))))))))
 
 (define (py-is-in-mro? target mro)
@@ -5058,10 +5059,10 @@
     (make-posonly-signature (self key value))))
 
 (define (dict-get self key default)
-    (if (py-isinstance? self py-dict-class)
-      (let ((ordered-table (PyObjectDict-value self)))
-        (ordered-table-get ordered-table key default))
-      (py-throw-not-a-type-object "dict.get" self)))
+  (if (py-isinstance? self py-dict-class)
+    (let ((ordered-table (PyObjectDict-value self)))
+      (ordered-table-get ordered-table key (if (eq? default py-absent) py-None default)))
+    (py-throw-not-a-type-object "dict.get" self)))
 
 (define dict.get
   (procedure->py-function
