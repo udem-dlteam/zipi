@@ -695,19 +695,21 @@
       #f)))
 
 (define (unpack-kwargs obj)
-  (let ((keys-method (object-get obj (& "keys")))
-        (keys-iterator (py-iter (py-call obj keys))))
-    (let loop ((acc '()))
-      (let ((next-key (py-next keys-iterator)))
-        (cond
-          ((PyObjectStr? next-key)
-            (loop (cons (cons next-key (py-getitem obj next-key #f)) acc)))
-          ((not next-key)
-            acc)
-          (else
-            (py-throw-exception-with-message
-              py-builtin-TypeError
-              "keywords must be strings")))))))
+  (let* ((keys-method (py-getattribute obj (& "keys")))
+        (mapping-keys (py-call keys-method))
+        (keys-iterator (py-iter mapping-keys)))
+    (let loop ((acc '()) (next-key (py-next keys-iterator)))
+      (cond
+        ((PyObjectStr? next-key)
+          (loop
+            (cons (cons next-key (py-getitem obj next-key #f)) acc)
+            (py-next keys-iterator)))
+        ((not next-key)
+          acc)
+        (else
+          (py-throw-exception-with-message
+            py-builtin-TypeError
+            "keywords must be strings"))))))
 
 (define (align-with-signature caller-args caller-kwargs-table *args-lst **kwargs-lst signature)
 
@@ -822,7 +824,7 @@
       (let loop ((i 1))
         (if (< i caller-kwargs-table-length)
           (let ((pair (vector-ref caller-kwargs-table i)))
-            (if (eq? (cdr pair) kwargs-already-seen)
+            (if (eq? pair kwargs-already-seen)
               (loop (+ i 1))
               (cons pair (loop (+ i 1)))))
           '()))))
@@ -834,8 +836,8 @@
           (unpacked-kwargs-dict (py-dict-from-scheme unpacked-kwargs))
           (unpacked-kwargs-ordered-table (PyObjectDict-value unpacked-kwargs-dict))
           (parsed-kwargs
-            (let loop ((remaining-kwonlyargs kwonlyargs)
-                       (remaining-defaults kw-defaults)
+            (let loop ((remaining-kwonlyargs (vector->list kwonlyargs))
+                       (remaining-defaults (vector->list kw-defaults))
                        (acc '()))
               (if (null? remaining-kwonlyargs)
                 (reverse acc)
@@ -892,7 +894,7 @@
               (append
                 args-acc
                 parsed-kwargs
-                (py-dict-from-scheme unused-kwargs))
+                (list (py-dict-from-scheme unused-kwargs)))
               (py-throw py-builtin-TypeError))))
         (let* ((parse-kwargs-res
                 (parse-keyword-args-with-**kwargs caller-kwargs-table **kwargs-lst kwonlyargs kw-defaults))
@@ -2353,7 +2355,11 @@
     (if cached-hash
       cached-hash
       (let ((hash (hash-FNV1a (PyObjectStr-value str))))
-        (PyObjectStr-hash-set! str hash)
+        ;; if hash is a bignum (on 32-bit architecture), it must be a still-copy
+        ;; otherwise str representative may end with a wild pointer as hash
+        (if (fixnum? hash)
+          (PyObjectStr-hash-set! str hash)
+          (PyObjectStr-hash-set! str (make-still-copy hash)))
         hash))))
 
 (define (str-hash self)
@@ -4813,7 +4819,7 @@
 
 (define-type ordered-table table length first last iterator-token)
 
-(define (ordered-table->list ot)
+(define (ordered-table->list ordered-table)
   (let ((first (ordered-table-first ordered-table)))
     (let loop ((node first) (acc '()))
       (if node
@@ -5120,7 +5126,7 @@
 (define (dict-keys self)
   (if (py-isinstance? self py-dict-class)
     (py-tuple-from-scheme
-      (vector->list
+      (list->vector
         (iterator->list
           (dict->dict-keyiterator self))))
     (py-throw-not-a-type-object "dict.keys" self)))

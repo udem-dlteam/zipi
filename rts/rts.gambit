@@ -2,7 +2,7 @@
 ;*    Gambit compatibility                                             */
 ;*---------------------------------------------------------------------*/
 
-(import (gambit prim))
+;(import (gambit prim))
 
 (define-macro (with-handler handler . body)
   `(with-exception-catcher
