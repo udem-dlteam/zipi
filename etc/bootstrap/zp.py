@@ -24,6 +24,12 @@ parser.add_argument(
     default=True,
 )
 parser.add_argument(
+    "-es6",
+    "--es6-classes",
+    action="store_true",
+    help="add debug information (default False)",
+)
+parser.add_argument(
     "-d", "--debug", action="store_true", help="add debug information (default False)"
 )
 cli_args = parser.parse_args()
@@ -106,7 +112,7 @@ def to_string(node):
     return '"' + str(node).encode("unicode-escape").decode().replace('"', '\\"') + '"'
 
 
-backend = JS(transform)  # Current default
+backend = JS(transform, es6_classes=cli_args.es6_classes)
 
 
 def compile_file(input_file):

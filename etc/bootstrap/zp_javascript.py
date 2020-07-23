@@ -3,7 +3,7 @@ import ast as AST
 
 
 class Transformer:
-    def __init__(self, transform, cps=False):
+    def __init__(self, transform, cps=False, es6_classes=False):
         self.transform = transform
         self.rootdir = ""
         self.classes = set()
@@ -14,6 +14,8 @@ class Transformer:
         self.in_class = False
         self.imports = set()
         self.base_class = False
+        self.es6_classes = es6_classes
+        self.name_prefix = False
 
     def gensym(self):
         gs = "g" + str(self.counter)
@@ -21,7 +23,7 @@ class Transformer:
         return gs
 
     def get_identifier(self, node):
-        if isinstance(node, AST.FunctionDef):
+        if isinstance(node, AST.FunctionDef) or isinstance(node, AST.ClassDef):
             if "nocompile" in [d.id for d in node.decorator_list]:
                 return None
             else:
@@ -31,6 +33,14 @@ class Transformer:
                 return self.get_identifier(t)
         elif isinstance(node, AST.Name):
             return node.id
+
+    def find_class_init(self, nodes):
+        # Finds the __init__ FunctionDef in a list of class child nodes.
+        node = False
+        for n in nodes:
+            if isinstance(n, AST.FunctionDef) and n.name == "__init__":
+                node = n
+        return node
 
     @staticmethod
     def to_string(s):
@@ -200,7 +210,7 @@ class Transformer:
         name = node.name
 
         # For class constructors
-        if name == "__init__":
+        if name == "__init__" and self.es6_classes:
             if node.args.args[0].arg == "self":
                 args = self.arguments(node.args, 1)
             out = " constructor(" + args + ") {"
@@ -209,6 +219,10 @@ class Transformer:
             out += " var self = this; "  # quick hack
             out += body.replace("var ", "") + "};"
             return out
+        elif name == "__init__":
+            # Noop for non-es6 classes.
+            # Body is retrieved in ClassDef.
+            return " "
         elif name == "source":
             body = "return ts.buf.slice(start, end);"
 
@@ -240,6 +254,7 @@ class Transformer:
     def Assign(self, node):
         # value and targets can be tuples!
         targets = node.targets
+        target = targets[0]
         value = node.value
 
         if len(targets) > 1:
@@ -273,6 +288,13 @@ class Transformer:
                         return " var " + px + " = " + py + ";"
 
             px = self.transform(x)
+
+            # Used in class constructors (prefix 'this.')
+            if self.name_prefix:
+                # Don't prefix 'self.'!
+                if px[:5] != "self.":
+                    px = self.name_prefix + px
+
             if isinstance(targets[0], AST.Attribute):
                 return " " + px + " = " + py + ";"
             else:
@@ -281,23 +303,26 @@ class Transformer:
                 else:
                     return " var " + px + " = " + py + ";"
 
-        if isinstance(value, AST.Tuple) and len(targets) > 1:
-            target_elts = targets[0].elts
-            value_elts = value.elts
-            out = " ".join(
-                [define(target_elts[i], value_elts[i]) for i in range(len(target_elts))]
-            )
-        elif isinstance(value, AST.Tuple) and len(targets) == 1:
-            if self.in_class:
-                out = f"{self.transform(targets[0])} = ["
-            else:
-                out = f"var {self.transform(targets[0])} = ["
-            out += ",".join(
-                [self.transform(value.elts[i]) for i in range(len(value.elts))]
-            )
-            out += "];"
+        def define_tuples(target, value):
+            # These should be the same length
+            left = target.elts
+            right = value.elts
+            out = ""
+            if len(right) > 0:  # a, b = foo, bar
+                for i in range(len(left)):
+                    out += define(left[i], right[i])
+            else:  # a, b = ()    (or [])
+                for i in range(len(left)):
+                    out += define(left[i], value)
+            return out
+
+        # Handle 'a, b = foo, bar'
+        if isinstance(target, AST.Tuple) and (
+            isinstance(value, AST.Tuple) or isinstance(value, AST.List)
+        ):
+            out = define_tuples(target, value)
         else:
-            out = define(targets[0], value)
+            out = define(target, value)
 
         return out
 
@@ -469,8 +494,11 @@ class Transformer:
         )
 
     def List(self, node):
-        elts = ", ".join([self.transform(e) for e in node.elts])
-        return "[" + elts + "]"
+        if len(node.elts) == 0:
+            return "[]"
+        else:
+            elts = ", ".join([self.transform(e) for e in node.elts])
+            return f"[{elts}]"
 
     @staticmethod
     def Mult(node):
@@ -548,18 +576,61 @@ class Transformer:
         if name == "arguments":
             name = "aarguments"
 
-        body = "; ".join([self.transform(node) for node in node.body]) + ";"
-        bases = node.bases  # TODO: implement (multiple) inheritance
-        keywords = node.keywords  # ignored
-        decorator_list = node.decorator_list  # ignored
-
         # store class name for future reference when instantiating
         self.classes.add(name)
 
-        if self.base_class:
-            out = f"class {name} extends {self.base_class} {{ {body} }}"
+        if self.es6_classes:
+            body = "; ".join([self.transform(node) for node in node.body]) + ";"
+            if self.base_class:
+                out = f"class {name} extends {self.base_class} {{ {body} }}"
+            else:
+                out = f"class {name} {{ {body} }}"
         else:
-            out = f"class {name} {{ {body} }}"
+            # First, look for __init__:
+            __init__ = self.find_class_init(node.body)
+
+            # Get the body of the constructor
+            if __init__:
+                self.name_prefix = "this."
+                constructor_body = (
+                    "; ".join([self.transform(node) for node in __init__.body]) + ";"
+                )
+                self.name_prefix = False
+
+                # Get the constructor arguments:
+                if __init__.args.args[0].arg == "self":
+                    constructor_args = self.arguments(__init__.args, 1)
+                else:
+                    constructor_args = self.transform(__init__.args)
+
+                out = f"function {name} ({constructor_args}) {{ var self = this; {constructor_body}"
+            else:
+                out = f"function {name} () {{ var self = this;"
+
+            # Add all class variables to constructor
+            self.name_prefix = "this."
+            class_vars = "; ".join(
+                [self.transform(n) for n in node.body if isinstance(n, AST.Assign)]
+            )
+            out += f" {class_vars} }};"
+            self.name_prefix = False
+
+            # Add all methods to the prototype
+            for n in node.body:
+                if isinstance(n, AST.FunctionDef):
+                    if n.name == "__init__":
+                        break
+
+                    _body = "; ".join([self.transform(node) for node in n.body]) + ";"
+                    _name = n.name
+                    _args = self.transform(n.args)
+                    out += f"{name}.prototype.{_name} = function ({_args})"
+                    out += f"{{ {_body} }};"
+
+            # Handle inheritance
+            if self.base_class:
+                out += f"{name}.prototype = Object.create({self.base_class}.prototype);"
+                out += f"{name}.prototype.constructor = {name};"
 
         self.in_class = False
         self.base_class = False
