@@ -2783,20 +2783,20 @@
              ((eq? iterable-type py-tuple-class)
               (let ((vec (PyObjectTuple-value iterable)))
                (py-list-subtype-from-scheme
-                 (make-dynamic-vector (vector-length vec) vec)
+                 (vector-head->dynamic-vector vec (vector-length vec))
                  cls)))
              ((eq? iterable-type py-list-class)
               (let* ((dvec (PyObjectList-value iterable))
                      (len (car dvec))
                      (vec (cdr dvec)))
                 (py-list-subtype-from-scheme
-                  (make-dynamic-vector len vec)
+                  (vector-head->dynamic-vector vec len)
                   cls)))
              (else
                (let* ((iterator (py-iter iterable))
                       (content (list->vector (iterator->list iterator))))
                  (py-list-subtype-from-scheme
-                   (make-dynamic-vector (vector-length content) content)
+                   (vector-head->dynamic-vector content (vector-length content))
                    cls))))))
       (py-throw-wrong-new-argument "list" cls)))
 
