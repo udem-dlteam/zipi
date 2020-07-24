@@ -146,6 +146,16 @@ def compile_file(input_file):
     exports += f"{ids[-1]}:{ids[-1]} }}"
 
     # Runtime
+    runtime = """
+String.prototype.lstrip = function () { return this.replace(/^\s+/g, ''); };
+function isEmpty(obj) {
+    for(var prop in obj) {
+        if(obj.hasOwnProperty(prop))
+            return false;
+    }
+    return true;
+};
+    """
     runtime = (
         "String.prototype.lstrip = function () { return this.replace(/^\s+/g, ''); };"
     )

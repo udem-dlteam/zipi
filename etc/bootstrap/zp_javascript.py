@@ -114,7 +114,7 @@ class Transformer:
         keywords = node.keywords
 
         if keywords != []:
-            raise Exception
+            raise Exception(f"Cannot emit code for Call node ({func}({args}))")
 
         if isinstance(node.func, AST.Attribute) and node.func.attr == "get":
             out = "(" + node.func.value.id + "[" + self.transform(node.args[0]) + "]"
