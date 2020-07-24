@@ -48,10 +48,6 @@ jobs:
           ./configure --bigloolibdir=/usr/local/Cellar/bigloo/4.3e_1/lib/bigloo/4.3e/
           make
 
-      - name: Compiling builtins
-        run: |
-          ls
-
       - name: test
         run: |
           echo "print(42)" > test.py
