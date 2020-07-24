@@ -38,9 +38,11 @@ jobs:
         run: |
           echo '::add-path::/usr/local/bin'
           echo $PATH
-          alias python=python3
 
       - name: Compiling Zipi
+        uses: actions/setup-python@v2
+        with:
+          python-version : 3.8
         run: |
           echo compiling...
           ./configure --bigloolibdir=/usr/local/Cellar/bigloo/4.3e_1/lib/bigloo/4.3e/
@@ -48,11 +50,7 @@ jobs:
 
       - name: Compiling builtins
         run: |
-          cd bin
-          ln -s ../etc/pysexp.py pysexp.py
-          cd ..
-          cd stdlib
-          make -f Makefile.gambit
+          ls
 
       - name: test
         run: |
