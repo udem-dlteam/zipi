@@ -32,11 +32,11 @@ jobs:
           echo Unpacking gambit
           cd gambit
           tar zxvf gambit-macos-x86_64.tgz
-          echo ::add-path::$(pwd)/bin
+          echo "::add-path::$(pwd)/bin"
 
       - name: setup path
         run: |
-          echo ::add-path::/usr/local/bin
+          echo '::add-path::/usr/local/bin'
           echo $PATH
 
 
