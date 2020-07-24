@@ -35,8 +35,7 @@ jobs:
         run: |
           echo '::add-path::/usr/local/bin'
           echo $PATH
-          export LC_LOAD_DYLIB=/Users/Shared/zipi/actions-runner/_work/_tool/Python/3.8.5/x64/lib/libpython3.8.dylib
-          echo ::set-env name=LC_LOAD_DYLIB::/Users/Shared/zipi/actions-runner/_work/_tool/Python/3.8.5/x64/lib/libpython3.8.dylib
+          echo ::set-env name=DYLD_LIBRARY_PATH::/Users/Shared/zipi/actions-runner/_work/_tool/Python/3.8.5/x64/lib/
       - name: setting up CPython
         uses: actions/setup-python@v2
         with:
