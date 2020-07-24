@@ -38,7 +38,7 @@ jobs:
           echo "::set-env name=DYLD_LIBRARY_PATH::/Users/Shared/zipi/actions-runner/_work/_tool/Python/3.8.5/x64/lib"
           export DYLD_LIBRARY_PATH=/Users/Shared/zipi/actions-runner/_work/_tool/Python/3.8.5/x64/lib
           echo $DYLD_LIBRARY_PATH
-      - run: echo $DYLD_LIBRARY_PATH
+      - run: echo "$DYLD_LIBRARY_PATH"
       - name: setting up CPython
         uses: actions/setup-python@v2
         with:
