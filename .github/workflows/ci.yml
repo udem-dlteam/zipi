@@ -32,11 +32,13 @@ jobs:
           echo Unpacking gambit
           cd gambit
           tar zxvf gambit-macos-x86_64.tgz
-          echo ::add-path bin
+          echo ::add-path::$(pwd)/bin
 
 
       - name: Compiling Zipi
         run: |
+          echo Adding bigloo path
+          echo ::add-path::/usr/local/bin
           ls
           ./configure
           make
