@@ -45,7 +45,6 @@ jobs:
           ln -s python_hack/python /usr/bin/python3
           echo ::add-path::$(pwd)/python_hack
 
-
       - name: Compiling Zipi
         run: |
           echo compiling...
