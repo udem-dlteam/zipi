@@ -17,7 +17,6 @@ jobs:
         with:
           path: zipi
           fetch-depth: 0 # Checkout history and tags
-
       - name: Downloading Gambit
         uses: dawidd6/action-download-artifact@v2
         with:
@@ -26,25 +25,25 @@ jobs:
           repo: gambit/gambit
           path: gambit
           name: gambit-macos-x86_64
-
       - name: Installing Gambit
         run: |
           echo Unpacking gambit
           cd gambit
           tar zxvf gambit-macos-x86_64.tgz
           echo "::add-path::$(pwd)/bin"
-
       - name: setup path
         run: |
           echo '::add-path::/usr/local/bin'
           echo $PATH
-
+      - name: setting up CPython
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
       - name: Compiling Zipi
         run: |
           echo compiling...
           ./configure --bigloolibdir=/usr/local/Cellar/bigloo/4.3e_1/lib/bigloo/4.3e/
           make
-
       - name: test
         run: |
           echo "print(42)" > test.py
