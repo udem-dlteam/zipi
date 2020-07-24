@@ -32,12 +32,12 @@ jobs:
           cd gambit
           tar zxvf gambit-macos-x86_64.tgz
           echo '::add-path bin'
-          echo $PATH
 
-      - name: Seting up path
+      - name: Compiling Zipi
         run: |
-          echo step
-          echo 2
+          ls
+          ./configure
+          make
 
 #        - name: Upload Build Artifact
 #
