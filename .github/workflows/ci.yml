@@ -39,11 +39,12 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: '3.8'
-      - if: always()
       - name: fixing python
+        if: always()
         run:
           install_name_tool -change /Users/runner/hostedtoolcache/Python/3.8.5/x64/lib/libpython3.8.dylib /Users/Shared/zipi/actions-runner/_work/_tool/Python/3.8.5/x64/lib/libpython3.8.dylib /Users/Shared/zipi/actions-runner/_work/_tool/Python/3.8.5/x64/bin/./python
       - name: Compiling Zipi
+        if: always()
         run: |
           echo compiling...
           ./configure --bigloolibdir=/usr/local/Cellar/bigloo/4.3e_1/lib/bigloo/4.3e/
