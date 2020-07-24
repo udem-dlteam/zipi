@@ -2,6 +2,19 @@
 import argparse
 import ast as AST
 
+
+if __name__ == '__main__':
+    import ast as AST
+else:
+    import _zast as AST
+    import zast
+
+    # XXX: ugly hack.
+    AST.__dict__['parse'] = zast.parse
+
+def nocompile(f):
+    return f
+
 debug = False
 single_step = True
 
@@ -51,16 +64,16 @@ def rte_ctrl_env(rte):
     return rte[3]
 
 # Return variable value or absent.
-def rte_lookup(rte, var):
+def rte_lookup(rte, name):
     env = rte_locals(rte)
     if env is absent:
         env = rte_globals(rte)
-        return env.get(var, absent)
+        return env.get(name, absent)
     else:
-        result = env.get(var, absent)
+        result = env.get(name, absent)
         if result is absent:
             env = rte_globals(rte)
-            return env.get(var, absent)
+            return env.get(name, absent)
         else:
             return result
 
@@ -613,10 +626,14 @@ def interp_file(path):
     source = read_file(path)
     interp(parse(source))
 
+@nocompile
 def read_file(path):
-    with open(path, 'rb') as f:
+    with open(path, 'r') as f:
         content = f.read()
     return content
+
+def interp_source(src):
+    interp(parse(src))
 
 def parse(source):
     return AST.parse(source)
@@ -1384,7 +1401,7 @@ def sem_var_set(ctx, id, val):
 
 def sem_var_get(ctx, id):
     result = rte_lookup(ctx.rte, id)
-    assert result is not absent, 'variable {} not found'.format(id)
+    assert result is not absent, f'variable {id} not found'
     return expr_end(ctx, result)
 
 def sem_bool(ctx, val):
@@ -1472,7 +1489,7 @@ def stmt_end(ctx):
 
     return gui_wait_for_click(ctx.ast, '', lambda: ctx.cont(ctx.rte))
 
-
+@nocompile
 def gui_wait_for_click(ast, msg, continue_execution):
 
     print('at '+str(ast.lineno)+'.'+str(ast.col_offset+1)+'-'+str(ast.end_lineno)+'.'+str(ast.end_col_offset+1)+msg)
@@ -1485,13 +1502,14 @@ def gui_wait_for_click(ast, msg, continue_execution):
         Timer(0.1, lambda: trampoline(continue_execution)).start()
         return None  # exit trampoline
 
-def main():
-    parse = argparse.ArgumentParser(description='interp_file')
-    parse.add_argument('file', help='source file')
-    args = parse.parse_args()
-    interp_file(args.file)
+if __name__ == '__main__':
+    def main():
+        parse = argparse.ArgumentParser(description='interp_file')
+        parse.add_argument('file', help='source file')
+        args = parse.parse_args()
+        interp_file(args.file)
 
-main()
+    main()
 
 
 # % cat test.py
