@@ -35,14 +35,11 @@ jobs:
         run: |
           echo '::add-path::/usr/local/bin'
           echo $PATH
+          echo "::set-env name=DYLD_LIBRARY_PATH::/Users/Shared/zipi/dlpath"
       - name: setting up CPython
         uses: actions/setup-python@v2
         with:
           python-version: '3.8'
-      - name: fixing python
-        if: always()
-        run:
-          install_name_tool -change /Users/runner/hostedtoolcache/Python/3.8.5/x64/lib/libpython3.8.dylib /Users/Shared/zipi/actions-runner/_work/_tool/Python/3.8.5/x64/lib/libpython3.8.dylib /Users/Shared/zipi/actions-runner/_work/_tool/Python/3.8.5/x64/bin/./python
       - name: Compiling Zipi
         if: always()
         run: |
