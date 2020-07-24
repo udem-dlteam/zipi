@@ -154,9 +154,13 @@
       (else
         (let ((nargs (length pos-args)))
           (import (zipi rts config))
-          (if (<= nargs py-callX-args-limit)
-            `(,(make-py-call-name nargs) ,f ,@pos-args)
-            `(py-call-generic ,f ,@pos-args)))))))
+          (cond
+            ((not (null? *args))
+              `(py-call-generic/*args ,f (list ,@pos-args) (list ,@*args)))
+            ((<= nargs py-callX-args-limit)
+              `(,(make-py-call-name nargs) ,f ,@pos-args))
+            (else
+              `(py-call-generic ,f ,@pos-args))))))))
 
 (define-macro (define-all-py-callX)
   (import (zipi rts config))
@@ -599,9 +603,14 @@
 
 (define-all-py-callX)
 
-;; TODO: compare with cPython for which function and method are not the base
-;; callable types. Instead, function.__call__ returns a 'method wrapper'
-;; object which has a __call__ method but is treated differently
+(define (py-call-generic/*args obj args *args-lst)
+  (let ((unpacked-args
+          (apply append
+            (map
+              (lambda (a) (iterator->list (py-iter a)))
+              *args-lst))))
+    (apply py-call-generic obj (append args unpacked-args))))
+
 (define (py-call-generic obj . args)
   (let ((obj-type (py-type obj)))
     (cond
@@ -658,7 +667,7 @@
                 (vector->list
                   (subvector defaults (- default-len missing-args-len) default-len))
                 (vector->list kw-defaults)
-                (if kwarg (cons (py-make-empty-dict)'()) '()))
+                (if kwarg (cons (py-make-empty-dict) '()) '()))
               (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 16)")))) ;; TODO add error message
         (vararg
           (if (or kwarg (> (vector-length kw-defaults) 0))
@@ -753,7 +762,7 @@
     lst
     (ncdr (cdr lst) (- n 1))))
 
-(define (align-with-signature/hashed-kwargs caller-args caller-kwargs-table *args-lst signature)
+(define (align-with-signature/hashed-kwargs pos-caller-args caller-kwargs-table *args-lst signature)
   (define (get-values args kwargs-table)
     (if (null? args)
       '()
@@ -798,6 +807,12 @@
         (kw-defaults (vector-ref signature 4))
         (kwarg (vector-ref signature 5))
         (defaults (vector-ref signature 6))
+        (unpacked-args-lst
+          (apply append
+            (map
+              (lambda (a) (iterator->list (py-iter a)))
+              *args-lst)))
+        (caller-args (append pos-caller-args unpacked-args-lst))
         ;; lengths
         (args-length (vector-length args))
         (defaults-length (vector-length defaults))
