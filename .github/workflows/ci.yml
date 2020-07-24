@@ -41,12 +41,12 @@ jobs:
 
 
       - name: Compiling Zipi
-        continue-on-error: true
         run: |
           ./configure --bigloolibdir=/usr/local/Cellar/bigloo/4.3e_1/lib/bigloo/4.3e/
           make
 
       - name: Compiling builtins
+        if: always()
         run: |
           cd bin
           ln -s ../etc/pysexp.py pysexp.py
@@ -55,6 +55,7 @@ jobs:
           make -f Makefile.gambit
 
       - name: test
+        if: always()
         run: |
           echo "print(42)" > test.py
           ./etc/py19 -t gambit test.py
