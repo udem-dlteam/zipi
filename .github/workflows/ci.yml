@@ -39,6 +39,12 @@ jobs:
           echo '::add-path::/usr/local/bin'
           echo $PATH
 
+      - name: setup python
+        run: |
+          mkdir python_hack
+          ln -s python_hack/python /usr/bin/python3
+          echo ::add-path::$(pwd)/python_hack
+
 
       - name: Compiling Zipi
         run: |
@@ -47,7 +53,6 @@ jobs:
           make
 
       - name: Compiling builtins
-        if: always()
         run: |
           cd bin
           ln -s ../etc/pysexp.py pysexp.py
@@ -56,7 +61,6 @@ jobs:
           make -f Makefile.gambit
 
       - name: test
-        if: always()
         run: |
           echo "print(42)" > test.py
           ./etc/py19 -t gambit test.py
