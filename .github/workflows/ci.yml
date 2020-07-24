@@ -15,6 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
+          path: zipi
           fetch-depth: 0 # Checkout history and tags
 
       - name: Downloading Gambit
@@ -31,7 +32,7 @@ jobs:
           echo Unpacking gambit
           cd gambit
           tar zxvf gambit-macos-x86_64.tgz
-          echo '::add-path bin'
+          echo ::add-path bin
 
       - name: Compiling Zipi
         run: |
