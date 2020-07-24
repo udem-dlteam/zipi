@@ -32,6 +32,7 @@ jobs:
           cd gambit
           tar zxvf gambit-macos-x86_64.tgz
           echo '::add-path bin'
+          echo $PATH
 
       - name: Seting up path
         run: |
