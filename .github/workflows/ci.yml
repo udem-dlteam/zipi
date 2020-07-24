@@ -26,10 +26,14 @@ jobs:
           path: gambit
           name: gambit-macos-x86_64
 
-      - name: Gambit
-        run: ls -la gambit
+      - name: Installing Gambit
+        run: |
+          echo Unpacking gambit
+          cd gambit
+          tar zxvf gambit-macos-x86_64.tgz
+          echo '::add-path bin'
 
-      - name: Step2
+      - name: Seting up path
         run: |
           echo step
           echo 2
