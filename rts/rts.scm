@@ -138,9 +138,12 @@
             ,f
             (list ,@pos-args)
             (list ,@*args)
-            (vector (register-constants-perfect-hashtable ,kwargs-table) ,@kwargs-values)
-            ;; TODO remove **kwargs as it will always be empty in that case
-            (list ,@**kwargs)))
+            (vector
+              (register-constants-perfect-hashtable ,kwargs-table)
+              ,@(map
+                  (lambda (key value) `(cons (& ,key) ,value))
+                  kwargs-names
+                  kwargs-values))))
       ((or (not (null? extra-kwargs)) (not (null? **kwargs)))
         `(py-call-generic-kwargs
           ,f
@@ -667,33 +670,48 @@
         (else
           (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 17)")))))) ;; TODO add error message
 
-;; TODO: remove **kwargs-lst from arguments, there should never be both
-;; a kwargs-table is not created when there is a **kwargs
-(define (py-call-hashed-kwargs obj args *args-lst kwargs-table **kwargs-lst)
+(define (py-call-hashed-kwargs obj args *args-lst kwargs-table)
   (let ((obj-type (py-type obj)))
     (cond
       ((eq? obj-type py-function-class)
         (let* ((procedure (PyObjectFunction-procedure obj))
                (signature (PyObjectFunction-signature obj))
-               (aligned-args (align-with-signature args kwargs-table *args-lst **kwargs-lst signature)))
+               (aligned-args (align-with-signature/hashed-kwargs args kwargs-table *args-lst signature)))
           (apply procedure aligned-args)))
       ((eq? obj-type py-method-class)
         (let* ((procedure (PyObjectMethod-procedure obj))
                (signature (PyObjectMethod-signature obj))
                (__self__ (method-__self__-fast-get obj))
                (bound-args (cons __self__ args))
-               (aligned-args (align-with-signature bound-args kwargs-table *args-lst **kwargs-lst signature)))
+               (aligned-args (align-with-signature/hashed-kwargs bound-args kwargs-table *args-lst signature)))
           (apply procedure aligned-args)))
       (else
         (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
           (if (eq? __call__ py-absent)
             (py-throw-not-callable obj)
-            (py-call-hashed-kwargs __call__ (cons obj args) *args-lst kwargs-table **kwargs-lst)))))))
+            (py-call-hashed-kwargs __call__ (cons obj args) *args-lst kwargs-table)))))))
 
 (define (py-call-generic-kwargs obj args *args-lst kwargs **kwargs-lst)
   (py-throw-exception-with-message
     py-builtin-NotImplementedError
     "py-call-generic-kwargs"))
+
+(define (unpack-kwargs obj)
+  (let* ((keys-method (py-getattribute obj (& "keys")))
+        (mapping-keys (py-call keys-method))
+        (keys-iterator (py-iter mapping-keys)))
+    (let loop ((acc '()) (next-key (py-next keys-iterator)))
+      (cond
+        ((PyObjectStr? next-key)
+          (loop
+            (cons (cons next-key (py-getitem obj next-key #f)) acc)
+            (py-next keys-iterator)))
+        ((not next-key)
+          acc)
+        (else
+          (py-throw-exception-with-message
+            py-builtin-TypeError
+            "keywords must be strings"))))))
 
 (define kwargs-already-seen '%kwargs-already-seen)
 
@@ -713,7 +731,7 @@
                 1))
             1))
         (key-hit (vector-ref index-table hash-index)))
-    (if (str-representatives-eq? key key-hit)
+    (if (and key-hit (str-representatives-eq? key key-hit))
       (let* ((index-index (fx+ hash-index 1))
             (value-index (vector-ref index-table index-index))
             (value (vector-ref table value-index)))
@@ -724,232 +742,143 @@
         value)
       #f)))
 
-(define (unpack-kwargs obj)
-  (let* ((keys-method (py-getattribute obj (& "keys")))
-        (mapping-keys (py-call keys-method))
-        (keys-iterator (py-iter mapping-keys)))
-    (let loop ((acc '()) (next-key (py-next keys-iterator)))
-      (cond
-        ((PyObjectStr? next-key)
-          (loop
-            (cons (cons next-key (py-getitem obj next-key #f)) acc)
-            (py-next keys-iterator)))
-        ((not next-key)
-          acc)
-        (else
+(define (zip-vectors vec1 vec2)
+  (map
+    cons
+    (vector->list vec1)
+    (vector->list vec2)))
+
+(define (ncdr lst n)
+  (if (= n 0)
+    lst
+    (ncdr (cdr lst) (- n 1))))
+
+(define (align-with-signature/hashed-kwargs caller-args caller-kwargs-table *args-lst signature)
+  (define (get-values args kwargs-table)
+    (if (null? args)
+      '()
+      (let* ((name (car args))
+            (value (kwargs-table-pop! kwargs-table name)))
+        (if value
+          (cons (cdr value) (get-values (cdr args) kwargs-table))
           (py-throw-exception-with-message
             py-builtin-TypeError
-            "keywords must be strings"))))))
+            "pending exception message (code 23)")))))
 
-(define (align-with-signature caller-args caller-kwargs-table *args-lst **kwargs-lst signature)
+  (define (get-values-or-default args-defaults kwargs-table)
+    (if (null? args-defaults)
+      '()
+      (let ((name (caar args-defaults))
+            (default (cdar args-defaults))
+            (value (kwargs-table-pop! kwargs-table name)))
+        (cond
+          ((not value)
+            (cons default (get-values (cdr args-defaults) kwargs-table)))
+          ((eq? value kwargs-already-seen)
+            (py-throw-exception-with-message
+              py-builtin-TypeError
+              "pending exception message (code 24)"))
+          (else
+            (cons (cdr value) (get-values (cdr args-defaults) kwargs-table)))))))
 
-  (define (parse-pos-args caller-args caller-kwargs-table args vararg *args-lst posonlyargs defaults)
-    ;; collect caller arguments which map to a posonly argument
-    (let* ((posonly-length (vector-length posonlyargs))
-          (unpacked-caller-args
-            (apply append
-              caller-args
-              (apply append (map py-iter *args-lst))))
-          (posonly-parse-result
-            (let loop ((i posonly-length) (remaining-caller-args unpacked-caller-args) (acc '()))
-              (if (> i 0)
-                (if (null? remaining-caller-args)
-                  (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 0)")
-                  (loop (- i 1) (cdr remaining-caller-args) (cons (car remaining-caller-args) acc)))
-                (cons acc remaining-caller-args))))
-          ;; NOTE: Those are the posonly args passed to the function
-          (caller-posonly (reverse (car posonly-parse-result)))
-          (remaining-caller-args-w/o-posonly (cdr posonly-parse-result)))
-      ;; collect caller argument which map to a general argument without default
-      (let* ((defaults-length (vector-length defaults))
-            (args-length (vector-length args))
-            (args-no-default-parse-result
-              (let loop ((i (- args-length defaults-length))
-                         (remaining-args (vector->list args))
-                         (remaining-caller-args remaining-caller-args-w/o-posonly)
-                         (acc '()))
-                (if (> i 0)
-                  (if (null? remaining-caller-args)
-                    (let* ((arg-name (car remaining-args))
-                          (arg-value-from-keyword
-                            (kwargs-table-pop! caller-kwargs-table arg-name)))
-                      (if arg-value-from-keyword
-                        (loop
-                          (- i 1)
-                          (cdr remaining-args)
-                          '()
-                          (cons arg-value-from-keyword acc))
-                        (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 1)")))
-                    (let ((arg-value (car remaining-caller-args))
-                          (arg-name (car remaining-args)))
-                      ;; the same argument cannot be passed both as positional and kwarg
-                      (kwargs-table-pop! caller-kwargs-table arg-name)
-                      (loop
-                        (- i 1)
-                        (cdr remaining-args)
-                        (cdr remaining-caller-args)
-                        (cons arg-value acc))))
-                  (vector acc remaining-args remaining-caller-args))))
-            ;; NOTE: those are the args passed to the function which have no default value
-            (caller-no-defaults (reverse (vector-ref args-no-default-parse-result 0)))
-            (remaining-args (vector-ref args-no-default-parse-result 1))
-            (remaining-caller-args-w/o-default (vector-ref args-no-default-parse-result 2)))
-        ;; collect arguments which map to general argument with default values
-        ;; at this point it should be that 'remaining-args' and 'defaults' have the same length
-        (let* ((args-with-default-parse-result
-                (let loop ((remaining-caller-args remaining-caller-args-w/o-default)
-                           (remaining-args remaining-args)
-                           (remaining-defaults (vector->list defaults))
-                           (acc '()))
-                  (if (null? remaining-args)
-                    (cons (reverse acc) remaining-caller-args)
-                    (if (null? remaining-caller-args)
-                      (cons (append (reverse acc) remaining-defaults) '())
-                      (let ((arg-name (car remaining-args))
-                            (arg-value (car remaining-caller-args)))
-                        ;; the same argument cannot be passed both as positional and kwarg
-                        (kwargs-table-pop! caller-kwargs-table arg-name)
-                        (loop
-                          (cdr remaining-caller-args)
-                          (cdr remaining-args)
-                          (cdr remaining-defaults)
-                          (cons arg-value acc)))))))
-              ;; NOTE: those are the args passed to the function which had default value
-              ;; extended with default values
-              (caller-defaults (car args-with-default-parse-result))
-              (remaining-caller-args (cdr args-with-default-parse-result)))
-          ;; pack extra args and return
-          (if (null? remaining-caller-args)
-            (if vararg
-              (append
-                caller-posonly
-                caller-no-defaults
-                caller-defaults
-                (list (py-tuple-from-scheme '#())))
-              (append caller-posonly caller-no-defaults caller-defaults))
-            (if vararg
-              (append
-                caller-posonly
-                caller-no-defaults
-                caller-defaults
-                (list (py-tuple-from-scheme (list->vector remaining-caller-args))))
-              (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 2)")))))))
-
-  ;; NOTE: this function is destructive of the caller-kwargs-table
-  (define (get-unused-kwargs! caller-kwargs-table)
-    (let* ((index-table (vector-ref caller-kwargs-table 0))
-           (index-table-length (vector-length index-table))
-           (caller-kwargs-table-length (vector-length caller-kwargs-table)))
-      (let loop ((i 0))
-        (if (< i index-table-length)
-          (let ((key (vector-ref index-table i)))
-            (if key
-              (let ((index (vector-ref index-table (+ i 1))))
-                ;; TODO: table should be preinitialised with key-value pairs
-                ;; this could avoid this whole loop
-                (vector-set!
-                  caller-kwargs-table index
-                  (cons key (vector-ref caller-kwargs-table index))))
-              (loop (+ i 2))))))
+  (define (get-unused-kwargs kwargs-table)
+    (let ((len (vector-length kwargs-table)))
       (let loop ((i 1))
-        (if (< i caller-kwargs-table-length)
-          (let ((pair (vector-ref caller-kwargs-table i)))
-            (if (eq? pair kwargs-already-seen)
+        (if (< i len)
+          (let ((el (vector-ref kwargs-table i)))
+            (if (eq? el kwargs-already-seen)
               (loop (+ i 1))
-              (cons pair (loop (+ i 1)))))
+              (cons el (loop (+ i 1)))))
           '()))))
 
-  (define (parse-keyword-args-with-**kwargs caller-kwargs-table **kwargs-lst kwonlyargs kw-defaults)
-    (let* ((unpacked-kwargs
-            (apply append
-              (map unpack-kwargs **kwargs-lst)))
-          (unpacked-kwargs-dict (py-dict-from-scheme unpacked-kwargs))
-          (unpacked-kwargs-ordered-table (PyObjectDict-value unpacked-kwargs-dict))
-          (parsed-kwargs
-            (let loop ((remaining-kwonlyargs (vector->list kwonlyargs))
-                       (remaining-defaults (vector->list kw-defaults))
-                       (acc '()))
-              (if (null? remaining-kwonlyargs)
-                (reverse acc)
-                (let* ((kw (car remaining-kwonlyargs))
-                       (value-from-** (ordered-table-pop! unpacked-kwargs-ordered-table kw #f)))
-                  (if value-from-**
-                    (loop
-                      (cdr remaining-kwonlyargs)
-                      (cdr remaining-defaults)
-                      (cons value-from-** acc))
-                    (loop
-                      (cdr remaining-kwonlyargs)
-                      (cdr remaining-defaults)
-                      (cons
-                        (or
-                          (kwargs-table-pop! caller-kwargs-table kw)
-                          (car remaining-defaults))
-                        acc))))))))
-      (cons parsed-kwargs unpacked-kwargs-dict)))
-
-  (define (parse-keyword-args caller-kwargs-table kwonlyargs kw-defaults)
-    (let loop ((remaining-kwonlyargs (vector->list kwonlyargs))
-               (remaining-defaults (vector->list kw-defaults))
-               (acc '()))
-      (if (null? remaining-kwonlyargs)
-        (reverse acc)
-        (let* ((kw (car remaining-kwonlyargs)))
-            (loop
-              (cdr remaining-kwonlyargs)
-              (cdr remaining-defaults)
-              (cons
-                (or
-                  (kwargs-table-pop! caller-kwargs-table kw)
-                  (car remaining-defaults))
-                acc))))))
-
-  (let ((args (vector-ref signature 0))
+  (let* ((args (vector-ref signature 0))
         (posonlyargs (vector-ref signature 1))
         (vararg (vector-ref signature 2))
         (kwonlyargs (vector-ref signature 3))
         (kw-defaults (vector-ref signature 4))
         (kwarg (vector-ref signature 5))
-        (defaults (vector-ref signature 6)))
-    (let ((args-acc (parse-pos-args caller-args caller-kwargs-table args vararg *args-lst posonlyargs defaults)))
-      (if (null? **kwargs-lst)
-        (let* ((parsed-kwargs
-                (parse-keyword-args caller-kwargs-table kwonlyargs kw-defaults))
-               (unused-kwargs (get-unused-kwargs! caller-kwargs-table)))
-          (if (null? unused-kwargs)
-            (if kwarg
-              (append args-acc parsed-kwargs (list (py-make-empty-dict)))
-              (append args-acc parsed-kwargs))
-            (if kwarg
-              (append
-                args-acc
-                parsed-kwargs
-                (list (py-dict-from-scheme unused-kwargs)))
-              (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 3)"))))
-        (let* ((parse-kwargs-res
-                (parse-keyword-args-with-**kwargs caller-kwargs-table **kwargs-lst kwonlyargs kw-defaults))
-               (parsed-kwargs (car parse-kwargs-res))
-               (unpacked-kwargs-dict (cdr parse-kwargs-res))
-               (unpacked-kwargs-table (PyObjectDict-value unpacked-kwargs-dict))
-               (unused-kwargs (get-unused-kwargs! caller-kwargs-table)))
-          (if (null? unused-kwargs)
-            (if kwarg
-              (append args-acc parsed-kwargs unpacked-kwargs-dict)
-              (if (>
-                    (ordered-table-length unpacked-kwargs-table)
-                    0)
-                (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 4)")
-                (append args-acc parsed-kwargs)))
-            (if kwarg
-              (append
-                args-acc
-                parsed-kwargs
-                (list
-                  (py-dict-from-scheme
-                    (append
-                      unused-kwargs
-                      (ordered-table->list unpacked-kwargs-table)))))
-              (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 5)"))))))))
+        (defaults (vector-ref signature 6))
+        ;; lengths
+        (args-length (vector-length args))
+        (defaults-length (vector-length defaults))
+        (posonlyargs-length (vector-length posonlyargs))
+        (caller-args-length (length caller-args))
+        (max-positional-args (+ args-length posonlyargs-length))
+        (extra-positional-args-length
+          (max
+            0
+            (- caller-args-length max-positional-args)))
+        (standard-args-given-as-pos (- caller-args-length posonlyargs-length))
+        (args-w/o-defaults-length (- args-length defaults-length))
+        (free-args-w/o-default-length
+          (max
+            0
+            (- args-w/o-defaults-length standard-args-given-as-pos)))
+        (shadowed-defaults-length
+          (max 0 (- standard-args-given-as-pos args-w/o-defaults-length))))
+    ;; ensure there are no more positional arguments then allowed
+    (if (and (> caller-args-length max-positional-args) (not vararg))
+      (py-throw-exception-with-message
+        py-builtin-TypeError
+        "pending error message (code 20)"))
+
+    ;; ensure there are no less positional arguments then allowed
+    (if (< caller-args-length posonlyargs-length)
+      (py-throw-exception-with-message
+        py-builtin-TypeError
+        "pending error message (code 21)"))
+
+    (let* ((free-args-w/o-default
+            (subvector
+              args
+              standard-args-given-as-pos
+              args-w/o-defaults-length))
+          (free-args-with-default
+            (subvector
+              args
+              free-args-w/o-default-length
+              args-length))
+          (free-defaults
+            (subvector
+              defaults
+              shadowed-defaults-length
+              defaults-length))
+          (caller-free-args-w/o-default
+            (get-values (vector->list free-args-w/o-default) caller-kwargs-table))
+          (caller-args-with-defaults
+            (get-values-or-default
+              (zip-vectors free-args-with-default free-defaults)
+              caller-kwargs-table))
+          (caller-kwargs
+            (get-values-or-default
+              (zip-vectors kwonlyargs kw-defaults)
+              caller-kwargs-table))
+          (unused-kwargs (get-unused-kwargs caller-kwargs-table)))
+      (let ((caller-vararg
+              (if vararg
+                (if (> extra-positional-args-length 0)
+                  (list
+                    (py-tuple-from-scheme
+                      (list->vector
+                        (ncdr caller-args max-positional-args))))
+                  (list (py-tuple-from-scheme '#())))
+                ;; it was already checked that there is not too many args
+                '()))
+            (caller-kwarg
+              (if kwarg
+                (list (py-dict-from-scheme unused-kwargs))
+                (if (null? unused-kwargs)
+                  '()
+                  (py-throw-exception-with-message
+                    py-builtin-TypeError
+                    "pending error message (code 20)")))))
+        (append
+          caller-args
+          caller-free-args-w/o-default
+          caller-args-with-defaults
+          caller-vararg
+          caller-kwargs
+          caller-kwarg)))))
 
 (define (py-is-in-mro? target mro)
   (let loop ((i 0))
