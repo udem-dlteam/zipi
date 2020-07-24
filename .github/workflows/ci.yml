@@ -42,9 +42,21 @@ jobs:
 
       - name: Compiling Zipi
         run: |
-          echo Adding bigloo path
           ./configure --bigloolibdir=/usr/local/Cellar/bigloo/4.3e_1/lib/bigloo/4.3e/
           make
+
+      - name: Compiling builtins
+        run: |
+          cd bin
+          ln -s ../etc/pysexp.py pysexp.py
+          cd ..
+          cd stdlib
+          make -f Makefile.gambit
+
+      - name: test
+        run: |
+          echo "print(42)" > test.py
+          ./etc/py19 -t gambit test.py
 
 
 #        - name: Upload Build Artifact
