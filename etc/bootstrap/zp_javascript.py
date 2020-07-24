@@ -167,6 +167,8 @@ class Transformer:
             # javascript strict mode requires special handling of
             # 'eval' and 'arguments' identifiers
             func = "aarguments"
+        elif func == "object":
+            return "{}"
         elif isinstance(node.func, AST.Attribute) and node.func.attr == "encode":
             return self.transform(node.func.value)
         elif isinstance(node.func, AST.Attribute) and node.func.attr == "find":
@@ -294,6 +296,8 @@ class Transformer:
                 # Don't prefix 'self.'!
                 if px[:5] != "self.":
                     px = self.name_prefix + px
+                elif px[:5] == "self.":
+                    px = self.name_prefix + px[5:]
 
             if isinstance(targets[0], AST.Attribute):
                 return " " + px + " = " + py + ";"
@@ -364,7 +368,7 @@ class Transformer:
 
     def Compare(self, node):
         def compare(op, l, r):
-            if isinstance(op, AST.Is):
+            if isinstance(op, AST.Is) or isinstance(op, AST.IsNot):
                 out = (
                     self.transform(op)
                     + self.transform(l)
@@ -422,6 +426,26 @@ class Transformer:
             args = ",".join(self.transform(i) for i in comparators[0].args)
             left = self.transform(left)
             out = f"[{args}].indexOf({left}) >= 0"
+        # Special case 'if foo is (not) absent'
+        elif (
+            len(comparators) == 1
+            and len(ops) == 1
+            and (isinstance(ops[0], AST.Is) or isinstance(ops[0], AST.IsNot))
+            and (
+                (isinstance(comparators[0], AST.Name) and comparators[0].id == "absent")
+                or (
+                    isinstance(comparators[0], AST.NameConstant)
+                    and comparators[0].value == "absent"
+                )
+            )
+        ):
+            # isEmpty is provided by the runtime
+            left = self.transform(left)
+            if isinstance(ops[0], AST.IsNot):
+                out = f"!isEmpty({left})"
+            else:
+                out = f"isEmpty({left})"
+            return out
         # there can be more than one comparator, in which case we 'and'
         elif len(ops) > 1:
             if isinstance(left, AST.Call) and left.func.id == "type":
@@ -446,6 +470,10 @@ class Transformer:
     @staticmethod
     def Is(node):
         return "Object.is("
+
+    @staticmethod
+    def IsNot(node):
+        return "!Object.is("
 
     def Subscript(self, node):
         value = self.transform(node.value)
@@ -603,7 +631,7 @@ class Transformer:
                 else:
                     constructor_args = self.transform(__init__.args)
 
-                out = f"function {name} ({constructor_args}) {{ var self = this; {constructor_body}"
+                out = f"function {name} ({constructor_args}) {{ {constructor_body}"
             else:
                 out = f"function {name} () {{ var self = this;"
 
@@ -619,13 +647,18 @@ class Transformer:
             for n in node.body:
                 if isinstance(n, AST.FunctionDef):
                     if n.name == "__init__":
-                        break
+                        pass
+                    else:
 
-                    _body = "; ".join([self.transform(node) for node in n.body]) + ";"
-                    _name = n.name
-                    _args = self.transform(n.args)
-                    out += f"{name}.prototype.{_name} = function ({_args})"
-                    out += f"{{ {_body} }};"
+                        _body = "; ".join([self.transform(node) for node in n.body]) + ";"
+                        _name = n.name
+
+                        # Skip zeroth 'self' argument
+                        if n.args.args[0].arg == "self":
+                            _args = self.arguments(n.args, 1)
+
+                        out += f"{name}.prototype.{_name} = function ({_args})"
+                        out += f"{{ {_body} }};"
 
             # Handle inheritance
             if self.base_class:
@@ -748,17 +781,29 @@ class Transformer:
         return ""
 
     def Import(self, node):
-        imports = [self.transform(n) for n in node.names]
+        imports = [
+            self._alias(n) if isinstance(n, AST.alias) else self.transform(n)
+            for n in node.names
+        ]
         # Can return multiple imports 'import foo, bar, baz'
         modules = ""
 
         for module in imports:
-            if module == "sys":
+
+            # import foo as FOO, see 'alias' node
+            if isinstance(module, tuple):
+                module, asname = module
+            else:
+                asname = module
+
+            # Don't import some modules
+            if module in ["sys", "argparse"]:
                 return " "
+            # And don't reimport them
             elif module in self.imports:
                 return " "
 
-            module_code = f"var {module} = (function () {{"
+            module_code = f"var {asname} = (function () {{"
             self.imports.add(module)
             module_file = self.rootdir + "/" + module + ".py"
 
@@ -780,11 +825,11 @@ class Transformer:
 
         return modules
 
-    def alias(self, node):
+    def _alias(self, node):
         name = node.name
         asname = node.asname
         if asname:
-            return asname
+            return (name, asname)
         else:
             return name
 
@@ -817,8 +862,12 @@ class Transformer:
         # We will limit ourselves to relatively simple exceptions.
         # We will take 'raise Exception(foo)' and turn it into
         # throw foo;
-        args = self.transform(node.exc.args)
-        return f"throw ({args});"
+        if isinstance(node.exc, AST.Name):
+            exc = self.transform(node.exc)
+            return f"throw ({exc});"
+        else:
+            args = self.transform(node.exc.args)
+            return f"throw ({args});"
 
     def Try(self, node):
         # ('body', 'handlers', 'orelse', 'finalbody')
@@ -829,3 +878,21 @@ class Transformer:
         )
         out = f"try {{try_body}} catch(err){{catch_body}};"
         return out
+
+    @staticmethod
+    def Assert(node):
+        return "pass"
+
+    def Lambda(self, node):
+        # args = ', '.join([self.transform(a) for a in node.args])
+        args = self.transform(node.args)
+        body = self.transform(node.body)
+        return f"(function ({args}) {{ return ({body}); }})"
+
+    @staticmethod
+    def Div(node):
+        return "/"
+
+    @staticmethod
+    def Mod(node):
+        return "%"
