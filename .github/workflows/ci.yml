@@ -39,12 +39,6 @@ jobs:
           echo '::add-path::/usr/local/bin'
           echo $PATH
 
-      - name: setup python
-        run: |
-          mkdir python_hack
-          ln -s python_hack/python /usr/bin/python3
-          echo ::add-path::$(pwd)/python_hack
-
       - name: Compiling Zipi
         run: |
           echo compiling...
