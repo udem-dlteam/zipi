@@ -34,13 +34,15 @@ jobs:
           tar zxvf gambit-macos-x86_64.tgz
           echo ::add-path::$(pwd)/bin
 
+      - name: setup path
+        run: |
+          echo ::add-path::/usr/local/bin
+          echo $PATH
+
 
       - name: Compiling Zipi
         run: |
           echo Adding bigloo path
-          echo ::add-path::/usr/local/bin
-          echo $PATH
-          ls
           ./configure
           make
 
