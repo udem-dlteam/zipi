@@ -39,6 +39,7 @@ jobs:
         run: |
           echo Adding bigloo path
           echo ::add-path::/usr/local/bin
+          echo $PATH
           ls
           ./configure
           make
