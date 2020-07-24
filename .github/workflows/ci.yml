@@ -42,6 +42,7 @@ jobs:
 
       - name: Compiling Zipi
         run: |
+          echo compiling...
           ./configure --bigloolibdir=/usr/local/Cellar/bigloo/4.3e_1/lib/bigloo/4.3e/
           make
 
