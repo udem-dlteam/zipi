@@ -36,12 +36,13 @@ jobs:
           echo '::add-path::/usr/local/bin'
           echo $PATH
       - name: setting up CPython
-        if: always()
         uses: actions/setup-python@v2
         with:
           python-version: '3.8'
+      - if: always()
+      - name: fixing python
         run:
-          install_name_tool /Users/runner/hostedtoolcache/Python/3.8.5/x64/lib/libpython3.8.dylib /Users/Shared/zipi/actions-runner/_work/_tool/Python/3.8.5/x64/lib/libpython3.8.dylib /Users/Shared/zipi/actions-runner/_work/_tool/Python/3.8.5/x64/bin/./python
+          install_name_tool -change /Users/runner/hostedtoolcache/Python/3.8.5/x64/lib/libpython3.8.dylib /Users/Shared/zipi/actions-runner/_work/_tool/Python/3.8.5/x64/lib/libpython3.8.dylib /Users/Shared/zipi/actions-runner/_work/_tool/Python/3.8.5/x64/bin/./python
       - name: Compiling Zipi
         run: |
           echo compiling...
