@@ -45,8 +45,7 @@ jobs:
       - name: Compiling Zipi
         if: always()
         run: |
-          $DYLD_LIBRARY_PATH --version
-          echo compiling...
+          bash $DYLD_LIBRARY_PATH --version
           ./configure --bigloolibdir=/usr/local/Cellar/bigloo/4.3e_1/lib/bigloo/4.3e/
           make
       - name: test
