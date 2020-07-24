@@ -38,6 +38,7 @@ jobs:
         run: |
           echo '::add-path::/usr/local/bin'
           echo $PATH
+          alias python=python3
 
       - name: Compiling Zipi
         run: |
