@@ -155,10 +155,18 @@ function isEmpty(obj) {
     }
     return true;
 };
+function make_dict() { return {}; };
+function dict_get(d, key) {
+    if (Object.hasOwnProperty.call(d, key)) {
+    return d[key];
+    } else {
+    return absent;
+    }
+    };
+function dict_set(d, key, value) {
+    d[key] = value;
+    };
     """
-    runtime = (
-        "String.prototype.lstrip = function () { return this.replace(/^\s+/g, ''); };"
-    )
 
     # Build the target code
     target_code = runtime + module + target_code

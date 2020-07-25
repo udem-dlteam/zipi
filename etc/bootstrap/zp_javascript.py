@@ -799,6 +799,7 @@ class Transformer:
             # Don't import some modules
             if module in ["sys", "argparse"]:
                 return " "
+
             # And don't reimport them
             elif module in self.imports:
                 return " "
@@ -815,6 +816,7 @@ class Transformer:
             module_code = re.sub(r"(;)\1+", r"\1", module_code)
             # Get all top-level definitions and export them
             ids = [self.get_identifier(n) for n in _ast.body]
+            ids = [i for i in ids if i is not None]
             exports = "return {"
             for id in ids[:-1]:
                 exports += f"{id}:{id},"
