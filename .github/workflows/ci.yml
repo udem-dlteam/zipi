@@ -35,21 +35,13 @@ jobs:
         run: |
           echo '::add-path::/usr/local/bin'
           echo $PATH
-          echo /Users
-          ls /Users
-          echo "::set-env name=DYLD_LIBRARY_PATH::/Users/Shared/zipi/actions-runner/_work/_tool/Python/3.8.5/x64/lib"
-          export DYLD_LIBRARY_PATH=/Users/Shared/zipi/actions-runner/_work/_tool/Python/3.8.5/x64/lib
-      - run: |
-           bash echo "echo $DYLD_LIBRARY_PATH"> file
-           bash file
+          echo "::set-env name=AGENT_TOOLSDIRECTORY::/Users/runner/hostedtoolcache"
       - name: setting up CPython
         uses: actions/setup-python@v2
         with:
           python-version: '3.8'
       - name: Compiling Zipi
-        if: always()
         run: |
-          bash $DYLD_LIBRARY_PATH --version
           ./configure --bigloolibdir=/usr/local/Cellar/bigloo/4.3e_1/lib/bigloo/4.3e/
           make
       - name: test
