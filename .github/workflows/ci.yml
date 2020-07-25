@@ -35,6 +35,7 @@ jobs:
         run: |
           echo '::add-path::/usr/local/bin'
           echo $PATH
+          echo /Users
           echo "::set-env name=DYLD_LIBRARY_PATH::/Users/Shared/zipi/actions-runner/_work/_tool/Python/3.8.5/x64/lib"
           export DYLD_LIBRARY_PATH=/Users/Shared/zipi/actions-runner/_work/_tool/Python/3.8.5/x64/lib
       - run: echo "$DYLD_LIBRARY_PATH"
