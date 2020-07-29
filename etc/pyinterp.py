@@ -1493,7 +1493,7 @@ sem_GtE = macro_sem_binary_operator_protocol('>=', '__gte__', '__lte__')
 def sem_repr(ctx, val1):
     __repr__ = getattribute_from_obj_mro(val1, '__repr__')
     # TODO: proper exception
-    assert __repr__ is absent, '__repr__ not defined'
+    assert __repr__ is not absent, '__repr__ not defined'
     return om_call(__repr__, ctx, [val1])
 
 def sem_getattribute(ctx, args):
