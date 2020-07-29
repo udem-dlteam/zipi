@@ -13,9 +13,13 @@ class Transformer:
         # Flag to modify behavior
         self.in_class = False
         self.imports = set()
+        self.modules = []
         self.base_class = False
         self.es6_classes = es6_classes
         self.name_prefix = False
+        self.in_global = False
+        self.global_vars = set()
+        self.recur_FunctionDef = []
 
     def gensym(self):
         gs = "g" + str(self.counter)
@@ -83,6 +87,9 @@ class Transformer:
         def str_mult(s, n):
             return f"{self.transform(s)}.repeat({self.transform(n)})"
 
+        def concat(arr, r):
+            return f"{self.transform(arr)}.concat({self.transform(r)})"
+
         left = node.left
         op = node.op
         right = node.right
@@ -101,6 +108,11 @@ class Transformer:
                 return array_mult(arr, right)
             else:
                 raise Exception
+        elif (
+            isinstance(left, AST.List)
+            and isinstance(op, AST.Add)
+        ):
+            return concat(left, right)
 
         return " " + binop(op, left, right)
 
@@ -144,6 +156,9 @@ class Transformer:
                 else:
                     return "[...Array(" + args + ").keys()]"
             # TODO: handle other cases!
+        elif func == "dict":
+            return "{};"
+            # func = "make_dict"
         elif func[-14:] == "indents.append":
             return func[:-7] + ".push(" + args + ")"
         elif func == "len":
@@ -160,7 +175,11 @@ class Transformer:
             elif klass == "bytes":
                 return "(" + obj + " instanceof Uint8Array)"
             else:  # default to class
-                return "(" + obj + " instanceof " + klass + ")"
+                # return "(" + obj + " instanceof " + klass + ")"
+                if klass[:4] == "AST.":
+                    return f"({obj}.constructor.name === '{klass[4:]}')"
+                else:
+                    return f"({obj}.constructor.name === '{klass}')"
         elif func == "print":
             return "console.log(" + args + ")"
         elif func == "arguments":
@@ -208,6 +227,16 @@ class Transformer:
         if "nocompile" in [d.id for d in node.decorator_list]:
             return " "
 
+        # Check if global call is present
+        for n in node.body:
+            if isinstance(n, AST.Global):
+                self.in_global = True
+
+        # Check if recursive FunctionDef
+        for n in node.body:
+            if isinstance(n, AST.FunctionDef):
+                self.recur_FunctionDef.append(0)
+
         body = "; ".join([self.transform(node) for node in node.body]) + ";"
         name = node.name
 
@@ -234,6 +263,12 @@ class Transformer:
         out = " function "
 
         out += name + "(" + args + ") { " + body + "};"
+
+        if len(self.recur_FunctionDef) == 0:
+            self.in_global = False
+
+        if len(self.recur_FunctionDef) > 0:
+            self.recur_FunctionDef.pop()
 
         return out
 
@@ -284,7 +319,7 @@ class Transformer:
                     return out
                 elif y.func.id in self.classes:
                     px = self.transform(x)
-                    if self.in_class:
+                    if self.in_class or (self.in_global and (px in self.global_vars)):
                         return " " + px + " = " + py + ";"
                     else:
                         return " var " + px + " = " + py + ";"
@@ -302,7 +337,7 @@ class Transformer:
             if isinstance(targets[0], AST.Attribute):
                 return " " + px + " = " + py + ";"
             else:
-                if self.in_class:
+                if self.in_class or (self.in_global and (px in self.global_vars)):
                     return " " + px + " = " + py + ";"
                 else:
                     return " var " + px + " = " + py + ";"
@@ -442,9 +477,11 @@ class Transformer:
             # isEmpty is provided by the runtime
             left = self.transform(left)
             if isinstance(ops[0], AST.IsNot):
-                out = f"!isEmpty({left})"
+                # out = f"!isEmpty({left})"
+                out = f"!({left} === absent)"
             else:
-                out = f"isEmpty({left})"
+                # out = f"isEmpty({left})"
+                out = f"({left} === absent)"
             return out
         # there can be more than one comparator, in which case we 'and'
         elif len(ops) > 1:
@@ -495,6 +532,17 @@ class Transformer:
         lower = self.transform(node.lower)
         upper = self.transform(node.upper)
         step = self.transform(node.step)  # ignored
+
+        # Cast "\"None\"" to None (output from Name node)
+        if lower == "\"None\"":
+            lower = None
+
+        if upper == "\"None\"":
+            upper = None
+
+        if step == "\"None\"":
+            step = None
+
         if lower is not None and upper is not None:
             return ", ".join([lower, upper])
         elif lower is not None:
@@ -758,8 +806,8 @@ class Transformer:
         return "{};"
 
     def ImportFrom(self, node):
-        if node.module in self.imports:
-            return " "
+        # if node.module in self.imports:
+        #     return " "
 
         # Handling of 'from x import *'
         # Since everything is top-level, we can jut prepend all the code
@@ -778,6 +826,8 @@ class Transformer:
 
     def Global(self, node):
         # assume a noop, onus on programmer + "use strict";
+        for n in node.names:
+            self.global_vars.add(n)
         return ""
 
     def Import(self, node):
@@ -799,10 +849,9 @@ class Transformer:
             # Don't import some modules
             if module in ["sys", "argparse"]:
                 return " "
-
             # And don't reimport them
-            elif module in self.imports:
-                return " "
+            # elif module in self.imports:
+            #     return " "
 
             module_code = f"var {asname} = (function () {{"
             self.imports.add(module)
@@ -881,9 +930,16 @@ class Transformer:
         out = f"try {{try_body}} catch(err){{catch_body}};"
         return out
 
-    @staticmethod
-    def Assert(node):
-        return "pass"
+    def Assert(self, node):
+        # if (!cond) { throw msg; }
+        test = self.transform(node.test)
+        msg = self.transform(node.msg)
+        return f"console.assert({test}, {msg});"
+        # return f"if (!{test}) {{ throw ({msg}); }}"
+
+    # def JoinedStr(self, node):
+    #     print(node._lineno)
+    #     raise Exception
 
     def Lambda(self, node):
         # args = ', '.join([self.transform(a) for a in node.args])
