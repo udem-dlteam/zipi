@@ -16,5 +16,13 @@ test_node: ./test/zast_node.js ./test/zast_node_es6.js
 	node < ./test/parse_test.js &&\
 	node < ./test/parse_test_es6.js
 
+test/pyinterp/pyinterp_node.js: ../../parser/pyinterp.py
+	python3 zp.py -f ../../parser/pyinterp.py -n -o test/pyinterp/pyinterp_node.js
+
+test/pyinterp/pyinterp_browser.js: ../../parser/pyinterp.py
+	python3 zp.py -f ../../parser/pyinterp.py -o test/pyinterp/pyinterp_browser.js
+
+pyinterp: test/pyinterp/pyinterp_node.js test/pyinterp/pyinterp_browser.js
+
 clean:
-	rm ./test/zast_browser.js ./test/zast_node.js ./test/zast_browser_es6.js ./test/zast_node_es6.js
+	rm ./test/zast_browser.js ./test/zast_node.js ./test/zast_browser_es6.js ./test/zast_node_es6.js ./test/pyinterp/pyinterp_node.js ./test/pyinterp/pyinterp_browser.js
