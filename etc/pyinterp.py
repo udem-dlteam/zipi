@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+from _runtime import make_dict, dict_get, dict_set
 
 # import ast as AST
 
@@ -13,9 +14,7 @@ def nocompile(f):
 debug = False
 single_step = True
 
-# don't compile absent to JS
-if __name__ == '__main__':
-    absent = object()
+absent = object()
 om_None = absent
 om_True = absent
 om_False = absent
@@ -195,22 +194,11 @@ def align_args_with_signature(ctx, caller_args, signature):
             assert False, 'vararg not implemented'
 
 # object model
-@nocompile
-def make_dict():
-    return dict()
-
 def make_dict_from_list(lst):
     result = make_dict()
     for e in lst:
         result[e[0]] = e[1]
     return result
-
-@nocompile
-def dict_get(d, key, default_value):
-    return d.get(key, default_value)
-
-def dict_set(d, key, value):
-    d[key] = value
 
 def class_getattr(o, attr):
     return dict_get(o, attr, absent)
