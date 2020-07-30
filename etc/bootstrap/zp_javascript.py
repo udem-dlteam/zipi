@@ -815,6 +815,9 @@ class Transformer:
         # Since everything is top-level, we can jut prepend all the code
         # i.e. recursively compile:
         module = node.module
+        if module in ["sys", "argparse", "_runtime"]:
+            return " "
+
         self.imports.add(node.module)
         module_file = self.rootdir + "/" + module + ".py"
 
@@ -849,7 +852,7 @@ class Transformer:
                 asname = module
 
             # Don't import some modules
-            if module in ["sys", "argparse"]:
+            if module in ["sys", "argparse", "_runtime"]:
                 return " "
             # And don't reimport them
             # elif module in self.imports:
