@@ -132,22 +132,6 @@ def compile_file(input_file):
     _ast = ast.parse(source)
     target_code = transform(_ast)
 
-    # Modules
-    if cli_args.node or cli_args.browser:
-        module = f"var {Path(input_file).name[:-3]} = (function () {{ "
-    else:
-        module = " "
-
-    ids = [backend.get_identifier(n) for n in _ast.body]
-    ids = [i for i in ids if i is not None]
-    if len(ids) > 0:
-        exports = "return {"
-        for id in ids[:-1]:
-            exports += f"{id}:{id},"
-        exports += f"{ids[-1]}:{ids[-1]} }}"
-    else:
-        exports = ""
-
     # Runtime
     runtime = """
 String.prototype.lstrip = function () { return this.replace(/^\s+/g, ''); };
@@ -172,8 +156,24 @@ function gui_wait_for_click(ast, msg, continue_execution) {
 const absent = {};
     """
 
+    # Modules
+    if cli_args.node or cli_args.browser:
+        module = f"var {Path(input_file).name[:-3]} = (function () {{ {runtime} "
+    else:
+        module = "{runtime} "
+
+    ids = [backend.get_identifier(n) for n in _ast.body]
+    ids = [i for i in ids if i is not None]
+    if len(ids) > 0:
+        exports = "return {"
+        for id in ids[:-1]:
+            exports += f"{id}:{id},"
+        exports += f"{ids[-1]}:{ids[-1]} }}"
+    else:
+        exports = ""
+
     # Build the target code
-    target_code = runtime + module + target_code
+    target_code = module + target_code
     target_code = re.sub(r"(;)\1+", r"\1", target_code)
     target_code = '"use strict"; ' + target_code
 
