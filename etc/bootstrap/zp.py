@@ -155,11 +155,11 @@ function isEmpty(obj) {
     if (obj === absent) { return true; } else { return false; }
 };
 function make_dict() { return {}; };
-function dict_get(d, key) {
-    if (Object.hasOwnProperty.call(d, key)) {
+function dict_get(d, key, _default) {
+    if (Object.prototype.hasOwnProperty.call(d, key)) {
     return d[key];
     } else {
-    return absent;
+    return _default;
     }
     };
 function dict_set(d, key, value) {
