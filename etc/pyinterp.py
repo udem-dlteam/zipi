@@ -13,7 +13,9 @@ def nocompile(f):
 debug = False
 single_step = True
 
-absent = object()
+# don't compile absent to JS
+if __name__ == '__main__':
+    absent = object()
 om_None = absent
 om_True = absent
 om_False = absent
@@ -63,12 +65,12 @@ def rte_lookup(rte, name):
     env = rte_locals(rte)
     if env is absent:
         env = rte_globals(rte)
-        return env.get(name, absent)
+        return dict_get(env, name, absent)
     else:
-        result = env.get(name, absent)
+        result = dict_get(env, name, absent)
         if result is absent:
             env = rte_globals(rte)
-            return env.get(name, absent)
+            return dict_get(env, name, absent)
         else:
             return result
 
@@ -193,6 +195,7 @@ def align_args_with_signature(ctx, caller_args, signature):
             assert False, 'vararg not implemented'
 
 # object model
+@nocompile
 def make_dict():
     return dict()
 
@@ -203,18 +206,18 @@ def make_dict_from_list(lst):
     return result
 
 @nocompile
-def dict_get(d, key):
-    return d.get(key, absent)
+def dict_get(d, key, default_value):
+    return d.get(key, default_value)
 
 def dict_set(d, key, value):
     d[key] = value
 
 def class_getattr(o, attr):
-    return dict_get(o, attr)
+    return dict_get(o, attr, absent)
 
 def class_getattribute(o, attr):
     # TODO: does not follow sementic missing __get__.
-    return dict_get(o, attr)
+    return dict_get(o, attr, absent)
 
 def class_setattribute(o, attr, value):
     dict_set(o, attr, value)
@@ -402,7 +405,7 @@ def om_rawset(o, name, val):
     dict_set(o, name, val)
 
 def om_rawget(o, name):
-    return dict_get(o, name)
+    return dict_get(o, name, absent)
 
 def om_call(o, ctx, args):
     code = om_rawget(o, '**code**')
@@ -415,7 +418,7 @@ def make_fields():
     return dict()
 
 def fields_get(o, name):
-    return dict_get(o, name)
+    return dict_get(o, name, absent)
 
 def fields_set(o, name, value):
     dict_set(o, name, value)
