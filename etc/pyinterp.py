@@ -273,6 +273,7 @@ def populate_builtin_type():
     fields = om_rawget(class_type, '**public**')
     builtin_add_method(fields, '__call__', om_type_call)
     builtin_add_method(fields, '__getattribute__', om_type_getattribute)
+    builtin_add_method(fields, '__repr__', om_type_repr)
 
     class_set__mro__(class_type, [class_type, class_object])
 
@@ -452,6 +453,12 @@ def om_type_getattribute(ctx, args):
     else:
         return om_call(attr__get__, ctx, [attr, om_None, dt])
 
+def om_type_repr(ctx, args):
+    self = args[0]
+    __name__ = getattribute_from_obj_mro(self, '__name__')
+    result = om_str("<class '" + __name__ + "'>")
+    return ctx.cont(ctx.rte, result)
+
 # class_WrapperDescriptor methods
 def om_WrapperDescriptor_get(ctx, args):
     if debug: print('wrapper_descriptor.__get__')
@@ -526,7 +533,7 @@ def om_object_getattribute(ctx, args):
 def om_object_repr(ctx, args):
     self = args[0]
     __name__ = getattribute_from_obj_mro(self, '__name__')
-    result = om_str("<class '" + __name__ + "'>")
+    result = om_str("<" + __name__ + " object>")
     return ctx.cont(ctx.rte, result)
 
 # class_bool methods
