@@ -607,7 +607,7 @@ def get_token(ts):
 
             inc_found(KIND_NAME) # .4436
             ts.end = pos
-            ts.token = kw.get(source(ts, ts.start, ts.end), NAME)
+            ts.token = dict_get(kw, source(ts, ts.start, ts.end), NAME)
             return
 
         # check for simple single char token, such as parentheses, comma and ~
