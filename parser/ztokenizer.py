@@ -1,5 +1,5 @@
 from ztoken import *
-from _runtime import make_dict
+from _runtime import dict_get
 
 #------------------------------------------------------------------------------
 
