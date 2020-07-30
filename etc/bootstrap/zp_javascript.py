@@ -109,7 +109,7 @@ class Transformer:
             else:
                 raise Exception
         elif (
-            isinstance(left, AST.List)
+            (isinstance(left, AST.List) or isinstance(right, AST.List))
             and isinstance(op, AST.Add)
         ):
             return concat(left, right)
@@ -139,7 +139,8 @@ class Transformer:
             else:
                 return args + ".charCodeAt(0)"
         elif func == "str":
-            return "String(" + args + ")"
+            # return "String(" + args + ")"
+            return f"{args}.toString()"
         elif func == "int":
             return "Number(" + args + ")"
         elif func == "repr":
@@ -632,7 +633,7 @@ class Transformer:
             out += body + "}"
             return out
 
-        out = " for (const " + gs + " in " + _iter + ") {" + body + "};"
+        out = " for (const " + gs + " of " + _iter + ") {" + body + "};"
 
         return out
 
@@ -746,7 +747,7 @@ class Transformer:
         elif val is False:
             return "false"
         elif val is None:
-            return "null"
+            return "undefined"
         else:
             return str(node.value)
 
@@ -803,7 +804,8 @@ class Transformer:
 
     @staticmethod
     def Pass(node):
-        return "{};"
+        # return "{};"
+        return "/* pass */"
 
     def ImportFrom(self, node):
         # if node.module in self.imports:
