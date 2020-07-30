@@ -775,46 +775,6 @@ class Constant(expr):
         self.value = value
         self.kind = kind
 
-# class Num(expr):
-
-#     _fields = ('n', )
-#     _attributes = ('lineno', 'col_offset', 'end_lineno', 'end_col_offset')
-
-#     def __init__(self, n):
-#         self.n = n
-
-# class Str(expr):
-
-#     _fields = ('s', )
-#     _attributes = ('lineno', 'col_offset', 'end_lineno', 'end_col_offset')
-
-#     def __init__(self, s):
-#         self.s = s
-
-# class Bytes(expr):
-
-#     _fields = ('s', )
-#     _attributes = ('lineno', 'col_offset', 'end_lineno', 'end_col_offset')
-
-#     def __init__(self, s):
-#         self.s = s
-
-# class Ellipsis(expr):
-
-#     _fields = ()
-#     _attributes = ('lineno', 'col_offset', 'end_lineno', 'end_col_offset')
-
-#     def __init__(self):
-#         pass
-
-# class NameConstant(expr):
-
-#     _fields = ('value', )
-#     _attributes = ('lineno', 'col_offset', 'end_lineno', 'end_col_offset')
-
-#     def __init__(self, value):
-#         self.value = value
-
 class Attribute(expr): # attribute access
 
     _fields = ('value', 'attr', 'ctx')
