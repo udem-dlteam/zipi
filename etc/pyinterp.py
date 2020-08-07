@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
-import argparse
-from _runtime import make_dict, dict_get, dict_set
+
+from _runtime import make_dict, dict_get, dict_set, nocompile, \
+        num_add, num_sub, num_mul, num_div, num_to_string
 
 # import ast as AST
 
@@ -8,16 +8,13 @@ import _zast as AST
 import zast
 AST.parse = zast.parse
 
-def nocompile(f):
-    return f
-
 debug = False
 single_step = True
 
 absent = object()
-om_None = absent
-om_True = absent
-om_False = absent
+om_None = object()
+om_True = object()
+om_False = object()
 
 class Context:
     def __init__(self, rte, cont, ast):
@@ -316,6 +313,13 @@ def populate_builtin_str():
     # TODO: add all other methods
     class_set__mro__(class_str, [class_str, class_object])
 
+def populate_builtin_tuple():
+    fields = om_rawget(class_tuple, '**public**')
+    # TODO: not implemented
+    #builtin_add_method(fields, '__repr__', om_tuple_repr)
+
+    class_set__mro__(class_tuple, [class_tuple, class_object])
+
 def populate_builtin_NoneType():
     # TODO: add all other methods
     fields = om_rawget(class_NoneType, '**public**')
@@ -327,12 +331,16 @@ def populate_builtin_FunctionType():
 
     fields = om_rawget(class_function, '**public**')
     builtin_add_method(fields, '__call__', om_function_call)
+    # TODO: fallback to object.__repr__
+    # builtin_add_method(fields, '__repr__', om_function_repr)
 
     class_set__mro__(class_function, [class_function, class_object])
 
 def object_class(o):
-    if isinstance(o, bool):
+    if om_is(o, om_None):
         # This is equivalent to javascript bool
+        return class_NoneType
+    elif om_is(o, om_True) or om_is(o, om_False):
         return class_bool
     elif isinstance(o, str):
         return class_str
@@ -558,7 +566,7 @@ def om_int_add(ctx, args):
     # TODO: add type checking
     val1_unbox = om_rawget(val1, '**value**')
     val2_unbox = om_rawget(val2, '**value**')
-    result = val1_unbox + val2_unbox
+    result = num_add(val1_unbox, val2_unbox)
     return ctx.cont(ctx.rte, om_int(result))
 
 om_int_radd = om_int_add
@@ -570,7 +578,7 @@ def om_int_sub(ctx, args):
     val1_unbox = om_rawget(val1, '**value**')
     val2_unbox = om_rawget(val2, '**value**')
     # TODO: add type check.
-    result = val1_unbox - val2_unbox
+    result = num_sub(val1_unbox, val2_unbox)
     return ctx.cont(ctx.rte, om_int(result))
 
 def om_int_rsub(ctx, args):
@@ -674,7 +682,7 @@ def om_int_floordiv(ctx, args):
 
 def om_int_repr(ctx, args):
     self = args[0]
-    result = str(om_rawget(self, '**value**'))
+    result = num_to_string(om_rawget(self, '**value**'), 10)
     return ctx.cont(ctx.rte, om_str(result))
 
 # class_NoneType methods
@@ -697,17 +705,24 @@ def om_function_call(ctx, args):
     ## test arity
     locals_env = align_args_with_signature(ctx, params, signature)
 
-    def code():
-        stack = make_frame(ctx.rte, ctx.cont, ctx.ast)
-        rte = make_rte(rte_globals(ctx.rte), make_dict_from_list(locals_env), stack, absent)
-        body = om_rawget(self, '**body**')
-        return body(rte,
-                    lambda rte1:
-                       frame_cont(rte_stack(rte1))(frame_rte(rte_stack(rte1)), om_None))
+    stack = make_frame(ctx.rte, ctx.cont, ctx.ast)
+    rte = make_rte(rte_globals(ctx.rte), make_dict_from_list(locals_env), stack, absent)
+    body = om_rawget(self, '**body**')
+    return body(rte,
+                lambda rte1:
+                   frame_cont(rte_stack(rte1))(frame_rte(rte_stack(rte1)), om_None))
 
-    return code
+# TODO: debug this code.
+def om_function_repr(ctx, args):
+    self = args[0]
+    nb_args = len(args)
 
+    fields = om_rawget(self, '**public**')
 
+    self__name__ = om_rawget(fields, '__name__')
+
+    result = om_str('<function ' + om_rawget(self__name__, '**value**') + '>')
+    return ctx.cont(ctx.rte, result)
 
 # XXX: need to decide if I keep this
 def unbox_object(obj):
@@ -729,8 +744,10 @@ def unbox_object(obj):
 def box_object(obj):
     if obj is None:
         return om_None
-    elif isinstance(obj, bool):
-        return obj
+    elif obj is True:
+        return om_True
+    elif obj is False:
+        return om_False
     elif isinstance(obj, int):
         return om_int(obj)
     elif isinstance(obj, str):
@@ -766,6 +783,7 @@ populate_builtin_MethodWrapper()
 populate_builtin_int()
 populate_builtin_bool()
 populate_builtin_str()
+populate_builtin_tuple()
 populate_builtin_NoneType()
 populate_builtin_FunctionType() # type function
 # TODO: populate other builtin classes
@@ -809,10 +827,6 @@ def run(code):
         obj = rte_lookup(rte, 'obj')
         print(unbox_object(obj)) # should call object.__str__
         return cont(rte)
-
-    om_None = om(class_NoneType)
-    om_True = True
-    om_False = False
 
     om_print = om(class_function)
     # XXX: this one should be a setattribute
@@ -978,10 +992,11 @@ def comp_stmt(cte, ast):
 
     elif isinstance(ast, AST.FunctionDef):
         if debug: print('AST.FunctionDef')
-        #print(dir(ast))
         func = om(class_function)
 
-        om_rawset(func, '__name__', ast.name)
+        fields = om_rawget(func, '**public**')
+
+        fields_set(fields, '__name__', ast.name)
 
         signature = gen_signature(cte, ast)
         (cte1, body_code) = gen_funcdef_code(cte, ast, ast.body)
@@ -1238,7 +1253,7 @@ def gen_logical_and(cte, ast, code1, code2):
     def code(rte, cont):
         def cast_bool(rte1, val1):
             def dispatch(rte2, cond_val):
-                if cond_val:
+                if om_is(cond_val, om_True):
                     return code2(rte1, cont)
                 else:
                     return cont(rte1, val1)
@@ -1256,7 +1271,7 @@ def gen_logical_or(cte, ast, code1, code2):
     def code(rte, cont):
         def cast_bool(rte1, val1):
             def dispatch(rte2, cond_val):
-                if cond_val:
+                if om_is(cond_val, om_False):
                     return cont(rte1, val1)
                 else:
                     return code2(rte1, cont)
@@ -1642,15 +1657,6 @@ def gui_wait_for_click(ast, msg, continue_execution):
         from threading import Timer
         Timer(0.1, lambda: trampoline(continue_execution)).start()
         return None  # exit trampoline
-
-if __name__ == '__main__':
-    def main():
-        parse = argparse.ArgumentParser(description='interp_file')
-        parse.add_argument('file', help='source file')
-        args = parse.parse_args()
-        interp_file(args.file)
-
-    main()
 
 
 # % cat test.py
