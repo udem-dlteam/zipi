@@ -129,7 +129,7 @@
                     `(cons (& ,name) ,value))
                   kwargs-names
                   kwargs-values))
-            `(quote ()))))
+            #f)))
 
     (cond
       (kwargs-table
@@ -143,12 +143,12 @@
                   (lambda (key value) `(cons (& ,key) ,value))
                   kwargs-names
                   kwargs-values))))
-      ((or (not (null? extra-kwargs)) (not (null? **kwargs)))
+      ((or extra-kwargs (not (null? **kwargs)))
         `(py-call-generic-kwargs
           ,f
           (list ,@pos-args)
           (list ,@*args)
-          ,extra-kwargs
+          ,(or extra-kwargs `'())
           (list ,@**kwargs)))
       (else
         (let ((nargs (length pos-args)))
@@ -929,7 +929,7 @@
     (let* ((name (car args))
           (value (ordered-table-pop! ordered-table name #f)))
       (if value
-        (cons (cdr value) (align-with-signature-hashed-kwargs:get-values (cdr args) ordered-table))
+        (cons value (align-with-signature-kwargs-ordered-table:get-values (cdr args) ordered-table))
         (py-throw-exception-with-message
           py-builtin-TypeError
           "pending exception message (code 30)")))))
@@ -939,16 +939,16 @@
     '()
     (let ((name (caar args-defaults))
           (default (cdar args-defaults))
-          (value (ordered-table-pop! ordered-table name)))
+          (value (ordered-table-pop! ordered-table name #f)))
       (cond
         ((not value)
-          (cons default (align-with-signature-hashed-kwargs:get-values (cdr args-defaults) ordered-table)))
+          (cons default (align-with-signature-kwargs-ordered-table:get-values (cdr args-defaults) ordered-table)))
         ((eq? value kwargs-already-seen)
           (py-throw-exception-with-message
             py-builtin-TypeError
             "pending exception message (code 31)"))
         (else
-          (cons (cdr value) (align-with-signature-hashed-kwargs:get-values (cdr args-defaults) ordered-table)))))))
+          (cons value (align-with-signature-kwargs-ordered-table:get-values (cdr args-defaults) ordered-table)))))))
 
 (define (align-with-signature-kwargs-ordered-table:get-unused-kwargs unused-kwargs kwarg)
   (if kwarg
