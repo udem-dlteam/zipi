@@ -39,10 +39,14 @@ jobs:
         run: |
           ./configure --bigloolibdir=/usr/local/Cellar/bigloo/4.3e_1/lib/bigloo/4.3e/
           make
-      - name: test
+      - name: Relinking
+        if: failed()
         run: |
-          echo "print(42)" > test.py
-          ./etc/py19 -t gambit test.py
+          ln -s ./etc/pysexp.py ./bin/pysexp.py
+      - name: Running tests
+        if: failed() || succeeded()
+        run : |
+          make test
 
 
 #        - name: Upload Build Artifact
