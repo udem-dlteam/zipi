@@ -41,7 +41,7 @@ jobs:
         with:
           python-version: '3.8'
       - name: testing
-        run : echo "hello world"
+        run : echo "hello borld"
       - name: Compiling Zipi
         run: |
           ./configure --bigloolibdir=/usr/local/Cellar/bigloo/4.3e_1/lib/bigloo/4.3e/
