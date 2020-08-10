@@ -701,9 +701,31 @@
             (py-call-hashed-kwargs __call__ (cons obj args) *args-lst kwargs-table)))))))
 
 (define (py-call-generic-kwargs obj args *args-lst kwargs **kwargs-lst)
-  (py-throw-exception-with-message
-    py-builtin-NotImplementedError
-    "py-call-generic-kwargs"))
+  (define (make-kwargs-dict kwargs **kwargs-lst)
+    ;; TODO remove use of apply append
+    (py-make-dict (append kwargs (apply append (map unpack-kwargs **kwargs-lst)))))
+
+  (let ((obj-type (py-type obj)))
+    (cond
+      ((eq? obj-type py-function-class)
+        (let* ((procedure (PyObjectFunction-procedure obj))
+               (signature (PyObjectFunction-signature obj))
+               (kwargs-dict (make-kwargs-dict kwargs **kwargs-lst))
+               (aligned-args (align-with-signature/kwargs-dict args kwargs-dict *args-lst signature)))
+          (apply procedure aligned-args)))
+      ((eq? obj-type py-method-class)
+        (let* ((procedure (PyObjectMethod-procedure obj))
+               (signature (PyObjectMethod-signature obj))
+               (__self__ (method-__self__-fast-get obj))
+               (bound-args (cons __self__ args))
+               (kwargs-dict (make-kwargs-dict kwargs **kwargs-lst))
+               (aligned-args (align-with-signature/kwargs-dict bound-args kwargs-dict *args-lst signature)))
+          (apply procedure aligned-args)))
+      (else
+        (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
+          (if (eq? __call__ py-absent)
+            (py-throw-not-callable obj)
+            (py-call-generic-kwargs __call__ (cons obj args) *args-lst kwargs **kwargs-lst)))))))
 
 (define (unpack-kwargs obj)
   (let* ((keys-method (py-getattribute obj (& "keys")))
@@ -761,6 +783,9 @@
   (if (= n 0)
     lst
     (ncdr (cdr lst) (- n 1))))
+
+(define (align-with-signature/kwargs-dict pos-caller-args caller-kwargs-dict *args-lst signature)
+  (py-throw-exception-with-message py-builtin-NotImplementedError "align-with-signature/kwargs-dict"))
 
 (define (align-with-signature/hashed-kwargs pos-caller-args caller-kwargs-table *args-lst signature)
   (define (get-values args kwargs-table)
