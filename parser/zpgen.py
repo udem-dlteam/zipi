@@ -128,7 +128,7 @@ def encode_STRING(ts):
     elif bs_unquoted == b'TYPE_COMMENT':
         return token.TYPE_COMMENT
     else:
-        ts = tok.TokenizerState(bs_unquoted)
+        ts = tok.TokenizerState(bs_unquoted, False)
         tok.get_token(ts)
         if ts.token == token.NAME:
             return bs_unquoted.decode('utf-8')
@@ -410,7 +410,7 @@ def read_grammar(filename):
 
     tok.init_stats()
 
-    current_ts = tok.TokenizerState(content)
+    current_ts = tok.TokenizerState(content, False)
     advance(current_ts)
 
     rules = parse_grammar(current_ts)
@@ -542,7 +542,7 @@ def read_grammar_and_generate_parser(filename):
     print()
 
     print()
-    print('def ' + gen_prefix + 'parse(source):')
+    print('def ' + gen_prefix + 'parse(source, context):')
     print()
     print('    # filename = "<unknown>"')
     print('    # mode = "exec"')
@@ -550,7 +550,7 @@ def read_grammar_and_generate_parser(filename):
     print('    # feature_version = None')
     print()
     print('    init_stats()')
-    print('    ts = ' + tok_access + 'TokenizerState(source)')
+    print('    ts = ' + tok_access + 'TokenizerState(source, context)')
     print('    ' + gen_prefix + 'advance(ts)')
     print()
     c, yes, no = gen_in(f, universal_set())
@@ -560,6 +560,9 @@ def read_grammar_and_generate_parser(filename):
     print('        ' + gen_error())
     print()
     print('def ' + gen_prefix + 'syntax_error(ts):')
+    print('    if ts.context and ts.context and :')
+    print('        ts.context.syntaxError(' + tok_access + 'get_lineno(ts)-1, ' + tok_access + 'get_col_offset(ts), ' + tok_access + 'get_end_lineno(ts)-1, ' + tok_access + 'get_end_col_offset(ts), "invalid syntax");')
+    print('        return')
     print('    line_num = ts.line_num')
     print('    line_start = 0')
     print('    while line_num > 0:')
