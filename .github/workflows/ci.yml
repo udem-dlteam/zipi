@@ -31,17 +31,10 @@ jobs:
           cd gambit
           tar zxvf gambit-macos-x86_64.tgz
           echo "::add-path::$(pwd)/bin"
-      - name: setup path
+      - name: setup python
         run: |
-          echo '::add-path::/usr/local/bin'
-          echo $PATH
-          echo "::set-env name=AGENT_TOOLSDIRECTORY::/Users/runner/hostedtoolcache"
-      - name: setting up CPython
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.8'
-      - name: testing
-        run : echo "hello borld"
+          echo "::add-path::/Users/Shared/zipi/lib/python/bin"
+          alias python="/Users/Shared/zipi/lib/python/bin/python3"
       - name: Compiling Zipi
         run: |
           ./configure --bigloolibdir=/usr/local/Cellar/bigloo/4.3e_1/lib/bigloo/4.3e/
