@@ -603,11 +603,7 @@
 (define-all-py-callX)
 
 (define (py-call-generic/*args obj args *args-lst)
-  (let ((unpacked-args
-          (apply append
-            (map
-              (lambda (a) (iterator->list (py-iter a)))
-              *args-lst))))
+  (let ((unpacked-args (iterables*->list *args-lst)))
     (apply py-call-generic obj (append args unpacked-args))))
 
 (define (py-call-generic obj . args)
@@ -701,8 +697,7 @@
 
 (define (py-call-generic-kwargs obj args *args-lst kwargs **kwargs-lst)
   (define (make-kwargs-ordered-table kwargs **kwargs-lst)
-    ;; TODO remove use of apply append
-    (py-ordered-table-from-scheme (append kwargs (apply append (map unpack-kwargs **kwargs-lst)))))
+    (py-ordered-table-from-scheme (append-lists (cons kwargs (map unpack-kwargs **kwargs-lst)))))
 
   (let ((obj-type (py-type obj)))
     (cond
@@ -792,11 +787,7 @@
             (kw-defaults (vector-ref signature 4))
             (kwarg (vector-ref signature 5))
             (defaults (vector-ref signature 6))
-            (unpacked-args-lst
-              (apply append
-                (map
-                  (lambda (a) (iterator->list (py-iter a)))
-                  *args-lst)))
+            (unpacked-args-lst (iterables*->list *args-lst))
             (caller-args (append pos-caller-args unpacked-args-lst))
             ;; lengths
             (args-length (vector-length args))
@@ -2993,10 +2984,22 @@
             (py-call __next__ obj))))))
 
 (define (iterator->list it)
-  (let ((nxt (iterator-next it #f)))
-    (if nxt
-      (cons nxt (iterator->list it))
-      '())))
+  (let loop ((acc '()))
+    (let ((nxt (iterator-next it #f)))
+      (if nxt
+        (loop (cons nxt acc))
+        (reverse! acc)))))
+
+(define (iterables*->list lst)
+  (let outer-loop ((iterators lst) (outer-acc '()))
+    (if (null? iterators)
+      (reverse! outer-acc)
+      (let ((it (py-iter (car iterators))))
+        (let inner-loop ((inner-acc outer-acc))
+          (let ((nxt (iterator-next it #f)))
+            (if nxt
+              (inner-loop (cons nxt inner-acc))
+              (outer-loop (cdr iterators) inner-acc))))))))
 
 ;; list iterator
 
