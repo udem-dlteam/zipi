@@ -792,7 +792,7 @@ populate_builtin_FunctionType() # type function
 # Interpreter
 def interp_file(path):
     source = read_file(path)
-    interp(parse(source))
+    interp(parse(source, path, 'exec', False))
 
 @nocompile
 def read_file(path):
@@ -801,16 +801,14 @@ def read_file(path):
     return content
 
 def interp_source(src):
-    interp(parse(src))
+    interp(parse(src, '<unknown>', 'exec', False))
 
-def parse(source):
-    return AST.parse(source)
+def parse(source, filename, mode, context):
+    return AST.parse(source, filename, mode, context)
 
 def interp(ast):
     code = comp(ast)
-    run(code)
-
-
+    trampoline(prepare_execution(code, fresh_rte()))
 
 def comp(ast):
     cte = dict()  # unused for now
@@ -819,7 +817,11 @@ def comp(ast):
 
     return code
 
-def run(code):
+def prepare_execution(code, rte):
+    return lambda: code(rte, lambda rte: None)
+
+def fresh_rte():
+
     global om_None, om_True, om_False
 
     # NOTE: dummy internal implementation of print.
@@ -848,15 +850,34 @@ def run(code):
     globals_env['str'] = class_str
     globals_env['print'] = om_print
 
-    def cont(rte):
-        print('done!')
-
-    trampoline(lambda: code(rte, cont))
+    return rte
 
 def trampoline(execution_point):
-    while execution_point is not None:
+
+    while execution_point:
+
         #print('execution_point = ' + repr(execution_point))
-        execution_point = execution_point()
+
+        state = execution_point()
+
+        if not state:
+            break
+
+        ast = state[0]
+        msg = state[1]
+        execution_point = state[2]
+        ctx = state[3]
+
+        if execution_point:
+
+            print('at '+str(ast.lineno)+'.'+str(ast.col_offset+1)+'-'+str(ast.end_lineno)+'.'+str(ast.end_col_offset+1)+msg)
+
+            if not single_step:
+                from threading import Timer
+                Timer(0.1, lambda: trampoline(execution_point)).start()
+                break
+
+
     #print('exiting trampoline')
 
     # XXX: manual single step
@@ -1618,45 +1639,19 @@ def gen_Attribute(cte, ast, code, name):
 
 def expr_end(ctx, val):
 
-    # Simulate codeBoot GUI that shows the value of the expression
-    # and waits for the user to click "next step" to continue execution.
-    # Note that codeBoot will also use rte to show the value of variables.
-
-    def call_gui(rte, repr_val):
+    def cont(rte, repr_val):
         repr_val_unbox = om_rawget(repr_val, '**value**')
-        return gui_wait_for_click(ctx.ast, ': value = '+repr_val_unbox, lambda: ctx.cont(rte, val))
+        return return_to_trampoline(ctx.ast, ': value = '+repr_val_unbox, lambda: ctx.cont(rte, val), ctx)
 
-    new_ctx = Context(ctx.rte, call_gui, ctx.ast)
-    return sem_repr(new_ctx, val)
-    # # This allow a more readable when not debugging
-    # if debug:
-    #     # This leak internal representation.
-    #     repr_val = val
-    # else:
-    #     repr_val = unbox_object(val)
-    # return gui_wait_for_click(ctx.ast, ': value = '+repr(repr_val), lambda: ctx.cont(ctx.rte, val))
-
+    return sem_repr(Context(ctx.rte, cont, ctx.ast), val)
 
 def stmt_end(ctx):
-
-    # Simulate codeBoot GUI that shows the execution of a statement
-    # and waits for the user to click "next step" to continue execution.
-    # Note that codeBoot will also use rte to show the value of variables.
-
-    return gui_wait_for_click(ctx.ast, '', lambda: ctx.cont(ctx.rte))
+    return return_to_trampoline(ctx.ast, '', lambda: ctx.cont(ctx.rte), ctx)
 
 @nocompile
-def gui_wait_for_click(ast, msg, continue_execution):
-
-    print('at '+str(ast.lineno)+'.'+str(ast.col_offset+1)+'-'+str(ast.end_lineno)+'.'+str(ast.end_col_offset+1)+msg)
-
-    # single_step allows faster execution
-    if single_step:
-        return continue_execution  # trampoline will call continue_execution
-    else:
-        from threading import Timer
-        Timer(0.1, lambda: trampoline(continue_execution)).start()
-        return None  # exit trampoline
+def return_to_trampoline(ast, msg, continue_execution, ctx):
+    # return to trampoline with current execution state
+    return (ast, msg, continue_execution, ctx)
 
 
 # % cat test.py
