@@ -159,7 +159,7 @@
             ((<= nargs py-callX-args-limit)
               `(,(make-py-call-name nargs) ,f ,@pos-args))
             (else
-              `(py-call-generic ,f ,@pos-args))))))))
+              `(py-call-generic ,f (list ,@pos-args)))))))))
 
 (define-macro (define-all-py-callX)
   (import (zipi rts config))
@@ -172,7 +172,7 @@
           (if (eq? fun-type py-function-class)
             (let ((arity (PyObjectFunction-arity fun)))
               (cond
-                ((not arity) (py-call-generic fun ,@args))
+                ((not arity) (py-call-generic fun (list ,@args)))
                 ((= arity ,X)
                   ((PyObjectFunction-procedure fun) ,@args))
                 ((and (< arity 0) (>= arity ,(- 0 X 1)))
@@ -181,7 +181,7 @@
                     (pack-extra-args arity (list ,@args))))
                 (else
                   (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 14)")))) ;; TODO add error message
-            (py-call-generic fun ,@args))))))
+            (py-call-generic fun (list ,@args)))))))
     (let loop ((i 1) (acc '()))
       (if (> i py-callX-args-limit)
         `(begin ,@acc)
@@ -590,7 +590,7 @@
     (if (eq? fun-type py-function-class)
       (let ((arity (PyObjectFunction-arity fun)))
         (cond
-          ((not arity) (py-call-generic fun))
+          ((not arity) (py-call-generic fun '()))
           ((= arity 0)
             ((PyObjectFunction-procedure fun)))
           ((= arity -1)
@@ -598,15 +598,15 @@
               (py-tuple-from-scheme '#())))
           (else
             (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 15)")))) ;; TODO add error message)))
-      (py-call-generic fun))))
+      (py-call-generic fun '()))))
 
 (define-all-py-callX)
 
 (define (py-call-generic/*args obj args *args-lst)
   (let ((unpacked-args (iterables*->list *args-lst)))
-    (apply py-call-generic obj (append args unpacked-args))))
+    (py-call-generic obj (append args unpacked-args))))
 
-(define (py-call-generic obj . args)
+(define (py-call-generic obj args)
   (let ((obj-type (py-type obj)))
     (cond
       ((eq? obj-type py-function-class)
@@ -625,7 +625,7 @@
         (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
           (if (eq? __call__ py-absent)
             (py-throw-not-callable obj)
-            (apply py-call-generic __call__ obj args)))))))
+            (py-call-generic __call__ (cons obj args))))))))
 
 (define (align-args-with-signature caller-args signature)
   (let ((args (vector-ref signature 0))
@@ -2089,7 +2089,7 @@
 (define (method-call self args)
   (if (eq? (py-type self) py-method-class)
     (let ((args-list (vector->list (PyObjectTuple-value args))))
-      (apply py-call-generic self args-list))
+      (py-call-generic self args-list))
     (py-throw-required-type "__call__" "method" self)))
 
 (define method.__call__
@@ -2102,7 +2102,7 @@
 (define (function-call self args)
   (if (eq? (py-type self) py-function-class)
     (let ((args-list (vector->list (PyObjectTuple-value args))))
-      (apply py-call-generic self args-list))
+      (py-call-generic self args-list))
     (py-throw-required-type "__call__" "method" self)))
 
 (define function.__call__
@@ -2134,10 +2134,10 @@
 (define (type-call self args)
   (let ((__new__ (getattribute-from-cls-mro self (& "__new__")))
         (args-list (vector->list (PyObjectTuple-value args))))
-    (let ((instance (apply py-call-generic __new__ self args-list)))
+    (let ((instance (py-call-generic __new__ (cons self args-list))))
       (if (eq? (py-obj-cls instance) self)
         (let ((__init__ (getattribute-from-cls-mro self (& "__init__"))))
-            (apply py-call-generic __init__ instance args-list)
+            (py-call-generic __init__ (cons instance args-list))
             instance)
         instance))))
 
