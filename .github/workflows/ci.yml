@@ -41,10 +41,10 @@ jobs:
           make
       - name: Relinking
         run: ln -s ./etc/pysexp.py ./bin/pysexp.py
-        if: failed()
+        if: always()
       - name: Running tests
         run : make test
-        if: failed() || succeeded()
+        if: always()
 
 
 #        - name: Upload Build Artifact
