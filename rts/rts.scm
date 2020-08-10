@@ -815,15 +815,23 @@
           (else
             (cons (cdr value) (get-values (cdr args-defaults) kwargs-table)))))))
 
-  (define (get-unused-kwargs kwargs-table)
-    (let ((len (vector-length kwargs-table)))
-      (let loop ((i 1))
-        (if (< i len)
-          (let ((el (vector-ref kwargs-table i)))
-            (if (eq? el kwargs-already-seen)
-              (loop (+ i 1))
-              (cons el (loop (+ i 1)))))
-          '()))))
+  (define (get-unused-kwargs kwargs-table kwarg)
+    (let* ((len (vector-length kwargs-table))
+          (unused-kwargs
+            (let loop ((i 1))
+              (if (< i len)
+                (let ((el (vector-ref kwargs-table i)))
+                  (if (eq? el kwargs-already-seen)
+                    (loop (+ i 1))
+                    (cons el (loop (+ i 1)))))
+                '()))))
+      (if kwarg
+        (list (py-dict-from-scheme unused-kwargs))
+        (if (null? unused-kwargs)
+          '()
+          (py-throw-exception-with-message
+            py-builtin-TypeError
+            "pending error message (code 20)")))))
 
   (let* ((args (vector-ref signature 0))
         (posonlyargs (vector-ref signature 1))
@@ -892,8 +900,7 @@
           (caller-kwargs
             (get-values-or-default
               (zip-vectors kwonlyargs kw-defaults)
-              caller-kwargs-table))
-          (unused-kwargs (get-unused-kwargs caller-kwargs-table)))
+              caller-kwargs-table)))
       (let ((caller-vararg
               (if vararg
                 (if (> extra-positional-args-length 0)
@@ -904,14 +911,7 @@
                   (list (py-tuple-from-scheme '#())))
                 ;; it was already checked that there is not too many args
                 '()))
-            (caller-kwarg
-              (if kwarg
-                (list (py-dict-from-scheme unused-kwargs))
-                (if (null? unused-kwargs)
-                  '()
-                  (py-throw-exception-with-message
-                    py-builtin-TypeError
-                    "pending error message (code 20)")))))
+            (caller-kwarg (get-unused-kwargs caller-kwargs-table kwarg)))
         (append
           caller-args
           caller-free-args-w/o-default
