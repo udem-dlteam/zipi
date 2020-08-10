@@ -32,6 +32,9 @@ parser.add_argument(
 parser.add_argument(
     "-d", "--debug", action="store_true", help="add debug information (default False)"
 )
+parser.add_argument(
+    "-t", "--tests", action="store_true", help="include extended runtime for tests (default False)"
+)
 cli_args = parser.parse_args()
 
 init()
@@ -154,6 +157,10 @@ function gui_wait_for_click(ast, msg, continue_execution) {
     return continue_execution
     };
     """
+
+    if cli_args.tests:
+        with open("num.js", "r") as f:
+            runtime += " " + f.read()
 
     # Modules
     if cli_args.node or cli_args.browser:
