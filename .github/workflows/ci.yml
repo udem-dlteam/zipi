@@ -43,7 +43,7 @@ jobs:
         run: ln -s ./etc/pysexp.py ./bin/pysexp.py
         if: always()
       - name: test
-        run: ./etc/
+        run: ./etc/py19 -t gambit test.py
         if: always()
       - name: Running tests
         run : make test
