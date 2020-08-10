@@ -35,6 +35,7 @@ jobs:
         run: |
           echo "::add-path::/Users/Shared/zipi/lib/python/bin"
           alias python="/Users/Shared/zipi/lib/python/bin/python3"
+          python --version
       - name: Compiling Zipi
         run: |
           ./configure --bigloolibdir=/usr/local/Cellar/bigloo/4.3e_1/lib/bigloo/4.3e/
