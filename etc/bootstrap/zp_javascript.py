@@ -1014,3 +1014,18 @@ class Transformer:
     @staticmethod
     def Mod(node):
         return "%"
+
+    def Constant(self, node):
+        value = node.value
+        if isinstance(value, str):
+            return self.to_string(value)
+        elif isinstance(value, bytes):
+            return self.to_string(value.decode('utf-8'))
+        elif value is True:
+            return "true"
+        elif value is False:
+            return "false"
+        elif value is None:
+            return "undefined"
+        else:
+            return str(value)
