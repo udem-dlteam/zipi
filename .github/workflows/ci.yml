@@ -42,6 +42,9 @@ jobs:
       - name: Relinking
         run: ln -s ./etc/pysexp.py ./bin/pysexp.py
         if: always()
+      - name: test
+        run: ./etc/
+        if: always()
       - name: Running tests
         run : make test
         if: always()
