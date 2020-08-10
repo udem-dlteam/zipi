@@ -872,11 +872,6 @@ def trampoline(execution_point):
 
             print('at '+str(ast.lineno)+'.'+str(ast.col_offset+1)+'-'+str(ast.end_lineno)+'.'+str(ast.end_col_offset+1)+msg)
 
-            if not single_step:
-                from threading import Timer
-                Timer(0.1, lambda: trampoline(execution_point)).start()
-                break
-
 
     #print('exiting trampoline')
 
@@ -1648,7 +1643,7 @@ def expr_end(ctx, val):
 def stmt_end(ctx):
     return return_to_trampoline(ctx.ast, '', lambda: ctx.cont(ctx.rte), ctx)
 
-@nocompile
+
 def return_to_trampoline(ast, msg, continue_execution, ctx):
     # return to trampoline with current execution state
     return (ast, msg, continue_execution, ctx)
