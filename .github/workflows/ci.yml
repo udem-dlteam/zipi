@@ -39,9 +39,12 @@ jobs:
         run: |
           ./configure --bigloolibdir=/usr/local/Cellar/bigloo/4.3e_1/lib/bigloo/4.3e/
           make
+      - name: Relinking
+        run: ln -s ./etc/pysexp.py ./bin/pysexp.py
+        if: failed()
       - name: Running tests
-        if: failed() || succeeded()
         run : make test
+        if: failed() || succeeded()
 
 
 #        - name: Upload Build Artifact
