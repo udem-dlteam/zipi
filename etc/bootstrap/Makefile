@@ -1,4 +1,5 @@
 TMPDIR = ./_tmpdir
+PYTHON38 = python3
 
 _tmpdir:
 	mkdir -p $(TMPDIR)
@@ -6,10 +7,15 @@ _tmpdir:
 pyinterp: test/pyinterp/pyinterp_node.js test/pyinterp/pyinterp_browser.js
 
 test/pyinterp/pyinterp_node.js: ../../parser/pyinterp.py
-	python3 zp.py -f ../../parser/pyinterp.py -n -o test/pyinterp/pyinterp_node.js
+	$(PYTHON38) zp.py -f ../../parser/pyinterp.py -n -o test/pyinterp/pyinterp_node.js
 
 test/pyinterp/pyinterp_browser.js: ../../parser/pyinterp.py
-	python3 zp.py -f ../../parser/pyinterp.py -o test/pyinterp/pyinterp_browser.js
+	$(PYTHON38) zp.py -f ../../parser/pyinterp.py -o test/pyinterp/pyinterp_browser.js
+
+.PHONY: _zparse.py
+../../parser/_zparse.py:
+	@echo "Make parser..."
+	@cd ../../parser && $(MAKE)
 
 copy_files: _tmpdir ../pyinterp.py ../../parser/_zast.py ../../parser/ztokenizer.py ../../parser/ztoken.py ../../parser/zast.py ../../parser/_zparse.py ../../parser/_runtime.py zp_unit_tests.py _unit_tests.py
 	@echo "Copying files..."
@@ -24,9 +30,9 @@ copy_files: _tmpdir ../pyinterp.py ../../parser/_zast.py ../../parser/ztokenizer
 	@cp -n ../../parser/_runtime.py $(TMPDIR)/
 
 tests: copy_files
-	python3 zp.py -f $(TMPDIR)/zp_unit_tests.py -n -o $(TMPDIR)/zp_unit_tests.js
+	$(PYTHON38) zp.py -f $(TMPDIR)/zp_unit_tests.py -n -o $(TMPDIR)/zp_unit_tests.js
 	@echo "\nRunning Python unit tests...\n"
-	@python3 $(TMPDIR)/zp_unit_tests.py >$(TMPDIR)/PY_TESTS
+	@$(PYTHON38) $(TMPDIR)/zp_unit_tests.py >$(TMPDIR)/PY_TESTS
 	@echo "Python unit test results:\n"
 	@cat "$(TMPDIR)/PY_TESTS"
 	@echo "\nRunning JS unit tests...\n"
