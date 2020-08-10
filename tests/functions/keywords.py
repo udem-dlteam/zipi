@@ -3,7 +3,8 @@ def f(x, y):
 
 f(y=2, x=1)
 f(2, y=3)
-
+f(y=42, **{'x': 0})
+f(3, **{'y': 8})
 
 def g(x, y, **kwargs):
     print(x, y, list(kwargs))
@@ -15,3 +16,21 @@ g(y=1, x=2, z=4)
 g(3, z=5, y=4, a=10)
 g(1, 2, a=1, b=2, c=3, d=4)
 g(1, 2, b=1, d=2, c=3, a=4)
+g(1, 2)
+g(1, *(2,), z=5)
+g(*(1, 2))
+g(**{'x': 1, 'y': 42})
+g(**{'x': 1, 'y': 42, 'z': 73})
+
+def h(x, y, z=10, *args, foo='foo', **kwargs):
+    print(x, y, z, args, foo, list(kwargs))
+    print(kwargs.get('x'))
+    print(kwargs.get('y'))
+    print(kwargs.get('foo'))
+    print(kwargs.get('bar'))
+
+h(1, 2, 9, 8, bar=98)
+h(1, 2, 4, bar=99)
+h(1, 8, z=4, foo=100)
+h(x=1, y=6, foo=101)
+h(1, z=2, y=9, bar='bar', baz=4200, foo=101)

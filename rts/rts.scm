@@ -803,8 +803,8 @@
             (args-w/o-defaults-length (- args-length defaults-length))
             (free-args-w/o-default-length
               (max
-                0
-                (- args-w/o-defaults-length standard-args-given-as-pos)))
+                args-w/o-defaults-length
+                (- standard-args-given-as-pos args-w/o-defaults-length)))
             (shadowed-defaults-length
               (max 0 (- standard-args-given-as-pos args-w/o-defaults-length))))
         ;; ensure there are no more positional arguments then allowed
@@ -820,20 +820,26 @@
             "pending error message (code 21)"))
 
         (let* ((free-args-w/o-default
-                (subvector
-                  args
-                  standard-args-given-as-pos
-                  args-w/o-defaults-length))
+                (if (< standard-args-given-as-pos args-w/o-defaults-length)
+                  (subvector
+                    args
+                    standard-args-given-as-pos
+                    args-w/o-defaults-length)
+                  '#()))
               (free-args-with-default
-                (subvector
-                  args
-                  free-args-w/o-default-length
-                  args-length))
+                (if (< free-args-w/o-default-length args-length)
+                  (subvector
+                    args
+                    free-args-w/o-default-length
+                    args-length)
+                  '#()))
               (free-defaults
-                (subvector
-                  defaults
-                  shadowed-defaults-length
-                  defaults-length))
+                (if (< shadowed-defaults-length defaults-length)
+                  (subvector
+                    defaults
+                    shadowed-defaults-length
+                    defaults-length)
+                  '#()))
               (caller-free-args-w/o-default
                 (,get-values (vector->list free-args-w/o-default) caller-kwargs-table))
               (caller-args-with-defaults
@@ -854,9 +860,16 @@
                       (list (py-tuple-from-scheme '#())))
                     ;; it was already checked that there is not too many args
                     '()))
+                (caller-positional-args
+                  (if (= extra-positional-args-length 0)
+                    caller-args
+                    (let loop ((i 0) (args-head caller-args) (acc '()))
+                      (if (< i max-positional-args)
+                        (loop (+ i 1) (cdr args-head) (cons (car args-head) acc))
+                        (reverse! acc)))))
                 (caller-kwarg (,get-unused-kwargs caller-kwargs-table kwarg)))
             (append
-              caller-args
+              caller-positional-args
               caller-free-args-w/o-default
               caller-args-with-defaults
               caller-vararg
@@ -877,7 +890,7 @@
 (define (align-with-signature-hashed-kwargs:get-values-or-default args-defaults kwargs-table)
   (if (null? args-defaults)
     '()
-    (let ((name (caar args-defaults))
+    (let* ((name (caar args-defaults))
           (default (cdar args-defaults))
           (value (kwargs-table-pop! kwargs-table name)))
       (cond
