@@ -52,8 +52,7 @@ jobs:
           rm ./bin/pysexp.py || echo "not found"
           ln -s ../etc/pysexp.py ./bin/pysexp.py
           echo "print(\"hello world\")" > test.py
-          ./etc/py19 -t gambit test.py > test.scm
-          gsi ./pyc/ test.scm
+          ./pyc/run-zipi test.py
           make test
         timeout-minutes: 2
         if: always()
