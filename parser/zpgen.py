@@ -528,7 +528,7 @@ def read_grammar_and_generate_parser(filename):
     tokenset_count = 0
 
     print('import sys')
-    print('from _runtime import nocompile')
+    print('from _runtime import *')
 
     if token_access == '':
         print('from ztoken import *')
@@ -573,7 +573,7 @@ def read_grammar_and_generate_parser(filename):
     print('        ' + gen_error())
     print()
     print('def ' + gen_prefix + 'syntax_error(ts):')
-    print('    if ts.context and hasattr(ts.context, "syntaxError"):')
+    print('    if ts.context and dict_has(ts.context, "syntaxError"):')
     print('        ts.context.syntaxError(' + tok_access + 'get_lineno(ts)-1, ' + tok_access + 'get_col_offset(ts), ' + tok_access + 'get_end_lineno(ts)-1, ' + tok_access + 'get_end_col_offset(ts), "invalid syntax");')
     print('        return')
     print('    line_num = ts.line_num')

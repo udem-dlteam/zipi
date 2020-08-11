@@ -158,7 +158,14 @@ function gui_wait_for_click(ast, msg, continue_execution) {
     };
 function py_tokenset() {
     return Array.prototype.slice.call(arguments, py_tokenset.length);
+    };
+function dict_has(d, a) {
+    if (Object.prototype.hasOwnProperty.call(d, a)) {
+    return true;
+    } else {
+    return false;
     }
+    };
     """
 
     if cli_args.tests:
