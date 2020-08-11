@@ -713,7 +713,24 @@
               (if kwarg (cons (py-make-empty-dict) '()) '()))
             (pack-extra-args (- 0 1 total-args-len) caller-args)))
         (else
-          (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 17)")))))) ;; TODO add error message
+          (if (= default-len 0)
+            (py-throw-exception-with-message
+              py-builtin-TypeError
+              "function takes "
+              (number->string total-args-len)
+              " arguments but "
+              (number->string caller-args-len)
+              " were given")
+            (let ((min-pos-arguments (- total-args-len default-len)))
+              (py-throw-exception-with-message
+                py-builtin-TypeError
+                "function takes from "
+                (number->string min-pos-arguments)
+                " to "
+                (number->string total-args-len)
+                " arguments but "
+                (number->string caller-args-len)
+                " were given"))))))))
 
 (define (py-call-hashed-kwargs obj args *args-lst kwargs-table)
   (let ((obj-type (py-type obj)))
