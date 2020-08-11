@@ -128,7 +128,7 @@ def encode_STRING(ts):
     elif bs_unquoted == b'TYPE_COMMENT':
         return token.TYPE_COMMENT
     else:
-        ts = tok.TokenizerState(bs_unquoted)
+        ts = tok.TokenizerState(bs_unquoted, False)
         tok.get_token(ts)
         if ts.token == token.NAME:
             return bs_unquoted.decode('utf-8')
@@ -410,7 +410,7 @@ def read_grammar(filename):
 
     tok.init_stats()
 
-    current_ts = tok.TokenizerState(content)
+    current_ts = tok.TokenizerState(content, False)
     advance(current_ts)
 
     rules = parse_grammar(current_ts)
@@ -505,9 +505,12 @@ def samp(x):
     else:
         fatal_error('unhandled syntax form')
 
+tokenset_dict = {}
+tokenset_count = 0
+
 def read_grammar_and_generate_parser(filename):
 
-    global actions, gen_prefix, gen_parse_prefix
+    global actions, gen_prefix, gen_parse_prefix, tokenset_dict, tokenset_count
 
     read_grammar(filename)
 
@@ -521,8 +524,11 @@ def read_grammar_and_generate_parser(filename):
 
     setup_first_nt(rules)
 
+    tokenset_dict = {}
+    tokenset_count = 0
 
     print('import sys')
+    print('from _runtime import nocompile')
 
     if token_access == '':
         print('from ztoken import *')
@@ -540,9 +546,16 @@ def read_grammar_and_generate_parser(filename):
     start_fn_name, f = generate_parse_functions()
 
     print()
+    print('@nocompile')
+    print('def ' + gen_prefix + 'tokenset(*elements):')
+    print('    return elements')
+    print()
+
+    for s in tokenset_dict:
+        print(tokenset_dict[s] + ' = ' + tokenset_construct(s))
 
     print()
-    print('def ' + gen_prefix + 'parse(source):')
+    print('def ' + gen_prefix + 'parse(source, context):')
     print()
     print('    # filename = "<unknown>"')
     print('    # mode = "exec"')
@@ -550,7 +563,7 @@ def read_grammar_and_generate_parser(filename):
     print('    # feature_version = None')
     print()
     print('    init_stats()')
-    print('    ts = ' + tok_access + 'TokenizerState(source)')
+    print('    ts = ' + tok_access + 'TokenizerState(source, context)')
     print('    ' + gen_prefix + 'advance(ts)')
     print()
     c, yes, no = gen_in(f, universal_set())
@@ -560,6 +573,9 @@ def read_grammar_and_generate_parser(filename):
     print('        ' + gen_error())
     print()
     print('def ' + gen_prefix + 'syntax_error(ts):')
+    print('    if ts.context and hasattr(ts.context, "syntaxError"):')
+    print('        ts.context.syntaxError(' + tok_access + 'get_lineno(ts)-1, ' + tok_access + 'get_col_offset(ts), ' + tok_access + 'get_end_lineno(ts)-1, ' + tok_access + 'get_end_col_offset(ts), "invalid syntax");')
+    print('        return')
     print('    line_num = ts.line_num')
     print('    line_start = 0')
     print('    while line_num > 0:')
@@ -580,9 +596,6 @@ def read_grammar_and_generate_parser(filename):
     print('    ts.prev_end_col_offset = ' + tok_access + 'get_end_col_offset(ts)')
     print('    ' + tok_access + 'get_token(ts)')
     print('    # ' + gen_prefix + 'show_token(ts)')
-    print()
-    print('def ' + gen_prefix + 'tokenset(*elements):')
-    print('    return elements')
     print()
     print('def ' + gen_prefix + 'show_token(ts):')
     print('    t = ts.token')
@@ -623,7 +636,7 @@ def gen_rule(nt, known):
     code = 'def ' + fn_name + '(ts' + extra_params + '):\n'
 
     if debug_level >= 2:
-        code += '    # KNOWN=' + token_set_ref(known) + '\n'
+        code += '    # KNOWN=' + token_list_ref(known) + '\n'
 
     if isinstance(rhs, Alt):
         seqs = rhs.seqs
@@ -806,7 +819,7 @@ def gen(x, known):
             build = actions.get(here,False)
             if build:
                 code += build[-1] + '\n'
-        #code = '# KNOWN=' + token_set_ref(known) + '\n' + code
+        #code = '# KNOWN=' + token_list_ref(known) + '\n' + code
         return code, k
 
     if isinstance(x, Alt):
@@ -939,7 +952,7 @@ def gen(x, known):
             build = actions.get(here,False)
             if build:
                 code += build[-1] + '\n'
-        #code = '# KNOWN=' + token_set_ref(known) + '\n' + code
+        #code = '# KNOWN=' + token_list_ref(known) + '\n' + code
         return code, k
 
     elif isinstance(x, NTerm):
@@ -958,7 +971,7 @@ def gen(x, known):
             if build:
                 code += build[-1] + '\n'
         k = universal_set() # FIXME: could be more precise about what is known
-        #code = '# KNOWN=' + token_set_ref(known) + '\n' + code
+        #code = '# KNOWN=' + token_list_ref(known) + '\n' + code
         return code, k
 
     else:
@@ -1045,17 +1058,33 @@ def token_ref(t):
     else:
         return str(t)
 
-def token_set_ref(s):
-    return gen_prefix + 'tokenset(' + ','.join(map(token_ref,s)) + ')'
+def token_list_ref(ts):
+    return ','.join(map(token_ref,ts))
+
+def tokenset_ref(s):
+    if debug_level == 0:
+        global tokenset_count
+        if s in tokenset_dict:
+            tokenset_var = tokenset_dict[s]
+        else:
+            tokenset_count += 1
+            tokenset_var = gen_prefix + 'tokenset_' + str(tokenset_count)
+            tokenset_dict[s] = tokenset_var
+        return tokenset_var
+    else:
+        return tokenset_construct(s)
+
+def tokenset_construct(s):
+    return gen_prefix + 'tokenset(' + token_list_ref(s) + ')'
 
 def indx(name, index):
     return name + str(index)
 
 def gen_membership_test(expr, s):
-    if len(s) == 1:
-        return expr + ' == ' + token_ref(tuple(s)[0])
+    if len(s) <= 2:
+        return ' or '.join(list(map(lambda x:expr+' == '+token_ref(x),s)));
     else:
-        return expr + ' in ' + token_set_ref(s)
+        return expr + ' in ' + tokenset_ref(s)
         
 def gen_in(s, known):
 

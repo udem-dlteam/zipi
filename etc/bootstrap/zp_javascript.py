@@ -3,7 +3,7 @@ import ast as AST
 
 
 class Transformer:
-    def __init__(self, transform, cps=False):
+    def __init__(self, transform, cps=False, es6_classes=False):
         self.transform = transform
         self.rootdir = ""
         self.classes = set()
@@ -13,7 +13,13 @@ class Transformer:
         # Flag to modify behavior
         self.in_class = False
         self.imports = set()
+        self.modules = []
         self.base_class = False
+        self.es6_classes = es6_classes
+        self.name_prefix = False
+        self.in_global = False
+        self.global_vars = set()
+        self.recur_FunctionDef = []
 
     def gensym(self):
         gs = "g" + str(self.counter)
@@ -21,16 +27,34 @@ class Transformer:
         return gs
 
     def get_identifier(self, node):
-        if isinstance(node, AST.FunctionDef):
-            if "nocompile" in [d.id for d in node.decorator_list]:
+        if isinstance(node, AST.FunctionDef) or isinstance(node, AST.ClassDef):
+
+            decorators = set()
+
+            for d in node.decorator_list:
+                if isinstance(d, AST.Name):
+                    decorators.add(d.id)
+                elif isinstance(d, AST.Call):
+                    decorators.add(d.func.id)
+
+            if "nocompile" in decorators:
                 return None
             else:
                 return node.name
+
         elif isinstance(node, AST.Assign):
             for t in node.targets:
                 return self.get_identifier(t)
         elif isinstance(node, AST.Name):
             return node.id
+
+    def find_class_init(self, nodes):
+        # Finds the __init__ FunctionDef in a list of class child nodes.
+        node = False
+        for n in nodes:
+            if isinstance(n, AST.FunctionDef) and n.name == "__init__":
+                node = n
+        return node
 
     @staticmethod
     def to_string(s):
@@ -73,6 +97,9 @@ class Transformer:
         def str_mult(s, n):
             return f"{self.transform(s)}.repeat({self.transform(n)})"
 
+        def concat(arr, r):
+            return f"{self.transform(arr)}.concat({self.transform(r)})"
+
         left = node.left
         op = node.op
         right = node.right
@@ -91,6 +118,11 @@ class Transformer:
                 return array_mult(arr, right)
             else:
                 raise Exception
+        elif (
+            (isinstance(left, AST.List) or isinstance(right, AST.List))
+            and isinstance(op, AST.Add)
+        ):
+            return concat(left, right)
 
         return " " + binop(op, left, right)
 
@@ -104,7 +136,7 @@ class Transformer:
         keywords = node.keywords
 
         if keywords != []:
-            raise Exception
+            raise Exception(f"Cannot emit code for Call node ({func}({args}))")
 
         if isinstance(node.func, AST.Attribute) and node.func.attr == "get":
             out = "(" + node.func.value.id + "[" + self.transform(node.args[0]) + "]"
@@ -117,7 +149,8 @@ class Transformer:
             else:
                 return args + ".charCodeAt(0)"
         elif func == "str":
-            return "String(" + args + ")"
+            # return "String(" + args + ")"
+            return f"{args}.toString()"
         elif func == "int":
             return "Number(" + args + ")"
         elif func == "repr":
@@ -134,6 +167,11 @@ class Transformer:
                 else:
                     return "[...Array(" + args + ").keys()]"
             # TODO: handle other cases!
+        elif func == "dict":
+            return "{};"
+        elif func == "set":
+            # Don't accept arguments.
+            return "new Set();"
         elif func[-14:] == "indents.append":
             return func[:-7] + ".push(" + args + ")"
         elif func == "len":
@@ -150,13 +188,19 @@ class Transformer:
             elif klass == "bytes":
                 return "(" + obj + " instanceof Uint8Array)"
             else:  # default to class
-                return "(" + obj + " instanceof " + klass + ")"
+                # return "(" + obj + " instanceof " + klass + ")"
+                if klass[:4] == "AST.":
+                    return f"({obj}.constructor.name === '{klass[4:]}')"
+                else:
+                    return f"({obj}.constructor.name === '{klass}')"
         elif func == "print":
             return "console.log(" + args + ")"
         elif func == "arguments":
             # javascript strict mode requires special handling of
             # 'eval' and 'arguments' identifiers
             func = "aarguments"
+        elif func == "object":
+            return "{}"
         elif isinstance(node.func, AST.Attribute) and node.func.attr == "encode":
             return self.transform(node.func.value)
         elif isinstance(node.func, AST.Attribute) and node.func.attr == "find":
@@ -191,16 +235,68 @@ class Transformer:
     def Name(node):
         return node.id
 
+    def TestFunctionDef(self, node):
+        decorator = node.decorator_list[0]
+        node.decorator_list = []
+        function_code = self.FunctionDef(node)
+        test_result = self.transform(decorator.args[0])
+        test_args = ",".join([self.transform(arg) for arg in decorator.args[1:]])
+
+        test_op = decorator.func.id
+
+        out = f"tests.push(function () {{"
+        # Capture console.log to variable
+        out += "var console_log = console.log;"  # First, capture current log
+        out += "var _res = '';"
+        out += "console.log = function (s) { _res += (s + '\\n') };"  # Mimic Python print
+        out += f"var res = {node.name}({test_args});"
+        out += "if (_res !== '') { res = _res; }"
+        out += "console.log = console_log;"  # Put proper log back into place
+
+        if test_op == "Equals":
+            out += f"if (res === {test_result}) {{"
+        elif test_op == "Is":
+            out += f"if (Object.is({node.name}({test_args}), {test_result})) {{"
+        elif test_op == "IsInstance":
+            out += f"if ({node.name}({test_args}) instanceof {test_result}) {{"
+
+        out += f"console.log(\"Test '{node.name}' passed.\"); return true;}}"
+        out += f"else {{"
+        out += f"console.log(\"Test '{node.name}' FAILED.\"); console.log(res); return false;}}"
+        out += f"}});"
+
+        return f"{function_code} {out}"
+
     def FunctionDef(self, node):
 
-        if "nocompile" in [d.id for d in node.decorator_list]:
+        decorators = set()
+
+        for d in node.decorator_list:
+            if isinstance(d, AST.Name):
+                decorators.add(d.id)
+            elif isinstance(d, AST.Call):
+                decorators.add(d.func.id)
+
+        if "nocompile" in decorators:
             return " "
+        elif any(d in ["Equals", "Is", "IsInstance"] for d in decorators):
+            return self.TestFunctionDef(node)
+
+        # Check if global call is present
+        for n in node.body:
+            if isinstance(n, AST.Global):
+                self.in_global = True
+
+        # Check if recursive FunctionDef
+        for n in node.body:
+            if isinstance(n, AST.FunctionDef):
+                self.recur_FunctionDef.append(0)
 
         body = "; ".join([self.transform(node) for node in node.body]) + ";"
         name = node.name
 
         # For class constructors
-        if name == "__init__":
+        if name == "__init__" and self.es6_classes:
             if node.args.args[0].arg == "self":
                 args = self.arguments(node.args, 1)
             out = " constructor(" + args + ") {"
@@ -209,6 +305,10 @@ class Transformer:
             out += " var self = this; "  # quick hack
             out += body.replace("var ", "") + "};"
             return out
+        elif name == "__init__":
+            # Noop for non-es6 classes.
+            # Body is retrieved in ClassDef.
+            return " "
         elif name == "source":
             body = "return ts.buf.slice(start, end);"
 
@@ -218,6 +318,12 @@ class Transformer:
         out = " function "
 
         out += name + "(" + args + ") { " + body + "};"
+
+        if len(self.recur_FunctionDef) == 0:
+            self.in_global = False
+
+        if len(self.recur_FunctionDef) > 0:
+            self.recur_FunctionDef.pop()
 
         return out
 
@@ -240,6 +346,7 @@ class Transformer:
     def Assign(self, node):
         # value and targets can be tuples!
         targets = node.targets
+        target = targets[0]
         value = node.value
 
         if len(targets) > 1:
@@ -267,37 +374,49 @@ class Transformer:
                     return out
                 elif y.func.id in self.classes:
                     px = self.transform(x)
-                    if self.in_class:
+                    if self.in_class or (self.in_global and (px in self.global_vars)):
                         return " " + px + " = " + py + ";"
                     else:
                         return " var " + px + " = " + py + ";"
 
             px = self.transform(x)
+
+            # Used in class constructors (prefix 'this.')
+            if self.name_prefix:
+                # Don't prefix 'self.'!
+                if px[:5] != "self.":
+                    px = self.name_prefix + px
+                elif px[:5] == "self.":
+                    px = self.name_prefix + px[5:]
+
             if isinstance(targets[0], AST.Attribute):
                 return " " + px + " = " + py + ";"
             else:
-                if self.in_class:
+                if self.in_class or (self.in_global and (px in self.global_vars)):
                     return " " + px + " = " + py + ";"
                 else:
                     return " var " + px + " = " + py + ";"
 
-        if isinstance(value, AST.Tuple) and len(targets) > 1:
-            target_elts = targets[0].elts
-            value_elts = value.elts
-            out = " ".join(
-                [define(target_elts[i], value_elts[i]) for i in range(len(target_elts))]
-            )
-        elif isinstance(value, AST.Tuple) and len(targets) == 1:
-            if self.in_class:
-                out = f"{self.transform(targets[0])} = ["
-            else:
-                out = f"var {self.transform(targets[0])} = ["
-            out += ",".join(
-                [self.transform(value.elts[i]) for i in range(len(value.elts))]
-            )
-            out += "];"
+        def define_tuples(target, value):
+            # These should be the same length
+            left = target.elts
+            right = value.elts
+            out = ""
+            if len(right) > 0:  # a, b = foo, bar
+                for i in range(len(left)):
+                    out += define(left[i], right[i])
+            else:  # a, b = ()    (or [])
+                for i in range(len(left)):
+                    out += define(left[i], value)
+            return out
+
+        # Handle 'a, b = foo, bar'
+        if isinstance(target, AST.Tuple) and (
+            isinstance(value, AST.Tuple) or isinstance(value, AST.List)
+        ):
+            out = define_tuples(target, value)
         else:
-            out = define(targets[0], value)
+            out = define(target, value)
 
         return out
 
@@ -339,7 +458,7 @@ class Transformer:
 
     def Compare(self, node):
         def compare(op, l, r):
-            if isinstance(op, AST.Is):
+            if isinstance(op, AST.Is) or isinstance(op, AST.IsNot):
                 out = (
                     self.transform(op)
                     + self.transform(l)
@@ -387,16 +506,44 @@ class Transformer:
         ops = node.ops
         comparators = node.comparators
 
-        # Special case for x in tokenset:
-        if (
-            len(ops) == 1
-            and isinstance(ops[0], AST.In)
-            and comparators[0].func.id == "py_tokenset"
-        ):
-            # [3,79,42].indexOf(x) >= 0
-            args = ",".join(self.transform(i) for i in comparators[0].args)
+        # OLD: Special case for x in tokenset:
+        # Used to be a function call
+        # if (
+        #     len(ops) == 1
+        #     and isinstance(ops[0], AST.In)
+        #     and comparators[0].func.id == "py_tokenset"
+        # ):
+        #     # [3,79,42].indexOf(x) >= 0
+        #     args = ",".join(self.transform(i) for i in comparators[0].args)
+        #     left = self.transform(left)
+        #     out = f"[{args}].indexOf({left}) >= 0"
+
+        # Special case if x in tokenset:
+        if len(ops) == 1 and isinstance(ops[0], AST.In) and comparators[0].id[:11] == "py_tokenset":
             left = self.transform(left)
-            out = f"[{args}].indexOf({left}) >= 0"
+            out = f"{comparators[0].id}.indexOf({left}) >= 0"
+        # Special case 'if foo is (not) absent'
+        elif (
+            len(comparators) == 1
+            and len(ops) == 1
+            and (isinstance(ops[0], AST.Is) or isinstance(ops[0], AST.IsNot))
+            and (
+                (isinstance(comparators[0], AST.Name) and comparators[0].id == "absent")
+                or (
+                    isinstance(comparators[0], AST.NameConstant)
+                    and comparators[0].value == "absent"
+                )
+            )
+        ):
+            # isEmpty is provided by the runtime
+            left = self.transform(left)
+            if isinstance(ops[0], AST.IsNot):
+                # out = f"!isEmpty({left})"
+                out = f"!({left} === absent)"
+            else:
+                # out = f"isEmpty({left})"
+                out = f"({left} === absent)"
+            return out
         # there can be more than one comparator, in which case we 'and'
         elif len(ops) > 1:
             if isinstance(left, AST.Call) and left.func.id == "type":
@@ -422,6 +569,10 @@ class Transformer:
     def Is(node):
         return "Object.is("
 
+    @staticmethod
+    def IsNot(node):
+        return "!Object.is("
+
     def Subscript(self, node):
         value = self.transform(node.value)
         _slice = self.transform(node.slice)
@@ -442,6 +593,17 @@ class Transformer:
         lower = self.transform(node.lower)
         upper = self.transform(node.upper)
         step = self.transform(node.step)  # ignored
+
+        # Cast "\"None\"" to None (output from Name node)
+        if lower == "\"None\"":
+            lower = None
+
+        if upper == "\"None\"":
+            upper = None
+
+        if step == "\"None\"":
+            step = None
+
         if lower is not None and upper is not None:
             return ", ".join([lower, upper])
         elif lower is not None:
@@ -469,8 +631,11 @@ class Transformer:
         )
 
     def List(self, node):
-        elts = ", ".join([self.transform(e) for e in node.elts])
-        return "[" + elts + "]"
+        if len(node.elts) == 0:
+            return "[]"
+        else:
+            elts = ", ".join([self.transform(e) for e in node.elts])
+            return f"[{elts}]"
 
     @staticmethod
     def Mult(node):
@@ -528,13 +693,12 @@ class Transformer:
             out += body + "}"
             return out
 
-        out = " for (const " + gs + " in " + _iter + ") {" + body + "};"
+        out = " for (const " + gs + " of " + _iter + ") {" + body + "};"
 
         return out
 
     def ClassDef(self, node):
         # ('name', 'bases', 'keywords', 'body', 'decorator_list')
-        self.in_class = True
 
         # Handle inheritance
         if len(node.bases) > 1:
@@ -548,18 +712,68 @@ class Transformer:
         if name == "arguments":
             name = "aarguments"
 
-        body = "; ".join([self.transform(node) for node in node.body]) + ";"
-        bases = node.bases  # TODO: implement (multiple) inheritance
-        keywords = node.keywords  # ignored
-        decorator_list = node.decorator_list  # ignored
+        self.in_class = True
 
         # store class name for future reference when instantiating
         self.classes.add(name)
 
-        if self.base_class:
-            out = f"class {name} extends {self.base_class} {{ {body} }}"
+        if self.es6_classes:
+            body = "; ".join([self.transform(node) for node in node.body]) + ";"
+            if self.base_class:
+                out = f"class {name} extends {self.base_class} {{ {body} }}"
+            else:
+                out = f"class {name} {{ {body} }}"
         else:
-            out = f"class {name} {{ {body} }}"
+            # First, look for __init__:
+            __init__ = self.find_class_init(node.body)
+
+            # Get the body of the constructor
+            if __init__:
+                self.name_prefix = "this."
+                constructor_body = (
+                    "; ".join([self.transform(node) for node in __init__.body]) + ";"
+                )
+                self.name_prefix = False
+
+                # Get the constructor arguments:
+                if __init__.args.args[0].arg == "self":
+                    constructor_args = self.arguments(__init__.args, 1)
+                else:
+                    constructor_args = self.transform(__init__.args)
+
+                out = f"function {name} ({constructor_args}) {{ {constructor_body}"
+            else:
+                out = f"function {name} () {{ var self = this;"
+
+            # Add all class variables to constructor
+            self.name_prefix = "this."
+            class_vars = "; ".join(
+                [self.transform(n) for n in node.body if isinstance(n, AST.Assign)]
+            )
+            out += f" {class_vars} }};"
+            self.name_prefix = False
+
+            # Add all methods to the prototype
+            for n in node.body:
+                if isinstance(n, AST.FunctionDef):
+                    if n.name == "__init__":
+                        pass
+                    else:
+
+                        _body = "; ".join([self.transform(node) for node in n.body]) + ";"
+                        _name = n.name
+
+                        # Skip zeroth 'self' argument
+                        if n.args.args[0].arg == "self":
+                            _args = self.arguments(n.args, 1)
+
+                        out += f"{name}.prototype.{_name} = function ({_args})"
+                        out += f"{{ {_body} }};"
+
+            # Handle inheritance
+            if self.base_class:
+                out += f"{name}.prototype = Object.create({self.base_class}.prototype);"
+                out += f"{name}.prototype.constructor = {name};"
 
         self.in_class = False
         self.base_class = False
@@ -594,7 +808,7 @@ class Transformer:
         elif val is False:
             return "false"
         elif val is None:
-            return "null"
+            return "undefined"
         else:
             return str(node.value)
 
@@ -651,16 +865,20 @@ class Transformer:
 
     @staticmethod
     def Pass(node):
-        return "{};"
+        # return "{};"
+        return "/* pass */"
 
     def ImportFrom(self, node):
-        if node.module in self.imports:
-            return " "
+        # if node.module in self.imports:
+        #     return " "
 
         # Handling of 'from x import *'
         # Since everything is top-level, we can jut prepend all the code
         # i.e. recursively compile:
         module = node.module
+        if module in ["sys", "argparse", "_runtime"]:
+            return " "
+
         self.imports.add(node.module)
         module_file = self.rootdir + "/" + module + ".py"
 
@@ -674,20 +892,34 @@ class Transformer:
 
     def Global(self, node):
         # assume a noop, onus on programmer + "use strict";
+        for n in node.names:
+            self.global_vars.add(n)
         return ""
 
     def Import(self, node):
-        imports = [self.transform(n) for n in node.names]
+        imports = [
+            self._alias(n) if isinstance(n, AST.alias) else self.transform(n)
+            for n in node.names
+        ]
         # Can return multiple imports 'import foo, bar, baz'
         modules = ""
 
         for module in imports:
-            if module == "sys":
-                return " "
-            elif module in self.imports:
-                return " "
 
-            module_code = f"var {module} = (function () {{"
+            # import foo as FOO, see 'alias' node
+            if isinstance(module, tuple):
+                module, asname = module
+            else:
+                asname = module
+
+            # Don't import some modules
+            if module in ["sys", "argparse", "_runtime"]:
+                return " "
+            # And don't reimport them
+            # elif module in self.imports:
+            #     return " "
+
+            module_code = f"var {asname} = (function () {{"
             self.imports.add(module)
             module_file = self.rootdir + "/" + module + ".py"
 
@@ -699,6 +931,7 @@ class Transformer:
             module_code = re.sub(r"(;)\1+", r"\1", module_code)
             # Get all top-level definitions and export them
             ids = [self.get_identifier(n) for n in _ast.body]
+            ids = [i for i in ids if i is not None]
             exports = "return {"
             for id in ids[:-1]:
                 exports += f"{id}:{id},"
@@ -709,11 +942,11 @@ class Transformer:
 
         return modules
 
-    def alias(self, node):
+    def _alias(self, node):
         name = node.name
         asname = node.asname
         if asname:
-            return asname
+            return (name, asname)
         else:
             return name
 
@@ -746,8 +979,12 @@ class Transformer:
         # We will limit ourselves to relatively simple exceptions.
         # We will take 'raise Exception(foo)' and turn it into
         # throw foo;
-        args = self.transform(node.exc.args)
-        return f"throw ({args});"
+        if isinstance(node.exc, AST.Name):
+            exc = self.transform(node.exc)
+            return f"throw ({exc});"
+        else:
+            args = self.transform(node.exc.args)
+            return f"throw ({args});"
 
     def Try(self, node):
         # ('body', 'handlers', 'orelse', 'finalbody')
@@ -758,3 +995,43 @@ class Transformer:
         )
         out = f"try {{try_body}} catch(err){{catch_body}};"
         return out
+
+    def Assert(self, node):
+        # if (!cond) { throw msg; }
+        test = self.transform(node.test)
+        msg = self.transform(node.msg)
+        return f"console.assert({test}, {msg});"
+        # return f"if (!{test}) {{ throw ({msg}); }}"
+
+    # def JoinedStr(self, node):
+    #     print(node._lineno)
+    #     raise Exception
+
+    def Lambda(self, node):
+        # args = ', '.join([self.transform(a) for a in node.args])
+        args = self.transform(node.args)
+        body = self.transform(node.body)
+        return f"(function ({args}) {{ return ({body}); }})"
+
+    @staticmethod
+    def Div(node):
+        return "/"
+
+    @staticmethod
+    def Mod(node):
+        return "%"
+
+    def Constant(self, node):
+        value = node.value
+        if isinstance(value, str):
+            return self.to_string(value)
+        elif isinstance(value, bytes):
+            return self.to_string(value.decode('utf-8'))
+        elif value is True:
+            return "true"
+        elif value is False:
+            return "false"
+        elif value is None:
+            return "undefined"
+        else:
+            return str(value)

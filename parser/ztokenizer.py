@@ -1,4 +1,5 @@
 from ztoken import *
+from _runtime import dict_get
 
 #------------------------------------------------------------------------------
 
@@ -368,7 +369,7 @@ char_kind = make_char_kind()
 
 class TokenizerState:
 
-    def __init__(self, buf):
+    def __init__(self, buf, context):
         self.buf = append_eol(buf)  # add sentinel
         self.buf_len = len(buf)
         self.start = 0
@@ -380,6 +381,7 @@ class TokenizerState:
         self.indents = [0]
         self.dedents = 0
         self.python = 2
+        self.context = context
 
 def get_lineno(ts):
     return ts.line_num
@@ -499,7 +501,7 @@ def get_token(ts):
 
             if ts.indents[i] < col:
                 ts.indents.append(col)
-                ts.start = pos-1
+                ts.start = ts.line_start;
                 ts.end = pos-1
                 ts.token = INDENT
                 return
@@ -512,13 +514,14 @@ def get_token(ts):
                     i -= 1
 
                 if ts.indents[i-1] != col:
-                    print('inconsistent dedent')
+                    ts.start = ts.line_start;
+                    ts.end = pos-1
                     ts.token = ERRORTOKEN
                     return
 
                 ts.indents = ts.indents[:i]
                 ts.dedents = n-i-1
-                ts.start = pos-1
+                ts.start = ts.line_start;
                 ts.end = pos-1
                 ts.token = DEDENT
                 return
@@ -607,7 +610,7 @@ def get_token(ts):
 
             inc_found(KIND_NAME) # .4436
             ts.end = pos
-            ts.token = kw.get(source(ts, ts.start, ts.end), NAME)
+            ts.token = dict_get(kw, source(ts, ts.start, ts.end), NAME)
             return
 
         # check for simple single char token, such as parentheses, comma and ~

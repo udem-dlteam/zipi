@@ -24,7 +24,16 @@ parser.add_argument(
     default=True,
 )
 parser.add_argument(
+    "-es6",
+    "--es6-classes",
+    action="store_true",
+    help="compile to ES6 classes (default False)",
+)
+parser.add_argument(
     "-d", "--debug", action="store_true", help="add debug information (default False)"
+)
+parser.add_argument(
+    "-t", "--tests", action="store_true", help="include extended runtime for tests (default False)"
 )
 cli_args = parser.parse_args()
 
@@ -106,7 +115,7 @@ def to_string(node):
     return '"' + str(node).encode("unicode-escape").decode().replace('"', '\\"') + '"'
 
 
-backend = JS(transform)  # Current default
+backend = JS(transform, es6_classes=cli_args.es6_classes)
 
 
 def compile_file(input_file):
@@ -126,26 +135,54 @@ def compile_file(input_file):
     _ast = ast.parse(source)
     target_code = transform(_ast)
 
+    # Runtime
+    runtime = """
+String.prototype.lstrip = function () { return this.replace(/^\s+/g, ''); };
+function isEmpty(obj) {
+    if (obj === absent) { return true; } else { return false; }
+};
+function make_dict() { return {}; };
+function dict_get(d, key, _default) {
+    if (Object.prototype.hasOwnProperty.call(d, key)) {
+    return d[key];
+    } else {
+    return _default;
+    }
+    };
+function dict_set(d, key, value) {
+    d[key] = value;
+    };
+function gui_wait_for_click(ast, msg, continue_execution) {
+    console.log('at '+ast.lineno+'.'+(ast.col_offset+1)+'-'+ast.end_lineno+'.'+(ast.end_col_offset+1)+msg)
+    return continue_execution
+    };
+function py_tokenset() {
+    return Array.prototype.slice.call(arguments, py_tokenset.length);
+    }
+    """
+
+    if cli_args.tests:
+        with open("num.js", "r") as f:
+            runtime += " " + f.read()
+
     # Modules
     if cli_args.node or cli_args.browser:
-        module = f"var {Path(input_file).name[:-3]} = (function () {{ "
+        module = f"var {Path(input_file).name[:-3]} = (function () {{ {runtime} "
     else:
-        module = " "
+        module = "{runtime} "
 
     ids = [backend.get_identifier(n) for n in _ast.body]
     ids = [i for i in ids if i is not None]
-    exports = "return {"
-    for id in ids[:-1]:
-        exports += f"{id}:{id},"
-    exports += f"{ids[-1]}:{ids[-1]} }}"
-
-    # Runtime
-    runtime = (
-        "String.prototype.lstrip = function () { return this.replace(/^\s+/g, ''); };"
-    )
+    if len(ids) > 0:
+        exports = "return {"
+        for id in ids[:-1]:
+            exports += f"{id}:{id},"
+        exports += f"{ids[-1]}:{ids[-1]} }}"
+    else:
+        exports = ""
 
     # Build the target code
-    target_code = runtime + module + target_code
+    target_code = module + target_code
     target_code = re.sub(r"(;)\1+", r"\1", target_code)
     target_code = '"use strict"; ' + target_code
 
