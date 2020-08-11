@@ -48,7 +48,7 @@ jobs:
         run: |
           cd zipi
           rm ./bin/pysexp.py || echo "not found"
-          ln -s ./etc/pysexp.py ./bin/pysexp.py
+          ln -s ../etc/pysexp.py ./bin/pysexp.py
           ./etc/py19 -t gambit test.py
           make test
         timeout-minutes: 2
