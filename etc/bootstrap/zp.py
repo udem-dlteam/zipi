@@ -156,6 +156,9 @@ function gui_wait_for_click(ast, msg, continue_execution) {
     console.log('at '+ast.lineno+'.'+(ast.col_offset+1)+'-'+ast.end_lineno+'.'+(ast.end_col_offset+1)+msg)
     return continue_execution
     };
+function py_tokenset() {
+    return Array.prototype.slice.call(arguments, py_tokenset.length);
+    }
     """
 
     if cli_args.tests:

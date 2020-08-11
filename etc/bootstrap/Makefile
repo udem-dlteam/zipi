@@ -1,10 +1,11 @@
 TMPDIR = ./_tmpdir
 PYTHON38 = python3
+ZP_DEBUG =
 
 _tmpdir:
 	mkdir -p $(TMPDIR)
 
-.PHONY: _zparse.py
+.PHONY: ../../parser/_zparse.py
 ../../parser/_zparse.py:
 	@echo "Make parser..."
 	@cd ../../parser && $(MAKE)
@@ -21,8 +22,13 @@ copy_files: _tmpdir ../pyinterp.py ../../parser/_zast.py ../../parser/ztokenizer
 	cp -n ../../parser/_zparse.py $(TMPDIR)/
 	cp -n ../../parser/_runtime.py $(TMPDIR)/
 
+pyinterp: copy_files
+	$(PYTHON38) zp.py -f $(TMPDIR)/pyinterp.py $(ZP_DEBUG) -o $(TMPDIR)/pyinterp.js
+	$(PYTHON38) zp.py -f $(TMPDIR)/pyinterp.py $(ZP_DEBUG) -t -o $(TMPDIR)/pyinterp_browser.js
+	$(PYTHON38) zp.py -f $(TMPDIR)/pyinterp.py $(ZP_DEBUG) -n -t -o $(TMPDIR)/pyinterp_node.js
+
 tests: copy_files
-	$(PYTHON38) zp.py -f $(TMPDIR)/zp_unit_tests.py -n -t -o $(TMPDIR)/zp_unit_tests.js
+	$(PYTHON38) zp.py -f $(TMPDIR)/zp_unit_tests.py $(ZP_DEBUG) -n -t -o $(TMPDIR)/zp_unit_tests.js
 	@echo "\nRunning Python unit tests...\n"
 	$(PYTHON38) $(TMPDIR)/zp_unit_tests.py >$(TMPDIR)/PY_TESTS
 	@echo "Python unit test results:\n"
