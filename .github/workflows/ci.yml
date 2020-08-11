@@ -49,6 +49,9 @@ jobs:
           cd zipi
           rm ./bin/pysexp.py || echo "not found"
           ln -s ../etc/pysexp.py ./bin/pysexp.py
+          cd stdlib
+          make -f Makefile.gambit
+          cd ..
           ./etc/py19 -t gambit test.py
           make test
         timeout-minutes: 2
