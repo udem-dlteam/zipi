@@ -103,7 +103,6 @@ at 3.1-3.4: value = <function object>
 at 3.5-3.7: value = 10
 at 2.10-2.11: value = 10
 at 3.1-3.8: value = 10
-done!
 """)
 def test_pyinterp():
     source = "def foo(x):\n  return x\nfoo(10)"
