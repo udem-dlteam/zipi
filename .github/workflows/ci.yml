@@ -52,7 +52,7 @@ jobs:
           cd stdlib
           make -f Makefile.gambit
           cd ..
-          echo "print(\"hello world\")"
+          echo "print(\"hello world\")" > test.py
           ./etc/py19 -t gambit test.py > test.scm
           gsi ./pyc/ test.scm
           make test
