@@ -71,14 +71,7 @@ def rte_ctrl_env(rte):
 def rte_lookup_globals(rte, name):
     env = rte_globals(rte)
     result = dict_get(env, name, absent)
-    if result is absent:
-        return rte_lookup_builtins(rte, name)
-    else:
-        return result
-
-def rte_lookup_builtins(rte, name):
-    env = rte_builtins(rte)
-    return dict_get(env, name, absent)
+    return result
 
 def rte_lookup(rte, name):
     env = rte_locals(rte)
@@ -369,6 +362,16 @@ def populate_builtin_tuple():
 
     class_set__mro__(class_tuple, [class_tuple, class_object])
 
+def populate_builtin_dict():
+    fields = om_rawget(class_dict, 'attribs')
+    class_set__mro__(class_dict, [class_dict, class_object])
+
+def populate_builtin_module():
+    fields = om_rawget(class_module, 'attribs')
+    builtin_add_method(fields, '__getattribute__', om_module_getattribute)
+    builtin_add_method(fields, '__repr__', om_module_repr)
+    class_set__mro__(class_module, [class_module, class_object])
+
 def populate_builtin_NoneType():
     # TODO: add all other methods
     fields = om_rawget(class_NoneType, 'attribs')
@@ -417,9 +420,21 @@ def om_boxval(cls, val):
     om_rawset(obj, '**value**', val)
     return obj
 
+def om_module(name, val):
+    obj = om(class_module)
+
+    dict_set(val, '__name__', om_str(name))
+
+    fields = om_rawget(obj, 'attribs')
+    fields_set(fields, '__dict__', om_dict(val))
+    return obj
+
+def om_dict(val):
+    # assert isinstance(val, dict), 'om_dict expected dict'
+    return om_boxval(class_dict, val)
+
 def om_str(val):
-    if not isinstance(val, str):
-        raise ValueError('expected str')
+    # assert isinstance(val, str), 'om_str expected str'
     return om_boxval(class_str, val)
 
 def om_int(val):
@@ -851,6 +866,46 @@ def om_str_str(ctx, args):
     self = args[0]
     return ctx.cont(ctx.rte, self)
 
+# class_dict methods
+
+# class_module methods
+def om_module_getattribute(ctx, args):
+    if debug: print('module.__getattribute__')
+    self = args[0]
+    name = args[1]
+
+    # XXX: name must be str
+    name_unbox = om_rawget(name, '**value**')
+
+    fields = om_rawget(self, 'attribs')
+    fields_dict = fields_get(fields, '__dict__')
+    fields_dict_unbox = om_rawget(fields_dict, '**value**')
+    result = dict_get(fields_dict_unbox, name_unbox, absent)
+    if result is absent:
+        return om_object_getattribute(ctx, args)
+    else:
+        return expr_end(ctx, result)
+
+def om_module_repr(ctx, args):
+    if debug: print('module.__repr__')
+    self = args[0]
+
+    fields = om_rawget(self, 'attribs')
+    self_dict = fields_get(fields, '__dict__')
+    self_dict_unbox = om_rawget(self_dict, '**value**')
+
+    name = dict_get(self_dict_unbox, '__name__', absent)
+    # assert name is not absent, 'internal error'
+    name_unbox = om_rawget(name, '**value**')
+
+    env_builtins = rte_builtins(ctx.rte)
+    if om_is(self_dict_unbox, env_builtins):
+        result = om_str("<module '" + name_unbox +"' (built-in)>")
+    else:
+        result = om_str("<module '" + name_unbox +"'>")
+
+    return ctx.cont(ctx.rte, result)
+
 
 # class_NoneType methods
 def om_NoneType_bool(ctx, val):
@@ -941,6 +996,7 @@ class_NoneType = make_builtin_class('NoneType', class_type)
 
 class_tuple = make_builtin_class('tuple', class_type)
 class_list = make_builtin_class('list', class_type)
+class_dict = make_builtin_class('dict', class_type)
 class_module = make_builtin_class('module', class_type)
 class_function = make_builtin_class('function', class_type)
 
@@ -962,6 +1018,8 @@ populate_builtin_int()
 populate_builtin_bool()
 populate_builtin_str()
 populate_builtin_tuple()
+populate_builtin_dict()
+populate_builtin_module()
 populate_builtin_NoneType()
 populate_builtin_FunctionType() # type function
 # TODO: populate other builtin classes
@@ -1028,6 +1086,8 @@ def fresh_rte():
     dict_set(builtins_env, 'NotImplemented', om_NotImplemented)
     dict_set(builtins_env, 'print', om_print)
 
+    dict_set(globals_env, '__name__', om_str('__main__'))
+    dict_set(globals_env, '__builtins__', om_module('builtins', builtins_env))
     return rte
 
 def trampoline(execution_point):
@@ -1797,8 +1857,12 @@ def sem_var_set(ctx, id, val):
 
 def sem_var_get(ctx, id):
     result = rte_lookup(ctx.rte, id)
-    assert result is not absent, 'variable '+id+' not found'
-    return expr_end(ctx, result)
+    if result is absent:
+        env_builtins = rte_lookup(ctx.rte, '__builtins__')
+        ## TODO: need to setup exceptions
+        return sem_getattribute(ctx, [env_builtins, om_str(id)])
+    else:
+        return expr_end(ctx, result)
 
 def sem_bool(ctx, val):
     __val_bool__ = getattribute_from_obj_mro(val, '__bool__')
