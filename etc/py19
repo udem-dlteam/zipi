@@ -7,7 +7,7 @@ BIN_DIR="$SCRIPT_DIR/../bin"
 RTS_DIR="$SCRIPT_DIR/../rts"
 ZPC_DIR="$SCRIPT_DIR/../zpc"
 PYC_DIR="$SCRIPT_DIR/../pyc"
-if [ "$GAMBIT_DIR" == "" ]; then
+if [ -z "$GAMBIT_DIR" ]; then
     GAMBIT_DIR="/usr/local/Gambit"
 fi
 
