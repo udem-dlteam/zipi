@@ -50,7 +50,7 @@ jobs:
           ln -s ./etc/pysexp.py ./bin/pysexp.py
           ./etc/py19 -t gambit test.py
           make test
-        timeout-minute: 2
+        timeout-minutes: 2
         if: always()
 
 
