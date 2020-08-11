@@ -629,7 +629,12 @@
             ((PyObjectFunction-procedure fun)
               (py-tuple-from-scheme '#())))
           (else
-            (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 15)")))) ;; TODO add error message)))
+            (let ((min-pos-arguments (if (< arity 0) (- 0 arity 1) arity)))
+              (py-throw-exception-with-message
+                py-builtin-TypeError
+                "function takes "
+                (number->string min-pos-arguments)
+                " positional arguments but 0 were given")))))
       (py-call-generic fun '()))))
 
 (define-all-py-callX)
