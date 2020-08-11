@@ -732,7 +732,7 @@
             (cons (cons next-key (py-getitem obj next-key #f)) acc)
             (py-next keys-iterator)))
         ((not next-key)
-          acc)
+          (reverse! acc))
         (else
           (py-throw-exception-with-message
             py-builtin-TypeError
@@ -917,9 +917,10 @@
       (list (py-dict-from-scheme unused-kwargs))
       (if (null? unused-kwargs)
         '()
-        (py-throw-exception-with-message
-          py-builtin-TypeError
-          "pending error message (code 20)")))))
+        (let ((unknown-keyword (str-force! (caar unused-kwargs))))
+          (py-throw-exception-with-message
+            py-builtin-TypeError
+            "got an unexpected keyword argument '" unknown-keyword "'"))))))
 
 (define-signature-aligner
   align-with-signature/hashed-kwargs
@@ -959,9 +960,10 @@
     (list (py-dict-alloc unused-kwargs))
     (if (= (ordered-table-length unused-kwargs) 0)
       '()
-      (py-throw-exception-with-message
-        py-builtin-TypeError
-        "pending error message (code 32)"))))
+      (let ((unknown-keyword (str-force! (ordered-table-first-key unused-kwargs))))
+        (py-throw-exception-with-message
+          py-builtin-TypeError
+          "got an unexpected keyword argument '" unknown-keyword "'")))))
 
 (define-signature-aligner
   align-with-signature/kwargs-ordered-table
@@ -4917,6 +4919,11 @@
     (integer-length (ceiling (/ len table-full-ratio)))))
 
 (define-type ordered-table table length first last iterator-token)
+
+(define (ordered-table-first-key ot)
+  (dict-cell-key
+    (doubly-linked-list-node-value
+      (ordered-table-first ot))))
 
 (define (ordered-table->list ordered-table)
   (let ((first (ordered-table-first ordered-table)))
