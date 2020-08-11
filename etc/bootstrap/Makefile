@@ -26,6 +26,7 @@ pyinterp: copy_files
 	$(PYTHON38) zp.py -f $(TMPDIR)/pyinterp.py $(ZP_DEBUG) -o $(TMPDIR)/pyinterp.js
 	$(PYTHON38) zp.py -f $(TMPDIR)/pyinterp.py $(ZP_DEBUG) -t -o $(TMPDIR)/pyinterp_browser.js
 	$(PYTHON38) zp.py -f $(TMPDIR)/pyinterp.py $(ZP_DEBUG) -n -t -o $(TMPDIR)/pyinterp_node.js
+	cp $(TMPDIR)/pyinterp_browser.js test/pyinterp/
 
 tests: copy_files
 	$(PYTHON38) zp.py -f $(TMPDIR)/zp_unit_tests.py $(ZP_DEBUG) -n -t -o $(TMPDIR)/zp_unit_tests.js
