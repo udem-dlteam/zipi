@@ -44,16 +44,12 @@ jobs:
           cd zipi
           ./configure --bigloolibdir=/usr/local/Cellar/bigloo/4.3e_1/lib/bigloo/4.3e/
           make
-      - name: Relinking
+      - name: Test
         run: |
           cd zipi
           ln -s ./etc/pysexp.py ./bin/pysexp.py
-        if: always()
-      - name: test
-        run: ./etc/py19 -t gambit test.py
-        if: always()
-      - name: Running tests
-        run : make test
+          ./etc/py19 -t gambit test.py
+          make test
         if: always()
 
 
