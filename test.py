@@ -1,1 +1,1 @@
-(1).__class__
+print("hello world")
