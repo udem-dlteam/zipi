@@ -32,16 +32,16 @@ jobs:
           tar zxvf gambit-macos-x86_64.tgz
           echo "::add-path::$(pwd)/bin"
           echo "::set-env name=GAMBIT_DIR::$(pwd)"
-      - name: setup python
+      - name: setup python and env
         run: |
           echo "::add-path::/Users/Shared/zipi/lib/python/bin"
-      - name: setup env
-        run: |
           echo "::set-env name=ZIPIROOT::$(pwd)"
           echo "::set-env name=GAMBOPT::~~zipicache=$(pwd)/.zipicache,search=$(pwd)/.."
       - run: python --version
       - name: Compiling Zipi
         run: |
+          echo $(pwd)
+          cd zipi
           ./configure --bigloolibdir=/usr/local/Cellar/bigloo/4.3e_1/lib/bigloo/4.3e/
           make
       - name: Relinking
