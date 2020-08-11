@@ -52,7 +52,8 @@ jobs:
           cd stdlib
           make -f Makefile.gambit
           cd ..
-          ./etc/py19 -t gambit test.py
+          ./etc/py19 -t gambit test.py > test.scm
+          gsi ./pyc/ test.scm
           make test
         timeout-minutes: 2
         if: always()
