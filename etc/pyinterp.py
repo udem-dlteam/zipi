@@ -497,19 +497,23 @@ def om_type_getattribute(ctx, args):
     name = args[1]
 
     name_unbox = om_rawget(name, '**value**')
-    public_fields = om_rawget(self, 'attribs')
-
-    # Get field name
-    attr = getattribute_from_class_mro(self, name_unbox)
-    if attr is absent:
-        assert False, "'object' object has no attribute '"+name_unbox+"'"
-
-    # attr.__get__
-    attr__get__ = getattribute_from_obj_mro(attr, '__get__')
-    if attr__get__ is absent:
-        return expr_end(ctx, attr)
+    if name_unbox == '__class__':
+        result = object_class(self)
+        return expr_end(ctx, result)
     else:
-        return om_call(attr__get__, ctx, [attr, om_None, self])
+        public_fields = om_rawget(self, 'attribs')
+
+        # Get field name
+        attr = getattribute_from_class_mro(self, name_unbox)
+        if attr is absent:
+            assert False, "'type' object has no attribute '"+name_unbox+"'"
+
+        # attr.__get__
+        attr__get__ = getattribute_from_obj_mro(attr, '__get__')
+        if attr__get__ is absent:
+            return expr_end(ctx, attr)
+        else:
+            return om_call(attr__get__, ctx, [attr, om_None, self])
 
 def om_type_repr(ctx, args):
     self = args[0]
@@ -617,8 +621,8 @@ def om_object_getattribute(ctx, args):
     self = args[0]
     name = args[1]
 
-    dt = om_rawget(self, '__class__')
-    assert dt is not class_str, \
+    dt = object_class(name)
+    assert dt is class_str, \
             "TypeError: attribute name must be string, not 'typeof(name)'"
 
     name_unbox = om_rawget(name, '**value**')
