@@ -59,82 +59,66 @@
 ;;==============================================================================
 
 (define-macro (call-host signature . args)
-  (let ((type-table ; "any" must be first 
-                    ;   and match every unknown type-instance
-          '(("any" . (object-scheme-value-fast-get 
-                     . (lambda (val) 
-                         (py-obj-alloc-with-value 
-                           py-object-class
-                           py-object-hclass-of-instances
-                           val))))
-            ("int" . (PyObjectInt-value . py-int-from-scheme))
-            ("float" . (PyObjectFloat-value . py-float-from-scheme))
-            ("complex" . (PyObjectComplex-value . py-complex-from-scheme)))))
+  (define (last-index-of str sep)
+    (let loop ((i (fx- (string-length str) 1)))
+      (if (fx< i 0)
+          -1
+          (if (char=? (string-ref str i) sep)
+              i
+              (loop (fx- i 1))))))
 
-    (let* ((signature-types+head
-             (let loop ((acc     '())
-                        (acc-res '())
-                        (signature (string->list signature)))
-               (if (null? signature)
-                   (cons (list->string (reverse acc))
-                         acc-res)
-                   (let ((char (car signature)))
-                     (cond ((char=? char #\-)
-                            (loop '() 
-                                  (cons (list->string (reverse acc))
-                                        acc-res)
-                                  (cddr signature)))
-                           ((and (null? acc-res) 
-                                 (char=? char #\:))
-                            (loop '()
-                                  (cons (list->string (reverse acc) )
-                                        acc-res)
-                                  (cdr signature)))
-                           (else
-                            (loop (cons char acc)
-                                  acc-res
-                                  (cdr signature))))))))
-  
-            (output-type (let ((ares (assoc (car signature-types+head)
-                                            type-table
-                                            string-ci=?)))
-                           (if (not ares)
-                               (cddar type-table)
-                               (cddr ares))))
-            (signature-head+arg-types (reverse (cdr signature-types+head)))
-            (head (car signature-head+arg-types))
-            (arg-types (cdr signature-head+arg-types))
-            (fun (if (char=? (car (string->list head))
-                             #\()
-                     (let* ((sexps (with-input-from-string 
-                                     head
-                                     read)))
-                       `(parse-sexp-host ,sexps))
-                     (string->symbol head))))
-   
-       (if (not (= (length args) (length arg-types)))
-           (error "error in call-host: arity mismatch in signature")
-           (let ((args (map (lambda (type arg)
-                              `(,(cadr (assoc type type-table string-ci=?))
-                                ,arg))
-                            (reverse arg-types)
-                            args)))
-            `(,output-type (,fun ,@args)))))))
+  (define (string-split-at str sep)
+    (let ((len (string-length str)))
+      (let loop ((i 0)
+                 (j 0)
+                 (lst '()))
+        (if (fx< j (string-length str))
+            (let ((c (string-ref str j))
+                  (j+1 (fx+ j 1)))
+              (if (char=? c sep)
+                  (loop j+1 j+1 (cons (substring str i j) lst))
+                  (loop i   j+1 lst)))
+            (reverse (cons (substring str i j) lst))))))
 
-;; @ is the combinaison operator
-(define-syntax parse-sexp-host
-  (syntax-rules (lambda @)
-    ((parse-sexp-host (lambda (x) body))
-     (lambda (x) (parse-sexp-host body)))
-    ((parse-sexp-host (f1 @ f2 @ f fs ...))
-     (lambda (var) ((parse-sexp-host f1)
-                   ((parse-sexp-host (f2 @ f fs ...)) var))))
-    ((parse-sexp-host (f1 @ body))
-     (lambda (var) ((parse-sexp-host f1) 
-                    ((parse-sexp-host body) 
-                     var))))
-    ((parse-sexp-host atom)
-     atom)))
+  (define (parse str)
+    (let ((colon (last-index-of str #\:)))
+      (if (fx< colon 0)
+          (list str #f #f)
+          (let* ((name (substring str 0 colon))
+                 (types (substring str (fx+ colon 1) (string-length str)))
+                 (gt (last-index-of types #\>)))
+            (if (or (fx< gt 1)
+                    (not (char=? (string-ref types (fx- gt 1)))))
+                #f
+                (list name
+                      (string-split-at 
+                        (substring types 0 (fx- gt 1)) #\,)
+                      (substring types (fx+ gt 1) (string-length types))))))))
+
+  (let ((type-table ;; "any" must be first 
+                    ;;   and match every unknown type-instance
+          '(("any" PyObject-value (lambda (x) x)) ;; XXX TODO
+            ("int" PyObjectInt-value py-int-from-scheme)
+            ("float" PyObjectFloat-value py-float-from-scheme)
+            ("complex" PyObjectComplex-value py-complex-from-scheme))))
+    (let* ((func-types-out (parse signature))
+           (output-type (let ((out (assoc (caddr func-types-out) type-table)))
+                          (if (not out)
+                              (cddar type-table)
+                              (caddr out))))
+           (args (map (lambda (type arg)
+                        `(,(cadr (assoc type type-table string-ci=?))
+                           ,arg))
+                      (cadr func-types-out)
+                      args))
+           (fun (let ((fun (car func-types-out)))
+                  (if (char=? (string-ref fun 0) #\()
+                      (with-input-from-string fun read)
+                      (string->symbol fun)))))
+      `(,output-type (,fun ,@args)))))
+
+
+
  
 ;; =============================================================================
 ;;  HIDDEN CLASSES
