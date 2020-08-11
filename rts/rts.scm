@@ -4,10 +4,22 @@
 
 ;; General exception thrower helper
 (define-macro (py-throw-exception-with-message exc . msg)
-  `(py-throw
-    (py-call
-      ,exc
-      (py-str-from-scheme (string-append ,@msg)))))
+  (define (f el acc)
+    (if (and (string? el) (not (null? acc)) (string? (car acc)))
+      (cons (string-append el (car acc)) (cdr acc))
+      (cons el acc)))
+
+  (let ((folded-msg (fold-right f '() msg)))
+    (if (and (= (length folded-msg) 1) (string? (car folded-msg)))
+      ;; Use & if given message can be folded to a string literal
+      `(py-throw
+        (py-call
+          ,exc
+          (& ,(car folded-msg))))
+      `(py-throw
+        (py-call
+          ,exc
+          (py-str-from-scheme (string-append ,@folded-msg)))))))
 
 (define-macro (make-builtin-HClass names transitions)
   `(make-still-copy (make-HClass ,names ,transitions)))
@@ -166,7 +178,8 @@
 
   (define (define-py-callX X)
     (let ((py-call-name (string->symbol (string-append "py-call" (number->string X))))
-          (args (map gensym (make-list X 'arg))))
+          (args (map gensym (make-list X 'arg)))
+          (min-neg-arity (- 0 X 1)))
       `(define (,py-call-name fun ,@args)
         (let ((fun-type (py-type fun)))
           (if (eq? fun-type py-function-class)
@@ -175,12 +188,31 @@
                 ((not arity) (py-call-generic fun (list ,@args)))
                 ((= arity ,X)
                   ((PyObjectFunction-procedure fun) ,@args))
-                ((and (< arity 0) (>= arity ,(- 0 X 1)))
+                ((and (< arity 0) (>= arity ,min-neg-arity))
                   (apply
                     (PyObjectFunction-procedure fun)
                     (pack-extra-args arity (list ,@args))))
                 (else
-                  (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 14)")))) ;; TODO add error message
+                  ;; Error messages
+                  (if (< arity 0)
+                    (py-throw-exception-with-message
+                      py-builtin-TypeError
+                      "missing "
+                      ,(number->string (- 0 min-neg-arity X))
+                      " required positional argument")
+                    (if (< arity ,X)
+                      (py-throw-exception-with-message
+                        py-builtin-TypeError
+                        "function takes "
+                        (number->string arity)
+                        " positional arguments but "
+                        ,(number->string X)
+                        " were given")
+                      (py-throw-exception-with-message
+                        py-builtin-TypeError
+                        "missing "
+                        (number->string (- arity ,X))
+                        " required positional argument"))))))
             (py-call-generic fun (list ,@args)))))))
     (let loop ((i 1) (acc '()))
       (if (> i py-callX-args-limit)
