@@ -47,7 +47,7 @@ jobs:
       - name: Test
         run: |
           cd zipi
-          if [ -f ./bin/pysexp.py ]; then rm ./bin/pysexp.py; fi
+          rm ./bin/pysexp.py || echo "not found"
           ln -s ./etc/pysexp.py ./bin/pysexp.py
           ./etc/py19 -t gambit test.py
           make test
