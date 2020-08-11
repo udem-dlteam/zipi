@@ -506,16 +506,22 @@ class Transformer:
         ops = node.ops
         comparators = node.comparators
 
-        # Special case for x in tokenset:
-        if (
-            len(ops) == 1
-            and isinstance(ops[0], AST.In)
-            and comparators[0].func.id == "py_tokenset"
-        ):
-            # [3,79,42].indexOf(x) >= 0
-            args = ",".join(self.transform(i) for i in comparators[0].args)
+        # OLD: Special case for x in tokenset:
+        # Used to be a function call
+        # if (
+        #     len(ops) == 1
+        #     and isinstance(ops[0], AST.In)
+        #     and comparators[0].func.id == "py_tokenset"
+        # ):
+        #     # [3,79,42].indexOf(x) >= 0
+        #     args = ",".join(self.transform(i) for i in comparators[0].args)
+        #     left = self.transform(left)
+        #     out = f"[{args}].indexOf({left}) >= 0"
+
+        # Special case if x in tokenset:
+        if len(ops) == 1 and isinstance(ops[0], AST.In) and comparators[0].id[:11] == "py_tokenset":
             left = self.transform(left)
-            out = f"[{args}].indexOf({left}) >= 0"
+            out = f"{comparators[0].id}.indexOf({left}) >= 0"
         # Special case 'if foo is (not) absent'
         elif (
             len(comparators) == 1

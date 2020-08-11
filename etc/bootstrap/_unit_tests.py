@@ -31,6 +31,7 @@ class Equals(Test):
                     return True
                 else:
                     print("Test '" + f.__name__ + "' FAILED.")
+                    print(res)
                     return False
             except Exception as e:
                 print("Failed to execute test '" + f.__name__ + "'.")

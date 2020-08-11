@@ -1,28 +1,35 @@
 TMPDIR = ./_tmpdir
 PYTHON38 = python3
+ZP_DEBUG =
 
 _tmpdir:
 	mkdir -p $(TMPDIR)
 
-.PHONY: _zparse.py
+.PHONY: ../../parser/_zparse.py
 ../../parser/_zparse.py:
 	@echo "Make parser..."
 	@cd ../../parser && $(MAKE)
 
-copy_files: _tmpdir ../pyinterp.py ../../parser/_zast.py ../../parser/ztokenizer.py ../../parser/ztoken.py ../../parser/zast.py ../../parser/_zparse.py ../../parser/_runtime.py zp_unit_tests.py _unit_tests.py
+copy_files: _tmpdir ../pyinterp.py ../../parser/_zast.py ../../parser/ztokenizer.py ../../parser/ztoken.py ../../parser/zast.py ../../parser/zpgen.py ../../parser/_zparse.py ../../parser/_runtime.py zp_unit_tests.py _unit_tests.py
 	@echo "Copying files..."
-	cp -n zp_unit_tests.py $(TMPDIR)/
-	cp -n _unit_tests.py $(TMPDIR)/
-	cp -n ../pyinterp.py $(TMPDIR)/
-	cp -n ../../parser/zast.py $(TMPDIR)/
-	cp -n ../../parser/_zast.py $(TMPDIR)/
-	cp -n ../../parser/ztokenizer.py $(TMPDIR)/
-	cp -n ../../parser/ztoken.py $(TMPDIR)/
-	cp -n ../../parser/_zparse.py $(TMPDIR)/
-	cp -n ../../parser/_runtime.py $(TMPDIR)/
+	cp zp_unit_tests.py $(TMPDIR)/
+	cp _unit_tests.py $(TMPDIR)/
+	cp ../pyinterp.py $(TMPDIR)/
+	cp ../../parser/zast.py $(TMPDIR)/
+	cp ../../parser/_zast.py $(TMPDIR)/
+	cp ../../parser/ztokenizer.py $(TMPDIR)/
+	cp ../../parser/ztoken.py $(TMPDIR)/
+	cp ../../parser/_zparse.py $(TMPDIR)/
+	cp ../../parser/_runtime.py $(TMPDIR)/
+
+pyinterp: copy_files
+	$(PYTHON38) zp.py -f $(TMPDIR)/pyinterp.py $(ZP_DEBUG) -o $(TMPDIR)/pyinterp.js
+	$(PYTHON38) zp.py -f $(TMPDIR)/pyinterp.py $(ZP_DEBUG) -t -o $(TMPDIR)/pyinterp_browser.js
+	$(PYTHON38) zp.py -f $(TMPDIR)/pyinterp.py $(ZP_DEBUG) -n -t -o $(TMPDIR)/pyinterp_node.js
+	cp $(TMPDIR)/pyinterp_browser.js test/pyinterp/
 
 tests: copy_files
-	$(PYTHON38) zp.py -f $(TMPDIR)/zp_unit_tests.py -n -t -o $(TMPDIR)/zp_unit_tests.js
+	$(PYTHON38) zp.py -f $(TMPDIR)/zp_unit_tests.py $(ZP_DEBUG) -n -t -o $(TMPDIR)/zp_unit_tests.js
 	@echo "\nRunning Python unit tests...\n"
 	$(PYTHON38) $(TMPDIR)/zp_unit_tests.py >$(TMPDIR)/PY_TESTS
 	@echo "Python unit test results:\n"
