@@ -528,6 +528,7 @@ def read_grammar_and_generate_parser(filename):
     tokenset_count = 0
 
     print('import sys')
+    print('from _runtime import nocompile')
 
     if token_access == '':
         print('from ztoken import *')
@@ -545,6 +546,7 @@ def read_grammar_and_generate_parser(filename):
     start_fn_name, f = generate_parse_functions()
 
     print()
+    print('@nocompile')
     print('def ' + gen_prefix + 'tokenset(*elements):')
     print('    return elements')
     print()
