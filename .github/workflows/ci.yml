@@ -50,9 +50,6 @@ jobs:
           cd zipi
           rm ./bin/pysexp.py || echo "not found"
           ln -s ../etc/pysexp.py ./bin/pysexp.py
-          cd stdlib
-          make -f Makefile.gambit
-          cd ..
           echo "print(\"hello world\")" > test.py
           ./etc/py19 -t gambit test.py > test.scm
           gsi ./pyc/ test.scm
