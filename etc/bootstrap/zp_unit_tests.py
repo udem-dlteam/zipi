@@ -135,7 +135,8 @@ x.__add__.__class__
 int.__add__.__class__
 'str'.__class__
 str.__class__
-"""
+__builtins__.__class__
+    """
     return interp_source(source)
 
 if __name__ == "__main__":
