@@ -36,7 +36,7 @@ jobs:
         run: |
           echo "::add-path::/Users/Shared/zipi/lib/python/bin"
           echo "::set-env name=ZIPIROOT::$(pwd)"
-          echo "::set-env name=GAMBOPT::~~zipicache=$(pwd)/.zipicache,search=$(pwd)/.."
+          echo "::set-env name=GAMBOPT::~~zipicache=$(pwd)/.zipicache,search=$(pwd)/zipi"
       - run: python --version
       - name: Compiling Zipi
         run: |
