@@ -45,7 +45,9 @@ jobs:
           ./configure --bigloolibdir=/usr/local/Cellar/bigloo/4.3e_1/lib/bigloo/4.3e/
           make
       - name: Relinking
-        run: ln -s ./etc/pysexp.py ./bin/pysexp.py
+        run: |
+          cd zipi
+          ln -s ./etc/pysexp.py ./bin/pysexp.py
         if: always()
       - name: test
         run: ./etc/py19 -t gambit test.py
