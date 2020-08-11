@@ -867,15 +867,32 @@
               (max 0 (- standard-args-given-as-pos args-w/o-defaults-length))))
         ;; ensure there are no more positional arguments then allowed
         (if (and (> caller-args-length max-positional-args) (not vararg))
-          (py-throw-exception-with-message
-            py-builtin-TypeError
-            "pending error message (code 20)"))
+          (if (= defaults-length 0)
+            (py-throw-exception-with-message
+              py-builtin-TypeError
+              "function takes "
+              (number->string max-positional-args)
+              " arguments but "
+              (number->string caller-args-length)
+              " were given")
+            (let ((min-positional-args (- max-positional-args defaults-length)))
+              (py-throw-exception-with-message
+                py-builtin-TypeError
+                "function takes from "
+                (number->string min-positional-args)
+                " to "
+                (number->string max-positional-args)
+                " arguments but "
+                (number->string caller-args-length)
+                " were given"))))
 
         ;; ensure there are no less positional arguments then allowed
         (if (< caller-args-length posonlyargs-length)
           (py-throw-exception-with-message
             py-builtin-TypeError
-            "pending error message (code 21)"))
+            "missing "
+            (number->string (- posonlyargs-length caller-args-length))
+            " required positional argument"))
 
         (let* ((free-args-w/o-default
                 (if (< standard-args-given-as-pos args-w/o-defaults-length)
