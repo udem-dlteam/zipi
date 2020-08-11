@@ -700,7 +700,11 @@
                   (subvector defaults (- default-len missing-args-len) default-len))
                 (vector->list kw-defaults)
                 (if kwarg (cons (py-make-empty-dict) '()) '()))
-              (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 16)")))) ;; TODO add error message
+              (py-throw-exception-with-message
+                py-builtin-TypeError
+                "missing "
+                (number->string (- missing-args-len default-len))
+                " required positional argument"))))
         (vararg
           (if (or kwarg (> (vector-length kw-defaults) 0))
             (append
