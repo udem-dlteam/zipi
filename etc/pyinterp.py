@@ -1748,13 +1748,13 @@ def sem_Add(ctx, val1, val2):
             assert False, '__add__ and __radd__ are absent absent'
         else:
 
-            __val2_radd__ = getattribute_from_obj_mro(val1, '__radd__')
-            if __val2_radd__ is absent:
+            __val1_radd__ = getattribute_from_obj_mro(val1, '__radd__')
+            if __val1_radd__ is absent:
                 # TypeError: unsupported operand type(s) for +: type(val1).__name__ and type(val2).__name__"
                 assert False, '__add__ and __radd__ are absent absent'
             else:
                 ctx2 = Context(rte, call_expr_end, [val2, val1])
-                return om_call(__val2_radd__, ctx2, [val2, val1])
+                return om_call(__val1_radd__, ctx2, [val2, val1])
 
     def test_add_result(rte, val):
         if om_is(val, om_NotImplemented):
