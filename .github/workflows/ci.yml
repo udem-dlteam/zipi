@@ -1,0 +1,57 @@
+name: Zipi
+
+on:
+  pull_request:
+    branches:
+      - dev
+  push:
+    branches:
+      - dev
+
+jobs:
+  MacOs:
+    runs-on: self-hosted
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          path: zipi
+          fetch-depth: 0 # Checkout history and tags
+      - name: Downloading Gambit
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          github_token: ${{secrets.GITHUB_TOKEN}}
+          workflow: ci.yml
+          repo: gambit/gambit
+          path: gambit
+          name: gambit-macos-x86_64
+      - name: Installing Gambit
+        run: |
+          echo Unpacking gambit
+          cd gambit
+          tar zxvf gambit-macos-x86_64.tgz
+          echo "::add-path::$(pwd)/bin"
+          echo "::set-env name=GAMBIT_DIR::$(pwd)"
+      - name: setup python and env
+        run: |
+          echo "::add-path::/Users/Shared/zipi/lib/python/bin"
+          echo "::set-env name=ZIPIROOT::$(pwd)/zipi"
+          echo "::set-env name=GAMBOPT::~~zipicache=$(pwd)/.zipicache,search=$(pwd)"
+          if [ ! -d $(pwd)/.zipicache ]; then mkdir $(pwd)/.zipicache; fi
+      - run: python --version
+      - name: Compiling Zipi
+        run: |
+          cd zipi
+          ./configure --bigloolibdir=/usr/local/Cellar/bigloo/4.3e_1/lib/bigloo/4.3e/
+          make
+      - name: Test
+        run: |
+          cd zipi
+          rm ./bin/pysexp.py || echo "not found"
+          ln -s ../etc/pysexp.py ./bin/pysexp.py
+          echo "Compiling zipi, can take a while..." 
+          gsc zipi/rts
+          echo "Starting tests..."
+          make test
+        if: always()

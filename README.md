@@ -79,3 +79,8 @@ Same as `debug-get`, but `values` is a list
 ### `(debug-catch thunk)`
 
 Executes `thunk` and prints the name of the Python exception, if one is thrown
+
+## CI
+
+Here is some information about self-hosted runner. On the Gambit server, all files concerning the runner are located inside the `/Users/Shared/zipi` folder. All files concerning the github action runner are inside `actions-runner`. The python version used by the runner is located inside the `lib` folder.  The Makefile in this folder can recompile the python version (with a compiled version of openssl). The runner will expect the folder `/Users/Shared/zipi/lib/python` to exists and append to its path the python binaries from the `/Users/Shared/zipi/lib/python/bin` folder. If the python version needs to change, recompiling another version of python in this folder is probably the simplest way. 
+
