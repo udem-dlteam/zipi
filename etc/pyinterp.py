@@ -734,11 +734,14 @@ def om_int_mul(ctx, args):
     val1 = args[0]
     val2 = args[1]
 
-    val1_unbox = om_rawget(val1, '**value**')
-    val2_unbox = om_rawget(val2, '**value**')
-    # TODO: add type check.
-    result = num_mul(val1_unbox, val2_unbox)
-    return ctx.cont(ctx.rte, om_int(result))
+    if om_is(object_class(val2), class_int):
+        val1_unbox = om_rawget(val1, '**value**')
+        val2_unbox = om_rawget(val2, '**value**')
+        # TODO: add type check.
+        result = num_mul(val1_unbox, val2_unbox)
+        return ctx.cont(ctx.rte, om_int(result))
+    else:
+        return ctx.cont(ctx.rte, om_NotImplemented)
 
 def om_int_rmul(ctx, args):
     if debug: print('int.__rmul__')
@@ -1744,13 +1747,10 @@ def sem_Add(ctx, val1, val2):
     def call_radd(rte):
         __val2_radd__ = getattribute_from_obj_mro(val2, '__radd__')
         if __val2_radd__ is absent:
-            # TypeError: unsupported operand type(s) for +: type(val1).__name__ and type(val2).__name__"
             assert False, '__add__ and __radd__ are absent absent'
         else:
-
             __val1_radd__ = getattribute_from_obj_mro(val1, '__radd__')
             if __val1_radd__ is absent:
-                # TypeError: unsupported operand type(s) for +: type(val1).__name__ and type(val2).__name__"
                 assert False, '__add__ and __radd__ are absent absent'
             else:
                 ctx2 = Context(rte, call_expr_end, [val2, val1])
