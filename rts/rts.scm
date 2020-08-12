@@ -4,10 +4,22 @@
 
 ;; General exception thrower helper
 (define-macro (py-throw-exception-with-message exc . msg)
-  `(py-throw
-    (py-call
-      ,exc
-      (py-str-from-scheme (string-append ,@msg)))))
+  (define (f el acc)
+    (if (and (string? el) (not (null? acc)) (string? (car acc)))
+      (cons (string-append el (car acc)) (cdr acc))
+      (cons el acc)))
+
+  (let ((folded-msg (fold-right f '() msg)))
+    (if (and (= (length folded-msg) 1) (string? (car folded-msg)))
+      ;; Use & if given message can be folded to a string literal
+      `(py-throw
+        (py-call
+          ,exc
+          (& ,(car folded-msg))))
+      `(py-throw
+        (py-call
+          ,exc
+          (py-str-from-scheme (string-append ,@folded-msg)))))))
 
 (define-macro (make-builtin-HClass names transitions)
   `(make-still-copy (make-HClass ,names ,transitions)))
@@ -41,6 +53,171 @@
                   '())))
           (HClass-transition-add! $hc key nhclass)
           nhclass)))))
+
+(define-macro (str-representatives-eq? self other)
+  `(eq? (str-representative-get ,self) (str-representative-get ,other)))
+
+(define-macro (py-call f . args)
+  (define (make-kwargs-loc-table names)
+    (import (zipi rts utility))
+    (let* ((names-length (length names))
+           (max-table-length (* names-length 3))
+           (perfect-table-length
+             (let loop ((size names-length))
+                (cond
+                  ((> size max-table-length)
+                    #f)
+                  ;; the following condition check that there is no collision
+                  ;; in a table of length 'size'
+                  ((= names-length
+                      (table-length
+                        (list->table
+                          (map
+                            (lambda (n) (cons (fast-range-hash (hash-FNV1a n) size) #t))
+                            names))))
+                    size)
+                  (else
+                    (loop (+ size 1)))))))
+      (if perfect-table-length
+        ;; i: index at which element will be found. The table itself is an
+        ;; index table which will be at index 0, which is why i starts at 1
+        (let loop ((names names) (i 1) (table (make-vector (* 2 perfect-table-length) #f)))
+          (if (null? names)
+            table
+            (let* ((name (car names))
+                   (hash (hash-FNV1a name))
+                   (name-index (* 2 (fast-range-hash hash perfect-table-length))))
+              (vector-set! table name-index name)
+              (vector-set! table (+ name-index 1) i)
+              (loop (cdr names) (+ i 1) table))))
+        #f)))
+
+  (define (make-py-call-name n)
+    (string->symbol
+      (string-append
+        "py-call"
+        (number->string n))))
+
+  (let* ((split-args
+          (let loop ((args args) (acc '()))
+            (if (or (null? args) (keyword? (car args)))
+              (cons (reverse acc) args)
+              (loop (cdr args) (cons (car args) acc)))))
+        (pos-args (car split-args))
+        (split-special-args
+          ;; result: #(kwargs *args **kwargs)
+          (let loop ((args (cdr split-args)) (acc (vector '() '() '())))
+            (cond
+              ((null? args)
+                (vector-map reverse acc))
+              ((eq? (car args) *:)
+                (begin
+                  (vector-set! acc 1 (cons (cadr args) (vector-ref acc 1)))
+                  (loop (cddr args) acc)))
+              ((eq? (car args) **:)
+                (begin
+                  (vector-set! acc 2 (cons (cadr args) (vector-ref acc 2)))
+                  (loop (cddr args) acc)))
+              (else
+                (begin
+                  (vector-set! acc 0 (cons (cons (car args) (cadr args)) (vector-ref acc 0)))
+                  (loop (cddr args) acc))))))
+        (kwargs (vector-ref split-special-args 0))
+        (kwargs-names (map (lambda (e) (keyword->string (car e))) kwargs))
+        (kwargs-values (map cdr kwargs))
+        (*args (vector-ref split-special-args 1))
+        (**kwargs (vector-ref split-special-args 2))
+        (kwargs-table
+          (if (and (null? **kwargs) (not (null? kwargs)))
+            (make-kwargs-loc-table kwargs-names)
+            #f))
+        ;; extra-kwargs are kwargs which could not be hashed in a perfect hashtable
+        ;; at compile time, they are treated as provided in a **kwargs at run-time
+        (extra-kwargs
+          (if (and (not kwargs-table) (not (null? kwargs)))
+            `(list
+              ,@(map
+                  (lambda (name value)
+                    `(cons (& ,name) ,value))
+                  kwargs-names
+                  kwargs-values))
+            #f)))
+
+    (cond
+      (kwargs-table
+        `(py-call-hashed-kwargs
+            ,f
+            (list ,@pos-args)
+            (list ,@*args)
+            (vector
+              (register-constants-perfect-hashtable ,kwargs-table)
+              ,@(map
+                  (lambda (key value) `(cons (& ,key) ,value))
+                  kwargs-names
+                  kwargs-values))))
+      ((or extra-kwargs (not (null? **kwargs)))
+        `(py-call-generic-kwargs
+          ,f
+          (list ,@pos-args)
+          (list ,@*args)
+          ,(or extra-kwargs `'())
+          (list ,@**kwargs)))
+      (else
+        (let ((nargs (length pos-args)))
+          (import (zipi rts config))
+          (cond
+            ((not (null? *args))
+              `(py-call-generic/*args ,f (list ,@pos-args) (list ,@*args)))
+            ((<= nargs py-callX-args-limit)
+              `(,(make-py-call-name nargs) ,f ,@pos-args))
+            (else
+              `(py-call-generic ,f (list ,@pos-args)))))))))
+
+(define-macro (define-all-py-callX)
+  (import (zipi rts config))
+
+  (define (define-py-callX X)
+    (let ((py-call-name (string->symbol (string-append "py-call" (number->string X))))
+          (args (map gensym (make-list X 'arg)))
+          (min-neg-arity (- 0 X 1)))
+      `(define (,py-call-name fun ,@args)
+        (let ((fun-type (py-type fun)))
+          (if (eq? fun-type py-function-class)
+            (let ((arity (PyObjectFunction-arity fun)))
+              (cond
+                ((not arity) (py-call-generic fun (list ,@args)))
+                ((= arity ,X)
+                  ((PyObjectFunction-procedure fun) ,@args))
+                ((and (< arity 0) (>= arity ,min-neg-arity))
+                  (apply
+                    (PyObjectFunction-procedure fun)
+                    (pack-extra-args arity (list ,@args))))
+                (else
+                  ;; Error messages
+                  (if (< arity 0)
+                    (py-throw-exception-with-message
+                      py-builtin-TypeError
+                      "missing "
+                      ,(number->string (- 0 min-neg-arity X))
+                      " required positional argument")
+                    (if (< arity ,X)
+                      (py-throw-exception-with-message
+                        py-builtin-TypeError
+                        "function takes "
+                        (number->string arity)
+                        " positional arguments but "
+                        ,(number->string X)
+                        " were given")
+                      (py-throw-exception-with-message
+                        py-builtin-TypeError
+                        "missing "
+                        (number->string (- arity ,X))
+                        " required positional argument"))))))
+            (py-call-generic fun (list ,@args)))))))
+    (let loop ((i 1) (acc '()))
+      (if (> i py-callX-args-limit)
+        `(begin ,@acc)
+        (loop (+ i 1) (cons (define-py-callX i) acc)))))
 
 (define debug-verbosity 0)
 
@@ -445,22 +622,28 @@
     (if (eq? fun-type py-function-class)
       (let ((arity (PyObjectFunction-arity fun)))
         (cond
-          ((not arity) (py-call-generic fun))
+          ((not arity) (py-call-generic fun '()))
           ((= arity 0)
             ((PyObjectFunction-procedure fun)))
           ((= arity -1)
             ((PyObjectFunction-procedure fun)
               (py-tuple-from-scheme '#())))
           (else
-            (py-throw py-builtin-TypeError)))) ;; TODO add error message)))
-      (py-call-generic fun))))
+            (let ((min-pos-arguments (if (< arity 0) (- 0 arity 1) arity)))
+              (py-throw-exception-with-message
+                py-builtin-TypeError
+                "function takes "
+                (number->string min-pos-arguments)
+                " positional arguments but 0 were given")))))
+      (py-call-generic fun '()))))
 
 (define-all-py-callX)
 
-;; TODO: compare with cPython for which function and method are not the base
-;; callable types. Instead, function.__call__ returns a 'method wrapper'
-;; object which has a __call__ method but is treated differently
-(define (py-call-generic obj . args)
+(define (py-call-generic/*args obj args *args-lst)
+  (let ((unpacked-args (iterables*->list *args-lst)))
+    (py-call-generic obj (append args unpacked-args))))
+
+(define (py-call-generic obj args)
   (let ((obj-type (py-type obj)))
     (cond
       ((eq? obj-type py-function-class)
@@ -479,7 +662,7 @@
         (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
           (if (eq? __call__ py-absent)
             (py-throw-not-callable obj)
-            (apply py-call-generic __call__ obj args)))))))
+            (py-call-generic __call__ (cons obj args))))))))
 
 (define (align-args-with-signature caller-args signature)
   (let ((args (vector-ref signature 0))
@@ -489,11 +672,6 @@
         (kw-defaults (vector-ref signature 4))
         (kwarg (vector-ref signature 5))
         (defaults (vector-ref signature 6)))
-    (if (or kwarg
-            (> (vector-length kwonlyargs) 0))
-      (py-throw-exception-with-message
-        py-builtin-NotImplementedError
-        "kwargs not implemented"))
     (let* ((caller-args-len (length caller-args))
           (args-len (vector-length args))
           (posonlyargs-len (vector-length posonlyargs))
@@ -504,22 +682,369 @@
           (if vararg
             (append
               caller-args
-              (cons
-                (py-tuple-from-scheme '#())
-                '()))
-            caller-args))
+              (cons (py-tuple-from-scheme '#()) '())
+              (vector->list kw-defaults)
+              (if kwarg (cons (py-make-empty-dict) '()) '()))
+            (if (or kwarg (> (vector-length kw-defaults) 0))
+              (append
+                caller-args
+                (vector->list kw-defaults)
+                (if kwarg (cons (py-make-empty-dict) '()) '()))
+              caller-args)))
         ((< caller-args-len total-args-len)
           (let ((missing-args-len (- total-args-len caller-args-len)))
             (if (>= default-len missing-args-len)
               (append
                 caller-args
                 (vector->list
-                  (subvector defaults (- default-len missing-args-len) default-len)))
-              (py-throw py-builtin-TypeError)))) ;; TODO add error message
+                  (subvector defaults (- default-len missing-args-len) default-len))
+                (vector->list kw-defaults)
+                (if kwarg (cons (py-make-empty-dict) '()) '()))
+              (py-throw-exception-with-message
+                py-builtin-TypeError
+                "missing "
+                (number->string (- missing-args-len default-len))
+                " required positional argument"))))
         (vararg
-          (pack-extra-args (- 0 1 total-args-len) caller-args))
+          (if (or kwarg (> (vector-length kw-defaults) 0))
+            (append
+              (pack-extra-args (- 0 1 total-args-len) caller-args)
+              (vector->list kw-defaults)
+              (if kwarg (cons (py-make-empty-dict) '()) '()))
+            (pack-extra-args (- 0 1 total-args-len) caller-args)))
         (else
-          (py-throw py-builtin-TypeError)))))) ;; TODO add error message
+          (if (= default-len 0)
+            (py-throw-exception-with-message
+              py-builtin-TypeError
+              "function takes "
+              (number->string total-args-len)
+              " arguments but "
+              (number->string caller-args-len)
+              " were given")
+            (let ((min-pos-arguments (- total-args-len default-len)))
+              (py-throw-exception-with-message
+                py-builtin-TypeError
+                "function takes from "
+                (number->string min-pos-arguments)
+                " to "
+                (number->string total-args-len)
+                " arguments but "
+                (number->string caller-args-len)
+                " were given"))))))))
+
+(define (py-call-hashed-kwargs obj args *args-lst kwargs-table)
+  (let ((obj-type (py-type obj)))
+    (cond
+      ((eq? obj-type py-function-class)
+        (let* ((procedure (PyObjectFunction-procedure obj))
+               (signature (PyObjectFunction-signature obj))
+               (aligned-args (align-with-signature/hashed-kwargs args kwargs-table *args-lst signature)))
+          (apply procedure aligned-args)))
+      ((eq? obj-type py-method-class)
+        (let* ((procedure (PyObjectMethod-procedure obj))
+               (signature (PyObjectMethod-signature obj))
+               (__self__ (method-__self__-fast-get obj))
+               (bound-args (cons __self__ args))
+               (aligned-args (align-with-signature/hashed-kwargs bound-args kwargs-table *args-lst signature)))
+          (apply procedure aligned-args)))
+      (else
+        (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
+          (if (eq? __call__ py-absent)
+            (py-throw-not-callable obj)
+            (py-call-hashed-kwargs __call__ (cons obj args) *args-lst kwargs-table)))))))
+
+(define (py-call-generic-kwargs obj args *args-lst kwargs **kwargs-lst)
+  (define (make-kwargs-ordered-table kwargs **kwargs-lst)
+    (py-ordered-table-from-scheme (append-lists (cons kwargs (map unpack-kwargs **kwargs-lst)))))
+
+  (let ((obj-type (py-type obj)))
+    (cond
+      ((eq? obj-type py-function-class)
+        (let* ((procedure (PyObjectFunction-procedure obj))
+               (signature (PyObjectFunction-signature obj))
+               (kwargs-ordered-table (make-kwargs-ordered-table kwargs **kwargs-lst))
+               (aligned-args (align-with-signature/kwargs-ordered-table args kwargs-ordered-table *args-lst signature)))
+          (apply procedure aligned-args)))
+      ((eq? obj-type py-method-class)
+        (let* ((procedure (PyObjectMethod-procedure obj))
+               (signature (PyObjectMethod-signature obj))
+               (__self__ (method-__self__-fast-get obj))
+               (bound-args (cons __self__ args))
+               (kwargs-ordered-table (make-kwargs-ordered-table kwargs **kwargs-lst))
+               (aligned-args (align-with-signature/kwargs-ordered-table bound-args kwargs-ordered-table *args-lst signature)))
+          (apply procedure aligned-args)))
+      (else
+        (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
+          (if (eq? __call__ py-absent)
+            (py-throw-not-callable obj)
+            (py-call-generic-kwargs __call__ (cons obj args) *args-lst kwargs **kwargs-lst)))))))
+
+(define (unpack-kwargs obj)
+  (let* ((keys-method (py-getattribute obj (& "keys")))
+        (mapping-keys (py-call keys-method))
+        (keys-iterator (py-iter mapping-keys)))
+    (let loop ((acc '()) (next-key (py-next keys-iterator)))
+      (cond
+        ((PyObjectStr? next-key)
+          (loop
+            (cons (cons next-key (py-getitem obj next-key #f)) acc)
+            (py-next keys-iterator)))
+        ((not next-key)
+          (reverse! acc))
+        (else
+          (py-throw-exception-with-message
+            py-builtin-TypeError
+            "keywords must be strings"))))))
+
+(define kwargs-already-seen '%kwargs-already-seen)
+
+(define (kwargs-table-pop! table key)
+  (import (zipi rts utility))
+  ;; NOTE: key will always either be from a signature or a call-table
+  ;; key will always have been hashed at compile time
+  (let* ((index-table (vector-ref table 0))
+        (hash (PyObjectStr-hash key))
+        ;; index-table contains keys at even indices; index of value at odd indices
+        (hash-index
+          (fxarithmetic-shift-left
+            (fast-range-hash
+              hash
+              (fxarithmetic-shift-right
+                (vector-length index-table)
+                1))
+            1))
+        (key-hit (vector-ref index-table hash-index)))
+    (if (and key-hit (str-representatives-eq? key key-hit))
+      (let* ((index-index (fx+ hash-index 1))
+            (value-index (vector-ref index-table index-index))
+            (value (vector-ref table value-index)))
+        ;; TODO: For now it is fine to alter the table BUT NOT the index-table
+        ;; since the index-table is constant. It may change in the future, so
+        ;; find a better way to indicate that a kwarg as already been collected
+        (vector-set! table value-index kwargs-already-seen)
+        value)
+      #f)))
+
+(define (zip-vectors vec1 vec2)
+  (map
+    cons
+    (vector->list vec1)
+    (vector->list vec2)))
+
+(define (ncdr lst n)
+  (if (= n 0)
+    lst
+    (ncdr (cdr lst) (- n 1))))
+
+(define-macro (define-signature-aligner name get-values get-values-or-default get-unused-kwargs)
+  `(define (,name pos-caller-args caller-kwargs-table *args-lst signature)
+      (let* ((args (vector-ref signature 0))
+            (posonlyargs (vector-ref signature 1))
+            (vararg (vector-ref signature 2))
+            (kwonlyargs (vector-ref signature 3))
+            (kw-defaults (vector-ref signature 4))
+            (kwarg (vector-ref signature 5))
+            (defaults (vector-ref signature 6))
+            (unpacked-args-lst (iterables*->list *args-lst))
+            (caller-args (append pos-caller-args unpacked-args-lst))
+            ;; lengths
+            (args-length (vector-length args))
+            (defaults-length (vector-length defaults))
+            (posonlyargs-length (vector-length posonlyargs))
+            (caller-args-length (length caller-args))
+            (max-positional-args (+ args-length posonlyargs-length))
+            (extra-positional-args-length
+              (max
+                0
+                (- caller-args-length max-positional-args)))
+            (standard-args-given-as-pos (- caller-args-length posonlyargs-length))
+            (args-w/o-defaults-length (- args-length defaults-length))
+            (free-args-w/o-default-length
+              (max
+                args-w/o-defaults-length
+                (- standard-args-given-as-pos args-w/o-defaults-length)))
+            (shadowed-defaults-length
+              (max 0 (- standard-args-given-as-pos args-w/o-defaults-length))))
+        ;; ensure there are no more positional arguments then allowed
+        (if (and (> caller-args-length max-positional-args) (not vararg))
+          (if (= defaults-length 0)
+            (py-throw-exception-with-message
+              py-builtin-TypeError
+              "function takes "
+              (number->string max-positional-args)
+              " arguments but "
+              (number->string caller-args-length)
+              " were given")
+            (let ((min-positional-args (- max-positional-args defaults-length)))
+              (py-throw-exception-with-message
+                py-builtin-TypeError
+                "function takes from "
+                (number->string min-positional-args)
+                " to "
+                (number->string max-positional-args)
+                " arguments but "
+                (number->string caller-args-length)
+                " were given"))))
+
+        ;; ensure there are no less positional arguments then allowed
+        (if (< caller-args-length posonlyargs-length)
+          (py-throw-exception-with-message
+            py-builtin-TypeError
+            "missing "
+            (number->string (- posonlyargs-length caller-args-length))
+            " required positional argument"))
+
+        (let* ((free-args-w/o-default
+                (if (< standard-args-given-as-pos args-w/o-defaults-length)
+                  (subvector
+                    args
+                    standard-args-given-as-pos
+                    args-w/o-defaults-length)
+                  '#()))
+              (free-args-with-default
+                (if (< free-args-w/o-default-length args-length)
+                  (subvector
+                    args
+                    free-args-w/o-default-length
+                    args-length)
+                  '#()))
+              (free-defaults
+                (if (< shadowed-defaults-length defaults-length)
+                  (subvector
+                    defaults
+                    shadowed-defaults-length
+                    defaults-length)
+                  '#()))
+              (caller-free-args-w/o-default
+                (,get-values (vector->list free-args-w/o-default) caller-kwargs-table))
+              (caller-args-with-defaults
+                (,get-values-or-default
+                  (zip-vectors free-args-with-default free-defaults)
+                  caller-kwargs-table))
+              (caller-kwargs
+                (,get-values-or-default
+                  (zip-vectors kwonlyargs kw-defaults)
+                  caller-kwargs-table)))
+          (let ((caller-vararg
+                  (if vararg
+                    (if (> extra-positional-args-length 0)
+                      (list
+                        (py-tuple-from-scheme
+                          (list->vector
+                            (ncdr caller-args max-positional-args))))
+                      (list (py-tuple-from-scheme '#())))
+                    ;; it was already checked that there is not too many args
+                    '()))
+                (caller-positional-args
+                  (if (= extra-positional-args-length 0)
+                    caller-args
+                    (let loop ((i 0) (args-head caller-args) (acc '()))
+                      (if (< i max-positional-args)
+                        (loop (+ i 1) (cdr args-head) (cons (car args-head) acc))
+                        (reverse! acc)))))
+                (caller-kwarg (,get-unused-kwargs caller-kwargs-table kwarg)))
+            (append
+              caller-positional-args
+              caller-free-args-w/o-default
+              caller-args-with-defaults
+              caller-vararg
+              caller-kwargs
+              caller-kwarg))))))
+
+(define (align-with-signature-hashed-kwargs:get-values args kwargs-table)
+  (if (null? args)
+    '()
+    (let* ((name (car args))
+          (value (kwargs-table-pop! kwargs-table name)))
+      (if value
+        (cons (cdr value) (align-with-signature-hashed-kwargs:get-values (cdr args) kwargs-table))
+        (py-throw-exception-with-message
+          py-builtin-TypeError
+          "pending exception message (code 23)")))))
+
+(define (align-with-signature-hashed-kwargs:get-values-or-default args-defaults kwargs-table)
+  (if (null? args-defaults)
+    '()
+    (let* ((name (caar args-defaults))
+          (default (cdar args-defaults))
+          (value (kwargs-table-pop! kwargs-table name)))
+      (cond
+        ((not value)
+          (cons default (align-with-signature-hashed-kwargs:get-values (cdr args-defaults) kwargs-table)))
+        ((eq? value kwargs-already-seen)
+          (py-throw-exception-with-message
+            py-builtin-TypeError
+            "pending exception message (code 24)"))
+        (else
+          (cons (cdr value) (align-with-signature-hashed-kwargs:get-values (cdr args-defaults) kwargs-table)))))))
+
+(define (align-with-signature-hashed-kwargs:get-unused-kwargs kwargs-table kwarg)
+  (let* ((len (vector-length kwargs-table))
+        (unused-kwargs
+          (let loop ((i 1))
+            (if (< i len)
+              (let ((el (vector-ref kwargs-table i)))
+                (if (eq? el kwargs-already-seen)
+                  (loop (+ i 1))
+                  (cons el (loop (+ i 1)))))
+              '()))))
+    (if kwarg
+      (list (py-dict-from-scheme unused-kwargs))
+      (if (null? unused-kwargs)
+        '()
+        (let ((unknown-keyword (str-force! (caar unused-kwargs))))
+          (py-throw-exception-with-message
+            py-builtin-TypeError
+            "got an unexpected keyword argument '" unknown-keyword "'"))))))
+
+(define-signature-aligner
+  align-with-signature/hashed-kwargs
+  align-with-signature-hashed-kwargs:get-values
+  align-with-signature-hashed-kwargs:get-values-or-default
+  align-with-signature-hashed-kwargs:get-unused-kwargs)
+
+(define (align-with-signature-kwargs-ordered-table:get-values args ordered-table)
+  (if (null? args)
+    '()
+    (let* ((name (car args))
+          (value (ordered-table-pop! ordered-table name #f)))
+      (if value
+        (cons value (align-with-signature-kwargs-ordered-table:get-values (cdr args) ordered-table))
+        (py-throw-exception-with-message
+          py-builtin-TypeError
+          "pending exception message (code 30)")))))
+
+(define (align-with-signature-kwargs-ordered-table:get-values-or-default args-defaults ordered-table)
+  (if (null? args-defaults)
+    '()
+    (let ((name (caar args-defaults))
+          (default (cdar args-defaults))
+          (value (ordered-table-pop! ordered-table name #f)))
+      (cond
+        ((not value)
+          (cons default (align-with-signature-kwargs-ordered-table:get-values (cdr args-defaults) ordered-table)))
+        ((eq? value kwargs-already-seen)
+          (py-throw-exception-with-message
+            py-builtin-TypeError
+            "pending exception message (code 31)"))
+        (else
+          (cons value (align-with-signature-kwargs-ordered-table:get-values (cdr args-defaults) ordered-table)))))))
+
+(define (align-with-signature-kwargs-ordered-table:get-unused-kwargs unused-kwargs kwarg)
+  (if kwarg
+    (list (py-dict-alloc unused-kwargs))
+    (if (= (ordered-table-length unused-kwargs) 0)
+      '()
+      (let ((unknown-keyword (str-force! (ordered-table-first-key unused-kwargs))))
+        (py-throw-exception-with-message
+          py-builtin-TypeError
+          "got an unexpected keyword argument '" unknown-keyword "'")))))
+
+(define-signature-aligner
+  align-with-signature/kwargs-ordered-table
+  align-with-signature-kwargs-ordered-table:get-values
+  align-with-signature-kwargs-ordered-table:get-values-or-default
+  align-with-signature-kwargs-ordered-table:get-unused-kwargs)
 
 (define (py-is-in-mro? target mro)
   (let loop ((i 0))
@@ -1654,7 +2179,7 @@
 (define (method-call self args)
   (if (eq? (py-type self) py-method-class)
     (let ((args-list (vector->list (PyObjectTuple-value args))))
-      (apply py-call-generic self args-list))
+      (py-call-generic self args-list))
     (py-throw-required-type "__call__" "method" self)))
 
 (define method.__call__
@@ -1667,7 +2192,7 @@
 (define (function-call self args)
   (if (eq? (py-type self) py-function-class)
     (let ((args-list (vector->list (PyObjectTuple-value args))))
-      (apply py-call-generic self args-list))
+      (py-call-generic self args-list))
     (py-throw-required-type "__call__" "method" self)))
 
 (define function.__call__
@@ -1699,10 +2224,10 @@
 (define (type-call self args)
   (let ((__new__ (getattribute-from-cls-mro self (& "__new__")))
         (args-list (vector->list (PyObjectTuple-value args))))
-    (let ((instance (apply py-call-generic __new__ self args-list)))
+    (let ((instance (py-call-generic __new__ (cons self args-list))))
       (if (eq? (py-obj-cls instance) self)
         (let ((__init__ (getattribute-from-cls-mro self (& "__init__"))))
-            (apply py-call-generic __init__ instance args-list)
+            (py-call-generic __init__ (cons instance args-list))
             instance)
         instance))))
 
@@ -1826,6 +2351,8 @@
               rep)
             (let ((new-rep (make-still-copy str)))
               (table-set! str-representatives str-value new-rep)
+              (PyObjectStr-representative-set! str new-rep)
+              (PyObjectStr-representative-set! new-rep new-rep)
               new-rep))))
       self-token)))
 
@@ -1982,7 +2509,11 @@
     (if cached-hash
       cached-hash
       (let ((hash (hash-FNV1a (PyObjectStr-value str))))
-        (PyObjectStr-hash-set! str hash)
+        ;; if hash is a bignum (on 32-bit architecture), it must be a still-copy
+        ;; otherwise str representative may end with a wild pointer as hash
+        (if (fixnum? hash)
+          (PyObjectStr-hash-set! str hash)
+          (PyObjectStr-hash-set! str (make-still-copy hash)))
         hash))))
 
 (define (str-hash self)
@@ -2543,17 +3074,29 @@
             (py-call __next__ obj))))))
 
 (define (iterator->list it)
-  (let ((nxt (iterator-next it #f)))
-    (if nxt
-      (cons nxt (iterator->list it))
-      '())))
+  (let loop ((acc '()))
+    (let ((nxt (iterator-next it #f)))
+      (if nxt
+        (loop (cons nxt acc))
+        (reverse! acc)))))
+
+(define (iterables*->list lst)
+  (let outer-loop ((iterators lst) (outer-acc '()))
+    (if (null? iterators)
+      (reverse! outer-acc)
+      (let ((it (py-iter (car iterators))))
+        (let inner-loop ((inner-acc outer-acc))
+          (let ((nxt (iterator-next it #f)))
+            (if nxt
+              (inner-loop (cons nxt inner-acc))
+              (outer-loop (cdr iterators) inner-acc))))))))
 
 ;; list iterator
 
 (define (list-iterator-iter self)
   (if (eq? (py-type self) py-list-iterator-class)
     self
-    (py-throw py-builtin-TypeError)))
+    (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 6)")))
 
 (define list_iterator.__iter__
   (procedure->py-function
@@ -2579,7 +3122,7 @@
               item)
             (stop-list-iterator self)))
           (stop-list-iterator self)))
-    (py-throw py-builtin-TypeError)))
+    (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 7)")))
 
 (define list_iterator.__next__
   (procedure->py-function
@@ -2598,7 +3141,7 @@
 (define (tuple-iterator-iter self)
   (if (eq? (py-type self) py-tuple-iterator-class)
     self
-    (py-throw py-builtin-TypeError)))
+    (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 8)")))
 
 (define py-tuple-iterator-iter
   (procedure->py-function
@@ -2615,7 +3158,7 @@
             (PyObjectTupleIterator-index-set! self (+ index 1))
             item))
         (py-throw py-builtin-StopIteration)))
-    (py-throw py-builtin-TypeError)))
+    (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 9)")))
 
 (define py-tuple-iterator-next
   (procedure->py-function
@@ -2638,7 +3181,7 @@
 (define (bytearray-iterator-iter self)
   (if (eq? (py-type self) py-bytearray-iterator-class)
     self
-    (py-throw py-builtin-TypeError)))
+    (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 10)")))
 
 (define py-bytearray-iterator.__iter__
   (procedure->py-function
@@ -2655,7 +3198,7 @@
             (PyObjectBytearrayIterator-index-set! self (+ index 1))
             (py-int-from-scheme item)))
         (stop-bytearray-iterator self)))
-    (py-throw py-builtin-TypeError)))
+    (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 11)")))
 
 
 (define py-bytearray-iterator.__next__
@@ -3642,7 +4185,7 @@
 (define (tuple-iter self)
   (if (py-isinstance? self py-tuple-class)
     (py-tuple-iterator-alloc 0 (PyObjectTuple-value self))
-    (py-throw py-builtin-TypeError)))
+    (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 12)")))
 
 (define tuple.__iter__
   (procedure->py-function
@@ -3951,7 +4494,7 @@
             (vector-map
               py-int-from-scheme
               (py-slice-indices self len-i))))
-        (py-throw py-builtin-TypeError)) ;; TODO: add error message
+        (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 13)")) ;; TODO: add error message
       (py-throw-not-a-type-object "slice.indices" self)))
 
 (define slice.indices
@@ -4452,6 +4995,23 @@
 
 (define-type ordered-table table length first last iterator-token)
 
+(define (ordered-table-first-key ot)
+  (dict-cell-key
+    (doubly-linked-list-node-value
+      (ordered-table-first ot))))
+
+(define (ordered-table->list ordered-table)
+  (let ((first (ordered-table-first ordered-table)))
+    (let loop ((node first) (acc '()))
+      (if node
+        (let ((cell (doubly-linked-list-node-value node)))
+          (loop
+            (doubly-linked-list-node-next node)
+            (cons
+              (cons (dict-cell-key cell) (dict-cell-value cell))
+              acc)))
+        (reverse acc)))))
+
 (define (ordered-table-append! ordered-table node)
   (let ((first (ordered-table-first ordered-table)))
     (if first
@@ -4628,12 +5188,41 @@
         default)
       (dict-cell-value cell))))
 
+(define (ordered-table-pop! ordered-table key default)
+  (let* ((hash (PyObjectInt-value (py-hash key)))
+        (table (ordered-table-table ordered-table))
+        (size (vector-length table)))
+    (let loop ((i (hash->cell hash size)))
+      (let ((node (vector-ref table i)))
+        (if (eq? node empty-table-cell)
+          default
+          (let* ((cell (doubly-linked-list-node-value node))
+                (cell-key (dict-cell-key cell))
+                (cell-hash (dict-cell-hash cell)))
+            (if (and (= hash cell-hash) (py-test (py-eq key cell-key)))
+              (let ((bucket-tail
+                    (table-bucket-indices table size (cell-next i size)))
+                    (len (ordered-table-length ordered-table)))
+                (doubly-linked-list-node-remove! node ordered-table)
+                (vector-set! table i empty-table-cell)
+                (ordered-table-drop-token! ordered-table)
+                (ordered-table-length-set! ordered-table (- len 1))
+                (table-bucket-reinsert table bucket-tail)
+                (dict-cell-value cell))
+              (loop (cell-next i size)))))))))
+
+(define (py-make-empty-dict)
+  (py-dict-alloc (make-empty-ordered-table 0)))
+
 (define (py-dict-from-scheme key-value-pairs)
+  (py-dict-alloc (py-ordered-table-from-scheme key-value-pairs)))
+
+(define (py-ordered-table-from-scheme key-value-pairs)
   (let* ((ordered-table (make-empty-ordered-table (length key-value-pairs)))
          (table-vector (ordered-table-table ordered-table)))
     (let loop ((key-value-pairs key-value-pairs))
       (if (null? key-value-pairs)
-        (py-dict-alloc ordered-table)
+        ordered-table
         (let* ((pair (car key-value-pairs))
               (key (car pair))
               (value (cdr pair))
@@ -4660,10 +5249,10 @@
     (make-posonly-signature (self key value))))
 
 (define (dict-get self key default)
-    (if (py-isinstance? self py-dict-class)
-      (let ((ordered-table (PyObjectDict-value self)))
-        (ordered-table-get ordered-table key default))
-      (py-throw-not-a-type-object "dict.get" self)))
+  (if (py-isinstance? self py-dict-class)
+    (let ((ordered-table (PyObjectDict-value self)))
+      (ordered-table-get ordered-table key (if (eq? default py-absent) py-None default)))
+    (py-throw-not-a-type-object "dict.get" self)))
 
 (define dict.get
   (procedure->py-function
@@ -4715,6 +5304,20 @@
 (define dict.__iter__
   (procedure->py-function
     dict-iter
+    (make-posonly-signature (self))))
+
+;; TODO: incorrect implementation, should return a dict_keys object
+(define (dict-keys self)
+  (if (py-isinstance? self py-dict-class)
+    (py-tuple-from-scheme
+      (list->vector
+        (iterator->list
+          (dict->dict-keyiterator self))))
+    (py-throw-not-a-type-object "dict.keys" self)))
+
+(define dict.keys
+  (procedure->py-function
+    dict-keys
     (make-posonly-signature (self))))
 
 ;; =============================================================================
@@ -4981,6 +5584,7 @@
         (& "__delitem__") dict.__delitem__
         (& "__len__") dict.__len__
         (& "__iter__") dict.__iter__
+        (& "keys") dict.keys
         (& "get") dict.get))
 
   (set! py-set-class
@@ -6476,7 +7080,7 @@
 (define py-builtin-isinstance
   (procedure->py-function
     (lambda (object classinfo)
-      (py-throw-exception-with-message py-builtin-NotImplementedError "isinstance not implemented"))
+      (if (py-isinstance? object classinfo) py-True py-False))
     (make-posonly-signature (object classinfo))))
 
 ;;-------------------- issubclass(class, classinfo)

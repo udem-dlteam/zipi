@@ -52,7 +52,7 @@
             (list-ref args 4))
        ;; kwarg
        (if (list-ref args 5)
-           (new-PycDecl loc (list-ref args 5) 'local)
+           (new-PycDecl loc (car (list-ref args 5)) 'local)
            (new-PycUninit loc))
        ;; defaults
        (map
@@ -95,7 +95,7 @@
               (list-ref args 4))
          ;; kwarg
          (if (list-ref args 5)
-             (new-PycDecl loc (list-ref args 5) 'local)
+             (new-PycDecl loc (car (list-ref args 5)) 'local)
              (new-PycUninit loc))
          ;; defaults
          (map (lambda (a)

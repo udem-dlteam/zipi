@@ -9,6 +9,7 @@
     start-registering-constants
     end-registering-constants
     init-registered-constants
+    register-constants-perfect-hashtable
     init-constants
 
     call-host
@@ -28,6 +29,9 @@
     make-signature
     py-call
     py-call-generic
+    py-call-generic/*args
+    py-call-hashed-kwargs
+    py-call-generic-kwargs
     py-call0
     py-call1
     py-call2

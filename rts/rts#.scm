@@ -114,7 +114,7 @@
           ($elements (PyObject-%elements $obj))
           ($elements-len (vector-length $elements)))
      (if (fx>= $offset $elements-len)
-         (let (($elements-new (make-vector (max 1 (fx* 2 $elements-len)))))
+         (let (($elements-new (make-vector (max 1 (fx* 2 $elements-len)) py-absent)))
            (subvector-move! $elements 0 $elements-len $elements-new 0)
            (vector-set! $elements-new $offset $val)
            (PyObject-%elements-set! $obj $elements-new))
@@ -333,53 +333,7 @@
 (define-macro (make-args-defaults-signature args defaults)
   `(make-signature ,args () #f () #f #f ,defaults))
 
-(define-macro (define-all-py-callX)
-  (import (zipi rts config))
-
-  (define (define-py-callX X)
-    (let ((py-call-name (string->symbol (string-append "py-call" (number->string X))))
-          (args (map gensym (make-list X 'arg))))
-      `(define (,py-call-name fun ,@args)
-        (let ((fun-type (py-type fun)))
-          (if (eq? fun-type py-function-class)
-            (let ((arity (PyObjectFunction-arity fun)))
-              (cond
-                ((not arity) (py-call-generic fun ,@args))
-                ((= arity ,X)
-                  ((PyObjectFunction-procedure fun) ,@args))
-                ((and (< arity 0) (>= arity ,(- 0 X 1)))
-                  (apply
-                    (PyObjectFunction-procedure fun)
-                    (pack-extra-args arity (list ,@args))))
-                (else
-                  (py-throw py-builtin-TypeError)))) ;; TODO add error message
-            (py-call-generic fun ,@args))))))
-    (let loop ((i 1) (acc '()))
-      (if (> i py-callX-args-limit)
-        `(begin ,@acc)
-        (loop (+ i 1) (cons (define-py-callX i) acc)))))
-
-(define-macro (py-call f . args)
-  (import (zipi rts config))
-
-  (define (make-py-call-name n)
-    (string->symbol
-      (string-append
-        "py-call"
-        (number->string n))))
-
-  (let* ((split-args
-          (let loop ((args args) (acc '()))
-            (if (or (null? args) (keyword? (car args)))
-              (cons (reverse acc) args)
-              (loop (cdr args) (cons (car args) acc)))))
-        (pos-args (car split-args))
-        (special-args (cdr split-args)))
-    (if (not (null? special-args))
-      `(py-throw-exception-with-message
-          py-builtin-NotImplementedError
-          "py-call does not support nammed args, *args or **kwargs")
-      (let ((nargs (length pos-args)))
-        (if (<= nargs py-callX-args-limit)
-          `(,(make-py-call-name nargs) ,f ,@pos-args)
-          `(py-call-generic ,f ,@pos-args))))))
+(define-macro (register-constants-perfect-hashtable table)
+  (vector-map
+    (lambda (e) (if (string? e) (get-PyStaticStr e) e))
+    table))
