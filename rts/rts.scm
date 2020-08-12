@@ -95,16 +95,15 @@
                         (substring types 0 (fx- gt 1)) #\,)
                       (substring types (fx+ gt 1) (string-length types))))))))
 
-  (let ((type-table ;; "any" must be first 
-                    ;;   and match every unknown type-instance
-          '(("any" PyObject-value (lambda (x) x)) ;; XXX TODO
-            ("int" PyObjectInt-value py-int-from-scheme)
-            ("float" PyObjectFloat-value py-float-from-scheme)
-            ("complex" PyObjectComplex-value py-complex-from-scheme))))
+  (let ((type-table
+          '(("int"   PyObjectInt-value py-int-from-scheme)
+            ("float" PyObjectFloat-value py-float-from-scheme))))
     (let* ((func-types-out (parse signature))
            (output-type (let ((out (assoc (caddr func-types-out) type-table)))
                           (if (not out)
-                              (cddar type-table)
+                              (error (string-append "Call-host: type " 
+                                                    (caddr func-types-out) 
+                                                    " is unimplemented for call-host use."))
                               (caddr out))))
            (args (map (lambda (type arg)
                         `(,(cadr (assoc type type-table string-ci=?))
@@ -116,9 +115,6 @@
                       (with-input-from-string fun read)
                       (string->symbol fun)))))
       `(,output-type (,fun ,@args)))))
-
-
-
  
 ;; =============================================================================
 ;;  HIDDEN CLASSES
@@ -2155,9 +2151,9 @@
     ((py-int-class)
      (display (PyObjectInt-value obj) port))
     ((py-float-class)
-     (display (float->string-with-padded-zeros 
-                (PyObjectFloat-value obj)) 
-              port))
+     (display (float.__repr__ obj) port))
+;     (display (PyObjectFloat-value obj)) 
+;              port))
     ((py-bool-class)
      (if (eq? obj py-True)
          (display "True" port)
