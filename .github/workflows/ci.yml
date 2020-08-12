@@ -51,10 +51,9 @@ jobs:
           cd zipi
           rm ./bin/pysexp.py || echo "not found"
           ln -s ../etc/pysexp.py ./bin/pysexp.py
-          echo "print(\"hello world\")" > test.py
           gsc zipi/rts
           make test
-        timeout-minutes: 2
+        timeout-minutes: 4
         if: always()
 
 
