@@ -96,21 +96,20 @@
                       (substring types (fx+ gt 1) (string-length types))))))))
 
   (let ((type-table
-          '(("any" (lambda (x) x) (lambda (x) x))
-            ("int"   PyObjectInt-value py-int-from-scheme)
+          '(("int"   PyObjectInt-value py-int-from-scheme)
             ("float" PyObjectFloat-value py-float-from-scheme))))
     (let* ((func-types-out (parse signature))
            (output-type (let ((type (caddr func-types-out)))
                           (let ((out (assoc type type-table)))
                             (if (not out)
-                                (if (string-ci=? type "any")
+                                (if (string-ci=? type "foreign")
                                     #f
-                                    (error (string-append "Call-host: type " 
+                                    (error (string-append "Call-host: type \"" 
                                                           (caddr func-types-out) 
-                                                          " is unimplemented for call-host use.")))
+                                                          "\" is unimplemented for call-host use.")))
                                 (caddr out)))))
            (args (map (lambda (type arg)
-                        (if (string-ci=? type "any")
+                        (if (string-ci=? type "foreign")
                             arg
                             `(,(cadr (assoc type type-table string-ci=?))
                                ,arg)))
@@ -122,7 +121,7 @@
                       (string->symbol fun)))))
       (if output-type
          `(,output-type (,fun ,@args))
-          (,fun ,@args)))))
+         `(,fun ,@args)))))
  
 ;; =============================================================================
 ;;  HIDDEN CLASSES
