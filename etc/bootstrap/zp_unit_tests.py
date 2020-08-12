@@ -92,10 +92,10 @@ def makes_Foo():
 # pyinterp unit tests
 
 @Is(absent)
-def test_om_rawget():
+def test_dict_get():
     d = {'a': 0}
     name = 'b'
-    return om_rawget(d, name)
+    return dict_get(d, name, absent)
 
 
 @Equals("""at 1.1-2.11
