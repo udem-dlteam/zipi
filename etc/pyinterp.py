@@ -1790,18 +1790,32 @@ def sem_Mult(ctx, val1, val2):
     def call_expr_end(rte, val):
         return expr_end(ctx, val)
 
-    __val1_mul__ = getattribute_from_obj_mro(val1, '__mul__')
-
-    if __val1_mul__ is absent:
+    def call_rmul(rte):
         __val2_rmul__ = getattribute_from_obj_mro(val2, '__rmul__')
         if __val2_rmul__ is absent:
-            assert False, '__mul__ and __rmul__ are absent'
+            assert False, '__mul__ and __rmul__ are absent absent'
         else:
-            ctx2 = Context(ctx.rte, call_expr_end, [val2, val1])
-            return om_call(__val2_rmul__, ctx2, [val2, val1])
+
+            __val1_rmul__ = getattribute_from_obj_mro(val1, '__rmul__')
+            if __val1_rmul__ is absent:
+                assert False, '__mul__ and __rmul__ are absent absent'
+            else:
+                ctx2 = Context(rte, call_expr_end, [val2, val1])
+                return om_call(__val1_rmul__, ctx2, [val2, val1])
+
+    def test_mul_result(rte, val):
+        if om_is(val, om_NotImplemented):
+            return call_rmul(rte)
+        else:
+            return call_expr_end(rte, val)
+
+    __val1_mul__ = getattribute_from_obj_mro(val1, '__mul__')
+    if __val1_mul__ is absent:
+        return call_rmul(ctx.rte)
     else:
-        ctx1 = Context(ctx.rte, call_expr_end, ctx.ast)
+        ctx1 = Context(ctx.rte, test_mul_result, ctx.ast)
         return om_call(__val1_mul__, ctx1, [val1, val2])
+
 
 # TODO: update those definitions
 def sem_Div(ctx, val1, val2):

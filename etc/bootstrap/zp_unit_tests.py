@@ -150,6 +150,7 @@ def test_mult():
     source = "2 * 3 * 4"
     return interp_source(source)
 
+
 @Equals("""at 1.1-1.4: value = <class 'int'>
 at 1.1-1.12: value = <slot wrapper '__mul__' of 'int' objects>
 at 1.13-1.14: value = 2
