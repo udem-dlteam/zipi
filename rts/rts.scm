@@ -671,7 +671,7 @@
       (cond
         ((PyObjectStr? next-key)
           (loop
-            (cons (cons next-key (py-getitem obj next-key #f)) acc)
+            (cons (cons next-key (py-getitem obj next-key)) acc)
             (py-next keys-iterator)))
         ((not next-key)
           (reverse! acc))
@@ -1026,36 +1026,6 @@
   (py-throw
     (py-call py-builtin-IndexError
       (py-str-from-scheme "pop from empty list"))))
-
-(define (py-throw-not-subscriptable obj)
-  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type obj) (& "__name__")))))
-    (py-throw
-      (py-call py-builtin-TypeError
-        (py-str-from-scheme
-          (string-append
-            "'"
-            given-type
-            "' object is not subscriptable"))))))
-
-(define (py-throw-not-assignable obj)
-  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type obj) (& "__name__")))))
-    (py-throw
-      (py-call py-builtin-TypeError
-        (py-str-from-scheme
-          (string-append
-            "'"
-            given-type
-            "' object does not support item assignment"))))))
-
-(define (py-throw-not-deletable obj)
-  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type obj) (& "__name__")))))
-    (py-throw
-      (py-call py-builtin-TypeError
-        (py-str-from-scheme
-          (string-append
-            "'"
-            given-type
-            "' object does not support item deletion"))))))
 
 (define (py-throw-wrong-index-type type expected-description item)
   (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type item) (& "__name__")))))
@@ -1865,24 +1835,6 @@
     (if (eq? len py-absent)
       (py-throw-has-no-len obj)
       len)))
-
-(define (py-getitem obj i cache)
-  (let ((getitem (getattribute-from-obj-mro obj (& "__getitem__"))))
-    (if (eq? getitem py-absent)
-      (py-throw-not-subscriptable obj)
-      (py-call getitem obj i))))
-
-(define (py-setitem obj i value cache)
-  (let ((setitem (getattribute-from-obj-mro obj (& "__setitem__"))))
-    (if (eq? setitem py-absent)
-      (py-throw-not-assignable obj)
-      (py-call setitem obj i value))))
-
-(define (py-delitem obj i cache)
-  (let ((delitem (getattribute-from-obj-mro obj (& "__delitem__"))))
-    (if (eq? delitem py-absent)
-      (py-throw-not-deletable obj)
-      (py-call delitem obj i))))
 
 ;;;----------------------------------------------------------------------------
 
@@ -5519,34 +5471,6 @@
 (define py-int-2 (py-int-from-scheme 2))
 (define py-int-3 (py-int-from-scheme 3))
 (define py-int-4 (py-int-from-scheme 4))
-
-;; =============================================================================
-;;  Context managers (with) protocol
-;; =============================================================================
-
-(define (py-enter obj)
-  (let ((__enter__ (getattribute-from-obj-mro obj (& "__enter__"))))
-    (if (eq? __enter__ py-absent)
-      (py-throw
-        (py-call py-builtin-AttributeError
-          (&& "__enter__")))
-      (py-call __enter__ obj))))
-
-(define (py-exit obj exc)
-  (let ((__exit__ (getattribute-from-obj-mro obj (& "__exit__"))))
-    (if (eq? __exit__ py-absent)
-      (py-throw
-        (py-call py-builtin-AttributeError
-          (&& "__exit__")))
-      (if exc
-        (let* ((exc-type (PyObject-class exc))
-              (exc-traceback py-None) ;; TODO: pass traceback to __exit__ once it exists
-              (exit-res (py-call __exit__ obj exc-type exc exc-traceback)))
-          ;; __exit__ can return True to silence an exception
-          (if (py-test exit-res)
-            #f
-            (raise exc)))
-        (py-call __exit__ obj py-None py-None py-None)))))
 
 ;; =============================================================================
 ;;  IO

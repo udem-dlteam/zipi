@@ -274,7 +274,7 @@
                     (py-exit ,ctx-sym %exn)
                     (raise %exn)))
                 ,(in-contexts (cdr items) body))
-                (py-exit ,ctx-sym #f)))
+                (py-exit ,ctx-sym py-None)))
           ((PycRefUnresolved? optional-vars)
             `(let ((,ctx-sym ,(scheme context-expr conf)))
                (global-put!
@@ -291,7 +291,7 @@
                     (py-exit ,ctx-sym %exn)
                     (raise %exn)))
                 ,(in-contexts (cdr items) body))
-                (py-exit ,ctx-sym #f)))
+                (py-exit ,ctx-sym py-None)))
           ((PycRef? optional-vars)
             (let ((decl (PycRef-decl optional-vars)))
               (if (eq? (PycDecl-scope decl) 'global)
@@ -310,7 +310,7 @@
                         (py-exit ,ctx-sym %exn)
                         (raise %exn)))
                     ,(in-contexts (cdr items) body))
-                    (py-exit ,ctx-sym #f))
+                    (py-exit ,ctx-sym py-None))
                 `(let ((,ctx-sym ,(scheme context-expr conf)))
                    (set! ,(scheme-decl decl conf) (py-enter ,ctx-sym))
                    (with-handler
@@ -320,7 +320,7 @@
                         (py-exit ,ctx-sym %exn)
                         (raise %exn)))
                     ,(in-contexts (cdr items) body))
-                    (py-exit ,ctx-sym #f)))))
+                    (py-exit ,ctx-sym py-None)))))
           (else
             (error "scheme::PycWith" "only supports assignation to variable" optional-vars))))))
   (in-contexts (PycWith-items this) (PycWith-body this)))
@@ -536,8 +536,7 @@
            	  ,(if (PycUninit? lower) 'py-None (scheme lower conf))
            	  ,(if (PycUninit? upper) 'py-None (scheme upper conf))
            	  ,(if (PycUninit? step) 'py-None (scheme step conf)))
-             ,val
-             #f))))
+             ,val))))
     ((isa? (PycAssig-lhs this) PycSubscript)
       (let* ((axs (PycAssig-lhs this))
             (obj (PycSubscript-obj axs))
@@ -546,8 +545,7 @@
       (epairify this
         `(py-setitem ,(scheme obj conf)
         ,(scheme index conf)
-        ,(scheme (PycAssig-rhs this) conf)
-        ,(scheme-cache (PycSubscript-cache axs) axs)))))
+        ,(scheme (PycAssig-rhs this) conf)))))
     ((isa? (PycAssig-lhs this) PycTuple)
       `(py-throw-exception-with-message
           py-builtin-NotImplementedError
@@ -906,8 +904,7 @@
       ((PycSubscript? expr-to-delete)
         `(py-delitem
             ,(scheme (PycSubscript-obj expr-to-delete) conf)
-            ,(scheme (PycSubscript-index expr-to-delete) conf)
-            #f))
+            ,(scheme (PycSubscript-index expr-to-delete) conf)))
       ((PycSlice? expr-to-delete)
         (let ((lower (PycSlice-lower expr-to-delete))
               (upper (PycSlice-upper expr-to-delete))
@@ -917,8 +914,7 @@
               (py-slice-from-scheme
             	  ,(if (PycUninit? lower) 'py-None (scheme lower conf))
             	  ,(if (PycUninit? upper) 'py-None (scheme upper conf))
-            	  ,(if (PycUninit? step) 'py-None (scheme step conf)))
-              #f)))
+            	  ,(if (PycUninit? step) 'py-None (scheme step conf))))))
       (else
         (error "scheme::PycDelete" "only del subscript/slice are supported" #f)))))
 
@@ -930,8 +926,7 @@
 (define-walk-method (scheme this::PycSubscript conf)
    (epairify this
       `(py-getitem ,(scheme (PycSubscript-obj this) conf)
-	  ,(scheme (PycSubscript-index this) conf)
-	  ,(scheme-cache (PycSubscript-cache this) this))))
+	  ,(scheme (PycSubscript-index this) conf))))
 
 (define-walk-method (scheme this::PycSlice conf)
   (let ((lower (PycSlice-lower this))
@@ -943,8 +938,7 @@
         (py-slice-from-scheme
       	  ,(if (PycUninit? lower) 'py-None (scheme lower conf))
       	  ,(if (PycUninit? upper) 'py-None (scheme upper conf))
-      	  ,(if (PycUninit? step) 'py-None (scheme step conf)))
-        #f))))
+      	  ,(if (PycUninit? step) 'py-None (scheme step conf)))))))
 
 (define-walk-method (scheme this::PycAssert conf)
    (let ((test (PycAssert-test this))
@@ -1018,12 +1012,6 @@
    (let ((n (cell-ref cnt)))
       (cell-set! cnt (+ 1 n))
       (PycAccess-cache-set! this n)))
-
-(define-walk-method (collect-caches this::PycSubscript cnt)
-   (call-default-walker)
-   (let ((n (cell-ref cnt)))
-      (cell-set! cnt (+ 1 n))
-      (PycSubscript-cache-set! this n)))
 
 (define-walk-method (collect-caches this::PycAugAssig cnt)
    (call-default-walker)

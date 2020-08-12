@@ -13,3 +13,50 @@ def getattribute(obj, attr):
             raise
         else:
             return __getattr__(obj, attr)
+
+@define_semantics
+def getitem(obj, index):
+    __getitem__ = class_getattr(obj, "__getitem__")
+    if __getitem__ is absent:
+        raise TypeError("object is not subscriptable")
+    else:
+        return __getitem__(obj, index)
+
+@define_semantics
+def setitem(obj, index, value):
+    __setitem__ = class_getattr(obj, "__setitem__")
+    if __setitem__ is absent:
+        raise TypeError("object does not support item assignment")
+    else:
+        return __setitem__(obj, index, value)
+
+@define_semantics
+def delitem(obj, index):
+    __delitem__ = class_getattr(obj, "__delitem__")
+    if __delitem__ is absent:
+        raise TypeError("object does not support item deletion")
+    else:
+        return __delitem__(obj, index)
+
+@define_semantics
+def enter(obj):
+    __enter__ = class_getattr(obj, "__enter__")
+    if __enter__ is absent:
+        raise AttributeError("__enter__")
+    else:
+        return __enter__(obj)
+
+@define_semantics
+def exit(obj, exc):
+    __exit__ = class_getattr(obj, "__exit__")
+    if __exit__ is absent:
+        raise AttributeError("__exit__")
+    elif exc is None:
+        return __exit__(obj, None, None, None)
+    else:
+        # TODO: pass traceback as 4th arg to __exit__ once it exists
+        exit_result = __exit__(obj, type(exc), exc, None)
+        if exit_result:
+            return
+        else:
+            raise exc
