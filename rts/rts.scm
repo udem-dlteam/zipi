@@ -4985,34 +4985,6 @@
 (define py-int-4 (py-int-from-scheme 4))
 
 ;; =============================================================================
-;;  Context managers (with) protocol
-;; =============================================================================
-
-(define (py-enter obj)
-  (let ((__enter__ (getattribute-from-obj-mro obj (& "__enter__"))))
-    (if (eq? __enter__ py-absent)
-      (py-throw
-        (py-call py-builtin-AttributeError
-          (&& "__enter__")))
-      (py-call __enter__ obj))))
-
-(define (py-exit obj exc)
-  (let ((__exit__ (getattribute-from-obj-mro obj (& "__exit__"))))
-    (if (eq? __exit__ py-absent)
-      (py-throw
-        (py-call py-builtin-AttributeError
-          (&& "__exit__")))
-      (if exc
-        (let* ((exc-type (PyObject-class exc))
-              (exc-traceback py-None) ;; TODO: pass traceback to __exit__ once it exists
-              (exit-res (py-call __exit__ obj exc-type exc exc-traceback)))
-          ;; __exit__ can return True to silence an exception
-          (if (py-test exit-res)
-            #f
-            (raise exc)))
-        (py-call __exit__ obj py-None py-None py-None)))))
-
-;; =============================================================================
 ;;  IO
 ;; =============================================================================
 ;; TODO: some content of this section should be moved to the io module

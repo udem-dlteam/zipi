@@ -39,7 +39,7 @@ def delitem(obj, index):
         return __delitem__(obj, index)
 
 @define_semantics
-def enter(obj, index):
+def enter(obj):
     __enter__ = class_getattr(obj, "__enter__")
     if __enter__ is absent:
         raise AttributeError("__enter__")
@@ -52,11 +52,11 @@ def exit(obj, exc):
     if __exit__ is absent:
         raise AttributeError("__exit__")
     elif exc is None:
-        __exit__(obj, None, None, None)
+        return __exit__(obj, None, None, None)
     else:
         # TODO: pass traceback as 4th arg to __exit__ once it exists
-        exit_res = __exit__(obj, type(exc), exc, None)
-        if exit_rest:
-            pass
+        exit_result = __exit__(obj, type(exc), exc, None)
+        if exit_result:
+            return
         else:
             raise exc
