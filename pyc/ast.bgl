@@ -612,7 +612,7 @@
 (gen-walks PycWhile test body else)
 (gen-walks PycFor target iter body else)
 (gen-walks PycRaise exc cause)
-(gen-walks PycTry body (handlers) exc-sym else finally)
+(gen-walks PycTry body (handlers) else finally)
 (gen-walks PycHandler type body)
 (gen-walks PycStmtExpr expr)
 (gen-walks PycStarredExpr expr)
