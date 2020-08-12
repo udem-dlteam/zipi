@@ -96,25 +96,33 @@
                       (substring types (fx+ gt 1) (string-length types))))))))
 
   (let ((type-table
-          '(("int"   PyObjectInt-value py-int-from-scheme)
+          '(("any" (lambda (x) x) (lambda (x) x))
+            ("int"   PyObjectInt-value py-int-from-scheme)
             ("float" PyObjectFloat-value py-float-from-scheme))))
     (let* ((func-types-out (parse signature))
-           (output-type (let ((out (assoc (caddr func-types-out) type-table)))
-                          (if (not out)
-                              (error (string-append "Call-host: type " 
-                                                    (caddr func-types-out) 
-                                                    " is unimplemented for call-host use."))
-                              (caddr out))))
+           (output-type (let ((type (caddr func-types-out)))
+                          (let ((out (assoc type type-table)))
+                            (if (not out)
+                                (if (string-ci=? type "any")
+                                    #f
+                                    (error (string-append "Call-host: type " 
+                                                          (caddr func-types-out) 
+                                                          " is unimplemented for call-host use.")))
+                                (caddr out)))))
            (args (map (lambda (type arg)
-                        `(,(cadr (assoc type type-table string-ci=?))
-                           ,arg))
+                        (if (string-ci=? type "any")
+                            arg
+                            `(,(cadr (assoc type type-table string-ci=?))
+                               ,arg)))
                       (cadr func-types-out)
                       args))
            (fun (let ((fun (car func-types-out)))
                   (if (char=? (string-ref fun 0) #\()
                       (with-input-from-string fun read)
                       (string->symbol fun)))))
-      `(,output-type (,fun ,@args)))))
+      (if output-type
+         `(,output-type (,fun ,@args))
+          (,fun ,@args)))))
  
 ;; =============================================================================
 ;;  HIDDEN CLASSES
