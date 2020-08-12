@@ -1,7 +1,7 @@
 ;; ==========================================================
 ;; Class accessors
 ;; Bigloo (4.3f)
-;; Inria -- Sophia Antipolis     Thu 04 Jul 2019 08:10:18 AM CEST 
+;; Inria -- Sophia Antipolis     Thu 04 Jul 2019 08:10:18 AM CEST
 ;; (bigloo -classgen ast.bgl -o ast.sch)
 ;; ==========================================================
 
@@ -393,7 +393,10 @@
     (inline PycTry-need-return-set! ::PycTry ::bool)
     (inline PycTry-%info::obj ::PycTry)
     (inline PycTry-%info-set! ::PycTry ::obj)
-    (inline PycTry-loc::pair ::PycTry))))
+    (inline PycTry-loc::pair ::PycTry)
+    (inline PycTry-exc-sym::symbol ::PycTry)
+    (inline PycTry-exc-sym-set! ::PycTry ::symbol)
+    )))
 
 ;; PycHandler
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
