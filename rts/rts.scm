@@ -671,7 +671,7 @@
       (cond
         ((PyObjectStr? next-key)
           (loop
-            (cons (cons next-key (py-getitem obj next-key #f)) acc)
+            (cons (cons next-key (py-getitem obj next-key)) acc)
             (py-next keys-iterator)))
         ((not next-key)
           (reverse! acc))
