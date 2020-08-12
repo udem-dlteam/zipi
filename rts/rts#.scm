@@ -114,7 +114,7 @@
           ($elements (PyObject-%elements $obj))
           ($elements-len (vector-length $elements)))
      (if (fx>= $offset $elements-len)
-         (let (($elements-new (make-vector (max 1 (fx* 2 $elements-len)))))
+         (let (($elements-new (make-vector (max 1 (fx* 2 $elements-len)) py-absent)))
            (subvector-move! $elements 0 $elements-len $elements-new 0)
            (vector-set! $elements-new $offset $val)
            (PyObject-%elements-set! $obj $elements-new))
@@ -333,34 +333,45 @@
 (define-macro (make-args-defaults-signature args defaults)
   `(make-signature ,args () #f () #f #f ,defaults))
 
-(define-macro (define-all-py-callX)
-  (import (zipi rts config))
-
-  (define (define-py-callX X)
-    (let ((py-call-name (string->symbol (string-append "py-call" (number->string X))))
-          (args (map gensym (make-list X 'arg))))
-      `(define (,py-call-name fun ,@args)
-        (let ((fun-type (py-type fun)))
-          (if (eq? fun-type py-function-class)
-            (let ((arity (PyObjectFunction-arity fun)))
-              (cond
-                ((not arity) (py-call-generic fun ,@args))
-                ((= arity ,X)
-                  ((PyObjectFunction-procedure fun) ,@args))
-                ((and (< arity 0) (>= arity ,(- 0 X 1)))
-                  (apply
-                    (PyObjectFunction-procedure fun)
-                    (pack-extra-args arity (list ,@args))))
-                (else
-                  (py-throw py-builtin-TypeError)))) ;; TODO add error message
-            (py-call-generic fun ,@args))))))
-    (let loop ((i 1) (acc '()))
-      (if (> i py-callX-args-limit)
-        `(begin ,@acc)
-        (loop (+ i 1) (cons (define-py-callX i) acc)))))
+(define-macro (register-constants-perfect-hashtable table)
+  (vector-map
+    (lambda (e) (if (string? e) (get-PyStaticStr e) e))
+    table))
 
 (define-macro (py-call f . args)
-  (import (zipi rts config))
+  (define (make-kwargs-loc-table names)
+    (import (zipi rts utility))
+    (let* ((names-length (length names))
+           (max-table-length (* names-length 3))
+           (perfect-table-length
+             (let loop ((size names-length))
+                (cond
+                  ((> size max-table-length)
+                    #f)
+                  ;; the following condition check that there is no collision
+                  ;; in a table of length 'size'
+                  ((= names-length
+                      (table-length
+                        (list->table
+                          (map
+                            (lambda (n) (cons (fast-range-hash (hash-FNV1a n) size) #t))
+                            names))))
+                    size)
+                  (else
+                    (loop (+ size 1)))))))
+      (if perfect-table-length
+        ;; i: index at which element will be found. The table itself is an
+        ;; index table which will be at index 0, which is why i starts at 1
+        (let loop ((names names) (i 1) (table (make-vector (* 2 perfect-table-length) #f)))
+          (if (null? names)
+            table
+            (let* ((name (car names))
+                   (hash (hash-FNV1a name))
+                   (name-index (* 2 (fast-range-hash hash perfect-table-length))))
+              (vector-set! table name-index name)
+              (vector-set! table (+ name-index 1) i)
+              (loop (cdr names) (+ i 1) table))))
+        #f)))
 
   (define (make-py-call-name n)
     (string->symbol
@@ -374,12 +385,71 @@
               (cons (reverse acc) args)
               (loop (cdr args) (cons (car args) acc)))))
         (pos-args (car split-args))
-        (special-args (cdr split-args)))
-    (if (not (null? special-args))
-      `(py-throw-exception-with-message
-          py-builtin-NotImplementedError
-          "py-call does not support nammed args, *args or **kwargs")
-      (let ((nargs (length pos-args)))
-        (if (<= nargs py-callX-args-limit)
-          `(,(make-py-call-name nargs) ,f ,@pos-args)
-          `(py-call-generic ,f ,@pos-args))))))
+        (split-special-args
+          ;; result: #(kwargs *args **kwargs)
+          (let loop ((args (cdr split-args)) (acc (vector '() '() '())))
+            (cond
+              ((null? args)
+                (vector-map reverse acc))
+              ((eq? (car args) *:)
+                (begin
+                  (vector-set! acc 1 (cons (cadr args) (vector-ref acc 1)))
+                  (loop (cddr args) acc)))
+              ((eq? (car args) **:)
+                (begin
+                  (vector-set! acc 2 (cons (cadr args) (vector-ref acc 2)))
+                  (loop (cddr args) acc)))
+              (else
+                (begin
+                  (vector-set! acc 0 (cons (cons (car args) (cadr args)) (vector-ref acc 0)))
+                  (loop (cddr args) acc))))))
+        (kwargs (vector-ref split-special-args 0))
+        (kwargs-names (map (lambda (e) (keyword->string (car e))) kwargs))
+        (kwargs-values (map cdr kwargs))
+        (*args (vector-ref split-special-args 1))
+        (**kwargs (vector-ref split-special-args 2))
+        (kwargs-table
+          (if (and (null? **kwargs) (not (null? kwargs)))
+            (make-kwargs-loc-table kwargs-names)
+            #f))
+        ;; extra-kwargs are kwargs which could not be hashed in a perfect hashtable
+        ;; at compile time, they are treated as provided in a **kwargs at run-time
+        (extra-kwargs
+          (if (and (not kwargs-table) (not (null? kwargs)))
+            `(list
+              ,@(map
+                  (lambda (name value)
+                    `(cons (& ,name) ,value))
+                  kwargs-names
+                  kwargs-values))
+            #f)))
+
+    (cond
+      (kwargs-table
+        `(py-call-hashed-kwargs
+            ,f
+            (list ,@pos-args)
+            (list ,@*args)
+            (vector
+              (register-constants-perfect-hashtable ,kwargs-table)
+              ,@(map
+                  (lambda (key value) `(cons (& ,key) ,value))
+                  kwargs-names
+                  kwargs-values))))
+      ((or extra-kwargs (not (null? **kwargs)))
+        `(py-call-generic-kwargs
+          ,f
+          (list ,@pos-args)
+          (list ,@*args)
+          ,(or extra-kwargs `'())
+          (list ,@**kwargs)))
+      (else
+        (let ((nargs (length pos-args)))
+          (import (zipi rts config))
+          (cond
+            ((not (null? *args))
+              `(py-call-generic/*args ,f (list ,@pos-args) (list ,@*args)))
+            ((<= nargs py-callX-args-limit)
+              `(,(make-py-call-name nargs) ,f ,@pos-args))
+            (else
+              `(py-call-generic ,f (list ,@pos-args)))))))))

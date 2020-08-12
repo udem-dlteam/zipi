@@ -1,9 +1,9 @@
 cpython
 pypy
 pyc/o
-pyc/types.sch
-pyc/new.sch
+pyc/*.sch
 pyc/.afile
+pyc/.afile~
 pyc/configure.scm
 etc/Makefile.zipiconfig
 etc/Makefile.bigloo
@@ -18,9 +18,7 @@ zpc/configure.scm
 rts/.afile
 rts/.etags
 rts/o
-rts/object.sch
-rts/iterator.sch
-rts/hclass.sch
+rts/*.sch
 rts/configure.scm
 stdlib/builtins.scm
 stdlib/builtins.bgl
