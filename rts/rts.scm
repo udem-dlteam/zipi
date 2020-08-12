@@ -618,36 +618,6 @@
     (py-call py-builtin-IndexError
       (py-str-from-scheme "pop from empty list"))))
 
-(define (py-throw-not-subscriptable obj)
-  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type obj) (& "__name__")))))
-    (py-throw
-      (py-call py-builtin-TypeError
-        (py-str-from-scheme
-          (string-append
-            "'"
-            given-type
-            "' object is not subscriptable"))))))
-
-(define (py-throw-not-assignable obj)
-  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type obj) (& "__name__")))))
-    (py-throw
-      (py-call py-builtin-TypeError
-        (py-str-from-scheme
-          (string-append
-            "'"
-            given-type
-            "' object does not support item assignment"))))))
-
-(define (py-throw-not-deletable obj)
-  (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type obj) (& "__name__")))))
-    (py-throw
-      (py-call py-builtin-TypeError
-        (py-str-from-scheme
-          (string-append
-            "'"
-            given-type
-            "' object does not support item deletion"))))))
-
 (define (py-throw-wrong-index-type type expected-description item)
   (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type item) (& "__name__")))))
     (py-throw
@@ -1456,24 +1426,6 @@
     (if (eq? len py-absent)
       (py-throw-has-no-len obj)
       len)))
-
-(define (py-getitem obj i cache)
-  (let ((getitem (getattribute-from-obj-mro obj (& "__getitem__"))))
-    (if (eq? getitem py-absent)
-      (py-throw-not-subscriptable obj)
-      (py-call getitem obj i))))
-
-(define (py-setitem obj i value cache)
-  (let ((setitem (getattribute-from-obj-mro obj (& "__setitem__"))))
-    (if (eq? setitem py-absent)
-      (py-throw-not-assignable obj)
-      (py-call setitem obj i value))))
-
-(define (py-delitem obj i cache)
-  (let ((delitem (getattribute-from-obj-mro obj (& "__delitem__"))))
-    (if (eq? delitem py-absent)
-      (py-throw-not-deletable obj)
-      (py-call delitem obj i))))
 
 ;;;----------------------------------------------------------------------------
 
