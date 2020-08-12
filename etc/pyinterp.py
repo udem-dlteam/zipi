@@ -324,6 +324,8 @@ def populate_builtin_int():
     builtin_add_method(fields, '__radd__', om_int_radd)
     builtin_add_method(fields, '__sub__', om_int_sub)
     builtin_add_method(fields, '__rsub__', om_int_rsub)
+    builtin_add_method(fields, '__mul__', om_int_mul)
+    builtin_add_method(fields, '__rmul__', om_int_rmul)
     builtin_add_method(fields, '__eq__', om_int_eq)
     builtin_add_method(fields, '__ne__', om_int_ne)
     builtin_add_method(fields, '__lt__', om_int_lt)
@@ -726,6 +728,24 @@ def om_int_rsub(ctx, args):
     val2 = args[1]
 
     return om_int_sub(ctx, [val2, val1])
+
+def om_int_mul(ctx, args):
+    if debug: print('int.__mul__')
+    val1 = args[0]
+    val2 = args[1]
+
+    val1_unbox = om_rawget(val1, '**value**')
+    val2_unbox = om_rawget(val2, '**value**')
+    # TODO: add type check.
+    result = num_mul(val1_unbox, val2_unbox)
+    return ctx.cont(ctx.rte, om_int(result))
+
+def om_int_rmul(ctx, args):
+    if debug: print('int.__rmul__')
+    val1 = args[0]
+    val2 = args[1]
+
+    return om_int_mul(ctx, [val2, val1])
 
 def om_int_eq(ctx, args):
     if debug: print('int.__eq__')
@@ -1766,11 +1786,24 @@ def sem_Sub(ctx, val1, val2):
     else:
         return om_call(__val1_sub__, ctx1, [val1, val2])
 
-# TODO: update those definition
 def sem_Mult(ctx, val1, val2):
-    result = val1 * val2
-    return expr_end(ctx, result)
+    def call_expr_end(rte, val):
+        return expr_end(ctx, val)
 
+    __val1_mul__ = getattribute_from_obj_mro(val1, '__mul__')
+
+    if __val1_mul__ is absent:
+        __val2_rmul__ = getattribute_from_obj_mro(val2, '__rmul__')
+        if __val2_rmul__ is absent:
+            assert False, '__mul__ and __rmul__ are absent'
+        else:
+            ctx2 = Context(ctx.rte, call_expr_end, [val2, val1])
+            return om_call(__val2_rmul__, ctx2, [val2, val1])
+    else:
+        ctx1 = Context(ctx.rte, call_expr_end, ctx.ast)
+        return om_call(__val1_mul__, ctx1, [val1, val2])
+
+# TODO: update those definitions
 def sem_Div(ctx, val1, val2):
     result = val1 / val2
     return expr_end(ctx, result)

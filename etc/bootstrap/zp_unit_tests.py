@@ -139,5 +139,17 @@ __builtins__.__class__
     """
     return interp_source(source)
 
+
+@Equals("""at 1.1-1.2: value = 2
+at 1.5-1.6: value = 3
+at 1.1-1.6: value = 6
+at 1.9-1.10: value = 4
+at 1.1-1.10: value = 24
+""")
+def test_mult():
+    source = "2 * 3 * 4"
+    return interp_source(source)
+
+
 if __name__ == "__main__":
     run_tests()
