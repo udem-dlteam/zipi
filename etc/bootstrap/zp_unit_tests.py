@@ -162,5 +162,25 @@ def test_bad_mult():
     return interp_source(source)
 
 
+@Equals("""at 1.1-1.14: value = <class 'BaseException'>
+at 2.1-2.10: value = <class 'Exception'>
+at 3.1-3.10: value = <class 'NameError'>
+at 4.1-4.10: value = <class 'TypeError'>
+at 5.1-5.11: value = <class 'ValueError'>
+at 6.1-6.16: value = <class 'ArithmeticError'>
+at 7.1-7.18: value = <class 'ZeroDivisionError'>
+""")
+def test_exception_class():
+    source = """BaseException
+Exception
+NameError
+TypeError
+ValueError
+ArithmeticError
+ZeroDivisionError
+"""
+    return interp_source(source)
+
+  
 if __name__ == "__main__":
     run_tests()

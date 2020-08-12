@@ -296,7 +296,7 @@ def populate_builtin_object():
 
 def populate_builtin_NotImplementedType():
     fields = om_rawget(class_NotImplementedType, 'attribs')
-    builtin_add_method(fields, '__repr__', om_NotImplementedType_str)
+    builtin_add_method(fields, '__str__', om_NotImplementedType_str)
     builtin_add_method(fields, '__repr__', om_NotImplementedType_repr)
 
     class_set__mro__(class_NotImplementedType, [class_NotImplementedType, class_object])
@@ -388,6 +388,27 @@ def populate_builtin_FunctionType():
     builtin_add_method(fields, '__repr__', om_function_repr)
 
     class_set__mro__(class_function, [class_function, class_object])
+
+def populate_builtin_BaseException():
+    class_set__mro__(class_BaseException, [class_BaseException, class_object])
+
+def populate_builtin_Exception():
+    class_set__mro__(class_Exception, [class_BaseException, class_object])
+
+def populate_builtin_NameError():
+    class_set__mro__(class_NameError, [class_NameError, class_Exception, class_BaseException, class_object])
+
+def populate_builtin_TypeError():
+    class_set__mro__(class_TypeError, [class_TypeError, class_Exception, class_BaseException, class_object])
+
+def populate_builtin_ValueError():
+    class_set__mro__(class_ValueError, [class_ValueError, class_Exception, class_BaseException, class_object])
+
+def populate_builtin_ArithmeticError():
+    class_set__mro__(class_ArithmeticError, [class_ArithmeticError, class_Exception, class_BaseException, class_object])
+
+def populate_builtin_ZeroDivisionError():
+    class_set__mro__(class_ZeroDivisionError, [class_ZeroDivisionError, class_ArithmeticError, class_Exception, class_BaseException, class_object])
 
 def object_class(o):
     if om_is(o, om_None):
@@ -659,7 +680,7 @@ def om_object_repr(ctx, args):
 
 # class_NotImplementedType
 def om_NotImplementedType_str(ctx, args):
-    if debug: print('NotImplementedType.__repr__')
+    if debug: print('NotImplementedType.__str__')
     self = args[0]
     result = om_str('NotImplemented')
     return ctx.cont(ctx.rte, result)
@@ -1027,6 +1048,15 @@ class_dict = make_builtin_class('dict', class_type)
 class_module = make_builtin_class('module', class_type)
 class_function = make_builtin_class('function', class_type)
 
+# Exception classes
+class_BaseException = make_builtin_class('BaseException', class_type)
+class_Exception = make_builtin_class('Exception', class_type)
+class_NameError = make_builtin_class('NameError', class_type)
+class_TypeError = make_builtin_class('TypeError', class_type)
+class_ValueError = make_builtin_class('ValueError', class_type)
+class_ArithmeticError = make_builtin_class('ArithmeticError', class_type)
+class_ZeroDivisionError = make_builtin_class('ZeroDivisionError', class_type)
+
 om_None = om_boxval(class_NoneType, None)
 om_True = om_boxval(class_bool, True)
 om_False = om_boxval(class_bool, False)
@@ -1049,8 +1079,15 @@ populate_builtin_dict()
 populate_builtin_module()
 populate_builtin_NoneType()
 populate_builtin_FunctionType() # type function
-# TODO: populate other builtin classes
 
+# Populate Exception classes
+populate_builtin_BaseException()
+populate_builtin_Exception()
+populate_builtin_NameError()
+populate_builtin_TypeError()
+populate_builtin_ValueError()
+populate_builtin_ArithmeticError()
+populate_builtin_ZeroDivisionError()
 
 # Interpreter
 def interp_file(path):
@@ -1112,6 +1149,14 @@ def fresh_rte():
     dict_set(builtins_env, 'str', class_str)
     dict_set(builtins_env, 'NotImplemented', om_NotImplemented)
     dict_set(builtins_env, 'print', om_print)
+
+    dict_set(builtins_env, 'BaseException', class_BaseException)
+    dict_set(builtins_env, 'Exception', class_Exception)
+    dict_set(builtins_env, 'NameError', class_NameError)
+    dict_set(builtins_env, 'TypeError', class_TypeError)
+    dict_set(builtins_env, 'ValueError', class_ValueError)
+    dict_set(builtins_env, 'ArithmeticError', class_ArithmeticError)
+    dict_set(builtins_env, 'ZeroDivisionError', class_ZeroDivisionError)
 
     dict_set(globals_env, '__name__', om_str('__main__'))
     dict_set(globals_env, '__builtins__', om_module('builtins', builtins_env))
