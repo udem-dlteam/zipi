@@ -274,7 +274,7 @@
                     (py-exit ,ctx-sym %exn)
                     (raise %exn)))
                 ,(in-contexts (cdr items) body))
-                (py-exit ,ctx-sym #f)))
+                (py-exit ,ctx-sym py-None)))
           ((PycRefUnresolved? optional-vars)
             `(let ((,ctx-sym ,(scheme context-expr conf)))
                (global-put!
@@ -291,7 +291,7 @@
                     (py-exit ,ctx-sym %exn)
                     (raise %exn)))
                 ,(in-contexts (cdr items) body))
-                (py-exit ,ctx-sym #f)))
+                (py-exit ,ctx-sym py-None)))
           ((PycRef? optional-vars)
             (let ((decl (PycRef-decl optional-vars)))
               (if (eq? (PycDecl-scope decl) 'global)
@@ -310,7 +310,7 @@
                         (py-exit ,ctx-sym %exn)
                         (raise %exn)))
                     ,(in-contexts (cdr items) body))
-                    (py-exit ,ctx-sym #f))
+                    (py-exit ,ctx-sym py-None))
                 `(let ((,ctx-sym ,(scheme context-expr conf)))
                    (set! ,(scheme-decl decl conf) (py-enter ,ctx-sym))
                    (with-handler
@@ -320,7 +320,7 @@
                         (py-exit ,ctx-sym %exn)
                         (raise %exn)))
                     ,(in-contexts (cdr items) body))
-                    (py-exit ,ctx-sym #f)))))
+                    (py-exit ,ctx-sym py-None)))))
           (else
             (error "scheme::PycWith" "only supports assignation to variable" optional-vars))))))
   (in-contexts (PycWith-items this) (PycWith-body this)))
