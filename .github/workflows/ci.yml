@@ -52,7 +52,6 @@ jobs:
           rm ./bin/pysexp.py || echo "not found"
           ln -s ../etc/pysexp.py ./bin/pysexp.py
           echo "print(\"hello world\")" > test.py
-          ./zpc/run-zipi test.py --clear-cache
           gsc zipi/rts
           make test
         timeout-minutes: 2
