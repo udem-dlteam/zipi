@@ -34,7 +34,7 @@ class Context:
 #         self.stack = stack
 #         self.ctrl_env = ctrl_env
 
-class OMobject:
+class OM_object:
     def set_class(self, klass):
         self.klass = klass
 
@@ -51,16 +51,16 @@ class OMobject:
     def get(self, name):
         return dict_get(self.attribs, name, absent)
 
-class OMtype(OMobject):
+class OM_type(OM_object):
     def set_mro(self, mro):
         self.mro = mro
 
 # bool, int, str, ...
-class OMbox(OMobject):
+class OM_box(OM_object):
     def set_value(self, val):
         self.value = val
 
-class OMfunction(OMbox):
+class OM_function(OM_box):
     def set_arity(self, arity):
         self.arity = arity
 
@@ -68,7 +68,7 @@ class OMfunction(OMbox):
         self.signature = signature
 
 # value is either class or instance
-class OMwrapper_descriptor(OMbox):
+class OM_WrapperDescriptor(OM_box):
     def set_code(self, code):
         self.code = code
 
@@ -76,7 +76,7 @@ class OMwrapper_descriptor(OMbox):
     def set_method(self, method):
         self.method = method
 
-class OMmethod_wrapper(OMbox):
+class OM_MethodWrapper(OM_box):
     def set_code(self, code):
         self.code = code
 
@@ -280,7 +280,7 @@ def class_setattribute(o, attr, value):
     dict_set(o, attr, value)
 
 def getattribute_from_class_mro(cls, name):
-    mro = class_mro(cls)
+    mro = om_get_type_mro(cls)
     mro_len = len(mro)
     i = 0
     while i < mro_len:
@@ -292,16 +292,16 @@ def getattribute_from_class_mro(cls, name):
     return absent
 
 def getattribute_from_obj_mro(o, name):
-    cls = om_get_class(o)
+    cls = om_get_type_class(o)
     if name == '__class__':
         return cls
     # elif name == '__mro__':
-    #    return class_mro(__class__)
+    #    return om_get_type_mro(__class__)
     else:
         return getattribute_from_class_mro(cls, name)
 
 def make_class(name, module, bases, metaclass):
-    cls = om(metaclass, om_make_OMtype)
+    cls = om(metaclass, om_make_OM_type)
     om_set(cls, '__name__', om_str(name))
     om_set(cls, '__module__', om_str(module))
 
@@ -310,7 +310,7 @@ def make_class(name, module, bases, metaclass):
     return cls
 
 def make_builtin_class_str():
-    cls = om(absent, om_make_OMtype)
+    cls = om(absent, om_make_OM_type)
     return cls
 
 def make_builtin_class(name, metaclass):
@@ -318,16 +318,10 @@ def make_builtin_class(name, metaclass):
     cls = make_class(name, 'builtins', absent, metaclass)
     return cls
 
-def class_set_mro(cls, mro):
-    om_set_type_mro(cls, mro)
-
-def class_mro(cls):
-    return om_get_type_mro(cls)
-
 # Initialize class type objects
 def builtin_add_method(o, name, code):
     wrapper = om_WrapperDescriptor(name, code)
-    om_set_box_value(wrapper, absent)
+    om_set_boxed_value(wrapper, absent)
     om_set(o, name, wrapper)
 
 def populate_builtin_type():
@@ -337,33 +331,33 @@ def populate_builtin_type():
     builtin_add_method(class_type, '__getattribute__', om_type_getattribute)
     builtin_add_method(class_type, '__repr__', om_type_repr)
 
-    class_set_mro(class_type, [class_type, class_object])
+    om_set_type_mro(class_type, [class_type, class_object])
 
 def populate_builtin_object():
     # TODO: complete object magic method
     builtin_add_method(class_object, '__getattribute__', om_object_getattribute)
     builtin_add_method(class_object, '__repr__', om_object_repr)
 
-    class_set_mro(class_object, [class_object])
+    om_set_type_mro(class_object, [class_object])
 
 def populate_builtin_NotImplementedType():
     builtin_add_method(class_NotImplementedType, '__str__', om_NotImplementedType_str)
     builtin_add_method(class_NotImplementedType, '__repr__', om_NotImplementedType_repr)
 
-    class_set_mro(class_NotImplementedType, [class_NotImplementedType, class_object])
+    om_set_type_mro(class_NotImplementedType, [class_NotImplementedType, class_object])
 
 def populate_builtin_WrapperDescriptor():
     builtin_add_method(class_WrapperDescriptor, '__get__', om_WrapperDescriptor_get)
     builtin_add_method(class_WrapperDescriptor, '__call__', om_WrapperDescriptor_call)
     builtin_add_method(class_WrapperDescriptor, '__repr__', om_WrapperDescriptor_repr)
 
-    class_set_mro(class_WrapperDescriptor, [class_WrapperDescriptor, class_object])
+    om_set_type_mro(class_WrapperDescriptor, [class_WrapperDescriptor, class_object])
 
 def populate_builtin_MethodWrapper():
     builtin_add_method(class_MethodWrapper, '__call__', om_MethodWrapper_call)
     builtin_add_method(class_MethodWrapper, '__repr__', om_MethodWrapper_repr)
 
-    class_set_mro(class_MethodWrapper, [class_MethodWrapper, class_object])
+    om_set_type_mro(class_MethodWrapper, [class_MethodWrapper, class_object])
 
 def populate_builtin_int():
     #fields_set(class_int, '__init__', om_int_init)
@@ -380,14 +374,14 @@ def populate_builtin_int():
     builtin_add_method(class_int, '__gte__', om_int_gte)
     builtin_add_method(class_int, '__repr__', om_int_repr)
 
-    class_set_mro(class_int, [class_int, class_object])
+    om_set_type_mro(class_int, [class_int, class_object])
 
 def populate_builtin_bool():
     # TODO: complete bool magic method
     builtin_add_method(class_bool, '__bool__', om_bool_bool)
     builtin_add_method(class_bool, '__repr__', om_bool_repr)
 
-    class_set_mro(class_bool, [class_bool, class_int, class_object])
+    om_set_type_mro(class_bool, [class_bool, class_int, class_object])
 
 def populate_builtin_str():
     om_set_type_class(class_str, class_type)
@@ -399,55 +393,55 @@ def populate_builtin_str():
     builtin_add_method(class_str, '__str__', om_str_str)
 
     # TODO: add all other methods
-    class_set_mro(class_str, [class_str, class_object])
+    om_set_type_mro(class_str, [class_str, class_object])
 
 def populate_builtin_tuple():
     # TODO: not implemented
     #builtin_add_method(fields, '__repr__', om_tuple_repr)
 
-    class_set_mro(class_tuple, [class_tuple, class_object])
+    om_set_type_mro(class_tuple, [class_tuple, class_object])
 
 def populate_builtin_dict():
-    class_set_mro(class_dict, [class_dict, class_object])
+    om_set_type_mro(class_dict, [class_dict, class_object])
 
 def populate_builtin_module():
     builtin_add_method(class_module, '__getattribute__', om_module_getattribute)
     builtin_add_method(class_module, '__repr__', om_module_repr)
-    class_set_mro(class_module, [class_module, class_object])
+    om_set_type_mro(class_module, [class_module, class_object])
 
 def populate_builtin_NoneType():
     # TODO: add all other methods
     builtin_add_method(class_NoneType, '__bool__', om_NoneType_bool)
 
-    class_set_mro(class_NoneType, [class_NoneType, class_object])
+    om_set_type_mro(class_NoneType, [class_NoneType, class_object])
 
 def populate_builtin_FunctionType():
 
     builtin_add_method(class_function, '__call__', om_function_call)
     builtin_add_method(class_function, '__repr__', om_function_repr)
 
-    class_set_mro(class_function, [class_function, class_object])
+    om_set_type_mro(class_function, [class_function, class_object])
 
 def populate_builtin_BaseException():
-    class_set_mro(class_BaseException, [class_BaseException, class_object])
+    om_set_type_mro(class_BaseException, [class_BaseException, class_object])
 
 def populate_builtin_Exception():
-    class_set_mro(class_Exception, [class_BaseException, class_object])
+    om_set_type_mro(class_Exception, [class_BaseException, class_object])
 
 def populate_builtin_NameError():
-    class_set_mro(class_NameError, [class_NameError, class_Exception, class_BaseException, class_object])
+    om_set_type_mro(class_NameError, [class_NameError, class_Exception, class_BaseException, class_object])
 
 def populate_builtin_TypeError():
-    class_set_mro(class_TypeError, [class_TypeError, class_Exception, class_BaseException, class_object])
+    om_set_type_mro(class_TypeError, [class_TypeError, class_Exception, class_BaseException, class_object])
 
 def populate_builtin_ValueError():
-    class_set_mro(class_ValueError, [class_ValueError, class_Exception, class_BaseException, class_object])
+    om_set_type_mro(class_ValueError, [class_ValueError, class_Exception, class_BaseException, class_object])
 
 def populate_builtin_ArithmeticError():
-    class_set_mro(class_ArithmeticError, [class_ArithmeticError, class_Exception, class_BaseException, class_object])
+    om_set_type_mro(class_ArithmeticError, [class_ArithmeticError, class_Exception, class_BaseException, class_object])
 
 def populate_builtin_ZeroDivisionError():
-    class_set_mro(class_ZeroDivisionError, [class_ZeroDivisionError, class_ArithmeticError, class_Exception, class_BaseException, class_object])
+    om_set_type_mro(class_ZeroDivisionError, [class_ZeroDivisionError, class_ArithmeticError, class_Exception, class_BaseException, class_object])
 
 def object_class(o):
     if om_is(o, om_None):
@@ -458,15 +452,11 @@ def object_class(o):
     elif isinstance(o, str):
         return class_str
     else:
-        klass = om_get_class(o)
+        klass = om_get_type_class(o)
 
         # NOTE: this assert should never trigger
         assert klass is not absent, 'object does not have a class'
         return klass
-
-def is_om_type(o):
-    return isinstance(o, dict) and \
-            om_rawget(o, 'attribs') is not absent
 
 # Object model utilities
 def om(cls, maker):
@@ -479,12 +469,12 @@ def om(cls, maker):
     return o
 
 def om_boxval(cls, val):
-    obj = om(cls, om_make_OMbox)
-    om_set_box_value(obj, val)
+    obj = om(cls, om_make_OM_box)
+    om_set_boxed_value(obj, val)
     return obj
 
 def om_module(name, val):
-    obj = om(class_module, om_make_OMobject)
+    obj = om(class_module, om_make_OM_object)
 
     dict_set(val, '__name__', om_str(name))
 
@@ -503,7 +493,7 @@ def om_int(val):
     return om_boxval(class_int, val)
 
 def om_WrapperDescriptor(name, code):
-    obj = om(class_WrapperDescriptor, om_make_OMwrapper_descriptor)
+    obj = om(class_WrapperDescriptor, om_make_OM_WrapperDescriptor)
     om_set_code(obj, code)
     om_set_method(obj, absent)
 
@@ -512,9 +502,9 @@ def om_WrapperDescriptor(name, code):
 
 
 def om_MethodWrapper(name, instance, code):
-    obj = om(class_MethodWrapper, om_make_OMmethod_wrapper)
+    obj = om(class_MethodWrapper, om_make_OM_MethodWrapper)
     om_set_code(obj, code)
-    om_set_box_value(obj, instance)
+    om_set_boxed_value(obj, instance)
 
     om_set(obj, '__name__', name)
     return obj
@@ -526,23 +516,23 @@ def om_is_falsy(val):
     return om_is(val, om_False)
 
 # Creation of om object from class
-def om_make_OMobject():
-    return OMobject()
+def om_make_OM_object():
+    return OM_object()
 
-def om_make_OMtype():
-    return OMtype()
+def om_make_OM_type():
+    return OM_type()
 
-def om_make_OMbox():
-    return OMbox()
+def om_make_OM_box():
+    return OM_box()
 
-def om_make_OMfunction():
-    return OMfunction()
+def om_make_OM_function():
+    return OM_function()
 
-def om_make_OMwrapper_descriptor():
-    return OMwrapper_descriptor()
+def om_make_OM_WrapperDescriptor():
+    return OM_WrapperDescriptor()
 
-def om_make_OMmethod_wrapper():
-    return OMmethod_wrapper()
+def om_make_OM_MethodWrapper():
+    return OM_MethodWrapper()
 
 # Manipulation of om object.
 def om_set(o, name, value):
@@ -573,7 +563,7 @@ def om_get_serial(o, rte):
 def om_set_type_class(o, cls):
     o.set_class(cls)
 
-def om_get_class(o):
+def om_get_type_class(o):
     return o.klass
 
 def om_set_type_mro(o, val):
@@ -582,10 +572,10 @@ def om_set_type_mro(o, val):
 def om_get_type_mro(o):
     return o.mro
 
-def om_set_box_value(o, value):
+def om_set_boxed_value(o, value):
     o.set_value(value)
 
-def om_get_box_value(o):
+def om_get_boxed_value(o):
     return o.value
 
 def om_set_code(o, code):
@@ -632,7 +622,7 @@ def om_type_getattribute(ctx, args):
     self = args[0]
     name = args[1]
 
-    name_value = om_get_box_value(name)
+    name_value = om_get_boxed_value(name)
     if name_value == '__class__':
         result = object_class(self)
         return expr_end(ctx, result)
@@ -652,7 +642,7 @@ def om_type_getattribute(ctx, args):
 def om_type_repr(ctx, args):
     self = args[0]
     self__name__ = om_get(self, '__name__')
-    self__name__value = om_get_box_value(self__name__)
+    self__name__value = om_get_boxed_value(self__name__)
     result = om_str("<class '" + self__name__value + "'>")
     return ctx.cont(ctx.rte, result)
 
@@ -664,9 +654,9 @@ def om_WrapperDescriptor_get(ctx, args):
     cls = args[2]
 
     if obj is om_None:
-        self_value = om_get_box_value(self)
+        self_value = om_get_boxed_value(self)
         if self_value is absent:
-            om_set_box_value(self, cls)
+            om_set_boxed_value(self, cls)
         return expr_end(ctx, self)
     else:
         method = om_get_method(self)
@@ -696,11 +686,11 @@ def om_WrapperDescriptor_repr(ctx, args):
     self = args[0]
 
     self__name__ = om_get(self, '__name__')
-    self__name__value = om_get_box_value(self__name__)
+    self__name__value = om_get_boxed_value(self__name__)
 
-    cls = om_get_box_value(self)
+    cls = om_get_boxed_value(self)
     clsname = om_get(cls, '__name__')
-    clsname_value = om_get_box_value(clsname)
+    clsname_value = om_get_boxed_value(clsname)
 
     result = om_str("<slot wrapper '" + self__name__value + "' of '" + clsname_value + "' objects>")
     return ctx.cont(ctx.rte, result)
@@ -711,7 +701,7 @@ def om_MethodWrapper_call(ctx, args):
     self = args[0]
     rest = args[1:]
 
-    obj = om_get_box_value(self)
+    obj = om_get_boxed_value(self)
     params = [obj] + rest
 
     def cont(rte, val):
@@ -726,13 +716,13 @@ def om_MethodWrapper_repr(ctx, args):
     serial = om_get_serial(self, ctx.rte)
 
     self__name__ = om_get(self, '__name__')
-    self__name__value = om_get_box_value(self__name__)
+    self__name__value = om_get_boxed_value(self__name__)
 
-    instance = om_get_box_value(self)
+    instance = om_get_boxed_value(self)
 
-    cls = om_get_class(instance)
+    cls = om_get_type_class(instance)
     clsname = om_get(cls, '__name__')
-    clsname_value = om_get_box_value(clsname)
+    clsname_value = om_get_boxed_value(clsname)
 
     result = om_str("<method-wrapper '" + self__name__value + "' of " + clsname_value + " object #"+ str(serial) +">")
     return ctx.cont(ctx.rte, result)
@@ -743,11 +733,11 @@ def om_object_getattribute(ctx, args):
     self = args[0]
     name = args[1]
 
-    dt = om_get_class(name)
+    dt = om_get_type_class(name)
     assert dt is class_str, \
             "TypeError: attribute name must be string, not 'typeof(name)'"
 
-    name_value = om_get_box_value(name)
+    name_value = om_get_boxed_value(name)
 
     # Get field name
     attr = getattribute_from_obj_mro(self, name_value)
@@ -765,9 +755,9 @@ def om_object_repr(ctx, args):
     self = args[0]
     serial = om_get_serial(self, ctx.rte)
 
-    cls = om_get_class(self)
+    cls = om_get_type_class(self)
     clsname = om_get(cls, '__name__')
-    clsname_value = om_get_box_value(clsname)
+    clsname_value = om_get_boxed_value(clsname)
 
     result = om_str("<" + clsname_value + " object at #" + str(serial) +">")
     return ctx.cont(ctx.rte, result)
@@ -805,7 +795,7 @@ def om_bool_bool(ctx, args):
 def om_int_bool(ctx, args):
     if debug: print('int.__bool__')
     self = args[0]
-    val_value = om_get_box_value(self)
+    val_value = om_get_boxed_value(self)
     if val_value != 0:
         result = om_True
     else:
@@ -817,9 +807,9 @@ def om_int_add(ctx, args):
     val1 = args[0]
     val2 = args[1]
 
-    if om_is(om_get_class(val2), class_int):
-        val1_value = om_get_box_value(val1)
-        val2_value = om_get_box_value(val2)
+    if om_is(om_get_type_class(val2), class_int):
+        val1_value = om_get_boxed_value(val1)
+        val2_value = om_get_boxed_value(val2)
         result = num_add(val1_value, val2_value)
         return ctx.cont(ctx.rte, om_int(result))
     else:
@@ -832,8 +822,8 @@ def om_int_sub(ctx, args):
     val1 = args[0]
     val2 = args[1]
 
-    val1_value = om_get_box_value(val1)
-    val2_value = om_get_box_value(val2)
+    val1_value = om_get_boxed_value(val1)
+    val2_value = om_get_boxed_value(val2)
     # TODO: add type check.
     result = num_sub(val1_value, val2_value)
     return ctx.cont(ctx.rte, om_int(result))
@@ -849,11 +839,11 @@ def om_int_eq(ctx, args):
     val1 = args[0]
     val2 = args[1]
 
-    cls1 = om_get_class(val1)
-    cls2 = om_get_class(val2)
+    cls1 = om_get_type_class(val1)
+    cls2 = om_get_type_class(val2)
     if om_is(cls2, class_int):
-        v1 = om_get_box_value(val1)
-        v2 = om_get_box_value(val2)
+        v1 = om_get_boxed_value(val1)
+        v2 = om_get_boxed_value(val2)
         if v1 == v2:
             result = om_True
         else:
@@ -867,8 +857,8 @@ def om_int_ne(ctx, args):
     val1 = args[0]
     val2 = args[1]
 
-    v1 = om_get_box_value(val1)
-    v2 = om_get_box_value(val2)
+    v1 = om_get_boxed_value(val1)
+    v2 = om_get_boxed_value(val2)
     if v1 != v2:
         result = om_True
     else:
@@ -880,8 +870,8 @@ def om_int_lt(ctx, args):
     val1 = args[0]
     val2 = args[1]
 
-    v1 = om_get_box_value(val1)
-    v2 = om_get_box_value(val2)
+    v1 = om_get_boxed_value(val1)
+    v2 = om_get_boxed_value(val2)
     if v1 < v2:
         result = om_True
     else:
@@ -893,8 +883,8 @@ def om_int_lte(ctx, args):
     val1 = args[0]
     val2 = args[1]
 
-    v1 = om_get_box_value(val1)
-    v2 = om_get_box_value(val2)
+    v1 = om_get_boxed_value(val1)
+    v2 = om_get_boxed_value(val2)
     if v1 <= v2:
         result = om_True
     else:
@@ -906,8 +896,8 @@ def om_int_gt(ctx, args):
     val1 = args[0]
     val2 = args[1]
 
-    v1 = om_get_box_value(val1)
-    v2 = om_get_box_value(val2)
+    v1 = om_get_boxed_value(val1)
+    v2 = om_get_boxed_value(val2)
     if v1 > v2:
         result = om_True
     else:
@@ -919,8 +909,8 @@ def om_int_gte(ctx, args):
     val1 = args[0]
     val2 = args[1]
 
-    v1 = om_get_box_value(val1)
-    v2 = om_get_box_value(val2)
+    v1 = om_get_boxed_value(val1)
+    v2 = om_get_boxed_value(val2)
     if v1 >= v2:
         result = om_True
     else:
@@ -932,8 +922,8 @@ def om_int_floordiv(ctx, args):
     val1 = args[0]
     val2 = args[1]
 
-    val1_value = om_get_box_value(val1)
-    val2_value = om_get_box_value(val2)
+    val1_value = om_get_boxed_value(val1)
+    val2_value = om_get_boxed_value(val2)
     if val2_value == 0:
         # TODO: implemented sem_raise
         #return sem_raise(ctx, om_ZeroDivisionError())
@@ -944,7 +934,7 @@ def om_int_floordiv(ctx, args):
 
 def om_int_repr(ctx, args):
     self = args[0]
-    result = num_to_string(om_get_box_value(self), 10)
+    result = num_to_string(om_get_boxed_value(self), 10)
     return ctx.cont(ctx.rte, om_str(result))
 
 # class_str methods
@@ -952,7 +942,7 @@ def om_str_repr(ctx, args):
     # TODO: code is not working
     if debug: print('str.__repr__')
     self = args[0]
-    self_value = om_get_box_value(self)
+    self_value = om_get_boxed_value(self)
 
     def wrap_simplequote(val):
         i = 0
@@ -995,10 +985,10 @@ def om_module_getattribute(ctx, args):
     name = args[1]
 
     # XXX: name must be str
-    name_value = om_get_box_value(name)
+    name_value = om_get_boxed_value(name)
 
     self_dict = om_get(self, '__dict__')
-    self_dict_value = om_get_box_value(self_dict)
+    self_dict_value = om_get_boxed_value(self_dict)
     result = dict_get(self_dict_value, name_value, absent)
     if result is absent:
         return om_object_getattribute(ctx, args)
@@ -1010,11 +1000,11 @@ def om_module_repr(ctx, args):
     self = args[0]
 
     self_dict = om_get(self, '__dict__')
-    self_dict_value = om_get_box_value(self_dict)
+    self_dict_value = om_get_boxed_value(self_dict)
 
     name = dict_get(self_dict_value, '__name__', absent)
     # assert name is not absent, 'internal error'
-    name_value = om_get_box_value(name)
+    name_value = om_get_boxed_value(name)
 
     env_builtins = rte_builtins(ctx.rte)
     if om_is(self_dict_value, env_builtins):
@@ -1045,7 +1035,7 @@ def om_function_call(ctx, args):
 
     stack = make_frame(ctx.rte, ctx.cont, ctx.ast)
     rte = make_rte(ctx.rte, rte_globals(ctx.rte), make_dict_from_list(locals_env), rte_builtins(ctx.rte), stack, absent)
-    body = om_get_box_value(self)
+    body = om_get_boxed_value(self)
     return body(rte,
                 lambda rte1:
                    frame_cont(rte_stack(rte1))(frame_rte(rte_stack(rte1)), om_None))
@@ -1058,24 +1048,8 @@ def om_function_repr(ctx, args):
 
     self__name__ = om_get(self, '__name__')
 
-    result = om_str('<function ' + om_get_box_value(self__name__) + ' #' + str(serial) + '>')
+    result = om_str('<function ' + om_get_boxed_value(self__name__) + ' #' + str(serial) + '>')
     return ctx.cont(ctx.rte, result)
-
-# XXX: need to decide if I keep this
-def unbox_object(obj):
-    value = obj
-    # Give a human readable representation of om_type
-    if is_om_type(obj):
-        # XXX: should be an getattribute protocol
-        dtype = om_get_class(obj)
-        # class_int and class_str are representated with om_*
-        if om_is(dtype, class_int) or om_is(dtype, class_str):
-            value = om_get_box_value(obj)
-        elif dtype is class_function:
-            # NOTE: should be
-            name = class_getattribute(obj, '__name__')
-            value = 'function ' + str(name) + '(...)'
-    return value
 
 # XXX: need to decide if I keep this
 def box_object(obj):
@@ -1124,7 +1098,7 @@ class_ZeroDivisionError = make_builtin_class('ZeroDivisionError', class_type)
 om_None = om_boxval(class_NoneType, None)
 om_True = om_boxval(class_bool, True)
 om_False = om_boxval(class_bool, False)
-om_NotImplemented = om(class_NotImplementedType, om_make_OMobject)
+om_NotImplemented = om(class_NotImplementedType, om_make_OM_object)
 
 populate_builtin_type()
 populate_builtin_object()
@@ -1189,14 +1163,14 @@ def fresh_rte():
     # NOTE: dummy internal implementation of print.
     def om_print_code(rte, cont):
         obj = rte_lookup(rte, 'obj')
-        print(unbox_object(obj)) # should call object.__str__
+        #print(unbox_object(obj)) # should call object.__str__
         return cont(rte)
 
-    om_print = om(class_function, om_make_OMfunction)
+    om_print = om(class_function, om_make_OM_function)
     om_set(om_print, '__name__', om_str('print'))
 
     om_set_function_signature(om_print, make_posonly_only_signature(['obj']))
-    om_set_box_value(om_print, om_print_code)
+    om_set_boxed_value(om_print, om_print_code)
 
     locals_env = absent
     globals_env = make_dict()
@@ -1379,7 +1353,7 @@ def comp_stmt(cte, ast):
 
     elif isinstance(ast, AST.FunctionDef):
         if debug: print('AST.FunctionDef')
-        func = om(class_function, om_make_OMfunction)
+        func = om(class_function, om_make_OM_function)
 
         om_set(func, '__name__', om_str(ast.name))
 
@@ -1387,7 +1361,7 @@ def comp_stmt(cte, ast):
         (cte1, body_code) = gen_funcdef_code(cte, ast, ast.body)
 
         om_set_function_signature(func, signature)
-        om_set_box_value(func, body_code)
+        om_set_boxed_value(func, body_code)
 
         arity = signature_arity(signature)
         om_set_function_arity(func, arity)
@@ -2054,7 +2028,7 @@ def gen_Attribute(cte, ast, code, name):
 def expr_end(ctx, val):
 
     def cont(rte, repr_val):
-        repr_val_value = om_get_box_value(repr_val)
+        repr_val_value = om_get_boxed_value(repr_val)
         return return_to_trampoline(ctx.ast, ': value = '+repr_val_value, lambda: ctx.cont(rte, val), ctx)
 
     return sem_repr(Context(ctx.rte, cont, ctx.ast), val)
