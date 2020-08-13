@@ -40,12 +40,17 @@ jobs:
           echo "::set-env name=GAMBOPT::~~zipicache=$(pwd)/.zipicache,search=$(pwd)"
           if [ ! -d $(pwd)/.zipicache ]; then mkdir $(pwd)/.zipicache; fi
       - run: python --version
+      - name: zp Tests
+        run: |
+          cd zipi/etc/bootstrap
+          make tests
+        if: always()
       - name: Compiling Zipi
         run: |
           cd zipi
           ./configure --bigloolibdir=/usr/local/Cellar/bigloo/4.3e_1/lib/bigloo/4.3e/
           make
-      - name: Test
+      - name: Zipi Tests
         run: |
           cd zipi
           rm ./bin/pysexp.py || echo "not found"
