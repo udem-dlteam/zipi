@@ -299,6 +299,7 @@ def populate_builtin_object():
     builtin_add_method(fields, "__new__", om_object_new)
     builtin_add_method(fields, "__init__", om_object_init)
     builtin_add_method(fields, '__getattribute__', om_object_getattribute)
+    builtin_add_method(fields, '__str__', om_object_str)
     builtin_add_method(fields, '__repr__', om_object_repr)
 
     class_set__mro__(class_object, [class_object])
@@ -358,7 +359,8 @@ def populate_builtin_str():
     fields_set(fields, '__name__', om_str('str'))
     fields_set(fields, '__module__', om_str('builtins'))
 
-    #builtin_add_method(fields, '__repr__', om_str_repr)
+    builtin_add_method(fields, "__new__", om_str_new)
+    builtin_add_method(fields, '__repr__', om_str_repr)
     builtin_add_method(fields, '__str__', om_str_str)
 
     # TODO: add all other methods
@@ -692,6 +694,10 @@ def om_object_getattribute(ctx, args):
     else:
         return om_call(attr__get__, ctx, [attr, self, dt])
 
+def om_object_str(ctx, args):
+    self = args[0]
+    return sem_repr(ctx, self)
+
 def om_object_repr(ctx, args):
     self = args[0]
     serial = om_rawget(self, 'serial')
@@ -884,37 +890,51 @@ def om_int_repr(ctx, args):
     return ctx.cont(ctx.rte, om_str(result))
 
 # class_str methods
+def om_str_new(ctx, args):
+    cls = args[0]
+
+    if len(args) == 1:
+        return ctx.cont(ctx, om_boxval(cls, ""))
+    elif len(args) == 2:
+        value = args[1]
+        __str__ = getattribute_from_obj_mro(value, "__str__")
+        next_ctx = with_cont(ctx, lambda _, value: expr_end(ctx, value))
+        return om_call(__str__, next_ctx, [value])
+    else:
+        assert False, "TypeError: str() takes 0 or 1 argument"
+
+
 def om_str_repr(ctx, args):
     # TODO: code is not working
     if debug: print('str.__repr__')
     self = args[0]
     self_unbox = om_rawget(self, '**value**')
 
-    def wrap_simplequote(val):
+    def wrap_doublequote(val):
         i = 0
         val_len = len(val)
-        result = "'"
+        result = '"'
         while i < val_len:
-            if val[i] == "'":
-                result += "\\'"
+            if val[i] == '"':
+                result += '\\"'
             elif val[i] == '\\':
                 result += '\\\\'
             else:
                 result += val[i]
             i += 1
-        result += "'"
+        result += '"'
 
         return om_str(result)
 
     self_unbox_len = len(self_unbox)
     i = 0
     while i < self_unbox_len:
-        if self_unbox[i] == '"':
-            result = wrap_simplequote(self_unbox)
+        if self_unbox[i] == "'":
+            result = wrap_doublequote(self_unbox)
             return ctx.cont(ctx.rte, result)
         i += 1
 
-    result = om_str('"' + self_unbox + '"')
+    result = om_str("'" + self_unbox + "'")
     return ctx.cont(ctx.rte, result)
 
 def om_str_str(ctx, args):
@@ -1885,8 +1905,6 @@ sem_GtE = macro_sem_binary_operator_protocol('>=', '__gte__', '__lte__')
 
 def sem_repr(ctx, val1):
     __repr__ = getattribute_from_obj_mro(val1, '__repr__')
-    # TODO: proper exception
-    assert __repr__ is not absent, '__repr__ not defined'
     return om_call(__repr__, ctx, [val1])
 
 def sem_getattribute(ctx, args):
