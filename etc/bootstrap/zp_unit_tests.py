@@ -140,14 +140,14 @@ __builtins__.__class__
     return interp_source(source)
 
 
+# Mult tests
+
 @Equals("""at 1.1-1.2: value = 2
 at 1.5-1.6: value = 3
 at 1.1-1.6: value = 6
-at 1.9-1.10: value = 4
-at 1.1-1.10: value = 24
 """)
-def test_mult():
-    source = "2 * 3 * 4"
+def test_sem_Mult():
+    source = "2 * 3"
     return interp_source(source)
 
 
@@ -157,8 +157,41 @@ at 1.13-1.14: value = 2
 at 1.16-1.19: value = <str object at #0>
 at 1.1-1.20: value = NotImplemented
 """)
-def test_bad_mult():
+def test_bad__mul__0():
     source = "int.__mul__(2, 'a')"
+    return interp_source(source)
+
+
+@Equals("""at 1.1-1.4: value = <class 'int'>
+at 1.1-1.12: value = <slot wrapper '__mul__' of 'int' objects>
+at 1.13-1.16: value = <str object at #0>
+at 1.18-1.19: value = 2
+at 1.1-1.20: value = NotImplemented
+""")
+def test_bad__mul__1():
+    source = "int.__mul__('a', 2)"
+    return interp_source(source)
+
+
+@Equals("""at 1.1-1.4: value = <class 'int'>
+at 1.1-1.13: value = <slot wrapper '__rmul__' of 'int' objects>
+at 1.14-1.15: value = 2
+at 1.17-1.20: value = <str object at #0>
+at 1.1-1.21: value = NotImplemented
+""")
+def test_bad__rmul__0():
+    source = "int.__rmul__(2, 'a')"
+    return interp_source(source)
+
+
+@Equals("""at 1.1-1.4: value = <class 'int'>
+at 1.1-1.13: value = <slot wrapper '__rmul__' of 'int' objects>
+at 1.14-1.17: value = <str object at #0>
+at 1.19-1.20: value = 2
+at 1.1-1.21: value = NotImplemented
+""")
+def test_bad__rmul__1():
+    source = "int.__rmul__('a', 2)"
     return interp_source(source)
 
 
@@ -181,6 +214,6 @@ ZeroDivisionError
 """
     return interp_source(source)
 
-  
+
 if __name__ == "__main__":
     run_tests()

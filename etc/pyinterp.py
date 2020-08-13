@@ -755,7 +755,8 @@ def om_int_mul(ctx, args):
     val1 = args[0]
     val2 = args[1]
 
-    if om_is(object_class(val2), class_int):
+    # NOTE: This is restrictive for now, * is not implemented for other types
+    if om_is(object_class(val2), class_int) and om_is(object_class(val1), class_int):
         val1_unbox = om_rawget(val1, '**value**')
         val2_unbox = om_rawget(val2, '**value**')
         # TODO: add type check.
@@ -769,7 +770,11 @@ def om_int_rmul(ctx, args):
     val1 = args[0]
     val2 = args[1]
 
-    return om_int_mul(ctx, [val2, val1])
+    # NOTE: This is restrictive for now, * is not implemented for other types
+    if om_is(object_class(val2), class_int) and om_is(object_class(val1), class_int):
+        return om_int_mul(ctx, [val2, val1])
+    else:
+        return ctx.cont(ctx.rte, om_NotImplemented)
 
 def om_int_eq(ctx, args):
     if debug: print('int.__eq__')
