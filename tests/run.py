@@ -114,6 +114,9 @@ def run_all(cpython='python3', zipi='../zpc/run-zipi --compile', pattern=None):
     print()
     print('-' * 55)
     print(f'Ran {n_tests} tests in {total_time:.1f}s  -  Passed: {n_success}  -  Failed: {n_tests - n_success}')
+    if n_success != n_tests:
+        exit(1)
+
 
 
 if __name__ == "__main__":
