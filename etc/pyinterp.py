@@ -11,7 +11,11 @@ AST.parse = zast.parse
 debug = False
 single_step = True
 
-absent = object()
+class Absent:
+    def __str__(self):
+        return "<absent>"
+
+absent = Absent()
 
 class Context:
     def __init__(self, rte, cont, ast):
@@ -25,6 +29,9 @@ class Context:
 
     def call(self):
         return self.cont(self.rte)
+
+def with_cont(ctx, cont):
+    return Context(ctx.rte, cont, ctx.ast)
 
 def make_frame(rte, cont, ast):
     return [rte, cont, ast]
@@ -289,6 +296,8 @@ def populate_builtin_type():
 def populate_builtin_object():
     # TODO: complete object magic method
     fields = om_rawget(class_object, 'attribs')
+    builtin_add_method(fields, "__new__", om_object_new)
+    builtin_add_method(fields, "__init__", om_object_init)
     builtin_add_method(fields, '__getattribute__', om_object_getattribute)
     builtin_add_method(fields, '__repr__', om_object_repr)
 
@@ -510,7 +519,22 @@ def fields_set(o, name, value):
 
 # class_type magic methods
 def om_type_call(ctx, args):
-    assert False, 'Not implemented'
+    def on_instance_creation(rte, instance):
+        if om_is(om_rawget(instance, '__class__'), cls):
+            cls__init__ = getattribute_from_class_mro(cls, "__init__")
+            next_ctx = with_cont(ctx, lambda rte, _: ctx.cont(ctx, instance))
+            return om_call(cls__init__, next_ctx, args)
+        else:
+            return ctx.cont(ctx, instance)
+
+    cls = args[0]
+    cls__new__ = getattribute_from_class_mro(cls, "__new__")
+    next_ctx = with_cont(ctx, on_instance_creation)
+
+    return om_call(cls__new__, next_ctx, args)
+
+
+
 
 def om_type_getattribute(ctx, args):
     if debug: print('type.__getattribute__')
@@ -637,6 +661,13 @@ def om_MethodWrapper_repr(ctx, args):
     return ctx.cont(ctx.rte, result)
 
 # class_object methods
+def om_object_new(ctx, args):
+    cls = args[0]
+    return expr_end(ctx, om(cls))
+
+def om_object_init(ctx, args):
+    return ctx.cont(ctx, om_None)
+
 def om_object_getattribute(ctx, args):
     if debug: print('object.__getattribute__')
     self = args[0]
