@@ -524,10 +524,10 @@ def om_type_call(ctx, args):
     def on_instance_creation(rte, instance):
         if om_is(om_rawget(instance, '__class__'), cls):
             cls__init__ = getattribute_from_class_mro(cls, "__init__")
-            next_ctx = with_cont(ctx, lambda rte, _: ctx.cont(ctx, instance))
+            next_ctx = with_cont(ctx, lambda rte, _: ctx.cont(ctx.rte, instance))
             return om_call(cls__init__, next_ctx, args)
         else:
-            return ctx.cont(ctx, instance)
+            return ctx.cont(ctx.rte, instance)
 
     cls = args[0]
     cls__new__ = getattribute_from_class_mro(cls, "__new__")
@@ -668,7 +668,7 @@ def om_object_new(ctx, args):
     return expr_end(ctx, om(cls))
 
 def om_object_init(ctx, args):
-    return ctx.cont(ctx, om_None)
+    return ctx.cont(ctx.rte, om_None)
 
 def om_object_getattribute(ctx, args):
     if debug: print('object.__getattribute__')
@@ -1154,12 +1154,12 @@ def fresh_rte():
     def om_print_code(rte, cont):
         obj = rte_lookup(rte, 'obj')
         print(unbox_object(obj)) # should call object.__str__
-        return cont(rte)
+        return cont(rte, om_None)
 
     om_print = om(class_function)
     # XXX: this one should be a setattribute
     public_fields = make_fields()
-    fields_set(om_print, '__name__', om_str('print'))
+    fields_set(public_fields, '__name__', om_str('print'))
 
     om_rawset(om_print, 'attribs', public_fields)
     om_rawset(om_print, '**signature**', make_posonly_only_signature(['obj']))
