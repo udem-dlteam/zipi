@@ -1206,7 +1206,7 @@ def trampoline(execution_point):
         execution_point = state[2]
         ctx = state[3]
 
-        if execution_point:
+        if execution_point and msg is not None:
 
             print('at '+str(ast.lineno)+'.'+str(ast.col_offset+1)+'-'+str(ast.end_lineno)+'.'+str(ast.end_col_offset+1)+msg)
 
@@ -2024,7 +2024,10 @@ def expr_end(ctx, val):
         repr_val_unbox = om_rawget(repr_val, '**value**')
         return return_to_trampoline(ctx.ast, ': value = '+repr_val_unbox, lambda: ctx.cont(rte, val), ctx)
 
-    return sem_repr(Context(ctx.rte, cont, ctx.ast), val)
+    if om_is(val, om_None):
+        return_to_trampoline(ctx.ast, None, lambda: ctx.cont(ctx.rte, val), ctx)
+    else:
+        return sem_repr(Context(ctx.rte, cont, ctx.ast), val)
 
 def stmt_end(ctx):
     return return_to_trampoline(ctx.ast, '', lambda: ctx.cont(ctx.rte), ctx)
