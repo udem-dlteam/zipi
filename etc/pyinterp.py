@@ -35,24 +35,42 @@ class Context:
 #         self.ctrl_env = ctrl_env
 
 class OM_object:
-    _fields = ("klass", "attribs", "serial")
+    """
+    klass: the __class__ attribute of the object
+    attribs: the attributes of the object
+    serial: the serial number of the object.
+    """
 
 class OM_type(OM_object):
-    _fields = ("klass", "attribs", "serial", "mro")
+    """
+    mro: the __mro__ attribute of class type
+    """
 
 # bool, int, str, ...
 class OM_box(OM_object):
-    _fields = ("klass", "attribs", "serial", "value")
+    """
+    value: the inner value wrapped into the object model.
+    """
 
 class OM_function(OM_box):
-    _fields = ("klass", "attribs", "serial", "value", "arity", "signature")
+    """
+    arity: the arity of the function object
+    signature: the signature of the function object
+    body: the code of the function object
+    """
 
 # value is either class or instance
-class OM_WrapperDescriptor(OM_box):
-    _fields = ("klass", "attribs", "serial", "value", "code", "method")
+class OM_WrapperDescriptor(OM_object):
+    """
+    cls: the class which hold this WrapperDescriptor object
+    code: the code of the WrapperDescriptor object
+    """
 
-class OM_MethodWrapper(OM_box):
-    _fields = ("klass", "attribs", "serial", "value", "code")
+class OM_MethodWrapper(OM_object):
+    """
+    instance: the obj from which the method is invoke
+    code: the code of the method-wrapper
+    """
 
 def make_frame(rte, cont, ast):
     return [rte, cont, ast]
@@ -262,7 +280,7 @@ def getattribute_from_class_mro(cls, name):
         attr = OM_get(cls, name)
         if attr is not absent:
             return attr
-        i = i + 1
+        i += 1
     return absent
 
 def getattribute_from_obj_mro(o, name):
@@ -295,7 +313,6 @@ def make_builtin_class(name, metaclass):
 # Initialize class type objects
 def builtin_add_method(o, name, code):
     wrapper = om_WrapperDescriptor(name, code)
-    OM_set_boxed_value(wrapper, absent)
     OM_set(o, name, wrapper)
 
 def populate_builtin_type():
@@ -469,7 +486,7 @@ def om_int(val):
 def om_WrapperDescriptor(name, code):
     obj = om(class_WrapperDescriptor, om_make_OM_WrapperDescriptor)
     OM_set_code(obj, code)
-    OM_set_method(obj, absent)
+    OM_set_WrapperDescriptor_cls(obj, absent)
 
     OM_set(obj, '__name__', om_str(name))
     return obj
@@ -478,7 +495,7 @@ def om_WrapperDescriptor(name, code):
 def om_MethodWrapper(name, instance, code):
     obj = om(class_MethodWrapper, om_make_OM_MethodWrapper)
     OM_set_code(obj, code)
-    OM_set_boxed_value(obj, instance)
+    OM_set_MethodWrapper_instance(obj, instance)
 
     OM_set(obj, '__name__', name)
     return obj
@@ -572,12 +589,24 @@ def OM_set_function_arity(o, arity):
 def OM_get_function_arity(o):
     return o.arity
 
-# hidden fields in WrapperDescriptor
-def OM_set_method(o, method):
-    o.method = method
+def OM_set_function_body(o, body):
+    o.body = body
 
-def OM_get_method(o):
-    return o.method
+def OM_get_function_body(o):
+    return o.body
+
+# hidden fields in WrapperDescriptor
+def OM_set_WrapperDescriptor_cls(o, cls):
+    o.cls = cls
+
+def OM_get_WrapperDescriptor_cls(o):
+    return o.cls
+
+def OM_set_MethodWrapper_instance(o, instance):
+    o.instance = instance
+
+def OM_get_MethodWrapper_instance(o):
+    return o.instance
 
 # Call om code.
 def om_call(o, ctx, args):
@@ -615,9 +644,9 @@ def om_type_getattribute(ctx, args):
 
 def om_type_repr(ctx, args):
     self = args[0]
-    self__name__ = OM_get(self, '__name__')
-    self__name__value = OM_get_boxed_value(self__name__)
-    result = om_str("<class '" + self__name__value + "'>")
+    self_name = OM_get(self, '__name__')
+    self_name_value = OM_get_boxed_value(self_name)
+    result = om_str("<class '" + self_name_value + "'>")
     return ctx.cont(ctx.rte, result)
 
 # class_WrapperDescriptor methods
@@ -628,18 +657,14 @@ def om_WrapperDescriptor_get(ctx, args):
     cls = args[2]
 
     if obj is om_None:
-        self_value = OM_get_boxed_value(self)
-        if self_value is absent:
-            OM_set_boxed_value(self, cls)
+        self_cls = OM_get_WrapperDescriptor_cls(self)
+        if self_cls is absent:
+            OM_set_WrapperDescriptor_cls(self, cls)
         return expr_end(ctx, self)
     else:
-        method = OM_get_method(self)
-        if method is absent:
-            code = OM_get_code(self)
-            self_name = OM_get(self, '__name__')
-
-            method = om_MethodWrapper(self_name, obj, code)
-            OM_set_method(self, method)
+        self_name = OM_get(self, '__name__')
+        code = OM_get_code(self)
+        method = om_MethodWrapper(self_name, obj, code)
         return expr_end(ctx, method)
 
 def om_WrapperDescriptor_call(ctx, args):
@@ -662,7 +687,7 @@ def om_WrapperDescriptor_repr(ctx, args):
     self__name__ = OM_get(self, '__name__')
     self__name__value = OM_get_boxed_value(self__name__)
 
-    cls = OM_get_boxed_value(self)
+    cls = OM_get_WrapperDescriptor_cls(self)
     clsname = OM_get(cls, '__name__')
     clsname_value = OM_get_boxed_value(clsname)
 
@@ -675,7 +700,7 @@ def om_MethodWrapper_call(ctx, args):
     self = args[0]
     rest = args[1:]
 
-    obj = OM_get_boxed_value(self)
+    obj = OM_get_MethodWrapper_instance(self)
     params = [obj] + rest
 
     def cont(rte, val):
@@ -692,7 +717,7 @@ def om_MethodWrapper_repr(ctx, args):
     self__name__ = OM_get(self, '__name__')
     self__name__value = OM_get_boxed_value(self__name__)
 
-    instance = OM_get_boxed_value(self)
+    instance = OM_get_MethodWrapper_instance(self)
 
     cls = OM_get_type_class(instance)
     clsname = OM_get(cls, '__name__')
@@ -1009,7 +1034,7 @@ def om_function_call(ctx, args):
 
     stack = make_frame(ctx.rte, ctx.cont, ctx.ast)
     rte = make_rte(ctx.rte, rte_globals(ctx.rte), make_dict_from_list(locals_env), rte_builtins(ctx.rte), stack, absent)
-    body = OM_get_boxed_value(self)
+    body = OM_get_function_body(self)
     return body(rte,
                 lambda rte1:
                    frame_cont(rte_stack(rte1))(frame_rte(rte_stack(rte1)), om_None))
@@ -1144,7 +1169,7 @@ def fresh_rte():
     OM_set(om_print, '__name__', om_str('print'))
 
     OM_set_function_signature(om_print, make_posonly_only_signature(['obj']))
-    OM_set_boxed_value(om_print, om_print_code)
+    OM_set_function_body(om_print, om_print_code)
 
     locals_env = absent
     globals_env = make_dict()
@@ -1335,7 +1360,7 @@ def comp_stmt(cte, ast):
         (cte1, body_code) = gen_funcdef_code(cte, ast, ast.body)
 
         OM_set_function_signature(func, signature)
-        OM_set_boxed_value(func, body_code)
+        OM_set_function_body(func, body_code)
 
         arity = signature_arity(signature)
         OM_set_function_arity(func, arity)
