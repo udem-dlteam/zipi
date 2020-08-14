@@ -632,7 +632,7 @@ def om_call(o, ctx, args):
 # class_type magic methods
 def om_type_call(ctx, args):
     def on_instance_creation(rte, instance):
-        if om_is(OM_get_object_class(instance, '__class__'), cls):
+        if om_is(OM_get_object_class(instance), cls):
             cls__init__ = getattribute_from_class_mro(cls, "__init__")
             next_ctx = with_cont(ctx, lambda rte, _: ctx.cont(ctx.rte, instance))
             return om_call(cls__init__, next_ctx, args)
@@ -670,12 +670,17 @@ def om_type_getattribute(ctx, args):
         else:
             return om_call(attr__get__, ctx, [attr, om_None, self])
 
+def om_format_type_repr(self, rte):
+    self_name = OM_get(self, '__name__')
+    self_name_value = OM_get_boxed_value(self_name)
+    return "<class '" + self_name_value + "'>"
+
 def om_type_repr(ctx, args):
     self = args[0]
     self_name = OM_get(self, '__name__')
     self_name_value = OM_get_boxed_value(self_name)
-    result = om_str("<class '" + self_name_value + "'>")
-    return ctx.cont(ctx.rte, result)
+    result = om_format_type_repr(self, ctx.rte)
+    return ctx.cont(ctx.rte, om_str(result))
 
 # class_WrapperDescriptor methods
 def om_WrapperDescriptor_get(ctx, args):
@@ -708,7 +713,7 @@ def om_WrapperDescriptor_call(ctx, args):
     ctx1 = Context(ctx.rte, cont, ctx.ast)
     return code(ctx1, params)
 
-def OM_format_WrapperDescriptor_repr(self):
+def om_format_WrapperDescriptor_repr(self, rte):
     self__name__ = OM_get(self, '__name__')
     self__name__value = OM_get_boxed_value(self__name__)
 
@@ -722,7 +727,7 @@ def om_WrapperDescriptor_repr(ctx, args):
     if debug: print('wrapper_descriptor.__call__')
     self = args[0]
 
-    result = OM_format_WrapperDescriptor_repr(self)
+    result = om_format_WrapperDescriptor_repr(self, ctx.rte)
 
     return ctx.cont(ctx.rte, om_str(result))
 
@@ -740,7 +745,7 @@ def om_MethodWrapper_call(ctx, args):
     ctx1 = Context(ctx.rte, cont, ctx.ast)
     return om_call(self, ctx1, params)
 
-def OM_format_MethodWrapper_repr(self, rte):
+def om_format_MethodWrapper_repr(self, rte):
     serial = OM_get_serial(self, rte)
 
     self__name__ = OM_get(self, '__name__')
@@ -759,14 +764,14 @@ def om_MethodWrapper_repr(ctx, args):
     if debug: print('method-wrapper.__call__')
     self = args[0]
 
-    result = OM_format_MethodWrapper_repr(self, ctx.rte)
+    result = om_format_MethodWrapper_repr(self, ctx.rte)
 
     return ctx.cont(ctx.rte, om_str(result))
 
 # class_object methods
 def om_object_new(ctx, args):
     cls = args[0]
-    return expr_end(ctx, om(cls))
+    return expr_end(ctx, om(cls, OM_object_create))
 
 def om_object_init(ctx, args):
     return ctx.cont(ctx.rte, om_None)
@@ -798,17 +803,21 @@ def om_object_str(ctx, args):
     self = args[0]
     return sem_repr(ctx, self)
 
-def om_object_repr(ctx, args):
-    self = args[0]
-
-    serial = OM_get_serial(self, ctx.rte)
+def om_format_object_repr(self, rte):
+    serial = OM_get_serial(self, rte)
 
     cls = OM_get_object_class(self)
     clsname = OM_get(cls, '__name__')
     clsname_value = OM_get_boxed_value(clsname)
 
-    result = om_str("<" + clsname_value + " object at #" + str(serial) +">")
-    return ctx.cont(ctx.rte, result)
+    return "<" + clsname_value + " object at #" + str(serial) +">"
+
+def om_object_repr(ctx, args):
+    self = args[0]
+
+    result = om_format_object_repr(self, ctx.rte)
+
+    return ctx.cont(ctx.rte, om_str(result))
 
 # class_NotImplementedType
 def om_NotImplementedType_str(ctx, args):
@@ -980,9 +989,12 @@ def om_int_floordiv(ctx, args):
         result = val1_value // val2_value
         return expr_end(ctx, om_int(result))
 
+def om_format_int_repr(self, rte):
+    return num_to_string(OM_get_boxed_value(self), 10)
+
 def om_int_repr(ctx, args):
     self = args[0]
-    result = num_to_string(OM_get_boxed_value(self), 10)
+    result = om_format_int_repr(self, ctx.rte)
     return ctx.cont(ctx.rte, om_str(result))
 
 # class_str methods
@@ -1002,7 +1014,7 @@ def om_str_new(ctx, args):
     else:
         assert False, "TypeError: str() takes 0 or 1 argument"
 
-def wrap_str_in_quotes(value):
+def om_format_str_repr(self, rte):
     def wrap_doublequote(s):
         i = 0
         val_len = len(s)
@@ -1019,6 +1031,7 @@ def wrap_str_in_quotes(value):
 
         return result
 
+    value = OM_get_boxed_value(self)
     value_len = len(value)
     i = 0
     while i < value_len:
@@ -1031,9 +1044,8 @@ def wrap_str_in_quotes(value):
 def om_str_repr(ctx, args):
     if debug: print('str.__repr__')
     self = args[0]
-    self_unbox = OM_get_boxed_value(self, '**value**')
 
-    formatted_str = wrap_str_in_quotes(self_unbox)
+    formatted_str = om_format_str_repr(self)
 
     return ctx.cont(ctx.rte, om_str(formatted_str))
 
@@ -1061,7 +1073,7 @@ def om_module_getattribute(ctx, args):
     else:
         return expr_end(ctx, result)
 
-def OM_format_module_repr(self, rte):
+def om_format_module_repr(self, rte):
     self_dict = OM_get(self, '__dict__')
     self_dict_value = OM_get_boxed_value(self_dict)
 
@@ -1079,7 +1091,7 @@ def om_module_repr(ctx, args):
     if debug: print('module.__repr__')
     self = args[0]
 
-    result = OM_format_module_repr(self, ctx.rte)
+    result = om_format_module_repr(self, ctx.rte)
 
     return ctx.cont(ctx.rte, om_str(result))
 
@@ -1106,8 +1118,6 @@ def om_function_call(ctx, args):
 
     signature = OM_get_function_signature(self)
 
-    arity = OM_get_function_arity(self)
-
     ## test arity
     locals_env = align_args_with_signature(ctx, params, signature)
 
@@ -1118,15 +1128,14 @@ def om_function_call(ctx, args):
                 lambda rte1:
                    frame_cont(rte_stack(rte1))(frame_rte(rte_stack(rte1)), om_None))
 
+def om_format_function_repr(self, rte):
+    serial = OM_get_serial(self, rte)
+    self__name__ = OM_get(self, '__name__')
+    return '<function ' + OM_get_boxed_value(self__name__) + ' #' + str(serial) + '>'
+
 def om_function_repr(ctx, args):
     self = args[0]
-    nb_args = len(args)
-
-    serial = OM_get_serial(self, ctx.rte)
-
-    self__name__ = OM_get(self, '__name__')
-
-    result = om_str('<function ' + OM_get_boxed_value(self__name__) + ' #' + str(serial) + '>')
+    result = om_str(om_format_function_repr(self, ctx.rte))
     return ctx.cont(ctx.rte, result)
 
 # XXX: need to decide if I keep this
@@ -2100,29 +2109,21 @@ def gen_Attribute(cte, ast, code, name):
 def om_simple_repr(ctx, value):
     value_cls = OM_get_object_class(value)
     if om_is(value_cls, class_int):
-        return str(OM_get_boxed_value(value))
+        return om_format_int_repr(value, ctx.rte)
     elif om_is(value_cls, class_str):
-        return wrap_str_in_quotes(OM_get_boxed_value(value))
+        return om_format_str_repr(value, ctx.rte)
     elif om_is(value_cls, class_type):
-        value_name = OM_get(value, "__name__")
-        native_name = OM_get_boxed_value(value_name)
-        return "<class " + wrap_str_in_quotes(native_name) + ">"
+        return om_format_type_repr(value, ctx.rte)
     elif om_is(value_cls, class_function):
-        function_name = OM_get(value, "__name__")
-        native_name = OM_get_boxed_value(function_name)
-        serial = OM_get_serial(value, ctx.rte)
-        return "<function " + native_name + " #" + str(serial) + ">"
+        return om_format_function_repr(value, ctx.rte)
     elif om_is(value_cls, class_WrapperDescriptor):
-        return OM_format_WrapperDescriptor_repr(value)
+        return om_format_WrapperDescriptor_repr(value, ctx.rte)
     elif om_is(value_cls, class_MethodWrapper):
-        return OM_format_MethodWrapper_repr(value, ctx.rte)
+        return om_format_MethodWrapper_repr(value, ctx.rte)
     elif om_is(value_cls, class_module):
-        return OM_format_module_repr(value, ctx.rte)
+        return om_format_module_repr(value, ctx.rte)
     else:
-        serial = OM_get_serial(value, ctx.rte)
-        value_name = OM_get(value_cls, "__name__")
-        native_cls_name = OM_get_boxed_value(value_name)
-        return "<" + native_cls_name + " object #" + str(serial) + ">"
+        return om_format_object_repr(value, ctx.rte)
 
 def expr_end(ctx, val):
     if om_is(val, om_None):
