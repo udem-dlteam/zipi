@@ -293,7 +293,7 @@ def getattribute_from_obj_mro(o, name):
         return getattribute_from_class_mro(cls, name)
 
 def make_class(name, module, bases, metaclass):
-    cls = om(metaclass, om_make_OM_type)
+    cls = om(metaclass, OM_type_create)
     OM_set(cls, '__name__', om_str(name))
     OM_set(cls, '__module__', om_str(module))
 
@@ -302,7 +302,7 @@ def make_class(name, module, bases, metaclass):
     return cls
 
 def make_builtin_class_str():
-    cls = om(absent, om_make_OM_type)
+    cls = om(absent, OM_type_create)
     return cls
 
 def make_builtin_class(name, metaclass):
@@ -460,12 +460,12 @@ def om(cls, maker):
     return o
 
 def om_boxval(cls, val):
-    obj = om(cls, om_make_OM_box)
+    obj = om(cls, OM_box_create)
     OM_set_boxed_value(obj, val)
     return obj
 
 def om_module(name, val):
-    obj = om(class_module, om_make_OM_object)
+    obj = om(class_module, OM_object_create)
 
     dict_set(val, '__name__', om_str(name))
 
@@ -484,7 +484,7 @@ def om_int(val):
     return om_boxval(class_int, val)
 
 def om_WrapperDescriptor(name, code):
-    obj = om(class_WrapperDescriptor, om_make_OM_WrapperDescriptor)
+    obj = om(class_WrapperDescriptor, OM_WrapperDescriptor_create)
     OM_set_code(obj, code)
     OM_set_WrapperDescriptor_cls(obj, absent)
 
@@ -493,7 +493,7 @@ def om_WrapperDescriptor(name, code):
 
 
 def om_MethodWrapper(name, instance, code):
-    obj = om(class_MethodWrapper, om_make_OM_MethodWrapper)
+    obj = om(class_MethodWrapper, OM_MethodWrapper_create)
     OM_set_code(obj, code)
     OM_set_MethodWrapper_instance(obj, instance)
 
@@ -507,22 +507,22 @@ def om_is_falsy(val):
     return om_is(val, om_False)
 
 # Creation of om object from class
-def om_make_OM_object():
+def OM_object_create():
     return OM_object()
 
-def om_make_OM_type():
+def OM_type_create():
     return OM_type()
 
-def om_make_OM_box():
+def OM_box_create():
     return OM_box()
 
-def om_make_OM_function():
+def OM_function_create():
     return OM_function()
 
-def om_make_OM_WrapperDescriptor():
+def OM_WrapperDescriptor_create():
     return OM_WrapperDescriptor()
 
-def om_make_OM_MethodWrapper():
+def OM_MethodWrapper_create():
     return OM_MethodWrapper()
 
 # Manipulation of om object.
@@ -1097,7 +1097,7 @@ class_ZeroDivisionError = make_builtin_class('ZeroDivisionError', class_type)
 om_None = om_boxval(class_NoneType, None)
 om_True = om_boxval(class_bool, True)
 om_False = om_boxval(class_bool, False)
-om_NotImplemented = om(class_NotImplementedType, om_make_OM_object)
+om_NotImplemented = om(class_NotImplementedType, OM_object_create)
 
 populate_builtin_type()
 populate_builtin_object()
@@ -1165,7 +1165,7 @@ def fresh_rte():
         #print(unbox_object(obj)) # should call object.__str__
         return cont(rte)
 
-    om_print = om(class_function, om_make_OM_function)
+    om_print = om(class_function, OM_function_create)
     OM_set(om_print, '__name__', om_str('print'))
 
     OM_set_function_signature(om_print, make_posonly_only_signature(['obj']))
@@ -1352,7 +1352,7 @@ def comp_stmt(cte, ast):
 
     elif isinstance(ast, AST.FunctionDef):
         if debug: print('AST.FunctionDef')
-        func = om(class_function, om_make_OM_function)
+        func = om(class_function, OM_function_create)
 
         OM_set(func, '__name__', om_str(ast.name))
 
