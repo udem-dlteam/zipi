@@ -58,6 +58,15 @@ def rte_serial_counter(rte):
     boxed_serial[0] = serial + 1
     return serial
 
+def om_get_serial(obj, rte):
+    serial = om_rawget(obj, "serial")
+    if serial is absent:
+        new_serial = rte_serial_counter(rte)
+        om_rawset(obj, "serial", new_serial)
+        return new_serial
+    else:
+        return serial
+
 def rte_globals(rte):
     return rte[1]
 
@@ -646,10 +655,7 @@ def om_MethodWrapper_repr(ctx, args):
     if debug: print('method-wrapper.__call__')
     self = args[0]
 
-    serial = om_rawget(self, 'serial')
-    if serial is absent:
-        serial = rte_serial_counter(ctx.rte)
-        om_rawset(self, 'serial', serial)
+    serial = om_get_serial(self, ctx.rte)
 
     self_fields = om_rawget(self, 'attribs')
     self__name__ = fields_get(self_fields, '__name__')
@@ -702,10 +708,8 @@ def om_object_str(ctx, args):
 
 def om_object_repr(ctx, args):
     self = args[0]
-    serial = om_rawget(self, 'serial')
-    if serial is absent:
-        serial = rte_serial_counter(ctx.rte)
-        om_rawset(self, 'serial', serial)
+
+    serial = om_get_serial(self, ctx.rte)
 
     cls = object_class(self)
     cls_fields = om_rawget(cls, 'attribs')
@@ -1030,10 +1034,7 @@ def om_function_repr(ctx, args):
     self = args[0]
     nb_args = len(args)
 
-    serial = om_rawget(self, 'serial')
-    if serial is absent:
-        serial = rte_serial_counter(ctx.rte)
-        om_rawset(self, 'serial', serial)
+    serial = om_get_serial(self, ctx.rte)
 
     fields = om_rawget(self, 'attribs')
 
@@ -2037,8 +2038,13 @@ def om_simple_repr(ctx, value):
         return str(om_rawget(value, "**value**"))
     elif om_is(value_cls, class_str):
         return wrap_str_in_quotes(om_rawget(value, "**value**"))
+    elif om_is(value_cls, class_type):
+        fields = om_rawget(value_cls, 'attribs')
+        cls_name = om_rawget(fields_get(fields, "__name__"), "**value**")
+        return "<class " + wrap_str_in_quotes(cls_name) + ">"
     else:
-        return "<unknown object>"
+        serial = om_get_serial(value, ctx.rte)
+        return "<unknown object #" + str(serial) + ">"
 
 def expr_end(ctx, val):
     if om_is(val, om_None):
