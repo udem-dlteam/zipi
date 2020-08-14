@@ -1,5 +1,5 @@
 
-from _runtime import make_dict, dict_get, dict_set, nocompile, \
+from _runtime import make_dict, dict_get, dict_set, dict_has, nocompile, \
         num_add, num_sub, num_mul, num_div, num_to_string
 
 # import ast as AST
@@ -1161,7 +1161,7 @@ class_object = make_builtin_class('object', class_type)
 
 class_NotImplementedType = make_builtin_class('NotImplementedType', class_type)
 class_WrapperDescriptor = make_builtin_class('wrapper_descriptor', class_type)
-class_MethodWrapper = make_builtin_class('method-wrapper', class_type)
+class_MethodWrapper = make_builtin_class('method_wrapper', class_type)
 
 class_int = make_builtin_class('int', class_type)
 class_bool = make_builtin_class('bool', class_type)
@@ -2106,24 +2106,23 @@ def gen_Attribute(cte, ast, code, name):
 
     return (cte, code1)
 
+# TODO: Replace class names with class objects once this is supported
+simple_repr_formatters = {
+    "int": om_format_int_repr,
+    "str": om_format_str_repr,
+    "type": om_format_type_repr,
+    "function": om_format_function_repr,
+    "method_wrapper": om_format_MethodWrapper_repr,
+    "wrapper_descriptor": om_format_WrapperDescriptor_repr,
+    "module": om_format_module_repr,
+    "object": om_format_object_repr
+}
+
 def om_simple_repr(ctx, value):
     value_cls = OM_get_object_class(value)
-    if om_is(value_cls, class_int):
-        return om_format_int_repr(value, ctx.rte)
-    elif om_is(value_cls, class_str):
-        return om_format_str_repr(value, ctx.rte)
-    elif om_is(value_cls, class_type):
-        return om_format_type_repr(value, ctx.rte)
-    elif om_is(value_cls, class_function):
-        return om_format_function_repr(value, ctx.rte)
-    elif om_is(value_cls, class_WrapperDescriptor):
-        return om_format_WrapperDescriptor_repr(value, ctx.rte)
-    elif om_is(value_cls, class_MethodWrapper):
-        return om_format_MethodWrapper_repr(value, ctx.rte)
-    elif om_is(value_cls, class_module):
-        return om_format_module_repr(value, ctx.rte)
-    else:
-        return om_format_object_repr(value, ctx.rte)
+    cls_name = OM_get_boxed_value(OM_get(value_cls, "__name__"))
+    formatter = dict_get(simple_repr_formatters, cls_name, om_format_object_repr)
+    return formatter(value, ctx.rte)
 
 def expr_end(ctx, val):
     if om_is(val, om_None):
