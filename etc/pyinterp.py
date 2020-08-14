@@ -908,39 +908,40 @@ def om_str_new(ctx, args):
     else:
         assert False, "TypeError: str() takes 0 or 1 argument"
 
+def wrap_str_in_quotes(value):
+    def wrap_doublequote(s):
+        i = 0
+        val_len = len(s)
+        result = '"'
+        while i < val_len:
+            if s[i] == '"':
+                result += '\\"'
+            elif s[i] == '\\':
+                result += '\\\\'
+            else:
+                result += s[i]
+            i += 1
+        result += '"'
+
+        return result
+
+    value_len = len(value)
+    i = 0
+    while i < value_len:
+        if value[i] == "'":
+            return wrap_doublequote(value)
+        i += 1
+
+    return "'" + value + "'"
 
 def om_str_repr(ctx, args):
-    # TODO: code is not working
     if debug: print('str.__repr__')
     self = args[0]
     self_unbox = om_rawget(self, '**value**')
 
-    def wrap_doublequote(val):
-        i = 0
-        val_len = len(val)
-        result = '"'
-        while i < val_len:
-            if val[i] == '"':
-                result += '\\"'
-            elif val[i] == '\\':
-                result += '\\\\'
-            else:
-                result += val[i]
-            i += 1
-        result += '"'
+    formatted_str = wrap_str_in_quotes(self_unbox)
 
-        return om_str(result)
-
-    self_unbox_len = len(self_unbox)
-    i = 0
-    while i < self_unbox_len:
-        if self_unbox[i] == "'":
-            result = wrap_doublequote(self_unbox)
-            return ctx.cont(ctx.rte, result)
-        i += 1
-
-    result = om_str("'" + self_unbox + "'")
-    return ctx.cont(ctx.rte, result)
+    return ctx.cont(ctx.rte, om_str(formatted_str))
 
 def om_str_str(ctx, args):
     if debug: print('str.__str__')
@@ -2030,16 +2031,20 @@ def gen_Attribute(cte, ast, code, name):
 
     return (cte, code1)
 
+def om_simple_repr(ctx, value):
+    value_cls = om_rawget(value, "__class__")
+    if om_is(value_cls, class_int):
+        return str(om_rawget(value, "**value**"))
+    elif om_is(value_cls, class_str):
+        return wrap_str_in_quotes(om_rawget(value, "**value**"))
+    else:
+        return "<unknown object>"
+
 def expr_end(ctx, val):
-
-    def cont(rte, repr_val):
-        repr_val_unbox = om_rawget(repr_val, '**value**')
-        return return_to_trampoline(ctx.ast, ': value = '+repr_val_unbox, lambda: ctx.cont(rte, val), ctx)
-
     if om_is(val, om_None):
         return return_to_trampoline(ctx.ast, None, lambda: ctx.cont(ctx.rte, val), ctx)
     else:
-        return sem_repr(Context(ctx.rte, cont, ctx.ast), val)
+        return return_to_trampoline(ctx.ast, ': value = '+ om_simple_repr(ctx, val), lambda: ctx.cont(ctx.rte, val), ctx)
 
 def stmt_end(ctx):
     return return_to_trampoline(ctx.ast, '', lambda: ctx.cont(ctx.rte), ctx)
