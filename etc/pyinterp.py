@@ -708,10 +708,7 @@ def om_WrapperDescriptor_call(ctx, args):
     ctx1 = Context(ctx.rte, cont, ctx.ast)
     return code(ctx1, params)
 
-def om_WrapperDescriptor_repr(ctx, args):
-    if debug: print('wrapper_descriptor.__call__')
-    self = args[0]
-
+def OM_format_WrapperDescriptor_repr(self):
     self__name__ = OM_get(self, '__name__')
     self__name__value = OM_get_boxed_value(self__name__)
 
@@ -719,8 +716,15 @@ def om_WrapperDescriptor_repr(ctx, args):
     clsname = OM_get(cls, '__name__')
     clsname_value = OM_get_boxed_value(clsname)
 
-    result = om_str("<slot wrapper '" + self__name__value + "' of '" + clsname_value + "' objects>")
-    return ctx.cont(ctx.rte, result)
+    return "<slot wrapper '" + self__name__value + "' of '" + clsname_value + "' objects>"
+
+def om_WrapperDescriptor_repr(ctx, args):
+    if debug: print('wrapper_descriptor.__call__')
+    self = args[0]
+
+    result = OM_format_WrapperDescriptor_repr(self)
+
+    return ctx.cont(ctx.rte, om_str(result))
 
 # class_MethodWrapper methods
 def om_MethodWrapper_call(ctx, args):
@@ -736,11 +740,8 @@ def om_MethodWrapper_call(ctx, args):
     ctx1 = Context(ctx.rte, cont, ctx.ast)
     return om_call(self, ctx1, params)
 
-def om_MethodWrapper_repr(ctx, args):
-    if debug: print('method-wrapper.__call__')
-    self = args[0]
-
-    serial = OM_get_serial(self, ctx.rte)
+def OM_format_MethodWrapper_repr(self, rte):
+    serial = OM_get_serial(self, rte)
 
     self__name__ = OM_get(self, '__name__')
     self__name__value = OM_get_boxed_value(self__name__)
@@ -751,8 +752,16 @@ def om_MethodWrapper_repr(ctx, args):
     clsname = OM_get(cls, '__name__')
     clsname_value = OM_get_boxed_value(clsname)
 
-    result = om_str("<method-wrapper '" + self__name__value + "' of " + clsname_value + " object #"+ str(serial) +">")
-    return ctx.cont(ctx.rte, result)
+    return "<method-wrapper '" + self__name__value + "' of " + clsname_value + " object #"+ str(serial) +">"
+
+
+def om_MethodWrapper_repr(ctx, args):
+    if debug: print('method-wrapper.__call__')
+    self = args[0]
+
+    result = OM_format_MethodWrapper_repr(self, ctx.rte)
+
+    return ctx.cont(ctx.rte, om_str(result))
 
 # class_object methods
 def om_object_new(ctx, args):
@@ -1052,10 +1061,7 @@ def om_module_getattribute(ctx, args):
     else:
         return expr_end(ctx, result)
 
-def om_module_repr(ctx, args):
-    if debug: print('module.__repr__')
-    self = args[0]
-
+def OM_format_module_repr(self, rte):
     self_dict = OM_get(self, '__dict__')
     self_dict_value = OM_get_boxed_value(self_dict)
 
@@ -1063,13 +1069,19 @@ def om_module_repr(ctx, args):
     # assert name is not absent, 'internal error'
     name_value = OM_get_boxed_value(name)
 
-    env_builtins = rte_builtins(ctx.rte)
+    env_builtins = rte_builtins(rte)
     if om_is(self_dict_value, env_builtins):
-        result = om_str("<module '" + name_value +"' (built-in)>")
+        return "<module '" + name_value +"' (built-in)>"
     else:
-        result = om_str("<module '" + name_value +"'>")
+        return "<module '" + name_value +"'>"
 
-    return ctx.cont(ctx.rte, result)
+def om_module_repr(ctx, args):
+    if debug: print('module.__repr__')
+    self = args[0]
+
+    result = OM_format_module_repr(self, ctx.rte)
+
+    return ctx.cont(ctx.rte, om_str(result))
 
 
 # class_NoneType methods
@@ -2095,6 +2107,17 @@ def om_simple_repr(ctx, value):
         value_name = OM_get(value, "__name__")
         native_name = OM_get_boxed_value(value_name)
         return "<class " + wrap_str_in_quotes(native_name) + ">"
+    elif om_is(value_cls, class_function):
+        function_name = OM_get(value, "__name__")
+        native_name = OM_get_boxed_value(function_name)
+        serial = OM_get_serial(value, ctx.rte)
+        return "<function " + native_name + " #" + str(serial) + ">"
+    elif om_is(value_cls, class_WrapperDescriptor):
+        return OM_format_WrapperDescriptor_repr(value)
+    elif om_is(value_cls, class_MethodWrapper):
+        return OM_format_MethodWrapper_repr(value, ctx.rte)
+    elif om_is(value_cls, class_module):
+        return OM_format_module_repr(value, ctx.rte)
     else:
         serial = OM_get_serial(value, ctx.rte)
         value_name = OM_get(value_cls, "__name__")
