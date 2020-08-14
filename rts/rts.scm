@@ -4084,7 +4084,7 @@
                ((not (index-in-length-range key-int (car bytearray)))
                 (py-throw-index-out-of-range "bytearray" ))
                ((not (py-int-in-byte-range? value-int))
-                (py-throw-exception-with-message py-builtin-ValueError "byte must be in range(0, 255)"))
+                (py-throw-exception-with-message py-builtin-ValueError "byte must be in range(0, 256)"))
                (else
                 (u8vector-set! (cdr bytearray) (modulo key-int (car bytearray)) value-int))))
             (py-throw-wrong-index-type "bytearray" "integers or slice" key)))
@@ -4175,25 +4175,42 @@
 
 (define (bytearray-repr self)
   (define (u8->char-repr x)
-    (if (and (>= x 32)   ;; ASCII range
-             (<= x 126)) ;; 
-        (string (integer->char x))
-        (string-append "\\x" (substring (number->string (+ x 256) 16) 1 3))))
+    (cond
+      ((= x 9)  "\\t")
+      ((= x 10) "\\n")
+      ((= x 13) "\\r")
+      ((= x 92) "\\\\")
+      ((and (>= x 32)
+            (<= x 126))
+       (string (integer->char x)))
+      (else
+       (string-append "\\x" (substring (number->string (+ x 256) 16) 1 3)))))
 
   (if (py-isinstance? self py-bytearray-class)
     (let* ((value (PyObjectBytearray-value self))
-          (u8vec (cdr value))
-          (bytearray-len (car value))
-          (content
-            (let loop ((i 0) (acc '()))
-              (if (< i bytearray-len)
-                (loop (+ i 1) (cons (u8->char-repr (u8vector-ref u8vec i)) acc))
-                (append-strings (reverse acc))))))
+           (u8vec (cdr value))
+           (bytearray-len (car value))
+           (quote-symbol "'")
+           (content
+             (let loop ((i 0) (acc '()))
+               (if (< i bytearray-len)
+                   (let ((u8 (u8vector-ref u8vec i)))
+                     (cond
+                       ((= u8 39)
+                        (set! quote-symbol "\"")
+                        (loop (+ i 1) (cons "\\'" acc)))
+                       (else
+                        (loop (+ i 1) (cons (u8->char-repr 
+                                               (u8vector-ref u8vec i))
+                                             acc)))))
+                   (append-strings (reverse acc))))))
       (py-str-from-scheme
         (string-append
-          "bytearray(b'"
+          "bytearray(b"
+          quote-symbol
           content
-          "')")))
+          quote-symbol
+          ")")))
     (py-throw-not-a-type-object "bytearray.__repr__" self)))
 
 (define bytearray.__repr__
