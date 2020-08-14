@@ -2039,12 +2039,14 @@ def om_simple_repr(ctx, value):
     elif om_is(value_cls, class_str):
         return wrap_str_in_quotes(om_rawget(value, "**value**"))
     elif om_is(value_cls, class_type):
-        fields = om_rawget(value_cls, 'attribs')
-        cls_name = om_rawget(fields_get(fields, "__name__"), "**value**")
-        return "<class " + wrap_str_in_quotes(cls_name) + ">"
+        fields = om_rawget(value, 'attribs')
+        value_name = om_rawget(fields_get(fields, "__name__"), "**value**")
+        return "<class " + wrap_str_in_quotes(value_name) + ">"
     else:
         serial = om_get_serial(value, ctx.rte)
-        return "<unknown object #" + str(serial) + ">"
+        fields = om_rawget(value_cls, 'attribs')
+        cls_name = om_rawget(fields_get(fields, "__name__"), "**value**")
+        return "<" + cls_name + " object #" + str(serial) + ">"
 
 def expr_end(ctx, val):
     if om_is(val, om_None):
