@@ -114,22 +114,22 @@ def unwindReturn(rte, val):
 def make_signature(args, posonlyargs, varargs, kwonlyargs, kw_defaults, kwargs, defaults):
     return (args, posonlyargs, varargs, kwonlyargs, kw_defaults, kwargs, defaults)
 
-empty_sigature = make_signature([], [], False, [], [], False, [])
+empty_sigature = make_signature((), (), None, (), (), None, ())
 
 def make_posonly_only_signature(posonlyargs):
-    return make_signature([], posonlyargs, False, [], [], False, [])
+    return make_signature((), posonlyargs, None, (), (), None, ())
 
 def make_posonly_defaults_only_signature(posonlyargs, defaults):
-    return make_signature([], posonlyargs, False, [], [], False, defaults)
+    return make_signature((), posonlyargs, None, (), (), None, defaults)
 
 def make_vararg_only_signature(vararg):
-    return make_signature([], [], varargs, [], [], False, [])
+    return make_signature((), (), vararg, (), (), None, ())
 
 def make_posonly_defaults_signature(posonlyargs, defaults):
-    return make_signature([], posonlyargs, False, [], [], False, defaults)
+    return make_signature((), posonlyargs, None, (), (), None, defaults)
 
 def make_args_defaults_signature(args, defaults):
-    return make_signature(args, [], False, [], [], False, defaults)
+    return make_signature(args, (), None, (), (), None, defaults)
 
 def signature_args(signature):
     return signature[0]
@@ -178,7 +178,7 @@ def align_args_with_signature(ctx, caller_args, signature):
     kw_default = signature_kw_defaults(signature)
     kwarg = signature_kwargs(signature)
     defaults = signature_defaults(signature)
-    if kwarg is not absent and len(kwonlyargs) > 0:
+    if kwarg is not None and len(kwonlyargs) > 0:
         # TODO: implement kwarg
         assert False, 'kwarg not implemented'
     else:
@@ -210,8 +210,10 @@ def align_args_with_signature(ctx, caller_args, signature):
             if defaults_len >= missing_args_len:
                 result =  caller_args.copy()
                 start = defaults_len - missing_args_len
-                result.append(defaults[start:default_len])
+                result.append(defaults[start:defaults_len])
                 return result
+            else:
+                assert False, 'TypeError'
         else:
             assert False, 'vararg not implemented'
 
@@ -890,6 +892,11 @@ def om_int_repr(ctx, args):
     return ctx.cont(ctx.rte, om_str(result))
 
 # class_str methods
+def om_convert_to_str(ctx, value):
+    value_str = getattribute_from_obj_mro(value, "__str__")
+    next_ctx = with_cont(ctx, lambda rte, value: ctx.cont(rte, value))
+    return om_call(value_str, next_ctx, [value])
+
 def om_str_new(ctx, args):
     cls = args[0]
 
@@ -897,9 +904,7 @@ def om_str_new(ctx, args):
         return ctx.cont(ctx, om_boxval(cls, ""))
     elif len(args) == 2:
         value = args[1]
-        __str__ = getattribute_from_obj_mro(value, "__str__")
-        next_ctx = with_cont(ctx, lambda _, value: expr_end(ctx, value))
-        return om_call(__str__, next_ctx, [value])
+        return om_convert_to_str(ctx, value)
     else:
         assert False, "TypeError: str() takes 0 or 1 argument"
 
@@ -990,6 +995,17 @@ def om_NoneType_bool(ctx, val):
     return ctx.cont(ctx.rte, result)
 
 # class_function methods
+def om_make_function_with_signature(name, code, signature):
+    om_fn = om(class_function)
+    public_fields = make_fields()
+    fields_set(public_fields, '__name__', om_str(name))
+
+    om_rawset(om_fn, 'attribs', public_fields)
+    om_rawset(om_fn, '**signature**', signature)
+    om_rawset(om_fn, '**body**', code)
+
+    return om_fn
+
 def om_function_call(ctx, args):
     self = args[0]
     params = args[1:]
@@ -1117,6 +1133,16 @@ populate_builtin_ValueError()
 populate_builtin_ArithmeticError()
 populate_builtin_ZeroDivisionError()
 
+# Builtin functions code
+
+def om_print_code(rte, _):
+    def cont(rte, str_result):
+        print(om_rawget(str_result, "**value**"))
+        return unwindReturn(rte, om_None)
+
+    next_ctx = Context(rte, cont, rte_stack(rte)[-1])
+    return om_convert_to_str(next_ctx, rte_lookup(rte, 'obj'))
+
 # Interpreter
 def interp_file(path):
     source = read_file(path)
@@ -1149,26 +1175,12 @@ def prepare_execution(code, rte):
     return lambda: code(rte, lambda rte: None)
 
 def fresh_rte():
-
-    # NOTE: dummy internal implementation of print.
-    def om_print_code(rte, cont):
-        obj = rte_lookup(rte, 'obj')
-        print(unbox_object(obj)) # should call object.__str__
-        return cont(rte, om_None)
-
-    om_print = om(class_function)
-    # XXX: this one should be a setattribute
-    public_fields = make_fields()
-    fields_set(public_fields, '__name__', om_str('print'))
-
-    om_rawset(om_print, 'attribs', public_fields)
-    om_rawset(om_print, '**signature**', make_posonly_only_signature(['obj']))
-    om_rawset(om_print, '**body**', om_print_code)
-
     locals_env = absent
     globals_env = make_dict()
     builtins_env = make_dict()
     rte = make_rte(absent, globals_env, locals_env, builtins_env, absent, absent)
+
+    om_builtin_print = om_make_function_with_signature('print', om_print_code, make_posonly_only_signature(('obj',)))
 
     dict_set(builtins_env, 'type', class_type)
     dict_set(builtins_env, 'object', class_object)
@@ -1176,7 +1188,7 @@ def fresh_rte():
     dict_set(builtins_env, 'bool', class_bool)
     dict_set(builtins_env, 'str', class_str)
     dict_set(builtins_env, 'NotImplemented', om_NotImplemented)
-    dict_set(builtins_env, 'print', om_print)
+    dict_set(builtins_env, 'print', om_builtin_print)
 
     dict_set(builtins_env, 'BaseException', class_BaseException)
     dict_set(builtins_env, 'Exception', class_Exception)
@@ -2025,7 +2037,7 @@ def expr_end(ctx, val):
         return return_to_trampoline(ctx.ast, ': value = '+repr_val_unbox, lambda: ctx.cont(rte, val), ctx)
 
     if om_is(val, om_None):
-        return_to_trampoline(ctx.ast, None, lambda: ctx.cont(ctx.rte, val), ctx)
+        return return_to_trampoline(ctx.ast, None, lambda: ctx.cont(ctx.rte, val), ctx)
     else:
         return sem_repr(Context(ctx.rte, cont, ctx.ast), val)
 
