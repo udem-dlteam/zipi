@@ -9,7 +9,7 @@ all: _zparse.py
 check: test1
 
 
-test1 test2 test3 test4 test5: _zparse.py
+test1 test2 test3 test4 test5 test6: _zparse.py
 	@echo "------------------------------------------------------ $@"
 	$(PYTHON38) zast.py $@.py > z.out
 	$(PYTHON38) parse38.py $@.py > p38.out
