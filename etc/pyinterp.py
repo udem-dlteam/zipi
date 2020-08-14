@@ -1161,7 +1161,7 @@ class_object = make_builtin_class('object', class_type)
 
 class_NotImplementedType = make_builtin_class('NotImplementedType', class_type)
 class_WrapperDescriptor = make_builtin_class('wrapper_descriptor', class_type)
-class_MethodWrapper = make_builtin_class('method_wrapper', class_type)
+class_MethodWrapper = make_builtin_class('method-wrapper', class_type)
 
 class_int = make_builtin_class('int', class_type)
 class_bool = make_builtin_class('bool', class_type)
@@ -2112,7 +2112,7 @@ simple_repr_formatters = {
     "str": om_format_str_repr,
     "type": om_format_type_repr,
     "function": om_format_function_repr,
-    "method_wrapper": om_format_MethodWrapper_repr,
+    "method-wrapper": om_format_MethodWrapper_repr,
     "wrapper_descriptor": om_format_WrapperDescriptor_repr,
     "module": om_format_module_repr,
     "object": om_format_object_repr
