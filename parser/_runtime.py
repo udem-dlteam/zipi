@@ -42,3 +42,7 @@ def num_div(u, v):
 
 def num_mod(u, v):
     return u % v
+
+
+def num_zero(u):
+    return u == 0

@@ -1071,7 +1071,7 @@ def gen_prim_Numeric_BinOp(py_class, method, prim, om_class, om_box):
         #   File "<stdin>", line 1, in <module>
         # TypeError: descriptor '__add__' requires a 'int' object but received a 'str'
         if not om_is(OM_get_type_class(val1), om_class):
-            return ctx.cont(ctx.rte, class_TypeError)
+            assert False, "TypeError"
 
         # Primitive operations are only defined on same types.
         if om_is(OM_get_type_class(val2), om_class):
@@ -1080,6 +1080,7 @@ def gen_prim_Numeric_BinOp(py_class, method, prim, om_class, om_box):
             result = prim(val1_value, val2_value)
             return ctx.cont(ctx.rte, om_box(result))
         else:
+            # TODO: Return om_NotImplemented(rte) (in the proper rte)
             return ctx.cont(ctx.rte, om_NotImplemented)
 
     return prim_Numeric_BinOp
@@ -1093,7 +1094,7 @@ def gen_prim_Numeric_rBinOp(py_class, method, prim, om_class, om_box):
         val2 = args[1]
 
         if not om_is(OM_get_type_class(val1), om_class):
-            return ctx.cont(ctx.rte, class_TypeError)
+            assert False, "TypeError"
 
         if om_is(OM_get_type_class(val2), om_class):
             val1_value = OM_get_boxed_value(val1)
@@ -1102,6 +1103,7 @@ def gen_prim_Numeric_rBinOp(py_class, method, prim, om_class, om_box):
             result = prim(val2_value, val1_value)
             return ctx.cont(ctx.rte, om_box(result))
         else:
+            # TODO: Return om_NotImplemented(rte) (in the proper rte)
             return ctx.cont(ctx.rte, om_NotImplemented)
 
     return prim_Numeric_rBinOp
@@ -1126,11 +1128,11 @@ def om_int_floordiv(ctx, args):
     val2 = args[1]
 
     if not om_is(OM_get_type_class(val1), class_int):
-        return ctx.cont(ctx.rte, class_TypeError)
+        assert False, "TypeError"
 
     # Early break for ZeroDivisionError
     val2_value = OM_get_boxed_value(val2)
-    if val2_value == 0:
+    if num_zero(val2_value):
         return ctx.cont(ctx.rte, class_ZeroDivisionError)
 
     # Primitive operations are only defined on same types.
@@ -1139,6 +1141,7 @@ def om_int_floordiv(ctx, args):
         result = num_div(val1_value, val2_value)
         return ctx.cont(ctx.rte, om_int(result))
     else:
+        # TODO: Return om_NotImplemented(rte) (in the proper rte)
         return ctx.cont(ctx.rte, om_NotImplemented)
 
 def om_int_rfloordiv(ctx, args):
@@ -1147,11 +1150,11 @@ def om_int_rfloordiv(ctx, args):
     val2 = args[1]
 
     if not om_is(OM_get_type_class(val1), class_int):
-        return ctx.cont(ctx.rte, class_TypeError)
+        assert False, "TypeError"
 
     # Early break for ZeroDivisionError
     val1_value = OM_get_boxed_value(val1)
-    if val1_value == 0:
+    if num_zero(val1_value):
         return ctx.cont(ctx.rte, class_ZeroDivisionError)
 
     # Primitive operations are only defined on same types.
@@ -1160,6 +1163,7 @@ def om_int_rfloordiv(ctx, args):
         result = num_div(val2_value, val1_value)
         return ctx.cont(ctx.rte, om_int(result))
     else:
+        # TODO: Return om_NotImplemented(rte) (in the proper rte)
         return ctx.cont(ctx.rte, om_NotImplemented)
 
 populate_builtin_type()
@@ -1905,7 +1909,7 @@ def gen_sem_Numeric_BinOp(op_symbol, method, rmethod):
             # F: Rmethod not implemented for val1's type.
             #    Raise TypeError since both methods are absent (like CPython).
             if om_is(val, om_NotImplemented):
-                return call_expr_end(rte, class_TypeError)
+                assert False, "TypeError"
             else:
                 # END1: val2 has rmethod and can operate on val1.
                 #       Return the result.
@@ -1917,19 +1921,21 @@ def gen_sem_Numeric_BinOp(op_symbol, method, rmethod):
 
             # E: Yes, try val2.rmethod(val1)
             if val2_rmethod is not absent:
+                # TODO: Refactor to 'with_cont' when it is available.
                 ctx2 = Context(rte, test_rmethod_result, ctx.ast)
                 # NOTE: Semantics don't switch arguments, primitives do.
                 return om_call(val2_rmethod, ctx2, [val1, val2])
             else:
                 # G: Method and rmethod are absent.
                 #    Raise a TypeError (like CPython).
-                return call_expr_end(rte, class_TypeError)
+                assert False, "TypeError"
 
         # A: Does val1 have method?
         val1_method = getattribute_from_obj_mro(val1, method)
 
         # B: Yes, try val1.method(val2).
         if val1_method is not absent:
+            # TODO: Refactor to 'with_cont' when it is available.
             ctx1 = Context(ctx.rte, test_method_result, ctx.ast)
             return om_call(val1_method, ctx1, [val1, val2])
         else:
