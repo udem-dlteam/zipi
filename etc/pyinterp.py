@@ -1,6 +1,6 @@
 
-from _runtime import make_dict, dict_get, dict_set, dict_has, nocompile, \
-        num_add, num_sub, num_mul, num_div, num_to_string
+from _runtime import make_dict, dict_get, dict_set, nocompile, \
+        num_add, num_sub, num_mul, num_div, num_to_string, print_stdout
 
 # import ast as AST
 
@@ -1218,7 +1218,7 @@ populate_builtin_ZeroDivisionError()
 
 def om_print_code(rte, _):
     def cont(rte, str_result):
-        print(OM_get_boxed_value(str_result))
+        print_stdout(OM_get_boxed_value(str_result))
         return unwindReturn(rte, om_None)
 
     next_ctx = Context(rte, cont, rte_stack(rte)[-1])
