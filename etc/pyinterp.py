@@ -1107,11 +1107,14 @@ def gen_prim_Numeric_rBinOp(py_class, method, prim, om_class, om_box):
     return prim_Numeric_rBinOp
 
 om_int_add = gen_prim_Numeric_BinOp('int', '__add__', num_add, class_int, om_int)
-om_int_radd = gen_prim_Numeric_rBinOp('int', '__radd__', num_add, class_int, om_int)
+om_int_radd = om_int_add
+
 om_int_sub = gen_prim_Numeric_BinOp('int', '__sub__', num_sub, class_int, om_int)
 om_int_rsub = gen_prim_Numeric_rBinOp('int', '__rsub__', num_sub, class_int, om_int)
+
 om_int_mul = gen_prim_Numeric_BinOp('int', '__mul__', num_mul, class_int, om_int)
-om_int_rmul = gen_prim_Numeric_rBinOp('int', '__rmul__', num_mul, class_int, om_int)
+om_int_rmul = om_int_mul
+
 om_int_mod = gen_prim_Numeric_BinOp('int', '__mod__', num_mod, class_int, om_int)
 om_int_rmod = gen_prim_Numeric_rBinOp('int', '__rmod__', num_mod, class_int, om_int)
 
