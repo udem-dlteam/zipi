@@ -108,6 +108,7 @@ def test_pyinterp():
     source = "def foo(x):\n  return x\nfoo(10)"
     return interp_source(source)
 
+
 @Equals("""at 1.5-1.6: value = 1
 at 1.1-1.6
 at 2.1-2.2: value = 1
@@ -139,6 +140,7 @@ __builtins__.__class__
     """
     return interp_source(source)
 
+
 @Equals("""at 1.1-1.14: value = <class 'BaseException'>
 at 2.1-2.10: value = <class 'Exception'>
 at 3.1-3.10: value = <class 'NameError'>
@@ -157,5 +159,56 @@ ArithmeticError
 ZeroDivisionError
 """
     return interp_source(source)
+
+
+# int methods
+# Only test some cases for now...
+@Equals("""at 1.1-1.4: value = <class 'int'>
+at 1.1-1.12: value = <slot wrapper '__add__' of 'int' objects>
+at 1.13-1.14: value = 2
+at 1.16-1.19: value = <str object at #0>
+at 1.1-1.20: value = NotImplemented
+""")
+def test_int__add__0():
+    source = "int.__add__(2, 'a')"
+    return interp_source(source)
+
+
+@Equals("""at 1.1-1.2: value = 8
+at 1.5-1.6: value = 1
+at 1.1-1.6: value = 7
+""")
+def test_int__sub__0():
+    source = "8 - 1"
+    return interp_source(source)
+
+
+@Equals("""at 1.1-1.2: value = 2
+at 1.5-1.6: value = 8
+at 1.1-1.6: value = 16
+""")
+def test_int__mul__0():
+    source = "2 * 8"
+    return interp_source(source)
+
+
+@Equals("""at 1.1-1.2: value = 8
+at 1.6-1.7: value = 2
+at 1.1-1.7: value = 4
+""")
+def test_int__div__0():
+    source = "8 // 2"
+    return interp_source(source)
+
+
+@Equals("""at 1.1-1.2: value = 8
+at 1.5-1.6: value = 2
+at 1.1-1.6: value = 0
+""")
+def test_int__mod__0():
+    source = "8 % 2"
+    return interp_source(source)
+
+
 if __name__ == "__main__":
     run_tests()
