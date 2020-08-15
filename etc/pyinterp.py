@@ -1,6 +1,6 @@
 
 from _runtime import make_dict, dict_get, dict_set, nocompile, \
-        num_add, num_sub, num_mul, num_div, num_to_string
+        num_add, num_sub, num_mul, num_div, num_mod, num_to_string
 
 # import ast as AST
 
@@ -357,6 +357,12 @@ def populate_builtin_int():
     builtin_add_method(class_int, '__radd__', om_int_radd)
     builtin_add_method(class_int, '__sub__', om_int_sub)
     builtin_add_method(class_int, '__rsub__', om_int_rsub)
+    builtin_add_method(class_int, '__mul__', om_int_mul)
+    builtin_add_method(class_int, '__rmul__', om_int_rmul)
+    builtin_add_method(class_int, '__floordiv__', om_int_floordiv)
+    builtin_add_method(class_int, '__rfloordiv__', om_int_rfloordiv)
+    builtin_add_method(class_int, '__mod__', om_int_mod)
+    builtin_add_method(class_int, '__rmod__', om_int_rmod)
     builtin_add_method(class_int, '__eq__', om_int_eq)
     builtin_add_method(class_int, '__ne__', om_int_ne)
     builtin_add_method(class_int, '__lt__', om_int_lt)
@@ -801,38 +807,6 @@ def om_int_bool(ctx, args):
         result = om_False
     return ctx.cont(ctx.rte, result)
 
-def om_int_add(ctx, args):
-    if debug: print('int.__add__')
-    val1 = args[0]
-    val2 = args[1]
-
-    if om_is(OM_get_type_class(val2), class_int):
-        val1_value = OM_get_boxed_value(val1)
-        val2_value = OM_get_boxed_value(val2)
-        result = num_add(val1_value, val2_value)
-        return ctx.cont(ctx.rte, om_int(result))
-    else:
-        return ctx.cont(ctx.rte, om_NotImplemented)
-
-om_int_radd = om_int_add
-
-def om_int_sub(ctx, args):
-    if debug: print('int.__sub__')
-    val1 = args[0]
-    val2 = args[1]
-
-    val1_value = OM_get_boxed_value(val1)
-    val2_value = OM_get_boxed_value(val2)
-    # TODO: add type check.
-    result = num_sub(val1_value, val2_value)
-    return ctx.cont(ctx.rte, om_int(result))
-
-def om_int_rsub(ctx, args):
-    val1 = args[0]
-    val2 = args[1]
-
-    return om_int_sub(ctx, [val2, val1])
-
 def om_int_eq(ctx, args):
     if debug: print('int.__eq__')
     val1 = args[0]
@@ -915,21 +889,6 @@ def om_int_gte(ctx, args):
     else:
         result = om_False
     return expr_end(ctx, result)
-
-
-def om_int_floordiv(ctx, args):
-    val1 = args[0]
-    val2 = args[1]
-
-    val1_value = OM_get_boxed_value(val1)
-    val2_value = OM_get_boxed_value(val2)
-    if val2_value == 0:
-        # TODO: implemented sem_raise
-        #return sem_raise(ctx, om_ZeroDivisionError())
-        assert False, 'Division by zero'
-    else:
-        result = val1_value // val2_value
-        return expr_end(ctx, om_int(result))
 
 def om_int_repr(ctx, args):
     self = args[0]
@@ -1098,6 +1057,107 @@ om_None = om_boxval(class_NoneType, None)
 om_True = om_boxval(class_bool, True)
 om_False = om_boxval(class_bool, False)
 om_NotImplemented = om(class_NotImplementedType, OM_object_create)
+
+# Primitive operators for doing actual computations
+def gen_prim_Numeric_BinOp(py_class, method, prim, om_class, om_box):
+    def prim_Numeric_BinOp(ctx, args):
+        if debug: print(cls + "." + method)
+        val1 = args[0]
+        val2 = args[1]
+
+        # This check is done in CPython:
+        # >>> int.__add__('a', 1)
+        # Traceback (most recent call last):
+        #   File "<stdin>", line 1, in <module>
+        # TypeError: descriptor '__add__' requires a 'int' object but received a 'str'
+        if not om_is(OM_get_type_class(val1), om_class):
+            return ctx.cont(ctx.rte, class_TypeError)
+
+        # Primitive operations are only defined on same types.
+        if om_is(OM_get_type_class(val2), om_class):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            result = prim(val1_value, val2_value)
+            return ctx.cont(ctx.rte, om_box(result))
+        else:
+            return ctx.cont(ctx.rte, om_NotImplemented)
+
+    return prim_Numeric_BinOp
+
+# Reversed operators reverse the order of their arguments when
+# doing the computation.
+def gen_prim_Numeric_rBinOp(py_class, method, prim, om_class, om_box):
+    def prim_Numeric_rBinOp(ctx, args):
+        if debug: print(cls + "." + method)
+        val1 = args[0]
+        val2 = args[1]
+
+        if not om_is(OM_get_type_class(val1), om_class):
+            return ctx.cont(ctx.rte, class_TypeError)
+
+        if om_is(OM_get_type_class(val2), om_class):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            # Reverse the arguments.
+            result = prim(val2_value, val1_value)
+            return ctx.cont(ctx.rte, om_box(result))
+        else:
+            return ctx.cont(ctx.rte, om_NotImplemented)
+
+    return prim_Numeric_rBinOp
+
+om_int_add = gen_prim_Numeric_BinOp('int', '__add__', num_add, class_int, om_int)
+om_int_radd = gen_prim_Numeric_rBinOp('int', '__radd__', num_add, class_int, om_int)
+om_int_sub = gen_prim_Numeric_BinOp('int', '__sub__', num_sub, class_int, om_int)
+om_int_rsub = gen_prim_Numeric_rBinOp('int', '__rsub__', num_sub, class_int, om_int)
+om_int_mul = gen_prim_Numeric_BinOp('int', '__mul__', num_mul, class_int, om_int)
+om_int_rmul = gen_prim_Numeric_rBinOp('int', '__rmul__', num_mul, class_int, om_int)
+om_int_mod = gen_prim_Numeric_BinOp('int', '__mod__', num_mod, class_int, om_int)
+om_int_rmod = gen_prim_Numeric_rBinOp('int', '__rmod__', num_mod, class_int, om_int)
+
+# FloorDiv has another check for division by zero.
+# Write it by hand.
+def om_int_floordiv(ctx, args):
+    if debug: print("int.__floordiv__")
+    val1 = args[0]
+    val2 = args[1]
+
+    if not om_is(OM_get_type_class(val1), class_int):
+        return ctx.cont(ctx.rte, class_TypeError)
+
+    # Early break for ZeroDivisionError
+    val2_value = OM_get_boxed_value(val2)
+    if val2_value == 0:
+        return ctx.cont(ctx.rte, class_ZeroDivisionError)
+
+    # Primitive operations are only defined on same types.
+    if om_is(OM_get_type_class(val2), class_int):
+        val1_value = OM_get_boxed_value(val1)
+        result = num_div(val1_value, val2_value)
+        return ctx.cont(ctx.rte, om_int(result))
+    else:
+        return ctx.cont(ctx.rte, om_NotImplemented)
+
+def om_int_rfloordiv(ctx, args):
+    if debug: print("int.__rfloordiv__")
+    val1 = args[0]
+    val2 = args[1]
+
+    if not om_is(OM_get_type_class(val1), class_int):
+        return ctx.cont(ctx.rte, class_TypeError)
+
+    # Early break for ZeroDivisionError
+    val1_value = OM_get_boxed_value(val1)
+    if val1_value == 0:
+        return ctx.cont(ctx.rte, class_ZeroDivisionError)
+
+    # Primitive operations are only defined on same types.
+    if om_is(OM_get_type_class(val2), class_int):
+        val2_value = OM_get_boxed_value(val2)
+        result = num_div(val2_value, val1_value)
+        return ctx.cont(ctx.rte, om_int(result))
+    else:
+        return ctx.cont(ctx.rte, om_NotImplemented)
 
 populate_builtin_type()
 populate_builtin_object()
@@ -1817,71 +1877,68 @@ def gen_Compare(cte, ast, left, comparators, ops):
     else:
         assert False, 'not implemented'
 
-def sem_Add(ctx, val1, val2):
-    def call_expr_end(rte, val):
-        return expr_end(ctx, val)
+# Generate BinOp semantics for python Numeric datatypes (or that which emulate)
+# For the correct Python Data Model and interpreter, these are paired with
+# generators for primitive operators which do the actual computation, defined later.
+def gen_sem_Numeric_BinOp(op_symbol, method, rmethod):
 
-    def call_radd(rte):
-        __val2_radd__ = getattribute_from_obj_mro(val2, '__radd__')
-        if __val2_radd__ is absent:
-            # TypeError: unsupported operand type(s) for +: type(val1).__name__ and type(val2).__name__"
-            assert False, '__add__ and __radd__ are absent absent'
-        else:
+    def sem_Numeric_BinOp(ctx, val1, val2):
 
-            __val2_radd__ = getattribute_from_obj_mro(val1, '__radd__')
-            if __val2_radd__ is absent:
-                # TypeError: unsupported operand type(s) for +: type(val1).__name__ and type(val2).__name__"
-                assert False, '__add__ and __radd__ are absent absent'
+        # Helpers
+        def call_expr_end(rte, val):
+            return expr_end(ctx, val)
+
+        def test_method_result(rte, val):
+            # C: Method not implemented for val2's type,
+            #    fallback to reversed method.
+            if om_is(val, om_NotImplemented):
+                return call_rmethod(rte)
             else:
-                ctx2 = Context(rte, call_expr_end, [val2, val1])
-                return om_call(__val2_radd__, ctx2, [val2, val1])
+                # END0: val1 has method and can operate on val2.
+                #       Return the result.
+                return call_expr_end(rte, val)
 
-    def test_add_result(rte, val):
-        if om_is(val, om_NotImplemented):
-            return call_radd(rte)
+        def test_rmethod_result(rte, val):
+            # F: Rmethod not implemented for val1's type.
+            #    Raise TypeError since both methods are absent (like CPython).
+            if om_is(val, om_NotImplemented):
+                return call_expr_end(rte, class_TypeError)
+            else:
+                # END1: val2 has rmethod and can operate on val1.
+                #       Return the result.
+                return call_expr_end(rte, val)
+
+        def call_rmethod(rte):
+            # D: Does val2 have rmethod?
+            val2_rmethod = getattribute_from_obj_mro(val2, rmethod)
+
+            # E: Yes, try val2.rmethod(val1)
+            if val2_rmethod is not absent:
+                ctx2 = Context(rte, test_rmethod_result, ctx.ast)
+                # NOTE: Semantics don't switch arguments, primitives do.
+                return om_call(val2_rmethod, ctx2, [val1, val2])
+            else:
+                # G: Method and rmethod are absent.
+                #    Raise a TypeError (like CPython).
+                return call_expr_end(rte, class_TypeError)
+
+        # A: Does val1 have method?
+        val1_method = getattribute_from_obj_mro(val1, method)
+
+        # B: Yes, try val1.method(val2).
+        if val1_method is not absent:
+            ctx1 = Context(ctx.rte, test_method_result, ctx.ast)
+            return om_call(val1_method, ctx1, [val1, val2])
         else:
-            return call_expr_end(rte, val)
+            return call_rmethod(ctx.rte)
 
-    __val1_add__ = getattribute_from_obj_mro(val1, '__add__')
-    if __val1_add__ is absent:
-        return call_radd(ctx.rte)
-    else:
-        ctx1 = Context(ctx.rte, test_add_result, ctx.ast)
-        return om_call(__val1_add__, ctx1, [val1, val2])
+    return sem_Numeric_BinOp
 
-def sem_Sub(ctx, val1, val2):
-    def call_expr_end(rte, val):
-        return expr_end(ctx, val)
-
-    ctx1 = Context(ctx.rte, call_expr_end, ctx.ast)
-
-    __val1_sub__ = getattribute_from_obj_mro(val1, '__sub__')
-    if __val1_sub__ is absent:
-        __val2_rsub__ = getattribute_from_obj_mro(val2, '__rsub__')
-        if __val2_rsub__ is absent:
-            # TypeError: unsupported operand type(s) for -: type(val1).__name__ and type(val2).__name__"
-            assert False, '__sub__ and __rsub__ are absent absent'
-        else:
-            return om_call(__val2_rsub__, ctx1, [val1, val2])
-    else:
-        return om_call(__val1_sub__, ctx1, [val1, val2])
-
-# TODO: update those definition
-def sem_Mult(ctx, val1, val2):
-    result = val1 * val2
-    return expr_end(ctx, result)
-
-def sem_Div(ctx, val1, val2):
-    result = val1 / val2
-    return expr_end(ctx, result)
-
-def sem_Mod(ctx, val1, val2):
-    result = val1 % val2
-    return expr_end(ctx, result)
-
-def sem_FloorDiv(ctx, val1, val2):
-    result = val1 // val2
-    return expr_end(ctx, result)
+sem_Add = gen_sem_Numeric_BinOp('+', '__add__', '__radd__')
+sem_Sub = gen_sem_Numeric_BinOp('-', '__sub__', '__rsub__')
+sem_Mult = gen_sem_Numeric_BinOp('*', '__mul__', '__rmul__')
+sem_FloorDiv = gen_sem_Numeric_BinOp('//', '__floordiv__', '__rfloordiv__')
+sem_Mod = gen_sem_Numeric_BinOp('%', '__mod__', '__rmod__')
 
 def macro_sem_binary_operator_protocol(op, method, rmethod):
     def sem_comparator(ctx, val1, val2):
