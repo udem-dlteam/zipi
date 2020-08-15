@@ -1,6 +1,7 @@
 
 from _runtime import make_dict, dict_get, dict_set, nocompile, \
-        num_add, num_sub, num_mul, num_div, num_mod, num_to_string
+        num_add, num_sub, num_mul, num_div, num_mod, num_to_string, \
+        num_zero
 
 # import ast as AST
 
@@ -1133,7 +1134,7 @@ def om_int_floordiv(ctx, args):
     # Early break for ZeroDivisionError
     val2_value = OM_get_boxed_value(val2)
     if num_zero(val2_value):
-        return ctx.cont(ctx.rte, class_ZeroDivisionError)
+        assert False, "ZeroDivisionError"
 
     # Primitive operations are only defined on same types.
     if om_is(OM_get_type_class(val2), class_int):
@@ -1155,7 +1156,7 @@ def om_int_rfloordiv(ctx, args):
     # Early break for ZeroDivisionError
     val1_value = OM_get_boxed_value(val1)
     if num_zero(val1_value):
-        return ctx.cont(ctx.rte, class_ZeroDivisionError)
+        assert False, "ZeroDivisionError"
 
     # Primitive operations are only defined on same types.
     if om_is(OM_get_type_class(val2), class_int):
