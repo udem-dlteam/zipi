@@ -809,50 +809,73 @@ def get_token(ts):
         ts.token = kind_to_token[k]
         return
 
-def is_octal(ch):
-    return ord('0') <= ch <= ord('7')
+def as_octal(byte):
+    if ord('0') <= byte <= ord('7'):
+        return byte-48
+    return -1
 
-def get_int_from_escape_no_unicode(buf, pos):
+def as_hex(byte):
+
+    if byte >= 48 and byte <= 57: # decimal
+        return byte - 48
+    if byte >= 65 and byte <= 70: # A-F
+        return byte - 55 # (A = 10)
+    if byte >= 97 and byte <= 102: # a-f
+        return byte - 87 # (a = 10)
+
+    return -1
+
+def get_int_from_escape_no_unicode(buf, pos, ts):
     # TODO : make it a tree
     next = byte_at(buf, pos)
-    if(next == 92 or next == 39 or next == 34): # \\ \' \"
-        return pos+1, next
-    elif(next == 110): #\n
-        return pos+1, 10
-    elif(next == 116): # \t
-        return pos+1, 9
-    elif(next == 102): # \f
-        return pos+1, 12
-    elif(next == 118): # \v
-        return pos+1, 11
-    elif(next == 97):  # \a
-        return pos+1, 7
-    elif(next == 98):  # \b
-        return pos+1, 8
-    elif(is_octal(next)): # \ooo wher o is an octal
-        x = bytearray()
-        x.append(next)
-        next = byte_at(buf, pos+1)
-        if is_octal(next):
+    if next == 92 or next == 39 or next == 34: # \\ \' \"
+        ts.end = pos+1
+        return next
+    elif next == 110: # \n
+        ts.end = pos+1
+        return 10
+    elif next == 116: # \t
+        ts.end = pos+1
+        return 9
+    elif next == 102: # \f
+        ts.end = pos+1
+        return 12
+    elif next == 118: # \v
+        ts.end = pos+1
+        return 11
+    elif next == 97:  # \a
+        ts.end = pos+1
+        return 7
+    elif next == 98:  # \b
+        ts.end = pos+1
+        return 8
+    elif as_octal(next)!=-1: # \ooo where o is an octal
+        acc = as_octal(next)
+        pos+=1
+        octal_val = as_octal(byte_at(buf, pos))
+        if octal_val != -1:
             pos+=1
-            x.append(next)
-            next=byte_at(buf, pos+1)
-            if is_octal(next):
+            acc = acc * 8 + octal_val
+            octal_val = as_octal(byte_at(buf, pos))
+            if octal_val != -1:
                 pos+=1
-                x.append(next)
-
-        return pos+1, int(x.decode('utf-8'), base=8)
-    elif(next == 120): # \xXX where XX is a base16 number
-        x = bytearray()
-        x.append(byte_at(buf, pos+1))
-        x.append(byte_at(buf, pos+2))
-        # TODO : check if XX is base16
-        return pos + 3, int(x.decode('utf-8'), base=16)
-
-    return pos, -1
+                acc = acc * 8 + octal_val
+        ts.end = pos
+        return acc
+    elif next == 120: # \xXX where XX is a base16 number
+        v1 = as_hex(byte_at(buf, pos+1))
+        v2 = as_hex(byte_at(buf, pos+2))
+        if v1 == -1 or v2 == -1:
+            ts.token = ERRORTOKEN
+            return -1
+        ts.end = pos+3
+        return v1 * 16 + v2
+    ts.end = pos
+    return -1
 
 def byte_escape_character_function(buf, pos, ts):
-    pos, code = get_int_from_escape_no_unicode(buf, pos)
+    code = get_int_from_escape_no_unicode(buf, pos, ts)
+    pos = ts.end
 
     # not found
     if code == -1:
@@ -864,40 +887,42 @@ def byte_escape_character_function(buf, pos, ts):
         ts.value.append(code%256)
     return pos
 
+
+
 def string_escape_character_function(buf, pos, ts):
-    pos, code = get_int_from_escape_no_unicode(buf, pos)
+    code = get_int_from_escape_no_unicode(buf, pos, ts)
+    pos = ts.end
 
     #not found
     if code == -1:
         # search for unicode characters
         next = byte_at(buf, pos)
         if next == 117: # \uXXXX
-            x = bytearray()
+            acc = 0
             for i in range(4):
-                # TODO:validate value and check out of bounds
-                x.append(byte_at(buf, pos+1+i))
-
-            num = int(x.decode("utf-8"), base=16)
-            ts.value+=chr(num)
+                hex_val = as_hex(byte_at(buf, pos+1+i))
+                if hex_val == -1:
+                    ts.token = ERRORTOKEN
+                    return -1
+                acc = acc * 16 + hex_val
+            ts.value+=chr(acc)
 
             return pos+5
-            #unicode here
         elif next == 85: # \UXXXXXXXX
-            x = bytearray()
+            acc = 0
             for i in range(8):
-                # TODO: validate
-                x.append(byte_at(buf, pos+1+i))
-            num = int(x.decode("utf-8"), base=16)
-            ts.value+=chr(num)
+                hex_val = as_hex(byte_at(buf, pos+1+i))
+                if hex_val == -1:
+                    ts.token = ERRORTOKEN
+                    return -1
+                acc = acc * 16 + hex_val
+            ts.value+=chr(acc)
             return pos+9
-            #unicode here
-        elif next == 78: # \N{NAME}
-            #TODO : error not supported
-            pass
+        # TODO : \N{NAME} is not supported and will be treated as a non-escape
         else:
-            #default escape
+            # default escape
             ts.value += "\\"
-            ts.value += ord(next)
+            ts.value += chr(next)
             return pos+1
     else:
         ts.value += chr(code)
@@ -906,7 +931,9 @@ def string_escape_character_function(buf, pos, ts):
 
 def get_string(ts, pos, c, kind, raw):
 
+    print()
     escape_character_function = None
+
     if kind == BYTE_STRING:
         escape_character_function = byte_escape_character_function
         ts.value=bytearray()
@@ -924,12 +951,15 @@ def get_string(ts, pos, c, kind, raw):
         pos += 2
         while True:
             next = byte_at(buf, pos)
+
             if next == c and byte_at(buf, pos+1) == c and byte_at(buf, pos+2) == c:
                 pos += 3
                 break
             elif next == 92 and not raw: # '\'
                 pos+=1
                 pos = escape_character_function(buf, pos, ts)
+                if ts.token == ERRORTOKEN:
+                    return
             else:
                 if next == 10:
                     ts.line_num += 1
@@ -949,13 +979,17 @@ def get_string(ts, pos, c, kind, raw):
     else:
         while True:
             next = byte_at(buf, pos)
+            print(chr(next), end="")
+
             if next == c:
                 break
             elif next == 92 and not raw: # '\'
                 pos+=1
                 pos = escape_character_function(buf, pos, ts)
+                if pos == -1:
+                    ts.token = ERRORTOKEN
+                    return
             elif next == 10: # newline ?
-                k = KIND_ERROR
                 break
             else:
                 if kind==BYTE_STRING:
