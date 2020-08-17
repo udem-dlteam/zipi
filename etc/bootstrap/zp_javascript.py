@@ -138,10 +138,17 @@ class Transformer:
         if keywords != []:
             raise Exception(f"Cannot emit code for Call node ({func}({args}))")
 
-        if isinstance(node.func, AST.Attribute) and node.func.attr == "get":
-            out = "(" + node.func.value.id + "[" + self.transform(node.args[0]) + "]"
-            out += " || " + self.transform(node.args[1]) + ")"
-            return out
+        if isinstance(node.func, AST.Attribute):
+            if node.func.attr == "get":
+                out = "(" + self.transform(node.func.value) + "[" + self.transform(node.args[0]) + "]"
+                out += " || " + self.transform(node.args[1]) + ")"
+                return out
+            elif node.func.attr == "join":
+                print("IN JOIN!")
+                if len(node.args) > 1:
+                    raise Exception(f"Cannot emit code for Call node ({func}({args}))")
+                return f"{self.transform(node.args[0])}.join({self.transform(node.func.value)})"
+
 
         if func == "ord":
             if isinstance(node.args[0], AST.Str):
