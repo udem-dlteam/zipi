@@ -174,7 +174,7 @@ function print_stdout(obj, rte) {
     """
 
     if cli_args.tests:
-        with open("num.js", "r") as f:
+        with open("int.js", "r") as f:
             runtime += " " + f.read()
 
     # Modules
