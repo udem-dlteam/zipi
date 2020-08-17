@@ -41,3 +41,6 @@ def num_mul(u, v):
 
 def num_div(u, v):
     return u // v
+
+def print_stdout(obj, rte):
+    print("STDOUT:", obj)
