@@ -865,11 +865,14 @@ def om_object_repr(ctx, args):
     return ctx.cont(ctx.rte, om_str(result))
 
 # class_NotImplementedType
+def om_format_NotImplementedType(self, rte):
+    return "NotImplemented"
+
 def om_NotImplementedType_str(ctx, args):
     if debug: print('NotImplementedType.__str__')
     self = args[0]
-    result = om_str('NotImplemented')
-    return ctx.cont(ctx.rte, result)
+    result = om_format_NotImplementedType(self, ctx.rte)
+    return ctx.cont(ctx.rte, om_str(result))
 
 def om_NotImplementedType_repr(ctx, args):
     if debug: print('NotImplementedType.__repr__')
@@ -1243,11 +1246,11 @@ def gen_prim_Numeric_BinOp(py_class, method, prim, om_class, om_box):
         # Traceback (most recent call last):
         #   File "<stdin>", line 1, in <module>
         # TypeError: descriptor '__add__' requires a 'int' object but received a 'str'
-        if not om_is(OM_get_type_class(val1), om_class):
+        if not om_is(OM_get_object_class(val1), om_class):
             assert False, "TypeError"
 
         # Primitive operations are only defined on same types.
-        if om_is(OM_get_type_class(val2), om_class):
+        if om_is(OM_get_object_class(val2), om_class):
             val1_value = OM_get_boxed_value(val1)
             val2_value = OM_get_boxed_value(val2)
             result = prim(val1_value, val2_value)
@@ -1266,10 +1269,10 @@ def gen_prim_Numeric_rBinOp(py_class, method, prim, om_class, om_box):
         val1 = args[0]
         val2 = args[1]
 
-        if not om_is(OM_get_type_class(val1), om_class):
+        if not om_is(OM_get_object_class(val1), om_class):
             assert False, "TypeError"
 
-        if om_is(OM_get_type_class(val2), om_class):
+        if om_is(OM_get_object_class(val2), om_class):
             val1_value = OM_get_boxed_value(val1)
             val2_value = OM_get_boxed_value(val2)
             # Reverse the arguments.
@@ -1300,7 +1303,7 @@ def om_int_floordiv(ctx, args):
     val1 = args[0]
     val2 = args[1]
 
-    if not om_is(OM_get_type_class(val1), class_int):
+    if not om_is(OM_get_object_class(val1), class_int):
         assert False, "TypeError"
 
     # Early break for ZeroDivisionError
@@ -1309,7 +1312,7 @@ def om_int_floordiv(ctx, args):
         assert False, "ZeroDivisionError"
 
     # Primitive operations are only defined on same types.
-    if om_is(OM_get_type_class(val2), class_int):
+    if om_is(OM_get_object_class(val2), class_int):
         val1_value = OM_get_boxed_value(val1)
         result = num_div(val1_value, val2_value)
         return ctx.cont(ctx.rte, om_int(result))
@@ -1322,7 +1325,7 @@ def om_int_rfloordiv(ctx, args):
     val1 = args[0]
     val2 = args[1]
 
-    if not om_is(OM_get_type_class(val1), class_int):
+    if not om_is(OM_get_object_class(val1), class_int):
         assert False, "TypeError"
 
     # Early break for ZeroDivisionError
@@ -1331,7 +1334,7 @@ def om_int_rfloordiv(ctx, args):
         assert False, "ZeroDivisionError"
 
     # Primitive operations are only defined on same types.
-    if om_is(OM_get_type_class(val2), class_int):
+    if om_is(OM_get_object_class(val2), class_int):
         val2_value = OM_get_boxed_value(val2)
         result = num_div(val2_value, val1_value)
         return ctx.cont(ctx.rte, om_int(result))
@@ -2308,7 +2311,8 @@ simple_repr_formatters = {
     "method-wrapper": om_format_MethodWrapper_repr,
     "wrapper_descriptor": om_format_WrapperDescriptor_repr,
     "module": om_format_module_repr,
-    "object": om_format_object_repr
+    "object": om_format_object_repr,
+    "NotImplementedType" : om_format_NotImplementedType
 }
 
 def om_simple_repr(ctx, value):

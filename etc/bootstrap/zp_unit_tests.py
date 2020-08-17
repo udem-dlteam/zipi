@@ -166,7 +166,7 @@ ZeroDivisionError
 @Equals("""at 1.1-1.4: value = <class 'int'>
 at 1.1-1.12: value = <slot wrapper '__add__' of 'int' objects>
 at 1.13-1.14: value = 2
-at 1.16-1.19: value = <str object at #0>
+at 1.16-1.19: value = 'a'
 at 1.1-1.20: value = NotImplemented
 """)
 def test_int__add__0():
