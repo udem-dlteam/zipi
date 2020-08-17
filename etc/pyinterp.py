@@ -2109,8 +2109,7 @@ def gen_sem_Numeric_BinOp(op_symbol, method, rmethod):
 
         # B: Yes, try val1.method(val2).
         if val1_method is not absent:
-            # TODO: Refactor to 'with_cont' when it is available.
-            ctx1 = Context(ctx.rte, test_method_result, ctx.ast)
+            ctx1 = with_cont(ctx, test_method_result)
             return om_call(val1_method, ctx1, [val1, val2])
         else:
             return call_rmethod(ctx.rte)
@@ -2159,7 +2158,7 @@ def sem_repr(ctx, val1):
             err = om(class_TypeError, OM_object_create)
             return sem_raise(ctx, err)
 
-    ctx1 = with_cont(ctx.rte, check_string, ctx.ast)
+    ctx1 = with_cont(ctx, check_string)
     return om_call(val1_repr, ctx, [val1])
 
 def sem_getattribute(ctx, args):
@@ -2227,7 +2226,7 @@ def sem_bool(ctx, val):
                     result = om_False
                 return expr_end(ctx, result)
 
-            ctx1 = with_cont(nonzero)
+            ctx1 = with_cont(ctx, nonzero)
             return om_call(__val_len__, ctx1, [val])
     else:
         return om_call(__val_bool__, ctx, [val])
@@ -2239,7 +2238,7 @@ def sem_raise(ctx, exn):
         def uncaught_exception(rte, cont):
             # print stacktrace here
             return None
-        ctx1 = with_cont(uncaught_exception)
+        ctx1 = with_cont(ctx, uncaught_exception)
         return expr_end(ctx1, exn)
     else:
         # exception unwinding not implemented.
