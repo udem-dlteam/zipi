@@ -63,6 +63,11 @@ class OM_box(OM_object):
     value: the inner value wrapped into the object model.
     """
 
+class OM_tuple(OM_object):
+    """
+    seq: the inner sequence of objects
+    """
+
 class OM_function(OM_box):
     """
     arity: the arity of the function object
@@ -503,6 +508,11 @@ def om_boxval(cls, val):
     OM_set_boxed_value(obj, val)
     return obj
 
+def om_tuple(cls, seq):
+    obj = om(cls, OM_tuple_create)
+    OM_set_tuple_seq(obj, seq)
+    return obj
+
 def om_module(name, val):
     obj = om(class_module, OM_object_create)
 
@@ -554,6 +564,9 @@ def OM_type_create():
 
 def OM_box_create():
     return OM_box()
+
+def OM_tuple_create():
+    return OM_tuple()
 
 def OM_function_create():
     return OM_function()
@@ -607,6 +620,12 @@ def OM_set_boxed_value(o, value):
 
 def OM_get_boxed_value(o):
     return o.value
+
+def OM_get_tuple_seq(o):
+    return o.seq
+
+def OM_set_tuple_seq(o, value):
+    o.seq = value
 
 def OM_set_code(o, code):
     o.code = code
@@ -1650,9 +1669,25 @@ def comp_expr(cte, ast):
         (cte2, code2) = comp_function_args(cte1, ast.args)
         # TODO: compile ast.keywords args
         return gen_call(cte1, ast, code1, code2)
+    elif isinstance(ast, AST.Tuple):
+        if debug: print('AST.Tuple')
+        computed_elts = comp_elements(cte, ast.elts)
+        return gen_Tuple(cte, ast, computed_elts)
     else:
         if not debug: print(ast)
         assert False, 'comp_expr expected an expression AST'
+
+def comp_elements(cte, elts):
+    computed_elts = []
+    elts_len = len(elts)
+    i = 0
+    current_cte = cte
+    while i < elts_len:
+        current_cte, elt_code = comp_expr(current_cte, elts[i])
+        computed_elts.append((current_cte, elt_code))
+        i += 1
+
+    return computed_elts
 
 def comp_expr_opt(cte, ast):
     if ast is None:
@@ -2162,6 +2197,32 @@ def gen_constant(cte, ast, val):
         return sem_constant(Context(rte, cont, ast), obj)
 
     return (cte, code)
+
+def make_tuple(ctx, elements):
+    return expr_end(ctx, om_tuple(class_tuple, elements))
+
+def gen_Tuple(cte, ast, elts):
+    return gen_elements(cte, ast, elts, make_tuple, [])
+
+def gen_elements(cte, ast, elts, make_container, acc):
+    if len(elts) == 0:
+        def code(rte, cont):
+            ctx = Context(rte, cont, ast)
+            return make_container(ctx, acc)
+
+        return cte, code
+    else:
+        elt_code = elts[0][1]
+        tail_cte, tail_code = gen_elements(cte, ast, elts[1:], make_container, acc)
+
+        def code(rte, cont):
+            def accumulate_cont(rte, val):
+                acc.append(val)
+                return tail_code(rte, cont)
+
+            return elt_code(rte, accumulate_cont)
+
+        return tail_cte, code
 
 def sem_constant(ctx, val):
     result = val
