@@ -19,6 +19,10 @@ def dict_set(d, key, value):
     d[key] = value
 
 
+def dict_has(d, key):
+    return key in d.keys()
+
+
 def num_to_string(u, radix):
     # XXX: radix is ignored
     return str(u)
@@ -39,10 +43,12 @@ def num_mul(u, v):
 def num_div(u, v):
     return u // v
 
-
 def num_mod(u, v):
     return u % v
 
 
 def num_zero(u):
     return u == 0
+
+def print_stdout(obj, rte):
+    print("STDOUT:", obj)
