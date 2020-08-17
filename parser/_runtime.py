@@ -1,5 +1,6 @@
 # _runtime.py
 # Runtime for zp compiler
+# TODO: Change to bigi.js
 
 
 def nocompile(f):
@@ -41,6 +42,13 @@ def num_mul(u, v):
 
 def num_div(u, v):
     return u // v
+
+def num_mod(u, v):
+    return u % v
+
+
+def num_zero(u):
+    return u == 0
 
 def print_stdout(obj, rte):
     print("STDOUT:", obj)
