@@ -169,7 +169,7 @@ function dict_has(d, a) {
     """
 
     if cli_args.tests:
-        with open("num.js", "r") as f:
+        with open("int.js", "r") as f:
             runtime += " " + f.read()
 
     # Modules
