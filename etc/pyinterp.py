@@ -45,6 +45,24 @@ def make_out_of_ast_context(rte, cont):
 #         self.stack = stack
 #         self.ctrl_env = ctrl_env
 
+class RTCtrlLabel:
+    def __init__(self, ctrl_next, break_cont, continue_cont):
+        self.ctrl_next = ctrl_next
+        self.break_cont = break_cont
+        self.continue_cont = continue_cont
+
+class RTCtrlCatch:
+    def __init__(self, ctrl_next, code_catch, lex_env):
+        self.ctrl_next = ctrl_next
+        self.code_catch = code_catch
+        self.lex_env = lex_env
+
+class RTCtrlFinally:
+    def __init__(self, ctrl_next, code_finally, cont):
+        self.ctrl_next = ctrl_next
+        self.code_finally = code_catch
+        self.lex_env = lex_env
+
 class OM_object:
     """
     klass: the __class__ attribute of the object
@@ -2130,8 +2148,19 @@ sem_LtE = macro_sem_binary_operator_protocol('<=', '__lte__', '__gte__')
 sem_GtE = macro_sem_binary_operator_protocol('>=', '__gte__', '__lte__')
 
 def sem_repr(ctx, val1):
-    __repr__ = getattribute_from_obj_mro(val1, '__repr__')
-    return om_call(__repr__, ctx, [val1])
+    val1_repr = getattribute_from_obj_mro(val1, '__repr__')
+    # assert val1_repr is not absent, '__repr__ not defined'
+
+    def check_string(rte, res):
+        cls = OM_get_type_class(res)
+        if om_is(cls, class_str):
+            return ctx.cont(rte, res)
+        else:
+            err = om(class_TypeError, OM_object_create)
+            return sem_raise(ctx, err)
+
+    ctx1 = with_cont(ctx.rte, check_string, ctx.ast)
+    return om_call(val1_repr, ctx, [val1])
 
 def sem_getattribute(ctx, args):
     obj = args[0]
@@ -2147,7 +2176,6 @@ def sem_getattribute(ctx, args):
             return __getattr__(ctx, args)
 
     __getattribute__ = getattribute_from_obj_mro(obj, '__getattribute__')
-
     # TODO: setup exn
     return om_call(__getattribute__, ctx, args)
 
@@ -2199,11 +2227,23 @@ def sem_bool(ctx, val):
                     result = om_False
                 return expr_end(ctx, result)
 
-            ctx1 = Context(ctx.rte, nonzero, ctx.ast)
+            ctx1 = with_cont(nonzero)
             return om_call(__val_len__, ctx1, [val])
     else:
         return om_call(__val_bool__, ctx, [val])
 
+
+def sem_raise(ctx, exn):
+    ctrl_env = rte_ctrl_env(ctx.rte)
+    if om_is(ctrl_env, absent):
+        def uncaught_exception(rte, cont):
+            # print stacktrace here
+            return None
+        ctx1 = with_cont(uncaught_exception)
+        return expr_end(ctx1, exn)
+    else:
+        # exception unwinding not implemented.
+        assert False, 'Not implemented'
 
 #def gen_funcdef_code(cte, ast, name, args, body):
 def gen_funcdef_code(cte, ast, body):
