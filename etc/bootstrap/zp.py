@@ -166,9 +166,10 @@ function dict_has(d, a) {
     return false;
     }
     };
-function print_stdout(obj) {
+function print_stdout(obj, rte) {
     console.log("PRINTING TO STDOUT");
     console.log(obj);
+    rte.vm.replAddTranscript(obj, 'cb-repl-output');
     };
     """
 

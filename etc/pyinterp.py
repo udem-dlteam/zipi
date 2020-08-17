@@ -91,34 +91,50 @@ def frame_cont(frame):
 def frame_ast(frame):
     return frame[2]
 
-def make_rte(rte, globals_env, locals_env, builtins, stack, ctrl_env):
+def make_rte(rte, globals_env, locals_env, builtins, stack, ctrl_env, vm):
     if rte is absent:
         serial_counter = [0]
     else:
-        serial_counter = rte[0]
-    return [serial_counter, globals_env, locals_env, builtins, stack, ctrl_env]
+        serial_counter = rte_serial_counter(rte)
+
+    rte = make_dict()
+
+    dict_set(rte, "serial_counter", serial_counter)
+    dict_set(rte, "globals", globals_env)
+    dict_set(rte, "locals", locals_env)
+    dict_set(rte, "builtins", builtins)
+    dict_set(rte, "stack", stack)
+    dict_set(rte, "ctrl_env", ctrl_env)
+    dict_set(rte, "vm", vm)
+
+    return rte
 
 def rte_serial_counter(rte):
-    boxed_serial = rte[0]
+    return dict_get(rte, 'serial_counter')
+
+def rte_get_serial(rte):
+    boxed_serial = dict_get(rte, 'serial_counter')
     serial = boxed_serial[0]
     boxed_serial[0] = serial + 1
     return serial
 
 def rte_globals(rte):
-    return rte[1]
+    return dict_get(rte, 'globals')
 
 def rte_locals(rte):
-    return rte[2]
+    return dict_get(rte, 'locals')
 
 def rte_builtins(rte):
-    return rte[3]
+    return dict_get(rte, 'builtins')
 
 def rte_stack(rte):
-    return rte[4]
+    return dict_get(rte, 'stack')
 
 def rte_ctrl_env(rte):
-    return rte[5]
+    return dict_get(rte, 'ctrl_env')
 
+def rte_vm(rte):
+    return dict_get(rte, 'vm')
 
 # Return variable value or absent.
 def rte_lookup_globals(rte, name):
@@ -560,7 +576,7 @@ def OM_get_serial(o, rte):
     serial = o.serial
     if serial is absent:
         # allocate a new serial number.
-        serial = rte_serial_counter(rte)
+        serial = rte_get_serial(rte)
         OM_set_serial(o, serial)
     return serial
 
@@ -1122,7 +1138,7 @@ def om_function_call(ctx, args):
     locals_env = align_args_with_signature(ctx, params, signature)
 
     stack = make_frame(ctx.rte, ctx.cont, ctx.ast)
-    rte = make_rte(ctx.rte, rte_globals(ctx.rte), make_dict_from_list(locals_env), rte_builtins(ctx.rte), stack, absent)
+    rte = make_rte(ctx.rte, rte_globals(ctx.rte), make_dict_from_list(locals_env), rte_builtins(ctx.rte), stack, absent, rte_vm(ctx.rte))
     body = OM_get_function_body(self)
     return body(rte,
                 lambda rte1:
@@ -1218,7 +1234,7 @@ populate_builtin_ZeroDivisionError()
 
 def om_print_code(rte, _):
     def cont(rte, str_result):
-        print_stdout(OM_get_boxed_value(str_result))
+        print_stdout(OM_get_boxed_value(str_result), rte)
         return unwindReturn(rte, om_None)
 
     next_ctx = Context(rte, cont, rte_stack(rte)[-1])
@@ -1259,7 +1275,7 @@ def fresh_rte():
     locals_env = absent
     globals_env = make_dict()
     builtins_env = make_dict()
-    rte = make_rte(absent, globals_env, locals_env, builtins_env, absent, absent)
+    rte = make_rte(absent, globals_env, locals_env, builtins_env, absent, absent, absent)
 
     om_builtin_print = om_make_function_with_signature('print', om_print_code, make_posonly_only_signature(('obj',)))
 
