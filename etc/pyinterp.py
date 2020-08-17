@@ -110,31 +110,31 @@ def make_rte(rte, globals_env, locals_env, builtins, stack, ctrl_env, vm):
     return rte
 
 def rte_serial_counter(rte):
-    return dict_get(rte, 'serial_counter')
+    return dict_get(rte, 'serial_counter', absent)
 
 def rte_get_serial(rte):
-    boxed_serial = dict_get(rte, 'serial_counter')
+    boxed_serial = dict_get(rte, 'serial_counter', absent)
     serial = boxed_serial[0]
     boxed_serial[0] = serial + 1
     return serial
 
 def rte_globals(rte):
-    return dict_get(rte, 'globals')
+    return dict_get(rte, 'globals', absent)
 
 def rte_locals(rte):
-    return dict_get(rte, 'locals')
+    return dict_get(rte, 'locals', absent)
 
 def rte_builtins(rte):
-    return dict_get(rte, 'builtins')
+    return dict_get(rte, 'builtins', absent)
 
 def rte_stack(rte):
-    return dict_get(rte, 'stack')
+    return dict_get(rte, 'stack', absent)
 
 def rte_ctrl_env(rte):
-    return dict_get(rte, 'ctrl_env')
+    return dict_get(rte, 'ctrl_env', absent)
 
 def rte_vm(rte):
-    return dict_get(rte, 'vm')
+    return dict_get(rte, 'vm', absent)
 
 # Return variable value or absent.
 def rte_lookup_globals(rte, name):
