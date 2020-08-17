@@ -18,6 +18,10 @@ def dict_set(d, key, value):
     d[key] = value
 
 
+def dict_has(d, key):
+    return key in d.keys()
+
+
 def num_to_string(u, radix):
     # XXX: radix is ignored
     return str(u)
