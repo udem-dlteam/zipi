@@ -825,8 +825,8 @@ def as_hex(byte):
     return -1
 
 def get_int_from_escape_no_unicode(buf, pos, ts):
-    # TODO : make it a tree
     next = byte_at(buf, pos)
+
     if next == 92 or next == 39 or next == 34: # \\ \' \"
         ts.end = pos+1
         return next
@@ -870,6 +870,7 @@ def get_int_from_escape_no_unicode(buf, pos, ts):
         ts.end = pos+3
         return v1 * 16 + v2
     ts.end = pos
+
     return -1
 
 def byte_escape_character_function(buf, pos, ts):
@@ -884,9 +885,8 @@ def byte_escape_character_function(buf, pos, ts):
         pos+=1
     else:
         ts.value.append(code%256)
+
     return pos
-
-
 
 def string_escape_character_function(buf, pos, ts):
     code = get_int_from_escape_no_unicode(buf, pos, ts)
@@ -907,6 +907,7 @@ def string_escape_character_function(buf, pos, ts):
             ts.value+=chr(acc)
 
             return pos+5
+
         elif next == 85: # \UXXXXXXXX
             acc = 0
             for i in range(8):
@@ -917,7 +918,7 @@ def string_escape_character_function(buf, pos, ts):
                 acc = acc * 16 + hex_val
             ts.value+=chr(acc)
             return pos+9
-        # TODO : \N{NAME} is not supported and will be treated as a non-escape
+        # TODO : \N{NAME} is not supported and will not be escaped
         else:
             # default escape
             ts.value += "\\"
@@ -925,10 +926,12 @@ def string_escape_character_function(buf, pos, ts):
             return pos+1
     else:
         ts.value += chr(code)
+
     return pos
 
 def get_string_raw(ts, pos, c, kind):
     buf = ts.buf
+
     if byte_at(buf, pos) == c and byte_at(buf, pos+1) == c:
 
         #TODO check end of buffer
@@ -966,6 +969,7 @@ def get_string_raw(ts, pos, c, kind):
             if next == c:
                 pos += 1
                 break
+
             #add character
             pos+=1
             if kind==BYTE_STRING:
@@ -994,13 +998,15 @@ def get_string_raw(ts, pos, c, kind):
             elif next == 10: # newline ?
                 k = KIND_ERROR
                 break
+
     ts.end = pos
 
 def get_string_normal(ts, pos, c, kind):
     buf = ts.buf
-    if byte_at(buf, pos) == c and byte_at(buf, pos+1) == c:
 
+    if byte_at(buf, pos) == c and byte_at(buf, pos+1) == c:
         #TODO check end of buffer
+
         pos += 2
         while True:
             next = byte_at(buf, pos)
