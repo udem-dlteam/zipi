@@ -1,6 +1,5 @@
 # _runtime.py
 # Runtime for zp compiler
-# TODO: Change to bigi.js
 
 
 def nocompile(f):
@@ -23,32 +22,38 @@ def dict_has(d, key):
     return key in d.keys()
 
 
-def num_to_string(u, radix):
+def int_to_string(u, radix):
     # XXX: radix is ignored
     return str(u)
 
 
-def num_add(u, v):
+def int_add(u, v):
     return u + v
 
 
-def num_sub(u, v):
+def int_sub(u, v):
     return u - v
 
 
-def num_mul(u, v):
+def int_mul(u, v):
     return u * v
 
 
-def num_div(u, v):
+def int_div(u, v):
     return u // v
 
-def num_mod(u, v):
+
+def int_mod(u, v):
     return u % v
 
 
-def num_zero(u):
+def int_is_zero(u):
     return u == 0
+
+
+def int_from_float(u):
+    return u
+
 
 def print_stdout(obj, rte):
     print("STDOUT:", obj)
