@@ -422,12 +422,11 @@ def set_start_end_1token(ts, ast):
 def source(ts, start, end):
     return ts.buf[start:end].decode('utf-8')
 
-def get_value(ts):
-    return ts.value
-
 def token(ts):
     return source(ts, ts.start, ts.end)
 
+def get_value(ts):
+    return ts.value
 #------------------------------------------------------------------------------
 
 # The tokenizer.
@@ -928,23 +927,8 @@ def string_escape_character_function(buf, pos, ts):
         ts.value += chr(code)
     return pos
 
-
-def get_string(ts, pos, c, kind, raw):
-
-    print()
-    escape_character_function = None
-
-    if kind == BYTE_STRING:
-        escape_character_function = byte_escape_character_function
-        ts.value=bytearray()
-    else:
-        # kind == UNICODE_STRING or other
-        escape_character_function = string_escape_character_function
-        ts.value=""
-
+def get_string_raw(ts, pos, c, kind):
     buf = ts.buf
-
-    # '''...''' or """..."""
     if byte_at(buf, pos) == c and byte_at(buf, pos+1) == c:
 
         #TODO check end of buffer
@@ -955,41 +939,118 @@ def get_string(ts, pos, c, kind, raw):
             if next == c and byte_at(buf, pos+1) == c and byte_at(buf, pos+2) == c:
                 pos += 3
                 break
-            elif next == 92 and not raw: # '\'
-                pos+=1
-                pos = escape_character_function(buf, pos, ts)
-                if ts.token == ERRORTOKEN:
-                    return
+
+            #add character
+            pos+=1
+            if kind==BYTE_STRING:
+                ts.value.append(next)
+            else:
+                ts.value += chr(next)
+
+            if next == 92: # '\'
+                if byte_at(buf, pos) == 10:
+                    ts.line_num += 1
+                elif byte_at(buf, pos) == c:
+                    if kind == BYTE_STRING:
+                        ts.value.append(c)
+                    else:
+                        ts.value += chr(c)
+                    pos+=1
             else:
                 if next == 10:
                     ts.line_num += 1
-                if kind==BYTE_STRING:
-                    ts.value.append(next)
-                else:
-                    ts.value += chr(next)
+
+    else:
+        while True:
+            next = byte_at(buf, pos)
+            if next == c:
                 pos += 1
-                # special case where we have something in the form \c (c = " or ') in a raw string
-                if raw and next== 92 and c==byte_at(buf, pos):
+                break
+            #add character
+            pos+=1
+            if kind==BYTE_STRING:
+                ts.value.append(next)
+            else:
+                ts.value += chr(next)
+
+            if next == 92: # '\'
+
+                if byte_at(buf, pos) == 10:
+                    ts.line_num += 1
+                    if kind == BYTE_STRING:
+                        ts.value.append(10)
+                    else:
+                        ts.value += chr(10)
                     pos+=1
+
+                # special case where we have something in the form \c (c = " or ') in a raw string
+                elif c == byte_at(buf, pos):
                     if kind == BYTE_STRING:
                         ts.value.append(c)
                     else:
                         ts.value += chr(c)
-    # '...' or "..."
+                    pos+=1
+
+            elif next == 10: # newline ?
+                k = KIND_ERROR
+                break
+    ts.end = pos
+
+def get_string_normal(ts, pos, c, kind):
+    buf = ts.buf
+    if byte_at(buf, pos) == c and byte_at(buf, pos+1) == c:
+
+        #TODO check end of buffer
+        pos += 2
+        while True:
+            next = byte_at(buf, pos)
+
+            if next == c and byte_at(buf, pos+1) == c and byte_at(buf, pos+2) == c:
+                pos += 3
+                break
+
+            if next == 92: # '\'
+                pos+=1
+                if byte_at(buf, pos) == 10:
+                    ts.line_num += 1
+                    pos+=1
+                elif kind == BYTE_STRING:
+                    pos = byte_escape_character_function(buf, pos, ts)
+                # kind == NORMAL_STRING
+                else:
+                    pos = string_escape_character_function(buf, pos, ts)
+
+            else:
+                pos+=1
+                if next == 10:
+                    ts.line_num += 1
+
+                if kind==BYTE_STRING:
+                    ts.value.append(next)
+                else:
+                    ts.value += chr(next)
+
     else:
         while True:
             next = byte_at(buf, pos)
-            print(chr(next), end="")
-
             if next == c:
+                pos += 1
                 break
-            elif next == 92 and not raw: # '\'
+            elif next == 92: # '\'
                 pos+=1
-                pos = escape_character_function(buf, pos, ts)
-                if pos == -1:
-                    ts.token = ERRORTOKEN
-                    return
+
+                if byte_at(buf, pos) == 10:
+                    pos+=1
+                    ts.line_num += 1
+
+                elif kind == BYTE_STRING:
+                    pos = byte_escape_character_function(buf, pos, ts)
+                # kind == NORMAL_STRING
+                else:
+                    pos = string_escape_character_function(buf, pos, ts)
+
             elif next == 10: # newline ?
+                k = KIND_ERROR
                 break
             else:
                 if kind==BYTE_STRING:
@@ -997,15 +1058,24 @@ def get_string(ts, pos, c, kind, raw):
                 else:
                     ts.value += chr(next)
                 pos += 1
-                # special case where we have something in the form \c (c = " or ') in a raw string
-                if raw and next== 92 and c==byte_at(buf, pos):
-                    pos+=1
-                    if kind == BYTE_STRING:
-                        ts.value.append(c)
-                    else:
-                        ts.value += chr(c)
+    ts.end = pos
+
+def get_string(ts, pos, c, kind, raw):
+
+    ts.token = STRING
+
+    if kind == BYTE_STRING:
+        ts.value=bytearray()
+    else:
+        # kind == UNICODE_STRING or other
+        ts.value=""
+
+    if raw:
+        get_string_raw(ts, pos, c, kind)
+    else:
+        get_string_normal(ts, pos, c, kind)
+
 
     if kind==BYTE_STRING:
         ts.value = bytes(ts.value)
-    ts.end = pos
-    ts.token = STRING
+

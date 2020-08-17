@@ -6,7 +6,7 @@ PYTHON38=python3
 all: _zparse.py
 
 
-check: test1
+check: test1 test2 test3 test4
 
 
 test1 test2 test3 test4 test5 test6: _zparse.py
