@@ -431,8 +431,7 @@ def populate_builtin_str():
     OM_set_type_mro(class_str, [class_str, class_object])
 
 def populate_builtin_tuple():
-    # TODO: not implemented
-    #builtin_add_method(fields, '__repr__', om_tuple_repr)
+    builtin_add_method(class_tuple, '__repr__', om_tuple_repr)
 
     OM_set_type_mro(class_tuple, [class_tuple, class_object])
 
@@ -1044,6 +1043,45 @@ def om_int_repr(ctx, args):
     result = om_format_int_repr(self, ctx.rte)
     return ctx.cont(ctx.rte, om_str(result))
 
+# class_tuple methods
+
+def om_join_str(om_strings, sep):
+    acc = ''
+    strings_len = len(om_strings)
+    i = 0
+    while i < strings_len - 1:
+        acc += OM_get_boxed_value(om_strings[i]) + sep
+        i += 1
+
+    return acc + OM_get_boxed_value(om_strings[-1])
+
+def om_tuple_elements_repr(ctx, elts, repr_acc):
+    if len(elts) == 0:
+        repr_acc_len = len(repr_acc)
+        if repr_acc_len == 0:
+            return ctx.cont(ctx.rte, om_str("()"))
+        elif repr_acc_len == 1:
+            result = '(' + OM_get_boxed_value(repr_acc[0]) + ',)'
+            return ctx.cont(ctx.rte, om_str(result))
+        else:
+            result = '(' + om_join_str(repr_acc, ', ') + ')'
+            return ctx.cont(ctx.rte, om_str(result))
+    else:
+        def cont(rte, value):
+            repr_acc.append(value)
+            return om_tuple_elements_repr(ctx, elts[1:], repr_acc)
+
+        return sem_repr(with_cont(ctx, cont), elts[0])
+
+def om_tuple_repr(ctx, args):
+    if debug: print('tuple.__repr__')
+    self = args[0]
+
+    elements = OM_get_tuple_seq(self)
+
+    return om_tuple_elements_repr(ctx, elements, [])
+
+
 # class_str methods
 def om_convert_to_str(ctx, value):
     value_str = getattribute_from_obj_mro(value, "__str__")
@@ -1092,7 +1130,7 @@ def om_str_repr(ctx, args):
     if debug: print('str.__repr__')
     self = args[0]
 
-    formatted_str = om_format_str_repr(self)
+    formatted_str = om_format_str_repr(self, ctx.rte)
 
     return ctx.cont(ctx.rte, om_str(formatted_str))
 
@@ -1379,6 +1417,12 @@ def om_print_code(rte, _):
     next_ctx = make_out_of_ast_context(rte, cont)
     return om_convert_to_str(next_ctx, rte_lookup(rte, 'obj'))
 
+def om_repr_code(rte, _):
+    def cont(rte, res):
+        return unwindReturn(rte, res)
+    next_ctx = make_out_of_ast_context(rte, cont)
+    return sem_repr(next_ctx, rte_lookup(rte, 'obj'))
+
 # Interpreter
 def interp_file(path):
     source = read_file(path)
@@ -1417,6 +1461,7 @@ def fresh_rte():
     rte = make_rte(absent, globals_env, locals_env, builtins_env, absent, absent, absent)
 
     om_builtin_print = om_make_function_with_signature('print', om_print_code, make_posonly_only_signature(('obj',)))
+    om_builtin_repr = om_make_function_with_signature('repr', om_repr_code, make_posonly_only_signature(('obj',)))
 
     dict_set(builtins_env, 'type', class_type)
     dict_set(builtins_env, 'object', class_object)
@@ -1425,6 +1470,7 @@ def fresh_rte():
     dict_set(builtins_env, 'str', class_str)
     dict_set(builtins_env, 'NotImplemented', om_NotImplemented)
     dict_set(builtins_env, 'print', om_builtin_print)
+    dict_set(builtins_env, 'repr', om_builtin_repr)
 
     dict_set(builtins_env, 'BaseException', class_BaseException)
     dict_set(builtins_env, 'Exception', class_Exception)
