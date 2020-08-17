@@ -1045,15 +1045,15 @@ def om_int_repr(ctx, args):
 
 # class_tuple methods
 
-def om_join_str(om_strings, sep):
+def join_str(om_strings, sep):
     acc = ''
     strings_len = len(om_strings)
     i = 0
     while i < strings_len - 1:
-        acc += OM_get_boxed_value(om_strings[i]) + sep
+        acc += om_strings[i] + sep
         i += 1
 
-    return acc + OM_get_boxed_value(om_strings[-1])
+    return acc + om_strings[-1]
 
 def om_tuple_elements_repr(ctx, elts, repr_acc):
     if len(elts) == 0:
@@ -1064,11 +1064,11 @@ def om_tuple_elements_repr(ctx, elts, repr_acc):
             result = '(' + OM_get_boxed_value(repr_acc[0]) + ',)'
             return ctx.cont(ctx.rte, om_str(result))
         else:
-            result = '(' + om_join_str(repr_acc, ', ') + ')'
+            result = '(' + join_str(repr_acc, ', ') + ')'
             return ctx.cont(ctx.rte, om_str(result))
     else:
         def cont(rte, value):
-            repr_acc.append(value)
+            repr_acc.append(OM_get_boxed_value(value))
             return om_tuple_elements_repr(ctx, elts[1:], repr_acc)
 
         return sem_repr(with_cont(ctx, cont), elts[0])
@@ -2349,9 +2349,25 @@ def gen_Attribute(cte, ast, code, name):
     return (cte, code1)
 
 # TODO: Replace class names with class objects once this is supported
+def om_tuple_simple_repr(tuple_, rte):
+    elements = OM_get_tuple_seq(tuple_)
+    elements_len = len(elements)
+    acc = []
+    i = 0
+    while i < elements_len:
+        next_ctx = make_out_of_ast_context(rte, None)
+        acc.append(om_simple_repr(next_ctx, elements[i]))
+        i += 1
+
+    if elements_len == 1:
+        return '(' + join_str(acc, ', ') + ',)'
+    else:
+        return '(' + join_str(acc, ', ') + ')'
+
 simple_repr_formatters = {
     "int": om_format_int_repr,
     "str": om_format_str_repr,
+    "tuple": om_tuple_simple_repr,
     "type": om_format_type_repr,
     "function": om_format_function_repr,
     "method-wrapper": om_format_MethodWrapper_repr,
