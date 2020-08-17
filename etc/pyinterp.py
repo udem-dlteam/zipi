@@ -33,6 +33,9 @@ class Context:
 def with_cont(ctx, cont):
     return Context(ctx.rte, cont, ctx.ast)
 
+def make_out_of_ast_context(rte, cont):
+    return Context(rte, cont, None)
+
 # class RTE:
 #     def __init__(self, global_env, locals_env, builtins, stack, ctrl_env):
 #         self.globals_env = globals_env
@@ -826,7 +829,7 @@ def om_format_object_repr(self, rte):
     clsname = OM_get(cls, '__name__')
     clsname_value = OM_get_boxed_value(clsname)
 
-    return "<" + clsname_value + " object at #" + str(serial) +">"
+    return "<" + clsname_value + " object #" + str(serial) +">"
 
 def om_object_repr(ctx, args):
     self = args[0]
@@ -1017,7 +1020,7 @@ def om_int_repr(ctx, args):
 def om_convert_to_str(ctx, value):
     value_str = getattribute_from_obj_mro(value, "__str__")
     next_ctx = with_cont(ctx, lambda rte, value: ctx.cont(rte, value))
-    return om_call(value_str, next_ctx, [value])
+    return om_call(value_str, next_ctx, (value,))
 
 def om_str_new(ctx, args):
     cls = args[0]
@@ -1237,7 +1240,7 @@ def om_print_code(rte, _):
         print_stdout(OM_get_boxed_value(str_result), rte)
         return unwindReturn(rte, om_None)
 
-    next_ctx = Context(rte, cont, rte_stack(rte)[-1])
+    next_ctx = make_out_of_ast_context(rte, cont)
     return om_convert_to_str(next_ctx, rte_lookup(rte, 'obj'))
 
 # Interpreter
