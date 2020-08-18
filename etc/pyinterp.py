@@ -96,7 +96,7 @@ def frame_cont(frame):
 def frame_ast(frame):
     return frame[2]
 
-def make_rte(rte, globals_env, locals_env, builtins, stack, ctrl_env, vm):
+def make_rte(rte, globals_env, locals_env, builtins, stack, ctrl_env, vm, should_trace):
     if rte is absent:
         serial_counter = [0]
     else:
@@ -111,6 +111,7 @@ def make_rte(rte, globals_env, locals_env, builtins, stack, ctrl_env, vm):
     dict_set(rte, "stack", stack)
     dict_set(rte, "ctrl_env", ctrl_env)
     dict_set(rte, "vm", vm)
+    dict_set(rte, "should_trace", should_trace)
 
     return rte
 
@@ -140,6 +141,9 @@ def rte_ctrl_env(rte):
 
 def rte_vm(rte):
     return dict_get(rte, 'vm', absent)
+
+def rte_should_trace(rte):
+    return dict_get(rte, 'should_trace', True)
 
 # Return variable value or absent.
 def rte_lookup_globals(rte, name):
@@ -1151,7 +1155,7 @@ def om_function_call(ctx, args):
     locals_env = align_args_with_signature(ctx, params, signature)
 
     stack = make_frame(ctx.rte, ctx.cont, ctx.ast)
-    rte = make_rte(ctx.rte, rte_globals(ctx.rte), make_dict_from_list(locals_env), rte_builtins(ctx.rte), stack, absent, rte_vm(ctx.rte))
+    rte = make_rte(ctx.rte, rte_globals(ctx.rte), make_dict_from_list(locals_env), rte_builtins(ctx.rte), stack, absent, rte_vm(ctx.rte), rte_should_trace(ctx.rte))
     body = OM_get_function_body(self)
     return body(rte,
                 lambda rte1:
@@ -1362,9 +1366,9 @@ def om_print_code(rte, _):
     return om_convert_to_str(next_ctx, rte_lookup(rte, 'obj'))
 
 # Interpreter
-def interp_file(path):
+def interp_file(path, should_trace):
     source = read_file(path)
-    interp(parse(source, path, 'exec', False))
+    interp(parse(source, path, 'exec', False), should_trace)
 
 @nocompile
 def read_file(path):
@@ -1378,9 +1382,9 @@ def interp_source(src):
 def parse(source, filename, mode, context):
     return AST.parse(source, filename, mode, context)
 
-def interp(ast):
+def interp(ast, should_trace):
     code = comp(ast)
-    trampoline(prepare_execution(code, fresh_rte()))
+    trampoline(prepare_execution(code, fresh_rte(should_trace)))
 
 def comp(ast):
     cte = dict()  # unused for now
@@ -1392,11 +1396,11 @@ def comp(ast):
 def prepare_execution(code, rte):
     return lambda: code(rte, lambda rte: None)
 
-def fresh_rte():
+def fresh_rte(should_trace):
     locals_env = absent
     globals_env = make_dict()
     builtins_env = make_dict()
-    rte = make_rte(absent, globals_env, locals_env, builtins_env, absent, absent, absent)
+    rte = make_rte(absent, globals_env, locals_env, builtins_env, absent, absent, absent, should_trace)
 
     om_builtin_print = om_make_function_with_signature('print', om_print_code, make_posonly_only_signature(('obj',)))
 
@@ -1436,7 +1440,7 @@ def trampoline(execution_point):
         execution_point = state[2]
         ctx = state[3]
 
-        if execution_point and msg is not None:
+        if execution_point and msg is not None and rte_should_trace(ctx.rte):
 
             print('at '+str(ast.lineno)+'.'+str(ast.col_offset+1)+'-'+str(ast.end_lineno)+'.'+str(ast.end_col_offset+1)+msg)
 
