@@ -432,6 +432,8 @@ def populate_builtin_str():
 
 def populate_builtin_tuple():
     builtin_add_method(class_tuple, '__repr__', om_tuple_repr)
+    builtin_add_method(class_tuple, '__len__', om_tuple_len)
+    builtin_add_method(class_tuple, '__getitem__', om_tuple_getitem)
 
     OM_set_type_mro(class_tuple, [class_tuple, class_object])
 
@@ -1081,6 +1083,33 @@ def om_tuple_repr(ctx, args):
 
     return om_tuple_elements_repr(ctx, elements, [])
 
+def om_tuple_len(ctx, args):
+    if debug: print('tuple.__len__')
+    self = args[0]
+    elements = OM_get_tuple_seq(self)
+    elements_len = len(elements)
+
+    return ctx.cont(ctx.rte, om_int(elements_len))
+
+def om_tuple_getitem(ctx, args):
+    if debug: print('tuple.__getitem__')
+
+    self = args[0]
+    item = args[1]
+
+    # TODO: cover subtypes of int
+    if om_is(OM_get_object_class(item), class_int):
+        item_box_index = OM_get_boxed_value(item)
+        elements = OM_get_tuple_seq(self)
+        elements_len = len(elements)
+        if item_box_index >= 0 and item_box_index < elements_len:
+            return ctx.cont(ctx.rte, elements[item_box_index])
+        elif item_box_index < 0 and item_box_index >= -elements_len:
+            return ctx.cont(ctx.rte, elements[item_box_index + elements_len])
+        else:
+            assert False, "IndexError"
+    else:
+        assert False, "TypeError"
 
 # class_str methods
 def om_convert_to_str(ctx, value):
@@ -1423,6 +1452,12 @@ def om_repr_code(rte, _):
     next_ctx = make_out_of_ast_context(rte, cont)
     return sem_repr(next_ctx, rte_lookup(rte, 'obj'))
 
+def om_len_code(rte, _):
+    def cont(rte, res):
+        return unwindReturn(rte, res)
+    next_ctx = make_out_of_ast_context(rte, cont)
+    return sem_len(next_ctx, rte_lookup(rte, 'obj'))
+
 # Interpreter
 def interp_file(path):
     source = read_file(path)
@@ -1462,6 +1497,7 @@ def fresh_rte():
 
     om_builtin_print = om_make_function_with_signature('print', om_print_code, make_posonly_only_signature(('obj',)))
     om_builtin_repr = om_make_function_with_signature('repr', om_repr_code, make_posonly_only_signature(('obj',)))
+    om_builtin_len = om_make_function_with_signature('len', om_len_code, make_posonly_only_signature(('obj',)))
 
     dict_set(builtins_env, 'type', class_type)
     dict_set(builtins_env, 'object', class_object)
@@ -1471,6 +1507,7 @@ def fresh_rte():
     dict_set(builtins_env, 'NotImplemented', om_NotImplemented)
     dict_set(builtins_env, 'print', om_builtin_print)
     dict_set(builtins_env, 'repr', om_builtin_repr)
+    dict_set(builtins_env, 'len', om_builtin_len)
 
     dict_set(builtins_env, 'BaseException', class_BaseException)
     dict_set(builtins_env, 'Exception', class_Exception)
@@ -1722,6 +1759,11 @@ def comp_expr(cte, ast):
         if debug: print('AST.Tuple')
         computed_elts = comp_elements(cte, ast.elts)
         return gen_Tuple(cte, ast, computed_elts)
+    elif isinstance(ast, AST.Subscript) and isinstance(ast.ctx, AST.Load):
+        if debug: print("AST.Subscript Load")
+        obj_cte, obj_code = comp_expr_opt(cte, ast.value)
+        index_cte, index_code = comp_expr(obj_cte, ast.slice.value)
+        return gen_Subscript_Load(index_cte, ast, obj_code, index_code)
     else:
         if not debug: print(ast)
         assert False, 'comp_expr expected an expression AST'
@@ -2239,6 +2281,29 @@ def sem_call(ctx, args):
     __call__ = getattribute_from_obj_mro(self, '__call__')
     return om_call(__call__, ctx, [self] + params)
 
+def sem_getitem(ctx, obj, item):
+    obj_getitem = getattribute_from_obj_mro(obj, "__getitem__")
+    if obj_getitem is absent:
+        assert False, "TypeError"
+    else:
+        return om_call(obj_getitem, ctx, (obj, item))
+
+def sem_maybe_len(ctx, obj):
+    obj_len = getattribute_from_obj_mro(obj, "__len__")
+    if obj_len is absent:
+        return ctx.cont(ctx.rte, absent)
+    else:
+        return om_call(obj_len, ctx, (obj,))
+
+def sem_len(ctx, obj):
+    def cont(rte, val):
+        if val is absent:
+            assert False, "TypeError"
+        else:
+            return ctx.cont(rte, val)
+
+    return sem_maybe_len(with_cont(ctx, cont), obj)
+
 def gen_constant(cte, ast, val):
 
     def code(rte, cont):
@@ -2272,6 +2337,20 @@ def gen_elements(cte, ast, elts, make_container, acc):
             return elt_code(rte, accumulate_cont)
 
         return tail_cte, code
+
+def gen_Subscript_Load(cte, ast, obj_code, index_code):
+    def get_obj(rte, cont):
+        def get_index(rte, obj):
+            def get_item(getitem_rte, index):
+                return sem_getitem(Context(getitem_rte, cont, ast), obj, index)
+            return index_code(rte, get_item)
+        return obj_code(rte, get_index)
+
+    def code(rte, cont):
+        def cont_expr_end(final_rte, val):
+            return expr_end(Context(final_rte, cont, ast), val)
+        return get_obj(rte, cont_expr_end)
+    return cte, code
 
 def sem_constant(ctx, val):
     result = val
