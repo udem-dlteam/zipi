@@ -1781,7 +1781,10 @@ def comp_stmt(cte, ast):
         if debug: print('AST.Delete')
         return gen_delete_seq(cte, ast, ast.targets)
 
-
+    elif isinstance(ast, AST.For) and isinstance(ast.target, AST.Name):
+        # TODO: support else block
+        if debug: print('AST.For')
+        return gen_for(cte, ast.target, ast.iter, ast.body)
 
     else:
         assert False, 'comp_stmt expected a statement AST'
@@ -2050,7 +2053,23 @@ def gen_delete_seq(cte, ast, targets):
     else:
         assert False, 'multiple targets not yet supported.'
 
+def gen_for(cte, target, iterable, body):
 
+    iterable_cte, iterable_code = comp_expr(cte, iterable)
+    body_cte, body_code = comp_stmt_seq(iterable_cte, body)
+
+    # TODO: call cont on StopIteration
+    def get_iterable(rte, cont):
+        def get_iterator(rte, iterable):
+            def get_next(rte, iterator):
+                def assign_target(rte, nxt_value):
+                    def run_body(rte):
+                        return body_code(rte, lambda rte: get_next(rte, iterator))
+                    return sem_var_set(Context(rte, run_body, target), target.id, nxt_value)
+                return sem_next(Context(rte, assign_target, iterable), iterator, absent)
+            return sem_iter(Context(rte, get_next, iterable), iterable)
+        return iterable_code(rte, get_iterator)
+    return body_cte, get_iterable
 
 
 def gen_Expr(cte, ast, code1):
