@@ -1369,9 +1369,9 @@ def om_print_code(rte, _):
     return om_convert_to_str(next_ctx, rte_lookup(rte, 'obj'))
 
 # Interpreter
-def interp_file(path, trace):
+def interp_file(path, options):
     source = read_file(path)
-    interp(parse(source, path, 'exec', False), trace)
+    interp(parse(source, path, 'exec', False), options)
 
 @nocompile
 def read_file(path):
@@ -1380,7 +1380,9 @@ def read_file(path):
     return content
 
 def interp_source(src):
-    interp(parse(src, '<unknown>', 'exec', False))
+    options = {}
+    dict_set(options, 'trace', True)
+    interp(parse(src, '<unknown>', 'exec', False), options)
 
 def parse(source, filename, mode, context):
     return AST.parse(source, filename, mode, context)
@@ -1404,9 +1406,7 @@ def fresh_rte(options):
     globals_env = make_dict()
     builtins_env = make_dict()
 
-    trace = False
-    if "trace" in options:
-        trace = options['trace']
+    trace = dict_get(options, 'trace', False)
 
     rte = make_rte(absent, globals_env, locals_env, builtins_env, absent, absent, absent, trace)
 
