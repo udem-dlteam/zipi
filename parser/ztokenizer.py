@@ -808,12 +808,8 @@ def get_token(ts):
         ts.token = kind_to_token[k]
         return
 
-def as_octal(byte):
-    if ord('0') <= byte <= ord('7'):
-        return byte-48
-    return -1
 
-def as_hex(byte):
+def digit_value(byte):
 
     if byte >= 48 and byte <= 57: # decimal
         return byte - 48
@@ -822,73 +818,74 @@ def as_hex(byte):
     if byte >= 97 and byte <= 102: # a-f
         return byte - 87 # (a = 10)
 
-    return -1
+    return 99
 
 def get_int_from_escape_no_unicode(buf, pos, ts):
     next = byte_at(buf, pos)
+    digit_next = digit_value(next)
 
     if next == 92 or next == 39 or next == 34: # \\ \' \"
-        ts.end = pos+1
+        ts.end = pos + 1
         return next
     elif next == 110: # \n
-        ts.end = pos+1
+        ts.end = pos + 1
         return 10
     elif next == 116: # \t
-        ts.end = pos+1
+        ts.end = pos + 1
         return 9
     elif next == 102: # \f
-        ts.end = pos+1
+        ts.end = pos + 1
         return 12
     elif next == 118: # \v
-        ts.end = pos+1
+        ts.end = pos + 1
         return 11
     elif next == 97:  # \a
-        ts.end = pos+1
+        ts.end = pos + 1
         return 7
     elif next == 98:  # \b
-        ts.end = pos+1
+        ts.end = pos + 1
         return 8
-    elif as_octal(next)!=-1: # \ooo where o is an octal
-        acc = as_octal(next)
-        pos+=1
-        octal_val = as_octal(byte_at(buf, pos))
-        if octal_val != -1:
+    elif digit_next <= 8: # \ooo where o is an octal
+        acc = digit_next
+        pos += 1
+        octal_val = digit_value(byte_at(buf, pos))
+        if octal_val <= 8:
             pos+=1
             acc = acc * 8 + octal_val
-            octal_val = as_octal(byte_at(buf, pos))
-            if octal_val != -1:
+            octal_val = digit_value(byte_at(buf, pos))
+            if octal_val <= 8:
                 pos+=1
                 acc = acc * 8 + octal_val
         ts.end = pos
         return acc
     elif next == 120: # \xXX where XX is a base16 number
-        v1 = as_hex(byte_at(buf, pos+1))
-        v2 = as_hex(byte_at(buf, pos+2))
-        if v1 == -1 or v2 == -1:
+        v1 = digit_value(byte_at(buf, pos + 1))
+        v2 = digit_value(byte_at(buf, pos + 2))
+        if v1 > 16 and v2 > 16:
             ts.token = ERRORTOKEN
             return -1
-        ts.end = pos+3
+        ts.end = pos + 3
         return v1 * 16 + v2
     ts.end = pos
 
     return -1
 
-def byte_escape_character_function(buf, pos, ts):
+def byte_escape_character(buf, pos, ts):
     code = get_int_from_escape_no_unicode(buf, pos, ts)
     pos = ts.end
 
     # not found
     if code == -1:
         # default, no escape
-        ts.value.append(ord("\\"))
+        ts.value.append(92) # \\
         ts.value.append(byte_at(buf, pos))
-        pos+=1
+        pos += 1
     else:
-        ts.value.append(code%256)
+        ts.value.append(code % 256)
 
     return pos
 
-def string_escape_character_function(buf, pos, ts):
+def string_escape_character(buf, pos, ts):
     code = get_int_from_escape_no_unicode(buf, pos, ts)
     pos = ts.end
 
@@ -899,31 +896,31 @@ def string_escape_character_function(buf, pos, ts):
         if next == 117: # \uXXXX
             acc = 0
             for i in range(4):
-                hex_val = as_hex(byte_at(buf, pos+1+i))
-                if hex_val == -1:
+                hex_val = digit_value(byte_at(buf, pos+1+i))
+                if hex_val > 16:
                     ts.token = ERRORTOKEN
                     return -1
                 acc = acc * 16 + hex_val
-            ts.value+=chr(acc)
+            ts.value += chr(acc)
 
-            return pos+5
+            return pos + 5
 
         elif next == 85: # \UXXXXXXXX
             acc = 0
             for i in range(8):
-                hex_val = as_hex(byte_at(buf, pos+1+i))
-                if hex_val == -1:
+                hex_val = digit_value(byte_at(buf, pos+1+i))
+                if hex_val > 16:
                     ts.token = ERRORTOKEN
                     return -1
                 acc = acc * 16 + hex_val
-            ts.value+=chr(acc)
-            return pos+9
+            ts.value += chr(acc)
+            return pos + 9
         # TODO : \N{NAME} is not supported and will not be escaped
         else:
             # default escape
             ts.value += "\\"
             ts.value += chr(next)
-            return pos+1
+            return pos + 1
     else:
         ts.value += chr(code)
 
@@ -944,8 +941,8 @@ def get_string_raw(ts, pos, c, kind):
                 break
 
             #add character
-            pos+=1
-            if kind==BYTE_STRING:
+            pos += 1
+            if kind == BYTE_STRING:
                 ts.value.append(next)
             else:
                 ts.value += chr(next)
@@ -971,8 +968,8 @@ def get_string_raw(ts, pos, c, kind):
                 break
 
             #add character
-            pos+=1
-            if kind==BYTE_STRING:
+            pos += 1
+            if kind == BYTE_STRING:
                 ts.value.append(next)
             else:
                 ts.value += chr(next)
@@ -984,7 +981,7 @@ def get_string_raw(ts, pos, c, kind):
                     if kind == BYTE_STRING:
                         ts.value.append(10)
                     else:
-                        ts.value += chr(10)
+                        ts.value += "\n"
                     pos+=1
 
                 # special case where we have something in the form \c (c = " or ') in a raw string
@@ -1016,22 +1013,22 @@ def get_string_normal(ts, pos, c, kind):
                 break
 
             if next == 92: # '\'
-                pos+=1
+                pos += 1
                 if byte_at(buf, pos) == 10:
                     ts.line_num += 1
                     pos+=1
                 elif kind == BYTE_STRING:
-                    pos = byte_escape_character_function(buf, pos, ts)
+                    pos = byte_escape_character(buf, pos, ts)
                 # kind == NORMAL_STRING
                 else:
-                    pos = string_escape_character_function(buf, pos, ts)
+                    pos = string_escape_character(buf, pos, ts)
 
             else:
-                pos+=1
+                pos += 1
                 if next == 10:
                     ts.line_num += 1
 
-                if kind==BYTE_STRING:
+                if kind == BYTE_STRING:
                     ts.value.append(next)
                 else:
                     ts.value += chr(next)
@@ -1043,23 +1040,23 @@ def get_string_normal(ts, pos, c, kind):
                 pos += 1
                 break
             elif next == 92: # '\'
-                pos+=1
+                pos += 1
 
                 if byte_at(buf, pos) == 10:
-                    pos+=1
+                    pos += 1
                     ts.line_num += 1
 
                 elif kind == BYTE_STRING:
-                    pos = byte_escape_character_function(buf, pos, ts)
+                    pos = byte_escape_character(buf, pos, ts)
                 # kind == NORMAL_STRING
                 else:
-                    pos = string_escape_character_function(buf, pos, ts)
+                    pos = string_escape_character(buf, pos, ts)
 
             elif next == 10: # newline ?
                 k = KIND_ERROR
                 break
             else:
-                if kind==BYTE_STRING:
+                if kind == BYTE_STRING:
                     ts.value.append(next)
                 else:
                     ts.value += chr(next)
@@ -1082,6 +1079,6 @@ def get_string(ts, pos, c, kind, raw):
         get_string_normal(ts, pos, c, kind)
 
 
-    if kind==BYTE_STRING:
+    if kind == BYTE_STRING:
         ts.value = bytes(ts.value)
 
