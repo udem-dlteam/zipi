@@ -293,7 +293,7 @@ def align_args_with_signature(ctx, caller_args, signature):
                 while start < defaults_len:
                     result.append(defaults[start])
                     start += 1
-                    
+
                 return align_args_with_signature(ctx, result, signature)
             else:
                 assert False, 'TypeError'
@@ -1910,8 +1910,8 @@ def gen_signature(cte, ast):
         kwarg = False
 
     defaults = []
-    for default in ast.args.defaults:
-        defaults.append(default.value)
+    for default_ in ast.args.defaults:
+        defaults.append(default_.value)
 
     return make_signature(args, posonlyargs, vararg, kwonlyargs, kw_defaults, kwarg, defaults)
 
@@ -2394,11 +2394,11 @@ def sem_getitem(ctx, obj, item):
     else:
         return om_call(obj_getitem, ctx, (obj, item))
 
-def sem_next(ctx, obj, default):
+def sem_next(ctx, obj, default_):
     obj_next = getattribute_from_obj_mro(obj, "__next__")
     if obj_next is absent:
         assert False, "TypeError"
-    elif default is absent:
+    elif default_ is absent:
         return om_call(obj_next, ctx, (obj,))
     else:
         # TODO: catch StopIteration to return default if default is not absent
