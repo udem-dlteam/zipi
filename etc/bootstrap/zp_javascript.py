@@ -214,22 +214,23 @@ class Transformer:
             if nargs > 2:
                 raise Exception("Zp only supports map with two arguments.")
             return f"{self.transform(node.args[1])}.map({self.transform(node.args[0])})"
-        elif isinstance(node.func, AST.Attribute) and node.func.attr == "encode":
-            return self.transform(node.func.value)
-        elif isinstance(node.func, AST.Attribute) and node.func.attr == "find":
-            return (
-                self.transform(node.func.value)
-                + ".indexOf("
-                + ",".join(self.transform(arg) for arg in node.args)
-                + ")"
-            )
-        elif isinstance(node.func, AST.Attribute) and node.func.attr == "append":
-            return (
-                self.transform(node.func.value)
-                + ".push("
-                + ",".join(self.transform(arg) for arg in node.args)
-                + ")"
-            )
+        elif isinstance(node.func, AST.Attribute):
+            if node.func.attr == "encode":
+                return self.transform(node.func.value)
+            elif node.func.attr == "find":
+                return (
+                    self.transform(node.func.value)
+                    + ".indexOf("
+                    + ",".join(self.transform(arg) for arg in node.args)
+                    + ")"
+                )
+            elif node.func.attr == "append":
+                return (
+                    self.transform(node.func.value)
+                    + ".push("
+                    + ",".join(self.transform(arg) for arg in node.args)
+                    + ")"
+                )
 
         # Implement 'foo'.join(bar)?
         # elif (

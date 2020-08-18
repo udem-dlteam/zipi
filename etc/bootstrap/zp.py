@@ -141,6 +141,9 @@ String.prototype.lstrip = function () { return this.replace(/^\s+/g, ''); };
 function isEmpty(obj) {
     if (obj === absent) { return true; } else { return false; }
 };
+Array.prototype.extend = function (arr) {
+    arr.forEach(function(v) {this.push(v)}, this);
+};
 function make_dict() { return {}; };
 function dict_get(d, key, _default) {
     if (Object.prototype.hasOwnProperty.call(d, key)) {
