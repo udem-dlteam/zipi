@@ -289,7 +289,11 @@ def align_args_with_signature(ctx, caller_args, signature):
 
                 result =  caller_args.copy()
                 start = defaults_len - missing_args_len
-                result.extend(defaults[start:defaults_len])
+
+                while start < defaults_len:
+                    result.append(defaults[start])
+                    start += 1
+                    
                 return align_args_with_signature(ctx, result, signature)
             else:
                 assert False, 'TypeError'
