@@ -132,6 +132,16 @@ def make_rte(rte, globals_env, locals_env, builtins, stack, ctrl_env, vm):
 
     return rte
 
+def make_rte_from_new_ctrl_env(rte, ctrl_env):
+    return make_rte(rte,
+                    rte_globals(rte),
+                    rte_locals(rte),
+                    rte_builtins(rte),
+                    rte_stack(rte),
+                    ctrl_env,
+                    rte_vm(rte))
+
+
 def rte_serial_counter(rte):
     return dict_get(rte, 'serial_counter', absent)
 
@@ -488,6 +498,9 @@ def populate_builtin_TypeError():
 def populate_builtin_ValueError():
     OM_set_type_mro(class_ValueError, [class_ValueError, class_Exception, class_BaseException, class_object])
 
+def populate_builtin_AttributeError():
+    OM_set_type_mro(class_AttributeError, [class_AttributeError, class_Exception, class_BaseException, class_object])
+
 def populate_builtin_ArithmeticError():
     OM_set_type_mro(class_ArithmeticError, [class_ArithmeticError, class_Exception, class_BaseException, class_object])
 
@@ -575,17 +588,16 @@ def om_is(x, y):
 def om_is_falsy(val):
     return om_is(val, om_False)
 
-def om_issubclass(obj, cls):
-    obj_cls = OM_get_object_class(obj)
-    obj_cls_mro = OM_get_type_mro(obj_cls)
+def om_issubclass(subcls, cls):
+    subcls_mro = OM_get_type_mro(subcls)
 
-    len_mro = len(obj_cls_mro)
+    len_mro = len(subcls_mro)
 
     i = 0
     while i < len_mro:
-        if om_is(cls, obj_cls_mro[i]):
+        if om_is(cls, subcls_mro[i]):
             return True
-        i += 0
+        i += 1
     return False
 
 # Creation of om object from class
@@ -859,7 +871,12 @@ def om_object_getattribute(ctx, args):
     # Get field name
     attr = getattribute_from_obj_mro(self, name_value)
     if attr is absent:
-        assert False, "'object' object has no attribute '"+name_value+"'"
+        self_clsname = OM_get(OM_get_object_class(self), '__name__')
+        self_clsname_value = OM_get_boxed_value(self_clsname)
+
+        msg = om_str("'"+ self_clsname_value +"' object has no attribute '"+name_value+"'")
+        exn = om_exception(class_AttributeError, (msg,))
+        return sem_raise(ctx, exn)
 
     # TODO: check if attr.__get__ exists
     attr__get__ = getattribute_from_obj_mro(attr, '__get__')
@@ -1194,7 +1211,7 @@ def om_function_call(ctx, args):
     locals_env = align_args_with_signature(ctx, params, signature)
 
     stack = make_frame(ctx.rte, ctx.cont, ctx.ast)
-    rte = make_rte(ctx.rte, rte_globals(ctx.rte), make_dict_from_list(locals_env), rte_builtins(ctx.rte), stack, absent, rte_vm(ctx.rte))
+    rte = make_rte(ctx.rte, rte_globals(ctx.rte), make_dict_from_list(locals_env), rte_builtins(ctx.rte), stack, rte_ctrl_env(ctx.rte), rte_vm(ctx.rte))
     body = OM_get_function_body(self)
     return body(rte,
                 lambda rte1:
@@ -1218,12 +1235,12 @@ def om_BaseException_str(ctx, args):
     len_self_args = len(self_args_value)
     if len_self_args == 0:
         return ctx.cont(ctx.rte, om_str(''))
-    elif len(len_self_args) == 1:
+    elif len_self_args == 1:
         def return_str_value(rte, result):
             return ctx.cont(rte, result)
 
         elem = self_args_value[0]
-        elem_str = getattribute_from_obj_mro(elem_str, '__str__')
+        elem_str = getattribute_from_obj_mro(elem, '__str__')
         ctx1 = with_cont(ctx, return_str_value)
         return om_call(elem_str, ctx1, [elem])
     else:
@@ -1271,6 +1288,7 @@ class_Exception = make_builtin_class('Exception', class_type)
 class_NameError = make_builtin_class('NameError', class_type)
 class_TypeError = make_builtin_class('TypeError', class_type)
 class_ValueError = make_builtin_class('ValueError', class_type)
+class_AttributeError = make_builtin_class('AttributeError', class_type)
 class_ArithmeticError = make_builtin_class('ArithmeticError', class_type)
 class_ZeroDivisionError = make_builtin_class('ZeroDivisionError', class_type)
 
@@ -1411,6 +1429,7 @@ populate_builtin_Exception()
 populate_builtin_NameError()
 populate_builtin_TypeError()
 populate_builtin_ValueError()
+populate_builtin_AttributeError()
 populate_builtin_ArithmeticError()
 populate_builtin_ZeroDivisionError()
 
@@ -2223,18 +2242,20 @@ def sem_getattribute(ctx, args):
     obj = args[0]
     name = args[1]
 
-    # XXX: Unused until exception is added to rte.
     def catch_AttributeError(rte, exn):
-        __getattr__ = getattribute_from_obj_mro(obj, '__getattr__')
-        if __getattr__ is absent:
-            assert False, 'raise current exception'
+        obj_getattr = getattribute_from_obj_mro(obj, '__getattr__')
+        new_ctx = Context(rte, ctx.cont, ctx.ast)
+        if obj_getattr is absent:
+            return sem_raise(new_ctx, exn)
         else:
-            new_ctx = Context(rte, ctx.cont, ctx.ast)
-            return __getattr__(ctx, args)
+            return om_call(obj_getattr, new_ctx, args)
 
-    __getattribute__ = getattribute_from_obj_mro(obj, '__getattribute__')
-    # TODO: setup exn
-    return om_call(__getattribute__, ctx, args)
+    obj_getattribute = getattribute_from_obj_mro(obj, '__getattribute__')
+
+    catcher = RTCtrlCatch(rte_ctrl_env(ctx.rte), catch_AttributeError, ctx.rte)
+    new_rte = make_rte_from_new_ctrl_env(ctx.rte, catcher)
+    ctx1 = Context(new_rte, ctx.cont, ctx.ast)
+    return om_call(obj_getattribute, ctx1, args)
 
 def sem_call(ctx, args):
     self = args[0]
@@ -2296,7 +2317,7 @@ def sem_raise(ctx, exn):
     exn_cls = OM_get_object_class(exn)
 
     # create the exn_object to be created
-    if om_issubclass(exn_cls, class_type):
+    if om_is(exn_cls, class_type):
         exn_obj = om_exception(exn, ())
     elif om_issubclass(exn_cls, class_BaseException):
         exn_obj = exn
@@ -2316,11 +2337,16 @@ def sem_raise(ctx, exn):
             # XXX: should be stderr
             print_stdout(result, rte)
             return None
+
         ctx1 = with_cont(ctx, uncaught_exception)
         exn_obj_str = getattribute_from_obj_mro(exn_obj, '__str__')
         return om_call(exn_obj_str, ctx1, [exn_obj])
     else:
-        # exception unwinding not implemented.
+        # XXX: does not unwind all the way
+        ctrl_rte = ctrl_env.lex_env
+        code_catch = ctrl_env.code_catch
+        return code_catch(ctrl_rte, exn)
+
         assert False, 'Not implemented'
 
 #def gen_funcdef_code(cte, ast, name, args, body):
