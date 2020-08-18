@@ -862,14 +862,17 @@ def om_NotImplementedType_repr(ctx, args):
     result = om_str('NotImplemented')
     return ctx.cont(ctx.rte, result)
 
+def om_format_bool_repr(self, rte):
+    if om_is(self, om_True):
+        return "True"
+    else:
+        return "False"
+
 # class_bool methods
 def om_bool_repr(ctx, args):
     if debug: print('bool.__repr__')
     self = args[0]
-    if om_is_falsy(self):
-        result = om_str('False')
-    else:
-        result = om_str('True')
+    result = om_format_bool_repr(self, ctx.rte)
     return ctx.cont(ctx.rte, result)
 
 def om_bool_bool(ctx, args):
@@ -2245,6 +2248,7 @@ def gen_Attribute(cte, ast, code, name):
 # TODO: Replace class names with class objects once this is supported
 simple_repr_formatters = {
     "int": om_format_int_repr,
+    "bool": om_format_bool_repr,
     "str": om_format_str_repr,
     "type": om_format_type_repr,
     "function": om_format_function_repr,
