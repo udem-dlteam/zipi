@@ -1,0 +1,6 @@
+if {condition}:
+    print("hello")
+elif {condition2}:
+    print("world")
+else:
+    print("other")

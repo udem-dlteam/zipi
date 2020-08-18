@@ -1,0 +1,59 @@
+import os
+import re
+
+database = {}
+
+for (dirpath, dirnames, filenames) in os.walk(os.curdir + "/database"):
+    for filename in filenames:
+        f = open(dirpath+"/"+filename, "r")
+        curr_file = f.read()
+        database[filename] = curr_file.strip().split("\n")
+
+path=os.curdir + "/../generated_tests"
+try:
+    os.mkdir(path)
+except:
+    pass
+
+for (dirpath, dirnames, filenames) in os.walk(os.curdir + "/templates"):
+    for filename in filenames:
+        f = open(dirpath+"/"+filename, "r")
+        curr_file = f.read()
+        f.close()
+        all_tokens = list(map(lambda x : x[1:-1], re.findall(r"\{[a-zA_Z0-9]+\}", curr_file)))
+        y = [-1] * (len(all_tokens) + 1)
+        y[len(all_tokens)] = -2
+
+
+        def next():
+            x = {}
+            # increment y
+            for i in range(len(y)):
+                if y[i] == -2:
+                    return False
+                y[i]+=1
+                name = re.sub(r'[0-9]+', '', all_tokens[i])
+                if y[i] >= len(database[name]):
+                    y[i] = 0
+                else:
+                    break
+
+            for i in range(len(y)-1):
+                token = all_tokens[i]
+                poss = database[re.sub(r'[0-9]+', '', all_tokens[i])]
+                x[token] = poss[y[i]]
+
+            return x
+
+        f = open(path+ "/" + filename + ".py", "w")
+        f.write("# generated tests from " + os.curdir + "/templated/" + filename +"\n")
+        while (n:=next()):
+            f.write(curr_file.format(**n))
+            f.write("\n")
+
+        f.close()
+
+
+
+
+
