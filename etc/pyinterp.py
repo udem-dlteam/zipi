@@ -1641,7 +1641,7 @@ def expr_end(ctx, val):
 
     def cont(rte, repr_val):
         repr_val_unbox = om_rawget(repr_val, '**value**')
-        return return_to_trampoline(ctx.ast, ': value = '+repr_val_unbox, lambda: ctx.cont(rte, val), ctx)
+        return return_to_trampoline(ctx.ast, repr_val_unbox, lambda: ctx.cont(rte, val), ctx)
 
     return sem_repr(Context(ctx.rte, cont, ctx.ast), val)
 
