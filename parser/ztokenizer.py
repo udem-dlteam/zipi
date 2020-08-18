@@ -809,6 +809,7 @@ def get_token(ts):
         return
 
 
+
 def digit_value(byte):
 
     if byte >= 48 and byte <= 57: # decimal
@@ -822,7 +823,6 @@ def digit_value(byte):
 
 def get_int_from_escape_no_unicode(buf, pos, ts):
     next = byte_at(buf, pos)
-    digit_next = digit_value(next)
 
     if next == 92 or next == 39 or next == 34: # \\ \' \"
         ts.end = pos + 1
@@ -845,15 +845,18 @@ def get_int_from_escape_no_unicode(buf, pos, ts):
     elif next == 98:  # \b
         ts.end = pos + 1
         return 8
-    elif digit_next <= 8: # \ooo where o is an octal
+
+    digit_next = digit_value(next)
+
+    if digit_next < 8: # \ooo where o is an octal
         acc = digit_next
         pos += 1
         octal_val = digit_value(byte_at(buf, pos))
-        if octal_val <= 8:
+        if octal_val < 8:
             pos+=1
             acc = acc * 8 + octal_val
             octal_val = digit_value(byte_at(buf, pos))
-            if octal_val <= 8:
+            if octal_val < 8:
                 pos+=1
                 acc = acc * 8 + octal_val
         ts.end = pos
@@ -861,7 +864,7 @@ def get_int_from_escape_no_unicode(buf, pos, ts):
     elif next == 120: # \xXX where XX is a base16 number
         v1 = digit_value(byte_at(buf, pos + 1))
         v2 = digit_value(byte_at(buf, pos + 2))
-        if v1 > 16 and v2 > 16:
+        if v1 >= 16 or v2 >= 16:
             ts.token = ERRORTOKEN
             return -1
         ts.end = pos + 3
@@ -881,7 +884,7 @@ def byte_escape_character(buf, pos, ts):
         ts.value.append(byte_at(buf, pos))
         pos += 1
     else:
-        ts.value.append(code % 256)
+        ts.value.append(code & 0xff)
 
     return pos
 
@@ -897,7 +900,7 @@ def string_escape_character(buf, pos, ts):
             acc = 0
             for i in range(4):
                 hex_val = digit_value(byte_at(buf, pos+1+i))
-                if hex_val > 16:
+                if hex_val >= 16:
                     ts.token = ERRORTOKEN
                     return -1
                 acc = acc * 16 + hex_val
@@ -909,7 +912,7 @@ def string_escape_character(buf, pos, ts):
             acc = 0
             for i in range(8):
                 hex_val = digit_value(byte_at(buf, pos+1+i))
-                if hex_val > 16:
+                if hex_val >= 16:
                     ts.token = ERRORTOKEN
                     return -1
                 acc = acc * 16 + hex_val
@@ -925,6 +928,12 @@ def string_escape_character(buf, pos, ts):
         ts.value += chr(code)
 
     return pos
+
+def string_value_append(kind, next, ts):
+    if kind == BYTE_STRING:
+        ts.value.append(next)
+    else:
+        ts.value += chr(next)
 
 def get_string_raw(ts, pos, c, kind):
     buf = ts.buf
@@ -942,19 +951,13 @@ def get_string_raw(ts, pos, c, kind):
 
             #add character
             pos += 1
-            if kind == BYTE_STRING:
-                ts.value.append(next)
-            else:
-                ts.value += chr(next)
+            string_value_append(kind, next, ts)
 
             if next == 92: # '\'
                 if byte_at(buf, pos) == 10:
                     ts.line_num += 1
                 elif byte_at(buf, pos) == c:
-                    if kind == BYTE_STRING:
-                        ts.value.append(c)
-                    else:
-                        ts.value += chr(c)
+                    string_value_append(kind, c, ts)
                     pos+=1
             else:
                 if next == 10:
@@ -969,27 +972,18 @@ def get_string_raw(ts, pos, c, kind):
 
             #add character
             pos += 1
-            if kind == BYTE_STRING:
-                ts.value.append(next)
-            else:
-                ts.value += chr(next)
+            string_value_append(kind, next, ts)
 
             if next == 92: # '\'
 
-                if byte_at(buf, pos) == 10:
+                if byte_at(buf, pos) == 10: # \n
                     ts.line_num += 1
-                    if kind == BYTE_STRING:
-                        ts.value.append(10)
-                    else:
-                        ts.value += "\n"
+                    string_value_append(kind, 10, ts) # \n
                     pos+=1
 
                 # special case where we have something in the form \c (c = " or ') in a raw string
                 elif c == byte_at(buf, pos):
-                    if kind == BYTE_STRING:
-                        ts.value.append(c)
-                    else:
-                        ts.value += chr(c)
+                    string_value_append(kind, c, ts)
                     pos+=1
 
             elif next == 10: # newline ?
@@ -1028,10 +1022,7 @@ def get_string_normal(ts, pos, c, kind):
                 if next == 10:
                     ts.line_num += 1
 
-                if kind == BYTE_STRING:
-                    ts.value.append(next)
-                else:
-                    ts.value += chr(next)
+                string_value_append(kind, next, ts)
 
     else:
         while True:
@@ -1056,10 +1047,7 @@ def get_string_normal(ts, pos, c, kind):
                 k = KIND_ERROR
                 break
             else:
-                if kind == BYTE_STRING:
-                    ts.value.append(next)
-                else:
-                    ts.value += chr(next)
+                string_value_append(kind, next, ts)
                 pos += 1
     ts.end = pos
 
