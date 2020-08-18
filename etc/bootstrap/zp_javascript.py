@@ -208,6 +208,12 @@ class Transformer:
             func = "aarguments"
         elif func == "object":
             return "{}"
+        elif func == "any":
+            return f"{args}.some(function(x){{return x;}})"
+        elif func == "map":
+            if nargs > 2:
+                raise Exception("Zp only supports map with two arguments.")
+            return f"{self.transform(node.args[1])}.map({self.transform(node.args[0])})"
         elif isinstance(node.func, AST.Attribute) and node.func.attr == "encode":
             return self.transform(node.func.value)
         elif isinstance(node.func, AST.Attribute) and node.func.attr == "find":
