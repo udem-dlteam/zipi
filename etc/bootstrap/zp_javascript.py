@@ -138,10 +138,17 @@ class Transformer:
         if keywords != []:
             raise Exception(f"Cannot emit code for Call node ({func}({args}))")
 
-        if isinstance(node.func, AST.Attribute) and node.func.attr == "get":
-            out = "(" + node.func.value.id + "[" + self.transform(node.args[0]) + "]"
-            out += " || " + self.transform(node.args[1]) + ")"
-            return out
+        if isinstance(node.func, AST.Attribute):
+            if node.func.attr == "get":
+                out = "(" + self.transform(node.func.value) + "[" + self.transform(node.args[0]) + "]"
+                out += " || " + self.transform(node.args[1]) + ")"
+                return out
+            elif node.func.attr == "join":
+                print("IN JOIN!")
+                if len(node.args) > 1:
+                    raise Exception(f"Cannot emit code for Call node ({func}({args}))")
+                return f"{self.transform(node.args[0])}.join({self.transform(node.func.value)})"
+
 
         if func == "ord":
             if isinstance(node.args[0], AST.Str):
@@ -201,22 +208,29 @@ class Transformer:
             func = "aarguments"
         elif func == "object":
             return "{}"
-        elif isinstance(node.func, AST.Attribute) and node.func.attr == "encode":
-            return self.transform(node.func.value)
-        elif isinstance(node.func, AST.Attribute) and node.func.attr == "find":
-            return (
-                self.transform(node.func.value)
-                + ".indexOf("
-                + ",".join(self.transform(arg) for arg in node.args)
-                + ")"
-            )
-        elif isinstance(node.func, AST.Attribute) and node.func.attr == "append":
-            return (
-                self.transform(node.func.value)
-                + ".push("
-                + ",".join(self.transform(arg) for arg in node.args)
-                + ")"
-            )
+        elif func == "any":
+            return f"{args}.some(function(x){{return x;}})"
+        elif func == "map":
+            if nargs > 2:
+                raise Exception("Zp only supports map with two arguments.")
+            return f"{self.transform(node.args[1])}.map({self.transform(node.args[0])})"
+        elif isinstance(node.func, AST.Attribute):
+            if node.func.attr == "encode":
+                return self.transform(node.func.value)
+            elif node.func.attr == "find":
+                return (
+                    self.transform(node.func.value)
+                    + ".indexOf("
+                    + ",".join(self.transform(arg) for arg in node.args)
+                    + ")"
+                )
+            elif node.func.attr == "append":
+                return (
+                    self.transform(node.func.value)
+                    + ".push("
+                    + ",".join(self.transform(arg) for arg in node.args)
+                    + ")"
+                )
 
         # Implement 'foo'.join(bar)?
         # elif (
@@ -368,7 +382,7 @@ class Transformer:
                         + px
                         + " = "
                         + "new Uint8Array("
-                        + str(y.args[0].n)
+                        + (str(y.args[0].n) if y.args else "0")
                         + ");"
                     )
                     return out

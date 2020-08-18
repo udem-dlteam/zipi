@@ -78,7 +78,7 @@ def dump2(node, annotate_fields=True, include_attributes=False):
         indent = ' ' * len(prefix)
         return prefix+('\n'.join(list(map(lambda x:indent+x,content.split('\n')))).lstrip()+('\n' if nl_at_end else ''))
     def _format(node):
-        if isinstance(node, str) or isinstance(node, int) or isinstance(node, bool) or node is Ellipsis or node is None:
+        if isinstance(node, str) or isinstance(node, int) or isinstance(node, bool) or isinstance(node, bytearray) or isinstance(node, bytes) or node is Ellipsis or node is None:
             return repr(node)
         elif isinstance(node, list):
             return nest('[',
