@@ -382,7 +382,7 @@ class Transformer:
                         + px
                         + " = "
                         + "new Uint8Array("
-                        + str(y.args[0].n)
+                        + str(y.args[0].n) if y.args else "0"
                         + ");"
                     )
                     return out
