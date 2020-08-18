@@ -169,10 +169,6 @@ function dict_has(d, a) {
     return false;
     }
     };
-function print_stdout(obj, rte) {
-    console.log("PRINTING TO STDOUT");
-    console.log(obj);
-    };
     """
 
     if cli_args.tests:
