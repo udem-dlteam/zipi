@@ -141,6 +141,9 @@ String.prototype.lstrip = function () { return this.replace(/^\s+/g, ''); };
 function isEmpty(obj) {
     if (obj === absent) { return true; } else { return false; }
 };
+Array.prototype.extend = function (arr) {
+    arr.forEach(function(v) {this.push(v)}, this);
+};
 function make_dict() { return {}; };
 function dict_get(d, key, _default) {
     if (Object.prototype.hasOwnProperty.call(d, key)) {
@@ -166,15 +169,10 @@ function dict_has(d, a) {
     return false;
     }
     };
-function print_stdout(obj, rte) {
-    console.log("PRINTING TO STDOUT");
-    console.log(obj);
-    rte.vm.replAddTranscript(obj, 'cb-repl-output');
-    };
     """
 
     if cli_args.tests:
-        with open("num.js", "r") as f:
+        with open("int.js", "r") as f:
             runtime += " " + f.read()
 
     # Modules

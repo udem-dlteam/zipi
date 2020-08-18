@@ -1,7 +1,8 @@
 
-from _runtime import make_dict, dict_get, dict_set, nocompile, \
-        num_add, num_sub, num_mul, num_div, num_mod, num_to_string, \
-        num_zero, print_stdout
+# from _runtime import make_dict, dict_get, dict_set, nocompile, \
+#         int_add, int_sub, int_mul, int_div, int_mod, int_to_string, \
+#         int_is_zero, print_stdout
+from _runtime import *
 
 # import ast as AST
 
@@ -916,7 +917,7 @@ def om_int_add(ctx, args):
     if om_is(OM_get_object_class(val2), class_int):
         val1_value = OM_get_boxed_value(val1)
         val2_value = OM_get_boxed_value(val2)
-        result = num_add(val1_value, val2_value)
+        result = int_add(val1_value, val2_value)
         return ctx.cont(ctx.rte, om_int(result))
     else:
         return ctx.cont(ctx.rte, om_NotImplemented)
@@ -931,7 +932,7 @@ def om_int_sub(ctx, args):
     val1_value = OM_get_boxed_value(val1)
     val2_value = OM_get_boxed_value(val2)
     # TODO: add type check.
-    result = num_sub(val1_value, val2_value)
+    result = int_sub(val1_value, val2_value)
     return ctx.cont(ctx.rte, om_int(result))
 
 def om_int_rsub(ctx, args):
@@ -1038,7 +1039,7 @@ def om_int_floordiv(ctx, args):
         return expr_end(ctx, om_int(result))
 
 def om_format_int_repr(self, rte):
-    return num_to_string(OM_get_boxed_value(self), 10)
+    return int_to_string(OM_get_boxed_value(self), 10)
 
 def om_int_repr(ctx, args):
     self = args[0]
@@ -1261,7 +1262,7 @@ def box_object(obj):
     elif obj is False:
         return om_False
     elif isinstance(obj, int):
-        return om_int(obj)
+        return om_int(int_from_float(obj))
     elif isinstance(obj, str):
         return om_str(obj)
     else:
@@ -1351,17 +1352,17 @@ def gen_prim_Numeric_rBinOp(py_class, method, prim, om_class, om_box):
 
     return prim_Numeric_rBinOp
 
-om_int_add = gen_prim_Numeric_BinOp('int', '__add__', num_add, class_int, om_int)
+om_int_add = gen_prim_Numeric_BinOp('int', '__add__', int_add, class_int, om_int)
 om_int_radd = om_int_add
 
-om_int_sub = gen_prim_Numeric_BinOp('int', '__sub__', num_sub, class_int, om_int)
-om_int_rsub = gen_prim_Numeric_rBinOp('int', '__rsub__', num_sub, class_int, om_int)
+om_int_sub = gen_prim_Numeric_BinOp('int', '__sub__', int_sub, class_int, om_int)
+om_int_rsub = gen_prim_Numeric_rBinOp('int', '__rsub__', int_sub, class_int, om_int)
 
-om_int_mul = gen_prim_Numeric_BinOp('int', '__mul__', num_mul, class_int, om_int)
+om_int_mul = gen_prim_Numeric_BinOp('int', '__mul__', int_mul, class_int, om_int)
 om_int_rmul = om_int_mul
 
-om_int_mod = gen_prim_Numeric_BinOp('int', '__mod__', num_mod, class_int, om_int)
-om_int_rmod = gen_prim_Numeric_rBinOp('int', '__rmod__', num_mod, class_int, om_int)
+om_int_mod = gen_prim_Numeric_BinOp('int', '__mod__', int_mod, class_int, om_int)
+om_int_rmod = gen_prim_Numeric_rBinOp('int', '__rmod__', int_mod, class_int, om_int)
 
 # FloorDiv has another check for division by zero.
 # Write it by hand.
@@ -1375,13 +1376,13 @@ def om_int_floordiv(ctx, args):
 
     # Early break for ZeroDivisionError
     val2_value = OM_get_boxed_value(val2)
-    if num_zero(val2_value):
+    if int_is_zero(val2_value):
         assert False, "ZeroDivisionError"
 
     # Primitive operations are only defined on same types.
     if om_is(OM_get_object_class(val2), class_int):
         val1_value = OM_get_boxed_value(val1)
-        result = num_div(val1_value, val2_value)
+        result = int_div(val1_value, val2_value)
         return ctx.cont(ctx.rte, om_int(result))
     else:
         # TODO: Return om_NotImplemented(rte) (in the proper rte)
@@ -1397,13 +1398,13 @@ def om_int_rfloordiv(ctx, args):
 
     # Early break for ZeroDivisionError
     val1_value = OM_get_boxed_value(val1)
-    if num_zero(val1_value):
+    if int_is_zero(val1_value):
         assert False, "ZeroDivisionError"
 
     # Primitive operations are only defined on same types.
     if om_is(OM_get_object_class(val2), class_int):
         val2_value = OM_get_boxed_value(val2)
-        result = num_div(val2_value, val1_value)
+        result = int_div(val2_value, val1_value)
         return ctx.cont(ctx.rte, om_int(result))
     else:
         # TODO: Return om_NotImplemented(rte) (in the proper rte)
@@ -2466,7 +2467,7 @@ def expr_end(ctx, val):
     if om_is(val, om_None):
         return return_to_trampoline(ctx.ast, None, lambda: ctx.cont(ctx.rte, val), ctx)
     else:
-        return return_to_trampoline(ctx.ast, ': value = '+ om_simple_repr(ctx, val), lambda: ctx.cont(ctx.rte, val), ctx)
+        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), lambda: ctx.cont(ctx.rte, val), ctx)
 
 def stmt_end(ctx):
     return return_to_trampoline(ctx.ast, '', lambda: ctx.cont(ctx.rte), ctx)
