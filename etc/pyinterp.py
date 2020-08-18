@@ -471,6 +471,8 @@ def populate_builtin_FunctionType():
     OM_set_type_mro(class_function, [class_function, class_object])
 
 def populate_builtin_BaseException():
+    builtin_add_method(class_BaseException, '__str__', om_BaseException_str)
+
     OM_set_type_mro(class_BaseException, [class_BaseException, class_object])
 
 def populate_builtin_Exception():
@@ -540,6 +542,15 @@ def om_str(val):
 def om_int(val):
     return om_boxval(class_int, val)
 
+def om_exception(exn, args):
+    # NOTE: This assert only trigger if there is a bug in the code.
+    assert isinstance(args, tuple), 'args must be a tuple'
+
+    obj = om(exn, OM_object_create)
+    # TODO: wrap in OM_tuple when it is available
+    OM_set(obj, 'args', om_boxval(class_tuple, args))
+    return obj
+
 def om_WrapperDescriptor(name, code):
     obj = om(class_WrapperDescriptor, OM_WrapperDescriptor_create)
     OM_set_code(obj, code)
@@ -562,6 +573,19 @@ def om_is(x, y):
 
 def om_is_falsy(val):
     return om_is(val, om_False)
+
+def om_issubclass(obj, cls):
+    obj_cls = OM_get_object_class(obj)
+    obj_cls_mro = OM_get_type_mro(obj_cls)
+
+    len_mro = len(obj_cls_mro)
+
+    i = 0
+    while i < len_mro:
+        if om_is(cls, obj_cls_mro[i]):
+            return True
+        i += 0
+    return False
 
 # Creation of om object from class
 def OM_object_create():
@@ -1028,9 +1052,7 @@ def om_int_floordiv(ctx, args):
     val1_value = OM_get_boxed_value(val1)
     val2_value = OM_get_boxed_value(val2)
     if val2_value == 0:
-        # TODO: implemented sem_raise
-        #return sem_raise(ctx, om_ZeroDivisionError())
-        assert False, 'Division by zero'
+        return sem_raise(ctx, class_ZeroDivisionError)
     else:
         result = val1_value // val2_value
         return expr_end(ctx, om_int(result))
@@ -1184,6 +1206,26 @@ def om_function_repr(ctx, args):
     result = om_str(om_format_function_repr(self, ctx.rte))
     return ctx.cont(ctx.rte, result)
 
+# class_BaseException methods
+def om_BaseException_str(ctx, args):
+    self = args[0]
+    self_args = OM_get(self, 'args')
+    self_args_value = OM_get_boxed_value(self_args)
+    len_self_args = len(self_args_value)
+    if len_self_args == 0:
+        return ctx.cont(ctx.rte, om_str(''))
+    elif len(len_self_args) == 1:
+        def return_str_value(rte, result):
+            return ctx.cont(rte, result)
+
+        elem = self_args_value[0]
+        elem_str = getattribute_from_obj_mro(elem_str, '__str__')
+        ctx1 = with_cont(ctx, return_str_value)
+        return om_call(elem_str, ctx1, [elem])
+    else:
+        assert False, 'Not implemented'
+
+
 # XXX: need to decide if I keep this
 def box_object(obj):
     if obj is None:
@@ -1308,7 +1350,7 @@ def om_int_floordiv(ctx, args):
     # Early break for ZeroDivisionError
     val2_value = OM_get_boxed_value(val2)
     if num_zero(val2_value):
-        assert False, "ZeroDivisionError"
+        return sem_raise(ctx, class_ZeroDivisionError)
 
     # Primitive operations are only defined on same types.
     if om_is(OM_get_object_class(val2), class_int):
@@ -1617,7 +1659,10 @@ def comp_stmt(cte, ast):
         if debug: print('AST.Delete')
         return gen_delete_seq(cte, ast, ast.targets)
 
-
+    elif isinstance(ast, AST.Raise):
+        if debug: print('AST.Raise')
+        (cte1, code1) = comp_expr(cte, ast.exc)
+        return gen_raise(cte1, ast, code1)
 
     else:
         assert False, 'comp_stmt expected a statement AST'
@@ -1865,6 +1910,13 @@ def gen_delete_seq(cte, ast, targets):
     else:
         assert False, 'multiple targets not yet supported.'
 
+def gen_raise(cte, ast, code):
+    def eval_raise_param(rte, cont):
+        def raise_exn(rte1, exn):
+            ctx = Context(rte1, cont, ast)
+            return sem_raise(ctx, exn)
+        return code(rte, raise_exn)
+    return (cte, eval_raise_param)
 
 
 
@@ -2234,12 +2286,33 @@ def sem_bool(ctx, val):
 
 def sem_raise(ctx, exn):
     ctrl_env = rte_ctrl_env(ctx.rte)
+
+    exn_cls = OM_get_object_class(exn)
+
+    # create the exn_object to be created
+    if om_issubclass(exn_cls, class_type):
+        exn_obj = om_exception(exn, ())
+    elif om_issubclass(exn_cls, class_BaseException):
+        exn_obj = exn
+    else:
+        exn_obj = om_exception(class_TypeError, ())
+
     if om_is(ctrl_env, absent):
-        def uncaught_exception(rte, cont):
-            # print stacktrace here
+        def uncaught_exception(rte, s):
+            s_value = OM_get_boxed_value(s)
+            exn_name = OM_get(OM_get_object_class(exn_obj), '__name__')
+            exn_name_value = OM_get_boxed_value(exn_name)
+            if len(s_value) == 0:
+                result = exn_name_value
+            else:
+                result = exn_name_value + ': ' + s_value
+
+            # XXX: should be stderr
+            print_stdout(result, rte)
             return None
         ctx1 = with_cont(ctx, uncaught_exception)
-        return expr_end(ctx1, exn)
+        exn_obj_str = getattribute_from_obj_mro(exn_obj, '__str__')
+        return om_call(exn_obj_str, ctx1, [exn_obj])
     else:
         # exception unwinding not implemented.
         assert False, 'Not implemented'
