@@ -904,6 +904,11 @@ def string_escape_character(buf, pos, ts):
                     ts.token = ERRORTOKEN
                     return -1
                 acc = acc * 16 + hex_val
+
+            if acc > 0x10ffff:
+                ts.token = ERRORTOKEN
+                return -1
+
             ts.value += chr(acc)
 
             return pos + 5
@@ -916,6 +921,11 @@ def string_escape_character(buf, pos, ts):
                     ts.token = ERRORTOKEN
                     return -1
                 acc = acc * 16 + hex_val
+
+            if acc > 0x10ffff:
+                ts.token = ERRORTOKEN
+                return -1
+
             ts.value += chr(acc)
             return pos + 9
         # TODO : \N{NAME} is not supported and will not be escaped
