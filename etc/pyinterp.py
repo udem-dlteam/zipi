@@ -2265,7 +2265,7 @@ def expr_end(ctx, val):
     if om_is(val, om_None):
         return return_to_trampoline(ctx.ast, None, lambda: ctx.cont(ctx.rte, val), ctx)
     else:
-        return return_to_trampoline(ctx.ast, ': value = '+ om_simple_repr(ctx, val), lambda: ctx.cont(ctx.rte, val), ctx)
+        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), lambda: ctx.cont(ctx.rte, val), ctx)
 
 def stmt_end(ctx):
     return return_to_trampoline(ctx.ast, '', lambda: ctx.cont(ctx.rte), ctx)
