@@ -55,5 +55,5 @@ def int_from_float(u):
     return u
 
 
-def print_stdout(obj, rte):
-    print("STDOUT:", obj)
+def print_stdout(msg, rte):
+    print(msg)
