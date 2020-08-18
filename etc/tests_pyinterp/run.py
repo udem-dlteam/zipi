@@ -53,7 +53,7 @@ def collect_tests(pattern):
     return tests
 
 
-def run_one_test(path, cpython, zipi, scheme, tmp_output_file):
+def run_one_test(path, cpython, zipi, tmp_output_file):
     """
     Run a single test a 'path' using the given commands to run 'cpython', 'zipi' and 'scheme'
     Use the 'tmp_output_file' as file name to store the compiled code from zipi
@@ -63,7 +63,7 @@ def run_one_test(path, cpython, zipi, scheme, tmp_output_file):
     if cpython returns an error code 1, then compare the last line of stderr from cpython to the last line from scheme.
     We do this because full traceback will likely never be exactly identical between cpython and zipi
     """
-    cpython_output = subprocess.run([cpython, path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    cpython_output = subprocess.run([cpython, path], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
     zipi_output = subprocess.run([*zipi.split(), path], stdout=subprocess.PIPE)
 
@@ -76,13 +76,13 @@ def run_one_test(path, cpython, zipi, scheme, tmp_output_file):
         return cpython_error == zipi_error
 
 
-def process_file(file, folder, cpython, zipi, scheme, shared_lst):
+def process_file(file, folder, cpython, zipi, shared_lst):
     """
     Wrapper to run the test at [folder]/[file] from a subprocess
     """
     tmp_output_file = f'./.tmp_zipi_output{multiprocessing.current_process().pid}.scm~'
     path = os.path.join(folder, file)
-    success = run_one_test(path, cpython, zipi, scheme, tmp_output_file)
+    success = run_one_test(path, cpython, zipi, tmp_output_file)
     status = colored('OK', 'OKGREEN') if success else colored('FAIL', 'FAIL')
 
     print(f'     {clean_name(file)}: {"." * (45 - len(file))} {status}')
@@ -90,7 +90,7 @@ def process_file(file, folder, cpython, zipi, scheme, shared_lst):
     shared_lst.append(success)
 
 
-def run_all(cpython='python3', zipi='../etc/py19 -t gambit', scheme='gsi ../pyc/', pattern=None):
+def run_all(cpython='python3', zipi='../etc/py19 -t gambit', pattern=None):
     """
     Collects all tests and runs them in parallel with multiprocessing using the given commands to run 'cpython',
     'zipi' and 'scheme'.
@@ -110,7 +110,7 @@ def run_all(cpython='python3', zipi='../etc/py19 -t gambit', scheme='gsi ../pyc/
         with multiprocessing.Pool(4) as p:
             shared_lst = multiprocessing.Manager().list()
             p.starmap(process_file,
-                      ((folder_test, folder, cpython, zipi, scheme, shared_lst) for folder_test in folder_tests))
+                      ((folder_test, folder, cpython, zipi, shared_lst) for folder_test in folder_tests))
 
         n_success += sum(shared_lst)
 
@@ -126,7 +126,6 @@ if __name__ == "__main__":
 
     parser.add_argument("--cpython", help="specify cPython interpreter")
     parser.add_argument("--zipi", help="specify Zipi compiler")
-    parser.add_argument("--scheme", help="specify Scheme interpreter")
     parser.add_argument("--pattern", help="run tests for files matching the given pattern")
 
     args = {k: v for k, v in vars(parser.parse_args()).items() if v is not None}
