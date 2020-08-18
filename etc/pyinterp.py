@@ -1440,6 +1440,8 @@ def trampoline(execution_point):
         ctx = state[3]
 
         if execution_point and msg is not None:
+            if len(msg) > 0:
+                msg = ' '+msg
 
             print('at '+str(ast.lineno)+'.'+str(ast.col_offset+1)+'-'+str(ast.end_lineno)+'.'+str(ast.end_col_offset+1)+msg)
 
