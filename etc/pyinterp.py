@@ -69,6 +69,12 @@ class OM_tuple(OM_object):
     seq: the inner sequence of objects
     """
 
+class OM_iterator(OM_object):
+    """
+    obj: object the iterator is iterating over
+    index: current index
+    """
+
 class OM_function(OM_box):
     """
     arity: the arity of the function object
@@ -280,10 +286,11 @@ def align_args_with_signature(ctx, caller_args, signature):
         elif caller_args_len < total_args_len:
             missing_args_len = total_args_len - caller_args_len
             if defaults_len >= missing_args_len:
+
                 result =  caller_args.copy()
                 start = defaults_len - missing_args_len
-                result.append(defaults[start:defaults_len])
-                return result
+                result.extend(defaults[start:defaults_len])
+                return align_args_with_signature(ctx, result, signature)
             else:
                 assert False, 'TypeError'
         else:
@@ -293,7 +300,7 @@ def align_args_with_signature(ctx, caller_args, signature):
 def make_dict_from_list(lst):
     result = make_dict()
     for e in lst:
-        result[e[0]] = e[1]
+        dict_set(result, e[0], e[1])
     return result
 
 def class_getattr(o, attr):
@@ -438,6 +445,11 @@ def populate_builtin_tuple():
 
     OM_set_type_mro(class_tuple, [class_tuple, class_object])
 
+def populate_builtin_iterator():
+    builtin_add_method(class_iterator, '__next__', om_iterator_next)
+
+    OM_set_type_mro(class_iterator, (class_iterator, class_object))
+
 def populate_builtin_dict():
     OM_set_type_mro(class_dict, [class_dict, class_object])
 
@@ -515,6 +527,14 @@ def om_tuple(cls, seq):
     OM_set_tuple_seq(obj, seq)
     return obj
 
+def om_iterator(cls, obj, index):
+    it = om(cls, OM_iterator_create)
+
+    OM_set_iterator_obj(it, obj)
+    OM_set_iterator_index(it, index)
+
+    return it
+
 def om_module(name, val):
     obj = om(class_module, OM_object_create)
 
@@ -569,6 +589,9 @@ def OM_box_create():
 
 def OM_tuple_create():
     return OM_tuple()
+
+def OM_iterator_create():
+    return OM_iterator()
 
 def OM_function_create():
     return OM_function()
@@ -628,6 +651,18 @@ def OM_get_tuple_seq(o):
 
 def OM_set_tuple_seq(o, value):
     o.seq = value
+
+def OM_get_iterator_obj(o):
+    return o.obj
+
+def OM_set_iterator_obj(o, it):
+    o.obj = it
+
+def OM_get_iterator_index(o):
+    return o.index
+
+def OM_set_iterator_index(o, index):
+    o.index = index
 
 def OM_set_code(o, code):
     o.code = code
@@ -1112,6 +1147,23 @@ def om_tuple_getitem(ctx, args):
     else:
         assert False, "TypeError"
 
+# class_iterator_methods
+
+def om_iterator_next(ctx, args):
+    if debug: print('iterator.__next__')
+
+    self = args[0]
+
+    obj = OM_get_iterator_obj(self)
+    index = OM_get_iterator_index(self)
+
+    def increment_index(rte, val):
+        OM_set_iterator_index(self, om_int(OM_get_boxed_value(index) + 1))
+        return ctx.cont(rte, val)
+
+    # TODO catch IndexError and transform it into StopIteration
+    return sem_getitem(with_cont(ctx, increment_index), obj, index)
+
 # class_str methods
 def om_convert_to_str(ctx, value):
     value_str = getattribute_from_obj_mro(value, "__str__")
@@ -1283,6 +1335,7 @@ class_bool = make_builtin_class('bool', class_type)
 class_NoneType = make_builtin_class('NoneType', class_type)
 
 class_tuple = make_builtin_class('tuple', class_type)
+class_iterator = make_builtin_class('iterator', class_type)
 class_list = make_builtin_class('list', class_type)
 class_dict = make_builtin_class('dict', class_type)
 class_module = make_builtin_class('module', class_type)
@@ -1423,6 +1476,7 @@ populate_builtin_int()
 populate_builtin_bool()
 populate_builtin_str()
 populate_builtin_tuple()
+populate_builtin_iterator()
 populate_builtin_dict()
 populate_builtin_module()
 populate_builtin_NoneType()
@@ -1458,6 +1512,25 @@ def om_len_code(rte, _):
         return unwindReturn(rte, res)
     next_ctx = make_out_of_ast_context(rte, cont)
     return sem_len(next_ctx, rte_lookup(rte, 'obj'))
+
+def om_next_code(rte, _):
+    def cont(rte, res):
+        return unwindReturn(rte, res)
+    next_ctx = make_out_of_ast_context(rte, cont)
+    return sem_next(next_ctx, rte_lookup(rte, 'obj'), rte_lookup(rte, 'default'))
+
+def om_iter_code(rte, _):
+    def cont(rte, res):
+        return unwindReturn(rte, res)
+    next_ctx = make_out_of_ast_context(rte, cont)
+
+    obj = rte_lookup(rte, 'obj')
+    sentinel = rte_lookup(rte, 'sentinel')
+
+    if sentinel is absent:
+        return sem_iter(next_ctx, obj)
+    else:
+        assert False, "NotImplementedError"
 
 # Interpreter
 def interp_file(path):
@@ -1499,6 +1572,10 @@ def fresh_rte():
     om_builtin_print = om_make_function_with_signature('print', om_print_code, make_posonly_only_signature(('obj',)))
     om_builtin_repr = om_make_function_with_signature('repr', om_repr_code, make_posonly_only_signature(('obj',)))
     om_builtin_len = om_make_function_with_signature('len', om_len_code, make_posonly_only_signature(('obj',)))
+    om_builtin_next = om_make_function_with_signature('next', om_next_code,
+                                                      make_posonly_defaults_signature(('obj', 'default'), (absent,)))
+    om_builtin_iter = om_make_function_with_signature('iter', om_iter_code,
+                                                      make_posonly_defaults_signature(('obj', 'sentinel'), (absent,)))
 
     dict_set(builtins_env, 'type', class_type)
     dict_set(builtins_env, 'object', class_object)
@@ -1509,6 +1586,8 @@ def fresh_rte():
     dict_set(builtins_env, 'print', om_builtin_print)
     dict_set(builtins_env, 'repr', om_builtin_repr)
     dict_set(builtins_env, 'len', om_builtin_len)
+    dict_set(builtins_env, 'next', om_builtin_next)
+    dict_set(builtins_env, 'iter', om_builtin_iter)
 
     dict_set(builtins_env, 'BaseException', class_BaseException)
     dict_set(builtins_env, 'Exception', class_Exception)
@@ -1540,7 +1619,7 @@ def trampoline(execution_point):
 
         if execution_point and msg is not None:
 
-            print('at '+str(ast.lineno)+'.'+str(ast.col_offset+1)+'-'+str(ast.end_lineno)+'.'+str(ast.end_col_offset+1)+msg)
+            print('at '+str(ast.lineno)+'.'+str(ast.col_offset+1)+'-'+str(ast.end_lineno)+'.'+str(ast.end_col_offset+1)+' '+msg)
 
 
     #print('exiting trampoline')
@@ -2288,6 +2367,27 @@ def sem_getitem(ctx, obj, item):
         assert False, "TypeError"
     else:
         return om_call(obj_getitem, ctx, (obj, item))
+
+def sem_next(ctx, obj, default):
+    obj_next = getattribute_from_obj_mro(obj, "__next__")
+    if obj_next is absent:
+        assert False, "TypeError"
+    elif default is absent:
+        return om_call(obj_next, ctx, (obj,))
+    else:
+        # TODO: catch StopIteration to return default if default is not absent
+        return om_call(obj_next, ctx, (obj,))
+
+def sem_iter(ctx, obj):
+    obj_iter = getattribute_from_obj_mro(obj, "__iter__")
+    if obj_iter is absent:
+        obj_getitem = getattribute_from_obj_mro(obj, "__getitem__")
+        if obj_getitem is absent:
+            assert False, "TypeError"
+        else:
+            return ctx.cont(ctx.rte, om_iterator(class_iterator, obj, om_int(0)))
+    else:
+        return om_call(obj_iter, ctx, (obj,))
 
 def sem_maybe_len(ctx, obj):
     obj_len = getattribute_from_obj_mro(obj, "__len__")
