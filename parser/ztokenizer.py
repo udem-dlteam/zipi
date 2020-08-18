@@ -425,6 +425,8 @@ def source(ts, start, end):
 def token(ts):
     return source(ts, ts.start, ts.end)
 
+def get_value(ts):
+    return ts.value
 #------------------------------------------------------------------------------
 
 # The tokenizer.
@@ -806,25 +808,139 @@ def get_token(ts):
         ts.token = kind_to_token[k]
         return
 
-def get_string(ts, pos, c, kind, regexpr):
 
-    def _print(x): pass
 
-    if regexpr:
-        if kind == BYTE_STRING:
-            _print('@@@@@@ string with BR prefix')
-        elif kind == UNICODE_STRING:
-            _print('@@@@@@ string with UR prefix')
-        else:
-            _print('@@@@@@ string with R prefix')
+def digit_value(byte):
+
+    if byte >= 48 and byte <= 57: # decimal
+        return byte - 48
+    if byte >= 65 and byte <= 70: # A-F
+        return byte - 55 # (A = 10)
+    if byte >= 97 and byte <= 102: # a-f
+        return byte - 87 # (a = 10)
+
+    return 99
+
+def get_int_from_escape_no_unicode(buf, pos, ts):
+    next = byte_at(buf, pos)
+
+    if next == 92 or next == 39 or next == 34: # \\ \' \"
+        ts.end = pos + 1
+        return next
+    elif next == 110: # \n
+        ts.end = pos + 1
+        return 10
+    elif next == 116: # \t
+        ts.end = pos + 1
+        return 9
+    elif next == 102: # \f
+        ts.end = pos + 1
+        return 12
+    elif next == 118: # \v
+        ts.end = pos + 1
+        return 11
+    elif next == 97:  # \a
+        ts.end = pos + 1
+        return 7
+    elif next == 98:  # \b
+        ts.end = pos + 1
+        return 8
+
+    digit_next = digit_value(next)
+
+    if digit_next < 8: # \ooo where o is an octal
+        acc = digit_next
+        pos += 1
+        octal_val = digit_value(byte_at(buf, pos))
+        if octal_val < 8:
+            pos+=1
+            acc = acc * 8 + octal_val
+            octal_val = digit_value(byte_at(buf, pos))
+            if octal_val < 8:
+                pos+=1
+                acc = acc * 8 + octal_val
+        ts.end = pos
+        return acc
+    elif next == 120: # \xXX where XX is a base16 number
+        v1 = digit_value(byte_at(buf, pos + 1))
+        v2 = digit_value(byte_at(buf, pos + 2))
+        if v1 >= 16 or v2 >= 16:
+            ts.token = ERRORTOKEN
+            return -1
+        ts.end = pos + 3
+        return v1 * 16 + v2
+    ts.end = pos
+
+    return -1
+
+def byte_escape_character(buf, pos, ts):
+    code = get_int_from_escape_no_unicode(buf, pos, ts)
+    pos = ts.end
+
+    # not found
+    if code == -1:
+        # default, no escape
+        ts.value.append(92) # \\
+        ts.value.append(byte_at(buf, pos))
+        pos += 1
     else:
-        if kind == BYTE_STRING:
-            _print('@@@@@@ string with B prefix')
-        elif kind == UNICODE_STRING:
-            _print('@@@@@@ string with U prefix')
-        else:
-            _print('@@@@@@ string with no prefix')
+        ts.value.append(code & 0xff)
 
+    return pos
+
+def string_escape_character(buf, pos, ts):
+    code = get_int_from_escape_no_unicode(buf, pos, ts)
+    pos = ts.end
+
+    #not found
+    if code == -1:
+        # search for unicode characters
+        next = byte_at(buf, pos)
+        if next == 117: # \uXXXX
+            acc = 0
+            for i in range(4):
+                hex_val = digit_value(byte_at(buf, pos+1+i))
+                if hex_val >= 16:
+                    ts.token = ERRORTOKEN
+                    return -1
+                acc = acc * 16 + hex_val
+            ts.value += chr(acc)
+
+            return pos + 5
+
+        elif next == 85: # \UXXXXXXXX
+            acc = 0
+            for i in range(8):
+                hex_val = digit_value(byte_at(buf, pos+1+i))
+                if hex_val >= 16:
+                    ts.token = ERRORTOKEN
+                    return -1
+                acc = acc * 16 + hex_val
+
+            if acc > 0x10ffff:
+                ts.token = ERRORTOKEN
+                return -1
+
+            ts.value += chr(acc)
+            return pos + 9
+        # TODO : \N{NAME} is not supported and will not be escaped
+        else:
+            # default escape
+            ts.value += "\\"
+            ts.value += chr(next)
+            return pos + 1
+    else:
+        ts.value += chr(code)
+
+    return pos
+
+def string_value_append(kind, next, ts):
+    if kind == BYTE_STRING:
+        ts.value.append(next)
+    else:
+        ts.value += chr(next)
+
+def get_string_raw(ts, pos, c, kind):
     buf = ts.buf
 
     if byte_at(buf, pos) == c and byte_at(buf, pos+1) == c:
@@ -833,35 +949,129 @@ def get_string(ts, pos, c, kind, regexpr):
         pos += 2
         while True:
             next = byte_at(buf, pos)
+
             if next == c and byte_at(buf, pos+1) == c and byte_at(buf, pos+2) == c:
                 pos += 3
                 break
-            elif next == 92: # '\'
-                if byte_at(buf, pos+1) == 10:
+
+            #add character
+            pos += 1
+            string_value_append(kind, next, ts)
+
+            if next == 92: # '\'
+                if byte_at(buf, pos) == 10:
                     ts.line_num += 1
-                pos += 2
+                elif byte_at(buf, pos) == c:
+                    string_value_append(kind, c, ts)
+                    pos+=1
             else:
                 if next == 10:
                     ts.line_num += 1
-                pos += 1
 
     else:
+        while True:
+            next = byte_at(buf, pos)
+            if next == c:
+                pos += 1
+                break
 
+            #add character
+            pos += 1
+            string_value_append(kind, next, ts)
+
+            if next == 92: # '\'
+
+                if byte_at(buf, pos) == 10: # \n
+                    ts.line_num += 1
+                    string_value_append(kind, 10, ts) # \n
+                    pos+=1
+
+                # special case where we have something in the form \c (c = " or ') in a raw string
+                elif c == byte_at(buf, pos):
+                    string_value_append(kind, c, ts)
+                    pos+=1
+
+            elif next == 10: # newline ?
+                k = KIND_ERROR
+                break
+
+    ts.end = pos
+
+def get_string_normal(ts, pos, c, kind):
+    buf = ts.buf
+
+    if byte_at(buf, pos) == c and byte_at(buf, pos+1) == c:
+        #TODO check end of buffer
+
+        pos += 2
+        while True:
+            next = byte_at(buf, pos)
+
+            if next == c and byte_at(buf, pos+1) == c and byte_at(buf, pos+2) == c:
+                pos += 3
+                break
+
+            if next == 92: # '\'
+                pos += 1
+                if byte_at(buf, pos) == 10:
+                    ts.line_num += 1
+                    pos+=1
+                elif kind == BYTE_STRING:
+                    pos = byte_escape_character(buf, pos, ts)
+                # kind == NORMAL_STRING
+                else:
+                    pos = string_escape_character(buf, pos, ts)
+
+            else:
+                pos += 1
+                if next == 10:
+                    ts.line_num += 1
+
+                string_value_append(kind, next, ts)
+
+    else:
         while True:
             next = byte_at(buf, pos)
             if next == c:
                 pos += 1
                 break
             elif next == 92: # '\'
-                if byte_at(buf, pos+1) == 10:
+                pos += 1
+
+                if byte_at(buf, pos) == 10:
+                    pos += 1
                     ts.line_num += 1
-                pos += 2
+
+                elif kind == BYTE_STRING:
+                    pos = byte_escape_character(buf, pos, ts)
+                # kind == NORMAL_STRING
+                else:
+                    pos = string_escape_character(buf, pos, ts)
+
             elif next == 10: # newline ?
                 k = KIND_ERROR
                 break
             else:
+                string_value_append(kind, next, ts)
                 pos += 1
-
     ts.end = pos
 
+def get_string(ts, pos, c, kind, raw):
+
     ts.token = STRING
+
+    if kind == BYTE_STRING:
+        ts.value=bytearray()
+    else:
+        # kind == UNICODE_STRING or other
+        ts.value=""
+
+    if raw:
+        get_string_raw(ts, pos, c, kind)
+    else:
+        get_string_normal(ts, pos, c, kind)
+
+
+    if kind == BYTE_STRING:
+        ts.value = bytes(ts.value)
+
