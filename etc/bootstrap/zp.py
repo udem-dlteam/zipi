@@ -172,7 +172,6 @@ function dict_has(d, a) {
 function print_stdout(obj, rte) {
     console.log("PRINTING TO STDOUT");
     console.log(obj);
-    rte.vm.replAddTranscript(obj, 'cb-repl-output');
     };
     """
 
