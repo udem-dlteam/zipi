@@ -382,7 +382,7 @@ class Transformer:
                         + px
                         + " = "
                         + "new Uint8Array("
-                        + str(y.args[0].n)
+                        + str(y.args[0].n) if y.args else "0"
                         + ");"
                     )
                     return out
@@ -513,6 +513,10 @@ class Transformer:
                 out += " " + typ + ")"
             return out
 
+        def type_eq(x, y):
+            return " (" + x + ".constructor === " + y + ".constructor)"
+
+
         def x_in_y(left, op, comparators):
             return ""
 
@@ -575,7 +579,12 @@ class Transformer:
         else:
             if isinstance(left, AST.Call):
                 if left.func.id == "type":
-                    return type_compare(ops[0], left.args[0].id, comparators[0].id)
+                    if isinstance(comparators[0], AST.Call)\
+                            and comparators[0].func.id == "type"\
+                            and isinstance(ops[0], AST.Is) or isinstance(ops[0], AST.Eq):
+                        return type_eq(left.args[0].id, comparators[0].args[0].id)
+                    else:
+                        return type_compare(ops[0], left.args[0].id, comparators[0].id)
             out = compare(ops[0], left, comparators[0])
         return out
 
