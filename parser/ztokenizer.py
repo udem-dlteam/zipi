@@ -376,6 +376,7 @@ class TokenizerState:
         self.end = 0
         self.token = NEWLINE
         self.value = None  # token's value when it has a value
+        self.kind = None # token's kind when needed (string for example)
         self.line_start = 0
         self.line_num = 1
         self.paren_level = 0
@@ -428,6 +429,9 @@ def token(ts):
 
 def get_value(ts):
     return ts.value
+
+def get_kind(ts):
+    return ts.kind
 
 #------------------------------------------------------------------------------
 
@@ -1087,6 +1091,7 @@ def get_string(ts, pos, c, kind, raw):
     else:
         # kind == UNICODE_STRING or other
         ts.value = ''
+    ts.kind = kind
 
     if raw:
         get_string_raw(ts, pos, c, kind)
