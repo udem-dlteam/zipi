@@ -169,7 +169,7 @@ function dict_has(d, a) {
     return false;
     }
     };
-function chr(code) { return String.fromCharCode.apply(null,[code]); }
+function chr(code) { return String.fromCodePoint.apply(null,[code]); }
     """
 
     if cli_args.tests:
