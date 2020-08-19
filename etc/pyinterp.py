@@ -2730,20 +2730,14 @@ def sem_raise(ctx, exn):
         exn_obj = om_exception(class_TypeError, om_tuple(class_tuple, ()))
 
     if om_is(ctrl_env, absent):
-        def uncaught_exception(rte, s):
-            exn_name = OM_get(OM_get_object_class(exn_obj), '__name__')
-            exn_name_value = OM_get_boxed_value(exn_name)
-
-            # TODO: format message
-            result = exn_name_value + ': ' + om_simple_repr(ctx, s)
+        def uncaught_exception(exc):
+            result = om_simple_exception_format(ctx, exc)
 
             # XXX: should be stderr
-            print_stdout(result, rte)
+            print_stdout(result, ctx.rte)
             return None
 
-        ctx1 = with_cont(ctx, uncaught_exception)
-        exn_obj_str = getattribute_from_obj_mro(exn_obj, '__str__')
-        return om_call(exn_obj_str, ctx1, [exn_obj])
+        return uncaught_exception(exn)
     else:
         # XXX: does not unwind all the way
         ctrl_rte = ctrl_env.lex_env
@@ -2823,6 +2817,24 @@ def om_simple_repr(ctx, value):
     cls_name = OM_get_boxed_value(OM_get(value_cls, "__name__"))
     formatter = dict_get(simple_repr_formatters, cls_name, om_format_object_repr)
     return formatter(value, ctx.rte)
+
+def om_simple_exception_format(ctx, exn):
+    exn_name = OM_get(OM_get_object_class(exn), '__name__')
+    exn_name_value = OM_get_boxed_value(exn_name)
+    exn_args = OM_get(exn, 'args')
+
+    if exn_args is absent or not om_isinstance(exn_args, class_tuple):
+        return exn_name_value + ': <unknown exception message>'
+    else:
+        seq = OM_get_tuple_seq(exn_args)
+        if len(seq) == 0:
+            return exn_name_value
+        elif len(seq) == 1:
+            return exn_name_value + ": " + om_simple_repr(ctx, seq[0])
+        else:
+            return exn_name_value + ": " + om_simple_repr(ctx, exn_args)
+
+
 
 def expr_end(ctx, val):
     if om_is(val, om_None):
