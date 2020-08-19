@@ -2687,7 +2687,8 @@ def sem_var_set(ctx, id, val):
     # Clone the current context.
     # TODO: use link environment
     rte_set(ctx.rte, id, val)
-    return stmt_end(ctx)
+    msg = id + " ← " + om_simple_repr(ctx, val)
+    return stmt_end_with_msg(ctx, msg)
 
 def sem_var_get(ctx, id):
     result = rte_lookup(ctx.rte, id)
@@ -2845,6 +2846,8 @@ def expr_end(ctx, val):
 def stmt_end(ctx):
     return return_to_trampoline(ctx.ast, '', lambda: ctx.cont(ctx.rte), ctx)
 
+def stmt_end_with_msg(ctx, msg):
+    return return_to_trampoline(ctx.ast, msg, lambda: ctx.cont(ctx.rte), ctx)
 
 def return_to_trampoline(ast, msg, continue_execution, ctx):
     # return to trampoline with current execution state
