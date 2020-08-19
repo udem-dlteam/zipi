@@ -524,6 +524,7 @@ def populate_builtin_FunctionType():
     OM_set_type_mro(class_function, [class_function, class_object])
 
 def populate_builtin_BaseException():
+    builtin_add_method(class_BaseException, '__new__', om_BaseException_new)
     builtin_add_method(class_BaseException, '__str__', om_BaseException_str)
 
     OM_set_type_mro(class_BaseException, [class_BaseException, class_object])
@@ -1407,19 +1408,44 @@ def om_function_repr(ctx, args):
     return ctx.cont(ctx.rte, result)
 
 # class_BaseException methods
+def om_BaseException_new(ctx, args):
+    cls = args[0]
+    # TODO: use vararg once available
+    exn_args = om_tuple(class_tuple, args[1:])
+
+    return ctx.cont(ctx.rte, om_exception(cls, exn_args))
+
 def om_BaseException_str(ctx, args):
     self = args[0]
     self_args = OM_get(self, 'args')
-    if om_isinstance(self_args, class_tuple):
-        seq = OM_get_tuple_seq(self_args)
+
+    def cont(rte, seq):
         if len(seq) == 0:
-            return ctx.cont(ctx.rte, om_str(''))
+            return ctx.cont(ctx.rte, om_str(""))
         elif len(seq) == 1:
-            return sem_repr(ctx, seq[0])
+            return om_convert_to_str(ctx, seq[0])
         else:
-            return sem_repr(ctx, self_args)
-    else:
-        return ctx.cont(ctx.rte, om_str("<unimplemented error message format>"))
+            acc = []
+            # TODO: hack to avoid using nonlocal in map_repr
+            i_ref = [0]
+
+            def map_repr(_, val):
+                acc.append(val)
+                i_ref[0] += 1
+                if i_ref[0] < len(seq):
+                    return sem_repr(with_cont(ctx, map_repr), seq[i_ref[0]])
+                else:
+                    acc_str = []
+                    i = 0
+                    while i < len(acc):
+                        acc_str.append(OM_get_boxed_value(acc[i]))
+                        i += 1
+                    return ctx.cont(ctx.rte, om_str("(" + ", ".join(acc_str) + ")"))
+
+            return sem_repr(with_cont(ctx, map_repr), seq[i_ref[0]])
+
+
+    return om_unpack_iterable(with_cont(ctx, cont), self_args)
 
 
 # XXX: need to decide if I keep this
@@ -2566,6 +2592,20 @@ def sem_iter(ctx, obj):
             return ctx.cont(ctx.rte, om_iterator(class_iterator, obj, om_int(0)))
     else:
         return om_call(obj_iter, ctx, (obj,))
+
+def om_unpack_iterable(ctx, it):
+    seq = []
+
+    def get_next(rte, iterator):
+        def accumulate(rte, val):
+            if val is for_loop_end_marker:
+                return ctx.cont(ctx.rte, seq)
+            else:
+                seq.append(val)
+                return get_next(rte, iterator)
+        return sem_next(Context(rte, accumulate, ctx.ast), iterator, for_loop_end_marker)
+
+    return sem_iter(with_cont(ctx, get_next), it)
 
 def sem_maybe_len(ctx, obj):
     obj_len = getattribute_from_obj_mro(obj, "__len__")
