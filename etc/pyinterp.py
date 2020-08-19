@@ -1298,8 +1298,8 @@ om_False = om_boxval(class_bool, False)
 om_NotImplemented = om(class_NotImplementedType, OM_object_create)
 
 # Primitive operators for doing actual computations
-def gen_prim_Numeric_BinOp(py_class, method, prim, om_class, om_box):
-    def prim_Numeric_BinOp(ctx, args):
+def gen_dunder_Numeric_BinOp(py_class, method, prim, om_class, om_box):
+    def dunder_Numeric_BinOp(ctx, args):
         if debug: print(cls + "." + method)
         val1 = args[0]
         val2 = args[1]
@@ -1310,7 +1310,7 @@ def gen_prim_Numeric_BinOp(py_class, method, prim, om_class, om_box):
         #   File "<stdin>", line 1, in <module>
         # TypeError: descriptor '__add__' requires a 'int' object but received a 'str'
         if not om_is(OM_get_object_class(val1), om_class):
-            assert False, "TypeError"
+            return sem_raise(ctx, class_TypeError)
 
         # Primitive operations are only defined on same types.
         if om_is(OM_get_object_class(val2), om_class):
@@ -1322,18 +1322,18 @@ def gen_prim_Numeric_BinOp(py_class, method, prim, om_class, om_box):
             # TODO: Return om_NotImplemented(rte) (in the proper rte)
             return ctx.cont(ctx.rte, om_NotImplemented)
 
-    return prim_Numeric_BinOp
+    return dunder_Numeric_BinOp
 
 # Reversed operators reverse the order of their arguments when
 # doing the computation.
-def gen_prim_Numeric_rBinOp(py_class, method, prim, om_class, om_box):
-    def prim_Numeric_rBinOp(ctx, args):
+def gen_dunder_Numeric_rBinOp(py_class, method, prim, om_class, om_box):
+    def dunder_Numeric_rBinOp(ctx, args):
         if debug: print(cls + "." + method)
         val1 = args[0]
         val2 = args[1]
 
         if not om_is(OM_get_object_class(val1), om_class):
-            assert False, "TypeError"
+            return sem_raise(ctx, class_TypeError)
 
         if om_is(OM_get_object_class(val2), om_class):
             val1_value = OM_get_boxed_value(val1)
@@ -1345,19 +1345,19 @@ def gen_prim_Numeric_rBinOp(py_class, method, prim, om_class, om_box):
             # TODO: Return om_NotImplemented(rte) (in the proper rte)
             return ctx.cont(ctx.rte, om_NotImplemented)
 
-    return prim_Numeric_rBinOp
+    return dunder_Numeric_rBinOp
 
-om_int_add = gen_prim_Numeric_BinOp('int', '__add__', int_add, class_int, om_int)
+om_int_add = gen_dunder_Numeric_BinOp('int', '__add__', int_add, class_int, om_int)
 om_int_radd = om_int_add
 
-om_int_sub = gen_prim_Numeric_BinOp('int', '__sub__', int_sub, class_int, om_int)
-om_int_rsub = gen_prim_Numeric_rBinOp('int', '__rsub__', int_sub, class_int, om_int)
+om_int_sub = gen_dunder_Numeric_BinOp('int', '__sub__', int_sub, class_int, om_int)
+om_int_rsub = gen_dunder_Numeric_rBinOp('int', '__rsub__', int_sub, class_int, om_int)
 
-om_int_mul = gen_prim_Numeric_BinOp('int', '__mul__', int_mul, class_int, om_int)
+om_int_mul = gen_dunder_Numeric_BinOp('int', '__mul__', int_mul, class_int, om_int)
 om_int_rmul = om_int_mul
 
-om_int_mod = gen_prim_Numeric_BinOp('int', '__mod__', int_mod, class_int, om_int)
-om_int_rmod = gen_prim_Numeric_rBinOp('int', '__rmod__', int_mod, class_int, om_int)
+om_int_mod = gen_dunder_Numeric_BinOp('int', '__mod__', int_mod, class_int, om_int)
+om_int_rmod = gen_dunder_Numeric_rBinOp('int', '__rmod__', int_mod, class_int, om_int)
 
 # FloorDiv has another check for division by zero.
 # Write it by hand.
@@ -1367,7 +1367,7 @@ def om_int_floordiv(ctx, args):
     val2 = args[1]
 
     if not om_is(OM_get_object_class(val1), class_int):
-        assert False, "TypeError"
+        return sem_raise(ctx, class_TypeError)
 
     # Early break for ZeroDivisionError
     val2_value = OM_get_boxed_value(val2)
@@ -1389,7 +1389,7 @@ def om_int_rfloordiv(ctx, args):
     val2 = args[1]
 
     if not om_is(OM_get_object_class(val1), class_int):
-        assert False, "TypeError"
+        return sem_raise(ctx, class_TypeError)
 
     # Early break for ZeroDivisionError
     val1_value = OM_get_boxed_value(val1)
@@ -2160,7 +2160,7 @@ def gen_sem_Numeric_BinOp(op_symbol, method, rmethod):
             # F: Rmethod not implemented for val1's type.
             #    Raise TypeError since both methods are absent (like CPython).
             if om_is(val, om_NotImplemented):
-                assert False, "TypeError"
+                return sem_raise(ctx, class_TypeError)
             else:
                 # END1: val2 has rmethod and can operate on val1.
                 #       Return the result.
@@ -2172,14 +2172,13 @@ def gen_sem_Numeric_BinOp(op_symbol, method, rmethod):
 
             # E: Yes, try val2.rmethod(val1)
             if val2_rmethod is not absent:
-                # TODO: Refactor to 'with_cont' when it is available.
-                ctx2 = Context(rte, test_rmethod_result, ctx.ast)
-                # NOTE: Semantics don't switch arguments, primitives do.
-                return om_call(val2_rmethod, ctx2, [val1, val2])
+                ctx2 = with_cont(ctx, test_rmethod_result)
+                # NOTE: self parameter is now val2
+                return om_call(val2_rmethod, ctx2, [val2, val1])
             else:
                 # G: Method and rmethod are absent.
                 #    Raise a TypeError (like CPython).
-                assert False, "TypeError"
+                return sem_raise(ctx, class_TypeError)
 
         # A: Does val1 have method?
         val1_method = getattribute_from_obj_mro(val1, method)
