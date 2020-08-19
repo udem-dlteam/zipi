@@ -622,11 +622,9 @@ def om_int(val):
 
 def om_exception(exn, args):
     # NOTE: This assert only trigger if there is a bug in the code.
-    assert isinstance(args, tuple), 'args must be a tuple'
-
     obj = om(exn, OM_object_create)
     # TODO: wrap in OM_tuple when it is available
-    OM_set(obj, 'args', om_boxval(class_tuple, args))
+    OM_set(obj, 'args', args)
     return obj
 
 def om_WrapperDescriptor(name, code):
@@ -966,7 +964,7 @@ def om_object_getattribute(ctx, args):
         self_clsname_value = OM_get_boxed_value(self_clsname)
 
         msg = om_str("'"+ self_clsname_value +"' object has no attribute '"+name_value+"'")
-        exn = om_exception(class_AttributeError, (msg,))
+        exn = om_exception(class_AttributeError, om_tuple(class_tuple, (msg,)))
         return sem_raise(ctx, exn)
 
     # TODO: check if attr.__get__ exists
@@ -1412,20 +1410,16 @@ def om_function_repr(ctx, args):
 def om_BaseException_str(ctx, args):
     self = args[0]
     self_args = OM_get(self, 'args')
-    self_args_value = OM_get_boxed_value(self_args)
-    len_self_args = len(self_args_value)
-    if len_self_args == 0:
-        return ctx.cont(ctx.rte, om_str(''))
-    elif len_self_args == 1:
-        def return_str_value(rte, result):
-            return ctx.cont(rte, result)
-
-        elem = self_args_value[0]
-        elem_str = getattribute_from_obj_mro(elem, '__str__')
-        ctx1 = with_cont(ctx, return_str_value)
-        return om_call(elem_str, ctx1, [elem])
+    if om_isinstance(self_args, class_tuple):
+        seq = OM_get_tuple_seq(self_args)
+        if len(seq) == 0:
+            return ctx.cont(ctx.rte, om_str(''))
+        elif len(seq) == 1:
+            return sem_repr(ctx, seq[0])
+        else:
+            return sem_repr(ctx, self_args)
     else:
-        assert False, 'Not implemented'
+        return ctx.cont(ctx.rte, om_str("<unimplemented error message format>"))
 
 
 # XXX: need to decide if I keep this
@@ -1724,6 +1718,9 @@ def fresh_rte():
     dict_set(builtins_env, 'NameError', class_NameError)
     dict_set(builtins_env, 'TypeError', class_TypeError)
     dict_set(builtins_env, 'ValueError', class_ValueError)
+    dict_set(builtins_env, 'LookupError', class_LookupError)
+    dict_set(builtins_env, 'IndexError', class_IndexError)
+    dict_set(builtins_env, 'StopIteration', class_StopIteration)
     dict_set(builtins_env, 'ArithmeticError', class_ArithmeticError)
     dict_set(builtins_env, 'ZeroDivisionError', class_ZeroDivisionError)
 
@@ -2677,22 +2674,20 @@ def sem_raise(ctx, exn):
     ctrl_env = rte_ctrl_env(ctx.rte)
 
     # create the exn_object to be created
-    if om_issubclass(exn, class_BaseException):
-        exn_obj = om_exception(exn, ())
+    if om_isinstance(exn, class_type) and om_issubclass(exn, class_BaseException):
+        exn_obj = om_exception(exn, om_tuple(class_tuple, ()))
     elif om_isinstance(exn, class_BaseException):
         exn_obj = exn
     else:
-        exn_obj = om_exception(class_TypeError, ())
+        exn_obj = om_exception(class_TypeError, om_tuple(class_tuple, ()))
 
     if om_is(ctrl_env, absent):
         def uncaught_exception(rte, s):
-            s_value = OM_get_boxed_value(s)
             exn_name = OM_get(OM_get_object_class(exn_obj), '__name__')
             exn_name_value = OM_get_boxed_value(exn_name)
-            if len(s_value) == 0:
-                result = exn_name_value
-            else:
-                result = exn_name_value + ': ' + s_value
+
+            # TODO: format message
+            result = exn_name_value + ': ' + om_simple_repr(ctx, s)
 
             # XXX: should be stderr
             print_stdout(result, rte)
