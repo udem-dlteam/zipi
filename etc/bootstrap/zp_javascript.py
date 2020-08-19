@@ -378,13 +378,17 @@ class Transformer:
                 if y.func.id == "bytearray":
                     px = self.transform(x)
                     out = (
-                        " var "
-                        + px
+                        px
                         + " = "
                         + "new Uint8Array("
                         + (str(y.args[0].n) if y.args else "0")
                         + ");"
                     )
+
+                    # Don't prepend 'var' on attributes:
+                    if not isinstance(targets[0], AST.Attribute):
+                        out = " var " + out
+
                     return out
                 elif y.func.id in self.classes:
                     px = self.transform(x)
