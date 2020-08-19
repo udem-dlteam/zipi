@@ -239,7 +239,7 @@ def rte_unset(rte, varname):
 def unwindReturn(rte, val):
     frame = rte_stack(rte)
     ctx = Context(frame_rte(frame), frame_cont(frame), frame_ast(frame))
-    return expr_end(ctx, val)
+    return ctx.cont(ctx.rte, val)
 
 # function signature
 def make_signature(args, posonlyargs, varargs, kwonlyargs, kw_defaults, kwargs, defaults):
@@ -833,7 +833,7 @@ def om_type_getattribute(ctx, args):
     name_value = OM_get_boxed_value(name)
     if name_value == '__class__':
         result = object_class(self)
-        return expr_end(ctx, result)
+        return ctx.cont(ctx.rte, result)
     else:
         # Get field name
         attr = getattribute_from_class_mro(self, name_value)
@@ -843,7 +843,7 @@ def om_type_getattribute(ctx, args):
         # attr.__get__
         attr__get__ = getattribute_from_obj_mro(attr, '__get__')
         if attr__get__ is absent:
-            return expr_end(ctx, attr)
+            return ctx.cont(ctx.rte, attr)
         else:
             return om_call(attr__get__, ctx, [attr, om_None, self])
 
@@ -870,12 +870,12 @@ def om_WrapperDescriptor_get(ctx, args):
         self_cls = OM_get_WrapperDescriptor_cls(self)
         if self_cls is absent:
             OM_set_WrapperDescriptor_cls(self, cls)
-        return expr_end(ctx, self)
+        return ctx.cont(ctx.rte, self)
     else:
         self_name = OM_get(self, '__name__')
         code = OM_get_code(self)
         method = om_MethodWrapper(self_name, obj, code)
-        return expr_end(ctx, method)
+        return ctx.cont(ctx.rte, method)
 
 def om_WrapperDescriptor_call(ctx, args):
     if debug: print('wrapper_descriptor.__call__')
@@ -884,11 +884,7 @@ def om_WrapperDescriptor_call(ctx, args):
 
     code = OM_get_code(self)
 
-    def cont(rte, val):
-        return expr_end(ctx, val)
-
-    ctx1 = Context(ctx.rte, cont, ctx.ast)
-    return code(ctx1, params)
+    return code(ctx, params)
 
 def om_format_WrapperDescriptor_repr(self, rte):
     self__name__ = OM_get(self, '__name__')
@@ -917,10 +913,7 @@ def om_MethodWrapper_call(ctx, args):
     obj = OM_get_MethodWrapper_instance(self)
     params = [obj] + rest
 
-    def cont(rte, val):
-        return expr_end(ctx, val)
-    ctx1 = Context(ctx.rte, cont, ctx.ast)
-    return om_call(self, ctx1, params)
+    return om_call(self, ctx, params)
 
 def om_format_MethodWrapper_repr(self, rte):
     serial = OM_get_serial(self, rte)
@@ -948,7 +941,7 @@ def om_MethodWrapper_repr(ctx, args):
 # class_object methods
 def om_object_new(ctx, args):
     cls = args[0]
-    return expr_end(ctx, om(cls, OM_object_create))
+    return ctx.cont(ctx.rte, om(cls, OM_object_create))
 
 def om_object_init(ctx, args):
     return ctx.cont(ctx.rte, om_None)
@@ -977,7 +970,7 @@ def om_object_getattribute(ctx, args):
     # TODO: check if attr.__get__ exists
     attr__get__ = getattribute_from_obj_mro(attr, '__get__')
     if attr__get__ is absent:
-        return expr_end(ctx, attr)
+        return ctx.cont(ctx.rte, attr)
     else:
         return om_call(attr__get__, ctx, [attr, self, dt])
 
@@ -1033,7 +1026,7 @@ def om_bool_repr(ctx, args):
 def om_bool_bool(ctx, args):
     if debug: print('bool.__bool__')
     self = args[0]
-    return expr_end(ctx, self)
+    return ctx.cont(ctx.rte, self)
 
 
 # class_int methods
@@ -1063,7 +1056,7 @@ def om_int_eq(ctx, args):
             result = om_False
     else:
         result = om_NotImplemented
-    return expr_end(ctx, result)
+    return ctx.cont(ctx.rte, result)
 
 def om_int_ne(ctx, args):
     if debug: print('int.__ne__')
@@ -1076,7 +1069,7 @@ def om_int_ne(ctx, args):
         result = om_True
     else:
         result = om_False
-    return expr_end(ctx, result)
+    return ctx.cont(ctx.rte, result)
 
 def om_int_lt(ctx, args):
     if debug: print('int.__lt__')
@@ -1089,7 +1082,7 @@ def om_int_lt(ctx, args):
         result = om_True
     else:
         result = om_False
-    return expr_end(ctx, result)
+    return ctx.cont(ctx.rte, result)
 
 def om_int_lte(ctx, args):
     if debug: print('int.__lte__')
@@ -1102,7 +1095,7 @@ def om_int_lte(ctx, args):
         result = om_True
     else:
         result = om_False
-    return expr_end(ctx, result)
+    return ctx.cont(ctx.rte, result)
 
 def om_int_gt(ctx, args):
     if debug: print('int.__gt__')
@@ -1115,7 +1108,7 @@ def om_int_gt(ctx, args):
         result = om_True
     else:
         result = om_False
-    return expr_end(ctx, result)
+    return ctx.cont(ctx.rte, result)
 
 def om_int_gte(ctx, args):
     if debug: print('int.__gte__')
@@ -1128,7 +1121,7 @@ def om_int_gte(ctx, args):
         result = om_True
     else:
         result = om_False
-    return expr_end(ctx, result)
+    return ctx.cont(ctx.rte, result)
 
 def om_format_int_repr(self, rte):
     return int_to_string(OM_get_boxed_value(self), 10)
@@ -1322,7 +1315,7 @@ def om_module_getattribute(ctx, args):
     if result is absent:
         return om_object_getattribute(ctx, args)
     else:
-        return expr_end(ctx, result)
+        return ctx.cont(ctx.rte, result)
 
 def om_format_module_repr(self, rte):
     self_dict = OM_get(self, '__dict__')
@@ -2468,10 +2461,6 @@ def gen_sem_Numeric_BinOp(op_symbol, method, rmethod):
 
     def sem_Numeric_BinOp(ctx, val1, val2):
 
-        # Helpers
-        def call_expr_end(rte, val):
-            return expr_end(ctx, val)
-
         def test_method_result(rte, val):
             # C: Method not implemented for val2's type,
             #    fallback to reversed method.
@@ -2480,7 +2469,7 @@ def gen_sem_Numeric_BinOp(op_symbol, method, rmethod):
             else:
                 # END0: val1 has method and can operate on val2.
                 #       Return the result.
-                return call_expr_end(rte, val)
+                return ctx.cont(rte, val)
 
         def test_rmethod_result(rte, val):
             # F: Rmethod not implemented for val1's type.
@@ -2490,7 +2479,7 @@ def gen_sem_Numeric_BinOp(op_symbol, method, rmethod):
             else:
                 # END1: val2 has rmethod and can operate on val1.
                 #       Return the result.
-                return call_expr_end(rte, val)
+                return ctx.cont(rte, val)
 
         def call_rmethod(rte):
             # D: Does val2 have rmethod?
@@ -2662,7 +2651,7 @@ def gen_constant(cte, ast, val):
     return (cte, code)
 
 def make_tuple(ctx, elements):
-    return expr_end(ctx, om_tuple(class_tuple, elements))
+    return ctx.cont(ctx.rte, om_tuple(class_tuple, elements))
 
 def gen_Tuple(cte, ast, elts):
     return gen_elements(cte, ast, elts, make_tuple, [])
