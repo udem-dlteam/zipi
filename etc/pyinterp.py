@@ -2806,7 +2806,11 @@ def om_simple_exception_format(ctx, exn):
         if len(seq) == 0:
             return exn_name_value
         elif len(seq) == 1:
-            return exn_name_value + ": " + om_simple_repr(ctx, seq[0])
+            el = seq[0]
+            if om_isinstance(el, class_str):
+                return exn_name_value + ": " + OM_get_boxed_value(el)
+            else:
+                return exn_name_value + ": " + om_simple_repr(ctx, seq[0])
         else:
             return exn_name_value + ": " + om_simple_repr(ctx, exn_args)
 
