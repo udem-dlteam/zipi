@@ -239,7 +239,7 @@ def rte_unset(rte, varname):
 def unwindReturn(rte, val):
     frame = rte_stack(rte)
     ctx = Context(frame_rte(frame), frame_cont(frame), frame_ast(frame))
-    return expr_end(ctx, val)
+    return ctx.cont(ctx.rte, val)
 
 # function signature
 def make_signature(args, posonlyargs, varargs, kwonlyargs, kw_defaults, kwargs, defaults):
@@ -833,7 +833,7 @@ def om_type_getattribute(ctx, args):
     name_value = OM_get_boxed_value(name)
     if name_value == '__class__':
         result = object_class(self)
-        return expr_end(ctx, result)
+        return ctx.cont(ctx.rte, result)
     else:
         # Get field name
         attr = getattribute_from_class_mro(self, name_value)
@@ -843,7 +843,7 @@ def om_type_getattribute(ctx, args):
         # attr.__get__
         attr__get__ = getattribute_from_obj_mro(attr, '__get__')
         if attr__get__ is absent:
-            return expr_end(ctx, attr)
+            return ctx.cont(ctx.rte, attr)
         else:
             return om_call(attr__get__, ctx, [attr, om_None, self])
 
@@ -870,12 +870,12 @@ def om_WrapperDescriptor_get(ctx, args):
         self_cls = OM_get_WrapperDescriptor_cls(self)
         if self_cls is absent:
             OM_set_WrapperDescriptor_cls(self, cls)
-        return expr_end(ctx, self)
+        return ctx.cont(ctx.rte, self)
     else:
         self_name = OM_get(self, '__name__')
         code = OM_get_code(self)
         method = om_MethodWrapper(self_name, obj, code)
-        return expr_end(ctx, method)
+        return ctx.cont(ctx.rte, method)
 
 def om_WrapperDescriptor_call(ctx, args):
     if debug: print('wrapper_descriptor.__call__')
@@ -884,11 +884,7 @@ def om_WrapperDescriptor_call(ctx, args):
 
     code = OM_get_code(self)
 
-    def cont(rte, val):
-        return expr_end(ctx, val)
-
-    ctx1 = Context(ctx.rte, cont, ctx.ast)
-    return code(ctx1, params)
+    return code(ctx, params)
 
 def om_format_WrapperDescriptor_repr(self, rte):
     self__name__ = OM_get(self, '__name__')
@@ -917,10 +913,7 @@ def om_MethodWrapper_call(ctx, args):
     obj = OM_get_MethodWrapper_instance(self)
     params = [obj] + rest
 
-    def cont(rte, val):
-        return expr_end(ctx, val)
-    ctx1 = Context(ctx.rte, cont, ctx.ast)
-    return om_call(self, ctx1, params)
+    return om_call(self, ctx, params)
 
 def om_format_MethodWrapper_repr(self, rte):
     serial = OM_get_serial(self, rte)
@@ -948,7 +941,7 @@ def om_MethodWrapper_repr(ctx, args):
 # class_object methods
 def om_object_new(ctx, args):
     cls = args[0]
-    return expr_end(ctx, om(cls, OM_object_create))
+    return ctx.cont(ctx.rte, om(cls, OM_object_create))
 
 def om_object_init(ctx, args):
     return ctx.cont(ctx.rte, om_None)
@@ -977,7 +970,7 @@ def om_object_getattribute(ctx, args):
     # TODO: check if attr.__get__ exists
     attr__get__ = getattribute_from_obj_mro(attr, '__get__')
     if attr__get__ is absent:
-        return expr_end(ctx, attr)
+        return ctx.cont(ctx.rte, attr)
     else:
         return om_call(attr__get__, ctx, [attr, self, dt])
 
@@ -1033,7 +1026,7 @@ def om_bool_repr(ctx, args):
 def om_bool_bool(ctx, args):
     if debug: print('bool.__bool__')
     self = args[0]
-    return expr_end(ctx, self)
+    return ctx.cont(ctx.rte, self)
 
 
 # class_int methods
@@ -1063,7 +1056,7 @@ def om_int_eq(ctx, args):
             result = om_False
     else:
         result = om_NotImplemented
-    return expr_end(ctx, result)
+    return ctx.cont(ctx.rte, result)
 
 def om_int_ne(ctx, args):
     if debug: print('int.__ne__')
@@ -1076,7 +1069,7 @@ def om_int_ne(ctx, args):
         result = om_True
     else:
         result = om_False
-    return expr_end(ctx, result)
+    return ctx.cont(ctx.rte, result)
 
 def om_int_lt(ctx, args):
     if debug: print('int.__lt__')
@@ -1089,7 +1082,7 @@ def om_int_lt(ctx, args):
         result = om_True
     else:
         result = om_False
-    return expr_end(ctx, result)
+    return ctx.cont(ctx.rte, result)
 
 def om_int_lte(ctx, args):
     if debug: print('int.__lte__')
@@ -1102,7 +1095,7 @@ def om_int_lte(ctx, args):
         result = om_True
     else:
         result = om_False
-    return expr_end(ctx, result)
+    return ctx.cont(ctx.rte, result)
 
 def om_int_gt(ctx, args):
     if debug: print('int.__gt__')
@@ -1115,7 +1108,7 @@ def om_int_gt(ctx, args):
         result = om_True
     else:
         result = om_False
-    return expr_end(ctx, result)
+    return ctx.cont(ctx.rte, result)
 
 def om_int_gte(ctx, args):
     if debug: print('int.__gte__')
@@ -1128,7 +1121,7 @@ def om_int_gte(ctx, args):
         result = om_True
     else:
         result = om_False
-    return expr_end(ctx, result)
+    return ctx.cont(ctx.rte, result)
 
 def om_format_int_repr(self, rte):
     return int_to_string(OM_get_boxed_value(self), 10)
@@ -1322,7 +1315,7 @@ def om_module_getattribute(ctx, args):
     if result is absent:
         return om_object_getattribute(ctx, args)
     else:
-        return expr_end(ctx, result)
+        return ctx.cont(ctx.rte, result)
 
 def om_format_module_repr(self, rte):
     self_dict = OM_get(self, '__dict__')
@@ -2026,10 +2019,10 @@ def comp_expr(cte, ast):
 
     elif isinstance(ast, AST.Call):
         if debug: print('AST.Call')
-        (cte1, code1) = comp_expr(cte, ast.func)
-        (cte2, code2) = comp_function_args(cte1, ast.args)
+        (func_cte, func_code) = comp_expr(cte, ast.func)
+        (args_cte, args_code) = comp_function_args(func_cte, ast.args)
         # TODO: compile ast.keywords args
-        return gen_call(cte1, ast, code1, code2)
+        return gen_call(func_cte, ast, func_code, args_code)
     elif isinstance(ast, AST.Tuple):
         if debug: print('AST.Tuple')
         computed_elts = comp_elements(cte, ast.elts)
@@ -2108,6 +2101,11 @@ def gen_signature(cte, ast):
 # receives the new rte and, if the code is for an expression, the result
 # of the expression evaluation.
 
+def do_stmt_end(cont, ast):
+    return lambda rte: stmt_end(Context(rte, cont, ast))
+
+def do_expr_end(cont, ast):
+    return lambda rte, val: expr_end(Context(rte, cont, ast), val)
 
 def gen_stmt_seq(cte, code1, code2):
 
@@ -2196,46 +2194,28 @@ def gen_assert(cte, ast, code1, code2):
 
     return (cte, code)
 
-
-
 def gen_var_set(cte, ast, id, code1):
-
     def code(rte, cont):
-
         def var_set(rte, val):
-            ctx = Context(rte, cont, ast)
-            return sem_var_set(ctx, id, val)
-
+            return sem_var_set(Context(rte, do_stmt_end(cont, ast), ast), id, val)
         return code1(rte, var_set)
-
     return (cte, code)
 
-
-
 def gen_var_get(cte, ast, id):
-
     def code(rte, cont):
-        return sem_var_get(Context(rte, cont, ast), id)
-
+        return sem_var_get(Context(rte, do_expr_end(cont, ast), ast), id)
     return (cte, code)
 
 def gen_delete(cte, ast, expr):
-    (cte1, code) = comp_expr(cte, expr)
+    if isinstance(expr, AST.Name):
+        (expr_cte, code) = comp_expr(cte, expr)
 
+        def del_expr(rte, cont):
+            return sem_var_del(Context(rte, do_stmt_end(cont, ast), ast), expr.id)
 
-    def del_expr(rte, cont):
-        def del_code(rte, val):
-            if isinstance(expr, AST.Name):
-                result = rte_unset(rte, expr.id)
-                if result is absent:
-                    assert False, "name '"+expr.id+"' is not defined"
-                ctx = Context(rte, cont, ast)
-                return stmt_end(ctx)
-            else:
-                assert False, 'only supports var deletion'
-        return code(rte, del_code)
-
-    return (cte1, del_expr)
+        return (expr_cte, del_expr)
+    else:
+        assert False, 'del: only supports var deletion'
 
 
 def gen_delete_seq(cte, ast, targets):
@@ -2243,7 +2223,7 @@ def gen_delete_seq(cte, ast, targets):
     if len(targets) == 1:
         return gen_delete(cte, ast, expr)
     else:
-        assert False, 'multiple targets not yet supported.'
+        assert False, 'del: multiple targets not yet supported.'
 
 def gen_for(cte, target, iterable, body):
 
@@ -2259,7 +2239,7 @@ def gen_for(cte, target, iterable, body):
                     else:
                         def run_body(rte):
                             return body_code(rte, lambda rte: get_next(rte, iterator))
-                        return sem_var_set(Context(rte, run_body, target), target.id, nxt_value)
+                        return sem_var_set(Context(rte, do_stmt_end(run_body, target), target), target.id, nxt_value)
                 return sem_next(Context(rte, assign_target, iterable), iterator, for_loop_end_marker)
             return sem_iter(Context(rte, get_next, iterable), iterable)
         return iterable_code(rte, get_iterator)
@@ -2286,12 +2266,13 @@ def gen_logical_and(cte, ast, code1, code2):
     # XXX: look into runtime environment.
 
     def code(rte, cont):
+        expr_end_cont = do_expr_end(cont, ast)
         def cast_bool(rte1, val1):
             def dispatch(rte2, cond_val):
                 if om_is(cond_val, om_True):
-                    return code2(rte1, cont)
+                    return code2(rte1, expr_end_cont)
                 else:
-                    return cont(rte1, val1)
+                    return expr_end_cont(rte1, val1)
 
             ctx = Context(rte, dispatch, ast)
             return sem_bool(ctx, val1)
@@ -2304,12 +2285,13 @@ def gen_logical_or(cte, ast, code1, code2):
     if debug: print('gen_logical_or')
 
     def code(rte, cont):
+        expr_end_cont = do_expr_end(cont, ast)
         def cast_bool(rte1, val1):
             def dispatch(rte2, cond_val):
                 if om_is(cond_val, om_False):
-                    return cont(rte1, val1)
+                    return expr_end_cont(rte1, val1)
                 else:
-                    return code2(rte1, cont)
+                    return code2(rte1, expr_end_cont)
             return sem_bool(Context(rte1, dispatch, ast), val1)
         return code1(rte, cast_bool)
 
@@ -2324,7 +2306,6 @@ def gen_BoolOp(cte, ast, op, values):
         assert False, 'Should not happen'
     return gen_BoolOp_seq(cte, ast, logical_op, values)
 
-
 # Compilation of sequence of expressions
 
 def gen_BoolOp_seq(cte, ast, logical_op, expr_seq):
@@ -2335,42 +2316,7 @@ def gen_BoolOp_seq(cte, ast, logical_op, expr_seq):
         (cte2, code2) = gen_BoolOp_seq(cte, ast, logical_op, expr_seq[1:])
         return logical_op(cte, ast, code1, code2)
 
-    return (cte, code)
-
-def gen_logical_or(cte, ast, code1, code2):
-    if debug: print('gen_logical_or')
-
-    def code(rte, cont):
-        def cast_bool(rte1, val1):
-            def dispatch(rte2, cond_val):
-                if om_is(cond_val, om_False):
-                    return cont(rte1, val1)
-                else:
-                    return code2(rte1, cont)
-            return sem_bool(Context(rte1, dispatch, ast), val1)
-        return code1(rte, cast_bool)
-
-    return (cte, code)
-
-def gen_BoolOp(cte, ast, op, values):
-    if isinstance(op, AST.And):
-        logical_op = gen_logical_and
-    elif isinstance(op, AST.Or):
-        logical_op = gen_logical_or
-    else:
-        assert False, 'Should not happen'
-    return gen_BoolOp_seq(cte, ast, logical_op, values)
-
-
 # Compilation of sequence of expressions
-
-def gen_BoolOp_seq(cte, ast, logical_op, expr_seq):
-    (cte1, code1) = comp_expr(cte, expr_seq[0])
-    if len(expr_seq) == 1:
-        return (cte1, code1)
-    else:
-        (cte2, code2) = gen_BoolOp_seq(cte, ast, logical_op, expr_seq[1:])
-        return logical_op(cte, ast, code1, code2)
 
 def gen_BinOp(cte, ast, op, code1, code2):
 
@@ -2396,7 +2342,7 @@ def gen_BinOp(cte, ast, op, code1, code2):
                      lambda rte1, val1:
                        code2(rte1,
                              lambda rte2, val2:
-                               sem_op(Context(rte2, cont, ast),
+                               sem_op(Context(rte2, do_expr_end(cont, ast), ast),
                                       val1, val2)))
 
     return (cte, code)
@@ -2422,6 +2368,7 @@ def comp_Compare_Op(op):
 
 
 # NOTE: I hate this function but it works
+# NOTE2: I see why, but yes... it works
 def gen_Compare(cte, ast, left, comparators, ops):
     (cte1, code1) = comp_expr(cte, left)
     (cte2, code2) = comp_expr(cte, comparators[0])
@@ -2433,22 +2380,23 @@ def gen_Compare(cte, ast, left, comparators, ops):
                              lambda rte1, val1:
                                 code2(rte1,
                                       lambda rte2, val2:
-                                         sem_op1(Context(rte2, cont, ast), val1, val2))))
+                                         sem_op1(Context(rte2, do_expr_end(cont, ast), ast), val1, val2))))
 
     elif len(ops) == 2:
         (cte3, code3) = comp_expr(cte, comparators[1])
         sem_op2 = comp_Compare_Op(ops[1])
 
         def retrieve_val1(rte, cont):
+            expr_end_cont = do_expr_end(cont, ast)
             def retrieve_val2(rte1, val1):
                 def retrieve_val3(rte3, val2):
-                    ctx = Context(rte, cont, ast)
+                    ctx = Context(rte, expr_end_cont, ast)
                     return sem_op1(ctx, val1, val2)
 
                 def eval_compare(rte2, val2):
                     def dispatch(rte3, cond_var):
                         if cond_var is False:
-                            return cont(rte3, cond_var)
+                            return expr_end_cont(rte3, cond_var)
                         else:
                             return code3(rte3, retrieve_val3)
 
@@ -2470,10 +2418,6 @@ def gen_sem_Numeric_BinOp(op_symbol, method, rmethod):
 
     def sem_Numeric_BinOp(ctx, val1, val2):
 
-        # Helpers
-        def call_expr_end(rte, val):
-            return expr_end(ctx, val)
-
         def test_method_result(rte, val):
             # C: Method not implemented for val2's type,
             #    fallback to reversed method.
@@ -2482,7 +2426,7 @@ def gen_sem_Numeric_BinOp(op_symbol, method, rmethod):
             else:
                 # END0: val1 has method and can operate on val2.
                 #       Return the result.
-                return call_expr_end(rte, val)
+                return ctx.cont(rte, val)
 
         def test_rmethod_result(rte, val):
             # F: Rmethod not implemented for val1's type.
@@ -2492,7 +2436,7 @@ def gen_sem_Numeric_BinOp(op_symbol, method, rmethod):
             else:
                 # END1: val2 has rmethod and can operate on val1.
                 #       Return the result.
-                return call_expr_end(rte, val)
+                return ctx.cont(rte, val)
 
         def call_rmethod(rte):
             # D: Does val2 have rmethod?
@@ -2659,12 +2603,12 @@ def gen_constant(cte, ast, val):
 
     def code(rte, cont):
         obj = box_object(val)
-        return sem_constant(Context(rte, cont, ast), obj)
+        return sem_constant(Context(rte, do_expr_end(cont, ast), ast), obj)
 
     return (cte, code)
 
 def make_tuple(ctx, elements):
-    return expr_end(ctx, om_tuple(class_tuple, elements))
+    return ctx.cont(ctx.rte, om_tuple(class_tuple, elements))
 
 def gen_Tuple(cte, ast, elts):
     return gen_elements(cte, ast, elts, make_tuple, [])
@@ -2672,7 +2616,7 @@ def gen_Tuple(cte, ast, elts):
 def gen_elements(cte, ast, elts, make_container, acc):
     if len(elts) == 0:
         def code(rte, cont):
-            ctx = Context(rte, cont, ast)
+            ctx = Context(rte, do_expr_end(cont, ast), ast)
             return make_container(ctx, acc)
 
         return cte, code
@@ -2698,20 +2642,17 @@ def gen_Subscript_Load(cte, ast, obj_code, index_code):
         return obj_code(rte, get_index)
 
     def code(rte, cont):
-        def cont_expr_end(final_rte, val):
-            return expr_end(Context(final_rte, cont, ast), val)
-        return get_obj(rte, cont_expr_end)
+        return get_obj(rte, do_expr_end(cont, ast))
     return cte, code
 
 def sem_constant(ctx, val):
-    result = val
-    return expr_end(ctx, result)
+    return ctx.cont(ctx.rte, val)
 
 def sem_var_set(ctx, id, val):
     # Clone the current context.
     # TODO: use link environment
     rte_set(ctx.rte, id, val)
-    return stmt_end(ctx)
+    return ctx.cont(ctx.rte)
 
 def sem_var_get(ctx, id):
     result = rte_lookup(ctx.rte, id)
@@ -2720,21 +2661,27 @@ def sem_var_get(ctx, id):
         ## TODO: need to setup exceptions
         return sem_getattribute(ctx, [env_builtins, om_str(id)])
     else:
-        return expr_end(ctx, result)
+        return ctx.cont(ctx.rte, result)
+
+def sem_var_del(ctx, id):
+    result = rte_unset(ctx.rte, id)
+    if result is absent:
+        return sem_raise_with_message(ctx, class_NameError, id)
+    else:
+        return ctx.cont(ctx.rte)
 
 def sem_bool(ctx, val):
     __val_bool__ = getattribute_from_obj_mro(val, '__bool__')
     if __val_bool__ is absent:
         __val_len__ = getattribute_from_obj_mro(val, '__len__')
         if __val_len__ is absent:
-            return expr_end(ctx, om_True)
+            return ctx.cont(ctx.rte, om_True)
         else:
             def nonzero(rte, val):
                 if val != 0:
-                    result = om_True
+                    return ctx.cont(ctx.rte, om_True)
                 else:
-                    result = om_False
-                return expr_end(ctx, result)
+                    return ctx.cont(ctx.rte, om_False)
 
             ctx1 = with_cont(ctx, nonzero)
             return om_call(__val_len__, ctx1, [val])
@@ -2774,7 +2721,6 @@ def sem_raise_with_message(ctx, exn_type, msg):
     args = om_tuple(class_tuple, (om_str(msg),))
     return sem_raise(ctx, om_exception(exn_type, args))
 
-#def gen_funcdef_code(cte, ast, name, args, body):
 def gen_funcdef_code(cte, ast, body):
 
     # No param handling
@@ -2784,17 +2730,14 @@ def gen_funcdef_code(cte, ast, body):
 
     return (cte, code)
 
-
-
-def gen_call(cte, ast, code1, code2):
-
-
+def gen_call(cte, ast, func_code, args_code):
     def code(rte, cont):
-        return code1(rte,
+        expr_end_cont = do_expr_end(cont, ast)
+        return func_code(rte,
                      lambda rte1, val1:
-                        code2(rte1,
+                        args_code(rte1,
                               lambda rte2, val2:
-                                sem_call(Context(rte, cont, ast),
+                                sem_call(Context(rte, expr_end_cont, ast),
                                          [val1, val2])))
     return (cte, code)
 
@@ -2804,9 +2747,10 @@ def gen_Attribute(cte, ast, code, name):
         return sem_getattribute(ctx, [obj, om_str(name)])
 
     def code1(rte, cont):
+        expr_end_cont = do_expr_end(cont, ast)
         return code(rte,
                     lambda rte, val:
-                       call_getattribute(rte, cont, val))
+                       call_getattribute(rte, expr_end_cont, val))
 
     return (cte, code1)
 
