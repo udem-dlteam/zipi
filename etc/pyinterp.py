@@ -38,6 +38,24 @@ class Context:
     def call(self):
         return self.cont(self.rte)
 
+class RTCtrlLabel:
+    def __init__(self, ctrl_next, break_cont, continue_cont):
+        self.ctrl_next = ctrl_next
+        self.break_cont = break_cont
+        self.continue_cont = continue_cont
+
+class RTCtrlCatch:
+    def __init__(self, ctrl_next, code_catch, lex_env):
+        self.ctrl_next = ctrl_next
+        self.code_catch = code_catch
+        self.lex_env = lex_env
+
+class RTCtrlFinally:
+    def __init__(self, ctrl_next, code_finally, cont):
+        self.ctrl_next = ctrl_next
+        self.code_finally = code_catch
+        self.lex_env = lex_env
+
 def with_cont(ctx, cont):
     return Context(ctx.rte, cont, ctx.ast)
 
@@ -61,24 +79,6 @@ def make_out_of_ast_context(rte, cont):
 #         self.builtins = builtins
 #         self.stack = stack
 #         self.ctrl_env = ctrl_env
-
-class RTCtrlLabel:
-    def __init__(self, ctrl_next, break_cont, continue_cont):
-        self.ctrl_next = ctrl_next
-        self.break_cont = break_cont
-        self.continue_cont = continue_cont
-
-class RTCtrlCatch:
-    def __init__(self, ctrl_next, code_catch, lex_env):
-        self.ctrl_next = ctrl_next
-        self.code_catch = code_catch
-        self.lex_env = lex_env
-
-class RTCtrlFinally:
-    def __init__(self, ctrl_next, code_finally, cont):
-        self.ctrl_next = ctrl_next
-        self.code_finally = code_catch
-        self.lex_env = lex_env
 
 class OM_object:
     """
