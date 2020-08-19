@@ -1782,7 +1782,7 @@ def trampoline(execution_point):
             if len(msg) > 0:
                 msg = ' '+msg
 
-            print('at '+str(ast.lineno)+'.'+str(ast.col_offset+1)+'-'+str(ast.end_lineno)+'.'+str(ast.end_col_offset+1)+' '+msg)
+            print('at '+str(ast.lineno)+'.'+str(ast.col_offset+1)+'-'+str(ast.end_lineno)+'.'+str(ast.end_col_offset+1)+msg)
 
 
     #print('exiting trampoline')
