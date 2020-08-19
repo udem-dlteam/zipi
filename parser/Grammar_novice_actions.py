@@ -895,7 +895,7 @@ def check_assignable(ts, t):\n\
 ,"atom: NAME.":     ["return ast"]
 
 
-,"atom: .NUMBER":   ["ast = set_start_end_1token(ts, Constant(int(token(ts)), None))"]
+,"atom: .NUMBER":   ["ast = set_start_end_1token(ts, Constant(get_value(ts), None))"]
 ,"atom: NUMBER.":   ["return ast"]
 
 

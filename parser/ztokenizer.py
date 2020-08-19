@@ -1,5 +1,5 @@
 from ztoken import *
-from _runtime import dict_get
+from _runtime import dict_get, int_from_string, float_from_string
 
 #------------------------------------------------------------------------------
 
@@ -375,12 +375,13 @@ class TokenizerState:
         self.start = 0
         self.end = 0
         self.token = NEWLINE
+        self.value = None  # token's value when it has a value
         self.line_start = 0
         self.line_num = 1
         self.paren_level = 0
         self.indents = [0]
         self.dedents = 0
-        self.python = 2
+        self.python = 3
         self.context = context
 
 def get_lineno(ts):
@@ -427,6 +428,7 @@ def token(ts):
 
 def get_value(ts):
     return ts.value
+
 #------------------------------------------------------------------------------
 
 # The tokenizer.
@@ -665,14 +667,7 @@ def get_token(ts):
                     inc_stats('k == KIND_DOT')
 
                     if char_kind[next] <= 9:
-                        while True:
-                            pos += 1
-                            next = byte_at(buf, pos)
-                            if char_kind[next] > 9:
-                                break
-                        inc_found(KIND_NUMBER)
-                        ts.end = pos
-                        ts.token = NUMBER
+                        float_tail(ts, pos, KIND_DOT+100)
                         return
                     elif next == 46 and byte_at(buf, pos+1) == 46: # '.'
                         inc_found(KIND_ELLIPSIS)
@@ -707,8 +702,8 @@ def get_token(ts):
                         elif next == 66: # 'B'
                             base = 2
                             pos += 1
-                        else:
-                            base = 8
+                        #elif ts.python == 2: # check for '0' prefixed octal
+                        #    base = -8
                         next = byte_at(buf, pos)
 
                     while True:
@@ -724,37 +719,27 @@ def get_token(ts):
                         pos += 1
                         next = byte_at(buf, pos)
 
-                    if k == 21 and ts.python == 2: # check for trailing 'L'
-                        pos += 1
-                    else:
-                        if k == 100+KIND_DOT:
-                            pos += 1
-                            while True:
-                                next = byte_at(buf, pos)
-                                k = char_kind[next]
-                                if k > 9: # not '0'..'9'
-                                    break
-                                pos += 1
-                        next = next & 0xdf # turn into upper-case letter
-                        if next == 69: # 'E'
-                            pos += 1
-                            next = byte_at(buf, pos)
-                            if next == 43 or next == 45: # '+' or '-'
-                                pos += 1
-                                next = byte_at(buf, pos)
-                            k = char_kind[next]
-                            if k <= 9: # '0'..'9'
-                                while True:
-                                    pos += 1
-                                    next = byte_at(buf, pos)
-                                    k = char_kind[next]
-                                    if k > 9:
-                                        break
+                    if base == 10 and (k == 100+KIND_DOT or  # '.'
+                                       (next & 0xdf) == 69): # 'E' or 'e'
 
-                    inc_found(KIND_NUMBER) # .0268
-                    ts.end = pos
-                    ts.token = NUMBER
-                    return
+                       float_tail(ts, pos, k)
+                       return
+
+                    else:
+
+                        inc_found(KIND_NUMBER)
+                        start = ts.start
+                        if base != 10:
+                            #if base == -8:
+                            #    base = 8
+                            #else:
+                                start += 2 # skip '0x', '0o' and '0b' prefix
+                        ts.value = int_from_string(source(ts, start, pos), base)
+                        if k == 21 and ts.python == 2: # check for trailing 'L'
+                            pos += 1
+                        ts.end = pos
+                        ts.token = NUMBER
+                        return
 
                 if k == KIND_COMMENT: # 0.3% of tokens
                     inc_stats('k == KIND_COMMENT')
@@ -808,6 +793,42 @@ def get_token(ts):
         ts.token = kind_to_token[k]
         return
 
+def float_tail(ts, pos, k):
+
+    buf = ts.buf
+
+    if k == 100+KIND_DOT:
+        pos += 1
+        while True:
+            next = byte_at(buf, pos)
+            k = char_kind[next]
+            if k > 9: # not '0'..'9'
+                break
+            pos += 1
+    else:
+        next = byte_at(buf, pos)
+
+    next = next & 0xdf # turn into upper-case letter
+
+    if next == 69: # 'E'
+        pos += 1
+        next = byte_at(buf, pos)
+        if next == 43 or next == 45: # '+' or '-'
+            pos += 1
+            next = byte_at(buf, pos)
+        k = char_kind[next]
+        if k <= 9: # '0'..'9'
+            while True:
+                pos += 1
+                next = byte_at(buf, pos)
+                k = char_kind[next]
+                if k > 9:
+                    break
+
+    inc_found(KIND_NUMBER)
+    ts.value = float_from_string(source(ts, ts.start, pos))
+    ts.end = pos
+    ts.token = NUMBER
 
 
 def digit_value(byte):
@@ -926,7 +947,7 @@ def string_escape_character(buf, pos, ts):
         # TODO : \N{NAME} is not supported and will not be escaped
         else:
             # default escape
-            ts.value += "\\"
+            ts.value += '\\'
             ts.value += chr(next)
             return pos + 1
     else:
@@ -1061,18 +1082,16 @@ def get_string(ts, pos, c, kind, raw):
     ts.token = STRING
 
     if kind == BYTE_STRING:
-        b=bytearray()
-        ts.value=b
+        b = bytearray()
+        ts.value = b
     else:
         # kind == UNICODE_STRING or other
-        ts.value=""
+        ts.value = ''
 
     if raw:
         get_string_raw(ts, pos, c, kind)
     else:
         get_string_normal(ts, pos, c, kind)
 
-
     if kind == BYTE_STRING:
         ts.value = bytes(ts.value)
-

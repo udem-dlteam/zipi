@@ -55,5 +55,13 @@ def int_from_float(u):
     return u
 
 
+def int_from_string(string, radix):
+    return int(string, radix)
+
+
+def float_from_string(string):
+    return float(string)
+
+
 def print_stdout(msg, rte):
     print(msg)
