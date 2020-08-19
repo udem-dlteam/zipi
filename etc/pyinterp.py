@@ -496,6 +496,7 @@ def populate_builtin_str():
     OM_set_type_mro(class_str, [class_str, class_object])
 
 def populate_builtin_tuple():
+    builtin_add_method(class_tuple, '__new__', om_tuple_new)
     builtin_add_method(class_tuple, '__repr__', om_tuple_repr)
     builtin_add_method(class_tuple, '__len__', om_tuple_len)
     builtin_add_method(class_tuple, '__getitem__', om_tuple_getitem)
@@ -1167,6 +1168,26 @@ def om_tuple_elements_repr(ctx, elts, repr_acc):
 
         return sem_repr(with_cont(ctx, cont), elts[0])
 
+def om_tuple_new(ctx, args):
+    args_len = len(args)
+    if args_len == 0:
+        return sem_raise_with_message(ctx, class_TypeError, "tuple.__new__(): not enough arguments")
+
+    cls = args[0]
+
+    if not om_isinstance(cls, class_type):
+        return sem_raise_with_message(ctx, class_TypeError, "tuple.__new__(X): X is not a type object")
+    elif not om_issubclass(cls, class_tuple):
+        return sem_raise_with_message(ctx, class_TypeError, "tuple.__new__(object): object is not a subtype of tuple")
+    if args_len == 1:
+        return ctx.cont(ctx.rte, om_tuple(class_tuple, ()))
+    elif args_len == 2:
+        def alloc(rte, seq):
+            return ctx.cont(ctx.rte, om_tuple(class_tuple, seq))
+        return om_unpack_iterable(with_cont(ctx, alloc), args[1])
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "tuple expected at most 1 argument, got " + str(args_len))
+
 def om_tuple_repr(ctx, args):
     if debug: print('tuple.__repr__')
     self = args[0]
@@ -1740,6 +1761,7 @@ def fresh_rte(options):
     dict_set(builtins_env, 'int', class_int)
     dict_set(builtins_env, 'bool', class_bool)
     dict_set(builtins_env, 'str', class_str)
+    dict_set(builtins_env, 'tuple', class_tuple)
     dict_set(builtins_env, 'NotImplemented', om_NotImplemented)
     dict_set(builtins_env, 'print', om_builtin_print)
     dict_set(builtins_env, 'repr', om_builtin_repr)
@@ -2745,6 +2767,10 @@ def sem_raise(ctx, exn):
         return code_catch(ctrl_rte, exn_obj)
 
         assert False, 'Not implemented'
+
+def sem_raise_with_message(ctx, exn_type, msg):
+    args = om_tuple(class_tuple, (om_str(msg),))
+    return sem_raise(ctx, om_exception(exn_type, args))
 
 #def gen_funcdef_code(cte, ast, name, args, body):
 def gen_funcdef_code(cte, ast, body):
