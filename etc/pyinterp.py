@@ -1310,7 +1310,7 @@ def gen_dunder_Numeric_BinOp(py_class, method, prim, om_class, om_box):
         #   File "<stdin>", line 1, in <module>
         # TypeError: descriptor '__add__' requires a 'int' object but received a 'str'
         if not om_is(OM_get_object_class(val1), om_class):
-            assert False, "TypeError"
+            return sem_raise(ctx, class_TypeError)
 
         # Primitive operations are only defined on same types.
         if om_is(OM_get_object_class(val2), om_class):
@@ -1333,7 +1333,7 @@ def gen_dunder_Numeric_rBinOp(py_class, method, prim, om_class, om_box):
         val2 = args[1]
 
         if not om_is(OM_get_object_class(val1), om_class):
-            assert False, "TypeError"
+            return sem_raise(ctx, class_TypeError)
 
         if om_is(OM_get_object_class(val2), om_class):
             val1_value = OM_get_boxed_value(val1)
@@ -1367,7 +1367,7 @@ def om_int_floordiv(ctx, args):
     val2 = args[1]
 
     if not om_is(OM_get_object_class(val1), class_int):
-        assert False, "TypeError"
+        return sem_raise(ctx, class_TypeError)
 
     # Early break for ZeroDivisionError
     val2_value = OM_get_boxed_value(val2)
@@ -1389,7 +1389,7 @@ def om_int_rfloordiv(ctx, args):
     val2 = args[1]
 
     if not om_is(OM_get_object_class(val1), class_int):
-        assert False, "TypeError"
+        return sem_raise(ctx, class_TypeError)
 
     # Early break for ZeroDivisionError
     val1_value = OM_get_boxed_value(val1)
@@ -2160,7 +2160,7 @@ def gen_sem_Numeric_BinOp(op_symbol, method, rmethod):
             # F: Rmethod not implemented for val1's type.
             #    Raise TypeError since both methods are absent (like CPython).
             if om_is(val, om_NotImplemented):
-                assert False, "TypeError"
+                return sem_raise(ctx, class_TypeError)
             else:
                 # END1: val2 has rmethod and can operate on val1.
                 #       Return the result.
@@ -2178,7 +2178,7 @@ def gen_sem_Numeric_BinOp(op_symbol, method, rmethod):
             else:
                 # G: Method and rmethod are absent.
                 #    Raise a TypeError (like CPython).
-                assert False, "TypeError"
+                return sem_raise(ctx, class_TypeError)
 
         # A: Does val1 have method?
         val1_method = getattribute_from_obj_mro(val1, method)
