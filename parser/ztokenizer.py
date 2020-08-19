@@ -1086,7 +1086,7 @@ def get_string(ts, pos, c, kind, raw):
     ts.token = STRING
 
     if kind == BYTE_STRING:
-        b = bytearray()
+        b = []
         ts.value = b
     else:
         # kind == UNICODE_STRING or other
