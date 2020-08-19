@@ -1419,10 +1419,12 @@ def box_object(obj):
         return om_False
     elif isinstance(obj, int):
         return om_int(int_from_float(obj))
+    elif is_Int_or_BigInt(obj):  # instance of Int class
+        return om_int(obj)
     elif isinstance(obj, str):
         return om_str(obj)
     else:
-        return obj
+        raise ValueError("Cannot box object " + str(obj))
 
 # Create builtins classes
 class_str = make_builtin_class_str()

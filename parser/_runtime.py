@@ -65,3 +65,8 @@ def float_from_string(string):
 
 def print_stdout(msg, rte):
     print(msg)
+
+
+# Checks if it is int.js Int class or BigInt
+def is_Int_or_BigInt(n):
+    return isinstance(n, int)
