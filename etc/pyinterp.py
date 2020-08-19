@@ -1312,8 +1312,50 @@ om_int_rsub = gen_dunder_Numeric_rBinOp('int', '__rsub__', int_sub, class_int, o
 om_int_mul = gen_dunder_Numeric_BinOp('int', '__mul__', int_mul, class_int, om_int)
 om_int_rmul = om_int_mul
 
-om_int_mod = gen_dunder_Numeric_BinOp('int', '__mod__', int_mod, class_int, om_int)
-om_int_rmod = gen_dunder_Numeric_rBinOp('int', '__rmod__', int_mod, class_int, om_int)
+# Mod has a check for division by zero.
+def om_int_mod(ctx, args):
+    if debug: print("int.__mod__")
+    val1 = args[0]
+    val2 = args[1]
+
+    if not om_is(OM_get_object_class(val1), class_int):
+        return sem_raise(ctx, class_TypeError)
+
+    # Early break for ZeroDivisionError
+    val2_value = OM_get_boxed_value(val2)
+    if int_is_zero(val2_value):
+        return sem_raise(ctx, class_ZeroDivisionError)
+
+    # Primitive operations are only defined on same types.
+    if om_is(OM_get_object_class(val2), class_int):
+        val1_value = OM_get_boxed_value(val1)
+        result = int_mod(val1_value, val2_value)
+        return ctx.cont(ctx.rte, om_int(result))
+    else:
+        # TODO: Return om_NotImplemented(rte) (in the proper rte)
+        return ctx.cont(ctx.rte, om_NotImplemented)
+
+def om_int_rmod(ctx, args):
+    if debug: print("int.__rmod__")
+    val1 = args[0]
+    val2 = args[1]
+
+    if not om_is(OM_get_object_class(val1), class_int):
+        return sem_raise(ctx, class_TypeError)
+
+    # Early break for ZeroDivisionError
+    val1_value = OM_get_boxed_value(val1)
+    if int_is_zero(val1_value):
+        return sem_raise(ctx, class_ZeroDivisionError)
+
+    # Primitive operations are only defined on same types.
+    if om_is(OM_get_object_class(val2), class_int):
+        val2_value = OM_get_boxed_value(val2)
+        result = int_mod(val2_value, val1_value)
+        return ctx.cont(ctx.rte, om_int(result))
+    else:
+        # TODO: Return om_NotImplemented(rte) (in the proper rte)
+        return ctx.cont(ctx.rte, om_NotImplemented)
 
 # FloorDiv has another check for division by zero.
 # Write it by hand.
