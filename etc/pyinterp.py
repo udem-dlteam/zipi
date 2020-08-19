@@ -46,6 +46,24 @@ def make_out_of_ast_context(rte, cont):
 #         self.stack = stack
 #         self.ctrl_env = ctrl_env
 
+class RTCtrlLabel:
+    def __init__(self, ctrl_next, break_cont, continue_cont):
+        self.ctrl_next = ctrl_next
+        self.break_cont = break_cont
+        self.continue_cont = continue_cont
+
+class RTCtrlCatch:
+    def __init__(self, ctrl_next, code_catch, lex_env):
+        self.ctrl_next = ctrl_next
+        self.code_catch = code_catch
+        self.lex_env = lex_env
+
+class RTCtrlFinally:
+    def __init__(self, ctrl_next, code_finally, cont):
+        self.ctrl_next = ctrl_next
+        self.code_finally = code_catch
+        self.lex_env = lex_env
+
 class OM_object:
     """
     klass: the __class__ attribute of the object
@@ -124,6 +142,16 @@ def make_rte(rte, globals_env, locals_env, builtins, stack, ctrl_env, vm):
     dict_set(rte, "vm", vm)
 
     return rte
+
+def make_rte_from_new_ctrl_env(rte, ctrl_env):
+    return make_rte(rte,
+                    rte_globals(rte),
+                    rte_locals(rte),
+                    rte_builtins(rte),
+                    rte_stack(rte),
+                    ctrl_env,
+                    rte_vm(rte))
+
 
 def rte_serial_counter(rte):
     return dict_get(rte, 'serial_counter', absent)
@@ -476,6 +504,8 @@ def populate_builtin_FunctionType():
     OM_set_type_mro(class_function, [class_function, class_object])
 
 def populate_builtin_BaseException():
+    builtin_add_method(class_BaseException, '__str__', om_BaseException_str)
+
     OM_set_type_mro(class_BaseException, [class_BaseException, class_object])
 
 def populate_builtin_Exception():
@@ -489,6 +519,9 @@ def populate_builtin_TypeError():
 
 def populate_builtin_ValueError():
     OM_set_type_mro(class_ValueError, [class_ValueError, class_Exception, class_BaseException, class_object])
+
+def populate_builtin_AttributeError():
+    OM_set_type_mro(class_AttributeError, [class_AttributeError, class_Exception, class_BaseException, class_object])
 
 def populate_builtin_ArithmeticError():
     OM_set_type_mro(class_ArithmeticError, [class_ArithmeticError, class_Exception, class_BaseException, class_object])
@@ -558,6 +591,15 @@ def om_str(val):
 def om_int(val):
     return om_boxval(class_int, val)
 
+def om_exception(exn, args):
+    # NOTE: This assert only trigger if there is a bug in the code.
+    assert isinstance(args, tuple), 'args must be a tuple'
+
+    obj = om(exn, OM_object_create)
+    # TODO: wrap in OM_tuple when it is available
+    OM_set(obj, 'args', om_boxval(class_tuple, args))
+    return obj
+
 def om_WrapperDescriptor(name, code):
     obj = om(class_WrapperDescriptor, OM_WrapperDescriptor_create)
     OM_set_code(obj, code)
@@ -580,6 +622,18 @@ def om_is(x, y):
 
 def om_is_falsy(val):
     return om_is(val, om_False)
+
+def om_issubclass(subcls, cls):
+    subcls_mro = OM_get_type_mro(subcls)
+
+    len_mro = len(subcls_mro)
+
+    i = 0
+    while i < len_mro:
+        if om_is(cls, subcls_mro[i]):
+            return True
+        i += 1
+    return False
 
 # Creation of om object from class
 def OM_object_create():
@@ -876,7 +930,12 @@ def om_object_getattribute(ctx, args):
     # Get field name
     attr = getattribute_from_obj_mro(self, name_value)
     if attr is absent:
-        assert False, "'object' object has no attribute '"+name_value+"'"
+        self_clsname = OM_get(OM_get_object_class(self), '__name__')
+        self_clsname_value = OM_get_boxed_value(self_clsname)
+
+        msg = om_str("'"+ self_clsname_value +"' object has no attribute '"+name_value+"'")
+        exn = om_exception(class_AttributeError, (msg,))
+        return sem_raise(ctx, exn)
 
     # TODO: check if attr.__get__ exists
     attr__get__ = getattribute_from_obj_mro(attr, '__get__')
@@ -1073,9 +1132,7 @@ def om_int_floordiv(ctx, args):
     val1_value = OM_get_boxed_value(val1)
     val2_value = OM_get_boxed_value(val2)
     if val2_value == 0:
-        # TODO: implemented sem_raise
-        #return sem_raise(ctx, om_ZeroDivisionError())
-        assert False, 'Division by zero'
+        return sem_raise(ctx, class_ZeroDivisionError)
     else:
         result = val1_value // val2_value
         return expr_end(ctx, om_int(result))
@@ -1296,7 +1353,7 @@ def om_function_call(ctx, args):
     locals_env = align_args_with_signature(ctx, params, signature)
 
     stack = make_frame(ctx.rte, ctx.cont, ctx.ast)
-    rte = make_rte(ctx.rte, rte_globals(ctx.rte), make_dict_from_list(locals_env), rte_builtins(ctx.rte), stack, absent, rte_vm(ctx.rte))
+    rte = make_rte(ctx.rte, rte_globals(ctx.rte), make_dict_from_list(locals_env), rte_builtins(ctx.rte), stack, rte_ctrl_env(ctx.rte), rte_vm(ctx.rte))
     body = OM_get_function_body(self)
     return body(rte,
                 lambda rte1:
@@ -1311,6 +1368,26 @@ def om_function_repr(ctx, args):
     self = args[0]
     result = om_str(om_format_function_repr(self, ctx.rte))
     return ctx.cont(ctx.rte, result)
+
+# class_BaseException methods
+def om_BaseException_str(ctx, args):
+    self = args[0]
+    self_args = OM_get(self, 'args')
+    self_args_value = OM_get_boxed_value(self_args)
+    len_self_args = len(self_args_value)
+    if len_self_args == 0:
+        return ctx.cont(ctx.rte, om_str(''))
+    elif len_self_args == 1:
+        def return_str_value(rte, result):
+            return ctx.cont(rte, result)
+
+        elem = self_args_value[0]
+        elem_str = getattribute_from_obj_mro(elem, '__str__')
+        ctx1 = with_cont(ctx, return_str_value)
+        return om_call(elem_str, ctx1, [elem])
+    else:
+        assert False, 'Not implemented'
+
 
 # XXX: need to decide if I keep this
 def box_object(obj):
@@ -1354,6 +1431,7 @@ class_Exception = make_builtin_class('Exception', class_type)
 class_NameError = make_builtin_class('NameError', class_type)
 class_TypeError = make_builtin_class('TypeError', class_type)
 class_ValueError = make_builtin_class('ValueError', class_type)
+class_AttributeError = make_builtin_class('AttributeError', class_type)
 class_ArithmeticError = make_builtin_class('ArithmeticError', class_type)
 class_ZeroDivisionError = make_builtin_class('ZeroDivisionError', class_type)
 
@@ -1363,8 +1441,8 @@ om_False = om_boxval(class_bool, False)
 om_NotImplemented = om(class_NotImplementedType, OM_object_create)
 
 # Primitive operators for doing actual computations
-def gen_prim_Numeric_BinOp(py_class, method, prim, om_class, om_box):
-    def prim_Numeric_BinOp(ctx, args):
+def gen_dunder_Numeric_BinOp(py_class, method, prim, om_class, om_box):
+    def dunder_Numeric_BinOp(ctx, args):
         if debug: print(cls + "." + method)
         val1 = args[0]
         val2 = args[1]
@@ -1375,7 +1453,7 @@ def gen_prim_Numeric_BinOp(py_class, method, prim, om_class, om_box):
         #   File "<stdin>", line 1, in <module>
         # TypeError: descriptor '__add__' requires a 'int' object but received a 'str'
         if not om_is(OM_get_object_class(val1), om_class):
-            assert False, "TypeError"
+            return sem_raise(ctx, class_TypeError)
 
         # Primitive operations are only defined on same types.
         if om_is(OM_get_object_class(val2), om_class):
@@ -1387,18 +1465,18 @@ def gen_prim_Numeric_BinOp(py_class, method, prim, om_class, om_box):
             # TODO: Return om_NotImplemented(rte) (in the proper rte)
             return ctx.cont(ctx.rte, om_NotImplemented)
 
-    return prim_Numeric_BinOp
+    return dunder_Numeric_BinOp
 
 # Reversed operators reverse the order of their arguments when
 # doing the computation.
-def gen_prim_Numeric_rBinOp(py_class, method, prim, om_class, om_box):
-    def prim_Numeric_rBinOp(ctx, args):
+def gen_dunder_Numeric_rBinOp(py_class, method, prim, om_class, om_box):
+    def dunder_Numeric_rBinOp(ctx, args):
         if debug: print(cls + "." + method)
         val1 = args[0]
         val2 = args[1]
 
         if not om_is(OM_get_object_class(val1), om_class):
-            assert False, "TypeError"
+            return sem_raise(ctx, class_TypeError)
 
         if om_is(OM_get_object_class(val2), om_class):
             val1_value = OM_get_boxed_value(val1)
@@ -1410,19 +1488,19 @@ def gen_prim_Numeric_rBinOp(py_class, method, prim, om_class, om_box):
             # TODO: Return om_NotImplemented(rte) (in the proper rte)
             return ctx.cont(ctx.rte, om_NotImplemented)
 
-    return prim_Numeric_rBinOp
+    return dunder_Numeric_rBinOp
 
-om_int_add = gen_prim_Numeric_BinOp('int', '__add__', int_add, class_int, om_int)
+om_int_add = gen_dunder_Numeric_BinOp('int', '__add__', int_add, class_int, om_int)
 om_int_radd = om_int_add
 
-om_int_sub = gen_prim_Numeric_BinOp('int', '__sub__', int_sub, class_int, om_int)
-om_int_rsub = gen_prim_Numeric_rBinOp('int', '__rsub__', int_sub, class_int, om_int)
+om_int_sub = gen_dunder_Numeric_BinOp('int', '__sub__', int_sub, class_int, om_int)
+om_int_rsub = gen_dunder_Numeric_rBinOp('int', '__rsub__', int_sub, class_int, om_int)
 
-om_int_mul = gen_prim_Numeric_BinOp('int', '__mul__', int_mul, class_int, om_int)
+om_int_mul = gen_dunder_Numeric_BinOp('int', '__mul__', int_mul, class_int, om_int)
 om_int_rmul = om_int_mul
 
-om_int_mod = gen_prim_Numeric_BinOp('int', '__mod__', int_mod, class_int, om_int)
-om_int_rmod = gen_prim_Numeric_rBinOp('int', '__rmod__', int_mod, class_int, om_int)
+om_int_mod = gen_dunder_Numeric_BinOp('int', '__mod__', int_mod, class_int, om_int)
+om_int_rmod = gen_dunder_Numeric_rBinOp('int', '__rmod__', int_mod, class_int, om_int)
 
 # FloorDiv has another check for division by zero.
 # Write it by hand.
@@ -1432,12 +1510,12 @@ def om_int_floordiv(ctx, args):
     val2 = args[1]
 
     if not om_is(OM_get_object_class(val1), class_int):
-        assert False, "TypeError"
+        return sem_raise(ctx, class_TypeError)
 
     # Early break for ZeroDivisionError
     val2_value = OM_get_boxed_value(val2)
     if int_is_zero(val2_value):
-        assert False, "ZeroDivisionError"
+        return sem_raise(ctx, class_ZeroDivisionError)
 
     # Primitive operations are only defined on same types.
     if om_is(OM_get_object_class(val2), class_int):
@@ -1454,12 +1532,12 @@ def om_int_rfloordiv(ctx, args):
     val2 = args[1]
 
     if not om_is(OM_get_object_class(val1), class_int):
-        assert False, "TypeError"
+        return sem_raise(ctx, class_TypeError)
 
     # Early break for ZeroDivisionError
     val1_value = OM_get_boxed_value(val1)
     if int_is_zero(val1_value):
-        assert False, "ZeroDivisionError"
+        return sem_raise(ctx, class_ZeroDivisionError)
 
     # Primitive operations are only defined on same types.
     if om_is(OM_get_object_class(val2), class_int):
@@ -1495,6 +1573,7 @@ populate_builtin_Exception()
 populate_builtin_NameError()
 populate_builtin_TypeError()
 populate_builtin_ValueError()
+populate_builtin_AttributeError()
 populate_builtin_ArithmeticError()
 populate_builtin_ZeroDivisionError()
 
@@ -1625,6 +1704,8 @@ def trampoline(execution_point):
         ctx = state[3]
 
         if execution_point and msg is not None:
+            if len(msg) > 0:
+                msg = ' '+msg
 
             print('at '+str(ast.lineno)+'.'+str(ast.col_offset+1)+'-'+str(ast.end_lineno)+'.'+str(ast.end_col_offset+1)+' '+msg)
 
@@ -1792,6 +1873,11 @@ def comp_stmt(cte, ast):
         # TODO: support else block
         if debug: print('AST.For')
         return gen_for(cte, ast.target, ast.iter, ast.body)
+
+    elif isinstance(ast, AST.Raise):
+        if debug: print('AST.Raise')
+        (cte1, code1) = comp_expr(cte, ast.exc)
+        return gen_raise(cte1, ast, code1)
 
     else:
         assert False, 'comp_stmt expected a statement AST'
@@ -2078,6 +2164,13 @@ def gen_for(cte, target, iterable, body):
         return iterable_code(rte, get_iterator)
     return body_cte, get_iterable
 
+def gen_raise(cte, ast, code):
+    def eval_raise_param(rte, cont):
+        def raise_exn(rte1, exn):
+            ctx = Context(rte1, cont, ast)
+            return sem_raise(ctx, exn)
+        return code(rte, raise_exn)
+    return (cte, eval_raise_param)
 
 def gen_Expr(cte, ast, code1):
 
@@ -2294,7 +2387,7 @@ def gen_sem_Numeric_BinOp(op_symbol, method, rmethod):
             # F: Rmethod not implemented for val1's type.
             #    Raise TypeError since both methods are absent (like CPython).
             if om_is(val, om_NotImplemented):
-                assert False, "TypeError"
+                return sem_raise(ctx, class_TypeError)
             else:
                 # END1: val2 has rmethod and can operate on val1.
                 #       Return the result.
@@ -2306,22 +2399,20 @@ def gen_sem_Numeric_BinOp(op_symbol, method, rmethod):
 
             # E: Yes, try val2.rmethod(val1)
             if val2_rmethod is not absent:
-                # TODO: Refactor to 'with_cont' when it is available.
-                ctx2 = Context(rte, test_rmethod_result, ctx.ast)
-                # NOTE: Semantics don't switch arguments, primitives do.
-                return om_call(val2_rmethod, ctx2, [val1, val2])
+                ctx2 = with_cont(ctx, test_rmethod_result)
+                # NOTE: self parameter is now val2
+                return om_call(val2_rmethod, ctx2, [val2, val1])
             else:
                 # G: Method and rmethod are absent.
                 #    Raise a TypeError (like CPython).
-                assert False, "TypeError"
+                return sem_raise(ctx, class_TypeError)
 
         # A: Does val1 have method?
         val1_method = getattribute_from_obj_mro(val1, method)
 
         # B: Yes, try val1.method(val2).
         if val1_method is not absent:
-            # TODO: Refactor to 'with_cont' when it is available.
-            ctx1 = Context(ctx.rte, test_method_result, ctx.ast)
+            ctx1 = with_cont(ctx, test_method_result)
             return om_call(val1_method, ctx1, [val1, val2])
         else:
             return call_rmethod(ctx.rte)
@@ -2359,26 +2450,38 @@ sem_LtE = macro_sem_binary_operator_protocol('<=', '__lte__', '__gte__')
 sem_GtE = macro_sem_binary_operator_protocol('>=', '__gte__', '__lte__')
 
 def sem_repr(ctx, val1):
-    __repr__ = getattribute_from_obj_mro(val1, '__repr__')
-    return om_call(__repr__, ctx, [val1])
+    val1_repr = getattribute_from_obj_mro(val1, '__repr__')
+    # assert val1_repr is not absent, '__repr__ not defined'
+
+    def check_string(rte, res):
+        cls = OM_get_type_class(res)
+        if om_is(cls, class_str):
+            return ctx.cont(rte, res)
+        else:
+            err = om(class_TypeError, OM_object_create)
+            return sem_raise(ctx, err)
+
+    ctx1 = with_cont(ctx, check_string)
+    return om_call(val1_repr, ctx, [val1])
 
 def sem_getattribute(ctx, args):
     obj = args[0]
     name = args[1]
 
-    # XXX: Unused until exception is added to rte.
     def catch_AttributeError(rte, exn):
-        __getattr__ = getattribute_from_obj_mro(obj, '__getattr__')
-        if __getattr__ is absent:
-            assert False, 'raise current exception'
+        obj_getattr = getattribute_from_obj_mro(obj, '__getattr__')
+        new_ctx = Context(rte, ctx.cont, ctx.ast)
+        if obj_getattr is absent:
+            return sem_raise(new_ctx, exn)
         else:
-            new_ctx = Context(rte, ctx.cont, ctx.ast)
-            return __getattr__(ctx, args)
+            return om_call(obj_getattr, new_ctx, args)
 
-    __getattribute__ = getattribute_from_obj_mro(obj, '__getattribute__')
+    obj_getattribute = getattribute_from_obj_mro(obj, '__getattribute__')
 
-    # TODO: setup exn
-    return om_call(__getattribute__, ctx, args)
+    catcher = RTCtrlCatch(rte_ctrl_env(ctx.rte), catch_AttributeError, ctx.rte)
+    new_rte = make_rte_from_new_ctrl_env(ctx.rte, catcher)
+    ctx1 = Context(new_rte, ctx.cont, ctx.ast)
+    return om_call(obj_getattribute, ctx1, args)
 
 def sem_call(ctx, args):
     self = args[0]
@@ -2512,11 +2615,49 @@ def sem_bool(ctx, val):
                     result = om_False
                 return expr_end(ctx, result)
 
-            ctx1 = Context(ctx.rte, nonzero, ctx.ast)
+            ctx1 = with_cont(ctx, nonzero)
             return om_call(__val_len__, ctx1, [val])
     else:
         return om_call(__val_bool__, ctx, [val])
 
+
+def sem_raise(ctx, exn):
+    ctrl_env = rte_ctrl_env(ctx.rte)
+
+    exn_cls = OM_get_object_class(exn)
+
+    # create the exn_object to be created
+    if om_is(exn_cls, class_type):
+        exn_obj = om_exception(exn, ())
+    elif om_issubclass(exn_cls, class_BaseException):
+        exn_obj = exn
+    else:
+        exn_obj = om_exception(class_TypeError, ())
+
+    if om_is(ctrl_env, absent):
+        def uncaught_exception(rte, s):
+            s_value = OM_get_boxed_value(s)
+            exn_name = OM_get(OM_get_object_class(exn_obj), '__name__')
+            exn_name_value = OM_get_boxed_value(exn_name)
+            if len(s_value) == 0:
+                result = exn_name_value
+            else:
+                result = exn_name_value + ': ' + s_value
+
+            # XXX: should be stderr
+            print_stdout(result, rte)
+            return None
+
+        ctx1 = with_cont(ctx, uncaught_exception)
+        exn_obj_str = getattribute_from_obj_mro(exn_obj, '__str__')
+        return om_call(exn_obj_str, ctx1, [exn_obj])
+    else:
+        # XXX: does not unwind all the way
+        ctrl_rte = ctrl_env.lex_env
+        code_catch = ctrl_env.code_catch
+        return code_catch(ctrl_rte, exn)
+
+        assert False, 'Not implemented'
 
 #def gen_funcdef_code(cte, ast, name, args, body):
 def gen_funcdef_code(cte, ast, body):

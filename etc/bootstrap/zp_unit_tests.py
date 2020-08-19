@@ -99,34 +99,34 @@ def test_dict_get():
 
 
 @Equals("""at 1.1-2.11
-at 3.1-3.4: value = <function foo #0>
-at 3.5-3.7: value = 10
-at 2.10-2.11: value = 10
-at 3.1-3.8: value = 10
+at 3.1-3.4 <function foo #0>
+at 3.5-3.7 10
+at 2.10-2.11 10
+at 3.1-3.8 10
 """)
 def test_pyinterp():
     source = "def foo(x):\n  return x\nfoo(10)"
     return interp_source(source)
 
 
-@Equals("""at 1.5-1.6: value = 1
+@Equals("""at 1.5-1.6 1
 at 1.1-1.6
-at 2.1-2.2: value = 1
-at 2.1-2.12: value = <class 'int'>
-at 3.1-3.4: value = <class 'int'>
-at 3.1-3.14: value = <class 'type'>
-at 4.1-4.2: value = 1
-at 4.1-4.10: value = <method-wrapper '__add__' of int object #0>
-at 4.1-4.20: value = <class 'method-wrapper'>
-at 5.1-5.4: value = <class 'int'>
-at 5.1-5.12: value = <slot wrapper '__add__' of 'int' objects>
-at 5.1-5.22: value = <class 'wrapper_descriptor'>
-at 6.1-6.6: value = 'str'
-at 6.1-6.16: value = <class 'str'>
-at 7.1-7.4: value = <class 'str'>
-at 7.1-7.14: value = <class 'type'>
-at 8.1-8.13: value = <module 'builtins' (built-in)>
-at 8.1-8.23: value = <class 'module'>
+at 2.1-2.2 1
+at 2.1-2.12 <class 'int'>
+at 3.1-3.4 <class 'int'>
+at 3.1-3.14 <class 'type'>
+at 4.1-4.2 1
+at 4.1-4.10 <method-wrapper '__add__' of int object #0>
+at 4.1-4.20 <class 'method-wrapper'>
+at 5.1-5.4 <class 'int'>
+at 5.1-5.12 <slot wrapper '__add__' of 'int' objects>
+at 5.1-5.22 <class 'wrapper_descriptor'>
+at 6.1-6.6 'str'
+at 6.1-6.16 <class 'str'>
+at 7.1-7.4 <class 'str'>
+at 7.1-7.14 <class 'type'>
+at 8.1-8.13 <module 'builtins' (built-in)>
+at 8.1-8.23 <class 'module'>
 """)
 def test_class_attribute():
     source = """x = 1
@@ -141,13 +141,13 @@ __builtins__.__class__
     return interp_source(source)
 
 
-@Equals("""at 1.1-1.14: value = <class 'BaseException'>
-at 2.1-2.10: value = <class 'Exception'>
-at 3.1-3.10: value = <class 'NameError'>
-at 4.1-4.10: value = <class 'TypeError'>
-at 5.1-5.11: value = <class 'ValueError'>
-at 6.1-6.16: value = <class 'ArithmeticError'>
-at 7.1-7.18: value = <class 'ZeroDivisionError'>
+@Equals("""at 1.1-1.14 <class 'BaseException'>
+at 2.1-2.10 <class 'Exception'>
+at 3.1-3.10 <class 'NameError'>
+at 4.1-4.10 <class 'TypeError'>
+at 5.1-5.11 <class 'ValueError'>
+at 6.1-6.16 <class 'ArithmeticError'>
+at 7.1-7.18 <class 'ZeroDivisionError'>
 """)
 def test_exception_class():
     source = """BaseException
@@ -163,47 +163,47 @@ ZeroDivisionError
 
 # int methods
 # Only test some cases for now...
-@Equals("""at 1.1-1.4: value = <class 'int'>
-at 1.1-1.12: value = <slot wrapper '__add__' of 'int' objects>
-at 1.13-1.14: value = 2
-at 1.16-1.19: value = 'a'
-at 1.1-1.20: value = NotImplemented
+@Equals("""at 1.1-1.4 <class 'int'>
+at 1.1-1.12 <slot wrapper '__add__' of 'int' objects>
+at 1.13-1.14 2
+at 1.16-1.19 'a'
+at 1.1-1.20 NotImplemented
 """)
 def test_int__add__0():
     source = "int.__add__(2, 'a')"
     return interp_source(source)
 
 
-@Equals("""at 1.1-1.2: value = 8
-at 1.5-1.6: value = 1
-at 1.1-1.6: value = 7
+@Equals("""at 1.1-1.2 8
+at 1.5-1.6 1
+at 1.1-1.6 7
 """)
 def test_int__sub__0():
     source = "8 - 1"
     return interp_source(source)
 
 
-@Equals("""at 1.1-1.2: value = 2
-at 1.5-1.6: value = 8
-at 1.1-1.6: value = 16
+@Equals("""at 1.1-1.2 2
+at 1.5-1.6 8
+at 1.1-1.6 16
 """)
 def test_int__mul__0():
     source = "2 * 8"
     return interp_source(source)
 
 
-@Equals("""at 1.1-1.2: value = 8
-at 1.6-1.7: value = 2
-at 1.1-1.7: value = 4
+@Equals("""at 1.1-1.2 8
+at 1.6-1.7 2
+at 1.1-1.7 4
 """)
 def test_int__div__0():
     source = "8 // 2"
     return interp_source(source)
 
 
-@Equals("""at 1.1-1.2: value = 8
-at 1.5-1.6: value = 2
-at 1.1-1.6: value = 0
+@Equals("""at 1.1-1.2 8
+at 1.5-1.6 2
+at 1.1-1.6 0
 """)
 def test_int__mod__0():
     source = "8 % 2"
