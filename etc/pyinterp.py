@@ -951,38 +951,6 @@ def om_int_bool(ctx, args):
         result = om_False
     return ctx.cont(ctx.rte, result)
 
-def om_int_add(ctx, args):
-    if debug: print('int.__add__')
-    val1 = args[0]
-    val2 = args[1]
-
-    if om_is(OM_get_object_class(val2), class_int):
-        val1_value = OM_get_boxed_value(val1)
-        val2_value = OM_get_boxed_value(val2)
-        result = int_add(val1_value, val2_value)
-        return ctx.cont(ctx.rte, om_int(result))
-    else:
-        return ctx.cont(ctx.rte, om_NotImplemented)
-
-om_int_radd = om_int_add
-
-def om_int_sub(ctx, args):
-    if debug: print('int.__sub__')
-    val1 = args[0]
-    val2 = args[1]
-
-    val1_value = OM_get_boxed_value(val1)
-    val2_value = OM_get_boxed_value(val2)
-    # TODO: add type check.
-    result = int_sub(val1_value, val2_value)
-    return ctx.cont(ctx.rte, om_int(result))
-
-def om_int_rsub(ctx, args):
-    val1 = args[0]
-    val2 = args[1]
-
-    return om_int_sub(ctx, [val2, val1])
-
 def om_int_eq(ctx, args):
     if debug: print('int.__eq__')
     val1 = args[0]
@@ -1065,18 +1033,6 @@ def om_int_gte(ctx, args):
     else:
         result = om_False
     return expr_end(ctx, result)
-
-def om_int_floordiv(ctx, args):
-    val1 = args[0]
-    val2 = args[1]
-
-    val1_value = OM_get_boxed_value(val1)
-    val2_value = OM_get_boxed_value(val2)
-    if val2_value == 0:
-        return sem_raise(ctx, class_ZeroDivisionError)
-    else:
-        result = val1_value // val2_value
-        return expr_end(ctx, om_int(result))
 
 def om_format_int_repr(self, rte):
     return int_to_string(OM_get_boxed_value(self), 10)
