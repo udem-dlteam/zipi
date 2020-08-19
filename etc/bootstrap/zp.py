@@ -175,6 +175,8 @@ function chr(code) { return String.fromCharCode.apply(null,[code]); }
     if cli_args.tests:
         with open("int.js", "r") as f:
             runtime += " " + f.read()
+        with open("float.js", "r") as f:
+            runtime += " " + f.read()
 
     # Modules
     if cli_args.node or cli_args.browser:

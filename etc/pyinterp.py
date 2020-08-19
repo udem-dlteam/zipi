@@ -475,6 +475,13 @@ def populate_builtin_int():
 
     OM_set_type_mro(class_int, [class_int, class_object])
 
+def populate_builtin_float():
+    builtin_add_method(class_float, '__add__', om_float_add)
+    builtin_add_method(class_float, '__radd__', om_float_radd)
+    builtin_add_method(class_float, '__repr__', om_float_repr)
+
+    OM_set_type_mro(class_float, [class_float, class_object])
+
 def populate_builtin_bool():
     # TODO: complete bool magic method
     builtin_add_method(class_bool, '__bool__', om_bool_bool)
@@ -626,6 +633,9 @@ def om_str(val):
 
 def om_int(val):
     return om_boxval(class_int, val)
+
+def om_float(val):
+    return om_boxval(class_float, val)
 
 def om_exception(exn, args):
     # NOTE: This assert only trigger if there is a bug in the code.
@@ -1133,6 +1143,9 @@ def om_int_gte(ctx, args):
 def om_format_int_repr(self, rte):
     return int_to_string(OM_get_boxed_value(self), 10)
 
+def om_format_float_repr(self, rte):
+    return float_to_string(OM_get_boxed_value(self), 10)
+
 def om_int_repr(ctx, args):
     self = args[0]
     result = om_format_int_repr(self, ctx.rte)
@@ -1438,8 +1451,8 @@ def box_object(obj):
         return om_True
     elif obj is False:
         return om_False
-    elif isinstance(obj, int):
-        return om_int(int_from_float(obj))
+    elif float_instance(obj):
+        return om_float(obj)
     elif int_instance(obj):
         return om_int(obj)
     elif isinstance(obj, str):
@@ -1458,6 +1471,7 @@ class_WrapperDescriptor = make_builtin_class('wrapper_descriptor', class_type)
 class_MethodWrapper = make_builtin_class('method-wrapper', class_type)
 
 class_int = make_builtin_class('int', class_type)
+class_float = make_builtin_class('float', class_type)
 class_bool = make_builtin_class('bool', class_type)
 class_NoneType = make_builtin_class('NoneType', class_type)
 
@@ -1636,6 +1650,15 @@ def om_int_rfloordiv(ctx, args):
         # TODO: Return om_NotImplemented(rte) (in the proper rte)
         return ctx.cont(ctx.rte, om_NotImplemented)
 
+# Float dunders
+om_float_add = gen_dunder_Numeric_BinOp('float', '__add__', float_add, class_float, om_float)
+om_float_radd = om_float_add
+
+def om_float_repr(ctx, args):
+    self = args[0]
+    result = om_format_float_repr(self, ctx.rte)
+    return ctx.cont(ctx.rte, om_str(result))
+
 populate_builtin_type()
 populate_builtin_object()
 
@@ -1646,6 +1669,7 @@ populate_builtin_MethodWrapper()
 
 # Basic type and date structure.
 populate_builtin_int()
+populate_builtin_float()
 populate_builtin_bool()
 populate_builtin_str()
 populate_builtin_tuple()
@@ -1761,6 +1785,7 @@ def fresh_rte(options):
     dict_set(builtins_env, 'type', class_type)
     dict_set(builtins_env, 'object', class_object)
     dict_set(builtins_env, 'int', class_int)
+    dict_set(builtins_env, 'float', class_float)
     dict_set(builtins_env, 'bool', class_bool)
     dict_set(builtins_env, 'str', class_str)
     dict_set(builtins_env, 'tuple', class_tuple)
@@ -2828,6 +2853,7 @@ def om_tuple_simple_repr(tuple_, rte):
 
 simple_repr_formatters = {
     "int": om_format_int_repr,
+    "float": om_format_float_repr,
     "bool": om_format_bool_repr,
     "str": om_format_str_repr,
     "tuple": om_tuple_simple_repr,

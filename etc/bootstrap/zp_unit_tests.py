@@ -210,5 +210,14 @@ def test_int__mod__0():
     return interp_source(source)
 
 
+@Equals("""at 1.1-1.4 0.1
+at 1.7-1.10 0.2
+at 1.1-1.10 0.30000000000000004
+""")
+def test_float__add__0():
+    source = "0.1 + 0.2"
+    return interp_source(source)
+
+
 if __name__ == "__main__":
     run_tests()

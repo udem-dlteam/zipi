@@ -52,15 +52,11 @@ def int_is_zero(u):
 
 
 def int_from_float(u):
-    return u
+    return int(u)
 
 
 def int_from_string(string, radix):
     return int(string, radix)
-
-
-def float_from_string(string):
-    return float(string)
 
 
 def print_stdout(msg, rte):
@@ -70,3 +66,25 @@ def print_stdout(msg, rte):
 # Checks if it is int.js Int class or BigInt
 def int_instance(n):
     return isinstance(n, int)
+
+
+# Floats
+def float_from_string(string):
+    return float(string)
+
+
+def float_to_string(u, radix):
+    # XXX: radix is ignored
+    return str(u)
+
+
+def float_from_float(u):
+    return float(u)
+
+
+def float_instance(u):
+    return isinstance(u, float)
+
+
+def float_add(u, v):
+    return u + v
