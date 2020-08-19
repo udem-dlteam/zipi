@@ -179,6 +179,9 @@ class Transformer:
         elif func == "set":
             # Don't accept arguments.
             return "new Set();"
+        # noop for bytes
+        elif func == "bytes":
+            return args
         elif func[-14:] == "indents.append":
             return func[:-7] + ".push(" + args + ")"
         elif func == "len":
