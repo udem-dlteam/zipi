@@ -68,5 +68,5 @@ def print_stdout(msg, rte):
 
 
 # Checks if it is int.js Int class or BigInt
-def is_Int_or_BigInt(n):
+def int_instance(n):
     return isinstance(n, int)
