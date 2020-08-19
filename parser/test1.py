@@ -293,9 +293,9 @@ return x , y
 #yield x , y , * z
 #yield from x
 
-#raise
-#raise x
-#raise x from y
+raise
+raise x
+raise x from y
 
 x = y
 x , y = z
