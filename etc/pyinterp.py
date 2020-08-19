@@ -145,7 +145,7 @@ def frame_cont(frame):
 def frame_ast(frame):
     return frame[2]
 
-def make_rte(rte, globals_env, locals_env, builtins, stack, ctrl_env, vm):
+def make_rte(rte, globals_env, locals_env, builtins, stack, ctrl_env, vm, trace):
     if rte is absent:
         serial_counter = [0]
     else:
@@ -160,6 +160,7 @@ def make_rte(rte, globals_env, locals_env, builtins, stack, ctrl_env, vm):
     dict_set(rte, "stack", stack)
     dict_set(rte, "ctrl_env", ctrl_env)
     dict_set(rte, "vm", vm)
+    dict_set(rte, "trace", trace)
 
     return rte
 
@@ -170,7 +171,8 @@ def make_rte_from_new_ctrl_env(rte, ctrl_env):
                     rte_builtins(rte),
                     rte_stack(rte),
                     ctrl_env,
-                    rte_vm(rte))
+                    rte_vm(rte),
+                    rte_trace(rte))
 
 
 def rte_serial_counter(rte):
@@ -199,6 +201,9 @@ def rte_ctrl_env(rte):
 
 def rte_vm(rte):
     return dict_get(rte, 'vm', absent)
+
+def rte_trace(rte):
+    return dict_get(rte, 'trace', True)
 
 # Return variable value or absent.
 def rte_lookup_globals(rte, name):
@@ -1041,38 +1046,6 @@ def om_int_bool(ctx, args):
         result = om_False
     return ctx.cont(ctx.rte, result)
 
-def om_int_add(ctx, args):
-    if debug: print('int.__add__')
-    val1 = args[0]
-    val2 = args[1]
-
-    if om_is(OM_get_object_class(val2), class_int):
-        val1_value = OM_get_boxed_value(val1)
-        val2_value = OM_get_boxed_value(val2)
-        result = int_add(val1_value, val2_value)
-        return ctx.cont(ctx.rte, om_int(result))
-    else:
-        return ctx.cont(ctx.rte, om_NotImplemented)
-
-om_int_radd = om_int_add
-
-def om_int_sub(ctx, args):
-    if debug: print('int.__sub__')
-    val1 = args[0]
-    val2 = args[1]
-
-    val1_value = OM_get_boxed_value(val1)
-    val2_value = OM_get_boxed_value(val2)
-    # TODO: add type check.
-    result = int_sub(val1_value, val2_value)
-    return ctx.cont(ctx.rte, om_int(result))
-
-def om_int_rsub(ctx, args):
-    val1 = args[0]
-    val2 = args[1]
-
-    return om_int_sub(ctx, [val2, val1])
-
 def om_int_eq(ctx, args):
     if debug: print('int.__eq__')
     val1 = args[0]
@@ -1155,18 +1128,6 @@ def om_int_gte(ctx, args):
     else:
         result = om_False
     return expr_end(ctx, result)
-
-def om_int_floordiv(ctx, args):
-    val1 = args[0]
-    val2 = args[1]
-
-    val1_value = OM_get_boxed_value(val1)
-    val2_value = OM_get_boxed_value(val2)
-    if val2_value == 0:
-        return sem_raise(ctx, class_ZeroDivisionError)
-    else:
-        result = val1_value // val2_value
-        return expr_end(ctx, om_int(result))
 
 def om_format_int_repr(self, rte):
     return int_to_string(OM_get_boxed_value(self), 10)
@@ -1391,7 +1352,7 @@ def om_function_call(ctx, args):
     locals_env = align_args_with_signature(ctx, params, signature)
 
     stack = make_frame(ctx.rte, ctx.cont, ctx.ast)
-    rte = make_rte(ctx.rte, rte_globals(ctx.rte), make_dict_from_list(locals_env), rte_builtins(ctx.rte), stack, rte_ctrl_env(ctx.rte), rte_vm(ctx.rte))
+    rte = make_rte(ctx.rte, rte_globals(ctx.rte), make_dict_from_list(locals_env), rte_builtins(ctx.rte), stack, rte_ctrl_env(ctx.rte), rte_vm(ctx.rte), rte_trace(ctx.rte))
     body = OM_get_function_body(self)
     return body(rte,
                 lambda rte1:
@@ -1561,8 +1522,50 @@ om_int_rsub = gen_dunder_Numeric_rBinOp('int', '__rsub__', int_sub, class_int, o
 om_int_mul = gen_dunder_Numeric_BinOp('int', '__mul__', int_mul, class_int, om_int)
 om_int_rmul = om_int_mul
 
-om_int_mod = gen_dunder_Numeric_BinOp('int', '__mod__', int_mod, class_int, om_int)
-om_int_rmod = gen_dunder_Numeric_rBinOp('int', '__rmod__', int_mod, class_int, om_int)
+# Mod has a check for division by zero.
+def om_int_mod(ctx, args):
+    if debug: print("int.__mod__")
+    val1 = args[0]
+    val2 = args[1]
+
+    if not om_is(OM_get_object_class(val1), class_int):
+        return sem_raise(ctx, class_TypeError)
+
+    # Early break for ZeroDivisionError
+    val2_value = OM_get_boxed_value(val2)
+    if int_is_zero(val2_value):
+        return sem_raise(ctx, class_ZeroDivisionError)
+
+    # Primitive operations are only defined on same types.
+    if om_is(OM_get_object_class(val2), class_int):
+        val1_value = OM_get_boxed_value(val1)
+        result = int_mod(val1_value, val2_value)
+        return ctx.cont(ctx.rte, om_int(result))
+    else:
+        # TODO: Return om_NotImplemented(rte) (in the proper rte)
+        return ctx.cont(ctx.rte, om_NotImplemented)
+
+def om_int_rmod(ctx, args):
+    if debug: print("int.__rmod__")
+    val1 = args[0]
+    val2 = args[1]
+
+    if not om_is(OM_get_object_class(val1), class_int):
+        return sem_raise(ctx, class_TypeError)
+
+    # Early break for ZeroDivisionError
+    val1_value = OM_get_boxed_value(val1)
+    if int_is_zero(val1_value):
+        return sem_raise(ctx, class_ZeroDivisionError)
+
+    # Primitive operations are only defined on same types.
+    if om_is(OM_get_object_class(val2), class_int):
+        val2_value = OM_get_boxed_value(val2)
+        result = int_mod(val2_value, val1_value)
+        return ctx.cont(ctx.rte, om_int(result))
+    else:
+        # TODO: Return om_NotImplemented(rte) (in the proper rte)
+        return ctx.cont(ctx.rte, om_NotImplemented)
 
 # FloorDiv has another check for division by zero.
 # Write it by hand.
@@ -1683,9 +1686,9 @@ def om_iter_code(rte, _):
         assert False, "NotImplementedError"
 
 # Interpreter
-def interp_file(path):
+def interp_file(path, options):
     source = read_file(path)
-    interp(parse(source, path, 'exec', False))
+    interp(parse(source, path, 'exec', False), options)
 
 @nocompile
 def read_file(path):
@@ -1694,14 +1697,16 @@ def read_file(path):
     return content
 
 def interp_source(src):
-    interp(parse(src, '<unknown>', 'exec', False))
+    options = {}
+    dict_set(options, 'trace', True)
+    interp(parse(src, '<unknown>', 'exec', False), options)
 
 def parse(source, filename, mode, context):
     return AST.parse(source, filename, mode, context)
 
-def interp(ast):
+def interp(ast, options):
     code = comp(ast)
-    trampoline(prepare_execution(code, fresh_rte()))
+    trampoline(prepare_execution(code, fresh_rte(options)))
 
 def comp(ast):
     cte = dict()  # unused for now
@@ -1713,11 +1718,14 @@ def comp(ast):
 def prepare_execution(code, rte):
     return lambda: code(rte, lambda rte: None)
 
-def fresh_rte():
+def fresh_rte(options):
     locals_env = absent
     globals_env = make_dict()
     builtins_env = make_dict()
-    rte = make_rte(absent, globals_env, locals_env, builtins_env, absent, absent, absent)
+
+    trace = dict_get(options, 'trace', False)
+
+    rte = make_rte(absent, globals_env, locals_env, builtins_env, absent, absent, absent, trace)
 
     om_builtin_print = om_make_function_with_signature('print', om_print_code, make_posonly_only_signature(('obj',)))
     om_builtin_repr = om_make_function_with_signature('repr', om_repr_code, make_posonly_only_signature(('obj',)))
@@ -1770,7 +1778,7 @@ def trampoline(execution_point):
         execution_point = state[2]
         ctx = state[3]
 
-        if execution_point and msg is not None:
+        if execution_point and msg is not None and rte_trace(ctx.rte):
             if len(msg) > 0:
                 msg = ' '+msg
 
