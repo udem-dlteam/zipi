@@ -1,5 +1,3 @@
-generate-test:
-	cd _gen_test && python generate.ppy
 
-tests: generate-test
+tests:
 	python run.py --zipi "python ../pyinterp-run.py "
