@@ -140,7 +140,8 @@ def make_rte_from_new_ctrl_env(rte, ctrl_env):
                     rte_builtins(rte),
                     rte_stack(rte),
                     ctrl_env,
-                    rte_vm(rte))
+                    rte_vm(rte),
+                    rte_trace(rte))
 
 
 def rte_serial_counter(rte):
