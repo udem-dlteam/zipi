@@ -19,6 +19,12 @@ class Absent:
 
 absent = Absent()
 
+class ForLoopEndMarker:
+    def __str__(self):
+        return "<for loop terminate marker>"
+
+for_loop_end_marker = ForLoopEndMarker()
+
 class Context:
     def __init__(self, rte, cont, ast):
         self.rte = rte
@@ -34,6 +40,16 @@ class Context:
 
 def with_cont(ctx, cont):
     return Context(ctx.rte, cont, ctx.ast)
+
+def with_catch(ctx, catcher_cont):
+    catcher = RTCtrlCatch(rte_ctrl_env(ctx.rte), catcher_cont, ctx.rte)
+    next_rte = make_rte_from_new_ctrl_env(ctx.rte, catcher)
+    return Context(next_rte, ctx.cont, ctx.ast)
+
+def with_cont_and_catch(ctx, cont, catcher_cont):
+    catcher = RTCtrlCatch(rte_ctrl_env(ctx.rte), catcher_cont, ctx.rte)
+    next_rte = make_rte_from_new_ctrl_env(ctx.rte, catcher)
+    return Context(next_rte, cont, ctx.ast)
 
 def make_out_of_ast_context(rte, cont):
     return Context(rte, cont, None)
@@ -80,6 +96,21 @@ class OM_type(OM_object):
 class OM_box(OM_object):
     """
     value: the inner value wrapped into the object model.
+    """
+
+    def __str__(self):
+        value = OM_get_boxed_value(self)
+        return "<OM_box (" + str(value) + ")>"
+
+class OM_tuple(OM_object):
+    """
+    seq: the inner sequence of objects
+    """
+
+class OM_iterator(OM_object):
+    """
+    obj: object the iterator is iterating over
+    index: current index
     """
 
 class OM_function(OM_box):
@@ -308,10 +339,15 @@ def align_args_with_signature(ctx, caller_args, signature):
         elif caller_args_len < total_args_len:
             missing_args_len = total_args_len - caller_args_len
             if defaults_len >= missing_args_len:
+
                 result =  caller_args.copy()
                 start = defaults_len - missing_args_len
-                result.append(defaults[start:defaults_len])
-                return result
+
+                while start < defaults_len:
+                    result.append(defaults[start])
+                    start += 1
+
+                return align_args_with_signature(ctx, result, signature)
             else:
                 assert False, 'TypeError'
         else:
@@ -321,7 +357,7 @@ def align_args_with_signature(ctx, caller_args, signature):
 def make_dict_from_list(lst):
     result = make_dict()
     for e in lst:
-        result[e[0]] = e[1]
+        dict_set(result, e[0], e[1])
     return result
 
 def class_getattr(o, attr):
@@ -460,10 +496,16 @@ def populate_builtin_str():
     OM_set_type_mro(class_str, [class_str, class_object])
 
 def populate_builtin_tuple():
-    # TODO: not implemented
-    #builtin_add_method(fields, '__repr__', om_tuple_repr)
+    builtin_add_method(class_tuple, '__repr__', om_tuple_repr)
+    builtin_add_method(class_tuple, '__len__', om_tuple_len)
+    builtin_add_method(class_tuple, '__getitem__', om_tuple_getitem)
 
     OM_set_type_mro(class_tuple, [class_tuple, class_object])
+
+def populate_builtin_iterator():
+    builtin_add_method(class_iterator, '__next__', om_iterator_next)
+
+    OM_set_type_mro(class_iterator, (class_iterator, class_object))
 
 def populate_builtin_dict():
     OM_set_type_mro(class_dict, [class_dict, class_object])
@@ -487,6 +529,7 @@ def populate_builtin_FunctionType():
     OM_set_type_mro(class_function, [class_function, class_object])
 
 def populate_builtin_BaseException():
+    builtin_add_method(class_BaseException, '__new__', om_BaseException_new)
     builtin_add_method(class_BaseException, '__str__', om_BaseException_str)
 
     OM_set_type_mro(class_BaseException, [class_BaseException, class_object])
@@ -502,6 +545,15 @@ def populate_builtin_TypeError():
 
 def populate_builtin_ValueError():
     OM_set_type_mro(class_ValueError, [class_ValueError, class_Exception, class_BaseException, class_object])
+
+def populate_builtin_StopIteration():
+    OM_set_type_mro(class_StopIteration, [class_StopIteration, class_Exception, class_BaseException, class_object])
+
+def populate_builtin_LookupError():
+    OM_set_type_mro(class_LookupError, [class_LookupError, class_Exception, class_BaseException, class_object])
+
+def populate_builtin_IndexError():
+    OM_set_type_mro(class_IndexError, [class_IndexError, class_LookupError, class_Exception, class_BaseException, class_object])
 
 def populate_builtin_AttributeError():
     OM_set_type_mro(class_AttributeError, [class_AttributeError, class_Exception, class_BaseException, class_object])
@@ -542,6 +594,19 @@ def om_boxval(cls, val):
     OM_set_boxed_value(obj, val)
     return obj
 
+def om_tuple(cls, seq):
+    obj = om(cls, OM_tuple_create)
+    OM_set_tuple_seq(obj, seq)
+    return obj
+
+def om_iterator(cls, obj, index):
+    it = om(cls, OM_iterator_create)
+
+    OM_set_iterator_obj(it, obj)
+    OM_set_iterator_index(it, index)
+
+    return it
+
 def om_module(name, val):
     obj = om(class_module, OM_object_create)
 
@@ -563,11 +628,9 @@ def om_int(val):
 
 def om_exception(exn, args):
     # NOTE: This assert only trigger if there is a bug in the code.
-    assert isinstance(args, tuple), 'args must be a tuple'
-
     obj = om(exn, OM_object_create)
     # TODO: wrap in OM_tuple when it is available
-    OM_set(obj, 'args', om_boxval(class_tuple, args))
+    OM_set(obj, 'args', args)
     return obj
 
 def om_WrapperDescriptor(name, code):
@@ -605,6 +668,9 @@ def om_issubclass(subcls, cls):
         i += 1
     return False
 
+def om_isinstance(obj, cls):
+    return om_issubclass(OM_get_object_class(obj), cls)
+
 # Creation of om object from class
 def OM_object_create():
     return OM_object()
@@ -614,6 +680,12 @@ def OM_type_create():
 
 def OM_box_create():
     return OM_box()
+
+def OM_tuple_create():
+    return OM_tuple()
+
+def OM_iterator_create():
+    return OM_iterator()
 
 def OM_function_create():
     return OM_function()
@@ -667,6 +739,24 @@ def OM_set_boxed_value(o, value):
 
 def OM_get_boxed_value(o):
     return o.value
+
+def OM_get_tuple_seq(o):
+    return o.seq
+
+def OM_set_tuple_seq(o, value):
+    o.seq = value
+
+def OM_get_iterator_obj(o):
+    return o.obj
+
+def OM_set_iterator_obj(o, it):
+    o.obj = it
+
+def OM_get_iterator_index(o):
+    return o.index
+
+def OM_set_iterator_index(o, index):
+    o.index = index
 
 def OM_set_code(o, code):
     o.code = code
@@ -880,7 +970,7 @@ def om_object_getattribute(ctx, args):
         self_clsname_value = OM_get_boxed_value(self_clsname)
 
         msg = om_str("'"+ self_clsname_value +"' object has no attribute '"+name_value+"'")
-        exn = om_exception(class_AttributeError, (msg,))
+        exn = om_exception(class_AttributeError, om_tuple(class_tuple, (msg,)))
         return sem_raise(ctx, exn)
 
     # TODO: check if attr.__get__ exists
@@ -1047,6 +1137,96 @@ def om_int_repr(ctx, args):
     result = om_format_int_repr(self, ctx.rte)
     return ctx.cont(ctx.rte, om_str(result))
 
+# class_tuple methods
+
+def join_str(om_strings, sep):
+    acc = ''
+    strings_len = len(om_strings)
+    i = 0
+    while i < strings_len - 1:
+        acc += om_strings[i] + sep
+        i += 1
+
+    return acc + om_strings[-1]
+
+def om_tuple_elements_repr(ctx, elts, repr_acc):
+    if len(elts) == 0:
+        repr_acc_len = len(repr_acc)
+        if repr_acc_len == 0:
+            return ctx.cont(ctx.rte, om_str("()"))
+        elif repr_acc_len == 1:
+            result = '(' + OM_get_boxed_value(repr_acc[0]) + ',)'
+            return ctx.cont(ctx.rte, om_str(result))
+        else:
+            result = '(' + join_str(repr_acc, ', ') + ')'
+            return ctx.cont(ctx.rte, om_str(result))
+    else:
+        def cont(rte, value):
+            repr_acc.append(OM_get_boxed_value(value))
+            return om_tuple_elements_repr(ctx, elts[1:], repr_acc)
+
+        return sem_repr(with_cont(ctx, cont), elts[0])
+
+def om_tuple_repr(ctx, args):
+    if debug: print('tuple.__repr__')
+    self = args[0]
+
+    elements = OM_get_tuple_seq(self)
+
+    return om_tuple_elements_repr(ctx, elements, [])
+
+def om_tuple_len(ctx, args):
+    if debug: print('tuple.__len__')
+    self = args[0]
+    elements = OM_get_tuple_seq(self)
+    elements_len = len(elements)
+
+    return ctx.cont(ctx.rte, om_int(elements_len))
+
+def om_tuple_getitem(ctx, args):
+    if debug: print('tuple.__getitem__')
+
+    self = args[0]
+    item = args[1]
+
+    # TODO: cover subtypes of int
+    if om_is(OM_get_object_class(item), class_int):
+        item_box_index = OM_get_boxed_value(item)
+        elements = OM_get_tuple_seq(self)
+        elements_len = len(elements)
+        if item_box_index >= 0 and item_box_index < elements_len:
+            return ctx.cont(ctx.rte, elements[item_box_index])
+        elif item_box_index < 0 and item_box_index >= -elements_len:
+            return ctx.cont(ctx.rte, elements[item_box_index + elements_len])
+        else:
+            return sem_raise(ctx, class_IndexError)
+    else:
+        return sem_raise(ctx, class_TypeError)
+
+# class_iterator_methods
+
+def om_iterator_next(ctx, args):
+    if debug: print('iterator.__next__')
+
+    self = args[0]
+
+    obj = OM_get_iterator_obj(self)
+    index = OM_get_iterator_index(self)
+
+    def increment_index(rte, val):
+        OM_set_iterator_index(self, om_int(OM_get_boxed_value(index) + 1))
+        return ctx.cont(rte, val)
+
+    def catch_IndexError(rte, exn):
+        if om_isinstance(exn, class_IndexError):
+            return sem_raise(ctx, class_StopIteration)
+        else:
+            return sem_raise(ctx, exn)
+
+    next_ctx = with_cont_and_catch(ctx, increment_index, catch_IndexError)
+
+    return sem_getitem(next_ctx, obj, index)
+
 # class_str methods
 def om_convert_to_str(ctx, value):
     value_str = getattribute_from_obj_mro(value, "__str__")
@@ -1095,7 +1275,7 @@ def om_str_repr(ctx, args):
     if debug: print('str.__repr__')
     self = args[0]
 
-    formatted_str = om_format_str_repr(self)
+    formatted_str = om_format_str_repr(self, ctx.rte)
 
     return ctx.cont(ctx.rte, om_str(formatted_str))
 
@@ -1189,23 +1369,44 @@ def om_function_repr(ctx, args):
     return ctx.cont(ctx.rte, result)
 
 # class_BaseException methods
+def om_BaseException_new(ctx, args):
+    cls = args[0]
+    # TODO: use vararg once available
+    exn_args = om_tuple(class_tuple, args[1:])
+
+    return ctx.cont(ctx.rte, om_exception(cls, exn_args))
+
 def om_BaseException_str(ctx, args):
     self = args[0]
     self_args = OM_get(self, 'args')
-    self_args_value = OM_get_boxed_value(self_args)
-    len_self_args = len(self_args_value)
-    if len_self_args == 0:
-        return ctx.cont(ctx.rte, om_str(''))
-    elif len_self_args == 1:
-        def return_str_value(rte, result):
-            return ctx.cont(rte, result)
 
-        elem = self_args_value[0]
-        elem_str = getattribute_from_obj_mro(elem, '__str__')
-        ctx1 = with_cont(ctx, return_str_value)
-        return om_call(elem_str, ctx1, [elem])
-    else:
-        assert False, 'Not implemented'
+    def cont(rte, seq):
+        if len(seq) == 0:
+            return ctx.cont(ctx.rte, om_str(""))
+        elif len(seq) == 1:
+            return om_convert_to_str(ctx, seq[0])
+        else:
+            acc = []
+            # TODO: hack to avoid using nonlocal in map_repr
+            i_ref = [0]
+
+            def map_repr(_, val):
+                acc.append(val)
+                i_ref[0] += 1
+                if i_ref[0] < len(seq):
+                    return sem_repr(with_cont(ctx, map_repr), seq[i_ref[0]])
+                else:
+                    acc_str = []
+                    i = 0
+                    while i < len(acc):
+                        acc_str.append(OM_get_boxed_value(acc[i]))
+                        i += 1
+                    return ctx.cont(ctx.rte, om_str("(" + ", ".join(acc_str) + ")"))
+
+            return sem_repr(with_cont(ctx, map_repr), seq[i_ref[0]])
+
+
+    return om_unpack_iterable(with_cont(ctx, cont), self_args)
 
 
 # XXX: need to decide if I keep this
@@ -1238,6 +1439,7 @@ class_bool = make_builtin_class('bool', class_type)
 class_NoneType = make_builtin_class('NoneType', class_type)
 
 class_tuple = make_builtin_class('tuple', class_type)
+class_iterator = make_builtin_class('iterator', class_type)
 class_list = make_builtin_class('list', class_type)
 class_dict = make_builtin_class('dict', class_type)
 class_module = make_builtin_class('module', class_type)
@@ -1249,6 +1451,9 @@ class_Exception = make_builtin_class('Exception', class_type)
 class_NameError = make_builtin_class('NameError', class_type)
 class_TypeError = make_builtin_class('TypeError', class_type)
 class_ValueError = make_builtin_class('ValueError', class_type)
+class_StopIteration = make_builtin_class('StopIteration', class_type)
+class_LookupError = make_builtin_class('LookupError', class_type)
+class_IndexError = make_builtin_class('IndexError', class_type)
 class_AttributeError = make_builtin_class('AttributeError', class_type)
 class_ArithmeticError = make_builtin_class('ArithmeticError', class_type)
 class_ZeroDivisionError = make_builtin_class('ZeroDivisionError', class_type)
@@ -1421,6 +1626,7 @@ populate_builtin_int()
 populate_builtin_bool()
 populate_builtin_str()
 populate_builtin_tuple()
+populate_builtin_iterator()
 populate_builtin_dict()
 populate_builtin_module()
 populate_builtin_NoneType()
@@ -1432,6 +1638,8 @@ populate_builtin_Exception()
 populate_builtin_NameError()
 populate_builtin_TypeError()
 populate_builtin_ValueError()
+populate_builtin_StopIteration()
+populate_builtin_IndexError()
 populate_builtin_AttributeError()
 populate_builtin_ArithmeticError()
 populate_builtin_ZeroDivisionError()
@@ -1445,6 +1653,37 @@ def om_print_code(rte, _):
 
     next_ctx = make_out_of_ast_context(rte, cont)
     return om_convert_to_str(next_ctx, rte_lookup(rte, 'obj'))
+
+def om_repr_code(rte, _):
+    def cont(rte, res):
+        return unwindReturn(rte, res)
+    next_ctx = make_out_of_ast_context(rte, cont)
+    return sem_repr(next_ctx, rte_lookup(rte, 'obj'))
+
+def om_len_code(rte, _):
+    def cont(rte, res):
+        return unwindReturn(rte, res)
+    next_ctx = make_out_of_ast_context(rte, cont)
+    return sem_len(next_ctx, rte_lookup(rte, 'obj'))
+
+def om_next_code(rte, _):
+    def cont(rte, res):
+        return unwindReturn(rte, res)
+    next_ctx = make_out_of_ast_context(rte, cont)
+    return sem_next(next_ctx, rte_lookup(rte, 'obj'), rte_lookup(rte, 'default'))
+
+def om_iter_code(rte, _):
+    def cont(rte, res):
+        return unwindReturn(rte, res)
+    next_ctx = make_out_of_ast_context(rte, cont)
+
+    obj = rte_lookup(rte, 'obj')
+    sentinel = rte_lookup(rte, 'sentinel')
+
+    if sentinel is absent:
+        return sem_iter(next_ctx, obj)
+    else:
+        assert False, "NotImplementedError"
 
 # Interpreter
 def interp_file(path, options):
@@ -1489,6 +1728,12 @@ def fresh_rte(options):
     rte = make_rte(absent, globals_env, locals_env, builtins_env, absent, absent, absent, trace)
 
     om_builtin_print = om_make_function_with_signature('print', om_print_code, make_posonly_only_signature(('obj',)))
+    om_builtin_repr = om_make_function_with_signature('repr', om_repr_code, make_posonly_only_signature(('obj',)))
+    om_builtin_len = om_make_function_with_signature('len', om_len_code, make_posonly_only_signature(('obj',)))
+    om_builtin_next = om_make_function_with_signature('next', om_next_code,
+                                                      make_posonly_defaults_signature(('obj', 'default'), (absent,)))
+    om_builtin_iter = om_make_function_with_signature('iter', om_iter_code,
+                                                      make_posonly_defaults_signature(('obj', 'sentinel'), (absent,)))
 
     dict_set(builtins_env, 'type', class_type)
     dict_set(builtins_env, 'object', class_object)
@@ -1497,12 +1742,19 @@ def fresh_rte(options):
     dict_set(builtins_env, 'str', class_str)
     dict_set(builtins_env, 'NotImplemented', om_NotImplemented)
     dict_set(builtins_env, 'print', om_builtin_print)
+    dict_set(builtins_env, 'repr', om_builtin_repr)
+    dict_set(builtins_env, 'len', om_builtin_len)
+    dict_set(builtins_env, 'next', om_builtin_next)
+    dict_set(builtins_env, 'iter', om_builtin_iter)
 
     dict_set(builtins_env, 'BaseException', class_BaseException)
     dict_set(builtins_env, 'Exception', class_Exception)
     dict_set(builtins_env, 'NameError', class_NameError)
     dict_set(builtins_env, 'TypeError', class_TypeError)
     dict_set(builtins_env, 'ValueError', class_ValueError)
+    dict_set(builtins_env, 'LookupError', class_LookupError)
+    dict_set(builtins_env, 'IndexError', class_IndexError)
+    dict_set(builtins_env, 'StopIteration', class_StopIteration)
     dict_set(builtins_env, 'ArithmeticError', class_ArithmeticError)
     dict_set(builtins_env, 'ZeroDivisionError', class_ZeroDivisionError)
 
@@ -1692,6 +1944,11 @@ def comp_stmt(cte, ast):
         if debug: print('AST.Delete')
         return gen_delete_seq(cte, ast, ast.targets)
 
+    elif isinstance(ast, AST.For) and isinstance(ast.target, AST.Name):
+        # TODO: support else block
+        if debug: print('AST.For')
+        return gen_for(cte, ast.target, ast.iter, ast.body)
+
     elif isinstance(ast, AST.Raise):
         if debug: print('AST.Raise')
         (cte1, code1) = comp_expr(cte, ast.exc)
@@ -1749,9 +2006,30 @@ def comp_expr(cte, ast):
         (cte2, code2) = comp_function_args(cte1, ast.args)
         # TODO: compile ast.keywords args
         return gen_call(cte1, ast, code1, code2)
+    elif isinstance(ast, AST.Tuple):
+        if debug: print('AST.Tuple')
+        computed_elts = comp_elements(cte, ast.elts)
+        return gen_Tuple(cte, ast, computed_elts)
+    elif isinstance(ast, AST.Subscript) and isinstance(ast.ctx, AST.Load):
+        if debug: print("AST.Subscript Load")
+        obj_cte, obj_code = comp_expr_opt(cte, ast.value)
+        index_cte, index_code = comp_expr(obj_cte, ast.slice.value)
+        return gen_Subscript_Load(index_cte, ast, obj_code, index_code)
     else:
         if not debug: print(ast)
         assert False, 'comp_expr expected an expression AST'
+
+def comp_elements(cte, elts):
+    computed_elts = []
+    elts_len = len(elts)
+    i = 0
+    current_cte = cte
+    while i < elts_len:
+        current_cte, elt_code = comp_expr(current_cte, elts[i])
+        computed_elts.append((current_cte, elt_code))
+        i += 1
+
+    return computed_elts
 
 def comp_expr_opt(cte, ast):
     if ast is None:
@@ -1793,8 +2071,8 @@ def gen_signature(cte, ast):
         kwarg = False
 
     defaults = []
-    for default in ast.args.defaults:
-        defaults.append(default.value)
+    for default_ in ast.args.defaults:
+        defaults.append(default_.value)
 
     return make_signature(args, posonlyargs, vararg, kwonlyargs, kw_defaults, kwarg, defaults)
 
@@ -1943,6 +2221,26 @@ def gen_delete_seq(cte, ast, targets):
     else:
         assert False, 'multiple targets not yet supported.'
 
+def gen_for(cte, target, iterable, body):
+
+    iterable_cte, iterable_code = comp_expr(cte, iterable)
+    body_cte, body_code = comp_stmt_seq(iterable_cte, body)
+
+    def get_iterable(rte, cont):
+        def get_iterator(rte, iterable):
+            def get_next(rte, iterator):
+                def assign_target(rte, nxt_value):
+                    if nxt_value is for_loop_end_marker:
+                        return cont(rte)
+                    else:
+                        def run_body(rte):
+                            return body_code(rte, lambda rte: get_next(rte, iterator))
+                        return sem_var_set(Context(rte, run_body, target), target.id, nxt_value)
+                return sem_next(Context(rte, assign_target, iterable), iterator, for_loop_end_marker)
+            return sem_iter(Context(rte, get_next, iterable), iterable)
+        return iterable_code(rte, get_iterator)
+    return body_cte, get_iterable
+
 def gen_raise(cte, ast, code):
     def eval_raise_param(rte, cont):
         def raise_exn(rte1, exn):
@@ -1950,8 +2248,6 @@ def gen_raise(cte, ast, code):
             return sem_raise(ctx, exn)
         return code(rte, raise_exn)
     return (cte, eval_raise_param)
-
-
 
 def gen_Expr(cte, ast, code1):
 
@@ -2271,6 +2567,70 @@ def sem_call(ctx, args):
     __call__ = getattribute_from_obj_mro(self, '__call__')
     return om_call(__call__, ctx, [self] + params)
 
+def sem_getitem(ctx, obj, item):
+    obj_getitem = getattribute_from_obj_mro(obj, "__getitem__")
+    if obj_getitem is absent:
+        return sem_raise(ctx, class_TypeError)
+    else:
+        return om_call(obj_getitem, ctx, (obj, item))
+
+def sem_next(ctx, obj, default_):
+    obj_next = getattribute_from_obj_mro(obj, "__next__")
+    if obj_next is absent:
+        return sem_raise(ctx, class_TypeError)
+    elif default_ is absent:
+        return om_call(obj_next, ctx, (obj,))
+    else:
+        def catch_StopIteration(rte, exn):
+            if om_isinstance(exn, class_StopIteration):
+                return ctx.cont(rte, default_)
+            else:
+                return sem_raise(ctx, exn)
+
+        next_ctx = with_catch(ctx, catch_StopIteration)
+        return om_call(obj_next, next_ctx, (obj,))
+
+def sem_iter(ctx, obj):
+    obj_iter = getattribute_from_obj_mro(obj, "__iter__")
+    if obj_iter is absent:
+        obj_getitem = getattribute_from_obj_mro(obj, "__getitem__")
+        if obj_getitem is absent:
+            return sem_raise(ctx, class_TypeError)
+        else:
+            return ctx.cont(ctx.rte, om_iterator(class_iterator, obj, om_int(0)))
+    else:
+        return om_call(obj_iter, ctx, (obj,))
+
+def om_unpack_iterable(ctx, it):
+    seq = []
+
+    def get_next(rte, iterator):
+        def accumulate(rte, val):
+            if val is for_loop_end_marker:
+                return ctx.cont(ctx.rte, seq)
+            else:
+                seq.append(val)
+                return get_next(rte, iterator)
+        return sem_next(Context(rte, accumulate, ctx.ast), iterator, for_loop_end_marker)
+
+    return sem_iter(with_cont(ctx, get_next), it)
+
+def sem_maybe_len(ctx, obj):
+    obj_len = getattribute_from_obj_mro(obj, "__len__")
+    if obj_len is absent:
+        return ctx.cont(ctx.rte, absent)
+    else:
+        return om_call(obj_len, ctx, (obj,))
+
+def sem_len(ctx, obj):
+    def cont(rte, val):
+        if val is absent:
+            return sem_raise(ctx, class_TypeError)
+        else:
+            return ctx.cont(rte, val)
+
+    return sem_maybe_len(with_cont(ctx, cont), obj)
+
 def gen_constant(cte, ast, val):
 
     def code(rte, cont):
@@ -2278,6 +2638,46 @@ def gen_constant(cte, ast, val):
         return sem_constant(Context(rte, cont, ast), obj)
 
     return (cte, code)
+
+def make_tuple(ctx, elements):
+    return expr_end(ctx, om_tuple(class_tuple, elements))
+
+def gen_Tuple(cte, ast, elts):
+    return gen_elements(cte, ast, elts, make_tuple, [])
+
+def gen_elements(cte, ast, elts, make_container, acc):
+    if len(elts) == 0:
+        def code(rte, cont):
+            ctx = Context(rte, cont, ast)
+            return make_container(ctx, acc)
+
+        return cte, code
+    else:
+        elt_code = elts[0][1]
+        tail_cte, tail_code = gen_elements(cte, ast, elts[1:], make_container, acc)
+
+        def code(rte, cont):
+            def accumulate_cont(rte, val):
+                acc.append(val)
+                return tail_code(rte, cont)
+
+            return elt_code(rte, accumulate_cont)
+
+        return tail_cte, code
+
+def gen_Subscript_Load(cte, ast, obj_code, index_code):
+    def get_obj(rte, cont):
+        def get_index(rte, obj):
+            def get_item(getitem_rte, index):
+                return sem_getitem(Context(getitem_rte, cont, ast), obj, index)
+            return index_code(rte, get_item)
+        return obj_code(rte, get_index)
+
+    def code(rte, cont):
+        def cont_expr_end(final_rte, val):
+            return expr_end(Context(final_rte, cont, ast), val)
+        return get_obj(rte, cont_expr_end)
+    return cte, code
 
 def sem_constant(ctx, val):
     result = val
@@ -2321,38 +2721,28 @@ def sem_bool(ctx, val):
 def sem_raise(ctx, exn):
     ctrl_env = rte_ctrl_env(ctx.rte)
 
-    exn_cls = OM_get_object_class(exn)
-
     # create the exn_object to be created
-    if om_is(exn_cls, class_type):
-        exn_obj = om_exception(exn, ())
-    elif om_issubclass(exn_cls, class_BaseException):
+    if om_isinstance(exn, class_type) and om_issubclass(exn, class_BaseException):
+        exn_obj = om_exception(exn, om_tuple(class_tuple, ()))
+    elif om_isinstance(exn, class_BaseException):
         exn_obj = exn
     else:
-        exn_obj = om_exception(class_TypeError, ())
+        exn_obj = om_exception(class_TypeError, om_tuple(class_tuple, ()))
 
     if om_is(ctrl_env, absent):
-        def uncaught_exception(rte, s):
-            s_value = OM_get_boxed_value(s)
-            exn_name = OM_get(OM_get_object_class(exn_obj), '__name__')
-            exn_name_value = OM_get_boxed_value(exn_name)
-            if len(s_value) == 0:
-                result = exn_name_value
-            else:
-                result = exn_name_value + ': ' + s_value
+        def uncaught_exception(exc):
+            result = om_simple_exception_format(ctx, exc)
 
             # XXX: should be stderr
-            print_stdout(result, rte)
+            print_stdout(result, ctx.rte)
             return None
 
-        ctx1 = with_cont(ctx, uncaught_exception)
-        exn_obj_str = getattribute_from_obj_mro(exn_obj, '__str__')
-        return om_call(exn_obj_str, ctx1, [exn_obj])
+        return uncaught_exception(exn)
     else:
         # XXX: does not unwind all the way
         ctrl_rte = ctrl_env.lex_env
         code_catch = ctrl_env.code_catch
-        return code_catch(ctrl_rte, exn)
+        return code_catch(ctrl_rte, exn_obj)
 
         assert False, 'Not implemented'
 
@@ -2393,10 +2783,26 @@ def gen_Attribute(cte, ast, code, name):
     return (cte, code1)
 
 # TODO: Replace class names with class objects once this is supported
+def om_tuple_simple_repr(tuple_, rte):
+    elements = OM_get_tuple_seq(tuple_)
+    elements_len = len(elements)
+    acc = []
+    i = 0
+    while i < elements_len:
+        next_ctx = make_out_of_ast_context(rte, None)
+        acc.append(om_simple_repr(next_ctx, elements[i]))
+        i += 1
+
+    if elements_len == 1:
+        return '(' + join_str(acc, ', ') + ',)'
+    else:
+        return '(' + join_str(acc, ', ') + ')'
+
 simple_repr_formatters = {
     "int": om_format_int_repr,
     "bool": om_format_bool_repr,
     "str": om_format_str_repr,
+    "tuple": om_tuple_simple_repr,
     "type": om_format_type_repr,
     "function": om_format_function_repr,
     "method-wrapper": om_format_MethodWrapper_repr,
@@ -2411,6 +2817,24 @@ def om_simple_repr(ctx, value):
     cls_name = OM_get_boxed_value(OM_get(value_cls, "__name__"))
     formatter = dict_get(simple_repr_formatters, cls_name, om_format_object_repr)
     return formatter(value, ctx.rte)
+
+def om_simple_exception_format(ctx, exn):
+    exn_name = OM_get(OM_get_object_class(exn), '__name__')
+    exn_name_value = OM_get_boxed_value(exn_name)
+    exn_args = OM_get(exn, 'args')
+
+    if exn_args is absent or not om_isinstance(exn_args, class_tuple):
+        return exn_name_value + ': <unknown exception message>'
+    else:
+        seq = OM_get_tuple_seq(exn_args)
+        if len(seq) == 0:
+            return exn_name_value
+        elif len(seq) == 1:
+            return exn_name_value + ": " + om_simple_repr(ctx, seq[0])
+        else:
+            return exn_name_value + ": " + om_simple_repr(ctx, exn_args)
+
+
 
 def expr_end(ctx, val):
     if om_is(val, om_None):
