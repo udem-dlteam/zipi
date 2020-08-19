@@ -2691,8 +2691,7 @@ def gen_Subscript_Load(cte, ast, obj_code, index_code):
     return cte, code
 
 def sem_constant(ctx, val):
-    result = val
-    return expr_end(ctx, result)
+    return ctx.cont(ctx.rte, val)
 
 def sem_var_set(ctx, id, val):
     # Clone the current context.
@@ -2707,21 +2706,20 @@ def sem_var_get(ctx, id):
         ## TODO: need to setup exceptions
         return sem_getattribute(ctx, [env_builtins, om_str(id)])
     else:
-        return expr_end(ctx, result)
+        return ctx.cont(ctx.rte, result)
 
 def sem_bool(ctx, val):
     __val_bool__ = getattribute_from_obj_mro(val, '__bool__')
     if __val_bool__ is absent:
         __val_len__ = getattribute_from_obj_mro(val, '__len__')
         if __val_len__ is absent:
-            return expr_end(ctx, om_True)
+            return ctx.cont(ctx.rte, om_True)
         else:
             def nonzero(rte, val):
                 if val != 0:
-                    result = om_True
+                    return ctx.cont(ctx.rte, om_True)
                 else:
-                    result = om_False
-                return expr_end(ctx, result)
+                    return ctx.cont(ctx.rte, om_False)
 
             ctx1 = with_cont(ctx, nonzero)
             return om_call(__val_len__, ctx1, [val])
