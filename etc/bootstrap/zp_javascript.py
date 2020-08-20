@@ -1050,6 +1050,6 @@ class Transformer:
         elif value is False:
             return "false"
         elif value is None:
-            return "undefined"
+            return "null"
         else:
             return str(value)
