@@ -12,5 +12,6 @@ tests:
 	@echo "===== WHISH LIST ====="
 	@cat "PYINTERP_TESTS_WHISHLIST" | tail -n2
 	@echo ""
-	rm -f PYINTERP_TESTS
+	rm -f PYINTERP_TESTS_ESSENTIAL
+	rm -f PYINTERP_TESTS_WHISHLIST
 
