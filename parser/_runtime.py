@@ -62,6 +62,8 @@ def int_from_string(string, radix):
 def float_from_string(string):
     return float(string)
 
+def input_stdin(msg):
+    return input(msg)
 
 def print_stdout(msg, rte):
     print(msg)

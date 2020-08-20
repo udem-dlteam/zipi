@@ -1662,6 +1662,17 @@ populate_builtin_ZeroDivisionError()
 
 # Builtin functions code
 
+def om_input_code(rte, _):
+    def cont(rte1, obj_str):
+        obj_str_value = OM_get_boxed_value(obj_str)
+        # TODO: raise EOFError on EOF
+        result = input_stdin(obj_str_value)
+        return unwindReturn(rte1, om_str(result))
+
+    obj = rte_lookup(rte, 'obj')
+    ctx = make_out_of_ast_context(rte, cont)
+    return om_convert_to_str(ctx, obj)
+
 def om_print_code(rte, _):
     def cont(rte, str_result):
         print_stdout(OM_get_boxed_value(str_result), rte)
@@ -1744,6 +1755,7 @@ def fresh_rte(options):
     rte = make_rte(absent, globals_env, locals_env, builtins_env, absent, absent, absent, trace)
 
     om_builtin_print = om_make_function_with_signature('print', om_print_code, make_posonly_only_signature(('obj',)))
+    om_builtin_input = om_make_function_with_signature('input', om_input_code, make_posonly_only_signature(('obj',)))
     om_builtin_repr = om_make_function_with_signature('repr', om_repr_code, make_posonly_only_signature(('obj',)))
     om_builtin_len = om_make_function_with_signature('len', om_len_code, make_posonly_only_signature(('obj',)))
     om_builtin_next = om_make_function_with_signature('next', om_next_code,
@@ -1759,6 +1771,7 @@ def fresh_rte(options):
     dict_set(builtins_env, 'tuple', class_tuple)
     dict_set(builtins_env, 'NotImplemented', om_NotImplemented)
     dict_set(builtins_env, 'print', om_builtin_print)
+    dict_set(builtins_env, 'input', om_builtin_input)
     dict_set(builtins_env, 'repr', om_builtin_repr)
     dict_set(builtins_env, 'len', om_builtin_len)
     dict_set(builtins_env, 'next', om_builtin_next)
