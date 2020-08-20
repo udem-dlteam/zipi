@@ -1315,15 +1315,20 @@ def om_int_repr(ctx, args):
     result = om_format_int_repr(self, ctx.rte)
     return ctx.cont(ctx.rte, om_str(result))
 
-def om_int_neg(ctx, args):
+def om_int_neg_code(ctx, args):
     self = args[0]
     result = -OM_get_boxed_value(self)
     return ctx.cont(ctx.rte, om_boxval(class_int, result))
 
-def om_int_pos(ctx, args):
+om_int_neg = do_magic_method(class_int, "__neg__", om_int_neg_code)
+
+def om_int_pos_code(ctx, args):
     self = args[0]
     result = OM_get_boxed_value(self)
     return ctx.cont(ctx.rte, om_boxval(class_int, result))
+
+om_int_pos = do_magic_method(class_int, "__pos__", om_int_pos_code)
+
 # class_tuple methods
 
 def make_tuple(ctx, elements):
@@ -2940,14 +2945,14 @@ sem_GtE = macro_sem_binary_operator_protocol('>=', '__gte__', '__lte__')
 def sem_neg(ctx, val1):
     val1_neg = getattribute_from_obj_mro(val1, '__neg__')
     if val1_neg is absent:
-        assert False, "TypeError: bad operand type for unary -"
+        return sem_raise_with_message(ctx, class_TypeError, "bad operand type for unary -")
     else:
         return om_call(val1_neg, ctx, [val1])
 
 def sem_pos(ctx, val1):
     val1_pos = getattribute_from_obj_mro(val1, '__pos__')
     if val1_pos is abseng:
-        assert False, "TypeError : bad operand type for unary +"
+        return sem_raise_with_message(ctx, class_TypeError, "bad operand type for unary +")
     else:
         return om_call(val1_pos, ctx, [val1])
 
