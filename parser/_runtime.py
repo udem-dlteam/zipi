@@ -77,6 +77,11 @@ def input_stdin(msg):
 def print_stdout(msg, rte):
     print(msg)
 
+def list_to_tuple(l):
+    return tuple(l)
+
+def tuple_to_list(t):
+    return list(t)
 
 # Checks if it is int.js Int class or BigInt
 def int_instance(n):

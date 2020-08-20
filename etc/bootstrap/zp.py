@@ -169,7 +169,11 @@ function dict_has(d, a) {
     return false;
     }
     };
-function chr(code) { return String.fromCharCode.apply(null,[code]); }
+function chr(code) { return String.fromCharCode.apply(null,[code]); };
+
+function tuple_to_list(tup) {tup.slice();};
+
+function list_to_tuple(lst) {lst.slice();};
     """
 
     if cli_args.tests:
