@@ -23,8 +23,14 @@ def dict_has(d, key):
 
 
 def int_to_string(u, radix):
-    # XXX: radix is ignored
-    return str(u)
+    if radix == 2:
+        return bin(u)[2:]
+    elif radix == 8:
+        return oct(u)[2:]
+    elif radix == 16:
+        return hex(u)[2:]
+    else:
+        return str(u)
 
 
 def int_add(u, v):
@@ -57,6 +63,17 @@ def int_from_float(u):
 
 def int_from_string(string, radix):
     return int(string, radix)
+
+
+def float_from_string(string):
+    return float(string)
+
+
+def input_stdin(msg):
+    try:
+        return input(msg)
+    except:
+        return None
 
 
 def print_stdout(msg, rte):
