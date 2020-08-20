@@ -519,6 +519,7 @@ def populate_builtin_module():
 def populate_builtin_NoneType():
     # TODO: add all other methods
     builtin_add_method(class_NoneType, '__bool__', om_NoneType_bool)
+    builtin_add_method(class_NoneType, '__repr__', om_NoneType_repr)
 
     OM_set_type_mro(class_NoneType, [class_NoneType, class_object])
 
@@ -1348,6 +1349,13 @@ def om_NoneType_bool(ctx, val):
     if debug: print('None.__bool__')
     result = om_False
     return ctx.cont(ctx.rte, result)
+
+def om_format_NoneType_repr(value, rte):
+    return "None"
+
+def om_NoneType_repr(ctx, val):
+    if debug: print('None.__repr__')
+    return ctx.cont(ctx.rte, om_str(om_format_NoneType_repr(val, ctx.rte)))
 
 # class_function methods
 def om_make_function_with_signature(name, code, signature):
@@ -2836,6 +2844,7 @@ def om_tuple_simple_repr(tuple_, rte):
         return '(' + join_str(acc, ', ') + ')'
 
 simple_repr_formatters = {
+    "NoneType": om_format_NoneType_repr,
     "int": om_format_int_repr,
     "bool": om_format_bool_repr,
     "str": om_format_str_repr,
