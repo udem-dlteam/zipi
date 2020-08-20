@@ -3,7 +3,19 @@
 # Expressions
 
 x
+0
 42
+0x123
+0o123
+0b1001011
+0.
+0.1
+.2
+1e5
+1.e5
+.1e5
+1e+123
+1e-123
 "a"
 "a" "b"
 ...
@@ -23,6 +35,17 @@ t [ x , ]
 t [ x , y ]
 t [ x , y , z ]
 t [ x , y , z , ]
+
+t [ 1 : 2 : 3 ]
+t [ 1 : 2 : 3 , ]
+t [ 1 : 2 : 3 , 4 : 5 : 6 ]
+t [ 1 , 2 : 3 : 4 ]
+t [ 1 : 2 : 3 , 4 ]
+t [ 1 : 2 : ]
+t [ 1 : 2 ]
+t [ : 2 : 3 ]
+t [ : 2 : ]
+t [ : : ]
 
 obj . x
 
@@ -115,6 +138,12 @@ lambda : x
 #{ x , y }
 #{ x , y , }
 
+{ }
+{ 1 : 2 }
+{ 1 : 2 , }
+{ 1 : 2 , 3 : 4 }
+{ 1 : 2 , 3 : 4 , }
+
 # Expressions in parentheses to check for proper location information
 
 ( x )
@@ -138,6 +167,17 @@ lambda : x
 ( t [ x , y ] )
 ( t [ x , y , z ] )
 ( t [ x , y , z , ] )
+
+( t [ 1 : 2 : 3 ] )
+( t [ 1 : 2 : 3 , ] )
+( t [ 1 : 2 : 3 , 4 : 5 : 6 ] )
+( t [ 1 , 2 : 3 : 4 ] )
+( t [ 1 : 2 : 3 , 4 ] )
+( t [ 1 : 2 : ] )
+( t [ 1 : 2 ] )
+( t [ : 2 : 3 ] )
+( t [ : 2 : ] )
+( t [ : : ] )
 
 ( obj . x )
 
@@ -224,16 +264,32 @@ lambda : x
 ( [ x , y ] )
 ( [ x , y , ] )
 
-( yield x )
-( yield from x )
+#( { } )
+#( { x } )
+#( { x , } )
+#( { x , y } )
+#( { x , y , } )
+
+( { } )
+( { 1 : 2 } )
+( { 1 : 2 , } )
+( { 1 : 2 , 3 : 4 } )
+( { 1 : 2 , 3 : 4 , } )
+
+#( yield x )
+#( yield from x )
 
 # Statements
 
-del x
-del x ,
-del x , y
+#del x
+#del x ,
+#del x , y
 
 pass
+pass ;
+pass ; pass
+pass ; pass ;
+pass ; pass ; pass
 
 break
 
@@ -243,11 +299,11 @@ return
 return x
 return x , y
 
-yield
-yield x
-yield x , y
-yield x , y , * z
-yield from x
+#yield
+#yield x
+#yield x , y
+#yield x , y , * z
+#yield from x
 
 raise
 raise x
@@ -255,6 +311,20 @@ raise x from y
 
 x = y
 x , y = z
+
+x += y
+x -= y
+x *= y
+x @= y
+x /= y
+x %= y
+x &= y
+x |= y
+x ^= y
+x <<= y
+x >>= y
+x **= y
+x //= y
 
 global x
 global x , y

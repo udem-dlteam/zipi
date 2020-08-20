@@ -528,6 +528,7 @@ def read_grammar_and_generate_parser(filename):
     tokenset_count = 0
 
     print('import sys')
+    print('from _runtime import *')
 
     if token_access == '':
         print('from ztoken import *')
@@ -545,6 +546,7 @@ def read_grammar_and_generate_parser(filename):
     start_fn_name, f = generate_parse_functions()
 
     print()
+    print('@nocompile')
     print('def ' + gen_prefix + 'tokenset(*elements):')
     print('    return elements')
     print()
@@ -570,9 +572,11 @@ def read_grammar_and_generate_parser(filename):
     print('    else:')
     print('        ' + gen_error())
     print()
-    print('def ' + gen_prefix + 'syntax_error(ts):')
-    print('    if ts.context and hasattr(ts.context, "syntaxError"):')
-    print('        ts.context.syntaxError(' + tok_access + 'get_lineno(ts)-1, ' + tok_access + 'get_col_offset(ts), ' + tok_access + 'get_end_lineno(ts)-1, ' + tok_access + 'get_end_col_offset(ts), "invalid syntax");')
+    print('def ' + gen_prefix + 'syntax_error(ts, msg):')
+    print('    if msg is None:')
+    print('        msg = "invalid syntax"')
+    print('    if ts.context and dict_has(ts.context, "syntaxError"):')
+    print('        ts.context.syntaxError(' + tok_access + 'get_lineno(ts)-1, ' + tok_access + 'get_col_offset(ts), ' + tok_access + 'get_end_lineno(ts)-1, ' + tok_access + 'get_end_col_offset(ts), msg);')
     print('        return')
     print('    line_num = ts.line_num')
     print('    line_start = 0')
@@ -585,9 +589,9 @@ def read_grammar_and_generate_parser(filename):
     print('    print("  File \\"" + "unknown.py" + "\\", line " + str(ts.line_num+1))')
     print('    print("    " + stripped_line)')
     print('    print("    " + " "*(ts.start - line_start - (len(line) - len(stripped_line))) + "^")')
-    print('    # print("SyntaxError: invalid syntax")')
+    print('    # print("SyntaxError: " + msg)')
     print('    # exit()')
-    print('    raise SyntaxError("invalid syntax")')
+    print('    raise SyntaxError(msg)')
     print()
     print('def ' + gen_prefix + 'advance(ts):')
     print('    ts.prev_end_lineno = ' + tok_access + 'get_end_lineno(ts)')
@@ -729,16 +733,16 @@ def gen_seq(x, items, known, alt_num):
               just_1_term(items[1].atom.items[0]) and
               isinstance(items[1].atom.items[1],NTerm)):
             current_rule_style = NTERM_1TERM_NTERM_STAR
-        elif (len(items) == 3 and # rhs = ANY (1Term ANY)* [1Term]
+        elif (len(items) >= 3 and # rhs = ANY (1Term ANY)* [1Term] ...
               #isinstance(items[0],NTerm) and
               isinstance(items[1],Star) and
               isinstance(items[1].atom,Seq) and
-              len(items[1].atom.items) == 2 and
+              len(items[1].atom.items) >= 2 and
               just_1_term(items[1].atom.items[0]) and
               #isinstance(items[1].atom.items[1],NTerm) and
               isinstance(items[2],Opt) and
               just_1_term(items[2].alt) == just_1_term(items[1].atom.items[0])):
-            current_rule_style = ANY_1TERM_ANY_STAR_OPT_1TERM
+            current_rule_style = ANY_1TERM_ANY_STAR_OPT_1TERM_ETC
         #elif just_terms(rhs):
         #    current_rule_style = JUST_TERMS
         #print('# ------- ' + repr(len(items)) + ' ' + repr(current_rule_style))
@@ -779,7 +783,7 @@ NTERM_TERM = 'NTERM_TERM'
 TERM_NTERM_TERM = 'TERM_NTERM_TERM'
 NTERM_1TERM_NTERM_STAR = 'NTERM_1TERM_NTERM_STAR'
 JUST_TERMS = 'JUST_TERMS'
-ANY_1TERM_ANY_STAR_OPT_1TERM = 'ANY_1TERM_ANY_STAR_OPT_1TERM'
+ANY_1TERM_ANY_STAR_OPT_1TERM_ETC = 'ANY_1TERM_ANY_STAR_OPT_1TERM_ETC'
 
 def gen(x, known):
 
@@ -869,7 +873,7 @@ def gen(x, known):
             code += build[0] + '\n'
         f = first(x.atom, universal_set())
         c1, yes, no = gen_in(f, known)
-        if current_rule_style == ANY_1TERM_ANY_STAR_OPT_1TERM:
+        if current_rule_style == ANY_1TERM_ANY_STAR_OPT_1TERM_ETC:
             items = x.atom.items
             c2, k = gen(items[0], yes)
             c3, _, _ = gen_in(first(items[1], universal_set()), universal_set())
@@ -1105,7 +1109,7 @@ def gen_advance():
     return code, k
 
 def gen_error():
-    code = 'return ' + gen_prefix + 'syntax_error(ts)\n'
+    code = 'return ' + gen_prefix + 'syntax_error(ts, None)\n'
     return code
 
 def main():

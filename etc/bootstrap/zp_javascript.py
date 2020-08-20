@@ -138,10 +138,16 @@ class Transformer:
         if keywords != []:
             raise Exception(f"Cannot emit code for Call node ({func}({args}))")
 
-        if isinstance(node.func, AST.Attribute) and node.func.attr == "get":
-            out = "(" + node.func.value.id + "[" + self.transform(node.args[0]) + "]"
-            out += " || " + self.transform(node.args[1]) + ")"
-            return out
+        if isinstance(node.func, AST.Attribute):
+            if node.func.attr == "get":
+                out = "(" + self.transform(node.func.value) + "[" + self.transform(node.args[0]) + "]"
+                out += " || " + self.transform(node.args[1]) + ")"
+                return out
+            elif node.func.attr == "join":
+                if len(node.args) > 1:
+                    raise Exception(f"Cannot emit code for Call node ({func}({args}))")
+                return f"{self.transform(node.args[0])}.join({self.transform(node.func.value)})"
+
 
         if func == "ord":
             if isinstance(node.args[0], AST.Str):
@@ -172,6 +178,9 @@ class Transformer:
         elif func == "set":
             # Don't accept arguments.
             return "new Set();"
+        # noop for bytes
+        elif func == "bytes":
+            return args
         elif func[-14:] == "indents.append":
             return func[:-7] + ".push(" + args + ")"
         elif func == "len":
@@ -201,22 +210,29 @@ class Transformer:
             func = "aarguments"
         elif func == "object":
             return "{}"
-        elif isinstance(node.func, AST.Attribute) and node.func.attr == "encode":
-            return self.transform(node.func.value)
-        elif isinstance(node.func, AST.Attribute) and node.func.attr == "find":
-            return (
-                self.transform(node.func.value)
-                + ".indexOf("
-                + ",".join(self.transform(arg) for arg in node.args)
-                + ")"
-            )
-        elif isinstance(node.func, AST.Attribute) and node.func.attr == "append":
-            return (
-                self.transform(node.func.value)
-                + ".push("
-                + ",".join(self.transform(arg) for arg in node.args)
-                + ")"
-            )
+        elif func == "any":
+            return f"{args}.some(function(x){{return x;}})"
+        elif func == "map":
+            if nargs > 2:
+                raise Exception("Zp only supports map with two arguments.")
+            return f"{self.transform(node.args[1])}.map({self.transform(node.args[0])})"
+        elif isinstance(node.func, AST.Attribute):
+            if node.func.attr == "encode":
+                return self.transform(node.func.value)
+            elif node.func.attr == "find":
+                return (
+                    self.transform(node.func.value)
+                    + ".indexOf("
+                    + ",".join(self.transform(arg) for arg in node.args)
+                    + ")"
+                )
+            elif node.func.attr == "append":
+                return (
+                    self.transform(node.func.value)
+                    + ".push("
+                    + ",".join(self.transform(arg) for arg in node.args)
+                    + ")"
+                )
 
         # Implement 'foo'.join(bar)?
         # elif (
@@ -364,13 +380,17 @@ class Transformer:
                 if y.func.id == "bytearray":
                     px = self.transform(x)
                     out = (
-                        " var "
-                        + px
+                        px
                         + " = "
                         + "new Uint8Array("
-                        + str(y.args[0].n)
+                        + (str(y.args[0].n) if y.args else "0")
                         + ");"
                     )
+
+                    # Don't prepend 'var' on attributes:
+                    if not isinstance(targets[0], AST.Attribute):
+                        out = " var " + out
+
                     return out
                 elif y.func.id in self.classes:
                     px = self.transform(x)
@@ -506,16 +526,22 @@ class Transformer:
         ops = node.ops
         comparators = node.comparators
 
-        # Special case for x in tokenset:
-        if (
-            len(ops) == 1
-            and isinstance(ops[0], AST.In)
-            and comparators[0].func.id == "py_tokenset"
-        ):
-            # [3,79,42].indexOf(x) >= 0
-            args = ",".join(self.transform(i) for i in comparators[0].args)
+        # OLD: Special case for x in tokenset:
+        # Used to be a function call
+        # if (
+        #     len(ops) == 1
+        #     and isinstance(ops[0], AST.In)
+        #     and comparators[0].func.id == "py_tokenset"
+        # ):
+        #     # [3,79,42].indexOf(x) >= 0
+        #     args = ",".join(self.transform(i) for i in comparators[0].args)
+        #     left = self.transform(left)
+        #     out = f"[{args}].indexOf({left}) >= 0"
+
+        # Special case if x in tokenset:
+        if len(ops) == 1 and isinstance(ops[0], AST.In) and comparators[0].id[:11] == "py_tokenset":
             left = self.transform(left)
-            out = f"[{args}].indexOf({left}) >= 0"
+            out = f"{comparators[0].id}.indexOf({left}) >= 0"
         # Special case 'if foo is (not) absent'
         elif (
             len(comparators) == 1
@@ -945,8 +971,7 @@ class Transformer:
             return name
 
     def Tuple(self, node):
-        elts = ",".join(self.transform(i) for i in node.elts)
-        return f"[{elts}]"
+        return self.List(node)
 
     def UnaryOp(self, node):
         op = self.transform(node.op)

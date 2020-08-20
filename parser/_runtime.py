@@ -18,22 +18,109 @@ def dict_set(d, key, value):
     d[key] = value
 
 
-def num_to_string(u, radix):
-    # XXX: radix is ignored
-    return str(u)
+def dict_has(d, key):
+    return key in d.keys()
 
 
-def num_add(u, v):
+def int_to_string(u, radix):
+    if radix == 2:
+        return bin(u)[2:]
+    elif radix == 8:
+        return oct(u)[2:]
+    elif radix == 16:
+        return hex(u)[2:]
+    else:
+        return str(u)
+
+
+def int_add(u, v):
     return u + v
 
 
-def num_sub(u, v):
+def int_sub(u, v):
     return u - v
 
 
-def num_mul(u, v):
+def int_mul(u, v):
     return u * v
 
 
-def num_div(u, v):
+def int_div(u, v):
     return u // v
+
+
+def int_mod(u, v):
+    return u % v
+
+
+def int_is_zero(u):
+    return u == 0
+
+
+def int_from_float(u):
+    return u
+
+
+def int_from_string(string, radix):
+    return int(string, radix)
+
+
+def float_from_string(string):
+    return float(string)
+
+
+def input_stdin(msg):
+    try:
+        return input(msg)
+    except:
+        return None
+
+
+def print_stdout(msg, rte):
+    print(msg)
+
+
+# Checks if it is int.js Int class or BigInt
+def int_instance(n):
+    return isinstance(n, int)
+
+
+# Floats
+def float_from_string(string):
+    return float(string)
+
+
+def float_to_string(u):
+    return str(u)
+
+
+def float_from_float(u):
+    return u
+
+
+def float_instance(u):
+    return isinstance(u, float)
+
+
+def float_add(u, v):
+    return u + v
+
+
+def float_sub(u, v):
+    return u - v
+
+
+def float_mul(u, v):
+    return u * v
+
+
+def float_div(u, v):
+    return u / v
+
+
+def float_mod(u, v):
+    return u % v
+
+
+def float_is_zero(u):
+    return u == 0

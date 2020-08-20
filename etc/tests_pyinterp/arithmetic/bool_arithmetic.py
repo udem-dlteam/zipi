@@ -1,0 +1,7 @@
+print(True + True)
+print(True + False)
+print(1 + True)
+print(True * False)
+print(False - True)
+print(2 * True)
+print(True // 2)
