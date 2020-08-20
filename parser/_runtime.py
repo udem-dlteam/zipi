@@ -23,8 +23,14 @@ def dict_has(d, key):
 
 
 def int_to_string(u, radix):
-    # XXX: radix is ignored
-    return str(u)
+    if radix == 2:
+        return bin(u)[2:]
+    elif radix == 8:
+        return oct(u)[2:]
+    elif radix == 16:
+        return hex(u)[2:]
+    else:
+        return str(u)
 
 
 def int_add(u, v):
