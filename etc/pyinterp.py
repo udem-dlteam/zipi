@@ -643,9 +643,6 @@ def om_str(val):
     # assert isinstance(val, str), 'om_str expected str'
     return om_boxval(class_str, val)
 
-def om_bool(val):
-    return om_boxval(class_bool, val)
-
 def om_int(val):
     return om_boxval(class_int, val)
 
