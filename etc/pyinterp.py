@@ -1313,17 +1313,7 @@ def om_int_repr(ctx, args):
 # class_tuple methods
 
 def make_tuple(ctx, elements):
-    return ctx.cont(ctx.rte, om_tuple(list_to_tuple(elements)))
-
-def join_str(om_strings, sep):
-    acc = ''
-    strings_len = len(om_strings)
-    i = 0
-    while i < strings_len - 1:
-        acc += om_strings[i] + sep
-        i += 1
-
-    return acc + om_strings[-1]
+    return ctx.cont(ctx.rte, om_tuple(elements))
 
 def om_tuple_elements_repr(ctx, elts, repr_acc):
     if len(elts) == 0:
@@ -1334,7 +1324,7 @@ def om_tuple_elements_repr(ctx, elts, repr_acc):
             result = '(' + OM_get_boxed_value(repr_acc[0]) + ',)'
             return ctx.cont(ctx.rte, om_str(result))
         else:
-            result = '(' + join_str(repr_acc, ', ') + ')'
+            result = '(' + ', '.join(repr_acc) + ')'
             return ctx.cont(ctx.rte, om_str(result))
     else:
         def cont(rte, value):
@@ -1441,7 +1431,7 @@ om_list_new = do_static_magic_method(class_list, "__new__", om_list_new_code)
 
 def om_list_elements_repr(ctx, elts, repr_acc, i):
     if len(elts) == i or elts[i] is empty_cell:
-        result = '[' + join_str(repr_acc, ', ') + ']'
+        result = '[' + ', '.join(repr_acc) + ']'
         return ctx.cont(ctx.rte, om_str(result))
     else:
         def cont(rte, value):
@@ -3175,9 +3165,9 @@ def om_tuple_simple_repr(tuple_, rte):
         i += 1
 
     if elements_len == 1:
-        return '(' + join_str(acc, ', ') + ',)'
+        return '(' + ', '.join(acc) + ',)'
     else:
-        return '(' + join_str(acc, ', ') + ')'
+        return '(' + ', '.join(acc) + ')'
 
 def om_list_simple_repr(tuple_, rte):
     elements = OM_get_tuple_seq(tuple_)
@@ -3189,7 +3179,7 @@ def om_list_simple_repr(tuple_, rte):
         acc.append(om_simple_repr(next_ctx, elements[i]))
         i += 1
 
-    return '[' + join_str(acc, ', ') + ']'
+    return '[' + ', '.join(acc) + ']'
 
 simple_repr_formatters = {
     "NoneType": om_format_NoneType_repr,
