@@ -28,18 +28,22 @@ pyinterp: copy_files
 	$(PYTHON38) zp.py -f $(TMPDIR)/pyinterp.py $(ZP_DEBUG) -n -t -o $(TMPDIR)/pyinterp_node.js
 	cp $(TMPDIR)/pyinterp_browser.js test/pyinterp/
 
-tests: copy_files
+tests: copy_files pyinterp_tests
 	$(PYTHON38) zp.py -f $(TMPDIR)/zp_unit_tests.py $(ZP_DEBUG) -n -t -o $(TMPDIR)/zp_unit_tests.js
 	@echo "\nRunning Python unit tests...\n"
 	$(PYTHON38) $(TMPDIR)/zp_unit_tests.py >$(TMPDIR)/PY_TESTS
 	@echo "Python unit test results:\n"
-	cat "$(TMPDIR)/PY_TESTS"
+	@cat "$(TMPDIR)/PY_TESTS" | tail -n5
 	@echo "\nRunning JS unit tests...\n"
 	node -e "var t = require('./$(TMPDIR)/zp_unit_tests.js'); t.run_tests();" >$(TMPDIR)/JS_TESTS
 	@echo "JS unit test results:\n"
-	cat "$(TMPDIR)/JS_TESTS"
+	@cat "$(TMPDIR)/JS_TESTS" | tail -n5
 	diff -s $(TMPDIR)/PY_TESTS $(TMPDIR)/JS_TESTS
 	rm -f $(TMPDIR)/PY_TESTS $(TMPDIR)/JS_TESTS $(TMPDIR)/zp_unit_tests.js
+
+.PHONY: pyinterp_tests
+pyinterp_tests:
+	cd ../tests_pyinterp && $(MAKE) tests
 
 clean:
 	rm -vf ./test/zast_browser.js ./test/zast_node.js ./test/zast_browser_es6.js \

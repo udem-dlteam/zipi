@@ -144,7 +144,6 @@ class Transformer:
                 out += " || " + self.transform(node.args[1]) + ")"
                 return out
             elif node.func.attr == "join":
-                print("IN JOIN!")
                 if len(node.args) > 1:
                     raise Exception(f"Cannot emit code for Call node ({func}({args}))")
                 return f"{self.transform(node.args[0])}.join({self.transform(node.func.value)})"

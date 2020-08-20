@@ -1149,7 +1149,7 @@ def om_format_int_repr(self, rte):
     return int_to_string(OM_get_boxed_value(self), 10)
 
 def om_format_float_repr(self, rte):
-    return float_to_string(OM_get_boxed_value(self), 10)
+    return float_to_string(OM_get_boxed_value(self))
 
 def om_int_repr(ctx, args):
     self = args[0]
