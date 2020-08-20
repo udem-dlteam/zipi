@@ -13,17 +13,26 @@ AST.parse = zast.parse
 debug = False
 single_step = True
 
+# Sentinel for marking an attribute as absent
 class Absent:
     def __str__(self):
         return "<absent>"
 
 absent = Absent()
 
+# Sentinel returned by next for marking the end of a for-loop
 class ForLoopEndMarker:
     def __str__(self):
         return "<for loop terminate marker>"
 
 for_loop_end_marker = ForLoopEndMarker()
+
+# Sentinel for marking empty cells in the dynamic array of a list
+class EmptyCell:
+    def __str__(self):
+        return "<empty cell>"
+
+empty_cell = EmptyCell()
 
 class Context:
     def __init__(self, rte, cont, ast):
@@ -104,6 +113,12 @@ class OM_box(OM_object):
 
 class OM_tuple(OM_object):
     """
+    seq: the inner sequence of objects
+    """
+
+class OM_list(OM_object):
+    """
+    len: virtual number of elements in the list
     seq: the inner sequence of objects
     """
 
@@ -523,6 +538,17 @@ def populate_builtin_tuple():
 
     OM_set_type_mro(class_tuple, [class_tuple, class_object])
 
+def populate_builtin_list():
+    builtin_add_method(class_list, '__new__', om_list_new)
+    builtin_add_method(class_list, '__repr__', om_list_repr)
+    builtin_add_method(class_list, '__getitem__', om_list_getitem)
+    builtin_add_method(class_list, 'append', om_list_append)
+
+    OM_set_type_mro(class_list, [class_list, class_object])
+
+def populate_builtin_slice():
+    OM_set_type_mro(class_slice, [class_slice, class_object])
+
 def populate_builtin_iterator():
     builtin_add_method(class_iterator, '__next__', om_iterator_next)
 
@@ -570,6 +596,9 @@ def populate_builtin_ValueError():
 
 def populate_builtin_StopIteration():
     OM_set_type_mro(class_StopIteration, [class_StopIteration, class_Exception, class_BaseException, class_object])
+
+def populate_builtin_NotImplementedError():
+    OM_set_type_mro(class_NotImplementedError, [class_NotImplementedError, class_Exception, class_BaseException, class_object])
 
 def populate_builtin_LookupError():
     OM_set_type_mro(class_LookupError, [class_LookupError, class_Exception, class_BaseException, class_object])
@@ -619,13 +648,19 @@ def om_boxval(cls, val):
     OM_set_boxed_value(obj, val)
     return obj
 
-def om_tuple(cls, seq):
-    obj = om(cls, OM_tuple_create)
+def om_tuple(seq):
+    obj = om(class_tuple, OM_tuple_create)
     OM_set_tuple_seq(obj, seq)
     return obj
 
-def om_iterator(cls, obj, index):
-    it = om(cls, OM_iterator_create)
+def om_list(seq, len_):
+    obj = om(class_list, OM_list_create)
+    OM_set_list_seq(obj, seq)
+    OM_set_list_len(obj, len_)
+    return obj
+
+def om_iterator(obj, index):
+    it = om(class_iterator, OM_iterator_create)
 
     OM_set_iterator_obj(it, obj)
     OM_set_iterator_index(it, index)
@@ -712,6 +747,9 @@ def OM_box_create():
 def OM_tuple_create():
     return OM_tuple()
 
+def OM_list_create():
+    return OM_list()
+
 def OM_iterator_create():
     return OM_iterator()
 
@@ -774,6 +812,18 @@ def OM_get_tuple_seq(o):
 def OM_set_tuple_seq(o, value):
     o.seq = value
 
+def OM_get_list_seq(o):
+    return o.seq
+
+def OM_set_list_seq(o, value):
+    o.seq = value
+
+def OM_get_list_len(o):
+    return o.len
+
+def OM_set_list_len(o, value):
+    o.len = value
+
 def OM_get_iterator_obj(o):
     return o.obj
 
@@ -825,6 +875,49 @@ def OM_set_MethodWrapper_instance(o, instance):
 def OM_get_MethodWrapper_instance(o):
     return o.instance
 
+# Create builtins classes
+class_str = make_builtin_class_str()
+
+class_type = make_builtin_class('type', absent)
+class_object = make_builtin_class('object', class_type)
+
+class_NotImplementedType = make_builtin_class('NotImplementedType', class_type)
+class_WrapperDescriptor = make_builtin_class('wrapper_descriptor', class_type)
+class_MethodWrapper = make_builtin_class('method-wrapper', class_type)
+
+class_int = make_builtin_class('int', class_type)
+class_float = make_builtin_class('float', class_type)
+class_bool = make_builtin_class('bool', class_type)
+class_NoneType = make_builtin_class('NoneType', class_type)
+
+class_tuple = make_builtin_class('tuple', class_type)
+class_iterator = make_builtin_class('iterator', class_type)
+class_list = make_builtin_class('list', class_type)
+class_dict = make_builtin_class('dict', class_type)
+class_module = make_builtin_class('module', class_type)
+class_function = make_builtin_class('function', class_type)
+class_slice = make_builtin_class('slice', class_type)
+
+# Exception classes
+class_BaseException = make_builtin_class('BaseException', class_type)
+class_Exception = make_builtin_class('Exception', class_type)
+class_NameError = make_builtin_class('NameError', class_type)
+class_TypeError = make_builtin_class('TypeError', class_type)
+class_ValueError = make_builtin_class('ValueError', class_type)
+class_StopIteration = make_builtin_class('StopIteration', class_type)
+class_NotImplementedError = make_builtin_class('NotImplementedError', class_type)
+class_LookupError = make_builtin_class('LookupError', class_type)
+class_EOFError = make_builtin_class('EOFError', class_type)
+class_IndexError = make_builtin_class('IndexError', class_type)
+class_AttributeError = make_builtin_class('AttributeError', class_type)
+class_ArithmeticError = make_builtin_class('ArithmeticError', class_type)
+class_ZeroDivisionError = make_builtin_class('ZeroDivisionError', class_type)
+
+om_None = om_boxval(class_NoneType, None)
+om_True = om_boxval(class_bool, True)
+om_False = om_boxval(class_bool, False)
+om_NotImplemented = om(class_NotImplementedType, OM_object_create)
+
 # Call om code.
 def om_call(o, ctx, args):
     code = OM_get_code(o)
@@ -832,6 +925,69 @@ def om_call(o, ctx, args):
         return sem_call(ctx, args)
     else:
         return code(ctx, args)
+
+# Helper to build magic_methods
+
+def do_check_method_self_arg(self_expected_cls, method_name):
+    cls_name = OM_get_boxed_value(OM_get(self_expected_cls, "__name__"))
+    method_qualname = cls_name + "." + method_name
+    not_enough_arguments_msg = method_qualname + "(): not enough arguments"
+    not_a_type_object_msg = method_qualname + "(X): X is not a type object"
+    not_a_subtype_msg = method_qualname + "(object): object is not a subtype of " + cls_name
+
+    def check_method_self_arg(ctx, cont, args):
+        args_len = len(args)
+        if args_len == 0:
+            return sem_raise_with_message(ctx, class_TypeError, not_enough_arguments_msg)
+
+        cls = args[0]
+
+        if not om_isinstance(cls, self_expected_cls):
+            return sem_raise_with_message(ctx, class_TypeError, not_a_subtype_msg)
+        else:
+            return cont(ctx, args)
+
+    return check_method_self_arg
+
+def do_check_static_method_cls_arg(expected_cls, method_name):
+    cls_name = OM_get_boxed_value(OM_get(expected_cls, "__name__"))
+    not_enough_arguments_msg = method_name + "(): not enough arguments"
+    not_a_type_object_msg = method_name + "(X): X is not a type object"
+    not_a_subtype_msg = method_name + "(object): object is not a subtype of " + cls_name
+
+    def check_new_cls_arg(ctx, cont, args):
+        args_len = len(args)
+        if args_len == 0:
+            return sem_raise_with_message(ctx, class_TypeError, not_enough_arguments_msg)
+
+        cls = args[0]
+
+        if not om_isinstance(cls, class_type):
+            return sem_raise_with_message(ctx, class_TypeError, not_a_type_object_msg)
+        elif not om_issubclass(cls, expected_cls):
+            return sem_raise_with_message(ctx, class_TypeError, not_a_subtype_msg)
+        else:
+            return cont(ctx, args)
+
+    return check_new_cls_arg
+
+
+def do_static_magic_method(cls, method_name, code):
+    check_static_method_cls_arg = do_check_static_method_cls_arg(cls, method_name)
+
+    def magic_method(ctx, args):
+        return check_static_method_cls_arg(ctx, code, args)
+
+    return magic_method
+
+def do_magic_method(cls, method_name, code):
+    check_method_self_arg = do_check_method_self_arg(cls, method_name)
+
+    def magic_method(ctx, args):
+        return check_method_self_arg(ctx, code, args)
+
+    return magic_method
+
 
 # class_type magic methods
 def om_type_call(ctx, args):
@@ -848,8 +1004,6 @@ def om_type_call(ctx, args):
     next_ctx = with_cont(ctx, on_instance_creation)
 
     return om_call(cls__new__, next_ctx, args)
-
-
 
 
 def om_type_getattribute(ctx, args):
@@ -991,7 +1145,7 @@ def om_object_getattribute(ctx, args):
         self_clsname_value = OM_get_boxed_value(self_clsname)
 
         msg = om_str("'"+ self_clsname_value +"' object has no attribute '"+name_value+"'")
-        exn = om_exception(class_AttributeError, om_tuple(class_tuple, (msg,)))
+        exn = om_exception(class_AttributeError, om_tuple((msg,)))
         return sem_raise(ctx, exn)
 
     # TODO: check if attr.__get__ exists
@@ -1172,6 +1326,9 @@ def om_int_pos(ctx, args):
     return ctx.cont(ctx.rte, om_boxval(class_int, result))
 # class_tuple methods
 
+def make_tuple(ctx, elements):
+    return ctx.cont(ctx.rte, om_tuple(list_to_tuple(elements)))
+
 def join_str(om_strings, sep):
     acc = ''
     strings_len = len(om_strings)
@@ -1212,10 +1369,10 @@ def om_tuple_new(ctx, args):
     elif not om_issubclass(cls, class_tuple):
         return sem_raise_with_message(ctx, class_TypeError, "tuple.__new__(object): object is not a subtype of tuple")
     if args_len == 1:
-        return ctx.cont(ctx.rte, om_tuple(class_tuple, ()))
+        return ctx.cont(ctx.rte, om_tuple(()))
     elif args_len == 2:
         def alloc(rte, seq):
-            return ctx.cont(ctx.rte, om_tuple(class_tuple, seq))
+            return ctx.cont(ctx.rte, om_tuple(seq))
         return om_unpack_iterable(with_cont(ctx, alloc), args[1])
     else:
         return sem_raise_with_message(ctx, class_TypeError, "tuple expected at most 1 argument, got " + str(args_len))
@@ -1256,7 +1413,111 @@ def om_tuple_getitem(ctx, args):
     else:
         return sem_raise(ctx, class_TypeError)
 
-# class_iterator_methods
+# class_list methods
+
+def list_seq_grow(seq):
+    seq_len = len(seq)
+    new_len = seq_len  * 5 // 4 + 1
+
+    new_seq = []
+    i = 0
+    while i < seq_len:
+        new_seq.append(seq[i])
+        i += 1
+
+    while i < new_len:
+        new_seq.append(empty_cell)
+        i += 1
+
+    return new_seq
+
+def make_list(ctx, elements):
+    list_len = len(elements)
+    dynamic_array = list_seq_grow(elements)
+    return ctx.cont(ctx.rte, om_list(dynamic_array, list_len))
+
+def om_list_new_code(ctx, args):
+    if debug: print("list.__new__")
+
+    args_len = len(args)
+
+    if args_len == 1:
+        return ctx.cont(ctx.rte, om_list([], 0))
+    elif args_len == 2:
+        def alloc(rte, seq):
+            return make_list(ctx, seq)
+        return om_unpack_iterable(with_cont(ctx, alloc), args[1])
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "list expected at most 1 argument, got " + str(args_len))
+
+om_list_new = do_static_magic_method(class_list, "__new__", om_list_new_code)
+
+
+def om_list_elements_repr(ctx, elts, repr_acc, i):
+    if len(elts) == i or elts[i] is empty_cell:
+        result = '[' + join_str(repr_acc, ', ') + ']'
+        return ctx.cont(ctx.rte, om_str(result))
+    else:
+        def cont(rte, value):
+            repr_acc.append(OM_get_boxed_value(value))
+            return om_list_elements_repr(ctx, elts, repr_acc, i + 1)
+
+        return sem_repr(with_cont(ctx, cont), elts[i])
+
+def om_list_repr_code(ctx, args):
+    if debug: print('list.__repr__')
+
+    self = args[0]
+    elements = OM_get_list_seq(self)
+    return om_list_elements_repr(ctx, elements, [], 0)
+
+om_list_repr = do_magic_method(class_list, "__repr__", om_list_repr_code)
+
+
+def om_list_getitem_code(ctx, args):
+    args_len = len(args)
+    if args_len == 2:
+        self = args[0]
+        item = args[1]
+
+        if om_isinstance(item, class_int):
+            index = OM_get_boxed_value(item)
+            self_len = OM_get_list_len(self)
+            elements = OM_get_list_seq(self)
+            if index >= 0 and index < self_len:
+                return ctx.cont(ctx.rte, elements[index])
+            elif index < 0 and index >= -self_len:
+                return ctx.cont(ctx.rte, elements[index + self_len])
+            else:
+                return sem_raise_with_message(ctx, class_IndexError, "list index out of range")
+        elif om_isinstance(item, class_slice):
+            return sem_raise_with_message(ctx, class_NotImplementedError, "list[slice] not yet implemented")
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "__getitem__() takes exactly one argument (" + str(args_len) + " given)")
+
+om_list_getitem = do_magic_method(class_list, "__getitem__", om_list_getitem_code)
+
+
+def om_list_append(ctx, args):
+    if debug: print('list.append')
+    self = args[0]
+    value = args[1]
+
+    elements = OM_get_list_seq(self)
+    list_len = OM_get_list_len(self)
+    elements_len = len(elements)
+
+    if list_len < elements_len:
+        elements[list_len] = value
+        OM_set_list_len(self, list_len + 1)
+    else:
+        new_elements = list_seq_grow(elements)
+        new_elements[list_len] = value
+        OM_set_list_len(self, list_len + 1)
+
+    return ctx.cont(ctx.rte, om_None)
+
+# class_iterator methods
 
 def om_iterator_next(ctx, args):
     if debug: print('iterator.__next__')
@@ -1432,7 +1693,7 @@ def om_function_repr(ctx, args):
 def om_BaseException_new(ctx, args):
     cls = args[0]
     # TODO: use vararg once available
-    exn_args = om_tuple(class_tuple, args[1:])
+    exn_args = om_tuple(args[1:])
 
     return ctx.cont(ctx.rte, om_exception(cls, exn_args))
 
@@ -1485,47 +1746,6 @@ def box_object(obj):
         return om_str(obj)
     else:
         raise ValueError("Cannot box object " + str(obj))
-
-# Create builtins classes
-class_str = make_builtin_class_str()
-
-class_type = make_builtin_class('type', absent)
-class_object = make_builtin_class('object', class_type)
-
-class_NotImplementedType = make_builtin_class('NotImplementedType', class_type)
-class_WrapperDescriptor = make_builtin_class('wrapper_descriptor', class_type)
-class_MethodWrapper = make_builtin_class('method-wrapper', class_type)
-
-class_int = make_builtin_class('int', class_type)
-class_float = make_builtin_class('float', class_type)
-class_bool = make_builtin_class('bool', class_type)
-class_NoneType = make_builtin_class('NoneType', class_type)
-
-class_tuple = make_builtin_class('tuple', class_type)
-class_iterator = make_builtin_class('iterator', class_type)
-class_list = make_builtin_class('list', class_type)
-class_dict = make_builtin_class('dict', class_type)
-class_module = make_builtin_class('module', class_type)
-class_function = make_builtin_class('function', class_type)
-
-# Exception classes
-class_BaseException = make_builtin_class('BaseException', class_type)
-class_Exception = make_builtin_class('Exception', class_type)
-class_NameError = make_builtin_class('NameError', class_type)
-class_TypeError = make_builtin_class('TypeError', class_type)
-class_ValueError = make_builtin_class('ValueError', class_type)
-class_StopIteration = make_builtin_class('StopIteration', class_type)
-class_LookupError = make_builtin_class('LookupError', class_type)
-class_EOFError = make_builtin_class('EOFError', class_type)
-class_IndexError = make_builtin_class('IndexError', class_type)
-class_AttributeError = make_builtin_class('AttributeError', class_type)
-class_ArithmeticError = make_builtin_class('ArithmeticError', class_type)
-class_ZeroDivisionError = make_builtin_class('ZeroDivisionError', class_type)
-
-om_None = om_boxval(class_NoneType, None)
-om_True = om_boxval(class_bool, True)
-om_False = om_boxval(class_bool, False)
-om_NotImplemented = om(class_NotImplementedType, OM_object_create)
 
 # Primitive operators for doing actual computations
 def gen_dunder_Numeric_BinOp(py_class, method, prim, om_class, om_box):
@@ -1807,6 +2027,8 @@ populate_builtin_float()
 populate_builtin_bool()
 populate_builtin_str()
 populate_builtin_tuple()
+populate_builtin_list()
+populate_builtin_slice()
 populate_builtin_iterator()
 populate_builtin_dict()
 populate_builtin_module()
@@ -1820,6 +2042,7 @@ populate_builtin_NameError()
 populate_builtin_TypeError()
 populate_builtin_ValueError()
 populate_builtin_StopIteration()
+populate_builtin_NotImplementedError()
 populate_builtin_EOFError()
 populate_builtin_IndexError()
 populate_builtin_AttributeError()
@@ -1964,6 +2187,7 @@ def fresh_rte(options):
     dict_set(builtins_env, 'bool', class_bool)
     dict_set(builtins_env, 'str', class_str)
     dict_set(builtins_env, 'tuple', class_tuple)
+    dict_set(builtins_env, 'list', class_list)
     dict_set(builtins_env, 'NotImplemented', om_NotImplemented)
     dict_set(builtins_env, 'print', om_builtin_print)
     dict_set(builtins_env, 'input', om_builtin_input)
@@ -2214,6 +2438,10 @@ def comp_expr(cte, ast):
         if debug: print('AST.Tuple')
         computed_elts = comp_elements(cte, ast.elts)
         return gen_Tuple(cte, ast, computed_elts)
+    elif isinstance(ast, AST.List):
+        if debug: print('AST.List')
+        computed_elts = comp_elements(cte, ast.elts)
+        return gen_List(cte, ast, computed_elts)
     elif isinstance(ast, AST.Subscript) and isinstance(ast.ctx, AST.Load):
         if debug: print("AST.Subscript Load")
         obj_cte, obj_code = comp_expr_opt(cte, ast.value)
@@ -2290,6 +2518,9 @@ def gen_signature(cte, ast):
 
 def do_stmt_end(cont, ast):
     return lambda rte: stmt_end(Context(rte, cont, ast))
+
+def do_stmt_end_with_message(cont, ast):
+    return lambda rte, msg: stmt_end_with_message(Context(rte, cont, ast), msg)
 
 def do_expr_end(cont, ast):
     return lambda rte, val: expr_end(Context(rte, cont, ast), val)
@@ -2384,7 +2615,9 @@ def gen_assert(cte, ast, code1, code2):
 def gen_var_set(cte, ast, id, code1):
     def code(rte, cont):
         def var_set(rte, val):
-            return sem_var_set(Context(rte, do_stmt_end(cont, ast), ast), id, val)
+            msg = id + " ← " + om_simple_repr(Context(rte, None, ast), val)
+            cont_stmt_end_with_message = do_stmt_end_with_message(cont, ast)
+            return sem_var_set(Context(rte, lambda rte: cont_stmt_end_with_message(rte, msg), ast), id, val)
         return code1(rte, var_set)
     return (cte, code)
 
@@ -2426,7 +2659,10 @@ def gen_for(cte, target, iterable, body):
                     else:
                         def run_body(rte):
                             return body_code(rte, lambda rte: get_next(rte, iterator))
-                        return sem_var_set(Context(rte, do_stmt_end(run_body, target), target), target.id, nxt_value)
+
+                        msg = target.id + " ← " + om_simple_repr(Context(rte, None, target), nxt_value)
+                        cont_stmt_end_with_message = do_stmt_end_with_message(run_body, target)
+                        return sem_var_set(Context(rte, lambda rte: cont_stmt_end_with_message(rte, msg), target), target.id, nxt_value)
                 return sem_next(Context(rte, assign_target, iterable), iterator, for_loop_end_marker)
             return sem_iter(Context(rte, get_next, iterable), iterable)
         return iterable_code(rte, get_iterator)
@@ -2786,7 +3022,7 @@ def sem_iter(ctx, obj):
         if obj_getitem is absent:
             return sem_raise(ctx, class_TypeError)
         else:
-            return ctx.cont(ctx.rte, om_iterator(class_iterator, obj, om_int(0)))
+            return ctx.cont(ctx.rte, om_iterator(obj, om_int(0)))
     else:
         return om_call(obj_iter, ctx, (obj,))
 
@@ -2828,11 +3064,11 @@ def gen_constant(cte, ast, val):
 
     return (cte, code)
 
-def make_tuple(ctx, elements):
-    return ctx.cont(ctx.rte, om_tuple(class_tuple, elements))
-
 def gen_Tuple(cte, ast, elts):
     return gen_elements(cte, ast, elts, make_tuple, [])
+
+def gen_List(cte, ast, elts):
+    return gen_elements(cte, ast, elts, make_list, [])
 
 def gen_elements(cte, ast, elts, make_container, acc):
     if len(elts) == 0:
@@ -2915,11 +3151,11 @@ def sem_raise(ctx, exn):
 
     # create the exn_object to be created
     if om_isinstance(exn, class_type) and om_issubclass(exn, class_BaseException):
-        exn_obj = om_exception(exn, om_tuple(class_tuple, ()))
+        exn_obj = om_exception(exn, om_tuple(()))
     elif om_isinstance(exn, class_BaseException):
         exn_obj = exn
     else:
-        exn_obj = om_exception(class_TypeError, om_tuple(class_tuple, ()))
+        exn_obj = om_exception(class_TypeError, om_tuple(()))
 
     if om_is(ctrl_env, absent):
         def uncaught_exception(exc):
@@ -2950,7 +3186,7 @@ def sem_raise(ctx, exn):
         return code_catch(ctrl_rte, exn_obj)
 
 def sem_raise_with_message(ctx, exn_type, msg):
-    args = om_tuple(class_tuple, (om_str(msg),))
+    args = om_tuple((om_str(msg),))
     return sem_raise(ctx, om_exception(exn_type, args))
 
 def gen_funcdef_code(cte, ast, body):
@@ -3002,6 +3238,18 @@ def om_tuple_simple_repr(tuple_, rte):
     else:
         return '(' + join_str(acc, ', ') + ')'
 
+def om_list_simple_repr(tuple_, rte):
+    elements = OM_get_tuple_seq(tuple_)
+    elements_len = len(elements)
+    acc = []
+    i = 0
+    while i < elements_len and elements[i] is not empty_cell:
+        next_ctx = make_out_of_ast_context(rte, None)
+        acc.append(om_simple_repr(next_ctx, elements[i]))
+        i += 1
+
+    return '[' + join_str(acc, ', ') + ']'
+
 simple_repr_formatters = {
     "NoneType": om_format_NoneType_repr,
     "int": om_format_int_repr,
@@ -3009,6 +3257,7 @@ simple_repr_formatters = {
     "bool": om_format_bool_repr,
     "str": om_format_str_repr,
     "tuple": om_tuple_simple_repr,
+    "list": om_list_simple_repr,
     "type": om_format_type_repr,
     "function": om_format_function_repr,
     "method-wrapper": om_format_MethodWrapper_repr,
@@ -3056,6 +3305,9 @@ def expr_end(ctx, val):
 
 def stmt_end(ctx):
     return return_to_trampoline(ctx.ast, '', False, None, lambda: ctx.cont(ctx.rte), ctx)
+
+def stmt_end_with_message(ctx, msg):
+    return return_to_trampoline(ctx.ast, msg, False, None, lambda: ctx.cont(ctx.rte), ctx)
 
 
 def return_to_trampoline(ast, msg, display_result, error, cont, ctx):
