@@ -2740,6 +2740,18 @@ def sem_raise(ctx, exn):
             print_stdout(result, ctx.rte)
             return None
 
+        def find_frame_with_ast(rte):
+            frame = rte_stack(rte)
+            while frame is not None and frame_ast(frame) is None:
+                frame = rte_stack(frame_rte(frame))
+            return frame
+
+        if ctx.ast is None:
+            frame = find_frame_with_ast(ctx.rte)
+            ctx = Context(frame_rte(frame),
+                          frame_cont(frame),
+                          frame_ast(frame))
+
         result = om_simple_exception_format(ctx, exn_obj)
         return expr_end_with_error(ctx, result)
     else:
