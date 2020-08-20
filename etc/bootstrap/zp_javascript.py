@@ -972,8 +972,7 @@ class Transformer:
             return name
 
     def Tuple(self, node):
-        elts = ",".join(self.transform(i) for i in node.elts)
-        return f"[{elts}]"
+        return self.List(node)
 
     def UnaryOp(self, node):
         op = self.transform(node.op)

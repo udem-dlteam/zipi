@@ -171,6 +171,8 @@ function dict_has(d, a) {
     };
 function chr(code) { return String.fromCodePoint.apply(null,[code]); }
     """
+    with open("runtime.js", "r") as f:
+        runtime = f.read()
 
     if cli_args.tests:
         with open("int.js", "r") as f:
