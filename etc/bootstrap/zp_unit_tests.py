@@ -30,16 +30,11 @@ def run_tests():
     for test in tests:
         results.append(test())
 
-    if len(tests) == count(results, True):
-        print("-----")
-        print("All tests have passed. (" + str(len(tests)) + ")")
-        print("-----")
-    else:
-        print("-----")
-        print(str(len(tests)) + " tests in total.")
-        print(str(count(results, True)) + " tests have passed.")
-        print(str(count(results, False)) + " tests have failed.")
-        print("-----")
+    print("-----")
+    print(str(len(tests)) + " tests in total.")
+    print(str(count(results, True)) + " tests have passed.")
+    print(str(count(results, False)) + " tests have failed.")
+    print("-----")
 
 
 # Mock tests
