@@ -111,10 +111,9 @@ def run_all(cpython='python3', zipi='../etc/py19 -t gambit', pattern=None):
     for folder, folder_tests in test_files.items():
         print(f' - {clean_name(folder)} ({len(folder_tests)} tests)')
 
-        with multiprocessing.Pool(4) as p:
-            shared_lst = multiprocessing.Manager().list()
-            p.starmap(process_file,
-                      ((folder_test, folder, cpython, zipi, shared_lst) for folder_test in folder_tests))
+        shared_lst = []
+        for folder_test in folder_tests:
+            process_file(folder_test, folder, cpython, zipi, shared_lst)
 
         n_success += sum(shared_lst)
 
