@@ -136,41 +136,8 @@ def compile_file(input_file):
     target_code = transform(_ast)
 
     # Runtime
-    runtime = """
-String.prototype.lstrip = function () { return this.replace(/^\s+/g, ''); };
-function isEmpty(obj) {
-    if (obj === absent) { return true; } else { return false; }
-};
-Array.prototype.extend = function (arr) {
-    arr.forEach(function(v) {this.push(v)}, this);
-};
-function make_dict() { return {}; };
-function dict_get(d, key, _default) {
-    if (Object.prototype.hasOwnProperty.call(d, key)) {
-    return d[key];
-    } else {
-    return _default;
-    }
-    };
-function dict_set(d, key, value) {
-    d[key] = value;
-    };
-function gui_wait_for_click(ast, msg, continue_execution) {
-    console.log('at '+ast.lineno+'.'+(ast.col_offset+1)+'-'+ast.end_lineno+'.'+(ast.end_col_offset+1)+msg)
-    return continue_execution
-    };
-function py_tokenset() {
-    return Array.prototype.slice.call(arguments, py_tokenset.length);
-    };
-function dict_has(d, a) {
-    if (Object.prototype.hasOwnProperty.call(d, a)) {
-    return true;
-    } else {
-    return false;
-    }
-    };
-function chr(code) { return String.fromCharCode.apply(null,[code]); }
-    """
+    with open("runtime.js", "r") as f:
+        runtime = f.read()
 
     if cli_args.tests:
         with open("int.js", "r") as f:
