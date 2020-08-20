@@ -50,5 +50,5 @@ function dict_has(d, a) {
 };
 
 function chr(code) {
-    return String.fromCharCode.apply(null, [code]);
+    return String.fromCodePoint.apply(null, [code]);
 }
