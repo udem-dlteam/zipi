@@ -1270,7 +1270,7 @@ def om_tuple_getitem(ctx, args):
 
 def list_seq_grow(seq):
     seq_len = len(seq)
-    new_len = int_from_float(seq_len  * 5 // 4) + 1
+    new_len = seq_len  * 5 // 4 + 1
 
     new_seq = []
     i = 0

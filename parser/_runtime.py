@@ -58,7 +58,7 @@ def int_is_zero(u):
 
 
 def int_from_float(u):
-    return int(u)
+    return u
 
 
 def int_from_string(string, radix):
