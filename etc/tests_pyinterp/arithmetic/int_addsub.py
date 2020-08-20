@@ -33,7 +33,7 @@ print(1+-9007199254740992)
 print(10+-9007199254740993)
 print(1+-9007199254740993)
 
-# soustractions
+# substraction
 
 print(0-0)
 print(0-1)
@@ -69,7 +69,11 @@ print(1-9007199254740992)
 print(10-9007199254740993)
 print(1-9007199254740993)
 
-# unary soustractions
+print(0 + -0)
+print(1 + -1)
+print(9007199254740993 + -9007199254740993)
+
+# additive inverse
 
 print(0)
 print(-0)

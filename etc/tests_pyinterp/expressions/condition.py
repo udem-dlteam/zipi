@@ -52,3 +52,11 @@ if (1 != 7):
 else:
     print('wrong')
 
+print(1 < 2 < 3)
+print(1 <= 2 < 3)
+print(1 <= 2 <= 3)
+print(1 < 2 > 3)
+print(1 < 4 > 3)
+print(1 == 2 == 3)
+print(1 == 1 == 1)
+print(1 <= 1 < 5)
