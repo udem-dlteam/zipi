@@ -88,3 +88,23 @@ def float_instance(u):
 
 def float_add(u, v):
     return u + v
+
+
+def float_sub(u, v):
+    return u - v
+
+
+def float_mul(u, v):
+    return u * v
+
+
+def float_div(u, v):
+    return u / v
+
+
+def float_mod(u, v):
+    return u % v
+
+
+def float_is_zero(u):
+    return u == 0
