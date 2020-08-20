@@ -1683,16 +1683,6 @@ om_hex_code = gen_number_to_radix_conv_code(16, '0x')
 om_oct_code = gen_number_to_radix_conv_code(8, '0o')
 om_bin_code = gen_number_to_radix_conv_code(2, '0b')
 
-def om_input_code(rte, _):
-    def cont(rte1, obj_str):
-        obj_str_value = OM_get_boxed_value(obj_str)
-        result = input_stdin(obj_str_value)
-        return unwindReturn(rte1, om_str(result))
-
-    obj = rte_lookup(rte, 'obj')
-    ctx = make_out_of_ast_context(rte, cont)
-    return om_convert_to_str(ctx, obj)
-
 def om_print_code(rte, _):
     def cont(rte, str_result):
         print_stdout(OM_get_boxed_value(str_result), rte)
