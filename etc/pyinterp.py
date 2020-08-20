@@ -3004,7 +3004,7 @@ def return_to_trampoline(ast, msg, display_result, error, cont, ctx):
     res = make_dict()
     dict_set(res, "ast", ast)
     dict_set(res, "msg", msg)
-    dict_set(res, "repl_printable", display_result)
+    dict_set(res, "display_result", display_result)
     dict_set(res, "error", error)
     dict_set(res, "cont", cont)
     dict_set(res, "ctx", ctx)
