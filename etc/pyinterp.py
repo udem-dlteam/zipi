@@ -472,6 +472,9 @@ def populate_builtin_int():
     builtin_add_method(class_int, '__gt__', om_int_gt)
     builtin_add_method(class_int, '__gte__', om_int_gte)
     builtin_add_method(class_int, '__repr__', om_int_repr)
+    builtin_add_method(class_int, '__neg__', om_int_neg)
+    builtin_add_method(class_int, '__pos__', om_int_pos)
+
 
     OM_set_type_mro(class_int, [class_int, class_object])
 
@@ -487,6 +490,8 @@ def populate_builtin_float():
     builtin_add_method(class_float, '__mod__', om_float_mod)
     builtin_add_method(class_float, '__rmod__', om_float_rmod)
     builtin_add_method(class_float, '__repr__', om_float_repr)
+    builtin_add_method(class_float, '__pos__', om_float_pos)
+    builtin_add_method(class_float, '__neg__', om_float_neg)
 
     OM_set_type_mro(class_float, [class_float, class_object])
 
@@ -1156,6 +1161,15 @@ def om_int_repr(ctx, args):
     result = om_format_int_repr(self, ctx.rte)
     return ctx.cont(ctx.rte, om_str(result))
 
+def om_int_neg(ctx, args):
+    self = args[0]
+    result = -OM_get_boxed_value(self)
+    return ctx.cont(ctx.rte, om_boxval(class_int, result))
+
+def om_int_pos(ctx, args):
+    self = args[0]
+    result = OM_get_boxed_value(self)
+    return ctx.cont(ctx.rte, om_boxval(class_int, result))
 # class_tuple methods
 
 def join_str(om_strings, sep):
@@ -1572,6 +1586,9 @@ om_int_rsub = gen_dunder_Numeric_rBinOp('int', '__rsub__', int_sub, class_int, o
 om_int_mul = gen_dunder_Numeric_BinOp('int', '__mul__', int_mul, class_int, om_int)
 om_int_rmul = om_int_mul
 
+
+
+
 # Mod has a check for division by zero.
 def om_int_mod(ctx, args):
     if debug: print("int.__mod__")
@@ -1765,6 +1782,16 @@ def om_float_repr(ctx, args):
     self = args[0]
     result = om_format_float_repr(self, ctx.rte)
     return ctx.cont(ctx.rte, om_str(result))
+
+def om_float_neg(ctx, args):
+    self = args[0]
+    result = -OM_get_boxed_value(self)
+    return ctx.cont(ctx.rte, om_boxval(class_float, result))
+
+def om_float_pos(ctx, args):
+    self = args[0]
+    result = OM_get_boxed_value(self)
+    return ctx.cont(ctx.rte, om_boxval(class_float, result))
 
 populate_builtin_type()
 populate_builtin_object()
@@ -2478,6 +2505,24 @@ def gen_BoolOp_seq(cte, ast, logical_op, expr_seq):
 
 # Compilation of sequence of expressions
 
+def gen_UnaryOp(cte, ast, op, code1):
+    if debug: print(op)
+
+    if isinstance(op, AST.USub):
+        sem_op = sem_neg
+    elif isinstance(op, AST.UAdd):
+        sem_op = sem_pos
+    else:
+        assert False, "gen_UnaryOp unimplemented operator"
+
+    def code(rte, cont):
+        return code1(rte,
+                lambda rte1, val1:
+                    sem_op(Context(rte1, do_expr_end(cont, ast), ast), val1))
+
+    return (cte, code)
+
+
 def gen_BinOp(cte, ast, op, code1, code2):
 
     if debug: print(op)
@@ -2655,6 +2700,20 @@ sem_Gt = macro_sem_binary_operator_protocol('>', '__gt__', '__lt__')
 
 sem_LtE = macro_sem_binary_operator_protocol('<=', '__lte__', '__gte__')
 sem_GtE = macro_sem_binary_operator_protocol('>=', '__gte__', '__lte__')
+
+def sem_neg(ctx, val1):
+    val1_neg = getattribute_from_obj_mro(val1, '__neg__')
+    if val1_neg is absent:
+        assert False, "TypeError: bad operand type for unary -"
+    else:
+        return om_call(val1_neg, ctx, [val1])
+
+def sem_pos(ctx, val1):
+    val1_pos = getattribute_from_obj_mro(val1, '__pos__')
+    if val1_pos is abseng:
+        assert False, "TypeError : bad operand type for unary +"
+    else:
+        return om_call(val1_pos, ctx, [val1])
 
 def sem_repr(ctx, val1):
     val1_repr = getattribute_from_obj_mro(val1, '__repr__')
