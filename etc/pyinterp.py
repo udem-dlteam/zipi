@@ -1682,6 +1682,27 @@ def om_input_code(rte, cont):
     ctx = make_out_of_ast_context(rte, return_value)
     return om_convert_to_str(ctx, obj)
 
+def gen_int_to_string_conv_code(radix, prefix):
+    def conv_code(rte, cont):
+        obj = rte_lookup(rte, 'obj')
+        obj_cls = OM_get_object_class(obj)
+        if om_issubclass(obj_cls, class_int):
+            obj_value = OM_get_boxed_value(obj)
+            result = prefix + int_to_string(obj_value, radix)
+            return unwindReturn(rte, om_str(result))
+        else:
+            obj_cls_name = OM_get(obj_cls, '__name__')
+            obj_cls_name_value = OM_get_boxed_value(obj_cls_name)
+            msg = "'"+obj_cls_name_value+"' object cannot be interpreted as an integer"
+            ctx = make_out_of_ast_context(rte, cont)
+            return sem_raise_with_message(ctx, class_TypeError, msg)
+
+    return conv_code
+
+om_hex_code = gen_int_to_string_conv_code(16, '0x')
+om_oct_code = gen_int_to_string_conv_code(8, '0o')
+om_bin_code = gen_int_to_string_conv_code(2, '0b')
+
 def om_print_code(rte, _):
     def cont(rte, str_result):
         print_stdout(OM_get_boxed_value(str_result), rte)
@@ -1765,6 +1786,9 @@ def fresh_rte(options):
 
     om_builtin_print = om_make_function_with_signature('print', om_print_code, make_posonly_only_signature(('obj',)))
     om_builtin_input = om_make_function_with_signature('input', om_input_code, make_posonly_only_signature(('obj',)))
+    om_builtin_hex = om_make_function_with_signature('hex', om_hex_code, make_posonly_only_signature(('obj',)))
+    om_builtin_oct = om_make_function_with_signature('oct', om_oct_code, make_posonly_only_signature(('obj',)))
+    om_builtin_bin = om_make_function_with_signature('bin', om_bin_code, make_posonly_only_signature(('obj',)))
     om_builtin_repr = om_make_function_with_signature('repr', om_repr_code, make_posonly_only_signature(('obj',)))
     om_builtin_len = om_make_function_with_signature('len', om_len_code, make_posonly_only_signature(('obj',)))
     om_builtin_next = om_make_function_with_signature('next', om_next_code,
@@ -1781,6 +1805,9 @@ def fresh_rte(options):
     dict_set(builtins_env, 'NotImplemented', om_NotImplemented)
     dict_set(builtins_env, 'print', om_builtin_print)
     dict_set(builtins_env, 'input', om_builtin_input)
+    dict_set(builtins_env, 'hex', om_builtin_hex)
+    dict_set(builtins_env, 'oct', om_builtin_oct)
+    dict_set(builtins_env, 'bin', om_builtin_bin)
     dict_set(builtins_env, 'repr', om_builtin_repr)
     dict_set(builtins_env, 'len', om_builtin_len)
     dict_set(builtins_env, 'next', om_builtin_next)
@@ -2734,6 +2761,18 @@ def sem_raise(ctx, exn):
             # XXX: should be stderr
             print_stdout(result, ctx.rte)
             return None
+
+        def find_frame_with_ast(rte):
+            frame = rte_stack(rte)
+            while frame is not None and frame_ast(frame) is None:
+                frame = rte_stack(frame_rte(frame))
+            return frame
+
+        if ctx.ast is None:
+            frame = find_frame_with_ast(ctx.rte)
+            ctx = Context(frame_rte(frame),
+                          frame_cont(frame),
+                          frame_ast(frame))
 
         result = om_simple_exception_format(ctx, exn_obj)
         return expr_end_with_error(ctx, result)
