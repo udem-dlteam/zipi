@@ -902,11 +902,11 @@ def check_assignable(ts, t):\n\
 ,"atom: .STRING+":  ["lineno = get_lineno(ts); col_offset = get_col_offset(ts)\n"
                      "end_lineno = 0\n"
                      "end_col_offset = 0\n"
-                     "value = 0\n"
+                     "value = None\n"
                      "current_kind = get_kind(ts)\n",
                      "temp = get_value(ts)\n"
                      "temp_kind = get_kind(ts)\n"
-                     "if value == 0:\n"
+                     "if value == None:\n"
                      "    value = temp\n"
                      "elif current_kind != temp_kind:\n"
                      "    py_syntax_error(ts, 'cannot mix bytes and nonbytes literals')\n"
