@@ -1792,14 +1792,19 @@ def trampoline(execution_point):
 
         ast = state[0]
         msg = state[1]
-        execution_point = state[2]
-        ctx = state[3]
+        error = state[2]
+        execution_point = state[3]
+        ctx = state[4]
 
-        if execution_point and msg is not None and rte_trace(ctx.rte):
-            if len(msg) > 0:
-                msg = ' '+msg
+        if execution_point and rte_trace(ctx.rte):
+            if error is not None:
+                print('at '+str(ast.lineno)+'.'+str(ast.col_offset+1)+'-'+str(ast.end_lineno)+'.'+str(ast.end_col_offset+1)+': exception = ' +error)
+            elif msg is not None:
+                if len(msg) > 0:
+                    msg = ' '+msg
 
-            print('at '+str(ast.lineno)+'.'+str(ast.col_offset+1)+'-'+str(ast.end_lineno)+'.'+str(ast.end_col_offset+1)+msg)
+                print('at '+str(ast.lineno)+'.'+str(ast.col_offset+1)+'-'+str(ast.end_lineno)+'.'+str(ast.end_col_offset+1)+msg)
+
 
 
     #print('exiting trampoline')
@@ -2708,14 +2713,13 @@ def sem_raise(ctx, exn):
             print_stdout(result, ctx.rte)
             return None
 
-        return uncaught_exception(exn)
+        result = om_simple_exception_format(ctx, exn_obj)
+        return expr_end_with_error(ctx, result)
     else:
         # XXX: does not unwind all the way
         ctrl_rte = ctrl_env.lex_env
         code_catch = ctrl_env.code_catch
         return code_catch(ctrl_rte, exn_obj)
-
-        assert False, 'Not implemented'
 
 def sem_raise_with_message(ctx, exn_type, msg):
     args = om_tuple(class_tuple, (om_str(msg),))
@@ -2811,20 +2815,22 @@ def om_simple_exception_format(ctx, exn):
             return exn_name_value + ": " + om_simple_repr(ctx, exn_args)
 
 
+def expr_end_with_error(ctx, error):
+    return return_to_trampoline(ctx.ast, '', error, lambda: None, ctx)
 
 def expr_end(ctx, val):
     if om_is(val, om_None):
-        return return_to_trampoline(ctx.ast, None, lambda: ctx.cont(ctx.rte, val), ctx)
+        return return_to_trampoline(ctx.ast, None, None, lambda: ctx.cont(ctx.rte, val), ctx)
     else:
-        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), lambda: ctx.cont(ctx.rte, val), ctx)
+        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), None, lambda: ctx.cont(ctx.rte, val), ctx)
 
 def stmt_end(ctx):
-    return return_to_trampoline(ctx.ast, '', lambda: ctx.cont(ctx.rte), ctx)
+    return return_to_trampoline(ctx.ast, '', None, lambda: ctx.cont(ctx.rte), ctx)
 
 
-def return_to_trampoline(ast, msg, continue_execution, ctx):
+def return_to_trampoline(ast, msg, error, continue_execution, ctx):
     # return to trampoline with current execution state
-    return (ast, msg, continue_execution, ctx)
+    return (ast, msg, error, continue_execution, ctx)
 
 
 # % cat test.py
