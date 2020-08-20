@@ -553,6 +553,9 @@ def populate_builtin_StopIteration():
 def populate_builtin_LookupError():
     OM_set_type_mro(class_LookupError, [class_LookupError, class_Exception, class_BaseException, class_object])
 
+def populate_builtin_EOFError():
+    OM_set_type_mro(class_EOFError, [class_EOFError, class_Exception, class_BaseException, class_object])
+
 def populate_builtin_IndexError():
     OM_set_type_mro(class_IndexError, [class_IndexError, class_LookupError, class_Exception, class_BaseException, class_object])
 
@@ -1469,6 +1472,7 @@ class_TypeError = make_builtin_class('TypeError', class_type)
 class_ValueError = make_builtin_class('ValueError', class_type)
 class_StopIteration = make_builtin_class('StopIteration', class_type)
 class_LookupError = make_builtin_class('LookupError', class_type)
+class_EOFError = make_builtin_class('EOFError', class_type)
 class_IndexError = make_builtin_class('IndexError', class_type)
 class_AttributeError = make_builtin_class('AttributeError', class_type)
 class_ArithmeticError = make_builtin_class('ArithmeticError', class_type)
@@ -1655,6 +1659,7 @@ populate_builtin_NameError()
 populate_builtin_TypeError()
 populate_builtin_ValueError()
 populate_builtin_StopIteration()
+populate_builtin_EOFError()
 populate_builtin_IndexError()
 populate_builtin_AttributeError()
 populate_builtin_ArithmeticError()
@@ -1662,15 +1667,19 @@ populate_builtin_ZeroDivisionError()
 
 # Builtin functions code
 
-def om_input_code(rte, _):
-    def cont(rte1, obj_str):
+def om_input_code(rte, cont):
+    def return_value(rte1, obj_str):
         obj_str_value = OM_get_boxed_value(obj_str)
         # TODO: raise EOFError on EOF
         result = input_stdin(obj_str_value)
-        return unwindReturn(rte1, om_str(result))
+        if om_is(result, None):
+            ctx = make_out_of_ast_context(rte, cont)
+            return sem_raise(ctx, class_EOFError)
+        else:
+            return unwindReturn(rte1, om_str(result))
 
     obj = rte_lookup(rte, 'obj')
-    ctx = make_out_of_ast_context(rte, cont)
+    ctx = make_out_of_ast_context(rte, return_value)
     return om_convert_to_str(ctx, obj)
 
 def om_print_code(rte, _):
