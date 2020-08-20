@@ -1316,14 +1316,17 @@ def make_tuple(ctx, elements):
     return ctx.cont(ctx.rte, om_tuple(list_to_tuple(elements)))
 
 def join_str(om_strings, sep):
-    acc = ''
     strings_len = len(om_strings)
-    i = 0
-    while i < strings_len - 1:
-        acc += om_strings[i] + sep
-        i += 1
+    if strings_len == 0
+        return ""
+    else:
+        acc = ''
+        i = 0
+        while i < strings_len - 1:
+            acc += om_strings[i] + sep
+            i += 1
 
-    return acc + om_strings[-1]
+        return acc + om_strings[-1]
 
 def om_tuple_elements_repr(ctx, elts, repr_acc):
     if len(elts) == 0:
