@@ -1313,7 +1313,7 @@ def om_int_repr(ctx, args):
 # class_tuple methods
 
 def make_tuple(ctx, elements):
-    return ctx.cont(ctx.rte, om_tuple(list_to_tuple(elements)))
+    return ctx.cont(ctx.rte, om_tuple(elements))
 
 def om_tuple_elements_repr(ctx, elts, repr_acc):
     if len(elts) == 0:
