@@ -30,16 +30,11 @@ def run_tests():
     for test in tests:
         results.append(test())
 
-    if len(tests) == count(results, True):
-        print("-----")
-        print("All tests have passed. (" + str(len(tests)) + ")")
-        print("-----")
-    else:
-        print("-----")
-        print(str(len(tests)) + " tests in total.")
-        print(str(count(results, True)) + " tests have passed.")
-        print(str(count(results, False)) + " tests have failed.")
-        print("-----")
+    print("-----")
+    print(str(len(tests)) + " tests in total.")
+    print(str(count(results, True)) + " tests have passed.")
+    print(str(count(results, False)) + " tests have failed.")
+    print("-----")
 
 
 # Mock tests
@@ -207,6 +202,52 @@ at 1.1-1.6 0
 """)
 def test_int__mod__0():
     source = "8 % 2"
+    return interp_source(source)
+
+
+@Equals("""at 1.1-1.4 0.1
+at 1.7-1.10 0.2
+at 1.1-1.10 0.30000000000000004
+""")
+def test_float__add__0():
+    source = "0.1 + 0.2"
+    return interp_source(source)
+
+
+@Equals("""at 1.1-1.4 0.3
+at 1.7-1.10 0.1
+at 1.1-1.10 0.19999999999999998
+""")
+def test_float__sub__0():
+    source = "0.3 - 0.1"
+    return interp_source(source)
+
+
+# NOTE: The repr of N.0 in JS is N (e.g. 1.0 -> 1)
+@Equals("""at 1.1-1.4 2.2
+at 1.7-1.10 3.3
+at 1.1-1.10 7.26
+""")
+def test_float__mul__0():
+    source = "2.2 * 3.3"
+    return interp_source(source)
+
+
+@Equals("""at 1.1-1.4 2.2
+at 1.7-1.10 3.3
+at 1.1-1.10 0.6666666666666667
+""")
+def test_float__truediv__0():
+    source = "2.2 / 3.3"
+    return interp_source(source)
+
+
+@Equals("""at 1.1-1.4 2.2
+at 1.7-1.10 3.3
+at 1.1-1.10 2.2
+""")
+def test_float__mod__0():
+    source = "2.2 % 3.3"
     return interp_source(source)
 
 

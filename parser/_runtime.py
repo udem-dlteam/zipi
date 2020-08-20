@@ -68,11 +68,13 @@ def int_from_string(string, radix):
 def float_from_string(string):
     return float(string)
 
+
 def input_stdin(msg):
     try:
         return input(msg)
     except:
         return None
+
 
 def print_stdout(msg, rte):
     print(msg)
@@ -86,3 +88,44 @@ def tuple_to_list(t):
 # Checks if it is int.js Int class or BigInt
 def int_instance(n):
     return isinstance(n, int)
+
+
+# Floats
+def float_from_string(string):
+    return float(string)
+
+
+def float_to_string(u):
+    return str(u)
+
+
+def float_from_float(u):
+    return u
+
+
+def float_instance(u):
+    return isinstance(u, float)
+
+
+def float_add(u, v):
+    return u + v
+
+
+def float_sub(u, v):
+    return u - v
+
+
+def float_mul(u, v):
+    return u * v
+
+
+def float_div(u, v):
+    return u / v
+
+
+def float_mod(u, v):
+    return u % v
+
+
+def float_is_zero(u):
+    return u == 0

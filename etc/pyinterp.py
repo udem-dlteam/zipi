@@ -490,6 +490,21 @@ def populate_builtin_int():
 
     OM_set_type_mro(class_int, [class_int, class_object])
 
+def populate_builtin_float():
+    builtin_add_method(class_float, '__add__', om_float_add)
+    builtin_add_method(class_float, '__radd__', om_float_radd)
+    builtin_add_method(class_float, '__sub__', om_float_sub)
+    builtin_add_method(class_float, '__rsub__', om_float_rsub)
+    builtin_add_method(class_float, '__mul__', om_float_mul)
+    builtin_add_method(class_float, '__rmul__', om_float_rmul)
+    builtin_add_method(class_float, '__truediv__', om_float_truediv)
+    builtin_add_method(class_float, '__rtruediv__', om_float_rtruediv)
+    builtin_add_method(class_float, '__mod__', om_float_mod)
+    builtin_add_method(class_float, '__rmod__', om_float_rmod)
+    builtin_add_method(class_float, '__repr__', om_float_repr)
+
+    OM_set_type_mro(class_float, [class_float, class_object])
+
 def populate_builtin_bool():
     # TODO: complete bool magic method
     builtin_add_method(class_bool, '__bool__', om_bool_bool)
@@ -658,6 +673,9 @@ def om_str(val):
 
 def om_int(val):
     return om_boxval(class_int, val)
+
+def om_float(val):
+    return om_boxval(class_float, val)
 
 def om_exception(exn, args):
     # NOTE: This assert only trigger if there is a bug in the code.
@@ -1173,6 +1191,9 @@ def om_int_gte(ctx, args):
 def om_format_int_repr(self, rte):
     return int_to_string(OM_get_boxed_value(self), 10)
 
+def om_format_float_repr(self, rte):
+    return float_to_string(OM_get_boxed_value(self))
+
 def om_int_repr(ctx, args):
     self = args[0]
     result = om_format_int_repr(self, ctx.rte)
@@ -1569,8 +1590,8 @@ def box_object(obj):
         return om_True
     elif obj is False:
         return om_False
-    elif isinstance(obj, int):
-        return om_int(int_from_float(obj))
+    elif float_instance(obj):
+        return om_float(obj)
     elif int_instance(obj):
         return om_int(obj)
     elif isinstance(obj, str):
@@ -1589,6 +1610,7 @@ class_WrapperDescriptor = make_builtin_class('wrapper_descriptor', class_type)
 class_MethodWrapper = make_builtin_class('method-wrapper', class_type)
 
 class_int = make_builtin_class('int', class_type)
+class_float = make_builtin_class('float', class_type)
 class_bool = make_builtin_class('bool', class_type)
 class_NoneType = make_builtin_class('NoneType', class_type)
 
@@ -1768,6 +1790,109 @@ def om_int_rfloordiv(ctx, args):
         # TODO: Return om_NotImplemented(rte) (in the proper rte)
         return ctx.cont(ctx.rte, om_NotImplemented)
 
+# Float dunders
+om_float_add = gen_dunder_Numeric_BinOp('float', '__add__', float_add, class_float, om_float)
+om_float_radd = om_float_add
+
+om_float_sub = gen_dunder_Numeric_BinOp('float', '__sub__', float_sub, class_float, om_float)
+om_float_rsub = gen_dunder_Numeric_BinOp('float', '__rsub__', float_sub, class_float, om_float)
+
+om_float_mul = gen_dunder_Numeric_BinOp('float', '__mul__', float_mul, class_float, om_float)
+om_float_rmul = gen_dunder_Numeric_BinOp('float', '__rmul__', float_mul, class_float, om_float)
+
+def om_float_mod(ctx, args):
+    if debug: print("float.__mod__")
+    val1 = args[0]
+    val2 = args[1]
+
+    if not om_is(OM_get_object_class(val1), class_float):
+        return sem_raise(ctx, class_TypeError)
+
+    # Early break for ZeroDivisionError
+    val2_value = OM_get_boxed_value(val2)
+    if float_is_zero(val2_value):
+        return sem_raise(ctx, class_ZeroDivisionError)
+
+    # Primitive operations are only defined on same types.
+    if om_is(OM_get_object_class(val2), class_float):
+        val1_value = OM_get_boxed_value(val1)
+        result = float_mod(val1_value, val2_value)
+        return ctx.cont(ctx.rte, om_float(result))
+    else:
+        # TODO: Return om_NotImplemented(rte) (in the proper rte)
+        return ctx.cont(ctx.rte, om_NotImplemented)
+
+def om_float_rmod(ctx, args):
+    if debug: print("float.__rmod__")
+    val1 = args[0]
+    val2 = args[1]
+
+    if not om_is(OM_get_object_class(val1), class_float):
+        return sem_raise(ctx, class_TypeError)
+
+    # Early break for ZeroDivisionError
+    val1_value = OM_get_boxed_value(val1)
+    if float_is_zero(val1_value):
+        return sem_raise(ctx, class_ZeroDivisionError)
+
+    # Primitive operations are only defined on same types.
+    if om_is(OM_get_object_class(val2), class_float):
+        val2_value = OM_get_boxed_value(val2)
+        result = float_mod(val2_value, val1_value)
+        return ctx.cont(ctx.rte, om_float(result))
+    else:
+        # TODO: Return om_NotImplemented(rte) (in the proper rte)
+        return ctx.cont(ctx.rte, om_NotImplemented)
+
+def om_float_truediv(ctx, args):
+    if debug: print("float.__truediv__")
+    val1 = args[0]
+    val2 = args[1]
+
+    if not om_is(OM_get_object_class(val1), class_float):
+        return sem_raise(ctx, class_TypeError)
+
+    # Early break for ZeroDivisionError
+    val2_value = OM_get_boxed_value(val2)
+    if float_is_zero(val2_value):
+        return sem_raise(ctx, class_ZeroDivisionError)
+
+    # Primitive operations are only defined on same types.
+    if om_is(OM_get_object_class(val2), class_float):
+        val1_value = OM_get_boxed_value(val1)
+        result = float_div(val1_value, val2_value)
+        return ctx.cont(ctx.rte, om_float(result))
+    else:
+        # TODO: Return om_NotImplemented(rte) (in the proper rte)
+        return ctx.cont(ctx.rte, om_NotImplemented)
+
+def om_float_rtruediv(ctx, args):
+    if debug: print("float.__rtruediv__")
+    val1 = args[0]
+    val2 = args[1]
+
+    if not om_is(OM_get_object_class(val1), class_float):
+        return sem_raise(ctx, class_TypeError)
+
+    # Early break for ZeroDivisionError
+    val1_value = OM_get_boxed_value(val1)
+    if float_is_zero(val1_value):
+        return sem_raise(ctx, class_ZeroDivisionError)
+
+    # Primitive operations are only defined on same types.
+    if om_is(OM_get_object_class(val2), class_float):
+        val2_value = OM_get_boxed_value(val2)
+        result = float_div(val2_value, val1_value)
+        return ctx.cont(ctx.rte, om_float(result))
+    else:
+        # TODO: Return om_NotImplemented(rte) (in the proper rte)
+        return ctx.cont(ctx.rte, om_NotImplemented)
+
+def om_float_repr(ctx, args):
+    self = args[0]
+    result = om_format_float_repr(self, ctx.rte)
+    return ctx.cont(ctx.rte, om_str(result))
+
 populate_builtin_type()
 populate_builtin_object()
 
@@ -1778,6 +1903,7 @@ populate_builtin_MethodWrapper()
 
 # Basic type and date structure.
 populate_builtin_int()
+populate_builtin_float()
 populate_builtin_bool()
 populate_builtin_str()
 populate_builtin_tuple()
@@ -1935,6 +2061,7 @@ def fresh_rte(options):
     dict_set(builtins_env, 'type', class_type)
     dict_set(builtins_env, 'object', class_object)
     dict_set(builtins_env, 'int', class_int)
+    dict_set(builtins_env, 'float', class_float)
     dict_set(builtins_env, 'bool', class_bool)
     dict_set(builtins_env, 'str', class_str)
     dict_set(builtins_env, 'tuple', class_tuple)
@@ -1965,24 +2092,23 @@ def fresh_rte(options):
     dict_set(globals_env, '__builtins__', om_module('builtins', builtins_env))
     return rte
 
-def trampoline(execution_point):
+def trampoline(cont):
 
-    while execution_point:
+    while cont:
 
-        #print('execution_point = ' + repr(execution_point))
-
-        state = execution_point()
+        state = cont()
 
         if not state:
             break
 
-        ast = state[0]
-        msg = state[1]
-        error = state[2]
-        execution_point = state[3]
-        ctx = state[4]
+        ast = dict_get(state, "ast", None)
+        msg = dict_get(state, "msg", None)
+        display_result = dict_get(state, "display_result", None)
+        error = dict_get(state, "error", None)
+        cont = dict_get(state, "cont", None)
+        ctx = dict_get(state, "ctx", None)
 
-        if execution_point and rte_trace(ctx.rte):
+        if cont and rte_trace(ctx.rte):
             if error is not None:
                 print('at '+str(ast.lineno)+'.'+str(ast.col_offset+1)+'-'+str(ast.end_lineno)+'.'+str(ast.end_col_offset+1)+': exception = ' +error)
             elif msg is not None:
@@ -1990,34 +2116,6 @@ def trampoline(execution_point):
                     msg = ' '+msg
 
                 print('at '+str(ast.lineno)+'.'+str(ast.col_offset+1)+'-'+str(ast.end_lineno)+'.'+str(ast.end_col_offset+1)+msg)
-
-
-
-    #print('exiting trampoline')
-
-    # XXX: manual single step
-    # history = [execution_point]
-    # current_index = 0
-    # while execution_point is not None:
-    #     # print(execution_point)
-    #     print(hi<module '" + name_value +"'>")
-    #     opt = input('Operation (n, p): ')
-    #     if opt == 'n':
-    #         tmp = execution_point()
-    #         current_index += 1
-    #         if current_index == len(history):
-    #             history.append(tmp)
-    #         execution_point = tmp
-    #     elif opt == 'r':
-    #         current_index = 0
-    #         execution_point = history[0]
-    #     elif opt == 'p':
-    #         prev_index = min(0, current_index - 1)
-    #         current_index = prev_index
-    #         execution_point = history[prev_index]
-    #         execution_point()
-
-
 
 
 # Compilation of a module.
@@ -2523,8 +2621,9 @@ def gen_BinOp(cte, ast, op, code1, code2):
         sem_op = sem_Sub
     elif isinstance(op, AST.Mult):
         sem_op = sem_Mult
+    # TODO: Normalize nomenclature
     elif isinstance(op, AST.Div):
-        sem_op = sem_Div
+        sem_op = sem_TrueDiv
     elif isinstance(op, AST.Mod):
         sem_op = sem_Mod
     elif isinstance(op, AST.FloorDiv):
@@ -2663,6 +2762,7 @@ sem_Add = gen_sem_Numeric_BinOp('+', '__add__', '__radd__')
 sem_Sub = gen_sem_Numeric_BinOp('-', '__sub__', '__rsub__')
 sem_Mult = gen_sem_Numeric_BinOp('*', '__mul__', '__rmul__')
 sem_FloorDiv = gen_sem_Numeric_BinOp('//', '__floordiv__', '__rfloordiv__')
+sem_TrueDiv = gen_sem_Numeric_BinOp('/', '__truediv__', '__rtruediv__')
 sem_Mod = gen_sem_Numeric_BinOp('%', '__mod__', '__rmod__')
 
 def macro_sem_binary_operator_protocol(op, method, rmethod):
@@ -2991,6 +3091,7 @@ def om_list_simple_repr(tuple_, rte):
 simple_repr_formatters = {
     "NoneType": om_format_NoneType_repr,
     "int": om_format_int_repr,
+    "float": om_format_float_repr,
     "bool": om_format_bool_repr,
     "str": om_format_str_repr,
     "tuple": om_tuple_simple_repr,
@@ -3032,21 +3133,28 @@ def om_simple_exception_format(ctx, exn):
 
 
 def expr_end_with_error(ctx, error):
-    return return_to_trampoline(ctx.ast, '', error, lambda: None, ctx)
+    return return_to_trampoline(ctx.ast, '', False, error, lambda: None, ctx)
 
 def expr_end(ctx, val):
     if om_is(val, om_None):
-        return return_to_trampoline(ctx.ast, None, None, lambda: ctx.cont(ctx.rte, val), ctx)
+        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), False, None, lambda: ctx.cont(ctx.rte, val), ctx)
     else:
-        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), None, lambda: ctx.cont(ctx.rte, val), ctx)
+        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), True, None, lambda: ctx.cont(ctx.rte, val), ctx)
 
 def stmt_end(ctx):
-    return return_to_trampoline(ctx.ast, '', None, lambda: ctx.cont(ctx.rte), ctx)
+    return return_to_trampoline(ctx.ast, '', False, None, lambda: ctx.cont(ctx.rte), ctx)
 
 
-def return_to_trampoline(ast, msg, error, continue_execution, ctx):
+def return_to_trampoline(ast, msg, display_result, error, cont, ctx):
     # return to trampoline with current execution state
-    return (ast, msg, error, continue_execution, ctx)
+    res = make_dict()
+    dict_set(res, "ast", ast)
+    dict_set(res, "msg", msg)
+    dict_set(res, "display_result", display_result)
+    dict_set(res, "error", error)
+    dict_set(res, "cont", cont)
+    dict_set(res, "ctx", ctx)
+    return res
 
 
 # % cat test.py

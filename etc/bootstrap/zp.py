@@ -143,6 +143,8 @@ def compile_file(input_file):
     if cli_args.tests:
         with open("int.js", "r") as f:
             runtime += " " + f.read()
+        with open("float.js", "r") as f:
+            runtime += " " + f.read()
 
     # Modules
     if cli_args.node or cli_args.browser:

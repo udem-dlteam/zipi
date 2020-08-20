@@ -376,6 +376,7 @@ class TokenizerState:
         self.end = 0
         self.token = NEWLINE
         self.value = None  # token's value when it has a value
+        self.kind = None # token's kind when needed (string for example)
         self.line_start = 0
         self.line_num = 1
         self.paren_level = 0
@@ -428,6 +429,9 @@ def token(ts):
 
 def get_value(ts):
     return ts.value
+
+def get_kind(ts):
+    return ts.kind
 
 #------------------------------------------------------------------------------
 
@@ -898,6 +902,9 @@ def byte_escape_character(buf, pos, ts):
     code = get_int_from_escape_no_unicode(buf, pos, ts)
     pos = ts.end
 
+    if ts.token == ERRORTOKEN:
+        return -1
+
     # not found
     if code == -1:
         # default, no escape
@@ -912,6 +919,9 @@ def byte_escape_character(buf, pos, ts):
 def string_escape_character(buf, pos, ts):
     code = get_int_from_escape_no_unicode(buf, pos, ts)
     pos = ts.end
+
+    if ts.token == ERRORTOKEN:
+        return -1
 
     #not found
     if code == -1:
@@ -1042,6 +1052,9 @@ def get_string_normal(ts, pos, c, kind):
                 # kind == NORMAL_STRING
                 else:
                     pos = string_escape_character(buf, pos, ts)
+                if ts.token == ERRORTOKEN:
+                    return
+
 
             else:
                 pos += 1
@@ -1068,6 +1081,8 @@ def get_string_normal(ts, pos, c, kind):
                 # kind == NORMAL_STRING
                 else:
                     pos = string_escape_character(buf, pos, ts)
+                if ts.token == ERRORTOKEN:
+                    return
 
             elif next == 10: # newline ?
                 k = KIND_ERROR
@@ -1082,11 +1097,12 @@ def get_string(ts, pos, c, kind, raw):
     ts.token = STRING
 
     if kind == BYTE_STRING:
-        b = bytearray()
+        b = []
         ts.value = b
     else:
         # kind == UNICODE_STRING or other
         ts.value = ''
+    ts.kind = kind
 
     if raw:
         get_string_raw(ts, pos, c, kind)
