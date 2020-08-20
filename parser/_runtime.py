@@ -58,7 +58,7 @@ def int_is_zero(u):
 
 
 def int_from_float(u):
-    return int(u)
+    return u
 
 
 def int_from_string(string, radix):
@@ -90,13 +90,12 @@ def float_from_string(string):
     return float(string)
 
 
-def float_to_string(u, radix):
-    # XXX: radix is ignored
+def float_to_string(u):
     return str(u)
 
 
 def float_from_float(u):
-    return float(u)
+    return u
 
 
 def float_instance(u):
