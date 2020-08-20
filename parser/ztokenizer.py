@@ -902,6 +902,9 @@ def byte_escape_character(buf, pos, ts):
     code = get_int_from_escape_no_unicode(buf, pos, ts)
     pos = ts.end
 
+    if ts.token == ERRORTOKEN:
+        return -1
+
     # not found
     if code == -1:
         # default, no escape
@@ -916,6 +919,9 @@ def byte_escape_character(buf, pos, ts):
 def string_escape_character(buf, pos, ts):
     code = get_int_from_escape_no_unicode(buf, pos, ts)
     pos = ts.end
+
+    if ts.token == ERRORTOKEN:
+        return -1
 
     #not found
     if code == -1:
@@ -1046,6 +1052,9 @@ def get_string_normal(ts, pos, c, kind):
                 # kind == NORMAL_STRING
                 else:
                     pos = string_escape_character(buf, pos, ts)
+                if ts.token == ERRORTOKEN:
+                    return
+
 
             else:
                 pos += 1
@@ -1072,6 +1081,8 @@ def get_string_normal(ts, pos, c, kind):
                 # kind == NORMAL_STRING
                 else:
                     pos = string_escape_character(buf, pos, ts)
+                if ts.token == ERRORTOKEN:
+                    return
 
             elif next == 10: # newline ?
                 k = KIND_ERROR
