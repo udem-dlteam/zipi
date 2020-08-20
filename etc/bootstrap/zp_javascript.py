@@ -826,7 +826,7 @@ class Transformer:
         elif val is False:
             return "false"
         elif val is None:
-            return "undefined"
+            return "null"
         else:
             return str(node.value)
 

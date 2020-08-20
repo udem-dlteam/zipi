@@ -2889,7 +2889,10 @@ def expr_end_with_error(ctx, error):
     return return_to_trampoline(ctx.ast, '', error, lambda: None, ctx)
 
 def expr_end(ctx, val):
-    return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), None, lambda: ctx.cont(ctx.rte, val), ctx)
+    if om_is(val, om_None):
+        return return_to_trampoline(ctx.ast, None, None, lambda: ctx.cont(ctx.rte, val), ctx)
+    else:
+        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), None, lambda: ctx.cont(ctx.rte, val), ctx)
 
 def stmt_end(ctx):
     return return_to_trampoline(ctx.ast, '', None, lambda: ctx.cont(ctx.rte), ctx)
