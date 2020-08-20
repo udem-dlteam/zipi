@@ -1963,24 +1963,23 @@ def fresh_rte(options):
     dict_set(globals_env, '__builtins__', om_module('builtins', builtins_env))
     return rte
 
-def trampoline(execution_point):
+def trampoline(cont):
 
-    while execution_point:
+    while cont:
 
-        #print('execution_point = ' + repr(execution_point))
-
-        state = execution_point()
+        state = cont()
 
         if not state:
             break
 
-        ast = state[0]
-        msg = state[1]
-        error = state[2]
-        execution_point = state[3]
-        ctx = state[4]
+        ast = dict_get(state, "ast", None)
+        msg = dict_get(state, "msg", None)
+        display_result = dict_get(state, "display_result", None)
+        error = dict_get(state, "error", None)
+        cont = dict_get(state, "cont", None)
+        ctx = dict_get(state, "ctx", None)
 
-        if execution_point and rte_trace(ctx.rte):
+        if cont and rte_trace(ctx.rte):
             if error is not None:
                 print('at '+str(ast.lineno)+'.'+str(ast.col_offset+1)+'-'+str(ast.end_lineno)+'.'+str(ast.end_col_offset+1)+': exception = ' +error)
             elif msg is not None:
@@ -1988,34 +1987,6 @@ def trampoline(execution_point):
                     msg = ' '+msg
 
                 print('at '+str(ast.lineno)+'.'+str(ast.col_offset+1)+'-'+str(ast.end_lineno)+'.'+str(ast.end_col_offset+1)+msg)
-
-
-
-    #print('exiting trampoline')
-
-    # XXX: manual single step
-    # history = [execution_point]
-    # current_index = 0
-    # while execution_point is not None:
-    #     # print(execution_point)
-    #     print(hi<module '" + name_value +"'>")
-    #     opt = input('Operation (n, p): ')
-    #     if opt == 'n':
-    #         tmp = execution_point()
-    #         current_index += 1
-    #         if current_index == len(history):
-    #             history.append(tmp)
-    #         execution_point = tmp
-    #     elif opt == 'r':
-    #         current_index = 0
-    #         execution_point = history[0]
-    #     elif opt == 'p':
-    #         prev_index = min(0, current_index - 1)
-    #         current_index = prev_index
-    #         execution_point = history[prev_index]
-    #         execution_point()
-
-
 
 
 # Compilation of a module.
@@ -3016,21 +2987,28 @@ def om_simple_exception_format(ctx, exn):
 
 
 def expr_end_with_error(ctx, error):
-    return return_to_trampoline(ctx.ast, '', error, lambda: None, ctx)
+    return return_to_trampoline(ctx.ast, '', False, error, lambda: None, ctx)
 
 def expr_end(ctx, val):
     if om_is(val, om_None):
-        return return_to_trampoline(ctx.ast, None, None, lambda: ctx.cont(ctx.rte, val), ctx)
+        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), False, None, lambda: ctx.cont(ctx.rte, val), ctx)
     else:
-        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), None, lambda: ctx.cont(ctx.rte, val), ctx)
+        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), True, None, lambda: ctx.cont(ctx.rte, val), ctx)
 
 def stmt_end(ctx):
-    return return_to_trampoline(ctx.ast, '', None, lambda: ctx.cont(ctx.rte), ctx)
+    return return_to_trampoline(ctx.ast, '', False, None, lambda: ctx.cont(ctx.rte), ctx)
 
 
-def return_to_trampoline(ast, msg, error, continue_execution, ctx):
+def return_to_trampoline(ast, msg, display_result, error, cont, ctx):
     # return to trampoline with current execution state
-    return (ast, msg, error, continue_execution, ctx)
+    res = make_dict()
+    dict_set(res, "ast", ast)
+    dict_set(res, "msg", msg)
+    dict_set(res, "display_result", display_result)
+    dict_set(res, "error", error)
+    dict_set(res, "cont", cont)
+    dict_set(res, "ctx", ctx)
+    return res
 
 
 # % cat test.py
