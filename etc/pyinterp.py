@@ -1662,8 +1662,8 @@ populate_builtin_ZeroDivisionError()
 
 # Builtin functions code
 
-def gen_number_to_radix_conv_code(radix, prefix):
-    def om_radix_code(rte, cont):
+def gen_int_to_string_conv_code(radix, prefix):
+    def conv_code(rte, cont):
         obj = rte_lookup(rte, 'obj')
         obj_cls = OM_get_object_class(obj)
         if om_issubclass(obj_cls, class_int):
@@ -1677,11 +1677,11 @@ def gen_number_to_radix_conv_code(radix, prefix):
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise_with_message(ctx, class_TypeError, msg)
 
-    return om_radix_code
+    return conv_code
 
-om_hex_code = gen_number_to_radix_conv_code(16, '0x')
-om_oct_code = gen_number_to_radix_conv_code(8, '0o')
-om_bin_code = gen_number_to_radix_conv_code(2, '0b')
+om_hex_code = gen_int_to_string_conv_code(16, '0x')
+om_oct_code = gen_int_to_string_conv_code(8, '0o')
+om_bin_code = gen_int_to_string_conv_code(2, '0b')
 
 def om_print_code(rte, _):
     def cont(rte, str_result):
