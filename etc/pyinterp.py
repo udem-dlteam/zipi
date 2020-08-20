@@ -426,7 +426,7 @@ def make_builtin_class(name, metaclass):
 
 # Initialize class type objects
 def builtin_add_method(o, name, code):
-    wrapper = om_WrapperDescriptor(name, code)
+    wrapper = om_WrapperDescriptor(name, o, code)
     OM_set(o, name, wrapper)
 
 def populate_builtin_type():
@@ -691,10 +691,10 @@ def om_exception(exn, args):
     OM_set(obj, 'args', args)
     return obj
 
-def om_WrapperDescriptor(name, code):
+def om_WrapperDescriptor(name, cls, code):
     obj = om(class_WrapperDescriptor, OM_WrapperDescriptor_create)
     OM_set_code(obj, code)
-    OM_set_WrapperDescriptor_cls(obj, absent)
+    OM_set_WrapperDescriptor_cls(obj, cls)
 
     OM_set(obj, '__name__', om_str(name))
     return obj
@@ -1043,9 +1043,6 @@ def om_WrapperDescriptor_get(ctx, args):
     cls = args[2]
 
     if obj is om_None:
-        self_cls = OM_get_WrapperDescriptor_cls(self)
-        if self_cls is absent:
-            OM_set_WrapperDescriptor_cls(self, cls)
         return ctx.cont(ctx.rte, self)
     else:
         self_name = OM_get(self, '__name__')
