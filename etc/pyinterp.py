@@ -1963,13 +1963,11 @@ def fresh_rte(options):
     dict_set(globals_env, '__builtins__', om_module('builtins', builtins_env))
     return rte
 
-def trampoline(execution_point):
+def trampoline(cont):
 
-    while execution_point:
+    while cont:
 
-        #print('execution_point = ' + repr(execution_point))
-
-        state = execution_point()
+        state = cont()
 
         if not state:
             break
@@ -1978,10 +1976,10 @@ def trampoline(execution_point):
         msg = dict_get(state, "msg", None)
         display_result = dict_get(state, "display_result", None)
         error = dict_get(state, "error", None)
-        execution_point = dict_get(state, "execution_point", None)
+        cont = dict_get(state, "cont", None)
         ctx = dict_get(state, "ctx", None)
 
-        if execution_point and rte_trace(ctx.rte):
+        if cont and rte_trace(ctx.rte):
             if error is not None:
                 print('at '+str(ast.lineno)+'.'+str(ast.col_offset+1)+'-'+str(ast.end_lineno)+'.'+str(ast.end_col_offset+1)+': exception = ' +error)
             elif msg is not None:
@@ -3001,14 +2999,14 @@ def stmt_end(ctx):
     return return_to_trampoline(ctx.ast, '', False, None, lambda: ctx.cont(ctx.rte), ctx)
 
 
-def return_to_trampoline(ast, msg, display_result, error, execution_point, ctx):
+def return_to_trampoline(ast, msg, display_result, error, cont, ctx):
     # return to trampoline with current execution state
     res = make_dict()
     dict_set(res, "ast", ast)
     dict_set(res, "msg", msg)
     dict_set(res, "repl_printable", display_result)
     dict_set(res, "error", error)
-    dict_set(res, "execution_point", execution_point)
+    dict_set(res, "cont", cont)
     dict_set(res, "ctx", ctx)
     return res
 
