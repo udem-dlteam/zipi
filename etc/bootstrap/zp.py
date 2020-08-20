@@ -136,6 +136,7 @@ def compile_file(input_file):
     target_code = transform(_ast)
 
     # Runtime
+
     with open("runtime.js", "r") as f:
         runtime = f.read()
 

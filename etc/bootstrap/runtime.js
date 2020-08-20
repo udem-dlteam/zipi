@@ -52,3 +52,7 @@ function dict_has(d, a) {
 function chr(code) {
     return String.fromCodePoint.apply(null, [code]);
 }
+
+function tuple_to_list(tup) {tup.slice();};
+
+function list_to_tuple(lst) {lst.slice();};
