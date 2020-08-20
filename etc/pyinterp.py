@@ -643,6 +643,9 @@ def om_str(val):
     # assert isinstance(val, str), 'om_str expected str'
     return om_boxval(class_str, val)
 
+def om_bool(val):
+    return om_boxval(class_bool, val)
+
 def om_int(val):
     return om_boxval(class_int, val)
 
@@ -1149,7 +1152,7 @@ def om_format_int_repr(self, rte):
     return int_to_string(OM_get_boxed_value(self), 10)
 
 def om_format_float_repr(self, rte):
-    return float_to_string(OM_get_boxed_value(self))
+    return float_to_string(OM_get_boxed_value(self), 10)
 
 def om_int_repr(ctx, args):
     self = args[0]
@@ -1876,6 +1879,253 @@ def om_iter_code(rte, _):
     else:
         assert False, "NotImplementedError"
 
+# Built-in Modules
+def init_module_math():
+
+    def math_sqrt_code(rte, cont):
+        val = rte_lookup(rte, 'obj')
+        obj_class = OM_get_object_class(val)
+        unboxed_val = OM_get_boxed_value(val)
+        
+        if float_is_neg(unboxed_val):
+            ctx = make_out_of_ast_context(rte, cont)
+            return sem_raise(ctx, class_ValueError)
+
+        elif om_is(obj_class, class_int):
+            unboxed_val = int_to_float(unboxed_val)
+            return unwindReturn(rte, om_float(float_sqrt(unboxed_val)))
+
+        elif om_is(OM_get_object_class(val), class_float):
+            return unwindReturn(rte, om_float(float_sqrt(unboxed_val)))
+
+        else:
+            ctx = make_out_of_ast_context(rte, cont)
+            return sem_raise(ctx, class_TypeError)
+
+    def math_floor_code(rte, cont):
+        val = rte_lookup(rte, 'obj')
+        obj_class = OM_get_object_class(val)
+        unboxed_val = OM_get_boxed_value(val)
+
+        if om_is(obj_class, class_int):
+            return unwindReturn(rte, val)
+
+        elif om_is(obj_class, class_float):
+            return unwindReturn(rte, om_int(float_floor(unboxed_val)))
+
+        else:
+            ctx = make_out_of_ast_context(rte, cont)
+            return sem_raise(ctx, class_TypeError)
+
+    def math_ceil_code(rte, cont):
+        val = rte_lookup(rte, 'obj')
+        obj_class = OM_get_object_class(val)
+        unboxed_val = OM_get_boxed_value(val)
+
+        if om_is(obj_class, class_int):
+            return unwindReturn(rte, val)
+
+        elif om_is(obj_class, class_float):
+            return unwindReturn(rte, om_int(float_ceil(unboxed_val)))
+
+        else:
+            ctx = make_out_of_ast_context(rte, cont)
+            return sem_raise(ctx, class_TypeError)
+
+    def math_pow_code(rte, cont):
+
+        val1 = rte_lookup(rte, 'obj1')
+        obj1_class = OM_get_object_class(val1)
+        unboxed_val2 = OM_get_boxed_value(val1)
+
+        val2 = rte_lookup(rte, 'obj2')
+        obj2_class = OM_get_object_class(val2)
+        unboxed_val2 = OM_get_boxed_value(val2)
+
+        if om_is(obj1_class, class_int):
+            unboxed_val1 = int_to_float(unboxed_val1)
+            obj1_class = class_float
+
+        if om_is(obj2_class, class_int):
+            unboxed_val2 = int_to_float(unboxed_val2)
+            obj2_class = class_float
+
+        if float_is_neg(unboxed_val1):
+            ctx = make_out_of_ast_context(rte, cont)
+            return sem_raise(ctx, class_ValueError)
+        
+        elif om_is(obj1_class, class_float) and om_is(obj2_class, class_float):
+            return unwindReturn(rte, om_float(float_pow(unboxed_val1, unboxed_val2)))
+
+        else:
+            ctx = make_out_of_ast_context(rte, cont)
+            return sem_raise(ctx, class_TypeError)
+
+
+    def math_exp_code(rte, cont):
+        val = rte_lookup(rte, 'obj')
+        obj_class = OM_get_object_class(val)
+        unboxed_val = OM_get_boxed_value(val)
+
+        if om_is(obj_class, class_int):
+            unboxed_val = int_to_float(unboxed_val)
+            return unwindReturn(rte, om_float(float_exp(unboxed_val)))
+        if om_is(obj_class, class_float):
+            return unwindReturn(rte, om_float(float_sin(unboxed_val)))
+
+        else:
+            ctx = make_out_of_ast_context(rte, cont)
+            return sem_raise(ctx, class_TypeError)
+
+    def math_log_code(rte, cont):
+        val = rte_lookup(rte, 'obj')
+        obj_class = OM_get_object_class(val)
+        unboxed_val = OM_get_boxed_value(val)
+
+        if om_is(obj_class, class_int):
+            unboxed_val = int_to_float(unboxed_val)
+            obj_class = class_float
+
+        if float_is_neg(unboxed_val) or float_is_zero(unboxed_val):
+            ctx = make_out_of_ast_context(rte, cont)
+            return sem_raise(ctx, class_ValueError)
+
+        if om_is(obj_class, class_float):
+            return unwindReturn(rte, om_float(float_sin(unboxed_val)))
+
+        else:
+            ctx = make_out_of_ast_context(rte, cont)
+            return sem_raise(ctx, class_TypeError)
+
+    def math_sin_code(rte, cont):
+        val = rte_lookup(rte, 'obj')
+        obj_class = OM_get_object_class(val)
+        unboxed_val = OM_get_boxed_value(val)
+
+        if om_is(obj_class, class_int):
+            unboxed_val = int_to_float(unboxed_val)
+            return unwindReturn(rte, om_float(float_sin(unboxed_val)))
+        if om_is(obj_class, class_float):
+            return unwindReturn(rte, om_float(float_sin(unboxed_val)))
+        else:
+            ctx = make_out_of_ast_context(rte, cont)
+            return sem_raise(ctx, class_TypeError)
+
+    def math_cos_code(rte, cont):
+        val = rte_lookup(rte, 'obj')
+        obj_class = OM_get_object_class(val)
+        unboxed_val = OM_get_boxed_value(val)
+
+        if om_is(obj_class, class_int):
+            unboxed_val = int_to_float(unboxed_val)
+            return unwindReturn(rte, om_float(float_cos(unboxed_val)))
+        if om_is(obj_class, class_float):
+            return unwindReturn(rte, om_float(float_cos(unboxed_val)))
+        else:
+            ctx = make_out_of_ast_context(rte, cont)
+            return sem_raise(ctx, class_TypeError)
+
+    def math_tan_code(rte, cont):
+        val = rte_lookup(rte, 'obj')
+        obj_class = OM_get_object_class(val)
+        unboxed_val = OM_get_boxed_value(val)
+
+        if om_is(obj_class, class_int):
+            unboxed_val = int_to_float(unboxed_val)
+            return unwindReturn(rte, om_float(float_tan(unboxed_val)))
+        if om_is(obj_class, class_float):
+            return unwindReturn(rte, om_float(float_tan(unboxed_val)))
+        else:
+            ctx = make_out_of_ast_context(rte, cont)
+            return sem_raise(ctx, class_TypeError)
+
+    def math_asin_code(rte, cont):
+        val = rte_lookup(rte, 'obj')
+        obj_class = OM_get_object_class(val)
+        unboxed_val = OM_get_boxed_value(val)
+
+        if om_is(obj_class, class_int):
+            unboxed_val = int_to_float(unboxed_val)
+            return unwindReturn(rte, om_float(float_asin(unboxed_val)))
+        if om_is(obj_class, class_float):
+            return unwindReturn(rte, om_float(float_asin(unboxed_val)))
+        else:
+            ctx = make_out_of_ast_context(rte, cont)
+            return sem_raise(ctx, class_TypeError)
+
+    def math_acos_code(rte, cont):
+        val = rte_lookup(rte, 'obj')
+        obj_class = OM_get_object_class(val)
+        unboxed_val = OM_get_boxed_value(val)
+
+        if om_is(obj_class, class_int):
+            unboxed_val = int_to_float(unboxed_val)
+            return unwindReturn(rte, om_float(float_acos(unboxed_val)))
+        if om_is(obj_class, class_float):
+            return unwindReturn(rte, om_float(float_acos(unboxed_val)))
+        else:
+            ctx = make_out_of_ast_context(rte, cont)
+            return sem_raise(ctx, class_TypeError)
+
+    def math_atan_code(rte, cont):
+        val = rte_lookup(rte, 'obj')
+        obj_class = OM_get_object_class(val)
+        unboxed_val = OM_get_boxed_value(val)
+
+        if om_is(obj_class, class_int):
+            unboxed_val = int_to_float(unboxed_val)
+            return unwindReturn(rte, om_float(float_atan(unboxed_val)))
+        if om_is(obj_class, class_float):
+            return unwindReturn(rte, om_float(float_atan(unboxed_val)))
+        else:
+            ctx = make_out_of_ast_context(rte, cont)
+            return sem_raise(ctx, class_TypeError)
+
+
+    module_math_env = make_dict()
+
+    om_module_math_sqrt = om_make_function_with_signature('sqrt', math_sqrt_code, make_posonly_only_signature(('obj',)))
+    dict_set(module_math_env, 'sqrt', om_module_math_sqrt)
+
+    om_module_math_floor = om_make_function_with_signature('floor', math_floor_code, make_posonly_only_signature(('obj',)))
+    dict_set(module_math_env, 'floor', om_module_math_floor)
+
+    om_module_math_ceil = om_make_function_with_signature('ceil', math_ceil_code, make_posonly_only_signature(('obj',)))
+    dict_set(module_math_env, 'ceil', om_module_math_ceil)
+
+    om_module_math_exp = om_make_function_with_signature('exp', math_exp_code, make_posonly_only_signature(('obj',)))
+    dict_set(module_math_env, 'exp', om_module_math_exp)
+
+    om_module_math_log = om_make_function_with_signature('log', math_log_code, make_posonly_only_signature(('obj',)))
+    dict_set(module_math_env, 'log', om_module_math_log)
+
+    om_module_math_pow = om_make_function_with_signature('pow', math_pow_code, make_posonly_only_signature(('obj1', 'obj2',)))
+    dict_set(module_math_env, 'pow', om_module_math_pow)
+
+    om_module_math_sin = om_make_function_with_signature('sin', math_sin_code, make_posonly_only_signature(('obj',)))
+    dict_set(module_math_env, 'sin', om_module_math_sin)
+
+    om_module_math_cos = om_make_function_with_signature('cos', math_cos_code, make_posonly_only_signature(('obj',)))
+    dict_set(module_math_env, 'cos', om_module_math_cos)
+
+    om_module_math_tan = om_make_function_with_signature('tan', math_tan_code, make_posonly_only_signature(('obj',)))
+    dict_set(module_math_env, 'tan', om_module_math_tan)
+
+    om_module_math_asin = om_make_function_with_signature('asin', math_asin_code, make_posonly_only_signature(('obj',)))
+    dict_set(module_math_env, 'asin', om_module_math_asin)
+
+    om_module_math_acos = om_make_function_with_signature('acos', math_acos_code, make_posonly_only_signature(('obj',)))
+    dict_set(module_math_env, 'acos', om_module_math_acos)
+
+    om_module_math_atan = om_make_function_with_signature('atan', math_atan_code, make_posonly_only_signature(('obj',)))
+    dict_set(module_math_env, 'atan', om_module_math_atan)
+
+    dict_set(module_math_env, 'pi', om_float(float_pi()))
+    dict_set(module_math_env, 'e', om_float(float_e()))
+
+    return module_math_env
+
+
 # Interpreter
 def interp_file(path, options):
     source = read_file(path)
@@ -1908,6 +2158,7 @@ def comp(ast):
 
 def prepare_execution(code, rte):
     return lambda: code(rte, lambda rte: None)
+
 
 def fresh_rte(options):
     locals_env = absent
@@ -1959,27 +2210,32 @@ def fresh_rte(options):
     dict_set(builtins_env, 'ArithmeticError', class_ArithmeticError)
     dict_set(builtins_env, 'ZeroDivisionError', class_ZeroDivisionError)
 
+    # Modules
+    module_math_env = init_module_math()
+    dict_set(globals_env, 'math', om_module('math', module_math_env))
+
     dict_set(globals_env, '__name__', om_str('__main__'))
     dict_set(globals_env, '__builtins__', om_module('builtins', builtins_env))
     return rte
 
-def trampoline(cont):
+def trampoline(execution_point):
 
-    while cont:
+    while execution_point:
 
-        state = cont()
+        #print('execution_point = ' + repr(execution_point))
+
+        state = execution_point()
 
         if not state:
             break
 
-        ast = dict_get(state, "ast", None)
-        msg = dict_get(state, "msg", None)
-        display_result = dict_get(state, "display_result", None)
-        error = dict_get(state, "error", None)
-        cont = dict_get(state, "cont", None)
-        ctx = dict_get(state, "ctx", None)
+        ast = state[0]
+        msg = state[1]
+        error = state[2]
+        execution_point = state[3]
+        ctx = state[4]
 
-        if cont and rte_trace(ctx.rte):
+        if execution_point and rte_trace(ctx.rte):
             if error is not None:
                 print('at '+str(ast.lineno)+'.'+str(ast.col_offset+1)+'-'+str(ast.end_lineno)+'.'+str(ast.end_col_offset+1)+': exception = ' +error)
             elif msg is not None:
@@ -1987,6 +2243,34 @@ def trampoline(cont):
                     msg = ' '+msg
 
                 print('at '+str(ast.lineno)+'.'+str(ast.col_offset+1)+'-'+str(ast.end_lineno)+'.'+str(ast.end_col_offset+1)+msg)
+
+
+
+    #print('exiting trampoline')
+
+    # XXX: manual single step
+    # history = [execution_point]
+    # current_index = 0
+    # while execution_point is not None:
+    #     # print(execution_point)
+    #     print(hi<module '" + name_value +"'>")
+    #     opt = input('Operation (n, p): ')
+    #     if opt == 'n':
+    #         tmp = execution_point()
+    #         current_index += 1
+    #         if current_index == len(history):
+    #             history.append(tmp)
+    #         execution_point = tmp
+    #     elif opt == 'r':
+    #         current_index = 0
+    #         execution_point = history[0]
+    #     elif opt == 'p':
+    #         prev_index = min(0, current_index - 1)
+    #         current_index = prev_index
+    #         execution_point = history[prev_index]
+    #         execution_point()
+
+
 
 
 # Compilation of a module.
@@ -2985,29 +3269,23 @@ def om_simple_exception_format(ctx, exn):
         else:
             return exn_name_value + ": " + om_simple_repr(ctx, exn_args)
 
+
 def expr_end_with_error(ctx, error):
-    return return_to_trampoline(ctx.ast, '', False, error, lambda: None, ctx)
+    return return_to_trampoline(ctx.ast, '', error, lambda: None, ctx)
 
 def expr_end(ctx, val):
     if om_is(val, om_None):
-        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), False, None, lambda: ctx.cont(ctx.rte, val), ctx)
+        return return_to_trampoline(ctx.ast, None, None, lambda: ctx.cont(ctx.rte, val), ctx)
     else:
-        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), True, None, lambda: ctx.cont(ctx.rte, val), ctx)
+        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), None, lambda: ctx.cont(ctx.rte, val), ctx)
 
 def stmt_end(ctx):
-    return return_to_trampoline(ctx.ast, '', False, None, lambda: ctx.cont(ctx.rte), ctx)
+    return return_to_trampoline(ctx.ast, '', None, lambda: ctx.cont(ctx.rte), ctx)
 
 
-def return_to_trampoline(ast, msg, display_result, error, cont, ctx):
+def return_to_trampoline(ast, msg, error, continue_execution, ctx):
     # return to trampoline with current execution state
-    res = make_dict()
-    dict_set(res, "ast", ast)
-    dict_set(res, "msg", msg)
-    dict_set(res, "display_result", display_result)
-    dict_set(res, "error", error)
-    dict_set(res, "cont", cont)
-    dict_set(res, "ctx", ctx)
-    return res
+    return (ast, msg, error, continue_execution, ctx)
 
 
 # % cat test.py
