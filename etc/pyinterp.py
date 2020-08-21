@@ -2753,24 +2753,10 @@ def comp_mod(cte, ast):
     elif isinstance(ast, AST.Expression):
         # Expression(expr body)
         if debug: print('AST.Interactive')
-        syntax_error = dict_get(cte.external_context,
-                                'syntaxError',
-                                default_syntax_error)
-        return syntax_error(ast.lineno-1,
-                            ast.col_offset,
-                            ast.end_lineno-1,
-                            ast.end_col_offset,
-                            "AST.Expression not supported")
+        return CT_raise_with_msg(cte, ast, "AST.Expression not supported")
 
     else:
-        syntax_error = dict_get(cte.external_context,
-                                'syntaxError',
-                                default_syntax_error)
-        return syntax_error(ast.lineno-1,
-                            ast.col_offset,
-                            ast.end_lineno-1,
-                            ast.end_col_offset,
-                            "unknown ast type")
+        return CT_raise_with_msg(cte, ast, "unknown ast type")
         #assert False, 'comp_mod expected a AST.Module or AST.Interactive'
 
 def comp_stmt_seq(cte, stmt_seq):
@@ -2860,14 +2846,7 @@ def comp_stmt(cte, ast):
             elif isinstance(target, AST.Subscript):
                 return gen_Subscript_Store(cte, ast, target, ast.value)
         else:
-            syntax_error = dict_get(cte.external_context,
-                                    'syntaxError',
-                                    default_syntax_error)
-            return syntax_error(ast.lineno-1,
-                                ast.col_offset,
-                                ast.end_lineno-1,
-                                ast.end_col_offset,
-                                'Only assignation to one element is supported')
+            return CT_raise_with_msg(cte, ast, 'Only assignation to one element is supported')
 
     elif isinstance(ast, AST.While):
         # While(expr test, stmt* body, stmt* orelse)
@@ -2942,14 +2921,7 @@ def comp_stmt(cte, ast):
         return gen_raise(cte1, ast, code1)
 
     else:
-        syntax_error = dict_get(cte.external_context,
-                                'syntaxError',
-                                default_syntax_error)
-        return syntax_error(ast.lineno-1,
-                            ast.col_offset,
-                            ast.end_lineno-1,
-                            ast.end_col_offset,
-                            "unsupported statements")
+        return CT_raise_with_msg(cte, ast, "unsupported statements")
 
 
 
@@ -3014,14 +2986,7 @@ def comp_expr(cte, ast):
         index_cte, index_code = comp_expr(obj_cte, ast.slice.value)
         return gen_Subscript_Load(index_cte, ast, obj_code, index_code)
     else:
-        syntax_error = dict_get(cte.external_context,
-                                'syntaxError',
-                                default_syntax_error)
-        return syntax_error(ast.lineno-1,
-                            ast.col_offset,
-                            ast.end_lineno-1,
-                            ast.end_col_offset,
-                            "unsupported expression AST")
+        return CT_raise_with_msg(cte, ast, "unsupported expression AST")
 
 def comp_elements(cte, elts):
     computed_elts = []
@@ -3351,14 +3316,7 @@ def gen_BoolOp(cte, ast, op, values):
     elif isinstance(op, AST.Or):
         logical_op = gen_logical_or
     else:
-        syntax_error = dict_get(cte.external_context,
-                                'syntaxError',
-                                default_syntax_error)
-        return syntax_error(ast.lineno-1,
-                            ast.col_offset,
-                            ast.end_lineno-1,
-                            ast.end_col_offset,
-                            "unknown boolean operation")
+        return CT_raise_with_msg(cte, ast, "unknown boolean operation")
     return gen_BoolOp_seq(cte, ast, logical_op, values)
 
 # Compilation of sequence of expressions
@@ -3385,14 +3343,7 @@ def gen_UnaryOp(cte, ast, op, code1):
     elif isinstance(op, AST.Not):
         sem_op = sem_Not
     else:
-        syntax_error = dict_get(cte.external_context,
-                                'syntaxError',
-                                default_syntax_error)
-        return syntax_error(ast.lineno-1,
-                            ast.col_offset,
-                            ast.end_lineno-1,
-                            ast.end_col_offset,
-                            "unimplemented unary operator")
+        return CT_raise_with_msg(cte, ast, "unimplemented unary operator")
 
     def code(rte, cont):
         return code1(rte,
@@ -3432,14 +3383,7 @@ def gen_BinOp(cte, ast, op, code1, code2):
     elif isinstance(op, AST.BitXor):
         sem_op = sem_BitXor
     else:
-        syntax_error = dict_get(cte.external_context,
-                                'syntaxError',
-                                default_syntax_error)
-        return syntax_error(ast.lineno-1,
-                            ast.col_offset,
-                            ast.end_lineno-1,
-                            ast.end_col_offset,
-                            "unimplemented binary operator")
+        return CT_raise_with_msg(cte, ast, "unimplemented binary operator")
 
     def code(rte, cont):
         return code1(rte,
@@ -3479,16 +3423,8 @@ def gen_Compare(cte, ast, left, comparators, ops):
     sem_op1 = comp_Compare_Op(ops[0])
 
     if sem_op1 is None:
-        syntax_error = dict_get(cte.external_context,
-                                'syntaxError',
-                                default_syntax_error)
-        return syntax_error(ast.lineno-1,
-                            ast.col_offset,
-                            ast.end_lineno-1,
-                            ast.end_col_offset,
-                            "unimplemented comparison")
-
-    if len(ops) == 1:
+        return CT_raise_with_msg(cte, ast, "unimplemented comparison")
+    elif len(ops) == 1:
         return (cte, lambda rte, cont:
                         code1(rte,
                              lambda rte1, val1:
@@ -3523,14 +3459,7 @@ def gen_Compare(cte, ast, left, comparators, ops):
 
         return (cte, retrieve_val1)
     else:
-        syntax_error = dict_get(cte.external_context,
-                                'syntaxError',
-                                default_syntax_error)
-        return syntax_error(ast.lineno-1,
-                            ast.col_offset,
-                            ast.end_lineno-1,
-                            ast.end_col_offset,
-                            "compare with more than 2 ops not supported")
+        return CT_raise_with_msg(cte, ast, "compare with more than 2 ops not supported")
 
 # Generate BinOp semantics for python Numeric datatypes (or that which emulate)
 # For the correct Python Data Model and interpreter, these are paired with
