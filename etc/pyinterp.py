@@ -3688,7 +3688,8 @@ def sem_var_set(ctx, id, val):
 def sem_var_get(ctx, id):
     def catch_AttributeError(rte, exn):
         if om_isinstance(exn, class_AttributeError):
-            return sem_raise_with_message(Context(rte, ctx.cont, ctx.ast), class_NameError, id)
+            error_msg = "name '" + id + "' is not defined"
+            return sem_raise_with_message(Context(rte, ctx.cont, ctx.ast), class_NameError, error_msg)
         else:
             return sem_raise(Context(rte, ctx.cont, ctx.ast), exn)
 
