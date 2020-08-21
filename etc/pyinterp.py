@@ -3334,7 +3334,7 @@ def sem_raise(ctx, exn):
 
     # XXX: does not unwind all the way
     while not om_is(ctrl_env, absent):
-        if isinstance(ctrl_next, RTCtrlCatch):
+        if isinstance(ctrl_env, RTCtrlCatch):
             ctrl_rte = ctrl_env.lex_env
             code_catch = ctrl_env.code_catch
             return code_catch(ctrl_rte, exn_obj)
