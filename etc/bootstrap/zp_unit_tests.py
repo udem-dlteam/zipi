@@ -212,6 +212,42 @@ def test_int__ge__0():
     return interp_source(source)
 
 
+@Equals("""at 1.1-1.2 2
+at 1.6-1.7 1
+at 1.1-1.7 4
+""")
+def test_int__lshift__0():
+    source = "2 << 1"
+    return interp_source(source)
+
+
+@Equals("""at 1.1-1.2 2
+at 1.6-1.7 1
+at 1.1-1.7 1
+""")
+def test_int__rshift__0():
+    source = "2 >> 1"
+    return interp_source(source)
+
+
+@Equals("""at 1.1-1.2 2
+at 1.5-1.8 128
+at 1.1-1.8 130
+""")
+def test_int__or__0():
+    source = "2 | 128"
+    return interp_source(source)
+
+
+@Equals("""at 1.1-1.2 2
+at 1.5-1.6 2
+at 1.1-1.6 0
+""")
+def test_int__xor__0():
+    source = "2 ^ 2"
+    return interp_source(source)
+
+
 ###
 # Floats
 ###

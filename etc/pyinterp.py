@@ -470,6 +470,7 @@ def populate_builtin_MethodWrapper():
 def populate_builtin_int():
     #fields_set(class_int, '__init__', om_int_init)
     builtin_add_method(class_int, '__bool__', om_int_bool) # <class 'function'>
+    # Arithmetic
     builtin_add_method(class_int, '__add__', om_int_add)
     builtin_add_method(class_int, '__radd__', om_int_radd)
     builtin_add_method(class_int, '__sub__', om_int_sub)
@@ -480,6 +481,16 @@ def populate_builtin_int():
     builtin_add_method(class_int, '__rfloordiv__', om_int_rfloordiv)
     builtin_add_method(class_int, '__mod__', om_int_mod)
     builtin_add_method(class_int, '__rmod__', om_int_rmod)
+    # Bitwise
+    builtin_add_method(class_int, '__lshift__', om_int_lshift)
+    builtin_add_method(class_int, '__rlshift__', om_int_rlshift)
+    builtin_add_method(class_int, '__rshift__', om_int_rshift)
+    builtin_add_method(class_int, '__rrshift__', om_int_rrshift)
+    builtin_add_method(class_int, '__or__', om_int_or)
+    builtin_add_method(class_int, '__ror__', om_int_ror)
+    builtin_add_method(class_int, '__xor__', om_int_xor)
+    builtin_add_method(class_int, '__rxor__', om_int_rxor)
+    # Comparison
     builtin_add_method(class_int, '__eq__', om_int_eq)
     builtin_add_method(class_int, '__ne__', om_int_ne)
     builtin_add_method(class_int, '__lt__', om_int_lt)
@@ -1673,6 +1684,7 @@ def gen_dunder_Numeric_rBinOp(py_class, method, prim, om_class, om_box):
 
     return dunder_Numeric_rBinOp
 
+# Arithmetic
 om_int_add = gen_dunder_Numeric_BinOp('int', '__add__', int_add, class_int, om_int)
 om_int_radd = om_int_add
 
@@ -1681,6 +1693,16 @@ om_int_rsub = gen_dunder_Numeric_rBinOp('int', '__rsub__', int_sub, class_int, o
 
 om_int_mul = gen_dunder_Numeric_BinOp('int', '__mul__', int_mul, class_int, om_int)
 om_int_rmul = om_int_mul
+
+# Bitwise
+om_int_lshift = gen_dunder_Numeric_BinOp('int', '__lshift__', int_lshift, class_int, om_int)
+om_int_rlshift = gen_dunder_Numeric_BinOp('int', '__rlshift__', int_lshift, class_int, om_int)
+om_int_rshift = gen_dunder_Numeric_BinOp('int', '__rshift__', int_rshift, class_int, om_int)
+om_int_rrshift = gen_dunder_Numeric_BinOp('int', '__rrshift__', int_rshift, class_int, om_int)
+om_int_or = gen_dunder_Numeric_BinOp('int', '__or__', int_or, class_int, om_int)
+om_int_ror = gen_dunder_Numeric_BinOp('int', '__ror__', int_or, class_int, om_int)
+om_int_xor = gen_dunder_Numeric_BinOp('int', '__xor__', int_xor, class_int, om_int)
+om_int_rxor = gen_dunder_Numeric_BinOp('int', '__xror__', int_xor, class_int, om_int)
 
 # class_int methods
 def om_int_bool(ctx, args):
@@ -1693,6 +1715,7 @@ def om_int_bool(ctx, args):
         result = om_False
     return ctx.cont(ctx.rte, result)
 
+# Comparison
 om_int_eq = gen_dunder_Numeric_BinOp('int', '__eq__', int_eq, class_int, om_bool)
 om_int_ne = gen_dunder_Numeric_BinOp('int', '__ne__', int_ne, class_int, om_bool)
 om_int_lt = gen_dunder_Numeric_BinOp('int', '__lt__', int_lt, class_int, om_bool)
@@ -2638,6 +2661,7 @@ def gen_BinOp(cte, ast, op, code1, code2):
 
     if debug: print(op)
 
+    # Arithmetic
     if isinstance(op, AST.Add):
         sem_op = sem_Add
     elif isinstance(op, AST.Sub):
@@ -2651,6 +2675,15 @@ def gen_BinOp(cte, ast, op, code1, code2):
         sem_op = sem_Mod
     elif isinstance(op, AST.FloorDiv):
         sem_op = sem_FloorDiv
+    # Bitwise
+    elif isinstance(op, AST.LShift):
+        sem_op = sem_LShift
+    elif isinstance(op, AST.RShift):
+        sem_op = sem_RShift
+    elif isinstance(op, AST.BitOr):
+        sem_op = sem_BitOr
+    elif isinstance(op, AST.BitXor):
+        sem_op = sem_BitXor
     else:
         assert False, 'gen_BinOp unimplemented operator'
 
@@ -2781,27 +2814,19 @@ def gen_sem_Numeric_BinOp(op_symbol, method, rmethod):
 
     return sem_Numeric_BinOp
 
+# Arithmetic
 sem_Add = gen_sem_Numeric_BinOp('+', '__add__', '__radd__')
 sem_Sub = gen_sem_Numeric_BinOp('-', '__sub__', '__rsub__')
 sem_Mult = gen_sem_Numeric_BinOp('*', '__mul__', '__rmul__')
 sem_FloorDiv = gen_sem_Numeric_BinOp('//', '__floordiv__', '__rfloordiv__')
 sem_TrueDiv = gen_sem_Numeric_BinOp('/', '__truediv__', '__rtruediv__')
 sem_Mod = gen_sem_Numeric_BinOp('%', '__mod__', '__rmod__')
-
-def macro_sem_binary_operator_protocol(op, method, rmethod):
-    def sem_comparator(ctx, val1, val2):
-        __op__ = getattribute_from_obj_mro(val1, method)
-        if __op__ is absent:
-            __rop__ = getattribute_from_obj_mro(val2, rmethod)
-            if __rop__ is absent:
-                assert False, "TypeError: '"+op+"' not supported between instances of 'typeof(val1)' and 'typeof(val2)'"
-            else:
-                return om_call(__rop__, ctx, [val2, val1])
-        else:
-            return om_call(__op__, ctx, [val1, val2])
-
-    return sem_comparator
-
+# Bitwise
+sem_LShift = gen_sem_Numeric_BinOp('<<', '__lshift__', '__rlshift__')
+sem_RShift = gen_sem_Numeric_BinOp('>>', '__rshift__', '__rrshift__')
+sem_BitOr = gen_sem_Numeric_BinOp('|', '__or__', '__ror__')
+sem_BitXor = gen_sem_Numeric_BinOp('^', '__xor__', '__rxor__')
+# Comparison
 sem_Eq = gen_sem_Numeric_BinOp('==', '__eq__', '__eq__')
 sem_NotEq = gen_sem_Numeric_BinOp('==', '__ne__', '__ne__')
 sem_Lt = gen_sem_Numeric_BinOp('<', '__lt__', '__gt__')
