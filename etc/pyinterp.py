@@ -1317,15 +1317,13 @@ def om_int_repr(ctx, args):
 
 def om_int_neg_code(ctx, args):
     self = args[0]
-    result = -OM_get_boxed_value(self)
+    result = int_neg(OM_get_boxed_value(self))
     return ctx.cont(ctx.rte, om_boxval(class_int, result))
 
 om_int_neg = do_magic_method(class_int, "__neg__", om_int_neg_code)
 
 def om_int_pos_code(ctx, args):
-    self = args[0]
-    result = OM_get_boxed_value(self)
-    return ctx.cont(ctx.rte, om_boxval(class_int, result))
+    return ctx.cont(ctx.rte, args[0])
 
 om_int_pos = do_magic_method(class_int, "__pos__", om_int_pos_code)
 
@@ -2008,15 +2006,17 @@ def om_float_repr(ctx, args):
     result = om_format_float_repr(self, ctx.rte)
     return ctx.cont(ctx.rte, om_str(result))
 
-def om_float_neg(ctx, args):
+def om_float_neg_code(ctx, args):
     self = args[0]
-    result = -OM_get_boxed_value(self)
+    result = float_neg(OM_get_boxed_value(self))
     return ctx.cont(ctx.rte, om_boxval(class_float, result))
 
-def om_float_pos(ctx, args):
-    self = args[0]
-    result = OM_get_boxed_value(self)
-    return ctx.cont(ctx.rte, om_boxval(class_float, result))
+om_float_neg = do_magic_method(class_float, "__neg__", om_float_neg_code)
+
+def om_float_pos_code(ctx, args):
+    return ctx.cont(ctx.rte, agrs[0])
+
+om_float_pos = do_magic_method(class_float, "__pos__", om_float_pos_code)
 
 populate_builtin_type()
 populate_builtin_object()
@@ -2951,7 +2951,7 @@ def sem_neg(ctx, val1):
 
 def sem_pos(ctx, val1):
     val1_pos = getattribute_from_obj_mro(val1, '__pos__')
-    if val1_pos is abseng:
+    if val1_pos is absent:
         return sem_raise_with_message(ctx, class_TypeError, "bad operand type for unary +")
     else:
         return om_call(val1_pos, ctx, [val1])
