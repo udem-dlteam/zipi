@@ -118,6 +118,9 @@ def int_divmod(u, v):
 def int_not(u):
     return ~u
 
+def int_to_float(u):
+    return float(u)
+
 
 def int_and(u, v):
     return u & v
@@ -243,12 +246,77 @@ def float_mod(u, v):
 def float_is_zero(u):
     return u == 0
 
+  
+def float_is_neg(u):
+    return (u < 0)
+
+  
 def float_from_string(string):
     return float(string)
 
 
 def float_to_string(u):
     return str(u)
+  
+##
+# module math
+##
+
+import math
+def float_sqrt(u):
+    return math.sqrt(u)
+
+
+def float_floor(u):
+    return math.floor(u)
+
+
+def float_ceil(u):
+    return math.ceil(u)
+
+
+def float_sin(u):
+    return math.sin(u)
+
+
+def float_cos(u):
+    return math.cos(u)
+
+
+def float_tan(u):
+    return math.tan(u)
+
+
+def float_asin(u):
+    return math.asin(u)
+
+
+def float_acos(u):
+    return math.acos(u)
+
+
+def float_atan(u):
+    return math.atan(u)
+
+
+def float_exp(u):
+    return math.exp(u)
+
+
+def float_log(u):
+    return math.log(u)
+
+
+def float_pow(u, v):
+    return math.pow(u, v)
+
+
+def float_pi():
+    return math.pi
+
+
+def float_e():
+    return math.e
 
 
 ###
