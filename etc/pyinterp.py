@@ -2022,13 +2022,6 @@ def om_float_neg_code(ctx, args):
 
 om_float_neg = do_magic_method(class_float, "__neg__", om_float_neg_code)
 
-def om_float_invert_code(ctx, args):
-    self = args[0]
-    result = float_not(OM_get_boxed_value(self))
-    return ctx.cont(ctx.rte, om_boxval(class_float, result))
-
-om_float_invert = do_magic_method(class_float, "__invert__", om_float_invert_code)
-
 def om_float_pos_code(ctx, args):
     return ctx.cont(ctx.rte, agrs[0])
 
