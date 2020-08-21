@@ -33,8 +33,9 @@ def check_assignable(ts, t):\n\
             py_syntax_error(ts, 'cannot assign to True')\n\
         elif val is None:\n\
             py_syntax_error(ts, 'cannot assign to None')\n\
-        elif val is Ellipsis:\n\
-            py_syntax_error(ts, 'cannot assign to Ellipsis')\n\
+#TODO: enable when Ellipsis implemented\n\
+#        elif val is Ellipsis:\n\
+#            py_syntax_error(ts, 'cannot assign to Ellipsis')\n\
         else:\n\
             py_syntax_error(ts, 'cannot assign to literal')\n\
     elif isinstance(t, BinOp) or isinstance(t, UnaryOp) or isinstance(t, BoolOp):\n\
