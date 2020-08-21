@@ -188,9 +188,17 @@ function float_nan() {
 }
 
 function float_to_string(float_a) {
-    // TODO support for BigNum conversion
     
+    if (float_is_nan(float_a))
+        return "nan";
+
+    if (float_is_infinite(float_a))
+        if (float_is_neg(float_a))
+            return "-inf";
+        return "inf";
+
     var str_a = float_a + "";
+
     if (str_a.includes('.') || str_a.includes('e'))
         return str_a;
     else
