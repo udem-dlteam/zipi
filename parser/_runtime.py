@@ -134,7 +134,9 @@ def float_is_zero(u):
 def float_is_neg(u):
     return (u < 0)
 
+# module math
 
+import math
 def float_sqrt(u):
     return math.sqrt(u)
 
@@ -176,11 +178,11 @@ def float_exp(u):
 
 
 def float_log(u):
-    return math.log(u);
+    return math.log(u)
 
 
 def float_pow(u, v):
-    return math.log(u);
+    return math.pow(u, v)
 
 
 def float_pi():

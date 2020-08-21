@@ -2102,7 +2102,7 @@ def init_module_math():
             unboxed_val = int_to_float(unboxed_val)
             return unwindReturn(rte, om_float(float_sqrt(unboxed_val)))
 
-        elif om_is(OM_get_object_class(val), class_float):
+        elif om_is(obj_class, class_float):
             return unwindReturn(rte, om_float(float_sqrt(unboxed_val)))
 
         else:
@@ -2143,7 +2143,7 @@ def init_module_math():
 
         val1 = rte_lookup(rte, 'obj1')
         obj1_class = OM_get_object_class(val1)
-        unboxed_val2 = OM_get_boxed_value(val1)
+        unboxed_val1 = OM_get_boxed_value(val1)
 
         val2 = rte_lookup(rte, 'obj2')
         obj2_class = OM_get_object_class(val2)
@@ -2176,7 +2176,8 @@ def init_module_math():
 
         if om_is(obj_class, class_int):
             unboxed_val = int_to_float(unboxed_val)
-            return unwindReturn(rte, om_float(float_exp(unboxed_val)))
+            return unwindReturn(rte, om_float(float_sin(unboxed_val)))
+
         if om_is(obj_class, class_float):
             return unwindReturn(rte, om_float(float_sin(unboxed_val)))
 
@@ -2193,11 +2194,10 @@ def init_module_math():
             unboxed_val = int_to_float(unboxed_val)
             obj_class = class_float
 
-        if float_is_neg(unboxed_val) or float_is_zero(unboxed_val):
-            ctx = make_out_of_ast_context(rte, cont)
-            return sem_raise(ctx, class_ValueError)
-
         if om_is(obj_class, class_float):
+            if float_is_neg(unboxed_val) or float_is_zero(unboxed_val):
+                ctx = make_out_of_ast_context(rte, cont)
+                return sem_raise(ctx, class_ValueError)
             return unwindReturn(rte, om_float(float_sin(unboxed_val)))
 
         else:
@@ -2212,7 +2212,7 @@ def init_module_math():
         if om_is(obj_class, class_int):
             unboxed_val = int_to_float(unboxed_val)
             return unwindReturn(rte, om_float(float_sin(unboxed_val)))
-        if om_is(obj_class, class_float):
+        elif om_is(obj_class, class_float):
             return unwindReturn(rte, om_float(float_sin(unboxed_val)))
         else:
             ctx = make_out_of_ast_context(rte, cont)
@@ -2226,7 +2226,7 @@ def init_module_math():
         if om_is(obj_class, class_int):
             unboxed_val = int_to_float(unboxed_val)
             return unwindReturn(rte, om_float(float_cos(unboxed_val)))
-        if om_is(obj_class, class_float):
+        elif om_is(obj_class, class_float):
             return unwindReturn(rte, om_float(float_cos(unboxed_val)))
         else:
             ctx = make_out_of_ast_context(rte, cont)
@@ -2240,7 +2240,7 @@ def init_module_math():
         if om_is(obj_class, class_int):
             unboxed_val = int_to_float(unboxed_val)
             return unwindReturn(rte, om_float(float_tan(unboxed_val)))
-        if om_is(obj_class, class_float):
+        elif om_is(obj_class, class_float):
             return unwindReturn(rte, om_float(float_tan(unboxed_val)))
         else:
             ctx = make_out_of_ast_context(rte, cont)
@@ -2254,7 +2254,7 @@ def init_module_math():
         if om_is(obj_class, class_int):
             unboxed_val = int_to_float(unboxed_val)
             return unwindReturn(rte, om_float(float_asin(unboxed_val)))
-        if om_is(obj_class, class_float):
+        elif om_is(obj_class, class_float):
             return unwindReturn(rte, om_float(float_asin(unboxed_val)))
         else:
             ctx = make_out_of_ast_context(rte, cont)
@@ -2268,7 +2268,7 @@ def init_module_math():
         if om_is(obj_class, class_int):
             unboxed_val = int_to_float(unboxed_val)
             return unwindReturn(rte, om_float(float_acos(unboxed_val)))
-        if om_is(obj_class, class_float):
+        elif om_is(obj_class, class_float):
             return unwindReturn(rte, om_float(float_acos(unboxed_val)))
         else:
             ctx = make_out_of_ast_context(rte, cont)
@@ -2282,7 +2282,7 @@ def init_module_math():
         if om_is(obj_class, class_int):
             unboxed_val = int_to_float(unboxed_val)
             return unwindReturn(rte, om_float(float_atan(unboxed_val)))
-        if om_is(obj_class, class_float):
+        elif om_is(obj_class, class_float):
             return unwindReturn(rte, om_float(float_atan(unboxed_val)))
         else:
             ctx = make_out_of_ast_context(rte, cont)
@@ -2331,15 +2331,6 @@ def init_module_math():
     dict_set(module_math_env, 'e', om_float(float_e()))
 
     return module_math_env
-
-
-# Interpreter
-def interp_file(path, options):
-    source = read_file(path)
-    interp(parse(source, path, 'exec', False), options)
-
-
-
 
 # Interpreter
 def interp_file(path, options):
