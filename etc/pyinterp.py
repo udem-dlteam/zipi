@@ -99,6 +99,7 @@ class OM_object:
 class OM_type(OM_object):
     """
     mro: the __mro__ attribute of class type
+    bases: the bases of the class
     instance_creator: function which creates instances of this base type
     """
 
@@ -479,65 +480,108 @@ def compute_mro(cls, bases):
 
 def make_class(name, module, bases, metaclass):
     cls = om(metaclass)
-    OM_set(cls, '__name__', om_str(name))
-    OM_set(cls, '__module__', om_str(module))
+    # TODO: some builtin class are not compatible, add checks for that
+    mro = compute_mro(cls, bases)
 
-    OM_set_object_class(cls, metaclass)
-    OM_set_type_mro(cls, bases)
-    return cls
+    if mro is None:
+        # mro could not be resolved, should bubble up to raise a TypeError
+        return None
+    else:
+        OM_set(cls, '__name__', om_str(name))
+        OM_set(cls, '__module__', om_str(module))
+        OM_set_object_class(cls, metaclass)
+        OM_set_type_bases(cls, bases)
+        OM_set_type_mro(cls, mro)
+        # If X ad mro (X, A, B, C, ...) we reuse the instance_creator of A
+        OM_set_type_instance_creator(cls, OM_get_type_instance_creator(mro[1]))
+        return cls
 
-def make_builtin_class_str():
-    cls = om_with_instance_creator(absent, OM_type_create)
-
-    om_name = om_with_instance_creator(cls, OM_box_create)
-    OM_set_boxed_value(om_name, "str")
-    om_module = om_with_instance_creator(cls, OM_box_create)
-    OM_set_boxed_value(om_module, "builtins")
-
-    OM_set_type_instance_creator(cls, OM_box_create)
-
-    OM_set(cls, '__name__', om_name)
-    OM_set(cls, '__module__', om_module)
-
-    return cls
-
-def make_builtin_class_type():
-    cls = om_with_instance_creator(absent, OM_type_create)
-
-    OM_set(cls, '__name__', om_str("type"))
-    OM_set(cls, '__module__', om_str("builtins"))
-    OM_set_type_instance_creator(cls, OM_type_create)
-
-    return cls
-
-def make_builtin_class(name, instance_creator, metaclass):
+def make_builtin_class(name, instance_creator, bases, metaclass):
     # Set base classes when they do exist
-    cls = make_class(name, 'builtins', absent, metaclass)
+    cls = make_class(name, 'builtins', bases, metaclass)
     OM_set_type_instance_creator(cls, instance_creator)
     return cls
+
+def bootstrap_base_types():
+    # init class_type
+    class_type = om_with_instance_creator(absent, OM_type_create)
+    OM_set_type_instance_creator(class_type, OM_type_create)
+
+    # init class_str
+    class_str = om_with_instance_creator(class_type, OM_type_create)
+    OM_set_type_instance_creator(class_str, OM_box_create)
+
+    # init class_object
+    class_object = om_with_instance_creator(class_type, OM_object_create)
+    OM_set_type_instance_creator(class_object, OM_object_create)
+
+    # init class_WrapperDescriptor
+
+    class_WrapperDescriptor = om_with_instance_creator(class_type, OM_WrapperDescriptor_create)
+    OM_set_type_instance_creator(class_WrapperDescriptor, OM_WrapperDescriptor_create)
+
+    def om_bootstrap_str(value):
+        om_value = om_with_instance_creator(class_str, OM_box_create)
+        OM_set_boxed_value(om_value, value)
+        return om_value
+
+    # populate class_str base attributes
+    OM_set(class_str, '__name__', om_bootstrap_str("str"))
+    OM_set(class_str, '__module__', om_bootstrap_str("builtins"))
+    OM_set_type_mro(class_str, (class_str, class_object))
+
+    OM_set(class_type, '__name__', om_bootstrap_str("type"))
+    OM_set(class_type, '__module__', om_bootstrap_str("builtins"))
+    OM_set_type_mro(class_type, (class_type, class_object))
+
+    OM_set(class_object, '__name__', om_bootstrap_str("object"))
+    OM_set(class_object, '__module__', om_bootstrap_str("builtins"))
+    OM_set_type_mro(class_object, (class_object,))
+
+    OM_set(class_WrapperDescriptor, '__name__', om_bootstrap_str("wrapper_descriptor"))
+    OM_set(class_WrapperDescriptor, '__module__', om_bootstrap_str("builtins"))
+    OM_set_type_mro(class_WrapperDescriptor, (class_WrapperDescriptor, class_object))
+
+    return class_object, class_str, class_type, class_WrapperDescriptor
+
+def bootstrap_populate_base_types():
+    buitlin_add_methods_to_class(
+        class_type,
+        (('__call__', om_type_call),
+         ('__getattribute__', om_type_getattribute),
+         ('__repr__', om_type_repr)))
+
+    buitlin_add_methods_to_class(
+        class_object,
+        (('__new__', om_object_new),
+         ('__init__', om_object_init),
+         ('__getattribute__', om_object_getattribute),
+         ('__str__', om_object_str),
+         ('__repr__', om_object_repr)))
+
+    buitlin_add_methods_to_class(
+        class_WrapperDescriptor,
+        (('__get__', om_WrapperDescriptor_get),
+         ('__call__', om_WrapperDescriptor_call),
+         ('__repr__', om_WrapperDescriptor_repr)))
+
+    buitlin_add_methods_to_class(
+        class_str,
+        (('__new__', om_str_new),
+         ('__repr__', om_str_repr),
+         ('__str__', om_str_str)))
 
 # Initialize class type objects
 def builtin_add_method(o, name, code):
     wrapper = om_WrapperDescriptor(name, o, code)
     OM_set(o, name, wrapper)
 
-def populate_builtin_type():
-    OM_set_object_class(class_type, OM_type_create)
 
-    builtin_add_method(class_type, '__call__', om_type_call)
-    builtin_add_method(class_type, '__getattribute__', om_type_getattribute)
-    builtin_add_method(class_type, '__repr__', om_type_repr)
-
-    OM_set_type_mro(class_type, [class_type, class_object])
-
-def populate_builtin_object():
-    builtin_add_method(class_object, "__new__", om_object_new)
-    builtin_add_method(class_object, "__init__", om_object_init)
-    builtin_add_method(class_object, '__getattribute__', om_object_getattribute)
-    builtin_add_method(class_object, '__str__', om_object_str)
-    builtin_add_method(class_object, '__repr__', om_object_repr)
-
-    OM_set_type_mro(class_object, [class_object])
+def buitlin_add_methods_to_class(cls, methods_table):
+    for pair in methods_table:
+        name = pair[0]
+        code = pair[1]
+        builtin_add_method(cls, name, code)
 
 def populate_builtin_NotImplementedType():
     OM_set_type_instance_creator(class_NotImplementedType, OM_NotImplemented_create)
@@ -546,15 +590,6 @@ def populate_builtin_NotImplementedType():
     builtin_add_method(class_NotImplementedType, '__repr__', om_NotImplementedType_repr)
 
     OM_set_type_mro(class_NotImplementedType, [class_NotImplementedType, class_object])
-
-def populate_builtin_WrapperDescriptor():
-    OM_set_type_instance_creator(class_WrapperDescriptor, OM_WrapperDescriptor_create)
-
-    builtin_add_method(class_WrapperDescriptor, '__get__', om_WrapperDescriptor_get)
-    builtin_add_method(class_WrapperDescriptor, '__call__', om_WrapperDescriptor_call)
-    builtin_add_method(class_WrapperDescriptor, '__repr__', om_WrapperDescriptor_repr)
-
-    OM_set_type_mro(class_WrapperDescriptor, [class_WrapperDescriptor, class_object])
 
 def populate_builtin_MethodWrapper():
     OM_set_type_instance_creator(class_MethodWrapper, OM_MethodWrapper_create)
@@ -614,21 +649,6 @@ def populate_builtin_bool():
     builtin_add_method(class_bool, '__repr__', om_bool_repr)
 
     OM_set_type_mro(class_bool, [class_bool, class_int, class_object])
-
-def populate_builtin_str():
-    OM_set_type_instance_creator(class_str, OM_box_create)
-
-    OM_set_object_class(class_str, class_type)
-
-    OM_set(class_str, '__name__', om_str('str'))
-    OM_set(class_str, '__module__', om_str('builtins'))
-
-    builtin_add_method(class_str, "__new__", om_str_new)
-    builtin_add_method(class_str, '__repr__', om_str_repr)
-    builtin_add_method(class_str, '__str__', om_str_str)
-
-    # TODO: add all other methods
-    OM_set_type_mro(class_str, [class_str, class_object])
 
 def populate_builtin_tuple():
     OM_set_type_instance_creator(class_tuple, OM_tuple_create)
@@ -950,6 +970,12 @@ def OM_set_type_mro(o, val):
 def OM_get_type_mro(o):
     return o.mro
 
+def OM_get_type_bases(o):
+    return o.bases
+
+def OM_set_type_bases(o, bases):
+    o.bases = bases
+
 def OM_set_type_instance_creator(o, val):
     o.instance_creator = val
 
@@ -1032,45 +1058,47 @@ def OM_get_MethodWrapper_instance(o):
     return o.instance
 
 # Create builtins classes
-class_str = make_builtin_class_str()
-class_type = make_builtin_class_type()
-class_object = make_builtin_class('object', OM_object_create, class_type)
+__base_types = bootstrap_base_types()
 
-class_NotImplementedType = make_builtin_class('NotImplementedType', OM_NoneType_create, class_type)
-class_WrapperDescriptor = make_builtin_class('wrapper_descriptor', OM_MethodWrapper_create, class_type)
-class_MethodWrapper = make_builtin_class('method-wrapper', OM_MethodWrapper_create, class_type)
+class_object = __base_types[0]
+class_str = __base_types[1]
+class_type = __base_types[2]
+class_WrapperDescriptor = __base_types[3]
 
-class_int = make_builtin_class('int', OM_box_create, class_type)
-class_float = make_builtin_class('float', OM_box_create, class_type)
-class_bool = make_builtin_class('bool', OM_box_create, class_type)
-class_NoneType = make_builtin_class('NoneType', OM_NoneType_create, class_type)
+class_NotImplementedType = make_builtin_class('NotImplementedType', OM_NoneType_create, (), class_type)
+class_MethodWrapper = make_builtin_class('method-wrapper', OM_MethodWrapper_create, (), class_type)
 
-class_tuple = make_builtin_class('tuple', OM_tuple_create, class_type)
-class_iterator = make_builtin_class('iterator', OM_iterator_create, class_type)
-class_list = make_builtin_class('list', OM_list_create, class_type)
-class_dict = make_builtin_class('dict', OM_dict_create, class_type)
-class_module = make_builtin_class('module', OM_module_create, class_type)
-class_function = make_builtin_class('function', OM_function_create, class_type)
-class_slice = make_builtin_class('slice', OM_slice_create, class_type)
+class_int = make_builtin_class('int', OM_box_create, (), class_type)
+class_float = make_builtin_class('float', OM_box_create, (), class_type)
+class_bool = make_builtin_class('bool', OM_box_create, (class_int,), class_type)
+class_NoneType = make_builtin_class('NoneType', OM_NoneType_create, (), class_type)
+
+class_tuple = make_builtin_class('tuple', OM_tuple_create, (), class_type)
+class_iterator = make_builtin_class('iterator', OM_iterator_create, (), class_type)
+class_list = make_builtin_class('list', OM_list_create, (), class_type)
+class_dict = make_builtin_class('dict', OM_dict_create, (), class_type)
+class_module = make_builtin_class('module', OM_module_create, (), class_type)
+class_function = make_builtin_class('function', OM_function_create, (), class_type)
+class_slice = make_builtin_class('slice', OM_slice_create, (), class_type)
 
 # Exception classes
-class_BaseException = make_builtin_class('BaseException', OM_BaseException_create, class_type)
-class_Exception = make_builtin_class('Exception', OM_BaseException_create, class_type)
-class_NameError = make_builtin_class('NameError', OM_BaseException_create, class_type)
-class_TypeError = make_builtin_class('TypeError', OM_BaseException_create, class_type)
-class_ValueError = make_builtin_class('ValueError', OM_BaseException_create, class_type)
-class_StopIteration = make_builtin_class('StopIteration', OM_BaseException_create, class_type)
-class_NotImplementedError = make_builtin_class('NotImplementedError', OM_BaseException_create, class_type)
-class_LookupError = make_builtin_class('LookupError', OM_BaseException_create, class_type)
-class_EOFError = make_builtin_class('EOFError', OM_BaseException_create, class_type)
-class_IndexError = make_builtin_class('IndexError', OM_BaseException_create, class_type)
-class_AttributeError = make_builtin_class('AttributeError', OM_BaseException_create, class_type)
-class_ArithmeticError = make_builtin_class('ArithmeticError', OM_BaseException_create, class_type)
-class_ZeroDivisionError = make_builtin_class('ZeroDivisionError', OM_BaseException_create, class_type)
+class_BaseException = make_builtin_class('BaseException', OM_BaseException_create, (), class_type)
+class_Exception = make_builtin_class('Exception', OM_BaseException_create, (class_BaseException,), class_type)
+class_NameError = make_builtin_class('NameError', OM_BaseException_create, (class_Exception,), class_type)
+class_TypeError = make_builtin_class('TypeError', OM_BaseException_create, (class_Exception,), class_type)
+class_ValueError = make_builtin_class('ValueError', OM_BaseException_create, (class_Exception,), class_type)
+class_StopIteration = make_builtin_class('StopIteration', OM_BaseException_create, (class_Exception,), class_type)
+class_NotImplementedError = make_builtin_class('NotImplementedError', OM_BaseException_create, (class_Exception,), class_type)
+class_LookupError = make_builtin_class('LookupError', OM_BaseException_create, (class_Exception,), class_type)
+class_EOFError = make_builtin_class('EOFError', OM_BaseException_create, (class_Exception,), class_type)
+class_IndexError = make_builtin_class('IndexError', OM_BaseException_create, (class_LookupError,), class_type)
+class_AttributeError = make_builtin_class('AttributeError', OM_BaseException_create, (class_Exception,), class_type)
+class_ArithmeticError = make_builtin_class('ArithmeticError', OM_BaseException_create, (class_Exception,), class_type)
+class_ZeroDivisionError = make_builtin_class('ZeroDivisionError', OM_BaseException_create, (class_ArithmeticError,), class_type)
 
-om_None = om_boxval(class_NoneType, None)
-om_True = om_boxval(class_bool, True)
-om_False = om_boxval(class_bool, False)
+om_None = om(class_NoneType)
+om_True = om_boxval(class_bool, 1)
+om_False = om_boxval(class_bool, 0)
 om_NotImplemented = om(class_NotImplementedType)
 
 # Call om code.
@@ -2147,19 +2175,17 @@ def om_float_repr(ctx, args):
     result = om_format_float_repr(self, ctx.rte)
     return ctx.cont(ctx.rte, om_str(result))
 
-populate_builtin_type()
-populate_builtin_object()
+bootstrap_populate_base_types()
+
 
 # Internal types
 populate_builtin_NotImplementedType()
-populate_builtin_WrapperDescriptor()
 populate_builtin_MethodWrapper()
 
 # Basic type and date structure.
 populate_builtin_int()
 populate_builtin_float()
 populate_builtin_bool()
-populate_builtin_str()
 populate_builtin_tuple()
 populate_builtin_list()
 populate_builtin_slice()
