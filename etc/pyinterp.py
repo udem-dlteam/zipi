@@ -3613,7 +3613,11 @@ def gen_sem_IOperator(method_name, op_name):
     def gen_isem(ctx, id, val):
         def cont_var_get(rte, self):
             def cont_iadd(rte, result):
-                return sem_var_set(Context(rte, ctx.cont, ctx.ast), id, result)
+                new_ctx = Context(rte, ctx.cont, ctx.ast)
+                if om_is(result, om_NotImplemented):
+                    return sem_raise_with_message(new_ctx, class_TypeError, "unsupported operand type(s) for " + op_name)
+                else:
+                    return sem_var_set(new_ctx, id, result)
 
             self_iadd = getattribute_from_obj_mro(self, method_name)
             if self_iadd is absent:
