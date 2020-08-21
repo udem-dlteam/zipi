@@ -483,9 +483,9 @@ def populate_builtin_int():
     builtin_add_method(class_int, '__eq__', om_int_eq)
     builtin_add_method(class_int, '__ne__', om_int_ne)
     builtin_add_method(class_int, '__lt__', om_int_lt)
-    builtin_add_method(class_int, '__lte__', om_int_lte)
+    builtin_add_method(class_int, '__le__', om_int_le)
     builtin_add_method(class_int, '__gt__', om_int_gt)
-    builtin_add_method(class_int, '__gte__', om_int_gte)
+    builtin_add_method(class_int, '__ge__', om_int_ge)
     builtin_add_method(class_int, '__repr__', om_int_repr)
 
     OM_set_type_mro(class_int, [class_int, class_object])
@@ -642,6 +642,14 @@ def om_boxval(cls, val):
     obj = om(cls, OM_box_create)
     OM_set_boxed_value(obj, val)
     return obj
+
+def om_bool(n):
+    if n is True:
+        return om_True
+    elif n is False:
+        return om_False
+    else:
+        raise ValueError("Cannot cast to bool")
 
 def om_tuple(seq):
     obj = om(class_tuple, OM_tuple_create)
@@ -1202,111 +1210,6 @@ def om_bool_bool(ctx, args):
     return ctx.cont(ctx.rte, self)
 
 
-# class_int methods
-def om_int_bool(ctx, args):
-    if debug: print('int.__bool__')
-    self = args[0]
-    val_value = OM_get_boxed_value(self)
-    if val_value != 0:
-        result = om_True
-    else:
-        result = om_False
-    return ctx.cont(ctx.rte, result)
-
-def om_int_eq(ctx, args):
-    if debug: print('int.__eq__')
-    val1 = args[0]
-    val2 = args[1]
-
-    cls1 = OM_get_object_class(val1)
-    cls2 = OM_get_object_class(val2)
-    if om_is(cls2, class_int):
-        v1 = OM_get_boxed_value(val1)
-        v2 = OM_get_boxed_value(val2)
-        if v1 == v2:
-            result = om_True
-        else:
-            result = om_False
-    else:
-        result = om_NotImplemented
-    return ctx.cont(ctx.rte, result)
-
-def om_int_ne(ctx, args):
-    if debug: print('int.__ne__')
-    val1 = args[0]
-    val2 = args[1]
-
-    v1 = OM_get_boxed_value(val1)
-    v2 = OM_get_boxed_value(val2)
-    if v1 != v2:
-        result = om_True
-    else:
-        result = om_False
-    return ctx.cont(ctx.rte, result)
-
-def om_int_lt(ctx, args):
-    if debug: print('int.__lt__')
-    val1 = args[0]
-    val2 = args[1]
-
-    v1 = OM_get_boxed_value(val1)
-    v2 = OM_get_boxed_value(val2)
-    if v1 < v2:
-        result = om_True
-    else:
-        result = om_False
-    return ctx.cont(ctx.rte, result)
-
-def om_int_lte(ctx, args):
-    if debug: print('int.__lte__')
-    val1 = args[0]
-    val2 = args[1]
-
-    v1 = OM_get_boxed_value(val1)
-    v2 = OM_get_boxed_value(val2)
-    if v1 <= v2:
-        result = om_True
-    else:
-        result = om_False
-    return ctx.cont(ctx.rte, result)
-
-def om_int_gt(ctx, args):
-    if debug: print('int.__gt__')
-    val1 = args[0]
-    val2 = args[1]
-
-    v1 = OM_get_boxed_value(val1)
-    v2 = OM_get_boxed_value(val2)
-    if v1 > v2:
-        result = om_True
-    else:
-        result = om_False
-    return ctx.cont(ctx.rte, result)
-
-def om_int_gte(ctx, args):
-    if debug: print('int.__gte__')
-    val1 = args[0]
-    val2 = args[1]
-
-    v1 = OM_get_boxed_value(val1)
-    v2 = OM_get_boxed_value(val2)
-    if v1 >= v2:
-        result = om_True
-    else:
-        result = om_False
-    return ctx.cont(ctx.rte, result)
-
-def om_format_int_repr(self, rte):
-    return int_to_string(OM_get_boxed_value(self), 10)
-
-def om_format_float_repr(self, rte):
-    return float_to_string(OM_get_boxed_value(self))
-
-def om_int_repr(ctx, args):
-    self = args[0]
-    result = om_format_int_repr(self, ctx.rte)
-    return ctx.cont(ctx.rte, om_str(result))
-
 # class_tuple methods
 
 def make_tuple(ctx, elements):
@@ -1778,6 +1681,36 @@ om_int_rsub = gen_dunder_Numeric_rBinOp('int', '__rsub__', int_sub, class_int, o
 
 om_int_mul = gen_dunder_Numeric_BinOp('int', '__mul__', int_mul, class_int, om_int)
 om_int_rmul = om_int_mul
+
+# class_int methods
+def om_int_bool(ctx, args):
+    if debug: print('int.__bool__')
+    self = args[0]
+    val_value = OM_get_boxed_value(self)
+    if val_value != 0:
+        result = om_True
+    else:
+        result = om_False
+    return ctx.cont(ctx.rte, result)
+
+om_int_eq = gen_dunder_Numeric_BinOp('int', '__eq__', int_eq, class_int, om_bool)
+om_int_ne = gen_dunder_Numeric_BinOp('int', '__ne__', int_ne, class_int, om_bool)
+om_int_lt = gen_dunder_Numeric_BinOp('int', '__lt__', int_lt, class_int, om_bool)
+om_int_le = gen_dunder_Numeric_BinOp('int', '__le__', int_le, class_int, om_bool)
+om_int_gt = gen_dunder_Numeric_BinOp('int', '__gt__', int_gt, class_int, om_bool)
+om_int_ge = gen_dunder_Numeric_BinOp('int', '__ge__', int_ge, class_int, om_bool)
+
+def om_format_int_repr(self, rte):
+    return int_to_string(OM_get_boxed_value(self), 10)
+
+def om_format_float_repr(self, rte):
+    return float_to_string(OM_get_boxed_value(self))
+
+def om_int_repr(ctx, args):
+    self = args[0]
+    result = om_format_int_repr(self, ctx.rte)
+    return ctx.cont(ctx.rte, om_str(result))
+
 
 # Mod has a check for division by zero.
 def om_int_mod(ctx, args):
@@ -2870,14 +2803,20 @@ def macro_sem_binary_operator_protocol(op, method, rmethod):
     return sem_comparator
 
 
-sem_Eq = macro_sem_binary_operator_protocol('==', '__eq__', '__ne__')
-sem_NotEq = macro_sem_binary_operator_protocol('!=', '__ne__', '__eq__')
+sem_Eq = gen_sem_Numeric_BinOp('==', '__eq__', '__eq__')
+sem_NotEq = gen_sem_Numeric_BinOp('==', '__ne__', '__ne__')
+# sem_Eq = macro_sem_binary_operator_protocol('==', '__eq__', '__eq__')
+# sem_NotEq = macro_sem_binary_operator_protocol('!=', '__ne__', '__ne__')
 
-sem_Lt = macro_sem_binary_operator_protocol('<', '__lt__', '__gt__')
-sem_Gt = macro_sem_binary_operator_protocol('>', '__gt__', '__lt__')
+sem_Lt = gen_sem_Numeric_BinOp('<', '__lt__', '__gt__')
+sem_Gt = gen_sem_Numeric_BinOp('>', '__gt__', '__lt__')
+# sem_Lt = macro_sem_binary_operator_protocol('<', '__lt__', '__gt__')
+# sem_Gt = macro_sem_binary_operator_protocol('>', '__gt__', '__lt__')
 
-sem_LtE = macro_sem_binary_operator_protocol('<=', '__lte__', '__gte__')
-sem_GtE = macro_sem_binary_operator_protocol('>=', '__gte__', '__lte__')
+sem_LtE = gen_sem_Numeric_BinOp('<=', '__le__', '__ge__')
+sem_GtE = gen_sem_Numeric_BinOp('>=', '__ge__', '__le__')
+# sem_LtE = macro_sem_binary_operator_protocol('<=', '__le__', '__ge__')
+# sem_GtE = macro_sem_binary_operator_protocol('>=', '__ge__', '__le__')
 
 def sem_repr(ctx, val1):
     val1_repr = getattribute_from_obj_mro(val1, '__repr__')
