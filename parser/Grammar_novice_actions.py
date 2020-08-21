@@ -1,7 +1,11 @@
 # File: Grammar_novice_actions.py
 
 {
-"gen_prefix": "py_"
+"allowed_modes": {"exec": "file_input",
+                  "eval": "eval_input",
+                  "single": "single_input"}
+
+,"gen_prefix": "py_"
 ,"gen_parse_prefix": "py_parse_"
 
 ,"prelude":
@@ -53,9 +57,18 @@ def check_assignable(ts, t):\n\
 
 
 
+,"single_input: stmt ENDMARKER.":
+    ["return Module(stmt1,[])"] ### should be  ["return Interactive(stmt1)"]
+
+
 ,"file_input: stmts ENDMARKER.":
    ["return Module(stmts1,[])"]
 
+
+,"eval_input: .testlist NEWLINE* ENDMARKER":
+    ["as_list = False"]
+,"eval_input: testlist NEWLINE* ENDMARKER.":
+    ["return Expression(testlist1)"]
 
 
 ,"stmts: .(NEWLINE | stmt)*":
@@ -902,10 +915,18 @@ def check_assignable(ts, t):\n\
 ,"atom: .STRING+":  ["lineno = get_lineno(ts); col_offset = get_col_offset(ts)\n"
                      "end_lineno = 0\n"
                      "end_col_offset = 0\n"
-                     "value = ''",
+                     "value = None\n"
+                     "current_kind = get_kind(ts)\n",
+                     "temp = get_value(ts)\n"
+                     "temp_kind = get_kind(ts)\n"
+                     "if value is None:\n"
+                     "    value = temp\n"
+                     "elif current_kind != temp_kind:\n"
+                     "    py_syntax_error(ts, 'cannot mix bytes and nonbytes literals')\n"
+                     "else:\n"
+                     "    value += temp\n"
                      "end_lineno = get_end_lineno(ts)\n"
-                     "end_col_offset = get_end_col_offset(ts)\n"
-                     "value += token(ts)[1:-1] # FIXME! and add SyntaxError: cannot mix bytes and nonbytes literals"]
+                     "end_col_offset = get_end_col_offset(ts)\n"]
 ,"atom: STRING+.":  ["ast = Constant(value, None)\n"
                      "ast.lineno = lineno\n"
                      "ast.col_offset = col_offset\n"

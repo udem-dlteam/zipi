@@ -144,7 +144,6 @@ class Transformer:
                 out += " || " + self.transform(node.args[1]) + ")"
                 return out
             elif node.func.attr == "join":
-                print("IN JOIN!")
                 if len(node.args) > 1:
                     raise Exception(f"Cannot emit code for Call node ({func}({args}))")
                 return f"{self.transform(node.args[0])}.join({self.transform(node.func.value)})"
@@ -179,6 +178,9 @@ class Transformer:
         elif func == "set":
             # Don't accept arguments.
             return "new Set();"
+        # noop for bytes
+        elif func == "bytes":
+            return args
         elif func[-14:] == "indents.append":
             return func[:-7] + ".push(" + args + ")"
         elif func == "len":
@@ -969,8 +971,7 @@ class Transformer:
             return name
 
     def Tuple(self, node):
-        elts = ",".join(self.transform(i) for i in node.elts)
-        return f"[{elts}]"
+        return self.List(node)
 
     def UnaryOp(self, node):
         op = self.transform(node.op)
