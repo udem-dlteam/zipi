@@ -662,6 +662,10 @@ def populate_builtin_int():
     builtin_add_method(class_int, '__gt__', om_int_gt)
     builtin_add_method(class_int, '__ge__', om_int_ge)
     builtin_add_method(class_int, '__repr__', om_int_repr)
+    builtin_add_method(class_int, '__neg__', om_int_neg)
+    builtin_add_method(class_int, '__pos__', om_int_pos)
+    builtin_add_method(class_int, '__invert__', om_int_invert)
+
 
 def populate_builtin_float():
     builtin_add_method(class_float, '__add__', om_float_add)
@@ -675,6 +679,8 @@ def populate_builtin_float():
     builtin_add_method(class_float, '__mod__', om_float_mod)
     builtin_add_method(class_float, '__rmod__', om_float_rmod)
     builtin_add_method(class_float, '__repr__', om_float_repr)
+    builtin_add_method(class_float, '__pos__', om_float_pos)
+    builtin_add_method(class_float, '__neg__', om_float_neg)
 
 def populate_builtin_bool():
     builtin_add_method(class_bool, '__bool__', om_bool_bool)
@@ -1358,7 +1364,7 @@ def om_format_bool_repr(self, rte):
 def om_bool_repr(ctx, args):
     if debug: print('bool.__repr__')
     self = args[0]
-    result = om_format_bool_repr(self, ctx.rte)
+    result = om_boxval(class_str, om_format_bool_repr(self, ctx.rte))
     return ctx.cont(ctx.rte, result)
 
 def om_bool_bool(ctx, args):
@@ -1366,6 +1372,33 @@ def om_bool_bool(ctx, args):
     self = args[0]
     return ctx.cont(ctx.rte, self)
 
+def om_int_neg_code(ctx, args):
+    if len(args) == 1:
+        self = args[0]
+        result = int_neg(OM_get_boxed_value(self))
+        return ctx.cont(ctx.rte, om_boxval(class_int, result))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+om_int_neg = do_magic_method(class_int, "__neg__", om_int_neg_code)
+
+def om_int_invert_code(ctx, args):
+    if len(args) == 1:
+        self = args[0]
+        result = int_not(OM_get_boxed_value(self))
+        return ctx.cont(ctx.rte, om_boxval(class_int, result))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+om_int_invert = do_magic_method(class_int, "__invert__", om_int_invert_code)
+
+def om_int_pos_code(ctx, args):
+    if len(args) == 1:
+        return ctx.cont(ctx.rte, args[0])
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+om_int_pos = do_magic_method(class_int, "__pos__", om_int_pos_code)
 
 # class_tuple methods
 
@@ -2074,6 +2107,24 @@ def om_float_repr(ctx, args):
     self = args[0]
     result = om_format_float_repr(self, ctx.rte)
     return ctx.cont(ctx.rte, om_str(result))
+
+def om_float_neg_code(ctx, args):
+    if len(args) == 1:
+        self = args[0]
+        result = float_neg(OM_get_boxed_value(self))
+        return ctx.cont(ctx.rte, om_boxval(class_float, result))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+om_float_neg = do_magic_method(class_float, "__neg__", om_float_neg_code)
+
+def om_float_pos_code(ctx, args):
+    if len(args) == 1:
+        return ctx.cont(ctx.rte, args[0])
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got "+ str(len(args) - 1))
+
+om_float_pos = do_magic_method(class_float, "__pos__", om_float_pos_code)
 
 bootstrap_populate_base_types()
 
@@ -2835,6 +2886,28 @@ def gen_BoolOp_seq(cte, ast, logical_op, expr_seq):
 
 # Compilation of sequence of expressions
 
+def gen_UnaryOp(cte, ast, op, code1):
+    if debug: print(op)
+
+    if isinstance(op, AST.USub):
+        sem_op = sem_Neg
+    elif isinstance(op, AST.UAdd):
+        sem_op = sem_Pos
+    elif isinstance(op, AST.Invert):
+        sem_op = sem_Invert
+    elif isinstance(op, AST.Not):
+        sem_op = sem_Not
+    else:
+        assert False, "gen_UnaryOp unimplemented operator"
+
+    def code(rte, cont):
+        return code1(rte,
+                lambda rte1, val1:
+                    sem_op(Context(rte1, do_expr_end(cont, ast), ast), val1))
+
+    return (cte, code)
+
+
 def gen_BinOp(cte, ast, op, code1, code2):
 
     if debug: print(op)
@@ -3011,6 +3084,43 @@ sem_Lt = gen_sem_Numeric_BinOp('<', '__lt__', '__gt__')
 sem_Gt = gen_sem_Numeric_BinOp('>', '__gt__', '__lt__')
 sem_LtE = gen_sem_Numeric_BinOp('<=', '__le__', '__ge__')
 sem_GtE = gen_sem_Numeric_BinOp('>=', '__ge__', '__le__')
+
+def sem_Neg(ctx, val1):
+    val1_neg = getattribute_from_obj_mro(val1, '__neg__')
+    if val1_neg is absent:
+        cls = OM_get_object_class(val1)
+        cls_name = OM_get_boxed_value(OM_get(cls, "__name__"))
+        return sem_raise_with_message(ctx, class_TypeError, "bad operand type for unary -: '"+cls_name+"'")
+    else:
+        return om_call(val1_neg, ctx, [val1])
+
+def sem_Pos(ctx, val1):
+    val1_pos = getattribute_from_obj_mro(val1, '__pos__')
+    if val1_pos is absent:
+        cls = OM_get_object_class(val1)
+        cls_name = OM_get_boxed_value(OM_get(cls, "__name__"))
+        return sem_raise_with_message(ctx, class_TypeError, "bad operand type for unary +: '"+cls_name+"'")
+    else:
+        return om_call(val1_pos, ctx, [val1])
+
+def sem_Invert(ctx, val1):
+    val1_pos = getattribute_from_obj_mro(val1, '__invert__')
+    if val1_pos is absent:
+        cls = OM_get_object_class(val1)
+        cls_name = OM_get_boxed_value(OM_get(cls, "__name__"))
+        return sem_raise_with_message(ctx, class_TypeError, "bad operand type for unary ~: '"+cls_name+"'")
+    else:
+        return om_call(val1_pos, ctx, [val1])
+
+def sem_Not(ctx, obj):
+
+    def flip(rte, res):
+        if om_is(res, om_True):
+            return ctx.cont(rte, om_False)
+        else:
+            return ctx.cont(rte, om_True)
+
+    return sem_bool(with_cont(ctx, flip), obj)
 
 def sem_repr(ctx, val1):
     val1_repr = getattribute_from_obj_mro(val1, '__repr__')
@@ -3196,7 +3306,7 @@ def sem_bool(ctx, val):
             return ctx.cont(ctx.rte, om_True)
         else:
             def nonzero(rte, val):
-                if val != 0:
+                if OM_get_boxed_value(val) != 0:
                     return ctx.cont(ctx.rte, om_True)
                 else:
                     return ctx.cont(ctx.rte, om_False)
