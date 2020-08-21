@@ -2355,9 +2355,7 @@ def om_next_code(rte, _):
     return sem_next(next_ctx, rte_lookup(rte, 'obj'), rte_lookup(rte, 'default'))
 
 def om_iter_code(rte, _):
-    def cont(rte, res):
-        return unwindReturn(rte, res)
-    next_ctx = make_out_of_ast_context(rte, cont)
+    next_ctx = make_out_of_ast_context(rte, unwindReturn)
 
     obj = rte_lookup(rte, 'obj')
     sentinel = rte_lookup(rte, 'sentinel')
@@ -2365,7 +2363,7 @@ def om_iter_code(rte, _):
     if sentinel is absent:
         return sem_iter(next_ctx, obj)
     else:
-        assert False, "NotImplementedError"
+        return sem_raise(next_ctx, class_NotImplementedError)
 
 def om_abs_code(rte, _):
     next_ctx = make_out_of_ast_context(rte, unwindReturn)
@@ -3660,7 +3658,7 @@ def sem_iter(ctx, obj):
     if obj_iter is absent:
         obj_getitem = getattribute_from_obj_mro(obj, "__getitem__")
         if obj_getitem is absent:
-            return sem_raise(ctx, class_TypeError)
+            return sem_raise_with_message(ctx, class_TypeError, "object is not iterable")
         else:
             return ctx.cont(ctx.rte, om_iterator(obj, om_int(0)))
     else:
