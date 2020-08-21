@@ -627,7 +627,8 @@ def bootstrap_base_types():
 def bootstrap_populate_base_types():
     buitlin_add_methods_to_class(
         class_type,
-        (('__call__', om_type_call),
+        (('__new__', om_type_new),
+         ('__call__', om_type_call),
          ('__getattribute__', om_type_getattribute),
          ('__repr__', om_type_repr)))
 
@@ -1189,6 +1190,18 @@ def do_magic_method(cls, method_name, code):
 
 
 # class_type magic methods
+def om_type_new_code(ctx, args):
+    args_len = len(args)
+    if args_len == 2:
+        obj = args[1]
+        return ctx.cont(ctx.rte, OM_get_object_class(obj))
+    elif args_len == 4:
+        return sem_raise(ctx, class_NotImplementedError)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "type() takes 1 or 3 arguments")
+
+om_type_new = do_magic_method(class_type, "__new__", om_type_new_code)
+
 def om_type_call(ctx, args):
     def on_instance_creation(rte, instance):
         if om_is(OM_get_object_class(instance), cls):
