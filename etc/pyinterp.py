@@ -2802,21 +2802,12 @@ def macro_sem_binary_operator_protocol(op, method, rmethod):
 
     return sem_comparator
 
-
 sem_Eq = gen_sem_Numeric_BinOp('==', '__eq__', '__eq__')
 sem_NotEq = gen_sem_Numeric_BinOp('==', '__ne__', '__ne__')
-# sem_Eq = macro_sem_binary_operator_protocol('==', '__eq__', '__eq__')
-# sem_NotEq = macro_sem_binary_operator_protocol('!=', '__ne__', '__ne__')
-
 sem_Lt = gen_sem_Numeric_BinOp('<', '__lt__', '__gt__')
 sem_Gt = gen_sem_Numeric_BinOp('>', '__gt__', '__lt__')
-# sem_Lt = macro_sem_binary_operator_protocol('<', '__lt__', '__gt__')
-# sem_Gt = macro_sem_binary_operator_protocol('>', '__gt__', '__lt__')
-
 sem_LtE = gen_sem_Numeric_BinOp('<=', '__le__', '__ge__')
 sem_GtE = gen_sem_Numeric_BinOp('>=', '__ge__', '__le__')
-# sem_LtE = macro_sem_binary_operator_protocol('<=', '__le__', '__ge__')
-# sem_GtE = macro_sem_binary_operator_protocol('>=', '__ge__', '__le__')
 
 def sem_repr(ctx, val1):
     val1_repr = getattribute_from_obj_mro(val1, '__repr__')
