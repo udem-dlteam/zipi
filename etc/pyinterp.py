@@ -443,7 +443,7 @@ def align_args_with_signature(ctx, caller_args, signature):
             missing_args_len = total_args_len - caller_args_len
             if defaults_len >= missing_args_len:
 
-                result =  caller_args.copy()
+                result = caller_args[0:caller_args_len]
                 start = defaults_len - missing_args_len
 
                 while start < defaults_len:
