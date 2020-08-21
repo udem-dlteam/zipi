@@ -13,7 +13,7 @@ def read_file(filename):
     return content
 
 def main():
-    show_ast(ast.parse(read_file(sys.argv[1])))
+    show_ast(ast.parse(read_file(sys.argv[1]),'','exec'))
 
 if __name__ == "__main__":
     main()
