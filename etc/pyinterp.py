@@ -714,6 +714,7 @@ def populate_builtin_list():
     builtin_add_method(class_list, '__repr__', om_list_repr)
     builtin_add_method(class_list, '__getitem__', om_list_getitem)
     builtin_add_method(class_list, '__setitem__', om_list_setitem)
+    builtin_add_method(class_list, '__len__', om_list_len)
     builtin_add_method(class_list, 'append', om_list_append)
 
 def populate_builtin_slice():
@@ -1606,6 +1607,19 @@ def om_list_setitem_code(ctx, args):
         return sem_raise_with_message(ctx, class_TypeError, "__getitem__() takes exactly two argument (" + str(args_len) + " given)")
 
 om_list_setitem = do_magic_method(class_list, "__setitem__", om_list_setitem_code)
+
+def om_list_len_code(ctx, args):
+    args_len = len(args)
+    if args_len == 1:
+        self = args[0]
+        elements_len = OM_get_list_len(self)
+        return ctx.cont(ctx.rte, om_int(elements_len))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "__len__() takes exactly one argument (" + str(args_len) + " given)")
+
+
+om_list_len = do_magic_method(class_list, "__len__", om_list_len_code)
 
 def om_list_append_code(ctx, args):
     if debug: print('list.append')
