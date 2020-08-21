@@ -2817,6 +2817,14 @@ def comp_stmt(cte, ast):
                 return gen_Subscript_Store(cte, ast, target, ast.value)
         else:
             assert False, 'Only assignation to one element is supported'
+    elif isinstance(ast, AST.AugAssign):
+        if debug: print("AST.AugAssign")
+        target = ast.target
+        if isinstance(target, AST.Name):
+            op = ast.op
+            id = ast.target.id
+            (cte1, code1) = comp_expr(cte, ast.value)
+            return gen_aug_op(cte1, ast, id, op, code1)
 
     elif isinstance(ast, AST.While):
         # While(expr test, stmt* body, stmt* orelse)
@@ -3127,6 +3135,7 @@ def gen_var_set(cte, ast, id, code1):
         return code1(rte, var_set)
     return (cte, code)
 
+
 def gen_var_get(cte, ast, id):
     def code(rte, cont):
         return sem_var_get(Context(rte, do_expr_end(cont, ast), ast), id)
@@ -3269,8 +3278,23 @@ def gen_UnaryOp(cte, ast, op, code1):
     return (cte, code)
 
 
-def gen_BinOp(cte, ast, op, code1, code2):
+def gen_aug_op(cte, ast, id, op, code1):
+    if debug: print(op)
 
+    if isinstance(op, AST.Add):
+        sem_op = sem_IAdd
+    else:
+        assert False, 'gen_aug_op unimplemented operator'
+
+    def code(rte, cont):
+        return code1(rte,
+                     lambda rte1, val1:
+                       sem_op(Context(rte1, do_stmt_end(cont, ast), ast),
+                                      id, val1))
+    return (cte, code)
+
+
+def gen_BinOp(cte, ast, op, code1, code2):
     if debug: print(op)
 
     # Arithmetic
@@ -3475,6 +3499,21 @@ def sem_Invert(ctx, val1):
         return sem_raise_with_message(ctx, class_TypeError, "bad operand type for unary ~: '"+cls_name+"'")
     else:
         return om_call(val1_pos, ctx, [val1])
+
+def sem_IAdd(ctx, id, val):
+    def cont_var_get(rte, self):
+        def cont_var_set(rte, result):
+            rte_set(rte, id, result)
+            return ctx.cont(rte)
+
+        self_iadd = getattribute_from_obj_mro(val, '__add__')
+        if self_iadd is absent:
+            return sem_raise_with_message(ctx, class_TypeError, 'bad operand type for binary IAdd')
+        else:
+            return om_call(self_iadd, with_cont(ctx, cont_var_set), [ self , val ])
+
+    return sem_var_get(with_cont(ctx, cont_var_get), id)
+
 
 def sem_Not(ctx, obj):
 
