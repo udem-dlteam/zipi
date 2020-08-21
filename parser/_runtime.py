@@ -122,6 +122,12 @@ def int_not(u):
 def int_and(u, v):
     return u & v
 
+def int_neg(n):
+    return -n
+
+def int_not(n):
+    return ~n
+
 
 def int_or(u, v):
     return u | v
@@ -233,6 +239,9 @@ def float_div(u, v):
 def float_mod(u, v):
     return u % v
 
+
+def float_is_zero(u):
+    return u == 0
 
 def float_from_string(string):
     return float(string)

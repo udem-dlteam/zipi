@@ -157,6 +157,26 @@ def test_int__mod__0():
     source = "8 % 2"
     return interp_source(source)
 
+@Equals("""at 1.2-1.4 42
+at 1.1-1.4 -42
+""")
+def test_int__neg__0():
+    source = "-42"
+    return interp_source(source)
+
+@Equals("""at 1.2-1.4 42
+at 1.1-1.4 42
+""")
+def test_int__pos__0():
+    source = "+42"
+    return interp_source(source)
+
+@Equals("""at 1.2-1.4 42
+at 1.1-1.4 -43
+""")
+def test_int__invert__0():
+    source = "~42"
+    return interp_source(source)
 
 @Equals("""at 1.1-1.2 2
 at 1.6-1.7 2
@@ -297,6 +317,19 @@ def test_float__mod__0():
     source = "2.2 % 3.3"
     return interp_source(source)
 
+@Equals("""at 1.2-1.9 42.4242
+at 1.1-1.9 -42.4242
+""")
+def test_float__neg__0():
+    source = "-42.4242"
+    return interp_source(source)
+
+@Equals("""at 1.2-1.9 42.4242
+at 1.1-1.9 42.4242
+""")
+def test_float__pos__0():
+    source = "+42.4242"
+    return interp_source(source)
 
 if __name__ == "__main__":
     run_tests()
