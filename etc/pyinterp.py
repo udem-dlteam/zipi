@@ -2765,10 +2765,11 @@ def comp_mod(cte, ast):
     elif isinstance(ast, AST.Expression):
         # Expression(expr body)
         if debug: print('AST.Interactive')
-        assert False, 'comp_mod cannot handle AST.Expression'
+        return CT_raise_with_msg(cte, ast, "AST.Expression not supported")
 
     else:
-        assert False, 'comp_mod expected a AST.Module or AST.Interactive'
+        return CT_raise_with_msg(cte, ast, "unknown ast type")
+        #assert False, 'comp_mod expected a AST.Module or AST.Interactive'
 
 def comp_stmt_seq(cte, stmt_seq):
     if debug: print('comp_stmt_seq')
@@ -2857,7 +2858,7 @@ def comp_stmt(cte, ast):
             elif isinstance(target, AST.Subscript):
                 return gen_Subscript_Store(cte, ast, target, ast.value)
         else:
-            assert False, 'Only assignation to one element is supported'
+            return CT_raise_with_msg(cte, ast, 'Only assignation to one element is supported')
 
     elif isinstance(ast, AST.While):
         # While(expr test, stmt* body, stmt* orelse)
@@ -2932,7 +2933,7 @@ def comp_stmt(cte, ast):
         return gen_raise(cte1, ast, code1)
 
     else:
-        assert False, 'comp_stmt expected a statement AST'
+        return CT_raise_with_msg(cte, ast, "unsupported statements")
 
 
 
@@ -2997,8 +2998,7 @@ def comp_expr(cte, ast):
         index_cte, index_code = comp_expr(obj_cte, ast.slice.value)
         return gen_Subscript_Load(index_cte, ast, obj_code, index_code)
     else:
-        if not debug: print(ast)
-        assert False, 'comp_expr expected an expression AST'
+        return CT_raise_with_msg(cte, ast, "unsupported expression AST")
 
 def comp_elements(cte, elts):
     computed_elts = []
@@ -3328,7 +3328,7 @@ def gen_BoolOp(cte, ast, op, values):
     elif isinstance(op, AST.Or):
         logical_op = gen_logical_or
     else:
-        assert False, 'Should not happen'
+        return CT_raise_with_msg(cte, ast, "unknown boolean operation")
     return gen_BoolOp_seq(cte, ast, logical_op, values)
 
 # Compilation of sequence of expressions
@@ -3355,7 +3355,7 @@ def gen_UnaryOp(cte, ast, op, code1):
     elif isinstance(op, AST.Not):
         sem_op = sem_Not
     else:
-        assert False, "gen_UnaryOp unimplemented operator"
+        return CT_raise_with_msg(cte, ast, "unimplemented unary operator")
 
     def code(rte, cont):
         return code1(rte,
@@ -3395,7 +3395,7 @@ def gen_BinOp(cte, ast, op, code1, code2):
     elif isinstance(op, AST.BitXor):
         sem_op = sem_BitXor
     else:
-        assert False, 'gen_BinOp unimplemented operator'
+        return CT_raise_with_msg(cte, ast, "unimplemented binary operator")
 
     def code(rte, cont):
         return code1(rte,
@@ -3422,7 +3422,7 @@ def comp_Compare_Op(op):
     elif isinstance(op, AST.GtE):
         sem_op = sem_GtE
     else:
-        assert False, 'gen_Compare unimplemented compare'
+        sem_op = None
 
     return sem_op
 
@@ -3434,7 +3434,9 @@ def gen_Compare(cte, ast, left, comparators, ops):
     (cte2, code2) = comp_expr(cte, comparators[0])
     sem_op1 = comp_Compare_Op(ops[0])
 
-    if len(ops) == 1:
+    if sem_op1 is None:
+        return CT_raise_with_msg(cte, ast, "unimplemented comparison")
+    elif len(ops) == 1:
         return (cte, lambda rte, cont:
                         code1(rte,
                              lambda rte1, val1:
@@ -3469,7 +3471,7 @@ def gen_Compare(cte, ast, left, comparators, ops):
 
         return (cte, retrieve_val1)
     else:
-        assert False, 'not implemented'
+        return CT_raise_with_msg(cte, ast, "compare with more than 2 ops not supported")
 
 # Generate BinOp semantics for python Numeric datatypes (or that which emulate)
 # For the correct Python Data Model and interpreter, these are paired with
