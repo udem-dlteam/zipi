@@ -2018,7 +2018,7 @@ def om_int_truediv_code(ctx, args):
     # Primitive operations are only defined on same types.
     if om_issubclass(OM_get_object_class(val2), class_int):
         val1_value = OM_get_boxed_value(val1)
-        result = float_div(val1_value, val2_value)
+        result = float_div(int_to_float(val1_value), int_to_float(val2_value))
         return ctx.cont(ctx.rte, om_float(result))
     else:
         # TODO: Return om_NotImplemented(rte) (in the proper rte)
@@ -2040,7 +2040,7 @@ def om_int_rtruediv_code(ctx, args):
     # Primitive operations are only defined on same types.
     if om_issubclass(OM_get_object_class(val2), class_int):
         val2_value = OM_get_boxed_value(val2)
-        result = float_div(val2_value, val1_value)
+        result = float_div(int_to_float(val2_value), int_to_float(val1_value))
         return ctx.cont(ctx.rte, om_float(result))
     else:
         # TODO: Return om_NotImplemented(rte) (in the proper rte)
