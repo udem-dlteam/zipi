@@ -2094,12 +2094,14 @@ def init_module_math():
         obj_class = OM_get_object_class(val)
         unboxed_val = OM_get_boxed_value(val)
         
-        if float_is_neg(unboxed_val):
-            ctx = make_out_of_ast_context(rte, cont)
-            return sem_raise(ctx, class_ValueError)
-
-        elif om_is(obj_class, class_int):
+        if om_is(obj_class, class_int):
             unboxed_val = int_to_float(unboxed_val)
+            obj_class = class_float
+
+        if om_is(obj_class, class_float):
+            if float_is_neg(unboxed_val):
+                ctx = make_out_of_ast_context(rte, cont)
+                return sem_raise_with_message(ctx, class_ValueError, 'math domain')
             return unwindReturn(rte, om_float(float_sqrt(unboxed_val)))
 
         elif om_is(obj_class, class_float):
@@ -2197,7 +2199,7 @@ def init_module_math():
         if om_is(obj_class, class_float):
             if float_is_neg(unboxed_val) or float_is_zero(unboxed_val):
                 ctx = make_out_of_ast_context(rte, cont)
-                return sem_raise(ctx, class_ValueError)
+                return sem_raise_with_message(ctx, class_ValueError, 'math domain error')
             return unwindReturn(rte, om_float(float_sin(unboxed_val)))
 
         else:
