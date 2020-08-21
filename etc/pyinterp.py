@@ -10,7 +10,7 @@ import _zast as AST
 import zast
 AST.parse = zast.parse
 
-debug = False
+debug = True
 single_step = True
 
 # Sentinel for marking an attribute as absent
@@ -1820,7 +1820,7 @@ def box_object(obj):
 # Primitive operators for doing actual computations
 def gen_dunder_Numeric_BinOp(py_class, method, prim, om_class, om_box):
     def dunder_Numeric_BinOp(ctx, args):
-        if debug: print(cls + "." + method)
+        if debug: print(py_class + "." + method)
         val1 = args[0]
         val2 = args[1]
 
@@ -1830,6 +1830,7 @@ def gen_dunder_Numeric_BinOp(py_class, method, prim, om_class, om_box):
         #   File "<stdin>", line 1, in <module>
         # TypeError: descriptor '__add__' requires a 'int' object but received a 'str'
         if not om_is(OM_get_object_class(val1), om_class):
+            print("raised")
             return sem_raise(ctx, class_TypeError)
 
         # Primitive operations are only defined on same types.
@@ -1848,7 +1849,7 @@ def gen_dunder_Numeric_BinOp(py_class, method, prim, om_class, om_box):
 # doing the computation.
 def gen_dunder_Numeric_rBinOp(py_class, method, prim, om_class, om_box):
     def dunder_Numeric_rBinOp(ctx, args):
-        if debug: print(cls + "." + method)
+        if debug: print(py_class+ "." + method)
         val1 = args[0]
         val2 = args[1]
 
@@ -3334,7 +3335,7 @@ def sem_raise(ctx, exn):
 
     # XXX: does not unwind all the way
     while not om_is(ctrl_env, absent):
-        if isinstance(ctrl_next, RTCtrlCatch):
+        if isinstance(ctrl_env, RTCtrlCatch):
             ctrl_rte = ctrl_env.lex_env
             code_catch = ctrl_env.code_catch
             return code_catch(ctrl_rte, exn_obj)
