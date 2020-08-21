@@ -56,6 +56,7 @@ class CTCtrlLabel:
         self.ids = ids
         self.ast = ast
 
+# While or For
 class RTCtrlLabel:
     def __init__(self, ctrl_next, break_cont, continue_cont):
         self.ctrl_next = ctrl_next
@@ -93,6 +94,22 @@ class CTE:
         self.parent = parent
 
 # NOTE: inspired from codeboot JS
+def CTCtrl_controlContext(cte, ast):
+    ctrl_env = cte.ctrl_env
+    if ctrl_env is None or ctrl_env.ast is not ast:
+        ids = make_dict()
+        ctrl_env = CTCtrlLabel(ctrl_env, ids, ast)
+        cte = CTE(cte.callee,
+                  cte.locals_env,
+                  cte.lex_env,
+                  ctrl_env,
+                  cte.external_context,
+                  cte.parent)
+    # Could be simplify
+    dict_set(ctrl_env.ids, 'break point', True)
+    dict_set(ctrl_env.ids, 'continue point', True)
+    return cte
+
 def CTCtrl_labelLookup(cte, id_str):
     ctrl_env = cte.ctrl_env
     depth = 0
@@ -102,8 +119,19 @@ def CTCtrl_labelLookup(cte, id_str):
             dict_set(result, 'depth', depth)
             dict_set(result, 'ast', ctrl_env.ast)
             return result
+        ctrl_env = ctrl_env.ctrl_next
         depth += 1
     return None
+
+def CT_raise_with_msg(cte, ast, msg):
+    syntax_error = dict_get(cte.external_context,
+                            'syntaxError',
+                            default_syntax_error)
+    return syntax_error(ast.lineno-1,
+                        ast.col_offset,
+                        ast.end_lineno-1,
+                        ast.end_col_offset,
+                        msg)
 
 def with_cont(ctx, cont):
     return Context(ctx.rte, cont, ctx.ast)
@@ -714,6 +742,7 @@ def populate_builtin_list():
     builtin_add_method(class_list, '__repr__', om_list_repr)
     builtin_add_method(class_list, '__getitem__', om_list_getitem)
     builtin_add_method(class_list, '__setitem__', om_list_setitem)
+    builtin_add_method(class_list, '__len__', om_list_len)
     builtin_add_method(class_list, 'append', om_list_append)
 
 def populate_builtin_slice():
@@ -1606,6 +1635,19 @@ def om_list_setitem_code(ctx, args):
         return sem_raise_with_message(ctx, class_TypeError, "__getitem__() takes exactly two argument (" + str(args_len) + " given)")
 
 om_list_setitem = do_magic_method(class_list, "__setitem__", om_list_setitem_code)
+
+def om_list_len_code(ctx, args):
+    args_len = len(args)
+    if args_len == 1:
+        self = args[0]
+        elements_len = OM_get_list_len(self)
+        return ctx.cont(ctx.rte, om_int(elements_len))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "__len__() takes exactly one argument (" + str(args_len) + " given)")
+
+
+om_list_len = do_magic_method(class_list, "__len__", om_list_len_code)
 
 def om_list_append_code(ctx, args):
     if debug: print('list.append')
@@ -2790,19 +2832,20 @@ def comp_stmt(cte, ast):
         # NOTE: inpired from codeboot JS
         depth_ast = CTCtrl_labelLookup(cte, "return point")
         if depth_ast is None:
-            syntax_error = dict_get(cte.external_context,
-                                    'syntaxError',
-                                    default_syntax_error)
-            return syntax_error(ast.lineno-1,
-                               ast.col_offset,
-                               ast.end_lineno-1,
-                               ast.end_col_offset,
-                               "'return' outside of function")
+            return CT_raise_with_msg(cte, ast, "'return' outside of function")
         elif ast.value is None:
             return cte, lambda rte, cont: frame_cont(rte_stack(rte))(frame_rte(rte_stack(rte)), om_None)
         else:
             (cte1, code1) = comp_expr(cte, ast.value)
             return cte, lambda rte, cont: code1(rte, lambda rte1, val1: unwindReturn(rte1, val1))
+
+    elif isinstance(ast, AST.Break):
+        if debug: print('AST.Break')
+        return gen_break(cte, ast)
+
+    elif isinstance(ast, AST.Continue):
+        if debug: print('AST.Continue')
+        return gen_continue(cte, ast)
 
     elif isinstance(ast, AST.Assign):
         # Assign(expr* targets, expr value, string? type_comment)
@@ -2830,7 +2873,8 @@ def comp_stmt(cte, ast):
         # While(expr test, stmt* body, stmt* orelse)
         if debug: print('AST.While')
         (cte1, code1) = comp_expr(cte, ast.test)
-        (cte2, code2) = comp_stmt_seq(cte1, ast.body)
+        while_cte = CTCtrl_controlContext(cte1, ast)
+        (cte2, code2) = comp_stmt_seq(while_cte, ast.body)
         (cte3, code3) = comp_stmt_seq(cte1, ast.orelse)
         return gen_while(cte3, ast, code1, code2, code3)
 
@@ -2889,6 +2933,7 @@ def comp_stmt(cte, ast):
     elif isinstance(ast, AST.For) and isinstance(ast.target, AST.Name):
         # TODO: support else block
         if debug: print('AST.For')
+        #for_cte = CTCtrl_controlContext(cte, ast)
         return gen_for(cte, ast.target, ast.iter, ast.body)
 
     elif isinstance(ast, AST.Raise):
@@ -3066,11 +3111,16 @@ def gen_while(cte, ast, code1, code2, code3):
 
     def code(rte, cont):
 
-        def dispatch(rte, val):
+        def dispatch(rte1, val):
             if om_is_falsy(val):
-                return code3(rte, cont)
+                return code3(rte1, cont)
             else:
-                return code2(rte, lambda rte2: code(rte2, cont))
+                ctrl_env = rte_ctrl_env(rte)
+                ctrl_label = RTCtrlLabel(ctrl_env,
+                                         lambda rte2, _: cont(rte1),
+                                         lambda rte2, _: code(rte1, cont))
+                new_rte = make_rte_from_new_ctrl_env(rte1, ctrl_label)
+                return code2(new_rte, lambda rte2: code(rte, cont))
 
         def cast_bool(rte, val):
             ctx = Context(rte, dispatch, ast)
@@ -3182,6 +3232,54 @@ def gen_for(cte, target, iterable, body):
             return sem_iter(Context(get_iterator_rte, get_next, iterable), iterable)
         return iterable_code(get_iterable_rte, get_iterator)
     return body_cte, get_iterable
+
+def unwindBreakContinue(rte, depth, cont):
+    def loop(rte):
+        local_depth = depth
+        ctrl_env = rte_ctrl_env(rte)
+        while local_depth != 0 and ctrl_env is not absent:
+            # TODO: handle Try-finally-else here
+            local_depth -= 1
+            ctrl_env = ctrl_env.ctrl_next
+
+        # environmnent of the control label
+        new_rte = make_rte_from_new_ctrl_env(rte, ctrl_env)
+        return cont(new_rte)
+    return loop(rte)
+
+def unwindBreak(rte, depth):
+    def cont(rte):
+        ctrl_env = rte_ctrl_env(rte)
+        return ctrl_env.break_cont(rte, om_None)
+    return unwindBreakContinue(rte, depth, cont)
+
+def unwindContinue(rte, depth):
+    def cont(rte):
+        ctrl_env = rte_ctrl_env(rte)
+        return ctrl_env.continue_cont(rte, om_None)
+    return unwindBreakContinue(rte, depth, cont)
+
+def gen_break(cte, ast):
+    depth_ast = CTCtrl_labelLookup(cte, "break point")
+    if depth_ast is None:
+        return CT_raise_with_msg(cte, ast, "'break' outside loop")
+    else:
+        def code(rte, _):
+            depth = dict_get(depth_ast, 'depth', 0)
+            ctx = Context(rte, lambda rte: unwindBreak(rte, depth), ast)
+            return stmt_end(ctx)
+        return (cte, code)
+
+def gen_continue(cte, ast):
+    depth_ast = CTCtrl_labelLookup(cte, "break point")
+    if depth_ast is None:
+        return CT_raise_with_msg(cte, ast, "'continue' not properly in loop")
+    else:
+        def code(rte, _):
+            depth = dict_get(depth_ast, 'depth', 0)
+            ctx = Context(rte, lambda rte: unwindContinue(rte, depth), ast)
+            return stmt_end(ctx)
+        return (cte, code)
 
 def gen_raise(cte, ast, code):
     def eval_raise_param(rte, cont):
@@ -3631,7 +3729,9 @@ def sem_maybe_len(ctx, obj):
 def sem_len(ctx, obj):
     def cont(rte, val):
         if val is absent:
-            return sem_raise(ctx, class_TypeError)
+            obj_cls_name = OM_get_boxed_value(OM_get(OM_get_object_class(obj), "__name__"))
+            error_msg = "object of type '" + obj_cls_name + "' has no len()"
+            return sem_raise_with_message(ctx, class_TypeError, error_msg)
         else:
             return ctx.cont(rte, val)
 
@@ -3725,11 +3825,17 @@ def sem_var_set(ctx, id, val):
     return ctx.cont(ctx.rte)
 
 def sem_var_get(ctx, id):
+    def catch_AttributeError(rte, exn):
+        if om_isinstance(exn, class_AttributeError):
+            error_msg = "name '" + id + "' is not defined"
+            return sem_raise_with_message(Context(rte, ctx.cont, ctx.ast), class_NameError, error_msg)
+        else:
+            return sem_raise(Context(rte, ctx.cont, ctx.ast), exn)
+
     result = rte_lookup(ctx.rte, id)
     if result is absent:
         env_builtins = rte_lookup(ctx.rte, '__builtins__')
-        ## TODO: need to setup exceptions
-        return sem_getattribute(ctx, [env_builtins, om_str(id)])
+        return sem_getattribute(with_catch(ctx, catch_AttributeError), [env_builtins, om_str(id)])
     else:
         return ctx.cont(ctx.rte, result)
 
