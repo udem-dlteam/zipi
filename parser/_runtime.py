@@ -64,6 +64,12 @@ def int_from_float(u):
 def int_from_string(string, radix):
     return int(string, radix)
 
+def int_neg(n):
+    return -n
+
+def int_not(n):
+    return ~n
+
 
 def float_from_string(string):
     return float(string)
@@ -129,3 +135,6 @@ def float_mod(u, v):
 
 def float_is_zero(u):
     return u == 0
+
+def float_neg(n):
+    return -n

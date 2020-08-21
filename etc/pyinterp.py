@@ -508,7 +508,6 @@ def populate_builtin_float():
     builtin_add_method(class_float, '__repr__', om_float_repr)
     builtin_add_method(class_float, '__pos__', om_float_pos)
     builtin_add_method(class_float, '__neg__', om_float_neg)
-    builtin_add_method(class_float, '__invert__', om_float_invert)
 
     OM_set_type_mro(class_float, [class_float, class_object])
 
