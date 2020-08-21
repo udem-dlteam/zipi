@@ -3686,11 +3686,17 @@ def sem_var_set(ctx, id, val):
     return ctx.cont(ctx.rte)
 
 def sem_var_get(ctx, id):
+    def catch_AttributeError(rte, exn):
+        if om_isinstance(exn, class_AttributeError):
+            error_msg = "name '" + id + "' is not defined"
+            return sem_raise_with_message(Context(rte, ctx.cont, ctx.ast), class_NameError, error_msg)
+        else:
+            return sem_raise(Context(rte, ctx.cont, ctx.ast), exn)
+
     result = rte_lookup(ctx.rte, id)
     if result is absent:
         env_builtins = rte_lookup(ctx.rte, '__builtins__')
-        ## TODO: need to setup exceptions
-        return sem_getattribute(ctx, [env_builtins, om_str(id)])
+        return sem_getattribute(with_catch(ctx, catch_AttributeError), [env_builtins, om_str(id)])
     else:
         return ctx.cont(ctx.rte, result)
 
