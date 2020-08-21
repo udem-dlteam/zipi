@@ -2022,7 +2022,7 @@ def om_float_neg_code(ctx, args):
 om_float_neg = do_magic_method(class_float, "__neg__", om_float_neg_code)
 
 def om_float_pos_code(ctx, args):
-    return ctx.cont(ctx.rte, agrs[0])
+    return ctx.cont(ctx.rte, args[0])
 
 om_float_pos = do_magic_method(class_float, "__pos__", om_float_pos_code)
 

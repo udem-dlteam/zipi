@@ -270,5 +270,19 @@ def test_float__mod__0():
     source = "2.2 % 3.3"
     return interp_source(source)
 
+@Equals("""at 1.2-1.9 42.4242
+at 1.1-1.9 -42.4242
+""")
+def test_float__neg__0():
+    source = "-42.4242"
+    return interp_source(source)
+
+@Equals("""at 1.2-1.9 42.4242
+at 1.1-1.9 42.4242
+""")
+def test_float__pos__0():
+    source = "+42.4242"
+    return interp_source(source)
+
 if __name__ == "__main__":
     run_tests()
