@@ -426,6 +426,57 @@ def getattribute_from_obj_mro(o, name):
     else:
         return getattribute_from_class_mro(cls, name)
 
+def compute_mro(cls, bases):
+    seqs = []
+
+    if len(bases) == 0:
+        bases = [class_object]
+
+    for el in bases:
+        seqs.append(OM_get_type_mro(el))
+
+    seqs.append(bases)
+
+    res = []
+    while True:
+        non_empty = []
+
+        for seq in seqs:
+            if len(seq) > 0:
+                non_empty.append(seq)
+
+        non_empty_len = len(non_empty)
+
+        if non_empty_len == 0:
+            res_mro = [cls]
+
+            for c in res:
+                res_mro.append(c)
+
+            return res_mro
+
+        for seq in non_empty:
+            candidate = seq[0]
+            for s in non_empty:
+                if candidate in s[1:]:
+                    candidate = None
+            if candidate is not None:
+                break
+
+        if candidate is None:
+            return None
+        else:
+            res.append(candidate)
+
+        # TODO: use a for loop with del if zp supports it
+        seqs_len = len(seqs)
+        i = 0
+        while i < seqs_len:
+            seq = seqs[i]
+            if len(seq) > 0 and seq[0] is candidate:
+                seqs[i] = seq[1:]
+            i += 1
+
 def make_class(name, module, bases, metaclass):
     cls = om(metaclass)
     OM_set(cls, '__name__', om_str(name))
