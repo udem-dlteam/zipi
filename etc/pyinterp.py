@@ -3146,12 +3146,15 @@ def sem_getattribute(ctx, args):
     name = args[1]
 
     def catch_AttributeError(rte, exn):
-        obj_getattr = getattribute_from_obj_mro(obj, '__getattr__')
-        new_ctx = Context(rte, ctx.cont, ctx.ast)
-        if obj_getattr is absent:
-            return sem_raise(new_ctx, exn)
+        if om_isinstance(exn, class_AttributeError):
+            obj_getattr = getattribute_from_obj_mro(obj, '__getattr__')
+            new_ctx = Context(rte, ctx.cont, ctx.ast)
+            if obj_getattr is absent:
+                return sem_raise(new_ctx, exn)
+            else:
+                return om_call(obj_getattr, new_ctx, args)
         else:
-            return om_call(obj_getattr, new_ctx, args)
+            return sem_raise(Context(rte, ctx.cont, ctx.ast), exn)
 
     obj_getattribute = getattribute_from_obj_mro(obj, '__getattribute__')
 
