@@ -119,6 +119,7 @@ def CTCtrl_labelLookup(cte, id_str):
             dict_set(result, 'depth', depth)
             dict_set(result, 'ast', ctrl_env.ast)
             return result
+        ctrl_env = ctrl_env.ctrl_next
         depth += 1
     return None
 
