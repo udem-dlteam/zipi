@@ -467,7 +467,7 @@ def make_builtin_class(name, instance_creator, metaclass):
 
 # Initialize class type objects
 def builtin_add_method(o, name, code):
-    wrapper = om_WrapperDescriptor(name, code)
+    wrapper = om_WrapperDescriptor(name, o, code)
     OM_set(o, name, wrapper)
 
 def populate_builtin_type():
@@ -780,7 +780,7 @@ def om_exception(exn, args):
 def om_WrapperDescriptor(name, code):
     obj = om(class_WrapperDescriptor)
     OM_set_code(obj, code)
-    OM_set_WrapperDescriptor_cls(obj, absent)
+    OM_set_WrapperDescriptor_cls(obj, cls)
 
     OM_set(obj, '__name__', om_str(name))
     return obj
@@ -1152,9 +1152,6 @@ def om_WrapperDescriptor_get(ctx, args):
     cls = args[2]
 
     if obj is om_None:
-        self_cls = OM_get_WrapperDescriptor_cls(self)
-        if self_cls is absent:
-            OM_set_WrapperDescriptor_cls(self, cls)
         return ctx.cont(ctx.rte, self)
     else:
         self_name = OM_get(self, '__name__')
@@ -2333,8 +2330,18 @@ def comp_mod(cte, ast):
         if debug: print('AST.Module')
         return comp_stmt_seq(cte, ast.body)
 
+    elif isinstance(ast, AST.Interactive):
+        # Interactive(stmt* body)
+        if debug: print('AST.Interactive')
+        return comp_stmt_seq(cte, ast.body)
+
+    elif isinstance(ast, AST.Expression):
+        # Expression(expr body)
+        if debug: print('AST.Interactive')
+        assert False, 'comp_mod cannot handle AST.Expression'
+
     else:
-        assert False, 'comp_mod expected a module AST'
+        assert False, 'comp_mod expected a AST.Module or AST.Interactive'
 
 def comp_stmt_seq(cte, stmt_seq):
     if debug: print('comp_stmt_seq')
