@@ -5,9 +5,6 @@ print(0b0011 & 0b0010)
 print(0b1111111111111111 & 0b1101010001)
 print(0b0 & 0b11111111111)
 
-for i in range(10):
-    for j in range(10):
-        print(i & j)
 
 # or
 
@@ -16,10 +13,6 @@ print(0b0011 | 0b0010)
 print(0b1111111111111111 | 0b1101010001)
 print(0b0 | 0b11111111111)
 
-for i in range(10):
-    for j in range(10):
-        print(i | j)
-
 # xor
 
 print(0b1100 ^ 0b1010)
@@ -27,9 +20,6 @@ print(0b0011 ^ 0b0010)
 print(0b1111111111111111 ^ 0b1101010001)
 print(0b0 ^ 0b11111111111)
 
-for i in range(10):
-    for j in range(10):
-        print(i ^ j)
 
 # lshift
 

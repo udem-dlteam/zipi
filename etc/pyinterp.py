@@ -68,6 +68,7 @@ class RTCtrlCatch:
         self.code_catch = code_catch
         self.lex_env = lex_env
 
+
 class RTCtrlFinally:
     def __init__(self, ctrl_next, code_finally, cont):
         self.ctrl_next = ctrl_next
@@ -108,14 +109,17 @@ def with_cont(ctx, cont):
     return Context(ctx.rte, cont, ctx.ast)
 
 def with_catch(ctx, catcher_cont):
+    # Add a continuatin which removes the catcher from the rte before returning
+    def unwind_catch_block(rte, val):
+        unwinded_rte = unwind_rte_ctrl_env(rte)
+        return ctx.cont(unwinded_rte, val)
+
     catcher = RTCtrlCatch(rte_ctrl_env(ctx.rte), catcher_cont, ctx.rte)
     next_rte = make_rte_from_new_ctrl_env(ctx.rte, catcher)
-    return Context(next_rte, ctx.cont, ctx.ast)
+    return Context(next_rte, unwind_catch_block, ctx.ast)
 
 def with_cont_and_catch(ctx, cont, catcher_cont):
-    catcher = RTCtrlCatch(rte_ctrl_env(ctx.rte), catcher_cont, ctx.rte)
-    next_rte = make_rte_from_new_ctrl_env(ctx.rte, catcher)
-    return Context(next_rte, cont, ctx.ast)
+    return with_catch(with_cont(ctx, cont), catcher_cont)
 
 def make_out_of_ast_context(rte, cont):
     return Context(rte, cont, None)
@@ -242,6 +246,9 @@ def make_rte_from_new_ctrl_env(rte, ctrl_env):
                     rte_vm(rte),
                     rte_trace(rte))
 
+def unwind_rte_ctrl_env(rte):
+    next_ctrl_env = rte_ctrl_env(rte).ctrl_next
+    return make_rte_from_new_ctrl_env(rte, next_ctrl_env)
 
 def rte_serial_counter(rte):
     return dict_get(rte, 'serial_counter', absent)
@@ -647,6 +654,8 @@ def populate_builtin_int():
     builtin_add_method(class_int, '__rmul__', om_int_rmul)
     builtin_add_method(class_int, '__floordiv__', om_int_floordiv)
     builtin_add_method(class_int, '__rfloordiv__', om_int_rfloordiv)
+    builtin_add_method(class_int, '__truediv__', om_int_truediv)
+    builtin_add_method(class_int, '__rtruediv__', om_int_rtruediv)
     builtin_add_method(class_int, '__mod__', om_int_mod)
     builtin_add_method(class_int, '__rmod__', om_int_rmod)
     builtin_add_method(class_int, '__abs__', om_int_abs)
@@ -655,6 +664,8 @@ def populate_builtin_int():
     builtin_add_method(class_int, '__rlshift__', om_int_rlshift)
     builtin_add_method(class_int, '__rshift__', om_int_rshift)
     builtin_add_method(class_int, '__rrshift__', om_int_rrshift)
+    builtin_add_method(class_int, '__and__', om_int_and)
+    builtin_add_method(class_int, '__rand__', om_int_rand)
     builtin_add_method(class_int, '__or__', om_int_or)
     builtin_add_method(class_int, '__ror__', om_int_ror)
     builtin_add_method(class_int, '__xor__', om_int_xor)
@@ -702,6 +713,7 @@ def populate_builtin_list():
     builtin_add_method(class_list, '__new__', om_list_new)
     builtin_add_method(class_list, '__repr__', om_list_repr)
     builtin_add_method(class_list, '__getitem__', om_list_getitem)
+    builtin_add_method(class_list, '__setitem__', om_list_setitem)
     builtin_add_method(class_list, 'append', om_list_append)
 
 def populate_builtin_slice():
@@ -1569,8 +1581,33 @@ def om_list_getitem_code(ctx, args):
 
 om_list_getitem = do_magic_method(class_list, "__getitem__", om_list_getitem_code)
 
+def om_list_setitem_code(ctx, args):
+    args_len = len(args)
+    if args_len == 3:
+        self = args[0]
+        item = args[1]
+        value = args[2]
 
-def om_list_append(ctx, args):
+        if om_isinstance(item, class_int):
+            index = OM_get_boxed_value(item)
+            self_len = OM_get_list_len(self)
+            elements = OM_get_list_seq(self)
+            if index >= 0 and index < self_len:
+                elements[index] = value
+                return ctx.cont(ctx.rte, om_None)
+            elif index < 0 and index >= -self_len:
+                elements[index + self_len] = value
+                return ctx.cont(ctx.rte, om_None)
+            else:
+                return sem_raise_with_message(ctx, class_IndexError, "list index out of range")
+        elif om_isinstance(item, class_slice):
+            return sem_raise_with_message(ctx, class_NotImplementedError, "list[slice] not yet implemented")
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "__getitem__() takes exactly two argument (" + str(args_len) + " given)")
+
+om_list_setitem = do_magic_method(class_list, "__setitem__", om_list_setitem_code)
+
+def om_list_append_code(ctx, args):
     if debug: print('list.append')
     self = args[0]
     value = args[1]
@@ -1585,9 +1622,12 @@ def om_list_append(ctx, args):
     else:
         new_elements = list_seq_grow(elements)
         new_elements[list_len] = value
+        OM_set_list_seq(self, new_elements)
         OM_set_list_len(self, list_len + 1)
 
     return ctx.cont(ctx.rte, om_None)
+
+om_list_append = do_magic_method(class_list, "append", om_list_append_code)
 
 # class_iterator methods
 
@@ -1822,20 +1862,12 @@ def box_object(obj):
 # Primitive operators for doing actual computations
 def gen_dunder_Numeric_BinOp(py_class, method, prim, om_class, om_box):
     def dunder_Numeric_BinOp(ctx, args):
-        if debug: print(cls + "." + method)
+        if debug: print(py_class + "." + method)
         val1 = args[0]
         val2 = args[1]
 
-        # This check is done in CPython:
-        # >>> int.__add__('a', 1)
-        # Traceback (most recent call last):
-        #   File "<stdin>", line 1, in <module>
-        # TypeError: descriptor '__add__' requires a 'int' object but received a 'str'
-        if not om_is(OM_get_object_class(val1), om_class):
-            return sem_raise(ctx, class_TypeError)
-
         # Primitive operations are only defined on same types.
-        if om_is(OM_get_object_class(val2), om_class):
+        if om_issubclass(OM_get_object_class(val2), om_class):
             val1_value = OM_get_boxed_value(val1)
             val2_value = OM_get_boxed_value(val2)
             result = prim(val1_value, val2_value)
@@ -1844,20 +1876,17 @@ def gen_dunder_Numeric_BinOp(py_class, method, prim, om_class, om_box):
             # TODO: Return om_NotImplemented(rte) (in the proper rte)
             return ctx.cont(ctx.rte, om_NotImplemented)
 
-    return dunder_Numeric_BinOp
+    return do_magic_method(om_class, method, dunder_Numeric_BinOp)
 
 # Reversed operators reverse the order of their arguments when
 # doing the computation.
 def gen_dunder_Numeric_rBinOp(py_class, method, prim, om_class, om_box):
     def dunder_Numeric_rBinOp(ctx, args):
-        if debug: print(cls + "." + method)
+        if debug: print(py_class+ "." + method)
         val1 = args[0]
         val2 = args[1]
 
-        if not om_is(OM_get_object_class(val1), om_class):
-            return sem_raise(ctx, class_TypeError)
-
-        if om_is(OM_get_object_class(val2), om_class):
+        if om_issubclass(OM_get_object_class(val2), om_class):
             val1_value = OM_get_boxed_value(val1)
             val2_value = OM_get_boxed_value(val2)
             # Reverse the arguments.
@@ -1867,7 +1896,7 @@ def gen_dunder_Numeric_rBinOp(py_class, method, prim, om_class, om_box):
             # TODO: Return om_NotImplemented(rte) (in the proper rte)
             return ctx.cont(ctx.rte, om_NotImplemented)
 
-    return dunder_Numeric_rBinOp
+    return do_magic_method(om_class, method, dunder_Numeric_rBinOp)
 
 # Arithmetic
 om_int_add = gen_dunder_Numeric_BinOp('int', '__add__', int_add, class_int, om_int)
@@ -1886,18 +1915,13 @@ om_int_rshift = gen_dunder_Numeric_BinOp('int', '__rshift__', int_rshift, class_
 om_int_rrshift = gen_dunder_Numeric_BinOp('int', '__rrshift__', int_rshift, class_int, om_int)
 om_int_or = gen_dunder_Numeric_BinOp('int', '__or__', int_or, class_int, om_int)
 om_int_ror = gen_dunder_Numeric_BinOp('int', '__ror__', int_or, class_int, om_int)
+om_int_and = gen_dunder_Numeric_BinOp('int', '__and__', int_and, class_int, om_int)
+om_int_rand = gen_dunder_Numeric_BinOp('int', '__rand__', int_and, class_int, om_int)
 om_int_xor = gen_dunder_Numeric_BinOp('int', '__xor__', int_xor, class_int, om_int)
 om_int_rxor = gen_dunder_Numeric_BinOp('int', '__xror__', int_xor, class_int, om_int)
 
-# Comparison
-om_int_eq = gen_dunder_Numeric_BinOp('int', '__eq__', int_eq, class_int, om_bool)
-om_int_ne = gen_dunder_Numeric_BinOp('int', '__ne__', int_ne, class_int, om_bool)
-om_int_lt = gen_dunder_Numeric_BinOp('int', '__lt__', int_lt, class_int, om_bool)
-om_int_le = gen_dunder_Numeric_BinOp('int', '__le__', int_le, class_int, om_bool)
-om_int_gt = gen_dunder_Numeric_BinOp('int', '__gt__', int_gt, class_int, om_bool)
-om_int_ge = gen_dunder_Numeric_BinOp('int', '__ge__', int_ge, class_int, om_bool)
-
-def om_int_bool(ctx, args):
+# class_int methods
+def om_int_bool_code(ctx, args):
     if debug: print('int.__bool__')
     self = args[0]
     val_value = OM_get_boxed_value(self)
@@ -1916,6 +1940,15 @@ def om_int_abs_code(ctx, args):
         return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
 
 om_int_abs = do_magic_method(class_int, "__abs__", om_int_abs_code)
+om_int_bool = do_magic_method(class_int, "__bool__", om_int_bool_code)
+
+# Comparison
+om_int_eq = gen_dunder_Numeric_BinOp('int', '__eq__', int_eq, class_int, om_bool)
+om_int_ne = gen_dunder_Numeric_BinOp('int', '__ne__', int_ne, class_int, om_bool)
+om_int_lt = gen_dunder_Numeric_BinOp('int', '__lt__', int_lt, class_int, om_bool)
+om_int_le = gen_dunder_Numeric_BinOp('int', '__le__', int_le, class_int, om_bool)
+om_int_gt = gen_dunder_Numeric_BinOp('int', '__gt__', int_gt, class_int, om_bool)
+om_int_ge = gen_dunder_Numeric_BinOp('int', '__ge__', int_ge, class_int, om_bool)
 
 def om_format_int_repr(self, rte):
     return int_to_string(OM_get_boxed_value(self), 10)
@@ -1923,20 +1956,19 @@ def om_format_int_repr(self, rte):
 def om_format_float_repr(self, rte):
     return float_to_string(OM_get_boxed_value(self))
 
-def om_int_repr(ctx, args):
+def om_int_repr_code(ctx, args):
     self = args[0]
     result = om_format_int_repr(self, ctx.rte)
     return ctx.cont(ctx.rte, om_str(result))
 
+om_int_repr = do_magic_method(class_int, "__repr__", om_int_repr_code)
+
 
 # Mod has a check for division by zero.
-def om_int_mod(ctx, args):
+def om_int_mod_code(ctx, args):
     if debug: print("int.__mod__")
     val1 = args[0]
     val2 = args[1]
-
-    if not om_is(OM_get_object_class(val1), class_int):
-        return sem_raise(ctx, class_TypeError)
 
     # Early break for ZeroDivisionError
     val2_value = OM_get_boxed_value(val2)
@@ -1944,7 +1976,7 @@ def om_int_mod(ctx, args):
         return sem_raise(ctx, class_ZeroDivisionError)
 
     # Primitive operations are only defined on same types.
-    if om_is(OM_get_object_class(val2), class_int):
+    if om_issubclass(OM_get_object_class(val2), class_int):
         val1_value = OM_get_boxed_value(val1)
         result = int_mod(val1_value, val2_value)
         return ctx.cont(ctx.rte, om_int(result))
@@ -1952,13 +1984,12 @@ def om_int_mod(ctx, args):
         # TODO: Return om_NotImplemented(rte) (in the proper rte)
         return ctx.cont(ctx.rte, om_NotImplemented)
 
-def om_int_rmod(ctx, args):
+om_int_mod = do_magic_method(class_int, "__mod__", om_int_mod_code)
+
+def om_int_rmod_code(ctx, args):
     if debug: print("int.__rmod__")
     val1 = args[0]
     val2 = args[1]
-
-    if not om_is(OM_get_object_class(val1), class_int):
-        return sem_raise(ctx, class_TypeError)
 
     # Early break for ZeroDivisionError
     val1_value = OM_get_boxed_value(val1)
@@ -1966,7 +1997,7 @@ def om_int_rmod(ctx, args):
         return sem_raise(ctx, class_ZeroDivisionError)
 
     # Primitive operations are only defined on same types.
-    if om_is(OM_get_object_class(val2), class_int):
+    if om_issubclass(OM_get_object_class(val2), class_int):
         val2_value = OM_get_boxed_value(val2)
         result = int_mod(val2_value, val1_value)
         return ctx.cont(ctx.rte, om_int(result))
@@ -1974,15 +2005,14 @@ def om_int_rmod(ctx, args):
         # TODO: Return om_NotImplemented(rte) (in the proper rte)
         return ctx.cont(ctx.rte, om_NotImplemented)
 
+om_int_rmod = do_magic_method(class_int, "__rmod__", om_int_rmod_code)
+
 # FloorDiv has another check for division by zero.
 # Write it by hand.
-def om_int_floordiv(ctx, args):
+def om_int_floordiv_code(ctx, args):
     if debug: print("int.__floordiv__")
     val1 = args[0]
     val2 = args[1]
-
-    if not om_is(OM_get_object_class(val1), class_int):
-        return sem_raise(ctx, class_TypeError)
 
     # Early break for ZeroDivisionError
     val2_value = OM_get_boxed_value(val2)
@@ -1990,7 +2020,7 @@ def om_int_floordiv(ctx, args):
         return sem_raise(ctx, class_ZeroDivisionError)
 
     # Primitive operations are only defined on same types.
-    if om_is(OM_get_object_class(val2), class_int):
+    if om_issubclass(OM_get_object_class(val2), class_int):
         val1_value = OM_get_boxed_value(val1)
         result = int_div(val1_value, val2_value)
         return ctx.cont(ctx.rte, om_int(result))
@@ -1998,13 +2028,13 @@ def om_int_floordiv(ctx, args):
         # TODO: Return om_NotImplemented(rte) (in the proper rte)
         return ctx.cont(ctx.rte, om_NotImplemented)
 
-def om_int_rfloordiv(ctx, args):
+om_int_floordiv = do_magic_method(class_int, "__floordiv__", om_int_floordiv_code)
+
+
+def om_int_rfloordiv_code(ctx, args):
     if debug: print("int.__rfloordiv__")
     val1 = args[0]
     val2 = args[1]
-
-    if not om_is(OM_get_object_class(val1), class_int):
-        return sem_raise(ctx, class_TypeError)
 
     # Early break for ZeroDivisionError
     val1_value = OM_get_boxed_value(val1)
@@ -2012,13 +2042,58 @@ def om_int_rfloordiv(ctx, args):
         return sem_raise(ctx, class_ZeroDivisionError)
 
     # Primitive operations are only defined on same types.
-    if om_is(OM_get_object_class(val2), class_int):
+    if om_issubclass(OM_get_object_class(val2), class_int):
         val2_value = OM_get_boxed_value(val2)
         result = int_div(val2_value, val1_value)
         return ctx.cont(ctx.rte, om_int(result))
     else:
         # TODO: Return om_NotImplemented(rte) (in the proper rte)
         return ctx.cont(ctx.rte, om_NotImplemented)
+
+om_int_rfloordiv = do_magic_method(class_int, "__rfloordiv__", om_int_rfloordiv_code)
+
+def om_int_truediv_code(ctx, args):
+    if debug: print("int.__truediv__")
+    val1 = args[0]
+    val2 = args[1]
+
+    # Early break for ZeroDivisionError
+    val2_value = OM_get_boxed_value(val2)
+    if int_is_zero(val2_value):
+        return sem_raise(ctx, class_ZeroDivisionError)
+
+    # Primitive operations are only defined on same types.
+    if om_issubclass(OM_get_object_class(val2), class_int):
+        val1_value = OM_get_boxed_value(val1)
+        result = float_div(int_to_float(val1_value), int_to_float(val2_value))
+        return ctx.cont(ctx.rte, om_float(result))
+    else:
+        # TODO: Return om_NotImplemented(rte) (in the proper rte)
+        return ctx.cont(ctx.rte, om_NotImplemented)
+
+om_int_truediv = do_magic_method(class_int, "__truediv__", om_int_truediv_code)
+
+
+def om_int_rtruediv_code(ctx, args):
+    if debug: print("int.__rtruediv__")
+    val1 = args[0]
+    val2 = args[1]
+
+    # Early break for ZeroDivisionError
+    val1_value = OM_get_boxed_value(val1)
+    if int_is_zero(val1_value):
+        return sem_raise(ctx, class_ZeroDivisionError)
+
+    # Primitive operations are only defined on same types.
+    if om_issubclass(OM_get_object_class(val2), class_int):
+        val2_value = OM_get_boxed_value(val2)
+        result = float_div(int_to_float(val2_value), int_to_float(val1_value))
+        return ctx.cont(ctx.rte, om_float(result))
+    else:
+        # TODO: Return om_NotImplemented(rte) (in the proper rte)
+        return ctx.cont(ctx.rte, om_NotImplemented)
+
+om_int_rtruediv = do_magic_method(class_int, "__rtruediv__", om_int_rtruediv_code)
 
 # Float dunders
 om_float_add = gen_dunder_Numeric_BinOp('float', '__add__', float_add, class_float, om_float)
@@ -2035,7 +2110,7 @@ def om_float_mod(ctx, args):
     val1 = args[0]
     val2 = args[1]
 
-    if not om_is(OM_get_object_class(val1), class_float):
+    if not om_issubclass(OM_get_object_class(val1), class_float):
         return sem_raise(ctx, class_TypeError)
 
     # Early break for ZeroDivisionError
@@ -2044,7 +2119,7 @@ def om_float_mod(ctx, args):
         return sem_raise(ctx, class_ZeroDivisionError)
 
     # Primitive operations are only defined on same types.
-    if om_is(OM_get_object_class(val2), class_float):
+    if om_issubclass(OM_get_object_class(val2), class_float):
         val1_value = OM_get_boxed_value(val1)
         result = float_mod(val1_value, val2_value)
         return ctx.cont(ctx.rte, om_float(result))
@@ -2057,7 +2132,7 @@ def om_float_rmod(ctx, args):
     val1 = args[0]
     val2 = args[1]
 
-    if not om_is(OM_get_object_class(val1), class_float):
+    if not om_issubclass(OM_get_object_class(val1), class_float):
         return sem_raise(ctx, class_TypeError)
 
     # Early break for ZeroDivisionError
@@ -2066,7 +2141,7 @@ def om_float_rmod(ctx, args):
         return sem_raise(ctx, class_ZeroDivisionError)
 
     # Primitive operations are only defined on same types.
-    if om_is(OM_get_object_class(val2), class_float):
+    if om_issubclass(OM_get_object_class(val2), class_float):
         val2_value = OM_get_boxed_value(val2)
         result = float_mod(val2_value, val1_value)
         return ctx.cont(ctx.rte, om_float(result))
@@ -2079,7 +2154,7 @@ def om_float_truediv(ctx, args):
     val1 = args[0]
     val2 = args[1]
 
-    if not om_is(OM_get_object_class(val1), class_float):
+    if not om_issubclass(OM_get_object_class(val1), class_float):
         return sem_raise(ctx, class_TypeError)
 
     # Early break for ZeroDivisionError
@@ -2088,7 +2163,7 @@ def om_float_truediv(ctx, args):
         return sem_raise(ctx, class_ZeroDivisionError)
 
     # Primitive operations are only defined on same types.
-    if om_is(OM_get_object_class(val2), class_float):
+    if om_issubclass(OM_get_object_class(val2), class_float):
         val1_value = OM_get_boxed_value(val1)
         result = float_div(val1_value, val2_value)
         return ctx.cont(ctx.rte, om_float(result))
@@ -2101,7 +2176,7 @@ def om_float_rtruediv(ctx, args):
     val1 = args[0]
     val2 = args[1]
 
-    if not om_is(OM_get_object_class(val1), class_float):
+    if not om_issubclass(OM_get_object_class(val1), class_float):
         return sem_raise(ctx, class_TypeError)
 
     # Early break for ZeroDivisionError
@@ -2110,7 +2185,7 @@ def om_float_rtruediv(ctx, args):
         return sem_raise(ctx, class_ZeroDivisionError)
 
     # Primitive operations are only defined on same types.
-    if om_is(OM_get_object_class(val2), class_float):
+    if om_issubclass(OM_get_object_class(val2), class_float):
         val2_value = OM_get_boxed_value(val2)
         result = float_div(val2_value, val1_value)
         return ctx.cont(ctx.rte, om_float(result))
@@ -2732,12 +2807,16 @@ def comp_stmt(cte, ast):
     elif isinstance(ast, AST.Assign):
         # Assign(expr* targets, expr value, string? type_comment)
         if debug: print('AST.Assign')
-        if len(ast.targets) == 1 and isinstance(ast.targets[0], AST.Name):
-            id = ast.targets[0].id
-            (cte1, code1) = comp_expr(cte, ast.value)
-            return gen_var_set(cte1, ast, id, code1)
+        if len(ast.targets) == 1:
+            target = ast.targets[0]
+            if isinstance(target, AST.Name):
+                id = ast.targets[0].id
+                (cte1, code1) = comp_expr(cte, ast.value)
+                return gen_var_set(cte1, ast, id, code1)
+            elif isinstance(target, AST.Subscript):
+                return gen_Subscript_Store(cte, ast, target, ast.value)
         else:
-            assert False, 'comp_stmt only supports assigning to one variable'
+            assert False, 'Only assignation to one element is supported'
 
     elif isinstance(ast, AST.While):
         # While(expr test, stmt* body, stmt* orelse)
@@ -3077,22 +3156,22 @@ def gen_for(cte, target, iterable, body):
     iterable_cte, iterable_code = comp_expr(cte, iterable)
     body_cte, body_code = comp_stmt_seq(iterable_cte, body)
 
-    def get_iterable(rte, cont):
-        def get_iterator(rte, iterable):
-            def get_next(rte, iterator):
-                def assign_target(rte, nxt_value):
+    def get_iterable(get_iterable_rte, cont):
+        def get_iterator(get_iterator_rte, iterable):
+            def get_next(get_next_rte, iterator):
+                def assign_target(assign_target_rte, nxt_value):
                     if nxt_value is for_loop_end_marker:
-                        return cont(rte)
+                        return cont(get_next_rte)
                     else:
                         def run_body(rte):
                             return body_code(rte, lambda rte: get_next(rte, iterator))
 
-                        msg = target.id + " ← " + om_simple_repr(Context(rte, None, target), nxt_value)
+                        msg = target.id + " ← " + om_simple_repr(Context(assign_target_rte, None, target), nxt_value)
                         cont_stmt_end_with_message = do_stmt_end_with_message(run_body, target)
-                        return sem_var_set(Context(rte, lambda rte: cont_stmt_end_with_message(rte, msg), target), target.id, nxt_value)
-                return sem_next(Context(rte, assign_target, iterable), iterator, for_loop_end_marker)
-            return sem_iter(Context(rte, get_next, iterable), iterable)
-        return iterable_code(rte, get_iterator)
+                        return sem_var_set(Context(assign_target_rte, lambda rte: cont_stmt_end_with_message(rte, msg), target), target.id, nxt_value)
+                return sem_next(Context(get_next_rte, assign_target, iterable), iterator, for_loop_end_marker)
+            return sem_iter(Context(get_iterator_rte, get_next, iterable), iterable)
+        return iterable_code(get_iterable_rte, get_iterator)
     return body_cte, get_iterable
 
 def gen_raise(cte, ast, code):
@@ -3213,6 +3292,8 @@ def gen_BinOp(cte, ast, op, code1, code2):
         sem_op = sem_LShift
     elif isinstance(op, AST.RShift):
         sem_op = sem_RShift
+    elif isinstance(op, AST.BitAnd):
+        sem_op = sem_BitAnd
     elif isinstance(op, AST.BitOr):
         sem_op = sem_BitOr
     elif isinstance(op, AST.BitXor):
@@ -3358,6 +3439,7 @@ sem_Mod = gen_sem_Numeric_BinOp('%', '__mod__', '__rmod__')
 sem_LShift = gen_sem_Numeric_BinOp('<<', '__lshift__', '__rlshift__')
 sem_RShift = gen_sem_Numeric_BinOp('>>', '__rshift__', '__rrshift__')
 sem_BitOr = gen_sem_Numeric_BinOp('|', '__or__', '__ror__')
+sem_BitAnd = gen_sem_Numeric_BinOp('&', '__and__', '__rand__')
 sem_BitXor = gen_sem_Numeric_BinOp('^', '__xor__', '__rxor__')
 # Comparison
 sem_Eq = gen_sem_Numeric_BinOp('==', '__eq__', '__eq__')
@@ -3424,19 +3506,19 @@ def sem_getattribute(ctx, args):
     name = args[1]
 
     def catch_AttributeError(rte, exn):
-        obj_getattr = getattribute_from_obj_mro(obj, '__getattr__')
-        new_ctx = Context(rte, ctx.cont, ctx.ast)
-        if obj_getattr is absent:
-            return sem_raise(new_ctx, exn)
+        if om_isinstance(exn, class_AttributeError):
+            obj_getattr = getattribute_from_obj_mro(obj, '__getattr__')
+            new_ctx = Context(rte, ctx.cont, ctx.ast)
+            if obj_getattr is absent:
+                return sem_raise(new_ctx, exn)
+            else:
+                return om_call(obj_getattr, new_ctx, args)
         else:
-            return om_call(obj_getattr, new_ctx, args)
+            return sem_raise(Context(rte, ctx.cont, ctx.ast), exn)
 
     obj_getattribute = getattribute_from_obj_mro(obj, '__getattribute__')
 
-    catcher = RTCtrlCatch(rte_ctrl_env(ctx.rte), catch_AttributeError, ctx.rte)
-    new_rte = make_rte_from_new_ctrl_env(ctx.rte, catcher)
-    ctx1 = Context(new_rte, ctx.cont, ctx.ast)
-    return om_call(obj_getattribute, ctx1, args)
+    return om_call(obj_getattribute, with_catch(ctx, catch_AttributeError), args)
 
 def sem_call(ctx, args):
     self = args[0]
@@ -3448,9 +3530,16 @@ def sem_call(ctx, args):
 def sem_getitem(ctx, obj, item):
     obj_getitem = getattribute_from_obj_mro(obj, "__getitem__")
     if obj_getitem is absent:
-        return sem_raise(ctx, class_TypeError)
+        return sem_raise_with_message(ctx, class_TypeError, 'object is not subscriptable')
     else:
         return om_call(obj_getitem, ctx, (obj, item))
+
+def sem_setitem(ctx, obj, item, val):
+    obj_setitem = getattribute_from_obj_mro(obj, "__setitem__")
+    if obj_setitem is absent:
+        return sem_raise_with_message(ctx, class_TypeError, 'object does not support item assignment')
+    else:
+        return om_call(obj_setitem, with_cont(ctx, lambda rte, val: ctx.cont(rte)), (obj, item, val))
 
 def sem_next(ctx, obj, default_):
     obj_next = getattribute_from_obj_mro(obj, "__next__")
@@ -3563,6 +3652,30 @@ def gen_Subscript_Load(cte, ast, obj_code, index_code):
         return get_obj(rte, do_expr_end(cont, ast))
     return cte, code
 
+def gen_Subscript_Store(cte, ast, target, value):
+    target_obj = target.value
+    target_index = target.slice.value
+
+    obj_cte, obj_code = comp_expr(cte, target_obj)
+    index_cte, index_code = comp_expr(obj_cte, target_index)
+    value_cte, value_code = comp_expr(index_cte, value)
+
+    def get_obj(rte, cont):
+        def get_index(rte, obj):
+            def get_value(get_value_rte, index):
+                def set_item(setitem_rte, value):
+                    return sem_setitem(Context(setitem_rte, cont, ast), obj, index, value)
+                return value_code(get_value_rte, set_item)
+            return index_code(rte, get_value)
+        return obj_code(rte, get_index)
+
+    def code(rte, cont):
+        return get_obj(rte, do_stmt_end(cont, ast))
+
+    return value_cte, code
+
+
+
 def sem_constant(ctx, val):
     return ctx.cont(ctx.rte, val)
 
@@ -3620,7 +3733,7 @@ def sem_raise(ctx, exn):
 
     # XXX: does not unwind all the way
     while not om_is(ctrl_env, absent):
-        if isinstance(ctrl_next, RTCtrlCatch):
+        if isinstance(ctrl_env, RTCtrlCatch):
             ctrl_rte = ctrl_env.lex_env
             code_catch = ctrl_env.code_catch
             return code_catch(ctrl_rte, exn_obj)
