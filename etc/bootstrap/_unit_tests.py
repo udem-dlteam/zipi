@@ -1,5 +1,6 @@
 # _unit_tests.py
 
+import sys
 from io import StringIO
 from contextlib import redirect_stdout
 
@@ -30,12 +31,14 @@ class Equals(Test):
                     print("Test '" + f.__name__ + "' passed.")
                     return True
                 else:
-                    print("Test '" + f.__name__ + "' FAILED.")
+                    print("\nTest '" + f.__name__ + "' FAILED.", file=sys.stderr)
                     print(res)
+                    print("\n")
                     return False
             except Exception as e:
-                print("Failed to execute test '" + f.__name__ + "'.")
-                print("Exception: " + str(e))
+                print("\nFAILED to execute test '" + f.__name__ + "'.", file=sys.stderr)
+                print("EXCEPTION: " + str(e), file=sys.stderr)
+                print("\n")
                 return False
 
         _tests.append(_f)
