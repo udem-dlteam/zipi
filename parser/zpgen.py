@@ -507,10 +507,12 @@ def samp(x):
 
 tokenset_dict = {}
 tokenset_count = 0
+modes = {}
+start_fn_names = {}
 
 def read_grammar_and_generate_parser(filename):
 
-    global actions, gen_prefix, gen_parse_prefix, tokenset_dict, tokenset_count
+    global actions, gen_prefix, gen_parse_prefix, tokenset_dict, tokenset_count, modes
 
     read_grammar(filename)
 
@@ -521,6 +523,7 @@ def read_grammar_and_generate_parser(filename):
 
     gen_prefix = actions.get('gen_prefix','')
     gen_parse_prefix = actions.get('gen_parse_prefix','parse_')
+    modes = actions.get('allowed_modes', {None:rules[0].name})
 
     setup_first_nt(rules)
 
@@ -543,7 +546,7 @@ def read_grammar_and_generate_parser(filename):
     print(actions.get('prelude',''))
 
     # A subcall to gen_rule calls print:
-    start_fn_name, f = generate_parse_functions()
+    generate_parse_functions()
 
     print()
     print('@nocompile')
@@ -555,22 +558,38 @@ def read_grammar_and_generate_parser(filename):
         print(tokenset_dict[s] + ' = ' + tokenset_construct(s))
 
     print()
-    print('def ' + gen_prefix + 'parse(source, context):')
-    print()
-    print('    # filename = "<unknown>"')
-    print('    # mode = "exec"')
-    print('    # type_comments = False')
-    print('    # feature_version = None')
+    if None in modes:
+        print('def ' + gen_prefix + 'parse(source, context):')
+    else:
+        print('def ' + gen_prefix + 'parse(source, mode, context):')
+        print()
+        print('    # mode = '+('/'.join(list(map(repr,modes.keys())))))
     print()
     print('    init_stats()')
     print('    ts = ' + tok_access + 'TokenizerState(source, context)')
     print('    ' + gen_prefix + 'advance(ts)')
     print()
-    c, yes, no = gen_in(f, universal_set())
-    print('    if ' + c + ':')
-    print('        return ' + start_fn_name + '(ts)')
-    print('    else:')
-    print('        ' + gen_error())
+
+    if None in modes:
+        start_fn_name = start_fn_names[None]
+        f = first_nt[modes[None]]
+        c, yes, no = gen_in(f, universal_set())
+        print('    if ' + c + ':')
+        print('        return ' + start_fn_name + '(ts)')
+        print('    else:')
+        print('        ' + gen_error())
+    else:
+        first_mode = True
+        for mode in modes:
+            start_fn_name = start_fn_names[mode]
+            f = first_nt[modes[mode]]
+            print('    ' + ('if' if first_mode else 'elif') + ' mode == ' + repr(mode) + ':')
+            c, yes, no = gen_in(f, universal_set())
+            print('        if ' + c + ':')
+            print('            return ' + start_fn_name + '(ts)')
+            print('        else:')
+            print('            ' + gen_error())
+            first_mode = False
     print()
     print('def ' + gen_prefix + 'syntax_error(ts, msg):')
     print('    if msg is None:')
@@ -609,18 +628,22 @@ def read_grammar_and_generate_parser(filename):
 
 def generate_parse_functions():
 
+    global start_fn_names
+
     init_fn_names()
 
-    start_rule_name = rules[0].name
-    start_fn_name = get_nt_fn_name((start_rule_name, first_nt[start_rule_name]))
+    start_fn_names = {}
+
+    for mode in modes:
+        start_rule_name = modes[mode]
+        start_fn_name = get_nt_fn_name((start_rule_name, first_nt[start_rule_name]))
+        start_fn_names[mode] = start_fn_name
 
     todo_index = 0
     while todo_index < len(todo):
         nt, known = todo[todo_index]
         todo_index += 1
         gen_rule(nt, known)
-
-    return start_fn_name, first_nt[start_rule_name]
 
 def gen_rule(nt, known):
 

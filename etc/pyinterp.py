@@ -426,7 +426,7 @@ def make_builtin_class(name, metaclass):
 
 # Initialize class type objects
 def builtin_add_method(o, name, code):
-    wrapper = om_WrapperDescriptor(name, code)
+    wrapper = om_WrapperDescriptor(name, o, code)
     OM_set(o, name, wrapper)
 
 def populate_builtin_type():
@@ -697,10 +697,10 @@ def om_exception(exn, args):
     OM_set(obj, 'args', args)
     return obj
 
-def om_WrapperDescriptor(name, code):
+def om_WrapperDescriptor(name, cls, code):
     obj = om(class_WrapperDescriptor, OM_WrapperDescriptor_create)
     OM_set_code(obj, code)
-    OM_set_WrapperDescriptor_cls(obj, absent)
+    OM_set_WrapperDescriptor_cls(obj, cls)
 
     OM_set(obj, '__name__', om_str(name))
     return obj
@@ -1049,9 +1049,6 @@ def om_WrapperDescriptor_get(ctx, args):
     cls = args[2]
 
     if obj is om_None:
-        self_cls = OM_get_WrapperDescriptor_cls(self)
-        if self_cls is absent:
-            OM_set_WrapperDescriptor_cls(self, cls)
         return ctx.cont(ctx.rte, self)
     else:
         self_name = OM_get(self, '__name__')
@@ -1338,17 +1335,7 @@ om_int_pos = do_magic_method(class_int, "__pos__", om_int_pos_code)
 # class_tuple methods
 
 def make_tuple(ctx, elements):
-    return ctx.cont(ctx.rte, om_tuple(list_to_tuple(elements)))
-
-def join_str(om_strings, sep):
-    acc = ''
-    strings_len = len(om_strings)
-    i = 0
-    while i < strings_len - 1:
-        acc += om_strings[i] + sep
-        i += 1
-
-    return acc + om_strings[-1]
+    return ctx.cont(ctx.rte, om_tuple(elements))
 
 def om_tuple_elements_repr(ctx, elts, repr_acc):
     if len(elts) == 0:
@@ -1359,7 +1346,7 @@ def om_tuple_elements_repr(ctx, elts, repr_acc):
             result = '(' + OM_get_boxed_value(repr_acc[0]) + ',)'
             return ctx.cont(ctx.rte, om_str(result))
         else:
-            result = '(' + join_str(repr_acc, ', ') + ')'
+            result = '(' + ', '.join(repr_acc) + ')'
             return ctx.cont(ctx.rte, om_str(result))
     else:
         def cont(rte, value):
@@ -1466,7 +1453,7 @@ om_list_new = do_static_magic_method(class_list, "__new__", om_list_new_code)
 
 def om_list_elements_repr(ctx, elts, repr_acc, i):
     if len(elts) == i or elts[i] is empty_cell:
-        result = '[' + join_str(repr_acc, ', ') + ']'
+        result = '[' + ', '.join(repr_acc) + ']'
         return ctx.cont(ctx.rte, om_str(result))
     else:
         def cont(rte, value):
@@ -2262,8 +2249,18 @@ def comp_mod(cte, ast):
         if debug: print('AST.Module')
         return comp_stmt_seq(cte, ast.body)
 
+    elif isinstance(ast, AST.Interactive):
+        # Interactive(stmt* body)
+        if debug: print('AST.Interactive')
+        return comp_stmt_seq(cte, ast.body)
+
+    elif isinstance(ast, AST.Expression):
+        # Expression(expr body)
+        if debug: print('AST.Interactive')
+        assert False, 'comp_mod cannot handle AST.Expression'
+
     else:
-        assert False, 'comp_mod expected a module AST'
+        assert False, 'comp_mod expected a AST.Module or AST.Interactive'
 
 def comp_stmt_seq(cte, stmt_seq):
     if debug: print('comp_stmt_seq')
@@ -3262,9 +3259,9 @@ def om_tuple_simple_repr(tuple_, rte):
         i += 1
 
     if elements_len == 1:
-        return '(' + join_str(acc, ', ') + ',)'
+        return '(' + ', '.join(acc) + ',)'
     else:
-        return '(' + join_str(acc, ', ') + ')'
+        return '(' + ', '.join(acc) + ')'
 
 def om_list_simple_repr(tuple_, rte):
     elements = OM_get_tuple_seq(tuple_)
@@ -3276,7 +3273,7 @@ def om_list_simple_repr(tuple_, rte):
         acc.append(om_simple_repr(next_ctx, elements[i]))
         i += 1
 
-    return '[' + join_str(acc, ', ') + ']'
+    return '[' + ', '.join(acc) + ']'
 
 simple_repr_formatters = {
     "NoneType": om_format_NoneType_repr,

@@ -9,11 +9,11 @@
 #       func_type_input is a PEP 484 Python 2 function type comment
 # NB: compound_stmt in single_input is followed by extra NEWLINE!
 # NB: due to the way TYPE_COMMENT is tokenized it will always be followed by a NEWLINE
-####single_input: NEWLINE | simple_stmt | compound_stmt NEWLINE
+single_input: stmt ENDMARKER
 ####file_input: (NEWLINE | stmt)* ENDMARKER
 file_input: stmts ENDMARKER ####new rule, same language
 stmts: (NEWLINE | stmt)* ####new rule, same language
-####eval_input: testlist NEWLINE* ENDMARKER
+eval_input: testlist NEWLINE* ENDMARKER
 
 ####decorator: '@' dotted_name [ '(' [arglist] ')' ] NEWLINE
 ####decorators: decorator+
