@@ -2222,8 +2222,18 @@ def comp_mod(cte, ast):
         if debug: print('AST.Module')
         return comp_stmt_seq(cte, ast.body)
 
+    elif isinstance(ast, AST.Interactive):
+        # Interactive(stmt* body)
+        if debug: print('AST.Interactive')
+        return comp_stmt_seq(cte, ast.body)
+
+    elif isinstance(ast, AST.Expression):
+        # Expression(expr body)
+        if debug: print('AST.Interactive')
+        assert False, 'comp_mod cannot handle AST.Expression'
+
     else:
-        assert False, 'comp_mod expected a module AST'
+        assert False, 'comp_mod expected a AST.Module or AST.Interactive'
 
 def comp_stmt_seq(cte, stmt_seq):
     if debug: print('comp_stmt_seq')

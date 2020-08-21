@@ -15,7 +15,7 @@ def nocompile(f):
 
 
 def parse(source, filename='<unknown>', mode='exec', context=False):
-    return py_parse((source+'\n').encode('utf-8'), context)
+    return py_parse((source+'\n').encode('utf-8'), mode, context)
 
 
 @nocompile
