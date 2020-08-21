@@ -1583,6 +1583,7 @@ def om_list_append(ctx, args):
     else:
         new_elements = list_seq_grow(elements)
         new_elements[list_len] = value
+        OM_set_list_seq(self, new_elements)
         OM_set_list_len(self, list_len + 1)
 
     return ctx.cont(ctx.rte, om_None)
