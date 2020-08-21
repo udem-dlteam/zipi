@@ -188,8 +188,6 @@ function float_nan() {
 }
 
 function float_to_string(float_a) {
-    // TODO support for BigNum conversion
-    
     var str_a = float_a + "";
     if (str_a.includes('.') || str_a.includes('e'))
         return str_a;

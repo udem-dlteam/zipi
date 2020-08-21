@@ -279,6 +279,16 @@ def test_int__truediv__0():
     source = "1 / 2"
     return interp_source(source)
 
+@Equals("""at 1.1-1.4 <function abs #0>
+at 1.6-1.8 10
+at 1.5-1.8 -10
+at 1.1-1.9 10
+""")
+def test_int_abs_0():
+    source = "abs(-10)"
+    return interp_source(source)
+
+
 ###
 # Floats
 ###
@@ -543,6 +553,16 @@ at 1.1-1.9 42.4242
 """)
 def test_float__pos__0():
     source = "+42.4242"
+    return interp_source(source)
+
+
+@Equals("""at 1.1-1.4 <function abs #0>
+at 1.6-1.10 1.09
+at 1.5-1.10 -1.09
+at 1.1-1.11 1.09
+""")
+def test_float_abs_0():
+    source = "abs(-1.09)"
     return interp_source(source)
 
 

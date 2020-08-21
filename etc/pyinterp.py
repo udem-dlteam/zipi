@@ -658,6 +658,7 @@ def populate_builtin_int():
     builtin_add_method(class_int, '__rtruediv__', om_int_rtruediv)
     builtin_add_method(class_int, '__mod__', om_int_mod)
     builtin_add_method(class_int, '__rmod__', om_int_rmod)
+    builtin_add_method(class_int, '__abs__', om_int_abs)
     # Bitwise
     builtin_add_method(class_int, '__lshift__', om_int_lshift)
     builtin_add_method(class_int, '__rlshift__', om_int_rlshift)
@@ -696,6 +697,7 @@ def populate_builtin_float():
     builtin_add_method(class_float, '__repr__', om_float_repr)
     builtin_add_method(class_float, '__pos__', om_float_pos)
     builtin_add_method(class_float, '__neg__', om_float_neg)
+    builtin_add_method(class_float, '__abs__', om_float_abs)
 
 def populate_builtin_bool():
     builtin_add_method(class_bool, '__bool__', om_bool_bool)
@@ -1929,6 +1931,15 @@ def om_int_bool_code(ctx, args):
         result = om_False
     return ctx.cont(ctx.rte, result)
 
+def om_int_abs_code(ctx, args):
+    if len(args) == 1:
+        self = args[0]
+        result = int_abs(OM_get_boxed_value(self))
+        return ctx.cont(ctx.rte, om_int(result))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+om_int_abs = do_magic_method(class_int, "__abs__", om_int_abs_code)
 om_int_bool = do_magic_method(class_int, "__bool__", om_int_bool_code)
 
 # Comparison
@@ -2182,6 +2193,16 @@ def om_float_rtruediv(ctx, args):
         # TODO: Return om_NotImplemented(rte) (in the proper rte)
         return ctx.cont(ctx.rte, om_NotImplemented)
 
+def om_float_abs_code(ctx, args):
+    if len(args) == 1:
+        self = args[0]
+        result = float_abs(OM_get_boxed_value(self))
+        return ctx.cont(ctx.rte, om_float(result))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+om_float_abs = do_magic_method(class_float, "__abs__", om_float_abs_code)
+
 def om_float_repr(ctx, args):
     self = args[0]
     result = om_format_float_repr(self, ctx.rte)
@@ -2304,6 +2325,12 @@ def om_iter_code(rte, _):
     else:
         assert False, "NotImplementedError"
 
+def om_abs_code(rte, _):
+    next_ctx = make_out_of_ast_context(rte, unwindReturn)
+
+    obj = rte_lookup(rte, 'obj')
+    return sem_abs(next_ctx, obj)
+
 # Built-in Modules
 def init_module_math():
 
@@ -2311,7 +2338,7 @@ def init_module_math():
         val = rte_lookup(rte, 'obj')
         obj_class = OM_get_object_class(val)
         unboxed_val = OM_get_boxed_value(val)
-        
+
         if om_is(obj_class, class_int):
             unboxed_val = int_to_float(unboxed_val)
             obj_class = class_float
@@ -2613,6 +2640,8 @@ def fresh_rte(options):
     om_builtin_iter = om_make_function_with_signature('iter', om_iter_code,
                                                       make_posonly_defaults_signature(('obj', 'sentinel'), (absent,)))
 
+    om_builtin_abs = om_make_function_with_signature('abs', om_abs_code, make_posonly_only_signature(('obj',)))
+
     dict_set(builtins_env, 'type', class_type)
     dict_set(builtins_env, 'object', class_object)
     dict_set(builtins_env, 'int', class_int)
@@ -2631,6 +2660,7 @@ def fresh_rte(options):
     dict_set(builtins_env, 'len', om_builtin_len)
     dict_set(builtins_env, 'next', om_builtin_next)
     dict_set(builtins_env, 'iter', om_builtin_iter)
+    dict_set(builtins_env, 'abs', om_builtin_abs)
 
     dict_set(builtins_env, 'BaseException', class_BaseException)
     dict_set(builtins_env, 'Exception', class_Exception)
@@ -3567,6 +3597,14 @@ def sem_len(ctx, obj):
             return ctx.cont(rte, val)
 
     return sem_maybe_len(with_cont(ctx, cont), obj)
+
+def sem_abs(ctx, obj):
+    obj_abs = getattribute_from_obj_mro(obj, '__abs__')
+
+    if obj_abs is absent:
+        return sem_raise_with_message(ctx, class_TypeError, "bad operand type for abs()")
+    else:
+        return om_call(obj_abs, ctx, [obj])
 
 def gen_constant(cte, ast, val):
 
