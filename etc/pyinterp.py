@@ -2240,9 +2240,7 @@ def om_iter_code(rte, _):
         assert False, "NotImplementedError"
 
 def om_abs_code(rte, _):
-    def cont(rte, res):
-        return unwindReturn(rte, res)
-    next_ctx = make_out_of_ast_context(rte, cont)
+    next_ctx = make_out_of_ast_context(rte, unwindReturn)
 
     obj = rte_lookup(rte, 'obj')
     return sem_abs(next_ctx, obj)
@@ -3257,7 +3255,10 @@ def sem_abs(ctx, obj):
     # NOTE: Do a type check here? CPython can return a TypeError
 
     if obj_abs is absent:
-        return ctx.cont(ctx.rte, om_NotImplemented)
+        if not om_issubclass(OM_get_object_class(obj), class_int):
+            return sem_raise(ctx, class_TypeError)
+        else:
+            return ctx.cont(ctx.rte, om_NotImplemented)
     else:
         return om_call(obj_abs, ctx, [obj])
 
