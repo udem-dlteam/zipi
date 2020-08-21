@@ -2176,10 +2176,10 @@ def init_module_math():
 
         if om_is(obj_class, class_int):
             unboxed_val = int_to_float(unboxed_val)
-            return unwindReturn(rte, om_float(float_sin(unboxed_val)))
+            return unwindReturn(rte, om_float(float_exp(unboxed_val)))
 
         if om_is(obj_class, class_float):
-            return unwindReturn(rte, om_float(float_sin(unboxed_val)))
+            return unwindReturn(rte, om_float(float_exp(unboxed_val)))
 
         else:
             ctx = make_out_of_ast_context(rte, cont)
