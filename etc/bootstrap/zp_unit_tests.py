@@ -37,55 +37,6 @@ def run_tests():
     print("-----")
 
 
-# Mock tests
-
-@Equals(False)
-def returns_False():
-    return False
-
-
-@Equals(True)
-def returns_True():
-    return True
-
-
-@Equals(2, 2)
-def foo(x):
-    return x
-
-
-@Equals(6, 1, 2, 3)
-def bar(x, y, z):
-    return x + y + z
-
-
-@Equals("""
-def foo(x):
-    return x""")
-def returns_foo():
-    foo = """
-def foo(x):
-    return x"""
-    return foo
-
-
-@Is(None)
-def returns_None():
-    return None
-
-
-class Foo:
-    pass
-
-
-@IsInstance(Foo)
-def makes_Foo():
-    foo = Foo()
-    return foo
-
-
-# pyinterp unit tests
-
 @Is(absent)
 def test_dict_get():
     d = {'a': 0}
@@ -156,8 +107,10 @@ ZeroDivisionError
     return interp_source(source)
 
 
-# int methods
-# Only test some cases for now...
+###
+# Ints
+###
+
 @Equals("""at 1.1-1.4 <class 'int'>
 at 1.1-1.12 <slot wrapper '__add__' of 'int' objects>
 at 1.13-1.14 2
@@ -204,6 +157,100 @@ def test_int__mod__0():
     source = "8 % 2"
     return interp_source(source)
 
+
+@Equals("""at 1.1-1.2 2
+at 1.6-1.7 2
+at 1.1-1.7 True
+""")
+def test_int__eq__0():
+    source = "2 == 2"
+    return interp_source(source)
+
+
+@Equals("""at 1.1-1.2 2
+at 1.6-1.7 2
+at 1.1-1.7 False
+""")
+def test_int__ne__0():
+    source = "2 != 2"
+    return interp_source(source)
+
+
+@Equals("""at 1.1-1.2 2
+at 1.5-1.6 3
+at 1.1-1.6 True
+""")
+def test_int__lt__0():
+    source = "2 < 3"
+    return interp_source(source)
+
+
+@Equals("""at 1.1-1.2 2
+at 1.6-1.7 3
+at 1.1-1.7 True
+""")
+def test_int__le__0():
+    source = "2 <= 3"
+    return interp_source(source)
+
+
+@Equals("""at 1.1-1.2 2
+at 1.5-1.6 3
+at 1.1-1.6 False
+""")
+def test_int__gt__0():
+    source = "2 > 3"
+    return interp_source(source)
+
+
+@Equals("""at 1.1-1.2 2
+at 1.6-1.7 3
+at 1.1-1.7 False
+""")
+def test_int__ge__0():
+    source = "2 >= 3"
+    return interp_source(source)
+
+
+@Equals("""at 1.1-1.2 2
+at 1.6-1.7 1
+at 1.1-1.7 4
+""")
+def test_int__lshift__0():
+    source = "2 << 1"
+    return interp_source(source)
+
+
+@Equals("""at 1.1-1.2 2
+at 1.6-1.7 1
+at 1.1-1.7 1
+""")
+def test_int__rshift__0():
+    source = "2 >> 1"
+    return interp_source(source)
+
+
+@Equals("""at 1.1-1.2 2
+at 1.5-1.8 128
+at 1.1-1.8 130
+""")
+def test_int__or__0():
+    source = "2 | 128"
+    return interp_source(source)
+
+
+@Equals("""at 1.1-1.2 2
+at 1.5-1.6 2
+at 1.1-1.6 0
+""")
+def test_int__xor__0():
+    source = "2 ^ 2"
+    return interp_source(source)
+
+
+###
+# Floats
+###
 
 @Equals("""at 1.1-1.4 0.1
 at 1.7-1.10 0.2
