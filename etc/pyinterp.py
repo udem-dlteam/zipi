@@ -738,6 +738,7 @@ def populate_builtin_list():
     builtin_add_method(class_list, '__new__', om_list_new)
     builtin_add_method(class_list, '__repr__', om_list_repr)
     builtin_add_method(class_list, '__getitem__', om_list_getitem)
+    builtin_add_method(class_list, '__setitem__', om_list_setitem)
     builtin_add_method(class_list, 'append', om_list_append)
 
 def populate_builtin_slice():
@@ -1605,8 +1606,33 @@ def om_list_getitem_code(ctx, args):
 
 om_list_getitem = do_magic_method(class_list, "__getitem__", om_list_getitem_code)
 
+def om_list_setitem_code(ctx, args):
+    args_len = len(args)
+    if args_len == 3:
+        self = args[0]
+        item = args[1]
+        value = args[2]
 
-def om_list_append(ctx, args):
+        if om_isinstance(item, class_int):
+            index = OM_get_boxed_value(item)
+            self_len = OM_get_list_len(self)
+            elements = OM_get_list_seq(self)
+            if index >= 0 and index < self_len:
+                elements[index] = value
+                return ctx.cont(ctx.rte, om_None)
+            elif index < 0 and index >= -self_len:
+                elements[index + self_len] = value
+                return ctx.cont(ctx.rte, om_None)
+            else:
+                return sem_raise_with_message(ctx, class_IndexError, "list index out of range")
+        elif om_isinstance(item, class_slice):
+            return sem_raise_with_message(ctx, class_NotImplementedError, "list[slice] not yet implemented")
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "__getitem__() takes exactly two argument (" + str(args_len) + " given)")
+
+om_list_setitem = do_magic_method(class_list, "__setitem__", om_list_setitem_code)
+
+def om_list_append_code(ctx, args):
     if debug: print('list.append')
     self = args[0]
     value = args[1]
@@ -1621,9 +1647,12 @@ def om_list_append(ctx, args):
     else:
         new_elements = list_seq_grow(elements)
         new_elements[list_len] = value
+        OM_set_list_seq(self, new_elements)
         OM_set_list_len(self, list_len + 1)
 
     return ctx.cont(ctx.rte, om_None)
+
+om_list_append = do_magic_method(class_list, "append", om_list_append_code)
 
 # class_iterator methods
 
@@ -2776,12 +2805,16 @@ def comp_stmt(cte, ast):
     elif isinstance(ast, AST.Assign):
         # Assign(expr* targets, expr value, string? type_comment)
         if debug: print('AST.Assign')
-        if len(ast.targets) == 1 and isinstance(ast.targets[0], AST.Name):
-            id = ast.targets[0].id
-            (cte1, code1) = comp_expr(cte, ast.value)
-            return gen_var_set(cte1, ast, id, code1)
+        if len(ast.targets) == 1:
+            target = ast.targets[0]
+            if isinstance(target, AST.Name):
+                id = ast.targets[0].id
+                (cte1, code1) = comp_expr(cte, ast.value)
+                return gen_var_set(cte1, ast, id, code1)
+            elif isinstance(target, AST.Subscript):
+                return gen_Subscript_Store(cte, ast, target, ast.value)
         else:
-            assert False, 'comp_stmt only supports assigning to one variable'
+            assert False, 'Only assignation to one element is supported'
 
     elif isinstance(ast, AST.While):
         # While(expr test, stmt* body, stmt* orelse)
@@ -3550,9 +3583,16 @@ def sem_call(ctx, args):
 def sem_getitem(ctx, obj, item):
     obj_getitem = getattribute_from_obj_mro(obj, "__getitem__")
     if obj_getitem is absent:
-        return sem_raise(ctx, class_TypeError)
+        return sem_raise_with_message(ctx, class_TypeError, 'object is not subscriptable')
     else:
         return om_call(obj_getitem, ctx, (obj, item))
+
+def sem_setitem(ctx, obj, item, val):
+    obj_setitem = getattribute_from_obj_mro(obj, "__setitem__")
+    if obj_setitem is absent:
+        return sem_raise_with_message(ctx, class_TypeError, 'object does not support item assignment')
+    else:
+        return om_call(obj_setitem, with_cont(ctx, lambda rte, val: ctx.cont(rte)), (obj, item, val))
 
 def sem_next(ctx, obj, default_):
     obj_next = getattribute_from_obj_mro(obj, "__next__")
@@ -3656,6 +3696,30 @@ def gen_Subscript_Load(cte, ast, obj_code, index_code):
     def code(rte, cont):
         return get_obj(rte, do_expr_end(cont, ast))
     return cte, code
+
+def gen_Subscript_Store(cte, ast, target, value):
+    target_obj = target.value
+    target_index = target.slice.value
+
+    obj_cte, obj_code = comp_expr(cte, target_obj)
+    index_cte, index_code = comp_expr(obj_cte, target_index)
+    value_cte, value_code = comp_expr(index_cte, value)
+
+    def get_obj(rte, cont):
+        def get_index(rte, obj):
+            def get_value(get_value_rte, index):
+                def set_item(setitem_rte, value):
+                    return sem_setitem(Context(setitem_rte, cont, ast), obj, index, value)
+                return value_code(get_value_rte, set_item)
+            return index_code(rte, get_value)
+        return obj_code(rte, get_index)
+
+    def code(rte, cont):
+        return get_obj(rte, do_stmt_end(cont, ast))
+
+    return value_cte, code
+
+
 
 def sem_constant(ctx, val):
     return ctx.cont(ctx.rte, val)
