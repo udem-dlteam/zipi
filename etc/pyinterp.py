@@ -546,19 +546,23 @@ def make_builtin_class(name, instance_creator, bases, metaclass):
 def bootstrap_base_types():
     # init class_type
     class_type = om_with_instance_creator(absent, OM_type_create)
+    OM_set_object_class(class_type, class_type)
     OM_set_type_instance_creator(class_type, OM_type_create)
 
     # init class_str
     class_str = om_with_instance_creator(class_type, OM_type_create)
+    OM_set_object_class(class_str, class_type)
     OM_set_type_instance_creator(class_str, OM_box_create)
 
     # init class_object
     class_object = om_with_instance_creator(class_type, OM_object_create)
+    OM_set_object_class(class_object, class_type)
     OM_set_type_instance_creator(class_object, OM_object_create)
 
     # init class_WrapperDescriptor
 
     class_WrapperDescriptor = om_with_instance_creator(class_type, OM_WrapperDescriptor_create)
+    OM_set_object_class(class_WrapperDescriptor, class_type)
     OM_set_type_instance_creator(class_WrapperDescriptor, OM_WrapperDescriptor_create)
 
     def om_bootstrap_str(value):
