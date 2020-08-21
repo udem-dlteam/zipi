@@ -2101,7 +2101,7 @@ def init_module_math():
         if om_is(obj_class, class_float):
             if float_is_neg(unboxed_val):
                 ctx = make_out_of_ast_context(rte, cont)
-                return sem_raise_with_message(ctx, class_ValueError, 'math domain')
+                return sem_raise_with_message(ctx, class_ValueError, 'math domain error')
             return unwindReturn(rte, om_float(float_sqrt(unboxed_val)))
 
         elif om_is(obj_class, class_float):
