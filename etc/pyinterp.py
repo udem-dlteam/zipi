@@ -1319,7 +1319,7 @@ def om_int_neg_code(ctx, args):
         result = int_neg(OM_get_boxed_value(self))
         return ctx.cont(ctx.rte, om_boxval(class_int, result))
     else:
-        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + repr(len(args) - 1))
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
 
 om_int_neg = do_magic_method(class_int, "__neg__", om_int_neg_code)
 
@@ -1329,7 +1329,7 @@ def om_int_invert_code(ctx, args):
         result = int_not(OM_get_boxed_value(self))
         return ctx.cont(ctx.rte, om_boxval(class_int, result))
     else:
-        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + repr(len(args) - 1))
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
 
 om_int_invert = do_magic_method(class_int, "__invert__", om_int_invert_code)
 
@@ -1337,7 +1337,7 @@ def om_int_pos_code(ctx, args):
     if len(args) == 1:
         return ctx.cont(ctx.rte, args[0])
     else:
-        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + repr(len(args) - 1))
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
 
 om_int_pos = do_magic_method(class_int, "__pos__", om_int_pos_code)
 
@@ -2016,7 +2016,7 @@ def om_float_neg_code(ctx, args):
         result = float_neg(OM_get_boxed_value(self))
         return ctx.cont(ctx.rte, om_boxval(class_float, result))
     else:
-        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + repr(len(args) - 1))
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
 
 om_float_neg = do_magic_method(class_float, "__neg__", om_float_neg_code)
 
@@ -2024,7 +2024,7 @@ def om_float_pos_code(ctx, args):
     if len(args) == 1:
         return ctx.cont(ctx.rte, args[0])
     else:
-        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got "+ repr(len(args) - 1))
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got "+ str(len(args) - 1))
 
 om_float_pos = do_magic_method(class_float, "__pos__", om_float_pos_code)
 
