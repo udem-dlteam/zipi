@@ -68,6 +68,7 @@ class RTCtrlCatch:
         self.code_catch = code_catch
         self.lex_env = lex_env
 
+
 class RTCtrlFinally:
     def __init__(self, ctrl_next, code_finally, cont):
         self.ctrl_next = ctrl_next
@@ -108,14 +109,17 @@ def with_cont(ctx, cont):
     return Context(ctx.rte, cont, ctx.ast)
 
 def with_catch(ctx, catcher_cont):
+    # Add a continuatin which removes the catcher from the rte before returning
+    def unwind_catch_block(rte, val):
+        unwinded_rte = unwind_rte_ctrl_env(rte)
+        return ctx.cont(unwinded_rte, val)
+
     catcher = RTCtrlCatch(rte_ctrl_env(ctx.rte), catcher_cont, ctx.rte)
     next_rte = make_rte_from_new_ctrl_env(ctx.rte, catcher)
-    return Context(next_rte, ctx.cont, ctx.ast)
+    return Context(next_rte, unwind_catch_block, ctx.ast)
 
 def with_cont_and_catch(ctx, cont, catcher_cont):
-    catcher = RTCtrlCatch(rte_ctrl_env(ctx.rte), catcher_cont, ctx.rte)
-    next_rte = make_rte_from_new_ctrl_env(ctx.rte, catcher)
-    return Context(next_rte, cont, ctx.ast)
+    return with_catch(with_cont(ctx, cont), catcher_cont)
 
 def make_out_of_ast_context(rte, cont):
     return Context(rte, cont, None)
@@ -242,6 +246,9 @@ def make_rte_from_new_ctrl_env(rte, ctrl_env):
                     rte_vm(rte),
                     rte_trace(rte))
 
+def unwind_rte_ctrl_env(rte):
+    next_ctrl_env = rte_ctrl_env(rte).ctrl_next
+    return make_rte_from_new_ctrl_env(rte, next_ctrl_env)
 
 def rte_serial_counter(rte):
     return dict_get(rte, 'serial_counter', absent)
@@ -3047,22 +3054,22 @@ def gen_for(cte, target, iterable, body):
     iterable_cte, iterable_code = comp_expr(cte, iterable)
     body_cte, body_code = comp_stmt_seq(iterable_cte, body)
 
-    def get_iterable(rte, cont):
-        def get_iterator(rte, iterable):
-            def get_next(rte, iterator):
-                def assign_target(rte, nxt_value):
+    def get_iterable(get_iterable_rte, cont):
+        def get_iterator(get_iterator_rte, iterable):
+            def get_next(get_next_rte, iterator):
+                def assign_target(assign_target_rte, nxt_value):
                     if nxt_value is for_loop_end_marker:
-                        return cont(rte)
+                        return cont(get_next_rte)
                     else:
                         def run_body(rte):
                             return body_code(rte, lambda rte: get_next(rte, iterator))
 
-                        msg = target.id + " ← " + om_simple_repr(Context(rte, None, target), nxt_value)
+                        msg = target.id + " ← " + om_simple_repr(Context(assign_target_rte, None, target), nxt_value)
                         cont_stmt_end_with_message = do_stmt_end_with_message(run_body, target)
-                        return sem_var_set(Context(rte, lambda rte: cont_stmt_end_with_message(rte, msg), target), target.id, nxt_value)
-                return sem_next(Context(rte, assign_target, iterable), iterator, for_loop_end_marker)
-            return sem_iter(Context(rte, get_next, iterable), iterable)
-        return iterable_code(rte, get_iterator)
+                        return sem_var_set(Context(assign_target_rte, lambda rte: cont_stmt_end_with_message(rte, msg), target), target.id, nxt_value)
+                return sem_next(Context(get_next_rte, assign_target, iterable), iterator, for_loop_end_marker)
+            return sem_iter(Context(get_iterator_rte, get_next, iterable), iterable)
+        return iterable_code(get_iterable_rte, get_iterator)
     return body_cte, get_iterable
 
 def gen_raise(cte, ast, code):
@@ -3394,19 +3401,19 @@ def sem_getattribute(ctx, args):
     name = args[1]
 
     def catch_AttributeError(rte, exn):
-        obj_getattr = getattribute_from_obj_mro(obj, '__getattr__')
-        new_ctx = Context(rte, ctx.cont, ctx.ast)
-        if obj_getattr is absent:
-            return sem_raise(new_ctx, exn)
+        if om_isinstance(exn, class_AttributeError):
+            obj_getattr = getattribute_from_obj_mro(obj, '__getattr__')
+            new_ctx = Context(rte, ctx.cont, ctx.ast)
+            if obj_getattr is absent:
+                return sem_raise(new_ctx, exn)
+            else:
+                return om_call(obj_getattr, new_ctx, args)
         else:
-            return om_call(obj_getattr, new_ctx, args)
+            return sem_raise(Context(rte, ctx.cont, ctx.ast), exn)
 
     obj_getattribute = getattribute_from_obj_mro(obj, '__getattribute__')
 
-    catcher = RTCtrlCatch(rte_ctrl_env(ctx.rte), catch_AttributeError, ctx.rte)
-    new_rte = make_rte_from_new_ctrl_env(ctx.rte, catcher)
-    ctx1 = Context(new_rte, ctx.cont, ctx.ast)
-    return om_call(obj_getattribute, ctx1, args)
+    return om_call(obj_getattribute, with_catch(ctx, catch_AttributeError), args)
 
 def sem_call(ctx, args):
     self = args[0]
@@ -3582,7 +3589,7 @@ def sem_raise(ctx, exn):
 
     # XXX: does not unwind all the way
     while not om_is(ctrl_env, absent):
-        if isinstance(ctrl_next, RTCtrlCatch):
+        if isinstance(ctrl_env, RTCtrlCatch):
             ctrl_rte = ctrl_env.lex_env
             code_catch = ctrl_env.code_catch
             return code_catch(ctrl_rte, exn_obj)
