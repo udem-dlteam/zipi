@@ -2758,11 +2758,11 @@ def gen_UnaryOp(cte, ast, op, code1):
     if debug: print(op)
 
     if isinstance(op, AST.USub):
-        sem_op = sem_neg
+        sem_op = sem_Neg
     elif isinstance(op, AST.UAdd):
-        sem_op = sem_pos
+        sem_op = sem_Pos
     elif isinstance(op, AST.Invert):
-        sem_op = sem_invert
+        sem_op = sem_Invert
     else:
         assert False, "gen_UnaryOp unimplemented operator"
 
@@ -2952,7 +2952,7 @@ sem_Gt = macro_sem_binary_operator_protocol('>', '__gt__', '__lt__')
 sem_LtE = macro_sem_binary_operator_protocol('<=', '__lte__', '__gte__')
 sem_GtE = macro_sem_binary_operator_protocol('>=', '__gte__', '__lte__')
 
-def sem_neg(ctx, val1):
+def sem_Neg(ctx, val1):
     val1_neg = getattribute_from_obj_mro(val1, '__neg__')
     if val1_neg is absent:
         cls = OM_get_object_class(val1)
@@ -2961,7 +2961,7 @@ def sem_neg(ctx, val1):
     else:
         return om_call(val1_neg, ctx, [val1])
 
-def sem_pos(ctx, val1):
+def sem_Pos(ctx, val1):
     val1_pos = getattribute_from_obj_mro(val1, '__pos__')
     if val1_pos is absent:
         cls = OM_get_object_class(val1)
@@ -2970,7 +2970,7 @@ def sem_pos(ctx, val1):
     else:
         return om_call(val1_pos, ctx, [val1])
 
-def sem_invert(ctx, val1):
+def sem_Invert(ctx, val1):
     val1_pos = getattribute_from_obj_mro(val1, '__invert__')
     if val1_pos is absent:
         cls = OM_get_object_class(val1)
