@@ -2593,7 +2593,9 @@ def sem_maybe_len(ctx, obj):
 def sem_len(ctx, obj):
     def cont(rte, val):
         if val is absent:
-            return sem_raise(ctx, class_TypeError)
+            obj_cls_name = OM_get_boxed_value(OM_get(OM_get_object_class(obj), "__name__"))
+            error_msg = "object of type '" + obj_cls_name + "' has no len()"
+            return sem_raise_with_message(ctx, class_TypeError, error_msg)
         else:
             return ctx.cont(rte, val)
 
