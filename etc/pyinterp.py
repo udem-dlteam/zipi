@@ -1199,7 +1199,7 @@ def om_format_bool_repr(self, rte):
 def om_bool_repr(ctx, args):
     if debug: print('bool.__repr__')
     self = args[0]
-    result = om_format_bool_repr(self, ctx.rte)
+    result = om_boxval(class_str, om_format_bool_repr(self, ctx.rte))
     return ctx.cont(ctx.rte, result)
 
 def om_bool_bool(ctx, args):
@@ -2994,6 +2994,7 @@ def sem_Invert(ctx, val1):
         return om_call(val1_pos, ctx, [val1])
 
 def sem_Not(ctx, obj):
+
     def flip(rte, res):
         if om_is(res, om_True):
             return ctx.cont(rte, om_False)
@@ -3186,7 +3187,7 @@ def sem_bool(ctx, val):
             return ctx.cont(ctx.rte, om_True)
         else:
             def nonzero(rte, val):
-                if val != 0:
+                if OM_get_boxed_value(val) != 0:
                     return ctx.cont(ctx.rte, om_True)
                 else:
                     return ctx.cont(ctx.rte, om_False)
