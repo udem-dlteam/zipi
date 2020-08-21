@@ -2955,21 +2955,27 @@ sem_GtE = macro_sem_binary_operator_protocol('>=', '__gte__', '__lte__')
 def sem_neg(ctx, val1):
     val1_neg = getattribute_from_obj_mro(val1, '__neg__')
     if val1_neg is absent:
-        return sem_raise_with_message(ctx, class_TypeError, "bad operand type for unary -")
+        cls = OM_get_object_class(val1)
+        cls_name = OM_get_boxed_value(OM_get(cls, "__name__"))
+        return sem_raise_with_message(ctx, class_TypeError, "bad operand type for unary -: '"+cls_name+"'")
     else:
         return om_call(val1_neg, ctx, [val1])
 
 def sem_pos(ctx, val1):
     val1_pos = getattribute_from_obj_mro(val1, '__pos__')
     if val1_pos is absent:
-        return sem_raise_with_message(ctx, class_TypeError, "bad operand type for unary +")
+        cls = OM_get_object_class(val1)
+        cls_name = OM_get_boxed_value(OM_get(cls, "__name__"))
+        return sem_raise_with_message(ctx, class_TypeError, "bad operand type for unary +: '"+cls_name+"'")
     else:
         return om_call(val1_pos, ctx, [val1])
 
 def sem_invert(ctx, val1):
     val1_pos = getattribute_from_obj_mro(val1, '__invert__')
     if val1_pos is absent:
-        return sem_raise_with_message(ctx, class_TypeError, "bad operand type for unary ~")
+        cls = OM_get_object_class(val1)
+        cls_name = OM_get_boxed_value(OM_get(cls, "__name__"))
+        return sem_raise_with_message(ctx, class_TypeError, "bad operand type for unary ~: '"+cls_name+"'")
     else:
         return om_call(val1_pos, ctx, [val1])
 
