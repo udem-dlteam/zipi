@@ -1568,7 +1568,7 @@ def om_list_getitem_code(ctx, args):
 om_list_getitem = do_magic_method(class_list, "__getitem__", om_list_getitem_code)
 
 
-def om_list_append(ctx, args):
+def om_list_append_code(ctx, args):
     if debug: print('list.append')
     self = args[0]
     value = args[1]
@@ -1587,6 +1587,8 @@ def om_list_append(ctx, args):
         OM_set_list_len(self, list_len + 1)
 
     return ctx.cont(ctx.rte, om_None)
+
+om_list_append = do_magic_method(class_list, "append", om_list_append_code)
 
 # class_iterator methods
 
