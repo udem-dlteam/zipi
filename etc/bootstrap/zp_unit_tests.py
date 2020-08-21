@@ -271,6 +271,13 @@ def test_int__xor__0():
     source = "2 ^ 2"
     return interp_source(source)
 
+@Equals("""at 1.1-1.2 1
+at 1.5-1.6 2
+at 1.1-1.6 0.5
+""")
+def test_int__truediv__0():
+    source = "1 / 2"
+    return interp_source(source)
 
 ###
 # Floats
