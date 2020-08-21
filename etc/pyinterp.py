@@ -584,25 +584,14 @@ def buitlin_add_methods_to_class(cls, methods_table):
         builtin_add_method(cls, name, code)
 
 def populate_builtin_NotImplementedType():
-    OM_set_type_instance_creator(class_NotImplementedType, OM_NotImplemented_create)
-
     builtin_add_method(class_NotImplementedType, '__str__', om_NotImplementedType_str)
     builtin_add_method(class_NotImplementedType, '__repr__', om_NotImplementedType_repr)
 
-    OM_set_type_mro(class_NotImplementedType, [class_NotImplementedType, class_object])
-
 def populate_builtin_MethodWrapper():
-    OM_set_type_instance_creator(class_MethodWrapper, OM_MethodWrapper_create)
-
     builtin_add_method(class_MethodWrapper, '__call__', om_MethodWrapper_call)
     builtin_add_method(class_MethodWrapper, '__repr__', om_MethodWrapper_repr)
 
-    OM_set_type_mro(class_MethodWrapper, [class_MethodWrapper, class_object])
-
 def populate_builtin_int():
-    OM_set_type_instance_creator(class_int, OM_box_create)
-
-    #fields_set(class_int, '__init__', om_int_init)
     builtin_add_method(class_int, '__bool__', om_int_bool) # <class 'function'>
     builtin_add_method(class_int, '__add__', om_int_add)
     builtin_add_method(class_int, '__radd__', om_int_radd)
@@ -622,11 +611,7 @@ def populate_builtin_int():
     builtin_add_method(class_int, '__gte__', om_int_gte)
     builtin_add_method(class_int, '__repr__', om_int_repr)
 
-    OM_set_type_mro(class_int, [class_int, class_object])
-
 def populate_builtin_float():
-    OM_set_type_instance_creator(class_float, OM_box_create)
-
     builtin_add_method(class_float, '__add__', om_float_add)
     builtin_add_method(class_float, '__radd__', om_float_radd)
     builtin_add_method(class_float, '__sub__', om_float_sub)
@@ -639,132 +624,49 @@ def populate_builtin_float():
     builtin_add_method(class_float, '__rmod__', om_float_rmod)
     builtin_add_method(class_float, '__repr__', om_float_repr)
 
-    OM_set_type_mro(class_float, [class_float, class_object])
-
 def populate_builtin_bool():
-    OM_set_type_instance_creator(class_bool, OM_box_create)
-
-    # TODO: complete bool magic method
     builtin_add_method(class_bool, '__bool__', om_bool_bool)
     builtin_add_method(class_bool, '__repr__', om_bool_repr)
 
-    OM_set_type_mro(class_bool, [class_bool, class_int, class_object])
-
 def populate_builtin_tuple():
-    OM_set_type_instance_creator(class_tuple, OM_tuple_create)
-
     builtin_add_method(class_tuple, '__new__', om_tuple_new)
     builtin_add_method(class_tuple, '__repr__', om_tuple_repr)
     builtin_add_method(class_tuple, '__len__', om_tuple_len)
     builtin_add_method(class_tuple, '__getitem__', om_tuple_getitem)
 
-    OM_set_type_mro(class_tuple, [class_tuple, class_object])
-
 def populate_builtin_list():
-    OM_set_type_instance_creator(class_list, OM_list_create)
-
     builtin_add_method(class_list, '__new__', om_list_new)
     builtin_add_method(class_list, '__repr__', om_list_repr)
     builtin_add_method(class_list, '__getitem__', om_list_getitem)
     builtin_add_method(class_list, 'append', om_list_append)
 
-    OM_set_type_mro(class_list, [class_list, class_object])
-
 def populate_builtin_slice():
-    OM_set_type_instance_creator(class_slice, OM_slice_create)
-
-    OM_set_type_mro(class_slice, [class_slice, class_object])
+    pass
 
 def populate_builtin_iterator():
-    OM_set_type_instance_creator(class_iterator, OM_iterator_create)
-
     builtin_add_method(class_iterator, '__next__', om_iterator_next)
 
-    OM_set_type_mro(class_iterator, (class_iterator, class_object))
-
 def populate_builtin_dict():
-    OM_set_type_instance_creator(class_dict, OM_dict_create)
-
-    OM_set_type_mro(class_dict, [class_dict, class_object])
+    pass
 
 def populate_builtin_module():
-    OM_set_type_instance_creator(class_module, OM_module_create)
-
     builtin_add_method(class_module, '__getattribute__', om_module_getattribute)
     builtin_add_method(class_module, '__repr__', om_module_repr)
-    OM_set_type_mro(class_module, [class_module, class_object])
 
 def populate_builtin_NoneType():
-    OM_set_type_instance_creator(class_NoneType, OM_NoneType_create)
-
     builtin_add_method(class_NoneType, '__bool__', om_NoneType_bool)
     builtin_add_method(class_NoneType, '__repr__', om_NoneType_repr)
 
-    OM_set_type_mro(class_NoneType, [class_NoneType, class_object])
-
 def populate_builtin_FunctionType():
-    OM_set_type_instance_creator(class_function, OM_function_create)
-
     builtin_add_method(class_function, '__call__', om_function_call)
     builtin_add_method(class_function, '__repr__', om_function_repr)
 
-    OM_set_type_mro(class_function, [class_function, class_object])
-
 def populate_builtin_BaseException():
-    OM_set_type_instance_creator(class_BaseException, OM_BaseException_create)
-
     builtin_add_method(class_BaseException, '__new__', om_BaseException_new)
     builtin_add_method(class_BaseException, '__str__', om_BaseException_str)
 
-    OM_set_type_mro(class_BaseException, [class_BaseException, class_object])
-
 def populate_builtin_Exception():
-    OM_set_type_instance_creator(class_Exception, OM_BaseException_create)
-    OM_set_type_mro(class_Exception, [class_BaseException, class_object])
-
-def populate_builtin_NameError():
-    OM_set_type_instance_creator(class_NameError, OM_BaseException_create)
-    OM_set_type_mro(class_NameError, [class_NameError, class_Exception, class_BaseException, class_object])
-
-def populate_builtin_TypeError():
-    OM_set_type_instance_creator(class_TypeError, OM_BaseException_create)
-    OM_set_type_mro(class_TypeError, [class_TypeError, class_Exception, class_BaseException, class_object])
-
-def populate_builtin_ValueError():
-    OM_set_type_instance_creator(class_ValueError, OM_BaseException_create)
-    OM_set_type_mro(class_ValueError, [class_ValueError, class_Exception, class_BaseException, class_object])
-
-def populate_builtin_StopIteration():
-    OM_set_type_instance_creator(class_StopIteration, OM_BaseException_create)
-    OM_set_type_mro(class_StopIteration, [class_StopIteration, class_Exception, class_BaseException, class_object])
-
-def populate_builtin_NotImplementedError():
-    OM_set_type_instance_creator(class_NotImplementedType, OM_BaseException_create)
-    OM_set_type_mro(class_NotImplementedError, [class_NotImplementedError, class_Exception, class_BaseException, class_object])
-
-def populate_builtin_LookupError():
-    OM_set_type_instance_creator(class_LookupError, OM_BaseException_create)
-    OM_set_type_mro(class_LookupError, [class_LookupError, class_Exception, class_BaseException, class_object])
-
-def populate_builtin_EOFError():
-    OM_set_type_instance_creator(class_EOFError, OM_BaseException_create)
-    OM_set_type_mro(class_EOFError, [class_EOFError, class_Exception, class_BaseException, class_object])
-
-def populate_builtin_IndexError():
-    OM_set_type_instance_creator(class_IndexError, OM_BaseException_create)
-    OM_set_type_mro(class_IndexError, [class_IndexError, class_LookupError, class_Exception, class_BaseException, class_object])
-
-def populate_builtin_AttributeError():
-    OM_set_type_instance_creator(class_AttributeError, OM_BaseException_create)
-    OM_set_type_mro(class_AttributeError, [class_AttributeError, class_Exception, class_BaseException, class_object])
-
-def populate_builtin_ArithmeticError():
-    OM_set_type_instance_creator(class_ArithmeticError, OM_BaseException_create)
-    OM_set_type_mro(class_ArithmeticError, [class_ArithmeticError, class_Exception, class_BaseException, class_object])
-
-def populate_builtin_ZeroDivisionError():
-    OM_set_type_instance_creator(class_ZeroDivisionError, OM_BaseException_create)
-    OM_set_type_mro(class_ZeroDivisionError, [class_ZeroDivisionError, class_ArithmeticError, class_Exception, class_BaseException, class_object])
+    pass
 
 def object_class(o):
     if om_is(o, om_None):
@@ -2177,7 +2079,6 @@ def om_float_repr(ctx, args):
 
 bootstrap_populate_base_types()
 
-
 # Internal types
 populate_builtin_NotImplementedType()
 populate_builtin_MethodWrapper()
@@ -2197,17 +2098,6 @@ populate_builtin_FunctionType() # type function
 
 # Populate Exception classes
 populate_builtin_BaseException()
-populate_builtin_Exception()
-populate_builtin_NameError()
-populate_builtin_TypeError()
-populate_builtin_ValueError()
-populate_builtin_StopIteration()
-populate_builtin_NotImplementedError()
-populate_builtin_EOFError()
-populate_builtin_IndexError()
-populate_builtin_AttributeError()
-populate_builtin_ArithmeticError()
-populate_builtin_ZeroDivisionError()
 
 # Builtin functions code
 
