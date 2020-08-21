@@ -686,6 +686,7 @@ def populate_builtin_float():
     builtin_add_method(class_float, '__repr__', om_float_repr)
     builtin_add_method(class_float, '__pos__', om_float_pos)
     builtin_add_method(class_float, '__neg__', om_float_neg)
+    builtin_add_method(class_float, '__abs__', om_float_abs)
 
 def populate_builtin_bool():
     builtin_add_method(class_bool, '__bool__', om_bool_bool)
@@ -2117,6 +2118,16 @@ def om_float_rtruediv(ctx, args):
         # TODO: Return om_NotImplemented(rte) (in the proper rte)
         return ctx.cont(ctx.rte, om_NotImplemented)
 
+def om_float_abs_code(ctx, args):
+    if len(args) == 1:
+        self = args[0]
+        result = float_abs(OM_get_boxed_value(self))
+        return ctx.cont(ctx.rte, om_float(result))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+om_float_abs = do_magic_method(class_float, "__abs__", om_float_abs_code)
+
 def om_float_repr(ctx, args):
     self = args[0]
     result = om_format_float_repr(self, ctx.rte)
@@ -3255,10 +3266,7 @@ def sem_abs(ctx, obj):
     # NOTE: Do a type check here? CPython can return a TypeError
 
     if obj_abs is absent:
-        if not om_issubclass(OM_get_object_class(obj), class_int):
-            return sem_raise(ctx, class_TypeError)
-        else:
-            return ctx.cont(ctx.rte, om_NotImplemented)
+        return ctx.cont(ctx.rte, om_NotImplemented)
     else:
         return om_call(obj_abs, ctx, [obj])
 

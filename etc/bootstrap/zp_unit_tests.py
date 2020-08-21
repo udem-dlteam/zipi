@@ -348,5 +348,15 @@ def test_float__pos__0():
     return interp_source(source)
 
 
+@Equals("""at 1.1-1.4 <function abs #0>
+at 1.6-1.10 1.09
+at 1.5-1.10 -1.09
+at 1.1-1.11 1.09
+""")
+def test_float_abs_0():
+    source = "abs(-1.09)"
+    return interp_source(source)
+
+
 if __name__ == "__main__":
     run_tests()
