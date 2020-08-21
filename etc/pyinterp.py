@@ -489,6 +489,7 @@ def populate_builtin_int():
     builtin_add_method(class_int, '__repr__', om_int_repr)
     builtin_add_method(class_int, '__neg__', om_int_neg)
     builtin_add_method(class_int, '__pos__', om_int_pos)
+    builtin_add_method(class_int, '__invert__', om_int_invert)
 
 
     OM_set_type_mro(class_int, [class_int, class_object])
@@ -507,6 +508,7 @@ def populate_builtin_float():
     builtin_add_method(class_float, '__repr__', om_float_repr)
     builtin_add_method(class_float, '__pos__', om_float_pos)
     builtin_add_method(class_float, '__neg__', om_float_neg)
+    builtin_add_method(class_float, '__invert__', om_float_invert)
 
     OM_set_type_mro(class_float, [class_float, class_object])
 
@@ -1322,6 +1324,13 @@ def om_int_neg_code(ctx, args):
 
 om_int_neg = do_magic_method(class_int, "__neg__", om_int_neg_code)
 
+def om_int_invert_code(ctx, args):
+    self = args[0]
+    result = int_not(OM_get_boxed_value(self))
+    return ctx.cont(ctx.rte, om_boxval(class_int, result))
+
+om_int_invert = do_magic_method(class_int, "__invert__", om_int_invert_code)
+
 def om_int_pos_code(ctx, args):
     return ctx.cont(ctx.rte, args[0])
 
@@ -2012,6 +2021,13 @@ def om_float_neg_code(ctx, args):
     return ctx.cont(ctx.rte, om_boxval(class_float, result))
 
 om_float_neg = do_magic_method(class_float, "__neg__", om_float_neg_code)
+
+def om_float_invert_code(ctx, args):
+    self = args[0]
+    result = float_not(OM_get_boxed_value(self))
+    return ctx.cont(ctx.rte, om_boxval(class_float, result))
+
+om_float_invert = do_magic_method(class_float, "__invert__", om_float_invert_code)
 
 def om_float_pos_code(ctx, args):
     return ctx.cont(ctx.rte, agrs[0])
@@ -2753,6 +2769,8 @@ def gen_UnaryOp(cte, ast, op, code1):
         sem_op = sem_neg
     elif isinstance(op, AST.UAdd):
         sem_op = sem_pos
+    elif isinstance(op, AST.Invert):
+        sem_op = sem_invert
     else:
         assert False, "gen_UnaryOp unimplemented operator"
 
@@ -2953,6 +2971,13 @@ def sem_pos(ctx, val1):
     val1_pos = getattribute_from_obj_mro(val1, '__pos__')
     if val1_pos is absent:
         return sem_raise_with_message(ctx, class_TypeError, "bad operand type for unary +")
+    else:
+        return om_call(val1_pos, ctx, [val1])
+
+def sem_invert(ctx, val1):
+    val1_pos = getattribute_from_obj_mro(val1, '__invert__')
+    if val1_pos is absent:
+        return sem_raise_with_message(ctx, class_TypeError, "bad operand type for unary ~")
     else:
         return om_call(val1_pos, ctx, [val1])
 
