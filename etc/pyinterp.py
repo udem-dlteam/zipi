@@ -47,6 +47,15 @@ class Context:
     def call(self):
         return self.cont(self.rte)
 
+# Label depth is use to limit the unwinding of
+# the ctrl constructs (while, try/catch/finally, with, etc)
+# NOTE: inspired from codeboot JS
+class CTCtrlLabel:
+    def __init__(self, ctrl_next, ids, ast):
+        self.ctrl_next = ctrl_next
+        self.ids = ids
+        self.ast = ast
+
 class RTCtrlLabel:
     def __init__(self, ctrl_next, break_cont, continue_cont):
         self.ctrl_next = ctrl_next
@@ -65,6 +74,36 @@ class RTCtrlFinally:
         self.code_finally = code_catch
         self.lex_env = lex_env
 
+# class RTE:
+#     def __init__(self, global_env, locals_env, builtins, stack, ctrl_env):
+#         self.globals_env = globals_env
+#         self.locals_env = locals_env
+#         self.builtins = builtins
+#         self.stack = stack
+#         self.ctrl_env = ctrl_env
+
+class CTE:
+    def __init__(self, callee, locals_env, lex_env, ctrl_env, external_context, parent):
+        self.callee = callee
+        self.locals_env = locals_env
+        self.lex_env = lex_env
+        self.ctrl_env = ctrl_env
+        self.external_context = external_context
+        self.parent = parent
+
+# NOTE: inspired from codeboot JS
+def CTCtrl_labelLookup(cte, id_str):
+    ctrl_env = cte.ctrl_env
+    depth = 0
+    while ctrl_env is not None:
+        if isinstance(ctrl_env, CTCtrlLabel) and dict_get(ctrl_env.ids, id_str, False):
+            result = make_dict()
+            dict_set(result, 'depth', depth)
+            dict_set(result, 'ast', ctrl_env.ast)
+            return result
+        depth += 1
+    return None
+
 def with_cont(ctx, cont):
     return Context(ctx.rte, cont, ctx.ast)
 
@@ -81,13 +120,6 @@ def with_cont_and_catch(ctx, cont, catcher_cont):
 def make_out_of_ast_context(rte, cont):
     return Context(rte, cont, None)
 
-# class RTE:
-#     def __init__(self, global_env, locals_env, builtins, stack, ctrl_env):
-#         self.globals_env = globals_env
-#         self.locals_env = locals_env
-#         self.builtins = builtins
-#         self.stack = stack
-#         self.ctrl_env = ctrl_env
 
 class OM_object:
     """
@@ -594,6 +626,9 @@ def populate_builtin_Exception():
 def populate_builtin_NameError():
     OM_set_type_mro(class_NameError, [class_NameError, class_Exception, class_BaseException, class_object])
 
+def populate_builtin_SyntaxError():
+    OM_set_type_mro(class_SyntaxError, [class_SyntaxError, class_Exception, class_BaseException, class_object])
+
 def populate_builtin_TypeError():
     OM_set_type_mro(class_TypeError, [class_TypeError, class_Exception, class_BaseException, class_object])
 
@@ -916,6 +951,7 @@ class_slice = make_builtin_class('slice', class_type)
 class_BaseException = make_builtin_class('BaseException', class_type)
 class_Exception = make_builtin_class('Exception', class_type)
 class_NameError = make_builtin_class('NameError', class_type)
+class_SyntaxError = make_builtin_class('SyntaxError', class_type)
 class_TypeError = make_builtin_class('TypeError', class_type)
 class_ValueError = make_builtin_class('ValueError', class_type)
 class_StopIteration = make_builtin_class('StopIteration', class_type)
@@ -1955,6 +1991,7 @@ populate_builtin_FunctionType() # type function
 populate_builtin_BaseException()
 populate_builtin_Exception()
 populate_builtin_NameError()
+populate_builtin_SyntaxError()
 populate_builtin_TypeError()
 populate_builtin_ValueError()
 populate_builtin_StopIteration()
@@ -2053,6 +2090,13 @@ def read_file(path):
         content = f.read()
     return content
 
+# used by pyinterp CLI
+def default_syntax_error(start_line0,
+                         start_column0,
+                         end_line0,
+                         end_column0, msg):
+    raise SyntaxError(msg)
+
 def interp_source(src):
     options = {}
     dict_set(options, 'trace', True)
@@ -2062,11 +2106,15 @@ def parse(source, filename, mode, context):
     return AST.parse(source, filename, mode, context)
 
 def interp(ast, options):
-    code = comp(ast)
+    # TODO: move outside of this function
+    external_context = make_dict()
+    dict_set(external_context, 'syntaxError', default_syntax_error)
+
+    code = comp(ast, external_context)
     trampoline(prepare_execution(code, fresh_rte(options)))
 
-def comp(ast):
-    cte = dict()  # unused for now
+def comp(ast, external_context):
+    cte = CTE(None, None, None, None, external_context, None)
 
     (cte1, code) = comp_mod(cte, ast)
 
@@ -2118,6 +2166,7 @@ def fresh_rte(options):
     dict_set(builtins_env, 'BaseException', class_BaseException)
     dict_set(builtins_env, 'Exception', class_Exception)
     dict_set(builtins_env, 'NameError', class_NameError)
+    dict_set(builtins_env, 'SyntaxError', class_SyntaxError)
     dict_set(builtins_env, 'TypeError', class_TypeError)
     dict_set(builtins_env, 'ValueError', class_ValueError)
     dict_set(builtins_env, 'LookupError', class_LookupError)
@@ -2233,7 +2282,20 @@ def comp_stmt(cte, ast):
     elif isinstance(ast, AST.Return):
         # Return
         if debug: print('AST.Return')
-        if ast.value is None:
+
+        # return point indicate that we are in a function
+        # NOTE: inpired from codeboot JS
+        depth_ast = CTCtrl_labelLookup(cte, "return point")
+        if depth_ast is None:
+            syntax_error = dict_get(cte.external_context,
+                                    'syntaxError',
+                                    default_syntax_error)
+            return syntax_error(ast.lineno-1,
+                               ast.col_offset,
+                               ast.end_lineno-1,
+                               ast.end_col_offset,
+                               "'return' outside of function")
+        elif ast.value is None:
             return cte, lambda rte, cont: frame_cont(rte_stack(rte))(frame_rte(rte_stack(rte)), om_None)
         else:
             (cte1, code1) = comp_expr(cte, ast.value)
@@ -2279,7 +2341,18 @@ def comp_stmt(cte, ast):
         OM_set(func, '__name__', om_str(ast.name))
 
         signature = gen_signature(cte, ast)
-        (cte1, body_code) = gen_funcdef_code(cte, ast, ast.body)
+
+        ids = make_dict()
+        dict_set(ids, "return point", True)
+
+        fn_cte = CTE(ast.name,
+                     signature,
+                     cte.lex_env,
+                     CTCtrlLabel(None, ids, ast),
+                     cte.external_context,
+                     cte)
+
+        (cte1, body_code) = gen_funcdef_code(fn_cte, ast, ast.body)
 
         OM_set_function_signature(func, signature)
         OM_set_function_body(func, body_code)
@@ -3050,33 +3123,28 @@ def sem_raise(ctx, exn):
     else:
         exn_obj = om_exception(class_TypeError, om_tuple(()))
 
-    if om_is(ctrl_env, absent):
-        def uncaught_exception(exc):
-            result = om_simple_exception_format(ctx, exc)
+    # XXX: does not unwind all the way
+    while not om_is(ctrl_env, absent):
+        if isinstance(ctrl_next, RTCtrlCatch):
+            ctrl_rte = ctrl_env.lex_env
+            code_catch = ctrl_env.code_catch
+            return code_catch(ctrl_rte, exn_obj)
+        ctrl_env = ctrl_env.ctrl_next
 
-            # XXX: should be stderr
-            print_stdout(result, ctx.rte)
-            return None
+    def find_frame_with_ast(rte):
+        frame = rte_stack(rte)
+        while frame is not None and frame_ast(frame) is None:
+            frame = rte_stack(frame_rte(frame))
+        return frame
 
-        def find_frame_with_ast(rte):
-            frame = rte_stack(rte)
-            while frame is not None and frame_ast(frame) is None:
-                frame = rte_stack(frame_rte(frame))
-            return frame
+    if ctx.ast is None:
+        frame = find_frame_with_ast(ctx.rte)
+        ctx = Context(frame_rte(frame),
+                      frame_cont(frame),
+                      frame_ast(frame))
 
-        if ctx.ast is None:
-            frame = find_frame_with_ast(ctx.rte)
-            ctx = Context(frame_rte(frame),
-                          frame_cont(frame),
-                          frame_ast(frame))
-
-        result = om_simple_exception_format(ctx, exn_obj)
-        return expr_end_with_error(ctx, result)
-    else:
-        # XXX: does not unwind all the way
-        ctrl_rte = ctrl_env.lex_env
-        code_catch = ctrl_env.code_catch
-        return code_catch(ctrl_rte, exn_obj)
+    result = om_simple_exception_format(ctx, exn_obj)
+    return expr_end_with_error(ctx, result)
 
 def sem_raise_with_message(ctx, exn_type, msg):
     args = om_tuple((om_str(msg),))
