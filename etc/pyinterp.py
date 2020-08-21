@@ -47,6 +47,15 @@ class Context:
     def call(self):
         return self.cont(self.rte)
 
+# Label depth is use to limit the unwinding of
+# the ctrl constructs (while, try/catch/finally, with, etc)
+# NOTE: inspired from codeboot JS
+class CTCtrlLabel:
+    def __init__(self, ctrl_next, ids, ast):
+        self.ctrl_next = ctrl_next
+        self.ids = ids
+        self.ast = ast
+
 class RTCtrlLabel:
     def __init__(self, ctrl_next, break_cont, continue_cont):
         self.ctrl_next = ctrl_next
@@ -65,6 +74,36 @@ class RTCtrlFinally:
         self.code_finally = code_catch
         self.lex_env = lex_env
 
+# class RTE:
+#     def __init__(self, global_env, locals_env, builtins, stack, ctrl_env):
+#         self.globals_env = globals_env
+#         self.locals_env = locals_env
+#         self.builtins = builtins
+#         self.stack = stack
+#         self.ctrl_env = ctrl_env
+
+class CTE:
+    def __init__(self, callee, locals_env, lex_env, ctrl_env, external_context, parent):
+        self.callee = callee
+        self.locals_env = locals_env
+        self.lex_env = lex_env
+        self.ctrl_env = ctrl_env
+        self.external_context = external_context
+        self.parent = parent
+
+# NOTE: inspired from codeboot JS
+def CTCtrl_labelLookup(cte, id_str):
+    ctrl_env = cte.ctrl_env
+    depth = 0
+    while ctrl_env is not None:
+        if isinstance(ctrl_env, CTCtrlLabel) and dict_get(ctrl_env.ids, id_str, False):
+            result = make_dict()
+            dict_set(result, 'depth', depth)
+            dict_set(result, 'ast', ctrl_env.ast)
+            return result
+        depth += 1
+    return None
+
 def with_cont(ctx, cont):
     return Context(ctx.rte, cont, ctx.ast)
 
@@ -81,13 +120,6 @@ def with_cont_and_catch(ctx, cont, catcher_cont):
 def make_out_of_ast_context(rte, cont):
     return Context(rte, cont, None)
 
-# class RTE:
-#     def __init__(self, global_env, locals_env, builtins, stack, ctrl_env):
-#         self.globals_env = globals_env
-#         self.locals_env = locals_env
-#         self.builtins = builtins
-#         self.stack = stack
-#         self.ctrl_env = ctrl_env
 
 class OM_object:
     """
@@ -593,6 +625,7 @@ def populate_builtin_MethodWrapper():
 
 def populate_builtin_int():
     builtin_add_method(class_int, '__bool__', om_int_bool) # <class 'function'>
+    # Arithmetic
     builtin_add_method(class_int, '__add__', om_int_add)
     builtin_add_method(class_int, '__radd__', om_int_radd)
     builtin_add_method(class_int, '__sub__', om_int_sub)
@@ -603,12 +636,22 @@ def populate_builtin_int():
     builtin_add_method(class_int, '__rfloordiv__', om_int_rfloordiv)
     builtin_add_method(class_int, '__mod__', om_int_mod)
     builtin_add_method(class_int, '__rmod__', om_int_rmod)
+    # Bitwise
+    builtin_add_method(class_int, '__lshift__', om_int_lshift)
+    builtin_add_method(class_int, '__rlshift__', om_int_rlshift)
+    builtin_add_method(class_int, '__rshift__', om_int_rshift)
+    builtin_add_method(class_int, '__rrshift__', om_int_rrshift)
+    builtin_add_method(class_int, '__or__', om_int_or)
+    builtin_add_method(class_int, '__ror__', om_int_ror)
+    builtin_add_method(class_int, '__xor__', om_int_xor)
+    builtin_add_method(class_int, '__rxor__', om_int_rxor)
+    # Comparison
     builtin_add_method(class_int, '__eq__', om_int_eq)
     builtin_add_method(class_int, '__ne__', om_int_ne)
     builtin_add_method(class_int, '__lt__', om_int_lt)
-    builtin_add_method(class_int, '__lte__', om_int_lte)
+    builtin_add_method(class_int, '__le__', om_int_le)
     builtin_add_method(class_int, '__gt__', om_int_gt)
-    builtin_add_method(class_int, '__gte__', om_int_gte)
+    builtin_add_method(class_int, '__ge__', om_int_ge)
     builtin_add_method(class_int, '__repr__', om_int_repr)
 
 def populate_builtin_float():
@@ -701,6 +744,14 @@ def om_boxval(cls, val):
     obj = om(cls)
     OM_set_boxed_value(obj, val)
     return obj
+
+def om_bool(n):
+    if n is True:
+        return om_True
+    elif n is False:
+        return om_False
+    else:
+        raise ValueError("Cannot cast to bool")
 
 def om_tuple(seq):
     obj = om(class_tuple)
@@ -987,6 +1038,7 @@ class_slice = make_builtin_class('slice', OM_slice_create, (), class_type)
 class_BaseException = make_builtin_class('BaseException', OM_BaseException_create, (), class_type)
 class_Exception = make_builtin_class('Exception', OM_BaseException_create, (class_BaseException,), class_type)
 class_NameError = make_builtin_class('NameError', OM_BaseException_create, (class_Exception,), class_type)
+class_SyntaxError = make_builtin_class('SyntaxError', OM_BaseException_create, (class_Exception,),  class_type)
 class_TypeError = make_builtin_class('TypeError', OM_BaseException_create, (class_Exception,), class_type)
 class_ValueError = make_builtin_class('ValueError', OM_BaseException_create, (class_Exception,), class_type)
 class_StopIteration = make_builtin_class('StopIteration', OM_BaseException_create, (class_Exception,), class_type)
@@ -1305,111 +1357,6 @@ def om_bool_bool(ctx, args):
     self = args[0]
     return ctx.cont(ctx.rte, self)
 
-
-# class_int methods
-def om_int_bool(ctx, args):
-    if debug: print('int.__bool__')
-    self = args[0]
-    val_value = OM_get_boxed_value(self)
-    if val_value != 0:
-        result = om_True
-    else:
-        result = om_False
-    return ctx.cont(ctx.rte, result)
-
-def om_int_eq(ctx, args):
-    if debug: print('int.__eq__')
-    val1 = args[0]
-    val2 = args[1]
-
-    cls1 = OM_get_object_class(val1)
-    cls2 = OM_get_object_class(val2)
-    if om_is(cls2, class_int):
-        v1 = OM_get_boxed_value(val1)
-        v2 = OM_get_boxed_value(val2)
-        if v1 == v2:
-            result = om_True
-        else:
-            result = om_False
-    else:
-        result = om_NotImplemented
-    return ctx.cont(ctx.rte, result)
-
-def om_int_ne(ctx, args):
-    if debug: print('int.__ne__')
-    val1 = args[0]
-    val2 = args[1]
-
-    v1 = OM_get_boxed_value(val1)
-    v2 = OM_get_boxed_value(val2)
-    if v1 != v2:
-        result = om_True
-    else:
-        result = om_False
-    return ctx.cont(ctx.rte, result)
-
-def om_int_lt(ctx, args):
-    if debug: print('int.__lt__')
-    val1 = args[0]
-    val2 = args[1]
-
-    v1 = OM_get_boxed_value(val1)
-    v2 = OM_get_boxed_value(val2)
-    if v1 < v2:
-        result = om_True
-    else:
-        result = om_False
-    return ctx.cont(ctx.rte, result)
-
-def om_int_lte(ctx, args):
-    if debug: print('int.__lte__')
-    val1 = args[0]
-    val2 = args[1]
-
-    v1 = OM_get_boxed_value(val1)
-    v2 = OM_get_boxed_value(val2)
-    if v1 <= v2:
-        result = om_True
-    else:
-        result = om_False
-    return ctx.cont(ctx.rte, result)
-
-def om_int_gt(ctx, args):
-    if debug: print('int.__gt__')
-    val1 = args[0]
-    val2 = args[1]
-
-    v1 = OM_get_boxed_value(val1)
-    v2 = OM_get_boxed_value(val2)
-    if v1 > v2:
-        result = om_True
-    else:
-        result = om_False
-    return ctx.cont(ctx.rte, result)
-
-def om_int_gte(ctx, args):
-    if debug: print('int.__gte__')
-    val1 = args[0]
-    val2 = args[1]
-
-    v1 = OM_get_boxed_value(val1)
-    v2 = OM_get_boxed_value(val2)
-    if v1 >= v2:
-        result = om_True
-    else:
-        result = om_False
-    return ctx.cont(ctx.rte, result)
-
-def om_format_int_repr(self, rte):
-    return int_to_string(OM_get_boxed_value(self), 10)
-
-def om_format_float_repr(self, rte):
-    return float_to_string(OM_get_boxed_value(self))
-
-def om_int_repr(ctx, args):
-    self = args[0]
-    result = om_format_int_repr(self, ctx.rte)
-    return ctx.cont(ctx.rte, om_str(result))
 
 # class_tuple methods
 
@@ -1874,6 +1821,7 @@ def gen_dunder_Numeric_rBinOp(py_class, method, prim, om_class, om_box):
 
     return dunder_Numeric_rBinOp
 
+# Arithmetic
 om_int_add = gen_dunder_Numeric_BinOp('int', '__add__', int_add, class_int, om_int)
 om_int_radd = om_int_add
 
@@ -1882,6 +1830,47 @@ om_int_rsub = gen_dunder_Numeric_rBinOp('int', '__rsub__', int_sub, class_int, o
 
 om_int_mul = gen_dunder_Numeric_BinOp('int', '__mul__', int_mul, class_int, om_int)
 om_int_rmul = om_int_mul
+
+# Bitwise
+om_int_lshift = gen_dunder_Numeric_BinOp('int', '__lshift__', int_lshift, class_int, om_int)
+om_int_rlshift = gen_dunder_Numeric_BinOp('int', '__rlshift__', int_lshift, class_int, om_int)
+om_int_rshift = gen_dunder_Numeric_BinOp('int', '__rshift__', int_rshift, class_int, om_int)
+om_int_rrshift = gen_dunder_Numeric_BinOp('int', '__rrshift__', int_rshift, class_int, om_int)
+om_int_or = gen_dunder_Numeric_BinOp('int', '__or__', int_or, class_int, om_int)
+om_int_ror = gen_dunder_Numeric_BinOp('int', '__ror__', int_or, class_int, om_int)
+om_int_xor = gen_dunder_Numeric_BinOp('int', '__xor__', int_xor, class_int, om_int)
+om_int_rxor = gen_dunder_Numeric_BinOp('int', '__xror__', int_xor, class_int, om_int)
+
+# class_int methods
+def om_int_bool(ctx, args):
+    if debug: print('int.__bool__')
+    self = args[0]
+    val_value = OM_get_boxed_value(self)
+    if val_value != 0:
+        result = om_True
+    else:
+        result = om_False
+    return ctx.cont(ctx.rte, result)
+
+# Comparison
+om_int_eq = gen_dunder_Numeric_BinOp('int', '__eq__', int_eq, class_int, om_bool)
+om_int_ne = gen_dunder_Numeric_BinOp('int', '__ne__', int_ne, class_int, om_bool)
+om_int_lt = gen_dunder_Numeric_BinOp('int', '__lt__', int_lt, class_int, om_bool)
+om_int_le = gen_dunder_Numeric_BinOp('int', '__le__', int_le, class_int, om_bool)
+om_int_gt = gen_dunder_Numeric_BinOp('int', '__gt__', int_gt, class_int, om_bool)
+om_int_ge = gen_dunder_Numeric_BinOp('int', '__ge__', int_ge, class_int, om_bool)
+
+def om_format_int_repr(self, rte):
+    return int_to_string(OM_get_boxed_value(self), 10)
+
+def om_format_float_repr(self, rte):
+    return float_to_string(OM_get_boxed_value(self))
+
+def om_int_repr(ctx, args):
+    self = args[0]
+    result = om_format_int_repr(self, ctx.rte)
+    return ctx.cont(ctx.rte, om_str(result))
+
 
 # Mod has a check for division by zero.
 def om_int_mod(ctx, args):
@@ -2187,6 +2176,13 @@ def read_file(path):
         content = f.read()
     return content
 
+# used by pyinterp CLI
+def default_syntax_error(start_line0,
+                         start_column0,
+                         end_line0,
+                         end_column0, msg):
+    raise SyntaxError(msg)
+
 def interp_source(src):
     options = {}
     dict_set(options, 'trace', True)
@@ -2196,11 +2192,15 @@ def parse(source, filename, mode, context):
     return AST.parse(source, filename, mode, context)
 
 def interp(ast, options):
-    code = comp(ast)
+    # TODO: move outside of this function
+    external_context = make_dict()
+    dict_set(external_context, 'syntaxError', default_syntax_error)
+
+    code = comp(ast, external_context)
     trampoline(prepare_execution(code, fresh_rte(options)))
 
-def comp(ast):
-    cte = dict()  # unused for now
+def comp(ast, external_context):
+    cte = CTE(None, None, None, None, external_context, None)
 
     (cte1, code) = comp_mod(cte, ast)
 
@@ -2252,6 +2252,7 @@ def fresh_rte(options):
     dict_set(builtins_env, 'BaseException', class_BaseException)
     dict_set(builtins_env, 'Exception', class_Exception)
     dict_set(builtins_env, 'NameError', class_NameError)
+    dict_set(builtins_env, 'SyntaxError', class_SyntaxError)
     dict_set(builtins_env, 'TypeError', class_TypeError)
     dict_set(builtins_env, 'ValueError', class_ValueError)
     dict_set(builtins_env, 'LookupError', class_LookupError)
@@ -2367,7 +2368,20 @@ def comp_stmt(cte, ast):
     elif isinstance(ast, AST.Return):
         # Return
         if debug: print('AST.Return')
-        if ast.value is None:
+
+        # return point indicate that we are in a function
+        # NOTE: inpired from codeboot JS
+        depth_ast = CTCtrl_labelLookup(cte, "return point")
+        if depth_ast is None:
+            syntax_error = dict_get(cte.external_context,
+                                    'syntaxError',
+                                    default_syntax_error)
+            return syntax_error(ast.lineno-1,
+                               ast.col_offset,
+                               ast.end_lineno-1,
+                               ast.end_col_offset,
+                               "'return' outside of function")
+        elif ast.value is None:
             return cte, lambda rte, cont: frame_cont(rte_stack(rte))(frame_rte(rte_stack(rte)), om_None)
         else:
             (cte1, code1) = comp_expr(cte, ast.value)
@@ -2413,7 +2427,18 @@ def comp_stmt(cte, ast):
         OM_set(func, '__name__', om_str(ast.name))
 
         signature = gen_signature(cte, ast)
-        (cte1, body_code) = gen_funcdef_code(cte, ast, ast.body)
+
+        ids = make_dict()
+        dict_set(ids, "return point", True)
+
+        fn_cte = CTE(ast.name,
+                     signature,
+                     cte.lex_env,
+                     CTCtrlLabel(None, ids, ast),
+                     cte.external_context,
+                     cte)
+
+        (cte1, body_code) = gen_funcdef_code(fn_cte, ast, ast.body)
 
         OM_set_function_signature(func, signature)
         OM_set_function_body(func, body_code)
@@ -2805,6 +2830,7 @@ def gen_BinOp(cte, ast, op, code1, code2):
 
     if debug: print(op)
 
+    # Arithmetic
     if isinstance(op, AST.Add):
         sem_op = sem_Add
     elif isinstance(op, AST.Sub):
@@ -2818,6 +2844,15 @@ def gen_BinOp(cte, ast, op, code1, code2):
         sem_op = sem_Mod
     elif isinstance(op, AST.FloorDiv):
         sem_op = sem_FloorDiv
+    # Bitwise
+    elif isinstance(op, AST.LShift):
+        sem_op = sem_LShift
+    elif isinstance(op, AST.RShift):
+        sem_op = sem_RShift
+    elif isinstance(op, AST.BitOr):
+        sem_op = sem_BitOr
+    elif isinstance(op, AST.BitXor):
+        sem_op = sem_BitXor
     else:
         assert False, 'gen_BinOp unimplemented operator'
 
@@ -2948,36 +2983,25 @@ def gen_sem_Numeric_BinOp(op_symbol, method, rmethod):
 
     return sem_Numeric_BinOp
 
+# Arithmetic
 sem_Add = gen_sem_Numeric_BinOp('+', '__add__', '__radd__')
 sem_Sub = gen_sem_Numeric_BinOp('-', '__sub__', '__rsub__')
 sem_Mult = gen_sem_Numeric_BinOp('*', '__mul__', '__rmul__')
 sem_FloorDiv = gen_sem_Numeric_BinOp('//', '__floordiv__', '__rfloordiv__')
 sem_TrueDiv = gen_sem_Numeric_BinOp('/', '__truediv__', '__rtruediv__')
 sem_Mod = gen_sem_Numeric_BinOp('%', '__mod__', '__rmod__')
-
-def macro_sem_binary_operator_protocol(op, method, rmethod):
-    def sem_comparator(ctx, val1, val2):
-        __op__ = getattribute_from_obj_mro(val1, method)
-        if __op__ is absent:
-            __rop__ = getattribute_from_obj_mro(val2, rmethod)
-            if __rop__ is absent:
-                assert False, "TypeError: '"+op+"' not supported between instances of 'typeof(val1)' and 'typeof(val2)'"
-            else:
-                return om_call(__rop__, ctx, [val2, val1])
-        else:
-            return om_call(__op__, ctx, [val1, val2])
-
-    return sem_comparator
-
-
-sem_Eq = macro_sem_binary_operator_protocol('==', '__eq__', '__ne__')
-sem_NotEq = macro_sem_binary_operator_protocol('!=', '__ne__', '__eq__')
-
-sem_Lt = macro_sem_binary_operator_protocol('<', '__lt__', '__gt__')
-sem_Gt = macro_sem_binary_operator_protocol('>', '__gt__', '__lt__')
-
-sem_LtE = macro_sem_binary_operator_protocol('<=', '__lte__', '__gte__')
-sem_GtE = macro_sem_binary_operator_protocol('>=', '__gte__', '__lte__')
+# Bitwise
+sem_LShift = gen_sem_Numeric_BinOp('<<', '__lshift__', '__rlshift__')
+sem_RShift = gen_sem_Numeric_BinOp('>>', '__rshift__', '__rrshift__')
+sem_BitOr = gen_sem_Numeric_BinOp('|', '__or__', '__ror__')
+sem_BitXor = gen_sem_Numeric_BinOp('^', '__xor__', '__rxor__')
+# Comparison
+sem_Eq = gen_sem_Numeric_BinOp('==', '__eq__', '__eq__')
+sem_NotEq = gen_sem_Numeric_BinOp('==', '__ne__', '__ne__')
+sem_Lt = gen_sem_Numeric_BinOp('<', '__lt__', '__gt__')
+sem_Gt = gen_sem_Numeric_BinOp('>', '__gt__', '__lt__')
+sem_LtE = gen_sem_Numeric_BinOp('<=', '__le__', '__ge__')
+sem_GtE = gen_sem_Numeric_BinOp('>=', '__ge__', '__le__')
 
 def sem_repr(ctx, val1):
     val1_repr = getattribute_from_obj_mro(val1, '__repr__')
@@ -3185,33 +3209,28 @@ def sem_raise(ctx, exn):
     else:
         exn_obj = om_exception(class_TypeError, om_tuple(()))
 
-    if om_is(ctrl_env, absent):
-        def uncaught_exception(exc):
-            result = om_simple_exception_format(ctx, exc)
+    # XXX: does not unwind all the way
+    while not om_is(ctrl_env, absent):
+        if isinstance(ctrl_next, RTCtrlCatch):
+            ctrl_rte = ctrl_env.lex_env
+            code_catch = ctrl_env.code_catch
+            return code_catch(ctrl_rte, exn_obj)
+        ctrl_env = ctrl_env.ctrl_next
 
-            # XXX: should be stderr
-            print_stdout(result, ctx.rte)
-            return None
+    def find_frame_with_ast(rte):
+        frame = rte_stack(rte)
+        while frame is not None and frame_ast(frame) is None:
+            frame = rte_stack(frame_rte(frame))
+        return frame
 
-        def find_frame_with_ast(rte):
-            frame = rte_stack(rte)
-            while frame is not None and frame_ast(frame) is None:
-                frame = rte_stack(frame_rte(frame))
-            return frame
+    if ctx.ast is None:
+        frame = find_frame_with_ast(ctx.rte)
+        ctx = Context(frame_rte(frame),
+                      frame_cont(frame),
+                      frame_ast(frame))
 
-        if ctx.ast is None:
-            frame = find_frame_with_ast(ctx.rte)
-            ctx = Context(frame_rte(frame),
-                          frame_cont(frame),
-                          frame_ast(frame))
-
-        result = om_simple_exception_format(ctx, exn_obj)
-        return expr_end_with_error(ctx, result)
-    else:
-        # XXX: does not unwind all the way
-        ctrl_rte = ctrl_env.lex_env
-        code_catch = ctrl_env.code_catch
-        return code_catch(ctrl_rte, exn_obj)
+    result = om_simple_exception_format(ctx, exn_obj)
+    return expr_end_with_error(ctx, result)
 
 def sem_raise_with_message(ctx, exn_type, msg):
     args = om_tuple((om_str(msg),))
