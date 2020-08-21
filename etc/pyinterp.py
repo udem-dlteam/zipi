@@ -1950,7 +1950,7 @@ def om_int_rmod_code(ctx, args):
         return sem_raise(ctx, class_ZeroDivisionError)
 
     # Primitive operations are only defined on same types.
-    if om_issubtype(OM_get_object_class(val2), class_int):
+    if om_issubclass(OM_get_object_class(val2), class_int):
         val2_value = OM_get_boxed_value(val2)
         result = int_mod(val2_value, val1_value)
         return ctx.cont(ctx.rte, om_int(result))
@@ -1995,7 +1995,7 @@ def om_int_rfloordiv_code(ctx, args):
         return sem_raise(ctx, class_ZeroDivisionError)
 
     # Primitive operations are only defined on same types.
-    if om_issubtype(OM_get_object_class(val2), class_int):
+    if om_issubclass(OM_get_object_class(val2), class_int):
         val2_value = OM_get_boxed_value(val2)
         result = int_div(val2_value, val1_value)
         return ctx.cont(ctx.rte, om_int(result))
@@ -2038,7 +2038,7 @@ def om_int_rtruediv_code(ctx, args):
         return sem_raise(ctx, class_ZeroDivisionError)
 
     # Primitive operations are only defined on same types.
-    if om_issubtype(OM_get_object_class(val2), class_int):
+    if om_issubclass(OM_get_object_class(val2), class_int):
         val2_value = OM_get_boxed_value(val2)
         result = float_div(val2_value, val1_value)
         return ctx.cont(ctx.rte, om_float(result))
