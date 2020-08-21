@@ -3263,10 +3263,9 @@ def sem_len(ctx, obj):
 
 def sem_abs(ctx, obj):
     obj_abs = getattribute_from_obj_mro(obj, '__abs__')
-    # NOTE: Do a type check here? CPython can return a TypeError
 
     if obj_abs is absent:
-        return ctx.cont(ctx.rte, om_NotImplemented)
+        return sem_raise_with_message(ctx, class_TypeError, "bad operand type for abs()")
     else:
         return om_call(obj_abs, ctx, [obj])
 
