@@ -272,6 +272,16 @@ def test_int__xor__0():
     return interp_source(source)
 
 
+@Equals("""at 1.1-1.4 <function abs #0>
+at 1.6-1.8 10
+at 1.5-1.8 -10
+at 1.1-1.9 10
+""")
+def test_int_abs_0():
+    source = "abs(-10)"
+    return interp_source(source)
+
+
 ###
 # Floats
 ###
