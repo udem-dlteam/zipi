@@ -2858,9 +2858,9 @@ def comp_stmt(cte, ast):
             elif isinstance(target, AST.Subscript):
                 return gen_Subscript_Store(cte, ast, target, ast.value)
         else:
-            return CT_raise_with_msg(cte, ast, 'Only assignation to one element is supported')
-    
-    
+            return CT_raise_with_msg(cte, ast, 'Only assignments to one element is supported')
+
+
     elif isinstance(ast, AST.AugAssign):
         if debug: print("AST.AugAssign")
         target = ast.target
@@ -2869,7 +2869,7 @@ def comp_stmt(cte, ast):
             id = ast.target.id
             (cte1, code1) = comp_expr(cte, ast.value)
             return gen_aug_op(cte1, ast, id, op, code1)
-            
+
 
     elif isinstance(ast, AST.While):
         # While(expr test, stmt* body, stmt* orelse)
