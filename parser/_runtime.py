@@ -194,3 +194,11 @@ def float_pi():
 
 def float_e():
     return math.e
+
+
+def float_inf():
+    return math.inf
+
+
+def float_nan():
+    return math.nan

@@ -2327,6 +2327,8 @@ def init_module_math():
 
     dict_set(module_math_env, 'pi', om_float(float_pi()))
     dict_set(module_math_env, 'e', om_float(float_e()))
+    dict_set(module_math_env, 'nan', om_float(float_nan()))
+    dict_set(module_math_env, 'inf', om_float(float_inf()))
 
     return module_math_env
 
