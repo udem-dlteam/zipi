@@ -3615,7 +3615,7 @@ def gen_sem_IOperator(method_name, op_name):
             def cont_iadd(rte, result):
                 return sem_var_set(Context(rte, ctx.cont, ctx.ast), id, result)
 
-            self_iadd = getattribute_from_obj_mro(val, method_name)
+            self_iadd = getattribute_from_obj_mro(self, method_name)
             if self_iadd is absent:
                 return sem_raise_with_message(ctx, class_TypeError, 'bad operand type for binary ' + op_name)
             else:
