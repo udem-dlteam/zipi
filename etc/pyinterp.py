@@ -3381,8 +3381,18 @@ def gen_aug_op(cte, ast, id, op, code1):
 
     if isinstance(op, AST.Add):
         sem_op = sem_IAdd
+    elif isinstance(op, AST.Sub):
+        sem_op = sem_ISub
+    elif isinstance(op, AST.Mult):
+        sem_op = sem_IMul
+    elif isinstance(op, AST.Div):
+        sem_op = sem_ITrueDiv
+    elif isinstance(op, AST.FloorDiv):
+        sem_op = sem_IFloorDiv
+    elif isinstance(op, AST.Mod):
+        sem_op = sem_IMod
     else:
-        assert False, 'gen_aug_op unimplemented operator'
+        return CT_raise_with_msg(cte, ast, "Unimplemented assignment operator")
 
     def code(rte, cont):
         return code1(rte,
@@ -3598,19 +3608,29 @@ def sem_Invert(ctx, val1):
     else:
         return om_call(val1_pos, ctx, [val1])
 
-def sem_IAdd(ctx, id, val):
-    def cont_var_get(rte, self):
-        def cont_var_set(rte, result):
-            rte_set(rte, id, result)
-            return ctx.cont(rte)
+def gen_sem_IOperator(method_name, op_name):
 
-        self_iadd = getattribute_from_obj_mro(val, '__add__')
-        if self_iadd is absent:
-            return sem_raise_with_message(ctx, class_TypeError, 'bad operand type for binary IAdd')
-        else:
-            return om_call(self_iadd, with_cont(ctx, cont_var_set), [ self , val ])
+    def gen_isem(ctx, id, val):
+        def cont_var_get(rte, self):
+            def cont_iadd(rte, result):
+                return sem_var_set(Context(rte, ctx.cont, ctx.ast), id, result)
 
-    return sem_var_get(with_cont(ctx, cont_var_get), id)
+            self_iadd = getattribute_from_obj_mro(val, method_name)
+            if self_iadd is absent:
+                return sem_raise_with_message(ctx, class_TypeError, 'bad operand type for binary ' + op_name)
+            else:
+                return om_call(self_iadd, with_cont(ctx, cont_iadd), [ self , val ])
+
+        return sem_var_get(with_cont(ctx, cont_var_get), id)
+
+    return gen_isem
+
+sem_IAdd = gen_sem_IOperator("__add__", "+=")
+sem_ISub = gen_sem_IOperator("__sub__", "-=")
+sem_IMul = gen_sem_IOperator("__mul__", "*=")
+sem_ITrueDiv = gen_sem_IOperator("__truediv__", "/=")
+sem_IFloorDiv = gen_sem_IOperator("__floordiv__", "//=")
+sem_IMod = gen_sem_IOperator("__mod__", "%=")
 
 
 def sem_Not(ctx, obj):
