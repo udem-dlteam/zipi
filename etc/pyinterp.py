@@ -777,7 +777,7 @@ def om_exception(exn, args):
     OM_set(obj, 'args', args)
     return obj
 
-def om_WrapperDescriptor(name, code):
+def om_WrapperDescriptor(name, cls, code):
     obj = om(class_WrapperDescriptor)
     OM_set_code(obj, code)
     OM_set_WrapperDescriptor_cls(obj, cls)
@@ -1233,6 +1233,8 @@ def om_object_new(ctx, args):
 
     if not om_isinstance(cls, class_type):
         return sem_raise_with_message(ctx, class_TypeError, "object.__new__(X): X is not a type object")
+    elif OM_get_type_instance_creator(cls) is not OM_get_type_instance_creator(class_object):
+        return sem_raise_with_message(ctx, class_TypeError, "TypeError: object.__new__(X) is not safe, use X.__new__()")
 
     cls = args[0]
     return ctx.cont(ctx.rte, om(cls))
