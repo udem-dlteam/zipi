@@ -2159,11 +2159,7 @@ def init_module_math():
             unboxed_val2 = int_to_float(unboxed_val2)
             obj2_class = class_float
 
-        if float_is_neg(unboxed_val1):
-            ctx = make_out_of_ast_context(rte, cont)
-            return sem_raise(ctx, class_ValueError)
-        
-        elif om_is(obj1_class, class_float) and om_is(obj2_class, class_float):
+        if om_is(obj1_class, class_float) and om_is(obj2_class, class_float):
             return unwindReturn(rte, om_float(float_pow(unboxed_val1, unboxed_val2)))
 
         else:

@@ -60,6 +60,9 @@ def int_is_zero(u):
 def int_from_float(u):
     return u
 
+def int_to_float(u):
+    return float(u)
+
 
 def int_from_string(string, radix):
     return int(string, radix)
@@ -174,7 +177,7 @@ def float_atan(u):
 
 
 def float_exp(u):
-    return math.exp
+    return math.exp(u)
 
 
 def float_log(u):
