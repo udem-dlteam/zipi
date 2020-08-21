@@ -321,6 +321,207 @@ def test_float__mod__0():
     source = "2.2 % 3.3"
     return interp_source(source)
 
+# Test built-in modules
+
+# module Math
+
+@Equals("""at 1.1-1.5 <module 'math'>
+at 1.1-1.10 <function sqrt #0>
+at 1.11-1.12 4
+at 1.1-1.13 2.0
+""")
+def test_math_sqrt_0():
+    source = "math.sqrt(4)"
+    return interp_source(source)
+
+@Equals("""at 1.1-1.5 <module 'math'>
+at 1.1-1.10 <function sqrt #0>
+at 1.11-1.12 0
+at 1.13-1.14 1
+at 1.11-1.14 -1
+at 1.1-1.15: exception = ValueError: math domain error
+""")
+def test_math_sqrt_1():
+    source = "math.sqrt(0-1)"
+    return interp_source(source)
+
+@Equals("""at 1.1-1.5 <module 'math'>
+at 1.1-1.11 <function floor #0>
+at 1.12-1.15 2.2
+at 1.1-1.16 2
+""")
+def test_math_floor_0():
+    source = "math.floor(2.2)"
+    return interp_source(source)
+
+
+@Equals("""at 1.1-1.5 <module 'math'>
+at 1.1-1.11 <function floor #0>
+at 1.12-1.15 0.0
+at 1.18-1.21 2.2
+at 1.12-1.21 -2.2
+at 1.1-1.22 -3
+""")
+def test_math_floor_1():
+    source = "math.floor(0.0 - 2.2)"
+    return interp_source(source)
+
+
+@Equals("""at 1.1-1.5 <module 'math'>
+at 1.1-1.11 <function floor #0>
+at 1.12-1.13 3
+at 1.1-1.14 3
+""")
+def test_math_floor_2():
+    source = "math.floor(3)"
+    return interp_source(source)
+
+@Equals("""at 1.1-1.5 <module 'math'>
+at 1.1-1.10 <function ceil #0>
+at 1.11-1.14 2.2
+at 1.1-1.15 3
+""")
+def test_math_ceil_0():
+    source = "math.ceil(2.2)"
+    return interp_source(source)
+
+
+@Equals("""at 1.1-1.5 <module 'math'>
+at 1.1-1.10 <function ceil #0>
+at 1.11-1.14 0.0
+at 1.17-1.20 2.2
+at 1.11-1.20 -2.2
+at 1.1-1.21 -2
+""")
+def test_math_ceil_1():
+    source = "math.ceil(0.0 - 2.2)"
+    return interp_source(source)
+
+
+@Equals("""at 1.1-1.5 <module 'math'>
+at 1.1-1.10 <function ceil #0>
+at 1.11-1.12 3
+at 1.1-1.13 3
+""")
+def test_math_ceil_2():
+    source = "math.ceil(3)"
+    return interp_source(source)
+
+@Equals("""at 1.1-1.5 <module 'math'>
+at 1.1-1.9 <function pow #0>
+at 1.10-1.11 2
+at 1.12-1.13 3
+at 1.1-1.14 8.0
+""")
+def test_math_pow_0():
+    source = "math.pow(2,3)"
+    return interp_source(source) 
+
+@Equals("""at 1.1-1.5 <module 'math'>
+at 1.1-1.9 <function exp #0>
+at 1.10-1.11 2
+at 1.1-1.12 7.38905609893065
+""")
+def test_math_exp_0():
+    source = "math.exp(2)"
+    return interp_source(source)
+
+@Equals("""at 1.1-1.5 <module 'math'>
+at 1.1-1.9 <function log #0>
+at 1.10-1.11 2
+at 1.1-1.12 0.9092974268256817
+""")
+def test_math_log_0():
+    source = "math.log(2)"
+    return interp_source(source)
+
+@Equals("""at 1.1-1.5 <module 'math'>
+at 1.1-1.9 <function log #0>
+at 1.10-1.11 0
+at 1.1-1.12: exception = ValueError: math domain error
+""")
+def test_math_log_1():
+    source = "math.log(0)"
+    return interp_source(source)
+
+@Equals("""at 1.1-1.5 <module 'math'>
+at 1.1-1.9 <function log #0>
+at 1.10-1.11 0
+at 1.12-1.13 2
+at 1.10-1.13 -2
+at 1.1-1.14: exception = ValueError: math domain error
+""")
+def test_math_log_2():
+    source = "math.log(0-2)"
+    return interp_source(source)
+
+@Equals("""at 1.1-1.5 <module 'math'>
+at 1.1-1.9 <function sin #0>
+at 1.10-1.11 0
+at 1.1-1.12 0.0
+""")
+def test_math_sin_0():
+    source = "math.sin(0)"
+    return interp_source(source)
+
+@Equals("""at 1.1-1.5 <module 'math'>
+at 1.1-1.9 <function cos #0>
+at 1.10-1.11 0
+at 1.1-1.12 1.0
+""")
+def test_math_cos_0():
+    source = "math.cos(0)"
+    return interp_source(source)
+
+@Equals("""at 1.1-1.5 <module 'math'>
+at 1.1-1.9 <function tan #0>
+at 1.10-1.11 0
+at 1.1-1.12 0.0
+""")
+def test_math_tan_0():
+    source = "math.tan(0)"
+    return interp_source(source)
+
+@Equals("""at 1.1-1.5 <module 'math'>
+at 1.1-1.10 <function asin #0>
+at 1.11-1.12 0
+at 1.1-1.13 0.0
+""")
+def test_math_asin_0():
+    source = "math.asin(0)"
+    return interp_source(source)
+
+@Equals("""at 1.1-1.5 <module 'math'>
+at 1.1-1.10 <function acos #0>
+at 1.11-1.12 0
+at 1.1-1.13 1.5707963267948966
+""")
+def test_math_acos_0():
+    source = "math.acos(0)"
+    return interp_source(source)
+
+@Equals("""at 1.1-1.5 <module 'math'>
+at 1.1-1.10 <function atan #0>
+at 1.11-1.12 0
+at 1.1-1.13 0.0
+""")
+def test_math_atan_0():
+    source = "math.atan(0)"
+    return interp_source(source)
+
+@Equals("""at 1.1-1.5 <module 'math'>
+at 1.1-1.8 3.141592653589793
+""")
+def test_math_pi_0():
+    source = "math.pi"
+    return interp_source(source)
+
+@Equals("""at 1.1-1.5 <module 'math'>
+at 1.1-1.7 2.718281828459045
+""")
+def test_math_e_0():
+    source = "math.e"
+    return interp_source(source)
 
 @Equals("""at 1.2-1.9 42.4242
 at 1.1-1.9 -42.4242
