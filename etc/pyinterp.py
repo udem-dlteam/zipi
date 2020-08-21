@@ -47,6 +47,9 @@ class Context:
     def call(self):
         return self.cont(self.rte)
 
+# Label depth is use to limit the unwinding of
+# the ctrl constructs (while, try/catch/finally, with, etc)
+# NOTE: inspired from codeboot JS
 class CTCtrlLabel:
     def __init__(self, ctrl_next, ids, ast):
         self.ctrl_next = ctrl_next
@@ -80,17 +83,19 @@ class RTCtrlFinally:
 #         self.ctrl_env = ctrl_env
 
 class CTE:
-    def __init__(self, callee, locals_env, lex_env, ctrl_env, parent):
+    def __init__(self, callee, locals_env, lex_env, ctrl_env, external_context, parent):
         self.callee = callee
         self.locals_env = locals_env
         self.lex_env = lex_env
         self.ctrl_env = ctrl_env
+        self.external_context = external_context
         self.parent = parent
 
+# NOTE: inspired from codeboot JS
 def CTCtrl_labelLookup(cte, id_str):
     ctrl_env = cte.ctrl_env
     depth = 0
-    while not om_is(ctrl_env, None):
+    while ctrl_env is not None:
         if isinstance(ctrl_env, CTCtrlLabel) and dict_get(ctrl_env.ids, id_str, False):
             result = make_dict()
             dict_set(result, 'depth', depth)
@@ -2129,6 +2134,13 @@ def read_file(path):
         content = f.read()
     return content
 
+# used by pyinterp CLI
+def default_syntax_error(start_line0,
+                         start_column0,
+                         end_line0,
+                         end_column0, msg):
+    raise SyntaxError(msg)
+
 def interp_source(src):
     options = {}
     dict_set(options, 'trace', True)
@@ -2138,11 +2150,15 @@ def parse(source, filename, mode, context):
     return AST.parse(source, filename, mode, context)
 
 def interp(ast, options):
-    code = comp(ast)
+    # TODO: move outside of this function
+    external_context = make_dict()
+    dict_set(external_context, 'syntaxError', default_syntax_error)
+
+    code = comp(ast, external_context)
     trampoline(prepare_execution(code, fresh_rte(options)))
 
-def comp(ast):
-    cte = CTE(None, None, None, None, None)  # unused for now
+def comp(ast, external_context):
+    cte = CTE(None, None, None, None, external_context, None)
 
     (cte1, code) = comp_mod(cte, ast)
 
@@ -2301,9 +2317,18 @@ def comp_stmt(cte, ast):
         # Return
         if debug: print('AST.Return')
 
+        # return point indicate that we are in a function
+        # NOTE: inpired from codeboot JS
         depth_ast = CTCtrl_labelLookup(cte, "return point")
         if depth_ast is None:
-            return cte, lambda rte, cont: sem_raise_with_message(Context(rte, cont, ast), class_SyntaxError, "'return' outside of function")
+            syntax_error = dict_get(cte.external_context,
+                                    'syntaxError',
+                                    default_syntax_error)
+            return syntax_error(ast.lineno-1,
+                               ast.col_offset,
+                               ast.end_lineno-1,
+                               ast.end_col_offset,
+                               "'return' outside of function")
         elif ast.value is None:
             return cte, lambda rte, cont: frame_cont(rte_stack(rte))(frame_rte(rte_stack(rte)), om_None)
         else:
@@ -2358,6 +2383,7 @@ def comp_stmt(cte, ast):
                      signature,
                      cte.lex_env,
                      CTCtrlLabel(None, ids, ast),
+                     cte.external_context,
                      cte)
 
         (cte1, body_code) = gen_funcdef_code(fn_cte, ast, ast.body)
