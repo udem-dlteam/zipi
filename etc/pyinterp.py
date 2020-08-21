@@ -491,8 +491,17 @@ def compute_mro(cls, bases):
         for seq in non_empty:
             candidate = seq[0]
             for s in non_empty:
-                if candidate in s[1:]:
-                    candidate = None
+                tail = s[1:]
+
+                # checks "candidate in tail"
+                tail_len = len(tail)
+                i = 0
+                while i < tail_len:
+                    if candidate is tail[i]:
+                        candidate = None
+                        break
+                    i += 1
+
             if candidate is not None:
                 break
 
