@@ -93,7 +93,7 @@ def test_dict_get():
     return dict_get(d, name, absent)
 
 
-@Equals("""at 1.1-2.11
+@Equals("""at 1.1-2.11 foo ← <function foo #0>
 at 3.1-3.4 <function foo #0>
 at 3.5-3.7 10
 at 2.10-2.11 10
@@ -105,7 +105,7 @@ def test_pyinterp():
 
 
 @Equals("""at 1.5-1.6 1
-at 1.1-1.6
+at 1.1-1.6 x ← 1
 at 2.1-2.2 1
 at 2.1-2.12 <class 'int'>
 at 3.1-3.4 <class 'int'>
