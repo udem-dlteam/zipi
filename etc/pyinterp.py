@@ -1314,21 +1314,30 @@ def om_int_repr(ctx, args):
     return ctx.cont(ctx.rte, om_str(result))
 
 def om_int_neg_code(ctx, args):
-    self = args[0]
-    result = int_neg(OM_get_boxed_value(self))
-    return ctx.cont(ctx.rte, om_boxval(class_int, result))
+    if len(args) == 1:
+        self = args[0]
+        result = int_neg(OM_get_boxed_value(self))
+        return ctx.cont(ctx.rte, om_boxval(class_int, result))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + repr(len(args) - 1))
 
 om_int_neg = do_magic_method(class_int, "__neg__", om_int_neg_code)
 
 def om_int_invert_code(ctx, args):
-    self = args[0]
-    result = int_not(OM_get_boxed_value(self))
-    return ctx.cont(ctx.rte, om_boxval(class_int, result))
+    if len(args) == 1:
+        self = args[0]
+        result = int_not(OM_get_boxed_value(self))
+        return ctx.cont(ctx.rte, om_boxval(class_int, result))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + repr(len(args) - 1))
 
 om_int_invert = do_magic_method(class_int, "__invert__", om_int_invert_code)
 
 def om_int_pos_code(ctx, args):
-    return ctx.cont(ctx.rte, args[0])
+    if len(args) == 1:
+        return ctx.cont(ctx.rte, args[0])
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + repr(len(args) - 1))
 
 om_int_pos = do_magic_method(class_int, "__pos__", om_int_pos_code)
 
@@ -2002,14 +2011,20 @@ def om_float_repr(ctx, args):
     return ctx.cont(ctx.rte, om_str(result))
 
 def om_float_neg_code(ctx, args):
-    self = args[0]
-    result = float_neg(OM_get_boxed_value(self))
-    return ctx.cont(ctx.rte, om_boxval(class_float, result))
+    if len(args) == 1:
+        self = args[0]
+        result = float_neg(OM_get_boxed_value(self))
+        return ctx.cont(ctx.rte, om_boxval(class_float, result))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + repr(len(args) - 1))
 
 om_float_neg = do_magic_method(class_float, "__neg__", om_float_neg_code)
 
 def om_float_pos_code(ctx, args):
-    return ctx.cont(ctx.rte, args[0])
+    if len(args) == 1:
+        return ctx.cont(ctx.rte, args[0])
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got "+ repr(len(args) - 1))
 
 om_float_pos = do_magic_method(class_float, "__pos__", om_float_pos_code)
 
@@ -2760,6 +2775,8 @@ def gen_UnaryOp(cte, ast, op, code1):
         sem_op = sem_Pos
     elif isinstance(op, AST.Invert):
         sem_op = sem_Invert
+    elif isinstance(op, AST.Not):
+        sem_op = sem_Not
     else:
         assert False, "gen_UnaryOp unimplemented operator"
 
@@ -2975,6 +2992,15 @@ def sem_Invert(ctx, val1):
         return sem_raise_with_message(ctx, class_TypeError, "bad operand type for unary ~: '"+cls_name+"'")
     else:
         return om_call(val1_pos, ctx, [val1])
+
+def sem_Not(ctx, obj):
+    def flip(rte, res):
+        if om_is(res, om_True):
+            return ctx.cont(rte, om_False)
+        else:
+            return ctx.cont(rte, om_True)
+
+    return sem_bool(with_cont(ctx, flip), obj)
 
 def sem_repr(ctx, val1):
     val1_repr = getattribute_from_obj_mro(val1, '__repr__')
