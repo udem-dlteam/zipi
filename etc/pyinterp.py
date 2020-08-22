@@ -2926,7 +2926,7 @@ def comp_stmt(cte, ast):
                      cte.external_context,
                      cte)
 
-        (cte1, body_code) = gen_funcdef_code(fn_cte, ast, ast.body)
+        (cte1, body_code) = comp_stmt_seq(fn_cte, ast.body)
 
         OM_set_function_signature(func, signature)
         OM_set_function_body(func, body_code)
@@ -3942,15 +3942,6 @@ def sem_raise(ctx, exn):
 def sem_raise_with_message(ctx, exn_type, msg):
     args = om_tuple((om_str(msg),))
     return sem_raise(ctx, om_exception(exn_type, args))
-
-def gen_funcdef_code(cte, ast, body):
-
-    # No param handling
-    def code(rte, args):
-        (cte1, body_code) = comp_stmt_seq(cte, body)
-        return body_code(rte, args)
-
-    return (cte, code)
 
 def gen_call(cte, ast, func_code, args_code):
     def code(rte, cont):
