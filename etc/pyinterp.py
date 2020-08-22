@@ -3134,7 +3134,7 @@ def gen_while(cte, ast, code1, code2, code3):
                                          lambda rte2, _: cont(rte1),
                                          lambda rte2, _: code(rte1, cont))
                 new_rte = make_rte_from_new_ctrl_env(rte1, ctrl_label)
-                return code2(new_rte, lambda rte2: code(rte, cont))
+                return code2(new_rte, lambda rte2: stmt_end(Context(rte, cont, ast)))
 
         def cast_bool(rte, val):
             ctx = Context(rte, dispatch, ast)
