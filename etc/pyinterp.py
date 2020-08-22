@@ -2871,7 +2871,18 @@ def comp_stmt(cte, ast):
             elif isinstance(target, AST.Subscript):
                 return gen_Subscript_Store(cte, ast, target, ast.value)
         else:
-            return CT_raise_with_msg(cte, ast, 'Only assignation to one element is supported')
+            return CT_raise_with_msg(cte, ast, 'Only assignments to one element is supported')
+
+
+    elif isinstance(ast, AST.AugAssign):
+        if debug: print("AST.AugAssign")
+        target = ast.target
+        if isinstance(target, AST.Name):
+            op = ast.op
+            id = ast.target.id
+            (cte1, code1) = comp_expr(cte, ast.value)
+            return gen_aug_op(cte1, ast, id, op, code1)
+
 
     elif isinstance(ast, AST.While):
         # While(expr test, stmt* body, stmt* orelse)
@@ -3188,6 +3199,7 @@ def gen_var_set(cte, ast, id, code1):
         return code1(rte, var_set)
     return (cte, code)
 
+
 def gen_var_get(cte, ast, id):
     def code(rte, cont):
         return sem_var_get(Context(rte, do_expr_end(cont, ast), ast), id)
@@ -3378,8 +3390,33 @@ def gen_UnaryOp(cte, ast, op, code1):
     return (cte, code)
 
 
-def gen_BinOp(cte, ast, op, code1, code2):
+def gen_aug_op(cte, ast, id, op, code1):
+    if debug: print(op)
 
+    if isinstance(op, AST.Add):
+        sem_op = sem_IAdd
+    elif isinstance(op, AST.Sub):
+        sem_op = sem_ISub
+    elif isinstance(op, AST.Mult):
+        sem_op = sem_IMul
+    elif isinstance(op, AST.Div):
+        sem_op = sem_ITrueDiv
+    elif isinstance(op, AST.FloorDiv):
+        sem_op = sem_IFloorDiv
+    elif isinstance(op, AST.Mod):
+        sem_op = sem_IMod
+    else:
+        return CT_raise_with_msg(cte, ast, "Unimplemented assignment operator")
+
+    def code(rte, cont):
+        return code1(rte,
+                     lambda rte1, val1:
+                       sem_op(Context(rte1, do_stmt_end(cont, ast), ast),
+                                      id, val1))
+    return (cte, code)
+
+
+def gen_BinOp(cte, ast, op, code1, code2):
     if debug: print(op)
 
     # Arithmetic
@@ -3586,6 +3623,35 @@ def sem_Invert(ctx, val1):
         return sem_raise_with_message(ctx, class_TypeError, "bad operand type for unary ~: '"+cls_name+"'")
     else:
         return om_call(val1_pos, ctx, [val1])
+
+def gen_sem_IOperator(method_name, op_name):
+
+    def gen_isem(ctx, id, val):
+        def cont_var_get(rte, self):
+            def cont_iadd(rte, result):
+                new_ctx = Context(rte, ctx.cont, ctx.ast)
+                if om_is(result, om_NotImplemented):
+                    return sem_raise_with_message(new_ctx, class_TypeError, "unsupported operand type(s) for " + op_name)
+                else:
+                    return sem_var_set(new_ctx, id, result)
+
+            self_iadd = getattribute_from_obj_mro(self, method_name)
+            if self_iadd is absent:
+                return sem_raise_with_message(ctx, class_TypeError, 'bad operand type for binary ' + op_name)
+            else:
+                return om_call(self_iadd, with_cont(ctx, cont_iadd), [ self , val ])
+
+        return sem_var_get(with_cont(ctx, cont_var_get), id)
+
+    return gen_isem
+
+sem_IAdd = gen_sem_IOperator("__add__", "+=")
+sem_ISub = gen_sem_IOperator("__sub__", "-=")
+sem_IMul = gen_sem_IOperator("__mul__", "*=")
+sem_ITrueDiv = gen_sem_IOperator("__truediv__", "/=")
+sem_IFloorDiv = gen_sem_IOperator("__floordiv__", "//=")
+sem_IMod = gen_sem_IOperator("__mod__", "%=")
+
 
 def sem_Not(ctx, obj):
 
