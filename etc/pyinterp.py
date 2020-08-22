@@ -3124,17 +3124,16 @@ def gen_Pass(cte, ast):
 def gen_while(cte, ast, code1, code2, code3):
 
     def code(rte, cont):
-
         def dispatch(rte1, val):
             if om_is_falsy(val):
-                return code3(rte1, cont)
+                return code3(rte1, do_stmt_end(cont, ast))
             else:
                 ctrl_env = rte_ctrl_env(rte)
                 ctrl_label = RTCtrlLabel(ctrl_env,
-                                         lambda rte2, _: cont(rte1),
-                                         lambda rte2, _: code(rte1, cont))
+                                         lambda rte2, _: cont(unwind_rte_ctrl_env(rte2)),
+                                         lambda rte2, _: code(unwind_rte_ctrl_env(rte2), cont))
                 new_rte = make_rte_from_new_ctrl_env(rte1, ctrl_label)
-                return code2(new_rte, lambda rte2: stmt_end(Context(rte, cont, ast)))
+                return code2(new_rte, lambda rte2: code(unwind_rte_ctrl_env(rte2), cont))
 
         def cast_bool(rte, val):
             ctx = Context(rte, dispatch, ast)
