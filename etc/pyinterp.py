@@ -675,6 +675,7 @@ def populate_builtin_MethodWrapper():
 def populate_builtin_int():
     builtin_add_method(class_int, '__new__', om_int_new)
     builtin_add_method(class_int, '__int__', om_int_int)
+    builtin_add_method(class_int, '__index__', om_int_index)
     builtin_add_method(class_int, '__float__', om_int_float)
     builtin_add_method(class_int, '__bool__', om_int_bool) # <class 'function'>
     # Arithmetic
@@ -2008,7 +2009,28 @@ def om_int_new_code(ctx, args):
                 return ctx.cont(ctx.rte, om_int_subtype(cls, OM_get_boxed_value(res)))
         return sem_maybe_int(with_cont(ctx, check_result), obj)
     elif args_len == 3:
-        return sem_raise_with_message(ctx, class_NotImplementedError, "string conversion to int not yet supported")
+        cls = args[0]
+        obj = args[1]
+        radix = args[2]
+
+        if not om_isinstance(obj, class_str):
+            return sem_raise_with_message(ctx, class_TypeError, "int() can't convert non-string with explicit base")
+
+        def check_range(rte, index):
+            str_value = OM_get_boxed_value(obj)
+            index_value = OM_get_boxed_value(index)
+            if int_ge(index_value, 2) and int_le(index_value, 36):
+                return ctx.cont(ctx.rte, om_int(int_from_string(str_value, index_value)))
+            elif int_is_zero(index):
+                if len(str_value) == 0 or str_value[0] == '0':
+                    return sem_raise_with_message(ctx, class_ValueError, "invalid literal for int() with base 0")
+                else:
+                    return ctx.cont(ctx.rte, om_int(int_from_string(str_value, 10)))
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, "int() base must be >= 2 and <= 36, or 0")
+
+        return sem_index(with_cont(ctx, check_range), radix)
+
     else:
         return sem_raise_with_message(ctx, class_TypeError, "int() takes at most 2 argument, got " + str(args_len))
 
@@ -2024,6 +2046,17 @@ def om_int_int_code(ctx, args):
         return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
 
 om_int_int = do_magic_method(class_int, "__int__", om_int_int_code)
+
+def om_int_index_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 1:
+        self = args[0]
+        return ctx.cont(ctx.rte, self)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
+
+om_int_index = do_magic_method(class_int, "__index__", om_int_index_code)
 
 def om_int_float_code(ctx, args):
     args_len = len(args)
@@ -3940,6 +3973,19 @@ def sem_maybe_int(ctx, obj):
             else:
                 return sem_raise_with_message(ctx, class_TypeError, "__int__ returned non-int")
         return om_call(obj_int, with_cont(ctx, check_int), [obj])
+
+def sem_index(ctx, obj):
+    obj_index = getattribute_from_obj_mro(obj, '__index__')
+
+    if obj_index is absent:
+        return sem_raise_with_message(ctx, class_TypeError, "object cannot be interpreted as an integer")
+    else:
+        def check_int(rte, res):
+            if om_isinstance(res, class_int):
+                return ctx.cont(rte, res)
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, "__index__ returned non-int")
+        return om_call(obj_index, with_cont(ctx, check_int), [obj])
 
 def sem_maybe_float(ctx, obj):
     obj_float = getattribute_from_obj_mro(obj, '__float__')
