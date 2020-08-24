@@ -3689,7 +3689,7 @@ def sem_repr(ctx, val1):
         if om_isinstance(res, class_str):
             return ctx.cont(rte, res)
         else:
-            return sem_raise(ctx, class_TypeError)
+            return sem_raise_with_message(ctx, class_TypeError, "__repr__ returned non-string")
 
     ctx1 = with_cont(ctx, check_string)
     return om_call(val1_repr, ctx1, [val1])
@@ -3701,7 +3701,7 @@ def sem_str(ctx, value):
         if om_isinstance(res, class_str):
             return ctx.cont(rte, res)
         else:
-            return sem_raise(ctx, class_TypeError)
+            return sem_raise_with_message(ctx, class_TypeError, "__str__ returned non-string")
 
     next_ctx = with_cont(ctx, check_string)
     return om_call(value_str, next_ctx, (value,))
