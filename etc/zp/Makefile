@@ -10,11 +10,11 @@ _tmpdir:
 	@echo "Make parser..."
 	@cd ../../parser && $(MAKE)
 
-copy_files: _tmpdir ../pyinterp.py ../../parser/_zast.py ../../parser/ztokenizer.py ../../parser/ztoken.py ../../parser/zast.py ../../parser/zpgen.py ../../parser/_zparse.py ../../parser/_runtime.py zp_unit_tests.py _unit_tests.py
+copy_files: _tmpdir ../../pyinterp/pyinterp.py ../../parser/_zast.py ../../parser/ztokenizer.py ../../parser/ztoken.py ../../parser/zast.py ../../parser/zpgen.py ../../parser/_zparse.py ../../parser/_runtime.py zp_unit_tests.py _unit_tests.py
 	@echo "Copying files..."
 	cp zp_unit_tests.py $(TMPDIR)/
 	cp _unit_tests.py $(TMPDIR)/
-	cp ../pyinterp.py $(TMPDIR)/
+	cp ../../pyinterp/pyinterp.py $(TMPDIR)/
 	cp ../../parser/zast.py $(TMPDIR)/
 	cp ../../parser/_zast.py $(TMPDIR)/
 	cp ../../parser/ztokenizer.py $(TMPDIR)/
