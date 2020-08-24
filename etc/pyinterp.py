@@ -2004,7 +2004,7 @@ def om_int_str_conversion(ctx, obj, radix):
                                               "invalid literal for int() with base " + str(index_value))
             else:
                 return ctx.cont(ctx.rte, om_int(res))
-        elif int_is_zero(index):
+        elif int_is_zero(index_value):
             if len(str_value) == 0 or str_value[0] == '0':
                 return sem_raise_with_message(ctx, class_ValueError, "invalid literal for int() with base 0")
             else:
