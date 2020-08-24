@@ -3476,7 +3476,7 @@ def comp_Compare_Op(op):
     elif isinstance(op, AST.GtE):
         sem_op = sem_GtE
     elif isinstance(op, AST.In):
-        sem_op = sem_contains
+        sem_op = sem_Contains
     else:
         sem_op = None
 
@@ -3751,7 +3751,7 @@ def sem_iter(ctx, obj):
     else:
         return om_call(obj_iter, ctx, (obj,))
 
-def sem_contains_in_iterator(ctx, target, iterator):
+def sem_Contains_in_iterator(ctx, target, iterator):
     def get_next(rte, iterator):
         def compare(get_next_rte, get_next_val):
             if get_next_val is for_loop_end_marker:
@@ -3768,11 +3768,11 @@ def sem_contains_in_iterator(ctx, target, iterator):
         return sem_next(Context(rte, compare, ctx.ast), iterator, for_loop_end_marker)
     return get_next(ctx.rte, iterator)
 
-def sem_contains(ctx, target, obj):
+def sem_Contains(ctx, target, obj):
     obj_contains = getattribute_from_obj_mro(obj, "__contains__")
     if obj_contains is absent:
         def cont(rte, it):
-            return sem_contains_in_iterator(Context(rte, ctx.cont, ctx.ast), target, it)
+            return sem_Contains_in_iterator(Context(rte, ctx.cont, ctx.ast), target, it)
         return sem_iter(with_cont(ctx, cont), obj)
     else:
         return om_call(obj_contains, ctx, (obj, target))
