@@ -2021,7 +2021,7 @@ def om_int_new_code(ctx, args):
         def check_result(rte, res):
             if res is None:
                 if om_isinstance(obj, class_str):
-                    return om_int_str_conversion(obj, om_int(10))
+                    return om_int_str_conversion(ctx, obj, om_int(10))
                 else:
                     return sem_raise_with_message(
                         Context(rte, ctx.cont, ctx.ast),
