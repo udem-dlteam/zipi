@@ -1752,18 +1752,36 @@ def om_format_str_repr(self, rte):
 
     return "'" + value + "'"
 
-def om_str_repr(ctx, args):
+def om_str_repr_code(ctx, args):
     if debug: print('str.__repr__')
-    self = args[0]
 
-    formatted_str = om_format_str_repr(self, ctx.rte)
+    if len(args) == 1:
+        self = args[0]
 
-    return ctx.cont(ctx.rte, om_str(formatted_str))
+        formatted_str = om_format_str_repr(self, ctx.rte)
 
-def om_str_str(ctx, args):
+        return ctx.cont(ctx.rte, om_str(formatted_str))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+om_str_repr = do_magic_method(class_str, "__repr__", om_str_repr_code)
+
+
+def om_str_str_code(ctx, args):
     if debug: print('str.__str__')
-    self = args[0]
-    return ctx.cont(ctx.rte, self)
+
+    if len(args) == 1:
+        self = args[0]
+
+        if om_is(OM_get_object_class(self), class_str):
+            return ctx.cont(ctx.rte, self)
+        else:
+            new_str = om_str(OM_get_boxed_value(self))
+            ctx.cont(ctx.rte, new_str)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+om_str_str = do_magic_method(class_str, "__str__", om_str_str_code)
 
 # class_dict methods
 
