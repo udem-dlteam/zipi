@@ -1709,11 +1709,6 @@ def om_iterator_next(ctx, args):
     return sem_getitem(next_ctx, obj, index)
 
 # class_str methods
-def om_convert_to_str(ctx, value):
-    value_str = getattribute_from_obj_mro(value, "__str__")
-    next_ctx = with_cont(ctx, lambda rte, value: ctx.cont(rte, value))
-    return om_call(value_str, next_ctx, (value,))
-
 def om_str_new(ctx, args):
     cls = args[0]
 
@@ -1721,7 +1716,7 @@ def om_str_new(ctx, args):
         return ctx.cont(ctx, om_boxval(cls, ""))
     elif len(args) == 2:
         value = args[1]
-        return om_convert_to_str(ctx, value)
+        return sem_str(ctx, value)
     else:
         assert False, "TypeError: str() takes 0 or 1 argument"
 
@@ -1752,18 +1747,36 @@ def om_format_str_repr(self, rte):
 
     return "'" + value + "'"
 
-def om_str_repr(ctx, args):
+def om_str_repr_code(ctx, args):
     if debug: print('str.__repr__')
-    self = args[0]
 
-    formatted_str = om_format_str_repr(self, ctx.rte)
+    if len(args) == 1:
+        self = args[0]
 
-    return ctx.cont(ctx.rte, om_str(formatted_str))
+        formatted_str = om_format_str_repr(self, ctx.rte)
 
-def om_str_str(ctx, args):
+        return ctx.cont(ctx.rte, om_str(formatted_str))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+om_str_repr = do_magic_method(class_str, "__repr__", om_str_repr_code)
+
+
+def om_str_str_code(ctx, args):
     if debug: print('str.__str__')
-    self = args[0]
-    return ctx.cont(ctx.rte, self)
+
+    if len(args) == 1:
+        self = args[0]
+
+        if om_is(OM_get_object_class(self), class_str):
+            return ctx.cont(ctx.rte, self)
+        else:
+            new_str = om_str(OM_get_boxed_value(self))
+            ctx.cont(ctx.rte, new_str)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+om_str_str = do_magic_method(class_str, "__str__", om_str_str_code)
 
 # class_dict methods
 
@@ -1872,7 +1885,7 @@ def om_BaseException_str(ctx, args):
         if len(seq) == 0:
             return ctx.cont(ctx.rte, om_str(""))
         elif len(seq) == 1:
-            return om_convert_to_str(ctx, seq[0])
+            return sem_str(ctx, seq[0])
         else:
             acc = []
             # TODO: hack to avoid using nonlocal in map_repr
@@ -2318,7 +2331,7 @@ def om_input_code(rte, cont):
 
     obj = rte_lookup(rte, 'obj')
     ctx = make_out_of_ast_context(rte, return_value)
-    return om_convert_to_str(ctx, obj)
+    return sem_str(ctx, obj)
 
 def gen_int_to_string_conv_code(radix, prefix):
     def conv_code(rte, cont):
@@ -2347,7 +2360,7 @@ def om_print_code(rte, _):
         return unwindReturn(rte, om_None)
 
     next_ctx = make_out_of_ast_context(rte, cont)
-    return om_convert_to_str(next_ctx, rte_lookup(rte, 'obj'))
+    return sem_str(next_ctx, rte_lookup(rte, 'obj'))
 
 def om_repr_code(rte, _):
     def cont(rte, res):
@@ -3671,18 +3684,27 @@ def sem_Not(ctx, obj):
 
 def sem_repr(ctx, val1):
     val1_repr = getattribute_from_obj_mro(val1, '__repr__')
-    # assert val1_repr is not absent, '__repr__ not defined'
 
     def check_string(rte, res):
-        cls = OM_get_type_class(res)
-        if om_is(cls, class_str):
+        if om_isinstance(res, class_str):
             return ctx.cont(rte, res)
         else:
-            err = om(class_TypeError)
-            return sem_raise(ctx, err)
+            return sem_raise_with_message(ctx, class_TypeError, "__repr__ returned non-string")
 
     ctx1 = with_cont(ctx, check_string)
-    return om_call(val1_repr, ctx, [val1])
+    return om_call(val1_repr, ctx1, [val1])
+
+def sem_str(ctx, value):
+    value_str = getattribute_from_obj_mro(value, "__str__")
+
+    def check_string(rte, res):
+        if om_isinstance(res, class_str):
+            return ctx.cont(rte, res)
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "__str__ returned non-string")
+
+    next_ctx = with_cont(ctx, check_string)
+    return om_call(value_str, next_ctx, (value,))
 
 def sem_getattribute(ctx, args):
     obj = args[0]
