@@ -133,6 +133,22 @@ def CT_raise_with_msg(cte, ast, msg):
                         ast.end_col_offset,
                         msg)
 
+
+def cont_bool(ctx, val):
+    return ctx.cont(ctx.rte, om_bool(val))
+
+def cont_int(ctx, val):
+    return ctx.cont(ctx.rte, om_int(val))
+
+def cont_str(ctx, val):
+    return ctx.cont(ctx.rte, om_str(val))
+
+def cont_list(ctx, val):
+    return ctx.cont(ctx.rte, om_list(val))
+
+def cont_tuple(ctx, val):
+    return ctx.cont(ctx.rte, om_tuple(val))
+
 def with_cont(ctx, cont):
     return Context(ctx.rte, cont, ctx.ast)
 
@@ -3609,11 +3625,11 @@ sem_GtE = gen_sem_Numeric_BinOp('>=', '__ge__', '__le__')
 
 def sem_Is(ctx, val1, val2):
     result = om_is(val1, val2)
-    return ctx.cont(ctx.rte, om_bool(result))
+    return cont_bool(ctx, result)
 
 def sem_IsNot(ctx, val1, val2):
     result = not om_is(val1, val2)
-    return ctx.cont(ctx.rte, om_bool(result))
+    return cont_bool(ctx, result)
 
 
 def sem_Neg(ctx, val1):
