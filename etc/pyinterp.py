@@ -3011,26 +3011,30 @@ def comp_elements(cte, args):
 def gen_elements_seq(cte, elements_code):
     elements_len = len(elements_code)
 
-    def gen_elements_seq_aux(cte, cont, i):
-        if i < elements_len:
+    def do_elements_cont(cont, i):
+        i = elements_len - 1
+        next_cont = cont
+        while i >= 0:
             element_code = elements_code[i]
-            next_cont = gen_elements_seq_aux(cte, cont, i + 1)
-            
-            def code(rte, acc):
-                def accumulate(rte, val):
-                    acc[i] = val
-                    return next_cont(rte, acc)
-                return element_code(rte, accumulate)
-            return code
-        else:
-            return cont
+
+            def create_closure(next_cont, i, element_code):
+                def code(rte, acc):
+                    def accumulate(rte, val):
+                        acc[i] = val
+                        return next_cont(rte, acc)
+                    return element_code(rte, accumulate)
+                return code
+
+            next_cont = create_closure(next_cont, i, element_code)
+            i = i - 1
+        return next_cont
 
     def alloc_list(rte, cont):
         # TODO: Replace by acc = [None] * len(elements_comp) once supported
         acc = []
         for _ in elements_code: acc.append(None)
 
-        elements_cont = gen_elements_seq_aux(cte, cont, 0)
+        elements_cont = do_elements_cont(cont, 0)
         return elements_cont(rte, acc)
 
     return (cte, alloc_list)
