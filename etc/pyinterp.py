@@ -3477,6 +3477,8 @@ def comp_Compare_Op(op):
         sem_op = sem_GtE
     elif isinstance(op, AST.Is):
         return sem_Is
+    elif isinstance(op, AST.IsNot):
+        return sem_IsNot
     elif isinstance(op, AST.In):
         sem_op = sem_Contains
     else:
@@ -3610,6 +3612,13 @@ def sem_Is(ctx, val1, val2):
         return ctx.cont(ctx.rte, om_True)
     else:
         return ctx.cont(ctx.rte, om_False)
+
+def sem_IsNot(ctx, val1, val2):
+    if om_is(val1, val2):
+        return ctx.cont(ctx.rte, om_False)
+    else:
+        return ctx.cont(ctx.rte, om_True)
+
 
 def sem_Neg(ctx, val1):
     val1_neg = getattribute_from_obj_mro(val1, '__neg__')
