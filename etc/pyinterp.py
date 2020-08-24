@@ -3017,7 +3017,7 @@ def gen_elements_seq(cte, elements_code):
         while i >= 0:
             current_element_code = elements_code[i]
 
-            def create_closure(next_cont, i, element_code):
+            def create_closure(next_cont, i, current_element_code):
                 def code(rte, acc):
                     def accumulate(rte, val):
                         acc[i] = val
