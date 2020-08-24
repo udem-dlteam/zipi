@@ -3817,6 +3817,32 @@ def sem_abs(ctx, obj):
     else:
         return om_call(obj_abs, ctx, [obj])
 
+def sem_maybe_int(ctx, obj):
+    obj_int = getattribute_from_obj_mro(obj, '__int__')
+
+    if obj_int is absent:
+        return ctx.cont(ctx.rte, None)
+    else:
+        def check_int(rte, res):
+            if om_isinstance(res, class_int):
+                return ctx.cont(rte, res)
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, "__int__ returned non-int")
+        return om_call(obj_int, with_cont(ctx, check_int), [obj])
+
+def sem_maybe_float(ctx, obj):
+    obj_float = getattribute_from_obj_mro(obj, '__float__')
+
+    if obj_float is absent:
+        return ctx.cont(ctx.rte, None)
+    else:
+        def check_float(rte, res):
+            if om_isinstance(res, class_int):
+                return ctx.cont(rte, res)
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, "__float__ returned non-int")
+        return om_call(obj_float, with_cont(ctx, check_float), [obj])
+
 def gen_constant(cte, ast, val):
 
     def code(rte, cont):
