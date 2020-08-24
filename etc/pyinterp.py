@@ -1989,6 +1989,25 @@ om_int_xor = gen_dunder_Numeric_BinOp('int', '__xor__', int_xor, class_int, om_i
 om_int_rxor = gen_dunder_Numeric_BinOp('int', '__xror__', int_xor, class_int, om_int)
 
 # class_int methods
+def om_int_str_conversion(ctx, obj, radix):
+    if not om_isinstance(obj, class_str):
+        return sem_raise_with_message(ctx, class_TypeError, "int() can't convert non-string with explicit base")
+
+    def check_range(rte, index):
+        str_value = OM_get_boxed_value(obj)
+        index_value = OM_get_boxed_value(index)
+        if int_ge(index_value, 2) and int_le(index_value, 36):
+            return ctx.cont(ctx.rte, om_int(int_from_string(str_value, index_value)))
+        elif int_is_zero(index):
+            if len(str_value) == 0 or str_value[0] == '0':
+                return sem_raise_with_message(ctx, class_ValueError, "invalid literal for int() with base 0")
+            else:
+                return ctx.cont(ctx.rte, om_int(int_from_string(str_value, 10)))
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "int() base must be >= 2 and <= 36, or 0")
+
+    return sem_index(with_cont(ctx, check_range), radix)
+
 def om_int_new_code(ctx, args):
     args_len = len(args)
 
@@ -2001,35 +2020,21 @@ def om_int_new_code(ctx, args):
 
         def check_result(rte, res):
             if res is None:
-                return sem_raise_with_message(
-                    Context(rte, ctx.cont, ctx.ast),
-                    class_TypeError,
-                    "int() argument must be a string, a bytes-like object or a number")
+                if om_isinstance(obj, class_str):
+                    return om_int_str_conversion(obj, om_int(10))
+                else:
+                    return sem_raise_with_message(
+                        Context(rte, ctx.cont, ctx.ast),
+                        class_TypeError,
+                        "int() argument must be a string, a bytes-like object or a number")
             else:
                 return ctx.cont(ctx.rte, om_int_subtype(cls, OM_get_boxed_value(res)))
         return sem_maybe_int(with_cont(ctx, check_result), obj)
     elif args_len == 3:
-        cls = args[0]
         obj = args[1]
         radix = args[2]
 
-        if not om_isinstance(obj, class_str):
-            return sem_raise_with_message(ctx, class_TypeError, "int() can't convert non-string with explicit base")
-
-        def check_range(rte, index):
-            str_value = OM_get_boxed_value(obj)
-            index_value = OM_get_boxed_value(index)
-            if int_ge(index_value, 2) and int_le(index_value, 36):
-                return ctx.cont(ctx.rte, om_int(int_from_string(str_value, index_value)))
-            elif int_is_zero(index):
-                if len(str_value) == 0 or str_value[0] == '0':
-                    return sem_raise_with_message(ctx, class_ValueError, "invalid literal for int() with base 0")
-                else:
-                    return ctx.cont(ctx.rte, om_int(int_from_string(str_value, 10)))
-            else:
-                return sem_raise_with_message(ctx, class_TypeError, "int() base must be >= 2 and <= 36, or 0")
-
-        return sem_index(with_cont(ctx, check_range), radix)
+        return om_int_str_conversion(ctx, obj, radix)
 
     else:
         return sem_raise_with_message(ctx, class_TypeError, "int() takes at most 2 argument, got " + str(args_len))
