@@ -3608,16 +3608,12 @@ sem_LtE = gen_sem_Numeric_BinOp('<=', '__le__', '__ge__')
 sem_GtE = gen_sem_Numeric_BinOp('>=', '__ge__', '__le__')
 
 def sem_Is(ctx, val1, val2):
-    if om_is(val1, val2):
-        return ctx.cont(ctx.rte, om_True)
-    else:
-        return ctx.cont(ctx.rte, om_False)
+    result = om_is(val1, val2)
+    return ctx.cont(ctx.rte, om_bool(result))
 
 def sem_IsNot(ctx, val1, val2):
-    if om_is(val1, val2):
-        return ctx.cont(ctx.rte, om_False)
-    else:
-        return ctx.cont(ctx.rte, om_True)
+    result = not om_is(val1, val2)
+    return ctx.cont(ctx.rte, om_bool(result))
 
 
 def sem_Neg(ctx, val1):
