@@ -1471,7 +1471,7 @@ def om_tuple_elements_repr(ctx, elts, repr_acc):
         if repr_acc_len == 0:
             return ctx.cont(ctx.rte, om_str("()"))
         elif repr_acc_len == 1:
-            result = '(' + OM_get_boxed_value(repr_acc[0]) + ',)'
+            result = '(' + repr_acc[0] + ',)'
             return ctx.cont(ctx.rte, om_str(result))
         else:
             result = '(' + ', '.join(repr_acc) + ')'
@@ -3000,25 +3000,45 @@ def comp_expr(cte, ast):
         return CT_raise_with_msg(cte, ast, "unsupported expression AST")
 
 def comp_elements(cte, args):
+    elements_code = []
+    next_cte = cte
+    for arg in args:
+        next_cte, arg_code = comp_expr(next_cte, arg)
+        elements_code.append(arg_code)
 
-    if len(args) == 0:
-        def code(rte, cont):
-            return cont(rte, [])
-        return (cte, code)
-    else:
-        (cte1, code1) = comp_expr(cte, args[0])
-        (cte2, code2) = comp_elements(cte, args[1:])
-        return gen_elements_seq(cte2, code1, code2)
+    return gen_elements_seq(next_cte, elements_code)
 
-def gen_elements_seq(cte, code1, code2):
+def gen_elements_seq(cte, elements_code):
+    elements_len = len(elements_code)
 
-    def code(rte, cont):
-        return code1(rte,
-                     lambda rte1, val1:
-                        code2(rte1,
-                              lambda rte2, val2:
-                                 cont(rte2, [val1] + val2)))
-    return (cte, code)
+    def do_elements_cont(cont):
+        i = elements_len - 1
+        while i >= 0:
+            current_element_code = elements_code[i]
+
+            # Required to create a closure for next_cont, i and current_element_code
+            def create_code(next_cont, i, current_element_code):
+                def code(rte, acc):
+                    def store(rte, val):
+                        acc[i] = val
+                        return next_cont(rte, acc)
+                    return current_element_code(rte, store)
+                return code
+
+            cont = create_code(cont, i, current_element_code)
+            i = i - 1
+        return cont
+
+    def alloc_list(rte, cont):
+        # TODO: Replace by acc = [None] * len(elements_comp) once supported
+        acc = []
+        for _ in elements_code: acc.append(None)
+
+        elements_cont = do_elements_cont(cont)
+        return elements_cont(rte, acc)
+
+    return (cte, alloc_list)
+
 
 def comp_expr_opt(cte, ast):
     if ast is None:
