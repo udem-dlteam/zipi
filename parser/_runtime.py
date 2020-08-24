@@ -323,8 +323,8 @@ def float_e():
 
 # String manipulation
 
-def chr_at(s, i):
-    return s[i]
+def str_is_numeric(s):
+    return s.isnumeric()
 
 ###
 # IO operations
