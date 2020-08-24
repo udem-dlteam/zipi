@@ -3013,7 +3013,6 @@ def gen_elements_seq(cte, elements_code):
 
     def do_elements_cont(cont):
         i = elements_len - 1
-        next_cont = cont
         while i >= 0:
             current_element_code = elements_code[i]
 
@@ -3026,9 +3025,9 @@ def gen_elements_seq(cte, elements_code):
                     return current_element_code(rte, store)
                 return code
 
-            next_cont = create_code(next_cont, i, current_element_code)
+            cont = create_code(cont, i, current_element_code)
             i = i - 1
-        return next_cont
+        return cont
 
     def alloc_list(rte, cont):
         # TODO: Replace by acc = [None] * len(elements_comp) once supported
