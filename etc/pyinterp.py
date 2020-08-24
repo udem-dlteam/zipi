@@ -1471,7 +1471,7 @@ def om_tuple_elements_repr(ctx, elts, repr_acc):
         if repr_acc_len == 0:
             return ctx.cont(ctx.rte, om_str("()"))
         elif repr_acc_len == 1:
-            result = '(' + OM_get_boxed_value(repr_acc[0]) + ',)'
+            result = '(' + repr_acc[0] + ',)'
             return ctx.cont(ctx.rte, om_str(result))
         else:
             result = '(' + ', '.join(repr_acc) + ')'
@@ -3013,25 +3013,45 @@ def comp_expr(cte, ast):
         return CT_raise_with_msg(cte, ast, "unsupported expression AST")
 
 def comp_elements(cte, args):
+    elements_code = []
+    next_cte = cte
+    for arg in args:
+        next_cte, arg_code = comp_expr(next_cte, arg)
+        elements_code.append(arg_code)
 
-    if len(args) == 0:
-        def code(rte, cont):
-            return cont(rte, [])
-        return (cte, code)
-    else:
-        (cte1, code1) = comp_expr(cte, args[0])
-        (cte2, code2) = comp_elements(cte, args[1:])
-        return gen_elements_seq(cte2, code1, code2)
+    return gen_elements_seq(next_cte, elements_code)
 
-def gen_elements_seq(cte, code1, code2):
+def gen_elements_seq(cte, elements_code):
+    elements_len = len(elements_code)
 
-    def code(rte, cont):
-        return code1(rte,
-                     lambda rte1, val1:
-                        code2(rte1,
-                              lambda rte2, val2:
-                                 cont(rte2, [val1] + val2)))
-    return (cte, code)
+    def do_elements_cont(cont):
+        i = elements_len - 1
+        while i >= 0:
+            current_element_code = elements_code[i]
+
+            # Required to create a closure for next_cont, i and current_element_code
+            def create_code(next_cont, i, current_element_code):
+                def code(rte, acc):
+                    def store(rte, val):
+                        acc[i] = val
+                        return next_cont(rte, acc)
+                    return current_element_code(rte, store)
+                return code
+
+            cont = create_code(cont, i, current_element_code)
+            i = i - 1
+        return cont
+
+    def alloc_list(rte, cont):
+        # TODO: Replace by acc = [None] * len(elements_comp) once supported
+        acc = []
+        for _ in elements_code: acc.append(None)
+
+        elements_cont = do_elements_cont(cont)
+        return elements_cont(rte, acc)
+
+    return (cte, alloc_list)
+
 
 def comp_expr_opt(cte, ast):
     if ast is None:
@@ -3468,6 +3488,8 @@ def comp_Compare_Op(op):
         sem_op = sem_LtE
     elif isinstance(op, AST.GtE):
         sem_op = sem_GtE
+    elif isinstance(op, AST.In):
+        sem_op = sem_Contains
     else:
         sem_op = None
 
@@ -3750,6 +3772,32 @@ def sem_iter(ctx, obj):
             return ctx.cont(ctx.rte, om_iterator(obj, om_int(0)))
     else:
         return om_call(obj_iter, ctx, (obj,))
+
+def sem_Contains_in_iterator(ctx, target, iterator):
+    def get_next(rte, iterator):
+        def compare(get_next_rte, get_next_val):
+            if get_next_val is for_loop_end_marker:
+                return ctx.cont(get_next_rte, om_False)
+            else:
+                def cont_eq(eq_rte, eq_result):
+                    def cont(rte, bool_res):
+                        if om_is(bool_res, om_True):
+                            return ctx.cont(ctx.rte, om_True)
+                        else:
+                            return get_next(rte, iterator)
+                    return sem_bool(Context(eq_rte, cont, ctx.ast), eq_result)
+                return sem_Eq(Context(get_next_rte, cont_eq, ctx.ast), get_next_val, target)
+        return sem_next(Context(rte, compare, ctx.ast), iterator, for_loop_end_marker)
+    return get_next(ctx.rte, iterator)
+
+def sem_Contains(ctx, target, obj):
+    obj_contains = getattribute_from_obj_mro(obj, "__contains__")
+    if obj_contains is absent:
+        def cont(rte, it):
+            return sem_Contains_in_iterator(Context(rte, ctx.cont, ctx.ast), target, it)
+        return sem_iter(with_cont(ctx, cont), obj)
+    else:
+        return om_call(obj_contains, ctx, (obj, target))
 
 def om_unpack_iterable(ctx, it):
     seq = []
