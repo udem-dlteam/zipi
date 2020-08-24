@@ -2983,6 +2983,12 @@ def comp_expr(cte, ast):
         (args_cte, args_code) = comp_elements(func_cte, ast.args)
         # TODO: compile ast.keywords args
         return gen_call(func_cte, ast, func_code, args_code)
+    elif isinstance(ast, AST.IfExp):
+        (cte1, test_code) = comp_expr(cte, ast.test)
+        (cte2, body_code) = comp_expr(cte1, ast.body)
+        (cte3, orelse_code) = comp_expr(cte2, ast.orelse)
+        return gen_ifexpr(cte3, ast, test_code, body_code, orelse_code)
+
     elif isinstance(ast, AST.Tuple):
         if debug: print('AST.Tuple')
         (cte, code_elts) = comp_elements(cte, ast.elts)
@@ -3976,6 +3982,24 @@ def gen_call(cte, ast, func_code, args_code):
                                 sem_call(Context(rte, expr_end_cont, ast),
                                          [val1, val2])))
     return (cte, code)
+
+def gen_ifexpr(cte, ast, test_code, body_code, orelse_code):
+    def code(rte, cont):
+        expr_end_cont = do_expr_end(cont, ast)
+        def dispatch(rte, val):
+            if om_is(val, om_True):
+                return body_code(rte, expr_end_cont)
+            else:
+                return orelse_code(rte, expr_end_cont)
+
+        def cast_bool(rte, val):
+            ctx = Context(rte, dispatch, ast)
+            return sem_bool(ctx, val)
+
+        return test_code(rte, cast_bool)
+
+    return (cte, code)
+
 
 def gen_Attribute(cte, ast, code, name):
     def call_getattribute(rte, cont, obj):
