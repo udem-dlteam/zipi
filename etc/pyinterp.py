@@ -1471,7 +1471,7 @@ def om_tuple_elements_repr(ctx, elts, repr_acc):
         if repr_acc_len == 0:
             return ctx.cont(ctx.rte, om_str("()"))
         elif repr_acc_len == 1:
-            result = '(' + OM_get_boxed_value(repr_acc[0]) + ',)'
+            result = '(' + repr_acc[0] + ',)'
             return ctx.cont(ctx.rte, om_str(result))
         else:
             result = '(' + ', '.join(repr_acc) + ')'
