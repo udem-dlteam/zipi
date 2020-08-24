@@ -3015,17 +3015,17 @@ def gen_elements_seq(cte, elements_code):
         i = elements_len - 1
         next_cont = cont
         while i >= 0:
-            element_code = elements_code[i]
+            current_element_code = elements_code[i]
 
             def create_closure(next_cont, i, element_code):
                 def code(rte, acc):
                     def accumulate(rte, val):
                         acc[i] = val
                         return next_cont(rte, acc)
-                    return element_code(rte, accumulate)
+                    return current_element_code(rte, accumulate)
                 return code
 
-            next_cont = create_closure(next_cont, i, element_code)
+            next_cont = create_closure(next_cont, i, current_element_code)
             i = i - 1
         return next_cont
 
