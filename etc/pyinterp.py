@@ -2796,31 +2796,6 @@ def comp_stmt_seq(cte, stmt_seq):
             (cte2, code2) = comp_stmt_seq(cte1, stmt_seq[1:])
             return gen_stmt_seq(cte2, code1, code2)
 
-# Compilation of function arguments
-def comp_function_args(cte, args):
-
-    if len(args) == 0:
-        def code(rte, cont):
-            return cont(rte, [])
-        return (cte, code)
-    else:
-        index_last = len(args) - 1
-        (cte1, code1) = comp_expr(cte, args[index_last])
-        (cte2, code2) = comp_function_args(cte, args[0:index_last])
-        return gen_function_args_seq(cte2, code1, code2)
-
-def gen_function_args_seq(cte, code1, code2):
-    # code1: gives the function object
-    # code2: gives positional arguments
-    # TODO: add keyword arguments support.
-    def code(rte, cont):
-        return code2(rte,
-                     lambda rte2, val2:
-                        code1(rte2,
-                              lambda rte1, val1:
-                                 cont(rte1, val2 + [val1])))
-    return (cte, code)
-
 # Compilation of a statement.
 
 def comp_stmt(cte, ast):
@@ -3005,17 +2980,17 @@ def comp_expr(cte, ast):
     elif isinstance(ast, AST.Call):
         if debug: print('AST.Call')
         (func_cte, func_code) = comp_expr(cte, ast.func)
-        (args_cte, args_code) = comp_function_args(func_cte, ast.args)
+        (args_cte, args_code) = comp_elements(func_cte, ast.args)
         # TODO: compile ast.keywords args
         return gen_call(func_cte, ast, func_code, args_code)
     elif isinstance(ast, AST.Tuple):
         if debug: print('AST.Tuple')
-        computed_elts = comp_elements(cte, ast.elts)
-        return gen_Tuple(cte, ast, computed_elts)
+        (cte, code_elts) = comp_elements(cte, ast.elts)
+        return gen_Tuple(cte, ast, code_elts)
     elif isinstance(ast, AST.List):
         if debug: print('AST.List')
-        computed_elts = comp_elements(cte, ast.elts)
-        return gen_List(cte, ast, computed_elts)
+        (cte, code_elts) = comp_elements(cte, ast.elts)
+        return gen_List(cte, ast, code_elts)
     elif isinstance(ast, AST.Subscript) and isinstance(ast.ctx, AST.Load):
         if debug: print("AST.Subscript Load")
         obj_cte, obj_code = comp_expr_opt(cte, ast.value)
@@ -3024,17 +2999,26 @@ def comp_expr(cte, ast):
     else:
         return CT_raise_with_msg(cte, ast, "unsupported expression AST")
 
-def comp_elements(cte, elts):
-    computed_elts = []
-    elts_len = len(elts)
-    i = 0
-    current_cte = cte
-    while i < elts_len:
-        current_cte, elt_code = comp_expr(current_cte, elts[i])
-        computed_elts.append((current_cte, elt_code))
-        i += 1
+def comp_elements(cte, args):
 
-    return computed_elts
+    if len(args) == 0:
+        def code(rte, cont):
+            return cont(rte, [])
+        return (cte, code)
+    else:
+        (cte1, code1) = comp_expr(cte, args[0])
+        (cte2, code2) = comp_elements(cte, args[1:])
+        return gen_elements_seq(cte2, code1, code2)
+
+def gen_elements_seq(cte, code1, code2):
+
+    def code(rte, cont):
+        return code1(rte,
+                     lambda rte1, val1:
+                        code2(rte1,
+                              lambda rte2, val2:
+                                 cont(rte2, [val1] + val2)))
+    return (cte, code)
 
 def comp_expr_opt(cte, ast):
     if ast is None:
@@ -3793,31 +3777,22 @@ def gen_constant(cte, ast, val):
 
     return (cte, code)
 
-def gen_Tuple(cte, ast, elts):
-    return gen_elements(cte, ast, elts, make_tuple, [])
+def gen_Tuple(cte, ast, code_elts):
+    return gen_elements(cte, ast, code_elts, make_tuple)
 
-def gen_List(cte, ast, elts):
-    return gen_elements(cte, ast, elts, make_list, [])
+def gen_List(cte, ast, elts_code):
+    return gen_elements(cte, ast, elts_code, make_list)
 
-def gen_elements(cte, ast, elts, make_container, acc):
-    if len(elts) == 0:
-        def code(rte, cont):
-            ctx = Context(rte, do_expr_end(cont, ast), ast)
-            return make_container(ctx, acc)
+def gen_elements(cte, ast, code_elts, make_container):
+    def code(rte, cont):
+        return code_elts(rte,
+                         lambda rte1, elts:
+                            make_container(Context(rte1,
+                                                   do_expr_end(cont, ast),
+                                                   ast),
+                                           elts))
+    return (cte, code)
 
-        return cte, code
-    else:
-        elt_code = elts[0][1]
-        tail_cte, tail_code = gen_elements(cte, ast, elts[1:], make_container, acc)
-
-        def code(rte, cont):
-            def accumulate_cont(rte, val):
-                acc.append(val)
-                return tail_code(rte, cont)
-
-            return elt_code(rte, accumulate_cont)
-
-        return tail_cte, code
 
 def gen_Subscript_Load(cte, ast, obj_code, index_code):
     def get_obj(rte, cont):
