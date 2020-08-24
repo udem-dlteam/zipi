@@ -3475,6 +3475,8 @@ def comp_Compare_Op(op):
         sem_op = sem_LtE
     elif isinstance(op, AST.GtE):
         sem_op = sem_GtE
+    elif isinstance(op, AST.Is):
+        return sem_Is
     else:
         sem_op = None
 
@@ -3600,6 +3602,12 @@ sem_Lt = gen_sem_Numeric_BinOp('<', '__lt__', '__gt__')
 sem_Gt = gen_sem_Numeric_BinOp('>', '__gt__', '__lt__')
 sem_LtE = gen_sem_Numeric_BinOp('<=', '__le__', '__ge__')
 sem_GtE = gen_sem_Numeric_BinOp('>=', '__ge__', '__le__')
+
+def sem_Is(ctx, val1, val2):
+    if om_is(val1, val2):
+        return ctx.cont(ctx.rte, om_True)
+    else:
+        return ctx.cont(ctx.rte, om_False)
 
 def sem_Neg(ctx, val1):
     val1_neg = getattribute_from_obj_mro(val1, '__neg__')
