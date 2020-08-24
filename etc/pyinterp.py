@@ -1997,12 +1997,23 @@ def om_int_str_conversion(ctx, obj, radix):
         str_value = OM_get_boxed_value(obj)
         index_value = OM_get_boxed_value(index)
         if int_ge(index_value, 2) and int_le(index_value, 36):
-            return ctx.cont(ctx.rte, om_int(int_from_string(str_value, index_value)))
+            res = int_from_string(str_value, index_value)
+            # Note good practice, but JS side requires a comparison with false
+            if res is False:
+                return sem_raise_with_message(ctx, class_ValueError,
+                                              "invalid literal for int() with base " + str(index_value))
+            else:
+                return ctx.cont(ctx.rte, om_int(res))
         elif int_is_zero(index):
             if len(str_value) == 0 or str_value[0] == '0':
                 return sem_raise_with_message(ctx, class_ValueError, "invalid literal for int() with base 0")
             else:
-                return ctx.cont(ctx.rte, om_int(int_from_string(str_value, 10)))
+                res = int_from_string(str_value, index_value)
+                # Note good practice, but JS side requires a comparison with false
+                if res is False:
+                    return sem_raise_with_message(ctx, class_ValueError, "invalid literal for int() with base 0")
+                else:
+                    return ctx.cont(ctx.rte, om_int(res))
         else:
             return sem_raise_with_message(ctx, class_ValueError, "int() base must be >= 2 and <= 36, or 0")
 

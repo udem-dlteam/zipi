@@ -160,7 +160,10 @@ def int_to_string(u, radix):
 
 
 def int_from_string(string, radix):
-    return int(string, radix)
+    try:
+        return int(string, radix)
+    except ValueError:
+        return False
 
 
 ###
