@@ -3015,6 +3015,7 @@ def gen_elements_seq(cte, elements_code):
         if i < elements_len:
             element_code = elements_code[i]
             next_cont = gen_elements_seq_aux(cte, cont, i + 1)
+            
             def code(rte, acc):
                 def accumulate(rte, val):
                     acc[i] = val
