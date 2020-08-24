@@ -2004,7 +2004,7 @@ def om_int_str_conversion(ctx, obj, radix):
             else:
                 return ctx.cont(ctx.rte, om_int(int_from_string(str_value, 10)))
         else:
-            return sem_raise_with_message(ctx, class_TypeError, "int() base must be >= 2 and <= 36, or 0")
+            return sem_raise_with_message(ctx, class_ValueError, "int() base must be >= 2 and <= 36, or 0")
 
     return sem_index(with_cont(ctx, check_range), radix)
 
