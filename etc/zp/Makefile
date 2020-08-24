@@ -43,7 +43,7 @@ tests: copy_files pyinterp_tests
 
 .PHONY: pyinterp_tests
 pyinterp_tests:
-	cd ../tests_pyinterp && $(MAKE) tests
+	cd ../../pyinterp/tests && $(MAKE) tests
 
 clean:
 	rm -vf ./test/zast_browser.js ./test/zast_node.js ./test/zast_browser_es6.js \
