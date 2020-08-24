@@ -53,6 +53,10 @@ function chr(code) {
     return String.fromCodePoint.apply(null, [code]);
 }
 
+function chr_at(s, i) {
+    return s.charAt(i);
+}
+
 function tuple_to_list(tup) {tup.slice();};
 
 function list_to_tuple(lst) {lst.slice();};

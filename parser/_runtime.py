@@ -321,6 +321,10 @@ def float_pi():
 def float_e():
     return math.e
 
+# String manipulation
+
+def chr_at(s, i):
+    return s[i]
 
 ###
 # IO operations
