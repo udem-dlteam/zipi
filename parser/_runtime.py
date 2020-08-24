@@ -163,6 +163,12 @@ def int_from_string(string, radix):
     return int(string, radix)
 
 
+def int_pow_mod(u, v, m):
+    return pow(u,v,m)
+
+def int_pow(u, v)
+    return pow(u,v)
+
 ###
 # Float operations
 ###
@@ -307,8 +313,12 @@ def float_log(u):
     return math.log(u)
 
 
-def float_pow(u, v):
+def float_math_pow(u, v):
     return math.pow(u, v)
+
+
+def float_pow(u, v):
+    return pow(u,v)
 
 
 def float_pi():

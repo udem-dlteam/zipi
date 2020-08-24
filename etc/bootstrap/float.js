@@ -136,6 +136,10 @@ function float_log1p(float_a) {
 }
 
 function float_pow(float_a, float_b) {
+    return float_a ** float_b;
+}
+
+function float_math_pow(float_a, float_b) {
     return Math.pow(float_a, float_b);
 }
 

@@ -927,6 +927,21 @@ if (globalThis.BigInt) {
     function int_to_string(int_a, radix) { return int_a.toString(radix); }
     function int_from_string_radix10(str) { return BigInt(str); }
     // function int_from_string(str, radix) // not a method of BigInt
+    
+    function int_pow(int_a, int_b) { return int_a ** int_b; }
+    function int_pow_mod(int_a, int_b, int_mod) {
+        var mod = BigInt(int_mod);
+        var loop = function(x, n) {
+            if (n == 1)
+                return x;
+            if ((n % 2n) == 0)
+                return loop((x*x) % mod, n/2n);
+            else
+                return x * loop((x*x) % mod, (n-1n)/2n);
+        };
+        return loop(int_a, int_b);
+    }
+ 
 }
 
 //-----------------------------------------------------------------------------

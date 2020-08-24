@@ -2384,6 +2384,59 @@ def om_abs_code(rte, _):
     obj = rte_lookup(rte, 'obj')
     return sem_abs(next_ctx, obj)
 
+def om_pow_code(rte, cont):
+    ctx = make_out_of_ast_context(rte, cont)
+
+    val1 = rte_lookup(rte, 'obj1')
+    obj1_class = OM_get_object_class(val1)
+    unboxed_val1 = OM_get_boxed_value(val1)
+
+    val2 = rte_lookup(rte, 'obj2')
+    obj2_class = OM_get_object_class(val2)
+    unboxed_val2 = OM_get_boxed_value(val2)
+
+    mod  = rte_lookup(rte, 'powmod')
+
+    if om_is(obj1_class, class_int):
+
+        if om_is(obj2_class, class_float):
+            unboxed_val1 = int_to_float(unboxed_val1)
+            return unwindReturn(rte, om_float(float_pow(unboxed_val1, unboxed_val2)))
+
+
+        elif om_is(obj2_class, class_int):
+
+            if int_is_neg(unboxed_val2):
+                # second operand negative 
+                #   -> convert everything to float
+                unboxed_val1 = int_to_float(unboxed_val1)
+                unboxed_val2 = int_to_float(unboxed_val2)
+                return unwindReturn(rte, om_float(float_pow(unboxed_val1, unboxed_val2)))
+            elif om_is(mod, absent) :
+                return unwindReturn(rte, om_int(int_pow(unboxed_val1, unboxed_val2)))
+            else:
+                unboxed_mod = OM_get_boxed_value(mod)
+                if om_is(OM_get_object_class(mod), class_int):
+                    return unwindReturn(rte, om_int(int_pow_mod(unboxed_val1, unboxed_val2, unboxed_mod)))
+                return sem_raise(ctx, class_Type_error)
+
+
+        else:
+            sem_raise(ctx, class_TypeError)
+
+    elif om_is(obj1_class, class_float):
+
+        if om_is(obj2_class, class_int):
+            unboxed_val2 = int_to_float(unboxed_val2)
+            return unwindReturn(rte, om_float(float_pow(unboxed_val1, unboxed_val2)))
+
+        if om_is(obj2_class, class_float):
+            return unwindReturn(rte, om_float(float_pow(unboxed_val1, unboxed_val2)))
+
+    else:
+        sem_raise(ctx, class_TypeError)
+
+
 # Built-in Modules
 def init_module_math():
 
@@ -2458,7 +2511,7 @@ def init_module_math():
             obj2_class = class_float
 
         if om_is(obj1_class, class_float) and om_is(obj2_class, class_float):
-            return unwindReturn(rte, om_float(float_pow(unboxed_val1, unboxed_val2)))
+            return unwindReturn(rte, om_float(float_math_pow(unboxed_val1, unboxed_val2)))
 
         else:
             ctx = make_out_of_ast_context(rte, cont)
@@ -2694,6 +2747,8 @@ def fresh_rte(options):
                                                       make_posonly_defaults_signature(('obj', 'sentinel'), (absent,)))
 
     om_builtin_abs = om_make_function_with_signature('abs', om_abs_code, make_posonly_only_signature(('obj',)))
+    om_builtin_pow = om_make_function_with_signature('pow', om_pow_code, make_posonly_defaults_signature(('obj1', 'obj2', 'powmod'), (absent,)))
+
 
     dict_set(builtins_env, 'type', class_type)
     dict_set(builtins_env, 'object', class_object)
@@ -2714,6 +2769,7 @@ def fresh_rte(options):
     dict_set(builtins_env, 'next', om_builtin_next)
     dict_set(builtins_env, 'iter', om_builtin_iter)
     dict_set(builtins_env, 'abs', om_builtin_abs)
+    dict_set(builtins_env, 'pow', om_builtin_pow)
 
     dict_set(builtins_env, 'BaseException', class_BaseException)
     dict_set(builtins_env, 'Exception', class_Exception)
