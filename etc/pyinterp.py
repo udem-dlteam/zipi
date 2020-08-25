@@ -1988,11 +1988,14 @@ om_int_rand = gen_dunder_Numeric_BinOp('int', '__rand__', int_and, class_int, om
 om_int_xor = gen_dunder_Numeric_BinOp('int', '__xor__', int_xor, class_int, om_int)
 om_int_rxor = gen_dunder_Numeric_BinOp('int', '__xror__', int_xor, class_int, om_int)
 
+def is_space(c):
+    return c == " " or c == "\t" or c == "\f" or c == "\n"
+
 def trim_str(string):
     start = 0
     str_len = len(string)
     while start < str_len:
-        if string[start] == " ":
+        if is_space(string[start]):
             break
         else:
             start += 1
@@ -2000,7 +2003,7 @@ def trim_str(string):
     stop = str_len
 
     while stop > 0:
-        if string[stop - 1] != " ":
+        if not is_space(string[stop - 1]):
             break
         else:
             stop = stop - 1
@@ -2016,7 +2019,7 @@ def om_int_str_conversion(ctx, obj, radix):
         str_value = OM_get_boxed_value(obj)
         index_value = OM_get_boxed_value(index)
         if int_ge(index_value, 2) and int_le(index_value, 36):
-            res = int_from_string(str_value, index_value)
+            res = int_from_string(trim_str(str_value), index_value)
             # Note good practice, but JS side requires a comparison with false
             if res is False:
                 return sem_raise_with_message(ctx, class_ValueError,
@@ -2024,8 +2027,6 @@ def om_int_str_conversion(ctx, obj, radix):
             else:
                 return ctx.cont(ctx.rte, om_int(res))
         elif int_is_zero(index_value):
-            trimmed_str = trim_str(str_value)
-
             if len(trimmed_str) >= 2:
                 prefix = str_value[:2]
             else:
@@ -2040,7 +2041,7 @@ def om_int_str_conversion(ctx, obj, radix):
             else:
                 base = 10
 
-            res = int_from_string(trimmed_str, base)
+            res = int_from_string(str_value, base)
             # Note good practice, but JS side requires a comparison with false
             if res is False:
                 return sem_raise_with_message(ctx, class_ValueError, "invalid literal for int() with base 0")
