@@ -2044,13 +2044,13 @@ def om_int_str_conversion(ctx, obj, radix):
             else:
                 prefix = None
 
-            if prefix == "0b":
+            if prefix == "0b" or prefix == "0B":
                 start += 2
                 base = 2
-            elif prefix == "0o":
+            elif prefix == "0o" or prefix == "0O":
                 start += 2
                 base = 8
-            elif prefix == "0x":
+            elif prefix == "0x" or prefix == "0X":
                 start += 2
                 base = 16
             else:
