@@ -2027,6 +2027,12 @@ def om_int_str_conversion(ctx, obj, radix):
             else:
                 return ctx.cont(ctx.rte, om_int(res))
         elif int_is_zero(index_value):
+            if len(str_value) > 1 and str_value[0] == "-":
+                neg = True
+                str_value = str_value[1:]
+            else:
+                neg = False
+
             if len(str_value) >= 2:
                 prefix = str_value[:2]
             else:
@@ -2051,6 +2057,8 @@ def om_int_str_conversion(ctx, obj, radix):
             if res is False:
                 return sem_raise_with_message(ctx, class_ValueError, "invalid literal for int() with base 0")
             else:
+                if neg:
+                    res = int_neg(res)
                 return ctx.cont(ctx.rte, om_int(res))
         else:
             return sem_raise_with_message(ctx, class_ValueError, "int() base must be >= 2 and <= 36, or 0")
