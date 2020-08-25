@@ -165,6 +165,12 @@ def int_from_string(string, radix):
     except ValueError:
         return False
 
+def int_from_substring(string, start, stop, radix):
+    try:
+        return int(string[start:stop], radix)
+    except ValueError:
+        return False
+
 
 ###
 # Float operations

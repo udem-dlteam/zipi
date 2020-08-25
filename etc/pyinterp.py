@@ -2027,16 +2027,20 @@ def om_int_str_conversion(ctx, obj, radix):
             else:
                 return ctx.cont(ctx.rte, om_int(res))
         elif int_is_zero(index_value):
-            if len(str_value) > 1 and str_value[0] == "-":
-                neg = True
-                str_value = str_value[1:]
-            elif len(str_value) > 1 and str_value[0] == "+":
-                str_value = str_value[1:]
-            else:
-                neg = False
+            start = 0
+            str_value_len = len(str_value)
 
-            if len(str_value) >= 2:
-                prefix = str_value[:2]
+            if str_value_len > 1 and str_value[start] == "-":
+                negative = True
+                start += 1
+            elif str_value_len > 1 and str_value[start] == "+":
+                negative = False
+                start += 1
+            else:
+                negative = False
+
+            if str_value_len >= start + 2:
+                prefix = str_value[start:start+2]
             else:
                 prefix = None
 
@@ -2049,17 +2053,16 @@ def om_int_str_conversion(ctx, obj, radix):
             else:
                 base = 10
 
-            if prefix is None:
-                str_num = str_value
+            if start < str_value_len:
+                res = int_from_substring(str_value, start, str_value_len, base)
             else:
-                str_num = str_value[2:]
+                res = False
 
-            res = int_from_string(str_num, base)
             # Note good practice, but JS side requires a comparison with false
             if res is False:
                 return sem_raise_with_message(ctx, class_ValueError, "invalid literal for int() with base 0")
             else:
-                if neg:
+                if negative:
                     res = int_neg(res)
                 return ctx.cont(ctx.rte, om_int(res))
         else:
