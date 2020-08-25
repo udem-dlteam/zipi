@@ -448,11 +448,11 @@ def align_args_with_signature(ctx, funcname, caller_args, signature):
             else:
                 def add_punctuation(msg, remaining_args_count):
                     result = msg
-                    if remaining_args_count < missing_args_len:
+                    if missing_args_len > 1 and remaining_args_count == 1:
+                        result += ' and '
+                    elif remaining_args_count < missing_args_len:
                         result += ', '
 
-                    if missing_args_len > 1 and remaining_args_count == 1:
-                        result += 'and '
                     return result
 
                 def add_arguments(msg, remaining_args_count, start, end, args):
@@ -485,7 +485,8 @@ def align_args_with_signature(ctx, funcname, caller_args, signature):
             vararg_len = len(vararg_value)
             if vararg is False:
                 s = 's' if total_args_len != 1 else ''
-                msg = funcname + "() takes " + str(total_args_len) + " positional argument" + s + " but " + str(caller_args_len) + " were given"
+                was_or_were = 'was' if caller_args_len == 1 else 'were'
+                msg = funcname + "() takes " + str(total_args_len) + " positional argument" + s + " but " + str(caller_args_len) + " " + was_or_were + " given"
                 return sem_raise_with_message(ctx, class_TypeError, msg)
             else:
                 locals_env.append((vararg, om_list(vararg_value, vararg_len)))
