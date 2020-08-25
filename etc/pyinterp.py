@@ -422,23 +422,17 @@ def align_args_with_signature(ctx, caller_args, signature):
         defaults_len = len(defaults)
         total_args_len = args_len + posonlyargs_len
         if caller_args_len == total_args_len:
-            if not vararg:
-                # Copy to keep side effect local
-                caller_index = 0
+            locals_env = []
+            caller_index = 0
+            for arg in posonlyargs:
+                locals_env.append((arg, caller_args[caller_index]))
+                caller_index += 1
 
-                locals_env = []
-                for arg in posonlyargs:
-                    locals_env.append((arg, caller_args[caller_index]))
-                    caller_index += 1
+            for arg in args:
+                locals_env.append((arg, caller_args[caller_index]))
+                caller_index += 1
 
-                for arg in args:
-                    locals_env.append((arg, caller_args[caller_index]))
-                    caller_index += 1
-
-                return locals_env
-            else:
-                # XXX: not working.
-                return caller_args
+            return locals_env
         elif caller_args_len < total_args_len:
             missing_args_len = total_args_len - caller_args_len
             if defaults_len >= missing_args_len:
@@ -454,7 +448,21 @@ def align_args_with_signature(ctx, caller_args, signature):
             else:
                 assert False, 'TypeError'
         else:
-            assert False, 'vararg not implemented'
+            locals_env = []
+            caller_index = 0
+            for arg in posonlyargs:
+                locals_env.append((arg, caller_args[caller_index]))
+                caller_index += 1
+
+            for arg in args:
+                locals_env.append((arg, caller_args[caller_index]))
+                caller_index += 1
+
+            vararg_value = caller_args[caller_index:]
+            vararg_len = len(vararg_value)
+            locals_env.append((vararg, om_list(vararg_value, vararg_len)))
+
+            return locals_env
 
 # object model
 def make_dict_from_list(lst):
@@ -2342,12 +2350,29 @@ om_oct_code = gen_int_to_string_conv_code(8, '0o')
 om_bin_code = gen_int_to_string_conv_code(2, '0b')
 
 def om_print_code(rte, _):
-    def cont(rte, str_result):
-        print_stdout(OM_get_boxed_value(str_result), rte)
-        return unwindReturn(rte, om_None)
+    args = rte_lookup(rte, 'args')
+    args_len = OM_get_list_len(args)
+    args_seq = OM_get_list_seq(args)
 
-    next_ctx = make_out_of_ast_context(rte, cont)
-    return om_convert_to_str(next_ctx, rte_lookup(rte, 'obj'))
+    result = []
+    for i in args_seq:
+        result.append(None)
+
+    def loop(rte, i):
+        def print_value(rte, str_result):
+            result[i] = OM_get_boxed_value(str_result)
+
+            new_index = i + 1
+            if new_index < args_len:
+                return loop(rte, new_index)
+            else:
+                # sep=' '
+                print_stdout(' '.join(result), rte)
+                return unwindReturn(rte, om_None)
+
+        next_ctx = make_out_of_ast_context(rte, print_value)
+        return om_convert_to_str(next_ctx, args_seq[i])
+    return loop(rte, 0)
 
 def om_repr_code(rte, _):
     def cont(rte, res):
@@ -2681,7 +2706,7 @@ def fresh_rte(options):
 
     rte = make_rte(absent, globals_env, locals_env, builtins_env, absent, absent, absent, trace)
 
-    om_builtin_print = om_make_function_with_signature('print', om_print_code, make_posonly_only_signature(('obj',)))
+    om_builtin_print = om_make_function_with_signature('print', om_print_code, make_vararg_only_signature('args'))
     om_builtin_input = om_make_function_with_signature('input', om_input_code, make_posonly_only_signature(('obj',)))
     om_builtin_hex = om_make_function_with_signature('hex', om_hex_code, make_posonly_only_signature(('obj',)))
     om_builtin_oct = om_make_function_with_signature('oct', om_oct_code, make_posonly_only_signature(('obj',)))
