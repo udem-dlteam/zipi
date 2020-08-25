@@ -134,6 +134,9 @@ def CT_raise_with_msg(cte, ast, msg):
                         msg)
 
 
+def cont_obj(ctx, val):
+    return ctx.cont(ctx.rte, val)
+
 def cont_bool(ctx, val):
     return ctx.cont(ctx.rte, om_bool(val))
 
@@ -420,7 +423,7 @@ def signature_arity(signature):
     else:
         return absent
 
-def align_args_with_signature(ctx, caller_args, signature):
+def align_args_with_signature(ctx, funcname, caller_args, signature):
     args = signature_args(signature)
     posonlyargs = signature_posonlyargs(signature)
     vararg = signature_varargs(signature)
@@ -448,7 +451,7 @@ def align_args_with_signature(ctx, caller_args, signature):
                 locals_env.append((arg, caller_args[caller_index]))
                 caller_index += 1
 
-            return locals_env
+            return ctx.cont(ctx.rte, locals_env)
         elif caller_args_len < total_args_len:
             missing_args_len = total_args_len - caller_args_len
             if defaults_len >= missing_args_len:
@@ -462,7 +465,32 @@ def align_args_with_signature(ctx, caller_args, signature):
 
                 return align_args_with_signature(ctx, result, signature)
             else:
-                assert False, 'TypeError'
+                def add_punctuation(msg, remaining_args_count):
+                    result = msg
+                    if missing_args_len == 2 and remaining_args_count == 1:
+                        result += ' and '
+                    elif missing_args_len > 2 and remaining_args_count == 1:
+                        result += ', and '
+                    elif remaining_args_count < missing_args_len:
+                        result += ', '
+
+                    return result
+
+                def add_arguments(msg, remaining_args_count, start, end, args):
+                    while start < end:
+                        arg = args[start]
+                        msg = add_punctuation(msg, remaining_args_count)+"'"+arg+"'"
+                        remaining_args_count -= 1
+                        start += 1
+                    return (msg, remaining_args_count)
+
+                msg_pos = add_arguments('', missing_args_len, caller_args_len, posonlyargs_len, posonlyargs)
+                msg_pos = add_arguments(msg_pos[0], msg_pos[1], caller_args_len - posonlyargs_len, args_len, args)
+                missing_vars_msg = msg_pos[0]
+
+                s = 's' if missing_args_len != 1 else ''
+                msg = funcname + "() missing " + str(missing_args_len) + " required positional argument"+ s +": "+missing_vars_msg
+                return sem_raise_with_message(ctx, class_TypeError, msg)
         else:
             locals_env = []
             caller_index = 0
@@ -476,9 +504,14 @@ def align_args_with_signature(ctx, caller_args, signature):
 
             vararg_value = caller_args[caller_index:]
             vararg_len = len(vararg_value)
-            locals_env.append((vararg, om_list(vararg_value, vararg_len)))
-
-            return locals_env
+            if vararg is False:
+                s = 's' if total_args_len != 1 else ''
+                was_or_were = 'was' if caller_args_len == 1 else 'were'
+                msg = funcname + "() takes " + str(total_args_len) + " positional argument" + s + " but " + str(caller_args_len) + " " + was_or_were + " given"
+                return sem_raise_with_message(ctx, class_TypeError, msg)
+            else:
+                locals_env.append((vararg, om_list(vararg_value, vararg_len)))
+                return cont_obj(ctx.rte, locals_env)
 
 # object model
 def make_dict_from_list(lst):
@@ -1874,14 +1907,17 @@ def om_function_call(ctx, args):
     signature = OM_get_function_signature(self)
 
     ## test arity
-    locals_env = align_args_with_signature(ctx, params, signature)
+    def execute_body(rte, locals_env):
+        stack = make_frame(rte, ctx.cont, ctx.ast)
+        rte = make_rte(ctx.rte, rte_globals(ctx.rte), make_dict_from_list(locals_env), rte_builtins(ctx.rte), stack, rte_ctrl_env(ctx.rte), rte_vm(ctx.rte), rte_trace(ctx.rte))
+        body = OM_get_function_body(self)
+        return body(rte,
+                    lambda rte1:
+                       frame_cont(rte_stack(rte1))(frame_rte(rte_stack(rte1)), om_None))
 
-    stack = make_frame(ctx.rte, ctx.cont, ctx.ast)
-    rte = make_rte(ctx.rte, rte_globals(ctx.rte), make_dict_from_list(locals_env), rte_builtins(ctx.rte), stack, rte_ctrl_env(ctx.rte), rte_vm(ctx.rte), rte_trace(ctx.rte))
-    body = OM_get_function_body(self)
-    return body(rte,
-                lambda rte1:
-                   frame_cont(rte_stack(rte1))(frame_rte(rte_stack(rte1)), om_None))
+    new_ctx = with_cont(ctx, execute_body)
+    self_name_value = OM_get_boxed_value(OM_get(self, '__name__'))
+    return align_args_with_signature(new_ctx, self_name_value, params, signature)
 
 def om_format_function_repr(self, rte):
     serial = OM_get_serial(self, rte)
