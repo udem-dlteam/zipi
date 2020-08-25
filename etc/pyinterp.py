@@ -2004,7 +2004,7 @@ def trim_str(string):
 
     while stop > 0:
         if is_space(string[stop - 1]):
-            stop = stop - 1
+            stop -= 1
         else:
             break
 
