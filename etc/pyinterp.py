@@ -2045,10 +2045,13 @@ def om_int_str_conversion(ctx, obj, radix):
                 prefix = None
 
             if prefix == "0b":
+                start += 2
                 base = 2
             elif prefix == "0o":
+                start += 2
                 base = 8
             elif prefix == "0x":
+                start += 2
                 base = 16
             else:
                 base = 10
