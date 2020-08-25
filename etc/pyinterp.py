@@ -2041,7 +2041,12 @@ def om_int_str_conversion(ctx, obj, radix):
             else:
                 base = 10
 
-            res = int_from_string(str_value, base)
+            if prefix is None:
+                str_num = str_value
+            else:
+                str_num = str_value[2:]
+
+            res = int_from_string(str_num, base)
             # Note good practice, but JS side requires a comparison with false
             if res is False:
                 return sem_raise_with_message(ctx, class_ValueError, "invalid literal for int() with base 0")
