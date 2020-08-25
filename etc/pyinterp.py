@@ -2030,6 +2030,8 @@ def om_int_str_conversion(ctx, obj, radix):
             if len(str_value) > 1 and str_value[0] == "-":
                 neg = True
                 str_value = str_value[1:]
+            elif len(str_value) > 1 and str_value[0] == "+":
+                str_value = str_value[1:]
             else:
                 neg = False
 
