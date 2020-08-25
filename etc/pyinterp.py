@@ -1996,17 +1996,17 @@ def trim_str(string):
     str_len = len(string)
     while start < str_len:
         if is_space(string[start]):
-            break
-        else:
             start += 1
+        else:
+            break
 
     stop = str_len
 
     while stop > 0:
-        if not is_space(string[stop - 1]):
-            break
-        else:
+        if is_space(string[stop - 1]):
             stop = stop - 1
+        else:
+            break
 
     return string[start:stop]
 
@@ -2027,7 +2027,7 @@ def om_int_str_conversion(ctx, obj, radix):
             else:
                 return ctx.cont(ctx.rte, om_int(res))
         elif int_is_zero(index_value):
-            if len(trimmed_str) >= 2:
+            if len(str_value) >= 2:
                 prefix = str_value[:2]
             else:
                 prefix = None
