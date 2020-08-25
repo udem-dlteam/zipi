@@ -2079,7 +2079,7 @@ def om_int_mod_code(ctx, args):
     # Early break for ZeroDivisionError
     val2_value = OM_get_boxed_value(val2)
     if int_is_zero(val2_value):
-        return sem_raise(ctx, class_ZeroDivisionError)
+        return sem_raise_with_message(ctx, class_ZeroDivisionError, "modulo by zero")
 
     # Primitive operations are only defined on same types.
     if om_issubclass(OM_get_object_class(val2), class_int):
@@ -2100,7 +2100,7 @@ def om_int_rmod_code(ctx, args):
     # Early break for ZeroDivisionError
     val1_value = OM_get_boxed_value(val1)
     if int_is_zero(val1_value):
-        return sem_raise(ctx, class_ZeroDivisionError)
+        return sem_raise_with_message(ctx, class_ZeroDivisionError, "modulo by zero")
 
     # Primitive operations are only defined on same types.
     if om_issubclass(OM_get_object_class(val2), class_int):
@@ -2123,7 +2123,7 @@ def om_int_floordiv_code(ctx, args):
     # Early break for ZeroDivisionError
     val2_value = OM_get_boxed_value(val2)
     if int_is_zero(val2_value):
-        return sem_raise(ctx, class_ZeroDivisionError)
+        return sem_raise_with_message(ctx, class_ZeroDivisionError, "division by zero")
 
     # Primitive operations are only defined on same types.
     if om_issubclass(OM_get_object_class(val2), class_int):
@@ -2145,7 +2145,7 @@ def om_int_rfloordiv_code(ctx, args):
     # Early break for ZeroDivisionError
     val1_value = OM_get_boxed_value(val1)
     if int_is_zero(val1_value):
-        return sem_raise(ctx, class_ZeroDivisionError)
+        return sem_raise_with_message(ctx, class_ZeroDivisionError, "division by zero")
 
     # Primitive operations are only defined on same types.
     if om_issubclass(OM_get_object_class(val2), class_int):
@@ -2166,7 +2166,7 @@ def om_int_truediv_code(ctx, args):
     # Early break for ZeroDivisionError
     val2_value = OM_get_boxed_value(val2)
     if int_is_zero(val2_value):
-        return sem_raise(ctx, class_ZeroDivisionError)
+        return sem_raise_with_message(ctx, class_ZeroDivisionError, "division by zero")
 
     # Primitive operations are only defined on same types.
     if om_issubclass(OM_get_object_class(val2), class_int):
@@ -2188,7 +2188,7 @@ def om_int_rtruediv_code(ctx, args):
     # Early break for ZeroDivisionError
     val1_value = OM_get_boxed_value(val1)
     if int_is_zero(val1_value):
-        return sem_raise(ctx, class_ZeroDivisionError)
+        return sem_raise_with_message(ctx, class_ZeroDivisionError, "division by zero")
 
     # Primitive operations are only defined on same types.
     if om_issubclass(OM_get_object_class(val2), class_int):
@@ -2819,10 +2819,9 @@ def trampoline(cont):
         cont = dict_get(state, "cont", None)
         ctx = dict_get(state, "ctx", None)
 
-        if cont and rte_trace(ctx.rte):
-            if error is not None:
-                print('at '+str(ast.lineno)+'.'+str(ast.col_offset+1)+'-'+str(ast.end_lineno)+'.'+str(ast.end_col_offset+1)+': exception = ' +error)
-            elif msg is not None:
+        if error is not None:
+            print(error)
+        if cont and rte_trace(ctx.rte) and msg is not None:
                 if len(msg) > 0:
                     msg = ' '+msg
 
@@ -3483,6 +3482,16 @@ def gen_aug_op(cte, ast, id, op, code1):
         sem_op = sem_IFloorDiv
     elif isinstance(op, AST.Mod):
         sem_op = sem_IMod
+    elif isinstance(op, AST.LShift):
+        sem_op = sem_ILShift
+    elif isinstance(op, AST.RShift):
+        sem_op = sem_IRShift
+    elif isinstance(op, AST.BitAnd):
+        sem_op = sem_IAnd
+    elif isinstance(op, AST.BitOr):
+        sem_op = sem_IOr
+    elif isinstance(op, AST.BitXor):
+        sem_op = sem_IXor
     else:
         return CT_raise_with_msg(cte, ast, "Unimplemented assignment operator")
 
@@ -3517,11 +3526,11 @@ def gen_BinOp(cte, ast, op, code1, code2):
     elif isinstance(op, AST.RShift):
         sem_op = sem_RShift
     elif isinstance(op, AST.BitAnd):
-        sem_op = sem_BitAnd
+        sem_op = sem_And
     elif isinstance(op, AST.BitOr):
-        sem_op = sem_BitOr
+        sem_op = sem_Or
     elif isinstance(op, AST.BitXor):
-        sem_op = sem_BitXor
+        sem_op = sem_Xor
     else:
         return CT_raise_with_msg(cte, ast, "unimplemented binary operator")
 
@@ -3666,9 +3675,9 @@ sem_Mod = gen_sem_Numeric_BinOp('%', '__mod__', '__rmod__')
 # Bitwise
 sem_LShift = gen_sem_Numeric_BinOp('<<', '__lshift__', '__rlshift__')
 sem_RShift = gen_sem_Numeric_BinOp('>>', '__rshift__', '__rrshift__')
-sem_BitOr = gen_sem_Numeric_BinOp('|', '__or__', '__ror__')
-sem_BitAnd = gen_sem_Numeric_BinOp('&', '__and__', '__rand__')
-sem_BitXor = gen_sem_Numeric_BinOp('^', '__xor__', '__rxor__')
+sem_Or = gen_sem_Numeric_BinOp('|', '__or__', '__ror__')
+sem_And = gen_sem_Numeric_BinOp('&', '__and__', '__rand__')
+sem_Xor = gen_sem_Numeric_BinOp('^', '__xor__', '__rxor__')
 # Comparison
 sem_Eq = gen_sem_Numeric_BinOp('==', '__eq__', '__eq__')
 sem_NotEq = gen_sem_Numeric_BinOp('==', '__ne__', '__ne__')
@@ -3704,33 +3713,46 @@ def sem_Invert(ctx, val1):
     else:
         return om_call(val1_pos, ctx, [val1])
 
-def gen_sem_IOperator(method_name, op_name):
+def gen_sem_IOperator(method_name, sem_fall_back, op_name):
 
     def gen_isem(ctx, id, val):
         def cont_var_get(rte, self):
-            def cont_iadd(rte, result):
+            def cont_raise_error(rte, result):
                 new_ctx = Context(rte, ctx.cont, ctx.ast)
                 if om_is(result, om_NotImplemented):
                     return sem_raise_with_message(new_ctx, class_TypeError, "unsupported operand type(s) for " + op_name)
                 else:
                     return sem_var_set(new_ctx, id, result)
 
-            self_iadd = getattribute_from_obj_mro(self, method_name)
-            if self_iadd is absent:
-                return sem_raise_with_message(ctx, class_TypeError, 'bad operand type for binary ' + op_name)
+            def cont_call_fallback(rte, result):
+                new_ctx = Context(rte, ctx.cont, ctx.ast)
+                if om_is(result, om_NotImplemented):
+                    return sem_fall_back(with_cont(ctx, cont_raise_error), self, val)
+                else:
+                    return sem_var_set(new_ctx, id, restul)
+
+
+            self_iop = getattribute_from_obj_mro(self, method_name)
+            if self_iop is absent:
+                return sem_fall_back(with_cont(ctx, cont_raise_error), self, val)
             else:
-                return om_call(self_iadd, with_cont(ctx, cont_iadd), [ self , val ])
+                return om_call(self_iop, with_cont(ctx, cont_call_fallback), [ self , val ])
 
         return sem_var_get(with_cont(ctx, cont_var_get), id)
 
     return gen_isem
 
-sem_IAdd = gen_sem_IOperator("__add__", "+=")
-sem_ISub = gen_sem_IOperator("__sub__", "-=")
-sem_IMul = gen_sem_IOperator("__mul__", "*=")
-sem_ITrueDiv = gen_sem_IOperator("__truediv__", "/=")
-sem_IFloorDiv = gen_sem_IOperator("__floordiv__", "//=")
-sem_IMod = gen_sem_IOperator("__mod__", "%=")
+sem_IAdd = gen_sem_IOperator("__iadd__", sem_Add, "+=")
+sem_ISub = gen_sem_IOperator("__isub__", sem_Sub, "-=")
+sem_IMul = gen_sem_IOperator("__imul__", sem_Mult, "*=")
+sem_ITrueDiv = gen_sem_IOperator("__itruediv__", sem_TrueDiv, "/=")
+sem_IFloorDiv = gen_sem_IOperator("__ifloordiv__",sem_FloorDiv,  "//=")
+sem_IMod = gen_sem_IOperator("__imod__", sem_Mod, "%=")
+sem_IAnd = gen_sem_IOperator("__iand__", sem_And, "&=")
+sem_IOr = gen_sem_IOperator("__ior__", sem_Or, "|=")
+sem_IXor = gen_sem_IOperator("__ixor__", sem_Xor, "^=")
+sem_ILShift = gen_sem_IOperator("__ilshift__", sem_LShift, "<<=")
+sem_IRShift = gen_sem_IOperator("__irshift__", sem_RShift, ">>=")
 
 
 def sem_Not(ctx, obj):
