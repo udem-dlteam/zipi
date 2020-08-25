@@ -467,8 +467,10 @@ def align_args_with_signature(ctx, funcname, caller_args, signature):
             else:
                 def add_punctuation(msg, remaining_args_count):
                     result = msg
-                    if missing_args_len > 1 and remaining_args_count == 1:
+                    if missing_args_len == 2 and remaining_args_count == 1:
                         result += ' and '
+                    elif missing_args_len > 2 and remaining_args_count == 1:
+                        result += ', and '
                     elif remaining_args_count < missing_args_len:
                         result += ', '
 
