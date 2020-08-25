@@ -2010,6 +2010,11 @@ def get_trimmed_substr_range(string):
 
     return start, stop
 
+def num_str_contains_valid_separator(s):
+    s_len = len(s)
+    i = 0
+
+
 # class_int methods
 def om_int_str_conversion(ctx, obj, radix):
     if not om_isinstance(obj, class_str):
@@ -2023,17 +2028,14 @@ def om_int_str_conversion(ctx, obj, radix):
         if not (int_ge(base, 2) and int_le(base, 36) or int_is_zero(base)):
             return sem_raise_with_message(ctx, class_ValueError, "int() base must be >= 2 and <= 36, or 0")
 
-        if int_is_zero(base):
-            start, stop = 0, len(str_value)
-        else:
-            # Trim whitespaces if base is 0
-            start, stop = get_trimmed_substr_range(str_value)
+        start, stop = get_trimmed_substr_range(str_value)
 
         # Check for a minus sign in front of the string
         if start < stop:
             first_char = str_value[start]
         else:
-            first_char = " "
+            sem_raise_with_message(ctx, class_ValueError, "invalid literal for int() with base " + str(
+                base) + ": '" + str_value + "'")
 
         if first_char == "-":
             neg = True
@@ -2051,7 +2053,7 @@ def om_int_str_conversion(ctx, obj, radix):
             if prefix_char == "b" or prefix_char == "B":
                 prefix_base = 2
                 start += 2
-            elif prefix_char == "o"  or prefix_char == "O":
+            elif prefix_char == "o" or prefix_char == "O":
                 prefix_base = 8
                 start += 2
             elif prefix_char == "x" or prefix_char == "X":
