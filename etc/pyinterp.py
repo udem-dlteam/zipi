@@ -1991,25 +1991,6 @@ om_int_rxor = gen_dunder_Numeric_BinOp('int', '__xror__', int_xor, class_int, om
 def is_space(c):
     return c == " " or c == "\t" or c == "\f" or c =="\r" or c == "\n"
 
-def get_trimmed_substr_range(string):
-    start = 0
-    str_len = len(string)
-    while start < str_len:
-        if is_space(string[start]):
-            start += 1
-        else:
-            break
-
-    stop = str_len
-
-    while stop > 0:
-        if is_space(string[stop - 1]):
-            stop -= 1
-        else:
-            break
-
-    return start, stop
-
 def num_str_contains_valid_separator(s):
     s_len = len(s)
     i = 0
@@ -2028,7 +2009,22 @@ def om_int_str_conversion(ctx, obj, radix):
         if not (int_ge(base, 2) and int_le(base, 36) or int_is_zero(base)):
             return sem_raise_with_message(ctx, class_ValueError, "int() base must be >= 2 and <= 36, or 0")
 
-        start, stop = get_trimmed_substr_range(str_value)
+        # Trim string spaces
+        start = 0
+        str_len = len(str_value)
+        while start < str_len:
+            if is_space(str_value[start]):
+                start += 1
+            else:
+                break
+
+        stop = len(str_value)
+
+        while stop > 0:
+            if is_space(str_value[stop - 1]):
+                stop -= 1
+            else:
+                break
 
         # Check for a minus sign in front of the string
         if start < stop:
