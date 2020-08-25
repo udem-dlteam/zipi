@@ -2024,28 +2024,28 @@ def om_int_str_conversion(ctx, obj, radix):
             else:
                 return ctx.cont(ctx.rte, om_int(res))
         elif int_is_zero(index_value):
-                trimmed_str = trim_str(str_value)
+            trimmed_str = trim_str(str_value)
 
-                if len(trimmed_str) >= 2:
-                    prefix = str_value[:2]
-                else:
-                    prefix = None
+            if len(trimmed_str) >= 2:
+                prefix = str_value[:2]
+            else:
+                prefix = None
 
-                if prefix == "0b":
-                    base = 2
-                elif prefix == "0o":
-                    base = 8
-                elif prefix == "0x":
-                    base = 16
-                else:
-                    base = 10
+            if prefix == "0b":
+                base = 2
+            elif prefix == "0o":
+                base = 8
+            elif prefix == "0x":
+                base = 16
+            else:
+                base = 10
 
-                res = int_from_string(trimmed_str, base)
-                # Note good practice, but JS side requires a comparison with false
-                if res is False:
-                    return sem_raise_with_message(ctx, class_ValueError, "invalid literal for int() with base 0")
-                else:
-                    return ctx.cont(ctx.rte, om_int(res))
+            res = int_from_string(trimmed_str, base)
+            # Note good practice, but JS side requires a comparison with false
+            if res is False:
+                return sem_raise_with_message(ctx, class_ValueError, "invalid literal for int() with base 0")
+            else:
+                return ctx.cont(ctx.rte, om_int(res))
         else:
             return sem_raise_with_message(ctx, class_ValueError, "int() base must be >= 2 and <= 36, or 0")
 

@@ -53,10 +53,6 @@ function chr(code) {
     return String.fromCodePoint.apply(null, [code]);
 }
 
-function str_is_numeric(str){
-  return /^\d+$/.test(str);
-}
-
 function tuple_to_list(tup) {tup.slice();};
 
 function list_to_tuple(lst) {lst.slice();};

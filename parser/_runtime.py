@@ -321,11 +321,6 @@ def float_pi():
 def float_e():
     return math.e
 
-# String manipulation
-
-def str_is_numeric(s):
-    return s.isnumeric()
-
 ###
 # IO operations
 ###
