@@ -134,6 +134,9 @@ def CT_raise_with_msg(cte, ast, msg):
                         msg)
 
 
+def cont_obj(ctx, val):
+    return ctx.cont(ctx.rte, val)
+
 def cont_bool(ctx, val):
     return ctx.cont(ctx.rte, om_bool(val))
 
@@ -506,7 +509,7 @@ def align_args_with_signature(ctx, funcname, caller_args, signature):
                 return sem_raise_with_message(ctx, class_TypeError, msg)
             else:
                 locals_env.append((vararg, om_list(vararg_value, vararg_len)))
-                return ctx.cont(ctx.rte, locals_env)
+                return cont_obj(ctx.rte, locals_env)
 
 # object model
 def make_dict_from_list(lst):
