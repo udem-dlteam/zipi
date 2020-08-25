@@ -1988,6 +1988,25 @@ om_int_rand = gen_dunder_Numeric_BinOp('int', '__rand__', int_and, class_int, om
 om_int_xor = gen_dunder_Numeric_BinOp('int', '__xor__', int_xor, class_int, om_int)
 om_int_rxor = gen_dunder_Numeric_BinOp('int', '__xror__', int_xor, class_int, om_int)
 
+def trim_str(string):
+    start = 0
+    str_len = len(string)
+    while start < str_len:
+        if string[start] == " ":
+            break
+        else:
+            start += 1
+
+    stop = str_len
+
+    while stop > 0:
+        if string[stop - 1] != " ":
+            break
+        else:
+            stop = stop - 1
+
+    return string[start:stop]
+
 # class_int methods
 def om_int_str_conversion(ctx, obj, radix):
     if not om_isinstance(obj, class_str):
@@ -2005,15 +2024,28 @@ def om_int_str_conversion(ctx, obj, radix):
             else:
                 return ctx.cont(ctx.rte, om_int(res))
         elif int_is_zero(index_value):
-            if str_is_numeric(str_value):
-                res = int_from_string(str_value, index_value)
+                trimmed_str = trim_str(str_value)
+
+                if len(trimmed_str) >= 2:
+                    prefix = str_value[:2]
+                else:
+                    prefix = None
+
+                if prefix == "0b":
+                    base = 2
+                elif prefix == "0o":
+                    base = 8
+                elif prefix == "0x":
+                    base = 16
+                else:
+                    base = 10
+
+                res = int_from_string(trimmed_str, base)
                 # Note good practice, but JS side requires a comparison with false
                 if res is False:
                     return sem_raise_with_message(ctx, class_ValueError, "invalid literal for int() with base 0")
                 else:
                     return ctx.cont(ctx.rte, om_int(res))
-            else:
-                return sem_raise_with_message(ctx, class_ValueError, "invalid literal for int() with base 0")
         else:
             return sem_raise_with_message(ctx, class_ValueError, "int() base must be >= 2 and <= 36, or 0")
 
