@@ -133,6 +133,22 @@ def CT_raise_with_msg(cte, ast, msg):
                         ast.end_col_offset,
                         msg)
 
+
+def cont_bool(ctx, val):
+    return ctx.cont(ctx.rte, om_bool(val))
+
+def cont_int(ctx, val):
+    return ctx.cont(ctx.rte, om_int(val))
+
+def cont_str(ctx, val):
+    return ctx.cont(ctx.rte, om_str(val))
+
+def cont_list(ctx, val):
+    return ctx.cont(ctx.rte, om_list(val))
+
+def cont_tuple(ctx, val):
+    return ctx.cont(ctx.rte, om_tuple(val))
+
 def with_cont(ctx, cont):
     return Context(ctx.rte, cont, ctx.ast)
 
@@ -3559,6 +3575,10 @@ def comp_Compare_Op(op):
         sem_op = sem_LtE
     elif isinstance(op, AST.GtE):
         sem_op = sem_GtE
+    elif isinstance(op, AST.Is):
+        return sem_Is
+    elif isinstance(op, AST.IsNot):
+        return sem_IsNot
     elif isinstance(op, AST.In):
         sem_op = sem_Contains
     else:
@@ -3686,6 +3706,15 @@ sem_Lt = gen_sem_Numeric_BinOp('<', '__lt__', '__gt__')
 sem_Gt = gen_sem_Numeric_BinOp('>', '__gt__', '__lt__')
 sem_LtE = gen_sem_Numeric_BinOp('<=', '__le__', '__ge__')
 sem_GtE = gen_sem_Numeric_BinOp('>=', '__ge__', '__le__')
+
+def sem_Is(ctx, val1, val2):
+    result = om_is(val1, val2)
+    return cont_bool(ctx, result)
+
+def sem_IsNot(ctx, val1, val2):
+    result = not om_is(val1, val2)
+    return cont_bool(ctx, result)
+
 
 def sem_Neg(ctx, val1):
     val1_neg = getattribute_from_obj_mro(val1, '__neg__')
