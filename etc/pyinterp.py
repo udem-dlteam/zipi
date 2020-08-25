@@ -1989,9 +1989,9 @@ om_int_xor = gen_dunder_Numeric_BinOp('int', '__xor__', int_xor, class_int, om_i
 om_int_rxor = gen_dunder_Numeric_BinOp('int', '__xror__', int_xor, class_int, om_int)
 
 def is_space(c):
-    return c == " " or c == "\t" or c == "\f" or c == "\n"
+    return c == " " or c == "\t" or c == "\f" or c =="\r" or c == "\n"
 
-def trim_str(string):
+def get_trimmed_substr_range(string):
     start = 0
     str_len = len(string)
     while start < str_len:
@@ -2008,7 +2008,7 @@ def trim_str(string):
         else:
             break
 
-    return string[start:stop]
+    return start, stop
 
 # class_int methods
 def om_int_str_conversion(ctx, obj, radix):
@@ -2017,60 +2017,69 @@ def om_int_str_conversion(ctx, obj, radix):
 
     def check_range(rte, index):
         str_value = OM_get_boxed_value(obj)
-        index_value = OM_get_boxed_value(index)
-        if int_ge(index_value, 2) and int_le(index_value, 36):
-            res = int_from_string(trim_str(str_value), index_value)
-            # Note good practice, but JS side requires a comparison with false
-            if res is False:
-                return sem_raise_with_message(ctx, class_ValueError,
-                                              "invalid literal for int() with base " + str(index_value))
-            else:
-                return ctx.cont(ctx.rte, om_int(res))
-        elif int_is_zero(index_value):
-            start = 0
-            str_value_len = len(str_value)
+        base = OM_get_boxed_value(index)
 
-            if str_value_len > 1 and str_value[start] == "-":
-                negative = True
-                start += 1
-            elif str_value_len > 1 and str_value[start] == "+":
-                negative = False
-                start += 1
-            else:
-                negative = False
-
-            if str_value_len >= start + 2:
-                prefix = str_value[start:start+2]
-            else:
-                prefix = None
-
-            if prefix == "0b" or prefix == "0B":
-                start += 2
-                base = 2
-            elif prefix == "0o" or prefix == "0O":
-                start += 2
-                base = 8
-            elif prefix == "0x" or prefix == "0X":
-                start += 2
-                base = 16
-            else:
-                base = 10
-
-            if start < str_value_len:
-                res = int_from_substring(str_value, start, str_value_len, base)
-            else:
-                res = False
-
-            # Note good practice, but JS side requires a comparison with false
-            if res is False:
-                return sem_raise_with_message(ctx, class_ValueError, "invalid literal for int() with base 0")
-            else:
-                if negative:
-                    res = int_neg(res)
-                return ctx.cont(ctx.rte, om_int(res))
-        else:
+        # Check the base (index_value) is in range
+        if not (int_ge(base, 2) and int_le(base, 36) or int_is_zero(base)):
             return sem_raise_with_message(ctx, class_ValueError, "int() base must be >= 2 and <= 36, or 0")
 
+        if int_is_zero(base):
+            start, stop = 0, len(str_value)
+        else:
+            # Trim whitespaces if base is 0
+            start, stop = get_trimmed_substr_range(str_value)
+
+        # Check for a minus sign in front of the string
+        if start < stop:
+            first_char = str_value[start]
+        else:
+            first_char = " "
+
+        if first_char == "-":
+            neg = True
+            start += 1
+        elif first_char == "+":
+            neg = False
+            start += 1
+        else:
+            neg = False
+
+        # Check for an explicit prefix (0b, 0o or 0x) in front of the string)
+        prefix_base = None
+        if str_value[start] == "0" and start + 2 < stop:
+            prefix_char = str_value[start + 1]
+            if prefix_char == "b" or prefix_char == "B":
+                prefix_base = 2
+                start += 2
+            elif prefix_char == "o"  or prefix_char == "O":
+                prefix_base = 8
+                start += 2
+            elif prefix_char == "x" or prefix_char == "X":
+                prefix_base = 16
+                start += 2
+
+        # Check prefix and provided base match if a prefix is given
+        if int_eq(base, 0):
+            if prefix_base is None:
+                actual_base = 10
+            else:
+                actual_base = prefix_base
+        else:
+            if prefix_base is None or int_eq(prefix_base, base):
+                actual_base = base
+            else:
+                return sem_raise_with_message(ctx, class_ValueError, "invalid literal for int() with base " + str(
+                    base) + ": '" + str_value + "'")
+
+        res = int_from_substring(str_value, start, stop, actual_base)
+
+        if res is False:
+            return sem_raise_with_message(ctx, class_ValueError,
+                                          "invalid literal for int() with base " + str(base) + ": '" + str_value + "'")
+        elif neg:
+            return ctx.cont(ctx.rte, om_int(int_neg(res)))
+        else:
+            return ctx.cont(ctx.rte, om_int(res))
     return sem_index(with_cont(ctx, check_range), radix)
 
 def om_int_new_code(ctx, args):
