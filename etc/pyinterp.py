@@ -2175,13 +2175,22 @@ def om_int_new_code(ctx, args):
                         "int() argument must be a string, a bytes-like object or a number")
             else:
                 return ctx.cont(ctx.rte, om_int_subtype(cls, OM_get_boxed_value(res)))
-        return sem_maybe_int(with_cont(ctx, check_result), obj)
+        return sem_maybe_index(with_cont(ctx, check_result), obj)
     elif args_len == 3:
         obj = args[1]
         radix = args[2]
 
-        return om_int_str_conversion(ctx, obj, radix)
+        if om_isinstance(obj, class_str):
+            def check_radix_range(rte, res):
+                res_value = OM_get_boxed_value(res)
+                if int_is_zero(res_value) or int_ge(res_value, int_from_num(2)) and int_le(res_value, int_from_num(36)):
+                    return om_int_str_conversion(ctx, obj, res)
+                else:
+                    return sem_raise_with_message(ctx, class_ValueError, "int() base must be >= 2 and <= 36, or 0")
 
+            return sem_index(with_cont(ctx, check_radix_range), radix)
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "int() can't convert non-string with explicit base")
     else:
         return sem_raise_with_message(ctx, class_TypeError, "int() takes at most 2 argument, got " + str(args_len))
 
@@ -4192,18 +4201,34 @@ def sem_maybe_int(ctx, obj):
                 return sem_raise_with_message(ctx, class_TypeError, "__int__ returned non-int")
         return om_call(obj_int, with_cont(ctx, check_int), [obj])
 
-def sem_index(ctx, obj):
-    obj_index = getattribute_from_obj_mro(obj, '__index__')
+def sem_int(ctx, obj):
+    def check_result(rte, res):
+        if res is None:
+            return sem_raise_with_message(ctx, class_TypeError, "object cannot be interpreted as an integer")
+        else:
+            return cont_obj(ctx, res)
+    return sem_maybe_int(with_cont(ctx, check_result), obj)
 
-    if obj_index is absent:
-        return sem_raise_with_message(ctx, class_TypeError, "object cannot be interpreted as an integer")
+def sem_maybe_index(ctx, obj):
+    obj_int = getattribute_from_obj_mro(obj, '__index__')
+
+    if obj_int is absent:
+        return ctx.cont(ctx.rte, None)
     else:
         def check_int(rte, res):
             if om_isinstance(res, class_int):
                 return ctx.cont(rte, res)
             else:
                 return sem_raise_with_message(ctx, class_TypeError, "__index__ returned non-int")
-        return om_call(obj_index, with_cont(ctx, check_int), [obj])
+        return om_call(obj_int, with_cont(ctx, check_int), [obj])
+
+def sem_index(ctx, obj):
+    def check_result(rte, res):
+        if res is None:
+            return sem_raise_with_message(ctx, class_TypeError, "object cannot be interpreted as an integer")
+        else:
+            return cont_obj(ctx, res)
+    return sem_maybe_index(with_cont(ctx, check_result), obj)
 
 def sem_maybe_float(ctx, obj):
     obj_float = getattribute_from_obj_mro(obj, '__float__')
