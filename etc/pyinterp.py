@@ -2115,8 +2115,7 @@ def int_from_str(s, base):
     if disallow_heading_zeros and s[start] == '0':
         start += 1
         while start < end:
-            c = s[start]
-            if c == '0':
+            if s[start] == '0':
                 start += 1
             else:
                 # non-zero in base 10 with heading 0 or non-digit character
