@@ -99,10 +99,6 @@ function float_div(float_a, float_b) {
     return float_a/float_b;
 }
 
-function float_floordiv(float_a, float_b) {
-    return float_floor(float_a/float_b);
-}
-
 function float_mod(float_a, float_b) {
     return float_a%float_b;
 }

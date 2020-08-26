@@ -255,10 +255,6 @@ def float_div(u, v):
     return u / v
 
 
-def float_floordiv(u, v):
-    return float_floor(u / v)
-
-
 def float_mod(u, v):
     return u % v
 

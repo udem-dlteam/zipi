@@ -2566,7 +2566,7 @@ def gen_dunder_Float_rBinOp(py_class, method, prim):
 
     return do_magic_method(class_float, method, dunder_Float_rBinOp)
 
-def gen_dunder_Float_DivideOp(py_class, method, prim):
+def gen_dunder_Float_DivideOp(py_class, method, prim, om_box):
     debug_msg = py_class + "." + method
 
     def dunder_Float_DivideOp(ctx, args):
@@ -2647,6 +2647,9 @@ om_float_rmod = gen_dunder_Float_rDivideOp('float', '__mod__', float_mod)
 
 om_float_truediv = gen_dunder_Float_DivideOp('float', '__truediv__', float_div)
 om_float_rtruediv = gen_dunder_Float_rDivideOp('float', '__rtruediv__', float_div)
+
+def float_floordiv(u, v):
+    return float_floor(u / v)
 
 om_float_floordiv = gen_dunder_Float_DivideOp('float', '__floordiv__', float_floordiv)
 om_float_rfloordiv = gen_dunder_Float_rDivideOp('float', '__rfloordiv__', float_floordiv)
