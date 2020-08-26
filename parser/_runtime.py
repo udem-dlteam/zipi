@@ -35,7 +35,7 @@ def int_instance(n):
 
 
 def int_from_float(u):
-    return u
+    return int(u)
 
 
 def int_is_zero(u):
@@ -119,7 +119,7 @@ def int_not(u):
     return ~u
 
 def int_to_float(u):
-    return u
+    return float(u)
 
 
 def int_and(u, v):
