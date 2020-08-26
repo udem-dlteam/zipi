@@ -2476,7 +2476,7 @@ def om_float_float_code(ctx, args):
 
 om_float_float = do_magic_method(class_float, "__float__", om_float_float_code)
 
-def gen_dunder_Float_BinOp(py_class, method, prim):
+def gen_dunder_Float_BinOp(py_class, method, prim, cont_box):
     debug_msg = py_class + "." + method
 
     def dunder_Float_BinOp(ctx, args):
@@ -2500,13 +2500,13 @@ def gen_dunder_Float_BinOp(py_class, method, prim):
                 return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
 
             res = prim(val1_value, val2_float_value)
-            return cont_float(ctx, res)
+            return cont_box(ctx, res)
         else:
-            return ctx.cont(ctx.rte, om_NotImplemented)
+            return ctx_obj(ctx, om_NotImplemented)
 
     return do_magic_method(class_float, method, dunder_Float_BinOp)
 
-def gen_dunder_Float_BinOp(py_class, method, prim):
+def gen_dunder_Float_BinOp(py_class, method, prim, cont_box):
     debug_msg = py_class + "." + method
 
     def dunder_Float_BinOp(ctx, args):
@@ -2530,13 +2530,13 @@ def gen_dunder_Float_BinOp(py_class, method, prim):
                 return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
 
             res = prim(val1_value, val2_float_value)
-            return cont_float(ctx, res)
+            return cont_box(ctx, res)
         else:
-            return ctx.cont(ctx.rte, om_NotImplemented)
+            return cont_obj(ctx, om_NotImplemented)
 
     return do_magic_method(class_float, method, dunder_Float_BinOp)
 
-def gen_dunder_Float_rBinOp(py_class, method, prim):
+def gen_dunder_Float_rBinOp(py_class, method, prim, cont_box):
     debug_msg = py_class + "." + method
 
     def dunder_Float_rBinOp(ctx, args):
@@ -2560,13 +2560,13 @@ def gen_dunder_Float_rBinOp(py_class, method, prim):
                 return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
 
             res = prim(val2_float_value, val1_value)
-            return cont_float(ctx, res)
+            return cont_box(ctx, res)
         else:
-            return ctx.cont(ctx.rte, om_NotImplemented)
+            return cont_obj(ctx, om_NotImplemented)
 
     return do_magic_method(class_float, method, dunder_Float_rBinOp)
 
-def gen_dunder_Float_DivideOp(py_class, method, prim, om_box):
+def gen_dunder_Float_DivideOp(py_class, method, prim, cont_box):
     debug_msg = py_class + "." + method
 
     def dunder_Float_DivideOp(ctx, args):
@@ -2593,13 +2593,13 @@ def gen_dunder_Float_DivideOp(py_class, method, prim, om_box):
                 return sem_raise_with_message(ctx, class_ZeroDivisionError, "float division or modulo by zero")
 
             res = prim(val1_value, val2_float_value)
-            return cont_float(ctx, res)
+            return cont_box(ctx, res)
         else:
-            return ctx.cont(ctx.rte, om_NotImplemented)
+            return cont_obj(ctx, om_NotImplemented)
 
     return do_magic_method(class_float, method, dunder_Float_DivideOp)
 
-def gen_dunder_Float_rDivideOp(py_class, method, prim):
+def gen_dunder_Float_rDivideOp(py_class, method, prim, cont_box):
     debug_msg = py_class + "." + method
 
     def dunder_Float_rDivideOp(ctx, args):
@@ -2626,36 +2626,36 @@ def gen_dunder_Float_rDivideOp(py_class, method, prim):
                 return sem_raise_with_message(ctx, class_ZeroDivisionError, "float division or modulo by zero")
 
             res = prim(val2_float_value, val1_value)
-            return cont_float(ctx, res)
+            return cont_box(ctx, res)
         else:
-            return ctx.cont(ctx.rte, om_NotImplemented)
+            return cont_obj(ctx, om_NotImplemented)
 
     return do_magic_method(class_float, method, dunder_Float_rDivideOp)
 
 
-om_float_add = gen_dunder_Float_BinOp('float', '__add__', float_add)
-om_float_radd = gen_dunder_Float_rBinOp('float', '__add__', float_add)
+om_float_add = gen_dunder_Float_BinOp('float', '__add__', float_add, cont_float)
+om_float_radd = gen_dunder_Float_rBinOp('float', '__add__', float_add, cont_float)
 
-om_float_sub = gen_dunder_Float_BinOp('float', '__sub__', float_sub)
-om_float_rsub = gen_dunder_Float_rBinOp('float', '__rsub__', float_sub)
+om_float_sub = gen_dunder_Float_BinOp('float', '__sub__', float_sub, cont_float)
+om_float_rsub = gen_dunder_Float_rBinOp('float', '__rsub__', float_sub, cont_float)
 
-om_float_mul = gen_dunder_Float_BinOp('float', '__mul__', float_mul)
-om_float_rmul = gen_dunder_Float_rBinOp('float', '__rmul__', float_mul)
+om_float_mul = gen_dunder_Float_BinOp('float', '__mul__', float_mul, cont_float)
+om_float_rmul = gen_dunder_Float_rBinOp('float', '__rmul__', float_mul, cont_float)
 
-om_float_mod = gen_dunder_Float_DivideOp('float', '__mod__', float_mod)
-om_float_rmod = gen_dunder_Float_rDivideOp('float', '__mod__', float_mod)
+om_float_mod = gen_dunder_Float_DivideOp('float', '__mod__', float_mod, cont_float)
+om_float_rmod = gen_dunder_Float_rDivideOp('float', '__mod__', float_mod, cont_float)
 
-om_float_truediv = gen_dunder_Float_DivideOp('float', '__truediv__', float_div)
-om_float_rtruediv = gen_dunder_Float_rDivideOp('float', '__rtruediv__', float_div)
+om_float_truediv = gen_dunder_Float_DivideOp('float', '__truediv__', float_div, cont_float)
+om_float_rtruediv = gen_dunder_Float_rDivideOp('float', '__rtruediv__', float_div, cont_float)
 
 def float_floordiv(u, v):
     return float_floor(u / v)
 
-om_float_floordiv = gen_dunder_Float_DivideOp('float', '__floordiv__', float_floordiv)
-om_float_rfloordiv = gen_dunder_Float_rDivideOp('float', '__rfloordiv__', float_floordiv)
+om_float_floordiv = gen_dunder_Float_DivideOp('float', '__floordiv__', float_floordiv, cont_float)
+om_float_rfloordiv = gen_dunder_Float_rDivideOp('float', '__rfloordiv__', float_floordiv, cont_float)
 
-om_float_pow = gen_dunder_Float_BinOp('float', '__pow__', float_pow)
-om_float_rpow = gen_dunder_Float_rBinOp('float', '__rpow__', float_pow)
+om_float_pow = gen_dunder_Float_BinOp('float', '__pow__', float_pow, cont_float)
+om_float_rpow = gen_dunder_Float_rBinOp('float', '__rpow__', float_pow, cont_float)
 
 def om_float_abs_code(ctx, args):
     if len(args) == 1:
