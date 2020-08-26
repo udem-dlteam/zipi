@@ -133,7 +133,7 @@ def CT_raise_with_msg(cte, ast, msg):
                         ast.end_col_offset,
                         msg)
 
-
+# continuation call helper
 def cont_obj(ctx, val):
     return ctx.cont(ctx.rte, val)
 
@@ -3234,8 +3234,8 @@ def comp_stmt(cte, ast):
     elif isinstance(ast, AST.For) and isinstance(ast.target, AST.Name):
         # TODO: support else block
         if debug: print('AST.For')
-        #for_cte = CTCtrl_controlContext(cte, ast)
-        return gen_for(cte, ast.target, ast.iter, ast.body)
+        for_cte = CTCtrl_controlContext(cte, ast)
+        return gen_for(for_cte, ast.target, ast.iter, ast.body)
 
     elif isinstance(ast, AST.Raise):
         if debug: print('AST.Raise')
@@ -3452,10 +3452,10 @@ def gen_while(cte, ast, code1, code2, code3):
             else:
                 ctrl_env = rte_ctrl_env(rte)
                 ctrl_label = RTCtrlLabel(ctrl_env,
-                                         lambda rte2, _: cont(rte1),
-                                         lambda rte2, _: code(rte1, cont))
+                                         lambda rte2: cont(rte2),
+                                         lambda rte2: code(rte2, cont))
                 new_rte = make_rte_from_new_ctrl_env(rte1, ctrl_label)
-                return code2(new_rte, lambda rte2: code(rte, cont))
+                return code2(new_rte, lambda rte2: code(unwind_rte_ctrl_env(rte2), cont))
 
         def cast_bool(rte, val):
             ctx = Context(rte, dispatch, ast)
@@ -3558,8 +3558,12 @@ def gen_for(cte, target, iterable, body):
                         return cont(get_next_rte)
                     else:
                         def run_body(rte):
-                            return body_code(rte, lambda rte: get_next(rte, iterator))
-
+                            ctrl_env = rte_ctrl_env(rte)
+                            ctrl_label = RTCtrlLabel(ctrl_env,
+                                                     lambda rte1: cont(rte1),
+                                                     lambda rte1: get_next(rte1, iterator))
+                            new_rte = make_rte_from_new_ctrl_env(rte, ctrl_label)
+                            return body_code(new_rte, lambda rte: get_next(unwind_rte_ctrl_env(rte), iterator))
                         msg = target.id + " ← " + om_simple_repr(Context(assign_target_rte, None, target), nxt_value)
                         cont_stmt_end_with_message = do_stmt_end_with_message(run_body, target)
                         return sem_var_set(Context(assign_target_rte, lambda rte: cont_stmt_end_with_message(rte, msg), target), target.id, nxt_value)
@@ -3585,13 +3589,13 @@ def unwindBreakContinue(rte, depth, cont):
 def unwindBreak(rte, depth):
     def cont(rte):
         ctrl_env = rte_ctrl_env(rte)
-        return ctrl_env.break_cont(rte, om_None)
+        return ctrl_env.break_cont(unwind_rte_ctrl_env(rte))
     return unwindBreakContinue(rte, depth, cont)
 
 def unwindContinue(rte, depth):
     def cont(rte):
         ctrl_env = rte_ctrl_env(rte)
-        return ctrl_env.continue_cont(rte, om_None)
+        return ctrl_env.continue_cont(unwind_rte_ctrl_env(rte))
     return unwindBreakContinue(rte, depth, cont)
 
 def gen_break(cte, ast):
@@ -3659,7 +3663,7 @@ def gen_logical_or(cte, ast, code1, code2):
         expr_end_cont = do_expr_end(cont, ast)
         def cast_bool(rte1, val1):
             def dispatch(rte2, cond_val):
-                if om_is(cond_val, om_False):
+                if om_is(cond_val, om_True):
                     return expr_end_cont(rte1, val1)
                 else:
                     return code2(rte1, expr_end_cont)
