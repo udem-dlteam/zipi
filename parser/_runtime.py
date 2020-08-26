@@ -167,7 +167,7 @@ def int_from_string(string, radix):
 
 def int_from_substring(string, start, stop, radix):
     try:
-        return int(string[start:stop], radix)
+        return int(string[start:stop], int(radix))
     except ValueError:
         return False
 
