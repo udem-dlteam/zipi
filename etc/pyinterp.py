@@ -2696,6 +2696,60 @@ def om_abs_code(rte, _):
     obj = rte_lookup(rte, 'obj')
     return sem_abs(next_ctx, obj)
 
+
+def om_min_code(rte, cont):
+    return om_min_max_code(rte,cont, lambda a, b: a < b)
+
+def om_max_code(rte, cont):
+    return om_min_max_code(rte,cont, lambda a, b: a > b)
+
+def om_min_max_code(rte, cont, comparator):
+    ctx = make_out_of_ast_context(rte, cont)
+
+    objs = rte_lookup(rte, 'objs')
+
+    
+    tupl_vals = OM_get_tuple_seq(objs)
+
+    min_max_val = None
+    min_max_class = None
+    for i in tupl_vals:
+        val = OM_get_boxed_value(i)
+        val_class = OM_get_object_class(i)
+
+        if (min_max_val is None):
+            min_max_val = val
+            min_max_class = val_class
+
+        elif om_is(min_max_class, class_int):
+            if om_is(val_class, class_int) and comparator(val, min_max_val):
+                min_max_val = val
+            elif om_is(val_class, class_float) and comparator(val, int_to_float(min_max_val)):
+                min_max_val = val
+                min_max_class = class_float
+            else:
+                sem_raise(ctx, class_TypeError)
+
+        elif om_is(min_max_class, om_float):
+            if om_is(val_class, class_float) and comparator(val, min_max_val):
+                min_max_val = val
+            elif om_is(val_class, class_int) and comparator(int_to_float(val), min_max_val):
+                min_max_val = val
+                min_max_class = class_int
+        else:
+            sem_raise(ctx, class_TypeError)
+
+    if om_is(min_max_class, class_int):
+        return unwindReturn(rte, om_int(min_max_val))
+    elif om_is(min_max_class, class_float):
+        return unwindReturn(rte, om_float(min_max_val))
+    else:
+        sem_raise(ctx, class_TypeError)
+
+
+    
+
+
 # Built-in Modules
 def init_module_math():
 
@@ -3006,6 +3060,10 @@ def fresh_rte(options):
                                                       make_posonly_defaults_signature(('obj', 'sentinel'), (absent,)))
 
     om_builtin_abs = om_make_function_with_signature('abs', om_abs_code, make_posonly_only_signature(('obj',)))
+    om_builtin_min = om_make_function_with_signature('min', om_min_code, make_vararg_only_signature(('objs',)))
+    om_builtin_max = om_make_function_with_signature('max', om_max_code, make_vararg_only_signature(('objs',)))
+
+
 
     dict_set(builtins_env, 'type', class_type)
     dict_set(builtins_env, 'object', class_object)
@@ -3026,6 +3084,11 @@ def fresh_rte(options):
     dict_set(builtins_env, 'next', om_builtin_next)
     dict_set(builtins_env, 'iter', om_builtin_iter)
     dict_set(builtins_env, 'abs', om_builtin_abs)
+    dict_set(builtins_env, 'min', om_builtin_min)
+    dict_set(builtins_env, 'max', om_builtin_max)
+
+
+
 
     dict_set(builtins_env, 'BaseException', class_BaseException)
     dict_set(builtins_env, 'Exception', class_Exception)
