@@ -2066,7 +2066,7 @@ def is_space(c):
 
 # class_int methods
 def int_from_str(s, base):
-    base = int_to_float(base)
+    base = int_to_num(base)
 
     disallow_heading_zeros = base == 0
 
@@ -2121,7 +2121,7 @@ def int_from_str(s, base):
                 # non-zero in base 10 with heading 0 or non-digit character
                 return False
         # If we consumed a chain of legal '0', the result can only be 0
-        return int_from_float(0.0)
+        return int_from_num(0)
 
 
     if base == 0:
@@ -2214,7 +2214,7 @@ def om_int_float_code(ctx, args):
 
     if args_len == 1:
         self = args[0]
-        float_val = int_to_float(OM_get_boxed_value(self))
+        float_val = int_to_num(OM_get_boxed_value(self))
         return ctx.cont(ctx.rte, om_float(float_val))
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
@@ -2365,7 +2365,7 @@ def om_int_truediv_code(ctx, args):
     # Primitive operations are only defined on same types.
     if om_issubclass(OM_get_object_class(val2), class_int):
         val1_value = OM_get_boxed_value(val1)
-        result = float_div(int_to_float(val1_value), int_to_float(val2_value))
+        result = float_div(int_to_num(val1_value), int_to_num(val2_value))
         return ctx.cont(ctx.rte, om_float(result))
     else:
         # TODO: Return om_NotImplemented(rte) (in the proper rte)
@@ -2387,7 +2387,7 @@ def om_int_rtruediv_code(ctx, args):
     # Primitive operations are only defined on same types.
     if om_issubclass(OM_get_object_class(val2), class_int):
         val2_value = OM_get_boxed_value(val2)
-        result = float_div(int_to_float(val2_value), int_to_float(val1_value))
+        result = float_div(int_to_num(val2_value), int_to_num(val1_value))
         return ctx.cont(ctx.rte, om_float(result))
     else:
         # TODO: Return om_NotImplemented(rte) (in the proper rte)
@@ -2427,10 +2427,10 @@ def om_float_int_code(ctx, args):
         val = OM_get_boxed_value(self)
 
         if float_is_pos(val):
-            int_val = int_from_float(float_floor(val))
+            int_val = int_from_num(float_floor(val))
             return ctx.cont(ctx.rte, om_int(int_val))
         else:
-            int_val = int_from_float(float_ceil(val))
+            int_val = int_from_num(float_ceil(val))
             return ctx.cont(ctx.rte, om_int(int_val))
 
 om_float_int = do_magic_method(class_float, "__int__", om_float_int_code)
@@ -2705,7 +2705,7 @@ def init_module_math():
         unboxed_val = OM_get_boxed_value(val)
 
         if om_is(obj_class, class_int):
-            unboxed_val = int_to_float(unboxed_val)
+            unboxed_val = int_to_num(unboxed_val)
             obj_class = class_float
 
         if om_is(obj_class, class_float):
@@ -2730,7 +2730,7 @@ def init_module_math():
             return unwindReturn(rte, val)
 
         elif om_is(obj_class, class_float):
-            return unwindReturn(rte, om_int(int_from_float(float_floor(unboxed_val))))
+            return unwindReturn(rte, om_int(int_from_num(float_floor(unboxed_val))))
 
         else:
             ctx = make_out_of_ast_context(rte, cont)
@@ -2745,7 +2745,7 @@ def init_module_math():
             return unwindReturn(rte, val)
 
         elif om_is(obj_class, class_float):
-            return unwindReturn(rte, om_int(int_from_float(float_ceil(unboxed_val))))
+            return unwindReturn(rte, om_int(int_from_num(float_ceil(unboxed_val))))
 
         else:
             ctx = make_out_of_ast_context(rte, cont)
@@ -2762,11 +2762,11 @@ def init_module_math():
         unboxed_val2 = OM_get_boxed_value(val2)
 
         if om_is(obj1_class, class_int):
-            unboxed_val1 = int_to_float(unboxed_val1)
+            unboxed_val1 = int_to_num(unboxed_val1)
             obj1_class = class_float
 
         if om_is(obj2_class, class_int):
-            unboxed_val2 = int_to_float(unboxed_val2)
+            unboxed_val2 = int_to_num(unboxed_val2)
             obj2_class = class_float
 
         if om_is(obj1_class, class_float) and om_is(obj2_class, class_float):
@@ -2783,7 +2783,7 @@ def init_module_math():
         unboxed_val = OM_get_boxed_value(val)
 
         if om_is(obj_class, class_int):
-            unboxed_val = int_to_float(unboxed_val)
+            unboxed_val = int_to_num(unboxed_val)
             return unwindReturn(rte, om_float(float_exp(unboxed_val)))
 
         if om_is(obj_class, class_float):
@@ -2799,7 +2799,7 @@ def init_module_math():
         unboxed_val = OM_get_boxed_value(val)
 
         if om_is(obj_class, class_int):
-            unboxed_val = int_to_float(unboxed_val)
+            unboxed_val = int_to_num(unboxed_val)
             obj_class = class_float
 
         if om_is(obj_class, class_float):
@@ -2818,7 +2818,7 @@ def init_module_math():
         unboxed_val = OM_get_boxed_value(val)
 
         if om_is(obj_class, class_int):
-            unboxed_val = int_to_float(unboxed_val)
+            unboxed_val = int_to_num(unboxed_val)
             return unwindReturn(rte, om_float(float_sin(unboxed_val)))
         elif om_is(obj_class, class_float):
             return unwindReturn(rte, om_float(float_sin(unboxed_val)))
@@ -2832,7 +2832,7 @@ def init_module_math():
         unboxed_val = OM_get_boxed_value(val)
 
         if om_is(obj_class, class_int):
-            unboxed_val = int_to_float(unboxed_val)
+            unboxed_val = int_to_num(unboxed_val)
             return unwindReturn(rte, om_float(float_cos(unboxed_val)))
         elif om_is(obj_class, class_float):
             return unwindReturn(rte, om_float(float_cos(unboxed_val)))
@@ -2846,7 +2846,7 @@ def init_module_math():
         unboxed_val = OM_get_boxed_value(val)
 
         if om_is(obj_class, class_int):
-            unboxed_val = int_to_float(unboxed_val)
+            unboxed_val = int_to_num(unboxed_val)
             return unwindReturn(rte, om_float(float_tan(unboxed_val)))
         elif om_is(obj_class, class_float):
             return unwindReturn(rte, om_float(float_tan(unboxed_val)))
@@ -2860,7 +2860,7 @@ def init_module_math():
         unboxed_val = OM_get_boxed_value(val)
 
         if om_is(obj_class, class_int):
-            unboxed_val = int_to_float(unboxed_val)
+            unboxed_val = int_to_num(unboxed_val)
             return unwindReturn(rte, om_float(float_asin(unboxed_val)))
         elif om_is(obj_class, class_float):
             return unwindReturn(rte, om_float(float_asin(unboxed_val)))
@@ -2874,7 +2874,7 @@ def init_module_math():
         unboxed_val = OM_get_boxed_value(val)
 
         if om_is(obj_class, class_int):
-            unboxed_val = int_to_float(unboxed_val)
+            unboxed_val = int_to_num(unboxed_val)
             return unwindReturn(rte, om_float(float_acos(unboxed_val)))
         elif om_is(obj_class, class_float):
             return unwindReturn(rte, om_float(float_acos(unboxed_val)))
@@ -2888,7 +2888,7 @@ def init_module_math():
         unboxed_val = OM_get_boxed_value(val)
 
         if om_is(obj_class, class_int):
-            unboxed_val = int_to_float(unboxed_val)
+            unboxed_val = int_to_num(unboxed_val)
             return unwindReturn(rte, om_float(float_atan(unboxed_val)))
         elif om_is(obj_class, class_float):
             return unwindReturn(rte, om_float(float_atan(unboxed_val)))

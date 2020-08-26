@@ -34,8 +34,8 @@ def int_instance(n):
     return isinstance(n, int)
 
 
-def int_from_float(u):
-    return u
+def int_from_num(u):
+    return int(u)
 
 
 def int_is_zero(u):
@@ -118,7 +118,7 @@ def int_divmod(u, v):
 def int_not(u):
     return ~u
 
-def int_to_float(u):
+def int_to_num(u):
     return u
 
 
