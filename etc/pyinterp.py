@@ -2664,10 +2664,15 @@ def om_float_abs_code(ctx, args):
 
 om_float_abs = do_magic_method(class_float, "__abs__", om_float_abs_code)
 
-def om_float_repr(ctx, args):
-    self = args[0]
-    result = om_format_float_repr(self, ctx.rte)
-    return ctx.cont(ctx.rte, om_str(result))
+def om_float_repr_code(ctx, args):
+    if len(args) == 1:
+        self = args[0]
+        result = om_format_float_repr(self, ctx.rte)
+        return ctx.cont(ctx.rte, om_str(result))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+om_float_repr = do_magic_method(class_float, "__repr__", om_float_repr_code)
 
 def om_float_neg_code(ctx, args):
     if len(args) == 1:
