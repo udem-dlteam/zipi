@@ -730,6 +730,10 @@ def populate_builtin_MethodWrapper():
     builtin_add_method(class_MethodWrapper, '__repr__', om_MethodWrapper_repr)
 
 def populate_builtin_int():
+    builtin_add_method(class_int, '__new__', om_int_new)
+    builtin_add_method(class_int, '__int__', om_int_int)
+    builtin_add_method(class_int, '__index__', om_int_index)
+    builtin_add_method(class_int, '__float__', om_int_float)
     builtin_add_method(class_int, '__bool__', om_int_bool) # <class 'function'>
     # Arithmetic
     builtin_add_method(class_int, '__add__', om_int_add)
@@ -770,6 +774,9 @@ def populate_builtin_int():
 
 
 def populate_builtin_float():
+    builtin_add_method(class_float, '__new__', om_float_new)
+    builtin_add_method(class_float, '__float__', om_float_float)
+    builtin_add_method(class_float, '__int__', om_float_int)
     builtin_add_method(class_float, '__add__', om_float_add)
     builtin_add_method(class_float, '__radd__', om_float_radd)
     builtin_add_method(class_float, '__sub__', om_float_sub)
@@ -911,8 +918,14 @@ def om_str(val):
 def om_int(val):
     return om_boxval(class_int, val)
 
+def om_int_subtype(cls, val):
+    return om_boxval(cls, val)
+
 def om_float(val):
     return om_boxval(class_float, val)
+
+def om_float_subtype(cls, val):
+    return om_boxval(cls, val)
 
 def om_exception(exn, args):
     # NOTE: This assert only trigger if there is a bug in the code.
@@ -2048,7 +2061,150 @@ om_int_rand = gen_dunder_Numeric_BinOp('int', '__rand__', int_and, class_int, om
 om_int_xor = gen_dunder_Numeric_BinOp('int', '__xor__', int_xor, class_int, om_int)
 om_int_rxor = gen_dunder_Numeric_BinOp('int', '__xror__', int_xor, class_int, om_int)
 
+def is_space(c):
+    return c == " " or c == "\t" or c == "\f" or c =="\r" or c == "\n"
+
 # class_int methods
+def int_from_str(s, base):
+    base = int_to_float(base)
+
+    # base is 0 or 2 <= base <= 36
+    end = len(s)
+    start = 0
+    while start < end:
+        if is_space(s[start]):
+            start += 1
+        else:
+            break
+
+    while start < end:
+        if is_space(s[end-1]):
+            end -= 1
+        else:
+            break
+
+    if start >= end:
+        return False
+
+    sign = s[start]
+
+    if sign == '+' or sign == '-':
+        start += 1
+
+    if end - start >= 3 and s[start] == '0':
+        c = s[start+1]
+        if c == 'b' or c == 'B':
+            prefix_base = 2
+        elif c == 'o' or c == 'O':
+            prefix_base = 8
+        elif c == 'x' or c == 'X':
+            prefix_base = 16
+        else:
+            prefix_base = base - 1
+        if prefix_base > 0 if base == 0 else prefix_base == base:
+            base = prefix_base
+            start += 2
+
+    if start >= end:
+        return False
+
+    if base == 0:
+        base = 10
+
+    n = int_from_substring(s, start, end, base)
+
+    if n is False:
+        return False
+
+    if sign == '-':
+        return int_neg(n)
+    else:
+        return n
+
+def om_int_str_conversion(ctx, obj, radix):
+    if not om_isinstance(obj, class_str):
+        return sem_raise_with_message(ctx, class_TypeError, "int() can't convert non-string with explicit base")
+
+    def check_range(rte, index):
+        str_value = OM_get_boxed_value(obj)
+        base = OM_get_boxed_value(index)
+
+        res = int_from_str(str_value, base)
+
+        if res is False:
+            return sem_raise_with_message(ctx, class_ValueError, "invalid literal for int() with base " + str(
+                base) + ": '" + str_value + "'")
+        else:
+            return ctx.cont(rte, om_int(res))
+    return sem_index(with_cont(ctx, check_range), radix)
+
+def om_int_new_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 1:
+        cls = args[0]
+        return ctx.cont(ctx.rte, om_int_subtype(cls, 0))
+    elif args_len == 2:
+        cls = args[0]
+        obj = args[1]
+
+        def check_result(rte, res):
+            if res is None:
+                if om_isinstance(obj, class_str):
+                    return om_int_str_conversion(ctx, obj, om_int(10))
+                else:
+                    return sem_raise_with_message(
+                        Context(rte, ctx.cont, ctx.ast),
+                        class_TypeError,
+                        "int() argument must be a string, a bytes-like object or a number")
+            else:
+                return ctx.cont(ctx.rte, om_int_subtype(cls, OM_get_boxed_value(res)))
+        return sem_maybe_int(with_cont(ctx, check_result), obj)
+    elif args_len == 3:
+        obj = args[1]
+        radix = args[2]
+
+        return om_int_str_conversion(ctx, obj, radix)
+
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "int() takes at most 2 argument, got " + str(args_len))
+
+om_int_new = do_static_magic_method(class_int, "__new__", om_int_new_code)
+
+def om_int_int_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 1:
+        self = args[0]
+        return ctx.cont(ctx.rte, self)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
+
+om_int_int = do_magic_method(class_int, "__int__", om_int_int_code)
+
+def om_int_index_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 1:
+        self = args[0]
+        return ctx.cont(ctx.rte, self)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
+
+om_int_index = do_magic_method(class_int, "__index__", om_int_index_code)
+
+def om_int_float_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 1:
+        self = args[0]
+        float_val = int_to_float(OM_get_boxed_value(self))
+        return ctx.cont(ctx.rte, om_float(float_val))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
+
+om_int_float = do_magic_method(class_int, "__float__", om_int_float_code)
+
 def om_int_bool_code(ctx, args):
     if debug: print('int.__bool__')
     self = args[0]
@@ -2224,6 +2380,56 @@ def om_int_rtruediv_code(ctx, args):
 om_int_rtruediv = do_magic_method(class_int, "__rtruediv__", om_int_rtruediv_code)
 
 # Float dunders
+
+def om_float_new_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 1:
+        cls = args[0]
+        return ctx.cont(ctx.rte, om_float_subtype(cls, 0))
+    elif args_len == 2:
+        cls = args[0]
+        obj = args[1]
+
+        def check_result(rte, res):
+            if res is None:
+                return sem_raise_with_message(
+                    Context(rte, ctx.cont, ctx.ast),
+                    class_TypeError,
+                    "float() argument must be a string or a number")
+            else:
+                return ctx.cont(ctx.rte, om_float_subtype(cls, OM_get_boxed_value(res)))
+        return sem_maybe_float(with_cont(ctx, check_result), obj)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "int() takes at most 1 argument, got " + str(args_len))
+
+om_float_new = do_static_magic_method(class_float, "__new__", om_float_new_code)
+
+def om_float_int_code(ctx, args):
+    if len(args) == 1:
+        self = args[0]
+        val = OM_get_boxed_value(self)
+
+        if float_is_pos(val):
+            int_val = int_from_float(float_floor(val))
+            return ctx.cont(ctx.rte, om_int(int_val))
+        else:
+            int_val = int_from_float(float_ceil(val))
+            return ctx.cont(ctx.rte, om_int(int_val))
+
+om_float_int = do_magic_method(class_float, "__int__", om_float_int_code)
+
+def om_float_float_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 1:
+        self = args[0]
+        return ctx.cont(ctx.rte, self)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
+
+om_float_float = do_magic_method(class_float, "__float__", om_float_float_code)
+
 om_float_add = gen_dunder_Numeric_BinOp('float', '__add__', float_add, class_float, om_float)
 om_float_radd = om_float_add
 
@@ -3956,6 +4162,45 @@ def sem_abs(ctx, obj):
         return sem_raise_with_message(ctx, class_TypeError, "bad operand type for abs()")
     else:
         return om_call(obj_abs, ctx, [obj])
+
+def sem_maybe_int(ctx, obj):
+    obj_int = getattribute_from_obj_mro(obj, '__int__')
+
+    if obj_int is absent:
+        return ctx.cont(ctx.rte, None)
+    else:
+        def check_int(rte, res):
+            if om_isinstance(res, class_int):
+                return ctx.cont(rte, res)
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, "__int__ returned non-int")
+        return om_call(obj_int, with_cont(ctx, check_int), [obj])
+
+def sem_index(ctx, obj):
+    obj_index = getattribute_from_obj_mro(obj, '__index__')
+
+    if obj_index is absent:
+        return sem_raise_with_message(ctx, class_TypeError, "object cannot be interpreted as an integer")
+    else:
+        def check_int(rte, res):
+            if om_isinstance(res, class_int):
+                return ctx.cont(rte, res)
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, "__index__ returned non-int")
+        return om_call(obj_index, with_cont(ctx, check_int), [obj])
+
+def sem_maybe_float(ctx, obj):
+    obj_float = getattribute_from_obj_mro(obj, '__float__')
+
+    if obj_float is absent:
+        return ctx.cont(ctx.rte, None)
+    else:
+        def check_float(rte, res):
+            if om_isinstance(res, class_float):
+                return ctx.cont(rte, res)
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, "__float__ returned non-float")
+        return om_call(obj_float, with_cont(ctx, check_float), [obj])
 
 def gen_constant(cte, ast, val):
 
