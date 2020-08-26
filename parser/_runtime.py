@@ -150,11 +150,11 @@ def int_rshift(u, v):
 
 def int_to_string(u, radix):
     if radix == 2:
-        return bin(u)[2:]
+        return format(u, "b")
     elif radix == 8:
-        return oct(u)[2:]
+        return format(u, "o")
     elif radix == 16:
-        return hex(u)[2:]
+        return format(u, "x")
     else:
         return str(u)
 
@@ -255,18 +255,18 @@ def float_mod(u, v):
 def float_is_zero(u):
     return u == 0
 
-  
+
 def float_is_neg(u):
     return (u < 0)
 
-  
+
 def float_from_string(string):
     return float(string)
 
 
 def float_to_string(u):
     return str(u)
-  
+
 ##
 # module math
 ##
