@@ -2058,7 +2058,7 @@ def om_int_str_conversion(ctx, obj, radix):
 
         if res is False:
             return sem_raise_with_message(ctx, class_ValueError, "invalid literal for int() with base " + str(
-                base) + ": " + om_format_str_repr(str_value, rte))
+                base) + ": '" + str_value + "'")
         else:
             return ctx.cont(rte, om_int(res))
     return sem_index(with_cont(ctx, check_range), radix)
