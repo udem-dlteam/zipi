@@ -328,6 +328,13 @@ def float_e():
     return math.e
 
 ###
+# Str operations
+###
+
+def str_lower(s):
+    return s.lower()
+
+###
 # IO operations
 ###
 

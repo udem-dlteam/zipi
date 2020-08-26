@@ -1991,12 +1991,61 @@ om_int_rxor = gen_dunder_Numeric_BinOp('int', '__xror__', int_xor, class_int, om
 def is_space(c):
     return c == " " or c == "\t" or c == "\f" or c =="\r" or c == "\n"
 
-def num_str_contains_valid_separator(s):
-    s_len = len(s)
-    i = 0
-
-
 # class_int methods
+def int_from_str(s, base):
+    # base is 0 or 2 <= base <= 36
+    end = len(s)
+    start = 0
+    while start < end:
+        if is_space(s[start]):
+            start += 1
+        else:
+            break
+
+    while start < end:
+        if is_space(s[end-1]):
+            end -= 1
+        else:
+            break
+
+    if start >= end:
+        return False
+
+    sign = s[start]
+
+    if sign == '+' or sign == '-':
+        start += 1
+
+    if end - start >= 3 and s[start] == '0':
+        c = str_lower(s[start+1])
+        if c == 'b':
+            prefix_base = 2
+        elif c == 'o':
+            prefix_base = 8
+        elif c == 'x':
+            prefix_base = 16
+        else:
+            prefix_base = base-1
+        if prefix_base > 0 if base == 0 else prefix_base == base:
+            base = prefix_base
+            start += 2
+
+    if start >= end:
+        return False
+
+    if base == 0:
+        base = 10
+
+    n = int_from_substring(s, start, end, base)
+
+    if n is False:
+        return False
+
+    if sign == '-':
+        return -n
+    else:
+        return n
+
 def om_int_str_conversion(ctx, obj, radix):
     if not om_isinstance(obj, class_str):
         return sem_raise_with_message(ctx, class_TypeError, "int() can't convert non-string with explicit base")
@@ -2005,79 +2054,13 @@ def om_int_str_conversion(ctx, obj, radix):
         str_value = OM_get_boxed_value(obj)
         base = OM_get_boxed_value(index)
 
-        # Check the base (index_value) is in range
-        if not (int_ge(base, 2) and int_le(base, 36) or int_is_zero(base)):
-            return sem_raise_with_message(ctx, class_ValueError, "int() base must be >= 2 and <= 36, or 0")
-
-        # Trim string spaces
-        start = 0
-        str_len = len(str_value)
-        while start < str_len:
-            if is_space(str_value[start]):
-                start += 1
-            else:
-                break
-
-        stop = len(str_value)
-
-        while stop > 0:
-            if is_space(str_value[stop - 1]):
-                stop -= 1
-            else:
-                break
-
-        # Check for a minus sign in front of the string
-        if start < stop:
-            first_char = str_value[start]
-        else:
-            sem_raise_with_message(ctx, class_ValueError, "invalid literal for int() with base " + str(
-                base) + ": '" + str_value + "'")
-
-        if first_char == "-":
-            neg = True
-            start += 1
-        elif first_char == "+":
-            neg = False
-            start += 1
-        else:
-            neg = False
-
-        # Check for an explicit prefix (0b, 0o or 0x) in front of the string)
-        prefix_base = None
-        if str_value[start] == "0" and start + 2 < stop:
-            prefix_char = str_value[start + 1]
-            if prefix_char == "b" or prefix_char == "B":
-                prefix_base = 2
-                start += 2
-            elif prefix_char == "o" or prefix_char == "O":
-                prefix_base = 8
-                start += 2
-            elif prefix_char == "x" or prefix_char == "X":
-                prefix_base = 16
-                start += 2
-
-        # Check prefix and provided base match if a prefix is given
-        if int_eq(base, 0):
-            if prefix_base is None:
-                actual_base = 10
-            else:
-                actual_base = prefix_base
-        else:
-            if prefix_base is None or int_eq(prefix_base, base):
-                actual_base = base
-            else:
-                return sem_raise_with_message(ctx, class_ValueError, "invalid literal for int() with base " + str(
-                    base) + ": '" + str_value + "'")
-
-        res = int_from_substring(str_value, start, stop, actual_base)
+        res = int_from_str(str_value, base)
 
         if res is False:
-            return sem_raise_with_message(ctx, class_ValueError,
-                                          "invalid literal for int() with base " + str(base) + ": '" + str_value + "'")
-        elif neg:
-            return ctx.cont(ctx.rte, om_int(int_neg(res)))
+            sem_raise_with_message(ctx, class_ValueError, "invalid literal for int() with base " + str(
+                base) + ": " + om_format_str_repr(str_value, rte))
         else:
-            return ctx.cont(ctx.rte, om_int(res))
+            return ctx.cont(rte, om_int(res))
     return sem_index(with_cont(ctx, check_range), radix)
 
 def om_int_new_code(ctx, args):
