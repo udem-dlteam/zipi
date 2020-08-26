@@ -1897,16 +1897,23 @@ def om_NoneType_bool(ctx, val):
     result = om_False
     return ctx.cont(ctx.rte, result)
 
-def om_NoneType_new(ctx, val):
+om_NoneType_bool = do_magic_method(class_NoneType, "__bool__", om_NoneType_bool)
+
+def om_NoneType_new_code(ctx, val):
     if debug: print('None.__new__')
     return ctx.cont(ctx.rte, om_None)
+
+om_NoneType_new = do_static_magic_method(class_NoneType, "__new__", om_NoneType_new_code)
 
 def om_format_NoneType_repr(value, rte):
     return "None"
 
-def om_NoneType_repr(ctx, val):
+
+def om_NoneType_repr_code(ctx, val):
     if debug: print('None.__repr__')
     return ctx.cont(ctx.rte, om_str(om_format_NoneType_repr(val, ctx.rte)))
+
+om_NoneType_repr = do_magic_method(class_NoneType, "__repr__", om_NoneType_new_code)
 
 # class_function methods
 def om_make_function_with_signature(name, code, signature):
