@@ -2061,7 +2061,7 @@ def om_int_str_conversion(ctx, obj, radix):
         res = int_from_str(str_value, base)
 
         if res is False:
-            sem_raise_with_message(ctx, class_ValueError, "invalid literal for int() with base " + str(
+            return sem_raise_with_message(ctx, class_ValueError, "invalid literal for int() with base " + str(
                 base) + ": " + om_format_str_repr(str_value, rte))
         else:
             return ctx.cont(rte, om_int(res))
