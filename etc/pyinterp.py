@@ -798,6 +798,13 @@ def populate_builtin_float():
     builtin_add_method(class_float, '__pos__', om_float_pos)
     builtin_add_method(class_float, '__neg__', om_float_neg)
     builtin_add_method(class_float, '__abs__', om_float_abs)
+    builtin_add_method(class_float, '__eq__', om_float_eq)
+    builtin_add_method(class_float, '__ne__', om_float_ne)
+    builtin_add_method(class_float, '__lt__', om_float_lt)
+    builtin_add_method(class_float, '__le__', om_float_le)
+    builtin_add_method(class_float, '__gt__', om_float_gt)
+    builtin_add_method(class_float, '__ge__', om_float_ge)
+
 
 def populate_builtin_bool():
     builtin_add_method(class_bool, '__bool__', om_bool_bool)
@@ -2476,35 +2483,6 @@ def om_float_float_code(ctx, args):
 
 om_float_float = do_magic_method(class_float, "__float__", om_float_float_code)
 
-def gen_dunder_Float_BinOp(py_class, method, prim, cont_box):
-    debug_msg = py_class + "." + method
-
-    def dunder_Float_BinOp(ctx, args):
-        if debug: print(debug_msg)
-        val1 = args[0]
-        val2 = args[1]
-
-        val2_class = OM_get_object_class(val2)
-
-        # Primitive operations are only defined on same types.
-        if om_issubclass(val2_class, class_float):
-            val1_value = OM_get_boxed_value(val1)
-            val2_value = OM_get_boxed_value(val2)
-            result = prim(val1_value, val2_value)
-            return ctx.cont(ctx.rte, om_float(result))
-        elif om_issubclass(val2_class, class_int):
-            val1_value = OM_get_boxed_value(val1)
-            val2_value = OM_get_boxed_value(val2)
-            val2_float_value = int_to_num(val2_value, True)
-            if val2_float_value is False:
-                return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
-
-            res = prim(val1_value, val2_float_value)
-            return cont_box(ctx, res)
-        else:
-            return ctx_obj(ctx, om_NotImplemented)
-
-    return do_magic_method(class_float, method, dunder_Float_BinOp)
 
 def gen_dunder_Float_BinOp(py_class, method, prim, cont_box):
     debug_msg = py_class + "." + method
@@ -2656,6 +2634,18 @@ om_float_rfloordiv = gen_dunder_Float_rDivideOp('float', '__rfloordiv__', float_
 
 om_float_pow = gen_dunder_Float_BinOp('float', '__pow__', float_pow, cont_float)
 om_float_rpow = gen_dunder_Float_rBinOp('float', '__rpow__', float_pow, cont_float)
+
+## float comparisons
+def float_ne(x, y):
+    return not float_eq(x, y)
+
+om_float_eq = gen_dunder_Float_BinOp('float', '__eq__', float_eq, cont_bool)
+om_float_ne = gen_dunder_Float_BinOp('float', '__ne__', float_ne, cont_bool)
+om_float_lt = gen_dunder_Float_BinOp('float', '__lt__', float_lt, cont_bool)
+om_float_le = gen_dunder_Float_BinOp('float', '__le__', float_le, cont_bool)
+om_float_gt = gen_dunder_Float_BinOp('float', '__gt__', float_gt, cont_bool)
+om_float_ge = gen_dunder_Float_BinOp('float', '__ge__', float_ge, cont_bool)
+
 
 def om_float_abs_code(ctx, args):
     if len(args) == 1:
