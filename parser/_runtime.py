@@ -119,7 +119,7 @@ def int_not(u):
     return ~u
 
 def int_to_float(u):
-    return float(u)
+    return u
 
 
 def int_and(u, v):
