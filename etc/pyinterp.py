@@ -2017,12 +2017,11 @@ def int_from_str(s, base):
         start += 1
 
     if end - start >= 3 and s[start] == '0':
-        c = str_lower(s[start+1])
-        if c == 'b':
+        if c == 'b' or c == 'B':
             prefix_base = 2
-        elif c == 'o':
+        elif c == 'o' or c == 'O':
             prefix_base = 8
-        elif c == 'x':
+        elif c == 'x' or c == 'X':
             prefix_base = 16
         else:
             prefix_base = base-1
