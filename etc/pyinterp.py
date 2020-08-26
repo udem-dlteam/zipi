@@ -133,6 +133,25 @@ def CT_raise_with_msg(cte, ast, msg):
                         ast.end_col_offset,
                         msg)
 
+
+def cont_obj(ctx, val):
+    return ctx.cont(ctx.rte, val)
+
+def cont_bool(ctx, val):
+    return ctx.cont(ctx.rte, om_bool(val))
+
+def cont_int(ctx, val):
+    return ctx.cont(ctx.rte, om_int(val))
+
+def cont_str(ctx, val):
+    return ctx.cont(ctx.rte, om_str(val))
+
+def cont_list(ctx, val):
+    return ctx.cont(ctx.rte, om_list(val))
+
+def cont_tuple(ctx, val):
+    return ctx.cont(ctx.rte, om_tuple(val))
+
 def with_cont(ctx, cont):
     return Context(ctx.rte, cont, ctx.ast)
 
@@ -404,7 +423,7 @@ def signature_arity(signature):
     else:
         return absent
 
-def align_args_with_signature(ctx, caller_args, signature):
+def align_args_with_signature(ctx, funcname, caller_args, signature):
     args = signature_args(signature)
     posonlyargs = signature_posonlyargs(signature)
     vararg = signature_varargs(signature)
@@ -422,23 +441,17 @@ def align_args_with_signature(ctx, caller_args, signature):
         defaults_len = len(defaults)
         total_args_len = args_len + posonlyargs_len
         if caller_args_len == total_args_len:
-            if not vararg:
-                # Copy to keep side effect local
-                caller_index = 0
+            locals_env = []
+            caller_index = 0
+            for arg in posonlyargs:
+                locals_env.append((arg, caller_args[caller_index]))
+                caller_index += 1
 
-                locals_env = []
-                for arg in posonlyargs:
-                    locals_env.append((arg, caller_args[caller_index]))
-                    caller_index += 1
+            for arg in args:
+                locals_env.append((arg, caller_args[caller_index]))
+                caller_index += 1
 
-                for arg in args:
-                    locals_env.append((arg, caller_args[caller_index]))
-                    caller_index += 1
-
-                return locals_env
-            else:
-                # XXX: not working.
-                return caller_args
+            return ctx.cont(ctx.rte, locals_env)
         elif caller_args_len < total_args_len:
             missing_args_len = total_args_len - caller_args_len
             if defaults_len >= missing_args_len:
@@ -452,9 +465,53 @@ def align_args_with_signature(ctx, caller_args, signature):
 
                 return align_args_with_signature(ctx, result, signature)
             else:
-                assert False, 'TypeError'
+                def add_punctuation(msg, remaining_args_count):
+                    result = msg
+                    if missing_args_len == 2 and remaining_args_count == 1:
+                        result += ' and '
+                    elif missing_args_len > 2 and remaining_args_count == 1:
+                        result += ', and '
+                    elif remaining_args_count < missing_args_len:
+                        result += ', '
+
+                    return result
+
+                def add_arguments(msg, remaining_args_count, start, end, args):
+                    while start < end:
+                        arg = args[start]
+                        msg = add_punctuation(msg, remaining_args_count)+"'"+arg+"'"
+                        remaining_args_count -= 1
+                        start += 1
+                    return (msg, remaining_args_count)
+
+                msg_pos = add_arguments('', missing_args_len, caller_args_len, posonlyargs_len, posonlyargs)
+                msg_pos = add_arguments(msg_pos[0], msg_pos[1], caller_args_len - posonlyargs_len, args_len, args)
+                missing_vars_msg = msg_pos[0]
+
+                s = 's' if missing_args_len != 1 else ''
+                msg = funcname + "() missing " + str(missing_args_len) + " required positional argument"+ s +": "+missing_vars_msg
+                return sem_raise_with_message(ctx, class_TypeError, msg)
         else:
-            assert False, 'vararg not implemented'
+            locals_env = []
+            caller_index = 0
+            for arg in posonlyargs:
+                locals_env.append((arg, caller_args[caller_index]))
+                caller_index += 1
+
+            for arg in args:
+                locals_env.append((arg, caller_args[caller_index]))
+                caller_index += 1
+
+            vararg_value = caller_args[caller_index:]
+            vararg_len = len(vararg_value)
+            if vararg is None:
+                s = 's' if total_args_len != 1 else ''
+                was_or_were = 'was' if caller_args_len == 1 else 'were'
+                msg = funcname + "() takes " + str(total_args_len) + " positional argument" + s + " but " + str(caller_args_len) + " " + was_or_were + " given"
+                return sem_raise_with_message(ctx, class_TypeError, msg)
+            else:
+                locals_env.append((vararg, om_tuple(vararg_value)))
+                return cont_obj(ctx, locals_env)
 
 # object model
 def make_dict_from_list(lst):
@@ -673,6 +730,10 @@ def populate_builtin_MethodWrapper():
     builtin_add_method(class_MethodWrapper, '__repr__', om_MethodWrapper_repr)
 
 def populate_builtin_int():
+    builtin_add_method(class_int, '__new__', om_int_new)
+    builtin_add_method(class_int, '__int__', om_int_int)
+    builtin_add_method(class_int, '__index__', om_int_index)
+    builtin_add_method(class_int, '__float__', om_int_float)
     builtin_add_method(class_int, '__bool__', om_int_bool) # <class 'function'>
     # Arithmetic
     builtin_add_method(class_int, '__add__', om_int_add)
@@ -713,6 +774,9 @@ def populate_builtin_int():
 
 
 def populate_builtin_float():
+    builtin_add_method(class_float, '__new__', om_float_new)
+    builtin_add_method(class_float, '__float__', om_float_float)
+    builtin_add_method(class_float, '__int__', om_float_int)
     builtin_add_method(class_float, '__add__', om_float_add)
     builtin_add_method(class_float, '__radd__', om_float_radd)
     builtin_add_method(class_float, '__sub__', om_float_sub)
@@ -854,8 +918,14 @@ def om_str(val):
 def om_int(val):
     return om_boxval(class_int, val)
 
+def om_int_subtype(cls, val):
+    return om_boxval(cls, val)
+
 def om_float(val):
     return om_boxval(class_float, val)
+
+def om_float_subtype(cls, val):
+    return om_boxval(cls, val)
 
 def om_exception(exn, args):
     # NOTE: This assert only trigger if there is a bug in the code.
@@ -1471,7 +1541,7 @@ def om_tuple_elements_repr(ctx, elts, repr_acc):
         if repr_acc_len == 0:
             return ctx.cont(ctx.rte, om_str("()"))
         elif repr_acc_len == 1:
-            result = '(' + OM_get_boxed_value(repr_acc[0]) + ',)'
+            result = '(' + repr_acc[0] + ',)'
             return ctx.cont(ctx.rte, om_str(result))
         else:
             result = '(' + ', '.join(repr_acc) + ')'
@@ -1709,11 +1779,6 @@ def om_iterator_next(ctx, args):
     return sem_getitem(next_ctx, obj, index)
 
 # class_str methods
-def om_convert_to_str(ctx, value):
-    value_str = getattribute_from_obj_mro(value, "__str__")
-    next_ctx = with_cont(ctx, lambda rte, value: ctx.cont(rte, value))
-    return om_call(value_str, next_ctx, (value,))
-
 def om_str_new(ctx, args):
     cls = args[0]
 
@@ -1721,7 +1786,7 @@ def om_str_new(ctx, args):
         return ctx.cont(ctx, om_boxval(cls, ""))
     elif len(args) == 2:
         value = args[1]
-        return om_convert_to_str(ctx, value)
+        return sem_str(ctx, value)
     else:
         assert False, "TypeError: str() takes 0 or 1 argument"
 
@@ -1752,18 +1817,36 @@ def om_format_str_repr(self, rte):
 
     return "'" + value + "'"
 
-def om_str_repr(ctx, args):
+def om_str_repr_code(ctx, args):
     if debug: print('str.__repr__')
-    self = args[0]
 
-    formatted_str = om_format_str_repr(self, ctx.rte)
+    if len(args) == 1:
+        self = args[0]
 
-    return ctx.cont(ctx.rte, om_str(formatted_str))
+        formatted_str = om_format_str_repr(self, ctx.rte)
 
-def om_str_str(ctx, args):
+        return ctx.cont(ctx.rte, om_str(formatted_str))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+om_str_repr = do_magic_method(class_str, "__repr__", om_str_repr_code)
+
+
+def om_str_str_code(ctx, args):
     if debug: print('str.__str__')
-    self = args[0]
-    return ctx.cont(ctx.rte, self)
+
+    if len(args) == 1:
+        self = args[0]
+
+        if om_is(OM_get_object_class(self), class_str):
+            return ctx.cont(ctx.rte, self)
+        else:
+            new_str = om_str(OM_get_boxed_value(self))
+            ctx.cont(ctx.rte, new_str)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+om_str_str = do_magic_method(class_str, "__str__", om_str_str_code)
 
 # class_dict methods
 
@@ -1837,14 +1920,17 @@ def om_function_call(ctx, args):
     signature = OM_get_function_signature(self)
 
     ## test arity
-    locals_env = align_args_with_signature(ctx, params, signature)
+    def execute_body(rte, locals_env):
+        stack = make_frame(rte, ctx.cont, ctx.ast)
+        rte = make_rte(ctx.rte, rte_globals(ctx.rte), make_dict_from_list(locals_env), rte_builtins(ctx.rte), stack, rte_ctrl_env(ctx.rte), rte_vm(ctx.rte), rte_trace(ctx.rte))
+        body = OM_get_function_body(self)
+        return body(rte,
+                    lambda rte1:
+                       frame_cont(rte_stack(rte1))(frame_rte(rte_stack(rte1)), om_None))
 
-    stack = make_frame(ctx.rte, ctx.cont, ctx.ast)
-    rte = make_rte(ctx.rte, rte_globals(ctx.rte), make_dict_from_list(locals_env), rte_builtins(ctx.rte), stack, rte_ctrl_env(ctx.rte), rte_vm(ctx.rte), rte_trace(ctx.rte))
-    body = OM_get_function_body(self)
-    return body(rte,
-                lambda rte1:
-                   frame_cont(rte_stack(rte1))(frame_rte(rte_stack(rte1)), om_None))
+    new_ctx = with_cont(ctx, execute_body)
+    self_name_value = OM_get_boxed_value(OM_get(self, '__name__'))
+    return align_args_with_signature(new_ctx, self_name_value, params, signature)
 
 def om_format_function_repr(self, rte):
     serial = OM_get_serial(self, rte)
@@ -1872,7 +1958,7 @@ def om_BaseException_str(ctx, args):
         if len(seq) == 0:
             return ctx.cont(ctx.rte, om_str(""))
         elif len(seq) == 1:
-            return om_convert_to_str(ctx, seq[0])
+            return sem_str(ctx, seq[0])
         else:
             acc = []
             # TODO: hack to avoid using nonlocal in map_repr
@@ -1975,7 +2061,166 @@ om_int_rand = gen_dunder_Numeric_BinOp('int', '__rand__', int_and, class_int, om
 om_int_xor = gen_dunder_Numeric_BinOp('int', '__xor__', int_xor, class_int, om_int)
 om_int_rxor = gen_dunder_Numeric_BinOp('int', '__xror__', int_xor, class_int, om_int)
 
+def is_space(c):
+    return c == " " or c == "\t" or c == "\f" or c =="\r" or c == "\n"
+
 # class_int methods
+def int_from_str(s, base):
+    base = int_to_float(base)
+
+    disallow_heading_zeros = base == 0
+
+    # base is 0 or 2 <= base <= 36
+    end = len(s)
+    start = 0
+    while start < end:
+        if is_space(s[start]):
+            start += 1
+        else:
+            break
+
+    while start < end:
+        if is_space(s[end-1]):
+            end -= 1
+        else:
+            break
+
+    if start >= end:
+        return False
+
+    sign = s[start]
+
+    if sign == '+' or sign == '-':
+        start += 1
+
+    if end - start >= 3 and s[start] == '0':
+        c = s[start+1]
+        if c == 'b' or c == 'B':
+            prefix_base = 2
+        elif c == 'o' or c == 'O':
+            prefix_base = 8
+        elif c == 'x' or c == 'X':
+            prefix_base = 16
+        else:
+            prefix_base = base - 1
+        if prefix_base > 0 if base == 0 else prefix_base == base:
+            disallow_heading_zeros = False
+            base = prefix_base
+            start += 2
+
+    if start >= end:
+        return False
+
+    # disallow heading zero in base 0 without prefix-base
+    if disallow_heading_zeros and s[start] == '0':
+        start += 1
+        while start < end:
+            if s[start] == '0':
+                start += 1
+            else:
+                # non-zero in base 10 with heading 0 or non-digit character
+                return False
+        # If we consumed a chain of legal '0', the result can only be 0
+        return int_from_float(0.0)
+
+
+    if base == 0:
+        base = 10
+
+    n = int_from_substring(s, start, end, base)
+
+    if n is False:
+        return False
+
+    if sign == '-':
+        return int_neg(n)
+    else:
+        return n
+
+def om_int_str_conversion(ctx, obj, radix):
+    if not om_isinstance(obj, class_str):
+        return sem_raise_with_message(ctx, class_TypeError, "int() can't convert non-string with explicit base")
+
+    def check_range(rte, index):
+        str_value = OM_get_boxed_value(obj)
+        base = OM_get_boxed_value(index)
+
+        res = int_from_str(str_value, base)
+
+        if res is False:
+            return sem_raise_with_message(ctx, class_ValueError, "invalid literal for int() with base " + str(
+                base) + ": '" + str_value + "'")
+        else:
+            return ctx.cont(rte, om_int(res))
+    return sem_index(with_cont(ctx, check_range), radix)
+
+def om_int_new_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 1:
+        cls = args[0]
+        return ctx.cont(ctx.rte, om_int_subtype(cls, 0))
+    elif args_len == 2:
+        cls = args[0]
+        obj = args[1]
+
+        def check_result(rte, res):
+            if res is None:
+                if om_isinstance(obj, class_str):
+                    return om_int_str_conversion(ctx, obj, om_int(10))
+                else:
+                    return sem_raise_with_message(
+                        Context(rte, ctx.cont, ctx.ast),
+                        class_TypeError,
+                        "int() argument must be a string, a bytes-like object or a number")
+            else:
+                return ctx.cont(ctx.rte, om_int_subtype(cls, OM_get_boxed_value(res)))
+        return sem_maybe_int(with_cont(ctx, check_result), obj)
+    elif args_len == 3:
+        obj = args[1]
+        radix = args[2]
+
+        return om_int_str_conversion(ctx, obj, radix)
+
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "int() takes at most 2 argument, got " + str(args_len))
+
+om_int_new = do_static_magic_method(class_int, "__new__", om_int_new_code)
+
+def om_int_int_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 1:
+        self = args[0]
+        return ctx.cont(ctx.rte, self)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
+
+om_int_int = do_magic_method(class_int, "__int__", om_int_int_code)
+
+def om_int_index_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 1:
+        self = args[0]
+        return ctx.cont(ctx.rte, self)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
+
+om_int_index = do_magic_method(class_int, "__index__", om_int_index_code)
+
+def om_int_float_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 1:
+        self = args[0]
+        float_val = int_to_float(OM_get_boxed_value(self))
+        return ctx.cont(ctx.rte, om_float(float_val))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
+
+om_int_float = do_magic_method(class_int, "__float__", om_int_float_code)
+
 def om_int_bool_code(ctx, args):
     if debug: print('int.__bool__')
     self = args[0]
@@ -2028,7 +2273,7 @@ def om_int_mod_code(ctx, args):
     # Early break for ZeroDivisionError
     val2_value = OM_get_boxed_value(val2)
     if int_is_zero(val2_value):
-        return sem_raise(ctx, class_ZeroDivisionError)
+        return sem_raise_with_message(ctx, class_ZeroDivisionError, "modulo by zero")
 
     # Primitive operations are only defined on same types.
     if om_issubclass(OM_get_object_class(val2), class_int):
@@ -2049,7 +2294,7 @@ def om_int_rmod_code(ctx, args):
     # Early break for ZeroDivisionError
     val1_value = OM_get_boxed_value(val1)
     if int_is_zero(val1_value):
-        return sem_raise(ctx, class_ZeroDivisionError)
+        return sem_raise_with_message(ctx, class_ZeroDivisionError, "modulo by zero")
 
     # Primitive operations are only defined on same types.
     if om_issubclass(OM_get_object_class(val2), class_int):
@@ -2072,7 +2317,7 @@ def om_int_floordiv_code(ctx, args):
     # Early break for ZeroDivisionError
     val2_value = OM_get_boxed_value(val2)
     if int_is_zero(val2_value):
-        return sem_raise(ctx, class_ZeroDivisionError)
+        return sem_raise_with_message(ctx, class_ZeroDivisionError, "division by zero")
 
     # Primitive operations are only defined on same types.
     if om_issubclass(OM_get_object_class(val2), class_int):
@@ -2094,7 +2339,7 @@ def om_int_rfloordiv_code(ctx, args):
     # Early break for ZeroDivisionError
     val1_value = OM_get_boxed_value(val1)
     if int_is_zero(val1_value):
-        return sem_raise(ctx, class_ZeroDivisionError)
+        return sem_raise_with_message(ctx, class_ZeroDivisionError, "division by zero")
 
     # Primitive operations are only defined on same types.
     if om_issubclass(OM_get_object_class(val2), class_int):
@@ -2115,7 +2360,7 @@ def om_int_truediv_code(ctx, args):
     # Early break for ZeroDivisionError
     val2_value = OM_get_boxed_value(val2)
     if int_is_zero(val2_value):
-        return sem_raise(ctx, class_ZeroDivisionError)
+        return sem_raise_with_message(ctx, class_ZeroDivisionError, "division by zero")
 
     # Primitive operations are only defined on same types.
     if om_issubclass(OM_get_object_class(val2), class_int):
@@ -2137,7 +2382,7 @@ def om_int_rtruediv_code(ctx, args):
     # Early break for ZeroDivisionError
     val1_value = OM_get_boxed_value(val1)
     if int_is_zero(val1_value):
-        return sem_raise(ctx, class_ZeroDivisionError)
+        return sem_raise_with_message(ctx, class_ZeroDivisionError, "division by zero")
 
     # Primitive operations are only defined on same types.
     if om_issubclass(OM_get_object_class(val2), class_int):
@@ -2151,6 +2396,56 @@ def om_int_rtruediv_code(ctx, args):
 om_int_rtruediv = do_magic_method(class_int, "__rtruediv__", om_int_rtruediv_code)
 
 # Float dunders
+
+def om_float_new_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 1:
+        cls = args[0]
+        return ctx.cont(ctx.rte, om_float_subtype(cls, 0))
+    elif args_len == 2:
+        cls = args[0]
+        obj = args[1]
+
+        def check_result(rte, res):
+            if res is None:
+                return sem_raise_with_message(
+                    Context(rte, ctx.cont, ctx.ast),
+                    class_TypeError,
+                    "float() argument must be a string or a number")
+            else:
+                return ctx.cont(ctx.rte, om_float_subtype(cls, OM_get_boxed_value(res)))
+        return sem_maybe_float(with_cont(ctx, check_result), obj)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "int() takes at most 1 argument, got " + str(args_len))
+
+om_float_new = do_static_magic_method(class_float, "__new__", om_float_new_code)
+
+def om_float_int_code(ctx, args):
+    if len(args) == 1:
+        self = args[0]
+        val = OM_get_boxed_value(self)
+
+        if float_is_pos(val):
+            int_val = int_from_float(float_floor(val))
+            return ctx.cont(ctx.rte, om_int(int_val))
+        else:
+            int_val = int_from_float(float_ceil(val))
+            return ctx.cont(ctx.rte, om_int(int_val))
+
+om_float_int = do_magic_method(class_float, "__int__", om_float_int_code)
+
+def om_float_float_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 1:
+        self = args[0]
+        return ctx.cont(ctx.rte, self)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
+
+om_float_float = do_magic_method(class_float, "__float__", om_float_float_code)
+
 om_float_add = gen_dunder_Numeric_BinOp('float', '__add__', float_add, class_float, om_float)
 om_float_radd = om_float_add
 
@@ -2318,7 +2613,7 @@ def om_input_code(rte, cont):
 
     obj = rte_lookup(rte, 'obj')
     ctx = make_out_of_ast_context(rte, return_value)
-    return om_convert_to_str(ctx, obj)
+    return sem_str(ctx, obj)
 
 def gen_int_to_string_conv_code(radix, prefix):
     def conv_code(rte, cont):
@@ -2342,12 +2637,29 @@ om_oct_code = gen_int_to_string_conv_code(8, '0o')
 om_bin_code = gen_int_to_string_conv_code(2, '0b')
 
 def om_print_code(rte, _):
-    def cont(rte, str_result):
-        print_stdout(OM_get_boxed_value(str_result), rte)
-        return unwindReturn(rte, om_None)
+    args = rte_lookup(rte, 'args')
+    args_seq = OM_get_list_seq(args)
+    args_len = len(args_seq)
 
-    next_ctx = make_out_of_ast_context(rte, cont)
-    return om_convert_to_str(next_ctx, rte_lookup(rte, 'obj'))
+    result = []
+    for i in args_seq:
+        result.append(None)
+
+    def loop(rte, i):
+        def print_value(rte, str_result):
+            result[i] = OM_get_boxed_value(str_result)
+
+            new_index = i + 1
+            if new_index < args_len:
+                return loop(rte, new_index)
+            else:
+                # sep=' '
+                print_stdout(' '.join(result), rte)
+                return unwindReturn(rte, om_None)
+
+        next_ctx = make_out_of_ast_context(rte, print_value)
+        return sem_str(next_ctx, args_seq[i])
+    return loop(rte, 0)
 
 def om_repr_code(rte, _):
     def cont(rte, res):
@@ -2681,7 +2993,7 @@ def fresh_rte(options):
 
     rte = make_rte(absent, globals_env, locals_env, builtins_env, absent, absent, absent, trace)
 
-    om_builtin_print = om_make_function_with_signature('print', om_print_code, make_posonly_only_signature(('obj',)))
+    om_builtin_print = om_make_function_with_signature('print', om_print_code, make_vararg_only_signature('args'))
     om_builtin_input = om_make_function_with_signature('input', om_input_code, make_posonly_only_signature(('obj',)))
     om_builtin_hex = om_make_function_with_signature('hex', om_hex_code, make_posonly_only_signature(('obj',)))
     om_builtin_oct = om_make_function_with_signature('oct', om_oct_code, make_posonly_only_signature(('obj',)))
@@ -2751,10 +3063,9 @@ def trampoline(cont):
         cont = dict_get(state, "cont", None)
         ctx = dict_get(state, "ctx", None)
 
-        if cont and rte_trace(ctx.rte):
-            if error is not None:
-                print('at '+str(ast.lineno)+'.'+str(ast.col_offset+1)+'-'+str(ast.end_lineno)+'.'+str(ast.end_col_offset+1)+': exception = ' +error)
-            elif msg is not None:
+        if error is not None:
+            print(error)
+        if cont and rte_trace(ctx.rte) and msg is not None:
                 if len(msg) > 0:
                     msg = ' '+msg
 
@@ -2983,6 +3294,12 @@ def comp_expr(cte, ast):
         (args_cte, args_code) = comp_elements(func_cte, ast.args)
         # TODO: compile ast.keywords args
         return gen_call(func_cte, ast, func_code, args_code)
+    elif isinstance(ast, AST.IfExp):
+        (cte1, test_code) = comp_expr(cte, ast.test)
+        (cte2, body_code) = comp_expr(cte1, ast.body)
+        (cte3, orelse_code) = comp_expr(cte2, ast.orelse)
+        return gen_ifexpr(cte3, ast, test_code, body_code, orelse_code)
+
     elif isinstance(ast, AST.Tuple):
         if debug: print('AST.Tuple')
         (cte, code_elts) = comp_elements(cte, ast.elts)
@@ -3000,25 +3317,45 @@ def comp_expr(cte, ast):
         return CT_raise_with_msg(cte, ast, "unsupported expression AST")
 
 def comp_elements(cte, args):
+    elements_code = []
+    next_cte = cte
+    for arg in args:
+        next_cte, arg_code = comp_expr(next_cte, arg)
+        elements_code.append(arg_code)
 
-    if len(args) == 0:
-        def code(rte, cont):
-            return cont(rte, [])
-        return (cte, code)
-    else:
-        (cte1, code1) = comp_expr(cte, args[0])
-        (cte2, code2) = comp_elements(cte, args[1:])
-        return gen_elements_seq(cte2, code1, code2)
+    return gen_elements_seq(next_cte, elements_code)
 
-def gen_elements_seq(cte, code1, code2):
+def gen_elements_seq(cte, elements_code):
+    elements_len = len(elements_code)
 
-    def code(rte, cont):
-        return code1(rte,
-                     lambda rte1, val1:
-                        code2(rte1,
-                              lambda rte2, val2:
-                                 cont(rte2, [val1] + val2)))
-    return (cte, code)
+    def do_elements_cont(cont):
+        i = elements_len - 1
+        while i >= 0:
+            current_element_code = elements_code[i]
+
+            # Required to create a closure for next_cont, i and current_element_code
+            def create_code(next_cont, i, current_element_code):
+                def code(rte, acc):
+                    def store(rte, val):
+                        acc[i] = val
+                        return next_cont(rte, acc)
+                    return current_element_code(rte, store)
+                return code
+
+            cont = create_code(cont, i, current_element_code)
+            i = i - 1
+        return cont
+
+    def alloc_list(rte, cont):
+        # TODO: Replace by acc = [None] * len(elements_comp) once supported
+        acc = []
+        for _ in elements_code: acc.append(None)
+
+        elements_cont = do_elements_cont(cont)
+        return elements_cont(rte, acc)
+
+    return (cte, alloc_list)
+
 
 def comp_expr_opt(cte, ast):
     if ast is None:
@@ -3041,7 +3378,7 @@ def gen_signature(cte, ast):
     if ast.args.vararg is not None:
         vararg = ast.args.vararg.arg
     else:
-        vararg = False
+        vararg = None
 
     kwonlyargs = []
     for kwonly in ast.args.kwonlyargs:
@@ -3057,7 +3394,7 @@ def gen_signature(cte, ast):
     if ast.args.kwarg is not None:
         kwarg = ast.args.kwarg.arg
     else:
-        kwarg = False
+        kwarg = None
 
     defaults = []
     for default_ in ast.args.defaults:
@@ -3389,6 +3726,16 @@ def gen_aug_op(cte, ast, id, op, code1):
         sem_op = sem_IFloorDiv
     elif isinstance(op, AST.Mod):
         sem_op = sem_IMod
+    elif isinstance(op, AST.LShift):
+        sem_op = sem_ILShift
+    elif isinstance(op, AST.RShift):
+        sem_op = sem_IRShift
+    elif isinstance(op, AST.BitAnd):
+        sem_op = sem_IAnd
+    elif isinstance(op, AST.BitOr):
+        sem_op = sem_IOr
+    elif isinstance(op, AST.BitXor):
+        sem_op = sem_IXor
     else:
         return CT_raise_with_msg(cte, ast, "Unimplemented assignment operator")
 
@@ -3423,11 +3770,11 @@ def gen_BinOp(cte, ast, op, code1, code2):
     elif isinstance(op, AST.RShift):
         sem_op = sem_RShift
     elif isinstance(op, AST.BitAnd):
-        sem_op = sem_BitAnd
+        sem_op = sem_And
     elif isinstance(op, AST.BitOr):
-        sem_op = sem_BitOr
+        sem_op = sem_Or
     elif isinstance(op, AST.BitXor):
-        sem_op = sem_BitXor
+        sem_op = sem_Xor
     else:
         return CT_raise_with_msg(cte, ast, "unimplemented binary operator")
 
@@ -3455,6 +3802,12 @@ def comp_Compare_Op(op):
         sem_op = sem_LtE
     elif isinstance(op, AST.GtE):
         sem_op = sem_GtE
+    elif isinstance(op, AST.Is):
+        return sem_Is
+    elif isinstance(op, AST.IsNot):
+        return sem_IsNot
+    elif isinstance(op, AST.In):
+        sem_op = sem_Contains
     else:
         sem_op = None
 
@@ -3570,9 +3923,9 @@ sem_Mod = gen_sem_Numeric_BinOp('%', '__mod__', '__rmod__')
 # Bitwise
 sem_LShift = gen_sem_Numeric_BinOp('<<', '__lshift__', '__rlshift__')
 sem_RShift = gen_sem_Numeric_BinOp('>>', '__rshift__', '__rrshift__')
-sem_BitOr = gen_sem_Numeric_BinOp('|', '__or__', '__ror__')
-sem_BitAnd = gen_sem_Numeric_BinOp('&', '__and__', '__rand__')
-sem_BitXor = gen_sem_Numeric_BinOp('^', '__xor__', '__rxor__')
+sem_Or = gen_sem_Numeric_BinOp('|', '__or__', '__ror__')
+sem_And = gen_sem_Numeric_BinOp('&', '__and__', '__rand__')
+sem_Xor = gen_sem_Numeric_BinOp('^', '__xor__', '__rxor__')
 # Comparison
 sem_Eq = gen_sem_Numeric_BinOp('==', '__eq__', '__eq__')
 sem_NotEq = gen_sem_Numeric_BinOp('==', '__ne__', '__ne__')
@@ -3580,6 +3933,15 @@ sem_Lt = gen_sem_Numeric_BinOp('<', '__lt__', '__gt__')
 sem_Gt = gen_sem_Numeric_BinOp('>', '__gt__', '__lt__')
 sem_LtE = gen_sem_Numeric_BinOp('<=', '__le__', '__ge__')
 sem_GtE = gen_sem_Numeric_BinOp('>=', '__ge__', '__le__')
+
+def sem_Is(ctx, val1, val2):
+    result = om_is(val1, val2)
+    return cont_bool(ctx, result)
+
+def sem_IsNot(ctx, val1, val2):
+    result = not om_is(val1, val2)
+    return cont_bool(ctx, result)
+
 
 def sem_Neg(ctx, val1):
     val1_neg = getattribute_from_obj_mro(val1, '__neg__')
@@ -3608,33 +3970,46 @@ def sem_Invert(ctx, val1):
     else:
         return om_call(val1_pos, ctx, [val1])
 
-def gen_sem_IOperator(method_name, op_name):
+def gen_sem_IOperator(method_name, sem_fall_back, op_name):
 
     def gen_isem(ctx, id, val):
         def cont_var_get(rte, self):
-            def cont_iadd(rte, result):
+            def cont_raise_error(rte, result):
                 new_ctx = Context(rte, ctx.cont, ctx.ast)
                 if om_is(result, om_NotImplemented):
                     return sem_raise_with_message(new_ctx, class_TypeError, "unsupported operand type(s) for " + op_name)
                 else:
                     return sem_var_set(new_ctx, id, result)
 
-            self_iadd = getattribute_from_obj_mro(self, method_name)
-            if self_iadd is absent:
-                return sem_raise_with_message(ctx, class_TypeError, 'bad operand type for binary ' + op_name)
+            def cont_call_fallback(rte, result):
+                new_ctx = Context(rte, ctx.cont, ctx.ast)
+                if om_is(result, om_NotImplemented):
+                    return sem_fall_back(with_cont(ctx, cont_raise_error), self, val)
+                else:
+                    return sem_var_set(new_ctx, id, restul)
+
+
+            self_iop = getattribute_from_obj_mro(self, method_name)
+            if self_iop is absent:
+                return sem_fall_back(with_cont(ctx, cont_raise_error), self, val)
             else:
-                return om_call(self_iadd, with_cont(ctx, cont_iadd), [ self , val ])
+                return om_call(self_iop, with_cont(ctx, cont_call_fallback), [ self , val ])
 
         return sem_var_get(with_cont(ctx, cont_var_get), id)
 
     return gen_isem
 
-sem_IAdd = gen_sem_IOperator("__add__", "+=")
-sem_ISub = gen_sem_IOperator("__sub__", "-=")
-sem_IMul = gen_sem_IOperator("__mul__", "*=")
-sem_ITrueDiv = gen_sem_IOperator("__truediv__", "/=")
-sem_IFloorDiv = gen_sem_IOperator("__floordiv__", "//=")
-sem_IMod = gen_sem_IOperator("__mod__", "%=")
+sem_IAdd = gen_sem_IOperator("__iadd__", sem_Add, "+=")
+sem_ISub = gen_sem_IOperator("__isub__", sem_Sub, "-=")
+sem_IMul = gen_sem_IOperator("__imul__", sem_Mult, "*=")
+sem_ITrueDiv = gen_sem_IOperator("__itruediv__", sem_TrueDiv, "/=")
+sem_IFloorDiv = gen_sem_IOperator("__ifloordiv__",sem_FloorDiv,  "//=")
+sem_IMod = gen_sem_IOperator("__imod__", sem_Mod, "%=")
+sem_IAnd = gen_sem_IOperator("__iand__", sem_And, "&=")
+sem_IOr = gen_sem_IOperator("__ior__", sem_Or, "|=")
+sem_IXor = gen_sem_IOperator("__ixor__", sem_Xor, "^=")
+sem_ILShift = gen_sem_IOperator("__ilshift__", sem_LShift, "<<=")
+sem_IRShift = gen_sem_IOperator("__irshift__", sem_RShift, ">>=")
 
 
 def sem_Not(ctx, obj):
@@ -3649,18 +4024,27 @@ def sem_Not(ctx, obj):
 
 def sem_repr(ctx, val1):
     val1_repr = getattribute_from_obj_mro(val1, '__repr__')
-    # assert val1_repr is not absent, '__repr__ not defined'
 
     def check_string(rte, res):
-        cls = OM_get_type_class(res)
-        if om_is(cls, class_str):
+        if om_isinstance(res, class_str):
             return ctx.cont(rte, res)
         else:
-            err = om(class_TypeError)
-            return sem_raise(ctx, err)
+            return sem_raise_with_message(ctx, class_TypeError, "__repr__ returned non-string")
 
     ctx1 = with_cont(ctx, check_string)
-    return om_call(val1_repr, ctx, [val1])
+    return om_call(val1_repr, ctx1, [val1])
+
+def sem_str(ctx, value):
+    value_str = getattribute_from_obj_mro(value, "__str__")
+
+    def check_string(rte, res):
+        if om_isinstance(res, class_str):
+            return ctx.cont(rte, res)
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "__str__ returned non-string")
+
+    next_ctx = with_cont(ctx, check_string)
+    return om_call(value_str, next_ctx, (value,))
 
 def sem_getattribute(ctx, args):
     obj = args[0]
@@ -3729,6 +4113,32 @@ def sem_iter(ctx, obj):
     else:
         return om_call(obj_iter, ctx, (obj,))
 
+def sem_Contains_in_iterator(ctx, target, iterator):
+    def get_next(rte, iterator):
+        def compare(get_next_rte, get_next_val):
+            if get_next_val is for_loop_end_marker:
+                return ctx.cont(get_next_rte, om_False)
+            else:
+                def cont_eq(eq_rte, eq_result):
+                    def cont(rte, bool_res):
+                        if om_is(bool_res, om_True):
+                            return ctx.cont(ctx.rte, om_True)
+                        else:
+                            return get_next(rte, iterator)
+                    return sem_bool(Context(eq_rte, cont, ctx.ast), eq_result)
+                return sem_Eq(Context(get_next_rte, cont_eq, ctx.ast), get_next_val, target)
+        return sem_next(Context(rte, compare, ctx.ast), iterator, for_loop_end_marker)
+    return get_next(ctx.rte, iterator)
+
+def sem_Contains(ctx, target, obj):
+    obj_contains = getattribute_from_obj_mro(obj, "__contains__")
+    if obj_contains is absent:
+        def cont(rte, it):
+            return sem_Contains_in_iterator(Context(rte, ctx.cont, ctx.ast), target, it)
+        return sem_iter(with_cont(ctx, cont), obj)
+    else:
+        return om_call(obj_contains, ctx, (obj, target))
+
 def om_unpack_iterable(ctx, it):
     seq = []
 
@@ -3768,6 +4178,45 @@ def sem_abs(ctx, obj):
         return sem_raise_with_message(ctx, class_TypeError, "bad operand type for abs()")
     else:
         return om_call(obj_abs, ctx, [obj])
+
+def sem_maybe_int(ctx, obj):
+    obj_int = getattribute_from_obj_mro(obj, '__int__')
+
+    if obj_int is absent:
+        return ctx.cont(ctx.rte, None)
+    else:
+        def check_int(rte, res):
+            if om_isinstance(res, class_int):
+                return ctx.cont(rte, res)
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, "__int__ returned non-int")
+        return om_call(obj_int, with_cont(ctx, check_int), [obj])
+
+def sem_index(ctx, obj):
+    obj_index = getattribute_from_obj_mro(obj, '__index__')
+
+    if obj_index is absent:
+        return sem_raise_with_message(ctx, class_TypeError, "object cannot be interpreted as an integer")
+    else:
+        def check_int(rte, res):
+            if om_isinstance(res, class_int):
+                return ctx.cont(rte, res)
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, "__index__ returned non-int")
+        return om_call(obj_index, with_cont(ctx, check_int), [obj])
+
+def sem_maybe_float(ctx, obj):
+    obj_float = getattribute_from_obj_mro(obj, '__float__')
+
+    if obj_float is absent:
+        return ctx.cont(ctx.rte, None)
+    else:
+        def check_float(rte, res):
+            if om_isinstance(res, class_float):
+                return ctx.cont(rte, res)
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, "__float__ returned non-float")
+        return om_call(obj_float, with_cont(ctx, check_float), [obj])
 
 def gen_constant(cte, ast, val):
 
@@ -3928,6 +4377,24 @@ def gen_call(cte, ast, func_code, args_code):
                                 sem_call(Context(rte, expr_end_cont, ast),
                                          [val1, val2])))
     return (cte, code)
+
+def gen_ifexpr(cte, ast, test_code, body_code, orelse_code):
+    def code(rte, cont):
+        expr_end_cont = do_expr_end(cont, ast)
+        def dispatch(rte, val):
+            if om_is(val, om_True):
+                return body_code(rte, expr_end_cont)
+            else:
+                return orelse_code(rte, expr_end_cont)
+
+        def cast_bool(rte, val):
+            ctx = Context(rte, dispatch, ast)
+            return sem_bool(ctx, val)
+
+        return test_code(rte, cast_bool)
+
+    return (cte, code)
+
 
 def gen_Attribute(cte, ast, code, name):
     def call_getattribute(rte, cont, obj):
