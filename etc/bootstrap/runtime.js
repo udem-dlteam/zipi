@@ -54,7 +54,7 @@ function chr(code) {
 }
 
 function ord(char){
-    return String.charCodeAt.apply(null, [char, 0])
+    return char.charCodeAt(0);
 }
 
 function tuple_to_list(tup) {tup.slice();};
