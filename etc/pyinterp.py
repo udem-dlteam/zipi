@@ -2068,6 +2068,8 @@ def is_space(c):
 def int_from_str(s, base):
     base = int_to_float(base)
 
+    disallow_heading_zeros = base == 0
+
     # base is 0 or 2 <= base <= 36
     end = len(s)
     start = 0
@@ -2102,11 +2104,25 @@ def int_from_str(s, base):
         else:
             prefix_base = base - 1
         if prefix_base > 0 if base == 0 else prefix_base == base:
+            disallow_heading_zeros = False
             base = prefix_base
             start += 2
 
     if start >= end:
         return False
+
+    # disallow heading zero in base 0 without prefix-base
+    if disallow_heading_zeros and s[start] == '0':
+        start += 1
+        while start < end:
+            if s[start] == '0':
+                start += 1
+            else:
+                # non-zero in base 10 with heading 0 or non-digit character
+                return False
+        # If we consumed a chain of legal '0', the result can only be 0
+        return int_from_float(0.0)
+
 
     if base == 0:
         base = 10
