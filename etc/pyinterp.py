@@ -824,6 +824,7 @@ def populate_builtin_module():
     builtin_add_method(class_module, '__repr__', om_module_repr)
 
 def populate_builtin_NoneType():
+    builtin_add_method(class_NoneType, '__new__', om_NoneType_new)
     builtin_add_method(class_NoneType, '__bool__', om_NoneType_bool)
     builtin_add_method(class_NoneType, '__repr__', om_NoneType_repr)
 
@@ -1412,7 +1413,7 @@ def om_object_new(ctx, args):
     if not om_isinstance(cls, class_type):
         return sem_raise_with_message(ctx, class_TypeError, "object.__new__(X): X is not a type object")
     elif OM_get_type_instance_creator(cls) is not OM_get_type_instance_creator(class_object):
-        return sem_raise_with_message(ctx, class_TypeError, "TypeError: object.__new__(X) is not safe, use X.__new__()")
+        return sem_raise_with_message(ctx, class_TypeError, "object.__new__(X) is not safe, use X.__new__()")
 
     cls = args[0]
     return ctx.cont(ctx.rte, om(cls))
@@ -1895,6 +1896,10 @@ def om_NoneType_bool(ctx, val):
     if debug: print('None.__bool__')
     result = om_False
     return ctx.cont(ctx.rte, result)
+
+def om_NoneType_new(ctx, val):
+    if debug: print('None.__new__')
+    return ctx.cont(ctx.rte, om_None)
 
 def om_format_NoneType_repr(value, rte):
     return "None"
