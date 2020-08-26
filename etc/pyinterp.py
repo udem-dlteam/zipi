@@ -133,7 +133,7 @@ def CT_raise_with_msg(cte, ast, msg):
                         ast.end_col_offset,
                         msg)
 
-
+# continuation call helper
 def cont_obj(ctx, val):
     return ctx.cont(ctx.rte, val)
 
@@ -824,6 +824,7 @@ def populate_builtin_module():
     builtin_add_method(class_module, '__repr__', om_module_repr)
 
 def populate_builtin_NoneType():
+    builtin_add_method(class_NoneType, '__new__', om_NoneType_new)
     builtin_add_method(class_NoneType, '__bool__', om_NoneType_bool)
     builtin_add_method(class_NoneType, '__repr__', om_NoneType_repr)
 
@@ -1412,7 +1413,7 @@ def om_object_new(ctx, args):
     if not om_isinstance(cls, class_type):
         return sem_raise_with_message(ctx, class_TypeError, "object.__new__(X): X is not a type object")
     elif OM_get_type_instance_creator(cls) is not OM_get_type_instance_creator(class_object):
-        return sem_raise_with_message(ctx, class_TypeError, "TypeError: object.__new__(X) is not safe, use X.__new__()")
+        return sem_raise_with_message(ctx, class_TypeError, "object.__new__(X) is not safe, use X.__new__()")
 
     cls = args[0]
     return ctx.cont(ctx.rte, om(cls))
@@ -1891,17 +1892,28 @@ def om_module_repr(ctx, args):
 
 
 # class_NoneType methods
-def om_NoneType_bool(ctx, val):
+def om_NoneType_bool_code(ctx, val):
     if debug: print('None.__bool__')
     result = om_False
     return ctx.cont(ctx.rte, result)
 
+om_NoneType_bool = do_magic_method(class_NoneType, "__bool__", om_NoneType_bool_code)
+
+def om_NoneType_new_code(ctx, val):
+    if debug: print('None.__new__')
+    return ctx.cont(ctx.rte, om_None)
+
+om_NoneType_new = do_static_magic_method(class_NoneType, "__new__", om_NoneType_new_code)
+
 def om_format_NoneType_repr(value, rte):
     return "None"
 
-def om_NoneType_repr(ctx, val):
+
+def om_NoneType_repr_code(ctx, val):
     if debug: print('None.__repr__')
     return ctx.cont(ctx.rte, om_str(om_format_NoneType_repr(val, ctx.rte)))
+
+om_NoneType_repr = do_magic_method(class_NoneType, "__repr__", om_NoneType_repr_code)
 
 # class_function methods
 def om_make_function_with_signature(name, code, signature):
@@ -2067,7 +2079,7 @@ def is_space(c):
 
 # class_int methods
 def int_from_str(s, base):
-    base = int_to_float(base)
+    base = int_to_num(base)
 
     disallow_heading_zeros = base == 0
 
@@ -2122,7 +2134,7 @@ def int_from_str(s, base):
                 # non-zero in base 10 with heading 0 or non-digit character
                 return False
         # If we consumed a chain of legal '0', the result can only be 0
-        return int_from_float(0.0)
+        return int_from_num(0)
 
 
     if base == 0:
@@ -2176,13 +2188,22 @@ def om_int_new_code(ctx, args):
                         "int() argument must be a string, a bytes-like object or a number")
             else:
                 return ctx.cont(ctx.rte, om_int_subtype(cls, OM_get_boxed_value(res)))
-        return sem_maybe_int(with_cont(ctx, check_result), obj)
+        return sem_maybe_index(with_cont(ctx, check_result), obj)
     elif args_len == 3:
         obj = args[1]
         radix = args[2]
 
-        return om_int_str_conversion(ctx, obj, radix)
+        if om_isinstance(obj, class_str):
+            def check_radix_range(rte, res):
+                res_value = OM_get_boxed_value(res)
+                if int_is_zero(res_value) or int_ge(res_value, int_from_num(2)) and int_le(res_value, int_from_num(36)):
+                    return om_int_str_conversion(ctx, obj, res)
+                else:
+                    return sem_raise_with_message(ctx, class_ValueError, "int() base must be >= 2 and <= 36, or 0")
 
+            return sem_index(with_cont(ctx, check_radix_range), radix)
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "int() can't convert non-string with explicit base")
     else:
         return sem_raise_with_message(ctx, class_TypeError, "int() takes at most 2 argument, got " + str(args_len))
 
@@ -2215,7 +2236,7 @@ def om_int_float_code(ctx, args):
 
     if args_len == 1:
         self = args[0]
-        float_val = int_to_float(OM_get_boxed_value(self))
+        float_val = int_to_num(OM_get_boxed_value(self))
         return ctx.cont(ctx.rte, om_float(float_val))
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
@@ -2366,7 +2387,7 @@ def om_int_truediv_code(ctx, args):
     # Primitive operations are only defined on same types.
     if om_issubclass(OM_get_object_class(val2), class_int):
         val1_value = OM_get_boxed_value(val1)
-        result = float_div(int_to_float(val1_value), int_to_float(val2_value))
+        result = float_div(int_to_num(val1_value), int_to_num(val2_value))
         return ctx.cont(ctx.rte, om_float(result))
     else:
         # TODO: Return om_NotImplemented(rte) (in the proper rte)
@@ -2388,7 +2409,7 @@ def om_int_rtruediv_code(ctx, args):
     # Primitive operations are only defined on same types.
     if om_issubclass(OM_get_object_class(val2), class_int):
         val2_value = OM_get_boxed_value(val2)
-        result = float_div(int_to_float(val2_value), int_to_float(val1_value))
+        result = float_div(int_to_num(val2_value), int_to_num(val1_value))
         return ctx.cont(ctx.rte, om_float(result))
     else:
         # TODO: Return om_NotImplemented(rte) (in the proper rte)
@@ -2428,10 +2449,10 @@ def om_float_int_code(ctx, args):
         val = OM_get_boxed_value(self)
 
         if float_is_pos(val):
-            int_val = int_from_float(float_floor(val))
+            int_val = int_from_num(float_floor(val))
             return ctx.cont(ctx.rte, om_int(int_val))
         else:
-            int_val = int_from_float(float_ceil(val))
+            int_val = int_from_num(float_ceil(val))
             return ctx.cont(ctx.rte, om_int(int_val))
 
 om_float_int = do_magic_method(class_float, "__int__", om_float_int_code)
@@ -2706,7 +2727,7 @@ def init_module_math():
         unboxed_val = OM_get_boxed_value(val)
 
         if om_is(obj_class, class_int):
-            unboxed_val = int_to_float(unboxed_val)
+            unboxed_val = int_to_num(unboxed_val)
             obj_class = class_float
 
         if om_is(obj_class, class_float):
@@ -2731,7 +2752,7 @@ def init_module_math():
             return unwindReturn(rte, val)
 
         elif om_is(obj_class, class_float):
-            return unwindReturn(rte, om_int(int_from_float(float_floor(unboxed_val))))
+            return unwindReturn(rte, om_int(int_from_num(float_floor(unboxed_val))))
 
         else:
             ctx = make_out_of_ast_context(rte, cont)
@@ -2746,7 +2767,7 @@ def init_module_math():
             return unwindReturn(rte, val)
 
         elif om_is(obj_class, class_float):
-            return unwindReturn(rte, om_int(int_from_float(float_ceil(unboxed_val))))
+            return unwindReturn(rte, om_int(int_from_num(float_ceil(unboxed_val))))
 
         else:
             ctx = make_out_of_ast_context(rte, cont)
@@ -2763,11 +2784,11 @@ def init_module_math():
         unboxed_val2 = OM_get_boxed_value(val2)
 
         if om_is(obj1_class, class_int):
-            unboxed_val1 = int_to_float(unboxed_val1)
+            unboxed_val1 = int_to_num(unboxed_val1)
             obj1_class = class_float
 
         if om_is(obj2_class, class_int):
-            unboxed_val2 = int_to_float(unboxed_val2)
+            unboxed_val2 = int_to_num(unboxed_val2)
             obj2_class = class_float
 
         if om_is(obj1_class, class_float) and om_is(obj2_class, class_float):
@@ -2784,7 +2805,7 @@ def init_module_math():
         unboxed_val = OM_get_boxed_value(val)
 
         if om_is(obj_class, class_int):
-            unboxed_val = int_to_float(unboxed_val)
+            unboxed_val = int_to_num(unboxed_val)
             return unwindReturn(rte, om_float(float_exp(unboxed_val)))
 
         if om_is(obj_class, class_float):
@@ -2800,7 +2821,7 @@ def init_module_math():
         unboxed_val = OM_get_boxed_value(val)
 
         if om_is(obj_class, class_int):
-            unboxed_val = int_to_float(unboxed_val)
+            unboxed_val = int_to_num(unboxed_val)
             obj_class = class_float
 
         if om_is(obj_class, class_float):
@@ -2819,7 +2840,7 @@ def init_module_math():
         unboxed_val = OM_get_boxed_value(val)
 
         if om_is(obj_class, class_int):
-            unboxed_val = int_to_float(unboxed_val)
+            unboxed_val = int_to_num(unboxed_val)
             return unwindReturn(rte, om_float(float_sin(unboxed_val)))
         elif om_is(obj_class, class_float):
             return unwindReturn(rte, om_float(float_sin(unboxed_val)))
@@ -2833,7 +2854,7 @@ def init_module_math():
         unboxed_val = OM_get_boxed_value(val)
 
         if om_is(obj_class, class_int):
-            unboxed_val = int_to_float(unboxed_val)
+            unboxed_val = int_to_num(unboxed_val)
             return unwindReturn(rte, om_float(float_cos(unboxed_val)))
         elif om_is(obj_class, class_float):
             return unwindReturn(rte, om_float(float_cos(unboxed_val)))
@@ -2847,7 +2868,7 @@ def init_module_math():
         unboxed_val = OM_get_boxed_value(val)
 
         if om_is(obj_class, class_int):
-            unboxed_val = int_to_float(unboxed_val)
+            unboxed_val = int_to_num(unboxed_val)
             return unwindReturn(rte, om_float(float_tan(unboxed_val)))
         elif om_is(obj_class, class_float):
             return unwindReturn(rte, om_float(float_tan(unboxed_val)))
@@ -2861,7 +2882,7 @@ def init_module_math():
         unboxed_val = OM_get_boxed_value(val)
 
         if om_is(obj_class, class_int):
-            unboxed_val = int_to_float(unboxed_val)
+            unboxed_val = int_to_num(unboxed_val)
             return unwindReturn(rte, om_float(float_asin(unboxed_val)))
         elif om_is(obj_class, class_float):
             return unwindReturn(rte, om_float(float_asin(unboxed_val)))
@@ -2875,7 +2896,7 @@ def init_module_math():
         unboxed_val = OM_get_boxed_value(val)
 
         if om_is(obj_class, class_int):
-            unboxed_val = int_to_float(unboxed_val)
+            unboxed_val = int_to_num(unboxed_val)
             return unwindReturn(rte, om_float(float_acos(unboxed_val)))
         elif om_is(obj_class, class_float):
             return unwindReturn(rte, om_float(float_acos(unboxed_val)))
@@ -2889,7 +2910,7 @@ def init_module_math():
         unboxed_val = OM_get_boxed_value(val)
 
         if om_is(obj_class, class_int):
-            unboxed_val = int_to_float(unboxed_val)
+            unboxed_val = int_to_num(unboxed_val)
             return unwindReturn(rte, om_float(float_atan(unboxed_val)))
         elif om_is(obj_class, class_float):
             return unwindReturn(rte, om_float(float_atan(unboxed_val)))
@@ -3235,8 +3256,8 @@ def comp_stmt(cte, ast):
     elif isinstance(ast, AST.For) and isinstance(ast.target, AST.Name):
         # TODO: support else block
         if debug: print('AST.For')
-        #for_cte = CTCtrl_controlContext(cte, ast)
-        return gen_for(cte, ast.target, ast.iter, ast.body)
+        for_cte = CTCtrl_controlContext(cte, ast)
+        return gen_for(for_cte, ast.target, ast.iter, ast.body)
 
     elif isinstance(ast, AST.Raise):
         if debug: print('AST.Raise')
@@ -3453,10 +3474,10 @@ def gen_while(cte, ast, code1, code2, code3):
             else:
                 ctrl_env = rte_ctrl_env(rte)
                 ctrl_label = RTCtrlLabel(ctrl_env,
-                                         lambda rte2, _: cont(rte1),
-                                         lambda rte2, _: code(rte1, cont))
+                                         lambda rte2: cont(rte2),
+                                         lambda rte2: code(rte2, cont))
                 new_rte = make_rte_from_new_ctrl_env(rte1, ctrl_label)
-                return code2(new_rte, lambda rte2: code(rte, cont))
+                return code2(new_rte, lambda rte2: code(unwind_rte_ctrl_env(rte2), cont))
 
         def cast_bool(rte, val):
             ctx = Context(rte, dispatch, ast)
@@ -3559,8 +3580,12 @@ def gen_for(cte, target, iterable, body):
                         return cont(get_next_rte)
                     else:
                         def run_body(rte):
-                            return body_code(rte, lambda rte: get_next(rte, iterator))
-
+                            ctrl_env = rte_ctrl_env(rte)
+                            ctrl_label = RTCtrlLabel(ctrl_env,
+                                                     lambda rte1: cont(rte1),
+                                                     lambda rte1: get_next(rte1, iterator))
+                            new_rte = make_rte_from_new_ctrl_env(rte, ctrl_label)
+                            return body_code(new_rte, lambda rte: get_next(unwind_rte_ctrl_env(rte), iterator))
                         msg = target.id + " ← " + om_simple_repr(Context(assign_target_rte, None, target), nxt_value)
                         cont_stmt_end_with_message = do_stmt_end_with_message(run_body, target)
                         return sem_var_set(Context(assign_target_rte, lambda rte: cont_stmt_end_with_message(rte, msg), target), target.id, nxt_value)
@@ -3586,13 +3611,13 @@ def unwindBreakContinue(rte, depth, cont):
 def unwindBreak(rte, depth):
     def cont(rte):
         ctrl_env = rte_ctrl_env(rte)
-        return ctrl_env.break_cont(rte, om_None)
+        return ctrl_env.break_cont(unwind_rte_ctrl_env(rte))
     return unwindBreakContinue(rte, depth, cont)
 
 def unwindContinue(rte, depth):
     def cont(rte):
         ctrl_env = rte_ctrl_env(rte)
-        return ctrl_env.continue_cont(rte, om_None)
+        return ctrl_env.continue_cont(unwind_rte_ctrl_env(rte))
     return unwindBreakContinue(rte, depth, cont)
 
 def gen_break(cte, ast):
@@ -3660,7 +3685,7 @@ def gen_logical_or(cte, ast, code1, code2):
         expr_end_cont = do_expr_end(cont, ast)
         def cast_bool(rte1, val1):
             def dispatch(rte2, cond_val):
-                if om_is(cond_val, om_False):
+                if om_is(cond_val, om_True):
                     return expr_end_cont(rte1, val1)
                 else:
                     return code2(rte1, expr_end_cont)
@@ -4193,18 +4218,34 @@ def sem_maybe_int(ctx, obj):
                 return sem_raise_with_message(ctx, class_TypeError, "__int__ returned non-int")
         return om_call(obj_int, with_cont(ctx, check_int), [obj])
 
-def sem_index(ctx, obj):
-    obj_index = getattribute_from_obj_mro(obj, '__index__')
+def sem_int(ctx, obj):
+    def check_result(rte, res):
+        if res is None:
+            return sem_raise_with_message(ctx, class_TypeError, "object cannot be interpreted as an integer")
+        else:
+            return cont_obj(ctx, res)
+    return sem_maybe_int(with_cont(ctx, check_result), obj)
 
-    if obj_index is absent:
-        return sem_raise_with_message(ctx, class_TypeError, "object cannot be interpreted as an integer")
+def sem_maybe_index(ctx, obj):
+    obj_int = getattribute_from_obj_mro(obj, '__index__')
+
+    if obj_int is absent:
+        return ctx.cont(ctx.rte, None)
     else:
         def check_int(rte, res):
             if om_isinstance(res, class_int):
                 return ctx.cont(rte, res)
             else:
                 return sem_raise_with_message(ctx, class_TypeError, "__index__ returned non-int")
-        return om_call(obj_index, with_cont(ctx, check_int), [obj])
+        return om_call(obj_int, with_cont(ctx, check_int), [obj])
+
+def sem_index(ctx, obj):
+    def check_result(rte, res):
+        if res is None:
+            return sem_raise_with_message(ctx, class_TypeError, "object cannot be interpreted as an integer")
+        else:
+            return cont_obj(ctx, res)
+    return sem_maybe_index(with_cont(ctx, check_result), obj)
 
 def sem_maybe_float(ctx, obj):
     obj_float = getattribute_from_obj_mro(obj, '__float__')
