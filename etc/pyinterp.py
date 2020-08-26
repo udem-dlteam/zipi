@@ -2017,6 +2017,7 @@ def int_from_str(s, base):
         start += 1
 
     if end - start >= 3 and s[start] == '0':
+        c = s[start+1]
         if c == 'b' or c == 'B':
             prefix_base = 2
         elif c == 'o' or c == 'O':
