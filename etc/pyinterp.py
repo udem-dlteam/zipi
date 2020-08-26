@@ -2621,7 +2621,7 @@ def gen_int_to_string_conv_code(radix, prefix):
         obj_cls = OM_get_object_class(obj)
         if om_issubclass(obj_cls, class_int):
             obj_value = OM_get_boxed_value(obj)
-            if obj_value < 0:
+            if int_lt(obj_value, 0):
                 result = "-" + prefix + int_to_string(-obj_value, radix)
             else:
                 result = prefix + int_to_string(obj_value, radix)
