@@ -2001,9 +2001,10 @@ def box_object(obj):
         raise ValueError("Cannot box object " + str(obj))
 
 # Primitive operators for doing actual computations
-def gen_dunder_Numeric_BinOp(py_class, method, prim, om_class, om_box):
+def gen_dunder_Homogenous_Numeric_BinOp(py_class, method, prim, om_class, om_box):
+    debug_msg = py_class + "." + method
     def dunder_Numeric_BinOp(ctx, args):
-        if debug: print(py_class + "." + method)
+        if debug: print(debug_msg)
         val1 = args[0]
         val2 = args[1]
 
@@ -2021,7 +2022,7 @@ def gen_dunder_Numeric_BinOp(py_class, method, prim, om_class, om_box):
 
 # Reversed operators reverse the order of their arguments when
 # doing the computation.
-def gen_dunder_Numeric_rBinOp(py_class, method, prim, om_class, om_box):
+def gen_dunder_Homogenous_Numeric_rBinOp(py_class, method, prim, om_class, om_box):
     def dunder_Numeric_rBinOp(ctx, args):
         if debug: print(py_class+ "." + method)
         val1 = args[0]
@@ -2040,26 +2041,26 @@ def gen_dunder_Numeric_rBinOp(py_class, method, prim, om_class, om_box):
     return do_magic_method(om_class, method, dunder_Numeric_rBinOp)
 
 # Arithmetic
-om_int_add = gen_dunder_Numeric_BinOp('int', '__add__', int_add, class_int, om_int)
+om_int_add = gen_dunder_Homogenous_Numeric_BinOp('int', '__add__', int_add, class_int, om_int)
 om_int_radd = om_int_add
 
-om_int_sub = gen_dunder_Numeric_BinOp('int', '__sub__', int_sub, class_int, om_int)
-om_int_rsub = gen_dunder_Numeric_rBinOp('int', '__rsub__', int_sub, class_int, om_int)
+om_int_sub = gen_dunder_Homogenous_Numeric_BinOp('int', '__sub__', int_sub, class_int, om_int)
+om_int_rsub = gen_dunder_Homogenous_Numeric_rBinOp('int', '__rsub__', int_sub, class_int, om_int)
 
-om_int_mul = gen_dunder_Numeric_BinOp('int', '__mul__', int_mul, class_int, om_int)
+om_int_mul = gen_dunder_Homogenous_Numeric_BinOp('int', '__mul__', int_mul, class_int, om_int)
 om_int_rmul = om_int_mul
 
 # Bitwise
-om_int_lshift = gen_dunder_Numeric_BinOp('int', '__lshift__', int_lshift, class_int, om_int)
-om_int_rlshift = gen_dunder_Numeric_BinOp('int', '__rlshift__', int_lshift, class_int, om_int)
-om_int_rshift = gen_dunder_Numeric_BinOp('int', '__rshift__', int_rshift, class_int, om_int)
-om_int_rrshift = gen_dunder_Numeric_BinOp('int', '__rrshift__', int_rshift, class_int, om_int)
-om_int_or = gen_dunder_Numeric_BinOp('int', '__or__', int_or, class_int, om_int)
-om_int_ror = gen_dunder_Numeric_BinOp('int', '__ror__', int_or, class_int, om_int)
-om_int_and = gen_dunder_Numeric_BinOp('int', '__and__', int_and, class_int, om_int)
-om_int_rand = gen_dunder_Numeric_BinOp('int', '__rand__', int_and, class_int, om_int)
-om_int_xor = gen_dunder_Numeric_BinOp('int', '__xor__', int_xor, class_int, om_int)
-om_int_rxor = gen_dunder_Numeric_BinOp('int', '__xror__', int_xor, class_int, om_int)
+om_int_lshift = gen_dunder_Homogenous_Numeric_BinOp('int', '__lshift__', int_lshift, class_int, om_int)
+om_int_rlshift = gen_dunder_Homogenous_Numeric_BinOp('int', '__rlshift__', int_lshift, class_int, om_int)
+om_int_rshift = gen_dunder_Homogenous_Numeric_BinOp('int', '__rshift__', int_rshift, class_int, om_int)
+om_int_rrshift = gen_dunder_Homogenous_Numeric_BinOp('int', '__rrshift__', int_rshift, class_int, om_int)
+om_int_or = gen_dunder_Homogenous_Numeric_BinOp('int', '__or__', int_or, class_int, om_int)
+om_int_ror = gen_dunder_Homogenous_Numeric_BinOp('int', '__ror__', int_or, class_int, om_int)
+om_int_and = gen_dunder_Homogenous_Numeric_BinOp('int', '__and__', int_and, class_int, om_int)
+om_int_rand = gen_dunder_Homogenous_Numeric_BinOp('int', '__rand__', int_and, class_int, om_int)
+om_int_xor = gen_dunder_Homogenous_Numeric_BinOp('int', '__xor__', int_xor, class_int, om_int)
+om_int_rxor = gen_dunder_Homogenous_Numeric_BinOp('int', '__xror__', int_xor, class_int, om_int)
 
 def is_space(c):
     return c == " " or c == "\t" or c == "\f" or c =="\r" or c == "\n"
@@ -2227,12 +2228,12 @@ om_int_abs = do_magic_method(class_int, "__abs__", om_int_abs_code)
 om_int_bool = do_magic_method(class_int, "__bool__", om_int_bool_code)
 
 # Comparison
-om_int_eq = gen_dunder_Numeric_BinOp('int', '__eq__', int_eq, class_int, om_bool)
-om_int_ne = gen_dunder_Numeric_BinOp('int', '__ne__', int_ne, class_int, om_bool)
-om_int_lt = gen_dunder_Numeric_BinOp('int', '__lt__', int_lt, class_int, om_bool)
-om_int_le = gen_dunder_Numeric_BinOp('int', '__le__', int_le, class_int, om_bool)
-om_int_gt = gen_dunder_Numeric_BinOp('int', '__gt__', int_gt, class_int, om_bool)
-om_int_ge = gen_dunder_Numeric_BinOp('int', '__ge__', int_ge, class_int, om_bool)
+om_int_eq = gen_dunder_Homogenous_Numeric_BinOp('int', '__eq__', int_eq, class_int, om_bool)
+om_int_ne = gen_dunder_Homogenous_Numeric_BinOp('int', '__ne__', int_ne, class_int, om_bool)
+om_int_lt = gen_dunder_Homogenous_Numeric_BinOp('int', '__lt__', int_lt, class_int, om_bool)
+om_int_le = gen_dunder_Homogenous_Numeric_BinOp('int', '__le__', int_le, class_int, om_bool)
+om_int_gt = gen_dunder_Homogenous_Numeric_BinOp('int', '__gt__', int_gt, class_int, om_bool)
+om_int_ge = gen_dunder_Homogenous_Numeric_BinOp('int', '__ge__', int_ge, class_int, om_bool)
 
 def om_format_int_repr(self, rte):
     return int_to_string(OM_get_boxed_value(self), 10)
@@ -2430,14 +2431,14 @@ def om_float_float_code(ctx, args):
 
 om_float_float = do_magic_method(class_float, "__float__", om_float_float_code)
 
-om_float_add = gen_dunder_Numeric_BinOp('float', '__add__', float_add, class_float, om_float)
+om_float_add = gen_dunder_Homogenous_Numeric_BinOp('float', '__add__', float_add, class_float, om_float)
 om_float_radd = om_float_add
 
-om_float_sub = gen_dunder_Numeric_BinOp('float', '__sub__', float_sub, class_float, om_float)
-om_float_rsub = gen_dunder_Numeric_BinOp('float', '__rsub__', float_sub, class_float, om_float)
+om_float_sub = gen_dunder_Homogenous_Numeric_BinOp('float', '__sub__', float_sub, class_float, om_float)
+om_float_rsub = gen_dunder_Homogenous_Numeric_BinOp('float', '__rsub__', float_sub, class_float, om_float)
 
-om_float_mul = gen_dunder_Numeric_BinOp('float', '__mul__', float_mul, class_float, om_float)
-om_float_rmul = gen_dunder_Numeric_BinOp('float', '__rmul__', float_mul, class_float, om_float)
+om_float_mul = gen_dunder_Homogenous_Numeric_BinOp('float', '__mul__', float_mul, class_float, om_float)
+om_float_rmul = gen_dunder_Homogenous_Numeric_BinOp('float', '__rmul__', float_mul, class_float, om_float)
 
 def om_float_mod(ctx, args):
     if debug: print("float.__mod__")
