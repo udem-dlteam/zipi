@@ -143,6 +143,9 @@ def cont_bool(ctx, val):
 def cont_int(ctx, val):
     return ctx.cont(ctx.rte, om_int(val))
 
+def cont_float(ctx, val):
+    return ctx.cont(ctx.rte, om_float(val))
+
 def cont_str(ctx, val):
     return ctx.cont(ctx.rte, om_str(val))
 
@@ -1182,6 +1185,7 @@ class_EOFError = make_builtin_class('EOFError', OM_BaseException_create, (class_
 class_IndexError = make_builtin_class('IndexError', OM_BaseException_create, (class_LookupError,), class_type)
 class_AttributeError = make_builtin_class('AttributeError', OM_BaseException_create, (class_Exception,), class_type)
 class_ArithmeticError = make_builtin_class('ArithmeticError', OM_BaseException_create, (class_Exception,), class_type)
+class_OverflowError = make_builtin_class('OverflowError', OM_BaseException, (class_ArithmeticError,), class_type)
 class_ZeroDivisionError = make_builtin_class('ZeroDivisionError', OM_BaseException_create, (class_ArithmeticError,), class_type)
 
 om_None = om(class_NoneType)
@@ -2468,102 +2472,148 @@ def om_float_float_code(ctx, args):
 
 om_float_float = do_magic_method(class_float, "__float__", om_float_float_code)
 
-om_float_add = gen_dunder_Homogenous_Numeric_BinOp('float', '__add__', float_add, class_float, om_float)
-om_float_radd = om_float_add
+def gen_dunder_Float_BinOp(py_class, method, prim):
+    debug_msg = py_class + "." + method
 
-om_float_sub = gen_dunder_Homogenous_Numeric_BinOp('float', '__sub__', float_sub, class_float, om_float)
-om_float_rsub = gen_dunder_Homogenous_Numeric_BinOp('float', '__rsub__', float_sub, class_float, om_float)
+    def dunder_Float_BinOp(ctx, args):
+        if debug: print(debug_msg)
+        val1 = args[0]
+        val2 = args[1]
 
-om_float_mul = gen_dunder_Homogenous_Numeric_BinOp('float', '__mul__', float_mul, class_float, om_float)
-om_float_rmul = gen_dunder_Homogenous_Numeric_BinOp('float', '__rmul__', float_mul, class_float, om_float)
+        val2_class = OM_get_object_class(val2)
 
-def om_float_mod(ctx, args):
-    if debug: print("float.__mod__")
-    val1 = args[0]
-    val2 = args[1]
+        # Primitive operations are only defined on same types.
+        if om_issubclass(val2_class, class_float):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            result = prim(val1_value, val2_value)
+            return ctx.cont(ctx.rte, om_float(result))
+        elif om_issubclass(val2_class, class_int):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            val2_float_value = int_to_num(val2_value, True)
+            if val2_float_value is False:
+                return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
 
-    if not om_issubclass(OM_get_object_class(val1), class_float):
-        return sem_raise(ctx, class_TypeError)
+            res = prim(val1_value, val2_float_value)
+            return cont_float(ctx, res)
+        else:
+            return ctx.cont(ctx.rte, om_NotImplemented)
 
-    # Early break for ZeroDivisionError
-    val2_value = OM_get_boxed_value(val2)
-    if float_is_zero(val2_value):
-        return sem_raise(ctx, class_ZeroDivisionError)
+    return do_magic_method(class_float, method, dunder_Float_BinOp)
 
-    # Primitive operations are only defined on same types.
-    if om_issubclass(OM_get_object_class(val2), class_float):
-        val1_value = OM_get_boxed_value(val1)
-        result = float_mod(val1_value, val2_value)
-        return ctx.cont(ctx.rte, om_float(result))
-    else:
-        # TODO: Return om_NotImplemented(rte) (in the proper rte)
-        return ctx.cont(ctx.rte, om_NotImplemented)
+def gen_dunder_Float_BinOp(py_class, method, prim):
+    debug_msg = py_class + "." + method
 
-def om_float_rmod(ctx, args):
-    if debug: print("float.__rmod__")
-    val1 = args[0]
-    val2 = args[1]
+    def dunder_Float_BinOp(ctx, args):
+        if debug: print(debug_msg)
+        val1 = args[0]
+        val2 = args[1]
 
-    if not om_issubclass(OM_get_object_class(val1), class_float):
-        return sem_raise(ctx, class_TypeError)
+        val2_class = OM_get_object_class(val2)
 
-    # Early break for ZeroDivisionError
-    val1_value = OM_get_boxed_value(val1)
-    if float_is_zero(val1_value):
-        return sem_raise(ctx, class_ZeroDivisionError)
+        # Primitive operations are only defined on same types.
+        if om_issubclass(val2_class, class_float):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            result = prim(val1_value, val2_value)
+            return ctx.cont(ctx.rte, om_float(result))
+        elif om_issubclass(val2_class, class_int):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            val2_float_value = int_to_num(val2_value, True)
+            if val2_float_value is False:
+                return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
 
-    # Primitive operations are only defined on same types.
-    if om_issubclass(OM_get_object_class(val2), class_float):
-        val2_value = OM_get_boxed_value(val2)
-        result = float_mod(val2_value, val1_value)
-        return ctx.cont(ctx.rte, om_float(result))
-    else:
-        # TODO: Return om_NotImplemented(rte) (in the proper rte)
-        return ctx.cont(ctx.rte, om_NotImplemented)
+            res = prim(val1_value, val2_float_value)
+            return cont_float(ctx, res)
+        else:
+            return ctx.cont(ctx.rte, om_NotImplemented)
 
-def om_float_truediv(ctx, args):
-    if debug: print("float.__truediv__")
-    val1 = args[0]
-    val2 = args[1]
+    return do_magic_method(class_float, method, dunder_Float_BinOp)
 
-    if not om_issubclass(OM_get_object_class(val1), class_float):
-        return sem_raise(ctx, class_TypeError)
+def gen_dunder_Float_DivideOp(py_class, method, prim):
+    debug_msg = py_class + "." + method
 
-    # Early break for ZeroDivisionError
-    val2_value = OM_get_boxed_value(val2)
-    if float_is_zero(val2_value):
-        return sem_raise(ctx, class_ZeroDivisionError)
+    def dunder_Float_DivideOp(ctx, args):
+        if debug: print(debug_msg)
+        val1 = args[0]
+        val2 = args[1]
 
-    # Primitive operations are only defined on same types.
-    if om_issubclass(OM_get_object_class(val2), class_float):
-        val1_value = OM_get_boxed_value(val1)
-        result = float_div(val1_value, val2_value)
-        return ctx.cont(ctx.rte, om_float(result))
-    else:
-        # TODO: Return om_NotImplemented(rte) (in the proper rte)
-        return ctx.cont(ctx.rte, om_NotImplemented)
+        val2_class = OM_get_object_class(val2)
 
-def om_float_rtruediv(ctx, args):
-    if debug: print("float.__rtruediv__")
-    val1 = args[0]
-    val2 = args[1]
+        # Primitive operations are only defined on same types.
+        if om_issubclass(val2_class, class_float):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            result = prim(val1_value, val2_value)
+            return ctx.cont(ctx.rte, om_float(result))
+        elif om_issubclass(val2_class, class_int):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            val2_float_value = int_to_num(val2_value, True)
+            if val2_float_value is False:
+                return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
 
-    if not om_issubclass(OM_get_object_class(val1), class_float):
-        return sem_raise(ctx, class_TypeError)
+            if float_is_zero(val2_float_value):
+                return sem_raise_with_message(ctx, class_ZeroDivisionError, "float division or modulo by zero")
 
-    # Early break for ZeroDivisionError
-    val1_value = OM_get_boxed_value(val1)
-    if float_is_zero(val1_value):
-        return sem_raise(ctx, class_ZeroDivisionError)
+            res = prim(val1_value, val2_float_value)
+            return cont_float(ctx, res)
+        else:
+            return ctx.cont(ctx.rte, om_NotImplemented)
 
-    # Primitive operations are only defined on same types.
-    if om_issubclass(OM_get_object_class(val2), class_float):
-        val2_value = OM_get_boxed_value(val2)
-        result = float_div(val2_value, val1_value)
-        return ctx.cont(ctx.rte, om_float(result))
-    else:
-        # TODO: Return om_NotImplemented(rte) (in the proper rte)
-        return ctx.cont(ctx.rte, om_NotImplemented)
+    return do_magic_method(class_float, method, dunder_Float_DivideOp)
+
+def gen_dunder_Float_rDivideOp(py_class, method, prim):
+    debug_msg = py_class + "." + method
+
+    def dunder_Float_rDivideOp(ctx, args):
+        if debug: print(debug_msg)
+        val1 = args[0]
+        val2 = args[1]
+
+        val2_class = OM_get_object_class(val2)
+
+        # Primitive operations are only defined on same types.
+        if om_issubclass(val2_class, class_float):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            result = prim(val1_value, val2_value)
+            return ctx.cont(ctx.rte, om_float(result))
+        elif om_issubclass(val2_class, class_int):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            val2_float_value = int_to_num(val2_value, True)
+            if val2_float_value is False:
+                return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
+
+            if float_is_zero(val1_value):
+                return sem_raise_with_message(ctx, class_ZeroDivisionError, "float division or modulo by zero")
+
+            res = prim(val2_float_value, val1_value)
+            return cont_float(ctx, res)
+        else:
+            return ctx.cont(ctx.rte, om_NotImplemented)
+
+    return do_magic_method(class_float, method, dunder_Float_rDivideOp)
+
+
+om_float_add = gen_dunder_Float_BinOp('float', '__add__', float_add)
+om_float_radd = gen_dunder_Float_BinOp('float', '__add__', float_add)
+
+om_float_sub = gen_dunder_Float_BinOp('float', '__sub__', float_sub)
+om_float_rsub = gen_dunder_Float_BinOp('float', '__rsub__', float_sub)
+
+om_float_mul = gen_dunder_Float_BinOp('float', '__mul__', float_mul)
+om_float_rmul = gen_dunder_Float_BinOp('float', '__rmul__', float_mul)
+
+om_float_mod = gen_dunder_Float_DivideOp('float', '__mod__', float_mod)
+om_float_rmod = gen_dunder_Float_rDivideOp('float', '__mod__', float_mod)
+
+om_float_truediv = gen_dunder_Float_DivideOp('float', '__truediv__', float_div)
+om_float_rtruediv = gen_dunder_Float_DivideOp('float', '__rtruediv__', float_div)
+
 
 def om_float_abs_code(ctx, args):
     if len(args) == 1:

@@ -118,8 +118,15 @@ def int_divmod(u, v):
 def int_not(u):
     return ~u
 
-def int_to_num(u):
-    return u
+def int_to_num(u, exact=None):
+    if exact:
+        try:
+            float(u)
+            return u
+        except OverflowError:
+            return False
+    else:
+        return u
 
 
 def int_and(u, v):
