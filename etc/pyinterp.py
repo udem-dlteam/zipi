@@ -1995,6 +1995,8 @@ def is_space(c):
 def int_from_str(s, base):
     base = int_to_float(base)
 
+    disallow_heading_zeros = base == 0
+
     # base is 0 or 2 <= base <= 36
     end = len(s)
     start = 0
@@ -2029,11 +2031,18 @@ def int_from_str(s, base):
         else:
             prefix_base = base - 1
         if prefix_base > 0 if base == 0 else prefix_base == base:
+            disallow_heading_zeros = False
             base = prefix_base
             start += 2
 
     if start >= end:
         return False
+
+    if disallow_heading_zeros:
+        if end - start > 1 and s[start] == '0':
+            c_ord = ord(s[start+1])
+            if 48 <= c_ord and c_ord <= 57:
+                return False
 
     if base == 0:
         base = 10
