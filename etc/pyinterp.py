@@ -2045,7 +2045,7 @@ def int_from_str(s, base):
         return False
 
     if sign == '-':
-        return -n
+        return int_neg(n)
     else:
         return n
 
