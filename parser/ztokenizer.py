@@ -694,40 +694,68 @@ def get_token(ts):
                     inc_stats('k <= KIND_STRING')
 
                     base = 10
+                    underscore_allowed = True # allow '_' after first digit
+                    starts_with_zero = c == 48 # '0'
 
-                    if c == 48: # '0'
+                    if starts_with_zero:
                         next = next & 0xdf # turn into upper-case letter
                         if next == 88: # 'X'
                             base = 16
-                            pos += 1
                         elif next == 79: # 'O'
                             base = 8
-                            pos += 1
                         elif next == 66: # 'B'
                             base = 2
-                            pos += 1
                         #elif ts.python == 2: # check for '0' prefixed octal
                         #    base = -8
+                        if base != 10:
+                            pos += 1
                         next = byte_at(buf, pos)
+
+                    all_zero = starts_with_zero
 
                     while True:
                         k = char_kind[next]
-                        if k <= 9: # '0'..'9'
+                        if k == 0: # '0'
                             pass
-                        elif k == KIND_NAME: # hex digit handling
+                        elif k <= 9: # '1'..'9'
+                            all_zero = False
+                            pass
+                        elif k == KIND_NAME: # underscore and hex digit handling
+                            if next == 95: # '_'
+                                if underscore_allowed:
+                                    underscore_allowed = False
+                                    pos += 1
+                                    next = byte_at(buf, pos)
+                                    continue
+                                else:
+                                    ts.end = pos+1
+                                    ts.token = ERRORTOKEN
+                                    return
+                            all_zero = False
                             k = (next & 0xdf) - 55
                         else:
                             k += 100
-                        if k > base:
+                        if k >= base:
                             break
+                        underscore_allowed = True
                         pos += 1
                         next = byte_at(buf, pos)
+
+                    if not underscore_allowed: # trailing underscore?
+                        ts.end = pos
+                        ts.token = ERRORTOKEN
+                        return
 
                     if base == 10 and (k == 100+KIND_DOT or  # '.'
                                        (next & 0xdf) == 69): # 'E' or 'e'
 
                        float_tail(ts, pos, k)
                        return
+
+                    elif base == 10 and starts_with_zero and not all_zero:
+                        ts.end = pos
+                        ts.token = ERRORTOKEN
+                        return
 
                     else:
 
@@ -738,7 +766,7 @@ def get_token(ts):
                             #    base = 8
                             #else:
                                 start += 2 # skip '0x', '0o' and '0b' prefix
-                        ts.value = int_from_string(source(ts, start, pos), base)
+                        ts.value = int_from_string(''.join(source(ts, start, pos).split('_')), base)
                         if k == 21 and ts.python == 2: # check for trailing 'L'
                             pos += 1
                         ts.end = pos
@@ -803,12 +831,30 @@ def float_tail(ts, pos, k):
 
     if k == 100+KIND_DOT:
         pos += 1
-        while True:
-            next = byte_at(buf, pos)
-            k = char_kind[next]
-            if k > 9: # not '0'..'9'
-                break
-            pos += 1
+        next = byte_at(buf, pos)
+        if char_kind[next] <= 9: # dot followed by '0'..'9'
+            underscore_allowed = False
+            while True:
+                next = byte_at(buf, pos)
+                k = char_kind[next]
+                if k > 9: # not '0'..'9'
+                    if next == 95: # '_'
+                        if underscore_allowed:
+                            underscore_allowed = False
+                            pos += 1
+                            continue
+                        else:
+                            ts.end = pos+1
+                            ts.token = ERRORTOKEN
+                            return
+                    else:
+                        break
+                underscore_allowed = True
+                pos += 1
+                if not underscore_allowed: # trailing underscore?
+                    ts.end = pos+1
+                    ts.token = ERRORTOKEN
+                    return
     else:
         next = byte_at(buf, pos)
 
@@ -822,18 +868,36 @@ def float_tail(ts, pos, k):
             next = byte_at(buf, pos)
         k = char_kind[next]
         if k <= 9: # '0'..'9'
+            underscore_allowed = True
             while True:
                 pos += 1
                 next = byte_at(buf, pos)
                 k = char_kind[next]
                 if k > 9:
-                    break
+                    if next == 95: # '_'
+                        if underscore_allowed:
+                            underscore_allowed = False
+                            continue
+                        else:
+                            ts.end = pos+1
+                            ts.token = ERRORTOKEN
+                            return
+                    else:
+                        break
+                underscore_allowed = True
+            if not underscore_allowed: # trailing underscore?
+                ts.end = pos+1
+                ts.token = ERRORTOKEN
+                return
+        else:
+            ts.end = pos
+            ts.token = ERRORTOKEN
+            return
 
     inc_found(KIND_NUMBER)
-    ts.value = float_from_string(source(ts, ts.start, pos))
+    ts.value = float_from_string(''.join(source(ts, ts.start, pos).split('_')))
     ts.end = pos
     ts.token = NUMBER
-
 
 def digit_value(byte):
 
