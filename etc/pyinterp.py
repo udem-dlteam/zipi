@@ -2175,7 +2175,7 @@ def om_int_new_code(ctx, args):
                         "int() argument must be a string, a bytes-like object or a number")
             else:
                 return ctx.cont(ctx.rte, om_int_subtype(cls, OM_get_boxed_value(res)))
-        return sem_maybe_int(with_cont(ctx, check_result), obj)
+        return sem_maybe_index(with_cont(ctx, check_result), obj)
     elif args_len == 3:
         obj = args[1]
         radix = args[2]
@@ -2188,7 +2188,7 @@ def om_int_new_code(ctx, args):
                 else:
                     return sem_raise_with_message(ctx, class_ValueError, "int() base must be >= 2 and <= 36, or 0")
 
-            return sem_int(with_cont(ctx, check_radix_range), radix)
+            return sem_index(with_cont(ctx, check_radix_range), radix)
         else:
             return sem_raise_with_message(ctx, class_TypeError, "int() can't convert non-string with explicit base")
     else:
@@ -4209,18 +4209,26 @@ def sem_int(ctx, obj):
             return cont_obj(ctx, res)
     return sem_maybe_int(with_cont(ctx, check_result), obj)
 
-def sem_index(ctx, obj):
-    obj_index = getattribute_from_obj_mro(obj, '__index__')
+def sem_maybe_index(ctx, obj):
+    obj_int = getattribute_from_obj_mro(obj, '__index__')
 
-    if obj_index is absent:
-        return sem_raise_with_message(ctx, class_TypeError, "object cannot be interpreted as an integer")
+    if obj_int is absent:
+        return ctx.cont(ctx.rte, None)
     else:
         def check_int(rte, res):
             if om_isinstance(res, class_int):
                 return ctx.cont(rte, res)
             else:
                 return sem_raise_with_message(ctx, class_TypeError, "__index__ returned non-int")
-        return om_call(obj_index, with_cont(ctx, check_int), [obj])
+        return om_call(obj_int, with_cont(ctx, check_int), [obj])
+
+def sem_index(ctx, obj):
+    def check_result(rte, res):
+        if res is None:
+            return sem_raise_with_message(ctx, class_TypeError, "object cannot be interpreted as an integer")
+        else:
+            return cont_obj(ctx, res)
+    return sem_maybe_index(with_cont(ctx, check_result), obj)
 
 def sem_maybe_float(ctx, obj):
     obj_float = getattribute_from_obj_mro(obj, '__float__')
