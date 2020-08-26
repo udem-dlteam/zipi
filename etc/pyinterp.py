@@ -2026,11 +2026,7 @@ def int_from_str(s, base):
             prefix_base = 16
         else:
             prefix_base = base-1
-        if base == 0:
-            if prefix_base > 0:
-                base = prefix_base
-                start += 2
-        elif prefix_base == base:
+        if prefix_base > 0 if base == 0 else prefix_base == base:
             base = prefix_base
             start += 2
 
