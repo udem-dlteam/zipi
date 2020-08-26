@@ -688,6 +688,8 @@ def populate_builtin_int():
     builtin_add_method(class_int, '__mod__', om_int_mod)
     builtin_add_method(class_int, '__rmod__', om_int_rmod)
     builtin_add_method(class_int, '__abs__', om_int_abs)
+    builtin_add_method(class_int, '__pow__', om_int_pow)
+    builtin_add_method(class_int, '__rpow__', om_int_pow)
     # Bitwise
     builtin_add_method(class_int, '__lshift__', om_int_lshift)
     builtin_add_method(class_int, '__rlshift__', om_int_rlshift)
@@ -727,6 +729,9 @@ def populate_builtin_float():
     builtin_add_method(class_float, '__pos__', om_float_pos)
     builtin_add_method(class_float, '__neg__', om_float_neg)
     builtin_add_method(class_float, '__abs__', om_float_abs)
+    builtin_add_method(class_float, '__pow__', om_float_pow)
+    builtin_add_method(class_float, '__rpow__', om_float_pow)
+
 
 def populate_builtin_bool():
     builtin_add_method(class_bool, '__bool__', om_bool_bool)
@@ -1963,6 +1968,10 @@ om_int_rsub = gen_dunder_Numeric_rBinOp('int', '__rsub__', int_sub, class_int, o
 om_int_mul = gen_dunder_Numeric_BinOp('int', '__mul__', int_mul, class_int, om_int)
 om_int_rmul = om_int_mul
 
+om_int_pow = gen_dunder_Numeric_BinOp('int', '__pow__', int_pow, class_int, om_int)
+om_int_rpow = gen_dunder_Numeric_rBinOp('int', '__rpow__', int_pow, class_int, om_int)
+
+
 # Bitwise
 om_int_lshift = gen_dunder_Numeric_BinOp('int', '__lshift__', int_lshift, class_int, om_int)
 om_int_rlshift = gen_dunder_Numeric_BinOp('int', '__rlshift__', int_lshift, class_int, om_int)
@@ -2159,6 +2168,9 @@ om_float_rsub = gen_dunder_Numeric_BinOp('float', '__rsub__', float_sub, class_f
 
 om_float_mul = gen_dunder_Numeric_BinOp('float', '__mul__', float_mul, class_float, om_float)
 om_float_rmul = gen_dunder_Numeric_BinOp('float', '__rmul__', float_mul, class_float, om_float)
+
+om_float_pow = gen_dunder_Numeric_BinOp('float', '__pow__', float_pow, class_float, om_float)
+om_float_rpow = gen_dunder_Numeric_rBinOp('float', '__rpow__', float_pow, class_float, om_float)
 
 def om_float_mod(ctx, args):
     if debug: print("float.__mod__")
@@ -3484,6 +3496,8 @@ def gen_BinOp(cte, ast, op, code1, code2):
         sem_op = sem_BitOr
     elif isinstance(op, AST.BitXor):
         sem_op = sem_BitXor
+    elif isinstance(op, AST.Pow):
+        sem_op = sem_Pow
     else:
         return CT_raise_with_msg(cte, ast, "unimplemented binary operator")
 
@@ -3616,6 +3630,32 @@ def gen_sem_Numeric_BinOp(op_symbol, method, rmethod):
 
     return sem_Numeric_BinOp
 
+def gen_sem_Numeric_BinOp_nonAssoc(op_symbol, method):
+
+    def sem_Numeric_BinOp_nonAssoc(ctx, val1, val2):
+
+        def test_method_result(rte, val):
+            # C: Method not implemented for val2's type,
+            if om_is(val, om_NotImplemented):
+                return sem_raise(ctx, class_TypeError)
+            else:
+                # END0: val1 has method and can operate on val2.
+                #       Return the result.
+                return ctx.cont(rte, val)
+
+        # A: Does val1 have method?
+        val1_method = getattribute_from_obj_mro(val1, method)
+
+        # B: Yes, try val1.method(val2).
+        if val1_method is not absent:
+            ctx1 = with_cont(ctx, test_method_result)
+            return om_call(val1_method, ctx1, [val1, val2])
+        else:
+            return sem_raise(ctx, class_TypeError)
+
+    return sem_Numeric_BinOp_nonAssoc
+
+
 # Arithmetic
 sem_Add = gen_sem_Numeric_BinOp('+', '__add__', '__radd__')
 sem_Sub = gen_sem_Numeric_BinOp('-', '__sub__', '__rsub__')
@@ -3623,6 +3663,8 @@ sem_Mult = gen_sem_Numeric_BinOp('*', '__mul__', '__rmul__')
 sem_FloorDiv = gen_sem_Numeric_BinOp('//', '__floordiv__', '__rfloordiv__')
 sem_TrueDiv = gen_sem_Numeric_BinOp('/', '__truediv__', '__rtruediv__')
 sem_Mod = gen_sem_Numeric_BinOp('%', '__mod__', '__rmod__')
+sem_Pow = gen_sem_Numeric_BinOp_nonAssoc('**', '__pow__')
+
 # Bitwise
 sem_LShift = gen_sem_Numeric_BinOp('<<', '__lshift__', '__rlshift__')
 sem_RShift = gen_sem_Numeric_BinOp('>>', '__rshift__', '__rrshift__')
