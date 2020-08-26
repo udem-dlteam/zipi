@@ -2019,22 +2019,22 @@ def int_from_str(s, base):
     if end - start >= 3 and s[start] == '0':
         c = s[start+1]
         if c == 'b' or c == 'B':
-            prefix_base = 2
+            prefix_base = 2.0
         elif c == 'o' or c == 'O':
-            prefix_base = 8
+            prefix_base = 8.0
         elif c == 'x' or c == 'X':
-            prefix_base = 16
+            prefix_base = 16.0
         else:
-            prefix_base = base-1
-        if prefix_base > 0 if int_is_zero(base) else int_eq(prefix_base, base):
-            base = prefix_base
+            prefix_base = int_sub(base, int_from_float(1.0))
+        if int_gt(prefix_base, int_from_float(0.0)) if int_is_zero(base) else int_eq(prefix_base, base):
+            base = int_from_float(prefix_base)
             start += 2
 
     if start >= end:
         return False
 
     if base == 0:
-        base = 10
+        base = int_from_float(10.0)
 
     n = int_from_substring(s, start, end, base)
 
