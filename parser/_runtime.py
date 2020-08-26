@@ -119,7 +119,7 @@ def int_not(u):
     return ~u
 
 def int_to_float(u):
-    return float(u)
+    return u
 
 
 def int_and(u, v):
@@ -160,7 +160,16 @@ def int_to_string(u, radix):
 
 
 def int_from_string(string, radix):
-    return int(string, radix)
+    try:
+        return int(string, radix)
+    except ValueError:
+        return False
+
+def int_from_substring(string, start, stop, radix):
+    try:
+        return int(string[start:stop], radix)
+    except ValueError:
+        return False
 
 
 def int_pow_mod(u, v, m):
