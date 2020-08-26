@@ -788,6 +788,10 @@ def populate_builtin_float():
     builtin_add_method(class_float, '__rmul__', om_float_rmul)
     builtin_add_method(class_float, '__truediv__', om_float_truediv)
     builtin_add_method(class_float, '__rtruediv__', om_float_rtruediv)
+    builtin_add_method(class_float, '__floordiv__', om_float_floordiv)
+    builtin_add_method(class_float, '__rfloordiv__', om_float_rfloordiv)
+    builtin_add_method(class_float, '__pow__', om_float_pow)
+    builtin_add_method(class_float, '__rpow__', om_float_rpow)
     builtin_add_method(class_float, '__mod__', om_float_mod)
     builtin_add_method(class_float, '__rmod__', om_float_rmod)
     builtin_add_method(class_float, '__repr__', om_float_repr)
@@ -2532,6 +2536,36 @@ def gen_dunder_Float_BinOp(py_class, method, prim):
 
     return do_magic_method(class_float, method, dunder_Float_BinOp)
 
+def gen_dunder_Float_rBinOp(py_class, method, prim):
+    debug_msg = py_class + "." + method
+
+    def dunder_Float_rBinOp(ctx, args):
+        if debug: print(debug_msg)
+        val1 = args[0]
+        val2 = args[1]
+
+        val2_class = OM_get_object_class(val2)
+
+        # Primitive operations are only defined on same types.
+        if om_issubclass(val2_class, class_float):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            result = prim(val1_value, val2_value)
+            return ctx.cont(ctx.rte, om_float(result))
+        elif om_issubclass(val2_class, class_int):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            val2_float_value = int_to_num(val2_value, True)
+            if val2_float_value is False:
+                return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
+
+            res = prim(val2_float_value, val1_value)
+            return cont_float(ctx, res)
+        else:
+            return ctx.cont(ctx.rte, om_NotImplemented)
+
+    return do_magic_method(class_float, method, dunder_Float_rBinOp)
+
 def gen_dunder_Float_DivideOp(py_class, method, prim):
     debug_msg = py_class + "." + method
 
@@ -2600,20 +2634,25 @@ def gen_dunder_Float_rDivideOp(py_class, method, prim):
 
 
 om_float_add = gen_dunder_Float_BinOp('float', '__add__', float_add)
-om_float_radd = gen_dunder_Float_BinOp('float', '__add__', float_add)
+om_float_radd = gen_dunder_Float_rBinOp('float', '__add__', float_add)
 
 om_float_sub = gen_dunder_Float_BinOp('float', '__sub__', float_sub)
-om_float_rsub = gen_dunder_Float_BinOp('float', '__rsub__', float_sub)
+om_float_rsub = gen_dunder_Float_rBinOp('float', '__rsub__', float_sub)
 
 om_float_mul = gen_dunder_Float_BinOp('float', '__mul__', float_mul)
-om_float_rmul = gen_dunder_Float_BinOp('float', '__rmul__', float_mul)
+om_float_rmul = gen_dunder_Float_rBinOp('float', '__rmul__', float_mul)
 
 om_float_mod = gen_dunder_Float_DivideOp('float', '__mod__', float_mod)
 om_float_rmod = gen_dunder_Float_rDivideOp('float', '__mod__', float_mod)
 
 om_float_truediv = gen_dunder_Float_DivideOp('float', '__truediv__', float_div)
-om_float_rtruediv = gen_dunder_Float_DivideOp('float', '__rtruediv__', float_div)
+om_float_rtruediv = gen_dunder_Float_rDivideOp('float', '__rtruediv__', float_div)
 
+om_float_floordiv = gen_dunder_Float_DivideOp('float', '__floordiv__', float_floordiv)
+om_float_rfloordiv = gen_dunder_Float_rDivideOp('float', '__rfloordiv__', float_floordiv)
+
+om_float_pow = gen_dunder_Float_BinOp('float', '__pow__', float_pow)
+om_float_rpow = gen_dunder_Float_rBinOp('float', '__rpow__', float_pow)
 
 def om_float_abs_code(ctx, args):
     if len(args) == 1:
@@ -3812,6 +3851,8 @@ def gen_aug_op(cte, ast, id, op, code1):
         sem_op = sem_IOr
     elif isinstance(op, AST.BitXor):
         sem_op = sem_IXor
+    elif isinstance(op, AST.Pow):
+        sem_op = sem_IPow
     else:
         return CT_raise_with_msg(cte, ast, "Unimplemented assignment operator")
 
@@ -3851,6 +3892,8 @@ def gen_BinOp(cte, ast, op, code1, code2):
         sem_op = sem_Or
     elif isinstance(op, AST.BitXor):
         sem_op = sem_Xor
+    elif isinstance(op, AST.Pow):
+        sem_op = sem_Pow
     else:
         return CT_raise_with_msg(cte, ast, "unimplemented binary operator")
 
@@ -3996,6 +4039,7 @@ sem_Mult = gen_sem_Numeric_BinOp('*', '__mul__', '__rmul__')
 sem_FloorDiv = gen_sem_Numeric_BinOp('//', '__floordiv__', '__rfloordiv__')
 sem_TrueDiv = gen_sem_Numeric_BinOp('/', '__truediv__', '__rtruediv__')
 sem_Mod = gen_sem_Numeric_BinOp('%', '__mod__', '__rmod__')
+sem_Pow = gen_sem_Numeric_BinOp('**', '__pow__', '__rpow__')
 # Bitwise
 sem_LShift = gen_sem_Numeric_BinOp('<<', '__lshift__', '__rlshift__')
 sem_RShift = gen_sem_Numeric_BinOp('>>', '__rshift__', '__rrshift__')
@@ -4080,6 +4124,7 @@ sem_ISub = gen_sem_IOperator("__isub__", sem_Sub, "-=")
 sem_IMul = gen_sem_IOperator("__imul__", sem_Mult, "*=")
 sem_ITrueDiv = gen_sem_IOperator("__itruediv__", sem_TrueDiv, "/=")
 sem_IFloorDiv = gen_sem_IOperator("__ifloordiv__",sem_FloorDiv,  "//=")
+sem_IPow = gen_sem_IOperator("__ipow__", sem_Pow, "**=")
 sem_IMod = gen_sem_IOperator("__imod__", sem_Mod, "%=")
 sem_IAnd = gen_sem_IOperator("__iand__", sem_And, "&=")
 sem_IOr = gen_sem_IOperator("__ior__", sem_Or, "|=")
