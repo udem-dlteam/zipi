@@ -284,7 +284,7 @@ def float_sqrt(u):
 
 
 def float_floor(u):
-    return math.floor(u)
+    return float(math.floor(u))
 
 
 def float_ceil(u):
