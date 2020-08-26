@@ -2115,13 +2115,12 @@ def int_from_str(s, base):
     if disallow_heading_zeros and s[start] == '0':
         start += 1
         while start < end:
-            if s[start] == '0':
-                c = s[start+1]
-                if c == '0':
-                    start += 1
-                else:
-                    # non-zero in base 10 with heading 0 or non-digit character
-                    return False
+            c = s[start]
+            if c == '0':
+                start += 1
+            else:
+                # non-zero in base 10 with heading 0 or non-digit character
+                return False
         # If we consumed a chain of legal '0', the result can only be 0
         return int_from_float(0.0)
 
