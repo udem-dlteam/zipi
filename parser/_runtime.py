@@ -159,12 +159,6 @@ def int_to_string(u, radix):
         return str(u)
 
 
-def int_from_string(string, radix):
-    try:
-        return int(string, radix)
-    except ValueError:
-        return False
-
 def int_from_substring(string, start, stop, radix):
     try:
         return int(string[start:stop], radix)
@@ -326,6 +320,7 @@ def float_pi():
 
 def float_e():
     return math.e
+
 
 ###
 # IO operations
