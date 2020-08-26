@@ -504,14 +504,14 @@ def align_args_with_signature(ctx, funcname, caller_args, signature):
 
             vararg_value = caller_args[caller_index:]
             vararg_len = len(vararg_value)
-            if vararg is False:
+            if vararg is None:
                 s = 's' if total_args_len != 1 else ''
                 was_or_were = 'was' if caller_args_len == 1 else 'were'
                 msg = funcname + "() takes " + str(total_args_len) + " positional argument" + s + " but " + str(caller_args_len) + " " + was_or_were + " given"
                 return sem_raise_with_message(ctx, class_TypeError, msg)
             else:
-                locals_env.append((vararg, om_list(vararg_value, vararg_len)))
-                return cont_obj(ctx.rte, locals_env)
+                locals_env.append((vararg, om_tuple(vararg_value)))
+                return cont_obj(ctx, locals_env)
 
 # object model
 def make_dict_from_list(lst):
@@ -2638,8 +2638,8 @@ om_bin_code = gen_int_to_string_conv_code(2, '0b')
 
 def om_print_code(rte, _):
     args = rte_lookup(rte, 'args')
-    args_len = OM_get_list_len(args)
     args_seq = OM_get_list_seq(args)
+    args_len = len(args_seq)
 
     result = []
     for i in args_seq:
@@ -3378,7 +3378,7 @@ def gen_signature(cte, ast):
     if ast.args.vararg is not None:
         vararg = ast.args.vararg.arg
     else:
-        vararg = False
+        vararg = None
 
     kwonlyargs = []
     for kwonly in ast.args.kwonlyargs:
@@ -3394,7 +3394,7 @@ def gen_signature(cte, ast):
     if ast.args.kwarg is not None:
         kwarg = ast.args.kwarg.arg
     else:
-        kwarg = False
+        kwarg = None
 
     defaults = []
     for default_ in ast.args.defaults:
