@@ -1641,9 +1641,9 @@ def om_tuple_getitem(ctx, args):
         item_box_index = OM_get_boxed_value(item)
         elements = OM_get_tuple_seq(self)
         elements_len = int_from_num(len(elements))
-        if int_ge(item_box_index, int_from_num(0)) and int_lt(item_box_index, elements_len):
+        if int_is_nonneg(item_box_index) and int_lt(item_box_index, elements_len):
             return ctx.cont(ctx.rte, elements[item_box_index])
-        elif int_lt(item_box_index, int_from_num(0)) and int_ge(item_box_index, int_neg(elements_len)):
+        elif int_is_neg(item_box_index) and int_ge(item_box_index, int_neg(elements_len)):
             return ctx.cont(ctx.rte, elements[int_add(item_box_index, elements_len)])
         else:
             return sem_raise(ctx, class_IndexError)
@@ -1721,9 +1721,9 @@ def om_list_getitem_code(ctx, args):
             index = OM_get_boxed_value(item)
             self_len = int_from_num(OM_get_list_len(self))
             elements = OM_get_list_seq(self)
-            if int_ge(index, int_from_num(0)) and int_lt(index, self_len):
+            if int_is_nonneg(index) and int_lt(index, self_len):
                 return ctx.cont(ctx.rte, elements[index])
-            elif int_lt(index, int_from_num(0)) and int_ge(index, int_neg(self_len)):
+            elif int_is_neg(index) and int_ge(index, int_neg(self_len)):
                 return ctx.cont(ctx.rte, elements[int_add(index, self_len)])
             else:
                 return sem_raise_with_message(ctx, class_IndexError, "list index out of range")
@@ -1905,9 +1905,9 @@ def om_str_getitem_code(ctx, args):
             self_val = OM_get_boxed_value(self)
             self_len = int_from_num(len(self_val))
 
-            if int_ge(index_val, int_from_num(0)) and int_lt(index_val, self_len):
+            if int_is_nonneg(index_val) and int_lt(index_val, self_len):
                 return cont_str(ctx, self_val[index_val])
-            elif int_lt(index_val, int_from_num(0)) and int_ge(index_val, int_neg(self_len)):
+            elif int_is_neg(index_val) and int_ge(index_val, int_neg(self_len)):
                 return cont_str(ctx, self_val[int_add(index_val, self_len)])
             else:
                 return sem_raise_with_message(ctx, class_IndexError, "string index out of range")
@@ -4446,7 +4446,7 @@ def sem_maybe_len(ctx, obj):
         def check_result(result_rte, res):
             def check_range(range_rte, len_res):
                 res_value = OM_get_boxed_value(res)
-                if int_ge(res_value, int_from_num(0)):
+                if int_is_nonneg(res_value):
                     return cont_obj(ctx, res)
                 else:
                     return sem_raise_with_message(ctx, class_ValueError, "__len__() should return >= 0")
@@ -4627,7 +4627,7 @@ def sem_bool(ctx, val):
                 return cont_obj(ctx, om_True)
             else:
                 res_value = OM_get_boxed_value(res)
-                return cont_bool(ctx, not int_eq(res_value, int_from_num(0)))
+                return cont_bool(ctx, not int_is_zero(res_value))
         return sem_maybe_len(with_cont(ctx, check_len), val)
     else:
         return om_call(__val_bool__, ctx, [val])
