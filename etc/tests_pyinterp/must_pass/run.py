@@ -63,20 +63,20 @@ def run_one_test(path, cpython, zipi, tmp_output_file):
     if cpython returns an error code 1, then compare the last line of stderr from cpython to the last line from scheme.
     We do this because full traceback will likely never be exactly identical between cpython and zipi
     """
-    cpython_output = subprocess.run([cpython, path], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    cpython_output = subprocess.run([cpython, path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    zipi_output = subprocess.run([*zipi.split(), path], stdout=subprocess.PIPE)
+    zipi_output = subprocess.run([*zipi.split(), path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
     if cpython_output.returncode == 0:
         return cpython_output.stdout == zipi_output.stdout
     else:
-        cpython_error = ""
+        cpython_error = "cpython"
         if cpython_output.stderr is not None:
             cpython_error = cpython_output.stderr.decode().strip().rsplit('\n', 1)[-1]
-        zipi_error = ""
-        if zipi_output.stderr is not None :
-            zipi_error = zipi_output.stderr.decode().strip().rsplit('\n', 1)[-1]
+        zipi_error = "zipi"
+        if zipi_output.stdout is not None :
+            zipi_error = zipi_output.stdout.decode().strip().rsplit('\n', 1)[-1]
         return cpython_error == zipi_error
 
 
