@@ -2611,6 +2611,80 @@ def gen_dunder_Float_rDivideOp(py_class, method, prim, cont_box):
     return do_magic_method(class_float, method, dunder_Float_rDivideOp)
 
 
+def gen_dunder_Float_EqComp(py_class, method, float_comp, res_on_overflow, cont_box):
+    debug_msg = py_class + "." + method
+
+    def dunder_Float_EqComp(ctx, args):
+        if debug: print(debug_msg)
+        val1 = args[0]
+        val2 = args[1]
+
+        val2_class = OM_get_object_class(val2)
+
+        # Primitive operations are only defined on same types.
+        if om_issubclass(val2_class, class_float):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            result = float_comp(val1_value, val2_value)
+            return ctx.cont(ctx.rte, om_float(result))
+        elif om_issubclass(val2_class, class_int):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            val2_float_value = int_to_num(val2_value, True)
+
+            if val2_float_value is False:
+                cont_box(ctx, res_on_overflow)
+            else:
+                res = float_comp(val1_value, val2_float_value)
+                return cont_box(ctx, res)
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+
+    return do_magic_method(class_float, method, dunder_Float_EqComp)
+
+def gen_dunder_Float_Comp(py_class, method, float_comp, int_comp, neg_inf_res, pos_inf_res, cont_box):
+    debug_msg = py_class + "." + method
+
+    def dunder_Float_Comp(ctx, args):
+        if debug: print(debug_msg)
+        val1 = args[0]
+        val2 = args[1]
+
+        val2_class = OM_get_object_class(val2)
+
+        # Primitive operations are only defined on same types.
+        if om_issubclass(val2_class, class_float):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            result = float_comp(val1_value, val2_value)
+            return ctx.cont(ctx.rte, om_float(result))
+        elif om_issubclass(val2_class, class_int):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            val2_float_value = int_to_num(val2_value, True)
+
+            if val2_float_value is False:
+                if float_is_finite(val1_value):
+                    val1_int_value = int_from_num(float_trunc(val1_value))
+                    res = int_comp(val1_int_value, val2_value)
+                    return cont_box(ctx, res)
+                elif float_is_nan(val1_value):
+                    return cont_box(ctx, False)
+                elif float_is_pos(val1_value):
+                    # case: +inf
+                    return cont_box(ctx, pos_inf_res)
+                else:
+                    #case: -inf
+                    return cont_box(ctx, neg_inf_res)
+            else:
+                res = float_comp(val1_value, val2_float_value)
+                return cont_box(ctx, res)
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+
+    return do_magic_method(class_float, method, dunder_Float_Comp)
+
+
 om_float_add = gen_dunder_Float_BinOp('float', '__add__', float_add, cont_float)
 om_float_radd = gen_dunder_Float_rBinOp('float', '__add__', float_add, cont_float)
 
@@ -2639,12 +2713,12 @@ om_float_rpow = gen_dunder_Float_rBinOp('float', '__rpow__', float_pow, cont_flo
 def float_ne(x, y):
     return not float_eq(x, y)
 
-om_float_eq = gen_dunder_Float_BinOp('float', '__eq__', float_eq, cont_bool)
-om_float_ne = gen_dunder_Float_BinOp('float', '__ne__', float_ne, cont_bool)
-om_float_lt = gen_dunder_Float_BinOp('float', '__lt__', float_lt, cont_bool)
-om_float_le = gen_dunder_Float_BinOp('float', '__le__', float_le, cont_bool)
-om_float_gt = gen_dunder_Float_BinOp('float', '__gt__', float_gt, cont_bool)
-om_float_ge = gen_dunder_Float_BinOp('float', '__ge__', float_ge, cont_bool)
+om_float_eq = gen_dunder_Float_EqComp('float', '__eq__', float_eq, False, cont_bool)
+om_float_ne = gen_dunder_Float_EqComp('float', '__ne__', float_ne, True, cont_bool)
+om_float_lt = gen_dunder_Float_Comp('float', '__lt__', float_lt, int_lt, True, False, cont_bool)
+om_float_le = gen_dunder_Float_Comp('float', '__le__', float_le, int_le, True, False, cont_bool)
+om_float_gt = gen_dunder_Float_Comp('float', '__gt__', float_gt, int_gt, False, True, cont_bool)
+om_float_ge = gen_dunder_Float_Comp('float', '__ge__', float_ge, int_ge, False, True, cont_bool)
 
 
 def om_float_abs_code(ctx, args):
