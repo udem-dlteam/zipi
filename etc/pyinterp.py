@@ -2371,6 +2371,10 @@ def om_int_new_code(ctx, args):
             if res is None:
                 if om_isinstance(obj, class_str):
                     return om_int_str_conversion(ctx, obj, om_int(10))
+                elif om_isinstance(obj, class_float):
+                    float_val = OM_get_boxed_value(obj)
+                    int_val = om_int(int_from_num(float_val))
+                    return ctx.cont(ctx.rte, int_val)
                 else:
                     return sem_raise_with_message(
                         Context(rte, ctx.cont, ctx.ast),
