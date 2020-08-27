@@ -712,7 +712,8 @@ def bootstrap_populate_base_types():
          ('__repr__', om_str_repr),
          ('__str__', om_str_str),
          ('__getitem__', om_str_getitem),
-         ('__add__', om_str_add)))
+         ('__add__', om_str_add),
+         ('__len__', om_str_len)))
 
 # Initialize class type objects
 def builtin_add_method(o, name, code):
@@ -1894,6 +1895,20 @@ def om_str_getitem_code(ctx, args):
         return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
 
 om_str_getitem = do_magic_method(class_str, "__getitem__", om_str_getitem_code)
+
+def om_str_len_code(ctx, args):
+    if debug: print('str.__len__')
+
+    if len(args) == 1:
+        self = args[0]
+
+        self_len = len(OM_get_boxed_value(self))
+
+        return cont_int(ctx, int_from_num(self_len))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+om_str_len = do_magic_method(class_str, "__len__", om_str_len_code)
 
 def om_str_str_code(ctx, args):
     if debug: print('str.__str__')
