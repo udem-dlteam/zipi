@@ -1240,6 +1240,14 @@ sem_Gt = gen_sem_Numeric_BinOp('>', '__gt__', '__lt__')
 sem_LtE = gen_sem_Numeric_BinOp('<=', '__le__', '__ge__')
 sem_GtE = gen_sem_Numeric_BinOp('>=', '__ge__', '__le__')
 
+def sem_Round(ctx, obj, ndigits):
+    obj_round = getattribute_from_obj_mro(obj, "__round__")
+
+    if obj_round is absent:
+        return sem_raise_with_message(ctx, class_TypeError, "type doesn't define __round__ method")
+    else:
+        return om_call(obj_round, ctx, (obj, ndigits))
+
 # Create builtins classes
 __base_types = bootstrap_base_types()
 
