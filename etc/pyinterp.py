@@ -710,7 +710,9 @@ def bootstrap_populate_base_types():
         class_str,
         (('__new__', om_str_new),
          ('__repr__', om_str_repr),
-         ('__str__', om_str_str)))
+         ('__str__', om_str_str),
+         ('__getitem__', om_str_getitem),
+         ('__add__', om_str_add)))
 
 # Initialize class type objects
 def builtin_add_method(o, name, code):
@@ -1795,7 +1797,7 @@ def om_iterator_next(ctx, args):
     return sem_getitem(next_ctx, obj, index)
 
 # class_str methods
-def om_str_new(ctx, args):
+def om_str_new_code(ctx, args):
     cls = args[0]
 
     if len(args) == 1:
@@ -1805,6 +1807,8 @@ def om_str_new(ctx, args):
         return sem_str(ctx, value)
     else:
         assert False, "TypeError: str() takes 0 or 1 argument"
+
+om_str_new = do_static_magic_method(class_str, "__new__", om_str_new_code)
 
 def om_format_str_repr(self, rte):
     def wrap_doublequote(s):
@@ -1847,6 +1851,49 @@ def om_str_repr_code(ctx, args):
 
 om_str_repr = do_magic_method(class_str, "__repr__", om_str_repr_code)
 
+def om_str_add_code(ctx, args):
+    if debug: print('str.__add__')
+
+    if len(args) == 2:
+        self = args[0]
+        other = args[1]
+
+        if om_isinstance(other, class_str):
+            self_val = OM_get_boxed_value(self)
+            other_value = OM_get_boxed_value(other)
+
+            return cont_str(ctx, self_val + other_value)
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
+
+om_str_add = do_magic_method(class_str, "__add__", om_str_add_code)
+
+def om_str_getitem_code(ctx, args):
+    if debug: print('str.__getitem__')
+
+    if len(args) == 2:
+        self = args[0]
+        item = args[1]
+
+        def get_char(rte, index):
+            index_val = OM_get_boxed_value(index)
+            self_val = OM_get_boxed_value(self)
+            self_len = len(self_val)
+
+            if index_val >= 0 and index_val < self_len:
+                return cont_str(ctx, self_val[index_val])
+            elif index_val < 0 and index_val >= -self_len:
+                return cont_str(ctx, self_val[index_val + self_len])
+            else:
+                return sem_raise_with_message(ctx, class_IndexError, "string index out of range")
+
+        return sem_index(with_cont(ctx, get_char), item)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
+
+om_str_getitem = do_magic_method(class_str, "__getitem__", om_str_getitem_code)
 
 def om_str_str_code(ctx, args):
     if debug: print('str.__str__')
