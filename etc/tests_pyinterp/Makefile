@@ -2,8 +2,8 @@ PYTHON38 = python3
 
 tests:
 	@echo "Running pyinterp tests..."
-	-cd must_pass && $(PYTHON38) run.py --zipi "python ../../pyinterp-run.py " >../PYINTERP_TESTS_ESSENTIAL 2>&1
-	-cd wishlist && $(PYTHON38) run.py --zipi "python ../../pyinterp-run.py " >../PYINTERP_TESTS_WISHLIST 2>&1
+	-cd must_pass && $(PYTHON38) ../run.py --zipi "python ../../pyinterp-run.py " >../PYINTERP_TESTS_ESSENTIAL 2>&1
+	-cd wishlist && $(PYTHON38) ../run.py --zipi "python ../../pyinterp-run.py " >../PYINTERP_TESTS_WISHLIST 2>&1
 	@echo "Pyinterp unit test results:"
 	@echo ""
 	@echo "===== ESSENTIAL TESTS ======"
