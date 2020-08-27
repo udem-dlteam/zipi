@@ -1551,10 +1551,12 @@ def om_bool_new_code(ctx, args):
     if debug: print("bool.__new__")
     if len(args) == 1:
         return ctx.cont(rte, om_False)
-    else:
+    elif len(args) == 2
         def cont(rte, result):
             return ctx.cont(rte, result)
         return sem_bool(with_cont(ctx, cont), args[1])
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected at most 1 argument, got " + str(len(args) - 1))
 
 om_bool_new = do_static_magic_method(class_bool, "__new__", om_bool_new_code)
 
