@@ -73,14 +73,14 @@ def run_one_test(path, cpython, zipi, tmp_output_file):
     else:
         if cpython_output.stderr is not None:
             cpython_error = cpython_output.stderr.decode().strip().rsplit('\n', 1)[-1]
-            cpython_error_msg_parts = cpython_error.split(":")
+            cpython_error_msg_parts = cpython_error.split(":", maxsplit=1)
             cpython_error_token = (cpython_error_msg_parts[0], len(cpython_error_msg_parts))
         else:
             cpython_error_token = ""
 
         if zipi_output.stdout is not None :
             zipi_error = zipi_output.stdout.decode().strip().rsplit('\n', 1)[-1]
-            zipi_error_msg_parts = zipi_error.split(":")
+            zipi_error_msg_parts = zipi_error.split(":", maxsplit=1)
             zipi_error_token = (zipi_error_msg_parts[0], len(zipi_error_msg_parts))
         else:
             zipi_error_token = ""
