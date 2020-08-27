@@ -3059,12 +3059,12 @@ def do_min_max(name, sem_Comp):
     expected_argument_error_msg = name + " expected 1 argument, got 0"
     empty_sequence_error_msg = name + "() arg is an empty sequence"
 
-    def code(rte, _):
+    def code(rte, cont):
         args = rte_lookup(rte, 'args')
         args_elements = OM_get_tuple_seq(args)
         args_len = len(args_elements)
         if args_len == 0:
-            return sem_raise_with_message(make_out_of_ast_context(rte, None), class_TypeError, expected_argument_error_msg)
+            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, expected_argument_error_msg)
         elif args_len == 1:
             iterable = args_elements[0]
         else:
@@ -3073,22 +3073,22 @@ def do_min_max(name, sem_Comp):
         def loop_iterator(loop_iterator_rte, iterator):
             def get_first(get_first_rte, candidate):
                 if candidate is for_loop_end_marker:
-                    return sem_raise_with_message(Context(get_first_rte, None, None), class_ValueError, empty_sequence_error_msg)
+                    return sem_raise_with_message(make_out_of_ast_context(get_first_rte, cont), class_ValueError, empty_sequence_error_msg)
                 candidate_ref = [candidate]
                 def get_next(get_next_rte, next_element):
                     if next_element is for_loop_end_marker:
-                        return cont_obj(Context(get_next_rte, unwindReturn, None), candidate_ref[0])
+                        return cont_obj(make_out_of_ast_context(get_next_rte, unwindReturn), candidate_ref[0])
                     else:
                         def compare_candidates(compare_rte, res):
                             def pick_next_candidate(pick_rte, bool_res):
                                 if om_is(bool_res, om_True):
                                     candidate_ref[0] = next_element
-                                return sem_next(Context(pick_rte, get_next, None), iterator, for_loop_end_marker)
-                            return sem_bool(Context(compare_rte, pick_next_candidate, None), res)
-                        return sem_Comp(Context(get_next_rte, compare_candidates, None), next_element, candidate)
-                return sem_next(Context(get_first_rte, get_next, None), iterator, for_loop_end_marker)
-            return sem_next(Context(loop_iterator_rte, get_first, None), iterator, for_loop_end_marker)
-        return sem_iter(Context(rte, loop_iterator, None), iterable)
+                                return sem_next(make_out_of_ast_context(pick_rte, get_next), iterator, for_loop_end_marker)
+                            return sem_bool(make_out_of_ast_context(compare_rte, pick_next_candidate), res)
+                        return sem_Comp(make_out_of_ast_context(get_next_rte, compare_candidates), next_element, candidate)
+                return sem_next(make_out_of_ast_context(get_first_rte, get_next), iterator, for_loop_end_marker)
+            return sem_next(make_out_of_ast_context(loop_iterator_rte, get_first), iterator, for_loop_end_marker)
+        return sem_iter(make_out_of_ast_context(rte, loop_iterator), iterable)
 
     return code
 
