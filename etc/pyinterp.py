@@ -3071,10 +3071,10 @@ def do_min_max(name, sem_Comp):
             iterable = args
 
         def loop_iterator(loop_iterator_rte, iterator):
-            def get_first(get_first_rte, candidate):
-                if candidate is for_loop_end_marker:
+            def get_first(get_first_rte, first_element):
+                if first_element is for_loop_end_marker:
                     return sem_raise_with_message(make_out_of_ast_context(get_first_rte, cont), class_ValueError, empty_sequence_error_msg)
-                candidate_ref = [candidate]
+                candidate_ref = [first_element]
                 def get_next(get_next_rte, next_element):
                     if next_element is for_loop_end_marker:
                         return cont_obj(make_out_of_ast_context(get_next_rte, unwindReturn), candidate_ref[0])
