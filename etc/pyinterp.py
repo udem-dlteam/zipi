@@ -810,6 +810,7 @@ def populate_builtin_float():
 
 
 def populate_builtin_bool():
+    builtin_add_method(class_bool, '__new__', om_bool_new)
     builtin_add_method(class_bool, '__bool__', om_bool_bool)
     builtin_add_method(class_bool, '__repr__', om_bool_repr)
 
@@ -1503,23 +1504,44 @@ def om_NotImplementedType_repr(ctx, args):
     result = om_str('NotImplemented')
     return ctx.cont(ctx.rte, result)
 
+# class_bool methods
+def om_bool_new_code(ctx, args):
+    if len(args) == 1:
+        return cont_bool(ctx, False)
+    elif len(args) == 2:
+        return sem_bool(ctx, args[1])
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected at most 1 arguments, got " + str(len(args) - 1))
+
+om_bool_new = do_static_magic_method(class_bool, "__new__", om_bool_new_code)
+
 def om_format_bool_repr(self, rte):
     if om_is(self, om_True):
         return "True"
     else:
         return "False"
 
-# class_bool methods
-def om_bool_repr(ctx, args):
+def om_bool_repr_code(ctx, args):
     if debug: print('bool.__repr__')
-    self = args[0]
-    result = om_boxval(class_str, om_format_bool_repr(self, ctx.rte))
-    return ctx.cont(ctx.rte, result)
 
-def om_bool_bool(ctx, args):
+    if len(args) == 1:
+        self = args[0]
+        return cont_str(ctx, om_format_bool_repr(self, ctx.rte))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+om_bool_repr = do_magic_method(class_bool, "__repr__", om_bool_repr_code)
+
+def om_bool_bool_code(ctx, args):
     if debug: print('bool.__bool__')
-    self = args[0]
-    return ctx.cont(ctx.rte, self)
+
+    if len(args) == 1:
+        self = args[0]
+        return cont_obj(ctx, self)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+om_bool_bool = do_magic_method(class_bool, "__bool__", om_bool_bool_code)
 
 def om_int_neg_code(ctx, args):
     if len(args) == 1:
