@@ -3127,6 +3127,7 @@ def init_module_math():
     return module_math_env
 
 # Interpreter
+@nocompile
 def interp_file(path, options):
     source = read_file(path)
     interp(parse(source, path, 'exec', False), options)
@@ -3144,9 +3145,7 @@ def default_syntax_error(start_line0,
                          end_column0, msg):
     raise SyntaxError(msg)
 
-def interp_source(src):
-    options = {}
-    dict_set(options, 'trace', True)
+def interp_source(src, options):
     interp(parse(src, '<unknown>', 'exec', False), options)
 
 def parse(source, filename, mode, context):
