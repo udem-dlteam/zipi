@@ -20,13 +20,13 @@ copy_files: _tmpdir zipi-venv
 	cp zp_unit_tests.py $(TMPDIR)/
 	cp _unit_tests.py $(TMPDIR)/
 
-pyinterp: copy_files zipi-venv
+pyinterp: copy_files zipi-venv _zparse.py
 	$(PYTHON38) zp.py -f ../../zipi/pyinterp/__init__.py $(ZP_DEBUG) -o $(TMPDIR)/pyinterp.js
 	$(PYTHON38) zp.py -f ../../zipi/pyinterp/__init__.py $(ZP_DEBUG) -t -o $(TMPDIR)/pyinterp_browser.js
-	$(PYTHON38) zp.py -f ../../zipi/pyinterp.py $(ZP_DEBUG) -n -t -o $(TMPDIR)/pyinterp_node.js
+	$(PYTHON38) zp.py -f ../../zipi/pyinterp/__init__.py $(ZP_DEBUG) -n -t -o $(TMPDIR)/pyinterp_node.js
 	cp $(TMPDIR)/pyinterp_browser.js test/pyinterp/
 
-tests: copy_files pyinterp_tests zipi-venv
+tests: copy_files pyinterp_tests zipi-venv _zparse.py
 	$(PYTHON38) zp.py -f $(TMPDIR)/zp_unit_tests.py $(ZP_DEBUG) -n -t -o $(TMPDIR)/zp_unit_tests.js
 	@echo "\nRunning Python unit tests...\n"
 	$(PYTHON38) $(TMPDIR)/zp_unit_tests.py >$(TMPDIR)/PY_TESTS
@@ -39,9 +39,9 @@ tests: copy_files pyinterp_tests zipi-venv
 	diff -s $(TMPDIR)/PY_TESTS $(TMPDIR)/JS_TESTS
 	rm -f $(TMPDIR)/PY_TESTS $(TMPDIR)/JS_TESTS $(TMPDIR)/zp_unit_tests.js
 
-.PHONY: pyinterp_tests zipi-venv
+.PHONY: pyinterp_tests zipi-venv _zparse.py
 pyinterp_tests:
-	cd ../tests_pyinterp && $(MAKE) tests
+	cd ../../zipi/pyinterp/tests && $(MAKE) tests
 
 clean:
 	rm -vf ./test/zast_browser.js ./test/zast_node.js ./test/zast_browser_es6.js \
