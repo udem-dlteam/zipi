@@ -3431,8 +3431,8 @@ def gen_signature(cte, ast):
 # receives the new rte and, if the code is for an expression, the result
 # of the expression evaluation.
 
-def do_stmt_end(cont, ast):
-    return lambda rte: stmt_end(Context(rte, cont, ast))
+def do_stmt_end(cont, ast, nb_steps):
+    return lambda rte: stmt_end(Context(rte, cont, ast), nb_steps)
 
 def do_stmt_end_with_message(cont, ast):
     return lambda rte, msg: stmt_end_with_message(Context(rte, cont, ast), msg)
@@ -3457,7 +3457,7 @@ def gen_stmt_empty(cte):
 def gen_Pass(cte, ast):
 
     def code(rte, cont):
-        return stmt_end(Context(rte, cont, ast))
+        return stmt_end(Context(rte, cont, ast), 1)
 
     return (cte, code)
 
@@ -3468,7 +3468,7 @@ def gen_while(cte, ast, code1, code2, code3):
     def code(rte, cont):
         def dispatch(rte1, val):
             if om_is_falsy(val):
-                return code3(rte1, do_stmt_end(cont, ast))
+                return code3(rte1, do_stmt_end(cont, ast, 0))
             else:
                 ctrl_env = rte_ctrl_env(rte)
                 ctrl_label = RTCtrlLabel(ctrl_env,
@@ -3492,10 +3492,11 @@ def gen_if(cte, ast, code1, code2, code3):
     def code(rte, cont):
 
         def dispatch(rte, val):
+            stmt_end_cont = do_stmt_end(cont, ast, 0)
             if om_is_falsy(val):
-                return code3(rte, cont)
+                return code3(rte, stmt_end_cont)
             else:
-                return code2(rte, cont)
+                return code2(rte, stmt_end_cont)
 
         def cast_bool(rte, val):
             ctx = Context(rte, dispatch, ast)
@@ -3551,7 +3552,7 @@ def gen_delete(cte, ast, expr):
         (expr_cte, code) = comp_expr(cte, expr)
 
         def del_expr(rte, cont):
-            return sem_var_del(Context(rte, do_stmt_end(cont, ast), ast), expr.id)
+            return sem_var_del(Context(rte, do_stmt_end(cont, ast), ast, 1), expr.id)
 
         return (expr_cte, del_expr)
     else:
@@ -3626,7 +3627,7 @@ def gen_break(cte, ast):
         def code(rte, _):
             depth = dict_get(depth_ast, 'depth', 0)
             ctx = Context(rte, lambda rte: unwindBreak(rte, depth), ast)
-            return stmt_end(ctx)
+            return stmt_end(ctx, 1)
         return (cte, code)
 
 def gen_continue(cte, ast):
@@ -3637,7 +3638,7 @@ def gen_continue(cte, ast):
         def code(rte, _):
             depth = dict_get(depth_ast, 'depth', 0)
             ctx = Context(rte, lambda rte: unwindContinue(rte, depth), ast)
-            return stmt_end(ctx)
+            return stmt_end(ctx, 1)
         return (cte, code)
 
 def gen_raise(cte, ast, code):
@@ -3661,13 +3662,12 @@ def gen_logical_and(cte, ast, code1, code2):
     # XXX: look into runtime environment.
 
     def code(rte, cont):
-        expr_end_cont = do_expr_end(cont, ast)
         def cast_bool(rte1, val1):
             def dispatch(rte2, cond_val):
                 if om_is(cond_val, om_True):
-                    return code2(rte1, expr_end_cont)
+                    return code2(rte2, cont)
                 else:
-                    return expr_end_cont(rte1, val1)
+                    return cont(rte2, val1)
 
             ctx = Context(rte, dispatch, ast)
             return sem_bool(ctx, val1)
@@ -3680,13 +3680,12 @@ def gen_logical_or(cte, ast, code1, code2):
     if debug: print('gen_logical_or')
 
     def code(rte, cont):
-        expr_end_cont = do_expr_end(cont, ast)
         def cast_bool(rte1, val1):
             def dispatch(rte2, cond_val):
                 if om_is(cond_val, om_True):
-                    return expr_end_cont(rte1, val1)
+                    return cont(rte1, val1)
                 else:
-                    return code2(rte1, expr_end_cont)
+                    return code2(rte1, cont)
             return sem_bool(Context(rte1, dispatch, ast), val1)
         return code1(rte, cast_bool)
 
@@ -3766,7 +3765,7 @@ def gen_aug_op(cte, ast, id, op, code1):
     def code(rte, cont):
         return code1(rte,
                      lambda rte1, val1:
-                       sem_op(Context(rte1, do_stmt_end(cont, ast), ast),
+                       sem_op(Context(rte1, do_stmt_end(cont, ast, 1), ast),
                                       id, val1))
     return (cte, code)
 
@@ -4313,7 +4312,7 @@ def gen_Subscript_Store(cte, ast, target, value):
         return obj_code(rte, get_index)
 
     def code(rte, cont):
-        return get_obj(rte, do_stmt_end(cont, ast))
+        return get_obj(rte, do_stmt_end(cont, ast, 1))
 
     return value_cte, code
 
@@ -4522,26 +4521,29 @@ def om_simple_exception_format(ctx, exn):
 
 
 def expr_end_with_error(ctx, error):
-    return return_to_trampoline(ctx.ast, '', False, error, lambda: None, ctx)
+    return return_to_trampoline(ctx.ast, '', 1, False, error, lambda: None, ctx)
 
+# XXX: Default nb_steps to 1 in expr_end to minimise changes
 def expr_end(ctx, val):
     if om_is(val, om_None):
-        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), False, None, lambda: ctx.cont(ctx.rte, val), ctx)
+        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), 1, False, None, lambda: ctx.cont(ctx.rte, val), ctx)
     else:
-        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), True, None, lambda: ctx.cont(ctx.rte, val), ctx)
+        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), 1, True, None, lambda: ctx.cont(ctx.rte, val), ctx)
 
-def stmt_end(ctx):
-    return return_to_trampoline(ctx.ast, '', False, None, lambda: ctx.cont(ctx.rte), ctx)
+def stmt_end(ctx, nb_steps):
+    return return_to_trampoline(ctx.ast, '', nb_steps, False, None, lambda: ctx.cont(ctx.rte), ctx)
 
+# XXX: Default nb_steps to 1 in stmt_end_with_message to minimise changes
 def stmt_end_with_message(ctx, msg):
-    return return_to_trampoline(ctx.ast, msg, False, None, lambda: ctx.cont(ctx.rte), ctx)
+    return return_to_trampoline(ctx.ast, msg, 1, False, None, lambda: ctx.cont(ctx.rte), ctx)
 
 
-def return_to_trampoline(ast, msg, display_result, error, cont, ctx):
+def return_to_trampoline(ast, msg, nb_steps, display_result, error, cont, ctx):
     # return to trampoline with current execution state
     res = make_dict()
     dict_set(res, "ast", ast)
     dict_set(res, "msg", msg)
+    dict_set(res, "nb_steps", nb_steps)
     dict_set(res, "display_result", display_result)
     dict_set(res, "error", error)
     dict_set(res, "cont", cont)
