@@ -3085,7 +3085,7 @@ def do_min_max(name, sem_Comp):
                                     candidate_ref[0] = next_element
                                 return sem_next(make_out_of_ast_context(pick_rte, get_next), iterator, for_loop_end_marker)
                             return sem_bool(make_out_of_ast_context(compare_rte, pick_next_candidate), res)
-                        return sem_Comp(make_out_of_ast_context(get_next_rte, compare_candidates), next_element, candidate)
+                        return sem_Comp(make_out_of_ast_context(get_next_rte, compare_candidates), next_element, candidate_ref[0])
                 return sem_next(make_out_of_ast_context(get_first_rte, get_next), iterator, for_loop_end_marker)
             return sem_next(make_out_of_ast_context(loop_iterator_rte, get_first), iterator, for_loop_end_marker)
         return sem_iter(make_out_of_ast_context(rte, loop_iterator), iterable)
