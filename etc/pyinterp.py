@@ -2463,10 +2463,10 @@ def om_int_bool_code(ctx, args):
     if debug: print('int.__bool__')
     self = args[0]
     val_value = OM_get_boxed_value(self)
-    if val_value != 0:
-        result = om_True
-    else:
+    if int_eq(val_value, 0):
         result = om_False
+    else:
+        result = om_True
     return ctx.cont(ctx.rte, result)
 
 def om_int_abs_code(ctx, args):
