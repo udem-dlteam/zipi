@@ -2435,13 +2435,13 @@ om_int_float = do_magic_method(class_int, "__float__", om_int_float_code)
 
 def om_int_bool_code(ctx, args):
     if debug: print('int.__bool__')
+    args_len = len(agrs)
+    if args_len != 1:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
+
     self = args[0]
     val_value = OM_get_boxed_value(self)
-    if int_is_zero(val_value):
-        result = om_False
-    else:
-        result = om_True
-    return ctx.cont(ctx.rte, result)
+    return cont_bool(ctx, not int_is_zero(val_value))
 
 def om_int_abs_code(ctx, args):
     if len(args) == 1:
@@ -2635,13 +2635,12 @@ om_float_new = do_static_magic_method(class_float, "__new__", om_float_new_code)
 
 def om_float_bool_code(ctx, args):
     if debug: print('int.__bool__')
+    args_len = len(agrs)
+    if args_len != 1:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
     self = args[0]
     val_value = OM_get_boxed_value(self)
-    if float_is_zero(val_value):
-        result = om_False
-    else:
-        result = om_True
-    return ctx.cont(ctx.rte, result)
+    return cont_bool(ctx, not float_is_zero(val_value))
 
 om_float_bool = do_magic_method(class_float, "__bool__", om_float_bool_code)
 
