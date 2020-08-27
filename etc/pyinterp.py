@@ -710,7 +710,10 @@ def bootstrap_populate_base_types():
         class_str,
         (('__new__', om_str_new),
          ('__repr__', om_str_repr),
-         ('__str__', om_str_str)))
+         ('__str__', om_str_str),
+         ('__getitem__', om_str_getitem),
+         ('__add__', om_str_add),
+         ('__len__', om_str_len)))
 
 # Initialize class type objects
 def builtin_add_method(o, name, code):
@@ -807,6 +810,7 @@ def populate_builtin_float():
 
 
 def populate_builtin_bool():
+    builtin_add_method(class_bool, '__new__', om_bool_new)
     builtin_add_method(class_bool, '__bool__', om_bool_bool)
     builtin_add_method(class_bool, '__repr__', om_bool_repr)
 
@@ -1200,8 +1204,8 @@ class_OverflowError = make_builtin_class('OverflowError', OM_BaseException, (cla
 class_ZeroDivisionError = make_builtin_class('ZeroDivisionError', OM_BaseException_create, (class_ArithmeticError,), class_type)
 
 om_None = om(class_NoneType)
-om_True = om_boxval(class_bool, 1)
-om_False = om_boxval(class_bool, 0)
+om_True = om_boxval(class_bool, int_from_num(1))
+om_False = om_boxval(class_bool, int_from_num(0))
 om_NotImplemented = om(class_NotImplementedType)
 
 # Call om code.
@@ -1500,23 +1504,44 @@ def om_NotImplementedType_repr(ctx, args):
     result = om_str('NotImplemented')
     return ctx.cont(ctx.rte, result)
 
+# class_bool methods
+def om_bool_new_code(ctx, args):
+    if len(args) == 1:
+        return cont_bool(ctx, False)
+    elif len(args) == 2:
+        return sem_bool(ctx, args[1])
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected at most 1 arguments, got " + str(len(args) - 1))
+
+om_bool_new = do_static_magic_method(class_bool, "__new__", om_bool_new_code)
+
 def om_format_bool_repr(self, rte):
     if om_is(self, om_True):
         return "True"
     else:
         return "False"
 
-# class_bool methods
-def om_bool_repr(ctx, args):
+def om_bool_repr_code(ctx, args):
     if debug: print('bool.__repr__')
-    self = args[0]
-    result = om_boxval(class_str, om_format_bool_repr(self, ctx.rte))
-    return ctx.cont(ctx.rte, result)
 
-def om_bool_bool(ctx, args):
+    if len(args) == 1:
+        self = args[0]
+        return cont_str(ctx, om_format_bool_repr(self, ctx.rte))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+om_bool_repr = do_magic_method(class_bool, "__repr__", om_bool_repr_code)
+
+def om_bool_bool_code(ctx, args):
     if debug: print('bool.__bool__')
-    self = args[0]
-    return ctx.cont(ctx.rte, self)
+
+    if len(args) == 1:
+        self = args[0]
+        return cont_obj(ctx, self)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+om_bool_bool = do_magic_method(class_bool, "__bool__", om_bool_bool_code)
 
 def om_int_neg_code(ctx, args):
     if len(args) == 1:
@@ -1615,13 +1640,17 @@ def om_tuple_getitem(ctx, args):
     if om_is(OM_get_object_class(item), class_int):
         item_box_index = OM_get_boxed_value(item)
         elements = OM_get_tuple_seq(self)
-        elements_len = len(elements)
-        if item_box_index >= 0 and item_box_index < elements_len:
-            return ctx.cont(ctx.rte, elements[item_box_index])
-        elif item_box_index < 0 and item_box_index >= -elements_len:
-            return ctx.cont(ctx.rte, elements[item_box_index + elements_len])
+        elements_len = int_from_num(len(elements))
+        if int_ge(item_box_index, elements_len):
+            return sem_raise_with_message(ctx, class_IndexError, "tuple index out of range")
+        elif int_is_nonneg(item_box_index):
+            return cont_obj(ctx, elements[int_to_num(item_box_index)])
         else:
-            return sem_raise(ctx, class_IndexError)
+            reversed_index = int_add(item_box_index, elements_len)
+            if int_is_nonneg(reversed_index):
+                return cont_obj(ctx, elements[int_to_num(reversed_index)])
+            else:
+                return sem_raise_with_message(ctx, class_IndexError, "tuple index out of range")
     else:
         return sem_raise(ctx, class_TypeError)
 
@@ -1694,14 +1723,18 @@ def om_list_getitem_code(ctx, args):
 
         if om_isinstance(item, class_int):
             index = OM_get_boxed_value(item)
-            self_len = OM_get_list_len(self)
+            self_len = int_from_num(OM_get_list_len(self))
             elements = OM_get_list_seq(self)
-            if index >= 0 and index < self_len:
-                return ctx.cont(ctx.rte, elements[index])
-            elif index < 0 and index >= -self_len:
-                return ctx.cont(ctx.rte, elements[index + self_len])
-            else:
+            if int_ge(index, self_len):
                 return sem_raise_with_message(ctx, class_IndexError, "list index out of range")
+            elif int_is_nonneg(index):
+                return ctx.cont(ctx.rte, elements[index])
+            else:
+                reversed_index = int_add(index, self_len)
+                if int_is_nonneg(reversed_index):
+                    return ctx.cont(ctx.rte, elements[int_to_num(reversed_index)])
+                else:
+                    return sem_raise_with_message(ctx, class_IndexError, "list index out of range")
         elif om_isinstance(item, class_slice):
             return sem_raise_with_message(ctx, class_NotImplementedError, "list[slice] not yet implemented")
     else:
@@ -1795,7 +1828,7 @@ def om_iterator_next(ctx, args):
     return sem_getitem(next_ctx, obj, index)
 
 # class_str methods
-def om_str_new(ctx, args):
+def om_str_new_code(ctx, args):
     cls = args[0]
 
     if len(args) == 1:
@@ -1805,6 +1838,8 @@ def om_str_new(ctx, args):
         return sem_str(ctx, value)
     else:
         assert False, "TypeError: str() takes 0 or 1 argument"
+
+om_str_new = do_static_magic_method(class_str, "__new__", om_str_new_code)
 
 def om_format_str_repr(self, rte):
     def wrap_doublequote(s):
@@ -1847,6 +1882,66 @@ def om_str_repr_code(ctx, args):
 
 om_str_repr = do_magic_method(class_str, "__repr__", om_str_repr_code)
 
+def om_str_add_code(ctx, args):
+    if debug: print('str.__add__')
+
+    if len(args) == 2:
+        self = args[0]
+        other = args[1]
+
+        if om_isinstance(other, class_str):
+            self_val = OM_get_boxed_value(self)
+            other_value = OM_get_boxed_value(other)
+
+            return cont_str(ctx, self_val + other_value)
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
+
+om_str_add = do_magic_method(class_str, "__add__", om_str_add_code)
+
+def om_str_getitem_code(ctx, args):
+    if debug: print('str.__getitem__')
+
+    if len(args) == 2:
+        self = args[0]
+        item = args[1]
+
+        def get_char(rte, index):
+            index_val = OM_get_boxed_value(index)
+            self_val = OM_get_boxed_value(self)
+            self_len = int_from_num(len(self_val))
+
+            if int_ge(index_val, self_len):
+                return sem_raise_with_message(ctx, class_IndexError, "string index out of range")
+            elif int_is_nonneg(index_val):
+                return cont_str(ctx, self_val[int_to_num(index_val)])
+            else:
+                reversed_index = int_add(index_val, self_len)
+                if int_is_nonneg(reversed_index):
+                    return cont_str(ctx, self_val[int_to_num(reversed_index)])
+                else:
+                    return sem_raise_with_message(ctx, class_IndexError, "string index out of range")
+        return sem_index(with_cont(ctx, get_char), item)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
+
+om_str_getitem = do_magic_method(class_str, "__getitem__", om_str_getitem_code)
+
+def om_str_len_code(ctx, args):
+    if debug: print('str.__len__')
+
+    if len(args) == 1:
+        self = args[0]
+
+        self_len = len(OM_get_boxed_value(self))
+
+        return cont_int(ctx, int_from_num(self_len))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+om_str_len = do_magic_method(class_str, "__len__", om_str_len_code)
 
 def om_str_str_code(ctx, args):
     if debug: print('str.__str__')
@@ -3496,8 +3591,16 @@ def comp_expr(cte, ast):
     elif isinstance(ast, AST.Subscript) and isinstance(ast.ctx, AST.Load):
         if debug: print("AST.Subscript Load")
         obj_cte, obj_code = comp_expr_opt(cte, ast.value)
-        index_cte, index_code = comp_expr(obj_cte, ast.slice.value)
-        return gen_Subscript_Load(index_cte, ast, obj_code, index_code)
+
+        index_ast = ast.slice
+
+        if isinstance(index_ast, AST.Index):
+            index_cte, index_code = comp_expr(obj_cte, index_ast.value)
+            return gen_Subscript_Load(index_cte, ast, obj_code, index_code)
+        elif isinstance(index_ast, AST.Slice):
+            return CT_raise_with_msg(cte, ast, "slice indexation unsupported")
+        else:
+            return CT_raise_with_msg(cte, ast, "unsupported expression AST")
     else:
         return CT_raise_with_msg(cte, ast, "unsupported expression AST")
 
@@ -3595,8 +3698,8 @@ def gen_signature(cte, ast):
 # receives the new rte and, if the code is for an expression, the result
 # of the expression evaluation.
 
-def do_stmt_end(cont, ast):
-    return lambda rte: stmt_end(Context(rte, cont, ast))
+def do_stmt_end(cont, ast, nb_steps):
+    return lambda rte: stmt_end(Context(rte, cont, ast), nb_steps)
 
 def do_stmt_end_with_message(cont, ast):
     return lambda rte, msg: stmt_end_with_message(Context(rte, cont, ast), msg)
@@ -3621,7 +3724,7 @@ def gen_stmt_empty(cte):
 def gen_Pass(cte, ast):
 
     def code(rte, cont):
-        return stmt_end(Context(rte, cont, ast))
+        return stmt_end(Context(rte, cont, ast), 1)
 
     return (cte, code)
 
@@ -3630,10 +3733,9 @@ def gen_Pass(cte, ast):
 def gen_while(cte, ast, code1, code2, code3):
 
     def code(rte, cont):
-
         def dispatch(rte1, val):
             if om_is_falsy(val):
-                return code3(rte1, cont)
+                return code3(rte1, do_stmt_end(cont, ast, 0))
             else:
                 ctrl_env = rte_ctrl_env(rte)
                 ctrl_label = RTCtrlLabel(ctrl_env,
@@ -3657,10 +3759,11 @@ def gen_if(cte, ast, code1, code2, code3):
     def code(rte, cont):
 
         def dispatch(rte, val):
+            stmt_end_cont = do_stmt_end(cont, ast, 0)
             if om_is_falsy(val):
-                return code3(rte, cont)
+                return code3(rte, stmt_end_cont)
             else:
-                return code2(rte, cont)
+                return code2(rte, stmt_end_cont)
 
         def cast_bool(rte, val):
             ctx = Context(rte, dispatch, ast)
@@ -3716,7 +3819,7 @@ def gen_delete(cte, ast, expr):
         (expr_cte, code) = comp_expr(cte, expr)
 
         def del_expr(rte, cont):
-            return sem_var_del(Context(rte, do_stmt_end(cont, ast), ast), expr.id)
+            return sem_var_del(Context(rte, do_stmt_end(cont, ast), ast, 1), expr.id)
 
         return (expr_cte, del_expr)
     else:
@@ -3791,7 +3894,7 @@ def gen_break(cte, ast):
         def code(rte, _):
             depth = dict_get(depth_ast, 'depth', 0)
             ctx = Context(rte, lambda rte: unwindBreak(rte, depth), ast)
-            return stmt_end(ctx)
+            return stmt_end(ctx, 1)
         return (cte, code)
 
 def gen_continue(cte, ast):
@@ -3802,7 +3905,7 @@ def gen_continue(cte, ast):
         def code(rte, _):
             depth = dict_get(depth_ast, 'depth', 0)
             ctx = Context(rte, lambda rte: unwindContinue(rte, depth), ast)
-            return stmt_end(ctx)
+            return stmt_end(ctx, 1)
         return (cte, code)
 
 def gen_raise(cte, ast, code):
@@ -3826,13 +3929,12 @@ def gen_logical_and(cte, ast, code1, code2):
     # XXX: look into runtime environment.
 
     def code(rte, cont):
-        expr_end_cont = do_expr_end(cont, ast)
         def cast_bool(rte1, val1):
             def dispatch(rte2, cond_val):
                 if om_is(cond_val, om_True):
-                    return code2(rte1, expr_end_cont)
+                    return code2(rte2, cont)
                 else:
-                    return expr_end_cont(rte1, val1)
+                    return cont(rte2, val1)
 
             ctx = Context(rte, dispatch, ast)
             return sem_bool(ctx, val1)
@@ -3845,13 +3947,12 @@ def gen_logical_or(cte, ast, code1, code2):
     if debug: print('gen_logical_or')
 
     def code(rte, cont):
-        expr_end_cont = do_expr_end(cont, ast)
         def cast_bool(rte1, val1):
             def dispatch(rte2, cond_val):
                 if om_is(cond_val, om_True):
-                    return expr_end_cont(rte1, val1)
+                    return cont(rte1, val1)
                 else:
-                    return code2(rte1, expr_end_cont)
+                    return code2(rte1, cont)
             return sem_bool(Context(rte1, dispatch, ast), val1)
         return code1(rte, cast_bool)
 
@@ -3933,7 +4034,7 @@ def gen_aug_op(cte, ast, id, op, code1):
     def code(rte, cont):
         return code1(rte,
                      lambda rte1, val1:
-                       sem_op(Context(rte1, do_stmt_end(cont, ast), ast),
+                       sem_op(Context(rte1, do_stmt_end(cont, ast, 1), ast),
                                       id, val1))
     return (cte, code)
 
@@ -4353,7 +4454,15 @@ def sem_maybe_len(ctx, obj):
     if obj_len is absent:
         return ctx.cont(ctx.rte, absent)
     else:
-        return om_call(obj_len, ctx, (obj,))
+        def check_result(result_rte, res):
+            def check_range(range_rte, len_res):
+                res_value = OM_get_boxed_value(res)
+                if int_is_nonneg(res_value):
+                    return cont_obj(ctx, res)
+                else:
+                    return sem_raise_with_message(ctx, class_ValueError, "__len__() should return >= 0")
+            return sem_index(with_cont(ctx, check_range), res)
+        return om_call(obj_len, with_cont(ctx, check_result), (obj,))
 
 def sem_len(ctx, obj):
     def cont(rte, val):
@@ -4484,7 +4593,7 @@ def gen_Subscript_Store(cte, ast, target, value):
         return obj_code(rte, get_index)
 
     def code(rte, cont):
-        return get_obj(rte, do_stmt_end(cont, ast))
+        return get_obj(rte, do_stmt_end(cont, ast, 1))
 
     return value_cte, code
 
@@ -4524,18 +4633,13 @@ def sem_var_del(ctx, id):
 def sem_bool(ctx, val):
     __val_bool__ = getattribute_from_obj_mro(val, '__bool__')
     if __val_bool__ is absent:
-        __val_len__ = getattribute_from_obj_mro(val, '__len__')
-        if __val_len__ is absent:
-            return ctx.cont(ctx.rte, om_True)
-        else:
-            def nonzero(rte, val):
-                if OM_get_boxed_value(val) != 0:
-                    return ctx.cont(ctx.rte, om_True)
-                else:
-                    return ctx.cont(ctx.rte, om_False)
-
-            ctx1 = with_cont(ctx, nonzero)
-            return om_call(__val_len__, ctx1, [val])
+        def check_len(rte, res):
+            if res is absent:
+                return cont_obj(ctx, om_True)
+            else:
+                res_value = OM_get_boxed_value(res)
+                return cont_bool(ctx, not int_is_zero(res_value))
+        return sem_maybe_len(with_cont(ctx, check_len), val)
     else:
         return om_call(__val_bool__, ctx, [val])
 
@@ -4693,26 +4797,29 @@ def om_simple_exception_format(ctx, exn):
 
 
 def expr_end_with_error(ctx, error):
-    return return_to_trampoline(ctx.ast, '', False, error, lambda: None, ctx)
+    return return_to_trampoline(ctx.ast, '', 1, False, error, lambda: None, ctx)
 
+# XXX: Default nb_steps to 1 in expr_end to minimise changes
 def expr_end(ctx, val):
     if om_is(val, om_None):
-        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), False, None, lambda: ctx.cont(ctx.rte, val), ctx)
+        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), 1, False, None, lambda: ctx.cont(ctx.rte, val), ctx)
     else:
-        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), True, None, lambda: ctx.cont(ctx.rte, val), ctx)
+        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), 1, True, None, lambda: ctx.cont(ctx.rte, val), ctx)
 
-def stmt_end(ctx):
-    return return_to_trampoline(ctx.ast, '', False, None, lambda: ctx.cont(ctx.rte), ctx)
+def stmt_end(ctx, nb_steps):
+    return return_to_trampoline(ctx.ast, '', nb_steps, False, None, lambda: ctx.cont(ctx.rte), ctx)
 
+# XXX: Default nb_steps to 1 in stmt_end_with_message to minimise changes
 def stmt_end_with_message(ctx, msg):
-    return return_to_trampoline(ctx.ast, msg, False, None, lambda: ctx.cont(ctx.rte), ctx)
+    return return_to_trampoline(ctx.ast, msg, 1, False, None, lambda: ctx.cont(ctx.rte), ctx)
 
 
-def return_to_trampoline(ast, msg, display_result, error, cont, ctx):
+def return_to_trampoline(ast, msg, nb_steps, display_result, error, cont, ctx):
     # return to trampoline with current execution state
     res = make_dict()
     dict_set(res, "ast", ast)
     dict_set(res, "msg", msg)
+    dict_set(res, "nb_steps", nb_steps)
     dict_set(res, "display_result", display_result)
     dict_set(res, "error", error)
     dict_set(res, "cont", cont)
