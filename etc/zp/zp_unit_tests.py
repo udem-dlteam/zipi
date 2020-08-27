@@ -356,7 +356,8 @@ at 1.1-1.10 <function sqrt #0>
 at 1.11-1.12 0
 at 1.13-1.14 1
 at 1.11-1.14 -1
-at 1.1-1.15: exception = ValueError: math domain error
+ValueError: math domain error
+at 1.1-1.15
 """)
 def test_math_sqrt_1():
     source = "math.sqrt(0-1)"
@@ -432,7 +433,7 @@ at 1.1-1.14 8.0
 """)
 def test_math_pow_0():
     source = "math.pow(2,3)"
-    return interp_source(source) 
+    return interp_source(source)
 
 @Equals("""at 1.1-1.5 <module 'math'>
 at 1.1-1.9 <function exp #0>
@@ -455,7 +456,8 @@ def test_math_log_0():
 @Equals("""at 1.1-1.5 <module 'math'>
 at 1.1-1.9 <function log #0>
 at 1.10-1.11 0
-at 1.1-1.12: exception = ValueError: math domain error
+ValueError: math domain error
+at 1.1-1.12
 """)
 def test_math_log_1():
     source = "math.log(0)"
@@ -466,7 +468,8 @@ at 1.1-1.9 <function log #0>
 at 1.10-1.11 0
 at 1.12-1.13 2
 at 1.10-1.13 -2
-at 1.1-1.14: exception = ValueError: math domain error
+ValueError: math domain error
+at 1.1-1.14
 """)
 def test_math_log_2():
     source = "math.log(0-2)"

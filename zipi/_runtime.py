@@ -34,8 +34,8 @@ def int_instance(n):
     return isinstance(n, int)
 
 
-def int_from_float(u):
-    return u
+def int_from_num(u):
+    return int(u)
 
 
 def int_is_zero(u):
@@ -118,8 +118,8 @@ def int_divmod(u, v):
 def int_not(u):
     return ~u
 
-def int_to_float(u):
-    return float(u)
+def int_to_num(u):
+    return u
 
 
 def int_and(u, v):
@@ -160,7 +160,16 @@ def int_to_string(u, radix):
 
 
 def int_from_string(string, radix):
-    return int(string, radix)
+    try:
+        return int(string, radix)
+    except ValueError:
+        return False
+
+def int_from_substring(string, start, stop, radix):
+    try:
+        return int(string[start:stop], radix)
+    except ValueError:
+        return False
 
 
 ###

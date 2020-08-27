@@ -28,31 +28,35 @@ def check_assignable(ts, t):\n\
     if isinstance(t, Constant):\n\
         val = t.value\n\
         if val is False:\n\
-            py_syntax_error(ts, 'cannot assign to False')\n\
+            py_syntax_error_ast(ts, t, 'cannot assign to False')\n\
         elif val is True:\n\
-            py_syntax_error(ts, 'cannot assign to True')\n\
+            py_syntax_error_ast(ts, t, 'cannot assign to True')\n\
         elif val is None:\n\
-            py_syntax_error(ts, 'cannot assign to None')\n\
+            py_syntax_error_ast(ts, t, 'cannot assign to None')\n\
 #TODO: enable when Ellipsis implemented\n\
 #        elif val is Ellipsis:\n\
-#            py_syntax_error(ts, 'cannot assign to Ellipsis')\n\
+#            py_syntax_error_ast(ts, t, 'cannot assign to Ellipsis')\n\
         else:\n\
-            py_syntax_error(ts, 'cannot assign to literal')\n\
+            py_syntax_error_ast(ts, t, 'cannot assign to literal')\n\
     elif isinstance(t, BinOp) or isinstance(t, UnaryOp) or isinstance(t, BoolOp):\n\
-        py_syntax_error(ts, 'cannot assign to operator')\n\
+        py_syntax_error_ast(ts, t, 'cannot assign to operator')\n\
     elif isinstance(t, Tuple):\n\
         for i in range(len(t.elts)):\n\
             check_assignable(ts, t.elts[i])\n\
     elif isinstance(t, Dict):\n\
-        py_syntax_error(ts, 'cannot assign to dict display')\n\
+        py_syntax_error_ast(ts, t, 'cannot assign to dict display')\n\
     elif isinstance(t, Call):\n\
-        py_syntax_error(ts, 'cannot assign to function call')\n\
+        py_syntax_error_ast(ts, t, 'cannot assign to function call')\n\
     elif isinstance(t, IfExp):\n\
-        py_syntax_error(ts, 'cannot assign to conditional expression')\n\
+        py_syntax_error_ast(ts, t, 'cannot assign to conditional expression')\n\
     elif isinstance(t, Compare):\n\
-        py_syntax_error(ts, 'cannot assign to comparison')\n\
+        py_syntax_error_ast(ts, t, 'cannot assign to comparison')\n\
     elif isinstance(t, Lambda):\n\
-        py_syntax_error(ts, 'cannot assign to lambda')\n\
+        py_syntax_error_ast(ts, t, 'cannot assign to lambda')\n\
+\n\
+def py_syntax_error_ast(ts, ast, msg):\n\
+    if ts.context and dict_has(ts.context, 'syntaxError'):\n\
+        ts.context.syntaxError(ast.lineno-1, ast.col_offset, ast.end_lineno-1, ast.end_col_offset, msg)\n\
 \n\
 "
 
