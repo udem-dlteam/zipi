@@ -454,6 +454,9 @@ def align_args_with_signature(ctx, funcname, caller_args, signature):
                 locals_env.append((arg, caller_args[caller_index]))
                 caller_index += 1
 
+            if vararg is not None:
+                locals_env.append((vararg, om_tuple([])))
+
             return ctx.cont(ctx.rte, locals_env)
         elif caller_args_len < total_args_len:
             missing_args_len = total_args_len - caller_args_len
