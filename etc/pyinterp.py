@@ -816,7 +816,6 @@ def populate_builtin_float():
 def populate_builtin_bool():
     builtin_add_method(class_bool, '__new__', om_bool_new)
     builtin_add_method(class_bool, '__bool__', om_bool_bool)
-    builtin_add_method(class_bool, '__new__', om_bool_new)
     builtin_add_method(class_bool, '__repr__', om_bool_repr)
 
 def populate_builtin_tuple():
@@ -1623,20 +1622,6 @@ def om_bool_bool_code(ctx, args):
 
 om_bool_bool = do_magic_method(class_bool, "__bool__", om_bool_bool_code)
 
-om_bool_bool = do_magic_method(class_bool, "__bool__", om_bool_bool_code)
-
-def om_bool_new_code(ctx, args):
-    if debug: print("bool.__new__")
-    if len(args) == 1:
-        return ctx.cont(rte, om_False)
-    elif len(args) == 2:
-        def cont(rte, result):
-            return ctx.cont(rte, result)
-        return sem_bool(with_cont(ctx, cont), args[1])
-    else:
-        return sem_raise_with_message(ctx, class_TypeError, "expected at most 1 argument, got " + str(len(args) - 1))
-
-om_bool_new = do_static_magic_method(class_bool, "__new__", om_bool_new_code)
 
 def om_int_neg_code(ctx, args):
     if len(args) == 1:
@@ -2463,7 +2448,7 @@ def om_int_bool_code(ctx, args):
     if debug: print('int.__bool__')
     self = args[0]
     val_value = OM_get_boxed_value(self)
-    if int_eq(val_value, 0):
+    if int_is_zero(val_value):
         result = om_False
     else:
         result = om_True
