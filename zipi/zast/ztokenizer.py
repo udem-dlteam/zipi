@@ -1,5 +1,5 @@
-from ztoken import *
-from _runtime import dict_get, int_from_string, float_from_string
+from zipi.zast.ztoken import *
+from zipi._runtime import *
 
 #------------------------------------------------------------------------------
 

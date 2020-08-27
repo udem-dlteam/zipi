@@ -72,6 +72,7 @@ clean:
 	$(MAKE) -C zpc clean
 	$(MAKE) -C rts clean
 	$(MAKE) -C stdlib clean
+	rm -rf venv
 
 distclean: clean
 	$(MAKE) -C pyc distclean
@@ -85,3 +86,12 @@ cleanall: distclean
 
 test:
 	@cd tests; python run.py
+
+PYTHON38 = python3.8
+
+venv: venv/bin/activate
+
+venv/bin/activate: requirements.txt
+	test -d venv || $(PYTHON38) -m venv venv
+	venv/bin/pip install -e . && venv/bin/pip install -r requirements.txt
+	touch venv/bin/activate

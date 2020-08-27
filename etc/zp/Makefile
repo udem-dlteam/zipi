@@ -1,34 +1,32 @@
 TMPDIR = ./_tmpdir
-PYTHON38 = python3
+PYTHON38 = ../../venv/bin/python
 ZP_DEBUG =
 
 _tmpdir:
 	mkdir -p $(TMPDIR)
 
-.PHONY: ../../parser/_zparse.py
-../../parser/_zparse.py:
+.PHONY: _zparse.py
+_zparse.py: zipi-venv
 	@echo "Make parser..."
-	@cd ../../parser && $(MAKE)
+	@cd ../../zipi/zast && $(MAKE)
 
-copy_files: _tmpdir ../pyinterp.py ../../parser/_zast.py ../../parser/ztokenizer.py ../../parser/ztoken.py ../../parser/zast.py ../../parser/zpgen.py ../../parser/_zparse.py ../../parser/_runtime.py zp_unit_tests.py _unit_tests.py
+.PHONY: zipi-venv
+zipi-venv:
+	@echo "Setting up zipi venv..."
+	@cd ../.. && $(MAKE) venv
+
+copy_files: _tmpdir zipi-venv
 	@echo "Copying files..."
 	cp zp_unit_tests.py $(TMPDIR)/
 	cp _unit_tests.py $(TMPDIR)/
-	cp ../pyinterp.py $(TMPDIR)/
-	cp ../../parser/zast.py $(TMPDIR)/
-	cp ../../parser/_zast.py $(TMPDIR)/
-	cp ../../parser/ztokenizer.py $(TMPDIR)/
-	cp ../../parser/ztoken.py $(TMPDIR)/
-	cp ../../parser/_zparse.py $(TMPDIR)/
-	cp ../../parser/_runtime.py $(TMPDIR)/
 
-pyinterp: copy_files
-	$(PYTHON38) zp.py -f $(TMPDIR)/pyinterp.py $(ZP_DEBUG) -o $(TMPDIR)/pyinterp.js
-	$(PYTHON38) zp.py -f $(TMPDIR)/pyinterp.py $(ZP_DEBUG) -t -o $(TMPDIR)/pyinterp_browser.js
-	$(PYTHON38) zp.py -f $(TMPDIR)/pyinterp.py $(ZP_DEBUG) -n -t -o $(TMPDIR)/pyinterp_node.js
+pyinterp: copy_files zipi-venv
+	$(PYTHON38) zp.py -f ../../zipi/pyinterp/__init__.py $(ZP_DEBUG) -o $(TMPDIR)/pyinterp.js
+	$(PYTHON38) zp.py -f ../../zipi/pyinterp/__init__.py $(ZP_DEBUG) -t -o $(TMPDIR)/pyinterp_browser.js
+	$(PYTHON38) zp.py -f ../../zipi/pyinterp.py $(ZP_DEBUG) -n -t -o $(TMPDIR)/pyinterp_node.js
 	cp $(TMPDIR)/pyinterp_browser.js test/pyinterp/
 
-tests: copy_files pyinterp_tests
+tests: copy_files pyinterp_tests zipi-venv
 	$(PYTHON38) zp.py -f $(TMPDIR)/zp_unit_tests.py $(ZP_DEBUG) -n -t -o $(TMPDIR)/zp_unit_tests.js
 	@echo "\nRunning Python unit tests...\n"
 	$(PYTHON38) $(TMPDIR)/zp_unit_tests.py >$(TMPDIR)/PY_TESTS
@@ -41,7 +39,7 @@ tests: copy_files pyinterp_tests
 	diff -s $(TMPDIR)/PY_TESTS $(TMPDIR)/JS_TESTS
 	rm -f $(TMPDIR)/PY_TESTS $(TMPDIR)/JS_TESTS $(TMPDIR)/zp_unit_tests.js
 
-.PHONY: pyinterp_tests
+.PHONY: pyinterp_tests zipi-venv
 pyinterp_tests:
 	cd ../tests_pyinterp && $(MAKE) tests
 
