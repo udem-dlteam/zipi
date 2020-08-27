@@ -2830,7 +2830,7 @@ def gen_dunder_Float_Comp(py_class, method, float_comp, int_comp, neg_inf_res, p
             val1_value = OM_get_boxed_value(val1)
             val2_value = OM_get_boxed_value(val2)
             result = float_comp(val1_value, val2_value)
-            return ctx.cont(ctx.rte, om_float(result))
+            return cont_box(ctx, result)
         elif om_issubclass(val2_class, class_int):
             val1_value = OM_get_boxed_value(val1)
             val2_value = OM_get_boxed_value(val2)
