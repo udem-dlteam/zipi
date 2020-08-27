@@ -711,7 +711,7 @@ def bootstrap_populate_base_types():
         (('__new__', om_str_new),
          ('__repr__', om_str_repr),
          ('__str__', om_str_str),
-         ('__bool__', om_str_bool)))
+         ('__bool__', om_str_bool),
          ('__getitem__', om_str_getitem),
          ('__add__', om_str_add),
          ('__len__', om_str_len)))
@@ -1551,7 +1551,7 @@ def om_bool_new_code(ctx, args):
     if debug: print("bool.__new__")
     if len(args) == 1:
         return ctx.cont(rte, om_False)
-    elif len(args) == 2
+    elif len(args) == 2:
         def cont(rte, result):
             return ctx.cont(rte, result)
         return sem_bool(with_cont(ctx, cont), args[1])
