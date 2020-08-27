@@ -714,7 +714,6 @@ def bootstrap_populate_base_types():
         (('__new__', om_str_new),
          ('__repr__', om_str_repr),
          ('__str__', om_str_str),
-         ('__bool__', om_str_bool),
          ('__getitem__', om_str_getitem),
          ('__add__', om_str_add),
          ('__len__', om_str_len)))
@@ -2039,17 +2038,6 @@ def om_str_str_code(ctx, args):
         return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
 
 om_str_str = do_magic_method(class_str, "__str__", om_str_str_code)
-
-def om_str_bool_code(ctx, args):
-    if debug: print('str.__str__')
-
-    self_val = OM_get_boxed_value(args[0])
-    result = om_True
-    if self_val == "":
-        result = om_False
-    return ctx.cont(ctx.rte, result)
-
-om_str_bool = do_magic_method(class_str, "__bool__", om_str_bool_code)
 
 # class_dict methods
 
