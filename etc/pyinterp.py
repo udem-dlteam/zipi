@@ -1641,12 +1641,14 @@ def om_tuple_getitem(ctx, args):
         item_box_index = OM_get_boxed_value(item)
         elements = OM_get_tuple_seq(self)
         elements_len = int_from_num(len(elements))
-        if int_is_nonneg(item_box_index) and int_lt(item_box_index, elements_len):
+        if int_ge(item_box_index, elements_len):
+            return sem_raise_with_message(ctx, class_IndexError, "tuple index out of range")
+        elif int_is_nonneg(item_box_index):
             return ctx.cont(ctx.rte, elements[item_box_index])
-        elif int_is_neg(item_box_index) and int_ge(item_box_index, int_neg(elements_len)):
-            return ctx.cont(ctx.rte, elements[int_add(item_box_index, elements_len)])
+        elif int_lt(item_box_index, int_neg(elements_len)):
+            return sem_raise_with_message(ctx, class_IndexError, "tuple index out of range")
         else:
-            return sem_raise(ctx, class_IndexError)
+            return ctx.cont(ctx.rte, elements[int_add(item_box_index, elements_len)])
     else:
         return sem_raise(ctx, class_TypeError)
 
@@ -1721,12 +1723,14 @@ def om_list_getitem_code(ctx, args):
             index = OM_get_boxed_value(item)
             self_len = int_from_num(OM_get_list_len(self))
             elements = OM_get_list_seq(self)
-            if int_is_nonneg(index) and int_lt(index, self_len):
-                return ctx.cont(ctx.rte, elements[index])
-            elif int_is_neg(index) and int_ge(index, int_neg(self_len)):
-                return ctx.cont(ctx.rte, elements[int_add(index, self_len)])
-            else:
+            if int_ge(index, self_len):
                 return sem_raise_with_message(ctx, class_IndexError, "list index out of range")
+            elif int_is_nonneg(index):
+                return ctx.cont(ctx.rte, elements[index])
+            elif int_lt(index, int_neg(self_len)):
+                return sem_raise_with_message(ctx, class_IndexError, "list index out of range")
+            else:
+                return ctx.cont(ctx.rte, elements[int_add(index, self_len)])
         elif om_isinstance(item, class_slice):
             return sem_raise_with_message(ctx, class_NotImplementedError, "list[slice] not yet implemented")
     else:
@@ -1905,13 +1909,14 @@ def om_str_getitem_code(ctx, args):
             self_val = OM_get_boxed_value(self)
             self_len = int_from_num(len(self_val))
 
-            if int_is_nonneg(index_val) and int_lt(index_val, self_len):
-                return cont_str(ctx, self_val[index_val])
-            elif int_is_neg(index_val) and int_ge(index_val, int_neg(self_len)):
-                return cont_str(ctx, self_val[int_add(index_val, self_len)])
-            else:
+            if int_ge(index_val, self_len):
                 return sem_raise_with_message(ctx, class_IndexError, "string index out of range")
-
+            elif int_is_nonneg(index_val):
+                return cont_str(ctx, self_val[index_val])
+            elif int_lt(index_val, int_neg(self_len)):
+                return sem_raise_with_message(ctx, class_IndexError, "string index out of range")
+            else:
+                return cont_str(ctx, self_val[int_add(index_val, self_len)])
         return sem_index(with_cont(ctx, get_char), item)
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
