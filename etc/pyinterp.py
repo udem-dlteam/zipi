@@ -3541,8 +3541,16 @@ def comp_expr(cte, ast):
     elif isinstance(ast, AST.Subscript) and isinstance(ast.ctx, AST.Load):
         if debug: print("AST.Subscript Load")
         obj_cte, obj_code = comp_expr_opt(cte, ast.value)
-        index_cte, index_code = comp_expr(obj_cte, ast.slice.value)
-        return gen_Subscript_Load(index_cte, ast, obj_code, index_code)
+
+        index_ast = ast.slice
+
+        if isinstance(index_ast, AST.Index):
+            index_cte, index_code = comp_expr(obj_cte, index_ast.value)
+            return gen_Subscript_Load(index_cte, ast, obj_code, index_code)
+        elif isinstance(index_ast, AST.Slice):
+            return CT_raise_with_msg(cte, ast, "slice indexation unsupported")
+        else:
+            return CT_raise_with_msg(cte, ast, "unsupported expression AST")
     else:
         return CT_raise_with_msg(cte, ast, "unsupported expression AST")
 
