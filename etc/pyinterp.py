@@ -1618,9 +1618,9 @@ def om_tuple_getitem(ctx, args):
         item_box_index = OM_get_boxed_value(item)
         elements = OM_get_tuple_seq(self)
         elements_len = len(elements)
-        if item_box_index >= 0 and item_box_index < elements_len:
+        if int_ge(item_box_index, 0) and int_lt(item_box_index, elements_len):
             return ctx.cont(ctx.rte, elements[item_box_index])
-        elif item_box_index < 0 and item_box_index >= -elements_len:
+        elif int_lt(item_box_index, 0) and int_ge(item_box_index, -elements_len):
             return ctx.cont(ctx.rte, elements[item_box_index + elements_len])
         else:
             return sem_raise(ctx, class_IndexError)
@@ -1698,9 +1698,9 @@ def om_list_getitem_code(ctx, args):
             index = OM_get_boxed_value(item)
             self_len = OM_get_list_len(self)
             elements = OM_get_list_seq(self)
-            if index >= 0 and index < self_len:
+            if int_ge(index, 0) and int_lt(index, self_len):
                 return ctx.cont(ctx.rte, elements[index])
-            elif index < 0 and index >= -self_len:
+            elif int_lt(index, 0) and int_ge(index, -self_len):
                 return ctx.cont(ctx.rte, elements[index + self_len])
             else:
                 return sem_raise_with_message(ctx, class_IndexError, "list index out of range")
@@ -1882,9 +1882,9 @@ def om_str_getitem_code(ctx, args):
             self_val = OM_get_boxed_value(self)
             self_len = len(self_val)
 
-            if index_val >= 0 and index_val < self_len:
+            if int_ge(index_val, 0) and int_lt(index_val, self_len):
                 return cont_str(ctx, self_val[index_val])
-            elif index_val < 0 and index_val >= -self_len:
+            elif int_lt(index_val, 0) and int_ge(index_val, -self_len):
                 return cont_str(ctx, self_val[index_val + self_len])
             else:
                 return sem_raise_with_message(ctx, class_IndexError, "string index out of range")
