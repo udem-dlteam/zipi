@@ -2376,7 +2376,7 @@ def om_int_new_code(ctx, args):
                         "int() argument must be a string, a bytes-like object or a number")
             else:
                 return ctx.cont(ctx.rte, om_int_subtype(cls, OM_get_boxed_value(res)))
-        return sem_maybe_index(with_cont(ctx, check_result), obj)
+        return sem_maybe_int(with_cont(ctx, check_result), obj)
     elif args_len == 3:
         obj = args[1]
         radix = args[2]
