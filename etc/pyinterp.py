@@ -2374,7 +2374,7 @@ def om_int_new_code(ctx, args):
         obj = args[1]
 
         def check_result(rte, res):
-            if res is None:
+            if res is absent:
                 if om_isinstance(obj, class_str):
                     return om_int_str_conversion(ctx, obj, om_int(10))
                 else:
@@ -2384,7 +2384,7 @@ def om_int_new_code(ctx, args):
                         "int() argument must be a string, a bytes-like object or a number")
             else:
                 return ctx.cont(ctx.rte, om_int_subtype(cls, OM_get_boxed_value(res)))
-        return sem_maybe_index(with_cont(ctx, check_result), obj)
+        return sem_maybe_int(with_cont(ctx, check_result), obj)
     elif args_len == 3:
         obj = args[1]
         radix = args[2]
@@ -4543,7 +4543,7 @@ def sem_maybe_int(ctx, obj):
     obj_int = getattribute_from_obj_mro(obj, '__int__')
 
     if obj_int is absent:
-        return ctx.cont(ctx.rte, None)
+        return ctx.cont(ctx.rte, absent)
     else:
         def check_int(rte, res):
             if om_isinstance(res, class_int):
@@ -4554,7 +4554,7 @@ def sem_maybe_int(ctx, obj):
 
 def sem_int(ctx, obj):
     def check_result(rte, res):
-        if res is None:
+        if res is absent:
             return sem_raise_with_message(ctx, class_TypeError, "object cannot be interpreted as an integer")
         else:
             return cont_obj(ctx, res)
@@ -4564,7 +4564,7 @@ def sem_maybe_index(ctx, obj):
     obj_int = getattribute_from_obj_mro(obj, '__index__')
 
     if obj_int is absent:
-        return ctx.cont(ctx.rte, None)
+        return ctx.cont(ctx.rte, absent)
     else:
         def check_int(rte, res):
             if om_isinstance(res, class_int):
@@ -4575,7 +4575,7 @@ def sem_maybe_index(ctx, obj):
 
 def sem_index(ctx, obj):
     def check_result(rte, res):
-        if res is None:
+        if res is absent:
             return sem_raise_with_message(ctx, class_TypeError, "object cannot be interpreted as an integer")
         else:
             return cont_obj(ctx, res)
