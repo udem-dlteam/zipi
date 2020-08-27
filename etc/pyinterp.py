@@ -710,7 +710,8 @@ def bootstrap_populate_base_types():
         class_str,
         (('__new__', om_str_new),
          ('__repr__', om_str_repr),
-         ('__str__', om_str_str)))
+         ('__str__', om_str_str),
+         ('__bool__', om_str_bool)))
 
 # Initialize class type objects
 def builtin_add_method(o, name, code):
@@ -808,6 +809,7 @@ def populate_builtin_float():
 
 def populate_builtin_bool():
     builtin_add_method(class_bool, '__bool__', om_bool_bool)
+    builtin_add_method(class_bool, '__new__', om_bool_new)
     builtin_add_method(class_bool, '__repr__', om_bool_repr)
 
 def populate_builtin_tuple():
@@ -1507,16 +1509,30 @@ def om_format_bool_repr(self, rte):
         return "False"
 
 # class_bool methods
-def om_bool_repr(ctx, args):
+def om_bool_repr_code(ctx, args):
     if debug: print('bool.__repr__')
     self = args[0]
     result = om_boxval(class_str, om_format_bool_repr(self, ctx.rte))
     return ctx.cont(ctx.rte, result)
+om_bool_repr = do_magic_method(class_bool, "__repr__",om_bool_repr_code)
 
-def om_bool_bool(ctx, args):
+def om_bool_bool_code(ctx, args):
     if debug: print('bool.__bool__')
     self = args[0]
     return ctx.cont(ctx.rte, self)
+
+om_bool_bool = do_magic_method(class_bool, "__bool__", om_bool_bool_code)
+
+def om_bool_new_code(ctx, args):
+    if debug: print("bool.__new__")
+    if len(args) == 1:
+        return ctx.cont(rte, om_False)
+    else:
+        def cont(rte, result):
+            return ctx.cont(rte, result)
+        return sem_bool(with_cont(ctx, cont), args[1])
+
+om_bool_new = do_static_magic_method(class_bool, "__new__", om_bool_new_code)
 
 def om_int_neg_code(ctx, args):
     if len(args) == 1:
@@ -1863,6 +1879,17 @@ def om_str_str_code(ctx, args):
         return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
 
 om_str_str = do_magic_method(class_str, "__str__", om_str_str_code)
+
+def om_str_bool_code(ctx, args):
+    if debug: print('str.__str__')
+
+    self_val = OM_get_boxed_value(args[0])
+    result = om_True
+    if self_val == "":
+        result = om_False
+    return ctx.cont(ctx.rte, result)
+
+om_str_bool = do_magic_method(class_str, "__bool__", om_str_bool_code)
 
 # class_dict methods
 
