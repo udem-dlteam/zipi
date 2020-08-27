@@ -1204,8 +1204,8 @@ class_OverflowError = make_builtin_class('OverflowError', OM_BaseException, (cla
 class_ZeroDivisionError = make_builtin_class('ZeroDivisionError', OM_BaseException_create, (class_ArithmeticError,), class_type)
 
 om_None = om(class_NoneType)
-om_True = om_boxval(class_bool, 1)
-om_False = om_boxval(class_bool, 0)
+om_True = om_boxval(class_bool, int_from_num(1))
+om_False = om_boxval(class_bool, int_from_num(0))
 om_NotImplemented = om(class_NotImplementedType)
 
 # Call om code.
