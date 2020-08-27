@@ -4546,7 +4546,7 @@ def sem_maybe_int(ctx, obj):
 
 def sem_int(ctx, obj):
     def check_result(rte, res):
-        if res is None:
+        if res is absent:
             return sem_raise_with_message(ctx, class_TypeError, "object cannot be interpreted as an integer")
         else:
             return cont_obj(ctx, res)
