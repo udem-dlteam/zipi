@@ -454,6 +454,9 @@ def align_args_with_signature(ctx, funcname, caller_args, signature):
                 locals_env.append((arg, caller_args[caller_index]))
                 caller_index += 1
 
+            if vararg is not None:
+                locals_env.append((vararg, om_tuple([])))
+
             return ctx.cont(ctx.rte, locals_env)
         elif caller_args_len < total_args_len:
             missing_args_len = total_args_len - caller_args_len
@@ -1163,6 +1166,81 @@ def OM_set_MethodWrapper_instance(o, instance):
 
 def OM_get_MethodWrapper_instance(o):
     return o.instance
+
+# Generate BinOp semantics for python Numeric datatypes (or that which emulate)
+# For the correct Python Data Model and interpreter, these are paired with
+# generators for primitive operators which do the actual computation, defined later.
+def gen_sem_Numeric_BinOp(op_symbol, method, rmethod):
+
+    def sem_Numeric_BinOp(ctx, val1, val2):
+
+        def test_method_result(rte, val):
+            # C: Method not implemented for val2's type,
+            #    fallback to reversed method.
+            if om_is(val, om_NotImplemented):
+                return call_rmethod(rte)
+            else:
+                # END0: val1 has method and can operate on val2.
+                #       Return the result.
+                return ctx.cont(rte, val)
+
+        def test_rmethod_result(rte, val):
+            # F: Rmethod not implemented for val1's type.
+            #    Raise TypeError since both methods are absent (like CPython).
+            if om_is(val, om_NotImplemented):
+                return sem_raise(ctx, class_TypeError)
+            else:
+                # END1: val2 has rmethod and can operate on val1.
+                #       Return the result.
+                return ctx.cont(rte, val)
+
+        def call_rmethod(rte):
+            # D: Does val2 have rmethod?
+            val2_rmethod = getattribute_from_obj_mro(val2, rmethod)
+
+            # E: Yes, try val2.rmethod(val1)
+            if val2_rmethod is not absent:
+                ctx2 = with_cont(ctx, test_rmethod_result)
+                # NOTE: self parameter is now val2
+                return om_call(val2_rmethod, ctx2, [val2, val1])
+            else:
+                # G: Method and rmethod are absent.
+                #    Raise a TypeError (like CPython).
+                return sem_raise(ctx, class_TypeError)
+
+        # A: Does val1 have method?
+        val1_method = getattribute_from_obj_mro(val1, method)
+
+        # B: Yes, try val1.method(val2).
+        if val1_method is not absent:
+            ctx1 = with_cont(ctx, test_method_result)
+            return om_call(val1_method, ctx1, [val1, val2])
+        else:
+            return call_rmethod(ctx.rte)
+
+    return sem_Numeric_BinOp
+
+# Arithmetic
+sem_Add = gen_sem_Numeric_BinOp('+', '__add__', '__radd__')
+sem_Sub = gen_sem_Numeric_BinOp('-', '__sub__', '__rsub__')
+sem_Mult = gen_sem_Numeric_BinOp('*', '__mul__', '__rmul__')
+sem_FloorDiv = gen_sem_Numeric_BinOp('//', '__floordiv__', '__rfloordiv__')
+sem_TrueDiv = gen_sem_Numeric_BinOp('/', '__truediv__', '__rtruediv__')
+sem_Mod = gen_sem_Numeric_BinOp('%', '__mod__', '__rmod__')
+sem_Pow = gen_sem_Numeric_BinOp('**', '__pow__', '__rpow__')
+# Bitwise
+sem_LShift = gen_sem_Numeric_BinOp('<<', '__lshift__', '__rlshift__')
+sem_RShift = gen_sem_Numeric_BinOp('>>', '__rshift__', '__rrshift__')
+sem_Or = gen_sem_Numeric_BinOp('|', '__or__', '__ror__')
+sem_And = gen_sem_Numeric_BinOp('&', '__and__', '__rand__')
+sem_Xor = gen_sem_Numeric_BinOp('^', '__xor__', '__rxor__')
+# Comparison
+sem_Eq = gen_sem_Numeric_BinOp('==', '__eq__', '__eq__')
+sem_NotEq = gen_sem_Numeric_BinOp('==', '__ne__', '__ne__')
+sem_Lt = gen_sem_Numeric_BinOp('<', '__lt__', '__gt__')
+sem_Gt = gen_sem_Numeric_BinOp('>', '__gt__', '__lt__')
+sem_LtE = gen_sem_Numeric_BinOp('<=', '__le__', '__ge__')
+sem_GtE = gen_sem_Numeric_BinOp('>=', '__ge__', '__le__')
 
 # Create builtins classes
 __base_types = bootstrap_base_types()
@@ -2780,7 +2858,7 @@ def gen_dunder_Float_Comp(py_class, method, float_comp, int_comp, neg_inf_res, p
             val1_value = OM_get_boxed_value(val1)
             val2_value = OM_get_boxed_value(val2)
             result = float_comp(val1_value, val2_value)
-            return ctx.cont(ctx.rte, om_float(result))
+            return cont_box(ctx, result)
         elif om_issubclass(val2_class, class_int):
             val1_value = OM_get_boxed_value(val1)
             val2_value = OM_get_boxed_value(val2)
@@ -3004,6 +3082,47 @@ def om_abs_code(rte, _):
 
     obj = rte_lookup(rte, 'obj')
     return sem_abs(next_ctx, obj)
+
+def do_min_max(name, sem_Comp):
+    expected_argument_error_msg = name + " expected 1 argument, got 0"
+    empty_sequence_error_msg = name + "() arg is an empty sequence"
+
+    def code(rte, cont):
+        args = rte_lookup(rte, 'args')
+        args_elements = OM_get_tuple_seq(args)
+        args_len = len(args_elements)
+        if args_len == 0:
+            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, expected_argument_error_msg)
+        elif args_len == 1:
+            iterable = args_elements[0]
+        else:
+            iterable = args
+
+        def loop_iterator(loop_iterator_rte, iterator):
+            def get_first(get_first_rte, candidate):
+                if candidate is for_loop_end_marker:
+                    return sem_raise_with_message(make_out_of_ast_context(get_first_rte, cont), class_ValueError, empty_sequence_error_msg)
+                candidate_ref = [candidate]
+                def get_next(get_next_rte, next_element):
+                    if next_element is for_loop_end_marker:
+                        return cont_obj(make_out_of_ast_context(get_next_rte, unwindReturn), candidate_ref[0])
+                    else:
+                        def compare_candidates(compare_rte, res):
+                            def pick_next_candidate(pick_rte, bool_res):
+                                if om_is(bool_res, om_True):
+                                    candidate_ref[0] = next_element
+                                return sem_next(make_out_of_ast_context(pick_rte, get_next), iterator, for_loop_end_marker)
+                            return sem_bool(make_out_of_ast_context(compare_rte, pick_next_candidate), res)
+                        return sem_Comp(make_out_of_ast_context(get_next_rte, compare_candidates), next_element, candidate)
+                return sem_next(make_out_of_ast_context(get_first_rte, get_next), iterator, for_loop_end_marker)
+            return sem_next(make_out_of_ast_context(loop_iterator_rte, get_first), iterator, for_loop_end_marker)
+        return sem_iter(make_out_of_ast_context(rte, loop_iterator), iterable)
+
+    return code
+
+om_min_code = do_min_max("min", sem_Lt)
+om_max_code = do_min_max("max", sem_Gt)
+
 
 # Built-in Modules
 def init_module_math():
@@ -3250,6 +3369,7 @@ def init_module_math():
     return module_math_env
 
 # Interpreter
+@nocompile
 def interp_file(path, options):
     source = read_file(path)
     interp(parse(source, path, 'exec', False), options)
@@ -3267,9 +3387,7 @@ def default_syntax_error(start_line0,
                          end_column0, msg):
     raise SyntaxError(msg)
 
-def interp_source(src):
-    options = {}
-    dict_set(options, 'trace', True)
+def interp_source(src, options):
     interp(parse(src, '<unknown>', 'exec', False), options)
 
 def parse(source, filename, mode, context):
@@ -3315,6 +3433,8 @@ def fresh_rte(options):
                                                       make_posonly_defaults_signature(('obj', 'sentinel'), (absent,)))
 
     om_builtin_abs = om_make_function_with_signature('abs', om_abs_code, make_posonly_only_signature(('obj',)))
+    om_builtin_min = om_make_function_with_signature('min', om_min_code, make_vararg_only_signature('args'))
+    om_builtin_max = om_make_function_with_signature('max', om_max_code, make_vararg_only_signature('args'))
 
     dict_set(builtins_env, 'type', class_type)
     dict_set(builtins_env, 'object', class_object)
@@ -3335,6 +3455,8 @@ def fresh_rte(options):
     dict_set(builtins_env, 'next', om_builtin_next)
     dict_set(builtins_env, 'iter', om_builtin_iter)
     dict_set(builtins_env, 'abs', om_builtin_abs)
+    dict_set(builtins_env, 'min', om_builtin_min)
+    dict_set(builtins_env, 'max', om_builtin_max)
 
     dict_set(builtins_env, 'BaseException', class_BaseException)
     dict_set(builtins_env, 'Exception', class_Exception)
@@ -3727,8 +3849,8 @@ def gen_signature(cte, ast):
 # receives the new rte and, if the code is for an expression, the result
 # of the expression evaluation.
 
-def do_stmt_end(cont, ast):
-    return lambda rte: stmt_end(Context(rte, cont, ast))
+def do_stmt_end(cont, ast, nb_steps):
+    return lambda rte: stmt_end(Context(rte, cont, ast), nb_steps)
 
 def do_stmt_end_with_message(cont, ast):
     return lambda rte, msg: stmt_end_with_message(Context(rte, cont, ast), msg)
@@ -3753,7 +3875,7 @@ def gen_stmt_empty(cte):
 def gen_Pass(cte, ast):
 
     def code(rte, cont):
-        return stmt_end(Context(rte, cont, ast))
+        return stmt_end(Context(rte, cont, ast), 1)
 
     return (cte, code)
 
@@ -3762,10 +3884,9 @@ def gen_Pass(cte, ast):
 def gen_while(cte, ast, code1, code2, code3):
 
     def code(rte, cont):
-
         def dispatch(rte1, val):
             if om_is_falsy(val):
-                return code3(rte1, cont)
+                return code3(rte1, do_stmt_end(cont, ast, 0))
             else:
                 ctrl_env = rte_ctrl_env(rte)
                 ctrl_label = RTCtrlLabel(ctrl_env,
@@ -3789,10 +3910,11 @@ def gen_if(cte, ast, code1, code2, code3):
     def code(rte, cont):
 
         def dispatch(rte, val):
+            stmt_end_cont = do_stmt_end(cont, ast, 0)
             if om_is_falsy(val):
-                return code3(rte, cont)
+                return code3(rte, stmt_end_cont)
             else:
-                return code2(rte, cont)
+                return code2(rte, stmt_end_cont)
 
         def cast_bool(rte, val):
             ctx = Context(rte, dispatch, ast)
@@ -3848,7 +3970,7 @@ def gen_delete(cte, ast, expr):
         (expr_cte, code) = comp_expr(cte, expr)
 
         def del_expr(rte, cont):
-            return sem_var_del(Context(rte, do_stmt_end(cont, ast), ast), expr.id)
+            return sem_var_del(Context(rte, do_stmt_end(cont, ast), ast, 1), expr.id)
 
         return (expr_cte, del_expr)
     else:
@@ -3923,7 +4045,7 @@ def gen_break(cte, ast):
         def code(rte, _):
             depth = dict_get(depth_ast, 'depth', 0)
             ctx = Context(rte, lambda rte: unwindBreak(rte, depth), ast)
-            return stmt_end(ctx)
+            return stmt_end(ctx, 1)
         return (cte, code)
 
 def gen_continue(cte, ast):
@@ -3934,7 +4056,7 @@ def gen_continue(cte, ast):
         def code(rte, _):
             depth = dict_get(depth_ast, 'depth', 0)
             ctx = Context(rte, lambda rte: unwindContinue(rte, depth), ast)
-            return stmt_end(ctx)
+            return stmt_end(ctx, 1)
         return (cte, code)
 
 def gen_raise(cte, ast, code):
@@ -3958,13 +4080,12 @@ def gen_logical_and(cte, ast, code1, code2):
     # XXX: look into runtime environment.
 
     def code(rte, cont):
-        expr_end_cont = do_expr_end(cont, ast)
         def cast_bool(rte1, val1):
             def dispatch(rte2, cond_val):
                 if om_is(cond_val, om_True):
-                    return code2(rte1, expr_end_cont)
+                    return code2(rte2, cont)
                 else:
-                    return expr_end_cont(rte1, val1)
+                    return cont(rte2, val1)
 
             ctx = Context(rte, dispatch, ast)
             return sem_bool(ctx, val1)
@@ -3977,13 +4098,12 @@ def gen_logical_or(cte, ast, code1, code2):
     if debug: print('gen_logical_or')
 
     def code(rte, cont):
-        expr_end_cont = do_expr_end(cont, ast)
         def cast_bool(rte1, val1):
             def dispatch(rte2, cond_val):
                 if om_is(cond_val, om_True):
-                    return expr_end_cont(rte1, val1)
+                    return cont(rte1, val1)
                 else:
-                    return code2(rte1, expr_end_cont)
+                    return code2(rte1, cont)
             return sem_bool(Context(rte1, dispatch, ast), val1)
         return code1(rte, cast_bool)
 
@@ -4065,7 +4185,7 @@ def gen_aug_op(cte, ast, id, op, code1):
     def code(rte, cont):
         return code1(rte,
                      lambda rte1, val1:
-                       sem_op(Context(rte1, do_stmt_end(cont, ast), ast),
+                       sem_op(Context(rte1, do_stmt_end(cont, ast, 1), ast),
                                       id, val1))
     return (cte, code)
 
@@ -4184,81 +4304,6 @@ def gen_Compare(cte, ast, left, comparators, ops):
         return (cte, retrieve_val1)
     else:
         return CT_raise_with_msg(cte, ast, "compare with more than 2 ops not supported")
-
-# Generate BinOp semantics for python Numeric datatypes (or that which emulate)
-# For the correct Python Data Model and interpreter, these are paired with
-# generators for primitive operators which do the actual computation, defined later.
-def gen_sem_Numeric_BinOp(op_symbol, method, rmethod):
-
-    def sem_Numeric_BinOp(ctx, val1, val2):
-
-        def test_method_result(rte, val):
-            # C: Method not implemented for val2's type,
-            #    fallback to reversed method.
-            if om_is(val, om_NotImplemented):
-                return call_rmethod(rte)
-            else:
-                # END0: val1 has method and can operate on val2.
-                #       Return the result.
-                return ctx.cont(rte, val)
-
-        def test_rmethod_result(rte, val):
-            # F: Rmethod not implemented for val1's type.
-            #    Raise TypeError since both methods are absent (like CPython).
-            if om_is(val, om_NotImplemented):
-                return sem_raise(ctx, class_TypeError)
-            else:
-                # END1: val2 has rmethod and can operate on val1.
-                #       Return the result.
-                return ctx.cont(rte, val)
-
-        def call_rmethod(rte):
-            # D: Does val2 have rmethod?
-            val2_rmethod = getattribute_from_obj_mro(val2, rmethod)
-
-            # E: Yes, try val2.rmethod(val1)
-            if val2_rmethod is not absent:
-                ctx2 = with_cont(ctx, test_rmethod_result)
-                # NOTE: self parameter is now val2
-                return om_call(val2_rmethod, ctx2, [val2, val1])
-            else:
-                # G: Method and rmethod are absent.
-                #    Raise a TypeError (like CPython).
-                return sem_raise(ctx, class_TypeError)
-
-        # A: Does val1 have method?
-        val1_method = getattribute_from_obj_mro(val1, method)
-
-        # B: Yes, try val1.method(val2).
-        if val1_method is not absent:
-            ctx1 = with_cont(ctx, test_method_result)
-            return om_call(val1_method, ctx1, [val1, val2])
-        else:
-            return call_rmethod(ctx.rte)
-
-    return sem_Numeric_BinOp
-
-# Arithmetic
-sem_Add = gen_sem_Numeric_BinOp('+', '__add__', '__radd__')
-sem_Sub = gen_sem_Numeric_BinOp('-', '__sub__', '__rsub__')
-sem_Mult = gen_sem_Numeric_BinOp('*', '__mul__', '__rmul__')
-sem_FloorDiv = gen_sem_Numeric_BinOp('//', '__floordiv__', '__rfloordiv__')
-sem_TrueDiv = gen_sem_Numeric_BinOp('/', '__truediv__', '__rtruediv__')
-sem_Mod = gen_sem_Numeric_BinOp('%', '__mod__', '__rmod__')
-sem_Pow = gen_sem_Numeric_BinOp('**', '__pow__', '__rpow__')
-# Bitwise
-sem_LShift = gen_sem_Numeric_BinOp('<<', '__lshift__', '__rlshift__')
-sem_RShift = gen_sem_Numeric_BinOp('>>', '__rshift__', '__rrshift__')
-sem_Or = gen_sem_Numeric_BinOp('|', '__or__', '__ror__')
-sem_And = gen_sem_Numeric_BinOp('&', '__and__', '__rand__')
-sem_Xor = gen_sem_Numeric_BinOp('^', '__xor__', '__rxor__')
-# Comparison
-sem_Eq = gen_sem_Numeric_BinOp('==', '__eq__', '__eq__')
-sem_NotEq = gen_sem_Numeric_BinOp('==', '__ne__', '__ne__')
-sem_Lt = gen_sem_Numeric_BinOp('<', '__lt__', '__gt__')
-sem_Gt = gen_sem_Numeric_BinOp('>', '__gt__', '__lt__')
-sem_LtE = gen_sem_Numeric_BinOp('<=', '__le__', '__ge__')
-sem_GtE = gen_sem_Numeric_BinOp('>=', '__ge__', '__le__')
 
 def sem_Is(ctx, val1, val2):
     result = om_is(val1, val2)
@@ -4624,7 +4669,7 @@ def gen_Subscript_Store(cte, ast, target, value):
         return obj_code(rte, get_index)
 
     def code(rte, cont):
-        return get_obj(rte, do_stmt_end(cont, ast))
+        return get_obj(rte, do_stmt_end(cont, ast, 1))
 
     return value_cte, code
 
@@ -4828,26 +4873,29 @@ def om_simple_exception_format(ctx, exn):
 
 
 def expr_end_with_error(ctx, error):
-    return return_to_trampoline(ctx.ast, '', False, error, lambda: None, ctx)
+    return return_to_trampoline(ctx.ast, '', 1, False, error, lambda: None, ctx)
 
+# XXX: Default nb_steps to 1 in expr_end to minimise changes
 def expr_end(ctx, val):
     if om_is(val, om_None):
-        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), False, None, lambda: ctx.cont(ctx.rte, val), ctx)
+        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), 1, False, None, lambda: ctx.cont(ctx.rte, val), ctx)
     else:
-        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), True, None, lambda: ctx.cont(ctx.rte, val), ctx)
+        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), 1, True, None, lambda: ctx.cont(ctx.rte, val), ctx)
 
-def stmt_end(ctx):
-    return return_to_trampoline(ctx.ast, '', False, None, lambda: ctx.cont(ctx.rte), ctx)
+def stmt_end(ctx, nb_steps):
+    return return_to_trampoline(ctx.ast, '', nb_steps, False, None, lambda: ctx.cont(ctx.rte), ctx)
 
+# XXX: Default nb_steps to 1 in stmt_end_with_message to minimise changes
 def stmt_end_with_message(ctx, msg):
-    return return_to_trampoline(ctx.ast, msg, False, None, lambda: ctx.cont(ctx.rte), ctx)
+    return return_to_trampoline(ctx.ast, msg, 1, False, None, lambda: ctx.cont(ctx.rte), ctx)
 
 
-def return_to_trampoline(ast, msg, display_result, error, cont, ctx):
+def return_to_trampoline(ast, msg, nb_steps, display_result, error, cont, ctx):
     # return to trampoline with current execution state
     res = make_dict()
     dict_set(res, "ast", ast)
     dict_set(res, "msg", msg)
+    dict_set(res, "nb_steps", nb_steps)
     dict_set(res, "display_result", display_result)
     dict_set(res, "error", error)
     dict_set(res, "cont", cont)

@@ -251,38 +251,6 @@ class Transformer:
     def Name(node):
         return node.id
 
-    def TestFunctionDef(self, node):
-        decorator = node.decorator_list[0]
-        node.decorator_list = []
-        function_code = self.FunctionDef(node)
-        test_result = self.transform(decorator.args[0])
-        test_args = ",".join([self.transform(arg) for arg in decorator.args[1:]])
-
-        test_op = decorator.func.id
-
-        out = f"tests.push(function () {{"
-        # Capture console.log to variable
-        out += "var console_log = console.log;"  # First, capture current log
-        out += "var _res = '';"
-        out += "console.log = function (s) { _res += (s + '\\n') };"  # Mimic Python print
-        out += f"var res = {node.name}({test_args});"
-        out += "if (_res !== '') { res = _res; }"
-        out += "console.log = console_log;"  # Put proper log back into place
-
-        if test_op == "Equals":
-            out += f"if (res === {test_result}) {{"
-        elif test_op == "Is":
-            out += f"if (Object.is({node.name}({test_args}), {test_result})) {{"
-        elif test_op == "IsInstance":
-            out += f"if ({node.name}({test_args}) instanceof {test_result}) {{"
-
-        out += f"console.log(\"Test '{node.name}' passed.\"); return true;}}"
-        out += f"else {{"
-        out += f"console.log(\"Test '{node.name}' FAILED.\"); console.log(res); return false;}}"
-        out += f"}});"
-
-        return f"{function_code} {out}"
-
     def FunctionDef(self, node):
 
         decorators = set()
@@ -295,8 +263,6 @@ class Transformer:
 
         if "nocompile" in decorators:
             return " "
-        elif any(d in ["Equals", "Is", "IsInstance"] for d in decorators):
-            return self.TestFunctionDef(node)
 
         # Check if global call is present
         for n in node.body:
