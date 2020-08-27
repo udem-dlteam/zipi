@@ -4443,7 +4443,15 @@ def sem_maybe_len(ctx, obj):
     if obj_len is absent:
         return ctx.cont(ctx.rte, absent)
     else:
-        return om_call(obj_len, ctx, (obj,))
+        def check_result(result_rte, res):
+            def check_range(range_rte, len_res):
+                res_value = OM_get_boxed_value(res)
+                if int_ge(res_value, int_from_num(0)):
+                    return cont_obj(ctx, res)
+                else:
+                    return sem_raise_with_message(ctx, class_ValueError, "__len__() should return >= 0")
+            return sem_index(with_cont(ctx, check_range), res)
+        return om_call(obj_len, with_cont(ctx, check_result), (obj,))
 
 def sem_len(ctx, obj):
     def cont(rte, val):
@@ -4614,18 +4622,13 @@ def sem_var_del(ctx, id):
 def sem_bool(ctx, val):
     __val_bool__ = getattribute_from_obj_mro(val, '__bool__')
     if __val_bool__ is absent:
-        __val_len__ = getattribute_from_obj_mro(val, '__len__')
-        if __val_len__ is absent:
-            return ctx.cont(ctx.rte, om_True)
-        else:
-            def nonzero(rte, val):
-                if OM_get_boxed_value(val) != 0:
-                    return ctx.cont(ctx.rte, om_True)
-                else:
-                    return ctx.cont(ctx.rte, om_False)
-
-            ctx1 = with_cont(ctx, nonzero)
-            return om_call(__val_len__, ctx1, [val])
+        def check_len(rte, res):
+            if res is absent:
+                return cont_obj(ctx, om_True)
+            else:
+                res_value = OM_get_boxed_value(res)
+                return cont_bool(ctx, not int_eq(res_value, int_from_num(0)))
+        return sem_maybe_len(with_cont(ctx, check_len), val)
     else:
         return om_call(__val_bool__, ctx, [val])
 
