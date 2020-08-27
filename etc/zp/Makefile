@@ -21,9 +21,9 @@ copy_files: _tmpdir zipi-venv
 	cp _unit_tests.py $(TMPDIR)/
 
 pyinterp: copy_files zipi-venv _zparse.py
-	$(PYTHON38) zp.py -f ../../zipi/pyinterp/__init__.py $(ZP_DEBUG) -o $(TMPDIR)/pyinterp.js
-	$(PYTHON38) zp.py -f ../../zipi/pyinterp/__init__.py $(ZP_DEBUG) -t -o $(TMPDIR)/pyinterp_browser.js
-	$(PYTHON38) zp.py -f ../../zipi/pyinterp/__init__.py $(ZP_DEBUG) -n -t -o $(TMPDIR)/pyinterp_node.js
+	$(PYTHON38) zp.py -f ../../zipi/pyinterp/__init__.py $(ZP_DEBUG) -e pyinterp -o $(TMPDIR)/pyinterp.js
+	$(PYTHON38) zp.py -f ../../zipi/pyinterp/__init__.py $(ZP_DEBUG) -e pyinterp -t -o $(TMPDIR)/pyinterp_browser.js
+	$(PYTHON38) zp.py -f ../../zipi/pyinterp/__init__.py $(ZP_DEBUG) -e pyinterp -n -t -o $(TMPDIR)/pyinterp_node.js
 	cp $(TMPDIR)/pyinterp_browser.js test/pyinterp/
 
 tests: copy_files pyinterp_tests zipi-venv _zparse.py

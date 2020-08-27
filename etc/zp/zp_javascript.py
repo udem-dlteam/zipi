@@ -933,11 +933,15 @@ class Transformer:
 
         for module in imports:
 
+            if "__init__.py" in module:
+                module = module.split('.')[-1]
+
             # import foo as FOO, see 'alias' node
             if isinstance(module, tuple):
                 module, asname = module
             else:
                 asname = module
+
 
             # Don't import some modules
             if module in ["sys", "argparse"] or "_runtime" in module:
