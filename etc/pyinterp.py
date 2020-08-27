@@ -1617,7 +1617,7 @@ def om_tuple_getitem(ctx, args):
     if om_is(OM_get_object_class(item), class_int):
         item_box_index = OM_get_boxed_value(item)
         elements = OM_get_tuple_seq(self)
-        elements_len = len(elements)
+        elements_len = int_from_num(len(elements))
         if int_ge(item_box_index, int_from_num(0)) and int_lt(item_box_index, elements_len):
             return ctx.cont(ctx.rte, elements[item_box_index])
         elif int_lt(item_box_index, int_from_num(0)) and int_ge(item_box_index, int_neg(elements_len)):
@@ -1696,7 +1696,7 @@ def om_list_getitem_code(ctx, args):
 
         if om_isinstance(item, class_int):
             index = OM_get_boxed_value(item)
-            self_len = OM_get_list_len(self)
+            self_len = int_from_num(OM_get_list_len(self))
             elements = OM_get_list_seq(self)
             if int_ge(index, int_from_num(0)) and int_lt(index, self_len):
                 return ctx.cont(ctx.rte, elements[index])
