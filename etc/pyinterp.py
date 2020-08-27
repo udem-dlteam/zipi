@@ -1644,11 +1644,11 @@ def om_tuple_getitem(ctx, args):
         if int_ge(item_box_index, elements_len):
             return sem_raise_with_message(ctx, class_IndexError, "tuple index out of range")
         elif int_is_nonneg(item_box_index):
-            return cont_obj(ctx, elements[item_box_index])
+            return cont_obj(ctx, elements[int_to_num(item_box_index)])
         else:
             reversed_index = int_add(item_box_index, elements_len)
             if int_is_nonneg(reversed_index):
-                return cont_obj(ctx, elements[int_add(item_box_index, elements_len)])
+                return cont_obj(ctx, elements[int_to_num(reversed_index)])
             else:
                 return sem_raise_with_message(ctx, class_IndexError, "tuple index out of range")
     else:
@@ -1732,7 +1732,7 @@ def om_list_getitem_code(ctx, args):
             else:
                 reversed_index = int_add(index, self_len)
                 if int_is_nonneg(reversed_index):
-                    return ctx.cont(ctx.rte, elements[reversed_index])
+                    return ctx.cont(ctx.rte, elements[int_to_num(reversed_index)])
                 else:
                     return sem_raise_with_message(ctx, class_IndexError, "list index out of range")
         elif om_isinstance(item, class_slice):
@@ -1916,11 +1916,11 @@ def om_str_getitem_code(ctx, args):
             if int_ge(index_val, self_len):
                 return sem_raise_with_message(ctx, class_IndexError, "string index out of range")
             elif int_is_nonneg(index_val):
-                return cont_str(ctx, self_val[index_val])
+                return cont_str(ctx, self_val[int_to_num(index_val)])
             else:
                 reversed_index = int_add(index_val, self_len)
                 if int_is_nonneg(reversed_index):
-                    return cont_str(ctx, self_val[reversed_index])
+                    return cont_str(ctx, self_val[int_to_num(reversed_index)])
                 else:
                     return sem_raise_with_message(ctx, class_IndexError, "string index out of range")
         return sem_index(with_cont(ctx, get_char), item)
