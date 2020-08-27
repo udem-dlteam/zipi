@@ -1644,11 +1644,13 @@ def om_tuple_getitem(ctx, args):
         if int_ge(item_box_index, elements_len):
             return sem_raise_with_message(ctx, class_IndexError, "tuple index out of range")
         elif int_is_nonneg(item_box_index):
-            return ctx.cont(ctx.rte, elements[item_box_index])
-        elif int_lt(item_box_index, int_neg(elements_len)):
-            return sem_raise_with_message(ctx, class_IndexError, "tuple index out of range")
+            return cont_obj(ctx, elements[item_box_index])
         else:
-            return ctx.cont(ctx.rte, elements[int_add(item_box_index, elements_len)])
+            reversed_index = int_add(item_box_index, elements_len)
+            if int_is_nonneg(reversed_index):
+                return cont_obj(ctx, elements[int_add(item_box_index, elements_len)])
+            else:
+                return sem_raise_with_message(ctx, class_IndexError, "tuple index out of range")
     else:
         return sem_raise(ctx, class_TypeError)
 
@@ -1727,10 +1729,12 @@ def om_list_getitem_code(ctx, args):
                 return sem_raise_with_message(ctx, class_IndexError, "list index out of range")
             elif int_is_nonneg(index):
                 return ctx.cont(ctx.rte, elements[index])
-            elif int_lt(index, int_neg(self_len)):
-                return sem_raise_with_message(ctx, class_IndexError, "list index out of range")
             else:
-                return ctx.cont(ctx.rte, elements[int_add(index, self_len)])
+                reversed_index = int_add(index, self_len)
+                if int_is_nonneg(reversed_index):
+                    return ctx.cont(ctx.rte, elements[reversed_index])
+                else:
+                    return sem_raise_with_message(ctx, class_IndexError, "list index out of range")
         elif om_isinstance(item, class_slice):
             return sem_raise_with_message(ctx, class_NotImplementedError, "list[slice] not yet implemented")
     else:
@@ -1913,10 +1917,12 @@ def om_str_getitem_code(ctx, args):
                 return sem_raise_with_message(ctx, class_IndexError, "string index out of range")
             elif int_is_nonneg(index_val):
                 return cont_str(ctx, self_val[index_val])
-            elif int_lt(index_val, int_neg(self_len)):
-                return sem_raise_with_message(ctx, class_IndexError, "string index out of range")
             else:
-                return cont_str(ctx, self_val[int_add(index_val, self_len)])
+                reversed_index = int_add(index_val, self_len)
+                if int_is_nonneg(reversed_index):
+                    return cont_str(ctx, self_val[reversed_index])
+                else:
+                    return sem_raise_with_message(ctx, class_IndexError, "string index out of range")
         return sem_index(with_cont(ctx, get_char), item)
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
