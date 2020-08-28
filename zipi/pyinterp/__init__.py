@@ -3153,9 +3153,10 @@ def om_pow_code(rte, _):
     elif om_is(OM_get_object_class(obj1), class_int)\
       and om_is(OM_get_object_class(obj2), class_int)\
       and om_is(OM_get_object_class(obj_mod), class_int):
-          val1 = OM_get_boxed_value(obj1)
-          val2 = OM_get_boxed_value(obj2)
-          val_mod = OM_get_boxed_value(obj_mod)
+
+        val1 = OM_get_boxed_value(obj1)
+        val2 = OM_get_boxed_value(obj2)
+        val_mod = OM_get_boxed_value(obj_mod)
 
         return unwindReturn(rte, om_int(int_pow_mod(val1,val2,val_mod)))
     else:
