@@ -1,14 +1,7 @@
-#!/usr/bin/env python3
-
-import os
 import sys
-
 import argparse
 
-dirname = os.path.dirname(__file__)
-sys.path.append(os.path.join(dirname, '../parser'))
-
-from pyinterp import interp_file
+from zipi.pyinterp import interp_file
 
 
 def main():

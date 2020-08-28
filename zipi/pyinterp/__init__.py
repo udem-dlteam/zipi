@@ -137,6 +137,9 @@ def cont_bool(ctx, val):
 def cont_int(ctx, val):
     return ctx.cont(ctx.rte, om_int(val))
 
+def cont_float(ctx, val):
+    return ctx.cont(ctx.rte, om_float(val))
+
 def cont_str(ctx, val):
     return ctx.cont(ctx.rte, om_str(val))
 
@@ -445,6 +448,9 @@ def align_args_with_signature(ctx, funcname, caller_args, signature):
                 locals_env.append((arg, caller_args[caller_index]))
                 caller_index += 1
 
+            if vararg is not None:
+                locals_env.append((vararg, om_tuple([])))
+
             return ctx.cont(ctx.rte, locals_env)
         elif caller_args_len < total_args_len:
             missing_args_len = total_args_len - caller_args_len
@@ -701,7 +707,10 @@ def bootstrap_populate_base_types():
         class_str,
         (('__new__', om_str_new),
          ('__repr__', om_str_repr),
-         ('__str__', om_str_str)))
+         ('__str__', om_str_str),
+         ('__getitem__', om_str_getitem),
+         ('__add__', om_str_add),
+         ('__len__', om_str_len)))
 
 # Initialize class type objects
 def builtin_add_method(o, name, code):
@@ -779,14 +788,26 @@ def populate_builtin_float():
     builtin_add_method(class_float, '__rmul__', om_float_rmul)
     builtin_add_method(class_float, '__truediv__', om_float_truediv)
     builtin_add_method(class_float, '__rtruediv__', om_float_rtruediv)
+    builtin_add_method(class_float, '__floordiv__', om_float_floordiv)
+    builtin_add_method(class_float, '__rfloordiv__', om_float_rfloordiv)
+    builtin_add_method(class_float, '__pow__', om_float_pow)
+    builtin_add_method(class_float, '__rpow__', om_float_rpow)
     builtin_add_method(class_float, '__mod__', om_float_mod)
     builtin_add_method(class_float, '__rmod__', om_float_rmod)
     builtin_add_method(class_float, '__repr__', om_float_repr)
     builtin_add_method(class_float, '__pos__', om_float_pos)
     builtin_add_method(class_float, '__neg__', om_float_neg)
     builtin_add_method(class_float, '__abs__', om_float_abs)
+    builtin_add_method(class_float, '__eq__', om_float_eq)
+    builtin_add_method(class_float, '__ne__', om_float_ne)
+    builtin_add_method(class_float, '__lt__', om_float_lt)
+    builtin_add_method(class_float, '__le__', om_float_le)
+    builtin_add_method(class_float, '__gt__', om_float_gt)
+    builtin_add_method(class_float, '__ge__', om_float_ge)
+
 
 def populate_builtin_bool():
+    builtin_add_method(class_bool, '__new__', om_bool_new)
     builtin_add_method(class_bool, '__bool__', om_bool_bool)
     builtin_add_method(class_bool, '__repr__', om_bool_repr)
 
@@ -1138,6 +1159,81 @@ def OM_set_MethodWrapper_instance(o, instance):
 def OM_get_MethodWrapper_instance(o):
     return o.instance
 
+# Generate BinOp semantics for python Numeric datatypes (or that which emulate)
+# For the correct Python Data Model and interpreter, these are paired with
+# generators for primitive operators which do the actual computation, defined later.
+def gen_sem_Numeric_BinOp(op_symbol, method, rmethod):
+
+    def sem_Numeric_BinOp(ctx, val1, val2):
+
+        def test_method_result(rte, val):
+            # C: Method not implemented for val2's type,
+            #    fallback to reversed method.
+            if om_is(val, om_NotImplemented):
+                return call_rmethod(rte)
+            else:
+                # END0: val1 has method and can operate on val2.
+                #       Return the result.
+                return ctx.cont(rte, val)
+
+        def test_rmethod_result(rte, val):
+            # F: Rmethod not implemented for val1's type.
+            #    Raise TypeError since both methods are absent (like CPython).
+            if om_is(val, om_NotImplemented):
+                return sem_raise(ctx, class_TypeError)
+            else:
+                # END1: val2 has rmethod and can operate on val1.
+                #       Return the result.
+                return ctx.cont(rte, val)
+
+        def call_rmethod(rte):
+            # D: Does val2 have rmethod?
+            val2_rmethod = getattribute_from_obj_mro(val2, rmethod)
+
+            # E: Yes, try val2.rmethod(val1)
+            if val2_rmethod is not absent:
+                ctx2 = with_cont(ctx, test_rmethod_result)
+                # NOTE: self parameter is now val2
+                return om_call(val2_rmethod, ctx2, [val2, val1])
+            else:
+                # G: Method and rmethod are absent.
+                #    Raise a TypeError (like CPython).
+                return sem_raise(ctx, class_TypeError)
+
+        # A: Does val1 have method?
+        val1_method = getattribute_from_obj_mro(val1, method)
+
+        # B: Yes, try val1.method(val2).
+        if val1_method is not absent:
+            ctx1 = with_cont(ctx, test_method_result)
+            return om_call(val1_method, ctx1, [val1, val2])
+        else:
+            return call_rmethod(ctx.rte)
+
+    return sem_Numeric_BinOp
+
+# Arithmetic
+sem_Add = gen_sem_Numeric_BinOp('+', '__add__', '__radd__')
+sem_Sub = gen_sem_Numeric_BinOp('-', '__sub__', '__rsub__')
+sem_Mult = gen_sem_Numeric_BinOp('*', '__mul__', '__rmul__')
+sem_FloorDiv = gen_sem_Numeric_BinOp('//', '__floordiv__', '__rfloordiv__')
+sem_TrueDiv = gen_sem_Numeric_BinOp('/', '__truediv__', '__rtruediv__')
+sem_Mod = gen_sem_Numeric_BinOp('%', '__mod__', '__rmod__')
+sem_Pow = gen_sem_Numeric_BinOp('**', '__pow__', '__rpow__')
+# Bitwise
+sem_LShift = gen_sem_Numeric_BinOp('<<', '__lshift__', '__rlshift__')
+sem_RShift = gen_sem_Numeric_BinOp('>>', '__rshift__', '__rrshift__')
+sem_Or = gen_sem_Numeric_BinOp('|', '__or__', '__ror__')
+sem_And = gen_sem_Numeric_BinOp('&', '__and__', '__rand__')
+sem_Xor = gen_sem_Numeric_BinOp('^', '__xor__', '__rxor__')
+# Comparison
+sem_Eq = gen_sem_Numeric_BinOp('==', '__eq__', '__eq__')
+sem_NotEq = gen_sem_Numeric_BinOp('==', '__ne__', '__ne__')
+sem_Lt = gen_sem_Numeric_BinOp('<', '__lt__', '__gt__')
+sem_Gt = gen_sem_Numeric_BinOp('>', '__gt__', '__lt__')
+sem_LtE = gen_sem_Numeric_BinOp('<=', '__le__', '__ge__')
+sem_GtE = gen_sem_Numeric_BinOp('>=', '__ge__', '__le__')
+
 # Create builtins classes
 __base_types = bootstrap_base_types()
 
@@ -1176,11 +1272,12 @@ class_EOFError = make_builtin_class('EOFError', OM_BaseException_create, (class_
 class_IndexError = make_builtin_class('IndexError', OM_BaseException_create, (class_LookupError,), class_type)
 class_AttributeError = make_builtin_class('AttributeError', OM_BaseException_create, (class_Exception,), class_type)
 class_ArithmeticError = make_builtin_class('ArithmeticError', OM_BaseException_create, (class_Exception,), class_type)
+class_OverflowError = make_builtin_class('OverflowError', OM_BaseException, (class_ArithmeticError,), class_type)
 class_ZeroDivisionError = make_builtin_class('ZeroDivisionError', OM_BaseException_create, (class_ArithmeticError,), class_type)
 
 om_None = om(class_NoneType)
-om_True = om_boxval(class_bool, 1)
-om_False = om_boxval(class_bool, 0)
+om_True = om_boxval(class_bool, int_from_num(1))
+om_False = om_boxval(class_bool, int_from_num(0))
 om_NotImplemented = om(class_NotImplementedType)
 
 # Call om code.
@@ -1479,23 +1576,44 @@ def om_NotImplementedType_repr(ctx, args):
     result = om_str('NotImplemented')
     return ctx.cont(ctx.rte, result)
 
+# class_bool methods
+def om_bool_new_code(ctx, args):
+    if len(args) == 1:
+        return cont_bool(ctx, False)
+    elif len(args) == 2:
+        return sem_bool(ctx, args[1])
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected at most 1 arguments, got " + str(len(args) - 1))
+
+om_bool_new = do_static_magic_method(class_bool, "__new__", om_bool_new_code)
+
 def om_format_bool_repr(self, rte):
     if om_is(self, om_True):
         return "True"
     else:
         return "False"
 
-# class_bool methods
-def om_bool_repr(ctx, args):
+def om_bool_repr_code(ctx, args):
     if debug: print('bool.__repr__')
-    self = args[0]
-    result = om_boxval(class_str, om_format_bool_repr(self, ctx.rte))
-    return ctx.cont(ctx.rte, result)
 
-def om_bool_bool(ctx, args):
+    if len(args) == 1:
+        self = args[0]
+        return cont_str(ctx, om_format_bool_repr(self, ctx.rte))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+om_bool_repr = do_magic_method(class_bool, "__repr__", om_bool_repr_code)
+
+def om_bool_bool_code(ctx, args):
     if debug: print('bool.__bool__')
-    self = args[0]
-    return ctx.cont(ctx.rte, self)
+
+    if len(args) == 1:
+        self = args[0]
+        return cont_obj(ctx, self)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+om_bool_bool = do_magic_method(class_bool, "__bool__", om_bool_bool_code)
 
 def om_int_neg_code(ctx, args):
     if len(args) == 1:
@@ -1594,13 +1712,17 @@ def om_tuple_getitem(ctx, args):
     if om_is(OM_get_object_class(item), class_int):
         item_box_index = OM_get_boxed_value(item)
         elements = OM_get_tuple_seq(self)
-        elements_len = len(elements)
-        if item_box_index >= 0 and item_box_index < elements_len:
-            return ctx.cont(ctx.rte, elements[item_box_index])
-        elif item_box_index < 0 and item_box_index >= -elements_len:
-            return ctx.cont(ctx.rte, elements[item_box_index + elements_len])
+        elements_len = int_from_num(len(elements))
+        if int_ge(item_box_index, elements_len):
+            return sem_raise_with_message(ctx, class_IndexError, "tuple index out of range")
+        elif int_is_nonneg(item_box_index):
+            return cont_obj(ctx, elements[int_to_num(item_box_index)])
         else:
-            return sem_raise(ctx, class_IndexError)
+            reversed_index = int_add(item_box_index, elements_len)
+            if int_is_nonneg(reversed_index):
+                return cont_obj(ctx, elements[int_to_num(reversed_index)])
+            else:
+                return sem_raise_with_message(ctx, class_IndexError, "tuple index out of range")
     else:
         return sem_raise(ctx, class_TypeError)
 
@@ -1673,14 +1795,18 @@ def om_list_getitem_code(ctx, args):
 
         if om_isinstance(item, class_int):
             index = OM_get_boxed_value(item)
-            self_len = OM_get_list_len(self)
+            self_len = int_from_num(OM_get_list_len(self))
             elements = OM_get_list_seq(self)
-            if index >= 0 and index < self_len:
-                return ctx.cont(ctx.rte, elements[index])
-            elif index < 0 and index >= -self_len:
-                return ctx.cont(ctx.rte, elements[index + self_len])
-            else:
+            if int_ge(index, self_len):
                 return sem_raise_with_message(ctx, class_IndexError, "list index out of range")
+            elif int_is_nonneg(index):
+                return ctx.cont(ctx.rte, elements[index])
+            else:
+                reversed_index = int_add(index, self_len)
+                if int_is_nonneg(reversed_index):
+                    return ctx.cont(ctx.rte, elements[int_to_num(reversed_index)])
+                else:
+                    return sem_raise_with_message(ctx, class_IndexError, "list index out of range")
         elif om_isinstance(item, class_slice):
             return sem_raise_with_message(ctx, class_NotImplementedError, "list[slice] not yet implemented")
     else:
@@ -1774,7 +1900,7 @@ def om_iterator_next(ctx, args):
     return sem_getitem(next_ctx, obj, index)
 
 # class_str methods
-def om_str_new(ctx, args):
+def om_str_new_code(ctx, args):
     cls = args[0]
 
     if len(args) == 1:
@@ -1784,6 +1910,8 @@ def om_str_new(ctx, args):
         return sem_str(ctx, value)
     else:
         assert False, "TypeError: str() takes 0 or 1 argument"
+
+om_str_new = do_static_magic_method(class_str, "__new__", om_str_new_code)
 
 def om_format_str_repr(self, rte):
     def wrap_doublequote(s):
@@ -1826,6 +1954,66 @@ def om_str_repr_code(ctx, args):
 
 om_str_repr = do_magic_method(class_str, "__repr__", om_str_repr_code)
 
+def om_str_add_code(ctx, args):
+    if debug: print('str.__add__')
+
+    if len(args) == 2:
+        self = args[0]
+        other = args[1]
+
+        if om_isinstance(other, class_str):
+            self_val = OM_get_boxed_value(self)
+            other_value = OM_get_boxed_value(other)
+
+            return cont_str(ctx, self_val + other_value)
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
+
+om_str_add = do_magic_method(class_str, "__add__", om_str_add_code)
+
+def om_str_getitem_code(ctx, args):
+    if debug: print('str.__getitem__')
+
+    if len(args) == 2:
+        self = args[0]
+        item = args[1]
+
+        def get_char(rte, index):
+            index_val = OM_get_boxed_value(index)
+            self_val = OM_get_boxed_value(self)
+            self_len = int_from_num(len(self_val))
+
+            if int_ge(index_val, self_len):
+                return sem_raise_with_message(ctx, class_IndexError, "string index out of range")
+            elif int_is_nonneg(index_val):
+                return cont_str(ctx, self_val[int_to_num(index_val)])
+            else:
+                reversed_index = int_add(index_val, self_len)
+                if int_is_nonneg(reversed_index):
+                    return cont_str(ctx, self_val[int_to_num(reversed_index)])
+                else:
+                    return sem_raise_with_message(ctx, class_IndexError, "string index out of range")
+        return sem_index(with_cont(ctx, get_char), item)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
+
+om_str_getitem = do_magic_method(class_str, "__getitem__", om_str_getitem_code)
+
+def om_str_len_code(ctx, args):
+    if debug: print('str.__len__')
+
+    if len(args) == 1:
+        self = args[0]
+
+        self_len = len(OM_get_boxed_value(self))
+
+        return cont_int(ctx, int_from_num(self_len))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+om_str_len = do_magic_method(class_str, "__len__", om_str_len_code)
 
 def om_str_str_code(ctx, args):
     if debug: print('str.__str__')
@@ -2007,9 +2195,10 @@ def box_object(obj):
         raise ValueError("Cannot box object " + str(obj))
 
 # Primitive operators for doing actual computations
-def gen_dunder_Numeric_BinOp(py_class, method, prim, om_class, om_box):
+def gen_dunder_Homogenous_Numeric_BinOp(py_class, method, prim, om_class, om_box):
+    debug_msg = py_class + "." + method
     def dunder_Numeric_BinOp(ctx, args):
-        if debug: print(py_class + "." + method)
+        if debug: print(debug_msg)
         val1 = args[0]
         val2 = args[1]
 
@@ -2027,7 +2216,7 @@ def gen_dunder_Numeric_BinOp(py_class, method, prim, om_class, om_box):
 
 # Reversed operators reverse the order of their arguments when
 # doing the computation.
-def gen_dunder_Numeric_rBinOp(py_class, method, prim, om_class, om_box):
+def gen_dunder_Homogenous_Numeric_rBinOp(py_class, method, prim, om_class, om_box):
     def dunder_Numeric_rBinOp(ctx, args):
         if debug: print(py_class+ "." + method)
         val1 = args[0]
@@ -2046,26 +2235,26 @@ def gen_dunder_Numeric_rBinOp(py_class, method, prim, om_class, om_box):
     return do_magic_method(om_class, method, dunder_Numeric_rBinOp)
 
 # Arithmetic
-om_int_add = gen_dunder_Numeric_BinOp('int', '__add__', int_add, class_int, om_int)
+om_int_add = gen_dunder_Homogenous_Numeric_BinOp('int', '__add__', int_add, class_int, om_int)
 om_int_radd = om_int_add
 
-om_int_sub = gen_dunder_Numeric_BinOp('int', '__sub__', int_sub, class_int, om_int)
-om_int_rsub = gen_dunder_Numeric_rBinOp('int', '__rsub__', int_sub, class_int, om_int)
+om_int_sub = gen_dunder_Homogenous_Numeric_BinOp('int', '__sub__', int_sub, class_int, om_int)
+om_int_rsub = gen_dunder_Homogenous_Numeric_rBinOp('int', '__rsub__', int_sub, class_int, om_int)
 
-om_int_mul = gen_dunder_Numeric_BinOp('int', '__mul__', int_mul, class_int, om_int)
+om_int_mul = gen_dunder_Homogenous_Numeric_BinOp('int', '__mul__', int_mul, class_int, om_int)
 om_int_rmul = om_int_mul
 
 # Bitwise
-om_int_lshift = gen_dunder_Numeric_BinOp('int', '__lshift__', int_lshift, class_int, om_int)
-om_int_rlshift = gen_dunder_Numeric_BinOp('int', '__rlshift__', int_lshift, class_int, om_int)
-om_int_rshift = gen_dunder_Numeric_BinOp('int', '__rshift__', int_rshift, class_int, om_int)
-om_int_rrshift = gen_dunder_Numeric_BinOp('int', '__rrshift__', int_rshift, class_int, om_int)
-om_int_or = gen_dunder_Numeric_BinOp('int', '__or__', int_or, class_int, om_int)
-om_int_ror = gen_dunder_Numeric_BinOp('int', '__ror__', int_or, class_int, om_int)
-om_int_and = gen_dunder_Numeric_BinOp('int', '__and__', int_and, class_int, om_int)
-om_int_rand = gen_dunder_Numeric_BinOp('int', '__rand__', int_and, class_int, om_int)
-om_int_xor = gen_dunder_Numeric_BinOp('int', '__xor__', int_xor, class_int, om_int)
-om_int_rxor = gen_dunder_Numeric_BinOp('int', '__xror__', int_xor, class_int, om_int)
+om_int_lshift = gen_dunder_Homogenous_Numeric_BinOp('int', '__lshift__', int_lshift, class_int, om_int)
+om_int_rlshift = gen_dunder_Homogenous_Numeric_BinOp('int', '__rlshift__', int_lshift, class_int, om_int)
+om_int_rshift = gen_dunder_Homogenous_Numeric_BinOp('int', '__rshift__', int_rshift, class_int, om_int)
+om_int_rrshift = gen_dunder_Homogenous_Numeric_BinOp('int', '__rrshift__', int_rshift, class_int, om_int)
+om_int_or = gen_dunder_Homogenous_Numeric_BinOp('int', '__or__', int_or, class_int, om_int)
+om_int_ror = gen_dunder_Homogenous_Numeric_BinOp('int', '__ror__', int_or, class_int, om_int)
+om_int_and = gen_dunder_Homogenous_Numeric_BinOp('int', '__and__', int_and, class_int, om_int)
+om_int_rand = gen_dunder_Homogenous_Numeric_BinOp('int', '__rand__', int_and, class_int, om_int)
+om_int_xor = gen_dunder_Homogenous_Numeric_BinOp('int', '__xor__', int_xor, class_int, om_int)
+om_int_rxor = gen_dunder_Homogenous_Numeric_BinOp('int', '__xror__', int_xor, class_int, om_int)
 
 def is_space(c):
     return c == " " or c == "\t" or c == "\f" or c =="\r" or c == "\n"
@@ -2258,12 +2447,12 @@ om_int_abs = do_magic_method(class_int, "__abs__", om_int_abs_code)
 om_int_bool = do_magic_method(class_int, "__bool__", om_int_bool_code)
 
 # Comparison
-om_int_eq = gen_dunder_Numeric_BinOp('int', '__eq__', int_eq, class_int, om_bool)
-om_int_ne = gen_dunder_Numeric_BinOp('int', '__ne__', int_ne, class_int, om_bool)
-om_int_lt = gen_dunder_Numeric_BinOp('int', '__lt__', int_lt, class_int, om_bool)
-om_int_le = gen_dunder_Numeric_BinOp('int', '__le__', int_le, class_int, om_bool)
-om_int_gt = gen_dunder_Numeric_BinOp('int', '__gt__', int_gt, class_int, om_bool)
-om_int_ge = gen_dunder_Numeric_BinOp('int', '__ge__', int_ge, class_int, om_bool)
+om_int_eq = gen_dunder_Homogenous_Numeric_BinOp('int', '__eq__', int_eq, class_int, om_bool)
+om_int_ne = gen_dunder_Homogenous_Numeric_BinOp('int', '__ne__', int_ne, class_int, om_bool)
+om_int_lt = gen_dunder_Homogenous_Numeric_BinOp('int', '__lt__', int_lt, class_int, om_bool)
+om_int_le = gen_dunder_Homogenous_Numeric_BinOp('int', '__le__', int_le, class_int, om_bool)
+om_int_gt = gen_dunder_Homogenous_Numeric_BinOp('int', '__gt__', int_gt, class_int, om_bool)
+om_int_ge = gen_dunder_Homogenous_Numeric_BinOp('int', '__ge__', int_ge, class_int, om_bool)
 
 def om_format_int_repr(self, rte):
     return int_to_string(OM_get_boxed_value(self), 10)
@@ -2461,102 +2650,243 @@ def om_float_float_code(ctx, args):
 
 om_float_float = do_magic_method(class_float, "__float__", om_float_float_code)
 
-om_float_add = gen_dunder_Numeric_BinOp('float', '__add__', float_add, class_float, om_float)
-om_float_radd = om_float_add
 
-om_float_sub = gen_dunder_Numeric_BinOp('float', '__sub__', float_sub, class_float, om_float)
-om_float_rsub = gen_dunder_Numeric_BinOp('float', '__rsub__', float_sub, class_float, om_float)
+def gen_dunder_Float_BinOp(py_class, method, prim, cont_box):
+    debug_msg = py_class + "." + method
 
-om_float_mul = gen_dunder_Numeric_BinOp('float', '__mul__', float_mul, class_float, om_float)
-om_float_rmul = gen_dunder_Numeric_BinOp('float', '__rmul__', float_mul, class_float, om_float)
+    def dunder_Float_BinOp(ctx, args):
+        if debug: print(debug_msg)
+        val1 = args[0]
+        val2 = args[1]
 
-def om_float_mod(ctx, args):
-    if debug: print("float.__mod__")
-    val1 = args[0]
-    val2 = args[1]
+        val2_class = OM_get_object_class(val2)
 
-    if not om_issubclass(OM_get_object_class(val1), class_float):
-        return sem_raise(ctx, class_TypeError)
+        # Primitive operations are only defined on same types.
+        if om_issubclass(val2_class, class_float):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            result = prim(val1_value, val2_value)
+            return ctx.cont(ctx.rte, om_float(result))
+        elif om_issubclass(val2_class, class_int):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            val2_float_value = int_to_num(val2_value, True)
+            if val2_float_value is False:
+                return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
 
-    # Early break for ZeroDivisionError
-    val2_value = OM_get_boxed_value(val2)
-    if float_is_zero(val2_value):
-        return sem_raise(ctx, class_ZeroDivisionError)
+            res = prim(val1_value, val2_float_value)
+            return cont_box(ctx, res)
+        else:
+            return cont_obj(ctx, om_NotImplemented)
 
-    # Primitive operations are only defined on same types.
-    if om_issubclass(OM_get_object_class(val2), class_float):
-        val1_value = OM_get_boxed_value(val1)
-        result = float_mod(val1_value, val2_value)
-        return ctx.cont(ctx.rte, om_float(result))
-    else:
-        # TODO: Return om_NotImplemented(rte) (in the proper rte)
-        return ctx.cont(ctx.rte, om_NotImplemented)
+    return do_magic_method(class_float, method, dunder_Float_BinOp)
 
-def om_float_rmod(ctx, args):
-    if debug: print("float.__rmod__")
-    val1 = args[0]
-    val2 = args[1]
+def gen_dunder_Float_rBinOp(py_class, method, prim, cont_box):
+    debug_msg = py_class + "." + method
 
-    if not om_issubclass(OM_get_object_class(val1), class_float):
-        return sem_raise(ctx, class_TypeError)
+    def dunder_Float_rBinOp(ctx, args):
+        if debug: print(debug_msg)
+        val1 = args[0]
+        val2 = args[1]
 
-    # Early break for ZeroDivisionError
-    val1_value = OM_get_boxed_value(val1)
-    if float_is_zero(val1_value):
-        return sem_raise(ctx, class_ZeroDivisionError)
+        val2_class = OM_get_object_class(val2)
 
-    # Primitive operations are only defined on same types.
-    if om_issubclass(OM_get_object_class(val2), class_float):
-        val2_value = OM_get_boxed_value(val2)
-        result = float_mod(val2_value, val1_value)
-        return ctx.cont(ctx.rte, om_float(result))
-    else:
-        # TODO: Return om_NotImplemented(rte) (in the proper rte)
-        return ctx.cont(ctx.rte, om_NotImplemented)
+        # Primitive operations are only defined on same types.
+        if om_issubclass(val2_class, class_float):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            result = prim(val1_value, val2_value)
+            return ctx.cont(ctx.rte, om_float(result))
+        elif om_issubclass(val2_class, class_int):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            val2_float_value = int_to_num(val2_value, True)
+            if val2_float_value is False:
+                return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
 
-def om_float_truediv(ctx, args):
-    if debug: print("float.__truediv__")
-    val1 = args[0]
-    val2 = args[1]
+            res = prim(val2_float_value, val1_value)
+            return cont_box(ctx, res)
+        else:
+            return cont_obj(ctx, om_NotImplemented)
 
-    if not om_issubclass(OM_get_object_class(val1), class_float):
-        return sem_raise(ctx, class_TypeError)
+    return do_magic_method(class_float, method, dunder_Float_rBinOp)
 
-    # Early break for ZeroDivisionError
-    val2_value = OM_get_boxed_value(val2)
-    if float_is_zero(val2_value):
-        return sem_raise(ctx, class_ZeroDivisionError)
+def gen_dunder_Float_DivideOp(py_class, method, prim, cont_box):
+    debug_msg = py_class + "." + method
 
-    # Primitive operations are only defined on same types.
-    if om_issubclass(OM_get_object_class(val2), class_float):
-        val1_value = OM_get_boxed_value(val1)
-        result = float_div(val1_value, val2_value)
-        return ctx.cont(ctx.rte, om_float(result))
-    else:
-        # TODO: Return om_NotImplemented(rte) (in the proper rte)
-        return ctx.cont(ctx.rte, om_NotImplemented)
+    def dunder_Float_DivideOp(ctx, args):
+        if debug: print(debug_msg)
+        val1 = args[0]
+        val2 = args[1]
 
-def om_float_rtruediv(ctx, args):
-    if debug: print("float.__rtruediv__")
-    val1 = args[0]
-    val2 = args[1]
+        val2_class = OM_get_object_class(val2)
 
-    if not om_issubclass(OM_get_object_class(val1), class_float):
-        return sem_raise(ctx, class_TypeError)
+        # Primitive operations are only defined on same types.
+        if om_issubclass(val2_class, class_float):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            result = prim(val1_value, val2_value)
+            return ctx.cont(ctx.rte, om_float(result))
+        elif om_issubclass(val2_class, class_int):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            val2_float_value = int_to_num(val2_value, True)
+            if val2_float_value is False:
+                return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
 
-    # Early break for ZeroDivisionError
-    val1_value = OM_get_boxed_value(val1)
-    if float_is_zero(val1_value):
-        return sem_raise(ctx, class_ZeroDivisionError)
+            if float_is_zero(val2_float_value):
+                return sem_raise_with_message(ctx, class_ZeroDivisionError, "float division or modulo by zero")
 
-    # Primitive operations are only defined on same types.
-    if om_issubclass(OM_get_object_class(val2), class_float):
-        val2_value = OM_get_boxed_value(val2)
-        result = float_div(val2_value, val1_value)
-        return ctx.cont(ctx.rte, om_float(result))
-    else:
-        # TODO: Return om_NotImplemented(rte) (in the proper rte)
-        return ctx.cont(ctx.rte, om_NotImplemented)
+            res = prim(val1_value, val2_float_value)
+            return cont_box(ctx, res)
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+
+    return do_magic_method(class_float, method, dunder_Float_DivideOp)
+
+def gen_dunder_Float_rDivideOp(py_class, method, prim, cont_box):
+    debug_msg = py_class + "." + method
+
+    def dunder_Float_rDivideOp(ctx, args):
+        if debug: print(debug_msg)
+        val1 = args[0]
+        val2 = args[1]
+
+        val2_class = OM_get_object_class(val2)
+
+        # Primitive operations are only defined on same types.
+        if om_issubclass(val2_class, class_float):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            result = prim(val1_value, val2_value)
+            return ctx.cont(ctx.rte, om_float(result))
+        elif om_issubclass(val2_class, class_int):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            val2_float_value = int_to_num(val2_value, True)
+            if val2_float_value is False:
+                return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
+
+            if float_is_zero(val1_value):
+                return sem_raise_with_message(ctx, class_ZeroDivisionError, "float division or modulo by zero")
+
+            res = prim(val2_float_value, val1_value)
+            return cont_box(ctx, res)
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+
+    return do_magic_method(class_float, method, dunder_Float_rDivideOp)
+
+
+def gen_dunder_Float_EqComp(py_class, method, float_comp, res_on_overflow, cont_box):
+    debug_msg = py_class + "." + method
+
+    def dunder_Float_EqComp(ctx, args):
+        if debug: print(debug_msg)
+        val1 = args[0]
+        val2 = args[1]
+
+        val2_class = OM_get_object_class(val2)
+
+        # Primitive operations are only defined on same types.
+        if om_issubclass(val2_class, class_float):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            result = float_comp(val1_value, val2_value)
+            return ctx.cont(ctx.rte, om_float(result))
+        elif om_issubclass(val2_class, class_int):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            val2_float_value = int_to_num(val2_value, True)
+
+            if val2_float_value is False:
+                cont_box(ctx, res_on_overflow)
+            else:
+                res = float_comp(val1_value, val2_float_value)
+                return cont_box(ctx, res)
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+
+    return do_magic_method(class_float, method, dunder_Float_EqComp)
+
+def gen_dunder_Float_Comp(py_class, method, float_comp, int_comp, neg_inf_res, pos_inf_res, cont_box):
+    debug_msg = py_class + "." + method
+
+    def dunder_Float_Comp(ctx, args):
+        if debug: print(debug_msg)
+        val1 = args[0]
+        val2 = args[1]
+
+        val2_class = OM_get_object_class(val2)
+
+        # Primitive operations are only defined on same types.
+        if om_issubclass(val2_class, class_float):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            result = float_comp(val1_value, val2_value)
+            return cont_box(ctx, result)
+        elif om_issubclass(val2_class, class_int):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            val2_float_value = int_to_num(val2_value, True)
+
+            if val2_float_value is False:
+                if float_is_finite(val1_value):
+                    val1_int_value = int_from_num(float_trunc(val1_value))
+                    res = int_comp(val1_int_value, val2_value)
+                    return cont_box(ctx, res)
+                elif float_is_nan(val1_value):
+                    return cont_box(ctx, False)
+                elif float_is_pos(val1_value):
+                    # case: +inf
+                    return cont_box(ctx, pos_inf_res)
+                else:
+                    #case: -inf
+                    return cont_box(ctx, neg_inf_res)
+            else:
+                res = float_comp(val1_value, val2_float_value)
+                return cont_box(ctx, res)
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+
+    return do_magic_method(class_float, method, dunder_Float_Comp)
+
+
+om_float_add = gen_dunder_Float_BinOp('float', '__add__', float_add, cont_float)
+om_float_radd = gen_dunder_Float_rBinOp('float', '__add__', float_add, cont_float)
+
+om_float_sub = gen_dunder_Float_BinOp('float', '__sub__', float_sub, cont_float)
+om_float_rsub = gen_dunder_Float_rBinOp('float', '__rsub__', float_sub, cont_float)
+
+om_float_mul = gen_dunder_Float_BinOp('float', '__mul__', float_mul, cont_float)
+om_float_rmul = gen_dunder_Float_rBinOp('float', '__rmul__', float_mul, cont_float)
+
+om_float_mod = gen_dunder_Float_DivideOp('float', '__mod__', float_mod, cont_float)
+om_float_rmod = gen_dunder_Float_rDivideOp('float', '__mod__', float_mod, cont_float)
+
+om_float_truediv = gen_dunder_Float_DivideOp('float', '__truediv__', float_div, cont_float)
+om_float_rtruediv = gen_dunder_Float_rDivideOp('float', '__rtruediv__', float_div, cont_float)
+
+def float_floordiv(u, v):
+    return float_floor(u / v)
+
+om_float_floordiv = gen_dunder_Float_DivideOp('float', '__floordiv__', float_floordiv, cont_float)
+om_float_rfloordiv = gen_dunder_Float_rDivideOp('float', '__rfloordiv__', float_floordiv, cont_float)
+
+om_float_pow = gen_dunder_Float_BinOp('float', '__pow__', float_pow, cont_float)
+om_float_rpow = gen_dunder_Float_rBinOp('float', '__rpow__', float_pow, cont_float)
+
+## float comparisons
+def float_ne(x, y):
+    return not float_eq(x, y)
+
+om_float_eq = gen_dunder_Float_EqComp('float', '__eq__', float_eq, False, cont_bool)
+om_float_ne = gen_dunder_Float_EqComp('float', '__ne__', float_ne, True, cont_bool)
+om_float_lt = gen_dunder_Float_Comp('float', '__lt__', float_lt, int_lt, True, False, cont_bool)
+om_float_le = gen_dunder_Float_Comp('float', '__le__', float_le, int_le, True, False, cont_bool)
+om_float_gt = gen_dunder_Float_Comp('float', '__gt__', float_gt, int_gt, False, True, cont_bool)
+om_float_ge = gen_dunder_Float_Comp('float', '__ge__', float_ge, int_ge, False, True, cont_bool)
+
 
 def om_float_abs_code(ctx, args):
     if len(args) == 1:
@@ -2568,10 +2898,15 @@ def om_float_abs_code(ctx, args):
 
 om_float_abs = do_magic_method(class_float, "__abs__", om_float_abs_code)
 
-def om_float_repr(ctx, args):
-    self = args[0]
-    result = om_format_float_repr(self, ctx.rte)
-    return ctx.cont(ctx.rte, om_str(result))
+def om_float_repr_code(ctx, args):
+    if len(args) == 1:
+        self = args[0]
+        result = om_format_float_repr(self, ctx.rte)
+        return ctx.cont(ctx.rte, om_str(result))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+om_float_repr = do_magic_method(class_float, "__repr__", om_float_repr_code)
 
 def om_float_neg_code(ctx, args):
     if len(args) == 1:
@@ -2636,7 +2971,10 @@ def gen_int_to_string_conv_code(radix, prefix):
         obj_cls = OM_get_object_class(obj)
         if om_issubclass(obj_cls, class_int):
             obj_value = OM_get_boxed_value(obj)
-            result = prefix + int_to_string(obj_value, radix)
+            if int_lt(obj_value, 0):
+                result = "-" + prefix + int_to_string(-obj_value, radix)
+            else:
+                result = prefix + int_to_string(obj_value, radix)
             return unwindReturn(rte, om_str(result))
         else:
             obj_cls_name = OM_get(obj_cls, '__name__')
@@ -2710,6 +3048,47 @@ def om_abs_code(rte, _):
 
     obj = rte_lookup(rte, 'obj')
     return sem_abs(next_ctx, obj)
+
+def do_min_max(name, sem_Comp):
+    expected_argument_error_msg = name + " expected 1 argument, got 0"
+    empty_sequence_error_msg = name + "() arg is an empty sequence"
+
+    def code(rte, cont):
+        args = rte_lookup(rte, 'args')
+        args_elements = OM_get_tuple_seq(args)
+        args_len = len(args_elements)
+        if args_len == 0:
+            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, expected_argument_error_msg)
+        elif args_len == 1:
+            iterable = args_elements[0]
+        else:
+            iterable = args
+
+        def loop_iterator(loop_iterator_rte, iterator):
+            def get_first(get_first_rte, candidate):
+                if candidate is for_loop_end_marker:
+                    return sem_raise_with_message(make_out_of_ast_context(get_first_rte, cont), class_ValueError, empty_sequence_error_msg)
+                candidate_ref = [candidate]
+                def get_next(get_next_rte, next_element):
+                    if next_element is for_loop_end_marker:
+                        return cont_obj(make_out_of_ast_context(get_next_rte, unwindReturn), candidate_ref[0])
+                    else:
+                        def compare_candidates(compare_rte, res):
+                            def pick_next_candidate(pick_rte, bool_res):
+                                if om_is(bool_res, om_True):
+                                    candidate_ref[0] = next_element
+                                return sem_next(make_out_of_ast_context(pick_rte, get_next), iterator, for_loop_end_marker)
+                            return sem_bool(make_out_of_ast_context(compare_rte, pick_next_candidate), res)
+                        return sem_Comp(make_out_of_ast_context(get_next_rte, compare_candidates), next_element, candidate)
+                return sem_next(make_out_of_ast_context(get_first_rte, get_next), iterator, for_loop_end_marker)
+            return sem_next(make_out_of_ast_context(loop_iterator_rte, get_first), iterator, for_loop_end_marker)
+        return sem_iter(make_out_of_ast_context(rte, loop_iterator), iterable)
+
+    return code
+
+om_min_code = do_min_max("min", sem_Lt)
+om_max_code = do_min_max("max", sem_Gt)
+
 
 # Built-in Modules
 def init_module_math():
@@ -2956,6 +3335,7 @@ def init_module_math():
     return module_math_env
 
 # Interpreter
+@nocompile
 def interp_file(path, options):
     source = read_file(path)
     interp(parse(source, path, 'exec', False), options)
@@ -2973,9 +3353,7 @@ def default_syntax_error(start_line0,
                          end_column0, msg):
     raise SyntaxError(msg)
 
-def interp_source(src):
-    options = {}
-    dict_set(options, 'trace', True)
+def interp_source(src, options):
     interp(parse(src, '<unknown>', 'exec', False), options)
 
 def parse(source, filename, mode, context):
@@ -3021,6 +3399,8 @@ def fresh_rte(options):
                                                       make_posonly_defaults_signature(('obj', 'sentinel'), (absent,)))
 
     om_builtin_abs = om_make_function_with_signature('abs', om_abs_code, make_posonly_only_signature(('obj',)))
+    om_builtin_min = om_make_function_with_signature('min', om_min_code, make_vararg_only_signature('args'))
+    om_builtin_max = om_make_function_with_signature('max', om_max_code, make_vararg_only_signature('args'))
 
     dict_set(builtins_env, 'type', class_type)
     dict_set(builtins_env, 'object', class_object)
@@ -3041,6 +3421,8 @@ def fresh_rte(options):
     dict_set(builtins_env, 'next', om_builtin_next)
     dict_set(builtins_env, 'iter', om_builtin_iter)
     dict_set(builtins_env, 'abs', om_builtin_abs)
+    dict_set(builtins_env, 'min', om_builtin_min)
+    dict_set(builtins_env, 'max', om_builtin_max)
 
     dict_set(builtins_env, 'BaseException', class_BaseException)
     dict_set(builtins_env, 'Exception', class_Exception)
@@ -3326,8 +3708,16 @@ def comp_expr(cte, ast):
     elif isinstance(ast, AST.Subscript) and isinstance(ast.ctx, AST.Load):
         if debug: print("AST.Subscript Load")
         obj_cte, obj_code = comp_expr_opt(cte, ast.value)
-        index_cte, index_code = comp_expr(obj_cte, ast.slice.value)
-        return gen_Subscript_Load(index_cte, ast, obj_code, index_code)
+
+        index_ast = ast.slice
+
+        if isinstance(index_ast, AST.Index):
+            index_cte, index_code = comp_expr(obj_cte, index_ast.value)
+            return gen_Subscript_Load(index_cte, ast, obj_code, index_code)
+        elif isinstance(index_ast, AST.Slice):
+            return CT_raise_with_msg(cte, ast, "slice indexation unsupported")
+        else:
+            return CT_raise_with_msg(cte, ast, "unsupported expression AST")
     else:
         return CT_raise_with_msg(cte, ast, "unsupported expression AST")
 
@@ -3425,8 +3815,8 @@ def gen_signature(cte, ast):
 # receives the new rte and, if the code is for an expression, the result
 # of the expression evaluation.
 
-def do_stmt_end(cont, ast):
-    return lambda rte: stmt_end(Context(rte, cont, ast))
+def do_stmt_end(cont, ast, nb_steps):
+    return lambda rte: stmt_end(Context(rte, cont, ast), nb_steps)
 
 def do_stmt_end_with_message(cont, ast):
     return lambda rte, msg: stmt_end_with_message(Context(rte, cont, ast), msg)
@@ -3451,7 +3841,7 @@ def gen_stmt_empty(cte):
 def gen_Pass(cte, ast):
 
     def code(rte, cont):
-        return stmt_end(Context(rte, cont, ast))
+        return stmt_end(Context(rte, cont, ast), 1)
 
     return (cte, code)
 
@@ -3460,10 +3850,9 @@ def gen_Pass(cte, ast):
 def gen_while(cte, ast, code1, code2, code3):
 
     def code(rte, cont):
-
         def dispatch(rte1, val):
             if om_is_falsy(val):
-                return code3(rte1, cont)
+                return code3(rte1, do_stmt_end(cont, ast, 0))
             else:
                 ctrl_env = rte_ctrl_env(rte)
                 ctrl_label = RTCtrlLabel(ctrl_env,
@@ -3487,10 +3876,11 @@ def gen_if(cte, ast, code1, code2, code3):
     def code(rte, cont):
 
         def dispatch(rte, val):
+            stmt_end_cont = do_stmt_end(cont, ast, 0)
             if om_is_falsy(val):
-                return code3(rte, cont)
+                return code3(rte, stmt_end_cont)
             else:
-                return code2(rte, cont)
+                return code2(rte, stmt_end_cont)
 
         def cast_bool(rte, val):
             ctx = Context(rte, dispatch, ast)
@@ -3546,7 +3936,7 @@ def gen_delete(cte, ast, expr):
         (expr_cte, code) = comp_expr(cte, expr)
 
         def del_expr(rte, cont):
-            return sem_var_del(Context(rte, do_stmt_end(cont, ast), ast), expr.id)
+            return sem_var_del(Context(rte, do_stmt_end(cont, ast), ast, 1), expr.id)
 
         return (expr_cte, del_expr)
     else:
@@ -3621,7 +4011,7 @@ def gen_break(cte, ast):
         def code(rte, _):
             depth = dict_get(depth_ast, 'depth', 0)
             ctx = Context(rte, lambda rte: unwindBreak(rte, depth), ast)
-            return stmt_end(ctx)
+            return stmt_end(ctx, 1)
         return (cte, code)
 
 def gen_continue(cte, ast):
@@ -3632,7 +4022,7 @@ def gen_continue(cte, ast):
         def code(rte, _):
             depth = dict_get(depth_ast, 'depth', 0)
             ctx = Context(rte, lambda rte: unwindContinue(rte, depth), ast)
-            return stmt_end(ctx)
+            return stmt_end(ctx, 1)
         return (cte, code)
 
 def gen_raise(cte, ast, code):
@@ -3656,13 +4046,12 @@ def gen_logical_and(cte, ast, code1, code2):
     # XXX: look into runtime environment.
 
     def code(rte, cont):
-        expr_end_cont = do_expr_end(cont, ast)
         def cast_bool(rte1, val1):
             def dispatch(rte2, cond_val):
                 if om_is(cond_val, om_True):
-                    return code2(rte1, expr_end_cont)
+                    return code2(rte2, cont)
                 else:
-                    return expr_end_cont(rte1, val1)
+                    return cont(rte2, val1)
 
             ctx = Context(rte, dispatch, ast)
             return sem_bool(ctx, val1)
@@ -3675,13 +4064,12 @@ def gen_logical_or(cte, ast, code1, code2):
     if debug: print('gen_logical_or')
 
     def code(rte, cont):
-        expr_end_cont = do_expr_end(cont, ast)
         def cast_bool(rte1, val1):
             def dispatch(rte2, cond_val):
                 if om_is(cond_val, om_True):
-                    return expr_end_cont(rte1, val1)
+                    return cont(rte1, val1)
                 else:
-                    return code2(rte1, expr_end_cont)
+                    return code2(rte1, cont)
             return sem_bool(Context(rte1, dispatch, ast), val1)
         return code1(rte, cast_bool)
 
@@ -3755,13 +4143,15 @@ def gen_aug_op(cte, ast, id, op, code1):
         sem_op = sem_IOr
     elif isinstance(op, AST.BitXor):
         sem_op = sem_IXor
+    elif isinstance(op, AST.Pow):
+        sem_op = sem_IPow
     else:
         return CT_raise_with_msg(cte, ast, "Unimplemented assignment operator")
 
     def code(rte, cont):
         return code1(rte,
                      lambda rte1, val1:
-                       sem_op(Context(rte1, do_stmt_end(cont, ast), ast),
+                       sem_op(Context(rte1, do_stmt_end(cont, ast, 1), ast),
                                       id, val1))
     return (cte, code)
 
@@ -3794,6 +4184,8 @@ def gen_BinOp(cte, ast, op, code1, code2):
         sem_op = sem_Or
     elif isinstance(op, AST.BitXor):
         sem_op = sem_Xor
+    elif isinstance(op, AST.Pow):
+        sem_op = sem_Pow
     else:
         return CT_raise_with_msg(cte, ast, "unimplemented binary operator")
 
@@ -3879,80 +4271,6 @@ def gen_Compare(cte, ast, left, comparators, ops):
     else:
         return CT_raise_with_msg(cte, ast, "compare with more than 2 ops not supported")
 
-# Generate BinOp semantics for python Numeric datatypes (or that which emulate)
-# For the correct Python Data Model and interpreter, these are paired with
-# generators for primitive operators which do the actual computation, defined later.
-def gen_sem_Numeric_BinOp(op_symbol, method, rmethod):
-
-    def sem_Numeric_BinOp(ctx, val1, val2):
-
-        def test_method_result(rte, val):
-            # C: Method not implemented for val2's type,
-            #    fallback to reversed method.
-            if om_is(val, om_NotImplemented):
-                return call_rmethod(rte)
-            else:
-                # END0: val1 has method and can operate on val2.
-                #       Return the result.
-                return ctx.cont(rte, val)
-
-        def test_rmethod_result(rte, val):
-            # F: Rmethod not implemented for val1's type.
-            #    Raise TypeError since both methods are absent (like CPython).
-            if om_is(val, om_NotImplemented):
-                return sem_raise(ctx, class_TypeError)
-            else:
-                # END1: val2 has rmethod and can operate on val1.
-                #       Return the result.
-                return ctx.cont(rte, val)
-
-        def call_rmethod(rte):
-            # D: Does val2 have rmethod?
-            val2_rmethod = getattribute_from_obj_mro(val2, rmethod)
-
-            # E: Yes, try val2.rmethod(val1)
-            if val2_rmethod is not absent:
-                ctx2 = with_cont(ctx, test_rmethod_result)
-                # NOTE: self parameter is now val2
-                return om_call(val2_rmethod, ctx2, [val2, val1])
-            else:
-                # G: Method and rmethod are absent.
-                #    Raise a TypeError (like CPython).
-                return sem_raise(ctx, class_TypeError)
-
-        # A: Does val1 have method?
-        val1_method = getattribute_from_obj_mro(val1, method)
-
-        # B: Yes, try val1.method(val2).
-        if val1_method is not absent:
-            ctx1 = with_cont(ctx, test_method_result)
-            return om_call(val1_method, ctx1, [val1, val2])
-        else:
-            return call_rmethod(ctx.rte)
-
-    return sem_Numeric_BinOp
-
-# Arithmetic
-sem_Add = gen_sem_Numeric_BinOp('+', '__add__', '__radd__')
-sem_Sub = gen_sem_Numeric_BinOp('-', '__sub__', '__rsub__')
-sem_Mult = gen_sem_Numeric_BinOp('*', '__mul__', '__rmul__')
-sem_FloorDiv = gen_sem_Numeric_BinOp('//', '__floordiv__', '__rfloordiv__')
-sem_TrueDiv = gen_sem_Numeric_BinOp('/', '__truediv__', '__rtruediv__')
-sem_Mod = gen_sem_Numeric_BinOp('%', '__mod__', '__rmod__')
-# Bitwise
-sem_LShift = gen_sem_Numeric_BinOp('<<', '__lshift__', '__rlshift__')
-sem_RShift = gen_sem_Numeric_BinOp('>>', '__rshift__', '__rrshift__')
-sem_Or = gen_sem_Numeric_BinOp('|', '__or__', '__ror__')
-sem_And = gen_sem_Numeric_BinOp('&', '__and__', '__rand__')
-sem_Xor = gen_sem_Numeric_BinOp('^', '__xor__', '__rxor__')
-# Comparison
-sem_Eq = gen_sem_Numeric_BinOp('==', '__eq__', '__eq__')
-sem_NotEq = gen_sem_Numeric_BinOp('==', '__ne__', '__ne__')
-sem_Lt = gen_sem_Numeric_BinOp('<', '__lt__', '__gt__')
-sem_Gt = gen_sem_Numeric_BinOp('>', '__gt__', '__lt__')
-sem_LtE = gen_sem_Numeric_BinOp('<=', '__le__', '__ge__')
-sem_GtE = gen_sem_Numeric_BinOp('>=', '__ge__', '__le__')
-
 def sem_Is(ctx, val1, val2):
     result = om_is(val1, val2)
     return cont_bool(ctx, result)
@@ -4023,6 +4341,7 @@ sem_ISub = gen_sem_IOperator("__isub__", sem_Sub, "-=")
 sem_IMul = gen_sem_IOperator("__imul__", sem_Mult, "*=")
 sem_ITrueDiv = gen_sem_IOperator("__itruediv__", sem_TrueDiv, "/=")
 sem_IFloorDiv = gen_sem_IOperator("__ifloordiv__",sem_FloorDiv,  "//=")
+sem_IPow = gen_sem_IOperator("__ipow__", sem_Pow, "**=")
 sem_IMod = gen_sem_IOperator("__imod__", sem_Mod, "%=")
 sem_IAnd = gen_sem_IOperator("__iand__", sem_And, "&=")
 sem_IOr = gen_sem_IOperator("__ior__", sem_Or, "|=")
@@ -4177,7 +4496,15 @@ def sem_maybe_len(ctx, obj):
     if obj_len is absent:
         return ctx.cont(ctx.rte, absent)
     else:
-        return om_call(obj_len, ctx, (obj,))
+        def check_result(result_rte, res):
+            def check_range(range_rte, len_res):
+                res_value = OM_get_boxed_value(res)
+                if int_is_nonneg(res_value):
+                    return cont_obj(ctx, res)
+                else:
+                    return sem_raise_with_message(ctx, class_ValueError, "__len__() should return >= 0")
+            return sem_index(with_cont(ctx, check_range), res)
+        return om_call(obj_len, with_cont(ctx, check_result), (obj,))
 
 def sem_len(ctx, obj):
     def cont(rte, val):
@@ -4308,7 +4635,7 @@ def gen_Subscript_Store(cte, ast, target, value):
         return obj_code(rte, get_index)
 
     def code(rte, cont):
-        return get_obj(rte, do_stmt_end(cont, ast))
+        return get_obj(rte, do_stmt_end(cont, ast, 1))
 
     return value_cte, code
 
@@ -4348,18 +4675,13 @@ def sem_var_del(ctx, id):
 def sem_bool(ctx, val):
     __val_bool__ = getattribute_from_obj_mro(val, '__bool__')
     if __val_bool__ is absent:
-        __val_len__ = getattribute_from_obj_mro(val, '__len__')
-        if __val_len__ is absent:
-            return ctx.cont(ctx.rte, om_True)
-        else:
-            def nonzero(rte, val):
-                if OM_get_boxed_value(val) != 0:
-                    return ctx.cont(ctx.rte, om_True)
-                else:
-                    return ctx.cont(ctx.rte, om_False)
-
-            ctx1 = with_cont(ctx, nonzero)
-            return om_call(__val_len__, ctx1, [val])
+        def check_len(rte, res):
+            if res is absent:
+                return cont_obj(ctx, om_True)
+            else:
+                res_value = OM_get_boxed_value(res)
+                return cont_bool(ctx, not int_is_zero(res_value))
+        return sem_maybe_len(with_cont(ctx, check_len), val)
     else:
         return om_call(__val_bool__, ctx, [val])
 
@@ -4517,26 +4839,29 @@ def om_simple_exception_format(ctx, exn):
 
 
 def expr_end_with_error(ctx, error):
-    return return_to_trampoline(ctx.ast, '', False, error, lambda: None, ctx)
+    return return_to_trampoline(ctx.ast, '', 1, False, error, lambda: None, ctx)
 
+# XXX: Default nb_steps to 1 in expr_end to minimise changes
 def expr_end(ctx, val):
     if om_is(val, om_None):
-        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), False, None, lambda: ctx.cont(ctx.rte, val), ctx)
+        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), 1, False, None, lambda: ctx.cont(ctx.rte, val), ctx)
     else:
-        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), True, None, lambda: ctx.cont(ctx.rte, val), ctx)
+        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), 1, True, None, lambda: ctx.cont(ctx.rte, val), ctx)
 
-def stmt_end(ctx):
-    return return_to_trampoline(ctx.ast, '', False, None, lambda: ctx.cont(ctx.rte), ctx)
+def stmt_end(ctx, nb_steps):
+    return return_to_trampoline(ctx.ast, '', nb_steps, False, None, lambda: ctx.cont(ctx.rte), ctx)
 
+# XXX: Default nb_steps to 1 in stmt_end_with_message to minimise changes
 def stmt_end_with_message(ctx, msg):
-    return return_to_trampoline(ctx.ast, msg, False, None, lambda: ctx.cont(ctx.rte), ctx)
+    return return_to_trampoline(ctx.ast, msg, 1, False, None, lambda: ctx.cont(ctx.rte), ctx)
 
 
-def return_to_trampoline(ast, msg, display_result, error, cont, ctx):
+def return_to_trampoline(ast, msg, nb_steps, display_result, error, cont, ctx):
     # return to trampoline with current execution state
     res = make_dict()
     dict_set(res, "ast", ast)
     dict_set(res, "msg", msg)
+    dict_set(res, "nb_steps", nb_steps)
     dict_set(res, "display_result", display_result)
     dict_set(res, "error", error)
     dict_set(res, "cont", cont)
