@@ -774,6 +774,7 @@ def populate_builtin_int():
     builtin_add_method(class_int, '__neg__', om_int_neg)
     builtin_add_method(class_int, '__pos__', om_int_pos)
     builtin_add_method(class_int, '__invert__', om_int_invert)
+    builtin_add_method(class_int, '__round__', om_int_round)
 
 
 def populate_builtin_float():
@@ -1656,7 +1657,7 @@ def om_int_pos_code(ctx, args):
 om_int_pos = do_magic_method(class_int, "__pos__", om_int_pos_code)
 
 def om_int_round_code(ctx, args):
-    return sem_raise_with_message(ctx, class_NotImplementedError)
+    return sem_raise(ctx, class_NotImplementedError)
 
 om_int_round = do_magic_method(class_int, "__round__", om_int_round_code)
 
