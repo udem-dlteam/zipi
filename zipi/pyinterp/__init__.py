@@ -2616,16 +2616,16 @@ def om_int_rtruediv_code(ctx, args):
     val1 = args[0]
     val2 = args[1]
 
-    # Early break for ZeroDivisionError
-    val1_value = OM_get_boxed_value(val1)
-    if int_is_zero(val1_value):
-        return sem_raise_with_message(ctx, class_ZeroDivisionError, "division by zero")
-
     # Primitive operations are only defined on same types.
     if om_issubclass(OM_get_object_class(val2), class_int):
-        val2_value = OM_get_boxed_value(val2)
-        result = float_div(int_to_num(val2_value), int_to_num(val1_value))
-        return ctx.cont(ctx.rte, om_float(result))
+        # Early break for ZeroDivisionError
+        val1_value = OM_get_boxed_value(val1)
+        if int_is_zero(val1_value):
+            return sem_raise_with_message(ctx, class_ZeroDivisionError, "division by zero")
+        else:
+            val2_value = OM_get_boxed_value(val2)
+            result = float_div(int_to_num(val2_value), int_to_num(val1_value))
+            return ctx.cont(ctx.rte, om_float(result))
     else:
         # TODO: Return om_NotImplemented(rte) (in the proper rte)
         return ctx.cont(ctx.rte, om_NotImplemented)
@@ -4295,16 +4295,17 @@ def gen_Compare(cte, ast, left, comparators, ops):
         def retrieve_val1(rte, cont):
             expr_end_cont = do_expr_end(cont, ast)
             def retrieve_val2(rte1, val1):
-                def retrieve_val3(rte3, val2):
-                    ctx = Context(rte, expr_end_cont, ast)
-                    return sem_op1(ctx, val1, val2)
 
                 def eval_compare(rte2, val2):
-                    def dispatch(rte3, cond_var):
-                        if cond_var is False:
-                            return expr_end_cont(rte3, cond_var)
+                    def retrieve_val3(rte3, val3):
+                        ctx = Context(rte3, expr_end_cont, ast)
+                        return sem_op2(ctx, val2, val3)
+
+                    def dispatch(rte_dispatch, cond_var):
+                        if om_is(cond_var, om_False):
+                            return expr_end_cont(rte_dispatch, cond_var)
                         else:
-                            return code3(rte3, retrieve_val3)
+                            return code3(rte_dispatch, retrieve_val3)
 
                     ctx = Context(rte2, dispatch, ast)
                     return sem_op1(ctx, val1, val2)
