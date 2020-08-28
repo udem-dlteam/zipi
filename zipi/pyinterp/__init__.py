@@ -3451,9 +3451,9 @@ def fresh_rte(options):
     dict_set(builtins_env, 'next', om_builtin_next)
     dict_set(builtins_env, 'iter', om_builtin_iter)
     dict_set(builtins_env, 'abs', om_builtin_abs)
+    dict_set(builtins_env, 'pow', om_builtin_pow)
     dict_set(builtins_env, 'min', om_builtin_min)
     dict_set(builtins_env, 'max', om_builtin_max)
-    dict_set(builtins_env, 'pow', om_builtin_pow)
 
     dict_set(builtins_env, 'BaseException', class_BaseException)
     dict_set(builtins_env, 'Exception', class_Exception)
