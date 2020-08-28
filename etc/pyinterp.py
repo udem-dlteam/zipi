@@ -2882,6 +2882,21 @@ def om_abs_code(rte, _):
     obj = rte_lookup(rte, 'obj')
     return sem_abs(next_ctx, obj)
 
+def om_pow_code(rte, _):
+    # XXX defaults arguments currently unimplemented in codeboot 
+    # pow(a,b,mod) unimplemented yet
+    next_ctx = make_out_of_ast_context(rte, unwindReturn)
+
+    obj1 = rte_lookup(rte, 'obj1')
+    obj2 = rte_lookup(rte, 'obj2')
+
+    obj1_pow = getattribute_from_obj_mro(obj1, '__pow__')
+
+    if obj1_pow is absent:
+        return sem_raise_with_message(next_ctx, class_TypeError, "bad operand type for pow()")
+    else:
+        return om_call(obj1_pow, next_ctx, [obj1, obj2])
+
 # Built-in Modules
 def init_module_math():
 
@@ -3193,6 +3208,11 @@ def fresh_rte(options):
 
     om_builtin_abs = om_make_function_with_signature('abs', om_abs_code, make_posonly_only_signature(('obj',)))
 
+#   pos-args with default value currently unimplemented in codeboot: XXX
+    om_builtin_pow = om_make_function_with_signature('pow', om_pow_code,
+                                                     make_posonly_only_signature(('obj1', 'obj2',)))
+
+
     dict_set(builtins_env, 'type', class_type)
     dict_set(builtins_env, 'object', class_object)
     dict_set(builtins_env, 'int', class_int)
@@ -3212,6 +3232,8 @@ def fresh_rte(options):
     dict_set(builtins_env, 'next', om_builtin_next)
     dict_set(builtins_env, 'iter', om_builtin_iter)
     dict_set(builtins_env, 'abs', om_builtin_abs)
+    dict_set(builtins_env, 'pow', om_builtin_pow)
+
 
     dict_set(builtins_env, 'BaseException', class_BaseException)
     dict_set(builtins_env, 'Exception', class_Exception)
