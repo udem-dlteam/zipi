@@ -1917,7 +1917,10 @@ om_str_new = do_static_magic_method(class_str, "__new__", om_str_new_code)
 
 def om_format_str_repr(self, rte):
     def char_code_to_hex(code):
-        return "\\x" + int_to_string(int_from_num(char_code), 16)
+        if code < 16:
+            return "\\x0" + int_to_string(int_from_num(char_code), 16)
+        else:
+            return "\\x" + int_to_string(int_from_num(char_code), 16)
 
     value = OM_get_boxed_value(self)
     value_len = len(value)
