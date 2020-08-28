@@ -3108,7 +3108,7 @@ def om_pow_code(rte, _):
     obj1 = rte_lookup(rte, 'obj1')
     obj2 = rte_lookup(rte, 'obj2')
 
-    obj1_pow = getattribute+from_obj_mro(obj1, '__pow__')
+    obj1_pow = getattribute_from_obj_mro(obj1, '__pow__')
 
     if obj1_pow is absent:
         return sem_raise_with_message(next_ctx, class_TypeError, "bad operand type for pow()")
@@ -3427,10 +3427,9 @@ def fresh_rte(options):
                                                       make_posonly_defaults_signature(('obj', 'sentinel'), (absent,)))
 
     om_builtin_abs = om_make_function_with_signature('abs', om_abs_code, make_posonly_only_signature(('obj',)))
+    om_builtin_pow = om_make_function_with_signature('pow', om_pow_code, make_posonly_only_signature(('obj1', 'obj2',)))
     om_builtin_min = om_make_function_with_signature('min', om_min_code, make_vararg_only_signature('args'))
     om_builtin_max = om_make_function_with_signature('max', om_max_code, make_vararg_only_signature('args'))
-    om_builtin_pow = om_make_function_with_signature('pow', om_pow_code, make_posonly_only_signature('obj1', 'obj2'))
-
 
     dict_set(builtins_env, 'type', class_type)
     dict_set(builtins_env, 'object', class_object)
