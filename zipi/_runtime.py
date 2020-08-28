@@ -103,17 +103,19 @@ def int_mul(u, v):
     return u * v
 
 
-def int_div(u, v):
+def int_div_floor(u, v):
     return u // v
 
 
-def int_mod(u, v):
+def int_mod_floor(u, v):
     return u % v
 
 
-def int_divmod(u, v):
+def int_divmod_floor(u, v):
     return divmod(u, v)
 
+def int_pow(u, v):
+    return pow(u, v)
 
 def int_not(u):
     return ~u
