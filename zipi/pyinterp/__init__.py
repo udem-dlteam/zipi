@@ -4292,29 +4292,34 @@ def gen_Compare(cte, ast, left, comparators, ops):
         (cte3, code3) = comp_expr(cte, comparators[1])
         sem_op2 = comp_Compare_Op(ops[1])
 
-        def retrieve_val1(rte, cont):
+        def eval_val1(rte, cont):
             expr_end_cont = do_expr_end(cont, ast)
-            def retrieve_val2(rte1, val1):
+
+            def eval_val2(rte1, val1):
 
                 def eval_compare(rte2, val2):
-                    def retrieve_val3(rte3, val3):
+                    def eval_val3(rte3, val3):
                         ctx = Context(rte3, expr_end_cont, ast)
                         return sem_op2(ctx, val2, val3)
 
-                    def dispatch(rte_dispatch, cond_var):
-                        if om_is(cond_var, om_False):
-                            return expr_end_cont(rte_dispatch, cond_var)
+                    def dispatch(rte3, cond_val_bool):
+                        if om_is(cond_val_bool, om_False):
+                            return expr_end_cont(rte3, cond_val_bool)
                         else:
-                            return code3(rte_dispatch, retrieve_val3)
+                            return code3(rte3, eval_val3)
 
-                    ctx = Context(rte2, dispatch, ast)
+                    def cast_bool(rte3, cond_val):
+                        ctx = Context(rte3, dispatch, ast)
+                        return sem_bool(ctx, cond_val)
+
+                    ctx = Context(rte2, cast_bool, ast)
                     return sem_op1(ctx, val1, val2)
 
                 return code2(rte1, eval_compare)
 
-            return code1(rte, retrieve_val2)
+            return code1(rte, eval_val2)
 
-        return (cte, retrieve_val1)
+        return (cte, eval_val1)
     else:
         return CT_raise_with_msg(cte, ast, "compare with more than 2 ops not supported")
 
