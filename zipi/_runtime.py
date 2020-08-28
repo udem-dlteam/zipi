@@ -165,6 +165,8 @@ def int_to_string(u, radix):
     else:
         return str(u)
 
+def int_pow_mod(u,v,m):
+    return pow(u,v,m)
 
 def int_from_string(string, radix):
     try:
