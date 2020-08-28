@@ -27,7 +27,7 @@ pyinterp: copy_files zipi-venv _zparse.py
 	cp $(TMPDIR)/pyinterp_browser.js test/pyinterp/
 
 tests: pyinterp
-	cd ../tests_pyinterp && $(MAKE)
+	cd ../../zipi/pyinterp/tests && $(MAKE)
 
 clean:
 	rm -vf ./test/zast_browser.js ./test/zast_node.js ./test/zast_browser_es6.js \
