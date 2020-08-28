@@ -3138,13 +3138,24 @@ def om_pow_code(rte, _):
 
     obj1 = rte_lookup(rte, 'obj1')
     obj2 = rte_lookup(rte, 'obj2')
+    obj_mod = rte_lookup(rte, 'obj_mod')
 
-    obj1_pow = getattribute_from_obj_mro(obj1, '__pow__')
+    if om_is(obj_mod, absent):
+        obj1_pow = getattribute_from_obj_mro(obj1, '__pow__')
 
-    if obj1_pow is absent:
-        return sem_raise_with_message(next_ctx, class_TypeError, "bad operand type for pow()")
+        if obj1_pow is absent:
+            return sem_raise_with_message(next_ctx, class_TypeError, "bad operand type for pow()")
+        else:
+            return om_call(obj1_pow, next_ctx, [obj1, obj2])
+    elif om_is(OM_get_object_class(obj1), class_int)\
+      and om_is(OM_get_object_class(obj2), class_int)\
+      and om_is(OM_get_object_class(obj_mod), class_int):
+        val1 = OM_get_boxed_value(obj1)
+        val2 = OM_get_boxed_value(obj2)
+        val_mod = OM_get_boxed_value(obj_mod)
+        return unwindReturn(rte, om_int(int_pow_mod(val1, val2, val_mod)))
     else:
-        return om_call(obj1_pow, next_ctx, [obj1, obj2])
+        return sem_raise_with_message(next_ctx, class_TypeError, "bad operand type for pow()")
 
 
 # Built-in Modules
@@ -3458,7 +3469,7 @@ def fresh_rte(options):
                                                       make_posonly_defaults_signature(('obj', 'sentinel'), (absent,)))
 
     om_builtin_abs = om_make_function_with_signature('abs', om_abs_code, make_posonly_only_signature(('obj',)))
-    om_builtin_pow = om_make_function_with_signature('pow', om_pow_code, make_posonly_only_signature(('obj1', 'obj2',)))
+    om_builtin_pow = om_make_function_with_signature('pow', om_pow_code, make_posonly_defaults_only_signature(('obj1', 'obj2', 'obj_mod'), (absent,)))
     om_builtin_min = om_make_function_with_signature('min', om_min_code, make_vararg_only_signature('args'))
     om_builtin_max = om_make_function_with_signature('max', om_max_code, make_vararg_only_signature('args'))
 

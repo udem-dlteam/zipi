@@ -154,6 +154,8 @@ def int_lshift(u, v):
 def int_rshift(u, v):
     return u >> v
 
+def int_mod_pow(u,v,m):
+    return pow(u,v,m)
 
 def int_to_string(u, radix):
     if radix == 2:
