@@ -1665,14 +1665,27 @@ def om_int_round_code(ctx, args):
         ndigits = args[1]
 
         def apply_round(rte, n):
+            self_value = OM_get_boxed_value(self)
             n_value = OM_get_boxed_value(n)
             if int_is_nonneg(n_value):
                 return cont_obj(ctx, self)
             else:
-                dec_digits_to_round = int_neg(n_value)
-                return sem_raise(ctx, class_NotImplementedError)
+                digits_to_round = int_neg(n_value)
+                # TODO: use int_pow once it exists
+                range_digits_to_round = int_pow(int_from_num(10), digits_to_round)
 
+                self_abs_value = int_abs(self_value)
+                low_digits = int_mod(self_abs_value, range_digits_to_round)
 
+                if int_ge(int_mul(low_digits, int_from_num(2)), range_digits_to_round):
+                    res = int_add(int_sub(self_abs_value, low_digits), range_digits_to_round)
+                else:
+                    res = int_sub(self_abs_value, low_digits)
+
+                if int_is_neg(self_value):
+                    return cont_int(ctx, int_neg(res))
+                else:
+                    return cont_int(ctx, res)
         return sem_index(with_cont(ctx, apply_round), ndigits)
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
@@ -3501,7 +3514,7 @@ def fresh_rte(options):
     om_builtin_min = om_make_function_with_signature('min', om_min_code, make_vararg_only_signature('args'))
     om_builtin_max = om_make_function_with_signature('max', om_max_code, make_vararg_only_signature('args'))
     om_builtin_round = om_make_function_with_signature('round', om_round_code, make_posonly_defaults_signature(('number', 'ndigits'), (absent,)))
-    om_builtin_pow = om_make_function_with_signature('pow', om_pow_code, make_posonly_only_signature('obj1', 'obj2'))
+    om_builtin_pow = om_make_function_with_signature('pow', om_pow_code, make_posonly_only_signature(('obj1', 'obj2')))
 
     dict_set(builtins_env, 'type', class_type)
     dict_set(builtins_env, 'object', class_object)
