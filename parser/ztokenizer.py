@@ -1095,12 +1095,10 @@ def get_string(ts, pos, quote, kind, raw):
             next = byte_at(buf, pos)
 
             if next == 10: # \<newline> (continuation line)
-                print('pos='+pos+' ts.start='+ts.start+' ts.line_start='+ts.line_start+' ts.line_num='+ts.line_num+' ts.buf_len='+ts.buf_len)
                 pos += 1
                 ts.line_start = pos
                 ts.line_num += 1
                 if pos >= ts.buf_len: # at end of source?
-                    print('pos >= ts.buf_len')
                     ts.end = pos
                     ts.token = ERRORTOKEN
                     return
