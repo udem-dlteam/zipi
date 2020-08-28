@@ -2386,7 +2386,7 @@ def om_int_new_code(ctx, args):
 
     if args_len == 1:
         cls = args[0]
-        return ctx.cont(ctx.rte, om_int_subtype(cls, 0))
+        return ctx.cont(ctx.rte, om_int_subtype(cls, int_from_num(0)))
     elif args_len == 2:
         cls = args[0]
         obj = args[1]
@@ -2394,7 +2394,7 @@ def om_int_new_code(ctx, args):
         def check_result(rte, res):
             if res is absent:
                 if om_isinstance(obj, class_str):
-                    return om_int_str_conversion(ctx, obj, om_int(10))
+                    return om_int_str_conversion(ctx, obj, om_int(int_from_num(10)))
                 else:
                     return sem_raise_with_message(
                         Context(rte, ctx.cont, ctx.ast),
