@@ -370,13 +370,15 @@ char_kind = make_char_kind()
 class TokenizerState:
 
     def __init__(self, buf, context):
-        self.buf = append_eol(buf)  # add sentinel
         self.buf_len = len(buf)
+        self.buf = append_eol(buf)  # add sentinel
         self.start = 0
         self.end = 0
         self.token = NEWLINE
         self.value = None  # token's value when it has a value
         self.kind = None # token's kind when needed (string for example)
+        self.string_lineno = 0
+        self.string_col_offset = 0
         self.line_start = 0
         self.line_num = 1
         self.paren_level = 0
@@ -386,10 +388,16 @@ class TokenizerState:
         self.context = context
 
 def get_lineno(ts):
-    return ts.line_num
+    if ts.string_lineno:
+        return ts.string_lineno
+    else:
+        return ts.line_num
 
 def get_col_offset(ts):
-    return ts.start - ts.line_start
+    if ts.string_lineno:
+        return ts.string_col_offset
+    else:
+        return ts.start - ts.line_start
 
 def get_end_lineno(ts):
     return ts.line_num
@@ -438,6 +446,8 @@ def get_kind(ts):
 # The tokenizer.
 
 def get_token(ts):
+
+    ts.string_lineno = 0 # in case ERRORTOKEN is generated for a non-string
 
     # handle delayed dedents
 
@@ -509,7 +519,7 @@ def get_token(ts):
 
             if ts.indents[i] < col:
                 ts.indents.append(col)
-                ts.start = ts.line_start;
+                ts.start = ts.line_start
                 ts.end = pos-1
                 ts.token = INDENT
                 return
@@ -522,14 +532,14 @@ def get_token(ts):
                     i -= 1
 
                 if ts.indents[i-1] != col:
-                    ts.start = ts.line_start;
+                    ts.start = ts.line_start
                     ts.end = pos-1
                     ts.token = ERRORTOKEN
                     return
 
                 ts.indents = ts.indents[:i]
                 ts.dedents = n-i-1
-                ts.start = ts.line_start;
+                ts.start = ts.line_start
                 ts.end = pos-1
                 ts.token = DEDENT
                 return
@@ -597,7 +607,7 @@ def get_token(ts):
                     break
                 pos += 1
 
-            if k == KIND_STRING:
+            if False and k == KIND_STRING: #TODO: reenable prefixed strings
                 c = c & 0xdf # turn into upper-case letter
                 if c == 66 or c == 85: # check for 'B' and 'U'
                     kind = BYTE_STRING if c == 66 else UNICODE_STRING
@@ -786,11 +796,14 @@ def get_token(ts):
                 inc_found(KIND_CONTINUATION) # .0006
                 if next == 10: # LF
                     pos += 1
+                    ts.line_start = pos
+                    ts.line_num += 1
+                    # don't generate a NEWLINE token
                     continue # go to top of tokenizer's main loop
                 print('error bad continuation line')
                 print('c='+repr(c))
                 print('next='+repr(next))
-                ts.token = 0 #TODO: fix
+                ts.token = ERRORTOKEN #TODO: fix
                 return
 
             # token starts with a character that can be repeated, e.g. >>=
@@ -910,268 +923,204 @@ def digit_value(byte):
 
     return 99
 
-def get_int_from_escape_no_unicode(buf, pos, ts):
-    next = byte_at(buf, pos)
+def string_escape_character(ts, buf, pos, next):
+
+    if next == 117: # \uXXXX
+        code = 0
+        for i in range(4):
+            hex_val = digit_value(byte_at(buf, pos+1+i))
+            if hex_val >= 16:
+                ts.end = pos+1+i
+                return False
+            code = code * 16 + hex_val
+        ts.end = pos+5
+        ts.value.append(code)
+        return True
+
+    elif next == 85: # \UXXXXXXXX
+        code = 0
+        for i in range(8):
+            hex_val = digit_value(byte_at(buf, pos+1+i))
+            if hex_val >= 16:
+                ts.end = pos+1+i
+                return False
+            code = code * 16 + hex_val
+        ts.end = pos+9
+
+        if code > 0x10ffff:
+            return False
+
+        ts.value.append(code)
+        return True
+
+    else:
+
+        # TODO : \N{NAME} is not supported and will not be escaped
+
+        return byte_escape_character(ts, buf, pos, next)
+
+def byte_escape_character(ts, buf, pos, next):
 
     if next == 92 or next == 39 or next == 34: # \\ \' \"
-        ts.end = pos + 1
-        return next
+        ts.end = pos+1
+        code = next
     elif next == 110: # \n
-        ts.end = pos + 1
-        return 10
+        ts.end = pos+1
+        code = 10
     elif next == 116: # \t
-        ts.end = pos + 1
-        return 9
+        ts.end = pos+1
+        code = 9
     elif next == 102: # \f
-        ts.end = pos + 1
-        return 12
+        ts.end = pos+1
+        code = 12
     elif next == 118: # \v
-        ts.end = pos + 1
-        return 11
+        ts.end = pos+1
+        code = 11
     elif next == 97:  # \a
-        ts.end = pos + 1
-        return 7
+        ts.end = pos+1
+        code = 7
     elif next == 98:  # \b
-        ts.end = pos + 1
-        return 8
+        ts.end = pos+1
+        code = 8
+    else:
 
-    digit_next = digit_value(next)
+        code = digit_value(next)
 
-    if digit_next < 8: # \ooo where o is an octal
-        acc = digit_next
-        pos += 1
-        octal_val = digit_value(byte_at(buf, pos))
-        if octal_val < 8:
-            pos+=1
-            acc = acc * 8 + octal_val
+        if code < 8: # \ooo where o is an octal
+            pos += 1
             octal_val = digit_value(byte_at(buf, pos))
             if octal_val < 8:
-                pos+=1
-                acc = acc * 8 + octal_val
-        ts.end = pos
-        return acc
-    elif next == 120: # \xXX where XX is a base16 number
-        v1 = digit_value(byte_at(buf, pos + 1))
-        v2 = digit_value(byte_at(buf, pos + 2))
-        if v1 >= 16 or v2 >= 16:
-            ts.token = ERRORTOKEN
-            return -1
-        ts.end = pos + 3
-        return v1 * 16 + v2
-    ts.end = pos
-
-    return -1
-
-def byte_escape_character(buf, pos, ts):
-    code = get_int_from_escape_no_unicode(buf, pos, ts)
-    pos = ts.end
-
-    if ts.token == ERRORTOKEN:
-        return -1
-
-    # not found
-    if code == -1:
-        # default, no escape
-        ts.value.append(92) # \\
-        ts.value.append(byte_at(buf, pos))
-        pos += 1
-    else:
-        ts.value.append(code & 0xff)
-
-    return pos
-
-def string_escape_character(buf, pos, ts):
-    code = get_int_from_escape_no_unicode(buf, pos, ts)
-    pos = ts.end
-
-    if ts.token == ERRORTOKEN:
-        return -1
-
-    #not found
-    if code == -1:
-        # search for unicode characters
-        next = byte_at(buf, pos)
-        if next == 117: # \uXXXX
-            acc = 0
-            for i in range(4):
-                hex_val = digit_value(byte_at(buf, pos+1+i))
-                if hex_val >= 16:
-                    ts.token = ERRORTOKEN
-                    return -1
-                acc = acc * 16 + hex_val
-            ts.value += chr(acc)
-
-            return pos + 5
-
-        elif next == 85: # \UXXXXXXXX
-            acc = 0
-            for i in range(8):
-                hex_val = digit_value(byte_at(buf, pos+1+i))
-                if hex_val >= 16:
-                    ts.token = ERRORTOKEN
-                    return -1
-                acc = acc * 16 + hex_val
-
-            if acc > 0x10ffff:
-                ts.token = ERRORTOKEN
-                return -1
-
-            ts.value += chr(acc)
-            return pos + 9
-        # TODO : \N{NAME} is not supported and will not be escaped
-        else:
-            # default escape
-            ts.value += '\\'
-            ts.value += chr(next)
-            return pos + 1
-    else:
-        ts.value += chr(code)
-
-    return pos
-
-def string_value_append(kind, next, ts):
-    if kind == BYTE_STRING:
-        ts.value.append(next)
-    else:
-        ts.value += chr(next)
-
-def get_string_raw(ts, pos, c, kind):
-    buf = ts.buf
-
-    if byte_at(buf, pos) == c and byte_at(buf, pos+1) == c:
-
-        #TODO check end of buffer
-        pos += 2
-        while True:
-            next = byte_at(buf, pos)
-
-            if next == c and byte_at(buf, pos+1) == c and byte_at(buf, pos+2) == c:
-                pos += 3
-                break
-
-            #add character
-            pos += 1
-            string_value_append(kind, next, ts)
-
-            if next == 92: # '\'
-                if byte_at(buf, pos) == 10:
-                    ts.line_num += 1
-                elif byte_at(buf, pos) == c:
-                    string_value_append(kind, c, ts)
-                    pos+=1
-            else:
-                if next == 10:
-                    ts.line_num += 1
-
-    else:
-        while True:
-            next = byte_at(buf, pos)
-            if next == c:
                 pos += 1
-                break
-
-            #add character
-            pos += 1
-            string_value_append(kind, next, ts)
-
-            if next == 92: # '\'
-
-                if byte_at(buf, pos) == 10: # \n
-                    ts.line_num += 1
-                    string_value_append(kind, 10, ts) # \n
-                    pos+=1
-
-                # special case where we have something in the form \c (c = " or ') in a raw string
-                elif c == byte_at(buf, pos):
-                    string_value_append(kind, c, ts)
-                    pos+=1
-
-            elif next == 10: # newline ?
-                k = KIND_ERROR
-                break
-
-    ts.end = pos
-
-def get_string_normal(ts, pos, c, kind):
-    buf = ts.buf
-
-    if byte_at(buf, pos) == c and byte_at(buf, pos+1) == c:
-        #TODO check end of buffer
-
-        pos += 2
-        while True:
-            next = byte_at(buf, pos)
-
-            if next == c and byte_at(buf, pos+1) == c and byte_at(buf, pos+2) == c:
-                pos += 3
-                break
-
-            if next == 92: # '\'
-                pos += 1
-                if byte_at(buf, pos) == 10:
-                    ts.line_num += 1
-                    pos+=1
-                elif kind == BYTE_STRING:
-                    pos = byte_escape_character(buf, pos, ts)
-                # kind == NORMAL_STRING
-                else:
-                    pos = string_escape_character(buf, pos, ts)
-                if ts.token == ERRORTOKEN:
-                    return
-
-
-            else:
-                pos += 1
-                if next == 10:
-                    ts.line_num += 1
-
-                string_value_append(kind, next, ts)
-
-    else:
-        while True:
-            next = byte_at(buf, pos)
-            if next == c:
-                pos += 1
-                break
-            elif next == 92: # '\'
-                pos += 1
-
-                if byte_at(buf, pos) == 10:
+                code = code * 8 + octal_val
+                octal_val = digit_value(byte_at(buf, pos))
+                if octal_val < 8:
                     pos += 1
-                    ts.line_num += 1
+                    code = code * 8 + octal_val
+            ts.end = pos
+            code = code & 0xff
+        elif next == 120: # \xXX where XX is a base16 number
+            pos += 1
+            v1 = digit_value(byte_at(buf, pos))
+            pos += 1
+            if v1 >= 16:
+                ts.end = pos
+                return False
+            v2 = digit_value(byte_at(buf, pos))
+            pos += 1
+            ts.end = pos
+            if v2 >= 16:
+                return False
+            code = v1 * 16 + v2
+        else:
+            ts.end = pos
+            code = 92 # '\'
 
-                elif kind == BYTE_STRING:
-                    pos = byte_escape_character(buf, pos, ts)
-                # kind == NORMAL_STRING
+    ts.value.append(code)
+    return True
+
+def get_string(ts, pos, quote, kind, raw):
+
+    # remember where string starts
+    ts.string_lineno = ts.line_num
+    ts.string_col_offset = ts.start - ts.line_start
+
+    ts.value = [] # to accumulate the contained bytes/characters
+
+    buf = ts.buf
+
+    triple = byte_at(buf, pos) == quote and byte_at(buf, pos+1) == quote
+
+    if triple:
+        pos += 2
+
+    while True:
+
+        next = byte_at(buf, pos)
+        pos += 1
+
+        if next == quote: # end of string?
+
+            if triple:
+                if byte_at(buf, pos) == quote and byte_at(buf, pos+1) == quote:
+                    # end of triple quoted string
+                    pos += 2
+                    break
                 else:
-                    pos = string_escape_character(buf, pos, ts)
-                if ts.token == ERRORTOKEN:
-                    return
-
-            elif next == 10: # newline ?
-                k = KIND_ERROR
-                break
+                    # not end of triple quoted string
+                    ts.value.append(next)
             else:
-                string_value_append(kind, next, ts)
+                # end of single quoted string
+                break
+
+        elif next == 10: # EOL?
+
+            if not triple:
+                ts.end = pos
+                ts.token = ERRORTOKEN
+                return
+
+            ts.line_start = pos
+            ts.line_num += 1
+
+            if pos >= ts.buf_len: # at end of source or single quoted?
+                ts.end = pos
+                ts.token = ERRORTOKEN
+                return
+
+            ts.value.append(next)
+
+        elif raw:
+
+            ts.value.append(next)
+
+            if next == 92: # '\'
+
+                next = byte_at(buf, pos)
+                ts.value.append(next)
                 pos += 1
-    ts.end = pos
 
-def get_string(ts, pos, c, kind, raw):
+                if next == 10: # \<newline> (continuation line)
+                    ts.line_start = pos
+                    ts.line_num += 1
+                    if pos >= ts.buf_len: # at end of source?
+                        ts.end = pos
+                        ts.token = ERRORTOKEN
+                        return
 
-    ts.token = STRING
+        elif next == 92: # '\'
+
+            next = byte_at(buf, pos)
+
+            if next == 10: # \<newline> (continuation line)
+                print('pos='+pos+' ts.start='+ts.start+' ts.line_start='+ts.line_start+' ts.line_num='+ts.line_num+' ts.buf_len='+ts.buf_len)
+                pos += 1
+                ts.line_start = pos
+                ts.line_num += 1
+                if pos >= ts.buf_len: # at end of source?
+                    print('pos >= ts.buf_len')
+                    ts.end = pos
+                    ts.token = ERRORTOKEN
+                    return
+            else:
+                if kind == BYTE_STRING:
+                    ok = byte_escape_character(ts, buf, pos, next)
+                else:
+                    ok = string_escape_character(ts, buf, pos, next)
+                if not ok:
+                    ts.token = ERRORTOKEN
+                    return
+                pos = ts.end
+
+        else:
+
+            ts.value.append(next)
 
     if kind == BYTE_STRING:
-        b = []
-        ts.value = b
+        ts.value = bytes(bytearray(ts.value)) # construct a bytes object
     else:
-        # kind == UNICODE_STRING or other
-        ts.value = ''
+        ts.value = ''.join(map(chr, ts.value)) # construct a string
+
+    ts.end = pos
+    ts.token = STRING
     ts.kind = kind
 
-    if raw:
-        get_string_raw(ts, pos, c, kind)
-    else:
-        get_string_normal(ts, pos, c, kind)
-
-    if kind == BYTE_STRING:
-        ts.value = bytes(ts.value)
