@@ -1916,31 +1916,61 @@ def om_str_new_code(ctx, args):
 om_str_new = do_static_magic_method(class_str, "__new__", om_str_new_code)
 
 def om_format_str_repr(self, rte):
-    def wrap_doublequote(s):
-        i = 0
-        val_len = len(s)
-        result = '"'
-        while i < val_len:
-            if s[i] == '"':
-                result += '\\"'
-            elif s[i] == '\\':
-                result += '\\\\'
-            else:
-                result += s[i]
-            i += 1
-        result += '"'
-
-        return result
+    def char_code_to_hex(code):
+        if code < 16:
+            return "\\x0" + int_to_string(int_from_num(char_code), 16)
+        else:
+            return "\\x" + int_to_string(int_from_num(char_code), 16)
 
     value = OM_get_boxed_value(self)
     value_len = len(value)
+    contains_single_quote = False
+    contains_double_quote = False
+
+    char_lst = []
     i = 0
     while i < value_len:
-        if value[i] == "'":
-            return wrap_doublequote(value)
+        char = value[i]
+
+        if char == '"':
+            contains_double_quote = True
+        elif char == "'":
+            contains_single_quote = True
+
+        char_lst.append(char)
         i += 1
 
-    return "'" + value + "'"
+    use_single_quote = not contains_single_quote or contains_double_quote
+
+    j = 0
+    while j < value_len:
+        char = char_lst[j]
+        char_code = ord(char)
+
+        if char_code < 32:
+            if char_code == 9: # \t
+                char_lst[j] = "\\t"
+            elif char_code == 10: # \n
+                char_lst[j] = "\\n"
+            elif char_code == 13: # \r
+                char_lst[j] = "\\r"
+            else:
+                char_lst[j] = char_code_to_hex(char_code)
+        elif char_code < 127:
+            if char_code == 39: # '
+                if use_single_quote:
+                    char_lst[j] = "\\'"
+            elif char_code == 92: # \
+                char_lst[j] == "\\\\"
+        elif char_code < 161:
+            char_lst[j] = char_code_to_hex(char_code)
+
+        j += 1
+
+    if use_single_quote:
+        return "'" + ''.join(char_lst) + "'"
+    else:
+        return '"' + ''.join(char_lst) + '"'
 
 def om_str_repr_code(ctx, args):
     if debug: print('str.__repr__')
