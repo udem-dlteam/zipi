@@ -3015,10 +3015,10 @@ def gen_int_to_string_conv_code(radix, prefix):
         obj_cls = OM_get_object_class(obj)
         if om_issubclass(obj_cls, class_int):
             obj_value = OM_get_boxed_value(obj)
-            if int_lt(obj_value, 0):
-                result = "-" + prefix + int_to_string(-obj_value, radix)
-            else:
+            if int_is_nonneg(obj_value):
                 result = prefix + int_to_string(obj_value, radix)
+            else:
+                result = "-" + prefix + int_to_string(int_neg(obj_value), radix)
             return unwindReturn(rte, om_str(result))
         else:
             obj_cls_name = OM_get(obj_cls, '__name__')
@@ -3460,7 +3460,7 @@ def fresh_rte(options):
     om_builtin_abs = om_make_function_with_signature('abs', om_abs_code, make_posonly_only_signature(('obj',)))
     om_builtin_min = om_make_function_with_signature('min', om_min_code, make_vararg_only_signature('args'))
     om_builtin_max = om_make_function_with_signature('max', om_max_code, make_vararg_only_signature('args'))
-    om_builtin_pow = om_make_function_with_signature('pow', om_pow_code, make_posonly_only_signature('obj1', 'obj2'))
+    om_builtin_pow = om_make_function_with_signature('pow', om_pow_code, make_posonly_only_signature(('obj1', 'obj2')))
 
 
     dict_set(builtins_env, 'type', class_type)
