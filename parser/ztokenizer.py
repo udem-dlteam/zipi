@@ -967,6 +967,9 @@ def byte_escape_character(ts, buf, pos, next):
     elif next == 110: # \n
         ts.end = pos+1
         code = 10
+    elif next == 114: # \r
+        ts.end = pos+1
+        code = 13
     elif next == 116: # \t
         ts.end = pos+1
         code = 9
