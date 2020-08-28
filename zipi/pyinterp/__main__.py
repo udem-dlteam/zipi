@@ -3,7 +3,6 @@ import argparse
 
 from zipi.pyinterp import interp_file
 
-
 def main():
     parse = argparse.ArgumentParser(description='interp_file')
     parse.add_argument('file', help='source file')

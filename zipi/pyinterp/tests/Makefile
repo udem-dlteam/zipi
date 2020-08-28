@@ -11,8 +11,8 @@ venv:
 # Compare CPython and pyinterp.py results
 tests: venv
 	@echo "Comparing CPython and pyinterp.py results..."
-	-cd must_pass && $(PYTHON38) ../run.py --zipi "$(PYTHON38) ../../pyinterp-run.py " >../PYINTERP_TESTS_ESSENTIAL 2>&1
-	-cd wishlist && $(PYTHON38) ../run.py --zipi "$(PYTHON38) ../../pyinterp-run.py " >../PYINTERP_TESTS_WISHLIST 2>&1
+	-cd must_pass && $(PYTHON38) ../run.py --zipi "$(PYTHON38) -m zipi.pyinterp " >../PYINTERP_TESTS_ESSENTIAL 2>&1
+	-cd wishlist && $(PYTHON38) ../run.py --zipi "$(PYTHON38) -m zipi.pyinterp " >../PYINTERP_TESTS_WISHLIST 2>&1
 	@echo "Pyinterp unit test results:"
 	@echo ""
 	@echo "===== ESSENTIAL TESTS ======"
@@ -29,8 +29,8 @@ tests: venv
 # Compare pyinterp.py and pyinterp.js traces
 zp-trace-tests: venv
 	@echo "Comparing pyinterp.py and pyinterp.js traces..."
-	-cd must_pass && $(PYTHON38) ../run.py --cpython "$(PYTHON38) ../../pyinterp-run.py --trace " --zipi "node ../../../../etc/zp/zp_trace.js " >../PYINTERP_TESTS_ESSENTIAL 2>&1
-	-cd wishlist && $(PYTHON38) ../run.py --cpython "$(PYTHON38) ../../pyinterp-run.py --trace " --zipi "node ../../../../etc/zp/zp_trace.js " >../PYINTERP_TESTS_WISHLIST 2>&1
+	-cd must_pass && $(PYTHON38) ../run.py --cpython "$(PYTHON38) -m zipi.pyinterp --trace " --zipi "node ../../../../etc/zp/zp_trace.js " >../PYINTERP_TESTS_ESSENTIAL 2>&1
+	-cd wishlist && $(PYTHON38) ../run.py --cpython "$(PYTHON38) -m zipi.pyinterp --trace " --zipi "node ../../../../etc/zp/zp_trace.js " >../PYINTERP_TESTS_WISHLIST 2>&1
 	@echo "Pyinterp unit test results:"
 	@echo ""
 	@echo "===== ESSENTIAL TESTS ======"
