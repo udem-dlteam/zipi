@@ -1657,7 +1657,25 @@ def om_int_pos_code(ctx, args):
 om_int_pos = do_magic_method(class_int, "__pos__", om_int_pos_code)
 
 def om_int_round_code(ctx, args):
-    return sem_raise(ctx, class_NotImplementedError)
+    if len(args) == 1:
+        self = args[0]
+        return cont_obj(ctx, self)
+    elif len(args) == 2:
+        self = args[0]
+        ndigits = args[1]
+
+        def apply_round(rte, n):
+            n_value = OM_get_boxed_value(n)
+            if int_is_nonneg(n_value):
+                return cont_obj(ctx, self)
+            else:
+                dec_digits_to_round = int_neg(n_value)
+                return sem_raise(ctx, class_NotImplementedError)
+
+
+        return sem_index(with_cont(ctx, apply_round), ndigits)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
 
 om_int_round = do_magic_method(class_int, "__round__", om_int_round_code)
 
