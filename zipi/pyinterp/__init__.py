@@ -3174,6 +3174,19 @@ def om_round_code(rte, cont):
     # NOTE: sem_Round handles the case where ndigits is 'absent'
     return sem_Round(make_out_of_ast_context(rte, unwindReturn), number, ndigits)
 
+def om_pow_code(rte, _):
+    next_ctx = make_out_of_ast_context(rte, unwindReturn)
+
+    obj1 = rte_lookup(rte, 'obj1')
+    obj2 = rte_lookup(rte, 'obj2')
+
+    obj1_pow = getattribute_from_obj_mro(obj1, '__pow__')
+
+    if obj1_pow is absent:
+        return sem_raise_with_message(next_ctx, class_TypeError, "bad operand type for pow()")
+    else:
+        return om_call(obj1_pow, next_ctx, [obj1, obj2])
+
 # Built-in Modules
 def init_module_math():
 
@@ -3488,6 +3501,7 @@ def fresh_rte(options):
     om_builtin_min = om_make_function_with_signature('min', om_min_code, make_vararg_only_signature('args'))
     om_builtin_max = om_make_function_with_signature('max', om_max_code, make_vararg_only_signature('args'))
     om_builtin_round = om_make_function_with_signature('round', om_round_code, make_posonly_defaults_signature(('number', 'ndigits'), (absent,)))
+    om_builtin_pow = om_make_function_with_signature('pow', om_pow_code, make_posonly_only_signature('obj1', 'obj2'))
 
     dict_set(builtins_env, 'type', class_type)
     dict_set(builtins_env, 'object', class_object)
@@ -3510,7 +3524,11 @@ def fresh_rte(options):
     dict_set(builtins_env, 'abs', om_builtin_abs)
     dict_set(builtins_env, 'min', om_builtin_min)
     dict_set(builtins_env, 'max', om_builtin_max)
+<<<<<<< HEAD
     dict_set(builtins_env, 'round', om_builtin_round)
+=======
+    dict_set(builtins_env, 'pow', om_builtin_pow)
+>>>>>>> 13db856b968f2cffb7584fff149177dde1b688f3
 
     dict_set(builtins_env, 'BaseException', class_BaseException)
     dict_set(builtins_env, 'Exception', class_Exception)

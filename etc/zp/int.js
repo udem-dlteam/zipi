@@ -780,6 +780,21 @@ function int_rshift(int_a, int_b) {
     return int_shift(int_a, int_neg(int_b));
 }
 
+function int_pow_mod(int_a, int_b, int_mod) {
+    
+    var pow = function(x, n) {
+        if (n <= 1)
+            return x;
+        if ((n % 2n) == 0)
+            return pow((x*x) % int_mod, n/2n);
+        else
+            return x * pow((x*x) % int_mod, (n-1n)/2n);
+    };
+
+    return pow(int_a, int_b);
+}
+
+
 var int_digits = "0123456789abcdefghijklmnopqrstuvwxyz";
 
 function int_to_string(int_a, radix) {
