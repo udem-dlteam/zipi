@@ -17,6 +17,9 @@ parser.add_argument(
     "-n", "--node", action="store_true", help="export as node module (default False)"
 )
 parser.add_argument(
+    "-e", "--export-name", type=str, nargs=1, help="name of the exported JS module", default="pyinterp"
+)
+parser.add_argument(
     "-b",
     "--browser",
     action="store_true",
@@ -141,6 +144,8 @@ def compile_file(input_file):
         runtime = f.read()
 
     if cli_args.tests:
+        # Add `print_stdout`
+        runtime += "function print_stdout(msg,rte) {console.log(msg);};"
         with open("int.js", "r") as f:
             runtime += " " + f.read()
         with open("float.js", "r") as f:
@@ -148,7 +153,7 @@ def compile_file(input_file):
 
     # Modules
     if cli_args.node or cli_args.browser:
-        module = f"var {Path(input_file).name[:-3]} = (function () {{ {runtime} "
+        module = f"var {cli_args.export_name[0]} = (function () {{ {runtime} "
     else:
         module = "{runtime} "
 
@@ -172,7 +177,7 @@ def compile_file(input_file):
         target_code += f"{exports} }})();"
 
     if cli_args.node:
-        target_code += f"module.exports = {Path(input_file).name[:-3]};"
+        target_code += f"module.exports = {cli_args.export_name[0]};"
 
     with open(output_file, "w") as f:
         print(target_code, file=f)

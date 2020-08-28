@@ -5,7 +5,7 @@
 ,"gen_parse_prefix": "py_parse_"
 
 ,"prelude":
-"from _zast import *\n\
+"from zipi.zast._zast import *\n\
 \n\
 def set_end_ast(ast, end_ast):\n\
     return set_end(ast, end_ast.end_lineno, end_ast.end_col_offset)\n\

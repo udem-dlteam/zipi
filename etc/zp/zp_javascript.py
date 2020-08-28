@@ -1,5 +1,6 @@
 import re
 import ast as AST
+from importlib.util import find_spec
 
 
 class Transformer:
@@ -323,6 +324,9 @@ class Transformer:
 
     @staticmethod
     def arg(node):
+        # NOTE: We might need to check for 'arguments' in more places!
+        if node.arg == 'arguments':
+            return 'aarguments'
         return node.arg
 
     def Assign(self, node):
@@ -855,18 +859,24 @@ class Transformer:
         return "/* pass */"
 
     def ImportFrom(self, node):
-        # if node.module in self.imports:
-        #     return " "
 
-        # Handling of 'from x import *'
+        # NOTE: We only handle 'from x import *'
         # Since everything is top-level, we can jut prepend all the code
-        # i.e. recursively compile:
+        # i.e. recursively compile.
         module = node.module
-        if module in ["sys", "argparse", "_runtime"]:
+        names = node.names
+
+        if len(names) > 1 or names[0].name != "*":
+            raise Exception("We only support 'from foo import *' statements.")
+
+        if module in ["sys", "argparse"] or "_runtime" in module:
             return " "
 
+        module_spec = find_spec(module)
         self.imports.add(node.module)
-        module_file = self.rootdir + "/" + module + ".py"
+
+        module_file = module_spec.origin
+        # module_file = self.rootdir + "/" + module + ".py"
 
         with open(module_file, "r") as f:
             source = f.read()
@@ -892,22 +902,24 @@ class Transformer:
 
         for module in imports:
 
+            if "__init__.py" in module:
+                module = module.split('.')[-1]
+
             # import foo as FOO, see 'alias' node
             if isinstance(module, tuple):
                 module, asname = module
             else:
                 asname = module
 
+
             # Don't import some modules
-            if module in ["sys", "argparse", "_runtime"]:
+            if module in ["sys", "argparse"] or "_runtime" in module:
                 return " "
-            # And don't reimport them
-            # elif module in self.imports:
-            #     return " "
 
             module_code = f"var {asname} = (function () {{"
             self.imports.add(module)
-            module_file = self.rootdir + "/" + module + ".py"
+            module_spec = find_spec(module)
+            module_file = module_spec.origin
 
             with open(module_file, "r") as f:
                 source = f.read()

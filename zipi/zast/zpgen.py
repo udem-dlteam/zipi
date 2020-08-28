@@ -3,8 +3,8 @@
 import sys
 import os
 import functools
-import ztoken as token
-import ztokenizer as tok
+import zipi.zast.ztoken as token
+import zipi.zast.ztokenizer as tok
 
 debug_level = 0
 
@@ -531,17 +531,17 @@ def read_grammar_and_generate_parser(filename):
     tokenset_count = 0
 
     print('import sys')
-    print('from _runtime import *')
+    print('from zipi._runtime import *')
 
     if token_access == '':
-        print('from ztoken import *')
+        print('from zipi.zast.ztoken import *')
     else:
-        print('import ztoken as ' + token_access[:-1])
+        print('import zipi.zast.ztoken as ' + token_access[:-1])
 
     if tok_access == '':
-        print('from ztokenizer import *')
+        print('from zipi.zast.ztokenizer import *')
     else:
-        print('import ztokenizer as ' + tok_access[:-1])
+        print('import zipi.zast.ztokenizer as ' + tok_access[:-1])
 
     print(actions.get('prelude',''))
 

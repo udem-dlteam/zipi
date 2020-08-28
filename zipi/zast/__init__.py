@@ -6,8 +6,8 @@
 """
 
 
-from _zparse import *
-from _zast import *
+from zipi.zast._zparse import *
+from zipi.zast._zast import *
 
 
 def nocompile(f):

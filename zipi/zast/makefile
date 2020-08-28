@@ -1,5 +1,5 @@
 # command to run python 3.8
-PYTHON38?=python3
+PYTHON38?=../../venv/bin/python
 
 GRAMMAR?=Grammar_novice
 

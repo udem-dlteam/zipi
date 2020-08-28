@@ -1,13 +1,7 @@
+from zipi._runtime import *
 
-# from _runtime import make_dict, dict_get, dict_set, nocompile, \
-#         int_add, int_sub, int_mul, int_div, int_mod, int_to_string, \
-#         int_is_zero, print_stdout
-from _runtime import *
-
-# import ast as AST
-
-import _zast as AST
-import zast
+import zipi.zast._zast as AST
+import zipi.zast as zast
 AST.parse = zast.parse
 
 debug = False
@@ -3372,7 +3366,9 @@ def default_syntax_error(start_line0,
                          end_column0, msg):
     raise SyntaxError(msg)
 
-def interp_source(src, options):
+def interp_source(src, options=None):
+    if options is None:
+        options = {}
     interp(parse(src, '<unknown>', 'exec', False), options)
 
 def parse(source, filename, mode, context):

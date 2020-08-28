@@ -14,7 +14,7 @@ if __name__ == "__main__":
     tests = _tests
 
 
-from pyinterp import *
+from zipi.pyinterp import *
 
 
 def count(a, b):
