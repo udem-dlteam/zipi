@@ -1240,6 +1240,8 @@ def sem_Round(ctx, obj, ndigits):
 
     if obj_round is absent:
         return sem_raise_with_message(ctx, class_TypeError, "type doesn't define __round__ method")
+    elif ndigits is absent:
+        return om_call(obj_round, ctx, (obj,))
     else:
         return om_call(obj_round, ctx, (obj, ndigits))
 
@@ -1652,6 +1654,11 @@ def om_int_pos_code(ctx, args):
         return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
 
 om_int_pos = do_magic_method(class_int, "__pos__", om_int_pos_code)
+
+def om_int_round_code(ctx, args):
+    return sem_raise_with_message(ctx, class_NotImplementedError)
+
+om_int_round = do_magic_method(class_int, "__round__", om_int_round_code)
 
 # class_tuple methods
 
@@ -3145,10 +3152,8 @@ def om_round_code(rte, cont):
     number = rte_lookup(rte, 'number')
     ndigits = rte_lookup(rte, 'ndigits')
 
-    if ndigits is absent:
-        return sem_Round(make_out_of_ast_context(rte, unwindReturn), number, om_int(int_from_num(1)))
-    else:
-        return sem_Round(make_out_of_ast_context(rte, unwindReturn), number, ndigits)
+    # NOTE: sem_Round handles the case where ndigits is 'absent'
+    return sem_Round(make_out_of_ast_context(rte, unwindReturn), number, ndigits)
 
 # Built-in Modules
 def init_module_math():
