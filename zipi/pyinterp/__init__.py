@@ -3353,7 +3353,10 @@ def default_syntax_error(start_line0,
                          end_column0, msg):
     raise SyntaxError(msg)
 
-def interp_source(src, options):
+@nocompile
+def eval(src, options=None):
+    if options is None:
+        options = {}
     interp(parse(src, '<unknown>', 'exec', False), options)
 
 def parse(source, filename, mode, context):
