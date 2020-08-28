@@ -1213,6 +1213,32 @@ def gen_sem_Numeric_BinOp(op_symbol, method, rmethod):
 
     return sem_Numeric_BinOp
 
+def gen_sem_Numeric_BinOp_noAssoc(op_symbol, method):
+
+    def sem_Numeric_BinOp_noAssoc(ctx, val1, val2):
+
+        def test_method_result(rte, val):
+            # C: Method not implemented for val2's type,
+            if om_is(val, om_NotImplemented):
+                return sem_raise(ctx, class_TypeError)
+            else:
+                # END0: val1 has method and can operate on val2.
+                #       Return the result.
+                return ctx.cont(rte, val)
+
+        # A: Does val1 have method?
+        val1_method = getattribute_from_obj_mro(val1, method)
+
+        # B: Yes, try val1.method(val2).
+        if val1_method is not absent:
+            ctx1 = with_cont(ctx, test_method_result)
+            return om_call(val1_method, ctx1, [val1, val2])
+        else:
+            return sem_raise(ctx, class_TypeError)
+
+    return sem_Numeric_BinOp_noAssoc
+
+
 # Arithmetic
 sem_Add = gen_sem_Numeric_BinOp('+', '__add__', '__radd__')
 sem_Sub = gen_sem_Numeric_BinOp('-', '__sub__', '__rsub__')
@@ -1220,7 +1246,7 @@ sem_Mult = gen_sem_Numeric_BinOp('*', '__mul__', '__rmul__')
 sem_FloorDiv = gen_sem_Numeric_BinOp('//', '__floordiv__', '__rfloordiv__')
 sem_TrueDiv = gen_sem_Numeric_BinOp('/', '__truediv__', '__rtruediv__')
 sem_Mod = gen_sem_Numeric_BinOp('%', '__mod__', '__rmod__')
-sem_Pow = gen_sem_Numeric_BinOp('**', '__pow__', '__rpow__')
+sem_Pow = gen_sem_Numeric_BinOp_noAssoc('**', '__pow__')
 # Bitwise
 sem_LShift = gen_sem_Numeric_BinOp('<<', '__lshift__', '__rlshift__')
 sem_RShift = gen_sem_Numeric_BinOp('>>', '__rshift__', '__rrshift__')
