@@ -18,7 +18,7 @@ def parse(source, filename='<unknown>', mode='exec', context=False):
     n = len(source)
     if n > 0 and source[n-1] != '\n':
         source += '\n'
-    return py_parse(source.encode('utf-8'), mode, context)
+    return py_parse(source, mode, context)
 
 
 @nocompile
@@ -130,13 +130,3 @@ def iter_child_nodes(node):
 @nocompile
 def show_ast(x):
     print(dump2(x, annotate_fields=True, include_attributes=True))
-
-@nocompile
-def main():
-    import sys
-    with open(sys.argv[1], "r") as f:
-        source = f.read()
-    show_ast(parse(source))
-
-if __name__ == "__main__":
-    main()
