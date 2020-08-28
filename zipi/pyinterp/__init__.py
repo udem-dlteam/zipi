@@ -463,7 +463,7 @@ def align_args_with_signature(ctx, funcname, caller_args, signature):
                     result.append(defaults[start])
                     start += 1
 
-                return align_args_with_signature(ctx, result, signature)
+                return align_args_with_signature(ctx, funcname, result, signature)
             else:
                 def add_punctuation(msg, remaining_args_count):
                     result = msg
@@ -1888,7 +1888,7 @@ def om_iterator_next(ctx, args):
     index = OM_get_iterator_index(self)
 
     def increment_index(rte, val):
-        OM_set_iterator_index(self, om_int(OM_get_boxed_value(index) + 1))
+        OM_set_iterator_index(self, om_int(int_add(OM_get_boxed_value(index), int_from_num(1))))
         return ctx.cont(rte, val)
 
     def catch_IndexError(rte, exn):
@@ -1916,31 +1916,61 @@ def om_str_new_code(ctx, args):
 om_str_new = do_static_magic_method(class_str, "__new__", om_str_new_code)
 
 def om_format_str_repr(self, rte):
-    def wrap_doublequote(s):
-        i = 0
-        val_len = len(s)
-        result = '"'
-        while i < val_len:
-            if s[i] == '"':
-                result += '\\"'
-            elif s[i] == '\\':
-                result += '\\\\'
-            else:
-                result += s[i]
-            i += 1
-        result += '"'
-
-        return result
+    def char_code_to_hex(code):
+        if code < 16:
+            return "\\x0" + int_to_string(int_from_num(char_code), 16)
+        else:
+            return "\\x" + int_to_string(int_from_num(char_code), 16)
 
     value = OM_get_boxed_value(self)
     value_len = len(value)
+    contains_single_quote = False
+    contains_double_quote = False
+
+    char_lst = []
     i = 0
     while i < value_len:
-        if value[i] == "'":
-            return wrap_doublequote(value)
+        char = value[i]
+
+        if char == '"':
+            contains_double_quote = True
+        elif char == "'":
+            contains_single_quote = True
+
+        char_lst.append(char)
         i += 1
 
-    return "'" + value + "'"
+    use_single_quote = not contains_single_quote or contains_double_quote
+
+    j = 0
+    while j < value_len:
+        char = char_lst[j]
+        char_code = ord(char)
+
+        if char_code < 32:
+            if char_code == 9: # \t
+                char_lst[j] = "\\t"
+            elif char_code == 10: # \n
+                char_lst[j] = "\\n"
+            elif char_code == 13: # \r
+                char_lst[j] = "\\r"
+            else:
+                char_lst[j] = char_code_to_hex(char_code)
+        elif char_code < 127:
+            if char_code == 39: # '
+                if use_single_quote:
+                    char_lst[j] = "\\'"
+            elif char_code == 92: # \
+                char_lst[j] == "\\\\"
+        elif char_code < 161:
+            char_lst[j] = char_code_to_hex(char_code)
+
+        j += 1
+
+    if use_single_quote:
+        return "'" + ''.join(char_lst) + "'"
+    else:
+        return '"' + ''.join(char_lst) + '"'
 
 def om_str_repr_code(ctx, args):
     if debug: print('str.__repr__')
@@ -2476,16 +2506,16 @@ def om_int_mod_code(ctx, args):
     val1 = args[0]
     val2 = args[1]
 
-    # Early break for ZeroDivisionError
-    val2_value = OM_get_boxed_value(val2)
-    if int_is_zero(val2_value):
-        return sem_raise_with_message(ctx, class_ZeroDivisionError, "modulo by zero")
-
     # Primitive operations are only defined on same types.
     if om_issubclass(OM_get_object_class(val2), class_int):
-        val1_value = OM_get_boxed_value(val1)
-        result = int_mod(val1_value, val2_value)
-        return ctx.cont(ctx.rte, om_int(result))
+        # Early break for ZeroDivisionError
+        val2_value = OM_get_boxed_value(val2)
+        if int_is_zero(val2_value):
+            return sem_raise_with_message(ctx, class_ZeroDivisionError, "modulo by zero")
+        else:
+            val1_value = OM_get_boxed_value(val1)
+            result = int_mod(val1_value, val2_value)
+            return ctx.cont(ctx.rte, om_int(result))
     else:
         # TODO: Return om_NotImplemented(rte) (in the proper rte)
         return ctx.cont(ctx.rte, om_NotImplemented)
@@ -2497,16 +2527,16 @@ def om_int_rmod_code(ctx, args):
     val1 = args[0]
     val2 = args[1]
 
-    # Early break for ZeroDivisionError
-    val1_value = OM_get_boxed_value(val1)
-    if int_is_zero(val1_value):
-        return sem_raise_with_message(ctx, class_ZeroDivisionError, "modulo by zero")
-
     # Primitive operations are only defined on same types.
     if om_issubclass(OM_get_object_class(val2), class_int):
-        val2_value = OM_get_boxed_value(val2)
-        result = int_mod(val2_value, val1_value)
-        return ctx.cont(ctx.rte, om_int(result))
+        # Early break for ZeroDivisionError
+        val1_value = OM_get_boxed_value(val1)
+        if int_is_zero(val1_value):
+            return sem_raise_with_message(ctx, class_ZeroDivisionError, "modulo by zero")
+        else:
+            val2_value = OM_get_boxed_value(val2)
+            result = int_mod(val2_value, val1_value)
+            return ctx.cont(ctx.rte, om_int(result))
     else:
         # TODO: Return om_NotImplemented(rte) (in the proper rte)
         return ctx.cont(ctx.rte, om_NotImplemented)
@@ -2520,16 +2550,17 @@ def om_int_floordiv_code(ctx, args):
     val1 = args[0]
     val2 = args[1]
 
-    # Early break for ZeroDivisionError
-    val2_value = OM_get_boxed_value(val2)
-    if int_is_zero(val2_value):
-        return sem_raise_with_message(ctx, class_ZeroDivisionError, "division by zero")
 
     # Primitive operations are only defined on same types.
     if om_issubclass(OM_get_object_class(val2), class_int):
-        val1_value = OM_get_boxed_value(val1)
-        result = int_div(val1_value, val2_value)
-        return ctx.cont(ctx.rte, om_int(result))
+        # Early break for ZeroDivisionError
+        val2_value = OM_get_boxed_value(val2)
+        if int_is_zero(val2_value):
+            return sem_raise_with_message(ctx, class_ZeroDivisionError, "division by zero")
+        else:
+            val1_value = OM_get_boxed_value(val1)
+            result = int_div(val1_value, val2_value)
+            return ctx.cont(ctx.rte, om_int(result))
     else:
         # TODO: Return om_NotImplemented(rte) (in the proper rte)
         return ctx.cont(ctx.rte, om_NotImplemented)
@@ -2542,16 +2573,16 @@ def om_int_rfloordiv_code(ctx, args):
     val1 = args[0]
     val2 = args[1]
 
-    # Early break for ZeroDivisionError
-    val1_value = OM_get_boxed_value(val1)
-    if int_is_zero(val1_value):
-        return sem_raise_with_message(ctx, class_ZeroDivisionError, "division by zero")
-
     # Primitive operations are only defined on same types.
     if om_issubclass(OM_get_object_class(val2), class_int):
-        val2_value = OM_get_boxed_value(val2)
-        result = int_div(val2_value, val1_value)
-        return ctx.cont(ctx.rte, om_int(result))
+        # Early break for ZeroDivisionError
+        val1_value = OM_get_boxed_value(val1)
+        if int_is_zero(val1_value):
+            return sem_raise_with_message(ctx, class_ZeroDivisionError, "division by zero")
+        else:
+            val2_value = OM_get_boxed_value(val2)
+            result = int_div(val2_value, val1_value)
+            return ctx.cont(ctx.rte, om_int(result))
     else:
         # TODO: Return om_NotImplemented(rte) (in the proper rte)
         return ctx.cont(ctx.rte, om_NotImplemented)
@@ -2563,16 +2594,16 @@ def om_int_truediv_code(ctx, args):
     val1 = args[0]
     val2 = args[1]
 
-    # Early break for ZeroDivisionError
-    val2_value = OM_get_boxed_value(val2)
-    if int_is_zero(val2_value):
-        return sem_raise_with_message(ctx, class_ZeroDivisionError, "division by zero")
-
     # Primitive operations are only defined on same types.
     if om_issubclass(OM_get_object_class(val2), class_int):
-        val1_value = OM_get_boxed_value(val1)
-        result = float_div(int_to_num(val1_value), int_to_num(val2_value))
-        return ctx.cont(ctx.rte, om_float(result))
+        # Early break for ZeroDivisionError
+        val2_value = OM_get_boxed_value(val2)
+        if int_is_zero(val2_value):
+            return sem_raise_with_message(ctx, class_ZeroDivisionError, "division by zero")
+        else:
+            val1_value = OM_get_boxed_value(val1)
+            result = float_div(int_to_num(val1_value), int_to_num(val2_value))
+            return ctx.cont(ctx.rte, om_float(result))
     else:
         # TODO: Return om_NotImplemented(rte) (in the proper rte)
         return ctx.cont(ctx.rte, om_NotImplemented)
@@ -4478,7 +4509,7 @@ def sem_iter(ctx, obj):
         if obj_getitem is absent:
             return sem_raise_with_message(ctx, class_TypeError, "object is not iterable")
         else:
-            return ctx.cont(ctx.rte, om_iterator(obj, om_int(0)))
+            return ctx.cont(ctx.rte, om_iterator(obj, om_int(int_from_num(0))))
     else:
         return om_call(obj_iter, ctx, (obj,))
 
