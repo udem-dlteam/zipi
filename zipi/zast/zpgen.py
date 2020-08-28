@@ -70,9 +70,17 @@ def show_token(ts):
     t = ts.token
     name = token.tok_name[t]
     if t == token.NAME or t == token.STRING or t == token.NUMBER:
-        print('### ' + name + ' ' + ts.buf[ts.start:ts.end].decode('utf-8'))
+        print('### ' + name + ' ' + str_from_bytes(ts.buf[ts.start:ts.end]))
     else:
         print('### ' + name)
+
+def str_from_bytes(b):
+    return b
+    #return b.decode('utf-8')
+
+def str_to_bytes(s):
+    return s
+    #return s.encode('utf-8')
 
 def advance(ts):
     ts.previous_end = ts.end
@@ -82,56 +90,56 @@ def advance(ts):
 
 def encode_NAME(ts):
     bs = ts.buf[ts.start:ts.end]
-    #print('NAME=' + bs.decode('utf-8'))
-    if bs == b'NAME':
+    #print('NAME=' + str_from_bytes(bs))
+    if bs == 'NAME':
         return token.NAME
-    elif bs == b'NUMBER':
+    elif bs == 'NUMBER':
         return token.NUMBER
-    elif bs == b'STRING':
+    elif bs == 'STRING':
         return token.STRING
-    elif bs == b'ASYNC':
+    elif bs == 'ASYNC':
         return token.ASYNC
-    elif bs == b'INDENT':
+    elif bs == 'INDENT':
         return token.INDENT
-    elif bs == b'DEDENT':
+    elif bs == 'DEDENT':
         return token.DEDENT
-    elif bs == b'AWAIT':
+    elif bs == 'AWAIT':
         return token.AWAIT
-    elif bs == b'NEWLINE':
+    elif bs == 'NEWLINE':
         return token.NEWLINE
-    elif bs == b'ENDMARKER':
+    elif bs == 'ENDMARKER':
         return token.ENDMARKER
-    elif bs == b'TYPE_COMMENT':
+    elif bs == 'TYPE_COMMENT':
         return token.TYPE_COMMENT
     else:
-        return bs.decode('utf-8')
+        return str_from_bytes(bs)
 
 def encode_STRING(ts):
     bs = ts.buf[ts.start:ts.end]
-    #print('STRING=' + bs.decode('utf-8'))
+    #print('STRING=' + str_from_bytes(bs))
     bs_unquoted = bs[1:-1]
-    #print('# => ' + bs_unquoted.decode('utf-8'))
-    if bs_unquoted == b'NAME':
+    #print('# => ' + str_from_bytes(bs_unquoted))
+    if bs_unquoted == 'NAME':
         return token.NAME
-    elif bs_unquoted == b'NUMBER':
+    elif bs_unquoted == 'NUMBER':
         return token.NUMBER
-    elif bs_unquoted == b'STRING':
+    elif bs_unquoted == 'STRING':
         return token.STRING
-    elif bs_unquoted == b'ASYNC':
+    elif bs_unquoted == 'ASYNC':
         return token.ASYNC
-    elif bs_unquoted == b'AWAIT':
+    elif bs_unquoted == 'AWAIT':
         return token.AWAIT
-    elif bs_unquoted == b'NEWLINE':
+    elif bs_unquoted == 'NEWLINE':
         return token.NEWLINE
-    elif bs_unquoted == b'ENDMARKER':
+    elif bs_unquoted == 'ENDMARKER':
         return token.ENDMARKER
-    elif bs_unquoted == b'TYPE_COMMENT':
+    elif bs_unquoted == 'TYPE_COMMENT':
         return token.TYPE_COMMENT
     else:
         ts = tok.TokenizerState(bs_unquoted, False)
         tok.get_token(ts)
         if ts.token == token.NAME:
-            return bs_unquoted.decode('utf-8')
+            return str_from_bytes(bs_unquoted)
         else:
             return ts.token
 
@@ -405,7 +413,8 @@ def read_grammar(filename):
 
     global current_ts, rules
 
-    with open(filename, 'rb') as f:
+    #WAS: with open(filename, 'rb') as f:
+    with open(filename, 'r') as f:
         content = f.read()
 
     tok.init_stats()
@@ -600,9 +609,9 @@ def read_grammar_and_generate_parser(filename):
     print('    line_num = ts.line_num')
     print('    line_start = 0')
     print('    while line_num > 0:')
-    print('        line_start = 1+ts.buf.find(b"\\n", line_start)')
+    print('        line_start = 1+ts.buf.find("\\n", line_start)')
     print('        line_num -= 1')
-    print('    line_end = ts.buf.find(b"\\n", line_start)')
+    print('    line_end = ts.buf.find("\\n", line_start)')
     print('    line = source(ts, line_start, line_end)')
     print('    stripped_line = line.lstrip()')
     print('    print("  File \\"" + "unknown.py" + "\\", line " + str(ts.line_num+1))')
