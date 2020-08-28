@@ -463,7 +463,7 @@ def align_args_with_signature(ctx, funcname, caller_args, signature):
                     result.append(defaults[start])
                     start += 1
 
-                return align_args_with_signature(ctx, result, signature)
+                return align_args_with_signature(ctx, funcname, result, signature)
             else:
                 def add_punctuation(msg, remaining_args_count):
                     result = msg
@@ -3141,6 +3141,14 @@ def do_min_max(name, sem_Comp):
 om_min_code = do_min_max("min", sem_Lt)
 om_max_code = do_min_max("max", sem_Gt)
 
+def om_round_code(rte, cont):
+    number = rte_lookup(rte, 'number')
+    ndigits = rte_lookup(rte, 'ndigits')
+
+    if ndigits is absent:
+        return sem_Round(make_out_of_ast_context(rte, unwindReturn), number, om_int(int_from_num(1)))
+    else:
+        return sem_Round(make_out_of_ast_context(rte, unwindReturn), number, ndigits)
 
 # Built-in Modules
 def init_module_math():
@@ -3455,6 +3463,7 @@ def fresh_rte(options):
     om_builtin_abs = om_make_function_with_signature('abs', om_abs_code, make_posonly_only_signature(('obj',)))
     om_builtin_min = om_make_function_with_signature('min', om_min_code, make_vararg_only_signature('args'))
     om_builtin_max = om_make_function_with_signature('max', om_max_code, make_vararg_only_signature('args'))
+    om_builtin_round = om_make_function_with_signature('round', om_round_code, make_posonly_defaults_signature(('number', 'ndigits'), (absent,)))
 
     dict_set(builtins_env, 'type', class_type)
     dict_set(builtins_env, 'object', class_object)
@@ -3477,6 +3486,7 @@ def fresh_rte(options):
     dict_set(builtins_env, 'abs', om_builtin_abs)
     dict_set(builtins_env, 'min', om_builtin_min)
     dict_set(builtins_env, 'max', om_builtin_max)
+    dict_set(builtins_env, 'round', om_builtin_round)
 
     dict_set(builtins_env, 'BaseException', class_BaseException)
     dict_set(builtins_env, 'Exception', class_Exception)
