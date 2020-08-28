@@ -3524,11 +3524,8 @@ def fresh_rte(options):
     dict_set(builtins_env, 'abs', om_builtin_abs)
     dict_set(builtins_env, 'min', om_builtin_min)
     dict_set(builtins_env, 'max', om_builtin_max)
-<<<<<<< HEAD
     dict_set(builtins_env, 'round', om_builtin_round)
-=======
     dict_set(builtins_env, 'pow', om_builtin_pow)
->>>>>>> 13db856b968f2cffb7584fff149177dde1b688f3
 
     dict_set(builtins_env, 'BaseException', class_BaseException)
     dict_set(builtins_env, 'Exception', class_Exception)
