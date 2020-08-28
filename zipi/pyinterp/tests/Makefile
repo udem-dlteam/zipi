@@ -1,10 +1,14 @@
 # Relative to 'must_pass' and 'wishlist'
 PYTHON38 = ../../../../venv/bin/python
 
-all: tests zp-tests
+all: tests zp-tests venv
+
+.PHONY: venv
+venv:
+	@cd ../../../ && $(MAKE) venv
 
 # Compare CPython and pyinterp.py results
-tests:
+tests: venv
 	@echo "Comparing CPython and pyinterp.py results..."
 	-cd must_pass && $(PYTHON38) ../run.py --zipi "$(PYTHON38) ../../pyinterp-run.py " >../PYINTERP_TESTS_ESSENTIAL 2>&1
 	-cd wishlist && $(PYTHON38) ../run.py --zipi "$(PYTHON38) ../../pyinterp-run.py " >../PYINTERP_TESTS_WISHLIST 2>&1
@@ -22,7 +26,7 @@ tests:
 # Run these tests from the zp makefile:
 
 # Compare pyinterp.py and pyinterp.js traces
-zp-trace-tests:
+zp-trace-tests: venv
 	@echo "Comparing pyinterp.py and pyinterp.js traces..."
 	-cd must_pass && $(PYTHON38) ../run.py --cpython "$(PYTHON38) ../../pyinterp-run.py --trace " --zipi "node ../../../../etc/zp/zp_trace.js " >../PYINTERP_TESTS_ESSENTIAL 2>&1
 	-cd wishlist && $(PYTHON38) ../run.py --cpython "$(PYTHON38) ../../pyinterp-run.py --trace " --zipi "node ../../../../etc/zp/zp_trace.js " >../PYINTERP_TESTS_WISHLIST 2>&1
@@ -38,7 +42,7 @@ zp-trace-tests:
 	rm -f PYINTERP_TESTS_WISHLIST
 
 # Compare CPython and pyinterp.js results
-zp-no-trace-tests:
+zp-no-trace-tests: venv
 	@echo "Comparing CPython and pyinterp.js results..."
 	-cd must_pass && $(PYTHON38) ../run.py --zipi "node ../../../../etc/zp/zp_no_trace.js " >../PYINTERPJS_TESTS_ESSENTIAL 2>&1
 	-cd wishlist && $(PYTHON38) ../run.py --zipi "node ../../../../etc/zp/zp_no_trace.js " >../PYINTERPJS_TESTS_WISHLIST 2>&1
@@ -53,4 +57,4 @@ zp-no-trace-tests:
 	rm -f PYINTERPJS_TESTS_ESSENTIAL
 	rm -f PYINTERPJS_TESTS_WISHLIST
 
-zp-tests: zp-trace-tests zp-no-trace-tests
+zp-tests: zp-trace-tests zp-no-trace-tests venv
