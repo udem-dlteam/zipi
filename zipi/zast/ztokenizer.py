@@ -430,7 +430,7 @@ def set_start_end_1token(ts, ast):
     return set_end_1token(ts, set_start_1token(ts, ast))
 
 def source(ts, start, end):
-    return ts.buf[start:end].decode('utf-8')
+    return ts.buf[start:end]
 
 def token(ts):
     return source(ts, ts.start, ts.end)
