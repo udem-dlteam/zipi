@@ -1000,7 +1000,8 @@ def byte_escape_character(ts, buf, pos, next):
                     pos += 1
                     code = code * 8 + octal_val
             ts.end = pos
-            code = code & 0xff
+            if ts.kind == BYTE_STRING:
+                code = code & 0xff
         elif next == 120: # \xXX where XX is a base16 number
             pos += 1
             v1 = digit_value(byte_at(buf, pos))
@@ -1028,6 +1029,7 @@ def get_string(ts, pos, quote, kind, raw):
     ts.string_col_offset = ts.start - ts.line_start
 
     ts.value = [] # to accumulate the contained bytes/characters
+    ts.kind = kind
 
     buf = ts.buf
 
@@ -1123,5 +1125,4 @@ def get_string(ts, pos, quote, kind, raw):
 
     ts.end = pos
     ts.token = STRING
-    ts.kind = kind
 
