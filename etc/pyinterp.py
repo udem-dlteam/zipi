@@ -784,6 +784,7 @@ def populate_builtin_int():
 
 def populate_builtin_float():
     builtin_add_method(class_float, '__new__', om_float_new)
+    builtin_add_method(class_float, '__bool__', om_float_bool)
     builtin_add_method(class_float, '__float__', om_float_float)
     builtin_add_method(class_float, '__int__', om_float_int)
     builtin_add_method(class_float, '__add__', om_float_add)
@@ -1621,6 +1622,7 @@ def om_bool_bool_code(ctx, args):
 
 om_bool_bool = do_magic_method(class_bool, "__bool__", om_bool_bool_code)
 
+
 def om_int_neg_code(ctx, args):
     if len(args) == 1:
         self = args[0]
@@ -2433,13 +2435,13 @@ om_int_float = do_magic_method(class_int, "__float__", om_int_float_code)
 
 def om_int_bool_code(ctx, args):
     if debug: print('int.__bool__')
+    args_len = len(args)
+    if args_len != 1:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
+
     self = args[0]
     val_value = OM_get_boxed_value(self)
-    if val_value != 0:
-        result = om_True
-    else:
-        result = om_False
-    return ctx.cont(ctx.rte, result)
+    return cont_bool(ctx, not int_is_zero(val_value))
 
 def om_int_abs_code(ctx, args):
     if len(args) == 1:
@@ -2630,6 +2632,17 @@ def om_float_new_code(ctx, args):
         return sem_raise_with_message(ctx, class_TypeError, "int() takes at most 1 argument, got " + str(args_len))
 
 om_float_new = do_static_magic_method(class_float, "__new__", om_float_new_code)
+
+def om_float_bool_code(ctx, args):
+    if debug: print('int.__bool__')
+    args_len = len(args)
+    if args_len != 1:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
+    self = args[0]
+    val_value = OM_get_boxed_value(self)
+    return cont_bool(ctx, not float_is_zero(val_value))
+
+om_float_bool = do_magic_method(class_float, "__bool__", om_float_bool_code)
 
 def om_float_int_code(ctx, args):
     if len(args) == 1:
