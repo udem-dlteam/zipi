@@ -1671,7 +1671,6 @@ def om_int_round_code(ctx, args):
                 return cont_obj(ctx, self)
             else:
                 digits_to_round = int_neg(n_value)
-                # TODO: use int_pow once it exists
                 range_digits_to_round = int_pow(int_from_num(10), digits_to_round)
 
                 self_abs_value = int_abs(self_value)
