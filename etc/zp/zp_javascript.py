@@ -324,6 +324,9 @@ class Transformer:
 
     @staticmethod
     def arg(node):
+        # NOTE: We might need to check for 'arguments' in more places!
+        if node.arg == 'arguments':
+            return 'aarguments'
         return node.arg
 
     def Assign(self, node):

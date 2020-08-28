@@ -3366,8 +3366,7 @@ def default_syntax_error(start_line0,
                          end_column0, msg):
     raise SyntaxError(msg)
 
-@nocompile
-def eval(src, options=None):
+def interp_source(src, options=None):
     if options is None:
         options = {}
     interp(parse(src, '<unknown>', 'exec', False), options)
