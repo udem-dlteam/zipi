@@ -2514,7 +2514,7 @@ def om_int_mod_code(ctx, args):
             return sem_raise_with_message(ctx, class_ZeroDivisionError, "modulo by zero")
         else:
             val1_value = OM_get_boxed_value(val1)
-            result = int_mod(val1_value, val2_value)
+            result = int_mod_floor(val1_value, val2_value)
             return ctx.cont(ctx.rte, om_int(result))
     else:
         # TODO: Return om_NotImplemented(rte) (in the proper rte)
@@ -2535,7 +2535,7 @@ def om_int_rmod_code(ctx, args):
             return sem_raise_with_message(ctx, class_ZeroDivisionError, "modulo by zero")
         else:
             val2_value = OM_get_boxed_value(val2)
-            result = int_mod(val2_value, val1_value)
+            result = int_mod_floor(val2_value, val1_value)
             return ctx.cont(ctx.rte, om_int(result))
     else:
         # TODO: Return om_NotImplemented(rte) (in the proper rte)
@@ -2559,7 +2559,7 @@ def om_int_floordiv_code(ctx, args):
             return sem_raise_with_message(ctx, class_ZeroDivisionError, "division by zero")
         else:
             val1_value = OM_get_boxed_value(val1)
-            result = int_div(val1_value, val2_value)
+            result = int_div_floor(val1_value, val2_value)
             return ctx.cont(ctx.rte, om_int(result))
     else:
         # TODO: Return om_NotImplemented(rte) (in the proper rte)
@@ -2581,7 +2581,7 @@ def om_int_rfloordiv_code(ctx, args):
             return sem_raise_with_message(ctx, class_ZeroDivisionError, "division by zero")
         else:
             val2_value = OM_get_boxed_value(val2)
-            result = int_div(val2_value, val1_value)
+            result = int_div_floor(val2_value, val1_value)
             return ctx.cont(ctx.rte, om_int(result))
     else:
         # TODO: Return om_NotImplemented(rte) (in the proper rte)
