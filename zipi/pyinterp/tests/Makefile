@@ -1,5 +1,6 @@
 # Relative to 'must_pass' and 'wishlist'
 PYTHON38 = ../../../../venv/bin/python
+TAIL = | tail -n2
 
 all: tests zp-tests venv
 
@@ -15,10 +16,10 @@ tests: venv
 	@echo "Pyinterp unit test results:"
 	@echo ""
 	@echo "===== ESSENTIAL TESTS ======"
-	@cat "PYINTERP_TESTS_ESSENTIAL" | tail -n2
+	@cat "PYINTERP_TESTS_ESSENTIAL" $(TAIL)
 	@echo ""
 	@echo "===== WiSH LIST ====="
-	@cat "PYINTERP_TESTS_WISHLIST" | tail -n2
+	@cat "PYINTERP_TESTS_WISHLIST" $(TAIL)
 	@echo ""
 	rm -f PYINTERP_TESTS_ESSENTIAL
 	rm -f PYINTERP_TESTS_WISHLIST
@@ -33,10 +34,10 @@ zp-trace-tests: venv
 	@echo "Pyinterp unit test results:"
 	@echo ""
 	@echo "===== ESSENTIAL TESTS ======"
-	@cat "PYINTERP_TESTS_ESSENTIAL" | tail -n2
+	@cat "PYINTERP_TESTS_ESSENTIAL" $(TAIL)
 	@echo ""
 	@echo "===== WiSH LIST ====="
-	@cat "PYINTERP_TESTS_WISHLIST" | tail -n2
+	@cat "PYINTERP_TESTS_WISHLIST" $(TAIL)
 	@echo ""
 	rm -f PYINTERP_TESTS_ESSENTIAL
 	rm -f PYINTERP_TESTS_WISHLIST
@@ -49,10 +50,10 @@ zp-no-trace-tests: venv
 	@echo "Test results:"
 	@echo ""
 	@echo "===== ESSENTIAL TESTS ======"
-	@cat "PYINTERPJS_TESTS_ESSENTIAL" | tail -n2
+	@cat "PYINTERPJS_TESTS_ESSENTIAL" $(TAIL)
 	@echo ""
 	@echo "===== WiSH LIST ====="
-	@cat "PYINTERPJS_TESTS_WISHLIST" | tail -n2
+	@cat "PYINTERPJS_TESTS_WISHLIST" $(TAIL)
 	@echo ""
 	rm -f PYINTERPJS_TESTS_ESSENTIAL
 	rm -f PYINTERPJS_TESTS_WISHLIST
