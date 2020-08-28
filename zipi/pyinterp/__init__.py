@@ -1888,7 +1888,7 @@ def om_iterator_next(ctx, args):
     index = OM_get_iterator_index(self)
 
     def increment_index(rte, val):
-        OM_set_iterator_index(self, om_int(OM_get_boxed_value(index) + 1))
+        OM_set_iterator_index(self, om_int(int_add(OM_get_boxed_value(index), int_from_num(1))))
         return ctx.cont(rte, val)
 
     def catch_IndexError(rte, exn):
@@ -4492,7 +4492,7 @@ def sem_iter(ctx, obj):
         if obj_getitem is absent:
             return sem_raise_with_message(ctx, class_TypeError, "object is not iterable")
         else:
-            return ctx.cont(ctx.rte, om_iterator(obj, om_int(0)))
+            return ctx.cont(ctx.rte, om_iterator(obj, om_int(int_from_num(0))))
     else:
         return om_call(obj_iter, ctx, (obj,))
 
