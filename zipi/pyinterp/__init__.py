@@ -1670,11 +1670,8 @@ def om_int_round_code(ctx, args):
             n_value = OM_get_boxed_value(n)
             if int_is_nonneg(n_value):
                 return cont_obj(ctx, self)
-            elif int_is_nonneg(self_value):
-                return cont_int(ctx, int_round(self_value, n_value))
             else:
-                res = int_neg(int_round(int_neg(self_value), n_value))
-                return cont_int(ctx, res)
+                return cont_int(ctx, int_round(self_value, n_value))
 
         return sem_index(with_cont(ctx, apply_round), ndigits)
     else:
