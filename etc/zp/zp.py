@@ -145,7 +145,8 @@ def compile_file(input_file):
 
     if cli_args.tests:
         # Add `print_stdout`
-        runtime += "function print_stdout(msg,rte) {console.log(msg);};"
+        runtime += "function runtime_alert(msg) {console.log(msg);};"
+        runtime += "function runtime_print(msg,rte) {console.log(msg);};"
         with open("int.js", "r") as f:
             runtime += " " + f.read()
         with open("float.js", "r") as f:

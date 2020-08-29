@@ -60,3 +60,7 @@ function ord(char){
 function tuple_to_list(tup) {tup.slice();};
 
 function list_to_tuple(lst) {lst.slice();};
+
+function runtime_random() {
+  return Math.random();
+}
