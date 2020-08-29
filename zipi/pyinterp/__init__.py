@@ -2424,7 +2424,7 @@ def om_int_new_code(ctx, args):
 
     if args_len == 1:
         cls = args[0]
-        return ctx.cont(ctx.rte, om_int_subtype(cls, 0))
+        return ctx.cont(ctx.rte, om_int_subtype(cls, int_from_num(0)))
     elif args_len == 2:
         cls = args[0]
         obj = args[1]
@@ -2432,7 +2432,7 @@ def om_int_new_code(ctx, args):
         def check_result(rte, res):
             if res is absent:
                 if om_isinstance(obj, class_str):
-                    return om_int_str_conversion(ctx, obj, om_int(10))
+                    return om_int_str_conversion(ctx, obj, om_int(int_from_num(10)))
                 else:
                     return sem_raise_with_message(
                         Context(rte, ctx.cont, ctx.ast),
@@ -2552,7 +2552,7 @@ def om_int_mod_code(ctx, args):
             return sem_raise_with_message(ctx, class_ZeroDivisionError, "modulo by zero")
         else:
             val1_value = OM_get_boxed_value(val1)
-            result = int_mod(val1_value, val2_value)
+            result = int_mod_floor(val1_value, val2_value)
             return ctx.cont(ctx.rte, om_int(result))
     else:
         # TODO: Return om_NotImplemented(rte) (in the proper rte)
@@ -2573,7 +2573,7 @@ def om_int_rmod_code(ctx, args):
             return sem_raise_with_message(ctx, class_ZeroDivisionError, "modulo by zero")
         else:
             val2_value = OM_get_boxed_value(val2)
-            result = int_mod(val2_value, val1_value)
+            result = int_mod_floor(val2_value, val1_value)
             return ctx.cont(ctx.rte, om_int(result))
     else:
         # TODO: Return om_NotImplemented(rte) (in the proper rte)
@@ -2597,7 +2597,7 @@ def om_int_floordiv_code(ctx, args):
             return sem_raise_with_message(ctx, class_ZeroDivisionError, "division by zero")
         else:
             val1_value = OM_get_boxed_value(val1)
-            result = int_div(val1_value, val2_value)
+            result = int_div_floor(val1_value, val2_value)
             return ctx.cont(ctx.rte, om_int(result))
     else:
         # TODO: Return om_NotImplemented(rte) (in the proper rte)
@@ -2619,7 +2619,7 @@ def om_int_rfloordiv_code(ctx, args):
             return sem_raise_with_message(ctx, class_ZeroDivisionError, "division by zero")
         else:
             val2_value = OM_get_boxed_value(val2)
-            result = int_div(val2_value, val1_value)
+            result = int_div_floor(val2_value, val1_value)
             return ctx.cont(ctx.rte, om_int(result))
     else:
         # TODO: Return om_NotImplemented(rte) (in the proper rte)
@@ -3078,10 +3078,10 @@ def gen_int_to_string_conv_code(radix, prefix):
         obj_cls = OM_get_object_class(obj)
         if om_issubclass(obj_cls, class_int):
             obj_value = OM_get_boxed_value(obj)
-            if int_lt(obj_value, 0):
-                result = "-" + prefix + int_to_string(-obj_value, radix)
-            else:
+            if int_is_nonneg(obj_value):
                 result = prefix + int_to_string(obj_value, radix)
+            else:
+                result = "-" + prefix + int_to_string(int_neg(obj_value), radix)
             return unwindReturn(rte, om_str(result))
         else:
             obj_cls_name = OM_get(obj_cls, '__name__')
