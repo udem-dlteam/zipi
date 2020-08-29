@@ -19,6 +19,9 @@ pyinterp: zipi-venv _zparse.py
 	$(PYTHON38) zp.py -f ../../zipi/pyinterp/__init__.py $(ZP_DEBUG) -e pyinterp -o $(TMPDIR)/pyinterp.js
 	$(PYTHON38) zp.py -f ../../zipi/pyinterp/__init__.py $(ZP_DEBUG) -e pyinterp -t -o $(TMPDIR)/pyinterp_browser.js
 	$(PYTHON38) zp.py -f ../../zipi/pyinterp/__init__.py $(ZP_DEBUG) -e pyinterp -n -t -o $(TMPDIR)/pyinterp_node.js
+	$(PYTHON38) zp.py -f ../../zipi/pyinterp/__init__.py $(ZP_DEBUG) -e pyinterp -nb -o $(TMPDIR)/pyinterp_no_bigint.js
+	$(PYTHON38) zp.py -f ../../zipi/pyinterp/__init__.py $(ZP_DEBUG) -e pyinterp -t -nb -o $(TMPDIR)/pyinterp_browser_no_bigint.js
+	$(PYTHON38) zp.py -f ../../zipi/pyinterp/__init__.py $(ZP_DEBUG) -e pyinterp -n -t -nb -o $(TMPDIR)/pyinterp_node_no_bigint.js
 	cp $(TMPDIR)/pyinterp_browser.js test/pyinterp/
 
 tests: pyinterp

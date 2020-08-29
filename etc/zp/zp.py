@@ -17,7 +17,12 @@ parser.add_argument(
     "-n", "--node", action="store_true", help="export as node module (default False)"
 )
 parser.add_argument(
-    "-e", "--export-name", type=str, nargs=1, help="name of the exported JS module", default="pyinterp"
+    "-e",
+    "--export-name",
+    type=str,
+    nargs=1,
+    help="name of the exported JS module",
+    default="pyinterp",
 )
 parser.add_argument(
     "-b",
@@ -25,6 +30,13 @@ parser.add_argument(
     action="store_true",
     help="export as browser module (default True)",
     default=True,
+)
+parser.add_argument(
+    "-nb",
+    "--no-bigint",
+    action="store_true",
+    help="Setting this flag disables JS BigInt support in int.js.",
+    default=False,
 )
 parser.add_argument(
     "-es6",
@@ -36,7 +48,10 @@ parser.add_argument(
     "-d", "--debug", action="store_true", help="add debug information (default False)"
 )
 parser.add_argument(
-    "-t", "--tests", action="store_true", help="include extended runtime for tests (default False)"
+    "-t",
+    "--tests",
+    action="store_true",
+    help="include extended runtime for tests (default False)",
 )
 cli_args = parser.parse_args()
 
@@ -143,9 +158,15 @@ def compile_file(input_file):
     with open("runtime.js", "r") as f:
         runtime = f.read()
 
+    # Disable support for JS BigInt in int.js if --no-bigint is set
+    if cli_args.no_bigint:
+        runtime += "const disableBigInt = true;\n"
+    else:
+        runtime += "const disableBigInt = false;\n"
+
     if cli_args.tests:
         # Add `print_stdout`
-        runtime += "function print_stdout(msg,rte) {console.log(msg);};"
+        runtime += "function print_stdout(msg,rte) {console.log(msg);};\n"
         with open("int.js", "r") as f:
             runtime += " " + f.read()
         with open("float.js", "r") as f:
