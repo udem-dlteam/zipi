@@ -806,6 +806,7 @@ def populate_builtin_float():
     builtin_add_method(class_float, '__le__', om_float_le)
     builtin_add_method(class_float, '__gt__', om_float_gt)
     builtin_add_method(class_float, '__ge__', om_float_ge)
+    builtin_add_method(class_float, '__round__', om_float_round)
 
 
 def populate_builtin_bool():
@@ -2968,6 +2969,31 @@ om_float_le = gen_dunder_Float_Comp('float', '__le__', float_le, int_le, True, F
 om_float_gt = gen_dunder_Float_Comp('float', '__gt__', float_gt, int_gt, False, True, cont_bool)
 om_float_ge = gen_dunder_Float_Comp('float', '__ge__', float_ge, int_ge, False, True, cont_bool)
 
+def om_float_round_code(ctx, args):
+    if len(args) == 1:
+        self = args[0]
+        return cont_obj(ctx, self)
+    elif len(args) == 2:
+        self = args[0]
+        ndigits = args[1]
+
+        def apply_round(rte, n):
+            self_value = OM_get_boxed_value(self)
+            n_value = OM_get_boxed_value(n)
+            n_float_value = int_to_num(n_value, True)
+            # We do not want to pass a BigInt to float_round so we handle Overflows prior
+            if n_float_value is False:
+                if int_is_neg(n_value):
+                    return cont_obj(ctx, self)
+                else:
+                    return cont_float(ctx, 0.0)
+            return cont_float(ctx, float_round(self_value, int(n_float_value)))
+
+        return sem_index(with_cont(ctx, apply_round), ndigits)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
+
+om_float_round = do_magic_method(class_float, "__round__", om_float_round_code)
 
 def om_float_abs_code(ctx, args):
     if len(args) == 1:

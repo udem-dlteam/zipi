@@ -342,6 +342,9 @@ def float_pi():
 def float_e():
     return math.e
 
+def float_round(x, ndigits):
+    return round(x, ndigits)
+
 
 ###
 # IO operations
