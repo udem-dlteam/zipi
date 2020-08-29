@@ -1673,7 +1673,7 @@ def om_int_round_code(ctx, args):
             elif int_is_nonneg(self_value):
                 return cont_int(ctx, int_round(self_value, n_value))
             else:
-                res = int_neg(int_round(int_abs(self_value), n_value))
+                res = int_neg(int_round(int_neg(self_value), n_value))
                 return cont_int(ctx, res)
 
         return sem_index(with_cont(ctx, apply_round), ndigits)
