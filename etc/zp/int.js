@@ -648,7 +648,7 @@ function int_round(int_a, int_b) {
             return int_from_num(0);
         } else {
             const low_digits = int_mod_trunc(int_a, low_digits_range);
-            const round_up = int_ge(int_mul(low_digits, int_from_num(2)), low_digits_range);
+            const round_up = int_gt(int_mul(low_digits, int_from_num(2)), low_digits_range);
             const int_a_rounded_down = int_sub(int_a, low_digits);
             if (round_up) {
                 return int_add(int_a_rounded_down, low_digits_range);
