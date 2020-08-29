@@ -630,7 +630,9 @@ function int_round(int_a, int_b) {
         } else {
             var sq = int_mul(int_x, int_x);
             var temp = round_pow(sq, int_shift(int_n, int_from_num(-1)));
-            if (int_is_even(int_n)) {
+            if (temp === false){
+                return false;
+            } else if (int_is_even(int_n)) {
                 return temp;
             } else {
                 return int_mul(int_x, temp);
