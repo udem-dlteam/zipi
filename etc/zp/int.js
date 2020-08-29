@@ -1037,6 +1037,7 @@ if (globalThis.BigInt && !globalThis.disableBigInt) {
     int_add = function (int_a, int_b) { return int_a+int_b; };
     int_sub = function (int_a, int_b) { return int_a-int_b; };
     int_mul = function (int_a, int_b) { return int_a*int_b; };
+    int_is_even = function (int_a) { return (int_a % 2n) == 0; };
 
     int_div_floor = function (int_a, int_b) {
         return int_divmod_floor(int_a, int_b)[0];
