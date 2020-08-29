@@ -476,20 +476,23 @@ def align_args_with_signature(ctx, funcname, caller_args, signature):
 
                     return result
 
-                def add_arguments(msg, remaining_args_count, start, end, args):
-                    while start < end:
-                        arg = args[start]
-                        msg = add_punctuation(msg, remaining_args_count)+"'"+arg+"'"
-                        remaining_args_count -= 1
-                        start += 1
-                    return (msg, remaining_args_count)
-
-                msg_pos = add_arguments('', missing_args_len, caller_args_len, posonlyargs_len, posonlyargs)
-                msg_pos = add_arguments(msg_pos[0], msg_pos[1], caller_args_len - posonlyargs_len, args_len, args)
-                missing_vars_msg = msg_pos[0]
-
                 s = 's' if missing_args_len != 1 else ''
-                msg = funcname + "() missing " + str(missing_args_len) + " required positional argument"+ s +": "+missing_vars_msg
+                msg = funcname + "() missing " + str(missing_args_len) + " required positional argument"+ s +": "
+
+                i = caller_args_len
+                while i < posonlyargs_len:
+                    arg = posonlyargs[i]
+                    msg = add_punctuation(msg, missing_args_len)+"'"+arg+"'"
+                    missing_args_len -= 1
+                    i += 1
+
+                i -= posonlyargs_len
+                while i < args_len:
+                    arg = args[i]
+                    msg = add_punctuation(msg, missing_args_len)+"'"+arg+"'"
+                    missing_args_len -= 1
+                    i += 1
+
                 return sem_raise_with_message(ctx, class_TypeError, msg)
         else:
             locals_env = []
@@ -2170,6 +2173,8 @@ def om_make_function_with_signature(name, code, signature):
     OM_set(om_fn, '__name__', om_str(name))
     OM_set_function_signature(om_fn, signature)
     OM_set_function_body(om_fn, code)
+    arity = signature_arity(signature)
+    OM_set_function_arity(om_fn, arity)
 
     return om_fn
 
@@ -3057,7 +3062,7 @@ def om_input_code(rte, cont):
     def return_value(rte1, obj_str):
         obj_str_value = OM_get_boxed_value(obj_str)
         # TODO: raise EOFError on EOF
-        result = input_stdin(obj_str_value)
+        result = runtime_input(obj_str_value)
         if om_is(result, None):
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise(ctx, class_EOFError)
@@ -3110,12 +3115,54 @@ def om_print_code(rte, _):
                 return loop(rte, new_index)
             else:
                 # sep=' '
-                print_stdout(' '.join(result), rte)
+                runtime_print(' '.join(result), rte)
                 return unwindReturn(rte, om_None)
 
         next_ctx = make_out_of_ast_context(rte, print_value)
         return sem_str(next_ctx, args_seq[i])
-    return loop(rte, 0)
+
+    if args_len > 0:
+        return loop(rte, 0)
+    else:
+        runtime_print('', rte)
+        return unwindReturn(rte, om_None)
+
+def om_alert_code(rte, _):
+    obj = rte_lookup(rte, "obj")
+    def alert_str(rte, obj_str):
+        obj_str_value = OM_get_boxed_value(obj_str)
+        runtime_alert(obj_str_value)
+        return unwindReturn(rte, om_None)
+
+    ctx = make_out_of_ast_context(rte, alert_str)
+    return sem_str(ctx, obj)
+
+def om_confirm_code(rte, _):
+    obj = rte_lookup(rte, "obj")
+    def confirm_dialog(rte, obj_str):
+        obj_str_value = OM_get_boxed_value(obj_str)
+        result = runtime_confirm(obj_str_value)
+        return unwindReturn(rte, om_bool(result))
+
+    ctx = make_out_of_ast_context(rte, confirm_dialog)
+    return sem_str(ctx, obj)
+
+def om_prompt_code(rte, _):
+    obj = rte_lookup(rte, "obj")
+    def prompt_str(rte, obj_str):
+        obj_str_value = OM_get_boxed_value(obj_str)
+        result = runtime_prompt(obj_str_value)
+        if om_is(result, None):
+            return unwindReturn(rte, om_None)
+        else:
+            return unwindReturn(rte, om_str(result))
+
+    ctx = make_out_of_ast_context(rte, prompt_str)
+    return sem_str(ctx, obj)
+
+def om_random_code(rte, _):
+    result = runtime_random()
+    return unwindReturn(rte, om_float(result))
 
 def om_repr_code(rte, _):
     def cont(rte, res):
@@ -3511,7 +3558,7 @@ def fresh_rte(options):
     rte = make_rte(absent, globals_env, locals_env, builtins_env, absent, absent, absent, trace)
 
     om_builtin_print = om_make_function_with_signature('print', om_print_code, make_vararg_only_signature('args'))
-    om_builtin_input = om_make_function_with_signature('input', om_input_code, make_posonly_only_signature(('obj',)))
+    om_builtin_input = om_make_function_with_signature('input', om_input_code, make_posonly_defaults_signature(('obj',), (om_str(''),)))
     om_builtin_hex = om_make_function_with_signature('hex', om_hex_code, make_posonly_only_signature(('obj',)))
     om_builtin_oct = om_make_function_with_signature('oct', om_oct_code, make_posonly_only_signature(('obj',)))
     om_builtin_bin = om_make_function_with_signature('bin', om_bin_code, make_posonly_only_signature(('obj',)))
@@ -3527,6 +3574,14 @@ def fresh_rte(options):
     om_builtin_max = om_make_function_with_signature('max', om_max_code, make_vararg_only_signature('args'))
     om_builtin_round = om_make_function_with_signature('round', om_round_code, make_posonly_defaults_signature(('number', 'ndigits'), (absent,)))
     om_builtin_pow = om_make_function_with_signature('pow', om_pow_code, make_posonly_only_signature(('obj1', 'obj2')))
+
+    om_random_random = om_make_function_with_signature('random', om_random_code, empty_sigature)
+
+    # XXX: python builtin extension (maybe move into another module later)
+    om_builtin_alert = om_make_function_with_signature('alert', om_alert_code, make_posonly_defaults_signature(('obj',), (om_str(''),)))
+    om_builtin_confirm = om_make_function_with_signature('confirm', om_confirm_code, make_posonly_defaults_signature(('obj',), (om_str(''),)))
+    om_builtin_prompt = om_make_function_with_signature('prompt', om_prompt_code, make_posonly_defaults_signature(('obj',), (om_str(''),)))
+
 
     dict_set(builtins_env, 'type', class_type)
     dict_set(builtins_env, 'object', class_object)
@@ -3551,6 +3606,12 @@ def fresh_rte(options):
     dict_set(builtins_env, 'max', om_builtin_max)
     dict_set(builtins_env, 'round', om_builtin_round)
     dict_set(builtins_env, 'pow', om_builtin_pow)
+    # XXX: should be defined in module random
+    dict_set(builtins_env, 'random', om_random_random)
+    # XXX: this should not be in builtin module
+    dict_set(builtins_env, 'alert', om_builtin_alert)
+    dict_set(builtins_env, 'confirm', om_builtin_confirm)
+    dict_set(builtins_env, 'prompt', om_builtin_prompt)
 
     dict_set(builtins_env, 'BaseException', class_BaseException)
     dict_set(builtins_env, 'Exception', class_Exception)

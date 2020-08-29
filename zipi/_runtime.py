@@ -352,12 +352,33 @@ def float_round(x, ndigits):
 # IO operations
 ###
 
-def input_stdin(msg):
+def runtime_alert(msg):
+    print(msg)
+
+def runtime_confirm(msg):
+    try:
+        input(msg)
+        return True
+    except Exception:
+        return False
+
+
+def runtime_print(msg, rte):
+    print(msg)
+
+def runtime_input(msg):
     try:
         return input(msg)
     except Exception:
         return None
 
+def runtime_prompt(msg):
+    return runtime_input(msg)
 
-def print_stdout(msg, rte):
-    print(msg)
+
+# Module random
+import random
+
+def runtime_random():
+    return random.random()
+
