@@ -648,11 +648,17 @@ function int_round(int_a, int_b) {
             return int_from_num(0);
         } else {
             const low_digits = int_mod_trunc(int_a, low_digits_range);
-            const round_up = int_gt(int_mul(low_digits, int_from_num(2)), low_digits_range);
+            const tmp_cmp = int_mul(low_digits, int_from_num(2));
             const int_a_rounded_down = int_sub(int_a, low_digits);
-            if (round_up) {
+            if (int_gt(tmp_cmp, low_digits_range)) { // round up
                 return int_add(int_a_rounded_down, low_digits_range);
-            } else {
+            } else if (int_eq(tmp_cmp, low_digits_range)) { // round toward even
+                if (int_is_even(int_a_rounded_down)) {
+                    return int_a_rounded_down;
+                } else {
+                    return int_add(int_a_rounded_down, low_digits_range);
+                }
+            } else { // round down
                 return int_a_rounded_down;
             }
         }
