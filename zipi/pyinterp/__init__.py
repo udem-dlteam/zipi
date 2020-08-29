@@ -1669,22 +1669,13 @@ def om_int_round_code(ctx, args):
             n_value = OM_get_boxed_value(n)
             if int_is_nonneg(n_value):
                 return cont_obj(ctx, self)
+            elif int_is_nonneg(self_value):
+                return cont_int(ctx, int_round(self_value, n_value))
             else:
                 digits_to_round = int_neg(n_value)
-                range_digits_to_round = int_pow(int_from_num(10), digits_to_round)
+                res = int_neg(int_round(int_abs(self_value), n_value))
+                return cont_int(ctx, res)
 
-                self_abs_value = int_abs(self_value)
-                low_digits = int_mod(self_abs_value, range_digits_to_round)
-
-                if int_ge(int_mul(low_digits, int_from_num(2)), range_digits_to_round):
-                    res = int_add(int_sub(self_abs_value, low_digits), range_digits_to_round)
-                else:
-                    res = int_sub(self_abs_value, low_digits)
-
-                if int_is_neg(self_value):
-                    return cont_int(ctx, int_neg(res))
-                else:
-                    return cont_int(ctx, res)
         return sem_index(with_cont(ctx, apply_round), ndigits)
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))

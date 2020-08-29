@@ -171,6 +171,9 @@ def int_pow_mod(u,v,m):
 def int_pow(u,v):
     return pow(u,v)
 
+def int_round(x, ndigits):
+    return round(x, ndigits)
+
 def int_from_string(string, radix):
     try:
         return int(string, radix)
