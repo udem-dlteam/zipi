@@ -110,22 +110,27 @@ def int_div_floor(u, v):
 def int_mod_floor(u, v):
     return u % v
 
-
 def int_divmod_floor(u, v):
     return divmod(u, v)
 
 def int_not(u):
     return ~u
 
+inf = float("inf")
+neg_inf = float("-inf")
+
 def int_to_num(u, exact=None):
-    if exact:
-        try:
-            float(u)
-            return u
-        except OverflowError:
-            return False
-    else:
+    try:
+        float(u)
         return u
+    except OverflowError:
+        if exact:
+            return False
+        elif int_is_neg(u):
+            return neg_inf
+        else:
+            return inf
+
 
 
 def int_and(u, v):
@@ -169,6 +174,9 @@ def int_pow_mod(u,v,m):
 
 def int_pow(u,v):
     return pow(u,v)
+
+def int_is_even(u):
+    return u % 2 == 0
 
 def int_round(x, ndigits):
     return round(x, ndigits)
@@ -285,7 +293,6 @@ def float_is_zero(u):
 def float_is_neg(u):
     return (u < 0)
 
-
 def float_from_string(string):
     return float(string)
 
@@ -353,7 +360,10 @@ def float_pi():
 def float_e():
     return math.e
 
-def float_round(x, ndigits):
+def float_round(x):
+    return round(x, 0)
+
+def float_round_to_digits(x, ndigits):
     return round(x, ndigits)
 
 
