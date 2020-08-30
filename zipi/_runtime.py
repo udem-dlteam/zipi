@@ -202,7 +202,7 @@ def float_instance(u):
     return isinstance(u, float)
 
 
-def float_from_float(u):
+def float_from_num(u):
     return u
 
 
