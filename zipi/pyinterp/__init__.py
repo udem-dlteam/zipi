@@ -1657,7 +1657,9 @@ def om_int_pos_code(ctx, args):
 
 om_int_pos = do_magic_method(class_int, "__pos__", om_int_pos_code)
 
-def int_round(x, ndigits):
+# int round if tie_up is False, then tie break is done to even
+# if tie_up is True, then tie break is done to upper number
+def int_round(x, ndigits, tie_even):
     pow_limit = int_mul(int_from_num(10), int_abs(x))
 
     # Version of pow which abort if the power is unnecessrily big
@@ -1691,8 +1693,8 @@ def int_round(x, ndigits):
 
             if int_gt(tmp_cmp, low_digits_range): # Round up
                 return int_add(x_rounded_down, low_digits_range)
-            elif int_eq(tmp_cmp, low_digits_range): # Round toward even
-                if int_is_even(int_div_floor(x_rounded_down, low_digits_range)):
+            elif int_eq(tmp_cmp, low_digits_range): # Round toward even if tie_up is False
+                if tie_even and int_is_even(int_div_floor(x_rounded_down, low_digits_range)):
                     return x_rounded_down
                 else:
                     return int_add(x_rounded_down, low_digits_range)
@@ -1713,7 +1715,7 @@ def om_int_round_code(ctx, args):
             if int_is_nonneg(n_value):
                 return cont_obj(ctx, self)
             else:
-                return cont_int(ctx, int_round(self_value, n_value))
+                return cont_int(ctx, int_round(self_value, n_value, True))
 
         return sem_index(with_cont(ctx, apply_round), ndigits)
     else:
@@ -3019,13 +3021,35 @@ def om_float_round_code(ctx, args):
             self_value = OM_get_boxed_value(self)
             n_value = OM_get_boxed_value(n)
 
-            if int_is_neg(n_value):
-                # Use int rounding
-                res = int_to_num(int_round(int_from_num(self_value), n_value), True)
+            if int_is_zero(ndigits):
+                return cont_float(ctx, float_round(self_value))
+            elif int_is_neg(n_value):
+                # When n is a negative value we want to raise to a power of 10
+                # In that case use the int_round algorithm on the norm of self
+
+                if float_is_neg(self_value):
+                    sign = float_from_float(-1.0)
+                else:
+                    sign = float_from_float(1.0)
+
+                norm = float_abs(self_value)
+
+                # NOTE: We are using int_round which breaks ties to even
+                # Although a number such as 5.1 would be casted to 5 and rounded to 0
+                # For this reason we indicate to int_round to break ties by rounding up if self has a decimal part
+                norm_integral_part = float_round(norm)
+
+                if float_eq(norm, norm_integral_part):
+                    # Break int_round ties by rounding to even
+                    res = int_to_num(float(int_round(int_from_num(norm_integral_part), n_value, True)))
+                else:
+                    # Break int_round ties by rounding up
+                    res = int_to_num(float(int_round(int_from_num(norm_integral_part), n_value, False)))
+
                 if res is False:
                     return sem_raise_with_message(ctx, class_OverflowError, "rounded value too large to represent")
                 else:
-                    return cont_float(ctx, res)
+                    return cont_float(ctx, float_mul(sign, res))
             else:
                 n_float_value = int_to_num(n_value, True)
                 # We do not want to pass a BigInt to float_round so we handle Overflows prior
@@ -3034,7 +3058,7 @@ def om_float_round_code(ctx, args):
                         return cont_obj(ctx, self)
                     else:
                         return cont_float(ctx, 0.0)
-                return cont_float(ctx, float_round(self_value, int(n_float_value)))
+                return cont_float(ctx, float_round_to_digits(self_value, int(n_float_value)))
 
         return sem_index(with_cont(ctx, apply_round), ndigits)
     else:
