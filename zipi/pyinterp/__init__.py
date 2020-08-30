@@ -3018,14 +3018,23 @@ def om_float_round_code(ctx, args):
         def apply_round(rte, n):
             self_value = OM_get_boxed_value(self)
             n_value = OM_get_boxed_value(n)
-            n_float_value = int_to_num(n_value, True)
-            # We do not want to pass a BigInt to float_round so we handle Overflows prior
-            if n_float_value is False:
-                if int_is_neg(n_value):
-                    return cont_obj(ctx, self)
+
+            if int_is_neg(n_value):
+                # Use int rounding
+                res = int_to_num(int_round(int_from_num(self_value), n_value), True)
+                if res is False:
+                    return sem_raise_with_message(ctx, class_OverflowError, "rounded value too large to represent")
                 else:
-                    return cont_float(ctx, 0.0)
-            return cont_float(ctx, float_round(self_value, int(n_float_value)))
+                    return cont_float(ctx, res)
+            else:
+                n_float_value = int_to_num(n_value, True)
+                # We do not want to pass a BigInt to float_round so we handle Overflows prior
+                if n_float_value is False:
+                    if int_is_neg(n_value):
+                        return cont_obj(ctx, self)
+                    else:
+                        return cont_float(ctx, 0.0)
+                return cont_float(ctx, float_round(self_value, int(n_float_value)))
 
         return sem_index(with_cont(ctx, apply_round), ndigits)
     else:
