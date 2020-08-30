@@ -114,9 +114,6 @@ def int_mod_floor(u, v):
 def int_divmod_floor(u, v):
     return divmod(u, v)
 
-def int_pow(u, v):
-    return pow(u, v)
-
 def int_not(u):
     return ~u
 
