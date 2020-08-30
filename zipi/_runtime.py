@@ -110,9 +110,6 @@ def int_div_floor(u, v):
 def int_mod_floor(u, v):
     return u % v
 
-def int_mod_trunc(u, v):
-    return u % v
-
 def int_divmod_floor(u, v):
     return divmod(u, v)
 

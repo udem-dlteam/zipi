@@ -1685,7 +1685,7 @@ def int_round(x, ndigits):
         if low_digits_range is False:
             return int_from_num(0)
         else:
-            low_digits = int_mod_trunc(x, low_digits_range)
+            low_digits = int_mod_floor(x, low_digits_range)
             tmp_cmp = int_mul(low_digits, int_from_num(2))
             x_rounded_down = int_sub(x, low_digits)
 
