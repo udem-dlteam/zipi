@@ -356,7 +356,7 @@ def float_e():
     return math.e
 
 def float_round(x):
-    return round(x)
+    return round(x, 0)
 
 def float_round_to_digits(x, ndigits):
     return round(x, ndigits)

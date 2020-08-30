@@ -3017,7 +3017,7 @@ om_float_ge = gen_dunder_Float_Comp('float', '__ge__', float_ge, int_ge, False, 
 def om_float_round_code(ctx, args):
     if len(args) == 1:
         self = args[0]
-        return cont_obj(ctx, self)
+        return cont_int(ctx, int_from_num(float_round(OM_get_boxed_value(self))))
     elif len(args) == 2:
         self = args[0]
         ndigits = args[1]
