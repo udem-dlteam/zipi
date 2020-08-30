@@ -3058,14 +3058,16 @@ def om_float_round_code(ctx, args):
                 else:
                     return cont_float(ctx, float_mul(sign, res))
             else:
-                n_float_value = int_to_num(n_value, True)
+                n_float_value = int_to_num(n_value)
                 # We do not want to pass a BigInt to float_round so we handle Overflows prior
-                if n_float_value is False:
+                if float_is_infinite(n_float_value):
                     if int_is_neg(n_value):
                         return cont_obj(ctx, self)
                     else:
                         return cont_float(ctx, 0.0)
-                return cont_float(ctx, float_round_to_digits(self_value, int(n_float_value)))
+                else:
+                    # TODO: this does not break ties toward even digit
+                    return cont_float(ctx, float_round_to_digits(self_value, int(n_float_value)))
 
         return sem_index(with_cont(ctx, apply_round), ndigits)
     else:
