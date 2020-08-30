@@ -113,11 +113,11 @@ def int_mod_floor(u, v):
 def int_divmod_floor(u, v):
     return divmod(u, v)
 
-def int_pow(u, v):
-    return pow(u, v)
-
 def int_not(u):
     return ~u
+
+inf = float("inf")
+neg_inf = float("-inf")
 
 def int_to_num(u, exact=None):
     try:
@@ -210,6 +210,18 @@ def float_is_zero(u):
     return u == 0
 
 
+def float_is_infinite(u):
+    return math.isinf(u)
+
+
+def float_is_finite(u):
+    return math.isfinite(u)
+
+
+def float_is_nan(u):
+    return math.isnan(u)
+
+
 def float_is_pos(u):
     return u > 0.0
 
@@ -280,13 +292,6 @@ def float_is_zero(u):
 
 def float_is_neg(u):
     return (u < 0)
-
-inf = float("inf")
-neg_inf = float("-inf")
-
-def float_is_infinite(u):
-    return u == inf or u == neg_inf
-
 
 def float_from_string(string):
     return float(string)
