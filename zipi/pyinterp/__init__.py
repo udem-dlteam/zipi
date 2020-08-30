@@ -3117,10 +3117,30 @@ om_float_le = gen_dunder_Float_Comp('float', '__le__', float_le, int_le, True, F
 om_float_gt = gen_dunder_Float_Comp('float', '__gt__', float_gt, int_gt, False, True, cont_bool)
 om_float_ge = gen_dunder_Float_Comp('float', '__ge__', float_ge, int_ge, False, True, cont_bool)
 
+def float_round_even(x):
+    if float_is_neg(x):
+        sign = float_from_num(-1.0)
+    else:
+        sign = float_from_num(1.0)
+
+    norm = float_abs(x)
+    norm_integral_part = float_floor(norm)
+    norm_dec_part = float_sub(norm, norm_integral_part)
+
+    half = float_from_num(0.5)
+
+    if float_lt(norm_dec_part, half):
+        return float_mul(sign, norm_integral_part)
+    elif float_eq(norm_dec_part, half) and float_is_zero(float_mod(norm_integral_part, float_from_num(2.0))):
+        return float_mul(sign, norm_integral_part)
+    else:
+        return float_mul(sign, float_add(norm_integral_part, float_from_num(1.0)))
+
+
 def om_float_round_code(ctx, args):
     if len(args) == 1:
         self = args[0]
-        return cont_int(ctx, int_from_num(float_round(OM_get_boxed_value(self))))
+        return cont_int(ctx, int_from_num(float_round_even(OM_get_boxed_value(self))))
     elif len(args) == 2:
         self = args[0]
         ndigits = args[1]
@@ -3130,7 +3150,7 @@ def om_float_round_code(ctx, args):
             n_value = OM_get_boxed_value(n)
 
             if int_is_zero(n_value):
-                return cont_float(ctx, float_round(self_value))
+                return cont_float(ctx, float_round_even(self_value))
             elif float_is_infinite(self_value):
                 return cont_float(ctx, self_value)
             elif int_is_neg(n_value):
@@ -3138,9 +3158,9 @@ def om_float_round_code(ctx, args):
                 # In that case use the int_round algorithm on the norm of self
 
                 if float_is_neg(self_value):
-                    sign = float_from_float(-1.0)
+                    sign = float_from_num(-1.0)
                 else:
-                    sign = float_from_float(1.0)
+                    sign = float_from_num(1.0)
 
                 norm = float_abs(self_value)
 
@@ -3167,7 +3187,7 @@ def om_float_round_code(ctx, args):
                     if int_is_neg(n_value):
                         return cont_obj(ctx, self)
                     else:
-                        return cont_float(ctx, float_from_float(0.0))
+                        return cont_float(ctx, float_from_num(0.0))
                 else:
                     # TODO: this does not break ties toward even digit
                     return cont_float(ctx, float_round_to_digits(self_value, int(n_float_value)))
