@@ -1288,7 +1288,7 @@ class_EOFError = make_builtin_class('EOFError', OM_BaseException_create, (class_
 class_IndexError = make_builtin_class('IndexError', OM_BaseException_create, (class_LookupError,), class_type)
 class_AttributeError = make_builtin_class('AttributeError', OM_BaseException_create, (class_Exception,), class_type)
 class_ArithmeticError = make_builtin_class('ArithmeticError', OM_BaseException_create, (class_Exception,), class_type)
-class_OverflowError = make_builtin_class('OverflowError', OM_BaseException, (class_ArithmeticError,), class_type)
+class_OverflowError = make_builtin_class('OverflowError', OM_BaseException_create, (class_ArithmeticError,), class_type)
 class_ZeroDivisionError = make_builtin_class('ZeroDivisionError', OM_BaseException_create, (class_ArithmeticError,), class_type)
 
 om_None = om(class_NoneType)
