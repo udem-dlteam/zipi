@@ -110,6 +110,8 @@ def int_div_floor(u, v):
 def int_mod_floor(u, v):
     return u % v
 
+def int_mod_trunc(u, v):
+    return u % v
 
 def int_divmod_floor(u, v):
     return divmod(u, v)
@@ -172,6 +174,9 @@ def int_pow_mod(u,v,m):
 
 def int_pow(u,v):
     return pow(u,v)
+
+def int_is_even(u):
+    return u % 2 == 0
 
 def int_round(x, ndigits):
     return round(x, ndigits)

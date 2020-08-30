@@ -1657,6 +1657,48 @@ def om_int_pos_code(ctx, args):
 
 om_int_pos = do_magic_method(class_int, "__pos__", om_int_pos_code)
 
+def int_round(x, ndigits):
+    pow_limit = int_mul(int_from_num(10), int_abs(x))
+
+    # Version of pow which abort if the power is unnecessrily big
+    def round_pow(y, n):
+        if int_gt(x, pow_limit) and not int_is_zero(n):
+            return False
+        elif int_is_zero(n):
+            return int_from_num(1)
+        else:
+            sq = int_mul(y, y)
+            temp = round_pow(sq, int_rshift(n, int_from_num(1)))
+            if temp is False:
+                return False
+            elif int_is_even(n):
+                return temp
+            else:
+                return int_mul(y, temp)
+
+    if int_is_nonneg(ndigits):
+        return x
+    else:
+        low_digits_range = round_pow(int_from_num(10), int_neg(ndigits))
+
+        # abs(ndigits) may be so big that we don't need to know the result of its power
+        if low_digits_range is False:
+            return int_from_num(0)
+        else:
+            low_digits = int_mod_trunc(x, low_digits_range)
+            tmp_cmp = int_mul(low_digits, int_from_num(2))
+            x_rounded_down = int_sub(x, low_digits)
+
+            if int_gt(tmp_cmp, low_digits_range): # Round up
+                return int_add(x_rounded_down, low_digits_range)
+            elif int_eq(tmp_cmp, low_digits_range): # Round toward even
+                if int_is_even(int_div_floor(x_rounded_down, low_digits_range)):
+                    return x_rounded_down
+                else:
+                    return int_add(x_rounded_down, low_digits_range)
+            else: # Round down
+                return x_rounded_down
+
 def om_int_round_code(ctx, args):
     if len(args) == 1:
         self = args[0]
