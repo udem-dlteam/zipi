@@ -3041,10 +3041,10 @@ def om_float_round_code(ctx, args):
 
                 if float_eq(norm, norm_integral_part):
                     # Break int_round ties by rounding to even
-                    res = int_to_num(float(int_round(int_from_num(norm_integral_part), n_value, True)))
+                    res = int_to_num(int_round(int_from_num(norm_integral_part), n_value, True))
                 else:
                     # Break int_round ties by rounding up
-                    res = int_to_num(float(int_round(int_from_num(norm_integral_part), n_value, False)))
+                    res = int_to_num(int_round(int_from_num(norm_integral_part), n_value, False))
 
                 if res is False:
                     return sem_raise_with_message(ctx, class_OverflowError, "rounded value too large to represent")
