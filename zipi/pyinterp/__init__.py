@@ -3021,7 +3021,7 @@ def om_float_round_code(ctx, args):
             self_value = OM_get_boxed_value(self)
             n_value = OM_get_boxed_value(n)
 
-            if int_is_zero(ndigits):
+            if int_is_zero(n_value):
                 return cont_float(ctx, float_round(self_value))
             elif int_is_neg(n_value):
                 # When n is a negative value we want to raise to a power of 10
@@ -3037,14 +3037,14 @@ def om_float_round_code(ctx, args):
                 # NOTE: We are using int_round which breaks ties to even
                 # Although a number such as 5.1 would be casted to 5 and rounded to 0
                 # For this reason we indicate to int_round to break ties by rounding up if self has a decimal part
-                norm_integral_part = float_floor(norm)
+                norm_integral_part = int_from_num(float_floor(norm))
 
                 if float_eq(norm, norm_integral_part):
                     # Break int_round ties by rounding to even
-                    res = int_to_num(int_round(int_from_num(norm_integral_part), n_value, True))
+                    res = int_to_num(int_round(norm_integral_part, n_value, True))
                 else:
                     # Break int_round ties by rounding up
-                    res = int_to_num(int_round(int_from_num(norm_integral_part), n_value, False))
+                    res = int_to_num(int_round(norm_integral_part, n_value, False))
 
                 if res is False:
                     return sem_raise_with_message(ctx, class_OverflowError, "rounded value too large to represent")
