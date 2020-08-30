@@ -3023,6 +3023,8 @@ def om_float_round_code(ctx, args):
 
             if int_is_zero(n_value):
                 return cont_float(ctx, float_round(self_value))
+            elif float_is_infinite(self_value):
+                return cont_float(ctx, self_value)
             elif int_is_neg(n_value):
                 # When n is a negative value we want to raise to a power of 10
                 # In that case use the int_round algorithm on the norm of self
@@ -3046,7 +3048,7 @@ def om_float_round_code(ctx, args):
                     # Break int_round ties by rounding up
                     res = int_to_num(int_round(norm_integral_part, n_value, False))
 
-                if res is False:
+                if float_is_infinite(res):
                     return sem_raise_with_message(ctx, class_OverflowError, "rounded value too large to represent")
                 else:
                     return cont_float(ctx, float_mul(sign, res))

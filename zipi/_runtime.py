@@ -120,14 +120,17 @@ def int_not(u):
     return ~u
 
 def int_to_num(u, exact=None):
-    if exact:
-        try:
-            float(u)
-            return u
-        except OverflowError:
-            return False
-    else:
+    try:
+        float(u)
         return u
+    except OverflowError:
+        if exact:
+            return False
+        elif int_is_neg(u):
+            return neg_inf
+        else:
+            return inf
+
 
 
 def int_and(u, v):
@@ -277,6 +280,12 @@ def float_is_zero(u):
 
 def float_is_neg(u):
     return (u < 0)
+
+inf = float("inf")
+neg_inf = float("-inf")
+
+def float_is_infinite(u):
+    return u == inf or u == neg_inf
 
 
 def float_from_string(string):
