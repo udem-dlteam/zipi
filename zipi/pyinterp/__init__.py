@@ -3064,7 +3064,7 @@ def om_float_round_code(ctx, args):
                     if int_is_neg(n_value):
                         return cont_obj(ctx, self)
                     else:
-                        return cont_float(ctx, 0.0)
+                        return cont_float(ctx, float_from_float(0.0))
                 else:
                     # TODO: this does not break ties toward even digit
                     return cont_float(ctx, float_round_to_digits(self_value, int(n_float_value)))
