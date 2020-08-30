@@ -1680,7 +1680,7 @@ def compute_pow_mod(ctx, num, power, mod):
             return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
         elif float_is_infinite(fl_power):
             # the result tends to 0 when power tends to -Infinity
-            return cont_float(ctx, float_from_float(0.0))
+            return cont_float(ctx, float_from_num(0.0))
         else:
             # the result is less than the mod value because fl_power < 0
             result = float_pow(fl_num_mod, fl_power)
@@ -1701,7 +1701,7 @@ def compute_pow(ctx, num, power):
             return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
         elif not float_is_finite(fl_power):
             # the result tends to 0 when power tends to -Infinity
-            return cont_float(ctx, float_from_float(0.0))
+            return cont_float(ctx, float_from_num(0.0))
         else:
             result = float_pow(fl_num, fl_power)
             return cont_float(ctx, result)
