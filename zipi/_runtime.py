@@ -114,9 +114,6 @@ def int_mod_floor(u, v):
 def int_divmod_floor(u, v):
     return divmod(u, v)
 
-def int_pow(u, v):
-    return pow(u, v)
-
 def int_not(u):
     return ~u
 
@@ -203,6 +200,18 @@ def float_from_float(u):
 
 def float_is_zero(u):
     return u == 0
+
+
+def float_is_infinite(u):
+    return math.isinf(u)
+
+
+def float_is_finite(u):
+    return math.isfinite(u)
+
+
+def float_is_nan(u):
+    return math.isnan(u)
 
 
 def float_is_pos(u):
