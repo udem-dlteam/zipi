@@ -1673,19 +1673,16 @@ def compute_pow_mod(ctx, num, power, mod):
         fl_num_mod = int_to_num(num_mod, True)
         fl_power = int_to_num(power, True)
 
-        # NOTE: this does not follow python specs
         # raise an Overflow error when it cannot be exactly represent into a floating point
-        if fl_num_mod is False or fl_power is False:
+        if fl_num_mod is False:
             return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
+        elif fl_power is False:
+            # the result tends to 0 when power tends to -Infinity
+            return cont_float(ctx, 0.0)
         else:
+            # the result is less then the mod value because fl_power < 0
             result = float_pow(fl_num_mod, fl_power)
-
-            fl_mod = int_to_num(mod, True)
-            if fl_mod is False:
-                return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
-            else:
-                result_mod = float_mod(result, fl_mod)
-                return cont_float(ctx, result_mod)
+            return cont_float(ctx, result)
 
 # compute pow with unbox value
 def compute_pow(ctx, num, power):
@@ -1696,10 +1693,12 @@ def compute_pow(ctx, num, power):
         fl_num = int_to_num(num, True)
         fl_power = int_to_num(power, True)
 
-        # NOTE: this does not follow python specs
         # raise an Overflow error when it cannot be exactly represent into a floating point
-        if fl_num is False or fl_power is False:
+        if fl_num is False:
             return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
+        elif fl_power is False:
+            # the result tends to 0 when power tends to -Infinity
+            return cont_float(ctx, 0.0)
         else:
             result = float_pow(fl_num, fl_power)
             return cont_float(ctx, result)
