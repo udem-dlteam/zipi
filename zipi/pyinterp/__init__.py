@@ -3037,7 +3037,7 @@ def om_float_round_code(ctx, args):
                 # NOTE: We are using int_round which breaks ties to even
                 # Although a number such as 5.1 would be casted to 5 and rounded to 0
                 # For this reason we indicate to int_round to break ties by rounding up if self has a decimal part
-                norm_integral_part = float_round(norm)
+                norm_integral_part = float_floor(norm)
 
                 if float_eq(norm, norm_integral_part):
                     # Break int_round ties by rounding to even
