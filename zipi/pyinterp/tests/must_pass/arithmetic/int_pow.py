@@ -2,7 +2,7 @@
 print(2**3)
 print((-2)**3)
 
-# Negative exponant
+# Negative exponent
 print(2**-1)
 print(2**-2)
 print(2**-10)
@@ -10,10 +10,18 @@ print((-2)**-1)
 print((-2)**-2)
 print((-2)**-10)
 
-# Huge negative exponant
+# Huge negative exponent
 print((-2)**-10000000000001)
 print((-2)**-100000000000001)
 print((-2)**-1000000000000001)
 print((-2)**-10000000000000001)
 print((-2)**-100000000000000001)
 
+print((-9007199254740993)**0)
+print((-9007199254740993)**1)
+print((-9007199254740993)**2)
+print((-9007199254740993)**3)
+print((-1)**9007199254740993)
+
+# float_pow
+print((-9007199254740993)**2.0)

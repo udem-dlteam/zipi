@@ -1663,42 +1663,46 @@ def om_int_pos_code(ctx, args):
 om_int_pos = do_magic_method(class_int, "__pos__", om_int_pos_code)
 
 
-# compute pow_mod with unbox value.
+# compute pow_mod with unboxed value.
 def compute_pow_mod(ctx, num, power, mod):
-    if int_is_nonneg(power):
+    if int_is_zero(mod):
+        return sem_raise_with_message(ctx, class_ValueError, "pow() 3rd argument cannot be 0")
+    elif int_is_nonneg(power):
         result = int_pow_mod(num, power, mod)
         return cont_int(ctx, result)
     else:
         num_mod = int_mod_floor(num, mod)
-        fl_num_mod = int_to_num(num_mod, True)
-        fl_power = int_to_num(power, True)
+        fl_num_mod = int_to_num(num_mod)
+        fl_power = int_to_num(power)
 
-        # raise an Overflow error when it cannot be exactly represent into a floating point
-        if fl_num_mod is False:
+        # NOTE: NaN should not happen
+        # raise an Overflow error when it cannot be exactly represent as a floating point
+        if float_is_infinite(fl_num_mod) or float_is_nan(fl_num_mod) or float_is_nan(fl_power):
             return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
-        elif fl_power is False:
+        elif float_is_infinite(fl_power):
             # the result tends to 0 when power tends to -Infinity
-            return cont_float(ctx, 0.0)
+            return cont_float(ctx, float_from_float(0.0))
         else:
-            # the result is less then the mod value because fl_power < 0
+            # the result is less than the mod value because fl_power < 0
             result = float_pow(fl_num_mod, fl_power)
             return cont_float(ctx, result)
 
-# compute pow with unbox value
+# compute pow with unboxed value
 def compute_pow(ctx, num, power):
     if int_is_nonneg(power):
         result = int_pow(num, power)
         return cont_int(ctx, result)
     else:
-        fl_num = int_to_num(num, True)
-        fl_power = int_to_num(power, True)
+        fl_num = int_to_num(num)
+        fl_power = int_to_num(power)
 
-        # raise an Overflow error when it cannot be exactly represent into a floating point
-        if fl_num is False:
+        # NOTE: NaN should not happen
+        # raise an Overflow error when it cannot be exactly represent as a floating point
+        if float_is_infinite(fl_num) or float_is_nan(fl_num) or float_is_nan(fl_power):
             return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
-        elif fl_power is False:
+        elif not float_is_finite(fl_power):
             # the result tends to 0 when power tends to -Infinity
-            return cont_float(ctx, 0.0)
+            return cont_float(ctx, float_from_float(0.0))
         else:
             result = float_pow(fl_num, fl_power)
             return cont_float(ctx, result)
@@ -2853,12 +2857,12 @@ def gen_dunder_Float_BinOp(py_class, method, prim, cont_box):
         elif om_issubclass(val2_class, class_int):
             val1_value = OM_get_boxed_value(val1)
             val2_value = OM_get_boxed_value(val2)
-            val2_float_value = int_to_num(val2_value, True)
-            if val2_float_value is False:
+            val2_float_value = int_to_num(val2_value)
+            if float_is_infinite(val2_float_value) or float_is_nan(val2_float_value):
                 return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
-
-            res = prim(val1_value, val2_float_value)
-            return cont_box(ctx, res)
+            else:
+                res = prim(val1_value, val2_float_value)
+                return cont_box(ctx, res)
         else:
             return cont_obj(ctx, om_NotImplemented)
 
@@ -2883,8 +2887,8 @@ def gen_dunder_Float_rBinOp(py_class, method, prim, cont_box):
         elif om_issubclass(val2_class, class_int):
             val1_value = OM_get_boxed_value(val1)
             val2_value = OM_get_boxed_value(val2)
-            val2_float_value = int_to_num(val2_value, True)
-            if val2_float_value is False:
+            val2_float_value = int_to_num(val2_value)
+            if float_is_infinite(val2_float_value) or float_is_nan(val2_float_value):
                 return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
 
             res = prim(val2_float_value, val1_value)
