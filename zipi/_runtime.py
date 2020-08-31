@@ -285,6 +285,9 @@ def float_div(u, v):
 def float_mod(u, v):
     return u % v
 
+def float_mod_floor(u, v):
+    return u % v
+
 
 def float_is_zero(u):
     return u == 0

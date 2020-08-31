@@ -429,8 +429,7 @@ def align_args_with_signature(ctx, funcname, caller_args, signature):
     kwarg = signature_kwargs(signature)
     defaults = signature_defaults(signature)
     if kwarg is not None and len(kwonlyargs) > 0:
-        # TODO: implement kwarg
-        assert False, 'kwarg not implemented'
+        return sem_raise_with_message(ctx, class_NotImplementedError, "keyword arguments not yet supported")
     else:
         caller_args_len = len(caller_args)
         args_len = len(args)
@@ -698,7 +697,9 @@ def bootstrap_populate_base_types():
          ('__init__', om_object_init),
          ('__getattribute__', om_object_getattribute),
          ('__str__', om_object_str),
-         ('__repr__', om_object_repr)))
+         ('__repr__', om_object_repr),
+         ('__eq__', om_object_eq),
+         ('__ne__', om_object_ne)))
 
     buitlin_add_methods_to_class(
         class_WrapperDescriptor,
@@ -978,6 +979,9 @@ def om_MethodWrapper(name, instance, code):
 def om_is(x, y):
     return x is y
 
+def om_is_not(x, y):
+    return x is not y
+
 def om_issubclass(subcls, cls):
     subcls_mro = OM_get_type_mro(subcls)
 
@@ -1232,12 +1236,47 @@ sem_Or = gen_sem_Numeric_BinOp('|', '__or__', '__ror__')
 sem_And = gen_sem_Numeric_BinOp('&', '__and__', '__rand__')
 sem_Xor = gen_sem_Numeric_BinOp('^', '__xor__', '__rxor__')
 # Comparison
-sem_Eq = gen_sem_Numeric_BinOp('==', '__eq__', '__eq__')
-sem_NotEq = gen_sem_Numeric_BinOp('==', '__ne__', '__ne__')
 sem_Lt = gen_sem_Numeric_BinOp('<', '__lt__', '__gt__')
 sem_Gt = gen_sem_Numeric_BinOp('>', '__gt__', '__lt__')
 sem_LtE = gen_sem_Numeric_BinOp('<=', '__le__', '__ge__')
 sem_GtE = gen_sem_Numeric_BinOp('>=', '__ge__', '__le__')
+
+# sem_Eq and sem_NotEq are different in the sense they cannot raise a TypeError
+
+def gen_sem_Numeric_EqComp(op_symbol, method, fall_back):
+
+    def sem_Numeric_EqComp(ctx, val1, val2):
+        def test_val1_result(rte, val):
+            if om_is(val, om_NotImplemented):
+                return call_val2_op(rte)
+            else:
+                return ctx.cont(rte, val)
+
+        def test_val2_result(rte, val):
+            if om_is(val, om_NotImplemented):
+                return cont_bool(ctx, fall_back(val1, val2))
+            else:
+                return ctx.cont(rte, val)
+
+        def call_val2_op(rte):
+            val2_ne = getattribute_from_obj_mro(val2, method)
+
+            if val2_ne is absent:
+                return cont_bool(ctx, fall_back(val1, val2))
+            else:
+                return om_call(val2_ne, with_cont(ctx, test_val2_result), [val2, val1])
+
+        val1_ne = getattribute_from_obj_mro(val1, method)
+
+        if val1_ne is absent:
+            return call_val2_op(ctx.rte)
+        else:
+            return om_call(val1_ne, with_cont(ctx, test_val1_result), [val1, val2])
+
+    return sem_Numeric_EqComp
+
+sem_Eq = gen_sem_Numeric_EqComp("==", "__eq__", om_is)
+sem_NotEq = gen_sem_Numeric_EqComp("!=", "__ne__", om_is_not)
 
 def sem_Round(ctx, obj, ndigits):
     obj_round = getattribute_from_obj_mro(obj, "__round__")
@@ -1408,7 +1447,7 @@ def om_type_getattribute(ctx, args):
         # Get field name
         attr = getattribute_from_class_mro(self, name_value)
         if attr is absent:
-            assert False, "'type' object has no attribute '"+name_value+"'"
+            return sem_raise_with_message(ctx, class_AttributeError, "type has no attribute '" + name_value + "'")
 
         # attr.__get__
         attr__get__ = getattribute_from_obj_mro(attr, '__get__')
@@ -1524,40 +1563,51 @@ def om_object_new(ctx, args):
     cls = args[0]
     return ctx.cont(ctx.rte, om(cls))
 
-def om_object_init(ctx, args):
+def om_object_init_code(ctx, args):
     return ctx.cont(ctx.rte, om_None)
 
-def om_object_getattribute(ctx, args):
+om_object_init = do_magic_method(class_object, "__init__", om_object_init_code)
+
+def om_object_getattribute_code(ctx, args):
     if debug: print('object.__getattribute__')
-    self = args[0]
-    name = args[1]
 
-    dt = OM_get_object_class(name)
-    assert dt is class_str, \
-            "TypeError: attribute name must be string, not 'typeof(name)'"
+    if len(args) == 2:
+        self = args[0]
+        name = args[1]
 
-    name_value = OM_get_boxed_value(name)
+        if not om_isinstance(name, class_str):
+            return sem_raise_with_message(ctx, class_TypeError, "attribute name must be string")
 
-    # Get field name
-    attr = getattribute_from_obj_mro(self, name_value)
-    if attr is absent:
-        self_clsname = OM_get(OM_get_object_class(self), '__name__')
-        self_clsname_value = OM_get_boxed_value(self_clsname)
+        name_value = OM_get_boxed_value(name)
 
-        msg = om_str("'"+ self_clsname_value +"' object has no attribute '"+name_value+"'")
-        exn = om_exception(class_AttributeError, om_tuple((msg,)))
-        return sem_raise(ctx, exn)
+        # Get field name
+        attr = getattribute_from_obj_mro(self, name_value)
+        if attr is absent:
+            self_clsname = OM_get(OM_get_object_class(self), '__name__')
+            self_clsname_value = OM_get_boxed_value(self_clsname)
 
-    # TODO: check if attr.__get__ exists
-    attr__get__ = getattribute_from_obj_mro(attr, '__get__')
-    if attr__get__ is absent:
-        return ctx.cont(ctx.rte, attr)
+            msg = om_str("'"+ self_clsname_value +"' object has no attribute '"+name_value+"'")
+            exn = om_exception(class_AttributeError, om_tuple((msg,)))
+            return sem_raise(ctx, exn)
+
+        # TODO: check if attr.__get__ exists
+        attr__get__ = getattribute_from_obj_mro(attr, '__get__')
+        if attr__get__ is absent:
+            return ctx.cont(ctx.rte, attr)
+        else:
+            return om_call(attr__get__, ctx, [attr, self, dt])
     else:
-        return om_call(attr__get__, ctx, [attr, self, dt])
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
 
-def om_object_str(ctx, args):
-    self = args[0]
-    return sem_repr(ctx, self)
+om_object_getattribute = do_magic_method(class_object, "__getattribute__", om_object_getattribute_code)
+
+def om_object_str_code(ctx, args):
+    if len(args) == 1:
+        return sem_repr(ctx, args[0])
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+om_object_str = do_magic_method(class_object, "__repr__", om_object_str_code)
 
 def om_format_object_repr(self, rte):
     serial = OM_get_serial(self, rte)
@@ -1568,12 +1618,44 @@ def om_format_object_repr(self, rte):
 
     return "<" + clsname_value + " object #" + str(serial) +">"
 
-def om_object_repr(ctx, args):
-    self = args[0]
+def om_object_repr_code(ctx, args):
+    if len(args) == 1:
+        return cont_str(ctx, om_format_object_repr(args[0], ctx.rte))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
 
-    result = om_format_object_repr(self, ctx.rte)
+om_object_repr = do_magic_method(class_object, "__repr__", om_object_repr_code)
 
-    return ctx.cont(ctx.rte, om_str(result))
+def om_object_eq_code(ctx, args):
+    if len(args) == 2:
+        return cont_obj(ctx, om_NotImplemented)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
+
+om_object_eq = do_magic_method(class_object, "__eq__", om_object_eq_code)
+
+def om_object_ne_code(ctx, args):
+    # As per: https://github.com/python/cpython/blob/fabd7bb8e0450f16ed5c5c0ad575aa413d65712d/Objects/typeobject.c#L3989
+    if len(args) == 2:
+        self = args[0]
+        other = args[1]
+        self_eq = getattribute_from_obj_mro(self, "__eq__")
+
+        def check_result(check_result_rte, res):
+            if om_is(res, om_NotImplemented):
+                return cont_obj(ctx, om_NotImplemented)
+            else:
+                def invert_result(invert_rte, bool_res):
+                    if om_is(bool_res, om_True):
+                        return cont_obj(ctx, om_False)
+                    else:
+                        return cont_obj(ctx, om_True)
+                return sem_bool(with_cont(ctx, invert_result), res)
+        return om_call(self_eq, with_cont(ctx, check_result), (self, other))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
+
+om_object_ne = do_magic_method(class_object, "__ne__", om_object_ne_code)
 
 # class_NotImplementedType
 def om_format_NotImplementedType(self, rte):
@@ -2092,7 +2174,7 @@ def om_str_new_code(ctx, args):
         value = args[1]
         return sem_str(ctx, value)
     else:
-        assert False, "TypeError: str() takes 0 or 1 argument"
+        return sem_raise_with_message(ctx, class_TypeError, "str() takes 0 or 1 argument")
 
 om_str_new = do_static_magic_method(class_str, "__new__", om_str_new_code)
 
@@ -2142,7 +2224,7 @@ def om_format_str_repr(self, rte):
                 if use_single_quote:
                     char_lst[j] = "\\'"
             elif char_code == 92: # \
-                char_lst[j] == "\\\\"
+                char_lst[j] = "\\\\"
         elif char_code < 161:
             char_lst[j] = char_code_to_hex(char_code)
 
@@ -3020,17 +3102,17 @@ def gen_dunder_Float_EqComp(py_class, method, float_comp, res_on_overflow, cont_
             val1_value = OM_get_boxed_value(val1)
             val2_value = OM_get_boxed_value(val2)
             result = float_comp(val1_value, val2_value)
-            return ctx.cont(ctx.rte, om_float(result))
+            return cont_bool(ctx, result)
         elif om_issubclass(val2_class, class_int):
             val1_value = OM_get_boxed_value(val1)
             val2_value = OM_get_boxed_value(val2)
             val2_float_value = int_to_num(val2_value, True)
 
             if val2_float_value is False:
-                cont_box(ctx, res_on_overflow)
+                cont_bool(ctx, res_on_overflow)
             else:
                 res = float_comp(val1_value, val2_float_value)
-                return cont_box(ctx, res)
+                return cont_bool(ctx, res)
         else:
             return cont_obj(ctx, om_NotImplemented)
 
@@ -3088,8 +3170,8 @@ om_float_rsub = gen_dunder_Float_rBinOp('float', '__rsub__', float_sub, cont_flo
 om_float_mul = gen_dunder_Float_BinOp('float', '__mul__', float_mul, cont_float)
 om_float_rmul = gen_dunder_Float_rBinOp('float', '__rmul__', float_mul, cont_float)
 
-om_float_mod = gen_dunder_Float_DivideOp('float', '__mod__', float_mod, cont_float)
-om_float_rmod = gen_dunder_Float_rDivideOp('float', '__mod__', float_mod, cont_float)
+om_float_mod = gen_dunder_Float_DivideOp('float', '__mod__', float_mod_floor, cont_float)
+om_float_rmod = gen_dunder_Float_rDivideOp('float', '__rmod__', float_mod_floor, cont_float)
 
 om_float_truediv = gen_dunder_Float_DivideOp('float', '__truediv__', float_div, cont_float)
 om_float_rtruediv = gen_dunder_Float_rDivideOp('float', '__rtruediv__', float_div, cont_float)
@@ -4333,7 +4415,7 @@ def gen_delete(cte, ast, expr):
 
         return (expr_cte, del_expr)
     else:
-        assert False, 'del: only supports var deletion'
+        return CT_raise_with_msg(cte, ast, "del: only supports var deletion")
 
 
 def gen_delete_seq(cte, ast, targets):
@@ -4341,7 +4423,7 @@ def gen_delete_seq(cte, ast, targets):
     if len(targets) == 1:
         return gen_delete(cte, ast, expr)
     else:
-        assert False, 'del: multiple targets not yet supported.'
+        return CT_raise_with_msg(cte, ast, "del: multiple targets not yet supported.")
 
 def gen_for(cte, target, iterable, body):
 

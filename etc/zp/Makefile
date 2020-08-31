@@ -15,7 +15,7 @@ zipi-venv:
 	@echo "Setting up zipi venv..."
 	@cd ../.. && $(MAKE) venv
 
-pyinterp: zipi-venv _zparse.py
+pyinterp: _tmpdir zipi-venv _zparse.py
 	$(PYTHON38) zp.py -f ../../zipi/pyinterp/__init__.py $(ZP_DEBUG) -e pyinterp -o $(TMPDIR)/pyinterp.js
 	$(PYTHON38) zp.py -f ../../zipi/pyinterp/__init__.py $(ZP_DEBUG) -e pyinterp -t -o $(TMPDIR)/pyinterp_browser.js
 	$(PYTHON38) zp.py -f ../../zipi/pyinterp/__init__.py $(ZP_DEBUG) -e pyinterp -n -t -o $(TMPDIR)/pyinterp_node.js
