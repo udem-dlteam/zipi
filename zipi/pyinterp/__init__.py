@@ -3023,17 +3023,17 @@ def gen_dunder_Float_EqComp(py_class, method, float_comp, res_on_overflow, cont_
             val1_value = OM_get_boxed_value(val1)
             val2_value = OM_get_boxed_value(val2)
             result = float_comp(val1_value, val2_value)
-            return ctx.cont(ctx.rte, om_float(result))
+            return cont_bool(ctx, result)
         elif om_issubclass(val2_class, class_int):
             val1_value = OM_get_boxed_value(val1)
             val2_value = OM_get_boxed_value(val2)
             val2_float_value = int_to_num(val2_value, True)
 
             if val2_float_value is False:
-                cont_box(ctx, res_on_overflow)
+                cont_bool(ctx, res_on_overflow)
             else:
                 res = float_comp(val1_value, val2_float_value)
-                return cont_box(ctx, res)
+                return cont_bool(ctx, res)
         else:
             return cont_obj(ctx, om_NotImplemented)
 
