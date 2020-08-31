@@ -982,9 +982,6 @@ def om_is(x, y):
 def om_is_not(x, y):
     return x is not y
 
-def om_is_falsy(val):
-    return om_is(val, om_False)
-
 def om_issubclass(subcls, cls):
     subcls_mro = OM_get_type_mro(subcls)
 
@@ -4329,7 +4326,7 @@ def gen_while(cte, ast, code1, code2, code3):
 
     def code(rte, cont):
         def dispatch(rte1, val):
-            if om_is_falsy(val):
+            if om_is(val, om_False):
                 return code3(rte1, do_stmt_end(cont, ast, 0))
             else:
                 ctrl_env = rte_ctrl_env(rte)
@@ -4355,7 +4352,7 @@ def gen_if(cte, ast, code1, code2, code3):
 
         def dispatch(rte, val):
             stmt_end_cont = do_stmt_end(cont, ast, 0)
-            if om_is_falsy(val):
+            if om_is(val, om_False):
                 return code3(rte, stmt_end_cont)
             else:
                 return code2(rte, stmt_end_cont)
@@ -5161,7 +5158,13 @@ def sem_bool(ctx, val):
                 return cont_bool(ctx, not int_is_zero(res_value))
         return sem_maybe_len(with_cont(ctx, check_len), val)
     else:
-        return om_call(__val_bool__, ctx, [val])
+        def check_bool(rte, res):
+            if om_is(res, om_True) or om_is(res, om_False):
+                return cont_obj(ctx, res)
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, "__bool__ should return bool")
+
+        return om_call(__val_bool__, with_cont(ctx, check_bool), [val])
 
 
 def sem_raise(ctx, exn):
