@@ -5235,7 +5235,7 @@ def om_simple_exception_format(ctx, exn):
 
 
 def expr_end_with_error(ctx, error):
-    return return_to_trampoline(ctx.ast, '', 1, False, error, lambda: None, ctx)
+    return return_to_trampoline(ctx.ast, '', 0, False, error, lambda: None, ctx)
 
 # XXX: Default nb_steps to 1 in expr_end to minimise changes
 def expr_end(ctx, val):
