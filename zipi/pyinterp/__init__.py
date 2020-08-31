@@ -978,6 +978,9 @@ def om_MethodWrapper(name, instance, code):
 def om_is(x, y):
     return x is y
 
+def om_is_not(x, y):
+    return x is not y
+
 def om_is_falsy(val):
     return om_is(val, om_False)
 
@@ -1235,12 +1238,47 @@ sem_Or = gen_sem_Numeric_BinOp('|', '__or__', '__ror__')
 sem_And = gen_sem_Numeric_BinOp('&', '__and__', '__rand__')
 sem_Xor = gen_sem_Numeric_BinOp('^', '__xor__', '__rxor__')
 # Comparison
-sem_Eq = gen_sem_Numeric_BinOp('==', '__eq__', '__eq__')
-sem_NotEq = gen_sem_Numeric_BinOp('==', '__ne__', '__ne__')
 sem_Lt = gen_sem_Numeric_BinOp('<', '__lt__', '__gt__')
 sem_Gt = gen_sem_Numeric_BinOp('>', '__gt__', '__lt__')
 sem_LtE = gen_sem_Numeric_BinOp('<=', '__le__', '__ge__')
 sem_GtE = gen_sem_Numeric_BinOp('>=', '__ge__', '__le__')
+
+# sem_Eq and sem_NotEq are different in the sense they cannot raise a TypeError
+
+def gen_sem_Numeric_EqComp(op_symbol, method, fall_back):
+
+    def sem_Numeric_EqComp(ctx, val1, val2):
+        def test_val1_result(rte, val):
+            if om_is(val, om_NotImplemented):
+                return call_val2_op(rte)
+            else:
+                return ctx.cont(rte, val)
+
+        def test_val2_result(rte, val):
+            if om_is(val, om_NotImplemented):
+                return cont_bool(ctx, fall_back(val1, val2))
+            else:
+                return ctx.cont(rte, val)
+
+        def call_val2_op(rte):
+            val2_ne = getattribute_from_obj_mro(val2, method)
+
+            if val2_ne is absent:
+                return cont_bool(ctx, fall_back(val1, val2))
+            else:
+                return om_call(val2_ne, with_cont(ctx, test_val2_result), [val2, val1])
+
+        val1_ne = getattribute_from_obj_mro(val1, method)
+
+        if val1_ne is absent:
+            return call_val2_op(ctx.rte)
+        else:
+            return om_call(val1_ne, with_cont(ctx, test_val1_result), [val1, val2])
+
+    return sem_Numeric_EqComp
+
+sem_Eq = gen_sem_Numeric_EqComp("==", "__eq__", om_is)
+sem_NotEq = gen_sem_Numeric_EqComp("!=", "__ne__", om_is_not)
 
 def sem_Round(ctx, obj, ndigits):
     obj_round = getattribute_from_obj_mro(obj, "__round__")
