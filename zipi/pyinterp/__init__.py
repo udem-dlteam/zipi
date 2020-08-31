@@ -2281,7 +2281,7 @@ om_int_mul = gen_dunder_Homogenous_Numeric_BinOp('int', '__mul__', int_mul, clas
 om_int_rmul = om_int_mul
 
 om_int_pow = gen_dunder_Homogenous_Numeric_BinOp('int', '__pow__', int_pow, class_int, om_int)
-om_int_rpow = gen_dunder_Homogenous_Numeric_rBinOp('int', '__rpow__', int_pow, class_int, om_int)
+om_int_rpow = gen_dunder_Homogenous_Numeric_BinOp('int', '__rpow__', int_pow, class_int, om_int)
 
 # Bitwise
 om_int_lshift = gen_dunder_Homogenous_Numeric_BinOp('int', '__lshift__', int_lshift, class_int, om_int)
@@ -3150,11 +3150,16 @@ def om_pow_code(rte, _):
     if om_is(obj_mod, absent):
         # same semantic as **
         obj1_pow = getattribute_from_obj_mro(obj1, '__pow__')
-
         if obj1_pow is absent:
             return sem_raise_with_message(next_ctx, class_TypeError, "bad operand type for pow()")
         else:
-            return om_call(obj1_pow, next_ctx, [obj1, obj2])
+            # XXx hardcoded
+            if om_is(OM_get_object_class(obj1), class_int)\
+              and om_is(OM_get_object_class(obj2), class_float):
+                obj2_pow = getattribute_from_obj_mro(obj2, '__rpow__')
+                return om_call(obj2_pow, next_ctx, [obj2, obj1])
+            else:
+                return om_call(obj1_pow, next_ctx, [obj1, obj2])
 
     elif om_is(OM_get_object_class(obj1), class_int)\
       and om_is(OM_get_object_class(obj2), class_int)\
