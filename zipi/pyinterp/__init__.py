@@ -3091,8 +3091,8 @@ om_float_rsub = gen_dunder_Float_rBinOp('float', '__rsub__', float_sub, cont_flo
 om_float_mul = gen_dunder_Float_BinOp('float', '__mul__', float_mul, cont_float)
 om_float_rmul = gen_dunder_Float_rBinOp('float', '__rmul__', float_mul, cont_float)
 
-om_float_mod = gen_dunder_Float_DivideOp('float', '__mod__', float_mod, cont_float)
-om_float_rmod = gen_dunder_Float_rDivideOp('float', '__mod__', float_mod, cont_float)
+om_float_mod = gen_dunder_Float_DivideOp('float', '__mod__', float_mod_floor, cont_float)
+om_float_rmod = gen_dunder_Float_rDivideOp('float', '__mod__', float_mod_floor, cont_float)
 
 om_float_truediv = gen_dunder_Float_DivideOp('float', '__truediv__', float_div, cont_float)
 om_float_rtruediv = gen_dunder_Float_rDivideOp('float', '__rtruediv__', float_div, cont_float)
