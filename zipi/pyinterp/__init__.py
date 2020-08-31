@@ -698,7 +698,9 @@ def bootstrap_populate_base_types():
          ('__init__', om_object_init),
          ('__getattribute__', om_object_getattribute),
          ('__str__', om_object_str),
-         ('__repr__', om_object_repr)))
+         ('__repr__', om_object_repr),
+         ('__eq__', om_object_eq),
+         ('__ne__', om_object_ne)))
 
     buitlin_add_methods_to_class(
         class_WrapperDescriptor,
@@ -1615,6 +1617,37 @@ def om_object_repr(ctx, args):
     result = om_format_object_repr(self, ctx.rte)
 
     return ctx.cont(ctx.rte, om_str(result))
+
+def om_object_eq_code(ctx, args):
+    if len(args) == 2:
+        return cont_obj(ctx, om_NotImplemented)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
+
+om_object_eq = do_magic_method(class_object, "__eq__", om_object_eq_code)
+
+def om_object_ne_code(ctx, args):
+    # As per: https://github.com/python/cpython/blob/fabd7bb8e0450f16ed5c5c0ad575aa413d65712d/Objects/typeobject.c#L3989
+    if len(args) == 2:
+        self = args[0]
+        other = args[1]
+        self_eq = getattribute_from_obj_mro(self, "__eq__")
+
+        def check_result(check_result_rte, res):
+            if om_is(res, om_NotImplemented):
+                return cont_obj(ctx, om_NotImplemented)
+            else:
+                def invert_result(invert_rte, bool_res):
+                    if om_is(bool_res, om_True):
+                        return cont_obj(ctx, om_False)
+                    else:
+                        return cont_obj(ctx, om_True)
+                return sem_bool(with_cont(ctx, invert_result), res)
+        return om_call(self_eq, with_cont(ctx, check_result), (self, other))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
+
+om_object_ne = do_magic_method(class_object, "__ne__", om_object_ne_code)
 
 # class_NotImplementedType
 def om_format_NotImplementedType(self, rte):
