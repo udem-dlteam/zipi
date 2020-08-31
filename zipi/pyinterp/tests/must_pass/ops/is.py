@@ -20,3 +20,9 @@ print(x is not False)
 x = None
 print(x is None)
 print(x is not None)
+
+x = object()
+print(object() == object())
+print(object() != object())
+print(x == x)
+print(x != x)
