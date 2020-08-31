@@ -429,8 +429,7 @@ def align_args_with_signature(ctx, funcname, caller_args, signature):
     kwarg = signature_kwargs(signature)
     defaults = signature_defaults(signature)
     if kwarg is not None and len(kwonlyargs) > 0:
-        # TODO: implement kwarg
-        assert False, 'kwarg not implemented'
+        return sem_raise_with_message(ctx, class_NotImplementedError, "keyword arguments not yet supported")
     else:
         caller_args_len = len(caller_args)
         args_len = len(args)
@@ -1451,7 +1450,7 @@ def om_type_getattribute(ctx, args):
         # Get field name
         attr = getattribute_from_class_mro(self, name_value)
         if attr is absent:
-            assert False, "'type' object has no attribute '"+name_value+"'"
+            return sem_raise_with_message(ctx, class_AttributeError, "type has no attribute '" + name_valuedoes not h + "'")
 
         # attr.__get__
         attr__get__ = getattribute_from_obj_mro(attr, '__get__')
@@ -2178,7 +2177,7 @@ def om_str_new_code(ctx, args):
         value = args[1]
         return sem_str(ctx, value)
     else:
-        assert False, "TypeError: str() takes 0 or 1 argument"
+        return sem_raise_with_message(ctx, class_TypeError "str() takes 0 or 1 argument")
 
 om_str_new = do_static_magic_method(class_str, "__new__", om_str_new_code)
 
@@ -4419,7 +4418,7 @@ def gen_delete(cte, ast, expr):
 
         return (expr_cte, del_expr)
     else:
-        assert False, 'del: only supports var deletion'
+        return CT_raise_with_msg(cte, ast, "del: only supports var deletion")
 
 
 def gen_delete_seq(cte, ast, targets):
@@ -4427,7 +4426,7 @@ def gen_delete_seq(cte, ast, targets):
     if len(targets) == 1:
         return gen_delete(cte, ast, expr)
     else:
-        assert False, 'del: multiple targets not yet supported.'
+        return CT_raise_with_msg(cte, ast, "del: multiple targets not yet supported.")
 
 def gen_for(cte, target, iterable, body):
 
