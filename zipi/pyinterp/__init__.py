@@ -1567,40 +1567,51 @@ def om_object_new(ctx, args):
     cls = args[0]
     return ctx.cont(ctx.rte, om(cls))
 
-def om_object_init(ctx, args):
+def om_object_init_code(ctx, args):
     return ctx.cont(ctx.rte, om_None)
 
-def om_object_getattribute(ctx, args):
+om_object_init = do_magic_method(class_object, "__init__", om_object_init_code)
+
+def om_object_getattribute_code(ctx, args):
     if debug: print('object.__getattribute__')
-    self = args[0]
-    name = args[1]
 
-    dt = OM_get_object_class(name)
-    assert dt is class_str, \
-            "TypeError: attribute name must be string, not 'typeof(name)'"
+    if len(args) == 2:
+        self = args[0]
+        name = args[1]
 
-    name_value = OM_get_boxed_value(name)
+        if not om_isinstance(name, class_str):
+            return sem_raise_with_message(ctx, class_TypeError, "attribute name must be string")
 
-    # Get field name
-    attr = getattribute_from_obj_mro(self, name_value)
-    if attr is absent:
-        self_clsname = OM_get(OM_get_object_class(self), '__name__')
-        self_clsname_value = OM_get_boxed_value(self_clsname)
+        name_value = OM_get_boxed_value(name)
 
-        msg = om_str("'"+ self_clsname_value +"' object has no attribute '"+name_value+"'")
-        exn = om_exception(class_AttributeError, om_tuple((msg,)))
-        return sem_raise(ctx, exn)
+        # Get field name
+        attr = getattribute_from_obj_mro(self, name_value)
+        if attr is absent:
+            self_clsname = OM_get(OM_get_object_class(self), '__name__')
+            self_clsname_value = OM_get_boxed_value(self_clsname)
 
-    # TODO: check if attr.__get__ exists
-    attr__get__ = getattribute_from_obj_mro(attr, '__get__')
-    if attr__get__ is absent:
-        return ctx.cont(ctx.rte, attr)
+            msg = om_str("'"+ self_clsname_value +"' object has no attribute '"+name_value+"'")
+            exn = om_exception(class_AttributeError, om_tuple((msg,)))
+            return sem_raise(ctx, exn)
+
+        # TODO: check if attr.__get__ exists
+        attr__get__ = getattribute_from_obj_mro(attr, '__get__')
+        if attr__get__ is absent:
+            return ctx.cont(ctx.rte, attr)
+        else:
+            return om_call(attr__get__, ctx, [attr, self, dt])
     else:
-        return om_call(attr__get__, ctx, [attr, self, dt])
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
 
-def om_object_str(ctx, args):
-    self = args[0]
-    return sem_repr(ctx, self)
+om_object_getattribute = do_magic_method(class_object, "__getattribute__", om_object_getattribute_code)
+
+def om_object_str_code(ctx, args):
+    if len(args) == 1:
+        return sem_repr(ctx, args[0])
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+om_object_str = do_magic_method(class_object, "__repr__", om_object_str_code)
 
 def om_format_object_repr(self, rte):
     serial = OM_get_serial(self, rte)
@@ -1611,12 +1622,13 @@ def om_format_object_repr(self, rte):
 
     return "<" + clsname_value + " object #" + str(serial) +">"
 
-def om_object_repr(ctx, args):
-    self = args[0]
+def om_object_repr_code(ctx, args):
+    if len(args) == 1:
+        return cont_str(ctx, om_format_object_repr(args[0], ctx.rte))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
 
-    result = om_format_object_repr(self, ctx.rte)
-
-    return ctx.cont(ctx.rte, om_str(result))
+om_object_repr = do_magic_method(class_object, "__repr__", om_object_repr_code)
 
 def om_object_eq_code(ctx, args):
     if len(args) == 2:
