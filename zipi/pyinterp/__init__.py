@@ -1450,7 +1450,7 @@ def om_type_getattribute(ctx, args):
         # Get field name
         attr = getattribute_from_class_mro(self, name_value)
         if attr is absent:
-            return sem_raise_with_message(ctx, class_AttributeError, "type has no attribute '" + name_valuedoes not h + "'")
+            return sem_raise_with_message(ctx, class_AttributeError, "type has no attribute '" + name_value + "'")
 
         # attr.__get__
         attr__get__ = getattribute_from_obj_mro(attr, '__get__')
@@ -2177,7 +2177,7 @@ def om_str_new_code(ctx, args):
         value = args[1]
         return sem_str(ctx, value)
     else:
-        return sem_raise_with_message(ctx, class_TypeError "str() takes 0 or 1 argument")
+        return sem_raise_with_message(ctx, class_TypeError, "str() takes 0 or 1 argument")
 
 om_str_new = do_static_magic_method(class_str, "__new__", om_str_new_code)
 
