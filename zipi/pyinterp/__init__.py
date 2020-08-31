@@ -3105,17 +3105,17 @@ def gen_dunder_Float_EqComp(py_class, method, float_comp, res_on_overflow, cont_
             val1_value = OM_get_boxed_value(val1)
             val2_value = OM_get_boxed_value(val2)
             result = float_comp(val1_value, val2_value)
-            return ctx.cont(ctx.rte, om_float(result))
+            return cont_bool(ctx, result)
         elif om_issubclass(val2_class, class_int):
             val1_value = OM_get_boxed_value(val1)
             val2_value = OM_get_boxed_value(val2)
             val2_float_value = int_to_num(val2_value, True)
 
             if val2_float_value is False:
-                cont_box(ctx, res_on_overflow)
+                cont_bool(ctx, res_on_overflow)
             else:
                 res = float_comp(val1_value, val2_float_value)
-                return cont_box(ctx, res)
+                return cont_bool(ctx, res)
         else:
             return cont_obj(ctx, om_NotImplemented)
 
@@ -3174,7 +3174,7 @@ om_float_mul = gen_dunder_Float_BinOp('float', '__mul__', float_mul, cont_float)
 om_float_rmul = gen_dunder_Float_rBinOp('float', '__rmul__', float_mul, cont_float)
 
 om_float_mod = gen_dunder_Float_DivideOp('float', '__mod__', float_mod_floor, cont_float)
-om_float_rmod = gen_dunder_Float_rDivideOp('float', '__mod__', float_mod_floor, cont_float)
+om_float_rmod = gen_dunder_Float_rDivideOp('float', '__rmod__', float_mod_floor, cont_float)
 
 om_float_truediv = gen_dunder_Float_DivideOp('float', '__truediv__', float_div, cont_float)
 om_float_rtruediv = gen_dunder_Float_rDivideOp('float', '__rtruediv__', float_div, cont_float)
