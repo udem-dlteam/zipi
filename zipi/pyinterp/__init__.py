@@ -3147,13 +3147,26 @@ def om_pow_code(rte, _):
     obj2 = rte_lookup(rte, 'obj2')
     obj_mod = rte_lookup(rte, 'obj_mod')
 
+    val1 = OM_get_boxed_value(obj1)
+    val2 = OM_get_boxed_value(obj2)
+    val_mod = OM_get_boxed_value(obj_mod)
+
     if om_is(obj_mod, absent):
+        if om_is(OM_get_object_class(obj1), class_int)\
+          and om_is(OM_get_object_class(obj2), class_int)\
+          and int_is_neg(val2):
+
+              val1 = int_to_num(val1)
+              obj1 = om_float(val1)
+
+              val2 = int_to_num(val2)
+              obj2 = om_float(val2)
+
         # same semantic as **
         obj1_pow = getattribute_from_obj_mro(obj1, '__pow__')
         if obj1_pow is absent:
             return sem_raise_with_message(next_ctx, class_TypeError, "bad operand type for pow()")
         else:
-            # XXx hardcoded
             if om_is(OM_get_object_class(obj1), class_int)\
               and om_is(OM_get_object_class(obj2), class_float):
                 obj2_pow = getattribute_from_obj_mro(obj2, '__rpow__')
@@ -3164,10 +3177,6 @@ def om_pow_code(rte, _):
     elif om_is(OM_get_object_class(obj1), class_int)\
       and om_is(OM_get_object_class(obj2), class_int)\
       and om_is(OM_get_object_class(obj_mod), class_int):
-
-        val1 = OM_get_boxed_value(obj1)
-        val2 = OM_get_boxed_value(obj2)
-        val_mod = OM_get_boxed_value(obj_mod)
 
         return unwindReturn(rte, om_int(int_pow_mod(val1,val2,val_mod)))
     else:
