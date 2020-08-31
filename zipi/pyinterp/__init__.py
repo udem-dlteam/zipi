@@ -2145,7 +2145,7 @@ def om_format_str_repr(self, rte):
                 if use_single_quote:
                     char_lst[j] = "\\'"
             elif char_code == 92: # \
-                char_lst[j] == "\\\\"
+                char_lst[j] = "\\\\"
         elif char_code < 161:
             char_lst[j] = char_code_to_hex(char_code)
 
