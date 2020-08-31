@@ -752,6 +752,10 @@ def populate_builtin_int():
     builtin_add_method(class_int, '__mod__', om_int_mod)
     builtin_add_method(class_int, '__rmod__', om_int_rmod)
     builtin_add_method(class_int, '__abs__', om_int_abs)
+    builtin_add_method(class_int, '__pow__', om_int_pow)
+    builtin_add_method(class_int, '__rpow__', om_int_rpow)
+
+
     # Bitwise
     builtin_add_method(class_int, '__lshift__', om_int_lshift)
     builtin_add_method(class_int, '__rlshift__', om_int_rlshift)
@@ -2275,6 +2279,9 @@ om_int_rsub = gen_dunder_Homogenous_Numeric_rBinOp('int', '__rsub__', int_sub, c
 
 om_int_mul = gen_dunder_Homogenous_Numeric_BinOp('int', '__mul__', int_mul, class_int, om_int)
 om_int_rmul = om_int_mul
+
+om_int_pow = gen_dunder_Homogenous_Numeric_BinOp('int', '__pow__', int_pow, class_int, om_int)
+om_int_rpow = gen_dunder_Homogenous_Numeric_rBinOp('int', '__rpow__', int_pow, class_int, om_int)
 
 # Bitwise
 om_int_lshift = gen_dunder_Homogenous_Numeric_BinOp('int', '__lshift__', int_lshift, class_int, om_int)
