@@ -3140,7 +3140,6 @@ def om_pow_code(rte, _):
     obj2 = rte_lookup(rte, 'obj2')
     obj_mod = rte_lookup(rte, 'obj_mod')
 
-    
     if om_is(obj_mod, absent):
         # same semantic as **
         obj1_pow = getattribute_from_obj_mro(obj1, '__pow__')
@@ -3476,7 +3475,7 @@ def fresh_rte(options):
     om_builtin_abs = om_make_function_with_signature('abs', om_abs_code, make_posonly_only_signature(('obj',)))
     om_builtin_min = om_make_function_with_signature('min', om_min_code, make_vararg_only_signature('args'))
     om_builtin_max = om_make_function_with_signature('max', om_max_code, make_vararg_only_signature('args'))
-    om_builtin_pow = om_make_function_with_signature('pow', om_pow_code, make_posonly_only_signature('obj1', 'obj2'))
+    om_builtin_pow = om_make_function_with_signature('pow', om_pow_code, make_posonly_only_signature(('obj1', 'obj2', 'obj_mod'), (absent,)))
 
 
     dict_set(builtins_env, 'type', class_type)
