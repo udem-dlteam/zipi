@@ -1,5 +1,8 @@
 from zipi._runtime import *
 
+# NOTE: required to be able to instantiate ast nodes from pyinterp
+from zipi.zast._zast import *
+
 import zipi.zast._zast as AST
 import zipi.zast as zast
 AST.parse = zast.parse
@@ -4709,11 +4712,16 @@ def comp_Compare_Op(op):
 
 
 def make_Compare_pseudo_node(left, op, right):
-    ast = AST.Compare(left, [op], [right])
+    ast = Compare(left, [op], [right])
     ast.lineno = left.lineno
     ast.col_offset = left.col_offset
     ast.end_lineno = right.end_lineno
     ast.end_col_offset = right.end_col_offset
+
+    # Special case which only happens in py.js
+    if hasattr(left, 'container'):
+        ast.container = left.container
+
     return ast
 
 
