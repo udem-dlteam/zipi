@@ -2533,25 +2533,25 @@ def gen_dunder_Homogenous_Numeric_rBinOp(py_class, method, prim, om_class, om_bo
 
 # Arithmetic
 om_int_add = gen_dunder_Homogenous_Numeric_BinOp('int', '__add__', int_add, class_int, om_int)
-om_int_radd = om_int_add
+om_int_radd = gen_dunder_Homogenous_Numeric_rBinOp('int', '__radd__', int_add, class_int, om_int)
 
 om_int_sub = gen_dunder_Homogenous_Numeric_BinOp('int', '__sub__', int_sub, class_int, om_int)
 om_int_rsub = gen_dunder_Homogenous_Numeric_rBinOp('int', '__rsub__', int_sub, class_int, om_int)
 
 om_int_mul = gen_dunder_Homogenous_Numeric_BinOp('int', '__mul__', int_mul, class_int, om_int)
-om_int_rmul = om_int_mul
+om_int_rmul = gen_dunder_Homogenous_Numeric_rBinOp('int', '__rmul__', int_mul, class_int, om_int)
 
 # Bitwise
 om_int_lshift = gen_dunder_Homogenous_Numeric_BinOp('int', '__lshift__', int_lshift, class_int, om_int)
-om_int_rlshift = gen_dunder_Homogenous_Numeric_BinOp('int', '__rlshift__', int_lshift, class_int, om_int)
+om_int_rlshift = gen_dunder_Homogenous_Numeric_rBinOp('int', '__rlshift__', int_lshift, class_int, om_int)
 om_int_rshift = gen_dunder_Homogenous_Numeric_BinOp('int', '__rshift__', int_rshift, class_int, om_int)
-om_int_rrshift = gen_dunder_Homogenous_Numeric_BinOp('int', '__rrshift__', int_rshift, class_int, om_int)
+om_int_rrshift = gen_dunder_Homogenous_Numeric_rBinOp('int', '__rrshift__', int_rshift, class_int, om_int)
 om_int_or = gen_dunder_Homogenous_Numeric_BinOp('int', '__or__', int_or, class_int, om_int)
-om_int_ror = gen_dunder_Homogenous_Numeric_BinOp('int', '__ror__', int_or, class_int, om_int)
+om_int_ror = gen_dunder_Homogenous_Numeric_rBinOp('int', '__ror__', int_or, class_int, om_int)
 om_int_and = gen_dunder_Homogenous_Numeric_BinOp('int', '__and__', int_and, class_int, om_int)
-om_int_rand = gen_dunder_Homogenous_Numeric_BinOp('int', '__rand__', int_and, class_int, om_int)
+om_int_rand = gen_dunder_Homogenous_Numeric_rBinOp('int', '__rand__', int_and, class_int, om_int)
 om_int_xor = gen_dunder_Homogenous_Numeric_BinOp('int', '__xor__', int_xor, class_int, om_int)
-om_int_rxor = gen_dunder_Homogenous_Numeric_BinOp('int', '__xror__', int_xor, class_int, om_int)
+om_int_rxor = gen_dunder_Homogenous_Numeric_rBinOp('int', '__rxor__', int_xor, class_int, om_int)
 
 def is_space(c):
     return c == " " or c == "\t" or c == "\f" or c =="\r" or c == "\n"
