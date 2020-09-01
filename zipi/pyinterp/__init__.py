@@ -4310,6 +4310,12 @@ def do_stmt_end_with_message(cont, ast):
 def do_expr_end(cont, ast):
     return lambda rte, val: expr_end(Context(rte, cont, ast), val)
 
+def do_expr_end_with_displayed_value(cont, ast, value):
+    def reinject_val(val):
+        return lambda rte, _: cont(rte, val)
+
+    return lambda rte, val: expr_end(Context(rte, reinject_val(val), ast), value)
+
 def gen_stmt_seq(cte, code1, code2):
 
     def code(rte, cont):
@@ -4765,9 +4771,10 @@ def gen_Compare(cte, ast, left, comparators, ops):
                         def check_result(result_rte, result):
                             def branch(branch_rte, bool_result):
                                 if i == init_i or om_is(bool_result, om_False):
-                                    return end_chain_cont(branch_rte, result)
+                                    expr_end_cont = do_expr_end(end_chain_cont, current_pseudo_ast)
+                                    return expr_end_cont(branch_rte, result)
                                 else:
-                                    expr_end_cont = do_expr_end(next_cont, current_pseudo_ast)
+                                    expr_end_cont = do_expr_end_with_displayed_value(next_cont, current_pseudo_ast, result)
                                     return expr_end_cont(branch_rte, right_val)
                             return sem_bool(make_out_of_ast_context(result_rte, branch), result)
                         return current_sem_op(Context(compare_rte, check_result, current_pseudo_ast), left_val, right_val)
