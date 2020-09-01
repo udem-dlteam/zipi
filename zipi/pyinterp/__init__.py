@@ -4708,57 +4708,73 @@ def comp_Compare_Op(op):
     return sem_op
 
 
-# NOTE: I hate this function but it works
-# NOTE2: I see why, but yes... it works
+def make_Compare_pseudo_node(left, op, right):
+    ast = AST.Compare(left, [op], [right])
+    ast.lineno = left.lineno
+    ast.col_offset = left.col_offset
+    ast.end_lineno = right.end_lineno
+    ast.end_col_offset = right.end_col_offset
+    return ast
+
+
 def gen_Compare(cte, ast, left, comparators, ops):
-    (cte1, code1) = comp_expr(cte, left)
-    (cte2, code2) = comp_expr(cte, comparators[0])
-    sem_op1 = comp_Compare_Op(ops[0])
+    ops_len = len(ops)
+    left_cte, left_code = comp_expr(cte, left)
 
-    if sem_op1 is None:
-        return CT_raise_with_msg(cte, ast, "unimplemented comparison")
-    elif len(ops) == 1:
-        return (cte, lambda rte, cont:
-                        code1(rte,
-                             lambda rte1, val1:
-                                code2(rte1,
-                                      lambda rte2, val2:
-                                         sem_op1(Context(rte2, do_expr_end(cont, ast), ast), val1, val2))))
+    comparators_code = []
+    for expr in comparators:
+        left_cte, expr_code = comp_expr(left_cte, expr)
+        comparators_code.append(expr_code)
 
-    elif len(ops) == 2:
-        (cte3, code3) = comp_expr(cte, comparators[1])
-        sem_op2 = comp_Compare_Op(ops[1])
+    sem_ops = []
+    for op in ops:
+        sem_ops.append(comp_Compare_Op(op))
 
-        def eval_val1(rte, cont):
-            expr_end_cont = do_expr_end(cont, ast)
+    pseudo_asts = []
+    j = 0
+    tmp_left = left
+    while j < ops_len:
+        tmp_op = ops[j]
+        tmp_right = comparators[j]
+        pseudo_node = make_Compare_pseudo_node(tmp_left, tmp_op, tmp_right)
+        pseudo_asts.append(pseudo_node)
+        tmp_left = tmp_right
+        j += 1
 
-            def eval_val2(rte1, val1):
+    def do_chain_cont(abort_chain_cont):
+        next_cont = abort_chain_cont
+        i = ops_len - 1
 
-                def eval_compare(rte2, val2):
-                    def eval_val3(rte3, val3):
-                        ctx = Context(rte3, expr_end_cont, ast)
-                        return sem_op2(ctx, val2, val3)
+        while i >= 0:
+            current_comparator_code = comparators_code[i]
+            current_sem_op = sem_ops[i]
+            current_pseudo_ast = pseudo_asts[i]
 
-                    def dispatch(rte3, cond_val_bool):
-                        if om_is(cond_val_bool, om_False):
-                            return expr_end_cont(rte3, cond_val_bool)
-                        else:
-                            return code3(rte3, eval_val3)
+            def create_code(next_cont, current_comparator_code, current_sem_op, current_pseudo_ast):
+                def get_right_value(cont_rte, left_val):
+                    def exec_comparison(compare_rte, right_val):
+                        def check_result(result_rte, result):
+                            def branch(branch_rte, bool_result):
+                                if om_is(bool_result, om_True):
+                                    expr_end_cont = do_expr_end(next_cont, current_pseudo_ast)
+                                    return expr_end_cont(branch_rte, result)
+                                else:
+                                    return abort_chain_cont(branch_rte, result)
+                            return sem_bool(make_out_of_ast_context(result_rte, branch), result)
+                        return current_sem_op(Context(compare_rte, check_result, current_pseudo_ast), left_val, right_val)
+                    return current_comparator_code(cont_rte, exec_comparison)
+                return get_right_value
+            next_cont = create_code(next_cont, current_comparator_code, current_sem_op, current_pseudo_ast)
+            i -= 1
+        return next_cont
 
-                    def cast_bool(rte3, cond_val):
-                        ctx = Context(rte3, dispatch, ast)
-                        return sem_bool(ctx, cond_val)
+    def start_chain(rte, cont):
+        expr_end_cont = do_expr_end(cont, ast)
+        chain_cont = do_chain_cont(expr_end_cont)
+        return left_code(rte, chain_cont)
 
-                    ctx = Context(rte2, cast_bool, ast)
-                    return sem_op1(ctx, val1, val2)
+    return left_cte, start_chain
 
-                return code2(rte1, eval_compare)
-
-            return code1(rte, eval_val2)
-
-        return (cte, eval_val1)
-    else:
-        return CT_raise_with_msg(cte, ast, "compare with more than 2 ops not supported")
 
 def sem_Is(ctx, val1, val2):
     result = om_is(val1, val2)
