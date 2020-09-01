@@ -103,30 +103,34 @@ def int_mul(u, v):
     return u * v
 
 
-def int_div(u, v):
+def int_div_floor(u, v):
     return u // v
 
 
-def int_mod(u, v):
+def int_mod_floor(u, v):
     return u % v
 
-
-def int_divmod(u, v):
+def int_divmod_floor(u, v):
     return divmod(u, v)
-
 
 def int_not(u):
     return ~u
 
+inf = float("inf")
+neg_inf = float("-inf")
+
 def int_to_num(u, exact=None):
-    if exact:
-        try:
-            float(u)
-            return u
-        except OverflowError:
-            return False
-    else:
+    try:
+        float(u)
         return u
+    except OverflowError:
+        if exact:
+            return False
+        elif int_is_neg(u):
+            return neg_inf
+        else:
+            return inf
+
 
 
 def int_and(u, v):
@@ -168,6 +172,15 @@ def int_to_string(u, radix):
 def int_pow_mod(u,v,m):
     return pow(u,v,m)
 
+def int_pow(u,v):
+    return pow(u,v)
+
+def int_is_even(u):
+    return u % 2 == 0
+
+def int_round(x, ndigits):
+    return round(x, ndigits)
+
 def int_from_string(string, radix):
     try:
         return int(string, radix)
@@ -189,12 +202,24 @@ def float_instance(u):
     return isinstance(u, float)
 
 
-def float_from_float(u):
+def float_from_num(u):
     return u
 
 
 def float_is_zero(u):
     return u == 0
+
+
+def float_is_infinite(u):
+    return math.isinf(u)
+
+
+def float_is_finite(u):
+    return math.isfinite(u)
+
+
+def float_is_nan(u):
+    return math.isnan(u)
 
 
 def float_is_pos(u):
@@ -260,6 +285,9 @@ def float_div(u, v):
 def float_mod(u, v):
     return u % v
 
+def float_mod_floor(u, v):
+    return u % v
+
 
 def float_is_zero(u):
     return u == 0
@@ -267,7 +295,6 @@ def float_is_zero(u):
 
 def float_is_neg(u):
     return (u < 0)
-
 
 def float_from_string(string):
     return float(string)
@@ -336,17 +363,44 @@ def float_pi():
 def float_e():
     return math.e
 
+def float_round(x):
+    return round(x, 0)
+
+def float_round_to_digits(x, ndigits):
+    return round(x, ndigits)
+
 
 ###
 # IO operations
 ###
 
-def input_stdin(msg):
+def runtime_alert(msg):
+    print(msg)
+
+def runtime_confirm(msg):
+    try:
+        input(msg)
+        return True
+    except Exception:
+        return False
+
+
+def runtime_print(msg, rte):
+    print(msg)
+
+def runtime_input(msg):
     try:
         return input(msg)
     except Exception:
         return None
 
+def runtime_prompt(msg):
+    return runtime_input(msg)
 
-def print_stdout(msg, rte):
-    print(msg)
+
+# Module random
+import random
+
+def runtime_random():
+    return random.random()
+
