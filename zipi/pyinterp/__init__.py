@@ -3034,6 +3034,10 @@ def gen_dunder_Float_DivideOp(py_class, method, prim, cont_box):
         if om_issubclass(val2_class, class_float):
             val1_value = OM_get_boxed_value(val1)
             val2_value = OM_get_boxed_value(val2)
+
+            if float_is_zero(val2_value):
+                return sem_raise_with_message(ctx, class_ZeroDivisionError, "float division or modulo by zero")
+
             result = prim(val1_value, val2_value)
             return ctx.cont(ctx.rte, om_float(result))
         elif om_issubclass(val2_class, class_int):
@@ -3067,6 +3071,10 @@ def gen_dunder_Float_rDivideOp(py_class, method, prim, cont_box):
         if om_issubclass(val2_class, class_float):
             val1_value = OM_get_boxed_value(val1)
             val2_value = OM_get_boxed_value(val2)
+
+            if float_is_zero(val1_value):
+                return sem_raise_with_message(ctx, class_ZeroDivisionError, "float division or modulo by zero")
+
             result = prim(val1_value, val2_value)
             return ctx.cont(ctx.rte, om_float(result))
         elif om_issubclass(val2_class, class_int):
