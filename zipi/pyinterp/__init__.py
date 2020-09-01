@@ -3179,7 +3179,7 @@ def om_pow_code(rte, _):
       and om_is(OM_get_object_class(obj_mod), class_int):
 
         if int_is_neg(val2):
-            return sem_raise_with_message(next_ctx, class_ValueError, "modual inverse unimplemented!")
+            return sem_raise_with_message(next_ctx, class_ValueError, "modular inverse unimplemented")
         else:
             return unwindReturn(rte, om_int(int_pow_mod(val1,val2,val_mod)))
     else:
