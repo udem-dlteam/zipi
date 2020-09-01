@@ -2881,16 +2881,16 @@ def om_int_rtruediv_code(ctx, args):
     val1 = args[0]
     val2 = args[1]
 
-    # Early break for ZeroDivisionError
-    val1_value = OM_get_boxed_value(val1)
-    if int_is_zero(val1_value):
-        return sem_raise_with_message(ctx, class_ZeroDivisionError, "division by zero")
-
     # Primitive operations are only defined on same types.
     if om_issubclass(OM_get_object_class(val2), class_int):
-        val2_value = OM_get_boxed_value(val2)
-        result = float_div(int_to_num(val2_value), int_to_num(val1_value))
-        return ctx.cont(ctx.rte, om_float(result))
+        # Early break for ZeroDivisionError
+        val1_value = OM_get_boxed_value(val1)
+        if int_is_zero(val1_value):
+            return sem_raise_with_message(ctx, class_ZeroDivisionError, "division by zero")
+        else:
+            val2_value = OM_get_boxed_value(val2)
+            result = float_div(int_to_num(val2_value), int_to_num(val1_value))
+            return ctx.cont(ctx.rte, om_float(result))
     else:
         # TODO: Return om_NotImplemented(rte) (in the proper rte)
         return ctx.cont(ctx.rte, om_NotImplemented)
@@ -4721,28 +4721,34 @@ def gen_Compare(cte, ast, left, comparators, ops):
         (cte3, code3) = comp_expr(cte, comparators[1])
         sem_op2 = comp_Compare_Op(ops[1])
 
-        def retrieve_val1(rte, cont):
+        def eval_val1(rte, cont):
             expr_end_cont = do_expr_end(cont, ast)
-            def retrieve_val2(rte1, val1):
-                def retrieve_val3(rte3, val2):
-                    ctx = Context(rte, expr_end_cont, ast)
-                    return sem_op1(ctx, val1, val2)
+
+            def eval_val2(rte1, val1):
 
                 def eval_compare(rte2, val2):
-                    def dispatch(rte3, cond_var):
-                        if cond_var is False:
-                            return expr_end_cont(rte3, cond_var)
-                        else:
-                            return code3(rte3, retrieve_val3)
+                    def eval_val3(rte3, val3):
+                        ctx = Context(rte3, expr_end_cont, ast)
+                        return sem_op2(ctx, val2, val3)
 
-                    ctx = Context(rte2, dispatch, ast)
+                    def dispatch(rte3, cond_val_bool):
+                        if om_is(cond_val_bool, om_False):
+                            return expr_end_cont(rte3, cond_val_bool)
+                        else:
+                            return code3(rte3, eval_val3)
+
+                    def cast_bool(rte3, cond_val):
+                        ctx = Context(rte3, dispatch, ast)
+                        return sem_bool(ctx, cond_val)
+
+                    ctx = Context(rte2, cast_bool, ast)
                     return sem_op1(ctx, val1, val2)
 
                 return code2(rte1, eval_compare)
 
-            return code1(rte, retrieve_val2)
+            return code1(rte, eval_val2)
 
-        return (cte, retrieve_val1)
+        return (cte, eval_val1)
     else:
         return CT_raise_with_msg(cte, ast, "compare with more than 2 ops not supported")
 
