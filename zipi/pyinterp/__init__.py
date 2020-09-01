@@ -4749,30 +4749,31 @@ def gen_Compare(cte, ast, left, comparators, ops):
         tmp_left = tmp_right
         j += 1
 
-    def do_chain_cont(abort_chain_cont):
-        next_cont = abort_chain_cont
-        i = ops_len - 1
+    def do_chain_cont(end_chain_cont):
+        next_cont = end_chain_cont
+        init_i = ops_len - 1
+        i = init_i
 
         while i >= 0:
             current_comparator_code = comparators_code[i]
             current_sem_op = sem_ops[i]
             current_pseudo_ast = pseudo_asts[i]
 
-            def create_code(next_cont, current_comparator_code, current_sem_op, current_pseudo_ast):
+            def create_code(next_cont, current_comparator_code, current_sem_op, current_pseudo_ast, i):
                 def get_right_value(cont_rte, left_val):
                     def exec_comparison(compare_rte, right_val):
                         def check_result(result_rte, result):
                             def branch(branch_rte, bool_result):
-                                if om_is(bool_result, om_True):
-                                    expr_end_cont = do_expr_end(next_cont, current_pseudo_ast)
-                                    return expr_end_cont(branch_rte, result)
+                                if i == init_i or om_is(bool_result, om_False):
+                                    return end_chain_cont(branch_rte, result)
                                 else:
-                                    return abort_chain_cont(branch_rte, result)
+                                    expr_end_cont = do_expr_end(next_cont, current_pseudo_ast)
+                                    return expr_end_cont(branch_rte, right_val)
                             return sem_bool(make_out_of_ast_context(result_rte, branch), result)
                         return current_sem_op(Context(compare_rte, check_result, current_pseudo_ast), left_val, right_val)
                     return current_comparator_code(cont_rte, exec_comparison)
                 return get_right_value
-            next_cont = create_code(next_cont, current_comparator_code, current_sem_op, current_pseudo_ast)
+            next_cont = create_code(next_cont, current_comparator_code, current_sem_op, current_pseudo_ast, i)
             i -= 1
         return next_cont
 
