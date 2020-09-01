@@ -12,14 +12,14 @@
 
 function float_instance(val) {
     // assumes ints are a separate type such as BigInt (see int.js)
-    return typeof val === "number";
+    return typeof val === 'number';
 }
 
-function float_from_float(n) {
+function float_from_num(n) {
     return n;
 }
 
-function float_to_float(float_a) {
+function float_to_num(float_a) {
     return float_a;
 }
 
@@ -107,6 +107,26 @@ function float_round(float_a) {
     return Math.round(float_a);
 }
 
+function float_round_to_digits(float_a, ndigits) {
+    try {
+        return parseFloat(float_a.toFixed(ndigits));
+    } catch (e) {
+        if (float_is_nonneg(ndigits) && (e instanceof RangeError)) {
+            if (float_is_nonneg(float_a)) {
+                return float_from_float(0.0);
+            } else {
+                return float_from_float(-0.0);
+            }
+        } else {
+            throw e;
+        }
+    }
+}
+
+function float_mod_floor(float_a, float_b){
+    return float_a - float_floor(float_a / float_b) * float_b
+}
+
 function float_trunc(float_a) {
     return Math.trunc(float_a);
 }
@@ -188,11 +208,19 @@ function float_nan() {
 }
 
 function float_to_string(float_a) {
-    var str_a = float_a + "";
-    if (str_a.includes('.') || str_a.includes('e'))
-        return str_a;
-    else
-        return str_a + ".0";
+    if (isNaN(float_a)) {
+        return 'nan';
+    } else if (!isFinite(float_a)) {
+        return (float_a < 0) ? '-inf' : 'inf';
+    } else if (float_a === 0) {
+        return (1/float_a < 0) ? '-0.0' : '0.0';
+    } else {
+        var str_a = float_a + '';
+        if (str_a.includes('.') || str_a.includes('e'))
+            return str_a;
+        else
+            return str_a + ".0";
+    }
 }
 
 function float_from_string(str) {

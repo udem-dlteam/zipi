@@ -1799,7 +1799,6 @@ def compute_pow_mod(ctx, num, power, mod):
         # raise an Overflow error when it cannot be exactly represent as a floating point
         if float_is_infinite(fl_num_mod) or float_is_nan(fl_num_mod) or float_is_nan(fl_power):
             return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
-
         elif float_is_neg(fl_power):
             # modular inverse computation
             return sem_raise_with_message(ctx, class_ValueError, "modular inverse unimplemented")
@@ -1832,7 +1831,6 @@ def compute_pow(ctx, num, power):
             return cont_float(ctx, result)
 
 def om_int_pow_code(ctx, args):
-
     args_len = len(args)
     if args_len < 2:
         return sem_raise_with_message(ctx, class_TypeError, "expected at least 1 argument, got " + str(args_len - 1))
@@ -1842,10 +1840,10 @@ def om_int_pow_code(ctx, args):
         self = args[0]
         power = args[1]
 
-
         if om_isinstance(power, class_int):
             self_value = OM_get_boxed_value(self)
             power_value = OM_get_boxed_value(power)
+
             if args_len == 2:
                 return compute_pow(ctx, self_value, power_value)
             else:
@@ -3595,6 +3593,11 @@ def om_pow_code(rte, _):
     obj1 = rte_lookup(rte, 'obj1')
     obj2 = rte_lookup(rte, 'obj2')
     obj_mod = rte_lookup(rte, 'obj_mod')
+
+    val1 = OM_get_boxed_value(obj1)
+    val2 = OM_get_boxed_value(obj2)
+    val_mod = OM_get_boxed_value(obj_mod)
+
 
     if om_is(obj_mod, absent):
         return sem_Pow(next_ctx, obj1, obj2)
