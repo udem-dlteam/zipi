@@ -3254,14 +3254,15 @@ def om_float_round_code(ctx, args):
                 # NOTE: We are using int_round which breaks ties to even
                 # Although a number such as 5.1 would be casted to 5 and rounded to 0
                 # For this reason we indicate to int_round to break ties by rounding up if self has a decimal part
-                norm_integral_part = int_from_num(float_floor(norm))
+                norm_integral_part = float_floor(norm)
+                int_norm_integral_part = int_from_num(norm_integral_part)
 
                 if float_eq(norm, norm_integral_part):
                     # Break int_round ties by rounding to even
-                    res = int_to_num(int_round(norm_integral_part, n_value, True))
+                    res = int_to_num(int_round(int_norm_integral_part, n_value, True))
                 else:
                     # Break int_round ties by rounding up
-                    res = int_to_num(int_round(norm_integral_part, n_value, False))
+                    res = int_to_num(int_round(int_norm_integral_part, n_value, False))
 
                 if float_is_infinite(res):
                     return sem_raise_with_message(ctx, class_OverflowError, "rounded value too large to represent")
@@ -3276,8 +3277,13 @@ def om_float_round_code(ctx, args):
                     else:
                         return cont_float(ctx, float_from_num(0.0))
                 else:
-                    # TODO: this does not break ties toward even digit
-                    return cont_float(ctx, float_round_to_digits(self_value, int(n_float_value)))
+                    scale = float_mul(float_from_num(10.0), n_float_value)
+                    res = float_div(float_round_even(float_mul(self_value, scale)), scale)
+                    if float_is_infinite(res):
+                        # Value precision > 1: nothing to round
+                        return cont_obj(ctx, self)
+                    else:
+                        return cont_float(ctx, res)
 
         return sem_index(with_cont(ctx, apply_round), ndigits)
     else:
