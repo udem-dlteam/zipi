@@ -206,6 +206,10 @@ def float_from_num(u):
     return u
 
 
+def float_to_num(u):
+    return u
+
+
 def float_is_zero(u):
     return u == 0
 
@@ -350,6 +354,10 @@ def float_exp(u):
 
 def float_log(u):
     return math.log(u)
+
+
+def float_log10(u):
+    return math.log10(u)
 
 
 def float_pow(u, v):
