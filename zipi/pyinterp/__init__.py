@@ -1312,7 +1312,7 @@ def sem_PowMod(ctx, base, power, mod):
 
         if power_rmethod is not absent:
             ctx2 = with_cont(ctx, test_rmethod_result)
-            return om_call(power_rmethod, ctx2, [power, base, mod])
+            return om_call(power_rmethod, ctx2, (power, base, mod))
         else:
             return sem_raise_with_message(ctx, class_TypeError, "unsupported operand type(s) for pow()")
 
@@ -1320,7 +1320,7 @@ def sem_PowMod(ctx, base, power, mod):
 
     if base_method is not absent:
         ctx1 = with_cont(ctx, test_method_result)
-        return om_call(base_method, ctx1, [base, power, mod])
+        return om_call(base_method, ctx1, (base, power, mod))
     else:
         return call_rmethod(ctx.rte)
     
