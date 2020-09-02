@@ -19,8 +19,9 @@ def float_repr_scale(r, s, m_pos, m_neg, must_round, v):
     must_round is a boolean
     v is a float
     """
+    epsilon = float_pow(float_from_num(1.0), float_from_num(-10.0))
 
-    est = int_from_num(float_to_num(float_ceil(float_sub(float_log10(v), float_epsilon()))))
+    est = int_from_num(float_to_num(float_ceil(float_sub(float_log10(v), epsilon))))
 
     if int_is_neg(est):
         factor = int_pow(int_from_num(10), int_neg(est))
@@ -144,7 +145,7 @@ def float_repr_decompose(x):
 
 def float_repr_pow_mantissa_pair(v):
     float_num_e_min = int_from_num(-1074)
-    float_m_pos_min = int_from_num(10000000000000000)
+    float_m_pos_min = int_from_num(4503599627370496)
 
     x = float_repr_decompose(v)
     f = x[0]
