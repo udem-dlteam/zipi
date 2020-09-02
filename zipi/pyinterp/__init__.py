@@ -1845,8 +1845,7 @@ def om_int_pow_code(ctx, args):
                     mod_value = OM_get_boxed_value(mod)
                     return compute_pow_mod(ctx, self_value, power_value, mod_value)
                 else:
-                    return cont_obj(ctx, om_NotImplemented)
-
+                    return sem_raise_with_message(ctx, class_TypeError, "3rd argument not allowed unless all arguments are integers")
         else:
             return cont_obj(ctx, om_NotImplemented)
 
@@ -1875,7 +1874,7 @@ def om_int_rpow_code(ctx, args):
                     mod_value = OM_get_boxed_value(mod)
                     return compute_pow_mod(ctx, num_value, self_value, mod_value)
                 else:
-                    return cont_obj(ctx, om_NotImplemented)
+                    return sem_raise_with_message(ctx, class_TypeError, "3rd argument not allowed unless all arguments are integers")
         else:
             return cont_obj(ctx, om_NotImplemented)
 
@@ -3003,8 +3002,7 @@ def gen_dunder_Float_BinOp(py_class, method, prim, cont_box):
 
     def dunder_Float_BinOp(ctx, args):
         if debug: print(debug_msg)
-        if (len(args) != 2):
-            return sem_raise_with_message(ctx, class_TypeError, "expected 2 argument, got " + str(len(args)))
+
         val1 = args[0]
         val2 = args[1]
 
@@ -3030,14 +3028,12 @@ def gen_dunder_Float_BinOp(py_class, method, prim, cont_box):
 
     return do_magic_method(class_float, method, dunder_Float_BinOp)
 
+
 def gen_dunder_Float_rBinOp(py_class, method, prim, cont_box):
     debug_msg = py_class + "." + method
 
     def dunder_Float_rBinOp(ctx, args):
         if debug: print(debug_msg)
-
-        if (len(args) != 2):
-            return sem_raise_with_message(ctx, class_TypeError, "expected 2 argument, got " + str(len(args)))
 
         val1 = args[0]
         val2 = args[1]
@@ -3064,6 +3060,80 @@ def gen_dunder_Float_rBinOp(py_class, method, prim, cont_box):
             return cont_obj(ctx, om_NotImplemented)
 
     return do_magic_method(class_float, method, dunder_Float_rBinOp)
+
+
+def gen_dunder_Float_Pow(py_class, method, prim, cont_box):
+
+    def dunder_Float_Pow(ctx, args):
+        if debug: print(debug_msg)
+
+        val1 = args[0]
+        val2 = args[1]
+
+        val2_class = OM_get_object_class(val2)
+
+        if om_issubclass(val2_class, class_float):
+            if len(args) == 3:
+                return sem_raise_with_message(ctx, class_TypeError, "3rd argument not allowed unless all arguments are integers")
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            result = prim(val1_value, val2_value)
+            return ctx.cont(ctx.rte, om_float(result))
+        elif om_issubclass(val2_class, class_int):
+            if len(args) == 3:
+                return sem_raise_with_message(ctx, class_TypeError, "3rd argument not allowed unless all arguments are integers")
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            val2_float_value = int_to_num(val2_value)
+            if float_is_infinite(val2_float_value) or float_is_nan(val2_float_value):
+                return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
+            else:
+                res = prim(val1_value, val2_float_value)
+                return cont_box(ctx, res)
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+
+    return do_magic_method(class_float, method, dunder_Float_Pow)
+
+def gen_dunder_Float_rPow(py_class, method, prim, cont_box):
+    debug_msg = py_class + "." + method
+
+    def dunder_Float_rPow(ctx, args):
+        if debug: print(debug_msg)
+
+        val1 = args[0]
+        val2 = args[1]
+
+
+        val2_class = OM_get_object_class(val2)
+
+        # Primitive operations are only defined on same types.
+        if om_issubclass(val2_class, class_float):
+            if len(args) == 3:
+                return sem_raise_with_message(ctx, class_TypeError, "3rd argument not allowed unless all arguments are integers")
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            result = prim(val1_value, val2_value)
+            return ctx.cont(ctx.rte, om_float(result))
+        elif om_issubclass(val2_class, class_int):
+            if len(args) == 3: # this error occur only if every types involved are numeric
+                return sem_raise_with_message(ctx, class_TypeError, "3rd argument not allowed unless all arguments are integers")
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            val2_float_value = int_to_num(val2_value)
+            if float_is_infinite(val2_float_value) or float_is_nan(val2_float_value):
+                return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
+
+            res = prim(val2_float_value, val1_value)
+            return cont_box(ctx, res)
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+
+    return do_magic_method(class_float, method, dunder_Float_rPow)
+
+
+
+
 
 def gen_dunder_Float_DivideOp(py_class, method, prim, cont_box):
     debug_msg = py_class + "." + method
@@ -3235,8 +3305,8 @@ def float_floordiv(u, v):
 om_float_floordiv = gen_dunder_Float_DivideOp('float', '__floordiv__', float_floordiv, cont_float)
 om_float_rfloordiv = gen_dunder_Float_rDivideOp('float', '__rfloordiv__', float_floordiv, cont_float)
 
-om_float_pow = gen_dunder_Float_BinOp('float', '__pow__', float_pow, cont_float)
-om_float_rpow = gen_dunder_Float_rBinOp('float', '__rpow__', float_pow, cont_float)
+om_float_pow = gen_dunder_Float_Pow('float', '__pow__', float_pow, cont_float)
+om_float_rpow = gen_dunder_Float_rPow('float', '__rpow__', float_pow, cont_float)
 
 ## float comparisons
 def float_ne(x, y):
@@ -3583,14 +3653,14 @@ def om_round_code(rte, cont):
 def om_pow_code(rte, _):
     next_ctx = make_out_of_ast_context(rte, unwindReturn)
 
-    obj1 = rte_lookup(rte, 'base')
-    obj2 = rte_lookup(rte, 'power')
-    obj_mod = rte_lookup(rte, 'mod')
+    base = rte_lookup(rte, 'base')
+    power = rte_lookup(rte, 'power')
+    mod = rte_lookup(rte, 'mod')
 
-    if obj_mod is absent:
-        return sem_Pow(next_ctx, obj1, obj2)
+    if mod is absent:
+        return sem_Pow(next_ctx, base, power)
     else:
-        return sem_PowMod(next_ctx, obj1, obj2, obj_mod)
+        return sem_PowMod(next_ctx, base, power, mod)
 
 # Built-in Modules
 def init_module_math():
