@@ -2773,20 +2773,50 @@ om_int_ge = gen_dunder_Homogenous_Numeric_BinOp('int', '__ge__', int_ge, class_i
 def om_format_int_repr(self, rte):
     return int_to_string(OM_get_boxed_value(self), 10)
 
+def float_str_strip_decimals(string):
+    chars = []
+    string_len = len(string)
+    i = 0
+    while i < string_len:
+        c = string[i]
+        if c == ".":
+            break
+        else:
+            chars.append(c)
+        i += 1
+    return "".join(chars)
+
+def float_exponential_format_base(m):
+    if float_eq(float_floor(m), m):
+        return float_str_strip_decimals(float_to_string(m))
+    else:
+        return float_to_string(m)
+
+
 def om_format_float_repr(self, rte):
     value = OM_get_boxed_value(self)
-    value_norm = float_abs(value)
 
-    exp = float_floor(float_log10(value_norm))
+    if float_is_finite(value):
 
-    if float_ge(exp, float_from_num(16.0)):
-        m = float_div(value, float_pow(float_from_num(10.0), exp))
-        return float_to_string(m) + "e+" + int_to_string(int_from_num(float_to_num(exp)), int_from_num(10))
-    elif float_le(exp, float_from_num(-5.0)):
-        m = float_div(value, float_pow(float_from_num(10.0), exp))
-        return float_to_string(m) + "e" + int_to_string(int_from_num(float_to_num(exp)))
+        value_norm = float_abs(value)
+        exp = float_floor(float_log10(value_norm))
+
+        if float_ge(exp, float_from_num(16.0)):
+            m = float_div(value, float_pow(float_from_num(10.0), exp))
+            return float_exponential_format_base(m) + "e+" + int_to_string(int_from_num(float_to_num(exp)), float_to_num(10.0))
+        elif float_le(exp, float_from_num(-5.0)):
+            m = float_div(value, float_pow(float_from_num(10.0), exp))
+            return float_exponential_format_base(m) + "e" + int_to_string(int_from_num(float_to_num(exp)))
+        else:
+            return float_to_string(value)
+    elif float_is_infinite(value):
+        if float_is_neg(value):
+            return "-inf"
+        else:
+            return "inf"
     else:
-        return float_to_string(value)
+        return "nan"
+
 
 def om_int_repr_code(ctx, args):
     self = args[0]
