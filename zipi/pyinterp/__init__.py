@@ -1292,44 +1292,37 @@ def sem_Round(ctx, obj, ndigits):
     else:
         return om_call(obj_round, ctx, (obj, ndigits))
 
-def gen_sem_PowMod():
-    def sem_PowMod(ctx, val1, val2, val_mod):
+def sem_PowMod(ctx, base, power, mod):
 
-        def test_method_result(rte, val):
-            if om_is(val, om_NotImplemented):
-                return call_rmethod(rte)
-            else:
-                return ctx.cont(rte, val)
-
-        def test_rmethod_result(rte, val):
-            if om_is(val, om_NotImplemented):
-                return sem_raise_with_message(ctx, class_TypeError, "3rd argument not allowed unless all arguments are integers")
-            else:
-                return ctx.cont(rte, val)
-
-        def call_rmethod(rte):
-            val2_rmethod = getattribute_from_obj_mro(val2, "__rpow__")
-
-            if val2_rmethod is not absent:
-                ctx2 = with_cont(ctx, test_rmethod_result)
-                return om_call(val2_rmethod, ctx2, [val2, val1, val_mod])
-            else:
-                return sem_raise_with_message(ctx, class_TypeError, "3rd argument not allowed unless all arguments are integers")
-
-        val1_method = getattribute_from_obj_mro(val1, "__pow__")
-
-        if val1_method is not absent:
-            ctx1 = with_cont(ctx, test_method_result)
-            return om_call(val1_method, ctx1, [val1, val2, val_mod])
+    def test_method_result(rte, val):
+        if om_is(val, om_NotImplemented):
+            return call_rmethod(rte)
         else:
-            return call_rmethod(ctx.rte)
-        
-    return sem_PowMod
+            return ctx.cont(rte, val)
 
+    def test_rmethod_result(rte, val):
+        if om_is(val, om_NotImplemented):
+            return sem_raise_with_message(ctx, class_TypeError, "3rd argument not allowed unless all arguments are integers")
+        else:
+            return ctx.cont(rte, val)
 
+    def call_rmethod(rte):
+        power_rmethod = getattribute_from_obj_mro(power, "__rpow__")
 
-sem_PowMod = gen_sem_PowMod()
+        if power_rmethod is not absent:
+            ctx2 = with_cont(ctx, test_rmethod_result)
+            return om_call(power_rmethod, ctx2, [power, base, mod])
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "unsupported operand type(s) for pow()")
 
+    base_method = getattribute_from_obj_mro(base, "__pow__")
+
+    if base_method is not absent:
+        ctx1 = with_cont(ctx, test_method_result)
+        return om_call(base_method, ctx1, [base, power, mod])
+    else:
+        return call_rmethod(ctx.rte)
+    
 # Create builtins classes
 __base_types = bootstrap_base_types()
 
@@ -1801,7 +1794,7 @@ def compute_pow_mod(ctx, num, power, mod):
             return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
         elif float_is_neg(fl_power):
             # modular inverse computation
-            return sem_raise_with_message(ctx, class_ValueError, "modular inverse unimplemented")
+            return sem_raise_with_message(ctx, class_NotImplementedError, "modular inverse unimplemented")
         elif float_is_infinite(fl_power):
             # the result tends to 0 when power tends to -Infinity
             return cont_float(ctx, float_from_num(0.0))
@@ -3011,7 +3004,7 @@ def gen_dunder_Float_BinOp(py_class, method, prim, cont_box):
     def dunder_Float_BinOp(ctx, args):
         if debug: print(debug_msg)
         if (len(args) != 2):
-            return cont_obj(ctx, om_NotImplemented)
+            return sem_raise_with_message(ctx, class_TypeError, "expected 2 argument, got " + str(len(args)))
         val1 = args[0]
         val2 = args[1]
 
@@ -3044,7 +3037,7 @@ def gen_dunder_Float_rBinOp(py_class, method, prim, cont_box):
         if debug: print(debug_msg)
 
         if (len(args) != 2):
-            return cont_obj(ctx, om_NotImplemented)
+            return sem_raise_with_message(ctx, class_TypeError, "expected 2 argument, got " + str(len(args)))
 
         val1 = args[0]
         val2 = args[1]
@@ -3590,20 +3583,14 @@ def om_round_code(rte, cont):
 def om_pow_code(rte, _):
     next_ctx = make_out_of_ast_context(rte, unwindReturn)
 
-    obj1 = rte_lookup(rte, 'obj1')
-    obj2 = rte_lookup(rte, 'obj2')
-    obj_mod = rte_lookup(rte, 'obj_mod')
+    obj1 = rte_lookup(rte, 'base')
+    obj2 = rte_lookup(rte, 'power')
+    obj_mod = rte_lookup(rte, 'mod')
 
-    val1 = OM_get_boxed_value(obj1)
-    val2 = OM_get_boxed_value(obj2)
-    val_mod = OM_get_boxed_value(obj_mod)
-
-
-    if om_is(obj_mod, absent):
+    if obj_mod is absent:
         return sem_Pow(next_ctx, obj1, obj2)
     else:
         return sem_PowMod(next_ctx, obj1, obj2, obj_mod)
-
 
 # Built-in Modules
 def init_module_math():
@@ -3920,7 +3907,7 @@ def fresh_rte(options):
     om_builtin_max = om_make_function_with_signature('max', om_max_code, make_vararg_only_signature('args'))
 
     om_builtin_round = om_make_function_with_signature('round', om_round_code, make_posonly_defaults_signature(('number', 'ndigits'), (absent,)))
-    om_builtin_pow = om_make_function_with_signature('pow', om_pow_code, make_posonly_defaults_only_signature(('obj1', 'obj2', 'obj_mod'), (absent,)))
+    om_builtin_pow = om_make_function_with_signature('pow', om_pow_code, make_posonly_defaults_only_signature(('base', 'power', 'mod'), (absent,)))
 
     om_random_random = om_make_function_with_signature('random', om_random_code, empty_sigature)
 
