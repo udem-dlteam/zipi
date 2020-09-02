@@ -1302,7 +1302,8 @@ def sem_PowMod(ctx, base, power, mod):
 
     def test_rmethod_result(rte, val):
         if om_is(val, om_NotImplemented):
-            return sem_raise_with_message(ctx, class_TypeError, "3rd argument not allowed unless all arguments are integers")
+            return sem_raise_with_message(ctx, class_TypeError, "unsupported operand type(s) for pow()")
+
         else:
             return ctx.cont(rte, val)
 
@@ -1844,10 +1845,9 @@ def om_int_pow_code(ctx, args):
                 if om_isinstance(mod, class_int):
                     mod_value = OM_get_boxed_value(mod)
                     return compute_pow_mod(ctx, self_value, power_value, mod_value)
-                else:
+                elif om_isinstance(mod, class_float):
                     return sem_raise_with_message(ctx, class_TypeError, "3rd argument not allowed unless all arguments are integers")
-        else:
-            return cont_obj(ctx, om_NotImplemented)
+        return cont_obj(ctx, om_NotImplemented)
 
 om_int_pow = do_magic_method(class_int, "__pow__", om_int_pow_code)
 
@@ -1873,10 +1873,9 @@ def om_int_rpow_code(ctx, args):
                 if om_isinstance(mod, class_int):
                     mod_value = OM_get_boxed_value(mod)
                     return compute_pow_mod(ctx, num_value, self_value, mod_value)
-                else:
+                elif om_isinstance(mod, class_float):
                     return sem_raise_with_message(ctx, class_TypeError, "3rd argument not allowed unless all arguments are integers")
-        else:
-            return cont_obj(ctx, om_NotImplemented)
+        return cont_obj(ctx, om_NotImplemented)
 
 om_int_rpow = do_magic_method(class_int, "__rpow__", om_int_rpow_code)
 
