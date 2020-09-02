@@ -223,13 +223,32 @@ def format_float_repr(v):
         m[0] = m[0] + "."
         return sign + "".join(m) + "e" + int_to_string(int_sub(pow, int_from_num(1)), int_from_num(10))
 
-for _ in range(100):
-    base = random.uniform(-10.0, 10.0)
-    pow = random.choice(range(20))
+import random
 
-    n = base * 10.0 ** pow
+def random_norm_float():
+    f = random.randrange(4503599627370496)+4503599627370496
+    e = random.randrange(2046)-1022-52
+    return f * 2.0**e
 
-    res = format_float_repr(n)
+def random_denorm_float():
+    f = random.randrange(4503599627370496)
+    e = -1074
+    return f * 2.0**e
 
-    if res != str(n):
-        print(n, "--->", res)
+def random_float():
+    if random.randrange(2) == 0:
+        return random_norm_float()
+    else:
+        return random_denorm_float()
+
+def test_roundtrip():
+    while True:
+        x = random_float()
+        a = format_float_repr(x)
+        b = float(a)
+        if x != b:
+            print('not roundtrip:',x, b)
+
+#test_roundtrip()
+print(3.5947745401839132e+16)
+print(format_float_repr(3.5947745401839132e+16))
