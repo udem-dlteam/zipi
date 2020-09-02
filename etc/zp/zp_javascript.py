@@ -186,6 +186,8 @@ class Transformer:
             return func[:-7] + ".push(" + args + ")"
         elif func == "len":
             return args + ".length"
+        elif func == "hasattr" and nargs == 2:
+            return "(" + self.transform(node.args[0]) + "[" + self.transform(node.args[1]) + "] !== undefined)"
         elif func == "isinstance":
             # we need to handle builtin types (change their names)
             # vs class instance checks
