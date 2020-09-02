@@ -713,6 +713,7 @@ def bootstrap_populate_base_types():
          ('__repr__', om_str_repr),
          ('__str__', om_str_str),
          ('__getitem__', om_str_getitem),
+         ('__eq__', om_str_eq),
          ('__add__', om_str_add),
          ('__len__', om_str_len)))
 
@@ -2248,6 +2249,24 @@ def om_str_repr_code(ctx, args):
         return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
 
 om_str_repr = do_magic_method(class_str, "__repr__", om_str_repr_code)
+
+def om_str_eq_code(ctx, args):
+    if len(args) == 2:
+        self = args[0]
+        other = args[1]
+
+        if om_isinstance(other, class_str):
+            self_val = OM_get_boxed_value(self)
+            other_value = OM_get_boxed_value(other)
+
+            return cont_bool(ctx, self_val == other_value)
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
+
+
+om_str_eq = do_magic_method(class_str, "__eq__", om_str_eq_code)
 
 def om_str_add_code(ctx, args):
     if debug: print('str.__add__')
