@@ -2774,7 +2774,19 @@ def om_format_int_repr(self, rte):
     return int_to_string(OM_get_boxed_value(self), 10)
 
 def om_format_float_repr(self, rte):
-    return float_to_string(OM_get_boxed_value(self))
+    value = OM_get_boxed_value(self)
+    value_norm = float_abs(value)
+
+    exp = float_floor(float_log10(value_norm))
+
+    if float_ge(exp, float_from_num(16.0)):
+        m = float_div(value, float_pow(float_from_num(10.0), exp))
+        return float_to_string(m) + "e+" + int_to_string(int_from_num(float_to_num(exp)), int_from_num(10))
+    elif float_le(exp, float_from_num(-5.0)):
+        m = float_div(value, float_pow(float_from_num(10.0), exp))
+        return float_to_string(m) + "e" + int_to_string(int_from_num(float_to_num(exp)))
+    else:
+        return float_to_string(value)
 
 def om_int_repr_code(ctx, args):
     self = args[0]

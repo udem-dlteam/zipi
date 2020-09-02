@@ -151,6 +151,10 @@ function float_log(float_a) {
     return Math.log(float_a);
 }
 
+function float_log10(float_a) {
+    return Math.log10(float_a);
+}
+
 function float_log1p(float_a) {
     return Math.log1p(float_a);
 }
