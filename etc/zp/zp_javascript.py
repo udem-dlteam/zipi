@@ -832,6 +832,18 @@ class Transformer:
         return "||"
 
     @staticmethod
+    def BitOr(node):
+        return "|"
+
+    @staticmethod
+    def BitXor(node):
+        return "^"
+
+    @staticmethod
+    def Invert(node):
+        return "~"
+
+    @staticmethod
     def Lt(node):
         return "<"
 
