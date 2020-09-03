@@ -2,60 +2,73 @@
 PYTHON38 = ../../../../venv/bin/python
 TAIL = | tail -n2
 
-all: tests zp-tests venv
+all: tests zp-tests venv store_results
 
 .PHONY: venv
 venv:
 	@cd ../../../ && $(MAKE) venv
 
+store_results:
+	@mv TEST_RESULTS OLD_TEST_RESULTS
+	@echo "Comparing CPython and pyinterp.py results..." >> TEST_RESULTS
+	@cat CPYTHON_PYINTERPPY_ESSENTIAL | tail -n 2 >> TEST_RESULTS
+	@cat CPYTHON_PYINTERPPY_WISHLIST | tail -n 2 >> TEST_RESULTS
+	rm -f CPYTHON_PYINTERPPY_ESSENTIAL
+	rm -f CPYTHON_PYINTERPPY_WISHLIST
+	@echo "Comparing pyinterp.py and pyinterp.js traces..." >> TEST_RESULTS
+	@cat PYINTERPPY_PYINTERPJS_ESSENTIAL | tail -n 2 >> TEST_RESULTS
+	@cat PYINTERPPY_PYINTERPJS_WISHLIST | tail -n 2 >> TEST_RESULTS
+	rm -f PYINTERPPY_PYINTERPJS_ESSENTIAL
+	rm -f PYINTERPPY_PYINTERPJS_WISHLIST
+	@echo "Comparing CPython and pyinterp.js results..." >> TEST_RESULTS
+	@cat CPYTHON_PYINTERPJS_ESSENTIAL | tail -n 2 >> TEST_RESULTS
+	@cat CPYTHON_PYINTERPJS_WISHLIST | tail -n 2 >> TEST_RESULTS
+	rm -f CPYTHON_PYINTERPJS_ESSENTIAL
+	rm -f CPYTHON_PYINTERPJS_WISHLIST
+	diff TEST_RESULTS OLD_TEST_RESULTS
+
 # Compare CPython and pyinterp.py results
 tests: venv
 	@echo "Comparing CPython and pyinterp.py results..."
-	-cd must_pass && $(PYTHON38) ../run.py --zipi "$(PYTHON38) -m zipi.pyinterp " >../PYINTERP_TESTS_ESSENTIAL 2>&1
-	-cd wishlist && $(PYTHON38) ../run.py --zipi "$(PYTHON38) -m zipi.pyinterp " >../PYINTERP_TESTS_WISHLIST 2>&1
+	-cd must_pass && $(PYTHON38) ../run.py --zipi "$(PYTHON38) -m zipi.pyinterp " >../CPYTHON_PYINTERPPY_ESSENTIAL 2>&1
+	-cd wishlist && $(PYTHON38) ../run.py --zipi "$(PYTHON38) -m zipi.pyinterp " >../CPYTHON_PYINTERPPY_WISHLIST 2>&1
 	@echo "Pyinterp unit test results:"
 	@echo ""
 	@echo "===== ESSENTIAL TESTS ======"
-	@cat "PYINTERP_TESTS_ESSENTIAL" $(TAIL)
+	@cat "CPYTHON_PYINTERPPY_ESSENTIAL" $(TAIL)
 	@echo ""
 	@echo "===== WiSH LIST ====="
-	@cat "PYINTERP_TESTS_WISHLIST" $(TAIL)
+	@cat "CPYTHON_PYINTERPPY_WISHLIST" $(TAIL)
 	@echo ""
-	rm -f PYINTERP_TESTS_ESSENTIAL
-	rm -f PYINTERP_TESTS_WISHLIST
 
 # Run these tests from the zp makefile:
 
 # Compare pyinterp.py and pyinterp.js traces
 zp-trace-tests: venv
 	@echo "Comparing pyinterp.py and pyinterp.js traces..."
-	-cd must_pass && $(PYTHON38) ../run.py --cpython "$(PYTHON38) -m zipi.pyinterp --trace " --zipi "node ../../../../etc/zp/zp_trace.js " >../PYINTERP_TESTS_ESSENTIAL 2>&1
-	-cd wishlist && $(PYTHON38) ../run.py --cpython "$(PYTHON38) -m zipi.pyinterp --trace " --zipi "node ../../../../etc/zp/zp_trace.js " >../PYINTERP_TESTS_WISHLIST 2>&1
+	-cd must_pass && $(PYTHON38) ../run.py --cpython "$(PYTHON38) -m zipi.pyinterp --trace " --zipi "node ../../../../etc/zp/zp_trace.js " >../PYINTERPPY_PYINTERPJS_ESSENTIAL 2>&1
+	-cd wishlist && $(PYTHON38) ../run.py --cpython "$(PYTHON38) -m zipi.pyinterp --trace " --zipi "node ../../../../etc/zp/zp_trace.js " >../PYINTERPPY_PYINTERPJS_WISHLIST 2>&1
 	@echo "Pyinterp unit test results:"
 	@echo ""
 	@echo "===== ESSENTIAL TESTS ======"
-	@cat "PYINTERP_TESTS_ESSENTIAL" $(TAIL)
+	@cat "PYINTERPPY_PYINTERPJS_ESSENTIAL" $(TAIL)
 	@echo ""
 	@echo "===== WiSH LIST ====="
-	@cat "PYINTERP_TESTS_WISHLIST" $(TAIL)
+	@cat "PYINTERPPY_PYINTERPJS_WISHLIST" $(TAIL)
 	@echo ""
-	rm -f PYINTERP_TESTS_ESSENTIAL
-	rm -f PYINTERP_TESTS_WISHLIST
 
 # Compare CPython and pyinterp.js results
 zp-no-trace-tests: venv
 	@echo "Comparing CPython and pyinterp.js results..."
-	-cd must_pass && $(PYTHON38) ../run.py --zipi "node ../../../../etc/zp/zp_no_trace.js " >../PYINTERPJS_TESTS_ESSENTIAL 2>&1
-	-cd wishlist && $(PYTHON38) ../run.py --zipi "node ../../../../etc/zp/zp_no_trace.js " >../PYINTERPJS_TESTS_WISHLIST 2>&1
+	-cd must_pass && $(PYTHON38) ../run.py --zipi "node ../../../../etc/zp/zp_no_trace.js " >../CPYTHON_PYINTERPJS_ESSENTIAL 2>&1
+	-cd wishlist && $(PYTHON38) ../run.py --zipi "node ../../../../etc/zp/zp_no_trace.js " >../CPYTHON_PYINTERPJS_WISHLIST 2>&1
 	@echo "Test results:"
 	@echo ""
 	@echo "===== ESSENTIAL TESTS ======"
-	@cat "PYINTERPJS_TESTS_ESSENTIAL" $(TAIL)
+	@cat "CPYTHON_PYINTERPJS_ESSENTIAL" $(TAIL)
 	@echo ""
 	@echo "===== WiSH LIST ====="
-	@cat "PYINTERPJS_TESTS_WISHLIST" $(TAIL)
+	@cat "CPYTHON_PYINTERPJS_WISHLIST" $(TAIL)
 	@echo ""
-	rm -f PYINTERPJS_TESTS_ESSENTIAL
-	rm -f PYINTERPJS_TESTS_WISHLIST
 
 zp-tests: zp-trace-tests zp-no-trace-tests venv

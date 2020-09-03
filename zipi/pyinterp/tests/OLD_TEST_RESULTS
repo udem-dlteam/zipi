@@ -1,0 +1,15 @@
+Comparing CPython and pyinterp.py results...
+-------------------------------------------------------
+Ran 79 tests  -  Passed: 79  -  Failed: 0
+-------------------------------------------------------
+Ran 68 tests  -  Passed: 28  -  Failed: 40
+Comparing pyinterp.py and pyinterp.js traces...
+-------------------------------------------------------
+Ran 79 tests  -  Passed: 79  -  Failed: 0
+-------------------------------------------------------
+Ran 68 tests  -  Passed: 37  -  Failed: 31
+Comparing CPython and pyinterp.js results...
+-------------------------------------------------------
+Ran 79 tests  -  Passed: 79  -  Failed: 0
+-------------------------------------------------------
+Ran 68 tests  -  Passed: 21  -  Failed: 47

@@ -129,7 +129,7 @@ def run_all(cpython='python3', zipi='../etc/py19 -t gambit', pattern=None):
 
     print()
     print('-' * 55)
-    print(f'Ran {n_tests} tests in {total_time:.1f}s  -  Passed: {n_success}  -  Failed: {n_tests - n_success}')
+    print(f'Ran {n_tests} tests  -  Passed: {n_success}  -  Failed: {n_tests - n_success}')
 
 
 if __name__ == "__main__":
