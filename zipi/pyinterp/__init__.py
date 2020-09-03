@@ -3207,8 +3207,77 @@ def float_floordiv(u, v):
 om_float_floordiv = gen_dunder_Float_DivideOp('float', '__floordiv__', float_floordiv, cont_float)
 om_float_rfloordiv = gen_dunder_Float_rDivideOp('float', '__rfloordiv__', float_floordiv, cont_float)
 
-om_float_pow = gen_dunder_Float_BinOp('float', '__pow__', float_pow, cont_float)
-om_float_rpow = gen_dunder_Float_rBinOp('float', '__rpow__', float_pow, cont_float)
+def om_float_pow_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 2:
+        val1 = args[0]
+        val2 = args[1]
+
+        if om_isinstance(val2, class_float):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+
+            if float_is_infinite(val2_value) and float_eq(val1_value, float_from_num(1.0)):
+                # Special case in Python where 1.0 ** inf returns 1.0
+                return cont_float(ctx, val1_value)
+            else:
+                return cont_float(ctx, float_pow(val1_value, val2_value))
+
+        elif om_isinstance(val2, class_int):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            val2_float_value = int_to_num(val2_value)
+            if float_is_infinite(val2_float_value):
+                return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
+            else:
+                return cont_float(ctx, float_pow(val1_value, val2_float_value))
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+    elif args_len == 3:
+        return sem_raise_with_message(ctx, class_TypeError, "pow() 3rd argument not allowed unless all arguments are integers")
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(args_len - 1))
+
+om_float_pow = do_magic_method(class_float, "__pow__", om_float_pow_code)
+
+
+def om_float_rpow_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 2:
+        val1 = args[0]
+        val2 = args[1]
+
+        if om_isinstance(val2, class_float):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+
+            if float_is_infinite(val1_value) and float_eq(val2_value, float_from_num(1.0)):
+                # Special case in Python where 1.0 ** inf returns 1.0
+                return cont_float(ctx, val2_value)
+            else:
+                return cont_float(ctx, float_pow(val2_value, val1_value))
+
+        elif om_isinstance(val2, class_int):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            val2_float_value = int_to_num(val2_value)
+            if float_is_infinite(val2_float_value):
+                return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
+            elif float_is_infinite(val1_value) and float_eq(val2_float_value, float_from_num(1.0)):
+                # Special case in Python where 1.0 ** inf returns 1.0
+                return cont_float(ctx, val2_float_value)
+            else:
+                return cont_float(ctx, float_pow(val2_float_value, val1_value))
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+    elif args_len == 3:
+        return sem_raise_with_message(ctx, class_TypeError, "pow() 3rd argument not allowed unless all arguments are integers")
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(args_len - 1))
+
+om_float_rpow = do_magic_method(class_float, "__rpow__", om_float_rpow_code)
 
 ## float comparisons
 def float_ne(x, y):
