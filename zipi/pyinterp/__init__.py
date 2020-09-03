@@ -2773,293 +2773,6 @@ om_int_ge = gen_dunder_Homogenous_Numeric_BinOp('int', '__ge__', int_ge, class_i
 def om_format_int_repr(self, rte):
     return int_to_string(OM_get_boxed_value(self), 10)
 
-def float_str_strip_decimals(string):
-    chars = []
-    string_len = len(string)
-    i = 0
-    while i < string_len:
-        c = string[i]
-        if c == ".":
-            break
-        else:
-            chars.append(c)
-        i += 1
-    return "".join(chars)
-
-def float_exponential_format_base(m):
-    if float_eq(float_floor(m), m):
-        return float_str_strip_decimals(float_to_string(m))
-    else:
-        return float_to_string(m)
-
-def make_empty_array_with_zero_chars(size):
-    a = []
-    while size > 0:
-        a.append("0")
-        size -= 1
-    return a
-
-def digit_to_char(x):
-    return chr(x + 48)
-
-def float_repr_scale(r, s, m_pos, m_neg, must_round, v):
-    """
-    r is an exact integer
-    s is an exact integer
-    m_pos is an exact integer
-    m_neg is an exact integer
-    must_round is a boolean
-    v is a float
-    """
-    epsilon = float_pow(float_from_num(10.0), float_from_num(-10.0))
-
-    est = int_from_num(float_to_num(float_ceil(float_sub(float_log10(v), epsilon))))
-
-    if int_is_neg(est):
-        factor = int_pow(int_from_num(10), int_neg(est))
-        return float_repr_fixup(
-            int_mul(r, factor),
-            s,
-            int_mul(m_pos, factor),
-            int_mul(m_neg, factor),
-            est,
-            must_round)
-    else:
-        factor = int_pow(int_from_num(10), est)
-        return float_repr_fixup(
-            r,
-            int_mul(s, factor),
-            m_pos,
-            m_neg,
-            est,
-            must_round)
-
-def float_repr_fixup(r, s, m_pos, m_neg, k, must_round):
-    if must_round:
-        cond = int_ge(int_add(r, m_pos), s)
-    else:
-        cond = int_lt(s, int_add(r, m_pos))
-
-    if cond:
-        return (int_add(k, int_from_num(1)),
-                float_repr_generate(r, s, m_pos, m_neg, must_round, int_from_num(0)))
-    else:
-        return (k,
-                float_repr_generate(
-                    int_mul(r, int_from_num(10)),
-                    s,
-                    int_mul(m_pos, int_from_num(10)),
-                    int_mul(m_neg, int_from_num(10)),
-                    must_round,
-                    int_from_num(0)))
-
-def float_repr_generate(r, s, m_pos, m_neg, must_round, n):
-    dr = int_divmod_floor(r, s)
-    d = dr[0]
-    r = dr[1]
-    if must_round:
-        tc = int_ge(int_add(r, m_pos), s)
-    else:
-        tc = int_lt(s, int_add(r, m_pos))
-
-    if must_round:
-        cond = int_ge(m_neg, r)
-    else:
-        cond = int_lt(r, m_neg)
-
-    n_num = int_to_num(n)
-
-    if cond:
-        if tc:
-            _2r = int_lshift(r, int_from_num(1))
-            if int_is_even(d) and int_eq(_2r, s) or int_lt(_2r, s):
-                last_digit = d
-            else:
-                last_digit = int_add(d, int_from_num(1))
-        else:
-            last_digit = d
-
-        str_chars = make_empty_array_with_zero_chars(n_num + 1)
-        str_chars[n_num] = digit_to_char(int_to_num(last_digit))
-        return str_chars
-    elif tc:
-        str_chars = make_empty_array_with_zero_chars(n_num + 1)
-        str_chars[n_num] = digit_to_char(int_to_num(d) + 1)
-        return str_chars
-    else:
-        str_chars = float_repr_generate(
-            int_mul(r, int_from_num(10)),
-            s,
-            int_mul(m_pos, int_from_num(10)),
-            int_mul(m_neg, int_from_num(10)),
-            must_round,
-            int_add(n, int_from_num(1)))
-        str_chars[n_num] = digit_to_char(int_to_num(d))
-        return str_chars
-
-def float_repr_decompose(x):
-    """x: strictly positive finite float number"""
-
-    e_bias = int_from_num(1023)
-    m_bits = int_from_num(52)
-    m_min = int_from_num(4503599627370496)
-    m_min_float = float_from_num(4503599627370496.0)
-    m_max = int_from_num(9007199254740991)
-
-    def exp_form(x):
-        if float_lt(x, float_from_num(1.0)):
-            r = exp_form_neg(x, float_from_num(0.5), int_from_num(1))
-            return float_mul(r[0], float_to_num(2.0)), int_sub(int_from_num(-1), r[1])
-        else:
-            return exp_form_pos(x, float_from_num(2.0), int_from_num(1))
-
-    def exp_form_pos(x, y, i):
-        i2 = int_mul(i, int_from_num(2))
-
-        if int_ge(e_bias, i2) and float_ge(x, y):
-            r = exp_form_pos(x, float_mul(y, y), i2)
-        else:
-            r = (x, int_from_num(0))
-
-        a = r[0]
-        b = r[1]
-
-        ib = int_add(i, b)
-
-        if int_ge(e_bias, ib) and float_ge(a, y):
-            return float_div(a, y), ib
-        else:
-            return r
-
-    def exp_form_neg(x, y, i):
-        i2 = int_mul(i, int_from_num(2))
-
-        if int_lt(i2, int_sub(e_bias, int_from_num(1))) and float_lt(x, y):
-            r = exp_form_neg(x, float_mul(y, y), i2)
-        else:
-            r = (x, int_from_num(0))
-
-        a = r[0]
-        b = r[1]
-        ib = int_add(i, b)
-
-        if int_lt(ib, int_sub(e_bias, int_from_num(1))) and float_lt(a, y):
-            return float_div(a, y), ib
-        else:
-            return r
-
-    r = exp_form(float_abs(x))
-    y = r[0]
-
-    if float_lt(y, float_from_num(2.0)):
-        return int_from_num(float_to_num(float_trunc(float_mul(r[0], m_min_float)))), int_sub(r[1], m_bits)
-    else:
-        if float_gt(y, float_from_num(0.0)):
-            return (m_min, e_bias+1-m_bits) # inf
-        else:
-            return (m_max, e_bias+1-m_bits) # nanprint(float_decompose(0.0))
-
-def float_repr_pow_mantissa_pair(v):
-    float_num_e_min = int_from_num(-1074)
-    float_m_pos_min = int_from_num(4503599627370496)
-
-    x = float_repr_decompose(v)
-
-    f = x[0]
-    e = x[1]
-    must_round = int_is_even(f)
-
-    if int_is_neg(e):
-        if int_ne(e, float_num_e_min) and int_eq(f, float_m_pos_min):
-            return float_repr_scale(
-                int_lshift(f, int_from_num(2)),
-                int_lshift(int_from_num(1), int_sub(int_from_num(2), e)),
-                int_from_num(2),
-                int_from_num(1),
-                must_round,
-                v)
-        else:
-            return float_repr_scale(
-                int_lshift(f, int_from_num(1)),
-                int_lshift(int_from_num(1), int_sub(int_from_num(1), e)),
-                int_from_num(1),
-                int_from_num(1),
-                must_round,
-                v)
-    else:
-        _2_pow_e = int_lshift(int_from_num(1), e)
-        if int_eq(f, float_m_pos_min):
-            return float_repr_scale(
-                int_lshift(f, int_add(e, int_from_num(2))),
-                int_from_num(4),
-                int_lshift(int_from_num(1), int_add(e, int_from_num(1))),
-                _2_pow_e,
-                must_round,
-                v)
-        else:
-            return float_repr_scale(
-                int_lshift(f, int_add(e, int_from_num(1))),
-                int_from_num(2),
-                _2_pow_e,
-                _2_pow_e,
-                must_round,
-                v)
-
-def format_float_repr_pow(pow):
-    if int_is_neg(pow):
-        pow_sign = "-"
-    else:
-        pow_sign = "+"
-
-    pow_abs = int_abs(int_sub(pow, int_from_num(1)))
-
-    if int_lt(pow_abs, int_from_num(10)):
-        return "e" + pow_sign + "0" + int_to_string(pow_abs, 10)
-    else:
-        return "e" + pow_sign + int_to_string(pow_abs, 10)
-
-def format_float_repr(v):
-    if float_is_neg(v):
-        sign = "-"
-    else:
-        sign = ""
-
-    if float_is_infinite(v):
-        return sign + "inf"
-    elif float_is_nan(v):
-        return "nan"
-    elif float_is_zero(v):
-        return sign + "0.0"
-
-    pow, m = float_repr_pow_mantissa_pair(float_abs(v))
-
-    if int_ge(pow, int_from_num(17)):
-        if len(m) == 1:
-            return sign + m[0] + format_float_repr_pow(pow)
-        else:
-            m[0] = m[0] + "."
-            return sign + "".join(m) + format_float_repr_pow(pow)
-    elif int_ge(pow, int_from_num(1)):
-        pow_num = int_to_num(pow)
-        m_len = len(m)
-        if pow_num >= m_len:
-            m = m + make_empty_array_with_zero_chars(pow_num - m_len)
-            m.append(".0")
-        else:
-            m[pow] = "." + m[pow]
-        return sign + "".join(m)
-    elif int_ge(pow, int_from_num(-3)):
-        return sign + "0." + "".join(make_empty_array_with_zero_chars(int_to_num(int_neg(pow)))) + "".join(m)
-    elif len(m) == 1:
-        return sign + m[0] + format_float_repr_pow(pow)
-    else:
-        m[0] = m[0] + "."
-        return sign + "".join(m) + format_float_repr_pow(pow)
-
-def om_format_float_repr(self, rte):
-    value = OM_get_boxed_value(self)
-    return format_float_repr(value)
-
 
 def om_int_repr_code(ctx, args):
     self = args[0]
@@ -3604,6 +3317,275 @@ def om_float_abs_code(ctx, args):
         return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
 
 om_float_abs = do_magic_method(class_float, "__abs__", om_float_abs_code)
+
+
+def make_empty_array_with_zero_chars(size):
+    a = []
+    while size > 0:
+        a.append("0")
+        size -= 1
+    return a
+
+def digit_to_char(x):
+    return chr(x + 48)
+
+def float_repr_scale(r, s, m_pos, m_neg, must_round, v):
+    """
+    r is an exact integer
+    s is an exact integer
+    m_pos is an exact integer
+    m_neg is an exact integer
+    must_round is a boolean
+    v is a float
+    """
+    epsilon = float_pow(float_from_num(10.0), float_from_num(-10.0))
+
+    est = int_from_num(float_to_num(float_ceil(float_sub(float_log10(v), epsilon))))
+
+    if int_is_neg(est):
+        factor = int_pow(int_from_num(10), int_neg(est))
+        return float_repr_fixup(
+            int_mul(r, factor),
+            s,
+            int_mul(m_pos, factor),
+            int_mul(m_neg, factor),
+            est,
+            must_round)
+    else:
+        factor = int_pow(int_from_num(10), est)
+        return float_repr_fixup(
+            r,
+            int_mul(s, factor),
+            m_pos,
+            m_neg,
+            est,
+            must_round)
+
+def float_repr_fixup(r, s, m_pos, m_neg, k, must_round):
+    if must_round:
+        cond = int_ge(int_add(r, m_pos), s)
+    else:
+        cond = int_lt(s, int_add(r, m_pos))
+
+    if cond:
+        return (int_add(k, int_from_num(1)),
+                float_repr_generate(r, s, m_pos, m_neg, must_round, int_from_num(0)))
+    else:
+        return (k,
+                float_repr_generate(
+                    int_mul(r, int_from_num(10)),
+                    s,
+                    int_mul(m_pos, int_from_num(10)),
+                    int_mul(m_neg, int_from_num(10)),
+                    must_round,
+                    int_from_num(0)))
+
+def float_repr_generate(r, s, m_pos, m_neg, must_round, n):
+    dr = int_divmod_floor(r, s)
+    d = dr[0]
+    r = dr[1]
+    if must_round:
+        tc = int_ge(int_add(r, m_pos), s)
+    else:
+        tc = int_lt(s, int_add(r, m_pos))
+
+    if must_round:
+        cond = int_ge(m_neg, r)
+    else:
+        cond = int_lt(r, m_neg)
+
+    n_num = int_to_num(n)
+
+    if cond:
+        if tc:
+            _2r = int_lshift(r, int_from_num(1))
+            if int_is_even(d) and int_eq(_2r, s) or int_lt(_2r, s):
+                last_digit = d
+            else:
+                last_digit = int_add(d, int_from_num(1))
+        else:
+            last_digit = d
+
+        str_chars = make_empty_array_with_zero_chars(n_num + 1)
+        str_chars[n_num] = digit_to_char(int_to_num(last_digit))
+        return str_chars
+    elif tc:
+        str_chars = make_empty_array_with_zero_chars(n_num + 1)
+        str_chars[n_num] = digit_to_char(int_to_num(d) + 1)
+        return str_chars
+    else:
+        str_chars = float_repr_generate(
+            int_mul(r, int_from_num(10)),
+            s,
+            int_mul(m_pos, int_from_num(10)),
+            int_mul(m_neg, int_from_num(10)),
+            must_round,
+            int_add(n, int_from_num(1)))
+        str_chars[n_num] = digit_to_char(int_to_num(d))
+        return str_chars
+
+def float_repr_decompose(x):
+    """x: strictly positive finite float number"""
+
+    e_bias = int_from_num(1023)
+    m_bits = int_from_num(52)
+    m_min = int_from_num(4503599627370496)
+    m_min_float = float_from_num(4503599627370496.0)
+    m_max = int_from_num(9007199254740991)
+
+    def exp_form(x):
+        if float_lt(x, float_from_num(1.0)):
+            r = exp_form_neg(x, float_from_num(0.5), int_from_num(1))
+            return float_mul(r[0], float_to_num(2.0)), int_sub(int_from_num(-1), r[1])
+        else:
+            return exp_form_pos(x, float_from_num(2.0), int_from_num(1))
+
+    def exp_form_pos(x, y, i):
+        i2 = int_mul(i, int_from_num(2))
+
+        if int_ge(e_bias, i2) and float_ge(x, y):
+            r = exp_form_pos(x, float_mul(y, y), i2)
+        else:
+            r = (x, int_from_num(0))
+
+        a = r[0]
+        b = r[1]
+
+        ib = int_add(i, b)
+
+        if int_ge(e_bias, ib) and float_ge(a, y):
+            return float_div(a, y), ib
+        else:
+            return r
+
+    def exp_form_neg(x, y, i):
+        i2 = int_mul(i, int_from_num(2))
+
+        if int_lt(i2, int_sub(e_bias, int_from_num(1))) and float_lt(x, y):
+            r = exp_form_neg(x, float_mul(y, y), i2)
+        else:
+            r = (x, int_from_num(0))
+
+        a = r[0]
+        b = r[1]
+        ib = int_add(i, b)
+
+        if int_lt(ib, int_sub(e_bias, int_from_num(1))) and float_lt(a, y):
+            return float_div(a, y), ib
+        else:
+            return r
+
+    r = exp_form(float_abs(x))
+    y = r[0]
+
+    if float_lt(y, float_from_num(2.0)):
+        return int_from_num(float_to_num(float_trunc(float_mul(r[0], m_min_float)))), int_sub(r[1], m_bits)
+    else:
+        if float_gt(y, float_from_num(0.0)):
+            return (m_min, e_bias+1-m_bits) # inf
+        else:
+            return (m_max, e_bias+1-m_bits) # nanprint(float_decompose(0.0))
+
+def float_repr_pow_mantissa_pair(v):
+    float_num_e_min = int_from_num(-1074)
+    float_m_pos_min = int_from_num(4503599627370496)
+
+    x = float_repr_decompose(v)
+
+    f = x[0]
+    e = x[1]
+    must_round = int_is_even(f)
+
+    if int_is_neg(e):
+        if int_ne(e, float_num_e_min) and int_eq(f, float_m_pos_min):
+            return float_repr_scale(
+                int_lshift(f, int_from_num(2)),
+                int_lshift(int_from_num(1), int_sub(int_from_num(2), e)),
+                int_from_num(2),
+                int_from_num(1),
+                must_round,
+                v)
+        else:
+            return float_repr_scale(
+                int_lshift(f, int_from_num(1)),
+                int_lshift(int_from_num(1), int_sub(int_from_num(1), e)),
+                int_from_num(1),
+                int_from_num(1),
+                must_round,
+                v)
+    else:
+        _2_pow_e = int_lshift(int_from_num(1), e)
+        if int_eq(f, float_m_pos_min):
+            return float_repr_scale(
+                int_lshift(f, int_add(e, int_from_num(2))),
+                int_from_num(4),
+                int_lshift(int_from_num(1), int_add(e, int_from_num(1))),
+                _2_pow_e,
+                must_round,
+                v)
+        else:
+            return float_repr_scale(
+                int_lshift(f, int_add(e, int_from_num(1))),
+                int_from_num(2),
+                _2_pow_e,
+                _2_pow_e,
+                must_round,
+                v)
+
+def format_float_repr_pow(pow):
+    if int_is_neg(pow):
+        pow_sign = "-"
+    else:
+        pow_sign = "+"
+
+    pow_abs = int_abs(int_sub(pow, int_from_num(1)))
+
+    if int_lt(pow_abs, int_from_num(10)):
+        return "e" + pow_sign + "0" + int_to_string(pow_abs, 10)
+    else:
+        return "e" + pow_sign + int_to_string(pow_abs, 10)
+
+def format_float_repr(v):
+    if float_is_neg(v):
+        sign = "-"
+    else:
+        sign = ""
+
+    if float_is_infinite(v):
+        return sign + "inf"
+    elif float_is_nan(v):
+        return "nan"
+    elif float_is_zero(v):
+        return sign + "0.0"
+
+    pow, m = float_repr_pow_mantissa_pair(float_abs(v))
+
+    if int_ge(pow, int_from_num(17)):
+        if len(m) == 1:
+            return sign + m[0] + format_float_repr_pow(pow)
+        else:
+            m[0] = m[0] + "."
+            return sign + "".join(m) + format_float_repr_pow(pow)
+    elif int_ge(pow, int_from_num(1)):
+        pow_num = int_to_num(pow)
+        m_len = len(m)
+        if pow_num >= m_len:
+            m = m + make_empty_array_with_zero_chars(pow_num - m_len)
+            m.append(".0")
+        else:
+            m[pow] = "." + m[pow]
+        return sign + "".join(m)
+    elif int_ge(pow, int_from_num(-3)):
+        return sign + "0." + "".join(make_empty_array_with_zero_chars(int_to_num(int_neg(pow)))) + "".join(m)
+    elif len(m) == 1:
+        return sign + m[0] + format_float_repr_pow(pow)
+    else:
+        m[0] = m[0] + "."
+        return sign + "".join(m) + format_float_repr_pow(pow)
+
+def om_format_float_repr(self, rte):
+    value = OM_get_boxed_value(self)
+    return format_float_repr(value)
 
 def om_float_repr_code(ctx, args):
     if len(args) == 1:
