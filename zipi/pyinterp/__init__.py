@@ -2868,6 +2868,7 @@ def float_repr_generate(r, s, m_pos, m_neg, must_round, n):
         cond = int_lt(r, m_neg)
 
     n_num = int_to_num(n)
+
     if cond:
         if tc:
             _2r = int_lshift(r, int_from_num(1))
@@ -2877,6 +2878,7 @@ def float_repr_generate(r, s, m_pos, m_neg, must_round, n):
                 last_digit = int_add(d, int_from_num(1))
         else:
             last_digit = d
+
         str_chars = make_empty_array_with_zero_chars(n_num + 1)
         str_chars[n_num] = digit_to_char(int_to_num(last_digit))
         return str_chars
@@ -2913,13 +2915,15 @@ def float_repr_decompose(x):
 
     def exp_form_pos(x, y, i):
         i2 = int_mul(i, int_from_num(2))
+
         if int_ge(e_bias, i2) and float_ge(x, y):
             r = exp_form_pos(x, float_mul(y, y), i2)
         else:
-            r = (x, 0)
+            r = (x, int_from_num(0))
 
         a = r[0]
         b = r[1]
+
         ib = int_add(i, b)
 
         if int_ge(e_bias, ib) and float_ge(a, y):
@@ -2933,7 +2937,7 @@ def float_repr_decompose(x):
         if int_lt(i2, int_sub(e_bias, int_from_num(1))) and float_lt(x, y):
             r = exp_form_neg(x, float_mul(y, y), i2)
         else:
-            r = (x, 0)
+            r = (x, int_from_num(0))
 
         a = r[0]
         b = r[1]
@@ -2960,6 +2964,7 @@ def float_repr_pow_mantissa_pair(v):
     float_m_pos_min = int_from_num(4503599627370496)
 
     x = float_repr_decompose(v)
+
     f = x[0]
     e = x[1]
     must_round = int_is_even(f)
@@ -2982,7 +2987,7 @@ def float_repr_pow_mantissa_pair(v):
                 must_round,
                 v)
     else:
-        _2_pow_e = int_lshift(1, e)
+        _2_pow_e = int_lshift(int_from_num(1), e)
         if int_eq(f, float_m_pos_min):
             return float_repr_scale(
                 int_lshift(f, int_add(e, int_from_num(2))),
@@ -3006,11 +3011,12 @@ def format_float_repr_pow(pow):
     else:
         pow_sign = "+"
 
-    pow_asb = int_abs(int_sub(pow, int_from_num(1)))
-    if int_lt(pow_asb, int_from_num(10)):
-        return "e" + pow_sign + "0" + int_to_string(pow_asb, int_from_num(10))
+    pow_abs = int_abs(int_sub(pow, int_from_num(1)))
+
+    if int_lt(pow_abs, int_from_num(10)):
+        return "e" + pow_sign + "0" + int_to_string(pow_abs, 10)
     else:
-        return "e" + pow_sign + int_to_string(pow_asb, int_from_num(10))
+        return "e" + pow_sign + int_to_string(pow_abs, 10)
 
 def format_float_repr(v):
     if float_is_neg(v):
