@@ -3326,6 +3326,16 @@ def make_empty_array_with_zero_chars(size):
         size -= 1
     return a
 
+def list_concat(l1, l2):
+    new_lst = []
+    for x in l1:
+        new_lst.append(x)
+
+    for y in l2:
+       new_lst.append(y)
+
+    return new_lst
+
 def digit_to_char(x):
     return chr(x + 48)
 
@@ -3570,7 +3580,7 @@ def format_float_repr(v):
         pow_num = int_to_num(pow)
         m_len = len(m)
         if pow_num >= m_len:
-            m = m + make_empty_array_with_zero_chars(pow_num - m_len)
+            m = list_concat(m, make_empty_array_with_zero_chars(pow_num - m_len))
             m.append(".0")
         else:
             m[pow] = "." + m[pow]
