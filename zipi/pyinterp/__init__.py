@@ -3195,9 +3195,6 @@ om_float_rsub = gen_dunder_Float_rBinOp('float', '__rsub__', float_sub, cont_flo
 om_float_mul = gen_dunder_Float_BinOp('float', '__mul__', float_mul, cont_float)
 om_float_rmul = gen_dunder_Float_rBinOp('float', '__rmul__', float_mul, cont_float)
 
-om_float_mod = gen_dunder_Float_DivideOp('float', '__mod__', float_mod_floor, cont_float)
-om_float_rmod = gen_dunder_Float_rDivideOp('float', '__rmod__', float_mod_floor, cont_float)
-
 om_float_truediv = gen_dunder_Float_DivideOp('float', '__truediv__', float_div, cont_float)
 om_float_rtruediv = gen_dunder_Float_rDivideOp('float', '__rtruediv__', float_div, cont_float)
 
@@ -3206,6 +3203,98 @@ def float_floordiv(u, v):
 
 om_float_floordiv = gen_dunder_Float_DivideOp('float', '__floordiv__', float_floordiv, cont_float)
 om_float_rfloordiv = gen_dunder_Float_rDivideOp('float', '__rfloordiv__', float_floordiv, cont_float)
+
+
+def om_float_mod_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 2:
+        val1 = args[0]
+        val2 = args[1]
+
+        if om_isinstance(val2, class_float):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+
+            if float_is_zero(val2_value):
+                return sem_raise_with_message(ctx, class_ZeroDivisionError, "float modulo")
+            elif float_is_infinite(val2_value) and float_is_finite(val1_value):
+                if float_is_neg(val1_value):
+                    # Return inf
+                    return cont_float(ctx, val2_value)
+                else:
+                    return cont_float(ctx, val1_value)
+            else:
+                return cont_float(ctx, float_mod(val1_value, val2_value))
+        elif om_isinstance(val2, class_int):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            val2_float_value = int_to_num(val2_value)
+
+            if float_is_infinite(val2_float_value):
+                return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
+            elif float_is_zero(val2_float_value):
+                return sem_raise_with_message(ctx, class_ZeroDivisionError, "float modulo")
+            elif float_is_infinite(val2_float_value) and float_is_finite(val1_value):
+                if float_is_neg(val1_value):
+                    # Return inf
+                    return cont_float(ctx, val2_float_value)
+                else:
+                    return cont_float(ctx, val1_value)
+            else:
+                return cont_float(ctx, float_mod(val1_value, val2_float_value))
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(args_len - 1))
+
+om_float_mod = do_magic_method(class_float, '__mod__', om_float_mod_code)
+
+
+def om_float_rmod_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 2:
+        val1 = args[0]
+        val2 = args[1]
+
+        if om_isinstance(val2, class_float):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+
+            if float_is_zero(val1_value):
+                return sem_raise_with_message(ctx, class_ZeroDivisionError, "float modulo")
+            elif float_is_infinite(val1_value) and float_is_finite(val2_value):
+                if float_is_neg(val2_value):
+                    # Return inf
+                    return cont_float(ctx, val1_value)
+                else:
+                    return cont_float(ctx, val2_value)
+            else:
+                return cont_float(ctx, float_mod(val2_value, val1_value))
+        elif om_isinstance(val2, class_int):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            val2_float_value = int_to_num(val2_value)
+
+            if float_is_infinite(val2_float_value):
+                return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
+            elif float_is_zero(val1_value):
+                return sem_raise_with_message(ctx, class_ZeroDivisionError, "float modulo")
+            elif float_is_infinite(val1_value) and float_is_finite(val2_float_value):
+                if float_is_neg(val2_float_value):
+                    # Return inf
+                    return cont_float(ctx, val1_value)
+                else:
+                    return cont_float(ctx, val2_float_value)
+            else:
+                return cont_float(ctx, float_mod(val2_float_value, val1_value))
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(args_len - 1))
+
+om_float_rmod = do_magic_method(class_float, '__rmod__', om_float_rmod_code)
 
 def om_float_pow_code(ctx, args):
     args_len = len(args)
