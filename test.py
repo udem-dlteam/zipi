@@ -110,8 +110,8 @@ def float_repr_decompose(x):
     m_max = 9007199254740991
 
     def exp_form(x):
-        if x < 1.0:
-            r = exp_form_neg(x, 0.5, 1)
+        if float_lt(x, float_from_num(1.0)):
+            r = exp_form_neg(x, float_from_num(0.5), int_from_num(1))
             return (r[0]*2.0, -1-r[1])
         else:
             return exp_form_pos(x, 2.0, 1)
@@ -149,8 +149,8 @@ def float_repr_pow_mantissa_pair(v):
 
     x = float_repr_decompose(v)
     f = x[0]
-    e = x [1]
-    must_round = int_is_even(e)
+    e = x[1]
+    must_round = int_is_even(f)
 
     if int_is_neg(e):
         if int_ne(e, float_num_e_min) and int_eq(f, float_m_pos_min):
@@ -188,6 +188,18 @@ def float_repr_pow_mantissa_pair(v):
                 must_round,
                 v)
 
+def format_float_repr_pow(pow):
+    if int_is_neg(pow):
+        pow_sign = "-"
+    else:
+        pow_sign = "+"
+
+    pow_asb = int_abs(int_sub(pow, int_from_num(1)))
+    if int_lt(pow_asb, int_from_num(10)):
+        return "e" + pow_sign + "0" + int_to_string(pow_asb, int_from_num(10))
+    else:
+        return "e" + pow_sign + int_to_string(pow_asb, int_from_num(10))
+
 def format_float_repr(v):
     if float_is_neg(v):
         sign = "-"
@@ -203,10 +215,10 @@ def format_float_repr(v):
 
     if int_ge(pow, int_from_num(17)):
         if len(m) == 1:
-            return sign + m[0] + "e+" + int_to_string(int_sub(pow, int_from_num(1)), int_from_num(10))
+            return sign + m[0] + format_float_repr_pow(pow)
         else:
             m[0] = m[0] + "."
-            return sign + "".join(m) + "e+" + int_to_string(int_sub(pow, int_from_num(1)), int_from_num(10))
+            return sign + "".join(m) + format_float_repr_pow(pow)
     elif int_ge(pow, int_from_num(1)):
         pow_num = int_to_num(pow)
         m_len = len(m)
@@ -216,13 +228,13 @@ def format_float_repr(v):
         else:
             m[pow] = "." + m[pow]
         return sign + "".join(m)
-    elif int_ge(pow, int_from_num(-4)):
+    elif int_ge(pow, int_from_num(-3)):
         return sign + "0." + "".join(make_empty_array_with_zero_chars(int_to_num(int_neg(pow)))) + "".join(m)
     elif len(m) == 1:
-        return sign + m[0] + "e" + int_to_string(int_sub(pow, int_from_num(1)), int_from_num(10))
+        return sign + m[0] + format_float_repr_pow(pow)
     else:
         m[0] = m[0] + "."
-        return sign + "".join(m) + "e" + int_to_string(int_sub(pow, int_from_num(1)), int_from_num(10))
+        return sign + "".join(m) + format_float_repr_pow(pow)
 
 import random
 
@@ -250,6 +262,8 @@ def test_roundtrip():
         if x != b:
             print('not roundtrip:',x, b)
 
-#test_roundtrip()
-print(3.5947745401839132e+16)
-print(format_float_repr(3.5947745401839132e+16))
+        str_x = str(x)
+        if str_x != a:
+            print("not like cpython", x, a)
+
+test_roundtrip()
