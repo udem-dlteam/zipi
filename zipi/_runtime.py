@@ -230,10 +230,6 @@ def float_is_pos(u):
     return u > 0.0
 
 
-def float_is_neg(u):
-    return u < 0.0
-
-
 def float_is_nonneg(u):
     return u >= 0.0
 
@@ -298,7 +294,7 @@ def float_is_zero(u):
 
 
 def float_is_neg(u):
-    return (u < 0)
+    return math.copysign(1.0, u) == -1.0
 
 def float_from_string(string):
     return float(string)
