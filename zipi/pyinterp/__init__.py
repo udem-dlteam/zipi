@@ -2811,7 +2811,7 @@ def float_repr_scale(r, s, m_pos, m_neg, must_round, v):
     must_round is a boolean
     v is a float
     """
-    epsilon = float_pow(float_from_num(1.0), float_from_num(-10.0))
+    epsilon = float_pow(float_from_num(10.0), float_from_num(-10.0))
 
     est = int_from_num(float_to_num(float_ceil(float_sub(float_log10(v), epsilon))))
 
@@ -2896,7 +2896,7 @@ def float_repr_generate(r, s, m_pos, m_neg, must_round, n):
         return str_chars
 
 def float_repr_decompose(x):
-    """x: positive finite float number"""
+    """x: strictly positive finite float number"""
 
     e_bias = int_from_num(1023)
     m_bits = int_from_num(52)
