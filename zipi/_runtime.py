@@ -312,6 +312,8 @@ def float_to_string(u):
 ##
 
 import math
+import sys
+
 def float_sqrt(u):
     return math.sqrt(u)
 
@@ -320,8 +322,12 @@ def float_floor(u):
     return float(math.floor(u))
 
 
+def float_trunc(u):
+    return float(math.trunc(u))
+
+
 def float_ceil(u):
-    return math.ceil(u)
+    return float(math.ceil(u))
 
 
 def float_sin(u):
@@ -371,6 +377,9 @@ def float_pi():
 def float_e():
     return math.e
 
+def float_epsilon():
+    return sys.float_info.epsilon
+
 def float_round(x):
     return round(x, 0)
 
@@ -412,3 +421,37 @@ import random
 def runtime_random():
     return random.random()
 
+
+debug = False
+
+if debug:
+    for k, v in globals().copy().items():
+        if "from_string" in k:
+            def stub(*args, v=v):
+                if all(isinstance(x, str) for x in args):
+                    return v(*args)
+                else:
+                    raise TypeError(v, args)
+            globals()[k] = stub
+        elif k == "int_from_num":
+            def stub(*args, v=v):
+                if all(int(x) == x for x in args):
+                    return v(*args)
+                else:
+                    raise TypeError(v, args)
+            globals()[k] = stub
+        elif k.startswith("int_"):
+            def stub(*args, v=v):
+                if all(isinstance(x, int) for x in args):
+                    return v(*args)
+                else:
+                    raise TypeError(v, args)
+            globals()[k] = stub
+
+        elif k.startswith("float_"):
+            def stub(*args, v=v):
+                if all(isinstance(x, float) for x in args):
+                    return v(*args)
+                else:
+                    raise TypeError(v, args)
+            globals()[k] = stub

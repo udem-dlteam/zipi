@@ -104,6 +104,8 @@ def float_repr_generate(r, s, m_pos, m_neg, must_round, n):
         return str_chars
 
 def float_repr_decompose(x):
+    """x: positive finite float number"""
+
     e_bias = 1023
     m_bits = 52
     m_min = 4503599627370496
@@ -112,36 +114,53 @@ def float_repr_decompose(x):
     def exp_form(x):
         if float_lt(x, float_from_num(1.0)):
             r = exp_form_neg(x, float_from_num(0.5), int_from_num(1))
-            return (r[0]*2.0, -1-r[1])
+            return float_mul(r[0], float_to_num(2.0)), int_sub(int_from_num(-1), r[1])
         else:
-            return exp_form_pos(x, 2.0, 1)
+            return exp_form_pos(x, float_from_num(2.0), int_from_num(1))
 
     def exp_form_pos(x, y, i):
-        i2 = i*2
-        r = exp_form_pos(x, y*y, i2) if not e_bias<i2 and not x<y else (x, 0)
+        i2 = int_mul(i, int_from_num(2))
+        if int_ge(e_bias, i2) and float_ge(x, y):
+            r = exp_form_pos(x, float_mul(y, y), i2)
+        else:
+            r = (x, 0)
+
         a = r[0]
         b = r[1]
-        ib = i+b
-        return (a/y, ib) if not e_bias<ib and not a<y else r
+        ib = int_add(i, b)
+
+        if int_ge(e_bias, ib) and float_ge(a, y):
+            return float_div(a, y), ib
+        else:
+            return r
 
     def exp_form_neg(x, y, i):
-        i2 = i*2
-        r = exp_form_neg(x, y*y, i2) if i2<e_bias-1 and x<y else (x, 0)
+        i2 = int_mul(i, int_from_num(2))
+
+        if int_lt(i2, int_sub(e_bias, int_from_num(1))) and float_lt(x, y):
+            r = exp_form_neg(x, float_mul(y, y), i2)
+        else:
+            r = (x, 0)
+
         a = r[0]
         b = r[1]
-        ib = i+b
-        return (a/y, ib) if ib<e_bias-1 and a<y else r
+        ib = int_add(i, b)
 
-    r = exp_form(abs(x))
-    y = r[0]
-    sign = -1 if math.copysign(1.0, x) < 0 else 1
-    if y < 2.0:
-        return (int(r[0]*m_min), r[1]-m_bits, 1)
-    else:
-        if y > 0.0:
-            return (m_min, e_bias+1-m_bits, sign) # inf
+        if int_lt(ib, int_sub(e_bias, int_from_num(1))) and float_lt(a, y):
+            return float_div(a, y), ib
         else:
-            return (m_max, e_bias+1-m_bits, sign) # nanprint(float_decompose(0.0))
+            return r
+
+    r = exp_form(float_abs(x))
+    y = r[0]
+
+    if float_lt(y, float_from_num(2.0)):
+        return int_from_num(float_to_num(float_trunc(float_mul(r[0], m_min)))), float_sub(r[1], m_bits)
+    else:
+        if float_gt(y, float_from_num(0.0)):
+            return (m_min, e_bias+1-m_bits) # inf
+        else:
+            return (m_max, e_bias+1-m_bits) # nanprint(float_decompose(0.0))
 
 def float_repr_pow_mantissa_pair(v):
     float_num_e_min = int_from_num(-1074)
