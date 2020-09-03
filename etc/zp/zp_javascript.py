@@ -1037,7 +1037,7 @@ class Transformer:
         if isinstance(value, str):
             return self.to_string(value)
         elif isinstance(value, bytes):
-            return self.to_string(value.decode('utf-8'))
+            return f"new Uint8Array([{','.join([str(i) for i in value])}])"
         elif value is True:
             return "true"
         elif value is False:
