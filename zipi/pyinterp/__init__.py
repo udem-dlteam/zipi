@@ -3022,6 +3022,8 @@ def format_float_repr(v):
         return sign + "inf"
     elif float_is_nan(v):
         return "nan"
+    elif float_is_zero(v):
+        return sign + "0.0"
 
     pow, m = float_repr_pow_mantissa_pair(float_abs(v))
 
