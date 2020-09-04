@@ -43,7 +43,7 @@ print(pow(2.0,3))
 print(pow(2.0,3.0))
 
 print(pow(2.0,1e3))
-print(pow(2,1.1e3))
+print(pow(2,1.1e2))
 print(pow(2.0,1.1e2))
 
 print(pow(2.0,1e309))
@@ -54,4 +54,18 @@ print(pow(1e309,2.0))
 print(pow(1.1e309,2.0))
 print(pow(1.1e309,2))
 
+print(pow(2,-3.0))
+print(pow(2.0,-3))
+print(pow(2.0,-3.0))
 
+print(pow(2.0,-1e3))
+print(pow(2,-1.1e2))
+print(pow(2.0,-1.1e2))
+
+print(pow(2.0,-1e309))
+print(pow(2,-1.1e309))
+print(pow(2.0,-1.1e309))
+
+print(pow(1e309,-2.0))
+print(pow(1.1e309,-2.0))
+print(pow(1.1e309,-2))
