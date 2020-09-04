@@ -3225,7 +3225,7 @@ def om_float_mod_code(ctx, args):
                 else:
                     return cont_float(ctx, val1_value)
             else:
-                return cont_float(ctx, float_mod(val1_value, val2_value))
+                return cont_float(ctx, float_mod_floor(val1_value, val2_value))
         elif om_isinstance(val2, class_int):
             val1_value = OM_get_boxed_value(val1)
             val2_value = OM_get_boxed_value(val2)
@@ -3242,7 +3242,7 @@ def om_float_mod_code(ctx, args):
                 else:
                     return cont_float(ctx, val1_value)
             else:
-                return cont_float(ctx, float_mod(val1_value, val2_float_value))
+                return cont_float(ctx, float_mod_floor(val1_value, val2_float_value))
         else:
             return cont_obj(ctx, om_NotImplemented)
     else:
@@ -3271,7 +3271,7 @@ def om_float_rmod_code(ctx, args):
                 else:
                     return cont_float(ctx, val2_value)
             else:
-                return cont_float(ctx, float_mod(val2_value, val1_value))
+                return cont_float(ctx, float_mod_floor(val2_value, val1_value))
         elif om_isinstance(val2, class_int):
             val1_value = OM_get_boxed_value(val1)
             val2_value = OM_get_boxed_value(val2)
@@ -3288,7 +3288,7 @@ def om_float_rmod_code(ctx, args):
                 else:
                     return cont_float(ctx, val2_float_value)
             else:
-                return cont_float(ctx, float_mod(val2_float_value, val1_value))
+                return cont_float(ctx, float_mod_floor(val2_float_value, val1_value))
         else:
             return cont_obj(ctx, om_NotImplemented)
     else:
