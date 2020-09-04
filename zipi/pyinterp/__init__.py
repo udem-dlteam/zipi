@@ -1,5 +1,8 @@
 from zipi._runtime import *
 
+# NOTE: required to be able to instantiate ast nodes from pyinterp
+from zipi.zast._zast import *
+
 import zipi.zast._zast as AST
 import zipi.zast as zast
 AST.parse = zast.parse
@@ -713,6 +716,7 @@ def bootstrap_populate_base_types():
          ('__repr__', om_str_repr),
          ('__str__', om_str_str),
          ('__getitem__', om_str_getitem),
+         ('__eq__', om_str_eq),
          ('__add__', om_str_add),
          ('__len__', om_str_len)))
 
@@ -2286,6 +2290,24 @@ def om_str_repr_code(ctx, args):
 
 om_str_repr = do_magic_method(class_str, "__repr__", om_str_repr_code)
 
+def om_str_eq_code(ctx, args):
+    if len(args) == 2:
+        self = args[0]
+        other = args[1]
+
+        if om_isinstance(other, class_str):
+            self_val = OM_get_boxed_value(self)
+            other_value = OM_get_boxed_value(other)
+
+            return cont_bool(ctx, self_val == other_value)
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
+
+
+om_str_eq = do_magic_method(class_str, "__eq__", om_str_eq_code)
+
 def om_str_add_code(ctx, args):
     if debug: print('str.__add__')
 
@@ -2570,25 +2592,25 @@ def gen_dunder_Homogenous_Numeric_rBinOp(py_class, method, prim, om_class, om_bo
 
 # Arithmetic
 om_int_add = gen_dunder_Homogenous_Numeric_BinOp('int', '__add__', int_add, class_int, om_int)
-om_int_radd = om_int_add
+om_int_radd = gen_dunder_Homogenous_Numeric_rBinOp('int', '__radd__', int_add, class_int, om_int)
 
 om_int_sub = gen_dunder_Homogenous_Numeric_BinOp('int', '__sub__', int_sub, class_int, om_int)
 om_int_rsub = gen_dunder_Homogenous_Numeric_rBinOp('int', '__rsub__', int_sub, class_int, om_int)
 
 om_int_mul = gen_dunder_Homogenous_Numeric_BinOp('int', '__mul__', int_mul, class_int, om_int)
-om_int_rmul = om_int_mul
+om_int_rmul = gen_dunder_Homogenous_Numeric_rBinOp('int', '__rmul__', int_mul, class_int, om_int)
 
 # Bitwise
 om_int_lshift = gen_dunder_Homogenous_Numeric_BinOp('int', '__lshift__', int_lshift, class_int, om_int)
-om_int_rlshift = gen_dunder_Homogenous_Numeric_BinOp('int', '__rlshift__', int_lshift, class_int, om_int)
+om_int_rlshift = gen_dunder_Homogenous_Numeric_rBinOp('int', '__rlshift__', int_lshift, class_int, om_int)
 om_int_rshift = gen_dunder_Homogenous_Numeric_BinOp('int', '__rshift__', int_rshift, class_int, om_int)
-om_int_rrshift = gen_dunder_Homogenous_Numeric_BinOp('int', '__rrshift__', int_rshift, class_int, om_int)
+om_int_rrshift = gen_dunder_Homogenous_Numeric_rBinOp('int', '__rrshift__', int_rshift, class_int, om_int)
 om_int_or = gen_dunder_Homogenous_Numeric_BinOp('int', '__or__', int_or, class_int, om_int)
-om_int_ror = gen_dunder_Homogenous_Numeric_BinOp('int', '__ror__', int_or, class_int, om_int)
+om_int_ror = gen_dunder_Homogenous_Numeric_rBinOp('int', '__ror__', int_or, class_int, om_int)
 om_int_and = gen_dunder_Homogenous_Numeric_BinOp('int', '__and__', int_and, class_int, om_int)
-om_int_rand = gen_dunder_Homogenous_Numeric_BinOp('int', '__rand__', int_and, class_int, om_int)
+om_int_rand = gen_dunder_Homogenous_Numeric_rBinOp('int', '__rand__', int_and, class_int, om_int)
 om_int_xor = gen_dunder_Homogenous_Numeric_BinOp('int', '__xor__', int_xor, class_int, om_int)
-om_int_rxor = gen_dunder_Homogenous_Numeric_BinOp('int', '__xror__', int_xor, class_int, om_int)
+om_int_rxor = gen_dunder_Homogenous_Numeric_rBinOp('int', '__rxor__', int_xor, class_int, om_int)
 
 def is_space(c):
     return c == " " or c == "\t" or c == "\f" or c =="\r" or c == "\n"
@@ -3368,14 +3390,15 @@ def om_float_round_code(ctx, args):
                 # NOTE: We are using int_round which breaks ties to even
                 # Although a number such as 5.1 would be casted to 5 and rounded to 0
                 # For this reason we indicate to int_round to break ties by rounding up if self has a decimal part
-                norm_integral_part = int_from_num(float_floor(norm))
+                norm_integral_part = float_floor(norm)
+                int_norm_integral_part = int_from_num(norm_integral_part)
 
                 if float_eq(norm, norm_integral_part):
                     # Break int_round ties by rounding to even
-                    res = int_to_num(int_round(norm_integral_part, n_value, True))
+                    res = int_to_num(int_round(int_norm_integral_part, n_value, True))
                 else:
                     # Break int_round ties by rounding up
-                    res = int_to_num(int_round(norm_integral_part, n_value, False))
+                    res = int_to_num(int_round(int_norm_integral_part, n_value, False))
 
                 if float_is_infinite(res):
                     return sem_raise_with_message(ctx, class_OverflowError, "rounded value too large to represent")
@@ -3390,8 +3413,13 @@ def om_float_round_code(ctx, args):
                     else:
                         return cont_float(ctx, float_from_num(0.0))
                 else:
-                    # TODO: this does not break ties toward even digit
-                    return cont_float(ctx, float_round_to_digits(self_value, int(n_float_value)))
+                    scale = float_mul(float_from_num(10.0), n_float_value)
+                    res = float_div(float_round_even(float_mul(self_value, scale)), scale)
+                    if float_is_infinite(res):
+                        # Value precision > 1: nothing to round
+                        return cont_obj(ctx, self)
+                    else:
+                        return cont_float(ctx, res)
 
         return sem_index(with_cont(ctx, apply_round), ndigits)
     else:
@@ -4417,6 +4445,12 @@ def do_stmt_end_with_message(cont, ast):
 def do_expr_end(cont, ast):
     return lambda rte, val: expr_end(Context(rte, cont, ast), val)
 
+def do_expr_end_with_displayed_value(cont, ast, value):
+    def reinject_val(val):
+        return lambda rte, _: cont(rte, val)
+
+    return lambda rte, val: expr_end(Context(rte, reinject_val(val), ast), value)
+
 def gen_stmt_seq(cte, code1, code2):
 
     def code(rte, cont):
@@ -4818,57 +4852,80 @@ def comp_Compare_Op(op):
     return sem_op
 
 
-# NOTE: I hate this function but it works
-# NOTE2: I see why, but yes... it works
+def make_Compare_pseudo_node(left, op, right):
+    ast = Compare(left, [op], [right])
+    ast.lineno = left.lineno
+    ast.col_offset = left.col_offset
+    ast.end_lineno = right.end_lineno
+    ast.end_col_offset = right.end_col_offset
+
+    # Special case which only happens in py.js
+    if hasattr(left, 'container'):
+        ast.container = left.container
+
+    return ast
+
+
 def gen_Compare(cte, ast, left, comparators, ops):
-    (cte1, code1) = comp_expr(cte, left)
-    (cte2, code2) = comp_expr(cte, comparators[0])
-    sem_op1 = comp_Compare_Op(ops[0])
+    ops_len = len(ops)
+    left_cte, left_code = comp_expr(cte, left)
 
-    if sem_op1 is None:
-        return CT_raise_with_msg(cte, ast, "unimplemented comparison")
-    elif len(ops) == 1:
-        return (cte, lambda rte, cont:
-                        code1(rte,
-                             lambda rte1, val1:
-                                code2(rte1,
-                                      lambda rte2, val2:
-                                         sem_op1(Context(rte2, do_expr_end(cont, ast), ast), val1, val2))))
+    comparators_code = []
+    for expr in comparators:
+        left_cte, expr_code = comp_expr(left_cte, expr)
+        comparators_code.append(expr_code)
 
-    elif len(ops) == 2:
-        (cte3, code3) = comp_expr(cte, comparators[1])
-        sem_op2 = comp_Compare_Op(ops[1])
+    sem_ops = []
+    for op in ops:
+        sem_ops.append(comp_Compare_Op(op))
 
-        def eval_val1(rte, cont):
-            expr_end_cont = do_expr_end(cont, ast)
+    pseudo_asts = []
+    j = 0
+    tmp_left = left
+    while j < ops_len:
+        tmp_op = ops[j]
+        tmp_right = comparators[j]
+        pseudo_node = make_Compare_pseudo_node(tmp_left, tmp_op, tmp_right)
+        pseudo_asts.append(pseudo_node)
+        tmp_left = tmp_right
+        j += 1
 
-            def eval_val2(rte1, val1):
+    def do_chain_cont(end_chain_cont):
+        next_cont = end_chain_cont
+        init_i = ops_len - 1
+        i = init_i
 
-                def eval_compare(rte2, val2):
-                    def eval_val3(rte3, val3):
-                        ctx = Context(rte3, expr_end_cont, ast)
-                        return sem_op2(ctx, val2, val3)
+        while i >= 0:
+            current_comparator_code = comparators_code[i]
+            current_sem_op = sem_ops[i]
+            current_pseudo_ast = pseudo_asts[i]
 
-                    def dispatch(rte3, cond_val_bool):
-                        if om_is(cond_val_bool, om_False):
-                            return expr_end_cont(rte3, cond_val_bool)
-                        else:
-                            return code3(rte3, eval_val3)
+            def create_code(next_cont, current_comparator_code, current_sem_op, current_pseudo_ast, i):
+                def get_right_value(cont_rte, left_val):
+                    def exec_comparison(compare_rte, right_val):
+                        def check_result(result_rte, result):
+                            def branch(branch_rte, bool_result):
+                                if i == init_i or om_is(bool_result, om_False):
+                                    expr_end_cont = do_expr_end(end_chain_cont, current_pseudo_ast)
+                                    return expr_end_cont(branch_rte, result)
+                                else:
+                                    expr_end_cont = do_expr_end_with_displayed_value(next_cont, current_pseudo_ast, result)
+                                    return expr_end_cont(branch_rte, right_val)
+                            return sem_bool(make_out_of_ast_context(result_rte, branch), result)
+                        return current_sem_op(Context(compare_rte, check_result, current_pseudo_ast), left_val, right_val)
+                    return current_comparator_code(cont_rte, exec_comparison)
+                return get_right_value
+            next_cont = create_code(next_cont, current_comparator_code, current_sem_op, current_pseudo_ast, i)
+            i -= 1
+        return next_cont
 
-                    def cast_bool(rte3, cond_val):
-                        ctx = Context(rte3, dispatch, ast)
-                        return sem_bool(ctx, cond_val)
+    def start_chain(rte, cont):
+        expr_end_cont = do_expr_end(cont, ast)
+        chain_cont = do_chain_cont(expr_end_cont)
+        return left_code(rte, chain_cont)
 
-                    ctx = Context(rte2, cast_bool, ast)
-                    return sem_op1(ctx, val1, val2)
+    return left_cte, start_chain
 
-                return code2(rte1, eval_compare)
-
-            return code1(rte, eval_val2)
-
-        return (cte, eval_val1)
-    else:
-        return CT_raise_with_msg(cte, ast, "compare with more than 2 ops not supported")
 
 def sem_Is(ctx, val1, val2):
     result = om_is(val1, val2)

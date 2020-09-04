@@ -186,6 +186,8 @@ class Transformer:
             return func[:-7] + ".push(" + args + ")"
         elif func == "len":
             return args + ".length"
+        elif func == "hasattr" and nargs == 2:
+            return "(" + self.transform(node.args[0]) + "[" + self.transform(node.args[1]) + "] !== undefined)"
         elif func == "isinstance":
             # we need to handle builtin types (change their names)
             # vs class instance checks
@@ -830,6 +832,18 @@ class Transformer:
         return "||"
 
     @staticmethod
+    def BitOr(node):
+        return "|"
+
+    @staticmethod
+    def BitXor(node):
+        return "^"
+
+    @staticmethod
+    def Invert(node):
+        return "~"
+
+    @staticmethod
     def Lt(node):
         return "<"
 
@@ -1023,7 +1037,7 @@ class Transformer:
         if isinstance(value, str):
             return self.to_string(value)
         elif isinstance(value, bytes):
-            return self.to_string(value.decode('utf-8'))
+            return f"new Uint8Array([{','.join([str(i) for i in value])}])"
         elif value is True:
             return "true"
         elif value is False:
