@@ -313,7 +313,7 @@ import sys
 def float_sqrt(u):
     return math.sqrt(u)
 
-lowest_float_with_precision_1 = 2.0 ** 53
+lowest_float_with_precision_1 = 2.0 ** 52
 
 def float_floor(u):
     if abs(u) < lowest_float_with_precision_1:
