@@ -3485,10 +3485,10 @@ def digit_to_char(x):
 
 def float_repr_scale(r, s, m_pos, m_neg, must_round, v):
     """
-    r is an exact integer
-    s is an exact integer
-    m_pos is an exact integer
-    m_neg is an exact integer
+    r is an int
+    s is an int
+    m_pos is int
+    m_neg is int
     must_round is a boolean
     v is a float
     """
@@ -3560,12 +3560,12 @@ def float_repr_generate(r, s, m_pos, m_neg, must_round, n):
         else:
             last_digit = d
 
-        str_chars = list_new(n_num + 1, "0")
-        str_chars[n_num] = digit_to_char(int_to_num(last_digit))
+        str_chars = list_new(n_num + 1, 0)
+        str_chars[n_num] = int_to_num(last_digit)
         return str_chars
     elif tc:
-        str_chars = list_new(n_num + 1, "0")
-        str_chars[n_num] = digit_to_char(int_to_num(d) + 1)
+        str_chars = list_new(n_num + 1, 0)
+        str_chars[n_num] = int_to_num(d) + 1
         return str_chars
     else:
         str_chars = float_repr_generate(
@@ -3575,7 +3575,7 @@ def float_repr_generate(r, s, m_pos, m_neg, must_round, n):
             int_mul(m_neg, int_from_num(10)),
             must_round,
             int_add(n, int_from_num(1)))
-        str_chars[n_num] = digit_to_char(int_to_num(d))
+        str_chars[n_num] = int_to_num(d)
         return str_chars
 
 def float_repr_decompose(x):
@@ -3712,7 +3712,11 @@ def format_float_repr(v):
     elif float_is_zero(v):
         return sign + "0.0"
 
-    pow, m = float_repr_pow_mantissa_pair(float_abs(v))
+    pow, digits = float_repr_pow_mantissa_pair(float_abs(v))
+
+    m = []
+    for d in digits:
+        m.append(digit_to_char(d))
 
     if int_ge(pow, int_from_num(17)):
         if len(m) == 1:

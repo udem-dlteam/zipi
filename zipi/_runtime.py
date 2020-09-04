@@ -315,15 +315,24 @@ def float_sqrt(u):
 
 
 def float_floor(u):
-    return float(math.floor(u))
+    if abs(u) < 2 ** 53:
+        return float(math.floor(u))
+    else:
+        return u
 
 
 def float_trunc(u):
-    return float(math.trunc(u))
+    if abs(u) < 2 ** 53:
+        return float(math.trunc(u))
+    else:
+        return u
 
 
 def float_ceil(u):
-    return float(math.ceil(u))
+    if abs(u) < 2 ** 53:
+        return float(math.ceil(u))
+    else:
+        return u
 
 
 def float_sin(u):
@@ -437,7 +446,6 @@ import random
 
 def runtime_random():
     return random.random()
-
 
 debug = False
 
