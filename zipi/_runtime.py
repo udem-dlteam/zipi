@@ -423,31 +423,31 @@ debug = False
 if debug:
     for k, v in globals().copy().items():
         if "from_string" in k:
-            def stub(*args, v=v):
+            def wrapper(*args, v=v):
                 if all(isinstance(x, str) for x in args):
                     return v(*args)
                 else:
                     raise TypeError(v, args)
-            globals()[k] = stub
+            globals()[k] = wrapper
         elif k == "int_from_num":
-            def stub(*args, v=v):
+            def wrapper(*args, v=v):
                 if all(int(x) == x for x in args):
                     return v(*args)
                 else:
                     raise TypeError(v, args)
-            globals()[k] = stub
+            globals()[k] = wrapper
         elif k.startswith("int_"):
-            def stub(*args, v=v):
+            def wrapper(*args, v=v):
                 if all(isinstance(x, int) for x in args):
                     return v(*args)
                 else:
                     raise TypeError(v, args)
-            globals()[k] = stub
+            globals()[k] = wrapper
 
         elif k.startswith("float_"):
-            def stub(*args, v=v):
+            def wrapper(*args, v=v):
                 if all(isinstance(x, float) for x in args):
                     return v(*args)
                 else:
                     raise TypeError(v, args)
-            globals()[k] = stub
+            globals()[k] = wrapper
