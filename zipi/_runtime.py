@@ -382,6 +382,27 @@ def float_round(x):
 def float_round_to_digits(x, ndigits):
     return round(x, ndigits)
 
+###
+# List operations
+###
+
+def list_new(size, default_):
+    a = []
+    while size > 0:
+        a.append(default_)
+        size -= 1
+    return a
+
+def list_concat(l1, l2):
+    new_lst = []
+    for x in l1:
+        new_lst.append(x)
+
+    for y in l2:
+       new_lst.append(y)
+
+    return new_lst
+
 
 ###
 # IO operations

@@ -64,3 +64,11 @@ function list_to_tuple(lst) {lst.slice();};
 function runtime_random() {
   return Math.random();
 }
+
+function list_new(size, default_){
+    return Array.from({length: size}, function() {return default_;});
+}
+
+function list_concat(lst1, lst2){
+    return lst1.concat(lst2);
+}

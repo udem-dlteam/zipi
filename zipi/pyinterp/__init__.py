@@ -3477,23 +3477,6 @@ def om_float_abs_code(ctx, args):
 om_float_abs = do_magic_method(class_float, "__abs__", om_float_abs_code)
 
 
-def make_empty_array_with_zero_chars(size):
-    a = []
-    while size > 0:
-        a.append("0")
-        size -= 1
-    return a
-
-def list_concat(l1, l2):
-    new_lst = []
-    for x in l1:
-        new_lst.append(x)
-
-    for y in l2:
-       new_lst.append(y)
-
-    return new_lst
-
 def digit_to_char(x):
     return chr(x + 48)
 
@@ -3574,11 +3557,11 @@ def float_repr_generate(r, s, m_pos, m_neg, must_round, n):
         else:
             last_digit = d
 
-        str_chars = make_empty_array_with_zero_chars(n_num + 1)
+        str_chars = list_new(n_num + 1, "0")
         str_chars[n_num] = digit_to_char(int_to_num(last_digit))
         return str_chars
     elif tc:
-        str_chars = make_empty_array_with_zero_chars(n_num + 1)
+        str_chars = list_new(n_num + 1, "0")
         str_chars[n_num] = digit_to_char(int_to_num(d) + 1)
         return str_chars
     else:
@@ -3738,13 +3721,13 @@ def format_float_repr(v):
         pow_num = int_to_num(pow)
         m_len = len(m)
         if pow_num >= m_len:
-            m = list_concat(m, make_empty_array_with_zero_chars(pow_num - m_len))
+            m = list_concat(m, list_new(pow_num - m_len, "0"))
             m.append(".0")
         else:
             m[pow] = "." + m[pow]
         return sign + "".join(m)
     elif int_ge(pow, int_from_num(-3)):
-        return sign + "0." + "".join(make_empty_array_with_zero_chars(int_to_num(int_neg(pow)))) + "".join(m)
+        return sign + "0." + "".join(list_new(int_to_num(int_neg(pow)), "0")) + "".join(m)
     elif len(m) == 1:
         return sign + m[0] + format_float_repr_pow(pow)
     else:
