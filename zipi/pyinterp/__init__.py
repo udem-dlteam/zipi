@@ -3678,17 +3678,18 @@ def float_repr_pow_mantissa_pair(v):
                 v)
 
 def format_float_repr_pow(pow):
-    if int_is_neg(pow):
-        pow_sign = "-"
-    else:
-        pow_sign = "+"
-
     pow_abs = int_abs(int_sub(pow, int_from_num(1)))
 
     if int_lt(pow_abs, int_from_num(10)):
-        return "e" + pow_sign + "0" + int_to_string(pow_abs, 10)
+        if int_is_neg(pow):
+            return "e-0" + int_to_string(pow_abs, 10)
+        else:
+            return "e+0" + int_to_string(pow_abs, 10)
     else:
-        return "e" + pow_sign + int_to_string(pow_abs, 10)
+        if int_is_neg(pow):
+            return "e-" + int_to_string(pow_abs, 10)
+        else:
+            return "e+" + int_to_string(pow_abs, 10)
 
 def format_float_repr(v):
     if float_is_neg(v):
