@@ -313,23 +313,24 @@ import sys
 def float_sqrt(u):
     return math.sqrt(u)
 
+lowest_float_with_precision_1 = 2.0 ** 53
 
 def float_floor(u):
-    if abs(u) < 2 ** 53:
+    if abs(u) < lowest_float_with_precision_1:
         return float(math.floor(u))
     else:
         return u
 
 
 def float_trunc(u):
-    if abs(u) < 2 ** 53:
+    if abs(u) < lowest_float_with_precision_1:
         return float(math.trunc(u))
     else:
         return u
 
 
 def float_ceil(u):
-    if abs(u) < 2 ** 53:
+    if abs(u) < lowest_float_with_precision_1:
         return float(math.ceil(u))
     else:
         return u
@@ -396,11 +397,7 @@ def float_round_to_digits(x, ndigits):
 ###
 
 def list_new(size, default_):
-    a = []
-    while size > 0:
-        a.append(default_)
-        size -= 1
-    return a
+    return [default_] * size
 
 def list_concat(l1, l2):
     new_lst = []

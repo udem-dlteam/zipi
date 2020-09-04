@@ -3516,12 +3516,7 @@ def float_repr_scale(r, s, m_pos, m_neg, must_round, v):
             must_round)
 
 def float_repr_fixup(r, s, m_pos, m_neg, k, must_round):
-    if must_round:
-        cond = int_ge(int_add(r, m_pos), s)
-    else:
-        cond = int_lt(s, int_add(r, m_pos))
-
-    if cond:
+    if int_ge(int_add(r, m_pos), s) if must_round else int_lt(s, int_add(r, m_pos)):
         return (int_add(k, int_from_num(1)),
                 float_repr_generate(r, s, m_pos, m_neg, must_round, int_from_num(0)))
     else:
@@ -3574,6 +3569,8 @@ float_repr_m_bits = int_from_num(52)
 float_repr_m_min = int_from_num(4503599627370496)
 float_repr_m_min_float = float_from_num(4503599627370496.0)
 float_repr_m_max = int_from_num(9007199254740991)
+float_repr_num_e_min = int_from_num(-1074)
+float_repr_m_pos_min = int_from_num(4503599627370496)
 
 def float_repr_decompose(x):
     """x: strictly positive finite float number"""
@@ -3632,9 +3629,6 @@ def float_repr_decompose(x):
             return float_repr_m_max, int_sub(int_add(float_repr_e_bias, int_from_num(1)), float_repr_m_bits) # nanprint(float_decompose(0.0))
 
 def float_repr_pow_mantissa_pair(v):
-    float_num_e_min = int_from_num(-1074)
-    float_m_pos_min = int_from_num(4503599627370496)
-
     x = float_repr_decompose(v)
 
     f = x[0]
@@ -3642,7 +3636,7 @@ def float_repr_pow_mantissa_pair(v):
     must_round = int_is_even(f)
 
     if int_is_neg(e):
-        if int_ne(e, float_num_e_min) and int_eq(f, float_m_pos_min):
+        if int_ne(e, float_repr_num_e_min) and int_eq(f, float_repr_m_pos_min):
             return float_repr_scale(
                 int_lshift(f, int_from_num(2)),
                 int_lshift(int_from_num(1), int_sub(int_from_num(2), e)),
@@ -3660,7 +3654,7 @@ def float_repr_pow_mantissa_pair(v):
                 v)
     else:
         _2_pow_e = int_lshift(int_from_num(1), e)
-        if int_eq(f, float_m_pos_min):
+        if int_eq(f, float_repr_m_pos_min):
             return float_repr_scale(
                 int_lshift(f, int_add(e, int_from_num(2))),
                 int_from_num(4),
@@ -3677,61 +3671,50 @@ def float_repr_pow_mantissa_pair(v):
                 must_round,
                 v)
 
-def format_float_repr_pow(pow):
-    pow_abs = int_abs(int_sub(pow, int_from_num(1)))
-
-    if int_lt(pow_abs, int_from_num(10)):
-        if int_is_neg(pow):
-            return "e-0" + int_to_string(pow_abs, 10)
-        else:
-            return "e+0" + int_to_string(pow_abs, 10)
-    else:
-        if int_is_neg(pow):
-            return "e-" + int_to_string(pow_abs, 10)
-        else:
-            return "e+" + int_to_string(pow_abs, 10)
+def format_float_repr_pow(exponent):
+    exponent_abs = -exponent if exponent < 0 else exponent
+    return ("e-" if exponent < 0 else "e+") + ("0" if exponent_abs < 10 else "") + str(exponent_abs)
 
 def format_float_repr(v):
-    if float_is_neg(v):
-        sign = "-"
-    else:
-        sign = ""
+    if float_is_nan(v):
+        return "nan"
+
+    sign = "-" if float_is_neg(v) else ""
 
     if float_is_infinite(v):
         return sign + "inf"
-    elif float_is_nan(v):
-        return "nan"
     elif float_is_zero(v):
         return sign + "0.0"
 
-    pow, digits = float_repr_pow_mantissa_pair(float_abs(v))
+    abstract_exponent, digits = float_repr_pow_mantissa_pair(float_abs(v))
+    exponent_inc = int_to_num(abstract_exponent)
+    exponent = exponent_inc - 1
 
     m = []
     for d in digits:
         m.append(digit_to_char(d))
 
-    if int_ge(pow, int_from_num(17)):
+    if exponent >= 16:
         if len(m) == 1:
-            return sign + m[0] + format_float_repr_pow(pow)
+            return sign + m[0] + format_float_repr_pow(exponent)
         else:
             m[0] = m[0] + "."
-            return sign + "".join(m) + format_float_repr_pow(pow)
-    elif int_ge(pow, int_from_num(1)):
-        pow_num = int_to_num(pow)
+            return sign + "".join(m) + format_float_repr_pow(exponent)
+    elif exponent >= 0:
         m_len = len(m)
-        if pow_num >= m_len:
-            m = list_concat(m, list_new(pow_num - m_len, "0"))
+        if exponent_inc >= m_len:
+            m = list_concat(m, list_new(exponent_inc - m_len, "0"))
             m.append(".0")
         else:
-            m[pow] = "." + m[pow]
+            m[exponent_inc] = "." + m[exponent_inc]
         return sign + "".join(m)
-    elif int_ge(pow, int_from_num(-3)):
-        return sign + "0." + "".join(list_new(int_to_num(int_neg(pow)), "0")) + "".join(m)
+    elif exponent >= -4:
+        return sign + "0." + "".join(list_new(-exponent_inc, "0")) + "".join(m)
     elif len(m) == 1:
-        return sign + m[0] + format_float_repr_pow(pow)
+        return sign + m[0] + format_float_repr_pow(exponent)
     else:
         m[0] = m[0] + "."
-        return sign + "".join(m) + format_float_repr_pow(pow)
+        return sign + "".join(m) + format_float_repr_pow(exponent)
 
 def om_format_float_repr(self, rte):
     value = OM_get_boxed_value(self)
