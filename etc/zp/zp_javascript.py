@@ -23,7 +23,7 @@ class Transformer:
         self.recur_FunctionDef = []
 
     def gensym(self):
-        gs = "g" + str(self.counter)
+        gs = "___JS_GENSYM___" + str(self.counter)
         self.counter += 1
         return gs
 
@@ -256,16 +256,40 @@ class Transformer:
 
     def FunctionDef(self, node):
 
-        decorators = set()
+        def decorate(fn, decs, wrap=None, first=None):
+            if wrap is None:
+                wrap = ""
+            if first is None:
+                first = True
 
-        for d in node.decorator_list:
-            if isinstance(d, AST.Name):
-                decorators.add(d.id)
-            elif isinstance(d, AST.Call):
-                decorators.add(d.func.id)
+            try:
+                dec = decs.pop()
+            except IndexError:
+                return wrap
 
-        if "nocompile" in decorators:
-            return " "
+            if isinstance(dec, AST.Name):
+                dec_id = dec.id
+                if first:
+                    return decorate(fn, decs, f"{dec_id}({fn})", False)
+                else:
+                    return decorate(fn, decs, f"{dec_id}({wrap})", False)
+            elif isinstance(dec, AST.Call):
+                dec_id = dec.func.id
+                dec_args = ','.join([self.transform(arg) for arg in dec.args])
+                if first:
+                    return decorate(fn, decs, f"{dec_id}({dec_args})({fn})", False)
+                else:
+                    return decorate(fn, decs, f"{dec_id}({dec_args})({wrap})", False)
+            else:
+                raise Exception("Unknown decorator node {dec}")
+
+        decorators = node.decorator_list
+
+        for d in decorators:
+            if isinstance(d, AST.Name) and d.id == 'nocompile':
+                return " "
+            elif isinstance(d, AST.Call) and d.func.id == 'nocompile':
+                return " "
 
         # Check if global call is present
         for n in node.body:
@@ -300,9 +324,17 @@ class Transformer:
         # Only parse args
         args = self.transform(node.args)
 
-        out = " function "
+        out = ""
 
-        out += name + "(" + args + ") { " + body + "};"
+        # Apply decorators
+        if len(decorators) > 0:
+            fn_name = self.gensym()
+            # Create a block scope to define the function and then wrap it
+            out += f"""{{let {fn_name} = function ({args}) {{ {body} }};
+            var {name} = {decorate(fn_name, decorators)};
+            }};"""
+        else:
+            out += f" function {name} ({args}) {{ {body} }};"
 
         if len(self.recur_FunctionDef) == 0:
             self.in_global = False
