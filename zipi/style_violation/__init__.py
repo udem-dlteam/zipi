@@ -50,6 +50,9 @@ def apply_rules(rules, ast):
 NO_STATEMENT = None
 
 
+# ANY_BUITLIN_NAME = []
+
+
 def __register_error(errors, new_error):
     errors.append(new_error)
 
@@ -77,12 +80,42 @@ def statement_is(ast_type, error_msg):
 
 
 def statement_is_assignment(error_msg):
-    """Assert that a statement is of a given type"""
+    """Assert that a statement is an assignment"""
     return statement_is(AST.Assign, error_msg)
 
 
+def statement_is_assignment_to(name, error_msg):
+    """Assert that a statement is an assignment which assigns to a given name"""
+
+    def test(ast, errors):
+        if isinstance(ast, AST.Assign):
+            for t in ast.targets:
+                if __is_variable_with_name(t, name):
+                    return True
+
+        __register_error(errors, (ast, error_msg))
+        return False
+
+    return test
+
+
+def statement_is_assignment_only_to(name, error_msg):
+    """Assert that a statement is an assignment to a single name which is 'name'"""
+
+    def test(ast, errors):
+        if isinstance(ast, AST.Assign):
+            targets = ast.targets
+            if len(targets) == 1 and __is_variable_with_name(t, name):
+                return True
+
+        __register_error(errors, (ast, error_msg))
+        return False
+
+    return test
+
+
 def statement_is_call_to(fn_name, error_msg):
-    """Assert that a statement is of a given type"""
+    """Assert that a statement is a call to a specific function name"""
 
     def test(ast, errors):
         if isinstance(ast, AST.Expr):
@@ -163,9 +196,10 @@ def code_endswith(predicates_seq):
 
 rules = define_rules(
     [code_startswith([
+        statement_is_assignment_to("foo", "nope"),
         statement_is_assignment("first statement must be an assignment"),
         statement_is_assignment("second statement must be an assignment"),
-        statement_is_assignment("third statement must be an assignment")]),
+        statement_is_assignment_to("foo", "third statement must be an assignment to 'foo'")]),
         code_endswith([
             statement_is_call_to("print", "last statement must be a call to print")])
     ]
@@ -174,6 +208,8 @@ rules = define_rules(
 a = AST.parse("""
 1+1
 x=2
+7
+bar=2
 print(x)
 
 print(1)
