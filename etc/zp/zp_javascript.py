@@ -256,12 +256,7 @@ class Transformer:
 
     def FunctionDef(self, node):
 
-        def decorate(fn, decs, wrap=None, first=None):
-            if wrap is None:
-                wrap = ""
-            if first is None:
-                first = True
-
+        def decorate(fn, decs, wrap="", first=True):
             try:
                 dec = decs.pop()
             except IndexError:
