@@ -283,7 +283,7 @@ class Transformer:
             else:
                 raise Exception("Unknown decorator node {dec}")
 
-        decorators = node.decorator_list
+        decorators = node.decorator_list[:]
 
         for d in decorators:
             if isinstance(d, AST.Name) and d.id == 'nocompile':
