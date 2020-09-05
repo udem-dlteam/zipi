@@ -847,6 +847,7 @@ def populate_builtin_list():
 
 def populate_builtin_range():
     builtin_add_method(class_range, '__new__', om_range_new)
+    builtin_add_method(class_range, '__repr__', om_range_repr)
 
 def populate_builtin_slice():
     pass
@@ -2251,7 +2252,35 @@ def om_range_new_code(ctx, args):
 
 om_range_new = do_static_magic_method(class_range, "__new__", om_range_new_code)
 
+def om_range_repr_code(ctx, args):
+    args_len = len(args)
 
+    if args_len == 1:
+        self = args[0]
+        start = OM_get_range_start(self)
+        stop = OM_get_range_stop(self)
+        step = OM_get_range_step(self)
+
+        def get_start_str(start_rte, start_str):
+            start_str_value = OM_get_boxed_value(start_str)
+            def get_stop_str(stop_rte, stop_str):
+                stop_str_value = OM_get_boxed_value(stop_str)
+
+                step_value = OM_get_boxed_value(step)
+                if int_eq(step_value, int_from_num(1)):
+                    return cont_str(ctx, "range(" + start_str_value + ", " + stop_str_value + ")")
+                else:
+                    def get_step_str(step_rte, step_str):
+                        step_str_value = OM_get_boxed_value(step_str)
+                        return cont_str(ctx, "range(" + start_str_value + ", " + stop_str_value + ", " + step_str_value + ")")
+                    return sem_repr(with_cont(ctx, get_step_str), step)
+            return sem_repr(with_cont(ctx, get_stop_str), stop)
+        return sem_repr(with_cont(ctx, get_start_str), start)
+
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
+
+om_range_repr = do_magic_method(class_range, "__repr__", om_range_repr_code)
 
 # class_iterator methods
 
@@ -5523,6 +5552,26 @@ def om_list_simple_repr(tuple_, rte):
 
     return '[' + ', '.join(acc) + ']'
 
+def om_range_simple_repr(range_, rte):
+    start = OM_get_range_start(range_)
+    stop = OM_get_range_stop(range_)
+    step = OM_get_range_step(range_)
+
+    step_value = OM_get_boxed_value(step)
+
+    if int_eq(step_value, int_from_num(1)):
+        args = [start, stop]
+    else:
+        args = [start, stop, step]
+
+    args_repr = []
+    for arg in args:
+        repr_ = om_simple_repr(make_out_of_ast_context(rte, None), arg)
+        args_repr.append(repr_)
+
+    return 'range(' + ', '.join(args_repr) + ')'
+
+
 simple_repr_formatters = {
     "NoneType": om_format_NoneType_repr,
     "int": om_format_int_repr,
@@ -5531,6 +5580,7 @@ simple_repr_formatters = {
     "str": om_format_str_repr,
     "tuple": om_tuple_simple_repr,
     "list": om_list_simple_repr,
+    "range": om_range_simple_repr,
     "type": om_format_type_repr,
     "function": om_format_function_repr,
     "method-wrapper": om_format_MethodWrapper_repr,
