@@ -848,6 +848,7 @@ def populate_builtin_list():
 def populate_builtin_range():
     builtin_add_method(class_range, '__new__', om_range_new)
     builtin_add_method(class_range, '__repr__', om_range_repr)
+    builtin_add_method(class_range, '__len__', om_range_len)
 
 def populate_builtin_slice():
     pass
@@ -2281,6 +2282,34 @@ def om_range_repr_code(ctx, args):
         return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
 
 om_range_repr = do_magic_method(class_range, "__repr__", om_range_repr_code)
+
+def om_range_len_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 1:
+        self = args[0]
+        start = OM_get_range_start(self)
+        stop = OM_get_range_stop(self)
+        step = OM_get_range_step(self)
+
+        start_value = OM_get_boxed_value(start)
+        stop_value = OM_get_boxed_value(stop)
+        step_value = OM_get_boxed_value(step)
+
+        _1 = int_from_num(1)
+
+        if int_is_nonneg(step_value) and int_lt(start_value, stop_value):
+            res = int_add(_1, int_div_floor(int_sub(stop_value, int_add(start_value, _1)), step_value))
+            return cont_int(ctx, res)
+        elif int_is_neg(step_value) and int_gt(start_value, stop_value):
+            res = int_add(_1, int_div_floor(int_sub(start_value, int_add(stop_value, _1)), int_neg(step_value)))
+            return cont_int(ctx, res)
+        else:
+            return cont_int(ctx, int_from_num(0))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
+
+om_range_len = do_magic_method(class_range, "__len__", om_range_len_code)
 
 # class_iterator methods
 
