@@ -50,8 +50,7 @@ def apply_rules(rules, ast):
 NO_STATEMENT = None
 
 
-# ANY_BUITLIN_NAME = []
-
+# Helpers
 
 def __register_error(errors, new_error):
     errors.append(new_error)
@@ -65,6 +64,7 @@ def __register_many_error(errors, new_errors):
 def __is_variable_with_name(ast, name):
     return isinstance(ast, AST.Name) and ast.id == name
 
+# Conditions on statment
 
 def statement_is(ast_type, error_msg):
     """Assert that a statement is of a given type"""
@@ -92,21 +92,6 @@ def statement_is_assignment_to(name, error_msg):
             for t in ast.targets:
                 if __is_variable_with_name(t, name):
                     return True
-
-        __register_error(errors, (ast, error_msg))
-        return False
-
-    return test
-
-
-def statement_is_assignment_only_to(name, error_msg):
-    """Assert that a statement is an assignment to a single name which is 'name'"""
-
-    def test(ast, errors):
-        if isinstance(ast, AST.Assign):
-            targets = ast.targets
-            if len(targets) == 1 and __is_variable_with_name(t, name):
-                return True
 
         __register_error(errors, (ast, error_msg))
         return False
@@ -144,6 +129,7 @@ def statement_exists(error_msg):
 
     return test
 
+# Conditions on code
 
 def code_startswith(predicates_seq):
     """Assert that the module's code starts with a sequence of statements which each obey a given rule"""
@@ -193,26 +179,73 @@ def code_endswith(predicates_seq):
 
     return test
 
+# Conditions on set of node
+
+def all_satisfy(selector, predicate):
+    def test(module, errors):
+        return selector(module, predicate, errors)
+    return test
+
+# Walkers
+
+def select(select_predicate):
+    def selector(ast, predicate, errors):
+        if not isinstance(ast, AST.AST):
+            return True
+        if select_predicate(ast):
+            any_error = predicate(ast, errors)
+        else:
+            any_error = False
+
+        fields = ast._fields
+        for attr in fields:
+            child = getattr(ast, attr)
+
+            if child is None:
+                pass
+            elif isinstance(child, list):
+                for elt in child:
+                    any_error = not selector(elt, predicate, errors) or any_error
+            else:
+                any_error = not selector(child, predicate, errors) or any_error
+        return any_error
+
+    return selector
+
+# Selector conditions
+
+def is_kind(ast_type):
+    return lambda ast: isinstance(ast, ast_type)
+
+
+
+
+# Tests
+
+def is_variable_with_length_3(ast, errors):
+    if isinstance(ast.ctx, AST.Store):
+        id_ = ast.id
+        if len(id_) < 3:
+            __register_error(errors, (ast, "Variable names must contain at least three characters"))
+            return False
+        else:
+            return True
+    else:
+        return True
 
 rules = define_rules(
     [code_startswith([
-        statement_is_assignment_to("foo", "nope"),
-        statement_is_assignment("first statement must be an assignment"),
-        statement_is_assignment("second statement must be an assignment"),
-        statement_is_assignment_to("foo", "third statement must be an assignment to 'foo'")]),
-        code_endswith([
-            statement_is_call_to("print", "last statement must be a call to print")])
+        statement_is_assignment("first statement must be an assignment")]),
+    code_endswith([
+        statement_is_call_to("print", "last statement must be a call to print")]),
+    all_satisfy(select(is_kind(AST.Name)), is_variable_with_length_3)
     ]
 )
 
 a = AST.parse("""
-1+1
-x=2
-7
-bar=2
-print(x)
-
-print(1)
+y=2
+xx=5
+ghj=5
 """)
 
 print(apply_rules(rules, a))
