@@ -846,9 +846,12 @@ def populate_builtin_list():
     builtin_add_method(class_list, 'append', om_list_append)
 
 def populate_builtin_range():
-    builtin_add_method(class_range, '__new__', om_range_new)
-    builtin_add_method(class_range, '__repr__', om_range_repr)
-    builtin_add_method(class_range, '__len__', om_range_len)
+    buitlin_add_methods_to_class(
+        class_range,
+        (('__new__', om_range_new),
+         ('__repr__', om_range_repr),
+         ('__len__', om_range_len),
+         ('__getitem__', om_range_getitem)))
 
 def populate_builtin_slice():
     pass
@@ -2283,6 +2286,18 @@ def om_range_repr_code(ctx, args):
 
 om_range_repr = do_magic_method(class_range, "__repr__", om_range_repr_code)
 
+def compute_range_len(start, stop, step):
+    _1 = int_from_num(1)
+
+    if int_is_nonneg(step) and int_lt(start, stop):
+        res = int_add(_1, int_div_floor(int_sub(stop, int_add(start, _1)), step))
+        return res
+    elif int_is_neg(step) and int_gt(start, stop):
+        res = int_add(_1, int_div_floor(int_sub(start, int_add(stop, _1)), int_neg(step)))
+        return res
+    else:
+        return int_from_num(0)
+
 def om_range_len_code(ctx, args):
     args_len = len(args)
 
@@ -2296,20 +2311,54 @@ def om_range_len_code(ctx, args):
         stop_value = OM_get_boxed_value(stop)
         step_value = OM_get_boxed_value(step)
 
-        _1 = int_from_num(1)
-
-        if int_is_nonneg(step_value) and int_lt(start_value, stop_value):
-            res = int_add(_1, int_div_floor(int_sub(stop_value, int_add(start_value, _1)), step_value))
-            return cont_int(ctx, res)
-        elif int_is_neg(step_value) and int_gt(start_value, stop_value):
-            res = int_add(_1, int_div_floor(int_sub(start_value, int_add(stop_value, _1)), int_neg(step_value)))
-            return cont_int(ctx, res)
-        else:
-            return cont_int(ctx, int_from_num(0))
+        return cont_int(ctx, compute_range_len(start_value, stop_value, step_value))
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
 
 om_range_len = do_magic_method(class_range, "__len__", om_range_len_code)
+
+
+def compute_range_item(start, stop, step, index):
+    length = compute_range_len(start, stop, step)
+
+    if int_ge(index, length):
+        return None
+    elif int_is_nonneg(index):
+        return int_add(start, int_mul(index, step))
+    elif int_ge(index, int_neg(length)):
+        return int_add(start, int_mul(int_add(length, index), step))
+    else:
+        return None
+
+def om_range_getitem_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 2:
+        item = args[1]
+
+        def get_item(rte, index):
+            self = args[0]
+            start = OM_get_range_start(self)
+            stop = OM_get_range_stop(self)
+            step = OM_get_range_step(self)
+
+            start_value = OM_get_boxed_value(start)
+            stop_value = OM_get_boxed_value(stop)
+            step_value = OM_get_boxed_value(step)
+            index_value = OM_get_boxed_value(index)
+
+            res = compute_range_item(start_value, stop_value, step_value, index_value)
+
+            if res is None:
+                return sem_raise_with_message(ctx, class_IndexError, "range object index out of range")
+            else:
+                return cont_int(ctx, res)
+
+        return sem_index(with_cont(ctx, get_item), item)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(args_len - 1))
+
+om_range_getitem = do_magic_method(class_range, "__getitem__", om_range_getitem_code)
 
 # class_iterator methods
 
