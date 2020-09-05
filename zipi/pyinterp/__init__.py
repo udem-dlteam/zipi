@@ -842,6 +842,7 @@ def populate_builtin_slice():
     pass
 
 def populate_builtin_iterator():
+    builtin_add_method(class_iterator, '__iter__', om_iterator_iter)
     builtin_add_method(class_iterator, '__next__', om_iterator_next)
 
 def populate_builtin_dict():
@@ -2146,27 +2147,44 @@ om_list_append = do_magic_method(class_list, "append", om_list_append_code)
 
 # class_iterator methods
 
-def om_iterator_next(ctx, args):
+def om_iterator_iter_code(ctx, args):
+    if debug: print('iterator.__iter__')
+
+    if len(args) == 1:
+        return cont_obj(ctx, args[0])
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+
+om_iterator_iter = do_magic_method(class_iterator, "__iter__", om_iterator_iter_code)
+
+def om_iterator_next_code(ctx, args):
     if debug: print('iterator.__next__')
 
-    self = args[0]
+    if len(args) == 1:
 
-    obj = OM_get_iterator_obj(self)
-    index = OM_get_iterator_index(self)
+        self = args[0]
 
-    def increment_index(rte, val):
-        OM_set_iterator_index(self, om_int(int_add(OM_get_boxed_value(index), int_from_num(1))))
-        return ctx.cont(rte, val)
+        obj = OM_get_iterator_obj(self)
+        index = OM_get_iterator_index(self)
 
-    def catch_IndexError(rte, exn):
-        if om_isinstance(exn, class_IndexError):
-            return sem_raise(ctx, class_StopIteration)
-        else:
-            return sem_raise(ctx, exn)
+        def increment_index(rte, val):
+            OM_set_iterator_index(self, om_int(int_add(OM_get_boxed_value(index), int_from_num(1))))
+            return ctx.cont(rte, val)
 
-    next_ctx = with_cont_and_catch(ctx, increment_index, catch_IndexError)
+        def catch_IndexError(rte, exn):
+            if om_isinstance(exn, class_IndexError):
+                return sem_raise(ctx, class_StopIteration)
+            else:
+                return sem_raise(ctx, exn)
 
-    return sem_getitem(next_ctx, obj, index)
+        next_ctx = with_cont_and_catch(ctx, increment_index, catch_IndexError)
+
+        return sem_getitem(next_ctx, obj, index)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+om_iterator_next = do_magic_method(class_iterator, "__next__", om_iterator_next_code)
 
 # class_str methods
 def om_str_new_code(ctx, args):
@@ -4055,18 +4073,7 @@ def comp_stmt(cte, ast):
 
     elif isinstance(ast, AST.Assign):
         # Assign(expr* targets, expr value, string? type_comment)
-        if debug: print('AST.Assign')
-        if len(ast.targets) == 1:
-            target = ast.targets[0]
-            if isinstance(target, AST.Name):
-                id = ast.targets[0].id
-                (cte1, code1) = comp_expr(cte, ast.value)
-                return gen_var_set(cte1, ast, id, code1)
-            elif isinstance(target, AST.Subscript):
-                return gen_Subscript_Store(cte, ast, target, ast.value)
-        else:
-            return CT_raise_with_msg(cte, ast, 'Only assignments to one element is supported')
-
+        return comp_Assign(cte, ast)
 
     elif isinstance(ast, AST.AugAssign):
         if debug: print("AST.AugAssign")
@@ -4240,6 +4247,26 @@ def comp_elements(cte, args):
         elements_code.append(arg_code)
 
     return gen_elements_seq(next_cte, elements_code)
+
+
+def comp_Assign(cte, ast):
+    targets = ast.targets
+    value = ast.value
+    if len(targets) == 1:
+        target = targets[0]
+        if isinstance(target, AST.Name):
+            id = ast.targets[0].id
+            (cte1, code1) = comp_expr(cte, value)
+            return gen_var_set(cte1, ast, id, code1)
+        elif isinstance(target, AST.Subscript):
+            return gen_Subscript_Store(cte, ast, target, value)
+        elif isinstance(target, AST.Tuple):
+            return gen_multiple_Assign(cte, ast, target.elts, value)
+        else:
+            return CT_raise_with_msg(cte, ast, 'Unsupported assignment')
+    else:
+        # NOTE: Not sure when this can happen
+        return CT_raise_with_msg(cte, ast, 'Unknown assignment kind')
 
 def gen_elements_seq(cte, elements_code):
     elements_len = len(elements_code)
@@ -4441,6 +4468,47 @@ def gen_var_set(cte, ast, id, code1):
             return sem_var_set(Context(rte, lambda rte: cont_stmt_end_with_message(rte, msg), ast), id, val)
         return code1(rte, var_set)
     return (cte, code)
+
+
+def gen_multiple_Assign(cte, ast, targets, value):
+    value_cte, value_code = comp_expr(cte, value)
+
+    for targ in targets:
+        if not isinstance(targ, AST.Name):
+            return CT_raise_with_msg(cte, ast, "unsupported assignment")
+
+    targets_len = len(targets)
+    last_target_index = targets_len - 1
+
+    def code(rte, cont):
+        def unpack(unpack_rte, iterable):
+            def start_assignments(start_assign_rte, seq):
+                seq_len = len(seq)
+                if targets_len == seq_len:
+                    i = last_target_index
+                    next_cont = cont
+                    while i >= 0:
+                        def make_code(i, next_cont):
+                            def do_assign(assign_rte):
+                                var_ast = targets[i]
+                                val = seq[i]
+                                id = var_ast.id
+
+                                msg = id + " ← " + om_simple_repr(Context(assign_rte, next_cont, ast), val)
+                                cont_stmt_end_with_message = do_stmt_end_with_message(next_cont, var_ast)
+
+                                return sem_var_set(Context(assign_rte, lambda rte: cont_stmt_end_with_message(rte, msg), var_ast), id, val)
+                            return do_assign
+                        next_cont = make_code(i, next_cont)
+                        i -= 1
+                    return next_cont(start_assign_rte)
+                elif targets_len < seq_len:
+                    return sem_raise_with_message(Context(start_assign_rte, cont, ast), "too many values to unpack")
+                else:
+                    return sem_raise_with_message(Context(start_assign_rte, cont, ast), "not enough values to unpack")
+            return om_unpack_iterable(Context(unpack_rte, start_assignments, ast), iterable)
+        return value_code(rte, unpack)
+    return cte, code
 
 
 def gen_var_get(cte, ast, id):
@@ -5149,7 +5217,6 @@ def gen_elements(cte, ast, code_elts, make_container):
                                                    ast),
                                            elts))
     return (cte, code)
-
 
 def gen_Subscript_Load(cte, ast, obj_code, index_code):
     def get_obj(rte, cont):
