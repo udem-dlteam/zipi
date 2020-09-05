@@ -210,6 +210,13 @@ class OM_list(OM_object):
     seq: the inner sequence of objects
     """
 
+class OM_range(OM_object):
+    """
+    start: start of the range (om int)
+    stop: stop of the range (om int)
+    step: step of the range (om int)
+    """
+
 class OM_slice(OM_object):
     pass
 
@@ -838,6 +845,9 @@ def populate_builtin_list():
     builtin_add_method(class_list, '__len__', om_list_len)
     builtin_add_method(class_list, 'append', om_list_append)
 
+def populate_builtin_range():
+    builtin_add_method(class_range, '__new__', om_range_new)
+
 def populate_builtin_slice():
     pass
 
@@ -921,6 +931,13 @@ def om_list(seq, len_):
     OM_set_list_len(obj, len_)
     return obj
 
+def om_range(start, stop, step):
+    obj = om(class_range)
+    OM_set_range_start(obj, start)
+    OM_set_range_stop(obj, stop)
+    OM_set_range_step(obj, step)
+    return obj
+
 def om_iterator(obj, index):
     it = om(class_iterator)
 
@@ -947,6 +964,9 @@ def om_str(val):
 
 def om_int(val):
     return om_boxval(class_int, val)
+
+def om_int_from_num(val):
+    return om_boxval(class_int, int_from_num(val))
 
 def om_int_subtype(cls, val):
     return om_boxval(cls, val)
@@ -1023,6 +1043,9 @@ def OM_tuple_create():
 
 def OM_list_create():
     return OM_list()
+
+def OM_range_create():
+    return OM_range()
 
 def OM_dict_create():
     return OM_dict()
@@ -1121,6 +1144,24 @@ def OM_get_list_len(o):
 
 def OM_set_list_len(o, value):
     o.len = value
+
+def OM_get_range_start(o):
+    return o.start
+
+def OM_set_range_start(o, v):
+    o.start = v
+
+def OM_get_range_stop(o):
+    return o.stop
+
+def OM_set_range_stop(o, v):
+    o.stop = v
+
+def OM_get_range_step(o):
+    return o.step
+
+def OM_set_range_step(o, v):
+    o.step = v
 
 def OM_get_iterator_obj(o):
     return o.obj
@@ -1312,6 +1353,7 @@ class_NoneType = make_builtin_class('NoneType', OM_NoneType_create, (), class_ty
 class_tuple = make_builtin_class('tuple', OM_tuple_create, (), class_type)
 class_iterator = make_builtin_class('iterator', OM_iterator_create, (), class_type)
 class_list = make_builtin_class('list', OM_list_create, (), class_type)
+class_range = make_builtin_class('range', OM_range_create, (), class_type)
 class_dict = make_builtin_class('dict', OM_dict_create, (), class_type)
 class_module = make_builtin_class('module', OM_module_create, (), class_type)
 class_function = make_builtin_class('function', OM_function_create, (), class_type)
@@ -2144,6 +2186,72 @@ def om_list_append_code(ctx, args):
     return ctx.cont(ctx.rte, om_None)
 
 om_list_append = do_magic_method(class_list, "append", om_list_append_code)
+
+# class_range methods
+
+def om_range_new_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 2:
+        stop = args[1]
+        if om_isinstance(stop, class_int):
+            return cont_obj(ctx, om_range(om_int_from_num(0), stop, om_int_from_num(1)))
+        else:
+            def alloc_range(alloc_rte, stop_int):
+                return cont_obj(ctx, om_range(om_int_from_num(0), stop_int, om_int_from_num(1)))
+            return sem_index(with_cont(ctx, alloc_range), stop)
+    if args_len == 3:
+        start = args[1]
+        stop = args[2]
+
+        def get_start(start_rte, start_int):
+            def alloc_range(alloc_rte, stop_int):
+                return cont_obj(ctx, om_range(start_int, stop_int, om_int_from_num(1)))
+
+            if om_isinstance(stop, class_int):
+                return alloc_range(start_rte, stop)
+            else:
+                return sem_index(with_cont(ctx, alloc_range), stop)
+
+        if om_isinstance(start, class_int):
+            return get_start(ctx.rte, start)
+        else:
+            return sem_index(with_cont(ctx, get_start), start)
+    elif args_len == 4:
+        start = args[1]
+        stop = args[2]
+        step = args[3]
+
+        def get_start(start_rte, start_int):
+            def get_stop(stop_rte, stop_int):
+                def check_step(alloc_rte, step_int):
+                    step_value = OM_get_boxed_value(step_int)
+
+                    if int_is_zero(step_value):
+                        return sem_raise_with_message(ctx, class_ValueError, "range() arg 3 must not be zero")
+                    else:
+                        return cont_obj(ctx, om_range(start_int, stop_int, step_int))
+
+                if om_isinstance(step, class_int):
+                    return check_step(stop_rte, step)
+                else:
+                    return sem_index(with_cont(ctx, check_step), step)
+
+            if om_isinstance(stop, class_int):
+                return get_stop(start_rte, stop)
+            else:
+                return sem_index(with_cont(ctx, get_stop), stop)
+
+        if om_isinstance(start, class_int):
+            return get_start(ctx.rte, start)
+        else:
+            return sem_index(with_cont(ctx, get_start), start)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "range expected 1 to 3 arguments, got " + str(len(args) - 1))
+
+om_range_new = do_static_magic_method(class_range, "__new__", om_range_new_code)
+
+
 
 # class_iterator methods
 
@@ -3381,6 +3489,7 @@ populate_builtin_float()
 populate_builtin_bool()
 populate_builtin_tuple()
 populate_builtin_list()
+populate_builtin_range()
 populate_builtin_slice()
 populate_builtin_iterator()
 populate_builtin_dict()
@@ -3931,6 +4040,7 @@ def fresh_rte(options):
     dict_set(builtins_env, 'str', class_str)
     dict_set(builtins_env, 'tuple', class_tuple)
     dict_set(builtins_env, 'list', class_list)
+    dict_set(builtins_env, 'range', class_range)
     dict_set(builtins_env, 'NotImplemented', om_NotImplemented)
     dict_set(builtins_env, 'print', om_builtin_print)
     dict_set(builtins_env, 'input', om_builtin_input)
