@@ -64,6 +64,7 @@ def __register_many_error(errors, new_errors):
 def __is_variable_with_name(ast, name):
     return isinstance(ast, AST.Name) and ast.id == name
 
+
 # Conditions on statment
 
 def statement_is(ast_type, error_msg):
@@ -142,17 +143,22 @@ def satisfies_condition(predicate, error_msg):
 
     return test
 
-def not_satisfies_condition(predicate, error_msg):
-    """Assert that an AST node does not satisfies a custom condition"""
+
+def satisfies_global_condition(stateful_predicate, state, error_msg):
+    """
+    Assert that an AST node satisfies a custom condition
+    This method also allows the predicate to mutate and keep track of a global state
+    """
 
     def test(ast, errors):
-        if not predicate(ast):
+        if stateful_predicate(ast, state):
             return True
         else:
             __register_error(errors, (ast, error_msg))
             return False
 
     return test
+
 
 # Conditions on code
 
@@ -204,18 +210,23 @@ def code_endswith(predicates_seq):
 
     return test
 
+
 # Conditions on set of node
 
 def all_satisfy(selector, predicate):
     """Assert that all nodes walked on by selector satisfy the given predicate"""
+
     def test(module, errors):
         return selector(module, predicate, errors)
+
     return test
+
 
 # Walkers
 
 def select(select_predicate):
     """Walks on all nodes which satisfy 'select_predicate'"""
+
     def selector(ast, predicate, errors):
         if not isinstance(ast, AST.AST):
             return True
@@ -239,13 +250,24 @@ def select(select_predicate):
 
     return selector
 
+
 # Selector conditions
 
 def is_kind(ast_type):
-    """Selector predicates which selects only nodes of a gien type"""
+    """Selector predicates which selects only nodes of a given type"""
     return lambda ast: isinstance(ast, ast_type)
 
 
+def is_one_of_kinds(ast_types):
+    """Selector predicates which selects only nodes of a given type"""
+
+    def test(ast):
+        for t in ast_types:
+            if isinstance(ast, t):
+                return True
+        return False
+
+    return test
 
 
 # Tests
@@ -258,19 +280,25 @@ def variable_style(ast):
         return True
 
 
+def no_duplicate_expr(ast, state):
+    return True
+
+
 rules = define_rules(
     [code_startswith([
         statement_is_assignment("first statement must be an assignment")]),
-    code_endswith([
-        statement_is_call_to("print", "last statement must be a call to print")]),
-    all_satisfy(select(is_kind(AST.Name)), satisfies_condition(variable_style, "variables must satisfy..."))
+        code_endswith([
+            statement_is_call_to("print", "last statement must be a call to print")]),
+        all_satisfy(select(is_kind(AST.Name)), satisfies_condition(variable_style, "variables must satisfy...")),
+        all_satisfy(select(is_one_of_kinds((AST.BinOp, AST.UnaryOp))),
+                    satisfies_global_condition(no_duplicate_expr, {}, "No duplicate expressions"))
     ]
 )
 
 a = AST.parse("""
 y=2
 xx=5
-ghj=5
+ghj=5+2
 """)
 
 print(apply_rules(rules, a))
