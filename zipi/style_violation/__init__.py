@@ -280,8 +280,71 @@ def variable_style(ast):
         return True
 
 
+def is_long_expr(ast):
+    if isinstance(ast, AST.UnaryOp):
+        return is_long_expr(ast.operand)
+    elif isinstance(ast, AST.BinOp):
+        return not (isinstance(ast.left, AST.Constant) and isinstance(ast.right, AST.Constant))
+    else:
+        return False
+
+
+def stringify_op(ast):
+    if isinstance(ast, AST.Add):
+        return '+'
+    elif isinstance(ast, AST.Sub):
+        return '-'
+    elif isinstance(ast, AST.Mult):
+        return '*'
+    elif isinstance(ast, AST.Div):
+        return '/'
+    elif isinstance(ast, AST.FloorDiv):
+        return '//'
+    elif isinstance(ast, AST.Mod):
+        return '%'
+    elif isinstance(ast, AST.LShift):
+        return '<<'
+    elif isinstance(ast, AST.RShift):
+        return '>>'
+    elif isinstance(ast, AST.BitAnd):
+        return '&'
+    elif isinstance(ast, AST.BitOr):
+        return '|'
+    elif isinstance(ast, AST.BitXor):
+        return '^'
+    elif isinstance(ast, AST.Pow):
+        return '**'
+    elif isinstance(ast, AST.MatMult):
+        return '@'
+    elif isinstance(ast, AST.USub):
+        return '-'
+    elif isinstance(ast, AST.UAdd):
+        return ''
+    else:
+        return "?"
+
+
+def stringify_expr(ast):
+    if isinstance(ast, AST.UnaryOp):
+        return stringify_op(ast.op) + stringify_expr(ast.operand)
+    elif isinstance(ast, AST.BinOp):
+        return "(" + stringify_expr(ast.left) + stringify_op(ast.op) + stringify_expr(ast.right) + ")"
+    elif isinstance(ast, AST.Constant):
+        return str(ast.value)
+    else:
+        return "(?)"
+
+
 def no_duplicate_expr(ast, state):
-    return True
+    if is_long_expr(ast):
+        ast_repr = stringify_expr(ast)
+
+        seen = state.get(ast_repr, False)
+        state[ast_repr] = True
+
+        return not seen
+    else:
+        return True
 
 
 rules = define_rules(
@@ -289,16 +352,15 @@ rules = define_rules(
         statement_is_assignment("first statement must be an assignment")]),
         code_endswith([
             statement_is_call_to("print", "last statement must be a call to print")]),
-        all_satisfy(select(is_kind(AST.Name)), satisfies_condition(variable_style, "variables must satisfy...")),
+        all_satisfy(select(is_kind(AST.Name)), satisfies_condition(variable_style, "variables format")),
         all_satisfy(select(is_one_of_kinds((AST.BinOp, AST.UnaryOp))),
                     satisfies_global_condition(no_duplicate_expr, {}, "No duplicate expressions"))
     ]
 )
 
 a = AST.parse("""
-y=2
-xx=5
-ghj=5+2
+x = 1 + -2 + 3
+foo = 1 + -2 + 3
 """)
 
 print(apply_rules(rules, a))
