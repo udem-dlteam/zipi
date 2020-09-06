@@ -129,6 +129,31 @@ def statement_exists(error_msg):
 
     return test
 
+
+def satisfies_condition(predicate, error_msg):
+    """Assert that an AST node satisfies a custom condition"""
+
+    def test(ast, errors):
+        if predicate(ast):
+            return True
+        else:
+            __register_error(errors, (ast, error_msg))
+            return False
+
+    return test
+
+def not_satisfies_condition(predicate, error_msg):
+    """Assert that an AST node does not satisfies a custom condition"""
+
+    def test(ast, errors):
+        if not predicate(ast):
+            return True
+        else:
+            __register_error(errors, (ast, error_msg))
+            return False
+
+    return test
+
 # Conditions on code
 
 def code_startswith(predicates_seq):
@@ -182,6 +207,7 @@ def code_endswith(predicates_seq):
 # Conditions on set of node
 
 def all_satisfy(selector, predicate):
+    """Assert that all nodes walked on by selector satisfy the given predicate"""
     def test(module, errors):
         return selector(module, predicate, errors)
     return test
@@ -189,6 +215,7 @@ def all_satisfy(selector, predicate):
 # Walkers
 
 def select(select_predicate):
+    """Walks on all nodes which satisfy 'select_predicate'"""
     def selector(ast, predicate, errors):
         if not isinstance(ast, AST.AST):
             return True
@@ -215,6 +242,7 @@ def select(select_predicate):
 # Selector conditions
 
 def is_kind(ast_type):
+    """Selector predicates which selects only nodes of a gien type"""
     return lambda ast: isinstance(ast, ast_type)
 
 
@@ -222,23 +250,20 @@ def is_kind(ast_type):
 
 # Tests
 
-def is_variable_with_length_3(ast, errors):
-    if isinstance(ast.ctx, AST.Store):
-        id_ = ast.id
-        if len(id_) < 3:
-            __register_error(errors, (ast, "Variable names must contain at least three characters"))
-            return False
-        else:
-            return True
+def variable_style(ast):
+    id_ = ast.id
+    if len(id_) < 3:
+        return False
     else:
         return True
+
 
 rules = define_rules(
     [code_startswith([
         statement_is_assignment("first statement must be an assignment")]),
     code_endswith([
         statement_is_call_to("print", "last statement must be a call to print")]),
-    all_satisfy(select(is_kind(AST.Name)), is_variable_with_length_3)
+    all_satisfy(select(is_kind(AST.Name)), satisfies_condition(variable_style, "variables must satisfy..."))
     ]
 )
 
