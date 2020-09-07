@@ -3436,7 +3436,8 @@ def om_ord_code(rte, cont):
         obj_value = OM_get_boxed_value(obj)
         obj_value_len = len(obj_value)
         if obj_value_len == 1:
-            return unwindReturn(rte, om_int(ord(obj_value)))
+            obj_value_int = int_from_num(ord(obj_value))
+            return unwindReturn(rte, om_int(obj_value_int))
         else:
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise_with_message(ctx, class_ValueError, "ord() expected a character, but string of length " + str(obj_value_len) + " found")
