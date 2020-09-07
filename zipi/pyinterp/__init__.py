@@ -3,6 +3,11 @@ from zipi._runtime import *
 # NOTE: required to be able to instantiate ast nodes from pyinterp
 from zipi.zast._zast import *
 
+from zipi.style_violation import *
+from zipi.style_violation.exercice2 import *
+
+style_rules = ex2_rules
+
 import zipi.zast._zast as AST
 import zipi.zast as zast
 AST.parse = zast.parse
@@ -3862,9 +3867,23 @@ def interp(ast, options):
 def comp(ast, external_context):
     cte = CTE(None, None, None, None, external_context, None)
 
-    (cte1, code) = comp_mod(cte, ast)
+    if style_rules is not None:
+        style_violation = get_style_violations(cte, style_rules, ast)
+        if style_violation is not None:
+            return style_violation
 
+    (cte1, code) = comp_mod(cte, ast)
     return code
+
+
+def get_style_violations(cte, rules, ast):
+    error_messages = apply_rules(rules, ast)
+
+    if len(error_messages) == 0:
+        return None
+    else:
+        error_pos, msg = error_messages[0]
+        return CT_raise_with_msg(cte, error_pos, msg)
 
 def prepare_execution(code, rte):
     return lambda: code(rte, lambda rte: None)

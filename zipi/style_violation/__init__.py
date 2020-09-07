@@ -3,11 +3,6 @@ This module allows to define style constraint on the AST and to enforce it usage
 """
 
 import zipi.zast._zast as AST
-import zipi.zast as zast
-
-AST.parse = zast.parse
-
-from pprint import pprint as print
 
 
 # ======================================================================================================================
@@ -49,6 +44,8 @@ def apply_rules(rules, ast):
 
 NO_STATEMENT = None
 
+IS_STATEFUL_PREDICATE = []
+
 
 # Helpers
 
@@ -63,6 +60,24 @@ def __register_many_error(errors, new_errors):
 
 def __is_variable_with_name(ast, name):
     return isinstance(ast, AST.Name) and ast.id == name
+
+
+def __predicate_requires_init(pred):
+    if isinstance(pred, tuple) and pred[0] is IS_STATEFUL_PREDICATE:
+        return True
+    else:
+        return False
+
+
+def __init_predicate(pred):
+    if __predicate_requires_init(pred):
+        return pred[1]()
+    else:
+        return pred
+
+
+def __make_stateful_predicate(pred):
+    return (IS_STATEFUL_PREDICATE, pred)
 
 
 # Conditions on statment
@@ -82,7 +97,15 @@ def statement_is(ast_type, error_msg):
 
 def statement_is_assignment(error_msg):
     """Assert that a statement is an assignment"""
-    return statement_is(AST.Assign, error_msg)
+
+    def test(ast, errors):
+        if isinstance(ast, AST.Assign):
+            return True
+        else:
+            __register_error(errors, (ast, error_msg))
+            return False
+
+    return test
 
 
 def statement_is_assignment_to(name, error_msg):
@@ -144,20 +167,23 @@ def satisfies_condition(predicate, error_msg):
     return test
 
 
-def satisfies_global_condition(stateful_predicate, state, error_msg):
+def satisfies_global_condition(stateful_predicate, state_init, error_msg):
     """
     Assert that an AST node satisfies a custom condition
     This method also allows the predicate to mutate and keep track of a global state
     """
 
-    def test(ast, errors):
-        if stateful_predicate(ast, state):
-            return True
-        else:
-            __register_error(errors, (ast, error_msg))
-            return False
+    def test_init():
+        state = state_init()
+        def test(ast, errors):
+            if stateful_predicate(ast, state):
+                return True
+            else:
+                __register_error(errors, (ast, error_msg))
+                return False
 
-    return test
+        return test
+    return __make_stateful_predicate(test_init)
 
 
 # Conditions on code
@@ -217,7 +243,7 @@ def all_satisfy(selector, predicate):
     """Assert that all nodes walked on by selector satisfy the given predicate"""
 
     def test(module, errors):
-        return selector(module, predicate, errors)
+        return selector(module, __init_predicate(predicate), errors)
 
     return test
 
@@ -228,10 +254,10 @@ def select(select_predicate):
     """Walks on all nodes which satisfy 'select_predicate'"""
 
     def selector(ast, predicate, errors):
-        if not isinstance(ast, AST.AST):
+        if not hasattr(ast, '_fields'):  # Hack to check: 'not isinstance(ast, AST.AST)' with zp
             return True
         if select_predicate(ast):
-            any_error = predicate(ast, errors)
+            any_error = not predicate(ast, errors)
         else:
             any_error = False
 
@@ -257,6 +283,9 @@ def is_kind(ast_type):
     """Selector predicates which selects only nodes of a given type"""
     return lambda ast: isinstance(ast, ast_type)
 
+def is_Name():
+    return lambda ast: isinstance(ast, AST.Name)
+
 
 def is_one_of_kinds(ast_types):
     """Selector predicates which selects only nodes of a given type"""
@@ -269,98 +298,10 @@ def is_one_of_kinds(ast_types):
 
     return test
 
-
-# Tests
-
-def variable_style(ast):
-    id_ = ast.id
-    if len(id_) < 3:
-        return False
-    else:
-        return True
+def is_arithmetic_expression():
+    return lambda ast: isinstance(ast, AST.BinOp) or isinstance(ast, AST.UnaryOp)
 
 
-def is_long_expr(ast):
-    if isinstance(ast, AST.UnaryOp):
-        return is_long_expr(ast.operand)
-    elif isinstance(ast, AST.BinOp):
-        return not (isinstance(ast.left, AST.Constant) and isinstance(ast.right, AST.Constant))
-    else:
-        return False
+# Miscellaneous
 
-
-def stringify_op(ast):
-    if isinstance(ast, AST.Add):
-        return '+'
-    elif isinstance(ast, AST.Sub):
-        return '-'
-    elif isinstance(ast, AST.Mult):
-        return '*'
-    elif isinstance(ast, AST.Div):
-        return '/'
-    elif isinstance(ast, AST.FloorDiv):
-        return '//'
-    elif isinstance(ast, AST.Mod):
-        return '%'
-    elif isinstance(ast, AST.LShift):
-        return '<<'
-    elif isinstance(ast, AST.RShift):
-        return '>>'
-    elif isinstance(ast, AST.BitAnd):
-        return '&'
-    elif isinstance(ast, AST.BitOr):
-        return '|'
-    elif isinstance(ast, AST.BitXor):
-        return '^'
-    elif isinstance(ast, AST.Pow):
-        return '**'
-    elif isinstance(ast, AST.MatMult):
-        return '@'
-    elif isinstance(ast, AST.USub):
-        return '-'
-    elif isinstance(ast, AST.UAdd):
-        return ''
-    else:
-        return "?"
-
-
-def stringify_expr(ast):
-    if isinstance(ast, AST.UnaryOp):
-        return stringify_op(ast.op) + stringify_expr(ast.operand)
-    elif isinstance(ast, AST.BinOp):
-        return "(" + stringify_expr(ast.left) + stringify_op(ast.op) + stringify_expr(ast.right) + ")"
-    elif isinstance(ast, AST.Constant):
-        return str(ast.value)
-    else:
-        return "(?)"
-
-
-def no_duplicate_expr(ast, state):
-    if is_long_expr(ast):
-        ast_repr = stringify_expr(ast)
-
-        seen = state.get(ast_repr, False)
-        state[ast_repr] = True
-
-        return not seen
-    else:
-        return True
-
-
-rules = define_rules(
-    [code_startswith([
-        statement_is_assignment("first statement must be an assignment")]),
-        code_endswith([
-            statement_is_call_to("print", "last statement must be a call to print")]),
-        all_satisfy(select(is_kind(AST.Name)), satisfies_condition(variable_style, "variables format")),
-        all_satisfy(select(is_one_of_kinds((AST.BinOp, AST.UnaryOp))),
-                    satisfies_global_condition(no_duplicate_expr, {}, "No duplicate expressions"))
-    ]
-)
-
-a = AST.parse("""
-x = 1 + -2 + 3
-foo = 1 + -2 + 3
-""")
-
-print(apply_rules(rules, a))
+empty_rules = define_rules([])
