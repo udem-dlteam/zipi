@@ -6,4 +6,5 @@ print(repr("\x12"))
 print(repr("\x0A"))
 print(repr("\x23"))
 print(repr("\uffff"))
+print(repr(chr(0)))
 

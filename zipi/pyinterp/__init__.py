@@ -3414,6 +3414,22 @@ om_hex_code = gen_int_to_string_conv_code(16, '0x')
 om_oct_code = gen_int_to_string_conv_code(8, '0o')
 om_bin_code = gen_int_to_string_conv_code(2, '0b')
 
+def om_chr_code(rte, cont):
+    obj = rte_lookup(rte, "obj")
+    obj_cls = OM_get_object_class(obj)
+    if om_issubclass(obj_cls, class_int):
+        obj_value = OM_get_boxed_value(obj)
+        if int_gt(obj_value, -1) and int_lt(obj_value,1114112):
+            obj_int_val = int_to_num(obj_value)
+            return unwindReturn(rte, om_int(chr(obj_int_val)))
+        else:
+            ctx = make_out_of_ast_context(rte, cont)
+            return sem_raise_with_message(ctx, class_ValueError, "chr() arg not in range(0x110000)")
+    else:
+        ctx = make_out_of_ast_context(rte, cont)
+        return sem_raise_with_message(ctx, class_TypeError, "an interger is required")
+
+
 def om_print_code(rte, _):
     args = rte_lookup(rte, 'args')
     args_seq = OM_get_list_seq(args)
@@ -3883,6 +3899,7 @@ def fresh_rte(options):
     om_builtin_hex = om_make_function_with_signature('hex', om_hex_code, make_posonly_only_signature(('obj',)))
     om_builtin_oct = om_make_function_with_signature('oct', om_oct_code, make_posonly_only_signature(('obj',)))
     om_builtin_bin = om_make_function_with_signature('bin', om_bin_code, make_posonly_only_signature(('obj',)))
+    om_builtin_chr = om_make_function_with_signature('chr', om_chr_code, make_posonly_only_signature(('obj',)))
     om_builtin_repr = om_make_function_with_signature('repr', om_repr_code, make_posonly_only_signature(('obj',)))
     om_builtin_len = om_make_function_with_signature('len', om_len_code, make_posonly_only_signature(('obj',)))
     om_builtin_next = om_make_function_with_signature('next', om_next_code,
@@ -3919,6 +3936,7 @@ def fresh_rte(options):
     dict_set(builtins_env, 'hex', om_builtin_hex)
     dict_set(builtins_env, 'oct', om_builtin_oct)
     dict_set(builtins_env, 'bin', om_builtin_bin)
+    dict_set(builtins_env, 'chr', om_builtin_chr)
     dict_set(builtins_env, 'repr', om_builtin_repr)
     dict_set(builtins_env, 'len', om_builtin_len)
     dict_set(builtins_env, 'next', om_builtin_next)
