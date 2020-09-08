@@ -3165,14 +3165,15 @@ def float_str_is_decimal_float(s, start, end):
 
     dot_pos = -1
 
-    while start < end:
-        c_code = ord(s[start])
+    i = start
+    while i < end:
+        c_code = ord(s[i])
 
         if c_code >= 48 and c_code <= 57:
-            start += 1
+            i += 1
         elif c_code == 46 and dot_pos == -1:
-            dot_pos = start
-            start += 1
+            dot_pos = i
+            i += 1
         else:
             return False
 
