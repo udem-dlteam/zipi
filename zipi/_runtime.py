@@ -110,14 +110,26 @@ def int_div_floor(u, v):
 def int_mod_floor(u, v):
     return u % v
 
+
 def int_divmod_floor(u, v):
     return divmod(u, v)
+
 
 def int_not(u):
     return ~u
 
-inf = float("inf")
-neg_inf = float("-inf")
+
+def float_inf():
+    return float("inf")
+
+
+def float_neg_inf():
+    return float("-inf")
+
+
+def float_nan():
+    return float("nan")
+
 
 def int_to_num(u, exact=None):
     try:
@@ -127,17 +139,18 @@ def int_to_num(u, exact=None):
         if exact:
             return False
         elif int_is_neg(u):
-            return neg_inf
+            return float_neg_inf()
         else:
-            return inf
-
+            return float_int()
 
 
 def int_and(u, v):
     return u & v
 
+
 def int_neg(n):
     return -n
+
 
 def int_not(n):
     return ~n
@@ -169,23 +182,29 @@ def int_to_string(u, radix):
     else:
         return str(u)
 
-def int_pow_mod(u,v,m):
-    return pow(u,v,m)
 
-def int_pow(u,v):
-    return pow(u,v)
+def int_pow_mod(u, v, m):
+    return pow(u, v, m)
+
+
+def int_pow(u, v):
+    return pow(u, v)
+
 
 def int_is_even(u):
     return u % 2 == 0
 
+
 def int_round(x, ndigits):
     return round(x, ndigits)
+
 
 def int_from_string(string, radix):
     try:
         return int(string, radix)
     except ValueError:
         return False
+
 
 def int_from_substring(string, start, stop, radix):
     try:
@@ -203,7 +222,7 @@ def float_instance(u):
 
 
 def float_from_num(u):
-    return u
+    return float(u)
 
 
 def float_to_num(u):
@@ -285,6 +304,7 @@ def float_div(u, v):
 def float_mod(u, v):
     return u % v
 
+
 def float_mod_floor(u, v):
     return u % v
 
@@ -296,12 +316,14 @@ def float_is_zero(u):
 def float_is_neg(u):
     return math.copysign(1.0, u) == -1.0
 
+
 def float_from_string(string):
     return float(string)
 
 
 def float_to_string(u):
     return str(u)
+
 
 ##
 # module math
@@ -310,10 +332,13 @@ def float_to_string(u):
 import math
 import sys
 
+
 def float_sqrt(u):
     return math.sqrt(u)
 
+
 lowest_float_with_precision_1 = 2.0 ** 52
+
 
 def float_floor(u):
     if abs(u) < lowest_float_with_precision_1:
@@ -373,7 +398,13 @@ def float_log10(u):
 
 
 def float_pow(u, v):
-    return math.pow(u, v)
+    try:
+        return math.pow(u, v)
+    except OverflowError:
+        if u < 0:
+            return float_neg_inf()
+        else:
+            return float_inf()
 
 
 def float_pi():
@@ -383,14 +414,18 @@ def float_pi():
 def float_e():
     return math.e
 
+
 def float_epsilon():
     return sys.float_info.epsilon
+
 
 def float_round(x):
     return round(x, 0)
 
+
 def float_round_to_digits(x, ndigits):
     return round(x, ndigits)
+
 
 ###
 # List operations
@@ -399,15 +434,48 @@ def float_round_to_digits(x, ndigits):
 def list_new(size, default_):
     return [default_] * size
 
+
 def list_concat(l1, l2):
     new_lst = []
     for x in l1:
         new_lst.append(x)
 
     for y in l2:
-       new_lst.append(y)
+        new_lst.append(y)
 
     return new_lst
+
+
+###
+# Str operations
+###
+
+def string_mul(s, times):
+    return s * times
+
+
+def string_eq(s1, s2):
+    return s1 == s2
+
+
+def string_ne(s1, s2):
+    return s1 != s2
+
+
+def string_lt(s1, s2):
+    return s1 < s2
+
+
+def string_le(s1, s2):
+    return s1 <= s2
+
+
+def string_gt(s1, s2):
+    return s1 > s2
+
+
+def string_ge(s1, s2):
+    return s1 >= s2
 
 
 ###
@@ -416,6 +484,7 @@ def list_concat(l1, l2):
 
 def runtime_alert(msg):
     print(msg)
+
 
 def runtime_confirm(msg):
     try:
@@ -428,11 +497,13 @@ def runtime_confirm(msg):
 def runtime_print(msg, rte):
     print(msg)
 
+
 def runtime_input(msg):
     try:
         return input(msg)
     except Exception:
         return None
+
 
 def runtime_prompt(msg):
     return runtime_input(msg)
@@ -441,8 +512,10 @@ def runtime_prompt(msg):
 # Module random
 import random
 
+
 def runtime_random():
     return random.random()
+
 
 debug = False
 
@@ -454,6 +527,8 @@ if debug:
                     return v(*args)
                 else:
                     raise TypeError(v, args)
+
+
             globals()[k] = wrapper
         elif k == "int_from_num":
             def wrapper(*args, v=v):
@@ -461,6 +536,8 @@ if debug:
                     return v(*args)
                 else:
                     raise TypeError(v, args)
+
+
             globals()[k] = wrapper
         elif k.startswith("int_"):
             def wrapper(*args, v=v):
@@ -468,6 +545,8 @@ if debug:
                     return v(*args)
                 else:
                     raise TypeError(v, args)
+
+
             globals()[k] = wrapper
 
         elif k.startswith("float_"):
@@ -476,4 +555,6 @@ if debug:
                     return v(*args)
                 else:
                     raise TypeError(v, args)
+
+
             globals()[k] = wrapper

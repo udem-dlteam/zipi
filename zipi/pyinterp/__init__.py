@@ -724,7 +724,14 @@ def bootstrap_populate_base_types():
          ('__str__', om_str_str),
          ('__getitem__', om_str_getitem),
          ('__eq__', om_str_eq),
+         ('__ne__', om_str_ne),
+         ('__gt__', om_str_gt),
+         ('__ge__', om_str_ge),
+         ('__lt__', om_str_lt),
+         ('__le__', om_str_le),
          ('__add__', om_str_add),
+         ('__mul__', om_str_mul),
+         ('__rmul__', om_str_rmul),
          ('__len__', om_str_len)))
 
 # Initialize class type objects
@@ -1240,7 +1247,7 @@ def gen_sem_Numeric_BinOp(op_symbol, method, rmethod):
             # F: Rmethod not implemented for val1's type.
             #    Raise TypeError since both methods are absent (like CPython).
             if om_is(val, om_NotImplemented):
-                return sem_raise(ctx, class_TypeError)
+                return error(rte)
             else:
                 # END1: val2 has rmethod and can operate on val1.
                 #       Return the result.
@@ -1258,7 +1265,19 @@ def gen_sem_Numeric_BinOp(op_symbol, method, rmethod):
             else:
                 # G: Method and rmethod are absent.
                 #    Raise a TypeError (like CPython).
-                return sem_raise(ctx, class_TypeError)
+                return error(rte)
+
+        def error(rte):
+            val1_type = OM_get_object_class(val1)
+            val2_type = OM_get_object_class(val2)
+
+            type1_name = OM_get(val1_type, "__name__")
+            type2_name = OM_get(val2_type, "__name__")
+
+            msg = "unsupported operand type(s) for " + op_symbol + ": " + om_format_str_repr(type1_name, rte) + " and "\
+                  + om_format_str_repr(type2_name, rte)
+
+            return sem_raise_with_message(ctx, class_TypeError, msg)
 
         # A: Does val1 have method?
         val1_method = getattribute_from_obj_mro(val1, method)
@@ -1456,6 +1475,45 @@ def do_magic_method(cls, method_name, code):
 
     return magic_method
 
+# Primitive operators for doing actual computations
+def gen_dunder_Homogenous_Numeric_BinOp(py_class, method, prim, om_class, om_box):
+    debug_msg = py_class + "." + method
+    def dunder_Numeric_BinOp(ctx, args):
+        if debug: print(debug_msg)
+        val1 = args[0]
+        val2 = args[1]
+
+        # Primitive operations are only defined on same types.
+        if om_issubclass(OM_get_object_class(val2), om_class):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            result = prim(val1_value, val2_value)
+            return ctx.cont(ctx.rte, om_box(result))
+        else:
+            # TODO: Return om_NotImplemented(rte) (in the proper rte)
+            return ctx.cont(ctx.rte, om_NotImplemented)
+
+    return do_magic_method(om_class, method, dunder_Numeric_BinOp)
+
+# Reversed operators reverse the order of their arguments when
+# doing the computation.
+def gen_dunder_Homogenous_Numeric_rBinOp(py_class, method, prim, om_class, om_box):
+    def dunder_Numeric_rBinOp(ctx, args):
+        if debug: print(py_class+ "." + method)
+        val1 = args[0]
+        val2 = args[1]
+
+        if om_issubclass(OM_get_object_class(val2), om_class):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            # Reverse the arguments.
+            result = prim(val2_value, val1_value)
+            return ctx.cont(ctx.rte, om_box(result))
+        else:
+            # TODO: Return om_NotImplemented(rte) (in the proper rte)
+            return ctx.cont(ctx.rte, om_NotImplemented)
+
+    return do_magic_method(om_class, method, dunder_Numeric_rBinOp)
 
 # class_type magic methods
 def om_type_new_code(ctx, args):
@@ -2486,24 +2544,6 @@ def om_str_repr_code(ctx, args):
 
 om_str_repr = do_magic_method(class_str, "__repr__", om_str_repr_code)
 
-def om_str_eq_code(ctx, args):
-    if len(args) == 2:
-        self = args[0]
-        other = args[1]
-
-        if om_isinstance(other, class_str):
-            self_val = OM_get_boxed_value(self)
-            other_value = OM_get_boxed_value(other)
-
-            return cont_bool(ctx, self_val == other_value)
-        else:
-            return cont_obj(ctx, om_NotImplemented)
-    else:
-        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
-
-
-om_str_eq = do_magic_method(class_str, "__eq__", om_str_eq_code)
-
 def om_str_add_code(ctx, args):
     if debug: print('str.__add__')
 
@@ -2522,6 +2562,39 @@ def om_str_add_code(ctx, args):
         return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
 
 om_str_add = do_magic_method(class_str, "__add__", om_str_add_code)
+
+def om_str_mul_code(ctx, args):
+    if debug: print('str.__mul__')
+
+    if len(args) == 2:
+        self = args[0]
+        other = args[1]
+
+        def do_mul(rte, res):
+            if res is absent:
+                return sem_raise_with_message(ctx, class_TypeError, "can't multiply sequence by non-int")
+            else:
+                times = OM_get_boxed_value(res)
+                num_times = int_to_num(times, True)
+
+                if num_times is False:
+                    # NOTE: This is not strictly Python, but we cannot handle too big multpilciations for now
+                    return sem_raise_with_message(ctx, class_OverflowError, "int too large to multiply sequence")
+                else:
+                    return cont_str(ctx, string_mul(OM_get_boxed_value(self), num_times))
+        return sem_maybe_index(with_cont(ctx, do_mul), other)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
+
+om_str_mul = do_magic_method(class_str, "__mul__", om_str_mul_code)
+om_str_rmul = do_magic_method(class_str, "__rmul__", om_str_mul_code)
+
+om_str_eq = gen_dunder_Homogenous_Numeric_BinOp('str', '__eq__', string_eq, class_str, om_bool)
+om_str_ne = gen_dunder_Homogenous_Numeric_BinOp('str', '__ne__', string_ne, class_str, om_bool)
+om_str_lt = gen_dunder_Homogenous_Numeric_BinOp('str', '__lt__', string_lt, class_str, om_bool)
+om_str_le = gen_dunder_Homogenous_Numeric_BinOp('str', '__le__', string_le, class_str, om_bool)
+om_str_gt = gen_dunder_Homogenous_Numeric_BinOp('str', '__gt__', string_gt, class_str, om_bool)
+om_str_ge = gen_dunder_Homogenous_Numeric_BinOp('str', '__ge__', string_ge, class_str, om_bool)
 
 def om_str_getitem_code(ctx, args):
     if debug: print('str.__getitem__')
@@ -2746,46 +2819,6 @@ def box_object(obj):
     else:
         raise ValueError("Cannot box object " + str(obj))
 
-# Primitive operators for doing actual computations
-def gen_dunder_Homogenous_Numeric_BinOp(py_class, method, prim, om_class, om_box):
-    debug_msg = py_class + "." + method
-    def dunder_Numeric_BinOp(ctx, args):
-        if debug: print(debug_msg)
-        val1 = args[0]
-        val2 = args[1]
-
-        # Primitive operations are only defined on same types.
-        if om_issubclass(OM_get_object_class(val2), om_class):
-            val1_value = OM_get_boxed_value(val1)
-            val2_value = OM_get_boxed_value(val2)
-            result = prim(val1_value, val2_value)
-            return ctx.cont(ctx.rte, om_box(result))
-        else:
-            # TODO: Return om_NotImplemented(rte) (in the proper rte)
-            return ctx.cont(ctx.rte, om_NotImplemented)
-
-    return do_magic_method(om_class, method, dunder_Numeric_BinOp)
-
-# Reversed operators reverse the order of their arguments when
-# doing the computation.
-def gen_dunder_Homogenous_Numeric_rBinOp(py_class, method, prim, om_class, om_box):
-    def dunder_Numeric_rBinOp(ctx, args):
-        if debug: print(py_class+ "." + method)
-        val1 = args[0]
-        val2 = args[1]
-
-        if om_issubclass(OM_get_object_class(val2), om_class):
-            val1_value = OM_get_boxed_value(val1)
-            val2_value = OM_get_boxed_value(val2)
-            # Reverse the arguments.
-            result = prim(val2_value, val1_value)
-            return ctx.cont(ctx.rte, om_box(result))
-        else:
-            # TODO: Return om_NotImplemented(rte) (in the proper rte)
-            return ctx.cont(ctx.rte, om_NotImplemented)
-
-    return do_magic_method(om_class, method, dunder_Numeric_rBinOp)
-
 # Arithmetic
 om_int_add = gen_dunder_Homogenous_Numeric_BinOp('int', '__add__', int_add, class_int, om_int)
 om_int_radd = gen_dunder_Homogenous_Numeric_rBinOp('int', '__radd__', int_add, class_int, om_int)
@@ -2811,13 +2844,8 @@ om_int_rxor = gen_dunder_Homogenous_Numeric_rBinOp('int', '__rxor__', int_xor, c
 def is_space(c):
     return c == " " or c == "\t" or c == "\f" or c =="\r" or c == "\n"
 
-# class_int methods
-def int_from_str(s, base):
-    base = int_to_num(base)
 
-    disallow_heading_zeros = base == 0
-
-    # base is 0 or 2 <= base <= 36
+def get_trimmed_str_range(s):
     end = len(s)
     start = 0
     while start < end:
@@ -2831,6 +2859,18 @@ def int_from_str(s, base):
             end -= 1
         else:
             break
+
+    return start, end
+
+
+# class_int methods
+def int_from_str(s, base):
+    base = int_to_num(base)
+
+    disallow_heading_zeros = base == 0
+
+    # base is 0 or 2 <= base <= 36
+    start, end = get_trimmed_str_range(s)
 
     if start >= end:
         return False
@@ -3152,6 +3192,129 @@ om_int_rtruediv = do_magic_method(class_int, "__rtruediv__", om_int_rtruediv_cod
 
 # Float dunders
 
+def float_str_is_decimal_float(s, start, end):
+    if start >= end:
+        return False
+
+    dot_pos = -1
+
+    i = start
+    while i < end:
+        c_code = ord(s[i])
+
+        if c_code >= 48 and c_code <= 57:
+            i += 1
+        elif c_code == 46 and dot_pos == -1:
+            dot_pos = i
+            i += 1
+        else:
+            return False
+
+    return dot_pos == - 1 or dot_pos > start or dot_pos < end - 1
+
+
+def float_str_segment_is_inf(s, start, end):
+    if end - start == 3:
+        c1 = s[start]
+        c2 = s[start+1]
+        c3 = s[start+2]
+        return c1 == "i" or c1 == "I" and c2 == "n" or c2 == "N" and c3 == "f" or c3 == "F"
+    else:
+        return False
+
+def float_str_segment_is_nan(s, start, end):
+    if end - start == 3:
+        c1 = s[start]
+        c2 = s[start+1]
+        c3 = s[start+2]
+        return c1 == "n" or c1 == "N" and c2 == "a" or c2 == "A" and c3 == "n" or c3 == "N"
+    else:
+        return False
+
+def float_str_find_e_in_segment(s, start, end):
+    while start < end:
+        c = s[start]
+        if c == "e" or c == "E":
+            return start
+        start += 1
+    return None
+
+def float_str_conversion(s):
+    start, end = get_trimmed_str_range(s)
+
+    if start >= end:
+        return None
+
+    sign = s[start]
+
+    if sign == '+' or sign == '-':
+        start += 1
+
+    if float_str_segment_is_inf(s, start, end):
+        if sign == "-":
+            return float_neg_inf()
+        else:
+            return float_inf()
+
+    if float_str_segment_is_nan(s, start, end):
+        return float_nan()
+
+    e_pos = float_str_find_e_in_segment(s, start, end)
+
+    if e_pos is None:
+        if float_str_is_decimal_float(s, start, end):
+            if sign == "-":
+                return float_neg(float_from_string(s[start:end]))
+            else:
+                return float_from_string(s[start:end])
+        else:
+            return None
+    else:
+        e_start = e_pos + 1
+        e_sign = s[e_start]
+
+        if e_sign == "+" or e_sign == "-":
+            e_start += 1
+
+        if e_sign == "-":
+            exponent = int_neg(int_from_substring(s, e_start, end, 10))
+        else:
+            exponent = int_from_substring(s, e_start, end, 10)
+
+        if exponent is False:
+            return None
+
+        if float_str_is_decimal_float(s, start, e_pos):
+            base = float_from_string(s[start:e_pos])
+
+            if float_is_zero(base):
+                return float_neg(base) if sign == "-" else base
+            else:
+                float_exponent = float_from_num(int_to_num(exponent))
+
+                if float_is_finite(float_exponent):
+                    res = float_mul(base, float_pow(float_from_num(10.0), float_exponent))
+                elif float_is_pos(float_exponent):
+                    res = float_inf()
+                else:
+                    res = float_from_num(0.0)
+
+                return float_neg(res) if sign == "-" else res
+        else:
+            return None
+
+def om_float_str_conversion(ctx, obj):
+    if om_isinstance(obj, class_str):
+        s = OM_get_boxed_value(obj)
+        res = float_str_conversion(s)
+        if res is None:
+            return sem_raise_with_message(ctx, class_ValueError,
+                                          "could not convert string to float: " + om_format_str_repr(obj, ctx.rte))
+        else:
+            return cont_float(ctx, res)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "float() argument must be a string or a number")
+
 def om_float_new_code(ctx, args):
     args_len = len(args)
 
@@ -3164,10 +3327,7 @@ def om_float_new_code(ctx, args):
 
         def check_result(rte, res):
             if res is None:
-                return sem_raise_with_message(
-                    Context(rte, ctx.cont, ctx.ast),
-                    class_TypeError,
-                    "float() argument must be a string or a number")
+                return om_float_str_conversion(ctx, obj)
             else:
                 return ctx.cont(ctx.rte, om_float_subtype(cls, OM_get_boxed_value(res)))
         return sem_maybe_float(with_cont(ctx, check_result), obj)
@@ -5484,52 +5644,73 @@ def gen_Compare(cte, ast, left, comparators, ops):
     for op in ops:
         sem_ops.append(comp_Compare_Op(op))
 
-    pseudo_asts = []
-    j = 0
-    tmp_left = left
-    while j < ops_len:
-        tmp_op = ops[j]
-        tmp_right = comparators[j]
-        pseudo_node = make_Compare_pseudo_node(tmp_left, tmp_op, tmp_right)
-        pseudo_asts.append(pseudo_node)
-        tmp_left = tmp_right
-        j += 1
+    if len(comparators) > 1:
+        pseudo_asts = []
+        j = 0
+        tmp_left = left
+        while j < ops_len:
+            tmp_op = ops[j]
+            tmp_right = comparators[j]
+            pseudo_node = make_Compare_pseudo_node(tmp_left, tmp_op, tmp_right)
+            pseudo_asts.append(pseudo_node)
+            tmp_left = tmp_right
+            j += 1
 
-    def do_chain_cont(end_chain_cont):
-        next_cont = end_chain_cont
-        init_i = ops_len - 1
-        i = init_i
+        def do_chain_cont(end_chain_cont):
+            next_cont = end_chain_cont
+            init_i = ops_len - 1
+            i = init_i
 
-        while i >= 0:
-            current_comparator_code = comparators_code[i]
-            current_sem_op = sem_ops[i]
-            current_pseudo_ast = pseudo_asts[i]
+            while i >= 0:
+                current_comparator_code = comparators_code[i]
+                current_sem_op = sem_ops[i]
+                current_pseudo_ast = pseudo_asts[i]
 
-            def create_code(next_cont, current_comparator_code, current_sem_op, current_pseudo_ast, i):
-                def get_right_value(cont_rte, left_val):
-                    def exec_comparison(compare_rte, right_val):
-                        def check_result(result_rte, result):
-                            def branch(branch_rte, bool_result):
-                                if i == init_i or om_is(bool_result, om_False):
-                                    expr_end_cont = do_expr_end(end_chain_cont, current_pseudo_ast)
-                                    return expr_end_cont(branch_rte, result)
-                                else:
-                                    expr_end_cont = do_expr_end_with_displayed_value(next_cont, current_pseudo_ast, result)
-                                    return expr_end_cont(branch_rte, right_val)
-                            return sem_bool(make_out_of_ast_context(result_rte, branch), result)
-                        return current_sem_op(Context(compare_rte, check_result, current_pseudo_ast), left_val, right_val)
-                    return current_comparator_code(cont_rte, exec_comparison)
-                return get_right_value
-            next_cont = create_code(next_cont, current_comparator_code, current_sem_op, current_pseudo_ast, i)
-            i -= 1
-        return next_cont
+                def create_code(next_cont, current_comparator_code, current_sem_op, current_pseudo_ast, i):
+                    def get_right_value(cont_rte, left_val):
+                        def exec_comparison(compare_rte, right_val):
+                            def check_result(result_rte, result):
+                                def branch(branch_rte, bool_result):
+                                    if i == init_i or om_is(bool_result, om_False):
+                                        expr_end_cont = do_expr_end(end_chain_cont, current_pseudo_ast)
+                                        return expr_end_cont(branch_rte, result)
+                                    else:
+                                        expr_end_cont = do_expr_end_with_displayed_value(next_cont, current_pseudo_ast,
+                                                                                         result)
+                                        return expr_end_cont(branch_rte, right_val)
 
-    def start_chain(rte, cont):
-        expr_end_cont = do_expr_end(cont, ast)
-        chain_cont = do_chain_cont(expr_end_cont)
-        return left_code(rte, chain_cont)
+                                return sem_bool(make_out_of_ast_context(result_rte, branch), result)
 
-    return left_cte, start_chain
+                            return current_sem_op(Context(compare_rte, check_result, current_pseudo_ast), left_val,
+                                                  right_val)
+
+                        return current_comparator_code(cont_rte, exec_comparison)
+
+                    return get_right_value
+
+                next_cont = create_code(next_cont, current_comparator_code, current_sem_op, current_pseudo_ast, i)
+                i -= 1
+            return next_cont
+
+        def start_chain(rte, cont):
+            expr_end_cont = do_expr_end(cont, ast)
+            chain_cont = do_chain_cont(expr_end_cont)
+            return left_code(rte, chain_cont)
+
+        return left_cte, start_chain
+
+    else:
+        sem_op = sem_ops[0]
+        right_code = comparators_code[0]
+
+        def code(rte, cont):
+            def get_left(left_rte, left_val):
+                def get_right(right_rte, right_val):
+                    expr_end_cont = do_expr_end(cont, ast)
+                    return sem_op(Context(right_rte, expr_end_cont, ast), left_val, right_val)
+                return right_code(left_rte, get_right)
+            return left_code(rte, get_left)
+        return left_cte, code
 
 
 def sem_Is(ctx, val1, val2):
