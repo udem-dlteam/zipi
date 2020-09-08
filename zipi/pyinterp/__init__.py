@@ -3258,7 +3258,10 @@ def float_str_conversion(s):
 
     if e_pos is None:
         if float_str_is_decimal_float(s, start, end):
-            return float_from_string(s[start:end])
+            if sign == "-":
+                return float_neg(float_from_string(s[start:end]))
+            else:
+                return float_from_string(s[start:end])
         else:
             return None
     else:
