@@ -3416,8 +3416,7 @@ om_bin_code = gen_int_to_string_conv_code(2, '0b')
 
 def om_chr_code(rte, cont):
     obj = rte_lookup(rte, "obj")
-    obj_cls = OM_get_object_class(obj)
-    if om_issubclass(obj_cls, class_int):
+    if om_isinstance(obj, class_int):
         obj_value = OM_get_boxed_value(obj)
         if int_gt(obj_value, -1) and int_lt(obj_value,1114112):
             obj_int_val = int_to_num(obj_value)
@@ -3431,8 +3430,7 @@ def om_chr_code(rte, cont):
 
 def om_ord_code(rte, cont):
     obj = rte_lookup(rte, "obj")
-    obj_cls = OM_get_object_class(obj)
-    if om_issubclass(obj_cls, class_str):
+    if om_isinstance(obj, class_str):
         obj_value = OM_get_boxed_value(obj)
         obj_value_len = len(obj_value)
         if obj_value_len == 1:
