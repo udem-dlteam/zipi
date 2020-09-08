@@ -3218,12 +3218,12 @@ def float_str_conversion(s):
 
     if float_str_segment_is_inf(s, start, end):
         if sign == "-":
-            return float_neg_inf
+            return float_neg_inf()
         else:
-            return float_inf
+            return float_inf()
 
     if float_str_segment_is_nan(s, start, end):
-        return float_nan
+        return float_nan()
 
     e_pos = float_str_find_e_in_segment(s, start, end)
 
@@ -3258,7 +3258,7 @@ def float_str_conversion(s):
                 if float_is_finite(float_exponent):
                     res = float_mul(base, float_pow(float_from_num(10.0), float_exponent))
                 elif float_is_pos(float_exponent):
-                    res = float_inf
+                    res = float_inf()
                 else:
                     res = float_from_num(0.0)
 

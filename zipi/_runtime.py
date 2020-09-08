@@ -116,9 +116,14 @@ def int_divmod_floor(u, v):
 def int_not(u):
     return ~u
 
-float_inf = float("inf")
-float_neg_inf = float("-inf")
-float_nan = float("nan")
+def float_inf():
+    return float("inf")
+
+def float_neg_inf():
+    return float("-inf")
+
+def float_nan():
+    return float("nan")
 
 def int_to_num(u, exact=None):
     try:
@@ -128,9 +133,9 @@ def int_to_num(u, exact=None):
         if exact:
             return False
         elif int_is_neg(u):
-            return float_neg_inf
+            return float_neg_inf()
         else:
-            return float_inf
+            return float_int()
 
 
 
@@ -378,9 +383,9 @@ def float_pow(u, v):
         return math.pow(u, v)
     except OverflowError:
         if u < 0:
-            return float_neg_inf
+            return float_neg_inf()
         else:
-            return float_inf
+            return float_inf()
 
 
 def float_pi():
