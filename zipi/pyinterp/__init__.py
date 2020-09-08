@@ -2811,13 +2811,8 @@ om_int_rxor = gen_dunder_Homogenous_Numeric_rBinOp('int', '__rxor__', int_xor, c
 def is_space(c):
     return c == " " or c == "\t" or c == "\f" or c =="\r" or c == "\n"
 
-# class_int methods
-def int_from_str(s, base):
-    base = int_to_num(base)
 
-    disallow_heading_zeros = base == 0
-
-    # base is 0 or 2 <= base <= 36
+def get_trimmed_str_range(s):
     end = len(s)
     start = 0
     while start < end:
@@ -2831,6 +2826,18 @@ def int_from_str(s, base):
             end -= 1
         else:
             break
+
+    return start, end
+
+
+# class_int methods
+def int_from_str(s, base):
+    base = int_to_num(base)
+
+    disallow_heading_zeros = base == 0
+
+    # base is 0 or 2 <= base <= 36
+    start, end = get_trimmed_str_range(s)
 
     if start >= end:
         return False
@@ -3152,6 +3159,125 @@ om_int_rtruediv = do_magic_method(class_int, "__rtruediv__", om_int_rtruediv_cod
 
 # Float dunders
 
+def float_str_is_decimal_float(s, start, end):
+    if start >= end:
+        return False
+
+    dot_pos = -1
+
+    while start < end:
+        c_code = ord(s[start])
+
+        if c_code >= 48 and c_code <= 57:
+            start += 1
+        elif c_code == 46 and dot_pos == -1:
+            dot_pos = start
+            start += 1
+        else:
+            return False
+
+    return dot_pos == - 1 or dot_pos > start or dot_pos < end - 1
+
+
+def float_str_segment_is_inf(s, start, end):
+    if end - start == 3:
+        c1 = s[start]
+        c2 = s[start+1]
+        c3 = s[start+2]
+        return c1 == "i" or c1 == "I" and c2 == "n" or c2 == "N" and c3 == "f" or c3 == "F"
+    else:
+        return False
+
+def float_str_segment_is_nan(s, start, end):
+    if end - start == 3:
+        c1 = s[start]
+        c2 = s[start+1]
+        c3 = s[start+2]
+        return c1 == "n" or c1 == "N" and c2 == "a" or c2 == "A" and c3 == "n" or c3 == "N"
+    else:
+        return False
+
+def float_str_find_e_in_segment(s, start, end):
+    while start < end:
+        c = s[start]
+        if c == "e" or c == "E":
+            return start
+        start += 1
+    return None
+
+def float_str_conversion(s):
+    start, end = get_trimmed_str_range(s)
+
+    if start >= end:
+        return None
+
+    sign = s[start]
+
+    if sign == '+' or sign == '-':
+        start += 1
+
+    if float_str_segment_is_inf(s, start, end):
+        if sign == "-":
+            return float_neg_inf
+        else:
+            return float_inf
+
+    if float_str_segment_is_nan(s, start, end):
+        return float_nan
+
+    e_pos = float_str_find_e_in_segment(s, start, end)
+
+    if e_pos is None:
+        if float_str_is_decimal_float(s, start, end):
+            return float_from_string(s[start:end])
+        else:
+            return None
+    else:
+        e_start = e_pos + 1
+        e_sign = s[e_start]
+
+        if e_sign == "+" or e_sign == "-":
+            e_start += 1
+
+        if e_sign == "-":
+            exponent = int_neg(int_from_substring(s, e_start, end, 10))
+        else:
+            exponent = int_from_substring(s, e_start, end, 10)
+
+        if exponent is False:
+            return None
+
+        if float_str_is_decimal_float(s, start, e_pos):
+            base = float_from_string(s[start:e_pos])
+
+            if float_is_zero(base):
+                return float_neg(base) if sign == "-" else base
+            else:
+                float_exponent = float_from_num(int_to_num(exponent))
+
+                if float_is_finite(float_exponent):
+                    res = float_mul(base, float_pow(float_from_num(10.0), float_exponent))
+                elif float_is_pos(float_exponent):
+                    res = float_inf
+                else:
+                    res = float_from_num(0.0)
+
+                return float_neg(res) if sign == "-" else res
+        else:
+            return None
+
+def om_float_str_conversion(ctx, obj):
+    if om_isinstance(obj, class_str):
+        s = OM_get_boxed_value(obj)
+        res = float_str_conversion(s)
+        if res is None:
+            return sem_raise_with_message(ctx, class_ValueError,
+                                          "could not convert string to float: " + om_format_str_repr(obj, ctx.rte))
+        else:
+            return cont_float(ctx, res)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "float() argument must be a string or a number")
+
 def om_float_new_code(ctx, args):
     args_len = len(args)
 
@@ -3164,10 +3290,7 @@ def om_float_new_code(ctx, args):
 
         def check_result(rte, res):
             if res is None:
-                return sem_raise_with_message(
-                    Context(rte, ctx.cont, ctx.ast),
-                    class_TypeError,
-                    "float() argument must be a string or a number")
+                return om_float_str_conversion(ctx, obj)
             else:
                 return ctx.cont(ctx.rte, om_float_subtype(cls, OM_get_boxed_value(res)))
         return sem_maybe_float(with_cont(ctx, check_result), obj)
