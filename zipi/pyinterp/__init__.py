@@ -5611,52 +5611,73 @@ def gen_Compare(cte, ast, left, comparators, ops):
     for op in ops:
         sem_ops.append(comp_Compare_Op(op))
 
-    pseudo_asts = []
-    j = 0
-    tmp_left = left
-    while j < ops_len:
-        tmp_op = ops[j]
-        tmp_right = comparators[j]
-        pseudo_node = make_Compare_pseudo_node(tmp_left, tmp_op, tmp_right)
-        pseudo_asts.append(pseudo_node)
-        tmp_left = tmp_right
-        j += 1
+    if len(comparators) > 1:
+        pseudo_asts = []
+        j = 0
+        tmp_left = left
+        while j < ops_len:
+            tmp_op = ops[j]
+            tmp_right = comparators[j]
+            pseudo_node = make_Compare_pseudo_node(tmp_left, tmp_op, tmp_right)
+            pseudo_asts.append(pseudo_node)
+            tmp_left = tmp_right
+            j += 1
 
-    def do_chain_cont(end_chain_cont):
-        next_cont = end_chain_cont
-        init_i = ops_len - 1
-        i = init_i
+        def do_chain_cont(end_chain_cont):
+            next_cont = end_chain_cont
+            init_i = ops_len - 1
+            i = init_i
 
-        while i >= 0:
-            current_comparator_code = comparators_code[i]
-            current_sem_op = sem_ops[i]
-            current_pseudo_ast = pseudo_asts[i]
+            while i >= 0:
+                current_comparator_code = comparators_code[i]
+                current_sem_op = sem_ops[i]
+                current_pseudo_ast = pseudo_asts[i]
 
-            def create_code(next_cont, current_comparator_code, current_sem_op, current_pseudo_ast, i):
-                def get_right_value(cont_rte, left_val):
-                    def exec_comparison(compare_rte, right_val):
-                        def check_result(result_rte, result):
-                            def branch(branch_rte, bool_result):
-                                if i == init_i or om_is(bool_result, om_False):
-                                    expr_end_cont = do_expr_end(end_chain_cont, current_pseudo_ast)
-                                    return expr_end_cont(branch_rte, result)
-                                else:
-                                    expr_end_cont = do_expr_end_with_displayed_value(next_cont, current_pseudo_ast, result)
-                                    return expr_end_cont(branch_rte, right_val)
-                            return sem_bool(make_out_of_ast_context(result_rte, branch), result)
-                        return current_sem_op(Context(compare_rte, check_result, current_pseudo_ast), left_val, right_val)
-                    return current_comparator_code(cont_rte, exec_comparison)
-                return get_right_value
-            next_cont = create_code(next_cont, current_comparator_code, current_sem_op, current_pseudo_ast, i)
-            i -= 1
-        return next_cont
+                def create_code(next_cont, current_comparator_code, current_sem_op, current_pseudo_ast, i):
+                    def get_right_value(cont_rte, left_val):
+                        def exec_comparison(compare_rte, right_val):
+                            def check_result(result_rte, result):
+                                def branch(branch_rte, bool_result):
+                                    if i == init_i or om_is(bool_result, om_False):
+                                        expr_end_cont = do_expr_end(end_chain_cont, current_pseudo_ast)
+                                        return expr_end_cont(branch_rte, result)
+                                    else:
+                                        expr_end_cont = do_expr_end_with_displayed_value(next_cont, current_pseudo_ast,
+                                                                                         result)
+                                        return expr_end_cont(branch_rte, right_val)
 
-    def start_chain(rte, cont):
-        expr_end_cont = do_expr_end(cont, ast)
-        chain_cont = do_chain_cont(expr_end_cont)
-        return left_code(rte, chain_cont)
+                                return sem_bool(make_out_of_ast_context(result_rte, branch), result)
 
-    return left_cte, start_chain
+                            return current_sem_op(Context(compare_rte, check_result, current_pseudo_ast), left_val,
+                                                  right_val)
+
+                        return current_comparator_code(cont_rte, exec_comparison)
+
+                    return get_right_value
+
+                next_cont = create_code(next_cont, current_comparator_code, current_sem_op, current_pseudo_ast, i)
+                i -= 1
+            return next_cont
+
+        def start_chain(rte, cont):
+            expr_end_cont = do_expr_end(cont, ast)
+            chain_cont = do_chain_cont(expr_end_cont)
+            return left_code(rte, chain_cont)
+
+        return left_cte, start_chain
+
+    else:
+        sem_op = sem_ops[0]
+        right_code = comparators_code[0]
+
+        def code(rte, cont):
+            def get_left(left_rte, left_val):
+                def get_right(right_rte, right_val):
+                    expr_end_cont = do_expr_end(cont, ast)
+                    return sem_op(Context(right_rte, expr_end_cont, ast), left_val, right_val)
+                return right_code(left_rte, get_right)
+            return left_code(rte, get_left)
+        return left_cte, code
 
 
 def sem_Is(ctx, val1, val2):
