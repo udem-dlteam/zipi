@@ -74,5 +74,9 @@ function list_concat(lst1, lst2){
 }
 
 function string_mul(s, times){
-    return s.repeat(times);
+    if (times <= 0) {
+        return "";
+    } else{
+        return s.repeat(times);
+    }
 }
