@@ -1242,7 +1242,7 @@ def gen_sem_Numeric_BinOp(op_symbol, method, rmethod):
             # F: Rmethod not implemented for val1's type.
             #    Raise TypeError since both methods are absent (like CPython).
             if om_is(val, om_NotImplemented):
-                return sem_raise(ctx, class_TypeError)
+                return error(rte)
             else:
                 # END1: val2 has rmethod and can operate on val1.
                 #       Return the result.
@@ -1260,7 +1260,19 @@ def gen_sem_Numeric_BinOp(op_symbol, method, rmethod):
             else:
                 # G: Method and rmethod are absent.
                 #    Raise a TypeError (like CPython).
-                return sem_raise(ctx, class_TypeError)
+                return error(rte)
+
+        def error(rte):
+            val1_type = OM_get_object_class(val1)
+            val2_type = OM_get_object_class(val2)
+
+            type1_name = OM_get(val1_type, "__name__")
+            type2_name = OM_get(val2_type, "__name__")
+
+            msg = "unsupported operand type(s) for " + op_symbol + ": " + om_format_str_repr(type1_name, rte) + " and "\
+                  + om_format_str_repr(type2_name, rte)
+
+            return sem_raise_with_message(ctx, class_TypeError, msg)
 
         # A: Does val1 have method?
         val1_method = getattribute_from_obj_mro(val1, method)
