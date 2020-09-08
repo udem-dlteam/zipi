@@ -3289,10 +3289,7 @@ def float_str_conversion(s):
         if e_sign == "+" or e_sign == "-":
             e_start += 1
 
-        if not float_str_is_integral_float(s, e_start, end):
-            return None
-
-        elif not float_str_is_decimal_float(s, start, e_pos):
+        if not (float_str_is_integral_float(s, e_start, end) and float_str_is_decimal_float(s, start, e_pos)):
             return None
         else:
             return float_from_string(s)
