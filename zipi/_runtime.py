@@ -206,6 +206,10 @@ def float_from_num(u):
     return u
 
 
+def float_to_num(u):
+    return u
+
+
 def float_is_zero(u):
     return u == 0
 
@@ -224,10 +228,6 @@ def float_is_nan(u):
 
 def float_is_pos(u):
     return u > 0.0
-
-
-def float_is_neg(u):
-    return u < 0.0
 
 
 def float_is_nonneg(u):
@@ -294,7 +294,7 @@ def float_is_zero(u):
 
 
 def float_is_neg(u):
-    return (u < 0)
+    return math.copysign(1.0, u) == -1.0
 
 def float_from_string(string):
     return float(string)
@@ -308,16 +308,32 @@ def float_to_string(u):
 ##
 
 import math
+import sys
+
 def float_sqrt(u):
     return math.sqrt(u)
 
+lowest_float_with_precision_1 = 2.0 ** 52
 
 def float_floor(u):
-    return float(math.floor(u))
+    if abs(u) < lowest_float_with_precision_1:
+        return float(math.floor(u))
+    else:
+        return u
+
+
+def float_trunc(u):
+    if abs(u) < lowest_float_with_precision_1:
+        return float(math.trunc(u))
+    else:
+        return u
 
 
 def float_ceil(u):
-    return math.ceil(u)
+    if abs(u) < lowest_float_with_precision_1:
+        return float(math.ceil(u))
+    else:
+        return u
 
 
 def float_sin(u):
@@ -352,6 +368,10 @@ def float_log(u):
     return math.log(u)
 
 
+def float_log10(u):
+    return math.log10(u)
+
+
 def float_pow(u, v):
     return math.pow(u, v)
 
@@ -363,11 +383,31 @@ def float_pi():
 def float_e():
     return math.e
 
+def float_epsilon():
+    return sys.float_info.epsilon
+
 def float_round(x):
     return round(x, 0)
 
 def float_round_to_digits(x, ndigits):
     return round(x, ndigits)
+
+###
+# List operations
+###
+
+def list_new(size, default_):
+    return [default_] * size
+
+def list_concat(l1, l2):
+    new_lst = []
+    for x in l1:
+        new_lst.append(x)
+
+    for y in l2:
+       new_lst.append(y)
+
+    return new_lst
 
 
 ###
@@ -404,3 +444,36 @@ import random
 def runtime_random():
     return random.random()
 
+debug = False
+
+if debug:
+    for k, v in globals().copy().items():
+        if "from_string" in k:
+            def wrapper(*args, v=v):
+                if all(isinstance(x, str) for x in args):
+                    return v(*args)
+                else:
+                    raise TypeError(v, args)
+            globals()[k] = wrapper
+        elif k == "int_from_num":
+            def wrapper(*args, v=v):
+                if all(int(x) == x for x in args):
+                    return v(*args)
+                else:
+                    raise TypeError(v, args)
+            globals()[k] = wrapper
+        elif k.startswith("int_"):
+            def wrapper(*args, v=v):
+                if all(isinstance(x, int) for x in args):
+                    return v(*args)
+                else:
+                    raise TypeError(v, args)
+            globals()[k] = wrapper
+
+        elif k.startswith("float_"):
+            def wrapper(*args, v=v):
+                if all(isinstance(x, float) for x in args):
+                    return v(*args)
+                else:
+                    raise TypeError(v, args)
+            globals()[k] = wrapper

@@ -3009,8 +3009,6 @@ om_int_ge = gen_dunder_Homogenous_Numeric_BinOp('int', '__ge__', int_ge, class_i
 def om_format_int_repr(self, rte):
     return int_to_string(OM_get_boxed_value(self), 10)
 
-def om_format_float_repr(self, rte):
-    return float_to_string(OM_get_boxed_value(self))
 
 def om_int_repr_code(ctx, args):
     self = args[0]
@@ -3433,9 +3431,6 @@ om_float_rsub = gen_dunder_Float_rBinOp('float', '__rsub__', float_sub, cont_flo
 om_float_mul = gen_dunder_Float_BinOp('float', '__mul__', float_mul, cont_float)
 om_float_rmul = gen_dunder_Float_rBinOp('float', '__rmul__', float_mul, cont_float)
 
-om_float_mod = gen_dunder_Float_DivideOp('float', '__mod__', float_mod_floor, cont_float)
-om_float_rmod = gen_dunder_Float_rDivideOp('float', '__rmod__', float_mod_floor, cont_float)
-
 om_float_truediv = gen_dunder_Float_DivideOp('float', '__truediv__', float_div, cont_float)
 om_float_rtruediv = gen_dunder_Float_rDivideOp('float', '__rtruediv__', float_div, cont_float)
 
@@ -3445,8 +3440,169 @@ def float_floordiv(u, v):
 om_float_floordiv = gen_dunder_Float_DivideOp('float', '__floordiv__', float_floordiv, cont_float)
 om_float_rfloordiv = gen_dunder_Float_rDivideOp('float', '__rfloordiv__', float_floordiv, cont_float)
 
-om_float_pow = gen_dunder_Float_BinOp('float', '__pow__', float_pow, cont_float)
-om_float_rpow = gen_dunder_Float_rBinOp('float', '__rpow__', float_pow, cont_float)
+
+def om_float_mod_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 2:
+        val1 = args[0]
+        val2 = args[1]
+
+        if om_isinstance(val2, class_float):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+
+            if float_is_zero(val2_value):
+                return sem_raise_with_message(ctx, class_ZeroDivisionError, "float modulo")
+            elif float_is_infinite(val2_value) and float_is_finite(val1_value):
+                if float_is_neg(val1_value):
+                    # Return inf
+                    return cont_float(ctx, val2_value)
+                else:
+                    return cont_float(ctx, val1_value)
+            else:
+                return cont_float(ctx, float_mod_floor(val1_value, val2_value))
+        elif om_isinstance(val2, class_int):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            val2_float_value = int_to_num(val2_value)
+
+            if float_is_infinite(val2_float_value):
+                return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
+            elif float_is_zero(val2_float_value):
+                return sem_raise_with_message(ctx, class_ZeroDivisionError, "float modulo")
+            elif float_is_infinite(val2_float_value) and float_is_finite(val1_value):
+                if float_is_neg(val1_value):
+                    # Return inf
+                    return cont_float(ctx, val2_float_value)
+                else:
+                    return cont_float(ctx, val1_value)
+            else:
+                return cont_float(ctx, float_mod_floor(val1_value, val2_float_value))
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(args_len - 1))
+
+om_float_mod = do_magic_method(class_float, '__mod__', om_float_mod_code)
+
+
+def om_float_rmod_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 2:
+        val1 = args[0]
+        val2 = args[1]
+
+        if om_isinstance(val2, class_float):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+
+            if float_is_zero(val1_value):
+                return sem_raise_with_message(ctx, class_ZeroDivisionError, "float modulo")
+            elif float_is_infinite(val1_value) and float_is_finite(val2_value):
+                if float_is_neg(val2_value):
+                    # Return inf
+                    return cont_float(ctx, val1_value)
+                else:
+                    return cont_float(ctx, val2_value)
+            else:
+                return cont_float(ctx, float_mod_floor(val2_value, val1_value))
+        elif om_isinstance(val2, class_int):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            val2_float_value = int_to_num(val2_value)
+
+            if float_is_infinite(val2_float_value):
+                return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
+            elif float_is_zero(val1_value):
+                return sem_raise_with_message(ctx, class_ZeroDivisionError, "float modulo")
+            elif float_is_infinite(val1_value) and float_is_finite(val2_float_value):
+                if float_is_neg(val2_float_value):
+                    # Return inf
+                    return cont_float(ctx, val1_value)
+                else:
+                    return cont_float(ctx, val2_float_value)
+            else:
+                return cont_float(ctx, float_mod_floor(val2_float_value, val1_value))
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(args_len - 1))
+
+om_float_rmod = do_magic_method(class_float, '__rmod__', om_float_rmod_code)
+
+def om_float_pow_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 2:
+        val1 = args[0]
+        val2 = args[1]
+
+        if om_isinstance(val2, class_float):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+
+            if float_is_infinite(val2_value) and float_eq(val1_value, float_from_num(1.0)):
+                # Special case in Python where 1.0 ** inf returns 1.0
+                return cont_float(ctx, val1_value)
+            else:
+                return cont_float(ctx, float_pow(val1_value, val2_value))
+
+        elif om_isinstance(val2, class_int):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            val2_float_value = int_to_num(val2_value)
+            if float_is_infinite(val2_float_value):
+                return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
+            else:
+                return cont_float(ctx, float_pow(val1_value, val2_float_value))
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+    elif args_len == 3:
+        return sem_raise_with_message(ctx, class_TypeError, "pow() 3rd argument not allowed unless all arguments are integers")
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(args_len - 1))
+
+om_float_pow = do_magic_method(class_float, "__pow__", om_float_pow_code)
+
+
+def om_float_rpow_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 2:
+        val1 = args[0]
+        val2 = args[1]
+
+        if om_isinstance(val2, class_float):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+
+            if float_is_infinite(val1_value) and float_eq(val2_value, float_from_num(1.0)):
+                # Special case in Python where 1.0 ** inf returns 1.0
+                return cont_float(ctx, val2_value)
+            else:
+                return cont_float(ctx, float_pow(val2_value, val1_value))
+
+        elif om_isinstance(val2, class_int):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            val2_float_value = int_to_num(val2_value)
+            if float_is_infinite(val2_float_value):
+                return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
+            elif float_is_infinite(val1_value) and float_eq(val2_float_value, float_from_num(1.0)):
+                # Special case in Python where 1.0 ** inf returns 1.0
+                return cont_float(ctx, val2_float_value)
+            else:
+                return cont_float(ctx, float_pow(val2_float_value, val1_value))
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+    elif args_len == 3:
+        return sem_raise_with_message(ctx, class_TypeError, "pow() 3rd argument not allowed unless all arguments are integers")
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(args_len - 1))
+
+om_float_rpow = do_magic_method(class_float, "__rpow__", om_float_rpow_code)
 
 ## float comparisons
 def float_ne(x, y):
@@ -3555,6 +3711,247 @@ def om_float_abs_code(ctx, args):
         return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
 
 om_float_abs = do_magic_method(class_float, "__abs__", om_float_abs_code)
+
+
+def digit_to_char(x):
+    return chr(x + 48)
+
+def float_repr_scale(r, s, m_pos, m_neg, must_round, v):
+    """
+    r is an int
+    s is an int
+    m_pos is int
+    m_neg is int
+    must_round is a boolean
+    v is a float
+    """
+    epsilon = float_pow(float_from_num(10.0), float_from_num(-10.0))
+
+    est = int_from_num(float_to_num(float_ceil(float_sub(float_log10(v), epsilon))))
+
+    if int_is_neg(est):
+        factor = int_pow(int_from_num(10), int_neg(est))
+        return float_repr_fixup(
+            int_mul(r, factor),
+            s,
+            int_mul(m_pos, factor),
+            int_mul(m_neg, factor),
+            est,
+            must_round)
+    else:
+        factor = int_pow(int_from_num(10), est)
+        return float_repr_fixup(
+            r,
+            int_mul(s, factor),
+            m_pos,
+            m_neg,
+            est,
+            must_round)
+
+def float_repr_fixup(r, s, m_pos, m_neg, k, must_round):
+    if int_ge(int_add(r, m_pos), s) if must_round else int_lt(s, int_add(r, m_pos)):
+        return (int_add(k, int_from_num(1)),
+                float_repr_generate(r, s, m_pos, m_neg, must_round, int_from_num(0)))
+    else:
+        return (k,
+                float_repr_generate(
+                    int_mul(r, int_from_num(10)),
+                    s,
+                    int_mul(m_pos, int_from_num(10)),
+                    int_mul(m_neg, int_from_num(10)),
+                    must_round,
+                    int_from_num(0)))
+
+def float_repr_generate(r, s, m_pos, m_neg, must_round, n):
+    dr = int_divmod_floor(r, s)
+    d = dr[0]
+    r = dr[1]
+
+    n_num = int_to_num(n)
+
+    if int_ge(m_neg, r) if must_round else int_lt(r, m_neg):
+        if int_ge(int_add(r, m_pos), s) if must_round else int_lt(s, int_add(r, m_pos)):
+            _2r = int_add(r, r)
+            if int_is_even(d) and int_eq(_2r, s) or int_lt(_2r, s):
+                last_digit = d
+            else:
+                last_digit = int_add(d, int_from_num(1))
+        else:
+            last_digit = d
+
+        str_chars = list_new(n_num + 1, 0)
+        str_chars[n_num] = int_to_num(last_digit)
+        return str_chars
+    elif int_ge(int_add(r, m_pos), s) if must_round else int_lt(s, int_add(r, m_pos)):
+        str_chars = list_new(n_num + 1, 0)
+        str_chars[n_num] = int_to_num(d) + 1
+        return str_chars
+    else:
+        str_chars = float_repr_generate(
+            int_mul(r, int_from_num(10)),
+            s,
+            int_mul(m_pos, int_from_num(10)),
+            int_mul(m_neg, int_from_num(10)),
+            must_round,
+            int_add(n, int_from_num(1)))
+        str_chars[n_num] = int_to_num(d)
+        return str_chars
+
+float_repr_e_bias = int_from_num(1023)
+float_repr_m_bits = int_from_num(52)
+float_repr_m_min = int_from_num(4503599627370496)
+float_repr_m_min_float = float_from_num(4503599627370496.0)
+float_repr_m_max = int_from_num(9007199254740991)
+float_repr_num_e_min = int_from_num(-1074)
+float_repr_m_pos_min = int_from_num(4503599627370496)
+
+def float_repr_decompose(x):
+    """x: strictly positive finite float number"""
+
+    def exp_form(x):
+        if float_lt(x, float_from_num(1.0)):
+            r = exp_form_neg(x, float_from_num(0.5), int_from_num(1))
+            return float_mul(r[0], float_to_num(2.0)), int_sub(int_from_num(-1), r[1])
+        else:
+            return exp_form_pos(x, float_from_num(2.0), int_from_num(1))
+
+    def exp_form_pos(x, y, i):
+        i2 = int_mul(i, int_from_num(2))
+
+        if int_ge(float_repr_e_bias, i2) and float_ge(x, y):
+            r = exp_form_pos(x, float_mul(y, y), i2)
+        else:
+            r = (x, int_from_num(0))
+
+        a = r[0]
+        b = r[1]
+
+        ib = int_add(i, b)
+
+        if int_ge(float_repr_e_bias, ib) and float_ge(a, y):
+            return float_div(a, y), ib
+        else:
+            return r
+
+    def exp_form_neg(x, y, i):
+        i2 = int_mul(i, int_from_num(2))
+
+        if int_lt(i2, int_sub(float_repr_e_bias, int_from_num(1))) and float_lt(x, y):
+            r = exp_form_neg(x, float_mul(y, y), i2)
+        else:
+            r = (x, int_from_num(0))
+
+        a = r[0]
+        b = r[1]
+        ib = int_add(i, b)
+
+        if int_lt(ib, int_sub(float_repr_e_bias, int_from_num(1))) and float_lt(a, y):
+            return float_div(a, y), ib
+        else:
+            return r
+
+    r = exp_form(float_abs(x))
+    y = r[0]
+
+    if float_lt(y, float_from_num(2.0)):
+        return int_from_num(float_to_num(float_trunc(float_mul(r[0], float_repr_m_min_float)))), int_sub(r[1], float_repr_m_bits)
+    else:
+        if float_gt(y, float_from_num(0.0)):
+            return float_repr_m_min, int_sub(int_add(float_repr_e_bias, int_from_num(1)), float_repr_m_bits) # inf
+        else:
+            return float_repr_m_max, int_sub(int_add(float_repr_e_bias, int_from_num(1)), float_repr_m_bits) # nanprint(float_decompose(0.0))
+
+def float_repr_pow_mantissa_pair(v):
+    x = float_repr_decompose(v)
+
+    f = x[0]
+    e = x[1]
+    must_round = int_is_even(f)
+
+    if int_is_neg(e):
+        if int_ne(e, float_repr_num_e_min) and int_eq(f, float_repr_m_pos_min):
+            return float_repr_scale(
+                int_lshift(f, int_from_num(2)),
+                int_lshift(int_from_num(1), int_sub(int_from_num(2), e)),
+                int_from_num(2),
+                int_from_num(1),
+                must_round,
+                v)
+        else:
+            return float_repr_scale(
+                int_lshift(f, int_from_num(1)),
+                int_lshift(int_from_num(1), int_sub(int_from_num(1), e)),
+                int_from_num(1),
+                int_from_num(1),
+                must_round,
+                v)
+    else:
+        _2_pow_e = int_lshift(int_from_num(1), e)
+        if int_eq(f, float_repr_m_pos_min):
+            return float_repr_scale(
+                int_lshift(f, int_add(e, int_from_num(2))),
+                int_from_num(4),
+                int_lshift(int_from_num(1), int_add(e, int_from_num(1))),
+                _2_pow_e,
+                must_round,
+                v)
+        else:
+            return float_repr_scale(
+                int_lshift(f, int_add(e, int_from_num(1))),
+                int_from_num(2),
+                _2_pow_e,
+                _2_pow_e,
+                must_round,
+                v)
+
+def format_float_repr_pow(exponent):
+    exponent_abs = -exponent if exponent < 0 else exponent
+    return ("e-" if exponent < 0 else "e+") + ("0" if exponent_abs < 10 else "") + str(exponent_abs)
+
+def format_float_repr(v):
+    if float_is_nan(v):
+        return "nan"
+
+    sign = "-" if float_is_neg(v) else ""
+
+    if float_is_infinite(v):
+        return sign + "inf"
+    elif float_is_zero(v):
+        return sign + "0.0"
+
+    abstract_exponent, digits = float_repr_pow_mantissa_pair(float_abs(v))
+    exponent_inc = int_to_num(abstract_exponent)
+    exponent = exponent_inc - 1
+
+    m = []
+    for d in digits:
+        m.append(digit_to_char(d))
+
+    if exponent >= 16:
+        if len(m) == 1:
+            return sign + m[0] + format_float_repr_pow(exponent)
+        else:
+            m[0] = m[0] + "."
+            return sign + "".join(m) + format_float_repr_pow(exponent)
+    elif exponent >= 0:
+        m_len = len(m)
+        if exponent_inc >= m_len:
+            m = list_concat(m, list_new(exponent_inc - m_len, "0"))
+            m.append(".0")
+        else:
+            m[exponent_inc] = "." + m[exponent_inc]
+        return sign + "".join(m)
+    elif exponent >= -4:
+        return sign + "0." + "".join(list_new(-exponent_inc, "0")) + "".join(m)
+    elif len(m) == 1:
+        return sign + m[0] + format_float_repr_pow(exponent)
+    else:
+        m[0] = m[0] + "."
+        return sign + "".join(m) + format_float_repr_pow(exponent)
+
+def om_format_float_repr(self, rte):
+    value = OM_get_boxed_value(self)
+    return format_float_repr(value)
 
 def om_float_repr_code(ctx, args):
     if len(args) == 1:

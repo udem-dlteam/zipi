@@ -44,7 +44,12 @@ function float_is_pos(float_a) {
 }
 
 function float_is_neg(float_a) {
-    return float_a < 0.0;
+    if (float_a === 0) {
+        // Special case for detecting -0.0
+        return 1 / float_a < 0;
+    } else {
+        return float_a < 0.0;
+    }
 }
 
 function float_is_nonneg(float_a) {
@@ -149,6 +154,10 @@ function float_expm1(float_a) {
 
 function float_log(float_a) {
     return Math.log(float_a);
+}
+
+function float_log10(float_a) {
+    return Math.log10(float_a);
 }
 
 function float_log1p(float_a) {
