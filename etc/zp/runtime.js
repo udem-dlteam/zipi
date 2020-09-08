@@ -72,3 +72,7 @@ function list_new(size, default_){
 function list_concat(lst1, lst2){
     return lst1.concat(lst2);
 }
+
+function string_mul(s, times){
+    return s.repeat(times);
+}

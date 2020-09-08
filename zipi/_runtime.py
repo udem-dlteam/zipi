@@ -423,6 +423,13 @@ def list_concat(l1, l2):
 
 
 ###
+# Str operations
+###
+
+def string_mul(s, times):
+    return s * times
+
+###
 # IO operations
 ###
 

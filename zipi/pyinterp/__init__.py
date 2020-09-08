@@ -725,6 +725,8 @@ def bootstrap_populate_base_types():
          ('__getitem__', om_str_getitem),
          ('__eq__', om_str_eq),
          ('__add__', om_str_add),
+         ('__mul__', om_str_mul),
+         ('__rmul__', om_str_rmul),
          ('__len__', om_str_len)))
 
 # Initialize class type objects
@@ -2522,6 +2524,32 @@ def om_str_add_code(ctx, args):
         return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
 
 om_str_add = do_magic_method(class_str, "__add__", om_str_add_code)
+
+def om_str_mul_code(ctx, args):
+    if debug: print('str.__mul__')
+
+    if len(args) == 2:
+        self = args[0]
+        other = args[1]
+
+        def do_mul(rte, res):
+            if res is absent:
+                return sem_raise_with_message(ctx, class_TypeError, "can't multiply sequence by non-int")
+            else:
+                times = OM_get_boxed_value(res)
+                num_times = int_to_num(times, True)
+
+                if num_times is False:
+                    # NOTE: This is not strictly Python, but we cannot handle too big multpilciations for now
+                    return sem_raise_with_message(ctx, class_OverflowError, "int too large to multiply sequence")
+                else:
+                    return cont_str(ctx, string_mul(OM_get_boxed_value(self), num_times))
+        return sem_maybe_index(with_cont(ctx, do_mul), other)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
+
+om_str_mul = do_magic_method(class_str, "__mul__", om_str_mul_code)
+om_str_rmul = do_magic_method(class_str, "__rmul__", om_str_mul_code)
 
 def om_str_getitem_code(ctx, args):
     if debug: print('str.__getitem__')
