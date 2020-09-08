@@ -724,6 +724,11 @@ def bootstrap_populate_base_types():
          ('__str__', om_str_str),
          ('__getitem__', om_str_getitem),
          ('__eq__', om_str_eq),
+         ('__ne__', om_str_ne),
+         ('__gt__', om_str_gt),
+         ('__ge__', om_str_ge),
+         ('__lt__', om_str_lt),
+         ('__le__', om_str_le),
          ('__add__', om_str_add),
          ('__mul__', om_str_mul),
          ('__rmul__', om_str_rmul),
@@ -1470,6 +1475,45 @@ def do_magic_method(cls, method_name, code):
 
     return magic_method
 
+# Primitive operators for doing actual computations
+def gen_dunder_Homogenous_Numeric_BinOp(py_class, method, prim, om_class, om_box):
+    debug_msg = py_class + "." + method
+    def dunder_Numeric_BinOp(ctx, args):
+        if debug: print(debug_msg)
+        val1 = args[0]
+        val2 = args[1]
+
+        # Primitive operations are only defined on same types.
+        if om_issubclass(OM_get_object_class(val2), om_class):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            result = prim(val1_value, val2_value)
+            return ctx.cont(ctx.rte, om_box(result))
+        else:
+            # TODO: Return om_NotImplemented(rte) (in the proper rte)
+            return ctx.cont(ctx.rte, om_NotImplemented)
+
+    return do_magic_method(om_class, method, dunder_Numeric_BinOp)
+
+# Reversed operators reverse the order of their arguments when
+# doing the computation.
+def gen_dunder_Homogenous_Numeric_rBinOp(py_class, method, prim, om_class, om_box):
+    def dunder_Numeric_rBinOp(ctx, args):
+        if debug: print(py_class+ "." + method)
+        val1 = args[0]
+        val2 = args[1]
+
+        if om_issubclass(OM_get_object_class(val2), om_class):
+            val1_value = OM_get_boxed_value(val1)
+            val2_value = OM_get_boxed_value(val2)
+            # Reverse the arguments.
+            result = prim(val2_value, val1_value)
+            return ctx.cont(ctx.rte, om_box(result))
+        else:
+            # TODO: Return om_NotImplemented(rte) (in the proper rte)
+            return ctx.cont(ctx.rte, om_NotImplemented)
+
+    return do_magic_method(om_class, method, dunder_Numeric_rBinOp)
 
 # class_type magic methods
 def om_type_new_code(ctx, args):
@@ -2500,24 +2544,6 @@ def om_str_repr_code(ctx, args):
 
 om_str_repr = do_magic_method(class_str, "__repr__", om_str_repr_code)
 
-def om_str_eq_code(ctx, args):
-    if len(args) == 2:
-        self = args[0]
-        other = args[1]
-
-        if om_isinstance(other, class_str):
-            self_val = OM_get_boxed_value(self)
-            other_value = OM_get_boxed_value(other)
-
-            return cont_bool(ctx, self_val == other_value)
-        else:
-            return cont_obj(ctx, om_NotImplemented)
-    else:
-        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
-
-
-om_str_eq = do_magic_method(class_str, "__eq__", om_str_eq_code)
-
 def om_str_add_code(ctx, args):
     if debug: print('str.__add__')
 
@@ -2562,6 +2588,13 @@ def om_str_mul_code(ctx, args):
 
 om_str_mul = do_magic_method(class_str, "__mul__", om_str_mul_code)
 om_str_rmul = do_magic_method(class_str, "__rmul__", om_str_mul_code)
+
+om_str_eq = gen_dunder_Homogenous_Numeric_BinOp('str', '__eq__', string_eq, class_str, om_bool)
+om_str_ne = gen_dunder_Homogenous_Numeric_BinOp('str', '__ne__', string_ne, class_str, om_bool)
+om_str_lt = gen_dunder_Homogenous_Numeric_BinOp('str', '__lt__', string_lt, class_str, om_bool)
+om_str_le = gen_dunder_Homogenous_Numeric_BinOp('str', '__le__', string_le, class_str, om_bool)
+om_str_gt = gen_dunder_Homogenous_Numeric_BinOp('str', '__gt__', string_gt, class_str, om_bool)
+om_str_ge = gen_dunder_Homogenous_Numeric_BinOp('str', '__ge__', string_ge, class_str, om_bool)
 
 def om_str_getitem_code(ctx, args):
     if debug: print('str.__getitem__')
@@ -2785,46 +2818,6 @@ def box_object(obj):
         return om_str(obj)
     else:
         raise ValueError("Cannot box object " + str(obj))
-
-# Primitive operators for doing actual computations
-def gen_dunder_Homogenous_Numeric_BinOp(py_class, method, prim, om_class, om_box):
-    debug_msg = py_class + "." + method
-    def dunder_Numeric_BinOp(ctx, args):
-        if debug: print(debug_msg)
-        val1 = args[0]
-        val2 = args[1]
-
-        # Primitive operations are only defined on same types.
-        if om_issubclass(OM_get_object_class(val2), om_class):
-            val1_value = OM_get_boxed_value(val1)
-            val2_value = OM_get_boxed_value(val2)
-            result = prim(val1_value, val2_value)
-            return ctx.cont(ctx.rte, om_box(result))
-        else:
-            # TODO: Return om_NotImplemented(rte) (in the proper rte)
-            return ctx.cont(ctx.rte, om_NotImplemented)
-
-    return do_magic_method(om_class, method, dunder_Numeric_BinOp)
-
-# Reversed operators reverse the order of their arguments when
-# doing the computation.
-def gen_dunder_Homogenous_Numeric_rBinOp(py_class, method, prim, om_class, om_box):
-    def dunder_Numeric_rBinOp(ctx, args):
-        if debug: print(py_class+ "." + method)
-        val1 = args[0]
-        val2 = args[1]
-
-        if om_issubclass(OM_get_object_class(val2), om_class):
-            val1_value = OM_get_boxed_value(val1)
-            val2_value = OM_get_boxed_value(val2)
-            # Reverse the arguments.
-            result = prim(val2_value, val1_value)
-            return ctx.cont(ctx.rte, om_box(result))
-        else:
-            # TODO: Return om_NotImplemented(rte) (in the proper rte)
-            return ctx.cont(ctx.rte, om_NotImplemented)
-
-    return do_magic_method(om_class, method, dunder_Numeric_rBinOp)
 
 # Arithmetic
 om_int_add = gen_dunder_Homogenous_Numeric_BinOp('int', '__add__', int_add, class_int, om_int)

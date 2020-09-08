@@ -80,3 +80,27 @@ function string_mul(s, times){
         return s.repeat(times);
     }
 }
+
+function string_eq(s1, s2) {
+    return s1 === s2;
+}
+
+function string_ne(s1, s2) {
+    return s1 !== s2;
+}
+
+function string_lt(s1, s2) {
+    return s1 < s2;
+}
+
+function string_le(s1, s2) {
+    return s1 <= s2;
+}
+
+function string_gt(s1, s2) {
+    return s1 > s2;
+}
+
+function string_ge(s1, s2) {
+    return s1 >= s2;
+}
