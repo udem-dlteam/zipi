@@ -4706,7 +4706,7 @@ def get_style_violations(cte, rules, ast):
 
         # If the error happens due to a missing statement, the flag NO_STATEMENT is returned
         # we replace it by a pseudo-ast node to indicate location
-        if error_pos is NO_STATEMENT:
+        if error_pos is NO_STATEMENT or isinstance(error_pos, AST.Module):
             body = ast.body
             virtual_error_pos = stmt()
 

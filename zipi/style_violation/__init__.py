@@ -249,6 +249,17 @@ def all_satisfy(selector, predicate):
     return test
 
 
+def module_statisfies(predicate):
+    """
+    Assert that the whole module satisfies the given predicate
+    Allows running a custom predicate on the whole code
+    """
+
+    def test(module, errors):
+        return predicate(module, errors)
+
+    return test
+
 # Walkers
 
 def select(select_predicate):
