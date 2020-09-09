@@ -69,3 +69,8 @@ print(pow(2.0,-1.1e309))
 print(pow(1e309,-2.0))
 print(pow(1.1e309,-2.0))
 print(pow(1.1e309,-2))
+
+print(pow(1.0,1e400))
+print(pow(1.0,-1e400))
+print(pow(-1.0,1e400))
+print(pow(-1.0,-1e400))
