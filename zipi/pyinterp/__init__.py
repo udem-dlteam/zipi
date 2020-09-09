@@ -3218,6 +3218,22 @@ def float_str_is_decimal_float(s, start, end):
     return dot_pos == - 1 or dot_pos > start or dot_pos < end - 1
 
 
+def float_str_is_integral_float(s, start, end):
+    if start >= end:
+        return False
+
+    i = start
+    while i < end:
+        c_code = ord(s[i])
+
+        if c_code >= 48 and c_code <= 57:
+            i += 1
+        else:
+            return False
+
+    return True
+
+
 def float_str_segment_is_inf(s, start, end):
     if end - start == 3:
         c1 = s[start]
@@ -3268,10 +3284,7 @@ def float_str_conversion(s):
 
     if e_pos is None:
         if float_str_is_decimal_float(s, start, end):
-            if sign == "-":
-                return float_neg(float_from_string(s[start:end]))
-            else:
-                return float_from_string(s[start:end])
+            return float_from_string(s)
         else:
             return None
     else:
@@ -3281,32 +3294,10 @@ def float_str_conversion(s):
         if e_sign == "+" or e_sign == "-":
             e_start += 1
 
-        if e_sign == "-":
-            exponent = int_neg(int_from_substring(s, e_start, end, 10))
-        else:
-            exponent = int_from_substring(s, e_start, end, 10)
-
-        if exponent is False:
+        if not (float_str_is_integral_float(s, e_start, end) and float_str_is_decimal_float(s, start, e_pos)):
             return None
-
-        if float_str_is_decimal_float(s, start, e_pos):
-            base = float_from_string(s[start:e_pos])
-
-            if float_is_zero(base):
-                return float_neg(base) if sign == "-" else base
-            else:
-                float_exponent = float_from_num(int_to_num(exponent))
-
-                if float_is_finite(float_exponent):
-                    res = float_mul(base, float_pow(float_from_num(10.0), float_exponent))
-                elif float_is_pos(float_exponent):
-                    res = float_inf()
-                else:
-                    res = float_from_num(0.0)
-
-                return float_neg(res) if sign == "-" else res
         else:
-            return None
+            return float_from_string(s)
 
 def om_float_str_conversion(ctx, obj):
     if om_isinstance(obj, class_str):
@@ -4976,7 +4967,7 @@ def comp_stmt(cte, ast):
         # TODO: support else block
         if debug: print('AST.For')
         for_cte = CTCtrl_controlContext(cte, ast)
-        return gen_for(for_cte, ast.target, ast.iter, ast.body)
+        return gen_for(for_cte, ast, ast.target, ast.iter, ast.body)
 
     elif isinstance(ast, AST.Raise):
         if debug: print('AST.Raise')
@@ -5361,9 +5352,9 @@ def gen_delete_seq(cte, ast, targets):
     else:
         return CT_raise_with_msg(cte, ast, "del: multiple targets not yet supported.")
 
-def gen_for(cte, target, iterable, body):
+def gen_for(cte, ast, target, iterable_expr, body):
 
-    iterable_cte, iterable_code = comp_expr(cte, iterable)
+    iterable_cte, iterable_code = comp_expr(cte, iterable_expr)
     body_cte, body_code = comp_stmt_seq(iterable_cte, body)
 
     def get_iterable(get_iterable_rte, cont):
@@ -5371,7 +5362,8 @@ def gen_for(cte, target, iterable, body):
             def get_next(get_next_rte, iterator):
                 def assign_target(assign_target_rte, nxt_value):
                     if nxt_value is for_loop_end_marker:
-                        return cont(get_next_rte)
+                        stmt_end_cont = do_stmt_end(cont, ast, 0)
+                        return stmt_end_cont(assign_target_rte)
                     else:
                         def run_body(rte):
                             ctrl_env = rte_ctrl_env(rte)
