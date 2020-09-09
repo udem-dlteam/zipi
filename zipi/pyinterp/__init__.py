@@ -125,14 +125,26 @@ def CTCtrl_labelLookup(cte, id_str):
         depth += 1
     return None
 
-def CT_raise_with_msg(cte, ast, msg):
-    syntax_error = dict_get(cte.external_context,
-                            'syntaxError',
-                            default_syntax_error)
-    return syntax_error(ast.lineno-1,
+def CT_raise_syntax_error_with_msg(cte, ast, msg):
+    compilationError = dict_get(cte.external_context,
+                            'compilationError',
+                            default_compilation_error)
+    return compilationError(ast.lineno-1,
                         ast.col_offset,
                         ast.end_lineno-1,
                         ast.end_col_offset,
+                        "SyntaxError",
+                        msg)
+
+def CT_raise_with_msg(cte, ast, error_kind, msg):
+    compilationError = dict_get(cte.external_context,
+                            'compilationError',
+                            default_compilation_error)
+    return compilationError(ast.lineno-1,
+                        ast.col_offset,
+                        ast.end_lineno-1,
+                        ast.end_col_offset,
+                        error_kind,
                         msg)
 
 # continuation call helper
@@ -4653,11 +4665,11 @@ def read_file(path):
     return content
 
 # used by pyinterp CLI
-def default_syntax_error(start_line0,
+def default_compilation_error(start_line0,
                          start_column0,
                          end_line0,
-                         end_column0, msg):
-    return lambda rte, __: runtime_print("SyntaxError at line " + str(end_line0) + ": " + msg, rte)
+                         end_column0, error_kind, msg):
+    return lambda rte, __: runtime_print(error_kind + " at line " + str(end_line0) + ": " + msg, rte)
 
 def interp_source(src, options=None):
     if options is None:
@@ -4670,7 +4682,6 @@ def parse(source, filename, mode, context):
 def interp(ast, options):
     # TODO: move outside of this function
     external_context = make_dict()
-    dict_set(external_context, 'syntaxError', default_syntax_error)
 
     code = comp(ast, external_context)
     trampoline(prepare_execution(code, fresh_rte(options)))
@@ -4721,7 +4732,7 @@ def get_style_violations(cte, rules, ast):
                 virtual_error_pos.end_col_offset = last_stmt.end_col_offset
         else:
             virtual_error_pos = error_pos
-        return CT_raise_with_msg(cte, virtual_error_pos, msg)
+        return CT_raise_with_msg(cte, virtual_error_pos, "StyleError", msg)
 
 def prepare_execution(code, rte):
     return lambda: code(rte, lambda rte: None)
@@ -4859,10 +4870,10 @@ def comp_mod(cte, ast):
     elif isinstance(ast, AST.Expression):
         # Expression(expr body)
         if debug: print('AST.Interactive')
-        return CT_raise_with_msg(cte, ast, "AST.Expression not supported")
+        return CT_raise_syntax_error_with_msg(cte, ast, "AST.Expression not supported")
 
     else:
-        return CT_raise_with_msg(cte, ast, "unknown ast type")
+        return CT_raise_syntax_error_with_msg(cte, ast, "unknown ast type")
         #assert False, 'comp_mod expected a AST.Module or AST.Interactive'
 
 def comp_stmt_seq(cte, stmt_seq):
@@ -4900,7 +4911,7 @@ def comp_stmt(cte, ast):
         # NOTE: inpired from codeboot JS
         depth_ast = CTCtrl_labelLookup(cte, "return point")
         if depth_ast is None:
-            return CT_raise_with_msg(cte, ast, "'return' outside of function")
+            return CT_raise_syntax_error_with_msg(cte, ast, "'return' outside of function")
         elif ast.value is None:
             return cte, lambda rte, cont: frame_cont(rte_stack(rte))(frame_rte(rte_stack(rte)), om_None)
         else:
@@ -5002,7 +5013,7 @@ def comp_stmt(cte, ast):
         return gen_raise(cte1, ast, code1)
 
     else:
-        return CT_raise_with_msg(cte, ast, "unsupported statements")
+        return CT_raise_syntax_error_with_msg(cte, ast, "unsupported statements")
 
 
 
@@ -5077,11 +5088,11 @@ def comp_expr(cte, ast):
             index_cte, index_code = comp_expr(obj_cte, index_ast.value)
             return gen_Subscript_Load(index_cte, ast, obj_code, index_code)
         elif isinstance(index_ast, AST.Slice):
-            return CT_raise_with_msg(cte, ast, "slice indexation unsupported")
+            return CT_raise_syntax_error_with_msg(cte, ast, "slice indexation unsupported")
         else:
-            return CT_raise_with_msg(cte, ast, "unsupported expression AST")
+            return CT_raise_syntax_error_with_msg(cte, ast, "unsupported expression AST")
     else:
-        return CT_raise_with_msg(cte, ast, "unsupported expression AST")
+        return CT_raise_syntax_error_with_msg(cte, ast, "unsupported expression AST")
 
 def comp_elements(cte, args):
     elements_code = []
@@ -5107,10 +5118,10 @@ def comp_Assign(cte, ast):
         elif isinstance(target, AST.Tuple):
             return gen_multiple_Assign(cte, ast, target.elts, value)
         else:
-            return CT_raise_with_msg(cte, ast, 'Unsupported assignment')
+            return CT_raise_syntax_error_with_msg(cte, ast, 'Unsupported assignment')
     else:
         # NOTE: Not sure when this can happen
-        return CT_raise_with_msg(cte, ast, 'Unknown assignment kind')
+        return CT_raise_syntax_error_with_msg(cte, ast, 'Unknown assignment kind')
 
 def gen_elements_seq(cte, elements_code):
     elements_len = len(elements_code)
@@ -5319,7 +5330,7 @@ def gen_multiple_Assign(cte, ast, targets, value):
 
     for targ in targets:
         if not isinstance(targ, AST.Name):
-            return CT_raise_with_msg(cte, ast, "unsupported assignment")
+            return CT_raise_syntax_error_with_msg(cte, ast, "unsupported assignment")
 
     targets_len = len(targets)
     last_target_index = targets_len - 1
@@ -5369,7 +5380,7 @@ def gen_delete(cte, ast, expr):
 
         return (expr_cte, del_expr)
     else:
-        return CT_raise_with_msg(cte, ast, "del: only supports var deletion")
+        return CT_raise_syntax_error_with_msg(cte, ast, "del: only supports var deletion")
 
 
 def gen_delete_seq(cte, ast, targets):
@@ -5377,7 +5388,7 @@ def gen_delete_seq(cte, ast, targets):
     if len(targets) == 1:
         return gen_delete(cte, ast, expr)
     else:
-        return CT_raise_with_msg(cte, ast, "del: multiple targets not yet supported.")
+        return CT_raise_syntax_error_with_msg(cte, ast, "del: multiple targets not yet supported.")
 
 def gen_for(cte, ast, target, iterable_expr, body):
 
@@ -5436,7 +5447,7 @@ def unwindContinue(rte, depth):
 def gen_break(cte, ast):
     depth_ast = CTCtrl_labelLookup(cte, "break point")
     if depth_ast is None:
-        return CT_raise_with_msg(cte, ast, "'break' outside loop")
+        return CT_raise_syntax_error_with_msg(cte, ast, "'break' outside loop")
     else:
         def code(rte, _):
             depth = dict_get(depth_ast, 'depth', 0)
@@ -5447,7 +5458,7 @@ def gen_break(cte, ast):
 def gen_continue(cte, ast):
     depth_ast = CTCtrl_labelLookup(cte, "break point")
     if depth_ast is None:
-        return CT_raise_with_msg(cte, ast, "'continue' not properly in loop")
+        return CT_raise_syntax_error_with_msg(cte, ast, "'continue' not properly in loop")
     else:
         def code(rte, _):
             depth = dict_get(depth_ast, 'depth', 0)
@@ -5511,7 +5522,7 @@ def gen_BoolOp(cte, ast, op, values):
     elif isinstance(op, AST.Or):
         logical_op = gen_logical_or
     else:
-        return CT_raise_with_msg(cte, ast, "unknown boolean operation")
+        return CT_raise_syntax_error_with_msg(cte, ast, "unknown boolean operation")
     return gen_BoolOp_seq(cte, ast, logical_op, values)
 
 # Compilation of sequence of expressions
@@ -5538,7 +5549,7 @@ def gen_UnaryOp(cte, ast, op, code1):
     elif isinstance(op, AST.Not):
         sem_op = sem_Not
     else:
-        return CT_raise_with_msg(cte, ast, "unimplemented unary operator")
+        return CT_raise_syntax_error_with_msg(cte, ast, "unimplemented unary operator")
 
     def code(rte, cont):
         return code1(rte,
@@ -5576,7 +5587,7 @@ def gen_aug_op(cte, ast, id, op, code1):
     elif isinstance(op, AST.Pow):
         sem_op = sem_IPow
     else:
-        return CT_raise_with_msg(cte, ast, "Unimplemented assignment operator")
+        return CT_raise_syntax_error_with_msg(cte, ast, "Unimplemented assignment operator")
 
     def code(rte, cont):
         return code1(rte,
@@ -5617,7 +5628,7 @@ def gen_BinOp(cte, ast, op, code1, code2):
     elif isinstance(op, AST.Pow):
         sem_op = sem_Pow
     else:
-        return CT_raise_with_msg(cte, ast, "unimplemented binary operator")
+        return CT_raise_syntax_error_with_msg(cte, ast, "unimplemented binary operator")
 
     def code(rte, cont):
         return code1(rte,

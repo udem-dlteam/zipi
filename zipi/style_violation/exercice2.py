@@ -96,9 +96,9 @@ def ex2_no_duplicate_expr(ast, state):
 
 ex2_rules = define_rules(
     [code_startswith([
-        statement_is_assignment("Les trois premières expressions doivent être des déclarations"),
-        statement_is_assignment("Les trois premières expressions doivent être des déclarations"),
-        statement_is_assignment("Les trois premières expressions doivent être des déclarations")]),
+        statement_is_assignment("Les trois premières expressions doivent être des assignations"),
+        statement_is_assignment("Les trois premières expressions doivent être des assignations"),
+        statement_is_assignment("Les trois premières expressions doivent être des assignations")]),
         code_endswith([
             statement_is_call_to("print", "La dernière expression doit être une appel à 'print'")]),
         all_satisfy(select(is_Name()),
