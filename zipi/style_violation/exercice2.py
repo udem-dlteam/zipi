@@ -6,21 +6,18 @@ from zipi._runtime import *
 def ex2_variable_style(ast):
     id_ = ast.id
     id_len = len(id_)
-    if id_len < 3 or id_[0] == "_":
+    if id_len < 3:
         return False
     else:
-        letters_count = 0
         i = 0
         while i < id_len:
             code = ord(id_[i])
 
-            if code >= 97 and code <= 122:
-                letters_count += 1
-            elif code != 95:
+            if code < 97 or code > 122:
                 return False
 
             i += 1
-        return letters_count >= 3
+        return True
 
 def ex2_maybe_long_expr(ast):
     if isinstance(ast, AST.UnaryOp):
@@ -104,7 +101,8 @@ ex2_rules = define_rules(
         statement_is_assignment("Les trois premières expressions doivent être des déclarations")]),
         code_endswith([
             statement_is_call_to("print", "La dernière expression doit être une appel à 'print'")]),
-        all_satisfy(select(is_Name()), satisfies_condition(ex2_variable_style, "Chaque variable doit être composée d'au moins trois lettres minuscules")),
+        all_satisfy(select(is_Name()),
+                    satisfies_condition(ex2_variable_style, "Chaque variable doit être composée uniquement de lettres minuscules et comporter au moins trois caractères")),
         all_satisfy(select(is_arithmetic_expression()),
                     satisfies_global_condition(ex2_no_duplicate_expr, make_dict, "Cette expression arithmétique a déjà été calculée"))
     ]

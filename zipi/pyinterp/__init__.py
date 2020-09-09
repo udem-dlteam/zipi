@@ -4657,7 +4657,7 @@ def default_syntax_error(start_line0,
                          start_column0,
                          end_line0,
                          end_column0, msg):
-    raise SyntaxError(msg)
+    return lambda rte, __: runtime_print("SyntaxError at line " + str(end_line0) + ": " + msg, rte)
 
 def interp_source(src, options=None):
     if options is None:
@@ -4678,7 +4678,13 @@ def interp(ast, options):
 def comp(ast, external_context):
     cte = CTE(None, None, None, None, external_context, None)
 
-    if style_rules is not None:
+    if hasattr(ast, 'container'):
+        container = ast.container
+        filename = container.tostr if container.tostr is not False else None
+    else:
+        filename = "foo"
+
+    if style_rules is not None and filename is not None:
         style_violation = get_style_violations(cte, style_rules, ast)
         if style_violation is not None:
             return style_violation
@@ -4694,7 +4700,28 @@ def get_style_violations(cte, rules, ast):
         return None
     else:
         error_pos, msg = error_messages[0]
-        return CT_raise_with_msg(cte, error_pos, msg)
+
+        # If the error happens due to a missing statement, the flag NO_STATEMENT is returned
+        # we replace it by a pseudo-ast node to indicate location
+        if error_pos is NO_STATEMENT:
+            body = ast.body
+            virtual_error_pos = stmt()
+
+            if len(body) == 0:
+                virtual_error_pos.lineno = 0
+                virtual_error_pos.end_lineno = 0
+                virtual_error_pos.col_offset = 0
+                virtual_error_pos.end_col_offset = 0
+            else:
+                first_stmt = body[0]
+                last_stmt = body[len(body)-1]
+                virtual_error_pos.lineno = first_stmt.lineno
+                virtual_error_pos.end_lineno = last_stmt.end_lineno
+                virtual_error_pos.col_offset = first_stmt.col_offset
+                virtual_error_pos.end_col_offset = last_stmt.end_col_offset
+        else:
+            virtual_error_pos = error_pos
+        return CT_raise_with_msg(cte, virtual_error_pos, msg)
 
 def prepare_execution(code, rte):
     return lambda: code(rte, lambda rte: None)

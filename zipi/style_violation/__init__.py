@@ -35,6 +35,8 @@ def apply_rules(rules, ast):
     for rule in rules:
         rule(ast, errors)
 
+
+
     return errors
 
 
@@ -42,15 +44,14 @@ def apply_rules(rules, ast):
 # Constraints on AST
 # ======================================================================================================================
 
-NO_STATEMENT = None
-
+NO_STATEMENT = []
 IS_STATEFUL_PREDICATE = []
 
 
 # Helpers
 
-def __register_error(errors, new_error):
-    errors.append(new_error)
+def __register_error(errors, location, new_error):
+    errors.append((location, new_error))
 
 
 def __register_many_error(errors, new_errors):
@@ -89,7 +90,7 @@ def statement_is(ast_type, error_msg):
         if isinstance(ast, ast_type):
             return True
         else:
-            __register_error(errors, (ast, error_msg))
+            __register_error(errors, ast, error_msg)
             return False
 
     return test
@@ -102,7 +103,7 @@ def statement_is_assignment(error_msg):
         if isinstance(ast, AST.Assign):
             return True
         else:
-            __register_error(errors, (ast, error_msg))
+            __register_error(errors, ast, error_msg)
             return False
 
     return test
@@ -117,7 +118,7 @@ def statement_is_assignment_to(name, error_msg):
                 if __is_variable_with_name(t, name):
                     return True
 
-        __register_error(errors, (ast, error_msg))
+        __register_error(errors, ast, error_msg)
         return False
 
     return test
@@ -132,10 +133,10 @@ def statement_is_call_to(fn_name, error_msg):
             if isinstance(expr_value, AST.Call) and __is_variable_with_name(expr_value.func, fn_name):
                 return True
             else:
-                __register_error(errors, (ast, error_msg))
+                __register_error(errors, ast, error_msg)
                 return False
         else:
-            __register_error(errors, (ast, error_msg))
+            __register_error(errors, ast, error_msg)
             return False
 
     return test
@@ -146,7 +147,7 @@ def statement_exists(error_msg):
 
     def test(ast, errors):
         if ast is NO_STATEMENT:
-            __register_error(errors, (ast, error_msg))
+            __register_error(errors, ast, error_msg)
             return False
         else:
             return True
@@ -161,7 +162,7 @@ def satisfies_condition(predicate, error_msg):
         if predicate(ast):
             return True
         else:
-            __register_error(errors, (ast, error_msg))
+            __register_error(errors, ast, error_msg)
             return False
 
     return test
@@ -179,7 +180,7 @@ def satisfies_global_condition(stateful_predicate, state_init, error_msg):
             if stateful_predicate(ast, state):
                 return True
             else:
-                __register_error(errors, (ast, error_msg))
+                __register_error(errors, ast, error_msg)
                 return False
 
         return test
