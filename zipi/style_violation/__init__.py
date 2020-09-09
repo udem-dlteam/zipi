@@ -237,6 +237,18 @@ def code_endswith(predicates_seq):
 
     return test
 
+def if_no_error(test):
+    """Execute a test only no errors occured yet"""
+
+    def conditional_test(ast, errors):
+        print(errors)
+        if len(errors) > 0:
+            return False
+        else:
+            return test(ast, errors)
+
+    return conditional_test
+
 
 # Conditions on set of node
 

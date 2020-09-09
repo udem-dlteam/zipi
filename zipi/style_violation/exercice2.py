@@ -267,17 +267,23 @@ def output_is_correct(ast):
         else:
             return False
 
-    principal_sample = (100, 150, 500, 5000, 25000, 123456, 234567, 1000000, 2005000)
-    duration_sample = (1, 2, 3, 5, 10, 15, 24, 50, 100, 120, 150, 199, 250, 300, 360, 720, 12000)
-    interest_sample = (0.1, 0.5, 0.8, 1.0, 1.2, 2.0, 2.5, 3.0, 3.5, 4.5, 6.5, 7.5, 8.5, 10.0, 15.0, 25.0)
+    principal_sample = [100, 150, 500, 5000, 25000, 123456, 234567, 1000000, 2005000]
+    duration_sample = [1, 2, 3, 5, 10, 15, 24, 50, 100, 120, 150, 199, 250, 300, 360, 720, 12000]
+    interest_sample = [0.1, 0.5, 0.8, 1.0, 1.2, 2.0, 2.5, 3.0, 3.5, 4.5, 6.5, 7.5, 8.5, 10.0, 15.0, 25.0]
 
-    for principal in principal_sample:
-        for duration in duration_sample:
-            for interest in interest_sample:
-                if not test(principal, duration, interest):
+    # NOTE: zp does not support nested for loops
+    index_p = 0
+    while index_p < len(principal_sample):
+        index_d = 0
+        while index_d < len(duration_sample):
+            index_i = 0
+            while index_i < len(interest_sample):
+                if not test(principal_sample[index_p], duration_sample[index_d], interest_sample[index_i]):
                     return False
+                index_i += 1
+            index_d += 1
+        index_p += 1
     return True
-
 
 
 ex2_rules = define_rules(
@@ -291,6 +297,7 @@ ex2_rules = define_rules(
                     satisfies_condition(ex2_variable_style, "Chaque variable doit être composée uniquement de lettres, comporter au moins trois caractères et commencer par une lettre minuscule")),
         all_satisfy(select(is_arithmetic_expression()),
                     satisfies_global_condition(ex2_no_duplicate_expr, make_dict, "Cette expression arithmétique a déjà été calculée")),
-        module_statisfies(satisfies_condition(output_is_correct, "Résultat incorrect"))
+        if_no_error(
+            module_statisfies(satisfies_condition(output_is_correct, "Résultat incorrect")))
     ]
 )

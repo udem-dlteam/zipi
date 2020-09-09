@@ -784,6 +784,10 @@ class Transformer:
     def Sub(node):
         return "-"
 
+    @staticmethod
+    def Pow(node):
+        return "**"
+
     def While(self, node):
         test = self.transform(node.test)
         body = "; ".join([self.transform(node) for node in node.body]) + ";"
