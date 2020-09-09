@@ -125,17 +125,6 @@ def CTCtrl_labelLookup(cte, id_str):
         depth += 1
     return None
 
-def CT_raise_syntax_error_with_msg(cte, ast, msg):
-    compilationError = dict_get(cte.external_context,
-                            'compilationError',
-                            default_compilation_error)
-    return compilationError(ast.lineno-1,
-                        ast.col_offset,
-                        ast.end_lineno-1,
-                        ast.end_col_offset,
-                        "SyntaxError",
-                        msg)
-
 def CT_raise_with_msg(cte, ast, error_kind, msg):
     compilationError = dict_get(cte.external_context,
                             'compilationError',
@@ -146,6 +135,9 @@ def CT_raise_with_msg(cte, ast, error_kind, msg):
                         ast.end_col_offset,
                         error_kind,
                         msg)
+
+def CT_raise_syntax_error_with_msg(cte, ast, msg):
+    return CT_raise_with_msg(cte, ast, "SyntaxError", msg)
 
 # continuation call helper
 def cont_obj(ctx, val):
