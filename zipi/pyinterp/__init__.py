@@ -3,11 +3,6 @@ from zipi._runtime import *
 # NOTE: required to be able to instantiate ast nodes from pyinterp
 from zipi.zast._zast import *
 
-from zipi.style_violation import *
-from zipi.style_violation.exercice2 import *
-
-style_rules = ex2_rules
-
 import zipi.zast._zast as AST
 import zipi.zast as zast
 AST.parse = zast.parse
@@ -4685,46 +4680,10 @@ def comp(ast, external_context):
         container = ast.container
         filename = container.tostr if container.tostr is not False else None
     else:
-        filename = "foo"
-
-    if style_rules is not None and filename is not None:
-        style_violation = get_style_violations(cte, style_rules, ast)
-        if style_violation is not None:
-            return style_violation
+        filename = None
 
     (cte1, code) = comp_mod(cte, ast)
     return code
-
-
-def get_style_violations(cte, rules, ast):
-    error_messages = apply_rules(rules, ast)
-
-    if len(error_messages) == 0:
-        return None
-    else:
-        error_pos, msg = error_messages[0]
-
-        # If the error happens due to a missing statement, the flag NO_STATEMENT is returned
-        # we replace it by a pseudo-ast node to indicate location
-        if error_pos is NO_STATEMENT or isinstance(error_pos, AST.Module):
-            body = ast.body
-            virtual_error_pos = stmt()
-
-            if len(body) == 0:
-                virtual_error_pos.lineno = 0
-                virtual_error_pos.end_lineno = 0
-                virtual_error_pos.col_offset = 0
-                virtual_error_pos.end_col_offset = 0
-            else:
-                first_stmt = body[0]
-                last_stmt = body[len(body)-1]
-                virtual_error_pos.lineno = first_stmt.lineno
-                virtual_error_pos.end_lineno = last_stmt.end_lineno
-                virtual_error_pos.col_offset = first_stmt.col_offset
-                virtual_error_pos.end_col_offset = last_stmt.end_col_offset
-        else:
-            virtual_error_pos = error_pos
-        return CT_raise_with_msg(cte, virtual_error_pos, "StyleError", msg)
 
 def prepare_execution(code, rte):
     return lambda: code(rte, lambda rte: None)

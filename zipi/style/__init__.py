@@ -1,8 +1,10 @@
-"""
-This module allows to define style constraint on the AST and to enforce it usage
-"""
+from zipi.zast._zast import *
 
 import zipi.zast._zast as AST
+import zipi.zast as zast
+AST.parse = zast.parse
+
+from zipi._runtime import *
 
 
 # ======================================================================================================================
@@ -241,7 +243,6 @@ def if_no_error(test):
     """Execute a test only no errors occured yet"""
 
     def conditional_test(ast, errors):
-        print(errors)
         if len(errors) > 0:
             return False
         else:
@@ -329,3 +330,52 @@ def is_arithmetic_expression():
 # Miscellaneous
 
 empty_rules = define_rules([])
+
+# Parse source and return error locations
+
+def default_compilation_error(start_line0,
+                         start_column0,
+                         end_line0,
+                         end_column0, error_kind, msg):
+    return lambda rte, __: runtime_print(error_kind + " at line " + str(end_line0) + ": " + msg, rte)
+
+def get_style_violations(rules, source, compilationError):
+    ast = AST.parse(source)
+
+    error_messages = apply_rules(rules, ast)
+
+    if len(error_messages) == 0:
+        return None
+    else:
+        error_pos, msg = error_messages[0]
+
+        # If the error happens due to a missing statement, the flag NO_STATEMENT is returned
+        # Or happens on the whole Module
+        # Then we need to manually set a location
+        if error_pos is NO_STATEMENT or isinstance(error_pos, AST.Module):
+            body = ast.body
+
+            if len(body) == 0:
+                virtual_error_lineno = 0
+                virtual_error_end_lineno = 0
+                virtual_error_col_offset = 0
+                virtual_error_end_col_offset = 0
+            else:
+                first_stmt = body[0]
+                last_stmt = body[len(body)-1]
+                virtual_error_lineno = first_stmt.lineno
+                virtual_error_end_lineno = last_stmt.end_lineno
+                virtual_error_col_offset = first_stmt.col_offset
+                virtual_error_end_col_offset = last_stmt.end_col_offset
+        else:
+            virtual_error_lineno = error_pos.lineno
+            virtual_error_end_lineno = error_pos.end_lineno
+            virtual_error_col_offset = error_pos.col_offset
+            virtual_error_end_col_offset = error_pos.end_col_offset
+
+        return compilationError(virtual_error_lineno,
+                                virtual_error_col_offset,
+                                virtual_error_end_lineno,
+                                virtual_error_end_col_offset,
+                                "StyleError",
+                                msg)

@@ -1,4 +1,4 @@
-from zipi.style_violation import *
+from zipi.style import *
 from zipi._runtime import *
 
 # Tests
@@ -288,9 +288,9 @@ def output_is_correct(ast):
 
 ex2_rules = define_rules(
     [code_startswith([
-        statement_is_assignment("Les trois premières expressions doivent être des assignations"),
-        statement_is_assignment("Les trois premières expressions doivent être des assignations"),
-        statement_is_assignment("Les trois premières expressions doivent être des assignations")]),
+        statement_is_assignment("Les trois premières expressions doivent être des affectations"),
+        statement_is_assignment("Les trois premières expressions doivent être des affectations"),
+        statement_is_assignment("Les trois premières expressions doivent être des affectations")]),
         code_endswith([
             statement_is_call_to("print", "La dernière expression doit être une appel à 'print'")]),
         all_satisfy(select(is_Name()),
