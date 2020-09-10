@@ -21,6 +21,7 @@ class Transformer:
         self.in_global = False
         self.global_vars = set()
         self.recur_FunctionDef = []
+        self.name_swaps = dict()
 
     def gensym(self):
         gs = "g" + str(self.counter)
@@ -648,22 +649,18 @@ class Transformer:
         if isinstance(node.target, AST.Tuple):
             raise Exception
 
-        # for i in range(10):
-        #     body
-        # for node.target.id in node.iter (Call):
-        #     node.body (array)
-
         # Use gensymd iter vars
         target = self.transform(node.target)
         gs = self.gensym()
+        self.name_swaps[target] = gs
 
         # We now have to modify the 'Name' emitter to replace all
         # occurrences of the initial target with the gensym
         def NameSwap(node):
             id = node.id
-            if id == target:
-                return gs
-            else:
+            try:
+                return self.name_swaps[id]
+            except KeyError:
                 return id
 
         self.Name = NameSwap
@@ -671,6 +668,7 @@ class Transformer:
         _iter = self.transform(node.iter)
         body = "; ".join([self.transform(node) for node in node.body]) + ";"
         # Set Name back to default
+        del self.name_swaps[target]
         self.Name = lambda node: node.id
 
         # specialise 'for i in range(N)'
