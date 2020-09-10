@@ -133,8 +133,14 @@ def ex2_get_unaryop(ast):
     else:
         return None
 
-NONE_OBJECT = []
-ERROR = []
+NONE_OBJECT = ["NONE_OBJECT"]
+ERROR = ["ERROR"]
+
+def is_NONE_OBJECT(obj):
+    return isinstance(obj, list) and len(obj) == 1 and obj[0] == "NONE_OBJECT"
+
+def is_ERROR(obj):
+    return isinstance(obj, list) and len(obj) == 1 and obj[0] == "ERROR"
 
 def exec_error(env):
     dict_set(env, '@error', True)
@@ -155,7 +161,7 @@ def exec_expression(expr, env):
         left = exec_expression(expr.left, env)
         right = exec_expression(expr.right, env)
         op = ex2_get_binop(expr.op)
-        if left is ERROR or right is ERROR or op is ERROR:
+        if is_ERROR(left) or is_ERROR(right) or is_ERROR(op):
             return ERROR
         else:
             return op(left, right, env)
@@ -163,7 +169,7 @@ def exec_expression(expr, env):
     elif isinstance(expr, AST.UnaryOp):
         operand = exec_expression(expr.operand, env)
         op = ex2_get_unaryop(expr.op)
-        if operand is ERROR or op is ERROR:
+        if is_ERROR(operand) or is_ERROR(op):
             return ERROR
         else:
             return op(operand, env)
@@ -182,7 +188,7 @@ def exec_expression(expr, env):
             output = []
             for arg in expr.args:
                 arg_value = exec_expression(arg, env)
-                if arg_value is ERROR:
+                if is_ERROR(arg_value):
                     return ERROR
                 else:
                     output.append(arg_value)
@@ -204,7 +210,7 @@ def exec_statement(stmt, env):
         expr = stmt.value
         expr_value = exec_expression(expr, env)
 
-        if expr_value is ERROR:
+        if is_ERROR(expr_value):
             return ERROR
         else:
             dict_set(env, id_, expr_value)
@@ -219,13 +225,16 @@ def output_is_correct(ast):
         return Constant(val, kind)
 
     def result_is_correct(principal, duration, interest, result):
-        expected = principal * ((1 + interest / (12 * 100)) ** duration * interest / (12 * 100)) / (
-                    (1 + interest / (12 * 100)) ** duration - 1)
+        if isinstance(result, float) or isinstance(result, int):
+            expected = principal * ((1 + interest / (12 * 100)) ** duration * interest / (12 * 100)) / (
+                        (1 + interest / (12 * 100)) ** duration - 1)
 
-        diff = result - expected
-        abs_diff = diff if diff >= 0 else -diff
+            diff = result - expected
+            abs_diff = diff if diff >= 0 else -diff
 
-        return abs_diff / expected < 1e-9
+            return abs_diff / expected < 1e-9
+        else:
+            return False
 
 
     def test(principal, duration, interest):
