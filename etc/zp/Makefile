@@ -21,6 +21,11 @@ pyinterp: _tmpdir zipi-venv _zparse.py
 	$(PYTHON38) zp.py -f ../../zipi/pyinterp/__init__.py $(ZP_DEBUG) -e pyinterp -n -t -o $(TMPDIR)/pyinterp_node.js
 	cp $(TMPDIR)/pyinterp_browser.js test/pyinterp/
 
+style: _tmpdir zipi-venv _zparse.py
+	$(PYTHON38) zp.py -f ../../zipi/style/__init__.py $(ZP_DEBUG) -e style -o $(TMPDIR)/style.js
+	$(PYTHON38) zp.py -f ../../zipi/style/__init__.py $(ZP_DEBUG) -e style -t -o $(TMPDIR)/style_browser.js
+	$(PYTHON38) zp.py -f ../../zipi/style/__init__.py $(ZP_DEBUG) -e style -n -t -o $(TMPDIR)/style_node.js
+
 tests: pyinterp
 	cd ../../zipi/pyinterp/tests && $(MAKE)
 
