@@ -224,7 +224,7 @@ def output_is_correct(ast):
         diff = result - expected
         abs_diff = diff if diff >= 0 else -diff
 
-        return abs_diff < 0.0001
+        return abs_diff / expected < 1e9
 
 
     def test(principal, duration, interest):
