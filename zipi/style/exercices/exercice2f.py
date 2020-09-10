@@ -295,6 +295,9 @@ def output_is_correct(ast):
         index_p += 1
     return True
 
+# Binds 'make_dict' in this scope for usage in JS quiz
+make_dict = make_dict
+
 ex2f_rules = define_rules(
     [code_startswith([
         statement_is_assignment("Les trois premières expressions doivent être des affectations"),
