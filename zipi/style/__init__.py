@@ -46,8 +46,16 @@ def apply_rules(rules, ast):
 # Constraints on AST
 # ======================================================================================================================
 
-NO_STATEMENT = []
-IS_STATEFUL_PREDICATE = []
+
+# Due to zp import mecanism, sentinel object are sometimes duplicated and need to be identified by structure
+NO_STATEMENT = ["NO_STATEMENT"]
+IS_STATEFUL_PREDICATE = ["IS_STATEFUL_PREDICATE"]
+
+def is_NOT_STATEMENT(obj):
+    return isinstance(obj, list) and len(obj) == 1 and obj[0] == "NO_STATEMENT"
+
+def is_IS_STATEFUL_PREDICATE(obj):
+    return isinstance(obj, list) and len(obj) == 1 and obj[0] == "IS_STATEFUL_PREDICATE"
 
 
 # Helpers
@@ -66,7 +74,7 @@ def __is_variable_with_name(ast, name):
 
 
 def __predicate_requires_init(pred):
-    if isinstance(pred, tuple) and pred[0] is IS_STATEFUL_PREDICATE:
+    if isinstance(pred, tuple) and is_IS_STATEFUL_PREDICATE(pred[0]):
         return True
     else:
         return False
@@ -148,7 +156,7 @@ def statement_exists(error_msg):
     """Assert that a statement exists, this can be used to check the code contains a minimum number of statements"""
 
     def test(ast, errors):
-        if ast is NO_STATEMENT:
+        if is_NOT_STATEMENT(ast):
             __register_error(errors, ast, error_msg)
             return False
         else:
@@ -279,6 +287,7 @@ def select(select_predicate):
     """Walks on all nodes which satisfy 'select_predicate'"""
 
     def selector(ast, predicate, errors):
+        print(ast)
         if not hasattr(ast, '_fields'):  # Hack to check: 'not isinstance(ast, AST.AST)' with zp
             return True
         if select_predicate(ast):
@@ -340,19 +349,19 @@ def default_compilation_error(start_line0,
     return lambda rte, __: runtime_print(error_kind + " at line " + str(end_line0) + ": " + msg, rte)
 
 def get_style_violations(rules, source, compilationError):
-    ast = AST.parse(source)
+    ast = AST.parse(source, '<unknown>', 'exec', False)
 
     error_messages = apply_rules(rules, ast)
 
     if len(error_messages) == 0:
-        return None
+        return False
     else:
         error_pos, msg = error_messages[0]
 
         # If the error happens due to a missing statement, the flag NO_STATEMENT is returned
         # Or happens on the whole Module
         # Then we need to manually set a location
-        if error_pos is NO_STATEMENT or isinstance(error_pos, AST.Module):
+        if is_NOT_STATEMENT(error_pos) or isinstance(error_pos, AST.Module):
             body = ast.body
 
             if len(body) == 0:
@@ -373,9 +382,11 @@ def get_style_violations(rules, source, compilationError):
             virtual_error_col_offset = error_pos.col_offset
             virtual_error_end_col_offset = error_pos.end_col_offset
 
-        return compilationError(virtual_error_lineno,
-                                virtual_error_col_offset,
-                                virtual_error_end_lineno,
-                                virtual_error_end_col_offset,
-                                "StyleError",
-                                msg)
+        compilationError(virtual_error_lineno,
+                         virtual_error_col_offset,
+                         virtual_error_end_lineno,
+                         virtual_error_end_col_offset,
+                         "StyleError",
+                         msg)
+
+        return True
