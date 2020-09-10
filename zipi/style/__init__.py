@@ -287,7 +287,6 @@ def select(select_predicate):
     """Walks on all nodes which satisfy 'select_predicate'"""
 
     def selector(ast, predicate, errors):
-        print(ast)
         if not hasattr(ast, '_fields'):  # Hack to check: 'not isinstance(ast, AST.AST)' with zp
             return True
         if select_predicate(ast):

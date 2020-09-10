@@ -198,6 +198,7 @@ def exec_expression(expr, env):
 
 
 def exec_statement(stmt, env):
+
     if isinstance(stmt, AST.Assign) and len(stmt.targets) == 1 and isinstance(stmt.targets[0], AST.Name):
         id_ = stmt.targets[0].id
         expr = stmt.value
@@ -215,7 +216,7 @@ def exec_statement(stmt, env):
 
 def output_is_correct(ast):
     def make_constant(val, kind):
-        return AST.Constant(val, kind)
+        return Constant(val, kind)
 
     def result_is_correct(principal, duration, interest, result):
         expected = principal * ((1 + interest / (12 * 100)) ** duration * interest / (12 * 100)) / (
@@ -224,7 +225,7 @@ def output_is_correct(ast):
         diff = result - expected
         abs_diff = diff if diff >= 0 else -diff
 
-        return abs_diff / expected < 1e9
+        return abs_diff / expected < 1e-9
 
 
     def test(principal, duration, interest):
@@ -238,9 +239,9 @@ def output_is_correct(ast):
         n_assignation_targets = body[1].targets
         i_assignation_targets = body[2].targets
 
-        test_p_assignation = AST.Assign(p_assignation_targets, make_constant(principal, None), [])
-        test_n_assignation = AST.Assign(n_assignation_targets, make_constant(duration, None), [])
-        test_i_assignation = AST.Assign(i_assignation_targets, make_constant(interest, None), [])
+        test_p_assignation = Assign(p_assignation_targets, make_constant(principal, None), [])
+        test_n_assignation = Assign(n_assignation_targets, make_constant(duration, None), [])
+        test_i_assignation = Assign(i_assignation_targets, make_constant(interest, None), [])
 
         test_body = [test_p_assignation, test_n_assignation, test_i_assignation]
 
