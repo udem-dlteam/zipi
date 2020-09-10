@@ -285,8 +285,7 @@ def output_is_correct(ast):
         index_p += 1
     return True
 
-
-ex2_rules = define_rules(
+ex2f_rules = define_rules(
     [code_startswith([
         statement_is_assignment("Les trois premières expressions doivent être des affectations"),
         statement_is_assignment("Les trois premières expressions doivent être des affectations"),

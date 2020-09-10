@@ -2,7 +2,7 @@ import sys
 import argparse
 
 from zipi.style import get_style_violations
-from zipi.style.exercice2 import ex2_rules
+from zipi.style.exercices.exercice2f import ex2f_rules
 
 from zipi._runtime import *
 
@@ -19,7 +19,7 @@ def main():
     with open(args.file, 'r') as f:
         source = f.read()
 
-    return get_style_violations(ex2_rules, source, throw_default_compilation_error)
+    return get_style_violations(ex2f_rules, source, throw_default_compilation_error)
 
 if __name__ == '__main__':
     main()
