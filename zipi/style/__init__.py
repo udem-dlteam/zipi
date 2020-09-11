@@ -394,20 +394,10 @@ def get_style_violations(rules, source, compilationError, linter):
         # Or happens on the whole Module
         # Then we need to manually set a location
         if is_NOT_STATEMENT(error_pos) or isinstance(error_pos, AST.Module):
-            body = ast.body
-
-            if len(body) == 0:
-                virtual_error_lineno = 0
-                virtual_error_end_lineno = 0
-                virtual_error_col_offset = 0
-                virtual_error_end_col_offset = 0
-            else:
-                first_stmt = body[0]
-                last_stmt = body[len(body)-1]
-                virtual_error_lineno = first_stmt.lineno
-                virtual_error_end_lineno = last_stmt.end_lineno
-                virtual_error_col_offset = first_stmt.col_offset
-                virtual_error_end_col_offset = last_stmt.end_col_offset
+            virtual_error_lineno = 0
+            virtual_error_end_lineno = 0
+            virtual_error_col_offset = 0
+            virtual_error_end_col_offset = 0
         else:
             virtual_error_lineno = error_pos.lineno
             virtual_error_end_lineno = error_pos.end_lineno

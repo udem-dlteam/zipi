@@ -10,17 +10,9 @@ def ex2_variable_style(ast):
         return False
     else:
         first_code = ord(id_[0])
-        if first_code < 97 and first_code > 122:
+        if first_code < ord('a') or first_code > ord('z'):
             return False
         else:
-            i = 1
-            while i < id_len:
-                code = ord(id_[i])
-
-                if code < 65 or code > 90 and code < 97 or  code > 122:
-                    return False
-
-                i += 1
             return True
 
 def ex2_maybe_long_expr(ast):
