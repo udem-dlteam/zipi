@@ -10,17 +10,9 @@ def ex2_variable_style(ast):
         return False
     else:
         first_code = ord(id_[0])
-        if first_code < 97 and first_code > 122:
+        if first_code < ord('a') or first_code > ord('z'):
             return False
         else:
-            i = 1
-            while i < id_len:
-                code = ord(id_[i])
-
-                if code < 65 or code > 90 and code < 97 or  code > 122:
-                    return False
-
-                i += 1
             return True
 
 def ex2_maybe_long_expr(ast):
@@ -237,22 +229,26 @@ def output_is_correct(ast):
             return False
 
 
-    def test(principal, duration, interest):
+    def test(vals, p_vals):
         env = make_dict()
         dict_set(env, '@output', [])
         dict_set(env, '@error', False)
 
+        p_val0 = p_vals[0]
+        p_val1 = p_vals[1]
+        p_val2 = p_vals[2]
+
         body = ast.body
 
-        p_assignation_targets = body[0].targets
-        n_assignation_targets = body[1].targets
-        i_assignation_targets = body[2].targets
+        assignation_targets0 = body[0].targets
+        assignation_targets1 = body[1].targets
+        assignation_targets2 = body[2].targets
 
-        test_p_assignation = Assign(p_assignation_targets, make_constant(principal, None), [])
-        test_n_assignation = Assign(n_assignation_targets, make_constant(duration, None), [])
-        test_i_assignation = Assign(i_assignation_targets, make_constant(interest, None), [])
+        test_assignation0 = Assign(assignation_targets0, make_constant(p_val0, None), [])
+        test_assignation1 = Assign(assignation_targets1, make_constant(p_val1, None), [])
+        test_assignation2 = Assign(assignation_targets2, make_constant(p_val2, None), [])
 
-        test_body = [test_p_assignation, test_n_assignation, test_i_assignation]
+        test_body = [test_assignation0, test_assignation1, test_assignation2]
 
         j = 3
         body_len = len(body)
@@ -270,34 +266,74 @@ def output_is_correct(ast):
 
         if len(output) == 1:
             test_result = output[0]
-            if result_is_correct(principal, duration, interest, test_result):
+            if result_is_correct(vals[0], vals[1], vals[2], test_result):
                 return True
             else:
                 return False
         else:
             return False
 
-    principal_sample = [100, 150, 500, 5000, 25000, 123456, 234567, 1000000, 2005000]
-    duration_sample = [1, 2, 3, 5, 10, 15, 24, 50, 100, 120, 150, 199, 250, 300, 360, 720, 12000]
-    interest_sample = [0.1, 0.5, 0.8, 1.0, 1.2, 2.0, 2.5, 3.0, 3.5, 4.5, 6.5, 7.5, 8.5, 10.0, 15.0, 25.0]
+    def test_samples(i0, i1, i2):
+        # samples = [principals, durations, interests]
+        samples = [[100, 150, ],#500, 5000, 25000, 123456, 234567, 1000000, 2005000],
+                   [1, 2, ],#3, 5, 10, 15, 24, 50, 100, 120, 150, 199, 250, 300, 360, 720, 12000],
+                   [0.1, 0.5, ]]#0.8, 1.0, 1.2, 2.0, 2.5, 3.0, 3.5, 4.5, 6.5, 7.5, 8.5, 10.0, 15.0, 25.0]]
 
-    # NOTE: zp does not support nested for loops
-    index_p = 0
-    while index_p < len(principal_sample):
-        index_d = 0
-        while index_d < len(duration_sample):
-            index_i = 0
-            while index_i < len(interest_sample):
-                if not test(principal_sample[index_p], duration_sample[index_d], interest_sample[index_i]):
-                    return False
-                index_i += 1
-            index_d += 1
-        index_p += 1
-    return True
+        # NOTE: zp does not support nested for loops
+        index0 = 0
+        while index0 < len(samples[0]):
+            index1 = 0
+            while index1 < len(samples[1]):
+                index2 = 0
+                while index2 < len(samples[2]):
+                    vals = [samples[0][index0], samples[1][index1], samples[2][index2]]
+                    p_vals = [vals[i0], vals[i1], vals[i2]]
+                    if not test(vals, p_vals):
+                        return False
+                    index2 += 1
+                index1 += 1
+            index0 += 1
+        return True
+
+    # Detect which value has to go where by permuting varibles until program works
+    for permutation in [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]]:
+        i = permutation[0]
+        j = permutation[1]
+        k = permutation[2]
+        if test_samples(i, j, k):
+            return True
+
+    return False
+
+
+
+
+def eol_hook(ts, pos, comment_start):
+    line_len = pos - ts.line_start
+    lineno = ts.line_num
+    style_error = dict_get(ts.context, 'styleError', None)
+
+    if comment_start >= 0:
+        comment_col_offset = comment_start - ts.line_start
+        style_error(lineno, comment_col_offset, lineno, line_len, "Pour cet exercice les commentaires sont interdits")
+    elif line_len >= 80:
+        style_error(lineno, 0, lineno, line_len, "N'écrivez pas de lignes de plus de 80 caractères")
+
+
+def ctrl_char_hook(ts, pos):
+    lineno = ts.line_num
+    style_error = dict_get(ts.context, 'styleError', None)
+    style_error(lineno, pos - 1, lineno, pos, "N’utilisez pas de caractère de contrôle, tel que le TAB, dans vos programmes")
+
+
+ex2f_linter = make_dict()
+dict_set(ex2f_linter, 'eol_reached', eol_hook)
+dict_set(ex2f_linter, 'ctrl_char', ctrl_char_hook)
 
 # Binds 'make_dict' in this scope for usage in JS quiz
 make_dict = make_dict
 
+"""
 ex2f_rules = define_rules(
     [code_startswith([
         statement_is_assignment("Les trois premières expressions doivent être des affectations"),
@@ -313,3 +349,4 @@ ex2f_rules = define_rules(
             module_statisfies(satisfies_condition(output_is_correct, "Résultat incorrect")))
     ]
 )
+"""

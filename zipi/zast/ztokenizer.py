@@ -502,8 +502,9 @@ def get_token(ts):
                     if c == 10 or c == 13: # EOL?
                         break
                     else:
-                        if hasattr(ts.context, 'ctrl_char'):
-                            ts.context.ctrl_char(ts, pos)
+                        hook = dict_get(ts.context, 'ctrl_char', False)
+                        if hook:
+                            hook(ts, pos)
                         if c == 9: # '\t'
                             col = (col//8 + 1)*8
                         elif c == 12: # '\f'
@@ -584,9 +585,10 @@ def get_token(ts):
                 pos += 1
                 if k != KIND_WHITESPACE: # ' ' or '\t' or '\f'
                     break
-                else:
-                    if hasattr(ts.context, 'ctrl_char'):
-                        ts.context.ctrl_char(ts, pos)
+                elif c != 32: # ' '
+                    hook = dict_get(ts.context, 'ctrl_char', False)
+                    if hook:
+                        hook(ts, pos)
 
             if k == KIND_NEWLINE: # EOL
                 ts.start = pos-1
@@ -867,13 +869,14 @@ def get_token(ts):
         return
 
 def eol_reached(ts, pos):
+    hook = dict_get(ts.context, 'eol_reached', False)
 
-    if hasattr(ts.context, 'eol_reached'):
-        ts.context.eol_reached(ts, pos, ts.comment_pos)
+    if hook:
+        hook(ts, pos, ts.comment_start)
 
     ts.line_start = pos
     ts.line_num += 1
-    ts.comment_pos = -1
+    ts.comment_start = -1
 
 def float_tail(ts, pos, k):
 

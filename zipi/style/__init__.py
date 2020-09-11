@@ -347,8 +347,41 @@ def default_compilation_error(start_line0,
                          end_column0, error_kind, msg):
     return lambda rte, __: runtime_print(error_kind + " at line " + str(end_line0) + ": " + msg, rte)
 
-def get_style_violations(rules, source, compilationError):
-    ast = AST.parse(source, '<unknown>', 'exec', False)
+def get_style_violations(rules, source, compilationError, linter):
+    compilation_error_occured = [False]
+
+    def catch_syntaxError(start_line0, start_column0, end_line0, end_column0, msg):
+        # Hack to avoid using nonlocal
+        compilation_error_occured[0] = True
+        return compilationError(start_line0 - 1, start_column0, end_line0 - 1, end_column0, "SyntaxError", msg)
+
+    def catch_styleError(start_line0, start_column0, end_line0, end_column0, msg):
+        # Hack to avoid using nonlocal
+        compilation_error_occured[0] = True
+        return compilationError(start_line0 - 1, start_column0, end_line0 - 1, end_column0, "StyleError", msg)
+
+
+    context = make_dict()
+    dict_set(context, "syntaxError", catch_syntaxError)
+    dict_set(context, "styleError", catch_styleError)
+
+    if linter is not None:
+        eol_hook = dict_get(linter, 'eol_reached', None)
+
+        if eol_hook is not None:
+            dict_set(context, 'eol_reached', eol_hook)
+
+        char_hook = dict_get(linter, 'ctrl_char', None)
+
+        if char_hook:
+            dict_set(context, 'ctrl_char', char_hook)
+
+    ast = AST.parse(source, '<unknown>', 'exec', context)
+
+    # parse returns a partial ast if an error occured, syntax_error_occured serves as a hook to detect the parsing
+    # was interrupted
+    if compilation_error_occured[0]:
+        return True
 
     error_messages = apply_rules(rules, ast)
 
@@ -361,20 +394,10 @@ def get_style_violations(rules, source, compilationError):
         # Or happens on the whole Module
         # Then we need to manually set a location
         if is_NOT_STATEMENT(error_pos) or isinstance(error_pos, AST.Module):
-            body = ast.body
-
-            if len(body) == 0:
-                virtual_error_lineno = 0
-                virtual_error_end_lineno = 0
-                virtual_error_col_offset = 0
-                virtual_error_end_col_offset = 0
-            else:
-                first_stmt = body[0]
-                last_stmt = body[len(body)-1]
-                virtual_error_lineno = first_stmt.lineno
-                virtual_error_end_lineno = last_stmt.end_lineno
-                virtual_error_col_offset = first_stmt.col_offset
-                virtual_error_end_col_offset = last_stmt.end_col_offset
+            virtual_error_lineno = 0
+            virtual_error_end_lineno = 0
+            virtual_error_col_offset = 0
+            virtual_error_end_col_offset = 0
         else:
             virtual_error_lineno = error_pos.lineno
             virtual_error_end_lineno = error_pos.end_lineno
