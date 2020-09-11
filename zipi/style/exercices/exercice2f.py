@@ -229,22 +229,26 @@ def output_is_correct(ast):
             return False
 
 
-    def test(principal, duration, interest):
+    def test(vals, p_vals):
         env = make_dict()
         dict_set(env, '@output', [])
         dict_set(env, '@error', False)
 
+        p_val0 = p_vals[0]
+        p_val1 = p_vals[1]
+        p_val2 = p_vals[2]
+
         body = ast.body
 
-        p_assignation_targets = body[0].targets
-        n_assignation_targets = body[1].targets
-        i_assignation_targets = body[2].targets
+        assignation_targets0 = body[0].targets
+        assignation_targets1 = body[1].targets
+        assignation_targets2 = body[2].targets
 
-        test_p_assignation = Assign(p_assignation_targets, make_constant(principal, None), [])
-        test_n_assignation = Assign(n_assignation_targets, make_constant(duration, None), [])
-        test_i_assignation = Assign(i_assignation_targets, make_constant(interest, None), [])
+        test_assignation0 = Assign(assignation_targets0, make_constant(p_val0, None), [])
+        test_assignation1 = Assign(assignation_targets1, make_constant(p_val1, None), [])
+        test_assignation2 = Assign(assignation_targets2, make_constant(p_val2, None), [])
 
-        test_body = [test_p_assignation, test_n_assignation, test_i_assignation]
+        test_body = [test_assignation0, test_assignation1, test_assignation2]
 
         j = 3
         body_len = len(body)
@@ -262,30 +266,46 @@ def output_is_correct(ast):
 
         if len(output) == 1:
             test_result = output[0]
-            if result_is_correct(principal, duration, interest, test_result):
+            if result_is_correct(vals[0], vals[1], vals[2], test_result):
                 return True
             else:
                 return False
         else:
             return False
 
-    principal_sample = [100, 150, 500, 5000, 25000, 123456, 234567, 1000000, 2005000]
-    duration_sample = [1, 2, 3, 5, 10, 15, 24, 50, 100, 120, 150, 199, 250, 300, 360, 720, 12000]
-    interest_sample = [0.1, 0.5, 0.8, 1.0, 1.2, 2.0, 2.5, 3.0, 3.5, 4.5, 6.5, 7.5, 8.5, 10.0, 15.0, 25.0]
+    def test_samples(i0, i1, i2):
+        # samples = [principals, durations, interests]
+        samples = [[100, 150, ],#500, 5000, 25000, 123456, 234567, 1000000, 2005000],
+                   [1, 2, ],#3, 5, 10, 15, 24, 50, 100, 120, 150, 199, 250, 300, 360, 720, 12000],
+                   [0.1, 0.5, ]]#0.8, 1.0, 1.2, 2.0, 2.5, 3.0, 3.5, 4.5, 6.5, 7.5, 8.5, 10.0, 15.0, 25.0]]
 
-    # NOTE: zp does not support nested for loops
-    index_p = 0
-    while index_p < len(principal_sample):
-        index_d = 0
-        while index_d < len(duration_sample):
-            index_i = 0
-            while index_i < len(interest_sample):
-                if not test(principal_sample[index_p], duration_sample[index_d], interest_sample[index_i]):
-                    return False
-                index_i += 1
-            index_d += 1
-        index_p += 1
-    return True
+        # NOTE: zp does not support nested for loops
+        index0 = 0
+        while index0 < len(samples[0]):
+            index1 = 0
+            while index1 < len(samples[1]):
+                index2 = 0
+                while index2 < len(samples[2]):
+                    vals = [samples[0][index0], samples[1][index1], samples[2][index2]]
+                    p_vals = [vals[i0], vals[i1], vals[i2]]
+                    if not test(vals, p_vals):
+                        return False
+                    index2 += 1
+                index1 += 1
+            index0 += 1
+        return True
+
+    # Detect which value has to go where by permuting varibles until program works
+    for permutation in [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]]:
+        i = permutation[0]
+        j = permutation[1]
+        k = permutation[2]
+        if test_samples(i, j, k):
+            return True
+
+    return False
+
+
 
 
 def eol_hook(ts, pos, comment_start):
