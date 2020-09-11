@@ -186,8 +186,6 @@ class Transformer:
             return func[:-7] + ".push(" + args + ")"
         elif func == "len":
             return args + ".length"
-        elif func == "hasattr" and nargs == 2:
-            return "(" + self.transform(node.args[0]) + "[" + self.transform(node.args[1]) + "] !== undefined)"
         elif func == "isinstance":
             # we need to handle builtin types (change their names)
             # vs class instance checks
@@ -199,12 +197,13 @@ class Transformer:
                 return "((typeof " + obj + ') === "number")'
             elif klass == "bytes":
                 return "(" + obj + " instanceof Uint8Array)"
-            else:  # default to class
-                # return "(" + obj + " instanceof " + klass + ")"
-                if klass[:4] == "AST.":
-                    return f"({obj}.constructor.name === '{klass[4:]}')"
-                else:
-                    return f"({obj}.constructor.name === '{klass}')"
+            elif klass == "list" or klass == "tuple":
+                return "(" + obj + " instanceof Array)"
+            elif klass[:4] == "AST.":
+                # Special case for testing AST nodes without having to import constructors
+                return f"({obj}.constructor.name === '{klass[4:]}')"
+            else:
+                return f"({obj} instanceof {klass})"
         elif func == "print":
             return "console.log(" + args + ")"
         elif func == "arguments":
@@ -784,6 +783,10 @@ class Transformer:
     @staticmethod
     def Sub(node):
         return "-"
+
+    @staticmethod
+    def Pow(node):
+        return "**"
 
     def While(self, node):
         test = self.transform(node.test)

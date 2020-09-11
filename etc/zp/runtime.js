@@ -57,6 +57,19 @@ function ord(char){
     return char.charCodeAt(0);
 }
 
+function hasattr(obj, attr){
+    return obj[attr] !== undefined;
+}
+
+function getattr(obj, attr, default_){
+    let val = obj[attr];
+    if (val === undefined){
+        return default_;
+    } else {
+        return val;
+    }
+}
+
 function tuple_to_list(tup) {tup.slice();};
 
 function list_to_tuple(lst) {lst.slice();};
