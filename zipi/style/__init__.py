@@ -381,9 +381,9 @@ def get_style_violations(rules, source, compilationError):
             virtual_error_col_offset = error_pos.col_offset
             virtual_error_end_col_offset = error_pos.end_col_offset
 
-        compilationError(virtual_error_lineno,
+        compilationError(virtual_error_lineno - 1,
                          virtual_error_col_offset,
-                         virtual_error_end_lineno,
+                         virtual_error_end_lineno - 1,
                          virtual_error_end_col_offset,
                          "StyleError",
                          msg)
