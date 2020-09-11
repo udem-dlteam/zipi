@@ -295,9 +295,33 @@ def output_is_correct(ast):
         index_p += 1
     return True
 
+
+def eol_hook(ts, pos, comment_start):
+    line_len = pos - ts.line_start
+    lineno = ts.line_num
+    style_error = dict_get(ts.context, 'styleError', None)
+
+    if comment_start >= 0:
+        comment_col_offset = comment_start - ts.line_start
+        style_error(lineno, comment_col_offset, lineno, line_len, "Pour cet exercice les commentaires sont interdits")
+    elif line_len >= 80:
+        style_error(lineno, 0, lineno, line_len, "N'écrivez pas de lignes de plus de 80 caractères")
+
+
+def ctrl_char_hook(ts, pos):
+    lineno = ts.line_num
+    style_error = dict_get(ts.context, 'styleError', None)
+    style_error(lineno, pos - 1, lineno, pos, "N’utilisez pas de caractère de contrôle, tel que le TAB, dans vos programmes")
+
+
+ex2f_linter = make_dict()
+dict_set(ex2f_linter, 'eol_reached', eol_hook)
+dict_set(ex2f_linter, 'ctrl_char', ctrl_char_hook)
+
 # Binds 'make_dict' in this scope for usage in JS quiz
 make_dict = make_dict
 
+"""
 ex2f_rules = define_rules(
     [code_startswith([
         statement_is_assignment("Les trois premières expressions doivent être des affectations"),
@@ -313,3 +337,4 @@ ex2f_rules = define_rules(
             module_statisfies(satisfies_condition(output_is_correct, "Résultat incorrect")))
     ]
 )
+"""
