@@ -3354,7 +3354,7 @@ def om_float_new_code(ctx, args):
         obj = args[1]
 
         def check_result(rte, res):
-            if res is None:
+            if res is absent:
                 return om_float_str_conversion(ctx, obj)
             else:
                 return ctx.cont(ctx.rte, om_float_subtype(cls, OM_get_boxed_value(res)))
@@ -3463,79 +3463,6 @@ def gen_dunder_Float_rBinOp(py_class, method, prim, cont_box):
             return cont_obj(ctx, om_NotImplemented)
 
     return do_magic_method(class_float, method, dunder_Float_rBinOp)
-
-
-def gen_dunder_Float_Pow(py_class, method, prim, cont_box):
-
-    def dunder_Float_Pow(ctx, args):
-        if debug: print(debug_msg)
-
-        val1 = args[0]
-        val2 = args[1]
-
-        val2_class = OM_get_object_class(val2)
-
-        if om_issubclass(val2_class, class_float):
-            if len(args) == 3:
-                return sem_raise_with_message(ctx, class_TypeError, "3rd argument not allowed unless all arguments are integers")
-            val1_value = OM_get_boxed_value(val1)
-            val2_value = OM_get_boxed_value(val2)
-            result = prim(val1_value, val2_value)
-            return ctx.cont(ctx.rte, om_float(result))
-        elif om_issubclass(val2_class, class_int):
-            if len(args) == 3:
-                return sem_raise_with_message(ctx, class_TypeError, "3rd argument not allowed unless all arguments are integers")
-            val1_value = OM_get_boxed_value(val1)
-            val2_value = OM_get_boxed_value(val2)
-            val2_float_value = int_to_num(val2_value)
-            if float_is_infinite(val2_float_value) or float_is_nan(val2_float_value):
-                return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
-            else:
-                res = prim(val1_value, val2_float_value)
-                return cont_box(ctx, res)
-        else:
-            return cont_obj(ctx, om_NotImplemented)
-
-    return do_magic_method(class_float, method, dunder_Float_Pow)
-
-def gen_dunder_Float_rPow(py_class, method, prim, cont_box):
-    debug_msg = py_class + "." + method
-
-    def dunder_Float_rPow(ctx, args):
-        if debug: print(debug_msg)
-
-        val1 = args[0]
-        val2 = args[1]
-
-
-        val2_class = OM_get_object_class(val2)
-
-        # Primitive operations are only defined on same types.
-        if om_issubclass(val2_class, class_float):
-            if len(args) == 3:
-                return sem_raise_with_message(ctx, class_TypeError, "3rd argument not allowed unless all arguments are integers")
-            val1_value = OM_get_boxed_value(val1)
-            val2_value = OM_get_boxed_value(val2)
-            result = prim(val1_value, val2_value)
-            return ctx.cont(ctx.rte, om_float(result))
-        elif om_issubclass(val2_class, class_int):
-            if len(args) == 3: # this error occur only if every types involved are numeric
-                return sem_raise_with_message(ctx, class_TypeError, "3rd argument not allowed unless all arguments are integers")
-            val1_value = OM_get_boxed_value(val1)
-            val2_value = OM_get_boxed_value(val2)
-            val2_float_value = int_to_num(val2_value)
-            if float_is_infinite(val2_float_value) or float_is_nan(val2_float_value):
-                return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
-
-            res = prim(val2_float_value, val1_value)
-            return cont_box(ctx, res)
-        else:
-            return cont_obj(ctx, om_NotImplemented)
-
-    return do_magic_method(class_float, method, dunder_Float_rPow)
-
-
-
 
 
 def gen_dunder_Float_DivideOp(py_class, method, prim, cont_box):
@@ -3807,9 +3734,11 @@ def om_float_pow_code(ctx, args):
             val1_value = OM_get_boxed_value(val1)
             val2_value = OM_get_boxed_value(val2)
 
-            if float_is_infinite(val2_value) and float_eq(val1_value, float_from_num(1.0)):
-                # Special case in Python where 1.0 ** inf returns 1.0
-                return cont_float(ctx, val1_value)
+            abs_val1_value = float_abs(val1_value)
+
+            if float_is_infinite(val2_value) and float_eq(abs_val1_value, float_from_num(1.0)):
+                # Special case in Python where +-1.0 ** inf returns 1.0
+                return cont_float(ctx, abs_val1_value)
             else:
                 return cont_float(ctx, float_pow(val1_value, val2_value))
 
@@ -3842,9 +3771,11 @@ def om_float_rpow_code(ctx, args):
             val1_value = OM_get_boxed_value(val1)
             val2_value = OM_get_boxed_value(val2)
 
-            if float_is_infinite(val1_value) and float_eq(val2_value, float_from_num(1.0)):
-                # Special case in Python where 1.0 ** inf returns 1.0
-                return cont_float(ctx, val2_value)
+            abs_val2_value = float_abs(val2_value)
+
+            if float_is_infinite(val1_value) and float_eq(abs_val2_value, float_from_num(1.0)):
+                # Special case in Python where +-1.0 ** inf returns 1.0
+                return cont_float(ctx, abs_val2_value)
             else:
                 return cont_float(ctx, float_pow(val2_value, val1_value))
 
@@ -4556,28 +4487,21 @@ def init_module_math():
 
     def math_pow_code(rte, cont):
 
-        val1 = rte_lookup(rte, 'obj1')
-        obj1_class = OM_get_object_class(val1)
-        unboxed_val1 = OM_get_boxed_value(val1)
+        obj1 = rte_lookup(rte, 'obj1')
+        obj2 = rte_lookup(rte, 'obj2')
 
-        val2 = rte_lookup(rte, 'obj2')
-        obj2_class = OM_get_object_class(val2)
-        unboxed_val2 = OM_get_boxed_value(val2)
+        def check_obj1(obj1_rte, obj1_res):
+            if obj1_res is absent:
+                return sem_raise_with_message(make_out_of_ast_context(obj1_rte, cont), "must be real number")
+            else:
+                def check_obj2(obj2_rte, obj2_res):
+                    if obj2_res is absent:
+                        return sem_raise_with_message(make_out_of_ast_context(obj2_rte, cont), "must be real number")
+                    else:
+                        return sem_Pow(make_out_of_ast_context(obj2_rte, cont), obj1_res, obj2_res)
 
-        if om_is(obj1_class, class_int):
-            unboxed_val1 = int_to_num(unboxed_val1)
-            obj1_class = class_float
-
-        if om_is(obj2_class, class_int):
-            unboxed_val2 = int_to_num(unboxed_val2)
-            obj2_class = class_float
-
-        if om_is(obj1_class, class_float) and om_is(obj2_class, class_float):
-            return unwindReturn(rte, om_float(float_pow(unboxed_val1, unboxed_val2)))
-
-        else:
-            ctx = make_out_of_ast_context(rte, cont)
-            return sem_raise(ctx, class_TypeError)
+            return sem_maybe_float(make_out_of_ast_context(obj1_rte, check_obj2), obj2)
+        return sem_maybe_float(make_out_of_ast_context(rte, check_obj1), obj1)
 
 
     def math_exp_code(rte, cont):
@@ -6114,7 +6038,7 @@ def sem_maybe_float(ctx, obj):
     obj_float = getattribute_from_obj_mro(obj, '__float__')
 
     if obj_float is absent:
-        return ctx.cont(ctx.rte, None)
+        return ctx.cont(ctx.rte, absent)
     else:
         def check_float(rte, res):
             if om_isinstance(res, class_float):
