@@ -142,7 +142,9 @@ def exec_expression(expr, env):
     if isinstance(expr, AST.Constant):
         value = expr.value
 
-        if int_instance(value):
+        if value is None:
+            return NONE_OBJECT
+        elif int_instance(value):
             return int_to_num(value)
         elif float_instance(value):
             return float_to_num(value)
