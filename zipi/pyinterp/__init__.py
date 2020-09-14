@@ -4806,6 +4806,21 @@ def trampoline(cont):
 
 # Compilation of a module.
 
+def walk(cte, ast, fn, args):
+    # Hack to check child is an instance of AST while zp does not support class hierarchy
+    if hasattr(ast, '_fields'):
+        res = fn(cte, ast, args)
+        # If fn return True continue walk, else abort recursive walk
+        if res:
+            for field in ast._fields:
+                child = getattr(ast, field)
+
+                if isinstance(child, list):
+                    for item in child:
+                        walk(cte, item, fn)
+                else:
+                    walk(cte, child, fn)
+
 def comp_mod(cte, ast):
 
     if isinstance(ast, AST.Module):
