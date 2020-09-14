@@ -502,7 +502,7 @@ def get_token(ts):
                     if c == 10 or c == 13: # EOL?
                         break
                     else:
-                        hook = dict_get(ts.context, 'ctrl_char', False)
+                        hook = dict_get(ts.context, 'ctrl_char', False) if ts.context else False
                         if hook:
                             hook(ts, pos)
                         if c == 9: # '\t'
@@ -586,7 +586,7 @@ def get_token(ts):
                 if k != KIND_WHITESPACE: # ' ' or '\t' or '\f'
                     break
                 elif c != 32: # ' '
-                    hook = dict_get(ts.context, 'ctrl_char', False)
+                    hook = dict_get(ts.context, 'ctrl_char', False) if ts.context else False
                     if hook:
                         hook(ts, pos)
 
@@ -869,7 +869,7 @@ def get_token(ts):
         return
 
 def eol_reached(ts, pos):
-    hook = dict_get(ts.context, 'eol_reached', False)
+    hook = dict_get(ts.context, 'eol_reached', False) if ts.context else False
 
     if hook:
         hook(ts, pos, ts.comment_start)
