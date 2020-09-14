@@ -28,6 +28,9 @@ def dict_has(d, key):
 def dict_keys(d):
     return list(d.keys())
 
+def dict_copy(d):
+    return d.copy()
+
 
 ###
 # Int operations
