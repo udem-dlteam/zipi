@@ -25,6 +25,9 @@ def dict_set(d, key, value):
 def dict_has(d, key):
     return key in d.keys()
 
+def dict_keys(d):
+    return list(d.keys())
+
 
 ###
 # Int operations

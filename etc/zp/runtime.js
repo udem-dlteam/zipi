@@ -32,6 +32,10 @@ function dict_set(d, key, value) {
     d[key] = value;
 };
 
+function dict_keys(d){
+    return Object.keys(d);
+}
+
 function gui_wait_for_click(ast, msg, continue_execution) {
     console.log('at ' + ast.lineno + '.' + (ast.col_offset + 1) + '-' + ast.end_lineno + '.' + (ast.end_col_offset + 1) + msg);
     return continue_execution;
