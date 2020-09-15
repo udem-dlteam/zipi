@@ -4823,22 +4823,22 @@ def trampoline(cont):
 # Compilation of a module.
 
 def set_ast_property(ast, name, value):
-    props = getattr(ast, "__pyinterp__", None)
+    props = getattr(ast, "_pyinterp", None)
 
     if props is None:
         props = make_dict()
-        ast.__pyinterp__ = props
+        ast._pyinterp = props
 
     dict_set(props, name, value)
 
 def get_ast_property(ast, name, default_):
-    props = getattr(ast, "__pyinterp__", None)
+    props = getattr(ast, "_pyinterp", None)
 
     if props is None:
         props = make_dict()
         ast.__pyinterp__ = props
 
-    dict_get(props, name, default_)
+    return dict_get(props, name, default_)
 
 
 def walk(cte, ast, fn, args):
@@ -4934,7 +4934,7 @@ def make_closure_var_token(id_, stack):
     return None
 
 def make_global_var_token():
-    return [LOCAL_VAR]
+    return [GLOBAL_VAR]
 
 def init_compute_variables_scope(cte, ast):
     # Init computing variables scopes on function definitions, ignore variables since they are all global at top-level
@@ -4992,6 +4992,20 @@ def compute_variables_scope(cte, ast, locals_env, locals_ref, stack):
         if res is not None:
             return res
 
+    # Now that all assignations have been treated, we can determine the scope of variables' references
+
+    for name in dict_keys(locals_ref):
+        # If the variable is already in the env, we were able to determine its scope
+        if not dict_has(locals_env, name):
+            # else it is either from a closure or global
+            closure_token = make_closure_var_token(name, stack)
+
+            if closure_token is None:
+                # The variable can only be global since it is not local, nor in a closure
+                dict_set(locals_env, name, make_global_var_token())
+            else:
+                dict_set(locals_env, name, closure_token)
+
     # recursively visit nested functions which were collected in 'function_defs'
     for nested_fn in function_defs:
         nested_locals_env = make_dict()
@@ -5006,7 +5020,6 @@ def compute_variables_scope(cte, ast, locals_env, locals_ref, stack):
     return None
 
 def compute_function_variables_scope(cte, ast, args):
-    # locals_ref is only needed to check that 'nonlocal' and 'global' are not used after variable usage
     syntax_error, locals_env, locals_ref, stack, function_defs = args
     if isinstance(ast, AST.FunctionDef):
         # FunctionDef are treated recursively after the current scope has been analysed
@@ -5022,7 +5035,11 @@ def compute_function_variables_scope(cte, ast, args):
             if not dict_has(locals_env, id_):
                 dict_set(locals_env, id_, make_local_var_token())
         elif isinstance(ctx, AST.Load):
-            locals_ref(locals_env, id_, True)
+            # If the variable is in locals_env, its scope is already known
+            # Else, we cannot determine its scope yet because there could be an assignation later
+            # In both case, there is nothing to be done at that point but mark it as seen
+            # See 'compute_variables_scope' for the rest of the analysis
+            dict_set(locals_ref, id_, True)
 
         return True
 
