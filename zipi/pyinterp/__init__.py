@@ -82,13 +82,21 @@ class RTCtrlFinally:
 #         self.ctrl_env = ctrl_env
 
 class CTE:
-    def __init__(self, callee, locals_env, lex_env, ctrl_env, external_context, parent):
+    def __init__(self, callee, locals_env, closure_env, lex_env, ctrl_env, external_context, parent):
         self.callee = callee
         self.locals_env = locals_env
+        self.closure_env = closure_env
         self.lex_env = lex_env
+        self.closure_env = closure_env
         self.ctrl_env = ctrl_env
         self.external_context = external_context
         self.parent = parent
+
+def get_cte_locals_env(cte):
+    return cte.locals_env
+
+def get_cte_closure_env(cte):
+    return cte.closure_env
 
 # NOTE: inspired from codeboot JS
 def CTCtrl_controlContext(cte, ast):
@@ -98,6 +106,7 @@ def CTCtrl_controlContext(cte, ast):
         ctrl_env = CTCtrlLabel(ctrl_env, ids, ast)
         cte = CTE(cte.callee,
                   cte.locals_env,
+                  cte.closure_env,
                   cte.lex_env,
                   ctrl_env,
                   cte.external_context,
@@ -241,6 +250,7 @@ class OM_function(OM_box):
     arity: the arity of the function object
     signature: the signature of the function object
     body: the code of the function object
+    closure: array of variable closure
     """
 
 # value is either class or instance
@@ -1216,6 +1226,12 @@ def OM_set_function_body(o, body):
 
 def OM_get_function_body(o):
     return o.body
+
+def OM_get_function_closure(o):
+    return o.closure
+
+def OM_set_function_closure(o, closure):
+    o.closure = closure
 
 # hidden fields in WrapperDescriptor
 def OM_set_WrapperDescriptor_cls(o, cls):
@@ -4674,7 +4690,7 @@ def interp(ast, options):
     trampoline(prepare_execution(code, fresh_rte(options)))
 
 def comp(ast, external_context):
-    cte = CTE(None, None, None, None, external_context, None)
+    cte = CTE(None, make_dict(), make_dict(), None, None, external_context, None)
 
     if hasattr(ast, 'container'):
         container = ast.container
@@ -4806,6 +4822,25 @@ def trampoline(cont):
 
 # Compilation of a module.
 
+def set_ast_property(ast, name, value):
+    props = getattr(ast, "__pyinterp__", None)
+
+    if props is None:
+        props = make_dict()
+        ast.__pyinterp__ = props
+
+    dict_set(props, name, value)
+
+def get_ast_property(ast, name, default_):
+    props = getattr(ast, "__pyinterp__", None)
+
+    if props is None:
+        props = make_dict()
+        ast.__pyinterp__ = props
+
+    dict_get(props, name, default_)
+
+
 def walk(cte, ast, fn, args):
     # Hack to check child is an instance of AST while zp does not support class hierarchy
     if hasattr(ast, '_fields'):
@@ -4817,20 +4852,220 @@ def walk(cte, ast, fn, args):
 
                 if isinstance(child, list):
                     for item in child:
-                        walk(cte, item, fn)
+                        walk(cte, item, fn, args)
                 else:
-                    walk(cte, child, fn)
+                    walk(cte, child, fn, args)
+
+def walk_with_abort(cte, ast, fn, abort_fn, args):
+    # Provides an 'abort' as first argument to 'fn' which call is detected to interrupt walk and return result
+    # The provided abort function can only take a single argument, multiple arguments mus be passed as a tuple
+    error_occured = [False]
+    abort_res = [None]
+
+    def abort(args):
+        error_occured[0] = True
+        abort_res[0] = abort_fn(args)
+
+    new_args = [abort]
+    for a in args:
+        new_args.append(a)
+
+    def inner_walk(cte, ast, fn, args):
+        if hasattr(ast, '_fields'):
+            res = fn(cte, ast, args)
+
+            if error_occured[0]:
+                return
+
+            # If fn return True continue walk, else abort recursive walk
+            if res:
+                for field in ast._fields:
+                    child = getattr(ast, field)
+
+                    if isinstance(child, list):
+                        for item in child:
+                            walk(cte, item, fn, args)
+                            if error_occured[0]:
+                                return
+                    else:
+                        walk(cte, child, fn, args)
+                        if error_occured[0]:
+                            return
+
+    inner_walk(cte, ast, fn, new_args)
+    return abort_res[0] if error_occured[0] else None
+
+def raise_walk_syntax_error(args):
+    cte, ast, msg = args
+    return CT_raise_syntax_error_with_msg(cte, ast, msg)
+
+def abort_walk_id_function(args):
+    return args
+
+# Flags for
+LOCAL_VAR = ["LOCAL_VAR"]
+CLOSURE_VAR = ["CLOSURE_VAR"]
+GLOBAL_VAR = ["GLOBAL_VAR"]
+
+def make_local_var_token():
+    # Second element indicates if the variable needs to be boxed for a closure
+    return [LOCAL_VAR, False]
+
+def mark_local_var_token_as_boxed(token):
+    token[1] = True
+
+def is_local_var(token):
+    return token[0] is LOCAL_VAR
+
+def make_closure_var_token(id_, stack):
+    last = len(stack) - 1
+    i = 0
+    while i <= last:
+        fn = stack[last - i]
+        fn_locals_env = get_ast_property(fn, "locals_env", None) # Should never be None
+        var_token = dict_get(fn_locals_env, id_, None)
+
+        if var_token is not None and is_local_var(var_token):
+            # Indicate the variable was found 'i' syntactical levels above
+            mark_local_var_token_as_boxed(var_token)
+            return [CLOSURE_VAR, i]
+
+        i -= 1
+    return None
+
+def make_global_var_token():
+    return [LOCAL_VAR]
+
+def init_compute_variables_scope(cte, ast):
+    # Init computing variables scopes on function definitions, ignore variables since they are all global at top-level
+
+    def walk_fn(cte, ast, args):
+        if isinstance(ast, AST.FunctionDef):
+            locals_env = make_dict()
+            locals_ref = make_dict()
+            stack = []
+            function_defs = []
+
+            set_ast_property(ast, 'locals_env', locals_env)
+            res = compute_variables_scope(cte, ast, locals_env, locals_ref, stack)
+
+            if res is not None:
+                return syntax_error(res)
+            else:
+                return False
+        else:
+            return True
+
+    return walk_with_abort(cte, ast, walk_fn, raise_walk_syntax_error, ())
+
+def init_locals_env_from_args(locals_env, args):
+    # Populate a function local cte with its arguments
+    args_group = [args.args, args.posonlyargs, args.kwonlyargs]
+    for group in args_group:
+        for arg in group:
+            dict_set(locals_env, arg.arg, make_local_var_token())
+
+    vararg = args.vararg
+    kwarg = args.kwarg
+
+    if vararg:
+        dict_set(locals_env, vararg.arg, make_local_var_token())
+
+    if kwarg:
+        dict_set(locals_env, kwarg.arg, make_local_var_token())
+
+    return locals_env
+
+def compute_variables_scope(cte, ast, locals_env, locals_ref, stack):
+    # Intermediate function which computes a function variables' scope, then recursively computes it for nested functions
+    function_defs = []
+
+    args = (locals_env, locals_ref, stack, function_defs)
+
+    init_locals_env_from_args(locals_env, ast.args)
+
+    for stmt in ast.body:
+
+        res = walk_with_abort(cte, stmt, compute_function_variables_scope, abort_walk_id_function, args)
+
+        # A syntax error was detected
+        if res is not None:
+            return res
+
+    # recursively visit nested functions which were collected in 'function_defs'
+    for nested_fn in function_defs:
+        nested_locals_env = make_dict()
+        nested_locals_ref = make_dict()
+        nested_stack = stack + [ast]
+
+        res = compute_variables_scope(cte, nested_fn, nested_locals_env, nested_locals_ref, nested_stack)
+
+        if res is not None:
+            return res
+
+    return None
+
+def compute_function_variables_scope(cte, ast, args):
+    # locals_ref is only needed to check that 'nonlocal' and 'global' are not used after variable usage
+    syntax_error, locals_env, locals_ref, stack, function_defs = args
+    if isinstance(ast, AST.FunctionDef):
+        # FunctionDef are treated recursively after the current scope has been analysed
+        function_defs.append(ast)
+        return False
+
+    elif isinstance(ast, AST.Name):
+        ctx = ast.ctx
+        id_ = ast.id
+
+        if isinstance(ctx, AST.Store):
+            # If the variable is in locals_env, its scope is already known, this is a reassignment, else we mark it as local
+            if not dict_has(locals_env, id_):
+                dict_set(locals_env, id_, make_local_var_token())
+        elif isinstance(ctx, AST.Load):
+            locals_ref(locals_env, id_, True)
+
+        return True
+
+    elif isinstance(ast, AST.Nonlocal):
+        for id_ in ast.names:
+            if dict_has(locals_env, id_) or dict_has(locals_ref, id_):
+                return syntax_error((cte, ast, "name '" + id_ + "' is used prior to nonlocal declaration"))
+            else:
+                closure_token = make_closure_var_token(id_, stack)
+                if closure_token is None:
+                    return syntax_error((cte, ast, "no binding for nonlocal '" + id_ + "' found"))
+                else:
+                    dict_set(locals_env, id_, closure_token)
+                    return True
+
+    elif isinstance(ast, AST.Global):
+        for id_ in ast.names:
+            if dict_has(locals_env, id_) or dict_has(locals_ref, id_):
+                return syntax_error((cte, ast, "name '" + id_ + "' is used prior to global declaration"))
+            else:
+                dict_set(locals_env, id_, make_global_var_token())
+                return True
+
+    else:
+        return True
+
 
 def comp_mod(cte, ast):
 
     if isinstance(ast, AST.Module):
         # Module(stmt* body, type_ignore *type_ignores)
         if debug: print('AST.Module')
+
+        init_compute_variables_scope(cte, ast)
+
         return comp_stmt_seq(cte, ast.body)
 
     elif isinstance(ast, AST.Interactive):
         # Interactive(stmt* body)
         if debug: print('AST.Interactive')
+
+        init_compute_variables_scope(cte, ast)
+
         return comp_stmt_seq(cte, ast.body)
 
     elif isinstance(ast, AST.Expression):
@@ -4932,36 +5167,8 @@ def comp_stmt(cte, ast):
 
     elif isinstance(ast, AST.FunctionDef):
         if debug: print('AST.FunctionDef')
-        func = om(class_function)
-
-        OM_set(func, '__name__', om_str(ast.name))
-
-        signature = gen_signature(cte, ast)
-
-        ids = make_dict()
-        dict_set(ids, "return point", True)
-
-        fn_cte = CTE(ast.name,
-                     signature,
-                     cte.lex_env,
-                     CTCtrlLabel(None, ids, ast),
-                     cte.external_context,
-                     cte)
-
-        (cte1, body_code) = comp_stmt_seq(fn_cte, ast.body)
-
-        OM_set_function_signature(func, signature)
-        OM_set_function_body(func, body_code)
-
-        arity = signature_arity(signature)
-        OM_set_function_arity(func, arity)
-
-        # TODO: create closure
-
-        def code(rte, cont):
-            return cont(rte, func)
-
-        return gen_var_set(cte, ast, ast.name, code)
+        create_function = gen_create_function(cte, ast)
+        return gen_var_set(cte, ast, ast.name, create_function)
 
     elif isinstance(ast, AST.Delete):
         if debug: print('AST.Delete')
@@ -5289,6 +5496,57 @@ def gen_var_set(cte, ast, id, code1):
             return sem_var_set(Context(rte, lambda rte: cont_stmt_end_with_message(rte, msg), ast), id, val)
         return code1(rte, var_set)
     return (cte, code)
+
+def gen_create_function(cte, ast):
+
+    fn_name = om_str(ast.name)
+
+    ids = make_dict()
+    dict_set(ids, "return point", True)
+
+    # Create the local variables table
+    locals_env = init_locals_env_from_args(ast.args)
+    locals_ref = make_dict()
+
+    for stmt in ast.body:
+        walk(cte, stmt, collect_local_vars, (locals_env, locals_ref))
+
+    # Creat the closure variable table
+    # Unused closure variable are stored as well
+    closure_env = dict_copy(get_cte_locals_env(cte))
+
+    for name in dict_keys(get_cte_closure_env(cte)):
+        dict_set(closure_env, name, True)
+
+    fn_cte = CTE(ast.name,
+                 locals_env,
+                 closure_env,
+                 cte.lex_env,
+                 CTCtrlLabel(None, ids, ast),
+                 cte.external_context,
+                 cte)
+
+    (body_cte, body_code) = comp_stmt_seq(fn_cte, ast.body)
+
+    # TODO: Once default arguments are implemented this will need to be partially at runtime
+    signature = gen_signature(cte, ast)
+
+    def make_closure(rte):
+        ...
+
+
+    def create_function(rte, cont):
+        func = om(class_function)
+        OM_set(func, '__name__', fn_name)
+
+        OM_set_function_signature(func, signature)
+        OM_set_function_body(func, body_code)
+        arity = signature_arity(signature)
+        OM_set_function_arity(func, arity)
+
+        return cont(rte, func)
+
+    return cte, create_function
 
 
 def gen_multiple_Assign(cte, ast, targets, value):
