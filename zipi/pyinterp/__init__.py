@@ -94,7 +94,7 @@ class CTE:
 def get_cte_locals_env(cte):
     return cte.locals_env
 
-def get_cte_closure_cell(cte):
+def get_cte_closure_table(cte):
     return cte.closure_table
 
 def get_cte_locals_env_var(cte, name):
@@ -373,12 +373,30 @@ def rte_lookup_locals_boxed(rte, name):
     result = dict_get(env, name, absent)[0] # should always recover a value, it may be absent
     return result
 
-# XXX: does not yet support undo.
-def rte_set(rte, varname, val):
+def rte_lookup_closure(rte, pos):
+    func = rte_current_func(ctx)
+    value = OM_get_function_closure(func)[pos][0]
+
+    return value
+
+def rte_set_locals(rte, varname, val):
     env = rte_locals(rte)
-    if env is absent:
-        env = rte_globals(rte)
     dict_set(env, varname, val)
+
+def rte_set_locals_boxed(rte, varname, val):
+    env = rte_globals(rte)
+    slot = dict_get(env, varname, None) # Return None to cause crash of the varname is not present
+    slot[0] = val
+
+def rte_set_globals(rte, varname, val):
+    env = rte_globals(rte)
+    dict_set(env, varname, val)
+
+def rte_set_closure(rte, pos, val):
+    func = rte_current_func(ctx)
+    slot = OM_get_function_closure(func)[pos]
+    slot[0] = val
+
 
 # stack operation
 def unwindReturn(rte, val):
@@ -5730,21 +5748,24 @@ def gen_var_get(cte, ast, id):
     var_token = get_cte_locals_env_var(cte, id)
 
     if var_token is None or is_global_var(var_token):
-        getter = sem_var_get_global
+        def code(rte, cont):
+            return sem_var_get_global(Context(rte, do_expr_end(cont, ast), ast), id)
     elif is_local_var(var_token):
         boxed = get_local_var_is_boxed(var_token)
 
         if boxed:
-            getter = sem_var_get_local_boxed
+            def code(rte, cont):
+                return sem_var_get_local_boxed(Context(rte, do_expr_end(cont, ast), ast), id)
         else:
-            getter = sem_var_get_local
+            def code(rte, cont):
+                return sem_var_get_local(Context(rte, do_expr_end(cont, ast), ast), id)
 
     else: # case: closure var
-        getter = sem_var_get_closure
+        closure_table = get_cte_closure_table(cte)
+        closure_pos = dict_get(closure_table, id)
 
-
-    def code(rte, cont):
-        return getter(Context(rte, do_expr_end(cont, ast), ast), id)
+        def code(rte, cont):
+            return sem_var_get_closure(Context(rte, do_expr_end(cont, ast), ast), closure_pos, id)
 
     return (cte, code)
 
@@ -6511,11 +6532,17 @@ def gen_Subscript_Store(cte, ast, target, value):
 def sem_constant(ctx, val):
     return ctx.cont(ctx.rte, val)
 
-def sem_var_set(ctx, id, val):
-    # Clone the current context.
-    # TODO: use link environment
-    rte_set(ctx.rte, id, val)
-    return ctx.cont(ctx.rte)
+def sem_var_set_local(ctx, id, val):
+    rte_set_locals(ctx.rte, id, val)
+
+def sem_var_set_local_boxed(ctx, id, val):
+    rte_set_locals_boxed(ctx.rte, id, val)
+
+def sem_var_set_globals(ctx, id, val):
+    rte_set_globals(rte, id, val)
+
+def sem_var_set_closure(ctx, pos, val):
+    rte_set_closure(ctx.rte, pos, val)
 
 def sem_var_get_local(ctx, id):
     value = rte_lookup_locals(ctx.rte, id)
@@ -6533,13 +6560,12 @@ def sem_var_get_local_boxed(ctx, id):
     return cont_obj(ctx, value)
 
 
-def sem_var_get_closure(ctx, pos):
-    func = rte_current_func(ctx)
-    value = OM_get_function_closure(func)[pos][0]
+def sem_var_get_closure(ctx, pos, id):
+    value = rte_lookup_closure(ctx, pos)
 
     if value is absent:
         # TODO: recover closure variable name
-        return sem_raise_with_message(ctx, class_UnboundLocalError, "local variable referenced before assignment")
+        return sem_raise_with_message(ctx, class_UnboundLocalError, "local variable '" + id + "' referenced before assignment")
     else:
         return cont_obj(ctx, value)
 
