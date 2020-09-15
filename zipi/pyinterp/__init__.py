@@ -5267,9 +5267,11 @@ def comp_stmt(cte, ast):
         target = ast.target
         if isinstance(target, AST.Name):
             op = ast.op
-            id = ast.target.id
-            (cte1, code1) = comp_expr(cte, ast.value)
-            return gen_aug_op(cte1, ast, id, op, code1)
+            target = ast.target
+            value = ast.value
+            return gen_aug_assign(cte, ast, target, op, value)
+        else:
+            return CT_raise_syntax_error_with_msg(cte, ast, "illegal expression for augmented assignment")
 
 
     elif isinstance(ast, AST.While):
@@ -5989,7 +5991,7 @@ def gen_UnaryOp(cte, ast, op, code1):
     return (cte, code)
 
 
-def gen_aug_op(cte, ast, id, op, code1):
+def gen_aug_assign(cte, ast, target, op, value):
     if debug: print(op)
 
     if isinstance(op, AST.Add):
@@ -6019,12 +6021,21 @@ def gen_aug_op(cte, ast, id, op, code1):
     else:
         return CT_raise_syntax_error_with_msg(cte, ast, "Unimplemented assignment operator")
 
+    id_ = target.id
+
+    get_cte, get_target = gen_var_get(cte, target, id_)
+    val_cte, val_code = comp_expr(get_cte, ast.value)
+
     def code(rte, cont):
-        return code1(rte,
-                     lambda rte1, val1:
-                       sem_op(Context(rte1, do_stmt_end(cont, ast, 1), ast),
-                                      id, val1))
-    return (cte, code)
+        def get_val(get_rte, target_val):
+            def do_sem(val_rte, lhs_val):
+                return sem_op(Context(val_rte, cont, ast), target_val, lhs_val)
+            return val_code(get_rte, do_sem)
+        return get_target(rte, get_val)
+
+    set_cte, set_target = gen_var_set(val_cte, ast, id_, code)
+
+    return set_cte, set_target
 
 
 def gen_BinOp(cte, ast, op, code1, code2):
@@ -6229,33 +6240,26 @@ def sem_Invert(ctx, val1):
         return om_call(val1_pos, ctx, [val1])
 
 def gen_sem_IOperator(method_name, sem_fall_back, op_name):
-
-    def gen_isem(ctx, id, val):
-        def cont_var_get(rte, self):
-            def cont_raise_error(rte, result):
-                new_ctx = Context(rte, ctx.cont, ctx.ast)
-                if om_is(result, om_NotImplemented):
-                    return sem_raise_with_message(new_ctx, class_TypeError, "unsupported operand type(s) for " + op_name)
-                else:
-                    return sem_var_set(new_ctx, id, result)
-
-            def cont_call_fallback(rte, result):
-                new_ctx = Context(rte, ctx.cont, ctx.ast)
-                if om_is(result, om_NotImplemented):
-                    return sem_fall_back(with_cont(ctx, cont_raise_error), self, val)
-                else:
-                    return sem_var_set(new_ctx, id, restul)
-
-
-            self_iop = getattribute_from_obj_mro(self, method_name)
-            if self_iop is absent:
-                return sem_fall_back(with_cont(ctx, cont_raise_error), self, val)
+    def sem_IOp(ctx, self, other):
+        def cont_raise_error(rte, result):
+            if om_is(result, om_NotImplemented):
+                return sem_raise_with_message(ctx, class_TypeError, "unsupported operand type(s) for " + op_name)
             else:
-                return om_call(self_iop, with_cont(ctx, cont_call_fallback), [ self , val ])
+                return cont_obj(ctx, result)
 
-        return sem_var_get(with_cont(ctx, cont_var_get), id)
+        def cont_call_fallback(rte, result):
+            if om_is(result, om_NotImplemented):
+                return sem_fall_back(with_cont(ctx, cont_raise_error), self, other)
+            else:
+                return cont_obj(ctx, result)
 
-    return gen_isem
+        self_iop = getattribute_from_obj_mro(self, method_name)
+
+        if self_iop is absent:
+            return sem_fall_back(ctx, self, other)
+        else:
+            return om_call(self_iop, with_cont(ctx, cont_call_fallback), [self , other])
+    return sem_IOp
 
 sem_IAdd = gen_sem_IOperator("__iadd__", sem_Add, "+=")
 sem_ISub = gen_sem_IOperator("__isub__", sem_Sub, "-=")
