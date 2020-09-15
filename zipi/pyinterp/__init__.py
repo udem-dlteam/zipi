@@ -82,12 +82,11 @@ class RTCtrlFinally:
 #         self.ctrl_env = ctrl_env
 
 class CTE:
-    def __init__(self, callee, locals_env, closure_env, lex_env, ctrl_env, external_context, parent):
+    def __init__(self, callee, locals_env, closure_table, lex_env, ctrl_env, external_context, parent):
         self.callee = callee
         self.locals_env = locals_env
-        self.closure_env = closure_env
+        self.closure_table = closure_table
         self.lex_env = lex_env
-        self.closure_env = closure_env
         self.ctrl_env = ctrl_env
         self.external_context = external_context
         self.parent = parent
@@ -95,8 +94,8 @@ class CTE:
 def get_cte_locals_env(cte):
     return cte.locals_env
 
-def get_cte_closure_env(cte):
-    return cte.closure_env
+def get_cte_closure_cell(cte):
+    return cte.closure_table
 
 # NOTE: inspired from codeboot JS
 def CTCtrl_controlContext(cte, ast):
@@ -106,7 +105,7 @@ def CTCtrl_controlContext(cte, ast):
         ctrl_env = CTCtrlLabel(ctrl_env, ids, ast)
         cte = CTE(cte.callee,
                   cte.locals_env,
-                  cte.closure_env,
+                  cte.closure_table,
                   cte.lex_env,
                   ctrl_env,
                   cte.external_context,
@@ -4690,7 +4689,7 @@ def interp(ast, options):
     trampoline(prepare_execution(code, fresh_rte(options)))
 
 def comp(ast, external_context):
-    cte = CTE(None, make_dict(), make_dict(), None, None, external_context, None)
+    cte = CTE(None, make_dict(), [], None, None, external_context, None)
 
     if hasattr(ast, 'container'):
         container = ast.container
@@ -4907,9 +4906,22 @@ LOCAL_VAR = ["LOCAL_VAR"]
 CLOSURE_VAR = ["CLOSURE_VAR"]
 GLOBAL_VAR = ["GLOBAL_VAR"]
 
-def make_local_var_token():
+def make_local_var_token(name, current_fn):
     # Second element indicates if the variable needs to be boxed for a closure
-    return [LOCAL_VAR, False]
+    n_vars = get_ast_property(current_fn, 'n_vars', None)
+    set_ast_property(current_fn, 'n_vars', n_vars + 1)
+
+    locals_env = get_ast_property(current_fn, 'locals_env', None)
+    tk = [LOCAL_VAR, False, n_vars]
+
+    dict_set(locals_env, name, tk)
+    return tk
+
+def get_local_var_is_boxed(token):
+    return token[1]
+
+def get_local_var_index(token):
+    return token[2]
 
 def mark_local_var_token_as_boxed(token):
     token[1] = True
@@ -4917,7 +4929,17 @@ def mark_local_var_token_as_boxed(token):
 def is_local_var(token):
     return token[0] is LOCAL_VAR
 
-def make_closure_var_token(id_, stack):
+def add_closure_var_to_fn(fn, name):
+    # Add a free variable to the function cte
+    n_freevars = get_ast_property(current_fn, 'n_freevars', None)
+    set_ast_property(current_fn, 'n_freevars', n_freevars + 1)
+
+    locals_env = get_ast_property(ast, 'locals_env', None)
+    dict_set(locals_env, name, [CLOSURE_VAR, n_freevars])
+
+def make_closure_var_token(id_, stack, current_fn):
+    # This function both mutates the ast to add a free variable and return the created token or None
+    # Exception: a nonlocal variable can be bound to a global variable when there is a 'global' statement for the var
     last = len(stack) - 1
     i = 0
     while i <= last:
@@ -4925,16 +4947,50 @@ def make_closure_var_token(id_, stack):
         fn_locals_env = get_ast_property(fn, "locals_env", None) # Should never be None
         var_token = dict_get(fn_locals_env, id_, None)
 
-        if var_token is not None and is_local_var(var_token):
-            # Indicate the variable was found 'i' syntactical levels above
-            mark_local_var_token_as_boxed(var_token)
-            return [CLOSURE_VAR, i]
+        if var_token is not None:
+            if is_local_var(var_token):
+                mark_local_var_token_as_boxed(var_token)
+            elif is_closure_var(var_token):
+                pass
+            else: # global variable case
+                tk = make_global_var_token()
+                dict_set(fn_locals_env, id_, tk)
+                return tk
 
-        i -= 1
+            j = 0
+            while j < i:
+                fn = stack[last - j]
+                fn_locals_env = get_ast_property(fn, "locals_env", None)  # Should never be None
+
+                fn_n_freevars = get_ast_property(fn, 'n_freevars', None)  # Should never be None
+                set_ast_property(fn, 'n_freevars', fn_n_freevars + 1)
+
+                tk = [CLOSURE_VAR, fn_n_freevars]
+                dict_set(fn_locals_env, id_, tk)
+
+            n_freevars = get_ast_property(current_fn, 'n_freevars', None)  # Should never be None
+            set_ast_property(current_fn, 'n_freevars', n_freevars + 1)
+            locals_env = get_ast_property(current_fn, 'locals_env', None)
+            current_fn_tk = [CLOSURE_VAR, n_freevars]
+            dict_set(locals_env, id_, current_fn_tk)
+
+            return current_fn_tk
+
+        else:
+            i -= 1
     return None
+
+def is_closure_var(token):
+    return token[0] is CLOSURE_VAR
+
+def get_closure_var_index(token):
+    return token[1]
 
 def make_global_var_token():
     return [GLOBAL_VAR]
+
+def is_global_var(token):
+    return token[0] is GLOBAL_VAR
 
 def init_compute_variables_scope(cte, ast):
     # Init computing variables scopes on function definitions, ignore variables since they are all global at top-level
@@ -4946,7 +5002,6 @@ def init_compute_variables_scope(cte, ast):
             stack = []
             function_defs = []
 
-            set_ast_property(ast, 'locals_env', locals_env)
             res = compute_variables_scope(cte, ast, locals_env, locals_ref, stack)
 
             if res is not None:
@@ -4958,21 +5013,23 @@ def init_compute_variables_scope(cte, ast):
 
     return walk_with_abort(cte, ast, walk_fn, raise_walk_syntax_error, ())
 
-def init_locals_env_from_args(locals_env, args):
+def init_locals_env_from_args(locals_env, current_fn):
     # Populate a function local cte with its arguments
+    args = current_fn.args
     args_group = [args.args, args.posonlyargs, args.kwonlyargs]
     for group in args_group:
         for arg in group:
-            dict_set(locals_env, arg.arg, make_local_var_token())
+            name = arg.arg
+            make_local_var_token(name, current_fn)
 
     vararg = args.vararg
     kwarg = args.kwarg
 
     if vararg:
-        dict_set(locals_env, vararg.arg, make_local_var_token())
+        make_local_var_token(vararg.arg, current_fn)
 
     if kwarg:
-        dict_set(locals_env, kwarg.arg, make_local_var_token())
+        make_local_var_token(kwarg.arg, current_fn)
 
     return locals_env
 
@@ -4980,9 +5037,14 @@ def compute_variables_scope(cte, ast, locals_env, locals_ref, stack):
     # Intermediate function which computes a function variables' scope, then recursively computes it for nested functions
     function_defs = []
 
-    args = (locals_env, locals_ref, stack, function_defs)
+    args = (locals_env, locals_ref, stack, function_defs, ast)
 
-    init_locals_env_from_args(locals_env, ast.args)
+    init_locals_env_from_args(locals_env, ast)
+
+    # init function variables counters
+    set_ast_property(ast, 'n_freevars', 0)
+    set_ast_property(ast, 'n_vars', 0)
+    set_ast_property(ast, 'locals_env', locals_env)
 
     for stmt in ast.body:
 
@@ -4998,13 +5060,12 @@ def compute_variables_scope(cte, ast, locals_env, locals_ref, stack):
         # If the variable is already in the env, we were able to determine its scope
         if not dict_has(locals_env, name):
             # else it is either from a closure or global
-            closure_token = make_closure_var_token(name, stack)
+            closure_token = make_closure_var_token(name, stack, ast)
 
             if closure_token is None:
                 # The variable can only be global since it is not local, nor in a closure
                 dict_set(locals_env, name, make_global_var_token())
-            else:
-                dict_set(locals_env, name, closure_token)
+            # Else the closure token was already assigned
 
     # recursively visit nested functions which were collected in 'function_defs'
     for nested_fn in function_defs:
@@ -5020,7 +5081,7 @@ def compute_variables_scope(cte, ast, locals_env, locals_ref, stack):
     return None
 
 def compute_function_variables_scope(cte, ast, args):
-    syntax_error, locals_env, locals_ref, stack, function_defs = args
+    syntax_error, locals_env, locals_ref, stack, function_defs, current_fn = args
     if isinstance(ast, AST.FunctionDef):
         # FunctionDef are treated recursively after the current scope has been analysed
         function_defs.append(ast)
@@ -5033,7 +5094,7 @@ def compute_function_variables_scope(cte, ast, args):
         if isinstance(ctx, AST.Store):
             # If the variable is in locals_env, its scope is already known, this is a reassignment, else we mark it as local
             if not dict_has(locals_env, id_):
-                dict_set(locals_env, id_, make_local_var_token())
+                make_local_var_token(id_, current_fn)
         elif isinstance(ctx, AST.Load):
             # If the variable is in locals_env, its scope is already known
             # Else, we cannot determine its scope yet because there could be an assignation later
@@ -5048,8 +5109,9 @@ def compute_function_variables_scope(cte, ast, args):
             if dict_has(locals_env, id_) or dict_has(locals_ref, id_):
                 return syntax_error((cte, ast, "name '" + id_ + "' is used prior to nonlocal declaration"))
             else:
-                closure_token = make_closure_var_token(id_, stack)
-                if closure_token is None:
+                closure_token = make_closure_var_token(id_, stack, current_fn)
+                if closure_token is None or is_global_var(closure_token):
+                    # a 'nonlocal' statement cannot refer to a variable from a 'global' statement
                     return syntax_error((cte, ast, "no binding for nonlocal '" + id_ + "' found"))
                 else:
                     dict_set(locals_env, id_, closure_token)
@@ -5184,8 +5246,8 @@ def comp_stmt(cte, ast):
 
     elif isinstance(ast, AST.FunctionDef):
         if debug: print('AST.FunctionDef')
-        create_function = gen_create_function(cte, ast)
-        return gen_var_set(cte, ast, ast.name, create_function)
+        fn_def_cte, create_function = gen_create_function(cte, ast)
+        return gen_var_set(fn_def_cte, ast, ast.name, create_function)
 
     elif isinstance(ast, AST.Delete):
         if debug: print('AST.Delete')
@@ -5514,30 +5576,60 @@ def gen_var_set(cte, ast, id, code1):
         return code1(rte, var_set)
     return (cte, code)
 
+
 def gen_create_function(cte, ast):
 
+    def gen_function_freevar_getter(name):
+        cte_locals_env = get_cte_locals_env(cte)
+        tk = dict_get(cte_locals_env, name, None) # Cannot be None if properly called on a freevar
+
+        if is_local_var(tk):
+            def getter(rte):
+                locals_= dict_get(rte, 'locals', None)
+                return dict_get(locals_, name, None)
+            return getter
+
+        elif is_closure_var(tk):
+
+            index = get_closure_var_index(tk)
+
+            def getter(rte):
+                closure_cells = dict_get(rte, 'closure', None)
+                return dict_get(closure_cells, name, None)
+            return getter
+
+        else:
+            assert False, "Variable does not exist in cte"
+
     fn_name = om_str(ast.name)
+
+    # Create the closure variable table
+    n_freevars = get_ast_property(ast, 'n_freevars', None)
+    locals_env = get_ast_property(ast, 'locals_env', None)
+    freevars_getter = list_new(n_freevars, None)
+    closure_table = make_dict()
+
+    for name in dict_keys(locals_env):
+        var_token = locals_env[name]
+        if is_closure_var(var_token):
+            index = get_closure_var_index(var_token)
+            freevars_getter[index] = gen_function_freevar_getter(name)
+            dict_set(closure_table, name, index)
+
+    def make_closure(rte):
+        closure_cells = list_new(n_freevars, None)
+        i = 0
+        for getter in freevars_getter:
+            closure_cells[i] = getter(rte)
+            i += 1
+        return closure_cells
 
     ids = make_dict()
     dict_set(ids, "return point", True)
 
-    # Create the local variables table
-    locals_env = init_locals_env_from_args(ast.args)
-    locals_ref = make_dict()
-
-    for stmt in ast.body:
-        walk(cte, stmt, collect_local_vars, (locals_env, locals_ref))
-
-    # Creat the closure variable table
-    # Unused closure variable are stored as well
-    closure_env = dict_copy(get_cte_locals_env(cte))
-
-    for name in dict_keys(get_cte_closure_env(cte)):
-        dict_set(closure_env, name, True)
-
     fn_cte = CTE(ast.name,
                  locals_env,
-                 closure_env,
+                 closure_table,
                  cte.lex_env,
                  CTCtrlLabel(None, ids, ast),
                  cte.external_context,
@@ -5548,10 +5640,6 @@ def gen_create_function(cte, ast):
     # TODO: Once default arguments are implemented this will need to be partially at runtime
     signature = gen_signature(cte, ast)
 
-    def make_closure(rte):
-        ...
-
-
     def create_function(rte, cont):
         func = om(class_function)
         OM_set(func, '__name__', fn_name)
@@ -5560,6 +5648,7 @@ def gen_create_function(cte, ast):
         OM_set_function_body(func, body_code)
         arity = signature_arity(signature)
         OM_set_function_arity(func, arity)
+        OM_set_function_closure(func, make_closure(rte))
 
         return cont(rte, func)
 
