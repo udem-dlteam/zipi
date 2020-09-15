@@ -97,6 +97,10 @@ def get_cte_locals_env(cte):
 def get_cte_closure_cell(cte):
     return cte.closure_table
 
+def get_cte_locals_env_var(cte, name):
+    le = get_cte_locals_env(cte)
+    return dict_get(le, name, None)
+
 # NOTE: inspired from codeboot JS
 def CTCtrl_controlContext(cte, ast):
     ctrl_env = cte.ctrl_env
@@ -250,6 +254,7 @@ class OM_function(OM_box):
     signature: the signature of the function object
     body: the code of the function object
     closure: array of variable closure
+    locals: names of local variables
     """
 
 # value is either class or instance
@@ -284,7 +289,7 @@ def frame_cont(frame):
 def frame_ast(frame):
     return frame[2]
 
-def make_rte(rte, globals_env, locals_env, builtins, stack, ctrl_env, vm, trace):
+def make_rte(rte, globals_env, locals_env, current_func, builtins, stack, ctrl_env, vm, trace):
     if rte is absent:
         serial_counter = [0]
     else:
@@ -295,6 +300,7 @@ def make_rte(rte, globals_env, locals_env, builtins, stack, ctrl_env, vm, trace)
     dict_set(rte, "serial_counter", serial_counter)
     dict_set(rte, "globals", globals_env)
     dict_set(rte, "locals", locals_env)
+    dict_set(rte, 'current_func', current_func)
     dict_set(rte, "builtins", builtins)
     dict_set(rte, "stack", stack)
     dict_set(rte, "ctrl_env", ctrl_env)
@@ -307,6 +313,7 @@ def make_rte_from_new_ctrl_env(rte, ctrl_env):
     return make_rte(rte,
                     rte_globals(rte),
                     rte_locals(rte),
+                    rte_current_func(rte),
                     rte_builtins(rte),
                     rte_stack(rte),
                     ctrl_env,
@@ -332,6 +339,9 @@ def rte_globals(rte):
 def rte_locals(rte):
     return dict_get(rte, 'locals', absent)
 
+def rte_current_func(rte):
+    return dict_get(rte, 'current_func', absent)
+
 def rte_builtins(rte):
     return dict_get(rte, 'builtins', absent)
 
@@ -351,6 +361,16 @@ def rte_trace(rte):
 def rte_lookup_globals(rte, name):
     env = rte_globals(rte)
     result = dict_get(env, name, absent)
+    return result
+
+def rte_lookup_locals(rte, name):
+    env = rte_locals(rte)
+    result = dict_get(env, name, absent) # should always recover a value, it may be absent
+    return result
+
+def rte_lookup_locals_boxed(rte, name):
+    env = rte_locals(rte)
+    result = dict_get(env, name, absent)[0] # should always recover a value, it may be absent
     return result
 
 def rte_lookup(rte, name):
@@ -1226,6 +1246,12 @@ def OM_set_function_body(o, body):
 def OM_get_function_body(o):
     return o.body
 
+def OM_get_function_locals(o):
+    return o.locals
+
+def OM_set_function_locals(o, locals):
+    o.locals = locals
+
 def OM_get_function_closure(o):
     return o.closure
 
@@ -1406,6 +1432,7 @@ class_slice = make_builtin_class('slice', OM_slice_create, (), class_type)
 class_BaseException = make_builtin_class('BaseException', OM_BaseException_create, (), class_type)
 class_Exception = make_builtin_class('Exception', OM_BaseException_create, (class_BaseException,), class_type)
 class_NameError = make_builtin_class('NameError', OM_BaseException_create, (class_Exception,), class_type)
+class_UnboundLocalError = make_builtin_class('UnboundLocalError:', OM_BaseException_create, (class_Exception,), class_type)
 class_SyntaxError = make_builtin_class('SyntaxError', OM_BaseException_create, (class_Exception,),  class_type)
 class_TypeError = make_builtin_class('TypeError', OM_BaseException_create, (class_Exception,), class_type)
 class_ValueError = make_builtin_class('ValueError', OM_BaseException_create, (class_Exception,), class_type)
@@ -2760,7 +2787,22 @@ def om_function_call(ctx, args):
     ## test arity
     def execute_body(rte, locals_env):
         stack = make_frame(rte, ctx.cont, ctx.ast)
-        rte = make_rte(ctx.rte, rte_globals(ctx.rte), make_dict_from_list(locals_env), rte_builtins(ctx.rte), stack, rte_ctrl_env(ctx.rte), rte_vm(ctx.rte), rte_trace(ctx.rte))
+
+        call_locals_env = make_dict_from_list(locals_env)
+
+        for item in OM_get_function_locals(self):
+            name = item[0]
+            must_box = item[1]
+
+            value = dict_get(call_locals_env, name, absent)
+
+            if must_box:
+                dict_set(call_locals_env, name, [value])
+            else:
+                dict_set(call_locals_env, name, value)
+
+
+        rte = make_rte(ctx.rte, rte_globals(ctx.rte), call_locals_env, self, rte_builtins(ctx.rte), stack, rte_ctrl_env(ctx.rte), rte_vm(ctx.rte), rte_trace(ctx.rte))
         body = OM_get_function_body(self)
         return body(rte,
                     lambda rte1:
@@ -4710,7 +4752,7 @@ def fresh_rte(options):
 
     trace = dict_get(options, 'trace', False)
 
-    rte = make_rte(absent, globals_env, locals_env, builtins_env, absent, absent, absent, trace)
+    rte = make_rte(absent, globals_env, locals_env, absent, builtins_env, absent, absent, absent, trace)
 
     om_builtin_print = om_make_function_with_signature('print', om_print_code, make_vararg_only_signature('args'))
     om_builtin_input = om_make_function_with_signature('input', om_input_code, make_posonly_defaults_signature(('obj',), (om_str(''),)))
@@ -4777,6 +4819,7 @@ def fresh_rte(options):
     dict_set(builtins_env, 'BaseException', class_BaseException)
     dict_set(builtins_env, 'Exception', class_Exception)
     dict_set(builtins_env, 'NameError', class_NameError)
+    dict_set(builtins_env, 'UnboundLocalError', class_UnboundLocalError)
     dict_set(builtins_env, 'SyntaxError', class_SyntaxError)
     dict_set(builtins_env, 'TypeError', class_TypeError)
     dict_set(builtins_env, 'ValueError', class_ValueError)
@@ -4977,7 +5020,7 @@ def make_closure_var_token(id_, stack, current_fn):
             return current_fn_tk
 
         else:
-            i -= 1
+            i += 1
     return None
 
 def is_closure_var(token):
@@ -5608,6 +5651,7 @@ def gen_create_function(cte, ast):
     locals_env = get_ast_property(ast, 'locals_env', None)
     freevars_getter = list_new(n_freevars, None)
     closure_table = make_dict()
+    local_vars = []
 
     for name in dict_keys(locals_env):
         var_token = locals_env[name]
@@ -5615,6 +5659,8 @@ def gen_create_function(cte, ast):
             index = get_closure_var_index(var_token)
             freevars_getter[index] = gen_function_freevar_getter(name)
             dict_set(closure_table, name, index)
+        elif is_local_var(var_token):
+            local_vars.append((name, get_local_var_is_boxed(var_token)))
 
     def make_closure(rte):
         closure_cells = list_new(n_freevars, None)
@@ -5649,6 +5695,7 @@ def gen_create_function(cte, ast):
         arity = signature_arity(signature)
         OM_set_function_arity(func, arity)
         OM_set_function_closure(func, make_closure(rte))
+        OM_set_function_locals(func, local_vars)
 
         return cont(rte, func)
 
@@ -5697,8 +5744,25 @@ def gen_multiple_Assign(cte, ast, targets, value):
 
 
 def gen_var_get(cte, ast, id):
+    var_token = get_cte_locals_env_var(cte, id)
+
+    if var_token is None or is_global_var(var_token):
+        getter = sem_var_get_global
+    elif is_local_var(var_token):
+        boxed = get_local_var_is_boxed(var_token)
+
+        if boxed:
+            getter = sem_var_get_local_boxed
+        else:
+            getter = sem_var_get_local
+
+    else: # case: closure var
+        getter = sem_var_get_closure
+
+
     def code(rte, cont):
-        return sem_var_get(Context(rte, do_expr_end(cont, ast), ast), id)
+        return getter(Context(rte, do_expr_end(cont, ast), ast), id)
+
     return (cte, code)
 
 def gen_delete(cte, ast, expr):
@@ -6470,7 +6534,33 @@ def sem_var_set(ctx, id, val):
     rte_set(ctx.rte, id, val)
     return ctx.cont(ctx.rte)
 
-def sem_var_get(ctx, id):
+def sem_var_get_local(ctx, id):
+    value = rte_lookup_locals(ctx.rte, id)
+
+    if value is absent:
+        return sem_raise_with_message(ctx, class_UnboundLocalError,
+                                      "local variable '" + id + "' referenced before assignment")
+    return cont_obj(ctx, value)
+
+def sem_var_get_local_boxed(ctx, id):
+    value = rte_lookup_locals_boxed(ctx.rte, id)
+
+    if value is absent:
+        return sem_raise_with_message(ctx, class_UnboundLocalError, "local variable '" + id + "' referenced before assignment")
+    return cont_obj(ctx, value)
+
+
+def sem_var_get_closure(ctx, pos):
+    func = rte_current_func(ctx)
+    value = OM_get_function_closure(func)[pos][0]
+
+    if value is absent:
+        # TODO: recover closure variable name
+        return sem_raise_with_message(ctx, class_UnboundLocalError, "local variable referenced before assignment")
+    else:
+        return cont_obj(ctx, value)
+
+def sem_var_get_global(ctx, id):
     def catch_AttributeError(rte, exn):
         if om_isinstance(exn, class_AttributeError):
             error_msg = "name '" + id + "' is not defined"
@@ -6478,12 +6568,13 @@ def sem_var_get(ctx, id):
         else:
             return sem_raise(Context(rte, ctx.cont, ctx.ast), exn)
 
-    result = rte_lookup(ctx.rte, id)
-    if result is absent:
-        env_builtins = rte_lookup(ctx.rte, '__builtins__')
+    value = rte_lookup_globals(ctx.rte, id)
+
+    if value is absent:
+        env_builtins = rte_lookup_globals(ctx.rte, '__builtins__')
         return sem_getattribute(with_catch(ctx, catch_AttributeError), [env_builtins, om_str(id)])
     else:
-        return ctx.cont(ctx.rte, result)
+        return cont_obj(ctx, value)
 
 def sem_var_del(ctx, id):
     result = rte_unset(ctx.rte, id)
