@@ -373,29 +373,12 @@ def rte_lookup_locals_boxed(rte, name):
     result = dict_get(env, name, absent)[0] # should always recover a value, it may be absent
     return result
 
-def rte_lookup(rte, name):
-    env = rte_locals(rte)
-    if env is absent:
-        return rte_lookup_globals(rte, name)
-    else:
-        result = dict_get(env, name, absent)
-        if result is absent:
-            return rte_lookup_globals(rte, name)
-        else:
-            return result
-
 # XXX: does not yet support undo.
 def rte_set(rte, varname, val):
     env = rte_locals(rte)
     if env is absent:
         env = rte_globals(rte)
     dict_set(env, varname, val)
-
-def rte_unset(rte, varname):
-    env = rte_locals(rte)
-    if env is absent:
-        env = rte_globals(rte)
-    return env.pop(varname, absent)
 
 # stack operation
 def unwindReturn(rte, val):
@@ -4229,13 +4212,13 @@ def om_input_code(rte, cont):
         else:
             return unwindReturn(rte1, om_str(result))
 
-    obj = rte_lookup(rte, 'obj')
+    obj = rte_lookup_local(rte, 'obj')
     ctx = make_out_of_ast_context(rte, return_value)
     return sem_str(ctx, obj)
 
 def gen_int_to_string_conv_code(radix, prefix):
     def conv_code(rte, cont):
-        obj = rte_lookup(rte, 'obj')
+        obj = rte_lookup_local(rte, 'obj')
         obj_cls = OM_get_object_class(obj)
         if om_issubclass(obj_cls, class_int):
             obj_value = OM_get_boxed_value(obj)
@@ -4258,7 +4241,7 @@ om_oct_code = gen_int_to_string_conv_code(8, '0o')
 om_bin_code = gen_int_to_string_conv_code(2, '0b')
 
 def om_chr_code(rte, cont):
-    obj = rte_lookup(rte, "obj")
+    obj = rte_lookup_local(rte, "obj")
     if om_isinstance(obj, class_int):
         obj_value = OM_get_boxed_value(obj)
         if int_gt(obj_value, -1) and int_lt(obj_value,1114112):
@@ -4272,7 +4255,7 @@ def om_chr_code(rte, cont):
         return sem_raise_with_message(ctx, class_TypeError, "an interger is required")
 
 def om_ord_code(rte, cont):
-    obj = rte_lookup(rte, "obj")
+    obj = rte_lookup_local(rte, "obj")
     if om_isinstance(obj, class_str):
         obj_value = OM_get_boxed_value(obj)
         obj_value_len = len(obj_value)
@@ -4287,7 +4270,7 @@ def om_ord_code(rte, cont):
         return sem_raise_with_message(ctx, class_TypeError, "ord() expected string of length 1")
 
 def om_print_code(rte, _):
-    args = rte_lookup(rte, 'args')
+    args = rte_lookup_local(rte, 'args')
     args_seq = OM_get_list_seq(args)
     args_len = len(args_seq)
 
@@ -4317,7 +4300,7 @@ def om_print_code(rte, _):
         return unwindReturn(rte, om_None)
 
 def om_alert_code(rte, _):
-    obj = rte_lookup(rte, "obj")
+    obj = rte_lookup_local(rte, "obj")
     def alert_str(rte, obj_str):
         obj_str_value = OM_get_boxed_value(obj_str)
         runtime_alert(obj_str_value)
@@ -4327,7 +4310,7 @@ def om_alert_code(rte, _):
     return sem_str(ctx, obj)
 
 def om_confirm_code(rte, _):
-    obj = rte_lookup(rte, "obj")
+    obj = rte_lookup_local(rte, "obj")
     def confirm_dialog(rte, obj_str):
         obj_str_value = OM_get_boxed_value(obj_str)
         result = runtime_confirm(obj_str_value)
@@ -4337,7 +4320,7 @@ def om_confirm_code(rte, _):
     return sem_str(ctx, obj)
 
 def om_prompt_code(rte, _):
-    obj = rte_lookup(rte, "obj")
+    obj = rte_lookup_local(rte, "obj")
     def prompt_str(rte, obj_str):
         obj_str_value = OM_get_boxed_value(obj_str)
         result = runtime_prompt(obj_str_value)
@@ -4357,25 +4340,25 @@ def om_repr_code(rte, _):
     def cont(rte, res):
         return unwindReturn(rte, res)
     next_ctx = make_out_of_ast_context(rte, cont)
-    return sem_repr(next_ctx, rte_lookup(rte, 'obj'))
+    return sem_repr(next_ctx, rte_lookup_local(rte, 'obj'))
 
 def om_len_code(rte, _):
     def cont(rte, res):
         return unwindReturn(rte, res)
     next_ctx = make_out_of_ast_context(rte, cont)
-    return sem_len(next_ctx, rte_lookup(rte, 'obj'))
+    return sem_len(next_ctx, rte_lookup_local(rte, 'obj'))
 
 def om_next_code(rte, _):
     def cont(rte, res):
         return unwindReturn(rte, res)
     next_ctx = make_out_of_ast_context(rte, cont)
-    return sem_next(next_ctx, rte_lookup(rte, 'obj'), rte_lookup(rte, 'default'))
+    return sem_next(next_ctx, rte_lookup_local(rte, 'obj'), rte_lookup_local(rte, 'default'))
 
 def om_iter_code(rte, _):
     next_ctx = make_out_of_ast_context(rte, unwindReturn)
 
-    obj = rte_lookup(rte, 'obj')
-    sentinel = rte_lookup(rte, 'sentinel')
+    obj = rte_lookup_local(rte, 'obj')
+    sentinel = rte_lookup_local(rte, 'sentinel')
 
     if sentinel is absent:
         return sem_iter(next_ctx, obj)
@@ -4385,7 +4368,7 @@ def om_iter_code(rte, _):
 def om_abs_code(rte, _):
     next_ctx = make_out_of_ast_context(rte, unwindReturn)
 
-    obj = rte_lookup(rte, 'obj')
+    obj = rte_lookup_local(rte, 'obj')
     return sem_abs(next_ctx, obj)
 
 def do_min_max(name, sem_Comp):
@@ -4393,7 +4376,7 @@ def do_min_max(name, sem_Comp):
     empty_sequence_error_msg = name + "() arg is an empty sequence"
 
     def code(rte, cont):
-        args = rte_lookup(rte, 'args')
+        args = rte_lookup_local(rte, 'args')
         args_elements = OM_get_tuple_seq(args)
         args_len = len(args_elements)
         if args_len == 0:
@@ -4429,8 +4412,8 @@ om_min_code = do_min_max("min", sem_Lt)
 om_max_code = do_min_max("max", sem_Gt)
 
 def om_round_code(rte, cont):
-    number = rte_lookup(rte, 'number')
-    ndigits = rte_lookup(rte, 'ndigits')
+    number = rte_lookup_local(rte, 'number')
+    ndigits = rte_lookup_local(rte, 'ndigits')
 
     # NOTE: sem_Round handles the case where ndigits is 'absent'
     return sem_Round(make_out_of_ast_context(rte, unwindReturn), number, ndigits)
@@ -4438,9 +4421,9 @@ def om_round_code(rte, cont):
 def om_pow_code(rte, _):
     next_ctx = make_out_of_ast_context(rte, unwindReturn)
 
-    obj1 = rte_lookup(rte, 'obj1')
-    obj2 = rte_lookup(rte, 'obj2')
-    obj3 = rte_lookup(rte, 'obj3')
+    obj1 = rte_lookup_local(rte, 'obj1')
+    obj2 = rte_lookup_local(rte, 'obj2')
+    obj3 = rte_lookup_local(rte, 'obj3')
 
     obj1_pow = getattribute_from_obj_mro(obj1, '__pow__')
 
@@ -4456,7 +4439,7 @@ def om_pow_code(rte, _):
 def init_module_math():
 
     def math_sqrt_code(rte, cont):
-        val = rte_lookup(rte, 'obj')
+        val = rte_lookup_local(rte, 'obj')
         obj_class = OM_get_object_class(val)
         unboxed_val = OM_get_boxed_value(val)
 
@@ -4478,7 +4461,7 @@ def init_module_math():
             return sem_raise(ctx, class_TypeError)
 
     def math_floor_code(rte, cont):
-        val = rte_lookup(rte, 'obj')
+        val = rte_lookup_local(rte, 'obj')
         obj_class = OM_get_object_class(val)
         unboxed_val = OM_get_boxed_value(val)
 
@@ -4493,7 +4476,7 @@ def init_module_math():
             return sem_raise(ctx, class_TypeError)
 
     def math_ceil_code(rte, cont):
-        val = rte_lookup(rte, 'obj')
+        val = rte_lookup_local(rte, 'obj')
         obj_class = OM_get_object_class(val)
         unboxed_val = OM_get_boxed_value(val)
 
@@ -4509,11 +4492,11 @@ def init_module_math():
 
     def math_pow_code(rte, cont):
 
-        val1 = rte_lookup(rte, 'obj1')
+        val1 = rte_lookup_local(rte, 'obj1')
         obj1_class = OM_get_object_class(val1)
         unboxed_val1 = OM_get_boxed_value(val1)
 
-        val2 = rte_lookup(rte, 'obj2')
+        val2 = rte_lookup_local(rte, 'obj2')
         obj2_class = OM_get_object_class(val2)
         unboxed_val2 = OM_get_boxed_value(val2)
 
@@ -4534,7 +4517,7 @@ def init_module_math():
 
 
     def math_exp_code(rte, cont):
-        val = rte_lookup(rte, 'obj')
+        val = rte_lookup_local(rte, 'obj')
         obj_class = OM_get_object_class(val)
         unboxed_val = OM_get_boxed_value(val)
 
@@ -4550,7 +4533,7 @@ def init_module_math():
             return sem_raise(ctx, class_TypeError)
 
     def math_log_code(rte, cont):
-        val = rte_lookup(rte, 'obj')
+        val = rte_lookup_local(rte, 'obj')
         obj_class = OM_get_object_class(val)
         unboxed_val = OM_get_boxed_value(val)
 
@@ -4569,7 +4552,7 @@ def init_module_math():
             return sem_raise(ctx, class_TypeError)
 
     def math_sin_code(rte, cont):
-        val = rte_lookup(rte, 'obj')
+        val = rte_lookup_local(rte, 'obj')
         obj_class = OM_get_object_class(val)
         unboxed_val = OM_get_boxed_value(val)
 
@@ -4583,7 +4566,7 @@ def init_module_math():
             return sem_raise(ctx, class_TypeError)
 
     def math_cos_code(rte, cont):
-        val = rte_lookup(rte, 'obj')
+        val = rte_lookup_local(rte, 'obj')
         obj_class = OM_get_object_class(val)
         unboxed_val = OM_get_boxed_value(val)
 
@@ -4597,7 +4580,7 @@ def init_module_math():
             return sem_raise(ctx, class_TypeError)
 
     def math_tan_code(rte, cont):
-        val = rte_lookup(rte, 'obj')
+        val = rte_lookup_local(rte, 'obj')
         obj_class = OM_get_object_class(val)
         unboxed_val = OM_get_boxed_value(val)
 
@@ -4611,7 +4594,7 @@ def init_module_math():
             return sem_raise(ctx, class_TypeError)
 
     def math_asin_code(rte, cont):
-        val = rte_lookup(rte, 'obj')
+        val = rte_lookup_local(rte, 'obj')
         obj_class = OM_get_object_class(val)
         unboxed_val = OM_get_boxed_value(val)
 
@@ -4625,7 +4608,7 @@ def init_module_math():
             return sem_raise(ctx, class_TypeError)
 
     def math_acos_code(rte, cont):
-        val = rte_lookup(rte, 'obj')
+        val = rte_lookup_local(rte, 'obj')
         obj_class = OM_get_object_class(val)
         unboxed_val = OM_get_boxed_value(val)
 
@@ -4639,7 +4622,7 @@ def init_module_math():
             return sem_raise(ctx, class_TypeError)
 
     def math_atan_code(rte, cont):
-        val = rte_lookup(rte, 'obj')
+        val = rte_lookup_local(rte, 'obj')
         obj_class = OM_get_object_class(val)
         unboxed_val = OM_get_boxed_value(val)
 
@@ -6577,11 +6560,7 @@ def sem_var_get_global(ctx, id):
         return cont_obj(ctx, value)
 
 def sem_var_del(ctx, id):
-    result = rte_unset(ctx.rte, id)
-    if result is absent:
-        return sem_raise_with_message(ctx, class_NameError, id)
-    else:
-        return ctx.cont(ctx.rte)
+    return sem_raise(ctx, class_NotImplementedError)
 
 def sem_bool(ctx, val):
     __val_bool__ = getattribute_from_obj_mro(val, '__bool__')
