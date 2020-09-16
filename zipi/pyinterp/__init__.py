@@ -5084,16 +5084,16 @@ def init_locals_env_from_args(locals_env, current_fn):
 
 def compute_variables_scope(cte, ast, locals_env, locals_ref, stack):
     # Intermediate function which computes a function variables' scope, then recursively computes it for nested functions
-    function_defs = []
 
-    args = (locals_env, locals_ref, stack, function_defs, ast)
-
-    init_locals_env_from_args(locals_env, ast)
-
-    # init function variables counters
+    # init function variables counters and env
     set_ast_property(ast, 'n_freevars', 0)
     set_ast_property(ast, 'n_vars', 0)
     set_ast_property(ast, 'locals_env', locals_env)
+
+    function_defs = []
+    args = (locals_env, locals_ref, stack, function_defs, ast)
+
+    init_locals_env_from_args(locals_env, ast)
 
     for stmt in ast.body:
 
