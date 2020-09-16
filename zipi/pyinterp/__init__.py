@@ -5367,7 +5367,7 @@ def comp_stmt(cte, ast):
         # TODO: support else block
         if debug: print('AST.For')
         for_cte = CTCtrl_controlContext(cte, ast)
-        return gen_for(for_cte, ast, ast.target, ast.iter, ast.body)
+        return gen_for(for_cte, ast, ast.target, ast.iter, ast.body, ast.orelse)
 
     elif isinstance(ast, AST.Raise):
         if debug: print('AST.Raise')
@@ -5904,18 +5904,21 @@ def gen_delete_seq(cte, ast, targets):
     else:
         return CT_raise_syntax_error_with_msg(cte, ast, "del: multiple targets not yet supported.")
 
-def gen_for(cte, ast, target, iterable_expr, body):
+def gen_for(cte, ast, target, iterable_expr, body, orelse):
 
     iterable_cte, iterable_code = comp_expr(cte, iterable_expr)
     set_cte, set_code = gen_var_set(iterable_cte, target, target.id)
     body_cte, body_code = comp_stmt_seq(set_cte, body)
+    orelse_cte, orelse_code = comp_stmt_seq(body_cte, orelse)
 
     def get_iterable(get_iterable_rte, cont):
         def get_iterator(get_iterator_rte, iterable):
             def get_next(get_next_rte, iterator):
                 def assign_target(assign_target_rte, nxt_value):
                     if nxt_value is for_loop_end_marker:
-                        stmt_end_cont = do_stmt_end(cont, ast, 0)
+                        def do_else(else_rte):
+                            return orelse_code(else_rte, cont)
+                        stmt_end_cont = do_stmt_end(do_else, ast, 0)
                         return stmt_end_cont(assign_target_rte)
                     else:
                         def run_body(rte):
