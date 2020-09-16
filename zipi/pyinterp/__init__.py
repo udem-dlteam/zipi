@@ -5762,6 +5762,13 @@ def gen_multiple_Assign(cte, ast, targets, value):
     targets_len = len(targets)
     last_target_index = targets_len - 1
 
+    setters = []
+    last_assign_cte = value_cte
+    for targ in targets:
+        name = targ.id
+        last_assign_cte, setter = gen_var_set(last_assign_cte, targ, name)
+        setters.append(setter)
+
     def code(rte, cont):
         def unpack(unpack_rte, iterable):
             def start_assignments(start_assign_rte, seq):
@@ -5772,14 +5779,9 @@ def gen_multiple_Assign(cte, ast, targets, value):
                     while i >= 0:
                         def make_code(i, next_cont):
                             def do_assign(assign_rte):
-                                var_ast = targets[i]
+                                setter_code = setters[i]
                                 val = seq[i]
-                                id = var_ast.id
-
-                                msg = id + " ← " + om_simple_repr(Context(assign_rte, next_cont, ast), val)
-                                cont_stmt_end_with_message = do_stmt_end_with_message(next_cont, var_ast)
-
-                                return sem_var_set(Context(assign_rte, lambda rte: cont_stmt_end_with_message(rte, msg), var_ast), id, val)
+                                return setter_code(assign_rte, next_cont, val)
                             return do_assign
                         next_cont = make_code(i, next_cont)
                         i -= 1
