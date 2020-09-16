@@ -5203,17 +5203,17 @@ def get_scope_variables(rte):
         var_context = OM_get_function_var_context(current_func)
 
         for key in dict_keys(var_context):
-            var = dict_get(var_context, key, None)
-            if is_local_var(var):
-                boxed = get_local_var_is_boxed(var)
+            var_val = dict_get(var_context, key, None)
+            if is_local_var(var_val):
+                boxed = get_local_var_is_boxed(var_val)
                 if boxed:
                     val = dict_get(local_vars, key, None)[0]
                 else:
                     val = dict_get(local_vars, key, None)
                 if val is not absent:
                     dict_set(env, key, val)
-            elif is_closure_var(var):
-                index = get_closure_var_index(var)
+            elif is_closure_var(var_val):
+                index = get_closure_var_index(var_val)
                 val = closure[index][0]
                 if val is not absent:
                     dict_set(env, key, val)
