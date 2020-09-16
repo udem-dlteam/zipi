@@ -258,6 +258,7 @@ class OM_function(OM_box):
     body: the code of the function object
     closure: array of variable closure
     locals: names of local variables
+    var_context: context of all accessible variables in scope
     """
 
 # value is either class or instance
@@ -1261,6 +1262,12 @@ def OM_get_function_closure(o):
 
 def OM_set_function_closure(o, closure):
     o.closure = closure
+
+def OM_get_function_var_context(o):
+    return o.var_context
+
+def OM_set_function_var_context(o, var_context):
+    o.var_context = var_context
 
 # hidden fields in WrapperDescriptor
 def OM_set_WrapperDescriptor_cls(o, cls):
@@ -5180,6 +5187,52 @@ def compute_function_variables_scope(cte, ast, args):
         return True
 
 
+def get_scope_variables(rte):
+    current_func = rte_current_func(rte)
+
+    if current_func is absent:
+        # At top-level
+        return dict_copy(rte_globals(rte))
+    else:
+        local_vars = rte_locals(rte)
+        global_vars = rte_globals(rte)
+        closure = OM_get_function_closure(current_func)
+
+        env = make_dict()
+
+        var_context = OM_get_function_var_context(current_func)
+
+        for key in dict_keys(var_context):
+            var = dict_get(var_context, key, None)
+            if is_local_var(var):
+                boxed = get_local_var_is_boxed(var)
+                if boxed:
+                    val = dict_get(local_vars, key, None)[0]
+                else:
+                    val = dict_get(local_vars, key, None)
+                if val is not absent:
+                    dict_set(env, key, val)
+            elif is_closure_var(var):
+                index = get_closure_var_index(var)
+                val = closure[index][0]
+                if val is not absent:
+                    dict_set(env, key, val)
+            else: # case global
+                val = dict_get(global_vars, key, None)
+                if val is not absent:
+                    dict_set(env, key, val)
+        return env
+
+def get_scope_variables_repr(rte):
+    env = get_scope_variables(rte)
+
+    for key in dict_keys(env):
+        val = dict_get(env, key, None)
+        val_repr = om_simple_repr(Context(rte, None, None), val)
+        dict_set(env, key, val_repr)
+
+    return env
+
 def comp_mod(cte, ast):
 
     if isinstance(ast, AST.Module):
@@ -5749,6 +5802,7 @@ def gen_create_function(cte, ast):
         OM_set_function_arity(func, arity)
         OM_set_function_closure(func, make_closure(rte))
         OM_set_function_locals(func, local_vars)
+        OM_set_function_var_context(func, locals_env)
 
         return cont(rte, func)
 
