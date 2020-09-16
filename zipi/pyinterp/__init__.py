@@ -2780,7 +2780,7 @@ def om_make_function_with_signature(name, code, signature):
     arity = signature_arity(signature)
     OM_set_function_arity(om_fn, arity)
     # setting an empty local env is ok because hand-written builtin have no closure/assignments
-    OM_set_function_locals(om_fn, make_dict())
+    OM_set_function_locals(om_fn, [])
 
     return om_fn
 
@@ -5801,15 +5801,21 @@ def gen_var_get(cte, ast, id):
     if var_token is None or is_global_var(var_token):
         def code(rte, cont):
             return sem_var_get_global(Context(rte, do_expr_end(cont, ast), ast), id)
+
+        return (cte, code)
     elif is_local_var(var_token):
         boxed = get_local_var_is_boxed(var_token)
 
         if boxed:
             def code(rte, cont):
                 return sem_var_get_local_boxed(Context(rte, do_expr_end(cont, ast), ast), id)
+
+            return (cte, code)
         else:
             def code(rte, cont):
                 return sem_var_get_local(Context(rte, do_expr_end(cont, ast), ast), id)
+
+            return (cte, code)
 
     else: # case: closure var
         closure_table = get_cte_closure_table(cte)
@@ -5818,7 +5824,7 @@ def gen_var_get(cte, ast, id):
         def code(rte, cont):
             return sem_var_get_closure(Context(rte, do_expr_end(cont, ast), ast), closure_pos, id)
 
-    return (cte, code)
+        return (cte, code)
 
 def gen_delete(cte, ast, expr):
     if isinstance(expr, AST.Name):

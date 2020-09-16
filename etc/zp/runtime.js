@@ -50,12 +50,10 @@ function py_tokenset() {
 };
 
 function dict_has(d, a) {
-    if (Object.prototype.hasOwnProperty.call(d, a)) {
-        return true;
-    } else {
+    if (d === undefined) {
         return false;
-    }
-};
+    } else return Object.prototype.hasOwnProperty.call(d, a);
+}
 
 function chr(code) {
     return String.fromCodePoint.apply(null, [code]);
@@ -66,7 +64,7 @@ function ord(char){
 }
 
 function hasattr(obj, attr){
-    return obj[attr] !== undefined;
+    return obj !== undefined && obj[attr] !== undefined;
 }
 
 function getattr(obj, attr, default_){
