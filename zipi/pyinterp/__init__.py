@@ -5017,6 +5017,8 @@ def make_closure_var_token(id_, stack, current_fn):
                 tk = [CLOSURE_VAR, fn_n_freevars]
                 dict_set(fn_locals_env, id_, tk)
 
+                j += 1
+
             n_freevars = get_ast_property(current_fn, 'n_freevars', None)  # Should never be None
             set_ast_property(current_fn, 'n_freevars', n_freevars + 1)
             locals_env = get_ast_property(current_fn, 'locals_env', None)
@@ -5687,8 +5689,9 @@ def gen_create_function(cte, ast):
             index = get_closure_var_index(tk)
 
             def getter(rte):
-                closure_cells = dict_get(rte, 'closure', None)
-                return dict_get(closure_cells, name, None)
+                current_func = dict_get(rte, 'current_func', None)
+                closure_cells = OM_get_function_closure(current_func)
+                return closure_cells[index]
             return getter
 
         else:
