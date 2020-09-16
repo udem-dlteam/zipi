@@ -5300,8 +5300,7 @@ def comp_stmt(cte, ast):
 
     elif isinstance(ast, AST.FunctionDef):
         if debug: print('AST.FunctionDef')
-        fn_def_cte, create_function = gen_create_function(cte, ast)
-        return gen_var_set(fn_def_cte, ast, ast.name, create_function)
+        return gen_FunctionDef(cte, ast)
 
     elif isinstance(ast, AST.Delete):
         if debug: print('AST.Delete')
@@ -5417,8 +5416,16 @@ def comp_Assign(cte, ast):
         target = targets[0]
         if isinstance(target, AST.Name):
             id = ast.targets[0].id
-            (cte1, code1) = comp_expr(cte, value)
-            return gen_var_set(cte1, ast, id, code1)
+            expr_cte, expr_code = comp_expr(cte, value)
+            set_cte, set_code = gen_var_set(expr_cte, ast, id)
+
+            def code(rte, cont):
+                def do_set(set_rte, val):
+                    return set_code(set_rte, cont, val)
+                return expr_code(rte, do_set)
+
+            return set_cte, code
+
         elif isinstance(target, AST.Subscript):
             return gen_Subscript_Store(cte, ast, target, value)
         elif isinstance(target, AST.Tuple):
@@ -5621,7 +5628,7 @@ def gen_assert(cte, ast, code1, code2):
 
     return (cte, code)
 
-def gen_var_set(cte, ast, id, val_code):
+def gen_var_set(cte, ast, id):
     var_token = get_cte_locals_env_var(cte, id)
 
     if var_token is None or is_global_var(var_token):
@@ -5638,21 +5645,29 @@ def gen_var_set(cte, ast, id, val_code):
         closure_table = get_cte_closure_table(cte)
         closure_pos = dict_get(closure_table, id, None)
 
-        def code(rte, cont):
-            def var_set(rte, val):
-                msg = id + " ← " + om_simple_repr(Context(rte, None, ast), val)
-                cont_stmt_end_with_message = do_stmt_end_with_message(cont, ast)
-                return sem_var_set_closure(Context(rte, lambda rte: cont_stmt_end_with_message(rte, msg), ast), closure_pos, val)
-            return val_code(rte, var_set)
-        return (cte, code)
-
-    def code(rte, cont):
-        def var_set(rte, val):
+        def code(rte, cont, val):
             msg = id + " ← " + om_simple_repr(Context(rte, None, ast), val)
             cont_stmt_end_with_message = do_stmt_end_with_message(cont, ast)
-            return sem_set(Context(rte, lambda rte: cont_stmt_end_with_message(rte, msg), ast), id, val)
-        return val_code(rte, var_set)
+            return sem_var_set_closure(Context(rte, lambda rte: cont_stmt_end_with_message(rte, msg), ast), closure_pos, val)
+        return (cte, code)
+
+    def code(rte, cont, val):
+        msg = id + " ← " + om_simple_repr(Context(rte, None, ast), val)
+        cont_stmt_end_with_message = do_stmt_end_with_message(cont, ast)
+        return sem_set(Context(rte, lambda rte: cont_stmt_end_with_message(rte, msg), ast), id, val)
     return (cte, code)
+
+
+def gen_FunctionDef(cte, ast):
+    fn_def_cte, create_function = gen_create_function(cte, ast)
+    set_cte, set_fn = gen_var_set(fn_def_cte, ast, ast.name)
+
+    def code(rte, cont):
+        def do_set(set_rte, fn):
+            return set_fn(set_rte, cont, fn)
+        return create_function(rte, do_set)
+
+    return set_cte, code
 
 
 def gen_create_function(cte, ast):
@@ -5825,7 +5840,8 @@ def gen_delete_seq(cte, ast, targets):
 def gen_for(cte, ast, target, iterable_expr, body):
 
     iterable_cte, iterable_code = comp_expr(cte, iterable_expr)
-    body_cte, body_code = comp_stmt_seq(iterable_cte, body)
+    set_cte, set_code = gen_var_set(iterable_cte, target, target.id)
+    body_cte, body_code = comp_stmt_seq(set_cte, body)
 
     def get_iterable(get_iterable_rte, cont):
         def get_iterator(get_iterator_rte, iterable):
@@ -5842,9 +5858,7 @@ def gen_for(cte, ast, target, iterable_expr, body):
                                                      lambda rte1: get_next(rte1, iterator))
                             new_rte = make_rte_from_new_ctrl_env(rte, ctrl_label)
                             return body_code(new_rte, lambda rte: get_next(unwind_rte_ctrl_env(rte), iterator))
-                        msg = target.id + " ← " + om_simple_repr(Context(assign_target_rte, None, target), nxt_value)
-                        cont_stmt_end_with_message = do_stmt_end_with_message(run_body, target)
-                        return sem_var_set(Context(assign_target_rte, lambda rte: cont_stmt_end_with_message(rte, msg), target), target.id, nxt_value)
+                        return set_code(assign_target_rte, run_body, nxt_value)
                 return sem_next(Context(get_next_rte, assign_target, iterable), iterator, for_loop_end_marker)
             return sem_iter(Context(get_iterator_rte, get_next, iterable), iterable)
         return iterable_code(get_iterable_rte, get_iterator)
@@ -6025,17 +6039,18 @@ def gen_aug_assign(cte, ast, target, op, value):
 
     get_cte, get_target = gen_var_get(cte, target, id_)
     val_cte, val_code = comp_expr(get_cte, ast.value)
+    set_cte, set_target = gen_var_set(val_cte, ast, id_)
 
     def code(rte, cont):
         def get_val(get_rte, target_val):
             def do_sem(val_rte, lhs_val):
-                return sem_op(Context(val_rte, cont, ast), target_val, lhs_val)
+                def do_set(set_rte, val):
+                    return set_target(set_rte, cont, val)
+                return sem_op(Context(val_rte, do_set, ast), target_val, lhs_val)
             return val_code(get_rte, do_sem)
         return get_target(rte, get_val)
 
-    set_cte, set_target = gen_var_set(val_cte, ast, id_, code)
-
-    return set_cte, set_target
+    return set_cte, code
 
 
 def gen_BinOp(cte, ast, op, code1, code2):
