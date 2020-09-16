@@ -5218,7 +5218,9 @@ def get_scope_variables(rte):
                 if val is not absent:
                     dict_set(env, key, val)
             else: # case global
-                val = dict_get(global_vars, key, None)
+                val = dict_get(global_vars, key, absent)
+
+                # NOTE: value may be absent because key is a builtin name
                 if val is not absent:
                     dict_set(env, key, val)
         return env
