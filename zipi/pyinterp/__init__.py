@@ -293,7 +293,7 @@ def frame_cont(frame):
 def frame_ast(frame):
     return frame[2]
 
-def make_rte(rte, globals_env, locals_env, current_func, builtins, stack, ctrl_env, vm, trace):
+def make_rte(rte, globals_env, locals_env, current_func, builtins, stack, ctrl_env, vm, options):
     if rte is absent:
         serial_counter = [0]
     else:
@@ -309,7 +309,7 @@ def make_rte(rte, globals_env, locals_env, current_func, builtins, stack, ctrl_e
     dict_set(rte, "stack", stack)
     dict_set(rte, "ctrl_env", ctrl_env)
     dict_set(rte, "vm", vm)
-    dict_set(rte, "trace", trace)
+    dict_set(rte, "options", options)
 
     return rte
 
@@ -322,7 +322,7 @@ def make_rte_from_new_ctrl_env(rte, ctrl_env):
                     rte_stack(rte),
                     ctrl_env,
                     rte_vm(rte),
-                    rte_trace(rte))
+                    rte_options(rte))
 
 def unwind_rte_ctrl_env(rte):
     next_ctrl_env = rte_ctrl_env(rte).ctrl_next
@@ -358,8 +358,22 @@ def rte_ctrl_env(rte):
 def rte_vm(rte):
     return dict_get(rte, 'vm', absent)
 
+def rte_safe_for_space(rte):
+    opt = rte_options(rte)
+    if opt is None:
+        return True
+    else:
+        return dict_get(opt, 'safe_for_space', True)
+
 def rte_trace(rte):
-    return dict_get(rte, 'trace', True)
+    opt = rte_options(rte)
+    if opt is None:
+        return True
+    else:
+        return dict_get(opt, 'trace', True)
+
+def rte_options(rte):
+    return dict_get(rte, 'options', None)
 
 # Return variable value or absent.
 def rte_lookup_globals(rte, name):
@@ -2815,7 +2829,7 @@ def om_function_call(ctx, args):
                 dict_set(call_locals_env, name, value)
 
 
-        rte = make_rte(ctx.rte, rte_globals(ctx.rte), call_locals_env, self, rte_builtins(ctx.rte), stack, rte_ctrl_env(ctx.rte), rte_vm(ctx.rte), rte_trace(ctx.rte))
+        rte = make_rte(ctx.rte, rte_globals(ctx.rte), call_locals_env, self, rte_builtins(ctx.rte), stack, rte_ctrl_env(ctx.rte), rte_vm(ctx.rte), rte_options(ctx.rte))
         body = OM_get_function_body(self)
         return body(rte,
                     lambda rte1:
@@ -4763,9 +4777,7 @@ def fresh_rte(options):
     globals_env = make_dict()
     builtins_env = make_dict()
 
-    trace = dict_get(options, 'trace', False)
-
-    rte = make_rte(absent, globals_env, locals_env, absent, builtins_env, absent, absent, absent, trace)
+    rte = make_rte(absent, globals_env, locals_env, absent, builtins_env, absent, absent, absent, options)
 
     om_builtin_print = om_make_function_with_signature('print', om_print_code, make_vararg_only_signature('args'))
     om_builtin_input = om_make_function_with_signature('input', om_input_code, make_posonly_defaults_signature(('obj',), (om_str(''),)))
