@@ -5143,6 +5143,12 @@ def compute_function_variables_scope(cte, ast, args):
     if isinstance(ast, AST.FunctionDef):
         # FunctionDef are treated recursively after the current scope has been analysed
         function_defs.append(ast)
+
+        id_ = ast.name
+
+        if not dict_has(locals_env, id_):
+            make_local_var_token(id_, current_fn)
+
         return False
 
     elif isinstance(ast, AST.Name):
