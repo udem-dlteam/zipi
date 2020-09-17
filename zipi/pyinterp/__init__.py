@@ -101,6 +101,9 @@ def get_cte_locals_env_var(cte, name):
     le = get_cte_locals_env(cte)
     return dict_get(le, name, None)
 
+def get_cte_safe_for_space(cte):
+    return dict_get(cte.external_context, 'safe_for_space', True)
+
 # NOTE: inspired from codeboot JS
 def CTCtrl_controlContext(cte, ast):
     ctrl_env = cte.ctrl_env
@@ -259,6 +262,7 @@ class OM_function(OM_box):
     closure: array of variable closure
     locals: names of local variables
     var_context: context of all accessible variables in scope
+    parent_lexical_scope: in non safe_for_space mode, stores the parent scope
     """
 
 # value is either class or instance
@@ -1282,6 +1286,12 @@ def OM_get_function_var_context(o):
 
 def OM_set_function_var_context(o, var_context):
     o.var_context = var_context
+
+def OM_get_function_lexical_scope(o):
+    return o.lexical_scope
+
+def OM_set_function_lexical_scope(o, lexical_scope):
+    o.lexical_scope = lexical_scope
 
 # hidden fields in WrapperDescriptor
 def OM_set_WrapperDescriptor_cls(o, cls):
@@ -4752,7 +4762,10 @@ def parse(source, filename, mode, context):
 
 def interp(ast, options):
     # TODO: move outside of this function
+    safe_for_space = dict_get(options, 'safe_for_space', True)
+
     external_context = make_dict()
+    dict_set(external_context, 'safe_for_space', safe_for_space)
 
     code = comp(ast, external_context)
     trampoline(prepare_execution(code, fresh_rte(options)))
@@ -4974,13 +4987,15 @@ LOCAL_VAR = ["LOCAL_VAR"]
 CLOSURE_VAR = ["CLOSURE_VAR"]
 GLOBAL_VAR = ["GLOBAL_VAR"]
 
-def make_local_var_token(name, current_fn):
+def make_local_var_token(cte, name, current_fn):
     # Second element indicates if the variable needs to be boxed for a closure
     n_vars = get_ast_property(current_fn, 'n_vars', None)
     set_ast_property(current_fn, 'n_vars', n_vars + 1)
 
     locals_env = get_ast_property(current_fn, 'locals_env', None)
-    tk = [LOCAL_VAR, False, n_vars]
+
+    # If safe_for_space is False, then box all variables by default
+    tk = [LOCAL_VAR, not get_cte_safe_for_space(cte), n_vars]
 
     dict_set(locals_env, name, tk)
     return tk
@@ -5083,23 +5098,23 @@ def init_compute_variables_scope(cte, ast):
 
     return walk_with_abort(cte, ast, walk_fn, raise_walk_syntax_error, ())
 
-def init_locals_env_from_args(locals_env, current_fn):
+def init_locals_env_from_args(cte, locals_env, current_fn):
     # Populate a function local cte with its arguments
     args = current_fn.args
     args_group = [args.args, args.posonlyargs, args.kwonlyargs]
     for group in args_group:
         for arg in group:
             name = arg.arg
-            make_local_var_token(name, current_fn)
+            make_local_var_token(cte, name, current_fn)
 
     vararg = args.vararg
     kwarg = args.kwarg
 
     if vararg:
-        make_local_var_token(vararg.arg, current_fn)
+        make_local_var_token(cte, vararg.arg, current_fn)
 
     if kwarg:
-        make_local_var_token(kwarg.arg, current_fn)
+        make_local_var_token(cte, kwarg.arg, current_fn)
 
     return locals_env
 
@@ -5114,7 +5129,7 @@ def compute_variables_scope(cte, ast, locals_env, locals_ref, stack):
     function_defs = []
     args = (locals_env, locals_ref, stack, function_defs, ast)
 
-    init_locals_env_from_args(locals_env, ast)
+    init_locals_env_from_args(cte, locals_env, ast)
 
     for stmt in ast.body:
 
@@ -5159,7 +5174,7 @@ def compute_function_variables_scope(cte, ast, args):
         id_ = ast.name
 
         if not dict_has(locals_env, id_):
-            make_local_var_token(id_, current_fn)
+            make_local_var_token(cte, id_, current_fn)
 
         return False
 
@@ -5170,7 +5185,7 @@ def compute_function_variables_scope(cte, ast, args):
         if isinstance(ctx, AST.Store):
             # If the variable is in locals_env, its scope is already known, this is a reassignment, else we mark it as local
             if not dict_has(locals_env, id_):
-                make_local_var_token(id_, current_fn)
+                make_local_var_token(cte, id_, current_fn)
         elif isinstance(ctx, AST.Load):
             # If the variable is in locals_env, its scope is already known
             # Else, we cannot determine its scope yet because there could be an assignation later
@@ -5207,8 +5222,21 @@ def compute_function_variables_scope(cte, ast, args):
 
 def get_scope_variables(rte):
     current_func = rte_current_func(rte)
+    safe_for_space = rte_safe_for_space(rte)
 
-    if current_func is absent:
+    if not safe_for_space:
+        # In non-safe-for-space mode, each function has access to its whole lexical scope, we return it
+        lexical_scope = OM_get_function_lexical_scope(current_func)
+
+        env = dict_copy(rte_globals(rte))
+
+        for name in dict_keys(lexical_scope):
+            val = dict_get(lexical_scope, name, None)[0] # All variables are boxed in non-safe-for-space mode
+            dict_set(env, name, val)
+
+        return env
+
+    elif current_func is absent:
         # At top-level
         return dict_copy(rte_globals(rte))
     else:
@@ -5812,21 +5840,60 @@ def gen_create_function(cte, ast):
     # TODO: Once default arguments are implemented this will need to be partially at runtime
     signature = gen_signature(cte, ast)
 
-    def create_function(rte, cont):
-        func = om(class_function)
-        OM_set(func, '__name__', fn_name)
+    safe_for_space = get_cte_safe_for_space(cte)
 
-        OM_set_function_signature(func, signature)
-        OM_set_function_body(func, body_code)
-        arity = signature_arity(signature)
-        OM_set_function_arity(func, arity)
-        OM_set_function_closure(func, make_closure(rte))
-        OM_set_function_locals(func, local_vars)
-        OM_set_function_var_context(func, locals_env)
+    if safe_for_space:
+        def create_function(rte, cont):
+            func = om(class_function)
+            OM_set(func, '__name__', fn_name)
 
-        return cont(rte, func)
+            OM_set_function_signature(func, signature)
+            OM_set_function_body(func, body_code)
+            arity = signature_arity(signature)
+            OM_set_function_arity(func, arity)
+            OM_set_function_closure(func, make_closure(rte))
+            OM_set_function_locals(func, local_vars)
+            OM_set_function_var_context(func, locals_env)
 
-    return cte, create_function
+            return cont(rte, func)
+
+        return cte, create_function
+
+    else:
+        # In non safe-for-space mode, a function saves the whole lexical scope in which it was defined
+        def create_function(rte, cont):
+            func = om(class_function)
+            OM_set(func, '__name__', fn_name)
+
+            OM_set_function_signature(func, signature)
+            OM_set_function_body(func, body_code)
+            arity = signature_arity(signature)
+            OM_set_function_arity(func, arity)
+            OM_set_function_closure(func, make_closure(rte))
+            OM_set_function_locals(func, local_vars)
+            OM_set_function_var_context(func, locals_env)
+
+            current_func = rte_current_func(rte)
+
+            if current_func is absent:
+                # top-level definition
+                lexical_scope = make_dict()
+            else:
+                lexical_scope = dict_copy(OM_get_function_lexical_scope(current_func))
+
+                # Add local variables
+                locals_ = rte_locals(rte)
+                for name in dict_keys(locals_):
+                    val = dict_get(locals_, name, None)
+                    # in non-safe-for-space mode, all variables should be boxed
+                    dict_set(lexical_scope, name, val)
+
+            OM_set_function_lexical_scope(func, lexical_scope)
+
+            return cont(rte, func)
+
+
+        return cte, create_function
 
 
 def gen_multiple_Assign(cte, ast, targets, value):
