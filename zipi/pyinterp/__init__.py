@@ -5226,15 +5226,24 @@ def get_scope_variables(rte):
 
     if not safe_for_space:
         # In non-safe-for-space mode, each function has access to its whole lexical scope, we return it
-        lexical_scope = OM_get_function_lexical_scope(current_func)
+        if current_func is absent:
+            return dict_copy(rte_globals(rte))
+        else:
+            lexical_scope = OM_get_function_lexical_scope(current_func)
 
-        env = dict_copy(rte_globals(rte))
+            env = dict_copy(rte_globals(rte))
 
-        for name in dict_keys(lexical_scope):
-            val = dict_get(lexical_scope, name, None)[0] # All variables are boxed in non-safe-for-space mode
-            dict_set(env, name, val)
+            for name in dict_keys(lexical_scope):
+                val = dict_get(lexical_scope, name, None)[0] # All variables are boxed in non-safe-for-space mode
+                dict_set(env, name, val)
 
-        return env
+            locals_ = rte_locals(rte)
+
+            for name in dict_keys(locals_):
+                val = dict_get(locals_, name, None)[0] # All variables are boxed in non-safe-for-space mode
+                dict_set(env, name, val)
+
+            return env
 
     elif current_func is absent:
         # At top-level
