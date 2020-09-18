@@ -32,6 +32,18 @@ function dict_set(d, key, value) {
     d[key] = value;
 };
 
+function dict_keys(d){
+    return Object.keys(d);
+}
+
+function dict_copy(d){
+    return Object.assign(make_dict(), d);
+}
+
+function dict_items(d){
+    return Object.entries(d);
+}
+
 function gui_wait_for_click(ast, msg, continue_execution) {
     console.log('at ' + ast.lineno + '.' + (ast.col_offset + 1) + '-' + ast.end_lineno + '.' + (ast.end_col_offset + 1) + msg);
     return continue_execution;
@@ -42,12 +54,10 @@ function py_tokenset() {
 };
 
 function dict_has(d, a) {
-    if (Object.prototype.hasOwnProperty.call(d, a)) {
-        return true;
-    } else {
+    if (d === undefined) {
         return false;
-    }
-};
+    } else return Object.prototype.hasOwnProperty.call(d, a);
+}
 
 function chr(code) {
     return String.fromCodePoint.apply(null, [code]);
@@ -58,7 +68,7 @@ function ord(char){
 }
 
 function hasattr(obj, attr){
-    return obj[attr] !== undefined;
+    return obj !== undefined && obj[attr] !== undefined;
 }
 
 function getattr(obj, attr, default_){
@@ -84,6 +94,10 @@ function list_new(size, default_){
 
 function list_concat(lst1, lst2){
     return lst1.concat(lst2);
+}
+
+function list_reversed(lst){
+    return lst.slice().reverse();
 }
 
 function string_mul(s, times){

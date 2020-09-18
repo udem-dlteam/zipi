@@ -25,6 +25,18 @@ def dict_set(d, key, value):
 def dict_has(d, key):
     return key in d.keys()
 
+def dict_keys(d):
+    return list(d.keys())
+
+def dict_items(d):
+    return list(d.items())
+
+def dict_copy(d):
+    return d.copy()
+
+def dict_item(d):
+    return list(d.items())
+
 
 ###
 # Int operations
@@ -444,6 +456,9 @@ def list_concat(l1, l2):
         new_lst.append(y)
 
     return new_lst
+
+def list_reversed(l):
+    return l[::-1]
 
 
 ###

@@ -82,13 +82,27 @@ class RTCtrlFinally:
 #         self.ctrl_env = ctrl_env
 
 class CTE:
-    def __init__(self, callee, locals_env, lex_env, ctrl_env, external_context, parent):
+    def __init__(self, callee, locals_env, closure_table, lex_env, ctrl_env, external_context, parent):
         self.callee = callee
         self.locals_env = locals_env
+        self.closure_table = closure_table
         self.lex_env = lex_env
         self.ctrl_env = ctrl_env
         self.external_context = external_context
         self.parent = parent
+
+def get_cte_locals_env(cte):
+    return cte.locals_env
+
+def get_cte_closure_table(cte):
+    return cte.closure_table
+
+def get_cte_locals_env_var(cte, name):
+    le = get_cte_locals_env(cte)
+    return dict_get(le, name, None)
+
+def get_cte_safe_for_space(cte):
+    return dict_get(cte.external_context, 'safe_for_space', True)
 
 # NOTE: inspired from codeboot JS
 def CTCtrl_controlContext(cte, ast):
@@ -98,6 +112,7 @@ def CTCtrl_controlContext(cte, ast):
         ctrl_env = CTCtrlLabel(ctrl_env, ids, ast)
         cte = CTE(cte.callee,
                   cte.locals_env,
+                  cte.closure_table,
                   cte.lex_env,
                   ctrl_env,
                   cte.external_context,
@@ -135,6 +150,9 @@ def CT_raise_syntax_error_with_msg(cte, ast, msg):
     return CT_raise_with_msg(cte, ast, "SyntaxError", msg)
 
 # continuation call helper
+def cont_no_val(ctx):
+    return ctx.cont(ctx.rte)
+
 def cont_obj(ctx, val):
     return ctx.cont(ctx.rte, val)
 
@@ -245,6 +263,10 @@ class OM_function(OM_box):
     arity: the arity of the function object
     signature: the signature of the function object
     body: the code of the function object
+    closure: array of variable closure
+    locals: names of local variables
+    var_context: context of all accessible variables in scope
+    parent_lexical_scope: in non safe_for_space mode, stores the parent scope
     """
 
 # value is either class or instance
@@ -279,7 +301,7 @@ def frame_cont(frame):
 def frame_ast(frame):
     return frame[2]
 
-def make_rte(rte, globals_env, locals_env, builtins, stack, ctrl_env, vm, trace):
+def make_rte(rte, globals_env, locals_env, current_func, builtins, stack, ctrl_env, vm, options):
     if rte is absent:
         serial_counter = [0]
     else:
@@ -290,11 +312,12 @@ def make_rte(rte, globals_env, locals_env, builtins, stack, ctrl_env, vm, trace)
     dict_set(rte, "serial_counter", serial_counter)
     dict_set(rte, "globals", globals_env)
     dict_set(rte, "locals", locals_env)
+    dict_set(rte, 'current_func', current_func)
     dict_set(rte, "builtins", builtins)
     dict_set(rte, "stack", stack)
     dict_set(rte, "ctrl_env", ctrl_env)
     dict_set(rte, "vm", vm)
-    dict_set(rte, "trace", trace)
+    dict_set(rte, "options", options)
 
     return rte
 
@@ -302,11 +325,12 @@ def make_rte_from_new_ctrl_env(rte, ctrl_env):
     return make_rte(rte,
                     rte_globals(rte),
                     rte_locals(rte),
+                    rte_current_func(rte),
                     rte_builtins(rte),
                     rte_stack(rte),
                     ctrl_env,
                     rte_vm(rte),
-                    rte_trace(rte))
+                    rte_options(rte))
 
 def unwind_rte_ctrl_env(rte):
     next_ctrl_env = rte_ctrl_env(rte).ctrl_next
@@ -327,6 +351,9 @@ def rte_globals(rte):
 def rte_locals(rte):
     return dict_get(rte, 'locals', absent)
 
+def rte_current_func(rte):
+    return dict_get(rte, 'current_func', absent)
+
 def rte_builtins(rte):
     return dict_get(rte, 'builtins', absent)
 
@@ -339,8 +366,22 @@ def rte_ctrl_env(rte):
 def rte_vm(rte):
     return dict_get(rte, 'vm', absent)
 
+def rte_safe_for_space(rte):
+    opt = rte_options(rte)
+    if opt is None:
+        return True
+    else:
+        return dict_get(opt, 'safe_for_space', True)
+
 def rte_trace(rte):
-    return dict_get(rte, 'trace', True)
+    opt = rte_options(rte)
+    if opt is None:
+        return True
+    else:
+        return dict_get(opt, 'trace', True)
+
+def rte_options(rte):
+    return dict_get(rte, 'options', None)
 
 # Return variable value or absent.
 def rte_lookup_globals(rte, name):
@@ -348,29 +389,40 @@ def rte_lookup_globals(rte, name):
     result = dict_get(env, name, absent)
     return result
 
-def rte_lookup(rte, name):
+def rte_lookup_locals(rte, name):
     env = rte_locals(rte)
-    if env is absent:
-        return rte_lookup_globals(rte, name)
-    else:
-        result = dict_get(env, name, absent)
-        if result is absent:
-            return rte_lookup_globals(rte, name)
-        else:
-            return result
+    result = dict_get(env, name, absent) # should always recover a value, it may be absent
+    return result
 
-# XXX: does not yet support undo.
-def rte_set(rte, varname, val):
+def rte_lookup_locals_boxed(rte, name):
     env = rte_locals(rte)
-    if env is absent:
-        env = rte_globals(rte)
+    result = dict_get(env, name, absent)[0] # should always recover a value, it may be absent
+    return result
+
+def rte_lookup_closure(rte, pos):
+    func = rte_current_func(rte)
+    value = OM_get_function_closure(func)[pos][0]
+
+    return value
+
+def rte_set_locals(rte, varname, val):
+    env = rte_locals(rte)
     dict_set(env, varname, val)
 
-def rte_unset(rte, varname):
+def rte_set_locals_boxed(rte, varname, val):
     env = rte_locals(rte)
-    if env is absent:
-        env = rte_globals(rte)
-    return env.pop(varname, absent)
+    slot = dict_get(env, varname, None) # Return None to cause crash of the varname is not present
+    slot[0] = val
+
+def rte_set_globals(rte, varname, val):
+    env = rte_globals(rte)
+    dict_set(env, varname, val)
+
+def rte_set_closure(rte, pos, val):
+    func = rte_current_func(rte)
+    slot = OM_get_function_closure(func)[pos]
+    slot[0] = val
+
 
 # stack operation
 def unwindReturn(rte, val):
@@ -1267,6 +1319,30 @@ def OM_set_function_body(o, body):
 def OM_get_function_body(o):
     return o.body
 
+def OM_get_function_locals(o):
+    return o.locals
+
+def OM_set_function_locals(o, locals):
+    o.locals = locals
+
+def OM_get_function_closure(o):
+    return o.closure
+
+def OM_set_function_closure(o, closure):
+    o.closure = closure
+
+def OM_get_function_var_context(o):
+    return o.var_context
+
+def OM_set_function_var_context(o, var_context):
+    o.var_context = var_context
+
+def OM_get_function_lexical_scope(o):
+    return o.lexical_scope
+
+def OM_set_function_lexical_scope(o, lexical_scope):
+    o.lexical_scope = lexical_scope
+
 # hidden fields in WrapperDescriptor
 def OM_set_WrapperDescriptor_cls(o, cls):
     o.cls = cls
@@ -1473,6 +1549,7 @@ class_slice = make_builtin_class('slice', OM_slice_create, (), class_type)
 class_BaseException = make_builtin_class('BaseException', OM_BaseException_create, (), class_type)
 class_Exception = make_builtin_class('Exception', OM_BaseException_create, (class_BaseException,), class_type)
 class_NameError = make_builtin_class('NameError', OM_BaseException_create, (class_Exception,), class_type)
+class_UnboundLocalError = make_builtin_class('UnboundLocalError:', OM_BaseException_create, (class_Exception,), class_type)
 class_SyntaxError = make_builtin_class('SyntaxError', OM_BaseException_create, (class_Exception,),  class_type)
 class_TypeError = make_builtin_class('TypeError', OM_BaseException_create, (class_Exception,), class_type)
 class_ValueError = make_builtin_class('ValueError', OM_BaseException_create, (class_Exception,), class_type)
@@ -2823,6 +2900,8 @@ def om_make_function_with_signature(name, code, signature):
     OM_set_function_body(om_fn, code)
     arity = signature_arity(signature)
     OM_set_function_arity(om_fn, arity)
+    # setting an empty local env is ok because hand-written builtin have no closure/assignments
+    OM_set_function_locals(om_fn, [])
 
     return om_fn
 
@@ -2835,7 +2914,22 @@ def om_function_call(ctx, args):
     ## test arity
     def execute_body(rte, locals_env):
         stack = make_frame(rte, ctx.cont, ctx.ast)
-        rte = make_rte(ctx.rte, rte_globals(ctx.rte), make_dict_from_list(locals_env), rte_builtins(ctx.rte), stack, rte_ctrl_env(ctx.rte), rte_vm(ctx.rte), rte_trace(ctx.rte))
+
+        call_locals_env = make_dict_from_list(locals_env)
+
+        for item in OM_get_function_locals(self):
+            name = item[0]
+            must_box = item[1]
+
+            value = dict_get(call_locals_env, name, absent)
+
+            if must_box:
+                dict_set(call_locals_env, name, [value])
+            else:
+                dict_set(call_locals_env, name, value)
+
+
+        rte = make_rte(ctx.rte, rte_globals(ctx.rte), call_locals_env, self, rte_builtins(ctx.rte), stack, rte_ctrl_env(ctx.rte), rte_vm(ctx.rte), rte_options(ctx.rte))
         body = OM_get_function_body(self)
         return body(rte,
                     lambda rte1:
@@ -4269,13 +4363,13 @@ def om_input_code(rte, cont):
         else:
             return unwindReturn(rte1, om_str(result))
 
-    obj = rte_lookup(rte, 'obj')
+    obj = rte_lookup_locals(rte, 'obj')
     ctx = make_out_of_ast_context(rte, return_value)
     return sem_str(ctx, obj)
 
 def gen_int_to_string_conv_code(radix, prefix):
     def conv_code(rte, cont):
-        obj = rte_lookup(rte, 'obj')
+        obj = rte_lookup_locals(rte, 'obj')
         obj_cls = OM_get_object_class(obj)
         if om_issubclass(obj_cls, class_int):
             obj_value = OM_get_boxed_value(obj)
@@ -4298,7 +4392,7 @@ om_oct_code = gen_int_to_string_conv_code(8, '0o')
 om_bin_code = gen_int_to_string_conv_code(2, '0b')
 
 def om_chr_code(rte, cont):
-    obj = rte_lookup(rte, "obj")
+    obj = rte_lookup_locals(rte, "obj")
     if om_isinstance(obj, class_int):
         obj_value = OM_get_boxed_value(obj)
         if int_gt(obj_value, -1) and int_lt(obj_value,1114112):
@@ -4312,7 +4406,7 @@ def om_chr_code(rte, cont):
         return sem_raise_with_message(ctx, class_TypeError, "an interger is required")
 
 def om_ord_code(rte, cont):
-    obj = rte_lookup(rte, "obj")
+    obj = rte_lookup_locals(rte, "obj")
     if om_isinstance(obj, class_str):
         obj_value = OM_get_boxed_value(obj)
         obj_value_len = len(obj_value)
@@ -4327,7 +4421,7 @@ def om_ord_code(rte, cont):
         return sem_raise_with_message(ctx, class_TypeError, "ord() expected string of length 1")
 
 def om_print_code(rte, _):
-    args = rte_lookup(rte, 'args')
+    args = rte_lookup_locals(rte, 'args')
     args_seq = OM_get_list_seq(args)
     args_len = len(args_seq)
 
@@ -4357,7 +4451,7 @@ def om_print_code(rte, _):
         return unwindReturn(rte, om_None)
 
 def om_alert_code(rte, _):
-    obj = rte_lookup(rte, "obj")
+    obj = rte_lookup_locals(rte, "obj")
     def alert_str(rte, obj_str):
         obj_str_value = OM_get_boxed_value(obj_str)
         runtime_alert(obj_str_value)
@@ -4367,7 +4461,7 @@ def om_alert_code(rte, _):
     return sem_str(ctx, obj)
 
 def om_confirm_code(rte, _):
-    obj = rte_lookup(rte, "obj")
+    obj = rte_lookup_locals(rte, "obj")
     def confirm_dialog(rte, obj_str):
         obj_str_value = OM_get_boxed_value(obj_str)
         result = runtime_confirm(obj_str_value)
@@ -4377,7 +4471,7 @@ def om_confirm_code(rte, _):
     return sem_str(ctx, obj)
 
 def om_prompt_code(rte, _):
-    obj = rte_lookup(rte, "obj")
+    obj = rte_lookup_locals(rte, "obj")
     def prompt_str(rte, obj_str):
         obj_str_value = OM_get_boxed_value(obj_str)
         result = runtime_prompt(obj_str_value)
@@ -4397,25 +4491,25 @@ def om_repr_code(rte, _):
     def cont(rte, res):
         return unwindReturn(rte, res)
     next_ctx = make_out_of_ast_context(rte, cont)
-    return sem_repr(next_ctx, rte_lookup(rte, 'obj'))
+    return sem_repr(next_ctx, rte_lookup_locals(rte, 'obj'))
 
 def om_len_code(rte, _):
     def cont(rte, res):
         return unwindReturn(rte, res)
     next_ctx = make_out_of_ast_context(rte, cont)
-    return sem_len(next_ctx, rte_lookup(rte, 'obj'))
+    return sem_len(next_ctx, rte_lookup_locals(rte, 'obj'))
 
 def om_next_code(rte, _):
     def cont(rte, res):
         return unwindReturn(rte, res)
     next_ctx = make_out_of_ast_context(rte, cont)
-    return sem_next(next_ctx, rte_lookup(rte, 'obj'), rte_lookup(rte, 'default'))
+    return sem_next(next_ctx, rte_lookup_locals(rte, 'obj'), rte_lookup_locals(rte, 'default'))
 
 def om_iter_code(rte, _):
     next_ctx = make_out_of_ast_context(rte, unwindReturn)
 
-    obj = rte_lookup(rte, 'obj')
-    sentinel = rte_lookup(rte, 'sentinel')
+    obj = rte_lookup_locals(rte, 'obj')
+    sentinel = rte_lookup_locals(rte, 'sentinel')
 
     if sentinel is absent:
         return sem_iter(next_ctx, obj)
@@ -4425,7 +4519,7 @@ def om_iter_code(rte, _):
 def om_abs_code(rte, _):
     next_ctx = make_out_of_ast_context(rte, unwindReturn)
 
-    obj = rte_lookup(rte, 'obj')
+    obj = rte_lookup_locals(rte, 'obj')
     return sem_abs(next_ctx, obj)
 
 def do_min_max(name, sem_Comp):
@@ -4433,7 +4527,7 @@ def do_min_max(name, sem_Comp):
     empty_sequence_error_msg = name + "() arg is an empty sequence"
 
     def code(rte, cont):
-        args = rte_lookup(rte, 'args')
+        args = rte_lookup_locals(rte, 'args')
         args_elements = OM_get_tuple_seq(args)
         args_len = len(args_elements)
         if args_len == 0:
@@ -4469,8 +4563,8 @@ om_min_code = do_min_max("min", sem_Lt)
 om_max_code = do_min_max("max", sem_Gt)
 
 def om_round_code(rte, cont):
-    number = rte_lookup(rte, 'number')
-    ndigits = rte_lookup(rte, 'ndigits')
+    number = rte_lookup_locals(rte, 'number')
+    ndigits = rte_lookup_locals(rte, 'ndigits')
 
     # NOTE: sem_Round handles the case where ndigits is 'absent'
     return sem_Round(make_out_of_ast_context(rte, unwindReturn), number, ndigits)
@@ -4478,9 +4572,9 @@ def om_round_code(rte, cont):
 def om_pow_code(rte, _):
     next_ctx = make_out_of_ast_context(rte, unwindReturn)
 
-    base = rte_lookup(rte, 'base')
-    power = rte_lookup(rte, 'power')
-    mod = rte_lookup(rte, 'mod')
+    base = rte_lookup_locals(rte, 'base')
+    power = rte_lookup_locals(rte, 'power')
+    mod = rte_lookup_locals(rte, 'mod')
 
     if mod is absent:
         return sem_Pow(next_ctx, base, power)
@@ -4491,7 +4585,7 @@ def om_pow_code(rte, _):
 def init_module_math():
 
     def math_sqrt_code(rte, cont):
-        val = rte_lookup(rte, 'obj')
+        val = rte_lookup_locals(rte, 'obj')
         obj_class = OM_get_object_class(val)
         unboxed_val = OM_get_boxed_value(val)
 
@@ -4513,7 +4607,7 @@ def init_module_math():
             return sem_raise(ctx, class_TypeError)
 
     def math_floor_code(rte, cont):
-        val = rte_lookup(rte, 'obj')
+        val = rte_lookup_locals(rte, 'obj')
         obj_class = OM_get_object_class(val)
         unboxed_val = OM_get_boxed_value(val)
 
@@ -4528,7 +4622,7 @@ def init_module_math():
             return sem_raise(ctx, class_TypeError)
 
     def math_ceil_code(rte, cont):
-        val = rte_lookup(rte, 'obj')
+        val = rte_lookup_locals(rte, 'obj')
         obj_class = OM_get_object_class(val)
         unboxed_val = OM_get_boxed_value(val)
 
@@ -4543,9 +4637,8 @@ def init_module_math():
             return sem_raise(ctx, class_TypeError)
 
     def math_pow_code(rte, cont):
-
-        obj1 = rte_lookup(rte, 'obj1')
-        obj2 = rte_lookup(rte, 'obj2')
+        obj1 = rte_lookup_locals(rte, 'obj1')
+        obj2 = rte_lookup_locals(rte, 'obj2')
 
         def check_obj1(obj1_rte, obj1_res):
             if obj1_res is absent:
@@ -4562,7 +4655,7 @@ def init_module_math():
 
 
     def math_exp_code(rte, cont):
-        val = rte_lookup(rte, 'obj')
+        val = rte_lookup_locals(rte, 'obj')
         obj_class = OM_get_object_class(val)
         unboxed_val = OM_get_boxed_value(val)
 
@@ -4578,7 +4671,7 @@ def init_module_math():
             return sem_raise(ctx, class_TypeError)
 
     def math_log_code(rte, cont):
-        val = rte_lookup(rte, 'obj')
+        val = rte_lookup_locals(rte, 'obj')
         obj_class = OM_get_object_class(val)
         unboxed_val = OM_get_boxed_value(val)
 
@@ -4597,7 +4690,7 @@ def init_module_math():
             return sem_raise(ctx, class_TypeError)
 
     def math_sin_code(rte, cont):
-        val = rte_lookup(rte, 'obj')
+        val = rte_lookup_locals(rte, 'obj')
         obj_class = OM_get_object_class(val)
         unboxed_val = OM_get_boxed_value(val)
 
@@ -4611,7 +4704,7 @@ def init_module_math():
             return sem_raise(ctx, class_TypeError)
 
     def math_cos_code(rte, cont):
-        val = rte_lookup(rte, 'obj')
+        val = rte_lookup_locals(rte, 'obj')
         obj_class = OM_get_object_class(val)
         unboxed_val = OM_get_boxed_value(val)
 
@@ -4625,7 +4718,7 @@ def init_module_math():
             return sem_raise(ctx, class_TypeError)
 
     def math_tan_code(rte, cont):
-        val = rte_lookup(rte, 'obj')
+        val = rte_lookup_locals(rte, 'obj')
         obj_class = OM_get_object_class(val)
         unboxed_val = OM_get_boxed_value(val)
 
@@ -4639,7 +4732,7 @@ def init_module_math():
             return sem_raise(ctx, class_TypeError)
 
     def math_asin_code(rte, cont):
-        val = rte_lookup(rte, 'obj')
+        val = rte_lookup_locals(rte, 'obj')
         obj_class = OM_get_object_class(val)
         unboxed_val = OM_get_boxed_value(val)
 
@@ -4653,7 +4746,7 @@ def init_module_math():
             return sem_raise(ctx, class_TypeError)
 
     def math_acos_code(rte, cont):
-        val = rte_lookup(rte, 'obj')
+        val = rte_lookup_locals(rte, 'obj')
         obj_class = OM_get_object_class(val)
         unboxed_val = OM_get_boxed_value(val)
 
@@ -4667,7 +4760,7 @@ def init_module_math():
             return sem_raise(ctx, class_TypeError)
 
     def math_atan_code(rte, cont):
-        val = rte_lookup(rte, 'obj')
+        val = rte_lookup_locals(rte, 'obj')
         obj_class = OM_get_object_class(val)
         unboxed_val = OM_get_boxed_value(val)
 
@@ -4753,13 +4846,16 @@ def parse(source, filename, mode, context):
 
 def interp(ast, options):
     # TODO: move outside of this function
+    safe_for_space = dict_get(options, 'safe_for_space', True)
+
     external_context = make_dict()
+    dict_set(external_context, 'safe_for_space', safe_for_space)
 
     code = comp(ast, external_context)
     trampoline(prepare_execution(code, fresh_rte(options)))
 
 def comp(ast, external_context):
-    cte = CTE(None, None, None, None, external_context, None)
+    cte = CTE(None, make_dict(), [], None, None, external_context, None)
 
     if hasattr(ast, 'container'):
         container = ast.container
@@ -4778,9 +4874,7 @@ def fresh_rte(options):
     globals_env = make_dict()
     builtins_env = make_dict()
 
-    trace = dict_get(options, 'trace', False)
-
-    rte = make_rte(absent, globals_env, locals_env, builtins_env, absent, absent, absent, trace)
+    rte = make_rte(absent, globals_env, locals_env, absent, builtins_env, absent, absent, absent, options)
 
     om_builtin_print = om_make_function_with_signature('print', om_print_code, make_vararg_only_signature('args'))
     om_builtin_input = om_make_function_with_signature('input', om_input_code, make_posonly_defaults_signature(('obj',), (om_str(''),)))
@@ -4848,6 +4942,7 @@ def fresh_rte(options):
     dict_set(builtins_env, 'BaseException', class_BaseException)
     dict_set(builtins_env, 'Exception', class_Exception)
     dict_set(builtins_env, 'NameError', class_NameError)
+    dict_set(builtins_env, 'UnboundLocalError', class_UnboundLocalError)
     dict_set(builtins_env, 'SyntaxError', class_SyntaxError)
     dict_set(builtins_env, 'TypeError', class_TypeError)
     dict_set(builtins_env, 'ValueError', class_ValueError)
@@ -4892,16 +4987,413 @@ def trampoline(cont):
 
 # Compilation of a module.
 
+def set_ast_property(ast, name, value):
+    props = getattr(ast, "_pyinterp", None)
+
+    if props is None:
+        props = make_dict()
+        ast._pyinterp = props
+
+    dict_set(props, name, value)
+
+def get_ast_property(ast, name, default_):
+    props = getattr(ast, "_pyinterp", None)
+
+    if props is None:
+        props = make_dict()
+        ast.__pyinterp__ = props
+
+    return dict_get(props, name, default_)
+
+
+def walk(cte, ast, fn, args):
+    # Hack to check child is an instance of AST while zp does not support class hierarchy
+    if hasattr(ast, '_fields'):
+        res = fn(cte, ast, args)
+        # If fn return True continue walk, else abort recursive walk
+        if res:
+            for field in ast._fields:
+                child = getattr(ast, field)
+
+                if isinstance(child, list):
+                    for item in child:
+                        walk(cte, item, fn, args)
+                else:
+                    walk(cte, child, fn, args)
+
+def walk_with_abort(cte, ast, fn, abort_fn, args):
+    # Provides an 'abort' as first argument to 'fn' which call is detected to interrupt walk and return result
+    # The provided abort function can only take a single argument, multiple arguments mus be passed as a tuple
+    error_occured = [False]
+    abort_res = [None]
+
+    def abort(args):
+        error_occured[0] = True
+        abort_res[0] = abort_fn(args)
+
+    new_args = [abort]
+    for a in args:
+        new_args.append(a)
+
+    def inner_walk(cte, ast, fn, args):
+        if hasattr(ast, '_fields'):
+            res = fn(cte, ast, args)
+
+            if error_occured[0]:
+                return
+
+            # If fn return True continue walk, else abort recursive walk
+            if res:
+                for field in ast._fields:
+                    child = getattr(ast, field)
+
+                    if isinstance(child, list):
+                        for item in child:
+                            walk(cte, item, fn, args)
+                            if error_occured[0]:
+                                return
+                    else:
+                        walk(cte, child, fn, args)
+                        if error_occured[0]:
+                            return
+
+    inner_walk(cte, ast, fn, new_args)
+    return abort_res[0] if error_occured[0] else None
+
+def raise_walk_syntax_error(args):
+    cte, ast, msg = args
+    return CT_raise_syntax_error_with_msg(cte, ast, msg)
+
+def abort_walk_id_function(args):
+    return args
+
+# Flags for
+LOCAL_VAR = ["LOCAL_VAR"]
+CLOSURE_VAR = ["CLOSURE_VAR"]
+GLOBAL_VAR = ["GLOBAL_VAR"]
+
+def make_local_var_token(cte, name, current_fn):
+    # Second element indicates if the variable needs to be boxed for a closure
+    n_vars = get_ast_property(current_fn, 'n_vars', None)
+    set_ast_property(current_fn, 'n_vars', n_vars + 1)
+
+    locals_env = get_ast_property(current_fn, 'locals_env', None)
+
+    # If safe_for_space is False, then box all variables by default
+    tk = [LOCAL_VAR, not get_cte_safe_for_space(cte), n_vars]
+
+    dict_set(locals_env, name, tk)
+    return tk
+
+def get_local_var_is_boxed(token):
+    return token[1]
+
+def get_local_var_index(token):
+    return token[2]
+
+def mark_local_var_token_as_boxed(token):
+    token[1] = True
+
+def is_local_var(token):
+    return token[0] is LOCAL_VAR
+
+def add_closure_var_to_fn(fn, name):
+    # Add a free variable to the function cte
+    n_freevars = get_ast_property(current_fn, 'n_freevars', None)
+    set_ast_property(current_fn, 'n_freevars', n_freevars + 1)
+
+    locals_env = get_ast_property(ast, 'locals_env', None)
+    dict_set(locals_env, name, [CLOSURE_VAR, n_freevars])
+
+def make_closure_var_token(id_, stack, current_fn):
+    # This function both mutates the ast to add a free variable and return the created token or None
+    # Exception: a nonlocal variable can be bound to a global variable when there is a 'global' statement for the var
+    last = len(stack) - 1
+    i = 0
+    while i <= last:
+        fn = stack[last - i]
+        fn_locals_env = get_ast_property(fn, "locals_env", None) # Should never be None
+        var_token = dict_get(fn_locals_env, id_, None)
+
+        if var_token is not None:
+            if is_local_var(var_token):
+                mark_local_var_token_as_boxed(var_token)
+            elif is_closure_var(var_token):
+                pass
+            else: # global variable case
+                tk = make_global_var_token()
+                dict_set(fn_locals_env, id_, tk)
+                return tk
+
+            j = 0
+            while j < i:
+                fn = stack[last - j]
+                fn_locals_env = get_ast_property(fn, "locals_env", None)  # Should never be None
+
+                fn_n_freevars = get_ast_property(fn, 'n_freevars', None)  # Should never be None
+                set_ast_property(fn, 'n_freevars', fn_n_freevars + 1)
+
+                tk = [CLOSURE_VAR, fn_n_freevars]
+                dict_set(fn_locals_env, id_, tk)
+
+                j += 1
+
+            n_freevars = get_ast_property(current_fn, 'n_freevars', None)  # Should never be None
+            set_ast_property(current_fn, 'n_freevars', n_freevars + 1)
+            locals_env = get_ast_property(current_fn, 'locals_env', None)
+            current_fn_tk = [CLOSURE_VAR, n_freevars]
+            dict_set(locals_env, id_, current_fn_tk)
+
+            return current_fn_tk
+
+        else:
+            i += 1
+    return None
+
+def is_closure_var(token):
+    return token[0] is CLOSURE_VAR
+
+def get_closure_var_index(token):
+    return token[1]
+
+def make_global_var_token():
+    return [GLOBAL_VAR]
+
+def is_global_var(token):
+    return token[0] is GLOBAL_VAR
+
+def init_compute_variables_scope(cte, ast):
+    # Init computing variables scopes on function definitions, ignore variables since they are all global at top-level
+
+    def walk_fn(cte, ast, args):
+        if isinstance(ast, AST.FunctionDef):
+            locals_env = make_dict()
+            locals_ref = make_dict()
+            stack = []
+            function_defs = []
+
+            res = compute_variables_scope(cte, ast, locals_env, locals_ref, stack)
+
+            if res is not None:
+                return syntax_error(res)
+            else:
+                return False
+        else:
+            return True
+
+    return walk_with_abort(cte, ast, walk_fn, raise_walk_syntax_error, ())
+
+def init_locals_env_from_args(cte, locals_env, current_fn):
+    # Populate a function local cte with its arguments
+    args = current_fn.args
+    args_group = [args.args, args.posonlyargs, args.kwonlyargs]
+    for group in args_group:
+        for arg in group:
+            name = arg.arg
+            make_local_var_token(cte, name, current_fn)
+
+    vararg = args.vararg
+    kwarg = args.kwarg
+
+    if vararg:
+        make_local_var_token(cte, vararg.arg, current_fn)
+
+    if kwarg:
+        make_local_var_token(cte, kwarg.arg, current_fn)
+
+    return locals_env
+
+def compute_variables_scope(cte, ast, locals_env, locals_ref, stack):
+    # Intermediate function which computes a function variables' scope, then recursively computes it for nested functions
+
+    # init function variables counters and env
+    set_ast_property(ast, 'n_freevars', 0)
+    set_ast_property(ast, 'n_vars', 0)
+    set_ast_property(ast, 'locals_env', locals_env)
+
+    function_defs = []
+    args = (locals_env, locals_ref, stack, function_defs, ast)
+
+    init_locals_env_from_args(cte, locals_env, ast)
+
+    for stmt in ast.body:
+
+        res = walk_with_abort(cte, stmt, compute_function_variables_scope, abort_walk_id_function, args)
+
+        # A syntax error was detected
+        if res is not None:
+            return res
+
+    # Now that all assignations have been treated, we can determine the scope of variables' references
+
+    for name in dict_keys(locals_ref):
+        # If the variable is already in the env, we were able to determine its scope
+        if not dict_has(locals_env, name):
+            # else it is either from a closure or global
+            closure_token = make_closure_var_token(name, stack, ast)
+
+            if closure_token is None:
+                # The variable can only be global since it is not local, nor in a closure
+                dict_set(locals_env, name, make_global_var_token())
+            # Else the closure token was already assigned
+
+    # recursively visit nested functions which were collected in 'function_defs'
+    for nested_fn in function_defs:
+        nested_locals_env = make_dict()
+        nested_locals_ref = make_dict()
+        nested_stack = stack + [ast]
+
+        res = compute_variables_scope(cte, nested_fn, nested_locals_env, nested_locals_ref, nested_stack)
+
+        if res is not None:
+            return res
+
+    return None
+
+def compute_function_variables_scope(cte, ast, args):
+    syntax_error, locals_env, locals_ref, stack, function_defs, current_fn = args
+    if isinstance(ast, AST.FunctionDef):
+        # FunctionDef are treated recursively after the current scope has been analysed
+        function_defs.append(ast)
+
+        id_ = ast.name
+
+        if not dict_has(locals_env, id_):
+            make_local_var_token(cte, id_, current_fn)
+
+        return False
+
+    elif isinstance(ast, AST.Name):
+        ctx = ast.ctx
+        id_ = ast.id
+
+        if isinstance(ctx, AST.Store):
+            # If the variable is in locals_env, its scope is already known, this is a reassignment, else we mark it as local
+            if not dict_has(locals_env, id_):
+                make_local_var_token(cte, id_, current_fn)
+        elif isinstance(ctx, AST.Load):
+            # If the variable is in locals_env, its scope is already known
+            # Else, we cannot determine its scope yet because there could be an assignation later
+            # In both case, there is nothing to be done at that point but mark it as seen
+            # See 'compute_variables_scope' for the rest of the analysis
+            dict_set(locals_ref, id_, True)
+
+        return True
+
+    elif isinstance(ast, AST.Nonlocal):
+        for id_ in ast.names:
+            if dict_has(locals_env, id_) or dict_has(locals_ref, id_):
+                return syntax_error((cte, ast, "name '" + id_ + "' is used prior to nonlocal declaration"))
+            else:
+                closure_token = make_closure_var_token(id_, stack, current_fn)
+                if closure_token is None or is_global_var(closure_token):
+                    # a 'nonlocal' statement cannot refer to a variable from a 'global' statement
+                    return syntax_error((cte, ast, "no binding for nonlocal '" + id_ + "' found"))
+                else:
+                    dict_set(locals_env, id_, closure_token)
+                    return True
+
+    elif isinstance(ast, AST.Global):
+        for id_ in ast.names:
+            if dict_has(locals_env, id_) or dict_has(locals_ref, id_):
+                return syntax_error((cte, ast, "name '" + id_ + "' is used prior to global declaration"))
+            else:
+                dict_set(locals_env, id_, make_global_var_token())
+                return True
+
+    else:
+        return True
+
+
+def get_scope_variables(rte):
+    current_func = rte_current_func(rte)
+    safe_for_space = rte_safe_for_space(rte)
+
+    if not safe_for_space:
+        # In non-safe-for-space mode, each function has access to its whole lexical scope, we return it
+        if current_func is absent:
+            env = dict_copy(rte_globals(rte))
+        else:
+            lexical_scope = OM_get_function_lexical_scope(current_func)
+
+            env = dict_copy(rte_globals(rte))
+
+            for name in dict_keys(lexical_scope):
+                val = dict_get(lexical_scope, name, None)[0] # All variables are boxed in non-safe-for-space mode
+                dict_set(env, name, val)
+
+            locals_ = rte_locals(rte)
+
+            for name in dict_keys(locals_):
+                val = dict_get(locals_, name, None)[0] # All variables are boxed in non-safe-for-space mode
+                dict_set(env, name, val)
+
+    elif current_func is absent:
+        # At top-level
+        env = dict_copy(rte_globals(rte))
+    else:
+        local_vars = rte_locals(rte)
+        global_vars = rte_globals(rte)
+        closure = OM_get_function_closure(current_func)
+
+        env = make_dict()
+
+        var_context = OM_get_function_var_context(current_func)
+
+        for key in dict_keys(var_context):
+            var_val = dict_get(var_context, key, None)
+            if is_local_var(var_val):
+                boxed = get_local_var_is_boxed(var_val)
+                if boxed:
+                    val = dict_get(local_vars, key, None)[0]
+                else:
+                    val = dict_get(local_vars, key, None)
+                if val is not absent:
+                    dict_set(env, key, val)
+            elif is_closure_var(var_val):
+                index = get_closure_var_index(var_val)
+                val = closure[index][0]
+                if val is not absent:
+                    dict_set(env, key, val)
+            else: # case global
+                val = dict_get(global_vars, key, absent)
+
+                # NOTE: value may be absent because key is a builtin name
+                if val is not absent:
+                    dict_set(env, key, val)
+
+    # Reverse the order so latest assignments come first
+    # This will only work on Python and JS version which make_dict() is order preserving
+    return list_reversed(dict_items(env))
+
+def get_scope_variables_repr(rte):
+    env = get_scope_variables(rte)
+    env_repr = []
+
+    for pair in env:
+        key, val = pair
+        print(key, val)
+        val_repr = om_simple_repr(Context(rte, None, None), val)
+        env_repr.append((key, val_repr))
+
+    return env_repr
+
 def comp_mod(cte, ast):
 
     if isinstance(ast, AST.Module):
         # Module(stmt* body, type_ignore *type_ignores)
         if debug: print('AST.Module')
+
+        init_compute_variables_scope(cte, ast)
+
         return comp_stmt_seq(cte, ast.body)
 
     elif isinstance(ast, AST.Interactive):
         # Interactive(stmt* body)
         if debug: print('AST.Interactive')
+
+        init_compute_variables_scope(cte, ast)
+
         return comp_stmt_seq(cte, ast.body)
 
     elif isinstance(ast, AST.Expression):
@@ -4940,6 +5432,9 @@ def comp_stmt(cte, ast):
         if debug: print('AST.Pass')
         return gen_Pass(cte, ast)
 
+    elif isinstance(ast, AST.Nonlocal) or isinstance(ast, AST.Global):
+        return gen_stmt_empty(cte)
+
     elif isinstance(ast, AST.Return):
         # Return
         if debug: print('AST.Return')
@@ -4972,9 +5467,11 @@ def comp_stmt(cte, ast):
         target = ast.target
         if isinstance(target, AST.Name):
             op = ast.op
-            id = ast.target.id
-            (cte1, code1) = comp_expr(cte, ast.value)
-            return gen_aug_op(cte1, ast, id, op, code1)
+            target = ast.target
+            value = ast.value
+            return gen_aug_assign(cte, ast, target, op, value)
+        else:
+            return CT_raise_syntax_error_with_msg(cte, ast, "illegal expression for augmented assignment")
 
 
     elif isinstance(ast, AST.While):
@@ -5003,36 +5500,7 @@ def comp_stmt(cte, ast):
 
     elif isinstance(ast, AST.FunctionDef):
         if debug: print('AST.FunctionDef')
-        func = om(class_function)
-
-        OM_set(func, '__name__', om_str(ast.name))
-
-        signature = gen_signature(cte, ast)
-
-        ids = make_dict()
-        dict_set(ids, "return point", True)
-
-        fn_cte = CTE(ast.name,
-                     signature,
-                     cte.lex_env,
-                     CTCtrlLabel(None, ids, ast),
-                     cte.external_context,
-                     cte)
-
-        (cte1, body_code) = comp_stmt_seq(fn_cte, ast.body)
-
-        OM_set_function_signature(func, signature)
-        OM_set_function_body(func, body_code)
-
-        arity = signature_arity(signature)
-        OM_set_function_arity(func, arity)
-
-        # TODO: create closure
-
-        def code(rte, cont):
-            return cont(rte, func)
-
-        return gen_var_set(cte, ast, ast.name, code)
+        return gen_FunctionDef(cte, ast)
 
     elif isinstance(ast, AST.Delete):
         if debug: print('AST.Delete')
@@ -5149,8 +5617,16 @@ def comp_Assign(cte, ast):
         target = targets[0]
         if isinstance(target, AST.Name):
             id = ast.targets[0].id
-            (cte1, code1) = comp_expr(cte, value)
-            return gen_var_set(cte1, ast, id, code1)
+            expr_cte, expr_code = comp_expr(cte, value)
+            set_cte, set_code = gen_var_set(expr_cte, ast, id)
+
+            def code(rte, cont):
+                def do_set(set_rte, val):
+                    return set_code(set_rte, cont, val)
+                return expr_code(rte, do_set)
+
+            return set_cte, code
+
         elif isinstance(target, AST.Subscript):
             return gen_Subscript_Store(cte, ast, target, value)
         elif isinstance(target, AST.Tuple):
@@ -5353,14 +5829,169 @@ def gen_assert(cte, ast, code1, code2):
 
     return (cte, code)
 
-def gen_var_set(cte, ast, id, code1):
-    def code(rte, cont):
-        def var_set(rte, val):
+def gen_var_set(cte, ast, id):
+    var_token = get_cte_locals_env_var(cte, id)
+
+    if var_token is None or is_global_var(var_token):
+        sem_set = sem_var_set_globals
+    elif is_local_var(var_token):
+        boxed = get_local_var_is_boxed(var_token)
+
+        if boxed:
+            sem_set = sem_var_set_local_boxed
+        else:
+            sem_set = sem_var_set_local
+
+    else: # case: closure var
+        closure_table = get_cte_closure_table(cte)
+        closure_pos = dict_get(closure_table, id, None)
+
+        def code(rte, cont, val):
             msg = id + " ← " + om_simple_repr(Context(rte, None, ast), val)
             cont_stmt_end_with_message = do_stmt_end_with_message(cont, ast)
-            return sem_var_set(Context(rte, lambda rte: cont_stmt_end_with_message(rte, msg), ast), id, val)
-        return code1(rte, var_set)
+            return sem_var_set_closure(Context(rte, lambda rte: cont_stmt_end_with_message(rte, msg), ast), closure_pos, val)
+        return (cte, code)
+
+    def code(rte, cont, val):
+        msg = id + " ← " + om_simple_repr(Context(rte, None, ast), val)
+        cont_stmt_end_with_message = do_stmt_end_with_message(cont, ast)
+        return sem_set(Context(rte, lambda rte: cont_stmt_end_with_message(rte, msg), ast), id, val)
     return (cte, code)
+
+
+def gen_FunctionDef(cte, ast):
+    fn_def_cte, create_function = gen_create_function(cte, ast)
+    set_cte, set_fn = gen_var_set(fn_def_cte, ast, ast.name)
+
+    def code(rte, cont):
+        def do_set(set_rte, fn):
+            return set_fn(set_rte, cont, fn)
+        return create_function(rte, do_set)
+
+    return set_cte, code
+
+
+def gen_create_function(cte, ast):
+
+    def gen_function_freevar_getter(name):
+        cte_locals_env = get_cte_locals_env(cte)
+        tk = dict_get(cte_locals_env, name, None) # Cannot be None if properly called on a freevar
+
+        if is_local_var(tk):
+            def getter(rte):
+                locals_= dict_get(rte, 'locals', None)
+                return dict_get(locals_, name, None)
+            return getter
+
+        elif is_closure_var(tk):
+
+            index = get_closure_var_index(tk)
+
+            def getter(rte):
+                current_func = dict_get(rte, 'current_func', None)
+                closure_cells = OM_get_function_closure(current_func)
+                return closure_cells[index]
+            return getter
+
+        else:
+            assert False, "Variable does not exist in cte"
+
+    fn_name = om_str(ast.name)
+
+    # Create the closure variable table
+    n_freevars = get_ast_property(ast, 'n_freevars', None)
+    locals_env = get_ast_property(ast, 'locals_env', None)
+    freevars_getter = list_new(n_freevars, None)
+    closure_table = make_dict()
+    local_vars = []
+
+    for name in dict_keys(locals_env):
+        var_token = locals_env[name]
+        if is_closure_var(var_token):
+            index = get_closure_var_index(var_token)
+            freevars_getter[index] = gen_function_freevar_getter(name)
+            dict_set(closure_table, name, index)
+        elif is_local_var(var_token):
+            local_vars.append((name, get_local_var_is_boxed(var_token)))
+
+    def make_closure(rte):
+        closure_cells = list_new(n_freevars, None)
+        i = 0
+        for getter in freevars_getter:
+            closure_cells[i] = getter(rte)
+            i += 1
+        return closure_cells
+
+    ids = make_dict()
+    dict_set(ids, "return point", True)
+
+    fn_cte = CTE(ast.name,
+                 locals_env,
+                 closure_table,
+                 cte.lex_env,
+                 CTCtrlLabel(None, ids, ast),
+                 cte.external_context,
+                 cte)
+
+    (body_cte, body_code) = comp_stmt_seq(fn_cte, ast.body)
+
+    # TODO: Once default arguments are implemented this will need to be partially at runtime
+    signature = gen_signature(cte, ast)
+
+    safe_for_space = get_cte_safe_for_space(cte)
+
+    if safe_for_space:
+        def create_function(rte, cont):
+            func = om(class_function)
+            OM_set(func, '__name__', fn_name)
+
+            OM_set_function_signature(func, signature)
+            OM_set_function_body(func, body_code)
+            arity = signature_arity(signature)
+            OM_set_function_arity(func, arity)
+            OM_set_function_closure(func, make_closure(rte))
+            OM_set_function_locals(func, local_vars)
+            OM_set_function_var_context(func, locals_env)
+
+            return cont(rte, func)
+
+        return cte, create_function
+
+    else:
+        # In non safe-for-space mode, a function saves the whole lexical scope in which it was defined
+        def create_function(rte, cont):
+            func = om(class_function)
+            OM_set(func, '__name__', fn_name)
+
+            OM_set_function_signature(func, signature)
+            OM_set_function_body(func, body_code)
+            arity = signature_arity(signature)
+            OM_set_function_arity(func, arity)
+            OM_set_function_closure(func, make_closure(rte))
+            OM_set_function_locals(func, local_vars)
+            OM_set_function_var_context(func, locals_env)
+
+            current_func = rte_current_func(rte)
+
+            if current_func is absent:
+                # top-level definition
+                lexical_scope = make_dict()
+            else:
+                lexical_scope = dict_copy(OM_get_function_lexical_scope(current_func))
+
+                # Add local variables
+                locals_ = rte_locals(rte)
+                for name in dict_keys(locals_):
+                    val = dict_get(locals_, name, None)
+                    # in non-safe-for-space mode, all variables should be boxed
+                    dict_set(lexical_scope, name, val)
+
+            OM_set_function_lexical_scope(func, lexical_scope)
+
+            return cont(rte, func)
+
+
+        return cte, create_function
 
 
 def gen_multiple_Assign(cte, ast, targets, value):
@@ -5373,6 +6004,13 @@ def gen_multiple_Assign(cte, ast, targets, value):
     targets_len = len(targets)
     last_target_index = targets_len - 1
 
+    setters = []
+    last_assign_cte = value_cte
+    for targ in targets:
+        name = targ.id
+        last_assign_cte, setter = gen_var_set(last_assign_cte, targ, name)
+        setters.append(setter)
+
     def code(rte, cont):
         def unpack(unpack_rte, iterable):
             def start_assignments(start_assign_rte, seq):
@@ -5383,14 +6021,9 @@ def gen_multiple_Assign(cte, ast, targets, value):
                     while i >= 0:
                         def make_code(i, next_cont):
                             def do_assign(assign_rte):
-                                var_ast = targets[i]
+                                setter_code = setters[i]
                                 val = seq[i]
-                                id = var_ast.id
-
-                                msg = id + " ← " + om_simple_repr(Context(assign_rte, next_cont, ast), val)
-                                cont_stmt_end_with_message = do_stmt_end_with_message(next_cont, var_ast)
-
-                                return sem_var_set(Context(assign_rte, lambda rte: cont_stmt_end_with_message(rte, msg), var_ast), id, val)
+                                return setter_code(assign_rte, next_cont, val)
                             return do_assign
                         next_cont = make_code(i, next_cont)
                         i -= 1
@@ -5405,9 +6038,35 @@ def gen_multiple_Assign(cte, ast, targets, value):
 
 
 def gen_var_get(cte, ast, id):
-    def code(rte, cont):
-        return sem_var_get(Context(rte, do_expr_end(cont, ast), ast), id)
-    return (cte, code)
+    var_token = get_cte_locals_env_var(cte, id)
+
+    if var_token is None or is_global_var(var_token):
+        def code(rte, cont):
+            return sem_var_get_global(Context(rte, do_expr_end(cont, ast), ast), id)
+
+        return (cte, code)
+    elif is_local_var(var_token):
+        boxed = get_local_var_is_boxed(var_token)
+
+        if boxed:
+            def code(rte, cont):
+                return sem_var_get_local_boxed(Context(rte, do_expr_end(cont, ast), ast), id)
+
+            return (cte, code)
+        else:
+            def code(rte, cont):
+                return sem_var_get_local(Context(rte, do_expr_end(cont, ast), ast), id)
+
+            return (cte, code)
+
+    else: # case: closure var
+        closure_table = get_cte_closure_table(cte)
+        closure_pos = dict_get(closure_table, id, None)
+
+        def code(rte, cont):
+            return sem_var_get_closure(Context(rte, do_expr_end(cont, ast), ast), closure_pos, id)
+
+        return (cte, code)
 
 def gen_delete(cte, ast, expr):
     if isinstance(expr, AST.Name):
@@ -5431,7 +6090,8 @@ def gen_delete_seq(cte, ast, targets):
 def gen_for(cte, ast, target, iterable_expr, body, orelse):
 
     iterable_cte, iterable_code = comp_expr(cte, iterable_expr)
-    body_cte, body_code = comp_stmt_seq(iterable_cte, body)
+    set_cte, set_code = gen_var_set(iterable_cte, target, target.id)
+    body_cte, body_code = comp_stmt_seq(set_cte, body)
     orelse_cte, orelse_code = comp_stmt_seq(body_cte, orelse)
 
     def get_iterable(get_iterable_rte, cont):
@@ -5451,9 +6111,7 @@ def gen_for(cte, ast, target, iterable_expr, body, orelse):
                                                      lambda rte1: get_next(rte1, iterator))
                             new_rte = make_rte_from_new_ctrl_env(rte, ctrl_label)
                             return body_code(new_rte, lambda rte: get_next(unwind_rte_ctrl_env(rte), iterator))
-                        msg = target.id + " ← " + om_simple_repr(Context(assign_target_rte, None, target), nxt_value)
-                        cont_stmt_end_with_message = do_stmt_end_with_message(run_body, target)
-                        return sem_var_set(Context(assign_target_rte, lambda rte: cont_stmt_end_with_message(rte, msg), target), target.id, nxt_value)
+                        return set_code(assign_target_rte, run_body, nxt_value)
                 return sem_next(Context(get_next_rte, assign_target, iterable), iterator, for_loop_end_marker)
             return sem_iter(Context(get_iterator_rte, get_next, iterable), iterable)
         return iterable_code(get_iterable_rte, get_iterator)
@@ -5600,7 +6258,7 @@ def gen_UnaryOp(cte, ast, op, code1):
     return (cte, code)
 
 
-def gen_aug_op(cte, ast, id, op, code1):
+def gen_aug_assign(cte, ast, target, op, value):
     if debug: print(op)
 
     if isinstance(op, AST.Add):
@@ -5630,12 +6288,22 @@ def gen_aug_op(cte, ast, id, op, code1):
     else:
         return CT_raise_syntax_error_with_msg(cte, ast, "Unimplemented assignment operator")
 
+    id_ = target.id
+
+    get_cte, get_target = gen_var_get(cte, target, id_)
+    val_cte, val_code = comp_expr(get_cte, ast.value)
+    set_cte, set_target = gen_var_set(val_cte, ast, id_)
+
     def code(rte, cont):
-        return code1(rte,
-                     lambda rte1, val1:
-                       sem_op(Context(rte1, do_stmt_end(cont, ast, 1), ast),
-                                      id, val1))
-    return (cte, code)
+        def get_val(get_rte, target_val):
+            def do_sem(val_rte, lhs_val):
+                def do_set(set_rte, val):
+                    return set_target(set_rte, cont, val)
+                return sem_op(Context(val_rte, do_set, ast), target_val, lhs_val)
+            return val_code(get_rte, do_sem)
+        return get_target(rte, get_val)
+
+    return set_cte, code
 
 
 def gen_BinOp(cte, ast, op, code1, code2):
@@ -5840,33 +6508,26 @@ def sem_Invert(ctx, val1):
         return om_call(val1_pos, ctx, [val1])
 
 def gen_sem_IOperator(method_name, sem_fall_back, op_name):
-
-    def gen_isem(ctx, id, val):
-        def cont_var_get(rte, self):
-            def cont_raise_error(rte, result):
-                new_ctx = Context(rte, ctx.cont, ctx.ast)
-                if om_is(result, om_NotImplemented):
-                    return sem_raise_with_message(new_ctx, class_TypeError, "unsupported operand type(s) for " + op_name)
-                else:
-                    return sem_var_set(new_ctx, id, result)
-
-            def cont_call_fallback(rte, result):
-                new_ctx = Context(rte, ctx.cont, ctx.ast)
-                if om_is(result, om_NotImplemented):
-                    return sem_fall_back(with_cont(ctx, cont_raise_error), self, val)
-                else:
-                    return sem_var_set(new_ctx, id, restul)
-
-
-            self_iop = getattribute_from_obj_mro(self, method_name)
-            if self_iop is absent:
-                return sem_fall_back(with_cont(ctx, cont_raise_error), self, val)
+    def sem_IOp(ctx, self, other):
+        def cont_raise_error(rte, result):
+            if om_is(result, om_NotImplemented):
+                return sem_raise_with_message(ctx, class_TypeError, "unsupported operand type(s) for " + op_name)
             else:
-                return om_call(self_iop, with_cont(ctx, cont_call_fallback), [ self , val ])
+                return cont_obj(ctx, result)
 
-        return sem_var_get(with_cont(ctx, cont_var_get), id)
+        def cont_call_fallback(rte, result):
+            if om_is(result, om_NotImplemented):
+                return sem_fall_back(with_cont(ctx, cont_raise_error), self, other)
+            else:
+                return cont_obj(ctx, result)
 
-    return gen_isem
+        self_iop = getattribute_from_obj_mro(self, method_name)
+
+        if self_iop is absent:
+            return sem_fall_back(ctx, self, other)
+        else:
+            return om_call(self_iop, with_cont(ctx, cont_call_fallback), [self , other])
+    return sem_IOp
 
 sem_IAdd = gen_sem_IOperator("__iadd__", sem_Add, "+=")
 sem_ISub = gen_sem_IOperator("__isub__", sem_Sub, "-=")
@@ -6204,18 +6865,51 @@ def gen_Subscript_Store(cte, ast, target, value):
 
     return value_cte, code
 
-
-
 def sem_constant(ctx, val):
     return ctx.cont(ctx.rte, val)
 
-def sem_var_set(ctx, id, val):
-    # Clone the current context.
-    # TODO: use link environment
-    rte_set(ctx.rte, id, val)
-    return ctx.cont(ctx.rte)
+def sem_var_set_local(ctx, id, val):
+    rte_set_locals(ctx.rte, id, val)
+    return cont_no_val(ctx)
 
-def sem_var_get(ctx, id):
+def sem_var_set_local_boxed(ctx, id, val):
+    rte_set_locals_boxed(ctx.rte, id, val)
+    return cont_no_val(ctx)
+
+def sem_var_set_globals(ctx, id, val):
+    rte_set_globals(ctx.rte, id, val)
+    return cont_no_val(ctx)
+
+def sem_var_set_closure(ctx, pos, val):
+    rte_set_closure(ctx.rte, pos, val)
+    return cont_no_val(ctx)
+
+def sem_var_get_local(ctx, id):
+    value = rte_lookup_locals(ctx.rte, id)
+
+    if value is absent:
+        return sem_raise_with_message(ctx, class_UnboundLocalError,
+                                      "local variable '" + id + "' referenced before assignment")
+    return cont_obj(ctx, value)
+
+def sem_var_get_local_boxed(ctx, id):
+    value = rte_lookup_locals_boxed(ctx.rte, id)
+
+    if value is absent:
+        return sem_raise_with_message(ctx, class_UnboundLocalError, "local variable '" + id + "' referenced before assignment")
+    return cont_obj(ctx, value)
+
+
+def sem_var_get_closure(ctx, pos, id):
+    value = rte_lookup_closure(ctx.rte, pos)
+
+    if value is absent:
+        # TODO: recover closure variable name
+        return sem_raise_with_message(ctx, class_UnboundLocalError, "local variable '" + id + "' referenced before assignment")
+    else:
+        return cont_obj(ctx, value)
+
+def sem_var_get_global(ctx, id):
     def catch_AttributeError(rte, exn):
         if om_isinstance(exn, class_AttributeError):
             error_msg = "name '" + id + "' is not defined"
@@ -6223,19 +6917,16 @@ def sem_var_get(ctx, id):
         else:
             return sem_raise(Context(rte, ctx.cont, ctx.ast), exn)
 
-    result = rte_lookup(ctx.rte, id)
-    if result is absent:
-        env_builtins = rte_lookup(ctx.rte, '__builtins__')
+    value = rte_lookup_globals(ctx.rte, id)
+
+    if value is absent:
+        env_builtins = rte_lookup_globals(ctx.rte, '__builtins__')
         return sem_getattribute(with_catch(ctx, catch_AttributeError), [env_builtins, om_str(id)])
     else:
-        return ctx.cont(ctx.rte, result)
+        return cont_obj(ctx, value)
 
 def sem_var_del(ctx, id):
-    result = rte_unset(ctx.rte, id)
-    if result is absent:
-        return sem_raise_with_message(ctx, class_NameError, id)
-    else:
-        return ctx.cont(ctx.rte)
+    return sem_raise(ctx, class_NotImplementedError)
 
 def sem_bool(ctx, val):
     __val_bool__ = getattribute_from_obj_mro(val, '__bool__')
