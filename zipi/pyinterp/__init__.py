@@ -5227,7 +5227,7 @@ def get_scope_variables(rte):
     if not safe_for_space:
         # In non-safe-for-space mode, each function has access to its whole lexical scope, we return it
         if current_func is absent:
-            return dict_copy(rte_globals(rte))
+            env = dict_copy(rte_globals(rte))
         else:
             lexical_scope = OM_get_function_lexical_scope(current_func)
 
@@ -5243,11 +5243,9 @@ def get_scope_variables(rte):
                 val = dict_get(locals_, name, None)[0] # All variables are boxed in non-safe-for-space mode
                 dict_set(env, name, val)
 
-            return env
-
     elif current_func is absent:
         # At top-level
-        return dict_copy(rte_globals(rte))
+        env = dict_copy(rte_globals(rte))
     else:
         local_vars = rte_locals(rte)
         global_vars = rte_globals(rte)
@@ -5278,17 +5276,22 @@ def get_scope_variables(rte):
                 # NOTE: value may be absent because key is a builtin name
                 if val is not absent:
                     dict_set(env, key, val)
-        return env
+
+    # Reverse the order so latest assignments come first
+    # This will only work on Python and JS version which make_dict() is order preserving
+    return list_reversed(dict_items(env))
 
 def get_scope_variables_repr(rte):
     env = get_scope_variables(rte)
+    env_repr = []
 
-    for key in dict_keys(env):
-        val = dict_get(env, key, None)
+    for pair in env:
+        key, val = pair
+        print(key, val)
         val_repr = om_simple_repr(Context(rte, None, None), val)
-        dict_set(env, key, val_repr)
+        env_repr.append((key, val_repr))
 
-    return env
+    return env_repr
 
 def comp_mod(cte, ast):
 

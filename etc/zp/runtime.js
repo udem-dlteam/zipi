@@ -40,6 +40,10 @@ function dict_copy(d){
     return Object.assign(make_dict(), d);
 }
 
+function dict_items(d){
+    return Object.entries(d);
+}
+
 function gui_wait_for_click(ast, msg, continue_execution) {
     console.log('at ' + ast.lineno + '.' + (ast.col_offset + 1) + '-' + ast.end_lineno + '.' + (ast.end_col_offset + 1) + msg);
     return continue_execution;
@@ -90,6 +94,10 @@ function list_new(size, default_){
 
 function list_concat(lst1, lst2){
     return lst1.concat(lst2);
+}
+
+function list_reversed(lst){
+    return lst.slice().reverse();
 }
 
 function string_mul(s, times){
