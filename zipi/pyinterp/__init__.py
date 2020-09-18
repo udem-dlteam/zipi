@@ -222,7 +222,11 @@ class OM_range(OM_object):
     """
 
 class OM_slice(OM_object):
-    pass
+    """
+    start: start of the slice
+    stop: stop of the slice
+    step: step of the slice
+    """
 
 class OM_dict(OM_object):
     pass
@@ -558,14 +562,31 @@ def getattribute_from_class_mro(cls, name):
         i += 1
     return absent
 
+def getattribute_from_class_mro_with_owner(cls, name):
+    mro = OM_get_type_mro(cls)
+    mro_len = len(mro)
+    i = 0
+    while i < mro_len:
+        cls = mro[i]
+        attr = OM_get(cls, name)
+        if attr is not absent:
+            return attr, cls
+        i += 1
+    return absent, absent
+
 def getattribute_from_obj_mro(o, name):
     cls = OM_get_object_class(o)
     if name == '__class__':
         return cls
-    # elif name == '__mro__':
-    #    return OM_get_type_mro(__class__)
     else:
         return getattribute_from_class_mro(cls, name)
+
+def getattribute_from_obj_mro_with_owner(o, name):
+    cls = OM_get_object_class(o)
+    if name == '__class__':
+        return cls, o
+    else:
+        return getattribute_from_class_mro_with_owner(cls, name)
 
 def compute_mro(cls, bases):
     seqs = []
@@ -951,6 +972,13 @@ def om_list(seq, len_):
     OM_set_list_len(obj, len_)
     return obj
 
+def om_slice(start, stop, step):
+    obj = om(class_slice)
+    OM_set_slice_start(obj, start)
+    OM_set_slice_stop(obj, stop)
+    OM_set_slice_step(obj, step)
+    return obj
+
 def om_range(start, stop, step):
     obj = om(class_range)
     OM_set_range_start(obj, start)
@@ -1164,6 +1192,24 @@ def OM_get_list_len(o):
 
 def OM_set_list_len(o, value):
     o.len = value
+
+def OM_get_slice_start(o):
+    return o.start
+
+def OM_set_slice_start(o, start):
+    o.start = start
+
+def OM_get_slice_stop(o):
+    return o.stop
+
+def OM_set_slice_stop(o, stop):
+    o.stop = stop
+
+def OM_get_slice_step(o):
+    return o.step
+
+def OM_set_slice_step(o, step):
+    o.step = step
 
 def OM_get_range_start(o):
     return o.start
@@ -1731,7 +1777,7 @@ def om_object_getattribute_code(ctx, args):
         name_value = OM_get_boxed_value(name)
 
         # Get field name
-        attr = getattribute_from_obj_mro(self, name_value)
+        attr, owner = getattribute_from_obj_mro_with_owner(self, name_value)
         if attr is absent:
             self_clsname = OM_get(OM_get_object_class(self), '__name__')
             self_clsname_value = OM_get_boxed_value(self_clsname)
@@ -1745,7 +1791,7 @@ def om_object_getattribute_code(ctx, args):
         if attr__get__ is absent:
             return ctx.cont(ctx.rte, attr)
         else:
-            return om_call(attr__get__, ctx, [attr, self, dt])
+            return om_call(attr__get__, ctx, [attr, self, owner])
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
 
@@ -2224,9 +2270,9 @@ def om_list_getitem_code(ctx, args):
                 else:
                     return sem_raise_with_message(ctx, class_IndexError, "list index out of range")
         elif om_isinstance(item, class_slice):
-            return sem_raise_with_message(ctx, class_NotImplementedError, "list[slice] not yet implemented")
+            return sem_raise_with_message(ctx, class_NotImplementedError, "list slicing is not yet supported")
     else:
-        return sem_raise_with_message(ctx, class_TypeError, "__getitem__() takes exactly one argument (" + str(args_len) + " given)")
+        return sem_raise_with_message(ctx, class_TypeError, "__getitem__() takes exactly one argument (" + str(args_len - 1) + " given)")
 
 om_list_getitem = do_magic_method(class_list, "__getitem__", om_list_getitem_code)
 
@@ -2252,7 +2298,7 @@ def om_list_setitem_code(ctx, args):
         elif om_isinstance(item, class_slice):
             return sem_raise_with_message(ctx, class_NotImplementedError, "list[slice] not yet implemented")
     else:
-        return sem_raise_with_message(ctx, class_TypeError, "__getitem__() takes exactly two argument (" + str(args_len) + " given)")
+        return sem_raise_with_message(ctx, class_TypeError, "__setitem__() takes exactly two argument (" + str(args_len - 1) + " given)")
 
 om_list_setitem = do_magic_method(class_list, "__setitem__", om_list_setitem_code)
 
@@ -2264,30 +2310,37 @@ def om_list_len_code(ctx, args):
         return ctx.cont(ctx.rte, om_int(elements_len))
     else:
         return sem_raise_with_message(ctx, class_TypeError,
-                                      "__len__() takes exactly one argument (" + str(args_len) + " given)")
+                                      "__len__() takes no argument (" + str(args_len) + " given)")
 
 
 om_list_len = do_magic_method(class_list, "__len__", om_list_len_code)
 
 def om_list_append_code(ctx, args):
     if debug: print('list.append')
-    self = args[0]
-    value = args[1]
 
-    elements = OM_get_list_seq(self)
-    list_len = OM_get_list_len(self)
-    elements_len = len(elements)
+    args_len = len(args)
 
-    if list_len < elements_len:
-        elements[list_len] = value
-        OM_set_list_len(self, list_len + 1)
+    if args_len == 2:
+        self = args[0]
+        value = args[1]
+
+        elements = OM_get_list_seq(self)
+        list_len = OM_get_list_len(self)
+        elements_len = len(elements)
+
+        if list_len < elements_len:
+            elements[list_len] = value
+            OM_set_list_len(self, list_len + 1)
+        else:
+            new_elements = list_seq_grow(elements)
+            new_elements[list_len] = value
+            OM_set_list_seq(self, new_elements)
+            OM_set_list_len(self, list_len + 1)
+
+        return ctx.cont(ctx.rte, om_None)
     else:
-        new_elements = list_seq_grow(elements)
-        new_elements[list_len] = value
-        OM_set_list_seq(self, new_elements)
-        OM_set_list_len(self, list_len + 1)
-
-    return ctx.cont(ctx.rte, om_None)
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "append() takes exactly one argument (" + str(args_len - 1) + " given)")
 
 om_list_append = do_magic_method(class_list, "append", om_list_append_code)
 
@@ -5072,7 +5125,8 @@ def comp_expr(cte, ast):
             index_cte, index_code = comp_expr(obj_cte, index_ast.value)
             return gen_Subscript_Load(index_cte, ast, obj_code, index_code)
         elif isinstance(index_ast, AST.Slice):
-            return CT_raise_syntax_error_with_msg(cte, ast, "slice indexation unsupported")
+            slice_cte, slice_code = gen_Slice(obj_cte, index_ast)
+            return gen_Subscript_Load(slice_cte, ast, obj_code, slice_code)
         else:
             return CT_raise_syntax_error_with_msg(cte, ast, "unsupported expression AST")
     else:
@@ -6081,6 +6135,40 @@ def gen_elements(cte, ast, code_elts, make_container):
                                                    ast),
                                            elts))
     return (cte, code)
+
+def gen_Slice(cte, slice_ast):
+    def do_None(rte, cont):
+        return cont(rte, om_None)
+
+    lower = slice_ast.lower
+    upper = slice_ast.upper
+    step = slice_ast.step
+
+    if lower is not None:
+        lower_cte, lower_code = comp_expr(cte, lower)
+    else:
+        lower_cte, lower_code = cte, do_None
+
+    if upper is not None:
+        upper_cte, upper_code = comp_expr(lower_cte, upper)
+    else:
+        upper_cte, upper_code = lower_cte, do_None
+
+    if step is not None:
+        step_cte, step_code = comp_expr(upper_cte, step)
+    else:
+        step_cte, step_code = upper_cte, do_None
+
+    def do_slice(rte, cont):
+        def get_lower(lo_rte, lo):
+            def get_upper(up_rte, up):
+                def get_step(st_rte, st):
+                    return cont(st_rte, om_slice(lo, up, st))
+                return step_code(up_rte, get_step)
+            return upper_code(lo_rte, get_upper)
+        return lower_code(rte, get_lower)
+
+    return step_cte, do_slice
 
 def gen_Subscript_Load(cte, ast, obj_code, index_code):
     def get_obj(rte, cont):
