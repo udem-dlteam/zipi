@@ -2243,7 +2243,7 @@ def om_list_getitem_code(ctx, args):
         elif om_isinstance(item, class_slice):
             return sem_raise_with_message(ctx, class_NotImplementedError, "list[slice] not yet implemented")
     else:
-        return sem_raise_with_message(ctx, class_TypeError, "__getitem__() takes exactly one argument (" + str(args_len) + " given)")
+        return sem_raise_with_message(ctx, class_TypeError, "__getitem__() takes exactly one argument (" + str(args_len - 1) + " given)")
 
 om_list_getitem = do_magic_method(class_list, "__getitem__", om_list_getitem_code)
 
@@ -2269,7 +2269,7 @@ def om_list_setitem_code(ctx, args):
         elif om_isinstance(item, class_slice):
             return sem_raise_with_message(ctx, class_NotImplementedError, "list[slice] not yet implemented")
     else:
-        return sem_raise_with_message(ctx, class_TypeError, "__getitem__() takes exactly two argument (" + str(args_len) + " given)")
+        return sem_raise_with_message(ctx, class_TypeError, "__setitem__() takes exactly two argument (" + str(args_len - 1) + " given)")
 
 om_list_setitem = do_magic_method(class_list, "__setitem__", om_list_setitem_code)
 
@@ -2281,30 +2281,37 @@ def om_list_len_code(ctx, args):
         return ctx.cont(ctx.rte, om_int(elements_len))
     else:
         return sem_raise_with_message(ctx, class_TypeError,
-                                      "__len__() takes exactly one argument (" + str(args_len) + " given)")
+                                      "__len__() takes no argument (" + str(args_len) + " given)")
 
 
 om_list_len = do_magic_method(class_list, "__len__", om_list_len_code)
 
 def om_list_append_code(ctx, args):
     if debug: print('list.append')
-    self = args[0]
-    value = args[1]
 
-    elements = OM_get_list_seq(self)
-    list_len = OM_get_list_len(self)
-    elements_len = len(elements)
+    args_len = len(args)
 
-    if list_len < elements_len:
-        elements[list_len] = value
-        OM_set_list_len(self, list_len + 1)
+    if args_len == 2:
+        self = args[0]
+        value = args[1]
+
+        elements = OM_get_list_seq(self)
+        list_len = OM_get_list_len(self)
+        elements_len = len(elements)
+
+        if list_len < elements_len:
+            elements[list_len] = value
+            OM_set_list_len(self, list_len + 1)
+        else:
+            new_elements = list_seq_grow(elements)
+            new_elements[list_len] = value
+            OM_set_list_seq(self, new_elements)
+            OM_set_list_len(self, list_len + 1)
+
+        return ctx.cont(ctx.rte, om_None)
     else:
-        new_elements = list_seq_grow(elements)
-        new_elements[list_len] = value
-        OM_set_list_seq(self, new_elements)
-        OM_set_list_len(self, list_len + 1)
-
-    return ctx.cont(ctx.rte, om_None)
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "append() takes exactly one argument (" + str(args_len - 1) + " given)")
 
 om_list_append = do_magic_method(class_list, "append", om_list_append_code)
 
