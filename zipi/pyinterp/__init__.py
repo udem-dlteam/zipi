@@ -558,14 +558,31 @@ def getattribute_from_class_mro(cls, name):
         i += 1
     return absent
 
+def getattribute_from_class_mro_with_owner(cls, name):
+    mro = OM_get_type_mro(cls)
+    mro_len = len(mro)
+    i = 0
+    while i < mro_len:
+        cls = mro[i]
+        attr = OM_get(cls, name)
+        if attr is not absent:
+            return attr, cls
+        i += 1
+    return absent, absent
+
 def getattribute_from_obj_mro(o, name):
     cls = OM_get_object_class(o)
     if name == '__class__':
         return cls
-    # elif name == '__mro__':
-    #    return OM_get_type_mro(__class__)
     else:
         return getattribute_from_class_mro(cls, name)
+
+def getattribute_from_obj_mro_with_owner(o, name):
+    cls = OM_get_object_class(o)
+    if name == '__class__':
+        return cls, o
+    else:
+        return getattribute_from_class_mro_with_owner(cls, name)
 
 def compute_mro(cls, bases):
     seqs = []
@@ -1731,7 +1748,7 @@ def om_object_getattribute_code(ctx, args):
         name_value = OM_get_boxed_value(name)
 
         # Get field name
-        attr = getattribute_from_obj_mro(self, name_value)
+        attr, owner = getattribute_from_obj_mro_with_owner(self, name_value)
         if attr is absent:
             self_clsname = OM_get(OM_get_object_class(self), '__name__')
             self_clsname_value = OM_get_boxed_value(self_clsname)
@@ -1745,7 +1762,7 @@ def om_object_getattribute_code(ctx, args):
         if attr__get__ is absent:
             return ctx.cont(ctx.rte, attr)
         else:
-            return om_call(attr__get__, ctx, [attr, self, dt])
+            return om_call(attr__get__, ctx, [attr, self, owner])
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
 
