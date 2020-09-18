@@ -240,7 +240,11 @@ class OM_range(OM_object):
     """
 
 class OM_slice(OM_object):
-    pass
+    """
+    start: start of the slice
+    stop: stop of the slice
+    step: step of the slice
+    """
 
 class OM_dict(OM_object):
     pass
@@ -610,14 +614,31 @@ def getattribute_from_class_mro(cls, name):
         i += 1
     return absent
 
+def getattribute_from_class_mro_with_owner(cls, name):
+    mro = OM_get_type_mro(cls)
+    mro_len = len(mro)
+    i = 0
+    while i < mro_len:
+        cls = mro[i]
+        attr = OM_get(cls, name)
+        if attr is not absent:
+            return attr, cls
+        i += 1
+    return absent, absent
+
 def getattribute_from_obj_mro(o, name):
     cls = OM_get_object_class(o)
     if name == '__class__':
         return cls
-    # elif name == '__mro__':
-    #    return OM_get_type_mro(__class__)
     else:
         return getattribute_from_class_mro(cls, name)
+
+def getattribute_from_obj_mro_with_owner(o, name):
+    cls = OM_get_object_class(o)
+    if name == '__class__':
+        return cls, o
+    else:
+        return getattribute_from_class_mro_with_owner(cls, name)
 
 def compute_mro(cls, bases):
     seqs = []
@@ -832,6 +853,10 @@ def populate_builtin_int():
     builtin_add_method(class_int, '__mod__', om_int_mod)
     builtin_add_method(class_int, '__rmod__', om_int_rmod)
     builtin_add_method(class_int, '__abs__', om_int_abs)
+    builtin_add_method(class_int, '__pow__', om_int_pow)
+    builtin_add_method(class_int, '__rpow__', om_int_rpow)
+
+
     # Bitwise
     builtin_add_method(class_int, '__lshift__', om_int_lshift)
     builtin_add_method(class_int, '__rlshift__', om_int_rlshift)
@@ -997,6 +1022,13 @@ def om_list(seq, len_):
     obj = om(class_list)
     OM_set_list_seq(obj, seq)
     OM_set_list_len(obj, len_)
+    return obj
+
+def om_slice(start, stop, step):
+    obj = om(class_slice)
+    OM_set_slice_start(obj, start)
+    OM_set_slice_stop(obj, stop)
+    OM_set_slice_step(obj, step)
     return obj
 
 def om_range(start, stop, step):
@@ -1212,6 +1244,24 @@ def OM_get_list_len(o):
 
 def OM_set_list_len(o, value):
     o.len = value
+
+def OM_get_slice_start(o):
+    return o.start
+
+def OM_set_slice_start(o, start):
+    o.start = start
+
+def OM_get_slice_stop(o):
+    return o.stop
+
+def OM_set_slice_stop(o, stop):
+    o.stop = stop
+
+def OM_get_slice_step(o):
+    return o.step
+
+def OM_set_slice_step(o, step):
+    o.step = step
 
 def OM_get_range_start(o):
     return o.start
@@ -1438,6 +1488,38 @@ def sem_Round(ctx, obj, ndigits):
     else:
         return om_call(obj_round, ctx, (obj, ndigits))
 
+def sem_PowMod(ctx, base, power, mod):
+
+    def test_method_result(rte, val):
+        if om_is(val, om_NotImplemented):
+            return call_rmethod(rte)
+        else:
+            return ctx.cont(rte, val)
+
+    def test_rmethod_result(rte, val):
+        if om_is(val, om_NotImplemented):
+            return sem_raise_with_message(ctx, class_TypeError, "unsupported operand type(s) for pow()")
+
+        else:
+            return ctx.cont(rte, val)
+
+    def call_rmethod(rte):
+        power_rmethod = getattribute_from_obj_mro(power, "__rpow__")
+
+        if power_rmethod is not absent:
+            ctx2 = with_cont(ctx, test_rmethod_result)
+            return om_call(power_rmethod, ctx2, (power, base, mod))
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "unsupported operand type(s) for pow()")
+
+    base_method = getattribute_from_obj_mro(base, "__pow__")
+
+    if base_method is not absent:
+        ctx1 = with_cont(ctx, test_method_result)
+        return om_call(base_method, ctx1, (base, power, mod))
+    else:
+        return call_rmethod(ctx.rte)
+    
 # Create builtins classes
 __base_types = bootstrap_base_types()
 
@@ -1772,7 +1854,7 @@ def om_object_getattribute_code(ctx, args):
         name_value = OM_get_boxed_value(name)
 
         # Get field name
-        attr = getattribute_from_obj_mro(self, name_value)
+        attr, owner = getattribute_from_obj_mro_with_owner(self, name_value)
         if attr is absent:
             self_clsname = OM_get(OM_get_object_class(self), '__name__')
             self_clsname_value = OM_get_boxed_value(self_clsname)
@@ -1786,7 +1868,7 @@ def om_object_getattribute_code(ctx, args):
         if attr__get__ is absent:
             return ctx.cont(ctx.rte, attr)
         else:
-            return om_call(attr__get__, ctx, [attr, self, dt])
+            return om_call(attr__get__, ctx, [attr, self, owner])
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
 
@@ -1948,6 +2030,9 @@ def compute_pow_mod(ctx, num, power, mod):
         # raise an Overflow error when it cannot be exactly represent as a floating point
         if float_is_infinite(fl_num_mod) or float_is_nan(fl_num_mod) or float_is_nan(fl_power):
             return sem_raise_with_message(ctx, class_OverflowError, "int too large to convert to float")
+        elif float_is_neg(fl_power):
+            # modular inverse computation
+            return sem_raise_with_message(ctx, class_NotImplementedError, "modular inverse unimplemented")
         elif float_is_infinite(fl_power):
             # the result tends to 0 when power tends to -Infinity
             return cont_float(ctx, float_from_num(0.0))
@@ -1981,7 +2066,7 @@ def om_int_pow_code(ctx, args):
     if args_len < 2:
         return sem_raise_with_message(ctx, class_TypeError, "expected at least 1 argument, got " + str(args_len - 1))
     elif args_len > 3:
-        return sem_raise_with_message(ctx, class_TypeError, "expected at most 2 arguments, got " + str(args_len - 1))
+        return sem_raise_with_message(ctx, class_TypeError, "expected at most 3 arguments, got " + str(args_len - 1))
     else:
         self = args[0]
         power = args[1]
@@ -1997,10 +2082,9 @@ def om_int_pow_code(ctx, args):
                 if om_isinstance(mod, class_int):
                     mod_value = OM_get_boxed_value(mod)
                     return compute_pow_mod(ctx, self_value, power_value, mod_value)
-                else:
-                    return cont_obj(ctx, om_NotImplemented)
-        else:
-            return cont_obj(ctx, om_NotImplemented)
+                elif om_isinstance(mod, class_float):
+                    return sem_raise_with_message(ctx, class_TypeError, "3rd argument not allowed unless all arguments are integers")
+        return cont_obj(ctx, om_NotImplemented)
 
 om_int_pow = do_magic_method(class_int, "__pow__", om_int_pow_code)
 
@@ -2010,7 +2094,7 @@ def om_int_rpow_code(ctx, args):
     if args_len < 2:
         return sem_raise_with_message(ctx, class_TypeError, "expected at least 1 argument, got " + str(args_len - 1))
     elif args_len > 3:
-        return sem_raise_with_message(ctx, class_TypeError, "expected at most 2 arguments, got " + str(args_len - 1))
+        return sem_raise_with_message(ctx, class_TypeError, "expected at most 3 arguments, got " + str(args_len - 1))
     else:
         self = args[0]
         num = args[1]
@@ -2026,10 +2110,9 @@ def om_int_rpow_code(ctx, args):
                 if om_isinstance(mod, class_int):
                     mod_value = OM_get_boxed_value(mod)
                     return compute_pow_mod(ctx, num_value, self_value, mod_value)
-                else:
-                    return cont_obj(ctx, om_NotImplemented)
-        else:
-            return cont_obj(ctx, om_NotImplemented)
+                elif om_isinstance(mod, class_float):
+                    return sem_raise_with_message(ctx, class_TypeError, "3rd argument not allowed unless all arguments are integers")
+        return cont_obj(ctx, om_NotImplemented)
 
 om_int_rpow = do_magic_method(class_int, "__rpow__", om_int_rpow_code)
 
@@ -2264,9 +2347,9 @@ def om_list_getitem_code(ctx, args):
                 else:
                     return sem_raise_with_message(ctx, class_IndexError, "list index out of range")
         elif om_isinstance(item, class_slice):
-            return sem_raise_with_message(ctx, class_NotImplementedError, "list[slice] not yet implemented")
+            return sem_raise_with_message(ctx, class_NotImplementedError, "list slicing is not yet supported")
     else:
-        return sem_raise_with_message(ctx, class_TypeError, "__getitem__() takes exactly one argument (" + str(args_len) + " given)")
+        return sem_raise_with_message(ctx, class_TypeError, "__getitem__() takes exactly one argument (" + str(args_len - 1) + " given)")
 
 om_list_getitem = do_magic_method(class_list, "__getitem__", om_list_getitem_code)
 
@@ -2292,7 +2375,7 @@ def om_list_setitem_code(ctx, args):
         elif om_isinstance(item, class_slice):
             return sem_raise_with_message(ctx, class_NotImplementedError, "list[slice] not yet implemented")
     else:
-        return sem_raise_with_message(ctx, class_TypeError, "__getitem__() takes exactly two argument (" + str(args_len) + " given)")
+        return sem_raise_with_message(ctx, class_TypeError, "__setitem__() takes exactly two argument (" + str(args_len - 1) + " given)")
 
 om_list_setitem = do_magic_method(class_list, "__setitem__", om_list_setitem_code)
 
@@ -2304,30 +2387,37 @@ def om_list_len_code(ctx, args):
         return ctx.cont(ctx.rte, om_int(elements_len))
     else:
         return sem_raise_with_message(ctx, class_TypeError,
-                                      "__len__() takes exactly one argument (" + str(args_len) + " given)")
+                                      "__len__() takes no argument (" + str(args_len) + " given)")
 
 
 om_list_len = do_magic_method(class_list, "__len__", om_list_len_code)
 
 def om_list_append_code(ctx, args):
     if debug: print('list.append')
-    self = args[0]
-    value = args[1]
 
-    elements = OM_get_list_seq(self)
-    list_len = OM_get_list_len(self)
-    elements_len = len(elements)
+    args_len = len(args)
 
-    if list_len < elements_len:
-        elements[list_len] = value
-        OM_set_list_len(self, list_len + 1)
+    if args_len == 2:
+        self = args[0]
+        value = args[1]
+
+        elements = OM_get_list_seq(self)
+        list_len = OM_get_list_len(self)
+        elements_len = len(elements)
+
+        if list_len < elements_len:
+            elements[list_len] = value
+            OM_set_list_len(self, list_len + 1)
+        else:
+            new_elements = list_seq_grow(elements)
+            new_elements[list_len] = value
+            OM_set_list_seq(self, new_elements)
+            OM_set_list_len(self, list_len + 1)
+
+        return ctx.cont(ctx.rte, om_None)
     else:
-        new_elements = list_seq_grow(elements)
-        new_elements[list_len] = value
-        OM_set_list_seq(self, new_elements)
-        OM_set_list_len(self, list_len + 1)
-
-    return ctx.cont(ctx.rte, om_None)
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "append() takes exactly one argument (" + str(args_len - 1) + " given)")
 
 om_list_append = do_magic_method(class_list, "append", om_list_append_code)
 
@@ -3415,7 +3505,7 @@ def om_float_new_code(ctx, args):
         obj = args[1]
 
         def check_result(rte, res):
-            if res is None:
+            if res is absent:
                 return om_float_str_conversion(ctx, obj)
             else:
                 return ctx.cont(ctx.rte, om_float_subtype(cls, OM_get_boxed_value(res)))
@@ -3461,12 +3551,12 @@ def om_float_float_code(ctx, args):
 
 om_float_float = do_magic_method(class_float, "__float__", om_float_float_code)
 
-
 def gen_dunder_Float_BinOp(py_class, method, prim, cont_box):
     debug_msg = py_class + "." + method
 
     def dunder_Float_BinOp(ctx, args):
         if debug: print(debug_msg)
+
         val1 = args[0]
         val2 = args[1]
 
@@ -3492,13 +3582,16 @@ def gen_dunder_Float_BinOp(py_class, method, prim, cont_box):
 
     return do_magic_method(class_float, method, dunder_Float_BinOp)
 
+
 def gen_dunder_Float_rBinOp(py_class, method, prim, cont_box):
     debug_msg = py_class + "." + method
 
     def dunder_Float_rBinOp(ctx, args):
         if debug: print(debug_msg)
+
         val1 = args[0]
         val2 = args[1]
+
 
         val2_class = OM_get_object_class(val2)
 
@@ -3521,6 +3614,7 @@ def gen_dunder_Float_rBinOp(py_class, method, prim, cont_box):
             return cont_obj(ctx, om_NotImplemented)
 
     return do_magic_method(class_float, method, dunder_Float_rBinOp)
+
 
 def gen_dunder_Float_DivideOp(py_class, method, prim, cont_box):
     debug_msg = py_class + "." + method
@@ -3689,7 +3783,6 @@ def float_floordiv(u, v):
 om_float_floordiv = gen_dunder_Float_DivideOp('float', '__floordiv__', float_floordiv, cont_float)
 om_float_rfloordiv = gen_dunder_Float_rDivideOp('float', '__rfloordiv__', float_floordiv, cont_float)
 
-
 def om_float_mod_code(ctx, args):
     args_len = len(args)
 
@@ -3792,9 +3885,11 @@ def om_float_pow_code(ctx, args):
             val1_value = OM_get_boxed_value(val1)
             val2_value = OM_get_boxed_value(val2)
 
-            if float_is_infinite(val2_value) and float_eq(val1_value, float_from_num(1.0)):
-                # Special case in Python where 1.0 ** inf returns 1.0
-                return cont_float(ctx, val1_value)
+            abs_val1_value = float_abs(val1_value)
+
+            if float_is_infinite(val2_value) and float_eq(abs_val1_value, float_from_num(1.0)):
+                # Special case in Python where +-1.0 ** inf returns 1.0
+                return cont_float(ctx, abs_val1_value)
             else:
                 return cont_float(ctx, float_pow(val1_value, val2_value))
 
@@ -3827,9 +3922,11 @@ def om_float_rpow_code(ctx, args):
             val1_value = OM_get_boxed_value(val1)
             val2_value = OM_get_boxed_value(val2)
 
-            if float_is_infinite(val1_value) and float_eq(val2_value, float_from_num(1.0)):
-                # Special case in Python where 1.0 ** inf returns 1.0
-                return cont_float(ctx, val2_value)
+            abs_val2_value = float_abs(val2_value)
+
+            if float_is_infinite(val1_value) and float_eq(abs_val2_value, float_from_num(1.0)):
+                # Special case in Python where +-1.0 ** inf returns 1.0
+                return cont_float(ctx, abs_val2_value)
             else:
                 return cont_float(ctx, float_pow(val2_value, val1_value))
 
@@ -4475,19 +4572,14 @@ def om_round_code(rte, cont):
 def om_pow_code(rte, _):
     next_ctx = make_out_of_ast_context(rte, unwindReturn)
 
-    obj1 = rte_lookup_locals(rte, 'obj1')
-    obj2 = rte_lookup_locals(rte, 'obj2')
-    obj3 = rte_lookup_locals(rte, 'obj3')
+    base = rte_lookup_locals(rte, 'base')
+    power = rte_lookup_locals(rte, 'power')
+    mod = rte_lookup_locals(rte, 'mod')
 
-    obj1_pow = getattribute_from_obj_mro(obj1, '__pow__')
-
-    if obj1_pow is absent:
-        return sem_raise_with_message(next_ctx, class_TypeError, "bad operand type for pow()")
+    if mod is absent:
+        return sem_Pow(next_ctx, base, power)
     else:
-        if om_is(obj3, absent):
-            return om_call(obj1_pow, next_ctx, [obj1, obj2])
-        else:
-            return om_call(obj1_pow, next_ctx, [obj1, obj2, obj3])
+        return sem_PowMod(next_ctx, base, power, mod)
 
 # Built-in Modules
 def init_module_math():
@@ -4545,29 +4637,21 @@ def init_module_math():
             return sem_raise(ctx, class_TypeError)
 
     def math_pow_code(rte, cont):
+        obj1 = rte_lookup_locals(rte, 'obj1')
+        obj2 = rte_lookup_locals(rte, 'obj2')
 
-        val1 = rte_lookup_locals(rte, 'obj1')
-        obj1_class = OM_get_object_class(val1)
-        unboxed_val1 = OM_get_boxed_value(val1)
+        def check_obj1(obj1_rte, obj1_res):
+            if obj1_res is absent:
+                return sem_raise_with_message(make_out_of_ast_context(obj1_rte, cont), "must be real number")
+            else:
+                def check_obj2(obj2_rte, obj2_res):
+                    if obj2_res is absent:
+                        return sem_raise_with_message(make_out_of_ast_context(obj2_rte, cont), "must be real number")
+                    else:
+                        return sem_Pow(make_out_of_ast_context(obj2_rte, unwindReturn), obj1_res, obj2_res)
 
-        val2 = rte_lookup_locals(rte, 'obj2')
-        obj2_class = OM_get_object_class(val2)
-        unboxed_val2 = OM_get_boxed_value(val2)
-
-        if om_is(obj1_class, class_int):
-            unboxed_val1 = int_to_num(unboxed_val1)
-            obj1_class = class_float
-
-        if om_is(obj2_class, class_int):
-            unboxed_val2 = int_to_num(unboxed_val2)
-            obj2_class = class_float
-
-        if om_is(obj1_class, class_float) and om_is(obj2_class, class_float):
-            return unwindReturn(rte, om_float(float_pow(unboxed_val1, unboxed_val2)))
-
-        else:
-            ctx = make_out_of_ast_context(rte, cont)
-            return sem_raise(ctx, class_TypeError)
+            return sem_maybe_float(make_out_of_ast_context(obj1_rte, check_obj2), obj2)
+        return sem_maybe_float(make_out_of_ast_context(rte, check_obj1), obj1)
 
 
     def math_exp_code(rte, cont):
@@ -4809,9 +4893,9 @@ def fresh_rte(options):
     om_builtin_abs = om_make_function_with_signature('abs', om_abs_code, make_posonly_only_signature(('obj',)))
     om_builtin_min = om_make_function_with_signature('min', om_min_code, make_vararg_only_signature('args'))
     om_builtin_max = om_make_function_with_signature('max', om_max_code, make_vararg_only_signature('args'))
+
     om_builtin_round = om_make_function_with_signature('round', om_round_code, make_posonly_defaults_signature(('number', 'ndigits'), (absent,)))
-    om_builtin_pow = om_make_function_with_signature('pow', om_pow_code,
-                                                     make_posonly_only_signature(('obj1', 'obj2')))
+    om_builtin_pow = om_make_function_with_signature('pow', om_pow_code, make_posonly_defaults_only_signature(('base', 'power', 'mod'), (absent,)))
 
     om_random_random = om_make_function_with_signature('random', om_random_code, empty_sigature)
 
@@ -4819,6 +4903,7 @@ def fresh_rte(options):
     om_builtin_alert = om_make_function_with_signature('alert', om_alert_code, make_posonly_defaults_signature(('obj',), (om_str(''),)))
     om_builtin_confirm = om_make_function_with_signature('confirm', om_confirm_code, make_posonly_defaults_signature(('obj',), (om_str(''),)))
     om_builtin_prompt = om_make_function_with_signature('prompt', om_prompt_code, make_posonly_defaults_signature(('obj',), (om_str(''),)))
+
 
 
     dict_set(builtins_env, 'type', class_type)
@@ -5508,7 +5593,8 @@ def comp_expr(cte, ast):
             index_cte, index_code = comp_expr(obj_cte, index_ast.value)
             return gen_Subscript_Load(index_cte, ast, obj_code, index_code)
         elif isinstance(index_ast, AST.Slice):
-            return CT_raise_syntax_error_with_msg(cte, ast, "slice indexation unsupported")
+            slice_cte, slice_code = gen_Slice(obj_cte, index_ast)
+            return gen_Subscript_Load(slice_cte, ast, obj_code, slice_code)
         else:
             return CT_raise_syntax_error_with_msg(cte, ast, "unsupported expression AST")
     else:
@@ -6678,7 +6764,7 @@ def sem_maybe_float(ctx, obj):
     obj_float = getattribute_from_obj_mro(obj, '__float__')
 
     if obj_float is absent:
-        return ctx.cont(ctx.rte, None)
+        return ctx.cont(ctx.rte, absent)
     else:
         def check_float(rte, res):
             if om_isinstance(res, class_float):
@@ -6710,6 +6796,40 @@ def gen_elements(cte, ast, code_elts, make_container):
                                                    ast),
                                            elts))
     return (cte, code)
+
+def gen_Slice(cte, slice_ast):
+    def do_None(rte, cont):
+        return cont(rte, om_None)
+
+    lower = slice_ast.lower
+    upper = slice_ast.upper
+    step = slice_ast.step
+
+    if lower is not None:
+        lower_cte, lower_code = comp_expr(cte, lower)
+    else:
+        lower_cte, lower_code = cte, do_None
+
+    if upper is not None:
+        upper_cte, upper_code = comp_expr(lower_cte, upper)
+    else:
+        upper_cte, upper_code = lower_cte, do_None
+
+    if step is not None:
+        step_cte, step_code = comp_expr(upper_cte, step)
+    else:
+        step_cte, step_code = upper_cte, do_None
+
+    def do_slice(rte, cont):
+        def get_lower(lo_rte, lo):
+            def get_upper(up_rte, up):
+                def get_step(st_rte, st):
+                    return cont(st_rte, om_slice(lo, up, st))
+                return step_code(up_rte, get_step)
+            return upper_code(lo_rte, get_upper)
+        return lower_code(rte, get_lower)
+
+    return step_cte, do_slice
 
 def gen_Subscript_Load(cte, ast, obj_code, index_code):
     def get_obj(rte, cont):
