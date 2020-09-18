@@ -401,6 +401,7 @@ class TokenizerState:
         self.indents = [0]
         self.dedents = 0
         self.python = 3
+        self.comment_start = -1
         self.context = context
 
 def get_lineno(ts):
@@ -501,8 +502,9 @@ def get_token(ts):
                     if c == 10 or c == 13: # EOL?
                         break
                     else:
-                        if hasattr(ts.context, 'ctrl_char'):
-                            ts.context.ctrl_char(ts, pos)
+                        hook = dict_get(ts.context, 'ctrl_char', False) if ts.context else False
+                        if hook:
+                            hook(ts, pos)
                         if c == 9: # '\t'
                             col = (col//8 + 1)*8
                         elif c == 12: # '\f'
@@ -511,6 +513,7 @@ def get_token(ts):
                             break
 
             if c == 35: # '#' begins a comment (ignore rest of line)
+                ts.comment_start = pos-1
                 while True:
                     c = byte_at(buf, pos)
                     pos += 1
@@ -523,7 +526,7 @@ def get_token(ts):
             if c == 10 or c == 13: # EOL?
                 if c == 13 and byte_at(buf, pos) == 10: # CR-LF
                     pos += 1
-                eol_reached(ts, pos, is_comment)
+                eol_reached(ts, pos)
                 if pos < ts.buf_len: # not at end of source?
                     continue # go to top of tokenizer's main loop
                 ts.start = ts.buf_len
@@ -582,15 +585,16 @@ def get_token(ts):
                 pos += 1
                 if k != KIND_WHITESPACE: # ' ' or '\t' or '\f'
                     break
-                else:
-                    if hasattr(ts.context, 'ctrl_char'):
-                        ts.context.ctrl_char(ts, pos)
+                elif c != 32: # ' '
+                    hook = dict_get(ts.context, 'ctrl_char', False) if ts.context else False
+                    if hook:
+                        hook(ts, pos)
 
             if k == KIND_NEWLINE: # EOL
                 ts.start = pos-1
                 if c == 13 and byte_at(buf, pos) == 10: # CR-LF
                     pos += 1
-                eol_reached(ts, pos, False)
+                eol_reached(ts, pos)
                 if pos <= ts.buf_len: # not at end of source?
                     if ts.paren_level == 0:
                         ts.end = pos
@@ -690,7 +694,7 @@ def get_token(ts):
                     inc_stats('k == KIND_NEWLINE')
                     if c == 13 and next == 10: # CR-LF
                         pos += 1
-                    eol_reached(ts, pos, False)
+                    eol_reached(ts, pos)
                     if pos > ts.buf_len: # at end of source?
                         ts.start = ts.buf_len
                         ts.end = ts.buf_len
@@ -812,6 +816,7 @@ def get_token(ts):
                 if k == KIND_COMMENT: # 0.3% of tokens
                     inc_stats('k == KIND_COMMENT')
                     inc_found(KIND_COMMENT) # .0257
+                    ts.comment_start = pos-1
                     while byte_at(buf, pos) != 10: # skip until EOL
                         pos += 1
                     continue # go to top of tokenizer's main loop
@@ -822,7 +827,7 @@ def get_token(ts):
                 inc_found(KIND_CONTINUATION) # .0006
                 if next == 10: # LF
                     pos += 1
-                    eol_reached(ts, pos, False)
+                    eol_reached(ts, pos)
                     # don't generate a NEWLINE token
                     continue # go to top of tokenizer's main loop
                 print('error bad continuation line')
@@ -863,13 +868,15 @@ def get_token(ts):
         ts.token = kind_to_token[k]
         return
 
-def eol_reached(ts, pos, is_comment):
+def eol_reached(ts, pos):
+    hook = dict_get(ts.context, 'eol_reached', False) if ts.context else False
 
-    if hasattr(ts.context, 'eol_reached'):
-        ts.context.eol_reached(ts, pos, is_comment)
+    if hook:
+        hook(ts, pos, ts.comment_start)
 
     ts.line_start = pos
     ts.line_num += 1
+    ts.comment_start = -1
 
 def float_tail(ts, pos, k):
 
@@ -1097,7 +1104,7 @@ def get_string(ts, pos, quote, kind, raw):
                 ts.token = ERRORTOKEN
                 return
 
-            eol_reached(ts, pos, False)
+            eol_reached(ts, pos)
 
             if pos >= ts.buf_len: # at end of source or single quoted?
                 ts.end = pos
@@ -1117,7 +1124,7 @@ def get_string(ts, pos, quote, kind, raw):
                 pos += 1
 
                 if next == 10: # \<newline> (continuation line)
-                    eol_reached(ts, pos, False)
+                    eol_reached(ts, pos)
                     if pos >= ts.buf_len: # at end of source?
                         ts.end = pos
                         ts.token = ERRORTOKEN
@@ -1129,7 +1136,7 @@ def get_string(ts, pos, quote, kind, raw):
 
             if next == 10: # \<newline> (continuation line)
                 pos += 1
-                eol_reached(ts, pos, False)
+                eol_reached(ts, pos)
                 if pos >= ts.buf_len: # at end of source?
                     ts.end = pos
                     ts.token = ERRORTOKEN
