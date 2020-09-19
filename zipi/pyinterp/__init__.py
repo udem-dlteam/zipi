@@ -4034,7 +4034,7 @@ def om_float_round_code(ctx, args):
                     else:
                         return cont_float(ctx, float_from_num(0.0))
                 else:
-                    scale = float_mul(float_from_num(10.0), n_float_value)
+                    scale = float_pow(float_from_num(10.0), n_float_value)
                     res = float_div(float_round_even(float_mul(self_value, scale)), scale)
                     if float_is_infinite(res):
                         # Value precision > 1: nothing to round
