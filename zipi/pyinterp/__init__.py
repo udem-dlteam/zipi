@@ -4683,7 +4683,7 @@ def init_module_math():
             if float_is_neg(unboxed_val) or float_is_zero(unboxed_val):
                 ctx = make_out_of_ast_context(rte, cont)
                 return sem_raise_with_message(ctx, class_ValueError, 'math domain error')
-            return unwindReturn(rte, om_float(float_sin(unboxed_val)))
+            return unwindReturn(rte, om_float(float_log(unboxed_val)))
 
         else:
             ctx = make_out_of_ast_context(rte, cont)
