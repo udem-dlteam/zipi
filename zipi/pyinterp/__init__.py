@@ -6916,7 +6916,7 @@ def sem_var_get_closure(ctx, pos, id):
 
     if value is absent:
         # TODO: recover closure variable name
-        return sem_raise_with_message(ctx, class_UnboundLocalError, "local variable '" + id + "' referenced before assignment")
+        return sem_raise_with_message(ctx, class_NameError, "free variable '" + id + "' referenced before assignment in enclosing scope")
     else:
         return cont_obj(ctx, value)
 
