@@ -4863,8 +4863,14 @@ def comp(ast, external_context):
     else:
         filename = None
 
-    (cte1, code) = comp_mod(cte, ast)
-    return code
+    res = comp_mod(cte, ast)
+
+    if isinstance(res, tuple):
+        cte, code = res
+        return code
+    else:
+        # Case where an error was returned
+        return res
 
 def prepare_execution(code, rte):
     return lambda: code(rte, lambda rte: None)
@@ -5174,6 +5180,8 @@ def init_compute_variables_scope(cte, ast):
 
             res = compute_variables_scope(cte, ast, locals_env, locals_ref, stack)
 
+            syntax_error = args[0]
+
             if res is not None:
                 return syntax_error(res)
             else:
@@ -5384,9 +5392,12 @@ def comp_mod(cte, ast):
         # Module(stmt* body, type_ignore *type_ignores)
         if debug: print('AST.Module')
 
-        init_compute_variables_scope(cte, ast)
+        scope_error = init_compute_variables_scope(cte, ast)
 
-        return comp_stmt_seq(cte, ast.body)
+        if scope_error is not None:
+            return scope_error
+        else:
+            return comp_stmt_seq(cte, ast.body)
 
     elif isinstance(ast, AST.Interactive):
         # Interactive(stmt* body)
