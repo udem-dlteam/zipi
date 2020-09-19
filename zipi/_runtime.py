@@ -532,6 +532,40 @@ def runtime_random():
     return random.random()
 
 
+# Module turtle (graphics) placeholder
+def drawing_cs(rte, width=None, height=None):
+    pass
+
+def drawing_fd(rte, xdist, ydist):
+    pass
+
+def drawing_bk(rte, xdist, ydist):
+    pass
+
+def drawing_ht(rte):
+    pass
+
+def drawing_st(rte):
+    pass
+
+def drawing_pd(rte):
+    pass
+
+def drawing_pu(rte):
+    pass
+
+def drawing_mv(rte, x, y):
+    pass
+
+def drawing_setpc(rte, r, g, b):
+    pass
+
+def drawing_setpw(rte, width):
+    pass
+
+def drawing_drawtext(rte, text):
+    pass
+
 debug = False
 
 if debug:
