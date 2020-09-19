@@ -4649,8 +4649,7 @@ def init_module_math():
                         return sem_raise_with_message(make_out_of_ast_context(obj2_rte, cont), "must be real number")
                     else:
                         return sem_Pow(make_out_of_ast_context(obj2_rte, unwindReturn), obj1_res, obj2_res)
-
-            return sem_maybe_float(make_out_of_ast_context(obj1_rte, check_obj2), obj2)
+                return sem_maybe_float(make_out_of_ast_context(obj1_rte, check_obj2), obj2)
         return sem_maybe_float(make_out_of_ast_context(rte, check_obj1), obj1)
 
 
