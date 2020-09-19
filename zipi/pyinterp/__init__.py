@@ -4834,7 +4834,7 @@ def default_compilation_error(start_line0,
                          start_column0,
                          end_line0,
                          end_column0, error_kind, msg):
-    return lambda rte, __: runtime_print(error_kind + " at line " + str(end_line0) + ": " + msg, rte)
+    raise SyntaxError(msg + " at line " + str(end_line0))
 
 def interp_source(src, options=None):
     if options is None:
@@ -4863,7 +4863,8 @@ def comp(ast, external_context):
     else:
         filename = None
 
-    (cte1, code) = comp_mod(cte, ast)
+    cte, code = comp_mod(cte, ast)
+
     return code
 
 def prepare_execution(code, rte):
@@ -5023,7 +5024,7 @@ def walk(cte, ast, fn, args):
 
 def walk_with_abort(cte, ast, fn, abort_fn, args):
     # Provides an 'abort' as first argument to 'fn' which call is detected to interrupt walk and return result
-    # The provided abort function can only take a single argument, multiple arguments mus be passed as a tuple
+    # The provided abort function can only take a single argument, multiple arguments must be passed as a tuple
     error_occured = [False]
     abort_res = [None]
 
@@ -5063,9 +5064,6 @@ def walk_with_abort(cte, ast, fn, abort_fn, args):
 def raise_walk_syntax_error(args):
     cte, ast, msg = args
     return CT_raise_syntax_error_with_msg(cte, ast, msg)
-
-def abort_walk_id_function(args):
-    return args
 
 # Flags for
 LOCAL_VAR = ["LOCAL_VAR"]
@@ -5174,6 +5172,8 @@ def init_compute_variables_scope(cte, ast):
 
             res = compute_variables_scope(cte, ast, locals_env, locals_ref, stack)
 
+            syntax_error = args[0]
+
             if res is not None:
                 return syntax_error(res)
             else:
@@ -5218,7 +5218,7 @@ def compute_variables_scope(cte, ast, locals_env, locals_ref, stack):
 
     for stmt in ast.body:
 
-        res = walk_with_abort(cte, stmt, compute_function_variables_scope, abort_walk_id_function, args)
+        res = walk_with_abort(cte, stmt, compute_function_variables_scope, raise_walk_syntax_error, args)
 
         # A syntax error was detected
         if res is not None:
@@ -6905,7 +6905,7 @@ def sem_var_get_closure(ctx, pos, id):
 
     if value is absent:
         # TODO: recover closure variable name
-        return sem_raise_with_message(ctx, class_UnboundLocalError, "local variable '" + id + "' referenced before assignment")
+        return sem_raise_with_message(ctx, class_NameError, "free variable '" + id + "' referenced before assignment in enclosing scope")
     else:
         return cont_obj(ctx, value)
 

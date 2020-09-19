@@ -74,18 +74,23 @@ def run_one_test(path, cpython, zipi, tmp_output_file):
         if cpython_output.stderr is not None:
             cpython_error = cpython_output.stderr.decode().strip().rsplit('\n', 1)[-1]
             cpython_error_msg_parts = cpython_error.split(":", maxsplit=1)
-            cpython_error_token = (cpython_error_msg_parts[0], len(cpython_error_msg_parts))
+            cpython_error_kind = cpython_error_msg_parts[0]
         else:
-            cpython_error_token = ""
+            cpython_error_kind = ""
 
         if zipi_output.stdout is not None :
-            zipi_error = zipi_output.stdout.decode().strip().rsplit('\n', 1)[-1]
-            zipi_error_msg_parts = zipi_error.split(":", maxsplit=1)
-            zipi_error_token = (zipi_error_msg_parts[0], len(zipi_error_msg_parts))
+            zipi_stdout_error = zipi_output.stdout.decode()
         else:
-            zipi_error_token = ""
+            zipi_stdout_error = ""
 
-        return cpython_error_token == zipi_error_token
+        if zipi_output.stderr is not None:
+            zipi_stderr_error = zipi_output.stderr.decode()
+        else:
+            zipi_stderr_error_token = ""
+
+        # Due to testing on various backend (cpython/node namely), the error detection must be loose
+        # We simply check that the expected error type appears somewhere in the error emssage
+        return cpython_error_kind in zipi_stderr_error or cpython_error_kind in zipi_stdout_error
 
 
 def process_file(file, folder, cpython, zipi, shared_lst):

@@ -1022,8 +1022,10 @@ class Transformer:
             exc = self.transform(node.exc)
             return f"throw ({exc});"
         else:
+            # Try adding the exception type in the message
+            exc = node.exc.func.id
             args = self.transform(node.exc.args)
-            return f"throw ({args});"
+            return f"throw ('{exc}' + ': ' + {args});"
 
     def Try(self, node):
         # ('body', 'handlers', 'orelse', 'finalbody')
