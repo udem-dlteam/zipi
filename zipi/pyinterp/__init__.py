@@ -434,7 +434,7 @@ def unwindReturn(rte, val):
 def make_signature(args, posonlyargs, varargs, kwonlyargs, kw_defaults, kwargs, defaults):
     return (args, posonlyargs, varargs, kwonlyargs, kw_defaults, kwargs, defaults)
 
-empty_sigature = make_signature((), (), None, (), (), None, ())
+empty_signature = make_signature((), (), None, (), (), None, ())
 
 def make_posonly_only_signature(posonlyargs):
     return make_signature((), posonlyargs, None, (), (), None, ())
@@ -4833,7 +4833,7 @@ def init_module_turtle(globals_env):
         def code(rte, cont):
             fct(rte)
             return unwindReturn(rte, om_None)
-        return om_make_function_with_signature(name, code, empty_sigature)
+        return om_make_function_with_signature(name, code, empty_signature)
 
     def make_bridge_1_or_2(fct, name, arg1, arg2):
         def code(rte, cont):
@@ -4907,7 +4907,7 @@ def init_module_turtle(globals_env):
             drawing_rt(rte, angle_value)
             return unwindReturn(rte, om_None)
 
-    def setpc_code(rte, cont):
+    def pencolor_code(rte, cont):
         r = rte_lookup_locals(rte, 'r')
         g = rte_lookup_locals(rte, 'g')
         b = rte_lookup_locals(rte, 'b')
@@ -4922,7 +4922,7 @@ def init_module_turtle(globals_env):
             drawing_setpc(rte, rval, gval, bval)
             return unwindReturn(rte, om_None)
 
-    def setpw_code(rte, cont):
+    def pensize_code(rte, cont):
         width = rte_lookup_locals(rte, 'width')
         width_value = convert_to_number(width)
         if width_value is absent:
@@ -4931,7 +4931,7 @@ def init_module_turtle(globals_env):
             drawing_setpw(rte, width_value)
             return unwindReturn(rte, om_None)
 
-    def drawtext_code(rte, cont):
+    def write_code(rte, cont):
         text = rte_lookup_locals(rte, 'text')
         if om_isinstance(text, class_str):
             text_value = OM_get_boxed_value(text)
@@ -4949,11 +4949,11 @@ def init_module_turtle(globals_env):
                                                           make_posonly_only_signature(('angle',)))
     om_module_turtle_rt = om_make_function_with_signature('rt', rt_code,
                                                           make_posonly_only_signature(('angle',)))
-    om_module_turtle_setpc = om_make_function_with_signature('setpc', setpc_code,
+    om_module_turtle_pencolor = om_make_function_with_signature('pencolor', pencolor_code,
                                                              make_posonly_only_signature(('r', 'g', 'b')))
-    om_module_turtle_setpw = om_make_function_with_signature('setpw', setpw_code,
+    om_module_turtle_pensize = om_make_function_with_signature('pensize', pensize_code,
                                                              make_posonly_only_signature(('width',)))
-    om_module_turtle_drawtext = om_make_function_with_signature('drawtext', drawtext_code,
+    om_module_turtle_write = om_make_function_with_signature('write', write_code,
                                                                 make_posonly_only_signature(('text',)))
 
     module_turtle_env = make_dict()
@@ -4974,9 +4974,9 @@ def init_module_turtle(globals_env):
     dict_set(module_turtle_env, 'goto', om_module_turtle_goto)
     dict_set(module_turtle_env, 'lt', om_module_turtle_lt)
     dict_set(module_turtle_env, 'rt', om_module_turtle_rt)
-    dict_set(module_turtle_env, 'setpc', om_module_turtle_setpc)
-    dict_set(module_turtle_env, 'setpw', om_module_turtle_setpw)
-    dict_set(module_turtle_env, 'drawtext', om_module_turtle_drawtext)
+    dict_set(module_turtle_env, 'pencolor', om_module_turtle_pencolor)
+    dict_set(module_turtle_env, 'pensize', om_module_turtle_pensize)
+    dict_set(module_turtle_env, 'write', om_module_turtle_write)
 
     dict_set(globals_env, 'turtle', om_module('turtle', module_turtle_env))
 
@@ -5069,7 +5069,7 @@ def fresh_rte(options):
     om_builtin_round = om_make_function_with_signature('round', om_round_code, make_posonly_defaults_signature(('number', 'ndigits'), (absent,)))
     om_builtin_pow = om_make_function_with_signature('pow', om_pow_code, make_posonly_defaults_only_signature(('base', 'power', 'mod'), (absent,)))
 
-    om_random_random = om_make_function_with_signature('random', om_random_code, empty_sigature)
+    om_random_random = om_make_function_with_signature('random', om_random_code, empty_signature)
 
     # XXX: python builtin extension (maybe move into another module later)
     om_builtin_alert = om_make_function_with_signature('alert', om_alert_code, make_posonly_defaults_signature(('obj',), (om_str(''),)))
