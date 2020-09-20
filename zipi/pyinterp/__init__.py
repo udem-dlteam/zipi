@@ -4856,7 +4856,7 @@ def init_module_turtle(globals_env):
         return om_make_function_with_signature(name, code,
                                                make_posonly_defaults_signature((arg1, arg2), (absent,)))
 
-    def cs_code(rte, cont):
+    def clear_code(rte, cont):
         width = rte_lookup_locals(rte, 'width')
         if width is absent:
             drawing_cs(rte)
@@ -4878,7 +4878,7 @@ def init_module_turtle(globals_env):
                 return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, 'argument 1 expected int')
 
 
-    def mv_code(rte, cont):
+    def goto_code(rte, cont):
         x = rte_lookup_locals(rte, 'x')
         y = rte_lookup_locals(rte, 'y')
         if om_isinstance(x, class_int) and om_isinstance(y, class_int):
@@ -4887,13 +4887,13 @@ def init_module_turtle(globals_env):
             drawing_mv(rte, xval, yval);
             return unwindReturn(rte, om_None)
         else:
-            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'x' and 'y' must be of type int")
+            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'x' and 'y' must be of type 'int'")
 
     def lt_code(rte, cont):
         angle = rte_lookup_locals(rte, 'angle')
         angle_value = convert_to_number(angle)
         if angle_value is absent:
-            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'angle' must be a number")
+            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'angle' must be a 'int' or 'float'")
         else:
             drawing_lt(rte, angle_value)
             return unwindReturn(rte, om_None)
@@ -4902,7 +4902,7 @@ def init_module_turtle(globals_env):
         angle = rte_lookup_locals(rte, 'angle')
         angle_value = convert_to_number(angle)
         if angle_value is absent:
-            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'angle' must be a number")
+            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'angle' must be a 'int' or 'float'")
         else:
             drawing_rt(rte, angle_value)
             return unwindReturn(rte, om_None)
@@ -4917,7 +4917,7 @@ def init_module_turtle(globals_env):
         bval = convert_to_number(b)
 
         if rval is absent or gval is absent or bval is absent:
-            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'r', 'g' and 'b' must be numbers")
+            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'r', 'g' and 'b' must be a 'int' or 'float'")
         else:
             drawing_setpc(rte, rval, gval, bval)
             return unwindReturn(rte, om_None)
@@ -4926,7 +4926,7 @@ def init_module_turtle(globals_env):
         width = rte_lookup_locals(rte, 'width')
         width_value = convert_to_number(width)
         if width_value is absent:
-            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'width' must be a number")
+            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'width' must be a 'int' or 'float'")
         else:
             drawing_setpw(rte, width_value)
             return unwindReturn(rte, om_None)
@@ -4938,12 +4938,12 @@ def init_module_turtle(globals_env):
             drawing_drawtext(rte, text_value)
             return unwindReturn(rte, om_None)
         else:
-            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'text' must be of type str")
+            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'text' must be of type 'str'")
 
 
-    om_module_turtle_cs = om_make_function_with_signature('cs', cs_code,
-                                                          make_posonly_defaults_only_signature(('width', 'height'), (absent,absent)))
-    om_module_turtle_mv = om_make_function_with_signature('mv', mv_code,
+    om_module_turtle_clear = om_make_function_with_signature('clear', clear_code,
+                                                             make_posonly_defaults_only_signature(('width', 'height'), (absent,absent)))
+    om_module_turtle_goto = om_make_function_with_signature('goto', goto_code,
                                                             make_posonly_only_signature(('x', 'y')))
     om_module_turtle_lt = om_make_function_with_signature('lt', lt_code,
                                                           make_posonly_only_signature(('angle',)))
@@ -4964,14 +4964,14 @@ def init_module_turtle(globals_env):
     om_module_turtle_fd = make_bridge_1_or_2(drawing_fd, 'fd', 'xdist', 'ydist')
     om_module_turtle_bk = make_bridge_1_or_2(drawing_bk, 'bk', 'xdist', 'ydist')
 
-    dict_set(module_turtle_env, 'cs', om_module_turtle_cs)
+    dict_set(module_turtle_env, 'clear', om_module_turtle_clear)
     dict_set(module_turtle_env, 'st', om_module_turtle_st)
     dict_set(module_turtle_env, 'ht', om_module_turtle_ht)
     dict_set(module_turtle_env, 'pu', om_module_turtle_pu)
     dict_set(module_turtle_env, 'pd', om_module_turtle_pd)
     dict_set(module_turtle_env, 'fd', om_module_turtle_fd)
     dict_set(module_turtle_env, 'bk', om_module_turtle_bk)
-    dict_set(module_turtle_env, 'mv', om_module_turtle_mv)
+    dict_set(module_turtle_env, 'goto', om_module_turtle_goto)
     dict_set(module_turtle_env, 'lt', om_module_turtle_lt)
     dict_set(module_turtle_env, 'rt', om_module_turtle_rt)
     dict_set(module_turtle_env, 'setpc', om_module_turtle_setpc)
