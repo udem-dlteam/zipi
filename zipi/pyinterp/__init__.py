@@ -5733,6 +5733,9 @@ def do_stmt_end_with_message(cont, ast):
 def do_expr_end(cont, ast):
     return lambda rte, val: expr_end(Context(rte, cont, ast), val)
 
+def do_expr_end_with_step(cont, ast, nb_steps):
+    return lambda rte, val: expr_end_with_step(Context(rte, cont, ast), val, nb_steps)
+
 def do_expr_end_with_displayed_value(cont, ast, value):
     def reinject_val(val):
         return lambda rte, _: cont(rte, val)
@@ -7001,7 +7004,7 @@ def gen_call(cte, ast, func_code, args_code):
 
 def gen_ifexpr(cte, ast, test_code, body_code, orelse_code):
     def code(rte, cont):
-        expr_end_cont = do_expr_end(cont, ast)
+        expr_end_cont = do_expr_end_with_step(cont, ast, 0)
         def dispatch(rte, val):
             if om_is(val, om_True):
                 return body_code(rte, expr_end_cont)
@@ -7126,12 +7129,14 @@ def om_simple_exception_format(ctx, exn):
 def expr_end_with_error(ctx, error):
     return return_to_trampoline(ctx.ast, '', 0, False, error, lambda: None, ctx)
 
-# XXX: Default nb_steps to 1 in expr_end to minimise changes
 def expr_end(ctx, val):
+    return expr_end_with_step(ctx, val, 1)
+
+def expr_end_with_step(ctx, val, nb_steps):
     if om_is(val, om_None):
-        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), 1, False, None, lambda: ctx.cont(ctx.rte, val), ctx)
+        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), nb_steps, False, None, lambda: ctx.cont(ctx.rte, val), ctx)
     else:
-        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), 1, True, None, lambda: ctx.cont(ctx.rte, val), ctx)
+        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), nb_steps, True, None, lambda: ctx.cont(ctx.rte, val), ctx)
 
 def stmt_end(ctx, nb_steps):
     return return_to_trampoline(ctx.ast, '', nb_steps, False, None, lambda: ctx.cont(ctx.rte), ctx)
