@@ -5,3 +5,7 @@ print(math.log(2.5))
 print(math.log(10.0))
 print(math.log(100.0))
 print(math.log(1000.0))
+
+print(math.log10(10.0))
+print(math.log10(100.0))
+print(math.log10(1000.0))

@@ -4627,6 +4627,10 @@ def make_math_domain_range_function(cmp1, bound1, cmp2, bound2):
     return lambda x: cmp1(x, float_bound1) and cmp2(x, float_bound2)
 
 def init_module_math():
+    # NOTE: the math module does not generally defers to corresponding semantics.
+    # By example, math.pow does not call __pow__ and __rpow__, instead it calls __float__ on both operands
+    # and does a native float exponentiation. This behaviour is the same for most math methods.
+    # This also means math methods always return floats and have different error than arithmetic semantics
 
     sqrt_domain = make_math_domain_function(float_ge, 0)
     om_math_sqrt = om_make_math_unary_real_domain_function("sqrt", float_sqrt, "x", sqrt_domain)
