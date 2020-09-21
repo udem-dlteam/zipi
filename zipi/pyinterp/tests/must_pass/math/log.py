@@ -1,0 +1,7 @@
+print(math.log(0.5))
+print(math.log(1.0))
+print(math.log(1.5))
+print(math.log(2.5))
+print(math.log(10.0))
+print(math.log(100.0))
+print(math.log(1000.0))

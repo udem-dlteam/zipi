@@ -4036,7 +4036,7 @@ def om_float_round_code(ctx, args):
                     else:
                         return cont_float(ctx, float_from_num(0.0))
                 else:
-                    scale = float_mul(float_from_num(10.0), n_float_value)
+                    scale = float_pow(float_from_num(10.0), n_float_value)
                     res = float_div(float_round_even(float_mul(self_value, scale)), scale)
                     if float_is_infinite(res):
                         # Value precision > 1: nothing to round
@@ -4651,8 +4651,7 @@ def init_module_math():
                         return sem_raise_with_message(make_out_of_ast_context(obj2_rte, cont), "must be real number")
                     else:
                         return sem_Pow(make_out_of_ast_context(obj2_rte, unwindReturn), obj1_res, obj2_res)
-
-            return sem_maybe_float(make_out_of_ast_context(obj1_rte, check_obj2), obj2)
+                return sem_maybe_float(make_out_of_ast_context(obj1_rte, check_obj2), obj2)
         return sem_maybe_float(make_out_of_ast_context(rte, check_obj1), obj1)
 
 
@@ -4685,7 +4684,7 @@ def init_module_math():
             if float_is_neg(unboxed_val) or float_is_zero(unboxed_val):
                 ctx = make_out_of_ast_context(rte, cont)
                 return sem_raise_with_message(ctx, class_ValueError, 'math domain error')
-            return unwindReturn(rte, om_float(float_sin(unboxed_val)))
+            return unwindReturn(rte, om_float(float_log(unboxed_val)))
 
         else:
             ctx = make_out_of_ast_context(rte, cont)

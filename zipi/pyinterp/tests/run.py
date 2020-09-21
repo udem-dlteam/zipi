@@ -89,7 +89,7 @@ def run_one_test(path, cpython, zipi, tmp_output_file):
             zipi_stderr_error_token = ""
 
         # Due to testing on various backend (cpython/node namely), the error detection must be loose
-        # We simply check that the expected error type appears somewhere in the error emssage
+        # We simply check that the expected error type appears somewhere in the error message
         return cpython_error_kind in zipi_stderr_error or cpython_error_kind in zipi_stdout_error
 
 
