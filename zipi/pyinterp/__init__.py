@@ -4676,7 +4676,11 @@ def init_module_math():
     # Logarithms
     log_domain = make_math_domain_function(float_gt, 0)
     om_math_log = om_make_math_unary_real_domain_function("log", float_log, "x", log_domain)
+    om_math_log2 = om_make_math_unary_real_domain_function("log2", float_log2, "x", log_domain)
     om_math_log10 = om_make_math_unary_real_domain_function("log10", float_log10, "x", log_domain)
+
+    log1p_domain = make_math_domain_function(float_gt, -1)
+    om_math_log1p = om_make_math_unary_real_domain_function("log1p", float_log1p, "x", log1p_domain)
 
     # Trigonometry
     om_math_sin = om_make_math_unary_real_function("sin", float_sin, "x")
@@ -4696,7 +4700,9 @@ def init_module_math():
     dict_set(module_math_env, 'floor', om_math_floor)
     dict_set(module_math_env, 'ceil', om_math_ceil)
     dict_set(module_math_env, 'log', om_math_log)
+    dict_set(module_math_env, 'log2', om_math_log2)
     dict_set(module_math_env, 'log10', om_math_log10)
+    dict_set(module_math_env, 'log1p', om_math_log1p)
     dict_set(module_math_env, 'pow', om_math_pow)
     dict_set(module_math_env, 'exp', om_math_exp)
     dict_set(module_math_env, 'sin', om_math_sin)
