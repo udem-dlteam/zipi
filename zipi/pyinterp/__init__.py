@@ -548,18 +548,20 @@ def align_args_with_signature(ctx, funcname, caller_args, signature):
                 s = 's' if missing_args_len != 1 else ''
                 msg = funcname + "() missing " + str(missing_args_len) + " required positional argument"+ s +": "
 
+                remaining = missing_args_len
+
                 i = caller_args_len
                 while i < posonlyargs_len:
                     arg = posonlyargs[i]
-                    msg = add_punctuation(msg, missing_args_len)+"'"+arg+"'"
-                    missing_args_len -= 1
+                    msg = add_punctuation(msg, remaining)+"'"+arg+"'"
+                    remaining -= 1
                     i += 1
 
                 i -= posonlyargs_len
                 while i < args_len:
                     arg = args[i]
-                    msg = add_punctuation(msg, missing_args_len)+"'"+arg+"'"
-                    missing_args_len -= 1
+                    msg = add_punctuation(msg, remaining)+"'"+arg+"'"
+                    remaining -= 1
                     i += 1
 
                 return sem_raise_with_message(ctx, class_TypeError, msg)
