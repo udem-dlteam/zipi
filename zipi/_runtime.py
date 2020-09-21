@@ -417,6 +417,8 @@ def float_pow(u, v):
             return float_neg_inf()
         else:
             return float_inf()
+    except ValueError:
+        return float_nan()
 
 
 def float_pi():

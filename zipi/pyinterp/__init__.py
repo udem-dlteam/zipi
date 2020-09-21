@@ -4582,235 +4582,127 @@ def om_pow_code(rte, _):
         return sem_PowMod(next_ctx, base, power, mod)
 
 # Built-in Modules
+def om_make_math_unary_real_function(fn_name, float_fn, arg):
+    def float_code(rte, cont):
+        val = rte_lookup_locals(rte, arg)
+
+        def apply_float_fn(float_rte, float_val):
+            if float_val is absent:
+                return sem_raise_with_message(make_out_of_ast_context(float_rte, cont), class_TypeError, "must be real number")
+            else:
+                res = float_fn(OM_get_boxed_value(float_val))
+                return unwindReturn(float_rte, om_float(res))
+
+        return sem_maybe_float(make_out_of_ast_context(rte, apply_float_fn), val)
+
+    return om_make_function_with_signature(fn_name, float_code, make_posonly_only_signature((arg,)))
+
+def om_make_math_unary_real_domain_function(fn_name, float_fn, arg, arg_domain):
+    def float_code(rte, cont):
+        val = rte_lookup_locals(rte, arg)
+
+        def apply_float_fn(float_rte, float_val):
+            if float_val is absent:
+                return sem_raise_with_message(make_out_of_ast_context(float_rte, cont), class_TypeError, "must be real number")
+            else:
+                float_unboxed_val = OM_get_boxed_value(float_val)
+
+                if arg_domain(float_unboxed_val):
+                    res = float_fn(OM_get_boxed_value(float_val))
+                    return unwindReturn(float_rte, om_float(res))
+                else:
+                    return sem_raise_with_message(make_out_of_ast_context(float_rte, cont), class_ValueError, "math domain error")
+
+        return sem_maybe_float(make_out_of_ast_context(rte, apply_float_fn), val)
+
+    return om_make_function_with_signature(fn_name, float_code, make_posonly_only_signature((arg,)))
+
+def make_math_domain_function(cmp, bound):
+    float_bound = float_from_num(bound)
+    return lambda x: cmp(x, float_bound)
+
+def make_math_domain_range_function(cmp1, bound1, cmp2, bound2):
+    float_bound1 = float_from_num(bound1)
+    float_bound2 = float_from_num(bound2)
+    return lambda x: cmp1(x, float_bound1) and cmp2(x, float_bound2)
+
 def init_module_math():
 
-    def math_sqrt_code(rte, cont):
-        val = rte_lookup_locals(rte, 'obj')
-        obj_class = OM_get_object_class(val)
-        unboxed_val = OM_get_boxed_value(val)
+    sqrt_domain = make_math_domain_function(float_ge, 0)
+    om_math_sqrt = om_make_math_unary_real_domain_function("sqrt", float_sqrt, "x", sqrt_domain)
 
-        if om_is(obj_class, class_int):
-            unboxed_val = int_to_num(unboxed_val)
-            obj_class = class_float
-
-        if om_is(obj_class, class_float):
-            if float_is_neg(unboxed_val):
-                ctx = make_out_of_ast_context(rte, cont)
-                return sem_raise_with_message(ctx, class_ValueError, 'math domain error')
-            return unwindReturn(rte, om_float(float_sqrt(unboxed_val)))
-
-        elif om_is(obj_class, class_float):
-            return unwindReturn(rte, om_float(float_sqrt(unboxed_val)))
-
-        else:
-            ctx = make_out_of_ast_context(rte, cont)
-            return sem_raise(ctx, class_TypeError)
-
-    def math_floor_code(rte, cont):
-        val = rte_lookup_locals(rte, 'obj')
-        obj_class = OM_get_object_class(val)
-        unboxed_val = OM_get_boxed_value(val)
-
-        if om_is(obj_class, class_int):
-            return unwindReturn(rte, val)
-
-        elif om_is(obj_class, class_float):
-            return unwindReturn(rte, om_int(int_from_num(float_floor(unboxed_val))))
-
-        else:
-            ctx = make_out_of_ast_context(rte, cont)
-            return sem_raise(ctx, class_TypeError)
-
-    def math_ceil_code(rte, cont):
-        val = rte_lookup_locals(rte, 'obj')
-        obj_class = OM_get_object_class(val)
-        unboxed_val = OM_get_boxed_value(val)
-
-        if om_is(obj_class, class_int):
-            return unwindReturn(rte, val)
-
-        elif om_is(obj_class, class_float):
-            return unwindReturn(rte, om_int(int_from_num(float_ceil(unboxed_val))))
-
-        else:
-            ctx = make_out_of_ast_context(rte, cont)
-            return sem_raise(ctx, class_TypeError)
+    om_math_floor = om_make_math_unary_real_function("floor", float_floor, "x")
+    om_math_ceil = om_make_math_unary_real_function("ceil", float_ceil, "x")
 
     def math_pow_code(rte, cont):
-        obj1 = rte_lookup_locals(rte, 'obj1')
-        obj2 = rte_lookup_locals(rte, 'obj2')
+        obj1 = rte_lookup_locals(rte, 'x')
+        obj2 = rte_lookup_locals(rte, 'y')
 
         def check_obj1(obj1_rte, obj1_res):
             if obj1_res is absent:
-                return sem_raise_with_message(make_out_of_ast_context(obj1_rte, cont), "must be real number")
+                return sem_raise_with_message(make_out_of_ast_context(obj1_rte, cont), class_TypeError,
+                                              "must be real number")
             else:
                 def check_obj2(obj2_rte, obj2_res):
                     if obj2_res is absent:
-                        return sem_raise_with_message(make_out_of_ast_context(obj2_rte, cont), "must be real number")
+                        return sem_raise_with_message(make_out_of_ast_context(obj2_rte, cont), class_ValueError,
+                                                      "must be real number")
                     else:
-                        return sem_Pow(make_out_of_ast_context(obj2_rte, unwindReturn), obj1_res, obj2_res)
+                        float_res1 = OM_get_boxed_value(obj1_res)
+                        float_res2 = OM_get_boxed_value(obj2_res)
+
+                        res = float_pow(float_res1, float_res2)
+
+                        if float_is_infinite(res):
+                            return sem_raise_with_message(make_out_of_ast_context(obj2_rte, cont), class_OverflowError,
+                                                          "math range error")
+                        elif float_is_nan(res):
+                            return sem_raise_with_message(make_out_of_ast_context(obj2_rte, cont), class_ValueError,
+                                                          "math domain error")
+                        else:
+                            return unwindReturn(obj2_rte, om_float(res))
+
                 return sem_maybe_float(make_out_of_ast_context(obj1_rte, check_obj2), obj2)
         return sem_maybe_float(make_out_of_ast_context(rte, check_obj1), obj1)
 
+    # Exponentiation
+    om_math_pow = om_make_function_with_signature("pow", math_pow_code, make_posonly_only_signature(("x", "y")))
+    om_math_exp = om_make_math_unary_real_function("exp", float_exp, "x")
 
-    def math_exp_code(rte, cont):
-        val = rte_lookup_locals(rte, 'obj')
-        obj_class = OM_get_object_class(val)
-        unboxed_val = OM_get_boxed_value(val)
+    # Logarithms
+    log_domain = make_math_domain_function(float_gt, 0)
+    om_math_log = om_make_math_unary_real_domain_function("log", float_log, "x", log_domain)
+    om_math_log10 = om_make_math_unary_real_domain_function("log10", float_log10, "x", log_domain)
 
-        if om_is(obj_class, class_int):
-            unboxed_val = int_to_num(unboxed_val)
-            return unwindReturn(rte, om_float(float_exp(unboxed_val)))
+    # Trigonometry
+    om_math_sin = om_make_math_unary_real_function("sin", float_sin, "x")
+    om_math_cos = om_make_math_unary_real_function("cos", float_cos, "x")
+    om_math_tan = om_make_math_unary_real_function("tan", float_tan, "x")
 
-        if om_is(obj_class, class_float):
-            return unwindReturn(rte, om_float(float_exp(unboxed_val)))
-
-        else:
-            ctx = make_out_of_ast_context(rte, cont)
-            return sem_raise(ctx, class_TypeError)
-
-    def math_log_code(rte, cont):
-        val = rte_lookup_locals(rte, 'obj')
-        obj_class = OM_get_object_class(val)
-        unboxed_val = OM_get_boxed_value(val)
-
-        if om_is(obj_class, class_int):
-            unboxed_val = int_to_num(unboxed_val)
-            obj_class = class_float
-
-        if om_is(obj_class, class_float):
-            if float_is_neg(unboxed_val) or float_is_zero(unboxed_val):
-                ctx = make_out_of_ast_context(rte, cont)
-                return sem_raise_with_message(ctx, class_ValueError, 'math domain error')
-            return unwindReturn(rte, om_float(float_log(unboxed_val)))
-
-        else:
-            ctx = make_out_of_ast_context(rte, cont)
-            return sem_raise(ctx, class_TypeError)
-
-    def math_sin_code(rte, cont):
-        val = rte_lookup_locals(rte, 'obj')
-        obj_class = OM_get_object_class(val)
-        unboxed_val = OM_get_boxed_value(val)
-
-        if om_is(obj_class, class_int):
-            unboxed_val = int_to_num(unboxed_val)
-            return unwindReturn(rte, om_float(float_sin(unboxed_val)))
-        elif om_is(obj_class, class_float):
-            return unwindReturn(rte, om_float(float_sin(unboxed_val)))
-        else:
-            ctx = make_out_of_ast_context(rte, cont)
-            return sem_raise(ctx, class_TypeError)
-
-    def math_cos_code(rte, cont):
-        val = rte_lookup_locals(rte, 'obj')
-        obj_class = OM_get_object_class(val)
-        unboxed_val = OM_get_boxed_value(val)
-
-        if om_is(obj_class, class_int):
-            unboxed_val = int_to_num(unboxed_val)
-            return unwindReturn(rte, om_float(float_cos(unboxed_val)))
-        elif om_is(obj_class, class_float):
-            return unwindReturn(rte, om_float(float_cos(unboxed_val)))
-        else:
-            ctx = make_out_of_ast_context(rte, cont)
-            return sem_raise(ctx, class_TypeError)
-
-    def math_tan_code(rte, cont):
-        val = rte_lookup_locals(rte, 'obj')
-        obj_class = OM_get_object_class(val)
-        unboxed_val = OM_get_boxed_value(val)
-
-        if om_is(obj_class, class_int):
-            unboxed_val = int_to_num(unboxed_val)
-            return unwindReturn(rte, om_float(float_tan(unboxed_val)))
-        elif om_is(obj_class, class_float):
-            return unwindReturn(rte, om_float(float_tan(unboxed_val)))
-        else:
-            ctx = make_out_of_ast_context(rte, cont)
-            return sem_raise(ctx, class_TypeError)
-
-    def math_asin_code(rte, cont):
-        val = rte_lookup_locals(rte, 'obj')
-        obj_class = OM_get_object_class(val)
-        unboxed_val = OM_get_boxed_value(val)
-
-        if om_is(obj_class, class_int):
-            unboxed_val = int_to_num(unboxed_val)
-            return unwindReturn(rte, om_float(float_asin(unboxed_val)))
-        elif om_is(obj_class, class_float):
-            return unwindReturn(rte, om_float(float_asin(unboxed_val)))
-        else:
-            ctx = make_out_of_ast_context(rte, cont)
-            return sem_raise(ctx, class_TypeError)
-
-    def math_acos_code(rte, cont):
-        val = rte_lookup_locals(rte, 'obj')
-        obj_class = OM_get_object_class(val)
-        unboxed_val = OM_get_boxed_value(val)
-
-        if om_is(obj_class, class_int):
-            unboxed_val = int_to_num(unboxed_val)
-            return unwindReturn(rte, om_float(float_acos(unboxed_val)))
-        elif om_is(obj_class, class_float):
-            return unwindReturn(rte, om_float(float_acos(unboxed_val)))
-        else:
-            ctx = make_out_of_ast_context(rte, cont)
-            return sem_raise(ctx, class_TypeError)
-
-    def math_atan_code(rte, cont):
-        val = rte_lookup_locals(rte, 'obj')
-        obj_class = OM_get_object_class(val)
-        unboxed_val = OM_get_boxed_value(val)
-
-        if om_is(obj_class, class_int):
-            unboxed_val = int_to_num(unboxed_val)
-            return unwindReturn(rte, om_float(float_atan(unboxed_val)))
-        elif om_is(obj_class, class_float):
-            return unwindReturn(rte, om_float(float_atan(unboxed_val)))
-        else:
-            ctx = make_out_of_ast_context(rte, cont)
-            return sem_raise(ctx, class_TypeError)
+    inverse_trig_domain = make_math_domain_range_function(float_ge, -1, float_le, 1)
+    om_math_asin = om_make_math_unary_real_domain_function("asin", float_asin, "x", inverse_trig_domain)
+    om_math_acos = om_make_math_unary_real_domain_function("acos", float_acos, "x", inverse_trig_domain)
+    om_math_atan = om_make_math_unary_real_function("atan", float_atan, "x")
 
 
     module_math_env = make_dict()
 
-    om_module_math_sqrt = om_make_function_with_signature('sqrt', math_sqrt_code, make_posonly_only_signature(('obj',)))
-    dict_set(module_math_env, 'sqrt', om_module_math_sqrt)
+    # functions
+    dict_set(module_math_env, 'sqrt', om_math_sqrt)
+    dict_set(module_math_env, 'floor', om_math_floor)
+    dict_set(module_math_env, 'ceil', om_math_ceil)
+    dict_set(module_math_env, 'log', om_math_log)
+    dict_set(module_math_env, 'log10', om_math_log10)
+    dict_set(module_math_env, 'pow', om_math_pow)
+    dict_set(module_math_env, 'exp', om_math_exp)
+    dict_set(module_math_env, 'sin', om_math_sin)
+    dict_set(module_math_env, 'cos', om_math_cos)
+    dict_set(module_math_env, 'tan', om_math_tan)
+    dict_set(module_math_env, 'asin', om_math_asin)
+    dict_set(module_math_env, 'acos', om_math_acos)
+    dict_set(module_math_env, 'atan', om_math_atan)
 
-    om_module_math_floor = om_make_function_with_signature('floor', math_floor_code, make_posonly_only_signature(('obj',)))
-    dict_set(module_math_env, 'floor', om_module_math_floor)
-
-    om_module_math_ceil = om_make_function_with_signature('ceil', math_ceil_code, make_posonly_only_signature(('obj',)))
-    dict_set(module_math_env, 'ceil', om_module_math_ceil)
-
-    om_module_math_exp = om_make_function_with_signature('exp', math_exp_code, make_posonly_only_signature(('obj',)))
-    dict_set(module_math_env, 'exp', om_module_math_exp)
-
-    om_module_math_log = om_make_function_with_signature('log', math_log_code, make_posonly_only_signature(('obj',)))
-    dict_set(module_math_env, 'log', om_module_math_log)
-
-    om_module_math_pow = om_make_function_with_signature('pow', math_pow_code, make_posonly_only_signature(('obj1', 'obj2',)))
-    dict_set(module_math_env, 'pow', om_module_math_pow)
-
-    om_module_math_sin = om_make_function_with_signature('sin', math_sin_code, make_posonly_only_signature(('obj',)))
-    dict_set(module_math_env, 'sin', om_module_math_sin)
-
-    om_module_math_cos = om_make_function_with_signature('cos', math_cos_code, make_posonly_only_signature(('obj',)))
-    dict_set(module_math_env, 'cos', om_module_math_cos)
-
-    om_module_math_tan = om_make_function_with_signature('tan', math_tan_code, make_posonly_only_signature(('obj',)))
-    dict_set(module_math_env, 'tan', om_module_math_tan)
-
-    om_module_math_asin = om_make_function_with_signature('asin', math_asin_code, make_posonly_only_signature(('obj',)))
-    dict_set(module_math_env, 'asin', om_module_math_asin)
-
-    om_module_math_acos = om_make_function_with_signature('acos', math_acos_code, make_posonly_only_signature(('obj',)))
-    dict_set(module_math_env, 'acos', om_module_math_acos)
-
-    om_module_math_atan = om_make_function_with_signature('atan', math_atan_code, make_posonly_only_signature(('obj',)))
-    dict_set(module_math_env, 'atan', om_module_math_atan)
-
+    # constants
     dict_set(module_math_env, 'pi', om_float(float_pi()))
     dict_set(module_math_env, 'e', om_float(float_e()))
 
