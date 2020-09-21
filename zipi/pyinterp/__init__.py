@@ -434,7 +434,7 @@ def unwindReturn(rte, val):
 def make_signature(args, posonlyargs, varargs, kwonlyargs, kw_defaults, kwargs, defaults):
     return (args, posonlyargs, varargs, kwonlyargs, kw_defaults, kwargs, defaults)
 
-empty_sigature = make_signature((), (), None, (), (), None, ())
+empty_signature = make_signature((), (), None, (), (), None, ())
 
 def make_posonly_only_signature(posonlyargs):
     return make_signature((), posonlyargs, None, (), (), None, ())
@@ -4819,6 +4819,178 @@ def init_module_math():
 
     return module_math_env
 
+# init module turtle
+def init_module_turtle(globals_env):
+    # returns unbox number or absent
+    def convert_to_number(val):
+        if om_isinstance(val, class_float):
+            return float_to_num(OM_get_boxed_value(val))
+        elif om_isinstance(val, class_int):
+            return int_to_num(OM_get_boxed_value(val))
+        else:
+            return absent
+
+    # Generate code for 0 argument native function
+    def make_bridge_0(fct, name):
+        def code(rte, cont):
+            fct(rte)
+            return unwindReturn(rte, om_None)
+        return om_make_function_with_signature(name, code, empty_signature)
+
+    def make_bridge_1_or_2(fct, name, arg1, arg2):
+        def code(rte, cont):
+            param1 = rte_lookup_locals(rte, arg1)
+            if om_isinstance(param1, class_int):
+                param1_value = int_to_num(OM_get_boxed_value(param1))
+                param2 = rte_lookup_locals(rte, arg2)
+                if param2 is absent:
+                    fct(rte, param1_value, 0)
+                    return unwindReturn(rte, om_None)
+                else:
+                    if om_isinstance(param2, class_int):
+                        param2_value = int_to_num(OM_get_boxed_value(param2))
+                        fct(rte, param1_value, param2_value)
+                        return unwindReturn(rte, om_None)
+                    else:
+                        return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, 'argument 2 expected int')
+            else:
+                return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, 'argument 1 expected int')
+        return om_make_function_with_signature(name, code,
+                                               make_posonly_defaults_signature((arg1, arg2), (absent,)))
+
+    def clear_code(rte, cont):
+        width = rte_lookup_locals(rte, 'width')
+        if width is absent:
+            drawing_cs(rte)
+            return unwindReturn(rte, om_None)
+        else:
+            if om_isinstance(width, class_int):
+                width_value = int_to_num(OM_get_boxed_value(width))
+                height = rte_lookup_locals(rte, 'height')
+                if height is absent:
+                    return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, 'cs accepts 0 or 2 arguments')
+                else:
+                    if om_isinstance(height, class_int):
+                        height_value = int_to_num(OM_get_boxed_value(height))
+                        drawing_cs(rte, width_value, height_value)
+                        return unwindReturn(rte, om_None)
+                    else:
+                        return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, 'argument 2 expected int')
+            else:
+                return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, 'argument 1 expected int')
+
+
+    def goto_code(rte, cont):
+        x = rte_lookup_locals(rte, 'x')
+        y = rte_lookup_locals(rte, 'y')
+        if om_isinstance(x, class_int) and om_isinstance(y, class_int):
+            xval = int_to_num(OM_get_boxed_value(x))
+            yval = int_to_num(OM_get_boxed_value(y))
+            drawing_mv(rte, xval, yval);
+            return unwindReturn(rte, om_None)
+        else:
+            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'x' and 'y' must be of type 'int'")
+
+    def lt_code(rte, cont):
+        angle = rte_lookup_locals(rte, 'angle')
+        angle_value = convert_to_number(angle)
+        if angle_value is absent:
+            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'angle' must be a 'int' or 'float'")
+        else:
+            drawing_lt(rte, angle_value)
+            return unwindReturn(rte, om_None)
+
+    def rt_code(rte, cont):
+        angle = rte_lookup_locals(rte, 'angle')
+        angle_value = convert_to_number(angle)
+        if angle_value is absent:
+            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'angle' must be a 'int' or 'float'")
+        else:
+            drawing_rt(rte, angle_value)
+            return unwindReturn(rte, om_None)
+
+    def pencolor_code(rte, cont):
+        r = rte_lookup_locals(rte, 'r')
+        g = rte_lookup_locals(rte, 'g')
+        b = rte_lookup_locals(rte, 'b')
+
+        rval = convert_to_number(r)
+        gval = convert_to_number(g)
+        bval = convert_to_number(b)
+
+        if rval is absent or gval is absent or bval is absent:
+            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'r', 'g' and 'b' must be a 'int' or 'float'")
+        else:
+            drawing_setpc(rte, rval, gval, bval)
+            return unwindReturn(rte, om_None)
+
+    def pensize_code(rte, cont):
+        width = rte_lookup_locals(rte, 'width')
+        width_value = convert_to_number(width)
+        if width_value is absent:
+            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'width' must be a 'int' or 'float'")
+        else:
+            drawing_setpw(rte, width_value)
+            return unwindReturn(rte, om_None)
+
+    def write_code(rte, cont):
+        text = rte_lookup_locals(rte, 'text')
+        if om_isinstance(text, class_str):
+            text_value = OM_get_boxed_value(text)
+            drawing_drawtext(rte, text_value)
+            return unwindReturn(rte, om_None)
+        else:
+            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'text' must be of type 'str'")
+
+
+    om_module_turtle_clear = om_make_function_with_signature('clear', clear_code,
+                                                             make_posonly_defaults_only_signature(('width', 'height'), (absent,absent)))
+    om_module_turtle_goto = om_make_function_with_signature('goto', goto_code,
+                                                            make_posonly_only_signature(('x', 'y')))
+    om_module_turtle_lt = om_make_function_with_signature('lt', lt_code,
+                                                          make_posonly_only_signature(('angle',)))
+    om_module_turtle_rt = om_make_function_with_signature('rt', rt_code,
+                                                          make_posonly_only_signature(('angle',)))
+    om_module_turtle_pencolor = om_make_function_with_signature('pencolor', pencolor_code,
+                                                             make_posonly_only_signature(('r', 'g', 'b')))
+    om_module_turtle_pensize = om_make_function_with_signature('pensize', pensize_code,
+                                                             make_posonly_only_signature(('width',)))
+    om_module_turtle_write = om_make_function_with_signature('write', write_code,
+                                                                make_posonly_only_signature(('text',)))
+
+    module_turtle_env = make_dict()
+    om_module_turtle_st = make_bridge_0(drawing_st, 'st')
+    om_module_turtle_ht = make_bridge_0(drawing_ht, 'ht')
+    om_module_turtle_pu = make_bridge_0(drawing_pu, 'pu')
+    om_module_turtle_pd = make_bridge_0(drawing_pd, 'pd')
+    om_module_turtle_fd = make_bridge_1_or_2(drawing_fd, 'fd', 'xdist', 'ydist')
+    om_module_turtle_bk = make_bridge_1_or_2(drawing_bk, 'bk', 'xdist', 'ydist')
+
+    dict_set(module_turtle_env, 'clear', om_module_turtle_clear)
+    dict_set(module_turtle_env, 'st', om_module_turtle_st)
+    dict_set(module_turtle_env, 'ht', om_module_turtle_ht)
+    dict_set(module_turtle_env, 'pu', om_module_turtle_pu)
+    dict_set(module_turtle_env, 'pd', om_module_turtle_pd)
+    dict_set(module_turtle_env, 'fd', om_module_turtle_fd)
+    dict_set(module_turtle_env, 'bk', om_module_turtle_bk)
+    dict_set(module_turtle_env, 'goto', om_module_turtle_goto)
+    dict_set(module_turtle_env, 'lt', om_module_turtle_lt)
+    dict_set(module_turtle_env, 'rt', om_module_turtle_rt)
+    dict_set(module_turtle_env, 'pencolor', om_module_turtle_pencolor)
+    dict_set(module_turtle_env, 'pensize', om_module_turtle_pensize)
+    dict_set(module_turtle_env, 'write', om_module_turtle_write)
+
+    dict_set(globals_env, 'turtle', om_module('turtle', module_turtle_env))
+
+# pixels graphics:
+#   setScreenMode(width, height)
+#   getScreenWidth()
+#   getScreenHeight()
+#   setPixel(x, y, color)
+#   fillRectangle(x, y, color)
+#   exportScreen()
+#   getMouse()
+
 # Interpreter
 @nocompile
 def interp_file(path, options):
@@ -4900,7 +5072,7 @@ def fresh_rte(options):
     om_builtin_round = om_make_function_with_signature('round', om_round_code, make_posonly_defaults_signature(('number', 'ndigits'), (absent,)))
     om_builtin_pow = om_make_function_with_signature('pow', om_pow_code, make_posonly_defaults_only_signature(('base', 'power', 'mod'), (absent,)))
 
-    om_random_random = om_make_function_with_signature('random', om_random_code, empty_sigature)
+    om_random_random = om_make_function_with_signature('random', om_random_code, empty_signature)
 
     # XXX: python builtin extension (maybe move into another module later)
     om_builtin_alert = om_make_function_with_signature('alert', om_alert_code, make_posonly_defaults_signature(('obj',), (om_str(''),)))
@@ -4958,6 +5130,8 @@ def fresh_rte(options):
     # Modules
     module_math_env = init_module_math()
     dict_set(globals_env, 'math', om_module('math', module_math_env))
+
+    init_module_turtle(globals_env)
 
     dict_set(globals_env, '__name__', om_str('__main__'))
     dict_set(globals_env, '__builtins__', om_module('builtins', builtins_env))

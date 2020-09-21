@@ -147,6 +147,17 @@ def compile_file(input_file):
         # Add `print_stdout`
         runtime += "function runtime_alert(msg) {console.log(msg);};"
         runtime += "function runtime_print(msg,rte) {console.log(msg);};"
+        # Dummy turtle interface.
+        runtime += "function drawing_cs(rte, width, height) {};"
+        runtime += "function drawing_fd(rte, xdist, ydist) {};"
+        runtime += "function drawing_bk(rte, xdist, ydist) {};"
+        runtime += "function drawing_ht(rte) {};"
+        runtime += "function drawing_st(rte) {};"
+        runtime += "function drawing_pd(rte) {};"
+        runtime += "function drawing_pu(rte) {};"
+        runtime += "function drawing_setpc(rte, r, g, b) {};"
+        runtime += "function drawing_setpw(rte, width) {};"
+        runtime += "function drawing_drawtext(rte, text) {};"
         with open("int.js", "r") as f:
             runtime += " " + f.read()
         with open("float.js", "r") as f:
