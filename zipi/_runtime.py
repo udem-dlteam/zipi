@@ -405,9 +405,15 @@ def float_log(u):
     return math.log(u)
 
 
+def float_log2(u):
+    return math.log2(u)
+
+
 def float_log10(u):
     return math.log10(u)
 
+def float_log1p(u):
+    return math.log1p(u)
 
 def float_pow(u, v):
     try:
@@ -417,6 +423,8 @@ def float_pow(u, v):
             return float_neg_inf()
         else:
             return float_inf()
+    except ValueError:
+        return float_nan()
 
 
 def float_pi():
