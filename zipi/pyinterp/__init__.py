@@ -2241,7 +2241,7 @@ def om_tuple_len(ctx, args):
     elements = OM_get_tuple_seq(self)
     elements_len = len(elements)
 
-    return ctx.cont(ctx.rte, om_int(elements_len))
+    return cont_int(ctx,int_from_num(elements_len))
 
 def om_tuple_getitem(ctx, args):
     if debug: print('tuple.__getitem__')
@@ -2386,7 +2386,7 @@ def om_list_len_code(ctx, args):
     if args_len == 1:
         self = args[0]
         elements_len = OM_get_list_len(self)
-        return ctx.cont(ctx.rte, om_int(elements_len))
+        return cont_int(ctx, int_from_num(elements_len))
     else:
         return sem_raise_with_message(ctx, class_TypeError,
                                       "__len__() takes no argument (" + str(args_len) + " given)")
@@ -5449,7 +5449,6 @@ def get_scope_variables_repr(rte):
 
     for pair in env:
         key, val = pair
-        print(key, val)
         val_repr = om_simple_repr(Context(rte, None, None), val)
         env_repr.append((key, val_repr))
 
