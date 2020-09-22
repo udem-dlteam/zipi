@@ -4609,7 +4609,9 @@ def om_make_math_unary_real_domain_function(fn_name, float_fn, arg, arg_domain):
             else:
                 float_unboxed_val = OM_get_boxed_value(float_val)
 
-                if arg_domain(float_unboxed_val):
+                if float_is_nan(float_unboxed_val):
+                    return unwindReturn(float_rte, om_float(float_nan()))
+                elif arg_domain(float_unboxed_val):
                     res = float_fn(OM_get_boxed_value(float_val))
                     return unwindReturn(float_rte, om_float(res))
                 else:
@@ -4717,6 +4719,8 @@ def init_module_math():
     # constants
     dict_set(module_math_env, 'pi', om_float(float_pi()))
     dict_set(module_math_env, 'e', om_float(float_e()))
+    dict_set(module_math_env, 'inf', om_float(float_inf()))
+    dict_set(module_math_env, 'nan', om_float(float_nan()))
 
     return module_math_env
 
