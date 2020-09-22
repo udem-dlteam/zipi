@@ -5030,6 +5030,7 @@ def fresh_rte(options):
     dict_set(builtins_env, 'StopIteration', class_StopIteration)
     dict_set(builtins_env, 'ArithmeticError', class_ArithmeticError)
     dict_set(builtins_env, 'ZeroDivisionError', class_ZeroDivisionError)
+    dict_set(builtins_env, 'AssertionError', class_AssertionError)
 
     # Modules
     module_math_env = init_module_math()
