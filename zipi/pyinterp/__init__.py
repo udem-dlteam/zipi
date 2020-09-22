@@ -4485,10 +4485,6 @@ def om_prompt_code(rte, _):
     ctx = make_out_of_ast_context(rte, prompt_str)
     return sem_str(ctx, obj)
 
-def om_random_code(rte, _):
-    result = runtime_random()
-    return unwindReturn(rte, om_float(result))
-
 def om_repr_code(rte, _):
     def cont(rte, res):
         return unwindReturn(rte, res)
@@ -4630,7 +4626,7 @@ def make_math_domain_range_function(cmp1, bound1, cmp2, bound2):
     float_bound2 = float_from_num(bound2)
     return lambda x: cmp1(x, float_bound1) and cmp2(x, float_bound2)
 
-def init_module_math():
+def make_module_math():
     # NOTE: the math module does not generally defers to corresponding semantics.
     # By example, math.pow does not call __pow__ and __rpow__, instead it calls __float__ on both operands
     # and does a native float exponentiation. This behaviour is the same for most math methods.
@@ -4722,10 +4718,10 @@ def init_module_math():
     dict_set(module_math_env, 'inf', om_float(float_inf()))
     dict_set(module_math_env, 'nan', om_float(float_nan()))
 
-    return module_math_env
+    return om_module('math', module_math_env)
 
 # init module turtle
-def init_module_turtle(globals_env):
+def make_module_turtle():
     # returns unbox number or absent
     def convert_to_number(val):
         if om_isinstance(val, class_float):
@@ -4885,7 +4881,22 @@ def init_module_turtle(globals_env):
     dict_set(module_turtle_env, 'pensize', om_module_turtle_pensize)
     dict_set(module_turtle_env, 'write', om_module_turtle_write)
 
-    dict_set(globals_env, 'turtle', om_module('turtle', module_turtle_env))
+    return om_module('turtle', module_turtle_env)
+
+def make_module_random():
+    module_random_env = make_dict()
+
+    def om_random_code(rte, _):
+        result = runtime_random()
+        return unwindReturn(rte, om_float(result))
+
+    om_random_random = om_make_function_with_signature('random', om_random_code, empty_signature)
+
+    dict_set(module_random_env, 'random', om_random_random)
+
+    return om_module('random', module_random_env)
+
+
 
 # pixels graphics:
 #   setScreenMode(width, height)
@@ -4949,6 +4960,17 @@ def comp(ast, external_context):
 def prepare_execution(code, rte):
     return lambda: code(rte, lambda rte: None)
 
+def module_to_dict(module):
+    module_dict = OM_get(module, '__dict__')
+    return OM_get_boxed_value(module_dict)
+
+def inject_module_in_env(module, env):
+    module_env = module_to_dict(module)
+    for key_value in dict_items(module_env):
+        key = key_value[0]
+        value = key_value[1]
+        dict_set(env, key, value)
+
 def fresh_rte(options):
     locals_env = absent
     globals_env = make_dict()
@@ -4956,6 +4978,7 @@ def fresh_rte(options):
 
     rte = make_rte(absent, globals_env, locals_env, absent, builtins_env, absent, absent, absent, options)
 
+    # Vanilla Python builtins
     om_builtin_print = om_make_function_with_signature('print', om_print_code, make_vararg_only_signature('args'))
     om_builtin_input = om_make_function_with_signature('input', om_input_code, make_posonly_defaults_signature(('obj',), (om_str(''),)))
     om_builtin_hex = om_make_function_with_signature('hex', om_hex_code, make_posonly_only_signature(('obj',)))
@@ -4969,22 +4992,11 @@ def fresh_rte(options):
                                                       make_posonly_defaults_signature(('obj', 'default'), (absent,)))
     om_builtin_iter = om_make_function_with_signature('iter', om_iter_code,
                                                       make_posonly_defaults_signature(('obj', 'sentinel'), (absent,)))
-
     om_builtin_abs = om_make_function_with_signature('abs', om_abs_code, make_posonly_only_signature(('obj',)))
     om_builtin_min = om_make_function_with_signature('min', om_min_code, make_vararg_only_signature('args'))
     om_builtin_max = om_make_function_with_signature('max', om_max_code, make_vararg_only_signature('args'))
-
     om_builtin_round = om_make_function_with_signature('round', om_round_code, make_posonly_defaults_signature(('number', 'ndigits'), (absent,)))
     om_builtin_pow = om_make_function_with_signature('pow', om_pow_code, make_posonly_defaults_only_signature(('base', 'power', 'mod'), (absent,)))
-
-    om_random_random = om_make_function_with_signature('random', om_random_code, empty_signature)
-
-    # XXX: python builtin extension (maybe move into another module later)
-    om_builtin_alert = om_make_function_with_signature('alert', om_alert_code, make_posonly_defaults_signature(('obj',), (om_str(''),)))
-    om_builtin_confirm = om_make_function_with_signature('confirm', om_confirm_code, make_posonly_defaults_signature(('obj',), (om_str(''),)))
-    om_builtin_prompt = om_make_function_with_signature('prompt', om_prompt_code, make_posonly_defaults_signature(('obj',), (om_str(''),)))
-
-
 
     dict_set(builtins_env, 'type', class_type)
     dict_set(builtins_env, 'object', class_object)
@@ -5012,12 +5024,6 @@ def fresh_rte(options):
     dict_set(builtins_env, 'max', om_builtin_max)
     dict_set(builtins_env, 'round', om_builtin_round)
     dict_set(builtins_env, 'pow', om_builtin_pow)
-    # XXX: should be defined in module random
-    dict_set(builtins_env, 'random', om_random_random)
-    # XXX: this should not be in builtin module
-    dict_set(builtins_env, 'alert', om_builtin_alert)
-    dict_set(builtins_env, 'confirm', om_builtin_confirm)
-    dict_set(builtins_env, 'prompt', om_builtin_prompt)
 
     dict_set(builtins_env, 'BaseException', class_BaseException)
     dict_set(builtins_env, 'Exception', class_Exception)
@@ -5032,11 +5038,26 @@ def fresh_rte(options):
     dict_set(builtins_env, 'ArithmeticError', class_ArithmeticError)
     dict_set(builtins_env, 'ZeroDivisionError', class_ZeroDivisionError)
 
-    # Modules
-    module_math_env = init_module_math()
-    dict_set(globals_env, 'math', om_module('math', module_math_env))
+    # Pyinterp functions
+    om_builtin_alert = om_make_function_with_signature('alert', om_alert_code, make_posonly_defaults_signature(('obj',), (om_str(''),)))
+    om_builtin_confirm = om_make_function_with_signature('confirm', om_confirm_code, make_posonly_defaults_signature(('obj',), (om_str(''),)))
+    om_builtin_prompt = om_make_function_with_signature('prompt', om_prompt_code, make_posonly_defaults_signature(('obj',), (om_str(''),)))
 
-    init_module_turtle(globals_env)
+    dict_set(builtins_env, 'alert', om_builtin_alert)
+    dict_set(builtins_env, 'confirm', om_builtin_confirm)
+    dict_set(builtins_env, 'prompt', om_builtin_prompt)
+
+    # Preloaded modules
+    math_module = make_module_math()
+    turtle_module = make_module_turtle()
+    random_module = make_module_random()
+
+    # Inject some module into the builtins
+    dict_set(builtins_env, 'math', math_module)
+    dict_set(builtins_env, 'turtle', turtle_module)
+    dict_set(builtins_env, 'random', random_module)
+
+    inject_module_in_env(turtle_module, builtins_env)
 
     dict_set(globals_env, '__name__', om_str('__main__'))
     dict_set(globals_env, '__builtins__', om_module('builtins', builtins_env))
