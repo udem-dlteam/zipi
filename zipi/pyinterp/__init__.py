@@ -5911,7 +5911,8 @@ def gen_assert(cte, ast):
             def do_test(test_rte, test_val):
                 def conditional_throw(assert_rte, test_bool):
                     if om_is(test_bool, om_True):
-                        return cont(assert_rte)
+                        stmt_end = do_stmt_end(cont, ast, 0)
+                        return stmt_end(assert_rte)
                     else:
                         return throw_assert(assert_rte, cont)
                 return sem_bool(Context(test_rte, conditional_throw, test), test_val)
