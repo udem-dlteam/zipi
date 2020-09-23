@@ -4595,6 +4595,30 @@ def om_make_math_unary_real_function(fn_name, float_fn, arg):
 
     return om_make_function_with_signature(fn_name, float_code, make_posonly_only_signature((arg,)))
 
+def om_make_math_unary_real_to_int_function(fn_name, float_fn, arg):
+    def float_code(rte, cont):
+        val = rte_lookup_locals(rte, arg)
+
+        def apply_float_fn(float_rte, float_val):
+            if float_val is absent:
+                return sem_raise_with_message(make_out_of_ast_context(float_rte, cont), class_TypeError, "must be real number")
+            else:
+                res = float_fn(OM_get_boxed_value(float_val))
+
+                if float_is_infinite(res):
+                    return sem_raise_with_message(make_out_of_ast_context(float_rte, cont), class_ValueError,
+                                                         "cannot convert float infinity to integer")
+                elif float_is_nan(res):
+                    return sem_raise_with_message(make_out_of_ast_context(float_rte, cont), class_ValueError,
+                                                  "cannot convert float NaN to integer")
+                else:
+                    int_res = int_from_num(float_to_num(res))
+                    return unwindReturn(float_rte, om_int(int_res))
+
+        return sem_maybe_float(make_out_of_ast_context(rte, apply_float_fn), val)
+
+    return om_make_function_with_signature(fn_name, float_code, make_posonly_only_signature((arg,)))
+
 def om_make_math_unary_real_domain_function(fn_name, float_fn, arg, arg_domain):
     def float_code(rte, cont):
         val = rte_lookup_locals(rte, arg)
@@ -4635,8 +4659,8 @@ def make_module_math():
     sqrt_domain = make_math_domain_function(float_ge, 0)
     om_math_sqrt = om_make_math_unary_real_domain_function("sqrt", float_sqrt, "x", sqrt_domain)
 
-    om_math_floor = om_make_math_unary_real_function("floor", float_floor, "x")
-    om_math_ceil = om_make_math_unary_real_function("ceil", float_ceil, "x")
+    om_math_floor = om_make_math_unary_real_to_int_function("floor", float_floor, "x")
+    om_math_ceil = om_make_math_unary_real_to_int_function("ceil", float_ceil, "x")
 
     def math_pow_code(rte, cont):
         obj1 = rte_lookup_locals(rte, 'x')
