@@ -5055,8 +5055,8 @@ def fresh_rte(options):
     # Inject some module into the builtins
     dict_set(builtins_env, 'math', math_module)
     dict_set(builtins_env, 'turtle', turtle_module)
-    dict_set(builtins_env, 'random', random_module)
 
+    inject_module_in_env(random_module, builtins_env)
     inject_module_in_env(turtle_module, builtins_env)
 
     dict_set(globals_env, '__name__', om_str('__main__'))
@@ -5408,17 +5408,26 @@ def compute_function_variables_scope(cte, ast, args):
 
 
 def get_scope_variables(rte):
+
+    def filter_scope(env):
+        # Remove private names such as __name__ from displayed environment
+        filtered_env = make_dict()
+        for name in dict_keys(env):
+            if len(name) < 2 or name[:2] != '__':
+                dict_set(filtered_env, name, dict_get(env, name, None))
+        return filtered_env
+
     current_func = rte_current_func(rte)
     safe_for_space = rte_safe_for_space(rte)
 
     if not safe_for_space:
         # In non-safe-for-space mode, each function has access to its whole lexical scope, we return it
         if current_func is absent:
-            env = dict_copy(rte_globals(rte))
+            env = filter_scope(rte_globals(rte))
         else:
             lexical_scope = OM_get_function_lexical_scope(current_func)
 
-            env = dict_copy(rte_globals(rte))
+            env = filter_scope(rte_globals(rte))
 
             for name in dict_keys(lexical_scope):
                 val = dict_get(lexical_scope, name, None)[0] # All variables are boxed in non-safe-for-space mode
@@ -5432,10 +5441,10 @@ def get_scope_variables(rte):
 
     elif current_func is absent:
         # At top-level
-        env = dict_copy(rte_globals(rte))
+        env = filter_scope(rte_globals(rte))
     else:
         local_vars = rte_locals(rte)
-        global_vars = rte_globals(rte)
+        global_vars = filter_scope(rte_globals(rte))
         closure = OM_get_function_closure(current_func)
 
         env = make_dict()
