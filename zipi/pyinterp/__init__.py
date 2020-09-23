@@ -4360,7 +4360,7 @@ def om_breakpoint_code(rte, cont):
 
     frame = rte_stack(rte)
     parent_ast = frame_ast(frame)
-    parent_rte = frame_rte(parent)
+    parent_rte = frame_rte(frame)
 
     # The rte is used to display the variables, so we provide the caller rte
     ctx = Context(parent_rte, return_none, parent_ast)
