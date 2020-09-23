@@ -1080,9 +1080,7 @@ def om_float_subtype(cls, val):
     return om_boxval(cls, val)
 
 def om_exception(exn, args):
-    # NOTE: This assert only trigger if there is a bug in the code.
     obj = om(exn)
-    # TODO: wrap in OM_tuple when it is available
     OM_set(obj, 'args', args)
     return obj
 
@@ -1564,6 +1562,7 @@ class_AttributeError = make_builtin_class('AttributeError', OM_BaseException_cre
 class_ArithmeticError = make_builtin_class('ArithmeticError', OM_BaseException_create, (class_Exception,), class_type)
 class_OverflowError = make_builtin_class('OverflowError', OM_BaseException_create, (class_ArithmeticError,), class_type)
 class_ZeroDivisionError = make_builtin_class('ZeroDivisionError', OM_BaseException_create, (class_ArithmeticError,), class_type)
+class_AssertionError = make_builtin_class('AssertionError', OM_BaseException_create, (class_Exception,), class_type)
 
 om_None = om(class_NoneType)
 om_True = om_boxval(class_bool, int_from_num(1))
@@ -5061,6 +5060,7 @@ def fresh_rte(options):
     dict_set(builtins_env, 'StopIteration', class_StopIteration)
     dict_set(builtins_env, 'ArithmeticError', class_ArithmeticError)
     dict_set(builtins_env, 'ZeroDivisionError', class_ZeroDivisionError)
+    dict_set(builtins_env, 'AssertionError', class_AssertionError)
 
     # Pyinterp functions
     om_builtin_alert = om_make_function_with_signature('alert', om_alert_code, make_posonly_defaults_signature(('obj',), (om_str(''),)))
@@ -5630,9 +5630,7 @@ def comp_stmt(cte, ast):
     elif isinstance(ast, AST.Assert):
         # Assert(expr test, expr? msg)
         if debug: print('AST.Assert')
-        (cte1, code1) = comp_expr(cte, ast.test)
-        (cte2, code2) = comp_expr_opt(cte1, ast.msg)
-        return gen_assert(cte2, ast, code1, code2)
+        return gen_assert(cte, ast)
 
     elif isinstance(ast, AST.FunctionDef):
         if debug: print('AST.FunctionDef')
@@ -5944,29 +5942,40 @@ def gen_if(cte, ast, code1, code2, code3):
 
 
 
-def gen_assert(cte, ast, code1, code2):
+def gen_assert(cte, ast):
+    test = ast.test
+    msg = ast.msg
 
-    def code(rte, cont):
+    test_cte, test_code = comp_expr(cte, test)
+    msg_cte, msg_code = comp_expr_opt(test_cte, msg)
 
-        def call_assertion_error(rte, val):
-            raise AssertionError(val) # TODO: interface with interpreter exceptions
+    if msg_code is None:
+        def _throw(rte, cont):
+            return sem_raise(Context(rte, cont, ast), class_AssertionError)
+        # NOTE: reassignment required due to a bug in zp function scoping
+        throw_assert = _throw
+    else:
+        def _throw(rte, cont):
+            def do_throw(throw_rte, msg):
+                return sem_raise(Context(throw_rte, cont, ast), om_exception(class_AssertionError, om_tuple((msg,))))
+            return msg_code(rte, do_throw)
+        # NOTE: reassignment required due to a bug in zp function scoping
+        throw_assert = _throw
 
-        def dispatch(rte, val):
-            if val is False:
-                if code2 is None:
-                    raise AssertionError # TODO: interface with interpreter exceptions
-                else:
-                    return code2(rte, call_assertion_error)
-            else:
-                return cont(rte)
+    def make_code(throw_assert):
+        def code(rte, cont):
+            def do_test(test_rte, test_val):
+                def conditional_throw(assert_rte, test_bool):
+                    if om_is(test_bool, om_True):
+                        stmt_end = do_stmt_end(cont, ast, 0)
+                        return stmt_end(assert_rte)
+                    else:
+                        return throw_assert(assert_rte, cont)
+                return sem_bool(Context(test_rte, conditional_throw, test), test_val)
+            return test_code(rte, do_test)
+        return cte, code
 
-        def cast_bool(rte, val):
-            ctx = Context(rte, dispatch, ast)
-            return sem_bool(ctx, val)
-
-        return code1(rte, cast_bool)
-
-    return (cte, code)
+    return make_code(throw_assert)
 
 def gen_var_set(cte, ast, id):
     var_token = get_cte_locals_env_var(cte, id)
