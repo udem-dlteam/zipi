@@ -4911,6 +4911,40 @@ def make_module_random():
     return om_module('random', module_random_env)
 
 
+def make_module_time():
+    module_time_env = make_dict()
+
+    def om_sleep_code(rte, cont):
+        secs = rte_lookup_locals(rte, 'secs')
+
+        def return_none(_):
+            return unwindReturn(rte, om_None)
+
+        frame = rte_stack(rte)
+        parent_ast = frame_ast(frame)
+        parent_rte = frame_rte(frame)
+
+        # The rte is used to display the variables, so we provide the caller rte
+        sleep_ctx = Context(parent_rte, return_none, parent_ast)
+
+        if om_isinstance(secs, class_float):
+            sleep_time = float_to_num(OM_get_boxed_value(secs))
+            return stmt_end_with_sleep(sleep_ctx, sleep_time * 1000)
+        else:
+            def sleep_int_amount(int_rte, int_res):
+                if int_res is absent:
+                    return sem_raise_with_message(make_out_of_ast_context(int_rte, cont), class_TypeError, "a number is required")
+                else:
+                    sleep_time = int_to_num(OM_get_boxed_value(int_res))
+                    return stmt_end_with_sleep(sleep_ctx, sleep_time * 1000)
+            return sem_maybe_index(make_out_of_ast_context(rte, sleep_int_amount), secs)
+
+    om_time_sleep = om_make_function_with_signature('sleep', om_sleep_code, make_posonly_only_signature(('secs',)))
+
+    dict_set(module_time_env, 'sleep', om_time_sleep)
+
+    return om_module('time', module_time_env)
+
 
 # pixels graphics:
 #   setScreenMode(width, height)
@@ -5067,13 +5101,16 @@ def fresh_rte(options):
     math_module = make_module_math()
     turtle_module = make_module_turtle()
     random_module = make_module_random()
+    time_module = make_module_time()
 
     # Inject some module into the builtins
     dict_set(builtins_env, 'math', math_module)
     dict_set(builtins_env, 'turtle', turtle_module)
+    dict_set(builtins_env, 'time', time_module)
 
     inject_module_in_env(random_module, builtins_env)
     inject_module_in_env(turtle_module, builtins_env)
+    inject_module_in_env(time_module, builtins_env)
 
     dict_set(globals_env, '__name__', om_str('__main__'))
     dict_set(globals_env, '__builtins__', om_module('builtins', builtins_env))
@@ -5091,12 +5128,15 @@ def trampoline(cont):
         ast = dict_get(state, "ast", None)
         msg = dict_get(state, "msg", None)
         display_result = dict_get(state, "display_result", None)
+        sleep_time = dict_get(state, "sleep_time", None)
         error = dict_get(state, "error", None)
         cont = dict_get(state, "cont", None)
         ctx = dict_get(state, "ctx", None)
 
         if error is not None:
             print(error)
+        if sleep_time is not None:
+            runtime_sleep(sleep_time)
         if cont and rte_trace(ctx.rte) and msg is not None:
                 if len(msg) > 0:
                     msg = ' '+msg
@@ -7251,30 +7291,34 @@ def om_simple_exception_format(ctx, exn):
 
 
 def expr_end_with_error(ctx, error):
-    return return_to_trampoline(ctx.ast, '', 0, False, False, error, lambda: None, ctx)
+    return return_to_trampoline(ctx.ast, '', 0, False, False, None, error, lambda: None, ctx)
 
 def expr_end(ctx, val):
     return expr_end_with_step(ctx, val, 1)
 
 def expr_end_with_step(ctx, val, nb_steps):
     if om_is(val, om_None):
-        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), nb_steps, False, False, None, lambda: ctx.cont(ctx.rte, val), ctx)
+        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), nb_steps, False, False, None, None, lambda: ctx.cont(ctx.rte, val), ctx)
     else:
-        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), nb_steps, True, False, None, lambda: ctx.cont(ctx.rte, val), ctx)
+        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), nb_steps, True, False, None, None, lambda: ctx.cont(ctx.rte, val), ctx)
 
 def stmt_end(ctx, nb_steps):
-    return return_to_trampoline(ctx.ast, '', nb_steps, False, False, None, lambda: ctx.cont(ctx.rte), ctx)
+    return return_to_trampoline(ctx.ast, '', nb_steps, False, False, None, None, lambda: ctx.cont(ctx.rte), ctx)
 
 # XXX: Default nb_steps to 1 in stmt_end_with_message to minimise changes
 def stmt_end_with_message(ctx, msg):
-    return return_to_trampoline(ctx.ast, msg, 1, False, False, None, lambda: ctx.cont(ctx.rte), ctx)
+    return return_to_trampoline(ctx.ast, msg, 1, False, False, None, None, lambda: ctx.cont(ctx.rte), ctx)
 
 
 def stmt_end_breakpoint(ctx):
-    return return_to_trampoline(ctx.ast, '', 0, False, True, None, lambda: ctx.cont(ctx.rte), ctx)
+    return return_to_trampoline(ctx.ast, '', 0, False, True, None, None, lambda: ctx.cont(ctx.rte), ctx)
 
 
-def return_to_trampoline(ast, msg, nb_steps, display_result, breakpoint, error, cont, ctx):
+def stmt_end_with_sleep(ctx, sleep_time):
+    return return_to_trampoline(ctx.ast, '', 0, False, False, sleep_time, None, lambda: ctx.cont(ctx.rte), ctx)
+
+
+def return_to_trampoline(ast, msg, nb_steps, display_result, breakpoint, sleep_time, error, cont, ctx):
     # return to trampoline with current execution state
     res = make_dict()
     dict_set(res, "ast", ast)
@@ -7282,6 +7326,7 @@ def return_to_trampoline(ast, msg, nb_steps, display_result, breakpoint, error, 
     dict_set(res, "nb_steps", nb_steps)
     dict_set(res, "display_result", display_result)
     dict_set(res, "breakpoint", breakpoint)
+    dict_set(res, "sleep_time", sleep_time)
     dict_set(res, "error", error)
     dict_set(res, "cont", cont)
     dict_set(res, "ctx", ctx)

@@ -341,9 +341,6 @@ def float_to_string(u):
 # module math
 ##
 
-import math
-import sys
-
 
 def float_sqrt(u):
     return math.sqrt(u)
@@ -532,8 +529,12 @@ def runtime_prompt(msg):
     return runtime_input(msg)
 
 
+def runtime_sleep(ms):
+    time.sleep(ms / 1000)
+
+
 # Module random
-import random
+import random, math, sys, time
 
 
 def runtime_random():
