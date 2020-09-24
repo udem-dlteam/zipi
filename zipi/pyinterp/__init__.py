@@ -6261,7 +6261,7 @@ def gen_for(cte, ast, target, iterable_expr, body, orelse):
                             return body_code(new_rte, lambda rte: get_next(unwind_rte_ctrl_env(rte), iterator))
                         return set_code(assign_target_rte, run_body, nxt_value)
                 return sem_next(Context(get_next_rte, assign_target, iterable), iterator, for_loop_end_marker)
-            return sem_iter(Context(get_iterator_rte, get_next, iterable), iterable)
+            return sem_iter(Context(get_iterator_rte, get_next, iterable_expr), iterable)
         return iterable_code(get_iterable_rte, get_iterator)
     return body_cte, get_iterable
 
