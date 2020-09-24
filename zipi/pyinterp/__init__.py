@@ -4929,14 +4929,23 @@ def make_module_time():
 
         if om_isinstance(secs, class_float):
             sleep_time = float_to_num(OM_get_boxed_value(secs))
-            return stmt_end_with_sleep(sleep_ctx, sleep_time * 1000)
+            if sleep_time < 0:
+                return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_ValueError,
+                                              "sleep length must be non-negative")
+            else:
+                return stmt_end_with_sleep(sleep_ctx, sleep_time * 1000)
         else:
             def sleep_int_amount(int_rte, int_res):
                 if int_res is absent:
-                    return sem_raise_with_message(make_out_of_ast_context(int_rte, cont), class_TypeError, "a number is required")
+                    return sem_raise_with_message(make_out_of_ast_context(int_rte, cont), class_TypeError,
+                                                  "a number is required")
                 else:
                     sleep_time = int_to_num(OM_get_boxed_value(int_res))
-                    return stmt_end_with_sleep(sleep_ctx, sleep_time * 1000)
+                    if sleep_time < 0:
+                        return sem_raise_with_message(make_out_of_ast_context(int_rte, cont), class_ValueError,
+                                                      "sleep length must be non-negative")
+                    else:
+                        return stmt_end_with_sleep(sleep_ctx, sleep_time * 1000)
             return sem_maybe_index(make_out_of_ast_context(rte, sleep_int_amount), secs)
 
     om_time_sleep = om_make_function_with_signature('sleep', om_sleep_code, make_posonly_only_signature(('secs',)))
