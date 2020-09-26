@@ -4977,6 +4977,35 @@ def make_module_time():
 
     return om_module('time', module_time_env)
 
+# add the mouse event functions to a specify environment
+def make_module_mouse():
+    def getMouseX_code(rte, cont):
+        if getMouseX is None:
+            ctx = make_out_of_ast_context(rte, cont)
+            return sem_raise(ctx, class_NotImplementedError)
+        else:
+            return unwindReturn(rte, om_int(getMouseX(rte)))
+
+    def getMouseY_code(rte, cont):
+        if getMouseY is None:
+            ctx = make_out_of_ast_context(rte, cont)
+            return sem_raise(ctx, class_NotImplementedError)
+        else:
+            return unwindReturn(rte, om_int(getMouseY(rte)))
+
+    def getMouseDown_code(rte, cont):
+        if getMouseDown is None:
+            ctx = make_out_of_ast_context(rte, cont)
+            return sem_raise(ctx, class_NotImplementedError)
+        else:
+            print(getMouseDown(rte))
+            return unwindReturn(rte, om_bool(getMouseDown(rte)))
+
+    module_mouse_env = make_dict()
+    dict_set(module_mouse_env, 'getMouseX', om_make_function_with_signature('getMouseX', getMouseX_code, empty_signature))
+    dict_set(module_mouse_env, 'getMouseY', om_make_function_with_signature('getMouseY', getMouseY_code, empty_signature))
+    dict_set(module_mouse_env, 'getMouseDown', om_make_function_with_signature('getMouseDown', getMouseDown_code, empty_signature))
+    return om_module('mouse', module_mouse_env)
 
 # pixels graphics:
 #   setScreenMode(width, height)
@@ -5130,17 +5159,21 @@ def fresh_rte(options):
     dict_set(builtins_env, 'confirm', om_builtin_confirm)
     dict_set(builtins_env, 'prompt', om_builtin_prompt)
 
+
     # Preloaded modules
     math_module = make_module_math()
     turtle_module = make_module_turtle()
     random_module = make_module_random()
     time_module = make_module_time()
+    mouse_module = make_module_mouse()
 
     # Inject some module into the builtins
     dict_set(builtins_env, 'math', math_module)
+    dict_set(builtins_env, 'mouse', mouse_module)
     dict_set(builtins_env, 'turtle', turtle_module)
     dict_set(builtins_env, 'time', time_module)
 
+    inject_module_in_env(mouse_module, builtins_env)
     inject_module_in_env(random_module, builtins_env)
     inject_module_in_env(turtle_module, builtins_env)
     inject_module_in_env(time_module, builtins_env)

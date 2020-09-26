@@ -575,6 +575,10 @@ def drawing_setpw(rte, width):
 def drawing_drawtext(rte, text):
     pass
 
+getMouseX = None
+getMouseY = None
+getMouseDown = None
+
 debug = False
 
 if debug:
