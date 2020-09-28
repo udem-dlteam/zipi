@@ -5550,30 +5550,33 @@ def get_scope_variables(rte):
             env = filter_scope(globals_)
         else:
             var_context = OM_get_function_var_context(current_func)
+            filtered_globals = filter_scope(globals_)
             lexical_scope = OM_get_function_lexical_scope(current_func)
-            env = filter_scope(globals_)
+            locals_ = rte_locals(rte)
+            env = make_dict()
 
+            # Add non-shadowed global variables
+            for name in dict_keys(filtered_globals):
+                var_from_context = dict_get(var_context, name, None)
+                is_global = var_from_context is not None and is_global_var(var_from_context)
+                if not dict_has(lexical_scope, name) and not dict_has(locals_, name) or is_global:
+                    val = dict_get(filtered_globals, name, None)
+                    dict_set(env, name, val)
+
+            # Add non-shadowed bound variables from the lexical scope which are not skipped by a 'global' statement
             for name in dict_keys(lexical_scope):
                 var_from_context = dict_get(var_context, name, None)
-
-                # Skip variables from lexical parents if they are declared as 'global'
-                if var_from_context is not None and not is_global_var(var_from_context):
+                is_global = var_from_context is not None and is_global_var(var_from_context)
+                if not dict_has(locals_, name) and not is_global:
                     val = dict_get(lexical_scope, name, None)[0] # All variables are boxed in non-safe-for-space mode
                     if val is not absent:
                         dict_set(env, name, val)
-                    else:
-                        # If a closure variable is unbound, remove it from the bubble if it was defined globally
-                        dict_pop(env, name, None)
 
-            locals_ = rte_locals(rte)
-
+            # Add bound local variables to the environment
             for name in dict_keys(locals_):
                 val = dict_get(locals_, name, None)[0] # All variables are boxed in non-safe-for-space mode
                 if val is not absent:
                     dict_set(env, name, val)
-                else:
-                    # If a local variable is unbound, remove it from the bubble if it was defined in upper scopes
-                    dict_pop(env, name, None)
 
     elif current_func is absent:
         # At top-level
