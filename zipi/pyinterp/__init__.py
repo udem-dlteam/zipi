@@ -5543,21 +5543,36 @@ def get_scope_variables(rte):
     safe_for_space = rte_safe_for_space(rte)
 
     if not safe_for_space:
+        globals_ = rte_globals(rte)
+
         # In non-safe-for-space mode, each function has access to its whole lexical scope, we return it
         if current_func is absent:
-            env = filter_scope(rte_globals(rte))
+            env = filter_scope(globals_)
         else:
+            var_context = OM_get_function_var_context(current_func)
+            filtered_globals = filter_scope(globals_)
             lexical_scope = OM_get_function_lexical_scope(current_func)
+            locals_ = rte_locals(rte)
+            env = make_dict()
 
-            env = filter_scope(rte_globals(rte))
-
-            for name in dict_keys(lexical_scope):
-                val = dict_get(lexical_scope, name, None)[0] # All variables are boxed in non-safe-for-space mode
-                if val is not absent:
+            # Add non-shadowed global variables
+            for name in dict_keys(filtered_globals):
+                var_from_context = dict_get(var_context, name, None)
+                is_global = var_from_context is not None and is_global_var(var_from_context)
+                if not dict_has(lexical_scope, name) and not dict_has(locals_, name) or is_global:
+                    val = dict_get(filtered_globals, name, None)
                     dict_set(env, name, val)
 
-            locals_ = rte_locals(rte)
+            # Add non-shadowed bound variables from the lexical scope which are not skipped by a 'global' statement
+            for name in dict_keys(lexical_scope):
+                var_from_context = dict_get(var_context, name, None)
+                is_global = var_from_context is not None and is_global_var(var_from_context)
+                if not dict_has(locals_, name) and not is_global:
+                    val = dict_get(lexical_scope, name, None)[0] # All variables are boxed in non-safe-for-space mode
+                    if val is not absent:
+                        dict_set(env, name, val)
 
+            # Add bound local variables to the environment
             for name in dict_keys(locals_):
                 val = dict_get(locals_, name, None)[0] # All variables are boxed in non-safe-for-space mode
                 if val is not absent:
