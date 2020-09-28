@@ -1749,7 +1749,7 @@ def om_WrapperDescriptor_get(ctx, args):
         method = om_MethodWrapper(self_name, obj, code)
         return ctx.cont(ctx.rte, method)
 
-def om_WrapperDescriptor_call(ctx, args):
+def om_WrapperDescriptor_call_code(ctx, args):
     if debug: print('wrapper_descriptor.__call__')
     self = args[0]
     params = args[1:]
@@ -1757,6 +1757,8 @@ def om_WrapperDescriptor_call(ctx, args):
     code = OM_get_code(self)
 
     return code(ctx, params)
+
+om_WrapperDescriptor_call = do_magic_method(class_WrapperDescriptor, '__call__', om_WrapperDescriptor_call_code)
 
 def om_format_WrapperDescriptor_repr(self, rte):
     self__name__ = OM_get(self, '__name__')
@@ -1777,15 +1779,16 @@ def om_WrapperDescriptor_repr(ctx, args):
     return ctx.cont(ctx.rte, om_str(result))
 
 # class_MethodWrapper methods
-def om_MethodWrapper_call(ctx, args):
+def om_MethodWrapper_call_code(ctx, args):
     if debug: print('method-wrapper.__call__')
+
     self = args[0]
-    rest = args[1:]
+    instance = OM_get_MethodWrapper_instance(self)
+    code = OM_get_code(self)
 
-    obj = OM_get_MethodWrapper_instance(self)
-    params = [obj] + rest
+    return code(ctx, [instance] + args[1:])
 
-    return sem_call(ctx, self, params)
+om_MethodWrapper_call = do_magic_method(class_MethodWrapper, '__call__', om_MethodWrapper_call_code)
 
 def om_format_MethodWrapper_repr(self, rte):
     serial = OM_get_serial(self, rte)
@@ -2898,7 +2901,7 @@ def om_make_function_with_signature(name, code, signature):
 
     return om_fn
 
-def om_function_call(ctx, args):
+def om_function_call_code(ctx, args):
     self = args[0]
     params = args[1:]
 
@@ -2931,6 +2934,8 @@ def om_function_call(ctx, args):
     new_ctx = with_cont(ctx, execute_body)
     self_name_value = OM_get_boxed_value(OM_get(self, '__name__'))
     return align_args_with_signature(new_ctx, self_name_value, params, signature)
+
+om_function_call = do_magic_method(class_function, '__call__', om_function_call_code)
 
 def om_format_function_repr(self, rte):
     serial = OM_get_serial(self, rte)
@@ -6834,12 +6839,13 @@ def sem_getattribute(ctx, obj, name):
 def sem_call(ctx, obj, args):
     obj_type = OM_get_object_class(obj)
 
-    if om_is(obj_type, class_MethodWrapper) or om_is(obj_type, class_WrapperDescriptor):
-        code = OM_get_code(obj)
-        return code(ctx, args)
+    # Recursively recover __call__ of object until we get a base callable object
+    if om_is(obj_type, class_MethodWrapper):
+        return om_MethodWrapper_call_code(ctx, [obj] + args)
+    elif om_is(obj_type, class_WrapperDescriptor):
+        return om_WrapperDescriptor_call_code(ctx, [obj] + args)
     elif om_is(obj_type, class_function):
-        # Short-circuit call-semantics instead of recovering the __call__ method
-        return om_function_call(ctx, [obj] + args)
+        return om_function_call_code(ctx, [obj] + args)
     else:
         obj_call = getattribute_from_obj_mro(obj, '__call__')
         return sem_call(ctx, obj_call, [obj] + args)
