@@ -32,6 +32,16 @@ function dict_set(d, key, value) {
     d[key] = value;
 };
 
+function dict_pop(d, key, default_){
+    if (Object.prototype.hasOwnProperty.call(d, key)) {
+        var val = d[key];
+        delete d[key];
+        return val;
+    } else {
+        return default_;
+    }
+};
+
 function dict_keys(d){
     return Object.keys(d);
 }

@@ -21,6 +21,8 @@ def dict_get(d, key, default_value):
 def dict_set(d, key, value):
     d[key] = value
 
+def dict_pop(d, key, default_):
+    return d.pop(key, default_)
 
 def dict_has(d, key):
     return key in d.keys()

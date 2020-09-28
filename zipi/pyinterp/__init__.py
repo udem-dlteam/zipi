@@ -5543,18 +5543,27 @@ def get_scope_variables(rte):
     safe_for_space = rte_safe_for_space(rte)
 
     if not safe_for_space:
+        globals_ = rte_globals(rte)
+
         # In non-safe-for-space mode, each function has access to its whole lexical scope, we return it
         if current_func is absent:
-            env = filter_scope(rte_globals(rte))
+            env = filter_scope(globals_)
         else:
+            var_context = OM_get_function_var_context(current_func)
             lexical_scope = OM_get_function_lexical_scope(current_func)
-
-            env = filter_scope(rte_globals(rte))
+            env = filter_scope(globals_)
 
             for name in dict_keys(lexical_scope):
-                val = dict_get(lexical_scope, name, None)[0] # All variables are boxed in non-safe-for-space mode
-                if val is not absent:
-                    dict_set(env, name, val)
+                var_from_context = dict_get(var_context, name, None)
+
+                # Skip variables from lexical parents if they are declared as 'global'
+                if var_from_context is not None and not is_global_var(var_from_context):
+                    val = dict_get(lexical_scope, name, None)[0] # All variables are boxed in non-safe-for-space mode
+                    if val is not absent:
+                        dict_set(env, name, val)
+                    else:
+                        # If a closure variable is unbound, remove it from the bubble if it was defined globally
+                        dict_pop(env, name, None)
 
             locals_ = rte_locals(rte)
 
@@ -5562,6 +5571,9 @@ def get_scope_variables(rte):
                 val = dict_get(locals_, name, None)[0] # All variables are boxed in non-safe-for-space mode
                 if val is not absent:
                     dict_set(env, name, val)
+                else:
+                    # If a local variable is unbound, remove it from the bubble if it was defined in upper scopes
+                    dict_pop(env, name, None)
 
     elif current_func is absent:
         # At top-level
