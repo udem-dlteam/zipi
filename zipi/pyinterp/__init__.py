@@ -5512,7 +5512,7 @@ def compute_function_variables_scope(cte, ast, args):
                     return syntax_error((cte, ast, "no binding for nonlocal '" + id_ + "' found"))
                 else:
                     dict_set(locals_env, id_, closure_token)
-                    return True
+        return True
 
     elif isinstance(ast, AST.Global):
         for id_ in ast.names:
@@ -5520,7 +5520,7 @@ def compute_function_variables_scope(cte, ast, args):
                 return syntax_error((cte, ast, "name '" + id_ + "' is used prior to global declaration"))
             else:
                 dict_set(locals_env, id_, make_global_var_token())
-                return True
+        return True
 
     else:
         return True
@@ -5540,21 +5540,36 @@ def get_scope_variables(rte):
     safe_for_space = rte_safe_for_space(rte)
 
     if not safe_for_space:
+        globals_ = rte_globals(rte)
+
         # In non-safe-for-space mode, each function has access to its whole lexical scope, we return it
         if current_func is absent:
-            env = filter_scope(rte_globals(rte))
+            env = filter_scope(globals_)
         else:
+            var_context = OM_get_function_var_context(current_func)
+            filtered_globals = filter_scope(globals_)
             lexical_scope = OM_get_function_lexical_scope(current_func)
+            locals_ = rte_locals(rte)
+            env = make_dict()
 
-            env = filter_scope(rte_globals(rte))
-
-            for name in dict_keys(lexical_scope):
-                val = dict_get(lexical_scope, name, None)[0] # All variables are boxed in non-safe-for-space mode
-                if val is not absent:
+            # Add non-shadowed global variables
+            for name in dict_keys(filtered_globals):
+                var_from_context = dict_get(var_context, name, None)
+                is_global = var_from_context is not None and is_global_var(var_from_context)
+                if not dict_has(lexical_scope, name) and not dict_has(locals_, name) or is_global:
+                    val = dict_get(filtered_globals, name, None)
                     dict_set(env, name, val)
 
-            locals_ = rte_locals(rte)
+            # Add non-shadowed bound variables from the lexical scope which are not skipped by a 'global' statement
+            for name in dict_keys(lexical_scope):
+                var_from_context = dict_get(var_context, name, None)
+                is_global = var_from_context is not None and is_global_var(var_from_context)
+                if not dict_has(locals_, name) and not is_global:
+                    val = dict_get(lexical_scope, name, None)[0] # All variables are boxed in non-safe-for-space mode
+                    if val is not absent:
+                        dict_set(env, name, val)
 
+            # Add bound local variables to the environment
             for name in dict_keys(locals_):
                 val = dict_get(locals_, name, None)[0] # All variables are boxed in non-safe-for-space mode
                 if val is not absent:
@@ -6046,14 +6061,19 @@ def gen_assert(cte, ast):
 
     if msg_code is None:
         def _throw(rte, cont):
-            return sem_raise(Context(rte, cont, ast), class_AssertionError)
+            def do_throw(_):
+                return sem_raise(Context(rte, cont, ast), class_AssertionError)
+            return stmt_end_breakpoint(Context(rte, do_stmt_end(do_throw, ast, 1), ast))
+
         # NOTE: reassignment required due to a bug in zp function scoping
         throw_assert = _throw
     else:
         def _throw(rte, cont):
-            def do_throw(throw_rte, msg):
-                return sem_raise(Context(throw_rte, cont, ast), om_exception(class_AssertionError, om_tuple((msg,))))
-            return msg_code(rte, do_throw)
+            def set_breakpoint(throw_rte, msg):
+                def do_throw(_):
+                    return sem_raise(Context(throw_rte, cont, ast), om_exception(class_AssertionError, om_tuple((msg,))))
+                return stmt_end_breakpoint(Context(throw_rte, do_stmt_end(do_throw, ast, 1), ast))
+            return msg_code(rte, set_breakpoint)
         # NOTE: reassignment required due to a bug in zp function scoping
         throw_assert = _throw
 
