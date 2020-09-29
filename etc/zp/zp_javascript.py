@@ -346,9 +346,15 @@ class Transformer:
             return "return " + self.transform(node.value) + ";"
 
     def arguments(self, node, begin=0, end=None):
-        if end is not None:
-            args = ",".join([self.transform(arg) for arg in node.args[begin:end]])
-        args = ",".join([self.transform(arg) for arg in node.args[begin:]])
+        arg_names = [self.transform(name) for name in node.args[begin:end]]
+        defaults = [self.transform(val) for val in node.defaults]
+
+        args_without_default = arg_names[:len(arg_names) - len(defaults)]
+
+        args_with_default = [f'{name} = {val}' for name, val in zip(reversed(arg_names), reversed(defaults))]
+        args_with_default.reverse()
+
+        args = ",".join(args_without_default + args_with_default)
         return args
 
     @staticmethod

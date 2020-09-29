@@ -6064,14 +6064,19 @@ def gen_assert(cte, ast):
 
     if msg_code is None:
         def _throw(rte, cont):
-            return sem_raise(Context(rte, cont, ast), class_AssertionError)
+            def do_throw(_):
+                return sem_raise(Context(rte, cont, ast), class_AssertionError)
+            return stmt_end_breakpoint(Context(rte, do_stmt_end(do_throw, ast, 1), ast))
+
         # NOTE: reassignment required due to a bug in zp function scoping
         throw_assert = _throw
     else:
         def _throw(rte, cont):
-            def do_throw(throw_rte, msg):
-                return sem_raise(Context(throw_rte, cont, ast), om_exception(class_AssertionError, om_tuple((msg,))))
-            return msg_code(rte, do_throw)
+            def set_breakpoint(throw_rte, msg):
+                def do_throw(_):
+                    return sem_raise(Context(throw_rte, cont, ast), om_exception(class_AssertionError, om_tuple((msg,))))
+                return stmt_end_breakpoint(Context(throw_rte, do_stmt_end(do_throw, ast, 1), ast))
+            return msg_code(rte, set_breakpoint)
         # NOTE: reassignment required due to a bug in zp function scoping
         throw_assert = _throw
 
