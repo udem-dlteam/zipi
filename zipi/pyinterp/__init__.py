@@ -5515,7 +5515,7 @@ def compute_function_variables_scope(cte, ast, args):
                     return syntax_error((cte, ast, "no binding for nonlocal '" + id_ + "' found"))
                 else:
                     dict_set(locals_env, id_, closure_token)
-                    return True
+        return True
 
     elif isinstance(ast, AST.Global):
         for id_ in ast.names:
@@ -5523,7 +5523,7 @@ def compute_function_variables_scope(cte, ast, args):
                 return syntax_error((cte, ast, "name '" + id_ + "' is used prior to global declaration"))
             else:
                 dict_set(locals_env, id_, make_global_var_token())
-                return True
+        return True
 
     else:
         return True
