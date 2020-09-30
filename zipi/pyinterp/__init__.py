@@ -67,12 +67,6 @@ class RTCtrlCatch:
         self.lex_env = lex_env
 
 
-class RTCtrlFinally:
-    def __init__(self, ctrl_next, code_finally, cont):
-        self.ctrl_next = ctrl_next
-        self.code_finally = code_catch
-        self.lex_env = lex_env
-
 # class RTE:
 #     def __init__(self, global_env, locals_env, builtins, stack, ctrl_env):
 #         self.globals_env = globals_env
@@ -169,7 +163,7 @@ def cont_str(ctx, val):
     return ctx.cont(ctx.rte, om_str(val))
 
 def cont_list(ctx, val):
-    return ctx.cont(ctx.rte, om_list(val))
+    return ctx.cont(ctx.rte, om_list(val, len(val)))
 
 def cont_tuple(ctx, val):
     return ctx.cont(ctx.rte, om_tuple(val))
@@ -4824,7 +4818,7 @@ def make_module_turtle():
         if om_isinstance(x, class_int) and om_isinstance(y, class_int):
             xval = int_to_num(OM_get_boxed_value(x))
             yval = int_to_num(OM_get_boxed_value(y))
-            drawing_mv(rte, xval, yval);
+            drawing_mv(rte, xval, yval)
             return unwindReturn(rte, om_None)
         else:
             return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'x' and 'y' must be of type 'int'")
@@ -5319,13 +5313,6 @@ def mark_local_var_token_as_boxed(token):
 def is_local_var(token):
     return token[0] is LOCAL_VAR
 
-def add_closure_var_to_fn(fn, name):
-    # Add a free variable to the function cte
-    n_freevars = get_ast_property(current_fn, 'n_freevars', None)
-    set_ast_property(current_fn, 'n_freevars', n_freevars + 1)
-
-    locals_env = get_ast_property(ast, 'locals_env', None)
-    dict_set(locals_env, name, [CLOSURE_VAR, n_freevars])
 
 def make_closure_var_token(id_, stack, current_fn):
     # This function both mutates the ast to add a free variable and return the created token or None
@@ -6295,9 +6282,9 @@ def gen_multiple_Assign(cte, ast, targets, value):
                         i -= 1
                     return next_cont(start_assign_rte)
                 elif targets_len < seq_len:
-                    return sem_raise_with_message(Context(start_assign_rte, cont, ast), "too many values to unpack")
+                    return sem_raise_with_message(Context(start_assign_rte, cont, ast), class_ValueError, "too many values to unpack")
                 else:
-                    return sem_raise_with_message(Context(start_assign_rte, cont, ast), "not enough values to unpack")
+                    return sem_raise_with_message(Context(start_assign_rte, cont, ast), class_ValueError, "not enough values to unpack")
             return om_unpack_iterable(Context(unpack_rte, start_assignments, ast), iterable)
         return value_code(rte, unpack)
     return cte, code
@@ -6339,7 +6326,7 @@ def gen_delete(cte, ast, expr):
         (expr_cte, code) = comp_expr(cte, expr)
 
         def del_expr(rte, cont):
-            return sem_var_del(Context(rte, do_stmt_end(cont, ast), ast, 1), expr.id)
+            return sem_var_del(Context(rte, do_stmt_end(cont, ast, 1), ast), expr.id)
 
         return (expr_cte, del_expr)
     else:
