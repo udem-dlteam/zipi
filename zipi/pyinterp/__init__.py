@@ -4875,15 +4875,30 @@ def make_module_turtle():
         g = rte_lookup_locals(rte, 'g')
         b = rte_lookup_locals(rte, 'b')
 
-        rval = convert_to_number(r)
-        gval = convert_to_number(g)
-        bval = convert_to_number(b)
+        def color_in_range(val):
+            return val >= 0 and val <= 1
 
-        if rval is absent or gval is absent or bval is absent:
-            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'r', 'g' and 'b' must be a 'int' or 'float'")
-        else:
-            drawing_setpc(rte, rval, gval, bval)
-            return unwindReturn(rte, om_None)
+        def get_r_float(r_rte, r_float):
+            def get_g_float(g_rte, g_float):
+                def get_b_float(b_rte, b_float):
+                    r_val = float_to_num(OM_get_boxed_value(r_float))
+                    g_val = float_to_num(OM_get_boxed_value(g_float))
+                    b_val = float_to_num(OM_get_boxed_value(b_float))
+
+                    if color_in_range(r_val) and color_in_range(g_val) and color_in_range(b_val):
+                        drawing_setpc(rte, r_val, g_val, b_val)
+                        return unwindReturn(rte, om_None)
+                    else:
+                        return sem_raise_with_message(make_out_of_ast_context(b_rte, cont),
+                                                      class_ValueError,
+                                                      "pencolor() arguments must be between 0 and 1")
+                    
+                return sem_float(make_out_of_ast_context(g_rte, get_b_float), b)
+            return sem_float(make_out_of_ast_context(r_rte, get_g_float), g)
+        return sem_float(make_out_of_ast_context(rte, get_r_float), r)
+
+    om_module_turtle_pencolor = om_make_function_with_signature('pencolor', pencolor_code,
+                                                                make_posonly_only_signature(('r', 'g', 'b')))
 
     def pensize_code(rte, cont):
         width = rte_lookup_locals(rte, 'width')
@@ -4903,8 +4918,6 @@ def make_module_turtle():
         else:
             return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'text' must be of type 'str'")
 
-    om_module_turtle_pencolor = om_make_function_with_signature('pencolor', pencolor_code,
-                                                             make_posonly_only_signature(('r', 'g', 'b')))
     om_module_turtle_pensize = om_make_function_with_signature('pensize', pensize_code,
                                                              make_posonly_only_signature(('width',)))
     om_module_turtle_write = om_make_function_with_signature('write', write_code,
