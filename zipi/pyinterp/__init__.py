@@ -6936,6 +6936,7 @@ def sem_generic_call(ctx, obj, args, kwargs):
     obj_type = OM_get_object_class(obj)
 
     # Recursively recover __call__ of object until we get a base callable object
+    # NOTE: kwargs should never be an empty dict
     if om_is(obj_type, class_MethodWrapper):
         requires_kwargs = OM_get_requires_kwargs(obj)
 
