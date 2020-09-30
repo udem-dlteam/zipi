@@ -4769,26 +4769,27 @@ def make_module_turtle():
             return unwindReturn(rte, om_None)
         return om_make_function_with_signature(name, code, empty_signature)
 
-    def make_bridge_1_or_2(fct, name, arg1, arg2):
+    def make_bridge_1_or_2(fn, name, arg1_name, arg2_name):
         def code(rte, cont):
-            param1 = rte_lookup_locals(rte, arg1)
-            if om_isinstance(param1, class_int):
-                param1_value = int_to_num(OM_get_boxed_value(param1))
-                param2 = rte_lookup_locals(rte, arg2)
-                if param2 is absent:
-                    fct(rte, param1_value, 0)
-                    return unwindReturn(rte, om_None)
-                else:
-                    if om_isinstance(param2, class_int):
-                        param2_value = int_to_num(OM_get_boxed_value(param2))
-                        fct(rte, param1_value, param2_value)
-                        return unwindReturn(rte, om_None)
+            arg1 = rte_lookup_locals(rte, arg1_name)
+            arg2 = rte_lookup_locals(rte, arg2_name)
+
+            def get_arg1_float(arg1_rte, arg1_float):
+                def get_arg2_float(arg2_rte, arg2_float):
+                    val1 = float_to_num(OM_get_boxed_value(arg1_float))
+                    val2 = float_to_num(OM_get_boxed_value(arg2_float))
+
+                    if not float_is_finite(val1) or not float_is_finite(val2):
+                        return sem_raise_with_message(make_out_of_ast_context(arg2_rte, cont), class_ValueError, name + "() arguments must be finite numbers")
                     else:
-                        return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, 'argument 2 expected int')
-            else:
-                return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, 'argument 1 expected int')
+                        fn(rte, val1, val2)
+                        return unwindReturn(rte, om_None)
+
+                return sem_float(make_out_of_ast_context(arg1_rte, get_arg2_float), arg2)
+            return sem_float(make_out_of_ast_context(rte, get_arg1_float), arg1)
         return om_make_function_with_signature(name, code,
-                                               make_posonly_defaults_signature((arg1, arg2), (absent,)))
+                                               make_posonly_defaults_signature((arg1_name, arg2_name),
+                                                                               (om_float(float_from_num(0)),)))
 
     def clear_code(rte, cont):
         width = rte_lookup_locals(rte, 'width')
@@ -7025,6 +7026,14 @@ def sem_maybe_float(ctx, obj):
             else:
                 return sem_raise_with_message(ctx, class_TypeError, "__float__ returned non-float")
         return om_call(obj_float, with_cont(ctx, check_float), [obj])
+
+def sem_float(ctx, obj):
+    def check_result(rte, res):
+        if res is absent:
+            return sem_raise_with_message(ctx, class_TypeError, "object cannot be interpreted as a float")
+        else:
+            return cont_obj(ctx, res)
+    return sem_maybe_float(with_cont(ctx, check_result), obj)
 
 def gen_constant(cte, ast, val):
 
