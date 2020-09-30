@@ -4793,24 +4793,33 @@ def make_module_turtle():
 
     def clear_code(rte, cont):
         width = rte_lookup_locals(rte, 'width')
+        height = rte_lookup_locals(rte, 'height')
+
         if width is absent:
             drawing_cs(rte)
             return unwindReturn(rte, om_None)
+        elif height is absent:
+            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError,
+                                          'cs() expected 0 or 2 arguments, got 1')
         else:
-            if om_isinstance(width, class_int):
-                width_value = int_to_num(OM_get_boxed_value(width))
-                height = rte_lookup_locals(rte, 'height')
-                if height is absent:
-                    return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, 'cs accepts 0 or 2 arguments')
-                else:
-                    if om_isinstance(height, class_int):
-                        height_value = int_to_num(OM_get_boxed_value(height))
-                        drawing_cs(rte, width_value, height_value)
-                        return unwindReturn(rte, om_None)
+            def get_width_float(width_rte, width_float):
+                def get_height_float(height_rte, height_float):
+                    width_val = float_to_num(OM_get_boxed_value(width_float))
+                    height_val = float_to_num(OM_get_boxed_value(height_float))
+
+                    if not float_is_finite(width_val) or not float_is_finite(height_val):
+                        return sem_raise_with_message(make_out_of_ast_context(height_rte, cont),
+                                                      class_ValueError,
+                                                      "cs() arguments must be finite numbers")
                     else:
-                        return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, 'argument 2 expected int')
-            else:
-                return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, 'argument 1 expected int')
+                        drawing_cs(rte, width_val, height_val)
+                        return unwindReturn(rte, om_None)
+                return sem_float(make_out_of_ast_context(width_rte, get_height_float), height)
+            return sem_float(make_out_of_ast_context(rte, get_width_float), width)
+
+    om_module_turtle_clear = om_make_function_with_signature('clear', clear_code,
+                                                             make_posonly_defaults_only_signature(('width', 'height'),
+                                                                                                  (absent, absent)))
 
 
     def goto_code(rte, cont):
@@ -4875,9 +4884,6 @@ def make_module_turtle():
         else:
             return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'text' must be of type 'str'")
 
-
-    om_module_turtle_clear = om_make_function_with_signature('clear', clear_code,
-                                                             make_posonly_defaults_only_signature(('width', 'height'), (absent,absent)))
     om_module_turtle_goto = om_make_function_with_signature('goto', goto_code,
                                                             make_posonly_only_signature(('x', 'y')))
     om_module_turtle_lt = om_make_function_with_signature('lt', lt_code,
