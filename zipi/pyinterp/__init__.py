@@ -4892,7 +4892,7 @@ def make_module_turtle():
                         return sem_raise_with_message(make_out_of_ast_context(b_rte, cont),
                                                       class_ValueError,
                                                       "pencolor() arguments must be between 0 and 1")
-                    
+
                 return sem_float(make_out_of_ast_context(g_rte, get_b_float), b)
             return sem_float(make_out_of_ast_context(r_rte, get_g_float), g)
         return sem_float(make_out_of_ast_context(rte, get_r_float), r)
@@ -4902,26 +4902,35 @@ def make_module_turtle():
 
     def pensize_code(rte, cont):
         width = rte_lookup_locals(rte, 'width')
-        width_value = convert_to_number(width)
-        if width_value is absent:
-            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'width' must be a 'int' or 'float'")
-        else:
-            drawing_setpw(rte, width_value)
-            return unwindReturn(rte, om_None)
 
-    def write_code(rte, cont):
-        text = rte_lookup_locals(rte, 'text')
-        if om_isinstance(text, class_str):
-            text_value = OM_get_boxed_value(text)
-            drawing_drawtext(rte, text_value)
-            return unwindReturn(rte, om_None)
-        else:
-            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'text' must be of type 'str'")
+        def get_width_float(width_rte, width_float):
+            width_value = OM_get_boxed_value(width_float)
+
+            if float_is_finite(width_value) and float_is_nonneg(width_value):
+                drawing_setpw(width_rte, float_to_num(width_value))
+                return unwindReturn(width_rte, om_None)
+            else:
+                return sem_raise_with_message(make_out_of_ast_context(width_rte, cont), class_ValueError,
+                                              "pensize() argument must be a positive number")
+
+        return sem_float(make_out_of_ast_context(rte, get_width_float), width)
 
     om_module_turtle_pensize = om_make_function_with_signature('pensize', pensize_code,
-                                                             make_posonly_only_signature(('width',)))
+                                                               make_posonly_only_signature(('width',)))
+
+    def write_code(rte, cont):
+        arg = rte_lookup_locals(rte, 'arg')
+
+        def get_arg_str(arg_rte, arg_str):
+            text_value = OM_get_boxed_value(arg_str)
+            drawing_drawtext(arg_rte, text_value)
+            return unwindReturn(arg_rte, om_None)
+
+        return sem_str(make_out_of_ast_context(rte, get_arg_str), arg)
+
+
     om_module_turtle_write = om_make_function_with_signature('write', write_code,
-                                                                make_posonly_only_signature(('text',)))
+                                                                make_posonly_only_signature(('arg',)))
 
     module_turtle_env = make_dict()
 
