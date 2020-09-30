@@ -553,6 +553,12 @@ def drawing_fd(rte, xdist, ydist):
 def drawing_bk(rte, xdist, ydist):
     pass
 
+def drawing_lt(rte, angle):
+    pass
+
+def drawing_rt(rte, angle):
+    pass
+
 def drawing_ht(rte):
     pass
 
