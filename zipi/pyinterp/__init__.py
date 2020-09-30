@@ -4724,8 +4724,8 @@ def make_module_math():
     om_math_atan = om_make_math_unary_real_function("atan", float_atan, "x")
 
     def math_atan2_code(rte, cont):
-        obj1 = rte_lookup_locals(rte, 'x')
-        obj2 = rte_lookup_locals(rte, 'y')
+        obj1 = rte_lookup_locals(rte, 'y')
+        obj2 = rte_lookup_locals(rte, 'x')
 
         def check_obj1(obj1_rte, obj1_res):
             if obj1_res is absent:
@@ -4746,7 +4746,7 @@ def make_module_math():
                 return sem_maybe_float(make_out_of_ast_context(obj1_rte, check_obj2), obj2)
         return sem_maybe_float(make_out_of_ast_context(rte, check_obj1), obj1)
 
-    om_math_atan2 = om_make_function_with_signature("atan2", math_atan2_code, make_posonly_only_signature(("x", "y")))
+    om_math_atan2 = om_make_function_with_signature("atan2", math_atan2_code, make_posonly_only_signature(("y", "x")))
 
 
     module_math_env = make_dict()
