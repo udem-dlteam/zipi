@@ -4763,13 +4763,13 @@ def make_module_turtle():
             return absent
 
     # Generate code for 0 argument native function
-    def make_bridge_0(fct, name):
+    def make_set_option_fn(fct, name):
         def code(rte, cont):
             fct(rte)
             return unwindReturn(rte, om_None)
         return om_make_function_with_signature(name, code, empty_signature)
 
-    def make_bridge_1_or_2(fn, name, arg1_name, arg2_name):
+    def make_translation_fn(fn, name, arg1_name, arg2_name):
         def code(rte, cont):
             arg1 = rte_lookup_locals(rte, arg1_name)
             arg2 = rte_lookup_locals(rte, arg2_name)
@@ -4898,12 +4898,12 @@ def make_module_turtle():
                                                                 make_posonly_only_signature(('text',)))
 
     module_turtle_env = make_dict()
-    om_module_turtle_st = make_bridge_0(drawing_st, 'st')
-    om_module_turtle_ht = make_bridge_0(drawing_ht, 'ht')
-    om_module_turtle_pu = make_bridge_0(drawing_pu, 'pu')
-    om_module_turtle_pd = make_bridge_0(drawing_pd, 'pd')
-    om_module_turtle_fd = make_bridge_1_or_2(drawing_fd, 'fd', 'xdist', 'ydist')
-    om_module_turtle_bk = make_bridge_1_or_2(drawing_bk, 'bk', 'xdist', 'ydist')
+    om_module_turtle_st = make_set_option_fn(drawing_st, 'st')
+    om_module_turtle_ht = make_set_option_fn(drawing_ht, 'ht')
+    om_module_turtle_pu = make_set_option_fn(drawing_pu, 'pu')
+    om_module_turtle_pd = make_set_option_fn(drawing_pd, 'pd')
+    om_module_turtle_fd = make_translation_fn(drawing_fd, 'fd', 'xdist', 'ydist')
+    om_module_turtle_bk = make_translation_fn(drawing_bk, 'bk', 'xdist', 'ydist')
 
     dict_set(module_turtle_env, 'clear', om_module_turtle_clear)
     dict_set(module_turtle_env, 'st', om_module_turtle_st)
