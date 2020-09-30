@@ -973,7 +973,7 @@ def populate_builtin_NoneType():
     builtin_add_method(class_NoneType, '__repr__', om_NoneType_repr)
 
 def populate_builtin_FunctionType():
-    builtin_add_method(class_function, '__call__', om_function_call)
+    builtin_add_method_with_kwargs(class_function, '__call__', om_function_call)
     builtin_add_method(class_function, '__repr__', om_function_repr)
 
 def populate_builtin_BaseException():
@@ -2920,7 +2920,7 @@ def om_make_function_with_signature(name, code, signature):
 
     return om_fn
 
-def om_function_call_code(ctx, args):
+def om_function_call_code(ctx, args, kwargs):
     self = args[0]
     params = args[1:]
 
@@ -6897,7 +6897,7 @@ def sem_simple_call(ctx, obj, args):
         else:
             return code(ctx, args)
     elif om_is(obj_type, class_function):
-        return om_function_call_code(ctx, [obj] + args)
+        return om_function_call_code(ctx, [obj] + args, make_dict())
     else:
         obj_call = getattribute_from_obj_mro(obj, '__call__')
         return sem_simple_call(ctx, obj_call, [obj] + args)
