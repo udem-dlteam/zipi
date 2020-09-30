@@ -4800,7 +4800,7 @@ def make_module_turtle():
             return unwindReturn(rte, om_None)
         elif height is absent:
             return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError,
-                                          'cs() expected 0 or 2 arguments, got 1')
+                                          'clear() expected 0 or 2 arguments, got 1')
         else:
             def get_width_float(width_rte, width_float):
                 def get_height_float(height_rte, height_float):
@@ -4810,7 +4810,7 @@ def make_module_turtle():
                     if not float_is_finite(width_val) or not float_is_finite(height_val):
                         return sem_raise_with_message(make_out_of_ast_context(height_rte, cont),
                                                       class_ValueError,
-                                                      "cs() arguments must be finite numbers")
+                                                      "clear() arguments must be finite numbers")
                     else:
                         drawing_cs(rte, width_val, height_val)
                         return unwindReturn(rte, om_None)
@@ -4820,18 +4820,27 @@ def make_module_turtle():
     om_module_turtle_clear = om_make_function_with_signature('clear', clear_code,
                                                              make_posonly_defaults_only_signature(('width', 'height'),
                                                                                                   (absent, absent)))
-
-
     def goto_code(rte, cont):
         x = rte_lookup_locals(rte, 'x')
         y = rte_lookup_locals(rte, 'y')
-        if om_isinstance(x, class_int) and om_isinstance(y, class_int):
-            xval = int_to_num(OM_get_boxed_value(x))
-            yval = int_to_num(OM_get_boxed_value(y))
-            drawing_mv(rte, xval, yval)
-            return unwindReturn(rte, om_None)
-        else:
-            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'x' and 'y' must be of type 'int'")
+
+        def get_x_float(x_rte, x_float):
+            def get_y_float(y_rte, y_float):
+                x_val = float_to_num(OM_get_boxed_value(x_float))
+                y_val = float_to_num(OM_get_boxed_value(y_float))
+
+                if not float_is_finite(x_val) or not float_is_finite(y_val):
+                    return sem_raise_with_message(make_out_of_ast_context(y_rte, cont),
+                                                  class_ValueError,
+                                                  "goto() arguments must be finite numbers")
+                else:
+                    drawing_mv(y_rte, x_val, y_val)
+                    return unwindReturn(rte, om_None)
+
+            return sem_float(make_out_of_ast_context(x_rte, get_y_float), y)
+        return sem_float(make_out_of_ast_context(rte, get_x_float), x)
+
+    om_module_turtle_goto = om_make_function_with_signature('goto', goto_code, make_posonly_only_signature(('x', 'y')))
 
     def lt_code(rte, cont):
         angle = rte_lookup_locals(rte, 'angle')
@@ -4884,8 +4893,6 @@ def make_module_turtle():
         else:
             return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'text' must be of type 'str'")
 
-    om_module_turtle_goto = om_make_function_with_signature('goto', goto_code,
-                                                            make_posonly_only_signature(('x', 'y')))
     om_module_turtle_lt = om_make_function_with_signature('lt', lt_code,
                                                           make_posonly_only_signature(('angle',)))
     om_module_turtle_rt = om_make_function_with_signature('rt', rt_code,
