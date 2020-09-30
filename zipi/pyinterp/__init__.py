@@ -6080,7 +6080,8 @@ def gen_assert(cte, ast):
                     return sem_raise(Context(throw_rte, cont, ast), om_exception(class_AssertionError, om_tuple((msg,))))
 
                 stmt_end_cont = do_stmt_end_with_message(do_throw, ast)
-                stmt_end_with_message_cont = lambda rte: stmt_end_cont(rte, "Assertion failed")
+                assert_msg = "Assertion failed: " + om_simple_repr(Context(throw_rte, cont, ast), msg)
+                stmt_end_with_message_cont = lambda rte: stmt_end_cont(rte, assert_msg)
                 return stmt_end_breakpoint(Context(throw_rte, stmt_end_with_message_cont, ast))
             return msg_code(rte, set_breakpoint)
         # NOTE: reassignment required due to a bug in zp function scoping
