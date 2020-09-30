@@ -6089,7 +6089,10 @@ def gen_assert(cte, ast):
         def _throw(rte, cont):
             def do_throw(_):
                 return sem_raise(Context(rte, cont, ast), class_AssertionError)
-            return stmt_end_breakpoint(Context(rte, do_stmt_end(do_throw, ast, 1), ast))
+
+            stmt_end_cont = do_stmt_end_with_message(do_throw, ast)
+            stmt_end_with_message_cont = lambda rte: stmt_end_cont(rte, "Assertion failed")
+            return stmt_end_breakpoint(Context(rte, stmt_end_with_message_cont, ast))
 
         # NOTE: reassignment required due to a bug in zp function scoping
         throw_assert = _throw
@@ -6098,7 +6101,11 @@ def gen_assert(cte, ast):
             def set_breakpoint(throw_rte, msg):
                 def do_throw(_):
                     return sem_raise(Context(throw_rte, cont, ast), om_exception(class_AssertionError, om_tuple((msg,))))
-                return stmt_end_breakpoint(Context(throw_rte, do_stmt_end(do_throw, ast, 1), ast))
+
+                stmt_end_cont = do_stmt_end_with_message(do_throw, ast)
+                assert_msg = "Assertion failed: " + om_simple_repr(Context(throw_rte, cont, ast), msg)
+                stmt_end_with_message_cont = lambda rte: stmt_end_cont(rte, assert_msg)
+                return stmt_end_breakpoint(Context(throw_rte, stmt_end_with_message_cont, ast))
             return msg_code(rte, set_breakpoint)
         # NOTE: reassignment required due to a bug in zp function scoping
         throw_assert = _throw
