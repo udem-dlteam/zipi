@@ -4769,6 +4769,11 @@ def make_module_turtle():
             return unwindReturn(rte, om_None)
         return om_make_function_with_signature(name, code, empty_signature)
 
+    om_module_turtle_st = make_set_option_fn(drawing_st, 'st')
+    om_module_turtle_ht = make_set_option_fn(drawing_ht, 'ht')
+    om_module_turtle_pu = make_set_option_fn(drawing_pu, 'pu')
+    om_module_turtle_pd = make_set_option_fn(drawing_pd, 'pd')
+
     def make_translation_fn(fn, name, arg1_name, arg2_name):
         def code(rte, cont):
             arg1 = rte_lookup_locals(rte, arg1_name)
@@ -4790,6 +4795,9 @@ def make_module_turtle():
         return om_make_function_with_signature(name, code,
                                                make_posonly_defaults_signature((arg1_name, arg2_name),
                                                                                (om_float(float_from_num(0)),)))
+
+    om_module_turtle_fd = make_translation_fn(drawing_fd, 'fd', 'xdist', 'ydist')
+    om_module_turtle_bk = make_translation_fn(drawing_bk, 'bk', 'xdist', 'ydist')
 
     def clear_code(rte, cont):
         width = rte_lookup_locals(rte, 'width')
@@ -4842,23 +4850,25 @@ def make_module_turtle():
 
     om_module_turtle_goto = om_make_function_with_signature('goto', goto_code, make_posonly_only_signature(('x', 'y')))
 
-    def lt_code(rte, cont):
-        angle = rte_lookup_locals(rte, 'angle')
-        angle_value = convert_to_number(angle)
-        if angle_value is absent:
-            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'angle' must be a 'int' or 'float'")
-        else:
-            drawing_lt(rte, angle_value)
-            return unwindReturn(rte, om_None)
+    def make_rotation_fn(fn, name, arg_name):
+        def code(rte, cont):
+            angle = rte_lookup_locals(rte, arg_name)
+            def get_angle_float(angle_rte, angle_float):
+                angle_val = float_to_num(OM_get_boxed_value(angle_float))
 
-    def rt_code(rte, cont):
-        angle = rte_lookup_locals(rte, 'angle')
-        angle_value = convert_to_number(angle)
-        if angle_value is absent:
-            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'angle' must be a 'int' or 'float'")
-        else:
-            drawing_rt(rte, angle_value)
-            return unwindReturn(rte, om_None)
+                if float_is_finite(angle_val):
+                    fn(angle_rte, angle_val)
+                    return unwindReturn(angle_rte, om_None)
+                else:
+                    return sem_raise_with_message(make_out_of_ast_context(angle_rte, cont),
+                                                  class_ValueError,
+                                                  name + "() argument must be a finite number")
+
+            return sem_float(make_out_of_ast_context(rte, get_angle_float), angle)
+        return om_make_function_with_signature(name, code, make_posonly_only_signature((arg_name,)))
+
+    om_module_turtle_lt = make_rotation_fn('lt', drawing_lt, 'angle')
+    om_module_turtle_rt = make_rotation_fn('rt', drawing_rt, 'angle')
 
     def pencolor_code(rte, cont):
         r = rte_lookup_locals(rte, 'r')
@@ -4893,10 +4903,6 @@ def make_module_turtle():
         else:
             return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'text' must be of type 'str'")
 
-    om_module_turtle_lt = om_make_function_with_signature('lt', lt_code,
-                                                          make_posonly_only_signature(('angle',)))
-    om_module_turtle_rt = om_make_function_with_signature('rt', rt_code,
-                                                          make_posonly_only_signature(('angle',)))
     om_module_turtle_pencolor = om_make_function_with_signature('pencolor', pencolor_code,
                                                              make_posonly_only_signature(('r', 'g', 'b')))
     om_module_turtle_pensize = om_make_function_with_signature('pensize', pensize_code,
@@ -4905,12 +4911,6 @@ def make_module_turtle():
                                                                 make_posonly_only_signature(('text',)))
 
     module_turtle_env = make_dict()
-    om_module_turtle_st = make_set_option_fn(drawing_st, 'st')
-    om_module_turtle_ht = make_set_option_fn(drawing_ht, 'ht')
-    om_module_turtle_pu = make_set_option_fn(drawing_pu, 'pu')
-    om_module_turtle_pd = make_set_option_fn(drawing_pd, 'pd')
-    om_module_turtle_fd = make_translation_fn(drawing_fd, 'fd', 'xdist', 'ydist')
-    om_module_turtle_bk = make_translation_fn(drawing_bk, 'bk', 'xdist', 'ydist')
 
     dict_set(module_turtle_env, 'clear', om_module_turtle_clear)
     dict_set(module_turtle_env, 'st', om_module_turtle_st)
