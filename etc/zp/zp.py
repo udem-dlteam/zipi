@@ -151,6 +151,8 @@ def compile_file(input_file):
         runtime += "function drawing_cs(rte, width, height) {};"
         runtime += "function drawing_fd(rte, xdist, ydist) {};"
         runtime += "function drawing_bk(rte, xdist, ydist) {};"
+        runtime += "function drawing_lt(rte, angle) {};"
+        runtime += "function drawing_rt(rte, angle) {};"
         runtime += "function drawing_ht(rte) {};"
         runtime += "function drawing_st(rte) {};"
         runtime += "function drawing_pd(rte) {};"
