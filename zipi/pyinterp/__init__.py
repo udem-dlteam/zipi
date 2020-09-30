@@ -6903,7 +6903,31 @@ def sem_simple_call(ctx, obj, args):
         return sem_simple_call(ctx, obj_call, [obj] + args)
 
 def sem_generic_call(ctx, obj, args, kwargs):
-    return sem_raise(ctx, class_NotImplementedError)
+    obj_type = OM_get_object_class(obj)
+
+    # Recursively recover __call__ of object until we get a base callable object
+    if om_is(obj_type, class_MethodWrapper):
+        requires_kwargs = OM_get_requires_kwargs(obj)
+
+        if requires_kwargs:
+            code = OM_get_code(obj)
+            instance = OM_get_MethodWrapper_instance(obj)
+            return code(ctx, [instance] + args, kwargs)
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "method takes no keyword arguments")
+    elif om_is(obj_type, class_WrapperDescriptor):
+        requires_kwargs = OM_get_requires_kwargs(obj)
+
+        if requires_kwargs:
+            code = OM_get_code(obj)
+            return code(ctx, args, kwargs)
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "function takes no keyword arguments")
+    elif om_is(obj_type, class_function):
+        return om_function_call_code(ctx, [obj] + args, kwargs)
+    else:
+        obj_call = getattribute_from_obj_mro(obj, '__call__')
+        return sem_generic_call(ctx, obj_call, [obj] + args, kwargs)
 
 def sem_getitem(ctx, obj, item):
     obj_getitem = getattribute_from_obj_mro(obj, "__getitem__")
