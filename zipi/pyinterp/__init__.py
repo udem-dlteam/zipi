@@ -4763,140 +4763,176 @@ def make_module_turtle():
             return absent
 
     # Generate code for 0 argument native function
-    def make_bridge_0(fct, name):
+    def make_set_option_fn(fct, name):
         def code(rte, cont):
             fct(rte)
             return unwindReturn(rte, om_None)
         return om_make_function_with_signature(name, code, empty_signature)
 
-    def make_bridge_1_or_2(fct, name, arg1, arg2):
+    om_module_turtle_st = make_set_option_fn(drawing_st, 'st')
+    om_module_turtle_ht = make_set_option_fn(drawing_ht, 'ht')
+    om_module_turtle_pu = make_set_option_fn(drawing_pu, 'pu')
+    om_module_turtle_pd = make_set_option_fn(drawing_pd, 'pd')
+
+    def make_translation_fn(fn, name, arg1_name, arg2_name):
         def code(rte, cont):
-            param1 = rte_lookup_locals(rte, arg1)
-            if om_isinstance(param1, class_int):
-                param1_value = int_to_num(OM_get_boxed_value(param1))
-                param2 = rte_lookup_locals(rte, arg2)
-                if param2 is absent:
-                    fct(rte, param1_value, 0)
-                    return unwindReturn(rte, om_None)
-                else:
-                    if om_isinstance(param2, class_int):
-                        param2_value = int_to_num(OM_get_boxed_value(param2))
-                        fct(rte, param1_value, param2_value)
-                        return unwindReturn(rte, om_None)
+            arg1 = rte_lookup_locals(rte, arg1_name)
+            arg2 = rte_lookup_locals(rte, arg2_name)
+
+            def get_arg1_float(arg1_rte, arg1_float):
+                def get_arg2_float(arg2_rte, arg2_float):
+                    val1 = float_to_num(OM_get_boxed_value(arg1_float))
+                    val2 = float_to_num(OM_get_boxed_value(arg2_float))
+
+                    if not float_is_finite(val1) or not float_is_finite(val2):
+                        return sem_raise_with_message(make_out_of_ast_context(arg2_rte, cont), class_ValueError, name + "() arguments must be finite numbers")
                     else:
-                        return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, 'argument 2 expected int')
-            else:
-                return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, 'argument 1 expected int')
+                        fn(rte, val1, val2)
+                        return unwindReturn(rte, om_None)
+
+                return sem_float(make_out_of_ast_context(arg1_rte, get_arg2_float), arg2)
+            return sem_float(make_out_of_ast_context(rte, get_arg1_float), arg1)
         return om_make_function_with_signature(name, code,
-                                               make_posonly_defaults_signature((arg1, arg2), (absent,)))
+                                               make_posonly_defaults_signature((arg1_name, arg2_name),
+                                                                               (om_float(float_from_num(0)),)))
+
+    om_module_turtle_fd = make_translation_fn(drawing_fd, 'fd', 'xdist', 'ydist')
+    om_module_turtle_bk = make_translation_fn(drawing_bk, 'bk', 'xdist', 'ydist')
 
     def clear_code(rte, cont):
         width = rte_lookup_locals(rte, 'width')
+        height = rte_lookup_locals(rte, 'height')
+
         if width is absent:
             drawing_cs(rte)
             return unwindReturn(rte, om_None)
+        elif height is absent:
+            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError,
+                                          'clear() expected 0 or 2 arguments, got 1')
         else:
-            if om_isinstance(width, class_int):
-                width_value = int_to_num(OM_get_boxed_value(width))
-                height = rte_lookup_locals(rte, 'height')
-                if height is absent:
-                    return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, 'cs accepts 0 or 2 arguments')
-                else:
-                    if om_isinstance(height, class_int):
-                        height_value = int_to_num(OM_get_boxed_value(height))
-                        drawing_cs(rte, width_value, height_value)
-                        return unwindReturn(rte, om_None)
+            def get_width_float(width_rte, width_float):
+                def get_height_float(height_rte, height_float):
+                    width_val = float_to_num(OM_get_boxed_value(width_float))
+                    height_val = float_to_num(OM_get_boxed_value(height_float))
+
+                    if not float_is_finite(width_val) or not float_is_finite(height_val):
+                        return sem_raise_with_message(make_out_of_ast_context(height_rte, cont),
+                                                      class_ValueError,
+                                                      "clear() arguments must be finite numbers")
                     else:
-                        return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, 'argument 2 expected int')
-            else:
-                return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, 'argument 1 expected int')
+                        drawing_cs(rte, width_val, height_val)
+                        return unwindReturn(rte, om_None)
+                return sem_float(make_out_of_ast_context(width_rte, get_height_float), height)
+            return sem_float(make_out_of_ast_context(rte, get_width_float), width)
 
-
+    om_module_turtle_clear = om_make_function_with_signature('clear', clear_code,
+                                                             make_posonly_defaults_only_signature(('width', 'height'),
+                                                                                                  (absent, absent)))
     def goto_code(rte, cont):
         x = rte_lookup_locals(rte, 'x')
         y = rte_lookup_locals(rte, 'y')
-        if om_isinstance(x, class_int) and om_isinstance(y, class_int):
-            xval = int_to_num(OM_get_boxed_value(x))
-            yval = int_to_num(OM_get_boxed_value(y))
-            drawing_mv(rte, xval, yval)
-            return unwindReturn(rte, om_None)
-        else:
-            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'x' and 'y' must be of type 'int'")
 
-    def lt_code(rte, cont):
-        angle = rte_lookup_locals(rte, 'angle')
-        angle_value = convert_to_number(angle)
-        if angle_value is absent:
-            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'angle' must be a 'int' or 'float'")
-        else:
-            drawing_lt(rte, angle_value)
-            return unwindReturn(rte, om_None)
+        def get_x_float(x_rte, x_float):
+            def get_y_float(y_rte, y_float):
+                x_val = float_to_num(OM_get_boxed_value(x_float))
+                y_val = float_to_num(OM_get_boxed_value(y_float))
 
-    def rt_code(rte, cont):
-        angle = rte_lookup_locals(rte, 'angle')
-        angle_value = convert_to_number(angle)
-        if angle_value is absent:
-            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'angle' must be a 'int' or 'float'")
-        else:
-            drawing_rt(rte, angle_value)
-            return unwindReturn(rte, om_None)
+                if not float_is_finite(x_val) or not float_is_finite(y_val):
+                    return sem_raise_with_message(make_out_of_ast_context(y_rte, cont),
+                                                  class_ValueError,
+                                                  "goto() arguments must be finite numbers")
+                else:
+                    drawing_mv(y_rte, x_val, y_val)
+                    return unwindReturn(rte, om_None)
+
+            return sem_float(make_out_of_ast_context(x_rte, get_y_float), y)
+        return sem_float(make_out_of_ast_context(rte, get_x_float), x)
+
+    om_module_turtle_goto = om_make_function_with_signature('goto', goto_code, make_posonly_only_signature(('x', 'y')))
+
+    def make_rotation_fn(fn, name, arg_name):
+        def code(rte, cont):
+            angle = rte_lookup_locals(rte, arg_name)
+            def get_angle_float(angle_rte, angle_float):
+                angle_val = float_to_num(OM_get_boxed_value(angle_float))
+
+                if float_is_finite(angle_val):
+                    fn(angle_rte, angle_val)
+                    return unwindReturn(angle_rte, om_None)
+                else:
+                    return sem_raise_with_message(make_out_of_ast_context(angle_rte, cont),
+                                                  class_ValueError,
+                                                  name + "() argument must be a finite number")
+
+            return sem_float(make_out_of_ast_context(rte, get_angle_float), angle)
+        return om_make_function_with_signature(name, code, make_posonly_only_signature((arg_name,)))
+
+    om_module_turtle_lt = make_rotation_fn(drawing_lt, 'lt', 'angle')
+    om_module_turtle_rt = make_rotation_fn(drawing_rt, 'rt', 'angle')
 
     def pencolor_code(rte, cont):
         r = rte_lookup_locals(rte, 'r')
         g = rte_lookup_locals(rte, 'g')
         b = rte_lookup_locals(rte, 'b')
 
-        rval = convert_to_number(r)
-        gval = convert_to_number(g)
-        bval = convert_to_number(b)
+        def color_in_range(val):
+            return val >= 0 and val <= 1
 
-        if rval is absent or gval is absent or bval is absent:
-            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'r', 'g' and 'b' must be a 'int' or 'float'")
-        else:
-            drawing_setpc(rte, rval, gval, bval)
-            return unwindReturn(rte, om_None)
+        def get_r_float(r_rte, r_float):
+            def get_g_float(g_rte, g_float):
+                def get_b_float(b_rte, b_float):
+                    r_val = float_to_num(OM_get_boxed_value(r_float))
+                    g_val = float_to_num(OM_get_boxed_value(g_float))
+                    b_val = float_to_num(OM_get_boxed_value(b_float))
+
+                    if color_in_range(r_val) and color_in_range(g_val) and color_in_range(b_val):
+                        drawing_setpc(rte, r_val, g_val, b_val)
+                        return unwindReturn(rte, om_None)
+                    else:
+                        return sem_raise_with_message(make_out_of_ast_context(b_rte, cont),
+                                                      class_ValueError,
+                                                      "pencolor() arguments must be between 0 and 1")
+
+                return sem_float(make_out_of_ast_context(g_rte, get_b_float), b)
+            return sem_float(make_out_of_ast_context(r_rte, get_g_float), g)
+        return sem_float(make_out_of_ast_context(rte, get_r_float), r)
+
+    om_module_turtle_pencolor = om_make_function_with_signature('pencolor', pencolor_code,
+                                                                make_posonly_only_signature(('r', 'g', 'b')))
 
     def pensize_code(rte, cont):
         width = rte_lookup_locals(rte, 'width')
-        width_value = convert_to_number(width)
-        if width_value is absent:
-            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'width' must be a 'int' or 'float'")
-        else:
-            drawing_setpw(rte, width_value)
-            return unwindReturn(rte, om_None)
+
+        def get_width_float(width_rte, width_float):
+            width_value = OM_get_boxed_value(width_float)
+
+            if float_is_finite(width_value) and float_is_pos(width_value):
+                drawing_setpw(width_rte, float_to_num(width_value))
+                return unwindReturn(width_rte, om_None)
+            else:
+                return sem_raise_with_message(make_out_of_ast_context(width_rte, cont), class_ValueError,
+                                              "pensize() argument must be a positive number")
+
+        return sem_float(make_out_of_ast_context(rte, get_width_float), width)
+
+    om_module_turtle_pensize = om_make_function_with_signature('pensize', pensize_code,
+                                                               make_posonly_only_signature(('width',)))
 
     def write_code(rte, cont):
-        text = rte_lookup_locals(rte, 'text')
-        if om_isinstance(text, class_str):
-            text_value = OM_get_boxed_value(text)
-            drawing_drawtext(rte, text_value)
-            return unwindReturn(rte, om_None)
-        else:
-            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "'text' must be of type 'str'")
+        arg = rte_lookup_locals(rte, 'arg')
+
+        def get_arg_str(arg_rte, arg_str):
+            text_value = OM_get_boxed_value(arg_str)
+            drawing_drawtext(arg_rte, text_value)
+            return unwindReturn(arg_rte, om_None)
+
+        return sem_str(make_out_of_ast_context(rte, get_arg_str), arg)
 
 
-    om_module_turtle_clear = om_make_function_with_signature('clear', clear_code,
-                                                             make_posonly_defaults_only_signature(('width', 'height'), (absent,absent)))
-    om_module_turtle_goto = om_make_function_with_signature('goto', goto_code,
-                                                            make_posonly_only_signature(('x', 'y')))
-    om_module_turtle_lt = om_make_function_with_signature('lt', lt_code,
-                                                          make_posonly_only_signature(('angle',)))
-    om_module_turtle_rt = om_make_function_with_signature('rt', rt_code,
-                                                          make_posonly_only_signature(('angle',)))
-    om_module_turtle_pencolor = om_make_function_with_signature('pencolor', pencolor_code,
-                                                             make_posonly_only_signature(('r', 'g', 'b')))
-    om_module_turtle_pensize = om_make_function_with_signature('pensize', pensize_code,
-                                                             make_posonly_only_signature(('width',)))
     om_module_turtle_write = om_make_function_with_signature('write', write_code,
-                                                                make_posonly_only_signature(('text',)))
+                                                                make_posonly_only_signature(('arg',)))
 
     module_turtle_env = make_dict()
-    om_module_turtle_st = make_bridge_0(drawing_st, 'st')
-    om_module_turtle_ht = make_bridge_0(drawing_ht, 'ht')
-    om_module_turtle_pu = make_bridge_0(drawing_pu, 'pu')
-    om_module_turtle_pd = make_bridge_0(drawing_pd, 'pd')
-    om_module_turtle_fd = make_bridge_1_or_2(drawing_fd, 'fd', 'xdist', 'ydist')
-    om_module_turtle_bk = make_bridge_1_or_2(drawing_bk, 'bk', 'xdist', 'ydist')
 
     dict_set(module_turtle_env, 'clear', om_module_turtle_clear)
     dict_set(module_turtle_env, 'st', om_module_turtle_st)
@@ -7025,6 +7061,14 @@ def sem_maybe_float(ctx, obj):
             else:
                 return sem_raise_with_message(ctx, class_TypeError, "__float__ returned non-float")
         return om_call(obj_float, with_cont(ctx, check_float), [obj])
+
+def sem_float(ctx, obj):
+    def check_result(rte, res):
+        if res is absent:
+            return sem_raise_with_message(ctx, class_TypeError, "object cannot be interpreted as a float")
+        else:
+            return cont_obj(ctx, res)
+    return sem_maybe_float(with_cont(ctx, check_result), obj)
 
 def gen_constant(cte, ast, val):
 
