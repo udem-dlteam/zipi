@@ -4867,8 +4867,8 @@ def make_module_turtle():
             return sem_float(make_out_of_ast_context(rte, get_angle_float), angle)
         return om_make_function_with_signature(name, code, make_posonly_only_signature((arg_name,)))
 
-    om_module_turtle_lt = make_rotation_fn('lt', drawing_lt, 'angle')
-    om_module_turtle_rt = make_rotation_fn('rt', drawing_rt, 'angle')
+    om_module_turtle_lt = make_rotation_fn(drawing_lt, 'lt', 'angle')
+    om_module_turtle_rt = make_rotation_fn(drawing_rt, 'rt', 'angle')
 
     def pencolor_code(rte, cont):
         r = rte_lookup_locals(rte, 'r')
@@ -4906,7 +4906,7 @@ def make_module_turtle():
         def get_width_float(width_rte, width_float):
             width_value = OM_get_boxed_value(width_float)
 
-            if float_is_finite(width_value) and float_is_nonneg(width_value):
+            if float_is_finite(width_value) and float_is_pos(width_value):
                 drawing_setpw(width_rte, float_to_num(width_value))
                 return unwindReturn(width_rte, om_None)
             else:
