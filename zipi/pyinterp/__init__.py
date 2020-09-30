@@ -4723,6 +4723,31 @@ def make_module_math():
     om_math_acos = om_make_math_unary_real_domain_function("acos", float_acos, "x", inverse_trig_domain)
     om_math_atan = om_make_math_unary_real_function("atan", float_atan, "x")
 
+    def math_atan2_code(rte, cont):
+        obj1 = rte_lookup_locals(rte, 'x')
+        obj2 = rte_lookup_locals(rte, 'y')
+
+        def check_obj1(obj1_rte, obj1_res):
+            if obj1_res is absent:
+                return sem_raise_with_message(make_out_of_ast_context(obj1_rte, cont), class_TypeError,
+                                              "must be real number")
+            else:
+                def check_obj2(obj2_rte, obj2_res):
+                    if obj2_res is absent:
+                        return sem_raise_with_message(make_out_of_ast_context(obj2_rte, cont), class_ValueError,
+                                                      "must be real number")
+                    else:
+                        float_res1 = OM_get_boxed_value(obj1_res)
+                        float_res2 = OM_get_boxed_value(obj2_res)
+
+                        res = float_atan2(float_res1, float_res2)
+
+                        return unwindReturn(obj2_rte, om_float(res))
+                return sem_maybe_float(make_out_of_ast_context(obj1_rte, check_obj2), obj2)
+        return sem_maybe_float(make_out_of_ast_context(rte, check_obj1), obj1)
+
+    om_math_atan2 = om_make_function_with_signature("atan2", math_atan2_code, make_posonly_only_signature(("x", "y")))
+
 
     module_math_env = make_dict()
 
@@ -4742,6 +4767,7 @@ def make_module_math():
     dict_set(module_math_env, 'asin', om_math_asin)
     dict_set(module_math_env, 'acos', om_math_acos)
     dict_set(module_math_env, 'atan', om_math_atan)
+    dict_set(module_math_env, 'atan2', om_math_atan2)
 
     # constants
     dict_set(module_math_env, 'pi', om_float(float_pi()))
