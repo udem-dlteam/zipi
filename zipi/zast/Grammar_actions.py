@@ -1,7 +1,11 @@
 # File: Grammar_actions.py
 
 {
-"gen_prefix": "py_"
+"allowed_modes": {"exec": "file_input",
+                  "eval": "eval_input",
+                  "single": "single_input"}
+
+,"gen_prefix": "py_"
 ,"gen_parse_prefix": "py_parse_"
 
 ,"prelude":
@@ -905,7 +909,7 @@ def set_ctx1(t, ctx):\n\
 
 ,"argument: .test ['=' test]": ["lineno = get_lineno(ts); col_offset = get_col_offset(ts)"]
 ,"argument: test ['=' test.]": ["if isinstance(test1, Name):\n"
-                                "    ast = keyword(test1, test2)\n"
+                                "    ast = keyword(test1.id, test2)\n"
                                 "    return set_start_end(ts, lineno, col_offset, ast)\n"
                                 "else:\n"
                                 "    return py_syntax_error(ts, 'expression cannot contain assignment, perhaps you meant \"==\"?')"]

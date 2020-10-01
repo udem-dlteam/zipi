@@ -5851,10 +5851,7 @@ def comp_expr(cte, ast):
 
     elif isinstance(ast, AST.Call):
         if debug: print('AST.Call')
-        (func_cte, func_code) = comp_expr(cte, ast.func)
-        (args_cte, args_code) = comp_elements(func_cte, ast.args)
-        # TODO: compile ast.keywords args
-        return gen_call(func_cte, ast, func_code, args_code)
+        return gen_call(cte, ast)
     elif isinstance(ast, AST.IfExp):
         (cte1, test_code) = comp_expr(cte, ast.test)
         (cte2, body_code) = comp_expr(cte1, ast.body)
@@ -5890,8 +5887,36 @@ def comp_elements(cte, args):
     elements_code = []
     next_cte = cte
     for arg in args:
-        next_cte, arg_code = comp_expr(next_cte, arg)
-        elements_code.append(arg_code)
+        if isinstance(arg, AST.Starred):
+            if isinstance(arg.ctx, AST.Load):
+                next_cte, args_code = comp_expr(next_cte, arg.value)
+
+                def create_code(args_code):
+                    def accumulate_many_args(rte, cont, acc):
+                        def unpack_elements(unpack_rte, iterable):
+                            def do_accumulate(acc_rte, values):
+                                for val in values:
+                                    acc.append(val)
+                                return cont(acc_rte, acc)
+                            return om_unpack_iterable(Context(unpack_rte, do_accumulate, arg), iterable)
+                        return args_code(rte, unpack_elements)
+                    return accumulate_many_args
+
+                elements_code.append(create_code(args_code))
+            else:
+                return CT_raise_syntax_error_with_msg(cte, arg, "internal error, cannot load Starred(..., Store())")
+        else:
+            next_cte, arg_code = comp_expr(next_cte, arg)
+
+            def create_code(arg_code):
+                def accumulate_single_arg(rte, cont, acc):
+                    def do_accumulate(acc_rte, val):
+                        acc.append(val)
+                        return cont(acc_rte, acc)
+                    return arg_code(rte, do_accumulate)
+                return accumulate_single_arg
+
+            elements_code.append(create_code(arg_code))
 
     return gen_elements_seq(next_cte, elements_code)
 
@@ -5931,24 +5956,18 @@ def gen_elements_seq(cte, elements_code):
         while i >= 0:
             current_element_code = elements_code[i]
 
-            # Required to create a closure for next_cont, i and current_element_code
-            def create_code(next_cont, i, current_element_code):
+            # Required to create a closure for next_cont and current_element_code
+            def create_code(next_cont, current_element_code):
                 def code(rte, acc):
-                    def store(rte, val):
-                        acc[i] = val
-                        return next_cont(rte, acc)
-                    return current_element_code(rte, store)
+                    return current_element_code(rte, next_cont, acc)
                 return code
 
-            cont = create_code(cont, i, current_element_code)
+            cont = create_code(cont, current_element_code)
             i = i - 1
         return cont
 
     def alloc_list(rte, cont):
-        # TODO: Replace by acc = [None] * len(elements_comp) once supported
         acc = []
-        for _ in elements_code: acc.append(None)
-
         elements_cont = do_elements_cont(cont)
         return elements_cont(rte, acc)
 
@@ -7351,7 +7370,10 @@ def sem_raise_with_message(ctx, exn_type, msg):
     args = om_tuple((om_str(msg),))
     return sem_raise(ctx, om_exception(exn_type, args))
 
-def gen_call(cte, ast, func_code, args_code):
+def gen_call(cte, ast):
+    (func_cte, func_code) = comp_expr(cte, ast.func)
+    (args_cte, args_code) = comp_elements(func_cte, ast.args)
+
     def code(rte, cont):
         expr_end_cont = do_expr_end(cont, ast)
 
