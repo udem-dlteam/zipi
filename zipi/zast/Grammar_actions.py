@@ -796,7 +796,7 @@ def set_ctx1(t, ctx):\n\
 ,"trailer: '('. [arglist] ')'":
    ["arglist1 = []"]
 ,"trailer: '(' [arglist]. ')'":
-   ["ast = Call(ast, arglist1, [])"]
+   ["ast = Call(ast, arglist1[0], arglist1[1])"]
 ,"trailer: '(' [arglist] ')'.":
    ["return set_start_end(ts, lineno, col_offset, ast)"]
 
@@ -918,12 +918,31 @@ def set_ctx1(t, ctx):\n\
                           "return set_start_end(ts, lineno, col_offset, ast)"]
 
 
-,"arglist: argument. (',' argument)* [',']":
-   ["args = [argument1]"]
-,"arglist: argument (',' argument.)* [',']":
-   ["args.append(argument2)"]
+,"arglist: .argument (',' argument)* [',']": ["only_keywords = False; only_kwargs = False\n"
+                                              "args = []; keywords = []"]
+,"arglist: argument. (',' argument)* [',']": ["if isinstance(argument1, keyword):\n"
+                                              "    only_kwargs = argument1.arg is None\n"
+                                              "    only_keywords = not only_kwargs\n"
+                                              "    keywords.append(argument1)\n"
+                                              "else:\n"
+                                              "    args.append(argument1)"]
+,"arglist: argument (',' argument.)* [',']": ["if isinstance(argument2, keyword):\n"
+                                              "    is_kwarg = argument2.arg is None\n"
+                                              "    only_kwargs = only_kwargs or is_kwarg\n"
+                                              "    only_keywords = only_keywords or not is_kwarg\n"
+                                              "    keywords.append(argument2)\n"
+                                              "elif isinstance(argument2, Starred):\n"
+                                              "    if only_kwargs:\n"
+                                              "        return py_syntax_error(ts, 'iterable argument unpacking follows keyword argument unpacking')\n"
+                                              "    else:\n"
+                                              "        args.append(argument2)\n"
+                                              "else:\n"
+                                              "    if only_keywords:\n"
+                                              "        return py_syntax_error(ts, 'positional argument follows keyword argument')\n"
+                                              "    else:\n"
+                                              "        args.append(argument2)"]
 ,"arglist: argument (',' argument)* [','].":
-   ["return args"]
+   ["return args, keywords"]
 
 
 ,"subscript: test.":
