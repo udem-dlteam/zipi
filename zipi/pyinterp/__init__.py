@@ -7371,18 +7371,48 @@ def sem_raise_with_message(ctx, exn_type, msg):
     return sem_raise(ctx, om_exception(exn_type, args))
 
 def gen_call(cte, ast):
-    (func_cte, func_code) = comp_expr(cte, ast.func)
-    (args_cte, args_code) = comp_elements(func_cte, ast.args)
+    args = ast.args
+    keywords = ast.keywords
+    args_len = len(args)
+    keywords_len = len(keywords)
 
-    def code(rte, cont):
-        expr_end_cont = do_expr_end(cont, ast)
+    func_cte, func_code = comp_expr(cte, ast.func)
 
-        def get_func(func_rte, fn):
-            def do_call(call_rte, args):
-                return sem_simple_call(Context(call_rte, expr_end_cont, ast), fn, args)
-            return args_code(func_rte, do_call)
-        return func_code(rte, get_func)
-    return cte, code
+    if args_len == 0 and keywords_len == 0:
+        # Case where there is no argument or keywords: f()
+        def code(rte, cont):
+            expr_end_cont = do_expr_end(cont, ast)
+
+            def get_func(func_rte, fn):
+                return sem_simple_call(Context(func_rte, expr_end_cont, ast), fn, [])
+            return func_code(rte, get_func)
+
+        return cte, code
+    elif keywords_len == 0:
+        # Case where there are arguments, but not keyword arguments
+        args_cte, args_code = comp_elements(func_cte, ast.args)
+
+        def code(rte, cont):
+            expr_end_cont = do_expr_end(cont, ast)
+
+            def get_func(func_rte, fn):
+                def do_call(call_rte, args):
+                    return sem_simple_call(Context(call_rte, expr_end_cont, ast), fn, args)
+
+                return args_code(func_rte, do_call)
+
+            return func_code(rte, get_func)
+
+        return cte, code
+    elif args_len == 0:
+        # Case where there are keywords, but no arguments
+        return CT_raise_syntax_error_with_msg(cte, ast, "keyword arguments are not supported")
+    else:
+        # Case where there are both keywords, and arguments
+        return CT_raise_syntax_error_with_msg(cte, ast, "keyword arguments are not supported")
+
+
+
 
 def gen_ifexpr(cte, ast, test_code, body_code, orelse_code):
     def code(rte, cont):
