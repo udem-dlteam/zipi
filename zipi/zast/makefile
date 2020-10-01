@@ -1,12 +1,16 @@
 # command to run python 3.8
 PYTHON38?=../../venv/bin/python
 
-GRAMMAR?=Grammar_novice
+GRAMMAR?=Grammar
 
 FUZZ_SAMPLE=last
 
 
 all: _zparse.py
+
+
+clean:
+	rm _zparse.py
 
 
 check: test1 test2 test3 test4

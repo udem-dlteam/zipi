@@ -903,8 +903,17 @@ def set_ctx1(t, ctx):\n\
    ["return testlist1"]
 
 
-,"argument: test.":
-   ["return test1"]
+,"argument: test ['=' test.]": ["if isinstance(test1, Name):\n"
+                                "    return keyword(test1, test2)\n"
+                                "else:\n"
+                                "    return py_syntax_error(ts, 'expression cannot contain assignment, perhaps you meant \"==\"?')"]
+,"argument: test ['=' test].": ["return test1"]
+,"argument: .'**' test": ["lineno = get_lineno(ts); col_offset = get_col_offset(ts)"]
+,"argument: '**' test.": ["ast = keyword(None, test1)\n"
+                          "return set_start_end(ts, lineno, col_offset, ast)"]
+,"argument: .'*' test": ["lineno = get_lineno(ts); col_offset = get_col_offset(ts)"]
+,"argument: '*' test.": ["ast = Starred(test1, Load())\n"
+                          "return set_start_end(ts, lineno, col_offset, ast)"]
 
 
 ,"arglist: argument. (',' argument)* [',']":
