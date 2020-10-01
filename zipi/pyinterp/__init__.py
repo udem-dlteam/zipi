@@ -5920,6 +5920,44 @@ def comp_elements(cte, args):
 
     return gen_elements_seq(next_cte, elements_code)
 
+def comp_keyword_elements(cte, keywords):
+    elements_code = []
+    next_cte = cte
+    for keyword_arg in keywords:
+        arg_name = keyword_arg.arg
+        if arg_name is None:
+            # This is a **kwargs
+            next_cte, keyword_args_code = comp_expr(next_cte, keyword_arg.value)
+
+            def create_code(keyword_args_code):
+                def accumulate_many_args(rte, cont, mapping_acc):
+                    def unpack_elements(unpack_rte, mapping):
+                        def do_accumulate(acc_rte, mapping_values):
+                            for pair in dict_items(mapping_values):
+                                name = pair[0]
+                                value = pair[1]
+                                dict_set(mapping_acc, name, value)
+                            return cont(acc_rte, mapping_acc)
+                        return om_unpack_mapping(Context(unpack_rte, do_accumulate, arg), mapping)
+                    return keyword_args_code(rte, unpack_elements)
+                return accumulate_many_args
+
+            elements_code.append(create_code(keyword_args_code))
+        else:
+            next_cte, keyword_arg_code = comp_expr(next_cte, keyword_arg.value)
+
+            def create_code(keyword_arg_code, arg_name):
+                def accumulate_single_arg(rte, cont, mapping_acc):
+                    def do_accumulate(acc_rte, val):
+                        dict_set(mapping_acc, arg_name, val)
+                        return cont(acc_rte, mapping_acc)
+                    return keyword_arg_code(rte, do_accumulate)
+                return accumulate_single_arg
+
+            elements_code.append(create_code(keyword_arg_code, arg_name))
+
+    return gen_keyword_elements_seq(next_cte, elements_code)
+
 
 def comp_Assign(cte, ast):
     targets = ast.targets
@@ -5973,6 +6011,30 @@ def gen_elements_seq(cte, elements_code):
 
     return (cte, alloc_list)
 
+def gen_keyword_elements_seq(cte, elements_code):
+    elements_len = len(elements_code)
+
+    def do_elements_cont(cont):
+        i = elements_len - 1
+        while i >= 0:
+            current_element_code = elements_code[i]
+
+            # Required to create a closure for next_cont and current_element_code
+            def create_code(next_cont, current_element_code):
+                def code(rte, mapping_acc):
+                    return current_element_code(rte, next_cont, mapping_acc)
+                return code
+
+            cont = create_code(cont, current_element_code)
+            i = i - 1
+        return cont
+
+    def alloc_dict(rte, cont):
+        mapping_acc = make_dict()
+        elements_cont = do_elements_cont(cont)
+        return elements_cont(rte, mapping_acc)
+
+    return cte, alloc_dict
 
 def comp_expr_opt(cte, ast):
     if ast is None:
@@ -7060,6 +7122,9 @@ def om_unpack_iterable(ctx, it):
 
     return sem_iter(with_cont(ctx, get_next), it)
 
+def om_unpack_mapping(ctx, mapping):
+    return sem_raise_with_message(ctx, class_NotImplementedError, "mapping unpacking is not yet supported")
+
 def sem_maybe_len(ctx, obj):
     obj_len = getattribute_from_obj_mro(obj, "__len__")
     if obj_len is absent:
@@ -7400,7 +7465,6 @@ def gen_call(cte, ast):
                     return sem_simple_call(Context(call_rte, expr_end_cont, ast), fn, args)
 
                 return args_code(func_rte, do_call)
-
             return func_code(rte, get_func)
 
         return cte, code
@@ -7410,8 +7474,6 @@ def gen_call(cte, ast):
     else:
         # Case where there are both keywords, and arguments
         return CT_raise_syntax_error_with_msg(cte, ast, "keyword arguments are not supported")
-
-
 
 
 def gen_ifexpr(cte, ast, test_code, body_code, orelse_code):
