@@ -7,7 +7,16 @@ def ctrl_char_hook(ts, pos):
     style_error(lineno, pos - 1, lineno, pos,
                 "N’utilisez pas de caractère de contrôle, tel que le TAB, dans vos programmes")
 
+def eol_hook(ts, pos, comment_start):
+    line_len = pos - ts.line_start
+    lineno = ts.line_num
+    style_error = dict_get(ts.context, 'styleError', None)
+
+    if line_len >= 80:
+        style_error(lineno, 0, lineno, line_len, "N'écrivez pas de lignes de plus de 80 caractères")
+
 ex5_linter = make_dict()
+dict_set(ex5_linter, 'eol_reached', eol_hook)
 dict_set(ex5_linter, 'ctrl_char', ctrl_char_hook)
 
 ex5_rules = define_rules(
