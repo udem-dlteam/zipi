@@ -5987,7 +5987,7 @@ def comp_keyword_elements(cte, keywords):
                                 value = pair[1]
                                 dict_set(mapping_acc, name, value)
                             return cont(acc_rte, mapping_acc)
-                        return om_unpack_mapping(Context(unpack_rte, do_accumulate, arg), mapping)
+                        return om_unpack_mapping(Context(unpack_rte, do_accumulate, keyword_arg), mapping)
                     return keyword_args_code(rte, unpack_elements)
                 return accumulate_many_args
 
