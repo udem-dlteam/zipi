@@ -798,7 +798,7 @@ def set_ctx1(t, ctx):\n\
 ,"trailer": ",lineno,col_offset,ast"
 
 ,"trailer: '('. [arglist] ')'":
-   ["arglist1 = []"]
+   ["arglist1 = [[], []]"]
 ,"trailer: '(' [arglist]. ')'":
    ["ast = Call(ast, arglist1[0], arglist1[1])"]
 ,"trailer: '(' [arglist] ')'.":

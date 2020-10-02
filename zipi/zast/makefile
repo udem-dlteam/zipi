@@ -1,7 +1,7 @@
 # command to run python 3.8
 PYTHON38?=../../venv/bin/python
 
-GRAMMAR?=Grammar
+GRAMMAR?=Grammar_novice
 
 FUZZ_SAMPLE=last
 
