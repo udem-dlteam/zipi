@@ -20,7 +20,11 @@ dict_set(ex5_linter, 'eol_reached', eol_hook)
 dict_set(ex5_linter, 'ctrl_char', ctrl_char_hook)
 
 ex5_rules = define_rules(
-    [any_satisfies(select(is_FunctionDef_with_name("distanceVolOiseauUnitaire")),
+    [enable_linting([
+        ["NO_CTRL_CHAR", "N’utilisez pas de caractère de contrôle, tel que le TAB, dans vos programmes"],
+        ["LINE_LENGTH", "N'écrivez pas de lignes de plus de 80 caractères"]
+    ]),
+    any_satisfies(select(is_FunctionDef_with_name("distanceVolOiseauUnitaire")),
                    statement_exists("La fonction 'distanceVolOiseauUnitaire' n'est pas définie")),
     any_satisfies(select(is_FunctionDef_with_name("distanceVolOiseau")),
                   statement_exists("La fonction 'distanceVolOiseau' n'est pas définie")),

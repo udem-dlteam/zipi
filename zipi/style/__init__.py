@@ -37,9 +37,60 @@ def apply_rules(rules, ast):
     for rule in rules:
         rule(ast, errors)
 
-
-
     return errors
+
+
+# ======================================================================================================================
+# Linting rules
+# ======================================================================================================================
+
+
+LINTING = ["LINTING"]
+
+
+def __make_linting_rules(rules):
+    return [LINTING, rules]
+
+
+def __is_linting_rules(obj):
+    return isinstance(obj, list) and len(obj) == 2 and obj[0][0] == "LINTING"
+
+
+def __get_linting_rules(obj):
+    return obj[1]
+
+
+def __make_linting_context(rules):
+    context = make_dict()
+
+    for rule in rules:
+        tag = rule[0]
+        error_msg = rule[1]
+
+        if tag == "NO_CTRL_CHAR":
+            def ctrl_char_hook(ts, pos):
+                lineno = ts.line_num
+                style_error = dict_get(ts.context, 'styleError', None)
+                style_error(lineno, pos - 1, lineno, pos, error_msg)
+
+            dict_set(context, 'ctrl_char', ctrl_char_hook)
+
+        elif tag == "LINE_LENGTH":
+            def eol_hook(ts, pos, comment_start):
+                line_len = pos - ts.line_start
+                lineno = ts.line_num
+                style_error = dict_get(ts.context, 'styleError', None)
+
+                if line_len >= 80:
+                    style_error(lineno, 0, lineno, line_len, error_msg)
+
+            dict_set(context, 'eol_reached', eol_hook)
+
+    return context
+
+
+def enable_linting(linting_tags):
+    return __make_linting_rules(linting_tags)
 
 
 # ======================================================================================================================
@@ -411,7 +462,7 @@ def default_compilation_error(start_line0,
                          end_column0, error_kind, msg):
     return lambda rte, __: runtime_print(error_kind + " at line " + str(end_line0) + ": " + msg, rte)
 
-def get_style_violations(rules, source, compilationError, linter):
+def get_style_violations(rules, source, compilationError):
     compilation_error_occured = [False]
 
     def catch_syntaxError(start_line0, start_column0, end_line0, end_column0, msg):
@@ -424,21 +475,24 @@ def get_style_violations(rules, source, compilationError, linter):
         compilation_error_occured[0] = True
         return compilationError(start_line0 - 1, start_column0, end_line0 - 1, end_column0, "StyleError", msg)
 
+    linting_obj = None
+    style_rules = init_rules()
 
-    context = make_dict()
+    for rule in rules:
+        if __is_linting_rules(rule):
+            # There should be at most a single 'enable_linting' rule
+            linting_obj = rule
+        else:
+            add_rules(style_rules, rule)
+
+    if linting_obj is not None:
+        linting_rules = __get_linting_rules(linting_obj)
+        context = __make_linting_context(linting_rules)
+    else:
+        context = make_dict()
+
     dict_set(context, "syntaxError", catch_syntaxError)
     dict_set(context, "styleError", catch_styleError)
-
-    if linter is not None:
-        eol_hook = dict_get(linter, 'eol_reached', None)
-
-        if eol_hook is not None:
-            dict_set(context, 'eol_reached', eol_hook)
-
-        char_hook = dict_get(linter, 'ctrl_char', None)
-
-        if char_hook:
-            dict_set(context, 'ctrl_char', char_hook)
 
     ast = AST.parse(source, '<unknown>', 'exec', context)
 
@@ -447,7 +501,7 @@ def get_style_violations(rules, source, compilationError, linter):
     if compilation_error_occured[0]:
         return True
 
-    error_messages = apply_rules(rules, ast)
+    error_messages = apply_rules(style_rules, ast)
 
     if len(error_messages) == 0:
         return False
