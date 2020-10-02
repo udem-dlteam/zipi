@@ -2918,6 +2918,10 @@ def om_function_call_code(ctx, args, kwargs):
     self = args[0]
     params = args[1:]
 
+    if dict_len(kwargs) > 0:
+        return sem_raise_with_message(ctx, class_NotImplementedError,
+                                      "keyword arguments are not yet supported for " + om_simple_repr(ctx, self))
+
     signature = OM_get_function_signature(self)
 
     ## test arity
@@ -7014,32 +7018,34 @@ def sem_simple_call(ctx, obj, args):
         return sem_simple_call(ctx, obj_call, [obj] + args)
 
 def sem_generic_call(ctx, obj, args, kwargs):
-    obj_type = OM_get_object_class(obj)
-
-    # Recursively recover __call__ of object until we get a base callable object
-    # NOTE: kwargs should never be an empty dict
-    if om_is(obj_type, class_MethodWrapper):
-        requires_kwargs = OM_get_requires_kwargs(obj)
-
-        if requires_kwargs:
-            code = OM_get_code(obj)
-            instance = OM_get_MethodWrapper_instance(obj)
-            return code(ctx, [instance] + args, kwargs)
-        else:
-            return sem_raise_with_message(ctx, class_TypeError, "method takes no keyword arguments")
-    elif om_is(obj_type, class_WrapperDescriptor):
-        requires_kwargs = OM_get_requires_kwargs(obj)
-
-        if requires_kwargs:
-            code = OM_get_code(obj)
-            return code(ctx, args, kwargs)
-        else:
-            return sem_raise_with_message(ctx, class_TypeError, "function takes no keyword arguments")
-    elif om_is(obj_type, class_function):
-        return om_function_call_code(ctx, [obj] + args, kwargs)
+    if dict_len(kwargs) == 0:
+        return sem_simple_call(ctx, obj, args)
     else:
-        obj_call = getattribute_from_obj_mro(obj, '__call__')
-        return sem_generic_call(ctx, obj_call, [obj] + args, kwargs)
+        obj_type = OM_get_object_class(obj)
+
+        # Recursively recover __call__ of object until we get a base callable object
+        if om_is(obj_type, class_MethodWrapper):
+            requires_kwargs = OM_get_requires_kwargs(obj)
+
+            if requires_kwargs:
+                code = OM_get_code(obj)
+                instance = OM_get_MethodWrapper_instance(obj)
+                return code(ctx, [instance] + args, kwargs)
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, "method takes no keyword arguments")
+        elif om_is(obj_type, class_WrapperDescriptor):
+            requires_kwargs = OM_get_requires_kwargs(obj)
+
+            if requires_kwargs:
+                code = OM_get_code(obj)
+                return code(ctx, args, kwargs)
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, "function takes no keyword arguments")
+        elif om_is(obj_type, class_function):
+            return om_function_call_code(ctx, [obj] + args, kwargs)
+        else:
+            obj_call = getattribute_from_obj_mro(obj, '__call__')
+            return sem_generic_call(ctx, obj_call, [obj] + args, kwargs)
 
 def sem_getitem(ctx, obj, item):
     obj_getitem = getattribute_from_obj_mro(obj, "__getitem__")
@@ -7455,7 +7461,7 @@ def gen_call(cte, ast):
         return cte, code
     elif keywords_len == 0:
         # Case where there are arguments, but not keyword arguments
-        args_cte, args_code = comp_elements(func_cte, ast.args)
+        args_cte, args_code = comp_elements(func_cte, args)
 
         def code(rte, cont):
             expr_end_cont = do_expr_end(cont, ast)
@@ -7463,17 +7469,41 @@ def gen_call(cte, ast):
             def get_func(func_rte, fn):
                 def do_call(call_rte, args):
                     return sem_simple_call(Context(call_rte, expr_end_cont, ast), fn, args)
-
                 return args_code(func_rte, do_call)
             return func_code(rte, get_func)
 
-        return cte, code
+        return args_cte, code
     elif args_len == 0:
         # Case where there are keywords, but no arguments
-        return CT_raise_syntax_error_with_msg(cte, ast, "keyword arguments are not supported")
+        kwargs_cte, kwargs_code = comp_keyword_elements(func_cte, keywords)
+
+        def code(rte, cont):
+            expr_end_cont = do_expr_end(cont, ast)
+
+            def get_func(func_rte, fn):
+                def do_call(call_rte, kwargs):
+                    return sem_generic_call(Context(call_rte, expr_end_cont, ast), fn, [], kwargs)
+                return kwargs_code(func_rte, do_call)
+            return func_code(rte, get_func)
+
+        return kwargs_cte, code
     else:
         # Case where there are both keywords, and arguments
-        return CT_raise_syntax_error_with_msg(cte, ast, "keyword arguments are not supported")
+        args_cte, args_code = comp_elements(func_cte, args)
+        kwargs_cte, kwargs_code = comp_keyword_elements(args_cte, keywords)
+
+        def code(rte, cont):
+            expr_end_cont = do_expr_end(cont, ast)
+
+            def get_func(func_rte, fn):
+                def get_args(args_rte, args):
+                    def do_call(call_rte, kwargs):
+                        return sem_generic_call(Context(call_rte, expr_end_cont, ast), fn, args, kwargs)
+                    return kwargs_code(args_rte, do_call)
+                return args_code(func_rte, get_args)
+            return func_code(rte, get_func)
+
+        return kwargs_cte, code
 
 
 def gen_ifexpr(cte, ast, test_code, body_code, orelse_code):
