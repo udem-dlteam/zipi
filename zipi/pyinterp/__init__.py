@@ -787,7 +787,7 @@ def bootstrap_populate_base_types():
     buitlin_add_methods_to_class(
         class_WrapperDescriptor,
         (('__get__', om_WrapperDescriptor_get),
-         ('__call__', om_WrapperDescriptor_call),
+         ('__call__', om_WrapperDescriptor_call, True),
          ('__repr__', om_WrapperDescriptor_repr)))
 
     buitlin_add_methods_to_class(
@@ -809,22 +809,32 @@ def bootstrap_populate_base_types():
 
 # Initialize class type objects
 def builtin_add_method(o, name, code):
-    wrapper = om_WrapperDescriptor(name, o, code)
+    wrapper = om_WrapperDescriptor(name, o, code, False)
+    OM_set(o, name, wrapper)
+
+
+def builtin_add_method_with_kwargs(o, name, code):
+    wrapper = om_WrapperDescriptor(name, o, code, True)
     OM_set(o, name, wrapper)
 
 
 def buitlin_add_methods_to_class(cls, methods_table):
-    for pair in methods_table:
-        name = pair[0]
-        code = pair[1]
-        builtin_add_method(cls, name, code)
+    for params in methods_table:
+        name = params[0]
+        code = params[1]
+        requires_kwargs = len(params) > 2 and params[2]
+
+        if requires_kwargs:
+            builtin_add_method_with_kwargs(cls, name, code)
+        else:
+            builtin_add_method(cls, name, code)
 
 def populate_builtin_NotImplementedType():
     builtin_add_method(class_NotImplementedType, '__str__', om_NotImplementedType_str)
     builtin_add_method(class_NotImplementedType, '__repr__', om_NotImplementedType_repr)
 
 def populate_builtin_MethodWrapper():
-    builtin_add_method(class_MethodWrapper, '__call__', om_MethodWrapper_call)
+    builtin_add_method_with_kwargs(class_MethodWrapper, '__call__', om_MethodWrapper_call)
     builtin_add_method(class_MethodWrapper, '__repr__', om_MethodWrapper_repr)
 
 def populate_builtin_int():
@@ -957,7 +967,7 @@ def populate_builtin_NoneType():
     builtin_add_method(class_NoneType, '__repr__', om_NoneType_repr)
 
 def populate_builtin_FunctionType():
-    builtin_add_method(class_function, '__call__', om_function_call)
+    builtin_add_method_with_kwargs(class_function, '__call__', om_function_call)
     builtin_add_method(class_function, '__repr__', om_function_repr)
 
 def populate_builtin_BaseException():
@@ -1078,18 +1088,20 @@ def om_exception(exn, args):
     OM_set(obj, 'args', args)
     return obj
 
-def om_WrapperDescriptor(name, cls, code):
+def om_WrapperDescriptor(name, cls, code, requires_kwargs):
     obj = om(class_WrapperDescriptor)
     OM_set_code(obj, code)
+    OM_set_requires_kwargs(obj, requires_kwargs)
     OM_set_WrapperDescriptor_cls(obj, cls)
 
     OM_set(obj, '__name__', om_str(name))
     return obj
 
 
-def om_MethodWrapper(name, instance, code):
+def om_MethodWrapper(name, instance, code, requires_kwargs):
     obj = om(class_MethodWrapper)
     OM_set_code(obj, code)
+    OM_set_requires_kwargs(obj, requires_kwargs)
     OM_set_MethodWrapper_instance(obj, instance)
 
     OM_set(obj, '__name__', name)
@@ -1293,6 +1305,11 @@ def OM_set_code(o, code):
 def OM_get_code(o):
     return o.code
 
+def OM_set_requires_kwargs(o, requires_kwargs):
+    o.requires_kwargs = requires_kwargs
+
+def OM_get_requires_kwargs(o):
+    return o.requires_kwargs
 
 # hidden fields used by function
 def OM_set_function_signature(o, value):
@@ -1385,7 +1402,7 @@ def gen_sem_Numeric_BinOp(op_symbol, method, rmethod):
             if val2_rmethod is not absent:
                 ctx2 = with_cont(ctx, test_rmethod_result)
                 # NOTE: self parameter is now val2
-                return om_call(val2_rmethod, ctx2, [val2, val1])
+                return sem_simple_call(ctx2, val2_rmethod, [val2, val1])
             else:
                 # G: Method and rmethod are absent.
                 #    Raise a TypeError (like CPython).
@@ -1409,7 +1426,7 @@ def gen_sem_Numeric_BinOp(op_symbol, method, rmethod):
         # B: Yes, try val1.method(val2).
         if val1_method is not absent:
             ctx1 = with_cont(ctx, test_method_result)
-            return om_call(val1_method, ctx1, [val1, val2])
+            return sem_simple_call(ctx1, val1_method, [val1, val2])
         else:
             return call_rmethod(ctx.rte)
 
@@ -1458,14 +1475,14 @@ def gen_sem_Numeric_EqComp(op_symbol, method, fall_back):
             if val2_ne is absent:
                 return cont_bool(ctx, fall_back(val1, val2))
             else:
-                return om_call(val2_ne, with_cont(ctx, test_val2_result), [val2, val1])
+                return sem_simple_call(with_cont(ctx, test_val2_result), val2_ne, [val2, val1])
 
         val1_ne = getattribute_from_obj_mro(val1, method)
 
         if val1_ne is absent:
             return call_val2_op(ctx.rte)
         else:
-            return om_call(val1_ne, with_cont(ctx, test_val1_result), [val1, val2])
+            return sem_simple_call(with_cont(ctx, test_val1_result), val1_ne, [val1, val2])
 
     return sem_Numeric_EqComp
 
@@ -1478,9 +1495,9 @@ def sem_Round(ctx, obj, ndigits):
     if obj_round is absent:
         return sem_raise_with_message(ctx, class_TypeError, "type doesn't define __round__ method")
     elif ndigits is absent:
-        return om_call(obj_round, ctx, (obj,))
+        return sem_simple_call(ctx, obj_round, [obj, ])
     else:
-        return om_call(obj_round, ctx, (obj, ndigits))
+        return sem_simple_call(ctx, obj_round, [obj, ndigits])
 
 def sem_PowMod(ctx, base, power, mod):
 
@@ -1502,7 +1519,7 @@ def sem_PowMod(ctx, base, power, mod):
 
         if power_rmethod is not absent:
             ctx2 = with_cont(ctx, test_rmethod_result)
-            return om_call(power_rmethod, ctx2, (power, base, mod))
+            return sem_simple_call(ctx2, power_rmethod, [power, base, mod])
         else:
             return sem_raise_with_message(ctx, class_TypeError, "unsupported operand type(s) for pow()")
 
@@ -1510,7 +1527,7 @@ def sem_PowMod(ctx, base, power, mod):
 
     if base_method is not absent:
         ctx1 = with_cont(ctx, test_method_result)
-        return om_call(base_method, ctx1, (base, power, mod))
+        return sem_simple_call(ctx1, base_method, [base, power, mod])
     else:
         return call_rmethod(ctx.rte)
     
@@ -1563,21 +1580,12 @@ om_True = om_boxval(class_bool, int_from_num(1))
 om_False = om_boxval(class_bool, int_from_num(0))
 om_NotImplemented = om(class_NotImplementedType)
 
-# Call om code.
-def om_call(o, ctx, args):
-    code = OM_get_code(o)
-    if code is absent:
-        return sem_call(ctx, args)
-    else:
-        return code(ctx, args)
-
 # Helper to build magic_methods
 
 def do_check_method_self_arg(self_expected_cls, method_name):
     cls_name = OM_get_boxed_value(OM_get(self_expected_cls, "__name__"))
     method_qualname = cls_name + "." + method_name
     not_enough_arguments_msg = method_qualname + "(): not enough arguments"
-    not_a_type_object_msg = method_qualname + "(X): X is not a type object"
     not_a_subtype_msg = method_qualname + "(object): object is not a subtype of " + cls_name
 
     def check_method_self_arg(ctx, cont, args):
@@ -1591,6 +1599,26 @@ def do_check_method_self_arg(self_expected_cls, method_name):
             return sem_raise_with_message(ctx, class_TypeError, not_a_subtype_msg)
         else:
             return cont(ctx, args)
+
+    return check_method_self_arg
+
+def do_check_method_with_kwargs_self_arg(self_expected_cls, method_name):
+    cls_name = OM_get_boxed_value(OM_get(self_expected_cls, "__name__"))
+    method_qualname = cls_name + "." + method_name
+    not_enough_arguments_msg = method_qualname + "(): not enough arguments"
+    not_a_subtype_msg = method_qualname + "(object): object is not a subtype of " + cls_name
+
+    def check_method_self_arg(ctx, cont, args, kwargs):
+        args_len = len(args)
+        if args_len == 0:
+            return sem_raise_with_message(ctx, class_TypeError, not_enough_arguments_msg)
+
+        cls = args[0]
+
+        if not om_isinstance(cls, self_expected_cls):
+            return sem_raise_with_message(ctx, class_TypeError, not_a_subtype_msg)
+        else:
+            return cont(ctx, args, kwargs)
 
     return check_method_self_arg
 
@@ -1630,6 +1658,14 @@ def do_magic_method(cls, method_name, code):
 
     def magic_method(ctx, args):
         return check_method_self_arg(ctx, code, args)
+
+    return magic_method
+
+def do_magic_method_with_kwargs(cls, method_name, code):
+    check_method_self_arg = do_check_method_with_kwargs_self_arg(cls, method_name)
+
+    def magic_method(ctx, args, kwargs):
+        return check_method_self_arg(ctx, code, args, kwargs)
 
     return magic_method
 
@@ -1689,17 +1725,17 @@ om_type_new = do_magic_method(class_type, "__new__", om_type_new_code)
 def om_type_call(ctx, args):
     def on_instance_creation(rte, instance):
         if om_is(OM_get_object_class(instance), cls):
-            cls__init__ = getattribute_from_class_mro(cls, "__init__")
+            cls_init = getattribute_from_class_mro(cls, "__init__")
             next_ctx = with_cont(ctx, lambda rte, _: ctx.cont(ctx.rte, instance))
-            return om_call(cls__init__, next_ctx, args)
+            return sem_simple_call(next_ctx, cls_init, args)
         else:
             return ctx.cont(ctx.rte, instance)
 
     cls = args[0]
-    cls__new__ = getattribute_from_class_mro(cls, "__new__")
+    cls_new = getattribute_from_class_mro(cls, "__new__")
     next_ctx = with_cont(ctx, on_instance_creation)
 
-    return om_call(cls__new__, next_ctx, args)
+    return sem_simple_call(next_ctx, cls_new, args)
 
 
 def om_type_getattribute(ctx, args):
@@ -1718,11 +1754,11 @@ def om_type_getattribute(ctx, args):
             return sem_raise_with_message(ctx, class_AttributeError, "type has no attribute '" + name_value + "'")
 
         # attr.__get__
-        attr__get__ = getattribute_from_obj_mro(attr, '__get__')
-        if attr__get__ is absent:
+        attr_get = getattribute_from_obj_mro(attr, '__get__')
+        if attr_get is absent:
             return ctx.cont(ctx.rte, attr)
         else:
-            return om_call(attr__get__, ctx, [attr, om_None, self])
+            return sem_simple_call(ctx, attr_get, [attr, om_None, self])
 
 def om_format_type_repr(self, rte):
     self_name = OM_get(self, '__name__')
@@ -1748,17 +1784,16 @@ def om_WrapperDescriptor_get(ctx, args):
     else:
         self_name = OM_get(self, '__name__')
         code = OM_get_code(self)
-        method = om_MethodWrapper(self_name, obj, code)
+        requires_kwargs = OM_get_requires_kwargs(self)
+        method = om_MethodWrapper(self_name, obj, code, requires_kwargs)
         return ctx.cont(ctx.rte, method)
 
-def om_WrapperDescriptor_call(ctx, args):
+def om_WrapperDescriptor_call_code(ctx, args, kwargs):
     if debug: print('wrapper_descriptor.__call__')
-    self = args[0]
-    params = args[1:]
 
-    code = OM_get_code(self)
+    return sem_generic_call(ctx, args[0], args[1:], kwargs)
 
-    return code(ctx, params)
+om_WrapperDescriptor_call = do_magic_method_with_kwargs(class_WrapperDescriptor, '__call__', om_WrapperDescriptor_call_code)
 
 def om_format_WrapperDescriptor_repr(self, rte):
     self__name__ = OM_get(self, '__name__')
@@ -1779,15 +1814,13 @@ def om_WrapperDescriptor_repr(ctx, args):
     return ctx.cont(ctx.rte, om_str(result))
 
 # class_MethodWrapper methods
-def om_MethodWrapper_call(ctx, args):
+def om_MethodWrapper_call_code(ctx, args, kwargs):
     if debug: print('method-wrapper.__call__')
-    self = args[0]
-    rest = args[1:]
 
-    obj = OM_get_MethodWrapper_instance(self)
-    params = [obj] + rest
+    # This method is never called by sem_call
+    return sem_generic_call(ctx, args[0], args[1:], kwargs)
 
-    return om_call(self, ctx, params)
+om_MethodWrapper_call = do_magic_method_with_kwargs(class_MethodWrapper, '__call__', om_MethodWrapper_call_code)
 
 def om_format_MethodWrapper_repr(self, rte):
     serial = OM_get_serial(self, rte)
@@ -1859,11 +1892,11 @@ def om_object_getattribute_code(ctx, args):
             return sem_raise(ctx, exn)
 
         # TODO: check if attr.__get__ exists
-        attr__get__ = getattribute_from_obj_mro(attr, '__get__')
-        if attr__get__ is absent:
+        attr_get = getattribute_from_obj_mro(attr, '__get__')
+        if attr_get is absent:
             return ctx.cont(ctx.rte, attr)
         else:
-            return om_call(attr__get__, ctx, [attr, self, owner])
+            return sem_simple_call(ctx, attr_get, [attr, self, owner])
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
 
@@ -1919,7 +1952,7 @@ def om_object_ne_code(ctx, args):
                     else:
                         return cont_obj(ctx, om_True)
                 return sem_bool(with_cont(ctx, invert_result), res)
-        return om_call(self_eq, with_cont(ctx, check_result), (self, other))
+        return sem_simple_call(with_cont(ctx, check_result), self_eq, [self, other])
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
 
@@ -2900,9 +2933,13 @@ def om_make_function_with_signature(name, code, signature):
 
     return om_fn
 
-def om_function_call(ctx, args):
+def om_function_call_code(ctx, args, kwargs):
     self = args[0]
     params = args[1:]
+
+    if dict_len(kwargs) > 0:
+        return sem_raise_with_message(ctx, class_NotImplementedError,
+                                      "keyword arguments are not yet supported for " + om_simple_repr(ctx, self))
 
     signature = OM_get_function_signature(self)
 
@@ -2933,6 +2970,8 @@ def om_function_call(ctx, args):
     new_ctx = with_cont(ctx, execute_body)
     self_name_value = OM_get_boxed_value(OM_get(self, '__name__'))
     return align_args_with_signature(new_ctx, self_name_value, params, signature)
+
+om_function_call = do_magic_method_with_kwargs(class_function, '__call__', om_function_call_code)
 
 def om_format_function_repr(self, rte):
     serial = OM_get_serial(self, rte)
@@ -5861,10 +5900,7 @@ def comp_expr(cte, ast):
 
     elif isinstance(ast, AST.Call):
         if debug: print('AST.Call')
-        (func_cte, func_code) = comp_expr(cte, ast.func)
-        (args_cte, args_code) = comp_elements(func_cte, ast.args)
-        # TODO: compile ast.keywords args
-        return gen_call(func_cte, ast, func_code, args_code)
+        return gen_call(cte, ast)
     elif isinstance(ast, AST.IfExp):
         (cte1, test_code) = comp_expr(cte, ast.test)
         (cte2, body_code) = comp_expr(cte1, ast.body)
@@ -5900,10 +5936,76 @@ def comp_elements(cte, args):
     elements_code = []
     next_cte = cte
     for arg in args:
-        next_cte, arg_code = comp_expr(next_cte, arg)
-        elements_code.append(arg_code)
+        if isinstance(arg, AST.Starred):
+            if isinstance(arg.ctx, AST.Load):
+                next_cte, args_code = comp_expr(next_cte, arg.value)
+
+                def create_code(args_code):
+                    def accumulate_many_args(rte, cont, acc):
+                        def unpack_elements(unpack_rte, iterable):
+                            def do_accumulate(acc_rte, values):
+                                for val in values:
+                                    acc.append(val)
+                                return cont(acc_rte, acc)
+                            return om_unpack_iterable(Context(unpack_rte, do_accumulate, arg), iterable)
+                        return args_code(rte, unpack_elements)
+                    return accumulate_many_args
+
+                elements_code.append(create_code(args_code))
+            else:
+                return CT_raise_syntax_error_with_msg(cte, arg, "internal error, cannot load Starred(..., Store())")
+        else:
+            next_cte, arg_code = comp_expr(next_cte, arg)
+
+            def create_code(arg_code):
+                def accumulate_single_arg(rte, cont, acc):
+                    def do_accumulate(acc_rte, val):
+                        acc.append(val)
+                        return cont(acc_rte, acc)
+                    return arg_code(rte, do_accumulate)
+                return accumulate_single_arg
+
+            elements_code.append(create_code(arg_code))
 
     return gen_elements_seq(next_cte, elements_code)
+
+def comp_keyword_elements(cte, keywords):
+    elements_code = []
+    next_cte = cte
+    for keyword_arg in keywords:
+        arg_name = keyword_arg.arg
+        if arg_name is None:
+            # This is a **kwargs
+            next_cte, keyword_args_code = comp_expr(next_cte, keyword_arg.value)
+
+            def create_code(keyword_args_code):
+                def accumulate_many_args(rte, cont, mapping_acc):
+                    def unpack_elements(unpack_rte, mapping):
+                        def do_accumulate(acc_rte, mapping_values):
+                            for pair in dict_items(mapping_values):
+                                name = pair[0]
+                                value = pair[1]
+                                dict_set(mapping_acc, name, value)
+                            return cont(acc_rte, mapping_acc)
+                        return om_unpack_mapping(Context(unpack_rte, do_accumulate, keyword_arg), mapping)
+                    return keyword_args_code(rte, unpack_elements)
+                return accumulate_many_args
+
+            elements_code.append(create_code(keyword_args_code))
+        else:
+            next_cte, keyword_arg_code = comp_expr(next_cte, keyword_arg.value)
+
+            def create_code(keyword_arg_code, arg_name):
+                def accumulate_single_arg(rte, cont, mapping_acc):
+                    def do_accumulate(acc_rte, val):
+                        dict_set(mapping_acc, arg_name, val)
+                        return cont(acc_rte, mapping_acc)
+                    return keyword_arg_code(rte, do_accumulate)
+                return accumulate_single_arg
+
+            elements_code.append(create_code(keyword_arg_code, arg_name))
+
+    return gen_keyword_elements_seq(next_cte, elements_code)
 
 
 def comp_Assign(cte, ast):
@@ -5941,29 +6043,47 @@ def gen_elements_seq(cte, elements_code):
         while i >= 0:
             current_element_code = elements_code[i]
 
-            # Required to create a closure for next_cont, i and current_element_code
-            def create_code(next_cont, i, current_element_code):
+            # Required to create a closure for next_cont and current_element_code
+            def create_code(next_cont, current_element_code):
                 def code(rte, acc):
-                    def store(rte, val):
-                        acc[i] = val
-                        return next_cont(rte, acc)
-                    return current_element_code(rte, store)
+                    return current_element_code(rte, next_cont, acc)
                 return code
 
-            cont = create_code(cont, i, current_element_code)
+            cont = create_code(cont, current_element_code)
             i = i - 1
         return cont
 
     def alloc_list(rte, cont):
-        # TODO: Replace by acc = [None] * len(elements_comp) once supported
         acc = []
-        for _ in elements_code: acc.append(None)
-
         elements_cont = do_elements_cont(cont)
         return elements_cont(rte, acc)
 
     return (cte, alloc_list)
 
+def gen_keyword_elements_seq(cte, elements_code):
+    elements_len = len(elements_code)
+
+    def do_elements_cont(cont):
+        i = elements_len - 1
+        while i >= 0:
+            current_element_code = elements_code[i]
+
+            # Required to create a closure for next_cont and current_element_code
+            def create_code(next_cont, current_element_code):
+                def code(rte, mapping_acc):
+                    return current_element_code(rte, next_cont, mapping_acc)
+                return code
+
+            cont = create_code(cont, current_element_code)
+            i = i - 1
+        return cont
+
+    def alloc_dict(rte, cont):
+        mapping_acc = make_dict()
+        elements_cont = do_elements_cont(cont)
+        return elements_cont(rte, mapping_acc)
+
+    return cte, alloc_dict
 
 def comp_expr_opt(cte, ast):
     if ast is None:
@@ -6809,7 +6929,7 @@ def sem_Neg(ctx, val1):
         cls_name = OM_get_boxed_value(OM_get(cls, "__name__"))
         return sem_raise_with_message(ctx, class_TypeError, "bad operand type for unary -: '"+cls_name+"'")
     else:
-        return om_call(val1_neg, ctx, [val1])
+        return sem_simple_call(ctx, val1_neg, [val1])
 
 def sem_Pos(ctx, val1):
     val1_pos = getattribute_from_obj_mro(val1, '__pos__')
@@ -6818,7 +6938,7 @@ def sem_Pos(ctx, val1):
         cls_name = OM_get_boxed_value(OM_get(cls, "__name__"))
         return sem_raise_with_message(ctx, class_TypeError, "bad operand type for unary +: '"+cls_name+"'")
     else:
-        return om_call(val1_pos, ctx, [val1])
+        return sem_simple_call(ctx, val1_pos, [val1])
 
 def sem_Invert(ctx, val1):
     val1_pos = getattribute_from_obj_mro(val1, '__invert__')
@@ -6827,7 +6947,7 @@ def sem_Invert(ctx, val1):
         cls_name = OM_get_boxed_value(OM_get(cls, "__name__"))
         return sem_raise_with_message(ctx, class_TypeError, "bad operand type for unary ~: '"+cls_name+"'")
     else:
-        return om_call(val1_pos, ctx, [val1])
+        return sem_simple_call(ctx, val1_pos, [val1])
 
 def gen_sem_IOperator(method_name, sem_fall_back, op_name):
     def sem_IOp(ctx, self, other):
@@ -6848,7 +6968,7 @@ def gen_sem_IOperator(method_name, sem_fall_back, op_name):
         if self_iop is absent:
             return sem_fall_back(ctx, self, other)
         else:
-            return om_call(self_iop, with_cont(ctx, cont_call_fallback), [self , other])
+            return sem_simple_call(with_cont(ctx, cont_call_fallback), self_iop, [self, other])
     return sem_IOp
 
 sem_IAdd = gen_sem_IOperator("__iadd__", sem_Add, "+=")
@@ -6885,7 +7005,7 @@ def sem_repr(ctx, val1):
             return sem_raise_with_message(ctx, class_TypeError, "__repr__ returned non-string")
 
     ctx1 = with_cont(ctx, check_string)
-    return om_call(val1_repr, ctx1, [val1])
+    return sem_simple_call(ctx1, val1_repr, [val1])
 
 def sem_str(ctx, value):
     value_str = getattribute_from_obj_mro(value, "__str__")
@@ -6897,12 +7017,9 @@ def sem_str(ctx, value):
             return sem_raise_with_message(ctx, class_TypeError, "__str__ returned non-string")
 
     next_ctx = with_cont(ctx, check_string)
-    return om_call(value_str, next_ctx, (value,))
+    return sem_simple_call(next_ctx, value_str, [value])
 
-def sem_getattribute(ctx, args):
-    obj = args[0]
-    name = args[1]
-
+def sem_getattribute(ctx, obj, name):
     def catch_AttributeError(rte, exn):
         if om_isinstance(exn, class_AttributeError):
             obj_getattr = getattribute_from_obj_mro(obj, '__getattr__')
@@ -6910,41 +7027,91 @@ def sem_getattribute(ctx, args):
             if obj_getattr is absent:
                 return sem_raise(new_ctx, exn)
             else:
-                return om_call(obj_getattr, new_ctx, args)
+                return sem_simple_call(new_ctx, obj_getattr, [obj, name])
         else:
             return sem_raise(Context(rte, ctx.cont, ctx.ast), exn)
 
     obj_getattribute = getattribute_from_obj_mro(obj, '__getattribute__')
 
-    return om_call(obj_getattribute, with_catch(ctx, catch_AttributeError), args)
+    return sem_simple_call(with_catch(ctx, catch_AttributeError), obj_getattribute, [obj, name])
 
-def sem_call(ctx, args):
-    self = args[0]
-    params = args[1]
+def sem_simple_call(ctx, obj, args):
+    obj_type = OM_get_object_class(obj)
 
-    __call__ = getattribute_from_obj_mro(self, '__call__')
-    return om_call(__call__, ctx, [self] + params)
+    # Recursively recover __call__ of object until we get a base callable object
+    if om_is(obj_type, class_MethodWrapper):
+        code = OM_get_code(obj)
+        instance = OM_get_MethodWrapper_instance(obj)
+        requires_kwargs = OM_get_requires_kwargs(obj)
+
+        if requires_kwargs:
+            return code(ctx, [instance] + args, make_dict())
+        else:
+            return code(ctx, [instance] + args)
+    elif om_is(obj_type, class_WrapperDescriptor):
+        code = OM_get_code(obj)
+        requires_kwargs = OM_get_requires_kwargs(obj)
+
+        if requires_kwargs:
+            return code(ctx, args, make_dict())
+        else:
+            return code(ctx, args)
+    elif om_is(obj_type, class_function):
+        return om_function_call_code(ctx, [obj] + args, make_dict())
+    else:
+        obj_call = getattribute_from_obj_mro(obj, '__call__')
+        return sem_simple_call(ctx, obj_call, [obj] + args)
+
+def sem_generic_call(ctx, obj, args, kwargs):
+    if dict_len(kwargs) == 0:
+        return sem_simple_call(ctx, obj, args)
+    else:
+        obj_type = OM_get_object_class(obj)
+
+        # Recursively recover __call__ of object until we get a base callable object
+        if om_is(obj_type, class_MethodWrapper):
+            requires_kwargs = OM_get_requires_kwargs(obj)
+
+            if requires_kwargs:
+                code = OM_get_code(obj)
+                instance = OM_get_MethodWrapper_instance(obj)
+                return code(ctx, [instance] + args, kwargs)
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, "method takes no keyword arguments")
+        elif om_is(obj_type, class_WrapperDescriptor):
+            requires_kwargs = OM_get_requires_kwargs(obj)
+
+            if requires_kwargs:
+                code = OM_get_code(obj)
+                return code(ctx, args, kwargs)
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, "function takes no keyword arguments")
+        elif om_is(obj_type, class_function):
+            return om_function_call_code(ctx, [obj] + args, kwargs)
+        else:
+            obj_call = getattribute_from_obj_mro(obj, '__call__')
+            return sem_generic_call(ctx, obj_call, [obj] + args, kwargs)
 
 def sem_getitem(ctx, obj, item):
     obj_getitem = getattribute_from_obj_mro(obj, "__getitem__")
     if obj_getitem is absent:
         return sem_raise_with_message(ctx, class_TypeError, 'object is not subscriptable')
     else:
-        return om_call(obj_getitem, ctx, (obj, item))
+        return sem_simple_call(ctx, obj_getitem, [obj, item])
 
 def sem_setitem(ctx, obj, item, val):
     obj_setitem = getattribute_from_obj_mro(obj, "__setitem__")
     if obj_setitem is absent:
         return sem_raise_with_message(ctx, class_TypeError, 'object does not support item assignment')
     else:
-        return om_call(obj_setitem, with_cont(ctx, lambda rte, val: ctx.cont(rte)), (obj, item, val))
+        return sem_simple_call(with_cont(ctx, lambda rte, _: ctx.cont(rte)), obj_setitem, [obj, item, val])
 
 def sem_next(ctx, obj, default_):
     obj_next = getattribute_from_obj_mro(obj, "__next__")
     if obj_next is absent:
         return sem_raise(ctx, class_TypeError)
     elif default_ is absent:
-        return om_call(obj_next, ctx, (obj,))
+        return sem_simple_call(ctx, obj_next, [obj])
     else:
         def catch_StopIteration(rte, exn):
             if om_isinstance(exn, class_StopIteration):
@@ -6953,7 +7120,7 @@ def sem_next(ctx, obj, default_):
                 return sem_raise(ctx, exn)
 
         next_ctx = with_catch(ctx, catch_StopIteration)
-        return om_call(obj_next, next_ctx, (obj,))
+        return sem_simple_call(next_ctx, obj_next, [obj])
 
 def sem_iter(ctx, obj):
     obj_iter = getattribute_from_obj_mro(obj, "__iter__")
@@ -6964,7 +7131,7 @@ def sem_iter(ctx, obj):
         else:
             return ctx.cont(ctx.rte, om_iterator(obj, om_int(int_from_num(0))))
     else:
-        return om_call(obj_iter, ctx, (obj,))
+        return sem_simple_call(ctx, obj_iter, [obj])
 
 def sem_Contains_in_iterator(ctx, target, iterator):
     def get_next(rte, iterator):
@@ -6990,7 +7157,7 @@ def sem_Contains(ctx, target, obj):
             return sem_Contains_in_iterator(Context(rte, ctx.cont, ctx.ast), target, it)
         return sem_iter(with_cont(ctx, cont), obj)
     else:
-        return om_call(obj_contains, ctx, (obj, target))
+        return sem_simple_call(ctx, obj_contains, [obj, target])
 
 def om_unpack_iterable(ctx, it):
     seq = []
@@ -7006,6 +7173,9 @@ def om_unpack_iterable(ctx, it):
 
     return sem_iter(with_cont(ctx, get_next), it)
 
+def om_unpack_mapping(ctx, mapping):
+    return sem_raise_with_message(ctx, class_NotImplementedError, "mapping unpacking is not yet supported")
+
 def sem_maybe_len(ctx, obj):
     obj_len = getattribute_from_obj_mro(obj, "__len__")
     if obj_len is absent:
@@ -7019,7 +7189,7 @@ def sem_maybe_len(ctx, obj):
                 else:
                     return sem_raise_with_message(ctx, class_ValueError, "__len__() should return >= 0")
             return sem_index(with_cont(ctx, check_range), res)
-        return om_call(obj_len, with_cont(ctx, check_result), (obj,))
+        return sem_simple_call(with_cont(ctx, check_result), obj_len, [obj])
 
 def sem_len(ctx, obj):
     def cont(rte, val):
@@ -7038,7 +7208,7 @@ def sem_abs(ctx, obj):
     if obj_abs is absent:
         return sem_raise_with_message(ctx, class_TypeError, "bad operand type for abs()")
     else:
-        return om_call(obj_abs, ctx, [obj])
+        return sem_simple_call(ctx, obj_abs, [obj])
 
 def sem_maybe_int(ctx, obj):
     obj_int = getattribute_from_obj_mro(obj, '__int__')
@@ -7051,7 +7221,7 @@ def sem_maybe_int(ctx, obj):
                 return ctx.cont(rte, res)
             else:
                 return sem_raise_with_message(ctx, class_TypeError, "__int__ returned non-int")
-        return om_call(obj_int, with_cont(ctx, check_int), [obj])
+        return sem_simple_call(with_cont(ctx, check_int), obj_int, [obj])
 
 def sem_int(ctx, obj):
     def check_result(rte, res):
@@ -7072,7 +7242,7 @@ def sem_maybe_index(ctx, obj):
                 return ctx.cont(rte, res)
             else:
                 return sem_raise_with_message(ctx, class_TypeError, "__index__ returned non-int")
-        return om_call(obj_int, with_cont(ctx, check_int), [obj])
+        return sem_simple_call(with_cont(ctx, check_int), obj_int, [obj])
 
 def sem_index(ctx, obj):
     def check_result(rte, res):
@@ -7093,7 +7263,7 @@ def sem_maybe_float(ctx, obj):
                 return ctx.cont(rte, res)
             else:
                 return sem_raise_with_message(ctx, class_TypeError, "__float__ returned non-float")
-        return om_call(obj_float, with_cont(ctx, check_float), [obj])
+        return sem_simple_call(with_cont(ctx, check_float), obj_float, [obj])
 
 def sem_float(ctx, obj):
     def check_result(rte, res):
@@ -7251,7 +7421,7 @@ def sem_var_get_global(ctx, id):
 
     if value is absent:
         env_builtins = rte_lookup_globals(ctx.rte, '__builtins__')
-        return sem_getattribute(with_catch(ctx, catch_AttributeError), [env_builtins, om_str(id)])
+        return sem_getattribute(with_catch(ctx, catch_AttributeError), env_builtins, om_str(id))
     else:
         return cont_obj(ctx, value)
 
@@ -7259,8 +7429,8 @@ def sem_var_del(ctx, id):
     return sem_raise(ctx, class_NotImplementedError)
 
 def sem_bool(ctx, val):
-    __val_bool__ = getattribute_from_obj_mro(val, '__bool__')
-    if __val_bool__ is absent:
+    val_bool = getattribute_from_obj_mro(val, '__bool__')
+    if val_bool is absent:
         def check_len(rte, res):
             if res is absent:
                 return cont_obj(ctx, om_True)
@@ -7275,7 +7445,7 @@ def sem_bool(ctx, val):
             else:
                 return sem_raise_with_message(ctx, class_TypeError, "__bool__ should return bool")
 
-        return om_call(__val_bool__, with_cont(ctx, check_bool), [val])
+        return sem_simple_call(with_cont(ctx, check_bool), val_bool, [val])
 
 
 def sem_raise(ctx, exn):
@@ -7316,16 +7486,70 @@ def sem_raise_with_message(ctx, exn_type, msg):
     args = om_tuple((om_str(msg),))
     return sem_raise(ctx, om_exception(exn_type, args))
 
-def gen_call(cte, ast, func_code, args_code):
-    def code(rte, cont):
-        expr_end_cont = do_expr_end(cont, ast)
-        return func_code(rte,
-                     lambda rte1, val1:
-                        args_code(rte1,
-                              lambda rte2, val2:
-                                sem_call(Context(rte, expr_end_cont, ast),
-                                         [val1, val2])))
-    return (cte, code)
+def gen_call(cte, ast):
+    args = ast.args
+    keywords = ast.keywords
+    args_len = len(args)
+    keywords_len = len(keywords)
+
+    func_cte, func_code = comp_expr(cte, ast.func)
+
+    if args_len == 0 and keywords_len == 0:
+        # Case where there is no argument or keywords: f()
+        def code(rte, cont):
+            expr_end_cont = do_expr_end(cont, ast)
+
+            def get_func(func_rte, fn):
+                return sem_simple_call(Context(func_rte, expr_end_cont, ast), fn, [])
+            return func_code(rte, get_func)
+
+        return cte, code
+    elif keywords_len == 0:
+        # Case where there are arguments, but not keyword arguments
+        args_cte, args_code = comp_elements(func_cte, args)
+
+        def code(rte, cont):
+            expr_end_cont = do_expr_end(cont, ast)
+
+            def get_func(func_rte, fn):
+                def do_call(call_rte, args):
+                    return sem_simple_call(Context(call_rte, expr_end_cont, ast), fn, args)
+                return args_code(func_rte, do_call)
+            return func_code(rte, get_func)
+
+        return args_cte, code
+    elif args_len == 0:
+        # Case where there are keywords, but no arguments
+        kwargs_cte, kwargs_code = comp_keyword_elements(func_cte, keywords)
+
+        def code(rte, cont):
+            expr_end_cont = do_expr_end(cont, ast)
+
+            def get_func(func_rte, fn):
+                def do_call(call_rte, kwargs):
+                    return sem_generic_call(Context(call_rte, expr_end_cont, ast), fn, [], kwargs)
+                return kwargs_code(func_rte, do_call)
+            return func_code(rte, get_func)
+
+        return kwargs_cte, code
+    else:
+        # Case where there are both keywords, and arguments
+        args_cte, args_code = comp_elements(func_cte, args)
+        kwargs_cte, kwargs_code = comp_keyword_elements(args_cte, keywords)
+
+        def code(rte, cont):
+            expr_end_cont = do_expr_end(cont, ast)
+
+            def get_func(func_rte, fn):
+                def get_args(args_rte, args):
+                    def do_call(call_rte, kwargs):
+                        return sem_generic_call(Context(call_rte, expr_end_cont, ast), fn, args, kwargs)
+                    return kwargs_code(args_rte, do_call)
+                return args_code(func_rte, get_args)
+            return func_code(rte, get_func)
+
+        return kwargs_cte, code
+
 
 def gen_ifexpr(cte, ast, test_code, body_code, orelse_code):
     def code(rte, cont):
@@ -7348,7 +7572,7 @@ def gen_ifexpr(cte, ast, test_code, body_code, orelse_code):
 def gen_Attribute(cte, ast, code, name):
     def call_getattribute(rte, cont, obj):
         ctx = Context(rte, cont, ast)
-        return sem_getattribute(ctx, [obj, om_str(name)])
+        return sem_getattribute(ctx, obj, om_str(name))
 
     def code1(rte, cont):
         expr_end_cont = do_expr_end(cont, ast)

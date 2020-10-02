@@ -39,6 +39,9 @@ def dict_copy(d):
 def dict_item(d):
     return list(d.items())
 
+def dict_len(d):
+    return len(d)
+
 
 ###
 # Int operations

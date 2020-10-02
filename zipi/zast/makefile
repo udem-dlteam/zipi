@@ -9,6 +9,10 @@ FUZZ_SAMPLE=last
 all: _zparse.py
 
 
+clean:
+	rm _zparse.py
+
+
 check: test1 test2 test3 test4
 
 

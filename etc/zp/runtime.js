@@ -69,6 +69,10 @@ function dict_has(d, a) {
     } else return Object.prototype.hasOwnProperty.call(d, a);
 }
 
+function dict_len(obj){
+    return Object.keys(obj).length
+}
+
 function chr(code) {
     return String.fromCodePoint.apply(null, [code]);
 }

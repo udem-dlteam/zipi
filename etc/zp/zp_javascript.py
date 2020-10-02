@@ -683,25 +683,9 @@ class Transformer:
 
         # Use gensymd iter vars
         target = self.transform(node.target)
-        gs = self.gensym()
-        self.name_swaps[target] = gs
-
-        # We now have to modify the 'Name' emitter to replace all
-        # occurrences of the initial target with the gensym
-        def NameSwap(node):
-            id = node.id
-            try:
-                return self.name_swaps[id]
-            except KeyError:
-                return id
-
-        self.Name = NameSwap
 
         _iter = self.transform(node.iter)
         body = "; ".join([self.transform(node) for node in node.body]) + ";"
-        # Set Name back to default
-        del self.name_swaps[target]
-        self.Name = lambda node: node.id
 
         # specialise 'for i in range(N)'
         if (
@@ -710,12 +694,12 @@ class Transformer:
             and len(node.iter.args) == 1
             and isinstance(node.iter.args[0], AST.Num)
         ):
-            out = " for (let " + gs + "=0; " + gs + "<"
-            out += str(node.iter.args[0].n) + "; " + gs + "++) {"
+            out = " for (let " + target + "=0; " + target + "<"
+            out += str(node.iter.args[0].n) + "; " + target + "++) {"
             out += body + "}"
             return out
 
-        out = " for (const " + gs + " of " + _iter + ") {" + body + "};"
+        out = " for (const " + target + " of " + _iter + ") {" + body + "};"
 
         return out
 
