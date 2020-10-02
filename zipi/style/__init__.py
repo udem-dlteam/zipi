@@ -295,7 +295,7 @@ def all_satisfy(selector, predicate):
     return test
 
 
-def any_satisfy(selector, predicate):
+def any_satisfies(selector, predicate):
     """Assert that there exists a node walked on by selector satisfying the given predicate"""
 
     # NOTE: does not short-circuit when node is found
@@ -370,8 +370,17 @@ def is_kind(ast_type):
     """Selector predicates which selects only nodes of a given type"""
     return lambda ast: isinstance(ast, ast_type)
 
+
 def is_Name():
     return lambda ast: isinstance(ast, AST.Name)
+
+
+def is_FunctionDef():
+    return lambda ast: isinstance(ast, AST.FunctionDef)
+
+
+def is_FunctionDef_with_name(name):
+    return lambda ast: isinstance(ast, AST.FunctionDef) and ast.name == name
 
 
 def is_one_of_kinds(ast_types):
@@ -384,6 +393,7 @@ def is_one_of_kinds(ast_types):
         return False
 
     return test
+
 
 def is_arithmetic_expression():
     return lambda ast: isinstance(ast, AST.BinOp) or isinstance(ast, AST.UnaryOp)
