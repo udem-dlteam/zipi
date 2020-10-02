@@ -339,14 +339,14 @@ ex2f_rules = define_rules(
         statement_is_assignment("Les trois premières expressions doivent être des affectations"),
         statement_is_assignment("Les trois premières expressions doivent être des affectations"),
         statement_is_assignment("Les trois premières expressions doivent être des affectations")]),
-        code_endswith([
-            statement_is_call_to("print", "La dernière expression doit être une appel à 'print'")]),
-        all_satisfy(select(is_Name()),
-                    satisfies_condition(ex2_variable_style, "Chaque variable doit être composée uniquement de lettres, comporter au moins trois caractères et commencer par une lettre minuscule")),
-        all_satisfy(select(is_arithmetic_expression()),
-                    satisfies_global_condition(ex2_no_duplicate_expr, make_dict, "Cette expression arithmétique a déjà été calculée")),
-        if_no_error(
-            module_statisfies(satisfies_condition(output_is_correct, "Résultat incorrect")))
+    code_endswith([
+        statement_is_call_to("print", "La dernière expression doit être une appel à 'print'")]),
+    all_satisfy(select(is_Name()),
+                satisfies_condition(ex2_variable_style, "Chaque variable doit être composée uniquement de lettres, comporter au moins trois caractères et commencer par une lettre minuscule")),
+    all_satisfy(select(is_arithmetic_expression()),
+                satisfies_global_condition(ex2_no_duplicate_expr, make_dict, "Cette expression arithmétique a déjà été calculée")),
+    if_no_error(
+        module_statisfies(satisfies_condition(output_is_correct, "Résultat incorrect")))
     ]
 )
 """
