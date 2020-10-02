@@ -93,6 +93,14 @@ def __make_stateful_predicate(pred):
 
 # Conditions on statment
 
+def __store_error_message(test, error_msg):
+    test.__error_msg__ = error_msg
+
+
+def __get_error_message(test):
+    return test.__error_msg__
+
+
 def statement_is(ast_type, error_msg):
     """Assert that a statement is of a given type"""
 
@@ -102,6 +110,8 @@ def statement_is(ast_type, error_msg):
         else:
             __register_error(errors, ast, error_msg)
             return False
+
+    __store_error_message(test, error_msg)
 
     return test
 
@@ -115,6 +125,8 @@ def statement_is_assignment(error_msg):
         else:
             __register_error(errors, ast, error_msg)
             return False
+
+    __store_error_message(test, error_msg)
 
     return test
 
@@ -130,6 +142,8 @@ def statement_is_assignment_to(name, error_msg):
 
         __register_error(errors, ast, error_msg)
         return False
+
+    __store_error_message(test, error_msg)
 
     return test
 
@@ -149,6 +163,8 @@ def statement_is_call_to(fn_name, error_msg):
             __register_error(errors, ast, error_msg)
             return False
 
+    __store_error_message(test, error_msg)
+
     return test
 
 
@@ -162,6 +178,8 @@ def statement_exists(error_msg):
         else:
             return True
 
+    __store_error_message(test, error_msg)
+
     return test
 
 
@@ -174,6 +192,8 @@ def satisfies_condition(predicate, error_msg):
         else:
             __register_error(errors, ast, error_msg)
             return False
+
+    __store_error_message(test, error_msg)
 
     return test
 
@@ -193,7 +213,12 @@ def satisfies_global_condition(stateful_predicate, state_init, error_msg):
                 __register_error(errors, ast, error_msg)
                 return False
 
+        __store_error_message(test, error_msg)
+
         return test
+
+    __store_error_message(test_init, error_msg)
+
     return __make_stateful_predicate(test_init)
 
 
@@ -266,6 +291,35 @@ def all_satisfy(selector, predicate):
 
     def test(module, errors):
         return selector(module, __init_predicate(predicate), errors)
+
+    return test
+
+
+def any_satisfy(selector, predicate):
+    """Assert that there exists a node walked on by selector satisfying the given predicate"""
+
+    # NOTE: does not short-circuit when node is found
+    # this reuses the same logic as all_satisfy but we wrap the predicate to ignore errors
+    # and notify us when a node exists
+
+    exists = [False]
+    initialized_predicate = __init_predicate(predicate)
+    error_msg = __get_error_message(initialized_predicate)
+
+    def any_test(ast, errors):
+        # Ignore errors since we look for existential
+        result = initialized_predicate(ast, [])
+        exists[0] = exists[0] or result
+        return result
+
+    def test(module, errors):
+        selector(module, any_test, errors)
+
+        if exists[0]:
+            return True
+        else:
+            errors.append(error_msg)
+            return False
 
     return test
 
