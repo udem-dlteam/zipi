@@ -68,23 +68,29 @@ def __make_linting_context(rules):
         error_msg = rule[1]
 
         if tag == "NO_CTRL_CHAR":
-            def ctrl_char_hook(ts, pos):
-                lineno = ts.line_num
-                style_error = dict_get(ts.context, 'styleError', None)
-                style_error(lineno, pos - 1, lineno, pos, error_msg)
+            def make_ctrl_char_hook(error_msg):
+                def ctrl_char_hook(ts, pos):
+                    lineno = ts.line_num
+                    style_error = dict_get(ts.context, 'styleError', None)
+                    style_error(lineno, pos - 1, lineno, pos, error_msg)
 
-            dict_set(context, 'ctrl_char', ctrl_char_hook)
+                return ctrl_char_hook
+
+            dict_set(context, 'ctrl_char', make_ctrl_char_hook(error_msg))
 
         elif tag == "LINE_LENGTH":
-            def eol_hook(ts, pos, comment_start):
-                line_len = pos - ts.line_start
-                lineno = ts.line_num
-                style_error = dict_get(ts.context, 'styleError', None)
+            def make_eol_hook(error_msg):
+                def eol_hook(ts, pos, comment_start):
+                    line_len = pos - ts.line_start
+                    lineno = ts.line_num
+                    style_error = dict_get(ts.context, 'styleError', None)
 
-                if line_len >= 80:
-                    style_error(lineno, 0, lineno, line_len, error_msg)
+                    if line_len >= 80:
+                        style_error(lineno, 0, lineno, line_len, error_msg)
 
-            dict_set(context, 'eol_reached', eol_hook)
+                return eol_hook
+
+            dict_set(context, 'eol_reached', make_eol_hook(error_msg))
 
     return context
 
