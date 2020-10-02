@@ -1586,7 +1586,6 @@ def do_check_method_self_arg(self_expected_cls, method_name):
     cls_name = OM_get_boxed_value(OM_get(self_expected_cls, "__name__"))
     method_qualname = cls_name + "." + method_name
     not_enough_arguments_msg = method_qualname + "(): not enough arguments"
-    not_a_type_object_msg = method_qualname + "(X): X is not a type object"
     not_a_subtype_msg = method_qualname + "(object): object is not a subtype of " + cls_name
 
     def check_method_self_arg(ctx, cont, args):
@@ -1600,6 +1599,26 @@ def do_check_method_self_arg(self_expected_cls, method_name):
             return sem_raise_with_message(ctx, class_TypeError, not_a_subtype_msg)
         else:
             return cont(ctx, args)
+
+    return check_method_self_arg
+
+def do_check_method_with_kwargs_self_arg(self_expected_cls, method_name):
+    cls_name = OM_get_boxed_value(OM_get(self_expected_cls, "__name__"))
+    method_qualname = cls_name + "." + method_name
+    not_enough_arguments_msg = method_qualname + "(): not enough arguments"
+    not_a_subtype_msg = method_qualname + "(object): object is not a subtype of " + cls_name
+
+    def check_method_self_arg(ctx, cont, args, kwargs):
+        args_len = len(args)
+        if args_len == 0:
+            return sem_raise_with_message(ctx, class_TypeError, not_enough_arguments_msg)
+
+        cls = args[0]
+
+        if not om_isinstance(cls, self_expected_cls):
+            return sem_raise_with_message(ctx, class_TypeError, not_a_subtype_msg)
+        else:
+            return cont(ctx, args, kwargs)
 
     return check_method_self_arg
 
@@ -1643,7 +1662,7 @@ def do_magic_method(cls, method_name, code):
     return magic_method
 
 def do_magic_method_with_kwargs(cls, method_name, code):
-    check_method_self_arg = do_check_method_self_arg(cls, method_name)
+    check_method_self_arg = do_check_method_with_kwargs_self_arg(cls, method_name)
 
     def magic_method(ctx, args, kwargs):
         return check_method_self_arg(ctx, code, args, kwargs)
@@ -2952,7 +2971,7 @@ def om_function_call_code(ctx, args, kwargs):
     self_name_value = OM_get_boxed_value(OM_get(self, '__name__'))
     return align_args_with_signature(new_ctx, self_name_value, params, signature)
 
-om_function_call = do_magic_method(class_function, '__call__', om_function_call_code)
+om_function_call = do_magic_method_with_kwargs(class_function, '__call__', om_function_call_code)
 
 def om_format_function_repr(self, rte):
     serial = OM_get_serial(self, rte)
