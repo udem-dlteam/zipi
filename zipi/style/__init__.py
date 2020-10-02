@@ -318,7 +318,7 @@ def any_satisfies(selector, predicate):
         if exists[0]:
             return True
         else:
-            errors.append(error_msg)
+            __register_error(errors, module, error_msg)
             return False
 
     return test
