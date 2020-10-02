@@ -399,6 +399,10 @@ def float_atan(u):
     return math.atan(u)
 
 
+def float_atan2(u, v):
+    return math.atan2(u, v)
+
+
 def float_exp(u):
     return math.exp(u)
 
