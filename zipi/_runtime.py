@@ -590,6 +590,25 @@ def drawing_setpw(rte, width):
 def drawing_drawtext(rte, text):
     pass
 
+# Pixels functions
+def drawing_setScreenMode(rte, width, height):
+    pass
+
+def drawing_getScreenMode(rte):
+    return 0
+
+def drawing_getScreenHeight(rte):
+    return 0
+
+def drawing_setPixel(rte, x, y, color):
+    pass
+
+def drawing_fillRectangle(rte, x, y, width, height):
+    pass
+
+def drawing_exportScreen(rte):
+    return ''
+
 getMouseX = None
 getMouseY = None
 getMouseDown = None
