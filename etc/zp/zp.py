@@ -160,6 +160,13 @@ def compile_file(input_file):
         runtime += "function drawing_setpc(rte, r, g, b) {};"
         runtime += "function drawing_setpw(rte, width) {};"
         runtime += "function drawing_drawtext(rte, text) {};"
+        # Dummy pixels interfaces
+        runtime += "function drawing_setScreenMode(rte, width, height) {};"
+        runtime += "function drawing_getScreenWidth(rte) { return 0; };"
+        runtime += "function drawing_getScreenHeight(rte) { return 0; };"
+        runtime += "function drawing_setPixel(rte, x, y, color) {};"
+        runtime += "function drawing_fillRectangle(rte, x, y, width, height, color) {};"
+        runtime += "function drawing_exportScreen(rte) { return ''; }"
         # Mouse event
         runtime += "var getMouseX = undefined;"
         runtime += "var getMouseY = undefined;"

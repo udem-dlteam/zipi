@@ -5079,21 +5079,20 @@ def make_module_mouse():
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise(ctx, class_NotImplementedError)
         else:
-            return unwindReturn(rte, om_int(getMouseX(rte)))
+            return unwindReturn(rte, om_int(int_from_num(getMouseX(rte))))
 
     def getMouseY_code(rte, cont):
         if getMouseY is None:
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise(ctx, class_NotImplementedError)
         else:
-            return unwindReturn(rte, om_int(getMouseY(rte)))
+            return unwindReturn(rte, om_int(int_from_num(getMouseY(rte))))
 
     def getMouseDown_code(rte, cont):
         if getMouseDown is None:
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise(ctx, class_NotImplementedError)
         else:
-            print(getMouseDown(rte))
             return unwindReturn(rte, om_bool(getMouseDown(rte)))
 
     module_mouse_env = make_dict()
@@ -5102,14 +5101,122 @@ def make_module_mouse():
     dict_set(module_mouse_env, 'getMouseDown', om_make_function_with_signature('getMouseDown', getMouseDown_code, empty_signature))
     return om_module('mouse', module_mouse_env)
 
-# pixels graphics:
-#   setScreenMode(width, height)
-#   getScreenWidth()
-#   getScreenHeight()
-#   setPixel(x, y, color)
-#   fillRectangle(x, y, color)
-#   exportScreen()
-#   getMouse()
+def make_module_pixels():
+    def color_str_to_dict(s):
+        len_s = len(s)
+        if len_s == 7 and s[0] == '#':
+            r = int_from_substring(s, 1, 3, 16)
+            g = int_from_substring(s, 3, 5, 16)
+            b = int_from_substring(s, 5, 7, 16)
+            if r is False or g is False or b is False:
+                return False
+            else:
+                color = make_dict()
+                dict_set(color, 'r', int_to_num(r))
+                dict_set(color, 'g', int_to_num(g))
+                dict_set(color, 'b', int_to_num(b))
+                return color
+        else:
+            return False
+
+    def setScreenMode_code(rte, cont):
+        width = rte_lookup_locals(rte, 'width')
+        height = rte_lookup_locals(rte, 'height')
+        if om_isinstance(width, class_int) and om_isinstance(height, class_int):
+            width_val = int_to_num(OM_get_boxed_value(width))
+            height_val = int_to_num(OM_get_boxed_value(height))
+            drawing_setScreenMode(rte, width_val, height_val)
+            return unwindReturn(rte, om_None)
+        else:
+            ctx = make_out_of_ast_context(rte, cont)
+            return sem_raise_with_message(ctx, class_TypeError, "arguments 'width' and 'height' must be of type 'int'")
+
+    def getScreenWidth_code(rte, cont):
+        result = drawing_getScreenWidth(rte)
+        return unwindReturn(rte, om_int(int_from_num(result)))
+
+    def getScreenHeight_code(rte, cont):
+        result = drawing_getScreenHeight(rte)
+        return unwindReturn(rte, om_int(int_from_num(result)))
+
+    def setPixel_code(rte, cont):
+        ctx = make_out_of_ast_context(rte, cont)
+        x = rte_lookup_locals(rte, 'x')
+        y = rte_lookup_locals(rte, 'y')
+        color = rte_lookup_locals(rte, 'color')
+        if om_isinstance(x, class_int) and om_isinstance(y, class_int):
+            xval = int_to_num(OM_get_boxed_value(x))
+            yval = int_to_num(OM_get_boxed_value(y))
+            if om_isinstance(color, class_str):
+                color_val = color_str_to_dict(OM_get_boxed_value(color))
+                if color_val is False:
+                    return sem_raise_with_message(ctx, class_ValueError, "invalid HTML 'color' string format")
+                else:
+                    drawing_setPixel(rte, xval, yval, color_val)
+                    return unwindReturn(rte, om_None)
+            # TODO: add support to struct type
+            # elif om_isinstance(color, class_struct):
+            #   return ...
+            else:
+                # TODO: of type 'str' or 'struct'
+                return sem_raise_with_message(ctx, class_TypeError, "arguments 'color' must be of type 'str'")
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "arguments 'x' and 'y' must be of type 'int'")
+
+
+    def fillRectangle_code(rte, cont):
+        ctx = make_out_of_ast_context(rte, cont)
+        x = rte_lookup_locals(rte, 'x')
+        y = rte_lookup_locals(rte, 'y')
+        width = rte_lookup_locals(rte, 'width')
+        height = rte_lookup_locals(rte, 'height')
+        color = rte_lookup_locals(rte, 'color')
+        if om_isinstance(x, class_int) and om_isinstance(y, class_int) and \
+           om_isinstance(width, class_int) and om_isinstance(height, class_int):
+            xval = int_to_num(OM_get_boxed_value(x))
+            yval = int_to_num(OM_get_boxed_value(y))
+            width_val = int_to_num(OM_get_boxed_value(width))
+            height_val = int_to_num(OM_get_boxed_value(height))
+            if om_isinstance(color, class_str):
+                color_val = color_str_to_dict(OM_get_boxed_value(color))
+                if color_val is False:
+                    return sem_raise_with_message(ctx, class_ValueError, "invalid HTML 'color' string format")
+                else:
+                    drawing_fillRectangle(rte, xval, yval, width_val, height_val, color_val)
+                    return unwindReturn(rte, om_None)
+            # TODO: add support to struct type
+            # elif om_isinstance(color, class_struct):
+            #   return ...
+            else:
+                # TODO: of type 'str' or 'struct'
+                return sem_raise_with_message(ctx, class_TypeError, "'color' must be of type 'str'")
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "'x', 'y', 'width' and 'height' must be of type 'int'")
+
+
+    def exportScreen_code(rte, cont):
+        result = drawing_exportScreen(rte)
+        return unwindReturn(rte, om_str(result))
+
+    # NOTE: getMouse is in the mouse module
+    # def getMouse_code(rte, cont):
+    #     pass
+
+    setScreenMode = om_make_function_with_signature('setScreenMode', setScreenMode_code, make_posonly_only_signature(('width', 'height',)))
+    getScreenWidth = om_make_function_with_signature('getScreenWidth', getScreenWidth_code, empty_signature)
+    getScreenHeight = om_make_function_with_signature('getScreenHeight', getScreenHeight_code, empty_signature)
+    setPixel = om_make_function_with_signature('setPixel', setPixel_code, make_posonly_only_signature(('x','y','color',)))
+    fillRectangle = om_make_function_with_signature('fillRectangle', fillRectangle_code, make_posonly_only_signature(('x', 'y', 'width', 'height', 'color',)))
+    exportScreen = om_make_function_with_signature('exportScreen', exportScreen_code, empty_signature)
+
+    module_pixels_env = make_dict()
+    dict_set(module_pixels_env, 'setScreenMode', setScreenMode)
+    dict_set(module_pixels_env, 'getScreenWidth', getScreenWidth)
+    dict_set(module_pixels_env, 'getScreenHeight', getScreenHeight)
+    dict_set(module_pixels_env, 'setPixel', setPixel)
+    dict_set(module_pixels_env, 'fillRectangle', fillRectangle)
+    dict_set(module_pixels_env, 'exportScreen', exportScreen)
+    return om_module('pixels', module_pixels_env)
 
 # Interpreter
 @nocompile
@@ -5261,14 +5368,17 @@ def fresh_rte(options):
     random_module = make_module_random()
     time_module = make_module_time()
     mouse_module = make_module_mouse()
+    pixels_module = make_module_pixels()
 
     # Inject some module into the builtins
     dict_set(builtins_env, 'math', math_module)
     dict_set(builtins_env, 'mouse', mouse_module)
+    dict_set(builtins_env, 'pixels', pixels_module)
     dict_set(builtins_env, 'turtle', turtle_module)
     dict_set(builtins_env, 'time', time_module)
 
     inject_module_in_env(mouse_module, builtins_env)
+    inject_module_in_env(pixels_module, builtins_env)
     inject_module_in_env(random_module, builtins_env)
     inject_module_in_env(turtle_module, builtins_env)
     inject_module_in_env(time_module, builtins_env)
