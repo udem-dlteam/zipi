@@ -5145,21 +5145,29 @@ def make_module_pixels():
         y = rte_lookup_locals(rte, 'y')
         color = rte_lookup_locals(rte, 'color')
         if om_isinstance(x, class_int) and om_isinstance(y, class_int):
-            xval = int_to_num(OM_get_boxed_value(x))
-            yval = int_to_num(OM_get_boxed_value(y))
-            if om_isinstance(color, class_str):
-                color_val = color_str_to_dict(OM_get_boxed_value(color))
-                if color_val is False:
-                    return sem_raise_with_message(ctx, class_ValueError, "invalid HTML 'color' string format")
-                else:
-                    drawing_setPixel(rte, xval, yval, color_val)
-                    return unwindReturn(rte, om_None)
-            # TODO: add support to struct type
-            # elif om_isinstance(color, class_struct):
-            #   return ...
+            xval = OM_get_boxed_value(x)
+            yval = OM_get_boxed_value(y)
+
+            screen_width = int_from_num(drawing_getScreenWidth(rte))
+            screen_height = int_from_num(drawing_getScreenHeight(rte))
+            if int_is_neg(xval) or int_ge(xval, screen_width):
+                return sem_raise_with_message(ctx, class_ValueError, "'x' must be a positive 'int' less than " + int_to_string(screen_width, 10))
+            elif int_is_neg(yval) or int_ge(yval, screen_height):
+                return sem_raise_with_message(ctx, class_ValueError, "'y' must be a positive 'int' less than " + int_to_string(screen_height, 10))
             else:
-                # TODO: of type 'str' or 'struct'
-                return sem_raise_with_message(ctx, class_TypeError, "arguments 'color' must be of type 'str'")
+                if om_isinstance(color, class_str):
+                    color_val = color_str_to_dict(OM_get_boxed_value(color))
+                    if color_val is False:
+                        return sem_raise_with_message(ctx, class_ValueError, "invalid HTML 'color' string format")
+                    else:
+                        drawing_setPixel(rte, int_to_num(xval), int_to_num(yval), color_val)
+                        return unwindReturn(rte, om_None)
+                # TODO: add support to struct type
+                # elif om_isinstance(color, class_struct):
+                #   return ...
+                else:
+                    # TODO: of type 'str' or 'struct'
+                    return sem_raise_with_message(ctx, class_TypeError, "arguments 'color' must be of type 'str'")
         else:
             return sem_raise_with_message(ctx, class_TypeError, "arguments 'x' and 'y' must be of type 'int'")
 
@@ -5173,23 +5181,38 @@ def make_module_pixels():
         color = rte_lookup_locals(rte, 'color')
         if om_isinstance(x, class_int) and om_isinstance(y, class_int) and \
            om_isinstance(width, class_int) and om_isinstance(height, class_int):
-            xval = int_to_num(OM_get_boxed_value(x))
-            yval = int_to_num(OM_get_boxed_value(y))
-            width_val = int_to_num(OM_get_boxed_value(width))
-            height_val = int_to_num(OM_get_boxed_value(height))
-            if om_isinstance(color, class_str):
-                color_val = color_str_to_dict(OM_get_boxed_value(color))
-                if color_val is False:
-                    return sem_raise_with_message(ctx, class_ValueError, "invalid HTML 'color' string format")
-                else:
-                    drawing_fillRectangle(rte, xval, yval, width_val, height_val, color_val)
-                    return unwindReturn(rte, om_None)
-            # TODO: add support to struct type
-            # elif om_isinstance(color, class_struct):
-            #   return ...
+            xval = OM_get_boxed_value(x)
+            yval = OM_get_boxed_value(y)
+            width_val = OM_get_boxed_value(width)
+            height_val = OM_get_boxed_value(height)
+
+            one = int_from_num(1)
+            screen_width = int_from_num(drawing_getScreenWidth(rte))
+            screen_height = int_from_num(drawing_getScreenHeight(rte))
+            max_width = int_sub(screen_width, xval)
+            max_height = int_sub(screen_height, yval)
+            if int_is_neg(xval) or int_ge(xval, screen_width):
+                return sem_raise_with_message(ctx, class_ValueError, "'x' must be a positive 'int' less than " + int_to_string(screen_width, 10))
+            elif int_is_neg(yval) or int_ge(yval, screen_height):
+                return sem_raise_with_message(ctx, class_ValueError, "'y' must be a positive 'int' less than " + int_to_string(screen_height, 10))
+            elif int_is_neg(width_val) or int_gt(width_val, max_width):
+                return sem_raise_with_message(ctx, class_ValueError, "'width' must be a positive 'int' less than " + int_to_string(int_add(one, max_width), 10))
+            elif int_is_neg(height_val) or int_gt(height_val, max_height):
+                return sem_raise_with_message(ctx, class_ValueError, "'height' must be a positive 'int' less than " + int_to_string(int_add(one, max_height), 10))
             else:
-                # TODO: of type 'str' or 'struct'
-                return sem_raise_with_message(ctx, class_TypeError, "'color' must be of type 'str'")
+                if om_isinstance(color, class_str):
+                    color_val = color_str_to_dict(OM_get_boxed_value(color))
+                    if color_val is False:
+                        return sem_raise_with_message(ctx, class_ValueError, "invalid HTML 'color' string format")
+                    else:
+                        drawing_fillRectangle(rte, int_to_num(xval), int_to_num(yval), int_to_num(width_val), int_to_num(height_val), color_val)
+                        return unwindReturn(rte, om_None)
+                # TODO: add support to struct type
+                # elif om_isinstance(color, class_struct):
+                #   return ...
+                else:
+                    # TODO: of type 'str' or 'struct'
+                    return sem_raise_with_message(ctx, class_TypeError, "'color' must be of type 'str'")
         else:
             return sem_raise_with_message(ctx, class_TypeError, "'x', 'y', 'width' and 'height' must be of type 'int'")
 
