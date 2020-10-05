@@ -7778,7 +7778,7 @@ def om_tuple_simple_repr(tuple_, rte, max_length):
                 # Account for ", "
                 remaining_length -= 2
 
-            elt_repr = om_simple_repr(ctx, elements[i])
+            elt_repr = om_simple_repr_with_max_length(ctx, elements[i], remaining_length)
             repr_len = len(elt_repr)
 
             if repr_len > remaining_length:
@@ -7818,7 +7818,7 @@ def om_list_simple_repr(list_, rte, max_length):
                 # Account for ", "
                 remaining_length -= 2
 
-            elt_repr = om_simple_repr(ctx, elements[i])
+            elt_repr = om_simple_repr_with_max_length(ctx, elements[i], remaining_length)
             repr_len = len(elt_repr)
 
             if repr_len > remaining_length:
@@ -7917,6 +7917,9 @@ def om_simple_repr_with_max_length(ctx, value, max_length):
         formatter = dict_get(simple_repr_formatters, cls_name, om_format_object_repr)
 
         repr_res = formatter(value, ctx.rte)
+
+    if len(repr_res) > max_length:
+        repr_res = repr_res[:max_length - 3] + "..."
 
     if is_entry_point:
         rte_repr_exit(rte)
