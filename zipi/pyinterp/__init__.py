@@ -2286,7 +2286,7 @@ def om_tuple_repr_code(ctx, args):
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
 
-om_tuple_repr = do_magic_method(class_list, "__repr__", om_tuple_repr_code)
+om_tuple_repr = do_magic_method(class_tuple, "__repr__", om_tuple_repr_code)
 
 def om_tuple_new(ctx, args):
     args_len = len(args)
