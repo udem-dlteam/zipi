@@ -7755,8 +7755,10 @@ def gen_Attribute(cte, ast, code, name):
 
     return (cte, code1)
 
+REPR_TOO_LONG_FILLER = "..."
+
 # TODO: Replace class names with class objects once this is supported
-def om_tuple_simple_repr(tuple_, rte):
+def om_tuple_simple_repr(tuple_, rte, max_length):
     if rte_check_seen_repr(rte, tuple_):
         return '(...)'
     else:
@@ -7764,36 +7766,78 @@ def om_tuple_simple_repr(tuple_, rte):
 
         elements = OM_get_tuple_seq(tuple_)
         elements_len = len(elements)
+
+        # account for the '(' + ')' segment of the string
+        remaining_length = max_length - 2
+
         acc = []
         i = 0
+        ctx = make_out_of_ast_context(rte, None)
         while i < elements_len:
-            next_ctx = make_out_of_ast_context(rte, None)
-            acc.append(om_simple_repr(next_ctx, elements[i]))
-            i += 1
+            if i > 0:
+                # Account for ", "
+                remaining_length -= 2
 
-        if elements_len == 1:
-            return '(' + ', '.join(acc) + ',)'
-        else:
-            return '(' + ', '.join(acc) + ')'
+            elt_repr = om_simple_repr(ctx, elements[i])
+            repr_len = len(elt_repr)
 
-def om_list_simple_repr(tuple_, rte):
-    if rte_check_seen_repr(rte, tuple_):
+            if repr_len > remaining_length:
+                if remaining_length >= 3 or len(acc) == 0:
+                    # Enough space to add "..." or the first element was already too long so we add "..."
+                    # even though the second option may make the list too long
+                    acc.append(REPR_TOO_LONG_FILLER)
+                else:
+                    # Not enough space to add "...", replace the last element
+                    acc[len(acc) - 1] = REPR_TOO_LONG_FILLER
+                break
+            else:
+                remaining_length -= repr_len
+                acc.append(elt_repr)
+                i += 1
+
+        return '(' + ', '.join(acc) + ')'
+
+
+def om_list_simple_repr(list_, rte, max_length):
+    if rte_check_seen_repr(rte, list_):
         return '[...]'
     else:
-        rte_add_seen_repr(rte, tuple_)
+        rte_add_seen_repr(rte, list_)
 
-        elements = OM_get_tuple_seq(tuple_)
+        elements = OM_get_list_seq(list_)
         elements_len = len(elements)
+
+        # account for the '[' + ']' segment of the string
+        remaining_length = max_length - 2
+
         acc = []
         i = 0
+        ctx = make_out_of_ast_context(rte, None)
         while i < elements_len and elements[i] is not empty_cell:
-            next_ctx = make_out_of_ast_context(rte, None)
-            acc.append(om_simple_repr(next_ctx, elements[i]))
-            i += 1
+            if i > 0:
+                # Account for ", "
+                remaining_length -= 2
+
+            elt_repr = om_simple_repr(ctx, elements[i])
+            repr_len = len(elt_repr)
+
+            if repr_len > remaining_length:
+                if remaining_length >= 3 or len(acc) == 0:
+                    # Enough space to add "..." or the first element was already too long so we add "..."
+                    # even though the second option may make the list too long
+                    acc.append(REPR_TOO_LONG_FILLER)
+                else:
+                    # Not enough space to add "...", replace the last element
+                    acc[len(acc) - 1] = REPR_TOO_LONG_FILLER
+                break
+            else:
+                remaining_length -= repr_len
+                acc.append(elt_repr)
+                i += 1
 
         return '[' + ', '.join(acc) + ']'
 
-def om_range_simple_repr(range_, rte):
+def om_range_simple_repr(range_, rte, max_length):
     start = OM_get_range_start(range_)
     stop = OM_get_range_stop(range_)
     step = OM_get_range_step(range_)
@@ -7801,13 +7845,36 @@ def om_range_simple_repr(range_, rte):
     step_value = OM_get_boxed_value(step)
 
     if int_eq(step_value, int_from_num(1)):
+        # account for the 'range(' + ', ' + ')' segment of the string
+        remaining_length = max_length - 9
+
         args = [start, stop]
     else:
+        # account for the 'range(' + ', ' + ', ' + ')' segment of the string
+        remaining_length = max_length - 11
+
         args = [start, stop, step]
 
     args_repr = []
+
     for arg in args:
-        repr_ = om_simple_repr(make_out_of_ast_context(rte, None), arg)
+        if remaining_length > 0:
+
+            repr_ = om_simple_repr_with_max_length(make_out_of_ast_context(rte, None), arg, remaining_length)
+
+            repr_len = len(repr_)
+            if repr_len <= remaining_length:
+                # Object is short enough, print it
+                remaining_length -= repr_len
+            else:
+                # Object is too long, do not print it
+                repr_ = REPR_TOO_LONG_FILLER
+                remaining_length -= 3
+
+        else:
+            # No more space remaining, try returning the smallest repr possible
+            repr_ = REPR_TOO_LONG_FILLER
+
         args_repr.append(repr_)
 
     return 'range(' + ', '.join(args_repr) + ')'
@@ -7819,9 +7886,6 @@ simple_repr_formatters = {
     "float": om_format_float_repr,
     "bool": om_format_bool_repr,
     "str": om_format_str_repr,
-    "tuple": om_tuple_simple_repr,
-    "list": om_list_simple_repr,
-    "range": om_range_simple_repr,
     "type": om_format_type_repr,
     "function": om_format_function_repr,
     "method-wrapper": om_format_MethodWrapper_repr,
@@ -7832,14 +7896,27 @@ simple_repr_formatters = {
 }
 
 def om_simple_repr(ctx, value):
+    return om_simple_repr_with_max_length(ctx, value, 80)
+
+def om_simple_repr_with_max_length(ctx, value, max_length):
     rte = ctx.rte
     is_entry_point = rte_repr_enter(rte)
 
     value_cls = OM_get_object_class(value)
-    cls_name = OM_get_boxed_value(OM_get(value_cls, "__name__"))
-    formatter = dict_get(simple_repr_formatters, cls_name, om_format_object_repr)
 
-    repr_res = formatter(value, ctx.rte)
+    # List and tuple and range are special cases which recursively call repr on elements, we thus treat them separately
+
+    if om_is(value_cls, class_list):
+        repr_res = om_list_simple_repr(value, ctx.rte, max_length)
+    elif om_is(value_cls, class_tuple):
+        repr_res = om_tuple_simple_repr(value, ctx.rte, max_length)
+    elif om_is(value_cls, class_range):
+        repr_res = om_range_simple_repr(value, ctx.rte, max_length)
+    else:
+        cls_name = OM_get_boxed_value(OM_get(value_cls, "__name__"))
+        formatter = dict_get(simple_repr_formatters, cls_name, om_format_object_repr)
+
+        repr_res = formatter(value, ctx.rte)
 
     if is_entry_point:
         rte_repr_exit(rte)
