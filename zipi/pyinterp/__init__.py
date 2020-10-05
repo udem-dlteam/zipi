@@ -7919,7 +7919,7 @@ def om_simple_repr_with_max_length(ctx, value, max_length):
         repr_res = formatter(value, ctx.rte)
 
     if len(repr_res) > max_length:
-        repr_res = repr_res[:max_length - 3] + "..."
+        repr_res = repr_res[:max_length - 3] + REPR_TOO_LONG_FILLER
 
     if is_entry_point:
         rte_repr_exit(rte)
