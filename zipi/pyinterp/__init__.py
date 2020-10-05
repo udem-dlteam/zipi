@@ -7757,31 +7757,41 @@ def gen_Attribute(cte, ast, code, name):
 
 # TODO: Replace class names with class objects once this is supported
 def om_tuple_simple_repr(tuple_, rte):
-    elements = OM_get_tuple_seq(tuple_)
-    elements_len = len(elements)
-    acc = []
-    i = 0
-    while i < elements_len:
-        next_ctx = make_out_of_ast_context(rte, None)
-        acc.append(om_simple_repr(next_ctx, elements[i]))
-        i += 1
-
-    if elements_len == 1:
-        return '(' + ', '.join(acc) + ',)'
+    if rte_check_seen_repr(rte, tuple_):
+        return '(...)'
     else:
-        return '(' + ', '.join(acc) + ')'
+        rte_add_seen_repr(rte, tuple_)
+
+        elements = OM_get_tuple_seq(tuple_)
+        elements_len = len(elements)
+        acc = []
+        i = 0
+        while i < elements_len:
+            next_ctx = make_out_of_ast_context(rte, None)
+            acc.append(om_simple_repr(next_ctx, elements[i]))
+            i += 1
+
+        if elements_len == 1:
+            return '(' + ', '.join(acc) + ',)'
+        else:
+            return '(' + ', '.join(acc) + ')'
 
 def om_list_simple_repr(tuple_, rte):
-    elements = OM_get_tuple_seq(tuple_)
-    elements_len = len(elements)
-    acc = []
-    i = 0
-    while i < elements_len and elements[i] is not empty_cell:
-        next_ctx = make_out_of_ast_context(rte, None)
-        acc.append(om_simple_repr(next_ctx, elements[i]))
-        i += 1
+    if rte_check_seen_repr(rte, tuple_):
+        return '[...]'
+    else:
+        rte_add_seen_repr(rte, tuple_)
 
-    return '[' + ', '.join(acc) + ']'
+        elements = OM_get_tuple_seq(tuple_)
+        elements_len = len(elements)
+        acc = []
+        i = 0
+        while i < elements_len and elements[i] is not empty_cell:
+            next_ctx = make_out_of_ast_context(rte, None)
+            acc.append(om_simple_repr(next_ctx, elements[i]))
+            i += 1
+
+        return '[' + ', '.join(acc) + ']'
 
 def om_range_simple_repr(range_, rte):
     start = OM_get_range_start(range_)
@@ -7822,10 +7832,19 @@ simple_repr_formatters = {
 }
 
 def om_simple_repr(ctx, value):
+    rte = ctx.rte
+    is_entry_point = rte_repr_enter(rte)
+
     value_cls = OM_get_object_class(value)
     cls_name = OM_get_boxed_value(OM_get(value_cls, "__name__"))
     formatter = dict_get(simple_repr_formatters, cls_name, om_format_object_repr)
-    return formatter(value, ctx.rte)
+
+    repr_res = formatter(value, ctx.rte)
+
+    if is_entry_point:
+        rte_repr_exit(rte)
+
+    return repr_res
 
 def om_simple_exception_format(ctx, exn):
     exn_name = OM_get(OM_get_object_class(exn), '__name__')
