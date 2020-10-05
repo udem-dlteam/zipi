@@ -172,7 +172,7 @@ def with_cont(ctx, cont):
     return Context(ctx.rte, cont, ctx.ast)
 
 def with_catch(ctx, catcher_cont):
-    # Add a continuatin which removes the catcher from the rte before returning
+    # Add a continuation which removes the catcher from the rte before returning
     def unwind_catch_block(rte, val):
         unwinded_rte = unwind_rte_ctrl_env(rte)
         return ctx.cont(unwinded_rte, val)
@@ -295,7 +295,7 @@ def frame_cont(frame):
 def frame_ast(frame):
     return frame[2]
 
-def make_rte(rte, globals_env, locals_env, current_func, builtins, stack, ctrl_env, vm, options):
+def make_rte(rte, globals_env, locals_env, current_func, builtins, stack, ctrl_env, seen_repr, vm, options):
     if rte is absent:
         serial_counter = [0]
     else:
@@ -310,6 +310,9 @@ def make_rte(rte, globals_env, locals_env, current_func, builtins, stack, ctrl_e
     dict_set(rte, "builtins", builtins)
     dict_set(rte, "stack", stack)
     dict_set(rte, "ctrl_env", ctrl_env)
+
+    # Used to accumulate objects repr seen when calling sem_repr, to avoid infinite loops in nested objects
+    dict_set(rte, "seen_repr", seen_repr)
     dict_set(rte, "vm", vm)
     dict_set(rte, "options", options)
 
@@ -323,6 +326,7 @@ def make_rte_from_new_ctrl_env(rte, ctrl_env):
                     rte_builtins(rte),
                     rte_stack(rte),
                     ctrl_env,
+                    rte_get_seen_repr(rte),
                     rte_vm(rte),
                     rte_options(rte))
 
@@ -416,6 +420,37 @@ def rte_set_closure(rte, pos, val):
     func = rte_current_func(rte)
     slot = OM_get_function_closure(func)[pos]
     slot[0] = val
+
+def rte_get_seen_repr(rte):
+    return dict_get(rte, "seen_repr", absent)
+
+def rte_add_seen_repr(rte, obj):
+    seen_repr = rte_get_seen_repr(rte)
+    serial = OM_get_serial(obj, rte)
+    # We use str(serial) because the JS version
+    dict_set(seen_repr, serial, obj)
+
+def rte_check_seen_repr(rte, obj):
+    seen_repr = rte_get_seen_repr(rte)
+    serial = OM_get_serial(obj, rte)
+    maybe_obj = dict_get(seen_repr, serial, absent)
+
+    if maybe_obj is not absent and om_is(obj, maybe_obj):
+        return True
+    else:
+        return False
+
+def rte_repr_enter(rte):
+    seen_repr = dict_get(rte, "seen_repr", absent)
+
+    if seen_repr is absent:
+        dict_set(rte, "seen_repr", make_dict())
+        return True
+    else:
+        return False
+
+def rte_repr_exit(rte):
+    dict_set(rte, "seen_repr", absent)
 
 
 # stack operation
@@ -2233,6 +2268,26 @@ def om_tuple_elements_repr(ctx, elts, repr_acc):
 
         return sem_repr(with_cont(ctx, cont), elts[0])
 
+def om_tuple_repr_code(ctx, args):
+    if debug: print('list.__repr__')
+
+    args_len = len(args)
+
+    if args_len == 1:
+        rte = ctx.rte
+        self = args[0]
+
+        if rte_check_seen_repr(rte, self):
+            return cont_str(ctx, "(...)")
+        else:
+            rte_add_seen_repr(rte, self)
+            elements = OM_get_tuple_seq(self)
+            return om_tuple_elements_repr(ctx, elements, [])
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
+
+om_tuple_repr = do_magic_method(class_list, "__repr__", om_tuple_repr_code)
+
 def om_tuple_new(ctx, args):
     args_len = len(args)
     if args_len == 0:
@@ -2253,13 +2308,6 @@ def om_tuple_new(ctx, args):
     else:
         return sem_raise_with_message(ctx, class_TypeError, "tuple expected at most 1 argument, got " + str(args_len))
 
-def om_tuple_repr(ctx, args):
-    if debug: print('tuple.__repr__')
-    self = args[0]
-
-    elements = OM_get_tuple_seq(self)
-
-    return om_tuple_elements_repr(ctx, elements, [])
 
 def om_tuple_len(ctx, args):
     if debug: print('tuple.__len__')
@@ -2347,9 +2395,20 @@ def om_list_elements_repr(ctx, elts, repr_acc, i):
 def om_list_repr_code(ctx, args):
     if debug: print('list.__repr__')
 
-    self = args[0]
-    elements = OM_get_list_seq(self)
-    return om_list_elements_repr(ctx, elements, [], 0)
+    args_len = len(args)
+
+    if args_len == 1:
+        rte = ctx.rte
+        self = args[0]
+
+        if rte_check_seen_repr(rte, self):
+            return cont_str(ctx, "[...]")
+        else:
+            rte_add_seen_repr(rte, self)
+            elements = OM_get_list_seq(self)
+            return om_list_elements_repr(ctx, elements, [], 0)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
 
 om_list_repr = do_magic_method(class_list, "__repr__", om_list_repr_code)
 
@@ -2961,7 +3020,7 @@ def om_function_call_code(ctx, args, kwargs):
                 dict_set(call_locals_env, name, value)
 
 
-        rte = make_rte(ctx.rte, rte_globals(ctx.rte), call_locals_env, self, rte_builtins(ctx.rte), stack, rte_ctrl_env(ctx.rte), rte_vm(ctx.rte), rte_options(ctx.rte))
+        rte = make_rte(ctx.rte, rte_globals(ctx.rte), call_locals_env, self, rte_builtins(ctx.rte), stack, rte_ctrl_env(ctx.rte), rte_get_seen_repr(ctx.rte), rte_vm(ctx.rte), rte_options(ctx.rte))
         body = OM_get_function_body(self)
         return body(rte,
                     lambda rte1:
@@ -5287,7 +5346,7 @@ def fresh_rte(options):
     globals_env = make_dict()
     builtins_env = make_dict()
 
-    rte = make_rte(absent, globals_env, locals_env, absent, builtins_env, absent, absent, absent, options)
+    rte = make_rte(absent, globals_env, locals_env, absent, builtins_env, absent, absent, absent, absent, options)
 
     # Vanilla Python builtins
     om_builtin_print = om_make_function_with_signature('print', om_print_code, make_vararg_only_signature('args'))
@@ -7108,8 +7167,12 @@ def sem_Not(ctx, obj):
 def sem_repr(ctx, val1):
     val1_repr = getattribute_from_obj_mro(val1, '__repr__')
 
+    is_entry_point = rte_repr_enter(ctx.rte)
+
     def check_string(rte, res):
         if om_isinstance(res, class_str):
+            if is_entry_point:
+                rte_repr_exit(rte)
             return ctx.cont(rte, res)
         else:
             return sem_raise_with_message(ctx, class_TypeError, "__repr__ returned non-string")
