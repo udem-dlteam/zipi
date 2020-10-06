@@ -1599,6 +1599,9 @@ class_module = make_builtin_class('module', OM_module_create, (), class_type)
 class_function = make_builtin_class('function', OM_function_create, (), class_type)
 class_slice = make_builtin_class('slice', OM_slice_create, (), class_type)
 
+# class available and populated in 'more_builtins' module
+class_struct = make_builtin_class('struct', OM_struct_create, (), class_type)
+
 # Exception classes
 class_BaseException = make_builtin_class('BaseException', OM_BaseException_create, (), class_type)
 class_Exception = make_builtin_class('Exception', OM_BaseException_create, (class_BaseException,), class_type)
@@ -5325,8 +5328,6 @@ def make_module_more_builtins():
     # Defines the module "more_builtins" which contains builtins class/functions
     # which are specific to CodeBoot learning environment
 
-    class_struct = make_builtin_class('struct', OM_struct_create, (), class_type)
-
     def om_struct_new_code(ctx, args, kwargs):
         if debug: print('struct.__new__')
 
@@ -5392,7 +5393,7 @@ def make_module_more_builtins():
 
             if om_isinstance(name, class_str):
                 name_value = OM_get_boxed_value(name)
-                fields = OM_get(self, '_fields')
+                fields = OM_get_tuple_seq(OM_get(self, '_fields'))
 
                 for f in fields:
                     field_value = OM_get_boxed_value(f)
@@ -8048,6 +8049,50 @@ def om_range_simple_repr(range_, rte, max_length):
     return 'range(' + ', '.join(args_repr) + ')'
 
 
+def om_struct_simple_repr(struct, rte, max_length):
+    if rte_check_seen_repr(rte, struct):
+        return "struct(...)"
+    else:
+        rte_add_seen_repr(rte, struct)
+
+    attrs_repr = []
+
+    # account for the 'struct(' + ')' segment of the string
+    remaining_length = max_length - 8
+
+    fields = OM_get_tuple_seq(OM_get(struct, '_fields'))
+
+    for attr in fields:
+        # attr are str
+        attr_name = OM_get_boxed_value(attr)
+        value = OM_get(struct, attr_name)
+
+        # account for 'name='
+        remaining_length_for_value = remaining_length - len(attr_name) - 1
+
+        value_repr = om_simple_repr_with_max_length(make_out_of_ast_context(rte, None), value,
+                                                    remaining_length_for_value)
+
+        repr_ = attr_name + '=' + value_repr
+
+
+        repr_len = len(repr_)
+
+        if repr_len <= remaining_length:
+            # Object is short enough, print it
+            # account for next ', ' in remaining length
+            remaining_length -= repr_len + 2
+            attrs_repr.append(repr_)
+        elif remaining_length < 3 and len(attrs_repr) > 0:
+            attrs_repr[len(attrs_repr) - 1] = REPR_TOO_LONG_FILLER
+            break
+        else:
+            attrs_repr.append(REPR_TOO_LONG_FILLER)
+            break
+
+    return 'struct(' + ', '.join(attrs_repr) + ')'
+
+
 simple_repr_formatters = {
     "NoneType": om_format_NoneType_repr,
     "int": om_format_int_repr,
@@ -8080,6 +8125,8 @@ def om_simple_repr_with_max_length(ctx, value, max_length):
         repr_res = om_tuple_simple_repr(value, ctx.rte, max_length)
     elif om_is(value_cls, class_range):
         repr_res = om_range_simple_repr(value, ctx.rte, max_length)
+    elif om_is(value_cls, class_struct):
+        repr_res = om_struct_simple_repr(value, ctx.rte, max_length)
     else:
         cls_name = OM_get_boxed_value(OM_get(value_cls, "__name__"))
         formatter = dict_get(simple_repr_formatters, cls_name, om_format_object_repr)
