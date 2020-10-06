@@ -5454,7 +5454,7 @@ def make_module_more_builtins():
                 return sem_raise_with_message(ctx, class_AttributeError,
                                               "struct() object does not have field '" + name_value + "'")
             else:
-                return sem_raise_with_message(ctx, class_TypeError, "attribute name must be string")
+                return sem_raise_with_message(ctx, class_TypeError, "attribute must be string")
 
         else:
             return sem_raise_with_message(ctx, class_TypeError, "expected 2 arguments, got " + str(args_len - 1))
