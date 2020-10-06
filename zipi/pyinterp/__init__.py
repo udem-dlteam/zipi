@@ -7911,13 +7911,14 @@ def gen_Attribute(cte, ast, code, name):
     return (cte, code1)
 
 def gen_Attribute_Store(cte, ast, target, value):
-    target_cte, target_code = comp_expr(cte, target.value)
+    target_value_node = target.value
+    target_cte, target_code = comp_expr(cte, target_value_node)
     value_cte, value_code = comp_expr(target_cte, value)
     raw_name = target.attr
     name = om_str(raw_name)
 
-    if isinstance(target, AST.Name):
-        var_id = target.id
+    if isinstance(target_value_node, AST.Name):
+        var_id = target_value_node.id
         def _make_message(rte, _, value):
             return var_id + "." + raw_name + " ← " + om_simple_repr(Context(rte, None, ast), value)
 
@@ -7925,7 +7926,14 @@ def gen_Attribute_Store(cte, ast, target, value):
     else:
         def _make_message(rte, obj, value):
             ctx = Context(rte, None, ast)
-            return "(" + om_simple_repr(ctx, obj) + ")." + raw_name + " ← " + om_simple_repr(ctx, value)
+
+            obj_repr = om_simple_repr(ctx, obj)
+            value_repr = om_simple_repr(ctx, value)
+
+            # NOTE: obj_repr cannot be a number since their attributes are not settable as of Python semantics
+            # although, as long as this is not enforced in pyinterp, we may end up with weird messages
+            # such as "1.x <- 1"
+            return obj_repr + "." + raw_name + " ← " + value_repr
 
         make_message = _make_message
 
