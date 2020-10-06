@@ -6340,11 +6340,13 @@ def comp_Assign(cte, ast):
             return gen_Subscript_Store(cte, ast, target, value)
         elif isinstance(target, AST.Tuple):
             return gen_multiple_Assign(cte, ast, target.elts, value)
+        elif isinstance(target, AST.Attribute):
+            return gen_Attribute_Store(cte, ast, target, value)
         else:
             return CT_raise_syntax_error_with_msg(cte, ast, 'Unsupported assignment')
     else:
-        # NOTE: Not sure when this can happen
-        return CT_raise_syntax_error_with_msg(cte, ast, 'Unknown assignment kind')
+        # NOTE: Happens when there are mutiple =, exemple: x = y = 1
+        return CT_raise_syntax_error_with_msg(cte, ast, 'chained assignment is not supported')
 
 def gen_elements_seq(cte, elements_code):
     elements_len = len(elements_code)
@@ -7350,6 +7352,11 @@ def sem_getattribute(ctx, obj, name):
 
     return sem_simple_call(with_catch(ctx, catch_AttributeError), obj_getattribute, [obj, name])
 
+def sem_setattribute(ctx, obj, name, value):
+    obj_getattribute = getattribute_from_obj_mro(obj, '__setattr__')
+
+    return sem_simple_call(ctx, obj_getattribute, [obj, name, value])
+
 def sem_simple_call(ctx, obj, args):
     obj_type = OM_get_object_class(obj)
 
@@ -7896,6 +7903,20 @@ def gen_Attribute(cte, ast, code, name):
                        call_getattribute(rte, expr_end_cont, val))
 
     return (cte, code1)
+
+def gen_Attribute_Store(cte, ast, target, value):
+    target_cte, target_code = comp_expr(cte, target.value)
+    value_cte, value_code = comp_expr(target_cte, value)
+    name = om_str(target.attr)
+
+    def code(rte, cont):
+        def get_target(target_rte, target_value):
+            def do_set(set_rte, value_value):
+                return sem_setattribute(Context(set_rte, cont, ast), target_value, name, value_value)
+            return value_code(target_rte, do_set)
+        return target_code(rte, get_target)
+
+    return value_cte, code
 
 REPR_TOO_LONG_FILLER = "..."
 
