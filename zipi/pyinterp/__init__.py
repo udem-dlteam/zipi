@@ -1955,6 +1955,11 @@ def om_object_getattribute_code(ctx, args):
 
         name_value = OM_get_boxed_value(name)
 
+        self_attr = OM_get(self, name_value)
+
+        if self_attr is not absent:
+            return cont_obj(ctx, self_attr)
+
         # Get field name
         attr, owner = getattribute_from_obj_mro_with_owner(self, name_value)
         if attr is absent:
@@ -1968,7 +1973,7 @@ def om_object_getattribute_code(ctx, args):
         # TODO: check if attr.__get__ exists
         attr_get = getattribute_from_obj_mro(attr, '__get__')
         if attr_get is absent:
-            return ctx.cont(ctx.rte, attr)
+            return cont_obj(ctx, attr)
         else:
             return sem_simple_call(ctx, attr_get, [attr, self, owner])
     else:
