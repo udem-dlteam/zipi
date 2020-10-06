@@ -816,7 +816,7 @@ def bootstrap_populate_base_types():
 
     buitlin_add_methods_to_class(
         class_object,
-        (('__new__', om_object_new),
+        (('__new__', om_object_new, True),
          ('__init__', om_object_init, True),
          ('__getattribute__', om_object_getattribute),
          ('__str__', om_object_str),
@@ -1920,7 +1920,7 @@ def om_MethodWrapper_repr(ctx, args):
     return ctx.cont(ctx.rte, om_str(result))
 
 # class_object methods
-def om_object_new(ctx, args):
+def om_object_new(ctx, args, kwargs):
     args_len = len(args)
 
     if args_len == 0:
