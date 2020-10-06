@@ -226,6 +226,11 @@ class OM_list(OM_object):
     seq: the inner sequence of objects
     """
 
+class OM_struct(OM_object):
+    """
+    Used to implement the more_builtins.struct class
+    """
+
 class OM_range(OM_object):
     """
     start: start of the range (om int)
@@ -805,14 +810,14 @@ def bootstrap_populate_base_types():
     buitlin_add_methods_to_class(
         class_type,
         (('__new__', om_type_new),
-         ('__call__', om_type_call),
+         ('__call__', om_type_call, True),
          ('__getattribute__', om_type_getattribute),
          ('__repr__', om_type_repr)))
 
     buitlin_add_methods_to_class(
         class_object,
         (('__new__', om_object_new),
-         ('__init__', om_object_init),
+         ('__init__', om_object_init, True),
          ('__getattribute__', om_object_getattribute),
          ('__str__', om_object_str),
          ('__repr__', om_object_repr),
@@ -1184,6 +1189,9 @@ def OM_tuple_create():
 
 def OM_list_create():
     return OM_list()
+
+def OM_struct_create():
+    return OM_struct()
 
 def OM_range_create():
     return OM_range()
@@ -1680,6 +1688,29 @@ def do_check_static_method_cls_arg(expected_cls, method_name):
     return check_new_cls_arg
 
 
+def do_check_static_method_with_kwargs_cls_arg(expected_cls, method_name):
+    cls_name = OM_get_boxed_value(OM_get(expected_cls, "__name__"))
+    not_enough_arguments_msg = method_name + "(): not enough arguments"
+    not_a_type_object_msg = method_name + "(X): X is not a type object"
+    not_a_subtype_msg = method_name + "(object): object is not a subtype of " + cls_name
+
+    def check_new_cls_arg(ctx, cont, args, kwargs):
+        args_len = len(args)
+        if args_len == 0:
+            return sem_raise_with_message(ctx, class_TypeError, not_enough_arguments_msg)
+
+        cls = args[0]
+
+        if not om_isinstance(cls, class_type):
+            return sem_raise_with_message(ctx, class_TypeError, not_a_type_object_msg)
+        elif not om_issubclass(cls, expected_cls):
+            return sem_raise_with_message(ctx, class_TypeError, not_a_subtype_msg)
+        else:
+            return cont(ctx, args, kwargs)
+
+    return check_new_cls_arg
+
+
 def do_static_magic_method(cls, method_name, code):
     check_static_method_cls_arg = do_check_static_method_cls_arg(cls, method_name)
 
@@ -1693,6 +1724,14 @@ def do_magic_method(cls, method_name, code):
 
     def magic_method(ctx, args):
         return check_method_self_arg(ctx, code, args)
+
+    return magic_method
+
+def do_static_magic_method_with_kwargs(cls, method_name, code):
+    check_static_method_with_kwargs_cls_arg = do_check_static_method_with_kwargs_cls_arg(cls, method_name)
+
+    def magic_method(ctx, args, kwargs):
+        return check_static_method_with_kwargs_cls_arg(ctx, code, args, kwargs)
 
     return magic_method
 
@@ -1757,12 +1796,12 @@ def om_type_new_code(ctx, args):
 
 om_type_new = do_magic_method(class_type, "__new__", om_type_new_code)
 
-def om_type_call(ctx, args):
+def om_type_call(ctx, args, kwargs):
     def on_instance_creation(rte, instance):
         if om_is(OM_get_object_class(instance), cls):
             cls_init = getattribute_from_class_mro(cls, "__init__")
             next_ctx = with_cont(ctx, lambda rte, _: ctx.cont(ctx.rte, instance))
-            return sem_simple_call(next_ctx, cls_init, args)
+            return sem_generic_call(next_ctx, cls_init, args, kwargs)
         else:
             return ctx.cont(ctx.rte, instance)
 
@@ -1770,7 +1809,7 @@ def om_type_call(ctx, args):
     cls_new = getattribute_from_class_mro(cls, "__new__")
     next_ctx = with_cont(ctx, on_instance_creation)
 
-    return sem_simple_call(next_ctx, cls_new, args)
+    return sem_generic_call(next_ctx, cls_new, args, kwargs)
 
 
 def om_type_getattribute(ctx, args):
@@ -1899,10 +1938,10 @@ def om_object_new(ctx, args):
     cls = args[0]
     return ctx.cont(ctx.rte, om(cls))
 
-def om_object_init_code(ctx, args):
+def om_object_init_code(ctx, args, kwargs):
     return ctx.cont(ctx.rte, om_None)
 
-om_object_init = do_magic_method(class_object, "__init__", om_object_init_code)
+om_object_init = do_magic_method_with_kwargs(class_object, "__init__", om_object_init_code)
 
 def om_object_getattribute_code(ctx, args):
     if debug: print('object.__getattribute__')
@@ -5277,6 +5316,107 @@ def make_module_pixels():
     dict_set(module_pixels_env, 'exportScreen', exportScreen)
     return om_module('pixels', module_pixels_env)
 
+def make_module_more_builtins():
+    # Defines the module "more_builtins" which contains builtins class/functions
+    # which are specific to CodeBoot learning environment
+
+    class_struct = make_builtin_class('struct', OM_struct_create, (), class_type)
+
+    def om_struct_new_code(ctx, args, kwargs):
+        if debug: print('struct.__new__')
+
+        args_len = len(args)
+
+        if args_len == 1:
+            struct_obj = om(args[0])
+
+            fields = []
+
+            for pair in dict_items(kwargs):
+                key = pair[0]
+                value = pair[1]
+
+                if key == '_fields':
+                    return sem_raise_with_message(ctx, class_ValueError,
+                                                  "cannot set reserved attribute '_fields' of struct()")
+                elif key == '__class__':
+                    return sem_raise_with_message(ctx, class_ValueError,
+                                                  "cannot set reserved attribute '__class__' of struct()")
+                else:
+                    fields.append(om_str(key))
+                    OM_set(struct_obj, key, value)
+
+            OM_set(struct_obj, '_fields', om_tuple(fields))
+
+            return cont_obj(ctx, struct_obj)
+
+        else:
+            return sem_raise_with_message(ctx, class_TypeError,
+                                          "struct takes no positional argument, got " + str(args_len - 1))
+
+    om_struct_new = do_static_magic_method_with_kwargs(class_struct, "__new__", om_struct_new_code)
+
+    def om_struct_repr_code(ctx, args):
+        if debug: print('struct.__repr__')
+
+        args_len = len(args)
+
+        if args_len == 1:
+            rte = ctx.rte
+            self = args[0]
+
+            if rte_check_seen_repr(rte, self):
+                return cont_str(ctx, "struct(...)")
+            else:
+                return cont_str(ctx, "struct(TODO)")
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
+
+    om_struct_repr = do_magic_method(class_struct, "__repr__", om_struct_repr_code)
+
+
+    def om_struct_setattr_code(ctx, args):
+        if debug: print('struct.__setattr__')
+
+        args_len = len(args)
+
+        if args_len == 3:
+            self = args[0]
+            name = args[1]
+            value = args[2]
+
+            if om_isinstance(name, class_str):
+                name_value = OM_get_boxed_value(name)
+                fields = OM_get(self, '_fields')
+
+                for f in fields:
+                    field_value = OM_get_boxed_value(f)
+                    if name_value == field_value:
+                        OM_set(self, name_value, value)
+
+                        return cont_obj(ctx, om_None)
+
+                return sem_raise_with_message(ctx, class_AttributeError,
+                                              "struct() object does not have field '" + name_value + "'")
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, "attribute name must be string")
+
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "expected 2 arguments, got " + str(args_len - 1))
+
+    om_struct_setattr = do_magic_method(class_struct, "__setattr__", om_struct_setattr_code)
+
+    buitlin_add_methods_to_class(
+        class_struct,
+        (('__new__', om_struct_new, True),
+         ('__repr__', om_struct_repr),
+         ('__setattr__', om_struct_setattr)))
+
+    module_more_builtins_env = make_dict()
+    dict_set(module_more_builtins_env, 'struct', class_struct)
+
+    return om_module('more_builtins', module_more_builtins_env)
+
 # Interpreter
 @nocompile
 def interp_file(path, options):
@@ -5428,6 +5568,7 @@ def fresh_rte(options):
     time_module = make_module_time()
     mouse_module = make_module_mouse()
     pixels_module = make_module_pixels()
+    more_builtins_module = make_module_more_builtins()
 
     # Inject some module into the builtins
     dict_set(builtins_env, 'math', math_module)
@@ -5441,6 +5582,7 @@ def fresh_rte(options):
     inject_module_in_env(random_module, builtins_env)
     inject_module_in_env(turtle_module, builtins_env)
     inject_module_in_env(time_module, builtins_env)
+    inject_module_in_env(more_builtins_module, builtins_env)
 
     dict_set(globals_env, '__name__', om_str('__main__'))
     dict_set(globals_env, '__builtins__', om_module('builtins', builtins_env))
