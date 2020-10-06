@@ -7917,9 +7917,9 @@ def gen_Attribute_Store(cte, ast, target, value):
     name = om_str(raw_name)
 
     if isinstance(target, AST.Name):
-        var = target.id
+        var_id = target.id
         def _make_message(rte, _, value):
-            return var + "." + raw_name + " ← " + om_simple_repr(Context(rte, None, ast), value)
+            return var_id + "." + raw_name + " ← " + om_simple_repr(Context(rte, None, ast), value)
 
         make_message = _make_message
     else:
