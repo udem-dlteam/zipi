@@ -818,6 +818,7 @@ def bootstrap_populate_base_types():
         (('__new__', om_object_new, True),
          ('__init__', om_object_init, True),
          ('__getattribute__', om_object_getattribute),
+         ('__setattr__', om_object_setattr),
          ('__str__', om_object_str),
          ('__repr__', om_object_repr),
          ('__eq__', om_object_eq),
@@ -1982,6 +1983,28 @@ def om_object_getattribute_code(ctx, args):
         return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
 
 om_object_getattribute = do_magic_method(class_object, "__getattribute__", om_object_getattribute_code)
+
+def om_object_setattr_code(ctx, args):
+    if debug: print('object.__getattribute__')
+
+    if len(args) == 3:
+        self = args[0]
+        name = args[1]
+        value = args[2]
+
+        # TODO: Prevent setting attributes on builtin classes
+        if om_isinstance(name, class_str):
+            attr = OM_get_boxed_value(name)
+
+            if attr == "__class__":
+                return sem_raise_with_message(ctx, class_TypeError, "cannot set __class__ of an object")
+            else:
+                OM_set(self, attr, value)
+                return cont_obj(ctx, om_None)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 2 arguments, got " + str(len(args) - 1))
+
+om_object_setattr = do_magic_method(class_object, "__setattr__", om_object_setattr_code)
 
 def om_object_str_code(ctx, args):
     if len(args) == 1:
