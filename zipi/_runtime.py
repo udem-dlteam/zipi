@@ -475,6 +475,9 @@ def list_reversed(l):
     return l[::-1]
 
 
+def list_pop(l):
+    l.pop()
+
 ###
 # Str operations
 ###

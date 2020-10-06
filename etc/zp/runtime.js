@@ -114,6 +114,10 @@ function list_reversed(lst){
     return lst.slice().reverse();
 }
 
+function list_pop(lst){
+    lst.pop()
+}
+
 function string_mul(s, times){
     if (times <= 0) {
         return "";

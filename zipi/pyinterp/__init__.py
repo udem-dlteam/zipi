@@ -300,7 +300,7 @@ def frame_cont(frame):
 def frame_ast(frame):
     return frame[2]
 
-def make_rte(rte, globals_env, locals_env, current_func, builtins, stack, ctrl_env, seen_repr, vm, options):
+def make_rte(rte, globals_env, locals_env, current_func, builtins, stack, ctrl_env, seen_repr_stack, vm, options):
     if rte is absent:
         serial_counter = [0]
     else:
@@ -317,7 +317,7 @@ def make_rte(rte, globals_env, locals_env, current_func, builtins, stack, ctrl_e
     dict_set(rte, "ctrl_env", ctrl_env)
 
     # Used to accumulate objects repr seen when calling sem_repr, to avoid infinite loops in nested objects
-    dict_set(rte, "seen_repr", seen_repr)
+    dict_set(rte, "seen_repr_stack", seen_repr_stack)
     dict_set(rte, "vm", vm)
     dict_set(rte, "options", options)
 
@@ -331,7 +331,7 @@ def make_rte_from_new_ctrl_env(rte, ctrl_env):
                     rte_builtins(rte),
                     rte_stack(rte),
                     ctrl_env,
-                    rte_get_seen_repr(rte),
+                    rte_get_seen_repr_stack(rte),
                     rte_vm(rte),
                     rte_options(rte))
 
@@ -426,36 +426,35 @@ def rte_set_closure(rte, pos, val):
     slot = OM_get_function_closure(func)[pos]
     slot[0] = val
 
-def rte_get_seen_repr(rte):
-    return dict_get(rte, "seen_repr", absent)
+def rte_get_seen_repr_stack(rte):
+    return dict_get(rte, "seen_repr_stack", absent)
 
 def rte_add_seen_repr(rte, obj):
-    seen_repr = rte_get_seen_repr(rte)
+    seen_repr_stack = rte_get_seen_repr_stack(rte)
+    seen_repr = seen_repr_stack[len(seen_repr_stack) - 1]
     serial = OM_get_serial(obj, rte)
-    # We use str(serial) because the JS version
     dict_set(seen_repr, serial, obj)
 
 def rte_check_seen_repr(rte, obj):
-    seen_repr = rte_get_seen_repr(rte)
+    seen_repr_stack = rte_get_seen_repr_stack(rte)
     serial = OM_get_serial(obj, rte)
-    maybe_obj = dict_get(seen_repr, serial, absent)
 
-    if maybe_obj is not absent and om_is(obj, maybe_obj):
-        return True
-    else:
-        return False
+    for seen_repr in seen_repr_stack:
+        maybe_obj = dict_get(seen_repr, serial, absent)
+
+        if maybe_obj is not absent and om_is(obj, maybe_obj):
+            return True
+
+    return False
 
 def rte_repr_enter(rte):
-    seen_repr = dict_get(rte, "seen_repr", absent)
+    # Should never be None
+    seen_repr_stack = rte_get_seen_repr_stack(rte)
+    seen_repr_stack.append(make_dict())
 
-    if seen_repr is absent:
-        dict_set(rte, "seen_repr", make_dict())
-        return True
-    else:
-        return False
 
 def rte_repr_exit(rte):
-    dict_set(rte, "seen_repr", absent)
+    rte_get_seen_repr_stack(rte).pop()
 
 
 # stack operation
@@ -3067,7 +3066,7 @@ def om_function_call_code(ctx, args, kwargs):
                 dict_set(call_locals_env, name, value)
 
 
-        rte = make_rte(ctx.rte, rte_globals(ctx.rte), call_locals_env, self, rte_builtins(ctx.rte), stack, rte_ctrl_env(ctx.rte), rte_get_seen_repr(ctx.rte), rte_vm(ctx.rte), rte_options(ctx.rte))
+        rte = make_rte(ctx.rte, rte_globals(ctx.rte), call_locals_env, self, rte_builtins(ctx.rte), stack, rte_ctrl_env(ctx.rte), rte_get_seen_repr_stack(ctx.rte), rte_vm(ctx.rte), rte_options(ctx.rte))
         body = OM_get_function_body(self)
         return body(rte,
                     lambda rte1:
@@ -5374,7 +5373,34 @@ def make_module_more_builtins():
             if rte_check_seen_repr(rte, self):
                 return cont_str(ctx, "struct(...)")
             else:
-                return cont_str(ctx, "struct(TODO)")
+                rte_add_seen_repr(rte, self)
+
+                attrs = OM_get_tuple_seq(OM_get(self, '_fields'))
+
+                def do_end(end_rte, acc):
+                    return ctx.cont(end_rte, om_str("struct(" + ", ".join(acc) + ")"))
+
+                cont = do_end
+
+                i = len(attrs) - 1
+                while i >= 0:
+                    # fields are stored as strings
+                    name = OM_get_boxed_value(attrs[i])
+                    value = OM_get(self, name)
+
+                    def create_code(name, value, cont):
+                        def do_element(element_rte, acc):
+                            def do_attr_repr(attr_rte, repr_):
+                                repr_val = OM_get_boxed_value(repr_)
+                                acc.append(name + "=" + repr_val)
+                                return cont(attr_rte, acc)
+                            return sem_repr(make_out_of_ast_context(element_rte, do_attr_repr), value)
+                        return do_element
+
+                    cont = create_code(name, value, cont)
+                    i -= 1
+
+                return cont(ctx.rte, [])
         else:
             return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
 
@@ -5492,7 +5518,7 @@ def fresh_rte(options):
     globals_env = make_dict()
     builtins_env = make_dict()
 
-    rte = make_rte(absent, globals_env, locals_env, absent, builtins_env, absent, absent, absent, absent, options)
+    rte = make_rte(absent, globals_env, locals_env, absent, builtins_env, absent, absent, [], absent, options)
 
     # Vanilla Python builtins
     om_builtin_print = om_make_function_with_signature('print', om_print_code, make_vararg_only_signature('args'))
@@ -7317,12 +7343,11 @@ def sem_Not(ctx, obj):
 def sem_repr(ctx, val1):
     val1_repr = getattribute_from_obj_mro(val1, '__repr__')
 
-    is_entry_point = rte_repr_enter(ctx.rte)
+    rte_repr_enter(ctx.rte)
 
     def check_string(rte, res):
         if om_isinstance(res, class_str):
-            if is_entry_point:
-                rte_repr_exit(rte)
+            rte_repr_exit(rte)
             return ctx.cont(rte, res)
         else:
             return sem_raise_with_message(ctx, class_TypeError, "__repr__ returned non-string")
@@ -8138,7 +8163,7 @@ def om_simple_repr(ctx, value):
 
 def om_simple_repr_with_max_length(ctx, value, max_length):
     rte = ctx.rte
-    is_entry_point = rte_repr_enter(rte)
+    rte_repr_enter(rte)
 
     value_cls = OM_get_object_class(value)
 
@@ -8161,8 +8186,7 @@ def om_simple_repr_with_max_length(ctx, value, max_length):
     if len(repr_res) > max_length:
         repr_res = repr_res[:max_length - 3] + REPR_TOO_LONG_FILLER
 
-    if is_entry_point:
-        rte_repr_exit(rte)
+    rte_repr_exit(rte)
 
     return repr_res
 
