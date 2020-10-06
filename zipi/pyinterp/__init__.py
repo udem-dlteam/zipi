@@ -5452,7 +5452,7 @@ def make_module_more_builtins():
                         return cont_obj(ctx, om_None)
 
                 return sem_raise_with_message(ctx, class_AttributeError,
-                                              "struct() object does not have field '" + name_value + "'")
+                                              "struct() object has no attribute '" + name_value + "'")
             else:
                 return sem_raise_with_message(ctx, class_TypeError, "attribute must be string")
 
