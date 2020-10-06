@@ -7913,12 +7913,29 @@ def gen_Attribute(cte, ast, code, name):
 def gen_Attribute_Store(cte, ast, target, value):
     target_cte, target_code = comp_expr(cte, target.value)
     value_cte, value_code = comp_expr(target_cte, value)
-    name = om_str(target.attr)
+    raw_name = target.attr
+    name = om_str(raw_name)
+
+    if isinstance(target, AST.Name):
+        var = target.id
+        def _make_message(rte, _, value):
+            return var + "." + raw_name + " ← " + om_simple_repr(Context(rte, None, ast), value)
+
+        make_message = _make_message
+    else:
+        def _make_message(rte, obj, value):
+            ctx = Context(rte, None, ast)
+            return "(" + om_simple_repr(ctx, obj) + ")." + raw_name + " ← " + om_simple_repr(ctx, value)
+
+        make_message = _make_message
 
     def code(rte, cont):
         def get_target(target_rte, target_value):
-            def do_set(set_rte, value_value):
-                return sem_setattribute(Context(set_rte, cont, ast), target_value, name, value_value)
+            def do_set(set_rte, value):
+                msg = make_message(set_rte, target_value, value)
+                cont_stmt_end_with_message = do_stmt_end_with_message(cont, ast)
+                return sem_setattribute(Context(set_rte, lambda rte, _: cont_stmt_end_with_message(rte, msg), ast),
+                                        target_value, name, value)
             return value_code(target_rte, do_set)
         return target_code(rte, get_target)
 
