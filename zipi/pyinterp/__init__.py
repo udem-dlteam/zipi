@@ -226,6 +226,11 @@ class OM_list(OM_object):
     seq: the inner sequence of objects
     """
 
+class OM_struct(OM_object):
+    """
+    Used to implement the more_builtins.struct class
+    """
+
 class OM_range(OM_object):
     """
     start: start of the range (om int)
@@ -295,7 +300,7 @@ def frame_cont(frame):
 def frame_ast(frame):
     return frame[2]
 
-def make_rte(rte, globals_env, locals_env, current_func, builtins, stack, ctrl_env, seen_repr, vm, options):
+def make_rte(rte, globals_env, locals_env, current_func, builtins, stack, ctrl_env, seen_repr_stack, vm, options):
     if rte is absent:
         serial_counter = [0]
     else:
@@ -312,7 +317,7 @@ def make_rte(rte, globals_env, locals_env, current_func, builtins, stack, ctrl_e
     dict_set(rte, "ctrl_env", ctrl_env)
 
     # Used to accumulate objects repr seen when calling sem_repr, to avoid infinite loops in nested objects
-    dict_set(rte, "seen_repr", seen_repr)
+    dict_set(rte, "seen_repr_stack", seen_repr_stack)
     dict_set(rte, "vm", vm)
     dict_set(rte, "options", options)
 
@@ -326,7 +331,7 @@ def make_rte_from_new_ctrl_env(rte, ctrl_env):
                     rte_builtins(rte),
                     rte_stack(rte),
                     ctrl_env,
-                    rte_get_seen_repr(rte),
+                    rte_get_seen_repr_stack(rte),
                     rte_vm(rte),
                     rte_options(rte))
 
@@ -421,36 +426,35 @@ def rte_set_closure(rte, pos, val):
     slot = OM_get_function_closure(func)[pos]
     slot[0] = val
 
-def rte_get_seen_repr(rte):
-    return dict_get(rte, "seen_repr", absent)
+def rte_get_seen_repr_stack(rte):
+    return dict_get(rte, "seen_repr_stack", absent)
 
 def rte_add_seen_repr(rte, obj):
-    seen_repr = rte_get_seen_repr(rte)
+    seen_repr_stack = rte_get_seen_repr_stack(rte)
+    seen_repr = seen_repr_stack[len(seen_repr_stack) - 1]
     serial = OM_get_serial(obj, rte)
-    # We use str(serial) because the JS version
     dict_set(seen_repr, serial, obj)
 
 def rte_check_seen_repr(rte, obj):
-    seen_repr = rte_get_seen_repr(rte)
+    seen_repr_stack = rte_get_seen_repr_stack(rte)
     serial = OM_get_serial(obj, rte)
-    maybe_obj = dict_get(seen_repr, serial, absent)
 
-    if maybe_obj is not absent and om_is(obj, maybe_obj):
-        return True
-    else:
-        return False
+    for seen_repr in seen_repr_stack:
+        maybe_obj = dict_get(seen_repr, serial, absent)
+
+        if maybe_obj is not absent and om_is(obj, maybe_obj):
+            return True
+
+    return False
 
 def rte_repr_enter(rte):
-    seen_repr = dict_get(rte, "seen_repr", absent)
+    # Should never be None
+    seen_repr_stack = rte_get_seen_repr_stack(rte)
+    seen_repr_stack.append(make_dict())
 
-    if seen_repr is absent:
-        dict_set(rte, "seen_repr", make_dict())
-        return True
-    else:
-        return False
 
 def rte_repr_exit(rte):
-    dict_set(rte, "seen_repr", absent)
+    rte_get_seen_repr_stack(rte).pop()
 
 
 # stack operation
@@ -805,15 +809,16 @@ def bootstrap_populate_base_types():
     buitlin_add_methods_to_class(
         class_type,
         (('__new__', om_type_new),
-         ('__call__', om_type_call),
+         ('__call__', om_type_call, True),
          ('__getattribute__', om_type_getattribute),
          ('__repr__', om_type_repr)))
 
     buitlin_add_methods_to_class(
         class_object,
-        (('__new__', om_object_new),
-         ('__init__', om_object_init),
+        (('__new__', om_object_new, True),
+         ('__init__', om_object_init, True),
          ('__getattribute__', om_object_getattribute),
+         ('__setattr__', om_object_setattr),
          ('__str__', om_object_str),
          ('__repr__', om_object_repr),
          ('__eq__', om_object_eq),
@@ -1184,6 +1189,9 @@ def OM_tuple_create():
 
 def OM_list_create():
     return OM_list()
+
+def OM_struct_create():
+    return OM_struct()
 
 def OM_range_create():
     return OM_range()
@@ -1591,6 +1599,9 @@ class_module = make_builtin_class('module', OM_module_create, (), class_type)
 class_function = make_builtin_class('function', OM_function_create, (), class_type)
 class_slice = make_builtin_class('slice', OM_slice_create, (), class_type)
 
+# class available and populated in 'more_builtins' module
+class_struct = make_builtin_class('struct', OM_struct_create, (), class_type)
+
 # Exception classes
 class_BaseException = make_builtin_class('BaseException', OM_BaseException_create, (), class_type)
 class_Exception = make_builtin_class('Exception', OM_BaseException_create, (class_BaseException,), class_type)
@@ -1680,6 +1691,29 @@ def do_check_static_method_cls_arg(expected_cls, method_name):
     return check_new_cls_arg
 
 
+def do_check_static_method_with_kwargs_cls_arg(expected_cls, method_name):
+    cls_name = OM_get_boxed_value(OM_get(expected_cls, "__name__"))
+    not_enough_arguments_msg = method_name + "(): not enough arguments"
+    not_a_type_object_msg = method_name + "(X): X is not a type object"
+    not_a_subtype_msg = method_name + "(object): object is not a subtype of " + cls_name
+
+    def check_new_cls_arg(ctx, cont, args, kwargs):
+        args_len = len(args)
+        if args_len == 0:
+            return sem_raise_with_message(ctx, class_TypeError, not_enough_arguments_msg)
+
+        cls = args[0]
+
+        if not om_isinstance(cls, class_type):
+            return sem_raise_with_message(ctx, class_TypeError, not_a_type_object_msg)
+        elif not om_issubclass(cls, expected_cls):
+            return sem_raise_with_message(ctx, class_TypeError, not_a_subtype_msg)
+        else:
+            return cont(ctx, args, kwargs)
+
+    return check_new_cls_arg
+
+
 def do_static_magic_method(cls, method_name, code):
     check_static_method_cls_arg = do_check_static_method_cls_arg(cls, method_name)
 
@@ -1693,6 +1727,14 @@ def do_magic_method(cls, method_name, code):
 
     def magic_method(ctx, args):
         return check_method_self_arg(ctx, code, args)
+
+    return magic_method
+
+def do_static_magic_method_with_kwargs(cls, method_name, code):
+    check_static_method_with_kwargs_cls_arg = do_check_static_method_with_kwargs_cls_arg(cls, method_name)
+
+    def magic_method(ctx, args, kwargs):
+        return check_static_method_with_kwargs_cls_arg(ctx, code, args, kwargs)
 
     return magic_method
 
@@ -1757,12 +1799,12 @@ def om_type_new_code(ctx, args):
 
 om_type_new = do_magic_method(class_type, "__new__", om_type_new_code)
 
-def om_type_call(ctx, args):
+def om_type_call(ctx, args, kwargs):
     def on_instance_creation(rte, instance):
         if om_is(OM_get_object_class(instance), cls):
             cls_init = getattribute_from_class_mro(cls, "__init__")
             next_ctx = with_cont(ctx, lambda rte, _: ctx.cont(ctx.rte, instance))
-            return sem_simple_call(next_ctx, cls_init, args)
+            return sem_generic_call(next_ctx, cls_init, args, kwargs)
         else:
             return ctx.cont(ctx.rte, instance)
 
@@ -1770,7 +1812,7 @@ def om_type_call(ctx, args):
     cls_new = getattribute_from_class_mro(cls, "__new__")
     next_ctx = with_cont(ctx, on_instance_creation)
 
-    return sem_simple_call(next_ctx, cls_new, args)
+    return sem_generic_call(next_ctx, cls_new, args, kwargs)
 
 
 def om_type_getattribute(ctx, args):
@@ -1881,7 +1923,7 @@ def om_MethodWrapper_repr(ctx, args):
     return ctx.cont(ctx.rte, om_str(result))
 
 # class_object methods
-def om_object_new(ctx, args):
+def om_object_new(ctx, args, kwargs):
     args_len = len(args)
 
     if args_len == 0:
@@ -1899,10 +1941,10 @@ def om_object_new(ctx, args):
     cls = args[0]
     return ctx.cont(ctx.rte, om(cls))
 
-def om_object_init_code(ctx, args):
+def om_object_init_code(ctx, args, kwargs):
     return ctx.cont(ctx.rte, om_None)
 
-om_object_init = do_magic_method(class_object, "__init__", om_object_init_code)
+om_object_init = do_magic_method_with_kwargs(class_object, "__init__", om_object_init_code)
 
 def om_object_getattribute_code(ctx, args):
     if debug: print('object.__getattribute__')
@@ -1915,6 +1957,11 @@ def om_object_getattribute_code(ctx, args):
             return sem_raise_with_message(ctx, class_TypeError, "attribute name must be string")
 
         name_value = OM_get_boxed_value(name)
+
+        self_attr = OM_get(self, name_value)
+
+        if self_attr is not absent:
+            return cont_obj(ctx, self_attr)
 
         # Get field name
         attr, owner = getattribute_from_obj_mro_with_owner(self, name_value)
@@ -1929,13 +1976,35 @@ def om_object_getattribute_code(ctx, args):
         # TODO: check if attr.__get__ exists
         attr_get = getattribute_from_obj_mro(attr, '__get__')
         if attr_get is absent:
-            return ctx.cont(ctx.rte, attr)
+            return cont_obj(ctx, attr)
         else:
             return sem_simple_call(ctx, attr_get, [attr, self, owner])
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
 
 om_object_getattribute = do_magic_method(class_object, "__getattribute__", om_object_getattribute_code)
+
+def om_object_setattr_code(ctx, args):
+    if debug: print('object.__getattribute__')
+
+    if len(args) == 3:
+        self = args[0]
+        name = args[1]
+        value = args[2]
+
+        # TODO: Prevent setting attributes on builtin classes
+        if om_isinstance(name, class_str):
+            attr = OM_get_boxed_value(name)
+
+            if attr == "__class__":
+                return sem_raise_with_message(ctx, class_TypeError, "cannot set __class__ of an object")
+            else:
+                OM_set(self, attr, value)
+                return cont_obj(ctx, om_None)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 2 arguments, got " + str(len(args) - 1))
+
+om_object_setattr = do_magic_method(class_object, "__setattr__", om_object_setattr_code)
 
 def om_object_str_code(ctx, args):
     if len(args) == 1:
@@ -3020,7 +3089,7 @@ def om_function_call_code(ctx, args, kwargs):
                 dict_set(call_locals_env, name, value)
 
 
-        rte = make_rte(ctx.rte, rte_globals(ctx.rte), call_locals_env, self, rte_builtins(ctx.rte), stack, rte_ctrl_env(ctx.rte), rte_get_seen_repr(ctx.rte), rte_vm(ctx.rte), rte_options(ctx.rte))
+        rte = make_rte(ctx.rte, rte_globals(ctx.rte), call_locals_env, self, rte_builtins(ctx.rte), stack, rte_ctrl_env(ctx.rte), rte_get_seen_repr_stack(ctx.rte), rte_vm(ctx.rte), rte_options(ctx.rte))
         body = OM_get_function_body(self)
         return body(rte,
                     lambda rte1:
@@ -5277,6 +5346,132 @@ def make_module_pixels():
     dict_set(module_pixels_env, 'exportScreen', exportScreen)
     return om_module('pixels', module_pixels_env)
 
+def make_module_more_builtins():
+    # Defines the module "more_builtins" which contains builtins class/functions
+    # which are specific to CodeBoot learning environment
+
+    def om_struct_new_code(ctx, args, kwargs):
+        if debug: print('struct.__new__')
+
+        args_len = len(args)
+
+        if args_len == 1:
+            struct_obj = om(args[0])
+
+            fields = []
+
+            for pair in dict_items(kwargs):
+                key = pair[0]
+                value = pair[1]
+
+                if key == '_fields':
+                    return sem_raise_with_message(ctx, class_ValueError,
+                                                  "cannot set reserved attribute '_fields' of struct()")
+                elif key == '__class__':
+                    return sem_raise_with_message(ctx, class_ValueError,
+                                                  "cannot set reserved attribute '__class__' of struct()")
+                else:
+                    fields.append(om_str(key))
+                    OM_set(struct_obj, key, value)
+
+            OM_set(struct_obj, '_fields', om_tuple(fields))
+
+            return cont_obj(ctx, struct_obj)
+
+        else:
+            return sem_raise_with_message(ctx, class_TypeError,
+                                          "struct takes no positional argument, got " + str(args_len - 1))
+
+    om_struct_new = do_static_magic_method_with_kwargs(class_struct, "__new__", om_struct_new_code)
+
+    def om_struct_repr_code(ctx, args):
+        if debug: print('struct.__repr__')
+
+        args_len = len(args)
+
+        if args_len == 1:
+            rte = ctx.rte
+            self = args[0]
+
+            if rte_check_seen_repr(rte, self):
+                return cont_str(ctx, "struct(...)")
+            else:
+                rte_add_seen_repr(rte, self)
+
+                attrs = OM_get_tuple_seq(OM_get(self, '_fields'))
+
+                def do_end(end_rte, acc):
+                    return ctx.cont(end_rte, om_str("struct(" + ", ".join(acc) + ")"))
+
+                cont = do_end
+
+                i = len(attrs) - 1
+                while i >= 0:
+                    # fields are stored as strings
+                    name = OM_get_boxed_value(attrs[i])
+                    value = OM_get(self, name)
+
+                    def create_code(name, value, cont):
+                        def do_element(element_rte, acc):
+                            def do_attr_repr(attr_rte, repr_):
+                                repr_val = OM_get_boxed_value(repr_)
+                                acc.append(name + "=" + repr_val)
+                                return cont(attr_rte, acc)
+                            return sem_repr(make_out_of_ast_context(element_rte, do_attr_repr), value)
+                        return do_element
+
+                    cont = create_code(name, value, cont)
+                    i -= 1
+
+                return cont(ctx.rte, [])
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
+
+    om_struct_repr = do_magic_method(class_struct, "__repr__", om_struct_repr_code)
+
+
+    def om_struct_setattr_code(ctx, args):
+        if debug: print('struct.__setattr__')
+
+        args_len = len(args)
+
+        if args_len == 3:
+            self = args[0]
+            name = args[1]
+            value = args[2]
+
+            if om_isinstance(name, class_str):
+                name_value = OM_get_boxed_value(name)
+                fields = OM_get_tuple_seq(OM_get(self, '_fields'))
+
+                for f in fields:
+                    field_value = OM_get_boxed_value(f)
+                    if name_value == field_value:
+                        OM_set(self, name_value, value)
+
+                        return cont_obj(ctx, om_None)
+
+                return sem_raise_with_message(ctx, class_AttributeError,
+                                              "struct() object does not have field '" + name_value + "'")
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, "attribute must be string")
+
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "expected 2 arguments, got " + str(args_len - 1))
+
+    om_struct_setattr = do_magic_method(class_struct, "__setattr__", om_struct_setattr_code)
+
+    buitlin_add_methods_to_class(
+        class_struct,
+        (('__new__', om_struct_new, True),
+         ('__repr__', om_struct_repr),
+         ('__setattr__', om_struct_setattr)))
+
+    module_more_builtins_env = make_dict()
+    dict_set(module_more_builtins_env, 'struct', class_struct)
+
+    return om_module('more_builtins', module_more_builtins_env)
+
 # Interpreter
 @nocompile
 def interp_file(path, options):
@@ -5346,7 +5541,7 @@ def fresh_rte(options):
     globals_env = make_dict()
     builtins_env = make_dict()
 
-    rte = make_rte(absent, globals_env, locals_env, absent, builtins_env, absent, absent, absent, absent, options)
+    rte = make_rte(absent, globals_env, locals_env, absent, builtins_env, absent, absent, [], absent, options)
 
     # Vanilla Python builtins
     om_builtin_print = om_make_function_with_signature('print', om_print_code, make_vararg_only_signature('args'))
@@ -5428,6 +5623,7 @@ def fresh_rte(options):
     time_module = make_module_time()
     mouse_module = make_module_mouse()
     pixels_module = make_module_pixels()
+    more_builtins_module = make_module_more_builtins()
 
     # Inject some module into the builtins
     dict_set(builtins_env, 'math', math_module)
@@ -5441,6 +5637,7 @@ def fresh_rte(options):
     inject_module_in_env(random_module, builtins_env)
     inject_module_in_env(turtle_module, builtins_env)
     inject_module_in_env(time_module, builtins_env)
+    inject_module_in_env(more_builtins_module, builtins_env)
 
     dict_set(globals_env, '__name__', om_str('__main__'))
     dict_set(globals_env, '__builtins__', om_module('builtins', builtins_env))
@@ -6198,11 +6395,13 @@ def comp_Assign(cte, ast):
             return gen_Subscript_Store(cte, ast, target, value)
         elif isinstance(target, AST.Tuple):
             return gen_multiple_Assign(cte, ast, target.elts, value)
+        elif isinstance(target, AST.Attribute):
+            return gen_Attribute_Store(cte, ast, target, value)
         else:
             return CT_raise_syntax_error_with_msg(cte, ast, 'Unsupported assignment')
     else:
-        # NOTE: Not sure when this can happen
-        return CT_raise_syntax_error_with_msg(cte, ast, 'Unknown assignment kind')
+        # NOTE: Happens when there are mutiple =, exemple: x = y = 1
+        return CT_raise_syntax_error_with_msg(cte, ast, 'chained assignment is not supported')
 
 def gen_elements_seq(cte, elements_code):
     elements_len = len(elements_code)
@@ -7167,12 +7366,11 @@ def sem_Not(ctx, obj):
 def sem_repr(ctx, val1):
     val1_repr = getattribute_from_obj_mro(val1, '__repr__')
 
-    is_entry_point = rte_repr_enter(ctx.rte)
+    rte_repr_enter(ctx.rte)
 
     def check_string(rte, res):
         if om_isinstance(res, class_str):
-            if is_entry_point:
-                rte_repr_exit(rte)
+            rte_repr_exit(rte)
             return ctx.cont(rte, res)
         else:
             return sem_raise_with_message(ctx, class_TypeError, "__repr__ returned non-string")
@@ -7207,6 +7405,11 @@ def sem_getattribute(ctx, obj, name):
     obj_getattribute = getattribute_from_obj_mro(obj, '__getattribute__')
 
     return sem_simple_call(with_catch(ctx, catch_AttributeError), obj_getattribute, [obj, name])
+
+def sem_setattribute(ctx, obj, name, value):
+    obj_getattribute = getattribute_from_obj_mro(obj, '__setattr__')
+
+    return sem_simple_call(ctx, obj_getattribute, [obj, name, value])
 
 def sem_simple_call(ctx, obj, args):
     obj_type = OM_get_object_class(obj)
@@ -7755,6 +7958,45 @@ def gen_Attribute(cte, ast, code, name):
 
     return (cte, code1)
 
+def gen_Attribute_Store(cte, ast, target, value):
+    target_value_node = target.value
+    target_cte, target_code = comp_expr(cte, target_value_node)
+    value_cte, value_code = comp_expr(target_cte, value)
+    raw_name = target.attr
+    name = om_str(raw_name)
+
+    if isinstance(target_value_node, AST.Name):
+        var_id = target_value_node.id
+        def _make_message(rte, _, value):
+            return var_id + "." + raw_name + " ← " + om_simple_repr(Context(rte, None, ast), value)
+
+        make_message = _make_message
+    else:
+        def _make_message(rte, obj, value):
+            ctx = Context(rte, None, ast)
+
+            obj_repr = om_simple_repr(ctx, obj)
+            value_repr = om_simple_repr(ctx, value)
+
+            # NOTE: obj_repr cannot be a number since their attributes are not settable as of Python semantics
+            # although, as long as this is not enforced in pyinterp, we may end up with weird messages
+            # such as "1.x <- 1"
+            return obj_repr + "." + raw_name + " ← " + value_repr
+
+        make_message = _make_message
+
+    def code(rte, cont):
+        def get_target(target_rte, target_value):
+            def do_set(set_rte, value):
+                msg = make_message(set_rte, target_value, value)
+                cont_stmt_end_with_message = do_stmt_end_with_message(cont, ast)
+                return sem_setattribute(Context(set_rte, lambda rte, _: cont_stmt_end_with_message(rte, msg), ast),
+                                        target_value, name, value)
+            return value_code(target_rte, do_set)
+        return target_code(rte, get_target)
+
+    return value_cte, code
+
 REPR_TOO_LONG_FILLER = "..."
 
 # TODO: Replace class names with class objects once this is supported
@@ -7880,6 +8122,50 @@ def om_range_simple_repr(range_, rte, max_length):
     return 'range(' + ', '.join(args_repr) + ')'
 
 
+def om_struct_simple_repr(struct, rte, max_length):
+    if rte_check_seen_repr(rte, struct):
+        return "struct(...)"
+    else:
+        rte_add_seen_repr(rte, struct)
+
+    attrs_repr = []
+
+    # account for the 'struct(' + ')' segment of the string
+    remaining_length = max_length - 8
+
+    fields = OM_get_tuple_seq(OM_get(struct, '_fields'))
+
+    for attr in fields:
+        # attr are str
+        attr_name = OM_get_boxed_value(attr)
+        value = OM_get(struct, attr_name)
+
+        # account for 'name='
+        remaining_length_for_value = remaining_length - len(attr_name) - 1
+
+        value_repr = om_simple_repr_with_max_length(make_out_of_ast_context(rte, None), value,
+                                                    remaining_length_for_value)
+
+        repr_ = attr_name + '=' + value_repr
+
+
+        repr_len = len(repr_)
+
+        if repr_len <= remaining_length:
+            # Object is short enough, print it
+            # account for next ', ' in remaining length
+            remaining_length -= repr_len + 2
+            attrs_repr.append(repr_)
+        elif remaining_length < 3 and len(attrs_repr) > 0:
+            attrs_repr[len(attrs_repr) - 1] = REPR_TOO_LONG_FILLER
+            break
+        else:
+            attrs_repr.append(REPR_TOO_LONG_FILLER)
+            break
+
+    return 'struct(' + ', '.join(attrs_repr) + ')'
+
+
 simple_repr_formatters = {
     "NoneType": om_format_NoneType_repr,
     "int": om_format_int_repr,
@@ -7900,7 +8186,7 @@ def om_simple_repr(ctx, value):
 
 def om_simple_repr_with_max_length(ctx, value, max_length):
     rte = ctx.rte
-    is_entry_point = rte_repr_enter(rte)
+    rte_repr_enter(rte)
 
     value_cls = OM_get_object_class(value)
 
@@ -7912,6 +8198,8 @@ def om_simple_repr_with_max_length(ctx, value, max_length):
         repr_res = om_tuple_simple_repr(value, ctx.rte, max_length)
     elif om_is(value_cls, class_range):
         repr_res = om_range_simple_repr(value, ctx.rte, max_length)
+    elif om_is(value_cls, class_struct):
+        repr_res = om_struct_simple_repr(value, ctx.rte, max_length)
     else:
         cls_name = OM_get_boxed_value(OM_get(value_cls, "__name__"))
         formatter = dict_get(simple_repr_formatters, cls_name, om_format_object_repr)
@@ -7921,8 +8209,7 @@ def om_simple_repr_with_max_length(ctx, value, max_length):
     if len(repr_res) > max_length:
         repr_res = repr_res[:max_length - 3] + REPR_TOO_LONG_FILLER
 
-    if is_entry_point:
-        rte_repr_exit(rte)
+    rte_repr_exit(rte)
 
     return repr_res
 
