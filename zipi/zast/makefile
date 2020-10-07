@@ -10,7 +10,7 @@ all: _zparse.py
 
 
 clean:
-	rm _zparse.py
+	rm -f _zparse.py
 
 
 check: test1 test2 test3 test4
@@ -120,4 +120,5 @@ fuzz fuzz-nostop: _zparse.py
 	done
 
 _zparse.py: $(GRAMMAR).py $(GRAMMAR)_actions.py zpgen.py
+	touch _zparse.py
 	$(PYTHON38) -m zpgen $(GRAMMAR).py > _zparse.py

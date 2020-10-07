@@ -8,7 +8,7 @@ _tmpdir:
 .PHONY: _zparse.py
 _zparse.py: zipi-venv
 	@echo "Make parser..."
-	@cd ../../zipi/zast && $(MAKE)
+	@cd ../../zipi/zast && $(MAKE) clean && $(MAKE)
 
 .PHONY: zipi-venv
 zipi-venv:
