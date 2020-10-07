@@ -1064,6 +1064,11 @@ def om_tuple(seq):
     OM_set_tuple_seq(obj, seq)
     return obj
 
+def om_tuple_subtype(cls, seq):
+    obj = om(cls)
+    OM_set_tuple_seq(obj, seq)
+    return obj
+
 def om_list(seq, len_):
     obj = om(class_list)
     OM_set_list_seq(obj, seq)
@@ -2316,8 +2321,10 @@ om_int_round = do_magic_method(class_int, "__round__", om_int_round_code)
 
 # class_tuple methods
 
+
 def make_tuple(ctx, elements):
     return ctx.cont(ctx.rte, om_tuple(elements))
+
 
 def om_tuple_elements_repr(ctx, elts, repr_acc):
     if len(elts) == 0:
@@ -2337,6 +2344,7 @@ def om_tuple_elements_repr(ctx, elts, repr_acc):
 
         return sem_repr(with_cont(ctx, cont), elts[0])
 
+
 def om_tuple_repr_code(ctx, args):
     if debug: print('list.__repr__')
 
@@ -2355,46 +2363,54 @@ def om_tuple_repr_code(ctx, args):
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
 
+
 om_tuple_repr = do_magic_method(class_tuple, "__repr__", om_tuple_repr_code)
 
-def om_tuple_new(ctx, args):
+
+def om_tuple_new_code(ctx, args):
     args_len = len(args)
-    if args_len == 0:
-        return sem_raise_with_message(ctx, class_TypeError, "tuple.__new__(): not enough arguments")
 
     cls = args[0]
 
-    if not om_isinstance(cls, class_type):
-        return sem_raise_with_message(ctx, class_TypeError, "tuple.__new__(X): X is not a type object")
-    elif not om_issubclass(cls, class_tuple):
-        return sem_raise_with_message(ctx, class_TypeError, "tuple.__new__(object): object is not a subtype of tuple")
     if args_len == 1:
-        return ctx.cont(ctx.rte, om_tuple(()))
+        return ctx.cont(ctx.rte, om_tuple_subtype(cls, []))
     elif args_len == 2:
         def alloc(rte, seq):
-            return ctx.cont(ctx.rte, om_tuple(seq))
+            return ctx.cont(rte, om_tuple_subtype(cls, seq))
         return om_unpack_iterable(with_cont(ctx, alloc), args[1])
     else:
         return sem_raise_with_message(ctx, class_TypeError, "tuple expected at most 1 argument, got " + str(args_len))
 
 
-def om_tuple_len(ctx, args):
+om_tuple_new = do_static_magic_method(class_tuple, "__new__", om_tuple_new_code)
+
+
+def om_tuple_len_code(ctx, args):
     if debug: print('tuple.__len__')
-    self = args[0]
-    elements = OM_get_tuple_seq(self)
-    elements_len = len(elements)
 
-    return cont_int(ctx,int_from_num(elements_len))
+    args_len = len(args)
 
-def om_tuple_getitem(ctx, args):
+    if args_len == 1:
+        self = args[0]
+        elements = OM_get_tuple_seq(self)
+        elements_len = len(elements)
+
+        return cont_int(ctx, int_from_num(elements_len))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected no argument, got " + str(len(args) - 1))
+
+
+om_tuple_len = do_magic_method(class_tuple, "__len__", om_tuple_len_code)
+
+
+def om_tuple_getitem_code(ctx, args):
     if debug: print('tuple.__getitem__')
 
     self = args[0]
     item = args[1]
 
-    # TODO: cover subtypes of int
-    if om_is(OM_get_object_class(item), class_int):
-        item_box_index = OM_get_boxed_value(item)
+    def cont(rte, val):
+        item_box_index = OM_get_boxed_value(val)
         elements = OM_get_tuple_seq(self)
         elements_len = int_from_num(len(elements))
         if int_ge(item_box_index, elements_len):
@@ -2407,8 +2423,11 @@ def om_tuple_getitem(ctx, args):
                 return cont_obj(ctx, elements[int_to_num(reversed_index)])
             else:
                 return sem_raise_with_message(ctx, class_IndexError, "tuple index out of range")
-    else:
-        return sem_raise(ctx, class_TypeError)
+
+    return sem_index(with_cont(ctx, cont), item)
+
+
+om_tuple_getitem = do_magic_method(class_tuple, "__getitem__", om_tuple_getitem_code)
 
 # class_list methods
 
