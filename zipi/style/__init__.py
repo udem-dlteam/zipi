@@ -71,8 +71,9 @@ def __make_linting_context(rules):
             def make_ctrl_char_hook(error_msg):
                 def ctrl_char_hook(ts, pos):
                     lineno = ts.line_num
+                    line_pos = pos - ts.line_start
                     style_error = dict_get(ts.context, 'styleError', None)
-                    style_error(lineno, pos - 1, lineno, pos, error_msg)
+                    style_error(lineno, line_pos - 1, lineno, line_pos, error_msg)
 
                 return ctrl_char_hook
 
@@ -474,9 +475,9 @@ def get_style_violations(rules, source, compilationError):
     def catch_syntaxError(start_line0, start_column0, end_line0, end_column0, msg):
         # Hack to avoid using nonlocal
         compilation_error_occured[0] = True
-        return compilationError(start_line0 - 1, start_column0, end_line0 - 1, end_column0, "SyntaxError", msg)
+        return compilationError(start_line0, start_column0, end_line0, end_column0, "SyntaxError", msg)
 
-    def catch_styleError(start_line0, start_column0, end_line0, end_column0, msg):
+    def catch_ct_styleError(start_line0, start_column0, end_line0, end_column0, msg):
         # Hack to avoid using nonlocal
         compilation_error_occured[0] = True
         return compilationError(start_line0 - 1, start_column0, end_line0 - 1, end_column0, "StyleError", msg)
@@ -498,7 +499,7 @@ def get_style_violations(rules, source, compilationError):
         context = make_dict()
 
     dict_set(context, "syntaxError", catch_syntaxError)
-    dict_set(context, "styleError", catch_styleError)
+    dict_set(context, "styleError", catch_ct_styleError)
 
     ast = AST.parse(source, '<unknown>', 'exec', context)
 
