@@ -81,11 +81,11 @@ def __make_linting_context(rules):
         elif tag == "LINE_LENGTH":
             def make_eol_hook(error_msg):
                 def eol_hook(ts, pos, comment_start):
-                    line_len = pos - ts.line_start
+                    line_len = pos - ts.line_start - 1
                     lineno = ts.line_num
                     style_error = dict_get(ts.context, 'styleError', None)
 
-                    if line_len >= 80:
+                    if line_len > 79:
                         style_error(lineno, 0, lineno, line_len, error_msg)
 
                 return eol_hook
