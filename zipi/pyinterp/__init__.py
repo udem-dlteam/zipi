@@ -966,10 +966,15 @@ def populate_builtin_bool():
     builtin_add_method(class_bool, '__repr__', om_bool_repr)
 
 def populate_builtin_tuple():
-    builtin_add_method(class_tuple, '__new__', om_tuple_new)
-    builtin_add_method(class_tuple, '__repr__', om_tuple_repr)
-    builtin_add_method(class_tuple, '__len__', om_tuple_len)
-    builtin_add_method(class_tuple, '__getitem__', om_tuple_getitem)
+    buitlin_add_methods_to_class(
+        class_tuple,
+        (('__new__', om_tuple_new),
+         ('__repr__', om_tuple_repr),
+         ('__len__', om_tuple_len),
+         ('__getitem__', om_tuple_getitem),
+         ('__add__', om_tuple_add),
+         ('__mul__', om_tuple_mul),
+         ('__rmul__', om_tuple_rmul)))
 
 def populate_builtin_list():
     builtin_add_method(class_list, '__new__', om_list_new)
@@ -2361,7 +2366,7 @@ def om_tuple_repr_code(ctx, args):
             elements = OM_get_tuple_seq(self)
             return om_tuple_elements_repr(ctx, elements, [])
     else:
-        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 argument, got " + str(args_len - 1))
 
 
 om_tuple_repr = do_magic_method(class_tuple, "__repr__", om_tuple_repr_code)
@@ -2397,7 +2402,7 @@ def om_tuple_len_code(ctx, args):
 
         return cont_int(ctx, int_from_num(elements_len))
     else:
-        return sem_raise_with_message(ctx, class_TypeError, "expected no argument, got " + str(len(args) - 1))
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 argument, got " + str(len(args) - 1))
 
 
 om_tuple_len = do_magic_method(class_tuple, "__len__", om_tuple_len_code)
@@ -2406,28 +2411,85 @@ om_tuple_len = do_magic_method(class_tuple, "__len__", om_tuple_len_code)
 def om_tuple_getitem_code(ctx, args):
     if debug: print('tuple.__getitem__')
 
-    self = args[0]
-    item = args[1]
+    args_len = len(args)
 
-    def cont(rte, val):
-        item_box_index = OM_get_boxed_value(val)
-        elements = OM_get_tuple_seq(self)
-        elements_len = int_from_num(len(elements))
-        if int_ge(item_box_index, elements_len):
-            return sem_raise_with_message(ctx, class_IndexError, "tuple index out of range")
-        elif int_is_nonneg(item_box_index):
-            return cont_obj(ctx, elements[int_to_num(item_box_index)])
-        else:
-            reversed_index = int_add(item_box_index, elements_len)
-            if int_is_nonneg(reversed_index):
-                return cont_obj(ctx, elements[int_to_num(reversed_index)])
-            else:
+    if args_len == 2:
+        self = args[0]
+        item = args[1]
+
+        def cont(rte, val):
+            item_box_index = OM_get_boxed_value(val)
+            elements = OM_get_tuple_seq(self)
+            elements_len = int_from_num(len(elements))
+            if int_ge(item_box_index, elements_len):
                 return sem_raise_with_message(ctx, class_IndexError, "tuple index out of range")
+            elif int_is_nonneg(item_box_index):
+                return cont_obj(ctx, elements[int_to_num(item_box_index)])
+            else:
+                reversed_index = int_add(item_box_index, elements_len)
+                if int_is_nonneg(reversed_index):
+                    return cont_obj(ctx, elements[int_to_num(reversed_index)])
+                else:
+                    return sem_raise_with_message(ctx, class_IndexError, "tuple index out of range")
 
-    return sem_index(with_cont(ctx, cont), item)
+        return sem_index(with_cont(ctx, cont), item)
+
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 argument, got " + str(len(args) - 1))
 
 
 om_tuple_getitem = do_magic_method(class_tuple, "__getitem__", om_tuple_getitem_code)
+
+
+def om_tuple_add_code(ctx, args):
+    if debug: print('tuple.__add__')
+
+    args_len = len(args)
+
+    if args_len == 2:
+        self = args[0]
+        other = args[1]
+
+        if om_isinstance(other, class_tuple):
+            self_elements = OM_get_tuple_seq(self)
+            other_elements = OM_get_tuple_seq(other)
+
+            return cont_tuple(ctx, list_concat(self_elements, other_elements))
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 argument, got " + str(len(args) - 1))
+
+
+om_tuple_add = do_magic_method(class_tuple, "__add__", om_tuple_add_code)
+
+
+def om_tuple_mul_code(ctx, args):
+    if debug: print('tuple.__mul__')
+
+    args_len = len(args)
+
+    if args_len == 2:
+        self = args[0]
+        other = args[1]
+
+        def cont(rte, n):
+            repeat = int_to_num(OM_get_boxed_value(n))
+
+            if repeat > 0:
+                elements = OM_get_tuple_seq(self)
+
+                return cont_tuple(make_out_of_ast_context(rte, ctx.cont), list_repeat(elements, repeat))
+            else:
+                return cont_tuple(make_out_of_ast_context(rte, ctx.cont), [])
+
+        return sem_maybe_index(with_cont(ctx, cont), other)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 argument, got " + str(len(args) - 1))
+
+
+om_tuple_mul = do_magic_method(class_tuple, "__mul__", om_tuple_mul_code)
+om_tuple_rmul = do_magic_method(class_tuple, "__rmul__", om_tuple_mul_code)
 
 # class_list methods
 
@@ -7660,6 +7722,7 @@ def sem_int(ctx, obj):
     return sem_maybe_int(with_cont(ctx, check_result), obj)
 
 def sem_maybe_index(ctx, obj):
+    # TODO: add overflow check. The difference between __int__ and __index is that the later cannot return a bigint
     obj_int = getattribute_from_obj_mro(obj, '__index__')
 
     if obj_int is absent:

@@ -110,6 +110,10 @@ function list_concat(lst1, lst2){
     return lst1.concat(lst2);
 }
 
+function list_repeat(lst, n){
+    return Array(n).fill(lst).flat();
+}
+
 function list_reversed(lst){
     return lst.slice().reverse();
 }

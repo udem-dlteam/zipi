@@ -471,6 +471,9 @@ def list_concat(l1, l2):
 
     return new_lst
 
+def list_repeat(lst, n):
+    return lst * n
+
 def list_reversed(l):
     return l[::-1]
 
