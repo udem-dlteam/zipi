@@ -111,7 +111,17 @@ function list_concat(lst1, lst2){
 }
 
 function list_repeat(lst, n){
-    return Array(n).fill(lst).flat();
+    var lst_length = lst.length;
+
+    if (lst_length === 0) {
+        return []
+    }
+    else if (lst_length === 1){
+        return Array(n).fill(lst[0])
+    }
+    else {
+        return Array(n).fill(lst).flat();
+    }
 }
 
 function list_reversed(lst){
