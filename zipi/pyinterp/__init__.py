@@ -2495,7 +2495,7 @@ om_tuple_rmul = do_magic_method(class_tuple, "__rmul__", om_tuple_mul_code)
 
 def list_seq_grow(seq):
     seq_len = len(seq)
-    new_len = seq_len  * 5 // 4 + 1
+    new_len = seq_len * 5 // 4 + 1
 
     new_seq = []
     i = 0
@@ -2569,22 +2569,28 @@ def om_list_getitem_code(ctx, args):
         self = args[0]
         item = args[1]
 
-        if om_isinstance(item, class_int):
-            index = OM_get_boxed_value(item)
-            self_len = int_from_num(OM_get_list_len(self))
-            elements = OM_get_list_seq(self)
-            if int_ge(index, self_len):
-                return sem_raise_with_message(ctx, class_IndexError, "list index out of range")
-            elif int_is_nonneg(index):
-                return ctx.cont(ctx.rte, elements[index])
-            else:
-                reversed_index = int_add(index, self_len)
-                if int_is_nonneg(reversed_index):
-                    return ctx.cont(ctx.rte, elements[int_to_num(reversed_index)])
-                else:
-                    return sem_raise_with_message(ctx, class_IndexError, "list index out of range")
-        elif om_isinstance(item, class_slice):
+        if om_isinstance(item, class_slice):
             return sem_raise_with_message(ctx, class_NotImplementedError, "list slicing is not yet supported")
+        else:
+            def cont(rte, item_index):
+                index = OM_get_boxed_value(item_index)
+                self_len = int_from_num(OM_get_list_len(self))
+                elements = OM_get_list_seq(self)
+
+                next_ctx = make_out_of_ast_context(rte, ctx.cont)
+
+                if int_ge(index, self_len):
+                    return sem_raise_with_message(next_ctx, class_IndexError, "list index out of range")
+                elif int_is_nonneg(index):
+                    return cont_obj(next_ctx, elements[int_to_num(index)])
+                else:
+                    reversed_index = int_add(index, self_len)
+                    if int_is_nonneg(reversed_index):
+                        return cont_obj(next_ctx, elements[int_to_num(reversed_index)])
+                    else:
+                        return sem_raise_with_message(next_ctx, class_IndexError, "list index out of range")
+
+            return sem_index(with_cont(ctx, cont), item)
     else:
         return sem_raise_with_message(ctx, class_TypeError, "__getitem__() takes exactly one argument (" + str(args_len - 1) + " given)")
 
@@ -2597,20 +2603,26 @@ def om_list_setitem_code(ctx, args):
         item = args[1]
         value = args[2]
 
-        if om_isinstance(item, class_int):
-            index = OM_get_boxed_value(item)
-            self_len = OM_get_list_len(self)
-            elements = OM_get_list_seq(self)
-            if index >= 0 and index < self_len:
-                elements[index] = value
-                return ctx.cont(ctx.rte, om_None)
-            elif index < 0 and index >= -self_len:
-                elements[index + self_len] = value
-                return ctx.cont(ctx.rte, om_None)
-            else:
-                return sem_raise_with_message(ctx, class_IndexError, "list index out of range")
-        elif om_isinstance(item, class_slice):
+        if om_isinstance(item, class_slice):
             return sem_raise_with_message(ctx, class_NotImplementedError, "list[slice] not yet implemented")
+        else:
+            def cont(rte, item_index):
+                index = OM_get_boxed_value(item_index)
+                self_len = OM_get_list_len(self)
+                elements = OM_get_list_seq(self)
+
+                next_ctx = make_out_of_ast_context(rte, ctx.cont)
+
+                if index >= 0 and index < self_len:
+                    elements[index] = value
+                    return cont_obj(next_ctx, om_None)
+                elif index < 0 and index >= -self_len:
+                    elements[index + self_len] = value
+                    return cont_obj(next_ctx, om_None)
+                else:
+                    return sem_raise_with_message(next_ctx, class_IndexError, "list index out of range")
+
+            return sem_index(with_cont(ctx, cont), item)
     else:
         return sem_raise_with_message(ctx, class_TypeError, "__setitem__() takes exactly two argument (" + str(args_len - 1) + " given)")
 
