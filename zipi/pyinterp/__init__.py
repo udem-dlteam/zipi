@@ -5217,8 +5217,8 @@ def make_module_mouse():
             alt = dict_get(mouse_state, 'alt', None)
 
             struct_attrs = make_dict()
-            dict_set(struct_attrs, 'x', om_int(int_from_num(x)))
-            dict_set(struct_attrs, 'y', om_int(int_from_num(y)))
+            dict_set(struct_attrs, 'x', om_float(float_from_num(x)))
+            dict_set(struct_attrs, 'y', om_float(float_from_num(y)))
             dict_set(struct_attrs, 'down', om_bool(down))
             dict_set(struct_attrs, 'shift', om_bool(shift))
             dict_set(struct_attrs, 'ctrl', om_bool(ctrl))
@@ -5231,14 +5231,14 @@ def make_module_mouse():
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise(ctx, class_NotImplementedError)
         else:
-            return unwindReturn(rte, om_int(int_from_num(getMouseX(rte))))
+            return unwindReturn(rte, om_float(float_from_num(getMouseX(rte))))
 
     def getMouseY_code(rte, cont):
         if getMouseY is None:
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise(ctx, class_NotImplementedError)
         else:
-            return unwindReturn(rte, om_int(int_from_num(getMouseY(rte))))
+            return unwindReturn(rte, om_float(float_from_num(getMouseY(rte))))
 
     def getMouseDown_code(rte, cont):
         if getMouseDown is None:
