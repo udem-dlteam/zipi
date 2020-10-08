@@ -983,7 +983,9 @@ def populate_builtin_list():
     builtin_add_method(class_list, '__setitem__', om_list_setitem)
     builtin_add_method(class_list, '__len__', om_list_len)
     builtin_add_method(class_list, '__add__', om_list_add)
+    builtin_add_method(class_list, '__iadd__', om_list_iadd)
     builtin_add_method(class_list, 'append', om_list_append)
+    builtin_add_method(class_list, 'extend', om_list_extend)
 
 def populate_builtin_range():
     buitlin_add_methods_to_class(
@@ -2676,6 +2678,59 @@ def om_list_add_code(ctx, args):
 
 
 om_list_add = do_magic_method(class_list, "__add__", om_list_add_code)
+
+
+def om_list_extend_code(ctx, args):
+    args_len = len(args)
+    if args_len == 2:
+        self = args[0]
+        other = args[1]
+
+        def cont(rte, other_seq):
+            self_len = OM_get_list_len(self)
+            self_seq = OM_get_list_seq(self)
+
+            other_len = len(other_seq)
+
+            new_len = self_len + other_len
+
+            if new_len <= len(self_seq):
+                list_set_slice(self_seq, self_len, new_len, other_seq)
+                OM_set_list_len(self, new_len)
+            else:
+                new_seq = list_new(get_list_inner_len(new_len), empty_cell)
+
+                list_set_slice(new_seq, 0, self_len, self_seq)
+                list_set_slice(new_seq, self_len, new_len, other_seq)
+
+                OM_set_list_seq(self, new_seq)
+                OM_set_list_len(self, new_len)
+
+            return cont_obj(make_out_of_ast_context(rte, ctx.cont), om_None)
+
+        return om_unpack_iterable(with_cont(ctx, cont), other)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "extend() takes one argument (" + str(args_len) + " given)")
+
+
+om_list_extend = do_magic_method(class_list, "extend", om_list_extend_code)
+
+
+def om_list_iadd_code(ctx, args):
+    args_len = len(args)
+    if args_len == 2:
+
+        def cont(rte, _):
+            return cont_obj(make_out_of_ast_context(rte, ctx.cont), args[0])
+
+        return om_list_extend_code(with_cont(ctx, cont), args)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "__iadd__() takes one argument (" + str(args_len) + " given)")
+
+
+om_list_iadd = do_magic_method(class_list, "__iadd__", om_list_iadd_code)
 
 
 def om_list_append_code(ctx, args):
