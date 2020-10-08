@@ -162,8 +162,8 @@ def cont_float(ctx, val):
 def cont_str(ctx, val):
     return ctx.cont(ctx.rte, om_str(val))
 
-def cont_list(ctx, val):
-    return ctx.cont(ctx.rte, om_list(val, len(val)))
+def cont_list(ctx, val, len_):
+    return ctx.cont(ctx.rte, om_list(val, len_))
 
 def cont_tuple(ctx, val):
     return ctx.cont(ctx.rte, om_tuple(val))
@@ -982,6 +982,7 @@ def populate_builtin_list():
     builtin_add_method(class_list, '__getitem__', om_list_getitem)
     builtin_add_method(class_list, '__setitem__', om_list_setitem)
     builtin_add_method(class_list, '__len__', om_list_len)
+    builtin_add_method(class_list, '__add__', om_list_add)
     builtin_add_method(class_list, 'append', om_list_append)
 
 def populate_builtin_range():
@@ -2493,9 +2494,12 @@ om_tuple_rmul = do_magic_method(class_tuple, "__rmul__", om_tuple_mul_code)
 
 # class_list methods
 
+def get_list_inner_len(len_):
+    return len_ * 5 // 4 + 1
+
 def list_seq_grow(seq):
     seq_len = len(seq)
-    new_len = seq_len * 5 // 4 + 1
+    new_len = get_list_inner_len(seq_len)
 
     new_seq = []
     i = 0
@@ -2640,6 +2644,39 @@ def om_list_len_code(ctx, args):
 
 
 om_list_len = do_magic_method(class_list, "__len__", om_list_len_code)
+
+
+def om_list_add_code(ctx, args):
+    args_len = len(args)
+    if args_len == 2:
+        self = args[0]
+        other = args[1]
+
+        if om_isinstance(other, class_list):
+            self_len = OM_get_list_len(self)
+            self_seq = OM_get_list_seq(self)
+
+            other_len = OM_get_list_len(other)
+            other_seq = OM_get_list_seq(other)
+
+            new_len = self_len + other_len
+            new_seq = list_new(get_list_inner_len(new_len), empty_cell)
+
+            list_set_slice(new_seq, 0, self_len, self_seq)
+            list_set_slice(new_seq, self_len, new_len, other_seq)
+
+            return cont_list(ctx, new_seq, new_len)
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+
+
+    else:
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "__len__() takes one argument (" + str(args_len) + " given)")
+
+
+om_list_add = do_magic_method(class_list, "__add__", om_list_add_code)
+
 
 def om_list_append_code(ctx, args):
     if debug: print('list.append')

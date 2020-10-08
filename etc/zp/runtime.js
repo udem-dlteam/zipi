@@ -129,7 +129,11 @@ function list_reversed(lst){
 }
 
 function list_pop(lst){
-    lst.pop()
+    return lst.pop()
+}
+
+function list_set_slice(lst, start, stop, seq){
+    Array.prototype.splice.apply(lst, [start, stop - start].concat(seq.slice(0, stop-start)))
 }
 
 function string_mul(s, times){

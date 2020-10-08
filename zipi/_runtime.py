@@ -479,7 +479,10 @@ def list_reversed(l):
 
 
 def list_pop(l):
-    l.pop()
+    return l.pop()
+
+def list_set_slice(lst, start, stop, seq):
+    lst[start:stop] = seq[0:stop-start]
 
 ###
 # Str operations
