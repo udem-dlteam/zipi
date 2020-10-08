@@ -984,6 +984,8 @@ def populate_builtin_list():
     builtin_add_method(class_list, '__len__', om_list_len)
     builtin_add_method(class_list, '__add__', om_list_add)
     builtin_add_method(class_list, '__iadd__', om_list_iadd)
+    builtin_add_method(class_list, '__mul__', om_list_mul)
+    builtin_add_method(class_list, '__rmul__', om_list_rmul)
     builtin_add_method(class_list, 'append', om_list_append)
     builtin_add_method(class_list, 'extend', om_list_extend)
 
@@ -2731,6 +2733,36 @@ def om_list_iadd_code(ctx, args):
 
 
 om_list_iadd = do_magic_method(class_list, "__iadd__", om_list_iadd_code)
+
+
+def om_list_mul_code(ctx, args):
+
+    args_len = len(args)
+
+    if args_len == 2:
+        self = args[0]
+        n = args[1]
+
+        def cont(rte, n_int):
+            repeat = int_to_num(OM_get_boxed_value(n_int))
+
+            if repeat > 0:
+                seq = OM_get_list_seq(self)
+                self_len = OM_get_list_len(self)
+
+                new_len = repeat * self_len
+
+                return cont_list(make_out_of_ast_context(rte, ctx.cont), list_repeat(seq[0:self_len], repeat), new_len)
+            else:
+                return cont_list(make_out_of_ast_context(rte, ctx.cont), [], 0)
+
+        return sem_maybe_index(with_cont(ctx, cont), n)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 argument, got " + str(len(args) - 1))
+
+
+om_list_mul = do_magic_method(class_list, "__mul__", om_list_mul_code)
+om_list_rmul = do_magic_method(class_list, "__rmul__", om_list_mul_code)
 
 
 def om_list_append_code(ctx, args):
