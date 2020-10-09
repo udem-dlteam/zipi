@@ -32,7 +32,7 @@ function dict_set(d, key, value) {
     d[key] = value;
 };
 
-function dict_pop(d, key, default_){
+function dict_pop(d, key, default_) {
     if (Object.prototype.hasOwnProperty.call(d, key)) {
         var val = d[key];
         delete d[key];
@@ -42,15 +42,15 @@ function dict_pop(d, key, default_){
     }
 };
 
-function dict_keys(d){
+function dict_keys(d) {
     return Object.keys(d);
 }
 
-function dict_copy(d){
+function dict_copy(d) {
     return Object.assign(make_dict(), d);
 }
 
-function dict_items(d){
+function dict_items(d) {
     return Object.entries(d);
 }
 
@@ -69,7 +69,7 @@ function dict_has(d, a) {
     } else return Object.prototype.hasOwnProperty.call(d, a);
 }
 
-function dict_len(obj){
+function dict_len(obj) {
     return Object.keys(obj).length
 }
 
@@ -77,15 +77,15 @@ function chr(code) {
     return String.fromCodePoint.apply(null, [code]);
 }
 
-function ord(char){
+function ord(char) {
     return char.charCodeAt(0);
 }
 
-function hasattr(obj, attr){
+function hasattr(obj, attr) {
     return obj !== undefined && obj[attr] !== undefined;
 }
 
-function getattr(obj, attr, default_){
+function getattr(obj, attr, default_) {
     let val = obj[attr];
     if (val === undefined){
         return default_;
@@ -102,7 +102,7 @@ function runtime_random() {
   return Math.random();
 }
 
-function list_new(size, default_){
+function list_new(size, default_) {
     return Array.from({length: size}, function() {return default_;});
 }
 
@@ -110,30 +110,30 @@ function list_concat(lst1, lst2){
     return lst1.concat(lst2);
 }
 
-function list_repeat(lst, n){
+function list_repeat(lst, n) {
     var lst_length = lst.length;
 
     if (lst_length === 0) {
-        return []
+        return [];
     }
-    else if (lst_length === 1){
-        return Array(n).fill(lst[0])
+    else if (lst_length === 1) {
+        return Array(n).fill(lst[0]);
     }
     else {
         return Array(n).fill(lst).flat();
     }
 }
 
-function list_reversed(lst){
+function list_reversed(lst) {
     return lst.slice().reverse();
 }
 
-function list_pop(lst){
-    return lst.pop()
+function list_pop(lst) {
+    return lst.pop();
 }
 
 function list_set_slice(lst, start, stop, seq){
-    Array.prototype.splice.apply(lst, [start, stop - start].concat(seq.slice(0, stop-start)))
+    Array.prototype.splice.apply(lst, [start, stop - start].concat(seq.slice(0, stop-start)));
 }
 
 function string_mul(s, times){
