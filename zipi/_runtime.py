@@ -564,6 +564,9 @@ def runtime_read_file(rte, filename):
 def runtime_attach_ast_to_file(rte, ast, filename):
     pass
 
+def runtime_ast_is_from_repl(ast):
+    return False
+
 # Module random
 import random, math, sys, time
 

@@ -7378,13 +7378,16 @@ def gen_import(cte, ast):
     name = alias.name
     filename = name + ".py"
 
+    import_is_in_repl = runtime_ast_is_from_repl(ast)
+
     # NOTE: we cannot be more precise then this because as for now, alias does not have positional information
     set_cte, set_code = gen_var_set(cte, ast, name)
 
     def code(rte, cont):
         existing_module = rte_get_from_sys_modules(rte, name)
 
-        if existing_module is absent:
+        # Always re-import in repl as CodeBoot usage allows to use the repl to test files as they are edited
+        if existing_module is absent or import_is_in_repl:
             module_src = runtime_read_file(rte, filename)
 
             if module_src is None:
