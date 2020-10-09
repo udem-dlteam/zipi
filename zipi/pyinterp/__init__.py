@@ -300,11 +300,14 @@ def frame_cont(frame):
 def frame_ast(frame):
     return frame[2]
 
-def make_rte(rte, globals_env, locals_env, current_func, builtins, stack, ctrl_env, seen_repr_stack, vm, options):
-    if rte is absent:
-        serial_counter = [0]
-    else:
-        serial_counter = rte_serial_counter(rte)
+def make_rte_from_parent(rte, globals_env, locals_env, current_func, stack, ctrl_env):
+    serial_counter = rte_serial_counter(rte)
+    sys_modules = rte_sys_modules(rte)
+    seen_repr_stack = rte_get_seen_repr_stack(rte)
+    vm = rte_vm(rte)
+    options = rte_options(rte)
+    builtins = rte_builtins(rte)
+    builtins_module = rte_builtins_module(rte)
 
     new_rte = make_dict()
 
@@ -313,27 +316,50 @@ def make_rte(rte, globals_env, locals_env, current_func, builtins, stack, ctrl_e
     dict_set(new_rte, "locals", locals_env)
     dict_set(new_rte, 'current_func', current_func)
     dict_set(new_rte, "builtins", builtins)
+    dict_set(new_rte, "builtins_module", builtins_module)
     dict_set(new_rte, "stack", stack)
     dict_set(new_rte, "ctrl_env", ctrl_env)
+    dict_set(new_rte, "sys_modules", sys_modules)
 
     # Used to accumulate objects repr seen when calling sem_repr, to avoid infinite loops in nested objects
     dict_set(new_rte, "seen_repr_stack", seen_repr_stack)
+
     dict_set(new_rte, "vm", vm)
     dict_set(new_rte, "options", options)
 
     return new_rte
 
+def make_new_rte(globals_env, locals_env, builtins, builtins_module, options):
+    serial_counter = [0]
+    sys_modules = make_dict()
+
+    new_rte = make_dict()
+
+    dict_set(new_rte, "serial_counter", serial_counter)
+    dict_set(new_rte, "globals", globals_env)
+    dict_set(new_rte, "locals", locals_env)
+    dict_set(new_rte, 'current_func', absent)
+    dict_set(new_rte, "builtins", builtins)
+    dict_set(new_rte, "builtins_module", builtins_module)
+    dict_set(new_rte, "stack", absent)
+    dict_set(new_rte, "ctrl_env", absent)
+    dict_set(new_rte, "sys_modules", sys_modules)
+
+    # Used to accumulate objects repr seen when calling sem_repr, to avoid infinite loops in nested objects
+    dict_set(new_rte, "seen_repr_stack", [])
+
+    dict_set(new_rte, "vm", absent)
+    dict_set(new_rte, "options", options)
+
+    return new_rte
+
 def make_rte_from_new_ctrl_env(rte, ctrl_env):
-    return make_rte(rte,
+    return make_rte_from_parent(rte,
                     rte_globals(rte),
                     rte_locals(rte),
                     rte_current_func(rte),
-                    rte_builtins(rte),
                     rte_stack(rte),
-                    ctrl_env,
-                    rte_get_seen_repr_stack(rte),
-                    rte_vm(rte),
-                    rte_options(rte))
+                    ctrl_env)
 
 def unwind_rte_ctrl_env(rte):
     next_ctrl_env = rte_ctrl_env(rte).ctrl_next
@@ -348,6 +374,17 @@ def rte_get_serial(rte):
     boxed_serial[0] = serial + 1
     return serial
 
+def rte_sys_modules(rte):
+    return dict_get(rte, 'sys_modules', absent)
+
+def rte_add_to_sys_modules(rte, name, module):
+    sys_modules = rte_sys_modules(rte)
+    dict_set(sys_modules, name, module)
+
+def rte_get_from_sys_modules(rte, name):
+    sys_modules = rte_sys_modules(rte)
+    return dict_get(sys_modules, name, absent)
+
 def rte_globals(rte):
     return dict_get(rte, 'globals', absent)
 
@@ -359,6 +396,9 @@ def rte_current_func(rte):
 
 def rte_builtins(rte):
     return dict_get(rte, 'builtins', absent)
+
+def rte_builtins_module(rte):
+    return dict_get(rte, 'builtins_module', absent)
 
 def rte_stack(rte):
     return dict_get(rte, 'stack', absent)
@@ -3308,9 +3348,9 @@ def om_function_call_code(ctx, args, kwargs):
                 dict_set(call_locals_env, name, value)
 
 
-        rte = make_rte(ctx.rte, rte_globals(ctx.rte), call_locals_env, self, rte_builtins(ctx.rte), stack, rte_ctrl_env(ctx.rte), rte_get_seen_repr_stack(ctx.rte), rte_vm(ctx.rte), rte_options(ctx.rte))
+        new_rte = make_rte_from_parent(rte, rte_globals(rte), call_locals_env, self, stack, rte_ctrl_env(rte))
         body = OM_get_function_body(self)
-        return body(rte,
+        return body(new_rte,
                     lambda rte1:
                        frame_cont(rte_stack(rte1))(frame_rte(rte_stack(rte1)), om_None))
 
@@ -5851,8 +5891,9 @@ def fresh_rte(options):
     locals_env = absent
     globals_env = make_dict()
     builtins_env = make_dict()
+    builtins_module = om_module('builtins', builtins_env)
 
-    rte = make_rte(absent, globals_env, locals_env, absent, builtins_env, absent, absent, [], absent, options)
+    rte = make_new_rte(globals_env, locals_env, builtins_env, builtins_module, options)
 
     # Vanilla Python builtins
     om_builtin_print = om_make_function_with_signature('print', om_print_code, make_vararg_only_signature('args'))
@@ -5938,6 +5979,16 @@ def fresh_rte(options):
     pixels_module = make_module_pixels()
     more_builtins_module = make_module_more_builtins()
 
+    # Add modules to sys module to allow imports
+    rte_add_to_sys_modules(rte, 'builtins', builtins_module)
+    rte_add_to_sys_modules(rte, 'math', math_module)
+    rte_add_to_sys_modules(rte, 'turtle', turtle_module)
+    rte_add_to_sys_modules(rte, 'random', random_module)
+    rte_add_to_sys_modules(rte, 'time', time_module)
+    rte_add_to_sys_modules(rte, 'mouse', mouse_module)
+    rte_add_to_sys_modules(rte, 'pixels', pixels_module)
+    rte_add_to_sys_modules(rte, 'more_builtins', more_builtins_module)
+
     # Inject some module into the builtins
     dict_set(builtins_env, 'math', math_module)
     dict_set(builtins_env, 'mouse', mouse_module)
@@ -5957,25 +6008,20 @@ def fresh_rte(options):
     return rte
 
 
-def make_module_rte(parent_rte, options, builtins_env, builtins_module, name):
+def make_module_rte(parent_rte, builtins_module, name):
     locals_env = absent
     globals_env = make_dict()
 
-    rte = make_rte(
+    rte = make_rte_from_parent(
         parent_rte,
         globals_env,
         locals_env,
         absent,
-        builtins_env,
         rte_stack(parent_rte),
-        rte_ctrl_env(parent_rte),
-        rte_get_seen_repr_stack(parent_rte),
-        rte_vm(parent_rte),
-        options)
+        rte_ctrl_env(parent_rte))
 
 
     dict_set(globals_env, '__name__', om_str(name))
-
     dict_set(globals_env, '__builtins__', builtins_module)
 
     return rte
@@ -7332,33 +7378,38 @@ def gen_import(cte, ast):
     name = alias.name
     filename = name + ".py"
 
-    set_cte, set_code = gen_var_set(cte, alias, name)
+    # NOTE: we cannot be more precise then this because as for now, alias does not have positional information
+    set_cte, set_code = gen_var_set(cte, ast, name)
 
     def code(rte, cont):
-        builtins_env = rte_builtins(rte)
+        existing_module = rte_get_from_sys_modules(rte, name)
 
-        module_src = runtime_read_file(rte, filename)
+        if existing_module is absent:
+            module_src = runtime_read_file(rte, filename)
 
-        if module_src is None:
-            return sem_raise_with_message(Context(rte, cont, ast), class_ModuleNotFoundError, "No module named '" + name + "'")
+            if module_src is None:
+                return sem_raise_with_message(Context(rte, cont, ast), class_ModuleNotFoundError, "No module named '" + name + "'")
+            else:
+                module_ast = parse(module_src, '<unknown>', 'exec', False)
+                runtime_attach_ast_to_file(rte, module_ast, filename)
+                module_code = comp(module_ast, options)
+
+                builtins_module = rte_builtins_module(rte)
+
+                module_rte = make_module_rte(rte, builtins_module, name)
+
+                module_object = om_module(name, rte_globals(module_rte))
+
+                # NOTE: it is important to add module to sys.modules BEFORE executing the module to allow circular imports
+                rte_add_to_sys_modules(rte, name, module_object)
+
+                def store_module(_):
+                    return set_code(rte, cont, module_object)
+
+                return module_code(module_rte, store_module)
+
         else:
-            module_ast = parse(module_src, '<unknown>', 'exec', False)
-            runtime_attach_ast_to_file(rte, module_ast, filename)
-            module_code = comp(module_ast, options)
-
-            # TODO: find builtins without passing through globals
-            builtins_module = rte_lookup_globals(rte, '__builtins__')
-
-            module_rte = make_module_rte(rte, options, builtins_env, builtins_module, name)
-
-            module_object = om_module(name, rte_globals(module_rte))
-
-            # TODO add module to sys.modules
-
-            def store_module(_):
-                return set_code(rte, cont, module_object)
-
-            return module_code(module_rte, store_module)
+            return set_code(rte, cont, existing_module)
 
     return set_cte, code
 
