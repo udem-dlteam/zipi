@@ -6342,6 +6342,17 @@ def compute_function_variables_scope(cte, ast, args):
 
         return True
 
+    elif isinstance(ast, AST.Import):
+        for alias in ast.names:
+            module_name = alias.name
+            asname = alias.asname
+
+            # TODO account for packages once they exist
+            id_ = module_name if asname is None else asname
+
+            if not dict_has(locals_env, id_):
+                make_local_var_token(cte, id_, current_fn)
+
     elif isinstance(ast, AST.Nonlocal):
         for id_ in ast.names:
             if dict_has(locals_env, id_) or dict_has(locals_ref, id_):
