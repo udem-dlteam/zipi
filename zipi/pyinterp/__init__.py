@@ -162,8 +162,8 @@ def cont_float(ctx, val):
 def cont_str(ctx, val):
     return ctx.cont(ctx.rte, om_str(val))
 
-def cont_list(ctx, val):
-    return ctx.cont(ctx.rte, om_list(val, len(val)))
+def cont_list(ctx, val, len_):
+    return ctx.cont(ctx.rte, om_list(val, len_))
 
 def cont_tuple(ctx, val):
     return ctx.cont(ctx.rte, om_tuple(val))
@@ -966,10 +966,15 @@ def populate_builtin_bool():
     builtin_add_method(class_bool, '__repr__', om_bool_repr)
 
 def populate_builtin_tuple():
-    builtin_add_method(class_tuple, '__new__', om_tuple_new)
-    builtin_add_method(class_tuple, '__repr__', om_tuple_repr)
-    builtin_add_method(class_tuple, '__len__', om_tuple_len)
-    builtin_add_method(class_tuple, '__getitem__', om_tuple_getitem)
+    buitlin_add_methods_to_class(
+        class_tuple,
+        (('__new__', om_tuple_new),
+         ('__repr__', om_tuple_repr),
+         ('__len__', om_tuple_len),
+         ('__getitem__', om_tuple_getitem),
+         ('__add__', om_tuple_add),
+         ('__mul__', om_tuple_mul),
+         ('__rmul__', om_tuple_rmul)))
 
 def populate_builtin_list():
     builtin_add_method(class_list, '__new__', om_list_new)
@@ -977,7 +982,12 @@ def populate_builtin_list():
     builtin_add_method(class_list, '__getitem__', om_list_getitem)
     builtin_add_method(class_list, '__setitem__', om_list_setitem)
     builtin_add_method(class_list, '__len__', om_list_len)
+    builtin_add_method(class_list, '__add__', om_list_add)
+    builtin_add_method(class_list, '__iadd__', om_list_iadd)
+    builtin_add_method(class_list, '__mul__', om_list_mul)
+    builtin_add_method(class_list, '__rmul__', om_list_rmul)
     builtin_add_method(class_list, 'append', om_list_append)
+    builtin_add_method(class_list, 'extend', om_list_extend)
 
 def populate_builtin_range():
     buitlin_add_methods_to_class(
@@ -1061,6 +1071,11 @@ def om_bool(n):
 
 def om_tuple(seq):
     obj = om(class_tuple)
+    OM_set_tuple_seq(obj, seq)
+    return obj
+
+def om_tuple_subtype(cls, seq):
+    obj = om(cls)
     OM_set_tuple_seq(obj, seq)
     return obj
 
@@ -2316,8 +2331,10 @@ om_int_round = do_magic_method(class_int, "__round__", om_int_round_code)
 
 # class_tuple methods
 
+
 def make_tuple(ctx, elements):
     return ctx.cont(ctx.rte, om_tuple(elements))
+
 
 def om_tuple_elements_repr(ctx, elts, repr_acc):
     if len(elts) == 0:
@@ -2337,6 +2354,7 @@ def om_tuple_elements_repr(ctx, elts, repr_acc):
 
         return sem_repr(with_cont(ctx, cont), elts[0])
 
+
 def om_tuple_repr_code(ctx, args):
     if debug: print('list.__repr__')
 
@@ -2353,68 +2371,139 @@ def om_tuple_repr_code(ctx, args):
             elements = OM_get_tuple_seq(self)
             return om_tuple_elements_repr(ctx, elements, [])
     else:
-        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 argument, got " + str(args_len - 1))
+
 
 om_tuple_repr = do_magic_method(class_tuple, "__repr__", om_tuple_repr_code)
 
-def om_tuple_new(ctx, args):
+
+def om_tuple_new_code(ctx, args):
     args_len = len(args)
-    if args_len == 0:
-        return sem_raise_with_message(ctx, class_TypeError, "tuple.__new__(): not enough arguments")
 
     cls = args[0]
 
-    if not om_isinstance(cls, class_type):
-        return sem_raise_with_message(ctx, class_TypeError, "tuple.__new__(X): X is not a type object")
-    elif not om_issubclass(cls, class_tuple):
-        return sem_raise_with_message(ctx, class_TypeError, "tuple.__new__(object): object is not a subtype of tuple")
     if args_len == 1:
-        return ctx.cont(ctx.rte, om_tuple(()))
+        return ctx.cont(ctx.rte, om_tuple_subtype(cls, []))
     elif args_len == 2:
         def alloc(rte, seq):
-            return ctx.cont(ctx.rte, om_tuple(seq))
+            return ctx.cont(rte, om_tuple_subtype(cls, seq))
         return om_unpack_iterable(with_cont(ctx, alloc), args[1])
     else:
         return sem_raise_with_message(ctx, class_TypeError, "tuple expected at most 1 argument, got " + str(args_len))
 
 
-def om_tuple_len(ctx, args):
+om_tuple_new = do_static_magic_method(class_tuple, "__new__", om_tuple_new_code)
+
+
+def om_tuple_len_code(ctx, args):
     if debug: print('tuple.__len__')
-    self = args[0]
-    elements = OM_get_tuple_seq(self)
-    elements_len = len(elements)
 
-    return cont_int(ctx,int_from_num(elements_len))
+    args_len = len(args)
 
-def om_tuple_getitem(ctx, args):
+    if args_len == 1:
+        self = args[0]
+        elements = OM_get_tuple_seq(self)
+        elements_len = len(elements)
+
+        return cont_int(ctx, int_from_num(elements_len))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 argument, got " + str(len(args) - 1))
+
+
+om_tuple_len = do_magic_method(class_tuple, "__len__", om_tuple_len_code)
+
+
+def om_tuple_getitem_code(ctx, args):
     if debug: print('tuple.__getitem__')
 
-    self = args[0]
-    item = args[1]
+    args_len = len(args)
 
-    # TODO: cover subtypes of int
-    if om_is(OM_get_object_class(item), class_int):
-        item_box_index = OM_get_boxed_value(item)
-        elements = OM_get_tuple_seq(self)
-        elements_len = int_from_num(len(elements))
-        if int_ge(item_box_index, elements_len):
-            return sem_raise_with_message(ctx, class_IndexError, "tuple index out of range")
-        elif int_is_nonneg(item_box_index):
-            return cont_obj(ctx, elements[int_to_num(item_box_index)])
-        else:
-            reversed_index = int_add(item_box_index, elements_len)
-            if int_is_nonneg(reversed_index):
-                return cont_obj(ctx, elements[int_to_num(reversed_index)])
-            else:
+    if args_len == 2:
+        self = args[0]
+        item = args[1]
+
+        def cont(rte, val):
+            item_box_index = OM_get_boxed_value(val)
+            elements = OM_get_tuple_seq(self)
+            elements_len = int_from_num(len(elements))
+            if int_ge(item_box_index, elements_len):
                 return sem_raise_with_message(ctx, class_IndexError, "tuple index out of range")
+            elif int_is_nonneg(item_box_index):
+                return cont_obj(ctx, elements[int_to_num(item_box_index)])
+            else:
+                reversed_index = int_add(item_box_index, elements_len)
+                if int_is_nonneg(reversed_index):
+                    return cont_obj(ctx, elements[int_to_num(reversed_index)])
+                else:
+                    return sem_raise_with_message(ctx, class_IndexError, "tuple index out of range")
+
+        return sem_index(with_cont(ctx, cont), item)
+
     else:
-        return sem_raise(ctx, class_TypeError)
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 argument, got " + str(len(args) - 1))
+
+
+om_tuple_getitem = do_magic_method(class_tuple, "__getitem__", om_tuple_getitem_code)
+
+
+def om_tuple_add_code(ctx, args):
+    if debug: print('tuple.__add__')
+
+    args_len = len(args)
+
+    if args_len == 2:
+        self = args[0]
+        other = args[1]
+
+        if om_isinstance(other, class_tuple):
+            self_elements = OM_get_tuple_seq(self)
+            other_elements = OM_get_tuple_seq(other)
+
+            return cont_tuple(ctx, list_concat(self_elements, other_elements))
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 argument, got " + str(len(args) - 1))
+
+
+om_tuple_add = do_magic_method(class_tuple, "__add__", om_tuple_add_code)
+
+
+def om_tuple_mul_code(ctx, args):
+    if debug: print('tuple.__mul__')
+
+    args_len = len(args)
+
+    if args_len == 2:
+        self = args[0]
+        other = args[1]
+
+        def cont(rte, n):
+            repeat = int_to_num(OM_get_boxed_value(n))
+
+            if repeat > 0:
+                elements = OM_get_tuple_seq(self)
+
+                return cont_tuple(make_out_of_ast_context(rte, ctx.cont), list_repeat(elements, repeat))
+            else:
+                return cont_tuple(make_out_of_ast_context(rte, ctx.cont), [])
+
+        return sem_maybe_index(with_cont(ctx, cont), other)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 argument, got " + str(len(args) - 1))
+
+
+om_tuple_mul = do_magic_method(class_tuple, "__mul__", om_tuple_mul_code)
+om_tuple_rmul = do_magic_method(class_tuple, "__rmul__", om_tuple_mul_code)
 
 # class_list methods
 
+def get_list_inner_len(len_):
+    return len_ * 5 // 4 + 1
+
 def list_seq_grow(seq):
     seq_len = len(seq)
-    new_len = seq_len  * 5 // 4 + 1
+    new_len = get_list_inner_len(seq_len)
 
     new_seq = []
     i = 0
@@ -2488,22 +2577,28 @@ def om_list_getitem_code(ctx, args):
         self = args[0]
         item = args[1]
 
-        if om_isinstance(item, class_int):
-            index = OM_get_boxed_value(item)
-            self_len = int_from_num(OM_get_list_len(self))
-            elements = OM_get_list_seq(self)
-            if int_ge(index, self_len):
-                return sem_raise_with_message(ctx, class_IndexError, "list index out of range")
-            elif int_is_nonneg(index):
-                return ctx.cont(ctx.rte, elements[index])
-            else:
-                reversed_index = int_add(index, self_len)
-                if int_is_nonneg(reversed_index):
-                    return ctx.cont(ctx.rte, elements[int_to_num(reversed_index)])
-                else:
-                    return sem_raise_with_message(ctx, class_IndexError, "list index out of range")
-        elif om_isinstance(item, class_slice):
+        if om_isinstance(item, class_slice):
             return sem_raise_with_message(ctx, class_NotImplementedError, "list slicing is not yet supported")
+        else:
+            def cont(rte, item_index):
+                index = OM_get_boxed_value(item_index)
+                self_len = int_from_num(OM_get_list_len(self))
+                elements = OM_get_list_seq(self)
+
+                next_ctx = make_out_of_ast_context(rte, ctx.cont)
+
+                if int_ge(index, self_len):
+                    return sem_raise_with_message(next_ctx, class_IndexError, "list index out of range")
+                elif int_is_nonneg(index):
+                    return cont_obj(next_ctx, elements[int_to_num(index)])
+                else:
+                    reversed_index = int_add(index, self_len)
+                    if int_is_nonneg(reversed_index):
+                        return cont_obj(next_ctx, elements[int_to_num(reversed_index)])
+                    else:
+                        return sem_raise_with_message(next_ctx, class_IndexError, "list index out of range")
+
+            return sem_index(with_cont(ctx, cont), item)
     else:
         return sem_raise_with_message(ctx, class_TypeError, "__getitem__() takes exactly one argument (" + str(args_len - 1) + " given)")
 
@@ -2516,20 +2611,26 @@ def om_list_setitem_code(ctx, args):
         item = args[1]
         value = args[2]
 
-        if om_isinstance(item, class_int):
-            index = OM_get_boxed_value(item)
-            self_len = OM_get_list_len(self)
-            elements = OM_get_list_seq(self)
-            if index >= 0 and index < self_len:
-                elements[index] = value
-                return ctx.cont(ctx.rte, om_None)
-            elif index < 0 and index >= -self_len:
-                elements[index + self_len] = value
-                return ctx.cont(ctx.rte, om_None)
-            else:
-                return sem_raise_with_message(ctx, class_IndexError, "list index out of range")
-        elif om_isinstance(item, class_slice):
+        if om_isinstance(item, class_slice):
             return sem_raise_with_message(ctx, class_NotImplementedError, "list[slice] not yet implemented")
+        else:
+            def cont(rte, item_index):
+                index = OM_get_boxed_value(item_index)
+                self_len = OM_get_list_len(self)
+                elements = OM_get_list_seq(self)
+
+                next_ctx = make_out_of_ast_context(rte, ctx.cont)
+
+                if index >= 0 and index < self_len:
+                    elements[index] = value
+                    return cont_obj(next_ctx, om_None)
+                elif index < 0 and index >= -self_len:
+                    elements[index + self_len] = value
+                    return cont_obj(next_ctx, om_None)
+                else:
+                    return sem_raise_with_message(next_ctx, class_IndexError, "list index out of range")
+
+            return sem_index(with_cont(ctx, cont), item)
     else:
         return sem_raise_with_message(ctx, class_TypeError, "__setitem__() takes exactly two argument (" + str(args_len - 1) + " given)")
 
@@ -2547,6 +2648,122 @@ def om_list_len_code(ctx, args):
 
 
 om_list_len = do_magic_method(class_list, "__len__", om_list_len_code)
+
+
+def om_list_add_code(ctx, args):
+    args_len = len(args)
+    if args_len == 2:
+        self = args[0]
+        other = args[1]
+
+        if om_isinstance(other, class_list):
+            self_len = OM_get_list_len(self)
+            self_seq = OM_get_list_seq(self)
+
+            other_len = OM_get_list_len(other)
+            other_seq = OM_get_list_seq(other)
+
+            new_len = self_len + other_len
+            new_seq = list_new(get_list_inner_len(new_len), empty_cell)
+
+            list_set_slice(new_seq, 0, self_len, self_seq)
+            list_set_slice(new_seq, self_len, new_len, other_seq)
+
+            return cont_list(ctx, new_seq, new_len)
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+
+
+    else:
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "__len__() takes one argument (" + str(args_len) + " given)")
+
+
+om_list_add = do_magic_method(class_list, "__add__", om_list_add_code)
+
+
+def om_list_extend_code(ctx, args):
+    args_len = len(args)
+    if args_len == 2:
+        self = args[0]
+        other = args[1]
+
+        def cont(rte, other_seq):
+            self_len = OM_get_list_len(self)
+            self_seq = OM_get_list_seq(self)
+
+            other_len = len(other_seq)
+
+            new_len = self_len + other_len
+
+            if new_len <= len(self_seq):
+                list_set_slice(self_seq, self_len, new_len, other_seq)
+                OM_set_list_len(self, new_len)
+            else:
+                new_seq = list_new(get_list_inner_len(new_len), empty_cell)
+
+                list_set_slice(new_seq, 0, self_len, self_seq)
+                list_set_slice(new_seq, self_len, new_len, other_seq)
+
+                OM_set_list_seq(self, new_seq)
+                OM_set_list_len(self, new_len)
+
+            return cont_obj(make_out_of_ast_context(rte, ctx.cont), om_None)
+
+        return om_unpack_iterable(with_cont(ctx, cont), other)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "extend() takes one argument (" + str(args_len) + " given)")
+
+
+om_list_extend = do_magic_method(class_list, "extend", om_list_extend_code)
+
+
+def om_list_iadd_code(ctx, args):
+    args_len = len(args)
+    if args_len == 2:
+
+        def cont(rte, _):
+            return cont_obj(make_out_of_ast_context(rte, ctx.cont), args[0])
+
+        return om_list_extend_code(with_cont(ctx, cont), args)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "__iadd__() takes one argument (" + str(args_len) + " given)")
+
+
+om_list_iadd = do_magic_method(class_list, "__iadd__", om_list_iadd_code)
+
+
+def om_list_mul_code(ctx, args):
+
+    args_len = len(args)
+
+    if args_len == 2:
+        self = args[0]
+        n = args[1]
+
+        def cont(rte, n_int):
+            repeat = int_to_num(OM_get_boxed_value(n_int))
+
+            if repeat > 0:
+                seq = OM_get_list_seq(self)
+                self_len = OM_get_list_len(self)
+
+                new_len = repeat * self_len
+
+                return cont_list(make_out_of_ast_context(rte, ctx.cont), list_repeat(seq[0:self_len], repeat), new_len)
+            else:
+                return cont_list(make_out_of_ast_context(rte, ctx.cont), [], 0)
+
+        return sem_maybe_index(with_cont(ctx, cont), n)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 argument, got " + str(len(args) - 1))
+
+
+om_list_mul = do_magic_method(class_list, "__mul__", om_list_mul_code)
+om_list_rmul = do_magic_method(class_list, "__rmul__", om_list_mul_code)
+
 
 def om_list_append_code(ctx, args):
     if debug: print('list.append')
@@ -7700,6 +7917,7 @@ def sem_int(ctx, obj):
     return sem_maybe_int(with_cont(ctx, check_result), obj)
 
 def sem_maybe_index(ctx, obj):
+    # TODO: add overflow check. The difference between __int__ and __index is that the later cannot return a bigint
     obj_int = getattribute_from_obj_mro(obj, '__index__')
 
     if obj_int is absent:
