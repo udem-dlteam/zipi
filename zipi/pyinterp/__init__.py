@@ -306,22 +306,22 @@ def make_rte(rte, globals_env, locals_env, current_func, builtins, stack, ctrl_e
     else:
         serial_counter = rte_serial_counter(rte)
 
-    rte = make_dict()
+    new_rte = make_dict()
 
-    dict_set(rte, "serial_counter", serial_counter)
-    dict_set(rte, "globals", globals_env)
-    dict_set(rte, "locals", locals_env)
-    dict_set(rte, 'current_func', current_func)
-    dict_set(rte, "builtins", builtins)
-    dict_set(rte, "stack", stack)
-    dict_set(rte, "ctrl_env", ctrl_env)
+    dict_set(new_rte, "serial_counter", serial_counter)
+    dict_set(new_rte, "globals", globals_env)
+    dict_set(new_rte, "locals", locals_env)
+    dict_set(new_rte, 'current_func', current_func)
+    dict_set(new_rte, "builtins", builtins)
+    dict_set(new_rte, "stack", stack)
+    dict_set(new_rte, "ctrl_env", ctrl_env)
 
     # Used to accumulate objects repr seen when calling sem_repr, to avoid infinite loops in nested objects
-    dict_set(rte, "seen_repr_stack", seen_repr_stack)
-    dict_set(rte, "vm", vm)
-    dict_set(rte, "options", options)
+    dict_set(new_rte, "seen_repr_stack", seen_repr_stack)
+    dict_set(new_rte, "vm", vm)
+    dict_set(new_rte, "options", options)
 
-    return rte
+    return new_rte
 
 def make_rte_from_new_ctrl_env(rte, ctrl_env):
     return make_rte(rte,
@@ -5957,11 +5957,22 @@ def fresh_rte(options):
     return rte
 
 
-def make_module_rte(options, builtins_env, builtins_module, name):
+def make_module_rte(parent_rte, options, builtins_env, builtins_module, name):
     locals_env = absent
     globals_env = make_dict()
 
-    rte = make_rte(absent, globals_env, locals_env, absent, builtins_env, absent, absent, [], absent, options)
+    rte = make_rte(
+        parent_rte,
+        globals_env,
+        locals_env,
+        absent,
+        builtins_env,
+        rte_stack(parent_rte),
+        rte_ctrl_env(parent_rte),
+        rte_get_seen_repr_stack(parent_rte),
+        rte_vm(parent_rte),
+        options)
+
 
     dict_set(globals_env, '__name__', om_str(name))
 
@@ -7319,25 +7330,26 @@ def gen_import(cte, ast):
 
     options = cte.external_context
     name = alias.name
+    filename = name + ".py"
 
     set_cte, set_code = gen_var_set(cte, alias, name)
 
     def code(rte, cont):
         builtins_env = rte_builtins(rte)
 
-        module_src = runtime_read_file(rte, name + ".py")
+        module_src = runtime_read_file(rte, filename)
 
         if module_src is None:
-            return sem_raise_with_message(Context(rte, cont, alias), class_ModuleNotFoundError, "No module named '" + name + "'")
+            return sem_raise_with_message(Context(rte, cont, ast), class_ModuleNotFoundError, "No module named '" + name + "'")
         else:
-
             module_ast = parse(module_src, '<unknown>', 'exec', False)
+            runtime_attach_ast_to_file(rte, module_ast, filename)
             module_code = comp(module_ast, options)
 
             # TODO: find builtins without passing through globals
             builtins_module = rte_lookup_globals(rte, '__builtins__')
 
-            module_rte = make_module_rte(options, builtins_env, builtins_module, name)
+            module_rte = make_module_rte(rte, options, builtins_env, builtins_module, name)
 
             module_object = om_module(name, rte_globals(module_rte))
 

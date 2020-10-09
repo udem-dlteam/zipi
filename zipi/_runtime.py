@@ -561,6 +561,9 @@ def runtime_read_file(rte, filename):
     except FileNotFoundError:
         return None
 
+def runtime_attach_ast_to_file(rte, ast, filename):
+    pass
+
 # Module random
 import random, math, sys, time
 
