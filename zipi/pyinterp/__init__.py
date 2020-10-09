@@ -1635,6 +1635,8 @@ class_ArithmeticError = make_builtin_class('ArithmeticError', OM_BaseException_c
 class_OverflowError = make_builtin_class('OverflowError', OM_BaseException_create, (class_ArithmeticError,), class_type)
 class_ZeroDivisionError = make_builtin_class('ZeroDivisionError', OM_BaseException_create, (class_ArithmeticError,), class_type)
 class_AssertionError = make_builtin_class('AssertionError', OM_BaseException_create, (class_Exception,), class_type)
+class_ImportError = make_builtin_class('ImportError', OM_BaseException_create, (class_Exception,), class_type)
+class_ModuleNotFoundError = make_builtin_class('ModuleNotFoundError', OM_BaseException_create, (class_ImportError,), class_type)
 
 om_None = om(class_NoneType)
 om_True = om_boxval(class_bool, int_from_num(1))
@@ -5914,6 +5916,8 @@ def fresh_rte(options):
     dict_set(builtins_env, 'ArithmeticError', class_ArithmeticError)
     dict_set(builtins_env, 'ZeroDivisionError', class_ZeroDivisionError)
     dict_set(builtins_env, 'AssertionError', class_AssertionError)
+    dict_set(builtins_env, 'ImportError', class_ImportError)
+    dict_set(builtins_env, 'ModuleNotFoundError', class_ModuleNotFoundError)
 
     # Pyinterp functions
     om_builtin_alert = om_make_function_with_signature('alert', om_alert_code, make_posonly_defaults_signature(('obj',), (om_str(''),)))
@@ -5951,6 +5955,20 @@ def fresh_rte(options):
     dict_set(globals_env, '__name__', om_str('__main__'))
     dict_set(globals_env, '__builtins__', om_module('builtins', builtins_env))
     return rte
+
+
+def make_module_rte(options, builtins_env, builtins_module, name):
+    locals_env = absent
+    globals_env = make_dict()
+
+    rte = make_rte(absent, globals_env, locals_env, absent, builtins_env, absent, absent, [], absent, options)
+
+    dict_set(globals_env, '__name__', om_str(name))
+
+    dict_set(globals_env, '__builtins__', builtins_module)
+
+    return rte
+
 
 def trampoline(cont):
 
@@ -6526,6 +6544,9 @@ def comp_stmt(cte, ast):
         if debug: print('AST.Raise')
         (cte1, code1) = comp_expr(cte, ast.exc)
         return gen_raise(cte1, ast, code1)
+
+    elif isinstance(ast, AST.Import):
+        return gen_import(cte, ast)
 
     else:
         return CT_raise_syntax_error_with_msg(cte, ast, "unsupported statements")
@@ -7291,6 +7312,44 @@ def gen_raise(cte, ast, code):
             return sem_raise(ctx, exn)
         return code(rte, raise_exn)
     return (cte, eval_raise_param)
+
+
+def gen_import(cte, ast):
+    alias = ast.names[0]
+
+    options = cte.external_context
+    name = alias.name
+
+    set_cte, set_code = gen_var_set(cte, alias, name)
+
+    def code(rte, cont):
+        builtins_env = rte_builtins(rte)
+
+        module_src = runtime_read_file(rte, name + ".py")
+
+        if module_src is None:
+            return sem_raise_with_message(Context(rte, cont, alias), class_ModuleNotFoundError, "No module named '" + name + "'")
+        else:
+
+            module_ast = parse(module_src, '<unknown>', 'exec', False)
+            module_code = comp(module_ast, options)
+
+            # TODO: find builtins without passing through globals
+            builtins_module = rte_lookup_globals(rte, '__builtins__')
+
+            module_rte = make_module_rte(options, builtins_env, builtins_module, name)
+
+            module_object = om_module(name, rte_globals(module_rte))
+
+            # TODO add module to sys.modules
+
+            def store_module(_):
+                return set_code(rte, cont, module_object)
+
+            return module_code(module_rte, store_module)
+
+    return set_cte, code
+
 
 def gen_Expr(cte, ast, code1):
 

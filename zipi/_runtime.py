@@ -554,6 +554,13 @@ def runtime_sleep(ms):
     time.sleep(ms / 1000)
 
 
+def runtime_read_file(rte, filename):
+    try:
+        with open(filename, 'r') as f:
+            return f.read()
+    except FileNotFoundError:
+        return None
+
 # Module random
 import random, math, sys, time
 
