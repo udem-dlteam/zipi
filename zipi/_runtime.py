@@ -518,6 +518,8 @@ def string_gt(s1, s2):
 def string_ge(s1, s2):
     return s1 >= s2
 
+def string_contains(s, sub_s):
+    return sub_s in s
 
 ###
 # IO operations

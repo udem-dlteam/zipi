@@ -7389,6 +7389,10 @@ def gen_import_seq(cte, current_import, next_code):
 def gen_import_alias(cte, ast, alias):
     options = cte.external_context
     name = alias.name
+
+    if string_contains(name, '.'):
+        return CT_raise_syntax_error_with_msg(cte, ast, "importing packages is not supported yet")
+
     asname = alias.asname
     filename = name + ".py"
 
