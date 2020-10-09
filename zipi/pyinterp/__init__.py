@@ -6603,7 +6603,7 @@ def comp_stmt(cte, ast):
         return gen_raise(cte1, ast, code1)
 
     elif isinstance(ast, AST.Import):
-        return gen_import(cte, ast)
+        return comp_import(cte, ast, ast.names)
 
     else:
         return CT_raise_syntax_error_with_msg(cte, ast, "unsupported statements")
@@ -7370,18 +7370,32 @@ def gen_raise(cte, ast, code):
         return code(rte, raise_exn)
     return (cte, eval_raise_param)
 
+def comp_import(cte, ast, names):
+    if len(names) == 1:
+        return gen_import_alias(cte, ast, names[0])
+    else:
+        alias_cte, alias_code = gen_import_alias(cte, ast, names[0])
+        tail_cte, tail_code = comp_import(alias_cte, ast, names[1:])
+        return gen_import_seq(tail_cte, alias_code, tail_code)
 
-def gen_import(cte, ast):
-    alias = ast.names[0]
 
+def gen_import_seq(cte, current_import, next_code):
+    def code(rte, cont):
+        return current_import(rte, lambda next_rte: next_code(next_rte, cont))
+
+    return cte, code
+
+
+def gen_import_alias(cte, ast, alias):
     options = cte.external_context
     name = alias.name
+    asname = alias.asname
     filename = name + ".py"
 
     import_is_in_repl = runtime_ast_is_from_repl(ast)
 
     # NOTE: we cannot be more precise then this because as for now, alias does not have positional information
-    set_cte, set_code = gen_var_set(cte, ast, name)
+    set_cte, set_code = gen_var_set(cte, ast, name if asname is None else asname)
 
     def code(rte, cont):
         existing_module = rte_get_from_sys_modules(rte, name)
@@ -7391,7 +7405,11 @@ def gen_import(cte, ast):
             module_src = runtime_read_file(rte, filename)
 
             if module_src is None:
-                return sem_raise_with_message(Context(rte, cont, ast), class_ModuleNotFoundError, "No module named '" + name + "'")
+                if import_is_in_repl and existing_module is not absent:
+                    # When repl fails to re-import a module (deleted of not a file), take existing one from sys.modules
+                    return set_code(rte, cont, existing_module)
+                else:
+                    return sem_raise_with_message(Context(rte, cont, ast), class_ModuleNotFoundError, "No module named '" + name + "'")
             else:
                 module_ast = parse(module_src, '<unknown>', 'exec', False)
                 runtime_attach_ast_to_file(rte, module_ast, filename)
