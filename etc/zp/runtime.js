@@ -167,3 +167,7 @@ function string_gt(s1, s2) {
 function string_ge(s1, s2) {
     return s1 >= s2;
 }
+
+function string_contains(s, sub_s) {
+    return s.includes(sub_s);
+}

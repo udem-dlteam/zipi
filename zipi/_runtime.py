@@ -518,6 +518,8 @@ def string_gt(s1, s2):
 def string_ge(s1, s2):
     return s1 >= s2
 
+def string_contains(s, sub_s):
+    return sub_s in s
 
 ###
 # IO operations
@@ -553,6 +555,19 @@ def runtime_prompt(msg):
 def runtime_sleep(ms):
     time.sleep(ms / 1000)
 
+
+def runtime_read_file(rte, filename):
+    try:
+        with open(filename, 'r') as f:
+            return f.read()
+    except FileNotFoundError:
+        return None
+
+def runtime_attach_ast_to_file(rte, ast, filename):
+    pass
+
+def runtime_ast_is_from_repl(ast):
+    return False
 
 # Module random
 import random, math, sys, time
