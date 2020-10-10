@@ -685,3 +685,12 @@ if debug:
 
 
             globals()[k] = wrapper
+
+def runtime_get_compilationError_thrower(vm, container, src):
+    return None
+
+def runtime_get_syntaxError_thrower(compilation_error):
+    return None
+
+def runtime_get_file_container(rte, filename):
+    return None
