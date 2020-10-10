@@ -5476,8 +5476,8 @@ def make_module_mouse():
             alt = dict_get(mouse_state, 'alt', None)
 
             struct_attrs = make_dict()
-            dict_set(struct_attrs, 'x', om_float(float_from_num(x)))
-            dict_set(struct_attrs, 'y', om_float(float_from_num(y)))
+            dict_set(struct_attrs, 'x', om_int(int_from_num(x)))
+            dict_set(struct_attrs, 'y', om_int(int_from_num(y)))
             dict_set(struct_attrs, 'down', om_bool(down))
             dict_set(struct_attrs, 'shift', om_bool(shift))
             dict_set(struct_attrs, 'ctrl', om_bool(ctrl))
@@ -5490,14 +5490,14 @@ def make_module_mouse():
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise(ctx, class_NotImplementedError)
         else:
-            return unwindReturn(rte, om_float(float_from_num(getMouseX(rte))))
+            return unwindReturn(rte, om_int(int_from_num(getMouseX(rte))))
 
     def getMouseY_code(rte, cont):
         if getMouseY is None:
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise(ctx, class_NotImplementedError)
         else:
-            return unwindReturn(rte, om_float(float_from_num(getMouseY(rte))))
+            return unwindReturn(rte, om_int(int_from_num(getMouseY(rte))))
 
     def getMouseDown_code(rte, cont):
         if getMouseDown is None:
@@ -5549,10 +5549,10 @@ def make_module_mouse():
 def make_module_pixels():
     def color_str_to_dict(s):
         len_s = len(s)
-        if len_s == 7 and s[0] == '#':
-            r = int_from_substring(s, 1, 3, 16)
-            g = int_from_substring(s, 3, 5, 16)
-            b = int_from_substring(s, 5, 7, 16)
+        if len_s == 4 and s[0] == '#':
+            r = int_from_substring(s, 1, 2, 16)
+            g = int_from_substring(s, 2, 3, 16)
+            b = int_from_substring(s, 3, 4, 16)
             if r is False or g is False or b is False:
                 return None
             else:
@@ -5578,7 +5578,7 @@ def make_module_pixels():
                     boxed_val = OM_get_boxed_value(val)
                     val_num = int_to_num(boxed_val)
 
-                    if val_num >= 0 and val_num <= 255:
+                    if val_num >= 0 and val_num <= 15:
                         color_codes.append(val_num)
                     else:
                         return None
