@@ -5470,7 +5470,7 @@ def make_module_mouse():
 
             x = dict_get(mouse_state, 'x', None)
             y = dict_get(mouse_state, 'y', None)
-            down = dict_get(mouse_state, 'down', None)
+            button = dict_get(mouse_state, 'button', None)
             shift = dict_get(mouse_state, 'shift', None)
             ctrl = dict_get(mouse_state, 'ctrl', None)
             alt = dict_get(mouse_state, 'alt', None)
@@ -5478,7 +5478,7 @@ def make_module_mouse():
             struct_attrs = make_dict()
             dict_set(struct_attrs, 'x', om_int(int_from_num(x)))
             dict_set(struct_attrs, 'y', om_int(int_from_num(y)))
-            dict_set(struct_attrs, 'down', om_bool(down))
+            dict_set(struct_attrs, 'button', om_int(button))
             dict_set(struct_attrs, 'shift', om_bool(shift))
             dict_set(struct_attrs, 'ctrl', om_bool(ctrl))
             dict_set(struct_attrs, 'alt', om_bool(alt))
@@ -5499,12 +5499,12 @@ def make_module_mouse():
         else:
             return unwindReturn(rte, om_int(int_from_num(getMouseY(rte))))
 
-    def getMouseDown_code(rte, cont):
-        if getMouseDown is None:
+    def getMouseButton_code(rte, cont):
+        if getMouseButton is None:
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise(ctx, class_NotImplementedError)
         else:
-            return unwindReturn(rte, om_bool(getMouseDown(rte)))
+            return unwindReturn(rte, om_int(getMouseButton(rte)))
 
     def getMouseShift_code(rte, cont):
         if getMouseShift is None:
@@ -5535,8 +5535,8 @@ def make_module_mouse():
              om_make_function_with_signature('getMouseX', getMouseX_code, empty_signature))
     dict_set(module_mouse_env, 'getMouseY',
              om_make_function_with_signature('getMouseY', getMouseY_code, empty_signature))
-    dict_set(module_mouse_env, 'getMouseDown',
-             om_make_function_with_signature('getMouseDown', getMouseDown_code, empty_signature))
+    dict_set(module_mouse_env, 'getMouseButton',
+             om_make_function_with_signature('getMouseButton', getMouseButton_code, empty_signature))
     dict_set(module_mouse_env, 'getMouseShift',
              om_make_function_with_signature('getMouseShift', getMouseShift_code, empty_signature))
     dict_set(module_mouse_env, 'getMouseCtrl',
