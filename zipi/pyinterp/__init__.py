@@ -7487,9 +7487,22 @@ def gen_import_alias(cte, ast, alias):
                 else:
                     return sem_raise_with_message(Context(rte, cont, ast), class_ModuleNotFoundError, "No module named '" + name + "'")
             else:
-                module_ast = parse(module_src, '<unknown>', 'exec', False)
+                container = runtime_get_file_container(rte, filename)
+
+                compilation_error_thrower = runtime_get_compilationError_thrower(rte_vm(rte), container, module_src)
+                syntax_error_thrower = runtime_get_syntaxError_thrower(compilation_error_thrower)
+
+                if options is not False:
+                    new_options = dict_copy(options)
+                    dict_set(new_options, 'compilationError', compilation_error_thrower)
+                    dict_set(new_options, 'syntaxError', syntax_error_thrower)
+                else:
+                    new_options = options
+
+                module_ast = parse(module_src, '<unknown>', 'exec', new_options)
                 runtime_attach_ast_to_file(rte, module_ast, filename)
-                module_code = comp(module_ast, options)
+
+                module_code = comp(module_ast, new_options)
 
                 builtins_module = rte_builtins_module(rte)
 
