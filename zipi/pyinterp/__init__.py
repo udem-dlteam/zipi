@@ -1057,6 +1057,7 @@ def populate_builtin_dict():
 
 def populate_builtin_module():
     builtin_add_method(class_module, '__getattribute__', om_module_getattribute)
+    builtin_add_method(class_module, '__setattr__', om_module_setattr)
     builtin_add_method(class_module, '__repr__', om_module_repr)
 
 def populate_builtin_NoneType():
@@ -1332,6 +1333,10 @@ def OM_set_type_instance_creator(o, val):
 
 def OM_get_type_instance_creator(o):
     return o.instance_creator
+
+def OM_get_module_env(o):
+    module_dict = OM_get(o, "__dict__")
+    return OM_get_boxed_value(module_dict)
 
 def OM_set_boxed_value(o, value):
     o.value = value
@@ -2044,7 +2049,6 @@ def om_object_getattribute_code(ctx, args):
             exn = om_exception(class_AttributeError, om_tuple((msg,)))
             return sem_raise(ctx, exn)
 
-        # TODO: check if attr.__get__ exists
         attr_get = getattribute_from_obj_mro(attr, '__get__')
         if attr_get is absent:
             return cont_obj(ctx, attr)
@@ -2056,7 +2060,7 @@ def om_object_getattribute_code(ctx, args):
 om_object_getattribute = do_magic_method(class_object, "__getattribute__", om_object_getattribute_code)
 
 def om_object_setattr_code(ctx, args):
-    if debug: print('object.__getattribute__')
+    if debug: print('object.__setattr__')
 
     if len(args) == 3:
         self = args[0]
@@ -3257,21 +3261,59 @@ om_str_str = do_magic_method(class_str, "__str__", om_str_str_code)
 # class_dict methods
 
 # class_module methods
-def om_module_getattribute(ctx, args):
+def om_module_getattribute_code(ctx, args):
     if debug: print('module.__getattribute__')
-    self = args[0]
-    name = args[1]
 
-    # XXX: name must be str
-    name_value = OM_get_boxed_value(name)
+    args_len = len(args)
 
-    self_dict = OM_get(self, '__dict__')
-    self_dict_value = OM_get_boxed_value(self_dict)
-    result = dict_get(self_dict_value, name_value, absent)
-    if result is absent:
-        return om_object_getattribute(ctx, args)
+    if args_len == 2:
+        self = args[0]
+        name = args[1]
+
+        if om_isinstance(name, class_str):
+            name_value = OM_get_boxed_value(name)
+
+            self_dict = OM_get(self, '__dict__')
+            self_dict_value = OM_get_boxed_value(self_dict)
+            result = dict_get(self_dict_value, name_value, absent)
+            if result is absent:
+                return om_object_getattribute(ctx, args)
+            else:
+                return ctx.cont(ctx.rte, result)
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "attribute name must be string")
     else:
-        return ctx.cont(ctx.rte, result)
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
+
+
+om_module_getattribute = do_magic_method(class_module, "__getattribute__", om_module_getattribute_code)
+
+
+def om_module_setattr_code(ctx, args):
+    if debug: print('module.__setattr__')
+
+    if len(args) == 3:
+        self = args[0]
+        name = args[1]
+        value = args[2]
+
+        if om_isinstance(name, class_str):
+            attr = OM_get_boxed_value(name)
+
+            if attr == "__class__":
+                return sem_raise_with_message(ctx, class_TypeError, "cannot set __class__ of an object")
+            else:
+                module_env = OM_get_module_env(self)
+                dict_set(module_env, attr, value)
+                return cont_obj(ctx, om_None)
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "attribute name must be string")
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 2 arguments, got " + str(len(args) - 1))
+
+
+om_module_setattr = do_magic_method(class_module, "__setattr__", om_module_setattr_code)
+
 
 def om_format_module_repr(self, rte):
     self_dict = OM_get(self, '__dict__')
