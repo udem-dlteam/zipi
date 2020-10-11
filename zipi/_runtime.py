@@ -636,10 +636,13 @@ def drawing_fillRectangle(rte, x, y, width, height):
 def drawing_exportScreen(rte):
     return ''
 
+def drawing_getScreenWidth(rte, cont):
+    return 0
+
 getMouse = None
 getMouseX = None
 getMouseY = None
-getMouseDown = None
+getMouseButton = None
 getMouseShift = None
 getMouseCtrl = None
 getMouseAlt = None
