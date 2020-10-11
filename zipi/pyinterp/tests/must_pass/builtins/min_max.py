@@ -17,3 +17,6 @@ print(max([1, 1.0, 2, 2.0]))
 print(max(1, 1.0, 2, 2.0))
 print(max([2.0, 2, 1.0, 1]))
 print(max(2.0, 2, 1.0, 1))
+
+print(min(range(10000)))
+print(max(range(10000)))

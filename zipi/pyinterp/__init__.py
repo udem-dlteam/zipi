@@ -4926,7 +4926,7 @@ def om_print_code(rte, _):
     args_len = len(args_seq)
 
     result = []
-    for i in args_seq:
+    for _ in args_seq:
         result.append(None)
 
     def loop(rte, i):
@@ -4935,7 +4935,7 @@ def om_print_code(rte, _):
 
             new_index = i + 1
             if new_index < args_len:
-                return loop(rte, new_index)
+                return stmt_end(make_out_of_ast_context(rte, lambda rte: loop(rte, new_index)), 0)
             else:
                 # sep=' '
                 runtime_print(' '.join(result), rte)
@@ -5046,7 +5046,7 @@ def do_min_max(name, sem_Comp):
                             def pick_next_candidate(pick_rte, bool_res):
                                 if om_is(bool_res, om_True):
                                     candidate_ref[0] = next_element
-                                return sem_next(make_out_of_ast_context(pick_rte, get_next), iterator, for_loop_end_marker)
+                                return sem_next_with_return_to_trampoline(make_out_of_ast_context(pick_rte, get_next), iterator, for_loop_end_marker)
                             return sem_bool(make_out_of_ast_context(compare_rte, pick_next_candidate), res)
                         return sem_Comp(make_out_of_ast_context(get_next_rte, compare_candidates), next_element, candidate_ref[0])
                 return sem_next(make_out_of_ast_context(get_first_rte, get_next), iterator, for_loop_end_marker)
@@ -8045,6 +8045,14 @@ def sem_next(ctx, obj, default_):
         next_ctx = with_catch(ctx, catch_StopIteration)
         return sem_simple_call(next_ctx, obj_next, [obj])
 
+
+def sem_next_with_return_to_trampoline(ctx, obj, default_):
+    # Useful for emulating a for-loop without too many recursions
+    def do_step(rte, val):
+        return stmt_end(Context(rte, lambda rte: ctx.cont(rte, val), ctx.ast), 0)
+    return sem_next(with_cont(ctx, do_step), obj, default_)
+
+
 def sem_iter(ctx, obj):
     obj_iter = getattribute_from_obj_mro(obj, "__iter__")
     if obj_iter is absent:
@@ -8070,7 +8078,7 @@ def sem_Contains_in_iterator(ctx, target, iterator):
                             return get_next(rte, iterator)
                     return sem_bool(Context(eq_rte, cont, ctx.ast), eq_result)
                 return sem_Eq(Context(get_next_rte, cont_eq, ctx.ast), get_next_val, target)
-        return sem_next(Context(rte, compare, ctx.ast), iterator, for_loop_end_marker)
+        return sem_next_with_return_to_trampoline(Context(rte, compare, ctx.ast), iterator, for_loop_end_marker)
     return get_next(ctx.rte, iterator)
 
 def sem_Contains(ctx, target, obj):
@@ -8091,10 +8099,8 @@ def om_unpack_iterable(ctx, it):
                 return cont_obj(ctx, seq)
             else:
                 seq.append(val)
-
-                # Return to trampoline to avoid too many recursions
-                return stmt_end(Context(rte, lambda rte: get_next(rte, iterator), ctx.ast), 0)
-        return sem_next(Context(rte, accumulate, ctx.ast), iterator, for_loop_end_marker)
+                return get_next(rte, iterator)
+        return sem_next_with_return_to_trampoline(Context(rte, accumulate, ctx.ast), iterator, for_loop_end_marker)
 
     return sem_iter(with_cont(ctx, get_next), it)
 
