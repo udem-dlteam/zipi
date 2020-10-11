@@ -5,4 +5,5 @@ print(x.__class__)
 print(x[0])
 
 print(tuple(range(10000))[1500])
+print(tuple(range(1000)))
 

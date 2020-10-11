@@ -2401,23 +2401,18 @@ def make_tuple(ctx, elements):
     return ctx.cont(ctx.rte, om_tuple(elements))
 
 
-def om_tuple_elements_repr(ctx, elts, repr_acc):
-    if len(elts) == 0:
-        repr_acc_len = len(repr_acc)
-        if repr_acc_len == 0:
-            return ctx.cont(ctx.rte, om_str("()"))
-        elif repr_acc_len == 1:
-            result = '(' + repr_acc[0] + ',)'
-            return ctx.cont(ctx.rte, om_str(result))
-        else:
-            result = '(' + ', '.join(repr_acc) + ')'
-            return ctx.cont(ctx.rte, om_str(result))
+def om_tuple_elements_repr(ctx, elts, repr_acc, i):
+    if len(elts) == i:
+        result = '(' + ', '.join(repr_acc) + (',' if i == 1 else '') + ')'
+        return cont_str(ctx, result)
     else:
         def cont(rte, value):
             repr_acc.append(OM_get_boxed_value(value))
-            return om_tuple_elements_repr(ctx, elts[1:], repr_acc)
+            return stmt_end(
+                Context(rte, lambda _: om_tuple_elements_repr(with_rte(ctx, rte), elts, repr_acc, i + 1), ctx.ast),
+                0)
 
-        return sem_repr(with_cont(ctx, cont), elts[0])
+        return sem_repr(with_cont(ctx, cont), elts[i])
 
 
 def om_tuple_repr_code(ctx, args):
@@ -2434,7 +2429,7 @@ def om_tuple_repr_code(ctx, args):
         else:
             rte_add_seen_repr(rte, self)
             elements = OM_get_tuple_seq(self)
-            return om_tuple_elements_repr(ctx, elements, [])
+            return om_tuple_elements_repr(ctx, elements, [], 0)
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 0 argument, got " + str(args_len - 1))
 
@@ -2609,11 +2604,13 @@ om_list_new = do_static_magic_method(class_list, "__new__", om_list_new_code)
 def om_list_elements_repr(ctx, elts, repr_acc, i):
     if len(elts) == i or elts[i] is empty_cell:
         result = '[' + ', '.join(repr_acc) + ']'
-        return ctx.cont(ctx.rte, om_str(result))
+        return cont_str(ctx, result)
     else:
         def cont(rte, value):
             repr_acc.append(OM_get_boxed_value(value))
-            return om_list_elements_repr(ctx, elts, repr_acc, i + 1)
+            return stmt_end(
+                Context(rte, lambda _: om_list_elements_repr(with_rte(ctx, rte), elts, repr_acc, i + 1), ctx.ast),
+                0)
 
         return sem_repr(with_cont(ctx, cont), elts[i])
 
