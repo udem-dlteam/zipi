@@ -185,7 +185,12 @@ def with_cont_and_catch(ctx, cont, catcher_cont):
     return with_catch(with_cont(ctx, cont), catcher_cont)
 
 def make_out_of_ast_context(rte, cont):
+    # Note use only if there is no access to the ctx or the ast
+    # only the ctx and the rte are available, use 'with_rte', this will use the ast stored in the ctx
     return Context(rte, cont, None)
+
+def with_rte(ctx, rte):
+    return Context(rte, ctx.cont, ctx.ast)
 
 
 class OM_object:
@@ -2539,15 +2544,17 @@ def om_tuple_mul_code(ctx, args):
         other = args[1]
 
         def cont(rte, n):
-            repeat = int_to_num(OM_get_boxed_value(n))
-
-            if repeat > 0:
-                elements = OM_get_tuple_seq(self)
-
-                return cont_tuple(make_out_of_ast_context(rte, ctx.cont), list_repeat(elements, repeat))
+            if n is absent:
+                return cont_obj(with_rte(ctx, rte), om_NotImplemented)
             else:
-                return cont_tuple(make_out_of_ast_context(rte, ctx.cont), [])
+                repeat = int_to_num(OM_get_boxed_value(n))
 
+                if repeat > 0:
+                    elements = OM_get_tuple_seq(self)
+
+                    return cont_tuple(with_rte(ctx, rte), list_repeat(elements, repeat))
+                else:
+                    return cont_tuple(with_rte(ctx, rte), [])
         return sem_maybe_index(with_cont(ctx, cont), other)
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 1 argument, got " + str(len(args) - 1))
@@ -2645,7 +2652,7 @@ def om_list_getitem_code(ctx, args):
                 self_len = int_from_num(OM_get_list_len(self))
                 elements = OM_get_list_seq(self)
 
-                next_ctx = make_out_of_ast_context(rte, ctx.cont)
+                next_ctx = with_rte(ctx, rte)
 
                 if int_ge(index, self_len):
                     return sem_raise_with_message(next_ctx, class_IndexError, "list index out of range")
@@ -2679,7 +2686,7 @@ def om_list_setitem_code(ctx, args):
                 self_len = OM_get_list_len(self)
                 elements = OM_get_list_seq(self)
 
-                next_ctx = make_out_of_ast_context(rte, ctx.cont)
+                next_ctx = with_rte(ctx, rte)
 
                 if index >= 0 and index < self_len:
                     elements[index] = value
@@ -2768,7 +2775,7 @@ def om_list_extend_code(ctx, args):
                 OM_set_list_seq(self, new_seq)
                 OM_set_list_len(self, new_len)
 
-            return cont_obj(make_out_of_ast_context(rte, ctx.cont), om_None)
+            return cont_obj(with_rte(ctx, rte), om_None)
 
         return om_unpack_iterable(with_cont(ctx, cont), other)
     else:
@@ -2784,7 +2791,7 @@ def om_list_iadd_code(ctx, args):
     if args_len == 2:
 
         def cont(rte, _):
-            return cont_obj(make_out_of_ast_context(rte, ctx.cont), args[0])
+            return cont_obj(with_rte(ctx, rte), args[0])
 
         return om_list_extend_code(with_cont(ctx, cont), args)
     else:
@@ -2804,18 +2811,20 @@ def om_list_mul_code(ctx, args):
         n = args[1]
 
         def cont(rte, n_int):
-            repeat = int_to_num(OM_get_boxed_value(n_int))
-
-            if repeat > 0:
-                seq = OM_get_list_seq(self)
-                self_len = OM_get_list_len(self)
-
-                new_len = repeat * self_len
-
-                return cont_list(make_out_of_ast_context(rte, ctx.cont), list_repeat(seq[0:self_len], repeat), new_len)
+            if n_int is absent:
+                return cont_obj(with_rte(ctx, rte), om_NotImplemented)
             else:
-                return cont_list(make_out_of_ast_context(rte, ctx.cont), [], 0)
+                repeat = int_to_num(OM_get_boxed_value(n_int))
 
+                if repeat > 0:
+                    seq = OM_get_list_seq(self)
+                    self_len = OM_get_list_len(self)
+
+                    new_len = repeat * self_len
+
+                    return cont_list(with_rte(ctx, rte), list_repeat(seq[0:self_len], repeat), new_len)
+                else:
+                    return cont_list(with_rte(ctx, rte), [], 0)
         return sem_maybe_index(with_cont(ctx, cont), n)
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 1 argument, got " + str(len(args) - 1))
@@ -4897,7 +4906,7 @@ def om_chr_code(rte, cont):
             return sem_raise_with_message(ctx, class_ValueError, "chr() arg not in range(0x110000)")
     else:
         ctx = make_out_of_ast_context(rte, cont)
-        return sem_raise_with_message(ctx, class_TypeError, "an interger is required")
+        return sem_raise_with_message(ctx, class_TypeError, "an integer is required")
 
 def om_ord_code(rte, cont):
     obj = rte_lookup_locals(rte, "obj")
