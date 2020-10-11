@@ -8082,10 +8082,12 @@ def om_unpack_iterable(ctx, it):
     def get_next(rte, iterator):
         def accumulate(rte, val):
             if val is for_loop_end_marker:
-                return ctx.cont(ctx.rte, seq)
+                return cont_obj(ctx, seq)
             else:
                 seq.append(val)
-                return get_next(rte, iterator)
+
+                # Return to trampoline to avoid too many recursions
+                return stmt_end(Context(rte, lambda rte: get_next(rte, iterator), ctx.ast), 0)
         return sem_next(Context(rte, accumulate, ctx.ast), iterator, for_loop_end_marker)
 
     return sem_iter(with_cont(ctx, get_next), it)
