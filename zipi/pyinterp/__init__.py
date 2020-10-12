@@ -8313,7 +8313,7 @@ def gen_Subscript_Store(cte, ast, target, value):
                 def set_item(setitem_rte, value):
                     msg = make_message(setitem_rte, obj, index, value)
                     cont_stmt_end_with_message = do_stmt_end_with_message(cont, ast)
-                    ctx = Context(setitem_rte, lambda rte, _: cont_stmt_end_with_message(rte, msg), ast)
+                    ctx = Context(setitem_rte, lambda rte: cont_stmt_end_with_message(rte, msg), ast)
                     return sem_setitem(ctx, obj, index, value)
                 return value_code(get_value_rte, set_item)
             return index_code(rte, get_value)
