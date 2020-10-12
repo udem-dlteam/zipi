@@ -6627,14 +6627,7 @@ def comp_stmt(cte, ast):
 
     elif isinstance(ast, AST.AugAssign):
         if debug: print("AST.AugAssign")
-        target = ast.target
-        if isinstance(target, AST.Name):
-            op = ast.op
-            target = ast.target
-            value = ast.value
-            return gen_aug_assign(cte, ast, target, op, value)
-        else:
-            return CT_raise_syntax_error_with_msg(cte, ast, "illegal expression for augmented assignment")
+        return gen_aug_assign(cte, ast)
 
 
     elif isinstance(ast, AST.While):
@@ -7615,52 +7608,85 @@ def gen_UnaryOp(cte, ast, op, code1):
     return (cte, code)
 
 
-def gen_aug_assign(cte, ast, target, op, value):
-    if debug: print(op)
+def gen_aug_op(cte, ast):
+    op = ast.op
 
     if isinstance(op, AST.Add):
-        sem_op = sem_IAdd
+        return sem_IAdd
     elif isinstance(op, AST.Sub):
-        sem_op = sem_ISub
+        return sem_ISub
     elif isinstance(op, AST.Mult):
-        sem_op = sem_IMul
+        return sem_IMul
     elif isinstance(op, AST.Div):
-        sem_op = sem_ITrueDiv
+        return sem_ITrueDiv
     elif isinstance(op, AST.FloorDiv):
-        sem_op = sem_IFloorDiv
+        return sem_IFloorDiv
     elif isinstance(op, AST.Mod):
-        sem_op = sem_IMod
+        return sem_IMod
     elif isinstance(op, AST.LShift):
-        sem_op = sem_ILShift
+        return sem_ILShift
     elif isinstance(op, AST.RShift):
-        sem_op = sem_IRShift
+        return sem_IRShift
     elif isinstance(op, AST.BitAnd):
-        sem_op = sem_IAnd
+        return sem_IAnd
     elif isinstance(op, AST.BitOr):
-        sem_op = sem_IOr
+        return sem_IOr
     elif isinstance(op, AST.BitXor):
-        sem_op = sem_IXor
+        return sem_IXor
     elif isinstance(op, AST.Pow):
-        sem_op = sem_IPow
+        return sem_IPow
     else:
         return CT_raise_syntax_error_with_msg(cte, ast, "Unimplemented assignment operator")
 
-    id_ = target.id
 
-    get_cte, get_target = gen_var_get(cte, target, id_)
-    val_cte, val_code = comp_expr(get_cte, ast.value)
-    set_cte, set_target = gen_var_set(val_cte, ast, id_)
+def gen_aug_assign(cte, ast):
+    target = ast.target
+    sem_op = gen_aug_op(cte, ast)
 
-    def code(rte, cont):
-        def get_val(get_rte, target_val):
-            def do_sem(val_rte, lhs_val):
-                def do_set(set_rte, val):
-                    return set_target(set_rte, cont, val)
-                return sem_op(Context(val_rte, do_set, ast), target_val, lhs_val)
-            return val_code(get_rte, do_sem)
-        return get_target(rte, get_val)
+    if isinstance(target, AST.Name):
+        value = ast.value
+        id_ = target.id
 
-    return set_cte, code
+        get_cte, get_target = gen_var_get(cte, target, id_)
+        val_cte, val_code = comp_expr(get_cte, value)
+        set_cte, set_target = gen_var_set(val_cte, ast, id_)
+
+        def code(rte, cont):
+            def get_val(get_rte, target_val):
+                def do_sem(val_rte, lhs_val):
+                    def do_set(set_rte, val):
+                        return set_target(set_rte, cont, val)
+                    return sem_op(Context(val_rte, do_set, ast), target_val, lhs_val)
+                return val_code(get_rte, do_sem)
+            return get_target(rte, get_val)
+
+        return set_cte, code
+    elif isinstance(target, AST.Subscript):
+        target_obj = target.value
+        target_index = target.slice.value
+        value = ast.value
+
+        obj_cte, obj_code = comp_expr(cte, target_obj)
+        index_cte, index_code = comp_expr(obj_cte, target_index)
+        value_cte, value_code = comp_expr(index_cte, value)
+
+        def code(rte, cont):
+            def get_container(container_rte, container):
+                def get_index(index_rte, index):
+                    def get_lhs(lhs_rte, lhs_obj):
+                        def get_value(value_rte, value):
+                            def get_op_res(res_rte, res):
+                                return sem_setitem(Context(res_rte, cont, ast), container, index, res)
+                            return sem_op(Context(value_rte, get_op_res, ast), lhs_obj, value)
+                        return value_code(lhs_rte, get_value)
+                    return sem_getitem(Context(index_rte, get_lhs, target_obj), container, index)
+                return index_code(container_rte, get_index)
+            return obj_code(rte, get_container)
+        return value_cte, code
+    elif isinstance(target, AST.Attribute):
+        ...
+    else:
+        return CT_raise_syntax_error_with_msg(cte, ast, "illegal expression for augmented assignment")
 
 
 def gen_BinOp(cte, ast, op, code1, code2):
