@@ -7679,13 +7679,43 @@ def gen_aug_assign(cte, ast):
         index_cte, index_code = comp_expr(obj_cte, target_index)
         value_cte, value_code = comp_expr(index_cte, value)
 
+        if isinstance(target_obj, AST.Name):
+            id_ = target_obj.id
+            def _make_message_lhs(rte, _, index):
+                ctx = Context(rte, None, ast)
+
+                index_repr = om_simple_repr(ctx, index)
+
+                return id_ + "[" + index_repr + "] ← "
+
+            make_message_lhs = _make_message_lhs
+        else:
+            def _make_message_lhs(rte, obj, index):
+                ctx = Context(rte, None, ast)
+
+                obj_repr = om_simple_repr(ctx, obj)
+                index_repr = om_simple_repr(ctx, index)
+
+                return obj_repr + "[" + index_repr + "] ← "
+            make_message_lhs = _make_message_lhs
+
         def code(rte, cont):
             def get_container(container_rte, container):
                 def get_index(index_rte, index):
                     def get_lhs(lhs_rte, lhs_obj):
                         def get_value(value_rte, value):
+                            # Get message lhs before applying sem_op to show before/after in bubble
+                            msg_lhs = make_message_lhs(value_rte, container, index)
+
                             def get_op_res(res_rte, res):
-                                return sem_setitem(Context(res_rte, cont, ast), container, index, res)
+                                cont_stmt_end_with_message = do_stmt_end_with_message(cont, ast)
+                                msg = msg_lhs + om_simple_repr(Context(rte, None, ast), res)
+
+                                return sem_setitem(
+                                    Context(res_rte, lambda rte: cont_stmt_end_with_message(rte, msg), ast),
+                                    container,
+                                    index,
+                                    res)
                             return sem_op(Context(value_rte, get_op_res, ast), lhs_obj, value)
                         return value_code(lhs_rte, get_value)
                     return sem_getitem(Context(index_rte, get_lhs, target_obj), container, index)
