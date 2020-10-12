@@ -188,7 +188,12 @@ def with_cont_and_catch(ctx, cont, catcher_cont):
     return with_catch(with_cont(ctx, cont), catcher_cont)
 
 def make_out_of_ast_context(rte, cont):
+    # Note use only if there is no access to the ctx or the ast
+    # only the ctx and the rte are available, use 'with_rte', this will use the ast stored in the ctx
     return Context(rte, cont, None)
+
+def with_rte(ctx, rte):
+    return Context(rte, ctx.cont, ctx.ast)
 
 
 class OM_object:
@@ -303,40 +308,66 @@ def frame_cont(frame):
 def frame_ast(frame):
     return frame[2]
 
-def make_rte(rte, globals_env, locals_env, current_func, builtins, stack, ctrl_env, seen_repr_stack, vm, options):
-    if rte is absent:
-        serial_counter = [0]
-    else:
-        serial_counter = rte_serial_counter(rte)
+def make_rte_from_parent(rte, globals_env, locals_env, current_func, stack, ctrl_env):
+    serial_counter = rte_serial_counter(rte)
+    sys_modules = rte_sys_modules(rte)
+    seen_repr_stack = rte_get_seen_repr_stack(rte)
+    vm = rte_vm(rte)
+    options = rte_options(rte)
+    builtins = rte_builtins(rte)
+    builtins_module = rte_builtins_module(rte)
 
-    rte = make_dict()
+    new_rte = make_dict()
 
-    dict_set(rte, "serial_counter", serial_counter)
-    dict_set(rte, "globals", globals_env)
-    dict_set(rte, "locals", locals_env)
-    dict_set(rte, 'current_func', current_func)
-    dict_set(rte, "builtins", builtins)
-    dict_set(rte, "stack", stack)
-    dict_set(rte, "ctrl_env", ctrl_env)
+    dict_set(new_rte, "serial_counter", serial_counter)
+    dict_set(new_rte, "globals", globals_env)
+    dict_set(new_rte, "locals", locals_env)
+    dict_set(new_rte, 'current_func', current_func)
+    dict_set(new_rte, "builtins", builtins)
+    dict_set(new_rte, "builtins_module", builtins_module)
+    dict_set(new_rte, "stack", stack)
+    dict_set(new_rte, "ctrl_env", ctrl_env)
+    dict_set(new_rte, "sys_modules", sys_modules)
 
     # Used to accumulate objects repr seen when calling sem_repr, to avoid infinite loops in nested objects
-    dict_set(rte, "seen_repr_stack", seen_repr_stack)
-    dict_set(rte, "vm", vm)
-    dict_set(rte, "options", options)
+    dict_set(new_rte, "seen_repr_stack", seen_repr_stack)
 
-    return rte
+    dict_set(new_rte, "vm", vm)
+    dict_set(new_rte, "options", options)
+
+    return new_rte
+
+def make_new_rte(globals_env, locals_env, builtins, builtins_module, options):
+    serial_counter = [0]
+    sys_modules = make_dict()
+
+    new_rte = make_dict()
+
+    dict_set(new_rte, "serial_counter", serial_counter)
+    dict_set(new_rte, "globals", globals_env)
+    dict_set(new_rte, "locals", locals_env)
+    dict_set(new_rte, 'current_func', absent)
+    dict_set(new_rte, "builtins", builtins)
+    dict_set(new_rte, "builtins_module", builtins_module)
+    dict_set(new_rte, "stack", absent)
+    dict_set(new_rte, "ctrl_env", absent)
+    dict_set(new_rte, "sys_modules", sys_modules)
+
+    # Used to accumulate objects repr seen when calling sem_repr, to avoid infinite loops in nested objects
+    dict_set(new_rte, "seen_repr_stack", [])
+
+    dict_set(new_rte, "vm", absent)
+    dict_set(new_rte, "options", options)
+
+    return new_rte
 
 def make_rte_from_new_ctrl_env(rte, ctrl_env):
-    return make_rte(rte,
-                    rte_globals(rte),
-                    rte_locals(rte),
-                    rte_current_func(rte),
-                    rte_builtins(rte),
-                    rte_stack(rte),
-                    ctrl_env,
-                    rte_get_seen_repr_stack(rte),
-                    rte_vm(rte),
-                    rte_options(rte))
+    return make_rte_from_parent(rte,
+                                rte_globals(rte),
+                                rte_locals(rte),
+                                rte_current_func(rte),
+                                rte_stack(rte),
+                                ctrl_env)
 
 def unwind_rte_ctrl_env(rte):
     next_ctrl_env = rte_ctrl_env(rte).ctrl_next
@@ -351,8 +382,27 @@ def rte_get_serial(rte):
     boxed_serial[0] = serial + 1
     return serial
 
+def rte_sys_modules(rte):
+    return dict_get(rte, 'sys_modules', absent)
+
+def rte_add_to_sys_modules(rte, name, module):
+    sys_modules = rte_sys_modules(rte)
+    dict_set(sys_modules, name, module)
+
+def rte_get_from_sys_modules(rte, name):
+    sys_modules = rte_sys_modules(rte)
+    return dict_get(sys_modules, name, absent)
+
 def rte_globals(rte):
     return dict_get(rte, 'globals', absent)
+
+def rte_lexical_globals(rte):
+    current_func = rte_current_func(rte)
+
+    if current_func is absent:
+        return rte_globals(rte)
+    else:
+        return OM_get_function_globals(current_func)
 
 def rte_locals(rte):
     return dict_get(rte, 'locals', absent)
@@ -362,6 +412,9 @@ def rte_current_func(rte):
 
 def rte_builtins(rte):
     return dict_get(rte, 'builtins', absent)
+
+def rte_builtins_module(rte):
+    return dict_get(rte, 'builtins_module', absent)
 
 def rte_stack(rte):
     return dict_get(rte, 'stack', absent)
@@ -391,9 +444,13 @@ def rte_options(rte):
 
 # Return variable value or absent.
 def rte_lookup_globals(rte, name):
-    env = rte_globals(rte)
+    env = rte_lexical_globals(rte)
     result = dict_get(env, name, absent)
     return result
+
+def rte_set_globals(rte, varname, val):
+    env = rte_lexical_globals(rte)
+    dict_set(env, varname, val)
 
 def rte_lookup_locals(rte, name):
     env = rte_locals(rte)
@@ -419,10 +476,6 @@ def rte_set_locals_boxed(rte, varname, val):
     env = rte_locals(rte)
     slot = dict_get(env, varname, None) # Return None to cause crash of the varname is not present
     slot[0] = val
-
-def rte_set_globals(rte, varname, val):
-    env = rte_globals(rte)
-    dict_set(env, varname, val)
 
 def rte_set_closure(rte, pos, val):
     func = rte_current_func(rte)
@@ -1016,6 +1069,7 @@ def populate_builtin_dict():
 
 def populate_builtin_module():
     builtin_add_method(class_module, '__getattribute__', om_module_getattribute)
+    builtin_add_method(class_module, '__setattr__', om_module_setattr)
     builtin_add_method(class_module, '__repr__', om_module_repr)
 
 def populate_builtin_NoneType():
@@ -1292,6 +1346,10 @@ def OM_set_type_instance_creator(o, val):
 def OM_get_type_instance_creator(o):
     return o.instance_creator
 
+def OM_get_module_env(o):
+    module_dict = OM_get(o, "__dict__")
+    return OM_get_boxed_value(module_dict)
+
 def OM_set_boxed_value(o, value):
     o.value = value
 
@@ -1400,6 +1458,12 @@ def OM_get_function_locals(o):
 
 def OM_set_function_locals(o, locals):
     o.locals = locals
+
+def OM_get_function_globals(o):
+    return o.globals
+
+def OM_set_function_globals(o, globals):
+    o.globals = globals
 
 def OM_get_function_closure(o):
     return o.closure
@@ -1642,6 +1706,8 @@ class_ArithmeticError = make_builtin_class('ArithmeticError', OM_BaseException_c
 class_OverflowError = make_builtin_class('OverflowError', OM_BaseException_create, (class_ArithmeticError,), class_type)
 class_ZeroDivisionError = make_builtin_class('ZeroDivisionError', OM_BaseException_create, (class_ArithmeticError,), class_type)
 class_AssertionError = make_builtin_class('AssertionError', OM_BaseException_create, (class_Exception,), class_type)
+class_ImportError = make_builtin_class('ImportError', OM_BaseException_create, (class_Exception,), class_type)
+class_ModuleNotFoundError = make_builtin_class('ModuleNotFoundError', OM_BaseException_create, (class_ImportError,), class_type)
 
 om_None = om(class_NoneType)
 om_True = om_boxval(class_bool, int_from_num(1))
@@ -1995,7 +2061,6 @@ def om_object_getattribute_code(ctx, args):
             exn = om_exception(class_AttributeError, om_tuple((msg,)))
             return sem_raise(ctx, exn)
 
-        # TODO: check if attr.__get__ exists
         attr_get = getattribute_from_obj_mro(attr, '__get__')
         if attr_get is absent:
             return cont_obj(ctx, attr)
@@ -2007,7 +2072,7 @@ def om_object_getattribute_code(ctx, args):
 om_object_getattribute = do_magic_method(class_object, "__getattribute__", om_object_getattribute_code)
 
 def om_object_setattr_code(ctx, args):
-    if debug: print('object.__getattribute__')
+    if debug: print('object.__setattr__')
 
     if len(args) == 3:
         self = args[0]
@@ -2343,23 +2408,18 @@ def make_tuple(ctx, elements):
     return ctx.cont(ctx.rte, om_tuple(elements))
 
 
-def om_tuple_elements_repr(ctx, elts, repr_acc):
-    if len(elts) == 0:
-        repr_acc_len = len(repr_acc)
-        if repr_acc_len == 0:
-            return ctx.cont(ctx.rte, om_str("()"))
-        elif repr_acc_len == 1:
-            result = '(' + repr_acc[0] + ',)'
-            return ctx.cont(ctx.rte, om_str(result))
-        else:
-            result = '(' + ', '.join(repr_acc) + ')'
-            return ctx.cont(ctx.rte, om_str(result))
+def om_tuple_elements_repr(ctx, elts, repr_acc, i):
+    if len(elts) == i:
+        result = '(' + ', '.join(repr_acc) + (',' if i == 1 else '') + ')'
+        return cont_str(ctx, result)
     else:
         def cont(rte, value):
             repr_acc.append(OM_get_boxed_value(value))
-            return om_tuple_elements_repr(ctx, elts[1:], repr_acc)
+            return stmt_end(
+                Context(rte, lambda _: om_tuple_elements_repr(with_rte(ctx, rte), elts, repr_acc, i + 1), ctx.ast),
+                0)
 
-        return sem_repr(with_cont(ctx, cont), elts[0])
+        return sem_repr(with_cont(ctx, cont), elts[i])
 
 
 def om_tuple_repr_code(ctx, args):
@@ -2376,7 +2436,7 @@ def om_tuple_repr_code(ctx, args):
         else:
             rte_add_seen_repr(rte, self)
             elements = OM_get_tuple_seq(self)
-            return om_tuple_elements_repr(ctx, elements, [])
+            return om_tuple_elements_repr(ctx, elements, [], 0)
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 0 argument, got " + str(args_len - 1))
 
@@ -2486,15 +2546,17 @@ def om_tuple_mul_code(ctx, args):
         other = args[1]
 
         def cont(rte, n):
-            repeat = int_to_num(OM_get_boxed_value(n))
-
-            if repeat > 0:
-                elements = OM_get_tuple_seq(self)
-
-                return cont_tuple(make_out_of_ast_context(rte, ctx.cont), list_repeat(elements, repeat))
+            if n is absent:
+                return cont_obj(with_rte(ctx, rte), om_NotImplemented)
             else:
-                return cont_tuple(make_out_of_ast_context(rte, ctx.cont), [])
+                repeat = int_to_num(OM_get_boxed_value(n))
 
+                if repeat > 0:
+                    elements = OM_get_tuple_seq(self)
+
+                    return cont_tuple(with_rte(ctx, rte), list_repeat(elements, repeat))
+                else:
+                    return cont_tuple(with_rte(ctx, rte), [])
         return sem_maybe_index(with_cont(ctx, cont), other)
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 1 argument, got " + str(len(args) - 1))
@@ -2549,11 +2611,13 @@ om_list_new = do_static_magic_method(class_list, "__new__", om_list_new_code)
 def om_list_elements_repr(ctx, elts, repr_acc, i):
     if len(elts) == i or elts[i] is empty_cell:
         result = '[' + ', '.join(repr_acc) + ']'
-        return ctx.cont(ctx.rte, om_str(result))
+        return cont_str(ctx, result)
     else:
         def cont(rte, value):
             repr_acc.append(OM_get_boxed_value(value))
-            return om_list_elements_repr(ctx, elts, repr_acc, i + 1)
+            return stmt_end(
+                Context(rte, lambda _: om_list_elements_repr(with_rte(ctx, rte), elts, repr_acc, i + 1), ctx.ast),
+                0)
 
         return sem_repr(with_cont(ctx, cont), elts[i])
 
@@ -2592,7 +2656,7 @@ def om_list_getitem_code(ctx, args):
                 self_len = int_from_num(OM_get_list_len(self))
                 elements = OM_get_list_seq(self)
 
-                next_ctx = make_out_of_ast_context(rte, ctx.cont)
+                next_ctx = with_rte(ctx, rte)
 
                 if int_ge(index, self_len):
                     return sem_raise_with_message(next_ctx, class_IndexError, "list index out of range")
@@ -2626,7 +2690,7 @@ def om_list_setitem_code(ctx, args):
                 self_len = OM_get_list_len(self)
                 elements = OM_get_list_seq(self)
 
-                next_ctx = make_out_of_ast_context(rte, ctx.cont)
+                next_ctx = with_rte(ctx, rte)
 
                 if index >= 0 and index < self_len:
                     elements[index] = value
@@ -2715,7 +2779,7 @@ def om_list_extend_code(ctx, args):
                 OM_set_list_seq(self, new_seq)
                 OM_set_list_len(self, new_len)
 
-            return cont_obj(make_out_of_ast_context(rte, ctx.cont), om_None)
+            return cont_obj(with_rte(ctx, rte), om_None)
 
         return om_unpack_iterable(with_cont(ctx, cont), other)
     else:
@@ -2731,7 +2795,7 @@ def om_list_iadd_code(ctx, args):
     if args_len == 2:
 
         def cont(rte, _):
-            return cont_obj(make_out_of_ast_context(rte, ctx.cont), args[0])
+            return cont_obj(with_rte(ctx, rte), args[0])
 
         return om_list_extend_code(with_cont(ctx, cont), args)
     else:
@@ -2751,18 +2815,20 @@ def om_list_mul_code(ctx, args):
         n = args[1]
 
         def cont(rte, n_int):
-            repeat = int_to_num(OM_get_boxed_value(n_int))
-
-            if repeat > 0:
-                seq = OM_get_list_seq(self)
-                self_len = OM_get_list_len(self)
-
-                new_len = repeat * self_len
-
-                return cont_list(make_out_of_ast_context(rte, ctx.cont), list_repeat(seq[0:self_len], repeat), new_len)
+            if n_int is absent:
+                return cont_obj(with_rte(ctx, rte), om_NotImplemented)
             else:
-                return cont_list(make_out_of_ast_context(rte, ctx.cont), [], 0)
+                repeat = int_to_num(OM_get_boxed_value(n_int))
 
+                if repeat > 0:
+                    seq = OM_get_list_seq(self)
+                    self_len = OM_get_list_len(self)
+
+                    new_len = repeat * self_len
+
+                    return cont_list(with_rte(ctx, rte), list_repeat(seq[0:self_len], repeat), new_len)
+                else:
+                    return cont_list(with_rte(ctx, rte), [], 0)
         return sem_maybe_index(with_cont(ctx, cont), n)
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 1 argument, got " + str(len(args) - 1))
@@ -3267,21 +3333,59 @@ om_str_str = do_magic_method(class_str, "__str__", om_str_str_code)
 # class_dict methods
 
 # class_module methods
-def om_module_getattribute(ctx, args):
+def om_module_getattribute_code(ctx, args):
     if debug: print('module.__getattribute__')
-    self = args[0]
-    name = args[1]
 
-    # XXX: name must be str
-    name_value = OM_get_boxed_value(name)
+    args_len = len(args)
 
-    self_dict = OM_get(self, '__dict__')
-    self_dict_value = OM_get_boxed_value(self_dict)
-    result = dict_get(self_dict_value, name_value, absent)
-    if result is absent:
-        return om_object_getattribute(ctx, args)
+    if args_len == 2:
+        self = args[0]
+        name = args[1]
+
+        if om_isinstance(name, class_str):
+            name_value = OM_get_boxed_value(name)
+
+            self_dict = OM_get(self, '__dict__')
+            self_dict_value = OM_get_boxed_value(self_dict)
+            result = dict_get(self_dict_value, name_value, absent)
+            if result is absent:
+                return om_object_getattribute(ctx, args)
+            else:
+                return ctx.cont(ctx.rte, result)
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "attribute name must be string")
     else:
-        return ctx.cont(ctx.rte, result)
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
+
+
+om_module_getattribute = do_magic_method(class_module, "__getattribute__", om_module_getattribute_code)
+
+
+def om_module_setattr_code(ctx, args):
+    if debug: print('module.__setattr__')
+
+    if len(args) == 3:
+        self = args[0]
+        name = args[1]
+        value = args[2]
+
+        if om_isinstance(name, class_str):
+            attr = OM_get_boxed_value(name)
+
+            if attr == "__class__":
+                return sem_raise_with_message(ctx, class_TypeError, "cannot set __class__ of an object")
+            else:
+                module_env = OM_get_module_env(self)
+                dict_set(module_env, attr, value)
+                return cont_obj(ctx, om_None)
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "attribute name must be string")
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 2 arguments, got " + str(len(args) - 1))
+
+
+om_module_setattr = do_magic_method(class_module, "__setattr__", om_module_setattr_code)
+
 
 def om_format_module_repr(self, rte):
     self_dict = OM_get(self, '__dict__')
@@ -3331,7 +3435,7 @@ def om_NoneType_repr_code(ctx, val):
 om_NoneType_repr = do_magic_method(class_NoneType, "__repr__", om_NoneType_repr_code)
 
 # class_function methods
-def om_make_function_with_signature(name, code, signature):
+def om_make_builtin_function_with_signature(name, code, signature):
     om_fn = om(class_function)
 
     OM_set(om_fn, '__name__', om_str(name))
@@ -3339,8 +3443,11 @@ def om_make_function_with_signature(name, code, signature):
     OM_set_function_body(om_fn, code)
     arity = signature_arity(signature)
     OM_set_function_arity(om_fn, arity)
-    # setting an empty local env is ok because hand-written builtin have no closure/assignments
+    # NOTE: builtin function should have no closure and no reference to global variables
+    # It should also not affect the bubble that we have no access to upper scopes since we cannot step into
+    # a builtin function. If any of that changes, this is going to break.
     OM_set_function_locals(om_fn, [])
+    OM_set_function_globals(om_fn, absent)
 
     return om_fn
 
@@ -3372,9 +3479,9 @@ def om_function_call_code(ctx, args, kwargs):
                 dict_set(call_locals_env, name, value)
 
 
-        rte = make_rte(ctx.rte, rte_globals(ctx.rte), call_locals_env, self, rte_builtins(ctx.rte), stack, rte_ctrl_env(ctx.rte), rte_get_seen_repr_stack(ctx.rte), rte_vm(ctx.rte), rte_options(ctx.rte))
+        new_rte = make_rte_from_parent(rte, rte_globals(rte), call_locals_env, self, stack, rte_ctrl_env(rte))
         body = OM_get_function_body(self)
-        return body(rte,
+        return body(new_rte,
                     lambda rte1:
                        frame_cont(rte_stack(rte1))(frame_rte(rte_stack(rte1)), om_None))
 
@@ -4862,7 +4969,7 @@ def om_chr_code(rte, cont):
             return sem_raise_with_message(ctx, class_ValueError, "chr() arg not in range(0x110000)")
     else:
         ctx = make_out_of_ast_context(rte, cont)
-        return sem_raise_with_message(ctx, class_TypeError, "an interger is required")
+        return sem_raise_with_message(ctx, class_TypeError, "an integer is required")
 
 def om_ord_code(rte, cont):
     obj = rte_lookup_locals(rte, "obj")
@@ -4885,7 +4992,7 @@ def om_print_code(rte, _):
     args_len = len(args_seq)
 
     result = []
-    for i in args_seq:
+    for _ in args_seq:
         result.append(None)
 
     def loop(rte, i):
@@ -4894,7 +5001,7 @@ def om_print_code(rte, _):
 
             new_index = i + 1
             if new_index < args_len:
-                return loop(rte, new_index)
+                return stmt_end(make_out_of_ast_context(rte, lambda rte: loop(rte, new_index)), 0)
             else:
                 # sep=' '
                 runtime_print(' '.join(result), rte)
@@ -5005,7 +5112,7 @@ def do_min_max(name, sem_Comp):
                             def pick_next_candidate(pick_rte, bool_res):
                                 if om_is(bool_res, om_True):
                                     candidate_ref[0] = next_element
-                                return sem_next(make_out_of_ast_context(pick_rte, get_next), iterator, for_loop_end_marker)
+                                return sem_next_with_return_to_trampoline(make_out_of_ast_context(pick_rte, get_next), iterator, for_loop_end_marker)
                             return sem_bool(make_out_of_ast_context(compare_rte, pick_next_candidate), res)
                         return sem_Comp(make_out_of_ast_context(get_next_rte, compare_candidates), next_element, candidate_ref[0])
                 return sem_next(make_out_of_ast_context(get_first_rte, get_next), iterator, for_loop_end_marker)
@@ -5050,7 +5157,7 @@ def om_make_math_unary_real_function(fn_name, float_fn, arg):
 
         return sem_maybe_float(make_out_of_ast_context(rte, apply_float_fn), val)
 
-    return om_make_function_with_signature(fn_name, float_code, make_posonly_only_signature((arg,)))
+    return om_make_builtin_function_with_signature(fn_name, float_code, make_posonly_only_signature((arg,)))
 
 def om_make_math_unary_real_to_int_function(fn_name, float_fn, arg):
     def float_code(rte, cont):
@@ -5074,7 +5181,7 @@ def om_make_math_unary_real_to_int_function(fn_name, float_fn, arg):
 
         return sem_maybe_float(make_out_of_ast_context(rte, apply_float_fn), val)
 
-    return om_make_function_with_signature(fn_name, float_code, make_posonly_only_signature((arg,)))
+    return om_make_builtin_function_with_signature(fn_name, float_code, make_posonly_only_signature((arg,)))
 
 def om_make_math_unary_real_domain_function(fn_name, float_fn, arg, arg_domain):
     def float_code(rte, cont):
@@ -5096,7 +5203,7 @@ def om_make_math_unary_real_domain_function(fn_name, float_fn, arg, arg_domain):
 
         return sem_maybe_float(make_out_of_ast_context(rte, apply_float_fn), val)
 
-    return om_make_function_with_signature(fn_name, float_code, make_posonly_only_signature((arg,)))
+    return om_make_builtin_function_with_signature(fn_name, float_code, make_posonly_only_signature((arg,)))
 
 def make_math_domain_function(cmp, bound):
     float_bound = float_from_num(bound)
@@ -5151,7 +5258,7 @@ def make_module_math():
         return sem_maybe_float(make_out_of_ast_context(rte, check_obj1), obj1)
 
     # Exponentiation
-    om_math_pow = om_make_function_with_signature("pow", math_pow_code, make_posonly_only_signature(("x", "y")))
+    om_math_pow = om_make_builtin_function_with_signature("pow", math_pow_code, make_posonly_only_signature(("x", "y")))
     om_math_exp = om_make_math_unary_real_function("exp", float_exp, "x")
 
     # Logarithms
@@ -5196,7 +5303,7 @@ def make_module_math():
                 return sem_maybe_float(make_out_of_ast_context(obj1_rte, check_obj2), obj2)
         return sem_maybe_float(make_out_of_ast_context(rte, check_obj1), obj1)
 
-    om_math_atan2 = om_make_function_with_signature("atan2", math_atan2_code, make_posonly_only_signature(("y", "x")))
+    om_math_atan2 = om_make_builtin_function_with_signature("atan2", math_atan2_code, make_posonly_only_signature(("y", "x")))
 
 
     module_math_env = make_dict()
@@ -5243,7 +5350,7 @@ def make_module_turtle():
         def code(rte, cont):
             fct(rte)
             return unwindReturn(rte, om_None)
-        return om_make_function_with_signature(name, code, empty_signature)
+        return om_make_builtin_function_with_signature(name, code, empty_signature)
 
     om_module_turtle_st = make_set_option_fn(drawing_st, 'st')
     om_module_turtle_ht = make_set_option_fn(drawing_ht, 'ht')
@@ -5268,8 +5375,8 @@ def make_module_turtle():
 
                 return sem_float(make_out_of_ast_context(arg1_rte, get_arg2_float), arg2)
             return sem_float(make_out_of_ast_context(rte, get_arg1_float), arg1)
-        return om_make_function_with_signature(name, code,
-                                               make_posonly_defaults_signature((arg1_name, arg2_name),
+        return om_make_builtin_function_with_signature(name, code,
+                                                       make_posonly_defaults_signature((arg1_name, arg2_name),
                                                                                (om_float(float_from_num(0)),)))
 
     om_module_turtle_fd = make_translation_fn(drawing_fd, 'fd', 'xdist', 'ydist')
@@ -5301,8 +5408,8 @@ def make_module_turtle():
                 return sem_float(make_out_of_ast_context(width_rte, get_height_float), height)
             return sem_float(make_out_of_ast_context(rte, get_width_float), width)
 
-    om_module_turtle_clear = om_make_function_with_signature('clear', clear_code,
-                                                             make_posonly_defaults_only_signature(('width', 'height'),
+    om_module_turtle_clear = om_make_builtin_function_with_signature('clear', clear_code,
+                                                                     make_posonly_defaults_only_signature(('width', 'height'),
                                                                                                   (absent, absent)))
     def goto_code(rte, cont):
         x = rte_lookup_locals(rte, 'x')
@@ -5324,7 +5431,7 @@ def make_module_turtle():
             return sem_float(make_out_of_ast_context(x_rte, get_y_float), y)
         return sem_float(make_out_of_ast_context(rte, get_x_float), x)
 
-    om_module_turtle_goto = om_make_function_with_signature('goto', goto_code, make_posonly_only_signature(('x', 'y')))
+    om_module_turtle_goto = om_make_builtin_function_with_signature('goto', goto_code, make_posonly_only_signature(('x', 'y')))
 
     def make_rotation_fn(fn, name, arg_name):
         def code(rte, cont):
@@ -5341,7 +5448,7 @@ def make_module_turtle():
                                                   name + "() argument must be a finite number")
 
             return sem_float(make_out_of_ast_context(rte, get_angle_float), angle)
-        return om_make_function_with_signature(name, code, make_posonly_only_signature((arg_name,)))
+        return om_make_builtin_function_with_signature(name, code, make_posonly_only_signature((arg_name,)))
 
     om_module_turtle_lt = make_rotation_fn(drawing_lt, 'lt', 'angle')
     om_module_turtle_rt = make_rotation_fn(drawing_rt, 'rt', 'angle')
@@ -5373,8 +5480,8 @@ def make_module_turtle():
             return sem_float(make_out_of_ast_context(r_rte, get_g_float), g)
         return sem_float(make_out_of_ast_context(rte, get_r_float), r)
 
-    om_module_turtle_pencolor = om_make_function_with_signature('pencolor', pencolor_code,
-                                                                make_posonly_only_signature(('r', 'g', 'b')))
+    om_module_turtle_pencolor = om_make_builtin_function_with_signature('pencolor', pencolor_code,
+                                                                        make_posonly_only_signature(('r', 'g', 'b')))
 
     def pensize_code(rte, cont):
         width = rte_lookup_locals(rte, 'width')
@@ -5391,8 +5498,8 @@ def make_module_turtle():
 
         return sem_float(make_out_of_ast_context(rte, get_width_float), width)
 
-    om_module_turtle_pensize = om_make_function_with_signature('pensize', pensize_code,
-                                                               make_posonly_only_signature(('width',)))
+    om_module_turtle_pensize = om_make_builtin_function_with_signature('pensize', pensize_code,
+                                                                       make_posonly_only_signature(('width',)))
 
     def write_code(rte, cont):
         arg = rte_lookup_locals(rte, 'arg')
@@ -5405,8 +5512,8 @@ def make_module_turtle():
         return sem_str(make_out_of_ast_context(rte, get_arg_str), arg)
 
 
-    om_module_turtle_write = om_make_function_with_signature('write', write_code,
-                                                                make_posonly_only_signature(('arg',)))
+    om_module_turtle_write = om_make_builtin_function_with_signature('write', write_code,
+                                                                     make_posonly_only_signature(('arg',)))
 
     module_turtle_env = make_dict()
 
@@ -5433,7 +5540,7 @@ def make_module_random():
         result = runtime_random()
         return unwindReturn(rte, om_float(result))
 
-    om_random_random = om_make_function_with_signature('random', om_random_code, empty_signature)
+    om_random_random = om_make_builtin_function_with_signature('random', om_random_code, empty_signature)
 
     dict_set(module_random_env, 'random', om_random_random)
 
@@ -5477,7 +5584,7 @@ def make_module_time():
                         return stmt_end_with_sleep(sleep_ctx, sleep_time * 1000)
             return sem_maybe_index(make_out_of_ast_context(rte, sleep_int_amount), secs)
 
-    om_time_sleep = om_make_function_with_signature('sleep', om_sleep_code, make_posonly_only_signature(('secs',)))
+    om_time_sleep = om_make_builtin_function_with_signature('sleep', om_sleep_code, make_posonly_only_signature(('secs',)))
 
     dict_set(module_time_env, 'sleep', om_time_sleep)
 
@@ -5494,15 +5601,15 @@ def make_module_mouse():
 
             x = dict_get(mouse_state, 'x', None)
             y = dict_get(mouse_state, 'y', None)
-            down = dict_get(mouse_state, 'down', None)
+            button = dict_get(mouse_state, 'button', None)
             shift = dict_get(mouse_state, 'shift', None)
             ctrl = dict_get(mouse_state, 'ctrl', None)
             alt = dict_get(mouse_state, 'alt', None)
 
             struct_attrs = make_dict()
-            dict_set(struct_attrs, 'x', om_float(float_from_num(x)))
-            dict_set(struct_attrs, 'y', om_float(float_from_num(y)))
-            dict_set(struct_attrs, 'down', om_bool(down))
+            dict_set(struct_attrs, 'x', om_int(int_from_num(x)))
+            dict_set(struct_attrs, 'y', om_int(int_from_num(y)))
+            dict_set(struct_attrs, 'button', om_int(button))
             dict_set(struct_attrs, 'shift', om_bool(shift))
             dict_set(struct_attrs, 'ctrl', om_bool(ctrl))
             dict_set(struct_attrs, 'alt', om_bool(alt))
@@ -5514,21 +5621,21 @@ def make_module_mouse():
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise(ctx, class_NotImplementedError)
         else:
-            return unwindReturn(rte, om_float(float_from_num(getMouseX(rte))))
+            return unwindReturn(rte, om_int(int_from_num(getMouseX(rte))))
 
     def getMouseY_code(rte, cont):
         if getMouseY is None:
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise(ctx, class_NotImplementedError)
         else:
-            return unwindReturn(rte, om_float(float_from_num(getMouseY(rte))))
+            return unwindReturn(rte, om_int(int_from_num(getMouseY(rte))))
 
-    def getMouseDown_code(rte, cont):
-        if getMouseDown is None:
+    def getMouseButton_code(rte, cont):
+        if getMouseButton is None:
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise(ctx, class_NotImplementedError)
         else:
-            return unwindReturn(rte, om_bool(getMouseDown(rte)))
+            return unwindReturn(rte, om_int(getMouseButton(rte)))
 
     def getMouseShift_code(rte, cont):
         if getMouseShift is None:
@@ -5554,29 +5661,29 @@ def make_module_mouse():
     module_mouse_env = make_dict()
 
     dict_set(module_mouse_env, 'getMouse',
-             om_make_function_with_signature('getMouse', getMouse_code, empty_signature))
+             om_make_builtin_function_with_signature('getMouse', getMouse_code, empty_signature))
     dict_set(module_mouse_env, 'getMouseX',
-             om_make_function_with_signature('getMouseX', getMouseX_code, empty_signature))
+             om_make_builtin_function_with_signature('getMouseX', getMouseX_code, empty_signature))
     dict_set(module_mouse_env, 'getMouseY',
-             om_make_function_with_signature('getMouseY', getMouseY_code, empty_signature))
-    dict_set(module_mouse_env, 'getMouseDown',
-             om_make_function_with_signature('getMouseDown', getMouseDown_code, empty_signature))
+             om_make_builtin_function_with_signature('getMouseY', getMouseY_code, empty_signature))
+    dict_set(module_mouse_env, 'getMouseButton',
+             om_make_builtin_function_with_signature('getMouseButton', getMouseButton_code, empty_signature))
     dict_set(module_mouse_env, 'getMouseShift',
-             om_make_function_with_signature('getMouseShift', getMouseShift_code, empty_signature))
+             om_make_builtin_function_with_signature('getMouseShift', getMouseShift_code, empty_signature))
     dict_set(module_mouse_env, 'getMouseCtrl',
-             om_make_function_with_signature('getMouseCtrl', getMouseCtrl_code, empty_signature))
+             om_make_builtin_function_with_signature('getMouseCtrl', getMouseCtrl_code, empty_signature))
     dict_set(module_mouse_env, 'getMouseAlt',
-             om_make_function_with_signature('getMouseAlt', getMouseAlt_code, empty_signature))
+             om_make_builtin_function_with_signature('getMouseAlt', getMouseAlt_code, empty_signature))
 
     return om_module('mouse', module_mouse_env)
 
 def make_module_pixels():
     def color_str_to_dict(s):
         len_s = len(s)
-        if len_s == 7 and s[0] == '#':
-            r = int_from_substring(s, 1, 3, 16)
-            g = int_from_substring(s, 3, 5, 16)
-            b = int_from_substring(s, 5, 7, 16)
+        if len_s == 4 and s[0] == '#':
+            r = int_from_substring(s, 1, 2, 16)
+            g = int_from_substring(s, 2, 3, 16)
+            b = int_from_substring(s, 3, 4, 16)
             if r is False or g is False or b is False:
                 return None
             else:
@@ -5602,7 +5709,7 @@ def make_module_pixels():
                     boxed_val = OM_get_boxed_value(val)
                     val_num = int_to_num(boxed_val)
 
-                    if val_num >= 0 and val_num <= 255:
+                    if val_num >= 0 and val_num <= 15:
                         color_codes.append(val_num)
                     else:
                         return None
@@ -5704,12 +5811,12 @@ def make_module_pixels():
     # def getMouse_code(rte, cont):
     #     pass
 
-    setScreenMode = om_make_function_with_signature('setScreenMode', setScreenMode_code, make_posonly_only_signature(('width', 'height',)))
-    getScreenWidth = om_make_function_with_signature('getScreenWidth', getScreenWidth_code, empty_signature)
-    getScreenHeight = om_make_function_with_signature('getScreenHeight', getScreenHeight_code, empty_signature)
-    setPixel = om_make_function_with_signature('setPixel', setPixel_code, make_posonly_only_signature(('x','y','color',)))
-    fillRectangle = om_make_function_with_signature('fillRectangle', fillRectangle_code, make_posonly_only_signature(('x', 'y', 'width', 'height', 'color',)))
-    exportScreen = om_make_function_with_signature('exportScreen', exportScreen_code, empty_signature)
+    setScreenMode = om_make_builtin_function_with_signature('setScreenMode', setScreenMode_code, make_posonly_only_signature(('width', 'height',)))
+    getScreenWidth = om_make_builtin_function_with_signature('getScreenWidth', getScreenWidth_code, empty_signature)
+    getScreenHeight = om_make_builtin_function_with_signature('getScreenHeight', getScreenHeight_code, empty_signature)
+    setPixel = om_make_builtin_function_with_signature('setPixel', setPixel_code, make_posonly_only_signature(('x', 'y', 'color',)))
+    fillRectangle = om_make_builtin_function_with_signature('fillRectangle', fillRectangle_code, make_posonly_only_signature(('x', 'y', 'width', 'height', 'color',)))
+    exportScreen = om_make_builtin_function_with_signature('exportScreen', exportScreen_code, empty_signature)
 
     module_pixels_env = make_dict()
     dict_set(module_pixels_env, 'setScreenMode', setScreenMode)
@@ -5915,29 +6022,30 @@ def fresh_rte(options):
     locals_env = absent
     globals_env = make_dict()
     builtins_env = make_dict()
+    builtins_module = om_module('builtins', builtins_env)
 
-    rte = make_rte(absent, globals_env, locals_env, absent, builtins_env, absent, absent, [], absent, options)
+    rte = make_new_rte(globals_env, locals_env, builtins_env, builtins_module, options)
 
     # Vanilla Python builtins
-    om_builtin_print = om_make_function_with_signature('print', om_print_code, make_vararg_only_signature('args'))
-    om_builtin_breakpoint = om_make_function_with_signature('breakpoint', om_breakpoint_code, empty_signature)
-    om_builtin_input = om_make_function_with_signature('input', om_input_code, make_posonly_defaults_signature(('obj',), (om_str(''),)))
-    om_builtin_hex = om_make_function_with_signature('hex', om_hex_code, make_posonly_only_signature(('obj',)))
-    om_builtin_oct = om_make_function_with_signature('oct', om_oct_code, make_posonly_only_signature(('obj',)))
-    om_builtin_bin = om_make_function_with_signature('bin', om_bin_code, make_posonly_only_signature(('obj',)))
-    om_builtin_chr = om_make_function_with_signature('chr', om_chr_code, make_posonly_only_signature(('obj',)))
-    om_builtin_ord = om_make_function_with_signature('ord', om_ord_code, make_posonly_only_signature(('obj',)))
-    om_builtin_repr = om_make_function_with_signature('repr', om_repr_code, make_posonly_only_signature(('obj',)))
-    om_builtin_len = om_make_function_with_signature('len', om_len_code, make_posonly_only_signature(('obj',)))
-    om_builtin_next = om_make_function_with_signature('next', om_next_code,
-                                                      make_posonly_defaults_signature(('obj', 'default'), (absent,)))
-    om_builtin_iter = om_make_function_with_signature('iter', om_iter_code,
-                                                      make_posonly_defaults_signature(('obj', 'sentinel'), (absent,)))
-    om_builtin_abs = om_make_function_with_signature('abs', om_abs_code, make_posonly_only_signature(('obj',)))
-    om_builtin_min = om_make_function_with_signature('min', om_min_code, make_vararg_only_signature('args'))
-    om_builtin_max = om_make_function_with_signature('max', om_max_code, make_vararg_only_signature('args'))
-    om_builtin_round = om_make_function_with_signature('round', om_round_code, make_posonly_defaults_signature(('number', 'ndigits'), (absent,)))
-    om_builtin_pow = om_make_function_with_signature('pow', om_pow_code, make_posonly_defaults_only_signature(('base', 'power', 'mod'), (absent,)))
+    om_builtin_print = om_make_builtin_function_with_signature('print', om_print_code, make_vararg_only_signature('args'))
+    om_builtin_breakpoint = om_make_builtin_function_with_signature('breakpoint', om_breakpoint_code, empty_signature)
+    om_builtin_input = om_make_builtin_function_with_signature('input', om_input_code, make_posonly_defaults_signature(('obj',), (om_str(''),)))
+    om_builtin_hex = om_make_builtin_function_with_signature('hex', om_hex_code, make_posonly_only_signature(('obj',)))
+    om_builtin_oct = om_make_builtin_function_with_signature('oct', om_oct_code, make_posonly_only_signature(('obj',)))
+    om_builtin_bin = om_make_builtin_function_with_signature('bin', om_bin_code, make_posonly_only_signature(('obj',)))
+    om_builtin_chr = om_make_builtin_function_with_signature('chr', om_chr_code, make_posonly_only_signature(('obj',)))
+    om_builtin_ord = om_make_builtin_function_with_signature('ord', om_ord_code, make_posonly_only_signature(('obj',)))
+    om_builtin_repr = om_make_builtin_function_with_signature('repr', om_repr_code, make_posonly_only_signature(('obj',)))
+    om_builtin_len = om_make_builtin_function_with_signature('len', om_len_code, make_posonly_only_signature(('obj',)))
+    om_builtin_next = om_make_builtin_function_with_signature('next', om_next_code,
+                                                              make_posonly_defaults_signature(('obj', 'default'), (absent,)))
+    om_builtin_iter = om_make_builtin_function_with_signature('iter', om_iter_code,
+                                                              make_posonly_defaults_signature(('obj', 'sentinel'), (absent,)))
+    om_builtin_abs = om_make_builtin_function_with_signature('abs', om_abs_code, make_posonly_only_signature(('obj',)))
+    om_builtin_min = om_make_builtin_function_with_signature('min', om_min_code, make_vararg_only_signature('args'))
+    om_builtin_max = om_make_builtin_function_with_signature('max', om_max_code, make_vararg_only_signature('args'))
+    om_builtin_round = om_make_builtin_function_with_signature('round', om_round_code, make_posonly_defaults_signature(('number', 'ndigits'), (absent,)))
+    om_builtin_pow = om_make_builtin_function_with_signature('pow', om_pow_code, make_posonly_defaults_only_signature(('base', 'power', 'mod'), (absent,)))
 
     dict_set(builtins_env, 'type', class_type)
     dict_set(builtins_env, 'object', class_object)
@@ -5981,11 +6089,13 @@ def fresh_rte(options):
     dict_set(builtins_env, 'ArithmeticError', class_ArithmeticError)
     dict_set(builtins_env, 'ZeroDivisionError', class_ZeroDivisionError)
     dict_set(builtins_env, 'AssertionError', class_AssertionError)
+    dict_set(builtins_env, 'ImportError', class_ImportError)
+    dict_set(builtins_env, 'ModuleNotFoundError', class_ModuleNotFoundError)
 
     # Pyinterp functions
-    om_builtin_alert = om_make_function_with_signature('alert', om_alert_code, make_posonly_defaults_signature(('obj',), (om_str(''),)))
-    om_builtin_confirm = om_make_function_with_signature('confirm', om_confirm_code, make_posonly_defaults_signature(('obj',), (om_str(''),)))
-    om_builtin_prompt = om_make_function_with_signature('prompt', om_prompt_code, make_posonly_defaults_signature(('obj',), (om_str(''),)))
+    om_builtin_alert = om_make_builtin_function_with_signature('alert', om_alert_code, make_posonly_defaults_signature(('obj',), (om_str(''),)))
+    om_builtin_confirm = om_make_builtin_function_with_signature('confirm', om_confirm_code, make_posonly_defaults_signature(('obj',), (om_str(''),)))
+    om_builtin_prompt = om_make_builtin_function_with_signature('prompt', om_prompt_code, make_posonly_defaults_signature(('obj',), (om_str(''),)))
 
     dict_set(builtins_env, 'alert', om_builtin_alert)
     dict_set(builtins_env, 'confirm', om_builtin_confirm)
@@ -6000,6 +6110,16 @@ def fresh_rte(options):
     mouse_module = make_module_mouse()
     pixels_module = make_module_pixels()
     more_builtins_module = make_module_more_builtins()
+
+    # Add modules to sys module to allow imports
+    rte_add_to_sys_modules(rte, 'builtins', builtins_module)
+    rte_add_to_sys_modules(rte, 'math', math_module)
+    rte_add_to_sys_modules(rte, 'turtle', turtle_module)
+    rte_add_to_sys_modules(rte, 'random', random_module)
+    rte_add_to_sys_modules(rte, 'time', time_module)
+    rte_add_to_sys_modules(rte, 'mouse', mouse_module)
+    rte_add_to_sys_modules(rte, 'pixels', pixels_module)
+    rte_add_to_sys_modules(rte, 'more_builtins', more_builtins_module)
 
     # Inject some module into the builtins
     dict_set(builtins_env, 'math', math_module)
@@ -6018,6 +6138,26 @@ def fresh_rte(options):
     dict_set(globals_env, '__name__', om_str('__main__'))
     dict_set(globals_env, '__builtins__', om_module('builtins', builtins_env))
     return rte
+
+
+def make_module_rte(parent_rte, builtins_module, name):
+    locals_env = absent
+    globals_env = make_dict()
+
+    rte = make_rte_from_parent(
+        parent_rte,
+        globals_env,
+        locals_env,
+        absent,
+        rte_stack(parent_rte),
+        rte_ctrl_env(parent_rte))
+
+
+    dict_set(globals_env, '__name__', om_str(name))
+    dict_set(globals_env, '__builtins__', builtins_module)
+
+    return rte
+
 
 def trampoline(cont):
 
@@ -6334,6 +6474,17 @@ def compute_function_variables_scope(cte, ast, args):
 
         return True
 
+    elif isinstance(ast, AST.Import):
+        for alias in ast.names:
+            module_name = alias.name
+            asname = alias.asname
+
+            # TODO account for packages once they exist
+            id_ = module_name if asname is None else asname
+
+            if not dict_has(locals_env, id_):
+                make_local_var_token(cte, id_, current_fn)
+
     elif isinstance(ast, AST.Nonlocal):
         for id_ in ast.names:
             if dict_has(locals_env, id_) or dict_has(locals_ref, id_):
@@ -6373,7 +6524,7 @@ def get_scope_variables(rte):
     safe_for_space = rte_safe_for_space(rte)
 
     if not safe_for_space:
-        globals_ = rte_globals(rte)
+        globals_ = rte_lexical_globals(rte)
 
         # In non-safe-for-space mode, each function has access to its whole lexical scope, we return it
         if current_func is absent:
@@ -6413,7 +6564,7 @@ def get_scope_variables(rte):
         env = filter_scope(rte_globals(rte))
     else:
         local_vars = rte_locals(rte)
-        global_vars = filter_scope(rte_globals(rte))
+        global_vars = filter_scope(rte_lexical_globals(rte))
         closure = OM_get_function_closure(current_func)
 
         env = make_dict()
@@ -6593,6 +6744,9 @@ def comp_stmt(cte, ast):
         if debug: print('AST.Raise')
         (cte1, code1) = comp_expr(cte, ast.exc)
         return gen_raise(cte1, ast, code1)
+
+    elif isinstance(ast, AST.Import):
+        return comp_import(cte, ast, ast.names)
 
     else:
         return CT_raise_syntax_error_with_msg(cte, ast, "unsupported statements")
@@ -7137,6 +7291,7 @@ def gen_create_function(cte, ast):
             OM_set_function_arity(func, arity)
             OM_set_function_closure(func, make_closure(rte))
             OM_set_function_locals(func, local_vars)
+            OM_set_function_globals(func, rte_lexical_globals(rte))
             OM_set_function_var_context(func, locals_env)
 
             return cont(rte, func)
@@ -7155,6 +7310,7 @@ def gen_create_function(cte, ast):
             OM_set_function_arity(func, arity)
             OM_set_function_closure(func, make_closure(rte))
             OM_set_function_locals(func, local_vars)
+            OM_set_function_globals(func, rte_lexical_globals(rte))
             OM_set_function_var_context(func, locals_env)
 
             current_func = rte_current_func(rte)
@@ -7358,6 +7514,88 @@ def gen_raise(cte, ast, code):
             return sem_raise(ctx, exn)
         return code(rte, raise_exn)
     return (cte, eval_raise_param)
+
+def comp_import(cte, ast, names):
+    if len(names) == 1:
+        return gen_import_alias(cte, ast, names[0])
+    else:
+        alias_cte, alias_code = gen_import_alias(cte, ast, names[0])
+        tail_cte, tail_code = comp_import(alias_cte, ast, names[1:])
+        return gen_import_seq(tail_cte, alias_code, tail_code)
+
+
+def gen_import_seq(cte, current_import, next_code):
+    def code(rte, cont):
+        return current_import(rte, lambda next_rte: next_code(next_rte, cont))
+
+    return cte, code
+
+
+def gen_import_alias(cte, ast, alias):
+    options = cte.external_context
+    name = alias.name
+
+    if string_contains(name, '.'):
+        return CT_raise_syntax_error_with_msg(cte, ast, "importing packages is not supported yet")
+
+    asname = alias.asname
+    filename = name + ".py"
+
+    import_is_in_repl = runtime_ast_is_from_repl(ast)
+
+    # NOTE: we cannot be more precise then this because as for now, alias does not have positional information
+    set_cte, set_code = gen_var_set(cte, ast, name if asname is None else asname)
+
+    def code(rte, cont):
+        existing_module = rte_get_from_sys_modules(rte, name)
+
+        # Always re-import in repl as CodeBoot usage allows to use the repl to test files as they are edited
+        if existing_module is absent or import_is_in_repl:
+            module_src = runtime_read_file(rte, filename)
+
+            if module_src is None:
+                if import_is_in_repl and existing_module is not absent:
+                    # When repl fails to re-import a module (deleted of not a file), take existing one from sys.modules
+                    return set_code(rte, cont, existing_module)
+                else:
+                    return sem_raise_with_message(Context(rte, cont, ast), class_ModuleNotFoundError, "No module named '" + name + "'")
+            else:
+                container = runtime_get_file_container(rte, filename)
+
+                compilation_error_thrower = runtime_get_compilationError_thrower(rte_vm(rte), container, module_src)
+                syntax_error_thrower = runtime_get_syntaxError_thrower(compilation_error_thrower)
+
+                if options is not False:
+                    new_options = dict_copy(options)
+                    dict_set(new_options, 'compilationError', compilation_error_thrower)
+                    dict_set(new_options, 'syntaxError', syntax_error_thrower)
+                else:
+                    new_options = options
+
+                module_ast = parse(module_src, '<unknown>', 'exec', new_options)
+                runtime_attach_ast_to_file(rte, module_ast, filename)
+
+                module_code = comp(module_ast, new_options)
+
+                builtins_module = rte_builtins_module(rte)
+
+                module_rte = make_module_rte(rte, builtins_module, name)
+
+                module_object = om_module(name, rte_globals(module_rte))
+
+                # NOTE: it is important to add module to sys.modules BEFORE executing the module to allow circular imports
+                rte_add_to_sys_modules(rte, name, module_object)
+
+                def store_module(_):
+                    return set_code(rte, cont, module_object)
+
+                return module_code(module_rte, store_module)
+
+        else:
+            return set_code(rte, cont, existing_module)
+
+    return set_cte, code
+
 
 def gen_Expr(cte, ast, code1):
 
@@ -7874,6 +8112,14 @@ def sem_next(ctx, obj, default_):
         next_ctx = with_catch(ctx, catch_StopIteration)
         return sem_simple_call(next_ctx, obj_next, [obj])
 
+
+def sem_next_with_return_to_trampoline(ctx, obj, default_):
+    # Useful for emulating a for-loop without too many recursions
+    def do_step(rte, val):
+        return stmt_end(Context(rte, lambda rte: ctx.cont(rte, val), ctx.ast), 0)
+    return sem_next(with_cont(ctx, do_step), obj, default_)
+
+
 def sem_iter(ctx, obj):
     obj_iter = getattribute_from_obj_mro(obj, "__iter__")
     if obj_iter is absent:
@@ -7899,7 +8145,7 @@ def sem_Contains_in_iterator(ctx, target, iterator):
                             return get_next(rte, iterator)
                     return sem_bool(Context(eq_rte, cont, ctx.ast), eq_result)
                 return sem_Eq(Context(get_next_rte, cont_eq, ctx.ast), get_next_val, target)
-        return sem_next(Context(rte, compare, ctx.ast), iterator, for_loop_end_marker)
+        return sem_next_with_return_to_trampoline(Context(rte, compare, ctx.ast), iterator, for_loop_end_marker)
     return get_next(ctx.rte, iterator)
 
 def sem_Contains(ctx, target, obj):
@@ -7917,11 +8163,11 @@ def om_unpack_iterable(ctx, it):
     def get_next(rte, iterator):
         def accumulate(rte, val):
             if val is for_loop_end_marker:
-                return ctx.cont(ctx.rte, seq)
+                return cont_obj(ctx, seq)
             else:
                 seq.append(val)
                 return get_next(rte, iterator)
-        return sem_next(Context(rte, accumulate, ctx.ast), iterator, for_loop_end_marker)
+        return sem_next_with_return_to_trampoline(Context(rte, accumulate, ctx.ast), iterator, for_loop_end_marker)
 
     return sem_iter(with_cont(ctx, get_next), it)
 
