@@ -7671,108 +7671,129 @@ def gen_aug_assign(cte, ast):
 
         return set_cte, code
     elif isinstance(target, AST.Subscript):
-        target_obj = target.value
-        target_index = target.slice.value
-        value = ast.value
-
-        obj_cte, obj_code = comp_expr(cte, target_obj)
-        index_cte, index_code = comp_expr(obj_cte, target_index)
-        value_cte, value_code = comp_expr(index_cte, value)
-
-        if isinstance(target_obj, AST.Name):
-            id_ = target_obj.id
-            def _make_message_lhs(rte, _, index):
-                ctx = Context(rte, None, ast)
-
-                index_repr = om_simple_repr(ctx, index)
-
-                return id_ + "[" + index_repr + "] ← "
-
-            make_message_lhs = _make_message_lhs
-        else:
-            def _make_message_lhs(rte, obj, index):
-                ctx = Context(rte, None, ast)
-
-                obj_repr = om_simple_repr(ctx, obj)
-                index_repr = om_simple_repr(ctx, index)
-
-                return obj_repr + "[" + index_repr + "] ← "
-            make_message_lhs = _make_message_lhs
-
-        def code(rte, cont):
-            def get_container(container_rte, container):
-                def get_index(index_rte, index):
-                    def get_lhs(lhs_rte, lhs_obj):
-                        def get_value(value_rte, value):
-                            # Get message lhs before applying sem_op to show before/after in bubble
-                            msg_lhs = make_message_lhs(value_rte, container, index)
-
-                            def get_op_res(res_rte, res):
-                                cont_stmt_end_with_message = do_stmt_end_with_message(cont, ast)
-                                msg = msg_lhs + om_simple_repr(Context(rte, None, ast), res)
-
-                                return sem_setitem(
-                                    Context(res_rte, lambda rte: cont_stmt_end_with_message(rte, msg), ast),
-                                    container,
-                                    index,
-                                    res)
-                            return sem_op(Context(value_rte, get_op_res, ast), lhs_obj, value)
-                        return value_code(lhs_rte, get_value)
-                    return sem_getitem(Context(index_rte, get_lhs, target_obj), container, index)
-                return index_code(container_rte, get_index)
-            return obj_code(rte, get_container)
-        return value_cte, code
+        return gen_subscript_aug_assign(cte, ast, target, sem_op)
     elif isinstance(target, AST.Attribute):
-        target_obj = target.value
-        attr_name = target.attr
-        attr_name_str = om_str(attr_name)
-        value = ast.value
+        return gen_attr_aug_assign(cte, ast, target, sem_op)
+    else:
+        return CT_raise_syntax_error_with_msg(cte, ast, "illegal expression for augmented assignment")
 
-        obj_cte, obj_code = comp_expr(cte, target_obj)
-        value_cte, value_code = comp_expr(obj_cte, value)
 
-        if isinstance(target_obj, AST.Name):
-            id_ = target_obj.id
-            pre_compiled_msg = id_ + "." + attr_name + " ← "
-            def _make_message_lhs(rte, _):
-                return pre_compiled_msg
+def gen_subscript_aug_assign(cte, ast, target, sem_op):
+    target_obj = target.value
+    target_index = target.slice.value
+    value = ast.value
 
-            make_message_lhs = _make_message_lhs
-        else:
-            def _make_message_lhs(rte, obj):
-                ctx = Context(rte, None, ast)
+    obj_cte, obj_code = comp_expr(cte, target_obj)
+    index_cte, index_code = comp_expr(obj_cte, target_index)
+    value_cte, value_code = comp_expr(index_cte, value)
 
-                obj_repr = om_simple_repr(ctx, obj)
+    if isinstance(target_obj, AST.Name):
+        id_ = target_obj.id
 
-                return obj_repr + "." + attr_name + " ← "
-            make_message_lhs = _make_message_lhs
+        def _make_message_lhs(rte, _, index):
+            ctx = Context(rte, None, ast)
 
-        def code(rte, cont):
-            def get_obj(obj_rte, obj):
-                def get_attr(attr_rte, attr):
-                    def get_value(value_rte, val):
+            index_repr = om_simple_repr(ctx, index)
+
+            return id_ + "[" + index_repr + "] ← "
+
+        make_message_lhs = _make_message_lhs
+    else:
+        def _make_message_lhs(rte, obj, index):
+            ctx = Context(rte, None, ast)
+
+            obj_repr = om_simple_repr(ctx, obj)
+            index_repr = om_simple_repr(ctx, index)
+
+            return obj_repr + "[" + index_repr + "] ← "
+
+        make_message_lhs = _make_message_lhs
+
+    def code(rte, cont):
+        def get_container(container_rte, container):
+            def get_index(index_rte, index):
+                def get_lhs(lhs_rte, lhs_obj):
+                    def get_value(value_rte, value):
                         # Get message lhs before applying sem_op to show before/after in bubble
-                        msg_lhs = make_message_lhs(value_rte, obj)
+                        msg_lhs = make_message_lhs(value_rte, container, index)
 
-                        def get_res(res_rte, res):
+                        def get_op_res(res_rte, res):
                             cont_stmt_end_with_message = do_stmt_end_with_message(cont, ast)
                             msg = msg_lhs + om_simple_repr(Context(rte, None, ast), res)
 
-                            return sem_setattribute(
+                            return sem_setitem(
                                 Context(res_rte, lambda rte: cont_stmt_end_with_message(rte, msg), ast),
-                                obj,
-                                attr_name_str,
+                                container,
+                                index,
                                 res)
-                        return sem_op(Context(value_rte, get_res, ast), attr, val)
-                    return value_code(attr_rte, get_value)
-                expr_end_cont = do_expr_end(get_attr, target)
-                return sem_getattribute(Context(obj_rte, expr_end_cont, target), obj, attr_name_str)
-            return obj_code(rte, get_obj)
 
-        return value_cte, code
+                        return sem_op(Context(value_rte, get_op_res, ast), lhs_obj, value)
 
+                    return value_code(lhs_rte, get_value)
+
+                return sem_getitem(Context(index_rte, get_lhs, target_obj), container, index)
+
+            return index_code(container_rte, get_index)
+
+        return obj_code(rte, get_container)
+
+    return value_cte, code
+
+
+def gen_attr_aug_assign(cte, ast, target, sem_op):
+    target_obj = target.value
+    attr_name = target.attr
+    attr_name_str = om_str(attr_name)
+    value = ast.value
+
+    obj_cte, obj_code = comp_expr(cte, target_obj)
+    value_cte, value_code = comp_expr(obj_cte, value)
+
+    if isinstance(target_obj, AST.Name):
+        id_ = target_obj.id
+        pre_compiled_msg = id_ + "." + attr_name + " ← "
+
+        def _make_message_lhs(rte, _):
+            return pre_compiled_msg
+
+        make_message_lhs = _make_message_lhs
     else:
-        return CT_raise_syntax_error_with_msg(cte, ast, "illegal expression for augmented assignment")
+        def _make_message_lhs(rte, obj):
+            ctx = Context(rte, None, ast)
+
+            obj_repr = om_simple_repr(ctx, obj)
+
+            return obj_repr + "." + attr_name + " ← "
+
+        make_message_lhs = _make_message_lhs
+
+    def code(rte, cont):
+        def get_obj(obj_rte, obj):
+            def get_attr(attr_rte, attr):
+                def get_value(value_rte, val):
+                    # Get message lhs before applying sem_op to show before/after in bubble
+                    msg_lhs = make_message_lhs(value_rte, obj)
+
+                    def get_res(res_rte, res):
+                        cont_stmt_end_with_message = do_stmt_end_with_message(cont, ast)
+                        msg = msg_lhs + om_simple_repr(Context(rte, None, ast), res)
+
+                        return sem_setattribute(
+                            Context(res_rte, lambda rte: cont_stmt_end_with_message(rte, msg), ast),
+                            obj,
+                            attr_name_str,
+                            res)
+
+                    return sem_op(Context(value_rte, get_res, ast), attr, val)
+
+                return value_code(attr_rte, get_value)
+
+            expr_end_cont = do_expr_end(get_attr, target)
+            return sem_getattribute(Context(obj_rte, expr_end_cont, target), obj, attr_name_str)
+
+        return obj_code(rte, get_obj)
+
+    return value_cte, code
 
 
 def gen_BinOp(cte, ast, op, code1, code2):
