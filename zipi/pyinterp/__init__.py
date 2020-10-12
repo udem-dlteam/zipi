@@ -2680,20 +2680,23 @@ def om_list_setitem_code(ctx, args):
         else:
             def cont(rte, item_index):
                 index = OM_get_boxed_value(item_index)
-                self_len = OM_get_list_len(self)
+                self_len = int_from_num(OM_get_list_len(self))
                 elements = OM_get_list_seq(self)
 
                 next_ctx = with_rte(ctx, rte)
 
-                if index >= 0 and index < self_len:
-                    elements[index] = value
-                    return cont_obj(next_ctx, om_None)
-                elif index < 0 and index >= -self_len:
-                    elements[index + self_len] = value
+                if int_ge(index, self_len):
+                    return sem_raise_with_message(next_ctx, class_IndexError, "list index out of range")
+                elif int_is_nonneg(index):
+                    elements[int_to_num(index)] = value
                     return cont_obj(next_ctx, om_None)
                 else:
-                    return sem_raise_with_message(next_ctx, class_IndexError, "list index out of range")
-
+                    reversed_index = int_add(index, self_len)
+                    if int_is_nonneg(reversed_index):
+                        elements[int_to_num(reversed_index)] = value
+                        return cont_obj(next_ctx, om_None)
+                    else:
+                        return sem_raise_with_message(next_ctx, class_IndexError, "list index out of range")
             return sem_index(with_cont(ctx, cont), item)
     else:
         return sem_raise_with_message(ctx, class_TypeError, "__setitem__() takes exactly two argument (" + str(args_len - 1) + " given)")
