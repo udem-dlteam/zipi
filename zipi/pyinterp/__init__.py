@@ -5487,6 +5487,10 @@ def make_module_random():
 def make_module_time():
     module_time_env = make_dict()
 
+    def om_time_code(rte, _):
+        result = runtime_time()
+        return unwindReturn(rte, om_float(result))
+
     def om_sleep_code(rte, cont):
         secs = rte_lookup_locals(rte, 'secs')
 
@@ -5521,8 +5525,10 @@ def make_module_time():
                         return stmt_end_with_sleep(sleep_ctx, sleep_time * 1000)
             return sem_maybe_index(make_out_of_ast_context(rte, sleep_int_amount), secs)
 
+    om_time_time = om_make_builtin_function_with_signature('time', om_time_code, empty_signature)
     om_time_sleep = om_make_builtin_function_with_signature('sleep', om_sleep_code, make_posonly_only_signature(('secs',)))
 
+    dict_set(module_time_env, 'time', om_time_time)
     dict_set(module_time_env, 'sleep', om_time_sleep)
 
     return om_module('time', module_time_env)
