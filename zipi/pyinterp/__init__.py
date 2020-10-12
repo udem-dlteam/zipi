@@ -2680,20 +2680,23 @@ def om_list_setitem_code(ctx, args):
         else:
             def cont(rte, item_index):
                 index = OM_get_boxed_value(item_index)
-                self_len = OM_get_list_len(self)
+                self_len = int_from_num(OM_get_list_len(self))
                 elements = OM_get_list_seq(self)
 
                 next_ctx = with_rte(ctx, rte)
 
-                if index >= 0 and index < self_len:
-                    elements[index] = value
-                    return cont_obj(next_ctx, om_None)
-                elif index < 0 and index >= -self_len:
-                    elements[index + self_len] = value
+                if int_ge(index, self_len):
+                    return sem_raise_with_message(next_ctx, class_IndexError, "list index out of range")
+                elif int_is_nonneg(index):
+                    elements[int_to_num(index)] = value
                     return cont_obj(next_ctx, om_None)
                 else:
-                    return sem_raise_with_message(next_ctx, class_IndexError, "list index out of range")
-
+                    reversed_index = int_add(index, self_len)
+                    if int_is_nonneg(reversed_index):
+                        elements[int_to_num(reversed_index)] = value
+                        return cont_obj(next_ctx, om_None)
+                    else:
+                        return sem_raise_with_message(next_ctx, class_IndexError, "list index out of range")
             return sem_index(with_cont(ctx, cont), item)
     else:
         return sem_raise_with_message(ctx, class_TypeError, "__setitem__() takes exactly two argument (" + str(args_len - 1) + " given)")
@@ -5484,6 +5487,10 @@ def make_module_random():
 def make_module_time():
     module_time_env = make_dict()
 
+    def om_time_code(rte, _):
+        result = runtime_time()
+        return unwindReturn(rte, om_float(result))
+
     def om_sleep_code(rte, cont):
         secs = rte_lookup_locals(rte, 'secs')
 
@@ -5518,8 +5525,10 @@ def make_module_time():
                         return stmt_end_with_sleep(sleep_ctx, sleep_time * 1000)
             return sem_maybe_index(make_out_of_ast_context(rte, sleep_int_amount), secs)
 
+    om_time_time = om_make_builtin_function_with_signature('time', om_time_code, empty_signature)
     om_time_sleep = om_make_builtin_function_with_signature('sleep', om_sleep_code, make_posonly_only_signature(('secs',)))
 
+    dict_set(module_time_env, 'time', om_time_time)
     dict_set(module_time_env, 'sleep', om_time_sleep)
 
     return om_module('time', module_time_env)
@@ -8309,19 +8318,40 @@ def gen_Subscript_Store(cte, ast, target, value):
     index_cte, index_code = comp_expr(obj_cte, target_index)
     value_cte, value_code = comp_expr(index_cte, value)
 
+    if isinstance(target_obj, AST.Name):
+        var_id = target_obj.id
+
+        def _make_message(rte, _, index, value):
+            ctx = Context(rte, None, ast)
+            return var_id + "[" + om_simple_repr(ctx, index) + "] ← " + om_simple_repr(ctx, value)
+
+        make_message = _make_message
+    else:
+        def _make_message(rte, obj, index, value):
+            ctx = Context(rte, None, ast)
+
+            obj_repr = om_simple_repr(ctx, obj)
+            index_repr = om_simple_repr(ctx, index)
+            value_repr = om_simple_repr(ctx, value)
+
+            return obj_repr + "[" + index_repr + "] ← " + value_repr
+
+        make_message = _make_message
+
+
     def get_obj(rte, cont):
         def get_index(rte, obj):
             def get_value(get_value_rte, index):
                 def set_item(setitem_rte, value):
-                    return sem_setitem(Context(setitem_rte, cont, ast), obj, index, value)
+                    msg = make_message(setitem_rte, obj, index, value)
+                    cont_stmt_end_with_message = do_stmt_end_with_message(cont, ast)
+                    ctx = Context(setitem_rte, lambda rte: cont_stmt_end_with_message(rte, msg), ast)
+                    return sem_setitem(ctx, obj, index, value)
                 return value_code(get_value_rte, set_item)
             return index_code(rte, get_value)
         return obj_code(rte, get_index)
 
-    def code(rte, cont):
-        return get_obj(rte, do_stmt_end(cont, ast, 1))
-
-    return value_cte, code
+    return value_cte, get_obj
 
 def sem_constant(ctx, val):
     return ctx.cont(ctx.rte, val)
