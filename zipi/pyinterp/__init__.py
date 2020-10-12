@@ -8286,19 +8286,40 @@ def gen_Subscript_Store(cte, ast, target, value):
     index_cte, index_code = comp_expr(obj_cte, target_index)
     value_cte, value_code = comp_expr(index_cte, value)
 
+    if isinstance(target_obj, AST.Name):
+        var_id = target_obj.id
+
+        def _make_message(rte, _, index, value):
+            ctx = Context(rte, None, ast)
+            return var_id + "[" + om_simple_repr(ctx, index) + "] ← " + om_simple_repr(ctx, value)
+
+        make_message = _make_message
+    else:
+        def _make_message(rte, obj, index, value):
+            ctx = Context(rte, None, ast)
+
+            obj_repr = om_simple_repr(ctx, obj)
+            index_repr = om_simple_repr(ctx, index)
+            value_repr = om_simple_repr(ctx, value)
+
+            return obj_repr + "[" + index_repr + "] ← " + value_repr
+
+        make_message = _make_message
+
+
     def get_obj(rte, cont):
         def get_index(rte, obj):
             def get_value(get_value_rte, index):
                 def set_item(setitem_rte, value):
-                    return sem_setitem(Context(setitem_rte, cont, ast), obj, index, value)
+                    msg = make_message(setitem_rte, obj, index, value)
+                    cont_stmt_end_with_message = do_stmt_end_with_message(cont, ast)
+                    ctx = Context(setitem_rte, lambda rte, _: cont_stmt_end_with_message(rte, msg), ast)
+                    return sem_setitem(ctx, obj, index, value)
                 return value_code(get_value_rte, set_item)
             return index_code(rte, get_value)
         return obj_code(rte, get_index)
 
-    def code(rte, cont):
-        return get_obj(rte, do_stmt_end(cont, ast, 1))
-
-    return value_cte, code
+    return value_cte, get_obj
 
 def sem_constant(ctx, val):
     return ctx.cont(ctx.rte, val)
