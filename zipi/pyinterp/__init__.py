@@ -1049,6 +1049,7 @@ def populate_builtin_list():
     builtin_add_method(class_list, 'insert', om_list_insert)
     builtin_add_method(class_list, 'index', om_list_index)
     builtin_add_method(class_list, 'remove', om_list_remove)
+    builtin_add_method(class_list, 'copy', om_list_copy)
 
 def populate_builtin_range():
     buitlin_add_methods_to_class(
@@ -3163,6 +3164,24 @@ def om_list_remove_code(ctx, args):
 
 
 om_list_remove = do_magic_method(class_list, 'remove', om_list_remove_code)
+
+
+def om_list_copy_code(ctx, args):
+    args_len = len(args)
+    if args_len == 1:
+        self = args[0]
+        seq = OM_get_list_seq(self)
+        len_ = OM_get_list_len(self)
+
+        seq_copy = list_copy(seq)
+
+        return cont_list(ctx, seq_copy, len_)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "copy() takes no argument (" + str(args_len - 1) + " given)")
+
+
+om_list_copy = do_magic_method(class_list, "copy", om_list_copy_code)
 
 
 # class_range methods
