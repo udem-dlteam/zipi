@@ -1336,6 +1336,9 @@ def OM_set_object_class(o, cls):
 def OM_get_object_class(o):
     return o.klass
 
+def OM_get_object_class_name(o):
+    return OM_get_boxed_value(OM_get(OM_get_object_class(o), "__name__"))
+
 def OM_set_type_mro(o, val):
     o.mro = val
 
@@ -8543,7 +8546,11 @@ def sem_simple_call(ctx, obj, args):
         return om_function_call_code(ctx, [obj] + args, make_dict())
     else:
         obj_call = getattribute_from_obj_mro(obj, '__call__')
-        return sem_simple_call(ctx, obj_call, [obj] + args)
+        if obj_call is absent:
+            class_name = OM_get_object_class_name(obj)
+            return sem_raise_with_message(ctx, class_TypeError, "'" + class_name + "' object is not callable")
+        else:
+            return sem_simple_call(ctx, obj_call, [obj] + args)
 
 def sem_generic_call(ctx, obj, args, kwargs):
     if dict_len(kwargs) == 0:
@@ -8573,7 +8580,11 @@ def sem_generic_call(ctx, obj, args, kwargs):
             return om_function_call_code(ctx, [obj] + args, kwargs)
         else:
             obj_call = getattribute_from_obj_mro(obj, '__call__')
-            return sem_generic_call(ctx, obj_call, [obj] + args, kwargs)
+            if obj_call is absent:
+                class_name = OM_get_object_class_name(obj)
+                return sem_raise_with_message(ctx, class_TypeError, "'" + class_name + "' object is not callable")
+            else:
+                return sem_generic_call(ctx, obj_call, [obj] + args, kwargs)
 
 def sem_getitem(ctx, obj, item):
     obj_getitem = getattribute_from_obj_mro(obj, "__getitem__")
@@ -8685,7 +8696,7 @@ def sem_maybe_len(ctx, obj):
 def sem_len(ctx, obj):
     def cont(rte, val):
         if val is absent:
-            obj_cls_name = OM_get_boxed_value(OM_get(OM_get_object_class(obj), "__name__"))
+            obj_cls_name = OM_get_object_class_name(obj)
             error_msg = "object of type '" + obj_cls_name + "' has no len()"
             return sem_raise_with_message(ctx, class_TypeError, error_msg)
         else:
@@ -9383,24 +9394,23 @@ def om_simple_repr_with_max_length(ctx, value, max_length):
     return repr_res
 
 def om_simple_exception_format(ctx, exn):
-    exn_name = OM_get(OM_get_object_class(exn), '__name__')
-    exn_name_value = OM_get_boxed_value(exn_name)
+    exn_name = OM_get_object_class_name(exn)
     exn_args = OM_get(exn, 'args')
 
     if exn_args is absent or not om_isinstance(exn_args, class_tuple):
-        return exn_name_value + ': <unknown exception message>'
+        return exn_name + ': <unknown exception message>'
     else:
         seq = OM_get_tuple_seq(exn_args)
         if len(seq) == 0:
-            return exn_name_value
+            return exn_name
         elif len(seq) == 1:
             el = seq[0]
             if om_isinstance(el, class_str):
-                return exn_name_value + ": " + OM_get_boxed_value(el)
+                return exn_name + ": " + OM_get_boxed_value(el)
             else:
-                return exn_name_value + ": " + om_simple_repr(ctx, seq[0])
+                return exn_name + ": " + om_simple_repr(ctx, seq[0])
         else:
-            return exn_name_value + ": " + om_simple_repr(ctx, exn_args)
+            return exn_name + ": " + om_simple_repr(ctx, exn_args)
 
 
 def expr_end_with_error(ctx, error):
