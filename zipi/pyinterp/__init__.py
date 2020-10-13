@@ -168,6 +168,9 @@ def cont_list(ctx, val, len_):
 def cont_tuple(ctx, val):
     return ctx.cont(ctx.rte, om_tuple(val))
 
+def with_rte(ctx, rte):
+    return Context(rte, ctx.cont, ctx.ast)
+
 def with_cont(ctx, cont):
     return Context(ctx.rte, cont, ctx.ast)
 
@@ -1051,7 +1054,11 @@ def populate_builtin_range():
          ('__getitem__', om_range_getitem)))
 
 def populate_builtin_slice():
-    pass
+    buitlin_add_methods_to_class(
+        class_slice,
+        (('__new__', om_slice_new),
+         ('__repr__', om_slice_repr)))
+
 
 def populate_builtin_iterator():
     builtin_add_method(class_iterator, '__iter__', om_iterator_iter)
@@ -3030,6 +3037,65 @@ def om_range_getitem_code(ctx, args):
         return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(args_len - 1))
 
 om_range_getitem = do_magic_method(class_range, "__getitem__", om_range_getitem_code)
+
+
+# class_slice methods
+
+def om_slice_new_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 2:
+        start = om_None
+        stop = args[1]
+        step = om_None
+
+        return cont_obj(ctx, om_slice(start, stop, step))
+    elif args_len == 3:
+        start = args[1]
+        stop = args[2]
+        step = om_None
+
+        return cont_obj(ctx, om_slice(start, stop, step))
+    elif args_len == 4:
+        start = args[1]
+        stop = args[2]
+        step = args[3]
+
+        return cont_obj(ctx, om_slice(start, stop, step))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "slice takes from 1 to 3 arguments, got " + str(args_len - 1))
+
+
+om_slice_new = do_static_magic_method(class_slice, '__new__', om_slice_new_code)
+
+
+def om_slice_repr_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 1:
+        self = args[0]
+
+        start = OM_get_slice_start(self)
+        stop = OM_get_slice_stop(self)
+        step = OM_get_slice_step(self)
+
+        def get_start_repr(start_rte, start_repr):
+            def get_stop_repr(stop_rte, stop_repr):
+                def get_step_repr(step_rte, step_repr):
+                    repr_ = "slice(" + OM_get_boxed_value(start_repr) + ", " \
+                            + OM_get_boxed_value(stop_repr) + ", " \
+                            + OM_get_boxed_value(step_repr) + ")"
+
+                    return cont_str(with_rte(ctx, step_rte), repr_)
+                return sem_repr(make_out_of_ast_context(stop_rte, get_step_repr), step)
+            return sem_repr(make_out_of_ast_context(start_rte, get_stop_repr), stop)
+        return sem_repr(with_cont(ctx, get_start_repr), start)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
+
+
+om_slice_repr = do_magic_method(class_slice, '__repr__', om_slice_repr_code)
+
 
 # class_iterator methods
 
@@ -5999,6 +6065,7 @@ def fresh_rte(options):
     dict_set(builtins_env, 'tuple', class_tuple)
     dict_set(builtins_env, 'list', class_list)
     dict_set(builtins_env, 'range', class_range)
+    dict_set(builtins_env, 'slice', class_slice)
     dict_set(builtins_env, 'NotImplemented', om_NotImplemented)
     dict_set(builtins_env, 'print', om_builtin_print)
     dict_set(builtins_env, 'breakpoint', om_builtin_breakpoint)
@@ -8877,6 +8944,36 @@ def om_struct_simple_repr(struct, rte, max_length):
     return 'struct(' + ', '.join(attrs_repr) + ')'
 
 
+def om_slice_simple_repr(slice_, rte, max_length):
+    # account for the 'slice(' + ')' segment of the string
+    remaining_length = max_length - 12
+
+    start = OM_get_slice_start(slice_)
+    stop = OM_get_slice_stop(slice_)
+    step = OM_get_slice_step(slice_)
+
+    reprs = []
+
+    for elt in [start, stop, step]:
+        repr_ = om_simple_repr(make_out_of_ast_context(rte, None), elt)
+
+        repr_len = len(repr_)
+
+        if repr_len <= remaining_length:
+            # Object is short enough, print it
+            # account for next ', ' in remaining length
+            remaining_length -= repr_len + 2
+            reprs.append(repr_)
+        elif remaining_length < 3 and len(reprs) > 0:
+            reprs[len(reprs) - 1] = REPR_TOO_LONG_FILLER
+            break
+        else:
+            reprs.append(REPR_TOO_LONG_FILLER)
+            break
+
+    return 'struct(' + ', '.join(reprs) + ')'
+
+
 simple_repr_formatters = {
     "NoneType": om_format_NoneType_repr,
     "int": om_format_int_repr,
@@ -8911,6 +9008,8 @@ def om_simple_repr_with_max_length(ctx, value, max_length):
         repr_res = om_range_simple_repr(value, ctx.rte, max_length)
     elif om_is(value_cls, class_struct):
         repr_res = om_struct_simple_repr(value, ctx.rte, max_length)
+    elif om_is(value_cls, class_slice):
+        repr_res = om_slice_simple_repr(value, ctx.rte, max_length)
     else:
         cls_name = OM_get_boxed_value(OM_get(value_cls, "__name__"))
         formatter = dict_get(simple_repr_formatters, cls_name, om_format_object_repr)
