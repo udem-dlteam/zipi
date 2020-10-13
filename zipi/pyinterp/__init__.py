@@ -1044,6 +1044,7 @@ def populate_builtin_list():
     builtin_add_method(class_list, '__rmul__', om_list_rmul)
     builtin_add_method(class_list, 'append', om_list_append)
     builtin_add_method(class_list, 'extend', om_list_extend)
+    builtin_add_method(class_list, 'pop', om_list_pop)
 
 def populate_builtin_range():
     buitlin_add_methods_to_class(
@@ -2586,6 +2587,42 @@ def list_seq_grow(seq):
 
     return new_seq
 
+def list_seq_maybe_shrink(om_lst, seq, len_, inner_len):
+    if len_ < inner_len // 2 + 1:
+        new_inner_len = get_list_inner_len(len_)
+        new_seq = seq[:new_inner_len]
+
+        OM_set_list_seq(om_lst, new_seq)
+
+def list_shift_left(om_lst, seq, len_, inner_len, shift_pos, shift_amount):
+    to_index = shift_pos
+    from_index = shift_pos + shift_amount
+
+    n_free_cells = inner_len - len_
+
+    if shift_amount > n_free_cells:
+        n_to_erase = shift_amount - n_free_cells
+    else:
+        n_to_erase = 0
+
+    n_to_shift = len_ - shift_pos - n_to_erase
+
+    while n_to_shift > 0:
+        seq[to_index] = seq[from_index]
+        to_index += 1
+        from_index += 1
+        n_to_shift -= 1
+
+    while n_to_erase > 0:
+        seq[to_index] = empty_cell
+        to_index += 1
+        to_index += 1
+
+    new_len = len_ - shift_amount
+    OM_set_list_len(om_lst, new_len)
+    list_seq_maybe_shrink(om_lst, seq, new_len, inner_len)
+
+
 def make_list(ctx, elements):
     list_len = len(elements)
     dynamic_array = list_seq_grow(elements)
@@ -2869,6 +2906,60 @@ def om_list_append_code(ctx, args):
                                       "append() takes exactly one argument (" + str(args_len - 1) + " given)")
 
 om_list_append = do_magic_method(class_list, "append", om_list_append_code)
+
+
+def om_list_pop_code(ctx, args):
+    args_len = len(args)
+    if args_len == 1:
+        self = args[0]
+        elements = OM_get_list_seq(self)
+        len_ = OM_get_list_len(self)
+        inner_len = len(elements)
+
+        if len_ > 0:
+            last_index = len_ - 1
+            last = elements[last_index]
+            elements[last_index] = empty_cell
+            OM_set_list_len(self, last_index)
+
+            list_seq_maybe_shrink(self, elements, last_index, inner_len)
+            return cont_obj(ctx, last)
+        else:
+            return sem_raise_with_message(ctx, class_IndexError, "pop item from empty list")
+    elif args_len == 2:
+        self = args[0]
+        elements = OM_get_list_seq(self)
+        len_ = OM_get_list_len(self)
+        inner_len = len(elements)
+
+        def do_pop(rte, om_index):
+            index = int_to_num(OM_get_boxed_value(om_index))
+            next_ctx = with_rte(ctx, rte)
+
+            if index >= len_:
+                return sem_raise_with_message(next_ctx, class_IndexError, "pop index out of range")
+            elif index >= 0:
+                poped_item = elements[index]
+                list_shift_left(self, elements, len_, inner_len, index, 1)
+                return cont_obj(with_rte(ctx, rte), poped_item)
+            else:
+                reversed_index = index + len_
+                if reversed_index >= 0:
+                    poped_item = elements[reversed_index]
+                    list_shift_left(self, elements, len_, inner_len, reversed_index, 1)
+                    return cont_obj(with_rte(ctx, rte), poped_item)
+                else:
+                    return sem_raise_with_message(next_ctx, class_IndexError, "pop index out of range")
+
+        return sem_index(with_cont(ctx, do_pop), args[1])
+
+    else:
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "pop() expected at most 1 argument, got " + str(args_len))
+
+
+om_list_pop = do_magic_method(class_list, "pop", om_list_pop_code)
+
 
 # class_range methods
 
