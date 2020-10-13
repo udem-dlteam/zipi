@@ -1046,6 +1046,7 @@ def populate_builtin_list():
     builtin_add_method(class_list, 'extend', om_list_extend)
     builtin_add_method(class_list, 'pop', om_list_pop)
     builtin_add_method(class_list, 'insert', om_list_insert)
+    builtin_add_method(class_list, 'index', om_list_index)
 
 def populate_builtin_range():
     buitlin_add_methods_to_class(
@@ -1619,6 +1620,16 @@ def gen_sem_Numeric_EqComp(op_symbol, method, fall_back):
 
 sem_Eq = gen_sem_Numeric_EqComp("==", "__eq__", om_is)
 sem_NotEq = gen_sem_Numeric_EqComp("!=", "__ne__", om_is_not)
+
+def sem_Eq_bool(ctx, val1, val2):
+    def do_bool(rte, res):
+        return sem_bool(with_rte(ctx, rte), res)
+    return sem_Eq(with_cont(ctx, do_bool), val1, val2)
+
+def sem_NotEq_bool(ctx, val1, val2):
+    def do_bool(rte, res):
+        return sem_bool(with_rte(ctx, rte), res)
+    return sem_NotEq(with_cont(ctx, do_bool), val1, val2)
 
 def sem_Round(ctx, obj, ndigits):
     obj_round = getattribute_from_obj_mro(obj, "__round__")
@@ -2657,7 +2668,24 @@ def list_shift_right(om_lst, seq, len_, inner_len, shift_pos, inserted_items):
     OM_set_list_len(om_lst, len_ + shift_amount)
 
 
+def list_search(ctx, seq, target, start, end):
+    # search om_lst[start:end] for target and returns its index, or absent if not found
+    # both start and end must be positive indices in range
 
+    if start < end:
+        def check_result(rte, res):
+            if om_is(res, om_True):
+                return cont_obj(with_rte(ctx, rte), start)
+            else:
+                return stmt_end(
+                    Context(
+                        rte,
+                        lambda rte: list_search(with_rte(ctx, rte), seq, target, start + 1, end),
+                        ctx.ast),
+                    0)
+        return sem_Eq_bool(with_cont(ctx, check_result), seq[start], target)
+    else:
+        return cont_obj(ctx, absent)
 
 
 def make_list(ctx, elements):
@@ -3022,10 +3050,71 @@ def om_list_insert_code(ctx, args):
         return sem_index(with_cont(ctx, do_insert), args[1])
     else:
         return sem_raise_with_message(ctx, class_TypeError,
-                                      "insert() expected 2 arguments, got " + str(args_len))
+                                      "insert() expected 2 arguments, got " + str(args_len - 1))
 
 
 om_list_insert = do_magic_method(class_list, "insert", om_list_insert_code)
+
+def clamp_index(index, len_):
+    if index >= len_:
+        return len_
+    elif index >= 0:
+        return index
+    else:
+        reversed_index = index + len_
+        if reversed_index >= 0:
+            return reversed_index
+        else:
+            return 0
+
+def om_list_index_code(ctx, args):
+    args_len = len(args)
+
+    def check_result(rte, res):
+        if res is absent:
+            def do_error(err_rte, repr_):
+                return sem_raise_with_message(with_rte(ctx, err_rte), class_ValueError,
+                                              OM_get_boxed_value(repr_) + " is not in list")
+            return sem_repr(Context(rte, do_error, ctx.ast), value)
+        else:
+            return cont_int(with_rte(ctx, rte), int_from_num(res))
+
+    if args_len == 2:
+        self = args[0]
+        elements = OM_get_list_seq(self)
+        len_ = OM_get_list_len(self)
+        value = args[1]
+
+        return list_search(with_cont(ctx, check_result), elements, value, 0, len_)
+    if args_len == 3 or args_len == 4:
+        self = args[0]
+        elements = OM_get_list_seq(self)
+        len_ = OM_get_list_len(self)
+        value = args[1]
+        start = args[2]
+
+        def get_start(rte, om_start):
+            index = int_to_num(OM_get_boxed_value(om_start))
+
+            start_index = clamp_index(index, len_)
+
+            if args_len == 3:
+                return list_search(Context(rte, check_result, ctx.ast), elements, value, start_index, len_)
+            else:  # args_len == 4
+                stop = args[3]
+
+                def get_stop(stop_rte, om_stop):
+                    index = int_to_num(OM_get_boxed_value(om_stop))
+                    stop_index = clamp_index(index, len_)
+                    return list_search(Context(rte, check_result, ctx.ast), elements, value, start_index, stop_index)
+                return sem_index(Context(rte, get_stop, ctx.ast), stop)
+        return sem_index(with_cont(ctx, get_start), start)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "index() expected between 1 and 3 arguments, got " + str(args_len - 1))
+
+
+om_list_index = do_magic_method(class_list, 'index', om_list_index_code)
 
 
 # class_range methods
