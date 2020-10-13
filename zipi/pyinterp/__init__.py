@@ -7731,7 +7731,8 @@ def gen_subscript_aug_assign(cte, ast, target, sem_op):
 
                     return value_code(lhs_rte, get_value)
 
-                return sem_getitem(Context(index_rte, get_lhs, target_obj), container, index)
+                expr_end_cont = do_expr_end(get_lhs, target)
+                return sem_getitem(Context(index_rte, expr_end_cont, target_obj), container, index)
 
             return index_code(container_rte, get_index)
 
