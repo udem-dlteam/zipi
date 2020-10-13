@@ -1045,6 +1045,7 @@ def populate_builtin_list():
     builtin_add_method(class_list, 'append', om_list_append)
     builtin_add_method(class_list, 'extend', om_list_extend)
     builtin_add_method(class_list, 'pop', om_list_pop)
+    builtin_add_method(class_list, 'insert', om_list_insert)
 
 def populate_builtin_range():
     buitlin_add_methods_to_class(
@@ -2594,6 +2595,16 @@ def list_seq_maybe_shrink(om_lst, seq, len_, inner_len):
 
         OM_set_list_seq(om_lst, new_seq)
 
+def list_internal_append(om_lst, seq, len_, inner_len, value):
+    if len_ < inner_len:
+        seq[len_] = value
+        OM_set_list_len(om_lst, len_ + 1)
+    else:
+        new_elements = list_seq_grow(seq)
+        new_elements[len_] = value
+        OM_set_list_seq(om_lst, new_elements)
+        OM_set_list_len(om_lst, len_ + 1)
+
 def list_shift_left(om_lst, seq, len_, inner_len, shift_pos, shift_amount):
     to_index = shift_pos
     from_index = shift_pos + shift_amount
@@ -2621,6 +2632,32 @@ def list_shift_left(om_lst, seq, len_, inner_len, shift_pos, shift_amount):
     new_len = len_ - shift_amount
     OM_set_list_len(om_lst, new_len)
     list_seq_maybe_shrink(om_lst, seq, new_len, inner_len)
+
+
+def list_shift_right(om_lst, seq, len_, inner_len, shift_pos, inserted_items):
+    shift_amount = len(inserted_items)
+
+    if len_ + shift_amount > inner_len:
+        seq = list_seq_grow(seq)
+        OM_set_list_seq(om_lst, seq)
+
+    last_index = len_ - 1
+    to_index = last_index + shift_amount
+    from_index = last_index
+
+    while from_index >= shift_pos:
+        seq[to_index] = seq[from_index]
+        to_index -= 1
+        from_index -= 1
+
+    for elt in inserted_items:
+        seq[shift_pos] = elt
+        shift_pos += 1
+
+    OM_set_list_len(om_lst, len_ + shift_amount)
+
+
+
 
 
 def make_list(ctx, elements):
@@ -2755,7 +2792,7 @@ def om_list_len_code(ctx, args):
         return cont_int(ctx, int_from_num(elements_len))
     else:
         return sem_raise_with_message(ctx, class_TypeError,
-                                      "__len__() takes no argument (" + str(args_len) + " given)")
+                                      "__len__() takes no argument (" + str(args_len - 1) + " given)")
 
 
 om_list_len = do_magic_method(class_list, "__len__", om_list_len_code)
@@ -2787,7 +2824,7 @@ def om_list_add_code(ctx, args):
 
     else:
         return sem_raise_with_message(ctx, class_TypeError,
-                                      "__len__() takes one argument (" + str(args_len) + " given)")
+                                      "__add__() takes one argument (" + str(args_len - 1) + " given)")
 
 
 om_list_add = do_magic_method(class_list, "__add__", om_list_add_code)
@@ -2824,7 +2861,7 @@ def om_list_extend_code(ctx, args):
         return om_unpack_iterable(with_cont(ctx, cont), other)
     else:
         return sem_raise_with_message(ctx, class_TypeError,
-                                      "extend() takes one argument (" + str(args_len) + " given)")
+                                      "extend() takes one argument (" + str(args_len - 1) + " given)")
 
 
 om_list_extend = do_magic_method(class_list, "extend", om_list_extend_code)
@@ -2840,7 +2877,7 @@ def om_list_iadd_code(ctx, args):
         return om_list_extend_code(with_cont(ctx, cont), args)
     else:
         return sem_raise_with_message(ctx, class_TypeError,
-                                      "__iadd__() takes one argument (" + str(args_len) + " given)")
+                                      "__iadd__() takes one argument (" + str(args_len - 1) + " given)")
 
 
 om_list_iadd = do_magic_method(class_list, "__iadd__", om_list_iadd_code)
@@ -2891,14 +2928,7 @@ def om_list_append_code(ctx, args):
         list_len = OM_get_list_len(self)
         elements_len = len(elements)
 
-        if list_len < elements_len:
-            elements[list_len] = value
-            OM_set_list_len(self, list_len + 1)
-        else:
-            new_elements = list_seq_grow(elements)
-            new_elements[list_len] = value
-            OM_set_list_seq(self, new_elements)
-            OM_set_list_len(self, list_len + 1)
+        list_internal_append(self, elements, list_len, elements_len, value)
 
         return ctx.cont(ctx.rte, om_None)
     else:
@@ -2927,12 +2957,12 @@ def om_list_pop_code(ctx, args):
         else:
             return sem_raise_with_message(ctx, class_IndexError, "pop item from empty list")
     elif args_len == 2:
-        self = args[0]
-        elements = OM_get_list_seq(self)
-        len_ = OM_get_list_len(self)
-        inner_len = len(elements)
-
         def do_pop(rte, om_index):
+            self = args[0]
+            elements = OM_get_list_seq(self)
+            len_ = OM_get_list_len(self)
+            inner_len = len(elements)
+
             index = int_to_num(OM_get_boxed_value(om_index))
             next_ctx = with_rte(ctx, rte)
 
@@ -2941,13 +2971,13 @@ def om_list_pop_code(ctx, args):
             elif index >= 0:
                 poped_item = elements[index]
                 list_shift_left(self, elements, len_, inner_len, index, 1)
-                return cont_obj(with_rte(ctx, rte), poped_item)
+                return cont_obj(next_ctx, poped_item)
             else:
                 reversed_index = index + len_
                 if reversed_index >= 0:
                     poped_item = elements[reversed_index]
                     list_shift_left(self, elements, len_, inner_len, reversed_index, 1)
-                    return cont_obj(with_rte(ctx, rte), poped_item)
+                    return cont_obj(next_ctx, poped_item)
                 else:
                     return sem_raise_with_message(next_ctx, class_IndexError, "pop index out of range")
 
@@ -2955,10 +2985,47 @@ def om_list_pop_code(ctx, args):
 
     else:
         return sem_raise_with_message(ctx, class_TypeError,
-                                      "pop() expected at most 1 argument, got " + str(args_len))
+                                      "pop() expected at most 1 argument, got " + str(args_len - 1))
 
 
 om_list_pop = do_magic_method(class_list, "pop", om_list_pop_code)
+
+
+def om_list_insert_code(ctx, args):
+    args_len = len(args)
+    if args_len == 3:
+        def do_insert(rte, om_index):
+            self = args[0]
+            elements = OM_get_list_seq(self)
+            len_ = OM_get_list_len(self)
+            inner_len = len(elements)
+            value = args[2]
+
+            index = int_to_num(OM_get_boxed_value(om_index))
+            next_ctx = with_rte(ctx, rte)
+
+            if index >= len_:
+                list_internal_append(self, elements, len_, inner_len, value)
+                return cont_obj(next_ctx, om_None)
+            elif index >= 0:
+                list_shift_right(self, elements, len_, inner_len, index, [value])
+                return cont_obj(next_ctx, om_None)
+            else:
+                reversed_index = index + len_
+                if reversed_index >= 0:
+                    list_shift_right(self, elements, len_, inner_len, reversed_index, [value])
+                    return cont_obj(next_ctx, om_None)
+                else:
+                    list_shift_right(self, elements, len_, inner_len, 0, [value])
+                    return cont_obj(next_ctx, om_None)
+
+        return sem_index(with_cont(ctx, do_insert), args[1])
+    else:
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "insert() expected 2 arguments, got " + str(args_len))
+
+
+om_list_insert = do_magic_method(class_list, "insert", om_list_insert_code)
 
 
 # class_range methods
