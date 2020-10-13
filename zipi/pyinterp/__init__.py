@@ -1025,6 +1025,7 @@ def populate_builtin_tuple():
     buitlin_add_methods_to_class(
         class_tuple,
         (('__new__', om_tuple_new),
+         ('__eq__', om_tuple_eq),
          ('__repr__', om_tuple_repr),
          ('__len__', om_tuple_len),
          ('__getitem__', om_tuple_getitem),
@@ -1035,6 +1036,7 @@ def populate_builtin_tuple():
 def populate_builtin_list():
     builtin_add_method(class_list, '__new__', om_list_new)
     builtin_add_method(class_list, '__repr__', om_list_repr)
+    builtin_add_method(class_list, '__eq__', om_list_eq)
     builtin_add_method(class_list, '__getitem__', om_list_getitem)
     builtin_add_method(class_list, '__setitem__', om_list_setitem)
     builtin_add_method(class_list, '__len__', om_list_len)
@@ -2465,6 +2467,33 @@ def om_tuple_repr_code(ctx, args):
 om_tuple_repr = do_magic_method(class_tuple, "__repr__", om_tuple_repr_code)
 
 
+def om_tuple_eq_code(ctx, args):
+    args_len = len(args)
+    if args_len == 2:
+        self = args[0]
+        other = args[1]
+
+        if om_isinstance(other, class_tuple):
+            self_seq = OM_get_tuple_seq(self)
+            self_len = len(self_seq)
+
+            other_seq = OM_get_tuple_seq(other)
+            other_len = len(other_seq)
+
+            if self_len == other_len:
+                return check_sequence_equality(ctx, self_seq, other_seq, 0, self_len)
+            else:
+                return cont_obj(ctx, om_False)
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "__eq__() takes 1 argument (" + str(args_len - 1) + " given)")
+
+
+om_tuple_eq = do_magic_method(class_tuple, "__eq__", om_tuple_eq_code)
+
+
 def om_tuple_new_code(ctx, args):
     args_len = len(args)
 
@@ -2696,6 +2725,21 @@ def list_search(ctx, seq, target, start, end):
         return cont_obj(ctx, absent)
 
 
+def check_sequence_equality(ctx, seq1, seq2, start, end):
+    if start < end:
+        def check_res(rte, res):
+            def check_truthiness(rte, is_eq):
+                if om_is(is_eq, om_True):
+                    next_ctx = Context(rte, lambda rte: check_sequence_equality(ctx, seq1, seq2, start + 1, end), ctx.ast)
+                    return stmt_end(next_ctx, 0)
+                else:
+                    return cont_obj(ctx, om_False)
+            return sem_bool(Context(rte, check_truthiness, ctx.ast), res)
+        return sem_Eq(with_cont(ctx, check_res), seq1[start], seq2[start])
+    else:
+        return cont_obj(ctx, om_True)
+
+
 def make_list(ctx, elements):
     list_len = len(elements)
     dynamic_array = list_seq_grow(elements)
@@ -2716,6 +2760,33 @@ def om_list_new_code(ctx, args):
         return sem_raise_with_message(ctx, class_TypeError, "list expected at most 1 argument, got " + str(args_len))
 
 om_list_new = do_static_magic_method(class_list, "__new__", om_list_new_code)
+
+
+def om_list_eq_code(ctx, args):
+    args_len = len(args)
+    if args_len == 2:
+        self = args[0]
+        other = args[1]
+
+        if om_isinstance(other, class_list):
+            self_seq = OM_get_list_seq(self)
+            self_len = OM_get_list_len(self)
+
+            other_seq = OM_get_list_seq(other)
+            other_len = OM_get_list_len(other)
+
+            if self_len == other_len:
+                return check_sequence_equality(ctx, self_seq, other_seq, 0, self_len)
+            else:
+                return cont_obj(ctx, om_False)
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "__eq__() takes 1 argument (" + str(args_len - 1) + " given)")
+
+
+om_list_eq = do_magic_method(class_list, "__eq__", om_list_eq_code)
 
 
 def om_list_elements_repr(ctx, elts, repr_acc, i):
