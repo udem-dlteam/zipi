@@ -1025,6 +1025,7 @@ def populate_builtin_tuple():
     buitlin_add_methods_to_class(
         class_tuple,
         (('__new__', om_tuple_new),
+         ('__eq__', om_tuple_eq),
          ('__repr__', om_tuple_repr),
          ('__len__', om_tuple_len),
          ('__getitem__', om_tuple_getitem),
@@ -2463,6 +2464,33 @@ def om_tuple_repr_code(ctx, args):
 om_tuple_repr = do_magic_method(class_tuple, "__repr__", om_tuple_repr_code)
 
 
+def om_tuple_eq_code(ctx, args):
+    args_len = len(args)
+    if args_len == 2:
+        self = args[0]
+        other = args[1]
+
+        if om_isinstance(other, class_tuple):
+            self_seq = OM_get_tuple_seq(self)
+            self_len = len(self_seq)
+
+            other_seq = OM_get_tuple_seq(other)
+            other_len = len(other_seq)
+
+            if self_len == other_len:
+                return check_sequence_equality(ctx, self_seq, other_seq, 0, self_len)
+            else:
+                return cont_obj(ctx, om_False)
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "__eq__() takes 1 argument (" + str(args_len - 1) + " given)")
+
+
+om_tuple_eq = do_magic_method(class_tuple, "__eq__", om_tuple_eq_code)
+
+
 def om_tuple_new_code(ctx, args):
     args_len = len(args)
 
@@ -2748,6 +2776,8 @@ def om_list_eq_code(ctx, args):
                 return check_sequence_equality(ctx, self_seq, other_seq, 0, self_len)
             else:
                 return cont_obj(ctx, om_False)
+        else:
+            return cont_obj(ctx, om_NotImplemented)
     else:
         return sem_raise_with_message(ctx, class_TypeError,
                                       "__eq__() takes 1 argument (" + str(args_len - 1) + " given)")
