@@ -1051,6 +1051,7 @@ def populate_builtin_list():
     builtin_add_method(class_list, 'remove', om_list_remove)
     builtin_add_method(class_list, 'copy', om_list_copy)
     builtin_add_method(class_list, 'clear', om_list_clear)
+    builtin_add_method(class_list, 'reverse', om_list_reverse)
 
 def populate_builtin_range():
     buitlin_add_methods_to_class(
@@ -3200,6 +3201,32 @@ def om_list_clear_code(ctx, args):
 
 
 om_list_clear = do_magic_method(class_list, "clear", om_list_clear_code)
+
+
+def om_list_reverse_code(ctx, args):
+    args_len = len(args)
+    if args_len == 1:
+        self = args[0]
+        seq = OM_get_list_seq(self)
+        len_ = OM_get_list_len(self)
+
+        i = 0
+        j = len_ - 1
+
+        while i < j:
+            tmp = seq[j]
+            seq[j] = seq[i]
+            seq[i] = tmp
+            i += 1
+            j -= 1
+
+        return cont_obj(ctx, om_None)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "reverse() takes no argument (" + str(args_len - 1) + " given)")
+
+
+om_list_reverse = do_magic_method(class_list, "reverse", om_list_reverse_code)
 
 
 # class_range methods
