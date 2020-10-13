@@ -487,6 +487,9 @@ def list_pop(l):
 def list_set_slice(lst, start, stop, seq):
     lst[start:stop] = seq[0:stop-start]
 
+def list_copy(lst):
+    return lst.copy()
+
 ###
 # Str operations
 ###

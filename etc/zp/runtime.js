@@ -136,6 +136,10 @@ function list_pop(lst) {
     return lst.pop();
 }
 
+function list_copy(lst){
+    return lst.slice();
+}
+
 function list_set_slice(lst, start, stop, seq){
     Array.prototype.splice.apply(lst, [start, stop - start].concat(seq.slice(0, stop-start)));
 }
