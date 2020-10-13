@@ -1042,6 +1042,7 @@ def populate_builtin_list():
     builtin_add_method(class_list, '__iadd__', om_list_iadd)
     builtin_add_method(class_list, '__mul__', om_list_mul)
     builtin_add_method(class_list, '__rmul__', om_list_rmul)
+    builtin_add_method(class_list, '__contains__', om_list_contains)
     builtin_add_method(class_list, 'append', om_list_append)
     builtin_add_method(class_list, 'extend', om_list_extend)
     builtin_add_method(class_list, 'pop', om_list_pop)
@@ -3115,6 +3116,27 @@ def om_list_index_code(ctx, args):
 
 
 om_list_index = do_magic_method(class_list, 'index', om_list_index_code)
+
+
+def om_list_contains_code(ctx, args):
+    args_len = len(args)
+    if args_len == 2:
+        def get_result(rte, res):
+            return cont_bool(with_rte(ctx, rte), res is not absent)
+
+        self = args[0]
+        seq = OM_get_list_seq(self)
+        len_ = OM_get_list_len(self)
+
+        target = args[1]
+
+        return list_search(with_cont(ctx, get_result), seq, target, 0, len_)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "__contains__() takes 1 argument (" + str(args_len - 1) + " given)")
+
+
+om_list_contains = do_magic_method(class_list, '__contains__', om_list_contains_code)
 
 
 # class_range methods
