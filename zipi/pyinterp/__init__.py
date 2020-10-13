@@ -1048,6 +1048,7 @@ def populate_builtin_list():
     builtin_add_method(class_list, 'pop', om_list_pop)
     builtin_add_method(class_list, 'insert', om_list_insert)
     builtin_add_method(class_list, 'index', om_list_index)
+    builtin_add_method(class_list, 'remove', om_list_remove)
 
 def populate_builtin_range():
     buitlin_add_methods_to_class(
@@ -3137,6 +3138,31 @@ def om_list_contains_code(ctx, args):
 
 
 om_list_contains = do_magic_method(class_list, '__contains__', om_list_contains_code)
+
+
+def om_list_remove_code(ctx, args):
+    args_len = len(args)
+    if args_len == 2:
+        def get_result(rte, res):
+            if res is absent:
+                return sem_raise_with_message(with_rte(ctx, rte), class_ValueError, "list.remove(x): x not in list")
+            else:
+                list_shift_left(self, seq, len_, len(seq), res, 1)
+                return cont_obj(with_rte(ctx, rte), om_None)
+
+        self = args[0]
+        seq = OM_get_list_seq(self)
+        len_ = OM_get_list_len(self)
+
+        target = args[1]
+
+        return list_search(with_cont(ctx, get_result), seq, target, 0, len_)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "remove() takes 1 argument (" + str(args_len - 1) + " given)")
+
+
+om_list_remove = do_magic_method(class_list, 'remove', om_list_remove_code)
 
 
 # class_range methods
