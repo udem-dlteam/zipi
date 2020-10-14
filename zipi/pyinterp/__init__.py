@@ -1068,7 +1068,8 @@ def populate_builtin_slice():
     buitlin_add_methods_to_class(
         class_slice,
         (('__new__', om_slice_new),
-         ('__repr__', om_slice_repr)))
+         ('__repr__', om_slice_repr),
+         ('indices', om_slice_indices)))
 
 
 def populate_builtin_iterator():
@@ -3570,6 +3571,128 @@ def om_slice_repr_code(ctx, args):
 
 
 om_slice_repr = do_magic_method(class_slice, '__repr__', om_slice_repr_code)
+
+
+def compute_slice_indices_aux(ctx, start, stop, step, len_):
+    # start, stop and step must be big integer or None, len_ must be big int
+    _0 = int_from_num(0)
+    _1 = int_from_num(1)
+    _len_minus_1 = int_sub(len_, _1)
+
+    # STEP
+    if step is None:
+        real_step = int_from_num(1)
+    elif int_is_zero(step):
+        return sem_raise_with_message(ctx, class_ValueError, "slice step cannot be 0")
+    else:
+        real_step = step
+
+    step_is_negative = int_is_neg(real_step)
+
+    # START
+    if start is None:
+        if step_is_negative:
+            real_start = _len_minus_1
+        else:
+            real_start = int_from_num(0)
+    elif int_is_neg(start):
+        real_start = int_add(start, len_)
+    else:
+        real_start = start
+
+    start_is_neg = int_is_neg(real_start)
+
+    # STOP
+    if stop is None:
+        if step_is_negative:
+            real_stop = int_from_num(-1)
+        else:
+            real_stop = len_
+    elif int_is_neg(stop):
+        real_stop = int_add(stop, len_)
+    else:
+        real_stop = stop
+
+    # First element of slice
+    if step_is_negative:
+        if start_is_neg:
+            first = None
+        else:
+            first = int_min(_len_minus_1, real_start)
+    else:
+        if int_ge(real_start, len_):
+            first = None
+        else:
+            first = int_max(_0, real_start)
+
+    # Compute the slice indices
+    if first is None:
+        return cont_obj(ctx, [_0, _0, real_step])
+    else:
+        if step_is_negative:
+            last = int_max(int_from_num(-1), int_min(_len_minus_1, real_stop))
+        else:
+            last = int_max(_0, int_min(len_, real_stop))
+        return cont_obj(ctx, [first, last, real_step])
+
+
+def compute_slice_indices(ctx, start, stop, step, len_):
+    # start, stop and step must be om object, len_ must be big int
+
+    args = list_new(3, None)
+
+    def do_get_int_or_none(obj, cont, i):
+        def get_int_or_none(rte):
+            if om_is(obj, om_None):
+                args[i] = None
+                return cont(rte)
+            elif om_isinstance(obj, class_int):
+                args[i] = OM_get_boxed_value(obj)
+                return cont(rte)
+            else:
+                def get_index(rte, index):
+                    if om_is(index, absent):
+                        return sem_raise_with_message(ctx, class_TypeError,
+                                                      "slice indices must be integers or None or have an __index__ method")
+                    else:
+                        args[i] = OM_get_boxed_value(index)
+                        return cont(rte)
+                return sem_maybe_index(Context(rte, get_index, ctx.ast), obj)
+        return get_int_or_none
+
+    def get_args(rte):
+        return compute_slice_indices_aux(with_rte(ctx, rte), args[0], args[1], args[2], len_)
+
+    get_step = do_get_int_or_none(step, get_args, 2)
+    get_stop = do_get_int_or_none(stop, get_step, 1)
+    get_start = do_get_int_or_none(start, get_stop, 0)
+
+    return get_start(ctx.rte)
+
+
+def om_slice_indices_code(ctx, args):
+    if len(args) == 2:
+        self = args[0]
+
+        def check_len(rte, len_):
+            len_val = OM_get_boxed_value(len_)
+            if int_is_neg(len_val):
+                return sem_raise_with_message(with_rte(ctx, rte), class_ValueError, "length should not be negative")
+            else:
+                def cast_to_tuple(rte, res):
+                    return cont_tuple(with_rte(ctx, rte), [om_int(res[0]), om_int(res[1]), om_int(res[2])])
+
+                start = OM_get_slice_start(self)
+                stop = OM_get_slice_stop(self)
+                step = OM_get_slice_step(self)
+
+                return compute_slice_indices(Context(rte, cast_to_tuple, ctx.ast), start, stop, step, len_val)
+        return sem_index(with_cont(ctx, check_len), args[1])
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 argument, got " + str(len(args) - 1))
+
+
+om_slice_indices = do_magic_method(class_slice, "indices", om_slice_indices_code)
 
 
 # class_iterator methods

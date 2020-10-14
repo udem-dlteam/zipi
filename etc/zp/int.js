@@ -864,6 +864,25 @@ function int_rshift(int_a, int_b) {
     return int_shift(int_a, int_neg(int_b));
 }
 
+
+function int_min(a, b) {
+    if (int_lt(a, b)){
+        return a;
+    } else {
+        return b;
+    }
+}
+
+
+function int_max(a, b) {
+    if (int_gt(a, b)){
+        return a;
+    } else {
+        return b;
+    }
+}
+
+
 var int_digits = "0123456789abcdefghijklmnopqrstuvwxyz";
 
 function int_to_string(int_a, radix) {

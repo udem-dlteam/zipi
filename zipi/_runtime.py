@@ -136,6 +136,14 @@ def int_not(u):
     return ~u
 
 
+def int_min(u, v):
+    return min(u, v)
+
+
+def int_max(u, v):
+    return max(u, v)
+
+
 def float_inf():
     return float("inf")
 
