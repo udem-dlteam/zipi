@@ -3575,9 +3575,15 @@ om_slice_repr = do_magic_method(class_slice, '__repr__', om_slice_repr_code)
 
 def compute_slice_indices_aux(ctx, start, stop, step, len_):
     # start, stop and step must be big integer or None, len_ must be big int
+
+    # See cPython algorithm: https://github.com/python/cpython/blob/master/Objects/sliceobject.c#L248
+    # this is harder to get right than you might think
+
     _0 = int_from_num(0)
     _1 = int_from_num(1)
+    _neg_1 = int_from_num(-1)
     _len_minus_1 = int_sub(len_, _1)
+    _neg_len = int_neg(len_)
 
     # STEP
     if step is None:
@@ -3594,46 +3600,36 @@ def compute_slice_indices_aux(ctx, start, stop, step, len_):
         if step_is_negative:
             real_start = _len_minus_1
         else:
-            real_start = int_from_num(0)
-    elif int_is_neg(start):
-        real_start = int_add(start, len_)
-    else:
+            real_start = _0
+    elif int_ge(start, len_):
+        real_start = _len_minus_1 if step_is_negative else len_
+    elif int_is_nonneg(start):
         real_start = start
-
-    start_is_neg = int_is_neg(real_start)
+    elif int_ge(start, _neg_len):
+        real_start = int_add(start, len_)
+    elif step_is_negative:
+        real_start = _neg_1
+    else:
+        real_start = _0
 
     # STOP
     if stop is None:
         if step_is_negative:
-            real_stop = int_from_num(-1)
+            real_stop = _neg_1
         else:
             real_stop = len_
-    elif int_is_neg(stop):
-        real_stop = int_add(stop, len_)
-    else:
+    elif int_ge(stop, len_):
+        real_stop = _len_minus_1 if step_is_negative else len_
+    elif int_is_nonneg(stop):
         real_stop = stop
-
-    # First element of slice
-    if step_is_negative:
-        if start_is_neg:
-            first = None
-        else:
-            first = int_min(_len_minus_1, real_start)
+    elif int_ge(stop, _neg_len):
+        real_stop = int_add(stop, len_)
+    elif step_is_negative:
+        real_stop = _neg_1
     else:
-        if int_ge(real_start, len_):
-            first = None
-        else:
-            first = int_max(_0, real_start)
+        real_stop = _0
 
-    # Compute the slice indices
-    if first is None:
-        return cont_obj(ctx, [_0, _0, real_step])
-    else:
-        if step_is_negative:
-            last = int_max(int_from_num(-1), int_min(_len_minus_1, real_stop))
-        else:
-            last = int_max(_0, int_min(len_, real_stop))
-        return cont_obj(ctx, [first, last, real_step])
+    return cont_obj(ctx, [real_start, real_stop, real_step])
 
 
 def compute_slice_indices(ctx, start, stop, step, len_):
