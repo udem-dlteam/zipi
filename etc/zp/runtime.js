@@ -99,7 +99,11 @@ function tuple_to_list(tup) {tup.slice();};
 function list_to_tuple(lst) {lst.slice();};
 
 function runtime_random() {
-  return Math.random();
+    return Math.random();
+}
+
+function runtime_time() {
+    return new Date() / 1000.0; // convert milliseconds to seconds
 }
 
 function list_new(size, default_) {
@@ -130,6 +134,10 @@ function list_reversed(lst) {
 
 function list_pop(lst) {
     return lst.pop();
+}
+
+function list_copy(lst){
+    return lst.slice();
 }
 
 function list_set_slice(lst, start, stop, seq){

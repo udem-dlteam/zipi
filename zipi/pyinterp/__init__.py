@@ -1025,6 +1025,7 @@ def populate_builtin_tuple():
     buitlin_add_methods_to_class(
         class_tuple,
         (('__new__', om_tuple_new),
+         ('__eq__', om_tuple_eq),
          ('__repr__', om_tuple_repr),
          ('__len__', om_tuple_len),
          ('__getitem__', om_tuple_getitem),
@@ -1035,6 +1036,7 @@ def populate_builtin_tuple():
 def populate_builtin_list():
     builtin_add_method(class_list, '__new__', om_list_new)
     builtin_add_method(class_list, '__repr__', om_list_repr)
+    builtin_add_method(class_list, '__eq__', om_list_eq)
     builtin_add_method(class_list, '__getitem__', om_list_getitem)
     builtin_add_method(class_list, '__setitem__', om_list_setitem)
     builtin_add_method(class_list, '__len__', om_list_len)
@@ -1042,8 +1044,16 @@ def populate_builtin_list():
     builtin_add_method(class_list, '__iadd__', om_list_iadd)
     builtin_add_method(class_list, '__mul__', om_list_mul)
     builtin_add_method(class_list, '__rmul__', om_list_rmul)
+    builtin_add_method(class_list, '__contains__', om_list_contains)
     builtin_add_method(class_list, 'append', om_list_append)
     builtin_add_method(class_list, 'extend', om_list_extend)
+    builtin_add_method(class_list, 'pop', om_list_pop)
+    builtin_add_method(class_list, 'insert', om_list_insert)
+    builtin_add_method(class_list, 'index', om_list_index)
+    builtin_add_method(class_list, 'remove', om_list_remove)
+    builtin_add_method(class_list, 'copy', om_list_copy)
+    builtin_add_method(class_list, 'clear', om_list_clear)
+    builtin_add_method(class_list, 'reverse', om_list_reverse)
 
 def populate_builtin_range():
     buitlin_add_methods_to_class(
@@ -1051,6 +1061,7 @@ def populate_builtin_range():
         (('__new__', om_range_new),
          ('__repr__', om_range_repr),
          ('__len__', om_range_len),
+         ('__eq__', om_range_eq),
          ('__getitem__', om_range_getitem)))
 
 def populate_builtin_slice():
@@ -1327,6 +1338,9 @@ def OM_set_object_class(o, cls):
 
 def OM_get_object_class(o):
     return o.klass
+
+def OM_get_object_class_name(o):
+    return OM_get_boxed_value(OM_get(OM_get_object_class(o), "__name__"))
 
 def OM_set_type_mro(o, val):
     o.mro = val
@@ -1617,6 +1631,16 @@ def gen_sem_Numeric_EqComp(op_symbol, method, fall_back):
 
 sem_Eq = gen_sem_Numeric_EqComp("==", "__eq__", om_is)
 sem_NotEq = gen_sem_Numeric_EqComp("!=", "__ne__", om_is_not)
+
+def sem_Eq_bool(ctx, val1, val2):
+    def do_bool(rte, res):
+        return sem_bool(with_rte(ctx, rte), res)
+    return sem_Eq(with_cont(ctx, do_bool), val1, val2)
+
+def sem_NotEq_bool(ctx, val1, val2):
+    def do_bool(rte, res):
+        return sem_bool(with_rte(ctx, rte), res)
+    return sem_NotEq(with_cont(ctx, do_bool), val1, val2)
 
 def sem_Round(ctx, obj, ndigits):
     obj_round = getattribute_from_obj_mro(obj, "__round__")
@@ -2444,6 +2468,33 @@ def om_tuple_repr_code(ctx, args):
 om_tuple_repr = do_magic_method(class_tuple, "__repr__", om_tuple_repr_code)
 
 
+def om_tuple_eq_code(ctx, args):
+    args_len = len(args)
+    if args_len == 2:
+        self = args[0]
+        other = args[1]
+
+        if om_isinstance(other, class_tuple):
+            self_seq = OM_get_tuple_seq(self)
+            self_len = len(self_seq)
+
+            other_seq = OM_get_tuple_seq(other)
+            other_len = len(other_seq)
+
+            if self_len == other_len:
+                return check_sequence_equality(ctx, self_seq, other_seq, 0, self_len)
+            else:
+                return cont_obj(ctx, om_False)
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "__eq__() takes 1 argument (" + str(args_len - 1) + " given)")
+
+
+om_tuple_eq = do_magic_method(class_tuple, "__eq__", om_tuple_eq_code)
+
+
 def om_tuple_new_code(ctx, args):
     args_len = len(args)
 
@@ -2586,6 +2637,110 @@ def list_seq_grow(seq):
 
     return new_seq
 
+def list_seq_maybe_shrink(om_lst, seq, len_, inner_len):
+    if len_ < inner_len // 2 + 1:
+        new_inner_len = get_list_inner_len(len_)
+        new_seq = seq[:new_inner_len]
+
+        OM_set_list_seq(om_lst, new_seq)
+
+def list_internal_append(om_lst, seq, len_, inner_len, value):
+    if len_ < inner_len:
+        seq[len_] = value
+        OM_set_list_len(om_lst, len_ + 1)
+    else:
+        new_elements = list_seq_grow(seq)
+        new_elements[len_] = value
+        OM_set_list_seq(om_lst, new_elements)
+        OM_set_list_len(om_lst, len_ + 1)
+
+def list_shift_left(om_lst, seq, len_, inner_len, shift_pos, shift_amount):
+    to_index = shift_pos
+    from_index = shift_pos + shift_amount
+
+    n_free_cells = inner_len - len_
+
+    if shift_amount > n_free_cells:
+        n_to_erase = shift_amount - n_free_cells
+    else:
+        n_to_erase = 0
+
+    n_to_shift = len_ - shift_pos - n_to_erase
+
+    while n_to_shift > 0:
+        seq[to_index] = seq[from_index]
+        to_index += 1
+        from_index += 1
+        n_to_shift -= 1
+
+    while n_to_erase > 0:
+        seq[to_index] = empty_cell
+        to_index += 1
+        to_index += 1
+
+    new_len = len_ - shift_amount
+    OM_set_list_len(om_lst, new_len)
+    list_seq_maybe_shrink(om_lst, seq, new_len, inner_len)
+
+
+def list_shift_right(om_lst, seq, len_, inner_len, shift_pos, inserted_items):
+    shift_amount = len(inserted_items)
+
+    if len_ + shift_amount > inner_len:
+        seq = list_seq_grow(seq)
+        OM_set_list_seq(om_lst, seq)
+
+    last_index = len_ - 1
+    to_index = last_index + shift_amount
+    from_index = last_index
+
+    while from_index >= shift_pos:
+        seq[to_index] = seq[from_index]
+        to_index -= 1
+        from_index -= 1
+
+    for elt in inserted_items:
+        seq[shift_pos] = elt
+        shift_pos += 1
+
+    OM_set_list_len(om_lst, len_ + shift_amount)
+
+
+def list_search(ctx, seq, target, start, end):
+    # search om_lst[start:end] for target and returns its index, or absent if not found
+    # both start and end must be positive indices in range
+
+    if start < end:
+        def check_result(rte, res):
+            if om_is(res, om_True):
+                return cont_obj(with_rte(ctx, rte), start)
+            else:
+                return stmt_end(
+                    Context(
+                        rte,
+                        lambda rte: list_search(with_rte(ctx, rte), seq, target, start + 1, end),
+                        ctx.ast),
+                    0)
+        return sem_Eq_bool(with_cont(ctx, check_result), seq[start], target)
+    else:
+        return cont_obj(ctx, absent)
+
+
+def check_sequence_equality(ctx, seq1, seq2, start, end):
+    if start < end:
+        def check_res(rte, res):
+            def check_truthiness(rte, is_eq):
+                if om_is(is_eq, om_True):
+                    next_ctx = Context(rte, lambda rte: check_sequence_equality(ctx, seq1, seq2, start + 1, end), ctx.ast)
+                    return stmt_end(next_ctx, 0)
+                else:
+                    return cont_obj(ctx, om_False)
+            return sem_bool(Context(rte, check_truthiness, ctx.ast), res)
+        return sem_Eq(with_cont(ctx, check_res), seq1[start], seq2[start])
+    else:
+        return cont_obj(ctx, om_True)
+
+
 def make_list(ctx, elements):
     list_len = len(elements)
     dynamic_array = list_seq_grow(elements)
@@ -2606,6 +2761,33 @@ def om_list_new_code(ctx, args):
         return sem_raise_with_message(ctx, class_TypeError, "list expected at most 1 argument, got " + str(args_len))
 
 om_list_new = do_static_magic_method(class_list, "__new__", om_list_new_code)
+
+
+def om_list_eq_code(ctx, args):
+    args_len = len(args)
+    if args_len == 2:
+        self = args[0]
+        other = args[1]
+
+        if om_isinstance(other, class_list):
+            self_seq = OM_get_list_seq(self)
+            self_len = OM_get_list_len(self)
+
+            other_seq = OM_get_list_seq(other)
+            other_len = OM_get_list_len(other)
+
+            if self_len == other_len:
+                return check_sequence_equality(ctx, self_seq, other_seq, 0, self_len)
+            else:
+                return cont_obj(ctx, om_False)
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "__eq__() takes 1 argument (" + str(args_len - 1) + " given)")
+
+
+om_list_eq = do_magic_method(class_list, "__eq__", om_list_eq_code)
 
 
 def om_list_elements_repr(ctx, elts, repr_acc, i):
@@ -2687,20 +2869,23 @@ def om_list_setitem_code(ctx, args):
         else:
             def cont(rte, item_index):
                 index = OM_get_boxed_value(item_index)
-                self_len = OM_get_list_len(self)
+                self_len = int_from_num(OM_get_list_len(self))
                 elements = OM_get_list_seq(self)
 
                 next_ctx = with_rte(ctx, rte)
 
-                if index >= 0 and index < self_len:
-                    elements[index] = value
-                    return cont_obj(next_ctx, om_None)
-                elif index < 0 and index >= -self_len:
-                    elements[index + self_len] = value
+                if int_ge(index, self_len):
+                    return sem_raise_with_message(next_ctx, class_IndexError, "list index out of range")
+                elif int_is_nonneg(index):
+                    elements[int_to_num(index)] = value
                     return cont_obj(next_ctx, om_None)
                 else:
-                    return sem_raise_with_message(next_ctx, class_IndexError, "list index out of range")
-
+                    reversed_index = int_add(index, self_len)
+                    if int_is_nonneg(reversed_index):
+                        elements[int_to_num(reversed_index)] = value
+                        return cont_obj(next_ctx, om_None)
+                    else:
+                        return sem_raise_with_message(next_ctx, class_IndexError, "list index out of range")
             return sem_index(with_cont(ctx, cont), item)
     else:
         return sem_raise_with_message(ctx, class_TypeError, "__setitem__() takes exactly two argument (" + str(args_len - 1) + " given)")
@@ -2715,7 +2900,7 @@ def om_list_len_code(ctx, args):
         return cont_int(ctx, int_from_num(elements_len))
     else:
         return sem_raise_with_message(ctx, class_TypeError,
-                                      "__len__() takes no argument (" + str(args_len) + " given)")
+                                      "__len__() takes no argument (" + str(args_len - 1) + " given)")
 
 
 om_list_len = do_magic_method(class_list, "__len__", om_list_len_code)
@@ -2747,7 +2932,7 @@ def om_list_add_code(ctx, args):
 
     else:
         return sem_raise_with_message(ctx, class_TypeError,
-                                      "__len__() takes one argument (" + str(args_len) + " given)")
+                                      "__add__() takes one argument (" + str(args_len - 1) + " given)")
 
 
 om_list_add = do_magic_method(class_list, "__add__", om_list_add_code)
@@ -2784,7 +2969,7 @@ def om_list_extend_code(ctx, args):
         return om_unpack_iterable(with_cont(ctx, cont), other)
     else:
         return sem_raise_with_message(ctx, class_TypeError,
-                                      "extend() takes one argument (" + str(args_len) + " given)")
+                                      "extend() takes one argument (" + str(args_len - 1) + " given)")
 
 
 om_list_extend = do_magic_method(class_list, "extend", om_list_extend_code)
@@ -2800,7 +2985,7 @@ def om_list_iadd_code(ctx, args):
         return om_list_extend_code(with_cont(ctx, cont), args)
     else:
         return sem_raise_with_message(ctx, class_TypeError,
-                                      "__iadd__() takes one argument (" + str(args_len) + " given)")
+                                      "__iadd__() takes one argument (" + str(args_len - 1) + " given)")
 
 
 om_list_iadd = do_magic_method(class_list, "__iadd__", om_list_iadd_code)
@@ -2851,14 +3036,7 @@ def om_list_append_code(ctx, args):
         list_len = OM_get_list_len(self)
         elements_len = len(elements)
 
-        if list_len < elements_len:
-            elements[list_len] = value
-            OM_set_list_len(self, list_len + 1)
-        else:
-            new_elements = list_seq_grow(elements)
-            new_elements[list_len] = value
-            OM_set_list_seq(self, new_elements)
-            OM_set_list_len(self, list_len + 1)
+        list_internal_append(self, elements, list_len, elements_len, value)
 
         return ctx.cont(ctx.rte, om_None)
     else:
@@ -2866,6 +3044,265 @@ def om_list_append_code(ctx, args):
                                       "append() takes exactly one argument (" + str(args_len - 1) + " given)")
 
 om_list_append = do_magic_method(class_list, "append", om_list_append_code)
+
+
+def om_list_pop_code(ctx, args):
+    args_len = len(args)
+    if args_len == 1:
+        self = args[0]
+        elements = OM_get_list_seq(self)
+        len_ = OM_get_list_len(self)
+        inner_len = len(elements)
+
+        if len_ > 0:
+            last_index = len_ - 1
+            last = elements[last_index]
+            elements[last_index] = empty_cell
+            OM_set_list_len(self, last_index)
+
+            list_seq_maybe_shrink(self, elements, last_index, inner_len)
+            return cont_obj(ctx, last)
+        else:
+            return sem_raise_with_message(ctx, class_IndexError, "pop item from empty list")
+    elif args_len == 2:
+        def do_pop(rte, om_index):
+            self = args[0]
+            elements = OM_get_list_seq(self)
+            len_ = OM_get_list_len(self)
+            inner_len = len(elements)
+
+            index = int_to_num(OM_get_boxed_value(om_index))
+            next_ctx = with_rte(ctx, rte)
+
+            if index >= len_:
+                return sem_raise_with_message(next_ctx, class_IndexError, "pop index out of range")
+            elif index >= 0:
+                poped_item = elements[index]
+                list_shift_left(self, elements, len_, inner_len, index, 1)
+                return cont_obj(next_ctx, poped_item)
+            else:
+                reversed_index = index + len_
+                if reversed_index >= 0:
+                    poped_item = elements[reversed_index]
+                    list_shift_left(self, elements, len_, inner_len, reversed_index, 1)
+                    return cont_obj(next_ctx, poped_item)
+                else:
+                    return sem_raise_with_message(next_ctx, class_IndexError, "pop index out of range")
+
+        return sem_index(with_cont(ctx, do_pop), args[1])
+
+    else:
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "pop() expected at most 1 argument, got " + str(args_len - 1))
+
+
+om_list_pop = do_magic_method(class_list, "pop", om_list_pop_code)
+
+
+def om_list_insert_code(ctx, args):
+    args_len = len(args)
+    if args_len == 3:
+        def do_insert(rte, om_index):
+            self = args[0]
+            elements = OM_get_list_seq(self)
+            len_ = OM_get_list_len(self)
+            inner_len = len(elements)
+            value = args[2]
+
+            index = int_to_num(OM_get_boxed_value(om_index))
+            next_ctx = with_rte(ctx, rte)
+
+            if index >= len_:
+                list_internal_append(self, elements, len_, inner_len, value)
+                return cont_obj(next_ctx, om_None)
+            elif index >= 0:
+                list_shift_right(self, elements, len_, inner_len, index, [value])
+                return cont_obj(next_ctx, om_None)
+            else:
+                reversed_index = index + len_
+                if reversed_index >= 0:
+                    list_shift_right(self, elements, len_, inner_len, reversed_index, [value])
+                    return cont_obj(next_ctx, om_None)
+                else:
+                    list_shift_right(self, elements, len_, inner_len, 0, [value])
+                    return cont_obj(next_ctx, om_None)
+
+        return sem_index(with_cont(ctx, do_insert), args[1])
+    else:
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "insert() expected 2 arguments, got " + str(args_len - 1))
+
+
+om_list_insert = do_magic_method(class_list, "insert", om_list_insert_code)
+
+def clamp_index(index, len_):
+    if index >= len_:
+        return len_
+    elif index >= 0:
+        return index
+    else:
+        reversed_index = index + len_
+        if reversed_index >= 0:
+            return reversed_index
+        else:
+            return 0
+
+def om_list_index_code(ctx, args):
+    args_len = len(args)
+
+    def check_result(rte, res):
+        if res is absent:
+            def do_error(err_rte, repr_):
+                return sem_raise_with_message(with_rte(ctx, err_rte), class_ValueError,
+                                              OM_get_boxed_value(repr_) + " is not in list")
+            return sem_repr(Context(rte, do_error, ctx.ast), value)
+        else:
+            return cont_int(with_rte(ctx, rte), int_from_num(res))
+
+    if args_len == 2:
+        self = args[0]
+        elements = OM_get_list_seq(self)
+        len_ = OM_get_list_len(self)
+        value = args[1]
+
+        return list_search(with_cont(ctx, check_result), elements, value, 0, len_)
+    if args_len == 3 or args_len == 4:
+        self = args[0]
+        elements = OM_get_list_seq(self)
+        len_ = OM_get_list_len(self)
+        value = args[1]
+        start = args[2]
+
+        def get_start(rte, om_start):
+            index = int_to_num(OM_get_boxed_value(om_start))
+
+            start_index = clamp_index(index, len_)
+
+            if args_len == 3:
+                return list_search(Context(rte, check_result, ctx.ast), elements, value, start_index, len_)
+            else:  # args_len == 4
+                stop = args[3]
+
+                def get_stop(stop_rte, om_stop):
+                    index = int_to_num(OM_get_boxed_value(om_stop))
+                    stop_index = clamp_index(index, len_)
+                    return list_search(Context(rte, check_result, ctx.ast), elements, value, start_index, stop_index)
+                return sem_index(Context(rte, get_stop, ctx.ast), stop)
+        return sem_index(with_cont(ctx, get_start), start)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "index() expected between 1 and 3 arguments, got " + str(args_len - 1))
+
+
+om_list_index = do_magic_method(class_list, 'index', om_list_index_code)
+
+
+def om_list_contains_code(ctx, args):
+    args_len = len(args)
+    if args_len == 2:
+        def get_result(rte, res):
+            return cont_bool(with_rte(ctx, rte), res is not absent)
+
+        self = args[0]
+        seq = OM_get_list_seq(self)
+        len_ = OM_get_list_len(self)
+
+        target = args[1]
+
+        return list_search(with_cont(ctx, get_result), seq, target, 0, len_)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "__contains__() takes 1 argument (" + str(args_len - 1) + " given)")
+
+
+om_list_contains = do_magic_method(class_list, '__contains__', om_list_contains_code)
+
+
+def om_list_remove_code(ctx, args):
+    args_len = len(args)
+    if args_len == 2:
+        def get_result(rte, res):
+            if res is absent:
+                return sem_raise_with_message(with_rte(ctx, rte), class_ValueError, "list.remove(x): x not in list")
+            else:
+                list_shift_left(self, seq, len_, len(seq), res, 1)
+                return cont_obj(with_rte(ctx, rte), om_None)
+
+        self = args[0]
+        seq = OM_get_list_seq(self)
+        len_ = OM_get_list_len(self)
+
+        target = args[1]
+
+        return list_search(with_cont(ctx, get_result), seq, target, 0, len_)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "remove() takes 1 argument (" + str(args_len - 1) + " given)")
+
+
+om_list_remove = do_magic_method(class_list, 'remove', om_list_remove_code)
+
+
+def om_list_copy_code(ctx, args):
+    args_len = len(args)
+    if args_len == 1:
+        self = args[0]
+        seq = OM_get_list_seq(self)
+        len_ = OM_get_list_len(self)
+
+        seq_copy = list_copy(seq)
+
+        return cont_list(ctx, seq_copy, len_)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "copy() takes no argument (" + str(args_len - 1) + " given)")
+
+
+om_list_copy = do_magic_method(class_list, "copy", om_list_copy_code)
+
+
+def om_list_clear_code(ctx, args):
+    args_len = len(args)
+    if args_len == 1:
+        self = args[0]
+
+        OM_set_list_seq(self, list_seq_grow([]))
+        OM_set_list_len(self, 0)
+
+        return cont_obj(ctx, om_None)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "clear() takes no argument (" + str(args_len - 1) + " given)")
+
+
+om_list_clear = do_magic_method(class_list, "clear", om_list_clear_code)
+
+
+def om_list_reverse_code(ctx, args):
+    args_len = len(args)
+    if args_len == 1:
+        self = args[0]
+        seq = OM_get_list_seq(self)
+        len_ = OM_get_list_len(self)
+
+        i = 0
+        j = len_ - 1
+
+        while i < j:
+            tmp = seq[j]
+            seq[j] = seq[i]
+            seq[i] = tmp
+            i += 1
+            j -= 1
+
+        return cont_obj(ctx, om_None)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "reverse() takes no argument (" + str(args_len - 1) + " given)")
+
+
+om_list_reverse = do_magic_method(class_list, "reverse", om_list_reverse_code)
+
 
 # class_range methods
 
@@ -2960,6 +3397,47 @@ def om_range_repr_code(ctx, args):
         return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
 
 om_range_repr = do_magic_method(class_range, "__repr__", om_range_repr_code)
+
+
+def om_range_eq_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 2:
+        other = args[1]
+
+        if om_isinstance(other, class_range):
+            self = args[0]
+
+            start = OM_get_boxed_value(OM_get_range_start(self))
+            stop = OM_get_boxed_value(OM_get_range_stop(self))
+            step = OM_get_boxed_value(OM_get_range_step(self))
+
+            self_len = compute_range_len(start, stop, step)
+
+            other_start = OM_get_boxed_value(OM_get_range_start(other))
+            other_stop = OM_get_boxed_value(OM_get_range_stop(other))
+            other_step = OM_get_boxed_value(OM_get_range_step(other))
+
+            other_len = compute_range_len(other_start, other_stop, other_step)
+
+            if int_eq(self_len, other_len):
+                if int_is_zero(self_len):
+                    return cont_obj(ctx, om_True)
+                if int_eq(self_len, int_from_num(1)):
+                    return cont_bool(ctx, int_eq(start, other_start))
+                else:
+                    return cont_bool(ctx, int_eq(start, other_start) and int_eq(step, other_step))
+            else:
+                return cont_obj(ctx, om_False)
+
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(args_len - 1))
+
+
+om_range_eq = do_magic_method(class_range, "__eq__", om_range_eq_code)
+
 
 def compute_range_len(start, stop, step):
     _1 = int_from_num(1)
@@ -5550,6 +6028,10 @@ def make_module_random():
 def make_module_time():
     module_time_env = make_dict()
 
+    def om_time_code(rte, _):
+        result = runtime_time()
+        return unwindReturn(rte, om_float(result))
+
     def om_sleep_code(rte, cont):
         secs = rte_lookup_locals(rte, 'secs')
 
@@ -5584,8 +6066,10 @@ def make_module_time():
                         return stmt_end_with_sleep(sleep_ctx, sleep_time * 1000)
             return sem_maybe_index(make_out_of_ast_context(rte, sleep_int_amount), secs)
 
+    om_time_time = om_make_builtin_function_with_signature('time', om_time_code, empty_signature)
     om_time_sleep = om_make_builtin_function_with_signature('sleep', om_sleep_code, make_posonly_only_signature(('secs',)))
 
+    dict_set(module_time_env, 'time', om_time_time)
     dict_set(module_time_env, 'sleep', om_time_sleep)
 
     return om_module('time', module_time_env)
@@ -6694,14 +7178,7 @@ def comp_stmt(cte, ast):
 
     elif isinstance(ast, AST.AugAssign):
         if debug: print("AST.AugAssign")
-        target = ast.target
-        if isinstance(target, AST.Name):
-            op = ast.op
-            target = ast.target
-            value = ast.value
-            return gen_aug_assign(cte, ast, target, op, value)
-        else:
-            return CT_raise_syntax_error_with_msg(cte, ast, "illegal expression for augmented assignment")
+        return gen_aug_assign(cte, ast)
 
 
     elif isinstance(ast, AST.While):
@@ -7682,52 +8159,184 @@ def gen_UnaryOp(cte, ast, op, code1):
     return (cte, code)
 
 
-def gen_aug_assign(cte, ast, target, op, value):
-    if debug: print(op)
+def gen_aug_op(cte, ast):
+    op = ast.op
 
     if isinstance(op, AST.Add):
-        sem_op = sem_IAdd
+        return sem_IAdd
     elif isinstance(op, AST.Sub):
-        sem_op = sem_ISub
+        return sem_ISub
     elif isinstance(op, AST.Mult):
-        sem_op = sem_IMul
+        return sem_IMul
     elif isinstance(op, AST.Div):
-        sem_op = sem_ITrueDiv
+        return sem_ITrueDiv
     elif isinstance(op, AST.FloorDiv):
-        sem_op = sem_IFloorDiv
+        return sem_IFloorDiv
     elif isinstance(op, AST.Mod):
-        sem_op = sem_IMod
+        return sem_IMod
     elif isinstance(op, AST.LShift):
-        sem_op = sem_ILShift
+        return sem_ILShift
     elif isinstance(op, AST.RShift):
-        sem_op = sem_IRShift
+        return sem_IRShift
     elif isinstance(op, AST.BitAnd):
-        sem_op = sem_IAnd
+        return sem_IAnd
     elif isinstance(op, AST.BitOr):
-        sem_op = sem_IOr
+        return sem_IOr
     elif isinstance(op, AST.BitXor):
-        sem_op = sem_IXor
+        return sem_IXor
     elif isinstance(op, AST.Pow):
-        sem_op = sem_IPow
+        return sem_IPow
     else:
         return CT_raise_syntax_error_with_msg(cte, ast, "Unimplemented assignment operator")
 
-    id_ = target.id
 
-    get_cte, get_target = gen_var_get(cte, target, id_)
-    val_cte, val_code = comp_expr(get_cte, ast.value)
-    set_cte, set_target = gen_var_set(val_cte, ast, id_)
+def gen_aug_assign(cte, ast):
+    target = ast.target
+    sem_op = gen_aug_op(cte, ast)
+
+    if isinstance(target, AST.Name):
+        value = ast.value
+        id_ = target.id
+
+        get_cte, get_target = gen_var_get(cte, target, id_)
+        val_cte, val_code = comp_expr(get_cte, value)
+        set_cte, set_target = gen_var_set(val_cte, ast, id_)
+
+        def code(rte, cont):
+            def get_val(get_rte, target_val):
+                def do_sem(val_rte, lhs_val):
+                    def do_set(set_rte, val):
+                        return set_target(set_rte, cont, val)
+                    return sem_op(Context(val_rte, do_set, ast), target_val, lhs_val)
+                return val_code(get_rte, do_sem)
+            return get_target(rte, get_val)
+
+        return set_cte, code
+    elif isinstance(target, AST.Subscript):
+        return gen_subscript_aug_assign(cte, ast, target, sem_op)
+    elif isinstance(target, AST.Attribute):
+        return gen_attr_aug_assign(cte, ast, target, sem_op)
+    else:
+        return CT_raise_syntax_error_with_msg(cte, ast, "illegal expression for augmented assignment")
+
+
+def gen_subscript_aug_assign(cte, ast, target, sem_op):
+    target_obj = target.value
+    target_index = target.slice.value
+    value = ast.value
+
+    obj_cte, obj_code = comp_expr(cte, target_obj)
+    index_cte, index_code = comp_expr(obj_cte, target_index)
+    value_cte, value_code = comp_expr(index_cte, value)
+
+    if isinstance(target_obj, AST.Name):
+        id_ = target_obj.id
+
+        def _make_message_lhs(rte, _, index):
+            ctx = Context(rte, None, ast)
+
+            index_repr = om_simple_repr(ctx, index)
+
+            return id_ + "[" + index_repr + "] ← "
+
+        make_message_lhs = _make_message_lhs
+    else:
+        def _make_message_lhs(rte, obj, index):
+            ctx = Context(rte, None, ast)
+
+            obj_repr = om_simple_repr(ctx, obj)
+            index_repr = om_simple_repr(ctx, index)
+
+            return obj_repr + "[" + index_repr + "] ← "
+
+        make_message_lhs = _make_message_lhs
 
     def code(rte, cont):
-        def get_val(get_rte, target_val):
-            def do_sem(val_rte, lhs_val):
-                def do_set(set_rte, val):
-                    return set_target(set_rte, cont, val)
-                return sem_op(Context(val_rte, do_set, ast), target_val, lhs_val)
-            return val_code(get_rte, do_sem)
-        return get_target(rte, get_val)
+        def get_container(container_rte, container):
+            def get_index(index_rte, index):
+                def get_lhs(lhs_rte, lhs_obj):
+                    def get_value(value_rte, value):
+                        # Get message lhs before applying sem_op to show before/after in bubble
+                        msg_lhs = make_message_lhs(value_rte, container, index)
 
-    return set_cte, code
+                        def get_op_res(res_rte, res):
+                            cont_stmt_end_with_message = do_stmt_end_with_message(cont, ast)
+                            msg = msg_lhs + om_simple_repr(Context(rte, None, ast), res)
+
+                            return sem_setitem(
+                                Context(res_rte, lambda rte: cont_stmt_end_with_message(rte, msg), ast),
+                                container,
+                                index,
+                                res)
+
+                        return sem_op(Context(value_rte, get_op_res, ast), lhs_obj, value)
+
+                    return value_code(lhs_rte, get_value)
+
+                expr_end_cont = do_expr_end(get_lhs, target)
+                return sem_getitem(Context(index_rte, expr_end_cont, target_obj), container, index)
+
+            return index_code(container_rte, get_index)
+
+        return obj_code(rte, get_container)
+
+    return value_cte, code
+
+
+def gen_attr_aug_assign(cte, ast, target, sem_op):
+    target_obj = target.value
+    attr_name = target.attr
+    attr_name_str = om_str(attr_name)
+    value = ast.value
+
+    obj_cte, obj_code = comp_expr(cte, target_obj)
+    value_cte, value_code = comp_expr(obj_cte, value)
+
+    if isinstance(target_obj, AST.Name):
+        id_ = target_obj.id
+        pre_compiled_msg = id_ + "." + attr_name + " ← "
+
+        def _make_message_lhs(rte, _):
+            return pre_compiled_msg
+
+        make_message_lhs = _make_message_lhs
+    else:
+        def _make_message_lhs(rte, obj):
+            ctx = Context(rte, None, ast)
+
+            obj_repr = om_simple_repr(ctx, obj)
+
+            return obj_repr + "." + attr_name + " ← "
+
+        make_message_lhs = _make_message_lhs
+
+    def code(rte, cont):
+        def get_obj(obj_rte, obj):
+            def get_attr(attr_rte, attr):
+                def get_value(value_rte, val):
+                    # Get message lhs before applying sem_op to show before/after in bubble
+                    msg_lhs = make_message_lhs(value_rte, obj)
+
+                    def get_res(res_rte, res):
+                        cont_stmt_end_with_message = do_stmt_end_with_message(cont, ast)
+                        msg = msg_lhs + om_simple_repr(Context(rte, None, ast), res)
+
+                        return sem_setattribute(
+                            Context(res_rte, lambda rte: cont_stmt_end_with_message(rte, msg), ast),
+                            obj,
+                            attr_name_str,
+                            res)
+
+                    return sem_op(Context(value_rte, get_res, ast), attr, val)
+
+                return value_code(attr_rte, get_value)
+
+            expr_end_cont = do_expr_end(get_attr, target)
+            return sem_getattribute(Context(obj_rte, expr_end_cont, target), obj, attr_name_str)
+
+        return obj_code(rte, get_obj)
+
+    return value_cte, code
 
 
 def gen_BinOp(cte, ast, op, code1, code2):
@@ -8023,7 +8632,7 @@ def sem_getattribute(ctx, obj, name):
 def sem_setattribute(ctx, obj, name, value):
     obj_getattribute = getattribute_from_obj_mro(obj, '__setattr__')
 
-    return sem_simple_call(ctx, obj_getattribute, [obj, name, value])
+    return sem_simple_call(with_cont(ctx, lambda rte, _: ctx.cont(rte)), obj_getattribute, [obj, name, value])
 
 def sem_simple_call(ctx, obj, args):
     obj_type = OM_get_object_class(obj)
@@ -8050,7 +8659,11 @@ def sem_simple_call(ctx, obj, args):
         return om_function_call_code(ctx, [obj] + args, make_dict())
     else:
         obj_call = getattribute_from_obj_mro(obj, '__call__')
-        return sem_simple_call(ctx, obj_call, [obj] + args)
+        if obj_call is absent:
+            class_name = OM_get_object_class_name(obj)
+            return sem_raise_with_message(ctx, class_TypeError, "'" + class_name + "' object is not callable")
+        else:
+            return sem_simple_call(ctx, obj_call, [obj] + args)
 
 def sem_generic_call(ctx, obj, args, kwargs):
     if dict_len(kwargs) == 0:
@@ -8080,7 +8693,11 @@ def sem_generic_call(ctx, obj, args, kwargs):
             return om_function_call_code(ctx, [obj] + args, kwargs)
         else:
             obj_call = getattribute_from_obj_mro(obj, '__call__')
-            return sem_generic_call(ctx, obj_call, [obj] + args, kwargs)
+            if obj_call is absent:
+                class_name = OM_get_object_class_name(obj)
+                return sem_raise_with_message(ctx, class_TypeError, "'" + class_name + "' object is not callable")
+            else:
+                return sem_generic_call(ctx, obj_call, [obj] + args, kwargs)
 
 def sem_getitem(ctx, obj, item):
     obj_getitem = getattribute_from_obj_mro(obj, "__getitem__")
@@ -8192,7 +8809,7 @@ def sem_maybe_len(ctx, obj):
 def sem_len(ctx, obj):
     def cont(rte, val):
         if val is absent:
-            obj_cls_name = OM_get_boxed_value(OM_get(OM_get_object_class(obj), "__name__"))
+            obj_cls_name = OM_get_object_class_name(obj)
             error_msg = "object of type '" + obj_cls_name + "' has no len()"
             return sem_raise_with_message(ctx, class_TypeError, error_msg)
         else:
@@ -8350,19 +8967,40 @@ def gen_Subscript_Store(cte, ast, target, value):
     index_cte, index_code = comp_expr(obj_cte, target_index)
     value_cte, value_code = comp_expr(index_cte, value)
 
+    if isinstance(target_obj, AST.Name):
+        var_id = target_obj.id
+
+        def _make_message(rte, _, index, value):
+            ctx = Context(rte, None, ast)
+            return var_id + "[" + om_simple_repr(ctx, index) + "] ← " + om_simple_repr(ctx, value)
+
+        make_message = _make_message
+    else:
+        def _make_message(rte, obj, index, value):
+            ctx = Context(rte, None, ast)
+
+            obj_repr = om_simple_repr(ctx, obj)
+            index_repr = om_simple_repr(ctx, index)
+            value_repr = om_simple_repr(ctx, value)
+
+            return obj_repr + "[" + index_repr + "] ← " + value_repr
+
+        make_message = _make_message
+
+
     def get_obj(rte, cont):
         def get_index(rte, obj):
             def get_value(get_value_rte, index):
                 def set_item(setitem_rte, value):
-                    return sem_setitem(Context(setitem_rte, cont, ast), obj, index, value)
+                    msg = make_message(setitem_rte, obj, index, value)
+                    cont_stmt_end_with_message = do_stmt_end_with_message(cont, ast)
+                    ctx = Context(setitem_rte, lambda rte: cont_stmt_end_with_message(rte, msg), ast)
+                    return sem_setitem(ctx, obj, index, value)
                 return value_code(get_value_rte, set_item)
             return index_code(rte, get_value)
         return obj_code(rte, get_index)
 
-    def code(rte, cont):
-        return get_obj(rte, do_stmt_end(cont, ast, 1))
-
-    return value_cte, code
+    return value_cte, get_obj
 
 def sem_constant(ctx, val):
     return ctx.cont(ctx.rte, val)
@@ -8613,7 +9251,7 @@ def gen_Attribute_Store(cte, ast, target, value):
             def do_set(set_rte, value):
                 msg = make_message(set_rte, target_value, value)
                 cont_stmt_end_with_message = do_stmt_end_with_message(cont, ast)
-                return sem_setattribute(Context(set_rte, lambda rte, _: cont_stmt_end_with_message(rte, msg), ast),
+                return sem_setattribute(Context(set_rte, lambda rte: cont_stmt_end_with_message(rte, msg), ast),
                                         target_value, name, value)
             return value_code(target_rte, do_set)
         return target_code(rte, get_target)
@@ -8869,24 +9507,23 @@ def om_simple_repr_with_max_length(ctx, value, max_length):
     return repr_res
 
 def om_simple_exception_format(ctx, exn):
-    exn_name = OM_get(OM_get_object_class(exn), '__name__')
-    exn_name_value = OM_get_boxed_value(exn_name)
+    exn_name = OM_get_object_class_name(exn)
     exn_args = OM_get(exn, 'args')
 
     if exn_args is absent or not om_isinstance(exn_args, class_tuple):
-        return exn_name_value + ': <unknown exception message>'
+        return exn_name + ': <unknown exception message>'
     else:
         seq = OM_get_tuple_seq(exn_args)
         if len(seq) == 0:
-            return exn_name_value
+            return exn_name
         elif len(seq) == 1:
             el = seq[0]
             if om_isinstance(el, class_str):
-                return exn_name_value + ": " + OM_get_boxed_value(el)
+                return exn_name + ": " + OM_get_boxed_value(el)
             else:
-                return exn_name_value + ": " + om_simple_repr(ctx, seq[0])
+                return exn_name + ": " + om_simple_repr(ctx, seq[0])
         else:
-            return exn_name_value + ": " + om_simple_repr(ctx, exn_args)
+            return exn_name + ": " + om_simple_repr(ctx, exn_args)
 
 
 def expr_end_with_error(ctx, error):
