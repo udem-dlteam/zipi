@@ -1061,6 +1061,7 @@ def populate_builtin_range():
         (('__new__', om_range_new),
          ('__repr__', om_range_repr),
          ('__len__', om_range_len),
+         ('__eq__', om_range_eq),
          ('__getitem__', om_range_getitem)))
 
 def populate_builtin_slice():
@@ -3396,6 +3397,47 @@ def om_range_repr_code(ctx, args):
         return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
 
 om_range_repr = do_magic_method(class_range, "__repr__", om_range_repr_code)
+
+
+def om_range_eq_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 2:
+        other = args[1]
+
+        if om_isinstance(other, class_range):
+            self = args[0]
+
+            start = OM_get_boxed_value(OM_get_range_start(self))
+            stop = OM_get_boxed_value(OM_get_range_stop(self))
+            step = OM_get_boxed_value(OM_get_range_step(self))
+
+            self_len = compute_range_len(start, stop, step)
+
+            other_start = OM_get_boxed_value(OM_get_range_start(other))
+            other_stop = OM_get_boxed_value(OM_get_range_stop(other))
+            other_step = OM_get_boxed_value(OM_get_range_step(other))
+
+            other_len = compute_range_len(other_start, other_stop, other_step)
+
+            if int_eq(self_len, other_len):
+                if int_is_zero(self_len):
+                    return cont_obj(ctx, om_True)
+                if int_eq(self_len, int_from_num(1)):
+                    return cont_bool(ctx, int_eq(start, other_start))
+                else:
+                    return cont_bool(ctx, int_eq(start, other_start) and int_eq(step, other_step))
+            else:
+                return cont_obj(ctx, om_False)
+
+        else:
+            return cont_obj(ctx, om_NotImplemented)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(args_len - 1))
+
+
+om_range_eq = do_magic_method(class_range, "__eq__", om_range_eq_code)
+
 
 def compute_range_len(start, stop, step):
     _1 = int_from_num(1)
