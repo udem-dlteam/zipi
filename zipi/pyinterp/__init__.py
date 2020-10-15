@@ -2676,7 +2676,7 @@ def list_shift_left(om_lst, seq, len_, inner_len, shift_pos, shift_amount):
     while n_to_erase > 0:
         seq[to_index] = empty_cell
         to_index += 1
-        to_index += 1
+        n_to_erase -= 1
 
     new_len = len_ - shift_amount
     OM_set_list_len(om_lst, new_len)
