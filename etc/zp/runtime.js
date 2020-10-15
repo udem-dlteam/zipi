@@ -201,3 +201,25 @@ function string_ge(s1, s2) {
 function string_contains(s, sub_s) {
     return s.includes(sub_s);
 }
+
+function string_get_slice(s, start, stop, step) {
+    if (step === 1) {
+        return s.slice(start, stop);
+    } else {
+        var chars = list_new(Math.floor((stop - start) / step))
+        var i;
+        var j = 0;
+        if (step > 0) {
+            for (i = start; i < stop; i += step) {
+                chars[j] = s[i];
+                j++;
+            }
+        } else {
+            for (i = start; i > stop; i += step) {
+                chars[j] = s[i];
+                j++;
+            }
+        }
+        return chars.join('');
+    }
+}

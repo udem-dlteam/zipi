@@ -3909,22 +3909,40 @@ def om_str_getitem_code(ctx, args):
         self = args[0]
         item = args[1]
 
-        def get_char(rte, index):
-            index_val = OM_get_boxed_value(index)
-            self_val = OM_get_boxed_value(self)
-            self_len = int_from_num(len(self_val))
+        if om_isinstance(item, class_slice):
+            self_string = OM_get_boxed_value(self)
 
-            if int_ge(index_val, self_len):
-                return sem_raise_with_message(ctx, class_IndexError, "string index out of range")
-            elif int_is_nonneg(index_val):
-                return cont_str(ctx, self_val[int_to_num(index_val)])
-            else:
-                reversed_index = int_add(index_val, self_len)
-                if int_is_nonneg(reversed_index):
-                    return cont_str(ctx, self_val[int_to_num(reversed_index)])
-                else:
+            def get_result(rte, res):
+                slice_start = int_to_num(res[0])
+                slice_stop = int_to_num(res[1])
+                slice_step = int_to_num(res[2])
+
+                new_str = string_get_slice(self_string, slice_start, slice_stop, slice_step)
+
+                return cont_str(with_rte(ctx, rte), new_str)
+
+            start = OM_get_slice_start(item)
+            stop = OM_get_slice_stop(item)
+            step = OM_get_slice_step(item)
+
+            return compute_slice_indices(with_cont(ctx, get_result), start, stop, step, int_from_num(len(self_string)))
+        else:
+            def get_char(rte, index):
+                index_val = OM_get_boxed_value(index)
+                self_val = OM_get_boxed_value(self)
+                self_len = int_from_num(len(self_val))
+
+                if int_ge(index_val, self_len):
                     return sem_raise_with_message(ctx, class_IndexError, "string index out of range")
-        return sem_index(with_cont(ctx, get_char), item)
+                elif int_is_nonneg(index_val):
+                    return cont_str(ctx, self_val[int_to_num(index_val)])
+                else:
+                    reversed_index = int_add(index_val, self_len)
+                    if int_is_nonneg(reversed_index):
+                        return cont_str(ctx, self_val[int_to_num(reversed_index)])
+                    else:
+                        return sem_raise_with_message(ctx, class_IndexError, "string index out of range")
+            return sem_index(with_cont(ctx, get_char), item)
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
 
