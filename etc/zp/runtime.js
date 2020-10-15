@@ -140,14 +140,36 @@ function list_copy(lst){
     return lst.slice();
 }
 
-function list_set_slice(lst, start, stop, seq){
+function list_set_slice(lst, start, stop, seq) {
     Array.prototype.splice.apply(lst, [start, stop - start].concat(seq.slice(0, stop-start)));
 }
 
-function string_mul(s, times){
+function list_get_slice(lst, start, stop, step) {
+    if (step === 1) {
+        return lst.slice(start, stop);
+    } else {
+        var new_lst = list_new(Math.floor((stop - start) / step))
+        var i;
+        var j = 0;
+        if (step > 0) {
+            for (i = start; i < stop; i += step) {
+                new_lst[j] = lst[i];
+                j++;
+            }
+        } else {
+            for (i = start; i > stop; i += step) {
+                new_lst[j] = lst[i];
+                j++;
+            }
+        }
+        return new_lst;
+    }
+}
+
+function string_mul(s, times) {
     if (times <= 0) {
         return "";
-    } else{
+    } else {
         return s.repeat(times);
     }
 }

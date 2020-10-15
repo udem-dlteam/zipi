@@ -2541,22 +2541,40 @@ def om_tuple_getitem_code(ctx, args):
         self = args[0]
         item = args[1]
 
-        def cont(rte, val):
-            item_box_index = OM_get_boxed_value(val)
-            elements = OM_get_tuple_seq(self)
-            elements_len = int_from_num(len(elements))
-            if int_ge(item_box_index, elements_len):
-                return sem_raise_with_message(ctx, class_IndexError, "tuple index out of range")
-            elif int_is_nonneg(item_box_index):
-                return cont_obj(ctx, elements[int_to_num(item_box_index)])
-            else:
-                reversed_index = int_add(item_box_index, elements_len)
-                if int_is_nonneg(reversed_index):
-                    return cont_obj(ctx, elements[int_to_num(reversed_index)])
-                else:
-                    return sem_raise_with_message(ctx, class_IndexError, "tuple index out of range")
+        if om_isinstance(item, class_slice):
+            elements = OM_get_list_seq(self)
 
-        return sem_index(with_cont(ctx, cont), item)
+            def get_result(rte, res):
+                slice_start = int_to_num(res[0])
+                slice_stop = int_to_num(res[1])
+                slice_step = int_to_num(res[2])
+
+                new_seq = list_get_slice(elements, slice_start, slice_stop, slice_step)
+
+                return cont_tuple(with_rte(ctx, rte), new_seq)
+
+            start = OM_get_slice_start(item)
+            stop = OM_get_slice_stop(item)
+            step = OM_get_slice_step(item)
+
+            return compute_slice_indices(with_cont(ctx, get_result), start, stop, step, int_from_num(len(elements)))
+        else:
+            def cont(rte, val):
+                item_box_index = OM_get_boxed_value(val)
+                elements = OM_get_tuple_seq(self)
+                elements_len = int_from_num(len(elements))
+                if int_ge(item_box_index, elements_len):
+                    return sem_raise_with_message(ctx, class_IndexError, "tuple index out of range")
+                elif int_is_nonneg(item_box_index):
+                    return cont_obj(ctx, elements[int_to_num(item_box_index)])
+                else:
+                    reversed_index = int_add(item_box_index, elements_len)
+                    if int_is_nonneg(reversed_index):
+                        return cont_obj(ctx, elements[int_to_num(reversed_index)])
+                    else:
+                        return sem_raise_with_message(ctx, class_IndexError, "tuple index out of range")
+
+            return sem_index(with_cont(ctx, cont), item)
 
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 1 argument, got " + str(len(args) - 1))
@@ -2832,7 +2850,22 @@ def om_list_getitem_code(ctx, args):
         item = args[1]
 
         if om_isinstance(item, class_slice):
-            return sem_raise_with_message(ctx, class_NotImplementedError, "list slicing is not yet supported")
+            def get_result(rte, res):
+                elements = OM_get_list_seq(self)
+                slice_start = int_to_num(res[0])
+                slice_stop = int_to_num(res[1])
+                slice_step = int_to_num(res[2])
+
+                new_seq = list_get_slice(elements, slice_start, slice_stop, slice_step)
+
+                return cont_list(with_rte(ctx, rte), new_seq, len(new_seq))
+
+            start = OM_get_slice_start(item)
+            stop = OM_get_slice_stop(item)
+            step = OM_get_slice_step(item)
+            len_ = OM_get_list_len(self)
+
+            return compute_slice_indices(with_cont(ctx, get_result), start, stop, step, int_from_num(len_))
         else:
             def cont(rte, item_index):
                 index = OM_get_boxed_value(item_index)
@@ -2866,7 +2899,7 @@ def om_list_setitem_code(ctx, args):
         value = args[2]
 
         if om_isinstance(item, class_slice):
-            return sem_raise_with_message(ctx, class_NotImplementedError, "list[slice] not yet implemented")
+            return sem_raise_with_message(ctx, class_NotImplementedError, "list slicing is not yet supported")
         else:
             def cont(rte, item_index):
                 index = OM_get_boxed_value(item_index)
