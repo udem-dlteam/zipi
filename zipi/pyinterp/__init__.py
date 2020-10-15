@@ -3346,10 +3346,13 @@ def om_range_new_code(ctx, args):
     if args_len == 2:
         stop = args[1]
         if om_isinstance(stop, class_int):
-            return cont_obj(ctx, om_range(om_int_from_num(0), stop, om_int_from_num(1)))
+            return cont_obj(ctx, om_range(int_from_num(0), OM_get_boxed_value(stop), int_from_num(1)))
         else:
             def alloc_range(alloc_rte, stop_int):
-                return cont_obj(ctx, om_range(om_int_from_num(0), stop_int, om_int_from_num(1)))
+                return cont_obj(with_rte(ctx, alloc_rte),
+                                om_range(int_from_num(0),
+                                 OM_get_boxed_value(stop_int),
+                                 int_from_num(1)))
             return sem_index(with_cont(ctx, alloc_range), stop)
     if args_len == 3:
         start = args[1]
@@ -3357,7 +3360,10 @@ def om_range_new_code(ctx, args):
 
         def get_start(start_rte, start_int):
             def alloc_range(alloc_rte, stop_int):
-                return cont_obj(ctx, om_range(start_int, stop_int, om_int_from_num(1)))
+                return cont_obj(with_rte(ctx, alloc_rte),
+                                om_range(OM_get_boxed_value(start_int),
+                                         OM_get_boxed_value(stop_int),
+                                         int_from_num(1)))
 
             if om_isinstance(stop, class_int):
                 return alloc_range(start_rte, stop)
@@ -3376,12 +3382,14 @@ def om_range_new_code(ctx, args):
         def get_start(start_rte, start_int):
             def get_stop(stop_rte, stop_int):
                 def check_step(alloc_rte, step_int):
+                    start_value = OM_get_boxed_value(start_int)
+                    stop_value = OM_get_boxed_value(stop_int)
                     step_value = OM_get_boxed_value(step_int)
 
                     if int_is_zero(step_value):
                         return sem_raise_with_message(ctx, class_ValueError, "range() arg 3 must not be zero")
                     else:
-                        return cont_obj(ctx, om_range(start_int, stop_int, step_int))
+                        return cont_obj(with_rte(ctx, alloc_rte), om_range(start_value, stop_value, step_value))
 
                 if om_isinstance(step, class_int):
                     return check_step(stop_rte, step)
@@ -3400,35 +3408,34 @@ def om_range_new_code(ctx, args):
     else:
         return sem_raise_with_message(ctx, class_TypeError, "range expected 1 to 3 arguments, got " + str(len(args) - 1))
 
+
 om_range_new = do_static_magic_method(class_range, "__new__", om_range_new_code)
+
+
+def om_format_range_repr(self, rte):
+    start = OM_get_range_start(self)
+    stop = OM_get_range_stop(self)
+    step = OM_get_range_step(self)
+
+    start_str = int_to_string(start, 10)
+    stop_str = int_to_string(stop, 10)
+
+    if int_eq(step, int_from_num(1)):
+        return "range(" + start_str + ", " + stop_str + ")"
+    else:
+        step_str = int_to_string(step, 10)
+        return "range(" + start_str + ", " + stop_str + ", " + step_str + ")"
+
 
 def om_range_repr_code(ctx, args):
     args_len = len(args)
 
     if args_len == 1:
         self = args[0]
-        start = OM_get_range_start(self)
-        stop = OM_get_range_stop(self)
-        step = OM_get_range_step(self)
-
-        def get_start_str(start_rte, start_str):
-            start_str_value = OM_get_boxed_value(start_str)
-            def get_stop_str(stop_rte, stop_str):
-                stop_str_value = OM_get_boxed_value(stop_str)
-
-                step_value = OM_get_boxed_value(step)
-                if int_eq(step_value, int_from_num(1)):
-                    return cont_str(ctx, "range(" + start_str_value + ", " + stop_str_value + ")")
-                else:
-                    def get_step_str(step_rte, step_str):
-                        step_str_value = OM_get_boxed_value(step_str)
-                        return cont_str(ctx, "range(" + start_str_value + ", " + stop_str_value + ", " + step_str_value + ")")
-                    return sem_repr(with_cont(ctx, get_step_str), step)
-            return sem_repr(with_cont(ctx, get_stop_str), stop)
-        return sem_repr(with_cont(ctx, get_start_str), start)
-
+        return cont_str(ctx, om_format_range_repr(self, ctx.rte))
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
+
 
 om_range_repr = do_magic_method(class_range, "__repr__", om_range_repr_code)
 
@@ -3442,15 +3449,15 @@ def om_range_eq_code(ctx, args):
         if om_isinstance(other, class_range):
             self = args[0]
 
-            start = OM_get_boxed_value(OM_get_range_start(self))
-            stop = OM_get_boxed_value(OM_get_range_stop(self))
-            step = OM_get_boxed_value(OM_get_range_step(self))
+            start = OM_get_range_start(self)
+            stop = OM_get_range_stop(self)
+            step = OM_get_range_step(self)
 
             self_len = compute_range_len(start, stop, step)
 
-            other_start = OM_get_boxed_value(OM_get_range_start(other))
-            other_stop = OM_get_boxed_value(OM_get_range_stop(other))
-            other_step = OM_get_boxed_value(OM_get_range_step(other))
+            other_start = OM_get_range_start(other)
+            other_stop = OM_get_range_stop(other)
+            other_step = OM_get_range_step(other)
 
             other_len = compute_range_len(other_start, other_stop, other_step)
 
@@ -3494,11 +3501,7 @@ def om_range_len_code(ctx, args):
         stop = OM_get_range_stop(self)
         step = OM_get_range_step(self)
 
-        start_value = OM_get_boxed_value(start)
-        stop_value = OM_get_boxed_value(stop)
-        step_value = OM_get_boxed_value(step)
-
-        return cont_int(ctx, compute_range_len(start_value, stop_value, step_value))
+        return cont_int(ctx, compute_range_len(start, stop, step))
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
 
@@ -3517,31 +3520,76 @@ def compute_range_item(start, stop, step, index):
     else:
         return None
 
+
+def compute_slice_range_item(start, stop, step, index):
+    return int_add(start, int_mul(index, step))
+
+
+def compute_range_slice(range_start, range_stop, range_step, slice_start, slice_stop, slice_step):
+    new_start = compute_slice_range_item(range_start, range_stop, range_step, slice_start)
+    new_stop = compute_slice_range_item(range_start, range_stop, range_step, slice_stop)
+    new_step = int_mul(range_step, slice_step)
+
+    return new_start, new_stop, new_step
+
+
 def om_range_getitem_code(ctx, args):
     args_len = len(args)
 
     if args_len == 2:
         item = args[1]
 
-        def get_item(rte, index):
+        if om_isinstance(item, class_slice):
+            def get_result(rte, res):
+                slice_start = res[0]
+                slice_stop = res[1]
+                slice_step = res[2]
+
+                new_start, new_stop, new_step = compute_range_slice(range_start,
+                                                                    range_stop,
+                                                                    range_step,
+                                                                    slice_start,
+                                                                    slice_stop,
+                                                                    slice_step)
+
+                new_range = om_range(
+                    int_from_num(new_start),
+                    int_from_num(new_stop),
+                    int_from_num(new_step)
+                )
+
+                return cont_obj(with_rte(ctx, rte), new_range)
+
             self = args[0]
-            start = OM_get_range_start(self)
-            stop = OM_get_range_stop(self)
-            step = OM_get_range_step(self)
+            range_start = OM_get_range_start(self)
+            range_stop = OM_get_range_stop(self)
+            range_step = OM_get_range_step(self)
 
-            start_value = OM_get_boxed_value(start)
-            stop_value = OM_get_boxed_value(stop)
-            step_value = OM_get_boxed_value(step)
-            index_value = OM_get_boxed_value(index)
+            range_len = compute_range_len(range_start, range_stop, range_step)
 
-            res = compute_range_item(start_value, stop_value, step_value, index_value)
+            return compute_slice_indices(
+                with_cont(ctx, get_result),
+                OM_get_slice_start(item),
+                OM_get_slice_stop(item),
+                OM_get_slice_step(item),
+                range_len)
+        else:
+            def get_item(rte, index):
+                self = args[0]
+                start = OM_get_range_start(self)
+                stop = OM_get_range_stop(self)
+                step = OM_get_range_step(self)
 
-            if res is None:
-                return sem_raise_with_message(ctx, class_IndexError, "range object index out of range")
-            else:
-                return cont_int(ctx, res)
+                index_value = OM_get_boxed_value(index)
 
-        return sem_index(with_cont(ctx, get_item), item)
+                res = compute_range_item(start, stop, step, index_value)
+
+                if res is None:
+                    return sem_raise_with_message(ctx, class_IndexError, "range object index out of range")
+                else:
+                    return cont_int(ctx, res)
+
+            return sem_index(with_cont(ctx, get_item), item)
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(args_len - 1))
 
@@ -9510,48 +9558,6 @@ def om_list_simple_repr(list_, rte, max_length):
 
         return '[' + ', '.join(acc) + ']'
 
-def om_range_simple_repr(range_, rte, max_length):
-    start = OM_get_range_start(range_)
-    stop = OM_get_range_stop(range_)
-    step = OM_get_range_step(range_)
-
-    step_value = OM_get_boxed_value(step)
-
-    if int_eq(step_value, int_from_num(1)):
-        # account for the 'range(' + ', ' + ')' segment of the string
-        remaining_length = max_length - 9
-
-        args = [start, stop]
-    else:
-        # account for the 'range(' + ', ' + ', ' + ')' segment of the string
-        remaining_length = max_length - 11
-
-        args = [start, stop, step]
-
-    args_repr = []
-
-    for arg in args:
-        if remaining_length > 0:
-
-            repr_ = om_simple_repr_with_max_length(make_out_of_ast_context(rte, None), arg, remaining_length)
-
-            repr_len = len(repr_)
-            if repr_len <= remaining_length:
-                # Object is short enough, print it
-                remaining_length -= repr_len
-            else:
-                # Object is too long, do not print it
-                repr_ = REPR_TOO_LONG_FILLER
-                remaining_length -= 3
-
-        else:
-            # No more space remaining, try returning the smallest repr possible
-            repr_ = REPR_TOO_LONG_FILLER
-
-        args_repr.append(repr_)
-
-    return 'range(' + ', '.join(args_repr) + ')'
-
 
 def om_struct_simple_repr(struct, rte, max_length):
     if rte_check_seen_repr(rte, struct):
@@ -9634,6 +9640,7 @@ simple_repr_formatters = {
     "bool": om_format_bool_repr,
     "str": om_format_str_repr,
     "type": om_format_type_repr,
+    "range": om_format_range_repr,
     "function": om_format_function_repr,
     "method-wrapper": om_format_MethodWrapper_repr,
     "wrapper_descriptor": om_format_WrapperDescriptor_repr,
@@ -9657,8 +9664,6 @@ def om_simple_repr_with_max_length(ctx, value, max_length):
         repr_res = om_list_simple_repr(value, ctx.rte, max_length)
     elif om_is(value_cls, class_tuple):
         repr_res = om_tuple_simple_repr(value, ctx.rte, max_length)
-    elif om_is(value_cls, class_range):
-        repr_res = om_range_simple_repr(value, ctx.rte, max_length)
     elif om_is(value_cls, class_struct):
         repr_res = om_struct_simple_repr(value, ctx.rte, max_length)
     elif om_is(value_cls, class_slice):
