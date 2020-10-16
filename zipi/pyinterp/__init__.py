@@ -901,7 +901,8 @@ def bootstrap_populate_base_types():
          ('__add__', om_str_add),
          ('__mul__', om_str_mul),
          ('__rmul__', om_str_rmul),
-         ('__len__', om_str_len)))
+         ('__len__', om_str_len),
+         ('join', om_str_join)))
 
 # Initialize class type objects
 def builtin_add_method(o, name, code):
@@ -4083,6 +4084,33 @@ def om_str_str_code(ctx, args):
         return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
 
 om_str_str = do_magic_method(class_str, "__str__", om_str_str_code)
+
+
+def om_str_join_code(ctx, args):
+    if len(args) == 2:
+        self = args[0]
+        it = args[1]
+
+        def get_words(rte, words):
+            i = 0
+            raw_strings = list_new(len(words), None)
+
+            for word in words:
+                if not om_isinstance(word, class_str):
+                    return sem_raise_with_message(with_rte(ctx, rte), class_TypeError, "sequence item " + str(i) + ": expected str instance")
+                else:
+                    raw_strings[i] = OM_get_boxed_value(word)
+                    i += 1
+
+            res = string_join(OM_get_boxed_value(self), raw_strings)
+            return cont_str(with_rte(ctx, rte), res)
+        return om_unpack_iterable(with_cont(ctx, get_words), it)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 argument, got " + str(len(args) - 1))
+
+
+om_str_join = do_magic_method(class_str, "join", om_str_join_code)
+
 
 # class_dict methods
 

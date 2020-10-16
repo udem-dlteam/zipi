@@ -218,6 +218,10 @@ function string_contains(s, sub_s) {
     return s.includes(sub_s);
 }
 
+function string_join(sep, strings){
+    return strings.join(sep)
+}
+
 function string_get_slice(s, start, stop, step) {
     if (step === 1) {
         return s.slice(start, stop);
