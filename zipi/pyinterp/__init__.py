@@ -2677,24 +2677,13 @@ def list_shift_left(om_lst, seq, len_, inner_len, shift_pos, shift_amount):
     to_index = shift_pos
     from_index = shift_pos + shift_amount
 
-    n_free_cells = inner_len - len_
-
-    if shift_amount > n_free_cells:
-        n_to_erase = shift_amount - n_free_cells
-    else:
-        n_to_erase = 0
-
-    n_to_shift = len_ - shift_pos - n_to_erase
-
-    while n_to_shift > 0:
+    while from_index < len_:
         seq[to_index] = seq[from_index]
         to_index += 1
         from_index += 1
-        n_to_shift -= 1
 
-    while n_to_erase > 0:
+    while to_index < len_:
         seq[to_index] = empty_cell
-        to_index += 1
         to_index += 1
 
     new_len = len_ - shift_amount
