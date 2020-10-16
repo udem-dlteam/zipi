@@ -2909,7 +2909,7 @@ def om_list_setitem_code(ctx, args):
         value = args[2]
 
         if om_isinstance(item, class_slice):
-            self_len = int_from_num(OM_get_list_len(self))
+            self_len = OM_get_list_len(self)
 
             def get_slice_indices(slice_rte, indices):
                 start = indices[0]
@@ -2950,12 +2950,11 @@ def om_list_setitem_code(ctx, args):
                                                           + int_to_string(slice_len, 10))
                 return om_unpack_iterable(Context(slice_rte, get_assignment_values, ctx.ast), value)
 
-            self_len = int_from_num(OM_get_list_len(self))
             return compute_slice_indices(with_cont(ctx, get_slice_indices),
                                          OM_get_slice_start(item),
                                          OM_get_slice_stop(item),
                                          OM_get_slice_step(item),
-                                         self_len)
+                                         int_from_num(self_len))
         else:
             def cont(rte, item_index):
                 index = OM_get_boxed_value(item_index)
