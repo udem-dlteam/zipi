@@ -10,3 +10,8 @@ for start in starts_stops:
             new_lst = lst.copy()
             new_lst[start:stop:step] = range(*slice(start, stop, step).indices(len(new_lst)))
             print(new_lst)
+
+
+lst2 = []
+lst2[:] = [1, 2, 3, 4, 5, 6, 7, 8]
+print(lst2)

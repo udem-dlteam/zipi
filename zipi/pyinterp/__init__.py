@@ -2640,9 +2640,9 @@ om_tuple_rmul = do_magic_method(class_tuple, "__rmul__", om_tuple_mul_code)
 def get_list_inner_len(len_):
     return len_ * 5 // 4 + 1
 
-def list_seq_grow(seq):
+def list_seq_grow(seq, extra_space=0):
     seq_len = len(seq)
-    new_len = get_list_inner_len(seq_len)
+    new_len = get_list_inner_len(seq_len + extra_space)
 
     new_seq = []
     i = 0
@@ -2695,8 +2695,9 @@ def list_shift_right(om_lst, seq, len_, inner_len, shift_pos, shift_amount):
     # list_shift_right frees frees a slice in the list from shift_pos to shift_pos + shift_amount
     # The elements in this freed slot are undefined and must be replaced afterward
     # Since shift_right may resize the list, it will return the new sequence of the om_lst
-    if len_ + shift_amount > inner_len:
-        seq = list_seq_grow(seq)
+    diff = len_ + shift_amount - inner_len
+    if diff > 0:
+        seq = list_seq_grow(seq, diff)
         OM_set_list_seq(om_lst, seq)
 
     last_index = len_ - 1
@@ -2894,7 +2895,7 @@ def list_set_simple_slice(om_list, seq, list_len, start, stop, elements):
     elif diff < 0:  # list must grow
         new_stop = stop - diff
         # Make extra space in the list for extra items
-        list_shift_right(om_list, seq, list_len, len(seq), start, -diff)
+        seq = list_shift_right(om_list, seq, list_len, len(seq), start, -diff)
         # Write items in list
         list_set_slice(seq, start, new_stop, 1, elements)
     else: # list len does not change
