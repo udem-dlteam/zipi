@@ -902,7 +902,8 @@ def bootstrap_populate_base_types():
          ('__mul__', om_str_mul),
          ('__rmul__', om_str_rmul),
          ('__len__', om_str_len),
-         ('join', om_str_join)))
+         ('join', om_str_join),
+         ('replace', om_str_replace)))
 
 # Initialize class type objects
 def builtin_add_method(o, name, code):
@@ -4110,6 +4111,28 @@ def om_str_join_code(ctx, args):
 
 
 om_str_join = do_magic_method(class_str, "join", om_str_join_code)
+
+
+def om_str_replace_code(ctx, args):
+    if len(args) == 3:
+        self = args[0]
+        pattern = args[1]
+        replacement = args[2]
+
+        if not om_isinstance(pattern, class_str):
+            return sem_raise_with_message(ctx, class_TypeError, "replace() argument 1 must be str")
+        elif not om_isinstance(replacement, class_str):
+            return sem_raise_with_message(ctx, class_TypeError, "replace() argument 2 must be str")
+        else:
+            return cont_str(ctx, string_replace(OM_get_boxed_value(self),
+                                                OM_get_boxed_value(pattern),
+                                                OM_get_boxed_value(replacement)))
+
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 2 arguments, got " + str(len(args) - 1))
+
+
+om_str_replace = do_magic_method(class_str, "replace", om_str_replace_code)
 
 
 # class_dict methods

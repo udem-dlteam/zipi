@@ -544,6 +544,10 @@ def string_join(sep, strings):
     return sep.join(strings)
 
 
+def string_replace(string, pattern, replacement):
+    return string.replace(pattern, replacement)
+
+
 def string_get_slice(s, start, stop, step):
     return ''.join([s[i] for i in range(start, stop, step)])
 

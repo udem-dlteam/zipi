@@ -218,8 +218,12 @@ function string_contains(s, sub_s) {
     return s.includes(sub_s);
 }
 
-function string_join(sep, strings){
+function string_join(sep, strings) {
     return strings.join(sep)
+}
+
+function string_replace(string, pattern, replacement) {
+    return String.prototype.replaceAll(string, pattern, replacement);
 }
 
 function string_get_slice(s, start, stop, step) {
