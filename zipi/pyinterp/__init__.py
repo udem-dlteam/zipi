@@ -2881,7 +2881,7 @@ om_list_getitem = do_magic_method(class_list, "__getitem__", om_list_getitem_cod
 def list_set_simple_slice(om_list, seq, list_len, start, stop, elements):
     # A simple slice is a slice with step 1
     # Assignment to a simple slice is not simple at all because it allows the sequence to change length
-    slice_len = stop - start
+    slice_len = stop - start if stop > start else 0
     elements_len = len(elements)
     diff = slice_len - elements_len
 
@@ -2929,12 +2929,17 @@ def om_list_setitem_code(ctx, args):
                         slice_len = compute_range_len(start, stop, step)
                         elements_len = int_to_num(len(elements))
                         if int_eq(slice_len, elements_len):
-                            self_elements = OM_get_list_seq(self)
-                            list_set_slice(self_elements,
-                                           int_to_num(start),
-                                           int_to_num(stop),
-                                           int_to_num(step),
-                                           elements)
+                            # NOTE: this check has to reasons:
+                            #  1) there is nothing to do if the slice has length 0
+                            #  2) A slice of length 0 may have negative indices as sentinel values which list_set_slice
+                            #     cannot handle
+                            if int_is_pos(slice_len):
+                                self_elements = OM_get_list_seq(self)
+                                list_set_slice(self_elements,
+                                               int_to_num(start),
+                                               int_to_num(stop),
+                                               int_to_num(step),
+                                               elements)
                             return cont_obj(with_rte(ctx, elements_rte), om_None)
                         else:
                             return sem_raise_with_message(with_rte(ctx, elements_rte),

@@ -62,6 +62,8 @@ def int_is_zero(u):
 def int_is_neg(u):
     return u < 0
 
+def int_is_pos(u):
+    return u > 0
 
 def int_is_nonneg(u):
     return u >= 0
@@ -493,7 +495,8 @@ def list_pop(l):
 
 
 def list_set_slice(lst, start, stop, step, seq):
-    lst[start:stop:step] = seq[0:stop-start]
+    for i, j in enumerate(range(start, stop, step)):
+        lst[j] = seq[i]
 
 def list_get_slice(lst, start, stop, step):
     return [lst[i] for i in range(start, stop, step)]
