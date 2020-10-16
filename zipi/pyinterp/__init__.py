@@ -3626,12 +3626,11 @@ def om_range_getitem_code(ctx, args):
 
             range_len = compute_range_len(range_start, range_stop, range_step)
 
-            return compute_slice_indices(
-                with_cont(ctx, get_result),
-                OM_get_slice_start(item),
-                OM_get_slice_stop(item),
-                OM_get_slice_step(item),
-                range_len)
+            return compute_slice_indices(with_cont(ctx, get_result),
+                                         OM_get_slice_start(item),
+                                         OM_get_slice_stop(item),
+                                         OM_get_slice_step(item),
+                                         range_len)
         else:
             def get_item(rte, index):
                 self = args[0]
