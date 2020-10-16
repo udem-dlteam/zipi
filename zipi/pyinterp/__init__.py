@@ -2891,6 +2891,22 @@ def om_list_getitem_code(ctx, args):
 
 om_list_getitem = do_magic_method(class_list, "__getitem__", om_list_getitem_code)
 
+def list_set_simple_slice(om_list, seq, list_len, start, stop, elements):
+    # A simple slice is a slice with step 1
+    # Assignment to a simple slice is not simple at all because it allows the sequence to change length
+    slice_len = stop - start
+    elements_len = len(elements)
+    diff = slice_len - elements_len
+
+    if diff > 0: # list must shrink
+        list_shift_left(om_list, seq, list_len, len(seq), stop, diff)
+        list_set_slice(seq, start, stop, 1, elements)
+    elif diff < 0: # list must grow
+        raise NotImplementedError
+    else: # list len does not change
+        list_set_slice(seq, start, stop, 1, elements)
+
+
 def om_list_setitem_code(ctx, args):
     args_len = len(args)
     if args_len == 3:
@@ -2910,10 +2926,12 @@ def om_list_setitem_code(ctx, args):
                     if int_eq(step, int_from_num(1)):
                         # simple slice (step == 1) is the trickiest because it allows for insertion/removal
                         # it is allowed to change the list length
-                        return sem_raise_with_message(ctx, class_NotImplementedError, "simple slice not implemented")
+                        self_elements = OM_get_list_seq(self)
+                        list_set_simple_slice(self, self_elements, self_len, int_to_num(start), int_to_num(stop), elements)
+                        return cont_obj(with_rte(ctx, elements_rte), om_None)
                     else:
                         # The case of extended slices (step != 1) is simpler because the slice length
-                        # must be the same as the asssignment length, anything else is an error
+                        # must be the same as the assignment length, anything else is an error
                         slice_len = compute_range_len(start, stop, step)
                         elements_len = int_to_num(len(elements))
                         if int_eq(slice_len, elements_len):
@@ -2923,7 +2941,7 @@ def om_list_setitem_code(ctx, args):
                                            int_to_num(stop),
                                            int_to_num(step),
                                            elements)
-                            return cont_obj(with_rte(ctx, slice_rte), om_None)
+                            return cont_obj(with_rte(ctx, elements_rte), om_None)
                         else:
                             return sem_raise_with_message(with_rte(ctx, elements_rte),
                                                           class_ValueError,
