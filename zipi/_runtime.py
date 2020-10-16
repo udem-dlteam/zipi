@@ -62,6 +62,8 @@ def int_is_zero(u):
 def int_is_neg(u):
     return u < 0
 
+def int_is_pos(u):
+    return u > 0
 
 def int_is_nonneg(u):
     return u >= 0
@@ -134,6 +136,14 @@ def int_divmod_floor(u, v):
 
 def int_not(u):
     return ~u
+
+
+def int_min(u, v):
+    return min(u, v)
+
+
+def int_max(u, v):
+    return max(u, v)
 
 
 def float_inf():
@@ -484,8 +494,12 @@ def list_pop(l):
     return l.pop()
 
 
-def list_set_slice(lst, start, stop, seq):
-    lst[start:stop] = seq[0:stop-start]
+def list_set_slice(lst, start, stop, step, seq):
+    for i, j in enumerate(range(start, stop, step)):
+        lst[j] = seq[i]
+
+def list_get_slice(lst, start, stop, step):
+    return [lst[i] for i in range(start, stop, step)]
 
 def list_copy(lst):
     return lst.copy()
@@ -521,8 +535,13 @@ def string_gt(s1, s2):
 def string_ge(s1, s2):
     return s1 >= s2
 
+
 def string_contains(s, sub_s):
     return sub_s in s
+
+
+def string_get_slice(s, start, stop, step):
+    return ''.join([s[i] for i in range(start, stop, step)])
 
 ###
 # IO operations

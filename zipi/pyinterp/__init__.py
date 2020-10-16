@@ -1068,7 +1068,8 @@ def populate_builtin_slice():
     buitlin_add_methods_to_class(
         class_slice,
         (('__new__', om_slice_new),
-         ('__repr__', om_slice_repr)))
+         ('__repr__', om_slice_repr),
+         ('indices', om_slice_indices)))
 
 
 def populate_builtin_iterator():
@@ -2540,22 +2541,40 @@ def om_tuple_getitem_code(ctx, args):
         self = args[0]
         item = args[1]
 
-        def cont(rte, val):
-            item_box_index = OM_get_boxed_value(val)
-            elements = OM_get_tuple_seq(self)
-            elements_len = int_from_num(len(elements))
-            if int_ge(item_box_index, elements_len):
-                return sem_raise_with_message(ctx, class_IndexError, "tuple index out of range")
-            elif int_is_nonneg(item_box_index):
-                return cont_obj(ctx, elements[int_to_num(item_box_index)])
-            else:
-                reversed_index = int_add(item_box_index, elements_len)
-                if int_is_nonneg(reversed_index):
-                    return cont_obj(ctx, elements[int_to_num(reversed_index)])
-                else:
-                    return sem_raise_with_message(ctx, class_IndexError, "tuple index out of range")
+        if om_isinstance(item, class_slice):
+            elements = OM_get_list_seq(self)
 
-        return sem_index(with_cont(ctx, cont), item)
+            def get_result(rte, res):
+                slice_start = int_to_num(res[0])
+                slice_stop = int_to_num(res[1])
+                slice_step = int_to_num(res[2])
+
+                new_seq = list_get_slice(elements, slice_start, slice_stop, slice_step)
+
+                return cont_tuple(with_rte(ctx, rte), new_seq)
+
+            start = OM_get_slice_start(item)
+            stop = OM_get_slice_stop(item)
+            step = OM_get_slice_step(item)
+
+            return compute_slice_indices(with_cont(ctx, get_result), start, stop, step, int_from_num(len(elements)))
+        else:
+            def cont(rte, val):
+                item_box_index = OM_get_boxed_value(val)
+                elements = OM_get_tuple_seq(self)
+                elements_len = int_from_num(len(elements))
+                if int_ge(item_box_index, elements_len):
+                    return sem_raise_with_message(ctx, class_IndexError, "tuple index out of range")
+                elif int_is_nonneg(item_box_index):
+                    return cont_obj(ctx, elements[int_to_num(item_box_index)])
+                else:
+                    reversed_index = int_add(item_box_index, elements_len)
+                    if int_is_nonneg(reversed_index):
+                        return cont_obj(ctx, elements[int_to_num(reversed_index)])
+                    else:
+                        return sem_raise_with_message(ctx, class_IndexError, "tuple index out of range")
+
+            return sem_index(with_cont(ctx, cont), item)
 
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 1 argument, got " + str(len(args) - 1))
@@ -2621,9 +2640,9 @@ om_tuple_rmul = do_magic_method(class_tuple, "__rmul__", om_tuple_mul_code)
 def get_list_inner_len(len_):
     return len_ * 5 // 4 + 1
 
-def list_seq_grow(seq):
+def list_seq_grow(seq, extra_space=0):
     seq_len = len(seq)
-    new_len = get_list_inner_len(seq_len)
+    new_len = get_list_inner_len(seq_len + extra_space)
 
     new_seq = []
     i = 0
@@ -2672,11 +2691,13 @@ def list_shift_left(om_lst, seq, len_, inner_len, shift_pos, shift_amount):
     list_seq_maybe_shrink(om_lst, seq, new_len, inner_len)
 
 
-def list_shift_right(om_lst, seq, len_, inner_len, shift_pos, inserted_items):
-    shift_amount = len(inserted_items)
-
-    if len_ + shift_amount > inner_len:
-        seq = list_seq_grow(seq)
+def list_shift_right(om_lst, seq, len_, inner_len, shift_pos, shift_amount):
+    # list_shift_right frees frees a slice in the list from shift_pos to shift_pos + shift_amount
+    # The elements in this freed slot are undefined and must be replaced afterward
+    # Since shift_right may resize the list, it will return the new sequence of the om_lst
+    diff = len_ + shift_amount - inner_len
+    if diff > 0:
+        seq = list_seq_grow(seq, diff)
         OM_set_list_seq(om_lst, seq)
 
     last_index = len_ - 1
@@ -2688,11 +2709,8 @@ def list_shift_right(om_lst, seq, len_, inner_len, shift_pos, inserted_items):
         to_index -= 1
         from_index -= 1
 
-    for elt in inserted_items:
-        seq[shift_pos] = elt
-        shift_pos += 1
-
     OM_set_list_len(om_lst, len_ + shift_amount)
+    return seq
 
 
 def list_search(ctx, seq, target, start, end):
@@ -2820,7 +2838,22 @@ def om_list_getitem_code(ctx, args):
         item = args[1]
 
         if om_isinstance(item, class_slice):
-            return sem_raise_with_message(ctx, class_NotImplementedError, "list slicing is not yet supported")
+            def get_result(rte, res):
+                elements = OM_get_list_seq(self)
+                slice_start = int_to_num(res[0])
+                slice_stop = int_to_num(res[1])
+                slice_step = int_to_num(res[2])
+
+                new_seq = list_get_slice(elements, slice_start, slice_stop, slice_step)
+
+                return cont_list(with_rte(ctx, rte), new_seq, len(new_seq))
+
+            start = OM_get_slice_start(item)
+            stop = OM_get_slice_stop(item)
+            step = OM_get_slice_step(item)
+            len_ = OM_get_list_len(self)
+
+            return compute_slice_indices(with_cont(ctx, get_result), start, stop, step, int_from_num(len_))
         else:
             def cont(rte, item_index):
                 index = OM_get_boxed_value(item_index)
@@ -2846,6 +2879,29 @@ def om_list_getitem_code(ctx, args):
 
 om_list_getitem = do_magic_method(class_list, "__getitem__", om_list_getitem_code)
 
+def list_set_simple_slice(om_list, seq, list_len, start, stop, elements):
+    # A simple slice is a slice with step 1
+    # Assignment to a simple slice is not simple at all because it allows the sequence to change length
+    slice_len = stop - start if stop > start else 0
+    elements_len = len(elements)
+    diff = slice_len - elements_len
+
+    if diff > 0:  # list must shrink
+        new_stop = stop - diff
+        # Write new items in list
+        list_set_slice(seq, start, new_stop, 1, elements)
+        # Delete extra items in the slice from the list
+        list_shift_left(om_list, seq, list_len, len(seq), new_stop, diff)
+    elif diff < 0:  # list must grow
+        new_stop = stop - diff
+        # Make extra space in the list for extra items
+        seq = list_shift_right(om_list, seq, list_len, len(seq), start, -diff)
+        # Write items in list
+        list_set_slice(seq, start, new_stop, 1, elements)
+    else: # list len does not change
+        list_set_slice(seq, start, stop, 1, elements)
+
+
 def om_list_setitem_code(ctx, args):
     args_len = len(args)
     if args_len == 3:
@@ -2854,7 +2910,52 @@ def om_list_setitem_code(ctx, args):
         value = args[2]
 
         if om_isinstance(item, class_slice):
-            return sem_raise_with_message(ctx, class_NotImplementedError, "list[slice] not yet implemented")
+            self_len = OM_get_list_len(self)
+
+            def get_slice_indices(slice_rte, indices):
+                start = indices[0]
+                stop = indices[1]
+                step = indices[2]
+
+                def get_assignment_values(elements_rte, elements):
+                    if int_eq(step, int_from_num(1)):
+                        # simple slice (step == 1) is the trickiest because it allows for insertion/removal
+                        # it is allowed to change the list length
+                        self_elements = OM_get_list_seq(self)
+                        list_set_simple_slice(self, self_elements, self_len, int_to_num(start), int_to_num(stop), elements)
+                        return cont_obj(with_rte(ctx, elements_rte), om_None)
+                    else:
+                        # The case of extended slices (step != 1) is simpler because the slice length
+                        # must be the same as the assignment length, anything else is an error
+                        slice_len = compute_range_len(start, stop, step)
+                        elements_len = int_to_num(len(elements))
+                        if int_eq(slice_len, elements_len):
+                            # NOTE: this check has to reasons:
+                            #  1) there is nothing to do if the slice has length 0
+                            #  2) A slice of length 0 may have negative indices as sentinel values which list_set_slice
+                            #     cannot handle
+                            if int_is_pos(slice_len):
+                                self_elements = OM_get_list_seq(self)
+                                list_set_slice(self_elements,
+                                               int_to_num(start),
+                                               int_to_num(stop),
+                                               int_to_num(step),
+                                               elements)
+                            return cont_obj(with_rte(ctx, elements_rte), om_None)
+                        else:
+                            return sem_raise_with_message(with_rte(ctx, elements_rte),
+                                                          class_ValueError,
+                                                          "attempt to assign sequence of size "
+                                                          + int_to_string(elements_len, 10)
+                                                          + " to extended slice of size "
+                                                          + int_to_string(slice_len, 10))
+                return om_unpack_iterable(Context(slice_rte, get_assignment_values, ctx.ast), value)
+
+            return compute_slice_indices(with_cont(ctx, get_slice_indices),
+                                         OM_get_slice_start(item),
+                                         OM_get_slice_stop(item),
+                                         OM_get_slice_step(item),
+                                         int_from_num(self_len))
         else:
             def cont(rte, item_index):
                 index = OM_get_boxed_value(item_index)
@@ -2911,8 +3012,8 @@ def om_list_add_code(ctx, args):
             new_len = self_len + other_len
             new_seq = list_new(get_list_inner_len(new_len), empty_cell)
 
-            list_set_slice(new_seq, 0, self_len, self_seq)
-            list_set_slice(new_seq, self_len, new_len, other_seq)
+            list_set_slice(new_seq, 0, self_len, 1, self_seq)
+            list_set_slice(new_seq, self_len, new_len, 1, other_seq)
 
             return cont_list(ctx, new_seq, new_len)
         else:
@@ -2942,13 +3043,13 @@ def om_list_extend_code(ctx, args):
             new_len = self_len + other_len
 
             if new_len <= len(self_seq):
-                list_set_slice(self_seq, self_len, new_len, other_seq)
+                list_set_slice(self_seq, self_len, new_len, 1, other_seq)
                 OM_set_list_len(self, new_len)
             else:
                 new_seq = list_new(get_list_inner_len(new_len), empty_cell)
 
-                list_set_slice(new_seq, 0, self_len, self_seq)
-                list_set_slice(new_seq, self_len, new_len, other_seq)
+                list_set_slice(new_seq, 0, self_len, 1, self_seq)
+                list_set_slice(new_seq, self_len, new_len, 1, other_seq)
 
                 OM_set_list_seq(self, new_seq)
                 OM_set_list_len(self, new_len)
@@ -3105,15 +3206,18 @@ def om_list_insert_code(ctx, args):
                 list_internal_append(self, elements, len_, inner_len, value)
                 return cont_obj(next_ctx, om_None)
             elif index >= 0:
-                list_shift_right(self, elements, len_, inner_len, index, [value])
+                elements = list_shift_right(self, elements, len_, inner_len, index, 1)
+                elements[index] = value
                 return cont_obj(next_ctx, om_None)
             else:
                 reversed_index = index + len_
                 if reversed_index >= 0:
-                    list_shift_right(self, elements, len_, inner_len, reversed_index, [value])
+                    elements = list_shift_right(self, elements, len_, inner_len, reversed_index, 1)
+                    elements[reversed_index] = value
                     return cont_obj(next_ctx, om_None)
                 else:
-                    list_shift_right(self, elements, len_, inner_len, 0, [value])
+                    elements = list_shift_right(self, elements, len_, inner_len, 0, 1)
+                    elements[0] = value
                     return cont_obj(next_ctx, om_None)
 
         return sem_index(with_cont(ctx, do_insert), args[1])
@@ -3301,10 +3405,13 @@ def om_range_new_code(ctx, args):
     if args_len == 2:
         stop = args[1]
         if om_isinstance(stop, class_int):
-            return cont_obj(ctx, om_range(om_int_from_num(0), stop, om_int_from_num(1)))
+            return cont_obj(ctx, om_range(int_from_num(0), OM_get_boxed_value(stop), int_from_num(1)))
         else:
             def alloc_range(alloc_rte, stop_int):
-                return cont_obj(ctx, om_range(om_int_from_num(0), stop_int, om_int_from_num(1)))
+                return cont_obj(with_rte(ctx, alloc_rte),
+                                om_range(int_from_num(0),
+                                 OM_get_boxed_value(stop_int),
+                                 int_from_num(1)))
             return sem_index(with_cont(ctx, alloc_range), stop)
     if args_len == 3:
         start = args[1]
@@ -3312,7 +3419,10 @@ def om_range_new_code(ctx, args):
 
         def get_start(start_rte, start_int):
             def alloc_range(alloc_rte, stop_int):
-                return cont_obj(ctx, om_range(start_int, stop_int, om_int_from_num(1)))
+                return cont_obj(with_rte(ctx, alloc_rte),
+                                om_range(OM_get_boxed_value(start_int),
+                                         OM_get_boxed_value(stop_int),
+                                         int_from_num(1)))
 
             if om_isinstance(stop, class_int):
                 return alloc_range(start_rte, stop)
@@ -3331,12 +3441,14 @@ def om_range_new_code(ctx, args):
         def get_start(start_rte, start_int):
             def get_stop(stop_rte, stop_int):
                 def check_step(alloc_rte, step_int):
+                    start_value = OM_get_boxed_value(start_int)
+                    stop_value = OM_get_boxed_value(stop_int)
                     step_value = OM_get_boxed_value(step_int)
 
                     if int_is_zero(step_value):
                         return sem_raise_with_message(ctx, class_ValueError, "range() arg 3 must not be zero")
                     else:
-                        return cont_obj(ctx, om_range(start_int, stop_int, step_int))
+                        return cont_obj(with_rte(ctx, alloc_rte), om_range(start_value, stop_value, step_value))
 
                 if om_isinstance(step, class_int):
                     return check_step(stop_rte, step)
@@ -3355,35 +3467,34 @@ def om_range_new_code(ctx, args):
     else:
         return sem_raise_with_message(ctx, class_TypeError, "range expected 1 to 3 arguments, got " + str(len(args) - 1))
 
+
 om_range_new = do_static_magic_method(class_range, "__new__", om_range_new_code)
+
+
+def om_format_range_repr(self, rte):
+    start = OM_get_range_start(self)
+    stop = OM_get_range_stop(self)
+    step = OM_get_range_step(self)
+
+    start_str = int_to_string(start, 10)
+    stop_str = int_to_string(stop, 10)
+
+    if int_eq(step, int_from_num(1)):
+        return "range(" + start_str + ", " + stop_str + ")"
+    else:
+        step_str = int_to_string(step, 10)
+        return "range(" + start_str + ", " + stop_str + ", " + step_str + ")"
+
 
 def om_range_repr_code(ctx, args):
     args_len = len(args)
 
     if args_len == 1:
         self = args[0]
-        start = OM_get_range_start(self)
-        stop = OM_get_range_stop(self)
-        step = OM_get_range_step(self)
-
-        def get_start_str(start_rte, start_str):
-            start_str_value = OM_get_boxed_value(start_str)
-            def get_stop_str(stop_rte, stop_str):
-                stop_str_value = OM_get_boxed_value(stop_str)
-
-                step_value = OM_get_boxed_value(step)
-                if int_eq(step_value, int_from_num(1)):
-                    return cont_str(ctx, "range(" + start_str_value + ", " + stop_str_value + ")")
-                else:
-                    def get_step_str(step_rte, step_str):
-                        step_str_value = OM_get_boxed_value(step_str)
-                        return cont_str(ctx, "range(" + start_str_value + ", " + stop_str_value + ", " + step_str_value + ")")
-                    return sem_repr(with_cont(ctx, get_step_str), step)
-            return sem_repr(with_cont(ctx, get_stop_str), stop)
-        return sem_repr(with_cont(ctx, get_start_str), start)
-
+        return cont_str(ctx, om_format_range_repr(self, ctx.rte))
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
+
 
 om_range_repr = do_magic_method(class_range, "__repr__", om_range_repr_code)
 
@@ -3397,15 +3508,15 @@ def om_range_eq_code(ctx, args):
         if om_isinstance(other, class_range):
             self = args[0]
 
-            start = OM_get_boxed_value(OM_get_range_start(self))
-            stop = OM_get_boxed_value(OM_get_range_stop(self))
-            step = OM_get_boxed_value(OM_get_range_step(self))
+            start = OM_get_range_start(self)
+            stop = OM_get_range_stop(self)
+            step = OM_get_range_step(self)
 
             self_len = compute_range_len(start, stop, step)
 
-            other_start = OM_get_boxed_value(OM_get_range_start(other))
-            other_stop = OM_get_boxed_value(OM_get_range_stop(other))
-            other_step = OM_get_boxed_value(OM_get_range_step(other))
+            other_start = OM_get_range_start(other)
+            other_stop = OM_get_range_stop(other)
+            other_step = OM_get_range_step(other)
 
             other_len = compute_range_len(other_start, other_stop, other_step)
 
@@ -3449,11 +3560,7 @@ def om_range_len_code(ctx, args):
         stop = OM_get_range_stop(self)
         step = OM_get_range_step(self)
 
-        start_value = OM_get_boxed_value(start)
-        stop_value = OM_get_boxed_value(stop)
-        step_value = OM_get_boxed_value(step)
-
-        return cont_int(ctx, compute_range_len(start_value, stop_value, step_value))
+        return cont_int(ctx, compute_range_len(start, stop, step))
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(args_len - 1))
 
@@ -3472,31 +3579,75 @@ def compute_range_item(start, stop, step, index):
     else:
         return None
 
+
+def compute_slice_range_item(start, stop, step, index):
+    return int_add(start, int_mul(index, step))
+
+
+def compute_range_slice(range_start, range_stop, range_step, slice_start, slice_stop, slice_step):
+    new_start = compute_slice_range_item(range_start, range_stop, range_step, slice_start)
+    new_stop = compute_slice_range_item(range_start, range_stop, range_step, slice_stop)
+    new_step = int_mul(range_step, slice_step)
+
+    return new_start, new_stop, new_step
+
+
 def om_range_getitem_code(ctx, args):
     args_len = len(args)
 
     if args_len == 2:
         item = args[1]
 
-        def get_item(rte, index):
+        if om_isinstance(item, class_slice):
+            def get_result(rte, res):
+                slice_start = res[0]
+                slice_stop = res[1]
+                slice_step = res[2]
+
+                new_start, new_stop, new_step = compute_range_slice(range_start,
+                                                                    range_stop,
+                                                                    range_step,
+                                                                    slice_start,
+                                                                    slice_stop,
+                                                                    slice_step)
+
+                new_range = om_range(
+                    int_from_num(new_start),
+                    int_from_num(new_stop),
+                    int_from_num(new_step)
+                )
+
+                return cont_obj(with_rte(ctx, rte), new_range)
+
             self = args[0]
-            start = OM_get_range_start(self)
-            stop = OM_get_range_stop(self)
-            step = OM_get_range_step(self)
+            range_start = OM_get_range_start(self)
+            range_stop = OM_get_range_stop(self)
+            range_step = OM_get_range_step(self)
 
-            start_value = OM_get_boxed_value(start)
-            stop_value = OM_get_boxed_value(stop)
-            step_value = OM_get_boxed_value(step)
-            index_value = OM_get_boxed_value(index)
+            range_len = compute_range_len(range_start, range_stop, range_step)
 
-            res = compute_range_item(start_value, stop_value, step_value, index_value)
+            return compute_slice_indices(with_cont(ctx, get_result),
+                                         OM_get_slice_start(item),
+                                         OM_get_slice_stop(item),
+                                         OM_get_slice_step(item),
+                                         range_len)
+        else:
+            def get_item(rte, index):
+                self = args[0]
+                start = OM_get_range_start(self)
+                stop = OM_get_range_stop(self)
+                step = OM_get_range_step(self)
 
-            if res is None:
-                return sem_raise_with_message(ctx, class_IndexError, "range object index out of range")
-            else:
-                return cont_int(ctx, res)
+                index_value = OM_get_boxed_value(index)
 
-        return sem_index(with_cont(ctx, get_item), item)
+                res = compute_range_item(start, stop, step, index_value)
+
+                if res is None:
+                    return sem_raise_with_message(ctx, class_IndexError, "range object index out of range")
+                else:
+                    return cont_int(ctx, res)
+
+            return sem_index(with_cont(ctx, get_item), item)
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(args_len - 1))
 
@@ -3559,6 +3710,124 @@ def om_slice_repr_code(ctx, args):
 
 
 om_slice_repr = do_magic_method(class_slice, '__repr__', om_slice_repr_code)
+
+
+def compute_slice_indices_aux(ctx, start, stop, step, len_):
+    # start, stop and step must be big integer or None, len_ must be big int
+
+    # See cPython algorithm: https://github.com/python/cpython/blob/master/Objects/sliceobject.c#L248
+    # this is harder to get right than you might think
+
+    _0 = int_from_num(0)
+    _1 = int_from_num(1)
+    _neg_1 = int_from_num(-1)
+    _len_minus_1 = int_sub(len_, _1)
+    _neg_len = int_neg(len_)
+
+    # STEP
+    if step is None:
+        real_step = int_from_num(1)
+    elif int_is_zero(step):
+        return sem_raise_with_message(ctx, class_ValueError, "slice step cannot be 0")
+    else:
+        real_step = step
+
+    step_is_negative = int_is_neg(real_step)
+
+    # START
+    if start is None:
+        if step_is_negative:
+            real_start = _len_minus_1
+        else:
+            real_start = _0
+    elif int_ge(start, len_):
+        real_start = _len_minus_1 if step_is_negative else len_
+    elif int_is_nonneg(start):
+        real_start = start
+    elif int_ge(start, _neg_len):
+        real_start = int_add(start, len_)
+    elif step_is_negative:
+        real_start = _neg_1
+    else:
+        real_start = _0
+
+    # STOP
+    if stop is None:
+        if step_is_negative:
+            real_stop = _neg_1
+        else:
+            real_stop = len_
+    elif int_ge(stop, len_):
+        real_stop = _len_minus_1 if step_is_negative else len_
+    elif int_is_nonneg(stop):
+        real_stop = stop
+    elif int_ge(stop, _neg_len):
+        real_stop = int_add(stop, len_)
+    elif step_is_negative:
+        real_stop = _neg_1
+    else:
+        real_stop = _0
+
+    return cont_obj(ctx, [real_start, real_stop, real_step])
+
+
+def compute_slice_indices(ctx, start, stop, step, len_):
+    # start, stop and step must be om object, len_ must be big int
+
+    args = list_new(3, None)
+
+    def do_get_int_or_none(obj, cont, i):
+        def get_int_or_none(rte):
+            if om_is(obj, om_None):
+                args[i] = None
+                return cont(rte)
+            elif om_isinstance(obj, class_int):
+                args[i] = OM_get_boxed_value(obj)
+                return cont(rte)
+            else:
+                def get_index(rte, index):
+                    if om_is(index, absent):
+                        return sem_raise_with_message(ctx, class_TypeError,
+                                                      "slice indices must be integers or None or have an __index__ method")
+                    else:
+                        args[i] = OM_get_boxed_value(index)
+                        return cont(rte)
+                return sem_maybe_index(Context(rte, get_index, ctx.ast), obj)
+        return get_int_or_none
+
+    def get_args(rte):
+        return compute_slice_indices_aux(with_rte(ctx, rte), args[0], args[1], args[2], len_)
+
+    get_step = do_get_int_or_none(step, get_args, 2)
+    get_stop = do_get_int_or_none(stop, get_step, 1)
+    get_start = do_get_int_or_none(start, get_stop, 0)
+
+    return get_start(ctx.rte)
+
+
+def om_slice_indices_code(ctx, args):
+    if len(args) == 2:
+        self = args[0]
+
+        def check_len(rte, len_):
+            len_val = OM_get_boxed_value(len_)
+            if int_is_neg(len_val):
+                return sem_raise_with_message(with_rte(ctx, rte), class_ValueError, "length should not be negative")
+            else:
+                def cast_to_tuple(rte, res):
+                    return cont_tuple(with_rte(ctx, rte), [om_int(res[0]), om_int(res[1]), om_int(res[2])])
+
+                start = OM_get_slice_start(self)
+                stop = OM_get_slice_stop(self)
+                step = OM_get_slice_step(self)
+
+                return compute_slice_indices(Context(rte, cast_to_tuple, ctx.ast), start, stop, step, len_val)
+        return sem_index(with_cont(ctx, check_len), args[1])
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 argument, got " + str(len(args) - 1))
+
+
+om_slice_indices = do_magic_method(class_slice, "indices", om_slice_indices_code)
 
 
 # class_iterator methods
@@ -3746,22 +4015,40 @@ def om_str_getitem_code(ctx, args):
         self = args[0]
         item = args[1]
 
-        def get_char(rte, index):
-            index_val = OM_get_boxed_value(index)
-            self_val = OM_get_boxed_value(self)
-            self_len = int_from_num(len(self_val))
+        if om_isinstance(item, class_slice):
+            self_string = OM_get_boxed_value(self)
 
-            if int_ge(index_val, self_len):
-                return sem_raise_with_message(ctx, class_IndexError, "string index out of range")
-            elif int_is_nonneg(index_val):
-                return cont_str(ctx, self_val[int_to_num(index_val)])
-            else:
-                reversed_index = int_add(index_val, self_len)
-                if int_is_nonneg(reversed_index):
-                    return cont_str(ctx, self_val[int_to_num(reversed_index)])
-                else:
+            def get_result(rte, res):
+                slice_start = int_to_num(res[0])
+                slice_stop = int_to_num(res[1])
+                slice_step = int_to_num(res[2])
+
+                new_str = string_get_slice(self_string, slice_start, slice_stop, slice_step)
+
+                return cont_str(with_rte(ctx, rte), new_str)
+
+            start = OM_get_slice_start(item)
+            stop = OM_get_slice_stop(item)
+            step = OM_get_slice_step(item)
+
+            return compute_slice_indices(with_cont(ctx, get_result), start, stop, step, int_from_num(len(self_string)))
+        else:
+            def get_char(rte, index):
+                index_val = OM_get_boxed_value(index)
+                self_val = OM_get_boxed_value(self)
+                self_len = int_from_num(len(self_val))
+
+                if int_ge(index_val, self_len):
                     return sem_raise_with_message(ctx, class_IndexError, "string index out of range")
-        return sem_index(with_cont(ctx, get_char), item)
+                elif int_is_nonneg(index_val):
+                    return cont_str(ctx, self_val[int_to_num(index_val)])
+                else:
+                    reversed_index = int_add(index_val, self_len)
+                    if int_is_nonneg(reversed_index):
+                        return cont_str(ctx, self_val[int_to_num(reversed_index)])
+                    else:
+                        return sem_raise_with_message(ctx, class_IndexError, "string index out of range")
+            return sem_index(with_cont(ctx, get_char), item)
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
 
@@ -7290,7 +7577,7 @@ def comp_expr(cte, ast):
             slice_cte, slice_code = gen_Slice(obj_cte, index_ast)
             return gen_Subscript_Load(slice_cte, ast, obj_code, slice_code)
         else:
-            return CT_raise_syntax_error_with_msg(cte, ast, "unsupported expression AST")
+            return CT_raise_syntax_error_with_msg(cte, ast, "extended slice not yet supported")
     else:
         return CT_raise_syntax_error_with_msg(cte, ast, "unsupported expression AST")
 
@@ -8950,10 +9237,17 @@ def gen_Subscript_Load(cte, ast, obj_code, index_code):
 
 def gen_Subscript_Store(cte, ast, target, value):
     target_obj = target.value
-    target_index = target.slice.value
+    index_ast = target.slice
 
     obj_cte, obj_code = comp_expr(cte, target_obj)
-    index_cte, index_code = comp_expr(obj_cte, target_index)
+
+    if isinstance(index_ast, AST.Index):
+        index_cte, index_code = comp_expr(obj_cte, index_ast.value)
+    elif isinstance(index_ast, AST.Slice):
+        index_cte, index_code = gen_Slice(obj_cte, index_ast)
+    else:
+        return CT_raise_syntax_error_with_msg(cte, ast, "extended slice not yet supported")
+
     value_cte, value_code = comp_expr(index_cte, value)
 
     if isinstance(target_obj, AST.Name):
@@ -9329,48 +9623,6 @@ def om_list_simple_repr(list_, rte, max_length):
 
         return '[' + ', '.join(acc) + ']'
 
-def om_range_simple_repr(range_, rte, max_length):
-    start = OM_get_range_start(range_)
-    stop = OM_get_range_stop(range_)
-    step = OM_get_range_step(range_)
-
-    step_value = OM_get_boxed_value(step)
-
-    if int_eq(step_value, int_from_num(1)):
-        # account for the 'range(' + ', ' + ')' segment of the string
-        remaining_length = max_length - 9
-
-        args = [start, stop]
-    else:
-        # account for the 'range(' + ', ' + ', ' + ')' segment of the string
-        remaining_length = max_length - 11
-
-        args = [start, stop, step]
-
-    args_repr = []
-
-    for arg in args:
-        if remaining_length > 0:
-
-            repr_ = om_simple_repr_with_max_length(make_out_of_ast_context(rte, None), arg, remaining_length)
-
-            repr_len = len(repr_)
-            if repr_len <= remaining_length:
-                # Object is short enough, print it
-                remaining_length -= repr_len
-            else:
-                # Object is too long, do not print it
-                repr_ = REPR_TOO_LONG_FILLER
-                remaining_length -= 3
-
-        else:
-            # No more space remaining, try returning the smallest repr possible
-            repr_ = REPR_TOO_LONG_FILLER
-
-        args_repr.append(repr_)
-
-    return 'range(' + ', '.join(args_repr) + ')'
-
 
 def om_struct_simple_repr(struct, rte, max_length):
     if rte_check_seen_repr(rte, struct):
@@ -9453,6 +9705,7 @@ simple_repr_formatters = {
     "bool": om_format_bool_repr,
     "str": om_format_str_repr,
     "type": om_format_type_repr,
+    "range": om_format_range_repr,
     "function": om_format_function_repr,
     "method-wrapper": om_format_MethodWrapper_repr,
     "wrapper_descriptor": om_format_WrapperDescriptor_repr,
@@ -9476,8 +9729,6 @@ def om_simple_repr_with_max_length(ctx, value, max_length):
         repr_res = om_list_simple_repr(value, ctx.rte, max_length)
     elif om_is(value_cls, class_tuple):
         repr_res = om_tuple_simple_repr(value, ctx.rte, max_length)
-    elif om_is(value_cls, class_range):
-        repr_res = om_range_simple_repr(value, ctx.rte, max_length)
     elif om_is(value_cls, class_struct):
         repr_res = om_struct_simple_repr(value, ctx.rte, max_length)
     elif om_is(value_cls, class_slice):
