@@ -2899,7 +2899,46 @@ def om_list_setitem_code(ctx, args):
         value = args[2]
 
         if om_isinstance(item, class_slice):
-            return sem_raise_with_message(ctx, class_NotImplementedError, "list slicing is not yet supported")
+            self_len = int_from_num(OM_get_list_len(self))
+
+            def get_slice_indices(slice_rte, indices):
+                start = indices[0]
+                stop = indices[1]
+                step = indices[2]
+
+                def get_assignment_values(elements_rte, elements):
+                    if int_eq(step, int_from_num(1)):
+                        # simple slice (step == 1) is the trickiest because it allows for insertion/removal
+                        # it is allowed to change the list length
+                        return sem_raise_with_message(ctx, class_NotImplementedError, "simple slice not implemented")
+                    else:
+                        # The case of extended slices (step != 1) is simpler because the slice length
+                        # must be the same as the asssignment length, anything else is an error
+                        slice_len = compute_range_len(start, stop, step)
+                        elements_len = int_to_num(len(elements))
+                        if int_eq(slice_len, elements_len):
+                            self_elements = OM_get_list_seq(self)
+                            list_set_slice(self_elements,
+                                           int_to_num(start),
+                                           int_to_num(stop),
+                                           int_to_num(step),
+                                           elements)
+                            return cont_obj(with_rte(ctx, slice_rte), om_None)
+                        else:
+                            return sem_raise_with_message(with_rte(ctx, elements_rte),
+                                                          class_ValueError,
+                                                          "attempt to assign sequence of size "
+                                                          + int_to_string(elements_len, 10)
+                                                          + " to extended slice of size "
+                                                          + int_to_string(slice_len, 10))
+                return om_unpack_iterable(Context(slice_rte, get_assignment_values, ctx.ast), value)
+
+            self_len = int_from_num(OM_get_list_len(self))
+            return compute_slice_indices(with_cont(ctx, get_slice_indices),
+                                         OM_get_slice_start(item),
+                                         OM_get_slice_stop(item),
+                                         OM_get_slice_step(item),
+                                         self_len)
         else:
             def cont(rte, item_index):
                 index = OM_get_boxed_value(item_index)
@@ -2956,8 +2995,8 @@ def om_list_add_code(ctx, args):
             new_len = self_len + other_len
             new_seq = list_new(get_list_inner_len(new_len), empty_cell)
 
-            list_set_slice(new_seq, 0, self_len, self_seq)
-            list_set_slice(new_seq, self_len, new_len, other_seq)
+            list_set_slice(new_seq, 0, self_len, 1, self_seq)
+            list_set_slice(new_seq, self_len, new_len, 1, other_seq)
 
             return cont_list(ctx, new_seq, new_len)
         else:
@@ -2987,13 +3026,13 @@ def om_list_extend_code(ctx, args):
             new_len = self_len + other_len
 
             if new_len <= len(self_seq):
-                list_set_slice(self_seq, self_len, new_len, other_seq)
+                list_set_slice(self_seq, self_len, new_len, 1, other_seq)
                 OM_set_list_len(self, new_len)
             else:
                 new_seq = list_new(get_list_inner_len(new_len), empty_cell)
 
-                list_set_slice(new_seq, 0, self_len, self_seq)
-                list_set_slice(new_seq, self_len, new_len, other_seq)
+                list_set_slice(new_seq, 0, self_len, 1, self_seq)
+                list_set_slice(new_seq, self_len, new_len, 1, other_seq)
 
                 OM_set_list_seq(self, new_seq)
                 OM_set_list_len(self, new_len)
@@ -7519,7 +7558,7 @@ def comp_expr(cte, ast):
             slice_cte, slice_code = gen_Slice(obj_cte, index_ast)
             return gen_Subscript_Load(slice_cte, ast, obj_code, slice_code)
         else:
-            return CT_raise_syntax_error_with_msg(cte, ast, "unsupported expression AST")
+            return CT_raise_syntax_error_with_msg(cte, ast, "extended slice not yet supported")
     else:
         return CT_raise_syntax_error_with_msg(cte, ast, "unsupported expression AST")
 
@@ -9179,10 +9218,17 @@ def gen_Subscript_Load(cte, ast, obj_code, index_code):
 
 def gen_Subscript_Store(cte, ast, target, value):
     target_obj = target.value
-    target_index = target.slice.value
+    index_ast = target.slice
 
     obj_cte, obj_code = comp_expr(cte, target_obj)
-    index_cte, index_code = comp_expr(obj_cte, target_index)
+
+    if isinstance(index_ast, AST.Index):
+        index_cte, index_code = comp_expr(obj_cte, index_ast.value)
+    elif isinstance(index_ast, AST.Slice):
+        index_cte, index_code = gen_Slice(obj_cte, index_ast)
+    else:
+        return CT_raise_syntax_error_with_msg(cte, ast, "extended slice not yet supported")
+
     value_cte, value_code = comp_expr(index_cte, value)
 
     if isinstance(target_obj, AST.Name):

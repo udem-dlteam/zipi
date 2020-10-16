@@ -492,8 +492,8 @@ def list_pop(l):
     return l.pop()
 
 
-def list_set_slice(lst, start, stop, seq):
-    lst[start:stop] = seq[0:stop-start]
+def list_set_slice(lst, start, stop, step, seq):
+    lst[start:stop:step] = seq[0:stop-start]
 
 def list_get_slice(lst, start, stop, step):
     return [lst[i] for i in range(start, stop, step)]

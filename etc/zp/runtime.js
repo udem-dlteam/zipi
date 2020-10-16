@@ -140,8 +140,24 @@ function list_copy(lst){
     return lst.slice();
 }
 
-function list_set_slice(lst, start, stop, seq) {
-    Array.prototype.splice.apply(lst, [start, stop - start].concat(seq.slice(0, stop-start)));
+function list_set_slice(lst, start, stop, step, seq) {
+    if (step === 1) {
+        Array.prototype.splice.apply(lst, [start, stop - start].concat(seq.slice(0, stop - start)));
+    } else {
+        var i;
+        var j = 0;
+        if (step > 0) {
+            for (i = start; i < stop; i += step) {
+                lst[i] = seq[j];
+                j ++;
+            }
+        } else {
+            for (i = start; i > stop; i += step) {
+                lst[i] = seq[j];
+                j ++;
+            }
+        }
+    }
 }
 
 function list_get_slice(lst, start, stop, step) {
