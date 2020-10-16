@@ -2691,9 +2691,10 @@ def list_shift_left(om_lst, seq, len_, inner_len, shift_pos, shift_amount):
     list_seq_maybe_shrink(om_lst, seq, new_len, inner_len)
 
 
-def list_shift_right(om_lst, seq, len_, inner_len, shift_pos, inserted_items):
-    shift_amount = len(inserted_items)
-
+def list_shift_right(om_lst, seq, len_, inner_len, shift_pos, shift_amount):
+    # list_shift_right frees frees a slice in the list from shift_pos to shift_pos + shift_amount
+    # The elements in this freed slot are undefined and must be replaced afterward
+    # Since shift_right may resize the list, it will return the new sequence of the om_lst
     if len_ + shift_amount > inner_len:
         seq = list_seq_grow(seq)
         OM_set_list_seq(om_lst, seq)
@@ -2707,11 +2708,8 @@ def list_shift_right(om_lst, seq, len_, inner_len, shift_pos, inserted_items):
         to_index -= 1
         from_index -= 1
 
-    for elt in inserted_items:
-        seq[shift_pos] = elt
-        shift_pos += 1
-
     OM_set_list_len(om_lst, len_ + shift_amount)
+    return seq
 
 
 def list_search(ctx, seq, target, start, end):
@@ -2887,11 +2885,18 @@ def list_set_simple_slice(om_list, seq, list_len, start, stop, elements):
     elements_len = len(elements)
     diff = slice_len - elements_len
 
-    if diff > 0: # list must shrink
-        list_shift_left(om_list, seq, list_len, len(seq), stop, diff)
-        list_set_slice(seq, start, stop, 1, elements)
-    elif diff < 0: # list must grow
-        raise NotImplementedError
+    if diff > 0:  # list must shrink
+        new_stop = stop - diff
+        # Write new items in list
+        list_set_slice(seq, start, new_stop, 1, elements)
+        # Delete extra items in the slice from the list
+        list_shift_left(om_list, seq, list_len, len(seq), new_stop, diff)
+    elif diff < 0:  # list must grow
+        new_stop = stop - diff
+        # Make extra space in the list for extra items
+        list_shift_right(om_list, seq, list_len, len(seq), start, -diff)
+        # Write items in list
+        list_set_slice(seq, start, new_stop, 1, elements)
     else: # list len does not change
         list_set_slice(seq, start, stop, 1, elements)
 
@@ -3196,15 +3201,18 @@ def om_list_insert_code(ctx, args):
                 list_internal_append(self, elements, len_, inner_len, value)
                 return cont_obj(next_ctx, om_None)
             elif index >= 0:
-                list_shift_right(self, elements, len_, inner_len, index, [value])
+                elements = list_shift_right(self, elements, len_, inner_len, index, 1)
+                elements[index] = value
                 return cont_obj(next_ctx, om_None)
             else:
                 reversed_index = index + len_
                 if reversed_index >= 0:
-                    list_shift_right(self, elements, len_, inner_len, reversed_index, [value])
+                    elements = list_shift_right(self, elements, len_, inner_len, reversed_index, 1)
+                    elements[reversed_index] = value
                     return cont_obj(next_ctx, om_None)
                 else:
-                    list_shift_right(self, elements, len_, inner_len, 0, [value])
+                    elements = list_shift_right(self, elements, len_, inner_len, 0, 1)
+                    elements[0] = value
                     return cont_obj(next_ctx, om_None)
 
         return sem_index(with_cont(ctx, do_insert), args[1])
