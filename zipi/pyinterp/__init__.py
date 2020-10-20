@@ -906,7 +906,8 @@ def bootstrap_populate_base_types():
          ('replace', om_str_replace),
          ('upper', om_str_upper),
          ('lower', om_str_lower),
-         ('swapcase', om_str_swapcase)))
+         ('swapcase', om_str_swapcase),
+         ('isalpha', om_str_isalpha)))
 
 # Initialize class type objects
 def builtin_add_method(o, name, code):
@@ -4137,21 +4138,25 @@ def om_str_replace_code(ctx, args):
 om_str_replace = do_magic_method(class_str, "replace", om_str_replace_code)
 
 
-def gen_str_unary_op(method_name, primitive):
+def gen_str_unary_op(method_name, primitive, cont_kind):
     def op_code(ctx, args):
         args_len = len(args)
 
         if args_len == 1:
-            return cont_str(ctx, primitive(OM_get_boxed_value(args[0])))
+            return cont_kind(ctx, primitive(OM_get_boxed_value(args[0])))
         else:
             return sem_raise_with_message(ctx, class_TypeError, "expected no argument, got " + str(len(args) - 1))
 
     return do_magic_method(class_str, method_name, op_code)
 
 
-om_str_upper = gen_str_unary_op("upper", string_upper)
-om_str_lower = gen_str_unary_op("lower", string_lower)
-om_str_swapcase = gen_str_unary_op("swapcase", string_swapcase)
+# Case operations
+om_str_upper = gen_str_unary_op("upper", string_upper, cont_str)
+om_str_lower = gen_str_unary_op("lower", string_lower, cont_str)
+om_str_swapcase = gen_str_unary_op("swapcase", string_swapcase, cont_str)
+
+# Characters kind operations
+om_str_isalpha = gen_str_unary_op("isalpha", string_isalpha, cont_bool)
 
 
 # class_dict methods
