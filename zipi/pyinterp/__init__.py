@@ -4127,7 +4127,6 @@ def om_str_replace_code(ctx, args):
             return cont_str(ctx, string_replace(OM_get_boxed_value(self),
                                                 OM_get_boxed_value(pattern),
                                                 OM_get_boxed_value(replacement)))
-
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 2 arguments, got " + str(len(args) - 1))
 
