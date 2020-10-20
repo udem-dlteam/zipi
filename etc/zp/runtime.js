@@ -222,6 +222,25 @@ function string_join(sep, strings) {
     return strings.join(sep)
 }
 
+function string_lower(string) {
+    return string.toLowerCase();
+}
+
+function string_upper(string) {
+    return string.toUpperCase();
+}
+
+
+function string_swapcase(string){
+    return string.split('').map(
+                function (char) {
+                    var upperCaseChar = char.toUpperCase();
+                    return char === upperCaseChar ? char.toLowerCase() : upperCaseChar
+                }
+            ).join('');
+}
+
+
 function string_replace(string, pattern, replacement) {
     if (pattern === '') {
         // Treat the string as if it started and ended with empty strings (imitates Python behaviour instead of JS)

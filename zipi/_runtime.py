@@ -548,6 +548,18 @@ def string_replace(string, pattern, replacement):
     return string.replace(pattern, replacement)
 
 
+def string_upper(string):
+    return string.upper()
+
+
+def string_lower(string):
+    return string.lower()
+
+
+def string_swapcase(string):
+    return string.swapcase()
+
+
 def string_get_slice(s, start, stop, step):
     return ''.join([s[i] for i in range(start, stop, step)])
 

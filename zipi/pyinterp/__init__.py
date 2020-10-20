@@ -903,7 +903,10 @@ def bootstrap_populate_base_types():
          ('__rmul__', om_str_rmul),
          ('__len__', om_str_len),
          ('join', om_str_join),
-         ('replace', om_str_replace)))
+         ('replace', om_str_replace),
+         ('upper', om_str_upper),
+         ('lower', om_str_lower),
+         ('swapcase', om_str_swapcase)))
 
 # Initialize class type objects
 def builtin_add_method(o, name, code):
@@ -4132,6 +4135,23 @@ def om_str_replace_code(ctx, args):
 
 
 om_str_replace = do_magic_method(class_str, "replace", om_str_replace_code)
+
+
+def gen_str_unary_op(method_name, primitive):
+    def op_code(ctx, args):
+        args_len = len(args)
+
+        if args_len == 1:
+            return cont_str(ctx, primitive(OM_get_boxed_value(args[0])))
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "expected no argument, got " + str(len(args) - 1))
+
+    return do_magic_method(class_str, method_name, op_code)
+
+
+om_str_upper = gen_str_unary_op("upper", string_upper)
+om_str_lower = gen_str_unary_op("lower", string_lower)
+om_str_swapcase = gen_str_unary_op("swapcase", string_swapcase)
 
 
 # class_dict methods
