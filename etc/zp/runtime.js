@@ -225,7 +225,11 @@ function string_join(sep, strings) {
 function string_replace(string, pattern, replacement) {
     if (pattern === '') {
         // Treat the string as if it started and ended with empty strings (imitates Python behaviour instead of JS)
-        return replacement + string.split('').join(replacement) + replacement
+        if (string === ''){
+            return replacement;
+        } else {
+            return replacement + string.split('').join(replacement) + replacement;
+        }
     } else {
         return string.split(pattern).join(replacement);
     }
