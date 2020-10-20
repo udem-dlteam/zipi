@@ -840,7 +840,10 @@ def py_syntax_error_ast(ts, ast, msg):\n\
     "    ast = ExtSlice(subscripts)\n"
     "    return set_start_end(ts, lineno, col_offset, ast)\n"
     "else:\n"
-    "    ast = Tuple(list(map(lambda x: x.value,subscripts)), Load())\n"
+    "    items = []\n"
+    "    for s in items:\n"
+    "        items.append(s.value)\n"
+    "    ast = Tuple(items, Load())\n"
     "    set_start_end(ts, lineno, col_offset, ast)\n"
     "    ast = Index(ast)\n"
     "    return set_start_end(ts, lineno, col_offset, ast)"]
