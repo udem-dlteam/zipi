@@ -1,5 +1,5 @@
 from zipi._runtime import *
-from zipi.pyinterp.unicodedata import *
+from zipi.pyinterp.asciidata import *
 
 # NOTE: required to be able to instantiate ast nodes from pyinterp
 from zipi.zast._zast import *
@@ -4162,8 +4162,9 @@ om_str_upper = gen_str_unary_op("upper", string_upper, cont_str)
 om_str_lower = gen_str_unary_op("lower", string_lower, cont_str)
 om_str_swapcase = gen_str_unary_op("swapcase", string_swapcase, cont_str)
 
+
 # Characters kind operations
-def do_check_unicode_non_empty_string_category(unicode_fn):
+def do_check_non_empty_string_category(char_fn):
     def unicode_is_(string):
         i = 0
         string_len = len(string)
@@ -4171,67 +4172,85 @@ def do_check_unicode_non_empty_string_category(unicode_fn):
             return False
         else:
             while i < string_len:
-                if not unicode_fn(ord(string[i])):
-                    return False
-                else:
+                res = char_fn(ord(string[i]))
+                if res is None:
+                    return None
+                elif res:
                     i += 1
+                else:
+                    return False
             return True
     return unicode_is_
 
-def do_check_unicode_string_category(unicode_fn):
+
+def do_check_string_category(char_fn):
     def unicode_is_(string):
         i = 0
         string_len = len(string)
         while i < string_len:
-            if not unicode_fn(ord(string[i])):
-                return False
-            else:
+            res = char_fn(ord(string[i]))
+            if res is None:
+                return None
+            elif res:
                 i += 1
+            else:
+                return False
         return True
     return unicode_is_
 
-def is_ascii_code(code):
-    return code <= 127
 
-def is_digit_code(code):
-    # TODO: this is way simpler than the actual str.isdigit definitions
-    # Formally, a digit is a character that has the property value Numeric_Type=Digit or Numeric_Type=Decimal.
-    return code >= 48 and code <= 57
-
-def unicode_string_is_lower(string):
-    # Return True if all cased characters in the string are lowercase and there is at least one cased character.
-    i = 0
-    string_len = len(string)
-    while i < string_len:
-        code = ord(string[i])
-        if code >= 65 and code <= 90 or code >= 97 and code <= 122:
-            break
-        elif code >= 128 and unicode_is_cased(ord(string[i])):
-            break
-        else:
-            i += 1
-
-    if i < string_len:
+def do_check_string_case_category(check_case):
+    def unicode_is_(string):
+        i = 0
+        string_len = len(string)
         while i < string_len:
-            code = ord(string[i])
-            if code >= 65 and code <= 90:
-                return False
-            elif code >= 128 and unicode_is_upper(code):
-                return False
+            res = extended_ascii_is_alpha(ord(string[i]))
+            if res is None:
+                return None
+            elif res:
+                break
             else:
                 i += 1
-        return True
+
+        if i < string_len:
+            while i < string_len:
+                code = ord(string[i])
+                res = extended_ascii_is_alpha(code)
+                if res is None:
+                    return None
+                elif res:
+                    case_res = check_case(code)
+                    if case_res is None:
+                        return None
+                    elif case_res:
+                        i += 1
+                    else:
+                        return False
+                else:
+                    i += 1
+            return True
+        else:
+            return False
+
+    return unicode_is_
+
+
+def str_method_cont_maybe_bool(ctx, val):
+    if val is None:
+        return sem_raise_with_message(ctx, class_NotImplementedError, "only extended ascii characters are supported for now")
     else:
-        return False
+        return cont_bool(ctx, val)
 
 # TODO: methods below only support extended ascii and raise a NotImplementedError for unicode
-om_str_isalpha = gen_str_unary_op("isalpha", do_check_unicode_non_empty_string_category(unicode_is_letter), cont_bool)
-om_str_isascii = gen_str_unary_op("isascii", do_check_unicode_string_category(is_ascii_code), cont_bool)
-om_str_isdecimal = gen_str_unary_op("isdecimal", do_check_unicode_non_empty_string_category(unicode_is_decimal), cont_bool)
-om_str_isdigit = gen_str_unary_op("isdigit", do_check_unicode_non_empty_string_category(is_digit_code), cont_bool)
-om_str_islower = gen_str_unary_op("islower", unicode_string_is_lower, cont_bool)
-om_str_isnumeric = gen_str_unary_op("isnumber", do_check_unicode_non_empty_string_category(unicode_is_number), cont_bool)
-om_str_isupper = gen_str_unary_op("isupper", do_check_unicode_non_empty_string_category(unicode_is_upper), cont_bool)
+om_str_isalpha = gen_str_unary_op("isalpha", do_check_non_empty_string_category(extended_ascii_is_alpha), str_method_cont_maybe_bool)
+om_str_isascii = gen_str_unary_op("isascii", do_check_string_category(extended_ascii_is_ascci), cont_bool)
+om_str_isdecimal = gen_str_unary_op("isdecimal", do_check_non_empty_string_category(extended_ascii_is_decimal), str_method_cont_maybe_bool)
+om_str_isdigit = gen_str_unary_op("isdigit", do_check_non_empty_string_category(extended_ascii_is_digit), str_method_cont_maybe_bool)
+om_str_isnumeric = gen_str_unary_op("isnumber", do_check_non_empty_string_category(extended_ascii_is_numeric), str_method_cont_maybe_bool)
+
+# Those two are special
+om_str_islower = gen_str_unary_op("islower", do_check_string_case_category(extended_ascii_is_not_upper), str_method_cont_maybe_bool)
+om_str_isupper = gen_str_unary_op("isupper", do_check_string_case_category(extended_ascii_is_upper), str_method_cont_maybe_bool)
 
 # class_dict methods
 
