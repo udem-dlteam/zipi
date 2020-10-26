@@ -560,10 +560,6 @@ def string_swapcase(string):
     return string.swapcase()
 
 
-def string_isalpha(string):
-    return string.isalpha()
-
-
 def string_get_slice(s, start, stop, step):
     return ''.join([s[i] for i in range(start, stop, step)])
 
