@@ -1,4 +1,4 @@
-sample = []
+sample = ['']
 
 for c in range(256):
     sample.append(chr(c))

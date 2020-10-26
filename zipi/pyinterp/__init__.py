@@ -914,7 +914,8 @@ def bootstrap_populate_base_types():
          ('isdigit', om_str_isdigit),
          ('islower', om_str_islower),
          ('isnumeric', om_str_isnumeric),
-         ('isupper', om_str_isupper)))
+         ('isupper', om_str_isupper),
+         ('isspace', om_str_isspace)))
 
 # Initialize class type objects
 def builtin_add_method(o, name, code):
@@ -4247,6 +4248,7 @@ om_str_isascii = gen_str_unary_op("isascii", do_check_string_category(extended_a
 om_str_isdecimal = gen_str_unary_op("isdecimal", do_check_non_empty_string_category(extended_ascii_is_decimal), str_method_cont_maybe_bool)
 om_str_isdigit = gen_str_unary_op("isdigit", do_check_non_empty_string_category(extended_ascii_is_digit), str_method_cont_maybe_bool)
 om_str_isnumeric = gen_str_unary_op("isnumber", do_check_non_empty_string_category(extended_ascii_is_numeric), str_method_cont_maybe_bool)
+om_str_isspace = gen_str_unary_op("isspace", do_check_non_empty_string_category(extended_ascii_is_whitespace), str_method_cont_maybe_bool)
 
 # Those two are special
 om_str_islower = gen_str_unary_op("islower", do_check_string_case_category(extended_ascii_is_not_upper), str_method_cont_maybe_bool)

@@ -108,3 +108,14 @@ def extended_ascii_is_digit(code):
             return False
     else:
         return None
+
+
+def extended_ascii_is_whitespace(code):
+    if code <= 255:
+        # general category is Zs (“Separator, space”), or bidirectional class is one of WS, B, or S.
+        return extended_ascii_data[code] == extended_ascii_category_Zs \
+               or 9 <= code and code <= 13 \
+               or 28 <= code and code <= 31 \
+               or code == 133
+    else:
+        return None
