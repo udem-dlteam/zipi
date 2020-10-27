@@ -275,24 +275,23 @@ function string_split(string, sep, maxsplit=-1) {
 
 function string_whitespace_split(string, maxsplit=-1) {
     var res;
-    string = string.trim();
+    var trimmed_string = string.trimStart();
 
-    if (string.length === 0) {
+    if (trimmed_string.length === 0) {
         return []
     } else if (maxsplit === -1) {
-        return string.split(/\s+/);
-    } else if (maxsplit <= 1) {
-        return [string];
+        return trimmed_string.trim().split(/\s+/);
+    } else if (maxsplit === 0) {
+        return [trimmed_string];
     } else {
         // We have to do some fiddling manually to recover the tail
         // inspiration from: https://stackoverflow.com/a/19736877/5079316
-        var re = new RegExp( "^((?:\\S*\\s+){"+(maxsplit-1)+"}\\S*)\\s+([\\s\\S]*)$" );
-        var halves = re.exec(string);
-
+        var re = new RegExp("^((?:\\S*\\s+){" + (maxsplit - 1) + "}\\S+)\\s+([\\s\\S]*)$");
+        var halves = re.exec(trimmed_string);
 
         if (halves === null) {
             // maxsplit is bigger than maximum possible number of splits
-            return string.split(/\s+/);
+            return trimmed_string.trim().split(/\s+/);
         } else {
             res = halves[1].split(/\s+/);
             res.push(halves[2])
