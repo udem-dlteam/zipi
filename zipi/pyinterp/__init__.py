@@ -8659,7 +8659,7 @@ def gen_BinOp(cte, ast, op, code1, code2):
     return (cte, code)
 
 # XXX: I don't know what name it should have
-def comp_Compare_Op(op):
+def comp_Compare_Op(cte, op):
     if isinstance(op, AST.Eq):
         sem_op = sem_Eq
     elif isinstance(op, AST.NotEq):
@@ -8678,8 +8678,10 @@ def comp_Compare_Op(op):
         return sem_IsNot
     elif isinstance(op, AST.In):
         sem_op = sem_Contains
+    elif isinstance(op, AST.NotIn):
+        sem_op = sem_NotContains
     else:
-        sem_op = None
+        return CT_raise_syntax_error_with_msg(cte, op, "unknown comparator")
 
     return sem_op
 
@@ -8709,7 +8711,7 @@ def gen_Compare(cte, ast, left, comparators, ops):
 
     sem_ops = []
     for op in ops:
-        sem_ops.append(comp_Compare_Op(op))
+        sem_ops.append(comp_Compare_Op(cte, op))
 
     if len(comparators) > 1:
         pseudo_asts = []
@@ -9043,12 +9045,27 @@ def sem_Contains_in_iterator(ctx, target, iterator):
 
 def sem_Contains(ctx, target, obj):
     obj_contains = getattribute_from_obj_mro(obj, "__contains__")
+
+    def cast_to_bool(rte, val):
+        return sem_bool(ctx, val)
+
     if obj_contains is absent:
         def cont(rte, it):
-            return sem_Contains_in_iterator(Context(rte, ctx.cont, ctx.ast), target, it)
+            return sem_Contains_in_iterator(with_cont(ctx, cast_to_bool), target, it)
         return sem_iter(with_cont(ctx, cont), obj)
     else:
-        return sem_simple_call(ctx, obj_contains, [obj, target])
+        return sem_simple_call(with_cont(ctx, cast_to_bool), obj_contains, [obj, target])
+
+
+def sem_NotContains(ctx, target, obj):
+    def cont(rte, val):
+        if om_is(val, om_True):
+            return cont_obj(ctx, om_False)
+        else:
+            return cont_obj(ctx, om_True)
+
+    return sem_Contains(with_cont(ctx, cont), target, obj)
+
 
 def om_unpack_iterable(ctx, it):
     seq = []
