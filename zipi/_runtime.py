@@ -560,6 +560,14 @@ def string_swapcase(string):
     return string.swapcase()
 
 
+def string_split(string, sep, maxsplit=-1):
+    return string.split(sep, maxsplit)
+
+
+def string_whitespace_split(string, maxsplit=-1):
+    return string.split(sep=None, maxsplit=maxsplit)
+
+
 def string_get_slice(s, start, stop, step):
     return ''.join([s[i] for i in range(start, stop, step)])
 

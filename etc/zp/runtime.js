@@ -254,6 +254,54 @@ function string_replace(string, pattern, replacement) {
     }
 }
 
+
+function string_split(string, sep, maxsplit=-1) {
+    if (maxsplit === -1) {
+        return string.split(sep);
+    } else {
+        var words = string.split(sep);
+
+        if (maxsplit >= words.length) {
+            // Case where maxsplit is higher or equal to maximum possible splits
+            return words
+        } else {
+            var res = words.slice(0,maxsplit);
+            res.push(words.slice(maxsplit).join(sep));
+            return res;
+        }
+    }
+}
+
+
+function string_whitespace_split(string, maxsplit=-1) {
+    var res;
+    string = string.trim();
+
+    if (string.length === 0) {
+        return []
+    } else if (maxsplit === -1) {
+        return string.split(/\s+/);
+    } else if (maxsplit <= 1) {
+        return [string];
+    } else {
+        // We have to do some fiddling manually to recover the tail
+        // inspiration from: https://stackoverflow.com/a/19736877/5079316
+        var re = new RegExp( "^((?:\\S*\\s+){"+(maxsplit-1)+"}\\S*)\\s+([\\s\\S]*)$" );
+        var halves = re.exec(string);
+
+
+        if (halves === null) {
+            // maxsplit is bigger than maximum possible number of splits
+            return string.split(/\s+/);
+        } else {
+            res = halves[1].split(/\s+/);
+            res.push(halves[2])
+            return res
+        }
+    }
+}
+
+
 function string_get_slice(s, start, stop, step) {
     if (step === 1) {
         return s.slice(start, stop);

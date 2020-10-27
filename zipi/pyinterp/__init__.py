@@ -166,6 +166,15 @@ def cont_str(ctx, val):
 def cont_list(ctx, val, len_):
     return ctx.cont(ctx.rte, om_list(val, len_))
 
+def cont_list_of_str(ctx, val, len_):
+    inner_len = get_list_inner_len(len_)
+    new_lst = list_new(inner_len, empty_cell)
+    i = 0
+    while i < len_:
+        new_lst[i] = om_str(val[i])
+        i += 1
+    return ctx.cont(ctx.rte, om_list(new_lst, len_))
+
 def cont_tuple(ctx, val):
     return ctx.cont(ctx.rte, om_tuple(val))
 
@@ -915,7 +924,8 @@ def bootstrap_populate_base_types():
          ('islower', om_str_islower),
          ('isnumeric', om_str_isnumeric),
          ('isupper', om_str_isupper),
-         ('isspace', om_str_isspace)))
+         ('isspace', om_str_isspace),
+         ('split', om_str_split)))
 
 # Initialize class type objects
 def builtin_add_method(o, name, code):
@@ -4253,6 +4263,63 @@ om_str_isspace = gen_str_unary_op("isspace", do_check_non_empty_string_category(
 # Those two are special
 om_str_islower = gen_str_unary_op("islower", do_check_string_case_category(extended_ascii_is_not_upper), str_method_cont_maybe_bool)
 om_str_isupper = gen_str_unary_op("isupper", do_check_string_case_category(extended_ascii_is_upper), str_method_cont_maybe_bool)
+
+
+def om_str_split_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 1:
+        self = args[0]
+        res = string_whitespace_split(OM_get_boxed_value(self))
+        return cont_list_of_str(ctx, res, len(res))
+    elif args_len == 2:
+        self = args[0]
+        sep = args[1]
+
+        if om_isinstance(sep, class_str):
+            sep_val = OM_get_boxed_value(sep)
+
+            if len(sep_val) == 0:
+                return sem_raise_with_message(ctx, class_ValueError, "empty separator")
+            else:
+                res = string_split(OM_get_boxed_value(self), sep_val)
+                return cont_list_of_str(ctx, res, len(res))
+        elif om_is(sep, om_None):
+            res = string_whitespace_split(OM_get_boxed_value(self))
+            return cont_list_of_str(ctx, res, len(res))
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "separator must be str or None")
+
+    elif args_len == 3:
+        self = args[0]
+        sep = args[1]
+
+        def do_split(rte, splits):
+            max_split_num = int_to_num(OM_get_boxed_value(splits))
+            max_split_num = -1 if max_split_num < 0 else max_split_num
+
+            if om_isinstance(sep, class_str):
+                sep_val = OM_get_boxed_value(sep)
+
+                if len(sep_val) == 0:
+                    return sem_raise_with_message(ctx, class_ValueError, "empty separator")
+                else:
+                    res = string_split(OM_get_boxed_value(self), sep_val, max_split_num)
+                    return cont_list_of_str(ctx, res, len(res))
+            elif om_is(sep, om_None):
+                res = string_whitespace_split(OM_get_boxed_value(self), max_split_num)
+                return cont_list_of_str(ctx, res, len(res))
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, "separator must be str or None")
+
+        return sem_index(with_cont(ctx, do_split), args[2])
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
+
+
+om_str_split = do_magic_method(class_str, "split", om_str_split_code)
+
+
 
 # class_dict methods
 
