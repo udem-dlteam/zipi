@@ -925,7 +925,7 @@ def bootstrap_populate_base_types():
          ('isnumeric', om_str_isnumeric),
          ('isupper', om_str_isupper),
          ('isspace', om_str_isspace),
-         ('split', om_str_split)))
+         ('split', om_str_split, True)))
 
 # Initialize class type objects
 def builtin_add_method(o, name, code):
@@ -1882,6 +1882,43 @@ def do_magic_method_with_kwargs(cls, method_name, code):
         return check_method_self_arg(ctx, code, args, kwargs)
 
     return magic_method
+
+
+def do_magic_method_with_aligned_kwargs(cls, method_name, code, n_posonly, kwarg_names, defaults):
+    check_method_self_arg = do_check_method_with_kwargs_self_arg(cls, method_name)
+
+    msg_expected_at_least = "expected at least " + str(n_posonly) + "positional argument(s), got "
+
+    def magic_method(ctx, args, kwargs):
+        def align_code(ctx, args, kwargs):
+            if len(args) > n_posonly:
+                i = n_posonly + 1
+                j = 0
+                for name in kwarg_names:
+                    value_from_kwarg = dict_pop(kwargs, name, absent)
+
+                    if i >= len(args):
+                        args.append(defaults[j] if value_from_kwarg is absent else value_from_kwarg)
+                    elif value_from_kwarg is not absent:
+                        error_msg = "argument for " + method_name + " given by name ('" + name + "') and position (" + str(i) + ")"
+                        return sem_raise_with_message(ctx, class_TypeError, error_msg)
+
+                    i += 1
+                    j += 1
+
+                if dict_len(kwargs) > 0:
+                    unknown_name = dict_keys(kwargs)[0]
+                    error_msg = "'" + unknown_name + "' is an invalid keyword argument for " + method_name
+                    return sem_raise_with_message(ctx, class_TypeError, error_msg)
+                else:
+                    return code(ctx, args)
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, msg_expected_at_least + str(len(args) - 1))
+
+        return check_method_self_arg(ctx, align_code, args, kwargs)
+
+    return magic_method
+
 
 # Primitive operators for doing actual computations
 def gen_dunder_Homogenous_Numeric_BinOp(py_class, method, prim, om_class, om_box):
@@ -4317,7 +4354,8 @@ def om_str_split_code(ctx, args):
         return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
 
 
-om_str_split = do_magic_method(class_str, "split", om_str_split_code)
+om_str_split = do_magic_method_with_aligned_kwargs(class_str, "split", om_str_split_code, 0,
+                                                   ["sep", "maxsplit"], [om_None, om_int_from_num(-1)])
 
 
 

@@ -36,9 +36,6 @@ def dict_items(d):
 def dict_copy(d):
     return d.copy()
 
-def dict_item(d):
-    return list(d.items())
-
 def dict_len(d):
     return len(d)
 
