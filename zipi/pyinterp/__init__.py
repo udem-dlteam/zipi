@@ -930,7 +930,8 @@ def bootstrap_populate_base_types():
          ('isupper', om_str_isupper),
          ('isspace', om_str_isspace),
          ('split', om_str_split, True),
-         ('find', om_str_find)))
+         ('find', om_str_find),
+         ('index', om_str_index)))
 
 # Initialize class type objects
 def builtin_add_method(o, name, code):
@@ -4389,6 +4390,35 @@ def om_str_find_code(ctx, args):
 
 
 om_str_find = do_magic_method_with_defaults(class_str, "find", om_str_find_code, 1, [om_None, om_None])
+
+
+def om_str_index_code(ctx, args):
+    args_len = len(args)
+    self = args[0]
+    self_value = OM_get_boxed_value(self)
+    substring = args[1]
+
+    def do_find(rte, indices):
+        index = string_index_of(self_value,
+                                OM_get_boxed_value(substring),
+                                int_to_num(indices[0]),
+                                int_to_num(indices[1]))
+        if index >= 0:
+            return cont_int_from_num(ctx, index)
+        else:
+            return sem_raise_with_message(ctx, class_ValueError, "substring not found")
+
+    if args_len == 4:
+        if om_isinstance(substring, class_str):
+            return compute_slice_indices(with_cont(ctx, do_find),
+                                         args[2], args[3], om_None, int_from_num(len(self_value)))
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "must be str")
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected between 1 and 3 arguments arguments, got " + str(len(args) - 1))
+
+
+om_str_index = do_magic_method_with_defaults(class_str, "index", om_str_index_code, 1, [om_None, om_None])
 
 
 # class_dict methods
