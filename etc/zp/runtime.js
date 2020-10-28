@@ -312,6 +312,13 @@ function string_index_of(string, substring, start, stop) {
 }
 
 
+function string_last_index_of(string, substring, start, stop) {
+    var index = string.lastIndexOf(substring, stop - substring.length);
+
+    return index < start ? -1 : index
+}
+
+
 function string_get_slice(s, start, stop, step) {
     if (step === 1) {
         return s.slice(start, stop);

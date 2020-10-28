@@ -931,7 +931,9 @@ def bootstrap_populate_base_types():
          ('isspace', om_str_isspace),
          ('split', om_str_split, True),
          ('find', om_str_find),
-         ('index', om_str_index)))
+         ('rfind', om_str_rfind),
+         ('index', om_str_index),
+         ('rindex', om_str_rindex)))
 
 # Initialize class type objects
 def builtin_add_method(o, name, code):
@@ -4366,59 +4368,68 @@ om_str_split = do_magic_method_with_aligned_kwargs(class_str, "split", om_str_sp
                                                    ["sep", "maxsplit"], [om_None, om_int_from_num(-1)])
 
 
-def om_str_find_code(ctx, args):
-    args_len = len(args)
-    self = args[0]
-    self_value = OM_get_boxed_value(self)
-    substring = args[1]
+def gen_str_find(method_name, string_find_fn):
+    def code(ctx, args):
+        args_len = len(args)
+        self = args[0]
+        self_value = OM_get_boxed_value(self)
+        substring = args[1]
 
-    def do_find(rte, indices):
-        index = string_index_of(self_value,
-                                OM_get_boxed_value(substring),
-                                int_to_num(indices[0]),
-                                int_to_num(indices[1]))
-        return cont_int_from_num(ctx, index)
-
-    if args_len == 4:
-        if om_isinstance(substring, class_str):
-            return compute_slice_indices(with_cont(ctx, do_find),
-                                         args[2], args[3], om_None, int_from_num(len(self_value)))
-        else:
-            return sem_raise_with_message(ctx, class_TypeError, "must be str")
-    else:
-        return sem_raise_with_message(ctx, class_TypeError, "expected between 1 and 3 arguments arguments, got " + str(len(args) - 1))
-
-
-om_str_find = do_magic_method_with_defaults(class_str, "find", om_str_find_code, 1, [om_None, om_None])
-
-
-def om_str_index_code(ctx, args):
-    args_len = len(args)
-    self = args[0]
-    self_value = OM_get_boxed_value(self)
-    substring = args[1]
-
-    def do_find(rte, indices):
-        index = string_index_of(self_value,
-                                OM_get_boxed_value(substring),
-                                int_to_num(indices[0]),
-                                int_to_num(indices[1]))
-        if index >= 0:
+        def do_find(rte, indices):
+            index = string_find_fn(self_value,
+                                    OM_get_boxed_value(substring),
+                                    int_to_num(indices[0]),
+                                    int_to_num(indices[1]))
             return cont_int_from_num(ctx, index)
+
+        if args_len == 4:
+            if om_isinstance(substring, class_str):
+                return compute_slice_indices(with_cont(ctx, do_find),
+                                             args[2], args[3], om_None, int_from_num(len(self_value)))
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, "must be str")
         else:
-            return sem_raise_with_message(ctx, class_ValueError, "substring not found")
+            return sem_raise_with_message(ctx, class_TypeError, "expected between 1 and 3 arguments arguments, got " + str(len(args) - 1))
 
-    if args_len == 4:
-        if om_isinstance(substring, class_str):
-            return compute_slice_indices(with_cont(ctx, do_find),
-                                         args[2], args[3], om_None, int_from_num(len(self_value)))
+
+    return do_magic_method_with_defaults(class_str, method_name, code, 1, [om_None, om_None])
+
+
+om_str_find = gen_str_find("find", string_index_of)
+om_str_rfind = gen_str_find("rfind", string_last_index_of)
+
+
+def gen_str_index(method_name, string_find_fn):
+    def code(ctx, args):
+        args_len = len(args)
+        self = args[0]
+        self_value = OM_get_boxed_value(self)
+        substring = args[1]
+
+        def do_find(rte, indices):
+            index = string_find_fn(self_value,
+                                    OM_get_boxed_value(substring),
+                                    int_to_num(indices[0]),
+                                    int_to_num(indices[1]))
+            if index >= 0:
+                return cont_int_from_num(ctx, index)
+            else:
+                return sem_raise_with_message(ctx, class_ValueError, "substring not found")
+
+        if args_len == 4:
+            if om_isinstance(substring, class_str):
+                return compute_slice_indices(with_cont(ctx, do_find),
+                                             args[2], args[3], om_None, int_from_num(len(self_value)))
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, "must be str")
         else:
-            return sem_raise_with_message(ctx, class_TypeError, "must be str")
-    else:
-        return sem_raise_with_message(ctx, class_TypeError, "expected between 1 and 3 arguments arguments, got " + str(len(args) - 1))
+            return sem_raise_with_message(ctx, class_TypeError, "expected between 1 and 3 arguments arguments, got " + str(len(args) - 1))
+
+    return do_magic_method_with_defaults(class_str, method_name, code, 1, [om_None, om_None])
 
 
-om_str_index = do_magic_method_with_defaults(class_str, "index", om_str_index_code, 1, [om_None, om_None])
+om_str_index = gen_str_index("index", string_index_of)
+om_str_rindex = gen_str_index("rindex", string_last_index_of)
 
 
 # class_dict methods

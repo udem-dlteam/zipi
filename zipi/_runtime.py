@@ -569,6 +569,10 @@ def string_index_of(string, substring, start, stop):
     return string.find(substring, start, stop)
 
 
+def string_last_index_of(string, substring, start, stop):
+    return string.rfind(substring, start, stop)
+
+
 def string_get_slice(s, start, stop, step):
     return ''.join([s[i] for i in range(start, stop, step)])
 

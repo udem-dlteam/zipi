@@ -20,3 +20,21 @@ for word in sample:
     for sub in targets:
         print(word, sub)
         print(word.find(sub))
+
+for word in sample:
+    for sub in targets:
+        for start in starts:
+            for stop in stops:
+                print("r", word, sub, start, stop)
+                print(word.rfind(sub, start, stop))
+
+for word in sample:
+    for sub in targets:
+        for start in starts:
+            print("r", word, sub, start)
+            print(word.rfind(sub, start))
+
+for word in sample:
+    for sub in targets:
+        print("r", word, sub)
+        print(word.rfind(sub))
