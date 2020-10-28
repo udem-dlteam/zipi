@@ -4374,6 +4374,8 @@ def gen_str_find(method_name, string_find_fn):
         self = args[0]
         self_value = OM_get_boxed_value(self)
         substring = args[1]
+        start = args[2]
+        stop = args[3]
 
         def do_find(rte, indices):
             index = string_find_fn(self_value,
@@ -4384,8 +4386,31 @@ def gen_str_find(method_name, string_find_fn):
 
         if args_len == 4:
             if om_isinstance(substring, class_str):
-                return compute_slice_indices(with_cont(ctx, do_find),
-                                             args[2], args[3], om_None, int_from_num(len(self_value)))
+                def get_start(rte, start_index):
+                    def get_stop(rte, stop_index):
+
+                        # Special case which short-circuits slicing if start > len(self)
+                        # This is not needed in general but mimics a cPython special case which
+                        # Where "".find("", 1) returns -1 despite ""[1:].find("") returning 0
+                        # There seems to be some discrepancy or at least ambiguity between cPython and
+                        # the Python doc here. I decided to go with the cPython implementation
+                        if not om_is(start_index, om_None):
+                            start_val = OM_get_boxed_value(start_index)
+                            if int_gt(start_val, int_from_num(len(self_value))):
+                                return cont_int_from_num(ctx, -1)
+
+                        return compute_slice_indices(with_cont(ctx, do_find),
+                                                     start_index, stop_index, om_None, int_from_num(len(self_value)))
+
+                    if om_is(stop, om_None):
+                        return get_stop(ctx.rte, om_None)
+                    else:
+                        return sem_index(with_cont(ctx, get_stop), stop)
+                if om_is(start, om_None):
+                    return get_start(ctx.rte, om_None)
+                else:
+                    return sem_index(with_cont(ctx, get_start), start)
+
             else:
                 return sem_raise_with_message(ctx, class_TypeError, "must be str")
         else:
@@ -4405,6 +4430,8 @@ def gen_str_index(method_name, string_find_fn):
         self = args[0]
         self_value = OM_get_boxed_value(self)
         substring = args[1]
+        start = args[2]
+        stop = args[3]
 
         def do_find(rte, indices):
             index = string_find_fn(self_value,
@@ -4418,12 +4445,36 @@ def gen_str_index(method_name, string_find_fn):
 
         if args_len == 4:
             if om_isinstance(substring, class_str):
-                return compute_slice_indices(with_cont(ctx, do_find),
-                                             args[2], args[3], om_None, int_from_num(len(self_value)))
+                def get_start(rte, start_index):
+                    def get_stop(rte, stop_index):
+
+                        # Special case which short-circuits slicing if start > len(self)
+                        # This is not needed in general but mimics a cPython special case which
+                        # Where "".find("", 1) returns -1 despite ""[1:].find("") returning 0
+                        # There seems to be some discrepancy or at least ambiguity between cPython and
+                        # the Python doc here. I decided to go with the cPython implementation
+                        if not om_is(start_index, om_None):
+                            start_val = OM_get_boxed_value(start_index)
+                            if int_gt(start_val, int_from_num(len(self_value))):
+                                return cont_int_from_num(ctx, -1)
+
+                        return compute_slice_indices(with_cont(ctx, do_find),
+                                                     start_index, stop_index, om_None, int_from_num(len(self_value)))
+
+                    if om_is(stop, om_None):
+                        return get_stop(ctx.rte, om_None)
+                    else:
+                        return sem_index(with_cont(ctx, get_stop), stop)
+                if om_is(start, om_None):
+                    return get_start(ctx.rte, om_None)
+                else:
+                    return sem_index(with_cont(ctx, get_start), start)
+
             else:
                 return sem_raise_with_message(ctx, class_TypeError, "must be str")
         else:
             return sem_raise_with_message(ctx, class_TypeError, "expected between 1 and 3 arguments arguments, got " + str(len(args) - 1))
+
 
     return do_magic_method_with_defaults(class_str, method_name, code, 1, [om_None, om_None])
 

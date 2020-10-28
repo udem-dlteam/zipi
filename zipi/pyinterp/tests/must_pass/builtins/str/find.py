@@ -1,5 +1,5 @@
-sample = ["fooo", "foo1", "1foo", "abcabcabc"]
-targets = ["o", "1", "bca"]
+sample = ["fooo", "foo1", "1foo", "abcabcabc", ""]
+targets = ["o", "1", "bca", ""]
 starts = [-2, -1, None, 0, 1, 2, 5, 10]
 stops = [-2, -1, None, 0, 1, 2, 5, 10]
 
