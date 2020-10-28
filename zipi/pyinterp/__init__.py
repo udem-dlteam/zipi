@@ -157,6 +157,9 @@ def cont_bool(ctx, val):
 def cont_int(ctx, val):
     return ctx.cont(ctx.rte, om_int(val))
 
+def cont_int_from_num(ctx, val):
+    return ctx.cont(ctx.rte, om_int_from_num(val))
+
 def cont_float(ctx, val):
     return ctx.cont(ctx.rte, om_float(val))
 
@@ -926,7 +929,8 @@ def bootstrap_populate_base_types():
          ('isnumeric', om_str_isnumeric),
          ('isupper', om_str_isupper),
          ('isspace', om_str_isspace),
-         ('split', om_str_split, True)))
+         ('split', om_str_split, True),
+         ('find', om_str_find)))
 
 # Initialize class type objects
 def builtin_add_method(o, name, code):
@@ -1868,6 +1872,29 @@ def do_magic_method(cls, method_name, code):
 
     return magic_method
 
+
+def do_magic_method_with_defaults(cls, method_name, code, n_no_defaults, defaults):
+    check_method_self_arg = do_check_method_self_arg(cls, method_name)
+
+    msg_expected_at_least = "expected at least " + str(n_no_defaults) + " positional argument(s), got "
+    defaults_len = len(defaults)
+
+    def magic_method(ctx, args):
+        def push_defaults(ctx, args):
+            if len(args) > n_no_defaults:
+                i = len(args) - n_no_defaults - 1
+                while i < defaults_len:
+                    args.append(defaults[i])
+                    i += 1
+                return code(ctx, args)
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, msg_expected_at_least + str(len(args) - 1))
+
+        return check_method_self_arg(ctx, push_defaults, args)
+
+    return magic_method
+
+
 def do_static_magic_method_with_kwargs(cls, method_name, code):
     check_static_method_with_kwargs_cls_arg = do_check_static_method_with_kwargs_cls_arg(cls, method_name)
 
@@ -1888,7 +1915,7 @@ def do_magic_method_with_kwargs(cls, method_name, code):
 def do_magic_method_with_aligned_kwargs(cls, method_name, code, n_posonly, kwarg_names, defaults):
     check_method_self_arg = do_check_method_with_kwargs_self_arg(cls, method_name)
 
-    msg_expected_at_least = "expected at least " + str(n_posonly) + "positional argument(s), got "
+    msg_expected_at_least = "expected at least " + str(n_posonly) + " positional argument(s), got "
 
     def magic_method(ctx, args, kwargs):
         def align_code(ctx, args, kwargs):
@@ -4307,29 +4334,7 @@ om_str_isupper = gen_str_unary_op("isupper", do_check_string_case_category(exten
 def om_str_split_code(ctx, args):
     args_len = len(args)
 
-    if args_len == 1:
-        self = args[0]
-        res = string_whitespace_split(OM_get_boxed_value(self))
-        return cont_list_of_str(ctx, res, len(res))
-    elif args_len == 2:
-        self = args[0]
-        sep = args[1]
-
-        if om_isinstance(sep, class_str):
-            sep_val = OM_get_boxed_value(sep)
-
-            if len(sep_val) == 0:
-                return sem_raise_with_message(ctx, class_ValueError, "empty separator")
-            else:
-                res = string_split(OM_get_boxed_value(self), sep_val)
-                return cont_list_of_str(ctx, res, len(res))
-        elif om_is(sep, om_None):
-            res = string_whitespace_split(OM_get_boxed_value(self))
-            return cont_list_of_str(ctx, res, len(res))
-        else:
-            return sem_raise_with_message(ctx, class_TypeError, "separator must be str or None")
-
-    elif args_len == 3:
+    if args_len == 3:
         self = args[0]
         sep = args[1]
 
@@ -4353,12 +4358,37 @@ def om_str_split_code(ctx, args):
 
         return sem_index(with_cont(ctx, do_split), args[2])
     else:
-        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
+        return sem_raise_with_message(ctx, class_TypeError, "expected at most 3 arguments, got " + str(len(args) - 1))
 
 
 om_str_split = do_magic_method_with_aligned_kwargs(class_str, "split", om_str_split_code, 0,
                                                    ["sep", "maxsplit"], [om_None, om_int_from_num(-1)])
 
+
+def om_str_find_code(ctx, args):
+    args_len = len(args)
+    self = args[0]
+    self_value = OM_get_boxed_value(self)
+    substring = args[1]
+
+    def do_find(rte, indices):
+        index = string_index_of(self_value,
+                                OM_get_boxed_value(substring),
+                                int_to_num(indices[0]),
+                                int_to_num(indices[1]))
+        return cont_int_from_num(ctx, index)
+
+    if args_len == 4:
+        if om_isinstance(substring, class_str):
+            return compute_slice_indices(with_cont(ctx, do_find),
+                                         args[2], args[3], om_None, int_from_num(len(self_value)))
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "must be str")
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected between 1 and 3 arguments arguments, got " + str(len(args) - 1))
+
+
+om_str_find = do_magic_method_with_defaults(class_str, "find", om_str_find_code, 1, [om_None, om_None])
 
 
 # class_dict methods

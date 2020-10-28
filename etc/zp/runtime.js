@@ -301,6 +301,17 @@ function string_whitespace_split(string, maxsplit=-1) {
 }
 
 
+function string_index_of(string, substring, start, stop) {
+    var index = string.indexOf(substring, start);
+
+    if (index === -1) {
+        return index;
+    } else {
+        return (index + substring.length <= stop) ? index : -1;
+    }
+}
+
+
 function string_get_slice(s, start, stop, step) {
     if (step === 1) {
         return s.slice(start, stop);
