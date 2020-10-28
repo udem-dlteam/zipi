@@ -80,7 +80,7 @@ def __make_linting_context(rules):
             dict_set(context, 'ctrl_char', make_ctrl_char_hook(error_msg))
 
         elif tag == "LINE_LENGTH":
-            def make_eol_hook(error_msg):
+            def make_line_length_hook(error_msg):
                 def eol_hook(ts, pos, comment_start):
                     line_len = pos - ts.line_start - 1
                     lineno = ts.line_num
@@ -89,9 +89,41 @@ def __make_linting_context(rules):
                     if line_len > 79:
                         style_error(lineno, 0, lineno, line_len, error_msg)
 
-                return eol_hook
+                existing_hook = dict_get(context, 'eol_reached', None)
 
-            dict_set(context, 'eol_reached', make_eol_hook(error_msg))
+                if existing_hook is None:
+                    return eol_hook
+                else:
+                    def grouped_hook(ts, pos, comment_start):
+                        existing_hook(ts, pos, comment_start)
+                        eol_hook(ts, pos, comment_start)
+
+                    return grouped_hook
+
+            dict_set(context, 'eol_reached', make_line_length_hook(error_msg))
+
+        elif tag == "NO_COMMENT":
+            def make_no_comment_hook(error_msg):
+                def eol_hook(ts, pos, comment_start):
+                    if comment_start >= 0:
+                        comment_col_offset = comment_start - ts.line_start
+                        line_len = pos - ts.line_start - 1
+                        lineno = ts.line_num
+                        style_error = dict_get(ts.context, 'styleError', None)
+
+                        style_error(lineno, comment_col_offset, lineno, line_len, error_msg)
+
+                existing_hook = dict_get(context, 'eol_reached', None)
+
+                if existing_hook is None:
+                    return eol_hook
+                else:
+                    def grouped_hook(ts, pos, comment_start):
+                        existing_hook(ts, pos, comment_start)
+                        eol_hook(ts, pos, comment_start)
+                    return grouped_hook
+
+            dict_set(context, 'eol_reached', make_no_comment_hook(error_msg))
 
     return context
 
@@ -235,6 +267,21 @@ def statement_exists(error_msg):
             return False
         else:
             return True
+
+    __store_error_message(test, error_msg)
+
+    return test
+
+
+def statement_doest_not_exist(error_msg):
+    """Assert that a statement does not exists, can be used to check the code contains a maximum number of statements"""
+
+    def test(ast, errors):
+        if is_NOT_STATEMENT(ast):
+            return True
+        else:
+            __register_error(errors, ast, error_msg)
+            return False
 
     __store_error_message(test, error_msg)
 
