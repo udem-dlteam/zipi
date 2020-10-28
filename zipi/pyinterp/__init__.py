@@ -918,6 +918,7 @@ def bootstrap_populate_base_types():
          ('lower', om_str_lower),
          ('swapcase', om_str_swapcase),
          ('isalpha', om_str_isalpha),
+         ('isalnum', om_str_isalnum),
          ('isascii', om_str_isascii),
          ('isdecimal', om_str_isdecimal),
          ('isdigit', om_str_isdigit),
@@ -4291,6 +4292,7 @@ def str_method_cont_maybe_bool(ctx, val):
 
 # TODO: methods below only support extended ascii and raise a NotImplementedError for unicode
 om_str_isalpha = gen_str_unary_op("isalpha", do_check_non_empty_string_category(extended_ascii_is_alpha), str_method_cont_maybe_bool)
+om_str_isalnum = gen_str_unary_op("isalnum", do_check_non_empty_string_category(extended_ascii_is_alnum), str_method_cont_maybe_bool)
 om_str_isascii = gen_str_unary_op("isascii", do_check_string_category(extended_ascii_is_ascci), cont_bool)
 om_str_isdecimal = gen_str_unary_op("isdecimal", do_check_non_empty_string_category(extended_ascii_is_decimal), str_method_cont_maybe_bool)
 om_str_isdigit = gen_str_unary_op("isdigit", do_check_non_empty_string_category(extended_ascii_is_digit), str_method_cont_maybe_bool)

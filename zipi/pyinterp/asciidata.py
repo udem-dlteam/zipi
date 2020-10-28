@@ -57,6 +57,14 @@ def extended_ascii_is_alpha(code):
         return None
 
 
+def extended_ascii_is_alnum(code):
+    if code <= 255:
+        category = extended_ascii_data[code]
+        return extended_ascii_category_Ll <= category and category <= extended_ascii_category_No
+    else:
+        return None
+
+
 def extended_ascii_is_lower(code):
     if code <= 255:
         return extended_ascii_data[code] == extended_ascii_category_Ll
