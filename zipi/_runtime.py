@@ -609,6 +609,10 @@ def string_trim(string, chars):
     return string.strip(chars)
 
 
+def string_split_lines(string, keepends):
+    return string.splitlines(keepends)
+
+
 def string_get_slice(s, start, stop, step):
     return ''.join([s[i] for i in range(start, stop, step)])
 

@@ -931,6 +931,7 @@ def bootstrap_populate_base_types():
          ('isupper', om_str_isupper),
          ('isspace', om_str_isspace),
          ('split', om_str_split, True),
+         ('splitlines', om_str_splitlines, True),
          ('find', om_str_find),
          ('rfind', om_str_rfind),
          ('index', om_str_index),
@@ -4373,6 +4374,38 @@ def om_str_split_code(ctx, args):
 
 om_str_split = do_magic_method_with_aligned_kwargs(class_str, "split", om_str_split_code, 0,
                                                    ["sep", "maxsplit"], [om_None, om_int_from_num(-1)])
+
+
+def om_splitlines_code(ctx, args):
+    if len(args) == 2:
+        self = args[0]
+        self_value = OM_get_boxed_value(self)
+        keepends = args[1]
+
+        # This is the default case, so it should happen often
+        if om_is(keepends, om_False):
+            res = string_split_lines(self_value, False)
+            return cont_list_of_str(ctx, res, len(res))
+        elif om_is(keepends, om_True):
+            res = string_split_lines(self_value, True)
+            return cont_list_of_str(ctx, res, len(res))
+        else:
+            def cont(rte, res):
+                if om_is(res, om_False):
+                    res = string_split_lines(self_value, False)
+                    return cont_list_of_str(ctx, res, len(res))
+                else:
+                    res = string_split_lines(self_value, True)
+                    return cont_list_of_str(ctx, res, len(res))
+
+            # cPython does not do that conversion and enforces a, int, but we might as well implement it
+            return sem_bool(with_cont(ctx, cont), keepends)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected at most 1 arguments, got " + str(len(args) - 1))
+
+
+om_str_splitlines = do_magic_method_with_aligned_kwargs(class_str, "splitlines", om_splitlines_code, 0,
+                                                    ["keepends"], [om_False])
 
 
 def om_str_contains_code(ctx, args):

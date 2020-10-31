@@ -425,6 +425,22 @@ function string_trim(string, chars) {
 }
 
 
+function string_split_lines(string, keepends) {
+    var res = string_split(string, '\n');
+
+    if (keepends){
+        var last_index = res.length - 1;
+        res = res.map(function (s, i) {return i < last_index ? s + '\n' : s})
+    }
+
+    if (res.length > 0 && res[res.length - 1] === "") {
+        // empty string at the end is not an actual line, but rather a file terminating by a '\n'
+        res.pop();
+    }
+    return res;
+}
+
+
 
 function string_get_slice(s, start, stop, step) {
     if (step === 1) {
