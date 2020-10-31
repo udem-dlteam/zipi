@@ -322,6 +322,25 @@ function string_last_index_of(string, substring, start, stop) {
 }
 
 
+function string_startswith(string, substring, start, stop) {
+    if (substring.length > stop - start) {
+        return false;
+    } else {
+        return string_index_of(string, substring, start, start + substring.length) === start;
+    }
+}
+
+
+function string_endswith(string, substring, start, stop) {
+    if (substring.length > stop - start) {
+        return false;
+    } else {
+        var substring_start_index = stop - substring.length;
+        return string_last_index_of(string, substring, substring_start_index, stop) === substring_start_index;
+    }
+}
+
+
 function string_get_slice(s, start, stop, step) {
     if (step === 1) {
         return s.slice(start, stop);

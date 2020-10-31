@@ -573,6 +573,14 @@ def string_last_index_of(string, substring, start, stop):
     return string.rfind(substring, start, stop)
 
 
+def string_startswith(string, substring, start, stop):
+    return string.startswith(substring, start, stop)
+
+
+def string_endswith(string, substring, start, stop):
+    return string.endswith(substring, start, stop)
+
+
 def string_get_slice(s, start, stop, step):
     return ''.join([s[i] for i in range(start, stop, step)])
 
