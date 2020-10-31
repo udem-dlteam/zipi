@@ -585,6 +585,30 @@ def string_count(string, substring, start, stop):
     return string.count(substring, start, stop)
 
 
+def string_trim_left_whitespaces(string):
+    return string.lstrip()
+
+
+def string_trim_right_whitespaces(string):
+    return string.rstrip()
+
+
+def string_trim_whitespaces(string):
+    return string.strip()
+
+
+def string_trim_left(string, chars):
+    return string.lstrip(chars)
+
+
+def string_trim_right(string, chars):
+    return string.rstrip(chars)
+
+
+def string_trim(string, chars):
+    return string.strip(chars)
+
+
 def string_get_slice(s, start, stop, step):
     return ''.join([s[i] for i in range(start, stop, step)])
 

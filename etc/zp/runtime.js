@@ -359,6 +359,73 @@ function string_count(string, substring, start, stop) {
 }
 
 
+function string_trim_left_whitespaces(string) {
+    return string.trimLeft();
+}
+
+
+function string_trim_right_whitespaces(string) {
+    return string.trimRight();
+}
+
+
+function string_trim_whitespaces(string) {
+    return string.trim();
+}
+
+
+function string_trim_left_index(string, chars) {
+    var start = 0;
+    var stop = string.length;
+    while (start < stop) {
+        if (chars.includes(string.charAt(start))) {
+            start ++;
+        } else {
+            break;
+        }
+    }
+    return start
+}
+
+
+function string_trim_right_index(string, chars) {
+    var stop = string.length - 1;
+    while (stop >= 0) {
+        if (chars.includes(string.charAt(stop))) {
+            stop --;
+        } else {
+            break;
+        }
+    }
+    return stop + 1;
+}
+
+
+function string_trim_left(string, chars) {
+    var start = string_trim_left_index(string, chars);
+    return string.slice(start);
+}
+
+
+function string_trim_right(string, chars) {
+    var stop = string_trim_right_index(string, chars);
+    return string.slice(0, stop);
+}
+
+
+function string_trim(string, chars) {
+    var start = string_trim_left_index(string, chars);
+
+    if (start < string.length){
+        var stop = string_trim_right_index(string, chars);
+        return string.slice(start, stop);
+    } else {
+        return "";
+    }
+}
+
+
+
 function string_get_slice(s, start, stop, step) {
     if (step === 1) {
         return s.slice(start, stop);

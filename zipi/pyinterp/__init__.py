@@ -937,7 +937,10 @@ def bootstrap_populate_base_types():
          ('rindex', om_str_rindex),
          ('startswith', om_str_startswith),
          ('endswith', om_str_endswith),
-         ('count', om_str_count)))
+         ('count', om_str_count),
+         ('strip', om_str_strip),
+         ('lstrip', om_str_lstrip),
+         ('rstrip', om_str_rstrip)))
 
 # Initialize class type objects
 def builtin_add_method(o, name, code):
@@ -4567,6 +4570,26 @@ def om_str_count_do_on_fail(ctx):
 
 
 om_str_count = gen_str_find("count", om_str_do_count, om_str_count_do_on_fail)
+
+
+def gen_str_strip(method_name, chars_primitive, whitespace_primitive):
+    def code(ctx, args):
+        self = args[0]
+        chars = args[1]
+
+        if om_is(chars, om_None):
+            return cont_str(ctx, whitespace_primitive(OM_get_boxed_value(self)))
+        elif om_isinstance(chars, class_str):
+            return cont_str(ctx, chars_primitive(OM_get_boxed_value(self), OM_get_boxed_value(chars)))
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "strip arg must be None or str")
+
+    return do_magic_method_with_defaults(class_str, "method_name", code, 0, [om_None])
+
+
+om_str_strip = gen_str_strip("strip", string_trim, string_trim_whitespaces)
+om_str_lstrip = gen_str_strip("lstrip", string_trim_left, string_trim_left_whitespaces)
+om_str_rstrip = gen_str_strip("rstrip", string_trim_right, string_trim_right_whitespaces)
 
 
 # class_dict methods
