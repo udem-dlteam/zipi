@@ -4371,61 +4371,6 @@ om_str_split = do_magic_method_with_aligned_kwargs(class_str, "split", om_str_sp
                                                    ["sep", "maxsplit"], [om_None, om_int_from_num(-1)])
 
 
-def gen_str_find(method_name, string_find_fn):
-    def code(ctx, args):
-        args_len = len(args)
-        self = args[0]
-        self_value = OM_get_boxed_value(self)
-        substring = args[1]
-        start = args[2]
-        stop = args[3]
-
-        def do_find(rte, indices):
-            index = string_find_fn(self_value,
-                                    OM_get_boxed_value(substring),
-                                    int_to_num(indices[0]),
-                                    int_to_num(indices[1]))
-            return cont_int_from_num(ctx, index)
-
-        if args_len == 4:
-            if om_isinstance(substring, class_str):
-                def get_start(rte, start_index):
-                    def get_stop(rte, stop_index):
-
-                        # Special case which short-circuits slicing if start > len(self)
-                        # This is not needed in general but mimics a cPython special case which
-                        # Where "".find("", 1) returns -1 despite ""[1:].find("") returning 0
-                        # There seems to be some discrepancy or at least ambiguity between cPython and
-                        # the Python doc here. I decided to go with the cPython implementation
-                        if not om_is(start_index, om_None):
-                            start_val = OM_get_boxed_value(start_index)
-                            if int_gt(start_val, int_from_num(len(self_value))):
-                                return cont_int_from_num(ctx, -1)
-
-                        return compute_slice_indices(with_cont(ctx, do_find),
-                                                     start_index, stop_index, om_None, int_from_num(len(self_value)))
-
-                    if om_is(stop, om_None):
-                        return get_stop(ctx.rte, om_None)
-                    else:
-                        return sem_index(with_cont(ctx, get_stop), stop)
-                if om_is(start, om_None):
-                    return get_start(ctx.rte, om_None)
-                else:
-                    return sem_index(with_cont(ctx, get_start), start)
-
-            else:
-                return sem_raise_with_message(ctx, class_TypeError, "must be str")
-        else:
-            return sem_raise_with_message(ctx, class_TypeError, "expected between 1 and 3 arguments arguments, got " + str(len(args) - 1))
-
-
-    return do_magic_method_with_defaults(class_str, method_name, code, 1, [om_None, om_None])
-
-
-om_str_find = gen_str_find("find", string_index_of)
-om_str_rfind = gen_str_find("rfind", string_last_index_of)
-
 def om_str_contains_code(ctx, args):
     if debug: print('str.__len__')
 
@@ -4445,9 +4390,7 @@ def om_str_contains_code(ctx, args):
 om_str_contains = do_magic_method(class_str, "__contains__", om_str_contains_code)
 
 
-def gen_str_starts_ends_with(method_name, string_find_fn):
-    first_args_type_error_msg = method_name + " first arg must be str or a tuple of str"
-
+def gen_str_find(method_name, do_find, do_on_fail):
     def code(ctx, args):
         args_len = len(args)
         self = args[0]
@@ -4456,34 +4399,25 @@ def gen_str_starts_ends_with(method_name, string_find_fn):
         start = args[2]
         stop = args[3]
 
-        def do_find(rte, indices):
-            if om_isinstance(substring, class_str):
-                res = string_find_fn(self_value,
-                                       OM_get_boxed_value(substring),
-                                       int_to_num(indices[0]),
-                                       int_to_num(indices[1]))
-                return cont_bool(ctx, res)
-            elif om_isinstance(substring, class_tuple):
-                prefixes = OM_get_tuple_seq(substring)
-                start_num = int_to_num(indices[0])
-                stop_num = int_to_num(indices[1])
-                for p in prefixes:
-                    if string_find_fn(self_value, OM_get_boxed_value(p), start_num, stop_num):
-                        return cont_obj(ctx, om_True)
-                return cont_obj(ctx, om_False)
-
-            else:
-                return sem_raise_with_message(ctx, class_TypeError, first_args_type_error_msg)
-
         if args_len == 4:
             def get_start(rte, start_index):
                 def get_stop(rte, stop_index):
+
+                    # Special case which short-circuits slicing if start > len(self)
+                    # This is not needed in general but mimics a cPython special case which
+                    # Where "".find("", 1) returns -1 despite ""[1:].find("") returning 0
+                    # There seems to be some discrepancy or at least ambiguity between cPython and
+                    # the Python doc here. I decided to go with the cPython implementation
                     if not om_is(start_index, om_None):
                         start_val = OM_get_boxed_value(start_index)
                         if int_gt(start_val, int_from_num(len(self_value))):
-                            return cont_obj(ctx, om_False)
+                            return do_on_fail(ctx)
 
-                    return compute_slice_indices(with_cont(ctx, do_find),
+                    return compute_slice_indices(with_cont(ctx,
+                                                           lambda rte, indices: do_find(ctx,
+                                                                                        indices,
+                                                                                        self_value,
+                                                                                        substring)),
                                                  start_index, stop_index, om_None, int_from_num(len(self_value)))
 
                 if om_is(stop, om_None):
@@ -4496,73 +4430,124 @@ def gen_str_starts_ends_with(method_name, string_find_fn):
             else:
                 return sem_index(with_cont(ctx, get_start), start)
         else:
-            return sem_raise_with_message(ctx, class_TypeError,
-                                          "expected between 1 and 3 arguments arguments, got " + str(len(args) - 1))
-
-    return do_magic_method_with_defaults(class_str, method_name, code, 1, [om_None, om_None])
-
-
-om_str_startswith = gen_str_starts_ends_with("startswith", string_startswith)
-om_str_endswith = gen_str_starts_ends_with("endswith", string_endswith)
-
-
-def gen_str_index(method_name, string_find_fn):
-    def code(ctx, args):
-        args_len = len(args)
-        self = args[0]
-        self_value = OM_get_boxed_value(self)
-        substring = args[1]
-        start = args[2]
-        stop = args[3]
-
-        def do_find(rte, indices):
-            index = string_find_fn(self_value,
-                                    OM_get_boxed_value(substring),
-                                    int_to_num(indices[0]),
-                                    int_to_num(indices[1]))
-            if index >= 0:
-                return cont_int_from_num(ctx, index)
-            else:
-                return sem_raise_with_message(ctx, class_ValueError, "substring not found")
-
-        if args_len == 4:
-            if om_isinstance(substring, class_str):
-                def get_start(rte, start_index):
-                    def get_stop(rte, stop_index):
-
-                        # Special case which short-circuits slicing if start > len(self)
-                        # This is not needed in general but mimics a cPython special case which
-                        # Where "".find("", 1) returns -1 despite ""[1:].find("") returning 0
-                        # There seems to be some discrepancy or at least ambiguity between cPython and
-                        # the Python doc here. I decided to go with the cPython implementation
-                        if not om_is(start_index, om_None):
-                            start_val = OM_get_boxed_value(start_index)
-                            if int_gt(start_val, int_from_num(len(self_value))):
-                                return cont_int_from_num(ctx, -1)
-
-                        return compute_slice_indices(with_cont(ctx, do_find),
-                                                     start_index, stop_index, om_None, int_from_num(len(self_value)))
-
-                    if om_is(stop, om_None):
-                        return get_stop(ctx.rte, om_None)
-                    else:
-                        return sem_index(with_cont(ctx, get_stop), stop)
-                if om_is(start, om_None):
-                    return get_start(ctx.rte, om_None)
-                else:
-                    return sem_index(with_cont(ctx, get_start), start)
-
-            else:
-                return sem_raise_with_message(ctx, class_TypeError, "must be str")
-        else:
             return sem_raise_with_message(ctx, class_TypeError, "expected between 1 and 3 arguments arguments, got " + str(len(args) - 1))
 
 
     return do_magic_method_with_defaults(class_str, method_name, code, 1, [om_None, om_None])
 
 
-om_str_index = gen_str_index("index", string_index_of)
-om_str_rindex = gen_str_index("rindex", string_last_index_of)
+def om_str_do_find(ctx, indices, string, om_substring):
+    if om_isinstance(om_substring, class_str):
+        index = string_index_of(string,
+                                OM_get_boxed_value(om_substring),
+                                int_to_num(indices[0]),
+                                int_to_num(indices[1]))
+        return cont_int_from_num(ctx, index)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "must be str")
+
+
+def om_str_do_rfind(ctx, indices, string, om_substring):
+    if om_isinstance(om_substring, class_str):
+        index = string_last_index_of(string,
+                                     OM_get_boxed_value(om_substring),
+                                     int_to_num(indices[0]),
+                                     int_to_num(indices[1]))
+        return cont_int_from_num(ctx, index)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "must be str")
+
+
+def om_str_find_do_on_fail(ctx):
+    return cont_obj(ctx, om_int_from_num(-1))
+
+
+om_str_find = gen_str_find("find", om_str_do_find, om_str_find_do_on_fail)
+om_str_rfind = gen_str_find("rfind", om_str_do_rfind, om_str_find_do_on_fail)
+
+
+def om_str_do_startswith(ctx, indices, string, om_substring):
+    if om_isinstance(om_substring, class_str):
+        res = string_startswith(string,
+                             OM_get_boxed_value(om_substring),
+                             int_to_num(indices[0]),
+                             int_to_num(indices[1]))
+        return cont_bool(ctx, res)
+    elif om_isinstance(om_substring, class_tuple):
+        prefixes = OM_get_tuple_seq(om_substring)
+        start_num = int_to_num(indices[0])
+        stop_num = int_to_num(indices[1])
+        for p in prefixes:
+            if string_startswith(string, OM_get_boxed_value(p), start_num, stop_num):
+                return cont_obj(ctx, om_True)
+        return cont_obj(ctx, om_False)
+
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "startswith first arg must be str or a tuple of str")
+
+
+def om_str_do_endswith(ctx, indices, string, om_substring):
+    if om_isinstance(om_substring, class_str):
+        res = string_endswith(string,
+                             OM_get_boxed_value(om_substring),
+                             int_to_num(indices[0]),
+                             int_to_num(indices[1]))
+        return cont_bool(ctx, res)
+    elif om_isinstance(om_substring, class_tuple):
+        prefixes = OM_get_tuple_seq(om_substring)
+        start_num = int_to_num(indices[0])
+        stop_num = int_to_num(indices[1])
+        for p in prefixes:
+            if string_endswith(string, OM_get_boxed_value(p), start_num, stop_num):
+                return cont_obj(ctx, om_True)
+        return cont_obj(ctx, om_False)
+
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "endswith first arg must be str or a tuple of str")
+
+
+def om_str_startswith_do_on_fail(ctx):
+    return cont_obj(ctx, om_False)
+
+
+om_str_startswith = gen_str_find("startswith", om_str_do_startswith, om_str_startswith_do_on_fail)
+om_str_endswith = gen_str_find("endswith", om_str_do_endswith, om_str_startswith_do_on_fail)
+
+
+def om_str_do_index(ctx, indices, string, om_substring):
+    if om_isinstance(om_substring, class_str):
+        index = string_index_of(string,
+                               OM_get_boxed_value(om_substring),
+                               int_to_num(indices[0]),
+                               int_to_num(indices[1]))
+        if index >= 0:
+            return cont_int_from_num(ctx, index)
+        else:
+            return sem_raise_with_message(ctx, class_ValueError, "substring not found")
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "must be str")
+
+
+def om_str_index_do_on_fail(ctx):
+    return sem_raise_with_message(ctx, class_ValueError, "substring not found")
+
+
+def om_str_do_rindex(ctx, indices, string, om_substring):
+    if om_isinstance(om_substring, class_str):
+        index = string_last_index_of(string,
+                               OM_get_boxed_value(om_substring),
+                               int_to_num(indices[0]),
+                               int_to_num(indices[1]))
+        if index >= 0:
+            return cont_int_from_num(ctx, index)
+        else:
+            return om_str_index_do_on_fail(ctx)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "must be str")
+
+
+om_str_index = gen_str_find("index", om_str_do_index, om_str_index_do_on_fail)
+om_str_rindex = gen_str_find("rindex", om_str_do_rindex, om_str_index_do_on_fail)
 
 
 # class_dict methods
