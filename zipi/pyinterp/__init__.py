@@ -915,6 +915,7 @@ def bootstrap_populate_base_types():
          ('__mul__', om_str_mul),
          ('__rmul__', om_str_rmul),
          ('__len__', om_str_len),
+         ('__contains__', om_str_contains),
          ('join', om_str_join),
          ('replace', om_str_replace),
          ('upper', om_str_upper),
@@ -4424,6 +4425,25 @@ def gen_str_find(method_name, string_find_fn):
 
 om_str_find = gen_str_find("find", string_index_of)
 om_str_rfind = gen_str_find("rfind", string_last_index_of)
+
+def om_str_contains_code(ctx, args):
+    if debug: print('str.__len__')
+
+    if len(args) == 2:
+        self = args[0]
+        other = args[1]
+        if om_isinstance(other, class_str):
+            self_val = OM_get_boxed_value(self)
+            other_val = OM_get_boxed_value(other)
+            self_len = len(self_val)
+            return cont_bool(ctx, string_index_of(self_val, other_val, 0, self_len) != -1)
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "'in <string>' requires string as left operand")
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
+
+om_str_contains = do_magic_method(class_str, "__contains__", om_str_contains_code)
+
 
 def gen_str_starts_ends_with(method_name, string_find_fn):
     first_args_type_error_msg = method_name + " first arg must be str or a tuple of str"
