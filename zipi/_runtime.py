@@ -581,6 +581,10 @@ def string_endswith(string, substring, start, stop):
     return string.endswith(substring, start, stop)
 
 
+def string_count(string, substring, start, stop):
+    return string.count(substring, start, stop)
+
+
 def string_get_slice(s, start, stop, step):
     return ''.join([s[i] for i in range(start, stop, step)])
 

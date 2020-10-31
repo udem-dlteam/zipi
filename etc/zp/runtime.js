@@ -341,6 +341,24 @@ function string_endswith(string, substring, start, stop) {
 }
 
 
+function string_count(string, substring, start, stop) {
+    var i = start;
+    var count = 0;
+    var found;
+    var last_index = Math.min(stop, string.length);
+    while (i <= last_index) {
+        found = string_index_of(string, substring, i, stop)
+        if (found === -1) {
+            return count;
+        } else {
+            count ++;
+            i = found + 1;
+        }
+    }
+    return count;
+}
+
+
 function string_get_slice(s, start, stop, step) {
     if (step === 1) {
         return s.slice(start, stop);

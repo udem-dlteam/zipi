@@ -936,7 +936,8 @@ def bootstrap_populate_base_types():
          ('index', om_str_index),
          ('rindex', om_str_rindex),
          ('startswith', om_str_startswith),
-         ('endswith', om_str_endswith)))
+         ('endswith', om_str_endswith),
+         ('count', om_str_count)))
 
 # Initialize class type objects
 def builtin_add_method(o, name, code):
@@ -4459,7 +4460,7 @@ def om_str_do_rfind(ctx, indices, string, om_substring):
 
 
 def om_str_find_do_on_fail(ctx):
-    return cont_obj(ctx, om_int_from_num(-1))
+    return cont_int_from_num(ctx, -1)
 
 
 om_str_find = gen_str_find("find", om_str_do_find, om_str_find_do_on_fail)
@@ -4548,6 +4549,24 @@ def om_str_do_rindex(ctx, indices, string, om_substring):
 
 om_str_index = gen_str_find("index", om_str_do_index, om_str_index_do_on_fail)
 om_str_rindex = gen_str_find("rindex", om_str_do_rindex, om_str_index_do_on_fail)
+
+
+def om_str_do_count(ctx, indices, string, om_substring):
+    if om_isinstance(om_substring, class_str):
+        count = string_count(string,
+                             OM_get_boxed_value(om_substring),
+                             int_to_num(indices[0]),
+                             int_to_num(indices[1]))
+        return cont_int_from_num(ctx, count)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "must be str")
+
+
+def om_str_count_do_on_fail(ctx):
+    return cont_int_from_num(ctx, 0)
+
+
+om_str_count = gen_str_find("count", om_str_do_count, om_str_count_do_on_fail)
 
 
 # class_dict methods
