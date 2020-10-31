@@ -562,7 +562,15 @@ def string_split(string, sep, maxsplit=-1):
 
 
 def string_whitespace_split(string, maxsplit=-1):
-    return string.split(sep=None, maxsplit=maxsplit)
+    return string.split(maxsplit=maxsplit)
+
+
+def string_right_split(string, sep, maxsplit=-1):
+    return string.rsplit(sep, maxsplit)
+
+
+def string_whitespace_right_split(string, maxsplit=-1):
+    return string.rsplit(maxsplit=maxsplit)
 
 
 def string_index_of(string, substring, start, stop):

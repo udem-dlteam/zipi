@@ -300,6 +300,24 @@ function string_whitespace_split(string, maxsplit=-1) {
     }
 }
 
+// The two following implementation may seem like cheating, but they are actually very hard to get right in JS otherwise
+// Consider the fact where the separator is 'aa' and splits at a point where the string is 'aaa', then the split must be
+// done on the right most a's. So it is not possible to use String.split to implement right split methods
+// The other option is probably to use string_last_index_of iteratively... but this is may not be faster than
+// reversing the string and using the native JS implementation of split
+function string_right_split(string, sep, maxsplit=-1) {
+    var reversed_string = string.split("").reverse().join("");
+    var reversed_res = string_split(reversed_string, sep.split("").reverse().join(""), maxsplit);
+    return reversed_res.map(function (s) {return s.split("").reverse().join("")}).reverse()
+}
+
+
+function string_whitespace_right_split(string, maxsplit = -1){
+    var reversed_string = string.split("").reverse().join("");
+    var reversed_res = string_whitespace_split(reversed_string, maxsplit);
+    return reversed_res.map(function (s) {return s.split("").reverse().join("")}).reverse()
+}
+
 
 function string_index_of(string, substring, start, stop) {
     var index = string.indexOf(substring, start);

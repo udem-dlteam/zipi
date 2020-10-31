@@ -931,6 +931,7 @@ def bootstrap_populate_base_types():
          ('isupper', om_str_isupper),
          ('isspace', om_str_isspace),
          ('split', om_str_split, True),
+         ('rsplit', om_str_rsplit, True),
          ('splitlines', om_str_splitlines, True),
          ('find', om_str_find),
          ('rfind', om_str_rfind),
@@ -4342,38 +4343,41 @@ om_str_islower = gen_str_unary_op("islower", do_check_string_case_category(exten
 om_str_isupper = gen_str_unary_op("isupper", do_check_string_case_category(extended_ascii_is_upper), str_method_cont_maybe_bool)
 
 
-def om_str_split_code(ctx, args):
-    args_len = len(args)
+def gen_str_split(method_name, primitive, whitespace_primitive):
+    def code(ctx, args):
+        args_len = len(args)
 
-    if args_len == 3:
-        self = args[0]
-        sep = args[1]
+        if args_len == 3:
+            self = args[0]
+            sep = args[1]
 
-        def do_split(rte, splits):
-            max_split_num = int_to_num(OM_get_boxed_value(splits))
-            max_split_num = -1 if max_split_num < 0 else max_split_num
+            def do_split(rte, splits):
+                max_split_num = int_to_num(OM_get_boxed_value(splits))
+                max_split_num = -1 if max_split_num < 0 else max_split_num
 
-            if om_isinstance(sep, class_str):
-                sep_val = OM_get_boxed_value(sep)
+                if om_isinstance(sep, class_str):
+                    sep_val = OM_get_boxed_value(sep)
 
-                if len(sep_val) == 0:
-                    return sem_raise_with_message(ctx, class_ValueError, "empty separator")
-                else:
-                    res = string_split(OM_get_boxed_value(self), sep_val, max_split_num)
+                    if len(sep_val) == 0:
+                        return sem_raise_with_message(ctx, class_ValueError, "empty separator")
+                    else:
+                        res = primitive(OM_get_boxed_value(self), sep_val, max_split_num)
+                        return cont_list_of_str(ctx, res, len(res))
+                elif om_is(sep, om_None):
+                    res = whitespace_primitive(OM_get_boxed_value(self), max_split_num)
                     return cont_list_of_str(ctx, res, len(res))
-            elif om_is(sep, om_None):
-                res = string_whitespace_split(OM_get_boxed_value(self), max_split_num)
-                return cont_list_of_str(ctx, res, len(res))
-            else:
-                return sem_raise_with_message(ctx, class_TypeError, "separator must be str or None")
+                else:
+                    return sem_raise_with_message(ctx, class_TypeError, "separator must be str or None")
 
-        return sem_index(with_cont(ctx, do_split), args[2])
-    else:
-        return sem_raise_with_message(ctx, class_TypeError, "expected at most 3 arguments, got " + str(len(args) - 1))
+            return sem_index(with_cont(ctx, do_split), args[2])
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "expected at most 3 arguments, got " + str(len(args) - 1))
 
-
-om_str_split = do_magic_method_with_aligned_kwargs(class_str, "split", om_str_split_code, 0,
+    return do_magic_method_with_aligned_kwargs(class_str, method_name, code, 0,
                                                    ["sep", "maxsplit"], [om_None, om_int_from_num(-1)])
+
+om_str_split = gen_str_split("split", string_split, string_whitespace_split)
+om_str_rsplit = gen_str_split("rsplit", string_right_split, string_whitespace_right_split)
 
 
 def om_splitlines_code(ctx, args):
