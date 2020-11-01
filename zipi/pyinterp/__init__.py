@@ -1073,7 +1073,8 @@ def populate_builtin_tuple():
          ('__add__', om_tuple_add),
          ('__mul__', om_tuple_mul),
          ('__rmul__', om_tuple_rmul),
-         ('count', om_tuple_count)))
+         ('count', om_tuple_count),
+         ('index', om_tuple_index)))
 
 def populate_builtin_list():
     builtin_add_method(class_list, '__new__', om_list_new)
@@ -2781,10 +2782,89 @@ def om_tuple_count_code(ctx, args):
 
 om_tuple_count = do_magic_method(class_tuple, "count", om_tuple_count_code)
 
+
+def sequence_search(ctx, seq, target, start, end):
+    # search om_lst[start:end] for target and returns its index, or absent if not found
+    # both start and end must be positive indices in range
+
+    if start < end:
+        def check_result(rte, res):
+            if om_is(res, om_True):
+                return cont_obj(with_rte(ctx, rte), start)
+            else:
+                return stmt_end(
+                    Context(
+                        rte,
+                        lambda rte: sequence_search(with_rte(ctx, rte), seq, target, start + 1, end),
+                        ctx.ast),
+                    0)
+        return sem_Eq_bool(with_cont(ctx, check_result), seq[start], target)
+    else:
+        return cont_obj(ctx, absent)
+
+
+def gen_om_sequence_index(om_class, seq_getter, len_getter):
+    cls_name = OM_get_boxed_value(OM_get(om_class, "__name__"))
+    not_in_msg = " is not in " + cls_name
+
+    def code(ctx, args):
+        args_len = len(args)
+
+        def check_result(rte, res):
+            if res is absent:
+                def do_error(err_rte, repr_):
+                    return sem_raise_with_message(with_rte(ctx, err_rte), class_ValueError,
+                                                  OM_get_boxed_value(repr_) + not_in_msg)
+                return sem_repr(Context(rte, do_error, ctx.ast), value)
+            else:
+                return cont_int(with_rte(ctx, rte), int_from_num(res))
+
+        if args_len == 2:
+            self = args[0]
+            elements = seq_getter(self)
+            len_ = len_getter(self, elements)
+            value = args[1]
+
+            return sequence_search(with_cont(ctx, check_result), elements, value, 0, len_)
+        if args_len == 3 or args_len == 4:
+            self = args[0]
+            elements = seq_getter(self)
+            len_ = len_getter(self, elements)
+            value = args[1]
+            start = args[2]
+
+            def get_start(rte, om_start):
+                index = int_to_num(OM_get_boxed_value(om_start))
+
+                start_index = clamp_index(index, len_)
+
+                if args_len == 3:
+                    return sequence_search(Context(rte, check_result, ctx.ast), elements, value, start_index, len_)
+                else:  # args_len == 4
+                    stop = args[3]
+
+                    def get_stop(stop_rte, om_stop):
+                        index = int_to_num(OM_get_boxed_value(om_stop))
+                        stop_index = clamp_index(index, len_)
+                        return sequence_search(Context(rte, check_result, ctx.ast), elements, value, start_index, stop_index)
+                    return sem_index(Context(rte, get_stop, ctx.ast), stop)
+            return sem_index(with_cont(ctx, get_start), start)
+        else:
+            return sem_raise_with_message(ctx, class_TypeError,
+                                          "index() expected between 1 and 3 arguments, got " + str(args_len - 1))
+
+    return do_magic_method(om_class, 'index', code)
+
+
+om_tuple_index = gen_om_sequence_index(class_tuple, OM_get_tuple_seq, lambda t, s: len(s))
+
+
 # class_list methods
+
 
 def get_list_inner_len(len_):
     return len_ * 5 // 4 + 1
+
 
 def list_seq_grow(seq, extra_space=0):
     seq_len = len(seq)
@@ -2857,26 +2937,6 @@ def list_shift_right(om_lst, seq, len_, inner_len, shift_pos, shift_amount):
 
     OM_set_list_len(om_lst, len_ + shift_amount)
     return seq
-
-
-def list_search(ctx, seq, target, start, end):
-    # search om_lst[start:end] for target and returns its index, or absent if not found
-    # both start and end must be positive indices in range
-
-    if start < end:
-        def check_result(rte, res):
-            if om_is(res, om_True):
-                return cont_obj(with_rte(ctx, rte), start)
-            else:
-                return stmt_end(
-                    Context(
-                        rte,
-                        lambda rte: list_search(with_rte(ctx, rte), seq, target, start + 1, end),
-                        ctx.ast),
-                    0)
-        return sem_Eq_bool(with_cont(ctx, check_result), seq[start], target)
-    else:
-        return cont_obj(ctx, absent)
 
 
 def check_sequence_equality(ctx, seq1, seq2, start, end):
@@ -3386,54 +3446,8 @@ def clamp_index(index, len_):
         else:
             return 0
 
-def om_list_index_code(ctx, args):
-    args_len = len(args)
 
-    def check_result(rte, res):
-        if res is absent:
-            def do_error(err_rte, repr_):
-                return sem_raise_with_message(with_rte(ctx, err_rte), class_ValueError,
-                                              OM_get_boxed_value(repr_) + " is not in list")
-            return sem_repr(Context(rte, do_error, ctx.ast), value)
-        else:
-            return cont_int(with_rte(ctx, rte), int_from_num(res))
-
-    if args_len == 2:
-        self = args[0]
-        elements = OM_get_list_seq(self)
-        len_ = OM_get_list_len(self)
-        value = args[1]
-
-        return list_search(with_cont(ctx, check_result), elements, value, 0, len_)
-    if args_len == 3 or args_len == 4:
-        self = args[0]
-        elements = OM_get_list_seq(self)
-        len_ = OM_get_list_len(self)
-        value = args[1]
-        start = args[2]
-
-        def get_start(rte, om_start):
-            index = int_to_num(OM_get_boxed_value(om_start))
-
-            start_index = clamp_index(index, len_)
-
-            if args_len == 3:
-                return list_search(Context(rte, check_result, ctx.ast), elements, value, start_index, len_)
-            else:  # args_len == 4
-                stop = args[3]
-
-                def get_stop(stop_rte, om_stop):
-                    index = int_to_num(OM_get_boxed_value(om_stop))
-                    stop_index = clamp_index(index, len_)
-                    return list_search(Context(rte, check_result, ctx.ast), elements, value, start_index, stop_index)
-                return sem_index(Context(rte, get_stop, ctx.ast), stop)
-        return sem_index(with_cont(ctx, get_start), start)
-    else:
-        return sem_raise_with_message(ctx, class_TypeError,
-                                      "index() expected between 1 and 3 arguments, got " + str(args_len - 1))
-
-
-om_list_index = do_magic_method(class_list, 'index', om_list_index_code)
+om_list_index = gen_om_sequence_index(class_list, OM_get_list_seq, lambda l, s: OM_get_list_len(l))
 
 
 def om_list_contains_code(ctx, args):
@@ -3448,7 +3462,7 @@ def om_list_contains_code(ctx, args):
 
         target = args[1]
 
-        return list_search(with_cont(ctx, get_result), seq, target, 0, len_)
+        return sequence_search(with_cont(ctx, get_result), seq, target, 0, len_)
     else:
         return sem_raise_with_message(ctx, class_TypeError,
                                       "__contains__() takes 1 argument (" + str(args_len - 1) + " given)")
@@ -3473,7 +3487,7 @@ def om_list_remove_code(ctx, args):
 
         target = args[1]
 
-        return list_search(with_cont(ctx, get_result), seq, target, 0, len_)
+        return sequence_search(with_cont(ctx, get_result), seq, target, 0, len_)
     else:
         return sem_raise_with_message(ctx, class_TypeError,
                                       "remove() takes 1 argument (" + str(args_len - 1) + " given)")
