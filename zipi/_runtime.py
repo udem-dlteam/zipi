@@ -36,9 +36,6 @@ def dict_items(d):
 def dict_copy(d):
     return d.copy()
 
-def dict_item(d):
-    return list(d.items())
-
 def dict_len(d):
     return len(d)
 
@@ -538,6 +535,90 @@ def string_ge(s1, s2):
 
 def string_contains(s, sub_s):
     return sub_s in s
+
+
+def string_join(sep, strings):
+    return sep.join(strings)
+
+
+def string_replace(string, pattern, replacement):
+    return string.replace(pattern, replacement)
+
+
+def string_upper(string):
+    return string.upper()
+
+
+def string_lower(string):
+    return string.lower()
+
+
+def string_swapcase(string):
+    return string.swapcase()
+
+
+def string_split(string, sep, maxsplit=-1):
+    return string.split(sep, maxsplit)
+
+
+def string_whitespace_split(string, maxsplit=-1):
+    return string.split(maxsplit=maxsplit)
+
+
+def string_right_split(string, sep, maxsplit=-1):
+    return string.rsplit(sep, maxsplit)
+
+
+def string_whitespace_right_split(string, maxsplit=-1):
+    return string.rsplit(maxsplit=maxsplit)
+
+
+def string_index_of(string, substring, start, stop):
+    return string.find(substring, start, stop)
+
+
+def string_last_index_of(string, substring, start, stop):
+    return string.rfind(substring, start, stop)
+
+
+def string_startswith(string, substring, start, stop):
+    return string.startswith(substring, start, stop)
+
+
+def string_endswith(string, substring, start, stop):
+    return string.endswith(substring, start, stop)
+
+
+def string_count(string, substring, start, stop):
+    return string.count(substring, start, stop)
+
+
+def string_trim_left_whitespaces(string):
+    return string.lstrip()
+
+
+def string_trim_right_whitespaces(string):
+    return string.rstrip()
+
+
+def string_trim_whitespaces(string):
+    return string.strip()
+
+
+def string_trim_left(string, chars):
+    return string.lstrip(chars)
+
+
+def string_trim_right(string, chars):
+    return string.rstrip(chars)
+
+
+def string_trim(string, chars):
+    return string.strip(chars)
+
+
+def string_split_lines(string, keepends):
+    return string.splitlines(keepends)
 
 
 def string_get_slice(s, start, stop, step):

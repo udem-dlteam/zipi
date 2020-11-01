@@ -1,4 +1,5 @@
 from zipi._runtime import *
+from zipi.pyinterp.asciidata import *
 
 # NOTE: required to be able to instantiate ast nodes from pyinterp
 from zipi.zast._zast import *
@@ -156,6 +157,9 @@ def cont_bool(ctx, val):
 def cont_int(ctx, val):
     return ctx.cont(ctx.rte, om_int(val))
 
+def cont_int_from_num(ctx, val):
+    return ctx.cont(ctx.rte, om_int_from_num(val))
+
 def cont_float(ctx, val):
     return ctx.cont(ctx.rte, om_float(val))
 
@@ -164,6 +168,15 @@ def cont_str(ctx, val):
 
 def cont_list(ctx, val, len_):
     return ctx.cont(ctx.rte, om_list(val, len_))
+
+def cont_list_of_str(ctx, val, len_):
+    inner_len = get_list_inner_len(len_)
+    new_lst = list_new(inner_len, empty_cell)
+    i = 0
+    while i < len_:
+        new_lst[i] = om_str(val[i])
+        i += 1
+    return ctx.cont(ctx.rte, om_list(new_lst, len_))
 
 def cont_tuple(ctx, val):
     return ctx.cont(ctx.rte, om_tuple(val))
@@ -901,7 +914,35 @@ def bootstrap_populate_base_types():
          ('__add__', om_str_add),
          ('__mul__', om_str_mul),
          ('__rmul__', om_str_rmul),
-         ('__len__', om_str_len)))
+         ('__len__', om_str_len),
+         ('__contains__', om_str_contains),
+         ('join', om_str_join),
+         ('replace', om_str_replace),
+         ('upper', om_str_upper),
+         ('lower', om_str_lower),
+         ('swapcase', om_str_swapcase),
+         ('isalpha', om_str_isalpha),
+         ('isalnum', om_str_isalnum),
+         ('isascii', om_str_isascii),
+         ('isdecimal', om_str_isdecimal),
+         ('isdigit', om_str_isdigit),
+         ('islower', om_str_islower),
+         ('isnumeric', om_str_isnumeric),
+         ('isupper', om_str_isupper),
+         ('isspace', om_str_isspace),
+         ('split', om_str_split, True),
+         ('rsplit', om_str_rsplit, True),
+         ('splitlines', om_str_splitlines, True),
+         ('find', om_str_find),
+         ('rfind', om_str_rfind),
+         ('index', om_str_index),
+         ('rindex', om_str_rindex),
+         ('startswith', om_str_startswith),
+         ('endswith', om_str_endswith),
+         ('count', om_str_count),
+         ('strip', om_str_strip),
+         ('lstrip', om_str_lstrip),
+         ('rstrip', om_str_rstrip)))
 
 # Initialize class type objects
 def builtin_add_method(o, name, code):
@@ -1843,6 +1884,29 @@ def do_magic_method(cls, method_name, code):
 
     return magic_method
 
+
+def do_magic_method_with_defaults(cls, method_name, code, n_no_defaults, defaults):
+    check_method_self_arg = do_check_method_self_arg(cls, method_name)
+
+    msg_expected_at_least = "expected at least " + str(n_no_defaults) + " positional argument(s), got "
+    defaults_len = len(defaults)
+
+    def magic_method(ctx, args):
+        def push_defaults(ctx, args):
+            if len(args) > n_no_defaults:
+                i = len(args) - n_no_defaults - 1
+                while i < defaults_len:
+                    args.append(defaults[i])
+                    i += 1
+                return code(ctx, args)
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, msg_expected_at_least + str(len(args) - 1))
+
+        return check_method_self_arg(ctx, push_defaults, args)
+
+    return magic_method
+
+
 def do_static_magic_method_with_kwargs(cls, method_name, code):
     check_static_method_with_kwargs_cls_arg = do_check_static_method_with_kwargs_cls_arg(cls, method_name)
 
@@ -1858,6 +1922,43 @@ def do_magic_method_with_kwargs(cls, method_name, code):
         return check_method_self_arg(ctx, code, args, kwargs)
 
     return magic_method
+
+
+def do_magic_method_with_aligned_kwargs(cls, method_name, code, n_posonly, kwarg_names, defaults):
+    check_method_self_arg = do_check_method_with_kwargs_self_arg(cls, method_name)
+
+    msg_expected_at_least = "expected at least " + str(n_posonly) + " positional argument(s), got "
+
+    def magic_method(ctx, args, kwargs):
+        def align_code(ctx, args, kwargs):
+            if len(args) > n_posonly:
+                i = n_posonly + 1
+                j = 0
+                for name in kwarg_names:
+                    value_from_kwarg = dict_pop(kwargs, name, absent)
+
+                    if i >= len(args):
+                        args.append(defaults[j] if value_from_kwarg is absent else value_from_kwarg)
+                    elif value_from_kwarg is not absent:
+                        error_msg = "argument for " + method_name + " given by name ('" + name + "') and position (" + str(i) + ")"
+                        return sem_raise_with_message(ctx, class_TypeError, error_msg)
+
+                    i += 1
+                    j += 1
+
+                if dict_len(kwargs) > 0:
+                    unknown_name = dict_keys(kwargs)[0]
+                    error_msg = "'" + unknown_name + "' is an invalid keyword argument for " + method_name
+                    return sem_raise_with_message(ctx, class_TypeError, error_msg)
+                else:
+                    return code(ctx, args)
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, msg_expected_at_least + str(len(args) - 1))
+
+        return check_method_self_arg(ctx, align_code, args, kwargs)
+
+    return magic_method
+
 
 # Primitive operators for doing actual computations
 def gen_dunder_Homogenous_Numeric_BinOp(py_class, method, prim, om_class, om_box):
@@ -4083,6 +4184,450 @@ def om_str_str_code(ctx, args):
         return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
 
 om_str_str = do_magic_method(class_str, "__str__", om_str_str_code)
+
+
+def om_str_join_code(ctx, args):
+    if len(args) == 2:
+        self = args[0]
+        it = args[1]
+
+        def get_words(rte, words):
+            i = 0
+            raw_strings = list_new(len(words), None)
+
+            for word in words:
+                if not om_isinstance(word, class_str):
+                    return sem_raise_with_message(with_rte(ctx, rte), class_TypeError, "sequence item " + str(i) + ": expected str instance")
+                else:
+                    raw_strings[i] = OM_get_boxed_value(word)
+                    i += 1
+
+            res = string_join(OM_get_boxed_value(self), raw_strings)
+            return cont_str(with_rte(ctx, rte), res)
+        return om_unpack_iterable(with_cont(ctx, get_words), it)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 argument, got " + str(len(args) - 1))
+
+
+om_str_join = do_magic_method(class_str, "join", om_str_join_code)
+
+
+def om_str_replace_code(ctx, args):
+    if len(args) == 3:
+        self = args[0]
+        pattern = args[1]
+        replacement = args[2]
+
+        if not om_isinstance(pattern, class_str):
+            return sem_raise_with_message(ctx, class_TypeError, "replace() argument 1 must be str")
+        elif not om_isinstance(replacement, class_str):
+            return sem_raise_with_message(ctx, class_TypeError, "replace() argument 2 must be str")
+        else:
+            return cont_str(ctx, string_replace(OM_get_boxed_value(self),
+                                                OM_get_boxed_value(pattern),
+                                                OM_get_boxed_value(replacement)))
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 2 arguments, got " + str(len(args) - 1))
+
+
+om_str_replace = do_magic_method(class_str, "replace", om_str_replace_code)
+
+
+def gen_str_unary_op(method_name, primitive, cont_kind):
+    def op_code(ctx, args):
+        args_len = len(args)
+
+        if args_len == 1:
+            return cont_kind(ctx, primitive(OM_get_boxed_value(args[0])))
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "expected no argument, got " + str(len(args) - 1))
+
+    return do_magic_method(class_str, method_name, op_code)
+
+
+# Case operations
+om_str_upper = gen_str_unary_op("upper", string_upper, cont_str)
+om_str_lower = gen_str_unary_op("lower", string_lower, cont_str)
+om_str_swapcase = gen_str_unary_op("swapcase", string_swapcase, cont_str)
+
+
+# Characters kind operations
+def do_check_non_empty_string_category(char_fn):
+    def unicode_is_(string):
+        i = 0
+        string_len = len(string)
+        if string_len == 0:
+            return False
+        else:
+            while i < string_len:
+                res = char_fn(ord(string[i]))
+                if res is None:
+                    return None
+                elif res:
+                    i += 1
+                else:
+                    return False
+            return True
+    return unicode_is_
+
+
+def do_check_string_category(char_fn):
+    def unicode_is_(string):
+        i = 0
+        string_len = len(string)
+        while i < string_len:
+            res = char_fn(ord(string[i]))
+            if res is None:
+                return None
+            elif res:
+                i += 1
+            else:
+                return False
+        return True
+    return unicode_is_
+
+
+def do_check_string_case_category(check_case):
+    def unicode_is_(string):
+        i = 0
+        string_len = len(string)
+        while i < string_len:
+            res = extended_ascii_is_alpha(ord(string[i]))
+            if res is None:
+                return None
+            elif res:
+                break
+            else:
+                i += 1
+
+        if i < string_len:
+            while i < string_len:
+                code = ord(string[i])
+                res = extended_ascii_is_alpha(code)
+                if res is None:
+                    return None
+                elif res:
+                    case_res = check_case(code)
+                    if case_res is None:
+                        return None
+                    elif case_res:
+                        i += 1
+                    else:
+                        return False
+                else:
+                    i += 1
+            return True
+        else:
+            return False
+
+    return unicode_is_
+
+
+def str_method_cont_maybe_bool(ctx, val):
+    if val is None:
+        return sem_raise_with_message(ctx, class_NotImplementedError, "only extended ascii characters are supported for now")
+    else:
+        return cont_bool(ctx, val)
+
+# TODO: methods below only support extended ascii and raise a NotImplementedError for unicode
+om_str_isalpha = gen_str_unary_op("isalpha", do_check_non_empty_string_category(extended_ascii_is_alpha), str_method_cont_maybe_bool)
+om_str_isalnum = gen_str_unary_op("isalnum", do_check_non_empty_string_category(extended_ascii_is_alnum), str_method_cont_maybe_bool)
+om_str_isascii = gen_str_unary_op("isascii", do_check_string_category(extended_ascii_is_ascci), cont_bool)
+om_str_isdecimal = gen_str_unary_op("isdecimal", do_check_non_empty_string_category(extended_ascii_is_decimal), str_method_cont_maybe_bool)
+om_str_isdigit = gen_str_unary_op("isdigit", do_check_non_empty_string_category(extended_ascii_is_digit), str_method_cont_maybe_bool)
+om_str_isnumeric = gen_str_unary_op("isnumber", do_check_non_empty_string_category(extended_ascii_is_numeric), str_method_cont_maybe_bool)
+om_str_isspace = gen_str_unary_op("isspace", do_check_non_empty_string_category(extended_ascii_is_whitespace), str_method_cont_maybe_bool)
+
+# Those two are special
+om_str_islower = gen_str_unary_op("islower", do_check_string_case_category(extended_ascii_is_not_upper), str_method_cont_maybe_bool)
+om_str_isupper = gen_str_unary_op("isupper", do_check_string_case_category(extended_ascii_is_upper), str_method_cont_maybe_bool)
+
+
+def gen_str_split(method_name, primitive, whitespace_primitive):
+    def code(ctx, args):
+        args_len = len(args)
+
+        if args_len == 3:
+            self = args[0]
+            sep = args[1]
+
+            def do_split(rte, splits):
+                max_split_num = int_to_num(OM_get_boxed_value(splits))
+                max_split_num = -1 if max_split_num < 0 else max_split_num
+
+                if om_isinstance(sep, class_str):
+                    sep_val = OM_get_boxed_value(sep)
+
+                    if len(sep_val) == 0:
+                        return sem_raise_with_message(ctx, class_ValueError, "empty separator")
+                    else:
+                        res = primitive(OM_get_boxed_value(self), sep_val, max_split_num)
+                        return cont_list_of_str(ctx, res, len(res))
+                elif om_is(sep, om_None):
+                    res = whitespace_primitive(OM_get_boxed_value(self), max_split_num)
+                    return cont_list_of_str(ctx, res, len(res))
+                else:
+                    return sem_raise_with_message(ctx, class_TypeError, "separator must be str or None")
+
+            return sem_index(with_cont(ctx, do_split), args[2])
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "expected at most 3 arguments, got " + str(len(args) - 1))
+
+    return do_magic_method_with_aligned_kwargs(class_str, method_name, code, 0,
+                                                   ["sep", "maxsplit"], [om_None, om_int_from_num(-1)])
+
+om_str_split = gen_str_split("split", string_split, string_whitespace_split)
+om_str_rsplit = gen_str_split("rsplit", string_right_split, string_whitespace_right_split)
+
+
+def om_splitlines_code(ctx, args):
+    if len(args) == 2:
+        self = args[0]
+        self_value = OM_get_boxed_value(self)
+        keepends = args[1]
+
+        # This is the default case, so it should happen often
+        if om_is(keepends, om_False):
+            res = string_split_lines(self_value, False)
+            return cont_list_of_str(ctx, res, len(res))
+        elif om_is(keepends, om_True):
+            res = string_split_lines(self_value, True)
+            return cont_list_of_str(ctx, res, len(res))
+        else:
+            def cont(rte, res):
+                if om_is(res, om_False):
+                    res = string_split_lines(self_value, False)
+                    return cont_list_of_str(ctx, res, len(res))
+                else:
+                    res = string_split_lines(self_value, True)
+                    return cont_list_of_str(ctx, res, len(res))
+
+            # cPython does not do that conversion and enforces a, int, but we might as well implement it
+            return sem_bool(with_cont(ctx, cont), keepends)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected at most 1 arguments, got " + str(len(args) - 1))
+
+
+om_str_splitlines = do_magic_method_with_aligned_kwargs(class_str, "splitlines", om_splitlines_code, 0,
+                                                    ["keepends"], [om_False])
+
+
+def om_str_contains_code(ctx, args):
+    if debug: print('str.__len__')
+
+    if len(args) == 2:
+        self = args[0]
+        other = args[1]
+        if om_isinstance(other, class_str):
+            self_val = OM_get_boxed_value(self)
+            other_val = OM_get_boxed_value(other)
+            self_len = len(self_val)
+            return cont_bool(ctx, string_index_of(self_val, other_val, 0, self_len) != -1)
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "'in <string>' requires string as left operand")
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
+
+om_str_contains = do_magic_method(class_str, "__contains__", om_str_contains_code)
+
+
+def gen_str_find(method_name, do_find, do_on_fail):
+    def code(ctx, args):
+        args_len = len(args)
+        self = args[0]
+        self_value = OM_get_boxed_value(self)
+        substring = args[1]
+        start = args[2]
+        stop = args[3]
+
+        if args_len == 4:
+            def get_start(rte, start_index):
+                def get_stop(rte, stop_index):
+
+                    # Special case which short-circuits slicing if start > len(self)
+                    # This is not needed in general but mimics a cPython special case which
+                    # Where "".find("", 1) returns -1 despite ""[1:].find("") returning 0
+                    # There seems to be some discrepancy or at least ambiguity between cPython and
+                    # the Python doc here. I decided to go with the cPython implementation
+                    if not om_is(start_index, om_None):
+                        start_val = OM_get_boxed_value(start_index)
+                        if int_gt(start_val, int_from_num(len(self_value))):
+                            return do_on_fail(ctx)
+
+                    return compute_slice_indices(with_cont(ctx,
+                                                           lambda rte, indices: do_find(ctx,
+                                                                                        indices,
+                                                                                        self_value,
+                                                                                        substring)),
+                                                 start_index, stop_index, om_None, int_from_num(len(self_value)))
+
+                if om_is(stop, om_None):
+                    return get_stop(ctx.rte, om_None)
+                else:
+                    return sem_index(with_cont(ctx, get_stop), stop)
+
+            if om_is(start, om_None):
+                return get_start(ctx.rte, om_None)
+            else:
+                return sem_index(with_cont(ctx, get_start), start)
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "expected between 1 and 3 arguments arguments, got " + str(len(args) - 1))
+
+
+    return do_magic_method_with_defaults(class_str, method_name, code, 1, [om_None, om_None])
+
+
+def om_str_do_find(ctx, indices, string, om_substring):
+    if om_isinstance(om_substring, class_str):
+        index = string_index_of(string,
+                                OM_get_boxed_value(om_substring),
+                                int_to_num(indices[0]),
+                                int_to_num(indices[1]))
+        return cont_int_from_num(ctx, index)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "must be str")
+
+
+def om_str_do_rfind(ctx, indices, string, om_substring):
+    if om_isinstance(om_substring, class_str):
+        index = string_last_index_of(string,
+                                     OM_get_boxed_value(om_substring),
+                                     int_to_num(indices[0]),
+                                     int_to_num(indices[1]))
+        return cont_int_from_num(ctx, index)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "must be str")
+
+
+def om_str_find_do_on_fail(ctx):
+    return cont_int_from_num(ctx, -1)
+
+
+om_str_find = gen_str_find("find", om_str_do_find, om_str_find_do_on_fail)
+om_str_rfind = gen_str_find("rfind", om_str_do_rfind, om_str_find_do_on_fail)
+
+
+def om_str_do_startswith(ctx, indices, string, om_substring):
+    if om_isinstance(om_substring, class_str):
+        res = string_startswith(string,
+                             OM_get_boxed_value(om_substring),
+                             int_to_num(indices[0]),
+                             int_to_num(indices[1]))
+        return cont_bool(ctx, res)
+    elif om_isinstance(om_substring, class_tuple):
+        prefixes = OM_get_tuple_seq(om_substring)
+        start_num = int_to_num(indices[0])
+        stop_num = int_to_num(indices[1])
+        for p in prefixes:
+            if string_startswith(string, OM_get_boxed_value(p), start_num, stop_num):
+                return cont_obj(ctx, om_True)
+        return cont_obj(ctx, om_False)
+
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "startswith first arg must be str or a tuple of str")
+
+
+def om_str_do_endswith(ctx, indices, string, om_substring):
+    if om_isinstance(om_substring, class_str):
+        res = string_endswith(string,
+                             OM_get_boxed_value(om_substring),
+                             int_to_num(indices[0]),
+                             int_to_num(indices[1]))
+        return cont_bool(ctx, res)
+    elif om_isinstance(om_substring, class_tuple):
+        prefixes = OM_get_tuple_seq(om_substring)
+        start_num = int_to_num(indices[0])
+        stop_num = int_to_num(indices[1])
+        for p in prefixes:
+            if string_endswith(string, OM_get_boxed_value(p), start_num, stop_num):
+                return cont_obj(ctx, om_True)
+        return cont_obj(ctx, om_False)
+
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "endswith first arg must be str or a tuple of str")
+
+
+def om_str_startswith_do_on_fail(ctx):
+    return cont_obj(ctx, om_False)
+
+
+om_str_startswith = gen_str_find("startswith", om_str_do_startswith, om_str_startswith_do_on_fail)
+om_str_endswith = gen_str_find("endswith", om_str_do_endswith, om_str_startswith_do_on_fail)
+
+
+def om_str_do_index(ctx, indices, string, om_substring):
+    if om_isinstance(om_substring, class_str):
+        index = string_index_of(string,
+                               OM_get_boxed_value(om_substring),
+                               int_to_num(indices[0]),
+                               int_to_num(indices[1]))
+        if index >= 0:
+            return cont_int_from_num(ctx, index)
+        else:
+            return sem_raise_with_message(ctx, class_ValueError, "substring not found")
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "must be str")
+
+
+def om_str_index_do_on_fail(ctx):
+    return sem_raise_with_message(ctx, class_ValueError, "substring not found")
+
+
+def om_str_do_rindex(ctx, indices, string, om_substring):
+    if om_isinstance(om_substring, class_str):
+        index = string_last_index_of(string,
+                               OM_get_boxed_value(om_substring),
+                               int_to_num(indices[0]),
+                               int_to_num(indices[1]))
+        if index >= 0:
+            return cont_int_from_num(ctx, index)
+        else:
+            return om_str_index_do_on_fail(ctx)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "must be str")
+
+
+om_str_index = gen_str_find("index", om_str_do_index, om_str_index_do_on_fail)
+om_str_rindex = gen_str_find("rindex", om_str_do_rindex, om_str_index_do_on_fail)
+
+
+def om_str_do_count(ctx, indices, string, om_substring):
+    if om_isinstance(om_substring, class_str):
+        count = string_count(string,
+                             OM_get_boxed_value(om_substring),
+                             int_to_num(indices[0]),
+                             int_to_num(indices[1]))
+        return cont_int_from_num(ctx, count)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "must be str")
+
+
+def om_str_count_do_on_fail(ctx):
+    return cont_int_from_num(ctx, 0)
+
+
+om_str_count = gen_str_find("count", om_str_do_count, om_str_count_do_on_fail)
+
+
+def gen_str_strip(method_name, chars_primitive, whitespace_primitive):
+    def code(ctx, args):
+        self = args[0]
+        chars = args[1]
+
+        if om_is(chars, om_None):
+            return cont_str(ctx, whitespace_primitive(OM_get_boxed_value(self)))
+        elif om_isinstance(chars, class_str):
+            return cont_str(ctx, chars_primitive(OM_get_boxed_value(self), OM_get_boxed_value(chars)))
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "strip arg must be None or str")
+
+    return do_magic_method_with_defaults(class_str, "method_name", code, 0, [om_None])
+
+
+om_str_strip = gen_str_strip("strip", string_trim, string_trim_whitespaces)
+om_str_lstrip = gen_str_strip("lstrip", string_trim_left, string_trim_left_whitespaces)
+om_str_rstrip = gen_str_strip("rstrip", string_trim_right, string_trim_right_whitespaces)
+
 
 # class_dict methods
 
