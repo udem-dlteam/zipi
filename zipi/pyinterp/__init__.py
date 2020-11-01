@@ -1072,7 +1072,8 @@ def populate_builtin_tuple():
          ('__getitem__', om_tuple_getitem),
          ('__add__', om_tuple_add),
          ('__mul__', om_tuple_mul),
-         ('__rmul__', om_tuple_rmul)))
+         ('__rmul__', om_tuple_rmul),
+         ('count', om_tuple_count)))
 
 def populate_builtin_list():
     builtin_add_method(class_list, '__new__', om_list_new)
@@ -2746,6 +2747,40 @@ def om_tuple_mul_code(ctx, args):
 om_tuple_mul = do_magic_method(class_tuple, "__mul__", om_tuple_mul_code)
 om_tuple_rmul = do_magic_method(class_tuple, "__rmul__", om_tuple_mul_code)
 
+
+def count_in_sequence(ctx, seq, len_, val):
+    def do_check_item(i, count):
+        if i < len_:
+            def step_to_next_item(rte, res):
+                if om_is(res, om_True):
+                    return do_check_item(i + 1, count + 1)
+                else:
+                    return do_check_item(i + 1, count)
+
+            item = seq[i]
+            return sem_Eq_bool_with_return_to_trampoline(with_cont(ctx, step_to_next_item), val, item)
+        else:
+            return cont_int_from_num(ctx, count)
+
+    return do_check_item(0, 0)
+
+
+def om_tuple_count_code(ctx, args):
+    args_len = len(args)
+    if args_len == 2:
+        self = args[0]
+        self_seq = OM_get_list_seq(self)
+        self_len = len(self_seq)
+        val = args[1]
+
+        return count_in_sequence(ctx, self_seq, self_len, val)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "count() takes exactly one argument (" + str(args_len - 1) + " given)")
+
+
+om_tuple_count = do_magic_method(class_tuple, "count", om_tuple_count_code)
+
 # class_list methods
 
 def get_list_inner_len(len_):
@@ -3516,19 +3551,7 @@ def om_list_count_code(ctx, args):
         self_seq = OM_get_list_seq(self)
         val = args[1]
 
-        def do_check_item(i, count):
-            if i < self_len:
-                def step_to_next_item(rte, res):
-                    if om_is(res, om_True):
-                        return do_check_item(i + 1, count + 1)
-                    else:
-                        return do_check_item(i + 1, count)
-                item = self_seq[i]
-                return sem_Eq_bool_with_return_to_trampoline(with_cont(ctx, step_to_next_item), val, item)
-            else:
-                return cont_int_from_num(ctx, count)
-
-        return do_check_item(0, 0)
+        return count_in_sequence(ctx, self_seq, self_len, val)
     else:
         return sem_raise_with_message(ctx, class_TypeError,
                                       "count() takes exactly one argument (" + str(args_len - 1) + " given)")
