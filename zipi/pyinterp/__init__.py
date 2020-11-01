@@ -2803,6 +2803,19 @@ def sequence_search(ctx, seq, target, start, end):
         return cont_obj(ctx, absent)
 
 
+def clamp_index(index, len_):
+    if index >= len_:
+        return len_
+    elif index >= 0:
+        return index
+    else:
+        reversed_index = index + len_
+        if reversed_index >= 0:
+            return reversed_index
+        else:
+            return 0
+
+
 def gen_om_sequence_index(om_class, seq_getter, len_getter):
     cls_name = OM_get_boxed_value(OM_get(om_class, "__name__"))
     not_in_msg = " is not in " + cls_name
@@ -3433,18 +3446,6 @@ def om_list_insert_code(ctx, args):
 
 
 om_list_insert = do_magic_method(class_list, "insert", om_list_insert_code)
-
-def clamp_index(index, len_):
-    if index >= len_:
-        return len_
-    elif index >= 0:
-        return index
-    else:
-        reversed_index = index + len_
-        if reversed_index >= 0:
-            return reversed_index
-        else:
-            return 0
 
 
 om_list_index = gen_om_sequence_index(class_list, OM_get_list_seq, lambda l, s: OM_get_list_len(l))
