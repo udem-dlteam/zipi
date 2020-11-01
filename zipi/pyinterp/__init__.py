@@ -1095,6 +1095,7 @@ def populate_builtin_list():
     builtin_add_method(class_list, 'copy', om_list_copy)
     builtin_add_method(class_list, 'clear', om_list_clear)
     builtin_add_method(class_list, 'reverse', om_list_reverse)
+    builtin_add_method(class_list, 'count', om_list_count)
 
 def populate_builtin_range():
     buitlin_add_methods_to_class(
@@ -1674,15 +1675,24 @@ def gen_sem_Numeric_EqComp(op_symbol, method, fall_back):
 sem_Eq = gen_sem_Numeric_EqComp("==", "__eq__", om_is)
 sem_NotEq = gen_sem_Numeric_EqComp("!=", "__ne__", om_is_not)
 
+
 def sem_Eq_bool(ctx, val1, val2):
     def do_bool(rte, res):
         return sem_bool(with_rte(ctx, rte), res)
     return sem_Eq(with_cont(ctx, do_bool), val1, val2)
 
+
 def sem_NotEq_bool(ctx, val1, val2):
     def do_bool(rte, res):
         return sem_bool(with_rte(ctx, rte), res)
     return sem_NotEq(with_cont(ctx, do_bool), val1, val2)
+
+
+def sem_Eq_bool_with_return_to_trampoline(ctx, val1, val2):
+    def do_step(rte, val):
+        return stmt_end(Context(rte, lambda rte: ctx.cont(rte, val), ctx.ast), 0)
+    return sem_Eq_bool(with_cont(ctx, do_step), val1, val2)
+
 
 def sem_Round(ctx, obj, ndigits):
     obj_round = getattribute_from_obj_mro(obj, "__round__")
@@ -3496,6 +3506,35 @@ def om_list_reverse_code(ctx, args):
 
 
 om_list_reverse = do_magic_method(class_list, "reverse", om_list_reverse_code)
+
+
+def om_list_count_code(ctx, args):
+    args_len = len(args)
+    if args_len == 2:
+        self = args[0]
+        self_len = OM_get_list_len(self)
+        self_seq = OM_get_list_seq(self)
+        val = args[1]
+
+        def do_check_item(i, count):
+            if i < self_len:
+                def step_to_next_item(rte, res):
+                    if om_is(res, om_True):
+                        return do_check_item(i + 1, count + 1)
+                    else:
+                        return do_check_item(i + 1, count)
+                item = self_seq[i]
+                return sem_Eq_bool_with_return_to_trampoline(with_cont(ctx, step_to_next_item), val, item)
+            else:
+                return cont_int_from_num(ctx, count)
+
+        return do_check_item(0, 0)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError,
+                                      "count() takes exactly one argument (" + str(args_len - 1) + " given)")
+
+
+om_list_count = do_magic_method(class_list, "count", om_list_count_code)
 
 
 # class_range methods
