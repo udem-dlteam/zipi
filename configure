@@ -187,17 +187,6 @@ if [ "$buildid " = " " ]; then
   fi
 fi
 
-if [ "$buildid " = " " ]; then
-  # bigloo
-  for p in hopscript/*.scm js2scheme/*.scm nodejs/*.js; do
-    id=`$bigloo -s -eval "(begin (print (md5sum-file \"$p\")) (exit 1))"`
-    buildid="$buildid $id"
-  done
-  buildid=`$bigloo -s -eval "(begin (print (md5sum-string \"$buildid\")) (exit 1))"`
-fi  
-
-buildid=`$bigloo -s -eval "(begin (print (md5sum-string \"$buildid $buildtag $bigloolibdir\")) (exit 1))"`
-
 #*---------------------------------------------------------------------*/
 #*    Makefile.zipiconfig                                              */
 #*---------------------------------------------------------------------*/

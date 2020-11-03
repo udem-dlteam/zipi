@@ -5,7 +5,7 @@
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Tue Jul  2 07:46:27 2019                          */
 #*    Last change :  Tue Nov 12 20:12:25 2019 (serrano)                */
-#*    Copyright   :  2019 Manuel Serrano                               */
+#*    Copyright   :  2019-20 Manuel Serrano                            */
 #*    -------------------------------------------------------------    */
 #*    Bigloo specific configuration                                    */
 #*=====================================================================*/
@@ -16,6 +16,9 @@ link=dynamic
 afile=bglafile
 btags=bgltags
 bdepend=bgldepend
+
+devmode=product
+debug=no
 
 bcflags="-g -fsharing -call/cc -L \$(BUILDLIBDIR) -srfi bigloo-compile"
 blflags="-copt \$(CPICFLAGS) -L \$(BUILDLIBDIR) -srfi bigloo-compile"
@@ -29,9 +32,23 @@ if [ "$mode " = "debug " ]; then
   bcflagsrts="-safee"
 fi
 
+bcflagsdev=""
+bzipicflags=
+
 zipisrfis=""
 
 bglcloselibs=""
+
+#*---------------------------------------------------------------------*/
+#*    Private variables                                                */
+#*---------------------------------------------------------------------*/
+if [ "$USER " = "serrano " ]; then
+  distribdir=$HOME/prgm/distrib
+  repodir=$HOME/prgm/project/hop/repository
+else
+  distribdir=.
+  repodir=.
+fi
 
 #*---------------------------------------------------------------------*/
 #*    We are now able to set the correct value for cc since we know    */
@@ -130,6 +147,7 @@ for file in Makefile.bigloo pyc.init zipi.init; do
   cat $path.in \
     | sed -e "s|@RELEASE@|$version|" \
           -e "s|@DATE@|$date|" \
+          -e "s|@DEBUG@|$debug|" \
   	  -e "s|@SYSTEMS@|$systems|" \
           -e "s|@BINDIR@|$bindir|" \
           -e "s|@LIBDIR@|$libdir|" \
@@ -140,6 +158,7 @@ for file in Makefile.bigloo pyc.init zipi.init; do
           -e "s|@BUILDTAG@|$buildtag|" \
 	  -e "s|@BUILDLIBDIR@|$buildlibdir|" \
           -e "s|@BIGLOO@|$bigloo|" \
+          -e "s|@CCFLAGS@|$ccflags $ccflagsprofile $ccflagsdebug|" \
           -e "s|@INSTALL@|$install|" \
           -e "s|@BUILDDIR@|$PWD|" \
           -e "s|@LINK@|$link|" \
@@ -154,8 +173,12 @@ for file in Makefile.bigloo pyc.init zipi.init; do
           -e "s|@BTFLAGS@|$btflags|" \
 	  -e "s|@BLFLAGS@|$blflags|" \
           -e "s|@BCFLAGSRTS@|$bcflagsrts|" \
-          -e "s|@BGLCLOSELIBS_S@|$bglcloselibss|" \
-          -e "s|@BGLCLOSELIBS_U@|$bglcloselibsu|" \
+          -e "s|@EXTRALIBS@|$extralibs|" \
+          -e "s|@BIGLOOEXTRALIBS@|$bglextralibs|" \
+          -e "s|@BGLCLOSELIBS@|$bglcloselibs|" \
+          -e "s|@BCFLAGSDEV@|$bcflagsdev|" \
+          -e "s|@BZIPICFLAGS@|$bzipicflags|" \
+	  -e "s|@ZIPIDISTRIBDIR@|$distribdir|" \
    	>> $path
 done
 

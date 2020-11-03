@@ -4,7 +4,7 @@
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Fri Sep 17 14:27:28 2004                          */
 #*    Last change :  Fri Nov  8 13:48:15 2019 (serrano)                */
-#*    Copyright   :  2004-19 Manuel Serrano                            */
+#*    Copyright   :  2004-20 Manuel Serrano                            */
 #*    -------------------------------------------------------------    */
 #*    The Bigloo autoconf Makefile skeleton for ZIPI.                  */
 #*=====================================================================*/
@@ -28,7 +28,6 @@ BLDFLAGS	= @BLDFLAGS@
 BTFLAGS		= @BTFLAGS@
 BCFLAGSDEV	= @BCFLAGSDEV@
 BCFLAGSRTS	= @BCFLAGSRTS@
-FFLAGS		= @FFLAGS@
 BLFLAGS         = @BLFLAGS@ $(BLIBFLAGS)
 BHFLAGS		= @BHFLAGS@ -q -mkaddheap -mkaddlib $(EFLAGS)
 BJFLAGS		= -j
@@ -40,14 +39,9 @@ BZIPICFLAGS	= @BZIPICFLAGS@
 #*---------------------------------------------------------------------*/
 #*    Linking                                                          */
 #*---------------------------------------------------------------------*/
-BGLCLOSELIBS_S	= @BGLCLOSELIBS_S@
-
-BGLCLOSELIBS_U	= @BGLCLOSELIBS_U@
-
-#*---------------------------------------------------------------------*/
-#*    Runtime system                                                   */
-#*---------------------------------------------------------------------*/
-RTSCONFIG	= @RTSCONFIG@
+ZIPIEXTRALIBS	= @EXTRALIBS@
+ZIPIBIGLOOEXTRALIBS = @BIGLOOEXTRALIBS@
+ZIPIAPPLIBS	=
 
 #*---------------------------------------------------------------------*/
 #*    REPOSITORY                                                       */

@@ -29,10 +29,7 @@ SOURCES = $(OBJECTS_COMMON:%=%.bgl)
 #*---------------------------------------------------------------------*/
 # the library name
 TARGETNAME = pyc
-ZIPICLOSELIBS_S = $(BGLCLOSELIBS_S)
-ZIPICLOSELIBS_U = $(BGLCLOSELIBS_U)
-ZIPICLOSELIBS_ES = -lpyc_s-$(ZIPIRELEASE)
-ZIPICLOSELIBS_EU = -lpyc_u-$(ZIPIRELEASE)
+ZIPIAPPLIBS =
 
 BLIBFLAGS = $(BCFLAGSRTS)
 

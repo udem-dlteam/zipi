@@ -226,7 +226,7 @@
                        (can-locals::bool (default #t))
                        (super-in-class::bool (default #f))
                        (use-simple-scoping::bool (default #f))
-                       (name::symbol (default #f)))
+                       (name (default #f)))
 
                 (final-class PycSemantics::PycFun
                              (inline::bool (default #f)))
@@ -271,7 +271,7 @@
                              (path::bstring read-only)
                              (depth::int read-only (default 0)))
 
-                (class PycIntrinsics::PycNode
+                (class PycIntrinsics::PycExpr
                        id::symbol)
 
                 (final-class PycStatic::PycIntrinsics
