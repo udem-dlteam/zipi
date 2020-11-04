@@ -363,6 +363,7 @@ function string_count(string, substring, start, stop) {
     var i = start;
     var count = 0;
     var found;
+    var step = Math.max(1, substring.length);
     var last_index = Math.min(stop, string.length);
     while (i <= last_index) {
         found = string_index_of(string, substring, i, stop)
@@ -370,7 +371,7 @@ function string_count(string, substring, start, stop) {
             return count;
         } else {
             count ++;
-            i = found + 1;
+            i = found + step;
         }
     }
     return count;
