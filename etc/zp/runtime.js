@@ -360,21 +360,30 @@ function string_endswith(string, substring, start, stop) {
 
 
 function string_count(string, substring, start, stop) {
-    var i = start;
-    var count = 0;
-    var found;
-    var step = Math.max(1, substring.length);
-    var last_index = Math.min(stop, string.length);
-    while (i <= last_index) {
-        found = string_index_of(string, substring, i, stop)
-        if (found === -1) {
-            return count;
+    var step = substring.length;
+    var end = Math.min(stop, string.length);
+
+    if (step === 0) {
+        if (start > end) {
+            return 0;
         } else {
-            count ++;
-            i = found + step;
+            return Math.max(end - start + 1, 1);
         }
+    } else {
+        var i = start;
+        var count = 0;
+        var found;
+        while (i < end) {
+            found = string_index_of(string, substring, i, stop)
+            if (found === -1) {
+                return count;
+            } else {
+                count++;
+                i = found + step;
+            }
+        }
+        return count;
     }
-    return count;
 }
 
 
