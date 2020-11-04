@@ -367,7 +367,7 @@ function string_count(string, substring, start, stop) {
         if (start > end) {
             return 0;
         } else {
-            return Math.max(end - start + 1, 1);
+            return end - start + 1;
         }
     } else {
         var i = start;
