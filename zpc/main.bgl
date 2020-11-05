@@ -27,6 +27,7 @@
    (let ((verb 0)
 	 (tgt 'bigloo)
 	 (main #t)
+	 (modname #f)
 	 (dir #f)
 	 (src #f)
 	 (dest #f)
@@ -45,6 +46,8 @@
 	  (set! bindir d))
 	 ((("-l" "--lib-dir") ?d (help "Lib directory"))
 	  (set! libdir d))
+	 ((("-m" "--module-name") ?n (help "Bigloo module name"))
+	  (set! modname n))
 	 ((("-o" "--output") ?path (help "Destination"))
 	  (set! dest path))
 	 ((("--py-module-main") (help "Generate a main module clause"))
@@ -76,6 +79,7 @@
 		  dir: (or dir (if src (absolute (dirname src)) (pwd)))
 		  src: src
 		  main: main
+		  module-name: modname
 		  conf)))
 	 (close-output-port port))))
 

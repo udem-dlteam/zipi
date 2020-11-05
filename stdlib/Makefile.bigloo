@@ -1,7 +1,7 @@
 do.bigloo: builtins.bgl
 
 builtins.bgl:
-	../bin/zpc.bigloo.sh -t bigloo ./builtins.py --bootstrap --bin-dir $(BUILDETCDIR) > ./builtins.bgl || rm ./builtins.bgl
+	../bin/zpc.bigloo.sh -t bigloo ./builtins.py -m __stdlib_builtins --bootstrap --bin-dir $(BUILDETCDIR) > ./builtins.bgl || (rm -f ./builtins.bgl; exit 1)
 
 clean.bigloo:
 

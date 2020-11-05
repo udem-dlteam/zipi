@@ -14,7 +14,10 @@
 (define (pyc-scheme-bigloo ast conf)
    (let ((prog (pyc-scheme ast conf)))
       (list
-	 `(module ,(string->symbol (or (config-get conf src:) "__stdin"))
+	 `(module ,(string->symbol
+		      (or (config-get conf module-name:)
+			  (config-get conf src:)
+			  "__stdin"))
 	     ,@(if (config-get conf bootstrap:)
 		   '((import __py_rts) (export (zipi-init)))
 		   '((library zipi)))

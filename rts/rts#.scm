@@ -322,16 +322,16 @@
   '#(#() #() #f #() #() #f #()))
 
 (define-macro (make-vararg-only-signature vararg)
-  `(make-signature () () ,vararg () #f #f #f))
+  `(make-signaturef '() () ,vararg '() #f #f #f))
 
 (define-macro (make-posonly-signature posonlyargs)
-  `(make-signature () ,posonlyargs #f () #f #f #f))
+  `(make-signature '() ,posonlyargs #f '() #f #f #f))
 
 (define-macro (make-posonly-defaults-signature posonlyargs defaults)
-  `(make-signature () ,posonlyargs #f () #f #f ,defaults))
+  `(make-signature '() ,posonlyargs #f '() #f #f ,defaults))
 
 (define-macro (make-args-defaults-signature args defaults)
-  `(make-signature ,args () #f () #f #f ,defaults))
+  `(make-signature ,args '() #f '() #f #f ,defaults))
 
 (define-macro (register-constants-perfect-hashtable table)
   (vector-map

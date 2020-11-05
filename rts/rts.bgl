@@ -13,14 +13,32 @@
 ;*    The module                                                       */
 ;*---------------------------------------------------------------------*/
 (module __py_rts
+
+   (include "rts-call.sch")
    
-   (include "rts.sch"
-	    "constants.sch"
-	    "names.sch")
+   (cond-expand
+      ((not bootstrap) (include "rts.sch")))
+
+   (include 
+;* 	    "constants.sch"                                            */
+;* 	    "names.sch"                                                */
+	    )
+   (option (define-macro (import l)
+	      (for-each (lambda (m)
+			   (let* ((m (symbol->string! m))
+				  (f (string-append m ".scm")))
+			      (if (file-exists? f)
+				  (load f)
+				  (let ((f (make-file-path m f)))
+				     (if (file-exists? f)
+					 (load f)
+					 (warning "import:cannot find module" m))))))
+		 l)
+	      #unspecified))
    
    (import __py_bigloo
 	   __py_configure
-           ./builtins.py)
+           __stdlib_builtins)
    
    (export (class PyObject
 	      (hclass (default #f))
@@ -107,20 +125,20 @@
 	   (global-get ::PyObject ::obj ::obj)
 	   (global-put! global name val cache)
 
-	   (object-get ::obj ::obj ::obj)
+	   ;; (object-get ::obj ::obj ::obj)
 	   (object-put! ::PyObject ::obj ::obj ::obj)
 	   (getattribute-from-obj-mro ::obj ::obj)
 	   
 	   (py-make-list . elements)
 
-	   (py-getitem ::PyObject ::obj ::obj)
-	   (py-delitem ::PyObject ::obj ::obj)
-	   (py-setitem ::PyObject ::obj ::obj ::obj)
+	   ;; (py-getitem ::PyObject ::obj ::obj)
+	   ;; (py-delitem ::PyObject ::obj ::obj)
+	   ;; (py-setitem ::PyObject ::obj ::obj ::obj)
 	   
 	   (inline PyObject-elements-ref ::PyObject ::long)
 	   (PyObject-elements-set! ::PyObject ::long ::obj)
 	   
-	   (py-call obj . args)
+	   ;; (py-call obj . args)
 	   (py-call0 ::obj)
 	   (py-call1 ::obj ::obj)
 	   (py-call2 ::obj ::obj ::obj)
@@ -135,23 +153,22 @@
 	   
 	   (py-throw ::obj)
 	   
-	   (py-add x y cache)
 	   (py-iadd x y cache)
-	   (py-and x y cache)
-	   (py-sub x y cache)
-	   (py-div x y cache)
-	   (py-mod x y cache)
-	   (py-floordiv x y cache)
-	   (py-eq x y cache)
-	   (py-ne x y cache)
-	   (py-lt x y cache)
-	   (py-le x y cache)
-	   (py-gt x y cache)
-	   (py-ge x y cache)
-	   (py-is x y cache)
-	   (py-isnot x y cache)
-	   (py-in x y cache)
-	   (py-notin x y cache)
+	   (py-iand x y cache)
+	   (py-isub x y cache)
+	   (py-idiv x y cache)
+	   (py-imod x y cache)
+	   (py-ifloordiv x y cache)
+	   (py-eq x y)
+	   (py-ne x y)
+	   (py-lt x y)
+	   (py-le x y)
+	   (py-gt x y)
+	   (py-ge x y)
+	   (py-is x y)
+	   (py-isnot x y)
+	   (py-in x y)
+	   (py-notin x y)
 	   (py-neg x cache)
 	   (py-not x cache)
 

@@ -22,7 +22,7 @@ install.bigloo: install-library
 #*---------------------------------------------------------------------*/
 #*    SOURCES                                                          */
 #*---------------------------------------------------------------------*/
-SOURCES = $(OBJECTS_COMMON:%=%.bgl) bigloo.bgl ../stdlib/builtins.bgl
+SOURCES = $(OBJECTS_COMMON:%=%.bgl) bigloo.bgl builtins.bgl
 
 #*---------------------------------------------------------------------*/
 #*    Compilers, Tools and Destinations                                */
@@ -65,7 +65,7 @@ ude:
 	$(MAKE) .afile .etags
 	$(MAKE) dep
 
-.afile: $(SOURCES) ../stdlib/builtins.bgl
+.afile: $(SOURCES) builtins.bgl
 	$(AFILE) -o .afile $^
 
 .etags: $(SOURCES) $(INCLUDES)
@@ -79,23 +79,25 @@ ude:
 clean.bigloo:
 	rm -f .afile
 	rm -rf o
+	$(MAKE) -C ../stdlib clean
 
 #*---------------------------------------------------------------------*/
 #*    Explicit dependencies                                            */
 #*---------------------------------------------------------------------*/
-o/builtins.o: ../stdlib/builtins.bgl
+o/builtins.o: builtins.bgl
 	$(BIGLOO) -O3 -c $< -o $@
 
 o/bigloo.o: bigloo.bgl
 	$(BIGLOO) -O3 -c $< -o $@
 
-../stdlib/builtins.bgl:
-	$(MAKE) -C ../stdlib builtins.bgl
+builtins.bgl:
+	$(MAKE) -C ../stdlib builtins.bgl && mv ../stdlib/builtins.bgl .
 
 #bdepend start (don't edit)
 #*---------------------------------------------------------------------*/
 #*    Dependencies ...                                                 */
 #*---------------------------------------------------------------------*/
-
+bigloo.bgl: builtins.bgl
+rts.bgl: builtins.bgl
 
 #bdepend stop

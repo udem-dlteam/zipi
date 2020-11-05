@@ -6,7 +6,7 @@
 #*    Last change :  Tue May 26 09:36:01 2020 (serrano)                */
 #*    Copyright   :  2019-20 Marc Feeley & Manuel Serrano              */
 #*    -------------------------------------------------------------    */
-#*    The makefile to build the PYC compiler library                   */
+#*    The makefile to build the ZIPI runtime system                    */
 #*=====================================================================*/
 .PHONY: do bigloo gambit install
 
@@ -48,7 +48,5 @@ cleanall: distclean
 #*---------------------------------------------------------------------*/
 o/rts.o: rts.sch
 
-.afile: rts.sch
-
 %.sch: %.bgl .afile
-	touch $@ && $(BIGLOO) -classgen $< -o $@
+	touch $@ && $(BIGLOO) -srfi bootstrap -classgen $< -o $@ || (rm -f $@; exit 1)

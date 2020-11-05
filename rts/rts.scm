@@ -9,7 +9,19 @@
       (cons (string-append el (car acc)) (cdr acc))
       (cons el acc)))
 
-  (let ((folded-msg (fold-right f '() msg)))
+  (define (foldr kons knil lis1 . lists)
+     (if (pair? lists)
+	 (let recur ((lists (cons lis1 lists)))
+	    (let ((cdrs (%cdrs lists)))
+	       (if (null? cdrs) knil
+		   (apply kons (%cars+ lists (recur cdrs))))))
+	 
+	 (let recur ((lis lis1))			
+	    (if (not (pair? lis)) knil
+		(let ((head (car lis)))
+		   (kons head (recur (cdr lis))))))))
+  
+  (let ((folded-msg (foldr f '() msg)))
     (if (and (= (length folded-msg) 1) (string? (car folded-msg)))
       ;; Use & if given message can be folded to a string literal
       `(py-throw
@@ -58,7 +70,8 @@
   `(eq? (str-representative-get ,self) (str-representative-get ,other)))
 
 (define-macro (define-all-py-callX)
-  (import (zipi rts config))
+  ;;(import (zipi rts config))
+  (import (config))
 
   (define (define-py-callX X)
     (let ((py-call-name (string->symbol (string-append "py-call" (number->string X))))
@@ -683,7 +696,7 @@
 (define kwargs-already-seen '%kwargs-already-seen)
 
 (define (kwargs-table-pop! table key)
-  (import (zipi rts utility))
+  ;;(import (zipi rts utility))
   ;; NOTE: key will always either be from a signature or a call-table
   ;; key will always have been hashed at compile time
   (let* ((index-table (vector-ref table 0))
@@ -1335,7 +1348,7 @@
         (let ((h (py-call __hash__ x)))
           (if (py-isinstance? h py-int-class)
             (let ((h-value (PyObjectInt-value h)))
-              (import (zipi rts utility))
+              ;;(import (zipi rts utility))
               (py-int-from-scheme (truncate-hash h-value)))
       	    (py-throw-exception-with-message
       	       py-builtin-RuntimeError
@@ -1566,7 +1579,9 @@
 (define-int-unary-operator int-abs "__abs__" abs)
 
 (define-int-unary-operator int-hash "__hash__"
-  (let () (import (zipi rts utility)) truncate-hash))
+   (let ()
+      ;;(import (zipi rts utility))
+      truncate-hash))
 
 (define (int-repr self)
   (if (py-isinstance? self py-int-class)
@@ -2021,7 +2036,7 @@
 (define method.__call__
   (procedure->py-function
     method-call
-    (make-signature () (self) args () #f #f #f)))
+    (make-signature '() (self) args '() #f #f #f)))
 
 ;; slow way to call function through function.__call__
 ;; interfaces between manual __call__ and py-call
@@ -2034,7 +2049,7 @@
 (define function.__call__
   (procedure->py-function
     function-call
-    (make-signature () (self) args () #f #f #f)))
+    (make-signature '() (self) args '() #f #f #f)))
 
 (define (function-get self instance owner)
   (if (eq? instance py-None)
@@ -2070,7 +2085,7 @@
 (define type.__call__
   (procedure->py-function
     type-call
-    (make-signature () (self) args () #f #f #f)))
+    (make-signature '() (self) args '() #f #f #f)))
 
 
 ;; TODO: remove the tuple->list conversion once we support argument unpacking
@@ -2090,7 +2105,7 @@
 (define type.__new__
   (procedure->py-function
     type-new
-    (make-signature () (metacls cls) args () #f #f #f)))
+    (make-signature '() (metacls cls) args '() #f #f #f)))
 
 (define (tuple-new cls iterable)
   (if (or (eq? cls py-tuple-class) (py-issubclass? cls py-tuple-class))
@@ -2132,14 +2147,14 @@
 (define object.__new__
   (procedure->py-function
     object-new
-    (make-signature () (cls) args () #f #f #f)))
+    (make-signature '() (cls) args '() #f #f #f)))
 
 ;; object.__init__ exists but does nothing
 ;; its purpose is that super().__init__ does not raise and AttributeError
 (define object.__init__
   (procedure->py-function
     (lambda (self args) py-None)
-    (make-signature () (self) args () #f #f #f)))
+    (make-signature '() (self) args '() #f #f #f)))
 
 
 ;; =============================================================================
@@ -2340,7 +2355,7 @@
 (define-str-comparison-operator str-le "__le__" string<=?)
 
 (define (str-hash-value str)
-  (import (zipi rts utility))
+  ;;(import (zipi rts utility))
   (let ((cached-hash (PyObjectStr-hash str)))
     (if cached-hash
       cached-hash
@@ -6081,7 +6096,7 @@
   (procedure->py-function
     (lambda (args kwargs)
       (py-throw-exception-with-message py-builtin-NotImplementedError "breakpoint not implemented"))
-    (make-signature () () args () #f kwargs #f)))
+    (make-signature '() '() args '() #f kwargs #f)))
 
     ;;-------------------- class bytearray([source[, encoding[, errors]]])
 
@@ -6270,9 +6285,9 @@
       (py-throw-exception-with-message py-builtin-NotImplementedError "compile not implemented"))
     (make-signature
       (source filename mode flags dont_inherit optimize)
-      ()
+      '()
       #f
-      ()
+      '()
       #f
       #f
       (vector
@@ -6435,7 +6450,7 @@
       (py-throw-exception-with-message py-builtin-NotImplementedError "enumerate not implemented"))
     (make-signature
       (iterable start)
-      () #f () #f #f
+      '() #f '() #f #f
       (vector (py-int-from-scheme 0)))))
 
 ;;-------------------- eval(expression, globals=None, locals=None)
@@ -7016,7 +7031,7 @@
     (lambda (arg1 args key default)
       (py-throw-exception-with-message py-builtin-NotImplementedError "max not implemented"))
     (make-signature
-      ()
+      '()
       (arg1)
       args
       (key default)
@@ -7066,7 +7081,7 @@
     (lambda (arg1 args key default)
       (py-throw-exception-with-message py-builtin-NotImplementedError "min not implemented"))
     (make-signature
-      ()
+      '()
       (arg1)
       args
       (key default)
@@ -7406,10 +7421,10 @@
             (newline port)
             py-None))
     (make-signature
-      ()
-      ()
+      '()
+      '()
       objects
-      ()
+      '()
       ;;#(sep end file flush)
       #f
       ;;(vector
@@ -7650,7 +7665,7 @@
     (lambda (iterable key reverse)
       (py-throw-exception-with-message py-builtin-NotImplementedError "sorted not implemented"))
     (make-signature
-      ()
+      '()
       (iterable)
       #f
       (key reverse)
@@ -7727,7 +7742,7 @@
       (start)
       (iterable)
       #f
-      ()
+      '()
       #f
       #f
       (vector (py-int-from-scheme 0)))))
