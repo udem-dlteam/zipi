@@ -24,3 +24,4 @@ stdlib/builtins.scm
 stdlib/builtins.bgl
 tests/.idea
 __pycache__/
+*~
