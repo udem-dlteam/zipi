@@ -914,9 +914,9 @@
 (define (align-with-signature-kwargs-ordered-table:get-values-or-default args-defaults ordered-table)
   (if (null? args-defaults)
     '()
-    (let ((name (caar args-defaults))
-          (default (cdar args-defaults))
-          (value (ordered-table-pop! ordered-table name #f)))
+    (let* ((name (caar args-defaults))
+	   (default (cdar args-defaults))
+	   (value (ordered-table-pop! ordered-table name #f)))
       (cond
         ((not value)
           (cons default (align-with-signature-kwargs-ordered-table:get-values (cdr args-defaults) ordered-table)))
@@ -5873,9 +5873,6 @@
               (compile-and-get-mod path-mod path-mod-info py-__name__)
               #f)))))
 
-(define (string-split string split)
-  (call-with-input-string string (lambda (port) (read-all port (lambda (p) (read-line p split))))))
-
 (define (import-from-sys.path sys.path __name__ py-__name__)
   (or (dict-get (sys.modules-get) py-__name__ #f)
       (let ((sys.path-iter (py-iter sys.path)))
@@ -8307,6 +8304,5 @@
 (define (build-builtins)
   (if (eq? builtins-mod py-absent)
       (set! builtins-mod (py-make-builtins-mod))))
-
 
 (end-registering-constants)

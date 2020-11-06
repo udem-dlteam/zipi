@@ -22,7 +22,7 @@ install.bigloo: install-library
 #*---------------------------------------------------------------------*/
 #*    SOURCES                                                          */
 #*---------------------------------------------------------------------*/
-SOURCES = $(OBJECTS_COMMON:%=%.bgl) bigloo.bgl builtins.bgl
+SOURCES = $(OBJECTS_COMMON:%=%.bgl) bigloo.bgl builtins.bgl zemantics.bgl
 
 #*---------------------------------------------------------------------*/
 #*    Compilers, Tools and Destinations                                */
@@ -92,6 +92,12 @@ o/bigloo.o: bigloo.bgl
 
 builtins.bgl:
 	$(MAKE) -C ../stdlib builtins.bgl && mv ../stdlib/builtins.bgl .
+
+zemantics.bgl: ../stdlib/zemantics.bgl zemantics.scm
+	cp $< .
+
+zemantics.scm: ../stdlib/zemantics.scm
+	cp $< .
 
 #bdepend start (don't edit)
 #*---------------------------------------------------------------------*/

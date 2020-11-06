@@ -453,3 +453,7 @@
               `(,(make-py-call-name nargs) ,f ,@pos-args))
             (else
               `(py-call-generic ,f (list ,@pos-args)))))))))
+
+(define (string-split string split)
+  (call-with-input-string string (lambda (port) (read-all port (lambda (p) (read-line p split))))))
+

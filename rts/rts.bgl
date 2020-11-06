@@ -14,32 +14,20 @@
 ;*---------------------------------------------------------------------*/
 (module __py_rts
 
-   (include "rts-call.sch")
-   
    (cond-expand
-      ((not bootstrap) (include "rts.sch")))
+      ((not classgen)
+       (include "rts.sch"
+	  "bigloo/import.sch"
+	  "bigloo/rts-call.sch"
+	  "bigloo/constants.sch"
+;* 	  "bigloo/names.sch"                                           */
+	  )))
 
-   (include 
-;* 	    "constants.sch"                                            */
-;* 	    "names.sch"                                                */
-	    )
-   (option (define-macro (import l)
-	      (for-each (lambda (m)
-			   (let* ((m (symbol->string! m))
-				  (f (string-append m ".scm")))
-			      (if (file-exists? f)
-				  (load f)
-				  (let ((f (make-file-path m f)))
-				     (if (file-exists? f)
-					 (load f)
-					 (warning "import:cannot find module" m))))))
-		 l)
-	      #unspecified))
-   
    (import __py_bigloo
 	   __py_configure
-           __stdlib_builtins)
-   
+           __stdlib_builtins
+	   __stdlib_zemantics)
+
    (export (class PyObject
 	      (hclass (default #f))
 	      (%elements (default (make-vector 4)))
@@ -76,7 +64,8 @@
 
 	   (class PyObjectStr::PyObject
 	      value
-	      representative)
+	      representative
+	      hash)
 
 	   (class PyObjectFunction::PyObject
 	      procedure
@@ -114,10 +103,6 @@
 	      port
 	      mode
 	      encoding)
-	   
-	   (macro & name)
-	   (macro &&)
-	   (macro start-registering-constants)
 	   
 	   (inline PyObject-type-get o)
 	   (inline PyObjectStr-type-get o)
@@ -216,40 +201,42 @@
 
 	   (inline PCache-set! ::PCache ::HClass ::long)
 	   (inline HClass-last-index::long ::HClass)
+
+	   (py-init-registered-constants strings)
 	   )
       
    (eval   (export-all)))
 
-;*---------------------------------------------------------------------*/
-;*    & ...                                                            */
-;*---------------------------------------------------------------------*/
-(define-macro (& name)
-   `',(string->symbol name))
-
-;*---------------------------------------------------------------------*/
-;*    && ...                                                           */
-;*---------------------------------------------------------------------*/
-(define-macro (&& e)
-   `(& ,e))
-
-;*---------------------------------------------------------------------*/
-;*    start-registering-constants ...                                  */
-;*---------------------------------------------------------------------*/
-(define-macro (start-registering-constants . l)
-   '(define __js_strings (&begin!)))
-
-;*---------------------------------------------------------------------*/
-;*    end-registering-constants ...                                    */
-;*---------------------------------------------------------------------*/
-(define-macro (end-registering-constants)
-   '(&end!))
-
-;*---------------------------------------------------------------------*/
-;*    init-registered-constants ...                                    */
-;*---------------------------------------------------------------------*/
-(define-macro (init-registered-constants)
-   '(&init!))
-   
+;* {*---------------------------------------------------------------------*} */
+;* {*    & ...                                                            *} */
+;* {*---------------------------------------------------------------------*} */
+;* (define-macro (& name)                                              */
+;*    `',(string->symbol name))                                        */
+;*                                                                     */
+;* {*---------------------------------------------------------------------*} */
+;* {*    && ...                                                           *} */
+;* {*---------------------------------------------------------------------*} */
+;* (define-macro (&& e)                                                */
+;*    `(& ,e))                                                         */
+;*                                                                     */
+;* {*---------------------------------------------------------------------*} */
+;* {*    start-registering-constants ...                                  *} */
+;* {*---------------------------------------------------------------------*} */
+;* (define-macro (start-registering-constants . l)                     */
+;*    '(define __js_strings (&begin!)))                                */
+;*                                                                     */
+;* {*---------------------------------------------------------------------*} */
+;* {*    end-registering-constants ...                                    *} */
+;* {*---------------------------------------------------------------------*} */
+;* (define-macro (end-registering-constants)                           */
+;*    '(&end!))                                                        */
+;*                                                                     */
+;* {*---------------------------------------------------------------------*} */
+;* {*    init-registered-constants ...                                    *} */
+;* {*---------------------------------------------------------------------*} */
+;* (define-macro (init-registered-constants)                           */
+;*    '(&init!))                                                       */
+;*                                                                     */
 ;*---------------------------------------------------------------------*/
 ;*    PyObject-type-get ...                                            */
 ;*---------------------------------------------------------------------*/
@@ -347,6 +334,12 @@
       (else (bigloo-type-error "close-port" "port" obj))))
 
 (define-inline (fxarithmetic-shift num shift)
+   (bit-lsh num shift))
+
+(define-inline (fxarithmetic-shift-right num shift)
+   (bit-rsh num shift))
+
+(define-inline (fxarithmetic-shift-left num shift)
    (bit-lsh num shift))
 
 (define (integer-length n)
@@ -475,7 +468,7 @@
    (let ((table (create-hashtable :eqtest string=?)))
       (vector-for-each (lambda (v)
 			  (hashtable-put! table "foo" v))
-	 __js_strings)
+	 __py_strings)
       table))
 
 ;*---------------------------------------------------------------------*/
@@ -492,4 +485,23 @@
 
 (define (statprof-end dir)
    #unspecified)
+
+;*---------------------------------------------------------------------*/
+;*    py-init-registered-constants ...                                 */
+;*---------------------------------------------------------------------*/
+(define (py-init-registered-constants strings)
+   strings)
+
+;*---------------------------------------------------------------------*/
+;*    u8vector-copy ...                                                */
+;*---------------------------------------------------------------------*/
+(define (u8vector-copy ov)
+   (let ((nv (make-u8vector (u8vector-length ov))))
+      (u8vector-copy! nv 0 ov)
+      nv))
+
+;*---------------------------------------------------------------------*/
+;*    constants                                                        */
+;*---------------------------------------------------------------------*/
+(start-registering-constants)
 

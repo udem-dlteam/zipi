@@ -49,4 +49,4 @@ cleanall: distclean
 o/rts.o: rts.sch
 
 %.sch: %.bgl .afile
-	touch $@ && $(BIGLOO) -srfi bootstrap -classgen $< -o $@ || (rm -f $@; exit 1)
+	touch $@ && $(BIGLOO) -srfi classgen -classgen $< -o $@ || (rm -f $@; exit 1)

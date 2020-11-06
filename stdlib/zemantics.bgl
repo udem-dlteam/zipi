@@ -1,0 +1,2 @@
+(module __stdlib_zemantics
+   (export (py-getattribute obj80 attr81)))
