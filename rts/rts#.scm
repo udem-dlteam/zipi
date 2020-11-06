@@ -34,7 +34,7 @@
         representative
         hash)
       (define (make-PyStaticStr value)
-        (import (zipi rts utility))
+        (import (zipi rts hash))
         (let ((static-str
                 (%make-PyStaticStr
                   #f
@@ -340,7 +340,7 @@
 
 (define-macro (py-call f . args)
   (define (make-kwargs-loc-table names)
-    (import (zipi rts utility))
+    (import (zipi rts hash))
     (let* ((names-length (length names))
            (max-table-length (* names-length 3))
            (perfect-table-length
@@ -457,3 +457,5 @@
 (define (string-split string split)
   (call-with-input-string string (lambda (port) (read-all port (lambda (p) (read-line p split))))))
 
+
+(import (zipi rts hash))

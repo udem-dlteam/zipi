@@ -22,17 +22,15 @@ install.bigloo: install-library
 #*---------------------------------------------------------------------*/
 #*    SOURCES                                                          */
 #*---------------------------------------------------------------------*/
-SOURCES = $(OBJECTS_COMMON:%=%.bgl) bigloo.bgl builtins.bgl zemantics.bgl
+SOURCES = $(OBJECTS_COMMON:%=%.bgl) bigloo.bgl builtins.bgl zemantics.bgl \
+  hash/hash.bgl
 
 #*---------------------------------------------------------------------*/
 #*    Compilers, Tools and Destinations                                */
 #*---------------------------------------------------------------------*/
 # the library name
 TARGETNAME = zipi
-ZIPICLOSELIBS_S = -lpyc_s-$(ZIPIRELEASE) $(BGLCLOSELIBS_S)
-ZIPICLOSELIBS_U = -lpyc_u-$(ZIPIRELEASE) $(BGLCLOSELIBS_U)
-ZIPICLOSELIBS_ES = -lzipi_s-$(ZIPIRELEASE)
-ZIPICLOSELIBS_EU = -lzipi_u-$(ZIPIRELEASE)
+ZIPIAPPLIBS = pyc
 
 BLIBFLAGS = $(BCFLAGSRTS)
 
@@ -79,6 +77,7 @@ ude:
 clean.bigloo:
 	rm -f .afile
 	rm -rf o
+	rm -f builtins.bgl zemantics.scm zemantics.bgl
 	$(MAKE) -C ../stdlib clean
 
 #*---------------------------------------------------------------------*/

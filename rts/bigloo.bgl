@@ -52,6 +52,7 @@
 
 	   (inline u8vector-append . vecs)
 	   (inline subu8vector vec start stop)
+	   (u8vector-copy::u8vector ::u8vector)
 
 	   (append-strings ::pair-nil)
 
@@ -73,9 +74,10 @@
 	   (file-info-last-modification-time info)
 	   (file-info-type path)
 	   
-	   (make-table #!key test weak-values)
-	   (table-set! table key value)
-	   (table-ref table key #!optional default)
+	   (inline make-table #!key test weak-values)
+	   (inline table-set! table key value)
+	   (inline table-ref table key #!optional default)
+	   (inline table->list table)
 
 	   (macro with-exception-catcher)
 
@@ -185,6 +187,11 @@
             (loop (+ vec_i 1) (+ subvec_i 1) stop vec subvec))
           subvec))))
 
+(define (u8vector-copy ov)
+   (let ((nv (make-u8vector (u8vector-length ov))))
+      (u8vector-copy! nv 0 ov)
+      nv))
+
 ;*---------------------------------------------------------------------*/
 ;*    strings                                                          */
 ;*---------------------------------------------------------------------*/
@@ -251,16 +258,19 @@
 ;*---------------------------------------------------------------------*/
 ;*    hash tables                                                      */
 ;*---------------------------------------------------------------------*/
-(define (make-table #!key test weak-values)
+(define-inline (make-table #!key test weak-values)
    (create-hashtable :eqtest test))
 
-(define (table-set! table key value)
+(define-inline (table-set! table key value)
    (hashtable-put! table key value))
 
-(define (table-ref table key #!optional default)
+(define-inline (table-ref table key #!optional default)
    (or (hashtable-get table key)
        (unless (hashtable-contains? table key)
 	  default)))
+
+(define-inline (table->list table)
+   (hashtable-map table cons))
 
 ;*---------------------------------------------------------------------*/
 ;*    with-exception-catcher ...                                       */

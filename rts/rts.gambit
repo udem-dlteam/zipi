@@ -173,11 +173,4 @@
       " > "
       target)))
 
-(define (append-lists list-of-lists)
-  (let outer-loop ((lists-tail list-of-lists) (outer-acc '()))
-    (if (null? lists-tail)
-      (reverse! outer-acc)
-      (let inner-loop ((head (car lists-tail)) (inner-acc outer-acc))
-        (if (null? head)
-          (outer-loop (cdr lists-tail) inner-acc)
-          (inner-loop (cdr head) (cons (car head) inner-acc)))))))
+

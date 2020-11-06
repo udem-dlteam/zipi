@@ -70,8 +70,7 @@
   `(eq? (str-representative-get ,self) (str-representative-get ,other)))
 
 (define-macro (define-all-py-callX)
-  ;;(import (zipi rts config))
-  (import (config))
+  (include "config")
 
   (define (define-py-callX X)
     (let ((py-call-name (string->symbol (string-append "py-call" (number->string X))))
@@ -369,7 +368,16 @@
     port
     mode
     encoding))
+
 ;; ----------------------------------------------------------------------------
+(define (append-lists list-of-lists)
+  (let outer-loop ((lists-tail list-of-lists) (outer-acc '()))
+    (if (null? lists-tail)
+      (reverse! outer-acc)
+      (let inner-loop ((head (car lists-tail)) (inner-acc outer-acc))
+        (if (null? head)
+          (outer-loop (cdr lists-tail) inner-acc)
+          (inner-loop (cdr head) (cons (car head) inner-acc)))))))
 
 ;; WARNING: this must be a constant otherwise it may be garbage collected
 ;; in some case and no longer be eq? with its version stored in literal objects
@@ -696,7 +704,6 @@
 (define kwargs-already-seen '%kwargs-already-seen)
 
 (define (kwargs-table-pop! table key)
-  ;;(import (zipi rts utility))
   ;; NOTE: key will always either be from a signature or a call-table
   ;; key will always have been hashed at compile time
   (let* ((index-table (vector-ref table 0))
@@ -1348,7 +1355,6 @@
         (let ((h (py-call __hash__ x)))
           (if (py-isinstance? h py-int-class)
             (let ((h-value (PyObjectInt-value h)))
-              ;;(import (zipi rts utility))
               (py-int-from-scheme (truncate-hash h-value)))
       	    (py-throw-exception-with-message
       	       py-builtin-RuntimeError
@@ -1580,7 +1586,6 @@
 
 (define-int-unary-operator int-hash "__hash__"
    (let ()
-      ;;(import (zipi rts utility))
       truncate-hash))
 
 (define (int-repr self)
@@ -2355,7 +2360,6 @@
 (define-str-comparison-operator str-le "__le__" string<=?)
 
 (define (str-hash-value str)
-  ;;(import (zipi rts utility))
   (let ((cached-hash (PyObjectStr-hash str)))
     (if cached-hash
       cached-hash
@@ -2378,11 +2382,12 @@
     (make-posonly-signature (self))))
 
 (define (str-add self other)
-  (if (py-isinstance? self py-str-class)
-    (if (py-isinstance? other py-str-class)
-      (py-str-from-scheme (cons self other))
-      py-NotImplemented)
-    (py-throw-required-type "__add__" "str" self)))
+   (if (py-isinstance? self py-str-class)
+       (if (py-isinstance? other py-str-class)
+	   ;; !!! MS 6 Nov 2020: this is erroneously typed
+	   (py-str-from-scheme (cons self other))
+	   py-NotImplemented)
+       (py-throw-required-type "__add__" "str" self)))
 
 (define str.__add__
   (procedure->py-function

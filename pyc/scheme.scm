@@ -19,9 +19,14 @@
 			  (config-get conf src:)
 			  "__stdin"))
 	     ,@(if (config-get conf bootstrap:)
-		   '((import __py_rts) (export (zipi-init)))
+		   '((import __py_rts
+			__stdlib_zemantics)
+		     (include "bigloo/rts-call.sch"
+			"bigloo/constants.sch")
+		     (export (zipi-init)))
 		   '((library zipi)))
 	     ,@(if (config-get conf main:) '((main main)) '()))
+	 '(start-registering-constants)
 	 `(define py-module ,@prog)
 	 (cond
 	    ((config-get conf main:)
@@ -40,7 +45,8 @@
 		 (let ((global (py-make-global))
 		       (caches (py-make-caches ,(PycModule-caches ast))))
 		    (py-module global caches)
-		    global)))))))
+		    global))))
+	 '(end-registering-constants))))
 
 (define (pyc-scheme-gambit ast conf)
   (let* ((semantics (collect-semantics* ast conf)))
@@ -704,22 +710,22 @@
     (let ((vararg (PycFun-vararg fun))
           (kwarg (PycFun-kwarg fun)))
       `(make-signature
-        ,(map PycDecl-id (PycFun-args fun))
-        ,(map PycDecl-id (PycFun-posonlyargs fun))
+        ',(map PycDecl-id (PycFun-args fun))
+        ',(map PycDecl-id (PycFun-posonlyargs fun))
         ,(cond
             ((PycDecl? vararg) (PycDecl-id vararg))
             ((PycUninit? vararg) #f)
             (else (error "signature" "unknown value for vararg" vararg)))
-        ,(map PycDecl-id (PycFun-kwonlyargs fun))
+        ',(map PycDecl-id (PycFun-kwonlyargs fun))
         ,(if (> (length (PycFun-kw-defaults fun)) 0)
             `(vector ,@(scheme* (PycFun-kw-defaults fun) conf))
             #f)
         ,(cond
-            ((PycDecl? kwarg) (PycDecl-id kwarg))
+            ((PycDecl? kwarg) `',(PycDecl-id kwarg))
             ((PycUninit? kwarg) #f)
             (else (error "signature" "unknown value for kwarg" kwarg)))
         ,(if (> (length (PycFun-defaults fun)) 0)
-            `(vector ,@(scheme* (PycFun-defaults fun) conf))
+            `'#(,@(scheme* (PycFun-defaults fun) conf))
             #f))))
 
     (define (apply-decorators fun conf)

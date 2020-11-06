@@ -17,7 +17,7 @@
    (cond-expand
       ((not classgen)
        (include "rts.sch"
-	  "bigloo/import.sch"
+	  "bigloo/include.sch"
 	  "bigloo/rts-call.sch"
 	  "bigloo/constants.sch"
 ;* 	  "bigloo/names.sch"                                           */
@@ -25,6 +25,7 @@
 
    (import __py_bigloo
 	   __py_configure
+	   __stdlib_hash
            __stdlib_builtins
 	   __stdlib_zemantics)
 
@@ -202,6 +203,7 @@
 	   (inline PCache-set! ::PCache ::HClass ::long)
 	   (inline HClass-last-index::long ::HClass)
 
+	   (&pystring-init str)
 	   (py-init-registered-constants strings)
 	   )
       
@@ -491,14 +493,6 @@
 ;*---------------------------------------------------------------------*/
 (define (py-init-registered-constants strings)
    strings)
-
-;*---------------------------------------------------------------------*/
-;*    u8vector-copy ...                                                */
-;*---------------------------------------------------------------------*/
-(define (u8vector-copy ov)
-   (let ((nv (make-u8vector (u8vector-length ov))))
-      (u8vector-copy! nv 0 ov)
-      nv))
 
 ;*---------------------------------------------------------------------*/
 ;*    constants                                                        */

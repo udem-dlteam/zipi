@@ -28,7 +28,7 @@ build:
 	$(MAKE) -C pyc
 	$(MAKE) -C zpc
 	$(MAKE) -C rts
-	ln -s ../etc/pysexp.py ./bin/pysexp.py
+	rm -rf ./bin/pysexp.py; ln -s ../etc/pysexp.py ./bin/pysexp.py
 	chmod u+x ./etc/pysexp.py
 
 #*---------------------------------------------------------------------*/

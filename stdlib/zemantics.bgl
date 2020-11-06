@@ -1,2 +1,22 @@
 (module __stdlib_zemantics
-   (export (py-getattribute obj80 attr81)))
+   (export (py-getattribute obj80 attr81)
+	   (py-getitem obj83 index84)
+	   (py-setitem obj86 index87 value88)
+	   
+	   (inline py-add x y)
+	   (py-add:normal x y)
+	   
+	   (inline py-sub x y)
+	   (py-sub:normal x y)
+
+	   (inline py-floordiv x y)
+	   (py-floordiv:normal x y)
+	   
+	   (inline py-mod x y)
+	   (py-mod:normal x y)))
+
+(define-inline (py-add x y) (py-add:normal x y))
+(define-inline (py-sub x y) (py-sub:normal x y))
+(define-inline (py-floordiv x y) (py-floordiv:normal x y))
+(define-inline (py-mod x y) (py-mod:normal x y))
+
