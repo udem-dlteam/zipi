@@ -7132,6 +7132,16 @@ def make_module_pixels():
         if om_isinstance(x, class_int) and om_isinstance(y, class_int):
             xval = int_to_num(OM_get_boxed_value(x))
             yval = int_to_num(OM_get_boxed_value(y))
+
+            screen_width = drawing_getScreenWidth(rte)
+            screen_height = drawing_getScreenHeight(rte)
+
+            if xval < 0 or xval >= screen_width:
+                return sem_raise_with_message(ctx, class_IndexError, "x parameter of setPixel must be a positive integer less than " + str(screen_width))
+
+            if yval < 0 or yval >= screen_height:
+                return sem_raise_with_message(ctx, class_IndexError, "y parameter of setPixel must be a positive integer less than " + str(screen_height))
+
             if om_isinstance(color, class_str):
                 color_val = color_str_to_dict(OM_get_boxed_value(color))
                 if color_val is None:
@@ -7165,6 +7175,24 @@ def make_module_pixels():
             yval = int_to_num(OM_get_boxed_value(y))
             width_val = int_to_num(OM_get_boxed_value(width))
             height_val = int_to_num(OM_get_boxed_value(height))
+
+            screen_width = drawing_getScreenWidth(rte)
+            screen_height = drawing_getScreenHeight(rte)
+
+            if xval < 0:
+                return sem_raise_with_message(ctx, class_IndexError, "x parameter of fillRectangle must be a positive integer")
+
+            if yval < 0:
+                return sem_raise_with_message(ctx, class_IndexError, "y parameter of fillRectangle must be a positive integer")
+
+            if width_val < 0 or xval + width_val > screen_width:
+                error_msg = "width parameter of fillRectangle must be a positive integer such that x + width <= " + str(screen_width)
+                return sem_raise_with_message(ctx, class_IndexError, error_msg)
+
+            if height_val < 0 or yval + height_val > screen_height:
+                error_msg = "height parameter of fillRectangle must be a positive integer such that y + height <= " + str(screen_height)
+                return sem_raise_with_message(ctx, class_IndexError, error_msg)
+
             if om_isinstance(color, class_str):
                 color_val = color_str_to_dict(OM_get_boxed_value(color))
                 if color_val is None:
