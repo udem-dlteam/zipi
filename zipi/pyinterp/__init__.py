@@ -7331,8 +7331,56 @@ def make_module_more_builtins():
          ('__repr__', om_struct_repr),
          ('__setattr__', om_struct_setattr)))
 
+
+    # Codeboot IO
+
+    def readFile_code(rte, cont):
+        filename = rte_lookup_locals(rte, 'filename')
+
+        if not om_isinstance(filename, class_str):
+            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "filename must be a str")
+        else:
+            filename_value = OM_get_boxed_value(filename)
+
+            if len(filename_value) == 0:
+                return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError,
+                                              "filename must be a non-empty str")
+            else:
+                content = runtime_readFile(rte, filename_value)
+                return unwindReturn(rte, om_str(content))
+
+
+    om_readFile = om_make_builtin_function_with_signature('readFile', readFile_code,
+                                                          make_posonly_only_signature(['filename']))
+
+    def writeFile_code(rte, cont):
+        filename = rte_lookup_locals(rte, 'filename')
+        content = rte_lookup_locals(rte, 'content')
+
+        if not om_isinstance(filename, class_str):
+            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "filename must be a str")
+        elif not om_isinstance(content, class_str):
+            return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError, "content must be a str")
+        else:
+            filename_value = OM_get_boxed_value(filename)
+            content_value = OM_get_boxed_value(content)
+
+            if len(filename_value) == 0:
+                return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError,
+                                              "filename must be a non-empty str")
+            else:
+                runtime_writeFile(rte, filename_value, content_value)
+                return unwindReturn(rte, om_None)
+
+
+    om_writeFile = om_make_builtin_function_with_signature('writeFile', writeFile_code,
+                                                           make_posonly_only_signature(['filename', 'content']))
+
+
     module_more_builtins_env = make_dict()
     dict_set(module_more_builtins_env, 'struct', class_struct)
+    dict_set(module_more_builtins_env, 'writeFile', om_writeFile)
+    dict_set(module_more_builtins_env, 'readFile', om_readFile)
 
     return om_module('more_builtins', module_more_builtins_env)
 

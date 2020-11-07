@@ -800,3 +800,17 @@ def runtime_get_syntaxError_thrower(compilation_error):
 
 def runtime_get_file_container(rte, filename):
     return None
+
+def runtime_readFile(rte, filename):
+    try:
+        with open(filename, 'r') as f:
+            return f.read()
+    except OSError:
+        return None
+
+def runtime_writeFile(rte, filename, content):
+    try:
+        with open(filename, 'w') as f:
+            return f.write(content)
+    except OSError:
+        return None
