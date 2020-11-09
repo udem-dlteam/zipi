@@ -31,6 +31,8 @@
 	 (cond
 	    ((config-get conf main:)
 	     `(define (main argv)
+		 (bigloo-library-path-set!
+		    (cons ,(config-get conf :lib-dir) (bigloo-library-path)))
 		 (py-module
 		    (py-make-global)
 		    (py-make-caches ,(PycModule-caches ast)))))
