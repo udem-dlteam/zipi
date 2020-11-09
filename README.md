@@ -2,6 +2,12 @@
 A fast Python implementation.
 
 
+## Versions
+
+  * Bigloo: branch `4.a`, commit `2cfd676b56a08a2d1f4f03e85159c2a1f3bddf85`
+  * Gambit: 
+  
+
 ## How to run
 
 To compile with Zipi for Gambit

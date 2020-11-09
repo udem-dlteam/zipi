@@ -38,7 +38,6 @@ install: zipi-dirs
 	$(MAKE) -C pyc install
 	$(MAKE) -C zpc install
 	$(MAKE) -C rts install
-	$(MAKE) -C etc install
 	$(MAKE) install.systems
 
 install.systems: $(ZIPISYSTEMS:%=install.system.%)

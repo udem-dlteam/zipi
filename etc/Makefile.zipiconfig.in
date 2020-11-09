@@ -4,7 +4,7 @@
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Fri Sep 17 14:27:28 2004                          */
 #*    Last change :  Tue Jul  2 14:32:31 2019 (serrano)                */
-#*    Copyright   :  2004-19 Manuel Serrano                            */
+#*    Copyright   :  2004-20 Manuel Serrano                            */
 #*    -------------------------------------------------------------    */
 #*    The autoconf Makefile skeleton for ZIPI.                         */
 #*=====================================================================*/
@@ -25,6 +25,7 @@ ZIPISYSTEMS	= @SYSTEMS@
 #*---------------------------------------------------------------------*/
 # Compilers
 BIGLOO          = @BIGLOO@
+BACKEND		= native
 
 #*---------------------------------------------------------------------*/
 #*    Tools, and misc configuration                                    */

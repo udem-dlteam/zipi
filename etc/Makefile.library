@@ -107,32 +107,32 @@ one-lib-c.$(SHAREDSUFFIX): \
 $(BUILDLIBDIR)/lib$(TARGETNAME)_s$(LIBSUFFIXTHREAD)-$(ZIPIRELEASE).$(SHAREDSUFFIX): \
    .afile $(OBJECTS)
 	$(MAKE) bigloo-shared-lib \
-           LDINSTALLNAMEDIR=$(DESTDIR)$(HOPLIBDIR)/$(HOPFILDIR) \
+           LDINSTALLNAMEDIR=$(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR) \
            BOOTLIBDIR=$(BUILDLIBDIR) \
            FORCELD=true \
            LIBDEST=$@ \
            LIBSUFFIXTHREAD=$(LIBSUFFIXTHREAD) \
            SONAME=lib$(TARGETNAME)_s$(LIBSUFFIXTHREAD)-$(ZIPIRELEASE).$(SHAREDSUFFIX) \
-           LDOPTS="-L$(BUILDLIBDIR) $(LDHOPOPTS) $(LDOPTS)" \
-           EXTRALIBS="$(EXTRALIBS) $(HOPEXTRALIBS)" \
-           BIGLOOEXTRALIBS="$(HOPBIGLOOEXTRALIBS)" \
-           BIGLOOAPPLIBS="$(HOPAPPLIBS)" \
+           LDOPTS="-L$(BUILDLIBDIR) $(LDZIPIOPTS) $(LDOPTS)" \
+           EXTRALIBS="$(EXTRALIBS) $(ZIPIEXTRALIBS)" \
+           BIGLOOEXTRALIBS="$(ZIPIBIGLOOEXTRALIBS)" \
+           BIGLOOAPPLIBS="$(ZIPIAPPLIBS)" \
            APPRELEASE=$(ZIPIRELEASE)
 	@ $(call done,$@)
 
 $(BUILDLIBDIR)/lib$(TARGETNAME)_u$(LIBSUFFIXTHREAD)-$(ZIPIRELEASE).$(SHAREDSUFFIX): \
    .afile $(OBJECTS)
 	$(MAKE) bigloo-shared-lib \
-           LDINSTALLNAMEDIR=$(DESTDIR)$(HOPLIBDIR)/$(HOPFILDIR) \
+           LDINSTALLNAMEDIR=$(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR) \
            BOOTLIBDIR=$(BUILDLIBDIR) \
            FORCELD=true \
            LIBDEST=$@ \
            LIBSUFFIXTHREAD=$(LIBSUFFIXTHREAD) \
            SONAME=lib$(TARGETNAME)_u$(LIBSUFFIXTHREAD)-$(ZIPIRELEASE).$(SHAREDSUFFIX) \
-           LDOPTS="-L$(BUILDLIBDIR) $(LDHOPOPTS) $(LDOPTS)" \
-           EXTRALIBS="$(EXTRALIBS) $(HOPEXTRALIBS)" \
-           BIGLOOEXTRALIBS="$(HOPBIGLOOEXTRALIBS)" \
-           BIGLOOAPPLIBS="$(HOPAPPLIBS)" \
+           LDOPTS="-L$(BUILDLIBDIR) $(LDZIPIOPTS) $(LDOPTS)" \
+           EXTRALIBS="$(EXTRALIBS) $(ZIPIEXTRALIBS)" \
+           BIGLOOEXTRALIBS="$(ZIPIBIGLOOEXTRALIBS)" \
+           BIGLOOAPPLIBS="$(ZIPIAPPLIBS)" \
            APPRELEASE=$(ZIPIRELEASE)
 	@ $(call done,$@)
 
@@ -141,14 +141,14 @@ $(BUILDLIBDIR)/lib$(TARGETNAME)_es$(LIBSUFFIXTHREAD)-$(ZIPIRELEASE).$(SHAREDSUFF
            OBJECTS="$(EOBJECTS)" \
            FORCELD=true \
            LIBDEST=$@ \
-           LDINSTALLNAMEDIR=$(DESTDIR)$(HOPLIBDIR)/$(HOPFILDIR) \
+           LDINSTALLNAMEDIR=$(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR) \
            LIBSUFFIXTHREAD=$(LIBSUFFIXTHREAD) \
            SONAME=lib$(TARGETNAME)_es$(LIBSUFFIXTHREAD)-$(ZIPIRELEASE).$(SHAREDSUFFIX) \
-           LDOPTS="-L$(BUILDLIBDIR) -L$(BOOTLIBDIR) $(LDHOPOPTS) $(LDOPTS)" \
+           LDOPTS="-L$(BUILDLIBDIR) -L$(BOOTLIBDIR) $(LDZIPIOPTS) $(LDOPTS)" \
            LIBSUFFIX=_s \
-           EXTRALIBS="$(EXTRALIBS) $(HOPEXTRALIBS)" \
-           BIGLOOEXTRALIBS="$(HOPBIGLOOEXTRALIBS)" \
-           BIGLOOAPPLIBS="$(HOPAPPLIBS) $(TARGETNAME)" \
+           EXTRALIBS="$(EXTRALIBS) $(ZIPIEXTRALIBS)" \
+           BIGLOOEXTRALIBS="$(ZIPIBIGLOOEXTRALIBS)" \
+           BIGLOOAPPLIBS="$(ZIPIAPPLIBS) $(TARGETNAME)" \
            APPRELEASE=$(ZIPIRELEASE)
 	@ $(call done,$@)
 
@@ -157,14 +157,14 @@ $(BUILDLIBDIR)/lib$(TARGETNAME)_eu$(LIBSUFFIXTHREAD)-$(ZIPIRELEASE).$(SHAREDSUFF
            OBJECTS="$(EOBJECTS)" \
            FORCELD=true \
            LIBDEST=$@ \
-           LDINSTALLNAMEDIR=$(DESTDIR)$(HOPLIBDIR)/$(HOPFILDIR) \
+           LDINSTALLNAMEDIR=$(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR) \
            SONAME=lib$(TARGETNAME)_eu$(LIBSUFFIXTHREAD)-$(ZIPIRELEASE).$(SHAREDSUFFIX) \
            LIBSUFFIXTHREAD=$(LIBSUFFIXTHREAD) \
-           LDOPTS="-L$(BUILDLIBDIR) -L$(BOOTLIBDIR) $(LDHOPOPTS) $(LDOPTS)" \
+           LDOPTS="-L$(BUILDLIBDIR) -L$(BOOTLIBDIR) $(LDZIPIOPTS) $(LDOPTS)" \
            LIBSUFFIX=_u \
-           EXTRALIBS="$(EXTRALIBS) $(HOPEXTRALIBS)" \
-           BIGLOOEXTRALIBS="$(HOPBIGLOOEXTRALIBS)" \
-           BIGLOOAPPLIBS="$(HOPAPPLIBS) $(TARGETNAME)" \
+           EXTRALIBS="$(EXTRALIBS) $(ZIPIEXTRALIBS)" \
+           BIGLOOEXTRALIBS="$(ZIPIBIGLOOEXTRALIBS)" \
+           BIGLOOAPPLIBS="$(ZIPIAPPLIBS) $(TARGETNAME)" \
            APPRELEASE=$(ZIPIRELEASE)
 	@ $(call done,$@)
 
@@ -242,8 +242,8 @@ install-library: install-$(BACKEND)
 install-native: install-native-heap install-native-libs
 
 install-native-heap:
-	$(INSTALL) $(BUILDLIBDIR)/$(TARGETNAME).heap $(DESTDIR)$(HOPLIBDIR)/$(HOPFILDIR)/$(TARGETNAME).heap
-	chmod $(MODFILE) $(DESTDIR)$(HOPLIBDIR)/$(HOPFILDIR)/$(TARGETNAME).heap
+	$(INSTALL) $(BUILDLIBDIR)/$(TARGETNAME).heap $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR)/$(TARGETNAME).heap
+	chmod $(MODFILE) $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR)/$(TARGETNAME).heap
 
 install-native-libs:
 	if [ "$(THREADS)" = "yes" ]; then \
@@ -256,33 +256,33 @@ install-native-libs-version:
 	$(MAKE) install-lib \
                 INSTALL="$(INSTALL)" \
                 BOOTLIBDIR=$(BUILDLIBDIR) \
-                FILDIR=$(HOPFILDIR)\
-                LIBDIR=$(HOPLIBDIR)\
+                FILDIR=$(ZIPIFILDIR)\
+                LIBDIR=$(ZIPILIBDIR)\
                 LIB=lib$(TARGETNAME)_s$(LIBSUFFIXTHREAD)-$(ZIPIRELEASE)
 	$(MAKE) install-lib \
                 INSTALL="$(INSTALL)" \
                 BOOTLIBDIR=$(BUILDLIBDIR) \
-                FILDIR=$(HOPFILDIR) \
-                LIBDIR=$(HOPLIBDIR) \
+                FILDIR=$(ZIPIFILDIR) \
+                LIBDIR=$(ZIPILIBDIR) \
                 LIB=lib$(TARGETNAME)_es$(LIBSUFFIXTHREAD)-$(ZIPIRELEASE)
 	$(MAKE) install-lib \
                 INSTALL="$(INSTALL)" \
                 BOOTLIBDIR=$(BUILDLIBDIR) \
-                FILDIR=$(HOPFILDIR) \
-                LIBDIR=$(HOPLIBDIR) \
+                FILDIR=$(ZIPIFILDIR) \
+                LIBDIR=$(ZIPILIBDIR) \
                 LIB=lib$(TARGETNAME)_u$(LIBSUFFIXTHREAD)-$(ZIPIRELEASE)
 	$(MAKE) install-lib \
                 INSTALL="$(INSTALL)" \
                 BOOTLIBDIR=$(BUILDLIBDIR) \
-                FILDIR=$(HOPFILDIR) \
-                LIBDIR=$(HOPLIBDIR) \
+                FILDIR=$(ZIPIFILDIR) \
+                LIBDIR=$(ZIPILIBDIR) \
                 LIB=lib$(TARGETNAME)_eu$(LIBSUFFIXTHREAD)-$(ZIPIRELEASE)
 
 
 uninstall: uninstall-native-heap uninstall-native-libs
 
 uninstall-native-heap:
-	-$(RM) -f $(DESTDIR)$(HOPLIBDIR)/$(HOPFILDIR)/$(TARGETNAME).heap
+	-$(RM) -f $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR)/$(TARGETNAME).heap
 
 uninstall-native-libs:
 	if [ "$(THREADS)" = "yes" ]; then \
