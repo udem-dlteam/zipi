@@ -259,6 +259,12 @@ class OM_range(OM_object):
     step: step of the range (om int)
     """
 
+class OM_map(OM_object):
+    """
+    iterators: the underlying iterators being mapped onto (list)
+    fn: the function being mapped onto
+    """
+
 class OM_slice(OM_object):
     """
     start: start of the slice
@@ -1108,6 +1114,15 @@ def populate_builtin_range():
          ('__eq__', om_range_eq),
          ('__getitem__', om_range_getitem)))
 
+
+def populate_builtin_map():
+    buitlin_add_methods_to_class(
+        class_map,
+        (('__new__', om_map_new),
+         ('__iter__', om_map_iter),
+         ('__next__', om_map_next)))
+
+
 def populate_builtin_slice():
     buitlin_add_methods_to_class(
         class_slice,
@@ -1224,6 +1239,14 @@ def om_iterator(obj, index):
 
     return it
 
+def om_map(map_cls, fn, iterators):
+    map_obj = om(map_cls)
+
+    OM_set_map_function(map_obj, fn)
+    OM_set_map_iterators(map_obj, iterators)
+
+    return map_obj
+
 def om_module(name, val):
     obj = om(class_module)
 
@@ -1327,6 +1350,9 @@ def OM_struct_create():
 
 def OM_range_create():
     return OM_range()
+
+def OM_map_create():
+    return OM_map()
 
 def OM_dict_create():
     return OM_dict()
@@ -1468,6 +1494,18 @@ def OM_get_range_step(o):
 
 def OM_set_range_step(o, v):
     o.step = v
+
+def OM_get_map_iterators(o):
+    return o.iterators
+
+def OM_set_map_iterators(o, iterators):
+    o.iterators = iterators
+
+def OM_get_map_function(o):
+    return o.fn
+
+def OM_set_map_function(o, fn):
+    o.fn= fn
 
 def OM_get_iterator_obj(o):
     return o.obj
@@ -1758,6 +1796,7 @@ class_tuple = make_builtin_class('tuple', OM_tuple_create, (), class_type)
 class_iterator = make_builtin_class('iterator', OM_iterator_create, (), class_type)
 class_list = make_builtin_class('list', OM_list_create, (), class_type)
 class_range = make_builtin_class('range', OM_range_create, (), class_type)
+class_map = make_builtin_class('map', OM_map_create, (), class_type)
 class_dict = make_builtin_class('dict', OM_dict_create, (), class_type)
 class_module = make_builtin_class('module', OM_module_create, (), class_type)
 class_function = make_builtin_class('function', OM_function_create, (), class_type)
@@ -4006,6 +4045,72 @@ def om_slice_indices_code(ctx, args):
 
 
 om_slice_indices = do_magic_method(class_slice, "indices", om_slice_indices_code)
+
+
+# class_map methods
+
+
+def cps_map(ctx, fn, lst):
+    lst_len = len(lst)
+    new_lst = list_new(lst_len, None)
+
+    def do_next(i):
+        if i < lst_len:
+            def do_store(rte, val):
+                new_lst[i] = val
+                return stmt_end(with_cont(ctx, lambda rte: do_next(i + 1)), 0)
+            return fn(with_cont(ctx, do_store), lst[i])
+        else:
+            return cont_obj(ctx, new_lst)
+
+    return do_next(0)
+
+
+def om_map_new_code(ctx, args):
+    args_len = len(args)
+
+    if args_len < 3:
+        return sem_raise_with_message(ctx, class_TypeError, "map() must have at least two arguments.")
+    else:
+        cls = args[0]
+        fn = args[1]
+        iterables = args[2:]
+
+        def create_obj(rte, iterators):
+            map_obj = om_map(cls, fn, iterators)
+            return cont_obj(ctx, map_obj)
+
+        return cps_map(with_cont(ctx, create_obj), sem_iter, iterables)
+
+
+om_map_new = do_static_magic_method(class_map, "__new__", om_map_new_code)
+
+
+def om_map_iter_code(ctx, args):
+    if len(args) == 1:
+        return cont_obj(ctx, args[0])
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+
+om_map_iter = do_magic_method(class_map, "__iter__", om_map_iter_code)
+
+
+def om_map_next_code(ctx, args):
+    if len(args) == 1:
+        self = args[0]
+        fn = OM_get_map_function(self)
+        iterators = OM_get_map_iterators(self)
+
+        def do_call(rte, fn_args):
+            return sem_simple_call(ctx, fn, fn_args)
+
+        return cps_map(with_cont(ctx, do_call), sem_next_no_default, iterators)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+
+om_map_next = do_magic_method(class_map, "__next__", om_map_next_code)
 
 
 # class_iterator methods
@@ -6268,6 +6373,7 @@ populate_builtin_bool()
 populate_builtin_tuple()
 populate_builtin_list()
 populate_builtin_range()
+populate_builtin_map()
 populate_builtin_slice()
 populate_builtin_iterator()
 populate_builtin_dict()
@@ -7514,6 +7620,7 @@ def fresh_rte(options):
     dict_set(builtins_env, 'tuple', class_tuple)
     dict_set(builtins_env, 'list', class_list)
     dict_set(builtins_env, 'range', class_range)
+    dict_set(builtins_env, 'map', class_map)
     dict_set(builtins_env, 'slice', class_slice)
     dict_set(builtins_env, 'NotImplemented', om_NotImplemented)
     dict_set(builtins_env, 'print', om_builtin_print)
@@ -9704,6 +9811,10 @@ def sem_next(ctx, obj, default_):
 
         next_ctx = with_catch(ctx, catch_StopIteration)
         return sem_simple_call(next_ctx, obj_next, [obj])
+
+
+def sem_next_no_default(ctx, obj):
+    return sem_next(ctx, obj, absent)
 
 
 def sem_next_with_return_to_trampoline(ctx, obj, default_):
