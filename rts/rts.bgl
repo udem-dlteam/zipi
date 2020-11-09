@@ -175,7 +175,7 @@
 	   (py-slice-from-scheme ::obj ::obj ::obj)
 	   
            (py-obj-alloc cls hclass-of-instances)
-	   (py-str-from-scheme::PyObject ::bstring)
+	   (py-str-from-scheme::PyObject ::obj)
 	   (py-str-to-scheme::bstring ::PyObject)
 	   
 	   procedure->py-function
