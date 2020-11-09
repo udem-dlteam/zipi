@@ -74,33 +74,57 @@
        (new-PycFun
          loc
          ;; args
-         (map (lambda (a)
-                (new-PycDecl loc (car a) 'local))
-              (car args))
+	 (match-case args
+	    (((and ?fix (?- . ?-)) . ?-)
+	     (map (lambda (a)
+		     (new-PycDecl loc (car a) 'local))
+		fix))
+	    (else
+	     '()))
          ;; posonlyargs
-         (map (lambda (a)
-                (new-PycDecl loc (car a) 'local))
-              (cadr args))
+	 (match-case args
+	    ((?- (and ?poso (?- . ?-)) . ?-)
+	     (map (lambda (a)
+		     (new-PycDecl loc (car a) 'local))
+		poso))
+	    (else
+	     '()))
          ;; vararg
-         (if (caddr args)
-             (new-PycDecl loc (caaddr args) 'local)
-             (new-PycUninit loc))
+	 (match-case args
+	    ((?- ?- (?va . ?-) . ?-)
+             (new-PycDecl loc va 'local))
+	    (else
+             (new-PycUninit loc)))
          ;; kwonlyargs
-         (map (lambda (a)
-                (new-PycDecl loc (car a) 'local))
-              (list-ref args 3))
+	 (match-case args
+	    ((?- ?- (and ?kw (?- . ?-)) . ?-)
+	     (map (lambda (a)
+		     (new-PycDecl loc (car a) 'local))
+		kw))
+	    (else
+	     '()))
          ;; kw-defaults
-         (map (lambda (a)
-                (new-PycStmtExpr loc (sexp a tail scope conf)))
-              (list-ref args 4))
+	 (match-case args
+	    ((?- ?- ?- (and ?kw (?- . ?-)) . ?-)
+	     (map (lambda (a)
+		     (new-PycStmtExpr loc (sexp a tail scope conf)))
+		kw))
+	    (else
+	     '()))
          ;; kwarg
-         (if (list-ref args 5)
-             (new-PycDecl loc (car (list-ref args 5)) 'local)
-             (new-PycUninit loc))
+	 (match-case args
+	    ((?- ?- ?- ?- (?kw . ?-) . ?-)
+             (new-PycDecl loc kw 'local))
+	    (else
+             (new-PycUninit loc)))
          ;; defaults
-         (map (lambda (a)
-                (new-PycStmtExpr loc (sexp a tail scope conf)))
-              (list-ref args 6))
+	 (match-case args
+	    ((?- ?- ?- ?- ?- (and ?def (?- . ?-)))
+	     (map (lambda (a)
+		     (new-PycStmtExpr loc (sexp a tail scope conf)))
+		def))
+	    (else
+	     '()))
          (compile-stmt* loc body #t 'local conf)
          decorators: (map
                        (lambda (d) (sexp d #f scope conf)) decorator_list)

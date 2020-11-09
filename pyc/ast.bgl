@@ -159,7 +159,7 @@
 
                 (class PycAccess::PycExpr
                        obj::PycExpr
-                       (field::bstring read-only)
+                       (field::obj read-only)
                        (cache (default #f)))
 
                 (class PycSubscript::PycExpr

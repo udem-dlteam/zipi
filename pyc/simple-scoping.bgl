@@ -9,3 +9,7 @@
 	   __pyc_utils)
 
    (export (pyc-simple-scoping this::PycNode conf)))
+
+(define (call/cc proc)
+   (bind-exit (escape)
+      (proc escape)))
