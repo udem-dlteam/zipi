@@ -20,7 +20,7 @@ bdepend=bgldepend
 devmode=product
 debug=no
 
-bcflags="-g -fsharing -call/cc -L \$(BUILDLIBDIR) -srfi bigloo-compile"
+bcflags="-g -fsharing -srfi bootstrap -L \$(BUILDLIBDIR) -srfi bigloo-compile"
 blflags="-copt \$(CPICFLAGS) -L \$(BUILDLIBDIR) -srfi bigloo-compile"
 bhflags=
 btflags="-gtrace"
@@ -189,5 +189,30 @@ for file in pyc.init zipi.init; do
 
   rm etc/$file
 done
+
+# rts/hash/hash.scm
+echo ";; rts/hash/hash.scm" >> $buildlibdir/zipi.init
+echo "(eval '(begin" >> $buildlibdir/zipi.init
+cat rts/hash/hash.scm >> $buildlibdir/zipi.init
+echo "))" >> $buildlibdir/zipi.init
+
+# rts/config/config.scm
+echo ";; rts/config/config.scm" >> $buildlibdir/zipi.init
+echo "(eval '(begin" >> $buildlibdir/zipi.init
+cat rts/config/config.scm >> $buildlibdir/zipi.init
+echo "))" >> $buildlibdir/zipi.init
+
+# rts/bigloo/rts-call.sch
+echo ";; rts/bigloo/call.sch" >> $buildlibdir/zipi.init
+cat rts/bigloo/call_expd.sch >> $buildlibdir/zipi.init
+
+# rts/bigloo/constants.sch
+echo ";; rts/bigloo/constants.sch" >> $buildlibdir/zipi.init
+cat rts/bigloo/constants_expd.sch >> $buildlibdir/zipi.init
+
+# rts/bigloo/expanders.sch
+cat rts/bigloo/expanders.sch >> $buildlibdir/zipi.init
+
+echo "(zipi-install-expanders!)" >> $buildlibdir/zipi.init
 
 pysexppp="['cat', '-']"

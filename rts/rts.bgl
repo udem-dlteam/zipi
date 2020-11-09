@@ -18,14 +18,14 @@
       ((not classgen)
        (include "rts.sch"
 	  "bigloo/include.sch"
-	  "bigloo/rts-call.sch"
+	  "bigloo/call.sch"
 	  "bigloo/constants.sch"
 ;* 	  "bigloo/names.sch"                                           */
 	  )))
 
    (import __py_bigloo
 	   __py_configure
-	   __stdlib_hash
+	   __py_hash
            __stdlib_builtins
 	   __stdlib_zemantics)
 
@@ -124,7 +124,6 @@
 	   (inline PyObject-elements-ref ::PyObject ::long)
 	   (PyObject-elements-set! ::PyObject ::long ::obj)
 	   
-	   ;; (py-call obj . args)
 	   (py-call0 ::obj)
 	   (py-call1 ::obj ::obj)
 	   (py-call2 ::obj ::obj ::obj)
@@ -163,6 +162,7 @@
 	   
 	   py-True
 	   py-False
+	   py-NotImplemented
 	   
 	   (py-test obj)
 	   
@@ -170,8 +170,7 @@
 	   py-module-class
 	   
 	   (py-isinstance? ::PyObject ::PyObject)
-	   
-	   py-builtin-StopIteration
+
 	   
 	   (py-slice-from-scheme ::obj ::obj ::obj)
 	   
@@ -205,40 +204,81 @@
 
 	   (&pystring-init str)
 	   (py-init-registered-constants strings)
+
+	   py-builtin-super
+	   py-builtin-tuple
+	   py-builtin-type
+	   
+	   py-builtin-ArithmeticError
+	   py-builtin-AssertionError
+	   py-builtin-AttributeError
+	   py-builtin-BaseException
+	   py-builtin-BlockingIOError
+	   py-builtin-BrokenPipeError
+	   py-builtin-BufferError
+	   py-builtin-BytesWarning
+	   py-builtin-ChildProcessError
+	   py-builtin-ConnectionAbortedError
+	   py-builtin-ConnectionError
+	   py-builtin-ConnectionRefusedError
+	   py-builtin-ConnectionResetError
+	   py-builtin-DeprecationWarning
+	   py-builtin-EOFError
+	   py-builtin-EnvironmentError
+	   py-builtin-Exception
+	   py-builtin-FileExistsError
+	   py-builtin-FileNotFoundError
+	   py-builtin-FloatingPointError
+	   py-builtin-FutureWarning
+	   py-builtin-GeneratorExit
+	   py-builtin-IOError
+	   py-builtin-ImportError
+	   py-builtin-ImportWarning
+	   py-builtin-IndentationError
+	   py-builtin-IndexError
+	   py-builtin-InterruptedError
+	   py-builtin-IsADirectoryError
+	   py-builtin-KeyError
+	   py-builtin-KeyboardInterrupt
+	   py-builtin-LookupError
+	   py-builtin-MemoryError
+	   py-builtin-ModuleNotFoundError
+	   py-builtin-NameError
+	   py-builtin-NotADirectoryError
+	   py-builtin-NotImplementedError
+	   py-builtin-OSError
+	   py-builtin-OverflowError
+	   py-builtin-PendingDeprecationWarning
+	   py-builtin-PermissionError
+	   py-builtin-ProcessLookupError
+	   py-builtin-RecursionError
+	   py-builtin-ReferenceError
+	   py-builtin-ResourceWarning
+	   py-builtin-RuntimeError
+	   py-builtin-RuntimeWarning
+	   py-builtin-StopAsyncIteration
+	   py-builtin-StopIteration
+	   py-builtin-SyntaxError
+	   py-builtin-SyntaxWarning
+	   py-builtin-SystemError
+	   py-builtin-SystemExit
+	   py-builtin-TabError
+	   py-builtin-TimeoutError
+	   py-builtin-TypeError
+	   py-builtin-UnboundLocalError
+	   py-builtin-UnicodeDecodeError
+	   py-builtin-UnicodeEncodeError
+	   py-builtin-UnicodeError
+	   py-builtin-UnicodeTranslateError
+	   py-builtin-UnicodeWarning
+	   py-builtin-UserWarning
+	   py-builtin-ValueError
+	   py-builtin-Warning
+	   py-builtin-ZeroDivisionError
 	   )
       
    (eval   (export-all)))
 
-;* {*---------------------------------------------------------------------*} */
-;* {*    & ...                                                            *} */
-;* {*---------------------------------------------------------------------*} */
-;* (define-macro (& name)                                              */
-;*    `',(string->symbol name))                                        */
-;*                                                                     */
-;* {*---------------------------------------------------------------------*} */
-;* {*    && ...                                                           *} */
-;* {*---------------------------------------------------------------------*} */
-;* (define-macro (&& e)                                                */
-;*    `(& ,e))                                                         */
-;*                                                                     */
-;* {*---------------------------------------------------------------------*} */
-;* {*    start-registering-constants ...                                  *} */
-;* {*---------------------------------------------------------------------*} */
-;* (define-macro (start-registering-constants . l)                     */
-;*    '(define __js_strings (&begin!)))                                */
-;*                                                                     */
-;* {*---------------------------------------------------------------------*} */
-;* {*    end-registering-constants ...                                    *} */
-;* {*---------------------------------------------------------------------*} */
-;* (define-macro (end-registering-constants)                           */
-;*    '(&end!))                                                        */
-;*                                                                     */
-;* {*---------------------------------------------------------------------*} */
-;* {*    init-registered-constants ...                                    *} */
-;* {*---------------------------------------------------------------------*} */
-;* (define-macro (init-registered-constants)                           */
-;*    '(&init!))                                                       */
-;*                                                                     */
 ;*---------------------------------------------------------------------*/
 ;*    PyObject-type-get ...                                            */
 ;*---------------------------------------------------------------------*/

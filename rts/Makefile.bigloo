@@ -37,7 +37,7 @@ BLIBFLAGS = $(BCFLAGSRTS)
 #*---------------------------------------------------------------------*/
 #*    Scheme extended objects                                          */
 #*---------------------------------------------------------------------*/
-OBJECTS = $(OBJECTS_COMMON:%=o/%.o) o/bigloo.o o/builtins.o
+OBJECTS = o/bigloo.o o/builtins.o o/zemantics.o o/hash.o $(OBJECTS_COMMON:%=o/%.o)
 EOBJECTS = o/make_lib.o
 
 INCLUDES =
@@ -89,6 +89,9 @@ o/builtins.o: builtins.bgl
 o/bigloo.o: bigloo.bgl
 	$(BIGLOO) -O3 -c $< -o $@
 
+o/hash.o: hash/hash.bgl hash/hash.scm
+	$(BIGLOO) -O3 -c $+ -o $@
+
 builtins.bgl:
 	$(MAKE) -C ../stdlib builtins.bgl && mv ../stdlib/builtins.bgl .
 
@@ -96,7 +99,9 @@ zemantics.bgl: ../stdlib/zemantics.bgl zemantics.scm
 	cp $< .
 
 zemantics.scm: ../stdlib/zemantics.scm
-	cp $< .
+	echo "(start-registering-constants)" > $@
+	cat $< >> $@
+	echo "(end-registering-constants)" >> $@
 
 #bdepend start (don't edit)
 #*---------------------------------------------------------------------*/

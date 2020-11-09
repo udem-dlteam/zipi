@@ -12,7 +12,10 @@
 ;*---------------------------------------------------------------------*/
 ;*    The module                                                       */
 ;*---------------------------------------------------------------------*/
-(module __stdlib_hash
+(module __py_hash
+   
+   (import __py_bigloo)
+   
    (export (fast-range-hash ::long ::long)
 	   (truncate-hash ::long)
 	   (hash-FNV1a::long ::bstring)))

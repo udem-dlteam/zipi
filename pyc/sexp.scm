@@ -97,7 +97,7 @@
              (new-PycUninit loc)))
          ;; kwonlyargs
 	 (match-case args
-	    ((?- ?- (and ?kw (?- . ?-)) . ?-)
+	    ((?- ?- ?- (and ?kw (?- . ?-)) . ?-)
 	     (map (lambda (a)
 		     (new-PycDecl loc (car a) 'local))
 		kw))
@@ -105,7 +105,7 @@
 	     '()))
          ;; kw-defaults
 	 (match-case args
-	    ((?- ?- ?- (and ?kw (?- . ?-)) . ?-)
+	    ((?- ?- ?- ?- (and ?kw (?- . ?-)) . ?-)
 	     (map (lambda (a)
 		     (new-PycStmtExpr loc (sexp a tail scope conf)))
 		kw))
@@ -113,13 +113,13 @@
 	     '()))
          ;; kwarg
 	 (match-case args
-	    ((?- ?- ?- ?- (?kw . ?-) . ?-)
+	    ((?- ?- ?- ?- ?- (?kw . ?-) . ?-)
              (new-PycDecl loc kw 'local))
 	    (else
              (new-PycUninit loc)))
          ;; defaults
 	 (match-case args
-	    ((?- ?- ?- ?- ?- (and ?def (?- . ?-)))
+	    ((?- ?- ?- ?- ?- ?- (and ?def (?- . ?-)))
 	     (map (lambda (a)
 		     (new-PycStmtExpr loc (sexp a tail scope conf)))
 		def))

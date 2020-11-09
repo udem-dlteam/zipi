@@ -15,7 +15,8 @@
 (module __py_makelib
 
    (import __py_rts
-      __py_bigloo)
+           __py_bigloo
+	   __stdlib_zemantics)
 
    (eval (export-all)
       (class PyObject)
