@@ -8923,7 +8923,11 @@ def gen_FunctionDef(cte, ast):
 
 def gen_Lambda(cte, ast):
     fn_def_cte, create_function = gen_create_function(cte, ast.args, ast.body, "<lambda>", ast)
-    return fn_def_cte, create_function
+
+    def code(rte, cont):
+        return create_function(rte, do_expr_end(cont, ast))
+
+    return fn_def_cte, code
 
 
 def gen_create_function(cte, args, body, name, ast):
