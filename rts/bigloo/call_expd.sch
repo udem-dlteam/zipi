@@ -30,8 +30,7 @@
    (match-case x
       ((make-signature ?args ?posonlyargs ?vararg ?kwonlyargs ?kw-defaults ?kwarg ?defaults)
        (e (if (or kw-defaults defaults)
-	      `'#(vector
-		  ,(constantify* args)
+	      `'#(,(constantify* args)
 		  ,(constantify* posonlyargs)
 		  ,(and vararg `',(constantify vararg))
 		  ,(constantify* kwonlyargs)
@@ -40,12 +39,12 @@
 		  ,(or defaults '#()))
 	      ;; signature with no default can be optimized to a constant
 	      `'#(,(constantify* args)
-		  ,(constantify* posonlyargs)
-		  ,(and vararg (constantify vararg))
-		  ,(constantify* kwonlyargs)
-		  #()
-		  ,(and kwarg (constantify kwarg))
-		  #()))
+			   ,(constantify* posonlyargs)
+			   ,(and vararg (constantify vararg))
+			   ,(constantify* kwonlyargs)
+			   #()
+			   ,(and kwarg (constantify kwarg))
+			   #()))
 	  e))
       (else
        (error "make-signature" "bad syntax" x))))

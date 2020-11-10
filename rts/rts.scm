@@ -470,6 +470,7 @@
         (kw-defaults (vector-ref signature 4))
         (kwarg (vector-ref signature 5))
         (defaults (vector-ref signature 6)))
+     (tprint "SIG=" signature)
     (if (and
           (eq? (vector-length kwonlyargs) 0)
           (eq? (vector-length kw-defaults) 0)

@@ -322,7 +322,7 @@
   '#(#() #() #f #() #() #f #()))
 
 (define-macro (make-vararg-only-signature vararg)
-  `(make-signaturef '() () ,vararg '() #f #f #f))
+  `(make-signature '() () ,vararg '() #f #f #f))
 
 (define-macro (make-posonly-signature posonlyargs)
   `(make-signature '() ,posonlyargs #f '() #f #f #f))
