@@ -7942,6 +7942,41 @@ def raise_walk_syntax_error(args):
     cte, ast, msg = args
     return CT_raise_syntax_error_with_msg(cte, ast, msg)
 
+
+def apply_source_to_source_transformations(cte, ast):
+    # Source-to-source transformations are expected to mutate the module
+    s2s_format_lambda_body(cte, ast)
+
+def s2s_format_lambda_body(cte, ast):
+    # AST.lambda body attribute is a single expression 'expr',
+    # although it behaves exactly as a function with body [Return(expr)]
+    # instead of making a special case out of AST.Lambda, we format its body so all traversal algorithm treating
+    # FunctionDef.body also apply to Lambda.body
+
+    def make_Return_pseudo_node(expr):
+        ret = Return(expr)
+        ret.lineno = expr.lineno
+        ret.col_offset = expr.col_offset
+        ret.end_lineno = expr.end_lineno
+        ret.end_col_offset = expr.end_col_offset
+
+        # Special case which only happens in py.js
+        if hasattr(expr, 'container'):
+            ret.container = expr.container
+
+        return ret
+
+    def walk_fn(cte, ast, _):
+        if isinstance(ast, AST.Lambda):
+            expression_body = ast.body
+            ast.body = [make_Return_pseudo_node(expression_body)]
+            return True
+        else:
+            return True
+
+    return walk(cte, ast, walk_fn, ())
+
+
 # Flags for
 LOCAL_VAR = ["LOCAL_VAR"]
 CLOSURE_VAR = ["CLOSURE_VAR"]
@@ -8034,11 +8069,10 @@ def init_compute_variables_scope(cte, ast):
     # Init computing variables scopes on function definitions, ignore variables since they are all global at top-level
 
     def walk_fn(cte, ast, args):
-        if isinstance(ast, AST.FunctionDef):
+        if isinstance(ast, AST.FunctionDef) or isinstance(ast, AST.Lambda):
             locals_env = make_dict()
             locals_ref = make_dict()
             stack = []
-            function_defs = []
 
             res = compute_variables_scope(cte, ast, locals_env, locals_ref, stack)
 
@@ -8131,6 +8165,10 @@ def compute_function_variables_scope(cte, ast, args):
         if not dict_has(locals_env, id_):
             make_local_var_token(cte, id_, current_fn)
 
+        return False
+
+    elif isinstance(ast, AST.Lambda):
+        function_defs.append(ast)
         return False
 
     elif isinstance(ast, AST.Name):
@@ -8290,6 +8328,7 @@ def comp_mod(cte, ast):
         # Module(stmt* body, type_ignore *type_ignores)
         if debug: print('AST.Module')
 
+        apply_source_to_source_transformations(cte, ast)
         init_compute_variables_scope(cte, ast)
 
         return comp_stmt_seq(cte, ast.body)
@@ -8298,6 +8337,7 @@ def comp_mod(cte, ast):
         # Interactive(stmt* body)
         if debug: print('AST.Interactive')
 
+        apply_source_to_source_transformations(cte, ast)
         init_compute_variables_scope(cte, ast)
 
         return comp_stmt_seq(cte, ast.body)
@@ -8461,7 +8501,8 @@ def comp_expr(cte, ast):
         # {ast.value.id}.{ast.attr}
         (cte1, code1) = comp_expr(cte, ast.value)
         return gen_Attribute(cte1, ast, code1, ast.attr)
-
+    elif isinstance(ast, AST.Lambda):
+        return gen_Lambda(cte, ast)
 
     elif isinstance(ast, AST.Call):
         if debug: print('AST.Call')
@@ -8659,40 +8700,40 @@ def comp_expr_opt(cte, ast):
         return comp_expr(cte, ast)
 
 
-def gen_signature(cte, ast):
+def gen_signature(cte, ast_args):
     # make_signature(args, posonlyargs, vararg, kwonlyargs, kw_defaults, kwargs, defaults)
 
     args = []
-    for arg in ast.args.args:
+    for arg in ast_args.args:
         args.append(arg.arg)
 
     posonlyargs = []
-    for posonly in ast.args.posonlyargs:
+    for posonly in ast_args.posonlyargs:
         posonlyargs.append(posonly.arg)
 
-    if ast.args.vararg is not None:
-        vararg = ast.args.vararg.arg
+    if ast_args.vararg is not None:
+        vararg = ast_args.vararg.arg
     else:
         vararg = None
 
     kwonlyargs = []
-    for kwonly in ast.args.kwonlyargs:
+    for kwonly in ast_args.kwonlyargs:
         kwonlyargs.append(kwonly.arg)
 
     kw_defaults = []
-    for kw_default in ast.args.kw_defaults:
+    for kw_default in ast_args.kw_defaults:
         if kw_default is None:
             kw_defaults.append(absent)
         else:
             kw_defaults.append(kw_default.value)
 
-    if ast.args.kwarg is not None:
-        kwarg = ast.args.kwarg.arg
+    if ast_args.kwarg is not None:
+        kwarg = ast_args.kwarg.arg
     else:
         kwarg = None
 
     defaults = []
-    for default_ in ast.args.defaults:
+    for default_ in ast_args.defaults:
         defaults.append(default_.value)
 
     return make_signature(args, posonlyargs, vararg, kwonlyargs, kw_defaults, kwarg, defaults)
@@ -8869,7 +8910,7 @@ def gen_var_set(cte, ast, id):
 
 
 def gen_FunctionDef(cte, ast):
-    fn_def_cte, create_function = gen_create_function(cte, ast)
+    fn_def_cte, create_function = gen_create_function(cte, ast.args, ast.body, ast.name, ast)
     set_cte, set_fn = gen_var_set(fn_def_cte, ast, ast.name)
 
     def code(rte, cont):
@@ -8880,7 +8921,12 @@ def gen_FunctionDef(cte, ast):
     return set_cte, code
 
 
-def gen_create_function(cte, ast):
+def gen_Lambda(cte, ast):
+    fn_def_cte, create_function = gen_create_function(cte, ast.args, ast.body, "<lambda>", ast)
+    return fn_def_cte, create_function
+
+
+def gen_create_function(cte, args, body, name, ast):
 
     def gen_function_freevar_getter(name):
         cte_locals_env = get_cte_locals_env(cte)
@@ -8905,7 +8951,7 @@ def gen_create_function(cte, ast):
         else:
             assert False, "Variable does not exist in cte"
 
-    fn_name = om_str(ast.name)
+    fn_name = om_str(name)
 
     # Create the closure variable table
     n_freevars = get_ast_property(ast, 'n_freevars', None)
@@ -8934,7 +8980,7 @@ def gen_create_function(cte, ast):
     ids = make_dict()
     dict_set(ids, "return point", True)
 
-    fn_cte = CTE(ast.name,
+    fn_cte = CTE(name,
                  locals_env,
                  closure_table,
                  cte.lex_env,
@@ -8942,10 +8988,10 @@ def gen_create_function(cte, ast):
                  cte.external_context,
                  cte)
 
-    (body_cte, body_code) = comp_stmt_seq(fn_cte, ast.body)
+    (body_cte, body_code) = comp_stmt_seq(fn_cte, body)
 
     # TODO: Once default arguments are implemented this will need to be partially at runtime
-    signature = gen_signature(cte, ast)
+    signature = gen_signature(cte, args)
 
     safe_for_space = get_cte_safe_for_space(cte)
 
