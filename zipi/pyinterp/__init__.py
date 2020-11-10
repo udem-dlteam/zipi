@@ -265,6 +265,12 @@ class OM_map(OM_object):
     fn: the function being mapped onto
     """
 
+class OM_filter(OM_object):
+    """
+    iterator: the underlying iterator being fitlered
+    fn: the filter function
+    """
+
 class OM_slice(OM_object):
     """
     start: start of the slice
@@ -1123,6 +1129,14 @@ def populate_builtin_map():
          ('__next__', om_map_next)))
 
 
+def populate_builtin_filter():
+    buitlin_add_methods_to_class(
+        class_filter,
+        (('__new__', om_filter_new),
+         ('__iter__', om_filter_iter),
+         ('__next__', om_filter_next)))
+
+
 def populate_builtin_slice():
     buitlin_add_methods_to_class(
         class_slice,
@@ -1247,6 +1261,14 @@ def om_map(map_cls, fn, iterators):
 
     return map_obj
 
+def om_filter(filter_cls, fn, iterator):
+    filter_obj = om(filter_cls)
+
+    OM_set_filter_function(filter_obj, fn)
+    OM_set_filter_iterator(filter_obj, iterator)
+
+    return filter_obj
+
 def om_module(name, val):
     obj = om(class_module)
 
@@ -1353,6 +1375,9 @@ def OM_range_create():
 
 def OM_map_create():
     return OM_map()
+
+def OM_filter_create():
+    return OM_filter()
 
 def OM_dict_create():
     return OM_dict()
@@ -1505,6 +1530,18 @@ def OM_get_map_function(o):
     return o.fn
 
 def OM_set_map_function(o, fn):
+    o.fn= fn
+
+def OM_get_filter_iterator(o):
+    return o.iterator
+
+def OM_set_filter_iterator(o, iterator):
+    o.iterator = iterator
+
+def OM_get_filter_function(o):
+    return o.fn
+
+def OM_set_filter_function(o, fn):
     o.fn= fn
 
 def OM_get_iterator_obj(o):
@@ -1797,6 +1834,7 @@ class_iterator = make_builtin_class('iterator', OM_iterator_create, (), class_ty
 class_list = make_builtin_class('list', OM_list_create, (), class_type)
 class_range = make_builtin_class('range', OM_range_create, (), class_type)
 class_map = make_builtin_class('map', OM_map_create, (), class_type)
+class_filter = make_builtin_class('filter', OM_filter_create, (), class_type)
 class_dict = make_builtin_class('dict', OM_dict_create, (), class_type)
 class_module = make_builtin_class('module', OM_module_create, (), class_type)
 class_function = make_builtin_class('function', OM_function_create, (), class_type)
@@ -4113,6 +4151,77 @@ def om_map_next_code(ctx, args):
 om_map_next = do_magic_method(class_map, "__next__", om_map_next_code)
 
 
+# class_filter methods
+
+
+def om_filter_new_code(ctx, args):
+    args_len = len(args)
+
+    if args_len != 3:
+        return sem_raise_with_message(ctx, class_TypeError, "filter() expected 2 arguments, got " + str(args_len - 1))
+    else:
+        cls = args[0]
+        fn = args[1]
+        iterable = args[2]
+
+        def create_obj(rte, iterator):
+            filter_obj = om_filter(cls, fn, iterator)
+            return cont_obj(ctx, filter_obj)
+
+        return sem_iter(with_cont(ctx, create_obj), iterable)
+
+
+om_filter_new = do_static_magic_method(class_filter, "__new__", om_filter_new_code)
+
+
+def om_filter_iter_code(ctx, args):
+    if len(args) == 1:
+        return cont_obj(ctx, args[0])
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+
+om_filter_iter = do_magic_method(class_filter, "__iter__", om_filter_iter_code)
+
+
+def om_filter_next_code(ctx, args):
+
+    if len(args) == 1:
+        self = args[0]
+        fn = OM_get_map_function(self)
+        iterator = OM_get_filter_iterator(self)
+
+        if om_is(fn, om_None):
+            def do_filter_bool():
+                def get_next(rte, nxt):
+                    def check_truthiness(rte, res):
+                        if om_is(res, om_True):
+                            return cont_obj(ctx, nxt)
+                        else:
+                            return stmt_end(with_cont(ctx, lambda rte: do_filter_bool()), 0)
+                    return sem_bool(with_cont(ctx, check_truthiness), nxt)
+                return sem_next_no_default(with_cont(ctx, get_next), iterator)
+            return do_filter_bool()
+        else:
+            def do_filter_call():
+                def get_next(rte, nxt):
+                    def get_call_res(rte, res):
+                        def check_truthiness(rte, bool_val):
+                            if om_is(bool_val, om_True):
+                                return cont_obj(ctx, nxt)
+                            else:
+                                return stmt_end(with_cont(ctx, lambda rte: do_filter_call()), 0)
+                        return sem_bool(with_cont(ctx, check_truthiness), res)
+                    return sem_simple_call(with_cont(ctx, get_call_res), fn, [nxt])
+                return sem_next_no_default(with_cont(ctx, get_next), iterator)
+            return do_filter_call()
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 0 arguments, got " + str(len(args) - 1))
+
+
+om_filter_next = do_magic_method(class_filter, "__next__", om_filter_next_code)
+
+
 # class_iterator methods
 
 def om_iterator_iter_code(ctx, args):
@@ -6374,6 +6483,7 @@ populate_builtin_tuple()
 populate_builtin_list()
 populate_builtin_range()
 populate_builtin_map()
+populate_builtin_filter()
 populate_builtin_slice()
 populate_builtin_iterator()
 populate_builtin_dict()
@@ -7621,6 +7731,7 @@ def fresh_rte(options):
     dict_set(builtins_env, 'list', class_list)
     dict_set(builtins_env, 'range', class_range)
     dict_set(builtins_env, 'map', class_map)
+    dict_set(builtins_env, 'filter', class_filter)
     dict_set(builtins_env, 'slice', class_slice)
     dict_set(builtins_env, 'NotImplemented', om_NotImplemented)
     dict_set(builtins_env, 'print', om_builtin_print)
