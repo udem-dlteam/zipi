@@ -12,13 +12,12 @@
 
 echo "configure bigloo..."
 
+mode=$1 || "optimization"
+
 link=dynamic
 afile=bglafile
 btags=bgltags
 bdepend=bgldepend
-
-devmode=product
-debug=no
 
 bcflags="-g -fsharing -srfi bootstrap -L \$(BUILDLIBDIR) -srfi bigloo-compile"
 blflags="-copt \$(CPICFLAGS) -L \$(BUILDLIBDIR) -srfi bigloo-compile"
@@ -30,6 +29,7 @@ bcflagsrts="-unsafe -safee"
 if [ "$mode " = "debug " ]; then
   bcflags="-O2 -fsharing -L \$(BUILDLIBDIR) -srfi bigloo-compile"
   bcflagsrts="-safee"
+  debug=yes
 fi
 
 bcflagsdev=""
@@ -68,7 +68,7 @@ fi
 
 if [ "$ccflags " = " " ]; then
   ccflags=`grep '^CFLAGS=' $bigloolibdir/Makefile.config | sed 's/^[A-Z]*=//'`
-  if [ "$debug " = "yes " ]; then
+  if [ "$mode " = "debug " ]; then
     ccflags=`echo $ccflags | sed 's/[-]O[0-9]//'`
   fi
   ccflags="$ccflags -I$bigloolibdir \$(CPICFLAGS) \$(CNANFLAGS)"

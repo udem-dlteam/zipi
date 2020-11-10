@@ -41,6 +41,8 @@ install: zipi-dirs
 	$(MAKE) install.systems
 
 install.systems: $(ZIPISYSTEMS:%=install.system.%)
+	$(INSTALL) bin/pysexp.py $(DESTDIR)$(ZIPIBINDIR) \
+            && chmod $(MODFILE) $(DESTDIR)/$(ZIPIBINDIR)/pysexp.py
 
 -include etc/Makefile.bigloo
 -include etc/Makefile.gambit

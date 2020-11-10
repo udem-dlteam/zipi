@@ -142,7 +142,7 @@ mkdir -p lib/zipi/$version
 #*    what Bigloo is.                                                  */
 #*---------------------------------------------------------------------*/
 if [ "$systems " != "gambit " ]; then
-  . ./etc/configure.bigloo
+  . ./etc/configure.bigloo $mode
 fi
 
 if [ "$systems " != "bigloo " ]; then
