@@ -171,6 +171,8 @@ def compile_file(input_file):
         runtime += "var getMouseX = undefined;"
         runtime += "var getMouseY = undefined;"
         runtime += "var getMouseDown = undefined;"
+        # Dummy interaction with Codeboot repl
+        runtime += "function runtime_ast_is_from_repl(ast) {return false;}"
         with open("int.js", "r") as f:
             runtime += " " + f.read()
         with open("float.js", "r") as f:
