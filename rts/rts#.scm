@@ -335,17 +335,17 @@
           ,(constantify* posonlyargs)
           ,(and vararg `',(constantify vararg))
           ,(constantify* kwonlyargs)
-          ,kw-defaults
+          ,(or kw-defaults #())
           ,(and kwarg `',(constantify kwarg))
-          ,defaults)
+          ,(or defaults #()))
       ;; signature with no default can be optimized to a constant
       `'#(,(constantify* args)
           ,(constantify* posonlyargs)
           ,(and vararg (constantify vararg))
           ,(constantify* kwonlyargs)
-          '#()
+          #()
           ,(and kwarg (constantify kwarg))
-          '#()))))
+          #()))))
 
 (define-macro (register-constants-perfect-hashtable table)
   (vector-map
