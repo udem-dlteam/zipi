@@ -1,8 +1,8 @@
-(define-library (utility)
+(define-library (hash)
   (export
     truncate-hash
     fast-range-hash
     hash-FNV1a)
 
   (import gambit)
-  (include "utility.scm"))
+  (include "hash.scm"))

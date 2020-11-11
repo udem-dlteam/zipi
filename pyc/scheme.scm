@@ -709,26 +709,28 @@
 	  body))
 
    (define (signature fun conf)
-    (let ((vararg (PycFun-vararg fun))
-          (kwarg (PycFun-kwarg fun)))
+    (let ((args (PycFun-args fun))
+          (posonlyargs (PycFun-posonlyargs fun))
+          (vararg (PycFun-vararg fun))
+          (kwonlyargs (PycFun-kwonlyargs fun))
+          (kw-defaults (PycFun-kw-defaults fun))
+          (kwarg (PycFun-kwarg fun))
+          (defaults (PycFun-defaults fun)))
       `(make-signature
-        ',(map PycDecl-id (PycFun-args fun))
-        ',(map PycDecl-id (PycFun-posonlyargs fun))
-        ,(cond
-            ((PycDecl? vararg) (PycDecl-id vararg))
-            ((PycUninit? vararg) #f)
-            (else (error "signature" "unknown value for vararg" vararg)))
-        ',(map PycDecl-id (PycFun-kwonlyargs fun))
-        ,(if (> (length (PycFun-kw-defaults fun)) 0)
-            `(vector ,@(scheme* (PycFun-kw-defaults fun) conf))
-            #f)
-        ,(cond
-            ((PycDecl? kwarg) `',(PycDecl-id kwarg))
-            ((PycUninit? kwarg) #f)
-            (else (error "signature" "unknown value for kwarg" kwarg)))
-        ,(if (> (length (PycFun-defaults fun)) 0)
-            `'#(,@(scheme* (PycFun-defaults fun) conf))
-            #f))))
+        ,@(append
+            (if (null? args) '() (list args: (map PycDecl-id args)))
+            (if (null? posonlyargs) '() (list posonlyargs: (map PycDecl-id posonlyargs)))
+            (cond
+              ((PycDecl? vararg) (list vararg: (PycDecl-id vararg)))
+              ((PycUninit? vararg) '())
+              (else (error "signature" "unknown value for vararg" vararg)))
+            (if (null? kwonlyargs) '() (list kwonlyargs: (map PycDecl-id kwonlyargs)))
+            (if (null? kw-defaults) '() (list kw-defaults: `(vector ,@(scheme* kw-defaults conf))))
+            (cond
+              ((PycDecl? kwarg) (list kwarg: (PycDecl-id kwarg)))
+              ((PycUninit? kwarg) '())
+              (else (error "signature" "unknown value for kwarg" kwarg)))
+            (if (null? defaults) '() (list defaults: `(vector ,@(scheme* defaults conf))))))))
 
     (define (apply-decorators fun conf)
         (let*
