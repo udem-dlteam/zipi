@@ -205,6 +205,9 @@ def make_out_of_ast_context(rte, cont):
     # only the ctx and the rte are available, use 'with_rte', this will use the ast stored in the ctx
     return Context(rte, cont, None)
 
+def make_out_of_ast_context_with_catch(rte, cont, catcher_cont):
+    return with_catch(Context(rte, cont, None), catcher_cont)
+
 def with_rte(ctx, rte):
     return Context(rte, ctx.cont, ctx.ast)
 
@@ -7188,6 +7191,53 @@ def make_module_time():
 
     return om_module('time', module_time_env)
 
+
+def make_module_functools():
+    module_functools_env = make_dict()
+
+    def om_reduce_code(rte, cont):
+        fn = rte_lookup_locals(rte, "function")
+        it = rte_lookup_locals(rte, "iterable")
+        init = rte_lookup_locals(rte, "initializer")
+
+        def get_iterator(rte, iterator):
+            def get_next(rte, last):
+                def catch_StopIteration(rte, exn):
+                    ctx = make_out_of_ast_context(rte, cont)
+                    if om_isinstance(exn, class_StopIteration):
+                        return unwindReturn(rte, last)
+                    else:
+                        return sem_raise(ctx, exn)
+
+                def do_call(rte, nxt):
+                    return sem_simple_call(make_out_of_ast_context(rte, get_next), fn, [last, nxt])
+
+                return sem_next_no_default(make_out_of_ast_context_with_catch(rte, do_call, catch_StopIteration), iterator)
+
+            if init is absent:
+                def catch_StopIteration(rte, exn):
+                    ctx = make_out_of_ast_context(rte, cont)
+                    if om_isinstance(exn, class_StopIteration):
+                        return sem_raise_with_message(ctx, class_TypeError, "reduce() of empty sequence with no initial value")
+                    else:
+                        return sem_raise(ctx, exn)
+
+                return sem_next_no_default(make_out_of_ast_context_with_catch(rte, get_next, catch_StopIteration), iterator)
+            else:
+                return get_next(rte, init)
+
+        return sem_iter(make_out_of_ast_context(rte, get_iterator), it)
+
+    om_functools_reduce = om_make_builtin_function_with_signature("reduce", om_reduce_code,
+                                                                  make_posonly_defaults_signature(
+                                                                      ["function", "iterable", "initializer"],
+                                                                      [absent]))
+
+    dict_set(module_functools_env, 'reduce', om_functools_reduce)
+
+    return om_module('functools', module_functools_env)
+
+
 # add the mouse event functions to a specify environment
 def make_module_mouse():
     def getMouse_code(rte, cont):
@@ -7783,6 +7833,7 @@ def fresh_rte(options):
     turtle_module = make_module_turtle()
     random_module = make_module_random()
     time_module = make_module_time()
+    functools_module = make_module_functools()
     mouse_module = make_module_mouse()
     pixels_module = make_module_pixels()
     more_builtins_module = make_module_more_builtins()
@@ -7793,6 +7844,7 @@ def fresh_rte(options):
     rte_add_to_sys_modules(rte, 'turtle', turtle_module)
     rte_add_to_sys_modules(rte, 'random', random_module)
     rte_add_to_sys_modules(rte, 'time', time_module)
+    rte_add_to_sys_modules(rte, 'functools', functools_module)
     rte_add_to_sys_modules(rte, 'mouse', mouse_module)
     rte_add_to_sys_modules(rte, 'pixels', pixels_module)
     rte_add_to_sys_modules(rte, 'more_builtins', more_builtins_module)
