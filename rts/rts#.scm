@@ -329,7 +329,6 @@
         (kw-defaults (get-keyword-or-default kw-defaults: #f))
         (kwarg (get-keyword-or-default kwarg: #f))
         (defaults (get-keyword-or-default defaults: #f)))
-    (pp (list args posonlyargs vararg kwonlyargs kw-defaults kwarg defaults))
     (if (or kw-defaults defaults)
       `(vector
           ,(constantify* args)
