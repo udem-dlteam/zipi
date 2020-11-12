@@ -293,45 +293,59 @@
 ;;  Calls
 ;; =============================================================================
 
-(define-macro (make-signature args posonlyargs vararg kwonlyargs kw-defaults kwarg defaults)
+(define-macro (make-signature . rest)
   (define (constantify sym)
     `,(get-PyStaticStr (symbol->string sym)))
 
   (define (constantify* lst)
     `#(,@(map constantify lst)))
 
-  (if (or kw-defaults defaults)
-    `(vector
-        ,(constantify* args)
-        ,(constantify* posonlyargs)
-        ,(and vararg `',(constantify vararg))
-        ,(constantify* kwonlyargs)
-        ,(or kw-defaults #())
-        ,(and kwarg `',(constantify kwarg))
-        ,(or defaults #()))
-    ;; signature with no default can be optimized to a constant
-    `'#(,(constantify* args)
-        ,(constantify* posonlyargs)
-        ,(and vararg (constantify vararg))
-        ,(constantify* kwonlyargs)
-        #()
-        ,(and kwarg (constantify kwarg))
-        #())))
+  (define (get-keyword-or-default kw default)
+    (let ((tail (memq kw rest)))
+      (if tail
+        (cadr tail)
+        default)))
 
-(define-macro (empty-signature)
-  '#(#() #() #f #() #() #f #()))
+  ;; Check the arguments of make-signature are valid keywords followed by values
+  (let ((known-keywords
+         '(args: posonlyargs: vararg: kwonlyargs: kw-defaults: kwarg: defaults:)))
+    (let loop ((lst rest))
+      (cond
+        ((null? lst)
+          #t)
+        ((not (keyword? (car lst)))
+          (error "make-signature invalid syntax" (car lst)))
+        ((or (null? (cdr lst)) (keyword? (cdr lst)))
+          (error "make-signature invalid syntax after" (car lst)))
+        ((not (memq (car lst) known-keywords))
+          (error "make-signature invalid keyword" (car lst)))
+        (else
+          (loop (cddr lst))))))
 
-(define-macro (make-vararg-only-signature vararg)
-  `(make-signature '() () ,vararg '() #f #f #f))
-
-(define-macro (make-posonly-signature posonlyargs)
-  `(make-signature '() ,posonlyargs #f '() #f #f #f))
-
-(define-macro (make-posonly-defaults-signature posonlyargs defaults)
-  `(make-signature '() ,posonlyargs #f '() #f #f ,defaults))
-
-(define-macro (make-args-defaults-signature args defaults)
-  `(make-signature ,args '() #f '() #f #f ,defaults))
+  (let ((args (get-keyword-or-default args: '()))
+        (posonlyargs (get-keyword-or-default posonlyargs: '()))
+        (vararg (get-keyword-or-default vararg: #f))
+        (kwonlyargs (get-keyword-or-default kwonlyargs: '()))
+        (kw-defaults (get-keyword-or-default kw-defaults: #f))
+        (kwarg (get-keyword-or-default kwarg: #f))
+        (defaults (get-keyword-or-default defaults: #f)))
+    (if (or kw-defaults defaults)
+      `(vector
+          ,(constantify* args)
+          ,(constantify* posonlyargs)
+          ,(and vararg `',(constantify vararg))
+          ,(constantify* kwonlyargs)
+          ,(or kw-defaults #())
+          ,(and kwarg `',(constantify kwarg))
+          ,(or defaults #()))
+      ;; signature with no default can be optimized to a constant
+      `'#(,(constantify* args)
+          ,(constantify* posonlyargs)
+          ,(and vararg (constantify vararg))
+          ,(constantify* kwonlyargs)
+          #()
+          ,(and kwarg (constantify kwarg))
+          #()))))
 
 (define-macro (register-constants-perfect-hashtable table)
   (vector-map
@@ -456,6 +470,5 @@
 
 (define (string-split string split)
   (call-with-input-string string (lambda (port) (read-all port (lambda (p) (read-line p split))))))
-
 
 (import (zipi rts hash))
