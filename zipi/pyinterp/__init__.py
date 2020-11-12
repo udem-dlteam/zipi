@@ -224,6 +224,7 @@ class OM_type(OM_object):
     mro: the __mro__ attribute of class type
     bases: the bases of the class
     instance_creator: function which creates instances of this base type
+    is_builtin: indicates if this type is a builtin type (bool)
     """
 
 class OM_NotImplemented(OM_object):
@@ -833,6 +834,7 @@ def make_class(name, module, bases, metaclass):
         OM_set_object_class(cls, metaclass)
         OM_set_type_bases(cls, bases)
         OM_set_type_mro(cls, mro)
+        OM_set_type_is_builtin(cls, False)
         # If X ad mro (X, A, B, C, ...) we reuse the instance_creator of A
         OM_set_type_instance_creator(cls, OM_get_type_instance_creator(mro[1]))
         return cls
@@ -841,6 +843,7 @@ def make_builtin_class(name, instance_creator, bases, metaclass):
     # Set base classes when they do exist
     cls = make_class(name, 'builtins', bases, metaclass)
     OM_set_type_instance_creator(cls, instance_creator)
+    OM_set_type_is_builtin(cls, True)
     return cls
 
 def bootstrap_base_types():
@@ -895,6 +898,7 @@ def bootstrap_populate_base_types():
         (('__new__', om_type_new),
          ('__call__', om_type_call, True),
          ('__getattribute__', om_type_getattribute),
+         ('__setattr__', om_type_setattr),
          ('__repr__', om_type_repr)))
 
     buitlin_add_methods_to_class(
@@ -1458,6 +1462,12 @@ def OM_set_type_instance_creator(o, val):
 
 def OM_get_type_instance_creator(o):
     return o.instance_creator
+
+def OM_set_type_is_builtin(o, val):
+    o.is_builtin = val
+
+def OM_get_type_is_builtin(o):
+    return o.is_builtin
 
 def OM_get_module_env(o):
     module_dict = OM_get(o, "__dict__")
@@ -2121,16 +2131,15 @@ def om_type_call(ctx, args, kwargs):
     return sem_generic_call(next_ctx, cls_new, args, kwargs)
 
 
-def om_type_getattribute(ctx, args):
-    if debug: print('type.__getattribute__')
-    self = args[0]
-    name = args[1]
+def om_type_getattribute_code(ctx, args):
+    args_len = len(args)
 
-    name_value = OM_get_boxed_value(name)
-    if name_value == '__class__':
-        result = object_class(self)
-        return ctx.cont(ctx.rte, result)
-    else:
+    if args_len == 2:
+        self = args[0]
+        name = args[1]
+
+        name_value = OM_get_boxed_value(name)
+
         # Get field name
         attr = getattribute_from_class_mro(self, name_value)
         if attr is absent:
@@ -2142,6 +2151,47 @@ def om_type_getattribute(ctx, args):
             return ctx.cont(ctx.rte, attr)
         else:
             return sem_simple_call(ctx, attr_get, [attr, om_None, self])
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected one argument, got " + str(len(args) - 1))
+
+om_type_getattribute = do_magic_method(class_type, "__getattribute__", om_type_getattribute_code)
+
+def om_type_setattr_code(ctx, args):
+    if len(args) == 3:
+        self = args[0]
+        name = args[1]
+        value = args[2]
+
+        if not om_isinstance(name, class_str):
+            return sem_raise_with_message(ctx, class_TypeError, "attribute name must be string")
+
+        name_value = OM_get_boxed_value(name)
+        class_attr = getattribute_from_obj_mro(self, name_value)
+
+        def set_on_self():
+            is_builtin = OM_get_type_is_builtin(self)
+            if is_builtin:
+                # Prevent setting attribute on a builtin class
+                cls_name = OM_get_boxed_value(OM_get(self, '__name__'))
+                msg = "can't set attributes of built-in/extension type '" + cls_name + "'"
+                return sem_raise_with_message(ctx, class_TypeError, msg)
+            else:
+                OM_set(self, name_value, value)
+                return cont_obj(ctx, om_None)
+
+        if class_attr is absent:
+            return set_on_self()
+        else:
+            attr_set = getattribute_from_obj_mro(class_attr, '__set__')
+
+            if attr_set is absent:
+                return set_on_self()
+            else:
+                return sem_simple_call(ctx, attr_set, [class_attr, self, value])
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 2 arguments, got " + str(len(args) - 1))
+
+om_type_setattr = do_magic_method(class_type, "__setattr__", om_type_setattr_code)
 
 def om_format_type_repr(self, rte):
     self_name = OM_get(self, '__name__')
@@ -2275,9 +2325,8 @@ def om_object_getattribute_code(ctx, args):
             self_clsname = OM_get(OM_get_object_class(self), '__name__')
             self_clsname_value = OM_get_boxed_value(self_clsname)
 
-            msg = om_str("'"+ self_clsname_value +"' object has no attribute '"+name_value+"'")
-            exn = om_exception(class_AttributeError, om_tuple((msg,)))
-            return sem_raise(ctx, exn)
+            msg = "'" + self_clsname_value + "' object has no attribute '" + name_value + "'"
+            return sem_raise_with_message(ctx, class_AttributeError, msg)
 
         attr_get = getattribute_from_obj_mro(attr, '__get__')
         if attr_get is absent:
@@ -2297,19 +2346,30 @@ def om_object_setattr_code(ctx, args):
         name = args[1]
         value = args[2]
 
-        # TODO: Prevent setting attributes on builtin classes
-        if om_isinstance(name, class_str):
-            attr = OM_get_boxed_value(name)
+        if not om_isinstance(name, class_str):
+            return sem_raise_with_message(ctx, class_TypeError, "attribute name must be string")
 
-            if attr == "__class__":
-                return sem_raise_with_message(ctx, class_TypeError, "cannot set __class__ of an object")
+        name_value = OM_get_boxed_value(name)
+        class_attr = getattribute_from_obj_mro(self, name_value)
+
+        def set_on_self():
+            OM_set(self, name_value, value)
+            return cont_obj(ctx, om_None)
+
+        if class_attr is absent:
+            return set_on_self()
+        else:
+            attr_set = getattribute_from_obj_mro(class_attr, '__set__')
+
+            if attr_set is absent:
+                return set_on_self()
             else:
-                OM_set(self, attr, value)
-                return cont_obj(ctx, om_None)
+                return sem_simple_call(ctx, attr_set, [class_attr, self, value])
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 2 arguments, got " + str(len(args) - 1))
 
 om_object_setattr = do_magic_method(class_object, "__setattr__", om_object_setattr_code)
+
 
 def om_object_str_code(ctx, args):
     if len(args) == 1:
