@@ -18,7 +18,8 @@
 ;; Litterally just taken from here
 ;; https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function#FNV_hash_parameters
 (define FNV1a-prime-64 #x00000100000001B3)
-(define FNV1a-offset-basis-64 #xcbf29ce484222325)
+;;(define FNV1a-offset-basis-64 #xcbf29ce484222325)
+(define FNV1a-offset-basis-64 #xbf29ce484222325)
 
 (define FNV1a-prime-32 #x01000193 )
 (define FNV1a-offset-basis-32 #x811c9dc5)
@@ -31,4 +32,4 @@
         h
         (loop
           (cdr bytes)
-          (truncate-hash (* (bitwise-xor h (car bytes)) FNV1a-prime-64)))))))
+          (truncate-hash (fx* (bitwise-xor h (car bytes)) FNV1a-prime-64)))))))

@@ -33,6 +33,8 @@
 	     `(define (main argv)
 		 (bigloo-library-path-set!
 		    (cons ,(config-get conf :lib-dir) (bigloo-library-path)))
+		 (build-builtins)
+		 (init-registered-constants)
 		 (py-module
 		    (py-make-global)
 		    (py-make-caches ,(PycModule-caches ast)))))
@@ -40,12 +42,14 @@
 	     `(define (zipi-init)
 		 (let ((global (py-make-global))
 		       (caches (py-make-caches ,(PycModule-caches ast))))
+		    (init-registered-constants)
 		    (py-module global caches)
 		    global)))
 	    (else
 	     `(lambda ()
 		 (let ((global (py-make-global))
 		       (caches (py-make-caches ,(PycModule-caches ast))))
+		    (init-registered-constants)
 		    (py-module global caches)
 		    global))))
 	 '(end-registering-constants))))

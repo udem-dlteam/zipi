@@ -12,7 +12,7 @@
 
 echo "configure bigloo..."
 
-mode=$1 || "optimization"
+mode=$mode || "optimization"
 
 link=dynamic
 afile=bglafile
@@ -28,7 +28,7 @@ bcflagsrts="-unsafe -safee"
 
 if [ "$mode " = "debug " ]; then
   bcflags="-O2 -fsharing -L \$(BUILDLIBDIR) -srfi bigloo-compile"
-  bcflagsrts="-safee"
+  bcflagsrts="-safee -g"
   debug=yes
 fi
 

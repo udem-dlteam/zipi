@@ -33,16 +33,6 @@
    ;; call
    (eval `(define-expander make-signature
 	     ,make-signature-expander))
-   (eval `(define-expander empty-signature
-	     ,empty-signature-expander))
-   (eval `(define-expander make-vararg-only-signature
-	     ,make-vararg-only-signature-expander))
-   (eval `(define-expander make-posonly-signature
-	     ,make-posonly-signature-expander))
-   (eval `(define-expander make-posonly-defaults-signature
-	     ,make-posonly-defaults-signature-expander))
-   (eval `(define-expander make-args-defaults-signature
-	     ,make-args-defaults-signature-expander))
    (eval `(define-expander register-constants-perfect-hashtable
 	     ,register-constants-perfect-hashtable-expander))
    (eval `(define-expander py-call

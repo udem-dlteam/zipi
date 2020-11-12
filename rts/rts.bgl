@@ -107,6 +107,8 @@
 	   
 	   (inline PyObject-type-get o)
 	   (inline PyObjectStr-type-get o)
+
+	   (build-builtins)
 	   
 	   (global-get ::PyObject ::obj ::obj)
 	   (global-put! global name val cache)
@@ -429,6 +431,7 @@
       (or (getenv "ZIPIROOT")
           (get-build-path)))
 
+    (tprint "compile-to-scheme root=" root " source=" source " target=" target)
     (when (or (not (file-exists? target))
 	       (> (file-modification-time source)
 		  (file-modification-time target)))
@@ -532,8 +535,24 @@
 ;*    py-init-registered-constants ...                                 */
 ;*---------------------------------------------------------------------*/
 (define (py-init-registered-constants strings)
-   strings)
+   (vector-map! (lambda (s)
+		   (instantiate::PyObjectStr
+		      (value (vector-ref s 1))
+		      (representative py-absent)
+		      (hash #f)
+		      (class py-str-class)))
+      strings))
 
+;*---------------------------------------------------------------------*/
+;*    string-split ...                                                 */
+;*---------------------------------------------------------------------*/
+(define-macro (string-split str delim)
+   `((@ string-split __r4_strings_6_7)
+     ,str
+     ,(if (char? delim)
+	  (string delim)
+	  `(if (string? ,delim) ,delim (string ,delim)))))
+       
 ;*---------------------------------------------------------------------*/
 ;*    constants                                                        */
 ;*---------------------------------------------------------------------*/

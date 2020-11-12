@@ -306,6 +306,9 @@
         (cadr tail)
         default)))
 
+   (define (kwote val)
+      (if (vector? val) `',val val))
+   
   ;; Check the arguments of make-signature are valid keywords followed by values
   (let ((known-keywords
          '(args: posonlyargs: vararg: kwonlyargs: kw-defaults: kwarg: defaults:)))
@@ -331,13 +334,13 @@
         (defaults (get-keyword-or-default defaults: #f)))
     (if (or kw-defaults defaults)
       `(vector
-          ,(constantify* args)
-          ,(constantify* posonlyargs)
-          ,(and vararg `',(constantify vararg))
-          ,(constantify* kwonlyargs)
-          ,(or kw-defaults #())
-          ,(and kwarg `',(constantify kwarg))
-          ,(or defaults #()))
+	  ,(kwote (constantify* args))
+	  ,(kwote (constantify* posonlyargs))
+	  ,(and vararg `',(constantify vararg))
+	  ,(kwote (constantify* kwonlyargs))
+	  ,(or kw-defaults (kwote '#()))
+	  ,(and kwarg `',(constantify kwarg))
+	  ,(or defaults (kwote '#())))
       ;; signature with no default can be optimized to a constant
       `'#(,(constantify* args)
           ,(constantify* posonlyargs)

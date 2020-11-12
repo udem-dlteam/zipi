@@ -13,92 +13,117 @@
 ;*    make-signature-expander                                          */
 ;*---------------------------------------------------------------------*/
 (define (make-signature-expander x e)
-   (define (constantify val)
-      (match-case val
-	 (((kwote quote) ())
-	  '())
-	 (else
-	  `(constantify ,val))))
+
+   (define rest (cdr x))
+   
+   (define (constantify sym)
+      `(& ,(symbol->string sym)))
    
    (define (constantify* lst)
-      (match-case lst
-	 (((kwote quote) ())
-	  '())
-	 (else
-	  `#(,@(map constantify lst)))))
+      `#(,@(map constantify lst)))
    
-   (match-case x
-      ((make-signature ?args ?posonlyargs ?vararg ?kwonlyargs ?kw-defaults ?kwarg ?defaults)
-       (e (if (or kw-defaults defaults)
-	      `(vector
-		  ',(constantify* args)
-		  ',(constantify* posonlyargs)
-		  ,(and (kwote vararg) `',(constantify vararg))
-		  ,(constantify* kwonlyargs)
-		  ,(or (kwote kw-defaults) ''#())
-		  ,(and (kwote kwarg) `',(constantify kwarg))
-		  ,(or defaults ''#()))
-	      ;; signature with no default can be optimized to a constant
-	      `'#(,(constantify* args)
-		  ,(constantify* posonlyargs)
-		  ,(and vararg (constantify vararg))
-		  ,(constantify* kwonlyargs)
-		  #()
-		  ,(and kwarg (constantify kwarg))
-		  #()))
-	  e))
-      (else
-       (error "make-signature" "bad syntax" x))))
+   (define (get-keyword-or-default kw default)
+      (let ((tail (memq kw rest)))
+	 (if tail
+	     (cadr tail)
+	     default)))
 
-;*---------------------------------------------------------------------*/
-;*    empty-signature-expander ...                                     */
-;*---------------------------------------------------------------------*/
-(define (empty-signature-expander x e)
-   (match-case x
-      ((empty-signature)
-       (e ''#(#() #() #f #() #() #f #()) e))
-      (else
-       (error "empty-signature" "bad syntax" x))))
-
-;*---------------------------------------------------------------------*/
-;*    make-vararg-only-signature-expander ...                          */
-;*---------------------------------------------------------------------*/
-(define (make-vararg-only-signature-expander x e)
-   (match-case x
-      ((make-vararg-only-signature ?vararg)
-       (e `(make-signature '() '() ,vararg '() #f #f #f) e))
-      (else
-       (error "make-vararg-only-signature" "bad syntax" x))))
-
-;*---------------------------------------------------------------------*/
-;*    make-posonly-signature-expander ...                              */
-;*---------------------------------------------------------------------*/
-(define (make-posonly-signature-expander x e)
-   (match-case x
-      ((make-posonly-signature ?posonlyargs)
-       (e `(make-signature '() ,posonlyargs #f '() #f #f #f) e))
-      (else
-       (error "make-posonly-signature" "bad syntax" x))))
-
-;*---------------------------------------------------------------------*/
-;*    make-posonly-defaults-signature-expander ...                     */
-;*---------------------------------------------------------------------*/
-(define (make-posonly-defaults-signature-expander x e)
-   (match-case x
-      ((make-posonly-defaults-signature ?posonlyargs ?defaults)
-       (e `(make-signature '() ,posonlyargs #f '() #f #f ,defaults) e))
-      (else
-       (error "make-posonly-defaults-signature" "bad syntax" x))))
-
-;*---------------------------------------------------------------------*/
-;*    make-args-defaults-signature-expander ...                        */
-;*---------------------------------------------------------------------*/
-(define (make-args-defaults-signature-expander x e)
-   (match-case x
-      ((make-args-defaults-signature ?args ?defaults)
-       (e `(make-signature ,args '() #f '() #f #f ,defaults) e))
-      (else
-       (error "make-args-defaults-signature" "bad syntax" x))))
+   (define (kwote val)
+      (if (vector? val) `',val val))
+   
+   ;; Check the arguments of make-signature are valid keywords
+   ;; followed by values
+   (let ((known-keywords
+	     '(args: posonlyargs: vararg: kwonlyargs: kw-defaults:
+	       kwarg: defaults:)))
+      (let loop ((lst rest))
+	 (cond
+	    ((null? lst)
+	     #t)
+	    ((not (keyword? (car lst)))
+	     (error "make-signature invalid syntax" (car lst)))
+	    ((or (null? (cdr lst)) (keyword? (cdr lst)))
+	     (error "make-signature invalid syntax after" (car lst)))
+	    ((not (memq (car lst) known-keywords))
+	     (error "make-signature invalid keyword" (car lst)))
+	    (else
+	     (loop (cddr lst))))))
+   
+   (let ((args (get-keyword-or-default args: '()))
+	 (posonlyargs (get-keyword-or-default posonlyargs: '()))
+	 (vararg (get-keyword-or-default vararg: #f))
+	 (kwonlyargs (get-keyword-or-default kwonlyargs: '()))
+	 (kw-defaults (get-keyword-or-default kw-defaults: #f))
+	 (kwarg (get-keyword-or-default kwarg: #f))
+	 (defaults (get-keyword-or-default defaults: #f)))
+      (e (if (or kw-defaults defaults)
+	     `(vector
+		 ,(kwote (constantify* args))
+		 ,(kwote (constantify* posonlyargs))
+		 ,(and vararg `',(constantify vararg))
+		 ,(kwote (constantify* kwonlyargs))
+		 ,(or kw-defaults (kwote '#()))
+		 ,(and kwarg `',(constantify kwarg))
+		 ,(or defaults (kwote '#())))
+	     ;; signature with no default can be optimized to a constant
+	     `'#(,(constantify* args)
+		 ,(constantify* posonlyargs)
+		 ,(and vararg (constantify vararg))
+		 ,(constantify* kwonlyargs)
+		 #()
+		 ,(and kwarg (constantify kwarg))
+		 #()))
+	 e)))
+ 
+;* {*---------------------------------------------------------------------*} */
+;* {*    empty-signature-expander ...                                     *} */
+;* {*---------------------------------------------------------------------*} */
+;* (define (empty-signature-expander x e)                              */
+;*    (match-case x                                                    */
+;*       ((empty-signature)                                            */
+;*        (e ''#(#() #() #f #() #() #f #()) e))                        */
+;*       (else                                                         */
+;*        (error "empty-signature" "bad syntax" x))))                  */
+;*                                                                     */
+;* {*---------------------------------------------------------------------*} */
+;* {*    make-vararg-only-signature-expander ...                          *} */
+;* {*---------------------------------------------------------------------*} */
+;* (define (make-vararg-only-signature-expander x e)                   */
+;*    (match-case x                                                    */
+;*       ((make-vararg-only-signature ?vararg)                         */
+;*        (e `(make-signature '() '() ,vararg '() #f #f #f) e))        */
+;*       (else                                                         */
+;*        (error "make-vararg-only-signature" "bad syntax" x))))       */
+;*                                                                     */
+;* {*---------------------------------------------------------------------*} */
+;* {*    make-posonly-signature-expander ...                              *} */
+;* {*---------------------------------------------------------------------*} */
+;* (define (make-posonly-signature-expander x e)                       */
+;*    (match-case x                                                    */
+;*       ((make-posonly-signature ?posonlyargs)                        */
+;*        (e `(make-signature '() ,posonlyargs #f '() #f #f #f) e))    */
+;*       (else                                                         */
+;*        (error "make-posonly-signature" "bad syntax" x))))           */
+;*                                                                     */
+;* {*---------------------------------------------------------------------*} */
+;* {*    make-posonly-defaults-signature-expander ...                     *} */
+;* {*---------------------------------------------------------------------*} */
+;* (define (make-posonly-defaults-signature-expander x e)              */
+;*    (match-case x                                                    */
+;*       ((make-posonly-defaults-signature ?posonlyargs ?defaults)     */
+;*        (e `(make-signature '() ,posonlyargs #f '() #f #f ,defaults) e)) */
+;*       (else                                                         */
+;*        (error "make-posonly-defaults-signature" "bad syntax" x))))  */
+;*                                                                     */
+;* {*---------------------------------------------------------------------*} */
+;* {*    make-args-defaults-signature-expander ...                        *} */
+;* {*---------------------------------------------------------------------*} */
+;* (define (make-args-defaults-signature-expander x e)                 */
+;*    (match-case x                                                    */
+;*       ((make-args-defaults-signature ?args ?defaults)               */
+;*        (e `(make-signature ,args '() #f '() #f #f ,defaults) e))    */
+;*       (else                                                         */
+;*        (error "make-args-defaults-signature" "bad syntax" x))))     */
 
 ;*---------------------------------------------------------------------*/
 ;*    register-constants-perfect-hashtable-expander ...                */

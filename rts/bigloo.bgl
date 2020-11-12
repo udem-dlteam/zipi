@@ -203,17 +203,25 @@
 ;*---------------------------------------------------------------------*/
 (define-inline (current-second) (current-seconds))
 (define-inline (current-time) (current-date))
-(define (time->seconds d) (date->seconds d))
+(define (time->seconds d)
+   (if (date? d) (date->seconds d) d))
 
 (define-macro (time->seconds a)
-   (match-case a
-      ((current-time) '(current-seconds))
-      (else `(date->seconds ,a))))
+   (let ((tmp (gensym)))
+      (match-case a
+	 ((current-time)
+	  '(current-seconds))
+	 (else
+	  `(let ((,tmp ,a))
+	      (if (date? ,a)
+		  (date->seconds ,a)
+		  ,a))))))
 
 ;*---------------------------------------------------------------------*/
 ;*    files and directories                                            */
 ;*---------------------------------------------------------------------*/
-(define zipidir (zipi-lib-dir))
+(define zipidir (make-file-path (zipi-lib-dir) "zipi" (zipi-release)))
+(define zipicache (make-file-path "/tmp" "zipi" (zipi-release) "cache"))
 
 (define (path-directory path)
    (dirname path))
@@ -225,14 +233,16 @@
    (basename path))
 
 (define (path-normalize path)
-   (file-name-canonicalize (make-file-name (pwd) path)))
+   (string-append (file-name-canonicalize (make-file-name (pwd) path))
+      (string (file-separator))))
 
 (define (path-expand path #!optional (origin (pwd)))
-   (cond
-      ((string=? origin "~~zipidir")
-       (make-file-name zipidir path))
-      (else
-       (make-file-name origin path))))
+   (let ((p (pregexp-replace "^~~zipicache" path zipicache)))
+      (cond
+	 ((string=? origin "~~zipidir")
+	  (make-file-name zipidir p))
+	 (else
+	  (make-file-name origin p)))))
    
 (define (create-directory path)
    (make-directories path))
@@ -298,9 +308,9 @@
 ;*    getenv ...                                                       */
 ;*---------------------------------------------------------------------*/
 (define (getenv name #!optional default)
-   (or (getenv name)
+   (or ((@ getenv __os) name)
        (cond
-	  ((string=? default "~~zipidir") (zipi-lib-dir))
+	  ((equal? default "~~zipidir") zipidir)
 	  (else #f))))
 
 ;*---------------------------------------------------------------------*/

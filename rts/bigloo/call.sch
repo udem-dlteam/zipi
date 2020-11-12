@@ -21,11 +21,12 @@
 ;*    signatures                                                       */
 ;*---------------------------------------------------------------------*/
 (define-expander make-signature make-signature-expander)
-(define-expander empty-signature empty-signature-expander)
-(define-expander make-vararg-only-signature make-vararg-only-signature-expander)
-(define-expander make-posonly-signature make-posonly-signature-expander)
-(define-expander make-posonly-defaults-signature make-posonly-defaults-signature-expander)
-(define-expander make-args-defaults-signature make-args-defaults-signature-expander)
+;* (define-expander empty-signature empty-signature-expander)          */
+;* (define-expander make-vararg-only-signature make-vararg-only-signature-expander) */
+;* (define-expander make-posonly-signature make-posonly-signature-expander) */
+;* (define-expander make-posonly-defaults-signature make-posonly-defaults-signature-expander) */
+;* (define-expander make-args-defaults-signature make-args-defaults-signature-expander) */
+
 (define-expander register-constants-perfect-hashtable register-constants-perfect-hashtable-expander)
 
 (define-expander py-call py-call-expander)

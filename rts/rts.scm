@@ -56,7 +56,7 @@
 (define-macro (HClass-next hc name op)
   `(let (($hc ,hc) ($name ,name))
     (let* ((key (cons $name ,op))
-           (tran (assoc key (HClass-transitions $hc))))
+           (tran (assq key (HClass-transitions $hc))))
       (if (pair? tran)
         (cdr tran)
         (let ((nhclass
@@ -2208,7 +2208,7 @@
         (error "str-force!" "received object with value" value)))))
 
 (define (str-representative-get str)
-  (let ((self-token (PyObjectStr-representative str)))
+   (let ((self-token (PyObjectStr-representative str)))
     (if (eq? self-token py-absent)
       (begin
         (let* ((str-value (str-force! str))
@@ -4859,7 +4859,7 @@
 (define (get-table-inner-len len)
   (fxarithmetic-shift
     1
-    (integer-length (ceiling (/ len table-full-ratio)))))
+    (integer-length (inexact->exact (ceiling (/ len table-full-ratio))))))
 
 (define-type ordered-table table length first last iterator-token)
 
@@ -5817,13 +5817,12 @@
       (if fi
           (if (eq? (file-info-type fi) 'directory)
               (unwind todo)
-              (error "directory component can't be created"))
+              (error (string-append "directory component can't be created: " fi)))
           (wind dir (cons dir todo)))))
 
   (define (unwind todo)
     (if (pair? todo)
         (begin
-          ;;(pretty-print (list 'creating= (car todo)))
           (create-directory (car todo))
           (unwind (cdr todo)))))
 
@@ -8286,9 +8285,8 @@
   (set! py-builtin-range (py-own-attr-ref builtins-mod (& "range"))))
 
 (define (py-make-builtins-mod)
-  (let ((builtins-mod (builtin-__import__
-                        "builtins")))
-    (bootstrap-builtins builtins-mod)
+  (let ((builtins-mod (builtin-__import__ "builtins")))
+     (bootstrap-builtins builtins-mod)
     builtins-mod))
 
 (define (build-builtins)
