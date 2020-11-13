@@ -219,6 +219,17 @@ class OM_object:
     serial: the serial number of the object.
     """
 
+class OM_getset_descriptor(OM_object):
+    """
+    This type serves a similar role to the cPython getset_descriptor
+    Its behaviour is not documented in cPython doc, so it may differ
+
+    getset_name: name of the attribute this getset_descriptor handles
+    getter: native procedure ctx -> OM_object -> cont(OM_object) used by __get__
+    setter: native procedure ctx -> OM_object -> OM_object -> cont(OM_None) used by __set__
+    objclass: slot for the __objclass__ of the getset_descriptor
+    """
+
 class OM_type(OM_object):
     """
     mro: the __mro__ attribute of class type
@@ -748,17 +759,11 @@ def getattribute_from_class_mro_with_owner(cls, name):
 
 def getattribute_from_obj_mro(o, name):
     cls = OM_get_object_class(o)
-    if name == '__class__':
-        return cls
-    else:
-        return getattribute_from_class_mro(cls, name)
+    return getattribute_from_class_mro(cls, name)
 
 def getattribute_from_obj_mro_with_owner(o, name):
     cls = OM_get_object_class(o)
-    if name == '__class__':
-        return cls, o
-    else:
-        return getattribute_from_class_mro_with_owner(cls, name)
+    return getattribute_from_class_mro_with_owner(cls, name)
 
 def compute_mro(cls, bases):
     seqs = []
@@ -912,6 +917,8 @@ def bootstrap_populate_base_types():
          ('__eq__', om_object_eq),
          ('__ne__', om_object_ne)))
 
+    OM_set(class_object, '__class__', make_getset_readonly_slot('__class__', class_object, OM_get_object_class))
+
     buitlin_add_methods_to_class(
         class_WrapperDescriptor,
         (('__get__', om_WrapperDescriptor_get),
@@ -984,6 +991,14 @@ def buitlin_add_methods_to_class(cls, methods_table):
             builtin_add_method_with_kwargs(cls, name, code)
         else:
             builtin_add_method(cls, name, code)
+
+
+def populate_builtin_getset_descriptor():
+    buitlin_add_methods_to_class(
+        class_getset_descriptor,
+        (('__get__', om_getset_descriptor_get),
+         ('__set__', om_getset_descriptor_set)))
+
 
 def populate_builtin_NotImplementedType():
     builtin_add_method(class_NotImplementedType, '__str__', om_NotImplementedType_str)
@@ -1209,6 +1224,14 @@ def om(cls):
     maker = OM_get_type_instance_creator(cls)
     return om_with_instance_creator(cls, maker)
 
+def om_getset_descriptor(name, objclass, getter, setter):
+    descr = om(class_getset_descriptor)
+    OM_set_getset_descriptor_name(descr, name)
+    OM_set_getset_descriptor_objclass(descr, objclass)
+    OM_set_getset_descriptor_getter(descr, getter)
+    OM_set_getset_descriptor_setter(descr, setter)
+    return descr
+
 def om_boxval(cls, val):
     obj = om(cls)
     OM_set_boxed_value(obj, val)
@@ -1356,6 +1379,9 @@ def om_isinstance(obj, cls):
 def OM_object_create():
     return OM_object()
 
+def OM_getset_descriptor_create():
+    return OM_getset_descriptor()
+
 def OM_module_create():
     return OM_module()
 
@@ -1444,6 +1470,30 @@ def OM_get_object_class(o):
 
 def OM_get_object_class_name(o):
     return OM_get_boxed_value(OM_get(OM_get_object_class(o), "__name__"))
+
+def OM_get_getset_descriptor_getter(o):
+    return o.getter
+
+def OM_set_getset_descriptor_getter(o, val):
+    o.getter = val
+
+def OM_get_getset_descriptor_objclass(o):
+    return o.objclass
+
+def OM_set_getset_descriptor_objclass(o, val):
+    o.objclass = val
+
+def OM_get_getset_descriptor_setter(o):
+    return o.setter
+
+def OM_set_getset_descriptor_setter(o, val):
+    o.setter = val
+
+def OM_get_getset_descriptor_name(o):
+    return o.getset_name
+
+def OM_set_getset_descriptor_name(o, val):
+    o.getset_name = val
 
 def OM_set_type_mro(o, val):
     o.mro = val
@@ -1837,6 +1887,8 @@ class_WrapperDescriptor = __base_types[3]
 class_NotImplementedType = make_builtin_class('NotImplementedType', OM_NoneType_create, (), class_type)
 class_MethodWrapper = make_builtin_class('method-wrapper', OM_MethodWrapper_create, (), class_type)
 
+class_getset_descriptor = make_builtin_class("getset_descriptor", OM_getset_descriptor_create, (), class_type)
+
 class_int = make_builtin_class('int', OM_box_create, (), class_type)
 class_float = make_builtin_class('float', OM_box_create, (), class_type)
 class_bool = make_builtin_class('bool', OM_box_create, (class_int,), class_type)
@@ -2150,7 +2202,15 @@ def om_type_getattribute_code(ctx, args):
         if attr_get is absent:
             return ctx.cont(ctx.rte, attr)
         else:
-            return sem_simple_call(ctx, attr_get, [attr, om_None, self])
+            # TODO: find a better way than this...
+            # It seems like cPython does very minor optimisation to avoid that check
+            # https://github.com/python/cpython/blob/master/Objects/typeobject.c#L6968
+            if om_is(OM_get_object_class(attr), class_getset_descriptor):
+                # replace None by absent in that base to indicate the attribute was looked-up on self
+                # and not on om_None and found on self
+                return sem_simple_call(ctx, attr_get, [attr, absent, self])
+            else:
+                return sem_simple_call(ctx, attr_get, [attr, om_None, self])
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected one argument, got " + str(len(args) - 1))
 
@@ -2426,6 +2486,73 @@ def om_object_ne_code(ctx, args):
         return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
 
 om_object_ne = do_magic_method(class_object, "__ne__", om_object_ne_code)
+
+
+# class_getset_descriptor
+
+
+def make_getset_readonly_slot(name, objclass, om_getter):
+    def getter(ctx, instance):
+        return cont_obj(ctx, om_getter(instance))
+
+    def setter(ctx, instance, value):
+        return sem_raise_with_message(ctx, class_AttributeError, name + " assignment unsupported")
+
+    return om_getset_descriptor(name, objclass, getter, setter)
+
+
+def om_getset_descriptor_get_code(ctx, args):
+    args_len = len(args)
+
+    if args_len <= 3:
+        self = args[0]
+        instance = args[1]
+        owner = args[2]
+
+        objclass = OM_get_getset_descriptor_objclass(self)
+        getter = OM_get_getset_descriptor_getter(self)
+
+        if instance is absent:
+            # special signal sent from type.__getattribute__ to indicate attribute was looked up on owner
+            return getter(ctx, owner)
+        elif om_isinstance(instance, objclass):
+            return getter(ctx, instance)
+        else:
+            name = OM_get_getset_descriptor_name(self)
+            wrong_cls_name = OM_get_object_class_name(instance)
+            expected_cls_name = OM_get_boxed_value(OM_get(objclass, "__name__"))
+            error_msg = "descriptor '" + name + "' for '" + expected_cls_name + "' objects doesn't apply to a '" + wrong_cls_name + "' object"
+            return sem_raise_with_message(ctx, class_TypeError, error_msg)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 2 arguments, got " + str(args_len - 1))
+
+om_getset_descriptor_get = do_magic_method(class_getset_descriptor, "__get__", om_getset_descriptor_get_code)
+
+
+def om_getset_descriptor_set_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 3:
+        self = args[0]
+        instance = args[1]
+        value = args[2]
+
+        objclass = OM_get_getset_descriptor_objclass(self)
+
+        if om_isinstance(instance, objclass):
+            setter = OM_get_getset_descriptor_setter(self)
+            return setter(ctx, instance, value)
+        else:
+            name = OM_get_getset_descriptor_name(self)
+            wrong_cls_name = OM_get_object_class_name(instance)
+            expected_cls_name = OM_get_boxed_value(OM_get(objclass, "__name__"))
+            error_msg = "descriptor '" + name + "' for '" + expected_cls_name + "' objects doesn't apply to a '" + wrong_cls_name + "' object"
+            return sem_raise_with_message(ctx, class_TypeError, error_msg)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 2 arguments, got " + str(args_len - 1))
+
+om_getset_descriptor_set = do_magic_method(class_getset_descriptor, "__set__", om_getset_descriptor_set_code)
+
 
 # class_NotImplementedType
 def om_format_NotImplementedType(self, rte):
@@ -5025,12 +5152,9 @@ def om_module_setattr_code(ctx, args):
         if om_isinstance(name, class_str):
             attr = OM_get_boxed_value(name)
 
-            if attr == "__class__":
-                return sem_raise_with_message(ctx, class_TypeError, "cannot set __class__ of an object")
-            else:
-                module_env = OM_get_module_env(self)
-                dict_set(module_env, attr, value)
-                return cont_obj(ctx, om_None)
+            module_env = OM_get_module_env(self)
+            dict_set(module_env, attr, value)
+            return cont_obj(ctx, om_None)
         else:
             return sem_raise_with_message(ctx, class_TypeError, "attribute name must be string")
     else:
@@ -6535,6 +6659,7 @@ om_float_pos = do_magic_method(class_float, "__pos__", om_float_pos_code)
 bootstrap_populate_base_types()
 
 # Internal types
+populate_builtin_getset_descriptor()
 populate_builtin_NotImplementedType()
 populate_builtin_MethodWrapper()
 
