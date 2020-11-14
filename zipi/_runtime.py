@@ -824,14 +824,14 @@ def runtime_getInnerHTML(rte, elem):
 def runtime_setInnerHTML(rte, elem, content):
     raise NotImplementedError("not running in a browser")
 
-def runtime_hasAttribute(elem, attr):
+def runtime_hasAttribute(rte, elem, attr):
     raise NotImplementedError("not running in a browser")
 
-def runtime_setAttribute(elem, attr, value):
+def runtime_setAttribute(rte, elem, attr, value):
     raise NotImplementedError("not running in a browser")
 
-def runtime_removeAttribute(elem, attr):
+def runtime_removeAttribute(rte, elem, attr):
     raise NotImplementedError("not running in a browser")
 
-def runtime_getAttribute(elem, attr):
+def runtime_getAttribute(rte, elem, attr):
     raise NotImplementedError("not running in a browser")

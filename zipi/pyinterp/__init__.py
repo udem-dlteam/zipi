@@ -7964,13 +7964,35 @@ def make_module_more_builtins():
                 elem = OM_get_DOMElement_elem(self)
 
                 if om_isinstance(attr, class_str):
-                    return do_cont(ctx, runtime_fn(elem, OM_get_boxed_value(attr)))
+                    return do_cont(ctx, runtime_fn(ctx.rte, elem, OM_get_boxed_value(attr)))
                 else:
                     return sem_raise_with_message(ctx, class_TypeError, "'DOMElement' attribute must be a string")
             else:
                 return sem_raise_with_message(ctx, class_TypeError, "expected one argument, got " + str(args_len - 1))
 
         return do_magic_method(class_DOMElement, name, om_DOMElement_handleAttribute_code)
+
+    def om_DOMElement_setAttribute_code(ctx, args):
+        args_len = len(args)
+
+        if args_len == 3:
+            self = args[0]
+            attr = args[1]
+            value = args[2]
+            elem = OM_get_DOMElement_elem(self)
+
+            if om_isinstance(attr, class_str):
+                if om_isinstance(value, class_str):
+                    runtime_setAttribute(ctx.rte, elem, OM_get_boxed_value(attr), OM_get_boxed_value(value))
+                    return cont_obj(ctx, om_None)
+                else:
+                    return sem_raise_with_message(ctx, class_TypeError, "'DOMElement' attribute value must be a string")
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, "'DOMElement' attribute must be a string")
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "expected 2 arguments, got " + str(args_len - 1))
+
+    om_DOMElement_setAttribute = do_magic_method(class_DOMElement, "setAttribute", om_DOMElement_setAttribute_code)
 
     # Depending on browser getAttribute may return "" or null when the attribute does not exist, we standardize this to None
     def cont_null_or_str(ctx, val):
@@ -7981,12 +8003,16 @@ def make_module_more_builtins():
 
     om_DOMElement_hasAttribute = gen_DOMElement_handleAttribute("hasAttribute", runtime_hasAttribute, cont_bool)
     om_DOMElement_getAttribute = gen_DOMElement_handleAttribute("getAttribute", runtime_getAttribute, cont_null_or_str)
+    om_DOMElement_removeAttribute = gen_DOMElement_handleAttribute("removeAttribute", runtime_removeAttribute,
+                                                                lambda ctx, _: cont_obj(ctx, om_None))
 
 
     buitlin_add_methods_to_class(
         class_DOMElement,
         (('hasAttribute', om_DOMElement_hasAttribute),
-         ('getAttribute', om_DOMElement_getAttribute)))
+         ('getAttribute', om_DOMElement_getAttribute),
+         ('removeAttribute', om_DOMElement_removeAttribute),
+         ('setAttribute', om_DOMElement_setAttribute)))
 
     om_innerHTML_descriptor = om_getset_descriptor('innerHTML', class_DOMElement,
                                                 om_DOMElement_innerHTML_getter,
