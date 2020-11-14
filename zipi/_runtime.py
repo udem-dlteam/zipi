@@ -814,3 +814,6 @@ def runtime_writeFile(rte, filename, content):
             return f.write(content)
     except OSError:
         return None
+
+def runtime_querySelector(rte, selector):
+    raise NotImplementedError("not running in a browser")

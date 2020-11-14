@@ -178,6 +178,9 @@ def cont_list_of_str(ctx, val, len_):
         i += 1
     return ctx.cont(ctx.rte, om_list(new_lst, len_))
 
+def cont_DOMElement(ctx, elem):
+    return ctx.cont(ctx.rte, om_DOMElement(elem))
+
 def cont_tuple(ctx, val):
     return ctx.cont(ctx.rte, om_tuple(val))
 
@@ -265,6 +268,14 @@ class OM_list(OM_object):
 class OM_struct(OM_object):
     """
     Used to implement the more_builtins.struct class
+    """
+
+class OM_DOMDocument(OM_object):
+    pass
+
+class OM_DOMElement(OM_object):
+    """
+    elem: in codeBoot, stores the JS DOM element object
     """
 
 class OM_range(OM_object):
@@ -844,9 +855,9 @@ def make_class(name, module, bases, metaclass):
         OM_set_type_instance_creator(cls, OM_get_type_instance_creator(mro[1]))
         return cls
 
-def make_builtin_class(name, instance_creator, bases, metaclass):
+def make_builtin_class(name, instance_creator, bases):
     # Set base classes when they do exist
-    cls = make_class(name, 'builtins', bases, metaclass)
+    cls = make_class(name, 'builtins', bases, class_type)
     OM_set_type_instance_creator(cls, instance_creator)
     OM_set_type_is_builtin(cls, True)
     return cls
@@ -1354,6 +1365,13 @@ def om_MethodWrapper(name, instance, code, requires_kwargs):
     OM_set(obj, '__name__', name)
     return obj
 
+def om_DOMElement(elem):
+    obj = om(class_DOMElement)
+
+    OM_set_DOMElement_elem(obj, elem)
+
+    return obj
+
 def om_is(x, y):
     return x is y
 
@@ -1402,6 +1420,12 @@ def OM_list_create():
 
 def OM_struct_create():
     return OM_struct()
+
+def OM_DOMDocument_create():
+    return OM_DOMDocument()
+
+def OM_DOMElement_create():
+    return OM_DOMElement()
 
 def OM_range_create():
     return OM_range()
@@ -1693,6 +1717,12 @@ def OM_set_MethodWrapper_instance(o, instance):
 def OM_get_MethodWrapper_instance(o):
     return o.instance
 
+def OM_get_DOMElement_elem(o):
+    return o.elem
+
+def OM_set_DOMElement_elem(o, elem):
+    o.elem = elem
+
 # Generate BinOp semantics for python Numeric datatypes (or that which emulate)
 # For the correct Python Data Model and interpreter, these are paired with
 # generators for primitive operators which do the actual computation, defined later.
@@ -1884,50 +1914,52 @@ class_str = __base_types[1]
 class_type = __base_types[2]
 class_WrapperDescriptor = __base_types[3]
 
-class_NotImplementedType = make_builtin_class('NotImplementedType', OM_NoneType_create, (), class_type)
-class_MethodWrapper = make_builtin_class('method-wrapper', OM_MethodWrapper_create, (), class_type)
+class_NotImplementedType = make_builtin_class('NotImplementedType', OM_NoneType_create, ())
+class_MethodWrapper = make_builtin_class('method-wrapper', OM_MethodWrapper_create, ())
 
-class_getset_descriptor = make_builtin_class("getset_descriptor", OM_getset_descriptor_create, (), class_type)
+class_getset_descriptor = make_builtin_class("getset_descriptor", OM_getset_descriptor_create, ())
 
-class_int = make_builtin_class('int', OM_box_create, (), class_type)
-class_float = make_builtin_class('float', OM_box_create, (), class_type)
-class_bool = make_builtin_class('bool', OM_box_create, (class_int,), class_type)
-class_NoneType = make_builtin_class('NoneType', OM_NoneType_create, (), class_type)
+class_int = make_builtin_class('int', OM_box_create, ())
+class_float = make_builtin_class('float', OM_box_create, ())
+class_bool = make_builtin_class('bool', OM_box_create, (class_int,))
+class_NoneType = make_builtin_class('NoneType', OM_NoneType_create, ())
 
-class_tuple = make_builtin_class('tuple', OM_tuple_create, (), class_type)
-class_iterator = make_builtin_class('iterator', OM_iterator_create, (), class_type)
-class_list = make_builtin_class('list', OM_list_create, (), class_type)
-class_range = make_builtin_class('range', OM_range_create, (), class_type)
-class_map = make_builtin_class('map', OM_map_create, (), class_type)
-class_filter = make_builtin_class('filter', OM_filter_create, (), class_type)
-class_dict = make_builtin_class('dict', OM_dict_create, (), class_type)
-class_module = make_builtin_class('module', OM_module_create, (), class_type)
-class_function = make_builtin_class('function', OM_function_create, (), class_type)
-class_slice = make_builtin_class('slice', OM_slice_create, (), class_type)
+class_tuple = make_builtin_class('tuple', OM_tuple_create, ())
+class_iterator = make_builtin_class('iterator', OM_iterator_create, ())
+class_list = make_builtin_class('list', OM_list_create, ())
+class_range = make_builtin_class('range', OM_range_create, ())
+class_map = make_builtin_class('map', OM_map_create, ())
+class_filter = make_builtin_class('filter', OM_filter_create, ())
+class_dict = make_builtin_class('dict', OM_dict_create, ())
+class_module = make_builtin_class('module', OM_module_create, ())
+class_function = make_builtin_class('function', OM_function_create, ())
+class_slice = make_builtin_class('slice', OM_slice_create, ())
 
 # class available and populated in 'more_builtins' module
-class_struct = make_builtin_class('struct', OM_struct_create, (), class_type)
+class_struct = make_builtin_class('struct', OM_struct_create, ())
+class_DOMDocument = make_builtin_class('DOMDocument', OM_DOMDocument_create, ())
+class_DOMElement = make_builtin_class('DOMElement', OM_DOMElement_create, ())
 
 # Exception classes
-class_BaseException = make_builtin_class('BaseException', OM_BaseException_create, (), class_type)
-class_Exception = make_builtin_class('Exception', OM_BaseException_create, (class_BaseException,), class_type)
-class_NameError = make_builtin_class('NameError', OM_BaseException_create, (class_Exception,), class_type)
-class_UnboundLocalError = make_builtin_class('UnboundLocalError:', OM_BaseException_create, (class_Exception,), class_type)
-class_SyntaxError = make_builtin_class('SyntaxError', OM_BaseException_create, (class_Exception,),  class_type)
-class_TypeError = make_builtin_class('TypeError', OM_BaseException_create, (class_Exception,), class_type)
-class_ValueError = make_builtin_class('ValueError', OM_BaseException_create, (class_Exception,), class_type)
-class_StopIteration = make_builtin_class('StopIteration', OM_BaseException_create, (class_Exception,), class_type)
-class_NotImplementedError = make_builtin_class('NotImplementedError', OM_BaseException_create, (class_Exception,), class_type)
-class_LookupError = make_builtin_class('LookupError', OM_BaseException_create, (class_Exception,), class_type)
-class_EOFError = make_builtin_class('EOFError', OM_BaseException_create, (class_Exception,), class_type)
-class_IndexError = make_builtin_class('IndexError', OM_BaseException_create, (class_LookupError,), class_type)
-class_AttributeError = make_builtin_class('AttributeError', OM_BaseException_create, (class_Exception,), class_type)
-class_ArithmeticError = make_builtin_class('ArithmeticError', OM_BaseException_create, (class_Exception,), class_type)
-class_OverflowError = make_builtin_class('OverflowError', OM_BaseException_create, (class_ArithmeticError,), class_type)
-class_ZeroDivisionError = make_builtin_class('ZeroDivisionError', OM_BaseException_create, (class_ArithmeticError,), class_type)
-class_AssertionError = make_builtin_class('AssertionError', OM_BaseException_create, (class_Exception,), class_type)
-class_ImportError = make_builtin_class('ImportError', OM_BaseException_create, (class_Exception,), class_type)
-class_ModuleNotFoundError = make_builtin_class('ModuleNotFoundError', OM_BaseException_create, (class_ImportError,), class_type)
+class_BaseException = make_builtin_class('BaseException', OM_BaseException_create, ())
+class_Exception = make_builtin_class('Exception', OM_BaseException_create, (class_BaseException,))
+class_NameError = make_builtin_class('NameError', OM_BaseException_create, (class_Exception,))
+class_UnboundLocalError = make_builtin_class('UnboundLocalError:', OM_BaseException_create, (class_Exception,))
+class_SyntaxError = make_builtin_class('SyntaxError', OM_BaseException_create, (class_Exception,))
+class_TypeError = make_builtin_class('TypeError', OM_BaseException_create, (class_Exception,))
+class_ValueError = make_builtin_class('ValueError', OM_BaseException_create, (class_Exception,))
+class_StopIteration = make_builtin_class('StopIteration', OM_BaseException_create, (class_Exception,))
+class_NotImplementedError = make_builtin_class('NotImplementedError', OM_BaseException_create, (class_Exception,))
+class_LookupError = make_builtin_class('LookupError', OM_BaseException_create, (class_Exception,))
+class_EOFError = make_builtin_class('EOFError', OM_BaseException_create, (class_Exception,))
+class_IndexError = make_builtin_class('IndexError', OM_BaseException_create, (class_LookupError,))
+class_AttributeError = make_builtin_class('AttributeError', OM_BaseException_create, (class_Exception,))
+class_ArithmeticError = make_builtin_class('ArithmeticError', OM_BaseException_create, (class_Exception,))
+class_OverflowError = make_builtin_class('OverflowError', OM_BaseException_create, (class_ArithmeticError,))
+class_ZeroDivisionError = make_builtin_class('ZeroDivisionError', OM_BaseException_create, (class_ArithmeticError,))
+class_AssertionError = make_builtin_class('AssertionError', OM_BaseException_create, (class_Exception,))
+class_ImportError = make_builtin_class('ImportError', OM_BaseException_create, (class_Exception,))
+class_ModuleNotFoundError = make_builtin_class('ModuleNotFoundError', OM_BaseException_create, (class_ImportError,))
 
 om_None = om(class_NoneType)
 om_True = om_boxval(class_bool, int_from_num(1))
@@ -7855,11 +7887,50 @@ def make_module_more_builtins():
     om_writeFile = om_make_builtin_function_with_signature('writeFile', writeFile_code,
                                                            make_posonly_only_signature(['filename', 'content']))
 
+    # DOM related methods
+
+    # Singleton object which allows access to the DOM
+    om_document = om(class_DOMDocument)
+
+    def om_DOMDocument_new_code(ctx, args):
+        if len(args) == 1:
+            return cont_obj(ctx, om_document)
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, 'DOMDocument takes no argument')
+
+    om_DOMDocument_new = do_static_magic_method(class_DOMDocument, '__new__', om_DOMDocument_new_code)
+
+
+    def om_DOMDocument_querySelector_code(ctx, args):
+        args_len = len(args)
+
+        if args_len == 2:
+            selector = args[0]
+
+            if om_isinstance(selector, class_str):
+                selector_value = OM_get_boxed_value(selector)
+                # TODO: raise a Python exception on failure, for now Codeboot will raise its own JS exception
+                elem = runtime_querySelector(ctx.rte, selector_value)
+                return cont_DOMElement(ctx, elem)
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, "HTML element selector must be a string")
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "expected one argument, got " + str(args_len - 1))
+
+
+    om_DOMDocument_querySelector = do_magic_method(class_DOMDocument, "querySelector", om_DOMDocument_querySelector_code)
+
+
+    buitlin_add_methods_to_class(
+        class_DOMDocument,
+        (('__new__', om_DOMDocument_new),
+         ('querySelector', om_DOMDocument_querySelector)))
 
     module_more_builtins_env = make_dict()
     dict_set(module_more_builtins_env, 'struct', class_struct)
     dict_set(module_more_builtins_env, 'writeFile', om_writeFile)
     dict_set(module_more_builtins_env, 'readFile', om_readFile)
+    dict_set(module_more_builtins_env, 'document', om_document)
 
     return om_module('more_builtins', module_more_builtins_env)
 
