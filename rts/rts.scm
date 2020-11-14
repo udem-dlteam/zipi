@@ -137,6 +137,14 @@
     "call_host intrinsic function not implemented"))
 
 ;; =============================================================================
+;;  py-absent 
+;; =============================================================================
+
+;; WARNING: this must be a constant otherwise it may be garbage collected
+;; in some case and no longer be eq? with its version stored in literal objects
+(define py-absent '%py-absent)
+
+;; =============================================================================
 ;;  HIDDEN CLASSES
 ;; =============================================================================
 
@@ -148,10 +156,11 @@
 ;; instances of type are classes
 ;; this is the hidden class of classes
 (define py-type-hclass-of-instances
-  (make-builtin-HClass
-    (vector
-      (& "__name__")
-      (& "__call__"))
+   (make-builtin-HClass
+      (vector)
+;*     (vector                                                         */
+;*       (& "__name__")                                                */
+;*       (& "__call__"))                                               */
     '()))
 
 (define py-str-hclass-of-instances
@@ -192,8 +201,8 @@
 
 (define py-method-hclass-of-instances
   (make-builtin-HClass
-    (vector
-      (& "__self__"))
+    (vector)
+;*       (& "__self__"))                                               */
     '()))
 
 (define py-function-hclass-of-instances
@@ -248,9 +257,9 @@
 
 (define py-generator-hclass
   (make-builtin-HClass
-   (vector
-    (& "__next__")
-    (& "send"))
+   (vector)
+;*     (& "__next__")                                                  */
+;*     (& "send"))                                                     */
    '()))
 
 (define py-TextIOWrapper-hclass-of-instances
@@ -378,10 +387,6 @@
         (if (null? head)
           (outer-loop (cdr lists-tail) inner-acc)
           (inner-loop (cdr head) (cons (car head) inner-acc)))))))
-
-;; WARNING: this must be a constant otherwise it may be garbage collected
-;; in some case and no longer be eq? with its version stored in literal objects
-(define py-absent '%py-absent)
 
 (define (global-get global name cache)
    (if (eq? (PyObject-hclass global) (PCache-hclass cache))
@@ -1909,7 +1914,7 @@
 ;;   returns the first occurence of the attribute
 ;;   found on an element of the MRO
 (define (getattribute-from-cls-mro cls name)
-  (let ((mro (PyObjectType-mro cls)))
+   (let ((mro (PyObjectType-mro cls)))
     (let loop-mro ((i 0))
       (if (< i (vector-length mro))
         (let ((cls (vector-ref mro i)))
@@ -2209,7 +2214,7 @@
 
 (define (str-representative-get str)
    (let ((self-token (PyObjectStr-representative str)))
-    (if (eq? self-token py-absent)
+    (if (not self-token)
       (begin
         (let* ((str-value (str-force! str))
                (rep (table-ref str-representatives str-value #f)))
@@ -2762,6 +2767,14 @@
     ;; init all object (& ...) to a py-str object
     (init-registered-constants)
 
+    ;; builtin hidden classes
+    (HClass-names-set! py-type-hclass-of-instances
+       (vector (& "__name__") (& "__call__")))
+    (HClass-names-set! py-method-hclass-of-instances
+       (vector (& "__self__")))
+    (HClass-names-set! py-module-hclass-of-instances
+       (vector (& "__next__") (& "send")))
+    
     ;; Fill in object class
     (PyObject-class-set! object-class type-class)
     (PyObjectType-bases-set! object-class '#())
@@ -5904,8 +5917,8 @@
                  (loop sys.path-iter))
              #f))))))
 
-(define (builtin-__import__ __name__)
-  (let ((name-split (string-split __name__ #\.)))
+(define (default-builtin-__import__ __name__)
+   (let ((name-split (string-split __name__ #\.)))
    (let loop ((sys.path (sys.path-get))
               (name-split name-split)
               (name-cumulative (car name-split))
@@ -5930,6 +5943,10 @@
             py-builtin-ModuleNotFoundError
             "No module named '" __name__ "'"))))))
 
+(define (builtin-__import__ __name__)
+   (or (native-builtin-__import__ __name__)
+       (default-builtin-__import__ __name__)))
+   
 (define (py-import path depth)
   (builtin-__import__ path))
 

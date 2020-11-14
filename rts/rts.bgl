@@ -65,7 +65,7 @@
 
 	   (class PyObjectStr::PyObject
 	      value
-	      representative
+	      (representative (default #f))
 	      hash)
 
 	   (class PyObjectFunction::PyObject
@@ -117,6 +117,7 @@
 	   (object-put! ::PyObject ::obj ::obj ::obj)
 	   (getattribute-from-obj-mro ::obj ::obj)
 	   
+	   (py-make-module name)
 	   (py-make-list . elements)
 
 	   ;; (py-getitem ::PyObject ::obj ::obj)
@@ -170,6 +171,7 @@
 	   
 	   py-object-class
 	   py-module-class
+	   (py-own-attr-set! obj attr val)
 	   
 	   (py-isinstance? ::PyObject ::PyObject)
 
@@ -277,9 +279,26 @@
 	   py-builtin-ValueError
 	   py-builtin-Warning
 	   py-builtin-ZeroDivisionError
+
+	   (native-builtin-__import__ ::bstring)
 	   )
       
    (eval   (export-all)))
+
+;*---------------------------------------------------------------------*/
+;*    display-py-string ...                                            */
+;*---------------------------------------------------------------------*/
+(define (display-py-string pystr::PyObjectStr op)
+   (with-access::PyObjectStr pystr (value)
+      (display "<PyObjectStr:" op)
+      (display value op)
+      (display ">" op)))
+
+;*---------------------------------------------------------------------*/
+;*    object-print ::JsStringLiteral ...                               */
+;*---------------------------------------------------------------------*/
+(define-method (object-print obj::PyObjectStr op proc)
+   (display-py-string obj op))
 
 ;*---------------------------------------------------------------------*/
 ;*    PyObject-type-get ...                                            */
@@ -511,9 +530,9 @@
 ;*---------------------------------------------------------------------*/
 (define (get-registered-constants-table)
    (let ((table (create-hashtable :eqtest string=?)))
-      (vector-for-each (lambda (v)
-			  (hashtable-put! table "foo" v))
-	 __py_strings)
+;*       (vector-for-each (lambda (v)                                  */
+;* 			  (hashtable-put! table "foo" v))              */
+;* 	 __py_strings)                                                 */
       table))
 
 ;*---------------------------------------------------------------------*/
@@ -538,7 +557,6 @@
    (vector-map! (lambda (s)
 		   (instantiate::PyObjectStr
 		      (value (vector-ref s 1))
-		      (representative py-absent)
 		      (hash #f)
 		      (class py-str-class)))
       strings))
@@ -552,9 +570,21 @@
      ,(if (char? delim)
 	  (string delim)
 	  `(if (string? ,delim) ,delim (string ,delim)))))
-       
+
+;*---------------------------------------------------------------------*/
+;*    native-builtin-__import__ ...                                    */
+;*---------------------------------------------------------------------*/
+(define (native-builtin-__import__ name)
+   (if (string=? name "builtins")
+       ((@ zipi-init __stdlib_builtins) name)
+       #f))
+
 ;*---------------------------------------------------------------------*/
 ;*    constants                                                        */
 ;*---------------------------------------------------------------------*/
 (start-registering-constants)
 
+;*---------------------------------------------------------------------*/
+;*    zemantics                                                        */
+;*---------------------------------------------------------------------*/
+((@ zipi-init __stdlib_zemantics) "zemantics")

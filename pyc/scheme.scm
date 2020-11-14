@@ -12,7 +12,10 @@
 ;*       ((eval def) (py-make-global) (py-make-caches (PycModule-caches ast))))) */
 
 (define (pyc-scheme-bigloo ast conf)
-   (let ((prog (pyc-scheme ast conf)))
+   (let* ((prog (pyc-scheme ast conf))
+	  (file (config-get conf file:))
+	  (path (config-get conf dir:))
+	  (full-path (if (and file path) (make-file-path path file) #f)))
       (list
 	 `(module ,(string->symbol
 		      (or (config-get conf module-name:)
@@ -23,9 +26,12 @@
 			__stdlib_zemantics)
 		     (include "bigloo/call.sch"
 			"bigloo/constants.sch")
-		     (export (zipi-init)))
-		   '((library zipi)))
-	     ,@(if (config-get conf main:) '((main main)) '()))
+		     (export (zipi-init ::bstring)))
+		   '((library zipi)
+		     ))
+	     ,@(if (config-get conf main:)
+		   '((main main))
+		   '((export (zipi-init ::bstring)))))
 	 '(start-registering-constants)
 	 `(define py-module ,@prog)
 	 (cond
@@ -38,20 +44,24 @@
 		 (py-module
 		    (py-make-global)
 		    (py-make-caches ,(PycModule-caches ast)))))
-	    ((config-get conf bootstrap:)
-	     `(define (zipi-init)
-		 (let ((global (py-make-global))
-		       (caches (py-make-caches ,(PycModule-caches ast))))
-		    (init-registered-constants)
-		    (py-module global caches)
-		    global)))
+;* 	    ((config-get conf bootstrap:)                              */
+;* 	     `(define (zipi-init)                                      */
+;* 		 (let ((global (py-make-global))                       */
+;* 		       (caches (py-make-caches ,(PycModule-caches ast)))) */
+;* 		    (init-registered-constants)                        */
+;* 		    (py-module global caches)                          */
+;* 		    global)))                                          */
 	    (else
-	     `(lambda ()
-		 (let ((global (py-make-global))
-		       (caches (py-make-caches ,(PycModule-caches ast))))
-		    (init-registered-constants)
-		    (py-module global caches)
-		    global))))
+	     `(define (zipi-init name)
+		 (init-registered-constants)
+		 (let ((caches (py-make-caches ,(PycModule-caches ast)))
+		       (module (py-make-module (py-str-from-scheme name))))
+		    ,(if full-path
+			 `(py-own-attr-set!
+			     module (& "__file__") (& ,full-path))
+			 `,@(list))
+		    (py-module module caches)
+		    module))))
 	 '(end-registering-constants))))
 
 (define (pyc-scheme-gambit ast conf)

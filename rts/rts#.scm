@@ -474,4 +474,7 @@
 (define (string-split string split)
   (call-with-input-string string (lambda (port) (read-all port (lambda (p) (read-line p split))))))
 
+(define (native-builtin-__import__ name)
+   #f)
+
 (import (zipi rts hash))

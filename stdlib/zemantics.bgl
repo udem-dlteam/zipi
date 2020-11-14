@@ -7,7 +7,8 @@
 
    (import __py_rts)
 
-   (export (py-getattribute obj80 attr81)
+   (export (zipi-init name)
+	   (py-getattribute obj80 attr81)
 	   (py-getitem obj83 index84)
 	   (py-setitem obj86 index87 value88)
 	   

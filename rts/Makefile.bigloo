@@ -101,6 +101,8 @@ zemantics.bgl: ../stdlib/zemantics.bgl zemantics.scm
 zemantics.scm: ../stdlib/zemantics.scm
 	echo "(start-registering-constants)" > $@
 	cat $< >> $@
+	echo "(define (zipi-init name)" >> $@
+	echo "   (init-registered-constants))" >> $@
 	echo "(end-registering-constants)" >> $@
 
 #bdepend start (don't edit)

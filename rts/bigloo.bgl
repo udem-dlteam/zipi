@@ -233,8 +233,12 @@
    (basename path))
 
 (define (path-normalize path)
-   (string-append (file-name-canonicalize (make-file-name (pwd) path))
-      (string (file-separator))))
+   (let ((name (if (char=? (string-ref path 0) (file-separator))
+		   (file-name-canonicalize path)
+		   (file-name-canonicalize (make-file-name (pwd) path)))))
+      (if (directory? name)
+	  (string-append (string (file-separator)))
+	  name)))
 
 (define (path-expand path #!optional (origin (pwd)))
    (let ((p (pregexp-replace "^~~zipicache" path zipicache)))
