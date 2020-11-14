@@ -7905,13 +7905,18 @@ def make_module_more_builtins():
         args_len = len(args)
 
         if args_len == 2:
-            selector = args[0]
+            selector = args[1]
 
             if om_isinstance(selector, class_str):
                 selector_value = OM_get_boxed_value(selector)
                 # TODO: raise a Python exception on failure, for now Codeboot will raise its own JS exception
                 elem = runtime_querySelector(ctx.rte, selector_value)
-                return cont_DOMElement(ctx, elem)
+                # runtime_querySelector will return 'null' on a failure
+                # TODO: make it return undefined which is the pyinterp None? Or give a way for pyinterp to handle null.
+                if elem:
+                    return cont_DOMElement(ctx, elem)
+                else:
+                    return cont_obj(ctx, om_None)
             else:
                 return sem_raise_with_message(ctx, class_TypeError, "HTML element selector must be a string")
         else:
