@@ -817,3 +817,9 @@ def runtime_writeFile(rte, filename, content):
 
 def runtime_querySelector(rte, selector):
     raise NotImplementedError("not running in a browser")
+
+def runtime_getInnerHTML(rte, elem):
+    raise NotImplementedError("not running in a browser")
+
+def runtime_setInnerHTML(rte, elem, content):
+    raise NotImplementedError("not running in a browser")

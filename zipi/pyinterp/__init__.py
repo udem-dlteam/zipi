@@ -7931,6 +7931,39 @@ def make_module_more_builtins():
         (('__new__', om_DOMDocument_new),
          ('querySelector', om_DOMDocument_querySelector)))
 
+
+    def om_DOMElement_innerHTML_getter(ctx, instance):
+        if om_is(instance, class_DOMElement):
+            return cont_obj(ctx, om_innerHTML_descriptor)
+        elif om_isinstance(instance, class_DOMElement):
+            content = runtime_getInnerHTML(ctx.rte, OM_get_DOMElement_elem(instance))
+            return cont_str(ctx, content)
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "innerHTML descriptor expected a 'DOMElement'")
+
+
+    def om_DOMElement_innerHTML_setter(ctx, instance, content):
+        if om_isinstance(instance, class_DOMElement):
+            if om_isinstance(content, class_str):
+                content_value = OM_get_boxed_value(content)
+                runtime_setInnerHTML(ctx.rte, OM_get_DOMElement_elem(instance), content_value)
+                return cont_obj(ctx, om_None)
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, "innerHTML attribute must be set to a string")
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "innerHTML descriptor expected a 'DOMElement'")
+
+
+    
+
+
+    om_innerHTML_descriptor = om_getset_descriptor('innerHTML', class_DOMElement,
+                                                om_DOMElement_innerHTML_getter,
+                                                om_DOMElement_innerHTML_setter)
+
+    OM_set(class_DOMElement, 'innerHTML', om_innerHTML_descriptor)
+
+
     module_more_builtins_env = make_dict()
     dict_set(module_more_builtins_env, 'struct', class_struct)
     dict_set(module_more_builtins_env, 'writeFile', om_writeFile)
