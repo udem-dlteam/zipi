@@ -7970,7 +7970,7 @@ def make_module_more_builtins():
             else:
                 return sem_raise_with_message(ctx, class_TypeError, "expected one argument, got " + str(args_len - 1))
 
-        return do_magic_method(class_DOMElement, name, om_DOMElement_hasAttribute_code)
+        return do_magic_method(class_DOMElement, name, om_DOMElement_handleAttribute_code)
 
     # Depending on browser getAttribute may return "" or null when the attribute does not exist, we standardize this to None
     def cont_null_or_str(ctx, val):
