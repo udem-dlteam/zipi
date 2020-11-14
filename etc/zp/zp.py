@@ -173,6 +173,14 @@ def compile_file(input_file):
         runtime += "var getMouseDown = undefined;"
         # Dummy interaction with Codeboot repl
         runtime += "function runtime_ast_is_from_repl(ast) {return false;}"
+        runtime += "function runtime_getInnerHTML(rte, elem) { return false;}"
+        runtime += "function runtime_setInnerHTML(rte, elem, content) { return false;}"
+        runtime += "function runtime_hasAttribute(rte, elem, attr) {return false;}"
+        runtime += "function runtime_getAttribute(rte, elem, attr) {return false;}"
+        runtime += "function runtime_setAttribute(rte, elem, attr, val) {return false;}"
+        runtime += "function runtime_removeAttribute(rte, elem, attr) {return false;}"
+
+
         with open("int.js", "r") as f:
             runtime += " " + f.read()
         with open("float.js", "r") as f:
