@@ -525,7 +525,7 @@ def rte_set_locals(rte, varname, val):
 
 def rte_set_locals_boxed(rte, varname, val):
     env = rte_locals(rte)
-    slot = dict_get(env, varname, None) # Return None to cause crash of the varname is not present
+    slot = dict_get(env, varname, None) # Return None to cause crash if the varname is not present
     slot[0] = val
 
 def rte_set_closure(rte, pos, val):
@@ -11199,27 +11199,35 @@ def return_to_trampoline(ast, msg, nb_steps, display_result, breakpoint, sleep_t
     return res
 
 
-# % cat test.py
-# 1+2*3
-# pass
-# (2*21)%5
-# pass
-# 13/3
-#
-# % python3 pyinterp.py test.py
-# expression at 1.1: value = 1
-# expression at 1.3: value = 2
-# expression at 1.5: value = 3
-# expression at 1.3: value = 6
-# expression at 1.1: value = 7
-# statement at 2.1
-# expression at 3.2: value = 2
-# expression at 3.4: value = 21
-# expression at 3.2: value = 42
-# expression at 3.8: value = 5
-# expression at 3.1: value = 2
-# statement at 4.1
-# expression at 5.1: value = 13
-# expression at 5.4: value = 3
-# expression at 5.1: value = 4.333333333333333
-# done!
+def cb_handle_one_event(rte, elem_name, onclick_code, event_dict):
+    # Get compiling options from the rte
+    options = rte_options(rte)
+    cte = CTE(None, [], [], None, None, options, None)
+
+    # Create a struct event from the event passed as dict
+    om_event = om(class_struct)
+    OM_set(om_event, '_fields', om_tuple(dict_keys(event_dict)))
+    for pair in dict_items(event_dict):
+        key = pair[0]
+        value = pair[1]
+        OM_set(om_event, key, value)
+
+    # Compile the onclick code
+    ast = parse(onclick_code, '<unknown>', 'exec', False)
+    body_ast = ast.body
+    arguments_ast = arguments([arg("event", None, None)], [], None, [], [], None, [])
+
+    _, create_function = gen_create_function(cte, arguments_ast, body_ast, "event_handler", ast)
+
+    cont = lambda rte, _: None  # What goes here?
+    catcher = None  # find a way to handle exception despite them possibly happening outside a container
+
+    def exec_handler(rte, om_handler_fn):
+        return sem_simple_call(make_out_of_ast_context_with_catch(rte, cont, catcher), om_handler_fn, [om_event])
+
+    return create_function(rte, exec_handler)
+
+
+
+def cb_handle_event(rte, elem_name, onclick_code, event_dict):
+    """push event in rte queue"""
