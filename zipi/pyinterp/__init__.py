@@ -11199,8 +11199,16 @@ def return_to_trampoline(ast, msg, nb_steps, display_result, breakpoint, sleep_t
     return res
 
 
-def cb_handle_event(rte, elem_name, handler_source, event_dict):
-    def convert_value(val):
+def comp_event_handler(ast, external_context):
+    cte = CTE(None, [], [], None, None, external_context, None)
+
+    # Compile the handler code with access to 'event'
+    body_ast = ast.body
+    arguments_ast = arguments([arg("event", None, None)], [], None, [], [], None, [])
+
+    _, create_function = gen_create_function(cte, arguments_ast, body_ast, "event_handler", ast)
+
+    def convert_event_value(val):
         if val is True:
             return om_True
         elif val is False:
@@ -11215,34 +11223,23 @@ def cb_handle_event(rte, elem_name, handler_source, event_dict):
             # unrecognized value
             return None
 
-    # Get compiling options from the rte
-    options = rte_options(rte)
-    cte = CTE(None, [], [], None, None, options, None)
+    def code(rte, cont, event):
+        # Create a struct event from the event passed as dict
+        om_event = om(class_struct)
+        fields = []
+        for pair in dict_items(event_dict):
+            key = pair[0]
+            value = pair[1]
+            om_value = convert_event_value(value)
+            if om_value is not None:
+                # Skip values which could not be converted
+                fields.append(key)
+                OM_set(om_event, key, om_value)
 
-    # Create a struct event from the event passed as dict
-    om_event = om(class_struct)
-    fields = []
-    for pair in dict_items(event_dict):
-        key = pair[0]
-        value = pair[1]
-        om_value = convert_value(value)
-        if om_value is not None:
-            # Skip values which could not be converted
-            fields.append(key)
-            OM_set(om_event, key, om_value)
+        OM_set(om_event, '_fields', om_tuple(fields))
 
-    OM_set(om_event, '_fields', om_tuple(fields))
-
-    # Compile the handler code with access to 'event'
-    ast = parse(handler_source, '<unknown>', 'exec', False)
-    body_ast = ast.body
-    arguments_ast = arguments([arg("event", None, None)], [], None, [], [], None, [])
-
-    _, create_function = gen_create_function(cte, arguments_ast, body_ast, "event_handler", ast)
-
-    # TODO: do we need to create a fake ast here or is context w/o ast ok?
-    def code(rte, cont):
         def exec_handler(rte, om_handler_fn):
-            return sem_simple_call(make_out_of_ast_context(rte, cont), om_handler_fn, [om_event])
+            return sem_simple_call(Context(rte, cont, ast), om_handler_fn, [om_event])
         return create_function(rte, exec_handler)
+
     return cte, code
