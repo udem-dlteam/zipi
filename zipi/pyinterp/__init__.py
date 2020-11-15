@@ -11210,7 +11210,8 @@ def cb_handle_event(rte, elem_name, handler_source, event_dict):
     for pair in dict_items(event_dict):
         key = pair[0]
         value = pair[1]
-        OM_set(om_event, key, value)
+        om_value = om_float(value) if isinstance(value, float) else om_str(value)
+        OM_set(om_event, key, om_value)
 
     # Compile the handler code with access to 'event'
     ast = parse(handler_source, '<unknown>', 'exec', False)
