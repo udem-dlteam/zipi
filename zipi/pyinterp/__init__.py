@@ -11200,18 +11200,38 @@ def return_to_trampoline(ast, msg, nb_steps, display_result, breakpoint, sleep_t
 
 
 def cb_handle_event(rte, elem_name, handler_source, event_dict):
+    def convert_value(val):
+        if val is True:
+            return om_True
+        elif val is False:
+            return om_False
+        elif val is None:
+            return om_None
+        elif isinstance(val, float):
+            return om_float(val)
+        elif isinstance(val, str):
+            return om_str(val)
+        else:
+            # unrecognized value
+            return None
+
     # Get compiling options from the rte
     options = rte_options(rte)
     cte = CTE(None, [], [], None, None, options, None)
 
     # Create a struct event from the event passed as dict
     om_event = om(class_struct)
-    OM_set(om_event, '_fields', om_tuple(dict_keys(event_dict)))
+    fields = []
     for pair in dict_items(event_dict):
         key = pair[0]
         value = pair[1]
-        om_value = om_float(value) if isinstance(value, float) else om_str(value)
-        OM_set(om_event, key, om_value)
+        om_value = convert_value(value)
+        if om_value is not None:
+            # Skip values which could not be converted
+            fields.append(key)
+            OM_set(om_event, key, om_value)
+
+    OM_set(om_event, '_fields', om_tuple(fields))
 
     # Compile the handler code with access to 'event'
     ast = parse(handler_source, '<unknown>', 'exec', False)
