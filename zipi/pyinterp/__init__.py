@@ -1905,7 +1905,7 @@ def sem_PowMod(ctx, base, power, mod):
         return sem_simple_call(ctx1, base_method, [base, power, mod])
     else:
         return call_rmethod(ctx.rte)
-    
+
 # Create builtins classes
 __base_types = bootstrap_base_types()
 
@@ -11199,7 +11199,7 @@ def return_to_trampoline(ast, msg, nb_steps, display_result, breakpoint, sleep_t
     return res
 
 
-def cb_handle_one_event(rte, elem_name, onclick_code, event_dict):
+def cb_handle_event(rte, elem_name, handler_source, event_dict):
     # Get compiling options from the rte
     options = rte_options(rte)
     cte = CTE(None, [], [], None, None, options, None)
@@ -11212,22 +11212,17 @@ def cb_handle_one_event(rte, elem_name, onclick_code, event_dict):
         value = pair[1]
         OM_set(om_event, key, value)
 
-    # Compile the onclick code
-    ast = parse(onclick_code, '<unknown>', 'exec', False)
+    # Compile the handler code with access to 'event'
+    ast = parse(handler_source, '<unknown>', 'exec', False)
     body_ast = ast.body
     arguments_ast = arguments([arg("event", None, None)], [], None, [], [], None, [])
 
     _, create_function = gen_create_function(cte, arguments_ast, body_ast, "event_handler", ast)
 
-    cont = lambda rte, _: None  # What goes here?
-    catcher = None  # find a way to handle exception despite them possibly happening outside a container
+    cont = lambda rte, _: None # stop execution after return
 
+    # TODO: do we need to create a fake ast here or is context w/o ast ok?
     def exec_handler(rte, om_handler_fn):
-        return sem_simple_call(make_out_of_ast_context_with_catch(rte, cont, catcher), om_handler_fn, [om_event])
+        return sem_simple_call(make_out_of_ast_context(rte, cont), om_handler_fn, [om_event])
 
     return create_function(rte, exec_handler)
-
-
-
-def cb_handle_event(rte, elem_name, onclick_code, event_dict):
-    """push event in rte queue"""
