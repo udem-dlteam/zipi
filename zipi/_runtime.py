@@ -814,3 +814,24 @@ def runtime_writeFile(rte, filename, content):
             return f.write(content)
     except OSError:
         return None
+
+def runtime_querySelector(rte, selector):
+    raise NotImplementedError("not running in a browser")
+
+def runtime_getInnerHTML(rte, elem):
+    raise NotImplementedError("not running in a browser")
+
+def runtime_setInnerHTML(rte, elem, content):
+    raise NotImplementedError("not running in a browser")
+
+def runtime_hasAttribute(rte, elem, attr):
+    raise NotImplementedError("not running in a browser")
+
+def runtime_setAttribute(rte, elem, attr, value):
+    raise NotImplementedError("not running in a browser")
+
+def runtime_removeAttribute(rte, elem, attr):
+    raise NotImplementedError("not running in a browser")
+
+def runtime_getAttribute(rte, elem, attr):
+    raise NotImplementedError("not running in a browser")

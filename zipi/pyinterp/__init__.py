@@ -178,6 +178,9 @@ def cont_list_of_str(ctx, val, len_):
         i += 1
     return ctx.cont(ctx.rte, om_list(new_lst, len_))
 
+def cont_DOMElement(ctx, elem):
+    return ctx.cont(ctx.rte, om_DOMElement(elem))
+
 def cont_tuple(ctx, val):
     return ctx.cont(ctx.rte, om_tuple(val))
 
@@ -219,11 +222,23 @@ class OM_object:
     serial: the serial number of the object.
     """
 
+class OM_getset_descriptor(OM_object):
+    """
+    This type serves a similar role to the cPython getset_descriptor
+    Its behaviour is not documented in cPython doc, so it may differ
+
+    getset_name: name of the attribute this getset_descriptor handles
+    getter: native procedure ctx -> OM_object -> cont(OM_object) used by __get__
+    setter: native procedure ctx -> OM_object -> OM_object -> cont(OM_None) used by __set__
+    objclass: slot for the __objclass__ of the getset_descriptor
+    """
+
 class OM_type(OM_object):
     """
     mro: the __mro__ attribute of class type
     bases: the bases of the class
     instance_creator: function which creates instances of this base type
+    is_builtin: indicates if this type is a builtin type (bool)
     """
 
 class OM_NotImplemented(OM_object):
@@ -253,6 +268,14 @@ class OM_list(OM_object):
 class OM_struct(OM_object):
     """
     Used to implement the more_builtins.struct class
+    """
+
+class OM_DOMDocument(OM_object):
+    pass
+
+class OM_DOMElement(OM_object):
+    """
+    elem: in codeBoot, stores the JS DOM element object
     """
 
 class OM_range(OM_object):
@@ -502,7 +525,7 @@ def rte_set_locals(rte, varname, val):
 
 def rte_set_locals_boxed(rte, varname, val):
     env = rte_locals(rte)
-    slot = dict_get(env, varname, None) # Return None to cause crash of the varname is not present
+    slot = dict_get(env, varname, None) # Return None to cause crash if the varname is not present
     slot[0] = val
 
 def rte_set_closure(rte, pos, val):
@@ -747,17 +770,11 @@ def getattribute_from_class_mro_with_owner(cls, name):
 
 def getattribute_from_obj_mro(o, name):
     cls = OM_get_object_class(o)
-    if name == '__class__':
-        return cls
-    else:
-        return getattribute_from_class_mro(cls, name)
+    return getattribute_from_class_mro(cls, name)
 
 def getattribute_from_obj_mro_with_owner(o, name):
     cls = OM_get_object_class(o)
-    if name == '__class__':
-        return cls, o
-    else:
-        return getattribute_from_class_mro_with_owner(cls, name)
+    return getattribute_from_class_mro_with_owner(cls, name)
 
 def compute_mro(cls, bases):
     seqs = []
@@ -833,14 +850,16 @@ def make_class(name, module, bases, metaclass):
         OM_set_object_class(cls, metaclass)
         OM_set_type_bases(cls, bases)
         OM_set_type_mro(cls, mro)
+        OM_set_type_is_builtin(cls, False)
         # If X ad mro (X, A, B, C, ...) we reuse the instance_creator of A
         OM_set_type_instance_creator(cls, OM_get_type_instance_creator(mro[1]))
         return cls
 
-def make_builtin_class(name, instance_creator, bases, metaclass):
+def make_builtin_class(name, instance_creator, bases):
     # Set base classes when they do exist
-    cls = make_class(name, 'builtins', bases, metaclass)
+    cls = make_class(name, 'builtins', bases, class_type)
     OM_set_type_instance_creator(cls, instance_creator)
+    OM_set_type_is_builtin(cls, True)
     return cls
 
 def bootstrap_base_types():
@@ -895,6 +914,7 @@ def bootstrap_populate_base_types():
         (('__new__', om_type_new),
          ('__call__', om_type_call, True),
          ('__getattribute__', om_type_getattribute),
+         ('__setattr__', om_type_setattr),
          ('__repr__', om_type_repr)))
 
     buitlin_add_methods_to_class(
@@ -907,6 +927,8 @@ def bootstrap_populate_base_types():
          ('__repr__', om_object_repr),
          ('__eq__', om_object_eq),
          ('__ne__', om_object_ne)))
+
+    OM_set(class_object, '__class__', make_getset_readonly_slot('__class__', class_object, OM_get_object_class))
 
     buitlin_add_methods_to_class(
         class_WrapperDescriptor,
@@ -980,6 +1002,14 @@ def buitlin_add_methods_to_class(cls, methods_table):
             builtin_add_method_with_kwargs(cls, name, code)
         else:
             builtin_add_method(cls, name, code)
+
+
+def populate_builtin_getset_descriptor():
+    buitlin_add_methods_to_class(
+        class_getset_descriptor,
+        (('__get__', om_getset_descriptor_get),
+         ('__set__', om_getset_descriptor_set)))
+
 
 def populate_builtin_NotImplementedType():
     builtin_add_method(class_NotImplementedType, '__str__', om_NotImplementedType_str)
@@ -1205,6 +1235,14 @@ def om(cls):
     maker = OM_get_type_instance_creator(cls)
     return om_with_instance_creator(cls, maker)
 
+def om_getset_descriptor(name, objclass, getter, setter):
+    descr = om(class_getset_descriptor)
+    OM_set_getset_descriptor_name(descr, name)
+    OM_set_getset_descriptor_objclass(descr, objclass)
+    OM_set_getset_descriptor_getter(descr, getter)
+    OM_set_getset_descriptor_setter(descr, setter)
+    return descr
+
 def om_boxval(cls, val):
     obj = om(cls)
     OM_set_boxed_value(obj, val)
@@ -1327,6 +1365,13 @@ def om_MethodWrapper(name, instance, code, requires_kwargs):
     OM_set(obj, '__name__', name)
     return obj
 
+def om_DOMElement(elem):
+    obj = om(class_DOMElement)
+
+    OM_set_DOMElement_elem(obj, elem)
+
+    return obj
+
 def om_is(x, y):
     return x is y
 
@@ -1352,6 +1397,9 @@ def om_isinstance(obj, cls):
 def OM_object_create():
     return OM_object()
 
+def OM_getset_descriptor_create():
+    return OM_getset_descriptor()
+
 def OM_module_create():
     return OM_module()
 
@@ -1372,6 +1420,12 @@ def OM_list_create():
 
 def OM_struct_create():
     return OM_struct()
+
+def OM_DOMDocument_create():
+    return OM_DOMDocument()
+
+def OM_DOMElement_create():
+    return OM_DOMElement()
 
 def OM_range_create():
     return OM_range()
@@ -1441,6 +1495,30 @@ def OM_get_object_class(o):
 def OM_get_object_class_name(o):
     return OM_get_boxed_value(OM_get(OM_get_object_class(o), "__name__"))
 
+def OM_get_getset_descriptor_getter(o):
+    return o.getter
+
+def OM_set_getset_descriptor_getter(o, val):
+    o.getter = val
+
+def OM_get_getset_descriptor_objclass(o):
+    return o.objclass
+
+def OM_set_getset_descriptor_objclass(o, val):
+    o.objclass = val
+
+def OM_get_getset_descriptor_setter(o):
+    return o.setter
+
+def OM_set_getset_descriptor_setter(o, val):
+    o.setter = val
+
+def OM_get_getset_descriptor_name(o):
+    return o.getset_name
+
+def OM_set_getset_descriptor_name(o, val):
+    o.getset_name = val
+
 def OM_set_type_mro(o, val):
     o.mro = val
 
@@ -1458,6 +1536,12 @@ def OM_set_type_instance_creator(o, val):
 
 def OM_get_type_instance_creator(o):
     return o.instance_creator
+
+def OM_set_type_is_builtin(o, val):
+    o.is_builtin = val
+
+def OM_get_type_is_builtin(o):
+    return o.is_builtin
 
 def OM_get_module_env(o):
     module_dict = OM_get(o, "__dict__")
@@ -1632,6 +1716,12 @@ def OM_set_MethodWrapper_instance(o, instance):
 
 def OM_get_MethodWrapper_instance(o):
     return o.instance
+
+def OM_get_DOMElement_elem(o):
+    return o.elem
+
+def OM_set_DOMElement_elem(o, elem):
+    o.elem = elem
 
 # Generate BinOp semantics for python Numeric datatypes (or that which emulate)
 # For the correct Python Data Model and interpreter, these are paired with
@@ -1815,7 +1905,7 @@ def sem_PowMod(ctx, base, power, mod):
         return sem_simple_call(ctx1, base_method, [base, power, mod])
     else:
         return call_rmethod(ctx.rte)
-    
+
 # Create builtins classes
 __base_types = bootstrap_base_types()
 
@@ -1824,48 +1914,52 @@ class_str = __base_types[1]
 class_type = __base_types[2]
 class_WrapperDescriptor = __base_types[3]
 
-class_NotImplementedType = make_builtin_class('NotImplementedType', OM_NoneType_create, (), class_type)
-class_MethodWrapper = make_builtin_class('method-wrapper', OM_MethodWrapper_create, (), class_type)
+class_NotImplementedType = make_builtin_class('NotImplementedType', OM_NoneType_create, ())
+class_MethodWrapper = make_builtin_class('method-wrapper', OM_MethodWrapper_create, ())
 
-class_int = make_builtin_class('int', OM_box_create, (), class_type)
-class_float = make_builtin_class('float', OM_box_create, (), class_type)
-class_bool = make_builtin_class('bool', OM_box_create, (class_int,), class_type)
-class_NoneType = make_builtin_class('NoneType', OM_NoneType_create, (), class_type)
+class_getset_descriptor = make_builtin_class("getset_descriptor", OM_getset_descriptor_create, ())
 
-class_tuple = make_builtin_class('tuple', OM_tuple_create, (), class_type)
-class_iterator = make_builtin_class('iterator', OM_iterator_create, (), class_type)
-class_list = make_builtin_class('list', OM_list_create, (), class_type)
-class_range = make_builtin_class('range', OM_range_create, (), class_type)
-class_map = make_builtin_class('map', OM_map_create, (), class_type)
-class_filter = make_builtin_class('filter', OM_filter_create, (), class_type)
-class_dict = make_builtin_class('dict', OM_dict_create, (), class_type)
-class_module = make_builtin_class('module', OM_module_create, (), class_type)
-class_function = make_builtin_class('function', OM_function_create, (), class_type)
-class_slice = make_builtin_class('slice', OM_slice_create, (), class_type)
+class_int = make_builtin_class('int', OM_box_create, ())
+class_float = make_builtin_class('float', OM_box_create, ())
+class_bool = make_builtin_class('bool', OM_box_create, (class_int,))
+class_NoneType = make_builtin_class('NoneType', OM_NoneType_create, ())
+
+class_tuple = make_builtin_class('tuple', OM_tuple_create, ())
+class_iterator = make_builtin_class('iterator', OM_iterator_create, ())
+class_list = make_builtin_class('list', OM_list_create, ())
+class_range = make_builtin_class('range', OM_range_create, ())
+class_map = make_builtin_class('map', OM_map_create, ())
+class_filter = make_builtin_class('filter', OM_filter_create, ())
+class_dict = make_builtin_class('dict', OM_dict_create, ())
+class_module = make_builtin_class('module', OM_module_create, ())
+class_function = make_builtin_class('function', OM_function_create, ())
+class_slice = make_builtin_class('slice', OM_slice_create, ())
 
 # class available and populated in 'more_builtins' module
-class_struct = make_builtin_class('struct', OM_struct_create, (), class_type)
+class_struct = make_builtin_class('struct', OM_struct_create, ())
+class_DOMDocument = make_builtin_class('DOMDocument', OM_DOMDocument_create, ())
+class_DOMElement = make_builtin_class('DOMElement', OM_DOMElement_create, ())
 
 # Exception classes
-class_BaseException = make_builtin_class('BaseException', OM_BaseException_create, (), class_type)
-class_Exception = make_builtin_class('Exception', OM_BaseException_create, (class_BaseException,), class_type)
-class_NameError = make_builtin_class('NameError', OM_BaseException_create, (class_Exception,), class_type)
-class_UnboundLocalError = make_builtin_class('UnboundLocalError:', OM_BaseException_create, (class_Exception,), class_type)
-class_SyntaxError = make_builtin_class('SyntaxError', OM_BaseException_create, (class_Exception,),  class_type)
-class_TypeError = make_builtin_class('TypeError', OM_BaseException_create, (class_Exception,), class_type)
-class_ValueError = make_builtin_class('ValueError', OM_BaseException_create, (class_Exception,), class_type)
-class_StopIteration = make_builtin_class('StopIteration', OM_BaseException_create, (class_Exception,), class_type)
-class_NotImplementedError = make_builtin_class('NotImplementedError', OM_BaseException_create, (class_Exception,), class_type)
-class_LookupError = make_builtin_class('LookupError', OM_BaseException_create, (class_Exception,), class_type)
-class_EOFError = make_builtin_class('EOFError', OM_BaseException_create, (class_Exception,), class_type)
-class_IndexError = make_builtin_class('IndexError', OM_BaseException_create, (class_LookupError,), class_type)
-class_AttributeError = make_builtin_class('AttributeError', OM_BaseException_create, (class_Exception,), class_type)
-class_ArithmeticError = make_builtin_class('ArithmeticError', OM_BaseException_create, (class_Exception,), class_type)
-class_OverflowError = make_builtin_class('OverflowError', OM_BaseException_create, (class_ArithmeticError,), class_type)
-class_ZeroDivisionError = make_builtin_class('ZeroDivisionError', OM_BaseException_create, (class_ArithmeticError,), class_type)
-class_AssertionError = make_builtin_class('AssertionError', OM_BaseException_create, (class_Exception,), class_type)
-class_ImportError = make_builtin_class('ImportError', OM_BaseException_create, (class_Exception,), class_type)
-class_ModuleNotFoundError = make_builtin_class('ModuleNotFoundError', OM_BaseException_create, (class_ImportError,), class_type)
+class_BaseException = make_builtin_class('BaseException', OM_BaseException_create, ())
+class_Exception = make_builtin_class('Exception', OM_BaseException_create, (class_BaseException,))
+class_NameError = make_builtin_class('NameError', OM_BaseException_create, (class_Exception,))
+class_UnboundLocalError = make_builtin_class('UnboundLocalError:', OM_BaseException_create, (class_Exception,))
+class_SyntaxError = make_builtin_class('SyntaxError', OM_BaseException_create, (class_Exception,))
+class_TypeError = make_builtin_class('TypeError', OM_BaseException_create, (class_Exception,))
+class_ValueError = make_builtin_class('ValueError', OM_BaseException_create, (class_Exception,))
+class_StopIteration = make_builtin_class('StopIteration', OM_BaseException_create, (class_Exception,))
+class_NotImplementedError = make_builtin_class('NotImplementedError', OM_BaseException_create, (class_Exception,))
+class_LookupError = make_builtin_class('LookupError', OM_BaseException_create, (class_Exception,))
+class_EOFError = make_builtin_class('EOFError', OM_BaseException_create, (class_Exception,))
+class_IndexError = make_builtin_class('IndexError', OM_BaseException_create, (class_LookupError,))
+class_AttributeError = make_builtin_class('AttributeError', OM_BaseException_create, (class_Exception,))
+class_ArithmeticError = make_builtin_class('ArithmeticError', OM_BaseException_create, (class_Exception,))
+class_OverflowError = make_builtin_class('OverflowError', OM_BaseException_create, (class_ArithmeticError,))
+class_ZeroDivisionError = make_builtin_class('ZeroDivisionError', OM_BaseException_create, (class_ArithmeticError,))
+class_AssertionError = make_builtin_class('AssertionError', OM_BaseException_create, (class_Exception,))
+class_ImportError = make_builtin_class('ImportError', OM_BaseException_create, (class_Exception,))
+class_ModuleNotFoundError = make_builtin_class('ModuleNotFoundError', OM_BaseException_create, (class_ImportError,))
 
 om_None = om(class_NoneType)
 om_True = om_boxval(class_bool, int_from_num(1))
@@ -2121,16 +2215,15 @@ def om_type_call(ctx, args, kwargs):
     return sem_generic_call(next_ctx, cls_new, args, kwargs)
 
 
-def om_type_getattribute(ctx, args):
-    if debug: print('type.__getattribute__')
-    self = args[0]
-    name = args[1]
+def om_type_getattribute_code(ctx, args):
+    args_len = len(args)
 
-    name_value = OM_get_boxed_value(name)
-    if name_value == '__class__':
-        result = object_class(self)
-        return ctx.cont(ctx.rte, result)
-    else:
+    if args_len == 2:
+        self = args[0]
+        name = args[1]
+
+        name_value = OM_get_boxed_value(name)
+
         # Get field name
         attr = getattribute_from_class_mro(self, name_value)
         if attr is absent:
@@ -2141,7 +2234,56 @@ def om_type_getattribute(ctx, args):
         if attr_get is absent:
             return ctx.cont(ctx.rte, attr)
         else:
-            return sem_simple_call(ctx, attr_get, [attr, om_None, self])
+            # TODO: find a better way than this...
+            # It seems like cPython does very minor optimisation to avoid that check
+            # https://github.com/python/cpython/blob/master/Objects/typeobject.c#L6968
+            if om_is(OM_get_object_class(attr), class_getset_descriptor):
+                # replace None by absent in that base to indicate the attribute was looked-up on self
+                # and not on om_None and found on self
+                return sem_simple_call(ctx, attr_get, [attr, absent, self])
+            else:
+                return sem_simple_call(ctx, attr_get, [attr, om_None, self])
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected one argument, got " + str(len(args) - 1))
+
+om_type_getattribute = do_magic_method(class_type, "__getattribute__", om_type_getattribute_code)
+
+def om_type_setattr_code(ctx, args):
+    if len(args) == 3:
+        self = args[0]
+        name = args[1]
+        value = args[2]
+
+        if not om_isinstance(name, class_str):
+            return sem_raise_with_message(ctx, class_TypeError, "attribute name must be string")
+
+        name_value = OM_get_boxed_value(name)
+        class_attr = getattribute_from_obj_mro(self, name_value)
+
+        def set_on_self():
+            is_builtin = OM_get_type_is_builtin(self)
+            if is_builtin:
+                # Prevent setting attribute on a builtin class
+                cls_name = OM_get_boxed_value(OM_get(self, '__name__'))
+                msg = "can't set attributes of built-in/extension type '" + cls_name + "'"
+                return sem_raise_with_message(ctx, class_TypeError, msg)
+            else:
+                OM_set(self, name_value, value)
+                return cont_obj(ctx, om_None)
+
+        if class_attr is absent:
+            return set_on_self()
+        else:
+            attr_set = getattribute_from_obj_mro(class_attr, '__set__')
+
+            if attr_set is absent:
+                return set_on_self()
+            else:
+                return sem_simple_call(ctx, attr_set, [class_attr, self, value])
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 2 arguments, got " + str(len(args) - 1))
+
+om_type_setattr = do_magic_method(class_type, "__setattr__", om_type_setattr_code)
 
 def om_format_type_repr(self, rte):
     self_name = OM_get(self, '__name__')
@@ -2275,9 +2417,8 @@ def om_object_getattribute_code(ctx, args):
             self_clsname = OM_get(OM_get_object_class(self), '__name__')
             self_clsname_value = OM_get_boxed_value(self_clsname)
 
-            msg = om_str("'"+ self_clsname_value +"' object has no attribute '"+name_value+"'")
-            exn = om_exception(class_AttributeError, om_tuple((msg,)))
-            return sem_raise(ctx, exn)
+            msg = "'" + self_clsname_value + "' object has no attribute '" + name_value + "'"
+            return sem_raise_with_message(ctx, class_AttributeError, msg)
 
         attr_get = getattribute_from_obj_mro(attr, '__get__')
         if attr_get is absent:
@@ -2297,19 +2438,30 @@ def om_object_setattr_code(ctx, args):
         name = args[1]
         value = args[2]
 
-        # TODO: Prevent setting attributes on builtin classes
-        if om_isinstance(name, class_str):
-            attr = OM_get_boxed_value(name)
+        if not om_isinstance(name, class_str):
+            return sem_raise_with_message(ctx, class_TypeError, "attribute name must be string")
 
-            if attr == "__class__":
-                return sem_raise_with_message(ctx, class_TypeError, "cannot set __class__ of an object")
+        name_value = OM_get_boxed_value(name)
+        class_attr = getattribute_from_obj_mro(self, name_value)
+
+        def set_on_self():
+            OM_set(self, name_value, value)
+            return cont_obj(ctx, om_None)
+
+        if class_attr is absent:
+            return set_on_self()
+        else:
+            attr_set = getattribute_from_obj_mro(class_attr, '__set__')
+
+            if attr_set is absent:
+                return set_on_self()
             else:
-                OM_set(self, attr, value)
-                return cont_obj(ctx, om_None)
+                return sem_simple_call(ctx, attr_set, [class_attr, self, value])
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 2 arguments, got " + str(len(args) - 1))
 
 om_object_setattr = do_magic_method(class_object, "__setattr__", om_object_setattr_code)
+
 
 def om_object_str_code(ctx, args):
     if len(args) == 1:
@@ -2366,6 +2518,73 @@ def om_object_ne_code(ctx, args):
         return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
 
 om_object_ne = do_magic_method(class_object, "__ne__", om_object_ne_code)
+
+
+# class_getset_descriptor
+
+
+def make_getset_readonly_slot(name, objclass, om_getter):
+    def getter(ctx, instance):
+        return cont_obj(ctx, om_getter(instance))
+
+    def setter(ctx, instance, value):
+        return sem_raise_with_message(ctx, class_AttributeError, name + " assignment unsupported")
+
+    return om_getset_descriptor(name, objclass, getter, setter)
+
+
+def om_getset_descriptor_get_code(ctx, args):
+    args_len = len(args)
+
+    if args_len <= 3:
+        self = args[0]
+        instance = args[1]
+        owner = args[2]
+
+        objclass = OM_get_getset_descriptor_objclass(self)
+        getter = OM_get_getset_descriptor_getter(self)
+
+        if instance is absent:
+            # special signal sent from type.__getattribute__ to indicate attribute was looked up on owner
+            return getter(ctx, owner)
+        elif om_isinstance(instance, objclass):
+            return getter(ctx, instance)
+        else:
+            name = OM_get_getset_descriptor_name(self)
+            wrong_cls_name = OM_get_object_class_name(instance)
+            expected_cls_name = OM_get_boxed_value(OM_get(objclass, "__name__"))
+            error_msg = "descriptor '" + name + "' for '" + expected_cls_name + "' objects doesn't apply to a '" + wrong_cls_name + "' object"
+            return sem_raise_with_message(ctx, class_TypeError, error_msg)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 2 arguments, got " + str(args_len - 1))
+
+om_getset_descriptor_get = do_magic_method(class_getset_descriptor, "__get__", om_getset_descriptor_get_code)
+
+
+def om_getset_descriptor_set_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 3:
+        self = args[0]
+        instance = args[1]
+        value = args[2]
+
+        objclass = OM_get_getset_descriptor_objclass(self)
+
+        if om_isinstance(instance, objclass):
+            setter = OM_get_getset_descriptor_setter(self)
+            return setter(ctx, instance, value)
+        else:
+            name = OM_get_getset_descriptor_name(self)
+            wrong_cls_name = OM_get_object_class_name(instance)
+            expected_cls_name = OM_get_boxed_value(OM_get(objclass, "__name__"))
+            error_msg = "descriptor '" + name + "' for '" + expected_cls_name + "' objects doesn't apply to a '" + wrong_cls_name + "' object"
+            return sem_raise_with_message(ctx, class_TypeError, error_msg)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 2 arguments, got " + str(args_len - 1))
+
+om_getset_descriptor_set = do_magic_method(class_getset_descriptor, "__set__", om_getset_descriptor_set_code)
+
 
 # class_NotImplementedType
 def om_format_NotImplementedType(self, rte):
@@ -4965,12 +5184,9 @@ def om_module_setattr_code(ctx, args):
         if om_isinstance(name, class_str):
             attr = OM_get_boxed_value(name)
 
-            if attr == "__class__":
-                return sem_raise_with_message(ctx, class_TypeError, "cannot set __class__ of an object")
-            else:
-                module_env = OM_get_module_env(self)
-                dict_set(module_env, attr, value)
-                return cont_obj(ctx, om_None)
+            module_env = OM_get_module_env(self)
+            dict_set(module_env, attr, value)
+            return cont_obj(ctx, om_None)
         else:
             return sem_raise_with_message(ctx, class_TypeError, "attribute name must be string")
     else:
@@ -6475,6 +6691,7 @@ om_float_pos = do_magic_method(class_float, "__pos__", om_float_pos_code)
 bootstrap_populate_base_types()
 
 # Internal types
+populate_builtin_getset_descriptor()
 populate_builtin_NotImplementedType()
 populate_builtin_MethodWrapper()
 
@@ -7670,11 +7887,145 @@ def make_module_more_builtins():
     om_writeFile = om_make_builtin_function_with_signature('writeFile', writeFile_code,
                                                            make_posonly_only_signature(['filename', 'content']))
 
+    # DOM related methods
+
+    # Singleton object which allows access to the DOM
+    om_document = om(class_DOMDocument)
+
+    def om_DOMDocument_new_code(ctx, args):
+        if len(args) == 1:
+            return cont_obj(ctx, om_document)
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, 'DOMDocument takes no argument')
+
+    om_DOMDocument_new = do_static_magic_method(class_DOMDocument, '__new__', om_DOMDocument_new_code)
+
+
+    def om_DOMDocument_querySelector_code(ctx, args):
+        args_len = len(args)
+
+        if args_len == 2:
+            selector = args[1]
+
+            if om_isinstance(selector, class_str):
+                selector_value = OM_get_boxed_value(selector)
+                # TODO: raise a Python exception on failure, for now Codeboot will raise its own JS exception
+                elem = runtime_querySelector(ctx.rte, selector_value)
+                # runtime_querySelector will return 'null' on a failure
+                # TODO: make it return undefined which is the pyinterp None? Or give a way for pyinterp to handle null.
+                if elem:
+                    return cont_DOMElement(ctx, elem)
+                else:
+                    return cont_obj(ctx, om_None)
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, "HTML element selector must be a string")
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "expected one argument, got " + str(args_len - 1))
+
+
+    om_DOMDocument_querySelector = do_magic_method(class_DOMDocument, "querySelector", om_DOMDocument_querySelector_code)
+
+
+    buitlin_add_methods_to_class(
+        class_DOMDocument,
+        (('__new__', om_DOMDocument_new),
+         ('querySelector', om_DOMDocument_querySelector)))
+
+
+    def om_DOMElement_innerHTML_getter(ctx, instance):
+        if om_is(instance, class_DOMElement):
+            return cont_obj(ctx, om_innerHTML_descriptor)
+        elif om_isinstance(instance, class_DOMElement):
+            content = runtime_getInnerHTML(ctx.rte, OM_get_DOMElement_elem(instance))
+            return cont_str(ctx, content)
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "innerHTML descriptor expected a 'DOMElement'")
+
+
+    def om_DOMElement_innerHTML_setter(ctx, instance, content):
+        if om_isinstance(instance, class_DOMElement):
+            if om_isinstance(content, class_str):
+                content_value = OM_get_boxed_value(content)
+                runtime_setInnerHTML(ctx.rte, OM_get_DOMElement_elem(instance), content_value)
+                return cont_obj(ctx, om_None)
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, "innerHTML attribute must be set to a string")
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "innerHTML descriptor expected a 'DOMElement'")
+
+
+    def gen_DOMElement_handleAttribute(name, runtime_fn, do_cont):
+        def om_DOMElement_handleAttribute_code(ctx, args):
+            args_len = len(args)
+
+            if args_len == 2:
+                self = args[0]
+                attr = args[1]
+                elem = OM_get_DOMElement_elem(self)
+
+                if om_isinstance(attr, class_str):
+                    return do_cont(ctx, runtime_fn(ctx.rte, elem, OM_get_boxed_value(attr)))
+                else:
+                    return sem_raise_with_message(ctx, class_TypeError, "'DOMElement' attribute must be a string")
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, "expected one argument, got " + str(args_len - 1))
+
+        return do_magic_method(class_DOMElement, name, om_DOMElement_handleAttribute_code)
+
+    def om_DOMElement_setAttribute_code(ctx, args):
+        args_len = len(args)
+
+        if args_len == 3:
+            self = args[0]
+            attr = args[1]
+            value = args[2]
+            elem = OM_get_DOMElement_elem(self)
+
+            if om_isinstance(attr, class_str):
+                if om_isinstance(value, class_str):
+                    runtime_setAttribute(ctx.rte, elem, OM_get_boxed_value(attr), OM_get_boxed_value(value))
+                    return cont_obj(ctx, om_None)
+                else:
+                    return sem_raise_with_message(ctx, class_TypeError, "'DOMElement' attribute value must be a string")
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, "'DOMElement' attribute must be a string")
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "expected 2 arguments, got " + str(args_len - 1))
+
+    om_DOMElement_setAttribute = do_magic_method(class_DOMElement, "setAttribute", om_DOMElement_setAttribute_code)
+
+    # Depending on browser getAttribute may return "" or null when the attribute does not exist, we standardize this to None
+    def cont_null_or_str(ctx, val):
+        if not val or val == "":
+            return cont_obj(ctx, om_None)
+        else:
+            return cont_str(ctx, val)
+
+    om_DOMElement_hasAttribute = gen_DOMElement_handleAttribute("hasAttribute", runtime_hasAttribute, cont_bool)
+    om_DOMElement_getAttribute = gen_DOMElement_handleAttribute("getAttribute", runtime_getAttribute, cont_null_or_str)
+    om_DOMElement_removeAttribute = gen_DOMElement_handleAttribute("removeAttribute", runtime_removeAttribute,
+                                                                lambda ctx, _: cont_obj(ctx, om_None))
+
+
+    buitlin_add_methods_to_class(
+        class_DOMElement,
+        (('hasAttribute', om_DOMElement_hasAttribute),
+         ('getAttribute', om_DOMElement_getAttribute),
+         ('removeAttribute', om_DOMElement_removeAttribute),
+         ('setAttribute', om_DOMElement_setAttribute)))
+
+    om_innerHTML_descriptor = om_getset_descriptor('innerHTML', class_DOMElement,
+                                                om_DOMElement_innerHTML_getter,
+                                                om_DOMElement_innerHTML_setter)
+
+    OM_set(class_DOMElement, 'innerHTML', om_innerHTML_descriptor)
+
 
     module_more_builtins_env = make_dict()
     dict_set(module_more_builtins_env, 'struct', class_struct)
     dict_set(module_more_builtins_env, 'writeFile', om_writeFile)
     dict_set(module_more_builtins_env, 'readFile', om_readFile)
+    dict_set(module_more_builtins_env, 'document', om_document)
 
     return om_module('more_builtins', module_more_builtins_env)
 
@@ -10848,27 +11199,47 @@ def return_to_trampoline(ast, msg, nb_steps, display_result, breakpoint, sleep_t
     return res
 
 
-# % cat test.py
-# 1+2*3
-# pass
-# (2*21)%5
-# pass
-# 13/3
-#
-# % python3 pyinterp.py test.py
-# expression at 1.1: value = 1
-# expression at 1.3: value = 2
-# expression at 1.5: value = 3
-# expression at 1.3: value = 6
-# expression at 1.1: value = 7
-# statement at 2.1
-# expression at 3.2: value = 2
-# expression at 3.4: value = 21
-# expression at 3.2: value = 42
-# expression at 3.8: value = 5
-# expression at 3.1: value = 2
-# statement at 4.1
-# expression at 5.1: value = 13
-# expression at 5.4: value = 3
-# expression at 5.1: value = 4.333333333333333
-# done!
+def comp_event_handler(ast, external_context):
+    cte = CTE(None, [], [], None, None, external_context, None)
+
+    # Compile the handler code with access to 'event'
+    body_ast = ast.body
+    arguments_ast = arguments([arg("event", None, None)], [], None, [], [], None, [])
+
+    _, create_function = gen_create_function(cte, arguments_ast, body_ast, "event_handler", ast)
+
+    def convert_event_value(val):
+        if val is True:
+            return om_True
+        elif val is False:
+            return om_False
+        elif val is None:
+            return om_None
+        elif isinstance(val, float):
+            return om_float(val)
+        elif isinstance(val, str):
+            return om_str(val)
+        else:
+            # unrecognized value
+            return None
+
+    def code(rte, cont, event):
+        # Create a struct event from the event passed as dict
+        om_event = om(class_struct)
+        fields = []
+        for pair in dict_items(event_dict):
+            key = pair[0]
+            value = pair[1]
+            om_value = convert_event_value(value)
+            if om_value is not None:
+                # Skip values which could not be converted
+                fields.append(key)
+                OM_set(om_event, key, om_value)
+
+        OM_set(om_event, '_fields', om_tuple(fields))
+
+        def exec_handler(rte, om_handler_fn):
+            return sem_simple_call(Context(rte, cont, ast), om_handler_fn, [om_event])
+        return create_function(rte, exec_handler)
+
+    return cte, code
