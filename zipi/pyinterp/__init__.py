@@ -11240,10 +11240,9 @@ def cb_handle_event(rte, elem_name, handler_source, event_dict):
 
     _, create_function = gen_create_function(cte, arguments_ast, body_ast, "event_handler", ast)
 
-    cont = lambda rte, _: None # stop execution after return
-
     # TODO: do we need to create a fake ast here or is context w/o ast ok?
-    def exec_handler(rte, om_handler_fn):
-        return sem_simple_call(make_out_of_ast_context(rte, cont), om_handler_fn, [om_event])
-
-    return create_function(rte, exec_handler)
+    def code(rte, cont):
+        def exec_handler(rte, om_handler_fn):
+            return sem_simple_call(make_out_of_ast_context(rte, cont), om_handler_fn, [om_event])
+        return create_function(rte, exec_handler)
+    return cte, code
