@@ -137,7 +137,7 @@
     "call_host intrinsic function not implemented"))
 
 ;; =============================================================================
-;;  py-absent 
+;;  py-absent
 ;; =============================================================================
 
 ;; WARNING: this must be a constant otherwise it may be garbage collected
@@ -2691,7 +2691,7 @@
       py-absent)
     py-str-class
     value
-    py-absent ;;representative
+    #f ;;representative
     #f))      ;; hash
 
 (define (py-str-subtype-from-scheme value str-subclass)
@@ -2702,7 +2702,7 @@
       py-absent)
     str-subclass
     value
-    py-absent ;; representative
+    #f ;; representative
     #f))      ;; hash
 
 (define (py-str-to-scheme self)
@@ -2774,7 +2774,7 @@
        (vector (& "__self__")))
     (HClass-names-set! py-module-hclass-of-instances
        (vector (& "__next__") (& "send")))
-    
+
     ;; Fill in object class
     (PyObject-class-set! object-class type-class)
     (PyObjectType-bases-set! object-class '#())
@@ -5946,7 +5946,7 @@
 (define (builtin-__import__ __name__)
    (or (native-builtin-__import__ __name__)
        (default-builtin-__import__ __name__)))
-   
+
 (define (py-import path depth)
   (builtin-__import__ path))
 

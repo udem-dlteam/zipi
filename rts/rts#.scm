@@ -41,7 +41,7 @@
                   '#()
                   #f
                   value
-                  '%py-absent
+                  #f
                   (hash-FNV1a value))))
           ,(if constants-must-be-representatives
             `(begin
@@ -114,7 +114,7 @@
           ($elements (PyObject-%elements $obj))
           ($elements-len (vector-length $elements)))
      (if (fx>= $offset $elements-len)
-         (let (($elements-new (make-vector (max 1 (fx* 2 $elements-len)) py-absent)))
+         (let (($elements-new (make-vector (max 1 (fx* 2 $offset)) py-absent)))
            (subvector-move! $elements 0 $elements-len $elements-new 0)
            (vector-set! $elements-new $offset $val)
            (PyObject-%elements-set! $obj $elements-new))
@@ -308,7 +308,7 @@
 
    (define (kwote val)
       (if (vector? val) `',val val))
-   
+
   ;; Check the arguments of make-signature are valid keywords followed by values
   (let ((known-keywords
          '(args: posonlyargs: vararg: kwonlyargs: kw-defaults: kwarg: defaults:)))
