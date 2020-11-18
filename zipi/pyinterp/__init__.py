@@ -11227,7 +11227,7 @@ def comp_event_handler(ast, external_context):
         # Create a struct event from the event passed as dict
         om_event = om(class_struct)
         fields = []
-        for pair in dict_items(event_dict):
+        for pair in dict_items(event):
             key = pair[0]
             value = pair[1]
             om_value = convert_event_value(value)
