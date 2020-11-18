@@ -1138,6 +1138,21 @@ def py_syntax_error_ast(ts, ast, msg):\n\
     "return ast"]
 
 
+,"classdef: .'class' NAME ['(' [arglist] ')'] ':' suite":
+   ["lineno = get_lineno(ts); col_offset = get_col_offset(ts)\n"]
+,"classdef: 'class' .NAME ['(' [arglist] ')'] ':' suite":
+   ["name = token(ts)"]
+,"classdef: 'class' NAME .['(' [arglist] ')'] ':' suite":
+   ["bases, keywords = [[], []]"]
+,"classdef: 'class' NAME ['(' [arglist.] ')'] ':' suite":
+   ["bases, keywords = arglist1"]
+,"classdef: 'class' NAME ['(' [arglist] ')'] ':' suite.":
+   ["ast = ClassDef(name, bases, keywords, suite1, [])\n"
+    "set_start(ast, lineno, col_offset)\n"
+    "set_end_ast(ast, suite1[-1])\n"
+    "return ast"]
+
+
 ,"subscript: test [.subscript_tail]":
    ["lower = test1"]
 ,"subscript: test [subscript_tail.]":

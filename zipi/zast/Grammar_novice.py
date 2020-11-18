@@ -121,7 +121,7 @@ nonlocal_stmt: 'nonlocal' NAME (',' NAME)*
 assert_stmt: 'assert' test [',' test]
 
 ####compound_stmt: if_stmt | while_stmt | for_stmt | try_stmt | with_stmt | funcdef | classdef | decorated | async_stmt
-compound_stmt: if_stmt | while_stmt | for_stmt | funcdef
+compound_stmt: if_stmt | while_stmt | for_stmt | funcdef | classdef
 ####async_stmt: ASYNC (funcdef | with_stmt | for_stmt)
 if_stmt: 'if' namedexpr_test ':' suite ('elif' namedexpr_test ':' suite)* ['else' ':' suite]
 while_stmt: 'while' namedexpr_test ':' suite ['else' ':' suite]
@@ -184,7 +184,7 @@ testlist: test (',' test)* [',']
 ####                   (comp_for | (',' (test | star_expr))* [','])) )
 dictorsetmaker: (test ':' test) (',' (test ':' test))* [',']
 
-####classdef: 'class' NAME ['(' [arglist] ')'] ':' suite
+classdef: 'class' NAME ['(' [arglist] ')'] ':' suite
 
 arglist: argument (',' argument)*  [',']
 
