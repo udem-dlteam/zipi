@@ -8418,6 +8418,12 @@ def make_closure_var_token(id_, stack, current_fn):
     i = 0
     while i <= last:
         fn = stack[last - i]
+
+        # Stack contains both functions and classes but classes do not have a closure
+        # the runtime will in fact not create a stack frame at all
+        if isinstance(fn, AST.ClassDef):
+            continue
+
         fn_locals_env = get_ast_property(fn, "locals_env", None) # Should never be None
         var_token = dict_get(fn_locals_env, id_, None)
 
@@ -8472,12 +8478,14 @@ def init_compute_variables_scope(cte, ast):
     # Init computing variables scopes on function definitions, ignore variables since they are all global at top-level
 
     def walk_fn(cte, ast, args):
-        if isinstance(ast, AST.FunctionDef) or isinstance(ast, AST.Lambda):
+        is_function = isinstance(ast, AST.FunctionDef) or isinstance(ast, AST.Lambda)
+
+        if is_function or isinstance(ast, AST.ClassDef):
             locals_env = make_dict()
             locals_ref = make_dict()
             stack = []
 
-            res = compute_variables_scope(cte, ast, locals_env, locals_ref, stack)
+            res = compute_variables_scope(cte, ast, locals_env, locals_ref, stack, is_function)
 
             syntax_error = args[0]
 
@@ -8510,7 +8518,7 @@ def init_locals_env_from_args(cte, locals_env, current_fn):
 
     return locals_env
 
-def compute_variables_scope(cte, ast, locals_env, locals_ref, stack):
+def compute_variables_scope(cte, ast, locals_env, locals_ref, stack, is_function):
     # Intermediate function which computes a function variables' scope, then recursively computes it for nested functions
 
     # init function variables counters and env
@@ -8518,14 +8526,15 @@ def compute_variables_scope(cte, ast, locals_env, locals_ref, stack):
     set_ast_property(ast, 'n_vars', 0)
     set_ast_property(ast, 'locals_env', locals_env)
 
-    function_defs = []
-    args = (locals_env, locals_ref, stack, function_defs, ast)
+    namespace_defs = []
+    args = (locals_env, locals_ref, stack, namespace_defs, ast)
 
-    init_locals_env_from_args(cte, locals_env, ast)
+    if is_function:
+        init_locals_env_from_args(cte, locals_env, ast)
 
     for stmt in ast.body:
 
-        res = walk_with_abort(cte, stmt, compute_function_variables_scope, raise_walk_syntax_error, args)
+        res = walk_with_abort(cte, stmt, compute_namespace_variables_scope, raise_walk_syntax_error, args)
 
         # A syntax error was detected
         if res is not None:
@@ -8545,34 +8554,43 @@ def compute_variables_scope(cte, ast, locals_env, locals_ref, stack):
             # Else the closure token was already assigned
 
     # recursively visit nested functions which were collected in 'function_defs'
-    for nested_fn in function_defs:
+    for nested_namespace in namespace_defs:
         nested_locals_env = make_dict()
         nested_locals_ref = make_dict()
         nested_stack = stack + [ast]
 
-        res = compute_variables_scope(cte, nested_fn, nested_locals_env, nested_locals_ref, nested_stack)
+        is_nested_function = isinstance(nested_namespace, AST.FunctionDef) or isinstance(nested_namespace, AST.Lambda)
+
+        res = compute_variables_scope(cte, nested_namespace, nested_locals_env, nested_locals_ref, nested_stack, is_nested_function)
 
         if res is not None:
             return res
 
     return None
 
-def compute_function_variables_scope(cte, ast, args):
-    syntax_error, locals_env, locals_ref, stack, function_defs, current_fn = args
+def compute_namespace_variables_scope(cte, ast, args):
+    syntax_error, locals_env, locals_ref, stack, namespace_defs, current_ns = args
     if isinstance(ast, AST.FunctionDef):
         # FunctionDef are treated recursively after the current scope has been analysed
-        function_defs.append(ast)
+        namespace_defs.append(ast)
 
         id_ = ast.name
 
         if not dict_has(locals_env, id_):
-            make_local_var_token(cte, id_, current_fn)
+            make_local_var_token(cte, id_, current_ns)
 
         return False
 
     elif isinstance(ast, AST.Lambda):
-        function_defs.append(ast)
+        namespace_defs.append(ast)
         return False
+
+    elif isinstance(ast, AST.ClassDef):
+        namespace_defs.append(ast)
+
+        name = ast.name
+        if not dict_has(locals_env, name):
+            make_local_var_token(cte, name, current_ns)
 
     elif isinstance(ast, AST.Name):
         ctx = ast.ctx
@@ -8581,7 +8599,7 @@ def compute_function_variables_scope(cte, ast, args):
         if isinstance(ctx, AST.Store):
             # If the variable is in locals_env, its scope is already known, this is a reassignment, else we mark it as local
             if not dict_has(locals_env, id_):
-                make_local_var_token(cte, id_, current_fn)
+                make_local_var_token(cte, id_, current_ns)
         elif isinstance(ctx, AST.Load):
             # If the variable is in locals_env, its scope is already known
             # Else, we cannot determine its scope yet because there could be an assignation later
@@ -8600,14 +8618,14 @@ def compute_function_variables_scope(cte, ast, args):
             id_ = module_name if asname is None else asname
 
             if not dict_has(locals_env, id_):
-                make_local_var_token(cte, id_, current_fn)
+                make_local_var_token(cte, id_, current_ns)
 
     elif isinstance(ast, AST.Nonlocal):
         for id_ in ast.names:
             if dict_has(locals_env, id_) or dict_has(locals_ref, id_):
                 return syntax_error((cte, ast, "name '" + id_ + "' is used prior to nonlocal declaration"))
             else:
-                closure_token = make_closure_var_token(id_, stack, current_fn)
+                closure_token = make_closure_var_token(id_, stack, current_ns)
                 if closure_token is None or is_global_var(closure_token):
                     # a 'nonlocal' statement cannot refer to a variable from a 'global' statement
                     return syntax_error((cte, ast, "no binding for nonlocal '" + id_ + "' found"))
@@ -8841,6 +8859,9 @@ def comp_stmt(cte, ast):
     elif isinstance(ast, AST.FunctionDef):
         if debug: print('AST.FunctionDef')
         return gen_FunctionDef(cte, ast)
+
+    elif isinstance(ast, AST.ClassDef):
+        return gen_ClassDef(cte, ast)
 
     elif isinstance(ast, AST.Delete):
         if debug: print('AST.Delete')
@@ -9456,6 +9477,61 @@ def gen_create_function(cte, args, body, name, ast):
 
 
         return cte, create_function
+
+
+def gen_ClassDef(cte, ast):
+    name = ast.name
+    bases = ast.bases
+    keywords = ast.keywords
+    body = ast.body
+
+    base_cte, bases_code = comp_elements(cte, bases)
+    kwargs_cte, kwargs_code = comp_keyword_elements(base_cte, keywords)
+    set_cte, set_fn = gen_var_set(kwargs_cte, ast, name)
+
+    # TODO: correctly build cte
+    locals_env = get_ast_property(ast, 'locals_env', None)
+    n_freevars = get_ast_property(ast, 'n_freevars', None)
+    freevars_getter = list_new(n_freevars, None)
+    closure_table = make_dict()
+    local_vars = []
+
+    for name in dict_keys(locals_env):
+        var_token = locals_env[name]
+        if is_closure_var(var_token):
+            index = get_closure_var_index(var_token)
+            freevars_getter[index] = gen_function_freevar_getter(name)
+            dict_set(closure_table, name, index)
+        elif is_local_var(var_token):
+            local_vars.append((name, get_local_var_is_boxed(var_token)))
+
+    cls_cte = CTE(name,
+                  locals_env,
+                  closure_table,
+                  cte.lex_env,
+                  None,
+                  cte.external_context,
+                  cte)
+
+    body_cte, body_code = comp_stmt_seq(cls_cte, body)
+
+    om_name = om_str(name)
+
+    def code(rte, cont):
+        def get_bases(bases_rte, bases_list):
+            def exec_body(kwargs_rte, kwargs_dict):
+                if dict_len(kwargs_dict) > 0:
+                    ctx = Context(kwargs_rte, cont, keywords[0])
+                    return sem_raise_with_message(ctx, class_NotImplementedError, "class keyword arguments not yet supported")
+                else:
+                    # TODO: create rte, run code, use locals as class attributes and set class
+                    ...
+
+
+            return kwargs_code(bases_rte, exec_body)
+        return bases_code(rte, get_bases)
+    return set_cte, code
+
 
 
 def gen_multiple_Assign(cte, ast, targets, value):
