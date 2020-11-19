@@ -9600,9 +9600,8 @@ def gen_ClassDef(cte, ast):
                              cte.external_context,
                              set_cte)
 
-    body_cte, body_code = comp_stmt_seq(cls_cte, body)
+    _, body_code = comp_stmt_seq(cls_cte, body)
 
-    om_name = om_str(name)
 
     def code(rte, cont):
         def get_bases(bases_rte, bases_list):
@@ -9612,9 +9611,9 @@ def gen_ClassDef(cte, ast):
                     return sem_raise_with_message(ctx, class_NotImplementedError, "class keyword arguments not yet supported")
                 else:
                     class_locals_env = make_dict()
-                    new_rte = make_class_rte(rte, class_locals_env)
+                    body_rte = make_class_rte(rte, class_locals_env)
 
-                    def create_class(body_rte):
+                    def create_class(_):
                         class_module = OM_get_boxed_value(rte_lookup_globals(rte, "__name__"))
 
                         # TODO: add some checks on bases
@@ -9626,10 +9625,10 @@ def gen_ClassDef(cte, ast):
                             OM_set(om_class, key, value)
 
                         return set_cont(rte, cont, om_class)
-                    return body_code(new_rte, create_class)
+                    return body_code(body_rte, create_class)
             return kwargs_code(bases_rte, exec_body)
         return bases_code(rte, get_bases)
-    return body_cte, code
+    return set_cte, code
 
 def gen_multiple_Assign(cte, ast, targets, value):
     value_cte, value_code = comp_expr(cte, value)
