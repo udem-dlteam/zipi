@@ -9607,8 +9607,6 @@ def gen_ClassDef(cte, ast):
                     new_rte = make_class_rte(rte, class_locals_env)
 
                     def create_class(body_rte):
-                        # TODO: "__main__" is not correct here. We need the rte to have the current __module__ info
-                        # TODO: to check, does __module__ come from the rte or the global env?
                         class_module = OM_get_boxed_value(rte_lookup_globals(rte, "__name__"))
 
                         # TODO: add some checks on bases
@@ -9624,8 +9622,6 @@ def gen_ClassDef(cte, ast):
             return kwargs_code(bases_rte, exec_body)
         return bases_code(rte, get_bases)
     return body_cte, code
-
-
 
 def gen_multiple_Assign(cte, ast, targets, value):
     value_cte, value_code = comp_expr(cte, value)
