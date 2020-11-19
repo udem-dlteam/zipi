@@ -8825,14 +8825,17 @@ def get_scope_variables_repr(rte):
 
     return env_repr
 
+def run_walk_methods(cte, ast):
+    apply_source_to_source_transformations(cte, ast)
+    init_compute_variables_scope(cte, ast)
+
 def comp_mod(cte, ast):
 
     if isinstance(ast, AST.Module):
         # Module(stmt* body, type_ignore *type_ignores)
         if debug: print('AST.Module')
 
-        apply_source_to_source_transformations(cte, ast)
-        init_compute_variables_scope(cte, ast)
+        run_walk_methods(cte, ast)
 
         return comp_stmt_seq(cte, ast.body)
 
@@ -8840,8 +8843,7 @@ def comp_mod(cte, ast):
         # Interactive(stmt* body)
         if debug: print('AST.Interactive')
 
-        apply_source_to_source_transformations(cte, ast)
-        init_compute_variables_scope(cte, ast)
+        run_walk_methods(cte, ast)
 
         return comp_stmt_seq(cte, ast.body)
 
@@ -11425,7 +11427,12 @@ def comp_event_handler(ast, external_context):
     body_ast = ast.body
     arguments_ast = arguments([arg("event", None, None)], [], None, [], [], None, [])
 
-    _, create_function = gen_create_function(cte, arguments_ast, body_ast, "event_handler", ast)
+    # Create a fake FunctionDef for storing scoping information during walk methods
+    dummy_function = FunctionDef("<event handler>", arguments_ast, body_ast, [], None, None)
+
+    run_walk_methods(cte, dummy_function)
+
+    _, create_function = gen_create_function(cte, arguments_ast, body_ast, "event_handler", dummy_function)
 
     def convert_event_value(val):
         if val is True:
@@ -11452,7 +11459,7 @@ def comp_event_handler(ast, external_context):
             om_value = convert_event_value(value)
             if om_value is not None:
                 # Skip values which could not be converted
-                fields.append(key)
+                fields.append(om_str(key))
                 OM_set(om_event, key, om_value)
 
         OM_set(om_event, '_fields', om_tuple(fields))
@@ -11461,4 +11468,5 @@ def comp_event_handler(ast, external_context):
             return sem_simple_call(Context(rte, cont, ast), om_handler_fn, [om_event])
         return create_function(rte, exec_handler)
 
-    return cte, code
+    # Typical use case does not require the cte here, so we only return the code
+    return code
