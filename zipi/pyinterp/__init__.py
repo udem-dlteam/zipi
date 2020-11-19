@@ -11204,13 +11204,16 @@ def return_to_trampoline(ast, msg, nb_steps, display_result, breakpoint, sleep_t
 def comp_event_handler(ast, external_context):
     cte = CTE(None, [], [], None, None, external_context, None)
 
-    run_walk_methods(cte, ast)
-
     # Compile the handler code with access to 'event'
     body_ast = ast.body
     arguments_ast = arguments([arg("event", None, None)], [], None, [], [], None, [])
 
-    _, create_function = gen_create_function(cte, arguments_ast, body_ast, "event_handler", ast)
+    # Create a fake FunctionDef for storing scoping information during walk methods
+    dummy_function = FunctionDef("<event handler>", arguments_ast, body_ast, [], None, None)
+
+    run_walk_methods(cte, dummy_function)
+
+    _, create_function = gen_create_function(cte, arguments_ast, body_ast, "event_handler", dummy_function)
 
     def convert_event_value(val):
         if val is True:
@@ -11237,7 +11240,7 @@ def comp_event_handler(ast, external_context):
             om_value = convert_event_value(value)
             if om_value is not None:
                 # Skip values which could not be converted
-                fields.append(key)
+                fields.append(om_str(key))
                 OM_set(om_event, key, om_value)
 
         OM_set(om_event, '_fields', om_tuple(fields))
@@ -11246,4 +11249,5 @@ def comp_event_handler(ast, external_context):
             return sem_simple_call(Context(rte, cont, ast), om_handler_fn, [om_event])
         return create_function(rte, exec_handler)
 
-    return cte, code
+    # Typical use case does not require the cte here, so we only return the code
+    return code
