@@ -388,6 +388,13 @@ def make_rte_from_parent(rte, globals_env, locals_env, current_func, stack, ctrl
 
     return new_rte
 
+
+def make_rte_from_new_local_env(rte, locals_env):
+    return make_rte_from_parent(rte, rte_globals(rte), locals_env,
+                                rte_current_func(rte), rte_stack(rte),
+                                rte_ctrl_env(rte))
+
+
 def make_new_rte(globals_env, locals_env, builtins, builtins_module, options):
     serial_counter = [0]
     sys_modules = make_dict()
@@ -8383,6 +8390,7 @@ def s2s_format_lambda_body(cte, ast):
 # Flags for
 LOCAL_VAR = ["LOCAL_VAR"]
 CLOSURE_VAR = ["CLOSURE_VAR"]
+CLASS_CLOSURE_VAR = ["CLASS_CLOSURE_VAR"]
 GLOBAL_VAR = ["GLOBAL_VAR"]
 
 def make_local_var_token(cte, name, current_fn):
@@ -8411,10 +8419,42 @@ def is_local_var(token):
     return token[0] is LOCAL_VAR
 
 
-def make_closure_var_token(id_, stack, current_fn):
+def make_closure_var_token(id_, stack, current_namespace):
     # This function both mutates the ast to add a free variable and return the created token or None
     # Exception: a nonlocal variable can be bound to a global variable when there is a 'global' statement for the var
     last = len(stack) - 1
+
+    # Special case for classes closures
+    # Since class execution is linear, there is no need for a closure, but we need to mark variables as coming from
+    # the lexical parent local environment
+    if isinstance(current_namespace, AST.ClassDef):
+        k = 0
+        while k <= last:
+            fn = stack[last - k]
+
+            # Find the first element on stack which is a function
+            # (FunctionDef, since a class cannot be defined in a Lambda)
+            if isinstance(fn, AST.ClassDef):
+                k += 1
+            else:
+                fn_locals_env = get_ast_property(fn, "locals_env", None)  # Should never be None
+                var_token = dict_get(fn_locals_env, id_, None)
+
+                # If the current variable name is a plain local variable in the function scope, then the class
+                # namespace will only require to look at the lexical-closest function local environment
+                if var_token is not None and is_local_var(var_token):
+                    n_freevars = get_ast_property(current_namespace, 'n_freevars', None)  # Should never be None
+                    set_ast_property(current_namespace, 'n_freevars', n_freevars + 1)
+                    locals_env = get_ast_property(current_namespace, 'locals_env', None)
+                    current_fn_tk = [CLASS_CLOSURE_VAR, n_freevars]
+                    dict_set(locals_env, id_, current_fn_tk)
+
+                    return current_fn_tk
+                else:
+                    # Otherwise the variable actually comes from the function closure or is global
+                    # If that is the case the usual algorithm applies
+                    break
+
     i = 0
     while i <= last:
         fn = stack[last - i]
@@ -8422,50 +8462,56 @@ def make_closure_var_token(id_, stack, current_fn):
         # Stack contains both functions and classes but classes do not have a closure
         # the runtime will in fact not create a stack frame at all
         if isinstance(fn, AST.ClassDef):
-            continue
-
-        fn_locals_env = get_ast_property(fn, "locals_env", None) # Should never be None
-        var_token = dict_get(fn_locals_env, id_, None)
-
-        if var_token is not None:
-            if is_local_var(var_token):
-                mark_local_var_token_as_boxed(var_token)
-            elif is_closure_var(var_token):
-                pass
-            else: # global variable case
-                tk = make_global_var_token()
-                dict_set(fn_locals_env, id_, tk)
-                return tk
-
-            j = 0
-            while j < i:
-                fn = stack[last - j]
-                fn_locals_env = get_ast_property(fn, "locals_env", None)  # Should never be None
-
-                fn_n_freevars = get_ast_property(fn, 'n_freevars', None)  # Should never be None
-                set_ast_property(fn, 'n_freevars', fn_n_freevars + 1)
-
-                tk = [CLOSURE_VAR, fn_n_freevars]
-                dict_set(fn_locals_env, id_, tk)
-
-                j += 1
-
-            n_freevars = get_ast_property(current_fn, 'n_freevars', None)  # Should never be None
-            set_ast_property(current_fn, 'n_freevars', n_freevars + 1)
-            locals_env = get_ast_property(current_fn, 'locals_env', None)
-            current_fn_tk = [CLOSURE_VAR, n_freevars]
-            dict_set(locals_env, id_, current_fn_tk)
-
-            return current_fn_tk
-
-        else:
             i += 1
+        else:
+            fn_locals_env = get_ast_property(fn, "locals_env", None) # Should never be None
+            var_token = dict_get(fn_locals_env, id_, None)
+
+            if var_token is not None:
+                if is_local_var(var_token):
+                    mark_local_var_token_as_boxed(var_token)
+                elif is_closure_var(var_token):
+                    pass
+                else: # global variable case
+                    tk = make_global_var_token()
+                    dict_set(fn_locals_env, id_, tk)
+                    return tk
+
+                j = 0
+                while j < i:
+                    fn = stack[last - j]
+                    fn_locals_env = get_ast_property(fn, "locals_env", None)  # Should never be None
+
+                    fn_n_freevars = get_ast_property(fn, 'n_freevars', None)  # Should never be None
+                    set_ast_property(fn, 'n_freevars', fn_n_freevars + 1)
+
+                    tk = [CLOSURE_VAR, fn_n_freevars]
+                    dict_set(fn_locals_env, id_, tk)
+
+                    j += 1
+
+                n_freevars = get_ast_property(current_namespace, 'n_freevars', None)  # Should never be None
+                set_ast_property(current_namespace, 'n_freevars', n_freevars + 1)
+                locals_env = get_ast_property(current_namespace, 'locals_env', None)
+                current_fn_tk = [CLOSURE_VAR, n_freevars]
+                dict_set(locals_env, id_, current_fn_tk)
+
+                return current_fn_tk
+
+            else:
+                i += 1
     return None
 
 def is_closure_var(token):
     return token[0] is CLOSURE_VAR
 
 def get_closure_var_index(token):
+    return token[1]
+
+def is_class_closure_var(token):
+    return token[0] is CLASS_CLOSURE_VAR
+
+def get_class_closure_var_index(token):
     return token[1]
 
 def make_global_var_token():
@@ -9354,31 +9400,33 @@ def gen_Lambda(cte, ast):
     return fn_def_cte, code
 
 
+def gen_namespace_freevar_getter(cte, name):
+    cte_locals_env = get_cte_locals_env(cte)
+    tk = dict_get(cte_locals_env, name, None)  # Cannot be None if properly called on a freevar
+
+    if is_local_var(tk):
+        def getter(rte):
+            locals_ = rte_locals(rte)
+            return dict_get(locals_, name, None)
+
+        return getter
+
+    elif is_closure_var(tk):
+
+        index = get_closure_var_index(tk)
+
+        def getter(rte):
+            current_func = dict_get(rte, 'current_func', None)
+            closure_cells = OM_get_function_closure(current_func)
+            return closure_cells[index]
+
+        return getter
+
+    else:
+        assert False, "Variable does not exist in cte"
+
+
 def gen_create_function(cte, args, body, name, ast):
-
-    def gen_function_freevar_getter(name):
-        cte_locals_env = get_cte_locals_env(cte)
-        tk = dict_get(cte_locals_env, name, None) # Cannot be None if properly called on a freevar
-
-        if is_local_var(tk):
-            def getter(rte):
-                locals_= dict_get(rte, 'locals', None)
-                return dict_get(locals_, name, None)
-            return getter
-
-        elif is_closure_var(tk):
-
-            index = get_closure_var_index(tk)
-
-            def getter(rte):
-                current_func = dict_get(rte, 'current_func', None)
-                closure_cells = OM_get_function_closure(current_func)
-                return closure_cells[index]
-            return getter
-
-        else:
-            assert False, "Variable does not exist in cte"
-
     fn_name = om_str(name)
 
     # Create the closure variable table
@@ -9388,14 +9436,14 @@ def gen_create_function(cte, args, body, name, ast):
     closure_table = make_dict()
     local_vars = []
 
-    for name in dict_keys(locals_env):
-        var_token = locals_env[name]
+    for local_name in dict_keys(locals_env):
+        var_token = locals_env[local_name]
         if is_closure_var(var_token):
             index = get_closure_var_index(var_token)
-            freevars_getter[index] = gen_function_freevar_getter(name)
-            dict_set(closure_table, name, index)
+            freevars_getter[index] = gen_namespace_freevar_getter(cte, local_name)
+            dict_set(closure_table, local_name, index)
         elif is_local_var(var_token):
-            local_vars.append((name, get_local_var_is_boxed(var_token)))
+            local_vars.append((local_name, get_local_var_is_boxed(var_token)))
 
     def make_closure(rte):
         closure_cells = list_new(n_freevars, None)
@@ -9489,21 +9537,15 @@ def gen_ClassDef(cte, ast):
     kwargs_cte, kwargs_code = comp_keyword_elements(base_cte, keywords)
     set_cte, set_fn = gen_var_set(kwargs_cte, ast, name)
 
-    # TODO: correctly build cte
     locals_env = get_ast_property(ast, 'locals_env', None)
     n_freevars = get_ast_property(ast, 'n_freevars', None)
-    freevars_getter = list_new(n_freevars, None)
     closure_table = make_dict()
     local_vars = []
 
-    for name in dict_keys(locals_env):
-        var_token = locals_env[name]
-        if is_closure_var(var_token):
-            index = get_closure_var_index(var_token)
-            freevars_getter[index] = gen_function_freevar_getter(name)
-            dict_set(closure_table, name, index)
-        elif is_local_var(var_token):
-            local_vars.append((name, get_local_var_is_boxed(var_token)))
+    for local_name in dict_keys(locals_env):
+        var_token = locals_env[local_name]
+        if is_local_var(var_token):
+            local_vars.append((local_name, get_local_var_is_boxed(var_token)))
 
     cls_cte = CTE(name,
                   locals_env,
@@ -9525,12 +9567,18 @@ def gen_ClassDef(cte, ast):
                     return sem_raise_with_message(ctx, class_NotImplementedError, "class keyword arguments not yet supported")
                 else:
                     # TODO: create rte, run code, use locals as class attributes and set class
-                    ...
+
+                    locals_env = make_dict()
+                    new_rte = make_rte_from_new_local_env(rte, locals_env)
+
+                    def create_class(body_rte):
+                        pass
 
 
+                    return body_code(new_rte, create_class)
             return kwargs_code(bases_rte, exec_body)
         return bases_code(rte, get_bases)
-    return set_cte, code
+    return body_cte, code
 
 
 
@@ -9598,6 +9646,11 @@ def gen_var_get(cte, ast, id):
                 return sem_var_get_local(Context(rte, do_expr_end(cont, ast), ast), id)
 
             return (cte, code)
+
+    elif is_class_closure_var(var_token):
+        # TODO: here we need a way to read where the closest fn is in cte parents
+        # Then read if var is boxed and create getter accordingly
+        raise NotImplementedError
 
     else: # case: closure var
         closure_table = get_cte_closure_table(cte)
@@ -10790,7 +10843,6 @@ def sem_var_get_closure(ctx, pos, id):
     value = rte_lookup_closure(ctx.rte, pos)
 
     if value is absent:
-        # TODO: recover closure variable name
         return sem_raise_with_message(ctx, class_NameError, "free variable '" + id + "' referenced before assignment in enclosing scope")
     else:
         return cont_obj(ctx, value)
