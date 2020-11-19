@@ -8725,14 +8725,17 @@ def get_scope_variables_repr(rte):
 
     return env_repr
 
+def run_walk_methods(cte, ast):
+    apply_source_to_source_transformations(cte, ast)
+    init_compute_variables_scope(cte, ast)
+
 def comp_mod(cte, ast):
 
     if isinstance(ast, AST.Module):
         # Module(stmt* body, type_ignore *type_ignores)
         if debug: print('AST.Module')
 
-        apply_source_to_source_transformations(cte, ast)
-        init_compute_variables_scope(cte, ast)
+        run_walk_methods(cte, ast)
 
         return comp_stmt_seq(cte, ast.body)
 
@@ -8740,8 +8743,7 @@ def comp_mod(cte, ast):
         # Interactive(stmt* body)
         if debug: print('AST.Interactive')
 
-        apply_source_to_source_transformations(cte, ast)
-        init_compute_variables_scope(cte, ast)
+        run_walk_methods(cte, ast)
 
         return comp_stmt_seq(cte, ast.body)
 
@@ -11201,6 +11203,8 @@ def return_to_trampoline(ast, msg, nb_steps, display_result, breakpoint, sleep_t
 
 def comp_event_handler(ast, external_context):
     cte = CTE(None, [], [], None, None, external_context, None)
+
+    run_walk_methods(cte, ast)
 
     # Compile the handler code with access to 'event'
     body_ast = ast.body
