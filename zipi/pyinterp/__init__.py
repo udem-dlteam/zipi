@@ -9398,6 +9398,16 @@ def gen_var_set(cte, ast, id):
         else:
             sem_set = sem_var_set_local
 
+    elif is_class_closure_var(var_token):
+        fn_cte = get_cte_function_parent(cte)
+        tk = get_cte_locals_env_var(fn_cte, id)
+        boxed = get_local_var_is_boxed(tk)
+
+        if boxed:
+            sem_set = sem_var_set_class_closure_boxed
+        else:
+            sem_set = sem_var_set_class_closure
+
     else: # case: closure var
         closure_table = get_cte_closure_table(cte)
         closure_pos = dict_get(closure_table, id, None)
@@ -9601,8 +9611,6 @@ def gen_ClassDef(cte, ast):
                     ctx = Context(kwargs_rte, cont, keywords[0])
                     return sem_raise_with_message(ctx, class_NotImplementedError, "class keyword arguments not yet supported")
                 else:
-                    # TODO: create rte, run code, use locals as class attributes and set class
-
                     class_locals_env = make_dict()
                     new_rte = make_class_rte(rte, class_locals_env)
 
@@ -9689,8 +9697,6 @@ def gen_var_get(cte, ast, id):
             return (cte, code)
 
     elif is_class_closure_var(var_token):
-        # TODO: here we need a way to read where the closest fn is in cte parents
-        # Then read if var is boxed and create getter accordingly
         fn_cte = get_cte_function_parent(cte)
         tk = get_cte_locals_env_var(fn_cte, id)
         boxed = get_local_var_is_boxed(tk)
@@ -10866,6 +10872,17 @@ def sem_var_set_local(ctx, id, val):
 
 def sem_var_set_local_boxed(ctx, id, val):
     rte_set_locals_boxed(ctx.rte, id, val)
+    return cont_no_val(ctx)
+
+def sem_var_set_class_closure(ctx, id, val):
+    parent_locals_env = rte_class_parent_locals(ctx.rte)
+    dict_set(parent_locals_env, id, val)
+    return cont_no_val(ctx)
+
+def sem_var_set_class_closure_boxed(ctx, id, val):
+    parent_locals_env = rte_class_parent_locals(ctx.rte)
+    slot = dict_get(parent_locals_env, id, None)[0]
+    slot[0] = val
     return cont_no_val(ctx)
 
 def sem_var_set_globals(ctx, id, val):
