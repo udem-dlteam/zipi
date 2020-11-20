@@ -271,6 +271,10 @@ class OM_type(OM_object):
     is_builtin: indicates if this type is a builtin type (bool)
     """
 
+    def __str__(self):
+        name = OM_get_object_class_name(self)
+        return "<OM_type (" + name + ")>"
+
 class OM_NotImplemented(OM_object):
     pass
 
@@ -425,7 +429,12 @@ def make_class_rte(rte, locals_env):
     new_rte = make_rte_from_parent(rte, rte_globals(rte), locals_env,
                                 rte_current_func(rte), rte_stack(rte),
                                 rte_ctrl_env(rte))
-    dict_set(new_rte, "class_parent_locals", rte_locals(rte))
+    class_parent_locals = rte_class_parent_locals(rte)
+
+    # For nested classes, the parent scope is not the parent class but the parent function
+    new_class_parent_locals = rte_locals(rte) if class_parent_locals is absent else class_parent_locals
+
+    dict_set(new_rte, "class_parent_locals", new_class_parent_locals)
     return new_rte
 
 
@@ -7000,6 +7009,22 @@ def om_pow_code(rte, _):
     else:
         return sem_PowMod(next_ctx, base, power, mod)
 
+def om_isinstance_code(rte, cont):
+    obj = rte_lookup_locals(rte, 'object')
+    classinfo = rte_lookup_locals(rte, 'classinfo')
+
+    next_ctx = make_out_of_ast_context(rte, unwindReturn)
+
+    if om_isinstance(classinfo, class_type):
+        return cont_bool(next_ctx, om_isinstance(obj, classinfo))
+    elif om_isinstance(classinfo, class_tuple):
+        return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_NotImplementedError,
+                                      "isinstance() tuple classinfo is not supported yet")
+    else:
+        return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError,
+                                      "isinstance() arg 2 must be a type or tuple of types")
+
+
 # Built-in Modules
 def om_make_math_unary_real_function(fn_name, float_fn, arg):
     def float_code(rte, cont):
@@ -8167,6 +8192,8 @@ def fresh_rte(options):
     om_builtin_round = om_make_builtin_function_with_signature('round', om_round_code, make_posonly_defaults_signature(('number', 'ndigits'), (absent,)))
     om_builtin_pow = om_make_builtin_function_with_signature('pow', om_pow_code, make_posonly_defaults_only_signature(('base', 'power', 'mod'), (absent,)))
 
+    om_builtin_isinstance = om_make_builtin_function_with_signature('isinstance', om_isinstance_code, make_posonly_only_signature(('object', 'classinfo')))
+
     dict_set(builtins_env, 'type', class_type)
     dict_set(builtins_env, 'object', class_object)
     dict_set(builtins_env, 'int', class_int)
@@ -8182,6 +8209,7 @@ def fresh_rte(options):
     dict_set(builtins_env, 'NotImplemented', om_NotImplemented)
     dict_set(builtins_env, 'print', om_builtin_print)
     dict_set(builtins_env, 'breakpoint', om_builtin_breakpoint)
+    dict_set(builtins_env, 'isinstance', om_builtin_isinstance)
     dict_set(builtins_env, 'input', om_builtin_input)
     dict_set(builtins_env, 'hex', om_builtin_hex)
     dict_set(builtins_env, 'oct', om_builtin_oct)
