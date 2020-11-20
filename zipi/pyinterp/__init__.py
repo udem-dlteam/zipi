@@ -9623,8 +9623,22 @@ def gen_ClassDef(cte, ast):
                     def create_class(_):
                         class_module = OM_get_boxed_value(rte_lookup_globals(rte, "__name__"))
 
+                        i = 0
+                        for b in bases_list:
+                            b_type = OM_get_object_class(b)
+                            if om_is_not(b_type, class_type):
+                                ctx = Context(kwargs_rte, cont, bases[i])
+                                return sem_raise_with_message(ctx, class_NotImplementedError, "derived metaclass must be 'type'")
+                            else:
+                                i += 1
+
                         # TODO: add some checks on bases
                         om_class = make_class(name, class_module, bases_list, class_type)
+
+                        # mro could not
+                        if om_class is None:
+                            ctx = Context(kwargs_rte, cont, bases[0])
+                            return sem_raise_with_message(ctx, class_TypeError, "Cannot create a consistent method resolution order (MRO) for bases")
 
                         for pair in dict_items(class_locals_env):
                             key = pair[0]
@@ -10887,7 +10901,7 @@ def sem_var_set_class_closure(ctx, id, val):
 
 def sem_var_set_class_closure_boxed(ctx, id, val):
     parent_locals_env = rte_class_parent_locals(ctx.rte)
-    slot = dict_get(parent_locals_env, id, None)[0]
+    slot = dict_get(parent_locals_env, id, None)
     slot[0] = val
     return cont_no_val(ctx)
 
