@@ -8431,15 +8431,20 @@ CLOSURE_VAR = ["CLOSURE_VAR"]
 CLASS_CLOSURE_VAR = ["CLASS_CLOSURE_VAR"]
 GLOBAL_VAR = ["GLOBAL_VAR"]
 
-def make_local_var_token(cte, name, current_fn):
+def make_local_var_token(cte, name, current_fn, in_function):
     # Second element indicates if the variable needs to be boxed for a closure
     n_vars = get_ast_property(current_fn, 'n_vars', None)
     set_ast_property(current_fn, 'n_vars', n_vars + 1)
 
     locals_env = get_ast_property(current_fn, 'locals_env', None)
 
+    # Local variable function may be automatically boxed in non-safe-for-space mode
+    # It is important class namespace variables are not because a class namespace is more dynamic, similar to the
+    # global scope
+    boxed = in_function and not get_cte_safe_for_space(cte)
+
     # If safe_for_space is False, then box all variables by default
-    tk = [LOCAL_VAR, not get_cte_safe_for_space(cte), n_vars]
+    tk = [LOCAL_VAR, boxed, n_vars]
 
     dict_set(locals_env, name, tk)
     return tk
@@ -8587,16 +8592,16 @@ def init_locals_env_from_args(cte, locals_env, current_fn):
     for group in args_group:
         for arg in group:
             name = arg.arg
-            make_local_var_token(cte, name, current_fn)
+            make_local_var_token(cte, name, current_fn, True)
 
     vararg = args.vararg
     kwarg = args.kwarg
 
     if vararg:
-        make_local_var_token(cte, vararg.arg, current_fn)
+        make_local_var_token(cte, vararg.arg, current_fn, True)
 
     if kwarg:
-        make_local_var_token(cte, kwarg.arg, current_fn)
+        make_local_var_token(cte, kwarg.arg, current_fn, True)
 
     return locals_env
 
@@ -8609,7 +8614,7 @@ def compute_variables_scope(cte, ast, locals_env, locals_ref, stack, is_function
     set_ast_property(ast, 'locals_env', locals_env)
 
     namespace_defs = []
-    args = (locals_env, locals_ref, stack, namespace_defs, ast)
+    args = (locals_env, locals_ref, stack, namespace_defs, ast, is_function)
 
     if is_function:
         init_locals_env_from_args(cte, locals_env, ast)
@@ -8651,7 +8656,7 @@ def compute_variables_scope(cte, ast, locals_env, locals_ref, stack, is_function
     return None
 
 def compute_namespace_variables_scope(cte, ast, args):
-    syntax_error, locals_env, locals_ref, stack, namespace_defs, current_ns = args
+    syntax_error, locals_env, locals_ref, stack, namespace_defs, current_ns, is_function = args
     if isinstance(ast, AST.FunctionDef):
         # FunctionDef are treated recursively after the current scope has been analysed
         namespace_defs.append(ast)
@@ -8659,7 +8664,7 @@ def compute_namespace_variables_scope(cte, ast, args):
         id_ = ast.name
 
         if not dict_has(locals_env, id_):
-            make_local_var_token(cte, id_, current_ns)
+            make_local_var_token(cte, id_, current_ns, is_function)
 
         return False
 
@@ -8672,7 +8677,7 @@ def compute_namespace_variables_scope(cte, ast, args):
 
         name = ast.name
         if not dict_has(locals_env, name):
-            make_local_var_token(cte, name, current_ns)
+            make_local_var_token(cte, name, current_ns, is_function)
 
     elif isinstance(ast, AST.Name):
         ctx = ast.ctx
@@ -8681,7 +8686,7 @@ def compute_namespace_variables_scope(cte, ast, args):
         if isinstance(ctx, AST.Store):
             # If the variable is in locals_env, its scope is already known, this is a reassignment, else we mark it as local
             if not dict_has(locals_env, id_):
-                make_local_var_token(cte, id_, current_ns)
+                make_local_var_token(cte, id_, current_ns, is_function)
         elif isinstance(ctx, AST.Load):
             # If the variable is in locals_env, its scope is already known
             # Else, we cannot determine its scope yet because there could be an assignation later
@@ -8700,7 +8705,7 @@ def compute_namespace_variables_scope(cte, ast, args):
             id_ = module_name if asname is None else asname
 
             if not dict_has(locals_env, id_):
-                make_local_var_token(cte, id_, current_ns)
+                make_local_var_token(cte, id_, current_ns, is_function)
 
     elif isinstance(ast, AST.Nonlocal):
         for id_ in ast.names:
