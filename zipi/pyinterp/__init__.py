@@ -77,14 +77,43 @@ class RTCtrlCatch:
 #         self.ctrl_env = ctrl_env
 
 class CTE:
-    def __init__(self, callee, locals_env, closure_table, lex_env, ctrl_env, external_context, parent):
+    def __init__(self, callee, callee_type, locals_env, closure_table, lex_env, ctrl_env, external_context, parent):
         self.callee = callee
+        self.callee_type = callee_type
         self.locals_env = locals_env
         self.closure_table = closure_table
         self.lex_env = lex_env
         self.ctrl_env = ctrl_env
         self.external_context = external_context
         self.parent = parent
+
+def make_function_cte(callee, locals_env, closure_table, lex_env, ctrl_env, external_context, parent):
+    return CTE(callee, "function", locals_env, closure_table, lex_env, ctrl_env, external_context, parent)
+
+def make_class_cte(callee, locals_env, closure_table, lex_env, ctrl_env, external_context, parent):
+    return CTE(callee, "class", locals_env, closure_table, lex_env, ctrl_env, external_context, parent)
+
+def cte_is_in_function(cte):
+    return cte.callee_type == "function"
+
+def cte_is_in_class(cte):
+    return cte.callee_type == "class"
+
+def get_cte_function_parent(cte):
+    parent = cte
+    while True:
+        parent = parent.parent
+
+        if parent is None:
+            return None
+        elif cte_is_in_function(parent):
+            return parent
+        elif cte_is_in_class(parent):
+            pass
+        else:
+            # fail safe
+            assert False, "cte callee type in unknown"
+            break
 
 def get_cte_locals_env(cte):
     return cte.locals_env
@@ -106,6 +135,7 @@ def CTCtrl_controlContext(cte, ast):
         ids = make_dict()
         ctrl_env = CTCtrlLabel(ctrl_env, ids, ast)
         cte = CTE(cte.callee,
+                  cte.callee_type,
                   cte.locals_env,
                   cte.closure_table,
                   cte.lex_env,
@@ -241,6 +271,10 @@ class OM_type(OM_object):
     is_builtin: indicates if this type is a builtin type (bool)
     """
 
+    def __str__(self):
+        name = OM_get_object_class_name(self)
+        return "<OM_type (" + name + ")>"
+
 class OM_NotImplemented(OM_object):
     pass
 
@@ -367,6 +401,7 @@ def make_rte_from_parent(rte, globals_env, locals_env, current_func, stack, ctrl
     options = rte_options(rte)
     builtins = rte_builtins(rte)
     builtins_module = rte_builtins_module(rte)
+    class_parent_locals = rte_class_parent_locals(rte)
 
     new_rte = make_dict()
 
@@ -379,6 +414,7 @@ def make_rte_from_parent(rte, globals_env, locals_env, current_func, stack, ctrl
     dict_set(new_rte, "stack", stack)
     dict_set(new_rte, "ctrl_env", ctrl_env)
     dict_set(new_rte, "sys_modules", sys_modules)
+    dict_set(new_rte, "class_parent_locals", class_parent_locals)
 
     # Used to accumulate objects repr seen when calling sem_repr, to avoid infinite loops in nested objects
     dict_set(new_rte, "seen_repr_stack", seen_repr_stack)
@@ -387,6 +423,20 @@ def make_rte_from_parent(rte, globals_env, locals_env, current_func, stack, ctrl
     dict_set(new_rte, "options", options)
 
     return new_rte
+
+
+def make_class_rte(rte, locals_env):
+    new_rte = make_rte_from_parent(rte, rte_globals(rte), locals_env,
+                                rte_current_func(rte), rte_stack(rte),
+                                rte_ctrl_env(rte))
+    class_parent_locals = rte_class_parent_locals(rte)
+
+    # For nested classes, the parent scope is not the parent class but the parent function
+    new_class_parent_locals = rte_locals(rte) if class_parent_locals is absent else class_parent_locals
+
+    dict_set(new_rte, "class_parent_locals", new_class_parent_locals)
+    return new_rte
+
 
 def make_new_rte(globals_env, locals_env, builtins, builtins_module, options):
     serial_counter = [0]
@@ -403,6 +453,7 @@ def make_new_rte(globals_env, locals_env, builtins, builtins_module, options):
     dict_set(new_rte, "stack", absent)
     dict_set(new_rte, "ctrl_env", absent)
     dict_set(new_rte, "sys_modules", sys_modules)
+    dict_set(new_rte, "class_parent_locals", absent)
 
     # Used to accumulate objects repr seen when calling sem_repr, to avoid infinite loops in nested objects
     dict_set(new_rte, "seen_repr_stack", [])
@@ -466,6 +517,9 @@ def rte_builtins(rte):
 
 def rte_builtins_module(rte):
     return dict_get(rte, 'builtins_module', absent)
+
+def rte_class_parent_locals(rte):
+    return dict_get(rte, 'class_parent_locals', absent)
 
 def rte_stack(rte):
     return dict_get(rte, 'stack', absent)
@@ -6955,6 +7009,22 @@ def om_pow_code(rte, _):
     else:
         return sem_PowMod(next_ctx, base, power, mod)
 
+def om_isinstance_code(rte, cont):
+    obj = rte_lookup_locals(rte, 'object')
+    classinfo = rte_lookup_locals(rte, 'classinfo')
+
+    next_ctx = make_out_of_ast_context(rte, unwindReturn)
+
+    if om_isinstance(classinfo, class_type):
+        return cont_bool(next_ctx, om_isinstance(obj, classinfo))
+    elif om_isinstance(classinfo, class_tuple):
+        return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_NotImplementedError,
+                                      "isinstance() tuple classinfo is not supported yet")
+    else:
+        return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError,
+                                      "isinstance() arg 2 must be a type or tuple of types")
+
+
 # Built-in Modules
 def om_make_math_unary_real_function(fn_name, float_fn, arg):
     def float_code(rte, cont):
@@ -8067,7 +8137,7 @@ def interp(ast, options):
     trampoline(prepare_execution(code, fresh_rte(options)))
 
 def comp(ast, external_context):
-    cte = CTE(None, make_dict(), [], None, None, external_context, None)
+    cte = CTE(None, None, make_dict(), [], None, None, external_context, None)
 
     if hasattr(ast, 'container'):
         container = ast.container
@@ -8122,6 +8192,8 @@ def fresh_rte(options):
     om_builtin_round = om_make_builtin_function_with_signature('round', om_round_code, make_posonly_defaults_signature(('number', 'ndigits'), (absent,)))
     om_builtin_pow = om_make_builtin_function_with_signature('pow', om_pow_code, make_posonly_defaults_only_signature(('base', 'power', 'mod'), (absent,)))
 
+    om_builtin_isinstance = om_make_builtin_function_with_signature('isinstance', om_isinstance_code, make_posonly_only_signature(('object', 'classinfo')))
+
     dict_set(builtins_env, 'type', class_type)
     dict_set(builtins_env, 'object', class_object)
     dict_set(builtins_env, 'int', class_int)
@@ -8137,6 +8209,7 @@ def fresh_rte(options):
     dict_set(builtins_env, 'NotImplemented', om_NotImplemented)
     dict_set(builtins_env, 'print', om_builtin_print)
     dict_set(builtins_env, 'breakpoint', om_builtin_breakpoint)
+    dict_set(builtins_env, 'isinstance', om_builtin_isinstance)
     dict_set(builtins_env, 'input', om_builtin_input)
     dict_set(builtins_env, 'hex', om_builtin_hex)
     dict_set(builtins_env, 'oct', om_builtin_oct)
@@ -8383,17 +8456,23 @@ def s2s_format_lambda_body(cte, ast):
 # Flags for
 LOCAL_VAR = ["LOCAL_VAR"]
 CLOSURE_VAR = ["CLOSURE_VAR"]
+CLASS_CLOSURE_VAR = ["CLASS_CLOSURE_VAR"]
 GLOBAL_VAR = ["GLOBAL_VAR"]
 
-def make_local_var_token(cte, name, current_fn):
+def make_local_var_token(cte, name, current_fn, in_function):
     # Second element indicates if the variable needs to be boxed for a closure
     n_vars = get_ast_property(current_fn, 'n_vars', None)
     set_ast_property(current_fn, 'n_vars', n_vars + 1)
 
     locals_env = get_ast_property(current_fn, 'locals_env', None)
 
+    # Local variable function may be automatically boxed in non-safe-for-space mode
+    # It is important class namespace variables are not because a class namespace is more dynamic, similar to the
+    # global scope
+    boxed = in_function and not get_cte_safe_for_space(cte)
+
     # If safe_for_space is False, then box all variables by default
-    tk = [LOCAL_VAR, not get_cte_safe_for_space(cte), n_vars]
+    tk = [LOCAL_VAR, boxed, n_vars]
 
     dict_set(locals_env, name, tk)
     return tk
@@ -8411,55 +8490,97 @@ def is_local_var(token):
     return token[0] is LOCAL_VAR
 
 
-def make_closure_var_token(id_, stack, current_fn):
+def make_closure_var_token(id_, stack, current_namespace):
     # This function both mutates the ast to add a free variable and return the created token or None
     # Exception: a nonlocal variable can be bound to a global variable when there is a 'global' statement for the var
     last = len(stack) - 1
+
+    # Special case for classes closures
+    # Since class execution is linear, there is no need for a closure, but we need to mark variables as coming from
+    # the lexical parent local environment
+    if isinstance(current_namespace, AST.ClassDef):
+        k = 0
+        while k <= last:
+            fn = stack[last - k]
+
+            # Find the first element on stack which is a function
+            # (FunctionDef, since a class cannot be defined in a Lambda)
+            if isinstance(fn, AST.ClassDef):
+                k += 1
+            else:
+                fn_locals_env = get_ast_property(fn, "locals_env", None)  # Should never be None
+                var_token = dict_get(fn_locals_env, id_, None)
+
+                # If the current variable name is a plain local variable in the function scope, then the class
+                # namespace will only require to look at the lexical-closest function local environment
+                if var_token is not None and is_local_var(var_token):
+                    locals_env = get_ast_property(current_namespace, 'locals_env', None)
+                    current_fn_tk = [CLASS_CLOSURE_VAR]
+                    dict_set(locals_env, id_, current_fn_tk)
+
+                    return current_fn_tk
+                else:
+                    # Otherwise the variable actually comes from the function closure or is global
+                    # If that is the case the usual algorithm applies
+                    break
+
     i = 0
     while i <= last:
         fn = stack[last - i]
-        fn_locals_env = get_ast_property(fn, "locals_env", None) # Should never be None
-        var_token = dict_get(fn_locals_env, id_, None)
 
-        if var_token is not None:
-            if is_local_var(var_token):
-                mark_local_var_token_as_boxed(var_token)
-            elif is_closure_var(var_token):
-                pass
-            else: # global variable case
-                tk = make_global_var_token()
-                dict_set(fn_locals_env, id_, tk)
-                return tk
-
-            j = 0
-            while j < i:
-                fn = stack[last - j]
-                fn_locals_env = get_ast_property(fn, "locals_env", None)  # Should never be None
-
-                fn_n_freevars = get_ast_property(fn, 'n_freevars', None)  # Should never be None
-                set_ast_property(fn, 'n_freevars', fn_n_freevars + 1)
-
-                tk = [CLOSURE_VAR, fn_n_freevars]
-                dict_set(fn_locals_env, id_, tk)
-
-                j += 1
-
-            n_freevars = get_ast_property(current_fn, 'n_freevars', None)  # Should never be None
-            set_ast_property(current_fn, 'n_freevars', n_freevars + 1)
-            locals_env = get_ast_property(current_fn, 'locals_env', None)
-            current_fn_tk = [CLOSURE_VAR, n_freevars]
-            dict_set(locals_env, id_, current_fn_tk)
-
-            return current_fn_tk
-
-        else:
+        # Stack contains both functions and classes but classes do not have a closure
+        # the runtime will in fact not create a stack frame at all
+        if isinstance(fn, AST.ClassDef):
             i += 1
+        else:
+            fn_locals_env = get_ast_property(fn, "locals_env", None) # Should never be None
+            var_token = dict_get(fn_locals_env, id_, None)
+
+            if var_token is not None:
+                if is_local_var(var_token):
+                    mark_local_var_token_as_boxed(var_token)
+                elif is_closure_var(var_token):
+                    pass
+                else: # global variable case
+                    tk = make_global_var_token()
+                    dict_set(fn_locals_env, id_, tk)
+                    return tk
+
+                j = 0
+                while j < i:
+                    fn = stack[last - j]
+                    fn_locals_env = get_ast_property(fn, "locals_env", None)  # Should never be None
+
+                    fn_n_freevars = get_ast_property(fn, 'n_freevars', None)  # Should never be None
+                    set_ast_property(fn, 'n_freevars', fn_n_freevars + 1)
+
+                    tk = [CLOSURE_VAR, fn_n_freevars]
+                    dict_set(fn_locals_env, id_, tk)
+
+                    j += 1
+
+                n_freevars = get_ast_property(current_namespace, 'n_freevars', None)  # Should never be None
+                set_ast_property(current_namespace, 'n_freevars', n_freevars + 1)
+                locals_env = get_ast_property(current_namespace, 'locals_env', None)
+                current_fn_tk = [CLOSURE_VAR, n_freevars]
+                dict_set(locals_env, id_, current_fn_tk)
+
+                return current_fn_tk
+
+            else:
+                i += 1
     return None
 
 def is_closure_var(token):
     return token[0] is CLOSURE_VAR
 
 def get_closure_var_index(token):
+    return token[1]
+
+def is_class_closure_var(token):
+    return token[0] is CLASS_CLOSURE_VAR
+
+def get_class_closure_var_index(token):
     return token[1]
 
 def make_global_var_token():
@@ -8472,12 +8593,14 @@ def init_compute_variables_scope(cte, ast):
     # Init computing variables scopes on function definitions, ignore variables since they are all global at top-level
 
     def walk_fn(cte, ast, args):
-        if isinstance(ast, AST.FunctionDef) or isinstance(ast, AST.Lambda):
+        is_function = isinstance(ast, AST.FunctionDef) or isinstance(ast, AST.Lambda)
+
+        if is_function or isinstance(ast, AST.ClassDef):
             locals_env = make_dict()
             locals_ref = make_dict()
             stack = []
 
-            res = compute_variables_scope(cte, ast, locals_env, locals_ref, stack)
+            res = compute_variables_scope(cte, ast, locals_env, locals_ref, stack, is_function)
 
             syntax_error = args[0]
 
@@ -8497,20 +8620,20 @@ def init_locals_env_from_args(cte, locals_env, current_fn):
     for group in args_group:
         for arg in group:
             name = arg.arg
-            make_local_var_token(cte, name, current_fn)
+            make_local_var_token(cte, name, current_fn, True)
 
     vararg = args.vararg
     kwarg = args.kwarg
 
     if vararg:
-        make_local_var_token(cte, vararg.arg, current_fn)
+        make_local_var_token(cte, vararg.arg, current_fn, True)
 
     if kwarg:
-        make_local_var_token(cte, kwarg.arg, current_fn)
+        make_local_var_token(cte, kwarg.arg, current_fn, True)
 
     return locals_env
 
-def compute_variables_scope(cte, ast, locals_env, locals_ref, stack):
+def compute_variables_scope(cte, ast, locals_env, locals_ref, stack, is_function):
     # Intermediate function which computes a function variables' scope, then recursively computes it for nested functions
 
     # init function variables counters and env
@@ -8518,14 +8641,15 @@ def compute_variables_scope(cte, ast, locals_env, locals_ref, stack):
     set_ast_property(ast, 'n_vars', 0)
     set_ast_property(ast, 'locals_env', locals_env)
 
-    function_defs = []
-    args = (locals_env, locals_ref, stack, function_defs, ast)
+    namespace_defs = []
+    args = (locals_env, locals_ref, stack, namespace_defs, ast, is_function)
 
-    init_locals_env_from_args(cte, locals_env, ast)
+    if is_function:
+        init_locals_env_from_args(cte, locals_env, ast)
 
     for stmt in ast.body:
 
-        res = walk_with_abort(cte, stmt, compute_function_variables_scope, raise_walk_syntax_error, args)
+        res = walk_with_abort(cte, stmt, compute_namespace_variables_scope, raise_walk_syntax_error, args)
 
         # A syntax error was detected
         if res is not None:
@@ -8545,34 +8669,43 @@ def compute_variables_scope(cte, ast, locals_env, locals_ref, stack):
             # Else the closure token was already assigned
 
     # recursively visit nested functions which were collected in 'function_defs'
-    for nested_fn in function_defs:
+    for nested_namespace in namespace_defs:
         nested_locals_env = make_dict()
         nested_locals_ref = make_dict()
         nested_stack = stack + [ast]
 
-        res = compute_variables_scope(cte, nested_fn, nested_locals_env, nested_locals_ref, nested_stack)
+        is_nested_function = isinstance(nested_namespace, AST.FunctionDef) or isinstance(nested_namespace, AST.Lambda)
+
+        res = compute_variables_scope(cte, nested_namespace, nested_locals_env, nested_locals_ref, nested_stack, is_nested_function)
 
         if res is not None:
             return res
 
     return None
 
-def compute_function_variables_scope(cte, ast, args):
-    syntax_error, locals_env, locals_ref, stack, function_defs, current_fn = args
+def compute_namespace_variables_scope(cte, ast, args):
+    syntax_error, locals_env, locals_ref, stack, namespace_defs, current_ns, is_function = args
     if isinstance(ast, AST.FunctionDef):
         # FunctionDef are treated recursively after the current scope has been analysed
-        function_defs.append(ast)
+        namespace_defs.append(ast)
 
         id_ = ast.name
 
         if not dict_has(locals_env, id_):
-            make_local_var_token(cte, id_, current_fn)
+            make_local_var_token(cte, id_, current_ns, is_function)
 
         return False
 
     elif isinstance(ast, AST.Lambda):
-        function_defs.append(ast)
+        namespace_defs.append(ast)
         return False
+
+    elif isinstance(ast, AST.ClassDef):
+        namespace_defs.append(ast)
+
+        name = ast.name
+        if not dict_has(locals_env, name):
+            make_local_var_token(cte, name, current_ns, is_function)
 
     elif isinstance(ast, AST.Name):
         ctx = ast.ctx
@@ -8581,7 +8714,7 @@ def compute_function_variables_scope(cte, ast, args):
         if isinstance(ctx, AST.Store):
             # If the variable is in locals_env, its scope is already known, this is a reassignment, else we mark it as local
             if not dict_has(locals_env, id_):
-                make_local_var_token(cte, id_, current_fn)
+                make_local_var_token(cte, id_, current_ns, is_function)
         elif isinstance(ctx, AST.Load):
             # If the variable is in locals_env, its scope is already known
             # Else, we cannot determine its scope yet because there could be an assignation later
@@ -8600,14 +8733,14 @@ def compute_function_variables_scope(cte, ast, args):
             id_ = module_name if asname is None else asname
 
             if not dict_has(locals_env, id_):
-                make_local_var_token(cte, id_, current_fn)
+                make_local_var_token(cte, id_, current_ns, is_function)
 
     elif isinstance(ast, AST.Nonlocal):
         for id_ in ast.names:
             if dict_has(locals_env, id_) or dict_has(locals_ref, id_):
                 return syntax_error((cte, ast, "name '" + id_ + "' is used prior to nonlocal declaration"))
             else:
-                closure_token = make_closure_var_token(id_, stack, current_fn)
+                closure_token = make_closure_var_token(id_, stack, current_ns)
                 if closure_token is None or is_global_var(closure_token):
                     # a 'nonlocal' statement cannot refer to a variable from a 'global' statement
                     return syntax_error((cte, ast, "no binding for nonlocal '" + id_ + "' found"))
@@ -8628,7 +8761,6 @@ def compute_function_variables_scope(cte, ast, args):
 
 
 def get_scope_variables(rte):
-
     def filter_scope(env):
         # Remove private names such as __name__ from displayed environment
         filtered_env = make_dict()
@@ -8646,10 +8778,19 @@ def get_scope_variables(rte):
         # In non-safe-for-space mode, each function has access to its whole lexical scope, we return it
         if current_func is absent:
             env = filter_scope(globals_)
+            locals_ = rte_locals(rte)
+
+            if locals_ is not absent:
+                # case where a class is defined at top-level
+                for name in dict_keys(locals_):
+                    val = dict_get(locals_, name, None)  # Class attributes are not boxed (dynamic namespace)
+                    if val is not absent:
+                        dict_set(env, name, val)
         else:
             var_context = OM_get_function_var_context(current_func)
             filtered_globals = filter_scope(globals_)
             lexical_scope = OM_get_function_lexical_scope(current_func)
+            class_parent_namespace = rte_class_parent_locals(rte)
             locals_ = rte_locals(rte)
             env = make_dict()
 
@@ -8670,45 +8811,99 @@ def get_scope_variables(rte):
                     if val is not absent:
                         dict_set(env, name, val)
 
-            # Add bound local variables to the environment
-            for name in dict_keys(locals_):
-                val = dict_get(locals_, name, None)[0] # All variables are boxed in non-safe-for-space mode
-                if val is not absent:
-                    dict_set(env, name, val)
+            if class_parent_namespace is not absent:
+                # Add bound local variables to the environment
+                for name in dict_keys(class_parent_namespace):
+                    val = dict_get(class_parent_namespace, name, None)[0]  # All variables are boxed in non-safe-for-space mode
+                    if val is not absent:
+                        dict_set(env, name, val)
+
+                # Add class namespace to the environment
+                for name in dict_keys(locals_):
+                    val = dict_get(locals_, name, None)  # Class attributes are not boxed (dynamic namespace)
+                    if val is not absent:
+                        dict_set(env, name, val)
+            else:
+                # Add bound local variables to the environment
+                for name in dict_keys(locals_):
+                    val = dict_get(locals_, name, None)[0]  # All variables are boxed in non-safe-for-space mode
+                    if val is not absent:
+                        dict_set(env, name, val)
 
     elif current_func is absent:
         # At top-level
         env = filter_scope(rte_globals(rte))
+        locals_ = rte_locals(rte)
+
+        if locals_ is not absent:
+            # case where a class is defined at top-level
+            for name in dict_keys(locals_):
+                val = dict_get(locals_, name, None)
+                if val is not absent:
+                    dict_set(env, name, val)
     else:
-        local_vars = rte_locals(rte)
         global_vars = filter_scope(rte_lexical_globals(rte))
         closure = OM_get_function_closure(current_func)
+        class_parent_namespace = rte_class_parent_locals(rte)
+        local_vars = rte_locals(rte)
 
-        env = make_dict()
+        global_env_part = make_dict()
+        closure_env_part = make_dict()
+        function_env_part = make_dict()
+
+        in_class = class_parent_namespace is not absent
 
         var_context = OM_get_function_var_context(current_func)
+
+        function_locals = class_parent_namespace if in_class else local_vars
 
         for key in dict_keys(var_context):
             var_val = dict_get(var_context, key, None)
             if is_local_var(var_val):
                 boxed = get_local_var_is_boxed(var_val)
                 if boxed:
-                    val = dict_get(local_vars, key, None)[0]
+                    val = dict_get(function_locals, key, None)[0]
                 else:
-                    val = dict_get(local_vars, key, None)
+                    val = dict_get(function_locals, key, None)
                 if val is not absent:
-                    dict_set(env, key, val)
+                    dict_set(function_env_part, key, val)
             elif is_closure_var(var_val):
                 index = get_closure_var_index(var_val)
                 val = closure[index][0]
                 if val is not absent:
-                    dict_set(env, key, val)
+                    dict_set(closure_env_part, key, val)
             else: # case global
                 val = dict_get(global_vars, key, absent)
 
                 # NOTE: value may be absent because key is a builtin name
                 if val is not absent:
-                    dict_set(env, key, val)
+                    dict_set(global_env_part, key, val)
+
+        env = make_dict()
+
+        if in_class:
+            for pair in dict_items(local_vars):
+                key = pair[0]
+                val = pair[1]
+                dict_set(env, key, val)
+
+        for pair in dict_items(function_env_part):
+            key = pair[0]
+            val = pair[1]
+            if not dict_has(env, key):
+                dict_set(env, key, val)
+
+        for pair in dict_items(closure_env_part):
+            key = pair[0]
+            val = pair[1]
+            if not dict_has(env, key):
+                dict_set(env, key, val)
+
+        for pair in dict_items(global_env_part):
+            key = pair[0]
+            val = pair[1]
+            if not dict_has(env, key):
+                dict_set(env, key, val)
 
     # Reverse the order so latest assignments come first
     # This will only work on Python and JS version which make_dict() is order preserving
@@ -8843,6 +9038,9 @@ def comp_stmt(cte, ast):
     elif isinstance(ast, AST.FunctionDef):
         if debug: print('AST.FunctionDef')
         return gen_FunctionDef(cte, ast)
+
+    elif isinstance(ast, AST.ClassDef):
+        return gen_ClassDef(cte, ast)
 
     elif isinstance(ast, AST.Delete):
         if debug: print('AST.Delete')
@@ -9186,6 +9384,7 @@ def gen_stmt_empty(cte):
 def gen_Pass(cte, ast):
 
     def code(rte, cont):
+        get_scope_variables_repr(rte)
         return stmt_end(Context(rte, cont, ast), 1)
 
     return (cte, code)
@@ -9297,6 +9496,16 @@ def gen_var_set(cte, ast, id):
         else:
             sem_set = sem_var_set_local
 
+    elif is_class_closure_var(var_token):
+        fn_cte = get_cte_function_parent(cte)
+        tk = get_cte_locals_env_var(fn_cte, id)
+        boxed = get_local_var_is_boxed(tk)
+
+        if boxed:
+            sem_set = sem_var_set_class_closure_boxed
+        else:
+            sem_set = sem_var_set_class_closure
+
     else: # case: closure var
         closure_table = get_cte_closure_table(cte)
         closure_pos = dict_get(closure_table, id, None)
@@ -9335,31 +9544,33 @@ def gen_Lambda(cte, ast):
     return fn_def_cte, code
 
 
+def gen_namespace_freevar_getter(cte, name):
+    cte_locals_env = get_cte_locals_env(cte)
+    tk = dict_get(cte_locals_env, name, None)  # Cannot be None if properly called on a freevar
+
+    if is_local_var(tk):
+        def getter(rte):
+            locals_ = rte_locals(rte)
+            return dict_get(locals_, name, None)
+
+        return getter
+
+    elif is_closure_var(tk):
+
+        index = get_closure_var_index(tk)
+
+        def getter(rte):
+            current_func = dict_get(rte, 'current_func', None)
+            closure_cells = OM_get_function_closure(current_func)
+            return closure_cells[index]
+
+        return getter
+
+    else:
+        assert False, "Variable does not exist in cte"
+
+
 def gen_create_function(cte, args, body, name, ast):
-
-    def gen_function_freevar_getter(name):
-        cte_locals_env = get_cte_locals_env(cte)
-        tk = dict_get(cte_locals_env, name, None) # Cannot be None if properly called on a freevar
-
-        if is_local_var(tk):
-            def getter(rte):
-                locals_= dict_get(rte, 'locals', None)
-                return dict_get(locals_, name, None)
-            return getter
-
-        elif is_closure_var(tk):
-
-            index = get_closure_var_index(tk)
-
-            def getter(rte):
-                current_func = dict_get(rte, 'current_func', None)
-                closure_cells = OM_get_function_closure(current_func)
-                return closure_cells[index]
-            return getter
-
-        else:
-            assert False, "Variable does not exist in cte"
-
     fn_name = om_str(name)
 
     # Create the closure variable table
@@ -9369,14 +9580,14 @@ def gen_create_function(cte, args, body, name, ast):
     closure_table = make_dict()
     local_vars = []
 
-    for name in dict_keys(locals_env):
-        var_token = locals_env[name]
+    for local_name in dict_keys(locals_env):
+        var_token = locals_env[local_name]
         if is_closure_var(var_token):
             index = get_closure_var_index(var_token)
-            freevars_getter[index] = gen_function_freevar_getter(name)
-            dict_set(closure_table, name, index)
+            freevars_getter[index] = gen_namespace_freevar_getter(cte, local_name)
+            dict_set(closure_table, local_name, index)
         elif is_local_var(var_token):
-            local_vars.append((name, get_local_var_is_boxed(var_token)))
+            local_vars.append((local_name, get_local_var_is_boxed(var_token)))
 
     def make_closure(rte):
         closure_cells = list_new(n_freevars, None)
@@ -9389,13 +9600,13 @@ def gen_create_function(cte, args, body, name, ast):
     ids = make_dict()
     dict_set(ids, "return point", True)
 
-    fn_cte = CTE(name,
-                 locals_env,
-                 closure_table,
-                 cte.lex_env,
-                 CTCtrlLabel(None, ids, ast),
-                 cte.external_context,
-                 cte)
+    fn_cte = make_function_cte(name,
+                               locals_env,
+                               closure_table,
+                               cte.lex_env,
+                               CTCtrlLabel(None, ids, ast),
+                               cte.external_context,
+                               cte)
 
     (body_cte, body_code) = comp_stmt_seq(fn_cte, body)
 
@@ -9459,6 +9670,77 @@ def gen_create_function(cte, args, body, name, ast):
 
         return cte, create_function
 
+
+def gen_ClassDef(cte, ast):
+    name = ast.name
+    bases = ast.bases
+    keywords = ast.keywords
+    body = ast.body
+
+    base_cte, bases_code = comp_elements(cte, bases)
+    kwargs_cte, kwargs_code = comp_keyword_elements(base_cte, keywords)
+    set_cte, set_cont = gen_var_set(kwargs_cte, ast, name)
+
+    locals_env = get_ast_property(ast, 'locals_env', None)
+    closure_table = make_dict()
+    local_vars = []
+
+    for local_name in dict_keys(locals_env):
+        var_token = locals_env[local_name]
+        if is_local_var(var_token):
+            local_vars.append((local_name, get_local_var_is_boxed(var_token)))
+
+    cls_cte = make_class_cte(name,
+                             locals_env,
+                             closure_table,
+                             cte.lex_env,
+                             None,
+                             cte.external_context,
+                             set_cte)
+
+    _, body_code = comp_stmt_seq(cls_cte, body)
+
+
+    def code(rte, cont):
+        def get_bases(bases_rte, bases_list):
+            def exec_body(kwargs_rte, kwargs_dict):
+                if dict_len(kwargs_dict) > 0:
+                    ctx = Context(kwargs_rte, cont, keywords[0])
+                    return sem_raise_with_message(ctx, class_NotImplementedError, "class keyword arguments not yet supported")
+                else:
+                    class_locals_env = make_dict()
+                    body_rte = make_class_rte(rte, class_locals_env)
+
+                    def create_class(_):
+                        class_module = OM_get_boxed_value(rte_lookup_globals(rte, "__name__"))
+
+                        i = 0
+                        for b in bases_list:
+                            b_type = OM_get_object_class(b)
+                            if om_is_not(b_type, class_type):
+                                ctx = Context(kwargs_rte, cont, bases[i])
+                                return sem_raise_with_message(ctx, class_NotImplementedError, "derived metaclass must be 'type'")
+                            else:
+                                i += 1
+
+                        # TODO: add some checks on bases
+                        om_class = make_class(name, class_module, bases_list, class_type)
+
+                        # mro could not
+                        if om_class is None:
+                            ctx = Context(kwargs_rte, cont, bases[0])
+                            return sem_raise_with_message(ctx, class_TypeError, "Cannot create a consistent method resolution order (MRO) for bases")
+
+                        for pair in dict_items(class_locals_env):
+                            key = pair[0]
+                            value = pair[1]
+                            OM_set(om_class, key, value)
+
+                        return set_cont(rte, cont, om_class)
+                    return body_code(body_rte, create_class)
+            return kwargs_code(bases_rte, exec_body)
+        return bases_code(rte, get_bases)
+    return set_cte, code
 
 def gen_multiple_Assign(cte, ast, targets, value):
     value_cte, value_code = comp_expr(cte, value)
@@ -9524,6 +9806,21 @@ def gen_var_get(cte, ast, id):
                 return sem_var_get_local(Context(rte, do_expr_end(cont, ast), ast), id)
 
             return (cte, code)
+
+    elif is_class_closure_var(var_token):
+        fn_cte = get_cte_function_parent(cte)
+        tk = get_cte_locals_env_var(fn_cte, id)
+        boxed = get_local_var_is_boxed(tk)
+
+        if boxed:
+            def code(rte, cont):
+                return sem_var_get_class_closure_boxed(Context(rte, do_expr_end(cont, ast), ast), id)
+            return cte, code
+        else:
+            def code(rte, cont):
+                return sem_var_get_class_closure(Context(rte, do_expr_end(cont, ast), ast), id)
+
+            return cte, code
 
     else: # case: closure var
         closure_table = get_cte_closure_table(cte)
@@ -10688,6 +10985,17 @@ def sem_var_set_local_boxed(ctx, id, val):
     rte_set_locals_boxed(ctx.rte, id, val)
     return cont_no_val(ctx)
 
+def sem_var_set_class_closure(ctx, id, val):
+    parent_locals_env = rte_class_parent_locals(ctx.rte)
+    dict_set(parent_locals_env, id, val)
+    return cont_no_val(ctx)
+
+def sem_var_set_class_closure_boxed(ctx, id, val):
+    parent_locals_env = rte_class_parent_locals(ctx.rte)
+    slot = dict_get(parent_locals_env, id, None)
+    slot[0] = val
+    return cont_no_val(ctx)
+
 def sem_var_set_globals(ctx, id, val):
     rte_set_globals(ctx.rte, id, val)
     return cont_no_val(ctx)
@@ -10712,11 +11020,32 @@ def sem_var_get_local_boxed(ctx, id):
     return cont_obj(ctx, value)
 
 
+def sem_var_get_class_closure_boxed(ctx, id):
+    parent_locals_env = rte_class_parent_locals(ctx.rte)
+    value = dict_get(parent_locals_env, id, absent)[0]
+
+    if value is absent:
+        return sem_raise_with_message(ctx, class_NameError,
+                                      "free variable '" + id + "' referenced before assignment in enclosing scope")
+    else:
+        return cont_obj(ctx, value)
+
+
+def sem_var_get_class_closure(ctx, id):
+    parent_locals_env = rte_class_parent_locals(ctx.rte)
+    value = dict_get(parent_locals_env, id, absent)
+
+    if value is absent:
+        return sem_raise_with_message(ctx, class_NameError,
+                                      "free variable '" + id + "' referenced before assignment in enclosing scope")
+    else:
+        return cont_obj(ctx, value)
+
+
 def sem_var_get_closure(ctx, pos, id):
     value = rte_lookup_closure(ctx.rte, pos)
 
     if value is absent:
-        # TODO: recover closure variable name
         return sem_raise_with_message(ctx, class_NameError, "free variable '" + id + "' referenced before assignment in enclosing scope")
     else:
         return cont_obj(ctx, value)
@@ -11202,7 +11531,7 @@ def return_to_trampoline(ast, msg, nb_steps, display_result, breakpoint, sleep_t
 
 
 def comp_event_handler(ast, external_context):
-    cte = CTE(None, [], [], None, None, external_context, None)
+    cte = CTE(None, None, [], [], None, None, external_context, None)
 
     # Compile the handler code with access to 'event'
     body_ast = ast.body

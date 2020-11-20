@@ -2,7 +2,7 @@
 PYTHON38 = ../../../../venv/bin/python
 TAIL = | tail -n2
 
-all: tests zp-tests venv
+all: tests tests-no-sfs zp-tests venv
 
 .PHONY: venv
 venv:
@@ -13,6 +13,22 @@ tests: venv
 	@echo "Comparing CPython and pyinterp.py results..."
 	-cd must_pass && $(PYTHON38) ../run.py --cpython "$(PYTHON38) ../exec_as_pyinterp.py " --zipi "$(PYTHON38) -m zipi.pyinterp " >../PYINTERP_TESTS_ESSENTIAL 2>&1
 	-cd wishlist && $(PYTHON38) ../run.py --cpython "$(PYTHON38) ../exec_as_pyinterp.py " --zipi "$(PYTHON38) -m zipi.pyinterp " >../PYINTERP_TESTS_WISHLIST 2>&1
+	@echo "Pyinterp unit test results:"
+	@echo ""
+	@echo "===== ESSENTIAL TESTS ======"
+	@cat "PYINTERP_TESTS_ESSENTIAL" $(TAIL)
+	@echo ""
+	@echo "===== WiSH LIST ====="
+	@cat "PYINTERP_TESTS_WISHLIST" $(TAIL)
+	@echo ""
+	rm -f PYINTERP_TESTS_ESSENTIAL
+	rm -f PYINTERP_TESTS_WISHLIST
+
+# Comparing CPython and pyinterp.py results in non-safe-for-space mode
+tests-no-sfs: venv
+	@echo "Comparing CPython and pyinterp.py results in non-safe-for-space mode..."
+	-cd must_pass && $(PYTHON38) ../run.py --cpython "$(PYTHON38) ../exec_as_pyinterp.py " --zipi "$(PYTHON38) -m zipi.pyinterp --no_sfs " >../PYINTERP_TESTS_ESSENTIAL 2>&1
+	-cd wishlist && $(PYTHON38) ../run.py --cpython "$(PYTHON38) ../exec_as_pyinterp.py " --zipi "$(PYTHON38) -m zipi.pyinterp --no_sfs " >../PYINTERP_TESTS_WISHLIST 2>&1
 	@echo "Pyinterp unit test results:"
 	@echo ""
 	@echo "===== ESSENTIAL TESTS ======"
