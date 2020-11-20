@@ -444,7 +444,7 @@ def make_new_rte(globals_env, locals_env, builtins, builtins_module, options):
     dict_set(new_rte, "stack", absent)
     dict_set(new_rte, "ctrl_env", absent)
     dict_set(new_rte, "sys_modules", sys_modules)
-    dict_set(new_rte, "class_parent_locals", None)
+    dict_set(new_rte, "class_parent_locals", absent)
 
     # Used to accumulate objects repr seen when calling sem_repr, to avoid infinite loops in nested objects
     dict_set(new_rte, "seen_repr_stack", [])
@@ -8733,7 +8733,6 @@ def compute_namespace_variables_scope(cte, ast, args):
 
 
 def get_scope_variables(rte):
-
     def filter_scope(env):
         # Remove private names such as __name__ from displayed environment
         filtered_env = make_dict()
@@ -8751,10 +8750,19 @@ def get_scope_variables(rte):
         # In non-safe-for-space mode, each function has access to its whole lexical scope, we return it
         if current_func is absent:
             env = filter_scope(globals_)
+            locals_ = rte_locals(rte)
+
+            if locals_ is not absent:
+                # case where a class is defined at top-level
+                for name in dict_keys(locals_):
+                    val = dict_get(locals_, name, None)  # Class attributes are not boxed (dynamic namespace)
+                    if val is not absent:
+                        dict_set(env, name, val)
         else:
             var_context = OM_get_function_var_context(current_func)
             filtered_globals = filter_scope(globals_)
             lexical_scope = OM_get_function_lexical_scope(current_func)
+            class_parent_namespace = rte_class_parent_locals(rte)
             locals_ = rte_locals(rte)
             env = make_dict()
 
@@ -8775,45 +8783,99 @@ def get_scope_variables(rte):
                     if val is not absent:
                         dict_set(env, name, val)
 
-            # Add bound local variables to the environment
-            for name in dict_keys(locals_):
-                val = dict_get(locals_, name, None)[0] # All variables are boxed in non-safe-for-space mode
-                if val is not absent:
-                    dict_set(env, name, val)
+            if class_parent_namespace is not absent:
+                # Add bound local variables to the environment
+                for name in dict_keys(class_parent_namespace):
+                    val = dict_get(class_parent_namespace, name, None)[0]  # All variables are boxed in non-safe-for-space mode
+                    if val is not absent:
+                        dict_set(env, name, val)
+
+                # Add class namespace to the environment
+                for name in dict_keys(locals_):
+                    val = dict_get(locals_, name, None)  # Class attributes are not boxed (dynamic namespace)
+                    if val is not absent:
+                        dict_set(env, name, val)
+            else:
+                # Add bound local variables to the environment
+                for name in dict_keys(locals_):
+                    val = dict_get(locals_, name, None)[0]  # All variables are boxed in non-safe-for-space mode
+                    if val is not absent:
+                        dict_set(env, name, val)
 
     elif current_func is absent:
         # At top-level
         env = filter_scope(rte_globals(rte))
+        locals_ = rte_locals(rte)
+
+        if locals_ is not absent:
+            # case where a class is defined at top-level
+            for name in dict_keys(locals_):
+                val = dict_get(locals_, name, None)
+                if val is not absent:
+                    dict_set(env, name, val)
     else:
-        local_vars = rte_locals(rte)
         global_vars = filter_scope(rte_lexical_globals(rte))
         closure = OM_get_function_closure(current_func)
+        class_parent_namespace = rte_class_parent_locals(rte)
+        local_vars = rte_locals(rte)
 
-        env = make_dict()
+        global_env_part = make_dict()
+        closure_env_part = make_dict()
+        function_env_part = make_dict()
+
+        in_class = class_parent_namespace is not absent
 
         var_context = OM_get_function_var_context(current_func)
+
+        function_locals = class_parent_namespace if in_class else local_vars
 
         for key in dict_keys(var_context):
             var_val = dict_get(var_context, key, None)
             if is_local_var(var_val):
                 boxed = get_local_var_is_boxed(var_val)
                 if boxed:
-                    val = dict_get(local_vars, key, None)[0]
+                    val = dict_get(function_locals, key, None)[0]
                 else:
-                    val = dict_get(local_vars, key, None)
+                    val = dict_get(function_locals, key, None)
                 if val is not absent:
-                    dict_set(env, key, val)
+                    dict_set(function_env_part, key, val)
             elif is_closure_var(var_val):
                 index = get_closure_var_index(var_val)
                 val = closure[index][0]
                 if val is not absent:
-                    dict_set(env, key, val)
+                    dict_set(closure_env_part, key, val)
             else: # case global
                 val = dict_get(global_vars, key, absent)
 
                 # NOTE: value may be absent because key is a builtin name
                 if val is not absent:
-                    dict_set(env, key, val)
+                    dict_set(global_env_part, key, val)
+
+        env = make_dict()
+
+        if in_class:
+            for pair in dict_items(local_vars):
+                key = pair[0]
+                val = pair[1]
+                dict_set(env, key, val)
+
+        for pair in dict_items(function_env_part):
+            key = pair[0]
+            val = pair[1]
+            if not dict_has(env, key):
+                dict_set(env, key, val)
+
+        for pair in dict_items(closure_env_part):
+            key = pair[0]
+            val = pair[1]
+            if not dict_has(env, key):
+                dict_set(env, key, val)
+
+        for pair in dict_items(global_env_part):
+            key = pair[0]
+            val = pair[1]
+            if not dict_has(env, key):
+                dict_set(env, key, val)
 
     # Reverse the order so latest assignments come first
     # This will only work on Python and JS version which make_dict() is order preserving
@@ -9294,6 +9356,7 @@ def gen_stmt_empty(cte):
 def gen_Pass(cte, ast):
 
     def code(rte, cont):
+        get_scope_variables_repr(rte)
         return stmt_end(Context(rte, cont, ast), 1)
 
     return (cte, code)
