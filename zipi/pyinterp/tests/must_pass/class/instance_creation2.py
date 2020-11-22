@@ -11,7 +11,7 @@ class Point:
         self.y = y
 
     def __repr__(self):
-        return "Point(" + repr((self.x, self.y, self.z)) + ")"
+        return "Point" + repr((self.x, self.y, self.z))
 
 
 print(Point(1, 2))

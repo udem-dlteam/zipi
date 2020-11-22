@@ -4,7 +4,7 @@ class Point:
         self.y = y
 
     def __repr__(self):
-        return "Point(" + repr((self.x, self.y)) + ")"
+        return "Point" + repr((self.x, self.y))
 
 print(Point(1, 2))
 print(Point("bar", "foo"))
