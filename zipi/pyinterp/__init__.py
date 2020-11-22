@@ -1546,8 +1546,11 @@ def OM_set_object_class(o, cls):
 def OM_get_object_class(o):
     return o.klass
 
+def OM_get_class_name(o):
+    return OM_get_boxed_value(OM_get(o, "__name__"))
+
 def OM_get_object_class_name(o):
-    return OM_get_boxed_value(OM_get(OM_get_object_class(o), "__name__"))
+    return OM_get_class_name(OM_get_object_class(o))
 
 def OM_get_getset_descriptor_getter(o):
     return o.getter
@@ -2430,20 +2433,25 @@ def om_object_new(ctx, args, kwargs):
 
     if args_len == 0:
         return sem_raise_with_message(ctx, class_TypeError, "object.__new__(): not enough arguments")
-    if args_len > 1:
-        return sem_raise_with_message(ctx, class_TypeError, "object() takes no argument")
 
     cls = args[0]
 
-    if not om_isinstance(cls, class_type):
+    if om_is(cls, class_object):
+        if args_len > 1 or dict_len(kwargs) > 1:
+            return sem_raise_with_message(ctx, class_TypeError, "object() takes no argument")
+        else:
+            return cont_obj(ctx, om(class_object))
+    elif not om_isinstance(cls, class_type):
         return sem_raise_with_message(ctx, class_TypeError, "object.__new__(X): X is not a type object")
-    elif OM_get_type_instance_creator(cls) is not OM_get_type_instance_creator(class_object):
-        return sem_raise_with_message(ctx, class_TypeError, "object.__new__(X) is not safe, use X.__new__()")
-
-    cls = args[0]
-    return ctx.cont(ctx.rte, om(cls))
+    elif OM_get_type_is_builtin(cls):
+        # Builtin types should all have and use their own __new__ method due to populting hiddden attributes
+        cls_name = OM_get_class_name(cls)
+        return sem_raise_with_message(ctx, class_TypeError, "object.__new__(" + cls_name + ") is not safe, use " + cls_name + ".__new__()")
+    else:
+        return cont_obj(ctx, om(cls))
 
 def om_object_init_code(ctx, args, kwargs):
+    # TODO: this might not be correct
     return ctx.cont(ctx.rte, om_None)
 
 om_object_init = do_magic_method_with_kwargs(class_object, "__init__", om_object_init_code)
