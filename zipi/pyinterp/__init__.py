@@ -11557,12 +11557,14 @@ def comp_event_handler(ast, external_context):
             return om_True
         elif val is False:
             return om_False
-        elif val is None:
+        elif val is None or runtime_is_null(val):
             return om_None
         elif isinstance(val, float):
             return om_float(val)
         elif isinstance(val, str):
             return om_str(val)
+        elif runtime_is_domelement(val):
+            return om_DOMElement(val)
         else:
             # unrecognized value
             return None
