@@ -61,13 +61,6 @@ class RTCtrlLabel:
         self.break_cont = break_cont
         self.continue_cont = continue_cont
 
-class RTCtrlCatch:
-    def __init__(self, ctrl_next, code_catch, lex_env):
-        self.ctrl_next = ctrl_next
-        self.code_catch = code_catch
-        self.lex_env = lex_env
-
-
 # class RTE:
 #     def __init__(self, global_env, locals_env, builtins, stack, ctrl_env):
 #         self.globals_env = globals_env
@@ -378,7 +371,9 @@ class OM_NoneType(OM_object):
     pass
 
 class OM_BaseException(OM_object):
-    pass
+    """
+    locations: stack of ast nodes where the exception was thrown
+    """
 
 
 def make_frame(rte, cont, ast):
@@ -415,6 +410,9 @@ def make_rte_from_parent(rte, globals_env, locals_env, current_func, stack, ctrl
     dict_set(new_rte, "ctrl_env", ctrl_env)
     dict_set(new_rte, "sys_modules", sys_modules)
     dict_set(new_rte, "class_parent_locals", class_parent_locals)
+    rte_set_current_exc(new_rte, rte_get_current_exc(rte))
+    rte_set_handler(new_rte, rte_get_handler(rte))
+    rte_set_finally(new_rte, rte_get_finally(rte))
 
     # Used to accumulate objects repr seen when calling sem_repr, to avoid infinite loops in nested objects
     dict_set(new_rte, "seen_repr_stack", seen_repr_stack)
@@ -454,6 +452,9 @@ def make_new_rte(globals_env, locals_env, builtins, builtins_module, options):
     dict_set(new_rte, "ctrl_env", absent)
     dict_set(new_rte, "sys_modules", sys_modules)
     dict_set(new_rte, "class_parent_locals", absent)
+    rte_set_current_exc(new_rte, absent)
+    rte_set_handler(new_rte, absent)
+    rte_set_finally(new_rte, absent)
 
     # Used to accumulate objects repr seen when calling sem_repr, to avoid infinite loops in nested objects
     dict_set(new_rte, "seen_repr_stack", [])
@@ -463,6 +464,33 @@ def make_new_rte(globals_env, locals_env, builtins, builtins_module, options):
 
     return new_rte
 
+
+def make_rte_copy(rte):
+    new_rte = make_dict()
+
+    dict_set(new_rte, "serial_counter", rte_serial_counter(rte))
+    rte_set_globals(new_rte, rte_globals(rte))
+    rte_set_locals(new_rte, rte_locals(rte))
+    rte_set_current_exc(new_rte, rte_current_func(rte))
+    dict_set(new_rte, "builtins", rte_builtins(rte))
+    dict_set(new_rte, "builtins_module", rte_builtins_module(rte))
+    dict_set(new_rte, "stack", rte_stack(rte))
+    dict_set(new_rte, "ctrl_env", rte_ctrl_env(rte))
+    dict_set(new_rte, "sys_modules", rte_sys_modules(rte))
+    dict_set(new_rte, "class_parent_locals", rte_class_parent_locals(rte))
+    rte_set_current_exc(new_rte, rte_get_current_exc(rte))
+    rte_set_handler(new_rte, rte_get_handler(rte))
+    rte_set_finally(new_rte, rte_get_finally(rte))
+
+    # Used to accumulate objects repr seen when calling sem_repr, to avoid infinite loops in nested objects
+    dict_set(new_rte, "seen_repr_stack", rte_get_seen_repr_stack(rte))
+
+    dict_set(new_rte, "vm", rte_vm(rte))
+    dict_set(new_rte, "options", rte_options(rte))
+
+    return new_rte
+
+
 def make_rte_from_new_ctrl_env(rte, ctrl_env):
     return make_rte_from_parent(rte,
                                 rte_globals(rte),
@@ -470,6 +498,26 @@ def make_rte_from_new_ctrl_env(rte, ctrl_env):
                                 rte_current_func(rte),
                                 rte_stack(rte),
                                 ctrl_env)
+
+
+def make_rte_with_handler(rte, handler_code):
+    new_rte = make_rte_copy(rte)
+    rte_set_handler(new_rte, handler_code)
+    return new_rte
+
+
+def make_rte_with_finally(rte, final):
+    new_rte = make_rte_copy(rte)
+    rte_set_finally(new_rte, final)
+    return new_rte
+
+
+def make_rte_with_handler_and_finally(rte, handler, final):
+    new_rte = make_rte_copy(rte)
+    rte_set_handler(new_rte, handler_code)
+    rte_set_finally(new_rte, final)
+    return new_rte
+
 
 def unwind_rte_ctrl_env(rte):
     next_ctrl_env = rte_ctrl_env(rte).ctrl_next
@@ -617,6 +665,33 @@ def rte_repr_enter(rte):
 def rte_repr_exit(rte):
     rte_get_seen_repr_stack(rte).pop()
 
+
+def rte_set_current_exc(rte, exc):
+    dict_set(rte, 'current_exc', exc)
+
+
+def rte_get_current_exc(rte):
+    return dict_get(rte, 'current_exc', absent)
+
+
+def rte_pop_current_exc(rte):
+    return dict_set(rte, 'current_exc', absent)
+
+
+def rte_set_handler(rte, handler):
+    dict_set(rte, 'handler', handler)
+
+
+def rte_get_handler(rte):
+    return dict_get(rte, 'handler', absent)
+
+
+def rte_set_finally(rte, final):
+    dict_set(rte, 'finally', final)
+
+
+def rte_get_finally(rte):
+    return dict_get(rte, 'finally', absent)
 
 # stack operation
 def unwindReturn(rte, val):
@@ -1779,6 +1854,27 @@ def OM_get_DOMElement_elem(o):
 
 def OM_set_DOMElement_elem(o, elem):
     o.elem = elem
+
+
+def OM_get_BaseException_locations(o):
+    return getattr(o, "locations", None)
+
+
+def OM_init_BaseException_locations(o):
+    stack = getattr(o, "locations", None)
+    if stack is None:
+        stack = []
+        o.locations = stack
+    return stack
+
+
+def OM_set_BaseException_locations(o, stack):
+    o.locations = stack
+
+
+def OM_push_BaseException_location(o, loc):
+    o.locations.append(loc)
+
 
 # Generate BinOp semantics for python Numeric datatypes (or that which emulate)
 # For the correct Python Data Model and interpreter, these are paired with
@@ -8744,6 +8840,13 @@ def compute_namespace_variables_scope(cte, ast, args):
         if not dict_has(locals_env, name):
             make_local_var_token(cte, name, current_ns, is_function)
 
+    elif isinstance(ast, ExceptHandler):
+        name = ast.name
+        if name is not None and not dict_has(locals_env, name):
+            make_local_var_token(cte, name, current_ns, is_function)
+
+        return True
+
     elif isinstance(ast, AST.Name):
         ctx = ast.ctx
         id_ = ast.id
@@ -8771,6 +8874,7 @@ def compute_namespace_variables_scope(cte, ast, args):
 
             if not dict_has(locals_env, id_):
                 make_local_var_token(cte, id_, current_ns, is_function)
+        return True
 
     elif isinstance(ast, AST.Nonlocal):
         for id_ in ast.names:
@@ -9096,6 +9200,9 @@ def comp_stmt(cte, ast):
 
     elif isinstance(ast, AST.Import):
         return comp_import(cte, ast, ast.names)
+
+    elif isinstance(ast, AST.Try):
+        return gen_try(cte, ast)
 
     else:
         return CT_raise_syntax_error_with_msg(cte, ast, "unsupported statements")
@@ -9964,6 +10071,116 @@ def gen_continue(cte, ast):
             ctx = Context(rte, lambda rte: unwindContinue(rte, depth), ast)
             return stmt_end(ctx, 1)
         return (cte, code)
+
+
+def gen_handler(cte, handler):
+    exc_type = handler.type
+    name = handler.name
+    body = handler.body
+
+    if exc_type is None:
+        # This catches everything
+        body_cte, body_code = comp_stmt_seq(cte, body)
+
+        def code(rte, _, exit_cont, __):
+            return body_code(rte, exit_cont)
+
+        return body_cte, code
+    elif name is None:
+        # Catches a given exception, but does not register it to a name
+        exc_type_cte, exc_type_code = comp_expr(cte, exc_type)
+        body_cte, body_code = comp_stmt_seq(exc_type_cte, body)
+
+        # skip_cont: called when this handler does not apply
+        # exit_cont: called when the handler was applied and terminated
+        def code(rte, skip_cont, exit_cont, exc):
+            def get_exc_type(type_rte, exc_type):
+                if om_isinstance(exc_type, class_type) and om_issubclass(exc_type, class_BaseException):
+                    if om_isinstance(exc, exc_type):
+                        return body_code(type_rte, exit_cont)
+                    else:
+                        return skip_cont(type_rte)
+                else:
+                    return sem_raise_with_message(Context(type_rte, skip_cont, exc_type),
+                                                  class_TypeError, "catching classes that do not inherit from BaseException is not allowed")
+            return exc_type_code(rte, get_exc_type)
+        return body_cte, code
+
+    else:
+        # Catches an exception and registers it to a name
+        # TODO: delete the name from scope after the except block
+        exc_type_cte, exc_type_code = comp_expr(cte, exc_type)
+        name_cte, name_setter_code = gen_var_set(exc_type_cte, exc_type, name)
+        body_cte, body_code = comp_stmt_seq(name_cte, body)
+
+        def code(rte, skip_cont, exit_cont, exc):
+            def get_exc_type(type_rte, exc_type):
+                if om_isinstance(exc_type, class_type) and om_issubclass(exc_type, class_BaseException):
+                    if om_isinstance(exc, exc_type):
+                        def exec_body(rte):
+                            return body_code(rte, exit_cont)
+                        return name_setter_code(type_rte, exec_body, exc)
+                    else:
+                        return skip_cont(type_rte)
+                else:
+                    return sem_raise_with_message(Context(type_rte, skip_cont, exc_type),
+                                                  class_TypeError, "catching classes that do not inherit from BaseException is not allowed")
+            return exc_type_code(rte, get_exc_type)
+        return body_cte, code
+
+
+def gen_handlers_seq(cte, handlers):
+    if len(handlers) == 1:
+        handler_cte, handler_code = gen_handler(cte, handlers[0])
+
+        def handle(rte, exit_cont, exc):
+            return handler_code(rte, lambda rte: sem_raise_unsafe(rte, exc), exit_cont, exc)
+        return handler_cte, handle
+    else:
+        first_cte, first_code = gen_handler(cte, handlers[0])
+        tail_cte, tail_code = gen_handlers_seq(first_cte, handlers[1:])
+
+        def handle(rte, exit_cont, exc):
+            def skip_cont(rte):
+                return tail_code(rte, exit_cont, exc)
+            return first_code(rte, skip_cont, exit_cont, exc)
+        return tail_cte, handle
+
+
+def gen_init_handlers(cte, handlers):
+    if len(handlers) == 0:
+        # If there is no except block, nothing needs to be done
+        def code(rte, cont, _):
+            return cont(rte)
+    else:
+        handlers_cte, handlers_code = gen_handlers_seq(cte, handlers)
+
+        def init_handler(rte, cont, handlers_cont):
+            def run_handlers(exc):
+                def exit_cont(rte):
+                    rte_pop_current_exc(rte)
+                    return handlers_cont(rte)
+                rte_set_current_exc(rte, exc)
+                return handlers_code(rte, exit_cont, exc)
+            rte_set_handler(rte, run_handlers)
+            return cont(rte)
+
+        return handlers_cte, init_handler
+
+
+def gen_try(cte, ast):
+    try_body = ast.body
+    handlers = ast.handlers
+    else_body = ast.orelse
+    finally_body = ast.finalbody
+
+    try_cte, try_code = comp_stmt_seq(cte, try_body)
+    handlers_cte, handlers_code = gen_handlers_seq(try_cte, handlers)
+    else_cte, else_code = comp_stmt_seq(handlers_cte, else_body)
+    finally_cte, finally_code = comp_stmt_seq(else_cte, finally_body)
+
+    # TODO
+
 
 def gen_raise(cte, ast, code):
     def eval_raise_param(rte, cont):
@@ -11126,8 +11343,25 @@ def sem_bool(ctx, val):
         return sem_simple_call(with_cont(ctx, check_bool), val_bool, [val])
 
 
+def find_closest_ast(rte):
+    frame = rte_stack(rte)
+    ast = frame_ast(frame)
+    # There should always be a frame with an ast somewhere
+    while ast is None:
+        frame = rte_stack(frame_rte(frame))
+        ast = frame_ast(frame)
+    return ast
+
+# raise_unsafe raises an object which must already have been checked to be a BaseException and contain context info
+# raise_unsafe expected exc to contain all context information and none has to be added
+# This is why it requires no context.
+def sem_raise_unsafe(rte, exc):
+    handler = rte_get_handler(rte)
+    return handler(exc) # TODO: Add a top-level catcher for printing the exception with 'expr_end_with_error'
+
+
 def sem_raise(ctx, exn):
-    ctrl_env = rte_ctrl_env(ctx.rte)
+    rte = ctx.rte
 
     # create the exn_object to be created
     if om_isinstance(exn, class_type) and om_issubclass(exn, class_BaseException):
@@ -11135,30 +11369,17 @@ def sem_raise(ctx, exn):
     elif om_isinstance(exn, class_BaseException):
         exn_obj = exn
     else:
+        # TypeError raising a non-BaseException was attempted
         exn_obj = om_exception(class_TypeError, om_tuple(()))
 
-    # XXX: does not unwind all the way
-    while not om_is(ctrl_env, absent):
-        if isinstance(ctrl_env, RTCtrlCatch):
-            ctrl_rte = ctrl_env.lex_env
-            code_catch = ctrl_env.code_catch
-            return code_catch(ctrl_rte, exn_obj)
-        ctrl_env = ctrl_env.ctrl_next
+    # TODO: is that ok?
+    location = ctx.ast or find_closest_ast(rte)
 
-    def find_frame_with_ast(rte):
-        frame = rte_stack(rte)
-        while frame is not None and frame_ast(frame) is None:
-            frame = rte_stack(frame_rte(frame))
-        return frame
+    location_stack = OM_init_BaseException_locations(exn_obj)
+    location_stack.append(location)
 
-    if ctx.ast is None:
-        frame = find_frame_with_ast(ctx.rte)
-        ctx = Context(frame_rte(frame),
-                      frame_cont(frame),
-                      frame_ast(frame))
+    return sem_raise_unsafe(rte, exn_obj)
 
-    result = om_simple_exception_format(ctx, exn_obj)
-    return expr_end_with_error(ctx, result)
 
 def sem_raise_with_message(ctx, exn_type, msg):
     args = om_tuple((om_str(msg),))
