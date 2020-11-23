@@ -8032,6 +8032,28 @@ def make_module_more_builtins():
             return sem_raise_with_message(ctx, class_TypeError, "innerHTML descriptor expected a 'DOMElement'")
 
 
+    def om_DOMElement_value_getter(ctx, instance):
+        if om_is(instance, class_DOMElement):
+            return cont_obj(ctx, om_value_descriptor)
+        elif om_isinstance(instance, class_DOMElement):
+            content = runtime_getValue(ctx.rte, OM_get_DOMElement_elem(instance))
+            return cont_str(ctx, content)
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "value descriptor expected a 'DOMElement'")
+
+
+    def om_DOMElement_value_setter(ctx, instance, content):
+        if om_isinstance(instance, class_DOMElement):
+            if om_isinstance(content, class_str):
+                content_value = OM_get_boxed_value(content)
+                runtime_setValue(ctx.rte, OM_get_DOMElement_elem(instance), content_value)
+                return cont_obj(ctx, om_None)
+            else:
+                return sem_raise_with_message(ctx, class_TypeError, "value attribute must be set to a string")
+        else:
+            return sem_raise_with_message(ctx, class_TypeError, "value descriptor expected a 'DOMElement'")
+
+
     def gen_DOMElement_handleAttribute(name, runtime_fn, do_cont):
         def om_DOMElement_handleAttribute_code(ctx, args):
             args_len = len(args)
@@ -8093,10 +8115,17 @@ def make_module_more_builtins():
          ('setAttribute', om_DOMElement_setAttribute)))
 
     om_innerHTML_descriptor = om_getset_descriptor('innerHTML', class_DOMElement,
-                                                om_DOMElement_innerHTML_getter,
-                                                om_DOMElement_innerHTML_setter)
+                                                   om_DOMElement_innerHTML_getter,
+                                                   om_DOMElement_innerHTML_setter)
 
     OM_set(class_DOMElement, 'innerHTML', om_innerHTML_descriptor)
+
+
+    om_value_descriptor = om_getset_descriptor('value', class_DOMElement,
+                                               om_DOMElement_value_getter,
+                                               om_DOMElement_value_setter)
+
+    OM_set(class_DOMElement, 'value', om_value_descriptor)
 
 
     module_more_builtins_env = make_dict()
