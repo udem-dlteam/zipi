@@ -521,7 +521,7 @@ def make_rte_with_finally(rte, final):
 
 def make_rte_with_handler_and_finally(rte, handler, final):
     new_rte = make_rte_copy(rte)
-    rte_set_handler(new_rte, handler_code)
+    rte_set_handler(new_rte, handler)
     rte_set_finally(new_rte, final)
     return new_rte
 
@@ -685,7 +685,7 @@ def rte_get_current_exc(rte):
 
 
 def rte_pop_current_exc(rte):
-    return dict_set(rte, 'current_exc', absent)
+    return dict_pop(rte, 'current_exc', absent)
 
 
 def rte_set_handler(rte, handler):
@@ -9222,7 +9222,6 @@ def comp_stmt(cte, ast):
         return CT_raise_syntax_error_with_msg(cte, ast, "unsupported statements")
 
 
-
 # Compilation of an expression.
 
 def comp_expr(cte, ast):
@@ -10161,38 +10160,52 @@ def gen_handlers_seq(cte, handlers):
         return tail_cte, handle
 
 
-def gen_init_handlers(cte, handlers):
+def gen_init_handlers(cte, handlers, finally_code):
     if len(handlers) == 0:
-        # If there is no except block, nothing needs to be done
-        def code(rte, cont, _):
-            return cont(rte)
-    else:
+        # Case where there is only a finally, no except
+        # NOTE: there must either be an except or a finally or both, there cannot be none of them
+        def init_handler(rte, cont):
+            def do_finally(finally_cont):
+                return finally_code(rte, finally_cont)
+            return cont(make_rte_with_finally(rte, do_finally))
+
+        return cte, init_handler
+    elif finally_code is not None:
+        # Case where there are only except
         handlers_cte, handlers_code = gen_handlers_seq(cte, handlers)
 
         def init_handler(rte, cont, handlers_cont):
             def run_handlers(exc):
-                def exit_cont(rte):
+                def exit_cont(_):
                     rte_pop_current_exc(rte)
                     return handlers_cont(rte)
                 rte_set_current_exc(rte, exc)
                 return handlers_code(rte, exit_cont, exc)
-            rte_set_handler(rte, run_handlers)
-            return cont(rte)
+            return cont(make_rte_with_handler(rte, run_handlers))
 
         return handlers_cte, init_handler
-
-
-def gen_init_finally(cte, finally_body):
-    if len(finally_body) == 0:
-        def code(rte, cont, _):
-            return cont(rte)
     else:
-        finally_cte, finally_code = comp_stmt_seq(cte, finally_body)
+        # Case where the is both except and finally
+        handlers_cte, handlers_code = gen_handlers_seq(cte, handlers)
 
+        def init_handler(rte, cont, handlers_cont):
+            def run_handlers(exc):
+                def do_finally(finally_cont):
+                    def exit_finally(_):
+                        current_exc = rte_pop_current_exc(rte)
+                        if current_exc is absent:
+                            return finally_cont(rte)
+                        else:
+                            return sem_raise_unsafe(rte, current_exc)
+                    return finally_code(rte, exit_finally)
 
-
-
-
+                def exit_cont(_):
+                    rte_pop_current_exc(rte)
+                    return handlers_cont(rte)
+                rte_set_current_exc(rte, exc)
+                return handlers_code(make_rte_with_finally(rte, do_finally), exit_cont, exc)
+            return cont(make_rte_with_handler(rte, run_handlers))
+        return handlers_cte, init_handler
 
 
 def gen_try(cte, ast):
@@ -10202,17 +10215,39 @@ def gen_try(cte, ast):
     finally_body = ast.finalbody
 
     try_cte, try_code = comp_stmt_seq(cte, try_body)
-    handlers_cte, init_handlers_code = gen_init_handlers(try_cte, handlers)
-    else_cte, else_code = comp_stmt_seq(handlers_cte, else_body)
-    finally_cte, init_finally_code = gen_init_finally(else_cte, finally_body)
 
-    def code(rte, cont):
+    if len(finally_body) > 0:
+        finally_cte, finally_code = comp_stmt_seq(try_cte, finally_body)
+        handlers_cte, init_handlers_code = gen_init_handlers(finally_cte, handlers, finally_code)
+        else_cte, else_code = comp_stmt_seq(handlers_cte, else_body)
 
-        return init_handlers_code(rte, )
+        def code(rte, cont):
+            def do_finally(finally_rte):
+                return sem_finally(finally_rte, cont)
 
+            def do_init_handlers(rte_with_handlers):
+                def do_else(else_rte):
+                    return else_code(make_rte_with_finally(else_rte, do_finally), do_finally)
 
+                return try_code(rte_with_handlers, do_else)
 
-    return finally_cte, code
+            return init_handlers_code(rte, do_init_handlers, do_finally)
+
+        return else_cte, code
+    else:
+        handlers_cte, init_handlers_code = gen_init_handlers(cte, handlers, None)
+        else_cte, else_code = comp_stmt_seq(handlers_cte, else_body)
+
+        def code(rte, cont):
+            def do_init_handlers(rte_with_handlers):
+                def do_else(else_rte):
+                    return else_code(make_rte_with_finally(else_rte, cont), cont)
+
+                return try_code(rte_with_handlers, do_else)
+
+            return init_handlers_code(rte, do_init_handlers, cont)
+
+        return else_cte, code
 
 
 def gen_raise(cte, ast, code):
@@ -11415,6 +11450,18 @@ def sem_raise(ctx, exn):
 def sem_raise_with_message(ctx, exn_type, msg):
     args = om_tuple((om_str(msg),))
     return sem_raise(ctx, om_exception(exn_type, args))
+
+
+# Check if there is a finally block and execute it before proceding to next continuation
+# If there is no finally, run the continuation
+def sem_finally(rte, cont):
+    final = rte_get_finally(rte)
+    if final is absent:
+        return cont(rte)
+    else:
+        # The final continuation should have full information on what to do next
+        return final(cont)
+
 
 def gen_call(cte, ast):
     args = ast.args
