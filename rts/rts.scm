@@ -2,6 +2,16 @@
 ;;  Common macros
 ;; =============================================================================
 
+(cond-expand
+  (gambit
+   (declare (standard-bindings) (extended-bindings) (not safe))
+   (define-macro (declare-fixnum) `(declare (fixnum)))
+   (define-macro (declare-not-interrupts-enabled) `(declare (not interrupts-enabled))))
+
+  (bigloo
+   (define-macro (declare-fixnum) `(begin))
+   (define-macro (declare-not-interrupts-enabled) `(begin))))
+
 ;; General exception thrower helper
 (define-macro (py-throw-exception-with-message exc . msg)
   (define (f el acc)
@@ -11,15 +21,15 @@
 
   (define (foldr kons knil lis1 . lists)
      (if (pair? lists)
-	 (let recur ((lists (cons lis1 lists)))
-	    (let ((cdrs (%cdrs lists)))
-	       (if (null? cdrs) knil
-		   (apply kons (%cars+ lists (recur cdrs))))))
+         (let recur ((lists (cons lis1 lists)))
+            (let ((cdrs (%cdrs lists)))
+               (if (null? cdrs) knil
+                   (apply kons (%cars+ lists (recur cdrs))))))
 
-	 (let recur ((lis lis1))
-	    (if (not (pair? lis)) knil
-		(let ((head (car lis)))
-		   (kons head (recur (cdr lis))))))))
+         (let recur ((lis lis1))
+            (if (not (pair? lis)) knil
+                (let ((head (car lis)))
+                   (kons head (recur (cdr lis))))))))
 
   (let ((folded-msg (foldr f '() msg)))
     (if (and (= (length folded-msg) 1) (string? (car folded-msg)))
@@ -48,7 +58,7 @@
 (define-macro (vector-extend vec el)
   `(let (($vec ,vec) ($el ,el))
      (let* ((len (vector-length $vec))
-  	  (nvec (make-vector (+ len 1))))
+          (nvec (make-vector (+ len 1))))
         (vector-copy! nvec 0 $vec)
         (vector-set! nvec len $el)
         nvec)))
@@ -927,8 +937,8 @@
   (if (null? args-defaults)
     '()
     (let* ((name (caar args-defaults))
-	   (default (cdar args-defaults))
-	   (value (ordered-table-pop! ordered-table name #f)))
+           (default (cdar args-defaults))
+           (value (ordered-table-pop! ordered-table name #f)))
       (cond
         ((not value)
           (cons default (align-with-signature-kwargs-ordered-table:get-values (cdr args-defaults) ordered-table)))
@@ -1361,9 +1371,9 @@
           (if (py-isinstance? h py-int-class)
             (let ((h-value (PyObjectInt-value h)))
               (py-int-from-scheme (truncate-hash h-value)))
-      	    (py-throw-exception-with-message
-      	       py-builtin-RuntimeError
-      	       "__hash__ method should return an integer"))))))
+            (py-throw-exception-with-message
+               py-builtin-RuntimeError
+               "__hash__ method should return an integer"))))))
 
 
 (define (py-dir x)
@@ -1866,6 +1876,7 @@
 ;;; Object attribute store/fetch.
 
 (define (py-own-attr-set! obj attr val)
+  (declare-fixnum)
   (let* ((attr-representative (str-representative-get attr))
          (i (py-own-attr-index obj attr-representative)))
     (if (< i 0)
@@ -1877,21 +1888,24 @@
         (PyObject-elements-set! obj i val))))
 
 (define (py-own-attr-ref obj attr #!optional (default py-absent))
+  (declare-fixnum)
   (let ((i (py-own-attr-index obj attr)))
     (if (< i 0)
         default
         (PyObject-elements-ref obj i)))) ;; TODO: could vector-ref be used?
 
 (define (py-own-attr-index obj attr)
-  (if (not (PyObject? obj)) ;; TODO: find how this test could be removed
-      -1
-      (let* ((hclass (PyObject-hclass obj))
-             (names (HClass-names hclass))
-             (attr-representative (str-representative-get attr)))
-        (let loop ((i (- (vector-length names) 1)))
-          (cond ((< i 0) -1)
-                ((eq? attr-representative (vector-ref names i)) i)
-                (else (loop (- i 1))))))))
+  (declare-fixnum)
+  (let* ((hclass (PyObject-hclass obj))
+         (names (HClass-names hclass))
+         (attr-representative (str-representative-get attr)))
+    (let loop ((i (- (vector-length names) 1)))
+      (cond ((< i 0)
+             -1)
+            ((eq? attr-representative (vector-ref names i))
+             i)
+            (else
+             (loop (- i 1)))))))
 
 ;; ===================
 ;; DESCRIPTOR PROTOCOL
@@ -1914,31 +1928,41 @@
 ;;   returns the first occurence of the attribute
 ;;   found on an element of the MRO
 (define (getattribute-from-cls-mro cls name)
-   (let ((mro (PyObjectType-mro cls)))
+  (declare-fixnum)
+  (declare-not-interrupts-enabled)
+  (let ((mro (PyObjectType-mro cls)))
     (let loop-mro ((i 0))
       (if (< i (vector-length mro))
-        (let ((cls (vector-ref mro i)))
-          (let ((attr (py-own-attr-ref cls name)))
-            (if (not (eq? attr py-absent))
-              attr
-              (loop-mro (+ i 1)))))
-        py-absent))))
+          (let ((cls (vector-ref mro i)))
+            ;; inlining of py-own-attr-ref to avoid py-absent handling
+            (let ((j (py-own-attr-index cls name)))
+              (if (< j 0)
+                  (loop-mro (+ i 1))
+                  (PyObject-elements-ref cls j)))
+            #;
+            (let ((attr (py-own-attr-ref cls name)))
+              (if (not (eq? attr py-absent))
+                  attr
+                  (loop-mro (+ i 1)))))
+          py-absent))))
 
 ;; Does the same a getattribute-from-cls-mro but also returns the class
 ;; which owned the attribute. This may be necessary for super
 (define (getattribute-from-cls-mro-with-owner cls name)
+  (declare-fixnum)
   (let ((mro (PyObjectType-mro cls)))
     (let loop-mro ((i 0))
       (if (< i (vector-length mro))
-        (let ((cls (vector-ref mro i)))
-          (let ((attr (py-own-attr-ref cls name)))
-            (if (not (eq? attr py-absent))
-              (values attr cls)
-              (loop-mro (+ i 1)))))
-        (values py-absent py-absent)))))
+          (let ((cls (vector-ref mro i)))
+            (let ((attr (py-own-attr-ref cls name)))
+              (if (not (eq? attr py-absent))
+                  (values attr cls)
+                  (loop-mro (+ i 1)))))
+          (values py-absent py-absent)))))
 
 ;; Recover an attribute from the class of 'obj'
 (define (getattribute-from-obj-mro obj name)
+  (declare-not-interrupts-enabled)
   (getattribute-from-cls-mro (py-obj-cls obj) name))
 
 ;; Does the same a getattribute-from-obj-mro but also returns the class
@@ -1953,11 +1977,11 @@
 (define (object-getattribute obj name)
   (let ((attr (py-own-attr-ref obj name)))
     (if (not (eq? attr py-absent))
-      attr
-      (receive (cls-attr owner) (getattribute-from-obj-mro-with-owner obj name)
-        (if (not (eq? cls-attr py-absent))
-          (object-get-bind-descriptor cls-attr obj owner)
-          (py-throw py-builtin-AttributeError))))))
+        attr
+        (receive (cls-attr owner) (getattribute-from-obj-mro-with-owner obj name)
+          (if (not (eq? cls-attr py-absent))
+              (object-get-bind-descriptor cls-attr obj owner)
+              (py-throw py-builtin-AttributeError))))))
 
 ;; The Python object object.__getattribute__
 (define py-object-getattribute
@@ -2213,21 +2237,21 @@
         (error "str-force!" "received object with value" value)))))
 
 (define (str-representative-get str)
-   (let ((self-token (PyObjectStr-representative str)))
-    (if (not self-token)
-      (begin
-        (let* ((str-value (str-force! str))
-               (rep (table-ref str-representatives str-value #f)))
-          (if rep
-            (begin
-              (PyObjectStr-representative-set! str rep)
-              rep)
-            (let ((new-rep (make-still-copy str)))
-              (table-set! str-representatives str-value new-rep)
-              (PyObjectStr-representative-set! str new-rep)
-              (PyObjectStr-representative-set! new-rep new-rep)
-              new-rep))))
-      self-token)))
+  (or (PyObjectStr-representative str)
+      (str-representative-create str)))
+
+(define (str-representative-create str)
+  (let* ((str-value (str-force! str))
+         (rep (table-ref str-representatives str-value #f)))
+    (if rep
+        (begin
+          (PyObjectStr-representative-set! str rep)
+          rep)
+        (let ((new-rep (make-still-copy str)))
+          (table-set! str-representatives str-value new-rep)
+          (PyObjectStr-representative-set! str new-rep)
+          (PyObjectStr-representative-set! new-rep new-rep)
+          new-rep))))
 
 (define (str-new cls value)
   (cond
@@ -2401,9 +2425,9 @@
 (define (str-add self other)
    (if (py-isinstance? self py-str-class)
        (if (py-isinstance? other py-str-class)
-	   ;; !!! MS 6 Nov 2020: this is erroneously typed
-	   (py-str-from-scheme (cons self other))
-	   py-NotImplemented)
+           ;; !!! MS 6 Nov 2020: this is erroneously typed
+           (py-str-from-scheme (cons self other))
+           py-NotImplemented)
        (py-throw-required-type "__add__" "str" self)))
 
 (define str.__add__
@@ -2571,7 +2595,7 @@
     (let ((value (PyObjectInt-value i)))
       (py-str-from-scheme (string (integer->char value))))
     (let* ((i-type (py-type i))
-	   (i-type-name (py-own-attr-ref i-type (& "__name__"))))
+           (i-type-name (py-own-attr-ref i-type (& "__name__"))))
       (py-throw
         (py-call
           py-builtin-TypeError
@@ -2603,8 +2627,9 @@
 (define py-module-class #f)
 
 (define (py-obj-cls* obj)
-  (cond
-        ((PyObject? obj)
+  (PyObject-class obj)
+#;
+  (cond ((PyObject? obj)
          (PyObject-class obj))
         ((flonum? obj)
          py-float-class)
@@ -2615,6 +2640,8 @@
         (else #f)))
 
 (define (py-obj-cls obj)
+  (PyObject-class obj)
+#;
   (or (py-obj-cls* obj)
       (error "py-obj-cls" "unhandled object type" obj)))
 
@@ -3266,7 +3293,7 @@
            (len (car len-vec-pair))
            (vec (cdr len-vec-pair))
            (content-strs (vector-map py-repr (subvector vec 0 len)))
-           (content-strings (vector-map PyObjectStr-value content-strs)))
+           (content-strings (vector-map (lambda (x) (PyObjectStr-value x)) content-strs)))
       (py-str-from-scheme
         (string-append
           "["
@@ -4213,7 +4240,7 @@
   (if (py-isinstance? self py-tuple-class)
     (let* ((vec (PyObjectTuple-value self))
            (content-strs (vector-map py-repr vec))
-           (content-strings (vector-map PyObjectStr-value content-strs)))
+           (content-strings (vector-map (lambda (x) (PyObjectStr-value x)) content-strs)))
       (py-str-from-scheme
         (string-append
           "("
@@ -4408,7 +4435,7 @@
   (if (py-issubclass? cls py-bytearray-class)
     (cond
        ((eq? arg1 py-absent)
-	;; MS 11jun2020: to be removed when Bigloo's fixed
+        ;; MS 11jun2020: to be removed when Bigloo's fixed
         ;; (py-bytearray-from-scheme (cons 0 #u8())))
         (py-bytearray-subtype-from-scheme (make-dynamic-vector 0 u8-empty-vector) cls))
       ((eq? arg2 py-absent)
@@ -4832,8 +4859,8 @@
      (with-handler
         (lambda (e)
           (if (and (PyObject? e) (py-isinstance? e py-builtin-StopIteration))
-  	         #f
-  	         (raise e)))
+                 #f
+                 (raise e)))
         (py-call next iterator))))
 
 
@@ -5326,7 +5353,13 @@
         (& "__hash__") int.__hash__
         (& "__truediv__") int.__truediv__
         (& "__itruediv__") int.__itruediv__
-        (& "__repr__") int.__repr__))
+        (& "__repr__") int.__repr__
+
+        ;; moved here for faster lookup
+        ;;(& "__isub__") int.__isub__
+        ;;(& "__gt__") int.__gt__
+        ;;(& "__add__") int.__add__
+        ))
 
   ;; Pre-allocate ints from -5 to 256 and cache them
   (set! int-cache (make-int-cache))

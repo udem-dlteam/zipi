@@ -38,7 +38,7 @@
 	    ((config-get conf main:)
 	     `(define (main argv)
 		 (bigloo-library-path-set!
-		    (cons ,(config-get conf :lib-dir) (bigloo-library-path)))
+		    (cons ,(config-get conf lib-dir:) (bigloo-library-path)))
 		 (build-builtins)
 		 (init-registered-constants)
 		 (py-module

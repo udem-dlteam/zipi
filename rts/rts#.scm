@@ -98,6 +98,7 @@
   extender: define-type-of-PyObject
   type-exhibitor: PyObject-type-get
   copier: #f
+  macros: ;; this will inline the operations on this type
 
   ;; attrs
   (hclass unprintable:)
@@ -121,40 +122,46 @@
          (vector-set! $elements $offset $val))))
 
 (define-type-of-PyObject PyObjectType
-    id: PyObjectType-C6486EB6-1522-42BA-A082-B6563F943CDF
-    copier: #f
-    ;; attrs
-    (bases unprintable:)
-    (mro unprintable:)
-    (hclass-of-instances unprintable:))
+  id: PyObjectType-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  macros: ;; this will inline the operations on this type
+  ;; attrs
+  (bases unprintable:)
+  (mro unprintable:)
+  (hclass-of-instances unprintable:))
 
 (define-type-of-PyObject PyObjectInt
   id: PyObjectInt-C6486EB6-1522-42BA-A082-B6563F943CDF
   copier: #f
+  macros: ;; this will inline the operations on this type
   ;; attrs
   value)
 
 (define-type-of-PyObject PyObjectFloat
   id: PyObjectFloat-C6486EB6-1522-42BA-A082-B6563F943CDF
   copier: #f
+  macros: ;; this will inline the operations on this type
   ;; attrs
   value)
 
 (define-type-of-PyObject PyObjectComplex
   id: PyObjectComplex-C6486EB6-1522-42BA-A082-B6563F943CDF
   copier: #f
+  macros: ;; this will inline the operations on this type
   ;; attrs
   value)
 
 (define-type-of-PyObject PyObjectList
   id: PyObjectList-C6486EB6-1522-42BA-A082-B6563F943CDF
   copier: #f
+  macros: ;; this will inline the operations on this type
   ;; attrs
   value)
 
 (define-type-of-PyObject PyObjectListIterator
   id: PyObjectListIterator-C6486EB6-1522-42BA-A082-B6563F943CDF
   copier: #f
+  macros: ;; this will inline the operations on this type
   ;; attrs
   index
   list)
@@ -162,12 +169,14 @@
 (define-type-of-PyObject PyObjectBytearray
   id: PyObjectBytearray-C6486EB6-1522-42BA-A082-B6563F943CDF
   copier: #f
+  macros: ;; this will inline the operations on this type
   ;; attrs
   value)
 
 (define-type-of-PyObject PyObjectBytearrayIterator
   id: PyObjectBytearrayIterator-C6486EB6-1522-42BA-A082-B6563F943CDF
   copier: #f
+  macros: ;; this will inline the operations on this type
   ;; attrs
   index
   bytearray)
@@ -176,6 +185,7 @@
   id: PyObjectStr-C6486EB6-1522-42BA-A082-B6563F943CDF
   type-exhibitor: PyObjectStr-type-get
   copier: #f
+  macros: ;; this will inline the operations on this type
   ;; attrs
   value
   (representative unprintable:)
@@ -184,6 +194,7 @@
 (define-type-of-PyObject PyObjectFunction
   id: PyObjectFunction-C6486EB6-1522-42BA-A082-B6563F943CDF
   copier: #f
+  macros: ;; this will inline the operations on this type
   ;; attrs
   procedure
   arity
@@ -192,6 +203,7 @@
 (define-type-of-PyObject PyObjectMethod
   id: PyObjectMethod-C6486EB6-1522-42BA-A082-B6563F943CDF
   copier: #f
+  macros: ;; this will inline the operations on this type
   ;; attrs
   procedure
   arity
@@ -200,24 +212,28 @@
 (define-type-of-PyObject PyObjectDict
   id: PyObjectDict-C6486EB6-1522-42BA-A082-B6563F943CDF
   copier: #f
+  macros: ;; this will inline the operations on this type
   ;; attrs
   value)
 
 (define-type-of-PyObject PyObjectSet
   id: PyObjectSet-C6486EB6-1522-42BA-A082-B6563F943CDF
   copier: #f
+  macros: ;; this will inline the operations on this type
   ;; attrs
   value)
 
 (define-type-of-PyObject PyObjectTuple
   id: PyObjectTuple-C6486EB6-1522-42BA-A082-B6563F943CDF
   copier: #f
+  macros: ;; this will inline the operations on this type
   ;; attrs
   value)
 
 (define-type-of-PyObject PyObjectTupleIterator
   id: PyObjectTupleIterator-C6486EB6-1522-42BA-A082-B6563F943CDF
   copier: #f
+  macros: ;; this will inline the operations on this type
   ;; attrs
   index
   vec)
@@ -225,6 +241,7 @@
 (define-type-of-PyObject PyObjectDictKeyIterator
   id: PyObjectDictKeyIterator-C6486EB6-1522-42BA-A082-B6563F943CDF
   copier: #f
+  macros: ;; this will inline the operations on this type
   ;; attrs
   node
   iterator-token)
@@ -232,6 +249,7 @@
 (define-type-of-PyObject PyObjectSlice
   id: PyObjectSlice-C6486EB6-1522-42BA-A082-B6563F943CDF
   copier: #f
+  macros: ;; this will inline the operations on this type
   ;; attrs
   start
   stop
@@ -240,6 +258,7 @@
 (define-type-of-PyObject PyObjectTextIOWrapper
   id: PyObjectTextIOWrapper-C6486EB6-1522-42BA-A082-B6563F943CDF
   copier: #f
+  macros: ;; this will inline the operations on this type
   ;; attrs
   port
   mode
@@ -257,7 +276,8 @@
   copier: #f
   opaque:
   prefix: %
-  macros: hclass index)
+  macros: ;; this will inline the operations on this type
+  hclass index)
 
 (define-macro (make-PCache hc i)
   `(%make-PCache ,hc ,i))
@@ -284,7 +304,7 @@
   implementer: implement-HClass
   copier: #f
   opaque:
-  macros:
+  macros: ;; this will inline the operations on this type
   ;; attrs
   names
   (transitions unprintable:))
