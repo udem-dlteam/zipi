@@ -214,17 +214,15 @@ def with_cont(ctx, cont):
     return Context(ctx.rte, cont, ctx.ast)
 
 def with_catch(ctx, catcher_cont):
-    # Add a continuation which removes the catcher from the rte before returning
-    def unwind_catch_block(rte, val):
-        unwinded_rte = unwind_rte_ctrl_env(rte)
-        return ctx.cont(unwinded_rte, val)
-
-    catcher = RTCtrlCatch(rte_ctrl_env(ctx.rte), catcher_cont, ctx.rte)
-    next_rte = make_rte_from_new_ctrl_env(ctx.rte, catcher)
-    return Context(next_rte, unwind_catch_block, ctx.ast)
+    unhandled_rte = ctx.rte
+    def cont(_, val):
+        return ctx.cont(unhandled_rte, val)
+    next_rte = make_rte_with_handler(unhandled_rte, catcher_cont)
+    return Context(next_rte, cont, ctx.ast)
 
 def with_cont_and_catch(ctx, cont, catcher_cont):
-    return with_catch(with_cont(ctx, cont), catcher_cont)
+    next_rte = make_rte_with_handler(ctx.rte, catcher_cont)
+    return Context(next_rte, cont, ctx.ast)
 
 def make_out_of_ast_context(rte, cont):
     # Note use only if there is no access to the ctx or the ast
@@ -437,6 +435,15 @@ def make_class_rte(rte, locals_env):
 
 
 def make_new_rte(globals_env, locals_env, builtins, builtins_module, options):
+    def main_handler(exc):
+        locations = OM_get_BaseException_locations(exc)
+        last_location = locations[len(locations) - 1]
+
+        dummy_ctx = Context(new_rte, lambda rte: None, last_location)
+
+        exc_msg = om_simple_exception_format(dummy_ctx, exc)
+        return expr_end_with_error(dummy_ctx, exc_msg)
+
     serial_counter = [0]
     sys_modules = make_dict()
 
@@ -453,7 +460,7 @@ def make_new_rte(globals_env, locals_env, builtins, builtins_module, options):
     dict_set(new_rte, "sys_modules", sys_modules)
     dict_set(new_rte, "class_parent_locals", absent)
     rte_set_current_exc(new_rte, absent)
-    rte_set_handler(new_rte, absent)
+    rte_set_handler(new_rte, main_handler)
     rte_set_finally(new_rte, absent)
 
     # Used to accumulate objects repr seen when calling sem_repr, to avoid infinite loops in nested objects
@@ -469,9 +476,9 @@ def make_rte_copy(rte):
     new_rte = make_dict()
 
     dict_set(new_rte, "serial_counter", rte_serial_counter(rte))
-    rte_set_globals(new_rte, rte_globals(rte))
-    rte_set_locals(new_rte, rte_locals(rte))
-    rte_set_current_exc(new_rte, rte_current_func(rte))
+    dict_set(new_rte, "globals", rte_globals(rte))
+    dict_set(new_rte, "locals", rte_locals(rte))
+    rte_set_current_func(new_rte, rte_current_func(rte))
     dict_set(new_rte, "builtins", rte_builtins(rte))
     dict_set(new_rte, "builtins_module", rte_builtins_module(rte))
     dict_set(new_rte, "stack", rte_stack(rte))
@@ -559,6 +566,9 @@ def rte_locals(rte):
 
 def rte_current_func(rte):
     return dict_get(rte, 'current_func', absent)
+
+def rte_set_current_func(rte, fn):
+    dict_set(rte, 'current_func', fn)
 
 def rte_builtins(rte):
     return dict_get(rte, 'builtins', absent)
@@ -680,6 +690,10 @@ def rte_pop_current_exc(rte):
 
 def rte_set_handler(rte, handler):
     dict_set(rte, 'handler', handler)
+
+
+def rte_remove_handler(rte):
+    dict_set(rte, 'handler', absent)
 
 
 def rte_get_handler(rte):
@@ -4629,11 +4643,11 @@ def om_iterator_next_code(ctx, args):
             OM_set_iterator_index(self, om_int(int_add(OM_get_boxed_value(index), int_from_num(1))))
             return ctx.cont(rte, val)
 
-        def catch_IndexError(rte, exn):
+        def catch_IndexError(exn):
             if om_isinstance(exn, class_IndexError):
                 return sem_raise(ctx, class_StopIteration)
             else:
-                return sem_raise(ctx, exn)
+                return sem_raise_unsafe(ctx.rte, exn)
 
         next_ctx = with_cont_and_catch(ctx, increment_index, catch_IndexError)
 
@@ -7593,12 +7607,12 @@ def make_module_functools():
 
         def get_iterator(rte, iterator):
             def get_next(rte, last):
-                def catch_StopIteration(rte, exn):
+                def catch_StopIteration(exn):
                     ctx = make_out_of_ast_context(rte, cont)
                     if om_isinstance(exn, class_StopIteration):
                         return unwindReturn(rte, last)
                     else:
-                        return sem_raise(ctx, exn)
+                        return sem_raise_unsafe(ctx.rte, exn)
 
                 def do_call(rte, nxt):
                     return sem_simple_call(make_out_of_ast_context(rte, get_next), fn, [last, nxt])
@@ -7606,12 +7620,12 @@ def make_module_functools():
                 return sem_next_no_default(make_out_of_ast_context_with_catch(rte, do_call, catch_StopIteration), iterator)
 
             if init is absent:
-                def catch_StopIteration(rte, exn):
+                def catch_StopIteration(exn):
                     ctx = make_out_of_ast_context(rte, cont)
                     if om_isinstance(exn, class_StopIteration):
                         return sem_raise_with_message(ctx, class_TypeError, "reduce() of empty sequence with no initial value")
                     else:
-                        return sem_raise(ctx, exn)
+                        return sem_raise_unsafe(ctx.rte, exn)
 
                 return sem_next_no_default(make_out_of_ast_context_with_catch(rte, get_next, catch_StopIteration), iterator)
             else:
@@ -10179,7 +10193,7 @@ def gen_try(cte, ast):
     else_cte, else_code = comp_stmt_seq(handlers_cte, else_body)
     finally_cte, finally_code = comp_stmt_seq(else_cte, finally_body)
 
-    # TODO
+    raise NotImplementedError
 
 
 def gen_raise(cte, ast, code):
@@ -10814,16 +10828,15 @@ def sem_str(ctx, value):
     return sem_simple_call(next_ctx, value_str, [value])
 
 def sem_getattribute(ctx, obj, name):
-    def catch_AttributeError(rte, exn):
+    def catch_AttributeError(exn):
         if om_isinstance(exn, class_AttributeError):
             obj_getattr = getattribute_from_obj_mro(obj, '__getattr__')
-            new_ctx = Context(rte, ctx.cont, ctx.ast)
             if obj_getattr is absent:
-                return sem_raise(new_ctx, exn)
+                return sem_raise_unsafe(ctx.rte, exn)
             else:
-                return sem_simple_call(new_ctx, obj_getattr, [obj, name])
+                return sem_simple_call(ctx, obj_getattr, [obj, name])
         else:
-            return sem_raise(Context(rte, ctx.cont, ctx.ast), exn)
+            return sem_raise_unsafe(ctx.rte, exn)
 
     obj_getattribute = getattribute_from_obj_mro(obj, '__getattribute__')
 
@@ -10920,11 +10933,11 @@ def sem_next(ctx, obj, default_):
     elif default_ is absent:
         return sem_simple_call(ctx, obj_next, [obj])
     else:
-        def catch_StopIteration(rte, exn):
+        def catch_StopIteration(exn):
             if om_isinstance(exn, class_StopIteration):
-                return ctx.cont(rte, default_)
+                return cont_obj(ctx, default_)
             else:
-                return sem_raise(ctx, exn)
+                return sem_raise_unsafe(ctx.rte, exn)
 
         next_ctx = with_catch(ctx, catch_StopIteration)
         return sem_simple_call(next_ctx, obj_next, [obj])
@@ -11305,12 +11318,12 @@ def sem_var_get_closure(ctx, pos, id):
         return cont_obj(ctx, value)
 
 def sem_var_get_global(ctx, id):
-    def catch_AttributeError(rte, exn):
+    def catch_AttributeError(exn):
         if om_isinstance(exn, class_AttributeError):
             error_msg = "name '" + id + "' is not defined"
-            return sem_raise_with_message(Context(rte, ctx.cont, ctx.ast), class_NameError, error_msg)
+            return sem_raise_with_message(ctx, class_NameError, error_msg)
         else:
-            return sem_raise(Context(rte, ctx.cont, ctx.ast), exn)
+            return sem_raise_unsafe(ctx.rte, exn)
 
     value = rte_lookup_globals(ctx.rte, id)
 
@@ -11357,7 +11370,7 @@ def find_closest_ast(rte):
 # This is why it requires no context.
 def sem_raise_unsafe(rte, exc):
     handler = rte_get_handler(rte)
-    return handler(exc) # TODO: Add a top-level catcher for printing the exception with 'expr_end_with_error'
+    return handler(exc)
 
 
 def sem_raise(ctx, exn):
@@ -11372,7 +11385,6 @@ def sem_raise(ctx, exn):
         # TypeError raising a non-BaseException was attempted
         exn_obj = om_exception(class_TypeError, om_tuple(()))
 
-    # TODO: is that ok?
     location = ctx.ast or find_closest_ast(rte)
 
     location_stack = OM_init_BaseException_locations(exn_obj)
