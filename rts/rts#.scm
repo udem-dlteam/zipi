@@ -503,7 +503,9 @@
   (if (and (exact-integer? value)
            (<= value int-cache-high)
            (>= value int-cache-low))
-      `(vector-ref int-cache ,(- value int-cache-low))
+      `(let ()
+         (declare (standard-bindings) (not safe))
+         (vector-ref int-cache ,(- value int-cache-low)))
       `(py-int-from-scheme-dynamic ,value)))
 
 (define-macro (getattribute-from-obj-mro obj name)
