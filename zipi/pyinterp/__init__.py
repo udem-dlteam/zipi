@@ -685,7 +685,9 @@ def rte_get_current_exc(rte):
 
 
 def rte_pop_current_exc(rte):
-    return dict_pop(rte, 'current_exc', absent)
+    exc = dict_get(rte, 'current_exc', absent)
+    dict_set(rte, 'current_exc', absent)
+    return exc
 
 
 def rte_set_handler(rte, handler):
@@ -10164,13 +10166,13 @@ def gen_init_handlers(cte, handlers, finally_code):
     if len(handlers) == 0:
         # Case where there is only a finally, no except
         # NOTE: there must either be an except or a finally or both, there cannot be none of them
-        def init_handler(rte, cont):
+        def init_handler(rte, cont, _):
             def do_finally(finally_cont):
                 return finally_code(rte, finally_cont)
             return cont(make_rte_with_finally(rte, do_finally))
 
         return cte, init_handler
-    elif finally_code is not None:
+    elif finally_code is None:
         # Case where there are only except
         handlers_cte, handlers_code = gen_handlers_seq(cte, handlers)
 
@@ -10199,11 +10201,12 @@ def gen_init_handlers(cte, handlers, finally_code):
                             return sem_raise_unsafe(rte, current_exc)
                     return finally_code(rte, exit_finally)
 
-                def exit_cont(_):
-                    rte_pop_current_exc(rte)
-                    return handlers_cont(rte)
-                rte_set_current_exc(rte, exc)
-                return handlers_code(make_rte_with_finally(rte, do_finally), exit_cont, exc)
+                def exit_cont(exit_rte):
+                    rte_pop_current_exc(exit_rte)
+                    return handlers_cont(exit_rte)
+                rte_with_exc = make_rte_with_finally(rte, do_finally)
+                rte_set_current_exc(rte_with_exc, exc)
+                return handlers_code(rte_with_exc, exit_cont, exc)
             return cont(make_rte_with_handler(rte, run_handlers))
         return handlers_cte, init_handler
 
@@ -10222,16 +10225,16 @@ def gen_try(cte, ast):
         else_cte, else_code = comp_stmt_seq(handlers_cte, else_body)
 
         def code(rte, cont):
-            def do_finally(finally_rte):
-                return sem_finally(finally_rte, cont)
+            def do_finally(finally_cont):
+                return finally_code(rte, finally_cont)
 
-            def do_init_handlers(rte_with_handlers):
+            def do_try(rte_with_handlers):
                 def do_else(else_rte):
-                    return else_code(make_rte_with_finally(else_rte, do_finally), do_finally)
+                    return else_code(make_rte_with_finally(else_rte, do_finally), lambda rte: sem_finally(rte, cont))
 
                 return try_code(rte_with_handlers, do_else)
 
-            return init_handlers_code(rte, do_init_handlers, do_finally)
+            return init_handlers_code(rte, do_try, lambda rte: sem_finally(rte, cont))
 
         return else_cte, code
     else:
@@ -11423,8 +11426,13 @@ def find_closest_ast(rte):
 # raise_unsafe expected exc to contain all context information and none has to be added
 # This is why it requires no context.
 def sem_raise_unsafe(rte, exc):
-    handler = rte_get_handler(rte)
-    return handler(exc)
+    def do_raise(rte):
+        handler = rte_get_handler(rte)
+        return handler(exc)
+
+    return sem_finally(rte, do_raise)
+
+
 
 
 def sem_raise(ctx, exn):
