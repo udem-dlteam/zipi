@@ -10244,7 +10244,7 @@ def gen_try(cte, ast):
         def code(rte, cont):
             def do_init_handlers(rte_with_handlers):
                 def do_else(else_rte):
-                    return else_code(make_rte_with_finally(else_rte, cont), cont)
+                    return else_code(rte, cont)
 
                 return try_code(rte_with_handlers, do_else)
 
