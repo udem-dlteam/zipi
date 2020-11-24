@@ -710,10 +710,15 @@ def rte_get_finally(rte):
     return dict_get(rte, 'finally', absent)
 
 # stack operation
-def unwindReturn(rte, val):
-    frame = rte_stack(rte)
-    ctx = Context(frame_rte(frame), frame_cont(frame), frame_ast(frame))
-    return ctx.cont(ctx.rte, val)
+def unwind_return(rte, val):
+    def do_return(_):
+        frame = rte_stack(rte)
+        ctx = Context(frame_rte(frame), frame_cont(frame), frame_ast(frame))
+        return ctx.cont(ctx.rte, val)
+
+    # First execute any finally block
+    return sem_exec_all_finally(rte, do_return)
+
 
 # function signature
 def make_signature(args, posonlyargs, varargs, kwonlyargs, kw_defaults, kwargs, defaults):
@@ -6892,7 +6897,7 @@ populate_builtin_BaseException()
 
 def om_breakpoint_code(rte, cont):
     def return_none(_):
-        return unwindReturn(rte, om_None)
+        return unwind_return(rte, om_None)
 
     frame = rte_stack(rte)
     parent_ast = frame_ast(frame)
@@ -6913,7 +6918,7 @@ def om_input_code(rte, cont):
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise(ctx, class_EOFError)
         else:
-            return unwindReturn(rte1, om_str(result))
+            return unwind_return(rte1, om_str(result))
 
     obj = rte_lookup_locals(rte, 'obj')
     ctx = make_out_of_ast_context(rte, return_value)
@@ -6929,7 +6934,7 @@ def gen_int_to_string_conv_code(radix, prefix):
                 result = prefix + int_to_string(obj_value, radix)
             else:
                 result = "-" + prefix + int_to_string(int_neg(obj_value), radix)
-            return unwindReturn(rte, om_str(result))
+            return unwind_return(rte, om_str(result))
         else:
             obj_cls_name = OM_get(obj_cls, '__name__')
             obj_cls_name_value = OM_get_boxed_value(obj_cls_name)
@@ -6949,7 +6954,7 @@ def om_chr_code(rte, cont):
         obj_value = OM_get_boxed_value(obj)
         if int_gt(obj_value, -1) and int_lt(obj_value,1114112):
             obj_int_val = int_to_num(obj_value)
-            return unwindReturn(rte, om_str(chr(obj_int_val)))
+            return unwind_return(rte, om_str(chr(obj_int_val)))
         else:
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise_with_message(ctx, class_ValueError, "chr() arg not in range(0x110000)")
@@ -6964,7 +6969,7 @@ def om_ord_code(rte, cont):
         obj_value_len = len(obj_value)
         if obj_value_len == 1:
             obj_value_int = int_from_num(ord(obj_value))
-            return unwindReturn(rte, om_int(obj_value_int))
+            return unwind_return(rte, om_int(obj_value_int))
         else:
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise_with_message(ctx, class_ValueError, "ord() expected a character, but string of length " + str(obj_value_len) + " found")
@@ -6991,7 +6996,7 @@ def om_print_code(rte, _):
             else:
                 # sep=' '
                 runtime_print(' '.join(result), rte)
-                return unwindReturn(rte, om_None)
+                return unwind_return(rte, om_None)
 
         next_ctx = make_out_of_ast_context(rte, print_value)
         return sem_str(next_ctx, args_seq[i])
@@ -7000,14 +7005,14 @@ def om_print_code(rte, _):
         return loop(rte, 0)
     else:
         runtime_print('', rte)
-        return unwindReturn(rte, om_None)
+        return unwind_return(rte, om_None)
 
 def om_alert_code(rte, _):
     obj = rte_lookup_locals(rte, "obj")
     def alert_str(rte, obj_str):
         obj_str_value = OM_get_boxed_value(obj_str)
         runtime_alert(obj_str_value)
-        return unwindReturn(rte, om_None)
+        return unwind_return(rte, om_None)
 
     ctx = make_out_of_ast_context(rte, alert_str)
     return sem_str(ctx, obj)
@@ -7017,7 +7022,7 @@ def om_confirm_code(rte, _):
     def confirm_dialog(rte, obj_str):
         obj_str_value = OM_get_boxed_value(obj_str)
         result = runtime_confirm(obj_str_value)
-        return unwindReturn(rte, om_bool(result))
+        return unwind_return(rte, om_bool(result))
 
     ctx = make_out_of_ast_context(rte, confirm_dialog)
     return sem_str(ctx, obj)
@@ -7028,33 +7033,33 @@ def om_prompt_code(rte, _):
         obj_str_value = OM_get_boxed_value(obj_str)
         result = runtime_prompt(obj_str_value)
         if om_is(result, None):
-            return unwindReturn(rte, om_None)
+            return unwind_return(rte, om_None)
         else:
-            return unwindReturn(rte, om_str(result))
+            return unwind_return(rte, om_str(result))
 
     ctx = make_out_of_ast_context(rte, prompt_str)
     return sem_str(ctx, obj)
 
 def om_repr_code(rte, _):
     def cont(rte, res):
-        return unwindReturn(rte, res)
+        return unwind_return(rte, res)
     next_ctx = make_out_of_ast_context(rte, cont)
     return sem_repr(next_ctx, rte_lookup_locals(rte, 'obj'))
 
 def om_len_code(rte, _):
     def cont(rte, res):
-        return unwindReturn(rte, res)
+        return unwind_return(rte, res)
     next_ctx = make_out_of_ast_context(rte, cont)
     return sem_len(next_ctx, rte_lookup_locals(rte, 'obj'))
 
 def om_next_code(rte, _):
     def cont(rte, res):
-        return unwindReturn(rte, res)
+        return unwind_return(rte, res)
     next_ctx = make_out_of_ast_context(rte, cont)
     return sem_next(next_ctx, rte_lookup_locals(rte, 'obj'), rte_lookup_locals(rte, 'default'))
 
 def om_iter_code(rte, _):
-    next_ctx = make_out_of_ast_context(rte, unwindReturn)
+    next_ctx = make_out_of_ast_context(rte, unwind_return)
 
     obj = rte_lookup_locals(rte, 'obj')
     sentinel = rte_lookup_locals(rte, 'sentinel')
@@ -7065,7 +7070,7 @@ def om_iter_code(rte, _):
         return sem_raise(next_ctx, class_NotImplementedError)
 
 def om_abs_code(rte, _):
-    next_ctx = make_out_of_ast_context(rte, unwindReturn)
+    next_ctx = make_out_of_ast_context(rte, unwind_return)
 
     obj = rte_lookup_locals(rte, 'obj')
     return sem_abs(next_ctx, obj)
@@ -7092,7 +7097,7 @@ def do_min_max(name, sem_Comp):
                 candidate_ref = [first_element]
                 def get_next(get_next_rte, next_element):
                     if next_element is for_loop_end_marker:
-                        return cont_obj(make_out_of_ast_context(get_next_rte, unwindReturn), candidate_ref[0])
+                        return cont_obj(make_out_of_ast_context(get_next_rte, unwind_return), candidate_ref[0])
                     else:
                         def compare_candidates(compare_rte, res):
                             def pick_next_candidate(pick_rte, bool_res):
@@ -7115,10 +7120,10 @@ def om_round_code(rte, cont):
     ndigits = rte_lookup_locals(rte, 'ndigits')
 
     # NOTE: sem_Round handles the case where ndigits is 'absent'
-    return sem_Round(make_out_of_ast_context(rte, unwindReturn), number, ndigits)
+    return sem_Round(make_out_of_ast_context(rte, unwind_return), number, ndigits)
 
 def om_pow_code(rte, _):
-    next_ctx = make_out_of_ast_context(rte, unwindReturn)
+    next_ctx = make_out_of_ast_context(rte, unwind_return)
 
     base = rte_lookup_locals(rte, 'base')
     power = rte_lookup_locals(rte, 'power')
@@ -7133,7 +7138,7 @@ def om_isinstance_code(rte, cont):
     obj = rte_lookup_locals(rte, 'object')
     classinfo = rte_lookup_locals(rte, 'classinfo')
 
-    next_ctx = make_out_of_ast_context(rte, unwindReturn)
+    next_ctx = make_out_of_ast_context(rte, unwind_return)
 
     if om_isinstance(classinfo, class_type):
         return cont_bool(next_ctx, om_isinstance(obj, classinfo))
@@ -7155,7 +7160,7 @@ def om_make_math_unary_real_function(fn_name, float_fn, arg):
                 return sem_raise_with_message(make_out_of_ast_context(float_rte, cont), class_TypeError, "must be real number")
             else:
                 res = float_fn(OM_get_boxed_value(float_val))
-                return unwindReturn(float_rte, om_float(res))
+                return unwind_return(float_rte, om_float(res))
 
         return sem_maybe_float(make_out_of_ast_context(rte, apply_float_fn), val)
 
@@ -7179,7 +7184,7 @@ def om_make_math_unary_real_to_int_function(fn_name, float_fn, arg):
                                                   "cannot convert float NaN to integer")
                 else:
                     int_res = int_from_num(float_to_num(res))
-                    return unwindReturn(float_rte, om_int(int_res))
+                    return unwind_return(float_rte, om_int(int_res))
 
         return sem_maybe_float(make_out_of_ast_context(rte, apply_float_fn), val)
 
@@ -7196,10 +7201,10 @@ def om_make_math_unary_real_domain_function(fn_name, float_fn, arg, arg_domain):
                 float_unboxed_val = OM_get_boxed_value(float_val)
 
                 if float_is_nan(float_unboxed_val):
-                    return unwindReturn(float_rte, om_float(float_nan()))
+                    return unwind_return(float_rte, om_float(float_nan()))
                 elif arg_domain(float_unboxed_val):
                     res = float_fn(OM_get_boxed_value(float_val))
-                    return unwindReturn(float_rte, om_float(res))
+                    return unwind_return(float_rte, om_float(res))
                 else:
                     return sem_raise_with_message(make_out_of_ast_context(float_rte, cont), class_ValueError, "math domain error")
 
@@ -7254,7 +7259,7 @@ def make_module_math():
                             return sem_raise_with_message(make_out_of_ast_context(obj2_rte, cont), class_ValueError,
                                                           "math domain error")
                         else:
-                            return unwindReturn(obj2_rte, om_float(res))
+                            return unwind_return(obj2_rte, om_float(res))
 
                 return sem_maybe_float(make_out_of_ast_context(obj1_rte, check_obj2), obj2)
         return sem_maybe_float(make_out_of_ast_context(rte, check_obj1), obj1)
@@ -7301,7 +7306,7 @@ def make_module_math():
 
                         res = float_atan2(float_res1, float_res2)
 
-                        return unwindReturn(obj2_rte, om_float(res))
+                        return unwind_return(obj2_rte, om_float(res))
                 return sem_maybe_float(make_out_of_ast_context(obj1_rte, check_obj2), obj2)
         return sem_maybe_float(make_out_of_ast_context(rte, check_obj1), obj1)
 
@@ -7351,7 +7356,7 @@ def make_module_turtle():
     def make_set_option_fn(fct, name):
         def code(rte, cont):
             fct(rte)
-            return unwindReturn(rte, om_None)
+            return unwind_return(rte, om_None)
         return om_make_builtin_function_with_signature(name, code, empty_signature)
 
     om_module_turtle_st = make_set_option_fn(drawing_st, 'st')
@@ -7373,7 +7378,7 @@ def make_module_turtle():
                         return sem_raise_with_message(make_out_of_ast_context(arg2_rte, cont), class_ValueError, name + "() arguments must be finite numbers")
                     else:
                         fn(rte, val1, val2)
-                        return unwindReturn(rte, om_None)
+                        return unwind_return(rte, om_None)
 
                 return sem_float(make_out_of_ast_context(arg1_rte, get_arg2_float), arg2)
             return sem_float(make_out_of_ast_context(rte, get_arg1_float), arg1)
@@ -7390,7 +7395,7 @@ def make_module_turtle():
 
         if width is absent:
             drawing_cs(rte)
-            return unwindReturn(rte, om_None)
+            return unwind_return(rte, om_None)
         elif height is absent:
             return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError,
                                           'clear() expected 0 or 2 arguments, got 1')
@@ -7406,7 +7411,7 @@ def make_module_turtle():
                                                       "clear() arguments must be finite numbers")
                     else:
                         drawing_cs(rte, width_val, height_val)
-                        return unwindReturn(rte, om_None)
+                        return unwind_return(rte, om_None)
                 return sem_float(make_out_of_ast_context(width_rte, get_height_float), height)
             return sem_float(make_out_of_ast_context(rte, get_width_float), width)
 
@@ -7428,7 +7433,7 @@ def make_module_turtle():
                                                   "goto() arguments must be finite numbers")
                 else:
                     drawing_mv(y_rte, x_val, y_val)
-                    return unwindReturn(rte, om_None)
+                    return unwind_return(rte, om_None)
 
             return sem_float(make_out_of_ast_context(x_rte, get_y_float), y)
         return sem_float(make_out_of_ast_context(rte, get_x_float), x)
@@ -7443,7 +7448,7 @@ def make_module_turtle():
 
                 if float_is_finite(angle_val):
                     fn(angle_rte, angle_val)
-                    return unwindReturn(angle_rte, om_None)
+                    return unwind_return(angle_rte, om_None)
                 else:
                     return sem_raise_with_message(make_out_of_ast_context(angle_rte, cont),
                                                   class_ValueError,
@@ -7472,7 +7477,7 @@ def make_module_turtle():
 
                     if color_in_range(r_val) and color_in_range(g_val) and color_in_range(b_val):
                         drawing_setpc(rte, r_val, g_val, b_val)
-                        return unwindReturn(rte, om_None)
+                        return unwind_return(rte, om_None)
                     else:
                         return sem_raise_with_message(make_out_of_ast_context(b_rte, cont),
                                                       class_ValueError,
@@ -7493,7 +7498,7 @@ def make_module_turtle():
 
             if float_is_finite(width_value) and float_is_pos(width_value):
                 drawing_setpw(width_rte, float_to_num(width_value))
-                return unwindReturn(width_rte, om_None)
+                return unwind_return(width_rte, om_None)
             else:
                 return sem_raise_with_message(make_out_of_ast_context(width_rte, cont), class_ValueError,
                                               "pensize() argument must be a positive number")
@@ -7509,7 +7514,7 @@ def make_module_turtle():
         def get_arg_str(arg_rte, arg_str):
             text_value = OM_get_boxed_value(arg_str)
             drawing_drawtext(arg_rte, text_value)
-            return unwindReturn(arg_rte, om_None)
+            return unwind_return(arg_rte, om_None)
 
         return sem_str(make_out_of_ast_context(rte, get_arg_str), arg)
 
@@ -7540,7 +7545,7 @@ def make_module_random():
 
     def om_random_code(rte, _):
         result = runtime_random()
-        return unwindReturn(rte, om_float(result))
+        return unwind_return(rte, om_float(result))
 
     om_random_random = om_make_builtin_function_with_signature('random', om_random_code, empty_signature)
 
@@ -7554,13 +7559,13 @@ def make_module_time():
 
     def om_time_code(rte, _):
         result = runtime_time()
-        return unwindReturn(rte, om_float(result))
+        return unwind_return(rte, om_float(result))
 
     def om_sleep_code(rte, cont):
         secs = rte_lookup_locals(rte, 'secs')
 
         def return_none(_):
-            return unwindReturn(rte, om_None)
+            return unwind_return(rte, om_None)
 
         frame = rte_stack(rte)
         parent_ast = frame_ast(frame)
@@ -7612,7 +7617,7 @@ def make_module_functools():
                 def catch_StopIteration(exn):
                     ctx = make_out_of_ast_context(rte, cont)
                     if om_isinstance(exn, class_StopIteration):
-                        return unwindReturn(rte, last)
+                        return unwind_return(rte, last)
                     else:
                         return sem_raise_unsafe(ctx.rte, exn)
 
@@ -7669,49 +7674,49 @@ def make_module_mouse():
             dict_set(struct_attrs, 'ctrl', om_bool(ctrl))
             dict_set(struct_attrs, 'alt', om_bool(alt))
 
-            return sem_generic_call(make_out_of_ast_context(rte, unwindReturn), class_struct, [], struct_attrs)
+            return sem_generic_call(make_out_of_ast_context(rte, unwind_return), class_struct, [], struct_attrs)
 
     def getMouseX_code(rte, cont):
         if getMouseX is None:
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise(ctx, class_NotImplementedError)
         else:
-            return unwindReturn(rte, om_int(int_from_num(getMouseX(rte))))
+            return unwind_return(rte, om_int(int_from_num(getMouseX(rte))))
 
     def getMouseY_code(rte, cont):
         if getMouseY is None:
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise(ctx, class_NotImplementedError)
         else:
-            return unwindReturn(rte, om_int(int_from_num(getMouseY(rte))))
+            return unwind_return(rte, om_int(int_from_num(getMouseY(rte))))
 
     def getMouseButton_code(rte, cont):
         if getMouseButton is None:
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise(ctx, class_NotImplementedError)
         else:
-            return unwindReturn(rte, om_int(getMouseButton(rte)))
+            return unwind_return(rte, om_int(getMouseButton(rte)))
 
     def getMouseShift_code(rte, cont):
         if getMouseShift is None:
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise(ctx, class_NotImplementedError)
         else:
-            return unwindReturn(rte, om_bool(getMouseShift(rte)))
+            return unwind_return(rte, om_bool(getMouseShift(rte)))
 
     def getMouseCtrl_code(rte, cont):
         if getMouseCtrl is None:
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise(ctx, class_NotImplementedError)
         else:
-            return unwindReturn(rte, om_bool(getMouseCtrl(rte)))
+            return unwind_return(rte, om_bool(getMouseCtrl(rte)))
 
     def getMouseAlt_code(rte, cont):
         if getMouseAlt is None:
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise(ctx, class_NotImplementedError)
         else:
-            return unwindReturn(rte, om_bool(getMouseAlt(rte)))
+            return unwind_return(rte, om_bool(getMouseAlt(rte)))
 
     module_mouse_env = make_dict()
 
@@ -7784,18 +7789,18 @@ def make_module_pixels():
             width_val = int_to_num(OM_get_boxed_value(width))
             height_val = int_to_num(OM_get_boxed_value(height))
             drawing_setScreenMode(rte, width_val, height_val)
-            return unwindReturn(rte, om_None)
+            return unwind_return(rte, om_None)
         else:
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise_with_message(ctx, class_TypeError, "arguments width and height must be of type int")
 
     def getScreenWidth_code(rte, cont):
         result = drawing_getScreenWidth(rte)
-        return unwindReturn(rte, om_int(int_from_num(result)))
+        return unwind_return(rte, om_int(int_from_num(result)))
 
     def getScreenHeight_code(rte, cont):
         result = drawing_getScreenHeight(rte)
-        return unwindReturn(rte, om_int(int_from_num(result)))
+        return unwind_return(rte, om_int(int_from_num(result)))
 
     def setPixel_code(rte, cont):
         ctx = make_out_of_ast_context(rte, cont)
@@ -7821,14 +7826,14 @@ def make_module_pixels():
                     return sem_raise_with_message(ctx, class_ValueError, "invalid HTML color str format")
                 else:
                     drawing_setPixel(rte, xval, yval, color_val)
-                    return unwindReturn(rte, om_None)
+                    return unwind_return(rte, om_None)
             if om_isinstance(color, class_struct):
                 color_val = color_struct_to_dict(color)
                 if color_val is None:
                     return sem_raise_with_message(ctx, class_ValueError, "invalid HTML color struct format")
                 else:
                     drawing_setPixel(rte, xval, yval, color_val)
-                    return unwindReturn(rte, om_None)
+                    return unwind_return(rte, om_None)
             else:
                 return sem_raise_with_message(ctx, class_TypeError, "color must be of type str or struct")
         else:
@@ -7872,14 +7877,14 @@ def make_module_pixels():
                     return sem_raise_with_message(ctx, class_ValueError, "invalid HTML color str format")
                 else:
                     drawing_fillRectangle(rte, xval, yval, width_val, height_val, color_val)
-                    return unwindReturn(rte, om_None)
+                    return unwind_return(rte, om_None)
             elif om_isinstance(color, class_struct):
                 color_val = color_struct_to_dict(color)
                 if color_val is None:
                     return sem_raise_with_message(ctx, class_ValueError, "invalid HTML color struct format")
                 else:
                     drawing_fillRectangle(rte, xval, yval, width_val, height_val, color_val)
-                    return unwindReturn(rte, om_None)
+                    return unwind_return(rte, om_None)
             else:
                 return sem_raise_with_message(ctx, class_TypeError, "color must be of type str or struct")
         else:
@@ -7888,7 +7893,7 @@ def make_module_pixels():
 
     def exportScreen_code(rte, cont):
         result = drawing_exportScreen(rte)
-        return unwindReturn(rte, om_str(result))
+        return unwind_return(rte, om_str(result))
 
     # NOTE: getMouse is in the mouse module
     # def getMouse_code(rte, cont):
@@ -8048,7 +8053,7 @@ def make_module_more_builtins():
                                               "filename must be a non-empty str")
             else:
                 content = runtime_readFile(rte, filename_value)
-                return unwindReturn(rte, om_str(content))
+                return unwind_return(rte, om_str(content))
 
 
     om_readFile = om_make_builtin_function_with_signature('readFile', readFile_code,
@@ -8071,7 +8076,7 @@ def make_module_more_builtins():
                                               "filename must be a non-empty str")
             else:
                 runtime_writeFile(rte, filename_value, content_value)
-                return unwindReturn(rte, om_None)
+                return unwind_return(rte, om_None)
 
 
     om_writeFile = om_make_builtin_function_with_signature('writeFile', writeFile_code,
@@ -9151,7 +9156,7 @@ def comp_stmt(cte, ast):
             return cte, lambda rte, cont: frame_cont(rte_stack(rte))(frame_rte(rte_stack(rte)), om_None)
         else:
             (cte1, code1) = comp_expr(cte, ast.value)
-            return cte, lambda rte, cont: code1(rte, lambda rte1, val1: unwindReturn(rte1, val1))
+            return cte, lambda rte, cont: code1(rte, lambda rte1, val1: unwind_return(rte1, val1))
 
     elif isinstance(ast, AST.Break):
         if debug: print('AST.Break')
@@ -10243,7 +10248,7 @@ def gen_try(cte, ast):
 
         def code(rte, cont):
             def do_init_handlers(rte_with_handlers):
-                def do_else(else_rte):
+                def do_else(_):
                     return else_code(rte, cont)
 
                 return try_code(rte_with_handlers, do_else)
@@ -11469,6 +11474,18 @@ def sem_finally(rte, cont):
     else:
         # The final continuation should have full information on what to do next
         return final(cont)
+
+
+def sem_exec_all_finally(rte, cont):
+    final = rte_get_finally(rte)
+    if final is absent:
+        return cont(rte)
+    else:
+        # The final continuation should have full information on what to do next
+        def do_next_finally(rte):
+            return sem_exec_all_finally(rte, do_expr_end(find_closest_ast(rte), cont))
+
+        return final(do_next_finally)
 
 
 def gen_call(cte, ast):
