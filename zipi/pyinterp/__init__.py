@@ -10182,6 +10182,19 @@ def gen_init_handlers(cte, handlers):
         return handlers_cte, init_handler
 
 
+def gen_init_finally(cte, finally_body):
+    if len(finally_body) == 0:
+        def code(rte, cont, _):
+            return cont(rte)
+    else:
+        finally_cte, finally_code = comp_stmt_seq(cte, finally_body)
+
+
+
+
+
+
+
 def gen_try(cte, ast):
     try_body = ast.body
     handlers = ast.handlers
@@ -10189,11 +10202,17 @@ def gen_try(cte, ast):
     finally_body = ast.finalbody
 
     try_cte, try_code = comp_stmt_seq(cte, try_body)
-    handlers_cte, handlers_code = gen_handlers_seq(try_cte, handlers)
+    handlers_cte, init_handlers_code = gen_init_handlers(try_cte, handlers)
     else_cte, else_code = comp_stmt_seq(handlers_cte, else_body)
-    finally_cte, finally_code = comp_stmt_seq(else_cte, finally_body)
+    finally_cte, init_finally_code = gen_init_finally(else_cte, finally_body)
 
-    raise NotImplementedError
+    def code(rte, cont):
+
+        return init_handlers_code(rte, )
+
+
+
+    return finally_cte, code
 
 
 def gen_raise(cte, ast, code):
