@@ -147,6 +147,7 @@
 
     procedure->py-function
     py-int-from-scheme
+    py-int-from-scheme-dynamic
     py-float-from-scheme
     py-str-from-scheme
     py-slice-from-scheme
@@ -329,6 +330,7 @@
     debug-class-name-get
     debug-catch
 
+    int-cache
     str-representatives)
 
   (import gambit)

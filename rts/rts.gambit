@@ -4,6 +4,8 @@
 
 (import (gambit prim))
 
+(declare (standard-bindings) (extended-bindings) (not safe) (block))
+
 (define-macro (with-handler handler . body)
   `(with-exception-catcher
       ,handler
