@@ -11499,7 +11499,7 @@ def sem_exec_all_finally(rte, cont):
     else:
         # The final continuation should have full information on what to do next
         def do_next_finally(rte):
-            return sem_exec_all_finally(rte, do_expr_end(find_closest_ast(rte), cont))
+            return sem_exec_all_finally(rte, do_stmt_end(cont, find_closest_ast(rte), 0))
 
         return final(do_next_finally)
 
