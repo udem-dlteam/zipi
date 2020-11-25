@@ -221,8 +221,11 @@ def with_catch(ctx, catcher_cont):
     return Context(next_rte, cont, ctx.ast)
 
 def with_cont_and_catch(ctx, cont, catcher_cont):
-    next_rte = make_rte_with_handler(ctx.rte, catcher_cont)
-    return Context(next_rte, cont, ctx.ast)
+    unhandled_rte = ctx.rte
+    def exit_cont(_, val):
+        return cont(unhandled_rte, val)
+    next_rte = make_rte_with_handler(unhandled_rte, catcher_cont)
+    return Context(next_rte, exit_cont, ctx.ast)
 
 def make_out_of_ast_context(rte, cont):
     # Note use only if there is no access to the ctx or the ast
@@ -515,13 +518,6 @@ def make_rte_with_handler(rte, handler_code):
 
 def make_rte_with_finally(rte, final):
     new_rte = make_rte_copy(rte)
-    rte_set_finally(new_rte, final)
-    return new_rte
-
-
-def make_rte_with_handler_and_finally(rte, handler, final):
-    new_rte = make_rte_copy(rte)
-    rte_set_handler(new_rte, handler)
     rte_set_finally(new_rte, final)
     return new_rte
 
