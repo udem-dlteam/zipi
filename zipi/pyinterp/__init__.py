@@ -437,6 +437,19 @@ def make_class_rte(rte, locals_env):
     return new_rte
 
 
+def make_call_rte(rte, locals_env, called_func, stack):
+    # When a call occurs, we create a new rte with new environment and stack info
+    # We also remove any finally continuation which should not catch the return from the scope
+    # This is ok because a finally only catched return's, whenever there is a try-finally block,
+    # a handler should have been set to redirect exceptions to the finally code
+
+    call_rte = make_rte_from_parent(rte, rte_globals(rte), locals_env, called_func, stack, rte_ctrl_env(rte))
+    rte_remove_finally(call_rte)
+
+    return call_rte
+
+
+
 def make_new_rte(globals_env, locals_env, builtins, builtins_module, options):
     def main_handler(exc):
         locations = OM_get_BaseException_locations(exc)
@@ -518,6 +531,13 @@ def make_rte_with_handler(rte, handler_code):
 
 def make_rte_with_finally(rte, final):
     new_rte = make_rte_copy(rte)
+    rte_set_finally(new_rte, final)
+    return new_rte
+
+
+def make_rte_with_handler_and_finally(rte, handler_code, final):
+    new_rte = make_rte_copy(rte)
+    rte_set_handler(new_rte, handler_code)
     rte_set_finally(new_rte, final)
     return new_rte
 
@@ -700,6 +720,10 @@ def rte_get_handler(rte):
 
 def rte_set_finally(rte, final):
     dict_set(rte, 'finally', final)
+
+
+def rte_remove_finally(rte):
+    dict_set(rte, 'finally', absent)
 
 
 def rte_get_finally(rte):
@@ -5464,15 +5488,14 @@ def om_function_call_code(ctx, args, kwargs):
                 dict_set(call_locals_env, name, value)
 
 
-        new_rte = make_rte_from_parent(rte, rte_globals(rte), call_locals_env, self, stack, rte_ctrl_env(rte))
+        call_rte = make_call_rte(rte, call_locals_env, self, stack)
         body = OM_get_function_body(self)
-        return body(new_rte,
+        return body(call_rte,
                     lambda rte1:
                        frame_cont(rte_stack(rte1))(frame_rte(rte_stack(rte1)), om_None))
 
-    new_ctx = with_cont(ctx, execute_body)
     self_name_value = OM_get_boxed_value(OM_get(self, '__name__'))
-    return align_args_with_signature(new_ctx, self_name_value, params, signature)
+    return align_args_with_signature(with_cont(ctx, execute_body), self_name_value, params, signature)
 
 om_function_call = do_magic_method_with_kwargs(class_function, '__call__', om_function_call_code)
 
@@ -10152,12 +10175,10 @@ def gen_handler(cte, handler):
 
 
 def gen_handlers_seq(cte, handlers):
-    if len(handlers) == 1:
-        handler_cte, handler_code = gen_handler(cte, handlers[0])
-
-        def handle(rte, exit_cont, exc):
-            return handler_code(rte, lambda rte: sem_raise_unsafe(rte, exc), exit_cont, exc)
-        return handler_cte, handle
+    if len(handlers) == 0:
+        def reraise(rte, _, exc):
+            return sem_raise_unsafe(rte, exc)
+        return cte, reraise
     else:
         first_cte, first_code = gen_handler(cte, handlers[0])
         tail_cte, tail_code = gen_handlers_seq(first_cte, handlers[1:])
@@ -10169,95 +10190,46 @@ def gen_handlers_seq(cte, handlers):
         return tail_cte, handle
 
 
-def gen_init_handlers(cte, handlers, finally_code):
-    if len(handlers) == 0:
-        # Case where there is only a finally, no except
-        # NOTE: there must either be an except or a finally or both, there cannot be none of them
-        def init_handler(rte, cont, _):
-            def do_finally(finally_cont):
-                return finally_code(rte, finally_cont)
-            return cont(make_rte_with_finally(rte, do_finally))
-
-        return cte, init_handler
-    elif finally_code is None:
-        # Case where there are only except
-        handlers_cte, handlers_code = gen_handlers_seq(cte, handlers)
-
-        def init_handler(rte, cont, handlers_cont):
-            def run_handlers(exc):
-                def exit_cont(_):
-                    rte_pop_current_exc(rte)
-                    return handlers_cont(rte)
-                rte_set_current_exc(rte, exc)
-                return handlers_code(rte, exit_cont, exc)
-            return cont(make_rte_with_handler(rte, run_handlers))
-
-        return handlers_cte, init_handler
-    else:
-        # Case where the is both except and finally
-        handlers_cte, handlers_code = gen_handlers_seq(cte, handlers)
-
-        def init_handler(rte, cont, handlers_cont):
-            def run_handlers(exc):
-                def do_finally(finally_cont):
-                    def exit_finally(_):
-                        current_exc = rte_pop_current_exc(rte)
-                        if current_exc is absent:
-                            return finally_cont(rte)
-                        else:
-                            return sem_raise_unsafe(rte, current_exc)
-                    return finally_code(rte, exit_finally)
-
-                def exit_cont(exit_rte):
-                    rte_pop_current_exc(exit_rte)
-                    return handlers_cont(exit_rte)
-                rte_with_exc = make_rte_with_finally(rte, do_finally)
-                rte_set_current_exc(rte_with_exc, exc)
-                return handlers_code(rte_with_exc, exit_cont, exc)
-            return cont(make_rte_with_handler(rte, run_handlers))
-        return handlers_cte, init_handler
-
-
 def gen_try(cte, ast):
+    # NOTE: There may be no except or finally, but we then count those as empty statement
+    # This could be optimized but for now it simplifies the code immensely
+
+    # When an rte has a handler and a finally, the handler has priority
     try_body = ast.body
     handlers = ast.handlers
     else_body = ast.orelse
     finally_body = ast.finalbody
 
     try_cte, try_code = comp_stmt_seq(cte, try_body)
+    handlers_cte, handlers_code = gen_handlers_seq(try_cte, handlers)
+    else_cte, else_code = comp_stmt_seq(handlers_cte, else_body)
+    finally_cte, finally_code = comp_stmt_seq(else_cte, finally_body)
 
-    if len(finally_body) > 0:
-        finally_cte, finally_code = comp_stmt_seq(try_cte, finally_body)
-        handlers_cte, init_handlers_code = gen_init_handlers(finally_cte, handlers, finally_code)
-        else_cte, else_code = comp_stmt_seq(handlers_cte, else_body)
+    def code(rte, cont):
+        def do_finally_before_return(finally_cont):
+            return finally_code(rte, finally_cont)
 
-        def code(rte, cont):
-            def do_finally(finally_cont):
-                return finally_code(rte, finally_cont)
+        def do_finally_before_reraise(exc):
+            return finally_code(rte, lambda _: sem_raise_unsafe(rte, exc))
 
-            def do_try(rte_with_handlers):
-                def do_else(else_rte):
-                    return else_code(make_rte_with_finally(else_rte, do_finally), lambda rte: sem_finally(rte, cont))
+        def run_handlers(exc):
+            rte_with_exc = make_rte_with_handler_and_finally(rte, do_finally_before_reraise, do_finally_before_return)
+            rte_set_current_exc(rte_with_exc, exc)
+            return handlers_code(rte_with_exc, do_finally, exc)
 
-                return try_code(rte_with_handlers, do_else)
+        def do_finally(_):
+            return finally_code(rte, cont)
 
-            return init_handlers_code(rte, do_try, lambda rte: sem_finally(rte, cont))
+        def do_else(_):
+            else_rte = make_rte_with_handler_and_finally(rte, do_finally_before_reraise, do_finally_before_return)
+            return else_code(else_rte, do_finally)
 
-        return else_cte, code
-    else:
-        handlers_cte, init_handlers_code = gen_init_handlers(cte, handlers, None)
-        else_cte, else_code = comp_stmt_seq(handlers_cte, else_body)
+        def do_try(rte_with_handlers):
+            return try_code(rte_with_handlers, do_else)
 
-        def code(rte, cont):
-            def do_init_handlers(rte_with_handlers):
-                def do_else(_):
-                    return else_code(rte, cont)
+        return do_try(make_rte_with_handler_and_finally(rte, run_handlers, do_finally_before_return))
 
-                return try_code(rte_with_handlers, do_else)
-
-            return init_handlers_code(rte, do_init_handlers, cont)
-
-        return else_cte, code
+    return else_cte, code
 
 
 def gen_raise(cte, ast, code):
@@ -11441,15 +11413,9 @@ def find_closest_ast(rte):
 
 # raise_unsafe raises an object which must already have been checked to be a BaseException and contain context info
 # raise_unsafe expected exc to contain all context information and none has to be added
-# This is why it requires no context.
 def sem_raise_unsafe(rte, exc):
-    def do_raise(rte):
-        handler = rte_get_handler(rte)
-        return handler(exc)
-
-    return sem_finally(rte, do_raise)
-
-
+    handler = rte_get_handler(rte)
+    return handler(exc)
 
 
 def sem_raise(ctx, exn):
@@ -11477,8 +11443,9 @@ def sem_raise_with_message(ctx, exn_type, msg):
     return sem_raise(ctx, om_exception(exn_type, args))
 
 
-# Check if there is a finally block and execute it before proceding to next continuation
+# Check if there is a finally block and execute it before proceeding to next continuation
 # If there is no finally, run the continuation
+# NOTE: a finally continuation is meant to intercept returns only, to intercept exceptions an handler should be used
 def sem_finally(rte, cont):
     final = rte_get_finally(rte)
     if final is absent:

@@ -4,7 +4,7 @@ def f(x):
     try:
         res = 42 // x
     except ZeroDivisionError as hh:
-        print(hh)
+        print(type(hh))
     except Exception as x:
         res = None
     else:

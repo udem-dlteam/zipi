@@ -3,7 +3,7 @@ try:
     raise ValueError("foo bar baz")
 except ValueError as a:
     print("in except block")
-    print(a)
+    print(type(a))
 
 # Unreachable
 print(1)
@@ -13,9 +13,9 @@ def f():
         print("foo")
     except ValueError as a:
         print("bar")
-        print(a)
+        print(type(a))
     except Exception as a:
-        print(a)
+        print(type(a))
         print("baz")
     else:
         print("qux")
@@ -26,9 +26,9 @@ def g():
         raise TypeError
         print("foo")
     except ValueError as a:
-        print(a)
+        print(type(a))
     except Exception as a:
-        print(a)
+        print(type(a))
         return a
     else:
         print("qux")
@@ -57,7 +57,7 @@ def f():
     try:
         return 1
     except Exception as a:
-        print(a)
+        print(type(a))
         pass
     finally:
         return 2
@@ -68,7 +68,7 @@ def g():
     try:
         return 1
     except Exception as a:
-        print(a)
+        print(type(a))
         pass
     finally:
         if False:
@@ -80,7 +80,7 @@ def h():
     try:
         raise ValueError
     except Exception as a:
-        print(a)
+        print(type(a))
         return 1
     finally:
         if False:
@@ -92,7 +92,7 @@ def k():
     try:
         raise ValueError
     except Exception as a:
-        print(a)
+        print(type(a))
         return 1
     finally:
         return 3
@@ -103,7 +103,7 @@ def l():
     try:
         return 10
     except Exception as a:
-        print(a)
+        print(type(a))
         return 1
     else:
         return 100
@@ -119,7 +119,7 @@ def m():
     try:
         print('foo')
     except Exception as a:
-        print(a)
+        print(type(a))
         return 1
     else:
         return 100
@@ -134,7 +134,7 @@ def f():
     try:
         raise ValueError
     except TypeError as t:
-        print(t)
+        print(type(t))
         pass
     finally:
         return 42
@@ -144,7 +144,7 @@ def f():
     try:
         print("try")
     except Exception as e:
-        print(e)
+        print(type(e))
         print("except")
     else:
         return 42
@@ -157,7 +157,7 @@ def f(x):
     try:
         res = 42 // x
     except ZeroDivisionError as e:
-        print(e)
+        print(type(e))
         print("hello")
         return 0
     except Exception as e:
@@ -179,7 +179,7 @@ def f(x):
     try:
         res = 42 // x
     except ZeroDivisionError as hh:
-        print(hh)
+        print(type(hh))
     except Exception as x:
         res = None
     else:
@@ -198,7 +198,7 @@ def trying():
     try:
         1//0
     except Exception as e:
-        return e
+        return type(e)
     else:
         print("hello")
     finally:
