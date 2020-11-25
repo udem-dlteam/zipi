@@ -725,7 +725,7 @@ def py_syntax_error_ast(ts, ast, msg):\n\
 ,"handlers_list: except_block. except_block *":
     ["handlers = [except_block1]"]
 ,"handlers_list: except_block except_block. *":
-    ["handlers.append(except_block1)"]
+    ["handlers.append(except_block2)"]
 ,"handlers_list: except_block except_block *.":
     ["return handlers"]
 
