@@ -96,13 +96,13 @@ def py_syntax_error_ast(ts, ast, msg):\n\
     "return ast"]
 
 
-,"parameters: '(' .[typedargslist] ')'":
-   ["typedargslist1 = None"]
-,"parameters: '(' [typedargslist] ')'.":
-   ["if typedargslist1 is None:\n"
+,"parameters: '(' .[varargslist] ')'":
+   ["varargslist1 = None"]
+,"parameters: '(' [varargslist] ')'.":
+   ["if varargslist1 is None:\n"
     "    return arguments([], [], None, [], [], None, [])\n"
     "else:\n"
-    "    return typedargslist1"]
+    "    return varargslist1"]
 
 
 ,"typedargslist: .NAME (',' NAME)*":
@@ -117,16 +117,40 @@ def py_syntax_error_ast(ts, ast, msg):\n\
    ["return arguments(args, [], None, [], [], None, [])"]
 
 
-,"varargslist: .NAME (',' NAME)*":
-   ["a = arg(token(ts),None,None)\n"
-    "set_start_end_1token(ts, a)\n"
-    "args = [a]"]
-,"varargslist: NAME (',' .NAME)*":
-   ["a = arg(token(ts),None,None)\n"
-    "set_start_end_1token(ts, a)\n"
-    "args.append(a)"]
-,"varargslist: NAME (',' NAME)*.":
-   ["return arguments(args, [], None, [], [], None, [])"]
+,"simple_arg: .'NAME' ['=' test]":
+    ["arg_name = arg(token(ts), None, None); default_ = None"]
+,"simple_arg: 'NAME' ['=' test.]":
+    ["default_ = test1"]
+,"simple_arg: 'NAME' ['=' test].":
+    ["return [arg_name, default_]"]
+
+,"kwargs: '**' .'NAME' [',']":
+    ["name = token(ts)"]
+,"kwargs: '**' 'NAME' [','].":
+    ["return arg(name, None, None)"]
+
+,"args: '*' .['NAME'] [args_tail]":
+    ["vararg = None"]
+,"args: '*' [.'NAME'] [args_tail]":
+    ["vararg = arg(token(ts), None, None)"]
+,"args: '*' ['NAME'] .[args_tail]":
+    ["kw_args = []"]
+,"args: '*' ['NAME'] [args_tail.]":
+    ["kw_args = [list_reversed(args_tail1[0]), args_tail1[1]]"]
+,"args: '*' ['NAME'] [args_tail].":
+    ["return list_concat([vararg], kw_args) # [vararg, kw_only, kwarg]"]
+
+,"args_tail: ',' simple_arg [args_tail. | kwargs]":
+    ["args_tail1[0].append(simple_arg1) # must be reversed later\n"
+     "return args_tail1"]
+,"args_tail: ',' simple_arg [args_tail | kwargs.]":
+    ["return [[simple_arg1], kwargs1]"]
+
+
+,"varargslist_before_slash: args. | kwargs | (simple_arg [varargslist_before_slash_tail])":
+    ["return list_contact([[]], args1])"]
+,"varargslist_before_slash: args | kwargs. | (simple_arg [varargslist_before_slash_tail])":
+    ["return [[], None, [], kwargs1]"]
 
 
 ,"func_body_suite: simple_stmt.":
