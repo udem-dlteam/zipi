@@ -2117,6 +2117,7 @@ class_DOMElement = make_builtin_class('DOMElement', OM_DOMElement_create, ())
 # Exception classes
 class_BaseException = make_builtin_class('BaseException', OM_BaseException_create, ())
 class_Exception = make_builtin_class('Exception', OM_BaseException_create, (class_BaseException,))
+class_RuntimeError = make_builtin_class('RuntimeError', OM_BaseException_create, (class_Exception,))
 class_NameError = make_builtin_class('NameError', OM_BaseException_create, (class_Exception,))
 class_UnboundLocalError = make_builtin_class('UnboundLocalError:', OM_BaseException_create, (class_Exception,))
 class_SyntaxError = make_builtin_class('SyntaxError', OM_BaseException_create, (class_Exception,))
@@ -8382,6 +8383,7 @@ def fresh_rte(options):
 
     dict_set(builtins_env, 'BaseException', class_BaseException)
     dict_set(builtins_env, 'Exception', class_Exception)
+    dict_set(builtins_env, 'RuntimeError', class_RuntimeError)
     dict_set(builtins_env, 'NameError', class_NameError)
     dict_set(builtins_env, 'UnboundLocalError', class_UnboundLocalError)
     dict_set(builtins_env, 'SyntaxError', class_SyntaxError)
@@ -9215,9 +9217,13 @@ def comp_stmt(cte, ast):
         return gen_for(for_cte, ast, ast.target, ast.iter, ast.body, ast.orelse)
 
     elif isinstance(ast, AST.Raise):
-        if debug: print('AST.Raise')
-        (cte1, code1) = comp_expr(cte, ast.exc)
-        return gen_raise(cte1, ast, code1)
+        exc = ast.exc
+
+        if exc is None:
+            return gen_raise(cte, ast, None)
+        else:
+            cte1, code1 = comp_expr(cte, ast.exc)
+            return gen_raise(cte1, ast, code1)
 
     elif isinstance(ast, AST.Import):
         return comp_import(cte, ast, ast.names)
@@ -10259,12 +10265,22 @@ def gen_try(cte, ast):
 
 
 def gen_raise(cte, ast, code):
-    def eval_raise_param(rte, cont):
-        def raise_exn(rte1, exn):
-            ctx = Context(rte1, cont, ast)
-            return sem_raise(ctx, exn)
-        return code(rte, raise_exn)
-    return (cte, eval_raise_param)
+    if code is None:
+        def raise_current(rte, cont):
+            ctx = Context(rte, cont, ast)
+            current_exc = rte_get_current_exc(rte)
+            if current_exc is absent:
+                return sem_raise_with_message(ctx, class_RuntimeError, "No active exception to reraise")
+            else:
+                return sem_raise_unsafe(rte, current_exc)
+        return cte, raise_current
+    else:
+        def eval_raise_param(rte, cont):
+            def raise_exn(rte1, exn):
+                ctx = Context(rte1, cont, ast)
+                return sem_raise(ctx, exn)
+            return code(rte, raise_exn)
+        return cte, eval_raise_param
 
 def comp_import(cte, ast, names):
     if len(names) == 1:
