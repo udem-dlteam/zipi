@@ -2671,9 +2671,10 @@
 (define (alloc-new-int-from-scheme value)
   (make-PyObjectInt
     py-int-hclass-of-instances
-    (make-vector
-      (vector-length (HClass-names py-int-hclass-of-instances))
-      py-absent)
+    '#() ;; we know length is 0
+;;    (make-vector
+;;      (vector-length (HClass-names py-int-hclass-of-instances))
+;;      py-absent)
     py-int-class
     value))
 

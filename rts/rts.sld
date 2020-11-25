@@ -330,6 +330,9 @@
     debug-class-name-get
     debug-catch
 
+    py-expression
+    PyObject-class
+    py-int-class
     int-cache
     str-representatives)
 
