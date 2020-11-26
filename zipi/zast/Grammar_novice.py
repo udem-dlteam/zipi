@@ -84,7 +84,8 @@ typedargslist: NAME (',' NAME)*
 simple_arg: 'NAME' ['=' test]
 kwargs: '**' 'NAME' [',']
 args: '*' ['NAME'] [args_tail]
-args_tail: ',' simple_arg [args_tail | kwargs]
+args_tail: ',' args_tail_after_comma
+args_tail_after_comma: simple_arg [',' (args_tail_after_comma | kwargs)]
 varargslist_before_slash: args | kwargs | simple_arg [varargslist_before_slash_tail]
 varargslist_before_slash_tail: ',' [varargslist_before_slash | '/' (args | kwargs | ',' varargslist_after_slash)]
 varargslist_after_slash: simple_arg [varargslist_after_slash_tail]

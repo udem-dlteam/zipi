@@ -155,7 +155,7 @@ def parse_function_signature(ts, posonly_and_default, args_and_defaults, vararg,
     ["return [a, default_]"]
 
 ,"kwargs: '**' .'NAME' [',']":
-    ["a = token(ts)\n"
+    ["a = arg(token(ts), None, None)\n"
      "set_start_end_1token(ts, a)"]
 ,"kwargs: '**' 'NAME' [','].":
     ["return a"]
@@ -171,10 +171,13 @@ def parse_function_signature(ts, posonly_and_default, args_and_defaults, vararg,
 ,"args: '*' ['NAME'] [args_tail].":
     ["return list_concat([vararg], kw_args) # [vararg, kw_only, kwarg]"]
 
-,"args_tail: ',' simple_arg [args_tail. | kwargs]":
-    ["args_tail1[0].append(simple_arg1) # must be reversed later\n"
-     "return args_tail1"]
-,"args_tail: ',' simple_arg [args_tail | kwargs.]":
+,"args_tail: ',' args_tail_after_comma.":
+    ["return args_tail_after_comma1"]
+
+,"args_tail_after_comma: simple_arg [',' (args_tail_after_comma. | kwargs)]":
+    ["args_tail_after_comma1[0].append(simple_arg1) # must be reversed later\n"
+     "return args_tail_after_comma1"]
+,"args_tail_after_comma: simple_arg [',' (args_tail_after_comma | kwargs.)]":
     ["return [[simple_arg1], kwargs1]"]
 
 
