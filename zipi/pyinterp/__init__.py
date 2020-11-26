@@ -9343,40 +9343,75 @@ def comp_expr_opt(cte, ast):
 def gen_signature(cte, ast_args):
     # make_signature(args, posonlyargs, vararg, kwonlyargs, kw_defaults, kwargs, defaults)
 
+    seen = make_dict()
+
+    def raise_if_duplicate(name, ast):
+        if dict_get(seen, name, False):
+            msg = "duplicate argument '" + name + "' in function definition"
+            return CT_raise_syntax_error_with_msg(cte, ast, msg)
+        else:
+            dict_set(seen, name, True)
+
     args = []
     for arg in ast_args.args:
-        args.append(arg.arg)
+        arg_name = arg.arg
+        raise_if_duplicate(arg_name, arg)
+        args.append(arg_name)
 
     posonlyargs = []
     for posonly in ast_args.posonlyargs:
+        arg_name = posonly.arg
+        raise_if_duplicate(arg_name, posonly)
         posonlyargs.append(posonly.arg)
 
-    if ast_args.vararg is not None:
-        vararg = ast_args.vararg.arg
+    vararg_ast = ast_args.vararg
+    if vararg_ast is not None:
+        arg_name = vararg_ast.arg
+        raise_if_duplicate(arg_name, vararg_ast)
+        vararg = vararg_ast.arg
     else:
         vararg = None
+
+    kwarg_ast = ast_args.kwarg
+    if kwarg_ast is not None:
+        arg_name = kwarg_ast.arg
+        raise_if_duplicate(arg_name, vararg_ast)
+        kwarg = kwarg_ast.arg
+    else:
+        kwarg = None
 
     kwonlyargs = []
     for kwonly in ast_args.kwonlyargs:
         kwonlyargs.append(kwonly.arg)
 
-    kw_defaults = []
-    for kw_default in ast_args.kw_defaults:
-        if kw_default is None:
-            kw_defaults.append(absent)
+    defaults_codes = []
+
+    for d in ast_args.defaults:
+        cte, default_code = comp_expr(cte, d)
+        defaults_codes.append(default_code)
+
+    kw_defaults_codes = []
+
+    for d in ast_args.kw_defaults:
+        if d is None:
+            kw_default_code = lambda rte, cont: cont(rte, None)
         else:
-            kw_defaults.append(kw_default.value)
+            cte, kw_default_code = comp_expr(cte, d)
+        kw_defaults_codes.append(kw_default_code)
 
-    if ast_args.kwarg is not None:
-        kwarg = ast_args.kwarg.arg
-    else:
-        kwarg = None
-
-    defaults = []
-    for default_ in ast_args.defaults:
-        defaults.append(default_.value)
-
-    return make_signature(args, posonlyargs, vararg, kwonlyargs, kw_defaults, kwarg, defaults)
+    def signature_code(rte, cont):
+        def get_defaults(defaults_rte, defaults):
+            def get_kw_defaults(kw_defaults_rte, kw_defaults):
+                return cont(defaults_rte,
+                            make_signature(args, posonlyargs, vararg, kwonlyargs,
+                                           kw_defaults, kwarg, defaults))
+            return cps_map(Context(rte, get_kw_defaults, ast_args),
+                       lambda ctx, def_code: def_code(ctx.rte, ctx.cont),
+                       kw_defaults_codes)
+        return cps_map(Context(rte, get_defaults, ast_args),
+                       lambda ctx, def_code: def_code(ctx.rte, ctx.cont),
+                       defaults_codes)
+    return cte, signature_code
 
 # Code generation functions.
 
@@ -9647,26 +9682,27 @@ def gen_create_function(cte, args, body, name, ast):
 
     (body_cte, body_code) = comp_stmt_seq(fn_cte, body)
 
-    # TODO: Once default arguments are implemented this will need to be partially at runtime
-    signature = gen_signature(cte, args)
+    cte, signature_code = gen_signature(cte, args)
 
     safe_for_space = get_cte_safe_for_space(cte)
 
     if safe_for_space:
         def create_function(rte, cont):
-            func = om(class_function)
-            OM_set(func, '__name__', fn_name)
+            def get_signature(sig_rte, signature):
+                func = om(class_function)
+                OM_set(func, '__name__', fn_name)
 
-            OM_set_function_signature(func, signature)
-            OM_set_function_body(func, body_code)
-            arity = signature_arity(signature)
-            OM_set_function_arity(func, arity)
-            OM_set_function_closure(func, make_closure(rte))
-            OM_set_function_locals(func, local_vars)
-            OM_set_function_globals(func, rte_lexical_globals(rte))
-            OM_set_function_var_context(func, locals_env)
+                OM_set_function_signature(func, signature)
+                OM_set_function_body(func, body_code)
+                arity = signature_arity(signature)
+                OM_set_function_arity(func, arity)
+                OM_set_function_closure(func, make_closure(rte))
+                OM_set_function_locals(func, local_vars)
+                OM_set_function_globals(func, rte_lexical_globals(rte))
+                OM_set_function_var_context(func, locals_env)
 
-            return cont(rte, func)
+                return cont(sig_rte, func)
+            return signature_code(rte, get_signature)
 
         return cte, create_function
 
