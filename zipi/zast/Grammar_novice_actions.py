@@ -147,10 +147,18 @@ def py_syntax_error_ast(ts, ast, msg):\n\
     ["return [[simple_arg1], kwargs1]"]
 
 
-,"varargslist_before_slash: args. | kwargs | (simple_arg [varargslist_before_slash_tail])":
-    ["return list_contact([[]], args1])"]
-,"varargslist_before_slash: args | kwargs. | (simple_arg [varargslist_before_slash_tail])":
-    ["return [[], None, [], kwargs1]"]
+,"varargslist_before_slash: args.":
+    ["return list_concat([[], []], args1)"]
+,"varargslist_before_slash: kwargs.":
+    ["return [[], [], None, [], kwargs1]  # [posonly, args, vararg, kw_only, kwargs]"]
+,"varargslist_before_slash: simple_arg. [varargslist_before_slash_tail]":
+    ["varargslist_before_slash_tail1 = None"]
+,"varargslist_before_slash: simple_arg [varargslist_before_slash_tail].":
+    ["if varargslist_before_slash_tail1 is None:\n"
+     "    return [[simple_arg1], [], None, [], None]\n"
+     "else:\n"
+     "    varargslist_before_slash_tail1[0].append(simple_arg1)\n"
+     "    return varargslist_before_slash_tail1"]
 
 
 ,"func_body_suite: simple_stmt.":
