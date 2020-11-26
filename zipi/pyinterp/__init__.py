@@ -684,7 +684,16 @@ def signature_arity(signature):
     else:
         return absent
 
-def align_args_with_signature(ctx, funcname, caller_args, signature):
+def align_args_with_signature(ctx, funcname, caller_args, caller_kwargs, signature):
+    # TODO: this algorithm is easier to implement but it is not very efficient
+    # The main idea is to create a list (args_choices) which stores where the value for each argument may come from
+    # in a tuple  of the form:
+    #     ([name], [value from caller_args], [value from defaults], [value from caller_kwargs])
+    # Once this is done, we can traverse args_choices and pick the value which has top priority (caller_args > default)
+    # or raise an error if two values are conflicting (caller_args conflicts with caller_kwargs)
+    # This requires multiple passes on the signature and arguments. It is possible to do it in one pass but is way
+    # harder to implement than this abstraction.
+
     args = signature_args(signature)
     posonlyargs = signature_posonlyargs(signature)
     vararg = signature_varargs(signature)
@@ -692,94 +701,75 @@ def align_args_with_signature(ctx, funcname, caller_args, signature):
     kw_default = signature_kw_defaults(signature)
     kwarg = signature_kwargs(signature)
     defaults = signature_defaults(signature)
-    if kwarg is not None and len(kwonlyargs) > 0:
-        return sem_raise_with_message(ctx, class_NotImplementedError, "keyword arguments not yet supported")
-    else:
-        caller_args_len = len(caller_args)
-        args_len = len(args)
-        posonlyargs_len = len(posonlyargs)
-        defaults_len = len(defaults)
-        total_args_len = args_len + posonlyargs_len
-        if caller_args_len == total_args_len:
-            locals_env = []
-            caller_index = 0
-            for arg in posonlyargs:
-                locals_env.append((arg, caller_args[caller_index]))
-                caller_index += 1
 
-            for arg in args:
-                locals_env.append((arg, caller_args[caller_index]))
-                caller_index += 1
+    locals_env = make_dict()
 
-            if vararg is not None:
-                locals_env.append((vararg, om_tuple([])))
+    caller_args_len = len(caller_args)
+    signature_posonly_len = len(posonlyargs)
+    signature_args_len = len(args)
+    signature_defaults_len = len(defaults)
+    signature_total_pos_arguments_len = signature_args_len + signature_posonly_len
+    unprovided_pos_arguments_len = signature_total_pos_arguments_len - caller_args_len
+    min_requires_posonly_arguments = signature_total_pos_arguments_len - signature_defaults_len
+    rest_size = 0 if caller_args_len < signature_total_pos_arguments_len else caller_args_len - signature_total_pos_arguments_len
 
-            return ctx.cont(ctx.rte, locals_env)
-        elif caller_args_len < total_args_len:
-            missing_args_len = total_args_len - caller_args_len
-            if defaults_len >= missing_args_len:
+    # Check that the minimal number of argument which can only be given positionally is reached
+    if caller_args_len < min_requires_posonly_arguments:
+        return sem_raise_with_message(ctx, class_TypeError, "MISSING POSONLY ARGUMENTS MESSAGE")
 
-                result = caller_args[0:caller_args_len]
-                start = defaults_len - missing_args_len
+    # Check that the maximum number of argument which can only be given positionally is not exceeded
+    if vararg is None and rest_size > 0:
+        return sem_raise_with_message(ctx, class_TypeError, "TOO MANY POSITIONAL ARGUMENTS MESSAGE")
 
-                while start < defaults_len:
-                    result.append(defaults[start])
-                    start += 1
+    aligned_defaults = list_concat(list_new(min_requires_posonly_arguments, None), defaults)
+    extended_caller_args = list_concat(caller_args, list_new(unprovided_pos_arguments_len, None))
+    args_choices = []
 
-                return align_args_with_signature(ctx, funcname, result, signature)
+    pos = 0
+    for posonly in posonlyargs:
+        args_choices.append((posonly, extended_caller_args[pos], aligned_defaults[pos], None))
+        pos += 1
+
+    for arg in args:
+        args_choices.append((arg, extended_caller_args[pos], aligned_defaults[pos], dict_pop(caller_kwargs, arg, None)))
+        pos += 1
+
+    kw_pos = 0
+    for kw in kwonlyargs:
+        args_choices.append((kw, None, kw_default[kw_pos], dict_pop(caller_kwargs, kw, None)))
+        kw_pos += 1
+
+    for choices in args_choices:
+        name = choices[0]
+        val_from_args = choices[1]
+        val_from_defaults = choices[2]
+        val_from_kws = choices[3]
+
+        if val_from_args is not None:
+            if val_from_kws is not None:
+                return sem_raise_with_message(ctx, class_TypeError, "MULTIPLE VALUES FOR " + name + " MESSAGE")
             else:
-                def add_punctuation(msg, remaining_args_count):
-                    result = msg
-                    if missing_args_len == 2 and remaining_args_count == 1:
-                        result += ' and '
-                    elif missing_args_len > 2 and remaining_args_count == 1:
-                        result += ', and '
-                    elif remaining_args_count < missing_args_len:
-                        result += ', '
-
-                    return result
-
-                s = 's' if missing_args_len != 1 else ''
-                msg = funcname + "() missing " + str(missing_args_len) + " required positional argument"+ s +": "
-
-                remaining = missing_args_len
-
-                i = caller_args_len
-                while i < posonlyargs_len:
-                    arg = posonlyargs[i]
-                    msg = add_punctuation(msg, remaining)+"'"+arg+"'"
-                    remaining -= 1
-                    i += 1
-
-                i -= posonlyargs_len
-                while i < args_len:
-                    arg = args[i]
-                    msg = add_punctuation(msg, remaining)+"'"+arg+"'"
-                    remaining -= 1
-                    i += 1
-
-                return sem_raise_with_message(ctx, class_TypeError, msg)
+                dict_set(locals_env, name, val_from_args)
+        elif val_from_kws is not None:
+            dict_set(locals_env, name, val_from_kws)
+        elif val_from_defaults is not None:
+            dict_set(locals_env, name, val_from_defaults)
         else:
-            locals_env = []
-            caller_index = 0
-            for arg in posonlyargs:
-                locals_env.append((arg, caller_args[caller_index]))
-                caller_index += 1
+            return sem_raise_with_message(ctx, class_TypeError, "MISSING VALUE FOR " + name + " MESSAGE")
 
-            for arg in args:
-                locals_env.append((arg, caller_args[caller_index]))
-                caller_index += 1
+    if kwarg is not None:
+        # Used argument have been popped from caller_kwargs, what remains are extra args
+        dict_set(locals_env, kwarg, om_dict(caller_kwargs))
+    elif dict_len(caller_kwargs) > 0:
+        return sem_raise_with_message(ctx, class_TypeError, "UNKNOWN KEYWORDS MESSAGE")
 
-            vararg_value = caller_args[caller_index:]
-            vararg_len = len(vararg_value)
-            if vararg is None:
-                s = 's' if total_args_len != 1 else ''
-                was_or_were = 'was' if caller_args_len == 1 else 'were'
-                msg = funcname + "() takes " + str(total_args_len) + " positional argument" + s + " but " + str(caller_args_len) + " " + was_or_were + " given"
-                return sem_raise_with_message(ctx, class_TypeError, msg)
-            else:
-                locals_env.append((vararg, om_tuple(vararg_value)))
-                return cont_obj(ctx, locals_env)
+    if vararg is not None:
+        rest = list_get_slice(caller_args, caller_args_len - rest_size, caller_args_len, 1)
+        om_rest = om_tuple(rest)
+        dict_set(locals_env, vararg, om_rest)
+
+    return cont_obj(ctx, locals_env)
+
 
 # object model
 def make_dict_from_list(lst):
@@ -5326,31 +5316,25 @@ def om_function_call_code(ctx, args, kwargs):
     self = args[0]
     params = args[1:]
 
-    if dict_len(kwargs) > 0:
-        return sem_raise_with_message(ctx, class_NotImplementedError,
-                                      "keyword arguments are not yet supported for " + om_simple_repr(ctx, self))
-
     signature = OM_get_function_signature(self)
 
     ## test arity
     def execute_body(rte, locals_env):
         stack = make_frame(rte, ctx.cont, ctx.ast)
 
-        call_locals_env = make_dict_from_list(locals_env)
-
         for item in OM_get_function_locals(self):
             name = item[0]
             must_box = item[1]
 
-            value = dict_get(call_locals_env, name, absent)
+            value = dict_get(locals_env, name, absent)
 
             if must_box:
-                dict_set(call_locals_env, name, [value])
+                dict_set(locals_env, name, [value])
             else:
-                dict_set(call_locals_env, name, value)
+                dict_set(locals_env, name, value)
 
 
-        new_rte = make_rte_from_parent(rte, rte_globals(rte), call_locals_env, self, stack, rte_ctrl_env(rte))
+        new_rte = make_rte_from_parent(rte, rte_globals(rte), locals_env, self, stack, rte_ctrl_env(rte))
         body = OM_get_function_body(self)
         return body(new_rte,
                     lambda rte1:
@@ -5358,7 +5342,7 @@ def om_function_call_code(ctx, args, kwargs):
 
     new_ctx = with_cont(ctx, execute_body)
     self_name_value = OM_get_boxed_value(OM_get(self, '__name__'))
-    return align_args_with_signature(new_ctx, self_name_value, params, signature)
+    return align_args_with_signature(new_ctx, self_name_value, params, kwargs, signature)
 
 om_function_call = do_magic_method_with_kwargs(class_function, '__call__', om_function_call_code)
 
