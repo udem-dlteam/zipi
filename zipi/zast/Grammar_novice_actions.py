@@ -163,7 +163,7 @@ def parse_function_signature(ts, posonly_and_default, args_and_defaults, vararg,
 ,"args: '*' .['NAME'] [args_tail]":
     ["vararg = None"]
 ,"args: '*' [.'NAME'] [args_tail]":
-    ["vararg = arg(token(ts), None, None)"]
+    ["vararg = set_start_end_1token(ts, arg(token(ts), None, None))"]
 ,"args: '*' ['NAME'] .[args_tail]":
     ["kw_args = []"]
 ,"args: '*' ['NAME'] [args_tail.]":
