@@ -155,7 +155,7 @@ def parse_function_signature(ts, posonly_and_default, args_and_defaults, vararg,
     ["return [a, default_]"]
 
 ,"kwargs: '**' .'NAME' [',']":
-    ["a = token(ts)"
+    ["a = token(ts)\n"
      "set_start_end_1token(ts, a)"]
 ,"kwargs: '**' 'NAME' [','].":
     ["return a"]
