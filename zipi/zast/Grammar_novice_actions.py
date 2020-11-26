@@ -147,16 +147,18 @@ def parse_function_signature(ts, posonly_and_default, args_and_defaults, vararg,
 
 
 ,"simple_arg: .'NAME' ['=' test]":
-    ["arg_name = arg(token(ts), None, None); default_ = None"]
+    ["a = arg(token(ts), None, None); default_ = None\n"
+     "set_start_end_1token(ts, a)"]
 ,"simple_arg: 'NAME' ['=' test.]":
     ["default_ = test1"]
 ,"simple_arg: 'NAME' ['=' test].":
-    ["return [arg_name, default_]"]
+    ["return [a, default_]"]
 
 ,"kwargs: '**' .'NAME' [',']":
-    ["name = token(ts)"]
+    ["a = token(ts)"
+     "set_start_end_1token(ts, a)"]
 ,"kwargs: '**' 'NAME' [','].":
-    ["return arg(name, None, None)"]
+    ["return a"]
 
 ,"args: '*' .['NAME'] [args_tail]":
     ["vararg = None"]
