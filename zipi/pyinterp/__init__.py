@@ -702,7 +702,16 @@ def align_args_with_signature(ctx, funcname, caller_args, caller_kwargs, signatu
             comma_separated = "'" + "', '".join(names[0:len(names) - 1]) + "'"
             return comma_separated + " and '" + names[last_index] + "'"
 
-    def raise_missing_keyword_arguments(arg_choices):
+    def raise_missing_arguments(arg_choices):
+        # Recover positional names to figure out if missing values are arguments or keyword-only
+
+        positional_arguments_names = list_concat(posonlyargs, args)
+        is_positional = make_dict()
+
+        for n in positional_arguments_names:
+            dict_set(is_positional, n, True)
+
+        missing_args = []
         missing_kws = []
         for choices in args_choices:
             name = choices[0]
@@ -711,11 +720,21 @@ def align_args_with_signature(ctx, funcname, caller_args, caller_kwargs, signatu
             val_from_kws = choices[3]
 
             if val_from_args is None and val_from_defaults is None and val_from_kws is None:
-                missing_kws.append(name)
+                if dict_get(is_positional, name, False):
+                    missing_args.append(name)
+                else:
+                    missing_kws.append(name)
 
+        missing_args_len = len(missing_args)
         missing_kws_len = len(missing_kws)
 
-        if missing_kws_len == 1:
+        if missing_args_len > 0:
+            if missing_args_len == 1:
+                error_msg = funcname + "() missing 1 required positional argument: '" + missing_args[0] + "'"
+            else:
+                missing_names = format_missing_arguments_names(missing_args)
+                error_msg = funcname + "() missing " + str(missing_args_len) + " required positional arguments: " + missing_names
+        elif missing_kws_len == 1:
             error_msg = funcname + "() missing 1 required keyword-only argument: '" + missing_kws[0] + "'"
         else:
             missing_names = format_missing_arguments_names(missing_kws)
@@ -806,7 +825,7 @@ def align_args_with_signature(ctx, funcname, caller_args, caller_kwargs, signatu
         elif val_from_defaults is not None:
             dict_set(locals_env, name, val_from_defaults)
         else:
-            return raise_missing_keyword_arguments(args_choices)
+            return raise_missing_arguments(args_choices)
 
     if kwarg is not None:
         # Used argument have been popped from caller_kwargs, what remains are extra args
