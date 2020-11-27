@@ -1239,6 +1239,11 @@ def populate_builtin_list():
     builtin_add_method(class_list, 'reverse', om_list_reverse)
     builtin_add_method(class_list, 'count', om_list_count)
 
+
+def populate_builtin_dict():
+    ...
+
+
 def populate_builtin_range():
     buitlin_add_methods_to_class(
         class_range,
@@ -1278,7 +1283,11 @@ def populate_builtin_iterator():
     builtin_add_method(class_iterator, '__next__', om_iterator_next)
 
 def populate_builtin_dict():
-    pass
+    buitlin_add_methods_to_class(
+        class_dict,
+        (('__new__', om_dict_new),
+         ('__getitem__', om_dict_getitem),
+         ('get', om_dict_get)))
 
 def populate_builtin_module():
     builtin_add_method(class_module, '__getattribute__', om_module_getattribute)
@@ -1414,7 +1423,6 @@ def om_module(name, val):
     return obj
 
 def om_dict(val):
-    # assert isinstance(val, dict), 'om_dict expected dict'
     return om_boxval(class_dict, val)
 
 def om_str(val):
@@ -2051,6 +2059,7 @@ class_NotImplementedError = make_builtin_class('NotImplementedError', OM_BaseExc
 class_LookupError = make_builtin_class('LookupError', OM_BaseException_create, (class_Exception,))
 class_EOFError = make_builtin_class('EOFError', OM_BaseException_create, (class_Exception,))
 class_IndexError = make_builtin_class('IndexError', OM_BaseException_create, (class_LookupError,))
+class_KeyError = make_builtin_class('KeyError', OM_BaseException_create, (class_LookupError,))
 class_AttributeError = make_builtin_class('AttributeError', OM_BaseException_create, (class_Exception,))
 class_ArithmeticError = make_builtin_class('ArithmeticError', OM_BaseException_create, (class_Exception,))
 class_OverflowError = make_builtin_class('OverflowError', OM_BaseException_create, (class_ArithmeticError,))
@@ -5247,6 +5256,56 @@ om_str_rstrip = gen_str_strip("rstrip", string_trim_right, string_trim_right_whi
 
 # class_dict methods
 
+def om_dict_new(ctx, args):
+    return sem_raise_with_message(ctx, class_NotImplementedError, "dict type not implemented")
+
+
+def om_dict_getitem_code(ctx, args):
+    # TODO: This is a dummy implementation meant to test **kwargs, it does not implement dict.__getitem__ correctly
+    args_len = len(args)
+
+    if args_len == 2:
+        self = args[0]
+        key = args[1]
+
+        if om_isinstance(key, class_str):
+            key_val = OM_get_boxed_value(key)
+            val = dict_get(OM_get_boxed_value(self), key_val, None)
+            if val is None:
+                return sem_raise_with_message(ctx, class_KeyError, "'" + key_val + "'")
+            else:
+                return cont_obj(ctx, val)
+        else:
+            return sem_raise_with_message(ctx, class_NotImplementedError, "dict type not implemented")
+
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(args_len - 1))
+
+om_dict_getitem = do_magic_method(class_dict, "__getitem__", om_dict_getitem_code)
+
+def om_dict_get_code(ctx, args):
+    # TODO: This is a dummy implementation meant to test **kwargs, it does not implement dict.get correctly
+    args_len = len(args)
+
+    if args_len == 2 or args_len == 3:
+        self = args[0]
+        key = args[1]
+        default_ = om_None if args_len == 2 else args[2]
+
+
+        if om_isinstance(key, class_str):
+            key_val = OM_get_boxed_value(key)
+            val = dict_get(OM_get_boxed_value(self), key_val, default_)
+            return cont_obj(ctx, val)
+        else:
+            return sem_raise_with_message(ctx, class_NotImplementedError, "dict type not implemented")
+
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 2 or 3 arguments, got " + str(args_len - 1))
+
+om_dict_get = do_magic_method(class_dict, "__getitem__", om_dict_get_code)
+
+
 # class_module methods
 def om_module_getattribute_code(ctx, args):
     if debug: print('module.__getattribute__')
@@ -6798,6 +6857,7 @@ populate_builtin_float()
 populate_builtin_bool()
 populate_builtin_tuple()
 populate_builtin_list()
+populate_builtin_dict()
 populate_builtin_range()
 populate_builtin_map()
 populate_builtin_filter()
@@ -8274,6 +8334,7 @@ def fresh_rte(options):
     dict_set(builtins_env, 'str', class_str)
     dict_set(builtins_env, 'tuple', class_tuple)
     dict_set(builtins_env, 'list', class_list)
+    dict_set(builtins_env, 'dict', class_dict)
     dict_set(builtins_env, 'range', class_range)
     dict_set(builtins_env, 'map', class_map)
     dict_set(builtins_env, 'filter', class_filter)
@@ -8307,6 +8368,7 @@ def fresh_rte(options):
     dict_set(builtins_env, 'ValueError', class_ValueError)
     dict_set(builtins_env, 'LookupError', class_LookupError)
     dict_set(builtins_env, 'IndexError', class_IndexError)
+    dict_set(builtins_env, 'KeyError', class_KeyError)
     dict_set(builtins_env, 'StopIteration', class_StopIteration)
     dict_set(builtins_env, 'ArithmeticError', class_ArithmeticError)
     dict_set(builtins_env, 'ZeroDivisionError', class_ZeroDivisionError)
