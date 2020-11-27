@@ -165,11 +165,14 @@ def parse_function_signature(ts, posonly_and_default, args_and_defaults, vararg,
 ,"args: '*' [.'NAME'] [args_tail]":
     ["vararg = set_start_end_1token(ts, arg(token(ts), None, None))"]
 ,"args: '*' ['NAME'] .[args_tail]":
-    ["kw_args = []"]
+    ["kw_args = None"]
 ,"args: '*' ['NAME'] [args_tail.]":
     ["kw_args = args_tail1"]
 ,"args: '*' ['NAME'] [args_tail].":
-    ["return list_concat([vararg], kw_args) # [vararg, kw_only, kwarg]"]
+    ["if kw_args is None:\n"
+     "    return [vararg, [], None]\n"
+     "else:\n"
+     "    return list_concat([vararg], kw_args) # [vararg, kw_only, kwarg]"]
 
 ,"args_tail: ',' args_tail_after_comma.":
     ["return args_tail_after_comma1"]
