@@ -5,7 +5,14 @@ f(y=2, x=1)
 f(2, y=3)
 
 def g(x, y, **kwargs):
-    print(x, y, list(kwargs))
+    print(x, y)
+    print(kwargs.get('x'))
+    print(kwargs.get('y'))
+    print(kwargs.get('a'))
+    print(kwargs.get('b'))
+    print(kwargs.get('c'))
+    print(kwargs.get('d'))
+    print(kwargs.get('z'))
 
 g(y=2, x=1)
 g(2, y=3)

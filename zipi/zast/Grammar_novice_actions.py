@@ -192,19 +192,24 @@ def parse_function_signature(ts, posonly_and_default, args_and_defaults, vararg,
     ["varargslist_before_slash_tail1 = None"]
 ,"varargslist_before_slash: simple_arg [varargslist_before_slash_tail].":
     ["if varargslist_before_slash_tail1 is None:\n"
-     "    return [[simple_arg1], [], None, [], None]\n"
+     "    return [[], [simple_arg1], None, [], None]\n"
      "else:\n"
-     "    varargslist_before_slash_tail1[0].append(simple_arg1)\n"
-     "    return varargslist_before_slash_tail1"]
+     "    tail = varargslist_before_slash_tail1[0]\n"
+     "    before_slash = varargslist_before_slash_tail1[1]\n"
+     "    if before_slash:\n"
+     "        tail[0].append(simple_arg1)\n"
+     "    else:\n"
+     "        tail[1].append(simple_arg1)\n"
+     "    return tail"]
 
 ,"varargslist_before_slash_tail: ',' [varargslist_before_slash. | '/' (args | kwargs | ',' varargslist_after_slash)]":
-    ["return varargslist_before_slash1"]
+    ["return varargslist_before_slash1, False"]
 ,"varargslist_before_slash_tail: ',' [varargslist_before_slash | '/' (args. | kwargs | ',' varargslist_after_slash)]":
-    ["return list_concat([[], []], args1)"]
+    ["return list_concat([[], []], args1), True"]
 ,"varargslist_before_slash_tail: ',' [varargslist_before_slash | '/' (args | kwargs. | ',' varargslist_after_slash)]":
-    ["return [[], [], None, [], kwargs1]"]
+    ["return [[], [], None, [], kwargs1], True"]
 ,"varargslist_before_slash_tail: ',' [varargslist_before_slash | '/' (args | kwargs | ',' varargslist_after_slash.)]":
-    ["return varargslist_after_slash1"]
+    ["return varargslist_after_slash1, True"]
 
 
 ,"varargslist_after_slash: simple_arg. [varargslist_after_slash_tail]":
