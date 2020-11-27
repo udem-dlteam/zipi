@@ -9806,38 +9806,38 @@ def gen_create_function(cte, args, body, name, ast):
     else:
         # In non safe-for-space mode, a function saves the whole lexical scope in which it was defined
         def create_function(rte, cont):
-            func = om(class_function)
-            OM_set(func, '__name__', fn_name)
+            def get_signature(sig_rte, signature):
+                func = om(class_function)
+                OM_set(func, '__name__', fn_name)
 
-            OM_set_function_signature(func, signature)
-            OM_set_function_body(func, body_code)
-            arity = signature_arity(signature)
-            OM_set_function_arity(func, arity)
-            OM_set_function_closure(func, make_closure(rte))
-            OM_set_function_locals(func, local_vars)
-            OM_set_function_globals(func, rte_lexical_globals(rte))
-            OM_set_function_var_context(func, locals_env)
+                OM_set_function_signature(func, signature)
+                OM_set_function_body(func, body_code)
+                arity = signature_arity(signature)
+                OM_set_function_arity(func, arity)
+                OM_set_function_closure(func, make_closure(sig_rte))
+                OM_set_function_locals(func, local_vars)
+                OM_set_function_globals(func, rte_lexical_globals(sig_rte))
+                OM_set_function_var_context(func, locals_env)
 
-            current_func = rte_current_func(rte)
+                current_func = rte_current_func(sig_rte)
 
-            if current_func is absent:
-                # top-level definition
-                lexical_scope = make_dict()
-            else:
-                lexical_scope = dict_copy(OM_get_function_lexical_scope(current_func))
+                if current_func is absent:
+                    # top-level definition
+                    lexical_scope = make_dict()
+                else:
+                    lexical_scope = dict_copy(OM_get_function_lexical_scope(current_func))
 
-                # Add local variables
-                locals_ = rte_locals(rte)
-                for name in dict_keys(locals_):
-                    val = dict_get(locals_, name, None)
-                    # in non-safe-for-space mode, all variables should be boxed
-                    dict_set(lexical_scope, name, val)
+                    # Add local variables
+                    locals_ = rte_locals(sig_rte)
+                    for name in dict_keys(locals_):
+                        val = dict_get(locals_, name, None)
+                        # in non-safe-for-space mode, all variables should be boxed
+                        dict_set(lexical_scope, name, val)
 
-            OM_set_function_lexical_scope(func, lexical_scope)
+                OM_set_function_lexical_scope(func, lexical_scope)
 
-            return cont(rte, func)
-
-
+                return cont(sig_rte, func)
+            return signature_code(rte, get_signature)
         return cte, create_function
 
 

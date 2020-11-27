@@ -19,11 +19,12 @@ g(1, *(2,), z=5)
 g(*(1, 2))
 
 def h(x, y, z=10, *args, foo='foo', **kwargs):
-    print(x, y, z, args, foo, list(kwargs))
+    print(x, y, z, args, foo)
     print(kwargs.get('x'))
     print(kwargs.get('y'))
     print(kwargs.get('foo'))
     print(kwargs.get('bar'))
+    print(kwargs.get('baz'))
 
 h(1, 2, 9, 8, bar=98)
 h(1, 2, 4, bar=99)
