@@ -694,6 +694,54 @@ def align_args_with_signature(ctx, funcname, caller_args, caller_kwargs, signatu
     # This requires multiple passes on the signature and arguments. It is possible to do it in one pass but is way
     # harder to implement than this abstraction.
 
+    def format_missing_arguments_names(names):
+        last_index = len(names) - 1
+        if last_index == 0:
+            return "'" + names[0] + "'"
+        else:
+            comma_separated = "'" + "', '".join(names[0:len(names) - 1]) + "'"
+            return comma_separated + " and '" + names[last_index] + "'"
+
+    def raise_missing_keyword_arguments(arg_choices):
+        missing_kws = []
+        for choices in args_choices:
+            name = choices[0]
+            val_from_args = choices[1]
+            val_from_defaults = choices[2]
+            val_from_kws = choices[3]
+
+            if val_from_args is None and val_from_defaults is None and val_from_kws is None:
+                missing_kws.append(name)
+
+        missing_kws_len = len(missing_kws)
+
+        if missing_kws_len == 1:
+            error_msg = funcname + "() missing 1 required keyword-only argument: '" + missing_kws[0] + "'"
+        else:
+            missing_names = format_missing_arguments_names(missing_kws)
+            error_msg = funcname + "() missing " + str(missing_kws_len) + " required keyword-only arguments: " + missing_names
+
+        return sem_raise_with_message(ctx, class_TypeError, error_msg)
+
+    def raise_missing_positional_arguments(provided, min_required, names):
+        missing_args = names[provided:min_required]
+        missing_args_len = len(missing_args)
+
+        if missing_args_len == 1:
+            error_msg = funcname + "() missing 1 required positional argument: '" + missing_args[0] + "'"
+        else:
+            missing_names = format_missing_arguments_names(missing_args)
+            error_msg = funcname + "() missing " + str(missing_args_len) + " required positional arguments: " + missing_names
+
+        return sem_raise_with_message(ctx, class_TypeError, error_msg)
+
+    def raise_too_many_positional_arguments(provided, required):
+        verb = "was" if provided == 1 else "were"
+        s = "" if required == 1 else "s"
+
+        error_msg = funcname + "() takes " + str(required) + " positional argument" + s + " but " + str(provided) + " " + verb + " given"
+        return sem_raise_with_message(ctx, class_TypeError, error_msg)
+
     args = signature_args(signature)
     posonlyargs = signature_posonlyargs(signature)
     vararg = signature_varargs(signature)
@@ -715,11 +763,11 @@ def align_args_with_signature(ctx, funcname, caller_args, caller_kwargs, signatu
 
     # Check that the minimal number of argument which can only be given positionally is reached
     if caller_args_len < min_requires_posonly_arguments:
-        return sem_raise_with_message(ctx, class_TypeError, "MISSING POSONLY ARGUMENTS MESSAGE")
+        return raise_missing_positional_arguments(caller_args_len, min_requires_posonly_arguments, list_concat(posonlyargs, args))
 
     # Check that the maximum number of argument which can only be given positionally is not exceeded
     if vararg is None and rest_size > 0:
-        return sem_raise_with_message(ctx, class_TypeError, "TOO MANY POSITIONAL ARGUMENTS MESSAGE")
+        return raise_too_many_positional_arguments(caller_args_len, signature_total_pos_arguments_len)
 
     aligned_defaults = list_concat(list_new(min_requires_posonly_arguments, None), defaults)
     extended_caller_args = list_concat(caller_args, list_new(unprovided_pos_arguments_len, None))
@@ -747,7 +795,8 @@ def align_args_with_signature(ctx, funcname, caller_args, caller_kwargs, signatu
 
         if val_from_args is not None:
             if val_from_kws is not None:
-                return sem_raise_with_message(ctx, class_TypeError, "MULTIPLE VALUES FOR " + name + " MESSAGE")
+                error_msg = funcname + "() got multiple values for argument '" + name + "'"
+                return sem_raise_with_message(ctx, class_TypeError, error_msg)
             else:
                 dict_set(locals_env, name, val_from_args)
         elif val_from_kws is not None:
@@ -755,13 +804,15 @@ def align_args_with_signature(ctx, funcname, caller_args, caller_kwargs, signatu
         elif val_from_defaults is not None:
             dict_set(locals_env, name, val_from_defaults)
         else:
-            return sem_raise_with_message(ctx, class_TypeError, "MISSING VALUE FOR " + name + " MESSAGE")
+            return raise_missing_keyword_arguments(args_choices)
 
     if kwarg is not None:
         # Used argument have been popped from caller_kwargs, what remains are extra args
         dict_set(locals_env, kwarg, om_dict(caller_kwargs))
     elif dict_len(caller_kwargs) > 0:
-        return sem_raise_with_message(ctx, class_TypeError, "UNKNOWN KEYWORDS MESSAGE")
+        wrong_key = dict_keys(caller_kwargs)[0]
+        error_msg = funcname + "() got an unexpected keyword argument '" + wrong_key + "'"
+        return sem_raise_with_message(ctx, class_TypeError, error_msg)
 
     if vararg is not None:
         rest = list_get_slice(caller_args, caller_args_len - rest_size, caller_args_len, 1)
