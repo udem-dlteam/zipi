@@ -29,11 +29,51 @@ def {op}(x, y):
 
     def err():
         raise ValueError
+"""
 
-    return normal()"""
+arithmetic_template_body = """
+    # <{op}_body>
+{body}
+    # </{op}_body>"""
 
-def define_arithmetic_semantics(op, magic_method):
-    return arithmetic_template.format(op=op, magic_method=magic_method)
+def define_arithmetic_semantics(op, magic_method, body=None):
+    if body is None:
+        body = "    return normal()"
+
+    template = arithmetic_template.format(op=op, magic_method=magic_method)
+    body = arithmetic_template_body.format(op=op, body=body)
+
+    return template + body
+
+def parse_bodies(semantics):
+    ops = {"add", "sub", "mul", "truediv", "floordiv", "mod", "pow",
+           "lshift", "rshift", "bitand", "bitor", "xor", "matmul"}
+    tags = {f"    # <{op}_body>":op for op in ops}
+
+    # All the collected op bodies
+    bodies = {op:None for op in ops}
+    # The current op body
+    body = []
+    in_body = False
+    # Current op
+    op = None
+
+    for line in semantics:
+        if line in tags.keys():
+            in_body = True
+            op = tags[line]
+            continue
+
+        if in_body:
+            if line != f"    # </{op}_body>":
+                body.append(line)
+            else:
+                in_body = False
+                bodies[op] = '\n'.join(body)
+                body = []
+                op = None
+
+    return bodies
 
 if __name__ == "__main__":
     ops = [
@@ -50,7 +90,12 @@ if __name__ == "__main__":
         ("bitor", "or"),
         ("xor", "xor"),
         ("matmul", "matmul")]
-    arithmetic_semantics = '\n\n'.join(define_arithmetic_semantics(op, magic_method) for op, magic_method in ops)
+
+    with open("./zemantics.py.old", "r") as f:
+        old_semantics = f.read().splitlines()
+        bodies = parse_bodies(old_semantics)
+
+    arithmetic_semantics = '\n\n'.join(define_arithmetic_semantics(op, magic_method, bodies[op]) for op, magic_method in ops)
 
     with open("./zemantics.py.in", "r") as f:
         semantics = f.read().format(arithmetic_semantics)
