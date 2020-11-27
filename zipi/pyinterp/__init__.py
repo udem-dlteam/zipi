@@ -758,7 +758,9 @@ def align_args_with_signature(ctx, funcname, caller_args, caller_kwargs, signatu
     signature_defaults_len = len(defaults)
     signature_total_pos_arguments_len = signature_args_len + signature_posonly_len
     unprovided_pos_arguments_len = signature_total_pos_arguments_len - caller_args_len
-    min_requires_posonly_arguments = signature_total_pos_arguments_len - signature_defaults_len
+    positional_arguments_without_defaults_len = signature_total_pos_arguments_len - signature_defaults_len
+    posonly_argument_with_defaults_len = 0 if signature_args_len > signature_defaults_len else signature_defaults_len - signature_args_len
+    min_requires_posonly_arguments = signature_posonly_len - posonly_argument_with_defaults_len
     rest_size = 0 if caller_args_len < signature_total_pos_arguments_len else caller_args_len - signature_total_pos_arguments_len
 
     # Check that the minimal number of argument which can only be given positionally is reached
@@ -769,7 +771,7 @@ def align_args_with_signature(ctx, funcname, caller_args, caller_kwargs, signatu
     if vararg is None and rest_size > 0:
         return raise_too_many_positional_arguments(caller_args_len, signature_total_pos_arguments_len)
 
-    aligned_defaults = list_concat(list_new(min_requires_posonly_arguments, None), defaults)
+    aligned_defaults = list_concat(list_new(positional_arguments_without_defaults_len, None), defaults)
     extended_caller_args = list_concat(caller_args, list_new(unprovided_pos_arguments_len, None))
     args_choices = []
 
