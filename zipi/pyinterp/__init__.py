@@ -201,6 +201,9 @@ def cont_list_of_str(ctx, val, len_):
         i += 1
     return ctx.cont(ctx.rte, om_list(new_lst, len_))
 
+def cont_method(ctx, fn, instance):
+    return ctx.cont(ctx.rte, om_method(fn, instance))
+
 def cont_DOMElement(ctx, elem):
     return ctx.cont(ctx.rte, om_DOMElement(elem))
 
@@ -353,6 +356,12 @@ class OM_function(OM_box):
     locals: names of local variables
     var_context: context of all accessible variables in scope
     parent_lexical_scope: in non safe_for_space mode, stores the parent scope
+    """
+
+class OM_method(OM_box):
+    """
+    self: bound instance
+    func: function to which the instance is bound
     """
 
 # value is either class or instance
@@ -1436,9 +1445,19 @@ def populate_builtin_NoneType():
     builtin_add_method(class_NoneType, '__bool__', om_NoneType_bool)
     builtin_add_method(class_NoneType, '__repr__', om_NoneType_repr)
 
-def populate_builtin_FunctionType():
-    builtin_add_method_with_kwargs(class_function, '__call__', om_function_call)
-    builtin_add_method(class_function, '__repr__', om_function_repr)
+def populate_builtin_function():
+    buitlin_add_methods_to_class(
+        class_function,
+        (('__get__', om_function_get),
+         ('__call__', om_function_call),
+         ('__repr__', om_function_repr)))
+
+def populate_builtin_method():
+    buitlin_add_methods_to_class(
+        class_method,
+        (('__new__', om_method_new),
+         ('__call__', om_method_call, True),
+         ('__repr__', om_method_repr)))
 
 def populate_builtin_BaseException():
     builtin_add_method(class_BaseException, '__new__', om_BaseException_new)
@@ -1605,6 +1624,12 @@ def om_MethodWrapper(name, instance, code, requires_kwargs):
     OM_set(obj, '__name__', name)
     return obj
 
+def om_method(fn, instance):
+    method = om(class_method)
+    OM_set_method_function(method, fn)
+    OM_set_method_self(method, instance)
+    return method
+
 def om_DOMElement(elem):
     obj = om(class_DOMElement)
 
@@ -1687,6 +1712,9 @@ def OM_iterator_create():
 
 def OM_function_create():
     return OM_function()
+
+def OM_method_create():
+    return OM_method()
 
 def OM_WrapperDescriptor_create():
     return OM_WrapperDescriptor()
@@ -1947,6 +1975,20 @@ def OM_get_function_lexical_scope(o):
 def OM_set_function_lexical_scope(o, lexical_scope):
     o.lexical_scope = lexical_scope
 
+# hidden fields for methods
+
+def OM_get_method_self(o):
+    return o.self
+
+def OM_set_method_self(o, self):
+    o.self = self
+
+def OM_get_method_function(o):
+    return o.func
+
+def OM_set_method_function(o, func):
+    o.func = func
+
 # hidden fields in WrapperDescriptor
 def OM_set_WrapperDescriptor_cls(o, cls):
     o.cls = cls
@@ -2197,6 +2239,7 @@ class_filter = make_builtin_class('filter', OM_filter_create, ())
 class_dict = make_builtin_class('dict', OM_dict_create, ())
 class_module = make_builtin_class('module', OM_module_create, ())
 class_function = make_builtin_class('function', OM_function_create, ())
+class_method = make_builtin_class('method', OM_method_create, ())
 class_slice = make_builtin_class('slice', OM_slice_create, ())
 
 # class available and populated in 'more_builtins' module
@@ -2695,6 +2738,7 @@ def om_object_getattribute_code(ctx, args):
         if attr_get is absent:
             return cont_obj(ctx, attr)
         else:
+            # TODO: this might be a problem when self is actually "None"
             return sem_simple_call(ctx, attr_get, [attr, self, owner])
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
@@ -5612,7 +5656,24 @@ def om_function_call_code(ctx, args, kwargs):
     self_name_value = OM_get_boxed_value(OM_get(self, '__name__'))
     return align_args_with_signature(with_cont(ctx, execute_body), self_name_value, params, kwargs, signature)
 
+
 om_function_call = do_magic_method_with_kwargs(class_function, '__call__', om_function_call_code)
+
+
+def om_function_get_code(ctx, args):
+    if debug: print('wrapper_descriptor.__get__')
+    self = args[0]
+    obj = args[1]
+    cls = args[2]
+
+    if obj is om_None:
+        return cont_obj(ctx, self)
+    else:
+        return cont_method(ctx, self, obj)
+
+
+om_function_get = do_magic_method(class_function, "__get__", om_function_get_code)
+
 
 def om_format_function_repr(self, rte):
     serial = OM_get_serial(self, rte)
@@ -5624,10 +5685,77 @@ def om_function_repr(ctx, args):
     result = om_str(om_format_function_repr(self, ctx.rte))
     return ctx.cont(ctx.rte, result)
 
+# class_method methods
+
+
+def om_method_new_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 3:
+        fn = args[1]
+        instance = args[2]
+
+        # check fn is "probably" callable
+        fn_call = getattribute_from_obj_mro(fn, "__call__")
+
+        if fn_call is absent:
+            return sem_raise_with_message(ctx, class_TypeError, "first argument must be callable")
+        else:
+            return cont_method(ctx, fn, instance)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 2 arguments, got " + str(args_len - 1))
+
+
+om_method_new = do_static_magic_method(class_method, "__new__", om_method_new_code)
+
+
+def om_method_call_code(ctx, args, kwargs):
+    method = args[0]
+
+    fn = OM_get_method_function(method)
+    self = OM_get_method_self(method)
+
+    # small hack to avoid recreating a list
+    args[0] = self
+
+    return sem_generic_call(ctx, fn, args, kwargs)
+
+
+om_method_call = do_magic_method_with_kwargs(class_method, "__call__", om_method_call_code)
+
+
+def om_method_repr_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 2:
+
+        method = args[0]
+        fn = OM_get_method_function(method)
+        self = OM_get_method_self(method)
+
+        def get_self_repr(_, self_repr):
+            self_repr_val = OM_get_boxed_value(self_repr)
+
+            # TODO: should be __qualname__
+            fn_maybe_qualname = OM_get(fn, "__name__")
+            fn_qualname = fn_maybe_qualname if fn_maybe_qualname is not absent else "?"
+
+            repr_ = "<bound method " + fn_qualname + " of " + self_repr_val + ">"
+
+            return cont_str(ctx, repr_)
+
+        return sem_repr(with_cont(ctx, get_self_repr), self)
+
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected one argument, got " + str(args_len - 1))
+
+
+om_method_repr = do_magic_method(class_method, "__repr__", om_method_repr_code)
+
+
 # class_BaseException methods
 def om_BaseException_new(ctx, args):
     cls = args[0]
-    # TODO: use vararg once available
     exn_args = om_tuple(args[1:])
 
     return ctx.cont(ctx.rte, om_exception(cls, exn_args))
@@ -7024,7 +7152,8 @@ populate_builtin_iterator()
 populate_builtin_dict()
 populate_builtin_module()
 populate_builtin_NoneType()
-populate_builtin_FunctionType() # type function
+populate_builtin_function()
+populate_builtin_method()
 
 # Populate Exception classes
 populate_builtin_BaseException()
