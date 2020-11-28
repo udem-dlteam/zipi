@@ -1449,7 +1449,7 @@ def populate_builtin_function():
     buitlin_add_methods_to_class(
         class_function,
         (('__get__', om_function_get),
-         ('__call__', om_function_call),
+         ('__call__', om_function_call, True),
          ('__repr__', om_function_repr)))
 
 def populate_builtin_method():
