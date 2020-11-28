@@ -23,7 +23,7 @@ eval_input: testlist NEWLINE* ENDMARKER
 ####funcdef: 'def' NAME parameters ['->' test] ':' [TYPE_COMMENT] func_body_suite
 funcdef: 'def' NAME parameters ':' [TYPE_COMMENT] func_body_suite
 
-parameters: '(' [typedargslist] ')'
+parameters: '(' [varargslist] ')'
 
 # The following definition for typedarglist is equivalent to this set of rules:
 #
@@ -80,7 +80,17 @@ typedargslist: NAME (',' NAME)*
 ####  | '**' vfpdef [',']
 ####)
 ####vfpdef: NAME
-varargslist: NAME (',' NAME)*
+
+simple_arg: 'NAME' ['=' test]
+kwargs: '**' 'NAME' [',']
+args: '*' ['NAME'] [args_tail]
+args_tail: ',' args_tail_after_comma
+args_tail_after_comma: simple_arg [',' (args_tail_after_comma | kwargs)]
+varargslist_before_slash: args | kwargs | simple_arg [varargslist_before_slash_tail]
+varargslist_before_slash_tail: ',' [varargslist_before_slash | '/' [args | kwargs | ',' [varargslist_after_slash]]]
+varargslist_after_slash: simple_arg [varargslist_after_slash_tail]
+varargslist_after_slash_tail: ',' [varargslist_after_slash | args | kwargs]
+varargslist: varargslist_before_slash
 
 stmt: simple_stmt | compound_stmt
 simple_stmt: small_stmt (';' small_stmt)* [';'] NEWLINE

@@ -9,56 +9,85 @@
 ,"gen_parse_prefix": "py_parse_"
 
 ,"prelude":
-"from zipi.zast._zast import *\n\
-\n\
-def set_end_ast(ast, end_ast):\n\
-    return set_end(ast, end_ast.end_lineno, end_ast.end_col_offset)\n\
-\n\
-def set_ctx(targets, ctx):\n\
-    for i in range(len(targets)):\n\
-        set_ctx1(targets[i], ctx)\n\
-\n\
-def set_ctx1(t, ctx):\n\
-    t.ctx = ctx\n\
-    if isinstance(t, Tuple):\n\
-        for i in range(len(t.elts)):\n\
-            t.elts[i].ctx = ctx\n\
-\n\
-def check_assignable(ts, t):\n\
-    if isinstance(t, Constant):\n\
-        val = t.value\n\
-        if val is False:\n\
-            py_syntax_error_ast(ts, t, 'cannot assign to False')\n\
-        elif val is True:\n\
-            py_syntax_error_ast(ts, t, 'cannot assign to True')\n\
-        elif val is None:\n\
-            py_syntax_error_ast(ts, t, 'cannot assign to None')\n\
-#TODO: enable when Ellipsis implemented\n\
-#        elif val is Ellipsis:\n\
-#            py_syntax_error_ast(ts, t, 'cannot assign to Ellipsis')\n\
-        else:\n\
-            py_syntax_error_ast(ts, t, 'cannot assign to literal')\n\
-    elif isinstance(t, BinOp) or isinstance(t, UnaryOp) or isinstance(t, BoolOp):\n\
-        py_syntax_error_ast(ts, t, 'cannot assign to operator')\n\
-    elif isinstance(t, Tuple):\n\
-        for i in range(len(t.elts)):\n\
-            check_assignable(ts, t.elts[i])\n\
-    elif isinstance(t, Dict):\n\
-        py_syntax_error_ast(ts, t, 'cannot assign to dict display')\n\
-    elif isinstance(t, Call):\n\
-        py_syntax_error_ast(ts, t, 'cannot assign to function call')\n\
-    elif isinstance(t, IfExp):\n\
-        py_syntax_error_ast(ts, t, 'cannot assign to conditional expression')\n\
-    elif isinstance(t, Compare):\n\
-        py_syntax_error_ast(ts, t, 'cannot assign to comparison')\n\
-    elif isinstance(t, Lambda):\n\
-        py_syntax_error_ast(ts, t, 'cannot assign to lambda')\n\
-\n\
-def py_syntax_error_ast(ts, ast, msg):\n\
-    if ts.context and dict_has(ts.context, 'syntaxError'):\n\
-        ts.context.syntaxError(ast.lineno-1, ast.col_offset, ast.end_lineno-1, ast.end_col_offset, msg)\n\
-\n\
-"
+"""from zipi.zast._zast import *
+
+def set_end_ast(ast, end_ast):
+    return set_end(ast, end_ast.end_lineno, end_ast.end_col_offset)
+
+def set_ctx(targets, ctx):
+    for i in range(len(targets)):
+        set_ctx1(targets[i], ctx)
+
+def set_ctx1(t, ctx):
+    t.ctx = ctx
+    if isinstance(t, Tuple):
+        for i in range(len(t.elts)):
+            t.elts[i].ctx = ctx
+
+def check_assignable(ts, t):
+    if isinstance(t, Constant):
+        val = t.value
+        if val is False:
+            py_syntax_error_ast(ts, t, 'cannot assign to False')
+        elif val is True:
+            py_syntax_error_ast(ts, t, 'cannot assign to True')
+        elif val is None:
+            py_syntax_error_ast(ts, t, 'cannot assign to None')
+#TODO: enable when Ellipsis implemented
+#        elif val is Ellipsis:
+#            py_syntax_error_ast(ts, t, 'cannot assign to Ellipsis')
+        else:
+            py_syntax_error_ast(ts, t, 'cannot assign to literal')
+    elif isinstance(t, BinOp) or isinstance(t, UnaryOp) or isinstance(t, BoolOp):
+        py_syntax_error_ast(ts, t, 'cannot assign to operator')
+    elif isinstance(t, Tuple):
+        for i in range(len(t.elts)):
+            check_assignable(ts, t.elts[i])
+    elif isinstance(t, Dict):
+        py_syntax_error_ast(ts, t, 'cannot assign to dict display')
+    elif isinstance(t, Call):
+        py_syntax_error_ast(ts, t, 'cannot assign to function call')
+    elif isinstance(t, IfExp):
+        py_syntax_error_ast(ts, t, 'cannot assign to conditional expression')
+    elif isinstance(t, Compare):
+        py_syntax_error_ast(ts, t, 'cannot assign to comparison')
+    elif isinstance(t, Lambda):
+        py_syntax_error_ast(ts, t, 'cannot assign to lambda')
+
+def py_syntax_error_ast(ts, ast, msg):
+    if ts.context and dict_has(ts.context, 'syntaxError'):
+        ts.context.syntaxError(ast.lineno-1, ast.col_offset, ast.end_lineno-1, ast.end_col_offset, msg)
+
+def parse_function_signature(ts, posonly_and_default, args_and_defaults, vararg, kwonly_and_defaults, kwarg):
+    posonlyargs = []
+    args = []
+    defaults = []
+    for pair in posonly_and_default:
+        posonlyargs.append(pair[0])
+        def_val = pair[1]
+        if def_val is None:
+            if len(defaults) > 0:
+                return py_syntax_error(ts, "non-default argument follows default argument")
+        else:
+            defaults.append(def_val)
+
+    for pair in args_and_defaults:
+        args.append(pair[0])
+        def_val = pair[1]
+        if def_val is None:
+            if len(defaults) > 0:
+                return py_syntax_error(ts, "non-default argument follows default argument")
+        else:
+            defaults.append(def_val)
+
+    kwonlyargs = []
+    kw_defaults = []
+    for pair in kwonly_and_defaults:
+        kwonlyargs.append(pair[0])
+        kw_defaults.append(pair[1])
+
+    return arguments(args, posonlyargs, vararg, kwonlyargs, kw_defaults, kwarg, defaults)
+"""
 
 
 
@@ -96,13 +125,13 @@ def py_syntax_error_ast(ts, ast, msg):\n\
     "return ast"]
 
 
-,"parameters: '(' .[typedargslist] ')'":
-   ["typedargslist1 = None"]
-,"parameters: '(' [typedargslist] ')'.":
-   ["if typedargslist1 is None:\n"
+,"parameters: '(' .[varargslist] ')'":
+   ["varargslist1 = None"]
+,"parameters: '(' [varargslist] ')'.":
+   ["if varargslist1 is None:\n"
     "    return arguments([], [], None, [], [], None, [])\n"
     "else:\n"
-    "    return typedargslist1"]
+    "    return varargslist1"]
 
 
 ,"typedargslist: .NAME (',' NAME)*":
@@ -117,16 +146,102 @@ def py_syntax_error_ast(ts, ast, msg):\n\
    ["return arguments(args, [], None, [], [], None, [])"]
 
 
-,"varargslist: .NAME (',' NAME)*":
-   ["a = arg(token(ts),None,None)\n"
-    "set_start_end_1token(ts, a)\n"
-    "args = [a]"]
-,"varargslist: NAME (',' .NAME)*":
-   ["a = arg(token(ts),None,None)\n"
-    "set_start_end_1token(ts, a)\n"
-    "args.append(a)"]
-,"varargslist: NAME (',' NAME)*.":
-   ["return arguments(args, [], None, [], [], None, [])"]
+,"simple_arg: .'NAME' ['=' test]":
+    ["a = arg(token(ts), None, None); default_ = None\n"
+     "set_start_end_1token(ts, a)"]
+,"simple_arg: 'NAME' ['=' test.]":
+    ["default_ = test1"]
+,"simple_arg: 'NAME' ['=' test].":
+    ["return [a, default_]"]
+
+,"kwargs: '**' .'NAME' [',']":
+    ["a = arg(token(ts), None, None)\n"
+     "set_start_end_1token(ts, a)"]
+,"kwargs: '**' 'NAME' [','].":
+    ["return a"]
+
+,"args: '*' .['NAME'] [args_tail]":
+    ["vararg = None"]
+,"args: '*' [.'NAME'] [args_tail]":
+    ["vararg = set_start_end_1token(ts, arg(token(ts), None, None))"]
+,"args: '*' ['NAME'] .[args_tail]":
+    ["kw_args = None"]
+,"args: '*' ['NAME'] [args_tail.]":
+    ["kw_args = args_tail1"]
+,"args: '*' ['NAME'] [args_tail].":
+    ["if kw_args is None:\n"
+     "    return [vararg, [], None]\n"
+     "else:\n"
+     "    return list_concat([vararg], kw_args) # [vararg, kw_only, kwarg]"]
+
+,"args_tail: ',' args_tail_after_comma.":
+    ["return args_tail_after_comma1"]
+
+,"args_tail_after_comma: simple_arg [',' (args_tail_after_comma. | kwargs)]":
+    ["args_tail_after_comma1[0].append(simple_arg1) # must be reversed later\n"
+     "return args_tail_after_comma1"]
+,"args_tail_after_comma: simple_arg [',' (args_tail_after_comma | kwargs.)]":
+    ["return [[simple_arg1], kwargs1]"]
+
+
+,"varargslist_before_slash: args.":
+    ["return list_concat([[], []], args1), False"]
+,"varargslist_before_slash: kwargs.":
+    ["return [[], [], None, [], kwargs1], False  # [posonly, args, vararg, kw_only, kwargs]"]
+,"varargslist_before_slash: simple_arg. [varargslist_before_slash_tail]":
+    ["varargslist_before_slash_tail1 = None"]
+,"varargslist_before_slash: simple_arg [varargslist_before_slash_tail].":
+    ["if varargslist_before_slash_tail1 is None:\n"
+     "    return [[], [simple_arg1], None, [], None], False\n"
+     "else:\n"
+     "    tail = varargslist_before_slash_tail1[0]\n"
+     "    before_slash = varargslist_before_slash_tail1[1]\n"
+     "    if before_slash:\n"
+     "        tail[0].append(simple_arg1)\n"
+     "    else:\n"
+     "        tail[1].append(simple_arg1)\n"
+     "    return varargslist_before_slash_tail1"]
+
+,"varargslist_before_slash_tail: ',' [varargslist_before_slash. | '/' [args | kwargs | ',' [varargslist_after_slash]]]":
+    ["return varargslist_before_slash1"]
+,"varargslist_before_slash_tail: ',' [varargslist_before_slash | '/' [args. | kwargs | ',' [varargslist_after_slash]]]":
+    ["return list_concat([[], []], args1), True"]
+,"varargslist_before_slash_tail: ',' [varargslist_before_slash | '/' [args | kwargs. | ',' [varargslist_after_slash]]]":
+    ["return [[], [], None, [], kwargs1], True"]
+,"varargslist_before_slash_tail: ',' [varargslist_before_slash | '/' [args | kwargs | ',' [varargslist_after_slash.]]]":
+    ["return varargslist_after_slash1, True"]
+,"varargslist_before_slash_tail: ',' [varargslist_before_slash | '/' [args | kwargs | ',' [varargslist_after_slash]].]":
+    ["return [[], [], None, [], None], True"]
+
+
+,"varargslist_after_slash: simple_arg. [varargslist_after_slash_tail]":
+    ["varargslist_after_slash_tail1 = None"]
+,"varargslist_after_slash: simple_arg [varargslist_after_slash_tail].":
+    ["if varargslist_after_slash_tail1 is None:\n"
+     "    return [[], [simple_arg1], None, [], None] # [posonly, args, vararg, kw_only, kwargs]\n"
+     "else:\n"
+     "    varargslist_after_slash_tail1[1].append(simple_arg1)\n"
+     "    return varargslist_after_slash_tail1"]
+
+
+,"varargslist_after_slash_tail: ',' [varargslist_after_slash. | args | kwargs]":
+    ["return varargslist_after_slash1"]
+,"varargslist_after_slash_tail: ',' [varargslist_after_slash | args. | kwargs]":
+    ["return list_concat([[], []], args1)"]
+,"varargslist_after_slash_tail: ',' [varargslist_after_slash | args | kwargs.]":
+    ["return [[], [], None, [], kwargs1]"]
+,"varargslist_after_slash_tail: ',' [varargslist_after_slash | args | kwargs].":
+    ["return [[], [], None, [], None] # [posonly, args, vararg, kw_only, kwargs]"]
+
+
+,"varargslist: varargslist_before_slash.":
+    ["parsed_signature = varargslist_before_slash1[0]  # second element indicates if a slash was seen, it is no longer needed at this point\n"
+     "posonly_and_default = list_reversed(parsed_signature[0])\n"
+     "args_and_defaults = list_reversed(parsed_signature[1])\n"
+     "vararg = parsed_signature[2]\n"
+     "kwonly_and_defaults = list_reversed(parsed_signature[3])\n"
+     "kwarg = parsed_signature[4]\n"
+     "return parse_function_signature(ts, posonly_and_default, args_and_defaults, vararg, kwonly_and_defaults, kwarg)"]
 
 
 ,"func_body_suite: simple_stmt.":

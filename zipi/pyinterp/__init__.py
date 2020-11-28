@@ -201,6 +201,9 @@ def cont_list_of_str(ctx, val, len_):
         i += 1
     return ctx.cont(ctx.rte, om_list(new_lst, len_))
 
+def cont_method(ctx, fn, instance):
+    return ctx.cont(ctx.rte, om_method(fn, instance))
+
 def cont_DOMElement(ctx, elem):
     return ctx.cont(ctx.rte, om_DOMElement(elem))
 
@@ -353,6 +356,12 @@ class OM_function(OM_box):
     locals: names of local variables
     var_context: context of all accessible variables in scope
     parent_lexical_scope: in non safe_for_space mode, stores the parent scope
+    """
+
+class OM_method(OM_box):
+    """
+    self: bound instance
+    func: function to which the instance is bound
     """
 
 # value is either class or instance
@@ -800,7 +809,83 @@ def signature_arity(signature):
     else:
         return absent
 
-def align_args_with_signature(ctx, funcname, caller_args, signature):
+def align_args_with_signature(ctx, funcname, caller_args, caller_kwargs, signature):
+    # TODO: this algorithm is easier to implement but it is not very efficient
+    # The main idea is to create a list (args_choices) which stores where the value for each argument may come from
+    # in a tuple  of the form:
+    #     ([name], [value from caller_args], [value from defaults], [value from caller_kwargs])
+    # Once this is done, we can traverse args_choices and pick the value which has top priority (caller_args > default)
+    # or raise an error if two values are conflicting (caller_args conflicts with caller_kwargs)
+    # This requires multiple passes on the signature and arguments. It is possible to do it in one pass but is way
+    # harder to implement than this abstraction.
+
+    def format_missing_arguments_names(names):
+        last_index = len(names) - 1
+        if last_index == 0:
+            return "'" + names[0] + "'"
+        else:
+            comma_separated = "'" + "', '".join(names[0:len(names) - 1]) + "'"
+            return comma_separated + " and '" + names[last_index] + "'"
+
+    def raise_missing_arguments(arg_choices):
+        # Recover positional names to figure out if missing values are arguments or keyword-only
+
+        positional_arguments_names = list_concat(posonlyargs, args)
+        is_positional = make_dict()
+
+        for n in positional_arguments_names:
+            dict_set(is_positional, n, True)
+
+        missing_args = []
+        missing_kws = []
+        for choices in args_choices:
+            name = choices[0]
+            val_from_args = choices[1]
+            val_from_defaults = choices[2]
+            val_from_kws = choices[3]
+
+            if val_from_args is None and val_from_defaults is None and val_from_kws is None:
+                if dict_get(is_positional, name, False):
+                    missing_args.append(name)
+                else:
+                    missing_kws.append(name)
+
+        missing_args_len = len(missing_args)
+        missing_kws_len = len(missing_kws)
+
+        if missing_args_len > 0:
+            if missing_args_len == 1:
+                error_msg = funcname + "() missing 1 required positional argument: '" + missing_args[0] + "'"
+            else:
+                missing_names = format_missing_arguments_names(missing_args)
+                error_msg = funcname + "() missing " + str(missing_args_len) + " required positional arguments: " + missing_names
+        elif missing_kws_len == 1:
+            error_msg = funcname + "() missing 1 required keyword-only argument: '" + missing_kws[0] + "'"
+        else:
+            missing_names = format_missing_arguments_names(missing_kws)
+            error_msg = funcname + "() missing " + str(missing_kws_len) + " required keyword-only arguments: " + missing_names
+
+        return sem_raise_with_message(ctx, class_TypeError, error_msg)
+
+    def raise_missing_positional_arguments(provided, min_required, names):
+        missing_args = names[provided:min_required]
+        missing_args_len = len(missing_args)
+
+        if missing_args_len == 1:
+            error_msg = funcname + "() missing 1 required positional argument: '" + missing_args[0] + "'"
+        else:
+            missing_names = format_missing_arguments_names(missing_args)
+            error_msg = funcname + "() missing " + str(missing_args_len) + " required positional arguments: " + missing_names
+
+        return sem_raise_with_message(ctx, class_TypeError, error_msg)
+
+    def raise_too_many_positional_arguments(provided, required):
+        verb = "was" if provided == 1 else "were"
+        s = "" if required == 1 else "s"
+
+        error_msg = funcname + "() takes " + str(required) + " positional argument" + s + " but " + str(provided) + " " + verb + " given"
+        return sem_raise_with_message(ctx, class_TypeError, error_msg)
+
     args = signature_args(signature)
     posonlyargs = signature_posonlyargs(signature)
     vararg = signature_varargs(signature)
@@ -808,94 +893,80 @@ def align_args_with_signature(ctx, funcname, caller_args, signature):
     kw_default = signature_kw_defaults(signature)
     kwarg = signature_kwargs(signature)
     defaults = signature_defaults(signature)
-    if kwarg is not None and len(kwonlyargs) > 0:
-        return sem_raise_with_message(ctx, class_NotImplementedError, "keyword arguments not yet supported")
-    else:
-        caller_args_len = len(caller_args)
-        args_len = len(args)
-        posonlyargs_len = len(posonlyargs)
-        defaults_len = len(defaults)
-        total_args_len = args_len + posonlyargs_len
-        if caller_args_len == total_args_len:
-            locals_env = []
-            caller_index = 0
-            for arg in posonlyargs:
-                locals_env.append((arg, caller_args[caller_index]))
-                caller_index += 1
 
-            for arg in args:
-                locals_env.append((arg, caller_args[caller_index]))
-                caller_index += 1
+    locals_env = make_dict()
 
-            if vararg is not None:
-                locals_env.append((vararg, om_tuple([])))
+    caller_args_len = len(caller_args)
+    signature_posonly_len = len(posonlyargs)
+    signature_args_len = len(args)
+    signature_defaults_len = len(defaults)
+    signature_total_pos_arguments_len = signature_args_len + signature_posonly_len
+    unprovided_pos_arguments_len = signature_total_pos_arguments_len - caller_args_len
+    positional_arguments_without_defaults_len = signature_total_pos_arguments_len - signature_defaults_len
+    posonly_argument_with_defaults_len = 0 if signature_args_len > signature_defaults_len else signature_defaults_len - signature_args_len
+    min_requires_posonly_arguments = signature_posonly_len - posonly_argument_with_defaults_len
+    rest_size = 0 if caller_args_len < signature_total_pos_arguments_len else caller_args_len - signature_total_pos_arguments_len
 
-            return ctx.cont(ctx.rte, locals_env)
-        elif caller_args_len < total_args_len:
-            missing_args_len = total_args_len - caller_args_len
-            if defaults_len >= missing_args_len:
+    # Check that the minimal number of argument which can only be given positionally is reached
+    if caller_args_len < min_requires_posonly_arguments:
+        return raise_missing_positional_arguments(caller_args_len, min_requires_posonly_arguments, list_concat(posonlyargs, args))
 
-                result = caller_args[0:caller_args_len]
-                start = defaults_len - missing_args_len
+    # Check that the maximum number of argument which can only be given positionally is not exceeded
+    if vararg is None and rest_size > 0:
+        return raise_too_many_positional_arguments(caller_args_len, signature_total_pos_arguments_len)
 
-                while start < defaults_len:
-                    result.append(defaults[start])
-                    start += 1
+    aligned_defaults = list_concat(list_new(positional_arguments_without_defaults_len, None), defaults)
+    extended_caller_args = list_concat(caller_args, list_new(unprovided_pos_arguments_len, None))
+    args_choices = []
 
-                return align_args_with_signature(ctx, funcname, result, signature)
+    pos = 0
+    for posonly in posonlyargs:
+        args_choices.append((posonly, extended_caller_args[pos], aligned_defaults[pos], None))
+        pos += 1
+
+    for arg in args:
+        args_choices.append((arg, extended_caller_args[pos], aligned_defaults[pos], dict_pop(caller_kwargs, arg, None)))
+        pos += 1
+
+    kw_pos = 0
+    for kw in kwonlyargs:
+        args_choices.append((kw, None, kw_default[kw_pos], dict_pop(caller_kwargs, kw, None)))
+        kw_pos += 1
+
+    for choices in args_choices:
+        name = choices[0]
+        val_from_args = choices[1]
+        val_from_defaults = choices[2]
+        val_from_kws = choices[3]
+
+        if val_from_args is not None:
+            if val_from_kws is not None:
+                error_msg = funcname + "() got multiple values for argument '" + name + "'"
+                return sem_raise_with_message(ctx, class_TypeError, error_msg)
             else:
-                def add_punctuation(msg, remaining_args_count):
-                    result = msg
-                    if missing_args_len == 2 and remaining_args_count == 1:
-                        result += ' and '
-                    elif missing_args_len > 2 and remaining_args_count == 1:
-                        result += ', and '
-                    elif remaining_args_count < missing_args_len:
-                        result += ', '
-
-                    return result
-
-                s = 's' if missing_args_len != 1 else ''
-                msg = funcname + "() missing " + str(missing_args_len) + " required positional argument"+ s +": "
-
-                remaining = missing_args_len
-
-                i = caller_args_len
-                while i < posonlyargs_len:
-                    arg = posonlyargs[i]
-                    msg = add_punctuation(msg, remaining)+"'"+arg+"'"
-                    remaining -= 1
-                    i += 1
-
-                i -= posonlyargs_len
-                while i < args_len:
-                    arg = args[i]
-                    msg = add_punctuation(msg, remaining)+"'"+arg+"'"
-                    remaining -= 1
-                    i += 1
-
-                return sem_raise_with_message(ctx, class_TypeError, msg)
+                dict_set(locals_env, name, val_from_args)
+        elif val_from_kws is not None:
+            dict_set(locals_env, name, val_from_kws)
+        elif val_from_defaults is not None:
+            dict_set(locals_env, name, val_from_defaults)
         else:
-            locals_env = []
-            caller_index = 0
-            for arg in posonlyargs:
-                locals_env.append((arg, caller_args[caller_index]))
-                caller_index += 1
+            return raise_missing_arguments(args_choices)
 
-            for arg in args:
-                locals_env.append((arg, caller_args[caller_index]))
-                caller_index += 1
+    if kwarg is not None:
+        # Used argument have been popped from caller_kwargs, what remains are extra args
+        dict_set(locals_env, kwarg, om_dict(caller_kwargs))
+    elif dict_len(caller_kwargs) > 0:
+        wrong_key = dict_keys(caller_kwargs)[0]
+        error_msg = funcname + "() got an unexpected keyword argument '" + wrong_key + "'"
+        return sem_raise_with_message(ctx, class_TypeError, error_msg)
 
-            vararg_value = caller_args[caller_index:]
-            vararg_len = len(vararg_value)
-            if vararg is None:
-                s = 's' if total_args_len != 1 else ''
-                was_or_were = 'was' if caller_args_len == 1 else 'were'
-                msg = funcname + "() takes " + str(total_args_len) + " positional argument" + s + " but " + str(caller_args_len) + " " + was_or_were + " given"
-                return sem_raise_with_message(ctx, class_TypeError, msg)
-            else:
-                locals_env.append((vararg, om_tuple(vararg_value)))
-                return cont_obj(ctx, locals_env)
+    if vararg is not None:
+        rest = list_get_slice(caller_args, caller_args_len - rest_size, caller_args_len, 1)
+        om_rest = om_tuple(rest)
+        dict_set(locals_env, vararg, om_rest)
+
+    return cont_obj(ctx, locals_env)
+
 
 # object model
 def make_dict_from_list(lst):
@@ -1314,6 +1385,11 @@ def populate_builtin_list():
     builtin_add_method(class_list, 'reverse', om_list_reverse)
     builtin_add_method(class_list, 'count', om_list_count)
 
+
+def populate_builtin_dict():
+    ...
+
+
 def populate_builtin_range():
     buitlin_add_methods_to_class(
         class_range,
@@ -1353,7 +1429,11 @@ def populate_builtin_iterator():
     builtin_add_method(class_iterator, '__next__', om_iterator_next)
 
 def populate_builtin_dict():
-    pass
+    buitlin_add_methods_to_class(
+        class_dict,
+        (('__new__', om_dict_new),
+         ('__getitem__', om_dict_getitem),
+         ('get', om_dict_get)))
 
 def populate_builtin_module():
     builtin_add_method(class_module, '__getattribute__', om_module_getattribute)
@@ -1365,9 +1445,19 @@ def populate_builtin_NoneType():
     builtin_add_method(class_NoneType, '__bool__', om_NoneType_bool)
     builtin_add_method(class_NoneType, '__repr__', om_NoneType_repr)
 
-def populate_builtin_FunctionType():
-    builtin_add_method_with_kwargs(class_function, '__call__', om_function_call)
-    builtin_add_method(class_function, '__repr__', om_function_repr)
+def populate_builtin_function():
+    buitlin_add_methods_to_class(
+        class_function,
+        (('__get__', om_function_get),
+         ('__call__', om_function_call, True),
+         ('__repr__', om_function_repr)))
+
+def populate_builtin_method():
+    buitlin_add_methods_to_class(
+        class_method,
+        (('__new__', om_method_new),
+         ('__call__', om_method_call, True),
+         ('__repr__', om_method_repr)))
 
 def populate_builtin_BaseException():
     builtin_add_method(class_BaseException, '__new__', om_BaseException_new)
@@ -1489,7 +1579,6 @@ def om_module(name, val):
     return obj
 
 def om_dict(val):
-    # assert isinstance(val, dict), 'om_dict expected dict'
     return om_boxval(class_dict, val)
 
 def om_str(val):
@@ -1534,6 +1623,12 @@ def om_MethodWrapper(name, instance, code, requires_kwargs):
 
     OM_set(obj, '__name__', name)
     return obj
+
+def om_method(fn, instance):
+    method = om(class_method)
+    OM_set_method_function(method, fn)
+    OM_set_method_self(method, instance)
+    return method
 
 def om_DOMElement(elem):
     obj = om(class_DOMElement)
@@ -1617,6 +1712,9 @@ def OM_iterator_create():
 
 def OM_function_create():
     return OM_function()
+
+def OM_method_create():
+    return OM_method()
 
 def OM_WrapperDescriptor_create():
     return OM_WrapperDescriptor()
@@ -1877,6 +1975,20 @@ def OM_get_function_lexical_scope(o):
 def OM_set_function_lexical_scope(o, lexical_scope):
     o.lexical_scope = lexical_scope
 
+# hidden fields for methods
+
+def OM_get_method_self(o):
+    return o.self
+
+def OM_set_method_self(o, self):
+    o.self = self
+
+def OM_get_method_function(o):
+    return o.func
+
+def OM_set_method_function(o, func):
+    o.func = func
+
 # hidden fields in WrapperDescriptor
 def OM_set_WrapperDescriptor_cls(o, cls):
     o.cls = cls
@@ -2127,6 +2239,7 @@ class_filter = make_builtin_class('filter', OM_filter_create, ())
 class_dict = make_builtin_class('dict', OM_dict_create, ())
 class_module = make_builtin_class('module', OM_module_create, ())
 class_function = make_builtin_class('function', OM_function_create, ())
+class_method = make_builtin_class('method', OM_method_create, ())
 class_slice = make_builtin_class('slice', OM_slice_create, ())
 
 # class available and populated in 'more_builtins' module
@@ -2148,6 +2261,7 @@ class_NotImplementedError = make_builtin_class('NotImplementedError', OM_BaseExc
 class_LookupError = make_builtin_class('LookupError', OM_BaseException_create, (class_Exception,))
 class_EOFError = make_builtin_class('EOFError', OM_BaseException_create, (class_Exception,))
 class_IndexError = make_builtin_class('IndexError', OM_BaseException_create, (class_LookupError,))
+class_KeyError = make_builtin_class('KeyError', OM_BaseException_create, (class_LookupError,))
 class_AttributeError = make_builtin_class('AttributeError', OM_BaseException_create, (class_Exception,))
 class_ArithmeticError = make_builtin_class('ArithmeticError', OM_BaseException_create, (class_Exception,))
 class_OverflowError = make_builtin_class('OverflowError', OM_BaseException_create, (class_ArithmeticError,))
@@ -2399,7 +2513,7 @@ def om_type_call(ctx, args, kwargs):
         if om_is(OM_get_object_class(instance), cls):
             cls_init = getattribute_from_class_mro(cls, "__init__")
             next_ctx = with_cont(ctx, lambda rte, _: ctx.cont(ctx.rte, instance))
-            return sem_generic_call(next_ctx, cls_init, args, kwargs)
+            return sem_generic_call(next_ctx, cls_init, [instance] + args[1:], kwargs)
         else:
             return ctx.cont(ctx.rte, instance)
 
@@ -2624,6 +2738,7 @@ def om_object_getattribute_code(ctx, args):
         if attr_get is absent:
             return cont_obj(ctx, attr)
         else:
+            # TODO: this might be a problem when self is actually "None"
             return sem_simple_call(ctx, attr_get, [attr, self, owner])
     else:
         return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(len(args) - 1))
@@ -5344,6 +5459,56 @@ om_str_rstrip = gen_str_strip("rstrip", string_trim_right, string_trim_right_whi
 
 # class_dict methods
 
+def om_dict_new(ctx, args):
+    return sem_raise_with_message(ctx, class_NotImplementedError, "dict type not implemented")
+
+
+def om_dict_getitem_code(ctx, args):
+    # TODO: This is a dummy implementation meant to test **kwargs, it does not implement dict.__getitem__ correctly
+    args_len = len(args)
+
+    if args_len == 2:
+        self = args[0]
+        key = args[1]
+
+        if om_isinstance(key, class_str):
+            key_val = OM_get_boxed_value(key)
+            val = dict_get(OM_get_boxed_value(self), key_val, None)
+            if val is None:
+                return sem_raise_with_message(ctx, class_KeyError, "'" + key_val + "'")
+            else:
+                return cont_obj(ctx, val)
+        else:
+            return sem_raise_with_message(ctx, class_NotImplementedError, "dict type not implemented")
+
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 1 arguments, got " + str(args_len - 1))
+
+om_dict_getitem = do_magic_method(class_dict, "__getitem__", om_dict_getitem_code)
+
+def om_dict_get_code(ctx, args):
+    # TODO: This is a dummy implementation meant to test **kwargs, it does not implement dict.get correctly
+    args_len = len(args)
+
+    if args_len == 2 or args_len == 3:
+        self = args[0]
+        key = args[1]
+        default_ = om_None if args_len == 2 else args[2]
+
+
+        if om_isinstance(key, class_str):
+            key_val = OM_get_boxed_value(key)
+            val = dict_get(OM_get_boxed_value(self), key_val, default_)
+            return cont_obj(ctx, val)
+        else:
+            return sem_raise_with_message(ctx, class_NotImplementedError, "dict type not implemented")
+
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 2 or 3 arguments, got " + str(args_len - 1))
+
+om_dict_get = do_magic_method(class_dict, "__getitem__", om_dict_get_code)
+
+
 # class_module methods
 def om_module_getattribute_code(ctx, args):
     if debug: print('module.__getattribute__')
@@ -5464,40 +5629,51 @@ def om_function_call_code(ctx, args, kwargs):
     self = args[0]
     params = args[1:]
 
-    if dict_len(kwargs) > 0:
-        return sem_raise_with_message(ctx, class_NotImplementedError,
-                                      "keyword arguments are not yet supported for " + om_simple_repr(ctx, self))
-
     signature = OM_get_function_signature(self)
 
     ## test arity
     def execute_body(rte, locals_env):
         stack = make_frame(rte, ctx.cont, ctx.ast)
 
-        call_locals_env = make_dict_from_list(locals_env)
-
         for item in OM_get_function_locals(self):
             name = item[0]
             must_box = item[1]
 
-            value = dict_get(call_locals_env, name, absent)
+            value = dict_get(locals_env, name, absent)
 
             if must_box:
-                dict_set(call_locals_env, name, [value])
+                dict_set(locals_env, name, [value])
             else:
-                dict_set(call_locals_env, name, value)
+                dict_set(locals_env, name, value)
 
-
-        call_rte = make_call_rte(rte, call_locals_env, self, stack)
+        call_rte = make_call_rte(rte, locals_env, self, stack)
         body = OM_get_function_body(self)
+
         return body(call_rte,
                     lambda rte1:
                        frame_cont(rte_stack(rte1))(frame_rte(rte_stack(rte1)), om_None))
 
     self_name_value = OM_get_boxed_value(OM_get(self, '__name__'))
-    return align_args_with_signature(with_cont(ctx, execute_body), self_name_value, params, signature)
+    return align_args_with_signature(with_cont(ctx, execute_body), self_name_value, params, kwargs, signature)
+
 
 om_function_call = do_magic_method_with_kwargs(class_function, '__call__', om_function_call_code)
+
+
+def om_function_get_code(ctx, args):
+    if debug: print('wrapper_descriptor.__get__')
+    self = args[0]
+    obj = args[1]
+    cls = args[2]
+
+    if obj is om_None:
+        return cont_obj(ctx, self)
+    else:
+        return cont_method(ctx, self, obj)
+
+
+om_function_get = do_magic_method(class_function, "__get__", om_function_get_code)
+
 
 def om_format_function_repr(self, rte):
     serial = OM_get_serial(self, rte)
@@ -5509,10 +5685,74 @@ def om_function_repr(ctx, args):
     result = om_str(om_format_function_repr(self, ctx.rte))
     return ctx.cont(ctx.rte, result)
 
+# class_method methods
+
+
+def om_method_new_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 3:
+        fn = args[1]
+        instance = args[2]
+
+        # check fn is "probably" callable
+        fn_call = getattribute_from_obj_mro(fn, "__call__")
+
+        if fn_call is absent:
+            return sem_raise_with_message(ctx, class_TypeError, "first argument must be callable")
+        else:
+            return cont_method(ctx, fn, instance)
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected 2 arguments, got " + str(args_len - 1))
+
+
+om_method_new = do_static_magic_method(class_method, "__new__", om_method_new_code)
+
+
+def om_method_call_code(ctx, args, kwargs):
+    method = args[0]
+
+    fn = OM_get_method_function(method)
+    self = OM_get_method_self(method)
+
+    return sem_generic_call(ctx, fn, [self] + args[1:], kwargs)
+
+
+om_method_call = do_magic_method_with_kwargs(class_method, "__call__", om_method_call_code)
+
+
+def om_method_repr_code(ctx, args):
+    args_len = len(args)
+
+    if args_len == 2:
+
+        method = args[0]
+        fn = OM_get_method_function(method)
+        self = OM_get_method_self(method)
+
+        def get_self_repr(_, self_repr):
+            self_repr_val = OM_get_boxed_value(self_repr)
+
+            # TODO: should be __qualname__
+            fn_maybe_qualname = OM_get(fn, "__name__")
+            fn_qualname = fn_maybe_qualname if fn_maybe_qualname is not absent else "?"
+
+            repr_ = "<bound method " + fn_qualname + " of " + self_repr_val + ">"
+
+            return cont_str(ctx, repr_)
+
+        return sem_repr(with_cont(ctx, get_self_repr), self)
+
+    else:
+        return sem_raise_with_message(ctx, class_TypeError, "expected one argument, got " + str(args_len - 1))
+
+
+om_method_repr = do_magic_method(class_method, "__repr__", om_method_repr_code)
+
+
 # class_BaseException methods
 def om_BaseException_new(ctx, args):
     cls = args[0]
-    # TODO: use vararg once available
     exn_args = om_tuple(args[1:])
 
     return ctx.cont(ctx.rte, om_exception(cls, exn_args))
@@ -6900,6 +7140,7 @@ populate_builtin_float()
 populate_builtin_bool()
 populate_builtin_tuple()
 populate_builtin_list()
+populate_builtin_dict()
 populate_builtin_range()
 populate_builtin_map()
 populate_builtin_filter()
@@ -6908,7 +7149,8 @@ populate_builtin_iterator()
 populate_builtin_dict()
 populate_builtin_module()
 populate_builtin_NoneType()
-populate_builtin_FunctionType() # type function
+populate_builtin_function()
+populate_builtin_method()
 
 # Populate Exception classes
 populate_builtin_BaseException()
@@ -8376,6 +8618,7 @@ def fresh_rte(options):
     dict_set(builtins_env, 'str', class_str)
     dict_set(builtins_env, 'tuple', class_tuple)
     dict_set(builtins_env, 'list', class_list)
+    dict_set(builtins_env, 'dict', class_dict)
     dict_set(builtins_env, 'range', class_range)
     dict_set(builtins_env, 'map', class_map)
     dict_set(builtins_env, 'filter', class_filter)
@@ -8410,6 +8653,7 @@ def fresh_rte(options):
     dict_set(builtins_env, 'ValueError', class_ValueError)
     dict_set(builtins_env, 'LookupError', class_LookupError)
     dict_set(builtins_env, 'IndexError', class_IndexError)
+    dict_set(builtins_env, 'KeyError', class_KeyError)
     dict_set(builtins_env, 'StopIteration', class_StopIteration)
     dict_set(builtins_env, 'ArithmeticError', class_ArithmeticError)
     dict_set(builtins_env, 'ZeroDivisionError', class_ZeroDivisionError)
@@ -9495,40 +9739,75 @@ def comp_expr_opt(cte, ast):
 def gen_signature(cte, ast_args):
     # make_signature(args, posonlyargs, vararg, kwonlyargs, kw_defaults, kwargs, defaults)
 
+    seen = make_dict()
+
+    def raise_if_duplicate(name, ast):
+        if dict_get(seen, name, False):
+            msg = "duplicate argument '" + name + "' in function definition"
+            return CT_raise_syntax_error_with_msg(cte, ast, msg)
+        else:
+            dict_set(seen, name, True)
+
     args = []
     for arg in ast_args.args:
-        args.append(arg.arg)
+        arg_name = arg.arg
+        raise_if_duplicate(arg_name, arg)
+        args.append(arg_name)
 
     posonlyargs = []
     for posonly in ast_args.posonlyargs:
+        arg_name = posonly.arg
+        raise_if_duplicate(arg_name, posonly)
         posonlyargs.append(posonly.arg)
 
-    if ast_args.vararg is not None:
-        vararg = ast_args.vararg.arg
+    vararg_ast = ast_args.vararg
+    if vararg_ast is not None:
+        arg_name = vararg_ast.arg
+        raise_if_duplicate(arg_name, vararg_ast)
+        vararg = vararg_ast.arg
     else:
         vararg = None
+
+    kwarg_ast = ast_args.kwarg
+    if kwarg_ast is not None:
+        arg_name = kwarg_ast.arg
+        raise_if_duplicate(arg_name, vararg_ast)
+        kwarg = kwarg_ast.arg
+    else:
+        kwarg = None
 
     kwonlyargs = []
     for kwonly in ast_args.kwonlyargs:
         kwonlyargs.append(kwonly.arg)
 
-    kw_defaults = []
-    for kw_default in ast_args.kw_defaults:
-        if kw_default is None:
-            kw_defaults.append(absent)
+    defaults_codes = []
+
+    for d in ast_args.defaults:
+        cte, default_code = comp_expr(cte, d)
+        defaults_codes.append(default_code)
+
+    kw_defaults_codes = []
+
+    for d in ast_args.kw_defaults:
+        if d is None:
+            kw_default_code = lambda rte, cont: cont(rte, None)
         else:
-            kw_defaults.append(kw_default.value)
+            cte, kw_default_code = comp_expr(cte, d)
+        kw_defaults_codes.append(kw_default_code)
 
-    if ast_args.kwarg is not None:
-        kwarg = ast_args.kwarg.arg
-    else:
-        kwarg = None
-
-    defaults = []
-    for default_ in ast_args.defaults:
-        defaults.append(default_.value)
-
-    return make_signature(args, posonlyargs, vararg, kwonlyargs, kw_defaults, kwarg, defaults)
+    def signature_code(rte, cont):
+        def get_defaults(defaults_rte, defaults):
+            def get_kw_defaults(kw_defaults_rte, kw_defaults):
+                return cont(defaults_rte,
+                            make_signature(args, posonlyargs, vararg, kwonlyargs,
+                                           kw_defaults, kwarg, defaults))
+            return cps_map(Context(rte, get_kw_defaults, ast_args),
+                       lambda ctx, def_code: def_code(ctx.rte, ctx.cont),
+                       kw_defaults_codes)
+        return cps_map(Context(rte, get_defaults, ast_args),
+                       lambda ctx, def_code: def_code(ctx.rte, ctx.cont),
+                       defaults_codes)
+    return cte, signature_code
 
 # Code generation functions.
 
@@ -9799,64 +10078,65 @@ def gen_create_function(cte, args, body, name, ast):
 
     (body_cte, body_code) = comp_stmt_seq(fn_cte, body)
 
-    # TODO: Once default arguments are implemented this will need to be partially at runtime
-    signature = gen_signature(cte, args)
+    cte, signature_code = gen_signature(cte, args)
 
     safe_for_space = get_cte_safe_for_space(cte)
 
     if safe_for_space:
         def create_function(rte, cont):
-            func = om(class_function)
-            OM_set(func, '__name__', fn_name)
+            def get_signature(sig_rte, signature):
+                func = om(class_function)
+                OM_set(func, '__name__', fn_name)
 
-            OM_set_function_signature(func, signature)
-            OM_set_function_body(func, body_code)
-            arity = signature_arity(signature)
-            OM_set_function_arity(func, arity)
-            OM_set_function_closure(func, make_closure(rte))
-            OM_set_function_locals(func, local_vars)
-            OM_set_function_globals(func, rte_lexical_globals(rte))
-            OM_set_function_var_context(func, locals_env)
+                OM_set_function_signature(func, signature)
+                OM_set_function_body(func, body_code)
+                arity = signature_arity(signature)
+                OM_set_function_arity(func, arity)
+                OM_set_function_closure(func, make_closure(rte))
+                OM_set_function_locals(func, local_vars)
+                OM_set_function_globals(func, rte_lexical_globals(rte))
+                OM_set_function_var_context(func, locals_env)
 
-            return cont(rte, func)
+                return cont(sig_rte, func)
+            return signature_code(rte, get_signature)
 
         return cte, create_function
 
     else:
         # In non safe-for-space mode, a function saves the whole lexical scope in which it was defined
         def create_function(rte, cont):
-            func = om(class_function)
-            OM_set(func, '__name__', fn_name)
+            def get_signature(sig_rte, signature):
+                func = om(class_function)
+                OM_set(func, '__name__', fn_name)
 
-            OM_set_function_signature(func, signature)
-            OM_set_function_body(func, body_code)
-            arity = signature_arity(signature)
-            OM_set_function_arity(func, arity)
-            OM_set_function_closure(func, make_closure(rte))
-            OM_set_function_locals(func, local_vars)
-            OM_set_function_globals(func, rte_lexical_globals(rte))
-            OM_set_function_var_context(func, locals_env)
+                OM_set_function_signature(func, signature)
+                OM_set_function_body(func, body_code)
+                arity = signature_arity(signature)
+                OM_set_function_arity(func, arity)
+                OM_set_function_closure(func, make_closure(sig_rte))
+                OM_set_function_locals(func, local_vars)
+                OM_set_function_globals(func, rte_lexical_globals(sig_rte))
+                OM_set_function_var_context(func, locals_env)
 
-            current_func = rte_current_func(rte)
+                current_func = rte_current_func(sig_rte)
 
-            if current_func is absent:
-                # top-level definition
-                lexical_scope = make_dict()
-            else:
-                lexical_scope = dict_copy(OM_get_function_lexical_scope(current_func))
+                if current_func is absent:
+                    # top-level definition
+                    lexical_scope = make_dict()
+                else:
+                    lexical_scope = dict_copy(OM_get_function_lexical_scope(current_func))
 
-                # Add local variables
-                locals_ = rte_locals(rte)
-                for name in dict_keys(locals_):
-                    val = dict_get(locals_, name, None)
-                    # in non-safe-for-space mode, all variables should be boxed
-                    dict_set(lexical_scope, name, val)
+                    # Add local variables
+                    locals_ = rte_locals(sig_rte)
+                    for name in dict_keys(locals_):
+                        val = dict_get(locals_, name, None)
+                        # in non-safe-for-space mode, all variables should be boxed
+                        dict_set(lexical_scope, name, val)
 
-            OM_set_function_lexical_scope(func, lexical_scope)
+                OM_set_function_lexical_scope(func, lexical_scope)
 
-            return cont(rte, func)
-
-
+                return cont(sig_rte, func)
+            return signature_code(rte, get_signature)
         return cte, create_function
 
 
