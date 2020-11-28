@@ -2513,7 +2513,7 @@ def om_type_call(ctx, args, kwargs):
         if om_is(OM_get_object_class(instance), cls):
             cls_init = getattribute_from_class_mro(cls, "__init__")
             next_ctx = with_cont(ctx, lambda rte, _: ctx.cont(ctx.rte, instance))
-            return sem_generic_call(next_ctx, cls_init, args, kwargs)
+            return sem_generic_call(next_ctx, cls_init, [instance] + args[1:], kwargs)
         else:
             return ctx.cont(ctx.rte, instance)
 
@@ -5715,10 +5715,7 @@ def om_method_call_code(ctx, args, kwargs):
     fn = OM_get_method_function(method)
     self = OM_get_method_self(method)
 
-    # small hack to avoid recreating a list
-    args[0] = self
-
-    return sem_generic_call(ctx, fn, args, kwargs)
+    return sem_generic_call(ctx, fn, [self] + args[1:], kwargs)
 
 
 om_method_call = do_magic_method_with_kwargs(class_method, "__call__", om_method_call_code)
