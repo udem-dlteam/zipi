@@ -61,13 +61,6 @@ class RTCtrlLabel:
         self.break_cont = break_cont
         self.continue_cont = continue_cont
 
-class RTCtrlCatch:
-    def __init__(self, ctrl_next, code_catch, lex_env):
-        self.ctrl_next = ctrl_next
-        self.code_catch = code_catch
-        self.lex_env = lex_env
-
-
 # class RTE:
 #     def __init__(self, global_env, locals_env, builtins, stack, ctrl_env):
 #         self.globals_env = globals_env
@@ -221,17 +214,18 @@ def with_cont(ctx, cont):
     return Context(ctx.rte, cont, ctx.ast)
 
 def with_catch(ctx, catcher_cont):
-    # Add a continuation which removes the catcher from the rte before returning
-    def unwind_catch_block(rte, val):
-        unwinded_rte = unwind_rte_ctrl_env(rte)
-        return ctx.cont(unwinded_rte, val)
-
-    catcher = RTCtrlCatch(rte_ctrl_env(ctx.rte), catcher_cont, ctx.rte)
-    next_rte = make_rte_from_new_ctrl_env(ctx.rte, catcher)
-    return Context(next_rte, unwind_catch_block, ctx.ast)
+    unhandled_rte = ctx.rte
+    def cont(_, val):
+        return ctx.cont(unhandled_rte, val)
+    next_rte = make_rte_with_handler(unhandled_rte, catcher_cont)
+    return Context(next_rte, cont, ctx.ast)
 
 def with_cont_and_catch(ctx, cont, catcher_cont):
-    return with_catch(with_cont(ctx, cont), catcher_cont)
+    unhandled_rte = ctx.rte
+    def exit_cont(_, val):
+        return cont(unhandled_rte, val)
+    next_rte = make_rte_with_handler(unhandled_rte, catcher_cont)
+    return Context(next_rte, exit_cont, ctx.ast)
 
 def make_out_of_ast_context(rte, cont):
     # Note use only if there is no access to the ctx or the ast
@@ -378,7 +372,9 @@ class OM_NoneType(OM_object):
     pass
 
 class OM_BaseException(OM_object):
-    pass
+    """
+    locations: stack of ast nodes where the exception was thrown
+    """
 
 
 def make_frame(rte, cont, ast):
@@ -415,6 +411,9 @@ def make_rte_from_parent(rte, globals_env, locals_env, current_func, stack, ctrl
     dict_set(new_rte, "ctrl_env", ctrl_env)
     dict_set(new_rte, "sys_modules", sys_modules)
     dict_set(new_rte, "class_parent_locals", class_parent_locals)
+    rte_set_current_exc(new_rte, rte_get_current_exc(rte))
+    rte_set_handler(new_rte, rte_get_handler(rte))
+    rte_set_finally(new_rte, rte_get_finally(rte))
 
     # Used to accumulate objects repr seen when calling sem_repr, to avoid infinite loops in nested objects
     dict_set(new_rte, "seen_repr_stack", seen_repr_stack)
@@ -438,7 +437,29 @@ def make_class_rte(rte, locals_env):
     return new_rte
 
 
+def make_call_rte(rte, locals_env, called_func, stack):
+    # When a call occurs, we create a new rte with new environment and stack info
+    # We also remove any finally continuation which should not catch the return from the scope
+    # This is ok because a finally only catched return's, whenever there is a try-finally block,
+    # a handler should have been set to redirect exceptions to the finally code
+
+    call_rte = make_rte_from_parent(rte, rte_globals(rte), locals_env, called_func, stack, rte_ctrl_env(rte))
+    rte_remove_finally(call_rte)
+
+    return call_rte
+
+
+
 def make_new_rte(globals_env, locals_env, builtins, builtins_module, options):
+    def main_handler(exc):
+        locations = OM_get_BaseException_locations(exc)
+        last_location = locations[len(locations) - 1]
+
+        dummy_ctx = Context(new_rte, lambda rte: None, last_location)
+
+        exc_msg = om_simple_exception_format(dummy_ctx, exc)
+        return expr_end_with_error(dummy_ctx, exc_msg)
+
     serial_counter = [0]
     sys_modules = make_dict()
 
@@ -454,6 +475,9 @@ def make_new_rte(globals_env, locals_env, builtins, builtins_module, options):
     dict_set(new_rte, "ctrl_env", absent)
     dict_set(new_rte, "sys_modules", sys_modules)
     dict_set(new_rte, "class_parent_locals", absent)
+    rte_set_current_exc(new_rte, absent)
+    rte_set_handler(new_rte, main_handler)
+    rte_set_finally(new_rte, absent)
 
     # Used to accumulate objects repr seen when calling sem_repr, to avoid infinite loops in nested objects
     dict_set(new_rte, "seen_repr_stack", [])
@@ -463,6 +487,33 @@ def make_new_rte(globals_env, locals_env, builtins, builtins_module, options):
 
     return new_rte
 
+
+def make_rte_copy(rte):
+    new_rte = make_dict()
+
+    dict_set(new_rte, "serial_counter", rte_serial_counter(rte))
+    dict_set(new_rte, "globals", rte_globals(rte))
+    dict_set(new_rte, "locals", rte_locals(rte))
+    rte_set_current_func(new_rte, rte_current_func(rte))
+    dict_set(new_rte, "builtins", rte_builtins(rte))
+    dict_set(new_rte, "builtins_module", rte_builtins_module(rte))
+    dict_set(new_rte, "stack", rte_stack(rte))
+    dict_set(new_rte, "ctrl_env", rte_ctrl_env(rte))
+    dict_set(new_rte, "sys_modules", rte_sys_modules(rte))
+    dict_set(new_rte, "class_parent_locals", rte_class_parent_locals(rte))
+    rte_set_current_exc(new_rte, rte_get_current_exc(rte))
+    rte_set_handler(new_rte, rte_get_handler(rte))
+    rte_set_finally(new_rte, rte_get_finally(rte))
+
+    # Used to accumulate objects repr seen when calling sem_repr, to avoid infinite loops in nested objects
+    dict_set(new_rte, "seen_repr_stack", rte_get_seen_repr_stack(rte))
+
+    dict_set(new_rte, "vm", rte_vm(rte))
+    dict_set(new_rte, "options", rte_options(rte))
+
+    return new_rte
+
+
 def make_rte_from_new_ctrl_env(rte, ctrl_env):
     return make_rte_from_parent(rte,
                                 rte_globals(rte),
@@ -470,6 +521,26 @@ def make_rte_from_new_ctrl_env(rte, ctrl_env):
                                 rte_current_func(rte),
                                 rte_stack(rte),
                                 ctrl_env)
+
+
+def make_rte_with_handler(rte, handler_code):
+    new_rte = make_rte_copy(rte)
+    rte_set_handler(new_rte, handler_code)
+    return new_rte
+
+
+def make_rte_with_finally(rte, final):
+    new_rte = make_rte_copy(rte)
+    rte_set_finally(new_rte, final)
+    return new_rte
+
+
+def make_rte_with_handler_and_finally(rte, handler_code, final):
+    new_rte = make_rte_copy(rte)
+    rte_set_handler(new_rte, handler_code)
+    rte_set_finally(new_rte, final)
+    return new_rte
+
 
 def unwind_rte_ctrl_env(rte):
     next_ctrl_env = rte_ctrl_env(rte).ctrl_next
@@ -511,6 +582,9 @@ def rte_locals(rte):
 
 def rte_current_func(rte):
     return dict_get(rte, 'current_func', absent)
+
+def rte_set_current_func(rte, fn):
+    dict_set(rte, 'current_func', fn)
 
 def rte_builtins(rte):
     return dict_get(rte, 'builtins', absent)
@@ -618,11 +692,53 @@ def rte_repr_exit(rte):
     rte_get_seen_repr_stack(rte).pop()
 
 
+def rte_set_current_exc(rte, exc):
+    dict_set(rte, 'current_exc', exc)
+
+
+def rte_get_current_exc(rte):
+    return dict_get(rte, 'current_exc', absent)
+
+
+def rte_pop_current_exc(rte):
+    exc = dict_get(rte, 'current_exc', absent)
+    dict_set(rte, 'current_exc', absent)
+    return exc
+
+
+def rte_set_handler(rte, handler):
+    dict_set(rte, 'handler', handler)
+
+
+def rte_remove_handler(rte):
+    dict_set(rte, 'handler', absent)
+
+
+def rte_get_handler(rte):
+    return dict_get(rte, 'handler', absent)
+
+
+def rte_set_finally(rte, final):
+    dict_set(rte, 'finally', final)
+
+
+def rte_remove_finally(rte):
+    dict_set(rte, 'finally', absent)
+
+
+def rte_get_finally(rte):
+    return dict_get(rte, 'finally', absent)
+
 # stack operation
-def unwindReturn(rte, val):
-    frame = rte_stack(rte)
-    ctx = Context(frame_rte(frame), frame_cont(frame), frame_ast(frame))
-    return ctx.cont(ctx.rte, val)
+def unwind_return(rte, val):
+    def do_return(_):
+        frame = rte_stack(rte)
+        ctx = Context(frame_rte(frame), frame_cont(frame), frame_ast(frame))
+        return ctx.cont(ctx.rte, val)
+
+    # First execute any finally block
+    return sem_exec_all_finally(rte, do_return)
+
 
 # function signature
 def make_signature(args, posonlyargs, varargs, kwonlyargs, kw_defaults, kwargs, defaults):
@@ -1850,6 +1966,27 @@ def OM_get_DOMElement_elem(o):
 def OM_set_DOMElement_elem(o, elem):
     o.elem = elem
 
+
+def OM_get_BaseException_locations(o):
+    return getattr(o, "locations", None)
+
+
+def OM_init_BaseException_locations(o):
+    stack = getattr(o, "locations", None)
+    if stack is None:
+        stack = []
+        o.locations = stack
+    return stack
+
+
+def OM_set_BaseException_locations(o, stack):
+    o.locations = stack
+
+
+def OM_push_BaseException_location(o, loc):
+    o.locations.append(loc)
+
+
 # Generate BinOp semantics for python Numeric datatypes (or that which emulate)
 # For the correct Python Data Model and interpreter, these are paired with
 # generators for primitive operators which do the actual computation, defined later.
@@ -2070,6 +2207,7 @@ class_DOMElement = make_builtin_class('DOMElement', OM_DOMElement_create, ())
 # Exception classes
 class_BaseException = make_builtin_class('BaseException', OM_BaseException_create, ())
 class_Exception = make_builtin_class('Exception', OM_BaseException_create, (class_BaseException,))
+class_RuntimeError = make_builtin_class('RuntimeError', OM_BaseException_create, (class_Exception,))
 class_NameError = make_builtin_class('NameError', OM_BaseException_create, (class_Exception,))
 class_UnboundLocalError = make_builtin_class('UnboundLocalError:', OM_BaseException_create, (class_Exception,))
 class_SyntaxError = make_builtin_class('SyntaxError', OM_BaseException_create, (class_Exception,))
@@ -4604,11 +4742,11 @@ def om_iterator_next_code(ctx, args):
             OM_set_iterator_index(self, om_int(int_add(OM_get_boxed_value(index), int_from_num(1))))
             return ctx.cont(rte, val)
 
-        def catch_IndexError(rte, exn):
+        def catch_IndexError(exn):
             if om_isinstance(exn, class_IndexError):
                 return sem_raise(ctx, class_StopIteration)
             else:
-                return sem_raise(ctx, exn)
+                return sem_raise_unsafe(ctx.rte, exn)
 
         next_ctx = with_cont_and_catch(ctx, increment_index, catch_IndexError)
 
@@ -5464,16 +5602,15 @@ def om_function_call_code(ctx, args, kwargs):
             else:
                 dict_set(locals_env, name, value)
 
-
-        new_rte = make_rte_from_parent(rte, rte_globals(rte), locals_env, self, stack, rte_ctrl_env(rte))
+        call_rte = make_call_rte(rte, locals_env, self, stack)
         body = OM_get_function_body(self)
-        return body(new_rte,
+
+        return body(call_rte,
                     lambda rte1:
                        frame_cont(rte_stack(rte1))(frame_rte(rte_stack(rte1)), om_None))
 
-    new_ctx = with_cont(ctx, execute_body)
     self_name_value = OM_get_boxed_value(OM_get(self, '__name__'))
-    return align_args_with_signature(new_ctx, self_name_value, params, kwargs, signature)
+    return align_args_with_signature(with_cont(ctx, execute_body), self_name_value, params, kwargs, signature)
 
 om_function_call = do_magic_method_with_kwargs(class_function, '__call__', om_function_call_code)
 
@@ -6896,7 +7033,7 @@ populate_builtin_BaseException()
 
 def om_breakpoint_code(rte, cont):
     def return_none(_):
-        return unwindReturn(rte, om_None)
+        return unwind_return(rte, om_None)
 
     frame = rte_stack(rte)
     parent_ast = frame_ast(frame)
@@ -6917,7 +7054,7 @@ def om_input_code(rte, cont):
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise(ctx, class_EOFError)
         else:
-            return unwindReturn(rte1, om_str(result))
+            return unwind_return(rte1, om_str(result))
 
     obj = rte_lookup_locals(rte, 'obj')
     ctx = make_out_of_ast_context(rte, return_value)
@@ -6933,7 +7070,7 @@ def gen_int_to_string_conv_code(radix, prefix):
                 result = prefix + int_to_string(obj_value, radix)
             else:
                 result = "-" + prefix + int_to_string(int_neg(obj_value), radix)
-            return unwindReturn(rte, om_str(result))
+            return unwind_return(rte, om_str(result))
         else:
             obj_cls_name = OM_get(obj_cls, '__name__')
             obj_cls_name_value = OM_get_boxed_value(obj_cls_name)
@@ -6953,7 +7090,7 @@ def om_chr_code(rte, cont):
         obj_value = OM_get_boxed_value(obj)
         if int_gt(obj_value, -1) and int_lt(obj_value,1114112):
             obj_int_val = int_to_num(obj_value)
-            return unwindReturn(rte, om_str(chr(obj_int_val)))
+            return unwind_return(rte, om_str(chr(obj_int_val)))
         else:
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise_with_message(ctx, class_ValueError, "chr() arg not in range(0x110000)")
@@ -6968,7 +7105,7 @@ def om_ord_code(rte, cont):
         obj_value_len = len(obj_value)
         if obj_value_len == 1:
             obj_value_int = int_from_num(ord(obj_value))
-            return unwindReturn(rte, om_int(obj_value_int))
+            return unwind_return(rte, om_int(obj_value_int))
         else:
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise_with_message(ctx, class_ValueError, "ord() expected a character, but string of length " + str(obj_value_len) + " found")
@@ -6995,7 +7132,7 @@ def om_print_code(rte, _):
             else:
                 # sep=' '
                 runtime_print(' '.join(result), rte)
-                return unwindReturn(rte, om_None)
+                return unwind_return(rte, om_None)
 
         next_ctx = make_out_of_ast_context(rte, print_value)
         return sem_str(next_ctx, args_seq[i])
@@ -7004,14 +7141,14 @@ def om_print_code(rte, _):
         return loop(rte, 0)
     else:
         runtime_print('', rte)
-        return unwindReturn(rte, om_None)
+        return unwind_return(rte, om_None)
 
 def om_alert_code(rte, _):
     obj = rte_lookup_locals(rte, "obj")
     def alert_str(rte, obj_str):
         obj_str_value = OM_get_boxed_value(obj_str)
         runtime_alert(obj_str_value)
-        return unwindReturn(rte, om_None)
+        return unwind_return(rte, om_None)
 
     ctx = make_out_of_ast_context(rte, alert_str)
     return sem_str(ctx, obj)
@@ -7021,7 +7158,7 @@ def om_confirm_code(rte, _):
     def confirm_dialog(rte, obj_str):
         obj_str_value = OM_get_boxed_value(obj_str)
         result = runtime_confirm(obj_str_value)
-        return unwindReturn(rte, om_bool(result))
+        return unwind_return(rte, om_bool(result))
 
     ctx = make_out_of_ast_context(rte, confirm_dialog)
     return sem_str(ctx, obj)
@@ -7032,33 +7169,33 @@ def om_prompt_code(rte, _):
         obj_str_value = OM_get_boxed_value(obj_str)
         result = runtime_prompt(obj_str_value)
         if om_is(result, None):
-            return unwindReturn(rte, om_None)
+            return unwind_return(rte, om_None)
         else:
-            return unwindReturn(rte, om_str(result))
+            return unwind_return(rte, om_str(result))
 
     ctx = make_out_of_ast_context(rte, prompt_str)
     return sem_str(ctx, obj)
 
 def om_repr_code(rte, _):
     def cont(rte, res):
-        return unwindReturn(rte, res)
+        return unwind_return(rte, res)
     next_ctx = make_out_of_ast_context(rte, cont)
     return sem_repr(next_ctx, rte_lookup_locals(rte, 'obj'))
 
 def om_len_code(rte, _):
     def cont(rte, res):
-        return unwindReturn(rte, res)
+        return unwind_return(rte, res)
     next_ctx = make_out_of_ast_context(rte, cont)
     return sem_len(next_ctx, rte_lookup_locals(rte, 'obj'))
 
 def om_next_code(rte, _):
     def cont(rte, res):
-        return unwindReturn(rte, res)
+        return unwind_return(rte, res)
     next_ctx = make_out_of_ast_context(rte, cont)
     return sem_next(next_ctx, rte_lookup_locals(rte, 'obj'), rte_lookup_locals(rte, 'default'))
 
 def om_iter_code(rte, _):
-    next_ctx = make_out_of_ast_context(rte, unwindReturn)
+    next_ctx = make_out_of_ast_context(rte, unwind_return)
 
     obj = rte_lookup_locals(rte, 'obj')
     sentinel = rte_lookup_locals(rte, 'sentinel')
@@ -7069,7 +7206,7 @@ def om_iter_code(rte, _):
         return sem_raise(next_ctx, class_NotImplementedError)
 
 def om_abs_code(rte, _):
-    next_ctx = make_out_of_ast_context(rte, unwindReturn)
+    next_ctx = make_out_of_ast_context(rte, unwind_return)
 
     obj = rte_lookup_locals(rte, 'obj')
     return sem_abs(next_ctx, obj)
@@ -7096,7 +7233,7 @@ def do_min_max(name, sem_Comp):
                 candidate_ref = [first_element]
                 def get_next(get_next_rte, next_element):
                     if next_element is for_loop_end_marker:
-                        return cont_obj(make_out_of_ast_context(get_next_rte, unwindReturn), candidate_ref[0])
+                        return cont_obj(make_out_of_ast_context(get_next_rte, unwind_return), candidate_ref[0])
                     else:
                         def compare_candidates(compare_rte, res):
                             def pick_next_candidate(pick_rte, bool_res):
@@ -7119,10 +7256,10 @@ def om_round_code(rte, cont):
     ndigits = rte_lookup_locals(rte, 'ndigits')
 
     # NOTE: sem_Round handles the case where ndigits is 'absent'
-    return sem_Round(make_out_of_ast_context(rte, unwindReturn), number, ndigits)
+    return sem_Round(make_out_of_ast_context(rte, unwind_return), number, ndigits)
 
 def om_pow_code(rte, _):
-    next_ctx = make_out_of_ast_context(rte, unwindReturn)
+    next_ctx = make_out_of_ast_context(rte, unwind_return)
 
     base = rte_lookup_locals(rte, 'base')
     power = rte_lookup_locals(rte, 'power')
@@ -7137,7 +7274,7 @@ def om_isinstance_code(rte, cont):
     obj = rte_lookup_locals(rte, 'object')
     classinfo = rte_lookup_locals(rte, 'classinfo')
 
-    next_ctx = make_out_of_ast_context(rte, unwindReturn)
+    next_ctx = make_out_of_ast_context(rte, unwind_return)
 
     if om_isinstance(classinfo, class_type):
         return cont_bool(next_ctx, om_isinstance(obj, classinfo))
@@ -7159,7 +7296,7 @@ def om_make_math_unary_real_function(fn_name, float_fn, arg):
                 return sem_raise_with_message(make_out_of_ast_context(float_rte, cont), class_TypeError, "must be real number")
             else:
                 res = float_fn(OM_get_boxed_value(float_val))
-                return unwindReturn(float_rte, om_float(res))
+                return unwind_return(float_rte, om_float(res))
 
         return sem_maybe_float(make_out_of_ast_context(rte, apply_float_fn), val)
 
@@ -7183,7 +7320,7 @@ def om_make_math_unary_real_to_int_function(fn_name, float_fn, arg):
                                                   "cannot convert float NaN to integer")
                 else:
                     int_res = int_from_num(float_to_num(res))
-                    return unwindReturn(float_rte, om_int(int_res))
+                    return unwind_return(float_rte, om_int(int_res))
 
         return sem_maybe_float(make_out_of_ast_context(rte, apply_float_fn), val)
 
@@ -7200,10 +7337,10 @@ def om_make_math_unary_real_domain_function(fn_name, float_fn, arg, arg_domain):
                 float_unboxed_val = OM_get_boxed_value(float_val)
 
                 if float_is_nan(float_unboxed_val):
-                    return unwindReturn(float_rte, om_float(float_nan()))
+                    return unwind_return(float_rte, om_float(float_nan()))
                 elif arg_domain(float_unboxed_val):
                     res = float_fn(OM_get_boxed_value(float_val))
-                    return unwindReturn(float_rte, om_float(res))
+                    return unwind_return(float_rte, om_float(res))
                 else:
                     return sem_raise_with_message(make_out_of_ast_context(float_rte, cont), class_ValueError, "math domain error")
 
@@ -7258,7 +7395,7 @@ def make_module_math():
                             return sem_raise_with_message(make_out_of_ast_context(obj2_rte, cont), class_ValueError,
                                                           "math domain error")
                         else:
-                            return unwindReturn(obj2_rte, om_float(res))
+                            return unwind_return(obj2_rte, om_float(res))
 
                 return sem_maybe_float(make_out_of_ast_context(obj1_rte, check_obj2), obj2)
         return sem_maybe_float(make_out_of_ast_context(rte, check_obj1), obj1)
@@ -7305,7 +7442,7 @@ def make_module_math():
 
                         res = float_atan2(float_res1, float_res2)
 
-                        return unwindReturn(obj2_rte, om_float(res))
+                        return unwind_return(obj2_rte, om_float(res))
                 return sem_maybe_float(make_out_of_ast_context(obj1_rte, check_obj2), obj2)
         return sem_maybe_float(make_out_of_ast_context(rte, check_obj1), obj1)
 
@@ -7355,7 +7492,7 @@ def make_module_turtle():
     def make_set_option_fn(fct, name):
         def code(rte, cont):
             fct(rte)
-            return unwindReturn(rte, om_None)
+            return unwind_return(rte, om_None)
         return om_make_builtin_function_with_signature(name, code, empty_signature)
 
     om_module_turtle_st = make_set_option_fn(drawing_st, 'st')
@@ -7377,7 +7514,7 @@ def make_module_turtle():
                         return sem_raise_with_message(make_out_of_ast_context(arg2_rte, cont), class_ValueError, name + "() arguments must be finite numbers")
                     else:
                         fn(rte, val1, val2)
-                        return unwindReturn(rte, om_None)
+                        return unwind_return(rte, om_None)
 
                 return sem_float(make_out_of_ast_context(arg1_rte, get_arg2_float), arg2)
             return sem_float(make_out_of_ast_context(rte, get_arg1_float), arg1)
@@ -7394,7 +7531,7 @@ def make_module_turtle():
 
         if width is absent:
             drawing_cs(rte)
-            return unwindReturn(rte, om_None)
+            return unwind_return(rte, om_None)
         elif height is absent:
             return sem_raise_with_message(make_out_of_ast_context(rte, cont), class_TypeError,
                                           'clear() expected 0 or 2 arguments, got 1')
@@ -7410,7 +7547,7 @@ def make_module_turtle():
                                                       "clear() arguments must be finite numbers")
                     else:
                         drawing_cs(rte, width_val, height_val)
-                        return unwindReturn(rte, om_None)
+                        return unwind_return(rte, om_None)
                 return sem_float(make_out_of_ast_context(width_rte, get_height_float), height)
             return sem_float(make_out_of_ast_context(rte, get_width_float), width)
 
@@ -7432,7 +7569,7 @@ def make_module_turtle():
                                                   "goto() arguments must be finite numbers")
                 else:
                     drawing_mv(y_rte, x_val, y_val)
-                    return unwindReturn(rte, om_None)
+                    return unwind_return(rte, om_None)
 
             return sem_float(make_out_of_ast_context(x_rte, get_y_float), y)
         return sem_float(make_out_of_ast_context(rte, get_x_float), x)
@@ -7447,7 +7584,7 @@ def make_module_turtle():
 
                 if float_is_finite(angle_val):
                     fn(angle_rte, angle_val)
-                    return unwindReturn(angle_rte, om_None)
+                    return unwind_return(angle_rte, om_None)
                 else:
                     return sem_raise_with_message(make_out_of_ast_context(angle_rte, cont),
                                                   class_ValueError,
@@ -7476,7 +7613,7 @@ def make_module_turtle():
 
                     if color_in_range(r_val) and color_in_range(g_val) and color_in_range(b_val):
                         drawing_setpc(rte, r_val, g_val, b_val)
-                        return unwindReturn(rte, om_None)
+                        return unwind_return(rte, om_None)
                     else:
                         return sem_raise_with_message(make_out_of_ast_context(b_rte, cont),
                                                       class_ValueError,
@@ -7497,7 +7634,7 @@ def make_module_turtle():
 
             if float_is_finite(width_value) and float_is_pos(width_value):
                 drawing_setpw(width_rte, float_to_num(width_value))
-                return unwindReturn(width_rte, om_None)
+                return unwind_return(width_rte, om_None)
             else:
                 return sem_raise_with_message(make_out_of_ast_context(width_rte, cont), class_ValueError,
                                               "pensize() argument must be a positive number")
@@ -7513,7 +7650,7 @@ def make_module_turtle():
         def get_arg_str(arg_rte, arg_str):
             text_value = OM_get_boxed_value(arg_str)
             drawing_drawtext(arg_rte, text_value)
-            return unwindReturn(arg_rte, om_None)
+            return unwind_return(arg_rte, om_None)
 
         return sem_str(make_out_of_ast_context(rte, get_arg_str), arg)
 
@@ -7544,7 +7681,7 @@ def make_module_random():
 
     def om_random_code(rte, _):
         result = runtime_random()
-        return unwindReturn(rte, om_float(result))
+        return unwind_return(rte, om_float(result))
 
     om_random_random = om_make_builtin_function_with_signature('random', om_random_code, empty_signature)
 
@@ -7558,13 +7695,13 @@ def make_module_time():
 
     def om_time_code(rte, _):
         result = runtime_time()
-        return unwindReturn(rte, om_float(result))
+        return unwind_return(rte, om_float(result))
 
     def om_sleep_code(rte, cont):
         secs = rte_lookup_locals(rte, 'secs')
 
         def return_none(_):
-            return unwindReturn(rte, om_None)
+            return unwind_return(rte, om_None)
 
         frame = rte_stack(rte)
         parent_ast = frame_ast(frame)
@@ -7613,12 +7750,12 @@ def make_module_functools():
 
         def get_iterator(rte, iterator):
             def get_next(rte, last):
-                def catch_StopIteration(rte, exn):
+                def catch_StopIteration(exn):
                     ctx = make_out_of_ast_context(rte, cont)
                     if om_isinstance(exn, class_StopIteration):
-                        return unwindReturn(rte, last)
+                        return unwind_return(rte, last)
                     else:
-                        return sem_raise(ctx, exn)
+                        return sem_raise_unsafe(ctx.rte, exn)
 
                 def do_call(rte, nxt):
                     return sem_simple_call(make_out_of_ast_context(rte, get_next), fn, [last, nxt])
@@ -7626,12 +7763,12 @@ def make_module_functools():
                 return sem_next_no_default(make_out_of_ast_context_with_catch(rte, do_call, catch_StopIteration), iterator)
 
             if init is absent:
-                def catch_StopIteration(rte, exn):
+                def catch_StopIteration(exn):
                     ctx = make_out_of_ast_context(rte, cont)
                     if om_isinstance(exn, class_StopIteration):
                         return sem_raise_with_message(ctx, class_TypeError, "reduce() of empty sequence with no initial value")
                     else:
-                        return sem_raise(ctx, exn)
+                        return sem_raise_unsafe(ctx.rte, exn)
 
                 return sem_next_no_default(make_out_of_ast_context_with_catch(rte, get_next, catch_StopIteration), iterator)
             else:
@@ -7673,49 +7810,49 @@ def make_module_mouse():
             dict_set(struct_attrs, 'ctrl', om_bool(ctrl))
             dict_set(struct_attrs, 'alt', om_bool(alt))
 
-            return sem_generic_call(make_out_of_ast_context(rte, unwindReturn), class_struct, [], struct_attrs)
+            return sem_generic_call(make_out_of_ast_context(rte, unwind_return), class_struct, [], struct_attrs)
 
     def getMouseX_code(rte, cont):
         if getMouseX is None:
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise(ctx, class_NotImplementedError)
         else:
-            return unwindReturn(rte, om_int(int_from_num(getMouseX(rte))))
+            return unwind_return(rte, om_int(int_from_num(getMouseX(rte))))
 
     def getMouseY_code(rte, cont):
         if getMouseY is None:
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise(ctx, class_NotImplementedError)
         else:
-            return unwindReturn(rte, om_int(int_from_num(getMouseY(rte))))
+            return unwind_return(rte, om_int(int_from_num(getMouseY(rte))))
 
     def getMouseButton_code(rte, cont):
         if getMouseButton is None:
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise(ctx, class_NotImplementedError)
         else:
-            return unwindReturn(rte, om_int(getMouseButton(rte)))
+            return unwind_return(rte, om_int(getMouseButton(rte)))
 
     def getMouseShift_code(rte, cont):
         if getMouseShift is None:
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise(ctx, class_NotImplementedError)
         else:
-            return unwindReturn(rte, om_bool(getMouseShift(rte)))
+            return unwind_return(rte, om_bool(getMouseShift(rte)))
 
     def getMouseCtrl_code(rte, cont):
         if getMouseCtrl is None:
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise(ctx, class_NotImplementedError)
         else:
-            return unwindReturn(rte, om_bool(getMouseCtrl(rte)))
+            return unwind_return(rte, om_bool(getMouseCtrl(rte)))
 
     def getMouseAlt_code(rte, cont):
         if getMouseAlt is None:
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise(ctx, class_NotImplementedError)
         else:
-            return unwindReturn(rte, om_bool(getMouseAlt(rte)))
+            return unwind_return(rte, om_bool(getMouseAlt(rte)))
 
     module_mouse_env = make_dict()
 
@@ -7788,18 +7925,18 @@ def make_module_pixels():
             width_val = int_to_num(OM_get_boxed_value(width))
             height_val = int_to_num(OM_get_boxed_value(height))
             drawing_setScreenMode(rte, width_val, height_val)
-            return unwindReturn(rte, om_None)
+            return unwind_return(rte, om_None)
         else:
             ctx = make_out_of_ast_context(rte, cont)
             return sem_raise_with_message(ctx, class_TypeError, "arguments width and height must be of type int")
 
     def getScreenWidth_code(rte, cont):
         result = drawing_getScreenWidth(rte)
-        return unwindReturn(rte, om_int(int_from_num(result)))
+        return unwind_return(rte, om_int(int_from_num(result)))
 
     def getScreenHeight_code(rte, cont):
         result = drawing_getScreenHeight(rte)
-        return unwindReturn(rte, om_int(int_from_num(result)))
+        return unwind_return(rte, om_int(int_from_num(result)))
 
     def setPixel_code(rte, cont):
         ctx = make_out_of_ast_context(rte, cont)
@@ -7825,14 +7962,14 @@ def make_module_pixels():
                     return sem_raise_with_message(ctx, class_ValueError, "invalid HTML color str format")
                 else:
                     drawing_setPixel(rte, xval, yval, color_val)
-                    return unwindReturn(rte, om_None)
+                    return unwind_return(rte, om_None)
             if om_isinstance(color, class_struct):
                 color_val = color_struct_to_dict(color)
                 if color_val is None:
                     return sem_raise_with_message(ctx, class_ValueError, "invalid HTML color struct format")
                 else:
                     drawing_setPixel(rte, xval, yval, color_val)
-                    return unwindReturn(rte, om_None)
+                    return unwind_return(rte, om_None)
             else:
                 return sem_raise_with_message(ctx, class_TypeError, "color must be of type str or struct")
         else:
@@ -7876,14 +8013,14 @@ def make_module_pixels():
                     return sem_raise_with_message(ctx, class_ValueError, "invalid HTML color str format")
                 else:
                     drawing_fillRectangle(rte, xval, yval, width_val, height_val, color_val)
-                    return unwindReturn(rte, om_None)
+                    return unwind_return(rte, om_None)
             elif om_isinstance(color, class_struct):
                 color_val = color_struct_to_dict(color)
                 if color_val is None:
                     return sem_raise_with_message(ctx, class_ValueError, "invalid HTML color struct format")
                 else:
                     drawing_fillRectangle(rte, xval, yval, width_val, height_val, color_val)
-                    return unwindReturn(rte, om_None)
+                    return unwind_return(rte, om_None)
             else:
                 return sem_raise_with_message(ctx, class_TypeError, "color must be of type str or struct")
         else:
@@ -7892,7 +8029,7 @@ def make_module_pixels():
 
     def exportScreen_code(rte, cont):
         result = drawing_exportScreen(rte)
-        return unwindReturn(rte, om_str(result))
+        return unwind_return(rte, om_str(result))
 
     # NOTE: getMouse is in the mouse module
     # def getMouse_code(rte, cont):
@@ -8052,7 +8189,7 @@ def make_module_more_builtins():
                                               "filename must be a non-empty str")
             else:
                 content = runtime_readFile(rte, filename_value)
-                return unwindReturn(rte, om_str(content))
+                return unwind_return(rte, om_str(content))
 
 
     om_readFile = om_make_builtin_function_with_signature('readFile', readFile_code,
@@ -8075,7 +8212,7 @@ def make_module_more_builtins():
                                               "filename must be a non-empty str")
             else:
                 runtime_writeFile(rte, filename_value, content_value)
-                return unwindReturn(rte, om_None)
+                return unwind_return(rte, om_None)
 
 
     om_writeFile = om_make_builtin_function_with_signature('writeFile', writeFile_code,
@@ -8382,6 +8519,7 @@ def fresh_rte(options):
 
     dict_set(builtins_env, 'BaseException', class_BaseException)
     dict_set(builtins_env, 'Exception', class_Exception)
+    dict_set(builtins_env, 'RuntimeError', class_RuntimeError)
     dict_set(builtins_env, 'NameError', class_NameError)
     dict_set(builtins_env, 'UnboundLocalError', class_UnboundLocalError)
     dict_set(builtins_env, 'SyntaxError', class_SyntaxError)
@@ -8862,6 +9000,13 @@ def compute_namespace_variables_scope(cte, ast, args):
         if not dict_has(locals_env, name):
             make_local_var_token(cte, name, current_ns, is_function)
 
+    elif isinstance(ast, ExceptHandler):
+        name = ast.name
+        if name is not None and not dict_has(locals_env, name):
+            make_local_var_token(cte, name, current_ns, is_function)
+
+        return True
+
     elif isinstance(ast, AST.Name):
         ctx = ast.ctx
         id_ = ast.id
@@ -8889,6 +9034,7 @@ def compute_namespace_variables_scope(cte, ast, args):
 
             if not dict_has(locals_env, id_):
                 make_local_var_token(cte, id_, current_ns, is_function)
+        return True
 
     elif isinstance(ast, AST.Nonlocal):
         for id_ in ast.names:
@@ -9149,7 +9295,7 @@ def comp_stmt(cte, ast):
             return cte, lambda rte, cont: frame_cont(rte_stack(rte))(frame_rte(rte_stack(rte)), om_None)
         else:
             (cte1, code1) = comp_expr(cte, ast.value)
-            return cte, lambda rte, cont: code1(rte, lambda rte1, val1: unwindReturn(rte1, val1))
+            return cte, lambda rte, cont: code1(rte, lambda rte1, val1: unwind_return(rte1, val1))
 
     elif isinstance(ast, AST.Break):
         if debug: print('AST.Break')
@@ -9208,16 +9354,22 @@ def comp_stmt(cte, ast):
         return gen_for(for_cte, ast, ast.target, ast.iter, ast.body, ast.orelse)
 
     elif isinstance(ast, AST.Raise):
-        if debug: print('AST.Raise')
-        (cte1, code1) = comp_expr(cte, ast.exc)
-        return gen_raise(cte1, ast, code1)
+        exc = ast.exc
+
+        if exc is None:
+            return gen_raise(cte, ast, None)
+        else:
+            cte1, code1 = comp_expr(cte, ast.exc)
+            return gen_raise(cte1, ast, code1)
 
     elif isinstance(ast, AST.Import):
         return comp_import(cte, ast, ast.names)
 
+    elif isinstance(ast, AST.Try):
+        return gen_try(cte, ast)
+
     else:
         return CT_raise_syntax_error_with_msg(cte, ast, "unsupported statements")
-
 
 
 # Compilation of an expression.
@@ -10119,13 +10271,138 @@ def gen_continue(cte, ast):
             return stmt_end(ctx, 1)
         return (cte, code)
 
+
+def gen_handler(cte, handler):
+    exc_type = handler.type
+    name = handler.name
+    body = handler.body
+
+    if exc_type is None:
+        # This catches everything
+        body_cte, body_code = comp_stmt_seq(cte, body)
+
+        def code(rte, _, exit_cont, __):
+            return body_code(rte, exit_cont)
+
+        return body_cte, code
+    elif name is None:
+        # Catches a given exception, but does not register it to a name
+        exc_type_cte, exc_type_code = comp_expr(cte, exc_type)
+        body_cte, body_code = comp_stmt_seq(exc_type_cte, body)
+
+        # skip_cont: called when this handler does not apply
+        # exit_cont: called when the handler was applied and terminated
+        def code(rte, skip_cont, exit_cont, exc):
+            def get_exc_type(type_rte, exc_type):
+                if om_isinstance(exc_type, class_type) and om_issubclass(exc_type, class_BaseException):
+                    if om_isinstance(exc, exc_type):
+                        return body_code(type_rte, exit_cont)
+                    else:
+                        return skip_cont(type_rte)
+                else:
+                    return sem_raise_with_message(Context(type_rte, skip_cont, exc_type),
+                                                  class_TypeError, "catching classes that do not inherit from BaseException is not allowed")
+            return exc_type_code(rte, get_exc_type)
+        return body_cte, code
+
+    else:
+        # Catches an exception and registers it to a name
+        # TODO: delete the name from scope after the except block
+        exc_type_cte, exc_type_code = comp_expr(cte, exc_type)
+        name_cte, name_setter_code = gen_var_set(exc_type_cte, exc_type, name)
+        body_cte, body_code = comp_stmt_seq(name_cte, body)
+
+        def code(rte, skip_cont, exit_cont, exc):
+            def get_exc_type(type_rte, exc_type):
+                if om_isinstance(exc_type, class_type) and om_issubclass(exc_type, class_BaseException):
+                    if om_isinstance(exc, exc_type):
+                        def exec_body(rte):
+                            return body_code(rte, exit_cont)
+                        return name_setter_code(type_rte, exec_body, exc)
+                    else:
+                        return skip_cont(type_rte)
+                else:
+                    return sem_raise_with_message(Context(type_rte, skip_cont, exc_type),
+                                                  class_TypeError, "catching classes that do not inherit from BaseException is not allowed")
+            return exc_type_code(rte, get_exc_type)
+        return body_cte, code
+
+
+def gen_handlers_seq(cte, handlers):
+    if len(handlers) == 0:
+        def reraise(rte, _, exc):
+            return sem_raise_unsafe(rte, exc)
+        return cte, reraise
+    else:
+        first_cte, first_code = gen_handler(cte, handlers[0])
+        tail_cte, tail_code = gen_handlers_seq(first_cte, handlers[1:])
+
+        def handle(rte, exit_cont, exc):
+            def skip_cont(rte):
+                return tail_code(rte, exit_cont, exc)
+            return first_code(rte, skip_cont, exit_cont, exc)
+        return tail_cte, handle
+
+
+def gen_try(cte, ast):
+    # NOTE: There may be no except or finally, but we then count those as empty statement
+    # This could be optimized but for now it simplifies the code immensely
+
+    # When an rte has a handler and a finally, the handler has priority
+    try_body = ast.body
+    handlers = ast.handlers
+    else_body = ast.orelse
+    finally_body = ast.finalbody
+
+    try_cte, try_code = comp_stmt_seq(cte, try_body)
+    handlers_cte, handlers_code = gen_handlers_seq(try_cte, handlers)
+    else_cte, else_code = comp_stmt_seq(handlers_cte, else_body)
+    finally_cte, finally_code = comp_stmt_seq(else_cte, finally_body)
+
+    def code(rte, cont):
+        def do_finally_before_return(finally_cont):
+            return finally_code(rte, finally_cont)
+
+        def do_finally_before_reraise(exc):
+            return finally_code(rte, lambda _: sem_raise_unsafe(rte, exc))
+
+        def run_handlers(exc):
+            rte_with_exc = make_rte_with_handler_and_finally(rte, do_finally_before_reraise, do_finally_before_return)
+            rte_set_current_exc(rte_with_exc, exc)
+            return handlers_code(rte_with_exc, do_finally, exc)
+
+        def do_finally(_):
+            return finally_code(rte, cont)
+
+        def do_else(_):
+            else_rte = make_rte_with_handler_and_finally(rte, do_finally_before_reraise, do_finally_before_return)
+            return else_code(else_rte, do_finally)
+
+        def do_try(rte_with_handlers):
+            return try_code(rte_with_handlers, do_else)
+
+        return do_try(make_rte_with_handler_and_finally(rte, run_handlers, do_finally_before_return))
+
+    return else_cte, code
+
+
 def gen_raise(cte, ast, code):
-    def eval_raise_param(rte, cont):
-        def raise_exn(rte1, exn):
-            ctx = Context(rte1, cont, ast)
-            return sem_raise(ctx, exn)
-        return code(rte, raise_exn)
-    return (cte, eval_raise_param)
+    if code is None:
+        def raise_current(rte, cont):
+            ctx = Context(rte, cont, ast)
+            current_exc = rte_get_current_exc(rte)
+            if current_exc is absent:
+                return sem_raise_with_message(ctx, class_RuntimeError, "No active exception to reraise")
+            else:
+                return sem_raise_unsafe(rte, current_exc)
+        return cte, raise_current
+    else:
+        def eval_raise_param(rte, cont):
+            def raise_exn(rte1, exn):
+                ctx = Context(rte1, cont, ast)
+                return sem_raise(ctx, exn)
+            return code(rte, raise_exn)
+        return cte, eval_raise_param
 
 def comp_import(cte, ast, names):
     if len(names) == 1:
@@ -10751,16 +11028,15 @@ def sem_str(ctx, value):
     return sem_simple_call(next_ctx, value_str, [value])
 
 def sem_getattribute(ctx, obj, name):
-    def catch_AttributeError(rte, exn):
+    def catch_AttributeError(exn):
         if om_isinstance(exn, class_AttributeError):
             obj_getattr = getattribute_from_obj_mro(obj, '__getattr__')
-            new_ctx = Context(rte, ctx.cont, ctx.ast)
             if obj_getattr is absent:
-                return sem_raise(new_ctx, exn)
+                return sem_raise_unsafe(ctx.rte, exn)
             else:
-                return sem_simple_call(new_ctx, obj_getattr, [obj, name])
+                return sem_simple_call(ctx, obj_getattr, [obj, name])
         else:
-            return sem_raise(Context(rte, ctx.cont, ctx.ast), exn)
+            return sem_raise_unsafe(ctx.rte, exn)
 
     obj_getattribute = getattribute_from_obj_mro(obj, '__getattribute__')
 
@@ -10857,11 +11133,11 @@ def sem_next(ctx, obj, default_):
     elif default_ is absent:
         return sem_simple_call(ctx, obj_next, [obj])
     else:
-        def catch_StopIteration(rte, exn):
+        def catch_StopIteration(exn):
             if om_isinstance(exn, class_StopIteration):
-                return ctx.cont(rte, default_)
+                return cont_obj(ctx, default_)
             else:
-                return sem_raise(ctx, exn)
+                return sem_raise_unsafe(ctx.rte, exn)
 
         next_ctx = with_catch(ctx, catch_StopIteration)
         return sem_simple_call(next_ctx, obj_next, [obj])
@@ -11242,12 +11518,12 @@ def sem_var_get_closure(ctx, pos, id):
         return cont_obj(ctx, value)
 
 def sem_var_get_global(ctx, id):
-    def catch_AttributeError(rte, exn):
+    def catch_AttributeError(exn):
         if om_isinstance(exn, class_AttributeError):
             error_msg = "name '" + id + "' is not defined"
-            return sem_raise_with_message(Context(rte, ctx.cont, ctx.ast), class_NameError, error_msg)
+            return sem_raise_with_message(ctx, class_NameError, error_msg)
         else:
-            return sem_raise(Context(rte, ctx.cont, ctx.ast), exn)
+            return sem_raise_unsafe(ctx.rte, exn)
 
     value = rte_lookup_globals(ctx.rte, id)
 
@@ -11280,8 +11556,24 @@ def sem_bool(ctx, val):
         return sem_simple_call(with_cont(ctx, check_bool), val_bool, [val])
 
 
+def find_closest_ast(rte):
+    frame = rte_stack(rte)
+    ast = frame_ast(frame)
+    # There should always be a frame with an ast somewhere
+    while ast is None:
+        frame = rte_stack(frame_rte(frame))
+        ast = frame_ast(frame)
+    return ast
+
+# raise_unsafe raises an object which must already have been checked to be a BaseException and contain context info
+# raise_unsafe expected exc to contain all context information and none has to be added
+def sem_raise_unsafe(rte, exc):
+    handler = rte_get_handler(rte)
+    return handler(exc)
+
+
 def sem_raise(ctx, exn):
-    ctrl_env = rte_ctrl_env(ctx.rte)
+    rte = ctx.rte
 
     # create the exn_object to be created
     if om_isinstance(exn, class_type) and om_issubclass(exn, class_BaseException):
@@ -11289,34 +11581,45 @@ def sem_raise(ctx, exn):
     elif om_isinstance(exn, class_BaseException):
         exn_obj = exn
     else:
+        # TypeError raising a non-BaseException was attempted
         exn_obj = om_exception(class_TypeError, om_tuple(()))
 
-    # XXX: does not unwind all the way
-    while not om_is(ctrl_env, absent):
-        if isinstance(ctrl_env, RTCtrlCatch):
-            ctrl_rte = ctrl_env.lex_env
-            code_catch = ctrl_env.code_catch
-            return code_catch(ctrl_rte, exn_obj)
-        ctrl_env = ctrl_env.ctrl_next
+    location = ctx.ast or find_closest_ast(rte)
 
-    def find_frame_with_ast(rte):
-        frame = rte_stack(rte)
-        while frame is not None and frame_ast(frame) is None:
-            frame = rte_stack(frame_rte(frame))
-        return frame
+    location_stack = OM_init_BaseException_locations(exn_obj)
+    location_stack.append(location)
 
-    if ctx.ast is None:
-        frame = find_frame_with_ast(ctx.rte)
-        ctx = Context(frame_rte(frame),
-                      frame_cont(frame),
-                      frame_ast(frame))
+    return sem_raise_unsafe(rte, exn_obj)
 
-    result = om_simple_exception_format(ctx, exn_obj)
-    return expr_end_with_error(ctx, result)
 
 def sem_raise_with_message(ctx, exn_type, msg):
     args = om_tuple((om_str(msg),))
     return sem_raise(ctx, om_exception(exn_type, args))
+
+
+# Check if there is a finally block and execute it before proceeding to next continuation
+# If there is no finally, run the continuation
+# NOTE: a finally continuation is meant to intercept returns only, to intercept exceptions an handler should be used
+def sem_finally(rte, cont):
+    final = rte_get_finally(rte)
+    if final is absent:
+        return cont(rte)
+    else:
+        # The final continuation should have full information on what to do next
+        return final(cont)
+
+
+def sem_exec_all_finally(rte, cont):
+    final = rte_get_finally(rte)
+    if final is absent:
+        return cont(rte)
+    else:
+        # The final continuation should have full information on what to do next
+        def do_next_finally(rte):
+            return sem_exec_all_finally(rte, do_stmt_end(cont, find_closest_ast(rte), 0))
+
+        return final(do_next_finally)
+
 
 def gen_call(cte, ast):
     args = ast.args

@@ -822,19 +822,40 @@ def parse_function_signature(ts, posonly_and_default, args_and_defaults, vararg,
     "return ast"]
 
 
-,"try_stmt: (.'try' ':' suite ((except_clause ':' suite)+ ['else' ':' suite] ['finally' ':' suite] | 'finally' ':' suite))":
-   ["lineno = get_lineno(ts); col_offset = get_col_offset(ts)"]
-,"try_stmt: ('try' ':' suite ((except_clause ':' suite)+ .['else' ':' suite] ['finally' ':' suite] | 'finally' ':' suite))":
-   ["suite3 = []"]
-,"try_stmt: ('try' ':' suite ((except_clause ':' suite)+ ['else' ':' suite] .['finally' ':' suite] | 'finally' ':' suite))":
-   ["suite4 = []"]
-,"try_stmt: ('try' ':' suite ((except_clause ':' suite)+ ['else' ':' suite] ['finally' ':' suite] | 'finally' ':' suite)).":
-   ["ast = Try(suite1, [], suite3, suite4)\n"
-    "# TODO: implement except_clause handling\n"
-    "set_start(ast, lineno, col_offset)\n"
-    "set_end_ast(ast, (suite4 if len(suite4) > 0 else suite3 if len(suite3) > 0 else suite1)[-1])\n"
-    "return ast"]
+,"try_stmt: .'try' ':' suite (finally_block | (handlers_list ['else' ':' suite] [finally_block]))":
+    ["lineno = get_lineno(ts); col_offset = get_col_offset(ts)"]
+,"try_stmt: 'try' ':' suite (finally_block. | (handlers_list ['else' ':' suite] [finally_block]))":
+    ["ast = Try(suite1, [], [], finally_block1)\n"
+     "return set_start_end(ts, lineno, col_offset, ast)"]
+,"try_stmt: 'try' ':' suite (finally_block | (handlers_list ['else' ':' suite] [finally_block]))":
+    ["handlers.append(except_block1)"]
+,"try_stmt: 'try' ':' suite (finally_block | (handlers_list .['else' ':' suite] [finally_block]))":
+    ["suite2 = []"]
+,"try_stmt: 'try' ':' suite (finally_block | (handlers_list ['else' ':' suite] .[finally_block]))":
+    ["finally_block2 = []"]
+,"try_stmt: 'try' ':' suite (finally_block | (handlers_list ['else' ':' suite] [finally_block].))":
+    ["ast = Try(suite1, handlers_list1, suite2, finally_block2)\n"
+     "return set_start_end(ts, lineno, col_offset, ast)"]
 
+,"handlers_list: except_block. except_block *":
+    ["handlers = [except_block1]"]
+,"handlers_list: except_block except_block. *":
+    ["handlers.append(except_block2)"]
+,"handlers_list: except_block except_block *.":
+    ["return handlers"]
+
+,"except_block: .'except' [test ['as' NAME]] ':' suite":
+    ["lineno = get_lineno(ts); col_offset = get_col_offset(ts); name = None; type = None"]
+,"except_block: 'except' [test. ['as' NAME]] ':' suite":
+    ["type = test1"]
+,"except_block: 'except' [test ['as' .NAME]] ':' suite":
+    ["name = token(ts)"]
+,"except_block: 'except' [test ['as' NAME]] ':' suite.":
+    ["ast = ExceptHandler(type, name, suite1)\n"
+     "return set_start_end(ts, lineno, col_offset, ast)"]
+
+,"finally_block: 'finally' ':' suite.":
+    ["return suite1"]
 
 ,"testlist": ",as_list"
 
