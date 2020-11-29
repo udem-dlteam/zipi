@@ -219,6 +219,15 @@ class Transformer:
             if nargs > 2:
                 raise Exception("Zp only supports map with two arguments.")
             return f"{self.transform(node.args[1])}.map({self.transform(node.args[0])})"
+        # Inline struct functions
+        elif func == "struct_get":
+            # Second argument is a string, remove the quotes.
+            return f"{self.transform(node.args[0])}.{self.transform(node.args[1])[1:-1]}"
+        elif func == "struct_set":
+            # Second argument is a string, remove the quotes.
+            return f"{self.transform(node.args[0])}.{self.transform(node.args[1])[1:-1]} = {self.transform(node.args[2])}"
+        elif func == "make_struct":
+            return "{}"
         elif isinstance(node.func, AST.Attribute):
             if node.func.attr == "encode":
                 return self.transform(node.func.value)
