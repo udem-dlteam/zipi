@@ -1,8 +1,21 @@
 import argparse
 import ast
 import re
-import os
-from colorama import Fore, init
+import logging
+
+try:
+    from colorama import Fore, init
+except ImportError:
+    # Handling colorama causing issues with PyCharm 2020.2
+    logging.warning("colorama module not found (ignored)")
+
+    def init(): pass
+
+    class Fore:
+        def __getattr__(self, item):
+            return ""
+    Fore = Fore()
+
 from pathlib import Path
 from zp_javascript import Transformer as JS
 
