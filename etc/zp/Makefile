@@ -21,6 +21,13 @@ pyinterp: _tmpdir zipi-venv _zparse.py
 	$(PYTHON38) zp.py -f ../../zipi/pyinterp/__init__.py $(ZP_DEBUG) -e pyinterp -n -t -o $(TMPDIR)/pyinterp_node.js
 	cp $(TMPDIR)/pyinterp_browser.js test/pyinterp/
 
+profile: _tmpdir zipi-venv _zparse.py
+	mv profile.out profile.out.old
+	$(PYTHON38) zp.py -f ../../zipi/pyinterp/__init__.py $(ZP_DEBUG) -e pyinterp -n -t -o $(TMPDIR)/pyinterp_node.js
+	node --prof --logfile=profile.log --no-logfile-per-isolate profile.js
+	node --prof-process profile.log > profile.out
+	@echo "Profiling information is available in profile.out."
+
 style: _tmpdir zipi-venv _zparse.py
 	$(PYTHON38) zp.py -f ../../zipi/style/__init__.py $(ZP_DEBUG) -e style -o $(TMPDIR)/style.js
 	$(PYTHON38) zp.py -f ../../zipi/style/__init__.py $(ZP_DEBUG) -e style -t -o $(TMPDIR)/style_browser.js
