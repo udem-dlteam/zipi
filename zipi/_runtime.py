@@ -41,6 +41,32 @@ def dict_len(d):
 
 
 ###
+# Struct operations
+###
+
+# struct are optimized by the zp compiler for the JS version of pyinterp
+# this implementation is probably very slow but it allows to do a python test-run
+# to check that dict_... and struct_... are not mixed at runtime
+
+class __Struct:
+    pass
+
+def make_struct():
+    return __Struct()
+
+def struct_get(struct, attr):
+    if isinstance(struct, __Struct):
+        return getattr(struct, attr)
+    else:
+        raise TypeError("struct_get requires a __Struct as first argument")
+
+def struct_set(struct, attr, val):
+    if isinstance(struct, __Struct):
+        return setattr(struct, attr, val)
+    else:
+        raise TypeError("struct_set requires a __Struct as first argument")
+
+###
 # Int operations
 ###
 

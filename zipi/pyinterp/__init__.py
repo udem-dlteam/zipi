@@ -408,27 +408,27 @@ def make_rte_from_parent(rte, globals_env, locals_env, current_func, stack, ctrl
     builtins_module = rte_builtins_module(rte)
     class_parent_locals = rte_class_parent_locals(rte)
 
-    new_rte = make_dict()
+    new_rte = make_struct()
 
-    dict_set(new_rte, "serial_counter", serial_counter)
-    dict_set(new_rte, "globals", globals_env)
-    dict_set(new_rte, "locals", locals_env)
-    dict_set(new_rte, 'current_func', current_func)
-    dict_set(new_rte, "builtins", builtins)
-    dict_set(new_rte, "builtins_module", builtins_module)
-    dict_set(new_rte, "stack", stack)
-    dict_set(new_rte, "ctrl_env", ctrl_env)
-    dict_set(new_rte, "sys_modules", sys_modules)
-    dict_set(new_rte, "class_parent_locals", class_parent_locals)
+    struct_set(new_rte, "serial_counter", serial_counter)
+    struct_set(new_rte, "globals", globals_env)
+    struct_set(new_rte, "locals", locals_env)
+    struct_set(new_rte, 'current_func', current_func)
+    struct_set(new_rte, "builtins", builtins)
+    struct_set(new_rte, "builtins_module", builtins_module)
+    struct_set(new_rte, "stack", stack)
+    struct_set(new_rte, "ctrl_env", ctrl_env)
+    struct_set(new_rte, "sys_modules", sys_modules)
+    struct_set(new_rte, "class_parent_locals", class_parent_locals)
     rte_set_current_exc(new_rte, rte_get_current_exc(rte))
     rte_set_handler(new_rte, rte_get_handler(rte))
     rte_set_finally(new_rte, rte_get_finally(rte))
 
     # Used to accumulate objects repr seen when calling sem_repr, to avoid infinite loops in nested objects
-    dict_set(new_rte, "seen_repr_stack", seen_repr_stack)
+    struct_set(new_rte, "seen_repr_stack", seen_repr_stack)
 
-    dict_set(new_rte, "vm", vm)
-    dict_set(new_rte, "options", options)
+    struct_set(new_rte, "vm", vm)
+    struct_set(new_rte, "options", options)
 
     return new_rte
 
@@ -442,7 +442,7 @@ def make_class_rte(rte, locals_env):
     # For nested classes, the parent scope is not the parent class but the parent function
     new_class_parent_locals = rte_locals(rte) if class_parent_locals is absent else class_parent_locals
 
-    dict_set(new_rte, "class_parent_locals", new_class_parent_locals)
+    struct_set(new_rte, "class_parent_locals", new_class_parent_locals)
     return new_rte
 
 
@@ -472,53 +472,53 @@ def make_new_rte(globals_env, locals_env, builtins, builtins_module, options):
     serial_counter = [0]
     sys_modules = make_dict()
 
-    new_rte = make_dict()
+    new_rte = make_struct()
 
-    dict_set(new_rte, "serial_counter", serial_counter)
-    dict_set(new_rte, "globals", globals_env)
-    dict_set(new_rte, "locals", locals_env)
-    dict_set(new_rte, 'current_func', absent)
-    dict_set(new_rte, "builtins", builtins)
-    dict_set(new_rte, "builtins_module", builtins_module)
-    dict_set(new_rte, "stack", absent)
-    dict_set(new_rte, "ctrl_env", absent)
-    dict_set(new_rte, "sys_modules", sys_modules)
-    dict_set(new_rte, "class_parent_locals", absent)
+    struct_set(new_rte, "serial_counter", serial_counter)
+    struct_set(new_rte, "globals", globals_env)
+    struct_set(new_rte, "locals", locals_env)
+    struct_set(new_rte, 'current_func', absent)
+    struct_set(new_rte, "builtins", builtins)
+    struct_set(new_rte, "builtins_module", builtins_module)
+    struct_set(new_rte, "stack", absent)
+    struct_set(new_rte, "ctrl_env", absent)
+    struct_set(new_rte, "sys_modules", sys_modules)
+    struct_set(new_rte, "class_parent_locals", absent)
     rte_set_current_exc(new_rte, absent)
     rte_set_handler(new_rte, main_handler)
     rte_set_finally(new_rte, absent)
 
     # Used to accumulate objects repr seen when calling sem_repr, to avoid infinite loops in nested objects
-    dict_set(new_rte, "seen_repr_stack", [])
+    struct_set(new_rte, "seen_repr_stack", [])
 
-    dict_set(new_rte, "vm", absent)
-    dict_set(new_rte, "options", options)
+    struct_set(new_rte, "vm", absent)
+    struct_set(new_rte, "options", options)
 
     return new_rte
 
 
 def make_rte_copy(rte):
-    new_rte = make_dict()
+    new_rte = make_struct()
 
-    dict_set(new_rte, "serial_counter", rte_serial_counter(rte))
-    dict_set(new_rte, "globals", rte_globals(rte))
-    dict_set(new_rte, "locals", rte_locals(rte))
+    struct_set(new_rte, "serial_counter", rte_serial_counter(rte))
+    struct_set(new_rte, "globals", rte_globals(rte))
+    struct_set(new_rte, "locals", rte_locals(rte))
     rte_set_current_func(new_rte, rte_current_func(rte))
-    dict_set(new_rte, "builtins", rte_builtins(rte))
-    dict_set(new_rte, "builtins_module", rte_builtins_module(rte))
-    dict_set(new_rte, "stack", rte_stack(rte))
-    dict_set(new_rte, "ctrl_env", rte_ctrl_env(rte))
-    dict_set(new_rte, "sys_modules", rte_sys_modules(rte))
-    dict_set(new_rte, "class_parent_locals", rte_class_parent_locals(rte))
+    struct_set(new_rte, "builtins", rte_builtins(rte))
+    struct_set(new_rte, "builtins_module", rte_builtins_module(rte))
+    struct_set(new_rte, "stack", rte_stack(rte))
+    struct_set(new_rte, "ctrl_env", rte_ctrl_env(rte))
+    struct_set(new_rte, "sys_modules", rte_sys_modules(rte))
+    struct_set(new_rte, "class_parent_locals", rte_class_parent_locals(rte))
     rte_set_current_exc(new_rte, rte_get_current_exc(rte))
     rte_set_handler(new_rte, rte_get_handler(rte))
     rte_set_finally(new_rte, rte_get_finally(rte))
 
     # Used to accumulate objects repr seen when calling sem_repr, to avoid infinite loops in nested objects
-    dict_set(new_rte, "seen_repr_stack", rte_get_seen_repr_stack(rte))
+    struct_set(new_rte, "seen_repr_stack", rte_get_seen_repr_stack(rte))
 
-    dict_set(new_rte, "vm", rte_vm(rte))
-    dict_set(new_rte, "options", rte_options(rte))
+    struct_set(new_rte, "vm", rte_vm(rte))
+    struct_set(new_rte, "options", rte_options(rte))
 
     return new_rte
 
@@ -556,16 +556,16 @@ def unwind_rte_ctrl_env(rte):
     return make_rte_from_new_ctrl_env(rte, next_ctrl_env)
 
 def rte_serial_counter(rte):
-    return dict_get(rte, 'serial_counter', absent)
+    return struct_get(rte, 'serial_counter')
 
 def rte_get_serial(rte):
-    boxed_serial = dict_get(rte, 'serial_counter', absent)
+    boxed_serial = struct_get(rte, 'serial_counter')
     serial = boxed_serial[0]
     boxed_serial[0] = serial + 1
     return serial
 
 def rte_sys_modules(rte):
-    return dict_get(rte, 'sys_modules', absent)
+    return struct_get(rte, 'sys_modules')
 
 def rte_add_to_sys_modules(rte, name, module):
     sys_modules = rte_sys_modules(rte)
@@ -576,7 +576,7 @@ def rte_get_from_sys_modules(rte, name):
     return dict_get(sys_modules, name, absent)
 
 def rte_globals(rte):
-    return dict_get(rte, 'globals', absent)
+    return struct_get(rte, 'globals')
 
 def rte_lexical_globals(rte):
     current_func = rte_current_func(rte)
@@ -587,31 +587,31 @@ def rte_lexical_globals(rte):
         return OM_get_function_globals(current_func)
 
 def rte_locals(rte):
-    return dict_get(rte, 'locals', absent)
+    return struct_get(rte, 'locals')
 
 def rte_current_func(rte):
-    return dict_get(rte, 'current_func', absent)
+    return struct_get(rte, 'current_func')
 
 def rte_set_current_func(rte, fn):
-    dict_set(rte, 'current_func', fn)
+    struct_set(rte, 'current_func', fn)
 
 def rte_builtins(rte):
-    return dict_get(rte, 'builtins', absent)
+    return struct_get(rte, 'builtins')
 
 def rte_builtins_module(rte):
-    return dict_get(rte, 'builtins_module', absent)
+    return struct_get(rte, 'builtins_module')
 
 def rte_class_parent_locals(rte):
-    return dict_get(rte, 'class_parent_locals', absent)
+    return struct_get(rte, 'class_parent_locals')
 
 def rte_stack(rte):
-    return dict_get(rte, 'stack', absent)
+    return struct_get(rte, 'stack')
 
 def rte_ctrl_env(rte):
-    return dict_get(rte, 'ctrl_env', absent)
+    return struct_get(rte, 'ctrl_env')
 
 def rte_vm(rte):
-    return dict_get(rte, 'vm', absent)
+    return struct_get(rte, 'vm')
 
 def rte_safe_for_space(rte):
     opt = rte_options(rte)
@@ -628,7 +628,7 @@ def rte_trace(rte):
         return dict_get(opt, 'trace', True)
 
 def rte_options(rte):
-    return dict_get(rte, 'options', None)
+    return struct_get(rte, 'options')
 
 # Return variable value or absent.
 def rte_lookup_globals(rte, name):
@@ -671,7 +671,7 @@ def rte_set_closure(rte, pos, val):
     slot[0] = val
 
 def rte_get_seen_repr_stack(rte):
-    return dict_get(rte, "seen_repr_stack", absent)
+    return struct_get(rte, "seen_repr_stack")
 
 def rte_add_seen_repr(rte, obj):
     seen_repr_stack = rte_get_seen_repr_stack(rte)
@@ -702,41 +702,41 @@ def rte_repr_exit(rte):
 
 
 def rte_set_current_exc(rte, exc):
-    dict_set(rte, 'current_exc', exc)
+    struct_set(rte, 'current_exc', exc)
 
 
 def rte_get_current_exc(rte):
-    return dict_get(rte, 'current_exc', absent)
+    return struct_get(rte, 'current_exc')
 
 
 def rte_pop_current_exc(rte):
-    exc = dict_get(rte, 'current_exc', absent)
-    dict_set(rte, 'current_exc', absent)
+    exc = struct_get(rte, 'current_exc')
+    struct_set(rte, 'current_exc', absent)
     return exc
 
 
 def rte_set_handler(rte, handler):
-    dict_set(rte, 'handler', handler)
+    struct_set(rte, 'handler', handler)
 
 
 def rte_remove_handler(rte):
-    dict_set(rte, 'handler', absent)
+    struct_set(rte, 'handler', absent)
 
 
 def rte_get_handler(rte):
-    return dict_get(rte, 'handler', absent)
+    return struct_get(rte, 'handler')
 
 
 def rte_set_finally(rte, final):
-    dict_set(rte, 'finally', final)
+    struct_set(rte, 'finally', final)
 
 
 def rte_remove_finally(rte):
-    dict_set(rte, 'finally', absent)
+    struct_set(rte, 'finally', absent)
 
 
 def rte_get_finally(rte):
-    return dict_get(rte, 'finally', absent)
+    return struct_get(rte, 'finally')
 
 # stack operation
 def unwind_return(rte, val):
@@ -10028,7 +10028,7 @@ def gen_namespace_freevar_getter(cte, name):
         index = get_closure_var_index(tk)
 
         def getter(rte):
-            current_func = dict_get(rte, 'current_func', None)
+            current_func = rte_current_func(rte)
             closure_cells = OM_get_function_closure(current_func)
             return closure_cells[index]
 

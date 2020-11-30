@@ -221,13 +221,13 @@ class Transformer:
             return f"{self.transform(node.args[1])}.map({self.transform(node.args[0])})"
         # Inline struct functions
         elif func == "struct_get":
-            if len(node.args == 2) and isinstance(node.args[1], AST.Str):
+            if len(node.args) == 2 and isinstance(node.args[1], AST.Str):
                return f"{self.transform(node.args[0])}.{node.args[1].s}"
             else:
                 raise SyntaxError("zp: struct_get(obj, attr) takes two arguments and attr must be a string literal")
         elif func == "struct_set":
             # Second argument is a string, remove the quotes.
-            if len(node.args == 3) and isinstance(node.args[1], AST.Str):
+            if len(node.args) == 3 and isinstance(node.args[1], AST.Str):
                 return f"{self.transform(node.args[0])}.{node.args[1].s} = {self.transform(node.args[2])}"
             else:
                 raise SyntaxError("zp: struct_set(obj, attr, val) takes three arguments and attr must be a string literal")
