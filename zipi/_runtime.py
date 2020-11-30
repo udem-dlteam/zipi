@@ -41,6 +41,32 @@ def dict_len(d):
 
 
 ###
+# Struct operations
+###
+
+# struct re optimized by the zp compiler
+# probably very slow implementation which allows to execute tests in Python with duynamic type checking before
+# executing pyinterp in JS without the struct type-checking
+
+class __Struct:
+    pass
+
+def make_struct():
+    return __Struct()
+
+def struct_get(struct, attr):
+    if isinstance(struct, __Struct):
+        return getattr(struct, attr)
+    else:
+        raise TypeError("struct_get requires a __Struct as first argument")
+
+def struct_set(struct, attr, val):
+    if isinstance(struct, __Struct):
+        return setattr(struct, attr, val)
+    else:
+        raise TypeError("struct_set requires a __Struct as first argument")
+
+###
 # Int operations
 ###
 
