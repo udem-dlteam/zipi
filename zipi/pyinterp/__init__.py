@@ -54,13 +54,6 @@ class CTCtrlLabel:
         self.ids = ids
         self.ast = ast
 
-# While or For
-class RTCtrlLabel:
-    def __init__(self, ctrl_next, break_cont, continue_cont):
-        self.ctrl_next = ctrl_next
-        self.break_cont = break_cont
-        self.continue_cont = continue_cont
-
 # class RTE:
 #     def __init__(self, global_env, locals_env, builtins, stack, ctrl_env):
 #         self.globals_env = globals_env

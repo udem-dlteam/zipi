@@ -48,7 +48,7 @@ def dict_len(d):
 # this implementation is probably very slow but it allows to do a python test-run
 # to check that dict_... and struct_... are not mixed at runtime
 
-class __Struct:
+class __Struct(dict):
     pass
 
 def make_struct():
@@ -56,13 +56,13 @@ def make_struct():
 
 def struct_get(struct, attr):
     if isinstance(struct, __Struct):
-        return getattr(struct, attr)
+        return struct[attr]
     else:
         raise TypeError("struct_get requires a __Struct as first argument")
 
 def struct_set(struct, attr, val):
     if isinstance(struct, __Struct):
-        return setattr(struct, attr, val)
+        struct[attr] = val
     else:
         raise TypeError("struct_set requires a __Struct as first argument")
 
