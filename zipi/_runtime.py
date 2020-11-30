@@ -46,7 +46,7 @@ def dict_len(d):
 
 # struct are optimized by the zp compiler for the JS version of pyinterp
 # this implementation is probably very slow but it allows to do a python test-run
-# to check that dict_... and struct_... are now mixed at runtime
+# to check that dict_... and struct_... are not mixed at runtime
 
 class __Struct:
     pass
