@@ -44,9 +44,9 @@ def dict_len(d):
 # Struct operations
 ###
 
-# struct re optimized by the zp compiler
-# probably very slow implementation which allows to execute tests in Python with duynamic type checking before
-# executing pyinterp in JS without the struct type-checking
+# struct are optimized by the zp compiler for the JS version of pyinterp
+# this implementation is probably very slow but it allows to do a python test-run
+# to check that dict_... and struct_... are now mixed at runtime
 
 class __Struct:
     pass
