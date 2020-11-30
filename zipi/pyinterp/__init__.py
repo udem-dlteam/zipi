@@ -54,13 +54,6 @@ class CTCtrlLabel:
         self.ids = ids
         self.ast = ast
 
-# While or For
-class RTCtrlLabel:
-    def __init__(self, ctrl_next, break_cont, continue_cont):
-        self.ctrl_next = ctrl_next
-        self.break_cont = break_cont
-        self.continue_cont = continue_cont
-
 # class RTE:
 #     def __init__(self, global_env, locals_env, builtins, stack, ctrl_env):
 #         self.globals_env = globals_env
@@ -423,6 +416,8 @@ def make_rte_from_parent(rte, globals_env, locals_env, current_func, stack, ctrl
     rte_set_current_exc(new_rte, rte_get_current_exc(rte))
     rte_set_handler(new_rte, rte_get_handler(rte))
     rte_set_finally(new_rte, rte_get_finally(rte))
+    rte_set_break_cont(new_rte, rte_get_break_cont(rte))
+    rte_set_continue_cont(new_rte, rte_get_continue_cont(rte))
 
     # Used to accumulate objects repr seen when calling sem_repr, to avoid infinite loops in nested objects
     struct_set(new_rte, "seen_repr_stack", seen_repr_stack)
@@ -443,6 +438,7 @@ def make_class_rte(rte, locals_env):
     new_class_parent_locals = rte_locals(rte) if class_parent_locals is absent else class_parent_locals
 
     struct_set(new_rte, "class_parent_locals", new_class_parent_locals)
+    rte_reset_continue_break(new_rte)
     return new_rte
 
 
@@ -454,9 +450,16 @@ def make_call_rte(rte, locals_env, called_func, stack):
 
     call_rte = make_rte_from_parent(rte, rte_globals(rte), locals_env, called_func, stack, rte_ctrl_env(rte))
     rte_remove_finally(call_rte)
+    rte_reset_continue_break(call_rte)
 
     return call_rte
 
+
+def make_loop_rte(rte, break_cont, continue_cont):
+    new_rte = make_rte_copy(rte)
+    rte_set_break_cont(new_rte, break_cont)
+    rte_set_continue_cont(new_rte, continue_cont)
+    return new_rte
 
 
 def make_new_rte(globals_env, locals_env, builtins, builtins_module, options):
@@ -487,6 +490,8 @@ def make_new_rte(globals_env, locals_env, builtins, builtins_module, options):
     rte_set_current_exc(new_rte, absent)
     rte_set_handler(new_rte, main_handler)
     rte_set_finally(new_rte, absent)
+    rte_set_break_cont(new_rte, absent)
+    rte_set_continue_cont(new_rte, absent)
 
     # Used to accumulate objects repr seen when calling sem_repr, to avoid infinite loops in nested objects
     struct_set(new_rte, "seen_repr_stack", [])
@@ -513,6 +518,8 @@ def make_rte_copy(rte):
     rte_set_current_exc(new_rte, rte_get_current_exc(rte))
     rte_set_handler(new_rte, rte_get_handler(rte))
     rte_set_finally(new_rte, rte_get_finally(rte))
+    rte_set_break_cont(new_rte, rte_get_break_cont(rte))
+    rte_set_continue_cont(new_rte, rte_get_continue_cont(rte))
 
     # Used to accumulate objects repr seen when calling sem_repr, to avoid infinite loops in nested objects
     struct_set(new_rte, "seen_repr_stack", rte_get_seen_repr_stack(rte))
@@ -523,37 +530,32 @@ def make_rte_copy(rte):
     return new_rte
 
 
-def make_rte_from_new_ctrl_env(rte, ctrl_env):
-    return make_rte_from_parent(rte,
-                                rte_globals(rte),
-                                rte_locals(rte),
-                                rte_current_func(rte),
-                                rte_stack(rte),
-                                ctrl_env)
-
-
 def make_rte_with_handler(rte, handler_code):
     new_rte = make_rte_copy(rte)
     rte_set_handler(new_rte, handler_code)
     return new_rte
 
 
-def make_rte_with_finally(rte, final):
-    new_rte = make_rte_copy(rte)
-    rte_set_finally(new_rte, final)
-    return new_rte
-
-
 def make_rte_with_handler_and_finally(rte, handler_code, final):
     new_rte = make_rte_copy(rte)
+
+    break_cont = rte_get_break_cont(rte)
+    continue_cont = rte_get_continue_cont(rte)
+
+    if break_cont is not absent:
+        def intercept_break():
+            return final(lambda _: break_cont())
+        rte_set_break_cont(new_rte, intercept_break)
+
+    if continue_cont is not absent:
+        def intercept_continue():
+            return final(lambda _: continue_cont())
+        rte_set_continue_cont(new_rte, intercept_continue)
+
     rte_set_handler(new_rte, handler_code)
     rte_set_finally(new_rte, final)
     return new_rte
 
-
-def unwind_rte_ctrl_env(rte):
-    next_ctrl_env = rte_ctrl_env(rte).ctrl_next
-    return make_rte_from_new_ctrl_env(rte, next_ctrl_env)
 
 def rte_serial_counter(rte):
     return struct_get(rte, 'serial_counter')
@@ -737,6 +739,27 @@ def rte_remove_finally(rte):
 
 def rte_get_finally(rte):
     return struct_get(rte, 'finally')
+
+
+def rte_set_break_cont(rte, br):
+    struct_set(rte, 'break_cont', br)
+
+def rte_get_break_cont(rte):
+    return struct_get(rte, 'break_cont')
+
+
+def rte_set_continue_cont(rte, cont):
+    struct_set(rte, 'continue_cont', cont)
+
+
+def rte_get_continue_cont(rte):
+    return struct_get(rte, 'continue_cont')
+
+
+def rte_reset_continue_break(rte):
+    rte_set_continue_cont(rte, absent)
+    rte_set_break_cont(rte, absent)
+
 
 # stack operation
 def unwind_return(rte, val):
@@ -8723,7 +8746,7 @@ def make_module_rte(parent_rte, builtins_module, name):
         rte_stack(parent_rte),
         rte_ctrl_env(parent_rte))
 
-
+    rte_reset_continue_break(rte)
     dict_set(globals_env, '__name__', om_str(name))
     dict_set(globals_env, '__builtins__', builtins_module)
 
@@ -9425,11 +9448,21 @@ def comp_stmt(cte, ast):
 
     elif isinstance(ast, AST.Break):
         if debug: print('AST.Break')
-        return gen_break(cte, ast)
+
+        depth_ast = CTCtrl_labelLookup(cte, "break point")
+        if depth_ast is None:
+            return CT_raise_syntax_error_with_msg(cte, ast, "'break' outside loop")
+        else:
+            return gen_break(cte, ast)
 
     elif isinstance(ast, AST.Continue):
         if debug: print('AST.Continue')
-        return gen_continue(cte, ast)
+
+        depth_ast = CTCtrl_labelLookup(cte, "break point")
+        if depth_ast is None:
+            return CT_raise_syntax_error_with_msg(cte, ast, "'continue' not properly in loop")
+        else:
+            return gen_continue(cte, ast)
 
     elif isinstance(ast, AST.Assign):
         # Assign(expr* targets, expr value, string? type_comment)
@@ -9443,11 +9476,11 @@ def comp_stmt(cte, ast):
     elif isinstance(ast, AST.While):
         # While(expr test, stmt* body, stmt* orelse)
         if debug: print('AST.While')
-        (cte1, code1) = comp_expr(cte, ast.test)
-        while_cte = CTCtrl_controlContext(cte1, ast)
-        (cte2, code2) = comp_stmt_seq(while_cte, ast.body)
-        (cte3, code3) = comp_stmt_seq(cte1, ast.orelse)
-        return gen_while(cte3, ast, code1, code2, code3)
+
+        while_cte = CTCtrl_controlContext(cte, ast)
+
+        # drop while cte
+        return cte, gen_while(while_cte, ast)[1]
 
     elif isinstance(ast, AST.If):
         # If(expr test, stmt* body, stmt* orelse)
@@ -9474,10 +9507,11 @@ def comp_stmt(cte, ast):
         return gen_delete_seq(cte, ast, ast.targets)
 
     elif isinstance(ast, AST.For) and isinstance(ast.target, AST.Name):
-        # TODO: support else block
         if debug: print('AST.For')
         for_cte = CTCtrl_controlContext(cte, ast)
-        return gen_for(for_cte, ast, ast.target, ast.iter, ast.body, ast.orelse)
+
+        # drop for_cte
+        return cte, gen_for(for_cte, ast)[1]
 
     elif isinstance(ast, AST.Raise):
         exc = ast.exc
@@ -9859,27 +9893,32 @@ def gen_Pass(cte, ast):
 
 
 
-def gen_while(cte, ast, code1, code2, code3):
+def gen_while(cte, ast):
+    ast_test = ast.test
+    ast_body = ast.body
+    ast_orelse = ast.orelse
 
-    def code(rte, cont):
-        def dispatch(rte1, val):
-            if om_is(val, om_False):
-                return code3(rte1, do_stmt_end(cont, ast, 0))
-            else:
-                ctrl_env = rte_ctrl_env(rte)
-                ctrl_label = RTCtrlLabel(ctrl_env,
-                                         lambda rte2: cont(rte2),
-                                         lambda rte2: code(rte2, cont))
-                new_rte = make_rte_from_new_ctrl_env(rte1, ctrl_label)
-                return code2(new_rte, lambda rte2: code(unwind_rte_ctrl_env(rte2), cont))
+    test_cte, test_code = comp_expr(cte, ast_test)
+    body_cte, body_code = comp_stmt_seq(test_cte, ast_body)
+    orelse_cte, orelse_code = comp_stmt_seq(body_cte, ast_orelse)
 
-        def cast_bool(rte, val):
-            ctx = Context(rte, dispatch, ast)
-            return sem_bool(ctx, val)
+    def code(external_rte, cont):
+        def loop():
+            def get_test_value(_, val):
+                def branch(_, cond):
+                    if om_is(cond, om_False):
+                        return orelse_code(external_rte, cont)
+                    else:
+                        return body_code(loop_rte, lambda _: loop())
 
-        return code1(rte, cast_bool)
+                return sem_bool(Context(external_rte, branch, ast_test), val)
+            return test_code(external_rte, get_test_value)
 
-    return (cte, code)
+        loop_rte = make_loop_rte(external_rte, lambda: cont(external_rte), loop)
+
+        return loop()
+
+    return orelse_cte, code
 
 
 
@@ -10319,83 +10358,54 @@ def gen_delete_seq(cte, ast, targets):
     else:
         return CT_raise_syntax_error_with_msg(cte, ast, "del: multiple targets not yet supported.")
 
-def gen_for(cte, ast, target, iterable_expr, body, orelse):
+def gen_for(cte, ast):
+    target = ast.target
+    iterable_expr = ast.iter
+    body = ast.body
+    orelse = ast.orelse
 
     iterable_cte, iterable_code = comp_expr(cte, iterable_expr)
     set_cte, set_code = gen_var_set(iterable_cte, target, target.id)
     body_cte, body_code = comp_stmt_seq(set_cte, body)
     orelse_cte, orelse_code = comp_stmt_seq(body_cte, orelse)
 
-    def get_iterable(get_iterable_rte, cont):
-        def get_iterator(get_iterator_rte, iterable):
-            def get_next(get_next_rte, iterator):
-                def assign_target(assign_target_rte, nxt_value):
-                    if nxt_value is for_loop_end_marker:
-                        def do_else(else_rte):
-                            return orelse_code(else_rte, cont)
-                        stmt_end_cont = do_stmt_end(do_else, ast, 0)
-                        return stmt_end_cont(assign_target_rte)
-                    else:
-                        def run_body(rte):
-                            ctrl_env = rte_ctrl_env(rte)
-                            ctrl_label = RTCtrlLabel(ctrl_env,
-                                                     lambda rte1: cont(rte1),
-                                                     lambda rte1: get_next(rte1, iterator))
-                            new_rte = make_rte_from_new_ctrl_env(rte, ctrl_label)
-                            return body_code(new_rte, lambda rte: get_next(unwind_rte_ctrl_env(rte), iterator))
-                        return set_code(assign_target_rte, run_body, nxt_value)
-                return sem_next(Context(get_next_rte, assign_target, iterable_expr), iterator, for_loop_end_marker)
-            return sem_iter(Context(get_iterator_rte, get_next, iterable_expr), iterable)
-        return iterable_code(get_iterable_rte, get_iterator)
-    return body_cte, get_iterable
+    def code(external_rte, cont):
+        def get_iterable(_, iterable):
+            def get_iterator(_, iterator):
+                def do_else(_):
+                    return orelse_code(external_rte, cont)
 
-def unwindBreakContinue(rte, depth, cont):
-    def loop(rte):
-        local_depth = depth
-        ctrl_env = rte_ctrl_env(rte)
-        while local_depth != 0 and ctrl_env is not absent:
-            # TODO: handle Try-finally-else here
-            local_depth -= 1
-            ctrl_env = ctrl_env.ctrl_next
+                def run_body(_):
+                    return body_code(loop_rte, lambda _: loop())
 
-        # environmnent of the control label
-        new_rte = make_rte_from_new_ctrl_env(rte, ctrl_env)
-        return cont(new_rte)
-    return loop(rte)
+                def loop():
+                    def get_next(_, nxt_value):
+                        if nxt_value is for_loop_end_marker:
+                            stmt_end_cont = do_stmt_end(do_else, ast, 0)
+                            return stmt_end_cont(external_rte)
+                        else:
+                            return set_code(external_rte, run_body, nxt_value)
+                    return sem_next(Context(external_rte, get_next, iterable_expr), iterator, for_loop_end_marker)
 
-def unwindBreak(rte, depth):
-    def cont(rte):
-        ctrl_env = rte_ctrl_env(rte)
-        return ctrl_env.break_cont(unwind_rte_ctrl_env(rte))
-    return unwindBreakContinue(rte, depth, cont)
+                loop_rte = make_loop_rte(external_rte, lambda: cont(external_rte), loop)
 
-def unwindContinue(rte, depth):
-    def cont(rte):
-        ctrl_env = rte_ctrl_env(rte)
-        return ctrl_env.continue_cont(unwind_rte_ctrl_env(rte))
-    return unwindBreakContinue(rte, depth, cont)
+                return loop()
+            return sem_iter(Context(external_rte, get_iterator, iterable_expr), iterable)
+        return iterable_code(external_rte, get_iterable)
+
+    return body_cte, code
+
 
 def gen_break(cte, ast):
-    depth_ast = CTCtrl_labelLookup(cte, "break point")
-    if depth_ast is None:
-        return CT_raise_syntax_error_with_msg(cte, ast, "'break' outside loop")
-    else:
-        def code(rte, _):
-            depth = dict_get(depth_ast, 'depth', 0)
-            ctx = Context(rte, lambda rte: unwindBreak(rte, depth), ast)
-            return stmt_end(ctx, 1)
-        return (cte, code)
+    def code(rte, _):
+        return sem_break(rte)
+    return cte, code
+
 
 def gen_continue(cte, ast):
-    depth_ast = CTCtrl_labelLookup(cte, "break point")
-    if depth_ast is None:
-        return CT_raise_syntax_error_with_msg(cte, ast, "'continue' not properly in loop")
-    else:
-        def code(rte, _):
-            depth = dict_get(depth_ast, 'depth', 0)
-            ctx = Context(rte, lambda rte: unwindContinue(rte, depth), ast)
-            return stmt_end(ctx, 1)
-        return (cte, code)
+    def code(rte, _):
+        return sem_continue(rte)
+    return cte, code
 
 
 def gen_handler(cte, handler):
@@ -11733,6 +11743,16 @@ def sem_finally(rte, cont):
     else:
         # The final continuation should have full information on what to do next
         return final(cont)
+
+
+def sem_break(rte):
+    break_cont = rte_get_break_cont(rte)
+    return break_cont()
+
+
+def sem_continue(rte):
+    continue_cont = rte_get_continue_cont(rte)
+    return continue_cont()
 
 
 def sem_exec_all_finally(rte, cont):
