@@ -8762,13 +8762,13 @@ def trampoline(cont):
         if not state:
             break
 
-        ast = dict_get(state, "ast", None)
-        msg = dict_get(state, "msg", None)
-        display_result = dict_get(state, "display_result", None)
-        sleep_time = dict_get(state, "sleep_time", None)
-        error = dict_get(state, "error", None)
-        cont = dict_get(state, "cont", None)
-        ctx = dict_get(state, "ctx", None)
+        ast = struct_get(state, "ast")
+        msg = struct_get(state, "msg")
+        display_result = struct_get(state, "display_result")
+        sleep_time = struct_get(state, "sleep_time")
+        error = struct_get(state, "error")
+        cont = struct_get(state, "cont")
+        ctx = struct_get(state, "ctx")
 
         if error is not None:
             print(error)
@@ -11458,9 +11458,9 @@ def sem_float(ctx, obj):
     return sem_maybe_float(with_cont(ctx, check_result), obj)
 
 def gen_constant(cte, ast, val):
+    obj = box_object(val)
 
     def code(rte, cont):
-        obj = box_object(val)
         return sem_constant(Context(rte, do_expr_end(cont, ast), ast), obj)
 
     return (cte, code)
@@ -12135,7 +12135,7 @@ def expr_end(ctx, val):
 
 def expr_end_with_step(ctx, val, nb_steps):
     if om_is(val, om_None):
-        return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), nb_steps, False, False, None, None, lambda: ctx.cont(ctx.rte, val), ctx)
+        return return_to_trampoline(ctx.ast, "None", nb_steps, False, False, None, None, lambda: ctx.cont(ctx.rte, val), ctx)
     else:
         return return_to_trampoline(ctx.ast, om_simple_repr(ctx, val), nb_steps, True, False, None, None, lambda: ctx.cont(ctx.rte, val), ctx)
 
@@ -12157,16 +12157,16 @@ def stmt_end_with_sleep(ctx, sleep_time):
 
 def return_to_trampoline(ast, msg, nb_steps, display_result, breakpoint, sleep_time, error, cont, ctx):
     # return to trampoline with current execution state
-    res = make_dict()
-    dict_set(res, "ast", ast)
-    dict_set(res, "msg", msg)
-    dict_set(res, "nb_steps", nb_steps)
-    dict_set(res, "display_result", display_result)
-    dict_set(res, "breakpoint", breakpoint)
-    dict_set(res, "sleep_time", sleep_time)
-    dict_set(res, "error", error)
-    dict_set(res, "cont", cont)
-    dict_set(res, "ctx", ctx)
+    res = make_struct()
+    struct_set(res, "ast", ast)
+    struct_set(res, "msg", msg)
+    struct_set(res, "nb_steps", nb_steps)
+    struct_set(res, "display_result", display_result)
+    struct_set(res, "breakpoint", breakpoint)
+    struct_set(res, "sleep_time", sleep_time)
+    struct_set(res, "error", error)
+    struct_set(res, "cont", cont)
+    struct_set(res, "ctx", ctx)
     return res
 
 
