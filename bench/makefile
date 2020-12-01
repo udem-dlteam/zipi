@@ -1,3 +1,5 @@
+include ../etc/Makefile.zipiconfig
+
 all: micro
 
 gen-micro:
@@ -6,7 +8,12 @@ gen-micro:
 micro:
 	#rm -rf "/Users/feeley/.zipicache/cache@zipi_0_0_1/Users/feeley/python/zipi/bench"
 	@for bench in micro_*.py; do \
-	  ./compare-zipi-cpython $$bench; \
+	  ./compare-zipi-cpython $$bench $(ZIPISYSTEMS); \
+	done
+
+list:
+	@for bench in micro_*.py; do \
+          echo $$bench; \
 	done
 
 realclean:

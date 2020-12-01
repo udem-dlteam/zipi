@@ -5,11 +5,19 @@
 (cond-expand
   (gambit
    (declare (standard-bindings) (extended-bindings) (not safe))
-   (define-macro (declare-fixnum) `(declare (fixnum)))
+   (define-macro (declare-fixnum . body) `(begin (declare (fixnum)) ,@body))
    (define-macro (declare-not-interrupts-enabled) `(declare (not interrupts-enabled))))
 
   (bigloo
-   (define-macro (declare-fixnum) `(begin))
+   (define-expander declare-fixnum
+      (lambda (x olde)
+	 (let ((ne (lambda (x e)
+		      (match-case x
+			 (((and ?op (or + - * / < > <= >= =)) ?a ?b)
+			  (olde `(,(symbol-append op 'fx) ,a ,b) olde))
+			 (else
+			  (olde x e))))))
+	    `(begin ,@(ne (cdr x) ne)))))
    (define-macro (declare-not-interrupts-enabled) `(begin))))
 
 ;; General exception thrower helper
@@ -87,41 +95,41 @@
           (args (map gensym (make-list X 'arg)))
           (min-neg-arity (- 0 X 1)))
       `(define (,py-call-name fun ,@args)
-         (declare-fixnum)
-         (let ((fun-type (py-type fun)))
-           (if (eq? fun-type py-function-class)
-               (let ((arity (PyObjectFunction-arity fun)))
-                 (cond
-                  ((eqv? arity ,X)
-                   ((PyObjectFunction-procedure fun) ,@args))
-                  ((not arity)
-                   (py-call-generic fun (list ,@args)))
-                  ((and (< arity 0) (>= arity ,min-neg-arity))
-                   (apply
-                    (PyObjectFunction-procedure fun)
-                    (pack-extra-args arity (list ,@args))))
-                  (else
-                   ;; Error messages
-                   (if (< arity 0)
-                       (py-throw-exception-with-message
-                        py-builtin-TypeError
-                        "missing "
-                        ,(number->string (- 0 min-neg-arity X))
-                        " required positional argument")
-                       (if (< arity ,X)
-                           (py-throw-exception-with-message
-                            py-builtin-TypeError
-                            "function takes "
-                            (number->string arity)
-                            " positional arguments but "
-                            ,(number->string X)
-                            " were given")
-                           (py-throw-exception-with-message
-                            py-builtin-TypeError
-                            "missing "
-                            (number->string (- arity ,X))
-                            " required positional argument"))))))
-               (py-call-generic fun (list ,@args)))))))
+         (declare-fixnum
+	    (let ((fun-type (py-type fun)))
+	       (if (eq? fun-type py-function-class)
+		   (let ((arity (PyObjectFunction-arity fun)))
+		      (cond
+			 ((eqv? arity ,X)
+			  ((PyObjectFunction-procedure fun) ,@args))
+			 ((not arity)
+			  (py-call-generic fun (list ,@args)))
+			 ((and (< arity 0) (>= arity ,min-neg-arity))
+			  (apply
+			     (PyObjectFunction-procedure fun)
+			     (pack-extra-args arity (list ,@args))))
+			 (else
+			  ;; Error messages
+			  (if (< arity 0)
+			      (py-throw-exception-with-message
+				 py-builtin-TypeError
+				 "missing "
+				 ,(number->string (- 0 min-neg-arity X))
+				 " required positional argument")
+			      (if (< arity ,X)
+				  (py-throw-exception-with-message
+				     py-builtin-TypeError
+				     "function takes "
+				     (number->string arity)
+				     " positional arguments but "
+				     ,(number->string X)
+				     " were given")
+				  (py-throw-exception-with-message
+				     py-builtin-TypeError
+				     "missing "
+				     (number->string (- arity ,X))
+				     " required positional argument"))))))
+		   (py-call-generic fun (list ,@args))))))))
     (let loop ((i 1) (acc '()))
       (if (> i py-callX-args-limit)
         `(begin ,@acc)
@@ -968,12 +976,12 @@
   align-with-signature-kwargs-ordered-table:get-unused-kwargs)
 
 (define (py-is-in-mro? target mro)
-  (declare-fixnum)
-  (let loop ((i 0))
-    (and (< i (vector-length mro))
-         (let* ((cls (vector-ref mro i)))
-           (or (eq? cls target)
-               (loop (+ i 1)))))))
+  (declare-fixnum
+     (let loop ((i 0))
+	(and (< i (vector-length mro))
+	     (let* ((cls (vector-ref mro i)))
+		(or (eq? cls target)
+		    (loop (+ i 1))))))))
 
 (define (py-isinstance? obj cls)
   (let ((mro (py-obj-mro obj)))
@@ -1881,36 +1889,36 @@
 ;;; Object attribute store/fetch.
 
 (define (py-own-attr-set! obj attr val)
-  (declare-fixnum)
-  (let* ((attr-representative (str-representative-get attr))
-         (i (py-own-attr-index obj attr-representative)))
-    (if (< i 0)
-        (let* ((hclass (PyObject-hclass obj))
-               (new-hclass (HClass-next hclass attr-representative '+))
-               (index (HClass-last-index new-hclass)))
-          (PyObject-hclass-set! obj new-hclass)
-          (PyObject-elements-set! obj index val))
-        (PyObject-elements-set! obj i val))))
+  (declare-fixnum
+     (let* ((attr-representative (str-representative-get attr))
+	    (i (py-own-attr-index obj attr-representative)))
+	(if (< i 0)
+	    (let* ((hclass (PyObject-hclass obj))
+		   (new-hclass (HClass-next hclass attr-representative '+))
+		   (index (HClass-last-index new-hclass)))
+	       (PyObject-hclass-set! obj new-hclass)
+	       (PyObject-elements-set! obj index val))
+	    (PyObject-elements-set! obj i val)))))
 
 (define (py-own-attr-ref obj attr #!optional (default py-absent))
-  (declare-fixnum)
-  (let ((i (py-own-attr-index obj attr)))
-    (if (< i 0)
-        default
-        (PyObject-elements-ref obj i)))) ;; TODO: could vector-ref be used?
+  (declare-fixnum
+     (let ((i (py-own-attr-index obj attr)))
+	(if (< i 0)
+	    default
+	    (PyObject-elements-ref obj i))))) ;; TODO: could vector-ref be used?
 
 (define (py-own-attr-index obj attr)
-  (declare-fixnum)
-  (let* ((hclass (PyObject-hclass obj))
-         (names (HClass-names hclass))
-         (attr-representative (str-representative-get attr)))
-    (let loop ((i (- (vector-length names) 1)))
-      (cond ((< i 0)
-             -1)
-            ((eq? attr-representative (vector-ref names i))
-             i)
-            (else
-             (loop (- i 1)))))))
+  (declare-fixnum
+     (let* ((hclass (PyObject-hclass obj))
+	    (names (HClass-names hclass))
+	    (attr-representative (str-representative-get attr)))
+	(let loop ((i (- (vector-length names) 1)))
+	   (cond ((< i 0)
+		  -1)
+		 ((eq? attr-representative (vector-ref names i))
+		  i)
+		 (else
+		  (loop (- i 1))))))))
 
 ;; ===================
 ;; DESCRIPTOR PROTOCOL
@@ -1933,37 +1941,37 @@
 ;;   returns the first occurence of the attribute
 ;;   found on an element of the MRO
 (define (getattribute-from-cls-mro cls name)
-  (declare-fixnum)
-  (declare-not-interrupts-enabled)
-  (let ((mro (PyObjectType-mro cls)))
-    (let loop-mro ((i 0))
-      (if (< i (vector-length mro))
-          (let ((cls (vector-ref mro i)))
-            ;; inlining of py-own-attr-ref to avoid py-absent handling
-            (let ((j (py-own-attr-index cls name)))
-              (if (< j 0)
-                  (loop-mro (+ i 1))
-                  (PyObject-elements-ref cls j)))
-            #;
-            (let ((attr (py-own-attr-ref cls name)))
-              (if (not (eq? attr py-absent))
-                  attr
-                  (loop-mro (+ i 1)))))
-          py-absent))))
+   (declare-fixnum
+      (declare-not-interrupts-enabled)
+      (let ((mro (PyObjectType-mro cls)))
+	 (let loop-mro ((i 0))
+	    (if (< i (vector-length mro))
+		(let ((cls (vector-ref mro i)))
+		   ;; inlining of py-own-attr-ref to avoid py-absent handling
+		   (let ((j (py-own-attr-index cls name)))
+		      (if (< j 0)
+			  (loop-mro (+ i 1))
+			  (PyObject-elements-ref cls j)))
+		   #;
+		   (let ((attr (py-own-attr-ref cls name)))
+		      (if (not (eq? attr py-absent))
+			  attr
+			  (loop-mro (+ i 1)))))
+		py-absent)))))
 
 ;; Does the same a getattribute-from-cls-mro but also returns the class
 ;; which owned the attribute. This may be necessary for super
 (define (getattribute-from-cls-mro-with-owner cls name)
-  (declare-fixnum)
-  (let ((mro (PyObjectType-mro cls)))
-    (let loop-mro ((i 0))
-      (if (< i (vector-length mro))
-          (let ((cls (vector-ref mro i)))
-            (let ((attr (py-own-attr-ref cls name)))
-              (if (not (eq? attr py-absent))
-                  (values attr cls)
-                  (loop-mro (+ i 1)))))
-          (values py-absent py-absent)))))
+   (declare-fixnum
+      (let ((mro (PyObjectType-mro cls)))
+	 (let loop-mro ((i 0))
+	    (if (< i (vector-length mro))
+		(let ((cls (vector-ref mro i)))
+		   (let ((attr (py-own-attr-ref cls name)))
+		      (if (not (eq? attr py-absent))
+			  (values attr cls)
+			  (loop-mro (+ i 1)))))
+		(values py-absent py-absent))))))
 
 (cond-expand
   (gambit

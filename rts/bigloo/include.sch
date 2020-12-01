@@ -19,5 +19,5 @@
 	  (let ((f (make-file-path file f)))
 	     (if (file-exists? f)
 		 (loadq f)
-		 (warning "import:cannot include module" file)))))
+		 (warning "(zipi) import:cannot include module" file)))))
    #unspecified)

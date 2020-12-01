@@ -18,6 +18,9 @@
 	   (inline py-sub x y)
 	   (py-sub:normal x y)
 
+	   (inline py-mul x y)
+	   (py-mul:normal x y)
+
 	   (inline py-floordiv x y)
 	   (py-floordiv:normal x y)
 	   
@@ -28,4 +31,5 @@
 (define-inline (py-sub x y) (py-sub:normal x y))
 (define-inline (py-floordiv x y) (py-floordiv:normal x y))
 (define-inline (py-mod x y) (py-mod:normal x y))
+(define-inline (py-mul x y) (py-mul:normal x y))
 

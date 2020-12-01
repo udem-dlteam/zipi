@@ -13,7 +13,6 @@
 #*    The version                                                      */
 #*---------------------------------------------------------------------*/
 ZIPIRELEASE	= @RELEASE@
-ZIPIDEVEL	= @DEVEL@
 ZIPIBRANCH	= @BRANCH@
 ZIPIDATE	= @DATE@
 ZIPIBUILDID	= @BUILDID@
@@ -43,13 +42,9 @@ BUILDDIR	= @BUILDDIR@
 BUILDETCDIR	= @BUILDETCDIR@
 BUILDBINDIR	= @BUILDBINDIR@
 BUILDLIBDIR	= @BUILDLIBDIR@
-BUILDSHAREDIR	= @BUILDSHAREDIR@
 
 BUILDSPECIFIC   = @BUILDSPECIFIC@
 INSTALLSPECIFIC = @INSTALLSPECIFIC@
-
-DISTRIBDIR	= @DISTRIBDIR@
-REPODIR		= @REPODIR@
 
 #*---------------------------------------------------------------------*/
 #*    Destinations                                                     */
@@ -59,20 +54,9 @@ ZIPIETCDIR	= @ETCDIR@
 ZIPIBINDIR	= @BINDIR@
 ZIPILIBDIR	= @LIBDIR@
 ZIPIFILDIR	= zipi/$(ZIPIRELEASE)
-ZIPISHAREDIR	= @SHAREDIR@
-ZIPIMANDIR	= @MANDIR@
-ZIPICONTRIBSDIR	= @CONTRIBSDIR@
-ZIPIDOCDIR	= @DOCDIR@
-
-
-#*---------------------------------------------------------------------*/
-#*    Runtime system                                                   */
-#*---------------------------------------------------------------------*/
-RTSCONFIG	= @RTSCONFIG@
 
 #*---------------------------------------------------------------------*/
 #*    REPOSITORY                                                       */
 #*---------------------------------------------------------------------*/
 ZIPITMPDIR	= /tmp
-ZIPIDISTRIBDIR	= @ZIPIDISTRIBDIR@
 

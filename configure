@@ -205,6 +205,7 @@ for file in Makefile.zipiconfig configure.scm pysexp.py zpc.bigloo.sh; do
   cat $mkmf.in \
     | sed -e "s|@RELEASE@|$version|" \
           -e "s|@DATE@|$date|" \
+          -e "s|@BRANCH@|$branch|" \
   	  -e "s|@SYSTEMS@|$systems|" \
           -e "s|@BINDIR@|$bindir|" \
           -e "s|@LIBDIR@|$libdir|" \

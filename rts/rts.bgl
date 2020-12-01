@@ -20,7 +20,6 @@
 	  "bigloo/include.sch"
 	  "bigloo/call.sch"
 	  "bigloo/constants.sch"
-;* 	  "bigloo/names.sch"                                           */
 	  )))
 
    (import __py_bigloo
@@ -133,6 +132,8 @@
 	   (py-call3 ::obj ::obj ::obj ::obj)
 	   (py-call4 ::obj ::obj ::obj ::obj ::obj)
 	   (py-call5 ::obj ::obj ::obj ::obj ::obj ::obj)
+
+	   (py-iter ::obj)
 	   
 	   (py-make-global)
 	   (py-make-caches ::int)
