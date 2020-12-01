@@ -272,16 +272,7 @@
 ;*    zpc-py-libraries ...                                             */
 ;*---------------------------------------------------------------------*/
 (define-parameter zpc-py-libraries
-   (cond-expand
-      (enable-libuv
-       '("-library" "hopscript"
-	 "-library" "web"
-	 "-library" "nodepy"
-	 "-library" "libuv"))
-      (else
-       '("-library" "hopscript"
-	 "-library" "web"
-	 "-library" "nodepy"))))
+   '("-library" "zipi" "-library" "pyc"))
 
 ;*---------------------------------------------------------------------*/
 ;*    zpc-py-driver ...                                                */

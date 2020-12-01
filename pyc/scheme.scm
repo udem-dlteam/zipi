@@ -4,13 +4,6 @@
       (PycModule-caches-set! ast (cell-ref cnt))
       (list (scheme ast conf))))
 
-
-;* (define (pyc-scheme-eval ast conf)                                  */
-;*    (let ((def (PycNode-%info ast)))                                 */
-;*       (when (>= (config-get conf 'verbose 0) 1)                     */
-;* 	 (newline (current-error-port)))                               */
-;*       ((eval def) (py-make-global) (py-make-caches (PycModule-caches ast))))) */
-
 (define (pyc-scheme-bigloo ast conf)
    (let* ((prog (pyc-scheme ast conf))
 	  (file (config-get conf file:))

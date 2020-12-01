@@ -35,7 +35,13 @@ jmake && sudo make install
 Once done, you can compile and run with the following commands
 
 ```
-zpc.bigloo somepythonfile.py -o output.scm
+zpc.bigloo somepythonfile.py
+```
+
+Alternatively, this can be split as:
+
+```
+zpc.bigloo somepythonfile.py -s -o output.scm
 bigloo -L /usr/local/lib/zipi/0.0.1 -rpath /usr/local/lib/zipi/0.0.1 output.scm
 ./a.out
 ```
