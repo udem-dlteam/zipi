@@ -210,6 +210,8 @@
 	   (&pystring-init str)
 	   (py-init-registered-constants strings)
 
+	   (py-make-tuple . els)
+	   
 	   py-builtin-super
 	   py-builtin-tuple
 	   py-builtin-type
