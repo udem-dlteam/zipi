@@ -499,7 +499,15 @@
 
 (define-macro (py-int-from-scheme value)
   (if (exact-integer? value)
-      `(py-expression (py-int-from-scheme ,value))
+      (let ()
+        (define int-cache-low -5) ;; must be same as in rts.scm
+        (define int-cache-high 256)
+        (if (and (<= value int-cache-high)
+                 (>= value int-cache-low))
+            `(let ()
+               (declare (standard-bindings) (not safe))
+               (vector-ref int-cache ,(- value int-cache-low)))
+            `(py-int-from-scheme-dynamic ,value)))
       `(py-int-from-scheme-dynamic ,value)))
 
 ;;(define-macro (py-pos x)        `(py-expression (py-pos ,x)))
@@ -515,6 +523,7 @@
 ;;(define-macro (py-gt x y)       `(py-expression (py-gt ,x ,y)))
 ;;(define-macro (py-lt x y)       `(py-expression (py-lt ,x ,y)))
 
+#;
 (define-macro (py-expression expr)
 
   (define (is-int-literal? expr)
