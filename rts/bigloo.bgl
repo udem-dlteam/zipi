@@ -58,7 +58,7 @@
 
 	   (inline current-second)
 	   (inline current-time)
-	   (time->seconds d)
+	   (time->seconds::double d)
 	   (macro time->seconds)
 
 	   (path-directory ::bstring)
@@ -203,18 +203,18 @@
 ;*---------------------------------------------------------------------*/
 (define-inline (current-second) (current-seconds))
 (define-inline (current-time) (current-date))
-(define (time->seconds d)
-   (if (date? d) (date->seconds d) d))
+(define (time->seconds::double d)
+   (if (date? d) (/fl (llong->flonum (date->milliseconds d)) 1000.) d))
 
 (define-macro (time->seconds a)
    (let ((tmp (gensym)))
       (match-case a
 	 ((current-time)
-	  '(current-seconds))
+	  '(/fl (llong->flonum (current-milliseconds)) 1000.))
 	 (else
 	  `(let ((,tmp ,a))
 	      (if (date? ,a)
-		  (date->seconds ,a)
+		  (/fl (llong->flonum (date->milliseconds ,a)) 1000.0)
 		  ,a))))))
 
 ;*---------------------------------------------------------------------*/

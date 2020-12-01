@@ -1713,6 +1713,7 @@
   (lambda (x y) (fun y x)))
 
 (define (result-to-float op)
+   ;; !!! overriden by a macro
   (lambda (x y) (py-float-from-scheme (op x y))))
 
 (define (comparison-conversion scheme-comp-op)
