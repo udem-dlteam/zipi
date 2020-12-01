@@ -11,6 +11,16 @@ micro:
 	  ./compare-zipi-cpython $$bench $(ZIPISYSTEMS); \
 	done
 
+micro-gambit:
+	@for bench in micro_*.py; do \
+	  ./compare-zipi-cpython $$bench gambit; \
+	done
+
+micro-bigloo:
+	@for bench in micro_*.py; do \
+	  ./compare-zipi-cpython $$bench bigloo; \
+	done
+
 list:
 	@for bench in micro_*.py; do \
           echo $$bench; \
