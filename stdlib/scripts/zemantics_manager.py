@@ -95,6 +95,16 @@ class Version:
 
                 self.semantics[name] = SemanticsParser(semantics_content, name, lineno, end_lineno)
 
+    def _local_save(self):
+        new_content = sem.content
+
+        for sem in self.semantics.values():
+            new_content = sem.replace(self.content)
+
+        self.content = new_content
+        self._parse()
+
+
     def __str__(self):
         return self.content
 
@@ -111,7 +121,7 @@ class SemanticsParser:
 
     def replace(self, semantics):
         lines = semantics.splitlines()
-        new_lines = lines[:self.lineno] + self.content.splitlines() + lines[end_lineno + 1:]
+        new_lines = lines[:self.lineno] + self.content.splitlines() + lines[self.end_lineno + 1:]
         return "\n".join(new_lines)
 
     def get_body_linenos(self):
@@ -137,17 +147,25 @@ class SemanticsParser:
     @body.setter
     def body(self, block):
         body_lineno, body_endlineno = self.get_body_linenos()
+        block_lines = block.splitlines()
 
         lines = self.content.splitlines()
-        lines[body_lineno:body_endlineno] = block.splitlines()
+        old_lines_len = len(lines)
 
+        lines[body_lineno:body_endlineno] = block_lines
+        new_lines_len = len(lines)
+
+        self.end_lineno = self.end_lineno + new_lines_len - old_lines_len
         self.content = '\n'.join(lines)
 
 
 if __name__ == "__main__":
     v = Version("../zemantics.py")
-
-    print(v.add.body)
     v.add.body = "foo"
-    print(v.add.body)
+    print(v.add)
+    v.add.body = "foo\nbar"
+    print(v.add)
+    v.add.body = "foo\nbar\nbaz"
+    print(v.add)
+    v.add.body = "foo"
     print(v.add)
