@@ -30,7 +30,9 @@ def {op}(x, y):
     def err():
         raise ValueError
 
-    return normal()"""
+    # {magic_method}:start-body
+    return normal()
+    # {magic_method}:end-body"""
 
 def define_arithmetic_semantics(op, magic_method):
     return arithmetic_template.format(op=op, magic_method=magic_method)
