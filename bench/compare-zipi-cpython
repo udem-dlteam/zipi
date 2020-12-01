@@ -1,35 +1,36 @@
 #!/bin/sh
 
 bench="$1"
-systems=$2
+shift
+systems="$*"
+
+if test -z "$systems"; then
+   systems="gambit bigloo"
+fi
 
 cpython_output=`python3 $bench`
 cpython_time=`echo "$cpython_output" | sed -e "s/ .*//g"`
 code=`echo "$cpython_output" | sed -e "s/^.*: //"`
 
-while : ; do
-  case $2 in
-    "")
-      break;;
+for system in $systems; do
+  case "$system" in
     
     gambit)
       zipi_output=`../zpc/run-zipi --compile $bench`
       zipi_time=`echo "$zipi_output" | sed -e "s/ .*//g"`
 
-      echo -n "[gambit]"
-      python3 -c "a=$cpython_time;b=$zipi_time;code='$code';bench='$bench';speedup=a/b;print(f'{speedup:7.4f}x on {code:s} ({bench:s})')"
+      python3 -c "a=$cpython_time;b=$zipi_time;system='$system';code='$code';bench='$bench';speedup=a/b;print(f'[{system:s}] {speedup:7.4f}x on {code:s} ({bench:s})')"
       ;;
 
     bigloo)
       zipi_output=`../bin/zpc.bigloo -Ox $bench -o /tmp/zpc.bigloo.out && /tmp/zpc.bigloo.out`
       zipi_time=`echo "$zipi_output" | sed -e "s/ .*//g"`
 
-      echo -n "[bigloo]"
-      python3 -c "a=$cpython_time;b=$zipi_time;code='$code';bench='$bench';speedup=a/b;print(f'{speedup:7.4f}x on {code:s} ({bench:s})')"
+      python3 -c "a=$cpython_time;b=$zipi_time;system='$system';code='$code';bench='$bench';speedup=a/b;print(f'[{system:s}] {speedup:7.4f}x on {code:s} ({bench:s})')"
       ;;
     
     *)
       echo "Unknown system $2"
   esac
-  shift
+
 done
