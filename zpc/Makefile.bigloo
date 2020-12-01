@@ -28,9 +28,10 @@ EXEC = zpc.bigloo
 #*---------------------------------------------------------------------*/
 INCLUDES =  
 
-OBJECTS = $(OBJECTS_COMMON:%=o/%.o)
+OBJECTS_BIGLOO = zpc_param parseargs libdir driver
 
-SOURCES = $(OBJECTS:o/%.o=%.bgl)
+OBJECTS = $(OBJECTS_COMMON:%=o/%.o) $(OBJECTS_BIGLOO:%=o/%.o) 
+SOURCES = $(OBJECTS_COMMON:%=%.bgl) $(OBJECTS_BIGLOO:%=%.scm)
 
 COLOR = 32
 
@@ -51,12 +52,15 @@ $(BUILDBINDIR)/$(EXEC): .afile .etags $(OBJECTS)
 #*    SUFFIXES                                                         */
 #*---------------------------------------------------------------------*/
 .SUFFIXES:
-.SUFFIXES: .scm .o
+.SUFFIXES: .bgl .scm .o
 
 #*---------------------------------------------------------------------*/
 #*    The implicit `.scm.o' rule                                       */
 #*---------------------------------------------------------------------*/
 o/%.o: %.bgl %.scm
+	@ $(call compile2,$(BIGLOO),$(BCFLAGS),$(BHFLAGS),-c,$^ -o $@)
+
+o/%.o: %.scm
 	@ $(call compile2,$(BIGLOO),$(BCFLAGS),$(BHFLAGS),-c,$^ -o $@)
 
 #*---------------------------------------------------------------------*/

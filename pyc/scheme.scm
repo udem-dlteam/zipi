@@ -25,8 +25,7 @@
 		   '((import __py_rts
 			__stdlib_zemantics)
 		     (include "bigloo/call.sch"
-			"bigloo/constants.sch")
-		     (export (zipi-init ::bstring)))
+			"bigloo/constants.sch"))
 		   '((library zipi)
 		     ))
 	     ,@(if (config-get conf main:)
@@ -56,10 +55,10 @@
 		 (init-registered-constants)
 		 (let ((caches (py-make-caches ,(PycModule-caches ast)))
 		       (module (py-make-module (py-str-from-scheme name))))
-		    ,(if full-path
-			 `(py-own-attr-set!
-			     module (& "__file__") (& ,full-path))
-			 `,@(list))
+		    ,@(if full-path
+			 `((py-own-attr-set!
+			      module (& "__file__") (& ,full-path)))
+			 '())
 		    (py-module module caches)
 		    module))))
 	 '(end-registering-constants))))

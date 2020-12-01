@@ -1,6 +1,6 @@
 (define (target-driver target)
    (case target
-      ((bigloo) (pyc-bigloo-driver))
+      ((bigloo) (error "zpc" "bigloo target not supported" "use \"zpc.bigloo\""))
       ((gambit) (pyc-gambit-driver))
       ((javascript) (pyc-javascript-driver))
       ((scheme) (pyc-scheme-driver))

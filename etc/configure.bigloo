@@ -35,7 +35,7 @@ fi
 bcflagsdev=""
 bzipicflags=
 
-zipisrfis=""
+zipisrfis="zipi-bigloo"
 
 bglcloselibs=""
 

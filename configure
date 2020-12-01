@@ -45,6 +45,9 @@ shell=/bin/sh
 
 mode=optim
 
+branch=`git rev-parse --abbrev-ref HEAD`
+date=`date +"%d %B %Y"`
+
 # Argument parsing
 while : ; do
   case $1 in
@@ -227,6 +230,9 @@ done
 for file in configure.scm; do
   cat etc/$file \
     | sed -e "s|#[*] Automatically|;* Automatically|" \
+          -e "s|@VERSION@|$version|" \
+          -e "s|@BRANCH@|$branch|" \
+          -e "s|@ZIPISRFIS@|$zipisrfis|" \
     > zpc/configure.scm
 
   cp zpc/configure.scm pyc

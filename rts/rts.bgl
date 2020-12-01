@@ -281,6 +281,7 @@
 	   py-builtin-ZeroDivisionError
 
 	   (native-builtin-__import__ ::bstring)
+	   (py-flag-super-called-without-arguments)
 	   )
       
    (eval   (export-all)))

@@ -45,7 +45,7 @@
      ("javascript" . ,pyc-javascript)))
 
 (define (pyc driver conf)
-  (let* ((env (getenv "PYTRACE"))
+  (let* ((env (getenv "ZIPITRACE"))
          (src (config-get conf src: #f))
 	 (conf (cons*
                 trace: (and (string? env) (string-contains env "pyc:dump"))
