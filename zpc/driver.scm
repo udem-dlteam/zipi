@@ -74,6 +74,7 @@
 	       :module-name (or (zpc-py-module-name) 
 				(input-file->module-name fname))
 	       :src fname
+	       :lib-dir (zpc-library-path)
 	       :bin-dir (zpc-bin-dir)
 	       (zpc-pyc-flags)))))
    
@@ -236,6 +237,7 @@
 		     :module-name (or (zpc-py-module-name) 
 				      (input-file->module-name fname))
 		     :src fname
+		     :lib-dir (zpc-library-path)
 		     :bin-dir (zpc-bin-dir)
 		     (zpc-pyc-flags)))))
 	 file
