@@ -1,0 +1,35 @@
+#!/bin/sh
+
+bench="$1"
+shift
+systems="$*"
+
+if test -z "$systems"; then
+   systems="gambit bigloo"
+fi
+
+
+mkdir -p profile
+
+for system in $systems; do
+  case "$system" in
+    
+    gambit)
+      echo "todo"
+      ;;
+
+    bigloo)
+      ../bin/zpc.bigloo -Ox $bench -o /tmp/zpc.bigloo.out -- -cg
+      
+      perf record -F 99 /tmp/zpc.bigloo.out 2> /dev/null
+      perf report -n --stdio | bigloo -i demangle.scm > profile/$bench.prof.txt
+
+      perf record -F 99 -g -- /tmp/zpc.bigloo.out 2> /dev/null
+      perf script | ./FlameGraph/stackcollapse-perf.pl --all | bigloo -i demangle.scm | ./FlameGraph/flamegraph.pl --colors hop > profile/$bench.flame.svg
+      ;;
+    
+    *)
+      echo "Unknown system $2"
+  esac
+
+done

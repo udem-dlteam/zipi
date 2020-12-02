@@ -211,6 +211,10 @@ cat rts/bigloo/call_expd.sch >> $buildlibdir/zipi.init
 echo ";; rts/bigloo/constants.sch" >> $buildlibdir/zipi.init
 cat rts/bigloo/constants_expd.sch >> $buildlibdir/zipi.init
 
+# rts/bigloo/constants.sch
+echo ";; rts/bigloo/constants.sch" >> $buildlibdir/zipi.init
+cat rts/bigloo/integer.sch >> $buildlibdir/zipi.init
+
 # rts/bigloo/expanders.sch
 cat rts/bigloo/expanders.sch >> $buildlibdir/zipi.init
 

@@ -20,6 +20,7 @@
 	  "bigloo/include.sch"
 	  "bigloo/call.sch"
 	  "bigloo/constants.sch"
+	  "bigloo/integer.sch"
 	  )))
 
    (import __py_bigloo
@@ -137,6 +138,8 @@
 	   
 	   (py-make-global)
 	   (py-make-caches ::int)
+
+	   int-cache
 	   
 	   (py-make-class name module bases . atrs)
 	   
@@ -186,6 +189,7 @@
 	   procedure->py-function
 	   
 	   (py-int-from-scheme value)
+	   (py-int-from-scheme-dynamic value)
 	   (py-float-from-scheme value)
 	   
 	   (py-import path depth)
