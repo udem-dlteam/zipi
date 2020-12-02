@@ -2710,7 +2710,7 @@
    )
   (bigloo
    (define (py-int-from-scheme value)
-     (py-int-from-scheme-dynamic value))))
+      (py-int-from-scheme-dynamic value))))
 
 (define (py-int-from-scheme-dynamic value)
   (if (and (<= value int-cache-high)

@@ -21,6 +21,24 @@ micro-bigloo:
 	  ./compare-zipi-cpython $$bench bigloo; \
 	done
 
+.PHONY: profile
+
+profile:
+	#rm -rf "/Users/feeley/.zipicache/cache@zipi_0_0_1/Users/feeley/python/zipi/bench"
+	@for bench in *.py; do \
+	  ./profile-zipi $$bench $(ZIPISYSTEMS); \
+	done
+
+profile-gambit:
+	@for bench in *.py; do \
+	  ./profile-zipi $$bench gambit; \
+	done
+
+profile-bigloo:
+	@for bench in *.py; do \
+	  ./profile-zipi $$bench bigloo; \
+	done
+
 list:
 	@for bench in micro_*.py; do \
           echo $$bench; \
@@ -30,3 +48,4 @@ realclean:
 	rm micro_*.py
 
 clean:
+
