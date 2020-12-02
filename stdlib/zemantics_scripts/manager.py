@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import argparse, ast, datetime, logging, os, re
 
 import templates
@@ -65,7 +67,7 @@ class History:
         version = Version(path)
         last_save = self[-1]
 
-        with open(path, 'x') as f:
+        with open(path, 'r') as f:
             content = f.read()
 
         # Sanity check to make sure we are not about to write on a non-semantics file
@@ -73,8 +75,11 @@ class History:
             raise ValueError(f"'{path}'' does not look like a semantics file, no '@define_demantics'")
 
         # Save the file if any change was made
-        if str(version) != str(last_save):
+        # Remove the save header before comparison
+        if str(version) != str(last_save).split('\n', 1)[1]:
             self.save_version(version)
+        else:
+            logging.info("File not saved before update due to no change since last save")
 
         new_version = Version.from_content(content).update_template()
 
@@ -164,7 +169,7 @@ class Version:
             if template_semantics is None:
                 logging.warning(f"could not find semantics {name} in template")
             else:
-                templace_semantics.body = semantics.body
+                template_semantics.body = semantics.body
 
         return self.from_content(template.content)
 
@@ -175,8 +180,9 @@ class Template(Version):
     main_template = templates.main_template
 
     def __init__(self):
-        self.path = None
         self.content = self.init_template()
+
+        self._parse()
 
     def define_arithmetic_semantics(op, magic_method):
         return arithmetic_template.format(op=op, magic_method=magic_method)
@@ -190,6 +196,10 @@ class Template(Version):
         semantics = self.main_template.format(arithmetic=arithmetic_semantics)
 
         return semantics
+
+    def init_file(self, path):
+        with open(path, 'x') as f:
+            f.write(str(self))
 
 
 class SemanticsParser:
@@ -245,7 +255,7 @@ class SemanticsParser:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Manage Python semantics file")
 
-    subparser = parser.add_subparsers(dest='command')
+    subparser = parser.add_subparsers(dest='command', required=True)
 
     # update command
     update_parser = subparser.add_parser('update', description="Update a semantics file from template")
@@ -256,7 +266,11 @@ if __name__ == '__main__':
     save_parser.add_argument('path')
 
     # save command
-    save_parser = subparser.add_parser('list', description="Print a list of previous semantics version")
+    init_parser = subparser.add_parser('init', description="Initialize a semantics file from templates")
+    init_parser.add_argument('path')
+
+    # list command
+    list_parser = subparser.add_parser('list', description="Print a list of previous semantics version")
 
     args = parser.parse_args()
 
@@ -267,7 +281,10 @@ if __name__ == '__main__':
         History().save(path)
     elif command == 'update':
         path = args.path
-        Version(path).update_template()
+        History().update_template(path)
+    elif command == 'init':
+        path = args.path
+        Template().init_file(path)
     elif command == 'list':
         for description in History().get_history_list():
             print(description)
