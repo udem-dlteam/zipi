@@ -1,8 +1,10 @@
-import ast, datetime, logging, os, re
+import argparse, ast, datetime, logging, os, re
 
 import templates
 
 class History:
+    save_header = "### zemantics save: "
+
     def __init__(self, _dirname = ".zemantics_history", _extension=".py", _save_prefix="zemantics_v"):
         self._dirname = _dirname
         self._save_prefix = _save_prefix
@@ -36,7 +38,6 @@ class History:
         else:
             raise ValueError("not a valid zemantics save file name")
 
-
     def get_next_save_file_serial(self):
         return max(map(lambda f: int(self.get_save_file_serial(f)), self), default=-1) + 1
 
@@ -48,13 +49,12 @@ class History:
         filename = f"{self._save_prefix}{n}{self._extension}"
         save_path = os.path.join(self._dirname, filename)
 
-        save_header = "### zemantics save"
         content = str(version)
 
-        if content.startswith(save_header):
+        if content.startswith(self.save_header):
             content = content.split('\n', maxsplit=1)[1]
 
-        content = f"{save_header}: {filename} @ {datetime.datetime.now()}\n{content}"
+        content = f"{self.save_header}{filename} @ {datetime.datetime.now()}\n{content}"
         with open(save_path, 'x') as target:
             target.write(content)
 
@@ -80,6 +80,13 @@ class History:
 
         with open(path, 'w') as f:
             f.write(str(new_version))
+
+    def get_history_list(self):
+        descriptions = []
+        for path in self:
+            with open(path, 'r') as f:
+                descriptions.append(f.readline().replace(self.save_header, '', 1).strip())
+        return descriptions
 
 
 class Version:
@@ -235,7 +242,32 @@ class SemanticsParser:
         self.content = '\n'.join(lines)
 
 
-if __name__ == "__main__":
-    v = History()[-1]
-    for p in v.semantics.values():
-        print(p.body)
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="Manage Python semantics file")
+
+    subparser = parser.add_subparsers(dest='command')
+
+    # update command
+    update_parser = subparser.add_parser('update', description="Update a semantics file from template")
+    update_parser.add_argument('path')
+
+    # save command
+    save_parser = subparser.add_parser('save', description="Save a semantics file in history")
+    save_parser.add_argument('path')
+
+    # save command
+    save_parser = subparser.add_parser('list', description="Print a list of previous semantics version")
+
+    args = parser.parse_args()
+
+    command = args.command
+
+    if command == 'save':
+        path = args.path
+        History().save(path)
+    elif command == 'update':
+        path = args.path
+        Version(path).update_template()
+    elif command == 'list':
+        for description in History().get_history_list():
+            print(description)
