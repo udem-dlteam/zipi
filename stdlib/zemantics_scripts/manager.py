@@ -102,10 +102,8 @@ class Version:
         else:
             self.content = ""
 
-        self._parse()
-
     def __getattr__(self, attr):
-        semantics = self.semantics.get(attr)
+        semantics = self._parse_semantics(attr)
 
         if semantics is None:
             raise AttributeError
@@ -115,9 +113,33 @@ class Version:
     def __str__(self):
         return self.content
 
-    def _parse(self):
+    def _parse_semantics(self, name):
+        for sem in self._iter_semantics():
+            if sem.name == name:
+                return sem
+        return None
+
+    def _update_semantics_body(self, semantics, block):
+        name = semantics.name
+
+        body_start = f"# {name}:start-body"
+        body_end = f"# {name}:end-body"
+
         lines = self.content.splitlines()
-        self.semantics = {}
+
+        body_lineno = next((i for i, line in enumerate(lines) if body_start in line), None)
+        body_endlineno = next((i for i, line in enumerate(lines) if body_end in line), None)
+
+        if body_lineno is None or body_endlineno is None:
+            raise ValueError(f"semantics {self.name} does not have a body")
+
+        block_lines = block.splitlines()
+
+        lines[body_lineno + 1:body_endlineno] = block_lines
+        self.content = '\n'.join(lines)
+
+    def _iter_semantics(self):
+        lines = self.content.splitlines()
 
         file_ast = ast.parse(self.content)
 
@@ -139,22 +161,12 @@ class Version:
                 name = stmt.name
                 semantics_content = "\n".join(lines[lineno - 1:end_lineno])
 
-                self.semantics[name] = SemanticsParser(semantics_content, name, lineno, end_lineno)
-
-    def _local_save(self):
-        new_content = sem.content
-
-        for sem in self.semantics.values():
-            new_content = sem.replace(self.content)
-
-        self.content = new_content
-        self._parse()
+                yield SemanticsParser(semantics_content, name, self, lineno, end_lineno)
 
     @classmethod
     def from_content(cls, content):
         version = cls()
         version.content = content
-        version._parse()
         return version
 
     def copy(self):
@@ -163,7 +175,8 @@ class Version:
     def update_template(self):
         template = Template()
 
-        for name, semantics in self.semantics.items():
+        for semantics in self._iter_semantics():
+            name = semantics.name
             template_semantics = getattr(template, name, None)
 
             if template_semantics is None:
@@ -181,8 +194,6 @@ class Template(Version):
 
     def __init__(self):
         self.content = self.init_template()
-
-        self._parse()
 
     def define_arithmetic_semantics(op, magic_method):
         return arithmetic_template.format(op=op, magic_method=magic_method)
@@ -203,19 +214,21 @@ class Template(Version):
 
 
 class SemanticsParser:
-    def __init__(self, content, name, lineno, end_lineno):
+    def __init__(self, content, name, version, lineno, end_lineno, _last=[None]):
+        # To avoid conflicts, we allow only one live semantics parser at a time
+        # We are not going to revinvent git today
+        if _last[0] is not None:
+            _last[0]._kill()
+        _last[0] = self
+
         self.content = content
         self.name = name
+        self.version = version
         self.lineno = lineno
         self.end_lineno = end_lineno
 
     def __str__(self):
         return self.content
-
-    def replace(self, semantics):
-        lines = semantics.splitlines()
-        new_lines = lines[:self.lineno] + self.content.splitlines() + lines[self.end_lineno + 1:]
-        return "\n".join(new_lines)
 
     def get_body_linenos(self):
         lines = self.content.splitlines()
@@ -239,17 +252,17 @@ class SemanticsParser:
 
     @body.setter
     def body(self, block):
-        body_lineno, body_endlineno = self.get_body_linenos()
-        block_lines = block.splitlines()
+        version = self.version
 
-        lines = self.content.splitlines()
-        old_lines_len = len(lines)
+        if version is None:
+            raise ValueError("SemanticsParser is not longer alive, version was updated")
 
-        lines[body_lineno:body_endlineno] = block_lines
-        new_lines_len = len(lines)
+        # This should call _kill
+        version._update_semantics_body(self, block)
 
-        self.end_lineno = self.end_lineno + new_lines_len - old_lines_len
-        self.content = '\n'.join(lines)
+    def _kill(self):
+        # Ensure this SemanticsParser can no longer update its Version
+        self.version = None
 
 
 if __name__ == '__main__':
