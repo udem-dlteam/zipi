@@ -1,5 +1,7 @@
 import ast, os, re, datetime
 
+import templates
+
 class History:
     def __init__(self, _dirname = ".zemantics_history", _extension=".py", _save_prefix="zemantics_v"):
         self._dirname = _dirname
@@ -8,6 +10,7 @@ class History:
 
         if not os.path.exists(_dirname):
             os.mkdir(_dirname)
+            self.save(Template())
 
     def __iter__(self):
         files = []
@@ -20,7 +23,7 @@ class History:
         return iter(sorted(files, key=os.path.basename))
 
     def __getitem__(self, index):
-        return list(self)[index]
+        return Version(list(self)[index])
 
     def is_save_file(self, path):
         filename = os.path.basename(path)
@@ -35,7 +38,7 @@ class History:
 
 
     def get_next_save_file_serial(self):
-        return max(map(lambda f: int(self.get_save_file_serial(f)), self), default=0) + 1
+        return max(map(lambda f: int(self.get_save_file_serial(f)), self), default=-1) + 1
 
     def save(self, version):
         n = self.get_next_save_file_serial()
@@ -159,13 +162,31 @@ class SemanticsParser:
         self.content = '\n'.join(lines)
 
 
+class Template(Version):
+    operations = templates.operations
+    arithmetic_template = templates.arithmetic_template
+    main_template = templates.main_template
+
+    def __init__(self):
+        self.path = None
+        self.content = self.init_template()
+
+    def define_arithmetic_semantics(op, magic_method):
+        return arithmetic_template.format(op=op, magic_method=magic_method)
+
+    def init_template(self):
+        arithmetic_templates = [self.arithmetic_template.format(op=op, magic_method=magic_method)
+                                for op, magic_method in self.operations.items()]
+
+        arithmetic_semantics = '\n\n'.join(arithmetic_templates)
+
+        semantics = self.main_template.format(arithmetic=arithmetic_semantics)
+
+        return semantics
+
+
+
 if __name__ == "__main__":
-    v = Version("../zemantics.py")
-    v.add.body = "foo"
-    print(v.add)
-    v.add.body = "foo\nbar"
-    print(v.add)
-    v.add.body = "foo\nbar\nbaz"
-    print(v.add)
-    v.add.body = "foo"
-    print(v.add)
+    v = History()[-1]
+    for p in v.semantics.values():
+        print(p.body)
