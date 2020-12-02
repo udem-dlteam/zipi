@@ -1,3 +1,53 @@
+# Semantics manager
+
+```
+usage: manager.py [-h] {update,save,init,list} ...
+
+Manage Python semantics file
+
+positional arguments:
+  {update,save,init,list}
+```
+
+## update
+
+```
+usage: manager.py update [-h] path
+
+Update a semantics file from template
+
+positional arguments:
+  path
+```
+
+## save
+
+```
+usage: manager.py save [-h] path
+
+Save a semantics file in history
+
+positional arguments:
+  path
+```
+
+## init
+
+```
+Initialize a semantics file from templates
+
+positional arguments:
+  path
+```
+
+## list
+
+```
+usage: manager.py list [-h]
+
+Print a list of previous semantics version
+```
+
 # Compiler Intrinsics
 
 ## `define_semantics`
