@@ -1,4 +1,4 @@
-import ast, os, re, datetime
+import ast, datetime, logging, os, re
 
 import templates
 
@@ -10,7 +10,7 @@ class History:
 
         if not os.path.exists(_dirname):
             os.mkdir(_dirname)
-            self.save(Template())
+            self.save_version(Template())
 
     def __iter__(self):
         files = []
@@ -40,7 +40,10 @@ class History:
     def get_next_save_file_serial(self):
         return max(map(lambda f: int(self.get_save_file_serial(f)), self), default=-1) + 1
 
-    def save(self, version):
+    def save_version(self, version):
+        if not isinstance(version, Version):
+            return TypeError("save_version() requires a Version object, to save a file from path use save()")
+
         n = self.get_next_save_file_serial()
         filename = f"{self._save_prefix}{n}{self._extension}"
         save_path = os.path.join(self._dirname, filename)
@@ -55,12 +58,37 @@ class History:
         with open(save_path, 'x') as target:
             target.write(content)
 
+    def save(self, path):
+        self.save_version(Version(path))
+
+    def update_template(self, path):
+        version = Version(path)
+        last_save = self[-1]
+
+        with open(path, 'x') as f:
+            content = f.read()
+
+        # Sanity check to make sure we are not about to write on a non-semantics file
+        if not "@define_semantics" in content:
+            raise ValueError(f"'{path}'' does not look like a semantics file, no '@define_demantics'")
+
+        # Save the file if any change was made
+        if str(version) != str(last_save):
+            self.save_version(version)
+
+        new_version = Version.from_content(content).update_template()
+
+        with open(path, 'w') as f:
+            f.write(str(new_version))
+
 
 class Version:
-    def __init__(self, path):
-        with open(path, 'r') as f:
-            self.path = path
-            self.content = f.read()
+    def __init__(self, path=None):
+        if path is not None:
+            with open(path, 'r') as f:
+                self.content = f.read()
+        else:
+            self.content = ""
 
         self._parse()
 
@@ -71,6 +99,9 @@ class Version:
             raise AttributeError
         else:
             return semantics
+
+    def __str__(self):
+        return self.content
 
     def _parse(self):
         lines = self.content.splitlines()
@@ -107,9 +138,51 @@ class Version:
         self.content = new_content
         self._parse()
 
+    @classmethod
+    def from_content(cls, content):
+        version = cls()
+        version.content = content
+        version._parse()
+        return version
 
-    def __str__(self):
-        return self.content
+    def copy(self):
+        return self.from_content(self.content)
+
+    def update_template(self):
+        template = Template()
+
+        for name, semantics in self.semantics.items():
+            template_semantics = getattr(template, name, None)
+
+            if template_semantics is None:
+                logging.warning(f"could not find semantics {name} in template")
+            else:
+                templace_semantics.body = semantics.body
+
+        return self.from_content(template.content)
+
+
+class Template(Version):
+    operations = templates.operations
+    arithmetic_template = templates.arithmetic_template
+    main_template = templates.main_template
+
+    def __init__(self):
+        self.path = None
+        self.content = self.init_template()
+
+    def define_arithmetic_semantics(op, magic_method):
+        return arithmetic_template.format(op=op, magic_method=magic_method)
+
+    def init_template(self):
+        arithmetic_templates = [self.arithmetic_template.format(op=op, magic_method=magic_method)
+                                for op, magic_method in self.operations.items()]
+
+        arithmetic_semantics = '\n\n'.join(arithmetic_templates)
+
+        semantics = self.main_template.format(arithmetic=arithmetic_semantics)
+
+        return semantics
 
 
 class SemanticsParser:
@@ -160,30 +233,6 @@ class SemanticsParser:
 
         self.end_lineno = self.end_lineno + new_lines_len - old_lines_len
         self.content = '\n'.join(lines)
-
-
-class Template(Version):
-    operations = templates.operations
-    arithmetic_template = templates.arithmetic_template
-    main_template = templates.main_template
-
-    def __init__(self):
-        self.path = None
-        self.content = self.init_template()
-
-    def define_arithmetic_semantics(op, magic_method):
-        return arithmetic_template.format(op=op, magic_method=magic_method)
-
-    def init_template(self):
-        arithmetic_templates = [self.arithmetic_template.format(op=op, magic_method=magic_method)
-                                for op, magic_method in self.operations.items()]
-
-        arithmetic_semantics = '\n\n'.join(arithmetic_templates)
-
-        semantics = self.main_template.format(arithmetic=arithmetic_semantics)
-
-        return semantics
-
 
 
 if __name__ == "__main__":
