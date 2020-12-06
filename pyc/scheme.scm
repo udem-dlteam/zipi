@@ -79,7 +79,7 @@
                         ,(if full-path
                           `(py-own-attr-set!
                             module (& "__file__") (&& ,full-path))
-                          `,@(list))
+                          `(begin))
                         (py-module module caches)
                         module))
                     (end-registering-constants)))))
