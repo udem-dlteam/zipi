@@ -15,6 +15,7 @@
 #*---------------------------------------------------------------------*/
 prefix=/usr/local
 systems="bigloo gambit"
+default_scheme_system="no_default_scheme_system_currently_set"
 
 #*---------------------------------------------------------------------*/
 #*    Bigloo configuration                                             */
@@ -53,7 +54,7 @@ while : ; do
   case $1 in
     "")
       break;;
-      
+
     --prefix=*)
       prefix="`echo $1 | sed 's/^[^=]*=//'`";
       bindir=$prefix/bin;
@@ -76,15 +77,20 @@ while : ; do
 
     --bigloo-only)
       systems=bigloo
+      default_scheme_system=bigloo
       ;;
-    
+
     --gambit-only)
       systems=gambit
+      default_scheme_system=gambit
       ;;
-      
+
+    --default=*)
+      default_scheme_system="`echo $1 | sed 's/^[^=]*=//'`";;
+
     --bigloo=*)
       bigloo="`echo $1 | sed 's/^[^=]*=//'`";
-      ;; 
+      ;;
 
     --bigloolibdir=*)
       bigloolibdir="`echo $1 | sed 's/^[^=]*=//'`";;
@@ -97,10 +103,10 @@ while : ; do
 
     --mode=*)
       mode="`echo $1 | sed 's/^[^=]*=//'`";;
-    
+
     --debug*)
       mode=debug;;
-    
+
     -*)
       if [ "$1" != "--help" ]; then
         echo "*** Configure error, unknown option $1" >&2;
@@ -162,7 +168,7 @@ if [ -e .git ]; then
   buildtag=`git log -1 --abbrev-commit --pretty="%h"`
 
   git status -s | grep M > /dev/null
-  
+
   if [ "$? " = "0 " ]; then
     buildtag="$buildtag+"
   fi
@@ -170,7 +176,7 @@ else
   if [ -f .buildtag ]; then
     buildtag=`cat .buildtag`
   fi
-fi  
+fi
 
 buildid_files="zpc/*.scm rts/*.scm"
 
@@ -226,7 +232,7 @@ for file in Makefile.zipiconfig configure.scm pysexp.py zpc.bigloo.sh; do
           -e "s|@SHELL@|$shell|" \
           -e "s|@PYSEXPPP@|$pysexppp|" \
   	>> $mkmf
-done	
+done
 
 for file in configure.scm; do
   cat etc/$file \
@@ -238,9 +244,18 @@ for file in configure.scm; do
 
   cp zpc/configure.scm pyc
   cp zpc/configure.scm rts
-  
+
   rm etc/$file
-done  
+done
+
+for file in bin/zipi bin/zipi.gambit bin/zpc bin/zpc.gambit; do
+  cat $file.in \
+    | sed -e "s|@VERSION@|$version|" \
+          -e "s|@BRANCH@|$branch|" \
+          -e "s|@DEFAULT_SCHEME_SYSTEM@|$default_scheme_system|" \
+    > $file
+  chmod +x $file
+done
 
 mv etc/zpc.bigloo.sh bin && chmod a+rx bin/zpc.bigloo.sh
 chmod a+rx etc/pysexp.py

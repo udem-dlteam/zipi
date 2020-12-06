@@ -151,12 +151,12 @@
   (define (root-dir)
     (getenv "ZIPIROOT"))
 
-  (define py19-path
-    (string-append (root-dir) "/etc/py19" ))
+  (define zpc-path
+    (string-append (root-dir) "/bin/zpc.gambit"))
 
-  (if (not (file-exists? py19-path))
+  (if (not (file-exists? zpc-path))
       (fatal-error
-        "cannot find py19 executable. "
+        "cannot find zpc.gambit executable. "
         "The environnement variable $ZIPIROOT is probably not set properly. "
         "Please refer to README"))
 
@@ -165,14 +165,12 @@
   (shell-command
     (string-append
       (if debug-flag
-          "ZIPI_DEBUG_PY19=true "
-          "ZIPI_DEBUG_PY19=false ")
-      py19-path
+          "ZPC_DEBUG=true "
+          "ZPC_DEBUG=false ")
+      zpc-path
       " -t gambit "
       (root-dir)
       "/pyc "
       source
       " > "
       target)))
-
-

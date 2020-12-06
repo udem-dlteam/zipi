@@ -1,0 +1,16 @@
+#!/bin/sh
+
+SCHEME_SYSTEM="@DEFAULT_SCHEME_SYSTEM@"
+ARGS=""
+
+IFS="	"  # has one tab to correctly parse arguments with spaces
+while test "$1" != ""; do
+    ARG="$1"
+    shift
+    case "$ARG" in
+         *) ARGS="$ARGS	$ARG" # has one tab
+            ;;
+    esac
+done
+
+exec $0.$SCHEME_SYSTEM $ARGS
