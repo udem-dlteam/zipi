@@ -1,16 +1,12 @@
 #!/usr/bin/env gsi
 
-(define (flag? s)
-  (and (>= (string-length s) 2)
-       (string=? (substring s 0 2) "--")))
-
-(define (get-file-name args)
-  (fold (lambda (x y) (if (flag? x) y x)) #f args))
+(define (config-version) "@VERSION@")
+(define (config-branch) "@BRANCH@")
 
 ;; If the path is updated here, it should be changed in rts.scm
 (define (cache-location) (path-expand "~~zipicache/cache@zipi_0_0_1"))
 
-(define (delete-zipi-cache)
+(define (reset-cache)
   (if (and (##file-info (cache-location) #t #f)
            (eq? 'directory (##file-info-type (file-info (cache-location)))))
       (if (fx= 1 (length (directory-files (path-normalize (path-expand ".." (cache-location))))))
@@ -18,26 +14,100 @@
           (error
             "Cannot delete zipicache. Your zipicache folder is at : "
             (cache-location)
-            ". Please delete cache folder manualy or change ~~zipicache location."))
-      (println
-          "*** WARNING -- Cache not found: folder "
-          (cache-location)
-          " cannot be found")))
+            ". Please delete cache folder manually or change ~~zipicache location."))
+      (println "*** WARNING -- Cache not found: " (cache-location))))
 
 (define (main . args)
-  (if (member "--clear-cache" args)
-      (delete-zipi-cache))
-  (if (get-file-name args)
-      (let ((path (path-normalize (get-file-name args))))
-       (import (zipi rts))
-       (if (member "--compile" args)
-           (compile-flag-set! #t))
-       (if (member "--debug" args)
-           (debug-flag-set! #t))
-       (if (member "--profile" args)
-           (profile-flag-set! #t))
-       (or  (run-as-main path)
-            (println "*** ERROR -- File named " (car args) " at " path " cannot be found")))
+  (let ((help    #f)
+        (compile #t)
+        (debug   #f)
+        (profile #f)
+        (reset   #f)
+        (version 0) ;; count number of -V
+        (file    #f)
+        (argv    #f))
 
-      (if (fx= 0 (length args))
-          (println "Usage : ./zipi.gambit [--compile --clear-cache] file "))))
+    (let loop ((args args))
+      (if (pair? args)
+          (let ((arg (car args))
+                (rest (cdr args)))
+            (cond ((and (pair? rest) (member arg '("-X")))
+                   (let ((option (car rest)))
+                     (cond ((string=? option "compile")
+                            (set! compile #t))
+                           ((string=? option "interpret")
+                            (set! compile #f))
+                           ((string=? option "debug")
+                            (set! debug #t))
+                           ((string=? option "profile")
+                            (set! profile #t))
+                           ((string=? option "reset")
+                            (set! reset #t))
+                           (else
+                            (println "*** ignoring option -X " option)))
+                     (loop (cdr rest))))
+                  ((member arg '("-h" "-?" "--help"))
+                   (set! help #t)
+                   (loop rest))
+                  ((member arg '("-V"))
+                   (set! version (+ version 1))
+                   (loop rest))
+                  ((member arg '("-VV"))
+                   (set! version (+ version 2))
+                   (loop rest))
+                  (else
+                   (if (and (>= (string-length arg) 1)
+                            (char=? (string-ref arg 0) #\-))
+                       (begin
+                         (println "*** ignoring option " arg)
+                         (loop rest))
+                       (begin
+                         (set! file arg)
+                         (set! argv (cons arg rest)))))))))
+
+    (cond (help
+           (usage))
+          ((>= version 1)
+           (println "Zipi " (config-version))
+           (if (>= version 2)
+               (println "git branch: " (config-branch))))
+          (else
+
+           (if reset (reset-cache))
+
+           (if (not file)
+               (if (not reset) (usage))
+               (let ((path (path-normalize file)))
+                 (run-as-main path argv compile debug profile)))))))
+
+(define (usage)
+  (print (string-append "usage: " (car (command-line)) #<<EOF
+ [option] ... [file] [arg] ...
+Options and arguments:
+-h     : print this help message and exit (also --help)
+-V     : print the Zipi version number and exit (also --version)
+         when given twice, print more information about the build
+
+EOF
+)))
+
+(define (run-as-main path argv compile debug profile)
+
+  ;; use eval to delay processing of (import (zipi rts))
+
+  ((eval '(lambda (path argv compile debug profile)
+
+            (import (zipi rts))
+
+            (compile-flag-set! compile)
+            (debug-flag-set! debug)
+            (profile-flag-set! profile)
+
+            (run-as-main path)))
+   path
+   argv
+   compile
+   debug
+   profile))
+
+(##main-set! main)
