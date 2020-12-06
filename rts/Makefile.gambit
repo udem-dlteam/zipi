@@ -9,4 +9,4 @@ install.gambit:
 	echo "install.gambit TODO"
 
 clean.gambit:
-	echo "clean.gambit TODO"
+	rm -rf rts\@gambit*@C

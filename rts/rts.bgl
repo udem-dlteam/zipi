@@ -16,281 +16,283 @@
 
    (cond-expand
       ((not classgen)
-       (include "rts.sch"
-	  "bigloo/include.sch"
-	  "bigloo/call.sch"
-	  "bigloo/constants.sch"
-	  "bigloo/integer.sch"
-	  )))
+       (include
+          "rts-macros.scm"
+          "rts.sch"
+          "bigloo/include.sch"
+          "bigloo/call.sch"
+          "bigloo/constants.sch"
+          "bigloo/integer.sch"
+          )))
 
    (import __py_bigloo
-	   __py_configure
-	   __py_hash
+           __py_configure
+           __py_hash
            __stdlib_builtins
-	   __stdlib_zemantics)
+           __stdlib_zemantics)
 
    (export (class PyObject
-	      (hclass (default #f))
-	      (%elements (default (make-vector 4)))
-	      class)
-	   
-	   (class PyFunction::PyObject
-	      (procedure read-only))
+              (hclass (default #f))
+              (%elements (default (make-vector 4)))
+              class)
 
-	   (class PyObjectType::PyObject
-	      bases
-	      mro
-	      hclass-of-instances)
+           (class PyFunction::PyObject
+              (procedure read-only))
 
-	   (abstract-class PyObjectNumber::PyObject
-	      value)
-	   
-	   (class PyObjectInt::PyObjectNumber)
-	   (class PyObjectFloat::PyObjectNumber)
-	   (class PyObjectComplex::PyObjectNumber)
+           (class PyObjectType::PyObject
+              bases
+              mro
+              hclass-of-instances)
 
-	   (class PyObjectList::PyObject
-	      value)
+           (abstract-class PyObjectNumber::PyObject
+              value)
 
-	   (class PyObjectListIterator::PyObject
-	      index
-	      list)
-	   
-	   (class PyObjectBytearray::PyObject
-	      value)
+           (class PyObjectInt::PyObjectNumber)
+           (class PyObjectFloat::PyObjectNumber)
+           (class PyObjectComplex::PyObjectNumber)
 
-	   (class PyObjectBytearrayIterator::PyObject
-	      index
-	      bytearray)
+           (class PyObjectList::PyObject
+              value)
 
-	   (class PyObjectStr::PyObject
-	      value
-	      (representative (default #f))
-	      hash)
+           (class PyObjectListIterator::PyObject
+              index
+              list)
 
-	   (class PyObjectFunction::PyObject
-	      procedure
-	      arity
-	      signature)
+           (class PyObjectBytearray::PyObject
+              value)
 
-	   (class PyObjectMethod::PyObject
-	      procedure
-	      arity
-	      signature)
+           (class PyObjectBytearrayIterator::PyObject
+              index
+              bytearray)
 
-	   (class PyObjectDict::PyObject
-	      value)
+           (class PyObjectStr::PyObject
+              value
+              (representative (default #f))
+              hash)
 
-	   (class PyObjectSet::PyObject
-	      value)
-	   
-	   (class PyObjectTuple::PyObject
-	      value)
-	   
-	   (class PyObjectTupleIterator::PyObject
-	      index
-	      vec)
-	   
-	   (class PyObjectDictKeyIterator::PyObject
-	      node
-	      iterator-token)
-	   
-	   (class PyObjectSlice::PyObject
-	      start
-	      stop
-	      step)
-	   
-	   (class PyObjectTextIOWrapper::PyObject
-	      port
-	      mode
-	      encoding)
-	   
-	   (inline PyObject-type-get o)
-	   (inline PyObjectStr-type-get o)
+           (class PyObjectFunction::PyObject
+              procedure
+              arity
+              signature)
 
-	   (build-builtins)
-	   
-	   (global-get ::PyObject ::obj ::obj)
-	   (global-put! global name val cache)
+           (class PyObjectMethod::PyObject
+              procedure
+              arity
+              signature)
 
-	   ;; (object-get ::obj ::obj ::obj)
-	   (object-put! ::PyObject ::obj ::obj ::obj)
-	   (getattribute-from-obj-mro ::obj ::obj)
-	   
-	   (py-make-module name)
-	   (py-make-list . elements)
+           (class PyObjectDict::PyObject
+              value)
 
-	   ;; (py-getitem ::PyObject ::obj ::obj)
-	   ;; (py-delitem ::PyObject ::obj ::obj)
-	   ;; (py-setitem ::PyObject ::obj ::obj ::obj)
-	   
-	   (inline PyObject-elements-ref ::PyObject ::long)
-	   (PyObject-elements-set! ::PyObject ::long ::obj)
-	   
-	   (py-call0 ::obj)
-	   (py-call1 ::obj ::obj)
-	   (py-call2 ::obj ::obj ::obj)
-	   (py-call3 ::obj ::obj ::obj ::obj)
-	   (py-call4 ::obj ::obj ::obj ::obj ::obj)
-	   (py-call5 ::obj ::obj ::obj ::obj ::obj ::obj)
+           (class PyObjectSet::PyObject
+              value)
 
-	   (py-iter ::obj)
-	   
-	   (py-make-global)
-	   (py-make-caches ::int)
+           (class PyObjectTuple::PyObject
+              value)
 
-	   int-cache
-	   
-	   (py-make-class name module bases . atrs)
-	   
-	   (py-throw ::obj)
-	   
-	   (py-iadd x y cache)
-	   (py-iand x y cache)
-	   (py-isub x y cache)
-	   (py-idiv x y cache)
-	   (py-imod x y cache)
-	   (py-ifloordiv x y cache)
-	   (py-eq x y)
-	   (py-ne x y)
-	   (py-lt x y)
-	   (py-le x y)
-	   (py-gt x y)
-	   (py-ge x y)
-	   (py-is x y)
-	   (py-isnot x y)
-	   (py-in x y)
-	   (py-notin x y)
-	   (py-neg x cache)
-	   (py-not x cache)
+           (class PyObjectTupleIterator::PyObject
+              index
+              vec)
 
-	   py-None
+           (class PyObjectDictKeyIterator::PyObject
+              node
+              iterator-token)
+
+           (class PyObjectSlice::PyObject
+              start
+              stop
+              step)
+
+           (class PyObjectTextIOWrapper::PyObject
+              port
+              mode
+              encoding)
+
+           (inline PyObject-type-get o)
+           (inline PyObjectStr-type-get o)
+
+           (build-builtins)
+
+           (global-get ::PyObject ::obj ::obj)
+           (global-put! global name val cache)
+
+           ;; (object-get ::obj ::obj ::obj)
+           (object-put! ::PyObject ::obj ::obj ::obj)
+           (getattribute-from-obj-mro ::obj ::obj)
+
+           (py-make-module name)
+           (py-make-list . elements)
+
+           ;; (py-getitem ::PyObject ::obj ::obj)
+           ;; (py-delitem ::PyObject ::obj ::obj)
+           ;; (py-setitem ::PyObject ::obj ::obj ::obj)
+
+           (inline PyObject-elements-ref ::PyObject ::long)
+           (PyObject-elements-set! ::PyObject ::long ::obj)
+
+           (py-call0 ::obj)
+           (py-call1 ::obj ::obj)
+           (py-call2 ::obj ::obj ::obj)
+           (py-call3 ::obj ::obj ::obj ::obj)
+           (py-call4 ::obj ::obj ::obj ::obj ::obj)
+           (py-call5 ::obj ::obj ::obj ::obj ::obj ::obj)
+
+           (py-iter ::obj)
+
+           (py-make-global)
+           (py-make-caches ::int)
+
+           int-cache
+
+           (py-make-class name module bases . atrs)
+
+           (py-throw ::obj)
+
+           (py-iadd x y cache)
+           (py-iand x y cache)
+           (py-isub x y cache)
+           (py-idiv x y cache)
+           (py-imod x y cache)
+           (py-ifloordiv x y cache)
+           (py-eq x y)
+           (py-ne x y)
+           (py-lt x y)
+           (py-le x y)
+           (py-gt x y)
+           (py-ge x y)
+           (py-is x y)
+           (py-isnot x y)
+           (py-in x y)
+           (py-notin x y)
+           (py-neg x cache)
+           (py-not x cache)
+
+           py-None
            py-absent
-	   
-	   py-True
-	   py-False
-	   py-NotImplemented
-	   
-	   (py-test obj)
-	   
-	   py-object-class
-	   py-module-class
-	   (py-own-attr-set! obj attr val)
-	   
-	   (py-isinstance? ::PyObject ::PyObject)
 
-	   
-	   (py-slice-from-scheme ::obj ::obj ::obj)
-	   
+           py-True
+           py-False
+           py-NotImplemented
+
+           (py-test obj)
+
+           py-object-class
+           py-module-class
+           (py-own-attr-set! obj attr val)
+
+           (py-isinstance? ::PyObject ::PyObject)
+
+
+           (py-slice-from-scheme ::obj ::obj ::obj)
+
            (py-obj-alloc cls hclass-of-instances)
-	   (py-str-from-scheme::PyObject ::obj)
-	   (py-str-to-scheme::bstring ::PyObject)
-	   
-	   procedure->py-function
-	   
-	   (py-int-from-scheme value)
-	   (py-int-from-scheme-dynamic value)
-	   (py-float-from-scheme value)
-	   
-	   (py-import path depth)
-	   py-import-root
-	   
-	   (class PyGenerator::PyObject %next)
-	   (py-make-generator ::procedure)
-	   (py-generator-yield ::PyGenerator ::obj ::procedure)
-	   (py-next ::obj)
-	   
-	   (class PCache
-	      (hclass (default (class-nil HClass)))
-	      (index::long (default -1)))
-	   
-	   (class HClass
-	      (names::vector (default '#()))
-	      (transitions::pair-nil (default '())))
+           (py-str-from-scheme::PyObject ::obj)
+           (py-str-to-scheme::bstring ::PyObject)
 
-	   (inline PCache-set! ::PCache ::HClass ::long)
-	   (inline HClass-last-index::long ::HClass)
+           procedure->py-function
 
-	   (&pystring-init str)
-	   (py-init-registered-constants strings)
+           (py-int-from-scheme value)
+           (py-int-from-scheme-dynamic value)
+           (py-float-from-scheme value)
 
-	   (py-make-tuple . els)
-	   
-	   py-builtin-super
-	   py-builtin-tuple
-	   py-builtin-type
-	   
-	   py-builtin-ArithmeticError
-	   py-builtin-AssertionError
-	   py-builtin-AttributeError
-	   py-builtin-BaseException
-	   py-builtin-BlockingIOError
-	   py-builtin-BrokenPipeError
-	   py-builtin-BufferError
-	   py-builtin-BytesWarning
-	   py-builtin-ChildProcessError
-	   py-builtin-ConnectionAbortedError
-	   py-builtin-ConnectionError
-	   py-builtin-ConnectionRefusedError
-	   py-builtin-ConnectionResetError
-	   py-builtin-DeprecationWarning
-	   py-builtin-EOFError
-	   py-builtin-EnvironmentError
-	   py-builtin-Exception
-	   py-builtin-FileExistsError
-	   py-builtin-FileNotFoundError
-	   py-builtin-FloatingPointError
-	   py-builtin-FutureWarning
-	   py-builtin-GeneratorExit
-	   py-builtin-IOError
-	   py-builtin-ImportError
-	   py-builtin-ImportWarning
-	   py-builtin-IndentationError
-	   py-builtin-IndexError
-	   py-builtin-InterruptedError
-	   py-builtin-IsADirectoryError
-	   py-builtin-KeyError
-	   py-builtin-KeyboardInterrupt
-	   py-builtin-LookupError
-	   py-builtin-MemoryError
-	   py-builtin-ModuleNotFoundError
-	   py-builtin-NameError
-	   py-builtin-NotADirectoryError
-	   py-builtin-NotImplementedError
-	   py-builtin-OSError
-	   py-builtin-OverflowError
-	   py-builtin-PendingDeprecationWarning
-	   py-builtin-PermissionError
-	   py-builtin-ProcessLookupError
-	   py-builtin-RecursionError
-	   py-builtin-ReferenceError
-	   py-builtin-ResourceWarning
-	   py-builtin-RuntimeError
-	   py-builtin-RuntimeWarning
-	   py-builtin-StopAsyncIteration
-	   py-builtin-StopIteration
-	   py-builtin-SyntaxError
-	   py-builtin-SyntaxWarning
-	   py-builtin-SystemError
-	   py-builtin-SystemExit
-	   py-builtin-TabError
-	   py-builtin-TimeoutError
-	   py-builtin-TypeError
-	   py-builtin-UnboundLocalError
-	   py-builtin-UnicodeDecodeError
-	   py-builtin-UnicodeEncodeError
-	   py-builtin-UnicodeError
-	   py-builtin-UnicodeTranslateError
-	   py-builtin-UnicodeWarning
-	   py-builtin-UserWarning
-	   py-builtin-ValueError
-	   py-builtin-Warning
-	   py-builtin-ZeroDivisionError
+           (py-import path depth)
+           py-import-root
 
-	   (native-builtin-__import__ ::bstring)
-	   (py-flag-super-called-without-arguments)
-	   )
-      
+           (class PyGenerator::PyObject %next)
+           (py-make-generator ::procedure)
+           (py-generator-yield ::PyGenerator ::obj ::procedure)
+           (py-next ::obj)
+
+           (class PCache
+              (hclass (default (class-nil HClass)))
+              (index::long (default -1)))
+
+           (class HClass
+              (names::vector (default '#()))
+              (transitions::pair-nil (default '())))
+
+           (inline PCache-set! ::PCache ::HClass ::long)
+           (inline HClass-last-index::long ::HClass)
+
+           (&pystring-init str)
+           (py-init-registered-constants strings)
+
+           (py-make-tuple . els)
+
+           py-builtin-super
+           py-builtin-tuple
+           py-builtin-type
+
+           py-builtin-ArithmeticError
+           py-builtin-AssertionError
+           py-builtin-AttributeError
+           py-builtin-BaseException
+           py-builtin-BlockingIOError
+           py-builtin-BrokenPipeError
+           py-builtin-BufferError
+           py-builtin-BytesWarning
+           py-builtin-ChildProcessError
+           py-builtin-ConnectionAbortedError
+           py-builtin-ConnectionError
+           py-builtin-ConnectionRefusedError
+           py-builtin-ConnectionResetError
+           py-builtin-DeprecationWarning
+           py-builtin-EOFError
+           py-builtin-EnvironmentError
+           py-builtin-Exception
+           py-builtin-FileExistsError
+           py-builtin-FileNotFoundError
+           py-builtin-FloatingPointError
+           py-builtin-FutureWarning
+           py-builtin-GeneratorExit
+           py-builtin-IOError
+           py-builtin-ImportError
+           py-builtin-ImportWarning
+           py-builtin-IndentationError
+           py-builtin-IndexError
+           py-builtin-InterruptedError
+           py-builtin-IsADirectoryError
+           py-builtin-KeyError
+           py-builtin-KeyboardInterrupt
+           py-builtin-LookupError
+           py-builtin-MemoryError
+           py-builtin-ModuleNotFoundError
+           py-builtin-NameError
+           py-builtin-NotADirectoryError
+           py-builtin-NotImplementedError
+           py-builtin-OSError
+           py-builtin-OverflowError
+           py-builtin-PendingDeprecationWarning
+           py-builtin-PermissionError
+           py-builtin-ProcessLookupError
+           py-builtin-RecursionError
+           py-builtin-ReferenceError
+           py-builtin-ResourceWarning
+           py-builtin-RuntimeError
+           py-builtin-RuntimeWarning
+           py-builtin-StopAsyncIteration
+           py-builtin-StopIteration
+           py-builtin-SyntaxError
+           py-builtin-SyntaxWarning
+           py-builtin-SystemError
+           py-builtin-SystemExit
+           py-builtin-TabError
+           py-builtin-TimeoutError
+           py-builtin-TypeError
+           py-builtin-UnboundLocalError
+           py-builtin-UnicodeDecodeError
+           py-builtin-UnicodeEncodeError
+           py-builtin-UnicodeError
+           py-builtin-UnicodeTranslateError
+           py-builtin-UnicodeWarning
+           py-builtin-UserWarning
+           py-builtin-ValueError
+           py-builtin-Warning
+           py-builtin-ZeroDivisionError
+
+           (native-builtin-__import__ ::bstring)
+           (py-flag-super-called-without-arguments)
+           )
+
    (eval   (export-all)))
 
 ;*---------------------------------------------------------------------*/
@@ -333,9 +335,9 @@
 (define (PyObject-elements-set! obj offset val)
    (with-access::PyObject obj (%elements)
       (let ((len (vector-length %elements)))
-	 (when (>= offset len)
-	    (set! %elements (copy-vector %elements (*fx 2 (max 1 len)))))
-	 (vector-set! %elements offset val))))
+         (when (>= offset len)
+            (set! %elements (copy-vector %elements (*fx 2 (max 1 len)))))
+         (vector-set! %elements offset val))))
 
 ;*---------------------------------------------------------------------*/
 ;*    bigloo-compatibility                                             */
@@ -377,14 +379,14 @@
 (define-expander error
    (lambda (x e)
       (match-case x
-	 ((?- ?msg)
-	  (e `((@ error __error) "zipi" ,msg #f) e))
-	 ((?- ?msg ?obj)
-	  (e `((@ error __error) "zipi" ,msg ,obj) e))
-	 ((?- ?proc ?msg ?obj)
-	  (e `((@ error __error) (format "zipi(~a)" ,proc) ,msg ,obj) e))
-	 ((?- ?proc ?msg ?obj . ?rest)
-	  (e `((@ error __error) (format "zipi(~a)" ,proc) ,msg ,(format "~(, )" ,@rest)) e)))))
+         ((?- ?msg)
+          (e `((@ error __error) "zipi" ,msg #f) e))
+         ((?- ?msg ?obj)
+          (e `((@ error __error) "zipi" ,msg ,obj) e))
+         ((?- ?proc ?msg ?obj)
+          (e `((@ error __error) (format "zipi(~a)" ,proc) ,msg ,obj) e))
+         ((?- ?proc ?msg ?obj . ?rest)
+          (e `((@ error __error) (format "zipi(~a)" ,proc) ,msg ,(format "~(, )" ,@rest)) e)))))
 
 (define-inline (subvector vec start stop)
    (vector-copy vec start stop))
@@ -394,6 +396,9 @@
       ((fixnum? x) x)
       ((flonum? x) (flonum->fixnum x))
       (else (error "exact" (format "unexpected number type (~a)" (typeof x)) x))))
+
+(define-inline (exact-integer? x)
+   (or (fixnum? x) (bignum? x)))
 
 (define-inline (open-file name)
    (open-input-file name))
@@ -419,10 +424,10 @@
        0)
       ((>fx n 0)
        (let loop ((l 1)
-		  (n (bit-rsh n 1)))
-	  (if (=fx n 0)
-	      l
-	      (loop (+fx l 1) (bit-ursh n 1)))))
+                  (n (bit-rsh n 1)))
+          (if (=fx n 0)
+              l
+              (loop (+fx l 1) (bit-ursh n 1)))))
       (else
        (integer-length (bit-not n)))))
 
@@ -460,8 +465,8 @@
 
     (tprint "compile-to-scheme root=" root " source=" source " target=" target)
     (when (or (not (file-exists? target))
-	       (> (file-modification-time source)
-		  (file-modification-time target)))
+               (> (file-modification-time source)
+                  (file-modification-time target)))
       (system (format "~a/pyc -t bigloo --no-main -d ~a ~a > ~a" (root-dir) root source target)))))
 
  (gambit
@@ -473,8 +478,8 @@
           (path-expand ".." (path-directory (car (command-line))))))
 
     (when (or (not (file-exists? target))
-	       (> (time->seconds (file-last-modification-time source))
-		  (time->seconds (file-last-modification-time target))))
+               (> (time->seconds (file-last-modification-time source))
+                  (time->seconds (file-last-modification-time target))))
 
       (shell-command
        (string-append
@@ -539,8 +544,8 @@
 (define (get-registered-constants-table)
    (let ((table (create-hashtable :eqtest string=?)))
 ;*       (vector-for-each (lambda (v)                                  */
-;* 			  (hashtable-put! table "foo" v))              */
-;* 	 __py_strings)                                                 */
+;*                        (hashtable-put! table "foo" v))              */
+;*       __py_strings)                                                 */
       table))
 
 ;*---------------------------------------------------------------------*/
@@ -563,10 +568,10 @@
 ;*---------------------------------------------------------------------*/
 (define (py-init-registered-constants strings)
    (vector-map! (lambda (s)
-		   (instantiate::PyObjectStr
-		      (value (vector-ref s 1))
-		      (hash #f)
-		      (class py-str-class)))
+                   (instantiate::PyObjectStr
+                      (value (vector-ref s 1))
+                      (hash #f)
+                      (class py-str-class)))
       strings))
 
 ;*---------------------------------------------------------------------*/
@@ -576,8 +581,8 @@
    `((@ string-split __r4_strings_6_7)
      ,str
      ,(if (char? delim)
-	  (string delim)
-	  `(if (string? ,delim) ,delim (string ,delim)))))
+          (string delim)
+          `(if (string? ,delim) ,delim (string ,delim)))))
 
 ;*---------------------------------------------------------------------*/
 ;*    native-builtin-__import__ ...                                    */
