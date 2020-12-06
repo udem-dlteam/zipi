@@ -1,15 +1,17 @@
-#!/bin/bash
+#!/bin/sh
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-ETC_DIR="$SCRIPT_DIR/../etc"
-LIB_DIR="$SCRIPT_DIR/../lib"
-BIN_DIR="$SCRIPT_DIR/../bin"
-RTS_DIR="$SCRIPT_DIR/../rts"
-ZPC_DIR="$SCRIPT_DIR/../zpc"
-PYC_DIR="$SCRIPT_DIR/../pyc"
+SCRIPT_DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
+ZIPI_DIR="$( cd "$SCRIPT_DIR/.." >/dev/null 2>&1 && pwd )"
 
-# TODO : put this logic in the compiler's code generation
-if [ "$ZIPI_DEBUG_PY19" = true ]; then
+ETC_DIR="$ZIPI_DIR/etc"
+LIB_DIR="$ZIPI_DIR/lib"
+BIN_DIR="$ZIPI_DIR/bin"
+RTS_DIR="$ZIPI_DIR/rts"
+ZPC_DIR="$ZIPI_DIR/zpc"
+PYC_DIR="$ZIPI_DIR/pyc"
+
+# TODO: put this logic in the compiler's code generation
+if [ "$ZPC_DEBUG" = true ]; then
     echo "(declare (debug) (debug-location))"
 fi
 

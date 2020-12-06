@@ -40,4 +40,4 @@
             (println "*** ERROR -- File named " (car args) " at " path " cannot be found")))
 
       (if (fx= 0 (length args))
-          (println "Usage : ./run-zipi [--compile --clear-cache] file "))))
+          (println "Usage : ./zipi.gambit [--compile --clear-cache] file "))))

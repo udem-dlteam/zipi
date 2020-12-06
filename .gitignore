@@ -9,7 +9,12 @@ etc/Makefile.zipiconfig
 etc/Makefile.bigloo
 etc/Makefile.gambit
 etc/pyc.init
-bin
+bin/zipi
+bin/zipi.gambit
+bin/zipi.bigloo
+bin/zpc
+bin/zpc.gambit
+bin/zpc.bigloo
 lib
 zpc/.afile
 zpc/.etags
