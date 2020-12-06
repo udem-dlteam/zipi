@@ -248,7 +248,7 @@ for file in configure.scm; do
   rm etc/$file
 done
 
-for file in bin/zipi bin/zipi.gambit bin/zpc bin/zpc.gambit; do
+for file in bin/zipi bin/zipi.gambit bin/zipi.bigloo bin/zpc bin/zpc.gambit; do
   cat $file.in \
     | sed -e "s|@VERSION@|$version|" \
           -e "s|@BRANCH@|$branch|" \

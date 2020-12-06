@@ -16,14 +16,14 @@ for system in $systems; do
   case "$system" in
     
     gambit)
-      zipi_output=`../zpc/run-zipi --compile $bench`
+      zipi_output=`../bin/zipi.gambit $bench`
       zipi_time=`echo "$zipi_output" | sed -e "s/ .*//g"`
 
       python3 -c "a=$cpython_time;b=$zipi_time;system='$system';code='$code';bench='$bench';speedup=a/b;print(f'[{system:s}] {speedup:7.4f}x on {code:s} ({bench:s})')"
       ;;
 
     bigloo)
-      zipi_output=`../bin/zpc.bigloo -Ox $bench -o /tmp/zpc.bigloo.out && /tmp/zpc.bigloo.out`
+      zipi_output=`../bin/zipi.bigloo $bench`
       zipi_time=`echo "$zipi_output" | sed -e "s/ .*//g"`
 
       python3 -c "a=$cpython_time;b=$zipi_time;system='$system';code='$code';bench='$bench';speedup=a/b;print(f'[{system:s}] {speedup:7.4f}x on {code:s} ({bench:s})')"
