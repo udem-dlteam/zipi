@@ -94,8 +94,8 @@
     (lambda (e) (if (PyObject? e) (print-exception e) (raise e)))
     thunk))
 
-(define (read-string port)
-   (list->string (read-all port read-char)))
+(define (read-string port) ;; TODO: change name so it doesn't clash with predefined one
+  (read-line port #f))
 
 
 ;; statprof

@@ -334,9 +334,15 @@
     PyObject-class
     py-int-class
     int-cache
-    str-representatives)
+    str-representatives
+
+    ;; from rts-macros.scm
+    py-if-specialized-int-representation
+    py-if-specialized-float-representation
+    )
 
   (import gambit)
+  (include "rts-macros.scm")
   (include "rts#.scm")
   (include "rts.gambit")
   (include "../stdlib/zemantics.scm")

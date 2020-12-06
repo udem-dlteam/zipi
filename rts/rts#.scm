@@ -497,17 +497,35 @@
 (define (native-builtin-__import__ name)
    #f)
 
+(define-macro (py-obj-cls obj)
+  (let* ((fallback
+          (cond-expand
+            (gambit
+             `(|##unchecked-structure-ref| $obj 3 #f #f))
+            (bigloo
+             `(PyObject-class $obj))))
+         (special-case-float
+          `(py-if-specialized-float-representation
+            (if (flonum? $obj) py-float-class ,fallback)
+            ,fallback))
+         (special-case-int
+          `(py-if-specialized-int-representation
+            (if (exact-integer? $obj) py-int-class ,special-case-float)
+            ,special-case-float)))
+    `(let (($obj ,obj))
+       ,special-case-int)))
+
 (define-macro (py-int-from-scheme value)
   (if (exact-integer? value)
-      (let ()
-        (define int-cache-low -5) ;; must be same as in rts.scm
-        (define int-cache-high 256)
-        (if (and (<= value int-cache-high)
-                 (>= value int-cache-low))
-            `(let ()
-               (declare (standard-bindings) (not safe))
-               (vector-ref int-cache ,(- value int-cache-low)))
-            `(py-int-from-scheme-dynamic ,value)))
+      `(py-if-specialized-int-representation
+        ,value
+        ,(let ()
+           (define int-cache-low -5) ;; must be same as in rts.scm
+           (define int-cache-high 256)
+           (if (and (<= value int-cache-high)
+                    (>= value int-cache-low))
+               `(vector-ref int-cache ,(- value int-cache-low))
+               `(py-int-from-scheme-dynamic ,value))))
       `(py-int-from-scheme-dynamic ,value)))
 
 ;;(define-macro (py-pos x)        `(py-expression (py-pos ,x)))
@@ -721,7 +739,7 @@
           `(let* (($obj ,obj)
                   ($name ,name))
              (declare (standard-bindings) (fixnum) (not safe))
-             (let* (($cls (PyObject-class $obj))
+             (let* (($cls (py-obj-cls $obj))
                     ($mro (PyObjectType-mro $cls))
                     ($cls0 (vector-ref $mro 0))
                     ($hclass0 (PyObject-hclass $cls0))
