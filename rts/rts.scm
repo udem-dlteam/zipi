@@ -7699,6 +7699,8 @@
       posonlyargs: (arg1 arg2 arg3)
       defaults: (vector py-absent py-absent))))
 
+(define py-builtin-range_iterator #f)
+
 ;;-------------------- repr(object)
 
 ;; Return a string containing a printable representation of an
@@ -8453,7 +8455,8 @@
   (py-own-attr-set! builtins-mod (& "zip") py-builtin-zip)
   (py-own-attr-set! builtins-mod (& "__import__") py-builtin-__import__)
 
-  (set! py-builtin-range (py-own-attr-ref builtins-mod (& "range"))))
+  (set! py-builtin-range (py-own-attr-ref builtins-mod (& "range")))
+  (set! py-builtin-range_iterator (py-own-attr-ref builtins-mod (& "range_iterator"))))
 
 (define (py-make-builtins-mod)
   (let ((builtins-mod (builtin-__import__ "builtins")))

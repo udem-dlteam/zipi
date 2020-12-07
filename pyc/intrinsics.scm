@@ -637,8 +637,11 @@
 (define (make-getter-name name field)
   (string->symbol (string-append (symbol->string name) "-" field)))
 
-  (define (make-setter-name name field)
-    (string->symbol (string-append (symbol->string name) "-" field "-set!")))
+(define (make-setter-name name field)
+  (string->symbol (string-append (symbol->string name) "-" field "-set!")))
+
+(define (make-scheme-class-name name)
+  (string->symbol (string-append "py-builtin-" (symbol->string name))))
 
 (define-walk-method (optimize-builtin-class-refs! this::PycCall builtins-class-table class self)
   (let ((fun (PycCall-fun this)))
@@ -656,7 +659,8 @@
                     loc
                     #f
                     (make-HClass-name (car scheme-class)))
-                  (new-PycStatic loc #f '(vector)))
+                  (new-PycStatic loc #f (vector))
+                  (new-PycStatic loc #f (make-scheme-class-name (car scheme-class))))
                 (map
                   (lambda (n)
                     (optimize-builtin-class-refs!
