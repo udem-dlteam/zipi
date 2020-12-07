@@ -687,7 +687,8 @@
           (optimize-builtin-class-refs! (PycClass-body this) builtins-class-table scheme-class self)
           decorators:
             (map (lambda (node) (optimize-builtin-class-refs! node builtins-class-table class self))
-                 (PycClass-decorators this))))
+                 (PycClass-decorators this))
+          is-builtin: #t))
       (call-default-walker))))
 
 (define (get-fun-first-arg fun)

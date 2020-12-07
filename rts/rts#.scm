@@ -128,7 +128,8 @@
   ;; attrs
   (bases unprintable:)
   (mro unprintable:)
-  (hclass-of-instances unprintable:))
+  (hclass-of-instances unprintable:)
+  (is-builtin unprintable:))
 
 (define-type-of-PyObject PyObjectInt
   id: PyObjectInt-C6486EB6-1522-42BA-A082-B6563F943CDF

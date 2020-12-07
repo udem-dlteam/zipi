@@ -42,7 +42,8 @@
            (class PyObjectType::PyObject
               bases
               mro
-              hclass-of-instances)
+              hclass-of-instances
+              is-builtin)
 
            (abstract-class PyObjectNumber::PyObject
               value)

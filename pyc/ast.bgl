@@ -238,7 +238,8 @@
                              body::PycStmt
                              (decorators::pair-nil (default '()))
                              (decls::pair-nil (default '()))
-                             (super-key::symbol (default '_)))
+                             (super-key::symbol (default '_))
+                             (is-builtin::bool (default #f)))
 
                 (final-class PycYield::PycExpr
                              (val::PycExpr (info '("ast")))

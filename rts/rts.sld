@@ -160,6 +160,8 @@
     py-make-tuple
     py-type
 
+    py-type-hclass-of-instances
+
     py-range-hclass-of-instances
     make-PyObjectRange
     PyObjectRange-start
@@ -179,6 +181,7 @@
     PyObjectRangeIterator-step-set!
 
     py-make-class
+    py-make-builtin-class
     make-builtin-class
 
     py-obj->iterator

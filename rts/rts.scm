@@ -400,7 +400,8 @@
     metaclass
     bases
     mro
-    hclass-of-instance))
+    hclass-of-instance
+    #f))
 
 (define (py-builtin-type-alloc metaclass bases mro hclass-of-instance)
   (make-still-copy
@@ -412,7 +413,8 @@
       metaclass
       bases
       mro
-      hclass-of-instance)))
+      hclass-of-instance
+      #t)))
 
 (define (py-dict-alloc ordered-table)
   (make-PyObjectDict
