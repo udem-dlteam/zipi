@@ -657,7 +657,14 @@
                     #f
                     (make-HClass-name (car scheme-class)))
                   (new-PycStatic loc #f '(vector)))
-                (PycCall-args this))))
+                (map
+                  (lambda (n)
+                    (optimize-builtin-class-refs!
+                      n
+                      builtins-class-table
+                      class
+                      self))
+                  (PycCall-args this)))))
           (call-default-walker)))
       (call-default-walker))))
 
