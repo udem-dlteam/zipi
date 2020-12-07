@@ -24,7 +24,7 @@ for system in $systems; do
       perf record -F 99 /tmp/zpc.bigloo.out 2> /dev/null
       perf report -n --stdio | bigloo -i demangle.scm > profile/$bench.prof.txt
 
-      perf record -F 99 -g -- /tmp/zpc.bigloo.out 2> /dev/null
+      perf record -F 99 --call-graph dwarf -- /tmp/zpc.bigloo.out 2> /dev/null
       perf script | ./FlameGraph/stackcollapse-perf.pl --all | bigloo -i demangle.scm | ./FlameGraph/flamegraph.pl --colors hop > profile/$bench.flame.svg
       ;;
     
