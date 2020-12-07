@@ -358,6 +358,16 @@
     (vector)
     '()))
 
+(define py-range-hclass-of-instances
+  (make-builtin-HClass
+    (vector)
+    '()))
+
+(define py-range_iterator-hclass-of-instances
+  (make-builtin-HClass
+    (vector)
+    '()))
+
 ;; Method for fast access to attributes defined in hidden classes
 ;; Those are unsafe methods
 

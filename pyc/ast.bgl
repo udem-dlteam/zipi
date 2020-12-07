@@ -236,6 +236,7 @@
                              (module::bstring read-only)
                              bases::pair-nil
                              body::PycStmt
+                             (decorators::pair-nil (default '()))
                              (decls::pair-nil (default '()))
                              (super-key::symbol (default '_)))
 
@@ -618,7 +619,7 @@
 (gen-walks PycStarredExpr expr)
 (gen-walks PycFun (args) (posonlyargs) vararg (kwonlyargs) (kw-defaults) kwarg (defaults) body (decorators))
 (gen-walks PycSemantics (args) (posonlyargs) vararg (kwonlyargs) (kw-defaults) kwarg (defaults) body (decorators))
-(gen-walks PycClass body (bases))
+(gen-walks PycClass body (bases) (decorators))
 (gen-walks PycBinary lhs rhs)
 (gen-walks PycUnary expr)
 (gen-walks PycBoolOp (args))

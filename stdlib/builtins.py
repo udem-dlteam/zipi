@@ -1,15 +1,11 @@
-from __compiler_intrinsics__ import absent
+from __compiler_intrinsics__ import absent, builtin_class
 
 # ==============================================================================
 # Builtins
 # ==============================================================================
 
+@builtin_class("PyObjectRangeIterator")
 class range_iterator:
-    def __init__(self, start, stop, step, /):
-        self.start = start
-        self.stop = stop
-        self.step = step
-
     def __iter__(self, /):
         return self
 
@@ -26,22 +22,18 @@ class range_iterator:
             if start < stop:
                 self.start = start + step
                 return start
+
         raise StopIteration
 
+@builtin_class("PyObjectRange")
 class range:
-    def __init__(self, arg1, arg2=absent, arg3=absent, /):
+    def __new__(cls, arg1, arg2=absent, arg3=absent, /):
         if arg3 is not absent:
-            self.start = arg1
-            self.stop = arg2
-            self.step =  arg3
+            return range(arg1, arg2, arg3)
         elif arg2 is not absent:
-            self.start = arg1
-            self.stop = arg2
-            self.step = 1
+            return range(arg1, arg2, 1)
         else:
-            self.start = 0
-            self.stop = arg1
-            self.step = 1
+            return range(0, arg1, 1)
 
     def __len__(self, /):
         return (self.stop - self.start) // self.step
@@ -51,7 +43,7 @@ class range:
         stop = self.stop
         step = self.step
 
-        if self.step < 0:
+        if step < 0:
             if stop >= item or item > start:
                 return False
         else:

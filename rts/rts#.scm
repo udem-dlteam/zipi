@@ -255,6 +255,24 @@
   stop
   step)
 
+(define-type-of-PyObject PyObjectRange
+  id: PyObjectRange-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  macros: ;; this will inline the operations on this type
+  ;; attrs
+  start
+  stop
+  step)
+
+(define-type-of-PyObject PyObjectRangeIterator
+  id: PyObjectRangeIterator-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  macros: ;; this will inline the operations on this type
+  ;; attrs
+  start
+  stop
+  step)
+
 (define-type-of-PyObject PyObjectTextIOWrapper
   id: PyObjectTextIOWrapper-C6486EB6-1522-42BA-A082-B6563F943CDF
   copier: #f
