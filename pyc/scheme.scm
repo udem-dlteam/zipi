@@ -17,7 +17,8 @@
 	     ,@(if (config-get conf bootstrap:)
 		   '((import __py_rts
 			__stdlib_zemantics)
-		     (include "bigloo/call.sch"
+		     (include "rts-macros.scm"
+			"bigloo/call.sch"
 			"bigloo/constants.sch"))
 		   '((library zipi)
 		     ))

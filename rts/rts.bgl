@@ -191,9 +191,10 @@
 
            procedure->py-function
 
-           (py-int-from-scheme value)
+;;           (py-int-from-scheme value)
            (py-int-from-scheme-dynamic value)
-           (py-float-from-scheme value)
+;;           (py-float-from-scheme value)
+           (py-float-from-scheme-dynamic value)
 
            (py-import path depth)
            py-import-root
@@ -295,6 +296,8 @@
            )
 
    (eval   (export-all)))
+
+(include "rts-macros.scm")
 
 ;*---------------------------------------------------------------------*/
 ;*    display-py-string ...                                            */
@@ -558,7 +561,7 @@
 ;*---------------------------------------------------------------------*/
 ;*    profiling                                                        */
 ;*---------------------------------------------------------------------*/
-(define (statprof-begin)
+(define (statprof-begin kind)
    #unspecified)
 
 (define (statprof-end dir)

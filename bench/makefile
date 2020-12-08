@@ -6,12 +6,12 @@ gen-micro:
 	scripts/gen_micro_bench.py
 
 micro:
-	#rm -rf "/Users/feeley/.zipicache/cache@zipi_0_0_1/Users/feeley/python/zipi/bench"
 	@for bench in micro_*.py; do \
 	  ./compare-zipi-cpython $$bench $(ZIPISYSTEMS); \
 	done
 
 micro-gambit:
+	../bin/zipi.gambit -X reset
 	@for bench in micro_*.py; do \
 	  ./compare-zipi-cpython $$bench gambit; \
 	done
@@ -21,15 +21,21 @@ micro-bigloo:
 	  ./compare-zipi-cpython $$bench bigloo; \
 	done
 
+micro-pypy:
+	@for bench in micro_*.py; do \
+	  ./compare-zipi-cpython $$bench pypy; \
+	done
+
 .PHONY: profile
 
 profile:
-	#rm -rf "/Users/feeley/.zipicache/cache@zipi_0_0_1/Users/feeley/python/zipi/bench"
+	../bin/zipi.gambit -X reset
 	@for bench in *.py; do \
 	  ./profile-zipi $$bench $(ZIPISYSTEMS); \
 	done
 
 profile-gambit:
+	../bin/zipi.gambit -X reset
 	@for bench in *.py; do \
 	  ./profile-zipi $$bench gambit; \
 	done

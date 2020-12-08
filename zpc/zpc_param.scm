@@ -131,7 +131,7 @@
 ;*    zpc-bigloo-O-options ...                                         */
 ;*---------------------------------------------------------------------*/
 (define-parameter zpc-bigloo-O-options
-   '((2 . ("-freturn" "-fisa")) (6 . ("-freturn-goto"))))
+   '((2 . ("-freturn" "-fisa")) (6 . ("-freturn-goto" "-fstackable"))))
 
 ;*---------------------------------------------------------------------*/
 ;*    zpc-bigloo-safe-option ...                                       */
