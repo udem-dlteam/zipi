@@ -7,15 +7,15 @@ bench_iterations = 100000
 bench_duplications = 1
 
 def bench_exec():
-    s1="a";s2="b"
+    s1="a"
     bench_counter = bench_iterations
     while bench_counter > 0:
         bench_counter -= 1
-        x=100
-        while x>0:x-=1;s1+=s2
+        s2="b";x=100
+        while x>0:x-=1;s2+=s1
     
 
 bench_time = time.time()
 bench_exec()
 bench_time = time.time() - bench_time
-print(bench_time, 'seconds for', bench_iterations*bench_duplications, 'executions of:', 'while x>0:x-=1;s1+=s2')
+print(bench_time, 'seconds for', bench_iterations*bench_duplications, 'executions of:', 'while x>0:x-=1;s2+=s1')

@@ -149,6 +149,7 @@
     py-int-from-scheme
     py-int-from-scheme-dynamic
     py-float-from-scheme
+    py-float-from-scheme-dynamic
     py-str-from-scheme
     py-slice-from-scheme
     py-bytearray-from-scheme
