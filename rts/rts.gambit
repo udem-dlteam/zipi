@@ -104,46 +104,41 @@
 ;; with the right debug flags
 (define (%statprof-thunk) #f)
 
-(define (statprof-begin)
+(define (statprof-begin kind)
   (if (##subprocedure-info %statprof-thunk)
-    (eval
-      '(let ()
-        (import (github.com/gambit/statprof))
-        (profile-start!)))
-    (py-throw-exception-with-message
-      py-builtin-RuntimeError
-      "attempting to profile without debug location. Recompile Zipi with 'gsc -debug -debug-location'"))
-  py-None)
+      (println "*** profiling without debug location for RTS. For better profiling, recompile RTS with 'gsc -debug -debug-location . zipi/rts'"))
+  ((eval
+    '(lambda (kind)
+       (import (github.com/gambit/statprof))
+       (statprof-start! kind)))
+   '(profile flamegraph)))
 
-(define (statprof-end file)
-  (if (py-isinstance? file py-str-class)
-    (let* ((file-string (py-str-to-scheme file))
-           (profile-dir (path-expand (string-append file-string ".profile"))))
-      (eval
-        `(let ()
-          (import (github.com/gambit/statprof))
-          (profile-stop!)
-          (write-profile-report ,profile-dir)))
-      py-None)
-    (py-throw-exception-with-message
-      py-builtin-TypeError
-      "statprof.stop requires str as attribute")))
+(define (statprof-end path)
+  (let ((profile-dir (path-expand (string-append path ".statprof"))))
+    ((eval
+      `(lambda (profile-dir)
+         (import (github.com/gambit/statprof))
+         (statprof-stop!)
+         (statprof-write! profile-dir)))
+     profile-dir)))
 
 (define (load-module-and-get-init name)
   (let* ((sym (string->symbol name))
          (modref (parse-module-ref sym)))
     (if modref
-        (with-exception-catcher
-          (lambda (exn)
-            (if (module-not-found-exception? exn)
-                #f
-                (raise exn)))
-          (lambda ()
-            (load-module sym)
-            (let ((init (module-var-ref modref 'init)))
-             (if (procedure? init)
-                 init
-                 #f))))
+        (continuation-capture
+         (lambda (abort)
+           (with-exception-handler
+               (lambda (exn)
+                 (if (module-not-found-exception? exn)
+                     (continuation-return abort #f)
+                     (##repl-debug)))
+             (lambda ()
+               (load-module sym)
+               (let ((init (module-var-ref modref 'init)))
+                 (if (procedure? init)
+                     init
+                     #f))))))
         #f)))
 
 (define (compile-source source target)
