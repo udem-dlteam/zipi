@@ -6,7 +6,6 @@ gen-micro:
 	scripts/gen_micro_bench.py
 
 micro:
-	../bin/zipi.gambit -X reset
 	@for bench in micro_*.py; do \
 	  ./compare-zipi-cpython $$bench $(ZIPISYSTEMS); \
 	done
