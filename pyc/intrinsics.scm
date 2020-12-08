@@ -656,7 +656,7 @@
               (append
                 (list
                   (new-PycStatic loc 'arg1 (make-HClass-name (car scheme-class)))
-                  (new-PycStaticSexp loc 'arg2 '(vector))
+                  (new-PycStaticSexp loc 'arg2 '(quote #()))
                   (new-PycStatic loc 'arg3 (make-scheme-class-name (car scheme-class))))
                 (map
                   (lambda (n)

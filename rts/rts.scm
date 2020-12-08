@@ -172,14 +172,14 @@
 
 (define py-object-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 ;; instances of type are classes
 ;; this is the hidden class of classes
 (define py-type-hclass-of-instances
    (make-builtin-HClass
-      (vector)
+      '#()
 ;*     (vector                                                         */
 ;*       (& "__name__")                                                */
 ;*       (& "__call__"))                                               */
@@ -187,64 +187,64 @@
 
 (define py-str-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 (define py-tuple-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 (define py-int-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 (define py-float-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 (define py-complex-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 (define py-slice-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 
 (define py-bytearray-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 (define py-method-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
 ;*       (& "__self__"))                                               */
     '()))
 
 (define py-function-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 (define py-list-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 (define py-dict-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 (define py-set-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 (define py-module-hclass-of-instances
@@ -256,52 +256,52 @@
 
 (define py-list-iterator-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 ;; bytearray iterator
 (define py-bytearray-iterator-hclass-of-instances
   (make-builtin-HClass
-   (vector)
+   '#()
    '()))
 
 ;; tuple iterator
 (define py-tuple-iterator-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 ;; dict-keys iterator
 (define py-dict-keyiterator-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 (define py-generator-hclass
   (make-builtin-HClass
-   (vector)
+   '#()
 ;*     (& "__next__")                                                  */
 ;*     (& "send"))                                                     */
    '()))
 
 (define py-TextIOWrapper-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 (define py-super-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 (define py-range-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 (define py-range_iterator-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 ;; Method for fast access to attributes defined in hidden classes
