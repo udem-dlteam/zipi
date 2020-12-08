@@ -1,14 +1,14 @@
 import time
 
+n = 35
+
 def fib(n):
     if n<2:
         return n
     else:
         return fib(n-1) + fib(n-2)
 
-start = time.time()
-result = fib(30)
-end = time.time()
-
-print("fib(30) =", result)
-print("time =", end-start)
+bench_time = time.time()
+result = fib(n)
+bench_time = time.time() - bench_time
+print(bench_time, 'seconds for', 'fib(', n, ')')
