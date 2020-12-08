@@ -12,7 +12,7 @@
 ;*---------------------------------------------------------------------*/
 ;*    py-int-from-scheme ...                                           */
 ;*---------------------------------------------------------------------*/
-(define-macro (py-int-from-scheme value)
+(define-macro (py-int-from-scheme-deprecated value)
   (if (fixnum? value)
       (let ((int-cache-low -5)
 	    (int-cache-high 256))

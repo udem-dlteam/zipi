@@ -41,8 +41,18 @@
                             (set! compile #f))
                            ((string=? option "debug")
                             (set! debug #t))
+                           ((string=? option "flamegraph")
+                            (let ((p (or profile '())))
+                              (set! profile
+                                (if (member 'flamegraph p)
+                                    p
+                                    (cons 'flamegraph p)))))
                            ((string=? option "profile")
-                            (set! profile #t))
+                            (let ((p (or profile '())))
+                              (set! profile
+                                (if (member 'profile p)
+                                    p
+                                    (cons 'profile p)))))
                            ((string=? option "reset")
                             (set! reset #t))
                            (else
@@ -87,8 +97,16 @@
  [option] ... [file] [arg] ...
 Options and arguments:
 -h     : print this help message and exit (also --help)
--V     : print the Zipi version number and exit (also --version)
+-V     : print the zipi version number and exit (also --version)
          when given twice, print more information about the build
+-X opt : system dependent option:
+           compile     compile Scheme program
+           interpret   interpret Scheme program
+           debug       generate debugging information in compiled code
+           flamegraph  generate statistical profile as a flamegraph
+           profile     generate statistical profile as .html files
+           reset       reset the zipi module cache
+
 
 EOF
 )))

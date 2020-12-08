@@ -29,6 +29,13 @@ for system in $systems; do
       python3 -c "a=$cpython_time;b=$zipi_time;system='$system';code='$code';bench='$bench';speedup=a/b;print(f'[{system:s}] {speedup:7.4f}x on {code:s} ({bench:s})')"
       ;;
     
+    pypy)
+      zipi_output=`pypy $bench`
+      zipi_time=`echo "$zipi_output" | sed -e "s/ .*//g"`
+
+      python3 -c "a=$cpython_time;b=$zipi_time;system='$system';code='$code';bench='$bench';speedup=a/b;print(f'[{system:s}] {speedup:7.4f}x on {code:s} ({bench:s})')"
+      ;;
+    
     *)
       echo "Unknown system $2"
   esac

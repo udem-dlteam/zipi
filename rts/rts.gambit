@@ -126,17 +126,19 @@
   (let* ((sym (string->symbol name))
          (modref (parse-module-ref sym)))
     (if modref
-        (with-exception-catcher
-          (lambda (exn)
-            (if (module-not-found-exception? exn)
-                #f
-                (raise exn)))
-          (lambda ()
-            (load-module sym)
-            (let ((init (module-var-ref modref 'init)))
-             (if (procedure? init)
-                 init
-                 #f))))
+        (continuation-capture
+         (lambda (abort)
+           (with-exception-handler
+               (lambda (exn)
+                 (if (module-not-found-exception? exn)
+                     (continuation-return abort #f)
+                     (##repl-debug)))
+             (lambda ()
+               (load-module sym)
+               (let ((init (module-var-ref modref 'init)))
+                 (if (procedure? init)
+                     init
+                     #f))))))
         #f)))
 
 (define (compile-source source target)

@@ -15,7 +15,9 @@ for system in $systems; do
   case "$system" in
     
     gambit)
-      echo "todo"
+      ../bin/zipi.gambit -X reset -X debug -X profile -X flamegraph $bench
+      ./FlameGraph/flamegraph.pl $bench.statprof/flamegraph.folded > $bench.statprof/flamegraph.folded.svg
+      mv $bench.statprof profile
       ;;
 
     bigloo)

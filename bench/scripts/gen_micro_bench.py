@@ -28,7 +28,7 @@ benchmarks = [
 [16,3, 'tup=(0,)','',        'x=tup[0]',      '',    'var_tuple_index_0'],
 [16,3, 'tup=(0,);y=0','',    'x=tup[y]',      '',    'var_tuple_index_var'],
 [ 7,3, 's1="a";s2="b"','',   'x=s1+s2',       '',    'var_str_add_var'],
-[ 1,0, 's1="a";s2="b"','x=100','while x>0:x-=1;s1+=s2','','accum_str_100'],
+[ 1,0, 's1="a"','s2="b";x=100','while x>0:x-=1;s2+=s1','','accum_str_100'],
 [13,3, 's="x"','',           'ord(s)',        '',    'call_ord_str'],
 [ 1,0, '','',                'for x in range(100):pass', '', 'for_range_100'],
 [ 1,0, '','x=250',            'while x>0:x-=1', '', 'while_100'],
