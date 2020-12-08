@@ -2663,27 +2663,6 @@
 (define py-set-class    #f)
 (define py-module-class #f)
 
-(cond-expand
-  (gambit
-   ;; py-obj-cls is a macro defined in rts#.scm
-   )
-  (bigloo
-   (define-macro (warn2)
-     (print "===bigloo=== py-obj-cls should be defined as a macro")
-     '(begin))
-   (warn2)
-   (define (py-obj-cls obj)
-     (py-if-specialized-int-representation
-      (if (exact-integer? obj)
-          py-int-class
-          (py-if-specialized-float-representation
-           (if (flonum? obj)
-               py-float-class
-               (PyObject-class obj))
-           (PyObject-class obj)))
-      (PyObject-class obj)))))
-
-
 ;;;----------------------------------------------------------------------------
 
 ;;; Converters between Scheme objects and Python objects for basic
