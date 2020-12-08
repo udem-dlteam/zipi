@@ -172,14 +172,14 @@
 
 (define py-object-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 ;; instances of type are classes
 ;; this is the hidden class of classes
 (define py-type-hclass-of-instances
    (make-builtin-HClass
-      (vector)
+      '#()
 ;*     (vector                                                         */
 ;*       (& "__name__")                                                */
 ;*       (& "__call__"))                                               */
@@ -187,64 +187,64 @@
 
 (define py-str-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 (define py-tuple-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 (define py-int-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 (define py-float-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 (define py-complex-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 (define py-slice-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 
 (define py-bytearray-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 (define py-method-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
 ;*       (& "__self__"))                                               */
     '()))
 
 (define py-function-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 (define py-list-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 (define py-dict-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 (define py-set-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 (define py-module-hclass-of-instances
@@ -256,42 +256,52 @@
 
 (define py-list-iterator-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 ;; bytearray iterator
 (define py-bytearray-iterator-hclass-of-instances
   (make-builtin-HClass
-   (vector)
+   '#()
    '()))
 
 ;; tuple iterator
 (define py-tuple-iterator-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 ;; dict-keys iterator
 (define py-dict-keyiterator-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 (define py-generator-hclass
   (make-builtin-HClass
-   (vector)
+   '#()
 ;*     (& "__next__")                                                  */
 ;*     (& "send"))                                                     */
    '()))
 
 (define py-TextIOWrapper-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
     '()))
 
 (define py-super-hclass-of-instances
   (make-builtin-HClass
-    (vector)
+    '#()
+    '()))
+
+(define py-range-hclass-of-instances
+  (make-builtin-HClass
+    '#()
+    '()))
+
+(define py-range_iterator-hclass-of-instances
+  (make-builtin-HClass
+    '#()
     '()))
 
 ;; Method for fast access to attributes defined in hidden classes
@@ -326,7 +336,8 @@
     metaclass
     bases
     mro
-    hclass-of-instance))
+    hclass-of-instance
+    #f))
 
 (define (py-builtin-type-alloc metaclass bases mro hclass-of-instance)
   (make-still-copy
@@ -338,7 +349,8 @@
       metaclass
       bases
       mro
-      hclass-of-instance)))
+      hclass-of-instance
+      #t)))
 
 (define (py-dict-alloc ordered-table)
   (make-PyObjectDict
@@ -7602,6 +7614,8 @@
       posonlyargs: (arg1 arg2 arg3)
       defaults: (vector py-absent py-absent))))
 
+(define py-builtin-range_iterator #f)
+
 ;;-------------------- repr(object)
 
 ;; Return a string containing a printable representation of an
@@ -8356,7 +8370,8 @@
   (py-own-attr-set! builtins-mod (& "zip") py-builtin-zip)
   (py-own-attr-set! builtins-mod (& "__import__") py-builtin-__import__)
 
-  (set! py-builtin-range (py-own-attr-ref builtins-mod (& "range"))))
+  (set! py-builtin-range (py-own-attr-ref builtins-mod (& "range")))
+  (set! py-builtin-range_iterator (py-own-attr-ref builtins-mod (& "range_iterator"))))
 
 (define (py-make-builtins-mod)
   (let ((builtins-mod (builtin-__import__ "builtins")))

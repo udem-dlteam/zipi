@@ -116,7 +116,8 @@
                                  (symbol->string id)
                                  (config-get conf module: "__main__")
                                  (map (lambda (b) (sexp b #f scope conf)) bases)
-                                 (compile-stmt* loc body #f 'local conf))))
+                                 (compile-stmt* loc body #f 'local conf)
+                                 decorators: (map (lambda (b) (sexp b #f scope conf)) decorator_list))))
     ((Return ?loc ?expr)
      ;; Return(expr? value)
      (if expr

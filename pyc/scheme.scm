@@ -773,18 +773,32 @@
    (apply-decorators this conf))
 
 (define-walk-method (scheme this::PycClass conf)
+   (define (make-HClass-name name)
+      (string->symbol (string-append "py-" name "-hclass-of-instances")))
+
    (define (pyc-class this::PycClass)
-     (let ((cls-symbol (PycClass-super-key this)))
+     (let ((cls-symbol (PycClass-super-key this))
+           (is-builtin (PycClass-is-builtin this)))
       (epairify this
 	 `(begin
-     (set! ,cls-symbol (py-make-class
-  	     (&& ,(PycClass-name this))
-  	     (&& ,(PycClass-module this))
-  	     (list ,@(map (lambda (b) (scheme b conf)) (PycClass-bases this)))
-  	     ,@(append-map (lambda (decl)
-  			      `((& ,(symbol->string (PycDecl-id decl)))
-  				,(scheme-decl decl conf)))
-  		  (PycClass-decls this))))
+     ,(if is-builtin
+       `(set! ,cls-symbol (py-make-builtin-class
+    	     (&& ,(PycClass-name this))
+    	     (&& ,(PycClass-module this))
+    	     (list ,@(map (lambda (b) (scheme b conf)) (PycClass-bases this)))
+           ,(make-HClass-name (PycClass-name this))
+    	     ,@(append-map (lambda (decl)
+    			      `((& ,(symbol->string (PycDecl-id decl)))
+    				,(scheme-decl decl conf)))
+    		  (PycClass-decls this))))
+       `(set! ,cls-symbol (py-make-class
+    	     (&& ,(PycClass-name this))
+    	     (&& ,(PycClass-module this))
+    	     (list ,@(map (lambda (b) (scheme b conf)) (PycClass-bases this)))
+    	     ,@(append-map (lambda (decl)
+    			      `((& ,(symbol->string (PycDecl-id decl)))
+    				,(scheme-decl decl conf)))
+    		  (PycClass-decls this)))))
       ,cls-symbol))))
 
    (let ((body (scheme (PycClass-body this) conf)))
@@ -985,6 +999,9 @@
 
 (define-walk-method (scheme this::PycStatic conf)
   (PycStatic-value this))
+
+(define-walk-method (scheme this::PycStaticSexp conf)
+  (PycStaticSexp-value this))
 
 (define-walk-method (scheme this::PycMacro conf)
   (let* ((id (PycIntrinsics-id this))

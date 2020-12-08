@@ -161,7 +161,28 @@
     py-make-tuple
     py-type
 
+    py-type-hclass-of-instances
+
+    py-range-hclass-of-instances
+    make-PyObjectRange
+    PyObjectRange-start
+    PyObjectRange-stop
+    PyObjectRange-step
+    PyObjectRange-start-set!
+    PyObjectRange-stop-set!
+    PyObjectRange-step-set!
+
+    py-range_iterator-hclass-of-instances
+    make-PyObjectRangeIterator
+    PyObjectRangeIterator-start
+    PyObjectRangeIterator-stop
+    PyObjectRangeIterator-step
+    PyObjectRangeIterator-start-set!
+    PyObjectRangeIterator-stop-set!
+    PyObjectRangeIterator-step-set!
+
     py-make-class
+    py-make-builtin-class
     make-builtin-class
 
     py-obj->iterator
@@ -302,6 +323,7 @@
     py-builtin-print
     py-builtin-property
     py-builtin-range
+    py-builtin-range_iterator
     py-builtin-repr
     py-builtin-reversed
     py-builtin-round

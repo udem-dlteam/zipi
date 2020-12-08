@@ -42,7 +42,8 @@
            (class PyObjectType::PyObject
               bases
               mro
-              hclass-of-instances)
+              hclass-of-instances
+              is-builtin)
 
            (abstract-class PyObjectNumber::PyObject
               value)
@@ -102,10 +103,26 @@
               stop
               step)
 
+           (class PyObjectRange::PyObject
+              start
+              stop
+              step)
+
+           (class PyObjectRangeIterator::PyObject
+              start
+              stop
+              step)
+
            (class PyObjectTextIOWrapper::PyObject
               port
               mode
               encoding)
+
+           py-range-hclass-of-instances
+           py-range_iterator-hclass-of-instances
+
+           py-builtin-range
+           py-builtin-range_iterator
 
            (inline PyObject-type-get o)
            (inline PyObjectStr-type-get o)
@@ -144,6 +161,7 @@
            int-cache
 
            (py-make-class name module bases . atrs)
+           (py-make-builtin-class name module bases hclass-of-instances . attrs)
 
            (py-throw ::obj)
 

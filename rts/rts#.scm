@@ -128,7 +128,8 @@
   ;; attrs
   (bases unprintable:)
   (mro unprintable:)
-  (hclass-of-instances unprintable:))
+  (hclass-of-instances unprintable:)
+  (is-builtin unprintable:))
 
 (define-type-of-PyObject PyObjectInt
   id: PyObjectInt-C6486EB6-1522-42BA-A082-B6563F943CDF
@@ -250,6 +251,24 @@
   id: PyObjectSlice-C6486EB6-1522-42BA-A082-B6563F943CDF
   copier: #f
   macros: ;; this will inline the operations on this type
+  ;; attrs
+  start
+  stop
+  step)
+
+(define-type-of-PyObject PyObjectRange
+  id: PyObjectRange-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; macros: ;; this will inline the operations on this type
+  ;; attrs
+  start
+  stop
+  step)
+
+(define-type-of-PyObject PyObjectRangeIterator
+  id: PyObjectRangeIterator-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  ;; macros: ;; this will inline the operations on this type
   ;; attrs
   start
   stop
