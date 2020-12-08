@@ -279,6 +279,9 @@
                 (final-class PycStatic::PycIntrinsics
                              value::symbol)
 
+                (final-class PycStaticSexp::PycIntrinsics
+                             value::pair-nil)
+
                 (final-class PycMacro::PycIntrinsics
                              value::symbol
                              args::pair-nil)
@@ -635,4 +638,5 @@
 (gen-walks PycAssert test msg)
 (gen-walks PycUnimplemented)
 (gen-walks PycStatic)
+(gen-walks PycStaticSexp)
 (gen-walks PycMacro (args))

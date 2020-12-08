@@ -1000,6 +1000,9 @@
 (define-walk-method (scheme this::PycStatic conf)
   (PycStatic-value this))
 
+(define-walk-method (scheme this::PycStaticSexp conf)
+  (PycStaticSexp-value this))
+
 (define-walk-method (scheme this::PycMacro conf)
   (let* ((id (PycIntrinsics-id this))
         (value (PycMacro-value this))

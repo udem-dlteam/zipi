@@ -655,12 +655,9 @@
               (make-maker-name (cdr scheme-class))
               (append
                 (list
-                  (new-PycStatic
-                    loc
-                    #f
-                    (make-HClass-name (car scheme-class)))
-                  (new-PycStatic loc #f (vector))
-                  (new-PycStatic loc #f (make-scheme-class-name (car scheme-class))))
+                  (new-PycStatic loc 'arg1 (make-HClass-name (car scheme-class)))
+                  (new-PycStaticSexp loc 'arg2 '(vector))
+                  (new-PycStatic loc 'arg3 (make-scheme-class-name (car scheme-class))))
                 (map
                   (lambda (n)
                     (optimize-builtin-class-refs!
