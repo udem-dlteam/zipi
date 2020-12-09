@@ -111,7 +111,7 @@ def make_virtual_table(semantics_methods, instances):
     return virtual_table
 
 instances = [1, True, 1.0, object(), "foo", list(), dict(), set()]
-ops = ['add', 'and', 'contains', 'floordiv', 'matmul', 'mod', 'mul',
+ops = ['add', 'and', 'contains', 'floordiv', 'lshift', 'matmul', 'mod', 'mul',
        'or', 'pos', 'pow', 'rshift', 'sub', 'truediv',  'xor']
 
 semantics_methods = make_semantics_methods_table(ops)
