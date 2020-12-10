@@ -1,4 +1,6 @@
-import inspect, sys
+#!/usr/bin/env python3
+
+import argparse, inspect, sys
 from functools import wraps
 from pprint import pprint
 from types import ModuleType
@@ -156,7 +158,7 @@ def main(filename):
             for right in instances:
                 try:
                     semantics(left, right)
-                except Exception:
+                except (TypeError, ValueError):
                     # Silence exception, they were logged in the 'decision_tree'
                     pass
 
@@ -164,7 +166,14 @@ def main(filename):
 
 instances = [1, 1.0, True, "foo", []]
 
-main("../zemantics.py")
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("semantics_file")
+
+    args = parser.parse_args()
+
+    main(args.semantics_file)
 
 
 
