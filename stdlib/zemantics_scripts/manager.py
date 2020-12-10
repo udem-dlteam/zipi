@@ -190,19 +190,20 @@ class Version:
 class Template(Version):
     operations = templates.operations
     arithmetic_template = templates.arithmetic_template
+    inplace_arithmetic_template = templates.inplace_arithmetic_template
     main_template = templates.main_template
 
     def __init__(self):
         self.content = self.init_template()
 
-    def define_arithmetic_semantics(op, magic_method):
-        return arithmetic_template.format(op=op, magic_method=magic_method)
-
     def init_template(self):
         arithmetic_templates = [self.arithmetic_template.format(op=op, magic_method=magic_method)
                                 for op, magic_method in self.operations.items()]
 
-        arithmetic_semantics = '\n\n'.join(arithmetic_templates)
+        inplace_arithmetic_templates = [self.inplace_arithmetic_template.format(op=op, magic_method=magic_method)
+                                        for op, magic_method in self.operations.items()]
+
+        arithmetic_semantics = '\n\n'.join(arithmetic_templates + inplace_arithmetic_templates)
 
         semantics = self.main_template.format(arithmetic=arithmetic_semantics)
 

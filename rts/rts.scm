@@ -1320,55 +1320,9 @@
     py-False
     py-True))
 
-(define-macro (define-inplace-operator-protocol
-                fun-name
-                imethod
-                lmethod
-                rmethod
-                operator)
-  (let ((fall-back-name (string->symbol
-          (string-append (symbol->string fun-name) "$fall-back"))))
-    `(begin
-      (define-binary-operator-protocol ,fall-back-name ,lmethod ,rmethod ,operator)
-      (define (,fun-name x y cache)
-        (let ((__op__ (getattribute-from-obj-mro x (& ,imethod))))
-          (let ((inplace-result
-                  (if (eq? __op__ py-absent)
-                    py-NotImplemented
-                    (py-call __op__ x y))))
-            (if (eq? inplace-result py-NotImplemented)
-              (,fall-back-name x y)
-              inplace-result)))))))
-
-(define-inplace-operator-protocol py-iadd "__iadd__" "__add__" "__radd__" "+=")
-
-(define-inplace-operator-protocol py-iand "__iand__" "__and__" "__rand__" "&=")
-
-(define-inplace-operator-protocol py-idiv "__itruediv__" "__truediv__" "__rtruediv__" "/=")
-
-(define-inplace-operator-protocol py-ifloordiv "__ifloordiv__" "__floordiv__" "__rfloordiv__" "//=")
-
-(define-inplace-operator-protocol py-ilshift "__ilshift__" "__lshift__" "__rlshift__" "<<=")
-
-(define-inplace-operator-protocol py-imatmul "__imatmul__" "__matmul__" "__rmatmul__" "@=")
-
-(define-inplace-operator-protocol py-imod "__imod__" "__mod__" "__rmod__" "%=")
-
-(define-inplace-operator-protocol py-imul "__imul__" "__mul__" "__rmul__" "*=")
-
-(define-inplace-operator-protocol py-ior "__ior__" "__or__" "__ror__" "|=")
-
-(define-inplace-operator-protocol py-ipow "__ipow__" "__pow__" "__rpow__" "**=")
-
-(define-inplace-operator-protocol py-irshift "__irshift__" "__rshift__" "__rrshift__" ">>=")
-
-(define-inplace-operator-protocol py-isub "__isub__" "__sub__" "__rsub__" "-=")
-
-(define-inplace-operator-protocol py-ixor "__ixor__" "__xor__" "__ixor__" "^=")
-
 ;; Unary operators
 (define-macro (define-unary-operator-protocol fun-name method operator)
-  `(define (,fun-name x cache)
+  `(define (,fun-name x)
     (let ((__op__ (getattribute-from-obj-mro x (& ,method))))
       (if (eq? __op__ py-absent)
           (throw-unsupported-unary-operand x ,operator)
@@ -2098,7 +2052,7 @@
                      #t
                      (py-test len))))))))
 
-(define (py-not obj cache)
+(define (py-not obj)
   (if (py-test obj)
     py-False
     py-True))

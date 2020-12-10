@@ -1,9 +1,7 @@
 do.gambit: zemantics.scm
 
 zemantics.scm:
-	cd scripts; ./gen_semantics.py
-	../etc/py19 -t gambit zemantics.py > zemantics.scm
-
+	../bin/zpc.gambit zemantics.py > zemantics.scm
 
 clean.gambit:
 	rm -f builtins.scm

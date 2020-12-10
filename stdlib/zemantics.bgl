@@ -1,5 +1,5 @@
 (module __stdlib_zemantics
-   
+
    (include "rts.sch"
 	  "bigloo/include.sch"
 	  "bigloo/call.sch"
@@ -11,10 +11,10 @@
 	   (py-getattribute obj80 attr81)
 	   (py-getitem obj83 index84)
 	   (py-setitem obj86 index87 value88)
-	   
+
 	   (inline py-add x y)
 	   (py-add:normal x y)
-	   
+
 	   (inline py-sub x y)
 	   (py-sub:normal x y)
 
@@ -23,13 +23,32 @@
 
 	   (inline py-floordiv x y)
 	   (py-floordiv:normal x y)
-	   
+
 	   (inline py-mod x y)
-	   (py-mod:normal x y)))
+	   (py-mod:normal x y)
+
+     (inline py-iadd x y)
+	   (py-iadd:normal x y)
+
+	   (inline py-isub x y)
+	   (py-isub:normal x y)
+
+	   (inline py-imul x y)
+	   (py-imul:normal x y)
+
+	   (inline py-ifloordiv x y)
+	   (py-ifloordiv:normal x y)
+
+	   (inline py-imod x y)
+	   (py-imod:normal x y)))
 
 (define-inline (py-add x y) (py-add:normal x y))
 (define-inline (py-sub x y) (py-sub:normal x y))
 (define-inline (py-floordiv x y) (py-floordiv:normal x y))
 (define-inline (py-mod x y) (py-mod:normal x y))
 (define-inline (py-mul x y) (py-mul:normal x y))
-
+(define-inline (py-iadd x y) (py-iadd:normal x y))
+(define-inline (py-isub x y) (py-isub:normal x y))
+(define-inline (py-ifloordiv x y) (py-ifloordiv:normal x y))
+(define-inline (py-imod x y) (py-imod:normal x y))
+(define-inline (py-imul x y) (py-imul:normal x y))

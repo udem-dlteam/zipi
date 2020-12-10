@@ -583,9 +583,7 @@
 			   (new-PycPragma loc (symbol-append 'py- (PycAugAssig-op this)))
 			   (list
 			      lhs
-			      (PycAssig-rhs this)
-			      (new-PycPragma loc
-				 (scheme-cache (PycAugAssig-cache this) this)))))))
+			      (PycAssig-rhs this))))))
 	  (scheme assig conf)))
       ((isa? (PycAssig-lhs this) PycAccess)
        (let* ((loc (PycNode-loc this))
@@ -600,9 +598,7 @@
 			   (list
 			      (new-PycAccess loc (new-PycPragma loc %o) field
 				 cache: (PycAccess-cache lhs))
-			      (PycAssig-rhs this)
-			      (new-PycPragma loc
-				 (scheme-cache (PycAugAssig-cache this) this)))))))
+			      (PycAssig-rhs this))))))
 	  (epairify this
 	     `(let ((,%o ,(scheme (PycAccess-obj lhs) conf)))
 		 ,(scheme assig conf)))))
@@ -623,9 +619,7 @@
 			      (new-PycSubscript loc
 				 (new-PycPragma loc %o) (new-PycPragma loc %i)
 				 cache: (PycSubscript-cache lhs))
-			      (PycAssig-rhs this)
-			      (new-PycPragma loc
-				 (scheme-cache (PycAugAssig-cache this) this)))))))
+			      (PycAssig-rhs this))))))
 	  (epairify this
 	     `(let* ((,%i ,(scheme (PycSubscript-index lhs) conf))
 		     (,%o ,(scheme (PycSubscript-obj lhs) conf)))
@@ -668,8 +662,7 @@
 (define-walk-method (scheme this::PycUnary conf)
    (epairify this
       `(,(symbol-append 'py- (PycUnary-op this))
-	,(scheme (PycUnary-expr this) conf)
-	,(scheme-cache (PycUnary-cache this) this))))
+	,(scheme (PycUnary-expr this) conf))))
 
 (define-walk-method (scheme this::PycBoolOp conf)
   (define (scheme-or args conf)
