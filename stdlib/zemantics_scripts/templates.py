@@ -108,6 +108,51 @@ def {op}(x, y):
     return normal()
     # {op}:end-body"""
 
+inplace_arithmetic_template = \
+"""# Auto-generated
+@define_semantics
+@inline
+def i{op}(x, y):
+    def inplace():
+        magic_method = class_getattr(x, "__i{magic_method}__")
+        if magic_method is absent:
+            return reflected()
+        else:
+            result = magic_method(x, y)
+            if result is NotImplemented:
+                return normal()
+            else:
+                return result
+                
+    def normal():
+        magic_method = class_getattr(x, "__{magic_method}__")
+        if magic_method is absent:
+            return reflected()
+        else:
+            result = magic_method(x, y)
+            if result is NotImplemented:
+                return reflected()
+            else:
+                return result
+
+    def reflected():
+        magic_method = class_getattr(y, "__r{magic_method}__")
+        if magic_method is absent:
+            return err()
+        else:
+            result = magic_method(y, x)
+            if result is NotImplemented:
+                return err()
+            else:
+                return result
+
+    def err():
+        raise ValueError
+
+    # {op}:start-body
+    return inplace()
+    # {op}:end-body"""
+
 operations = {'add': 'add',
               'bitand': 'and',
               'bitor': 'or',
