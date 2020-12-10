@@ -144,6 +144,12 @@ def make_compiler_intrinsics_module():
 
     return module, semantics_register, decision_tree
 
+
+# ======================================================================================================================
+#   main
+# ======================================================================================================================
+
+
 def main(filename):
     compiler_intrinsics_module, semantics_register, decision_tree = make_compiler_intrinsics_module()
 
