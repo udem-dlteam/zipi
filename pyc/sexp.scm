@@ -461,9 +461,9 @@
 (define (binary-operator op node)
    (case op
       ((Add)      (if (eq? node 'BinOp) 'add      'iadd))
-      ((Div)      (if (eq? node 'BinOp) 'truediv      'idiv))
-      ((BitAnd)   (if (eq? node 'BinOp) 'bitand   'iand))
-      ((BitOr)    (if (eq? node 'BinOp) 'bitor    'ior))
+      ((Div)      (if (eq? node 'BinOp) 'truediv  'itruediv))
+      ((BitAnd)   (if (eq? node 'BinOp) 'bitand   'ibitand))
+      ((BitOr)    (if (eq? node 'BinOp) 'bitor    'ibitor))
       ((BitXor)   (if (eq? node 'BinOp) 'xor      'ixor))
       ((FloorDiv) (if (eq? node 'BinOp) 'floordiv 'ifloordiv))
       ((LShift)   (if (eq? node 'BinOp) 'lshift   'ilshift))
