@@ -436,7 +436,7 @@ def iadd(x, y):
     def inplace():
         magic_method = class_getattr(x, "__iadd__")
         if magic_method is absent:
-            return reflected()
+            return normal()
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
@@ -469,9 +469,9 @@ def iadd(x, y):
     def err():
         raise ValueError
 
-    # add:start-body
+    # iadd:start-body
     return inplace()
-    # add:end-body
+    # iadd:end-body
 
 # Auto-generated
 @define_semantics
@@ -480,7 +480,7 @@ def ibitand(x, y):
     def inplace():
         magic_method = class_getattr(x, "__iand__")
         if magic_method is absent:
-            return reflected()
+            return normal()
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
@@ -513,9 +513,9 @@ def ibitand(x, y):
     def err():
         raise ValueError
 
-    # bitand:start-body
+    # ibitand:start-body
     return inplace()
-    # bitand:end-body
+    # ibitand:end-body
 
 # Auto-generated
 @define_semantics
@@ -524,7 +524,7 @@ def ibitor(x, y):
     def inplace():
         magic_method = class_getattr(x, "__ior__")
         if magic_method is absent:
-            return reflected()
+            return normal()
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
@@ -557,9 +557,9 @@ def ibitor(x, y):
     def err():
         raise ValueError
 
-    # bitor:start-body
+    # ibitor:start-body
     return inplace()
-    # bitor:end-body
+    # ibitor:end-body
 
 # Auto-generated
 @define_semantics
@@ -568,7 +568,7 @@ def ifloordiv(x, y):
     def inplace():
         magic_method = class_getattr(x, "__ifloordiv__")
         if magic_method is absent:
-            return reflected()
+            return normal()
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
@@ -601,9 +601,9 @@ def ifloordiv(x, y):
     def err():
         raise ValueError
 
-    # floordiv:start-body
+    # ifloordiv:start-body
     return inplace()
-    # floordiv:end-body
+    # ifloordiv:end-body
 
 # Auto-generated
 @define_semantics
@@ -612,7 +612,7 @@ def ilshift(x, y):
     def inplace():
         magic_method = class_getattr(x, "__ilshift__")
         if magic_method is absent:
-            return reflected()
+            return normal()
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
@@ -645,9 +645,9 @@ def ilshift(x, y):
     def err():
         raise ValueError
 
-    # lshift:start-body
+    # ilshift:start-body
     return inplace()
-    # lshift:end-body
+    # ilshift:end-body
 
 # Auto-generated
 @define_semantics
@@ -656,7 +656,7 @@ def imatmul(x, y):
     def inplace():
         magic_method = class_getattr(x, "__imatmul__")
         if magic_method is absent:
-            return reflected()
+            return normal()
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
@@ -689,9 +689,9 @@ def imatmul(x, y):
     def err():
         raise ValueError
 
-    # matmul:start-body
+    # imatmul:start-body
     return inplace()
-    # matmul:end-body
+    # imatmul:end-body
 
 # Auto-generated
 @define_semantics
@@ -700,7 +700,7 @@ def imod(x, y):
     def inplace():
         magic_method = class_getattr(x, "__imod__")
         if magic_method is absent:
-            return reflected()
+            return normal()
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
@@ -733,9 +733,9 @@ def imod(x, y):
     def err():
         raise ValueError
 
-    # mod:start-body
+    # imod:start-body
     return inplace()
-    # mod:end-body
+    # imod:end-body
 
 # Auto-generated
 @define_semantics
@@ -744,7 +744,7 @@ def imul(x, y):
     def inplace():
         magic_method = class_getattr(x, "__imul__")
         if magic_method is absent:
-            return reflected()
+            return normal()
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
@@ -777,9 +777,9 @@ def imul(x, y):
     def err():
         raise ValueError
 
-    # mul:start-body
+    # imul:start-body
     return inplace()
-    # mul:end-body
+    # imul:end-body
 
 # Auto-generated
 @define_semantics
@@ -788,7 +788,7 @@ def ipow(x, y):
     def inplace():
         magic_method = class_getattr(x, "__ipow__")
         if magic_method is absent:
-            return reflected()
+            return normal()
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
@@ -821,9 +821,9 @@ def ipow(x, y):
     def err():
         raise ValueError
 
-    # pow:start-body
+    # ipow:start-body
     return inplace()
-    # pow:end-body
+    # ipow:end-body
 
 # Auto-generated
 @define_semantics
@@ -832,7 +832,7 @@ def irshift(x, y):
     def inplace():
         magic_method = class_getattr(x, "__irshift__")
         if magic_method is absent:
-            return reflected()
+            return normal()
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
@@ -865,9 +865,9 @@ def irshift(x, y):
     def err():
         raise ValueError
 
-    # rshift:start-body
+    # irshift:start-body
     return inplace()
-    # rshift:end-body
+    # irshift:end-body
 
 # Auto-generated
 @define_semantics
@@ -876,7 +876,7 @@ def isub(x, y):
     def inplace():
         magic_method = class_getattr(x, "__isub__")
         if magic_method is absent:
-            return reflected()
+            return normal()
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
@@ -909,9 +909,9 @@ def isub(x, y):
     def err():
         raise ValueError
 
-    # sub:start-body
+    # isub:start-body
     return inplace()
-    # sub:end-body
+    # isub:end-body
 
 # Auto-generated
 @define_semantics
@@ -920,7 +920,7 @@ def itruediv(x, y):
     def inplace():
         magic_method = class_getattr(x, "__itruediv__")
         if magic_method is absent:
-            return reflected()
+            return normal()
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
@@ -953,9 +953,9 @@ def itruediv(x, y):
     def err():
         raise ValueError
 
-    # truediv:start-body
+    # itruediv:start-body
     return inplace()
-    # truediv:end-body
+    # itruediv:end-body
 
 # Auto-generated
 @define_semantics
@@ -964,7 +964,7 @@ def ixor(x, y):
     def inplace():
         magic_method = class_getattr(x, "__ixor__")
         if magic_method is absent:
-            return reflected()
+            return normal()
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
@@ -997,9 +997,9 @@ def ixor(x, y):
     def err():
         raise ValueError
 
-    # xor:start-body
+    # ixor:start-body
     return inplace()
-    # xor:end-body
+    # ixor:end-body
 
 @define_semantics
 def getattribute(obj, attr):

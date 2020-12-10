@@ -1,5 +1,5 @@
 """
-Provide a mock version of __compiler_intrinsics__ which registers
+A mock version of __compiler_intrinsics__ which registers
 cPython method calls to build a virtual table of procedures to be called
 for each type combinations of each operation
 """

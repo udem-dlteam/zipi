@@ -116,7 +116,7 @@ def i{op}(x, y):
     def inplace():
         magic_method = class_getattr(x, "__i{magic_method}__")
         if magic_method is absent:
-            return reflected()
+            return normal()
         else:
             result = magic_method(x, y)
             if result is NotImplemented:
@@ -149,9 +149,9 @@ def i{op}(x, y):
     def err():
         raise ValueError
 
-    # {op}:start-body
+    # i{op}:start-body
     return inplace()
-    # {op}:end-body"""
+    # i{op}:end-body"""
 
 operations = {'add': 'add',
               'bitand': 'and',
