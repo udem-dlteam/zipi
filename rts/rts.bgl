@@ -165,12 +165,6 @@
 
            (py-throw ::obj)
 
-           (py-iadd x y cache)
-           (py-iand x y cache)
-           (py-isub x y cache)
-           (py-idiv x y cache)
-           (py-imod x y cache)
-           (py-ifloordiv x y cache)
            (py-eq x y)
            (py-ne x y)
            (py-lt x y)
@@ -181,8 +175,8 @@
            (py-isnot x y)
            (py-in x y)
            (py-notin x y)
-           (py-neg x cache)
-           (py-not x cache)
+           (py-neg x)
+           (py-not x)
 
            py-None
            py-absent

@@ -112,18 +112,70 @@
     py-notin
 
     py-iadd
-    py-iand
-    py-idiv
+    py-iadd:inplace
+    py-iadd:normal
+    py-iadd:reflected
+    py-iadd:err
+    py-ibitand
+    py-ibitand:inplace
+    py-ibitand:normal
+    py-ibitand:reflected
+    py-ibitand:err
+    py-itruediv
+    py-itruediv:inplace
+    py-itruediv:normal
+    py-itruediv:reflected
+    py-itruediv:err
     py-ifloordiv
+    py-ifloordiv:inplace
+    py-ifloordiv:normal
+    py-ifloordiv:reflected
+    py-ifloordiv:err
     py-ilshift
+    py-ilshift:inplace
+    py-ilshift:normal
+    py-ilshift:reflected
+    py-ilshift:err
     py-imatmul
+    py-imatmul:inplace
+    py-imatmul:normal
+    py-imatmul:reflected
+    py-imatmul:err
     py-imod
+    py-imod:inplace
+    py-imod:normal
+    py-imod:reflected
+    py-imod:err
     py-imul
-    py-ior
+    py-imul:inplace
+    py-imul:normal
+    py-imul:reflected
+    py-imul:err
+    py-ibitor
+    py-ibitor:inplace
+    py-ibitor:normal
+    py-ibitor:reflected
+    py-ibitor:err
     py-ipow
+    py-ipow:inplace
+    py-ipow:normal
+    py-ipow:reflected
+    py-ipow:err
     py-irshift
+    py-irshift:inplace
+    py-irshift:normal
+    py-irshift:reflected
+    py-irshift:err
     py-isub
+    py-isub:inplace
+    py-isub:normal
+    py-isub:reflected
+    py-isub:err
     py-ixor
+    py-ixor:inplace
+    py-ixor:normal
+    py-ixor:reflected
+    py-ixor:err
 
     py-invert
     py-neg
