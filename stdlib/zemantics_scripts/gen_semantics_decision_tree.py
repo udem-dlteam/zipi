@@ -11,29 +11,34 @@ def get_type_name(obj):
     return type(obj).__name__
 
 
-def iter_stack_functions():
+def get_current_semantics_context(semantics_register):
     for frame in inspect.stack():
-        yield frame.function
-
-
-def get_current_semantics_name(semantics_register):
-    for name in iter_stack_functions():
-        if name in semantics_register:
-            return name
-    return None
+        function_name = frame.function
+        if function_name in semantics_register:
+            function = frame.frame.f_globals[function_name]
+            signature = inspect.signature(function).parameters
+            args = [frame.frame.f_locals[name] for name in signature.keys()]
+            return function_name, args
+    return None, None
 
 # ======================================================================================================================
 #   Semantics Instructions
 # ======================================================================================================================
 
 class Procedure:
-    def __init__(self, method, *args):
+    def __init__(self, method, semantics_args, method_args):
         self.method = method
-        self.args = args
+        self.semantics_args = semantics_args
+        self.method_args = method_args
 
     def __repr__(self):
-        args_types = '-'.join(map(get_type_name, self.args))
-        return f"procedure:{self.method.__qualname__}-{args_types}"
+        method_qualname = self.method.__qualname__
+        method_owner = method_qualname.split('.')[0]
+        method_name_id = method_qualname.split(".")[1].replace('_', '')
+
+        args_info = [get_type_name(a) + id_ for a, id_ in zip(self.semantics_args, 'XYZW')]
+        args_types = '-'.join(args_info)
+        return f"procedure:py-{method_owner}-{method_name_id}-{args_types}"
 
 
 class Error:
@@ -52,11 +57,15 @@ def make_compiler_intrinsics_module():
     semantics_register = {}
     decision_tree = {}
 
+    def register_semantics(name, f):
+        semantics_register[name] = f
+        return f
+
     # Module attributes
     absent = object()
 
     def inline(f):
-        return f
+        return register_semantics(f.__name__, f)
 
     def use_static_builtins(f):
         return f
@@ -65,7 +74,6 @@ def make_compiler_intrinsics_module():
         return f
 
     def define_semantics(f):
-        semantics_register[f.__name__] = f
         return f
 
     def get_own_attr(obj, name):
@@ -85,15 +93,16 @@ def make_compiler_intrinsics_module():
                     Wrapper that registers behaviour of the recovered method
                     """
 
+
                     # Gather positional information: in which semantics is this method being called?
-                    current_semantics = get_current_semantics_name(semantics_register)
+                    current_semantics, semantics_args = get_current_semantics_context(semantics_register)
 
                     # For which types is it being called?
                     decision_tree_branch = decision_tree.setdefault(current_semantics, {})
-                    for argument in args[:-1]:
+                    for argument in semantics_args[:-1]:
                         decision_tree_branch = decision_tree_branch.setdefault(get_type_name(argument), {})
 
-                    last_type_name = get_type_name(args[-1])
+                    last_type_name = get_type_name(semantics_args[-1])
 
                     try:
                         res = attr(*args)
@@ -106,7 +115,9 @@ def make_compiler_intrinsics_module():
                             decision_tree_branch[last_type_name] = Error("NotImplemented")
 
                         else:
-                            decision_tree_branch[last_type_name] = Procedure(attr, *args)
+                            decision_tree_branch[last_type_name] = Procedure(attr, semantics_args, args)
+
+                        return res
 
                     except Exception as e:
                         # An exception can come from a magic method or from
@@ -131,8 +142,7 @@ def make_compiler_intrinsics_module():
 
     return module, semantics_register, decision_tree
 
-def main(filename, types):
-    instances = [eval(tp)() for tp in types]
+def main(filename):
     compiler_intrinsics_module, semantics_register, decision_tree = make_compiler_intrinsics_module()
 
     with open(filename, 'r') as f:
@@ -152,8 +162,9 @@ def main(filename, types):
 
     pprint(decision_tree)
 
+instances = [1, 1.0, True, "foo", []]
 
-main("../zemantics.py", ["int", "float"])
+main("../zemantics.py")
 
 
 
