@@ -19,12 +19,12 @@ jeu = []
 une_pierre = 1
 une_case_vide = 0
 
-def init_jeu(  nombre_de_pierres ):
+def init_jeu( nombre_de_pierres ):
     global nombre_de_coups
     global jeu
 
     nombre_de_coups = 0
-    jeu = [ 0 for y in range( nombre_de_pierres ) ]
+    jeu = [ 0 ] * nombre_de_pierres
 
     for i in range( nombre_de_pierres ):
         jeu[ i ] = une_pierre
@@ -135,7 +135,7 @@ def run( nombre_de_pierres ):
 
 def main( bench, n, arg ):
     res = 0
-    k = round( n / 10 )
+    k = n // 10
     i = 1
 
     print( bench, "(", n, ")..." )
@@ -152,4 +152,4 @@ def bench_exec( name, N, arg ):
     bench_time = time.time() - bench_time
     print( bench_time, 'seconds for', N, 'executions of:', name )
     
-bench_exec( "scm_bague", 40, 20 )
+bench_exec( "scm_bague", 10, 20 )
