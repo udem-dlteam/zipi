@@ -1,6 +1,8 @@
+# Compute nth fibonacci number using double recursion
+
 import time
 
-n = 35
+n = 33
 
 def fib(n):
     if n<2:
@@ -11,4 +13,4 @@ def fib(n):
 bench_time = time.time()
 result = fib(n)
 bench_time = time.time() - bench_time
-print(bench_time, 'seconds for', 'fib(', n, ')')
+print(bench_time, 'seconds for', 'fib(', n, ') =', result)
