@@ -103,9 +103,7 @@ def run( nombre_de_pierres ):
             pose_pierre( n )
             repose( n - 2 )
 
-    print( "init_jeu..." )
     init_jeu( nombre_de_pierres )
-    print( "bague..." )
     bague( nombre_de_pierres )
 
     res = 0;

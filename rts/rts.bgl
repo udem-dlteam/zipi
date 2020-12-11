@@ -152,7 +152,7 @@
            (py-call3 ::obj ::obj ::obj ::obj)
            (py-call4 ::obj ::obj ::obj ::obj ::obj)
            (py-call5 ::obj ::obj ::obj ::obj ::obj ::obj)
-
+	   (py-call-generic ::obj ::obj)
            (py-iter ::obj)
 
            (py-make-global)
@@ -617,3 +617,9 @@
 ;*    zemantics                                                        */
 ;*---------------------------------------------------------------------*/
 ((@ zipi-init __stdlib_zemantics) "zemantics")
+
+;*---------------------------------------------------------------------*/
+;*    exception-notify ::PyObject ...                                  */
+;*---------------------------------------------------------------------*/
+(define-method (exception-notify o::PyObject)
+   (print-exception o))

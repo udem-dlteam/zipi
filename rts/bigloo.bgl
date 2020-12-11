@@ -111,7 +111,7 @@
 ;*---------------------------------------------------------------------*/
 ;*    bitwise operations ...                                           */
 ;*---------------------------------------------------------------------*/
-(define-inline (arithmetic-shift x y) (bit-rsh x y))
+(define-inline (arithmetic-shift x y) (if (>fx y 0) (bit-lsh x y) (bit-rsh x (negfx y))))
 (define-inline (bitwise-and x y) (bit-and x y))
 (define-inline (bitwise-ior x y) (bit-or x y))
 (define-inline (bitwise-xor x y) (bit-xor x y))

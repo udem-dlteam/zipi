@@ -12,6 +12,24 @@
 	   (py-getitem obj83 index84)
 	   (py-setitem obj86 index87 value88)
 
+	   (inline py-bitand x y)
+	   (py-bitand:normal x y)
+	   
+	   (inline py-bitor x y)
+	   (py-bitor:normal x y)
+	   
+	   (inline py-xor x y)
+	   (py-xor:normal x y)
+	   
+	   (inline py-ilshift x y)
+	   (py-ilshift:normal x y)
+	   
+	   (inline py-lshift x y)
+	   (py-lshift:normal x y)
+	   
+	   (inline py-rshift x y)
+	   (py-rshift:normal x y)
+	   
 	   (inline py-add x y)
 	   (py-add:normal x y)
 
@@ -44,6 +62,13 @@
 
 	   (inline py-imod x y)
 	   (py-imod:normal x y)))
+
+(define-inline (py-bitand x y) (py-bitand:normal x y))
+(define-inline (py-bitor x y) (py-bitor:normal x y))
+(define-inline (py-xor x y) (py-xor:normal x y))
+(define-inline (py-ilshift x y) (py-ilshift:normal x y))
+(define-inline (py-lshift x y) (py-lshift:normal x y))
+(define-inline (py-rshift x y) (py-rshift:normal x y))
 
 (define-inline (py-add x y) (py-add:normal x y))
 (define-inline (py-sub x y) (py-sub:normal x y))

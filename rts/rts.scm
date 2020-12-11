@@ -1473,7 +1473,8 @@
 
 ;; helpers
 
-(define (arithmetic-lshift x y) (arithmetic-shift x (- y)))
+(define (arithmetic-lshift x y)
+   (arithmetic-shift x (- y)))
 
 (define (!= x y) (not (= x y)))
 

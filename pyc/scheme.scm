@@ -34,9 +34,14 @@
 		    (cons ,(config-get conf lib-dir:) (bigloo-library-path)))
 		 (build-builtins)
 		 (init-registered-constants)
-		 (py-module
-		    (py-make-global)
-		    (py-make-caches ,(PycModule-caches ast)))))
+		 (with-handler
+		    (lambda (e)
+		       (if (PyObject? e)
+			   (exception-notify e)
+			   (raise e)))
+		    (py-module
+		       (py-make-global)
+		       (py-make-caches ,(PycModule-caches ast))))))
 ;* 	    ((config-get conf bootstrap:)                              */
 ;* 	     `(define (zipi-init)                                      */
 ;* 		 (let ((global (py-make-global))                       */
