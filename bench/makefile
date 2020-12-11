@@ -26,10 +26,30 @@ micro-pypy:
 	  ./compare-zipi-cpython $$bench pypy; \
 	done
 
+scm:
+	@for bench in scm_*.py; do \
+	  ./compare-zipi-cpython $$bench $(ZIPISYSTEMS); \
+	done
+
+scm-gambit:
+	../bin/zipi.gambit -X reset
+	@for bench in scm_*.py; do \
+	  ./compare-zipi-cpython $$bench gambit; \
+	done
+
+scm-bigloo:
+	@for bench in scm_*.py; do \
+	  ./compare-zipi-cpython $$bench bigloo; \
+	done
+
+scm-pypy:
+	@for bench in scm_*.py; do \
+	  ./compare-zipi-cpython $$bench pypy; \
+	done
+
 .PHONY: profile
 
 profile:
-	../bin/zipi.gambit -X reset
 	@for bench in *.py; do \
 	  ./profile-zipi $$bench $(ZIPISYSTEMS); \
 	done
