@@ -22,13 +22,12 @@ une_case_vide = 0
 def init_jeu(  nombre_de_pierres ):
     global nombre_de_coups
     global jeu
-    
+
     nombre_de_coups = 0
     jeu = [ 0 for y in range( nombre_de_pierres ) ]
 
     for i in range( nombre_de_pierres ):
         jeu[ i ] = une_pierre
-
 
 def la_case( n ):
     return n - 1;
@@ -104,7 +103,9 @@ def run( nombre_de_pierres ):
             pose_pierre( n )
             repose( n - 2 )
 
+    print( "init_jeu..." )
     init_jeu( nombre_de_pierres )
+    print( "bague..." )
     bague( nombre_de_pierres )
 
     res = 0;

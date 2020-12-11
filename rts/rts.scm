@@ -1701,6 +1701,10 @@
 
 
 (define (flmod fl1 fl2)
+   ;; MS CARE 11dec2020: something's wrong here
+   ;; as flmod is used for compiling expressions
+   ;; such as n % k where both n and k might be
+   ;; integers
   (let ((div (fl/ fl1 fl2)))
     (fl- fl1 (fl* fl2
                 (if (fl< 0. fl2)
@@ -1717,7 +1721,7 @@
 
 (define-float-binary-operator float-truediv "__truediv__"    (div-to-float fl/))
 (define-float-binary-operator-reverse float-rtruediv "__rtruediv__"  (div-to-float fl/))
-(define-float-binary-operator float-floordiv "__floordiv__"   (div-to-float floor-div)               )
+(define-float-binary-operator float-floordiv "__floordiv__"   (div-to-float floor-div))
 (define-float-binary-operator-reverse float-rfloordiv "__rfloordiv__" (div-to-float floor-div))
 
 (define-float-binary-operator float-mod "__mod__"            (mod-to-float flmod))
