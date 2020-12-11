@@ -18,4 +18,6 @@ def bench_exec():
 bench_time = time.time()
 bench_exec()
 bench_time = time.time() - bench_time
-print(bench_time, 'seconds for', bench_iterations*bench_duplications, 'executions of:', 'for x in range(100):pass')
+print(str(bench_time) + ' seconds for ' + str(bench_iterations*bench_duplications) + ' executions of: ' + 'for x in range(100):pass')
+
+

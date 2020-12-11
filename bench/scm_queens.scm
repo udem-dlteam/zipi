@@ -3,14 +3,32 @@
 (cond-expand
   (gambit
    (declare (standard-bindings) (extended-bindings) (block) (not safe)))
-  (bigloo))
+  (bigloo
+   (define (current-second) (/ (current-milliseconds) 1000.0))
+   (define-macro (fx+ . args) `(+fx ,@args))
+   (define-macro (fx- x . args) (if (null? args) `(negfx ,x) `(-fx ,x ,@args)))
+   (define-macro (fx* . args) `(*fx ,@args))
+   (define-macro (fxquotient . args) `(quotientfx ,@args))
+   (define-macro (fxmodulo . args) `(modulofx ,@args))
+   (define-macro (fxremainder . args) `(remainderfx ,@args))
+   (define-macro (fx= . args) `(=fx ,@args))
+   (define-macro (fx< . args) `(<fx ,@args))
+   (define-macro (fx<= . args) `(<=fx ,@args))
+   (define-macro (fx> . args) `(>fx ,@args))
+   (define-macro (fx>= . args) `(>=fx ,@args))
+   (define-macro (fxand . args) `(bit-and ,@args))
+   (define-macro (fxior . args) `(bit-or ,@args))
+   (define-macro (fxxor . args) `(bit-xor ,@args))
+   (define-macro (fxnot x)      `(bit-not ,x))
+   (define-macro (fxarithmetic-shift-left  . args) `(bit-lsh ,@args))
+   (define-macro (fxarithmetic-shift-right . args) `(bit-rsh ,@args))))
 
 (define n 12)
 
 (define (q i diag1 diag2 cols)
   (if (fx= i 0)
       1
-      (let ((free (fxand diag1 diag2 cols)))
+      (let ((free (fxand (fxand diag1 diag2) cols)))
         (let loop ((col 1) (nsols 0))
           (if (fx> col free)
               nsols
@@ -26,13 +44,13 @@
 (define (queens n)
   (q n -1 -1 (fx- (fxarithmetic-shift-left 1 n) 1)))
 
-(define bench-time (time->seconds (current-time)))
+(define bench-time (current-second))
 (define result (queens n))
-(set! bench-time (- (time->seconds (current-time)) bench-time))
+(set! bench-time (- (current-second) bench-time))
 
 (display bench-time)
-(display " seconds for queens( ")
+(display " seconds: queens(")
 (display n)
-(display " ) = ")
+(display ") = ")
 (display result)
 (newline)
