@@ -13,4 +13,4 @@ def fib(n):
 bench_time = time.time()
 result = fib(n)
 bench_time = time.time() - bench_time
-print(bench_time, 'seconds for', 'fib(', n, ') =', result)
+print(str(bench_time) + ' seconds: fib(' + str(n) + ') = ' + str(result))
