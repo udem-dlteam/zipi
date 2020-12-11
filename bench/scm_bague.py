@@ -152,4 +152,4 @@ def bench_exec( name, N, arg ):
     bench_time = time.time() - bench_time
     print( bench_time, 'seconds for', N, 'executions of:', name )
     
-bench_exec( "bague", 40, 20 )
+bench_exec( "scm_bague", 40, 20 )
