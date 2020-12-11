@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import argparse, inspect, sys
+import argparse, ast, inspect, sys
 from functools import wraps
 from pprint import pprint
 from types import ModuleType
@@ -19,7 +19,7 @@ def get_current_semantics_context(semantics_register):
         if function_name in semantics_register:
             function = frame.frame.f_globals[function_name]
             signature = inspect.signature(function).parameters
-            args = [frame.frame.f_locals[name] for name in signature.keys()]
+            args = tuple(frame.frame.f_locals[name] for name in signature.keys())
             return function_name, args
     return None, None
 
@@ -28,7 +28,8 @@ def get_current_semantics_context(semantics_register):
 # ======================================================================================================================
 
 class Procedure:
-    def __init__(self, method, semantics_args, method_args):
+    def __init__(self, semantics, method, semantics_args, method_args):
+        self.semantics = semantics
         self.method = method
         self.semantics_args = semantics_args
         self.method_args = method_args
@@ -117,7 +118,7 @@ def make_compiler_intrinsics_module():
                             decision_tree_branch[last_type_name] = Error("NotImplemented")
 
                         else:
-                            decision_tree_branch[last_type_name] = Procedure(attr, semantics_args, args)
+                            decision_tree_branch[last_type_name] = Procedure(current_semantics, attr, semantics_args, args)
 
                         return res
 
@@ -146,11 +147,11 @@ def make_compiler_intrinsics_module():
 
 
 # ======================================================================================================================
-#   main
+#   decision tree
 # ======================================================================================================================
 
 
-def main(filename):
+def build_decision_tree(filename):
     compiler_intrinsics_module, semantics_register, decision_tree = make_compiler_intrinsics_module()
 
     with open(filename, 'r') as f:
@@ -168,18 +169,81 @@ def main(filename):
                     # Silence exception, they were logged in the 'decision_tree'
                     pass
 
-    pprint(decision_tree)
+    return decision_tree
+
+
+def main_tree(filename):
+    pprint(build_decision_tree(filename))
+
+# ======================================================================================================================
+#   decision tree
+# ======================================================================================================================
+
+class MethodRegister(ast.NodeVisitor):
+    def __init__(self, ast_):
+        self._register = {}
+        self.visit(ast_)
+
+    def visit_FunctionDef(self, node):
+        self._register[node.name] = node
+
+    def __getitem__(self, item):
+        return self._register[item]
+
+
+class ClassRegister(ast.NodeVisitor):
+    def __init__(self, ast_):
+        self._register = {}
+        self.visit(ast_)
+
+    def visit_ClassDef(self, node):
+        self._register[node.name] = MethodRegister(node)
+
+    def __getitem__(self, item):
+        return self._register[item]
+
+
+def main_behaviors(semantics_file, builtins_file):
+
+    with open(builtins_file, 'r') as f:
+        builtins_ast = ast.parse(f.read())
+
+    decision_tree = build_decision_tree(semantics_file)
+
+    class_register = ClassRegister(builtins_ast)
+
+    print(builtins_ast)
+
+# ======================================================================================================================
+#   main
+# ======================================================================================================================
+
+
 
 instances = [1, 1.0, True, "foo", []]
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="Generate zipi decision tree and behavior functions")
 
-    parser.add_argument("semantics_file")
+    subparser = parser.add_subparsers(dest='command', required=True)
+
+    # update command
+    tree_parser = subparser.add_parser('tree', description="Generate the decision tree only")
+    tree_parser.add_argument('semantics_file')
+
+    # save command
+    behaviors_parser = subparser.add_parser('behaviors', description="Generate the decision tree and the behaviors")
+    behaviors_parser.add_argument('semantics_file')
+    behaviors_parser.add_argument('builtins_file')
 
     args = parser.parse_args()
 
-    main(args.semantics_file)
+    command = args.command
+
+    if command == 'tree':
+        main_tree(args.semantics_file)
+    elif command == 'behaviors':
+        main_behaviors(args.semantics_file, args.builtins_file)
 
 
 
