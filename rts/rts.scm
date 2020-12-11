@@ -23,35 +23,11 @@
    (define-macro (declare-not-interrupts-enabled) `(begin))))
 
 ;; General exception thrower helper
-(define-macro (py-throw-exception-with-message exc . msg)
-  (define (f el acc)
-    (if (and (string? el) (not (null? acc)) (string? (car acc)))
-      (cons (string-append el (car acc)) (cdr acc))
-      (cons el acc)))
-
-  (define (foldr kons knil lis1 . lists)
-     (if (pair? lists)
-         (let recur ((lists (cons lis1 lists)))
-            (let ((cdrs (%cdrs lists)))
-               (if (null? cdrs) knil
-                   (apply kons (%cars+ lists (recur cdrs))))))
-
-         (let recur ((lis lis1))
-            (if (not (pair? lis)) knil
-                (let ((head (car lis)))
-                   (kons head (recur (cdr lis))))))))
-
-  (let ((folded-msg (foldr f '() msg)))
-    (if (and (= (length folded-msg) 1) (string? (car folded-msg)))
-      ;; Use & if given message can be folded to a string literal
-      `(py-throw
-        (py-call
-          ,exc
-          (& ,(car folded-msg))))
-      `(py-throw
-        (py-call
-          ,exc
-          (py-str-from-scheme (string-append ,@folded-msg)))))))
+(define (py-throw-exception-with-message exc . msg)
+   (py-throw
+      (py-call
+	 exc
+	 (py-str-from-scheme msg))))
 
 (define-macro (make-builtin-HClass names transitions)
   `(make-still-copy (make-HClass ,names ,transitions)))

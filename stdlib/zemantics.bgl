@@ -24,10 +24,13 @@
 	   (inline py-floordiv x y)
 	   (py-floordiv:normal x y)
 
+	   (inline py-truediv x y)
+	   (py-truediv:normal x y)
+
 	   (inline py-mod x y)
 	   (py-mod:normal x y)
 
-     (inline py-iadd x y)
+	   (inline py-iadd x y)
 	   (py-iadd:normal x y)
 
 	   (inline py-isub x y)
@@ -45,6 +48,7 @@
 (define-inline (py-add x y) (py-add:normal x y))
 (define-inline (py-sub x y) (py-sub:normal x y))
 (define-inline (py-floordiv x y) (py-floordiv:normal x y))
+(define-inline (py-truediv x y) (py-truediv:normal x y))
 (define-inline (py-mod x y) (py-mod:normal x y))
 (define-inline (py-mul x y) (py-mul:normal x y))
 (define-inline (py-iadd x y) (py-iadd:normal x y))

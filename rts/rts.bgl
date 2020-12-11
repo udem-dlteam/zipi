@@ -304,6 +304,7 @@
 
            (native-builtin-__import__ ::bstring)
            (py-flag-super-called-without-arguments)
+	   (py-throw-exception-with-message exc . msg)
            )
 
    (eval   (export-all)))

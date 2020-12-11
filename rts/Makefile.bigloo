@@ -96,7 +96,9 @@ builtins.bgl:
 	$(MAKE) -C ../stdlib builtins.bgl && mv ../stdlib/builtins.bgl .
 
 zemantics.bgl: ../stdlib/zemantics.bgl zemantics.scm
-	cp $< .
+	echo ";; automatically generated file, don't edit" > $@
+	echo ";; (copied from ../stdlib)" >> $@
+	cat $< >> $@
 
 zemantics.scm: ../stdlib/zemantics.scm
 	echo "(start-registering-constants)" > $@
