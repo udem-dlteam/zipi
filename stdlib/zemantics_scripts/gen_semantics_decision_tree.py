@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 
-import argparse, ast, inspect, sys
+import argparse, ast, inspect, lib2to3, logging, sys
 from functools import wraps
 from pprint import pprint
 from types import ModuleType
+
+import astor.code_gen
 
 # ======================================================================================================================
 #   Helpers
@@ -176,31 +178,169 @@ def main_tree(filename):
     pprint(build_decision_tree(filename))
 
 # ======================================================================================================================
-#   decision tree
+#   AST traversal
 # ======================================================================================================================
 
-class MethodRegister(ast.NodeVisitor):
+class AstRegister(ast.NodeVisitor):
     def __init__(self, ast_):
         self._register = {}
         self.visit(ast_)
 
+    def __getitem__(self, item):
+        return self._register[item]
+
+    def __setitem__(self, item, value):
+        self._register[item] = value
+
+    def get(self, item, default=None):
+        return self._register.get(item, default)
+
+
+class MethodRegister(AstRegister):
     def visit_FunctionDef(self, node):
-        self._register[node.name] = node
-
-    def __getitem__(self, item):
-        return self._register[item]
+        self[node.name] = node
 
 
-class ClassRegister(ast.NodeVisitor):
-    def __init__(self, ast_):
-        self._register = {}
-        self.visit(ast_)
-
+class ClassRegister(AstRegister):
     def visit_ClassDef(self, node):
-        self._register[node.name] = MethodRegister(node)
+        self[node.name] = MethodRegister(node)
 
-    def __getitem__(self, item):
-        return self._register[item]
+    def get_by_qualname(self, qualname):
+        cls_name, method_name = qualname.split('.')
+        method_register = self.get(cls_name)
+        return method_register.get(method_name) if method_register else None
+
+
+# ======================================================================================================================
+#   Partial evaluation
+# ======================================================================================================================
+
+class Unknown:
+    def __repr__(self):
+        return "<unknown>"
+
+
+_unknown = Unknown()
+
+
+class VarContext:
+    def __init__(self, type=_unknown, value=_unknown):
+        self.type = type
+        self.value = value
+
+
+def partial_eval(fn_ast, *args):
+    ast_args = fn_ast.args
+
+    if ast_args.kwonlyargs or ast_args.kw_defaults or ast_args.defaults:
+        raise ValueError("partial_eval only supports no-default positional arguments")
+
+    # For now we assume only positional args
+    fn_args = ast_args.posonlyargs + ast_args.args
+
+    if len(args) > len(fn_args):
+        raise TypeError(f"partially evaluated function takes {len(fn_args)} context arguments, {len(args)} were given.")
+    elif len(args) < len(fn_args):
+        raise TypeError(f"partially evaluated function missing {len(fn_args) - len(args)} context arguments. Empty contexts must be given explicitly.")
+
+    ctx = {}
+
+    for ctx_var, arg in zip(args, fn_args):
+        ctx[arg.arg] = ctx_var
+
+    body = fn_ast.body
+    return partial_eval_body(body, ctx)
+
+
+def partial_eval_body(body, ctx):
+    result = []
+
+    for stmt in partial_eval_stmts(body, ctx):
+        result.append(stmt)
+        if isinstance(stmt, ast.Return):
+            break
+
+    return result
+
+
+def partial_eval_stmts(stmts, ctx):
+    for stmt in stmts:
+        yield from partial_eval_stmt(stmt, ctx)
+
+
+def partial_eval_stmt(stmt, ctx):
+    if isinstance(stmt, ast.If):
+        test_result = partial_eval_expr(stmt.test, ctx)
+
+        if isinstance(test_result, ast.Constant):
+            if test_result.value:
+                yield from partial_eval_stmts(stmt.body, ctx)
+            else:
+                yield from partial_eval_stmts(stmt.orelse, ctx)
+        else:
+            yield ast.If(test_result,
+                         partial_eval_body(stmt.body, ctx),
+                         partial_eval_body(stmt.orelse, ctx))
+    else:
+        yield stmt
+
+
+def partial_eval_expr(expr, ctx):
+    if isinstance(expr, ast.Call):
+        return partial_eval_call(expr, ctx)
+    else:
+        return expr
+
+
+def partial_eval_call(call, ctx):
+    func = partial_eval_expr(call.func, ctx)
+    args = [partial_eval_expr(arg, ctx) for arg in call.args]
+
+    if isinstance(func, ast.Name):
+        return partial_eval_static_function_call(func.id, args, call.keywords, ctx)
+    else:
+        return ast.Call(func, args, call.keywords)
+
+
+def partial_eval_static_function_call(func_name, args, keywords, ctx):
+    # Assume here that builtins are called with the correct number of arguments
+    if func_name == "isinstance":
+        instance = args[0]
+        type_info = args[1]
+
+        if isinstance(instance, ast.Name) and isinstance(type_info, ast.Name):
+            instance_name = instance.id
+            type_info_name = type_info.id
+
+            instance_ctx = ctx.get(instance_name)
+
+            if instance_ctx:
+                instance_actual_type = instance_ctx.type
+
+                if instance_actual_type == type_info_name:
+                    return ast.Constant(True)
+                elif instance_actual_type in types:
+                    return ast.Constant(False)
+
+    elif func_name == "type":
+        instance = args[0]
+
+        if isinstance(instance, ast.Name):
+            instance_name = instance.id
+
+            instance_ctx = ctx.get(instance_name)
+
+            if instance_ctx:
+                instance_actual_type = instance_ctx.type
+
+                if instance_actual_type is not _unknown:
+                    return ast.Name(instance_actual_type, ast.Load())
+
+    return ast.Call(ast.Name(func_name), args, keywords)
+
+
+def get_binary_behavior_name(semantics, left_type, right_type):
+    return f"py-{semantics}-{left_type if left_type else ''}X-{right_type if right_type else ''}Y"
 
 
 def main_behaviors(semantics_file, builtins_file):
@@ -212,15 +352,53 @@ def main_behaviors(semantics_file, builtins_file):
 
     class_register = ClassRegister(builtins_ast)
 
-    print(builtins_ast)
+    behaviors = []
+
+    for semantics, subtree in decision_tree.items():
+        for left in instances:
+            left_type = get_type_name(left)
+
+            for right in instances:
+                right_type = get_type_name(right)
+
+                behavior_name = get_binary_behavior_name(semantics, left_type, right_type)
+
+                try:
+                    behavior = subtree[left_type][right_type]
+                except KeyError:
+                    logging.warning(f"unimplemented behavior in decision tree method: {behavior_name}")
+                    continue
+
+                if isinstance(behavior, Procedure):
+                    method_ast = class_register.get_by_qualname(behavior.method.__qualname__)
+
+                    if method_ast is None:
+                        logging.warning(f"unimplemented behavior in magic method: {behavior_name}")
+                    else:
+                        result_body = partial_eval(method_ast, VarContext(type=left_type), VarContext(type=right_type))
+
+                        behavior_func_name = behavior_name.replace('-', '_')
+                        behavior_func = ast.FunctionDef(behavior_func_name, method_ast.args, result_body,
+                                                        method_ast.decorator_list, method_ast.returns,
+                                                        method_ast.type_comment)
+
+                        behaviors.append(behavior_func)
+
+                elif isinstance(behavior, Error):
+                    logging.warning(f"NotImplementedWarning: will not implement error for {behavior_name}")
+                else:
+                    raise TypeError("unknown behavior type")
+
+    for b in behaviors:
+        print(astor.code_gen.to_source(b))
 
 # ======================================================================================================================
 #   main
 # ======================================================================================================================
 
 
-
 instances = [1, 1.0, True, "foo", []]
+types = [get_type_name(i) for i in instances]
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Generate zipi decision tree and behavior functions")
@@ -232,7 +410,7 @@ if __name__ == '__main__':
     tree_parser.add_argument('semantics_file')
 
     # save command
-    behaviors_parser = subparser.add_parser('behaviors', description="Generate the decision tree and the behaviors")
+    behaviors_parser = subparser.add_parser('behaviors', description="Generate the behaviors")
     behaviors_parser.add_argument('semantics_file')
     behaviors_parser.add_argument('builtins_file')
 
