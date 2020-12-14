@@ -17,13 +17,17 @@ class int:
             raise NotImplementedError
 
     def __add__(self, other):
-        if isinstance(self, int):
-            if isinstance(other, int):
+        if type(self) is int:
+            if type(other) is int:
                 return int_box(int_unbox(self) + int_unbox(other))
-            else:
-                return NotImplemented
-        else:
-            raise TypeError(f"unsupported operand type(s) for +: '{type(self).__name__}' and '{type(other).__name__}'")
+            elif isinstance(other, int):
+                return int_box(int_unbox(self) + int_subtype_unbox(other))
+        elif isinstance(self, int):
+            if type(other) is int:
+                return int_box(int_subtype_unbox(self) + int_unbox(other))
+            elif isinstance(other, int):
+                return int_box(int_subtype_unbox(self) + int_subtype_unbox(other))
+        return NotImplemented
 
 
 @builtin_type("PyObjectInt")
@@ -56,4 +60,4 @@ class float:
             else:
                 return NotImplemented
         else:
-            raise TypeError(f"unsupported operand type(s) for +: '{type(self).__name__}' and '{type(other).__name__}'")
+            return NotImplemented

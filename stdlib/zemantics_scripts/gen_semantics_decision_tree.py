@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import argparse, ast, inspect, lib2to3, logging, sys
+import argparse, ast, functools, inspect, logging, sys
 from functools import wraps
 from pprint import pprint
 from types import ModuleType
@@ -288,6 +288,8 @@ def partial_eval_stmt(stmt, ctx):
 def partial_eval_expr(expr, ctx):
     if isinstance(expr, ast.Call):
         return partial_eval_call(expr, ctx)
+    elif isinstance(expr, ast.Compare):
+        return partial_eval_compare(expr, ctx)
     else:
         return expr
 
@@ -300,6 +302,61 @@ def partial_eval_call(call, ctx):
         return partial_eval_static_function_call(func.id, args, call.keywords, ctx)
     else:
         return ast.Call(func, args, call.keywords)
+
+
+def partial_eval_compare(cmp, ctx):
+    left = partial_eval_expr(cmp.left, ctx)
+    comparators = [partial_eval_expr(e, ctx) for e in cmp.comparators]
+
+    evaluated_comparators = []
+    evaluated_ops = []
+
+    # Eliminate operators which evaluate to True
+    for op, right in zip(cmp.ops, comparators):
+        if isinstance(op, ast.Is):
+            res = partial_eval_is(left, right, ctx)
+            if isinstance(res, ast.Constant):
+                if not res.value:
+                    return res
+                else:
+                    evaluated_comparators.append(left)
+                    # Eliminate this operation
+                    evaluated_ops.append(None)
+                    left = right
+                    continue
+
+        # Could not evaluate this comparison in this context
+        evaluated_comparators.append(left)
+        evaluated_ops.append(op)
+        left = right
+
+    evaluated_comparators.append(left)
+
+    # Removing an operator in a chain is equivalent to replacing it with 'and'
+    # Ex: x is y is y is z => (x is y) and (y is z)
+    # We collect those sub-chains to later link them with ast.And
+    chained_groups = [[[], []]]
+    for i, op in enumerate(evaluated_ops):
+        if op is None:
+            chained_groups[-1][0].append(evaluated_comparators[i])
+            if chained_groups[-1] != [[], []]:
+                chained_groups.append([[], []])
+        else:
+            chained_groups[-1][0].append(evaluated_comparators[i])
+            chained_groups[-1][1].append(op)
+
+    chained_groups[-1][0].append(evaluated_comparators[-1])
+
+    chains = [ast.Compare(exprs[0], ops, exprs[1:]) for exprs, ops in chained_groups if ops]
+
+    return ast.Constant(True) if len(chains) == 0 else ast.BoolOp(ast.And(), chains)
+
+
+def partial_eval_is(left, right, ctx):
+    if isinstance(left, ast.Name) and isinstance(right, ast.Name):
+        return ast.Constant(left.id == right.id)
+    else:
+        return None
 
 
 def partial_eval_static_function_call(func_name, args, keywords, ctx):
@@ -317,7 +374,7 @@ def partial_eval_static_function_call(func_name, args, keywords, ctx):
             if instance_ctx:
                 instance_actual_type = instance_ctx.type
 
-                if instance_actual_type == type_info_name:
+                if issubclass(eval(instance_actual_type), eval(type_info_name)):
                     return ast.Constant(True)
                 elif instance_actual_type in types:
                     return ast.Constant(False)
