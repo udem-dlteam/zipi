@@ -11,6 +11,7 @@ import astor.code_gen
 #   Helpers
 # ======================================================================================================================
 
+
 def get_type_name(obj):
     return type(obj).__name__
 
@@ -28,6 +29,7 @@ def get_current_semantics_context(semantics_register):
 # ======================================================================================================================
 #   Semantics Instructions
 # ======================================================================================================================
+
 
 class Procedure:
     def __init__(self, semantics, method, semantics_args, method_args):
@@ -47,11 +49,16 @@ class Procedure:
 
 
 class Error:
-    def __init__(self, reason):
-        self.reason = reason
+    def __init__(self, exc):
+        self.exc_type = type(exc)
+        self.exc_args = exc.args
 
     def __repr__(self):
-        return f"error:{self.reason}"
+        return f"error:{self.exc_type(self.exc_args)}"
+
+    @property
+    def error_message(self):
+        return str(self.exc_type(*self.exc_args))
 
 # ======================================================================================================================
 #   __compiler_intrinsics__ module
@@ -98,7 +105,6 @@ def make_compiler_intrinsics_module():
                     Wrapper that registers behaviour of the recovered method
                     """
 
-
                     # Gather positional information: in which semantics is this method being called?
                     current_semantics, semantics_args = get_current_semantics_context(semantics_register)
 
@@ -109,25 +115,12 @@ def make_compiler_intrinsics_module():
 
                     last_type_name = get_type_name(semantics_args[-1])
 
-                    try:
-                        res = attr(*args)
+                    res = attr(*args)
 
-                        # If NotImplemented is returned, this is not the final magic method so ignore it
-                        if res is NotImplemented:
-                            # This may or may not be the final magic method call
-                            # if it is: then this registers TypeError raised due to illegal operation on those types
-                            # if it is not: it will be overwritten on the next call
-                            decision_tree_branch[last_type_name] = Error("NotImplemented")
+                    if res is not NotImplemented:
+                        decision_tree_branch[last_type_name] = Procedure(current_semantics, attr, semantics_args, args)
 
-                        else:
-                            decision_tree_branch[last_type_name] = Procedure(current_semantics, attr, semantics_args, args)
-
-                        return res
-
-                    except Exception as e:
-                        # An exception can come from a magic method or from
-                        decision_tree_branch[last_type_name] = Error(get_type_name(e))
-                        raise
+                    return res
 
                 return wrapped_method
 
@@ -167,9 +160,8 @@ def build_decision_tree(filename):
             for right in instances:
                 try:
                     semantics(left, right)
-                except (TypeError, ValueError):
-                    # Silence exception, they were logged in the 'decision_tree'
-                    pass
+                except TypeError as e:
+                    decision_tree.setdefault(name, {}).setdefault(get_type_name(left), {})[get_type_name(right)] = Error(e)
 
     return decision_tree
 
@@ -400,6 +392,15 @@ def get_binary_behavior_name(semantics, left_type, right_type):
     return f"py-{semantics}-{left_type if left_type else ''}X-{right_type if right_type else ''}Y"
 
 
+def make_ast_raise_with_msg(error_name, msg):
+    exc = ast.Call(ast.Name(error_name, ast.Load()), [ast.Constant(msg)], [])
+    return ast.Raise(exc, None)
+
+
+def make_ast_simple_arguments(*args_names):
+    return ast.arguments([], [ast.arg(n, None, None) for n in args_names], None, [], [], None, [])
+
+
 def main_behaviors(semantics_file, builtins_file):
 
     with open(builtins_file, 'r') as f:
@@ -419,6 +420,7 @@ def main_behaviors(semantics_file, builtins_file):
                 right_type = get_type_name(right)
 
                 behavior_name = get_binary_behavior_name(semantics, left_type, right_type)
+                behavior_func_name = behavior_name.replace('-', '_')
 
                 try:
                     behavior = subtree[left_type][right_type]
@@ -434,7 +436,6 @@ def main_behaviors(semantics_file, builtins_file):
                     else:
                         result_body = partial_eval(method_ast, VarContext(type=left_type), VarContext(type=right_type))
 
-                        behavior_func_name = behavior_name.replace('-', '_')
                         behavior_func = ast.FunctionDef(behavior_func_name, method_ast.args, result_body,
                                                         method_ast.decorator_list, method_ast.returns,
                                                         method_ast.type_comment)
@@ -442,7 +443,14 @@ def main_behaviors(semantics_file, builtins_file):
                         behaviors.append(behavior_func)
 
                 elif isinstance(behavior, Error):
-                    logging.warning(f"NotImplementedWarning: will not implement error for {behavior_name}")
+                    arguments = make_ast_simple_arguments("x", "y")
+                    body = [make_ast_raise_with_msg("TypeError", behavior.error_message)]
+
+                    behavior_func = ast.FunctionDef(behavior_func_name, arguments, body,
+                                                    [], None, None)
+
+                    behaviors.append(behavior_func)
+
                 else:
                     raise TypeError("unknown behavior type")
 

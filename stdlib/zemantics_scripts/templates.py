@@ -1,5 +1,5 @@
 main_template = \
-"""from __compiler_intrinsics__ import define_semantics, inline, use_static_builtins, use_simple_scoping, class_getattr, absent
+    """from __compiler_intrinsics__ import define_semantics, inline, use_static_builtins, use_simple_scoping, class_getattr, absent
 
 {arithmetic}
 
@@ -75,7 +75,7 @@ def exit(obj, exc):
     # exit:end-body"""
 
 arithmetic_template = \
-"""# Auto-generated
+    """# Auto-generated
 @define_semantics
 @inline
 def {op}(x, y):
@@ -102,14 +102,14 @@ def {op}(x, y):
                 return result
 
     def err():
-        raise ValueError
+        raise TypeError("unsupported operand type(s) for {symbol}: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # {op}:start-body
     return normal()
     # {op}:end-body"""
 
 inplace_arithmetic_template = \
-"""# Auto-generated
+    """# Auto-generated
 @define_semantics
 @inline
 def i{op}(x, y):
@@ -147,7 +147,7 @@ def i{op}(x, y):
                 return result
 
     def err():
-        raise ValueError
+        raise TypeError("unsupported operand type(s) for {symbol}: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # i{op}:start-body
     return inplace()
@@ -166,3 +166,31 @@ operations = {'add': 'add',
               'sub': 'sub',
               'truediv': 'truediv',
               'xor': 'xor'}
+
+symbols = {'add': '+',
+           'bitand': '&',
+           'bitor': '|',
+           'floordiv': '//',
+           'lshift': '<<',
+           'matmul': '@',
+           'mod': '%',
+           'mul': '*',
+           'pow': '**',
+           'rshift': '>>',
+           'sub': '-',
+           'truediv': '/',
+           'xor': '^',
+           'iadd': '+=',
+           'ibitand': '&=',
+           'ibitor': '|=',
+           'ifloordiv': '//=',
+           'ilshift': '<<=',
+           'imatmul': '@=',
+           'imod': '%=',
+           'imul': '*=',
+           'ipow': '**=',
+           'irshift': '>>=',
+           'isub': '-=',
+           'itruediv': '/=',
+           'ixor': '^='
+           }

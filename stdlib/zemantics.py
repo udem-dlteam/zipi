@@ -27,7 +27,7 @@ def add(x, y):
                 return result
 
     def err():
-        raise ValueError
+        raise TypeError("unsupported operand type(s) for +: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # add:start-body
     return normal()
@@ -60,7 +60,7 @@ def bitand(x, y):
                 return result
 
     def err():
-        raise ValueError
+        raise TypeError("unsupported operand type(s) for &: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # bitand:start-body
     return normal()
@@ -93,7 +93,7 @@ def bitor(x, y):
                 return result
 
     def err():
-        raise ValueError
+        raise TypeError("unsupported operand type(s) for |: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # bitor:start-body
     return normal()
@@ -126,7 +126,7 @@ def floordiv(x, y):
                 return result
 
     def err():
-        raise ValueError
+        raise TypeError("unsupported operand type(s) for //: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # floordiv:start-body
     return normal()
@@ -159,7 +159,7 @@ def lshift(x, y):
                 return result
 
     def err():
-        raise ValueError
+        raise TypeError("unsupported operand type(s) for <<: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # lshift:start-body
     return normal()
@@ -192,7 +192,7 @@ def matmul(x, y):
                 return result
 
     def err():
-        raise ValueError
+        raise TypeError("unsupported operand type(s) for @: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # matmul:start-body
     return normal()
@@ -225,7 +225,7 @@ def mod(x, y):
                 return result
 
     def err():
-        raise ValueError
+        raise TypeError("unsupported operand type(s) for %: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # mod:start-body
     return normal()
@@ -258,7 +258,7 @@ def mul(x, y):
                 return result
 
     def err():
-        raise ValueError
+        raise TypeError("unsupported operand type(s) for *: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # mul:start-body
     return normal()
@@ -291,7 +291,7 @@ def pow(x, y):
                 return result
 
     def err():
-        raise ValueError
+        raise TypeError("unsupported operand type(s) for **: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # pow:start-body
     return normal()
@@ -324,7 +324,7 @@ def rshift(x, y):
                 return result
 
     def err():
-        raise ValueError
+        raise TypeError("unsupported operand type(s) for >>: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # rshift:start-body
     return normal()
@@ -357,7 +357,7 @@ def sub(x, y):
                 return result
 
     def err():
-        raise ValueError
+        raise TypeError("unsupported operand type(s) for -: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # sub:start-body
     return normal()
@@ -390,7 +390,7 @@ def truediv(x, y):
                 return result
 
     def err():
-        raise ValueError
+        raise TypeError("unsupported operand type(s) for /: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # truediv:start-body
     return normal()
@@ -423,7 +423,7 @@ def xor(x, y):
                 return result
 
     def err():
-        raise ValueError
+        raise TypeError("unsupported operand type(s) for ^: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # xor:start-body
     return normal()
@@ -467,7 +467,7 @@ def iadd(x, y):
                 return result
 
     def err():
-        raise ValueError
+        raise TypeError("unsupported operand type(s) for +: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # iadd:start-body
     return inplace()
@@ -511,7 +511,7 @@ def ibitand(x, y):
                 return result
 
     def err():
-        raise ValueError
+        raise TypeError("unsupported operand type(s) for &: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # ibitand:start-body
     return inplace()
@@ -555,7 +555,7 @@ def ibitor(x, y):
                 return result
 
     def err():
-        raise ValueError
+        raise TypeError("unsupported operand type(s) for |: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # ibitor:start-body
     return inplace()
@@ -599,7 +599,7 @@ def ifloordiv(x, y):
                 return result
 
     def err():
-        raise ValueError
+        raise TypeError("unsupported operand type(s) for //: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # ifloordiv:start-body
     return inplace()
@@ -643,7 +643,7 @@ def ilshift(x, y):
                 return result
 
     def err():
-        raise ValueError
+        raise TypeError("unsupported operand type(s) for <<: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # ilshift:start-body
     return inplace()
@@ -687,7 +687,7 @@ def imatmul(x, y):
                 return result
 
     def err():
-        raise ValueError
+        raise TypeError("unsupported operand type(s) for @: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # imatmul:start-body
     return inplace()
@@ -731,7 +731,7 @@ def imod(x, y):
                 return result
 
     def err():
-        raise ValueError
+        raise TypeError("unsupported operand type(s) for %: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # imod:start-body
     return inplace()
@@ -775,7 +775,7 @@ def imul(x, y):
                 return result
 
     def err():
-        raise ValueError
+        raise TypeError("unsupported operand type(s) for *: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # imul:start-body
     return inplace()
@@ -819,7 +819,7 @@ def ipow(x, y):
                 return result
 
     def err():
-        raise ValueError
+        raise TypeError("unsupported operand type(s) for **: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # ipow:start-body
     return inplace()
@@ -863,7 +863,7 @@ def irshift(x, y):
                 return result
 
     def err():
-        raise ValueError
+        raise TypeError("unsupported operand type(s) for >>: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # irshift:start-body
     return inplace()
@@ -907,7 +907,7 @@ def isub(x, y):
                 return result
 
     def err():
-        raise ValueError
+        raise TypeError("unsupported operand type(s) for -: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # isub:start-body
     return inplace()
@@ -951,7 +951,7 @@ def itruediv(x, y):
                 return result
 
     def err():
-        raise ValueError
+        raise TypeError("unsupported operand type(s) for /: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # itruediv:start-body
     return inplace()
@@ -995,7 +995,7 @@ def ixor(x, y):
                 return result
 
     def err():
-        raise ValueError
+        raise TypeError("unsupported operand type(s) for ^: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # ixor:start-body
     return inplace()
