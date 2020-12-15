@@ -49,7 +49,10 @@ class Procedure:
 
     @property
     def is_reflected_magic_method(self):
-        return self.semantics_args == self.method_args[::-1]
+        method_name = self.method.__qualname__
+
+        # TODO: slightly hacky, but does the job for now
+        return method_name.split('.')[1].startswith("__r") and method_name != "__rshift__"
 
 
 class Error:
