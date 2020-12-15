@@ -47,6 +47,10 @@ class Procedure:
         args_types = '-'.join(args_info)
         return f"procedure:py-{method_owner}-{method_name_id}-{args_types}"
 
+    @property
+    def is_reflected_magic_method(self):
+        return self.semantics_args == self.method_args[::-1]
+
 
 class Error:
     def __init__(self, exc):
@@ -527,7 +531,12 @@ def main_behaviors(semantics_file, builtins_file):
                     if method_ast is None:
                         logging.warning(f"unimplemented behavior in magic method: {behavior_name}")
                     else:
-                        result_body = partial_eval(method_ast, VarContext(type=left_type), VarContext(type=right_type))
+                        if behavior.is_reflected_magic_method:
+                            args = [VarContext(type=right_type), VarContext(type=left_type)]
+                        else:
+                            args = [VarContext(type=left_type), VarContext(type=right_type)]
+
+                        result_body = partial_eval(method_ast, *args)
 
                         behavior_func = ast.FunctionDef(behavior_func_name, method_ast.args, result_body,
                                                         method_ast.decorator_list, method_ast.returns,
