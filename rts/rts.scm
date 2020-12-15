@@ -49,17 +49,25 @@
         (vector-set! nvec len $el)
         nvec)))
 
+(define (find-next name op lst)
+   (let loop ((lst lst))
+      (if (null? lst)
+	  '()
+	  (let ((a (car lst)))
+	     (if (and (eq? name (caar a)) (eq? op (cdar a)))
+		 a
+		 (loop (cdr lst)))))))
+       
 (define-macro (HClass-next hc name op)
   `(let (($hc ,hc) ($name ,name))
-    (let* ((key (cons $name ,op))
-           (tran (assq key (HClass-transitions $hc))))
-      (if (pair? tran)
-        (cdr tran)
+    (let ((tran (find-next $name ,op (HClass-transitions $hc))))
+       (if (pair? tran)
+	   (cdr tran)
         (let ((nhclass
                 (make-HClass
                   (vector-extend (HClass-names $hc) $name)
                   '())))
-          (HClass-transition-add! $hc key nhclass)
+          (HClass-transition-add! $hc (cons $name ,op) nhclass)
           nhclass)))))
 
 (define-macro (str-representatives-eq? self other)
