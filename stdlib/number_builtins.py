@@ -134,7 +134,18 @@ class bool(int):
             else:
                 return NotImplemented
         else:
-            raise TypeError("descriptor '__and__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+            raise TypeError("descriptor '__and__' requires a 'bool' object but received a '" + type(self).__name__ + "'")
+
+    def __rand__(self, other):
+        if isinstance(self, bool):
+            if isinstance(other, bool):
+                return other and self
+            elif isinstance(other, int):
+                return int_box(int_unbox(other) & int_unbox(self))
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__rand__' requires a 'bool' object but received a '" + type(self).__name__ + "'")
 
     def __xor__(self, other):
         if isinstance(self, bool):
@@ -145,7 +156,18 @@ class bool(int):
             else:
                 return NotImplemented
         else:
-            raise TypeError("descriptor '__xor__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+            raise TypeError("descriptor '__xor__' requires a 'bool' object but received a '" + type(self).__name__ + "'")
+
+    def __rxor__(self, other):
+        if isinstance(self, bool):
+            if isinstance(other, bool):
+                return other is not self
+            elif isinstance(other, int):
+                return int_box(int_unbox(other) ^ int_unbox(self))
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__rxor__' requires a 'bool' object but received a '" + type(self).__name__ + "'")
 
     def __or__(self, other):
         if isinstance(self, bool):
@@ -156,7 +178,18 @@ class bool(int):
             else:
                 return NotImplemented
         else:
-            raise TypeError("descriptor '__or__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+            raise TypeError("descriptor '__or__' requires a 'bool' object but received a '" + type(self).__name__ + "'")
+
+    def __ror__(self, other):
+        if isinstance(self, bool):
+            if isinstance(other, bool):
+                return other or self
+            elif isinstance(other, int):
+                return int_box(int_unbox(other) | int_unbox(self))
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__ror__' requires a 'bool' object but received a '" + type(self).__name__ + "'")
 
 
 @builtin_type("PyObjectFloat")
