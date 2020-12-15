@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import argparse, ast, inspect, logging, sys
+import argparse, ast, copy, inspect, logging, sys
 from functools import wraps
 from pprint import pprint
 from types import ModuleType
@@ -145,6 +145,20 @@ def make_compiler_intrinsics_module():
 #   decision tree
 # ======================================================================================================================
 
+def copy_type_behavior(decision_branch, source_type, target_type):
+    if isinstance(decision_branch, dict):
+        for type_name, behavior in decision_branch.items():
+            copy_type_behavior(behavior, source_type, target_type)
+
+        source_sub_branch = decision_branch[source_type]
+        decision_branch[target_type] = source_sub_branch
+
+
+def extend_decision_tree_with_specialized_types(decision_tree):
+    for semantics, behaviors in decision_tree.items():
+        for int_special in int_specialized_types:
+            copy_type_behavior(behaviors, 'int', int_special)
+
 
 def build_decision_tree(filename):
     compiler_intrinsics_module, semantics_register, decision_tree = make_compiler_intrinsics_module()
@@ -163,6 +177,7 @@ def build_decision_tree(filename):
                 except TypeError as e:
                     decision_tree.setdefault(name, {}).setdefault(get_type_name(left), {})[get_type_name(right)] = Error(e)
 
+    extend_decision_tree_with_specialized_types(decision_tree)
     return decision_tree
 
 
@@ -501,9 +516,7 @@ def main_behaviors(semantics_file, builtins_file):
                 behavior_func_name = behavior_name.replace('-', '_')
 
                 try:
-                    left_type_alias = get_type_alias(left_type)
-                    right_type_alias = get_type_alias(right_type)
-                    behavior = subtree[left_type_alias][right_type_alias]
+                    behavior = subtree[left_type][right_type]
                 except KeyError:
                     logging.warning(f"unimplemented behavior in decision tree method: {behavior_name}")
                     continue
