@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import argparse, ast, functools, inspect, logging, sys
+import argparse, ast, inspect, logging, sys
 from functools import wraps
 from pprint import pprint
 from types import ModuleType
@@ -217,8 +217,16 @@ _unknown = Unknown()
 
 class VarContext:
     def __init__(self, type=_unknown, value=_unknown):
-        self.type = type
+        self._type = type
         self.value = value
+
+    @property
+    def type(self):
+        return get_type_alias(self._type)
+
+    @property
+    def specialized_type(self):
+        return self._type
 
 
 def partial_eval(fn_ast, *args):
@@ -273,6 +281,9 @@ def partial_eval_stmt(stmt, ctx):
             yield ast.If(test_result,
                          partial_eval_body(stmt.body, ctx),
                          partial_eval_body(stmt.orelse, ctx))
+    elif isinstance(stmt, ast.Return):
+        value = stmt.value
+        yield ast.Return(partial_eval_expr(value, ctx) if value is not None else value)
     else:
         yield stmt
 
@@ -282,8 +293,53 @@ def partial_eval_expr(expr, ctx):
         return partial_eval_call(expr, ctx)
     elif isinstance(expr, ast.Compare):
         return partial_eval_compare(expr, ctx)
+    elif isinstance(expr, ast.BoolOp):
+        return partial_eval_bool_op(expr, ctx)
+    elif isinstance(expr, ast.BinOp):
+        return partial_eval_bin_op(expr, ctx)
     else:
         return expr
+
+
+def partial_eval_bin_op(expr, ctx):
+    left = partial_eval_expr(expr.left, ctx)
+    right = partial_eval_expr(expr.right, ctx)
+    return ast.BinOp(left, expr.op, right)
+
+
+def partial_eval_bool_op(expr, ctx):
+    op = expr.op
+    values = [partial_eval_expr(e, ctx) for e in expr.values]
+
+    evaluated_values = []
+
+    # TODO: this is not exactly correct. By example 'foo or True' will return foo even if foo is falsy.
+    # TODO: this is ok for the current usag of partial evaluation, but could be improved once we have some time
+    if isinstance(op, ast.And):
+        for val in values:
+            if isinstance(val, ast.Constant):
+                if not val.value:
+                    return val
+            else:
+                evaluated_values.append(val)
+
+    elif isinstance(op, ast.Or):
+        for val in values:
+            if isinstance(val, ast.Constant):
+                if val.value:
+                    return val
+            else:
+                evaluated_values.append(val)
+    else:
+        raise ValueError(f"missing partial_eval implementation for {type(op).__name__}")
+
+    if not evaluated_values:
+        # All values were evaluated, return the last one
+        return val
+    elif len(evaluated_values) == 1:
+        return evaluated_values[0]
+    else:
+        return ast.BoolOp(op, evaluated_values)
 
 
 def partial_eval_call(call, ctx):
@@ -385,6 +441,31 @@ def partial_eval_static_function_call(func_name, args, keywords, ctx):
                 if instance_actual_type is not _unknown:
                     return ast.Name(instance_actual_type, ast.Load())
 
+    return partial_eval_specialize_intrinsic_function(func_name, args, keywords, ctx)
+
+
+def partial_eval_specialize_intrinsic_function(func_name, args, keywords, ctx):
+    # Assume here that builtins are called with the correct number of arguments
+    if func_name == "int_unbox":
+        self = args[0]
+        if isinstance(self, ast.Name):
+            name = self.id
+
+            name_ctx = ctx.get(name)
+
+            if name_ctx is not None:
+                type_ = name_ctx.specialized_type
+
+                if type_ == "sint":
+                    return ast.Call(ast.Name("sint_unbox"), args, keywords)
+                elif type_ == "bint":
+                    return ast.Call(ast.Name("bint_unbox"), args, keywords)
+                elif type_ == "int":
+                    return ast.Call(ast.Name("int_unbox"), args, keywords)
+                elif issubclass(eval(type_), int):
+                    return ast.Call(ast.Name("int_subtype_unbox"), args, keywords)
+
+    # No specialization
     return ast.Call(ast.Name(func_name), args, keywords)
 
 
@@ -413,17 +494,16 @@ def main_behaviors(semantics_file, builtins_file):
     behaviors = []
 
     for semantics, subtree in decision_tree.items():
-        for left in instances:
-            left_type = get_type_name(left)
-
-            for right in instances:
-                right_type = get_type_name(right)
+        for left_type in types:
+            for right_type in types:
 
                 behavior_name = get_binary_behavior_name(semantics, left_type, right_type)
                 behavior_func_name = behavior_name.replace('-', '_')
 
                 try:
-                    behavior = subtree[left_type][right_type]
+                    left_type_alias = get_type_alias(left_type)
+                    right_type_alias = get_type_alias(right_type)
+                    behavior = subtree[left_type_alias][right_type_alias]
                 except KeyError:
                     logging.warning(f"unimplemented behavior in decision tree method: {behavior_name}")
                     continue
@@ -462,8 +542,14 @@ def main_behaviors(semantics_file, builtins_file):
 # ======================================================================================================================
 
 
+def get_type_alias(type_name):
+    return "int" if type_name in int_specialized_types else type_name
+
+
 instances = [1, 1.0, True, "foo", []]
 types = [get_type_name(i) for i in instances]
+int_specialized_types = ['sint', 'bint']
+types += int_specialized_types
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Generate zipi decision tree and behavior functions")

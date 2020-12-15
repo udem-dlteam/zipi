@@ -17,17 +17,76 @@ class int:
             raise NotImplementedError
 
     def __add__(self, other):
-        if type(self) is int:
-            if type(other) is int:
-                return int_box(int_unbox(self) + int_unbox(other))
-            elif isinstance(other, int):
-                return int_box(int_unbox(self) + int_subtype_unbox(other))
-        elif isinstance(self, int):
-            if type(other) is int:
-                return int_box(int_subtype_unbox(self) + int_unbox(other))
-            elif isinstance(other, int):
-                return int_box(int_subtype_unbox(self) + int_subtype_unbox(other))
-        return NotImplemented
+        if isinstance(self, int) and isinstance(other, int):
+            return int_box(int_unbox(self) + int_unbox(other))
+        else:
+            return NotImplemented
+
+    def __sub__(self, other):
+        if isinstance(self, int) and isinstance(other, int):
+            return int_box(int_unbox(self) - int_unbox(other))
+        else:
+            return NotImplemented
+
+    def __mul__(self, other):
+        if isinstance(self, int) and isinstance(other, int):
+            return int_box(int_unbox(self) * int_unbox(other))
+        else:
+            return NotImplemented
+
+    def __truediv__(self, other):
+        if isinstance(self, int) and isinstance(other, int):
+            return float_box(int_unbox(self) / int_unbox(other))
+        else:
+            return NotImplemented
+
+    def __floordiv__(self, other):
+        if isinstance(self, int) and isinstance(other, int):
+            return int_box(int_unbox(self) // int_unbox(other))
+        else:
+            return NotImplemented
+
+    def __mod__(self, other):
+        if isinstance(self, int) and isinstance(other, int):
+            return int_box(int_unbox(self) % int_unbox(other))
+        else:
+            return NotImplemented
+
+    def __pow__(self, other):
+        if isinstance(self, int) and isinstance(other, int):
+            return int_box(int_unbox(self) ** int_unbox(other))
+        else:
+            return NotImplemented
+
+    def __lshift__(self, other):
+        if isinstance(self, int) and isinstance(other, int):
+            return int_box(int_unbox(self) << int_unbox(other))
+        else:
+            return NotImplemented
+
+    def __rshift__(self, other):
+        if isinstance(self, int) and isinstance(other, int):
+            return int_box(int_unbox(self) >> int_unbox(other))
+        else:
+            return NotImplemented
+
+    def __and__(self, other):
+        if isinstance(self, int) and isinstance(other, int):
+            return int_box(int_unbox(self) & int_unbox(other))
+        else:
+            return NotImplemented
+
+    def __xor__(self, other):
+        if isinstance(self, int) and isinstance(other, int):
+            return int_box(int_unbox(self) ^ int_unbox(other))
+        else:
+            return NotImplemented
+
+    def __or__(self, other):
+        if isinstance(self, int) and isinstance(other, int):
+            return int_box(int_unbox(self) | int_unbox(other))
+        else:
+            return NotImplemented
 
 
 @builtin_type("PyObjectInt")
@@ -52,7 +111,14 @@ class float:
             raise NotImplementedError
 
     def __add__(self, other):
-        if isinstance(self, float):
+        if type(self) is float:
+            if type(other) is float:
+                return float_box(float_unbox(self) + float_unbox(other))
+            elif isinstance(other, int):
+                return float_box(float_unbox(self) + int_unbox(other))
+            else:
+                return NotImplemented
+        elif isinstance(self, float):
             if isinstance(other, float):
                 return float_box(float_unbox(self) + float_unbox(other))
             elif isinstance(other, int):
