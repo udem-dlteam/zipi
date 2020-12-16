@@ -6,7 +6,7 @@ class int:
     def __new__(cls, val=absent):
         if cls is int:
             if val is absent:
-                return int_box(0)
+                return 0
             if isinstance(val, int):
                 return int_box(int_unbox(val))
             else:
@@ -198,7 +198,7 @@ class float:
     def __new__(cls, val=absent):
         if cls is float:
             if val is absent:
-                return float_box(0.0)
+                return 0.0
             elif type(val) is float:
                 return val
             elif isinstance(val, float):

@@ -1,3 +1,7 @@
+# ======================================================================================================================
+#   semantics templates
+# ======================================================================================================================
+
 main_template = \
     """from __compiler_intrinsics__ import define_semantics, inline, use_static_builtins, use_simple_scoping, class_getattr, absent
 
@@ -153,6 +157,92 @@ def i{op}(x, y):
     return inplace()
     # i{op}:end-body"""
 
+# ======================================================================================================================
+#   builtins templates
+# ======================================================================================================================
+
+
+int_binary_method_template = \
+    """
+    def __{method_name}__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                return int_box(int_unbox(self) {op} int_unbox(other))
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")      
+    """
+
+int_reflected_binary_method_template = \
+    """
+    def __r{method_name}__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                return int_box(int_unbox(other) {op} int_unbox(self))
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__r{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+    """
+
+int_division_method_template = \
+    """
+    def __{method_name}__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                if other != 0:
+                    return int_box(int_unbox(self) {op} int_unbox(other))
+                else:
+                    raise ZeroDivisionError("{error_message}")
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+    """
+
+int_reflected_division_method_template = \
+    """
+    def __r{method_name}__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                if self != 0:
+                    return int_box(int_unbox(other) {op} int_unbox(self))
+                else:
+                    raise ZeroDivisionError("{error_message}")
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__r{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+"""
+
+class_int_template = \
+    """@builtin_class('{structure_name}')
+class int:
+    @staticmethod
+    def __new__(cls, val=absent):
+        if cls is int:
+            if val is absent:
+                return 0
+            if isinstance(val, int):
+                return int_box(int_unbox(val))
+            else:
+                raise NotImplementedError
+        else:
+            raise NotImplementedError
+            
+{methods}"""
+
+
+builtins_template = """from __compiler_intrinsics__ import absent, builtin_class, int_box, int_unbox, float_box, float_unbox
+
+{definitions}"""
+
+# ======================================================================================================================
+#   methods and names
+# ======================================================================================================================
+
+
 operations = {'add': 'add',
               'bitand': 'and',
               'bitor': 'or',
@@ -194,3 +284,39 @@ symbols = {'add': '+',
            'itruediv': '/=',
            'ixor': '^='
            }
+
+symbols_no_inplace = {'add': '+',
+                      'bitand': '&',
+                      'bitor': '|',
+                      'floordiv': '//',
+                      'lshift': '<<',
+                      'matmul': '@',
+                      'mod': '%',
+                      'mul': '*',
+                      'pow': '**',
+                      'rshift': '>>',
+                      'sub': '-',
+                      'truediv': '/',
+                      'xor': '^',
+                      'iadd': '+',
+                      'ibitand': '&',
+                      'ibitor': '|',
+                      'ifloordiv': '//',
+                      'ilshift': '<<',
+                      'imatmul': '@',
+                      'imod': '%',
+                      'imul': '*',
+                      'ipow': '**',
+                      'irshift': '>>',
+                      'isub': '-',
+                      'itruediv': '/',
+                      'ixor': '^'
+                      }
+
+division_operations = {"truediv", "floordiv", "mod", "itruediv", "ifloordiv", "imod"}
+
+int_division_by_zero_error_messages = {
+    "floordiv": "integer division by zero",
+    "truediv": "division by zero",
+    "mod": "modulo by zero"
+}
