@@ -57,7 +57,7 @@
 	     (if (and (eq? name (caar a)) (eq? op (cdar a)))
 		 a
 		 (loop (cdr lst)))))))
-       
+
 (define-macro (HClass-next hc name op)
   `(let (($hc ,hc) ($name ,name))
     (let ((tran (find-next $name ,op (HClass-transitions $hc))))
