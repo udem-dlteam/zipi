@@ -5805,6 +5805,9 @@
                            (py-str-from-scheme zipi-stdlib-dir)))
        mod))
 
+(cond-expand
+   (bigloo ((@ zipi-init __stdlib_zemantics) "zemantics")))
+
 (define sys-mod (py-make-sys-mod))
 
 (define (sys.modules-get)
