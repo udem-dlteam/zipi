@@ -121,6 +121,64 @@
         `(begin ,@acc)
         (loop (+ i 1) (cons (define-py-callX i) acc)))))
 
+;;----------------------------------------------------------------------------
+
+;;; Object attribute store/fetch.
+
+(define-macro (py-own-attr-index-2cont obj attr succeed fail)
+  ;; TODO: fix case when obj is not represented with a PyObject
+  `(let* (($hclass (PyObject-hclass ,obj))
+          ($names (HClass-names $hclass))
+          ($attr-representative (str-representative-get ,attr)))
+     (let $loop-names (($attr-index (fx- (vector-length $names) 1)))
+       (cond ((fx< $attr-index 0)
+              (,fail))
+             ((eq? $attr-representative (vector-ref $names $attr-index))
+              (,succeed $attr-index))
+             (else
+              ($loop-names (fx- $attr-index 1)))))))
+
+(define (py-own-attr-index obj attr)
+  (py-own-attr-index-2cont
+   obj
+   attr
+   (lambda (i) i)
+   (lambda () -1)))
+
+(define (py-own-attr-set! obj attr val)
+  ;; TODO: fix case when obj is not represented with a PyObject
+  ;; TODO: use py-own-attr-index-2cont
+  (declare-fixnum)
+  (let* ((attr-representative (str-representative-get attr))
+	 (i (py-own-attr-index obj attr-representative)))
+     (if (< i 0)
+	 (let* ((hclass (PyObject-hclass obj))
+		(new-hclass (HClass-next hclass attr-representative '+))
+		(index (HClass-last-index new-hclass)))
+	    (PyObject-hclass-set! obj new-hclass)
+	    (PyObject-elements-set! obj index val))
+	 (PyObject-elements-set! obj i val))))
+
+(define-macro (py-own-attr-ref-2cont obj attr succeed fail)
+  ;; TODO: fix case when obj is not represented with a PyObject
+  `(let (($obj ,obj))
+     (py-own-attr-index-2cont
+      $obj
+      ,attr
+      (lambda ($attr-index) (,succeed (PyObject-elements-ref $obj $attr-index))) ;; TODO: could vector-ref be used?
+      ,fail)))
+
+(define (py-own-attr-ref obj attr #!optional (default py-absent))
+  ;; TODO: fix case when obj is not represented with a PyObject
+  (py-own-attr-ref-2cont
+   obj
+   attr
+   (lambda (val) val)
+   (lambda () default)))
+
+;;----------------------------------------------------------------------------
+
+
 (define debug-verbosity 0)
 
 (define (possible-error verbosity . msg)
@@ -1098,7 +1156,7 @@
           " to extended slice of size "
           (number->string expected-len))))))
 
-(define (throw-not-iteralble obj)
+(define (throw-not-iterable obj)
   (let ((obj-type-name (py-own-attr-ref (py-type obj) (& "__name__"))))
     (py-throw (py-call
                 py-builtin-TypeError
@@ -1296,7 +1354,7 @@
       (let ((iterator (py-obj->iterator container)))
         (if iterator
           (py-in-iterator item iterator)
-          (throw-not-iteralble container)))
+          (throw-not-iterable container)))
       (if (py-test (py-call __contains__ container item)) py-True py-False))))
 
 (define (py-notin item container) ;; x not in y
@@ -1848,40 +1906,6 @@
 
 ;;;----------------------------------------------------------------------------
 
-;;; Object attribute store/fetch.
-
-(define (py-own-attr-set! obj attr val)
-  (declare-fixnum)
-  (let* ((attr-representative (str-representative-get attr))
-	 (i (py-own-attr-index obj attr-representative)))
-     (if (< i 0)
-	 (let* ((hclass (PyObject-hclass obj))
-		(new-hclass (HClass-next hclass attr-representative '+))
-		(index (HClass-last-index new-hclass)))
-	    (PyObject-hclass-set! obj new-hclass)
-	    (PyObject-elements-set! obj index val))
-	 (PyObject-elements-set! obj i val))))
-
-(define (py-own-attr-ref obj attr #!optional (default py-absent))
-  (declare-fixnum)
-  (let ((i (py-own-attr-index obj attr)))
-     (if (< i 0)
-	 default
-	 (PyObject-elements-ref obj i)))) ;; TODO: could vector-ref be used?
-
-(define (py-own-attr-index obj attr)
-  (declare-fixnum)
-  (let* ((hclass (PyObject-hclass obj))
-	 (names (HClass-names hclass))
-	 (attr-representative (str-representative-get attr)))
-     (let loop ((i (- (vector-length names) 1)))
-	(cond ((< i 0)
-	       -1)
-	      ((eq? attr-representative (vector-ref names i))
-	       i)
-	      (else
-	       (loop (- i 1)))))))
-
 ;; ===================
 ;; DESCRIPTOR PROTOCOL
 ;; ===================
@@ -1903,37 +1927,33 @@
 ;;   returns the first occurence of the attribute
 ;;   found on an element of the MRO
 (define (getattribute-from-cls-mro cls name)
-   (declare-fixnum)
-   (declare-not-interrupts-enabled)
-   (let ((mro (PyObjectType-mro cls)))
-      (let loop-mro ((i 0))
-	 (if (< i (vector-length mro))
-	     (let ((cls (vector-ref mro i)))
-		;; inlining of py-own-attr-ref to avoid py-absent handling
-		(let ((j (py-own-attr-index cls name)))
-		   (if (< j 0)
-		       (loop-mro (+ i 1))
-		       (PyObject-elements-ref cls j)))
-		#;
-		(let ((attr (py-own-attr-ref cls name)))
-		   (if (not (eq? attr py-absent))
-		       attr
-		       (loop-mro (+ i 1)))))
-	     py-absent))))
+  (declare-not-interrupts-enabled)
+  (let ((mro (PyObjectType-mro cls)))
+    (let loop-mro ((i 0))
+      (if (fx< i (vector-length mro))
+          (let ((cls (vector-ref mro i)))
+            (py-own-attr-ref-2cont
+             cls
+             name
+             (lambda (val) val)
+             (lambda () (loop-mro (fx+ i 1)))))
+          py-absent))))
 
 ;; Does the same a getattribute-from-cls-mro but also returns the class
 ;; which owned the attribute. This may be necessary for super
-(define (getattribute-from-cls-mro-with-owner cls name)
-   (declare-fixnum)
-   (let ((mro (PyObjectType-mro cls)))
-      (let loop-mro ((i 0))
-	 (if (< i (vector-length mro))
-	     (let ((cls (vector-ref mro i)))
-		(let ((attr (py-own-attr-ref cls name)))
-		   (if (not (eq? attr py-absent))
-		       (values attr cls)
-		       (loop-mro (+ i 1)))))
-	     (values py-absent py-absent)))))
+(define-macro (getattribute-from-cls-mro-with-owner-2cont cls name succeed fail)
+  `(let (($mro (PyObjectType-mro ,cls)))
+     (let $loop-mro (($cls-index 0))
+       (if (fx< $cls-index (vector-length $mro))
+	   (let (($cls (vector-ref $mro $cls-index)))
+             (py-own-attr-ref-2cont
+              $cls
+              ,name
+              (lambda ($val)
+                (,succeed $val $cls))
+              (lambda ()
+                ($loop-mro (fx+ $cls-index 1)))))
+	   (,fail)))))
 
 (cond-expand
   (gambit
@@ -1956,8 +1976,8 @@
 
 ;; Does the same a getattribute-from-obj-mro but also returns the class
 ;; which owned the attribute. This may be necessary for the getattr protocol
-(define (getattribute-from-obj-mro-with-owner obj name)
-  (getattribute-from-cls-mro-with-owner (py-obj-cls obj) name))
+(define-macro (getattribute-from-obj-mro-with-owner-2cont obj name succeed fail)
+  `(getattribute-from-cls-mro-with-owner-2cont (py-obj-cls ,obj) ,name ,succeed ,fail))
 
 ;; Implements object.__getattribute__
 ;;   Entry point of the getattr protocol
@@ -1967,10 +1987,13 @@
   (let ((attr (py-own-attr-ref obj name)))
     (if (not (eq? attr py-absent))
         attr
-        (receive (cls-attr owner) (getattribute-from-obj-mro-with-owner obj name)
-          (if (not (eq? cls-attr py-absent))
-              (object-get-bind-descriptor cls-attr obj owner)
-              (py-throw py-builtin-AttributeError))))))
+        (getattribute-from-obj-mro-with-owner-2cont
+         obj
+         name
+         (lambda (cls-attr owner)
+           (object-get-bind-descriptor cls-attr obj owner))
+         (lambda ()
+           (py-throw py-builtin-AttributeError))))))
 
 ;; The Python object object.__getattribute__
 (define py-object-getattribute
@@ -1981,14 +2004,17 @@
 ;; Implements type.__getattribute__
 (define (type-getattribute obj name)
   (if (py-isinstance? obj py-type-class)
-    (let ((attr (getattribute-from-cls-mro obj name)))
-      (if (not (eq? attr py-absent))
-        (object-get-bind-descriptor attr py-None obj)
-        (receive (cls-attr owner) (getattribute-from-obj-mro-with-owner obj name)
-          (if (not (eq? cls-attr py-absent))
-            (object-get-bind-descriptor cls-attr obj owner)
-            (py-throw py-builtin-AttributeError)))))
-    (py-throw-required-type "__getattribute__" "type" obj)))
+      (let ((attr (getattribute-from-cls-mro obj name)))
+        (if (not (eq? attr py-absent))
+            (object-get-bind-descriptor attr py-None obj)
+            (getattribute-from-obj-mro-with-owner-2cont
+             obj
+             name
+             (lambda (cls-attr owner)
+               (object-get-bind-descriptor cls-attr obj owner))
+             (lambda ()
+               (py-throw py-builtin-AttributeError)))))
+      (py-throw-required-type "__getattribute__" "type" obj)))
 
 ;; The Python object type.__getattribute__
 (define type.__getattribute__
@@ -2947,7 +2973,7 @@
 ;; Wraps py-obj->iterator to raise a TypeError when the object is not iterable
 (define (py-iter obj)
   (or (py-obj->iterator obj)
-      (throw-not-iteralble obj)))
+      (throw-not-iterable obj)))
 
 (define (iterator-next obj default)
     (let ((__next__ (getattribute-from-obj-mro obj (& "__next__"))))
@@ -5792,6 +5818,10 @@
 
 (define zipi-stdlib-dir (path-expand "stdlib" (getenv "ZIPIROOT" "~~zipidir")))
 
+(cond-expand
+   (gambit)
+   (bigloo ((@ zipi-init __stdlib_zemantics) "zemantics")))
+
 (define (py-make-sys-mod)
   (let ((mod (py-make-global)))
    (py-own-attr-set! mod (& "__name__") (&& "sys"))
@@ -5804,9 +5834,6 @@
                      (py-make-list
                            (py-str-from-scheme zipi-stdlib-dir)))
        mod))
-
-(cond-expand
-   (bigloo ((@ zipi-init __stdlib_zemantics) "zemantics")))
 
 (define sys-mod (py-make-sys-mod))
 
@@ -7848,15 +7875,18 @@
 
 (define (super-getattribute self name)
   (if (eq? (str-representative-get name) (& "__class__"))
-    py-builtin-super
-    (let* ((this-class (py-own-attr-ref self (& "__thisclass__")))
-          (this-self (py-own-attr-ref self (& "__self__")))
-          (mro (PyObjectType-mro this-class))
-          (parent-cls (vector-ref mro 1)))
-      (receive (attr owner) (getattribute-from-cls-mro-with-owner parent-cls name)
-          (if (eq? attr py-absent)
-            (object-getattribute self name)
-            (object-get-bind-descriptor attr this-self owner))))))
+      py-builtin-super
+      (let* ((this-class (py-own-attr-ref self (& "__thisclass__")))
+             (this-self (py-own-attr-ref self (& "__self__")))
+             (mro (PyObjectType-mro this-class))
+             (parent-cls (vector-ref mro 1)))
+        (getattribute-from-cls-mro-with-owner-2cont
+         parent-cls
+         name
+         (lambda (attr owner)
+           (object-get-bind-descriptor attr this-self owner))
+         (lambda ()
+           (object-getattribute self name))))))
 
 (define super.__getattribute__
   (procedure->py-function
