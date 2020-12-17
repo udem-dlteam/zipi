@@ -586,7 +586,7 @@
    (vector-map! (lambda (s)
                    (instantiate::PyObjectStr
                       (value (vector-ref s 1))
-                      (hash #f)
+                      (hash py-str-hclass-of-instances)
                       (class py-str-class)))
       strings))
 
