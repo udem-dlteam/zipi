@@ -23,6 +23,7 @@ benchmarks = [
 [50,3, 'false=False','',     'if false:x=0',  '',    'if_false'],
 [30,3, 'true=True','',       'if true:x=0',   '',    'if_true'],
 [13,3, 'm=__builtins__','',  'x=m.__name__',  '',    'attr_read'],
+[ 9,3, 's="a"','',           'x=s.__add__',   '',    'method_bind'],
 [20,4, 'global g;x=0','g=0', 'x=g',           '',    'global_read'],
 [20,4, 'global g;x=0','g=0', 'g=x',           '',    'global_write1'],
 [20,2, 'global g;x=0','g1=0;g2=0','g1=x;g2=x','',    'global_write2'],
