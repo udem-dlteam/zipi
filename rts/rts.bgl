@@ -583,12 +583,22 @@
 ;*    py-init-registered-constants ...                                 */
 ;*---------------------------------------------------------------------*/
 (define (py-init-registered-constants strings)
-   (vector-map! (lambda (s)
-                   (instantiate::PyObjectStr
-                      (value (vector-ref s 1))
-                      (hash #f)
-                      (class py-str-class)))
-      strings))
+   (cond
+      ((not py-str-class)
+       (error "py-init-registered-constants"
+	  "py-str-class not inialized" py-str-class))
+      ((not py-str-hclass-of-instances)
+       (error "py-init-registered-constants"
+	  "py-str-class not inialized"
+	  py-str-hclass-of-instances))
+      (else
+       (vector-map! (lambda (s)
+		       (instantiate::PyObjectStr
+			  (value (vector-ref s 1))
+			  (hash #f)
+			  (hclass py-str-hclass-of-instances)
+			  (class py-str-class)))
+	  strings))))
 
 ;*---------------------------------------------------------------------*/
 ;*    string-split ...                                                 */
@@ -616,7 +626,7 @@
 ;*---------------------------------------------------------------------*/
 ;*    zemantics                                                        */
 ;*---------------------------------------------------------------------*/
-((@ zipi-init __stdlib_zemantics) "zemantics")
+;* ((@ zipi-init __stdlib_zemantics) "zemantics")                      */
 
 ;*---------------------------------------------------------------------*/
 ;*    exception-notify ::PyObject ...                                  */
