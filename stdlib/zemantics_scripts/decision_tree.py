@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import argparse, ast, copy, inspect, logging, sys
+import argparse, ast, inspect, itertools, logging, sys
 from functools import wraps
 from pprint import pprint
 from types import ModuleType
@@ -500,8 +500,8 @@ def make_ast_raise_with_msg(error_name, msg):
     return ast.Raise(exc, None)
 
 
-def make_ast_simple_arguments(*args_names):
-    return ast.arguments([], [ast.arg(n, None, None) for n in args_names], None, [], [], None, [])
+def make_ast_simple_arguments(*args_names, annotations=()):
+    return ast.arguments([], [ast.arg(n, t, None) for n, t in itertools.zip_longest(args_names, annotations)], None, [], [], None, [])
 
 
 def main_behaviors(semantics_file, builtins_file):
@@ -521,6 +521,7 @@ def main_behaviors(semantics_file, builtins_file):
 
                 behavior_name = get_binary_behavior_name(semantics, left_type, right_type)
                 behavior_func_name = behavior_name.replace('-', '_')
+                behavior_decorator_list = [ast.Name("define_behavior")]
 
                 try:
                     behavior = subtree[left_type][right_type]
@@ -541,18 +542,26 @@ def main_behaviors(semantics_file, builtins_file):
 
                         result_body = partial_eval(method_ast, *args)
 
-                        behavior_func = ast.FunctionDef(behavior_func_name, method_ast.args, result_body,
-                                                        method_ast.decorator_list, method_ast.returns,
+                        args_names = [a.arg for a in method_ast.args.posonlyargs + method_ast.args.args]
+                        annotated_arguments = make_ast_simple_arguments(*args_names,
+                                                                        annotations=[ast.Name(left_type),
+                                                                                     ast.Name(right_type)])
+
+                        behavior_func = ast.FunctionDef(behavior_func_name, annotated_arguments, result_body,
+                                                        behavior_decorator_list, method_ast.returns,
                                                         method_ast.type_comment)
 
                         behaviors.append(behavior_func)
 
                 elif isinstance(behavior, Error):
-                    arguments = make_ast_simple_arguments("x", "y")
+                    # Argument names are unimportant since they are unused in case of Error
+                    annotated_arguments = make_ast_simple_arguments("self", "other",
+                                                                    annotations=[ast.Name(left_type),
+                                                                                 ast.Name(right_type)])
                     body = [make_ast_raise_with_msg("TypeError", behavior.error_message)]
 
-                    behavior_func = ast.FunctionDef(behavior_func_name, arguments, body,
-                                                    [], None, None)
+                    behavior_func = ast.FunctionDef(behavior_func_name, annotated_arguments, body,
+                                                    behavior_decorator_list, None, None)
 
                     behaviors.append(behavior_func)
 
@@ -571,7 +580,7 @@ def get_type_alias(type_name):
     return "int" if type_name in int_specialized_types else type_name
 
 
-instances = [1, 1.0, True, "foo", []]
+instances = [1, 1.0, True]
 types = [get_type_name(i) for i in instances]
 int_specialized_types = ['sint', 'bint']
 types += int_specialized_types

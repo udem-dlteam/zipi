@@ -326,7 +326,6 @@ class bool(int):
                 return bool(val)
         else:
             raise NotImplementedError
-
 {methods}"""
 
 bool_method_info = {
@@ -342,7 +341,7 @@ bool_method_info = {
 
 
 float_binary_method_template = \
-    """
+"""
     def __{method_name}__(self, other):
         if isinstance(self, float):
             if isinstance(other, float):
