@@ -295,6 +295,8 @@ bool_binary_method_template = \
         if type(self) is bool:
             if type(other) is bool:
                 return self {op} other
+            elif isinstance(other, int):
+                return int_box(int_unbox(self) {int_op} int_unbox(other))
             else:
                 return NotImplemented
         else:
@@ -307,6 +309,8 @@ bool_reflected_binary_method_template = \
         if type(self) is bool:
             if type(other) is bool:
                 return other {op} self
+            elif isinstance(other, int):
+                return int_box(int_unbox(other) {int_op} int_unbox(self))
             else:
                 return NotImplemented
         else:
@@ -329,9 +333,9 @@ class bool(int):
 {methods}"""
 
 bool_method_info = {
-    'bitand': {"method_name": "and", "op": "and"},
-    'bitor': {"method_name": "or", "op": "or"},
-    'xor': {"method_name": "xor", "op": "is not"}
+    'bitand': {"method_name": "and", "op": "and", "int_op": "&"},
+    'bitor': {"method_name": "or", "op": "or", "int_op": "|"},
+    'xor': {"method_name": "xor", "op": "is not", "int_op": "^"}
 }
 
 
@@ -346,7 +350,7 @@ float_binary_method_template = \
         if isinstance(self, float):
             if isinstance(other, float):
                 return float_box(float_unbox(self) {op} float_unbox(other))
-            elif isinstance(self, int):
+            elif isinstance(other, int):
                 return float_box(float_unbox(self) {op} int_unbox(other))
             else:
                 return NotImplemented
@@ -360,7 +364,7 @@ float_reflected_binary_method_template = \
         if isinstance(self, float):
             if isinstance(other, float):
                 return float_box(float_unbox(other) {op} float_unbox(self))
-            elif isinstance(self, int):
+            elif isinstance(other, int):
                 return float_box(int_unbox(other) {op} float_unbox(self))
             else:
                 return NotImplemented

@@ -250,6 +250,9 @@ class VarContext:
     def specialized_type(self):
         return self._type
 
+    def __repr__(self):
+        return f"VarContent(type={self.type} ({self.specialized_type}), value={self.value})"
+
 
 def partial_eval(fn_ast, *args):
     ast_args = fn_ast.args
