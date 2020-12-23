@@ -524,7 +524,8 @@ def main_behaviors(semantics_file, builtins_file):
 
                 behavior_name = get_binary_behavior_name(semantics, left_type, right_type)
                 behavior_func_name = behavior_name.replace('-', '_')
-                behavior_decorator_list = [ast.Name("define_behavior")]
+                define_behavior = "define_behavior"
+                behavior_decorator_list = [ast.Name(f"{define_behavior}")]
 
                 try:
                     behavior = subtree[left_type][right_type]
@@ -571,6 +572,8 @@ def main_behaviors(semantics_file, builtins_file):
                 else:
                     raise TypeError("unknown behavior type")
 
+    print(f"from __compiler_intrinsics__ import {define_behavior}\n")
+
     for b in behaviors:
         print(astor.code_gen.to_source(b))
 
@@ -610,6 +613,3 @@ if __name__ == '__main__':
         main_tree(args.semantics_file)
     elif command == 'behaviors':
         main_behaviors(args.semantics_file, args.builtins_file)
-
-
-
