@@ -73,7 +73,10 @@
       (if (and
             (= args-len 2)
             (PycString? attr))
-        (new-PycMacro loc 'class_getattr 'getattribute-from-obj-mro args)
+        (new-PycCall
+          loc
+          (new-PycPragma loc 'getattribute-from-obj-mro)
+          args)
         (error "SyntaxError" "wrong argument for class_getattr" #f))))
 
 (define (make-call_host this)
@@ -84,10 +87,9 @@
       (if (and
             (>= args-len 1)
             (PycString? (car args)))
-        (new-PycMacro
+        (new-PycCall
           loc
-          'call_host
-          'call-host
+          (new-PycPragma loc 'call-host)
           (cons
             (new-PycStatic
               loc
@@ -430,10 +432,9 @@
         (args (PycCall-args this)))
     (if (and (isa? fun PycRefUnresolved) (eq? (PycRefUnresolved-id fun) old-name))
       (let ((ref-loc (PycNode-loc fun)))
-        (new-PycMacro
+        (new-PycCall
           loc
-          new-name
-          new-name
+          (new-PycPragma loc new-name)
           (append
             (map
               (lambda (name) (new-PycRefUnresolved ref-loc name))
@@ -649,10 +650,9 @@
       (let ((scheme-class (assq (PycRefUnresolved-id fun) builtins-class-table)))
         (if scheme-class
           (let ((loc (PycNode-loc this)))
-            (new-PycMacro
+            (new-PycCall
               loc
-              (car scheme-class)
-              (make-maker-name (cdr scheme-class))
+              (new-PycPragma loc (make-maker-name (cdr scheme-class)))
               (append
                 (list
                   (new-PycStatic loc 'arg1 (make-HClass-name (car scheme-class)))
@@ -716,12 +716,12 @@
   (if (and class self)
     (let ((lhs (PycAssig-lhs this)))
       (if (PycAccess? lhs)
-        (let ((obj (PycAccess-obj lhs)))
+        (let ((obj (PycAccess-obj lhs))
+              (loc (PycNode-loc this)))
           (if (and (PycRefUnresolved? obj) (eq? (PycRefUnresolved-id obj) self))
-            (new-PycMacro
-              (PycNode-loc obj)
-              class
-              (make-setter-name class (PycAccess-field lhs))
+            (new-PycCall
+              loc
+              (new-PycPragma loc (make-setter-name class (PycAccess-field lhs)))
               (list
                 (optimize-builtin-class-refs! obj builtins-class-table class self)
                 (optimize-builtin-class-refs! (PycAssig-rhs this) builtins-class-table class self)))
@@ -730,12 +730,12 @@
   (call-default-walker)))
 
 (define-walk-method (optimize-builtin-class-refs! this::PycAccess builtins-class-table class self)
-  (let ((obj (PycAccess-obj this)))
+  (let ((obj (PycAccess-obj this))
+        (loc (PycNode-loc this)))
     (if (and (PycRefUnresolved? obj) (eq? (PycRefUnresolved-id obj) self))
-      (new-PycMacro
-        (PycNode-loc obj)
-        class
-        (make-getter-name class (PycAccess-field this))
+      (new-PycCall
+        loc
+        (new-PycPragma loc (make-getter-name class (PycAccess-field this)))
         (list
           (optimize-builtin-class-refs! obj builtins-class-table class self)))
       (call-default-walker))))

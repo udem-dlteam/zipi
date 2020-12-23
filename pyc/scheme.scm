@@ -1001,14 +1001,6 @@
 (define-walk-method (scheme this::PycStaticSexp conf)
   (PycStaticSexp-value this))
 
-(define-walk-method (scheme this::PycMacro conf)
-  (let* ((id (PycIntrinsics-id this))
-        (value (PycMacro-value this))
-        (args (PycMacro-args this)))
-    (if (eq? id 'class_getattr)
-      `(,value ,(scheme (car args) conf) (& ,(PycLiteralValue-val (cadr args))))
-      `(,value ,@(scheme* args conf)))))
-
 (define (scheme-cache cache node)
    (if (not (integer? cache))
        (error "scheme-cache" "Bad cache" (pyc->list node))
