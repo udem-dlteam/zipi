@@ -198,11 +198,28 @@
     getattribute-from-obj-mro
 
     procedure->py-function
+
     py-int-from-scheme
-    py-int-from-scheme-dynamic
+    py-int-from-scheme-fallback
+    py-int-to-scheme
+    py-subtype-of-int-to-scheme
+
     py-float-from-scheme
-    py-float-from-scheme-dynamic
+    py-float-from-scheme-fallback
+    py-float-to-scheme
+    py-subtype-of-float-to-scheme
+
     py-str-from-scheme
+    py-str-from-scheme-fallback
+    py-str-to-scheme
+    py-str-to-scheme-fallback
+    py-subtype-of-str-to-scheme
+    py-subtype-of-str-to-scheme-fallback
+    py-str-representative
+    py-str-representative-fallback
+    py-add-strX-strY
+    py-add-strX-strY-fallback
+
     py-slice-from-scheme
     py-bytearray-from-scheme
     py-set-from-scheme
@@ -214,6 +231,10 @@
     py-type
 
     py-type-hclass-of-instances
+    py-int-hclass-of-instances
+    py-float-hclass-of-instances
+    py-str-hclass-of-instances
+    py-tuple-hclass-of-instances
 
     py-range-hclass-of-instances
     make-PyObjectRange

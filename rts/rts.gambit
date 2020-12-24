@@ -56,13 +56,25 @@
 (define-macro (structure-ref s i)
   `(##unchecked-structure-ref ,s ,i #f #f))
 
+(define-macro (structure-type s)
+  `(##structure-type ,s))
+
 (define-macro (structure-type-set! s t)
   `(##structure-type-set! ,s ,t))
+
+(define-macro (type-name t)
+  `(##type-name ,t))
 
 (define (init-constants constants)
   (vector-for-each
     (lambda (obj)
-      (structure-type-set! obj (PyObjectStr-type-get))
+
+      (case (type-name (structure-type obj))
+        ((StaticPyObjectStr)
+         (structure-type-set! obj (PyObjectStr-type-get)))
+        ((StaticPyObjectStrRep)
+         (structure-type-set! obj (PyObjectStrRep-type-get))))
+
       (PyObject-hclass-set! obj py-str-hclass-of-instances)
       (PyObject-class-set! obj py-str-class))
     (structure-ref constants 2)))

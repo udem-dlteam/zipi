@@ -16,57 +16,93 @@
 (define-macro (start-registering-constants #!key (constants-must-be-representatives #f))
   (eval
     `(begin
-      (define-type Constants
-        id: %constants
-        constructor: %make-Constants
-        prefix: %
-        table
-        vector)
-      (define-type PyStaticStr
-        ;; NOTE: id must be the same as PyObject
-        id: %pystaticobject
-        constructor: %make-PyStaticStr
-        prefix: %
-        hclass
-        elements
-        class
-        value
-        representative
-        hash)
-      (define (make-PyStaticStr value)
-        (import (zipi rts hash))
-        (let ((static-str
-                (%make-PyStaticStr
-                  #f
-                  '#()
-                  #f
-                  value
-                  #f
-                  (hash-FNV1a value))))
-          ,(if constants-must-be-representatives
-            `(begin
-                (%PyStaticStr-representative-set! static-str static-str)
-                static-str)
-              'static-str)))
-      (define (get-PyStaticStr e)
-        (if (string? e)
-          (let ((cached (constants-ref %constants e)))
-            (if cached
-              cached
-              (let ((obj (make-PyStaticStr e)))
-                (constants-set! %constants e obj)
-                obj)))
-          (error "PyStaticStr" "requires string literal but got" e)))
-      (define %constants (%make-Constants (make-table) #f))
-      (define (constants-table) (%Constants-table %constants))
-      (define (constants-ref c key) (table-ref (%Constants-table c) key #f))
-      (define (constants-set! c key val) (table-set! (%Constants-table c) key val))
-      (define (vectorify-constant-table)
-        (%Constants-vector-set!
+
+       (define-type Constants
+         id: %constants
+         constructor: %make-Constants
+         prefix: %
+         table
+         vector)
+
+       ;; IMPORTANT: this definition must be kept in sync with PyObjectStr
+       (define-type StaticPyObjectStr
+         ;; NOTE: id must be the same as PyObjectStr
+         id: PyObjectStr-C6486EB6-1522-42BA-A082-B6563F943CDF
+         extender: define-type-of-StaticPyObjectStr
+         constructor: %make-StaticPyObjectStr
+         prefix: %
+         hclass
+         elements
+         class
+         len
+         part1-or-string
+         part2-or-rep)
+
+       ;; IMPORTANT: this definition must be kept in sync with PyObjectStrRep
+       (define-type-of-StaticPyObjectStr StaticPyObjectStrRep
+         ;; NOTE: id must be the same as PyObjectStrRep
+         id: PyObjectStrRep-C6486EB6-1522-42BA-A082-B6563F943CDF
+         constructor: %make-StaticPyObjectStrRep
+         prefix: %
+         hash
+         index)
+
+       (define (make-StaticPyObjectStr string)
+         (import (zipi rts hash))
+         (let ((static-str
+                (%make-StaticPyObjectStr
+                 #f
+                 '#()
+                 #f
+                 (string-length string)
+                 string
+                 #f)))
+           static-str))
+
+       (define (make-StaticPyObjectStrRep string)
+         (import (zipi rts hash))
+         (let ((static-str
+                (%make-StaticPyObjectStrRep
+                 #f
+                 '#()
+                 #f
+                 (string-length string)
+                 string
+                 #f ;; will be set to the created str
+                 (hash-FNV1a string)
+                 #f))) ;; index
+           (%StaticPyObjectStr-part2-or-rep-set! static-str static-str)
+           static-str))
+
+       (define (constant-string e)
+         (if (string? e)
+             (or (constants-ref %constants e)
+                 (let ((obj
+                        ,(if constants-must-be-representatives
+                             `(make-StaticPyObjectStrRep e)
+                             `(make-StaticPyObjectStr e))))
+                   (constants-set! %constants e obj)
+                   obj))
+             (error "constant-string" "requires string literal but got" e)))
+
+       (define %constants (%make-Constants (make-table) #f))
+
+       (define (constants-table)
+         (%Constants-table %constants))
+
+       (define (constants-ref c key)
+         (table-ref (%Constants-table c) key #f))
+
+       (define (constants-set! c key val)
+         (table-set! (%Constants-table c) key val))
+
+       (define (vectorify-constant-table)
+         (%Constants-vector-set!
           %constants
           (list->vector (map cdr (table->list (constants-table))))))
-      (define (listify-constant-table)
-        (%Constants-table-set!
+
+       (define (listify-constant-table)
+         (%Constants-table-set!
           %constants
           (table->list (constants-table))))))
   `(##begin))
@@ -82,7 +118,7 @@
   (listify-constant-table))
 
 (define-macro (& e)
-  `',(get-PyStaticStr e))
+  `',(constant-string e))
 
 (define-macro (&& e)
   `(& ,e))
@@ -129,7 +165,8 @@
   (bases unprintable:)
   (mro unprintable:)
   (hclass-of-instances unprintable:)
-  (is-builtin unprintable:))
+  (is-builtin unprintable:)
+  (magic-attrs unprintable:))
 
 (define-type-of-PyObject PyObjectInt
   id: PyObjectInt-C6486EB6-1522-42BA-A082-B6563F943CDF
@@ -182,15 +219,27 @@
   index
   bytearray)
 
+;; IMPORTANT: this definition must be kept in sync with StaticPyObjectStr
 (define-type-of-PyObject PyObjectStr
   id: PyObjectStr-C6486EB6-1522-42BA-A082-B6563F943CDF
+  extender: define-type-of-PyObjectStr
   type-exhibitor: PyObjectStr-type-get
   copier: #f
   macros: ;; this will inline the operations on this type
   ;; attrs
-  value
-  (representative unprintable:)
-  hash)
+  len
+  part1-or-string
+  part2-or-rep)
+
+;; IMPORTANT: this definition must be kept in sync with StaticPyObjectStrRep
+(define-type-of-PyObjectStr PyObjectStrRep
+  id: PyObjectStrRep-C6486EB6-1522-42BA-A082-B6563F943CDF
+  type-exhibitor: PyObjectStrRep-type-get
+  copier: #f
+  macros: ;; this will inline the operations on this type
+  ;; attrs
+  hash
+  magic-index)
 
 (define-type-of-PyObject PyObjectFunction
   id: PyObjectFunction-C6486EB6-1522-42BA-A082-B6563F943CDF
@@ -334,7 +383,7 @@
 
 (define-macro (make-signature . rest)
   (define (constantify sym)
-    `,(get-PyStaticStr (symbol->string sym)))
+    `,(constant-string (symbol->string sym)))
 
   (define (constantify* lst)
     `#(,@(map constantify lst)))
@@ -391,7 +440,7 @@
 
 (define-macro (register-constants-perfect-hashtable table)
   (vector-map
-    (lambda (e) (if (string? e) (get-PyStaticStr e) e))
+    (lambda (e) (if (string? e) (constant-string e) e))
     table))
 
 (define-macro (py-call f . args)
@@ -560,7 +609,7 @@
            (let* ((operator (unary-op-operator expr))
                   (x (reduce (unary-op-operand expr))))
              (if (is-int-literal? x)
-                 (list 'py-int-from-scheme-dynamic
+                 (list 'py-int-from-scheme-fallback
                        (case operator
                          ((py-pos)
                           (int-literal-value x))
@@ -579,7 +628,7 @@
                       (not (member operator '(py-lt py-gt)))
                       (not (and (member operator '(py-floordiv py-mod))
                                 (= 0 (int-literal-value y)))))
-                 (list 'py-int-from-scheme-dynamic
+                 (list 'py-int-from-scheme-fallback
                        (case operator
                          ((py-add)
                           (+ (int-literal-value x)
@@ -625,7 +674,7 @@
                  `(let ()
                     (declare (standard-bindings) (not safe))
                     (vector-ref int-cache ,(- value int-cache-low)))
-                 `(py-int-from-scheme-dynamic ,value))))
+                 `(py-int-from-scheme-fallback ,value))))
 
           ((is-unary-op? e)
            (let* ((operator (unary-op-operator e))
@@ -637,7 +686,7 @@
                `(let (($operand ,x))
                   (declare (standard-bindings) (extended-bindings) (not safe))
                   (if ,(is-int? '$operand)
-                      (py-int-from-scheme-dynamic
+                      (py-int-from-scheme-fallback
                        ((let () (##namespace ("" ,(caddr op))) ,(caddr op))
                         ,(get-value '$operand))
                        (,(cadr op) $operand)))))))
@@ -656,7 +705,7 @@
                          `(let (($operand2 ,y))
                             (declare (standard-bindings) (extended-bindings) (not safe))
                             (if ,(is-int? '$operand2)
-                                (py-int-from-scheme-dynamic
+                                (py-int-from-scheme-fallback
                                  ((let () (##namespace ("" ,(caddr op))) ,(caddr op))
                                   ,(int-literal-value x)
                                   ,(get-value '$operand2)))
@@ -665,7 +714,7 @@
                          `(let (($operand1 ,x))
                             (declare (standard-bindings) (extended-bindings) (not safe))
                             (if ,(is-int? '$operand1)
-                                (py-int-from-scheme-dynamic
+                                (py-int-from-scheme-fallback
                                  ((let () (##namespace ("" ,(caddr op))) ,(caddr op))
                                   ,(get-value '$operand1)
                                   ,(int-literal-value y)))
@@ -676,7 +725,7 @@
                             (declare (standard-bindings) (extended-bindings) (not safe))
                             (if (and ,(is-int? '$operand1)
                                      ,(is-int? '$operand2))
-                                (py-int-from-scheme-dynamic
+                                (py-int-from-scheme-fallback
                                  ((let () (##namespace ("" ,(caddr op))) ,(caddr op))
                                   ,(get-value '$operand1)
                                   ,(get-value '$operand2)))
@@ -708,35 +757,5 @@
 
           (else
            (error "unexpected expression" e)))))
-
-(define-macro (getattribute-from-obj-mro obj name)
-  (let ((x (and (pair? name)
-                (pair? (cdr name))
-                (null? (cddr name))
-                (eq? (car name) '&)
-                (assoc (cadr name)
-                       '(("__add__"   4)
-                         ("__sub__"   5)
-                         ("__iadd__" 15)
-                         ("__isub__" 16)
-                         ("__eq__"   26)
-                         ("__lt__"   28)
-                         ("__gt__"   30))))))
-    (if x
-        (let ((likely-index (cadr x)))
-          `(let* (($obj ,obj)
-                  ($name ,name))
-             (declare (standard-bindings) (fixnum) (not safe))
-             (let* (($cls (py-obj-cls $obj))
-                    ($mro (PyObjectType-mro $cls))
-                    ($cls0 (vector-ref $mro 0))
-                    ($hclass0 (PyObject-hclass $cls0))
-                    ($names0 (HClass-names $hclass0)))
-               (if (and (< ,likely-index (vector-length $names0))
-                        (eq? (PyObjectStr-representative $name)
-                             (vector-ref $names0 ,likely-index)))
-                   (PyObject-elements-ref $cls0 ,likely-index)
-                   (getattribute-from-obj-mro-dynamic $obj $name)))))
-        `(getattribute-from-obj-mro-dynamic ,obj ,name))))
 
 (import (zipi rts hash))
