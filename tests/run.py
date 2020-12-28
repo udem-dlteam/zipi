@@ -92,8 +92,8 @@ def run_all(cpython='python3', zipi='../bin/zipi.gambit', pattern=None):
     Collects all tests and runs them in parallel with multiprocessing using the given commands to run 'cpython' and 'zipi'
     A 'pattern' can be provided, which will run only tests matching the pattern with re.match
     """
-    print("Clearing zipi cache... ")
-    os.system(zipi+" --clear-cache")
+    print("Resetting module cache... ")
+    os.system(zipi+" -X reset")
 
     start = time.time()
 

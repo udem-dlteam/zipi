@@ -43,7 +43,8 @@
               bases
               mro
               hclass-of-instances
-              is-builtin)
+              is-builtin
+              magic-attrs)
 
            (abstract-class PyObjectNumber::PyObject
               value)
@@ -67,9 +68,13 @@
               bytearray)
 
            (class PyObjectStr::PyObject
-              value
-              (representative (default #f))
-              hash)
+              len
+              part1-or-string
+              part2-or-rep)
+
+           (class PyObjectStrRep::PyObjectStr
+              hash
+              magic-index)
 
            (class PyObjectFunction::PyObject
               procedure
@@ -118,6 +123,12 @@
               mode
               encoding)
 
+           py-type-hclass-of-instances
+           py-int-hclass-of-instances
+           py-float-hclass-of-instances
+           py-str-hclass-of-instances
+           py-tuple-hclass-of-instances
+
            py-range-hclass-of-instances
            py-range_iterator-hclass-of-instances
 
@@ -134,7 +145,7 @@
 
            ;; (object-get ::obj ::obj ::obj)
            (object-put! ::PyObject ::obj ::obj ::obj)
-           (getattribute-from-obj-mro ::obj ::obj)
+           (getattribute-from-obj-mro-fallback ::obj ::obj)
 
            (py-make-module name)
            (py-make-list . elements)
@@ -189,6 +200,7 @@
 
            py-object-class
            py-module-class
+           py-int-class
            (py-own-attr-set! obj attr val)
 
            (py-isinstance? ::PyObject ::PyObject)
@@ -197,15 +209,23 @@
            (py-slice-from-scheme ::obj ::obj ::obj)
 
            (py-obj-alloc cls hclass-of-instances)
-           (py-str-from-scheme::PyObject ::obj)
-           (py-str-to-scheme::bstring ::PyObject)
 
            procedure->py-function
 
 ;;           (py-int-from-scheme value)
-           (py-int-from-scheme-dynamic value)
+           (py-int-from-scheme-fallback value)
+
 ;;           (py-float-from-scheme value)
-           (py-float-from-scheme-dynamic value)
+           (py-float-from-scheme-fallback value)
+
+;;           (py-str-from-scheme::PyObject ::obj)
+;;           (py-str-to-scheme::bstring ::PyObject)
+           (py-str-from-scheme-fallback value)
+           (py-subtype-of-str-from-scheme-fallback value str-subclass)
+           (py-str-to-scheme-fallback ::PyObjectStr)
+           (py-subtype-of-str-to-scheme-fallback ::PyObjectStr)
+           (py-str-representative-fallback ::PyObjectStr)
+           (py-add-strX-strY-fallback ::PyObjectStr ::PyObjectStr)
 
            (py-import path depth)
            py-import-root
@@ -317,7 +337,7 @@
 (define (display-py-string pystr::PyObjectStr op)
    (with-access::PyObjectStr pystr (value)
       (display "<PyObjectStr:" op)
-      (display value op)
+;;      (display part1-or-string op)
       (display ">" op)))
 
 ;*---------------------------------------------------------------------*/
@@ -593,11 +613,15 @@
 	  py-str-hclass-of-instances))
       (else
        (vector-map! (lambda (s)
-		       (instantiate::PyObjectStr
-			  (value (vector-ref s 1))
-			  (hash #f)
+                       (let ((string (vector-ref s 1)))
+		         (instantiate::PyObjectStrRep
+                          (len (string-length string))
+			  (part1-or-string string)
+			  (part2-or-rep #f)
+                          (hash 0)
+                          (magic-index #f)
 			  (hclass py-str-hclass-of-instances)
-			  (class py-str-class)))
+			  (class py-str-class))))
 	  strings))))
 
 ;*---------------------------------------------------------------------*/

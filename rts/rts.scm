@@ -4,30 +4,38 @@
 
 (cond-expand
   (gambit
-   (declare (standard-bindings) (extended-bindings) (not safe))
-   (define-macro (declare-fixnum . body) `(declare (fixnum)))
-   (define-macro (declare-not-interrupts-enabled) `(declare (not interrupts-enabled))))
+   (define-macro (declare-standard-bindings-extended-bindings-not-safe)
+     `(declare (standard-bindings) (extended-bindings) (not safe)))
+   (define-macro (declare-fixnum)
+     `(declare (fixnum)))
+   (define-macro (declare-not-interrupts-enabled)
+     `(declare (not interrupts-enabled))))
 
   (bigloo
+   (define-macro (declare-standard-bindings-extended-bindings-not-safe)
+     `(begin))
    (define-macro (declare-fixnum)
-      `(begin
-	  (define (+ x y) (+fx x y))
-	  (define (- x y) (-fx x y))
-	  (define (* x y) (*fx x y))
-	  (define (/ x y) (/fx x y))
-	  (define (<= x y) (<=fx x y))
-	  (define (< x y) (<fx x y))
-	  (define (>= x y) (>=fx x y))
-	  (define (> x y) (>fx x y))
-	  (define (= x y) (=fx x y))))
-   (define-macro (declare-not-interrupts-enabled) `(begin))))
+     `(begin
+	(define (+ x y) (+fx x y))
+	(define (- x y) (-fx x y))
+	(define (* x y) (*fx x y))
+	(define (/ x y) (/fx x y))
+	(define (<= x y) (<=fx x y))
+	(define (< x y) (<fx x y))
+	(define (>= x y) (>=fx x y))
+	(define (> x y) (>fx x y))
+	(define (= x y) (=fx x y))))
+   (define-macro (declare-not-interrupts-enabled)
+     `(begin))))
+
+(declare-standard-bindings-extended-bindings-not-safe)
 
 ;; General exception thrower helper
-(define (py-throw-exception-with-message exc . msg)
-   (py-throw
-      (py-call
-	 exc
-	 (py-str-from-scheme msg))))
+(define (py-throw-exception-with-message exc . msgs)
+  (py-throw
+   (py-call
+    exc
+    (py-str-from-scheme (apply string-append msgs)))))
 
 (define-macro (make-builtin-HClass names transitions)
   `(make-still-copy (make-HClass ,names ,transitions)))
@@ -71,7 +79,7 @@
           nhclass)))))
 
 (define-macro (str-representatives-eq? self other)
-  `(eq? (str-representative-get ,self) (str-representative-get ,other)))
+  `(eq? (py-str-representative ,self) (py-str-representative ,other)))
 
 (define-macro (define-all-py-callX)
   (include "config/config.scm")
@@ -126,10 +134,9 @@
 ;;; Object attribute store/fetch.
 
 (define-macro (py-own-attr-index-2cont obj attr succeed fail)
-  ;; TODO: fix case when obj is not represented with a PyObject
-  `(let* (($hclass (PyObject-hclass ,obj))
+  `(let* (($hclass (py-obj-hclass ,obj))
           ($names (HClass-names $hclass))
-          ($attr-representative (str-representative-get ,attr)))
+          ($attr-representative (py-str-representative ,attr)))
      (let $loop-names (($attr-index (fx- (vector-length $names) 1)))
        (cond ((fx< $attr-index 0)
               (,fail))
@@ -149,10 +156,10 @@
   ;; TODO: fix case when obj is not represented with a PyObject
   ;; TODO: use py-own-attr-index-2cont
   (declare-fixnum)
-  (let* ((attr-representative (str-representative-get attr))
+  (let* ((attr-representative (py-str-representative attr))
 	 (i (py-own-attr-index obj attr-representative)))
      (if (< i 0)
-	 (let* ((hclass (PyObject-hclass obj))
+	 (let* ((hclass (py-obj-hclass obj))
 		(new-hclass (HClass-next hclass attr-representative '+))
 		(index (HClass-last-index new-hclass)))
 	    (PyObject-hclass-set! obj new-hclass)
@@ -369,6 +376,17 @@
 
 ;; type allocation
 
+(define list-of-magic-attrs
+  '("__add__" "__radd__" "__iadd__"
+    "__mul__" "__rmul__" "__imul__"
+    "__sub__" "__rsub__" "__isub__"
+    "__eq__" "__ne__" "__lt__" "__le__" "__gt__" "__ge__"
+    "__call__" "__get__"))
+
+(define magic-attrs-length (length list-of-magic-attrs))
+
+(define nonbuiltin-magic-attrs (make-vector magic-attrs-length #f))
+
 (define (py-type-alloc metaclass bases mro hclass-of-instance)
   (make-PyObjectType
     py-type-hclass-of-instances
@@ -379,7 +397,8 @@
     bases
     mro
     hclass-of-instance
-    #f))
+    #f
+    nonbuiltin-magic-attrs))
 
 (define (py-builtin-type-alloc metaclass bases mro hclass-of-instance)
   (make-still-copy
@@ -392,7 +411,8 @@
       bases
       mro
       hclass-of-instance
-      #t)))
+      #t
+      (make-vector magic-attrs-length #f))))
 
 (define (py-dict-alloc ordered-table)
   (make-PyObjectDict
@@ -465,64 +485,66 @@
           (inner-loop (cdr head) (cons (car head) inner-acc)))))))
 
 (define (global-get global name cache)
-   (if (eq? (PyObject-hclass global) (PCache-hclass cache))
-     (let ((val (PyObject-elements-ref global (PCache-index cache))))
-       (if (not (eq? val py-absent))
-           val
-           ;; TODO: use a different cache
-           (global-get-from-builtins name cache)))
-     (global-get/miss global name cache)))
+  (if (eq? (PyObject-hclass global) ;; TODO: should py-obj-hclass be used instead?
+           (PCache-hclass cache))
+      (let ((val (PyObject-elements-ref global (PCache-index cache))))
+        (if (not (eq? val py-absent))
+            val
+            ;; TODO: use a different cache
+            (global-get-from-builtins name cache)))
+      (global-get/miss global name cache)))
 
 (define (global-get/miss global name cache)
   (let ((i (py-own-attr-index global name)))
     (if (< i 0)
-      ;; as per Python 3.8 (maybe 3.7?) builtins module is no longer recovered
-      ;; through __builtins__, this was also documented as an implementation
-      ;; detail: https://docs.python.org/3/library/builtins.html
-      ;; TODO: use a different cache
-      (global-get-from-builtins name cache)
-      (let ((hclass (PyObject-hclass global)))
-        (PCache-set! cache hclass i)
-        (let ((val (PyObject-elements-ref global i)))
-          (if (not (eq? val py-absent))
-              val
-              ;; TODO: use a different cache
-              (global-get-from-builtins name cache)))))))
+        ;; as per Python 3.8 (maybe 3.7?) builtins module is no longer recovered
+        ;; through __builtins__, this was also documented as an implementation
+        ;; detail: https://docs.python.org/3/library/builtins.html
+        ;; TODO: use a different cache
+        (global-get-from-builtins name cache)
+        (let ((hclass (PyObject-hclass global))) ;; TODO: should py-obj-hclass be used instead?
+          (PCache-set! cache hclass i)
+          (let ((val (PyObject-elements-ref global i)))
+            (if (not (eq? val py-absent))
+                val
+                ;; TODO: use a different cache
+                (global-get-from-builtins name cache)))))))
 
 ;; TODO: use a cache for builtins and one for global access
 (define (global-get-from-builtins name cache)
   (define (throw-NameError)
     (py-throw-exception-with-message
-      py-builtin-NameError
-      "name '" (PyObjectStr-value name) "' is not defined"))
-  (let ((builtins-hclass (PyObject-hclass builtins-mod)))
+     py-builtin-NameError
+     "name '" (py-str-to-scheme name) "' is not defined"))
+  (let ((builtins-hclass (PyObject-hclass builtins-mod))) ;; TODO: should py-obj-hclass be used instead?
     (if (eq? builtins-hclass (PCache-hclass cache))
-      (let ((val (PyObject-elements-ref builtins-mod (PCache-index cache))))
-        (if (eq? val py-absent)
-          (throw-NameError)
-          val))
-      (let ((i (py-own-attr-index builtins-mod name)))
-        (if (< i 0)
-          (throw-NameError)
-          (let ((val (PyObject-elements-ref builtins-mod i)))
-            (PCache-set! cache builtins-hclass i)
-            (if (eq? val py-absent)
-                (throw-NameError)
-                val)))))))
+        (let ((val (PyObject-elements-ref builtins-mod (PCache-index cache))))
+          (if (eq? val py-absent)
+              (throw-NameError)
+              val))
+        (let ((i (py-own-attr-index builtins-mod name)))
+          (if (< i 0)
+              (throw-NameError)
+              (let ((val (PyObject-elements-ref builtins-mod i)))
+                (PCache-set! cache builtins-hclass i)
+                (if (eq? val py-absent)
+                    (throw-NameError)
+                    val)))))))
 
 (define (global-put! global name val cache)
-   (if (eq? (PyObject-hclass global) (PCache-hclass cache))
-       (PyObject-elements-set! global (PCache-index cache) val)
-       (object-put!/miss global name val cache)))
+  (if (eq? (PyObject-hclass global) ;; TODO: should py-obj-hclass be used instead?
+           (PCache-hclass cache))
+      (PyObject-elements-set! global (PCache-index cache) val)
+      (object-put!/miss global name val cache)))
 
 (define (object-put!/miss obj name val cache)
   (let* ((index (py-own-attr-index obj name))
-         (hclass (PyObject-hclass obj)))
+         (hclass (PyObject-hclass obj))) ;; TODO: should py-obj-hclass be used instead?
     (if (>= index 0)
         (begin
           (PCache-set! cache hclass index)
           (PyObject-elements-set! obj index val))
-        (let* ((name-representative (str-representative-get name))
+        (let* ((name-representative (py-str-representative name))
                (nhclass (HClass-next hclass name-representative '+))
                (index (HClass-last-index nhclass)))
           (PyObject-hclass-set! obj nhclass)
@@ -767,20 +789,19 @@
 
 (define (unpack-kwargs obj)
   (let* ((keys-method (py-getattribute obj (& "keys")))
-        (mapping-keys (py-call keys-method))
-        (keys-iterator (py-iter mapping-keys)))
+         (mapping-keys (py-call keys-method))
+         (keys-iterator (py-iter mapping-keys)))
     (let loop ((acc '()) (next-key (py-next keys-iterator)))
-      (cond
-        ((PyObjectStr? next-key)
-          (loop
-            (cons (cons next-key (py-getitem obj next-key)) acc)
-            (py-next keys-iterator)))
-        ((not next-key)
-          (reverse! acc))
-        (else
-          (py-throw-exception-with-message
-            py-builtin-TypeError
-            "keywords must be strings"))))))
+      (cond ((py-subtype-of-str? next-key)
+             (loop
+              (cons (cons next-key (py-getitem obj next-key)) acc)
+              (py-next keys-iterator)))
+            ((not next-key)
+             (reverse! acc))
+            (else
+             (py-throw-exception-with-message
+              py-builtin-TypeError
+              "keywords must be strings"))))))
 
 (define kwargs-already-seen '%kwargs-already-seen)
 
@@ -788,7 +809,7 @@
   ;; NOTE: key will always either be from a signature or a call-table
   ;; key will always have been hashed at compile time
   (let* ((index-table (vector-ref table 0))
-        (hash (PyObjectStr-hash key))
+        (hash (str-hash-value key))
         ;; index-table contains keys at even indices; index of value at odd indices
         (hash-index
           (fxarithmetic-shift-left
@@ -977,7 +998,9 @@
       (list (py-dict-from-scheme unused-kwargs))
       (if (null? unused-kwargs)
         '()
-        (let ((unknown-keyword (str-force! (caar unused-kwargs))))
+        (let ((unknown-keyword
+               (py-subtype-of-str-to-scheme
+                (caar unused-kwargs))))
           (py-throw-exception-with-message
             py-builtin-TypeError
             "got an unexpected keyword argument '" unknown-keyword "'"))))))
@@ -1020,7 +1043,9 @@
     (list (py-dict-alloc unused-kwargs))
     (if (= (ordered-table-length unused-kwargs) 0)
       '()
-      (let ((unknown-keyword (str-force! (ordered-table-first-key unused-kwargs))))
+      (let ((unknown-keyword
+             (py-subtype-of-str-to-scheme
+              (ordered-table-first-key unused-kwargs))))
         (py-throw-exception-with-message
           py-builtin-TypeError
           "got an unexpected keyword argument '" unknown-keyword "'")))))
@@ -1306,21 +1331,34 @@
 ;; generic operator protocol
 (define-macro (define-binary-operator-protocol fun-name method rmethod operator)
  `(define (,fun-name x y)
-   (let ((__op__ (getattribute-from-obj-mro x (& ,method))))
-     (let ((left-op-result
-             (if (eq? __op__ py-absent)
-               py-NotImplemented
-               (py-call __op__ x y))))
-       (if (eq? left-op-result py-NotImplemented)
-         (let ((__rop__ (getattribute-from-obj-mro y (& ,rmethod))))
-           (let ((right-op-result
-                   (if (eq? __rop__ py-absent)
-                     py-NotImplemented
-                     (py-call __rop__ y x))))
-             (if (eq? right-op-result py-NotImplemented)
-               (throw-unsupported-operand x y ,operator)
-               right-op-result)))
-         left-op-result)))))
+    (py-getattribute-from-obj-mro-2cont
+     x
+     (& ,method)
+     (lambda (__op__)
+       (let ((normal-op-result (py-call __op__ x y)))
+         (if (eq? normal-op-result py-NotImplemented)
+             (py-getattribute-from-obj-mro-2cont
+              y
+              (& ,rmethod)
+              (lambda (__rop__)
+                (let ((reflected-op-result (py-call __rop__ y x)))
+                  (if (eq? reflected-op-result py-NotImplemented)
+                      (throw-unsupported-operand x y ,operator)
+                      reflected-op-result)))
+              (lambda ()
+                (throw-unsupported-operand x y ,operator)))
+             normal-op-result)))
+     (lambda ()
+       (py-getattribute-from-obj-mro-2cont
+        y
+        (& ,rmethod)
+        (lambda (__rop__)
+          (let ((reflected-op-result (py-call __rop__ y x)))
+            (if (eq? reflected-op-result py-NotImplemented)
+                (throw-unsupported-operand x y ,operator)
+                reflected-op-result)))
+        (lambda ()
+          (throw-unsupported-operand x y ,operator)))))))
 
 (define-binary-operator-protocol py-lt "__lt__" "__gt__" "<")
 
@@ -1432,9 +1470,9 @@
    ((py-issubclass? cls py-int-class)
     (cond
      ((eq? value py-absent)
-      (py-int-subtype-from-scheme 0 cls))
+      (py-subtype-of-int-from-scheme 0 cls))
      ((py-subtype-of-int? value)
-      (py-int-subtype-from-scheme (py-subtype-of-int-to-scheme value) cls))
+      (py-subtype-of-int-from-scheme (py-subtype-of-int-to-scheme value) cls))
      (else
       (py-throw-exception-with-message
        py-builtin-NotImplementedError
@@ -1675,9 +1713,9 @@
    ((py-issubclass? cls py-float-class)
     (cond
      ((eq? value py-absent)
-      (py-float-subtype-from-scheme 0.0 cls))
+      (py-subtype-of-float-from-scheme 0.0 cls))
      ((py-subtype-of-float? value)
-      (py-float-subtype-from-scheme (py-subtype-of-float-to-scheme value) cls))
+      (py-subtype-of-float-from-scheme (py-subtype-of-float-to-scheme value) cls))
      (else
       (py-throw-exception-with-message
        py-builtin-NotImplementedError
@@ -1955,22 +1993,8 @@
                 ($loop-mro (fx+ $cls-index 1)))))
 	   (,fail)))))
 
-(cond-expand
-  (gambit
-   ;; getattribute-from-obj-mro is defined as a macro in rts#.scm
-   )
-  (bigloo
-   (define-macro (warn1)
-     (print "===bigloo=== getattribute-from-obj-mro should be defined as a macro")
-     '(begin))
-   (warn1)
-   ;; Recover an attribute from the class of 'obj'
-   (define (getattribute-from-obj-mro obj name)
-     (declare-not-interrupts-enabled)
-     (getattribute-from-obj-mro-dynamic obj name))))
-
 ;; Recover an attribute from the class of 'obj'
-(define (getattribute-from-obj-mro-dynamic obj name)
+(define (getattribute-from-obj-mro-fallback obj name)
   (declare-not-interrupts-enabled)
   (getattribute-from-cls-mro (py-obj-cls obj) name))
 
@@ -1982,7 +2006,7 @@
 ;; Implements object.__getattribute__
 ;;   Entry point of the getattr protocol
 ;;   Look into the object's own attributes
-;;   Defer to py-getattribute-from-obj-mro if not found
+;;   Defer to getattribute-from-obj-mro if not found
 (define (object-getattribute obj name)
   (let ((attr (py-own-attr-ref obj name)))
     (if (not (eq? attr py-absent))
@@ -1993,7 +2017,10 @@
          (lambda (cls-attr owner)
            (object-get-bind-descriptor cls-attr obj owner))
          (lambda ()
-           (py-throw py-builtin-AttributeError))))))
+           ;; TODO: replace this hack by something better
+           (if (eq? (py-str-representative name) (& "__class__"))
+               (py-obj-cls obj)
+               (py-throw py-builtin-AttributeError)))))))
 
 ;; The Python object object.__getattribute__
 (define py-object-getattribute
@@ -2224,51 +2251,203 @@
 ;;  str and repr protocols
 ;; =============================================================================
 
-(define str-representatives (get-registered-constants-table))
+(define (py-str-from-string len string)
+  (make-PyObjectStr
+   py-str-hclass-of-instances
+   '#() #;
+   (make-vector
+    (vector-length (HClass-names py-str-hclass-of-instances))
+    py-absent)
+   py-str-class
+   len
+   string
+   #f))
 
-(define (str-value-collect-components-aux! value components)
-  (if (pair? value)
-    (let ((left (car value))
-          (right (cdr value)))
-      (str-value-collect-components-aux!
-        (PyObjectStr-value right)
-        (str-value-collect-components-aux!
-          (PyObjectStr-value left)
-          components)))
-    (cons value components)))
+(define (py-subtype-of-str-from-string len string str-subclass)
+  (make-PyObjectStr
+   py-str-hclass-of-instances
+   '#() #;
+   (make-vector
+    (vector-length (HClass-names py-str-hclass-of-instances))
+    py-absent)
+   str-subclass
+   len
+   string
+   #f))
 
-(define (str-value-collect-components value)
-  (reverse (str-value-collect-components-aux! value '())))
+(define (py-str-from-concat len str1 str2)
+  (make-PyObjectStr
+   py-str-hclass-of-instances
+   '#() #;
+   (make-vector
+    (vector-length (HClass-names py-str-hclass-of-instances))
+    py-absent)
+   py-str-class
+   len
+   str1
+   str2))
 
-(define (str-force! str)
-  (let ((value (PyObjectStr-value str)))
-    (cond
-      ((string? value)
-        value)
-      ((pair? value)
-        (let* ((str-components (str-value-collect-components value))
-              (new-string (append-strings str-components)))
-          (PyObjectStr-value-set! str new-string)
-          new-string))
-      (else
-        (error "str-force!" "received object with value" value)))))
+(define (py-str-representative-from-string len string hash)
+  (let ((result
+         (make-PyObjectStrRep
+          py-str-hclass-of-instances
+          '#() #;
+          (make-vector
+           (vector-length (HClass-names py-str-hclass-of-instances))
+           py-absent)
+          py-str-class
+          len
+          string
+          #f
+          hash
+          #f)))
+    (PyObjectStr-part2-or-rep-set! result result) ;; own representative
+    (make-still-copy result)))
 
-(define (str-representative-get str)
-  (or (PyObjectStr-representative str)
-      (str-representative-create str)))
+(define (py-str-from-scheme-fallback string)
+  (let ((len (string-length string)))
+    (py-str-from-string len string)))
 
-(define (str-representative-create str)
-  (let* ((str-value (str-force! str))
-         (rep (table-ref str-representatives str-value #f)))
-    (if rep
-        (begin
-          (PyObjectStr-representative-set! str rep)
-          rep)
-        (let ((new-rep (make-still-copy str)))
-          (table-set! str-representatives str-value new-rep)
-          (PyObjectStr-representative-set! str new-rep)
-          (PyObjectStr-representative-set! new-rep new-rep)
-          new-rep))))
+(define (py-subtype-of-str-from-scheme-fallback string str-subclass)
+  (let ((len (string-length string)))
+    (py-subtype-of-str-from-string len string str-subclass)))
+
+(define (py-str-to-scheme-fallback str)
+  (let ((part1-or-string (PyObjectStr-part1-or-string str)))
+    (if (string? part1-or-string)
+        part1-or-string
+        (let ((result (py-str-concatenation-to-scheme str)))
+
+          (PyObjectStr-part1-or-string-set! str result)
+          (PyObjectStr-part2-or-rep-set! str #f)
+
+          result))))
+
+(define (py-subtype-of-str-to-scheme-fallback str)
+  (py-str-to-scheme-fallback str))
+
+(define (py-str-representative-fallback str)
+  (let ((part1-or-string (PyObjectStr-part1-or-string str)))
+    (if (string? part1-or-string)
+        (or (PyObjectStr-part2-or-rep str)
+            (let ((part2-or-rep
+                   (py-str-representative-from-scheme part1-or-string)))
+              (PyObjectStr-part2-or-rep-set! str part2-or-rep)
+              part2-or-rep))
+        (let* ((part1-or-string
+                (py-str-concatenation-to-scheme str))
+               (part2-or-rep
+                (py-str-representative-from-scheme part1-or-string)))
+              (PyObjectStr-part1-or-string-set! str part1-or-string)
+              (PyObjectStr-part2-or-rep-set! str part2-or-rep)
+              part2-or-rep))))
+
+(define (py-str-concatenation-to-scheme str)
+  (let* ((len (PyObjectStr-len str))
+         (result (make-string len)))
+
+    (define (store str len pos)
+      (let ((part1-or-string (PyObjectStr-part1-or-string str)))
+        (if (string? part1-or-string)
+            (cond-expand
+              (gambit
+               (substring-move! part1-or-string 0 len result pos))
+              (bigloo
+               (let loop ((i 0) (j pos))
+                 (if (fx< i len)
+                     (begin
+                       (string-set! result j (string-ref part1-or-string i))
+                       (loop (fx+ i 1) (fx+ j 1)))))))
+            (let* ((len1 (PyObjectStr-len part1-or-string))
+                   (part2-or-rep (PyObjectStr-part2-or-rep str))
+                   (len2 (PyObjectStr-len part2-or-rep)))
+              (if (fx< len1 len2) ;; guarantee O(log n) call stack depth
+                  (begin
+                    (store part1-or-string len1 pos)
+                    (store part2-or-rep len2 (fx+ pos len1)))
+                  (begin
+                    (store part2-or-rep len2 (fx+ pos len1))
+                    (store part1-or-string len1 pos)))))))
+
+    (store str len 0)
+
+    result))
+
+(define (py-str-representative-from-scheme string)
+  (or (table-ref str-representatives-htable string #f)
+      (let* ((hash (hash-FNV1a string))
+             (len (string-length string))
+             (str (py-str-representative-from-string len string hash)))
+        (table-set! str-representatives-htable string str)
+        str)))
+
+(define str-representatives-htable (get-registered-constants-table))
+
+(define (py-add-strX-strY-fallback str1 str2)
+  (py-add-SstrX-SstrY str1 str2))
+
+(define (py-add-SstrX-SstrY str1 str2)
+  (py-add-SstrX-SstrY-fallback str1 str2))
+
+(define (py-add-SstrX-SstrY-fallback str1 str2)
+
+  (define optimize-small? #t) ;; optimize concatenation of small strings?
+  (define small 8) ;; maximal length of a "small" string
+
+  (let* ((len1 (PyObjectStr-len str1))
+         (len2 (PyObjectStr-len str2))
+         (len (fx+ len1 len2)))
+
+    (cond ((and optimize-small?
+                (fx<= len small))
+           (py-str-from-string
+            len
+            (string-append (PyObjectStr-part1-or-string str1)
+                           (PyObjectStr-part1-or-string str2))))
+#;
+          ((and optimize-small?
+                (string? (PyObjectStr-part1-or-string str2))
+                (not (string? (PyObjectStr-part1-or-string str1)))
+                (string? (PyObjectStr-part1-or-string
+                          (PyObjectStr-part2-or-rep str1)))
+                (fx<= (fx+ (PyObjectStr-len
+                            (PyObjectStr-part2-or-rep str1))
+                           len2)
+                      small))
+           (py-str-from-concat
+            len
+            (PyObjectStr-part1-or-string str1)
+            (py-str-from-string
+             (fx+ (PyObjectStr-len (PyObjectStr-part2-or-rep str1))
+                  len2)
+             (string-append (PyObjectStr-part1-or-string
+                             (PyObjectStr-part2-or-rep str1))
+                            (PyObjectStr-part1-or-string str2)))))
+#;
+          ((and optimize-small?
+                (string? (PyObjectStr-part1-or-string str1))
+                (not (string? (PyObjectStr-part1-or-string str2)))
+                (string? (PyObjectStr-part1-or-string
+                          (PyObjectStr-part1-or-string str2)))
+                (fx<= (fx+ len1
+                           (PyObjectStr-len
+                            (PyObjectStr-part1-or-string str2)))
+                      small))
+           (py-str-from-concat
+            len
+            (py-str-from-string
+             (fx+ len1
+                  (PyObjectStr-len (PyObjectStr-part1-or-string str2)))
+             (string-append (PyObjectStr-part1-or-string str1)
+                            (PyObjectStr-part1-or-string
+                             (PyObjectStr-part1-or-string str2))))
+            (PyObjectStr-part2-or-rep str2)))
+
+          (else
+           (py-str-from-concat
+            len
+            str1
+            str2)))))
 
 (define (str-new cls value)
   (cond
@@ -2277,19 +2456,19 @@
          (&& "")
          (let* ((__str__ (getattribute-from-obj-mro value (& "__str__")))
                 (result (py-call __str__ value)))
-           (if (py-isinstance? result py-str-class)
+           (if (py-subtype-of-str? result)
                result
                (throw-returned-wrong-type "__str__" value "non-string")))))
     ((py-issubclass? cls py-str-class)
      (if (eq? value py-absent)
-         (py-str-subtype-from-scheme
+         (py-subtype-of-str-from-scheme
            ""
            cls)
          (let* ((__str__ (getattribute-from-obj-mro value (& "__str__")))
                 (result (py-call __str__ value)))
-           (if (py-isinstance? result py-str-class)
-               (py-str-subtype-from-scheme
-                 (PyObjectStr-value result)
+           (if (py-subtype-of-str? result)
+               (py-subtype-of-str-from-scheme
+                 (py-subtype-of-str-to-scheme result)
                  cls)
                (throw-returned-wrong-type "__str__" value "non-string")))))
     (else
@@ -2301,9 +2480,9 @@
     (make-signature posonlyargs: (cls value) defaults: (vector py-absent))))
 
 (define (str-str self)
-  (if (py-isinstance? self py-str-class)
-    self
-    (py-throw-required-type "__str__" "str" self)))
+  (if (py-subtype-of-str? self)
+      self
+      (py-throw-required-type "__str__" "str" self)))
 
 (define str.__str__
   (procedure->py-function
@@ -2311,11 +2490,11 @@
     (make-signature posonlyargs: (self))))
 
 (define (str-repr self)
-    (if (py-isinstance? self py-str-class)
-      (let* ((string (py-str-to-scheme self))
+  (if (py-subtype-of-str? self)
+      (let* ((string (py-subtype-of-str-to-scheme self))
              (string-repr (py-str-repr-scheme string)))
         (py-str-from-scheme string-repr))
-      (py-throw-required-type "__str__" "str" self)))
+      (py-throw-required-type "__repr__" "str" self)))
 
 (define str.__repr__
   (procedure->py-function
@@ -2358,11 +2537,9 @@
         out))))
 
 (define (str-len self)
-  (if (py-isinstance? self py-str-class)
-    (let* ((string (py-str-to-scheme self))
-           (string-len (string-length string)))
-      (py-int-from-scheme string-len))
-    (py-throw-required-type "__str__" "str" self)))
+  (if (py-subtype-of-str? self)
+      (py-int-from-scheme (PyObjectStr-len self))
+      (py-throw-required-type "__len__" "str" self)))
 
 (define str.__len__
   (procedure->py-function
@@ -2376,12 +2553,13 @@
   (let ((py-func-name (string->symbol (string-append "str." method-name))))
     `(begin
       (define (,fun-name self other)
-        (if (py-isinstance? self py-str-class)
+        (if (py-subtype-of-str? self)
             (if (eq? self other)
                 ,yes
-                (if (py-isinstance? other py-str-class)
-                    (let* ((self-representative (str-representative-get self))
-                           (other-representative (str-representative-get other)))
+                (if (py-subtype-of-str? other)
+                    ;; TODO: replace with str-representatives-eq?
+                    (let* ((self-representative (py-str-representative self))
+                           (other-representative (py-str-representative other)))
                       (if (eq? self-representative other-representative)
                           ,yes
                           ,no))
@@ -2398,17 +2576,17 @@
 (define-macro (define-str-comparison-operator fun-name method-name scheme-op)
   (let ((py-func-name (string->symbol (string-append "str." method-name))))
     `(begin
-      (define (,fun-name self other)
-        (if (py-isinstance? self py-str-class)
-          (cond
-            ((py-isinstance? other py-str-class)
-              (let ((self-value (str-force! self))
-                    (other-value (str-force! other)))
-                (if (,scheme-op self-value other-value) py-True py-False)))
-            (else py-NotImplemented))
-          (py-throw-required-type ,method-name "str" self)))
-      (define ,py-func-name
-        (procedure->py-function
+       (define (,fun-name self other)
+         (if (py-subtype-of-str? self)
+             (cond
+              ((py-subtype-of-str? other)
+               (let ((self-value (py-subtype-of-str-to-scheme self))
+                     (other-value (py-subtype-of-str-to-scheme other)))
+                 (if (,scheme-op self-value other-value) py-True py-False)))
+              (else py-NotImplemented))
+             (py-throw-required-type ,method-name "str" self)))
+       (define ,py-func-name
+         (procedure->py-function
           ,fun-name
           (make-signature posonlyargs: (self other)))))))
 
@@ -2418,21 +2596,12 @@
 (define-str-comparison-operator str-le "__le__" string<=?)
 
 (define (str-hash-value str)
-  (let ((cached-hash (PyObjectStr-hash str)))
-    (if cached-hash
-      cached-hash
-      (let ((hash (hash-FNV1a (PyObjectStr-value str))))
-        ;; if hash is a bignum (on 32-bit architecture), it must be a still-copy
-        ;; otherwise str representative may end with a wild pointer as hash
-        (if (fixnum? hash)
-          (PyObjectStr-hash-set! str hash)
-          (PyObjectStr-hash-set! str (make-still-copy hash)))
-        hash))))
+  (PyObjectStrRep-hash (py-str-representative str)))
 
 (define (str-hash self)
-  (if (PyObjectStr? self)
-    (py-int-from-scheme (str-hash-value self))
-    (py-throw-required-type "__hash__" "str" self)))
+  (if (py-subtype-of-str? self)
+      (py-int-from-scheme (str-hash-value self))
+      (py-throw-required-type "__hash__" "str" self)))
 
 (define str.__hash__
   (procedure->py-function
@@ -2440,12 +2609,11 @@
     (make-signature posonlyargs: (self))))
 
 (define (str-add self other)
-   (if (py-isinstance? self py-str-class)
-       (if (py-isinstance? other py-str-class)
-           ;; !!! MS 6 Nov 2020: this is erroneously typed
-           (py-str-from-scheme (cons self other))
-           py-NotImplemented)
-       (py-throw-required-type "__add__" "str" self)))
+  (if (py-subtype-of-str? self)
+      (if (py-subtype-of-str? other)
+          (py-add-SstrX-SstrY self other)
+          py-NotImplemented)
+      (py-throw-required-type "__add__" "str" self)))
 
 (define str.__add__
   (procedure->py-function
@@ -2454,9 +2622,9 @@
 
 (define (add-hclass-names-to-table table obj)
   (vector-for-each
-    (lambda (name)
-      (table-set! table name #t))
-    (HClass-names (PyObject-hclass obj))))
+   (lambda (name)
+     (table-set! table name #t))
+   (HClass-names (py-obj-hclass obj))))
 
 (define (object-dir self)
   (let ((table (make-table test: eq?)))
@@ -2485,6 +2653,16 @@
 (define type.__dir__
   (procedure->py-function
     type-dir
+    (make-signature posonlyargs: (self))))
+
+(define (type-repr self)
+  (let* ((self-name (py-str-to-scheme (py-own-attr-ref self (& "__name__"))))
+         (result (string-append "<class '" self-name "'>")))
+    (py-str-from-scheme result)))
+
+(define type.__repr__
+  (procedure->py-function
+    type-repr
     (make-signature posonlyargs: (self))))
 
 (define (object-repr self)
@@ -2538,11 +2716,11 @@
            (display (py-str-to-scheme obj)
                     port))
           ((eq? t py-int-class)
-           (display (py-subtype-of-int-to-scheme obj)
+           (display (py-int-to-scheme obj)
                     port))
           ((eq? t py-float-class)
            (display (float->string-with-padded-zeros
-                     (py-subtype-of-float-to-scheme obj))
+                     (py-float-to-scheme obj))
                     port))
           ((eq? t py-bool-class)
            (if (eq? obj py-True)
@@ -2553,17 +2731,17 @@
 
 (define (py-str obj)
   (let* ((__str__ (getattribute-from-obj-mro obj (& "__str__")))
-        (str-instance (py-call __str__ obj)))
-    (if (py-isinstance? str-instance py-str-class)
-      str-instance
-      (throw-returned-wrong-type "__str__" obj "non-string"))))
+         (str-instance (py-call __str__ obj)))
+    (if (py-subtype-of-str? str-instance)
+        str-instance
+        (throw-returned-wrong-type "__str__" obj "non-string"))))
 
 (define (py-repr obj)
   (let* ((__repr__ (getattribute-from-obj-mro obj (& "__repr__")))
-        (repr (py-call __repr__ obj)))
-    (if (py-isinstance? repr py-str-class)
-      repr
-      (throw-returned-wrong-type "__repr__" obj "non-string"))))
+         (repr (py-call __repr__ obj)))
+    (if (py-subtype-of-str? repr)
+        repr
+        (throw-returned-wrong-type "__repr__" obj "non-string"))))
 
 (define (py-str-repr-scheme str)
   (let* ((quote-style #f)
@@ -2678,7 +2856,7 @@
 ;; Set on bootstrap when int class is defined
 (define int-cache #f)
 
-(define (py-int-from-scheme-dynamic value)
+(define (py-int-from-scheme-fallback value)
   (py-if-specialized-int-representation
    value
    (if (and (<= value int-cache-high)
@@ -2686,7 +2864,7 @@
        (vector-ref int-cache (- value int-cache-low))
        (alloc-new-int-from-scheme value))))
 
-(define (py-int-subtype-from-scheme value int-subclass)
+(define (py-subtype-of-int-from-scheme value int-subclass)
   ;; int-subclass is known to not be int-class
   (make-PyObjectInt
     py-int-hclass-of-instances
@@ -2696,7 +2874,7 @@
     int-subclass
     value))
 
-(define (py-float-from-scheme-dynamic value)
+(define (py-float-from-scheme-fallback value)
   (py-if-specialized-float-representation
    value
    (make-PyObjectFloat
@@ -2707,7 +2885,7 @@
     py-float-class
     value)))
 
-(define (py-float-subtype-from-scheme value float-subclass)
+(define (py-subtype-of-float-from-scheme value float-subclass)
   ;; float-subclass is known to not be float-class
   (make-PyObjectFloat
     py-float-hclass-of-instances
@@ -2716,31 +2894,6 @@
       py-absent)
     float-subclass
     value))
-
-(define (py-str-from-scheme value)
-  (make-PyObjectStr
-    py-str-hclass-of-instances
-    (make-vector
-      (vector-length (HClass-names py-str-hclass-of-instances))
-      py-absent)
-    py-str-class
-    value
-    #f ;;representative
-    #f))      ;; hash
-
-(define (py-str-subtype-from-scheme value str-subclass)
-  (make-PyObjectStr
-    py-str-hclass-of-instances
-    (make-vector
-      (vector-length (HClass-names py-str-hclass-of-instances))
-      py-absent)
-    str-subclass
-    value
-    #f ;; representative
-    #f))      ;; hash
-
-(define (py-str-to-scheme self)
-  (str-force! self))
 
 (define (py-set-from-scheme elems)
   (py-throw-exception-with-message
@@ -2836,6 +2989,7 @@
     (py-own-attr-set! type-class (& "__call__") type.__call__)
     (py-own-attr-set! type-class (& "__getattribute__") type.__getattribute__)
     (py-own-attr-set! type-class (& "__dir__") type.__dir__)
+    (py-own-attr-set! type-class (& "__repr__") type.__repr__)
 
     ;; Fill in tuple class
     (PyObject-class-set! tuple-class type-class)
@@ -2949,7 +3103,9 @@
 (define (module-dir self)
   (if (py-isinstance? self py-module-class)
       (py-list-from-scheme
-        (list->dynamic-vector (vector->list (HClass-names (PyObject-hclass self)))))
+       (list->dynamic-vector
+        (vector->list
+         (HClass-names (PyObject-hclass self))))) ;; TODO: should py-obj-hclass be used instead?
       (throw-returned-wrong-type "__dir__" self "not a module")))
 
 (define module.__dir__
@@ -3301,7 +3457,9 @@
            (len (car len-vec-pair))
            (vec (cdr len-vec-pair))
            (content-strs (vector-map py-repr (subvector vec 0 len)))
-           (content-strings (vector-map (lambda (x) (PyObjectStr-value x)) content-strs)))
+           (content-strings
+            (vector-map (lambda (x) (py-subtype-of-str-to-scheme x))
+                        content-strs)))
       (py-str-from-scheme
         (string-append
           "["
@@ -4248,7 +4406,9 @@
   (if (py-isinstance? self py-tuple-class)
     (let* ((vec (PyObjectTuple-value self))
            (content-strs (vector-map py-repr vec))
-           (content-strings (vector-map (lambda (x) (PyObjectStr-value x)) content-strs)))
+           (content-strings
+            (vector-map (lambda (x) (py-subtype-of-str-to-scheme x))
+                        content-strs)))
       (py-str-from-scheme
         (string-append
           "("
@@ -5549,6 +5709,92 @@
 (bootstrap-type-hierarchy-phase2)
 (bootstrap-functions)
 
+
+;; fill-in magic attrs
+;; TODO: integrate with builtin type creation
+
+(define (magic-attr-set! cls attr-index fn)
+  (let ((magic-attrs (PyObjectType-magic-attrs cls)))
+    (vector-set! magic-attrs attr-index fn)))
+
+(define-macro (__add__.index)  0)
+(define-macro (__radd__.index) 1)
+(define-macro (__iadd__.index) 2)
+(define-macro (__mul__.index)  3)
+(define-macro (__rmul__.index) 4)
+(define-macro (__imul__.index) 5)
+(define-macro (__sub__.index)  6)
+(define-macro (__rsub__.index) 7)
+(define-macro (__isub__.index) 8)
+(define-macro (__eq__.index)   9)
+(define-macro (__ne__.index)   10)
+(define-macro (__lt__.index)   11)
+(define-macro (__le__.index)   12)
+(define-macro (__gt__.index)   13)
+(define-macro (__ge__.index)   14)
+(define-macro (__call__.index) 15)
+(define-macro (__get__.index)  16)
+
+(PyObjectStrRep-magic-index-set! (& "__add__")  (__add__.index))
+(PyObjectStrRep-magic-index-set! (& "__radd__") (__radd__.index))
+(PyObjectStrRep-magic-index-set! (& "__iadd__") (__iadd__.index))
+(PyObjectStrRep-magic-index-set! (& "__mul__")  (__mul__.index))
+(PyObjectStrRep-magic-index-set! (& "__rmul__") (__rmul__.index))
+(PyObjectStrRep-magic-index-set! (& "__imul__") (__imul__.index))
+(PyObjectStrRep-magic-index-set! (& "__sub__")  (__sub__.index))
+(PyObjectStrRep-magic-index-set! (& "__rsub__") (__rsub__.index))
+(PyObjectStrRep-magic-index-set! (& "__isub__") (__isub__.index))
+(PyObjectStrRep-magic-index-set! (& "__eq__")   (__eq__.index))
+(PyObjectStrRep-magic-index-set! (& "__ne__")   (__ne__.index))
+(PyObjectStrRep-magic-index-set! (& "__lt__")   (__lt__.index))
+(PyObjectStrRep-magic-index-set! (& "__le__")   (__le__.index))
+(PyObjectStrRep-magic-index-set! (& "__gt__")   (__gt__.index))
+(PyObjectStrRep-magic-index-set! (& "__ge__")   (__ge__.index))
+(PyObjectStrRep-magic-index-set! (& "__call__") (__call__.index))
+(PyObjectStrRep-magic-index-set! (& "__get__")  (__get__.index))
+
+(magic-attr-set! py-int-class (__add__.index)  int.__add__)
+(magic-attr-set! py-int-class (__iadd__.index) int.__iadd__)
+(magic-attr-set! py-int-class (__mul__.index)  int.__mul__)
+(magic-attr-set! py-int-class (__imul__.index) int.__imul__)
+(magic-attr-set! py-int-class (__sub__.index)  int.__sub__)
+(magic-attr-set! py-int-class (__isub__.index) int.__isub__)
+(magic-attr-set! py-int-class (__eq__.index)   int.__eq__)
+(magic-attr-set! py-int-class (__ne__.index)   int.__ne__)
+(magic-attr-set! py-int-class (__lt__.index)   int.__lt__)
+(magic-attr-set! py-int-class (__le__.index)   int.__le__)
+(magic-attr-set! py-int-class (__gt__.index)   int.__gt__)
+(magic-attr-set! py-int-class (__ge__.index)   int.__ge__)
+
+(magic-attr-set! py-float-class (__add__.index)  float.__add__)
+(magic-attr-set! py-float-class (__radd__.index) float.__radd__)
+(magic-attr-set! py-float-class (__mul__.index)  float.__mul__)
+(magic-attr-set! py-float-class (__rmul__.index) float.__rmul__)
+(magic-attr-set! py-float-class (__sub__.index)  float.__sub__)
+(magic-attr-set! py-float-class (__rsub__.index) float.__rsub__)
+(magic-attr-set! py-float-class (__eq__.index)   float.__eq__)
+(magic-attr-set! py-float-class (__ne__.index)   float.__ne__)
+(magic-attr-set! py-float-class (__lt__.index)   float.__lt__)
+(magic-attr-set! py-float-class (__le__.index)   float.__le__)
+(magic-attr-set! py-float-class (__gt__.index)   float.__gt__)
+(magic-attr-set! py-float-class (__ge__.index)   float.__ge__)
+
+(magic-attr-set! py-str-class (__add__.index)  str.__add__)
+(magic-attr-set! py-str-class (__eq__.index)   str.__eq__)
+(magic-attr-set! py-str-class (__ne__.index)   str.__ne__)
+(magic-attr-set! py-str-class (__lt__.index)   str.__lt__)
+(magic-attr-set! py-str-class (__le__.index)   str.__le__)
+(magic-attr-set! py-str-class (__gt__.index)   str.__gt__)
+(magic-attr-set! py-str-class (__ge__.index)   str.__ge__)
+
+(magic-attr-set! py-type-class     (__call__.index) type.__call__)
+
+(magic-attr-set! py-method-class   (__call__.index) method.__call__)
+
+(magic-attr-set! py-function-class (__call__.index) function.__call__)
+(magic-attr-set! py-function-class (__get__.index)  function.__get__)
+
+
 ;; Save low ints for fast access
 (define py-int-0 (py-int-from-scheme 0))
 (define py-int-1 (py-int-from-scheme 1))
@@ -5633,16 +5879,15 @@
 
 ;; TODO: arguments other than file are currentl ignored
 (define (py-open file mode buffering encoding errors newline closefd opener)
-  (cond
-    ((py-isinstance? file py-str-class)
-      (let ((filename (PyObjectStr-value file)))
-        (let ((file-port (open-file filename)))
-          (py-TextIOWrapper-alloc
-            file-port
-            mode
-            encoding))))
-    (else
-      (py-throw-exception-with-message py-builtin-NotImplementedError "py-open only str filename supported"))))
+  (cond ((py-subtype-of-str? file)
+         (let ((filename (py-subtype-of-str-to-scheme file)))
+           (let ((file-port (open-file filename)))
+             (py-TextIOWrapper-alloc
+              file-port
+              mode
+              encoding))))
+        (else
+         (py-throw-exception-with-message py-builtin-NotImplementedError "py-open only str filename supported"))))
 
 ;; =============================================================================
 ;;  Singletons
@@ -5651,10 +5896,10 @@
 ;; True and False
 
 (define py-True
-  (py-int-subtype-from-scheme 1 py-bool-class))
+  (py-subtype-of-int-from-scheme 1 py-bool-class))
 
 (define py-False
-  (py-int-subtype-from-scheme 0 py-bool-class))
+  (py-subtype-of-int-from-scheme 0 py-bool-class))
 
 ;; NotImplemented object
 
@@ -5948,17 +6193,17 @@
 (define (import-from-sys.path sys.path __name__ py-__name__)
   (or (dict-get (sys.modules-get) py-__name__ #f)
       (let ((sys.path-iter (py-iter sys.path)))
-       (let loop ((value sys.path-iter))
-        (let ((value (py-next value)))
-         (if value
-             (if (py-isinstance? value py-str-class) ;; TODO : support bytes
-                 (let ((path (string-append
-                               (path-normalize (str-force! value))
-                               __name__)))
-                   (or (import-with-zipi-cache path py-__name__)
-                       (loop sys.path-iter)))
-                 (loop sys.path-iter))
-             #f))))))
+        (let loop ((value sys.path-iter))
+          (let ((value (py-next value)))
+            (and value
+                 (if (py-subtype-of-str? value) ;; TODO : support bytes
+                     (let ((path (string-append
+                                  (path-normalize
+                                   (py-subtype-of-str-to-scheme value))
+                                  __name__)))
+                       (or (import-with-zipi-cache path py-__name__)
+                           (loop sys.path-iter)))
+                     (loop sys.path-iter))))))))
 
 (define (default-builtin-__import__ __name__)
    (let ((name-split (string-split __name__ #\.)))
@@ -6751,24 +6996,23 @@
 
 (define py-builtin-getattr
   (procedure->py-function
-    (lambda (object name default)
-      (if (py-isinstance? name py-str-class)
-        (if (not (eq? default py-absent))
-          (with-handler
-            (lambda (exc)
-              (if (and
-                    (PyObject? exc)
-                    (py-isinstance? exc py-builtin-AttributeError))
-                default
-                (raise exc)))
-            (py-getattribute object name))
-          (py-getattribute object name))
-        (py-throw-exception-with-message
+   (lambda (object name default)
+     (if (py-subtype-of-str? name)
+         (if (not (eq? default py-absent))
+             (with-handler
+              (lambda (exc)
+                (if (and (PyObject? exc)
+                         (py-isinstance? exc py-builtin-AttributeError))
+                    default
+                    (raise exc)))
+              (py-getattribute object name))
+             (py-getattribute object name))
+         (py-throw-exception-with-message
           py-builtin-TypeError
           "getattr(): attribute name must be string")))
-    (make-signature
-      posonlyargs: (object name default)
-      defaults: (vector py-absent))))
+   (make-signature
+    posonlyargs: (object name default)
+    defaults: (vector py-absent))))
 
 ;;-------------------- globals()
 
@@ -7874,7 +8118,7 @@
       defaults: (vector py-absent py-absent))))
 
 (define (super-getattribute self name)
-  (if (eq? (str-representative-get name) (& "__class__"))
+  (if (eq? (py-str-representative name) (& "__class__"))
       py-builtin-super
       (let* ((this-class (py-own-attr-ref self (& "__thisclass__")))
              (this-self (py-own-attr-ref self (& "__self__")))
@@ -8076,8 +8320,8 @@
    (lambda (name globals locals fromlist level)
      (cond
       ((eq? globals py-None)
-       (if (py-isinstance? name py-str-class)
-           (builtin-__import__ (str-force! name))
+       (if (py-subtype-of-str? name)
+           (builtin-__import__ (py-subtype-of-str-to-scheme name))
            (py-throw-exception-with-message py-builtin-TypeError "__import__() argument 1 must be str not " )))
       (else
        (py-throw-exception-with-message py-NotImplemented "__import__ with more than one argument is not yet implemented"))))

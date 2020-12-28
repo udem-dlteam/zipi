@@ -18,7 +18,6 @@ def q(i, diag1, diag2, cols):
         return nsols
 
 def queens(n):
-    print( "n=", n, 1 << n, (1<<n) -1 )
     return q(n, -1, -1, (1<<n)-1)
 
 bench_time = time.time()
