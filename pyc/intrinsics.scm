@@ -98,10 +98,26 @@
             (cdr args)))
         (error "SyntaxError" "wrong argument for call_host" #f))))
 
+(define (make-pragma-call-maker name)
+  (lambda (this)
+    (let* ((loc (PycNode-loc this))
+          (args (PycCall-args this)))
+      (new-PycCall
+        loc
+        (new-PycPragma loc name)
+        args))))
+
 (define macro-intrinsics
   (list
     (cons 'class_getattr make-class_getattr)
-    (cons 'call_host make-call_host)))
+    (cons 'call_host make-call_host)
+    (cons 'float_unbox (make-pragma-call-maker 'py-float-to-scheme))
+    (cons 'float_box (make-pragma-call-maker 'py-float-from-scheme))
+    (cons 'int_box (make-pragma-call-maker 'py-int-from-scheme))
+    (cons 'int_unbox (make-pragma-call-maker 'py-int-to-scheme))
+    (cons 'int_subtype_unbox (make-pragma-call-maker 'py-int-to-scheme))
+    (cons 'sint_unbox (make-pragma-call-maker 'py-sint-to-scheme))
+    (cons 'bint_unbox (make-pragma-call-maker 'py-bint-to-scheme))))
 
 (define static-intrinsics
   (list
@@ -198,6 +214,7 @@
     (map car static-intrinsics)
     (map car macro-intrinsics)
     '(define_semantics
+      define_behavior
       inline
       use_static_builtins
       use_simple_scoping absent
@@ -242,6 +259,8 @@
       (begin
         (mark-define-semantics! this #f intrinsics-info)
         (lambda-lift-semantics! this)))
+  (if (member 'define_behavior intrinsics)
+    (mark-define-behavior! this intrinsics-info))
   (if (member 'inline intrinsics)
       (mark-inline-semantics this))
   (if (member 'builtin_class intrinsics)
@@ -382,6 +401,60 @@
           use-simple-scoping: #t
           name: (if is-decorated-semantics (symbol-append 'py- name) name)))
       (call-default-walker))))
+
+(define (make-behavior-name name)
+  (let ((schemified-chars
+          (let loop ((chars (string->list (symbol->string name))))
+            (if (null? chars)
+              chars
+              (let ((fst (car chars)))
+                (cons (if (char=? fst #\_) #\- fst) (loop (cdr chars))))))))
+    (string->symbol (string-append (list->string schemified-chars) "-fallback"))))
+
+(define-walk-method (mark-define-behavior! this::PycNode intrinsics-info)
+  (call-default-walker))
+
+(define-walk-method (mark-define-behavior! this::PycFun intrinsics-info)
+  (let* ((decorators (PycFun-decorators this))
+        (is-decorated-behavior (contains-PycRef-with-name? decorators 'define_behavior)))
+    (if is-decorated-behavior
+      (begin
+        (resolve-statics!
+          (PycFun-body this)
+          (car intrinsics-info)
+          (cadr intrinsics-info)
+          (caddr intrinsics-info)
+          #t)
+        (let* ((loc (PycNode-loc this))
+              (args (PycFun-args this))
+              (posonlyargs (PycFun-posonlyargs this))
+              (vararg (PycFun-vararg this))
+              (kwonlyargs (PycFun-kwonlyargs this))
+              (kw-defaults (PycFun-kw-defaults this))
+              (kwarg (PycFun-kwarg this))
+              (defaults (PycFun-defaults this))
+              (body (PycFun-body this))
+              (decls (PycFun-decls this))
+              (name (PycFun-name this)))
+          (new-PycSemantics
+            loc
+            args
+            posonlyargs
+            vararg
+            kwonlyargs
+            kw-defaults
+            kwarg
+            defaults
+            body
+            decorators:
+              (list-remove-pred
+                decorators
+                (lambda (d)
+                  (or (PycRef-with-name? d 'use_simple_scoping)
+                      (PycRef-with-name? d 'define_behavior))))
+            decls: decls
+            use-simple-scoping: #t
+            name: (make-behavior-name name)))))))
 
 (define (lambda-lift-semantics! module)
   (lambda-lift-semantics-walk! module))

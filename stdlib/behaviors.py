@@ -1,4 +1,4 @@
-from __compiler_intrinsics__ import define_behavior
+from __compiler_intrinsics__ import define_behavior, int_box, int_unbox, float_box, float_unbox, int_subtype_unbox, sint_unbox, bint_unbox
 
 @define_behavior
 def py_add_intX_intY(self: int, other: int):
