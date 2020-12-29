@@ -342,6 +342,33 @@
           this))
       this)))
 
+(define (get-pragma-call-type-hint call)
+  (let* ((fun (PycCall-fun call))
+        (expr (PycPragma-expr fun)))
+    (cond
+      ((eq? expr 'py-int-to-scheme) 'Uint)
+      ((eq? expr 'py-sint-to-scheme) 'Usint)
+      ((eq? expr 'py-bint-to-scheme) 'Ubint)
+      ((eq? expr 'py-float-to-scheme) 'Ufloat)
+      ((eq? expr 'py-int-from-scheme) 'int)
+      ((eq? expr 'py-sint-from-scheme) 'sint)
+      ((eq? expr 'py-bint-from-scheme) 'bint)
+      ((eq? expr 'py-float-from-scheme) 'float)
+      (else #f))))
+
+(define (get-expr-type-hint expr)
+  (if (and (PycCall? expr) (PycPragma? (PycCall-fun expr)))
+    (get-pragma-call-type-hint expr)
+    #f))
+
+(define-walk-method (resolve-statics! this::PycBinary intrinsics statics macros use-static-builtins)
+  (let* ((this (call-default-walker))
+        (lhs-type-hint (get-expr-type-hint (PycBinary-lhs this)))
+        (rhs-type-hint (get-expr-type-hint (PycBinary-rhs this))))
+    (PycBinary-lhs-type-hint-set! this lhs-type-hint)
+    (PycBinary-rhs-type-hint-set! this rhs-type-hint)
+    this))
+
 (define-walk-method (mark-use-simple-scoping! this::PycNode)
   (call-default-walker))
 

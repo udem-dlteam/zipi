@@ -659,10 +659,17 @@
       `(&& ,(PycLiteralValue-val this))))
 
 (define-walk-method (scheme this::PycBinary conf)
-   (epairify this
-      `(,(symbol-append 'py- (PycBinary-op this))
-	,(scheme (PycBinary-lhs this) conf)
-	,(scheme (PycBinary-rhs this) conf))))
+  (let ((lhs-type-hint (PycBinary-lhs-type-hint this))
+        (rhs-type-hint (PycBinary-rhs-type-hint this)))
+    (if (or lhs-type-hint rhs-type-hint)
+      (epairify this
+        `((dispatch-operator ',(PycBinary-op this) ',lhs-type-hint ',rhs-type-hint)
+          ,(scheme (PycBinary-lhs this) conf)
+          ,(scheme (PycBinary-rhs this) conf)))
+      (epairify this
+        `(,(symbol-append 'py- (PycBinary-op this))
+          ,(scheme (PycBinary-lhs this) conf)
+          ,(scheme (PycBinary-rhs this) conf))))))
 
 (define-walk-method (scheme this::PycUnary conf)
    (epairify this
