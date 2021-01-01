@@ -658,14 +658,114 @@
    (epairify this
       `(&& ,(PycLiteralValue-val this))))
 
+(define (dispatch-operator op lhs-type rhs-type lhs rhs)
+  (define Uint-types '(Uint Usint Ubint))
+  (define Ufloat-types '(Ufloat))
+
+  (define binary-int-int-op
+    `((add . ,(lambda (x y) `(+ ,x ,y)))
+      (bitand . ,(lambda (x y) `(bitwise-and ,x ,y)))
+      (bitor . ,(lambda (x y) `(bitwise-ior ,x ,y)))
+      (floordiv . ,(lambda (x y) `(floor-quotient ,x ,y)))
+      (lshift . ,(lambda (x y) `(arithmetic-lshift ,x ,y)))
+      (mod . ,(lambda (x y) `(modulo ,x ,y)))
+      (mul . ,(lambda (x y) `(* ,x ,y)))
+      (pow . ,(lambda (x y) `(expt ,x ,y)))
+      (rshift . ,(lambda (x y) `(arithmetic-shift ,x ,y)))
+      (sub . ,(lambda (x y) `(- ,x ,y)))
+      (truediv . ,(lambda (x y) `(/ ,x ,y)))
+      (xor . ,(lambda (x y) `(bitwise-xor ,x ,y)))
+      ;; inplace
+      (iadd . ,(lambda (x y) `(+ ,x ,y)))
+      (ibitand . ,(lambda (x y) `(bitwise-and ,x ,y)))
+      (ibitor . ,(lambda (x y) `(bitwise-ior ,x ,y)))
+      (ifloordiv . ,(lambda (x y) `(floor-quotient ,x ,y)))
+      (ilshift . ,(lambda (x y) `(arithmetic-lshift ,x ,y)))
+      (imod . ,(lambda (x y) `(modulo ,x ,y)))
+      (imul . ,(lambda (x y) `(* ,x ,y)))
+      (ipow . ,(lambda (x y) `(expt ,x ,y)))
+      (irshift . ,(lambda (x y) `(arithmetic-shift ,x ,y)))
+      (isub . ,(lambda (x y) `(- ,x ,y)))
+      (itruediv . ,(lambda (x y) `(/ ,x ,y)))
+      (ixor . ,(lambda (x y) `(bitwise-xor ,x ,y)))))
+
+  (define binary-int-float-op
+    `((add . ,(lambda (x y) `(+ ,x ,y)))
+      (floordiv . ,(lambda (x y) `(floor (/ ,x ,y))))
+      (mod . ,(lambda (x y) `(modulo ,x ,y)))
+      (mul . ,(lambda (x y) `(* ,x ,y)))
+      (pow . ,(lambda (x y) `(expt ,x ,y)))
+      (sub . ,(lambda (x y) `(- ,x ,y)))
+      (truediv . ,(lambda (x y) `(/ ,x ,y)))
+      ;; inplace
+      (iadd . ,(lambda (x y) `(+ ,x ,y)))
+      (ifloordiv . ,(lambda (x y) `(floor (/ ,x ,y))))
+      (imod . ,(lambda (x y) `(modulo ,x ,y)))
+      (imul . ,(lambda (x y) `(* ,x ,y)))
+      (ipow . ,(lambda (x y) `(expt ,x ,y)))
+      (isub . ,(lambda (x y) `(- ,x ,y)))
+      (itruediv . ,(lambda (x y) `(/ ,x ,y)))))
+
+  (define binary-float-int-op
+    `((add . ,(lambda (x y) `(+ ,x ,y)))
+      (floordiv . ,(lambda (x y) `(floor-quotient ,x ,y)))
+      (mod . ,(lambda (x y) `(modulo ,x ,y)))
+      (mul . ,(lambda (x y) `(* ,x ,y)))
+      (pow . ,(lambda (x y) `(expt ,x ,y)))
+      (sub . ,(lambda (x y) `(- ,x ,y)))
+      (truediv . ,(lambda (x y) `(/ ,x ,y)))
+      ;; inplace
+      (iadd . ,(lambda (x y) `(+ ,x ,y)))
+      (ifloordiv . ,(lambda (x y) `(floor-quotient ,x ,y)))
+      (imod . ,(lambda (x y) `(modulo ,x ,y)))
+      (imul . ,(lambda (x y) `(* ,x ,y)))
+      (ipow . ,(lambda (x y) `(expt ,x ,y)))
+      (isub . ,(lambda (x y) `(- ,x ,y)))
+      (itruediv . ,(lambda (x y) `(/ ,x ,y)))))
+
+  (define binary-float-float-op
+    `((add . ,(lambda (x y) `(fl+ ,x ,y)))
+      (floordiv . ,(lambda (x y) `(flfloor (fl/ ,x ,y))))
+      (mod . ,(lambda (x y) `(flmod ,x ,y))) ;; provided by rts
+      (mul . ,(lambda (x y) `(fl* ,x ,y)))
+      (pow . ,(lambda (x y) `(flexpt ,x ,y)))
+      (sub . ,(lambda (x y) `(fl- ,x ,y)))
+      (truediv . ,(lambda (x y) `(fl/ ,x ,y)))
+      ;; inplace
+      (iadd . ,(lambda (x y) `(fl+ ,x ,y)))
+      (floordiv . ,(lambda (x y) `(flfloor (fl/ ,x ,y))))
+      (imod . ,(lambda (x y) `(flmod ,x ,y))) ;; provided by rts
+      (imul . ,(lambda (x y) `(fl* ,x ,y)))
+      (ipow . ,(lambda (x y) `(flexpt ,x ,y)))
+      (isub . ,(lambda (x y) `(fl- ,x ,y)))
+      (itruediv . ,(lambda (x y) `(fl/ ,x , y)))))
+
+  (let ((form
+          (cond
+            ((and (memq lhs-type Uint-types) (memq rhs-type Uint-types))
+              (cdr (assq op binary-int-int-op)))
+            ((and (memq lhs-type Uint-types) (memq rhs-type Ufloat-types))
+              (cdr (assq op binary-int-float-op)))
+            ((and (memq lhs-type Ufloat-types) (memq rhs-type Uint-types))
+              (cdr (assq op binary-float-int-op)))
+            ((and (memq lhs-type Ufloat-types) (memq rhs-type Ufloat-types))
+              (cdr (assq op binary-float-float-op)))
+            (else
+              (error "scheme::dispatch-operator" "unknown dispatch" op)))))
+    (form lhs rhs)))
+
+
 (define-walk-method (scheme this::PycBinary conf)
   (let ((lhs-type-hint (PycBinary-lhs-type-hint this))
         (rhs-type-hint (PycBinary-rhs-type-hint this)))
     (if (or lhs-type-hint rhs-type-hint)
       (epairify this
-        `((dispatch-operator ',(PycBinary-op this) ',lhs-type-hint ',rhs-type-hint)
-          ,(scheme (PycBinary-lhs this) conf)
-          ,(scheme (PycBinary-rhs this) conf)))
+        (dispatch-operator
+            (PycBinary-op this)
+            lhs-type-hint
+            rhs-type-hint
+            (scheme (PycBinary-lhs this) conf)
+            (scheme (PycBinary-rhs this) conf)))
       (epairify this
         `(,(symbol-append 'py- (PycBinary-op this))
           ,(scheme (PycBinary-lhs this) conf)
