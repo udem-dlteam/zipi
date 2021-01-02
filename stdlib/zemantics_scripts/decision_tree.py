@@ -485,10 +485,10 @@ def partial_eval_specialize_intrinsic_function(func_name, args, keywords, ctx):
                     return ast.Call(ast.Name("sint_unbox"), args, keywords)
                 elif type_ == "bint":
                     return ast.Call(ast.Name("bint_unbox"), args, keywords)
-                elif type_ == "int":
-                    return ast.Call(ast.Name("int_unbox"), args, keywords)
+                elif type_ == "bool":
+                    return ast.Call(ast.Name("bool_unbox"), args, keywords)
                 elif issubclass(eval(type_), int):
-                    return ast.Call(ast.Name("int_subtype_unbox"), args, keywords)
+                    return ast.Call(ast.Name("int_unbox"), args, keywords)
 
     # No specialization
     return ast.Call(ast.Name(func_name), args, keywords)
@@ -525,7 +525,7 @@ def main_behaviors(semantics_file, builtins_file):
                 behavior_name = get_binary_behavior_name(semantics, left_type, right_type)
                 behavior_func_name = behavior_name.replace('-', '_')
                 define_behavior = "define_behavior"
-                other_intrinsics = "int_box, int_unbox, float_box, float_unbox, int_subtype_unbox, sint_unbox, bint_unbox"
+                other_intrinsics = "int_box, int_unbox, bool_unbox, float_box, float_unbox, sint_unbox, bint_unbox"
                 behavior_decorator_list = [ast.Name(f"{define_behavior}")]
 
                 try:

@@ -115,7 +115,7 @@
     (cons 'float_box (make-pragma-call-maker 'py-float-from-scheme))
     (cons 'int_box (make-pragma-call-maker 'py-int-from-scheme))
     (cons 'int_unbox (make-pragma-call-maker 'py-int-to-scheme))
-    (cons 'int_subtype_unbox (make-pragma-call-maker 'py-int-to-scheme))
+    (cons 'bool_unbox (make-pragma-call-maker 'py-bool-to-scheme))
     (cons 'sint_unbox (make-pragma-call-maker 'py-sint-to-scheme))
     (cons 'bint_unbox (make-pragma-call-maker 'py-bint-to-scheme))))
 
@@ -347,6 +347,7 @@
         (expr (PycPragma-expr fun)))
     (cond
       ((eq? expr 'py-int-to-scheme) 'Uint)
+      ((eq? expr 'py-bool-to-scheme) 'Usint)
       ((eq? expr 'py-sint-to-scheme) 'Usint)
       ((eq? expr 'py-bint-to-scheme) 'Ubint)
       ((eq? expr 'py-float-to-scheme) 'Ufloat)
