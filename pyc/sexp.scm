@@ -297,11 +297,12 @@
      ;; Compare(expr left, cmpop* ops, expr* comparators)
      (if (pair? (cdr ops))
          (error "Compare" "Not implemented" ops)
-         (new-PycBinary loc
-                        (compare-operator (car ops))
-                        (sexp left #f scope conf)
-                        (sexp (car rights) #f scope conf)
-                        type: 'bool)))
+         (let ((left-node (sexp left #f scope conf))
+               (right-nodes (sexp (car rights) #f scope conf)))
+           (new-PycBinary loc
+                          (compare-operator (car ops))
+                          left-node
+                          right-nodes))))
     ((Call ?loc ?fun ?args ?keywords)
      ;; Call(expr func, expr* args, keyword* keywords)
      (new-PycCall loc

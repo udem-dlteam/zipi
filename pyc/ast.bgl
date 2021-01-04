@@ -203,8 +203,8 @@
                              op::symbol
                              lhs::PycExpr
                              rhs::PycExpr
-                             (lhs-type-hint::symbol (default #f))
-                             (rhs-type-hint::symbol (default #f))
+                             (lhs-type-hint (default #f))
+                             (rhs-type-hint (default #f))
                              (cache (default #f)))
 
                 (final-class PycBoolOp::PycExpr
