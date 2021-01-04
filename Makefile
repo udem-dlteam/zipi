@@ -18,15 +18,24 @@ do: build
 -include etc/Makefile.zipiconfig
 
 #*---------------------------------------------------------------------*/
+#*    cPython venv                                                     */
+#*---------------------------------------------------------------------*/
+
+venv:
+	virtualenv --python=python3.8 venv
+	. ./venv/bin/activate; pip install -r requirements.txt
+
+#*---------------------------------------------------------------------*/
 #*    build                                                            */
 #*---------------------------------------------------------------------*/
 .PHONY: build clean distclean cleanall
 
-build:
+build: venv
 	mkdir -p bin
 	mkdir -p lib
 	$(MAKE) -C pyc
 	$(MAKE) -C zpc
+	$(MAKE) -C stdlib
 	$(MAKE) -C rts
 	rm -rf ./bin/pysexp.py; ln -s ../etc/pysexp.py ./bin/pysexp.py
 	chmod u+x ./etc/pysexp.py
@@ -81,6 +90,7 @@ distclean: clean
 	$(MAKE) -C stdlib distclean
 	rm -rf bin lib
 	rm -f etc/Makefile.zipiconfig
+	rm -rf venv
 
 cleanall: distclean
 

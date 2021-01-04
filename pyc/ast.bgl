@@ -203,6 +203,8 @@
                              op::symbol
                              lhs::PycExpr
                              rhs::PycExpr
+                             (lhs-type-hint (default #f))
+                             (rhs-type-hint (default #f))
                              (cache (default #f)))
 
                 (final-class PycBoolOp::PycExpr
@@ -281,10 +283,6 @@
 
                 (final-class PycStaticSexp::PycIntrinsics
                              value::pair-nil)
-
-                (final-class PycMacro::PycIntrinsics
-                             value::symbol
-                             args::pair-nil)
 
                 (genkey)
 
@@ -639,4 +637,3 @@
 (gen-walks PycUnimplemented)
 (gen-walks PycStatic)
 (gen-walks PycStaticSexp)
-(gen-walks PycMacro (args))

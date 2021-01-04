@@ -73,7 +73,10 @@
       (if (and
             (= args-len 2)
             (PycString? attr))
-        (new-PycMacro loc 'class_getattr 'getattribute-from-obj-mro args)
+        (new-PycCall
+          loc
+          (new-PycPragma loc 'getattribute-from-obj-mro)
+          args)
         (error "SyntaxError" "wrong argument for class_getattr" #f))))
 
 (define (make-call_host this)
@@ -84,10 +87,9 @@
       (if (and
             (>= args-len 1)
             (PycString? (car args)))
-        (new-PycMacro
+        (new-PycCall
           loc
-          'call_host
-          'call-host
+          (new-PycPragma loc 'call-host)
           (cons
             (new-PycStatic
               loc
@@ -96,10 +98,26 @@
             (cdr args)))
         (error "SyntaxError" "wrong argument for call_host" #f))))
 
+(define (make-pragma-call-maker name)
+  (lambda (this)
+    (let* ((loc (PycNode-loc this))
+          (args (PycCall-args this)))
+      (new-PycCall
+        loc
+        (new-PycPragma loc name)
+        args))))
+
 (define macro-intrinsics
   (list
     (cons 'class_getattr make-class_getattr)
-    (cons 'call_host make-call_host)))
+    (cons 'call_host make-call_host)
+    (cons 'float_unbox (make-pragma-call-maker 'py-float-to-scheme))
+    (cons 'float_box (make-pragma-call-maker 'py-float-from-scheme))
+    (cons 'int_box (make-pragma-call-maker 'py-int-from-scheme))
+    (cons 'int_unbox (make-pragma-call-maker 'py-int-to-scheme))
+    (cons 'bool_unbox (make-pragma-call-maker 'py-bool-to-scheme))
+    (cons 'sint_unbox (make-pragma-call-maker 'py-sint-to-scheme))
+    (cons 'bint_unbox (make-pragma-call-maker 'py-bint-to-scheme))))
 
 (define static-intrinsics
   (list
@@ -196,6 +214,7 @@
     (map car static-intrinsics)
     (map car macro-intrinsics)
     '(define_semantics
+      define_behavior
       inline
       use_static_builtins
       use_simple_scoping absent
@@ -240,6 +259,8 @@
       (begin
         (mark-define-semantics! this #f intrinsics-info)
         (lambda-lift-semantics! this)))
+  (if (member 'define_behavior intrinsics)
+    (mark-define-behavior! this intrinsics-info))
   (if (member 'inline intrinsics)
       (mark-inline-semantics this))
   (if (member 'builtin_class intrinsics)
@@ -321,6 +342,34 @@
           this))
       this)))
 
+(define (get-pragma-call-type-hint call)
+  (let* ((fun (PycCall-fun call))
+        (expr (PycPragma-expr fun)))
+    (cond
+      ((eq? expr 'py-int-to-scheme) 'Uint)
+      ((eq? expr 'py-bool-to-scheme) 'Usint)
+      ((eq? expr 'py-sint-to-scheme) 'Usint)
+      ((eq? expr 'py-bint-to-scheme) 'Ubint)
+      ((eq? expr 'py-float-to-scheme) 'Ufloat)
+      ((eq? expr 'py-int-from-scheme) 'int)
+      ((eq? expr 'py-sint-from-scheme) 'sint)
+      ((eq? expr 'py-bint-from-scheme) 'bint)
+      ((eq? expr 'py-float-from-scheme) 'float)
+      (else #f))))
+
+(define (get-expr-type-hint expr)
+  (if (and (PycCall? expr) (PycPragma? (PycCall-fun expr)))
+    (get-pragma-call-type-hint expr)
+    #f))
+
+(define-walk-method (resolve-statics! this::PycBinary intrinsics statics macros use-static-builtins)
+  (let* ((this (call-default-walker))
+        (lhs-type-hint (get-expr-type-hint (PycBinary-lhs this)))
+        (rhs-type-hint (get-expr-type-hint (PycBinary-rhs this))))
+    (PycBinary-lhs-type-hint-set! this lhs-type-hint)
+    (PycBinary-rhs-type-hint-set! this rhs-type-hint)
+    this))
+
 (define-walk-method (mark-use-simple-scoping! this::PycNode)
   (call-default-walker))
 
@@ -381,6 +430,60 @@
           name: (if is-decorated-semantics (symbol-append 'py- name) name)))
       (call-default-walker))))
 
+(define (make-behavior-name name)
+  (let ((schemified-chars
+          (let loop ((chars (string->list (symbol->string name))))
+            (if (null? chars)
+              chars
+              (let ((fst (car chars)))
+                (cons (if (char=? fst #\_) #\- fst) (loop (cdr chars))))))))
+    (string->symbol (string-append (list->string schemified-chars) "-fallback"))))
+
+(define-walk-method (mark-define-behavior! this::PycNode intrinsics-info)
+  (call-default-walker))
+
+(define-walk-method (mark-define-behavior! this::PycFun intrinsics-info)
+  (let* ((decorators (PycFun-decorators this))
+        (is-decorated-behavior (contains-PycRef-with-name? decorators 'define_behavior)))
+    (if is-decorated-behavior
+      (begin
+        (resolve-statics!
+          (PycFun-body this)
+          (car intrinsics-info)
+          (cadr intrinsics-info)
+          (caddr intrinsics-info)
+          #t)
+        (let* ((loc (PycNode-loc this))
+              (args (PycFun-args this))
+              (posonlyargs (PycFun-posonlyargs this))
+              (vararg (PycFun-vararg this))
+              (kwonlyargs (PycFun-kwonlyargs this))
+              (kw-defaults (PycFun-kw-defaults this))
+              (kwarg (PycFun-kwarg this))
+              (defaults (PycFun-defaults this))
+              (body (PycFun-body this))
+              (decls (PycFun-decls this))
+              (name (PycFun-name this)))
+          (new-PycSemantics
+            loc
+            args
+            posonlyargs
+            vararg
+            kwonlyargs
+            kw-defaults
+            kwarg
+            defaults
+            body
+            decorators:
+              (list-remove-pred
+                decorators
+                (lambda (d)
+                  (or (PycRef-with-name? d 'use_simple_scoping)
+                      (PycRef-with-name? d 'define_behavior))))
+            decls: decls
+            use-simple-scoping: #t
+            name: (make-behavior-name name)))))))
+
 (define (lambda-lift-semantics! module)
   (lambda-lift-semantics-walk! module))
 
@@ -430,10 +533,9 @@
         (args (PycCall-args this)))
     (if (and (isa? fun PycRefUnresolved) (eq? (PycRefUnresolved-id fun) old-name))
       (let ((ref-loc (PycNode-loc fun)))
-        (new-PycMacro
+        (new-PycCall
           loc
-          new-name
-          new-name
+          (new-PycPragma loc new-name)
           (append
             (map
               (lambda (name) (new-PycRefUnresolved ref-loc name))
@@ -649,10 +751,9 @@
       (let ((scheme-class (assq (PycRefUnresolved-id fun) builtins-class-table)))
         (if scheme-class
           (let ((loc (PycNode-loc this)))
-            (new-PycMacro
+            (new-PycCall
               loc
-              (car scheme-class)
-              (make-maker-name (cdr scheme-class))
+              (new-PycPragma loc (make-maker-name (cdr scheme-class)))
               (append
                 (list
                   (new-PycStatic loc 'arg1 (make-HClass-name (car scheme-class)))
@@ -716,12 +817,12 @@
   (if (and class self)
     (let ((lhs (PycAssig-lhs this)))
       (if (PycAccess? lhs)
-        (let ((obj (PycAccess-obj lhs)))
+        (let ((obj (PycAccess-obj lhs))
+              (loc (PycNode-loc this)))
           (if (and (PycRefUnresolved? obj) (eq? (PycRefUnresolved-id obj) self))
-            (new-PycMacro
-              (PycNode-loc obj)
-              class
-              (make-setter-name class (PycAccess-field lhs))
+            (new-PycCall
+              loc
+              (new-PycPragma loc (make-setter-name class (PycAccess-field lhs)))
               (list
                 (optimize-builtin-class-refs! obj builtins-class-table class self)
                 (optimize-builtin-class-refs! (PycAssig-rhs this) builtins-class-table class self)))
@@ -730,12 +831,12 @@
   (call-default-walker)))
 
 (define-walk-method (optimize-builtin-class-refs! this::PycAccess builtins-class-table class self)
-  (let ((obj (PycAccess-obj this)))
+  (let ((obj (PycAccess-obj this))
+        (loc (PycNode-loc this)))
     (if (and (PycRefUnresolved? obj) (eq? (PycRefUnresolved-id obj) self))
-      (new-PycMacro
-        (PycNode-loc obj)
-        class
-        (make-getter-name class (PycAccess-field this))
+      (new-PycCall
+        loc
+        (new-PycPragma loc (make-getter-name class (PycAccess-field this)))
         (list
           (optimize-builtin-class-refs! obj builtins-class-table class self)))
       (call-default-walker))))

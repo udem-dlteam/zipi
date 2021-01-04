@@ -189,6 +189,7 @@ class Version:
 
 class Template(Version):
     operations = templates.operations
+    symbols = templates.symbols
     arithmetic_template = templates.arithmetic_template
     inplace_arithmetic_template = templates.inplace_arithmetic_template
     main_template = templates.main_template
@@ -197,10 +198,12 @@ class Template(Version):
         self.content = self.init_template()
 
     def init_template(self):
-        arithmetic_templates = [self.arithmetic_template.format(op=op, magic_method=magic_method)
+        arithmetic_templates = [self.arithmetic_template.format(op=op, magic_method=magic_method,
+                                                                symbol=self.symbols[op])
                                 for op, magic_method in self.operations.items()]
 
-        inplace_arithmetic_templates = [self.inplace_arithmetic_template.format(op=op, magic_method=magic_method)
+        inplace_arithmetic_templates = [self.inplace_arithmetic_template.format(op=op, magic_method=magic_method,
+                                                                                symbol=self.symbols[op])
                                         for op, magic_method in self.operations.items()]
 
         arithmetic_semantics = '\n\n'.join(arithmetic_templates + inplace_arithmetic_templates)

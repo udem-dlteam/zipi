@@ -658,11 +658,60 @@
    (epairify this
       `(&& ,(PycLiteralValue-val this))))
 
+(define (dispatch-native-operator op)
+  (define ops
+    `((add . py+)
+      (bitand . py&)
+      (bitor . py+b) ;; TODO replace by |py\|| once supported by bigloo
+      (floordiv . py//)
+      (lshift . py<<)
+      (mod . py%)
+      (mul . py*)
+      (pow . py**)
+      (rshift . py>>)
+      (sub . py-)
+      (truediv . py/)
+      (xor . py^)
+      ;; inplace
+      (iadd . py+)
+      (ibitand . py&)
+      (ibitor . py+b) ;; TODO replace by |py\|| once supported by bigloo
+      (ifloordiv . py//)
+      (ilshift . py<<)
+      (imod . py%)
+      (imul . py*)
+      (ipow . py**)
+      (irshift . py>>)
+      (isub . py-)
+      (itruediv . py/)
+      (ixor . py^)))
+  (cdr (assq op ops)))
+
+
 (define-walk-method (scheme this::PycBinary conf)
-   (epairify this
+  (define native-types '(Uint Usint Ubint Ufloat))
+
+  (define (python-op)
+    (epairify this
       `(,(symbol-append 'py- (PycBinary-op this))
-	,(scheme (PycBinary-lhs this) conf)
-	,(scheme (PycBinary-rhs this) conf))))
+        ,(scheme (PycBinary-lhs this) conf)
+        ,(scheme (PycBinary-rhs this) conf))))
+
+  (define (scheme-op)
+    (epairify this
+      `(,(dispatch-native-operator (PycBinary-op this))
+        ,(scheme (PycBinary-lhs this) conf)
+        ,(scheme (PycBinary-rhs this) conf))))
+
+  (let ((lhs-type-hint (PycBinary-lhs-type-hint this))
+        (rhs-type-hint (PycBinary-rhs-type-hint this)))
+    (if (memq lhs-type-hint native-types)
+      (if (memq rhs-type-hint native-types)
+        (scheme-op)
+        (error "scheme::PycBinary" "operation between lhs native type and non-native type" rhs-type-hint))
+      (if (memq rhs-type-hint native-types)
+        (error "scheme::PycBinary" "operation between rhs native type and non-native type" lhs-type-hint)
+        (python-op)))))
 
 (define-walk-method (scheme this::PycUnary conf)
    (epairify this
@@ -1000,14 +1049,6 @@
 
 (define-walk-method (scheme this::PycStaticSexp conf)
   (PycStaticSexp-value this))
-
-(define-walk-method (scheme this::PycMacro conf)
-  (let* ((id (PycIntrinsics-id this))
-        (value (PycMacro-value this))
-        (args (PycMacro-args this)))
-    (if (eq? id 'class_getattr)
-      `(,value ,(scheme (car args) conf) (& ,(PycLiteralValue-val (cadr args))))
-      `(,value ,@(scheme* args conf)))))
 
 (define (scheme-cache cache node)
    (if (not (integer? cache))

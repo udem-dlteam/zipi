@@ -1,5 +1,9 @@
+# ======================================================================================================================
+#   semantics templates
+# ======================================================================================================================
+
 main_template = \
-"""from __compiler_intrinsics__ import define_semantics, inline, use_static_builtins, use_simple_scoping, class_getattr, absent
+    """from __compiler_intrinsics__ import define_semantics, inline, use_static_builtins, use_simple_scoping, class_getattr, absent
 
 {arithmetic}
 
@@ -75,7 +79,7 @@ def exit(obj, exc):
     # exit:end-body"""
 
 arithmetic_template = \
-"""# Auto-generated
+    """# Auto-generated
 @define_semantics
 @inline
 def {op}(x, y):
@@ -102,14 +106,14 @@ def {op}(x, y):
                 return result
 
     def err():
-        raise ValueError
+        raise TypeError("unsupported operand type(s) for {symbol}: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # {op}:start-body
     return normal()
     # {op}:end-body"""
 
 inplace_arithmetic_template = \
-"""# Auto-generated
+    """# Auto-generated
 @define_semantics
 @inline
 def i{op}(x, y):
@@ -147,11 +151,353 @@ def i{op}(x, y):
                 return result
 
     def err():
-        raise ValueError
+        raise TypeError("unsupported operand type(s) for {symbol}: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # i{op}:start-body
     return inplace()
     # i{op}:end-body"""
+
+# ======================================================================================================================
+#   int class templates
+# ======================================================================================================================
+
+
+int_binary_method_template = \
+    """
+    def __{method_name}__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                return int_box(int_unbox(self) {op} int_unbox(other))
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+"""
+
+int_reflected_binary_method_template = \
+    """
+    def __r{method_name}__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                return int_box(int_unbox(other) {op} int_unbox(self))
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__r{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+"""
+
+
+int_inplace_binary_method_template = \
+    """
+    def __i{method_name}__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                return int_box(int_unbox(self) {op} int_unbox(other))
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__i{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+"""
+
+
+int_division_method_template = \
+    """
+    def __{method_name}__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                if other != 0:
+                    return int_box(int_unbox(self) {op} int_unbox(other))
+                else:
+                    raise ZeroDivisionError("{error_message}")
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+"""
+
+int_reflected_division_method_template = \
+    """
+    def __r{method_name}__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                if self != 0:
+                    return int_box(int_unbox(other) {op} int_unbox(self))
+                else:
+                    raise ZeroDivisionError("{error_message}")
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__r{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+"""
+
+
+int_inplace_division_method_template = \
+    """
+    def __i{method_name}__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                if other != 0:
+                    return int_box(int_unbox(self) {op} int_unbox(other))
+                else:
+                    raise ZeroDivisionError("{error_message}")
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__i{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+"""
+
+
+class_int_template = \
+    """@builtin_class('{structure_name}')
+class int:
+    @staticmethod
+    def __new__(cls, val=absent):
+        if cls is int:
+            if val is absent:
+                return 0
+            if isinstance(val, int):
+                return int_box(int_unbox(val))
+            else:
+                raise NotImplementedError
+        else:
+            raise NotImplementedError
+            
+{methods}"""
+
+
+int_method_info = {
+    'add': {"method_name": "add", "op": "+"},
+    'bitand': {"method_name": "and", "op": "&"},
+    'bitor': {"method_name": "or", "op": "|"},
+    'lshift': {"method_name": "lshift", "op": "<<"},
+    'mul': {"method_name": "mul", "op": "*"},
+    'pow': {"method_name": "pow", "op": "**"},
+    'rshift': {"method_name": "rshift", "op": ">>"},
+    'sub': {"method_name": "sub", "op": "-"},
+    'xor': {"method_name": "xor", "op": "^"}
+}
+
+
+int_division_method_info = {
+    'floordiv': {"method_name": "floordiv", "op": "//", "error_message": "integer division by zero"},
+    'truediv': {"method_name": "truediv", "op": "/", "error_message": "division by zero"},
+    'mod': {"method_name": "mod", "op": "%", "error_message": "modulo by zero"}
+}
+
+# ======================================================================================================================
+#   int class templates
+# ======================================================================================================================
+
+
+bool_binary_method_template = \
+"""
+    def __{method_name}__(self, other):
+        if type(self) is bool:
+            if type(other) is bool:
+                return self {op} other
+            elif isinstance(other, int):
+                return int_box(int_unbox(self) {int_op} int_unbox(other))
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+"""
+
+bool_reflected_binary_method_template = \
+"""
+    def __r{method_name}__(self, other):
+        if type(self) is bool:
+            if type(other) is bool:
+                return other {op} self
+            elif isinstance(other, int):
+                return int_box(int_unbox(other) {int_op} int_unbox(self))
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__r{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+"""
+
+
+class_bool_template = \
+    """@builtin_class('{structure_name}')
+class bool(int):
+    @staticmethod
+    def __new__(cls, val=absent):
+        if cls is int:
+            if val is absent:
+                return False
+            else:
+                return bool(val)
+        else:
+            raise NotImplementedError
+{methods}"""
+
+bool_method_info = {
+    'bitand': {"method_name": "and", "op": "and", "int_op": "&"},
+    'bitor': {"method_name": "or", "op": "or", "int_op": "|"},
+    'xor': {"method_name": "xor", "op": "is not", "int_op": "^"}
+}
+
+
+# ======================================================================================================================
+#   float class templates
+# ======================================================================================================================
+
+
+float_binary_method_template = \
+"""
+    def __{method_name}__(self, other):
+        if isinstance(self, float):
+            if isinstance(other, float):
+                return float_box(float_unbox(self) {op} float_unbox(other))
+            elif isinstance(other, int):
+                return float_box(float_unbox(self) {op} int_unbox(other))
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__{method_name}__' requires a 'float' object but received a '" + type(self).__name__ + "'")
+"""
+
+float_reflected_binary_method_template = \
+    """
+    def __r{method_name}__(self, other):
+        if isinstance(self, float):
+            if isinstance(other, float):
+                return float_box(float_unbox(other) {op} float_unbox(self))
+            elif isinstance(other, int):
+                return float_box(int_unbox(other) {op} float_unbox(self))
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__r{method_name}__' requires a 'float' object but received a '" + type(self).__name__ + "'")
+"""
+
+float_inplace_binary_method_template = \
+    """
+    def __i{method_name}__(self, other):
+        if isinstance(self, float):
+            if isinstance(other, float):
+                return float_box(float_unbox(self) {op} float_unbox(other))
+            elif isinstance(self, int):
+                return float_box(float_unbox(self) {op} int_unbox(other))
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__i{method_name}__' requires a 'float' object but received a '" + type(self).__name__ + "'")
+"""
+
+float_division_method_template = \
+    """
+    def __{method_name}__(self, other):
+        if isinstance(self, float):
+            if isinstance(other, float):
+                if other != 0.0:
+                    return float_box(float_unbox(self) {op} float_unbox(other))
+                else:
+                    raise ZeroDivisionError("{error_message}")
+            elif isinstance(other, int):
+                if other != 0:
+                    return float_box(float_unbox(self) {op} int_unbox(other))
+                else:
+                    raise ZeroDivisionError("{error_message}")
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__{method_name}__' requires a 'float' object but received a '" + type(self).__name__ + "'")
+"""
+
+float_reflected_division_method_template = \
+    """
+    def __r{method_name}__(self, other):
+        if isinstance(self, float):
+            if isinstance(other, float):
+                if self != 0.0:
+                    return float_box(float_unbox(other) {op} float_unbox(self))
+                else:
+                    raise ZeroDivisionError("{error_message}")
+            elif isinstance(other, int):
+                if self != 0.0:
+                    return float_box(int_unbox(other) {op} float_unbox(self))
+                else:
+                    raise ZeroDivisionError("{error_message}")
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__r{method_name}__' requires a 'float' object but received a '" + type(self).__name__ + "'")
+"""
+
+float_inplace_division_method_template = \
+    """
+    def __i{method_name}__(self, other):
+        if isinstance(self, float):
+            if isinstance(other, float):
+                if other != 0.0:
+                    return float_box(float_unbox(self) {op} float_unbox(other))
+                else:
+                    raise ZeroDivisionError("{error_message}")
+            elif isinstance(other, int):
+                if other != 0:
+                    return float_box(float_unbox(self) {op} int_unbox(other))
+                else:
+                    raise ZeroDivisionError("{error_message}")
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__i{method_name}__' requires a 'float' object but received a '" + type(self).__name__ + "'")
+"""
+
+class_float_template = \
+    """@builtin_class('{structure_name}')
+class float:
+    @staticmethod
+    def __new__(cls, val=absent):
+        if cls is int:
+            if val is absent:
+                return 0.0
+            if isinstance(val, float):
+                return float_box(float_unbox(val))
+            else:
+                raise NotImplementedError
+        else:
+            raise NotImplementedError
+
+{methods}"""
+
+
+float_method_info = {
+    'add': {"method_name": "add", "op": "+"},
+    'bitand': {"method_name": "and", "op": "&"},
+    'bitor': {"method_name": "or", "op": "|"},
+    'lshift': {"method_name": "lshift", "op": "<<"},
+    'mul': {"method_name": "mul", "op": "*"},
+    'pow': {"method_name": "pow", "op": "**"},
+    'rshift': {"method_name": "rshift", "op": ">>"},
+    'sub': {"method_name": "sub", "op": "-"},
+    'xor': {"method_name": "xor", "op": "^"}
+}
+
+
+float_division_method_info = {
+    'floordiv': {"method_name": "floordiv", "op": "//", "error_message": "float division by zero"},
+    'truediv': {"method_name": "truediv", "op": "/", "error_message": "float division by zero"},
+    'mod': {"method_name": "mod", "op": "%", "error_message": "float modulo by zero"}
+}
+
+
+# ======================================================================================================================
+#   builtins class templates
+# =====================================================================================================================
+
+
+builtins_template = """from __compiler_intrinsics__ import absent, builtin_class, int_box, int_unbox, float_box, float_unbox
+
+{definitions}"""
+
+
+# ======================================================================================================================
+#   methods and names
+# ======================================================================================================================
+
 
 operations = {'add': 'add',
               'bitand': 'and',
@@ -166,3 +512,31 @@ operations = {'add': 'add',
               'sub': 'sub',
               'truediv': 'truediv',
               'xor': 'xor'}
+
+symbols = {'add': '+',
+           'bitand': '&',
+           'bitor': '|',
+           'floordiv': '//',
+           'lshift': '<<',
+           'matmul': '@',
+           'mod': '%',
+           'mul': '*',
+           'pow': '**',
+           'rshift': '>>',
+           'sub': '-',
+           'truediv': '/',
+           'xor': '^',
+           'iadd': '+=',
+           'ibitand': '&=',
+           'ibitor': '|=',
+           'ifloordiv': '//=',
+           'ilshift': '<<=',
+           'imatmul': '@=',
+           'imod': '%=',
+           'imul': '*=',
+           'ipow': '**=',
+           'irshift': '>>=',
+           'isub': '-=',
+           'itruediv': '/=',
+           'ixor': '^='
+           }
