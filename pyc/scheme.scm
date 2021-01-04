@@ -662,7 +662,7 @@
   (define ops
     `((add . py+)
       (bitand . py&)
-      (bitor . py?)
+      (bitor . py+b) ;; TODO replace by |py\|| once supported by bigloo
       (floordiv . py//)
       (lshift . py<<)
       (mod . py%)
@@ -675,7 +675,7 @@
       ;; inplace
       (iadd . py+)
       (ibitand . py&)
-      (ibitor . py?)
+      (ibitor . py+b) ;; TODO replace by |py\|| once supported by bigloo
       (ifloordiv . py//)
       (ilshift . py<<)
       (imod . py%)
