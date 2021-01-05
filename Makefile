@@ -88,7 +88,7 @@ distclean: clean
 	$(MAKE) -C zpc distclean
 	$(MAKE) -C rts distclean
 	$(MAKE) -C stdlib distclean
-	rm -rf bin lib
+	rm -rf lib
 	rm -f etc/Makefile.zipiconfig
 	rm -rf venv
 
