@@ -81,7 +81,6 @@ def exit(obj, exc):
 arithmetic_template = \
     """# Auto-generated
 @define_semantics
-@inline
 def {op}(x, y):
     def normal():
         magic_method = class_getattr(x, "__{magic_method}__")
@@ -115,7 +114,6 @@ def {op}(x, y):
 inplace_arithmetic_template = \
     """# Auto-generated
 @define_semantics
-@inline
 def i{op}(x, y):
     def inplace():
         magic_method = class_getattr(x, "__i{magic_method}__")
@@ -127,7 +125,7 @@ def i{op}(x, y):
                 return normal()
             else:
                 return result
-                
+
     def normal():
         magic_method = class_getattr(x, "__{magic_method}__")
         if magic_method is absent:
@@ -261,7 +259,7 @@ class int:
                 raise NotImplementedError
         else:
             raise NotImplementedError
-            
+
 {methods}"""
 
 

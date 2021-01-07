@@ -7,11 +7,35 @@
       (string->symbol (string-append "$" (symbol->string sym) "_" (number->string i)))))
 (define gensym-count 0)
 
+(define (collect-annotation-info arg-info loc scope conf)
+  (let* ((posonly (car arg-info))
+        (args (cadr arg-info))
+        (vararg (caddr arg-info))
+        (kwonly (cadddr arg-info))
+        (kwarg (list-ref arg-info 5))
+        (chained-args (append
+                        posonly
+                        args
+                        (if vararg (list vararg) '())
+                        kwonly
+                        (if kwarg (list kwarg) '()))))
+    (let loop ((chained-args chained-args) (names-acc '()) (ann-acc '()))
+      (if (null? chained-args)
+        (cons (reverse names-acc) (reverse ann-acc))
+        (let* ((arg (car chained-args))
+               (name (car arg))
+               (ann (cadr arg)))
+          (if ann
+            (loop (cdr chained-args)
+                  (cons name names-acc)
+                  (cons (sexp ann #f scope conf) ann-acc))
+            (loop (cdr chained-args)
+                  (cons (new-PycUninit loc) names-acc)
+                  (cons (new-PycUninit loc) ann-acc))))))))
+
 ;; The Python syntax parsed by this function is defined at the url:
 ;;    https://docs.python.org/3.8/library/ast.html
 (define (sexp exp tail scope conf)
-  (define (sexp-or-PycUninit loc e)
-    (if e (sexp e tail scope conf) (new-PycUninit loc)))
   (when (pair? exp)
     (match-case (car exp)
        ;; language detection
@@ -30,24 +54,27 @@
 
     ;; lambda
     ((Lambda ?loc ?args ?body . ?type_comment)
+      (let* ((annotation-info (collect-annotation-info args loc scope conf))
+             (annotation-names (car annotation-info))
+             (annotation (cdr annotation-info)))
      (new-PycFun
        loc
        ;; args
        (map (lambda (a)
-              (new-PycDecl loc (car a) 'local annotation: (sexp-or-PycUninit loc (cadr a))))
+              (new-PycDecl loc (car a) 'local))
             (car args))
        ;; posonlyargs
        (map (lambda (a)
-              (new-PycDecl loc (car a) 'local annotation: (sexp-or-PycUninit loc (cadr a))))
+              (new-PycDecl loc (car a) 'local))
             (cadr args))
        ;; vararg
        (let ((a (caddr args)))
          (if a
-             (new-PycDecl loc (car a) 'local annotation: (sexp-or-PycUninit loc (cadr a)))
+             (new-PycDecl loc (car a) 'local)
              (new-PycUninit loc)))
        ;; kwonlyargs
        (map (lambda (a)
-              (new-PycDecl loc (car a) 'local annotation: (sexp-or-PycUninit loc (cadr a))))
+              (new-PycDecl loc (car a) 'local))
             (list-ref args 3))
        ;; kw-defaults
        (map (lambda (a)
@@ -56,7 +83,7 @@
        ;; kwarg
        (let ((a (list-ref args 5)))
          (if a
-             (new-PycDecl loc (car a) 'local annotation: (sexp-or-PycUninit loc (cadr a)))
+             (new-PycDecl loc (car a) 'local)
              (new-PycUninit loc)))
        ;; defaults
        (map
@@ -67,32 +94,37 @@
        ;; body
        (let* ((body-ast (sexp body #t 'local conf))
               (body-loc (PycNode-loc body-ast)))
-         (new-PycSeq body-loc (list (new-PycReturn body-loc body-ast))))))
+         (new-PycSeq body-loc (list (new-PycReturn body-loc body-ast))))
+      annotation: annotation
+      annotation-names: annotation-names)))
 
     ;; stmt
     ((FunctionDef ?loc ?id ?args ?body ?decorator_list ?returns . ?type_comment)
      ;; FunctionDef(identifier name, arguments args,
      ;;             stmt* body, expr* decorator_list, expr? returns,
      ;;             string? type_comment)
+     (let* ((annotation-info (collect-annotation-info args loc scope conf))
+            (annotation-names (car annotation-info))
+            (annotation (cdr annotation-info)))
      (new-PycDeclInit loc id scope
        (new-PycFun
          loc
          ;; args
          (map (lambda (a)
-                (new-PycDecl loc (car a) 'local annotation: (sexp-or-PycUninit loc (cadr a))))
+                (new-PycDecl loc (car a) 'local))
               (car args))
          ;; posonlyargs
          (map (lambda (a)
-                (new-PycDecl loc (car a) 'local annotation: (sexp-or-PycUninit loc (cadr a))))
+                (new-PycDecl loc (car a) 'local))
               (cadr args))
          ;; vararg
          (let ((a (caddr args)))
            (if a
-               (new-PycDecl loc (car a) 'local annotation: (sexp-or-PycUninit loc (cadr a)))
+               (new-PycDecl loc (car a) 'local)
                (new-PycUninit loc)))
          ;; kwonlyargs
          (map (lambda (a)
-                (new-PycDecl loc (car a) 'local annotation: (sexp-or-PycUninit loc (cadr a))))
+                (new-PycDecl loc (car a) 'local))
               (list-ref args 3))
          ;; kw-defaults
          (map (lambda (a)
@@ -101,7 +133,7 @@
          ;; kwarg
          (let ((a (list-ref args 5)))
            (if a
-               (new-PycDecl loc (car a) 'local annotation: (sexp-or-PycUninit loc (cadr a)))
+               (new-PycDecl loc (car a) 'local)
                (new-PycUninit loc)))
          ;; defaults
          (map (lambda (a)
@@ -110,7 +142,9 @@
          (compile-stmt* loc body #t 'local conf)
          decorators: (map
                        (lambda (d) (sexp d #f scope conf)) decorator_list)
-         name: id)))
+         name: id
+         annotation: annotation
+         annotation-names: annotation-names))))
     ((ClassDef ?loc ?id ?bases ?keywords ?body ?decorator_list)
      ;; ClassDef(identifier name,
      ;;       expr* bases,

@@ -5,6 +5,8 @@ from functools import wraps
 from pprint import pprint
 from types import ModuleType
 
+import templates
+
 import astor.code_gen
 
 # ======================================================================================================================
@@ -83,9 +85,6 @@ def make_compiler_intrinsics_module():
     # Module attributes
     absent = object()
 
-    def inline(f):
-        return register_semantics(f.__name__, f)
-
     def use_static_builtins(f):
         return f
 
@@ -93,7 +92,10 @@ def make_compiler_intrinsics_module():
         return f
 
     def define_semantics(f):
-        return f
+        if f.__name__ in templates.symbols:
+            return register_semantics(f.__name__, f)
+        else:
+            return f
 
     def get_own_attr(obj, name):
         return obj.__dict__.get(name, None)
@@ -134,7 +136,7 @@ def make_compiler_intrinsics_module():
         return absent
 
     # Create module
-    _all = ["define_semantics", "inline", "use_static_builtins", "use_simple_scoping", "class_getattr", "absent"]
+    _all = ["define_semantics", "use_static_builtins", "use_simple_scoping", "class_getattr", "absent"]
     _doc = "A mock version of __compiler_intrinsics__ which registers cPython method calls"
 
     module = ModuleType("__compiler_intrinsics__")

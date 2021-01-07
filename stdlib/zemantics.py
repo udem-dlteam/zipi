@@ -1,8 +1,7 @@
-from __compiler_intrinsics__ import define_semantics, inline, use_static_builtins, use_simple_scoping, class_getattr, absent
+from __compiler_intrinsics__ import define_semantics, use_static_builtins, use_simple_scoping, class_getattr, absent
 
 # Auto-generated
 @define_semantics
-@inline
 def add(x, y):
     def normal():
         magic_method = class_getattr(x, "__add__")
@@ -35,7 +34,6 @@ def add(x, y):
 
 # Auto-generated
 @define_semantics
-@inline
 def bitand(x, y):
     def normal():
         magic_method = class_getattr(x, "__and__")
@@ -68,7 +66,6 @@ def bitand(x, y):
 
 # Auto-generated
 @define_semantics
-@inline
 def bitor(x, y):
     def normal():
         magic_method = class_getattr(x, "__or__")
@@ -101,7 +98,6 @@ def bitor(x, y):
 
 # Auto-generated
 @define_semantics
-@inline
 def floordiv(x, y):
     def normal():
         magic_method = class_getattr(x, "__floordiv__")
@@ -134,7 +130,6 @@ def floordiv(x, y):
 
 # Auto-generated
 @define_semantics
-@inline
 def lshift(x, y):
     def normal():
         magic_method = class_getattr(x, "__lshift__")
@@ -167,7 +162,6 @@ def lshift(x, y):
 
 # Auto-generated
 @define_semantics
-@inline
 def matmul(x, y):
     def normal():
         magic_method = class_getattr(x, "__matmul__")
@@ -200,7 +194,6 @@ def matmul(x, y):
 
 # Auto-generated
 @define_semantics
-@inline
 def mod(x, y):
     def normal():
         magic_method = class_getattr(x, "__mod__")
@@ -233,7 +226,6 @@ def mod(x, y):
 
 # Auto-generated
 @define_semantics
-@inline
 def mul(x, y):
     def normal():
         magic_method = class_getattr(x, "__mul__")
@@ -266,7 +258,6 @@ def mul(x, y):
 
 # Auto-generated
 @define_semantics
-@inline
 def pow(x, y):
     def normal():
         magic_method = class_getattr(x, "__pow__")
@@ -299,7 +290,6 @@ def pow(x, y):
 
 # Auto-generated
 @define_semantics
-@inline
 def rshift(x, y):
     def normal():
         magic_method = class_getattr(x, "__rshift__")
@@ -332,7 +322,6 @@ def rshift(x, y):
 
 # Auto-generated
 @define_semantics
-@inline
 def sub(x, y):
     def normal():
         magic_method = class_getattr(x, "__sub__")
@@ -365,7 +354,6 @@ def sub(x, y):
 
 # Auto-generated
 @define_semantics
-@inline
 def truediv(x, y):
     def normal():
         magic_method = class_getattr(x, "__truediv__")
@@ -398,7 +386,6 @@ def truediv(x, y):
 
 # Auto-generated
 @define_semantics
-@inline
 def xor(x, y):
     def normal():
         magic_method = class_getattr(x, "__xor__")
@@ -431,7 +418,6 @@ def xor(x, y):
 
 # Auto-generated
 @define_semantics
-@inline
 def iadd(x, y):
     def inplace():
         magic_method = class_getattr(x, "__iadd__")
@@ -443,7 +429,7 @@ def iadd(x, y):
                 return normal()
             else:
                 return result
-                
+
     def normal():
         magic_method = class_getattr(x, "__add__")
         if magic_method is absent:
@@ -475,7 +461,6 @@ def iadd(x, y):
 
 # Auto-generated
 @define_semantics
-@inline
 def ibitand(x, y):
     def inplace():
         magic_method = class_getattr(x, "__iand__")
@@ -487,7 +472,7 @@ def ibitand(x, y):
                 return normal()
             else:
                 return result
-                
+
     def normal():
         magic_method = class_getattr(x, "__and__")
         if magic_method is absent:
@@ -519,7 +504,6 @@ def ibitand(x, y):
 
 # Auto-generated
 @define_semantics
-@inline
 def ibitor(x, y):
     def inplace():
         magic_method = class_getattr(x, "__ior__")
@@ -531,7 +515,7 @@ def ibitor(x, y):
                 return normal()
             else:
                 return result
-                
+
     def normal():
         magic_method = class_getattr(x, "__or__")
         if magic_method is absent:
@@ -563,7 +547,6 @@ def ibitor(x, y):
 
 # Auto-generated
 @define_semantics
-@inline
 def ifloordiv(x, y):
     def inplace():
         magic_method = class_getattr(x, "__ifloordiv__")
@@ -575,7 +558,7 @@ def ifloordiv(x, y):
                 return normal()
             else:
                 return result
-                
+
     def normal():
         magic_method = class_getattr(x, "__floordiv__")
         if magic_method is absent:
@@ -607,7 +590,6 @@ def ifloordiv(x, y):
 
 # Auto-generated
 @define_semantics
-@inline
 def ilshift(x, y):
     def inplace():
         magic_method = class_getattr(x, "__ilshift__")
@@ -619,7 +601,7 @@ def ilshift(x, y):
                 return normal()
             else:
                 return result
-                
+
     def normal():
         magic_method = class_getattr(x, "__lshift__")
         if magic_method is absent:
@@ -651,7 +633,6 @@ def ilshift(x, y):
 
 # Auto-generated
 @define_semantics
-@inline
 def imatmul(x, y):
     def inplace():
         magic_method = class_getattr(x, "__imatmul__")
@@ -663,7 +644,7 @@ def imatmul(x, y):
                 return normal()
             else:
                 return result
-                
+
     def normal():
         magic_method = class_getattr(x, "__matmul__")
         if magic_method is absent:
@@ -695,7 +676,6 @@ def imatmul(x, y):
 
 # Auto-generated
 @define_semantics
-@inline
 def imod(x, y):
     def inplace():
         magic_method = class_getattr(x, "__imod__")
@@ -707,7 +687,7 @@ def imod(x, y):
                 return normal()
             else:
                 return result
-                
+
     def normal():
         magic_method = class_getattr(x, "__mod__")
         if magic_method is absent:
@@ -739,7 +719,6 @@ def imod(x, y):
 
 # Auto-generated
 @define_semantics
-@inline
 def imul(x, y):
     def inplace():
         magic_method = class_getattr(x, "__imul__")
@@ -751,7 +730,7 @@ def imul(x, y):
                 return normal()
             else:
                 return result
-                
+
     def normal():
         magic_method = class_getattr(x, "__mul__")
         if magic_method is absent:
@@ -783,7 +762,6 @@ def imul(x, y):
 
 # Auto-generated
 @define_semantics
-@inline
 def ipow(x, y):
     def inplace():
         magic_method = class_getattr(x, "__ipow__")
@@ -795,7 +773,7 @@ def ipow(x, y):
                 return normal()
             else:
                 return result
-                
+
     def normal():
         magic_method = class_getattr(x, "__pow__")
         if magic_method is absent:
@@ -827,7 +805,6 @@ def ipow(x, y):
 
 # Auto-generated
 @define_semantics
-@inline
 def irshift(x, y):
     def inplace():
         magic_method = class_getattr(x, "__irshift__")
@@ -839,7 +816,7 @@ def irshift(x, y):
                 return normal()
             else:
                 return result
-                
+
     def normal():
         magic_method = class_getattr(x, "__rshift__")
         if magic_method is absent:
@@ -871,7 +848,6 @@ def irshift(x, y):
 
 # Auto-generated
 @define_semantics
-@inline
 def isub(x, y):
     def inplace():
         magic_method = class_getattr(x, "__isub__")
@@ -883,7 +859,7 @@ def isub(x, y):
                 return normal()
             else:
                 return result
-                
+
     def normal():
         magic_method = class_getattr(x, "__sub__")
         if magic_method is absent:
@@ -915,7 +891,6 @@ def isub(x, y):
 
 # Auto-generated
 @define_semantics
-@inline
 def itruediv(x, y):
     def inplace():
         magic_method = class_getattr(x, "__itruediv__")
@@ -927,7 +902,7 @@ def itruediv(x, y):
                 return normal()
             else:
                 return result
-                
+
     def normal():
         magic_method = class_getattr(x, "__truediv__")
         if magic_method is absent:
@@ -959,7 +934,6 @@ def itruediv(x, y):
 
 # Auto-generated
 @define_semantics
-@inline
 def ixor(x, y):
     def inplace():
         magic_method = class_getattr(x, "__ixor__")
@@ -971,7 +945,7 @@ def ixor(x, y):
                 return normal()
             else:
                 return result
-                
+
     def normal():
         magic_method = class_getattr(x, "__xor__")
         if magic_method is absent:

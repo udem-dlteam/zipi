@@ -215,7 +215,6 @@
     (map car macro-intrinsics)
     '(define_semantics
       define_behavior
-      inline
       use_static_builtins
       use_simple_scoping absent
       builtin_class)))
@@ -261,8 +260,6 @@
         (lambda-lift-semantics! this)))
   (if (member 'define_behavior intrinsics)
     (mark-define-behavior! this intrinsics-info))
-  (if (member 'inline intrinsics)
-      (mark-inline-semantics this))
   (if (member 'builtin_class intrinsics)
       (mark-builtin-class-semantics! this))
   this))
@@ -386,6 +383,12 @@
 (define-walk-method (mark-define-semantics! this::PycNode parent-semantics intrinsics-info)
   (call-default-walker))
 
+(define (is-inlined-semantics name)
+  (not (not
+    (memq name '(add bitand bitor floordiv lshift matmul mod mul pow rshift sub
+                 truediv xor iadd ibitand ibitor ifloordiv ilshift imatmul imod
+                 imul ipow irshift isub itruediv ixor)))))
+
 (define-walk-method (mark-define-semantics! this::PycFun parent-semantics intrinsics-info)
   (let* ((decorators (PycFun-decorators this))
         (is-decorated-semantics (contains-PycRef-with-name? decorators 'define_semantics)))
@@ -408,7 +411,9 @@
             (defaults (PycFun-defaults res))
             (body (PycFun-body res))
             (decls (PycFun-decls res))
-            (name (PycFun-name res)))
+            (name (PycFun-name res))
+            (annotation (PycFun-annotation this))
+            (annotation-names (PycFun-annotation-names this)))
         (new-PycSemantics
           loc
           args
@@ -427,7 +432,10 @@
                     (PycRef-with-name? d 'define_semantics))))
           decls: decls
           use-simple-scoping: #t
-          name: (if is-decorated-semantics (symbol-append 'py- name) name)))
+          name: (if is-decorated-semantics (symbol-append 'py- name) name)
+          annotation: annotation
+          annotation-names: annotation-names
+          inline: (if is-decorated-semantics (is-inlined-semantics name) #f)))
       (call-default-walker))))
 
 (define (schemify-name name)
@@ -449,23 +457,24 @@
 
 (define inlined-binary-behaviors '((sint sint) (float float)))
 
-(define (args-have-inlined-annotation args)
-  (let loop ((annotations inlined-binary-behaviors))
-    (if (null? annotations)
-      #f
-      (let ((ann (car annotations)))
-        (if (= (length args) (length ann))
-          (let inner-loop ((args args) (ann ann))
-            (if (null? args)
-              #t
-              (let ((arg-ann (PycDecl-annotation (car args))))
-                (if arg-ann
-                  (if (and (PycRefUnresolved? arg-ann)
-                      (eq? (PycRefUnresolved-id arg-ann) (car ann)))
-                    (inner-loop (cdr args) (cdr ann))
-                    (loop (cdr annotations)))
-                  #f))))
-          (loop (cdr annotations)))))))
+(define (PycSemantics-has-inlinable-annotation fn)
+  (let ((fn-annotation (PycFun-annotation fn)))
+    (let loop ((annotations inlined-binary-behaviors))
+      (if (null? annotations)
+        #f
+        (let ((ann (car annotations)))
+          (if (= (length fn-annotation) (length ann))
+            (let inner-loop ((fn-annotation fn-annotation) (ann ann))
+              (if (null? fn-annotation)
+                #t
+                (let ((arg-ann (car fn-annotation)))
+                  (if (not (PycUninit? arg-ann))
+                    (if (and (PycRefUnresolved? arg-ann)
+                        (eq? (PycRefUnresolved-id arg-ann) (car ann)))
+                      (inner-loop (cdr fn-annotation) (cdr ann))
+                      (loop (cdr annotations)))
+                    #f))))
+            (loop (cdr annotations))))))))
 
 (define-walk-method (mark-define-behavior! this::PycFun intrinsics-info)
   (let* ((loc (PycNode-loc this))
@@ -480,7 +489,9 @@
             (kwarg (PycFun-kwarg this))
             (defaults (PycFun-defaults this))
             (body (PycFun-body this))
-            (decls (PycFun-decls this)))
+            (decls (PycFun-decls this))
+            (annotation (PycFun-annotation this))
+            (annotation-names (PycFun-annotation-names this)))
         (new-PycSemantics
           loc
           args
@@ -500,6 +511,8 @@
           decls: decls
           use-simple-scoping: #t
           name: name
+          annotation: annotation
+          annotation-names: annotation-names
           inline: inline)))
     (if is-decorated-behavior
       (let ((name (PycFun-name this)))
@@ -509,7 +522,7 @@
           (cadr intrinsics-info)
           (caddr intrinsics-info)
           #t)
-        (if (args-have-inlined-annotation args)
+        (if (PycSemantics-has-inlinable-annotation this)
           ;; TODO: both semantics have the same (eq?) body, might be safer to make a deepcopy
           (new-PycSeq
             loc
@@ -698,27 +711,6 @@
         (else
           (cons (remove-semantics-decl! (car nodes)) (filter (cdr nodes)))))))
   this)
-
-;; mark-inline-semantics!
-
-(define-walk-method (mark-inline-semantics this::PycNode)
-  (call-default-walker))
-
-(define-walk-method (mark-inline-semantics this::PycFun)
-  (let ((decorators (PycFun-decorators this)))
-    (if (contains-PycRef-with-name? decorators 'inline)
-      (error "@inline" "can only be used on semantics not function" this))
-    this))
-
-(define-walk-method (mark-inline-semantics this::PycSemantics)
-  (let ((decorators (PycFun-decorators this)))
-    (if (contains-PycRef-with-name? decorators 'inline)
-      (begin
-        (PycSemantics-inline-set! this #t)
-        (PycFun-decorators-set!
-          this
-          (list-remove-pred decorators (lambda (d) (PycRef-with-name? d 'inline))))))
-    this))
 
 ;; mark-builtin-class-semantics!
 
