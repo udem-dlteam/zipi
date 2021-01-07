@@ -1,6 +1,6 @@
 from __compiler_intrinsics__ import absent, builtin_class, int_box, int_unbox, float_box, float_unbox
 
-@builtin_class('PyObjectInt')
+@builtin_class
 class int:
     @staticmethod
     def __new__(cls, val=absent):
@@ -13,7 +13,7 @@ class int:
                 raise NotImplementedError
         else:
             raise NotImplementedError
-            
+
 
     def __add__(self, other):
         if isinstance(self, int):
@@ -367,7 +367,7 @@ class int:
             raise TypeError("descriptor '__imod__' requires a 'int' object but received a '" + type(self).__name__ + "'")
 
 
-@builtin_class('PyObjectInt')
+@builtin_class
 class bool(int):
     @staticmethod
     def __new__(cls, val=absent):
@@ -446,7 +446,7 @@ class bool(int):
             raise TypeError("descriptor '__rxor__' requires a 'int' object but received a '" + type(self).__name__ + "'")
 
 
-@builtin_class('PyObjectFloat')
+@builtin_class
 class float:
     @staticmethod
     def __new__(cls, val=absent):

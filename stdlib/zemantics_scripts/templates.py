@@ -3,7 +3,7 @@
 # ======================================================================================================================
 
 main_template = \
-    """from __compiler_intrinsics__ import define_semantics, inline, use_static_builtins, use_simple_scoping, class_getattr, absent
+    """from __compiler_intrinsics__ import define_semantics, use_static_builtins, use_simple_scoping, class_getattr, absent
 
 {arithmetic}
 
@@ -246,7 +246,7 @@ int_inplace_division_method_template = \
 
 
 class_int_template = \
-    """@builtin_class('{structure_name}')
+    """@builtin_class
 class int:
     @staticmethod
     def __new__(cls, val=absent):
@@ -317,7 +317,7 @@ bool_reflected_binary_method_template = \
 
 
 class_bool_template = \
-    """@builtin_class('{structure_name}')
+    """@builtin_class
 class bool(int):
     @staticmethod
     def __new__(cls, val=absent):
@@ -445,7 +445,7 @@ float_inplace_division_method_template = \
 """
 
 class_float_template = \
-    """@builtin_class('{structure_name}')
+    """@builtin_class
 class float:
     @staticmethod
     def __new__(cls, val=absent):

@@ -4,7 +4,7 @@ from __compiler_intrinsics__ import absent, builtin_class
 # Builtins
 # ==============================================================================
 
-@builtin_class("PyObjectRangeIterator")
+@builtin_class
 class range_iterator:
     def __iter__(self, /):
         return self
@@ -25,7 +25,7 @@ class range_iterator:
 
         raise StopIteration
 
-@builtin_class("PyObjectRange")
+@builtin_class
 class range:
     def __new__(cls, arg1, arg2=absent, arg3=absent, /):
         if arg3 is not absent:

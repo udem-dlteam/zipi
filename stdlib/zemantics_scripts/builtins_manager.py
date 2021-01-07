@@ -3,7 +3,7 @@ import argparse
 import templates
 
 
-def init_number_class(*, class_template, structure_name, method_info, division_method_info,
+def init_number_class(*, class_template, method_info, division_method_info,
                       binary_method_template, reflected_binary_method, inplace_binary_method,
                       division_method_template, reflected_division_method_template, inplace_division_method):
     int_methods = ""
@@ -18,12 +18,11 @@ def init_number_class(*, class_template, structure_name, method_info, division_m
         int_methods += reflected_division_method_template.format(**data)
         int_methods += inplace_division_method.format(**data)
 
-    return class_template.format(structure_name=structure_name, methods=int_methods)
+    return class_template.format(methods=int_methods)
 
 
 def main_init(path):
     int_class = init_number_class(class_template=templates.class_int_template,
-                                  structure_name="PyObjectInt",
                                   method_info=templates.int_method_info,
                                   division_method_info=templates.int_division_method_info,
                                   binary_method_template=templates.int_binary_method_template,
@@ -34,7 +33,6 @@ def main_init(path):
                                   inplace_division_method=templates.int_inplace_division_method_template)
 
     bool_class = init_number_class(class_template=templates.class_bool_template,
-                                   structure_name="PyObjectInt",
                                    method_info=templates.bool_method_info,
                                    division_method_info={},
                                    binary_method_template=templates.bool_binary_method_template,
@@ -45,7 +43,6 @@ def main_init(path):
                                    inplace_division_method="")
 
     float_class = init_number_class(class_template=templates.class_float_template,
-                                    structure_name="PyObjectFloat",
                                     method_info=templates.float_method_info,
                                     division_method_info=templates.float_division_method_info,
                                     binary_method_template=templates.float_binary_method_template,

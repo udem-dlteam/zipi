@@ -742,14 +742,27 @@
     (or (get-builtin-class-decorator-name (car decorators))
         (find-class-decorator-name (cdr decorators)))))
 
+(define builtin-class-structure-name-assoc-list
+  '((int . PyObjectInt)
+    (bool . PyObjectInt)
+    (float . PyObjectFloat)
+    (range . PyObjectRange)
+    (range_iterator . PyObjectRangeIterator)))
+
+(define (get-builtin-class-structure-name class-name)
+  (let ((res (assq class-name builtin-class-structure-name-assoc-list)))
+    (if res
+      (cdr res)
+      (error "get-builtin-class-structure-name" "unknown structure for class" class-name))))
+
 (define-walk-method (collect-builtins-class-usage* this::PycClass)
   (let* ((decorators (PycClass-decorators this))
-        (class-decorator-name (find-class-decorator-name decorators)))
-    (if class-decorator-name
+        (name (string->symbol (PycClass-name this))))
+    (if (contains-PycRef-with-name? decorators 'builtin_class)
       (cons
         (cons
-          (string->symbol (PycClass-name this))
-          (string->symbol class-decorator-name))
+          name
+          (get-builtin-class-structure-name name))
         (call-default-walker))
       (call-default-walker))))
 
