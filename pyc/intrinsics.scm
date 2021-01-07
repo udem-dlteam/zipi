@@ -430,59 +430,93 @@
           name: (if is-decorated-semantics (symbol-append 'py- name) name)))
       (call-default-walker))))
 
-(define (make-behavior-name name)
-  (let ((schemified-chars
-          (let loop ((chars (string->list (symbol->string name))))
-            (if (null? chars)
-              chars
-              (let ((fst (car chars)))
-                (cons (if (char=? fst #\_) #\- fst) (loop (cdr chars))))))))
-    (string->symbol (string-append (list->string schemified-chars) "-fallback"))))
+(define (schemify-name name)
+  (list->string
+    (let loop ((chars (string->list (symbol->string name))))
+      (if (null? chars)
+        chars
+        (let ((fst (car chars)))
+          (cons (if (char=? fst #\_) #\- fst) (loop (cdr chars))))))))
+
+(define (make-fallback-behavior-name name)
+  (string->symbol (string-append (schemify-name name) "-fallback")))
+
+(define (make-inline-behavior-name name)
+  (string->symbol (string-append (schemify-name name) "-inline")))
 
 (define-walk-method (mark-define-behavior! this::PycNode intrinsics-info)
   (call-default-walker))
 
+(define inlined-binary-behaviors '((sint sint) (float float)))
+
+(define (args-have-inlined-annotation args)
+  (let loop ((annotations inlined-binary-behaviors))
+    (if (null? annotations)
+      #f
+      (let ((ann (car annotations)))
+        (if (= (length args) (length ann))
+          (let inner-loop ((args args) (ann ann))
+            (if (null? args)
+              #t
+              (let ((arg-ann (PycDecl-annotation (car args))))
+                (if arg-ann
+                  (if (and (PycRefUnresolved? arg-ann)
+                      (eq? (PycRefUnresolved-id arg-ann) (car ann)))
+                    (inner-loop (cdr args) (cdr ann))
+                    (loop (cdr annotations)))
+                  #f))))
+          (loop (cdr annotations)))))))
+
 (define-walk-method (mark-define-behavior! this::PycFun intrinsics-info)
-  (let* ((decorators (PycFun-decorators this))
+  (let* ((loc (PycNode-loc this))
+        (args (PycFun-args this))
+        (posonlyargs (PycFun-posonlyargs this))
+        (decorators (PycFun-decorators this))
         (is-decorated-behavior (contains-PycRef-with-name? decorators 'define_behavior)))
+    (define (make-behavior name inline)
+      (let* ((vararg (PycFun-vararg this))
+            (kwonlyargs (PycFun-kwonlyargs this))
+            (kw-defaults (PycFun-kw-defaults this))
+            (kwarg (PycFun-kwarg this))
+            (defaults (PycFun-defaults this))
+            (body (PycFun-body this))
+            (decls (PycFun-decls this)))
+        (new-PycSemantics
+          loc
+          args
+          posonlyargs
+          vararg
+          kwonlyargs
+          kw-defaults
+          kwarg
+          defaults
+          body
+          decorators:
+            (list-remove-pred
+              decorators
+              (lambda (d)
+                (or (PycRef-with-name? d 'use_simple_scoping)
+                    (PycRef-with-name? d 'define_behavior))))
+          decls: decls
+          use-simple-scoping: #t
+          name: name
+          inline: inline)))
     (if is-decorated-behavior
-      (begin
+      (let ((name (PycFun-name this)))
         (resolve-statics!
           (PycFun-body this)
           (car intrinsics-info)
           (cadr intrinsics-info)
           (caddr intrinsics-info)
           #t)
-        (let* ((loc (PycNode-loc this))
-              (args (PycFun-args this))
-              (posonlyargs (PycFun-posonlyargs this))
-              (vararg (PycFun-vararg this))
-              (kwonlyargs (PycFun-kwonlyargs this))
-              (kw-defaults (PycFun-kw-defaults this))
-              (kwarg (PycFun-kwarg this))
-              (defaults (PycFun-defaults this))
-              (body (PycFun-body this))
-              (decls (PycFun-decls this))
-              (name (PycFun-name this)))
-          (new-PycSemantics
+        (if (args-have-inlined-annotation args)
+          ;; TODO: both semantics have the same (eq?) body, might be safer to make a deepcopy
+          (new-PycSeq
             loc
-            args
-            posonlyargs
-            vararg
-            kwonlyargs
-            kw-defaults
-            kwarg
-            defaults
-            body
-            decorators:
-              (list-remove-pred
-                decorators
-                (lambda (d)
-                  (or (PycRef-with-name? d 'use_simple_scoping)
-                      (PycRef-with-name? d 'define_behavior))))
-            decls: decls
-            use-simple-scoping: #t
-            name: (make-behavior-name name)))))))
+            (list
+              (make-behavior (make-fallback-behavior-name name) #f)
+              (make-behavior (make-inline-behavior-name name) #t)))
+          (make-behavior (make-fallback-behavior-name name) #f))))))
 
 (define (lambda-lift-semantics! module)
   (lambda-lift-semantics-walk! module))

@@ -26,6 +26,11 @@
   (py-float-from-scheme
    (py+ (py-float-to-scheme self20) (py-float-to-scheme other21))))
 
+(define-macro (py-add-floatX-floatY-inline self20 other21)
+  `(let ((self20 ,self20) (other21 ,other21))
+     (py-float-from-scheme
+      (py+ (py-float-to-scheme self20) (py-float-to-scheme other21)))))
+
 (define (py-add-floatX-boolY-fallback self23 other24)
   (py-float-from-scheme
    (py+ (py-float-to-scheme self23) (py-bool-to-scheme other24))))
@@ -73,6 +78,11 @@
 (define (py-add-sintX-sintY-fallback self56 other57)
   (py-int-from-scheme
    (py+ (py-sint-to-scheme self56) (py-sint-to-scheme other57))))
+
+(define-macro (py-add-sintX-sintY-inline self56 other57)
+  `(let ((self56 ,self56) (other57 ,other57))
+     (py-int-from-scheme
+      (py+ (py-sint-to-scheme self56) (py-sint-to-scheme other57)))))
 
 (define (py-add-sintX-bintY-fallback self59 other60)
   (py-int-from-scheme
@@ -129,6 +139,12 @@
    (py-call py-builtin-TypeError
             (&& "unsupported operand type(s) for &: 'float' and 'float'"))))
 
+(define-macro (py-bitand-floatX-floatY-inline self95 other96)
+  `(let ((self95 ,self95) (other96 ,other96))
+     (py-throw
+      (py-call py-builtin-TypeError
+               (&& "unsupported operand type(s) for &: 'float' and 'float'")))))
+
 (define (py-bitand-floatX-boolY-fallback self98 other99)
   (py-throw
    (py-call py-builtin-TypeError
@@ -181,6 +197,11 @@
   (py-int-from-scheme
    (py& (py-sint-to-scheme self131) (py-sint-to-scheme other132))))
 
+(define-macro (py-bitand-sintX-sintY-inline self131 other132)
+  `(let ((self131 ,self131) (other132 ,other132))
+     (py-int-from-scheme
+      (py& (py-sint-to-scheme self131) (py-sint-to-scheme other132)))))
+
 (define (py-bitand-sintX-bintY-fallback self134 other135)
   (py-int-from-scheme
    (py& (py-sint-to-scheme self134) (py-bint-to-scheme other135))))
@@ -208,7 +229,7 @@
 
 (define (py-bitor-intX-intY-fallback self152 other153)
   (py-int-from-scheme
-   (|py\|| (py-int-to-scheme self152) (py-int-to-scheme other153))))
+   (py+b (py-int-to-scheme self152) (py-int-to-scheme other153))))
 
 (define (py-bitor-intX-floatY-fallback self155 other156)
   (py-throw
@@ -217,15 +238,15 @@
 
 (define (py-bitor-intX-boolY-fallback self158 other159)
   (py-int-from-scheme
-   (|py\|| (py-int-to-scheme self158) (py-bool-to-scheme other159))))
+   (py+b (py-int-to-scheme self158) (py-bool-to-scheme other159))))
 
 (define (py-bitor-intX-sintY-fallback self161 other162)
   (py-int-from-scheme
-   (|py\|| (py-int-to-scheme self161) (py-sint-to-scheme other162))))
+   (py+b (py-int-to-scheme self161) (py-sint-to-scheme other162))))
 
 (define (py-bitor-intX-bintY-fallback self164 other165)
   (py-int-from-scheme
-   (|py\|| (py-int-to-scheme self164) (py-bint-to-scheme other165))))
+   (py+b (py-int-to-scheme self164) (py-bint-to-scheme other165))))
 
 (define (py-bitor-floatX-intY-fallback self167 other168)
   (py-throw
@@ -236,6 +257,12 @@
   (py-throw
    (py-call py-builtin-TypeError
             (&& "unsupported operand type(s) for |: 'float' and 'float'"))))
+
+(define-macro (py-bitor-floatX-floatY-inline self170 other171)
+  `(let ((self170 ,self170) (other171 ,other171))
+     (py-throw
+      (py-call py-builtin-TypeError
+               (&& "unsupported operand type(s) for |: 'float' and 'float'")))))
 
 (define (py-bitor-floatX-boolY-fallback self173 other174)
   (py-throw
@@ -254,7 +281,7 @@
 
 (define (py-bitor-boolX-intY-fallback self182 other183)
   (py-int-from-scheme
-   (|py\|| (py-bool-to-scheme self182) (py-int-to-scheme other183))))
+   (py+b (py-bool-to-scheme self182) (py-int-to-scheme other183))))
 
 (define (py-bitor-boolX-floatY-fallback self185 other186)
   (py-throw
@@ -266,15 +293,15 @@
 
 (define (py-bitor-boolX-sintY-fallback self191 other192)
   (py-int-from-scheme
-   (|py\|| (py-bool-to-scheme self191) (py-sint-to-scheme other192))))
+   (py+b (py-bool-to-scheme self191) (py-sint-to-scheme other192))))
 
 (define (py-bitor-boolX-bintY-fallback self194 other195)
   (py-int-from-scheme
-   (|py\|| (py-bool-to-scheme self194) (py-bint-to-scheme other195))))
+   (py+b (py-bool-to-scheme self194) (py-bint-to-scheme other195))))
 
 (define (py-bitor-sintX-intY-fallback self197 other198)
   (py-int-from-scheme
-   (|py\|| (py-sint-to-scheme self197) (py-int-to-scheme other198))))
+   (py+b (py-sint-to-scheme self197) (py-int-to-scheme other198))))
 
 (define (py-bitor-sintX-floatY-fallback self200 other201)
   (py-throw
@@ -283,19 +310,24 @@
 
 (define (py-bitor-sintX-boolY-fallback self203 other204)
   (py-int-from-scheme
-   (|py\|| (py-sint-to-scheme self203) (py-bool-to-scheme other204))))
+   (py+b (py-sint-to-scheme self203) (py-bool-to-scheme other204))))
 
 (define (py-bitor-sintX-sintY-fallback self206 other207)
   (py-int-from-scheme
-   (|py\|| (py-sint-to-scheme self206) (py-sint-to-scheme other207))))
+   (py+b (py-sint-to-scheme self206) (py-sint-to-scheme other207))))
+
+(define-macro (py-bitor-sintX-sintY-inline self206 other207)
+  `(let ((self206 ,self206) (other207 ,other207))
+     (py-int-from-scheme
+      (py+b (py-sint-to-scheme self206) (py-sint-to-scheme other207)))))
 
 (define (py-bitor-sintX-bintY-fallback self209 other210)
   (py-int-from-scheme
-   (|py\|| (py-sint-to-scheme self209) (py-bint-to-scheme other210))))
+   (py+b (py-sint-to-scheme self209) (py-bint-to-scheme other210))))
 
 (define (py-bitor-bintX-intY-fallback self212 other213)
   (py-int-from-scheme
-   (|py\|| (py-bint-to-scheme self212) (py-int-to-scheme other213))))
+   (py+b (py-bint-to-scheme self212) (py-int-to-scheme other213))))
 
 (define (py-bitor-bintX-floatY-fallback self215 other216)
   (py-throw
@@ -304,15 +336,15 @@
 
 (define (py-bitor-bintX-boolY-fallback self218 other219)
   (py-int-from-scheme
-   (|py\|| (py-bint-to-scheme self218) (py-bool-to-scheme other219))))
+   (py+b (py-bint-to-scheme self218) (py-bool-to-scheme other219))))
 
 (define (py-bitor-bintX-sintY-fallback self221 other222)
   (py-int-from-scheme
-   (|py\|| (py-bint-to-scheme self221) (py-sint-to-scheme other222))))
+   (py+b (py-bint-to-scheme self221) (py-sint-to-scheme other222))))
 
 (define (py-bitor-bintX-bintY-fallback self224 other225)
   (py-int-from-scheme
-   (|py\|| (py-bint-to-scheme self224) (py-bint-to-scheme other225))))
+   (py+b (py-bint-to-scheme self224) (py-bint-to-scheme other225))))
 
 (define (py-floordiv-intX-intY-fallback self227 other228)
   (if (py-test (py-ne other228 (py-int-from-scheme 0)))
@@ -366,6 +398,15 @@
        (py// (py-float-to-scheme self245) (py-float-to-scheme other246)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
+
+(define-macro (py-floordiv-floatX-floatY-inline self245 other246)
+  `(let ((self245 ,self245) (other246 ,other246))
+     (if (py-test (py-ne other246 (py-float-from-scheme 0.)))
+         (py-float-from-scheme
+          (py// (py-float-to-scheme self245) (py-float-to-scheme other246)))
+         (py-throw
+          (py-call py-builtin-ZeroDivisionError
+                   (&& "float division by zero"))))))
 
 (define (py-floordiv-floatX-boolY-fallback self248 other249)
   (if (py-test (py-ne other249 (py-int-from-scheme 0)))
@@ -458,6 +499,15 @@
        (py-call py-builtin-ZeroDivisionError
                 (&& "integer division by zero")))))
 
+(define-macro (py-floordiv-sintX-sintY-inline self281 other282)
+  `(let ((self281 ,self281) (other282 ,other282))
+     (if (py-test (py-ne other282 (py-int-from-scheme 0)))
+         (py-int-from-scheme
+          (py// (py-sint-to-scheme self281) (py-sint-to-scheme other282)))
+         (py-throw
+          (py-call py-builtin-ZeroDivisionError
+                   (&& "integer division by zero"))))))
+
 (define (py-floordiv-sintX-bintY-fallback self284 other285)
   (if (py-test (py-ne other285 (py-int-from-scheme 0)))
       (py-int-from-scheme
@@ -536,6 +586,12 @@
    (py-call py-builtin-TypeError
             (&& "unsupported operand type(s) for <<: 'float' and 'float'"))))
 
+(define-macro (py-lshift-floatX-floatY-inline self320 other321)
+  `(let ((self320 ,self320) (other321 ,other321))
+     (py-throw
+      (py-call py-builtin-TypeError
+               (&& "unsupported operand type(s) for <<: 'float' and 'float'")))))
+
 (define (py-lshift-floatX-boolY-fallback self323 other324)
   (py-throw
    (py-call py-builtin-TypeError
@@ -588,6 +644,11 @@
 (define (py-lshift-sintX-sintY-fallback self356 other357)
   (py-int-from-scheme
    (py<< (py-sint-to-scheme self356) (py-sint-to-scheme other357))))
+
+(define-macro (py-lshift-sintX-sintY-inline self356 other357)
+  `(let ((self356 ,self356) (other357 ,other357))
+     (py-int-from-scheme
+      (py<< (py-sint-to-scheme self356) (py-sint-to-scheme other357)))))
 
 (define (py-lshift-sintX-bintY-fallback self359 other360)
   (py-int-from-scheme
@@ -649,6 +710,12 @@
    (py-call py-builtin-TypeError
             (&& "unsupported operand type(s) for @: 'float' and 'float'"))))
 
+(define-macro (py-matmul-floatX-floatY-inline self395 other396)
+  `(let ((self395 ,self395) (other396 ,other396))
+     (py-throw
+      (py-call py-builtin-TypeError
+               (&& "unsupported operand type(s) for @: 'float' and 'float'")))))
+
 (define (py-matmul-floatX-boolY-fallback self398 other399)
   (py-throw
    (py-call py-builtin-TypeError
@@ -708,6 +775,12 @@
   (py-throw
    (py-call py-builtin-TypeError
             (&& "unsupported operand type(s) for @: 'int' and 'int'"))))
+
+(define-macro (py-matmul-sintX-sintY-inline self431 other432)
+  `(let ((self431 ,self431) (other432 ,other432))
+     (py-throw
+      (py-call py-builtin-TypeError
+               (&& "unsupported operand type(s) for @: 'int' and 'int'")))))
 
 (define (py-matmul-sintX-bintY-fallback self434 other435)
   (py-throw
@@ -783,6 +856,15 @@
        (py% (py-float-to-scheme self470) (py-float-to-scheme other471)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "float modulo by zero")))))
+
+(define-macro (py-mod-floatX-floatY-inline self470 other471)
+  `(let ((self470 ,self470) (other471 ,other471))
+     (if (py-test (py-ne other471 (py-float-from-scheme 0.)))
+         (py-float-from-scheme
+          (py% (py-float-to-scheme self470) (py-float-to-scheme other471)))
+         (py-throw
+          (py-call py-builtin-ZeroDivisionError
+                   (&& "float modulo by zero"))))))
 
 (define (py-mod-floatX-boolY-fallback self473 other474)
   (if (py-test (py-ne other474 (py-int-from-scheme 0)))
@@ -861,6 +943,14 @@
        (py% (py-sint-to-scheme self506) (py-sint-to-scheme other507)))
       (py-throw (py-call py-builtin-ZeroDivisionError (&& "modulo by zero")))))
 
+(define-macro (py-mod-sintX-sintY-inline self506 other507)
+  `(let ((self506 ,self506) (other507 ,other507))
+     (if (py-test (py-ne other507 (py-int-from-scheme 0)))
+         (py-int-from-scheme
+          (py% (py-sint-to-scheme self506) (py-sint-to-scheme other507)))
+         (py-throw
+          (py-call py-builtin-ZeroDivisionError (&& "modulo by zero"))))))
+
 (define (py-mod-sintX-bintY-fallback self509 other510)
   (if (py-test (py-ne other510 (py-int-from-scheme 0)))
       (py-int-from-scheme
@@ -926,6 +1016,11 @@
   (py-float-from-scheme
    (py* (py-float-to-scheme self545) (py-float-to-scheme other546))))
 
+(define-macro (py-mul-floatX-floatY-inline self545 other546)
+  `(let ((self545 ,self545) (other546 ,other546))
+     (py-float-from-scheme
+      (py* (py-float-to-scheme self545) (py-float-to-scheme other546)))))
+
 (define (py-mul-floatX-boolY-fallback self548 other549)
   (py-float-from-scheme
    (py* (py-float-to-scheme self548) (py-bool-to-scheme other549))))
@@ -973,6 +1068,11 @@
 (define (py-mul-sintX-sintY-fallback self581 other582)
   (py-int-from-scheme
    (py* (py-sint-to-scheme self581) (py-sint-to-scheme other582))))
+
+(define-macro (py-mul-sintX-sintY-inline self581 other582)
+  `(let ((self581 ,self581) (other582 ,other582))
+     (py-int-from-scheme
+      (py* (py-sint-to-scheme self581) (py-sint-to-scheme other582)))))
 
 (define (py-mul-sintX-bintY-fallback self584 other585)
   (py-int-from-scheme
@@ -1026,6 +1126,11 @@
   (py-float-from-scheme
    (py** (py-float-to-scheme self620) (py-float-to-scheme other621))))
 
+(define-macro (py-pow-floatX-floatY-inline self620 other621)
+  `(let ((self620 ,self620) (other621 ,other621))
+     (py-float-from-scheme
+      (py** (py-float-to-scheme self620) (py-float-to-scheme other621)))))
+
 (define (py-pow-floatX-boolY-fallback self623 other624)
   (py-float-from-scheme
    (py** (py-float-to-scheme self623) (py-bool-to-scheme other624))))
@@ -1073,6 +1178,11 @@
 (define (py-pow-sintX-sintY-fallback self656 other657)
   (py-int-from-scheme
    (py** (py-sint-to-scheme self656) (py-sint-to-scheme other657))))
+
+(define-macro (py-pow-sintX-sintY-inline self656 other657)
+  `(let ((self656 ,self656) (other657 ,other657))
+     (py-int-from-scheme
+      (py** (py-sint-to-scheme self656) (py-sint-to-scheme other657)))))
 
 (define (py-pow-sintX-bintY-fallback self659 other660)
   (py-int-from-scheme
@@ -1129,6 +1239,12 @@
    (py-call py-builtin-TypeError
             (&& "unsupported operand type(s) for >>: 'float' and 'float'"))))
 
+(define-macro (py-rshift-floatX-floatY-inline self695 other696)
+  `(let ((self695 ,self695) (other696 ,other696))
+     (py-throw
+      (py-call py-builtin-TypeError
+               (&& "unsupported operand type(s) for >>: 'float' and 'float'")))))
+
 (define (py-rshift-floatX-boolY-fallback self698 other699)
   (py-throw
    (py-call py-builtin-TypeError
@@ -1181,6 +1297,11 @@
 (define (py-rshift-sintX-sintY-fallback self731 other732)
   (py-int-from-scheme
    (py>> (py-sint-to-scheme self731) (py-sint-to-scheme other732))))
+
+(define-macro (py-rshift-sintX-sintY-inline self731 other732)
+  `(let ((self731 ,self731) (other732 ,other732))
+     (py-int-from-scheme
+      (py>> (py-sint-to-scheme self731) (py-sint-to-scheme other732)))))
 
 (define (py-rshift-sintX-bintY-fallback self734 other735)
   (py-int-from-scheme
@@ -1235,6 +1356,11 @@
   (py-float-from-scheme
    (py- (py-float-to-scheme self770) (py-float-to-scheme other771))))
 
+(define-macro (py-sub-floatX-floatY-inline self770 other771)
+  `(let ((self770 ,self770) (other771 ,other771))
+     (py-float-from-scheme
+      (py- (py-float-to-scheme self770) (py-float-to-scheme other771)))))
+
 (define (py-sub-floatX-boolY-fallback self773 other774)
   (py-float-from-scheme
    (py- (py-float-to-scheme self773) (py-bool-to-scheme other774))))
@@ -1282,6 +1408,11 @@
 (define (py-sub-sintX-sintY-fallback self806 other807)
   (py-int-from-scheme
    (py- (py-sint-to-scheme self806) (py-sint-to-scheme other807))))
+
+(define-macro (py-sub-sintX-sintY-inline self806 other807)
+  `(let ((self806 ,self806) (other807 ,other807))
+     (py-int-from-scheme
+      (py- (py-sint-to-scheme self806) (py-sint-to-scheme other807)))))
 
 (define (py-sub-sintX-bintY-fallback self809 other810)
   (py-int-from-scheme
@@ -1355,6 +1486,15 @@
        (py/ (py-float-to-scheme self845) (py-float-to-scheme other846)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
+
+(define-macro (py-truediv-floatX-floatY-inline self845 other846)
+  `(let ((self845 ,self845) (other846 ,other846))
+     (if (py-test (py-ne other846 (py-float-from-scheme 0.)))
+         (py-float-from-scheme
+          (py/ (py-float-to-scheme self845) (py-float-to-scheme other846)))
+         (py-throw
+          (py-call py-builtin-ZeroDivisionError
+                   (&& "float division by zero"))))))
 
 (define (py-truediv-floatX-boolY-fallback self848 other849)
   (if (py-test (py-ne other849 (py-int-from-scheme 0)))
@@ -1440,6 +1580,14 @@
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
 
+(define-macro (py-truediv-sintX-sintY-inline self881 other882)
+  `(let ((self881 ,self881) (other882 ,other882))
+     (if (py-test (py-ne other882 (py-int-from-scheme 0)))
+         (py-int-from-scheme
+          (py/ (py-sint-to-scheme self881) (py-sint-to-scheme other882)))
+         (py-throw
+          (py-call py-builtin-ZeroDivisionError (&& "division by zero"))))))
+
 (define (py-truediv-sintX-bintY-fallback self884 other885)
   (if (py-test (py-ne other885 (py-int-from-scheme 0)))
       (py-int-from-scheme
@@ -1513,6 +1661,12 @@
    (py-call py-builtin-TypeError
             (&& "unsupported operand type(s) for ^: 'float' and 'float'"))))
 
+(define-macro (py-xor-floatX-floatY-inline self920 other921)
+  `(let ((self920 ,self920) (other921 ,other921))
+     (py-throw
+      (py-call py-builtin-TypeError
+               (&& "unsupported operand type(s) for ^: 'float' and 'float'")))))
+
 (define (py-xor-floatX-boolY-fallback self923 other924)
   (py-throw
    (py-call py-builtin-TypeError
@@ -1564,6 +1718,11 @@
 (define (py-xor-sintX-sintY-fallback self956 other957)
   (py-int-from-scheme
    (py^ (py-sint-to-scheme self956) (py-sint-to-scheme other957))))
+
+(define-macro (py-xor-sintX-sintY-inline self956 other957)
+  `(let ((self956 ,self956) (other957 ,other957))
+     (py-int-from-scheme
+      (py^ (py-sint-to-scheme self956) (py-sint-to-scheme other957)))))
 
 (define (py-xor-sintX-bintY-fallback self959 other960)
   (py-int-from-scheme
@@ -1618,6 +1777,11 @@
   (py-float-from-scheme
    (py+ (py-float-to-scheme self995) (py-float-to-scheme other996))))
 
+(define-macro (py-iadd-floatX-floatY-inline self995 other996)
+  `(let ((self995 ,self995) (other996 ,other996))
+     (py-float-from-scheme
+      (py+ (py-float-to-scheme self995) (py-float-to-scheme other996)))))
+
 (define (py-iadd-floatX-boolY-fallback self998 other999)
   (py-float-from-scheme
    (py+ (py-float-to-scheme self998) (py-bool-to-scheme other999))))
@@ -1665,6 +1829,11 @@
 (define (py-iadd-sintX-sintY-fallback self1031 other1032)
   (py-int-from-scheme
    (py+ (py-sint-to-scheme self1031) (py-sint-to-scheme other1032))))
+
+(define-macro (py-iadd-sintX-sintY-inline self1031 other1032)
+  `(let ((self1031 ,self1031) (other1032 ,other1032))
+     (py-int-from-scheme
+      (py+ (py-sint-to-scheme self1031) (py-sint-to-scheme other1032)))))
 
 (define (py-iadd-sintX-bintY-fallback self1034 other1035)
   (py-int-from-scheme
@@ -1721,6 +1890,12 @@
    (py-call py-builtin-TypeError
             (&& "unsupported operand type(s) for &: 'float' and 'float'"))))
 
+(define-macro (py-ibitand-floatX-floatY-inline self1070 other1071)
+  `(let ((self1070 ,self1070) (other1071 ,other1071))
+     (py-throw
+      (py-call py-builtin-TypeError
+               (&& "unsupported operand type(s) for &: 'float' and 'float'")))))
+
 (define (py-ibitand-floatX-boolY-fallback self1073 other1074)
   (py-throw
    (py-call py-builtin-TypeError
@@ -1773,6 +1948,11 @@
   (py-int-from-scheme
    (py& (py-sint-to-scheme self1106) (py-sint-to-scheme other1107))))
 
+(define-macro (py-ibitand-sintX-sintY-inline self1106 other1107)
+  `(let ((self1106 ,self1106) (other1107 ,other1107))
+     (py-int-from-scheme
+      (py& (py-sint-to-scheme self1106) (py-sint-to-scheme other1107)))))
+
 (define (py-ibitand-sintX-bintY-fallback self1109 other1110)
   (py-int-from-scheme
    (py& (py-sint-to-scheme self1109) (py-bint-to-scheme other1110))))
@@ -1800,7 +1980,7 @@
 
 (define (py-ibitor-intX-intY-fallback self1127 other1128)
   (py-int-from-scheme
-   (|py\|| (py-int-to-scheme self1127) (py-int-to-scheme other1128))))
+   (py+b (py-int-to-scheme self1127) (py-int-to-scheme other1128))))
 
 (define (py-ibitor-intX-floatY-fallback self1130 other1131)
   (py-throw
@@ -1809,15 +1989,15 @@
 
 (define (py-ibitor-intX-boolY-fallback self1133 other1134)
   (py-int-from-scheme
-   (|py\|| (py-int-to-scheme self1133) (py-bool-to-scheme other1134))))
+   (py+b (py-int-to-scheme self1133) (py-bool-to-scheme other1134))))
 
 (define (py-ibitor-intX-sintY-fallback self1136 other1137)
   (py-int-from-scheme
-   (|py\|| (py-int-to-scheme self1136) (py-sint-to-scheme other1137))))
+   (py+b (py-int-to-scheme self1136) (py-sint-to-scheme other1137))))
 
 (define (py-ibitor-intX-bintY-fallback self1139 other1140)
   (py-int-from-scheme
-   (|py\|| (py-int-to-scheme self1139) (py-bint-to-scheme other1140))))
+   (py+b (py-int-to-scheme self1139) (py-bint-to-scheme other1140))))
 
 (define (py-ibitor-floatX-intY-fallback self1142 other1143)
   (py-throw
@@ -1828,6 +2008,12 @@
   (py-throw
    (py-call py-builtin-TypeError
             (&& "unsupported operand type(s) for |: 'float' and 'float'"))))
+
+(define-macro (py-ibitor-floatX-floatY-inline self1145 other1146)
+  `(let ((self1145 ,self1145) (other1146 ,other1146))
+     (py-throw
+      (py-call py-builtin-TypeError
+               (&& "unsupported operand type(s) for |: 'float' and 'float'")))))
 
 (define (py-ibitor-floatX-boolY-fallback self1148 other1149)
   (py-throw
@@ -1846,7 +2032,7 @@
 
 (define (py-ibitor-boolX-intY-fallback self1157 other1158)
   (py-int-from-scheme
-   (|py\|| (py-bool-to-scheme self1157) (py-int-to-scheme other1158))))
+   (py+b (py-bool-to-scheme self1157) (py-int-to-scheme other1158))))
 
 (define (py-ibitor-boolX-floatY-fallback self1160 other1161)
   (py-throw
@@ -1858,15 +2044,15 @@
 
 (define (py-ibitor-boolX-sintY-fallback self1166 other1167)
   (py-int-from-scheme
-   (|py\|| (py-bool-to-scheme self1166) (py-sint-to-scheme other1167))))
+   (py+b (py-bool-to-scheme self1166) (py-sint-to-scheme other1167))))
 
 (define (py-ibitor-boolX-bintY-fallback self1169 other1170)
   (py-int-from-scheme
-   (|py\|| (py-bool-to-scheme self1169) (py-bint-to-scheme other1170))))
+   (py+b (py-bool-to-scheme self1169) (py-bint-to-scheme other1170))))
 
 (define (py-ibitor-sintX-intY-fallback self1172 other1173)
   (py-int-from-scheme
-   (|py\|| (py-sint-to-scheme self1172) (py-int-to-scheme other1173))))
+   (py+b (py-sint-to-scheme self1172) (py-int-to-scheme other1173))))
 
 (define (py-ibitor-sintX-floatY-fallback self1175 other1176)
   (py-throw
@@ -1875,19 +2061,24 @@
 
 (define (py-ibitor-sintX-boolY-fallback self1178 other1179)
   (py-int-from-scheme
-   (|py\|| (py-sint-to-scheme self1178) (py-bool-to-scheme other1179))))
+   (py+b (py-sint-to-scheme self1178) (py-bool-to-scheme other1179))))
 
 (define (py-ibitor-sintX-sintY-fallback self1181 other1182)
   (py-int-from-scheme
-   (|py\|| (py-sint-to-scheme self1181) (py-sint-to-scheme other1182))))
+   (py+b (py-sint-to-scheme self1181) (py-sint-to-scheme other1182))))
+
+(define-macro (py-ibitor-sintX-sintY-inline self1181 other1182)
+  `(let ((self1181 ,self1181) (other1182 ,other1182))
+     (py-int-from-scheme
+      (py+b (py-sint-to-scheme self1181) (py-sint-to-scheme other1182)))))
 
 (define (py-ibitor-sintX-bintY-fallback self1184 other1185)
   (py-int-from-scheme
-   (|py\|| (py-sint-to-scheme self1184) (py-bint-to-scheme other1185))))
+   (py+b (py-sint-to-scheme self1184) (py-bint-to-scheme other1185))))
 
 (define (py-ibitor-bintX-intY-fallback self1187 other1188)
   (py-int-from-scheme
-   (|py\|| (py-bint-to-scheme self1187) (py-int-to-scheme other1188))))
+   (py+b (py-bint-to-scheme self1187) (py-int-to-scheme other1188))))
 
 (define (py-ibitor-bintX-floatY-fallback self1190 other1191)
   (py-throw
@@ -1896,15 +2087,15 @@
 
 (define (py-ibitor-bintX-boolY-fallback self1193 other1194)
   (py-int-from-scheme
-   (|py\|| (py-bint-to-scheme self1193) (py-bool-to-scheme other1194))))
+   (py+b (py-bint-to-scheme self1193) (py-bool-to-scheme other1194))))
 
 (define (py-ibitor-bintX-sintY-fallback self1196 other1197)
   (py-int-from-scheme
-   (|py\|| (py-bint-to-scheme self1196) (py-sint-to-scheme other1197))))
+   (py+b (py-bint-to-scheme self1196) (py-sint-to-scheme other1197))))
 
 (define (py-ibitor-bintX-bintY-fallback self1199 other1200)
   (py-int-from-scheme
-   (|py\|| (py-bint-to-scheme self1199) (py-bint-to-scheme other1200))))
+   (py+b (py-bint-to-scheme self1199) (py-bint-to-scheme other1200))))
 
 (define (py-ifloordiv-intX-intY-fallback self1202 other1203)
   (if (py-test (py-ne other1203 (py-int-from-scheme 0)))
@@ -1958,6 +2149,15 @@
        (py// (py-float-to-scheme self1220) (py-float-to-scheme other1221)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
+
+(define-macro (py-ifloordiv-floatX-floatY-inline self1220 other1221)
+  `(let ((self1220 ,self1220) (other1221 ,other1221))
+     (if (py-test (py-ne other1221 (py-float-from-scheme 0.)))
+         (py-float-from-scheme
+          (py// (py-float-to-scheme self1220) (py-float-to-scheme other1221)))
+         (py-throw
+          (py-call py-builtin-ZeroDivisionError
+                   (&& "float division by zero"))))))
 
 (define (py-ifloordiv-floatX-boolY-fallback self1223 other1224)
   (if (py-test (py-ne other1224 (py-int-from-scheme 0)))
@@ -2050,6 +2250,15 @@
        (py-call py-builtin-ZeroDivisionError
                 (&& "integer division by zero")))))
 
+(define-macro (py-ifloordiv-sintX-sintY-inline self1256 other1257)
+  `(let ((self1256 ,self1256) (other1257 ,other1257))
+     (if (py-test (py-ne other1257 (py-int-from-scheme 0)))
+         (py-int-from-scheme
+          (py// (py-sint-to-scheme self1256) (py-sint-to-scheme other1257)))
+         (py-throw
+          (py-call py-builtin-ZeroDivisionError
+                   (&& "integer division by zero"))))))
+
 (define (py-ifloordiv-sintX-bintY-fallback self1259 other1260)
   (if (py-test (py-ne other1260 (py-int-from-scheme 0)))
       (py-int-from-scheme
@@ -2128,6 +2337,12 @@
    (py-call py-builtin-TypeError
             (&& "unsupported operand type(s) for <<: 'float' and 'float'"))))
 
+(define-macro (py-ilshift-floatX-floatY-inline self1295 other1296)
+  `(let ((self1295 ,self1295) (other1296 ,other1296))
+     (py-throw
+      (py-call py-builtin-TypeError
+               (&& "unsupported operand type(s) for <<: 'float' and 'float'")))))
+
 (define (py-ilshift-floatX-boolY-fallback self1298 other1299)
   (py-throw
    (py-call py-builtin-TypeError
@@ -2180,6 +2395,11 @@
 (define (py-ilshift-sintX-sintY-fallback self1331 other1332)
   (py-int-from-scheme
    (py<< (py-sint-to-scheme self1331) (py-sint-to-scheme other1332))))
+
+(define-macro (py-ilshift-sintX-sintY-inline self1331 other1332)
+  `(let ((self1331 ,self1331) (other1332 ,other1332))
+     (py-int-from-scheme
+      (py<< (py-sint-to-scheme self1331) (py-sint-to-scheme other1332)))))
 
 (define (py-ilshift-sintX-bintY-fallback self1334 other1335)
   (py-int-from-scheme
@@ -2241,6 +2461,12 @@
    (py-call py-builtin-TypeError
             (&& "unsupported operand type(s) for @: 'float' and 'float'"))))
 
+(define-macro (py-imatmul-floatX-floatY-inline self1370 other1371)
+  `(let ((self1370 ,self1370) (other1371 ,other1371))
+     (py-throw
+      (py-call py-builtin-TypeError
+               (&& "unsupported operand type(s) for @: 'float' and 'float'")))))
+
 (define (py-imatmul-floatX-boolY-fallback self1373 other1374)
   (py-throw
    (py-call py-builtin-TypeError
@@ -2300,6 +2526,12 @@
   (py-throw
    (py-call py-builtin-TypeError
             (&& "unsupported operand type(s) for @: 'int' and 'int'"))))
+
+(define-macro (py-imatmul-sintX-sintY-inline self1406 other1407)
+  `(let ((self1406 ,self1406) (other1407 ,other1407))
+     (py-throw
+      (py-call py-builtin-TypeError
+               (&& "unsupported operand type(s) for @: 'int' and 'int'")))))
 
 (define (py-imatmul-sintX-bintY-fallback self1409 other1410)
   (py-throw
@@ -2375,6 +2607,15 @@
        (py% (py-float-to-scheme self1445) (py-float-to-scheme other1446)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "float modulo by zero")))))
+
+(define-macro (py-imod-floatX-floatY-inline self1445 other1446)
+  `(let ((self1445 ,self1445) (other1446 ,other1446))
+     (if (py-test (py-ne other1446 (py-float-from-scheme 0.)))
+         (py-float-from-scheme
+          (py% (py-float-to-scheme self1445) (py-float-to-scheme other1446)))
+         (py-throw
+          (py-call py-builtin-ZeroDivisionError
+                   (&& "float modulo by zero"))))))
 
 (define (py-imod-floatX-boolY-fallback self1448 other1449)
   (if (py-test (py-ne other1449 (py-int-from-scheme 0)))
@@ -2453,6 +2694,14 @@
        (py% (py-sint-to-scheme self1481) (py-sint-to-scheme other1482)))
       (py-throw (py-call py-builtin-ZeroDivisionError (&& "modulo by zero")))))
 
+(define-macro (py-imod-sintX-sintY-inline self1481 other1482)
+  `(let ((self1481 ,self1481) (other1482 ,other1482))
+     (if (py-test (py-ne other1482 (py-int-from-scheme 0)))
+         (py-int-from-scheme
+          (py% (py-sint-to-scheme self1481) (py-sint-to-scheme other1482)))
+         (py-throw
+          (py-call py-builtin-ZeroDivisionError (&& "modulo by zero"))))))
+
 (define (py-imod-sintX-bintY-fallback self1484 other1485)
   (if (py-test (py-ne other1485 (py-int-from-scheme 0)))
       (py-int-from-scheme
@@ -2518,6 +2767,11 @@
   (py-float-from-scheme
    (py* (py-float-to-scheme self1520) (py-float-to-scheme other1521))))
 
+(define-macro (py-imul-floatX-floatY-inline self1520 other1521)
+  `(let ((self1520 ,self1520) (other1521 ,other1521))
+     (py-float-from-scheme
+      (py* (py-float-to-scheme self1520) (py-float-to-scheme other1521)))))
+
 (define (py-imul-floatX-boolY-fallback self1523 other1524)
   (py-float-from-scheme
    (py* (py-float-to-scheme self1523) (py-bool-to-scheme other1524))))
@@ -2565,6 +2819,11 @@
 (define (py-imul-sintX-sintY-fallback self1556 other1557)
   (py-int-from-scheme
    (py* (py-sint-to-scheme self1556) (py-sint-to-scheme other1557))))
+
+(define-macro (py-imul-sintX-sintY-inline self1556 other1557)
+  `(let ((self1556 ,self1556) (other1557 ,other1557))
+     (py-int-from-scheme
+      (py* (py-sint-to-scheme self1556) (py-sint-to-scheme other1557)))))
 
 (define (py-imul-sintX-bintY-fallback self1559 other1560)
   (py-int-from-scheme
@@ -2618,6 +2877,11 @@
   (py-float-from-scheme
    (py** (py-float-to-scheme self1595) (py-float-to-scheme other1596))))
 
+(define-macro (py-ipow-floatX-floatY-inline self1595 other1596)
+  `(let ((self1595 ,self1595) (other1596 ,other1596))
+     (py-float-from-scheme
+      (py** (py-float-to-scheme self1595) (py-float-to-scheme other1596)))))
+
 (define (py-ipow-floatX-boolY-fallback self1598 other1599)
   (py-float-from-scheme
    (py** (py-float-to-scheme self1598) (py-bool-to-scheme other1599))))
@@ -2665,6 +2929,11 @@
 (define (py-ipow-sintX-sintY-fallback self1631 other1632)
   (py-int-from-scheme
    (py** (py-sint-to-scheme self1631) (py-sint-to-scheme other1632))))
+
+(define-macro (py-ipow-sintX-sintY-inline self1631 other1632)
+  `(let ((self1631 ,self1631) (other1632 ,other1632))
+     (py-int-from-scheme
+      (py** (py-sint-to-scheme self1631) (py-sint-to-scheme other1632)))))
 
 (define (py-ipow-sintX-bintY-fallback self1634 other1635)
   (py-int-from-scheme
@@ -2721,6 +2990,12 @@
    (py-call py-builtin-TypeError
             (&& "unsupported operand type(s) for >>: 'float' and 'float'"))))
 
+(define-macro (py-irshift-floatX-floatY-inline self1670 other1671)
+  `(let ((self1670 ,self1670) (other1671 ,other1671))
+     (py-throw
+      (py-call py-builtin-TypeError
+               (&& "unsupported operand type(s) for >>: 'float' and 'float'")))))
+
 (define (py-irshift-floatX-boolY-fallback self1673 other1674)
   (py-throw
    (py-call py-builtin-TypeError
@@ -2773,6 +3048,11 @@
 (define (py-irshift-sintX-sintY-fallback self1706 other1707)
   (py-int-from-scheme
    (py>> (py-sint-to-scheme self1706) (py-sint-to-scheme other1707))))
+
+(define-macro (py-irshift-sintX-sintY-inline self1706 other1707)
+  `(let ((self1706 ,self1706) (other1707 ,other1707))
+     (py-int-from-scheme
+      (py>> (py-sint-to-scheme self1706) (py-sint-to-scheme other1707)))))
 
 (define (py-irshift-sintX-bintY-fallback self1709 other1710)
   (py-int-from-scheme
@@ -2827,6 +3107,11 @@
   (py-float-from-scheme
    (py- (py-float-to-scheme self1745) (py-float-to-scheme other1746))))
 
+(define-macro (py-isub-floatX-floatY-inline self1745 other1746)
+  `(let ((self1745 ,self1745) (other1746 ,other1746))
+     (py-float-from-scheme
+      (py- (py-float-to-scheme self1745) (py-float-to-scheme other1746)))))
+
 (define (py-isub-floatX-boolY-fallback self1748 other1749)
   (py-float-from-scheme
    (py- (py-float-to-scheme self1748) (py-bool-to-scheme other1749))))
@@ -2874,6 +3159,11 @@
 (define (py-isub-sintX-sintY-fallback self1781 other1782)
   (py-int-from-scheme
    (py- (py-sint-to-scheme self1781) (py-sint-to-scheme other1782))))
+
+(define-macro (py-isub-sintX-sintY-inline self1781 other1782)
+  `(let ((self1781 ,self1781) (other1782 ,other1782))
+     (py-int-from-scheme
+      (py- (py-sint-to-scheme self1781) (py-sint-to-scheme other1782)))))
 
 (define (py-isub-sintX-bintY-fallback self1784 other1785)
   (py-int-from-scheme
@@ -2947,6 +3237,15 @@
        (py/ (py-float-to-scheme self1820) (py-float-to-scheme other1821)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
+
+(define-macro (py-itruediv-floatX-floatY-inline self1820 other1821)
+  `(let ((self1820 ,self1820) (other1821 ,other1821))
+     (if (py-test (py-ne other1821 (py-float-from-scheme 0.)))
+         (py-float-from-scheme
+          (py/ (py-float-to-scheme self1820) (py-float-to-scheme other1821)))
+         (py-throw
+          (py-call py-builtin-ZeroDivisionError
+                   (&& "float division by zero"))))))
 
 (define (py-itruediv-floatX-boolY-fallback self1823 other1824)
   (if (py-test (py-ne other1824 (py-int-from-scheme 0)))
@@ -3032,6 +3331,14 @@
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
 
+(define-macro (py-itruediv-sintX-sintY-inline self1856 other1857)
+  `(let ((self1856 ,self1856) (other1857 ,other1857))
+     (if (py-test (py-ne other1857 (py-int-from-scheme 0)))
+         (py-int-from-scheme
+          (py/ (py-sint-to-scheme self1856) (py-sint-to-scheme other1857)))
+         (py-throw
+          (py-call py-builtin-ZeroDivisionError (&& "division by zero"))))))
+
 (define (py-itruediv-sintX-bintY-fallback self1859 other1860)
   (if (py-test (py-ne other1860 (py-int-from-scheme 0)))
       (py-int-from-scheme
@@ -3105,6 +3412,12 @@
    (py-call py-builtin-TypeError
             (&& "unsupported operand type(s) for ^: 'float' and 'float'"))))
 
+(define-macro (py-ixor-floatX-floatY-inline self1895 other1896)
+  `(let ((self1895 ,self1895) (other1896 ,other1896))
+     (py-throw
+      (py-call py-builtin-TypeError
+               (&& "unsupported operand type(s) for ^: 'float' and 'float'")))))
+
 (define (py-ixor-floatX-boolY-fallback self1898 other1899)
   (py-throw
    (py-call py-builtin-TypeError
@@ -3157,6 +3470,11 @@
   (py-int-from-scheme
    (py^ (py-sint-to-scheme self1931) (py-sint-to-scheme other1932))))
 
+(define-macro (py-ixor-sintX-sintY-inline self1931 other1932)
+  `(let ((self1931 ,self1931) (other1932 ,other1932))
+     (py-int-from-scheme
+      (py^ (py-sint-to-scheme self1931) (py-sint-to-scheme other1932)))))
+
 (define (py-ixor-sintX-bintY-fallback self1934 other1935)
   (py-int-from-scheme
    (py^ (py-sint-to-scheme self1934) (py-bint-to-scheme other1935))))
@@ -3181,3 +3499,4 @@
 (define (py-ixor-bintX-bintY-fallback self1949 other1950)
   (py-int-from-scheme
    (py^ (py-bint-to-scheme self1949) (py-bint-to-scheme other1950))))
+

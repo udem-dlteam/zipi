@@ -10,6 +10,8 @@
 ;; The Python syntax parsed by this function is defined at the url:
 ;;    https://docs.python.org/3.8/library/ast.html
 (define (sexp exp tail scope conf)
+  (define (sexp-or-PycUninit loc e)
+    (if e (sexp e tail scope conf) (new-PycUninit loc)))
   (when (pair? exp)
     (match-case (car exp)
        ;; language detection
@@ -32,28 +34,30 @@
        loc
        ;; args
        (map (lambda (a)
-              (new-PycDecl loc (car a) 'local))
+              (new-PycDecl loc (car a) 'local annotation: (sexp-or-PycUninit loc (cadr a))))
             (car args))
        ;; posonlyargs
        (map (lambda (a)
-              (new-PycDecl loc (car a) 'local))
+              (new-PycDecl loc (car a) 'local annotation: (sexp-or-PycUninit loc (cadr a))))
             (cadr args))
        ;; vararg
-       (if (caddr args)
-           (new-PycDecl loc (caaddr args) 'local)
-           (new-PycUninit loc))
+       (let ((a (caddr args)))
+         (if a
+             (new-PycDecl loc a 'local annotation: (sexp-or-PycUninit loc (cadr a)))
+             (new-PycUninit loc)))
        ;; kwonlyargs
        (map (lambda (a)
-              (new-PycDecl loc (car a) 'local))
+              (new-PycDecl loc (car a) 'local annotation: (sexp-or-PycUninit loc (cadr a))))
             (list-ref args 3))
        ;; kw-defaults
        (map (lambda (a)
               (new-PycStmtExpr loc (sexp a tail scope conf)))
             (list-ref args 4))
        ;; kwarg
-       (if (list-ref args 5)
-           (new-PycDecl loc (car (list-ref args 5)) 'local)
-           (new-PycUninit loc))
+       (let ((a (list-ref args 5)))
+         (if a
+             (new-PycDecl loc (car a) 'local annotation: (sexp-or-PycUninit loc (cadr a)))
+             (new-PycUninit loc)))
        ;; defaults
        (map
          (lambda (a)
@@ -75,28 +79,30 @@
          loc
          ;; args
          (map (lambda (a)
-                (new-PycDecl loc (car a) 'local))
+                (new-PycDecl loc (car a) 'local annotation: (sexp-or-PycUninit loc (cadr a))))
               (car args))
          ;; posonlyargs
          (map (lambda (a)
-                (new-PycDecl loc (car a) 'local))
+                (new-PycDecl loc (car a) 'local annotation: (sexp-or-PycUninit loc (cadr a))))
               (cadr args))
          ;; vararg
-         (if (caddr args)
-             (new-PycDecl loc (caaddr args) 'local)
-             (new-PycUninit loc))
+         (let ((a (caddr args)))
+           (if a
+               (new-PycDecl loc a 'local annotation: (cadr args))
+               (new-PycUninit loc)))
          ;; kwonlyargs
          (map (lambda (a)
-                (new-PycDecl loc (car a) 'local))
+                (new-PycDecl loc (car a) 'local annotation: (sexp-or-PycUninit loc (cadr a))))
               (list-ref args 3))
          ;; kw-defaults
          (map (lambda (a)
                 (new-PycStmtExpr loc (sexp a tail scope conf)))
               (list-ref args 4))
          ;; kwarg
-         (if (list-ref args 5)
-             (new-PycDecl loc (car (list-ref args 5)) 'local)
-             (new-PycUninit loc))
+         (let ((a (list-ref args 5)))
+           (if a
+               (new-PycDecl loc (car a) 'local annotation: (sexp-or-PycUninit loc (cadr a)))
+               (new-PycUninit loc)))
          ;; defaults
          (map (lambda (a)
                 (new-PycStmtExpr loc (sexp a tail scope conf)))

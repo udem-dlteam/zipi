@@ -41,7 +41,8 @@
                        ;; scope: global, local, block
                        scope::symbol
                        ;; usage
-                       (usage::pair-nil (default '())))
+                       (usage::pair-nil (default '()))
+                       (annotation (default #f)))
 
                 (class PycDeclInit::PycDecl
                        val::PycExpr
@@ -600,6 +601,7 @@
 (gen-walks PycNode)
 
 (gen-walks PycModule (stmts))
+(gen-walks PycDecl annotation)
 (gen-walks PycDeclInit val)
 (gen-walks PycSeq (nodes))
 (gen-walks PycBlock (decls) body)
