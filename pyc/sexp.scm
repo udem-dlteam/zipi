@@ -43,7 +43,7 @@
        ;; vararg
        (let ((a (caddr args)))
          (if a
-             (new-PycDecl loc a 'local annotation: (sexp-or-PycUninit loc (cadr a)))
+             (new-PycDecl loc (car a) 'local annotation: (sexp-or-PycUninit loc (cadr a)))
              (new-PycUninit loc)))
        ;; kwonlyargs
        (map (lambda (a)
@@ -88,7 +88,7 @@
          ;; vararg
          (let ((a (caddr args)))
            (if a
-               (new-PycDecl loc a 'local annotation: (cadr args))
+               (new-PycDecl loc (car a) 'local annotation: (sexp-or-PycUninit loc (cadr a)))
                (new-PycUninit loc)))
          ;; kwonlyargs
          (map (lambda (a)
