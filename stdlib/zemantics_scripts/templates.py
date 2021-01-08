@@ -464,14 +464,9 @@ class float:
 
 float_method_info = {
     'add': {"method_name": "add", "op": "+"},
-    'bitand': {"method_name": "and", "op": "&"},
-    'bitor': {"method_name": "or", "op": "|"},
-    'lshift': {"method_name": "lshift", "op": "<<"},
     'mul': {"method_name": "mul", "op": "*"},
     'pow': {"method_name": "pow", "op": "**"},
-    'rshift': {"method_name": "rshift", "op": ">>"},
     'sub': {"method_name": "sub", "op": "-"},
-    'xor': {"method_name": "xor", "op": "^"}
 }
 
 
