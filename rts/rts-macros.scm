@@ -381,7 +381,7 @@
                                  bool
                                  float))
 
-  (define (behavior-table-size (length types-with-behaviors))) ;; one by behavior + default
+  (define behavior-table-size (length types-with-behaviors)) ;; one by behavior + default
 
   (define ops-with-behaviors
     '(add bitand bitor floordiv lshift matmul mod mul pow rshift sub
@@ -417,7 +417,7 @@
           (let loop ((ops ops-with-behaviors))
             (if (null? ops)
               '()
-              (let (behavior-table-name (get-behavior-table-name (get-table-name op)))
+              (let ((behavior-table-name (get-behavior-table-name (get-table-name op))))
                 (cons
                   `(define ,behavior-table-name ,(make-vector behavior-table-size))
                   (loop (cdr ops)))))))
@@ -425,7 +425,7 @@
           (let loop ((ops ops-with-behaviors))
             (if (null? ops)
               '()
-              (let (behavior-table-name (get-behavior-table-name (get-table-name op)))
+              (let ((behavior-table-name (get-behavior-table-name (get-table-name op))))
                 (let inner-loop ((i 0))
                   (if (< i behavior-table-size)
                     (cons
@@ -434,7 +434,7 @@
                     (loop (cdr ops))))))))
         (table-fill-code
           (let loop ((ops ops-with-behaviors))
-            (let (behavior-table-name (get-behavior-table-name (car ops)))
+            (let ((behavior-table-name (get-behavior-table-name (car ops))))
               (if (null? ops)
                 '()
                 (let lhs-loop ((i 0) (lhs-type types-with-behaviors))
