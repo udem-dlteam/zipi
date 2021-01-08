@@ -61,7 +61,7 @@
 (define-macro (py-PyObjectType-mro cls)
   (cond-expand
     (gambit ;; TODO: prettify... equivalent to (PyObjectType-mro ,cls)
-     `(|##unchecked-structure-ref| ,cls 5 #f #f))
+     `(|##unchecked-structure-ref| ,cls 6 #f #f))
     (bigloo
      `(PyObjectType-mro ,cls))))
 

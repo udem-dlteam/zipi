@@ -6056,9 +6056,10 @@
     mod))
 
 (define (py-make-module name)
-  (let ((mod (py-make-global)))
+  (let ((mod (py-make-global))
+        (modules (sys.modules-get)))
    (py-own-attr-set! mod (& "__name__") name)
-   (dict-setitem (sys.modules-get) name mod)
+   (dict-setitem modules name mod)
    mod))
 
 ;; ===========================================
