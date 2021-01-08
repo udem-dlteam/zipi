@@ -286,7 +286,7 @@
 
     py-make-class
     py-make-builtin-class
-    make-builtin-class
+    py-make-builtin-class-with-class-index
 
     py-obj->iterator
     py-iter

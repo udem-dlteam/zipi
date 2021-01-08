@@ -1253,7 +1253,7 @@ def py_sub_bintX_bintY(self: bint, other: bint):
 @define_behavior
 def py_truediv_intX_intY(self: int, other: int):
     if other != 0:
-        return int_box(int_unbox(self) / int_unbox(other))
+        return float_box(int_unbox(self) / int_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 
@@ -1267,21 +1267,21 @@ def py_truediv_intX_floatY(self: int, other: float):
 @define_behavior
 def py_truediv_intX_boolY(self: int, other: bool):
     if other != 0:
-        return int_box(int_unbox(self) / bool_unbox(other))
+        return float_box(int_unbox(self) / bool_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 
 @define_behavior
 def py_truediv_intX_sintY(self: int, other: sint):
     if other != 0:
-        return int_box(int_unbox(self) / sint_unbox(other))
+        return float_box(int_unbox(self) / sint_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 
 @define_behavior
 def py_truediv_intX_bintY(self: int, other: bint):
     if other != 0:
-        return int_box(int_unbox(self) / bint_unbox(other))
+        return float_box(int_unbox(self) / bint_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 
@@ -1323,7 +1323,7 @@ def py_truediv_floatX_bintY(self: float, other: bint):
 @define_behavior
 def py_truediv_boolX_intY(self: bool, other: int):
     if other != 0:
-        return int_box(bool_unbox(self) / int_unbox(other))
+        return float_box(bool_unbox(self) / int_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 
@@ -1337,28 +1337,28 @@ def py_truediv_boolX_floatY(self: bool, other: float):
 @define_behavior
 def py_truediv_boolX_boolY(self: bool, other: bool):
     if other != 0:
-        return int_box(bool_unbox(self) / bool_unbox(other))
+        return float_box(bool_unbox(self) / bool_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 
 @define_behavior
 def py_truediv_boolX_sintY(self: bool, other: sint):
     if other != 0:
-        return int_box(bool_unbox(self) / sint_unbox(other))
+        return float_box(bool_unbox(self) / sint_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 
 @define_behavior
 def py_truediv_boolX_bintY(self: bool, other: bint):
     if other != 0:
-        return int_box(bool_unbox(self) / bint_unbox(other))
+        return float_box(bool_unbox(self) / bint_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 
 @define_behavior
 def py_truediv_sintX_intY(self: sint, other: int):
     if other != 0:
-        return int_box(sint_unbox(self) / int_unbox(other))
+        return float_box(sint_unbox(self) / int_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 
@@ -1372,28 +1372,28 @@ def py_truediv_sintX_floatY(self: sint, other: float):
 @define_behavior
 def py_truediv_sintX_boolY(self: sint, other: bool):
     if other != 0:
-        return int_box(sint_unbox(self) / bool_unbox(other))
+        return float_box(sint_unbox(self) / bool_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 
 @define_behavior
 def py_truediv_sintX_sintY(self: sint, other: sint):
     if other != 0:
-        return int_box(sint_unbox(self) / sint_unbox(other))
+        return float_box(sint_unbox(self) / sint_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 
 @define_behavior
 def py_truediv_sintX_bintY(self: sint, other: bint):
     if other != 0:
-        return int_box(sint_unbox(self) / bint_unbox(other))
+        return float_box(sint_unbox(self) / bint_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 
 @define_behavior
 def py_truediv_bintX_intY(self: bint, other: int):
     if other != 0:
-        return int_box(bint_unbox(self) / int_unbox(other))
+        return float_box(bint_unbox(self) / int_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 
@@ -1407,21 +1407,21 @@ def py_truediv_bintX_floatY(self: bint, other: float):
 @define_behavior
 def py_truediv_bintX_boolY(self: bint, other: bool):
     if other != 0:
-        return int_box(bint_unbox(self) / bool_unbox(other))
+        return float_box(bint_unbox(self) / bool_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 
 @define_behavior
 def py_truediv_bintX_sintY(self: bint, other: sint):
     if other != 0:
-        return int_box(bint_unbox(self) / sint_unbox(other))
+        return float_box(bint_unbox(self) / sint_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 
 @define_behavior
 def py_truediv_bintX_bintY(self: bint, other: bint):
     if other != 0:
-        return int_box(bint_unbox(self) / bint_unbox(other))
+        return float_box(bint_unbox(self) / bint_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 
@@ -2778,7 +2778,7 @@ def py_isub_bintX_bintY(self: bint, other: bint):
 @define_behavior
 def py_itruediv_intX_intY(self: int, other: int):
     if other != 0:
-        return int_box(int_unbox(self) / int_unbox(other))
+        return float_box(int_unbox(self) / int_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 
@@ -2792,21 +2792,21 @@ def py_itruediv_intX_floatY(self: int, other: float):
 @define_behavior
 def py_itruediv_intX_boolY(self: int, other: bool):
     if other != 0:
-        return int_box(int_unbox(self) / bool_unbox(other))
+        return float_box(int_unbox(self) / bool_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 
 @define_behavior
 def py_itruediv_intX_sintY(self: int, other: sint):
     if other != 0:
-        return int_box(int_unbox(self) / sint_unbox(other))
+        return float_box(int_unbox(self) / sint_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 
 @define_behavior
 def py_itruediv_intX_bintY(self: int, other: bint):
     if other != 0:
-        return int_box(int_unbox(self) / bint_unbox(other))
+        return float_box(int_unbox(self) / bint_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 
@@ -2848,7 +2848,7 @@ def py_itruediv_floatX_bintY(self: float, other: bint):
 @define_behavior
 def py_itruediv_boolX_intY(self: bool, other: int):
     if other != 0:
-        return int_box(bool_unbox(self) / int_unbox(other))
+        return float_box(bool_unbox(self) / int_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 
@@ -2862,28 +2862,28 @@ def py_itruediv_boolX_floatY(self: bool, other: float):
 @define_behavior
 def py_itruediv_boolX_boolY(self: bool, other: bool):
     if other != 0:
-        return int_box(bool_unbox(self) / bool_unbox(other))
+        return float_box(bool_unbox(self) / bool_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 
 @define_behavior
 def py_itruediv_boolX_sintY(self: bool, other: sint):
     if other != 0:
-        return int_box(bool_unbox(self) / sint_unbox(other))
+        return float_box(bool_unbox(self) / sint_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 
 @define_behavior
 def py_itruediv_boolX_bintY(self: bool, other: bint):
     if other != 0:
-        return int_box(bool_unbox(self) / bint_unbox(other))
+        return float_box(bool_unbox(self) / bint_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 
 @define_behavior
 def py_itruediv_sintX_intY(self: sint, other: int):
     if other != 0:
-        return int_box(sint_unbox(self) / int_unbox(other))
+        return float_box(sint_unbox(self) / int_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 
@@ -2897,28 +2897,28 @@ def py_itruediv_sintX_floatY(self: sint, other: float):
 @define_behavior
 def py_itruediv_sintX_boolY(self: sint, other: bool):
     if other != 0:
-        return int_box(sint_unbox(self) / bool_unbox(other))
+        return float_box(sint_unbox(self) / bool_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 
 @define_behavior
 def py_itruediv_sintX_sintY(self: sint, other: sint):
     if other != 0:
-        return int_box(sint_unbox(self) / sint_unbox(other))
+        return float_box(sint_unbox(self) / sint_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 
 @define_behavior
 def py_itruediv_sintX_bintY(self: sint, other: bint):
     if other != 0:
-        return int_box(sint_unbox(self) / bint_unbox(other))
+        return float_box(sint_unbox(self) / bint_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 
 @define_behavior
 def py_itruediv_bintX_intY(self: bint, other: int):
     if other != 0:
-        return int_box(bint_unbox(self) / int_unbox(other))
+        return float_box(bint_unbox(self) / int_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 
@@ -2932,21 +2932,21 @@ def py_itruediv_bintX_floatY(self: bint, other: float):
 @define_behavior
 def py_itruediv_bintX_boolY(self: bint, other: bool):
     if other != 0:
-        return int_box(bint_unbox(self) / bool_unbox(other))
+        return float_box(bint_unbox(self) / bool_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 
 @define_behavior
 def py_itruediv_bintX_sintY(self: bint, other: sint):
     if other != 0:
-        return int_box(bint_unbox(self) / sint_unbox(other))
+        return float_box(bint_unbox(self) / sint_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 
 @define_behavior
 def py_itruediv_bintX_bintY(self: bint, other: bint):
     if other != 0:
-        return int_box(bint_unbox(self) / bint_unbox(other))
+        return float_box(bint_unbox(self) / bint_unbox(other))
     else:
         raise ZeroDivisionError('division by zero')
 

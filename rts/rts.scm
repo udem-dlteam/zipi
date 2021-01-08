@@ -387,20 +387,21 @@
 
 (define nonbuiltin-magic-attrs (make-vector magic-attrs-length #f))
 
-(define (py-type-alloc metaclass bases mro hclass-of-instance)
+(define (py-type-alloc metaclass class-index bases mro hclass-of-instance)
   (make-PyObjectType
     py-type-hclass-of-instances
     (make-vector
       (vector-length (HClass-names py-type-hclass-of-instances))
       py-absent)
     metaclass
+    class-index
     bases
     mro
     hclass-of-instance
     #f
     nonbuiltin-magic-attrs))
 
-(define (py-builtin-type-alloc metaclass bases mro hclass-of-instance)
+(define (py-builtin-type-alloc metaclass class-index bases mro hclass-of-instance)
   (make-still-copy
     (make-PyObjectType
       py-type-hclass-of-instances
@@ -408,6 +409,7 @@
         (vector-length (HClass-names py-type-hclass-of-instances))
         py-absent)
       metaclass
+      class-index
       bases
       mro
       hclass-of-instance
@@ -2925,24 +2927,28 @@
   (let* ((type-class
           (py-builtin-type-alloc
             #f ;; cls
+            (py-builtin-type-class-index)
             #f ;; bases
             #f ;; mro
             py-type-hclass-of-instances))
         (object-class
           (py-builtin-type-alloc
             #f ;; cls
+            (py-builtin-object-class-index)
             #f ;; bases
             #f ;; mro
             py-object-hclass-of-instances))
         (str-class
           (py-builtin-type-alloc
             #f ;; cls
+            (py-builtin-str-class-index)
             #f ;; bases
             #f ;; mro
             py-str-hclass-of-instances))
         (tuple-class
           (py-builtin-type-alloc
             #f ;; cls
+            (py-builtin-tuple-class-index)
             #f ;; bases
             #f ;; mro
             py-tuple-hclass-of-instances)))
@@ -3042,13 +3048,13 @@
 
   (list->vector (add-class cls '())))
 
-(define (py-make-class-from-type-allocator name module bases type-allocator attrs)
+(define (py-make-class-from-type-allocator class-index name module bases type-allocator attrs)
   (define (make-cls attr-names attr-values)
     (let* ((bases-vect
             (if (null? bases)
               (vector py-object-class)
               (list->vector bases)))
-           (cls (type-allocator py-type-class bases-vect #f #f)))
+           (cls (type-allocator py-type-class class-index bases-vect #f #f)))
       (PyObjectType-mro-set! cls (py-compute-mro cls))
       ;; TODO implement better introspection of hclass of instance
       ;; This current implementation will fail on multiple inheritance
@@ -3087,12 +3093,12 @@
             (reverse rev-attr-values)))))
 
 (define (py-make-class name module bases . attrs)
-  (py-make-class-from-type-allocator name module bases py-type-alloc attrs))
+  (py-make-class-from-type-allocator (default-class-index) name module bases py-type-alloc attrs))
 
-(define (py-make-builtin-class name module bases hclass-of-instances . attrs)
+(define (py-make-builtin-class-with-class-index class-index name module bases hclass-of-instances . attrs)
   (let ((cls
           (py-make-class-from-type-allocator
-            name module bases py-builtin-type-alloc attrs)))
+            class-index name module bases py-builtin-type-alloc attrs)))
     (PyObjectType-hclass-of-instances-set! cls hclass-of-instances)
     cls))
 ;; ================
@@ -5664,8 +5670,7 @@
      (& "__len__") dict.__len__
      (& "__iter__") dict.__iter__
      (& "keys") dict.keys
-     (& "get") dict.get
-     ))
+     (& "get") dict.get))
 
   (set! py-set-class
     (py-make-builtin-class

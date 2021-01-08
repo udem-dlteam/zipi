@@ -162,6 +162,7 @@
   copier: #f
   macros: ;; this will inline the operations on this type
   ;; attrs
+  class-index
   (bases unprintable:)
   (mro unprintable:)
   (hclass-of-instances unprintable:)

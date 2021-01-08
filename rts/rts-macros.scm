@@ -342,6 +342,20 @@
     (lambda () py-absent)))
 
 
+;; behavior dispatch
+
+(define-macro (default-class-index) 0)
+(define-macro (py-builtin-type-class-index) 1)
+(define-macro (py-builtin-object-class-index) 2)
+(define-macro (py-builtin-str-class-index) 3)
+(define-macro (py-builtin-tuple-class-index) 4)
+
+(define-macro (py-make-builtin-class name module bases hclass-of-instances . attrs)
+  (define (get-class-index-by-name) 0)
+
+  (let ((class-index (get-class-index-by-name)))
+    `(py-make-builtin-class-with-class-index ,class-index ,name ,module ,bases ,hclass-of-instances ,@attrs)))
+
 ;; Semantics
 
 (define-macro (py-add x y)

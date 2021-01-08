@@ -204,7 +204,7 @@ int_division_method_template = \
         if isinstance(self, int):
             if isinstance(other, int):
                 if other != 0:
-                    return int_box(int_unbox(self) {op} int_unbox(other))
+                    return {box_method}(int_unbox(self) {op} int_unbox(other))
                 else:
                     raise ZeroDivisionError("{error_message}")
             else:
@@ -219,7 +219,7 @@ int_reflected_division_method_template = \
         if isinstance(self, int):
             if isinstance(other, int):
                 if self != 0:
-                    return int_box(int_unbox(other) {op} int_unbox(self))
+                    return {box_method}(int_unbox(other) {op} int_unbox(self))
                 else:
                     raise ZeroDivisionError("{error_message}")
             else:
@@ -235,7 +235,7 @@ int_inplace_division_method_template = \
         if isinstance(self, int):
             if isinstance(other, int):
                 if other != 0:
-                    return int_box(int_unbox(self) {op} int_unbox(other))
+                    return {box_method}(int_unbox(self) {op} int_unbox(other))
                 else:
                     raise ZeroDivisionError("{error_message}")
             else:
@@ -277,9 +277,9 @@ int_method_info = {
 
 
 int_division_method_info = {
-    'floordiv': {"method_name": "floordiv", "op": "//", "error_message": "integer division by zero"},
-    'truediv': {"method_name": "truediv", "op": "/", "error_message": "division by zero"},
-    'mod': {"method_name": "mod", "op": "%", "error_message": "modulo by zero"}
+    'floordiv': {"method_name": "floordiv", "box_method": "int_box", "op": "//", "error_message": "integer division by zero"},
+    'truediv': {"method_name": "truediv", "box_method": "float_box", "op": "/", "error_message": "division by zero"},
+    'mod': {"method_name": "mod", "box_method": "int_box", "op": "%", "error_message": "modulo by zero"}
 }
 
 # ======================================================================================================================

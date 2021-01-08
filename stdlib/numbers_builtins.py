@@ -298,7 +298,7 @@ class int:
         if isinstance(self, int):
             if isinstance(other, int):
                 if other != 0:
-                    return int_box(int_unbox(self) / int_unbox(other))
+                    return float_box(int_unbox(self) / int_unbox(other))
                 else:
                     raise ZeroDivisionError("division by zero")
             else:
@@ -310,7 +310,7 @@ class int:
         if isinstance(self, int):
             if isinstance(other, int):
                 if self != 0:
-                    return int_box(int_unbox(other) / int_unbox(self))
+                    return float_box(int_unbox(other) / int_unbox(self))
                 else:
                     raise ZeroDivisionError("division by zero")
             else:
@@ -322,7 +322,7 @@ class int:
         if isinstance(self, int):
             if isinstance(other, int):
                 if other != 0:
-                    return int_box(int_unbox(self) / int_unbox(other))
+                    return float_box(int_unbox(self) / int_unbox(other))
                 else:
                     raise ZeroDivisionError("division by zero")
             else:

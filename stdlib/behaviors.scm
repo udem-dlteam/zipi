@@ -1440,7 +1440,7 @@
 
 (define (py-truediv-intX-intY-fallback self827 other828)
   (if (py-test (py-ne other828 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-int-to-scheme self827) (py-int-to-scheme other828)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
@@ -1454,21 +1454,21 @@
 
 (define (py-truediv-intX-boolY-fallback self833 other834)
   (if (py-test (py-ne other834 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-int-to-scheme self833) (py-bool-to-scheme other834)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-truediv-intX-sintY-fallback self836 other837)
   (if (py-test (py-ne other837 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-int-to-scheme self836) (py-sint-to-scheme other837)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-truediv-intX-bintY-fallback self839 other840)
   (if (py-test (py-ne other840 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-int-to-scheme self839) (py-bint-to-scheme other840)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
@@ -1519,7 +1519,7 @@
 
 (define (py-truediv-boolX-intY-fallback self857 other858)
   (if (py-test (py-ne other858 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-bool-to-scheme self857) (py-int-to-scheme other858)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
@@ -1533,28 +1533,28 @@
 
 (define (py-truediv-boolX-boolY-fallback self863 other864)
   (if (py-test (py-ne other864 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-bool-to-scheme self863) (py-bool-to-scheme other864)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-truediv-boolX-sintY-fallback self866 other867)
   (if (py-test (py-ne other867 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-bool-to-scheme self866) (py-sint-to-scheme other867)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-truediv-boolX-bintY-fallback self869 other870)
   (if (py-test (py-ne other870 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-bool-to-scheme self869) (py-bint-to-scheme other870)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-truediv-sintX-intY-fallback self872 other873)
   (if (py-test (py-ne other873 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-sint-to-scheme self872) (py-int-to-scheme other873)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
@@ -1568,14 +1568,14 @@
 
 (define (py-truediv-sintX-boolY-fallback self878 other879)
   (if (py-test (py-ne other879 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-sint-to-scheme self878) (py-bool-to-scheme other879)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-truediv-sintX-sintY-fallback self881 other882)
   (if (py-test (py-ne other882 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-sint-to-scheme self881) (py-sint-to-scheme other882)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
@@ -1583,21 +1583,21 @@
 (define-macro (py-truediv-sintX-sintY-inline self881 other882)
   `(let ((self881 ,self881) (other882 ,other882))
      (if (py-test (py-ne other882 (py-int-from-scheme 0)))
-         (py-int-from-scheme
+         (py-float-from-scheme
           (py/ (py-sint-to-scheme self881) (py-sint-to-scheme other882)))
          (py-throw
           (py-call py-builtin-ZeroDivisionError (&& "division by zero"))))))
 
 (define (py-truediv-sintX-bintY-fallback self884 other885)
   (if (py-test (py-ne other885 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-sint-to-scheme self884) (py-bint-to-scheme other885)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-truediv-bintX-intY-fallback self887 other888)
   (if (py-test (py-ne other888 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-bint-to-scheme self887) (py-int-to-scheme other888)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
@@ -1611,21 +1611,21 @@
 
 (define (py-truediv-bintX-boolY-fallback self893 other894)
   (if (py-test (py-ne other894 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-bint-to-scheme self893) (py-bool-to-scheme other894)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-truediv-bintX-sintY-fallback self896 other897)
   (if (py-test (py-ne other897 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-bint-to-scheme self896) (py-sint-to-scheme other897)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-truediv-bintX-bintY-fallback self899 other900)
   (if (py-test (py-ne other900 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-bint-to-scheme self899) (py-bint-to-scheme other900)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
@@ -3191,7 +3191,7 @@
 
 (define (py-itruediv-intX-intY-fallback self1802 other1803)
   (if (py-test (py-ne other1803 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-int-to-scheme self1802) (py-int-to-scheme other1803)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
@@ -3205,21 +3205,21 @@
 
 (define (py-itruediv-intX-boolY-fallback self1808 other1809)
   (if (py-test (py-ne other1809 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-int-to-scheme self1808) (py-bool-to-scheme other1809)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-itruediv-intX-sintY-fallback self1811 other1812)
   (if (py-test (py-ne other1812 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-int-to-scheme self1811) (py-sint-to-scheme other1812)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-itruediv-intX-bintY-fallback self1814 other1815)
   (if (py-test (py-ne other1815 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-int-to-scheme self1814) (py-bint-to-scheme other1815)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
@@ -3270,7 +3270,7 @@
 
 (define (py-itruediv-boolX-intY-fallback self1832 other1833)
   (if (py-test (py-ne other1833 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-bool-to-scheme self1832) (py-int-to-scheme other1833)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
@@ -3284,28 +3284,28 @@
 
 (define (py-itruediv-boolX-boolY-fallback self1838 other1839)
   (if (py-test (py-ne other1839 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-bool-to-scheme self1838) (py-bool-to-scheme other1839)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-itruediv-boolX-sintY-fallback self1841 other1842)
   (if (py-test (py-ne other1842 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-bool-to-scheme self1841) (py-sint-to-scheme other1842)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-itruediv-boolX-bintY-fallback self1844 other1845)
   (if (py-test (py-ne other1845 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-bool-to-scheme self1844) (py-bint-to-scheme other1845)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-itruediv-sintX-intY-fallback self1847 other1848)
   (if (py-test (py-ne other1848 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-sint-to-scheme self1847) (py-int-to-scheme other1848)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
@@ -3319,14 +3319,14 @@
 
 (define (py-itruediv-sintX-boolY-fallback self1853 other1854)
   (if (py-test (py-ne other1854 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-sint-to-scheme self1853) (py-bool-to-scheme other1854)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-itruediv-sintX-sintY-fallback self1856 other1857)
   (if (py-test (py-ne other1857 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-sint-to-scheme self1856) (py-sint-to-scheme other1857)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
@@ -3334,21 +3334,21 @@
 (define-macro (py-itruediv-sintX-sintY-inline self1856 other1857)
   `(let ((self1856 ,self1856) (other1857 ,other1857))
      (if (py-test (py-ne other1857 (py-int-from-scheme 0)))
-         (py-int-from-scheme
+         (py-float-from-scheme
           (py/ (py-sint-to-scheme self1856) (py-sint-to-scheme other1857)))
          (py-throw
           (py-call py-builtin-ZeroDivisionError (&& "division by zero"))))))
 
 (define (py-itruediv-sintX-bintY-fallback self1859 other1860)
   (if (py-test (py-ne other1860 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-sint-to-scheme self1859) (py-bint-to-scheme other1860)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-itruediv-bintX-intY-fallback self1862 other1863)
   (if (py-test (py-ne other1863 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-bint-to-scheme self1862) (py-int-to-scheme other1863)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
@@ -3362,21 +3362,21 @@
 
 (define (py-itruediv-bintX-boolY-fallback self1868 other1869)
   (if (py-test (py-ne other1869 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-bint-to-scheme self1868) (py-bool-to-scheme other1869)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-itruediv-bintX-sintY-fallback self1871 other1872)
   (if (py-test (py-ne other1872 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-bint-to-scheme self1871) (py-sint-to-scheme other1872)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-itruediv-bintX-bintY-fallback self1874 other1875)
   (if (py-test (py-ne other1875 (py-int-from-scheme 0)))
-      (py-int-from-scheme
+      (py-float-from-scheme
        (py/ (py-bint-to-scheme self1874) (py-bint-to-scheme other1875)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
@@ -3499,4 +3499,3 @@
 (define (py-ixor-bintX-bintY-fallback self1949 other1950)
   (py-int-from-scheme
    (py^ (py-bint-to-scheme self1949) (py-bint-to-scheme other1950))))
-
