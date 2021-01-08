@@ -344,17 +344,124 @@
 
 ;; behavior dispatch
 
-(define-macro (default-class-index) 0)
-(define-macro (py-builtin-type-class-index) 1)
-(define-macro (py-builtin-object-class-index) 2)
-(define-macro (py-builtin-str-class-index) 3)
-(define-macro (py-builtin-tuple-class-index) 4)
+(define-macro (behaviors-default-class-index) 0)
+(define-macro (behaviors-type-class-index) 0)
+(define-macro (behaviors-object-class-index) 0)
+(define-macro (behaviors-str-class-index) 0)
+(define-macro (behaviors-tuple-class-index) 0)
+(define-macro (behaviors-sint-class-index) 1) ;; is it necessary?
+(define-macro (behaviors-bint-class-index) 2)
+(define-macro (behaviors-bool-class-index) 3)
+(define-macro (behaviors-float-class-index) 4)
 
 (define-macro (py-make-builtin-class name module bases hclass-of-instances . attrs)
-  (define (get-class-index-by-name) 0)
+  (define class-indices
+    '((type . (behaviors-type-class-index))
+      (object . (behaviors-object-class-index))
+      (str . (behaviors-str-class-index))
+      (tuple . (behaviors-tuple-class-index))
+      (int . (behaviors-bint-class-index))
+      (bool . (behaviors-bool-class-index))
+      (float . (behaviors-float-class-index))))
 
-  (let ((class-index (get-class-index-by-name)))
-    `(py-make-builtin-class-with-class-index ,class-index ,name ,module ,bases ,hclass-of-instances ,@attrs)))
+  (define (get-class-index-by-name name-symbol)
+    (let ((res (assq name-symbol class-indices)))
+      (if res (cdr res) '(default-class-index))))
+
+  (if (and (pair? name) (memq (car name) '(& &&)))
+    (let* ((name-value (cadr name))
+           (class-index (get-class-index-by-name (string->symbol name-value))))
+      `(py-make-builtin-class-with-class-index ,class-index ,name ,module ,bases ,hclass-of-instances ,@attrs))
+    (error "py-make-builtin-class" "name argument must be a static PyObjectStr" name)))
+
+(define-macro (init-behavior-dispatch-vector)
+  (define types-with-behaviors '(default
+                                 sint
+                                 bint
+                                 bool
+                                 float))
+
+  (define (behavior-table-size (length types-with-behaviors))) ;; one by behavior + default
+
+  (define ops-with-behaviors
+    '(add bitand bitor floordiv lshift matmul mod mul pow rshift sub
+      truediv xor iadd ibitand ibitor ifloordiv ilshift imatmul imod
+      imul ipow irshift isub itruediv ixor))
+
+  (define (get-behavior-table-name op)
+    (symbol->string (string-append (symbol->string op) "-behavior-table")))
+
+  (define (get-type-class-index-name type)
+    `(,(symbol->string (string-append "behaviors-" (symbol->string type) "-class-index"))))
+
+  (define (get-behavior-name op lhs-type rhs-type)
+    (if (or (eq? lhs-type 'default) (eq? rhs-type 'default))
+      ;; use the full semantics
+      (symbol->string
+        (string-append
+          "py-"
+          (symbol->string op)
+          "-fallback"))
+      ;; use a behavior
+      (symbol->string
+        (string-append
+          "py-"
+          (symbol->string op)
+          "-"
+          (symbol->string lhs-type)
+          "X-"
+          (symbol->string rhs-type)
+          "Y"))))
+
+  (let ((tables-init-code
+          (let loop ((ops ops-with-behaviors))
+            (if (null? ops)
+              '()
+              (let (behavior-table-name (get-behavior-table-name (get-table-name op)))
+                (cons
+                  `(define ,behavior-table-name ,(make-vector behavior-table-size))
+                  (loop (cdr ops)))))))
+        (sub-tables-init-code
+          (let loop ((ops ops-with-behaviors))
+            (if (null? ops)
+              '()
+              (let (behavior-table-name (get-behavior-table-name (get-table-name op)))
+                (let inner-loop ((i 0))
+                  (if (< i behavior-table-size)
+                    (cons
+                      `(vector-set ,behavior-table-name ,i ,(make-vector behavior-table-size))
+                      (inner-loop (+ i 1)))
+                    (loop (cdr ops))))))))
+        (table-fill-code
+          (let loop ((ops ops-with-behaviors))
+            (let (behavior-table-name (get-behavior-table-name (car ops)))
+              (if (null? ops)
+                '()
+                (let lhs-loop ((i 0) (lhs-type types-with-behaviors))
+                  (if (< i behavior-table-size)
+                    (let rhs-loop ((j 0) (rhs-types types-with-behaviors))
+                      (if (< j behavior-table-size)
+                        (cons
+                          `(behavior-set!
+                            ,(car ops)
+                            ,(get-type-class-index-name (car lhs-types))
+                            ,(get-type-class-index-name (car rhs-types)))
+                        (lhs-loop (+ i 1) (cdr lhs-types))))
+                    (loop (cdr ops))))))))))
+    `(begin
+        @,tables-init-code
+        @,sub-tables-init-code
+        @,table-fill-code)))
+
+(define-macro (behavior-ref op lhs-index rhs-index)
+  (let ((behavior-table-name
+          (symbol->string (string-append (symbol->string op) "-behavior-table"))))
+    `(vector-ref (vector-ref ,behavior-table-name ,lhs-index) ,rhs-index)))
+
+(define-macro (behavior-set! op lhs-index rhs-index val)
+  (let ((behavior-table-name
+          (symbol->string (string-append (symbol->string op) "-behavior-table"))))
+    `(vector-set (vector-ref ,behavior-table-name ,lhs-index) ,rhs-index ,val)))
 
 ;; Semantics
 
