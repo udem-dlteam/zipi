@@ -150,7 +150,7 @@ def py_bitand_boolX_floatY(self: bool, other: float):
 
 @define_behavior
 def py_bitand_boolX_boolY(self: bool, other: bool):
-    return self and other
+    return other if self is True else False
 
 @define_behavior
 def py_bitand_boolX_sintY(self: bool, other: sint):
@@ -250,7 +250,7 @@ def py_bitor_boolX_floatY(self: bool, other: float):
 
 @define_behavior
 def py_bitor_boolX_boolY(self: bool, other: bool):
-    return self or other
+    return True if self is True else other
 
 @define_behavior
 def py_bitor_boolX_sintY(self: bool, other: sint):
@@ -1675,7 +1675,7 @@ def py_ibitand_boolX_floatY(self: bool, other: float):
 
 @define_behavior
 def py_ibitand_boolX_boolY(self: bool, other: bool):
-    return self and other
+    return other if self is True else False
 
 @define_behavior
 def py_ibitand_boolX_sintY(self: bool, other: sint):
@@ -1775,7 +1775,7 @@ def py_ibitor_boolX_floatY(self: bool, other: float):
 
 @define_behavior
 def py_ibitor_boolX_boolY(self: bool, other: bool):
-    return self or other
+    return True if self is True else other
 
 @define_behavior
 def py_ibitor_boolX_sintY(self: bool, other: sint):

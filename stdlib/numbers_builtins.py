@@ -382,46 +382,46 @@ class bool(int):
     def __and__(self, other):
         if type(self) is bool:
             if type(other) is bool:
-                return self and other
+                return other if self is True else False
             elif isinstance(other, int):
                 return int_box(int_unbox(self) & int_unbox(other))
             else:
                 return NotImplemented
         else:
-            raise TypeError("descriptor '__and__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+            raise TypeError("descriptor '__and__' requires a 'bool' object but received a '" + type(self).__name__ + "'")
 
     def __rand__(self, other):
         if type(self) is bool:
             if type(other) is bool:
-                return other and self
+                return other if self is True else False
             elif isinstance(other, int):
                 return int_box(int_unbox(other) & int_unbox(self))
             else:
                 return NotImplemented
         else:
-            raise TypeError("descriptor '__rand__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+            raise TypeError("descriptor '__rand__' requires a 'bool' object but received a '" + type(self).__name__ + "'")
 
     def __or__(self, other):
         if type(self) is bool:
             if type(other) is bool:
-                return self or other
+                return True if self is True else other
             elif isinstance(other, int):
                 return int_box(int_unbox(self) | int_unbox(other))
             else:
                 return NotImplemented
         else:
-            raise TypeError("descriptor '__or__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+            raise TypeError("descriptor '__or__' requires a 'bool' object but received a '" + type(self).__name__ + "'")
 
     def __ror__(self, other):
         if type(self) is bool:
             if type(other) is bool:
-                return other or self
+                return True if self is True else other
             elif isinstance(other, int):
                 return int_box(int_unbox(other) | int_unbox(self))
             else:
                 return NotImplemented
         else:
-            raise TypeError("descriptor '__ror__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+            raise TypeError("descriptor '__ror__' requires a 'bool' object but received a '" + type(self).__name__ + "'")
 
     def __xor__(self, other):
         if type(self) is bool:
@@ -432,18 +432,18 @@ class bool(int):
             else:
                 return NotImplemented
         else:
-            raise TypeError("descriptor '__xor__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+            raise TypeError("descriptor '__xor__' requires a 'bool' object but received a '" + type(self).__name__ + "'")
 
     def __rxor__(self, other):
         if type(self) is bool:
             if type(other) is bool:
-                return other is not self
+                return self is not other
             elif isinstance(other, int):
                 return int_box(int_unbox(other) ^ int_unbox(self))
             else:
                 return NotImplemented
         else:
-            raise TypeError("descriptor '__rxor__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+            raise TypeError("descriptor '__rxor__' requires a 'bool' object but received a '" + type(self).__name__ + "'")
 
 
 @builtin_class

@@ -292,13 +292,13 @@ bool_binary_method_template = \
     def __{method_name}__(self, other):
         if type(self) is bool:
             if type(other) is bool:
-                return self {op} other
+                return {bool_expr}
             elif isinstance(other, int):
                 return int_box(int_unbox(self) {int_op} int_unbox(other))
             else:
                 return NotImplemented
         else:
-            raise TypeError("descriptor '__{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+            raise TypeError("descriptor '__{method_name}__' requires a 'bool' object but received a '" + type(self).__name__ + "'")
 """
 
 bool_reflected_binary_method_template = \
@@ -306,13 +306,13 @@ bool_reflected_binary_method_template = \
     def __r{method_name}__(self, other):
         if type(self) is bool:
             if type(other) is bool:
-                return other {op} self
+                return {bool_expr}
             elif isinstance(other, int):
                 return int_box(int_unbox(other) {int_op} int_unbox(self))
             else:
                 return NotImplemented
         else:
-            raise TypeError("descriptor '__r{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+            raise TypeError("descriptor '__r{method_name}__' requires a 'bool' object but received a '" + type(self).__name__ + "'")
 """
 
 
@@ -331,9 +331,16 @@ class bool(int):
 {methods}"""
 
 bool_method_info = {
-    'bitand': {"method_name": "and", "op": "and", "int_op": "&"},
-    'bitor': {"method_name": "or", "op": "or", "int_op": "|"},
-    'xor': {"method_name": "xor", "op": "is not", "int_op": "^"}
+    'bitand': {"method_name": "and",
+               "bool_expr": "other if self is True else False",
+               "int_op": "&"},
+    'bitor': {"method_name": "or",
+              "base": "True",
+              "bool_expr": "True if self is True else other",
+              "int_op": "|"},
+    'xor': {"method_name": "xor", "base": "True",
+            "bool_expr": "self is not other",
+            "int_op": "^"}
 }
 
 
