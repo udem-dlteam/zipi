@@ -432,7 +432,7 @@
                     (PycRef-with-name? d 'define_semantics))))
           decls: decls
           use-simple-scoping: #t
-          name: (if is-decorated-semantics (symbol-append 'py- name) name)
+          name: (if is-decorated-semantics (symbol-append 'py- name '-fallback) name)
           annotation: annotation
           annotation-names: annotation-names
           inline: (if is-decorated-semantics (is-inlined-semantics name) #f)))

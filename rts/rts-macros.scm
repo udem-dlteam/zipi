@@ -340,3 +340,102 @@
     ,name
     (lambda ($value) $value)
     (lambda () py-absent)))
+
+
+;; Semantics
+
+(define-macro (py-add x y)
+  `(py-add-fallback ,x ,y))
+
+(define-macro (py-bitand x y)
+  `(py-bitand-fallback ,x ,y))
+
+(define-macro (py-bitor x y)
+  `(py-bitor-fallback ,x ,y))
+
+(define-macro (py-floordiv x y)
+  `(py-floordiv-fallback ,x ,y))
+
+(define-macro (py-lshift x y)
+  `(py-lshift-fallback ,x ,y))
+
+(define-macro (py-matmul x y)
+  `(py-matmul-fallback ,x ,y))
+
+(define-macro (py-mod x y)
+  `(py-mod-fallback ,x ,y))
+
+(define-macro (py-mul x y)
+  `(py-mul-fallback ,x ,y))
+
+(define-macro (py-pow x y)
+  `(py-pow-fallback ,x ,y))
+
+(define-macro (py-rshift x y)
+  `(py-rshift-fallback ,x ,y))
+
+(define-macro (py-sub x y)
+  `(py-sub-fallback ,x ,y))
+
+(define-macro (py-truediv x y)
+  `(py-truediv-fallback ,x ,y))
+
+(define-macro (py-xor x y)
+  `(py-xor-fallback ,x ,y))
+
+(define-macro (py-iadd x y)
+  `(py-iadd-fallback ,x ,y))
+
+(define-macro (py-ibitand x y)
+  `(py-ibitand-fallback ,x ,y))
+
+(define-macro (py-ibitor x y)
+  `(py-ibitor-fallback ,x ,y))
+
+(define-macro (py-ifloordiv x y)
+  `(py-ifloordiv-fallback ,x ,y))
+
+(define-macro (py-ilshift x y)
+  `(py-ilshift-fallback ,x ,y))
+
+(define-macro (py-imatmul x y)
+  `(py-imatmul-fallback ,x ,y))
+
+(define-macro (py-imod x y)
+  `(py-imod-fallback ,x ,y))
+
+(define-macro (py-imul x y)
+  `(py-imul-fallback ,x ,y))
+
+(define-macro (py-ipow x y)
+  `(py-ipow-fallback ,x ,y))
+
+(define-macro (py-irshift x y)
+  `(py-irshift-fallback ,x ,y))
+
+(define-macro (py-isub x y)
+  `(py-isub-fallback ,x ,y))
+
+(define-macro (py-itruediv x y)
+  `(py-itruediv-fallback ,x ,y))
+
+(define-macro (py-ixor x y)
+  `(py-ixor-fallback ,x ,y))
+
+(define-macro (py-getattribute obj attr)
+  `(py-getattribute-fallback ,obj ,attr))
+
+(define-macro (py-getitem obj item)
+  `(py-getitem-fallback ,obj ,item))
+
+(define-macro (py-setitem obj item value)
+  `(py-setitem-fallback ,obj ,item ,value))
+
+(define-macro (py-delitem obj item)
+  `(py-delitem-fallback ,obj ,item))
+
+(define-macro (py-enter obj)
+  `(py-enter-fallback ,obj))
+
+(define-macro (py-exit obj exc)
+  `(py-exit-fallback ,obj ,exc))

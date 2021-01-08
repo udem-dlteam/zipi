@@ -10,76 +10,76 @@
    (import __py_rts)
 
    (export (zipi-init name)
-	   (py-getattribute obj80 attr81)
-	   (py-getitem obj83 index84)
-	   (py-setitem obj86 index87 value88)
+	   (py-getattribute-fallback obj80 attr81)
+	   (py-getitem-fallback obj83 index84)
+	   (py-setitem-fallback obj86 index87 value88)
 
-	   (inline py-bitand x y)
-	   (py-bitand:normal x y)
-	   
-	   (inline py-bitor x y)
-	   (py-bitor:normal x y)
-	   
-	   (inline py-xor x y)
-	   (py-xor:normal x y)
-	   
-	   (inline py-ilshift x y)
-	   (py-ilshift:normal x y)
-	   
-	   (inline py-lshift x y)
-	   (py-lshift:normal x y)
-	   
-	   (inline py-rshift x y)
-	   (py-rshift:normal x y)
-	   
-	   (inline py-add x y)
-	   (py-add:normal x y)
+	   (inline py-bitand-fallback x y)
+	   (py-bitand-fallback:normal x y)
 
-	   (inline py-sub x y)
-	   (py-sub:normal x y)
+	   (inline py-bitor-fallback x y)
+	   (py-bitor-fallback:normal x y)
 
-	   (inline py-mul x y)
-	   (py-mul:normal x y)
+	   (inline py-xor-fallback x y)
+	   (py-xor-fallback:normal x y)
 
-	   (inline py-floordiv x y)
-	   (py-floordiv:normal x y)
+	   (inline py-ilshift-fallback x y)
+	   (py-ilshift-fallback:normal x y)
 
-	   (inline py-truediv x y)
-	   (py-truediv:normal x y)
+	   (inline py-lshift-fallback x y)
+	   (py-lshift-fallback:normal x y)
 
-	   (inline py-mod x y)
-	   (py-mod:normal x y)
+	   (inline py-rshift-fallback x y)
+	   (py-rshift-fallback:normal x y)
 
-	   (inline py-iadd x y)
-	   (py-iadd:normal x y)
+	   (inline py-add-fallback x y)
+	   (py-add-fallback:normal x y)
 
-	   (inline py-isub x y)
-	   (py-isub:normal x y)
+	   (inline py-sub-fallback x y)
+	   (py-sub-fallback:normal x y)
 
-	   (inline py-imul x y)
-	   (py-imul:normal x y)
+	   (inline py-mul-fallback x y)
+	   (py-mul-fallback:normal x y)
 
-	   (inline py-ifloordiv x y)
-	   (py-ifloordiv:normal x y)
+	   (inline py-floordiv-fallback x y)
+	   (py-floordiv-fallback:normal x y)
 
-	   (inline py-imod x y)
-	   (py-imod:normal x y)))
+	   (inline py-truediv-fallback x y)
+	   (py-truediv-fallback:normal x y)
 
-(define-inline (py-bitand x y) (py-bitand:normal x y))
-(define-inline (py-bitor x y) (py-bitor:normal x y))
-(define-inline (py-xor x y) (py-xor:normal x y))
-(define-inline (py-ilshift x y) (py-ilshift:normal x y))
-(define-inline (py-lshift x y) (py-lshift:normal x y))
-(define-inline (py-rshift x y) (py-rshift:normal x y))
+	   (inline py-mod-fallback x y)
+	   (py-mod-fallback:normal x y)
 
-(define-inline (py-add x y) (py-add:normal x y))
-(define-inline (py-sub x y) (py-sub:normal x y))
-(define-inline (py-floordiv x y) (py-floordiv:normal x y))
-(define-inline (py-truediv x y) (py-truediv:normal x y))
-(define-inline (py-mod x y) (py-mod:normal x y))
-(define-inline (py-mul x y) (py-mul:normal x y))
-(define-inline (py-iadd x y) (py-iadd:normal x y))
-(define-inline (py-isub x y) (py-isub:normal x y))
-(define-inline (py-ifloordiv x y) (py-ifloordiv:normal x y))
-(define-inline (py-imod x y) (py-imod:normal x y))
-(define-inline (py-imul x y) (py-imul:normal x y))
+	   (inline py-iadd-fallback x y)
+	   (py-iadd-fallback:normal x y)
+
+	   (inline py-isub-fallback x y)
+	   (py-isub-fallback:normal x y)
+
+	   (inline py-imul-fallback x y)
+	   (py-imul-fallback:normal x y)
+
+	   (inline py-ifloordiv-fallback x y)
+	   (py-ifloordiv-fallback:normal x y)
+
+	   (inline py-imod-fallback x y)
+	   (py-imod-fallback:normal x y)))
+
+(define-inline (py-bitand-fallback x y) (py-bitand-fallback:normal x y))
+(define-inline (py-bitor-fallback x y) (py-bitor-fallback:normal x y))
+(define-inline (py-xor-fallback x y) (py-xor-fallback:normal x y))
+(define-inline (py-ilshift-fallback x y) (py-ilshift-fallback:normal x y))
+(define-inline (py-lshift-fallback x y) (py-lshift-fallback:normal x y))
+(define-inline (py-rshift-fallback x y) (py-rshift-fallback:normal x y))
+
+(define-inline (py-add-fallback x y) (py-add-fallback:normal x y))
+(define-inline (py-sub-fallback x y) (py-sub-fallback:normal x y))
+(define-inline (py-floordiv-fallback x y) (py-floordiv-fallback:normal x y))
+(define-inline (py-truediv-fallback x y) (py-truediv-fallback:normal x y))
+(define-inline (py-mod-fallback x y) (py-mod-fallback:normal x y))
+(define-inline (py-mul-fallback x y) (py-mul-fallback:normal x y))
+(define-inline (py-iadd-fallback x y) (py-iadd-fallback:normal x y))
+(define-inline (py-isub-fallback x y) (py-isub-fallback:normal x y))
+(define-inline (py-ifloordiv-fallback x y) (py-ifloordiv-fallback:normal x y))
+(define-inline (py-imod-fallback x y) (py-imod-fallback:normal x y))
+(define-inline (py-imul-fallback x y) (py-imul-fallback:normal x y))

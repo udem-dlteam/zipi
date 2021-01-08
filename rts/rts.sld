@@ -49,57 +49,70 @@
     py-make-caches
 
     py-add
-    py-add:normal
-    py-add:reflected
-    py-add:err
+    py-add-fallback
+    py-add-fallback:normal
+    py-add-fallback:reflected
+    py-add-fallback:err
     py-bitand
-    py-bitand:normal
-    py-bitand:reflected
-    py-bitand:err
+    py-bitand-fallback
+    py-bitand-fallback:normal
+    py-bitand-fallback:reflected
+    py-bitand-fallback:err
     py-truediv
-    py-truediv:normal
-    py-truediv:reflected
-    py-truediv:err
+    py-truediv-fallback
+    py-truediv-fallback:normal
+    py-truediv-fallback:reflected
+    py-truediv-fallback:err
     py-floordiv
-    py-floordiv:normal
-    py-floordiv:reflected
-    py-floordiv:err
+    py-floordiv-fallback
+    py-floordiv-fallback:normal
+    py-floordiv-fallback:reflected
+    py-floordiv-fallback:err
     py-lshift
-    py-lshift:normal
-    py-lshift:reflected
-    py-lshift:err
+    py-lshift-fallback
+    py-lshift-fallback:normal
+    py-lshift-fallback:reflected
+    py-lshift-fallback:err
     py-matmul
-    py-matmul:normal
-    py-matmul:reflected
-    py-matmul:err
+    py-matmul-fallback
+    py-matmul-fallback:normal
+    py-matmul-fallback:reflected
+    py-matmul-fallback:err
     py-mod
-    py-mod:normal
-    py-mod:reflected
-    py-mod:err
+    py-mod-fallback
+    py-mod-fallback:normal
+    py-mod-fallback:reflected
+    py-mod-fallback:err
     py-mul
-    py-mul:normal
-    py-mul:reflected
-    py-mul:err
+    py-mul-fallback
+    py-mul-fallback:normal
+    py-mul-fallback:reflected
+    py-mul-fallback:err
     py-bitor
-    py-bitor:normal
-    py-bitor:reflected
-    py-bitor:err
+    py-bitor-fallback
+    py-bitor-fallback:normal
+    py-bitor-fallback:reflected
+    py-bitor-fallback:err
     py-pow
-    py-pow:normal
-    py-pow:reflected
-    py-pow:err
+    py-pow-fallback
+    py-pow-fallback:normal
+    py-pow-fallback:reflected
+    py-pow-fallback:err
     py-rshift
-    py-rshift:normal
-    py-rshift:reflected
-    py-rshift:err
+    py-rshift-fallback
+    py-rshift-fallback:normal
+    py-rshift-fallback:reflected
+    py-rshift-fallback:err
     py-sub
-    py-sub:normal
-    py-sub:reflected
-    py-sub:err
+    py-sub-fallback
+    py-sub-fallback:normal
+    py-sub-fallback:reflected
+    py-sub-fallback:err
     py-xor
-    py-xor:normal
-    py-xor:reflected
-    py-xor:err
+    py-xor-fallback
+    py-xor-fallback:normal
+    py-xor-fallback:reflected
+    py-xor-fallback:err
     py-eq
     py-ne
     py-lt
@@ -112,70 +125,83 @@
     py-notin
 
     py-iadd
-    py-iadd:inplace
-    py-iadd:normal
-    py-iadd:reflected
-    py-iadd:err
+    py-iadd-fallback
+    py-iadd-fallback:inplace
+    py-iadd-fallback:normal
+    py-iadd-fallback:reflected
+    py-iadd-fallback:err
     py-ibitand
-    py-ibitand:inplace
-    py-ibitand:normal
-    py-ibitand:reflected
-    py-ibitand:err
+    py-ibitand-fallback
+    py-ibitand-fallback:inplace
+    py-ibitand-fallback:normal
+    py-ibitand-fallback:reflected
+    py-ibitand-fallback:err
     py-itruediv
-    py-itruediv:inplace
-    py-itruediv:normal
-    py-itruediv:reflected
-    py-itruediv:err
+    py-itruediv-fallback
+    py-itruediv-fallback:inplace
+    py-itruediv-fallback:normal
+    py-itruediv-fallback:reflected
+    py-itruediv-fallback:err
     py-ifloordiv
-    py-ifloordiv:inplace
-    py-ifloordiv:normal
-    py-ifloordiv:reflected
-    py-ifloordiv:err
+    py-ifloordiv-fallback
+    py-ifloordiv-fallback:inplace
+    py-ifloordiv-fallback:normal
+    py-ifloordiv-fallback:reflected
+    py-ifloordiv-fallback:err
     py-ilshift
-    py-ilshift:inplace
-    py-ilshift:normal
-    py-ilshift:reflected
-    py-ilshift:err
+    py-ilshift-fallback
+    py-ilshift-fallback:inplace
+    py-ilshift-fallback:normal
+    py-ilshift-fallback:reflected
+    py-ilshift-fallback:err
     py-imatmul
-    py-imatmul:inplace
-    py-imatmul:normal
-    py-imatmul:reflected
-    py-imatmul:err
+    py-imatmul-fallback
+    py-imatmul-fallback:inplace
+    py-imatmul-fallback:normal
+    py-imatmul-fallback:reflected
+    py-imatmul-fallback:err
     py-imod
-    py-imod:inplace
-    py-imod:normal
-    py-imod:reflected
-    py-imod:err
+    py-imod-fallback
+    py-imod-fallback:inplace
+    py-imod-fallback:normal
+    py-imod-fallback:reflected
+    py-imod-fallback:err
     py-imul
-    py-imul:inplace
-    py-imul:normal
-    py-imul:reflected
-    py-imul:err
+    py-imul-fallback
+    py-imul-fallback:inplace
+    py-imul-fallback:normal
+    py-imul-fallback:reflected
+    py-imul-fallback:err
     py-ibitor
-    py-ibitor:inplace
-    py-ibitor:normal
-    py-ibitor:reflected
-    py-ibitor:err
+    py-ibitor-fallback
+    py-ibitor-fallback:inplace
+    py-ibitor-fallback:normal
+    py-ibitor-fallback:reflected
+    py-ibitor-fallback:err
     py-ipow
-    py-ipow:inplace
-    py-ipow:normal
-    py-ipow:reflected
-    py-ipow:err
+    py-ipow-fallback
+    py-ipow-fallback:inplace
+    py-ipow-fallback:normal
+    py-ipow-fallback:reflected
+    py-ipow-fallback:err
     py-irshift
-    py-irshift:inplace
-    py-irshift:normal
-    py-irshift:reflected
-    py-irshift:err
+    py-irshift-fallback
+    py-irshift-fallback:inplace
+    py-irshift-fallback:normal
+    py-irshift-fallback:reflected
+    py-irshift-fallback:err
     py-isub
-    py-isub:inplace
-    py-isub:normal
-    py-isub:reflected
-    py-isub:err
+    py-isub-fallback
+    py-isub-fallback:inplace
+    py-isub-fallback:normal
+    py-isub-fallback:reflected
+    py-isub-fallback:err
     py-ixor
-    py-ixor:inplace
-    py-ixor:normal
-    py-ixor:reflected
-    py-ixor:err
+    py-ixor-fallback
+    py-ixor-fallback:inplace
+    py-ixor-fallback:normal
+    py-ixor-fallback:reflected
+    py-ixor-fallback:err
 
     py-invert
     py-neg
@@ -185,14 +211,18 @@
 
     py-len
     py-getitem
+    py-getitem-fallback
     py-setitem
+    py-setitem-fallback
     py-delitem
+    py-delitem-fallback
     py-test
     py-not
     py-next
     py-import
 
     py-getattribute
+    py-getattribute-fallback
     object-put!
     py-own-attr-set!
     getattribute-from-obj-mro
@@ -268,7 +298,9 @@
     py-generator-send
 
     py-enter
+    py-enter-fallback
     py-exit
+    py-exit-fallback
 
     py-True
     py-False
