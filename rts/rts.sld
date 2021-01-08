@@ -216,6 +216,8 @@
     py-setitem-fallback
     py-delitem
     py-delitem-fallback
+
+    py-test-is
     py-test
     py-not
     py-next

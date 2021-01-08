@@ -170,7 +170,7 @@
             (&& "unsupported operand type(s) for &: 'bool' and 'float'"))))
 
 (define (py-bitand-boolX-boolY-fallback self113 other114)
-  (if (py-test (py-is self113 py-True)) other114 py-False))
+  (if (py-test-is self113 py-True) other114 py-False))
 
 (define (py-bitand-boolX-sintY-fallback self116 other117)
   (py-int-from-scheme
@@ -289,7 +289,7 @@
             (&& "unsupported operand type(s) for |: 'bool' and 'float'"))))
 
 (define (py-bitor-boolX-boolY-fallback self188 other189)
-  (if (py-test (py-is self188 py-True)) py-True other189))
+  (if (py-test-is self188 py-True) py-True other189))
 
 (define (py-bitor-boolX-sintY-fallback self191 other192)
   (py-int-from-scheme
@@ -1921,7 +1921,7 @@
             (&& "unsupported operand type(s) for &: 'bool' and 'float'"))))
 
 (define (py-ibitand-boolX-boolY-fallback self1088 other1089)
-  (if (py-test (py-is self1088 py-True)) other1089 py-False))
+  (if (py-test-is self1088 py-True) other1089 py-False))
 
 (define (py-ibitand-boolX-sintY-fallback self1091 other1092)
   (py-int-from-scheme
@@ -2040,7 +2040,7 @@
             (&& "unsupported operand type(s) for |: 'bool' and 'float'"))))
 
 (define (py-ibitor-boolX-boolY-fallback self1163 other1164)
-  (if (py-test (py-is self1163 py-True)) py-True other1164))
+  (if (py-test-is self1163 py-True) py-True other1164))
 
 (define (py-ibitor-boolX-sintY-fallback self1166 other1167)
   (py-int-from-scheme
