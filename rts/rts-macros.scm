@@ -344,15 +344,20 @@
 
 ;; behavior dispatch
 
+;; types which use the default behavior which is the full semantics
 (define-macro (behaviors-default-class-index) 0)
 (define-macro (behaviors-type-class-index) 0)
 (define-macro (behaviors-object-class-index) 0)
 (define-macro (behaviors-str-class-index) 0)
 (define-macro (behaviors-tuple-class-index) 0)
-(define-macro (behaviors-sint-class-index) 1) ;; is it necessary?
+
+;; type which have their own behaviors
+(define-macro (behaviors-sint-class-index) 1) ;; is a sint index necessary?
 (define-macro (behaviors-bint-class-index) 2)
 (define-macro (behaviors-bool-class-index) 3)
 (define-macro (behaviors-float-class-index) 4)
+
+(define-macro (last-behaviors-class-index) 4)
 
 (define-macro (py-make-builtin-class name module bases hclass-of-instances . attrs)
   (define class-indices
@@ -375,6 +380,7 @@
     (error "py-make-builtin-class" "name argument must be a static PyObjectStr" name)))
 
 (define-macro (init-behavior-dispatch-vector)
+  ;; each type mush match a macro 'behaviors-***-class-index' which expanses to a unique index
   (define types-with-behaviors '(default
                                  sint
                                  bint
@@ -383,13 +389,17 @@
 
   (define behavior-table-size (length types-with-behaviors)) ;; one by behavior + default
 
-  (define ops-with-behaviors
-    '(add bitand bitor floordiv lshift matmul mod mul pow rshift sub
-      truediv xor iadd ibitand ibitor ifloordiv ilshift imatmul imod
+  (define inplace-ops
+    '(iadd ibitand ibitor ifloordiv ilshift imatmul imod
       imul ipow irshift isub itruediv ixor))
 
-  (define (get-behavior-table-name op)
-    (string->symbol (string-append (symbol->string op) "-behavior-table")))
+  (define ops-with-behaviors
+    (append
+      '(add bitand bitor floordiv lshift matmul mod mul pow rshift sub truediv xor)
+      inplace-ops))
+
+  (define (get-behaviors-table-name op)
+    (string->symbol (string-append (symbol->string op) "-behaviors-table")))
 
   (define (get-type-class-index-name type)
     `(,(string->symbol (string-append "behaviors-" (symbol->string type) "-class-index"))))
@@ -401,7 +411,8 @@
         (string-append
           "py-"
           (symbol->string op)
-          "-fallback:normal")) ;; TODO: inplace semantics must use ":inplace"
+          "-fallback"
+          (if (memq op inplace-ops) ":inplace" ":normal")))
       ;; use a behavior
       (string->symbol
         (string-append
@@ -412,30 +423,23 @@
           "X-"
           (symbol->string rhs-type)
           "Y-fallback"))))
+
   (let ((tables-init-code
           (let loop ((ops ops-with-behaviors))
             (if (null? ops)
               '()
-              (let ((behavior-table-name (get-behavior-table-name (car ops))))
+              (let ((behavior-table-name (get-behaviors-table-name (car ops)))
+                    (vec (make-vector (* behavior-table-size behavior-table-size))))
                 (cons
-                  `(define ,behavior-table-name ,(make-vector behavior-table-size))
+                  `(define ,behavior-table-name ,vec)
                   (loop (cdr ops)))))))
-        (sub-tables-init-code
-          (let loop ((ops ops-with-behaviors))
-            (if (null? ops)
-              '()
-              (let ((behavior-table-name (get-behavior-table-name (car ops))))
-                (let inner-loop ((i 0))
-                  (if (< i behavior-table-size)
-                    (cons
-                      `(vector-set ,behavior-table-name ,i ,(make-vector behavior-table-size))
-                      (inner-loop (+ i 1)))
-                    (loop (cdr ops))))))))
         (table-fill-code
+          ;; This generates A LOT of code to allow keeping 'behaviors-***-class-index'
+          ;; macros as the single source of truth
           (let loop ((ops ops-with-behaviors))
             (if (null? ops)
               '()
-              (let ((behavior-table-name (get-behavior-table-name (car ops))))
+              (let ((behavior-table-name (get-behaviors-table-name (car ops))))
                 (let lhs-loop ((lhs-types types-with-behaviors))
                   (if (null? lhs-types)
                     (loop (cdr ops))
@@ -451,18 +455,24 @@
                           (rhs-loop (+ j 1) (cdr rhs-types))))))))))))
     `(begin
         ,@tables-init-code
-        ,@sub-tables-init-code
         ,@table-fill-code)))
+
+(define-macro (get-behavior-index lhs-index rhs-index)
+  (cond-expand
+    (gambit
+      `(|##fx+| ,lhs-index (|##fx*| (last-behaviors-class-index) ,rhs-index)))
+    (bigloo
+      `(+fx ,lhs-index (*fx (last-behaviors-class-index) ,rhs-index)))))
 
 (define-macro (behavior-ref op lhs-index rhs-index)
   (let ((behavior-table-name
-          (string->symbol (string-append (symbol->string op) "-behavior-table"))))
-    `(vector-ref (vector-ref ,behavior-table-name ,lhs-index) ,rhs-index)))
+          (string->symbol (string-append (symbol->string op) "-behaviors-table"))))
+    `(vector-ref ,behavior-table-name (get-behavior-index ,lhs-index ,rhs-index))))
 
 (define-macro (behavior-set! op lhs-index rhs-index val)
   (let ((behavior-table-name
-          (string->symbol (string-append (symbol->string op) "-behavior-table"))))
-    `(vector-set (vector-ref ,behavior-table-name ,lhs-index) ,rhs-index ,val)))
+          (string->symbol (string-append (symbol->string op) "-behaviors-table"))))
+    `(vector-set! ,behavior-table-name (get-behavior-index ,lhs-index ,rhs-index) ,val)))
 
 ;; Semantics
 
