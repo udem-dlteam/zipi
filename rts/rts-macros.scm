@@ -366,7 +366,7 @@
 
   (define (get-class-index-by-name name-symbol)
     (let ((res (assq name-symbol class-indices)))
-      (if res (cdr res) '(default-class-index))))
+      (if res (cdr res) '(behaviors-default-class-index))))
 
   (if (and (pair? name) (memq (car name) '(& &&)))
     (let* ((name-value (cadr name))
@@ -389,21 +389,21 @@
       imul ipow irshift isub itruediv ixor))
 
   (define (get-behavior-table-name op)
-    (symbol->string (string-append (symbol->string op) "-behavior-table")))
+    (string->symbol (string-append (symbol->string op) "-behavior-table")))
 
   (define (get-type-class-index-name type)
-    `(,(symbol->string (string-append "behaviors-" (symbol->string type) "-class-index"))))
+    `(,(string->symbol (string-append "behaviors-" (symbol->string type) "-class-index"))))
 
   (define (get-behavior-name op lhs-type rhs-type)
     (if (or (eq? lhs-type 'default) (eq? rhs-type 'default))
       ;; use the full semantics
-      (symbol->string
+      (string->symbol
         (string-append
           "py-"
           (symbol->string op)
-          "-fallback"))
+          "-fallback:normal")) ;; TODO: inplace semantics must use ":inplace"
       ;; use a behavior
-      (symbol->string
+      (string->symbol
         (string-append
           "py-"
           (symbol->string op)
@@ -411,13 +411,12 @@
           (symbol->string lhs-type)
           "X-"
           (symbol->string rhs-type)
-          "Y"))))
-
+          "Y-fallback"))))
   (let ((tables-init-code
           (let loop ((ops ops-with-behaviors))
             (if (null? ops)
               '()
-              (let ((behavior-table-name (get-behavior-table-name (get-table-name op))))
+              (let ((behavior-table-name (get-behavior-table-name (car ops))))
                 (cons
                   `(define ,behavior-table-name ,(make-vector behavior-table-size))
                   (loop (cdr ops)))))))
@@ -425,7 +424,7 @@
           (let loop ((ops ops-with-behaviors))
             (if (null? ops)
               '()
-              (let ((behavior-table-name (get-behavior-table-name (get-table-name op))))
+              (let ((behavior-table-name (get-behavior-table-name (car ops))))
                 (let inner-loop ((i 0))
                   (if (< i behavior-table-size)
                     (cons
@@ -434,33 +433,35 @@
                     (loop (cdr ops))))))))
         (table-fill-code
           (let loop ((ops ops-with-behaviors))
-            (let ((behavior-table-name (get-behavior-table-name (car ops))))
-              (if (null? ops)
-                '()
-                (let lhs-loop ((i 0) (lhs-type types-with-behaviors))
-                  (if (< i behavior-table-size)
+            (if (null? ops)
+              '()
+              (let ((behavior-table-name (get-behavior-table-name (car ops))))
+                (let lhs-loop ((lhs-types types-with-behaviors))
+                  (if (null? lhs-types)
+                    (loop (cdr ops))
                     (let rhs-loop ((j 0) (rhs-types types-with-behaviors))
-                      (if (< j behavior-table-size)
+                      (if (null? rhs-types)
+                        (lhs-loop (cdr lhs-types))
                         (cons
                           `(behavior-set!
                             ,(car ops)
                             ,(get-type-class-index-name (car lhs-types))
-                            ,(get-type-class-index-name (car rhs-types)))
-                        (lhs-loop (+ i 1) (cdr lhs-types))))
-                    (loop (cdr ops))))))))))
+                            ,(get-type-class-index-name (car rhs-types))
+                            ,(get-behavior-name (car ops) (car lhs-types) (car rhs-types)))
+                          (rhs-loop (+ j 1) (cdr rhs-types))))))))))))
     `(begin
-        @,tables-init-code
-        @,sub-tables-init-code
-        @,table-fill-code)))
+        ,@tables-init-code
+        ,@sub-tables-init-code
+        ,@table-fill-code)))
 
 (define-macro (behavior-ref op lhs-index rhs-index)
   (let ((behavior-table-name
-          (symbol->string (string-append (symbol->string op) "-behavior-table"))))
+          (string->symbol (string-append (symbol->string op) "-behavior-table"))))
     `(vector-ref (vector-ref ,behavior-table-name ,lhs-index) ,rhs-index)))
 
 (define-macro (behavior-set! op lhs-index rhs-index val)
   (let ((behavior-table-name
-          (symbol->string (string-append (symbol->string op) "-behavior-table"))))
+          (string->symbol (string-append (symbol->string op) "-behavior-table"))))
     `(vector-set (vector-ref ,behavior-table-name ,lhs-index) ,rhs-index ,val)))
 
 ;; Semantics

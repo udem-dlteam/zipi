@@ -2930,28 +2930,28 @@
   (let* ((type-class
           (py-builtin-type-alloc
             #f ;; cls
-            (py-builtin-type-class-index)
+            (behaviors-type-class-index)
             #f ;; bases
             #f ;; mro
             py-type-hclass-of-instances))
         (object-class
           (py-builtin-type-alloc
             #f ;; cls
-            (py-builtin-object-class-index)
+            (behaviors-object-class-index)
             #f ;; bases
             #f ;; mro
             py-object-hclass-of-instances))
         (str-class
           (py-builtin-type-alloc
             #f ;; cls
-            (py-builtin-str-class-index)
+            (behaviors-str-class-index)
             #f ;; bases
             #f ;; mro
             py-str-hclass-of-instances))
         (tuple-class
           (py-builtin-type-alloc
             #f ;; cls
-            (py-builtin-tuple-class-index)
+            (behaviors-tuple-class-index)
             #f ;; bases
             #f ;; mro
             py-tuple-hclass-of-instances)))
@@ -3032,6 +3032,9 @@
 
 (bootstrap-type-hierarchy-phase1)
 
+;; adds top-level behavior tables
+(init-behavior-dispatch-vector)
+
 (define (py-compute-mro cls)
 
   (define seen '())
@@ -3096,7 +3099,7 @@
             (reverse rev-attr-values)))))
 
 (define (py-make-class name module bases . attrs)
-  (py-make-class-from-type-allocator (default-class-index) name module bases py-type-alloc attrs))
+  (py-make-class-from-type-allocator (behaviors-default-class-index) name module bases py-type-alloc attrs))
 
 (define (py-make-builtin-class-with-class-index class-index name module bases hclass-of-instances . attrs)
   (let ((cls

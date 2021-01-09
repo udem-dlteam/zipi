@@ -476,4 +476,5 @@
   (include "rts#.scm")
   (include "rts.gambit")
   (include "../stdlib/zemantics.scm")
+  (include "../stdlib/behaviors.scm")
   (include "rts.scm"))
