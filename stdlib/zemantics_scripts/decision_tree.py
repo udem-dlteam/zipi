@@ -340,8 +340,8 @@ def partial_eval_bool_op(expr, ctx):
 
     evaluated_values = []
 
-    # TODO: this is not exactly correct. By example 'foo or True' will return foo even if foo is falsy.
-    # TODO: this is ok for the current usag of partial evaluation, but could be improved once we have some time
+    # TODO: this is not exactly correct. For example, 'foo or True' will return foo even if foo is falsy.
+    # TODO: this is ok for the current usage of partial evaluation, but could be improved once we have some time
     if isinstance(op, ast.And):
         for val in values:
             if isinstance(val, ast.Constant):
@@ -592,6 +592,9 @@ def get_type_alias(type_name):
 instances = [1, 1.0, True]
 types = [get_type_name(i) for i in instances]
 int_specialized_types = ['sint', 'bint']
+
+# Replace 'int' by 'sint' and 'bint'
+types.remove('int')
 types += int_specialized_types
 
 if __name__ == '__main__':
