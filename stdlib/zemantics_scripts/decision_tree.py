@@ -520,14 +520,15 @@ def main_behaviors(semantics_file, builtins_file):
 
     behaviors = []
 
+    define_behavior = "define_behavior"
+    other_intrinsics = "int_box, int_unbox, bool_unbox, float_box, float_unbox, sint_unbox, bint_unbox"
+
     for semantics, subtree in decision_tree.items():
-        for left_type in types:
-            for right_type in types:
+        for left_type in types_without_int:
+            for right_type in types_without_int:
 
                 behavior_name = get_binary_behavior_name(semantics, left_type, right_type)
                 behavior_func_name = behavior_name.replace('-', '_')
-                define_behavior = "define_behavior"
-                other_intrinsics = "int_box, int_unbox, bool_unbox, float_box, float_unbox, sint_unbox, bint_unbox"
                 behavior_decorator_list = [ast.Name(f"{define_behavior}")]
 
                 try:
@@ -592,10 +593,11 @@ def get_type_alias(type_name):
 instances = [1, 1.0, True]
 types = [get_type_name(i) for i in instances]
 int_specialized_types = ['sint', 'bint']
+types += int_specialized_types
 
 # Replace 'int' by 'sint' and 'bint'
-types.remove('int')
-types += int_specialized_types
+types_without_int = [t for t in types if t != 'int']
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Generate zipi decision tree and behavior functions")
