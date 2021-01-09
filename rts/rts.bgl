@@ -19,6 +19,7 @@
        (include
           "rts-macros.scm"
           "rts.sch"
+          "../stdlib/behaviors.scm"
           "bigloo/include.sch"
           "bigloo/call.sch"
           "bigloo/constants.sch"
