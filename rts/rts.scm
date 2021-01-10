@@ -2930,28 +2930,28 @@
   (let* ((type-class
           (py-builtin-type-alloc
             #f ;; cls
-            (behaviors-type-class-index)
+            (get-behavior-type-index type)
             #f ;; bases
             #f ;; mro
             py-type-hclass-of-instances))
         (object-class
           (py-builtin-type-alloc
             #f ;; cls
-            (behaviors-object-class-index)
+            (get-behavior-type-index object)
             #f ;; bases
             #f ;; mro
             py-object-hclass-of-instances))
         (str-class
           (py-builtin-type-alloc
             #f ;; cls
-            (behaviors-str-class-index)
+            (get-behavior-type-index str)
             #f ;; bases
             #f ;; mro
             py-str-hclass-of-instances))
         (tuple-class
           (py-builtin-type-alloc
             #f ;; cls
-            (behaviors-tuple-class-index)
+            (get-behavior-type-index tuple)
             #f ;; bases
             #f ;; mro
             py-tuple-hclass-of-instances)))

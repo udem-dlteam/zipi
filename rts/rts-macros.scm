@@ -341,37 +341,42 @@
     (lambda ($value) $value)
     (lambda () py-absent)))
 
-
 ;; behavior dispatch
 
-;; types which use the default behavior which is the full semantics
-(define-macro (behaviors-default-class-index) 0)
-(define-macro (behaviors-type-class-index) 0)
-(define-macro (behaviors-object-class-index) 0)
-(define-macro (behaviors-str-class-index) 0)
-(define-macro (behaviors-tuple-class-index) 0)
+(define-macro (with-class-indices-info . args)
+  (let ((info
+            ;; WARNING: type must be ordered by class-index and only one
+            ;; type by index can have has-specialized-behavior set to #t
 
-;; type which have their own behaviors
-(define-macro (behaviors-sint-class-index) 1) ;; is a sint index necessary?
-(define-macro (behaviors-bint-class-index) 2)
-(define-macro (behaviors-bool-class-index) 3)
-(define-macro (behaviors-float-class-index) 4)
+            ;; name   class-index     has-specialized-behavior
+          '((default       0                  #t)
+            (type          0                  #f)
+            (object        0                  #f)
+            (str           0                  #f)
+            (tuple         0                  #f)
+            (sint          1                  #t) ;; is a sint index necessary?
+            (bint          2                  #t)
+            (bool          3                  #t)
+            (float         4                  #t))))
 
-(define-macro (last-behaviors-class-index) 4)
+    ;; add info as first arg due to rest arguments in py-make-builtin-class
+    `(,(car args) ,info ,@(cdr args))))
+
+(define-macro (get-behavior-type-index name)
+  `(with-class-indices-info $get-behavior-type-index ,name))
+
+(define-macro ($get-behavior-type-index indices-info name)
+  (cadr (assq name indices-info)))
 
 (define-macro (py-make-builtin-class name module bases hclass-of-instances . attrs)
-  (define class-indices
-    '((type . (behaviors-type-class-index))
-      (object . (behaviors-object-class-index))
-      (str . (behaviors-str-class-index))
-      (tuple . (behaviors-tuple-class-index))
-      (int . (behaviors-bint-class-index))
-      (bool . (behaviors-bool-class-index))
-      (float . (behaviors-float-class-index))))
+  `(with-class-indices-info $py-make-builtin-class-with-class-index-info ,name ,module ,bases ,hclass-of-instances ,@attrs))
 
+(define-macro ($py-make-builtin-class-with-class-index-info indices-info name module bases hclass-of-instances . attrs)
   (define (get-class-index-by-name name-symbol)
-    (let ((res (assq name-symbol class-indices)))
-      (if res (cdr res) '(behaviors-default-class-index))))
+    (if (eq? name-symbol 'int)
+      (cadr (assq 'bint indices-info))
+      (let ((res (assq name-symbol indices-info)))
+        (if res (cadr res) (cadr (assq 'default indices-info))))))
 
   (if (and (pair? name) (memq (car name) '(& &&)))
     (let* ((name-value (cadr name))
@@ -380,18 +385,21 @@
     (error "py-make-builtin-class" "name argument must be a static PyObjectStr" name)))
 
 (define-macro (init-behavior-dispatch-vector)
-  ;; each type mush match a macro 'behaviors-***-class-index' which expanses to a unique index
-  (define types-with-behaviors '(default
-                                 sint
-                                 bint
-                                 bool
-                                 float))
+ `(with-class-indices-info $init-behavior-dispatch-vector))
 
-  (define behavior-table-size (length types-with-behaviors)) ;; one by behavior + default
+(define-macro ($init-behavior-dispatch-vector indices-info)
+  (define types-with-specialized-behaviors
+    (let loop ((info indices-info))
+      (cond
+        ((null? info) '())
+        ((caddar info) ;; has-specialized-behavior
+          (cons (car info) (loop (cdr info))))
+        (else (loop (cdr info))))))
+
+  (define behavior-table-size (length types-with-specialized-behaviors)) ;; one by behavior + default
 
   (define inplace-ops
-    '(iadd ibitand ibitor ifloordiv ilshift imatmul imod
-      imul ipow irshift isub itruediv ixor))
+    '(iadd ibitand ibitor ifloordiv ilshift imatmul imod imul ipow irshift isub itruediv ixor))
 
   (define ops-with-behaviors
     (append
@@ -400,9 +408,6 @@
 
   (define (get-behaviors-table-name op)
     (string->symbol (string-append (symbol->string op) "-behaviors-table")))
-
-  (define (get-type-class-index-name type)
-    `(,(string->symbol (string-append "behaviors-" (symbol->string type) "-class-index"))))
 
   (define (get-behavior-name op lhs-type rhs-type)
     (if (or (eq? lhs-type 'default) (eq? rhs-type 'default))
@@ -424,45 +429,50 @@
           (symbol->string rhs-type)
           "Y-fallback"))))
 
+  (define (make-behaviors-list op)
+    (let lhs-loop ((lhs-types types-with-specialized-behaviors))
+      (if (null? lhs-types)
+        '()
+        (let rhs-loop ((rhs-types types-with-specialized-behaviors))
+          (if (null? rhs-types)
+            (lhs-loop (cdr lhs-types))
+            (cons
+              (get-behavior-name op (caar lhs-types) (caar rhs-types))
+              (rhs-loop (cdr rhs-types))))))))
+
   (let ((tables-init-code
           (let loop ((ops ops-with-behaviors))
             (if (null? ops)
               '()
-              (let ((behavior-table-name (get-behaviors-table-name (car ops)))
-                    (vec (make-vector (* behavior-table-size behavior-table-size))))
+              (let* ((op (car ops))
+                    (behavior-table-name (get-behaviors-table-name op))
+                    (behaviors (make-behaviors-list op)))
                 (cons
-                  `(define ,behavior-table-name ,vec)
-                  (loop (cdr ops)))))))
-        (table-fill-code
-          ;; This generates A LOT of code to allow keeping 'behaviors-***-class-index'
-          ;; macros as the single source of truth
-          (let loop ((ops ops-with-behaviors))
-            (if (null? ops)
-              '()
-              (let ((behavior-table-name (get-behaviors-table-name (car ops))))
-                (let lhs-loop ((lhs-types types-with-behaviors))
-                  (if (null? lhs-types)
-                    (loop (cdr ops))
-                    (let rhs-loop ((j 0) (rhs-types types-with-behaviors))
-                      (if (null? rhs-types)
-                        (lhs-loop (cdr lhs-types))
-                        (cons
-                          `(behavior-set!
-                            ,(car ops)
-                            ,(get-type-class-index-name (car lhs-types))
-                            ,(get-type-class-index-name (car rhs-types))
-                            ,(get-behavior-name (car ops) (car lhs-types) (car rhs-types)))
-                          (rhs-loop (+ j 1) (cdr rhs-types))))))))))))
+                  `(define ,behavior-table-name (vector ,@behaviors))
+                  (loop (cdr ops))))))))
+
     `(begin
-        ,@tables-init-code
-        ,@table-fill-code)))
+        ,@tables-init-code)))
 
 (define-macro (get-behavior-index lhs-index rhs-index)
+   `(with-class-indices-info $get-behavior-index ,lhs-index ,rhs-index))
+
+(define-macro ($get-behavior-index indices-info lhs-index rhs-index)
+  (define indices
+    (let loop ((info indices-info))
+      (cond
+        ((null? info) '())
+        ((caddar info) ;has-specialized-behavior
+          (cons (car info) (loop (cdr info))))
+        (loop (cdr info)))))
+
+  (define last-behaviors-class-index (apply max indices))
+
   (cond-expand
     (gambit
-      `(|##fx+| ,lhs-index (|##fx*| (last-behaviors-class-index) ,rhs-index)))
+      `(|##fx+| ,lhs-index (|##fx*| ,last-behaviors-class-index ,rhs-index)))
     (bigloo
-      `(+fx ,lhs-index (*fx (last-behaviors-class-index) ,rhs-index)))))
+      `(+fx ,lhs-index (*fx ,last-behaviors-class-index ,rhs-index)))))
 
 (define-macro (behavior-ref op lhs-index rhs-index)
   (let ((behavior-table-name
