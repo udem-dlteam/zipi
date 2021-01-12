@@ -32,7 +32,7 @@
   `(py-PyObjectInt-value ,obj))
 
 (define-macro (py-bool-to-scheme arg)
-  `(py-PyObjectInt-value ,arg)) ;; a bool is an int with value 0 or 1
+  `(py-strict-subtype-of-int-to-scheme ,arg)) ;; a bool is an int with value 0 or 1
 
 (define-macro (py-sint-to-scheme arg)
   `(py-if-specialized-sint-representation
