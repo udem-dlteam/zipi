@@ -1,27 +1,434 @@
 ;; Macros to enable/disable various implementation strategies.
 
-;; Should the Python int type be represented using fixnums and bignums?
-(define-macro (py-if-specialized-int-representation yes no) yes)
+(define-macro (py-if-specialized-sint-representation yes no) yes)
+(define-macro (py-if-specialized-float-representation yes no) yes)
 
-;; Should the Python float type be represented using flonums?
-(define-macro (py-if-specialized-float-representation yes no) no)
+(define-macro (py-bool-to-scheme-float arg)
+  `(fixnum->flonum (py-bool-to-scheme ,arg)))
 
-(define-macro (py-specialized-int-float-dispatch-let name obj int float other)
+(define-macro (py-sint-to-scheme-float arg)
+  `(fixnum->flonum (py-sint-to-scheme ,arg)))
+
+(define-macro (py-bint-to-scheme-float arg)
+  `(exact->inexact (py-bint-to-scheme ,arg)))
+
+(define-macro (py-int-to-scheme obj)
+  `(py-if-specialized-sint-representation
+    (let (($obj ,obj))
+      (if (fixnum? $obj)
+          $obj
+          (py-PyObjectInt-value $obj)))
+    (py-PyObjectInt-value ,obj)))
+
+(define-macro (py-subtype-of-int-to-scheme obj)
+  `(py-if-specialized-sint-representation
+    (let (($obj ,obj))
+      (if (fixnum? $obj)
+          $obj
+          (py-PyObjectInt-value $obj)))
+    (py-PyObjectInt-value ,obj)))
+
+(define-macro (py-strict-subtype-of-int-to-scheme obj)
+  `(py-PyObjectInt-value ,obj))
+
+(define-macro (py-bool-to-scheme arg)
+  `(py-PyObjectInt-value ,arg)) ;; a bool is an int with value 0 or 1
+
+(define-macro (py-sint-to-scheme arg)
+  `(py-if-specialized-sint-representation
+    ,arg
+    (PyObjectInt-value ,arg)))
+
+(define-macro (py-bint-to-scheme arg)
+  `(PyObjectInt-value ,arg))
+
+(define-macro (py-int-to-scheme arg)
+  `(PyObjectInt-value ,arg))
+
+(define-macro (py-float-to-scheme arg)
+  `(py-if-specialized-float-representation
+    ,arg
+    (PyObjectFloat-value ,arg)))
+
+(define-macro (py-subtype-of-float-to-scheme obj)
+  `(py-if-specialized-float-representation
+    (let (($obj ,obj))
+      (if (flonum? $obj)
+          $obj
+          (py-PyObjectFloat-value $obj)))
+    (py-PyObjectFloat-value ,obj)))
+
+(define-macro (py-strict-subtype-of-float-to-scheme obj)
+  `(py-PyObjectFloat-value ,obj))
+
+(define-macro (py-int-from-scheme arg)
+
+  ;; assume all small int operations don't cause an overflow?
+  (define disregard-sint-overflow? #f)
+
+  (define unary-operators-gambit
+    '((pypos    X ;; bool or non-ov. sint
+                X ;; sint
+                X ;; otherwise
+                )
+      (pyneg    (py-sint-from-scheme (|##fx-| X)) ;; bool or non-ov. sint
+                (or (|##fx-?| X) (py-bint-from-scheme (|##negate| X))) ;; sint
+                (py-int-from-scheme (|##negate| X)) ;; otherwise
+                )
+      (pyinvert (py-sint-from-scheme (|##fxnot| X)) ;; bool or non-ov. sint
+                (py-sint-from-scheme (|##fxnot| X)) ;; sint
+                (py-int-from-scheme (|##bitwise-not| X)) ;; otherwise
+                )))
+
+  (define binary-operators-gambit
+    '((py+  (py-sint-from-scheme (|##fx+| X Y)) ;; bool/bool or non-ov. sint/sint
+            (or (|##fx+?| X Y) (py-bint-from-scheme (|##+2| X Y))) ;; sint/sint
+            (py-int-from-scheme (|##+2| X Y)) ;; otherwise
+            )
+      (py-  (py-sint-from-scheme (|##fx-| X Y)) ;; bool/bool or non-ov. sint/sint
+            (or (|##fx-?| X Y) (py-bint-from-scheme (|##-2| X Y))) ;; sint/sint
+            (py-int-from-scheme (|##-2| X Y)) ;; otherwise
+            )
+      (py*  (py-sint-from-scheme (|##fx*| X Y)) ;; bool/bool or non-ov. sint/sint
+            (or (|##fx*?| X Y) (py-bint-from-scheme (|##*2| X Y))) ;; sint/sint
+            (py-int-from-scheme (|##*2| X Y)) ;; otherwise
+            )
+      (py** (py-int-from-scheme (expt X Y)) ;; TODO: define and use a primitive
+            (py-int-from-scheme (expt X Y))
+            (py-int-from-scheme (expt X Y))
+            )
+      (py&  (py-sint-from-scheme (|##fxand| X Y)) ;; bool/bool or non-ov. sint/sint
+            (py-sint-from-scheme (|##fxand| X Y)) ;; sint/sint
+            (py-int-from-scheme (|##bitwise-and| X Y)) ;; otherwise
+            )
+      (py+b (py-sint-from-scheme (|##fxior| X Y)) ;; bool/bool or non-ov. sint/sint
+            (py-sint-from-scheme (|##fxand| X Y)) ;; sint/sint
+            (py-int-from-scheme (|##bitwise-ior| X Y)) ;; otherwise
+            )
+      (py^  (py-sint-from-scheme (|##fxxor| X Y)) ;; bool/bool or non-ov. sint/sint
+            (py-sint-from-scheme (|##fxxor| X Y)) ;; sint/sint
+            (py-int-from-scheme (|##bitwise-xor| X Y)) ;; otherwise
+            )
+      (py>> (py-sint-from-scheme (|##fxarithmetic-shift-right| X Y)) ;; bool/bool or non-ov. sint/sint
+            (py-int-from-scheme (|##arithmetic-shift| X (|##negate| Y))) ;; sint/sint
+            (py-int-from-scheme (|##arithmetic-shift| X (|##negate| Y))) ;; otherwise
+            )
+      (py<< (py-sint-from-scheme (|##fxarithmetic-shift-left| X Y)) ;; bool/bool or non-ov. sint/sint
+            (py-int-from-scheme (|##arithmetic-shift| X Y)) ;; sint/sint
+            (py-int-from-scheme (|##arithmetic-shift| X Y)) ;; otherwise
+            )
+      (py// (py-sint-from-scheme (|##fxquotient| X Y)) ;; bool/bool or non-ov. sint/sint
+            (if (|##eqv?| Y -1) ;; sint/sint
+                (or (|##fx-?| X) (py-bint-from-scheme (|##negate| X)))
+                (|##fxquotient| X Y))
+            (py-int-from-scheme (|##quotient| X Y)) ;; otherwise
+            )
+      (py%  (py-sint-from-scheme (|##fxmodulo| X Y)) ;; bool/bool or non-ov. sint/sint
+            (py-sint-from-scheme (|##fxmodulo| X Y)) ;; sint/sint
+            (py-int-from-scheme (|##modulo| X Y)) ;; otherwise
+            )))
+
+  (define unary-operators-bigloo
+    '((pypos    X ;; bool or non-ov. sint
+                X ;; sint
+                X ;; otherwise
+                )
+      (pyneg    (py-sint-from-scheme (negfx X)) ;; bool or non-ov. sint
+                (py-int-from-scheme (- X)) ;; sint
+                (py-int-from-scheme (- X)) ;; otherwise
+                )
+      (pyinvert (py-sint-from-scheme (bit-not X)) ;; bool or non-ov. sint
+                (py-sint-from-scheme (bit-not X)) ;; sint
+                (py-int-from-scheme (bit-not X)) ;; otherwise
+                )))
+
+  (define binary-operators-bigloo
+    '((py+  (py-sint-from-scheme (+fx X Y)) ;; bool/bool or non-ov. sint/sint
+            (py-int-from-scheme (+ X Y)) ;; sint/sint
+            (py-int-from-scheme (+ X Y)) ;; otherwise
+            )
+      (py-  (py-sint-from-scheme (-fx X Y)) ;; bool/bool or non-ov. sint/sint
+            (py-int-from-scheme (- X Y)) ;; sint/sint
+            (py-int-from-scheme (- X Y)) ;; otherwise
+            )
+      (py*  (py-sint-from-scheme (*fx X Y)) ;; bool/bool or non-ov. sint/sint
+            (py-int-from-scheme (* X Y)) ;; sint/sint
+            (py-int-from-scheme (* X Y)) ;; otherwise
+            )
+      (py** (py-sint-from-scheme (exptfx X Y)) ;; bool/bool or non-ov. sint/sint
+            (py-int-from-scheme (expt X Y)) ;; sint/sint
+            (py-int-from-scheme (expt X Y)) ;; otherwise
+            )
+      (py&  (py-sint-from-scheme (bit-and X Y)) ;; bool/bool or non-ov. sint/sint
+            (py-int-from-scheme (bit-and X Y)) ;; sint/sint
+            (py-int-from-scheme (bit-and X Y)) ;; otherwise
+            )
+      (py+b (py-sint-from-scheme (bit-or X Y)) ;; bool/bool or non-ov. sint/sint
+            (py-int-from-scheme (bit-or X Y)) ;; sint/sint
+            (py-int-from-scheme (bit-or X Y)) ;; otherwise
+            )
+      (py^  (py-sint-from-scheme (bit-xor X Y)) ;; bool/bool or non-ov. sint/sint
+            (py-int-from-scheme (bit-xor X Y)) ;; sint/sint
+            (py-int-from-scheme (bit-xor X Y)) ;; otherwise
+            )
+      (py>> (py-sint-from-scheme (bit-rsh X Y)) ;; bool/bool or non-ov. sint/sint
+            (py-int-from-scheme (bit-rsh X Y)) ;; sint/sint
+            (py-int-from-scheme (bit-rsh X Y)) ;; otherwise
+            )
+      (py<< (py-sint-from-scheme (bit-lsh X Y)) ;; bool/bool or non-ov. sint/sint
+            (py-int-from-scheme (bit-lsh X Y)) ;; sint/sint
+            (py-int-from-scheme (bit-lsh X Y)) ;; otherwise
+            )
+      (py// (py-sint-from-scheme (quotientfx X Y)) ;; bool/bool or non-ov. sint/sint
+            (py-int-from-scheme (quotient X Y)) ;; sint/sint
+            (py-int-from-scheme (quotient X Y)) ;; otherwise
+            )
+      (py%  (py-sint-from-scheme (modulofx X Y)) ;; bool/bool or non-ov. sint/sint
+            (py-int-from-scheme (modulo X Y)) ;; sint/sint
+            (py-int-from-scheme (modulo X Y)) ;; otherwise
+            )))
+
+  (define host (cond-expand (gambit 'gambit) (bigloo 'bigloo)))
+
+  (define (type operand)
+    (and (pair? operand)
+         (let ((x (assoc (car operand)
+                         '((py-bool-to-scheme bool)
+                           (py-sint-to-scheme sint)
+                           (py-bint-to-scheme bint)
+                           (py-int-to-scheme  int)))))
+           (and x
+                (cadr x)))))
+
+  (define (bool? t) (eq? t 'bool))
+  (define (bool-or-sint? t) (or (eq? t 'bool) (eq? t 'sint)))
+
+  (define (out-of-line arg)
+    `(py-int-from-scheme-fallback ,arg))
+
+  (define (fallback arg)
+    `(py-if-specialized-sint-representation
+      (let (($arg ,arg))
+        (if (fixnum? $arg)
+            $arg
+            ,(out-of-line '$arg)))
+      ,(out-of-line arg)))
+
+  (define (all? pred lst)
+    (not (member #f (map pred lst))))
+
+  (define (strip-py-bint-from-scheme expr)
+    (if (pair? expr)
+        (if (eq? (car expr) 'py-bint-from-scheme)
+            (strip-py-bint-from-scheme (cadr expr))
+            (map strip-py-bint-from-scheme expr))
+        expr))
+
+  (define (special-case-sint expr)
+    (let ((expr-without-bint (strip-py-bint-from-scheme expr)))
+      (if (equal? expr expr-without-bint)
+          expr
+          `(py-if-specialized-sint-representation
+            ,expr
+            ,(out-of-line expr-without-bint)))))
+
+  (cond ((pair? arg)
+         (let* ((operator (car arg))
+                (operands (cdr arg))
+                (operand-types (map type operands)))
+           (case (length operands)
+             ((1)
+              (cond ((assoc operator
+                            (case host
+                              ((gambit) unary-operators-gambit)
+                              ((bigloo) unary-operators-bigloo)))
+                     =>
+                     (lambda (entry)
+                       (cond ((or (bool? (car operand-types))
+                                  disregard-sint-overflow?)
+                              (let ((expr (cadr entry)))
+                                (if (eq? expr 'X)
+                                    (cadr (car operands))
+                                    `(let ((X ,(car operands)))
+                                       ,expr))))
+                             ((bool-or-sint? (car operand-types))
+                              (let ((expr (caddr entry)))
+                                (if (eq? expr 'X)
+                                    (cadr (car operands))
+                                    `(let ((X ,(car operands)))
+                                       ,(special-case-sint expr)))))
+                             (else
+                              (let ((expr (cadddr entry)))
+                                (if (eq? expr 'X)
+                                    (cadr (car operands))
+                                    `(let ((X ,(car operands)))
+                                       ,expr)))))))
+                    (else
+                     (fallback arg))))
+             ((2)
+              (cond ((assoc operator
+                            (case host
+                              ((gambit) binary-operators-gambit)
+                              ((bigloo) binary-operators-bigloo)))
+                     =>
+                     (lambda (entry)
+                       (cond ((or (all? bool? operand-types)
+                                  disregard-sint-overflow?)
+                              (let ((expr (cadr entry)))
+                                `(let* ((X ,(car operands))
+                                        (Y ,(cadr operands)))
+                                   ,expr)))
+                             ((all? bool-or-sint? operand-types)
+                              (let ((expr (caddr entry)))
+                                `(let* ((X ,(car operands))
+                                        (Y ,(cadr operands)))
+                                   ,(special-case-sint expr))))
+                             (else
+                              (let ((expr (cadddr entry)))
+                                `(let* ((X ,(car operands))
+                                        (Y ,(cadr operands)))
+                                   ,expr))))))
+                    (else
+                     (fallback arg))))
+             (else
+              (fallback arg)))))
+        ((and (number? arg) (exact? arg) (integer? arg))
+         `(py-if-specialized-sint-representation
+           ,arg
+           ,(let ()
+              (define int-cache-low -5) ;; must be same as in rts.scm
+              (define int-cache-high 256)
+              (if (and (<= arg int-cache-high)
+                       (>= arg int-cache-low))
+                  `(vector-ref int-cache ,(- arg int-cache-low))
+                  (fallback arg)))))
+        (else
+         (fallback arg))))
+
+(define-macro (py-sint-from-scheme arg)
+ `(py-if-specialized-sint-representation
+   ,arg
+   (py-int-from-scheme-fallback ,arg)))
+
+(define-macro (py-bint-from-scheme arg)
+ `(py-int-from-scheme-fallback ,arg))
+
+(define-macro (py-float-from-scheme arg)
+
+ (define unary-operators-gambit
+   '((pypos X)
+     (pyneg (|##fl-| X))))
+
+ (define binary-operators-gambit
+   '((py+  (|##fl+| X Y))
+     (py-  (|##fl-| X Y))
+     (py*  (|##fl*| X Y))
+     (py** (|##flexpt| X Y))
+     (py/  (|##fl/| X Y))
+     (py// (|##flfloor| (|##fl/| X Y)))
+     (py%
+      (let (($temp (fl/ X Y)))
+        (|##fl-| X
+                 (|##fl*| Y
+                          (if (|##fl<| 0.0 X)
+                              (|##flfloor| $temp)
+                              (|##flceiling| $temp))))))))
+
+ (define unary-operators-bigloo
+   '((pypos X)
+     (pyneg (negfl X))))
+
+ (define binary-operators-bigloo
+   '((py+  (+fl X Y))
+     (py-  (-fl X Y))
+     (py*  (*fl X Y))
+     (py** (exptfl X Y))
+     (py/  (/fl X Y))
+     (py// (floorfl (/fl X Y)))
+     (py%
+      (let (($temp (/fl X Y)))
+        (-fl X
+             (*fl Y
+                  (if (<fl 0.0 X)
+                      (floorfl $temp)
+                      (ceilingfl $temp))))))))
+
+ (define host (cond-expand (gambit 'gambit) (bigloo 'bigloo)))
+
+ (define (type operand)
+   (and (pair? operand)
+        (let ((x (assoc (car operand)
+                        '((py-bool-to-scheme  bool)
+                          (py-sint-to-scheme  sint)
+                          (py-bint-to-scheme  bint)
+                          (py-int-to-scheme   int)
+                          (py-float-to-scheme float)))))
+          (and x
+               (cadr x)))))
+
+ (define (fallback arg)
+   `(py-if-specialized-float-representation
+     ,arg
+     (py-float-from-scheme-fallback ,arg)))
+
+ (define (to-float operand)
+   (case (type operand)
+     ((bool sint bint int)
+      (list (string->symbol
+             (string-append (symbol->string (car operand))
+                            "-float"))
+            (cadr operand)))
+     ((float)
+      operand)
+     (else
+      (error "unexpected type" operand))))
+
+ (cond ((pair? arg)
+        (let* ((operator (car arg))
+               (operands (cdr arg))
+               (operand-types (map type operands)))
+          (case (length operands)
+            ((1)
+             (cond ((assoc operator
+                           (case host
+                             ((gambit) unary-operators-gambit)
+                             ((bigloo) unary-operators-bigloo)))
+                    =>
+                    (lambda (entry)
+                      (let ((expr (cadr entry)))
+                        (if (and (eq? expr 'X)
+                                 (eq? (type (car operands)) 'float))
+                            (cadr (car operands))
+                            `(let ((X ,(to-float (car operands))))
+                               ,expr)))))
+                   (else
+                    (fallback arg))))
+            ((2)
+             (cond ((assoc operator
+                           (case host
+                             ((gambit) binary-operators-gambit)
+                             ((bigloo) binary-operators-bigloo)))
+                    =>
+                    (lambda (entry)
+                      (let ((expr (cadr entry)))
+                        `(let* ((X ,(to-float (car operands)))
+                                (Y ,(to-float (cadr operands))))
+                           ,expr))))
+                   (else
+                    (fallback arg))))
+            (else
+             (fallback arg)))))
+       (else
+        (fallback arg))))
+
+(define-macro (py-specialized-sint-float-dispatch-let name obj int float other)
   `(let ((,name ,obj))
-     (cond ((py-if-specialized-int-representation (exact-int? ,name) #f)
+     (cond ((py-if-specialized-sint-representation (fixnum? ,name) #f)
             ,int)
            ((py-if-specialized-float-representation (flonum? ,name) #f)
             ,float)
            (else
             ,other))))
-
-(define-macro (exact-int? obj)
-  (cond-expand
-    (gambit
-     `(exact-integer? ,obj))
-    (bigloo
-     `(let (($obj ,obj))
-        (or (fixnum? $obj) (bignum? $obj))))))
 
 ;; Access PyObject fields
 
@@ -49,7 +456,7 @@
 ;; Get hclass of object given specialized representations of int and float
 
 (define-macro (py-obj-hclass obj)
-  `(py-specialized-int-float-dispatch-let
+  `(py-specialized-sint-float-dispatch-let
     $obj
     ,obj
     py-int-hclass-of-instances
@@ -66,20 +473,12 @@
      `(PyObjectType-mro ,cls))))
 
 (define-macro (py-obj-cls obj) ;; get object's class
-  (let* ((special-case-float
-          `(py-if-specialized-float-representation
-            (if (flonum? $obj)
-                py-float-class
-                (py-PyObject-class $obj))
-            (py-PyObject-class $obj)))
-         (special-case-int
-          `(py-if-specialized-int-representation
-            (if (exact-int? $obj)
-                py-int-class
-                ,special-case-float)
-            ,special-case-float)))
-    `(let (($obj ,obj))
-       ,special-case-int)))
+  `(py-specialized-sint-float-dispatch-let
+    $obj
+    ,obj
+    py-int-class
+    py-float-class
+    (py-PyObject-class $obj)))
 
 (define-macro (py-obj-mro obj) ;; get MRO of object's class
   `(py-PyObjectType-mro (py-obj-cls ,obj)))
@@ -94,67 +493,30 @@
      `(PyObjectInt-value ,obj))))
 
 (define-macro (py-has-type-int? obj)
-  (let* ((case-PyObject
-          `(py-if-specialized-int-representation
-            #f
-            (eq? (py-PyObject-class $obj) py-int-class)))
-         (special-case-float
-          `(py-if-specialized-float-representation
-            (and (not (flonum? $obj))
-                 ,case-PyObject)
-            ,case-PyObject))
-         (special-case-int
-          `(py-if-specialized-int-representation
-            (exact-int? $obj)
-            ,special-case-float)))
-    `(let (($obj ,obj))
-       ,special-case-int)))
+  `(py-specialized-sint-float-dispatch-let
+    $obj
+    ,obj
+    #t
+    #f
+    (eq? (py-PyObject-class $obj) py-int-class)))
 
 (define-macro (py-subtype-of-int? obj)
-  (let* ((case-PyObject
-          `(or (py-if-specialized-int-representation
-                #f
-                (eq? (py-PyObject-class $obj) ;; optimize common case
-                     py-int-class))
-               (py-isinstance? $obj py-int-class)))
-         (special-case-float
-          `(py-if-specialized-float-representation
-            (and (not (flonum? $obj))
-                 ,case-PyObject)
-            ,case-PyObject))
-         (special-case-int
-          `(py-if-specialized-int-representation
-            (or (exact-int? $obj)
-                ,special-case-float)
-            ,special-case-float)))
-    `(let (($obj ,obj))
-       ,special-case-int)))
-
-(define-macro (py-int-from-scheme value)
-  (if (and (number? value) (exact? value) (integer? value)) ;; TODO: get (exact-integer? value) to work here with bigloo
-      `(py-if-specialized-int-representation
-        ,value
-        ,(let ()
-           (define int-cache-low -5) ;; must be same as in rts.scm
-           (define int-cache-high 256)
-           (if (and (<= value int-cache-high)
-                    (>= value int-cache-low))
-               `(vector-ref int-cache ,(- value int-cache-low))
-               `(py-int-from-scheme-fallback ,value))))
-      `(py-int-from-scheme-fallback ,value)))
-
-(define-macro (py-int-to-scheme obj)
-  `(py-if-specialized-int-representation
+  `(py-specialized-sint-float-dispatch-let
+    $obj
     ,obj
-    (py-PyObjectInt-value ,obj)))
+    #t
+    #f
+    (or (eq? (py-PyObject-class $obj) py-int-class)
+        (py-isinstance? $obj py-int-class))))
 
-(define-macro (py-subtype-of-int-to-scheme obj)
-  `(py-if-specialized-int-representation
-    (let (($obj ,obj))
-      (if (exact-int? $obj)
-          $obj
-          (py-PyObjectInt-value $obj)))
-    (py-PyObjectInt-value ,obj)))
+(define-macro (py-strict-subtype-of-int? obj)
+  `(py-specialized-sint-float-dispatch-let
+    $obj
+    ,obj
+    #f
+    #f
+    (and (not (eq? (py-PyObject-class $obj) py-int-class))
+         (py-isinstance? $obj py-int-class))))
 
 ;; Specialized type tests for float
 
@@ -166,59 +528,30 @@
      `(PyObjectFloat-value ,obj))))
 
 (define-macro (py-has-type-float? obj)
-  (let* ((case-PyObject
-          `(py-if-specialized-float-representation
-            #f
-            (eq? (py-PyObject-class $obj) py-float-class)))
-         (special-case-int
-          `(py-if-specialized-int-representation
-            (and (not (exact-int? $obj))
-                 ,case-PyObject)
-            ,case-PyObject))
-         (special-case-float
-          `(py-if-specialized-float-representation
-            (flonum? $obj)
-            ,special-case-int)))
-    `(let (($obj ,obj))
-       ,special-case-float)))
+  `(py-specialized-sint-float-dispatch-let
+    $obj
+    ,obj
+    #f
+    #t
+    #f))
 
 (define-macro (py-subtype-of-float? obj)
-  (let* ((case-PyObject
-          `(or (py-if-specialized-float-representation
-                #f
-                (eq? (py-PyObject-class $obj) ;; optimize common case
-                     py-float-class))
-               (py-isinstance? $obj py-float-class)))
-         (special-case-int
-          `(py-if-specialized-int-representation
-            (and (not (exact-int? $obj))
-                 ,case-PyObject)
-            ,case-PyObject))
-         (special-case-float
-          `(py-if-specialized-float-representation
-            (or (flonum? $obj)
-                ,special-case-int)
-            ,special-case-int)))
-    `(let (($obj ,obj))
-       ,special-case-float)))
-
-(define-macro (py-float-from-scheme value)
-  `(py-if-specialized-float-representation
-    ,value
-    (py-float-from-scheme-fallback ,value)))
-
-(define-macro (py-float-to-scheme obj)
-  `(py-if-specialized-float-representation
+  `(py-specialized-sint-float-dispatch-let
+    $obj
     ,obj
-    (py-PyObjectFloat-value ,obj)))
+    #f
+    #t
+    (or (eq? (py-PyObject-class $obj) py-float-class)
+        (py-isinstance? $obj py-float-class))))
 
-(define-macro (py-subtype-of-float-to-scheme obj)
-  `(py-if-specialized-float-representation
-    (let (($obj ,obj))
-      (if (flonum? $obj)
-          $obj
-          (py-PyObjectFloat-value $obj)))
-    (py-PyObjectFloat-value ,obj)))
+(define-macro (py-strict-subtype-of-float? obj)
+  `(py-specialized-sint-float-dispatch-let
+    $obj
+    ,obj
+    #f
+    #f
+    (and (not (eq? (py-PyObject-class $obj) py-float-class))
+         (py-isinstance? $obj py-float-class))))
 
 ;; Specialized type tests for str
 
@@ -259,8 +592,8 @@
                  ,case-PyObject)
             ,case-PyObject))
          (special-case-int
-          `(py-if-specialized-int-representation
-            (and (not (exact-int? $obj))
+          `(py-if-specialized-sint-representation
+            (and (not (fixnum? $obj))
                  ,special-case-float)
             ,special-case-float)))
     `(let (($obj ,obj))
@@ -277,8 +610,8 @@
                  ,case-PyObject)
             ,case-PyObject))
          (special-case-int
-          `(py-if-specialized-int-representation
-            (and (not (exact-int? $obj))
+          `(py-if-specialized-sint-representation
+            (and (not (fixnum? $obj))
                  ,special-case-float)
             ,special-case-float)))
     `(let (($obj ,obj))
