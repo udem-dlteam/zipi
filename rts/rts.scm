@@ -2862,7 +2862,7 @@
 (define int-cache #f)
 
 (define (py-int-from-scheme-fallback value)
-  (py-if-specialized-int-representation
+  (py-if-specialized-sint-representation
    value
    (if (and (<= value int-cache-high)
             (>= value int-cache-low))
@@ -3099,7 +3099,7 @@
             (reverse rev-attr-values)))))
 
 (define (py-make-class name module bases . attrs)
-  (py-make-class-from-type-allocator (behaviors-default-class-index) name module bases py-type-alloc attrs))
+  (py-make-class-from-type-allocator (get-behavior-type-index default) name module bases py-type-alloc attrs))
 
 (define (py-make-builtin-class-with-class-index class-index name module bases hclass-of-instances . attrs)
   (let ((cls
