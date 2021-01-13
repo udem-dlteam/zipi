@@ -1,9 +1,17 @@
-do.bigloo: builtins.bgl
+do.bigloo: builtins.bgl zemantics.bgl behaviors.bgl
 
 builtins.bgl:
 	../bin/zpc.bigloo.sh -s -o builtins.bgl ./builtins.py -m __stdlib_builtins --bootstrap --bin-dir=$(BUILDETCDIR)
 
+zemantics.bgl: zemantics.scm
+	../etc/scm-to-zipi-bgl zemantics.scm zemantics.bgl.in > zemantics.bgl
+
+behaviors.bgl: behaviors.scm
+	../etc/scm-to-zipi-bgl behaviors.scm behaviors.bgl.in > behaviors.bgl
+
 clean.bigloo:
 
 distclean.bigloo:
+	rm -f zemantics.bgl
+	rm -f behaviors.bgl
 	rm -f builtins.bgl

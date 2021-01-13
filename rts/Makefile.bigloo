@@ -22,7 +22,7 @@ install.bigloo: install-library
 #*---------------------------------------------------------------------*/
 #*    SOURCES                                                          */
 #*---------------------------------------------------------------------*/
-SOURCES = $(OBJECTS_COMMON:%=%.bgl) bigloo.bgl builtins.bgl zemantics.bgl \
+SOURCES = $(OBJECTS_COMMON:%=%.bgl) bigloo.bgl builtins.bgl zemantics.bgl behaviors.bgl \
   hash/hash.bgl
 
 #*---------------------------------------------------------------------*/
@@ -77,7 +77,7 @@ ude:
 clean.bigloo:
 	rm -f .afile
 	rm -rf o
-	rm -f builtins.bgl zemantics.scm zemantics.bgl
+	rm -f builtins.bgl zemantics.scm zemantics.bgl behaviors.bgl
 	$(MAKE) -C ../stdlib clean
 
 #*---------------------------------------------------------------------*/
@@ -95,17 +95,15 @@ o/hash.o: hash/hash.bgl hash/hash.scm
 builtins.bgl:
 	$(MAKE) -C ../stdlib builtins.bgl && mv ../stdlib/builtins.bgl .
 
-zemantics.bgl: ../stdlib/zemantics.bgl zemantics.scm
+zemantics.bgl: ../stdlib/zemantics.bgl
 	echo ";; automatically generated file, don't edit" > $@
 	echo ";; (copied from ../stdlib)" >> $@
 	cat $< >> $@
 
-zemantics.scm: ../stdlib/zemantics.scm
-	echo "(start-registering-constants)" > $@
+behaviors.bgl: ../stdlib/behaviors.bgl
+	echo ";; automatically generated file, don't edit" > $@
+	echo ";; (copied from ../stdlib)" >> $@
 	cat $< >> $@
-	echo "(define (zipi-init name)" >> $@
-	echo "   (init-registered-constants))" >> $@
-	echo "(end-registering-constants)" >> $@
 
 #bdepend start (don't edit)
 #*---------------------------------------------------------------------*/

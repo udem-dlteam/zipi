@@ -30,7 +30,8 @@
            __py_configure
            __py_hash
            __stdlib_builtins
-           __stdlib_zemantics)
+           __stdlib_zemantics
+           __stdlib_behaviors)
 
    (export (class PyObject
               (hclass (default #f))

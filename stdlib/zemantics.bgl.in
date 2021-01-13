@@ -1,0 +1,14 @@
+(module __stdlib_zemantics
+
+   (include
+          "rts-macros.scm"
+          "rts.sch"
+      	  "bigloo/include.sch"
+      	  "bigloo/call.sch"
+      	  "bigloo/constants.sch")
+
+   (import __py_rts)
+
+   (export
+      @BGL_EXPORTS@
+   ))
