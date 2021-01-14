@@ -469,13 +469,16 @@
     (bigloo
      `(PyObjectType-mro ,cls))))
 
+(define-macro (py-obj-cls-general obj)
+  `(py-PyObject-class $obj))
+
 (define-macro (py-obj-cls obj) ;; get object's class
   `(py-specialized-sint-float-dispatch-let
     $obj
     ,obj
     py-int-class
     py-float-class
-    (py-PyObject-class $obj)))
+    (py-obj-cls-general $obj)))
 
 (define-macro (py-obj-mro obj) ;; get MRO of object's class
   `(py-PyObjectType-mro (py-obj-cls ,obj)))
@@ -814,85 +817,121 @@
           (string->symbol (string-append (symbol->string op) "-behaviors-table"))))
     `(vector-set! ,behavior-table-name (get-behavior-index ,lhs-index ,rhs-index) ,val)))
 
+(define-macro (behavior-call op lhs rhs)
+  `(let (($lhs ,lhs-obj)
+         ($rhs ,rhs-obj))
+      ((behavior-ref
+        op
+        (PyObject-class-index (py-obj-cls-general $lhs))
+        (PyObject-class-index (py-obj-cls-general $rhs)))
+        $lhs
+        $rhs)))
+
 ;; Semantics
 
+(define-macro (py-specialized-binary-sint-float-dispatch-let lhs-name lhs-obj rhs-name rhs-obj int float other)
+  `(let ((,lhs-name ,lhs-obj)
+         (,rhs-name ,rhs-obj))
+     (cond ((py-if-specialized-sint-representation
+              (and (fixnum? ,lhs-name) (fixnum? ,rhs-name))
+              #f)
+            ,int)
+           ((py-if-specialized-float-representation
+              (and (flonum? ,lhs-name) (flonum? ,rhs-name))
+              #f)
+            ,float)
+           (else
+            ,other))))
+
+(define-macro (behavior-specialized-operation op lhs rhs)
+  (let ((sint-op (string->symbol (string-append "py-" (symbol->string op) "-sintX-sintY-inline")))
+        (float-op (string->symbol (string-append "py-" (symbol->string op) "-floatX-floatY-inline"))))
+    `(py-specialized-binary-sint-float-dispatch-let
+        $lhs
+        ,lhs
+        $rhs
+        ,rhs
+        (,sint-op $lhs $rhs)
+        (,float-op $lhs $rhs)
+        (behavior-call op $lhs $rhs))))
+
 (define-macro (py-add x y)
-  `(py-add-fallback ,x ,y))
+  `(behavior-specialized-operation add ,x , y))
 
 (define-macro (py-bitand x y)
-  `(py-bitand-fallback ,x ,y))
+  `(behavior-specialized-operation bitand ,x , y))
 
 (define-macro (py-bitor x y)
-  `(py-bitor-fallback ,x ,y))
+  `(behavior-specialized-operation bitor ,x , y))
 
 (define-macro (py-floordiv x y)
-  `(py-floordiv-fallback ,x ,y))
+  `(behavior-specialized-operation floordiv ,x , y))
 
 (define-macro (py-lshift x y)
-  `(py-lshift-fallback ,x ,y))
+  `(behavior-specialized-operation lshift ,x , y))
 
 (define-macro (py-matmul x y)
-  `(py-matmul-fallback ,x ,y))
+  `(behavior-specialized-operation matmul ,x , y))
 
 (define-macro (py-mod x y)
-  `(py-mod-fallback ,x ,y))
+  `(behavior-specialized-operation mod ,x , y))
 
 (define-macro (py-mul x y)
-  `(py-mul-fallback ,x ,y))
+  `(behavior-specialized-operation mul ,x , y))
 
 (define-macro (py-pow x y)
-  `(py-pow-fallback ,x ,y))
+  `(behavior-specialized-operation pow ,x , y))
 
 (define-macro (py-rshift x y)
-  `(py-rshift-fallback ,x ,y))
+  `(behavior-specialized-operation rshift ,x , y))
 
 (define-macro (py-sub x y)
-  `(py-sub-fallback ,x ,y))
+  `(behavior-specialized-operation sub ,x , y))
 
 (define-macro (py-truediv x y)
-  `(py-truediv-fallback ,x ,y))
+  `(behavior-specialized-operation truediv ,x , y))
 
 (define-macro (py-xor x y)
-  `(py-xor-fallback ,x ,y))
+  `(behavior-specialized-operation xor ,x , y))
 
 (define-macro (py-iadd x y)
-  `(py-iadd-fallback ,x ,y))
+  `(behavior-specialized-operation iadd ,x , y))
 
 (define-macro (py-ibitand x y)
-  `(py-ibitand-fallback ,x ,y))
+  `(behavior-specialized-operation ibitand ,x , y))
 
 (define-macro (py-ibitor x y)
-  `(py-ibitor-fallback ,x ,y))
+  `(behavior-specialized-operation ibitor ,x , y))
 
 (define-macro (py-ifloordiv x y)
-  `(py-ifloordiv-fallback ,x ,y))
+  `(behavior-specialized-operation ifloordiv ,x , y))
 
 (define-macro (py-ilshift x y)
-  `(py-ilshift-fallback ,x ,y))
+  `(behavior-specialized-operation ilshift ,x , y))
 
 (define-macro (py-imatmul x y)
-  `(py-imatmul-fallback ,x ,y))
+  `(behavior-specialized-operation imatmul ,x , y))
 
 (define-macro (py-imod x y)
-  `(py-imod-fallback ,x ,y))
+  `(behavior-specialized-operation imod ,x , y))
 
 (define-macro (py-imul x y)
-  `(py-imul-fallback ,x ,y))
+  `(behavior-specialized-operation imul ,x , y))
 
 (define-macro (py-ipow x y)
-  `(py-ipow-fallback ,x ,y))
+  `(behavior-specialized-operation ipow ,x , y))
 
 (define-macro (py-irshift x y)
-  `(py-irshift-fallback ,x ,y))
+  `(behavior-specialized-operation irshift ,x , y))
 
 (define-macro (py-isub x y)
-  `(py-isub-fallback ,x ,y))
+  `(behavior-specialized-operation isub ,x , y))
 
 (define-macro (py-itruediv x y)
-  `(py-itruediv-fallback ,x ,y))
+  `(behavior-specialized-operation itruediv ,x , y))
 
 (define-macro (py-ixor x y)
-  `(py-ixor-fallback ,x ,y))
+  `(behavior-specialized-operation ixor ,x , y))
 
 (define-macro (py-getattribute obj attr)
   `(py-getattribute-fallback ,obj ,attr))

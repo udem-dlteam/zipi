@@ -203,18 +203,8 @@
     py-ixor-fallback:reflected
     py-ixor-fallback:err
 
-    py+
-    py-
-    py*
-    py**
-    py&
-    py+b
-    py^
-    py>>
-    py<<
-    py//
-    py/
-    py%
+    py-add-sintX-sintY-inline
+    py-add-floatX-floatY-inline
 
     py-invert
     py-neg
@@ -236,6 +226,8 @@
     py-next
     py-import
 
+    py-obj-cls
+    py-obj-cls-general
     py-getattribute
     py-getattribute-fallback
     object-put!
@@ -245,11 +237,15 @@
     behavior-ref
     get-behavior-index
     $get-behavior-index
+    behavior-specialized-operation
+    behavior-call
 
     procedure->py-function
 
     py-if-specialized-sint-representation
     py-if-specialized-float-representation
+    py-specialized-sint-float-dispatch-let
+    py-specialized-binary-sint-float-dispatch-let
 
     py-int-from-scheme
     py-sint-from-scheme
