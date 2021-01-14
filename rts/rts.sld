@@ -203,6 +203,19 @@
     py-ixor-fallback:reflected
     py-ixor-fallback:err
 
+    py+
+    py-
+    py*
+    py**
+    py&
+    py+b
+    py^
+    py>>
+    py<<
+    py//
+    py/
+    py%
+
     py-invert
     py-neg
     py-pos
@@ -229,17 +242,38 @@
     py-own-attr-set!
     getattribute-from-obj-mro
 
+    behavior-ref
+    get-behavior-index
+    $get-behavior-index
+
     procedure->py-function
 
+    py-if-specialized-sint-representation
+    py-if-specialized-float-representation
+
     py-int-from-scheme
+    py-sint-from-scheme
+    py-bint-from-scheme
     py-int-from-scheme-fallback
     py-int-to-scheme
+    py-sint-to-scheme
+    py-bint-to-scheme
     py-subtype-of-int-to-scheme
+    py-strict-subtype-of-int-to-scheme
+    PyObjectInt-value
+    py-has-type-int?
+    py-subtype-of-int?
+    py-strict-subtype-of-int?
 
     py-float-from-scheme
     py-float-from-scheme-fallback
     py-float-to-scheme
     py-subtype-of-float-to-scheme
+    py-strict-subtype-of-float-to-scheme
+    PyObjectFloat-value
+    py-has-type-float?
+    py-subtype-of-float?
+    py-strict-subtype-of-float?
 
     py-str-from-scheme
     py-str-from-scheme-fallback
@@ -288,7 +322,12 @@
 
     py-make-class
     py-make-builtin-class
+    $py-make-builtin-class-with-class-index-info
     py-make-builtin-class-with-class-index
+
+    with-class-indices-info
+    get-behavior-type-index
+    $get-behavior-type-index
 
     py-obj->iterator
     py-iter
@@ -462,13 +501,10 @@
 
     py-expression
     PyObject-class
+    py-PyObject-class
     py-int-class
     int-cache
     str-representatives
-
-    ;; from rts-macros.scm
-    py-if-specialized-int-representation
-    py-if-specialized-float-representation
     )
 
   (import gambit)
