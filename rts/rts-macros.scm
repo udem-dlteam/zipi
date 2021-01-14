@@ -42,9 +42,6 @@
 (define-macro (py-bint-to-scheme arg)
   `(PyObjectInt-value ,arg))
 
-(define-macro (py-int-to-scheme arg)
-  `(PyObjectInt-value ,arg))
-
 (define-macro (py-float-to-scheme arg)
   `(py-if-specialized-float-representation
     ,arg
