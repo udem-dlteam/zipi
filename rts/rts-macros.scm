@@ -740,7 +740,7 @@
       inplace-ops))
 
   (define (get-behaviors-table-name op)
-    (string->symbol (string-append (symbol->string op) "-behaviors-table")))
+    (string->symbol (string-append "py-" (symbol->string op) "-behaviors-table")))
 
   (define (get-behavior-name op lhs-type rhs-type)
     (if (or (eq? lhs-type 'default) (eq? rhs-type 'default))
@@ -796,10 +796,11 @@
       (cond
         ((null? info) '())
         ((caddar info) ;has-specialized-behavior
-          (cons (car info) (loop (cdr info))))
-        (loop (cdr info)))))
+          (cons (cadar info) (loop (cdr info))))
+        (else (loop (cdr info))))))
 
-  (define last-behaviors-class-index (apply max indices))
+  (define last-behaviors-class-index
+      (apply max indices))
 
   (cond-expand
     (gambit
@@ -809,19 +810,19 @@
 
 (define-macro (behavior-ref op lhs-index rhs-index)
   (let ((behavior-table-name
-          (string->symbol (string-append (symbol->string op) "-behaviors-table"))))
+          (string->symbol (string-append "py-" (symbol->string op) "-behaviors-table"))))
     `(vector-ref ,behavior-table-name (get-behavior-index ,lhs-index ,rhs-index))))
 
 (define-macro (behavior-set! op lhs-index rhs-index val)
   (let ((behavior-table-name
-          (string->symbol (string-append (symbol->string op) "-behaviors-table"))))
+          (string->symbol (string-append "py-" (symbol->string op) "-behaviors-table"))))
     `(vector-set! ,behavior-table-name (get-behavior-index ,lhs-index ,rhs-index) ,val)))
 
 (define-macro (behavior-call op lhs rhs)
-  `(let (($lhs ,lhs-obj)
-         ($rhs ,rhs-obj))
+  `(let (($lhs ,lhs)
+         ($rhs ,rhs))
       ((behavior-ref
-        op
+        ,op
         (PyObject-class-index (py-obj-cls-general $lhs))
         (PyObject-class-index (py-obj-cls-general $rhs)))
         $lhs
@@ -853,7 +854,7 @@
         ,rhs
         (,sint-op $lhs $rhs)
         (,float-op $lhs $rhs)
-        (behavior-call op $lhs $rhs))))
+        (behavior-call ,op $lhs $rhs))))
 
 (define-macro (py-add x y)
   `(behavior-specialized-operation add ,x , y))

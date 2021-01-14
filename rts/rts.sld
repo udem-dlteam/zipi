@@ -204,7 +204,57 @@
     py-ixor-fallback:err
 
     py-add-sintX-sintY-inline
+    py-bitand-sintX-sintY-inline
+    py-bitor-sintX-sintY-inline
+    py-floordiv-sintX-sintY-inline
+    py-lshift-sintX-sintY-inline
+    py-matmul-sintX-sintY-inline
+    py-mod-sintX-sintY-inline
+    py-mul-sintX-sintY-inline
+    py-pow-sintX-sintY-inline
+    py-rshift-sintX-sintY-inline
+    py-sub-sintX-sintY-inline
+    py-truediv-sintX-sintY-inline
+    py-xor-sintX-sintY-inline
+    py-iadd-sintX-sintY-inline
+    py-ibitand-sintX-sintY-inline
+    py-ibitor-sintX-sintY-inline
+    py-ifloordiv-sintX-sintY-inline
+    py-ilshift-sintX-sintY-inline
+    py-imatmul-sintX-sintY-inline
+    py-imod-sintX-sintY-inline
+    py-imul-sintX-sintY-inline
+    py-ipow-sintX-sintY-inline
+    py-irshift-sintX-sintY-inline
+    py-isub-sintX-sintY-inline
+    py-itruediv-sintX-sintY-inline
+    py-ixor-sintX-sintY-inline
     py-add-floatX-floatY-inline
+    py-bitand-floatX-floatY-inline
+    py-bitor-floatX-floatY-inline
+    py-floordiv-floatX-floatY-inline
+    py-lshift-floatX-floatY-inline
+    py-matmul-floatX-floatY-inline
+    py-mod-floatX-floatY-inline
+    py-mul-floatX-floatY-inline
+    py-pow-floatX-floatY-inline
+    py-rshift-floatX-floatY-inline
+    py-sub-floatX-floatY-inline
+    py-truediv-floatX-floatY-inline
+    py-xor-floatX-floatY-inline
+    py-iadd-floatX-floatY-inline
+    py-ibitand-floatX-floatY-inline
+    py-ibitor-floatX-floatY-inline
+    py-ifloordiv-floatX-floatY-inline
+    py-ilshift-floatX-floatY-inline
+    py-imatmul-floatX-floatY-inline
+    py-imod-floatX-floatY-inline
+    py-imul-floatX-floatY-inline
+    py-ipow-floatX-floatY-inline
+    py-irshift-floatX-floatY-inline
+    py-isub-floatX-floatY-inline
+    py-itruediv-floatX-floatY-inline
+    py-ixor-floatX-floatY-inline
 
     py-invert
     py-neg
@@ -239,6 +289,33 @@
     $get-behavior-index
     behavior-specialized-operation
     behavior-call
+
+    py-add-behaviors-table
+    py-bitand-behaviors-table
+    py-bitor-behaviors-table
+    py-floordiv-behaviors-table
+    py-lshift-behaviors-table
+    py-matmul-behaviors-table
+    py-mod-behaviors-table
+    py-mul-behaviors-table
+    py-pow-behaviors-table
+    py-rshift-behaviors-table
+    py-sub-behaviors-table
+    py-truediv-behaviors-table
+    py-xor-behaviors-table
+    py-iadd-behaviors-table
+    py-ibitand-behaviors-table
+    py-ibitor-behaviors-table
+    py-ifloordiv-behaviors-table
+    py-ilshift-behaviors-table
+    py-imatmul-behaviors-table
+    py-imod-behaviors-table
+    py-imul-behaviors-table
+    py-ipow-behaviors-table
+    py-irshift-behaviors-table
+    py-isub-behaviors-table
+    py-itruediv-behaviors-table
+    py-ixor-behaviors-table
 
     procedure->py-function
 
