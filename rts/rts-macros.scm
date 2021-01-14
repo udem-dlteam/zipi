@@ -770,6 +770,7 @@
           "Y-fallback"))))
 
   (define (make-behaviors-list op)
+    (pp types-with-specialized-behaviors)
     (let lhs-loop ((lhs-types types-with-specialized-behaviors))
       (if (null? lhs-types)
         '()
@@ -811,9 +812,9 @@
 
   (cond-expand
     (gambit
-      `(|##fx+| ,lhs-index (|##fx*| ,last-behaviors-class-index ,rhs-index)))
+      `(|##fx+| (|##fx*| ,last-behaviors-class-index ,lhs-index) ,rhs-index))
     (bigloo
-      `(+fx ,lhs-index (*fx ,last-behaviors-class-index ,rhs-index)))))
+      `(+fx (*fx ,last-behaviors-class-index ,lhs-index) ,rhs-index))))
 
 (define-macro (behavior-ref op lhs-index rhs-index)
   (let ((behavior-table-name
