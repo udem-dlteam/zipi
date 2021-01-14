@@ -462,6 +462,13 @@
 
 ;; Get class of object given specialized representations of int and float
 
+(define-macro (py-PyObjectType-class-index cls)
+  (cond-expand
+    (gambit ;; TODO: prettify... equivalent to (PyObjectType-class-index ,cls)
+     `(|##unchecked-structure-ref| ,cls 4 #f #f))
+    (bigloo
+     `(PyObjectType-class-index ,cls))))
+
 (define-macro (py-PyObjectType-mro cls)
   (cond-expand
     (gambit ;; TODO: prettify... equivalent to (PyObjectType-mro ,cls)
@@ -470,7 +477,7 @@
      `(PyObjectType-mro ,cls))))
 
 (define-macro (py-obj-cls-general obj)
-  `(py-PyObject-class $obj))
+  `(py-PyObject-class ,obj))
 
 (define-macro (py-obj-cls obj) ;; get object's class
   `(py-specialized-sint-float-dispatch-let
@@ -823,8 +830,8 @@
          ($rhs ,rhs))
       ((behavior-ref
         ,op
-        (PyObject-class-index (py-obj-cls-general $lhs))
-        (PyObject-class-index (py-obj-cls-general $rhs)))
+        (py-PyObjectType-class-index (py-obj-cls $lhs))
+        (py-PyObjectType-class-index (py-obj-cls $rhs)))
         $lhs
         $rhs)))
 

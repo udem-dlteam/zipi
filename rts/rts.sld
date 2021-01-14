@@ -575,7 +575,9 @@
     py-expression
     PyObject-class
     py-PyObject-class
+    py-PyObjectType-class-index
     py-int-class
+    py-float-class
     int-cache
     str-representatives
     )
