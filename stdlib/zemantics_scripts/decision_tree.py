@@ -543,14 +543,23 @@ def main_behaviors(semantics_file, builtins_file):
                     if method_ast is None:
                         logging.warning(f"unimplemented behavior in magic method: {behavior_name}")
                     else:
-                        if behavior.is_reflected_magic_method:
+                        is_reflected_magic_method = behavior.is_reflected_magic_method
+
+                        if is_reflected_magic_method:
+                            # For evaluation
                             args = [VarContext(type=right_type), VarContext(type=left_type)]
+                            # For code generation
+                            # NOTE: we reverse arguments names because behaviors arguments respect
+                            # operands order, not magic_method arguments order
+                            args_names = [a.arg for a in method_ast.args.posonlyargs + method_ast.args.args][::-1]
                         else:
+                            # For evaluation
                             args = [VarContext(type=left_type), VarContext(type=right_type)]
+                            # For code generation
+                            args_names = [a.arg for a in method_ast.args.posonlyargs + method_ast.args.args]
 
                         result_body = partial_eval(method_ast, *args)
 
-                        args_names = [a.arg for a in method_ast.args.posonlyargs + method_ast.args.args]
                         annotated_arguments = make_ast_simple_arguments(*args_names,
                                                                         annotations=[ast.Name(left_type),
                                                                                      ast.Name(right_type)])

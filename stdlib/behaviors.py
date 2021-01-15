@@ -17,7 +17,7 @@ def py_add_floatX_bintY(self: float, other: bint):
     return float_box(float_unbox(self) + bint_unbox(other))
 
 @define_behavior
-def py_add_boolX_floatY(self: bool, other: float):
+def py_add_boolX_floatY(other: bool, self: float):
     return float_box(bool_unbox(other) + float_unbox(self))
 
 @define_behavior
@@ -33,7 +33,7 @@ def py_add_boolX_bintY(self: bool, other: bint):
     return int_box(bool_unbox(self) + bint_unbox(other))
 
 @define_behavior
-def py_add_sintX_floatY(self: sint, other: float):
+def py_add_sintX_floatY(other: sint, self: float):
     return float_box(sint_unbox(other) + float_unbox(self))
 
 @define_behavior
@@ -49,7 +49,7 @@ def py_add_sintX_bintY(self: sint, other: bint):
     return int_box(sint_unbox(self) + bint_unbox(other))
 
 @define_behavior
-def py_add_bintX_floatY(self: bint, other: float):
+def py_add_bintX_floatY(other: bint, self: float):
     return float_box(bint_unbox(other) + float_unbox(self))
 
 @define_behavior
@@ -221,7 +221,7 @@ def py_floordiv_floatX_bintY(self: float, other: bint):
         raise ZeroDivisionError('float division by zero')
 
 @define_behavior
-def py_floordiv_boolX_floatY(self: bool, other: float):
+def py_floordiv_boolX_floatY(other: bool, self: float):
     if self != 0.0:
         return float_box(bool_unbox(other) // float_unbox(self))
     else:
@@ -249,7 +249,7 @@ def py_floordiv_boolX_bintY(self: bool, other: bint):
         raise ZeroDivisionError('integer division by zero')
 
 @define_behavior
-def py_floordiv_sintX_floatY(self: sint, other: float):
+def py_floordiv_sintX_floatY(other: sint, self: float):
     if self != 0.0:
         return float_box(sint_unbox(other) // float_unbox(self))
     else:
@@ -277,7 +277,7 @@ def py_floordiv_sintX_bintY(self: sint, other: bint):
         raise ZeroDivisionError('integer division by zero')
 
 @define_behavior
-def py_floordiv_bintX_floatY(self: bint, other: float):
+def py_floordiv_bintX_floatY(other: bint, self: float):
     if self != 0.0:
         return float_box(bint_unbox(other) // float_unbox(self))
     else:
@@ -461,7 +461,7 @@ def py_mod_floatX_bintY(self: float, other: bint):
         raise ZeroDivisionError('float modulo by zero')
 
 @define_behavior
-def py_mod_boolX_floatY(self: bool, other: float):
+def py_mod_boolX_floatY(other: bool, self: float):
     if self != 0.0:
         return float_box(bool_unbox(other) % float_unbox(self))
     else:
@@ -489,7 +489,7 @@ def py_mod_boolX_bintY(self: bool, other: bint):
         raise ZeroDivisionError('modulo by zero')
 
 @define_behavior
-def py_mod_sintX_floatY(self: sint, other: float):
+def py_mod_sintX_floatY(other: sint, self: float):
     if self != 0.0:
         return float_box(sint_unbox(other) % float_unbox(self))
     else:
@@ -517,7 +517,7 @@ def py_mod_sintX_bintY(self: sint, other: bint):
         raise ZeroDivisionError('modulo by zero')
 
 @define_behavior
-def py_mod_bintX_floatY(self: bint, other: float):
+def py_mod_bintX_floatY(other: bint, self: float):
     if self != 0.0:
         return float_box(bint_unbox(other) % float_unbox(self))
     else:
@@ -561,7 +561,7 @@ def py_mul_floatX_bintY(self: float, other: bint):
     return float_box(float_unbox(self) * bint_unbox(other))
 
 @define_behavior
-def py_mul_boolX_floatY(self: bool, other: float):
+def py_mul_boolX_floatY(other: bool, self: float):
     return float_box(bool_unbox(other) * float_unbox(self))
 
 @define_behavior
@@ -577,7 +577,7 @@ def py_mul_boolX_bintY(self: bool, other: bint):
     return int_box(bool_unbox(self) * bint_unbox(other))
 
 @define_behavior
-def py_mul_sintX_floatY(self: sint, other: float):
+def py_mul_sintX_floatY(other: sint, self: float):
     return float_box(sint_unbox(other) * float_unbox(self))
 
 @define_behavior
@@ -593,7 +593,7 @@ def py_mul_sintX_bintY(self: sint, other: bint):
     return int_box(sint_unbox(self) * bint_unbox(other))
 
 @define_behavior
-def py_mul_bintX_floatY(self: bint, other: float):
+def py_mul_bintX_floatY(other: bint, self: float):
     return float_box(bint_unbox(other) * float_unbox(self))
 
 @define_behavior
@@ -625,7 +625,7 @@ def py_pow_floatX_bintY(self: float, other: bint):
     return float_box(float_unbox(self) ** bint_unbox(other))
 
 @define_behavior
-def py_pow_boolX_floatY(self: bool, other: float):
+def py_pow_boolX_floatY(other: bool, self: float):
     return float_box(bool_unbox(other) ** float_unbox(self))
 
 @define_behavior
@@ -641,7 +641,7 @@ def py_pow_boolX_bintY(self: bool, other: bint):
     return int_box(bool_unbox(self) ** bint_unbox(other))
 
 @define_behavior
-def py_pow_sintX_floatY(self: sint, other: float):
+def py_pow_sintX_floatY(other: sint, self: float):
     return float_box(sint_unbox(other) ** float_unbox(self))
 
 @define_behavior
@@ -657,7 +657,7 @@ def py_pow_sintX_bintY(self: sint, other: bint):
     return int_box(sint_unbox(self) ** bint_unbox(other))
 
 @define_behavior
-def py_pow_bintX_floatY(self: bint, other: float):
+def py_pow_bintX_floatY(other: bint, self: float):
     return float_box(bint_unbox(other) ** float_unbox(self))
 
 @define_behavior
@@ -693,15 +693,15 @@ def py_rshift_boolX_floatY(self: bool, other: float):
     raise TypeError("unsupported operand type(s) for >>: 'bool' and 'float'")
 
 @define_behavior
-def py_rshift_boolX_boolY(self: bool, other: bool):
+def py_rshift_boolX_boolY(other: bool, self: bool):
     return int_box(bool_unbox(self) >> bool_unbox(other))
 
 @define_behavior
-def py_rshift_boolX_sintY(self: bool, other: sint):
+def py_rshift_boolX_sintY(other: bool, self: sint):
     return int_box(sint_unbox(self) >> bool_unbox(other))
 
 @define_behavior
-def py_rshift_boolX_bintY(self: bool, other: bint):
+def py_rshift_boolX_bintY(other: bool, self: bint):
     return int_box(bint_unbox(self) >> bool_unbox(other))
 
 @define_behavior
@@ -709,15 +709,15 @@ def py_rshift_sintX_floatY(self: sint, other: float):
     raise TypeError("unsupported operand type(s) for >>: 'int' and 'float'")
 
 @define_behavior
-def py_rshift_sintX_boolY(self: sint, other: bool):
+def py_rshift_sintX_boolY(other: sint, self: bool):
     return int_box(bool_unbox(self) >> sint_unbox(other))
 
 @define_behavior
-def py_rshift_sintX_sintY(self: sint, other: sint):
+def py_rshift_sintX_sintY(other: sint, self: sint):
     return int_box(sint_unbox(self) >> sint_unbox(other))
 
 @define_behavior
-def py_rshift_sintX_bintY(self: sint, other: bint):
+def py_rshift_sintX_bintY(other: sint, self: bint):
     return int_box(bint_unbox(self) >> sint_unbox(other))
 
 @define_behavior
@@ -725,15 +725,15 @@ def py_rshift_bintX_floatY(self: bint, other: float):
     raise TypeError("unsupported operand type(s) for >>: 'int' and 'float'")
 
 @define_behavior
-def py_rshift_bintX_boolY(self: bint, other: bool):
+def py_rshift_bintX_boolY(other: bint, self: bool):
     return int_box(bool_unbox(self) >> bint_unbox(other))
 
 @define_behavior
-def py_rshift_bintX_sintY(self: bint, other: sint):
+def py_rshift_bintX_sintY(other: bint, self: sint):
     return int_box(sint_unbox(self) >> bint_unbox(other))
 
 @define_behavior
-def py_rshift_bintX_bintY(self: bint, other: bint):
+def py_rshift_bintX_bintY(other: bint, self: bint):
     return int_box(bint_unbox(self) >> bint_unbox(other))
 
 @define_behavior
@@ -753,7 +753,7 @@ def py_sub_floatX_bintY(self: float, other: bint):
     return float_box(float_unbox(self) - bint_unbox(other))
 
 @define_behavior
-def py_sub_boolX_floatY(self: bool, other: float):
+def py_sub_boolX_floatY(other: bool, self: float):
     return float_box(bool_unbox(other) - float_unbox(self))
 
 @define_behavior
@@ -769,7 +769,7 @@ def py_sub_boolX_bintY(self: bool, other: bint):
     return int_box(bool_unbox(self) - bint_unbox(other))
 
 @define_behavior
-def py_sub_sintX_floatY(self: sint, other: float):
+def py_sub_sintX_floatY(other: sint, self: float):
     return float_box(sint_unbox(other) - float_unbox(self))
 
 @define_behavior
@@ -785,7 +785,7 @@ def py_sub_sintX_bintY(self: sint, other: bint):
     return int_box(sint_unbox(self) - bint_unbox(other))
 
 @define_behavior
-def py_sub_bintX_floatY(self: bint, other: float):
+def py_sub_bintX_floatY(other: bint, self: float):
     return float_box(bint_unbox(other) - float_unbox(self))
 
 @define_behavior
@@ -829,7 +829,7 @@ def py_truediv_floatX_bintY(self: float, other: bint):
         raise ZeroDivisionError('float division by zero')
 
 @define_behavior
-def py_truediv_boolX_floatY(self: bool, other: float):
+def py_truediv_boolX_floatY(other: bool, self: float):
     if self != 0.0:
         return float_box(bool_unbox(other) / float_unbox(self))
     else:
@@ -857,7 +857,7 @@ def py_truediv_boolX_bintY(self: bool, other: bint):
         raise ZeroDivisionError('division by zero')
 
 @define_behavior
-def py_truediv_sintX_floatY(self: sint, other: float):
+def py_truediv_sintX_floatY(other: sint, self: float):
     if self != 0.0:
         return float_box(sint_unbox(other) / float_unbox(self))
     else:
@@ -885,7 +885,7 @@ def py_truediv_sintX_bintY(self: sint, other: bint):
         raise ZeroDivisionError('division by zero')
 
 @define_behavior
-def py_truediv_bintX_floatY(self: bint, other: float):
+def py_truediv_bintX_floatY(other: bint, self: float):
     if self != 0.0:
         return float_box(bint_unbox(other) / float_unbox(self))
     else:
@@ -993,7 +993,7 @@ def py_iadd_floatX_bintY(self: float, other: bint):
     return float_box(float_unbox(self) + bint_unbox(other))
 
 @define_behavior
-def py_iadd_boolX_floatY(self: bool, other: float):
+def py_iadd_boolX_floatY(other: bool, self: float):
     return float_box(bool_unbox(other) + float_unbox(self))
 
 @define_behavior
@@ -1009,7 +1009,7 @@ def py_iadd_boolX_bintY(self: bool, other: bint):
     return int_box(bool_unbox(self) + bint_unbox(other))
 
 @define_behavior
-def py_iadd_sintX_floatY(self: sint, other: float):
+def py_iadd_sintX_floatY(other: sint, self: float):
     return float_box(sint_unbox(other) + float_unbox(self))
 
 @define_behavior
@@ -1025,7 +1025,7 @@ def py_iadd_sintX_bintY(self: sint, other: bint):
     return int_box(sint_unbox(self) + bint_unbox(other))
 
 @define_behavior
-def py_iadd_bintX_floatY(self: bint, other: float):
+def py_iadd_bintX_floatY(other: bint, self: float):
     return float_box(bint_unbox(other) + float_unbox(self))
 
 @define_behavior
@@ -1197,7 +1197,7 @@ def py_ifloordiv_floatX_bintY(self: float, other: bint):
         raise ZeroDivisionError('float division by zero')
 
 @define_behavior
-def py_ifloordiv_boolX_floatY(self: bool, other: float):
+def py_ifloordiv_boolX_floatY(other: bool, self: float):
     if self != 0.0:
         return float_box(bool_unbox(other) // float_unbox(self))
     else:
@@ -1225,7 +1225,7 @@ def py_ifloordiv_boolX_bintY(self: bool, other: bint):
         raise ZeroDivisionError('integer division by zero')
 
 @define_behavior
-def py_ifloordiv_sintX_floatY(self: sint, other: float):
+def py_ifloordiv_sintX_floatY(other: sint, self: float):
     if self != 0.0:
         return float_box(sint_unbox(other) // float_unbox(self))
     else:
@@ -1253,7 +1253,7 @@ def py_ifloordiv_sintX_bintY(self: sint, other: bint):
         raise ZeroDivisionError('integer division by zero')
 
 @define_behavior
-def py_ifloordiv_bintX_floatY(self: bint, other: float):
+def py_ifloordiv_bintX_floatY(other: bint, self: float):
     if self != 0.0:
         return float_box(bint_unbox(other) // float_unbox(self))
     else:
@@ -1437,7 +1437,7 @@ def py_imod_floatX_bintY(self: float, other: bint):
         raise ZeroDivisionError('float modulo by zero')
 
 @define_behavior
-def py_imod_boolX_floatY(self: bool, other: float):
+def py_imod_boolX_floatY(other: bool, self: float):
     if self != 0.0:
         return float_box(bool_unbox(other) % float_unbox(self))
     else:
@@ -1465,7 +1465,7 @@ def py_imod_boolX_bintY(self: bool, other: bint):
         raise ZeroDivisionError('modulo by zero')
 
 @define_behavior
-def py_imod_sintX_floatY(self: sint, other: float):
+def py_imod_sintX_floatY(other: sint, self: float):
     if self != 0.0:
         return float_box(sint_unbox(other) % float_unbox(self))
     else:
@@ -1493,7 +1493,7 @@ def py_imod_sintX_bintY(self: sint, other: bint):
         raise ZeroDivisionError('modulo by zero')
 
 @define_behavior
-def py_imod_bintX_floatY(self: bint, other: float):
+def py_imod_bintX_floatY(other: bint, self: float):
     if self != 0.0:
         return float_box(bint_unbox(other) % float_unbox(self))
     else:
@@ -1537,7 +1537,7 @@ def py_imul_floatX_bintY(self: float, other: bint):
     return float_box(float_unbox(self) * bint_unbox(other))
 
 @define_behavior
-def py_imul_boolX_floatY(self: bool, other: float):
+def py_imul_boolX_floatY(other: bool, self: float):
     return float_box(bool_unbox(other) * float_unbox(self))
 
 @define_behavior
@@ -1553,7 +1553,7 @@ def py_imul_boolX_bintY(self: bool, other: bint):
     return int_box(bool_unbox(self) * bint_unbox(other))
 
 @define_behavior
-def py_imul_sintX_floatY(self: sint, other: float):
+def py_imul_sintX_floatY(other: sint, self: float):
     return float_box(sint_unbox(other) * float_unbox(self))
 
 @define_behavior
@@ -1569,7 +1569,7 @@ def py_imul_sintX_bintY(self: sint, other: bint):
     return int_box(sint_unbox(self) * bint_unbox(other))
 
 @define_behavior
-def py_imul_bintX_floatY(self: bint, other: float):
+def py_imul_bintX_floatY(other: bint, self: float):
     return float_box(bint_unbox(other) * float_unbox(self))
 
 @define_behavior
@@ -1601,7 +1601,7 @@ def py_ipow_floatX_bintY(self: float, other: bint):
     return float_box(float_unbox(self) ** bint_unbox(other))
 
 @define_behavior
-def py_ipow_boolX_floatY(self: bool, other: float):
+def py_ipow_boolX_floatY(other: bool, self: float):
     return float_box(bool_unbox(other) ** float_unbox(self))
 
 @define_behavior
@@ -1617,7 +1617,7 @@ def py_ipow_boolX_bintY(self: bool, other: bint):
     return int_box(bool_unbox(self) ** bint_unbox(other))
 
 @define_behavior
-def py_ipow_sintX_floatY(self: sint, other: float):
+def py_ipow_sintX_floatY(other: sint, self: float):
     return float_box(sint_unbox(other) ** float_unbox(self))
 
 @define_behavior
@@ -1633,7 +1633,7 @@ def py_ipow_sintX_bintY(self: sint, other: bint):
     return int_box(sint_unbox(self) ** bint_unbox(other))
 
 @define_behavior
-def py_ipow_bintX_floatY(self: bint, other: float):
+def py_ipow_bintX_floatY(other: bint, self: float):
     return float_box(bint_unbox(other) ** float_unbox(self))
 
 @define_behavior
@@ -1669,15 +1669,15 @@ def py_irshift_boolX_floatY(self: bool, other: float):
     raise TypeError("unsupported operand type(s) for >>: 'bool' and 'float'")
 
 @define_behavior
-def py_irshift_boolX_boolY(self: bool, other: bool):
+def py_irshift_boolX_boolY(other: bool, self: bool):
     return int_box(bool_unbox(self) >> bool_unbox(other))
 
 @define_behavior
-def py_irshift_boolX_sintY(self: bool, other: sint):
+def py_irshift_boolX_sintY(other: bool, self: sint):
     return int_box(sint_unbox(self) >> bool_unbox(other))
 
 @define_behavior
-def py_irshift_boolX_bintY(self: bool, other: bint):
+def py_irshift_boolX_bintY(other: bool, self: bint):
     return int_box(bint_unbox(self) >> bool_unbox(other))
 
 @define_behavior
@@ -1685,15 +1685,15 @@ def py_irshift_sintX_floatY(self: sint, other: float):
     raise TypeError("unsupported operand type(s) for >>: 'int' and 'float'")
 
 @define_behavior
-def py_irshift_sintX_boolY(self: sint, other: bool):
+def py_irshift_sintX_boolY(other: sint, self: bool):
     return int_box(bool_unbox(self) >> sint_unbox(other))
 
 @define_behavior
-def py_irshift_sintX_sintY(self: sint, other: sint):
+def py_irshift_sintX_sintY(other: sint, self: sint):
     return int_box(sint_unbox(self) >> sint_unbox(other))
 
 @define_behavior
-def py_irshift_sintX_bintY(self: sint, other: bint):
+def py_irshift_sintX_bintY(other: sint, self: bint):
     return int_box(bint_unbox(self) >> sint_unbox(other))
 
 @define_behavior
@@ -1701,15 +1701,15 @@ def py_irshift_bintX_floatY(self: bint, other: float):
     raise TypeError("unsupported operand type(s) for >>: 'int' and 'float'")
 
 @define_behavior
-def py_irshift_bintX_boolY(self: bint, other: bool):
+def py_irshift_bintX_boolY(other: bint, self: bool):
     return int_box(bool_unbox(self) >> bint_unbox(other))
 
 @define_behavior
-def py_irshift_bintX_sintY(self: bint, other: sint):
+def py_irshift_bintX_sintY(other: bint, self: sint):
     return int_box(sint_unbox(self) >> bint_unbox(other))
 
 @define_behavior
-def py_irshift_bintX_bintY(self: bint, other: bint):
+def py_irshift_bintX_bintY(other: bint, self: bint):
     return int_box(bint_unbox(self) >> bint_unbox(other))
 
 @define_behavior
@@ -1729,7 +1729,7 @@ def py_isub_floatX_bintY(self: float, other: bint):
     return float_box(float_unbox(self) - bint_unbox(other))
 
 @define_behavior
-def py_isub_boolX_floatY(self: bool, other: float):
+def py_isub_boolX_floatY(other: bool, self: float):
     return float_box(bool_unbox(other) - float_unbox(self))
 
 @define_behavior
@@ -1745,7 +1745,7 @@ def py_isub_boolX_bintY(self: bool, other: bint):
     return int_box(bool_unbox(self) - bint_unbox(other))
 
 @define_behavior
-def py_isub_sintX_floatY(self: sint, other: float):
+def py_isub_sintX_floatY(other: sint, self: float):
     return float_box(sint_unbox(other) - float_unbox(self))
 
 @define_behavior
@@ -1761,7 +1761,7 @@ def py_isub_sintX_bintY(self: sint, other: bint):
     return int_box(sint_unbox(self) - bint_unbox(other))
 
 @define_behavior
-def py_isub_bintX_floatY(self: bint, other: float):
+def py_isub_bintX_floatY(other: bint, self: float):
     return float_box(bint_unbox(other) - float_unbox(self))
 
 @define_behavior
@@ -1805,7 +1805,7 @@ def py_itruediv_floatX_bintY(self: float, other: bint):
         raise ZeroDivisionError('float division by zero')
 
 @define_behavior
-def py_itruediv_boolX_floatY(self: bool, other: float):
+def py_itruediv_boolX_floatY(other: bool, self: float):
     if self != 0.0:
         return float_box(bool_unbox(other) / float_unbox(self))
     else:
@@ -1833,7 +1833,7 @@ def py_itruediv_boolX_bintY(self: bool, other: bint):
         raise ZeroDivisionError('division by zero')
 
 @define_behavior
-def py_itruediv_sintX_floatY(self: sint, other: float):
+def py_itruediv_sintX_floatY(other: sint, self: float):
     if self != 0.0:
         return float_box(sint_unbox(other) / float_unbox(self))
     else:
@@ -1861,7 +1861,7 @@ def py_itruediv_sintX_bintY(self: sint, other: bint):
         raise ZeroDivisionError('division by zero')
 
 @define_behavior
-def py_itruediv_bintX_floatY(self: bint, other: float):
+def py_itruediv_bintX_floatY(other: bint, self: float):
     if self != 0.0:
         return float_box(bint_unbox(other) / float_unbox(self))
     else:
