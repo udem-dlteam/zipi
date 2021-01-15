@@ -455,7 +455,7 @@
 (define-walk-method (mark-define-behavior! this::PycNode intrinsics-info)
   (call-default-walker))
 
-(define inlined-binary-behaviors '((sint sint) (float float)))
+(define inlined-binary-behaviors '((sint sint) (float float) (sint float) (float sint)))
 
 (define (PycSemantics-has-inlinable-annotation fn)
   (let ((fn-annotation (PycFun-annotation fn)))

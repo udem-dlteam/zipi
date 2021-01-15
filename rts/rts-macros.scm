@@ -834,111 +834,142 @@
         $lhs
         $rhs)))
 
+(define-macro (behavior-call-with-lhs-index op lhs-index lhs rhs)
+  `(let (($rhs ,rhs))
+      ((behavior-ref
+        ,op
+        ,lhs-index
+        (py-PyObjectType-class-index (py-obj-cls $rhs)))
+        ,lhs
+        $rhs)))
+
+(define-macro (behavior-call-with-rhs-index op lhs rhs-index rhs)
+  `(let (($lhs ,lhs))
+      ((behavior-ref
+        ,op
+        (py-PyObjectType-class-index (py-obj-cls $lhs))
+        ,rhs-index)
+        $lhs
+        ,rhs)))
+
 ;; Semantics
 
-(define-macro (py-specialized-binary-sint-float-dispatch-let lhs-name lhs-obj rhs-name rhs-obj int float other)
-  `(let ((,lhs-name ,lhs-obj)
-         (,rhs-name ,rhs-obj))
-     (cond ((py-if-specialized-sint-representation
-              (and (fixnum? ,lhs-name) (fixnum? ,rhs-name))
-              #f)
-            ,int)
-           ((py-if-specialized-float-representation
-              (and (flonum? ,lhs-name) (flonum? ,rhs-name))
-              #f)
-            ,float)
-           (else
-            ,other))))
+(define-macro (py-specialized-binop-dispatch op lhs rhs)
+  `(with-class-indices-info $py-specialized-binop-dispatch op lhs rhs))
 
-(define-macro (behavior-specialized-operation op lhs rhs)
-  (let ((sint-op (string->symbol (string-append "py-" (symbol->string op) "-sintX-sintY-inline")))
-        (float-op (string->symbol (string-append "py-" (symbol->string op) "-floatX-floatY-inline"))))
-    `(py-specialized-binary-sint-float-dispatch-let
-        $lhs
-        ,lhs
-        $rhs
-        ,rhs
-        (,sint-op $lhs $rhs)
-        (,float-op $lhs $rhs)
-        (behavior-call ,op $lhs $rhs))))
+(define-macro ($py-specialized-binop-dispatch indices-info op lhs rhs)
+  (define sint-sint-op (string->symbol (string-append "py-" (symbol->string op) "-sintX-sintY-inline")))
+  (define float-float-op (string->symbol (string-append "py-" (symbol->string op) "-floatX-floatY-inline")))
+  (define sint-float-op (string->symbol (string-append "py-" (symbol->string op) "-sintX-floatY-inline")))
+  (define float-sint-op (string->symbol (string-append "py-" (symbol->string op) "-floatX-sintY-inline")))
+
+  (define sint-class-index (cadr (assq 'sint indices-info)))
+  (define float-class-index (cadr (assq 'float indices-info)))
+
+  `(let (($lhs ,lhs)
+         ($rhs ,rhs))
+     (cond ((py-if-specialized-sint-representation (fixnum? $lhs) #f)
+              (cond
+                ((py-if-specialized-sint-representation (fixnum? $rhs) #f)
+                  (,sint-sint-op $lhs $rhs))
+                ((py-if-specialized-float-representation (flonum? $rhs) #f)
+                  (,sint-float-op $lhs $rhs))
+                (else
+                  (behavior-call-with-lhs-index ,op ,sint-class-index $lhs $rhs))))
+           ((py-if-specialized-float-representation (flonum? $lhs) #f)
+              (cond
+                ((py-if-specialized-sint-representation (fixnum? $rhs) #f)
+                  (,float-sint-op $lhs $rhs))
+                ((py-if-specialized-float-representation (flonum? $rhs) #f)
+                  (,float-float-op $lhs $rhs))
+                (else
+                  (behavior-call-with-lhs-index ,op ,float-class-index $lhs $rhs))))
+           (else
+             (cond
+               ((py-if-specialized-sint-representation (fixnum? $rhs) #f)
+                 (behavior-call-with-rhs-index ,op $lhs ,sint-class-index $lhs))
+               ((py-if-specialized-float-representation (flonum? $rhs) #f)
+                 (behavior-call-with-rhs-index ,op $lhs ,float-class-index $lhs))
+               (else
+                 (behavior-call ,op $lhs $rhs)))))))
 
 (define-macro (py-add x y)
-  `(behavior-specialized-operation add ,x , y))
+  `(py-specialized-binop-dispatch add ,x , y))
 
 (define-macro (py-bitand x y)
-  `(behavior-specialized-operation bitand ,x , y))
+  `(py-specialized-binop-dispatch bitand ,x , y))
 
 (define-macro (py-bitor x y)
-  `(behavior-specialized-operation bitor ,x , y))
+  `(py-specialized-binop-dispatch bitor ,x , y))
 
 (define-macro (py-floordiv x y)
-  `(behavior-specialized-operation floordiv ,x , y))
+  `(py-specialized-binop-dispatch floordiv ,x , y))
 
 (define-macro (py-lshift x y)
-  `(behavior-specialized-operation lshift ,x , y))
+  `(py-specialized-binop-dispatch lshift ,x , y))
 
 (define-macro (py-matmul x y)
-  `(behavior-specialized-operation matmul ,x , y))
+  `(py-specialized-binop-dispatch matmul ,x , y))
 
 (define-macro (py-mod x y)
-  `(behavior-specialized-operation mod ,x , y))
+  `(py-specialized-binop-dispatch mod ,x , y))
 
 (define-macro (py-mul x y)
-  `(behavior-specialized-operation mul ,x , y))
+  `(py-specialized-binop-dispatch mul ,x , y))
 
 (define-macro (py-pow x y)
-  `(behavior-specialized-operation pow ,x , y))
+  `(py-specialized-binop-dispatch pow ,x , y))
 
 (define-macro (py-rshift x y)
-  `(behavior-specialized-operation rshift ,x , y))
+  `(py-specialized-binop-dispatch rshift ,x , y))
 
 (define-macro (py-sub x y)
-  `(behavior-specialized-operation sub ,x , y))
+  `(py-specialized-binop-dispatch sub ,x , y))
 
 (define-macro (py-truediv x y)
-  `(behavior-specialized-operation truediv ,x , y))
+  `(py-specialized-binop-dispatch truediv ,x , y))
 
 (define-macro (py-xor x y)
-  `(behavior-specialized-operation xor ,x , y))
+  `(py-specialized-binop-dispatch xor ,x , y))
 
 (define-macro (py-iadd x y)
-  `(behavior-specialized-operation iadd ,x , y))
+  `(py-specialized-binop-dispatch iadd ,x , y))
 
 (define-macro (py-ibitand x y)
-  `(behavior-specialized-operation ibitand ,x , y))
+  `(py-specialized-binop-dispatch ibitand ,x , y))
 
 (define-macro (py-ibitor x y)
-  `(behavior-specialized-operation ibitor ,x , y))
+  `(py-specialized-binop-dispatch ibitor ,x , y))
 
 (define-macro (py-ifloordiv x y)
-  `(behavior-specialized-operation ifloordiv ,x , y))
+  `(py-specialized-binop-dispatch ifloordiv ,x , y))
 
 (define-macro (py-ilshift x y)
-  `(behavior-specialized-operation ilshift ,x , y))
+  `(py-specialized-binop-dispatch ilshift ,x , y))
 
 (define-macro (py-imatmul x y)
-  `(behavior-specialized-operation imatmul ,x , y))
+  `(py-specialized-binop-dispatch imatmul ,x , y))
 
 (define-macro (py-imod x y)
-  `(behavior-specialized-operation imod ,x , y))
+  `(py-specialized-binop-dispatch imod ,x , y))
 
 (define-macro (py-imul x y)
-  `(behavior-specialized-operation imul ,x , y))
+  `(py-specialized-binop-dispatch imul ,x , y))
 
 (define-macro (py-ipow x y)
-  `(behavior-specialized-operation ipow ,x , y))
+  `(py-specialized-binop-dispatch ipow ,x , y))
 
 (define-macro (py-irshift x y)
-  `(behavior-specialized-operation irshift ,x , y))
+  `(py-specialized-binop-dispatch irshift ,x , y))
 
 (define-macro (py-isub x y)
-  `(behavior-specialized-operation isub ,x , y))
+  `(py-specialized-binop-dispatch isub ,x , y))
 
 (define-macro (py-itruediv x y)
-  `(behavior-specialized-operation itruediv ,x , y))
+  `(py-specialized-binop-dispatch itruediv ,x , y))
 
 (define-macro (py-ixor x y)
-  `(behavior-specialized-operation ixor ,x , y))
+  `(py-specialized-binop-dispatch ixor ,x , y))
 
 (define-macro (py-getattribute obj attr)
   `(py-getattribute-fallback ,obj ,attr))

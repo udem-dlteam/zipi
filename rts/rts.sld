@@ -255,6 +255,58 @@
     py-isub-floatX-floatY-inline
     py-itruediv-floatX-floatY-inline
     py-ixor-floatX-floatY-inline
+    py-add-sintX-floatY-inline
+    py-bitand-sintX-floatY-inline
+    py-bitor-sintX-floatY-inline
+    py-floordiv-sintX-floatY-inline
+    py-lshift-sintX-floatY-inline
+    py-matmul-sintX-floatY-inline
+    py-mod-sintX-floatY-inline
+    py-mul-sintX-floatY-inline
+    py-pow-sintX-floatY-inline
+    py-rshift-sintX-floatY-inline
+    py-sub-sintX-floatY-inline
+    py-truediv-sintX-floatY-inline
+    py-xor-sintX-floatY-inline
+    py-iadd-sintX-floatY-inline
+    py-ibitand-sintX-floatY-inline
+    py-ibitor-sintX-floatY-inline
+    py-ifloordiv-sintX-floatY-inline
+    py-ilshift-sintX-floatY-inline
+    py-imatmul-sintX-floatY-inline
+    py-imod-sintX-floatY-inline
+    py-imul-sintX-floatY-inline
+    py-ipow-sintX-floatY-inline
+    py-irshift-sintX-floatY-inline
+    py-isub-sintX-floatY-inline
+    py-itruediv-sintX-floatY-inline
+    py-ixor-sintX-floatY-inline
+    py-add-floatX-sintY-inline
+    py-bitand-floatX-sintY-inline
+    py-bitor-floatX-sintY-inline
+    py-floordiv-floatX-sintY-inline
+    py-lshift-floatX-sintY-inline
+    py-matmul-floatX-sintY-inline
+    py-mod-floatX-sintY-inline
+    py-mul-floatX-sintY-inline
+    py-pow-floatX-sintY-inline
+    py-rshift-floatX-sintY-inline
+    py-sub-floatX-sintY-inline
+    py-truediv-floatX-sintY-inline
+    py-xor-floatX-sintY-inline
+    py-iadd-floatX-sintY-inline
+    py-ibitand-floatX-sintY-inline
+    py-ibitor-floatX-sintY-inline
+    py-ifloordiv-floatX-sintY-inline
+    py-ilshift-floatX-sintY-inline
+    py-imatmul-floatX-sintY-inline
+    py-imod-floatX-sintY-inline
+    py-imul-floatX-sintY-inline
+    py-ipow-floatX-sintY-inline
+    py-irshift-floatX-sintY-inline
+    py-isub-floatX-sintY-inline
+    py-itruediv-floatX-sintY-inline
+    py-ixor-floatX-sintY-inline
 
     py-invert
     py-neg
@@ -321,8 +373,8 @@
 
     py-if-specialized-sint-representation
     py-if-specialized-float-representation
-    py-specialized-sint-float-dispatch-let
-    py-specialized-binary-sint-float-dispatch-let
+    py-specialized-binop-dispatch
+    $py-specialized-binop-dispatch
 
     py-int-from-scheme
     py-sint-from-scheme
