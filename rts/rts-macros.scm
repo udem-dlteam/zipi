@@ -855,7 +855,7 @@
 ;; Semantics
 
 (define-macro (py-specialized-binop-dispatch op lhs rhs)
-  `(with-class-indices-info $py-specialized-binop-dispatch op lhs rhs))
+  `(with-class-indices-info $py-specialized-binop-dispatch ,op ,lhs ,rhs))
 
 (define-macro ($py-specialized-binop-dispatch indices-info op lhs rhs)
   (define sint-sint-op (string->symbol (string-append "py-" (symbol->string op) "-sintX-sintY-inline")))
