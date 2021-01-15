@@ -2,6 +2,8 @@
 
 (define-macro (py-if-specialized-sint-representation yes no) yes)
 (define-macro (py-if-specialized-float-representation yes no) yes)
+(define-macro (py-if-enable-behaviors-optimization yes no) yes)
+(define-macro (py-if-enable-inlined-mixed-types-behaviors yes no) no)
 
 (define-macro (py-bool-to-scheme-float arg)
   `(fixnum->flonum (py-bool-to-scheme ,arg)))
@@ -189,7 +191,7 @@
 
   (define (type operand)
     (and (pair? operand)
-         (let ((x (assoc (car operand)
+         (let ((x (assq (car operand)
                          '((py-bool-to-scheme bool)
                            (py-sint-to-scheme sint)
                            (py-bint-to-scheme bint)
@@ -235,7 +237,7 @@
                 (operand-types (map type operands)))
            (case (length operands)
              ((1)
-              (cond ((assoc operator
+              (cond ((assq operator
                             (case host
                               ((gambit) unary-operators-gambit)
                               ((bigloo) unary-operators-bigloo)))
@@ -263,7 +265,7 @@
                     (else
                      (fallback arg))))
              ((2)
-              (cond ((assoc operator
+              (cond ((assq operator
                             (case host
                               ((gambit) binary-operators-gambit)
                               ((bigloo) binary-operators-bigloo)))
@@ -354,7 +356,7 @@
 
  (define (type operand)
    (and (pair? operand)
-        (let ((x (assoc (car operand)
+        (let ((x (assq (car operand)
                         '((py-bool-to-scheme  bool)
                           (py-sint-to-scheme  sint)
                           (py-bint-to-scheme  bint)
@@ -386,7 +388,7 @@
                (operand-types (map type operands)))
           (case (length operands)
             ((1)
-             (cond ((assoc operator
+             (cond ((assq operator
                            (case host
                              ((gambit) unary-operators-gambit)
                              ((bigloo) unary-operators-bigloo)))
@@ -401,7 +403,7 @@
                    (else
                     (fallback arg))))
             ((2)
-             (cond ((assoc operator
+             (cond ((assq operator
                            (case host
                              ((gambit) binary-operators-gambit)
                              ((bigloo) binary-operators-bigloo)))
@@ -489,6 +491,23 @@
 
 (define-macro (py-obj-mro obj) ;; get MRO of object's class
   `(py-PyObjectType-mro (py-obj-cls ,obj)))
+
+(define-macro (py-obj-class-index obj)
+  `(with-class-indices-info $py-obj-class-index ,obj))
+
+(define-macro ($py-obj-class-index indices-info obj)
+  (define sint-class-index (cadr (assq 'sint indices-info)))
+  (define float-class-index (cadr (assq 'float indices-info)))
+
+  `(py-specialized-sint-float-dispatch-let
+    $obj
+    ,obj
+    ,sint-class-index
+    ,float-class-index
+    (py-obj-class-index-general $obj)))
+
+(define-macro (py-obj-class-index-general obj)
+  `(py-PyObjectType-class-index (py-obj-cls-general $lhs)))
 
 ;; Specialized type tests for int
 
@@ -829,8 +848,8 @@
          ($rhs ,rhs))
       ((behavior-ref
         ,op
-        (py-PyObjectType-class-index (py-obj-cls $lhs))
-        (py-PyObjectType-class-index (py-obj-cls $rhs)))
+        (py-obj-class-index $lhs)
+        (py-obj-class-index $rhs))
         $lhs
         $rhs)))
 
@@ -839,7 +858,7 @@
       ((behavior-ref
         ,op
         ,lhs-index
-        (py-PyObjectType-class-index (py-obj-cls $rhs)))
+        (py-obj-class-index $rhs))
         ,lhs
         $rhs)))
 
@@ -847,7 +866,7 @@
   `(let (($lhs ,lhs))
       ((behavior-ref
         ,op
-        (py-PyObjectType-class-index (py-obj-cls $lhs))
+        (py-obj-class-index $lhs)
         ,rhs-index)
         $lhs
         ,rhs)))
@@ -866,32 +885,42 @@
   (define sint-class-index (cadr (assq 'sint indices-info)))
   (define float-class-index (cadr (assq 'float indices-info)))
 
-  `(let (($lhs ,lhs)
-         ($rhs ,rhs))
-     (cond ((py-if-specialized-sint-representation (fixnum? $lhs) #f)
-              (cond
-                ((py-if-specialized-sint-representation (fixnum? $rhs) #f)
-                  (,sint-sint-op $lhs $rhs))
-                ((py-if-specialized-float-representation (flonum? $rhs) #f)
-                  (,sint-float-op $lhs $rhs))
-                (else
-                  (behavior-call-with-lhs-index ,op ,sint-class-index $lhs $rhs))))
-           ((py-if-specialized-float-representation (flonum? $lhs) #f)
-              (cond
-                ((py-if-specialized-sint-representation (fixnum? $rhs) #f)
-                  (,float-sint-op $lhs $rhs))
-                ((py-if-specialized-float-representation (flonum? $rhs) #f)
-                  (,float-float-op $lhs $rhs))
-                (else
-                  (behavior-call-with-lhs-index ,op ,float-class-index $lhs $rhs))))
-           (else
-             (cond
-               ((py-if-specialized-sint-representation (fixnum? $rhs) #f)
-                 (behavior-call-with-rhs-index ,op $lhs ,sint-class-index $lhs))
-               ((py-if-specialized-float-representation (flonum? $rhs) #f)
-                 (behavior-call-with-rhs-index ,op $lhs ,float-class-index $lhs))
-               (else
-                 (behavior-call ,op $lhs $rhs)))))))
+  `(py-if-enable-behaviors-optimization
+    (let (($lhs ,lhs)
+           ($rhs ,rhs))
+       (cond ((py-if-specialized-sint-representation (fixnum? $lhs) #f)
+                (py-if-enable-inlined-mixed-types-behaviors
+                  (cond
+                    ((py-if-specialized-sint-representation (fixnum? $rhs) #f)
+                      (,sint-sint-op $lhs $rhs))
+                    ((py-if-specialized-float-representation (flonum? $rhs) #f)
+                      (,sint-float-op $lhs $rhs))
+                    (else
+                      (behavior-call-with-lhs-index ,op ,sint-class-index $lhs $rhs)))
+                  (if (fixnum? $rhs)
+                    (,sint-sint-op $lhs $rhs)
+                    (behavior-call-with-lhs-index ,op ,sint-class-index $lhs $rhs))))
+             ((py-if-specialized-float-representation (flonum? $lhs) #f)
+                (py-if-enable-inlined-mixed-types-behaviors
+                  (cond
+                    ((py-if-specialized-sint-representation (fixnum? $rhs) #f)
+                      (,float-sint-op $lhs $rhs))
+                    ((flonum? $rhs)
+                      (,float-float-op $lhs $rhs))
+                    (else
+                      (behavior-call-with-lhs-index ,op ,float-class-index $lhs $rhs)))
+                  (if (flonum? $rhs)
+                    (,float-float-op $lhs $rhs)
+                    (behavior-call-with-lhs-index ,op ,float-class-index $lhs $rhs))))
+             (else
+               (cond
+                 ((py-if-specialized-sint-representation (fixnum? $rhs) #f)
+                   (behavior-call-with-rhs-index ,op $lhs ,sint-class-index $rhs))
+                 ((py-if-specialized-float-representation (flonum? $rhs) #f)
+                   (behavior-call-with-rhs-index ,op $lhs ,float-class-index $rhs))
+                 (else
+                   (behavior-call ,op $lhs $rhs))))))
+    (,(string->symbol (string-append "py-" (symbol->string op) "-fallback")) ,lhs ,rhs)))
 
 (define-macro (py-add x y)
   `(py-specialized-binop-dispatch add ,x , y))

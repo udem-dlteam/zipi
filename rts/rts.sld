@@ -330,6 +330,9 @@
 
     py-obj-cls
     py-obj-cls-general
+    py-obj-class-index
+    $py-obj-class-index
+    py-obj-class-index-general
     py-getattribute
     py-getattribute-fallback
     object-put!
@@ -376,6 +379,8 @@
 
     py-if-specialized-sint-representation
     py-if-specialized-float-representation
+    py-if-enable-behaviors-optimization
+    py-if-enable-inlined-mixed-types-behaviors
     py-specialized-binop-dispatch
     $py-specialized-binop-dispatch
 
