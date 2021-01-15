@@ -341,6 +341,9 @@
     $get-behavior-index
     behavior-specialized-operation
     behavior-call
+    behavior-call-with-lhs-index
+    behavior-call-with-rhs-index
+    py-specialized-sint-float-dispatch-let
 
     py-add-behaviors-table
     py-bitand-behaviors-table
@@ -389,6 +392,11 @@
     py-has-type-int?
     py-subtype-of-int?
     py-strict-subtype-of-int?
+
+    py-bool-to-scheme-float
+    py-sint-to-scheme-float
+    py-bint-to-scheme-float
+    py-bool-to-scheme
 
     py-float-from-scheme
     py-float-from-scheme-fallback
