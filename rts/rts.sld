@@ -11,6 +11,9 @@
     init-registered-constants
     register-constants-perfect-hashtable
     init-constants
+    py-begin-module
+    py-end-module
+    py-init-module
 
     call-host
 

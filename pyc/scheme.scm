@@ -74,12 +74,12 @@
                   (export init)
                   (import (gambit) (zipi rts))
                   (begin
-                    (start-registering-constants)
+                    (py-begin-module)
 
                     (define py-module ,@prog)
 
                     (define (init name)
-                      (init-registered-constants)
+                      (py-init-module)
                       (let ((caches (py-make-caches ,(PycModule-caches ast)))
                             (module (py-make-module name)))
                         ,(if full-path
@@ -88,7 +88,7 @@
                           `(begin))
                         (py-module module caches)
                         module))
-                    (end-registering-constants)))))
+                    (py-end-module)))))
       (let ((semantics-definitions (map cdr semantics)))
         (print
           port: (current-error-port)

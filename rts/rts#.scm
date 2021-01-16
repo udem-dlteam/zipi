@@ -759,4 +759,15 @@
           (else
            (error "unexpected expression" e)))))
 
+(define-macro (py-begin-module)
+  `(begin
+    (declare (standard-bindings) (extended-bindings) (not safe) (block))
+    (start-registering-constants)))
+
+(define-macro (py-end-module)
+  `(end-registering-constants))
+
+(define-macro (py-init-module)
+  `(init-registered-constants))
+
 (import (zipi rts hash))
