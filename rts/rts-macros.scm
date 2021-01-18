@@ -507,7 +507,7 @@
     (py-obj-class-index-general $obj)))
 
 (define-macro (py-obj-class-index-general obj)
-  `(py-PyObjectType-class-index (py-obj-cls-general $lhs)))
+  `(py-PyObjectType-class-index (py-obj-cls-general ,obj)))
 
 ;; Specialized type tests for int
 
