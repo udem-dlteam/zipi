@@ -1370,9 +1370,6 @@
 
 (define-binary-operator-protocol py-ge "__ge__" "__le__" ">=")
 
-(define-macro (py-test-is x y)
-  `(eq? ,x ,y))
-
 (define (py-is x y) ;; x is y
   (if (py-test-is x y)
     py-True

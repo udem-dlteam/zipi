@@ -1082,3 +1082,6 @@
 
 (define-macro (py-exit obj exc)
   `(py-exit-fallback ,obj ,exc))
+
+(define-macro (py-test-is x y)
+  `(eq? ,x ,y))
