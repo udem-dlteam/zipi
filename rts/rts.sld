@@ -342,14 +342,98 @@
     py-own-attr-set!
     getattribute-from-obj-mro
 
-    behavior-ref
+    py-behavior-ref
     get-behavior-index
     $get-behavior-index
     behavior-specialized-operation
-    behavior-call
-    behavior-call-with-lhs-index
-    behavior-call-with-rhs-index
+    py-behavior-call
+    py-behavior-call-with-lhs-index
+    py-behavior-call-with-rhs-index
+    $py-behavior-call
+    $py-behavior-call-with-lhs-index
+    $py-behavior-call-with-rhs-index
     py-specialized-sint-float-dispatch-let
+
+    py-add-behavior-call-fallback
+    py-bitand-behavior-call-fallback
+    py-bitor-behavior-call-fallback
+    py-floordiv-behavior-call-fallback
+    py-lshift-behavior-call-fallback
+    py-matmul-behavior-call-fallback
+    py-mod-behavior-call-fallback
+    py-mul-behavior-call-fallback
+    py-pow-behavior-call-fallback
+    py-rshift-behavior-call-fallback
+    py-sub-behavior-call-fallback
+    py-truediv-behavior-call-fallback
+    py-xor-behavior-call-fallback
+    py-iadd-behavior-call-fallback
+    py-ibitand-behavior-call-fallback
+    py-ibitor-behavior-call-fallback
+    py-ifloordiv-behavior-call-fallback
+    py-ilshift-behavior-call-fallback
+    py-imatmul-behavior-call-fallback
+    py-imod-behavior-call-fallback
+    py-imul-behavior-call-fallback
+    py-ipow-behavior-call-fallback
+    py-irshift-behavior-call-fallback
+    py-isub-behavior-call-fallback
+    py-itruediv-behavior-call-fallback
+    py-ixor-behavior-call-fallback
+
+    py-add-behavior-call-with-lhs-index-fallback
+    py-bitand-behavior-call-with-lhs-index-fallback
+    py-bitor-behavior-call-with-lhs-index-fallback
+    py-floordiv-behavior-call-with-lhs-index-fallback
+    py-lshift-behavior-call-with-lhs-index-fallback
+    py-matmul-behavior-call-with-lhs-index-fallback
+    py-mod-behavior-call-with-lhs-index-fallback
+    py-mul-behavior-call-with-lhs-index-fallback
+    py-pow-behavior-call-with-lhs-index-fallback
+    py-rshift-behavior-call-with-lhs-index-fallback
+    py-sub-behavior-call-with-lhs-index-fallback
+    py-truediv-behavior-call-with-lhs-index-fallback
+    py-xor-behavior-call-with-lhs-index-fallback
+    py-iadd-behavior-call-with-lhs-index-fallback
+    py-ibitand-behavior-call-with-lhs-index-fallback
+    py-ibitor-behavior-call-with-lhs-index-fallback
+    py-ifloordiv-behavior-call-with-lhs-index-fallback
+    py-ilshift-behavior-call-with-lhs-index-fallback
+    py-imatmul-behavior-call-with-lhs-index-fallback
+    py-imod-behavior-call-with-lhs-index-fallback
+    py-imul-behavior-call-with-lhs-index-fallback
+    py-ipow-behavior-call-with-lhs-index-fallback
+    py-irshift-behavior-call-with-lhs-index-fallback
+    py-isub-behavior-call-with-lhs-index-fallback
+    py-itruediv-behavior-call-with-lhs-index-fallback
+    py-ixor-behavior-call-with-lhs-index-fallback
+
+    py-add-behavior-call-with-rhs-index-fallback
+    py-bitand-behavior-call-with-rhs-index-fallback
+    py-bitor-behavior-call-with-rhs-index-fallback
+    py-floordiv-behavior-call-with-rhs-index-fallback
+    py-lshift-behavior-call-with-rhs-index-fallback
+    py-matmul-behavior-call-with-rhs-index-fallback
+    py-mod-behavior-call-with-rhs-index-fallback
+    py-mul-behavior-call-with-rhs-index-fallback
+    py-pow-behavior-call-with-rhs-index-fallback
+    py-rshift-behavior-call-with-rhs-index-fallback
+    py-sub-behavior-call-with-rhs-index-fallback
+    py-truediv-behavior-call-with-rhs-index-fallback
+    py-xor-behavior-call-with-rhs-index-fallback
+    py-iadd-behavior-call-with-rhs-index-fallback
+    py-ibitand-behavior-call-with-rhs-index-fallback
+    py-ibitor-behavior-call-with-rhs-index-fallback
+    py-ifloordiv-behavior-call-with-rhs-index-fallback
+    py-ilshift-behavior-call-with-rhs-index-fallback
+    py-imatmul-behavior-call-with-rhs-index-fallback
+    py-imod-behavior-call-with-rhs-index-fallback
+    py-imul-behavior-call-with-rhs-index-fallback
+    py-ipow-behavior-call-with-rhs-index-fallback
+    py-irshift-behavior-call-with-rhs-index-fallback
+    py-isub-behavior-call-with-rhs-index-fallback
+    py-itruediv-behavior-call-with-rhs-index-fallback
+    py-ixor-behavior-call-with-rhs-index-fallback
 
     py-add-behaviors-table
     py-bitand-behaviors-table
@@ -384,6 +468,7 @@
     py-if-specialized-float-representation
     py-if-enable-behaviors-optimization
     py-if-enable-inlined-mixed-types-behaviors
+    py-if-enable-inline-behavior-dispatch
     py-specialized-binop-dispatch
     $py-specialized-binop-dispatch
 

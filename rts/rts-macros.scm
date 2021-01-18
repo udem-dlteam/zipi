@@ -3,6 +3,7 @@
 (define-macro (py-if-specialized-sint-representation yes no) yes)
 (define-macro (py-if-specialized-float-representation yes no) yes)
 (define-macro (py-if-enable-behaviors-optimization yes no) yes)
+(define-macro (py-if-enable-inline-behavior-dispatch yes no) no)
 (define-macro (py-if-enable-inlined-mixed-types-behaviors yes no) no)
 
 (define-macro (py-bool-to-scheme-float arg)
@@ -799,6 +800,30 @@
               (get-behavior-name op (caar lhs-types) (caar rhs-types))
               (rhs-loop (cdr rhs-types))))))))
 
+  (define (get-behavior-call-fallback-name op)
+    (string->symbol
+      (string-append "py-" (symbol->string op) "-behavior-call-fallback")))
+
+  (define (get-behavior-call-with-lhs-index-fallback-name op)
+    (string->symbol
+      (string-append "py-" (symbol->string op) "-behavior-call-with-lhs-index-fallback")))
+
+  (define (get-behavior-call-with-rhs-index-fallback-name op)
+    (string->symbol
+      (string-append "py-" (symbol->string op) "-behavior-call-with-rhs-index-fallback")))
+
+  (define (get-behavior-call-fallback op)
+    `(define (,(get-behavior-call-fallback-name op) lhs rhs)
+        ($py-behavior-call ,op lhs rhs)))
+
+  (define (get-behavior-call-with-lhs-index-fallback op)
+    `(define (,(get-behavior-call-with-lhs-index-fallback-name op) lhs-index lhs rhs)
+        ($py-behavior-call-with-lhs-index ,op lhs-index lhs rhs)))
+
+  (define (get-behavior-call-with-rhs-index-fallback op)
+    `(define (,(get-behavior-call-with-rhs-index-fallback-name op) lhs rhs-index rhs)
+        ($py-behavior-call-with-lhs-index ,op lhs rhs-index rhs)))
+
   (let ((tables-init-code
           (let loop ((ops ops-with-behaviors))
             (if (null? ops)
@@ -808,10 +833,26 @@
                     (behaviors (make-behaviors-list op)))
                 (cons
                   `(define ,behavior-table-name (vector ,@behaviors))
-                  (loop (cdr ops))))))))
+                  (loop (cdr ops)))))))
+        (behavior-call-fallbacks
+          (let loop ((ops ops-with-behaviors))
+            (if (null? ops)
+              '()
+              (let* ((op (car ops))
+                    (behavior-call-fallback (get-behavior-call-fallback op))
+                    (behavior-call-with-lhs-index-fallback (get-behavior-call-with-lhs-index-fallback op))
+                    (behavior-call-with-rhs-index-fallback (get-behavior-call-with-rhs-index-fallback op)))
+                (cons
+                  behavior-call-fallback
+                  (cons
+                    behavior-call-with-lhs-index-fallback
+                    (cons
+                      behavior-call-with-rhs-index-fallback
+                      (loop (cdr ops))))))))))
 
     `(begin
-        ,@tables-init-code)))
+        ,@tables-init-code
+        ,@behavior-call-fallbacks)))
 
 (define-macro (get-behavior-index lhs-index rhs-index)
    `(with-class-indices-info $get-behavior-index ,lhs-index ,rhs-index))
@@ -833,38 +874,62 @@
     (bigloo
       `(+fx (*fx ,indices-length ,lhs-index) ,rhs-index))))
 
-(define-macro (behavior-ref op lhs-index rhs-index)
+(define-macro (py-behavior-ref op lhs-index rhs-index)
   (let ((behavior-table-name
           (string->symbol (string-append "py-" (symbol->string op) "-behaviors-table"))))
     `(vector-ref ,behavior-table-name (get-behavior-index ,lhs-index ,rhs-index))))
 
-(define-macro (behavior-set! op lhs-index rhs-index val)
+(define-macro (py-behavior-set!! op lhs-index rhs-index val)
   (let ((behavior-table-name
           (string->symbol (string-append "py-" (symbol->string op) "-behaviors-table"))))
     `(vector-set! ,behavior-table-name (get-behavior-index ,lhs-index ,rhs-index) ,val)))
 
-(define-macro (behavior-call op lhs rhs)
+(define-macro (py-behavior-call op lhs rhs)
+  (let ((behavior-call-fallback-name
+          (string->symbol
+            (string-append "py-" (symbol->string op) "-behavior-call-fallback"))))
+    `(py-if-enable-inline-behavior-dispatch
+        ($py-behavior-call ,op ,lhs ,rhs)
+        (,behavior-call-fallback-name ,lhs ,rhs))))
+
+(define-macro ($py-behavior-call op lhs rhs)
   `(let (($lhs ,lhs)
          ($rhs ,rhs))
-      ((behavior-ref
+      ((py-behavior-ref
         ,op
         (py-obj-class-index $lhs)
         (py-obj-class-index $rhs))
         $lhs
         $rhs)))
 
-(define-macro (behavior-call-with-lhs-index op lhs-index lhs rhs)
+(define-macro (py-behavior-call-with-lhs-index op lhs-index lhs rhs)
+  (let ((behavior-call-fallback-name
+          (string->symbol
+            (string-append "py-" (symbol->string op) "-behavior-call-with-lhs-index-fallback"))))
+    `(py-if-enable-inline-behavior-dispatch
+        ($py-behavior-call-with-lhs-index ,op ,lhs-index ,lhs ,rhs)
+        (,behavior-call-fallback-name ,lhs-index ,lhs ,rhs))))
+
+(define-macro ($py-behavior-call-with-lhs-index op lhs-index lhs rhs)
   `(let (($rhs ,rhs))
-      ((behavior-ref
+      ((py-behavior-ref
         ,op
         ,lhs-index
         (py-obj-class-index $rhs))
         ,lhs
         $rhs)))
 
-(define-macro (behavior-call-with-rhs-index op lhs rhs-index rhs)
+(define-macro (py-behavior-call-with-rhs-index op lhs rhs-index rhs)
+  (let ((behavior-call-fallback-name
+          (string->symbol
+            (string-append "py-" (symbol->string op) "-behavior-call-with-rhs-index-fallback"))))
+    `(py-if-enable-inline-behavior-dispatch
+        ($py-behavior-call-with-rhs-index ,op ,lhs ,rhs-index ,rhs)
+        (,behavior-call-fallback-name ,lhs ,rhs-index rhs))))
+
+(define-macro ($py-behavior-call-with-rhs-index op lhs rhs-index rhs)
   `(let (($lhs ,lhs))
-      ((behavior-ref
+      ((py-behavior-ref
         ,op
         (py-obj-class-index $lhs)
         ,rhs-index)
@@ -896,10 +961,10 @@
                     ((py-if-specialized-float-representation (flonum? $rhs) #f)
                       (,sint-float-op $lhs $rhs))
                     (else
-                      (behavior-call-with-lhs-index ,op ,sint-class-index $lhs $rhs)))
+                      (py-behavior-call-with-lhs-index ,op ,sint-class-index $lhs $rhs)))
                   (if (fixnum? $rhs)
                     (,sint-sint-op $lhs $rhs)
-                    (behavior-call-with-lhs-index ,op ,sint-class-index $lhs $rhs))))
+                    (py-behavior-call-with-lhs-index ,op ,sint-class-index $lhs $rhs))))
              ((py-if-specialized-float-representation (flonum? $lhs) #f)
                 (py-if-enable-inlined-mixed-types-behaviors
                   (cond
@@ -908,18 +973,18 @@
                     ((flonum? $rhs)
                       (,float-float-op $lhs $rhs))
                     (else
-                      (behavior-call-with-lhs-index ,op ,float-class-index $lhs $rhs)))
+                      (py-behavior-call-with-lhs-index ,op ,float-class-index $lhs $rhs)))
                   (if (flonum? $rhs)
                     (,float-float-op $lhs $rhs)
-                    (behavior-call-with-lhs-index ,op ,float-class-index $lhs $rhs))))
+                    (py-behavior-call-with-lhs-index ,op ,float-class-index $lhs $rhs))))
              (else
                (cond
                  ((py-if-specialized-sint-representation (fixnum? $rhs) #f)
-                   (behavior-call-with-rhs-index ,op $lhs ,sint-class-index $rhs))
+                   (py-behavior-call-with-rhs-index ,op $lhs ,sint-class-index $rhs))
                  ((py-if-specialized-float-representation (flonum? $rhs) #f)
-                   (behavior-call-with-rhs-index ,op $lhs ,float-class-index $rhs))
+                   (py-behavior-call-with-rhs-index ,op $lhs ,float-class-index $rhs))
                  (else
-                   (behavior-call ,op $lhs $rhs))))))
+                   (py-behavior-call ,op $lhs $rhs))))))
     (,(string->symbol (string-append "py-" (symbol->string op) "-fallback")) ,lhs ,rhs)))
 
 (define-macro (py-add x y)
