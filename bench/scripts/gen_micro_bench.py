@@ -13,6 +13,7 @@ benchmarks = [
 [13,3, 'x=1','',             'x=x+1',         '',    'var_int_add_1'],
 [13,3, 'x=1','',             'x+=1',          '',    'var_int_inc'],
 [13,3, 'x=1;y=1','',         'x=x+y',         '',    'var_int_add_var'],
+[13,3, 'x=1.5;y=True','',    'x=x+y',         '',    'var_float_bool_add_var'],
 [13,3, 'x=1','',             'x=x-1',         '',    'var_int_sub_1'],
 [13,3, 'x=1','',             'x-=1',          '',    'var_int_dec'],
 [13,3, 'x=1;y=1','',         'x=x-y',         '',    'var_int_sub_var'],
