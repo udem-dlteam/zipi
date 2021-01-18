@@ -96,33 +96,6 @@ class int:
         else:
             raise TypeError("descriptor '__ior__' requires a 'int' object but received a '" + type(self).__name__ + "'")
 
-    def __lshift__(self, other):
-        if isinstance(self, int):
-            if isinstance(other, int):
-                return int_box(int_unbox(self) << int_unbox(other))
-            else:
-                return NotImplemented
-        else:
-            raise TypeError("descriptor '__lshift__' requires a 'int' object but received a '" + type(self).__name__ + "'")
-
-    def __rlshift__(self, other):
-        if isinstance(self, int):
-            if isinstance(other, int):
-                return int_box(int_unbox(other) << int_unbox(self))
-            else:
-                return NotImplemented
-        else:
-            raise TypeError("descriptor '__rlshift__' requires a 'int' object but received a '" + type(self).__name__ + "'")
-
-    def __ilshift__(self, other):
-        if isinstance(self, int):
-            if isinstance(other, int):
-                return int_box(int_unbox(self) << int_unbox(other))
-            else:
-                return NotImplemented
-        else:
-            raise TypeError("descriptor '__ilshift__' requires a 'int' object but received a '" + type(self).__name__ + "'")
-
     def __mul__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
@@ -177,33 +150,6 @@ class int:
         else:
             raise TypeError("descriptor '__ipow__' requires a 'int' object but received a '" + type(self).__name__ + "'")
 
-    def __rshift__(self, other):
-        if isinstance(self, int):
-            if isinstance(other, int):
-                return int_box(int_unbox(self) >> int_unbox(other))
-            else:
-                return NotImplemented
-        else:
-            raise TypeError("descriptor '__rshift__' requires a 'int' object but received a '" + type(self).__name__ + "'")
-
-    def __rrshift__(self, other):
-        if isinstance(self, int):
-            if isinstance(other, int):
-                return int_box(int_unbox(other) >> int_unbox(self))
-            else:
-                return NotImplemented
-        else:
-            raise TypeError("descriptor '__rrshift__' requires a 'int' object but received a '" + type(self).__name__ + "'")
-
-    def __irshift__(self, other):
-        if isinstance(self, int):
-            if isinstance(other, int):
-                return int_box(int_unbox(self) >> int_unbox(other))
-            else:
-                return NotImplemented
-        else:
-            raise TypeError("descriptor '__irshift__' requires a 'int' object but received a '" + type(self).__name__ + "'")
-
     def __sub__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
@@ -257,6 +203,78 @@ class int:
                 return NotImplemented
         else:
             raise TypeError("descriptor '__ixor__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+
+    def __lshift__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                if other >= 0:
+                    return int_box(int_unbox(self) << int_unbox(other))
+                else:
+                    raise ValueError("negative shift count")
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__lshift__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+
+    def __rlshift__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                if self >= 0:
+                    return int_box(int_unbox(self) << int_unbox(other))
+                else:
+                    raise ValueError("negative shift count")
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__rlshift__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+
+    def __ilshift__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                if other >= 0:
+                    return int_box(int_unbox(self) << int_unbox(other))
+                else:
+                    raise ValueError("negative shift count")
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__ilshift__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+
+    def __rshift__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                if other >= 0:
+                    return int_box(int_unbox(self) >> int_unbox(other))
+                else:
+                    raise ValueError("negative shift count")
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__rshift__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+
+    def __rrshift__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                if self >= 0:
+                    return int_box(int_unbox(self) >> int_unbox(other))
+                else:
+                    raise ValueError("negative shift count")
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__rrshift__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+
+    def __irshift__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                if other >= 0:
+                    return int_box(int_unbox(self) >> int_unbox(other))
+                else:
+                    raise ValueError("negative shift count")
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__irshift__' requires a 'int' object but received a '" + type(self).__name__ + "'")
 
     def __floordiv__(self, other):
         if isinstance(self, int):

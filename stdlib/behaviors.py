@@ -326,15 +326,24 @@ def py_lshift_boolX_floatY(self: bool, other: float):
 
 @define_behavior
 def py_lshift_boolX_boolY(self: bool, other: bool):
-    return int_box(bool_unbox(self) << bool_unbox(other))
+    if other >= 0:
+        return int_box(bool_unbox(self) << bool_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_lshift_boolX_sintY(self: bool, other: sint):
-    return int_box(bool_unbox(self) << sint_unbox(other))
+    if other >= 0:
+        return int_box(bool_unbox(self) << sint_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_lshift_boolX_bintY(self: bool, other: bint):
-    return int_box(bool_unbox(self) << bint_unbox(other))
+    if other >= 0:
+        return int_box(bool_unbox(self) << bint_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_lshift_sintX_floatY(self: sint, other: float):
@@ -342,15 +351,24 @@ def py_lshift_sintX_floatY(self: sint, other: float):
 
 @define_behavior
 def py_lshift_sintX_boolY(self: sint, other: bool):
-    return int_box(sint_unbox(self) << bool_unbox(other))
+    if other >= 0:
+        return int_box(sint_unbox(self) << bool_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_lshift_sintX_sintY(self: sint, other: sint):
-    return int_box(sint_unbox(self) << sint_unbox(other))
+    if other >= 0:
+        return int_box(sint_unbox(self) << sint_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_lshift_sintX_bintY(self: sint, other: bint):
-    return int_box(sint_unbox(self) << bint_unbox(other))
+    if other >= 0:
+        return int_box(sint_unbox(self) << bint_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_lshift_bintX_floatY(self: bint, other: float):
@@ -358,15 +376,24 @@ def py_lshift_bintX_floatY(self: bint, other: float):
 
 @define_behavior
 def py_lshift_bintX_boolY(self: bint, other: bool):
-    return int_box(bint_unbox(self) << bool_unbox(other))
+    if other >= 0:
+        return int_box(bint_unbox(self) << bool_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_lshift_bintX_sintY(self: bint, other: sint):
-    return int_box(bint_unbox(self) << sint_unbox(other))
+    if other >= 0:
+        return int_box(bint_unbox(self) << sint_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_lshift_bintX_bintY(self: bint, other: bint):
-    return int_box(bint_unbox(self) << bint_unbox(other))
+    if other >= 0:
+        return int_box(bint_unbox(self) << bint_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_matmul_floatX_floatY(self: float, other: float):
@@ -694,15 +721,24 @@ def py_rshift_boolX_floatY(self: bool, other: float):
 
 @define_behavior
 def py_rshift_boolX_boolY(other: bool, self: bool):
-    return int_box(bool_unbox(self) >> bool_unbox(other))
+    if other >= 0:
+        return int_box(bool_unbox(self) >> bool_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_rshift_boolX_sintY(other: bool, self: sint):
-    return int_box(sint_unbox(self) >> bool_unbox(other))
+    if other >= 0:
+        return int_box(sint_unbox(self) >> bool_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_rshift_boolX_bintY(other: bool, self: bint):
-    return int_box(bint_unbox(self) >> bool_unbox(other))
+    if other >= 0:
+        return int_box(bint_unbox(self) >> bool_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_rshift_sintX_floatY(self: sint, other: float):
@@ -710,15 +746,24 @@ def py_rshift_sintX_floatY(self: sint, other: float):
 
 @define_behavior
 def py_rshift_sintX_boolY(other: sint, self: bool):
-    return int_box(bool_unbox(self) >> sint_unbox(other))
+    if other >= 0:
+        return int_box(bool_unbox(self) >> sint_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_rshift_sintX_sintY(other: sint, self: sint):
-    return int_box(sint_unbox(self) >> sint_unbox(other))
+    if other >= 0:
+        return int_box(sint_unbox(self) >> sint_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_rshift_sintX_bintY(other: sint, self: bint):
-    return int_box(bint_unbox(self) >> sint_unbox(other))
+    if other >= 0:
+        return int_box(bint_unbox(self) >> sint_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_rshift_bintX_floatY(self: bint, other: float):
@@ -726,15 +771,24 @@ def py_rshift_bintX_floatY(self: bint, other: float):
 
 @define_behavior
 def py_rshift_bintX_boolY(other: bint, self: bool):
-    return int_box(bool_unbox(self) >> bint_unbox(other))
+    if other >= 0:
+        return int_box(bool_unbox(self) >> bint_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_rshift_bintX_sintY(other: bint, self: sint):
-    return int_box(sint_unbox(self) >> bint_unbox(other))
+    if other >= 0:
+        return int_box(sint_unbox(self) >> bint_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_rshift_bintX_bintY(other: bint, self: bint):
-    return int_box(bint_unbox(self) >> bint_unbox(other))
+    if other >= 0:
+        return int_box(bint_unbox(self) >> bint_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_sub_floatX_floatY(self: float, other: float):
@@ -1302,15 +1356,24 @@ def py_ilshift_boolX_floatY(self: bool, other: float):
 
 @define_behavior
 def py_ilshift_boolX_boolY(self: bool, other: bool):
-    return int_box(bool_unbox(self) << bool_unbox(other))
+    if other >= 0:
+        return int_box(bool_unbox(self) << bool_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_ilshift_boolX_sintY(self: bool, other: sint):
-    return int_box(bool_unbox(self) << sint_unbox(other))
+    if other >= 0:
+        return int_box(bool_unbox(self) << sint_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_ilshift_boolX_bintY(self: bool, other: bint):
-    return int_box(bool_unbox(self) << bint_unbox(other))
+    if other >= 0:
+        return int_box(bool_unbox(self) << bint_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_ilshift_sintX_floatY(self: sint, other: float):
@@ -1318,15 +1381,24 @@ def py_ilshift_sintX_floatY(self: sint, other: float):
 
 @define_behavior
 def py_ilshift_sintX_boolY(self: sint, other: bool):
-    return int_box(sint_unbox(self) << bool_unbox(other))
+    if other >= 0:
+        return int_box(sint_unbox(self) << bool_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_ilshift_sintX_sintY(self: sint, other: sint):
-    return int_box(sint_unbox(self) << sint_unbox(other))
+    if other >= 0:
+        return int_box(sint_unbox(self) << sint_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_ilshift_sintX_bintY(self: sint, other: bint):
-    return int_box(sint_unbox(self) << bint_unbox(other))
+    if other >= 0:
+        return int_box(sint_unbox(self) << bint_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_ilshift_bintX_floatY(self: bint, other: float):
@@ -1334,15 +1406,24 @@ def py_ilshift_bintX_floatY(self: bint, other: float):
 
 @define_behavior
 def py_ilshift_bintX_boolY(self: bint, other: bool):
-    return int_box(bint_unbox(self) << bool_unbox(other))
+    if other >= 0:
+        return int_box(bint_unbox(self) << bool_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_ilshift_bintX_sintY(self: bint, other: sint):
-    return int_box(bint_unbox(self) << sint_unbox(other))
+    if other >= 0:
+        return int_box(bint_unbox(self) << sint_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_ilshift_bintX_bintY(self: bint, other: bint):
-    return int_box(bint_unbox(self) << bint_unbox(other))
+    if other >= 0:
+        return int_box(bint_unbox(self) << bint_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_imatmul_floatX_floatY(self: float, other: float):
@@ -1670,15 +1751,24 @@ def py_irshift_boolX_floatY(self: bool, other: float):
 
 @define_behavior
 def py_irshift_boolX_boolY(other: bool, self: bool):
-    return int_box(bool_unbox(self) >> bool_unbox(other))
+    if other >= 0:
+        return int_box(bool_unbox(self) >> bool_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_irshift_boolX_sintY(other: bool, self: sint):
-    return int_box(sint_unbox(self) >> bool_unbox(other))
+    if other >= 0:
+        return int_box(sint_unbox(self) >> bool_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_irshift_boolX_bintY(other: bool, self: bint):
-    return int_box(bint_unbox(self) >> bool_unbox(other))
+    if other >= 0:
+        return int_box(bint_unbox(self) >> bool_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_irshift_sintX_floatY(self: sint, other: float):
@@ -1686,15 +1776,24 @@ def py_irshift_sintX_floatY(self: sint, other: float):
 
 @define_behavior
 def py_irshift_sintX_boolY(other: sint, self: bool):
-    return int_box(bool_unbox(self) >> sint_unbox(other))
+    if other >= 0:
+        return int_box(bool_unbox(self) >> sint_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_irshift_sintX_sintY(other: sint, self: sint):
-    return int_box(sint_unbox(self) >> sint_unbox(other))
+    if other >= 0:
+        return int_box(sint_unbox(self) >> sint_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_irshift_sintX_bintY(other: sint, self: bint):
-    return int_box(bint_unbox(self) >> sint_unbox(other))
+    if other >= 0:
+        return int_box(bint_unbox(self) >> sint_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_irshift_bintX_floatY(self: bint, other: float):
@@ -1702,15 +1801,24 @@ def py_irshift_bintX_floatY(self: bint, other: float):
 
 @define_behavior
 def py_irshift_bintX_boolY(other: bint, self: bool):
-    return int_box(bool_unbox(self) >> bint_unbox(other))
+    if other >= 0:
+        return int_box(bool_unbox(self) >> bint_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_irshift_bintX_sintY(other: bint, self: sint):
-    return int_box(sint_unbox(self) >> bint_unbox(other))
+    if other >= 0:
+        return int_box(sint_unbox(self) >> bint_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_irshift_bintX_bintY(other: bint, self: bint):
-    return int_box(bint_unbox(self) >> bint_unbox(other))
+    if other >= 0:
+        return int_box(bint_unbox(self) >> bint_unbox(other))
+    else:
+        raise ValueError('negative shift count')
 
 @define_behavior
 def py_isub_floatX_floatY(self: float, other: float):

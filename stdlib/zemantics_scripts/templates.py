@@ -198,6 +198,54 @@ int_inplace_binary_method_template = \
 """
 
 
+int_shift_method_template = \
+    """
+    def __{method_name}__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                if other >= 0:
+                    return int_box(int_unbox(self) {op} int_unbox(other))
+                else:
+                    raise ValueError("negative shift count")
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+"""
+
+
+int_reflected_shift_method_template = \
+    """
+    def __r{method_name}__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                if self >= 0:
+                    return int_box(int_unbox(self) {op} int_unbox(other))
+                else:
+                    raise ValueError("negative shift count")
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__r{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+"""
+
+
+int_inplace_shift_method_template = \
+    """
+    def __i{method_name}__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                if other >= 0:
+                    return int_box(int_unbox(self) {op} int_unbox(other))
+                else:
+                    raise ValueError("negative shift count")
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__i{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+"""
+
+
 int_division_method_template = \
     """
     def __{method_name}__(self, other):
@@ -267,12 +315,16 @@ int_method_info = {
     'add': {"method_name": "add", "op": "+"},
     'bitand': {"method_name": "and", "op": "&"},
     'bitor': {"method_name": "or", "op": "|"},
-    'lshift': {"method_name": "lshift", "op": "<<"},
     'mul': {"method_name": "mul", "op": "*"},
     'pow': {"method_name": "pow", "op": "**"},
-    'rshift': {"method_name": "rshift", "op": ">>"},
     'sub': {"method_name": "sub", "op": "-"},
     'xor': {"method_name": "xor", "op": "^"}
+}
+
+
+int_shift_method_info = {
+    'lshift': {"method_name": "lshift", "op": "<<"},
+    'rshift': {"method_name": "rshift", "op": ">>"},
 }
 
 
