@@ -386,8 +386,10 @@
 (define (is-inlined-semantics name)
   (not (not
     (memq name '(add bitand bitor floordiv lshift matmul mod mul pow rshift sub
-                 truediv xor iadd ibitand ibitor ifloordiv ilshift imatmul imod
-                 imul ipow irshift isub itruediv ixor)))))
+                 truediv xor
+                 iadd ibitand ibitor ifloordiv ilshift imatmul imod
+                 imul ipow irshift isub itruediv ixor
+                 ge gt le lt eq ne)))))
 
 (define-walk-method (mark-define-semantics! this::PycFun parent-semantics intrinsics-info)
   (let* ((decorators (PycFun-decorators this))
