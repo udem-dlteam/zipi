@@ -54,7 +54,7 @@ class Procedure:
         method_name = self.method.__qualname__
 
         # TODO: slightly hacky, but does the job for now
-        return method_name.split('.')[1].startswith("__r") and method_name != "__rshift__"
+        return method_name.split('.')[1].startswith("__r") and "__rshift__" not in method_name
 
 
 class Error:

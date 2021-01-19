@@ -987,22 +987,22 @@
    (py-call py-builtin-TypeError
             (&& "unsupported operand type(s) for >>: 'bool' and 'float'"))))
 
-(define (py-rshift-boolX-boolY-fallback other449 self450)
-  (if (py-test (py-ge other449 (py-int-from-scheme 0)))
+(define (py-rshift-boolX-boolY-fallback self449 other450)
+  (if (py-test (py-ge other450 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py>> (py-bool-to-scheme self450) (py-bool-to-scheme other449)))
+       (py>> (py-bool-to-scheme self449) (py-bool-to-scheme other450)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
-(define (py-rshift-boolX-sintY-fallback other452 self453)
-  (if (py-test (py-ge other452 (py-int-from-scheme 0)))
+(define (py-rshift-boolX-sintY-fallback self452 other453)
+  (if (py-test (py-ge other453 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py>> (py-sint-to-scheme self453) (py-bool-to-scheme other452)))
+       (py>> (py-bool-to-scheme self452) (py-sint-to-scheme other453)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
-(define (py-rshift-boolX-bintY-fallback other455 self456)
-  (if (py-test (py-ge other455 (py-int-from-scheme 0)))
+(define (py-rshift-boolX-bintY-fallback self455 other456)
+  (if (py-test (py-ge other456 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py>> (py-bint-to-scheme self456) (py-bool-to-scheme other455)))
+       (py>> (py-bool-to-scheme self455) (py-bint-to-scheme other456)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-rshift-sintX-floatY-fallback self458 other459)
@@ -1016,30 +1016,30 @@
       (py-call py-builtin-TypeError
                (&& "unsupported operand type(s) for >>: 'int' and 'float'")))))
 
-(define (py-rshift-sintX-boolY-fallback other461 self462)
-  (if (py-test (py-ge other461 (py-int-from-scheme 0)))
+(define (py-rshift-sintX-boolY-fallback self461 other462)
+  (if (py-test (py-ge other462 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py>> (py-bool-to-scheme self462) (py-sint-to-scheme other461)))
+       (py>> (py-sint-to-scheme self461) (py-bool-to-scheme other462)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
-(define (py-rshift-sintX-sintY-fallback other464 self465)
-  (if (py-test (py-ge other464 (py-int-from-scheme 0)))
+(define (py-rshift-sintX-sintY-fallback self464 other465)
+  (if (py-test (py-ge other465 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py>> (py-sint-to-scheme self465) (py-sint-to-scheme other464)))
+       (py>> (py-sint-to-scheme self464) (py-sint-to-scheme other465)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
-(define-macro (py-rshift-sintX-sintY-inline other464 self465)
-  `(let ((other464 ,other464) (self465 ,self465))
-     (if (py-test (py-ge other464 (py-int-from-scheme 0)))
+(define-macro (py-rshift-sintX-sintY-inline self464 other465)
+  `(let ((self464 ,self464) (other465 ,other465))
+     (if (py-test (py-ge other465 (py-int-from-scheme 0)))
          (py-int-from-scheme
-          (py>> (py-sint-to-scheme self465) (py-sint-to-scheme other464)))
+          (py>> (py-sint-to-scheme self464) (py-sint-to-scheme other465)))
          (py-throw
           (py-call py-builtin-ValueError (&& "negative shift count"))))))
 
-(define (py-rshift-sintX-bintY-fallback other467 self468)
-  (if (py-test (py-ge other467 (py-int-from-scheme 0)))
+(define (py-rshift-sintX-bintY-fallback self467 other468)
+  (if (py-test (py-ge other468 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py>> (py-bint-to-scheme self468) (py-sint-to-scheme other467)))
+       (py>> (py-sint-to-scheme self467) (py-bint-to-scheme other468)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-rshift-bintX-floatY-fallback self470 other471)
@@ -1047,22 +1047,22 @@
    (py-call py-builtin-TypeError
             (&& "unsupported operand type(s) for >>: 'int' and 'float'"))))
 
-(define (py-rshift-bintX-boolY-fallback other473 self474)
-  (if (py-test (py-ge other473 (py-int-from-scheme 0)))
+(define (py-rshift-bintX-boolY-fallback self473 other474)
+  (if (py-test (py-ge other474 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py>> (py-bool-to-scheme self474) (py-bint-to-scheme other473)))
+       (py>> (py-bint-to-scheme self473) (py-bool-to-scheme other474)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
-(define (py-rshift-bintX-sintY-fallback other476 self477)
-  (if (py-test (py-ge other476 (py-int-from-scheme 0)))
+(define (py-rshift-bintX-sintY-fallback self476 other477)
+  (if (py-test (py-ge other477 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py>> (py-sint-to-scheme self477) (py-bint-to-scheme other476)))
+       (py>> (py-bint-to-scheme self476) (py-sint-to-scheme other477)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
-(define (py-rshift-bintX-bintY-fallback other479 self480)
-  (if (py-test (py-ge other479 (py-int-from-scheme 0)))
+(define (py-rshift-bintX-bintY-fallback self479 other480)
+  (if (py-test (py-ge other480 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py>> (py-bint-to-scheme self480) (py-bint-to-scheme other479)))
+       (py>> (py-bint-to-scheme self479) (py-bint-to-scheme other480)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-sub-floatX-floatY-fallback self482 other483)
@@ -2378,22 +2378,22 @@
    (py-call py-builtin-TypeError
             (&& "unsupported operand type(s) for >>: 'bool' and 'float'"))))
 
-(define (py-irshift-boolX-boolY-fallback other1073 self1074)
-  (if (py-test (py-ge other1073 (py-int-from-scheme 0)))
+(define (py-irshift-boolX-boolY-fallback self1073 other1074)
+  (if (py-test (py-ge other1074 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py>> (py-bool-to-scheme self1074) (py-bool-to-scheme other1073)))
+       (py>> (py-bool-to-scheme self1073) (py-bool-to-scheme other1074)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
-(define (py-irshift-boolX-sintY-fallback other1076 self1077)
-  (if (py-test (py-ge other1076 (py-int-from-scheme 0)))
+(define (py-irshift-boolX-sintY-fallback self1076 other1077)
+  (if (py-test (py-ge other1077 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py>> (py-sint-to-scheme self1077) (py-bool-to-scheme other1076)))
+       (py>> (py-bool-to-scheme self1076) (py-sint-to-scheme other1077)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
-(define (py-irshift-boolX-bintY-fallback other1079 self1080)
-  (if (py-test (py-ge other1079 (py-int-from-scheme 0)))
+(define (py-irshift-boolX-bintY-fallback self1079 other1080)
+  (if (py-test (py-ge other1080 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py>> (py-bint-to-scheme self1080) (py-bool-to-scheme other1079)))
+       (py>> (py-bool-to-scheme self1079) (py-bint-to-scheme other1080)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-irshift-sintX-floatY-fallback self1082 other1083)
@@ -2407,30 +2407,30 @@
       (py-call py-builtin-TypeError
                (&& "unsupported operand type(s) for >>: 'int' and 'float'")))))
 
-(define (py-irshift-sintX-boolY-fallback other1085 self1086)
-  (if (py-test (py-ge other1085 (py-int-from-scheme 0)))
+(define (py-irshift-sintX-boolY-fallback self1085 other1086)
+  (if (py-test (py-ge other1086 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py>> (py-bool-to-scheme self1086) (py-sint-to-scheme other1085)))
+       (py>> (py-sint-to-scheme self1085) (py-bool-to-scheme other1086)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
-(define (py-irshift-sintX-sintY-fallback other1088 self1089)
-  (if (py-test (py-ge other1088 (py-int-from-scheme 0)))
+(define (py-irshift-sintX-sintY-fallback self1088 other1089)
+  (if (py-test (py-ge other1089 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py>> (py-sint-to-scheme self1089) (py-sint-to-scheme other1088)))
+       (py>> (py-sint-to-scheme self1088) (py-sint-to-scheme other1089)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
-(define-macro (py-irshift-sintX-sintY-inline other1088 self1089)
-  `(let ((other1088 ,other1088) (self1089 ,self1089))
-     (if (py-test (py-ge other1088 (py-int-from-scheme 0)))
+(define-macro (py-irshift-sintX-sintY-inline self1088 other1089)
+  `(let ((self1088 ,self1088) (other1089 ,other1089))
+     (if (py-test (py-ge other1089 (py-int-from-scheme 0)))
          (py-int-from-scheme
-          (py>> (py-sint-to-scheme self1089) (py-sint-to-scheme other1088)))
+          (py>> (py-sint-to-scheme self1088) (py-sint-to-scheme other1089)))
          (py-throw
           (py-call py-builtin-ValueError (&& "negative shift count"))))))
 
-(define (py-irshift-sintX-bintY-fallback other1091 self1092)
-  (if (py-test (py-ge other1091 (py-int-from-scheme 0)))
+(define (py-irshift-sintX-bintY-fallback self1091 other1092)
+  (if (py-test (py-ge other1092 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py>> (py-bint-to-scheme self1092) (py-sint-to-scheme other1091)))
+       (py>> (py-sint-to-scheme self1091) (py-bint-to-scheme other1092)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-irshift-bintX-floatY-fallback self1094 other1095)
@@ -2438,22 +2438,22 @@
    (py-call py-builtin-TypeError
             (&& "unsupported operand type(s) for >>: 'int' and 'float'"))))
 
-(define (py-irshift-bintX-boolY-fallback other1097 self1098)
-  (if (py-test (py-ge other1097 (py-int-from-scheme 0)))
+(define (py-irshift-bintX-boolY-fallback self1097 other1098)
+  (if (py-test (py-ge other1098 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py>> (py-bool-to-scheme self1098) (py-bint-to-scheme other1097)))
+       (py>> (py-bint-to-scheme self1097) (py-bool-to-scheme other1098)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
-(define (py-irshift-bintX-sintY-fallback other1100 self1101)
-  (if (py-test (py-ge other1100 (py-int-from-scheme 0)))
+(define (py-irshift-bintX-sintY-fallback self1100 other1101)
+  (if (py-test (py-ge other1101 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py>> (py-sint-to-scheme self1101) (py-bint-to-scheme other1100)))
+       (py>> (py-bint-to-scheme self1100) (py-sint-to-scheme other1101)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
-(define (py-irshift-bintX-bintY-fallback other1103 self1104)
-  (if (py-test (py-ge other1103 (py-int-from-scheme 0)))
+(define (py-irshift-bintX-bintY-fallback self1103 other1104)
+  (if (py-test (py-ge other1104 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py>> (py-bint-to-scheme self1104) (py-bint-to-scheme other1103)))
+       (py>> (py-bint-to-scheme self1103) (py-bint-to-scheme other1104)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-isub-floatX-floatY-fallback self1106 other1107)

@@ -720,23 +720,23 @@ def py_rshift_boolX_floatY(self: bool, other: float):
     raise TypeError("unsupported operand type(s) for >>: 'bool' and 'float'")
 
 @define_behavior
-def py_rshift_boolX_boolY(other: bool, self: bool):
+def py_rshift_boolX_boolY(self: bool, other: bool):
     if other >= 0:
         return int_box(bool_unbox(self) >> bool_unbox(other))
     else:
         raise ValueError('negative shift count')
 
 @define_behavior
-def py_rshift_boolX_sintY(other: bool, self: sint):
+def py_rshift_boolX_sintY(self: bool, other: sint):
     if other >= 0:
-        return int_box(sint_unbox(self) >> bool_unbox(other))
+        return int_box(bool_unbox(self) >> sint_unbox(other))
     else:
         raise ValueError('negative shift count')
 
 @define_behavior
-def py_rshift_boolX_bintY(other: bool, self: bint):
+def py_rshift_boolX_bintY(self: bool, other: bint):
     if other >= 0:
-        return int_box(bint_unbox(self) >> bool_unbox(other))
+        return int_box(bool_unbox(self) >> bint_unbox(other))
     else:
         raise ValueError('negative shift count')
 
@@ -745,23 +745,23 @@ def py_rshift_sintX_floatY(self: sint, other: float):
     raise TypeError("unsupported operand type(s) for >>: 'int' and 'float'")
 
 @define_behavior
-def py_rshift_sintX_boolY(other: sint, self: bool):
+def py_rshift_sintX_boolY(self: sint, other: bool):
     if other >= 0:
-        return int_box(bool_unbox(self) >> sint_unbox(other))
+        return int_box(sint_unbox(self) >> bool_unbox(other))
     else:
         raise ValueError('negative shift count')
 
 @define_behavior
-def py_rshift_sintX_sintY(other: sint, self: sint):
+def py_rshift_sintX_sintY(self: sint, other: sint):
     if other >= 0:
         return int_box(sint_unbox(self) >> sint_unbox(other))
     else:
         raise ValueError('negative shift count')
 
 @define_behavior
-def py_rshift_sintX_bintY(other: sint, self: bint):
+def py_rshift_sintX_bintY(self: sint, other: bint):
     if other >= 0:
-        return int_box(bint_unbox(self) >> sint_unbox(other))
+        return int_box(sint_unbox(self) >> bint_unbox(other))
     else:
         raise ValueError('negative shift count')
 
@@ -770,21 +770,21 @@ def py_rshift_bintX_floatY(self: bint, other: float):
     raise TypeError("unsupported operand type(s) for >>: 'int' and 'float'")
 
 @define_behavior
-def py_rshift_bintX_boolY(other: bint, self: bool):
+def py_rshift_bintX_boolY(self: bint, other: bool):
     if other >= 0:
-        return int_box(bool_unbox(self) >> bint_unbox(other))
+        return int_box(bint_unbox(self) >> bool_unbox(other))
     else:
         raise ValueError('negative shift count')
 
 @define_behavior
-def py_rshift_bintX_sintY(other: bint, self: sint):
+def py_rshift_bintX_sintY(self: bint, other: sint):
     if other >= 0:
-        return int_box(sint_unbox(self) >> bint_unbox(other))
+        return int_box(bint_unbox(self) >> sint_unbox(other))
     else:
         raise ValueError('negative shift count')
 
 @define_behavior
-def py_rshift_bintX_bintY(other: bint, self: bint):
+def py_rshift_bintX_bintY(self: bint, other: bint):
     if other >= 0:
         return int_box(bint_unbox(self) >> bint_unbox(other))
     else:
@@ -1750,23 +1750,23 @@ def py_irshift_boolX_floatY(self: bool, other: float):
     raise TypeError("unsupported operand type(s) for >>: 'bool' and 'float'")
 
 @define_behavior
-def py_irshift_boolX_boolY(other: bool, self: bool):
+def py_irshift_boolX_boolY(self: bool, other: bool):
     if other >= 0:
         return int_box(bool_unbox(self) >> bool_unbox(other))
     else:
         raise ValueError('negative shift count')
 
 @define_behavior
-def py_irshift_boolX_sintY(other: bool, self: sint):
+def py_irshift_boolX_sintY(self: bool, other: sint):
     if other >= 0:
-        return int_box(sint_unbox(self) >> bool_unbox(other))
+        return int_box(bool_unbox(self) >> sint_unbox(other))
     else:
         raise ValueError('negative shift count')
 
 @define_behavior
-def py_irshift_boolX_bintY(other: bool, self: bint):
+def py_irshift_boolX_bintY(self: bool, other: bint):
     if other >= 0:
-        return int_box(bint_unbox(self) >> bool_unbox(other))
+        return int_box(bool_unbox(self) >> bint_unbox(other))
     else:
         raise ValueError('negative shift count')
 
@@ -1775,23 +1775,23 @@ def py_irshift_sintX_floatY(self: sint, other: float):
     raise TypeError("unsupported operand type(s) for >>: 'int' and 'float'")
 
 @define_behavior
-def py_irshift_sintX_boolY(other: sint, self: bool):
+def py_irshift_sintX_boolY(self: sint, other: bool):
     if other >= 0:
-        return int_box(bool_unbox(self) >> sint_unbox(other))
+        return int_box(sint_unbox(self) >> bool_unbox(other))
     else:
         raise ValueError('negative shift count')
 
 @define_behavior
-def py_irshift_sintX_sintY(other: sint, self: sint):
+def py_irshift_sintX_sintY(self: sint, other: sint):
     if other >= 0:
         return int_box(sint_unbox(self) >> sint_unbox(other))
     else:
         raise ValueError('negative shift count')
 
 @define_behavior
-def py_irshift_sintX_bintY(other: sint, self: bint):
+def py_irshift_sintX_bintY(self: sint, other: bint):
     if other >= 0:
-        return int_box(bint_unbox(self) >> sint_unbox(other))
+        return int_box(sint_unbox(self) >> bint_unbox(other))
     else:
         raise ValueError('negative shift count')
 
@@ -1800,21 +1800,21 @@ def py_irshift_bintX_floatY(self: bint, other: float):
     raise TypeError("unsupported operand type(s) for >>: 'int' and 'float'")
 
 @define_behavior
-def py_irshift_bintX_boolY(other: bint, self: bool):
+def py_irshift_bintX_boolY(self: bint, other: bool):
     if other >= 0:
-        return int_box(bool_unbox(self) >> bint_unbox(other))
+        return int_box(bint_unbox(self) >> bool_unbox(other))
     else:
         raise ValueError('negative shift count')
 
 @define_behavior
-def py_irshift_bintX_sintY(other: bint, self: sint):
+def py_irshift_bintX_sintY(self: bint, other: sint):
     if other >= 0:
-        return int_box(sint_unbox(self) >> bint_unbox(other))
+        return int_box(bint_unbox(self) >> sint_unbox(other))
     else:
         raise ValueError('negative shift count')
 
 @define_behavior
-def py_irshift_bintX_bintY(other: bint, self: bint):
+def py_irshift_bintX_bintY(self: bint, other: bint):
     if other >= 0:
         return int_box(bint_unbox(self) >> bint_unbox(other))
     else:
