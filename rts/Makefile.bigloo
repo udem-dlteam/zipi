@@ -86,6 +86,9 @@ clean.bigloo:
 o/builtins.o: builtins.bgl
 	$(BIGLOO) -O3 -c $< -o $@
 
+o/zemantics.o: zemantics.bgl
+	$(BIGLOO) -O3 -c $< -o $@
+
 o/bigloo.o: bigloo.bgl
 	$(BIGLOO) -O3 -c $< -o $@
 
