@@ -478,17 +478,19 @@
 
 (define-walk-method (mark-define-behavior! this::PycFun intrinsics-info)
   (let* ((loc (PycNode-loc this))
+        (name (PycFun-name this))
+        (body (PycFun-body this))
         (args (PycFun-args this))
         (posonlyargs (PycFun-posonlyargs this))
         (decorators (PycFun-decorators this))
         (is-decorated-behavior (contains-PycRef-with-name? decorators 'define_behavior)))
-    (define (make-behavior name inline)
+
+    (define (make-behavior name body inline)
       (let* ((vararg (PycFun-vararg this))
             (kwonlyargs (PycFun-kwonlyargs this))
             (kw-defaults (PycFun-kw-defaults this))
             (kwarg (PycFun-kwarg this))
             (defaults (PycFun-defaults this))
-            (body (PycFun-body this))
             (decls (PycFun-decls this))
             (annotation (PycFun-annotation this))
             (annotation-names (PycFun-annotation-names this)))
@@ -514,8 +516,23 @@
           annotation: annotation
           annotation-names: annotation-names
           inline: inline)))
+
+    (define (make-default-inline-behavior-body)
+      (define args-names (append (map PycDecl-id posonlyargs) (map PycDecl-id args)))
+      (new-PycSeq
+        loc
+        (list
+          (new-PycReturn
+            loc
+            (new-PycCall
+              loc
+              (new-PycPragma loc (make-fallback-behavior-name name))
+              (map
+                (lambda (name) (new-PycRefUnresolved loc name))
+                args-names))))))
+
     (if is-decorated-behavior
-      (let ((name (PycFun-name this)))
+      (begin
         (resolve-statics!
           (PycFun-body this)
           (car intrinsics-info)
@@ -527,9 +544,13 @@
           (new-PycSeq
             loc
             (list
-              (make-behavior (make-fallback-behavior-name name) #f)
-              (make-behavior (make-inline-behavior-name name) #t)))
-          (make-behavior (make-fallback-behavior-name name) #f))))))
+              (make-behavior (make-fallback-behavior-name name) body #f)
+              (make-behavior (make-inline-behavior-name name) body #t)))
+          (new-PycSeq
+            loc
+            (list
+              (make-behavior (make-fallback-behavior-name name) body #f)
+              (make-behavior (make-inline-behavior-name name) (make-default-inline-behavior-body) #t))))))))
 
 (define (lambda-lift-semantics! module)
   (lambda-lift-semantics-walk! module))
