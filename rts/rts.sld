@@ -116,12 +116,39 @@
     py-xor-fallback:normal
     py-xor-fallback:reflected
     py-xor-fallback:err
-    py-eq
-    py-ne
-    py-lt
-    py-le
-    py-gt
+
     py-ge
+    py-ge-fallback
+    py-ge-fallback:normal
+    py-ge-fallback:reflected
+    py-ge-fallback:err
+    py-gt
+    py-gt-fallback
+    py-gt-fallback:normal
+    py-gt-fallback:reflected
+    py-gt-fallback:err
+    py-le
+    py-le-fallback
+    py-le-fallback:normal
+    py-le-fallback:reflected
+    py-le-fallback:err
+    py-lt
+    py-lt-fallback
+    py-lt-fallback:normal
+    py-lt-fallback:reflected
+    py-lt-fallback:err
+    py-eq
+    py-eq-fallback
+    py-eq-fallback:normal
+    py-eq-fallback:reflected
+    py-eq-fallback:default
+    py-ne
+    py-ne-fallback
+    py-ne-fallback:normal
+    py-ne-fallback:reflected
+    py-ne-fallback:default
+
+    py-test-is
     py-is
     py-isnot
     py-in
@@ -325,7 +352,6 @@
     py-delitem
     py-delitem-fallback
 
-    py-test-is
     py-test
     py-not
     py-next

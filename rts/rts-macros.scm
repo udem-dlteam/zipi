@@ -1072,6 +1072,24 @@
 (define-macro (py-ixor x y)
   `(py-specialized-binop-dispatch ixor ,x , y))
 
+(define-macro (py-ge x y)
+  `(py-ge-fallback ,x ,y))
+
+(define-macro (py-gt x y)
+  `(py-gt-fallback ,x ,y))
+
+(define-macro (py-le x y)
+  `(py-le-fallback ,x ,y))
+
+(define-macro (py-lt x y)
+  `(py-lt-fallback ,x ,y))
+
+(define-macro (py-eq x y)
+  `(py-eq-fallback ,x ,y))
+
+(define-macro (py-ne x y)
+  `(py-ne-fallback ,x ,y))
+
 (define-macro (py-getattribute obj attr)
   `(py-getattribute-fallback ,obj ,attr))
 

@@ -1288,48 +1288,6 @@
             (py-str-to-scheme y-type-name)
             "'"))))))
 
-;; ==
-(define (py-eq x y)
-  (let* ((__eq__ (getattribute-from-obj-mro x (& "__eq__")))
-         (left-op-result
-            (if (eq? __eq__ py-absent)
-              py-NotImplemented
-              (py-call __eq__ x y))))
-      (if (eq? left-op-result py-NotImplemented)
-        (let ((right-__eq__ (getattribute-from-obj-mro y (& "__eq__"))))
-          (let ((right-op-result
-                  (if (eq? right-__eq__ py-absent)
-                    py-NotImplemented
-                    (py-call right-__eq__ y x))))
-            (if (eq? right-op-result py-NotImplemented)
-              ;; fall back on 'is'
-              (py-is x y)
-              right-op-result)))
-        left-op-result)))
-
-
-;; !=
-(define (py-ne x y) ;; x != y
-  (let ((__ne__ (getattribute-from-obj-mro x (& "__ne__"))))
-    (let ((left-op-result
-            (if (eq? __ne__ py-absent)
-              py-NotImplemented
-              (py-call __ne__ x y))))
-      (if (eq? left-op-result py-NotImplemented)
-        (let* ((right-__ne__ (getattribute-from-obj-mro y (& "__ne__")))
-               (right-op-result
-                  (if (eq? right-__ne__ py-absent)
-                    py-NotImplemented
-                    (py-call right-__ne__ y x))))
-            (if (eq? right-op-result py-NotImplemented)
-              ;; fall back on 'not x == y'
-              (let ((eq-result (py-eq x y)))
-                (if (py-test eq-result)
-                  py-False
-                  py-True))
-              right-op-result))
-        left-op-result))))
-
 ;; generic operator protocol
 (define-macro (define-binary-operator-protocol fun-name method rmethod operator)
  `(define (,fun-name x y)
@@ -1361,14 +1319,6 @@
                 reflected-op-result)))
         (lambda ()
           (throw-unsupported-operand x y ,operator)))))))
-
-(define-binary-operator-protocol py-lt "__lt__" "__gt__" "<")
-
-(define-binary-operator-protocol py-le "__le__" "__ge__" "<=")
-
-(define-binary-operator-protocol py-gt "__gt__" "__lt__" ">")
-
-(define-binary-operator-protocol py-ge "__ge__" "__le__" ">=")
 
 (define (py-is x y) ;; x is y
   (if (py-test-is x y)
