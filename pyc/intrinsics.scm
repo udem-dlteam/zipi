@@ -485,7 +485,7 @@
         (decorators (PycFun-decorators this))
         (is-decorated-behavior (contains-PycRef-with-name? decorators 'define_behavior)))
 
-    (define (make-behavior name body inline)
+    (define (make-behavior name body inline inline-as-is)
       (let* ((vararg (PycFun-vararg this))
             (kwonlyargs (PycFun-kwonlyargs this))
             (kw-defaults (PycFun-kw-defaults this))
@@ -515,7 +515,8 @@
           name: name
           annotation: annotation
           annotation-names: annotation-names
-          inline: inline)))
+          inline: inline
+          inline-as-is: inline-as-is)))
 
     (define (make-default-inline-behavior-body)
       (define args-names (append (map PycDecl-id posonlyargs) (map PycDecl-id args)))
@@ -528,7 +529,11 @@
               loc
               (new-PycPragma loc (make-fallback-behavior-name name))
               (map
-                (lambda (name) (new-PycRefUnresolved loc name))
+                (lambda (name)
+                  (new-PycCall
+                    loc
+                    (new-PycPragma loc 'unquote)
+                    (list (new-PycRefUnresolved loc name))))
                 args-names))))))
 
     (if is-decorated-behavior
@@ -544,13 +549,13 @@
           (new-PycSeq
             loc
             (list
-              (make-behavior (make-fallback-behavior-name name) body #f)
-              (make-behavior (make-inline-behavior-name name) body #t)))
+              (make-behavior (make-fallback-behavior-name name) body #f #f)
+              (make-behavior (make-inline-behavior-name name) body #t #f)))
           (new-PycSeq
             loc
             (list
-              (make-behavior (make-fallback-behavior-name name) body #f)
-              (make-behavior (make-inline-behavior-name name) (make-default-inline-behavior-body) #t))))))))
+              (make-behavior (make-fallback-behavior-name name) body #f #f)
+              (make-behavior (make-inline-behavior-name name) (make-default-inline-behavior-body) #t #t))))))))
 
 (define (lambda-lift-semantics! module)
   (lambda-lift-semantics-walk! module))

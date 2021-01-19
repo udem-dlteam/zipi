@@ -233,7 +233,8 @@
                        (annotation::pair-nil (default '())))
 
                 (final-class PycSemantics::PycFun
-                             (inline::bool (default #f)))
+                             (inline::bool (default #f))
+                             (inline-as-is::bool (default #f)))
 
                 (final-class PycClass::PycExpr
                              (name::bstring read-only)

@@ -116,10 +116,13 @@
       (cons
         scheme-name
         (if (PycSemantics-inline this)
-          (list 'define-macro (cons scheme-name args)
-              (list 'quasiquote
-              (list 'let (map (lambda (name) (list name (list 'unquote name))) args)
-              body)))
+          (if (PycSemantics-inline-as-is this)
+            (list 'define-macro (cons scheme-name args)
+                (list 'quasiquote body))
+            (list 'define-macro (cons scheme-name args)
+                (list 'quasiquote
+                (list 'let (map (lambda (name) (list name (list 'unquote name))) args)
+                body))))
           `(define (,scheme-name ,@args) ,body))))))
 
 (define (scheme* nodes conf)
