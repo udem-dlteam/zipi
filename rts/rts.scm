@@ -2833,16 +2833,6 @@
 ;; TODO: only include these functions when specialized int representation
 ;; not used.
 
-(define (alloc-new-int-from-scheme value)
-  (make-PyObjectInt
-    py-int-hclass-of-instances
-    '#() ;; we know length is 0
-;;    (make-vector
-;;      (vector-length (HClass-names py-int-hclass-of-instances))
-;;      py-absent)
-    py-int-class
-    value))
-
 (define int-cache-low -5)
 (define int-cache-high 256)
 
@@ -2851,7 +2841,7 @@
     (let loop ((int int-cache-low))
       (if (<= int int-cache-high)
         (begin
-          (vector-set! cache (- int int-cache-low) (alloc-new-int-from-scheme int))
+          (vector-set! cache (- int int-cache-low) (alloc-new-PyObjectInt-from-scheme int))
           (loop (+ int 1)))
         cache))))
 
@@ -2860,11 +2850,14 @@
 
 (define (py-int-from-scheme-fallback value)
   (py-if-specialized-sint-representation
-   value
+   (if (fixnum? value) value (py-bint-from-scheme value))
    (if (and (<= value int-cache-high)
             (>= value int-cache-low))
        (vector-ref int-cache (- value int-cache-low))
-       (alloc-new-int-from-scheme value))))
+       (alloc-new-PyObjectInt-from-scheme value))))
+
+(define (py-bint-from-scheme-fallback value)
+  (alloc-new-PyObjectInt-from-scheme value))
 
 (define (py-subtype-of-int-from-scheme value int-subclass)
   ;; int-subclass is known to not be int-class

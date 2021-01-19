@@ -61,6 +61,16 @@
 (define-macro (py-strict-subtype-of-float-to-scheme obj)
   `(py-PyObjectFloat-value ,obj))
 
+(define-macro (alloc-new-PyObjectInt-from-scheme value)
+  `(make-PyObjectInt
+      py-int-hclass-of-instances
+      '#()
+      py-int-class
+      ,value))
+
+(define-macro (py-bint-from-scheme value)
+  `(py-bint-from-scheme-fallback ,value))
+
 (define-macro (py-int-from-scheme arg)
 
   ;; assume all small int operations don't cause an overflow?
@@ -308,10 +318,7 @@
 (define-macro (py-sint-from-scheme arg)
  `(py-if-specialized-sint-representation
    ,arg
-   (py-int-from-scheme-fallback ,arg)))
-
-(define-macro (py-bint-from-scheme arg)
- `(py-int-from-scheme-fallback ,arg))
+   (alloc-new-PyObjectInt-from-scheme ,arg)))
 
 (define-macro (py-float-from-scheme arg)
 

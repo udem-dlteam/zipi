@@ -476,6 +476,8 @@
     py-sint-from-scheme
     py-bint-from-scheme
     py-int-from-scheme-fallback
+    py-bint-from-scheme-fallback
+    alloc-new-PyObjectInt-from-scheme
     py-int-to-scheme
     py-sint-to-scheme
     py-bint-to-scheme
