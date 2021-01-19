@@ -925,7 +925,7 @@
             (string-append "py-" (symbol->string op) "-behavior-call-with-rhs-index-fallback"))))
     `(py-if-enable-inline-behavior-dispatch
         ($py-behavior-call-with-rhs-index ,op ,lhs ,rhs-index ,rhs)
-        (,behavior-call-fallback-name ,lhs ,rhs-index rhs))))
+        (,behavior-call-fallback-name ,lhs ,rhs-index ,rhs))))
 
 (define-macro ($py-behavior-call-with-rhs-index op lhs rhs-index rhs)
   `(let (($lhs ,lhs))

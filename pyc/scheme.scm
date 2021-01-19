@@ -16,7 +16,8 @@
 			  "__stdin"))
 	     ,@(if (config-get conf bootstrap:)
 		   '((import __py_rts
-			__stdlib_zemantics)
+			__stdlib_zemantics
+      __stdlib_behaviors)
 		     (include "rts-macros.scm"
 			"bigloo/call.sch"
 			"bigloo/constants.sch"))
