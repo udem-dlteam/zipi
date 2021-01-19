@@ -1,0 +1,19 @@
+(module __stdlib_behaviors
+
+   (include
+          "rts-macros.scm"
+          "rts.sch"
+      	  "bigloo/include.sch"
+      	  "bigloo/call.sch"
+      	  "bigloo/constants.sch")
+
+   (import
+      __stdlib_zemantics
+      __py_rts)
+
+   (export
+      (zipi-init name)
+      @BGL_EXPORTS@
+   ))
+
+(define (zipi-init name) (init-registered-constants))

@@ -16,7 +16,8 @@
 			  "__stdin"))
 	     ,@(if (config-get conf bootstrap:)
 		   '((import __py_rts
-			__stdlib_zemantics)
+         __stdlib_zemantics
+         __stdlib_behaviors)
 		     (include "rts-macros.scm"
 			"bigloo/call.sch"
 			"bigloo/constants.sch"))
@@ -74,12 +75,12 @@
                   (export init)
                   (import (gambit) (zipi rts))
                   (begin
-                    (start-registering-constants)
+                    (py-begin-module)
 
                     (define py-module ,@prog)
 
                     (define (init name)
-                      (init-registered-constants)
+                      (py-init-module)
                       (let ((caches (py-make-caches ,(PycModule-caches ast)))
                             (module (py-make-module name)))
                         ,(if full-path
@@ -88,7 +89,7 @@
                           `(begin))
                         (py-module module caches)
                         module))
-                    (end-registering-constants)))))
+                    (py-end-module)))))
       (let ((semantics-definitions (map cdr semantics)))
         (print
           port: (current-error-port)
@@ -115,10 +116,13 @@
       (cons
         scheme-name
         (if (PycSemantics-inline this)
-          (list 'define-macro (cons scheme-name args)
-              (list 'quasiquote
-              (list 'let (map (lambda (name) (list name (list 'unquote name))) args)
-              body)))
+          (if (PycSemantics-inline-as-is this)
+            (list 'define-macro (cons scheme-name args)
+                (list 'quasiquote body))
+            (list 'define-macro (cons scheme-name args)
+                (list 'quasiquote
+                (list 'let (map (lambda (name) (list name (list 'unquote name))) args)
+                body))))
           `(define (,scheme-name ,@args) ,body))))))
 
 (define (scheme* nodes conf)
@@ -267,10 +271,9 @@
   (let ((test (PycIf-test this)))
     (if (and (PycBinary? test)
              (eq? (PycBinary-op test) 'is))
-      ;; special case of is which is an eq?
       (epairify this
-        `(if (eq? ,(scheme (PycBinary-lhs test) conf)
-                  ,(scheme (PycBinary-rhs test) conf))
+        `(if (py-test-is ,(scheme (PycBinary-lhs test) conf)
+                         ,(scheme (PycBinary-rhs test) conf))
           ,(scheme (PycIf-then this) conf)
           ,(scheme (PycIf-else this) conf)))
       ;; general case
@@ -1033,9 +1036,19 @@
       	     (py-throw py-builtin-AssertionError))))))
 
 (define-walk-method (scheme this::PycIfExp conf)
-  `(if (py-test ,(scheme (PycIfExp-test this) conf))
-       ,(scheme (PycIfExp-body this) conf)
-       ,(scheme (PycIfExp-orelse this) conf)))
+  (let ((test (PycIfExp-test this)))
+    (if (and (PycBinary? test)
+             (eq? (PycBinary-op test) 'is))
+      (epairify this
+       `(if (py-test-is
+                ,(scheme (PycBinary-lhs test) conf)
+                ,(scheme (PycBinary-rhs test) conf))
+         ,(scheme (PycIfExp-body this) conf)
+         ,(scheme (PycIfExp-orelse this) conf)))
+      (epairify this
+        `(if (py-test ,(scheme (PycIfExp-test this) conf))
+             ,(scheme (PycIfExp-body this) conf)
+             ,(scheme (PycIfExp-orelse this) conf))))))
 
 (define-walk-method (scheme this::PycUnimplemented conf)
   `(py-throw-exception-with-message

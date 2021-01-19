@@ -85,93 +85,57 @@ print(-1. * -2.)
 # div
 
 
-print(10. / 0)
-print(10. / 0.)
-print(10 / 0.)
 print(1 / 2)
 print(1 / 2.)
 print(1. / 2)
 print(1. / 2.)
 
-print(-10. / 0)
-print(-10. / 0.)
-print(-10 / 0.)
 print(-1 / 2.)
 print(-1. / 2)
 print(-1. / 2.)
 
-print(10. / -0)
-print(10. / -0.)
-print(10 / -0.)
 print(1 / -2.)
 print(1. / -2)
 print(1. / -2.)
 
-print(-10. / -0)
-print(-10. / -0.)
-print(-10 / -0.)
 print(-1 / -2.)
 print(-1. / -2)
 print(-1. / -2.)
 
 # mod
 
-print(10. % 0)
-print(10. % 0.)
-print(10 % 0.)
 print(1 % 2)
 print(1 % 2.)
 print(1. % 2)
 print(1. % 2.)
 
-print(-10. % 0)
-print(-10. % 0.)
-print(-10 % 0.)
 print(-1 % 2.)
 print(-1. % 2)
 print(-1. % 2.)
 
-print(10. % -0)
-print(10. % -0.)
-print(10 % -0.)
 print(1 % -2.)
 print(1. % -2)
 print(1. % -2.)
 
-print(-10. % -0)
-print(-10. % -0.)
-print(-10 % -0.)
 print(-1 % -2.)
 print(-1. % -2)
 print(-1. % -2.)
 
 # floordiv
 
-print(10. // 0)
-print(10. // 0.)
-print(10 // 0.)
 print(1 // 2)
 print(1 // 2.)
 print(1. // 2)
 print(1. // 2.)
 
-print(-10. // 0)
-print(-10. // 0.)
-print(-10 // 0.)
 print(-1 // 2.)
 print(-1. // 2)
 print(-1. // 2.)
 
-print(10. // -0)
-print(10. // -0.)
-print(10 // -0.)
 print(1 // -2.)
 print(1. // -2)
 print(1. // -2.)
 
-print(-10. // -0)
-print(-10. // -0.)
-print(-10 // -0.)
 print(-1 // -2.)
 print(-1. // -2)
 print(-1. // -2.)
@@ -353,7 +317,7 @@ print(-1927391823.212831273.__int__())
 print(-21209381023.123123124.__int__())
 print(-0.0.__int__())
 
-# neg / pos 
+# neg / pos
 
 print(-0.0)
 print(-(-(-0.1)))
@@ -394,16 +358,13 @@ print(-1 ** -2.)
 print(-1. ** -2)
 print(-1. ** -2.)
 
-print(0 ** 0)
-print(-1029832104 ** 298347091384017)
-
-# repl
+# repr
 
 print(0.1)
-print(0.1.__repl__())
-print(0.0.__repl__())
+print(0.1.__repr__())
+print(0.0.__repr__())
 
-# round 
+# round
 
 print(round(0.))
 print(round(1.))
@@ -418,7 +379,7 @@ print((182482083.134).__round__())
 print((-01282930.6789).__round__())
 
 
-# trunc 
+# trunc
 
 print((0.).__trunc__())
 print((1.).__trunc__())

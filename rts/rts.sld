@@ -11,6 +11,9 @@
     init-registered-constants
     register-constants-perfect-hashtable
     init-constants
+    py-begin-module
+    py-end-module
+    py-init-module
 
     call-host
 
@@ -49,57 +52,70 @@
     py-make-caches
 
     py-add
-    py-add:normal
-    py-add:reflected
-    py-add:err
+    py-add-fallback
+    py-add-fallback:normal
+    py-add-fallback:reflected
+    py-add-fallback:err
     py-bitand
-    py-bitand:normal
-    py-bitand:reflected
-    py-bitand:err
+    py-bitand-fallback
+    py-bitand-fallback:normal
+    py-bitand-fallback:reflected
+    py-bitand-fallback:err
     py-truediv
-    py-truediv:normal
-    py-truediv:reflected
-    py-truediv:err
+    py-truediv-fallback
+    py-truediv-fallback:normal
+    py-truediv-fallback:reflected
+    py-truediv-fallback:err
     py-floordiv
-    py-floordiv:normal
-    py-floordiv:reflected
-    py-floordiv:err
+    py-floordiv-fallback
+    py-floordiv-fallback:normal
+    py-floordiv-fallback:reflected
+    py-floordiv-fallback:err
     py-lshift
-    py-lshift:normal
-    py-lshift:reflected
-    py-lshift:err
+    py-lshift-fallback
+    py-lshift-fallback:normal
+    py-lshift-fallback:reflected
+    py-lshift-fallback:err
     py-matmul
-    py-matmul:normal
-    py-matmul:reflected
-    py-matmul:err
+    py-matmul-fallback
+    py-matmul-fallback:normal
+    py-matmul-fallback:reflected
+    py-matmul-fallback:err
     py-mod
-    py-mod:normal
-    py-mod:reflected
-    py-mod:err
+    py-mod-fallback
+    py-mod-fallback:normal
+    py-mod-fallback:reflected
+    py-mod-fallback:err
     py-mul
-    py-mul:normal
-    py-mul:reflected
-    py-mul:err
+    py-mul-fallback
+    py-mul-fallback:normal
+    py-mul-fallback:reflected
+    py-mul-fallback:err
     py-bitor
-    py-bitor:normal
-    py-bitor:reflected
-    py-bitor:err
+    py-bitor-fallback
+    py-bitor-fallback:normal
+    py-bitor-fallback:reflected
+    py-bitor-fallback:err
     py-pow
-    py-pow:normal
-    py-pow:reflected
-    py-pow:err
+    py-pow-fallback
+    py-pow-fallback:normal
+    py-pow-fallback:reflected
+    py-pow-fallback:err
     py-rshift
-    py-rshift:normal
-    py-rshift:reflected
-    py-rshift:err
+    py-rshift-fallback
+    py-rshift-fallback:normal
+    py-rshift-fallback:reflected
+    py-rshift-fallback:err
     py-sub
-    py-sub:normal
-    py-sub:reflected
-    py-sub:err
+    py-sub-fallback
+    py-sub-fallback:normal
+    py-sub-fallback:reflected
+    py-sub-fallback:err
     py-xor
-    py-xor:normal
-    py-xor:reflected
-    py-xor:err
+    py-xor-fallback
+    py-xor-fallback:normal
+    py-xor-fallback:reflected
+    py-xor-fallback:err
     py-eq
     py-ne
     py-lt
@@ -112,70 +128,188 @@
     py-notin
 
     py-iadd
-    py-iadd:inplace
-    py-iadd:normal
-    py-iadd:reflected
-    py-iadd:err
+    py-iadd-fallback
+    py-iadd-fallback:inplace
+    py-iadd-fallback:normal
+    py-iadd-fallback:reflected
+    py-iadd-fallback:err
     py-ibitand
-    py-ibitand:inplace
-    py-ibitand:normal
-    py-ibitand:reflected
-    py-ibitand:err
+    py-ibitand-fallback
+    py-ibitand-fallback:inplace
+    py-ibitand-fallback:normal
+    py-ibitand-fallback:reflected
+    py-ibitand-fallback:err
     py-itruediv
-    py-itruediv:inplace
-    py-itruediv:normal
-    py-itruediv:reflected
-    py-itruediv:err
+    py-itruediv-fallback
+    py-itruediv-fallback:inplace
+    py-itruediv-fallback:normal
+    py-itruediv-fallback:reflected
+    py-itruediv-fallback:err
     py-ifloordiv
-    py-ifloordiv:inplace
-    py-ifloordiv:normal
-    py-ifloordiv:reflected
-    py-ifloordiv:err
+    py-ifloordiv-fallback
+    py-ifloordiv-fallback:inplace
+    py-ifloordiv-fallback:normal
+    py-ifloordiv-fallback:reflected
+    py-ifloordiv-fallback:err
     py-ilshift
-    py-ilshift:inplace
-    py-ilshift:normal
-    py-ilshift:reflected
-    py-ilshift:err
+    py-ilshift-fallback
+    py-ilshift-fallback:inplace
+    py-ilshift-fallback:normal
+    py-ilshift-fallback:reflected
+    py-ilshift-fallback:err
     py-imatmul
-    py-imatmul:inplace
-    py-imatmul:normal
-    py-imatmul:reflected
-    py-imatmul:err
+    py-imatmul-fallback
+    py-imatmul-fallback:inplace
+    py-imatmul-fallback:normal
+    py-imatmul-fallback:reflected
+    py-imatmul-fallback:err
     py-imod
-    py-imod:inplace
-    py-imod:normal
-    py-imod:reflected
-    py-imod:err
+    py-imod-fallback
+    py-imod-fallback:inplace
+    py-imod-fallback:normal
+    py-imod-fallback:reflected
+    py-imod-fallback:err
     py-imul
-    py-imul:inplace
-    py-imul:normal
-    py-imul:reflected
-    py-imul:err
+    py-imul-fallback
+    py-imul-fallback:inplace
+    py-imul-fallback:normal
+    py-imul-fallback:reflected
+    py-imul-fallback:err
     py-ibitor
-    py-ibitor:inplace
-    py-ibitor:normal
-    py-ibitor:reflected
-    py-ibitor:err
+    py-ibitor-fallback
+    py-ibitor-fallback:inplace
+    py-ibitor-fallback:normal
+    py-ibitor-fallback:reflected
+    py-ibitor-fallback:err
     py-ipow
-    py-ipow:inplace
-    py-ipow:normal
-    py-ipow:reflected
-    py-ipow:err
+    py-ipow-fallback
+    py-ipow-fallback:inplace
+    py-ipow-fallback:normal
+    py-ipow-fallback:reflected
+    py-ipow-fallback:err
     py-irshift
-    py-irshift:inplace
-    py-irshift:normal
-    py-irshift:reflected
-    py-irshift:err
+    py-irshift-fallback
+    py-irshift-fallback:inplace
+    py-irshift-fallback:normal
+    py-irshift-fallback:reflected
+    py-irshift-fallback:err
     py-isub
-    py-isub:inplace
-    py-isub:normal
-    py-isub:reflected
-    py-isub:err
+    py-isub-fallback
+    py-isub-fallback:inplace
+    py-isub-fallback:normal
+    py-isub-fallback:reflected
+    py-isub-fallback:err
     py-ixor
-    py-ixor:inplace
-    py-ixor:normal
-    py-ixor:reflected
-    py-ixor:err
+    py-ixor-fallback
+    py-ixor-fallback:inplace
+    py-ixor-fallback:normal
+    py-ixor-fallback:reflected
+    py-ixor-fallback:err
+
+    py-add-sintX-sintY-inline
+    py-bitand-sintX-sintY-inline
+    py-bitor-sintX-sintY-inline
+    py-floordiv-sintX-sintY-inline
+    py-lshift-sintX-sintY-inline
+    py-matmul-sintX-sintY-inline
+    py-mod-sintX-sintY-inline
+    py-mul-sintX-sintY-inline
+    py-pow-sintX-sintY-inline
+    py-rshift-sintX-sintY-inline
+    py-sub-sintX-sintY-inline
+    py-truediv-sintX-sintY-inline
+    py-xor-sintX-sintY-inline
+    py-iadd-sintX-sintY-inline
+    py-ibitand-sintX-sintY-inline
+    py-ibitor-sintX-sintY-inline
+    py-ifloordiv-sintX-sintY-inline
+    py-ilshift-sintX-sintY-inline
+    py-imatmul-sintX-sintY-inline
+    py-imod-sintX-sintY-inline
+    py-imul-sintX-sintY-inline
+    py-ipow-sintX-sintY-inline
+    py-irshift-sintX-sintY-inline
+    py-isub-sintX-sintY-inline
+    py-itruediv-sintX-sintY-inline
+    py-ixor-sintX-sintY-inline
+    py-add-floatX-floatY-inline
+    py-bitand-floatX-floatY-inline
+    py-bitor-floatX-floatY-inline
+    py-floordiv-floatX-floatY-inline
+    py-lshift-floatX-floatY-inline
+    py-matmul-floatX-floatY-inline
+    py-mod-floatX-floatY-inline
+    py-mul-floatX-floatY-inline
+    py-pow-floatX-floatY-inline
+    py-rshift-floatX-floatY-inline
+    py-sub-floatX-floatY-inline
+    py-truediv-floatX-floatY-inline
+    py-xor-floatX-floatY-inline
+    py-iadd-floatX-floatY-inline
+    py-ibitand-floatX-floatY-inline
+    py-ibitor-floatX-floatY-inline
+    py-ifloordiv-floatX-floatY-inline
+    py-ilshift-floatX-floatY-inline
+    py-imatmul-floatX-floatY-inline
+    py-imod-floatX-floatY-inline
+    py-imul-floatX-floatY-inline
+    py-ipow-floatX-floatY-inline
+    py-irshift-floatX-floatY-inline
+    py-isub-floatX-floatY-inline
+    py-itruediv-floatX-floatY-inline
+    py-ixor-floatX-floatY-inline
+    py-add-sintX-floatY-inline
+    py-bitand-sintX-floatY-inline
+    py-bitor-sintX-floatY-inline
+    py-floordiv-sintX-floatY-inline
+    py-lshift-sintX-floatY-inline
+    py-matmul-sintX-floatY-inline
+    py-mod-sintX-floatY-inline
+    py-mul-sintX-floatY-inline
+    py-pow-sintX-floatY-inline
+    py-rshift-sintX-floatY-inline
+    py-sub-sintX-floatY-inline
+    py-truediv-sintX-floatY-inline
+    py-xor-sintX-floatY-inline
+    py-iadd-sintX-floatY-inline
+    py-ibitand-sintX-floatY-inline
+    py-ibitor-sintX-floatY-inline
+    py-ifloordiv-sintX-floatY-inline
+    py-ilshift-sintX-floatY-inline
+    py-imatmul-sintX-floatY-inline
+    py-imod-sintX-floatY-inline
+    py-imul-sintX-floatY-inline
+    py-ipow-sintX-floatY-inline
+    py-irshift-sintX-floatY-inline
+    py-isub-sintX-floatY-inline
+    py-itruediv-sintX-floatY-inline
+    py-ixor-sintX-floatY-inline
+    py-add-floatX-sintY-inline
+    py-bitand-floatX-sintY-inline
+    py-bitor-floatX-sintY-inline
+    py-floordiv-floatX-sintY-inline
+    py-lshift-floatX-sintY-inline
+    py-matmul-floatX-sintY-inline
+    py-mod-floatX-sintY-inline
+    py-mul-floatX-sintY-inline
+    py-pow-floatX-sintY-inline
+    py-rshift-floatX-sintY-inline
+    py-sub-floatX-sintY-inline
+    py-truediv-floatX-sintY-inline
+    py-xor-floatX-sintY-inline
+    py-iadd-floatX-sintY-inline
+    py-ibitand-floatX-sintY-inline
+    py-ibitor-floatX-sintY-inline
+    py-ifloordiv-floatX-sintY-inline
+    py-ilshift-floatX-sintY-inline
+    py-imatmul-floatX-sintY-inline
+    py-imod-floatX-sintY-inline
+    py-imul-floatX-sintY-inline
+    py-ipow-floatX-sintY-inline
+    py-irshift-floatX-sintY-inline
+    py-isub-floatX-sintY-inline
+    py-itruediv-floatX-sintY-inline
+    py-ixor-floatX-sintY-inline
 
     py-invert
     py-neg
@@ -185,29 +319,189 @@
 
     py-len
     py-getitem
+    py-getitem-fallback
     py-setitem
+    py-setitem-fallback
     py-delitem
+    py-delitem-fallback
+
+    py-test-is
     py-test
     py-not
     py-next
     py-import
 
+    py-obj-cls
+    py-obj-cls-general
+    py-obj-class-index
+    $py-obj-class-index
+    py-obj-class-index-general
     py-getattribute
+    py-getattribute-fallback
     object-put!
     py-own-attr-set!
     getattribute-from-obj-mro
 
+    py-behavior-ref
+    get-behavior-index
+    $get-behavior-index
+    behavior-specialized-operation
+    py-behavior-call
+    py-behavior-call-with-lhs-index
+    py-behavior-call-with-rhs-index
+    $py-behavior-call
+    $py-behavior-call-with-lhs-index
+    $py-behavior-call-with-rhs-index
+    py-specialized-sint-float-dispatch-let
+
+    py-add-behavior-call-fallback
+    py-bitand-behavior-call-fallback
+    py-bitor-behavior-call-fallback
+    py-floordiv-behavior-call-fallback
+    py-lshift-behavior-call-fallback
+    py-matmul-behavior-call-fallback
+    py-mod-behavior-call-fallback
+    py-mul-behavior-call-fallback
+    py-pow-behavior-call-fallback
+    py-rshift-behavior-call-fallback
+    py-sub-behavior-call-fallback
+    py-truediv-behavior-call-fallback
+    py-xor-behavior-call-fallback
+    py-iadd-behavior-call-fallback
+    py-ibitand-behavior-call-fallback
+    py-ibitor-behavior-call-fallback
+    py-ifloordiv-behavior-call-fallback
+    py-ilshift-behavior-call-fallback
+    py-imatmul-behavior-call-fallback
+    py-imod-behavior-call-fallback
+    py-imul-behavior-call-fallback
+    py-ipow-behavior-call-fallback
+    py-irshift-behavior-call-fallback
+    py-isub-behavior-call-fallback
+    py-itruediv-behavior-call-fallback
+    py-ixor-behavior-call-fallback
+
+    py-add-behavior-call-with-lhs-index-fallback
+    py-bitand-behavior-call-with-lhs-index-fallback
+    py-bitor-behavior-call-with-lhs-index-fallback
+    py-floordiv-behavior-call-with-lhs-index-fallback
+    py-lshift-behavior-call-with-lhs-index-fallback
+    py-matmul-behavior-call-with-lhs-index-fallback
+    py-mod-behavior-call-with-lhs-index-fallback
+    py-mul-behavior-call-with-lhs-index-fallback
+    py-pow-behavior-call-with-lhs-index-fallback
+    py-rshift-behavior-call-with-lhs-index-fallback
+    py-sub-behavior-call-with-lhs-index-fallback
+    py-truediv-behavior-call-with-lhs-index-fallback
+    py-xor-behavior-call-with-lhs-index-fallback
+    py-iadd-behavior-call-with-lhs-index-fallback
+    py-ibitand-behavior-call-with-lhs-index-fallback
+    py-ibitor-behavior-call-with-lhs-index-fallback
+    py-ifloordiv-behavior-call-with-lhs-index-fallback
+    py-ilshift-behavior-call-with-lhs-index-fallback
+    py-imatmul-behavior-call-with-lhs-index-fallback
+    py-imod-behavior-call-with-lhs-index-fallback
+    py-imul-behavior-call-with-lhs-index-fallback
+    py-ipow-behavior-call-with-lhs-index-fallback
+    py-irshift-behavior-call-with-lhs-index-fallback
+    py-isub-behavior-call-with-lhs-index-fallback
+    py-itruediv-behavior-call-with-lhs-index-fallback
+    py-ixor-behavior-call-with-lhs-index-fallback
+
+    py-add-behavior-call-with-rhs-index-fallback
+    py-bitand-behavior-call-with-rhs-index-fallback
+    py-bitor-behavior-call-with-rhs-index-fallback
+    py-floordiv-behavior-call-with-rhs-index-fallback
+    py-lshift-behavior-call-with-rhs-index-fallback
+    py-matmul-behavior-call-with-rhs-index-fallback
+    py-mod-behavior-call-with-rhs-index-fallback
+    py-mul-behavior-call-with-rhs-index-fallback
+    py-pow-behavior-call-with-rhs-index-fallback
+    py-rshift-behavior-call-with-rhs-index-fallback
+    py-sub-behavior-call-with-rhs-index-fallback
+    py-truediv-behavior-call-with-rhs-index-fallback
+    py-xor-behavior-call-with-rhs-index-fallback
+    py-iadd-behavior-call-with-rhs-index-fallback
+    py-ibitand-behavior-call-with-rhs-index-fallback
+    py-ibitor-behavior-call-with-rhs-index-fallback
+    py-ifloordiv-behavior-call-with-rhs-index-fallback
+    py-ilshift-behavior-call-with-rhs-index-fallback
+    py-imatmul-behavior-call-with-rhs-index-fallback
+    py-imod-behavior-call-with-rhs-index-fallback
+    py-imul-behavior-call-with-rhs-index-fallback
+    py-ipow-behavior-call-with-rhs-index-fallback
+    py-irshift-behavior-call-with-rhs-index-fallback
+    py-isub-behavior-call-with-rhs-index-fallback
+    py-itruediv-behavior-call-with-rhs-index-fallback
+    py-ixor-behavior-call-with-rhs-index-fallback
+
+    py-add-behaviors-table
+    py-bitand-behaviors-table
+    py-bitor-behaviors-table
+    py-floordiv-behaviors-table
+    py-lshift-behaviors-table
+    py-matmul-behaviors-table
+    py-mod-behaviors-table
+    py-mul-behaviors-table
+    py-pow-behaviors-table
+    py-rshift-behaviors-table
+    py-sub-behaviors-table
+    py-truediv-behaviors-table
+    py-xor-behaviors-table
+    py-iadd-behaviors-table
+    py-ibitand-behaviors-table
+    py-ibitor-behaviors-table
+    py-ifloordiv-behaviors-table
+    py-ilshift-behaviors-table
+    py-imatmul-behaviors-table
+    py-imod-behaviors-table
+    py-imul-behaviors-table
+    py-ipow-behaviors-table
+    py-irshift-behaviors-table
+    py-isub-behaviors-table
+    py-itruediv-behaviors-table
+    py-ixor-behaviors-table
+
     procedure->py-function
 
+    py-if-specialized-sint-representation
+    py-if-specialized-float-representation
+    py-if-enable-behaviors-optimization
+    py-if-enable-inlined-mixed-types-behaviors
+    py-if-enable-inline-behavior-dispatch
+    py-specialized-binop-dispatch
+    $py-specialized-binop-dispatch
+
     py-int-from-scheme
+    py-sint-from-scheme
+    py-bint-from-scheme
     py-int-from-scheme-fallback
+    py-bint-from-scheme-fallback
+    alloc-new-PyObjectInt-from-scheme
     py-int-to-scheme
+    py-sint-to-scheme
+    py-bint-to-scheme
     py-subtype-of-int-to-scheme
+    py-strict-subtype-of-int-to-scheme
+    PyObjectInt-value
+    py-has-type-int?
+    py-subtype-of-int?
+    py-strict-subtype-of-int?
+
+    py-bool-to-scheme-float
+    py-sint-to-scheme-float
+    py-bint-to-scheme-float
+    py-bool-to-scheme
 
     py-float-from-scheme
     py-float-from-scheme-fallback
     py-float-to-scheme
     py-subtype-of-float-to-scheme
+    py-strict-subtype-of-float-to-scheme
+    PyObjectFloat-value
+    py-has-type-float?
+    py-subtype-of-float?
+    py-strict-subtype-of-float?
 
     py-str-from-scheme
     py-str-from-scheme-fallback
@@ -256,7 +550,12 @@
 
     py-make-class
     py-make-builtin-class
-    make-builtin-class
+    $py-make-builtin-class-with-class-index-info
+    py-make-builtin-class-with-class-index
+
+    with-class-indices-info
+    get-behavior-type-index
+    $get-behavior-type-index
 
     py-obj->iterator
     py-iter
@@ -268,7 +567,9 @@
     py-generator-send
 
     py-enter
+    py-enter-fallback
     py-exit
+    py-exit-fallback
 
     py-True
     py-False
@@ -428,13 +729,12 @@
 
     py-expression
     PyObject-class
+    py-PyObject-class
+    py-PyObjectType-class-index
     py-int-class
+    py-float-class
     int-cache
     str-representatives
-
-    ;; from rts-macros.scm
-    py-if-specialized-int-representation
-    py-if-specialized-float-representation
     )
 
   (import gambit)
@@ -442,4 +742,5 @@
   (include "rts#.scm")
   (include "rts.gambit")
   (include "../stdlib/zemantics.scm")
+  (include "../stdlib/behaviors.scm")
   (include "rts.scm"))

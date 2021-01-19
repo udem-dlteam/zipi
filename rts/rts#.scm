@@ -162,6 +162,7 @@
   copier: #f
   macros: ;; this will inline the operations on this type
   ;; attrs
+  class-index
   (bases unprintable:)
   (mro unprintable:)
   (hclass-of-instances unprintable:)
@@ -757,5 +758,16 @@
 
           (else
            (error "unexpected expression" e)))))
+
+(define-macro (py-begin-module)
+  `(begin
+    (declare (standard-bindings) (extended-bindings) (not safe) (block))
+    (start-registering-constants)))
+
+(define-macro (py-end-module)
+  `(end-registering-constants))
+
+(define-macro (py-init-module)
+  `(init-registered-constants))
 
 (import (zipi rts hash))

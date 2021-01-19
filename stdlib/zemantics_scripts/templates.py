@@ -3,7 +3,7 @@
 # ======================================================================================================================
 
 main_template = \
-    """from __compiler_intrinsics__ import define_semantics, inline, use_static_builtins, use_simple_scoping, class_getattr, absent
+    """from __compiler_intrinsics__ import define_semantics, use_static_builtins, use_simple_scoping, class_getattr, absent
 
 {arithmetic}
 
@@ -81,7 +81,6 @@ def exit(obj, exc):
 arithmetic_template = \
     """# Auto-generated
 @define_semantics
-@inline
 def {op}(x, y):
     def normal():
         magic_method = class_getattr(x, "__{magic_method}__")
@@ -115,7 +114,6 @@ def {op}(x, y):
 inplace_arithmetic_template = \
     """# Auto-generated
 @define_semantics
-@inline
 def i{op}(x, y):
     def inplace():
         magic_method = class_getattr(x, "__i{magic_method}__")
@@ -127,7 +125,7 @@ def i{op}(x, y):
                 return normal()
             else:
                 return result
-                
+
     def normal():
         magic_method = class_getattr(x, "__{magic_method}__")
         if magic_method is absent:
@@ -200,13 +198,61 @@ int_inplace_binary_method_template = \
 """
 
 
+int_shift_method_template = \
+    """
+    def __{method_name}__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                if other >= 0:
+                    return int_box(int_unbox(self) {op} int_unbox(other))
+                else:
+                    raise ValueError("negative shift count")
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+"""
+
+
+int_reflected_shift_method_template = \
+    """
+    def __r{method_name}__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                if self >= 0:
+                    return int_box(int_unbox(self) {op} int_unbox(other))
+                else:
+                    raise ValueError("negative shift count")
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__r{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+"""
+
+
+int_inplace_shift_method_template = \
+    """
+    def __i{method_name}__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                if other >= 0:
+                    return int_box(int_unbox(self) {op} int_unbox(other))
+                else:
+                    raise ValueError("negative shift count")
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__i{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+"""
+
+
 int_division_method_template = \
     """
     def __{method_name}__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
                 if other != 0:
-                    return int_box(int_unbox(self) {op} int_unbox(other))
+                    return {box_method}(int_unbox(self) {op} int_unbox(other))
                 else:
                     raise ZeroDivisionError("{error_message}")
             else:
@@ -221,7 +267,7 @@ int_reflected_division_method_template = \
         if isinstance(self, int):
             if isinstance(other, int):
                 if self != 0:
-                    return int_box(int_unbox(other) {op} int_unbox(self))
+                    return {box_method}(int_unbox(other) {op} int_unbox(self))
                 else:
                     raise ZeroDivisionError("{error_message}")
             else:
@@ -237,7 +283,7 @@ int_inplace_division_method_template = \
         if isinstance(self, int):
             if isinstance(other, int):
                 if other != 0:
-                    return int_box(int_unbox(self) {op} int_unbox(other))
+                    return {box_method}(int_unbox(self) {op} int_unbox(other))
                 else:
                     raise ZeroDivisionError("{error_message}")
             else:
@@ -248,7 +294,7 @@ int_inplace_division_method_template = \
 
 
 class_int_template = \
-    """@builtin_class('{structure_name}')
+    """@builtin_class
 class int:
     @staticmethod
     def __new__(cls, val=absent):
@@ -261,7 +307,7 @@ class int:
                 raise NotImplementedError
         else:
             raise NotImplementedError
-            
+
 {methods}"""
 
 
@@ -269,19 +315,23 @@ int_method_info = {
     'add': {"method_name": "add", "op": "+"},
     'bitand': {"method_name": "and", "op": "&"},
     'bitor': {"method_name": "or", "op": "|"},
-    'lshift': {"method_name": "lshift", "op": "<<"},
     'mul': {"method_name": "mul", "op": "*"},
     'pow': {"method_name": "pow", "op": "**"},
-    'rshift': {"method_name": "rshift", "op": ">>"},
     'sub': {"method_name": "sub", "op": "-"},
     'xor': {"method_name": "xor", "op": "^"}
 }
 
 
+int_shift_method_info = {
+    'lshift': {"method_name": "lshift", "op": "<<"},
+    'rshift': {"method_name": "rshift", "op": ">>"},
+}
+
+
 int_division_method_info = {
-    'floordiv': {"method_name": "floordiv", "op": "//", "error_message": "integer division by zero"},
-    'truediv': {"method_name": "truediv", "op": "/", "error_message": "division by zero"},
-    'mod': {"method_name": "mod", "op": "%", "error_message": "modulo by zero"}
+    'floordiv': {"method_name": "floordiv", "box_method": "int_box", "op": "//", "error_message": "integer division by zero"},
+    'truediv': {"method_name": "truediv", "box_method": "float_box", "op": "/", "error_message": "division by zero"},
+    'mod': {"method_name": "mod", "box_method": "int_box", "op": "%", "error_message": "modulo by zero"}
 }
 
 # ======================================================================================================================
@@ -294,13 +344,13 @@ bool_binary_method_template = \
     def __{method_name}__(self, other):
         if type(self) is bool:
             if type(other) is bool:
-                return self {op} other
+                return {bool_expr}
             elif isinstance(other, int):
                 return int_box(int_unbox(self) {int_op} int_unbox(other))
             else:
                 return NotImplemented
         else:
-            raise TypeError("descriptor '__{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+            raise TypeError("descriptor '__{method_name}__' requires a 'bool' object but received a '" + type(self).__name__ + "'")
 """
 
 bool_reflected_binary_method_template = \
@@ -308,18 +358,18 @@ bool_reflected_binary_method_template = \
     def __r{method_name}__(self, other):
         if type(self) is bool:
             if type(other) is bool:
-                return other {op} self
+                return {bool_expr}
             elif isinstance(other, int):
                 return int_box(int_unbox(other) {int_op} int_unbox(self))
             else:
                 return NotImplemented
         else:
-            raise TypeError("descriptor '__r{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+            raise TypeError("descriptor '__r{method_name}__' requires a 'bool' object but received a '" + type(self).__name__ + "'")
 """
 
 
 class_bool_template = \
-    """@builtin_class('{structure_name}')
+    """@builtin_class
 class bool(int):
     @staticmethod
     def __new__(cls, val=absent):
@@ -333,9 +383,16 @@ class bool(int):
 {methods}"""
 
 bool_method_info = {
-    'bitand': {"method_name": "and", "op": "and", "int_op": "&"},
-    'bitor': {"method_name": "or", "op": "or", "int_op": "|"},
-    'xor': {"method_name": "xor", "op": "is not", "int_op": "^"}
+    'bitand': {"method_name": "and",
+               "bool_expr": "other if self is True else False",
+               "int_op": "&"},
+    'bitor': {"method_name": "or",
+              "base": "True",
+              "bool_expr": "True if self is True else other",
+              "int_op": "|"},
+    'xor': {"method_name": "xor", "base": "True",
+            "bool_expr": "self is not other",
+            "int_op": "^"}
 }
 
 
@@ -447,7 +504,7 @@ float_inplace_division_method_template = \
 """
 
 class_float_template = \
-    """@builtin_class('{structure_name}')
+    """@builtin_class
 class float:
     @staticmethod
     def __new__(cls, val=absent):
@@ -466,14 +523,9 @@ class float:
 
 float_method_info = {
     'add': {"method_name": "add", "op": "+"},
-    'bitand': {"method_name": "and", "op": "&"},
-    'bitor': {"method_name": "or", "op": "|"},
-    'lshift': {"method_name": "lshift", "op": "<<"},
     'mul': {"method_name": "mul", "op": "*"},
     'pow': {"method_name": "pow", "op": "**"},
-    'rshift': {"method_name": "rshift", "op": ">>"},
     'sub': {"method_name": "sub", "op": "-"},
-    'xor': {"method_name": "xor", "op": "^"}
 }
 
 

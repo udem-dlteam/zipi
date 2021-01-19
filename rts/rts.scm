@@ -387,20 +387,21 @@
 
 (define nonbuiltin-magic-attrs (make-vector magic-attrs-length #f))
 
-(define (py-type-alloc metaclass bases mro hclass-of-instance)
+(define (py-type-alloc metaclass class-index bases mro hclass-of-instance)
   (make-PyObjectType
     py-type-hclass-of-instances
     (make-vector
       (vector-length (HClass-names py-type-hclass-of-instances))
       py-absent)
     metaclass
+    class-index
     bases
     mro
     hclass-of-instance
     #f
     nonbuiltin-magic-attrs))
 
-(define (py-builtin-type-alloc metaclass bases mro hclass-of-instance)
+(define (py-builtin-type-alloc metaclass class-index bases mro hclass-of-instance)
   (make-still-copy
     (make-PyObjectType
       py-type-hclass-of-instances
@@ -408,6 +409,7 @@
         (vector-length (HClass-names py-type-hclass-of-instances))
         py-absent)
       metaclass
+      class-index
       bases
       mro
       hclass-of-instance
@@ -1369,7 +1371,7 @@
 (define-binary-operator-protocol py-ge "__ge__" "__le__" ">=")
 
 (define (py-is x y) ;; x is y
-  (if (eq? x y)
+  (if (py-test-is x y)
     py-True
     py-False))
 
@@ -2831,16 +2833,6 @@
 ;; TODO: only include these functions when specialized int representation
 ;; not used.
 
-(define (alloc-new-int-from-scheme value)
-  (make-PyObjectInt
-    py-int-hclass-of-instances
-    '#() ;; we know length is 0
-;;    (make-vector
-;;      (vector-length (HClass-names py-int-hclass-of-instances))
-;;      py-absent)
-    py-int-class
-    value))
-
 (define int-cache-low -5)
 (define int-cache-high 256)
 
@@ -2849,7 +2841,7 @@
     (let loop ((int int-cache-low))
       (if (<= int int-cache-high)
         (begin
-          (vector-set! cache (- int int-cache-low) (alloc-new-int-from-scheme int))
+          (vector-set! cache (- int int-cache-low) (alloc-new-PyObjectInt-from-scheme int))
           (loop (+ int 1)))
         cache))))
 
@@ -2857,12 +2849,15 @@
 (define int-cache #f)
 
 (define (py-int-from-scheme-fallback value)
-  (py-if-specialized-int-representation
-   value
+  (py-if-specialized-sint-representation
+   (if (fixnum? value) value (py-bint-from-scheme value))
    (if (and (<= value int-cache-high)
             (>= value int-cache-low))
        (vector-ref int-cache (- value int-cache-low))
-       (alloc-new-int-from-scheme value))))
+       (alloc-new-PyObjectInt-from-scheme value))))
+
+(define (py-bint-from-scheme-fallback value)
+  (alloc-new-PyObjectInt-from-scheme value))
 
 (define (py-subtype-of-int-from-scheme value int-subclass)
   ;; int-subclass is known to not be int-class
@@ -2925,24 +2920,28 @@
   (let* ((type-class
           (py-builtin-type-alloc
             #f ;; cls
+            (get-behavior-type-index type)
             #f ;; bases
             #f ;; mro
             py-type-hclass-of-instances))
         (object-class
           (py-builtin-type-alloc
             #f ;; cls
+            (get-behavior-type-index object)
             #f ;; bases
             #f ;; mro
             py-object-hclass-of-instances))
         (str-class
           (py-builtin-type-alloc
             #f ;; cls
+            (get-behavior-type-index str)
             #f ;; bases
             #f ;; mro
             py-str-hclass-of-instances))
         (tuple-class
           (py-builtin-type-alloc
             #f ;; cls
+            (get-behavior-type-index tuple)
             #f ;; bases
             #f ;; mro
             py-tuple-hclass-of-instances)))
@@ -3023,6 +3022,9 @@
 
 (bootstrap-type-hierarchy-phase1)
 
+;; adds top-level behavior tables
+(init-behavior-dispatch-vector)
+
 (define (py-compute-mro cls)
 
   (define seen '())
@@ -3042,13 +3044,13 @@
 
   (list->vector (add-class cls '())))
 
-(define (py-make-class-from-type-allocator name module bases type-allocator attrs)
+(define (py-make-class-from-type-allocator class-index name module bases type-allocator attrs)
   (define (make-cls attr-names attr-values)
     (let* ((bases-vect
             (if (null? bases)
               (vector py-object-class)
               (list->vector bases)))
-           (cls (type-allocator py-type-class bases-vect #f #f)))
+           (cls (type-allocator py-type-class class-index bases-vect #f #f)))
       (PyObjectType-mro-set! cls (py-compute-mro cls))
       ;; TODO implement better introspection of hclass of instance
       ;; This current implementation will fail on multiple inheritance
@@ -3087,12 +3089,12 @@
             (reverse rev-attr-values)))))
 
 (define (py-make-class name module bases . attrs)
-  (py-make-class-from-type-allocator name module bases py-type-alloc attrs))
+  (py-make-class-from-type-allocator (get-behavior-type-index default) name module bases py-type-alloc attrs))
 
-(define (py-make-builtin-class name module bases hclass-of-instances . attrs)
+(define (py-make-builtin-class-with-class-index class-index name module bases hclass-of-instances . attrs)
   (let ((cls
           (py-make-class-from-type-allocator
-            name module bases py-builtin-type-alloc attrs)))
+            class-index name module bases py-builtin-type-alloc attrs)))
     (PyObjectType-hclass-of-instances-set! cls hclass-of-instances)
     cls))
 ;; ================
@@ -5664,8 +5666,7 @@
      (& "__len__") dict.__len__
      (& "__iter__") dict.__iter__
      (& "keys") dict.keys
-     (& "get") dict.get
-     ))
+     (& "get") dict.get))
 
   (set! py-set-class
     (py-make-builtin-class
@@ -6051,9 +6052,10 @@
     mod))
 
 (define (py-make-module name)
-  (let ((mod (py-make-global)))
+  (let ((mod (py-make-global))
+        (modules (sys.modules-get)))
    (py-own-attr-set! mod (& "__name__") name)
-   (dict-setitem (sys.modules-get) name mod)
+   (dict-setitem modules name mod)
    mod))
 
 ;; ===========================================
@@ -6066,6 +6068,10 @@
 (cond-expand
    (gambit)
    (bigloo ((@ zipi-init __stdlib_zemantics) "zemantics")))
+
+(cond-expand
+  (gambit)
+  (bigloo ((@ zipi-init __stdlib_behaviors) "behaviors")))
 
 (define (py-make-sys-mod)
   (let ((mod (py-make-global)))

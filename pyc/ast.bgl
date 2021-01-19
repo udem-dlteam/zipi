@@ -228,10 +228,13 @@
                        (can-locals::bool (default #t))
                        (super-in-class::bool (default #f))
                        (use-simple-scoping::bool (default #f))
-                       (name (default #f)))
+                       (name (default #f))
+                       (annotation-names::pair-nil (default '()))
+                       (annotation::pair-nil (default '())))
 
                 (final-class PycSemantics::PycFun
-                             (inline::bool (default #f)))
+                             (inline::bool (default #f))
+                             (inline-as-is::bool (default #f)))
 
                 (final-class PycClass::PycExpr
                              (name::bstring read-only)
@@ -619,7 +622,7 @@
 (gen-walks PycHandler type body)
 (gen-walks PycStmtExpr expr)
 (gen-walks PycStarredExpr expr)
-(gen-walks PycFun (args) (posonlyargs) vararg (kwonlyargs) (kw-defaults) kwarg (defaults) body (decorators))
+(gen-walks PycFun (args) (posonlyargs) vararg (kwonlyargs) (kw-defaults) kwarg (defaults) body (decorators) (annotation))
 (gen-walks PycSemantics (args) (posonlyargs) vararg (kwonlyargs) (kw-defaults) kwarg (defaults) body (decorators))
 (gen-walks PycClass body (bases) (decorators))
 (gen-walks PycBinary lhs rhs)

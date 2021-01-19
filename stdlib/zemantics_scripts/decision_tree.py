@@ -5,6 +5,8 @@ from functools import wraps
 from pprint import pprint
 from types import ModuleType
 
+import templates
+
 import astor.code_gen
 
 # ======================================================================================================================
@@ -52,7 +54,7 @@ class Procedure:
         method_name = self.method.__qualname__
 
         # TODO: slightly hacky, but does the job for now
-        return method_name.split('.')[1].startswith("__r") and method_name != "__rshift__"
+        return method_name.split('.')[1].startswith("__r") and "__rshift__" not in method_name
 
 
 class Error:
@@ -83,9 +85,6 @@ def make_compiler_intrinsics_module():
     # Module attributes
     absent = object()
 
-    def inline(f):
-        return register_semantics(f.__name__, f)
-
     def use_static_builtins(f):
         return f
 
@@ -93,7 +92,10 @@ def make_compiler_intrinsics_module():
         return f
 
     def define_semantics(f):
-        return f
+        if f.__name__ in templates.symbols:
+            return register_semantics(f.__name__, f)
+        else:
+            return f
 
     def get_own_attr(obj, name):
         return obj.__dict__.get(name, None)
@@ -134,7 +136,7 @@ def make_compiler_intrinsics_module():
         return absent
 
     # Create module
-    _all = ["define_semantics", "inline", "use_static_builtins", "use_simple_scoping", "class_getattr", "absent"]
+    _all = ["define_semantics", "use_static_builtins", "use_simple_scoping", "class_getattr", "absent"]
     _doc = "A mock version of __compiler_intrinsics__ which registers cPython method calls"
 
     module = ModuleType("__compiler_intrinsics__")
@@ -338,8 +340,8 @@ def partial_eval_bool_op(expr, ctx):
 
     evaluated_values = []
 
-    # TODO: this is not exactly correct. By example 'foo or True' will return foo even if foo is falsy.
-    # TODO: this is ok for the current usag of partial evaluation, but could be improved once we have some time
+    # TODO: this is not exactly correct. For example, 'foo or True' will return foo even if foo is falsy.
+    # TODO: this is ok for the current usage of partial evaluation, but could be improved once we have some time
     if isinstance(op, ast.And):
         for val in values:
             if isinstance(val, ast.Constant):
@@ -518,14 +520,15 @@ def main_behaviors(semantics_file, builtins_file):
 
     behaviors = []
 
+    define_behavior = "define_behavior"
+    other_intrinsics = "int_box, int_unbox, bool_unbox, float_box, float_unbox, sint_unbox, bint_unbox"
+
     for semantics, subtree in decision_tree.items():
-        for left_type in types:
-            for right_type in types:
+        for left_type in types_without_int:
+            for right_type in types_without_int:
 
                 behavior_name = get_binary_behavior_name(semantics, left_type, right_type)
                 behavior_func_name = behavior_name.replace('-', '_')
-                define_behavior = "define_behavior"
-                other_intrinsics = "int_box, int_unbox, bool_unbox, float_box, float_unbox, sint_unbox, bint_unbox"
                 behavior_decorator_list = [ast.Name(f"{define_behavior}")]
 
                 try:
@@ -540,14 +543,23 @@ def main_behaviors(semantics_file, builtins_file):
                     if method_ast is None:
                         logging.warning(f"unimplemented behavior in magic method: {behavior_name}")
                     else:
-                        if behavior.is_reflected_magic_method:
+                        is_reflected_magic_method = behavior.is_reflected_magic_method
+
+                        if is_reflected_magic_method:
+                            # For evaluation
                             args = [VarContext(type=right_type), VarContext(type=left_type)]
+                            # For code generation
+                            # NOTE: we reverse arguments names because behaviors arguments respect
+                            # operands order, not magic_method arguments order
+                            args_names = [a.arg for a in method_ast.args.posonlyargs + method_ast.args.args][::-1]
                         else:
+                            # For evaluation
                             args = [VarContext(type=left_type), VarContext(type=right_type)]
+                            # For code generation
+                            args_names = [a.arg for a in method_ast.args.posonlyargs + method_ast.args.args]
 
                         result_body = partial_eval(method_ast, *args)
 
-                        args_names = [a.arg for a in method_ast.args.posonlyargs + method_ast.args.args]
                         annotated_arguments = make_ast_simple_arguments(*args_names,
                                                                         annotations=[ast.Name(left_type),
                                                                                      ast.Name(right_type)])
@@ -591,6 +603,10 @@ instances = [1, 1.0, True]
 types = [get_type_name(i) for i in instances]
 int_specialized_types = ['sint', 'bint']
 types += int_specialized_types
+
+# Replace 'int' by 'sint' and 'bint'
+types_without_int = [t for t in types if t != 'int']
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Generate zipi decision tree and behavior functions")

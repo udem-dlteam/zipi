@@ -1,0 +1,13 @@
+#!/bin/sh
+
+PROCEDURES=$(cat $1 | grep -oP '(?<=define )\(.*\)')
+MACROS=$(cat $1 | grep -oP '(?<=define-macro )\(.*\)' | sed 's/(/(macro /')
+
+BGL_LINENO=$(awk '/@BGL_EXPORTS@/{ print NR; exit }' $2)
+
+awk "NR < $BGL_LINENO" $2
+echo "${PROCEDURES}\n${MACROS}"
+awk "NR > $BGL_LINENO" $2
+echo "(start-registering-constants)"
+cat $1
+echo "(end-registering-constants)"

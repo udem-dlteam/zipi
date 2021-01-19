@@ -1,6 +1,6 @@
 from __compiler_intrinsics__ import absent, builtin_class, int_box, int_unbox, float_box, float_unbox
 
-@builtin_class('PyObjectInt')
+@builtin_class
 class int:
     @staticmethod
     def __new__(cls, val=absent):
@@ -13,7 +13,7 @@ class int:
                 raise NotImplementedError
         else:
             raise NotImplementedError
-            
+
 
     def __add__(self, other):
         if isinstance(self, int):
@@ -96,33 +96,6 @@ class int:
         else:
             raise TypeError("descriptor '__ior__' requires a 'int' object but received a '" + type(self).__name__ + "'")
 
-    def __lshift__(self, other):
-        if isinstance(self, int):
-            if isinstance(other, int):
-                return int_box(int_unbox(self) << int_unbox(other))
-            else:
-                return NotImplemented
-        else:
-            raise TypeError("descriptor '__lshift__' requires a 'int' object but received a '" + type(self).__name__ + "'")
-
-    def __rlshift__(self, other):
-        if isinstance(self, int):
-            if isinstance(other, int):
-                return int_box(int_unbox(other) << int_unbox(self))
-            else:
-                return NotImplemented
-        else:
-            raise TypeError("descriptor '__rlshift__' requires a 'int' object but received a '" + type(self).__name__ + "'")
-
-    def __ilshift__(self, other):
-        if isinstance(self, int):
-            if isinstance(other, int):
-                return int_box(int_unbox(self) << int_unbox(other))
-            else:
-                return NotImplemented
-        else:
-            raise TypeError("descriptor '__ilshift__' requires a 'int' object but received a '" + type(self).__name__ + "'")
-
     def __mul__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
@@ -176,33 +149,6 @@ class int:
                 return NotImplemented
         else:
             raise TypeError("descriptor '__ipow__' requires a 'int' object but received a '" + type(self).__name__ + "'")
-
-    def __rshift__(self, other):
-        if isinstance(self, int):
-            if isinstance(other, int):
-                return int_box(int_unbox(self) >> int_unbox(other))
-            else:
-                return NotImplemented
-        else:
-            raise TypeError("descriptor '__rshift__' requires a 'int' object but received a '" + type(self).__name__ + "'")
-
-    def __rrshift__(self, other):
-        if isinstance(self, int):
-            if isinstance(other, int):
-                return int_box(int_unbox(other) >> int_unbox(self))
-            else:
-                return NotImplemented
-        else:
-            raise TypeError("descriptor '__rrshift__' requires a 'int' object but received a '" + type(self).__name__ + "'")
-
-    def __irshift__(self, other):
-        if isinstance(self, int):
-            if isinstance(other, int):
-                return int_box(int_unbox(self) >> int_unbox(other))
-            else:
-                return NotImplemented
-        else:
-            raise TypeError("descriptor '__irshift__' requires a 'int' object but received a '" + type(self).__name__ + "'")
 
     def __sub__(self, other):
         if isinstance(self, int):
@@ -258,6 +204,78 @@ class int:
         else:
             raise TypeError("descriptor '__ixor__' requires a 'int' object but received a '" + type(self).__name__ + "'")
 
+    def __lshift__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                if other >= 0:
+                    return int_box(int_unbox(self) << int_unbox(other))
+                else:
+                    raise ValueError("negative shift count")
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__lshift__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+
+    def __rlshift__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                if self >= 0:
+                    return int_box(int_unbox(self) << int_unbox(other))
+                else:
+                    raise ValueError("negative shift count")
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__rlshift__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+
+    def __ilshift__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                if other >= 0:
+                    return int_box(int_unbox(self) << int_unbox(other))
+                else:
+                    raise ValueError("negative shift count")
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__ilshift__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+
+    def __rshift__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                if other >= 0:
+                    return int_box(int_unbox(self) >> int_unbox(other))
+                else:
+                    raise ValueError("negative shift count")
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__rshift__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+
+    def __rrshift__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                if self >= 0:
+                    return int_box(int_unbox(self) >> int_unbox(other))
+                else:
+                    raise ValueError("negative shift count")
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__rrshift__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+
+    def __irshift__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                if other >= 0:
+                    return int_box(int_unbox(self) >> int_unbox(other))
+                else:
+                    raise ValueError("negative shift count")
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__irshift__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+
     def __floordiv__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
@@ -298,7 +316,7 @@ class int:
         if isinstance(self, int):
             if isinstance(other, int):
                 if other != 0:
-                    return int_box(int_unbox(self) / int_unbox(other))
+                    return float_box(int_unbox(self) / int_unbox(other))
                 else:
                     raise ZeroDivisionError("division by zero")
             else:
@@ -310,7 +328,7 @@ class int:
         if isinstance(self, int):
             if isinstance(other, int):
                 if self != 0:
-                    return int_box(int_unbox(other) / int_unbox(self))
+                    return float_box(int_unbox(other) / int_unbox(self))
                 else:
                     raise ZeroDivisionError("division by zero")
             else:
@@ -322,7 +340,7 @@ class int:
         if isinstance(self, int):
             if isinstance(other, int):
                 if other != 0:
-                    return int_box(int_unbox(self) / int_unbox(other))
+                    return float_box(int_unbox(self) / int_unbox(other))
                 else:
                     raise ZeroDivisionError("division by zero")
             else:
@@ -367,7 +385,7 @@ class int:
             raise TypeError("descriptor '__imod__' requires a 'int' object but received a '" + type(self).__name__ + "'")
 
 
-@builtin_class('PyObjectInt')
+@builtin_class
 class bool(int):
     @staticmethod
     def __new__(cls, val=absent):
@@ -382,46 +400,46 @@ class bool(int):
     def __and__(self, other):
         if type(self) is bool:
             if type(other) is bool:
-                return self and other
+                return other if self is True else False
             elif isinstance(other, int):
                 return int_box(int_unbox(self) & int_unbox(other))
             else:
                 return NotImplemented
         else:
-            raise TypeError("descriptor '__and__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+            raise TypeError("descriptor '__and__' requires a 'bool' object but received a '" + type(self).__name__ + "'")
 
     def __rand__(self, other):
         if type(self) is bool:
             if type(other) is bool:
-                return other and self
+                return other if self is True else False
             elif isinstance(other, int):
                 return int_box(int_unbox(other) & int_unbox(self))
             else:
                 return NotImplemented
         else:
-            raise TypeError("descriptor '__rand__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+            raise TypeError("descriptor '__rand__' requires a 'bool' object but received a '" + type(self).__name__ + "'")
 
     def __or__(self, other):
         if type(self) is bool:
             if type(other) is bool:
-                return self or other
+                return True if self is True else other
             elif isinstance(other, int):
                 return int_box(int_unbox(self) | int_unbox(other))
             else:
                 return NotImplemented
         else:
-            raise TypeError("descriptor '__or__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+            raise TypeError("descriptor '__or__' requires a 'bool' object but received a '" + type(self).__name__ + "'")
 
     def __ror__(self, other):
         if type(self) is bool:
             if type(other) is bool:
-                return other or self
+                return True if self is True else other
             elif isinstance(other, int):
                 return int_box(int_unbox(other) | int_unbox(self))
             else:
                 return NotImplemented
         else:
-            raise TypeError("descriptor '__ror__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+            raise TypeError("descriptor '__ror__' requires a 'bool' object but received a '" + type(self).__name__ + "'")
 
     def __xor__(self, other):
         if type(self) is bool:
@@ -432,21 +450,21 @@ class bool(int):
             else:
                 return NotImplemented
         else:
-            raise TypeError("descriptor '__xor__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+            raise TypeError("descriptor '__xor__' requires a 'bool' object but received a '" + type(self).__name__ + "'")
 
     def __rxor__(self, other):
         if type(self) is bool:
             if type(other) is bool:
-                return other is not self
+                return self is not other
             elif isinstance(other, int):
                 return int_box(int_unbox(other) ^ int_unbox(self))
             else:
                 return NotImplemented
         else:
-            raise TypeError("descriptor '__rxor__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+            raise TypeError("descriptor '__rxor__' requires a 'bool' object but received a '" + type(self).__name__ + "'")
 
 
-@builtin_class('PyObjectFloat')
+@builtin_class
 class float:
     @staticmethod
     def __new__(cls, val=absent):
@@ -493,105 +511,6 @@ class float:
                 return NotImplemented
         else:
             raise TypeError("descriptor '__iadd__' requires a 'float' object but received a '" + type(self).__name__ + "'")
-
-    def __and__(self, other):
-        if isinstance(self, float):
-            if isinstance(other, float):
-                return float_box(float_unbox(self) & float_unbox(other))
-            elif isinstance(other, int):
-                return float_box(float_unbox(self) & int_unbox(other))
-            else:
-                return NotImplemented
-        else:
-            raise TypeError("descriptor '__and__' requires a 'float' object but received a '" + type(self).__name__ + "'")
-
-    def __rand__(self, other):
-        if isinstance(self, float):
-            if isinstance(other, float):
-                return float_box(float_unbox(other) & float_unbox(self))
-            elif isinstance(other, int):
-                return float_box(int_unbox(other) & float_unbox(self))
-            else:
-                return NotImplemented
-        else:
-            raise TypeError("descriptor '__rand__' requires a 'float' object but received a '" + type(self).__name__ + "'")
-
-    def __iand__(self, other):
-        if isinstance(self, float):
-            if isinstance(other, float):
-                return float_box(float_unbox(self) & float_unbox(other))
-            elif isinstance(self, int):
-                return float_box(float_unbox(self) & int_unbox(other))
-            else:
-                return NotImplemented
-        else:
-            raise TypeError("descriptor '__iand__' requires a 'float' object but received a '" + type(self).__name__ + "'")
-
-    def __or__(self, other):
-        if isinstance(self, float):
-            if isinstance(other, float):
-                return float_box(float_unbox(self) | float_unbox(other))
-            elif isinstance(other, int):
-                return float_box(float_unbox(self) | int_unbox(other))
-            else:
-                return NotImplemented
-        else:
-            raise TypeError("descriptor '__or__' requires a 'float' object but received a '" + type(self).__name__ + "'")
-
-    def __ror__(self, other):
-        if isinstance(self, float):
-            if isinstance(other, float):
-                return float_box(float_unbox(other) | float_unbox(self))
-            elif isinstance(other, int):
-                return float_box(int_unbox(other) | float_unbox(self))
-            else:
-                return NotImplemented
-        else:
-            raise TypeError("descriptor '__ror__' requires a 'float' object but received a '" + type(self).__name__ + "'")
-
-    def __ior__(self, other):
-        if isinstance(self, float):
-            if isinstance(other, float):
-                return float_box(float_unbox(self) | float_unbox(other))
-            elif isinstance(self, int):
-                return float_box(float_unbox(self) | int_unbox(other))
-            else:
-                return NotImplemented
-        else:
-            raise TypeError("descriptor '__ior__' requires a 'float' object but received a '" + type(self).__name__ + "'")
-
-    def __lshift__(self, other):
-        if isinstance(self, float):
-            if isinstance(other, float):
-                return float_box(float_unbox(self) << float_unbox(other))
-            elif isinstance(other, int):
-                return float_box(float_unbox(self) << int_unbox(other))
-            else:
-                return NotImplemented
-        else:
-            raise TypeError("descriptor '__lshift__' requires a 'float' object but received a '" + type(self).__name__ + "'")
-
-    def __rlshift__(self, other):
-        if isinstance(self, float):
-            if isinstance(other, float):
-                return float_box(float_unbox(other) << float_unbox(self))
-            elif isinstance(other, int):
-                return float_box(int_unbox(other) << float_unbox(self))
-            else:
-                return NotImplemented
-        else:
-            raise TypeError("descriptor '__rlshift__' requires a 'float' object but received a '" + type(self).__name__ + "'")
-
-    def __ilshift__(self, other):
-        if isinstance(self, float):
-            if isinstance(other, float):
-                return float_box(float_unbox(self) << float_unbox(other))
-            elif isinstance(self, int):
-                return float_box(float_unbox(self) << int_unbox(other))
-            else:
-                return NotImplemented
-        else:
-            raise TypeError("descriptor '__ilshift__' requires a 'float' object but received a '" + type(self).__name__ + "'")
 
     def __mul__(self, other):
         if isinstance(self, float):
@@ -659,39 +578,6 @@ class float:
         else:
             raise TypeError("descriptor '__ipow__' requires a 'float' object but received a '" + type(self).__name__ + "'")
 
-    def __rshift__(self, other):
-        if isinstance(self, float):
-            if isinstance(other, float):
-                return float_box(float_unbox(self) >> float_unbox(other))
-            elif isinstance(other, int):
-                return float_box(float_unbox(self) >> int_unbox(other))
-            else:
-                return NotImplemented
-        else:
-            raise TypeError("descriptor '__rshift__' requires a 'float' object but received a '" + type(self).__name__ + "'")
-
-    def __rrshift__(self, other):
-        if isinstance(self, float):
-            if isinstance(other, float):
-                return float_box(float_unbox(other) >> float_unbox(self))
-            elif isinstance(other, int):
-                return float_box(int_unbox(other) >> float_unbox(self))
-            else:
-                return NotImplemented
-        else:
-            raise TypeError("descriptor '__rrshift__' requires a 'float' object but received a '" + type(self).__name__ + "'")
-
-    def __irshift__(self, other):
-        if isinstance(self, float):
-            if isinstance(other, float):
-                return float_box(float_unbox(self) >> float_unbox(other))
-            elif isinstance(self, int):
-                return float_box(float_unbox(self) >> int_unbox(other))
-            else:
-                return NotImplemented
-        else:
-            raise TypeError("descriptor '__irshift__' requires a 'float' object but received a '" + type(self).__name__ + "'")
-
     def __sub__(self, other):
         if isinstance(self, float):
             if isinstance(other, float):
@@ -724,39 +610,6 @@ class float:
                 return NotImplemented
         else:
             raise TypeError("descriptor '__isub__' requires a 'float' object but received a '" + type(self).__name__ + "'")
-
-    def __xor__(self, other):
-        if isinstance(self, float):
-            if isinstance(other, float):
-                return float_box(float_unbox(self) ^ float_unbox(other))
-            elif isinstance(other, int):
-                return float_box(float_unbox(self) ^ int_unbox(other))
-            else:
-                return NotImplemented
-        else:
-            raise TypeError("descriptor '__xor__' requires a 'float' object but received a '" + type(self).__name__ + "'")
-
-    def __rxor__(self, other):
-        if isinstance(self, float):
-            if isinstance(other, float):
-                return float_box(float_unbox(other) ^ float_unbox(self))
-            elif isinstance(other, int):
-                return float_box(int_unbox(other) ^ float_unbox(self))
-            else:
-                return NotImplemented
-        else:
-            raise TypeError("descriptor '__rxor__' requires a 'float' object but received a '" + type(self).__name__ + "'")
-
-    def __ixor__(self, other):
-        if isinstance(self, float):
-            if isinstance(other, float):
-                return float_box(float_unbox(self) ^ float_unbox(other))
-            elif isinstance(self, int):
-                return float_box(float_unbox(self) ^ int_unbox(other))
-            else:
-                return NotImplemented
-        else:
-            raise TypeError("descriptor '__ixor__' requires a 'float' object but received a '" + type(self).__name__ + "'")
 
     def __floordiv__(self, other):
         if isinstance(self, float):

@@ -16,7 +16,8 @@
 
    (import __py_rts
            __py_bigloo
-	   __stdlib_zemantics)
+	   __stdlib_zemantics
+     __stdlib_behaviors)
 
    (eval (export-all)
       (class PyObject)
