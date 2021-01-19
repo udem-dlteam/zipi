@@ -453,7 +453,7 @@ def iadd(x, y):
                 return result
 
     def err():
-        raise TypeError("unsupported operand type(s) for +: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
+        raise TypeError("unsupported operand type(s) for +=: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # iadd:start-body
     return inplace()
@@ -496,7 +496,7 @@ def ibitand(x, y):
                 return result
 
     def err():
-        raise TypeError("unsupported operand type(s) for &: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
+        raise TypeError("unsupported operand type(s) for &=: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # ibitand:start-body
     return inplace()
@@ -539,7 +539,7 @@ def ibitor(x, y):
                 return result
 
     def err():
-        raise TypeError("unsupported operand type(s) for |: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
+        raise TypeError("unsupported operand type(s) for |=: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # ibitor:start-body
     return inplace()
@@ -582,7 +582,7 @@ def ifloordiv(x, y):
                 return result
 
     def err():
-        raise TypeError("unsupported operand type(s) for //: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
+        raise TypeError("unsupported operand type(s) for //=: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # ifloordiv:start-body
     return inplace()
@@ -625,7 +625,7 @@ def ilshift(x, y):
                 return result
 
     def err():
-        raise TypeError("unsupported operand type(s) for <<: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
+        raise TypeError("unsupported operand type(s) for <<=: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # ilshift:start-body
     return inplace()
@@ -668,7 +668,7 @@ def imatmul(x, y):
                 return result
 
     def err():
-        raise TypeError("unsupported operand type(s) for @: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
+        raise TypeError("unsupported operand type(s) for @=: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # imatmul:start-body
     return inplace()
@@ -711,7 +711,7 @@ def imod(x, y):
                 return result
 
     def err():
-        raise TypeError("unsupported operand type(s) for %: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
+        raise TypeError("unsupported operand type(s) for %=: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # imod:start-body
     return inplace()
@@ -754,7 +754,7 @@ def imul(x, y):
                 return result
 
     def err():
-        raise TypeError("unsupported operand type(s) for *: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
+        raise TypeError("unsupported operand type(s) for *=: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # imul:start-body
     return inplace()
@@ -797,7 +797,7 @@ def ipow(x, y):
                 return result
 
     def err():
-        raise TypeError("unsupported operand type(s) for **: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
+        raise TypeError("unsupported operand type(s) for **=: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # ipow:start-body
     return inplace()
@@ -840,7 +840,7 @@ def irshift(x, y):
                 return result
 
     def err():
-        raise TypeError("unsupported operand type(s) for >>: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
+        raise TypeError("unsupported operand type(s) for >>=: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # irshift:start-body
     return inplace()
@@ -883,7 +883,7 @@ def isub(x, y):
                 return result
 
     def err():
-        raise TypeError("unsupported operand type(s) for -: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
+        raise TypeError("unsupported operand type(s) for -=: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # isub:start-body
     return inplace()
@@ -926,7 +926,7 @@ def itruediv(x, y):
                 return result
 
     def err():
-        raise TypeError("unsupported operand type(s) for /: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
+        raise TypeError("unsupported operand type(s) for /=: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # itruediv:start-body
     return inplace()
@@ -969,11 +969,203 @@ def ixor(x, y):
                 return result
 
     def err():
-        raise TypeError("unsupported operand type(s) for ^: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
+        raise TypeError("unsupported operand type(s) for ^=: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     # ixor:start-body
     return inplace()
     # ixor:end-body
+
+# Auto-generated
+@define_semantics
+def ge(x, y):
+    def normal():
+        magic_method = class_getattr(x, "__ge__")
+        if magic_method is absent:
+            return reflected()
+        else:
+            result = magic_method(x, y)
+            if result is NotImplemented:
+                return reflected()
+            else:
+                return result
+
+    def reflected():
+        magic_method = class_getattr(y, "__le__")
+        if magic_method is absent:
+            return err()
+        else:
+            result = magic_method(y, x)
+            if result is NotImplemented:
+                return err()
+            else:
+                return result
+
+    def err():
+        raise TypeError("'>=' not supported between instances of '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
+
+    # ge:start-body
+    return normal()
+    # ge:end-body
+
+# Auto-generated
+@define_semantics
+def gt(x, y):
+    def normal():
+        magic_method = class_getattr(x, "__gt__")
+        if magic_method is absent:
+            return reflected()
+        else:
+            result = magic_method(x, y)
+            if result is NotImplemented:
+                return reflected()
+            else:
+                return result
+
+    def reflected():
+        magic_method = class_getattr(y, "__lt__")
+        if magic_method is absent:
+            return err()
+        else:
+            result = magic_method(y, x)
+            if result is NotImplemented:
+                return err()
+            else:
+                return result
+
+    def err():
+        raise TypeError("'>' not supported between instances of '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
+
+    # gt:start-body
+    return normal()
+    # gt:end-body
+
+# Auto-generated
+@define_semantics
+def le(x, y):
+    def normal():
+        magic_method = class_getattr(x, "__le__")
+        if magic_method is absent:
+            return reflected()
+        else:
+            result = magic_method(x, y)
+            if result is NotImplemented:
+                return reflected()
+            else:
+                return result
+
+    def reflected():
+        magic_method = class_getattr(y, "__ge__")
+        if magic_method is absent:
+            return err()
+        else:
+            result = magic_method(y, x)
+            if result is NotImplemented:
+                return err()
+            else:
+                return result
+
+    def err():
+        raise TypeError("'<=' not supported between instances of '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
+
+    # le:start-body
+    return normal()
+    # le:end-body
+
+# Auto-generated
+@define_semantics
+def lt(x, y):
+    def normal():
+        magic_method = class_getattr(x, "__lt__")
+        if magic_method is absent:
+            return reflected()
+        else:
+            result = magic_method(x, y)
+            if result is NotImplemented:
+                return reflected()
+            else:
+                return result
+
+    def reflected():
+        magic_method = class_getattr(y, "__gt__")
+        if magic_method is absent:
+            return err()
+        else:
+            result = magic_method(y, x)
+            if result is NotImplemented:
+                return err()
+            else:
+                return result
+
+    def err():
+        raise TypeError("'<' not supported between instances of '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
+
+    # lt:start-body
+    return normal()
+    # lt:end-body
+
+# Auto-generated
+@define_semantics
+def eq(x, y):
+    def normal():
+        magic_method = class_getattr(x, "__eq__")
+        if magic_method is absent:
+            return reflected()
+        else:
+            result = magic_method(x, y)
+            if result is NotImplemented:
+                return reflected()
+            else:
+                return result
+
+    def reflected():
+        magic_method = class_getattr(y, "__eq__")
+        if magic_method is absent:
+            return default()
+        else:
+            result = magic_method(y, x)
+            if result is NotImplemented:
+                return default()
+            else:
+                return result
+
+    def default():
+        return x is y 
+
+    # eq:start-body
+    return normal()
+    # eq:end-body
+
+# Auto-generated
+@define_semantics
+def ne(x, y):
+    def normal():
+        magic_method = class_getattr(x, "__ne__")
+        if magic_method is absent:
+            return reflected()
+        else:
+            result = magic_method(x, y)
+            if result is NotImplemented:
+                return reflected()
+            else:
+                return result
+
+    def reflected():
+        magic_method = class_getattr(y, "__ne__")
+        if magic_method is absent:
+            return default()
+        else:
+            result = magic_method(y, x)
+            if result is NotImplemented:
+                return default()
+            else:
+                return result
+
+    def default():
+        return x is not y 
+
+    # ne:start-body
+    return normal()
+    # ne:end-body
 
 @define_semantics
 def getattribute(obj, attr):

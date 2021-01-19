@@ -1096,23 +1096,23 @@ def py_iadd_bintX_bintY(self: bint, other: bint):
 
 @define_behavior
 def py_ibitand_floatX_floatY(self: float, other: float):
-    raise TypeError("unsupported operand type(s) for &: 'float' and 'float'")
+    raise TypeError("unsupported operand type(s) for &=: 'float' and 'float'")
 
 @define_behavior
 def py_ibitand_floatX_boolY(self: float, other: bool):
-    raise TypeError("unsupported operand type(s) for &: 'float' and 'bool'")
+    raise TypeError("unsupported operand type(s) for &=: 'float' and 'bool'")
 
 @define_behavior
 def py_ibitand_floatX_sintY(self: float, other: sint):
-    raise TypeError("unsupported operand type(s) for &: 'float' and 'int'")
+    raise TypeError("unsupported operand type(s) for &=: 'float' and 'int'")
 
 @define_behavior
 def py_ibitand_floatX_bintY(self: float, other: bint):
-    raise TypeError("unsupported operand type(s) for &: 'float' and 'int'")
+    raise TypeError("unsupported operand type(s) for &=: 'float' and 'int'")
 
 @define_behavior
 def py_ibitand_boolX_floatY(self: bool, other: float):
-    raise TypeError("unsupported operand type(s) for &: 'bool' and 'float'")
+    raise TypeError("unsupported operand type(s) for &=: 'bool' and 'float'")
 
 @define_behavior
 def py_ibitand_boolX_boolY(self: bool, other: bool):
@@ -1128,7 +1128,7 @@ def py_ibitand_boolX_bintY(self: bool, other: bint):
 
 @define_behavior
 def py_ibitand_sintX_floatY(self: sint, other: float):
-    raise TypeError("unsupported operand type(s) for &: 'int' and 'float'")
+    raise TypeError("unsupported operand type(s) for &=: 'int' and 'float'")
 
 @define_behavior
 def py_ibitand_sintX_boolY(self: sint, other: bool):
@@ -1144,7 +1144,7 @@ def py_ibitand_sintX_bintY(self: sint, other: bint):
 
 @define_behavior
 def py_ibitand_bintX_floatY(self: bint, other: float):
-    raise TypeError("unsupported operand type(s) for &: 'int' and 'float'")
+    raise TypeError("unsupported operand type(s) for &=: 'int' and 'float'")
 
 @define_behavior
 def py_ibitand_bintX_boolY(self: bint, other: bool):
@@ -1160,23 +1160,23 @@ def py_ibitand_bintX_bintY(self: bint, other: bint):
 
 @define_behavior
 def py_ibitor_floatX_floatY(self: float, other: float):
-    raise TypeError("unsupported operand type(s) for |: 'float' and 'float'")
+    raise TypeError("unsupported operand type(s) for |=: 'float' and 'float'")
 
 @define_behavior
 def py_ibitor_floatX_boolY(self: float, other: bool):
-    raise TypeError("unsupported operand type(s) for |: 'float' and 'bool'")
+    raise TypeError("unsupported operand type(s) for |=: 'float' and 'bool'")
 
 @define_behavior
 def py_ibitor_floatX_sintY(self: float, other: sint):
-    raise TypeError("unsupported operand type(s) for |: 'float' and 'int'")
+    raise TypeError("unsupported operand type(s) for |=: 'float' and 'int'")
 
 @define_behavior
 def py_ibitor_floatX_bintY(self: float, other: bint):
-    raise TypeError("unsupported operand type(s) for |: 'float' and 'int'")
+    raise TypeError("unsupported operand type(s) for |=: 'float' and 'int'")
 
 @define_behavior
 def py_ibitor_boolX_floatY(self: bool, other: float):
-    raise TypeError("unsupported operand type(s) for |: 'bool' and 'float'")
+    raise TypeError("unsupported operand type(s) for |=: 'bool' and 'float'")
 
 @define_behavior
 def py_ibitor_boolX_boolY(self: bool, other: bool):
@@ -1192,7 +1192,7 @@ def py_ibitor_boolX_bintY(self: bool, other: bint):
 
 @define_behavior
 def py_ibitor_sintX_floatY(self: sint, other: float):
-    raise TypeError("unsupported operand type(s) for |: 'int' and 'float'")
+    raise TypeError("unsupported operand type(s) for |=: 'int' and 'float'")
 
 @define_behavior
 def py_ibitor_sintX_boolY(self: sint, other: bool):
@@ -1208,7 +1208,7 @@ def py_ibitor_sintX_bintY(self: sint, other: bint):
 
 @define_behavior
 def py_ibitor_bintX_floatY(self: bint, other: float):
-    raise TypeError("unsupported operand type(s) for |: 'int' and 'float'")
+    raise TypeError("unsupported operand type(s) for |=: 'int' and 'float'")
 
 @define_behavior
 def py_ibitor_bintX_boolY(self: bint, other: bool):
@@ -1336,23 +1336,23 @@ def py_ifloordiv_bintX_bintY(self: bint, other: bint):
 
 @define_behavior
 def py_ilshift_floatX_floatY(self: float, other: float):
-    raise TypeError("unsupported operand type(s) for <<: 'float' and 'float'")
+    raise TypeError("unsupported operand type(s) for <<=: 'float' and 'float'")
 
 @define_behavior
 def py_ilshift_floatX_boolY(self: float, other: bool):
-    raise TypeError("unsupported operand type(s) for <<: 'float' and 'bool'")
+    raise TypeError("unsupported operand type(s) for <<=: 'float' and 'bool'")
 
 @define_behavior
 def py_ilshift_floatX_sintY(self: float, other: sint):
-    raise TypeError("unsupported operand type(s) for <<: 'float' and 'int'")
+    raise TypeError("unsupported operand type(s) for <<=: 'float' and 'int'")
 
 @define_behavior
 def py_ilshift_floatX_bintY(self: float, other: bint):
-    raise TypeError("unsupported operand type(s) for <<: 'float' and 'int'")
+    raise TypeError("unsupported operand type(s) for <<=: 'float' and 'int'")
 
 @define_behavior
 def py_ilshift_boolX_floatY(self: bool, other: float):
-    raise TypeError("unsupported operand type(s) for <<: 'bool' and 'float'")
+    raise TypeError("unsupported operand type(s) for <<=: 'bool' and 'float'")
 
 @define_behavior
 def py_ilshift_boolX_boolY(self: bool, other: bool):
@@ -1377,7 +1377,7 @@ def py_ilshift_boolX_bintY(self: bool, other: bint):
 
 @define_behavior
 def py_ilshift_sintX_floatY(self: sint, other: float):
-    raise TypeError("unsupported operand type(s) for <<: 'int' and 'float'")
+    raise TypeError("unsupported operand type(s) for <<=: 'int' and 'float'")
 
 @define_behavior
 def py_ilshift_sintX_boolY(self: sint, other: bool):
@@ -1402,7 +1402,7 @@ def py_ilshift_sintX_bintY(self: sint, other: bint):
 
 @define_behavior
 def py_ilshift_bintX_floatY(self: bint, other: float):
-    raise TypeError("unsupported operand type(s) for <<: 'int' and 'float'")
+    raise TypeError("unsupported operand type(s) for <<=: 'int' and 'float'")
 
 @define_behavior
 def py_ilshift_bintX_boolY(self: bint, other: bool):
@@ -1427,67 +1427,67 @@ def py_ilshift_bintX_bintY(self: bint, other: bint):
 
 @define_behavior
 def py_imatmul_floatX_floatY(self: float, other: float):
-    raise TypeError("unsupported operand type(s) for @: 'float' and 'float'")
+    raise TypeError("unsupported operand type(s) for @=: 'float' and 'float'")
 
 @define_behavior
 def py_imatmul_floatX_boolY(self: float, other: bool):
-    raise TypeError("unsupported operand type(s) for @: 'float' and 'bool'")
+    raise TypeError("unsupported operand type(s) for @=: 'float' and 'bool'")
 
 @define_behavior
 def py_imatmul_floatX_sintY(self: float, other: sint):
-    raise TypeError("unsupported operand type(s) for @: 'float' and 'int'")
+    raise TypeError("unsupported operand type(s) for @=: 'float' and 'int'")
 
 @define_behavior
 def py_imatmul_floatX_bintY(self: float, other: bint):
-    raise TypeError("unsupported operand type(s) for @: 'float' and 'int'")
+    raise TypeError("unsupported operand type(s) for @=: 'float' and 'int'")
 
 @define_behavior
 def py_imatmul_boolX_floatY(self: bool, other: float):
-    raise TypeError("unsupported operand type(s) for @: 'bool' and 'float'")
+    raise TypeError("unsupported operand type(s) for @=: 'bool' and 'float'")
 
 @define_behavior
 def py_imatmul_boolX_boolY(self: bool, other: bool):
-    raise TypeError("unsupported operand type(s) for @: 'bool' and 'bool'")
+    raise TypeError("unsupported operand type(s) for @=: 'bool' and 'bool'")
 
 @define_behavior
 def py_imatmul_boolX_sintY(self: bool, other: sint):
-    raise TypeError("unsupported operand type(s) for @: 'bool' and 'int'")
+    raise TypeError("unsupported operand type(s) for @=: 'bool' and 'int'")
 
 @define_behavior
 def py_imatmul_boolX_bintY(self: bool, other: bint):
-    raise TypeError("unsupported operand type(s) for @: 'bool' and 'int'")
+    raise TypeError("unsupported operand type(s) for @=: 'bool' and 'int'")
 
 @define_behavior
 def py_imatmul_sintX_floatY(self: sint, other: float):
-    raise TypeError("unsupported operand type(s) for @: 'int' and 'float'")
+    raise TypeError("unsupported operand type(s) for @=: 'int' and 'float'")
 
 @define_behavior
 def py_imatmul_sintX_boolY(self: sint, other: bool):
-    raise TypeError("unsupported operand type(s) for @: 'int' and 'bool'")
+    raise TypeError("unsupported operand type(s) for @=: 'int' and 'bool'")
 
 @define_behavior
 def py_imatmul_sintX_sintY(self: sint, other: sint):
-    raise TypeError("unsupported operand type(s) for @: 'int' and 'int'")
+    raise TypeError("unsupported operand type(s) for @=: 'int' and 'int'")
 
 @define_behavior
 def py_imatmul_sintX_bintY(self: sint, other: bint):
-    raise TypeError("unsupported operand type(s) for @: 'int' and 'int'")
+    raise TypeError("unsupported operand type(s) for @=: 'int' and 'int'")
 
 @define_behavior
 def py_imatmul_bintX_floatY(self: bint, other: float):
-    raise TypeError("unsupported operand type(s) for @: 'int' and 'float'")
+    raise TypeError("unsupported operand type(s) for @=: 'int' and 'float'")
 
 @define_behavior
 def py_imatmul_bintX_boolY(self: bint, other: bool):
-    raise TypeError("unsupported operand type(s) for @: 'int' and 'bool'")
+    raise TypeError("unsupported operand type(s) for @=: 'int' and 'bool'")
 
 @define_behavior
 def py_imatmul_bintX_sintY(self: bint, other: sint):
-    raise TypeError("unsupported operand type(s) for @: 'int' and 'int'")
+    raise TypeError("unsupported operand type(s) for @=: 'int' and 'int'")
 
 @define_behavior
 def py_imatmul_bintX_bintY(self: bint, other: bint):
-    raise TypeError("unsupported operand type(s) for @: 'int' and 'int'")
+    raise TypeError("unsupported operand type(s) for @=: 'int' and 'int'")
 
 @define_behavior
 def py_imod_floatX_floatY(self: float, other: float):
@@ -1731,23 +1731,23 @@ def py_ipow_bintX_bintY(self: bint, other: bint):
 
 @define_behavior
 def py_irshift_floatX_floatY(self: float, other: float):
-    raise TypeError("unsupported operand type(s) for >>: 'float' and 'float'")
+    raise TypeError("unsupported operand type(s) for >>=: 'float' and 'float'")
 
 @define_behavior
 def py_irshift_floatX_boolY(self: float, other: bool):
-    raise TypeError("unsupported operand type(s) for >>: 'float' and 'bool'")
+    raise TypeError("unsupported operand type(s) for >>=: 'float' and 'bool'")
 
 @define_behavior
 def py_irshift_floatX_sintY(self: float, other: sint):
-    raise TypeError("unsupported operand type(s) for >>: 'float' and 'int'")
+    raise TypeError("unsupported operand type(s) for >>=: 'float' and 'int'")
 
 @define_behavior
 def py_irshift_floatX_bintY(self: float, other: bint):
-    raise TypeError("unsupported operand type(s) for >>: 'float' and 'int'")
+    raise TypeError("unsupported operand type(s) for >>=: 'float' and 'int'")
 
 @define_behavior
 def py_irshift_boolX_floatY(self: bool, other: float):
-    raise TypeError("unsupported operand type(s) for >>: 'bool' and 'float'")
+    raise TypeError("unsupported operand type(s) for >>=: 'bool' and 'float'")
 
 @define_behavior
 def py_irshift_boolX_boolY(self: bool, other: bool):
@@ -1772,7 +1772,7 @@ def py_irshift_boolX_bintY(self: bool, other: bint):
 
 @define_behavior
 def py_irshift_sintX_floatY(self: sint, other: float):
-    raise TypeError("unsupported operand type(s) for >>: 'int' and 'float'")
+    raise TypeError("unsupported operand type(s) for >>=: 'int' and 'float'")
 
 @define_behavior
 def py_irshift_sintX_boolY(self: sint, other: bool):
@@ -1797,7 +1797,7 @@ def py_irshift_sintX_bintY(self: sint, other: bint):
 
 @define_behavior
 def py_irshift_bintX_floatY(self: bint, other: float):
-    raise TypeError("unsupported operand type(s) for >>: 'int' and 'float'")
+    raise TypeError("unsupported operand type(s) for >>=: 'int' and 'float'")
 
 @define_behavior
 def py_irshift_bintX_boolY(self: bint, other: bool):
@@ -1998,23 +1998,23 @@ def py_itruediv_bintX_bintY(self: bint, other: bint):
 
 @define_behavior
 def py_ixor_floatX_floatY(self: float, other: float):
-    raise TypeError("unsupported operand type(s) for ^: 'float' and 'float'")
+    raise TypeError("unsupported operand type(s) for ^=: 'float' and 'float'")
 
 @define_behavior
 def py_ixor_floatX_boolY(self: float, other: bool):
-    raise TypeError("unsupported operand type(s) for ^: 'float' and 'bool'")
+    raise TypeError("unsupported operand type(s) for ^=: 'float' and 'bool'")
 
 @define_behavior
 def py_ixor_floatX_sintY(self: float, other: sint):
-    raise TypeError("unsupported operand type(s) for ^: 'float' and 'int'")
+    raise TypeError("unsupported operand type(s) for ^=: 'float' and 'int'")
 
 @define_behavior
 def py_ixor_floatX_bintY(self: float, other: bint):
-    raise TypeError("unsupported operand type(s) for ^: 'float' and 'int'")
+    raise TypeError("unsupported operand type(s) for ^=: 'float' and 'int'")
 
 @define_behavior
 def py_ixor_boolX_floatY(self: bool, other: float):
-    raise TypeError("unsupported operand type(s) for ^: 'bool' and 'float'")
+    raise TypeError("unsupported operand type(s) for ^=: 'bool' and 'float'")
 
 @define_behavior
 def py_ixor_boolX_boolY(self: bool, other: bool):
@@ -2030,7 +2030,7 @@ def py_ixor_boolX_bintY(self: bool, other: bint):
 
 @define_behavior
 def py_ixor_sintX_floatY(self: sint, other: float):
-    raise TypeError("unsupported operand type(s) for ^: 'int' and 'float'")
+    raise TypeError("unsupported operand type(s) for ^=: 'int' and 'float'")
 
 @define_behavior
 def py_ixor_sintX_boolY(self: sint, other: bool):
@@ -2046,7 +2046,7 @@ def py_ixor_sintX_bintY(self: sint, other: bint):
 
 @define_behavior
 def py_ixor_bintX_floatY(self: bint, other: float):
-    raise TypeError("unsupported operand type(s) for ^: 'int' and 'float'")
+    raise TypeError("unsupported operand type(s) for ^=: 'int' and 'float'")
 
 @define_behavior
 def py_ixor_bintX_boolY(self: bint, other: bool):

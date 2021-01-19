@@ -2,7 +2,7 @@
 #   semantics templates
 # ======================================================================================================================
 
-main_template = \
+semantics_template = \
     """from __compiler_intrinsics__ import define_semantics, use_static_builtins, use_simple_scoping, class_getattr, absent
 
 {arithmetic}
@@ -111,6 +111,21 @@ def {op}(x, y):
     return normal()
     # {op}:end-body"""
 
+arithmetic_info = {'add': {"op": "add", "magic_method": "add", "symbol": "+"},
+                   'bitand': {"op": "bitand", "magic_method": "and", "symbol": "&"},
+                   'bitor': {"op": "bitor", "magic_method": "or", "symbol": "|"},
+                   'floordiv': {"op": "floordiv", "magic_method": "floordiv", "symbol": "//"},
+                   'lshift': {"op": "lshift", "magic_method": "lshift", "symbol": "<<"},
+                   'matmul': {"op": "matmul", "magic_method": "matmul", "symbol": "@"},
+                   'mod': {"op": "mod", "magic_method": "mod", "symbol": "%"},
+                   'mul': {"op": "mul", "magic_method": "mul", "symbol": "*"},
+                   'pow': {"op": "pow", "magic_method": "pow", "symbol": "**"},
+                   'rshift': {"op": "rshift", "magic_method": "rshift", "symbol": ">>"},
+                   'sub': {"op": "sub", "magic_method": "sub", "symbol": "-"},
+                   'truediv': {"op": "truediv", "magic_method": "truediv", "symbol": "/"},
+                   'xor': {"op": "xor", "magic_method": "xor", "symbol": "^"},
+                   }
+
 inplace_arithmetic_template = \
     """# Auto-generated
 @define_semantics
@@ -155,6 +170,99 @@ def i{op}(x, y):
     return inplace()
     # i{op}:end-body"""
 
+inplace_arithmetic_info = {'iadd': {"op": "add", "magic_method": "add", "symbol": "+="},
+                           'ibitand': {"op": "bitand", "magic_method": "and", "symbol": "&="},
+                           'ibitor': {"op": "bitor", "magic_method": "or", "symbol": "|="},
+                           'ifloordiv': {"op": "floordiv", "magic_method": "floordiv", "symbol": "//="},
+                           'ilshift': {"op": "lshift", "magic_method": "lshift", "symbol": "<<="},
+                           'imatmul': {"op": "matmul", "magic_method": "matmul", "symbol": "@="},
+                           'imod': {"op": "mod", "magic_method": "mod", "symbol": "%="},
+                           'imul': {"op": "mul", "magic_method": "mul", "symbol": "*="},
+                           'ipow': {"op": "pow", "magic_method": "pow", "symbol": "**="},
+                           'irshift': {"op": "rshift", "magic_method": "rshift", "symbol": ">>="},
+                           'isub': {"op": "sub", "magic_method": "sub", "symbol": "-="},
+                           'itruediv': {"op": "truediv", "magic_method": "truediv", "symbol": "/="},
+                           'ixor': {"op": "xor", "magic_method": "xor", "symbol": "^="},
+                           }
+
+comparison_template = \
+    """# Auto-generated
+@define_semantics
+def {op}(x, y):
+    def normal():
+        magic_method = class_getattr(x, "__{magic_method}__")
+        if magic_method is absent:
+            return reflected()
+        else:
+            result = magic_method(x, y)
+            if result is NotImplemented:
+                return reflected()
+            else:
+                return result
+
+    def reflected():
+        magic_method = class_getattr(y, "__{reflected_magic_method}__")
+        if magic_method is absent:
+            return err()
+        else:
+            result = magic_method(y, x)
+            if result is NotImplemented:
+                return err()
+            else:
+                return result
+
+    def err():
+        raise TypeError("'{symbol}' not supported between instances of '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
+
+    # {op}:start-body
+    return normal()
+    # {op}:end-body"""
+
+comparison_info = {
+    "ge": {"op": "ge", "magic_method": "ge", "reflected_magic_method": "le", "symbol": ">="},
+    "gt": {"op": "gt", "magic_method": "gt", "reflected_magic_method": "lt", "symbol": ">"},
+    "le": {"op": "le", "magic_method": "le", "reflected_magic_method": "ge", "symbol": "<="},
+    "lt": {"op": "lt", "magic_method": "lt", "reflected_magic_method": "gt", "symbol": "<"}
+}
+
+equality_template = \
+    """# Auto-generated
+@define_semantics
+def {op}(x, y):
+    def normal():
+        magic_method = class_getattr(x, "__{magic_method}__")
+        if magic_method is absent:
+            return reflected()
+        else:
+            result = magic_method(x, y)
+            if result is NotImplemented:
+                return reflected()
+            else:
+                return result
+
+    def reflected():
+        magic_method = class_getattr(y, "__{reflected_magic_method}__")
+        if magic_method is absent:
+            return default()
+        else:
+            result = magic_method(y, x)
+            if result is NotImplemented:
+                return default()
+            else:
+                return result
+
+    def default():
+        return x {default_symbol} y 
+
+    # {op}:start-body
+    return normal()
+    # {op}:end-body"""
+
+equality_info = {
+    "eq": {"op": "eq", "magic_method": "eq", "reflected_magic_method": "eq", "default_symbol": "is"},
+    "ne": {"op": "ne", "magic_method": "ne", "reflected_magic_method": "ne", "default_symbol": "is not"},
+}
+
 # ======================================================================================================================
 #   int class templates
 # ======================================================================================================================
@@ -184,7 +292,6 @@ int_reflected_binary_method_template = \
             raise TypeError("descriptor '__r{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
 """
 
-
 int_inplace_binary_method_template = \
     """
     def __i{method_name}__(self, other):
@@ -196,7 +303,6 @@ int_inplace_binary_method_template = \
         else:
             raise TypeError("descriptor '__i{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
 """
-
 
 int_shift_method_template = \
     """
@@ -213,7 +319,6 @@ int_shift_method_template = \
             raise TypeError("descriptor '__{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
 """
 
-
 int_reflected_shift_method_template = \
     """
     def __r{method_name}__(self, other):
@@ -229,7 +334,6 @@ int_reflected_shift_method_template = \
             raise TypeError("descriptor '__r{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
 """
 
-
 int_inplace_shift_method_template = \
     """
     def __i{method_name}__(self, other):
@@ -244,7 +348,6 @@ int_inplace_shift_method_template = \
         else:
             raise TypeError("descriptor '__i{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
 """
-
 
 int_division_method_template = \
     """
@@ -276,7 +379,6 @@ int_reflected_division_method_template = \
             raise TypeError("descriptor '__r{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
 """
 
-
 int_inplace_division_method_template = \
     """
     def __i{method_name}__(self, other):
@@ -291,7 +393,6 @@ int_inplace_division_method_template = \
         else:
             raise TypeError("descriptor '__i{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
 """
-
 
 class_int_template = \
     """@builtin_class
@@ -310,7 +411,6 @@ class int:
 
 {methods}"""
 
-
 int_method_info = {
     'add': {"method_name": "add", "op": "+"},
     'bitand': {"method_name": "and", "op": "&"},
@@ -321,15 +421,14 @@ int_method_info = {
     'xor': {"method_name": "xor", "op": "^"}
 }
 
-
 int_shift_method_info = {
     'lshift': {"method_name": "lshift", "op": "<<"},
     'rshift': {"method_name": "rshift", "op": ">>"},
 }
 
-
 int_division_method_info = {
-    'floordiv': {"method_name": "floordiv", "box_method": "int_box", "op": "//", "error_message": "integer division by zero"},
+    'floordiv': {"method_name": "floordiv", "box_method": "int_box", "op": "//",
+                 "error_message": "integer division by zero"},
     'truediv': {"method_name": "truediv", "box_method": "float_box", "op": "/", "error_message": "division by zero"},
     'mod': {"method_name": "mod", "box_method": "int_box", "op": "%", "error_message": "modulo by zero"}
 }
@@ -340,7 +439,7 @@ int_division_method_info = {
 
 
 bool_binary_method_template = \
-"""
+    """
     def __{method_name}__(self, other):
         if type(self) is bool:
             if type(other) is bool:
@@ -354,7 +453,7 @@ bool_binary_method_template = \
 """
 
 bool_reflected_binary_method_template = \
-"""
+    """
     def __r{method_name}__(self, other):
         if type(self) is bool:
             if type(other) is bool:
@@ -366,7 +465,6 @@ bool_reflected_binary_method_template = \
         else:
             raise TypeError("descriptor '__r{method_name}__' requires a 'bool' object but received a '" + type(self).__name__ + "'")
 """
-
 
 class_bool_template = \
     """@builtin_class
@@ -395,14 +493,13 @@ bool_method_info = {
             "int_op": "^"}
 }
 
-
 # ======================================================================================================================
 #   float class templates
 # ======================================================================================================================
 
 
 float_binary_method_template = \
-"""
+    """
     def __{method_name}__(self, other):
         if isinstance(self, float):
             if isinstance(other, float):
@@ -520,7 +617,6 @@ class float:
 
 {methods}"""
 
-
 float_method_info = {
     'add': {"method_name": "add", "op": "+"},
     'mul': {"method_name": "mul", "op": "*"},
@@ -528,13 +624,11 @@ float_method_info = {
     'sub': {"method_name": "sub", "op": "-"},
 }
 
-
 float_division_method_info = {
     'floordiv': {"method_name": "floordiv", "op": "//", "error_message": "float division by zero"},
     'truediv': {"method_name": "truediv", "op": "/", "error_message": "float division by zero"},
     'mod': {"method_name": "mod", "op": "%", "error_message": "float modulo by zero"}
 }
-
 
 # ======================================================================================================================
 #   builtins class templates
@@ -544,51 +638,3 @@ float_division_method_info = {
 builtins_template = """from __compiler_intrinsics__ import absent, builtin_class, int_box, int_unbox, float_box, float_unbox
 
 {definitions}"""
-
-
-# ======================================================================================================================
-#   methods and names
-# ======================================================================================================================
-
-
-operations = {'add': 'add',
-              'bitand': 'and',
-              'bitor': 'or',
-              'floordiv': 'floordiv',
-              'lshift': 'lshift',
-              'matmul': 'matmul',
-              'mod': 'mod',
-              'mul': 'mul',
-              'pow': 'pow',
-              'rshift': 'rshift',
-              'sub': 'sub',
-              'truediv': 'truediv',
-              'xor': 'xor'}
-
-symbols = {'add': '+',
-           'bitand': '&',
-           'bitor': '|',
-           'floordiv': '//',
-           'lshift': '<<',
-           'matmul': '@',
-           'mod': '%',
-           'mul': '*',
-           'pow': '**',
-           'rshift': '>>',
-           'sub': '-',
-           'truediv': '/',
-           'xor': '^',
-           'iadd': '+=',
-           'ibitand': '&=',
-           'ibitor': '|=',
-           'ifloordiv': '//=',
-           'ilshift': '<<=',
-           'imatmul': '@=',
-           'imod': '%=',
-           'imul': '*=',
-           'ipow': '**=',
-           'irshift': '>>=',
-           'isub': '-=',
-           'itruediv': '/=',
-           'ixor': '^='
-           }

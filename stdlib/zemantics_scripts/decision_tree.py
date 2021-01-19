@@ -92,7 +92,7 @@ def make_compiler_intrinsics_module():
         return f
 
     def define_semantics(f):
-        if f.__name__ in templates.symbols:
+        if f.__name__ in target_semantics:
             return register_semantics(f.__name__, f)
         else:
             return f
@@ -606,6 +606,9 @@ types += int_specialized_types
 
 # Replace 'int' by 'sint' and 'bint'
 types_without_int = [t for t in types if t != 'int']
+
+# Semantics which should be converted to behaviors
+target_semantics = [*templates.arithmetic_info, *templates.inplace_arithmetic_info]
 
 
 if __name__ == '__main__':

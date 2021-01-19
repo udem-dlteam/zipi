@@ -188,25 +188,34 @@ class Version:
 
 
 class Template(Version):
-    operations = templates.operations
-    symbols = templates.symbols
+    # normal arithmetic templates
     arithmetic_template = templates.arithmetic_template
+    arithmetic_info = templates.arithmetic_info
+
+    # inplace arithmetic templates
     inplace_arithmetic_template = templates.inplace_arithmetic_template
-    main_template = templates.main_template
+    inplace_arithmetic_info = templates.inplace_arithmetic_info
+
+    # comparison templates
+    comparison_template = templates.comparison_template
+    comparison_info = templates.comparison_info
+
+    #equality templates
+    equality_template = templates.equality_template
+    equality_info = templates.equality_info
+
+    main_template = templates.semantics_template
 
     def __init__(self):
         self.content = self.init_template()
 
     def init_template(self):
-        arithmetic_templates = [self.arithmetic_template.format(op=op, magic_method=magic_method,
-                                                                symbol=self.symbols[op])
-                                for op, magic_method in self.operations.items()]
+        arithmetic = [self.arithmetic_template.format(**info) for info in self.arithmetic_info.values()]
+        inplace_arithmetic = [self.inplace_arithmetic_template.format(**info) for info in self.inplace_arithmetic_info.values()]
+        comparison = [self.comparison_template.format(**info) for info in self.comparison_info.values()]
+        equality = [self.equality_template.format(**info) for info in self.equality_info.values()]
 
-        inplace_arithmetic_templates = [self.inplace_arithmetic_template.format(op=op, magic_method=magic_method,
-                                                                                symbol=self.symbols[op])
-                                        for op, magic_method in self.operations.items()]
-
-        arithmetic_semantics = '\n\n'.join(arithmetic_templates + inplace_arithmetic_templates)
+        arithmetic_semantics = '\n\n'.join(arithmetic + inplace_arithmetic + comparison + equality)
 
         semantics = self.main_template.format(arithmetic=arithmetic_semantics)
 
@@ -220,7 +229,7 @@ class Template(Version):
 class SemanticsParser:
     def __init__(self, content, name, version, lineno, end_lineno, _last=[None]):
         # To avoid conflicts, we allow only one live semantics parser at a time
-        # We are not going to revinvent git today
+        # We are not going to reinvent git today
         if _last[0] is not None:
             _last[0]._kill()
         _last[0] = self
