@@ -6076,6 +6076,10 @@
    (gambit)
    (bigloo ((@ zipi-init __stdlib_zemantics) "zemantics")))
 
+(cond-expand
+  (gambit)
+  (bigloo ((@ zipi-init __stdlib_behaviors) "behaviors")))
+
 (define (py-make-sys-mod)
   (let ((mod (py-make-global)))
    (py-own-attr-set! mod (& "__name__") (&& "sys"))

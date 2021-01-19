@@ -7,8 +7,13 @@
       	  "bigloo/call.sch"
       	  "bigloo/constants.sch")
 
-   (import __py_rts)
+   (import
+      __stdlib_zemantics
+      __py_rts)
 
    (export
+      (zipi-init name)
       @BGL_EXPORTS@
    ))
+
+(define (zipi-init name) (init-registered-constants))
