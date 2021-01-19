@@ -1980,18 +1980,18 @@
 (define (py-ibitand-floatX-floatY-fallback self674 other675)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &: 'float' and 'float'"))))
+            (&& "unsupported operand type(s) for &=: 'float' and 'float'"))))
 
 (define-macro (py-ibitand-floatX-floatY-inline self674 other675)
   `(let ((self674 ,self674) (other675 ,other675))
      (py-throw
       (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for &: 'float' and 'float'")))))
+               (&& "unsupported operand type(s) for &=: 'float' and 'float'")))))
 
 (define (py-ibitand-floatX-boolY-fallback self677 other678)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &: 'float' and 'bool'"))))
+            (&& "unsupported operand type(s) for &=: 'float' and 'bool'"))))
 
 (define-macro (py-ibitand-floatX-boolY-inline self677 other678)
   `(py-ibitand-floatX-boolY-fallback ,self677 ,other678))
@@ -1999,18 +1999,18 @@
 (define (py-ibitand-floatX-sintY-fallback self680 other681)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &: 'float' and 'int'"))))
+            (&& "unsupported operand type(s) for &=: 'float' and 'int'"))))
 
 (define-macro (py-ibitand-floatX-sintY-inline self680 other681)
   `(let ((self680 ,self680) (other681 ,other681))
      (py-throw
       (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for &: 'float' and 'int'")))))
+               (&& "unsupported operand type(s) for &=: 'float' and 'int'")))))
 
 (define (py-ibitand-floatX-bintY-fallback self683 other684)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &: 'float' and 'int'"))))
+            (&& "unsupported operand type(s) for &=: 'float' and 'int'"))))
 
 (define-macro (py-ibitand-floatX-bintY-inline self683 other684)
   `(py-ibitand-floatX-bintY-fallback ,self683 ,other684))
@@ -2018,7 +2018,7 @@
 (define (py-ibitand-boolX-floatY-fallback self686 other687)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &: 'bool' and 'float'"))))
+            (&& "unsupported operand type(s) for &=: 'bool' and 'float'"))))
 
 (define-macro (py-ibitand-boolX-floatY-inline self686 other687)
   `(py-ibitand-boolX-floatY-fallback ,self686 ,other687))
@@ -2046,13 +2046,13 @@
 (define (py-ibitand-sintX-floatY-fallback self698 other699)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &: 'int' and 'float'"))))
+            (&& "unsupported operand type(s) for &=: 'int' and 'float'"))))
 
 (define-macro (py-ibitand-sintX-floatY-inline self698 other699)
   `(let ((self698 ,self698) (other699 ,other699))
      (py-throw
       (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for &: 'int' and 'float'")))))
+               (&& "unsupported operand type(s) for &=: 'int' and 'float'")))))
 
 (define (py-ibitand-sintX-boolY-fallback self701 other702)
   (py-int-from-scheme
@@ -2080,7 +2080,7 @@
 (define (py-ibitand-bintX-floatY-fallback self710 other711)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &: 'int' and 'float'"))))
+            (&& "unsupported operand type(s) for &=: 'int' and 'float'"))))
 
 (define-macro (py-ibitand-bintX-floatY-inline self710 other711)
   `(py-ibitand-bintX-floatY-fallback ,self710 ,other711))
@@ -2109,18 +2109,18 @@
 (define (py-ibitor-floatX-floatY-fallback self722 other723)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |: 'float' and 'float'"))))
+            (&& "unsupported operand type(s) for |=: 'float' and 'float'"))))
 
 (define-macro (py-ibitor-floatX-floatY-inline self722 other723)
   `(let ((self722 ,self722) (other723 ,other723))
      (py-throw
       (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for |: 'float' and 'float'")))))
+               (&& "unsupported operand type(s) for |=: 'float' and 'float'")))))
 
 (define (py-ibitor-floatX-boolY-fallback self725 other726)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |: 'float' and 'bool'"))))
+            (&& "unsupported operand type(s) for |=: 'float' and 'bool'"))))
 
 (define-macro (py-ibitor-floatX-boolY-inline self725 other726)
   `(py-ibitor-floatX-boolY-fallback ,self725 ,other726))
@@ -2128,18 +2128,18 @@
 (define (py-ibitor-floatX-sintY-fallback self728 other729)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |: 'float' and 'int'"))))
+            (&& "unsupported operand type(s) for |=: 'float' and 'int'"))))
 
 (define-macro (py-ibitor-floatX-sintY-inline self728 other729)
   `(let ((self728 ,self728) (other729 ,other729))
      (py-throw
       (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for |: 'float' and 'int'")))))
+               (&& "unsupported operand type(s) for |=: 'float' and 'int'")))))
 
 (define (py-ibitor-floatX-bintY-fallback self731 other732)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |: 'float' and 'int'"))))
+            (&& "unsupported operand type(s) for |=: 'float' and 'int'"))))
 
 (define-macro (py-ibitor-floatX-bintY-inline self731 other732)
   `(py-ibitor-floatX-bintY-fallback ,self731 ,other732))
@@ -2147,7 +2147,7 @@
 (define (py-ibitor-boolX-floatY-fallback self734 other735)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |: 'bool' and 'float'"))))
+            (&& "unsupported operand type(s) for |=: 'bool' and 'float'"))))
 
 (define-macro (py-ibitor-boolX-floatY-inline self734 other735)
   `(py-ibitor-boolX-floatY-fallback ,self734 ,other735))
@@ -2175,13 +2175,13 @@
 (define (py-ibitor-sintX-floatY-fallback self746 other747)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |: 'int' and 'float'"))))
+            (&& "unsupported operand type(s) for |=: 'int' and 'float'"))))
 
 (define-macro (py-ibitor-sintX-floatY-inline self746 other747)
   `(let ((self746 ,self746) (other747 ,other747))
      (py-throw
       (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for |: 'int' and 'float'")))))
+               (&& "unsupported operand type(s) for |=: 'int' and 'float'")))))
 
 (define (py-ibitor-sintX-boolY-fallback self749 other750)
   (py-int-from-scheme
@@ -2209,7 +2209,7 @@
 (define (py-ibitor-bintX-floatY-fallback self758 other759)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |: 'int' and 'float'"))))
+            (&& "unsupported operand type(s) for |=: 'int' and 'float'"))))
 
 (define-macro (py-ibitor-bintX-floatY-inline self758 other759)
   `(py-ibitor-bintX-floatY-fallback ,self758 ,other759))
@@ -2431,18 +2431,18 @@
 (define (py-ilshift-floatX-floatY-fallback self818 other819)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<: 'float' and 'float'"))))
+            (&& "unsupported operand type(s) for <<=: 'float' and 'float'"))))
 
 (define-macro (py-ilshift-floatX-floatY-inline self818 other819)
   `(let ((self818 ,self818) (other819 ,other819))
      (py-throw
       (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for <<: 'float' and 'float'")))))
+               (&& "unsupported operand type(s) for <<=: 'float' and 'float'")))))
 
 (define (py-ilshift-floatX-boolY-fallback self821 other822)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<: 'float' and 'bool'"))))
+            (&& "unsupported operand type(s) for <<=: 'float' and 'bool'"))))
 
 (define-macro (py-ilshift-floatX-boolY-inline self821 other822)
   `(py-ilshift-floatX-boolY-fallback ,self821 ,other822))
@@ -2450,18 +2450,18 @@
 (define (py-ilshift-floatX-sintY-fallback self824 other825)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<: 'float' and 'int'"))))
+            (&& "unsupported operand type(s) for <<=: 'float' and 'int'"))))
 
 (define-macro (py-ilshift-floatX-sintY-inline self824 other825)
   `(let ((self824 ,self824) (other825 ,other825))
      (py-throw
       (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for <<: 'float' and 'int'")))))
+               (&& "unsupported operand type(s) for <<=: 'float' and 'int'")))))
 
 (define (py-ilshift-floatX-bintY-fallback self827 other828)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<: 'float' and 'int'"))))
+            (&& "unsupported operand type(s) for <<=: 'float' and 'int'"))))
 
 (define-macro (py-ilshift-floatX-bintY-inline self827 other828)
   `(py-ilshift-floatX-bintY-fallback ,self827 ,other828))
@@ -2469,7 +2469,7 @@
 (define (py-ilshift-boolX-floatY-fallback self830 other831)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<: 'bool' and 'float'"))))
+            (&& "unsupported operand type(s) for <<=: 'bool' and 'float'"))))
 
 (define-macro (py-ilshift-boolX-floatY-inline self830 other831)
   `(py-ilshift-boolX-floatY-fallback ,self830 ,other831))
@@ -2504,13 +2504,13 @@
 (define (py-ilshift-sintX-floatY-fallback self842 other843)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<: 'int' and 'float'"))))
+            (&& "unsupported operand type(s) for <<=: 'int' and 'float'"))))
 
 (define-macro (py-ilshift-sintX-floatY-inline self842 other843)
   `(let ((self842 ,self842) (other843 ,other843))
      (py-throw
       (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for <<: 'int' and 'float'")))))
+               (&& "unsupported operand type(s) for <<=: 'int' and 'float'")))))
 
 (define (py-ilshift-sintX-boolY-fallback self845 other846)
   (if (py-test (py-ge other846 (py-int-from-scheme 0)))
@@ -2547,7 +2547,7 @@
 (define (py-ilshift-bintX-floatY-fallback self854 other855)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<: 'int' and 'float'"))))
+            (&& "unsupported operand type(s) for <<=: 'int' and 'float'"))))
 
 (define-macro (py-ilshift-bintX-floatY-inline self854 other855)
   `(py-ilshift-bintX-floatY-fallback ,self854 ,other855))
@@ -2582,18 +2582,18 @@
 (define (py-imatmul-floatX-floatY-fallback self866 other867)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'float' and 'float'"))))
+            (&& "unsupported operand type(s) for @=: 'float' and 'float'"))))
 
 (define-macro (py-imatmul-floatX-floatY-inline self866 other867)
   `(let ((self866 ,self866) (other867 ,other867))
      (py-throw
       (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for @: 'float' and 'float'")))))
+               (&& "unsupported operand type(s) for @=: 'float' and 'float'")))))
 
 (define (py-imatmul-floatX-boolY-fallback self869 other870)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'float' and 'bool'"))))
+            (&& "unsupported operand type(s) for @=: 'float' and 'bool'"))))
 
 (define-macro (py-imatmul-floatX-boolY-inline self869 other870)
   `(py-imatmul-floatX-boolY-fallback ,self869 ,other870))
@@ -2601,18 +2601,18 @@
 (define (py-imatmul-floatX-sintY-fallback self872 other873)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'float' and 'int'"))))
+            (&& "unsupported operand type(s) for @=: 'float' and 'int'"))))
 
 (define-macro (py-imatmul-floatX-sintY-inline self872 other873)
   `(let ((self872 ,self872) (other873 ,other873))
      (py-throw
       (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for @: 'float' and 'int'")))))
+               (&& "unsupported operand type(s) for @=: 'float' and 'int'")))))
 
 (define (py-imatmul-floatX-bintY-fallback self875 other876)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'float' and 'int'"))))
+            (&& "unsupported operand type(s) for @=: 'float' and 'int'"))))
 
 (define-macro (py-imatmul-floatX-bintY-inline self875 other876)
   `(py-imatmul-floatX-bintY-fallback ,self875 ,other876))
@@ -2620,7 +2620,7 @@
 (define (py-imatmul-boolX-floatY-fallback self878 other879)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'bool' and 'float'"))))
+            (&& "unsupported operand type(s) for @=: 'bool' and 'float'"))))
 
 (define-macro (py-imatmul-boolX-floatY-inline self878 other879)
   `(py-imatmul-boolX-floatY-fallback ,self878 ,other879))
@@ -2628,7 +2628,7 @@
 (define (py-imatmul-boolX-boolY-fallback self881 other882)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'bool' and 'bool'"))))
+            (&& "unsupported operand type(s) for @=: 'bool' and 'bool'"))))
 
 (define-macro (py-imatmul-boolX-boolY-inline self881 other882)
   `(py-imatmul-boolX-boolY-fallback ,self881 ,other882))
@@ -2636,7 +2636,7 @@
 (define (py-imatmul-boolX-sintY-fallback self884 other885)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'bool' and 'int'"))))
+            (&& "unsupported operand type(s) for @=: 'bool' and 'int'"))))
 
 (define-macro (py-imatmul-boolX-sintY-inline self884 other885)
   `(py-imatmul-boolX-sintY-fallback ,self884 ,other885))
@@ -2644,7 +2644,7 @@
 (define (py-imatmul-boolX-bintY-fallback self887 other888)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'bool' and 'int'"))))
+            (&& "unsupported operand type(s) for @=: 'bool' and 'int'"))))
 
 (define-macro (py-imatmul-boolX-bintY-inline self887 other888)
   `(py-imatmul-boolX-bintY-fallback ,self887 ,other888))
@@ -2652,18 +2652,18 @@
 (define (py-imatmul-sintX-floatY-fallback self890 other891)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'int' and 'float'"))))
+            (&& "unsupported operand type(s) for @=: 'int' and 'float'"))))
 
 (define-macro (py-imatmul-sintX-floatY-inline self890 other891)
   `(let ((self890 ,self890) (other891 ,other891))
      (py-throw
       (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for @: 'int' and 'float'")))))
+               (&& "unsupported operand type(s) for @=: 'int' and 'float'")))))
 
 (define (py-imatmul-sintX-boolY-fallback self893 other894)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'int' and 'bool'"))))
+            (&& "unsupported operand type(s) for @=: 'int' and 'bool'"))))
 
 (define-macro (py-imatmul-sintX-boolY-inline self893 other894)
   `(py-imatmul-sintX-boolY-fallback ,self893 ,other894))
@@ -2671,18 +2671,18 @@
 (define (py-imatmul-sintX-sintY-fallback self896 other897)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'int' and 'int'"))))
+            (&& "unsupported operand type(s) for @=: 'int' and 'int'"))))
 
 (define-macro (py-imatmul-sintX-sintY-inline self896 other897)
   `(let ((self896 ,self896) (other897 ,other897))
      (py-throw
       (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for @: 'int' and 'int'")))))
+               (&& "unsupported operand type(s) for @=: 'int' and 'int'")))))
 
 (define (py-imatmul-sintX-bintY-fallback self899 other900)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'int' and 'int'"))))
+            (&& "unsupported operand type(s) for @=: 'int' and 'int'"))))
 
 (define-macro (py-imatmul-sintX-bintY-inline self899 other900)
   `(py-imatmul-sintX-bintY-fallback ,self899 ,other900))
@@ -2690,7 +2690,7 @@
 (define (py-imatmul-bintX-floatY-fallback self902 other903)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'int' and 'float'"))))
+            (&& "unsupported operand type(s) for @=: 'int' and 'float'"))))
 
 (define-macro (py-imatmul-bintX-floatY-inline self902 other903)
   `(py-imatmul-bintX-floatY-fallback ,self902 ,other903))
@@ -2698,7 +2698,7 @@
 (define (py-imatmul-bintX-boolY-fallback self905 other906)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'int' and 'bool'"))))
+            (&& "unsupported operand type(s) for @=: 'int' and 'bool'"))))
 
 (define-macro (py-imatmul-bintX-boolY-inline self905 other906)
   `(py-imatmul-bintX-boolY-fallback ,self905 ,other906))
@@ -2706,7 +2706,7 @@
 (define (py-imatmul-bintX-sintY-fallback self908 other909)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'int' and 'int'"))))
+            (&& "unsupported operand type(s) for @=: 'int' and 'int'"))))
 
 (define-macro (py-imatmul-bintX-sintY-inline self908 other909)
   `(py-imatmul-bintX-sintY-fallback ,self908 ,other909))
@@ -2714,7 +2714,7 @@
 (define (py-imatmul-bintX-bintY-fallback self911 other912)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'int' and 'int'"))))
+            (&& "unsupported operand type(s) for @=: 'int' and 'int'"))))
 
 (define-macro (py-imatmul-bintX-bintY-inline self911 other912)
   `(py-imatmul-bintX-bintY-fallback ,self911 ,other912))
@@ -3136,18 +3136,18 @@
 (define (py-irshift-floatX-floatY-fallback self1058 other1059)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>: 'float' and 'float'"))))
+            (&& "unsupported operand type(s) for >>=: 'float' and 'float'"))))
 
 (define-macro (py-irshift-floatX-floatY-inline self1058 other1059)
   `(let ((self1058 ,self1058) (other1059 ,other1059))
      (py-throw
       (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for >>: 'float' and 'float'")))))
+               (&& "unsupported operand type(s) for >>=: 'float' and 'float'")))))
 
 (define (py-irshift-floatX-boolY-fallback self1061 other1062)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>: 'float' and 'bool'"))))
+            (&& "unsupported operand type(s) for >>=: 'float' and 'bool'"))))
 
 (define-macro (py-irshift-floatX-boolY-inline self1061 other1062)
   `(py-irshift-floatX-boolY-fallback ,self1061 ,other1062))
@@ -3155,18 +3155,18 @@
 (define (py-irshift-floatX-sintY-fallback self1064 other1065)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>: 'float' and 'int'"))))
+            (&& "unsupported operand type(s) for >>=: 'float' and 'int'"))))
 
 (define-macro (py-irshift-floatX-sintY-inline self1064 other1065)
   `(let ((self1064 ,self1064) (other1065 ,other1065))
      (py-throw
       (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for >>: 'float' and 'int'")))))
+               (&& "unsupported operand type(s) for >>=: 'float' and 'int'")))))
 
 (define (py-irshift-floatX-bintY-fallback self1067 other1068)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>: 'float' and 'int'"))))
+            (&& "unsupported operand type(s) for >>=: 'float' and 'int'"))))
 
 (define-macro (py-irshift-floatX-bintY-inline self1067 other1068)
   `(py-irshift-floatX-bintY-fallback ,self1067 ,other1068))
@@ -3174,7 +3174,7 @@
 (define (py-irshift-boolX-floatY-fallback self1070 other1071)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>: 'bool' and 'float'"))))
+            (&& "unsupported operand type(s) for >>=: 'bool' and 'float'"))))
 
 (define-macro (py-irshift-boolX-floatY-inline self1070 other1071)
   `(py-irshift-boolX-floatY-fallback ,self1070 ,other1071))
@@ -3209,13 +3209,13 @@
 (define (py-irshift-sintX-floatY-fallback self1082 other1083)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>: 'int' and 'float'"))))
+            (&& "unsupported operand type(s) for >>=: 'int' and 'float'"))))
 
 (define-macro (py-irshift-sintX-floatY-inline self1082 other1083)
   `(let ((self1082 ,self1082) (other1083 ,other1083))
      (py-throw
       (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for >>: 'int' and 'float'")))))
+               (&& "unsupported operand type(s) for >>=: 'int' and 'float'")))))
 
 (define (py-irshift-sintX-boolY-fallback self1085 other1086)
   (if (py-test (py-ge other1086 (py-int-from-scheme 0)))
@@ -3252,7 +3252,7 @@
 (define (py-irshift-bintX-floatY-fallback self1094 other1095)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>: 'int' and 'float'"))))
+            (&& "unsupported operand type(s) for >>=: 'int' and 'float'"))))
 
 (define-macro (py-irshift-bintX-floatY-inline self1094 other1095)
   `(py-irshift-bintX-floatY-fallback ,self1094 ,other1095))
@@ -3590,18 +3590,18 @@
 (define (py-ixor-floatX-floatY-fallback self1202 other1203)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^: 'float' and 'float'"))))
+            (&& "unsupported operand type(s) for ^=: 'float' and 'float'"))))
 
 (define-macro (py-ixor-floatX-floatY-inline self1202 other1203)
   `(let ((self1202 ,self1202) (other1203 ,other1203))
      (py-throw
       (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for ^: 'float' and 'float'")))))
+               (&& "unsupported operand type(s) for ^=: 'float' and 'float'")))))
 
 (define (py-ixor-floatX-boolY-fallback self1205 other1206)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^: 'float' and 'bool'"))))
+            (&& "unsupported operand type(s) for ^=: 'float' and 'bool'"))))
 
 (define-macro (py-ixor-floatX-boolY-inline self1205 other1206)
   `(py-ixor-floatX-boolY-fallback ,self1205 ,other1206))
@@ -3609,18 +3609,18 @@
 (define (py-ixor-floatX-sintY-fallback self1208 other1209)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^: 'float' and 'int'"))))
+            (&& "unsupported operand type(s) for ^=: 'float' and 'int'"))))
 
 (define-macro (py-ixor-floatX-sintY-inline self1208 other1209)
   `(let ((self1208 ,self1208) (other1209 ,other1209))
      (py-throw
       (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for ^: 'float' and 'int'")))))
+               (&& "unsupported operand type(s) for ^=: 'float' and 'int'")))))
 
 (define (py-ixor-floatX-bintY-fallback self1211 other1212)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^: 'float' and 'int'"))))
+            (&& "unsupported operand type(s) for ^=: 'float' and 'int'"))))
 
 (define-macro (py-ixor-floatX-bintY-inline self1211 other1212)
   `(py-ixor-floatX-bintY-fallback ,self1211 ,other1212))
@@ -3628,7 +3628,7 @@
 (define (py-ixor-boolX-floatY-fallback self1214 other1215)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^: 'bool' and 'float'"))))
+            (&& "unsupported operand type(s) for ^=: 'bool' and 'float'"))))
 
 (define-macro (py-ixor-boolX-floatY-inline self1214 other1215)
   `(py-ixor-boolX-floatY-fallback ,self1214 ,other1215))
@@ -3656,13 +3656,13 @@
 (define (py-ixor-sintX-floatY-fallback self1226 other1227)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^: 'int' and 'float'"))))
+            (&& "unsupported operand type(s) for ^=: 'int' and 'float'"))))
 
 (define-macro (py-ixor-sintX-floatY-inline self1226 other1227)
   `(let ((self1226 ,self1226) (other1227 ,other1227))
      (py-throw
       (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for ^: 'int' and 'float'")))))
+               (&& "unsupported operand type(s) for ^=: 'int' and 'float'")))))
 
 (define (py-ixor-sintX-boolY-fallback self1229 other1230)
   (py-int-from-scheme
@@ -3690,7 +3690,7 @@
 (define (py-ixor-bintX-floatY-fallback self1238 other1239)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^: 'int' and 'float'"))))
+            (&& "unsupported operand type(s) for ^=: 'int' and 'float'"))))
 
 (define-macro (py-ixor-bintX-floatY-inline self1238 other1239)
   `(py-ixor-bintX-floatY-fallback ,self1238 ,other1239))

@@ -259,12 +259,6 @@
 
            (py-throw ::obj)
 
-           (py-eq x y)
-           (py-ne x y)
-           (py-lt x y)
-           (py-le x y)
-           (py-gt x y)
-           (py-ge x y)
            (py-is x y)
            (py-isnot x y)
            (py-in x y)
