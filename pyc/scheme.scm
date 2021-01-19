@@ -16,8 +16,8 @@
 			  "__stdin"))
 	     ,@(if (config-get conf bootstrap:)
 		   '((import __py_rts
-			__stdlib_zemantics
-      __stdlib_behaviors)
+         __stdlib_zemantics
+         __stdlib_behaviors)
 		     (include "rts-macros.scm"
 			"bigloo/call.sch"
 			"bigloo/constants.sch"))
@@ -273,7 +273,7 @@
              (eq? (PycBinary-op test) 'is))
       (epairify this
         `(if (py-test-is ,(scheme (PycBinary-lhs test) conf)
-                  ,(scheme (PycBinary-rhs test) conf))
+                         ,(scheme (PycBinary-rhs test) conf))
           ,(scheme (PycIf-then this) conf)
           ,(scheme (PycIf-else this) conf)))
       ;; general case
