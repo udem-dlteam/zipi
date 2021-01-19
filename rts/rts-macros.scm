@@ -102,7 +102,7 @@
             (py-int-from-scheme (|##bitwise-and| X Y)) ;; otherwise
             )
       (py+b (py-sint-from-scheme (|##fxior| X Y)) ;; bool/bool or non-ov. sint/sint
-            (py-sint-from-scheme (|##fxand| X Y)) ;; sint/sint
+            (py-sint-from-scheme (|##fxior| X Y)) ;; sint/sint
             (py-int-from-scheme (|##bitwise-ior| X Y)) ;; otherwise
             )
       (py^  (py-sint-from-scheme (|##fxxor| X Y)) ;; bool/bool or non-ov. sint/sint
