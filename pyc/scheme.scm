@@ -268,19 +268,10 @@
 	      ,(scheme (PycLoop-else this) conf))))))
 
 (define-walk-method (scheme this::PycIf conf)
-  (let ((test (PycIf-test this)))
-    (if (and (PycBinary? test)
-             (eq? (PycBinary-op test) 'is))
-      (epairify this
-        `(if (py-test-is ,(scheme (PycBinary-lhs test) conf)
-                         ,(scheme (PycBinary-rhs test) conf))
-          ,(scheme (PycIf-then this) conf)
-          ,(scheme (PycIf-else this) conf)))
-      ;; general case
-      (epairify this
-        `(if ,(pyc-test (PycIf-test this) conf)
-          ,(scheme (PycIf-then this) conf)
-          ,(scheme (PycIf-else this) conf))))))
+  (epairify this
+    `(if ,(pyc-test (PycIf-test this) conf)
+      ,(scheme (PycIf-then this) conf)
+      ,(scheme (PycIf-else this) conf))))
 
 (define-walk-method (scheme this::PycWith conf)
   (define (in-contexts items body)
@@ -1055,19 +1046,10 @@
       	     (py-throw py-builtin-AssertionError))))))
 
 (define-walk-method (scheme this::PycIfExp conf)
-  (let ((test (PycIfExp-test this)))
-    (if (and (PycBinary? test)
-             (eq? (PycBinary-op test) 'is))
-      (epairify this
-       `(if (py-test-is
-                ,(scheme (PycBinary-lhs test) conf)
-                ,(scheme (PycBinary-rhs test) conf))
+  (epairify this
+    `(if (py-test ,(scheme (PycIfExp-test this) conf))
          ,(scheme (PycIfExp-body this) conf)
-         ,(scheme (PycIfExp-orelse this) conf)))
-      (epairify this
-        `(if (py-test ,(scheme (PycIfExp-test this) conf))
-             ,(scheme (PycIfExp-body this) conf)
-             ,(scheme (PycIfExp-orelse this) conf))))))
+         ,(scheme (PycIfExp-orelse this) conf))))
 
 (define-walk-method (scheme this::PycUnimplemented conf)
   `(py-throw-exception-with-message

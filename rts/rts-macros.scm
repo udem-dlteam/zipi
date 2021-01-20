@@ -768,10 +768,18 @@
   (define inplace-ops
     '(iadd ibitand ibitor ifloordiv ilshift imatmul imod imul ipow irshift isub itruediv ixor))
 
+  (define cmp-ops
+    '(eq ne ge gt le lt))
+
+  (define test-cmp-ops
+    '(test-eq test-ne test-ge test-gt test-le test-lt))
+
   (define ops-with-behaviors
     (append
       '(add bitand bitor floordiv lshift matmul mod mul pow rshift sub truediv xor)
-      inplace-ops))
+      inplace-ops
+      cmp-ops
+      test-cmp-ops))
 
   (define (get-behaviors-table-name op)
     (string->symbol (string-append "py-" (symbol->string op) "-behaviors-table")))
@@ -856,7 +864,6 @@
                     (cons
                       behavior-call-with-rhs-index-fallback
                       (loop (cdr ops))))))))))
-
     `(begin
         ,@tables-init-code
         ,@behavior-call-fallbacks)))
@@ -1073,25 +1080,60 @@
   `(py-specialized-binop-dispatch ixor ,x , y))
 
 (define-macro (py-ge x y)
-  `(py-ge-fallback ,x ,y))
+  `(py-specialized-binop-dispatch ge ,x ,y))
 
 (define-macro (py-gt x y)
-  `(py-gt-fallback ,x ,y))
+  `(py-specialized-binop-dispatch gt ,x ,y))
 
 (define-macro (py-le x y)
-  `(py-le-fallback ,x ,y))
+  `(py-specialized-binop-dispatch le ,x ,y))
 
 (define-macro (py-lt x y)
-  `(py-lt-fallback ,x ,y))
+  `(py-specialized-binop-dispatch lt ,x ,y))
 
 (define-macro (py-eq x y)
-  `(py-eq-fallback ,x ,y))
+  `(py-specialized-binop-dispatch eq ,x ,y))
 
 (define-macro (py-ne x y)
-  `(py-ne-fallback ,x ,y))
+  `(py-specialized-binop-dispatch ne ,x ,y))
+
+(define-macro (py-test-ge x y)
+  `(py-specialized-binop-dispatch test-ge ,x ,y))
+
+(define-macro (py-test-gt x y)
+  `(py-specialized-binop-dispatch test-gt ,x ,y))
+
+(define-macro (py-test-le x y)
+  `(py-specialized-binop-dispatch test-le ,x ,y))
+
+(define-macro (py-test-lt x y)
+  `(py-specialized-binop-dispatch test-lt ,x ,y))
+
+(define-macro (py-test-eq x y)
+  `(py-specialized-binop-dispatch test-eq ,x ,y))
+
+(define-macro (py-test-ne x y)
+  `(py-specialized-binop-dispatch test-ne ,x ,y))
+
+(define-macro (py-test-is x y)
+  `(eq? ,x ,y))
 
 (define-macro (py-test x)
-  `(py-test-fallback ,x))
+  (define cmp-operator-test-version
+    '((py-eq py-test-eq)
+      (py-ne py-test-ne)
+      (py-ge py-test-ge)
+      (py-gt py-test-gt)
+      (py-le py-test-le)
+      (py-lt py-test lt)
+      (py-is py-test-is)))
+
+  (if (pair? x)
+    (let ((test-version (assq (car x) cmp-operator-test-version)))
+      (if test-version
+        `(,test-version ,@(cdr x))
+        `(py-test-fallback ,x)))
+    `(py-test-fallback ,x)))
 
 (define-macro (py-getattribute obj attr)
   `(py-getattribute-fallback ,obj ,attr))
@@ -1110,6 +1152,3 @@
 
 (define-macro (py-exit obj exc)
   `(py-exit-fallback ,obj ,exc))
-
-(define-macro (py-test-is x y)
-  `(eq? ,x ,y))
