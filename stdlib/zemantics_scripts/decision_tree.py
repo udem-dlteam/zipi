@@ -105,6 +105,10 @@ def make_compiler_intrinsics_module():
         return f
 
     def define_semantics(f):
+        # TODO: in some cases the semantics has a default behavior (ex: eq) undetected by the mock class_getattr
+        # TODO: to fix we could decorate all sub-semantics to register their call in case no magic_method succeeded
+        # TODO: this will be necessary once we generate behaviors for other types than numbers
+
         if f.__name__ in target_semantics:
             return register_semantics(f.__name__, f)
         else:
