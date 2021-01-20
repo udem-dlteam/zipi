@@ -1215,7 +1215,7 @@
       (py-ge py-test-ge)
       (py-gt py-test-gt)
       (py-le py-test-le)
-      (py-lt py-test lt)
+      (py-lt py-test-lt)
       (py-is py-test-is)))
 
   (if (pair? x)
