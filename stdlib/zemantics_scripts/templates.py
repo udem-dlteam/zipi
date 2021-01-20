@@ -273,7 +273,7 @@ int_binary_method_template = \
     def __{method_name}__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                return int_box(int_unbox(self) {op} int_unbox(other))
+                return py_int_from_host_int(py_int_to_host_int(self) {op} py_int_to_host_int(other))
             else:
                 return NotImplemented
         else:
@@ -285,7 +285,7 @@ int_reflected_binary_method_template = \
     def __r{method_name}__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                return int_box(int_unbox(other) {op} int_unbox(self))
+                return py_int_from_host_int(py_int_to_host_int(other) {op} py_int_to_host_int(self))
             else:
                 return NotImplemented
         else:
@@ -297,7 +297,7 @@ int_inplace_binary_method_template = \
     def __i{method_name}__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                return int_box(int_unbox(self) {op} int_unbox(other))
+                return py_int_from_host_int(py_int_to_host_int(self) {op} py_int_to_host_int(other))
             else:
                 return NotImplemented
         else:
@@ -310,7 +310,7 @@ int_shift_method_template = \
         if isinstance(self, int):
             if isinstance(other, int):
                 if other >= 0:
-                    return int_box(int_unbox(self) {op} int_unbox(other))
+                    return py_int_from_host_int(py_int_to_host_int(self) {op} py_int_to_host_int(other))
                 else:
                     raise ValueError("negative shift count")
             else:
@@ -325,7 +325,7 @@ int_reflected_shift_method_template = \
         if isinstance(self, int):
             if isinstance(other, int):
                 if self >= 0:
-                    return int_box(int_unbox(self) {op} int_unbox(other))
+                    return py_int_from_host_int(py_int_to_host_int(self) {op} py_int_to_host_int(other))
                 else:
                     raise ValueError("negative shift count")
             else:
@@ -340,7 +340,7 @@ int_inplace_shift_method_template = \
         if isinstance(self, int):
             if isinstance(other, int):
                 if other >= 0:
-                    return int_box(int_unbox(self) {op} int_unbox(other))
+                    return py_int_from_host_int(py_int_to_host_int(self) {op} py_int_to_host_int(other))
                 else:
                     raise ValueError("negative shift count")
             else:
@@ -355,7 +355,7 @@ int_division_method_template = \
         if isinstance(self, int):
             if isinstance(other, int):
                 if other != 0:
-                    return {box_method}(int_unbox(self) {op} int_unbox(other))
+                    return {box_method}(py_int_to_host_int(self) {op} py_int_to_host_int(other))
                 else:
                     raise ZeroDivisionError("{error_message}")
             else:
@@ -370,7 +370,7 @@ int_reflected_division_method_template = \
         if isinstance(self, int):
             if isinstance(other, int):
                 if self != 0:
-                    return {box_method}(int_unbox(other) {op} int_unbox(self))
+                    return {box_method}(py_int_to_host_int(other) {op} py_int_to_host_int(self))
                 else:
                     raise ZeroDivisionError("{error_message}")
             else:
@@ -385,7 +385,7 @@ int_inplace_division_method_template = \
         if isinstance(self, int):
             if isinstance(other, int):
                 if other != 0:
-                    return {box_method}(int_unbox(self) {op} int_unbox(other))
+                    return {box_method}(py_int_to_host_int(self) {op} py_int_to_host_int(other))
                 else:
                     raise ZeroDivisionError("{error_message}")
             else:
@@ -403,7 +403,7 @@ class int:
             if val is absent:
                 return 0
             if isinstance(val, int):
-                return int_box(int_unbox(val))
+                return py_int_from_host_int(py_int_to_host_int(val))
             else:
                 raise NotImplementedError
         else:
@@ -427,10 +427,10 @@ int_shift_method_info = {
 }
 
 int_division_method_info = {
-    'floordiv': {"method_name": "floordiv", "box_method": "int_box", "op": "//",
+    'floordiv': {"method_name": "floordiv", "box_method": "py_int_from_host_int", "op": "//",
                  "error_message": "integer division by zero"},
-    'truediv': {"method_name": "truediv", "box_method": "float_box", "op": "/", "error_message": "division by zero"},
-    'mod': {"method_name": "mod", "box_method": "int_box", "op": "%", "error_message": "modulo by zero"}
+    'truediv': {"method_name": "truediv", "box_method": "py_float_from_host_float", "op": "/", "error_message": "division by zero"},
+    'mod': {"method_name": "mod", "box_method": "py_int_from_host_int", "op": "%", "error_message": "modulo by zero"}
 }
 
 # ======================================================================================================================
@@ -445,7 +445,7 @@ bool_binary_method_template = \
             if type(other) is bool:
                 return {bool_expr}
             elif isinstance(other, int):
-                return int_box(int_unbox(self) {int_op} int_unbox(other))
+                return py_int_from_host_int(py_int_to_host_int(self) {int_op} py_int_to_host_int(other))
             else:
                 return NotImplemented
         else:
@@ -459,7 +459,7 @@ bool_reflected_binary_method_template = \
             if type(other) is bool:
                 return {bool_expr}
             elif isinstance(other, int):
-                return int_box(int_unbox(other) {int_op} int_unbox(self))
+                return py_int_from_host_int(py_int_to_host_int(other) {int_op} py_int_to_host_int(self))
             else:
                 return NotImplemented
         else:
@@ -503,9 +503,9 @@ float_binary_method_template = \
     def __{method_name}__(self, other):
         if isinstance(self, float):
             if isinstance(other, float):
-                return float_box(float_unbox(self) {op} float_unbox(other))
+                return py_float_from_host_float(py_float_to_host_float(self) {op} py_float_to_host_float(other))
             elif isinstance(other, int):
-                return float_box(float_unbox(self) {op} int_unbox(other))
+                return py_float_from_host_float(py_float_to_host_float(self) {op} py_int_to_host_int(other))
             else:
                 return NotImplemented
         else:
@@ -517,9 +517,9 @@ float_reflected_binary_method_template = \
     def __r{method_name}__(self, other):
         if isinstance(self, float):
             if isinstance(other, float):
-                return float_box(float_unbox(other) {op} float_unbox(self))
+                return py_float_from_host_float(py_float_to_host_float(other) {op} py_float_to_host_float(self))
             elif isinstance(other, int):
-                return float_box(int_unbox(other) {op} float_unbox(self))
+                return py_float_from_host_float(py_int_to_host_int(other) {op} py_float_to_host_float(self))
             else:
                 return NotImplemented
         else:
@@ -531,9 +531,9 @@ float_inplace_binary_method_template = \
     def __i{method_name}__(self, other):
         if isinstance(self, float):
             if isinstance(other, float):
-                return float_box(float_unbox(self) {op} float_unbox(other))
+                return py_float_from_host_float(py_float_to_host_float(self) {op} py_float_to_host_float(other))
             elif isinstance(self, int):
-                return float_box(float_unbox(self) {op} int_unbox(other))
+                return py_float_from_host_float(py_float_to_host_float(self) {op} py_int_to_host_int(other))
             else:
                 return NotImplemented
         else:
@@ -546,12 +546,12 @@ float_division_method_template = \
         if isinstance(self, float):
             if isinstance(other, float):
                 if other != 0.0:
-                    return float_box(float_unbox(self) {op} float_unbox(other))
+                    return py_float_from_host_float(py_float_to_host_float(self) {op} py_float_to_host_float(other))
                 else:
                     raise ZeroDivisionError("{error_message}")
             elif isinstance(other, int):
                 if other != 0:
-                    return float_box(float_unbox(self) {op} int_unbox(other))
+                    return py_float_from_host_float(py_float_to_host_float(self) {op} py_int_to_host_int(other))
                 else:
                     raise ZeroDivisionError("{error_message}")
             else:
@@ -566,12 +566,12 @@ float_reflected_division_method_template = \
         if isinstance(self, float):
             if isinstance(other, float):
                 if self != 0.0:
-                    return float_box(float_unbox(other) {op} float_unbox(self))
+                    return py_float_from_host_float(py_float_to_host_float(other) {op} py_float_to_host_float(self))
                 else:
                     raise ZeroDivisionError("{error_message}")
             elif isinstance(other, int):
                 if self != 0.0:
-                    return float_box(int_unbox(other) {op} float_unbox(self))
+                    return py_float_from_host_float(py_int_to_host_int(other) {op} py_float_to_host_float(self))
                 else:
                     raise ZeroDivisionError("{error_message}")
             else:
@@ -586,12 +586,12 @@ float_inplace_division_method_template = \
         if isinstance(self, float):
             if isinstance(other, float):
                 if other != 0.0:
-                    return float_box(float_unbox(self) {op} float_unbox(other))
+                    return py_float_from_host_float(py_float_to_host_float(self) {op} py_float_to_host_float(other))
                 else:
                     raise ZeroDivisionError("{error_message}")
             elif isinstance(other, int):
                 if other != 0:
-                    return float_box(float_unbox(self) {op} int_unbox(other))
+                    return py_float_from_host_float(py_float_to_host_float(self) {op} py_int_to_host_int(other))
                 else:
                     raise ZeroDivisionError("{error_message}")
             else:
@@ -609,7 +609,7 @@ class float:
             if val is absent:
                 return 0.0
             if isinstance(val, float):
-                return float_box(float_unbox(val))
+                return py_float_from_host_float(py_float_to_host_float(val))
             else:
                 raise NotImplementedError
         else:
@@ -635,6 +635,6 @@ float_division_method_info = {
 # =====================================================================================================================
 
 
-builtins_template = """from __compiler_intrinsics__ import absent, builtin_class, int_box, int_unbox, float_box, float_unbox
+builtins_template = """from __compiler_intrinsics__ import absent, builtin_class, py_int_from_host_int, py_int_to_host_int, py_float_from_host_float, py_float_to_host_float
 
 {definitions}"""

@@ -111,13 +111,13 @@
   (list
     (cons 'class_getattr make-class_getattr)
     (cons 'call_host make-call_host)
-    (cons 'float_unbox (make-pragma-call-maker 'py-float-to-scheme))
-    (cons 'float_box (make-pragma-call-maker 'py-float-from-scheme))
-    (cons 'int_box (make-pragma-call-maker 'py-int-from-scheme))
-    (cons 'int_unbox (make-pragma-call-maker 'py-int-to-scheme))
-    (cons 'bool_unbox (make-pragma-call-maker 'py-bool-to-scheme))
-    (cons 'sint_unbox (make-pragma-call-maker 'py-sint-to-scheme))
-    (cons 'bint_unbox (make-pragma-call-maker 'py-bint-to-scheme))))
+    (cons 'py_float_to_host_float (make-pragma-call-maker 'py-float-to-scheme))
+    (cons 'py_float_from_host_float (make-pragma-call-maker 'py-float-from-scheme))
+    (cons 'py_int_from_host_int (make-pragma-call-maker 'py-int-from-scheme))
+    (cons 'py_int_to_host_int (make-pragma-call-maker 'py-int-to-scheme))
+    (cons 'py_bool_to_host_int (make-pragma-call-maker 'py-bool-to-scheme))
+    (cons 'py_sint_to_host_sint (make-pragma-call-maker 'py-sint-to-scheme))
+    (cons 'py_bint_to_host_bint (make-pragma-call-maker 'py-bint-to-scheme))))
 
 (define static-intrinsics
   (list
