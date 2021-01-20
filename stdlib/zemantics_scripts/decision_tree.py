@@ -51,10 +51,16 @@ class Procedure:
 
     @property
     def is_reflected_magic_method(self):
-        method_name = self.method.__qualname__
-
         # TODO: slightly hacky, but does the job for now
-        return method_name.split('.')[1].startswith("__r") and "__rshift__" not in method_name
+        method_args = self.method_args
+        semantics_args = self.semantics_args
+
+        # reflected method call are detected by the reversal of arguments
+        # we must use 'is' because == is True for 1 and 1.0
+        # it is okay to use 'is' because arguments come from the 'instances' global list
+        # this may not work under other implementations than cPython
+        return all(x is y for x, y in zip(method_args, reversed(semantics_args))) \
+               and not any(x is y for x, y in zip(method_args, semantics_args))
 
 
 class Error:
@@ -609,7 +615,7 @@ types += int_specialized_types
 types_without_int = [t for t in types if t != 'int']
 
 # Semantics which should be converted to behaviors
-target_semantics = [*templates.arithmetic_info, *templates.inplace_arithmetic_info]
+target_semantics = [*templates.arithmetic_info, *templates.inplace_arithmetic_info, *templates.comparison_info]
 
 
 if __name__ == '__main__':
