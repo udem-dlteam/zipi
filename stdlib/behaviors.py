@@ -2944,3 +2944,291 @@ def py_lt_bintX_bintY(self: bint, other: bint):
 def py_test_lt_bintX_bintY(self: bint, other: bint):
     return py_bint_to_host_bint(self) < py_bint_to_host_bint(other)
 
+@define_behavior
+def py_eq_floatX_floatY(self: float, other: float):
+    return py_bool_from_host_bool(py_float_to_host_float(self) ==
+        py_float_to_host_float(other))
+
+@define_behavior
+def py_test_eq_floatX_floatY(self: float, other: float):
+    return py_float_to_host_float(self) == py_float_to_host_float(other)
+
+@define_behavior
+def py_eq_floatX_boolY(self: float, other: bool):
+    return py_bool_from_host_bool(py_float_to_host_float(self) ==
+        py_bool_to_host_int(other))
+
+@define_behavior
+def py_test_eq_floatX_boolY(self: float, other: bool):
+    return py_float_to_host_float(self) == py_bool_to_host_int(other)
+
+@define_behavior
+def py_eq_floatX_sintY(self: float, other: sint):
+    return py_bool_from_host_bool(py_float_to_host_float(self) ==
+        py_sint_to_host_sint(other))
+
+@define_behavior
+def py_test_eq_floatX_sintY(self: float, other: sint):
+    return py_float_to_host_float(self) == py_sint_to_host_sint(other)
+
+@define_behavior
+def py_eq_floatX_bintY(self: float, other: bint):
+    return py_bool_from_host_bool(py_float_to_host_float(self) ==
+        py_bint_to_host_bint(other))
+
+@define_behavior
+def py_test_eq_floatX_bintY(self: float, other: bint):
+    return py_float_to_host_float(self) == py_bint_to_host_bint(other)
+
+@define_behavior
+def py_eq_boolX_floatY(other: bool, self: float):
+    return py_bool_from_host_bool(py_float_to_host_float(self) ==
+        py_bool_to_host_int(other))
+
+@define_behavior
+def py_test_eq_boolX_floatY(other: bool, self: float):
+    return py_float_to_host_float(self) == py_bool_to_host_int(other)
+
+@define_behavior
+def py_eq_boolX_boolY(self: bool, other: bool):
+    return py_bool_from_host_bool(py_bool_to_host_int(self) ==
+        py_bool_to_host_int(other))
+
+@define_behavior
+def py_test_eq_boolX_boolY(self: bool, other: bool):
+    return py_bool_to_host_int(self) == py_bool_to_host_int(other)
+
+@define_behavior
+def py_eq_boolX_sintY(self: bool, other: sint):
+    return py_bool_from_host_bool(py_bool_to_host_int(self) ==
+        py_sint_to_host_sint(other))
+
+@define_behavior
+def py_test_eq_boolX_sintY(self: bool, other: sint):
+    return py_bool_to_host_int(self) == py_sint_to_host_sint(other)
+
+@define_behavior
+def py_eq_boolX_bintY(self: bool, other: bint):
+    return py_bool_from_host_bool(py_bool_to_host_int(self) ==
+        py_bint_to_host_bint(other))
+
+@define_behavior
+def py_test_eq_boolX_bintY(self: bool, other: bint):
+    return py_bool_to_host_int(self) == py_bint_to_host_bint(other)
+
+@define_behavior
+def py_eq_sintX_floatY(other: sint, self: float):
+    return py_bool_from_host_bool(py_float_to_host_float(self) ==
+        py_sint_to_host_sint(other))
+
+@define_behavior
+def py_test_eq_sintX_floatY(other: sint, self: float):
+    return py_float_to_host_float(self) == py_sint_to_host_sint(other)
+
+@define_behavior
+def py_eq_sintX_boolY(self: sint, other: bool):
+    return py_bool_from_host_bool(py_sint_to_host_sint(self) ==
+        py_bool_to_host_int(other))
+
+@define_behavior
+def py_test_eq_sintX_boolY(self: sint, other: bool):
+    return py_sint_to_host_sint(self) == py_bool_to_host_int(other)
+
+@define_behavior
+def py_eq_sintX_sintY(self: sint, other: sint):
+    return py_bool_from_host_bool(py_sint_to_host_sint(self) ==
+        py_sint_to_host_sint(other))
+
+@define_behavior
+def py_test_eq_sintX_sintY(self: sint, other: sint):
+    return py_sint_to_host_sint(self) == py_sint_to_host_sint(other)
+
+@define_behavior
+def py_eq_sintX_bintY(self: sint, other: bint):
+    return py_bool_from_host_bool(py_sint_to_host_sint(self) ==
+        py_bint_to_host_bint(other))
+
+@define_behavior
+def py_test_eq_sintX_bintY(self: sint, other: bint):
+    return py_sint_to_host_sint(self) == py_bint_to_host_bint(other)
+
+@define_behavior
+def py_eq_bintX_floatY(other: bint, self: float):
+    return py_bool_from_host_bool(py_float_to_host_float(self) ==
+        py_bint_to_host_bint(other))
+
+@define_behavior
+def py_test_eq_bintX_floatY(other: bint, self: float):
+    return py_float_to_host_float(self) == py_bint_to_host_bint(other)
+
+@define_behavior
+def py_eq_bintX_boolY(self: bint, other: bool):
+    return py_bool_from_host_bool(py_bint_to_host_bint(self) ==
+        py_bool_to_host_int(other))
+
+@define_behavior
+def py_test_eq_bintX_boolY(self: bint, other: bool):
+    return py_bint_to_host_bint(self) == py_bool_to_host_int(other)
+
+@define_behavior
+def py_eq_bintX_sintY(self: bint, other: sint):
+    return py_bool_from_host_bool(py_bint_to_host_bint(self) ==
+        py_sint_to_host_sint(other))
+
+@define_behavior
+def py_test_eq_bintX_sintY(self: bint, other: sint):
+    return py_bint_to_host_bint(self) == py_sint_to_host_sint(other)
+
+@define_behavior
+def py_eq_bintX_bintY(self: bint, other: bint):
+    return py_bool_from_host_bool(py_bint_to_host_bint(self) ==
+        py_bint_to_host_bint(other))
+
+@define_behavior
+def py_test_eq_bintX_bintY(self: bint, other: bint):
+    return py_bint_to_host_bint(self) == py_bint_to_host_bint(other)
+
+@define_behavior
+def py_ne_floatX_floatY(self: float, other: float):
+    return py_bool_from_host_bool(py_float_to_host_float(self) !=
+        py_float_to_host_float(other))
+
+@define_behavior
+def py_test_ne_floatX_floatY(self: float, other: float):
+    return py_float_to_host_float(self) != py_float_to_host_float(other)
+
+@define_behavior
+def py_ne_floatX_boolY(self: float, other: bool):
+    return py_bool_from_host_bool(py_float_to_host_float(self) !=
+        py_bool_to_host_int(other))
+
+@define_behavior
+def py_test_ne_floatX_boolY(self: float, other: bool):
+    return py_float_to_host_float(self) != py_bool_to_host_int(other)
+
+@define_behavior
+def py_ne_floatX_sintY(self: float, other: sint):
+    return py_bool_from_host_bool(py_float_to_host_float(self) !=
+        py_sint_to_host_sint(other))
+
+@define_behavior
+def py_test_ne_floatX_sintY(self: float, other: sint):
+    return py_float_to_host_float(self) != py_sint_to_host_sint(other)
+
+@define_behavior
+def py_ne_floatX_bintY(self: float, other: bint):
+    return py_bool_from_host_bool(py_float_to_host_float(self) !=
+        py_bint_to_host_bint(other))
+
+@define_behavior
+def py_test_ne_floatX_bintY(self: float, other: bint):
+    return py_float_to_host_float(self) != py_bint_to_host_bint(other)
+
+@define_behavior
+def py_ne_boolX_floatY(other: bool, self: float):
+    return py_bool_from_host_bool(py_float_to_host_float(self) !=
+        py_bool_to_host_int(other))
+
+@define_behavior
+def py_test_ne_boolX_floatY(other: bool, self: float):
+    return py_float_to_host_float(self) != py_bool_to_host_int(other)
+
+@define_behavior
+def py_ne_boolX_boolY(self: bool, other: bool):
+    return py_bool_from_host_bool(py_bool_to_host_int(self) !=
+        py_bool_to_host_int(other))
+
+@define_behavior
+def py_test_ne_boolX_boolY(self: bool, other: bool):
+    return py_bool_to_host_int(self) != py_bool_to_host_int(other)
+
+@define_behavior
+def py_ne_boolX_sintY(self: bool, other: sint):
+    return py_bool_from_host_bool(py_bool_to_host_int(self) !=
+        py_sint_to_host_sint(other))
+
+@define_behavior
+def py_test_ne_boolX_sintY(self: bool, other: sint):
+    return py_bool_to_host_int(self) != py_sint_to_host_sint(other)
+
+@define_behavior
+def py_ne_boolX_bintY(self: bool, other: bint):
+    return py_bool_from_host_bool(py_bool_to_host_int(self) !=
+        py_bint_to_host_bint(other))
+
+@define_behavior
+def py_test_ne_boolX_bintY(self: bool, other: bint):
+    return py_bool_to_host_int(self) != py_bint_to_host_bint(other)
+
+@define_behavior
+def py_ne_sintX_floatY(other: sint, self: float):
+    return py_bool_from_host_bool(py_float_to_host_float(self) !=
+        py_sint_to_host_sint(other))
+
+@define_behavior
+def py_test_ne_sintX_floatY(other: sint, self: float):
+    return py_float_to_host_float(self) != py_sint_to_host_sint(other)
+
+@define_behavior
+def py_ne_sintX_boolY(self: sint, other: bool):
+    return py_bool_from_host_bool(py_sint_to_host_sint(self) !=
+        py_bool_to_host_int(other))
+
+@define_behavior
+def py_test_ne_sintX_boolY(self: sint, other: bool):
+    return py_sint_to_host_sint(self) != py_bool_to_host_int(other)
+
+@define_behavior
+def py_ne_sintX_sintY(self: sint, other: sint):
+    return py_bool_from_host_bool(py_sint_to_host_sint(self) !=
+        py_sint_to_host_sint(other))
+
+@define_behavior
+def py_test_ne_sintX_sintY(self: sint, other: sint):
+    return py_sint_to_host_sint(self) != py_sint_to_host_sint(other)
+
+@define_behavior
+def py_ne_sintX_bintY(self: sint, other: bint):
+    return py_bool_from_host_bool(py_sint_to_host_sint(self) !=
+        py_bint_to_host_bint(other))
+
+@define_behavior
+def py_test_ne_sintX_bintY(self: sint, other: bint):
+    return py_sint_to_host_sint(self) != py_bint_to_host_bint(other)
+
+@define_behavior
+def py_ne_bintX_floatY(other: bint, self: float):
+    return py_bool_from_host_bool(py_float_to_host_float(self) !=
+        py_bint_to_host_bint(other))
+
+@define_behavior
+def py_test_ne_bintX_floatY(other: bint, self: float):
+    return py_float_to_host_float(self) != py_bint_to_host_bint(other)
+
+@define_behavior
+def py_ne_bintX_boolY(self: bint, other: bool):
+    return py_bool_from_host_bool(py_bint_to_host_bint(self) !=
+        py_bool_to_host_int(other))
+
+@define_behavior
+def py_test_ne_bintX_boolY(self: bint, other: bool):
+    return py_bint_to_host_bint(self) != py_bool_to_host_int(other)
+
+@define_behavior
+def py_ne_bintX_sintY(self: bint, other: sint):
+    return py_bool_from_host_bool(py_bint_to_host_bint(self) !=
+        py_sint_to_host_sint(other))
+
+@define_behavior
+def py_test_ne_bintX_sintY(self: bint, other: sint):
+    return py_bint_to_host_bint(self) != py_sint_to_host_sint(other)
+
+@define_behavior
+def py_ne_bintX_bintY(self: bint, other: bint):
+    return py_bool_from_host_bool(py_bint_to_host_bint(self) !=
+        py_bint_to_host_bint(other))
+
+@define_behavior
+def py_test_ne_bintX_bintY(self: bint, other: bint):
+    return py_bint_to_host_bint(self) != py_bint_to_host_bint(other)
+

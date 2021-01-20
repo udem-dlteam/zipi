@@ -669,7 +669,8 @@ types += int_specialized_types
 types_without_int = [t for t in types if t != 'int']
 
 # Semantics which should be converted to behaviors
-target_semantics = [*templates.arithmetic_info, *templates.inplace_arithmetic_info, *templates.comparison_info]
+target_semantics = [*templates.arithmetic_info, *templates.inplace_arithmetic_info,
+                    *templates.comparison_info, *templates.equality_info]
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Generate zipi decision tree and behavior functions")

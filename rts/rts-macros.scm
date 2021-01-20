@@ -478,7 +478,6 @@
       ((equal? types '(float sint)) (cadddr ops))
       (else (list-ref ops 4))))
 
-
   (define host (cond-expand (gambit 'gambit) (bigloo 'bigloo)))
 
   (define (type operand)
