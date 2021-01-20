@@ -37,6 +37,9 @@
 (define-macro (py-bool-to-scheme arg)
   `(py-strict-subtype-of-int-to-scheme ,arg)) ;; a bool is an int with value 0 or 1
 
+(define-macro (py-bool-from-scheme-bool arg)
+  `(if ,arg py-True py-False))
+
 (define-macro (py-sint-to-scheme arg)
   `(py-if-specialized-sint-representation
     ,arg
@@ -427,6 +430,93 @@
              (fallback arg)))))
        (else
         (fallback arg))))
+
+(define-macro (py-test-from-scheme arg)
+  (define comparison-operators-gambit
+    '((py== (|##fx=| X Y) ;; sint-sint
+            (|##fl=| X Y) ;; float-float
+            (|##=2| X Y) ;; sint-float
+            (|##=2| X Y) ;; float-sint
+            (|##=2| X Y) ;; otherwise
+            )
+      (py!= (##not (|##fx=| X Y)) ;; sint-sint
+            (##not (|##fl=| X Y)) ;; float-float
+            (##not (|##=2| X Y)) ;; sint-float
+            (##not (|##=2| X Y)) ;; float-sint
+            (##not (|##=2| X Y)) ;; otherwise
+            )
+      (py>= (|##fx>=| X Y) ;; sint-sint
+            (|##fl>=| X Y) ;; float-float
+            (|##>=2| X Y) ;; sint-float
+            (|##>=2| X Y) ;; float-sint
+            (|##>=2| X Y) ;; otherwise
+            )
+      (py>  (|##fx>| X Y) ;; sint-sint
+            (|##fl>| X Y) ;; float-float
+            (|##>2| X Y) ;; sint-float
+            (|##>2| X Y) ;; float-sint
+            (|##>2| X Y) ;; otherwise
+            )
+      (py<= (|##fx<=| X Y) ;; sint-sint
+            (|##fl<=| X Y) ;; float-float
+            (|##<=2| X Y) ;; sint-float
+            (|##<=2| X Y) ;; float-sint
+            (|##<=2| X Y) ;; otherwise
+            )
+      (py<  (|##fx<| X Y) ;; sint-sint
+            (|##fl<| X Y) ;; float-float
+            (|##<2| X Y) ;; sint-float
+            (|##<2| X Y) ;; float-sint
+            (|##<2| X Y) ;; otherwise
+            )))
+
+  (define (dispatch-operator ops types)
+    (cond
+      ((equal? types '(sint sint)) (car ops))
+      ((equal? types '(float float)) (cadr ops))
+      ((equal? types '(sint float)) (caddr ops))
+      ((equal? types '(float sint)) (cadddr ops))
+      (else (list-ref ops 4))))
+
+
+  (define host (cond-expand (gambit 'gambit) (bigloo 'bigloo)))
+
+  (define (type operand)
+    (and (pair? operand)
+         (let ((x (assq (car operand)
+                         '((py-bool-to-scheme bool)
+                           (py-sint-to-scheme sint)
+                           (py-bint-to-scheme bint)
+                           (py-int-to-scheme  int)))))
+           (and x (cadr x)))))
+
+  (define (bool? t) (eq? t 'bool))
+  (define (bool-or-sint? t) (or (eq? t 'bool) (eq? t 'sint)))
+
+  (define (all? pred lst)
+    (not (member #f (map pred lst))))
+
+  (define (fallback arg)
+    `(py-test-fallback ,arg))
+
+  (cond
+    ((pair? arg)
+      (let* ((operator (car arg))
+             (operands (cdr arg))
+             (operand-types (map type operands)))
+        (cond ((assq operator
+                      (case host
+                        ((gambit) comparison-operators-gambit)
+                        ((bigloo) comparison-operators-bigloo)))
+                =>
+                (lambda (entry)
+                  `(let* ((X ,(car operands))
+                          (Y ,(cadr operands)))
+                     ,(dispatch-operator entry operand-types))))
+              (else (fallback arg)))))
+    (else
+      ;; scheme value should be tested as is
+      ,arg)))
 
 (define-macro (py-specialized-sint-float-dispatch-let name obj int float other)
   `(let ((,name ,obj))
@@ -1131,7 +1221,7 @@
   (if (pair? x)
     (let ((test-version (assq (car x) cmp-operator-test-version)))
       (if test-version
-        `(,test-version ,@(cdr x))
+        `(,(cadr test-version) ,@(cdr x))
         `(py-test-fallback ,x)))
     `(py-test-fallback ,x)))
 
