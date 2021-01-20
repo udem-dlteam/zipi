@@ -273,7 +273,7 @@
            py-False
            py-NotImplemented
 
-           (py-test obj)
+           (py-test-fallback obj)
 
            py-object-class
            py-module-class

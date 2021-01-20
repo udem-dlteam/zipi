@@ -687,15 +687,21 @@
       (irshift . py>>)
       (isub . py-)
       (itruediv . py/)
-      (ixor . py^)
-      ;; comparisons
-      (eq . py==)
+      (ixor . py^)))
+  (let ((res (assq op ops)))
+    (and res (cdr res))))
+
+
+(define (dispatch-native-cmp-operator op)
+  (define ops
+    `((eq . py==)
       (ne . py!=)
       (ge . py>=)
       (gt . py>)
       (le . py<=)
       (lt . py<)))
-  (cdr (assq op ops)))
+  (let ((res (assq op ops)))
+    (and res (cdr res))))
 
 
 (define-walk-method (scheme this::PycBinary conf)
@@ -709,9 +715,15 @@
 
   (define (scheme-op)
     (epairify this
-      `(,(dispatch-native-operator (PycBinary-op this))
-        ,(scheme (PycBinary-lhs this) conf)
-        ,(scheme (PycBinary-rhs this) conf))))
+      (let ((op (dispatch-native-operator (PycBinary-op this))))
+        (if op
+          `(,op
+            ,(scheme (PycBinary-lhs this) conf)
+            ,(scheme (PycBinary-rhs this) conf))
+          `(py-test-from-scheme
+              (,(dispatch-native-cmp-operator (PycBinary-op this))
+              ,(scheme (PycBinary-lhs this) conf)
+              ,(scheme (PycBinary-rhs this) conf)))))))
 
   (let ((lhs-type-hint (PycBinary-lhs-type-hint this))
         (rhs-type-hint (PycBinary-rhs-type-hint this)))

@@ -1090,6 +1090,9 @@
 (define-macro (py-ne x y)
   `(py-ne-fallback ,x ,y))
 
+(define-macro (py-test x)
+  `(py-test-fallback ,x))
+
 (define-macro (py-getattribute obj attr)
   `(py-getattribute-fallback ,obj ,attr))
 

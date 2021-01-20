@@ -3718,880 +3718,1040 @@
 
 (define (py-ge-floatX-floatY-fallback self1250 other1251)
   (py-bool-from-scheme-bool
-   (py>= (py-float-to-scheme self1250) (py-float-to-scheme other1251))))
+   (py-test-from-scheme
+    (py>= (py-float-to-scheme self1250) (py-float-to-scheme other1251)))))
 
 (define-macro (py-ge-floatX-floatY-inline self1250 other1251)
   `(let ((self1250 ,self1250) (other1251 ,other1251))
      (py-bool-from-scheme-bool
-      (py>= (py-float-to-scheme self1250) (py-float-to-scheme other1251)))))
+      (py-test-from-scheme
+       (py>= (py-float-to-scheme self1250) (py-float-to-scheme other1251))))))
 
 (define (py-test-ge-floatX-floatY-fallback self1253 other1254)
-  (py>= (py-float-to-scheme self1253) (py-float-to-scheme other1254)))
+  (py-test-from-scheme
+   (py>= (py-float-to-scheme self1253) (py-float-to-scheme other1254))))
 
 (define-macro (py-test-ge-floatX-floatY-inline self1253 other1254)
   `(let ((self1253 ,self1253) (other1254 ,other1254))
-     (py>= (py-float-to-scheme self1253) (py-float-to-scheme other1254))))
+     (py-test-from-scheme
+      (py>= (py-float-to-scheme self1253) (py-float-to-scheme other1254)))))
 
 (define (py-ge-floatX-boolY-fallback self1256 other1257)
   (py-bool-from-scheme-bool
-   (py>= (py-float-to-scheme self1256) (py-bool-to-scheme other1257))))
+   (py-test-from-scheme
+    (py>= (py-float-to-scheme self1256) (py-bool-to-scheme other1257)))))
 
 (define-macro (py-ge-floatX-boolY-inline self1256 other1257)
   `(py-ge-floatX-boolY-fallback ,self1256 ,other1257))
 
 (define (py-test-ge-floatX-boolY-fallback self1259 other1260)
-  (py>= (py-float-to-scheme self1259) (py-bool-to-scheme other1260)))
+  (py-test-from-scheme
+   (py>= (py-float-to-scheme self1259) (py-bool-to-scheme other1260))))
 
 (define-macro (py-test-ge-floatX-boolY-inline self1259 other1260)
   `(py-test-ge-floatX-boolY-fallback ,self1259 ,other1260))
 
 (define (py-ge-floatX-sintY-fallback self1262 other1263)
   (py-bool-from-scheme-bool
-   (py>= (py-float-to-scheme self1262) (py-sint-to-scheme other1263))))
+   (py-test-from-scheme
+    (py>= (py-float-to-scheme self1262) (py-sint-to-scheme other1263)))))
 
 (define-macro (py-ge-floatX-sintY-inline self1262 other1263)
   `(let ((self1262 ,self1262) (other1263 ,other1263))
      (py-bool-from-scheme-bool
-      (py>= (py-float-to-scheme self1262) (py-sint-to-scheme other1263)))))
+      (py-test-from-scheme
+       (py>= (py-float-to-scheme self1262) (py-sint-to-scheme other1263))))))
 
 (define (py-test-ge-floatX-sintY-fallback self1265 other1266)
-  (py>= (py-float-to-scheme self1265) (py-sint-to-scheme other1266)))
+  (py-test-from-scheme
+   (py>= (py-float-to-scheme self1265) (py-sint-to-scheme other1266))))
 
 (define-macro (py-test-ge-floatX-sintY-inline self1265 other1266)
   `(let ((self1265 ,self1265) (other1266 ,other1266))
-     (py>= (py-float-to-scheme self1265) (py-sint-to-scheme other1266))))
+     (py-test-from-scheme
+      (py>= (py-float-to-scheme self1265) (py-sint-to-scheme other1266)))))
 
 (define (py-ge-floatX-bintY-fallback self1268 other1269)
   (py-bool-from-scheme-bool
-   (py>= (py-float-to-scheme self1268) (py-bint-to-scheme other1269))))
+   (py-test-from-scheme
+    (py>= (py-float-to-scheme self1268) (py-bint-to-scheme other1269)))))
 
 (define-macro (py-ge-floatX-bintY-inline self1268 other1269)
   `(py-ge-floatX-bintY-fallback ,self1268 ,other1269))
 
 (define (py-test-ge-floatX-bintY-fallback self1271 other1272)
-  (py>= (py-float-to-scheme self1271) (py-bint-to-scheme other1272)))
+  (py-test-from-scheme
+   (py>= (py-float-to-scheme self1271) (py-bint-to-scheme other1272))))
 
 (define-macro (py-test-ge-floatX-bintY-inline self1271 other1272)
   `(py-test-ge-floatX-bintY-fallback ,self1271 ,other1272))
 
 (define (py-ge-boolX-floatY-fallback other1274 self1275)
   (py-bool-from-scheme-bool
-   (py<= (py-float-to-scheme self1275) (py-bool-to-scheme other1274))))
+   (py-test-from-scheme
+    (py<= (py-float-to-scheme self1275) (py-bool-to-scheme other1274)))))
 
 (define-macro (py-ge-boolX-floatY-inline other1274 self1275)
   `(py-ge-boolX-floatY-fallback ,other1274 ,self1275))
 
 (define (py-test-ge-boolX-floatY-fallback other1277 self1278)
-  (py<= (py-float-to-scheme self1278) (py-bool-to-scheme other1277)))
+  (py-test-from-scheme
+   (py<= (py-float-to-scheme self1278) (py-bool-to-scheme other1277))))
 
 (define-macro (py-test-ge-boolX-floatY-inline other1277 self1278)
   `(py-test-ge-boolX-floatY-fallback ,other1277 ,self1278))
 
 (define (py-ge-boolX-boolY-fallback self1280 other1281)
   (py-bool-from-scheme-bool
-   (py>= (py-bool-to-scheme self1280) (py-bool-to-scheme other1281))))
+   (py-test-from-scheme
+    (py>= (py-bool-to-scheme self1280) (py-bool-to-scheme other1281)))))
 
 (define-macro (py-ge-boolX-boolY-inline self1280 other1281)
   `(py-ge-boolX-boolY-fallback ,self1280 ,other1281))
 
 (define (py-test-ge-boolX-boolY-fallback self1283 other1284)
-  (py>= (py-bool-to-scheme self1283) (py-bool-to-scheme other1284)))
+  (py-test-from-scheme
+   (py>= (py-bool-to-scheme self1283) (py-bool-to-scheme other1284))))
 
 (define-macro (py-test-ge-boolX-boolY-inline self1283 other1284)
   `(py-test-ge-boolX-boolY-fallback ,self1283 ,other1284))
 
 (define (py-ge-boolX-sintY-fallback self1286 other1287)
   (py-bool-from-scheme-bool
-   (py>= (py-bool-to-scheme self1286) (py-sint-to-scheme other1287))))
+   (py-test-from-scheme
+    (py>= (py-bool-to-scheme self1286) (py-sint-to-scheme other1287)))))
 
 (define-macro (py-ge-boolX-sintY-inline self1286 other1287)
   `(py-ge-boolX-sintY-fallback ,self1286 ,other1287))
 
 (define (py-test-ge-boolX-sintY-fallback self1289 other1290)
-  (py>= (py-bool-to-scheme self1289) (py-sint-to-scheme other1290)))
+  (py-test-from-scheme
+   (py>= (py-bool-to-scheme self1289) (py-sint-to-scheme other1290))))
 
 (define-macro (py-test-ge-boolX-sintY-inline self1289 other1290)
   `(py-test-ge-boolX-sintY-fallback ,self1289 ,other1290))
 
 (define (py-ge-boolX-bintY-fallback self1292 other1293)
   (py-bool-from-scheme-bool
-   (py>= (py-bool-to-scheme self1292) (py-bint-to-scheme other1293))))
+   (py-test-from-scheme
+    (py>= (py-bool-to-scheme self1292) (py-bint-to-scheme other1293)))))
 
 (define-macro (py-ge-boolX-bintY-inline self1292 other1293)
   `(py-ge-boolX-bintY-fallback ,self1292 ,other1293))
 
 (define (py-test-ge-boolX-bintY-fallback self1295 other1296)
-  (py>= (py-bool-to-scheme self1295) (py-bint-to-scheme other1296)))
+  (py-test-from-scheme
+   (py>= (py-bool-to-scheme self1295) (py-bint-to-scheme other1296))))
 
 (define-macro (py-test-ge-boolX-bintY-inline self1295 other1296)
   `(py-test-ge-boolX-bintY-fallback ,self1295 ,other1296))
 
 (define (py-ge-sintX-floatY-fallback other1298 self1299)
   (py-bool-from-scheme-bool
-   (py<= (py-float-to-scheme self1299) (py-sint-to-scheme other1298))))
+   (py-test-from-scheme
+    (py<= (py-float-to-scheme self1299) (py-sint-to-scheme other1298)))))
 
 (define-macro (py-ge-sintX-floatY-inline other1298 self1299)
   `(let ((other1298 ,other1298) (self1299 ,self1299))
      (py-bool-from-scheme-bool
-      (py<= (py-float-to-scheme self1299) (py-sint-to-scheme other1298)))))
+      (py-test-from-scheme
+       (py<= (py-float-to-scheme self1299) (py-sint-to-scheme other1298))))))
 
 (define (py-test-ge-sintX-floatY-fallback other1301 self1302)
-  (py<= (py-float-to-scheme self1302) (py-sint-to-scheme other1301)))
+  (py-test-from-scheme
+   (py<= (py-float-to-scheme self1302) (py-sint-to-scheme other1301))))
 
 (define-macro (py-test-ge-sintX-floatY-inline other1301 self1302)
   `(let ((other1301 ,other1301) (self1302 ,self1302))
-     (py<= (py-float-to-scheme self1302) (py-sint-to-scheme other1301))))
+     (py-test-from-scheme
+      (py<= (py-float-to-scheme self1302) (py-sint-to-scheme other1301)))))
 
 (define (py-ge-sintX-boolY-fallback self1304 other1305)
   (py-bool-from-scheme-bool
-   (py>= (py-sint-to-scheme self1304) (py-bool-to-scheme other1305))))
+   (py-test-from-scheme
+    (py>= (py-sint-to-scheme self1304) (py-bool-to-scheme other1305)))))
 
 (define-macro (py-ge-sintX-boolY-inline self1304 other1305)
   `(py-ge-sintX-boolY-fallback ,self1304 ,other1305))
 
 (define (py-test-ge-sintX-boolY-fallback self1307 other1308)
-  (py>= (py-sint-to-scheme self1307) (py-bool-to-scheme other1308)))
+  (py-test-from-scheme
+   (py>= (py-sint-to-scheme self1307) (py-bool-to-scheme other1308))))
 
 (define-macro (py-test-ge-sintX-boolY-inline self1307 other1308)
   `(py-test-ge-sintX-boolY-fallback ,self1307 ,other1308))
 
 (define (py-ge-sintX-sintY-fallback self1310 other1311)
   (py-bool-from-scheme-bool
-   (py>= (py-sint-to-scheme self1310) (py-sint-to-scheme other1311))))
+   (py-test-from-scheme
+    (py>= (py-sint-to-scheme self1310) (py-sint-to-scheme other1311)))))
 
 (define-macro (py-ge-sintX-sintY-inline self1310 other1311)
   `(let ((self1310 ,self1310) (other1311 ,other1311))
      (py-bool-from-scheme-bool
-      (py>= (py-sint-to-scheme self1310) (py-sint-to-scheme other1311)))))
+      (py-test-from-scheme
+       (py>= (py-sint-to-scheme self1310) (py-sint-to-scheme other1311))))))
 
 (define (py-test-ge-sintX-sintY-fallback self1313 other1314)
-  (py>= (py-sint-to-scheme self1313) (py-sint-to-scheme other1314)))
+  (py-test-from-scheme
+   (py>= (py-sint-to-scheme self1313) (py-sint-to-scheme other1314))))
 
 (define-macro (py-test-ge-sintX-sintY-inline self1313 other1314)
   `(let ((self1313 ,self1313) (other1314 ,other1314))
-     (py>= (py-sint-to-scheme self1313) (py-sint-to-scheme other1314))))
+     (py-test-from-scheme
+      (py>= (py-sint-to-scheme self1313) (py-sint-to-scheme other1314)))))
 
 (define (py-ge-sintX-bintY-fallback self1316 other1317)
   (py-bool-from-scheme-bool
-   (py>= (py-sint-to-scheme self1316) (py-bint-to-scheme other1317))))
+   (py-test-from-scheme
+    (py>= (py-sint-to-scheme self1316) (py-bint-to-scheme other1317)))))
 
 (define-macro (py-ge-sintX-bintY-inline self1316 other1317)
   `(py-ge-sintX-bintY-fallback ,self1316 ,other1317))
 
 (define (py-test-ge-sintX-bintY-fallback self1319 other1320)
-  (py>= (py-sint-to-scheme self1319) (py-bint-to-scheme other1320)))
+  (py-test-from-scheme
+   (py>= (py-sint-to-scheme self1319) (py-bint-to-scheme other1320))))
 
 (define-macro (py-test-ge-sintX-bintY-inline self1319 other1320)
   `(py-test-ge-sintX-bintY-fallback ,self1319 ,other1320))
 
 (define (py-ge-bintX-floatY-fallback other1322 self1323)
   (py-bool-from-scheme-bool
-   (py<= (py-float-to-scheme self1323) (py-bint-to-scheme other1322))))
+   (py-test-from-scheme
+    (py<= (py-float-to-scheme self1323) (py-bint-to-scheme other1322)))))
 
 (define-macro (py-ge-bintX-floatY-inline other1322 self1323)
   `(py-ge-bintX-floatY-fallback ,other1322 ,self1323))
 
 (define (py-test-ge-bintX-floatY-fallback other1325 self1326)
-  (py<= (py-float-to-scheme self1326) (py-bint-to-scheme other1325)))
+  (py-test-from-scheme
+   (py<= (py-float-to-scheme self1326) (py-bint-to-scheme other1325))))
 
 (define-macro (py-test-ge-bintX-floatY-inline other1325 self1326)
   `(py-test-ge-bintX-floatY-fallback ,other1325 ,self1326))
 
 (define (py-ge-bintX-boolY-fallback self1328 other1329)
   (py-bool-from-scheme-bool
-   (py>= (py-bint-to-scheme self1328) (py-bool-to-scheme other1329))))
+   (py-test-from-scheme
+    (py>= (py-bint-to-scheme self1328) (py-bool-to-scheme other1329)))))
 
 (define-macro (py-ge-bintX-boolY-inline self1328 other1329)
   `(py-ge-bintX-boolY-fallback ,self1328 ,other1329))
 
 (define (py-test-ge-bintX-boolY-fallback self1331 other1332)
-  (py>= (py-bint-to-scheme self1331) (py-bool-to-scheme other1332)))
+  (py-test-from-scheme
+   (py>= (py-bint-to-scheme self1331) (py-bool-to-scheme other1332))))
 
 (define-macro (py-test-ge-bintX-boolY-inline self1331 other1332)
   `(py-test-ge-bintX-boolY-fallback ,self1331 ,other1332))
 
 (define (py-ge-bintX-sintY-fallback self1334 other1335)
   (py-bool-from-scheme-bool
-   (py>= (py-bint-to-scheme self1334) (py-sint-to-scheme other1335))))
+   (py-test-from-scheme
+    (py>= (py-bint-to-scheme self1334) (py-sint-to-scheme other1335)))))
 
 (define-macro (py-ge-bintX-sintY-inline self1334 other1335)
   `(py-ge-bintX-sintY-fallback ,self1334 ,other1335))
 
 (define (py-test-ge-bintX-sintY-fallback self1337 other1338)
-  (py>= (py-bint-to-scheme self1337) (py-sint-to-scheme other1338)))
+  (py-test-from-scheme
+   (py>= (py-bint-to-scheme self1337) (py-sint-to-scheme other1338))))
 
 (define-macro (py-test-ge-bintX-sintY-inline self1337 other1338)
   `(py-test-ge-bintX-sintY-fallback ,self1337 ,other1338))
 
 (define (py-ge-bintX-bintY-fallback self1340 other1341)
   (py-bool-from-scheme-bool
-   (py>= (py-bint-to-scheme self1340) (py-bint-to-scheme other1341))))
+   (py-test-from-scheme
+    (py>= (py-bint-to-scheme self1340) (py-bint-to-scheme other1341)))))
 
 (define-macro (py-ge-bintX-bintY-inline self1340 other1341)
   `(py-ge-bintX-bintY-fallback ,self1340 ,other1341))
 
 (define (py-test-ge-bintX-bintY-fallback self1343 other1344)
-  (py>= (py-bint-to-scheme self1343) (py-bint-to-scheme other1344)))
+  (py-test-from-scheme
+   (py>= (py-bint-to-scheme self1343) (py-bint-to-scheme other1344))))
 
 (define-macro (py-test-ge-bintX-bintY-inline self1343 other1344)
   `(py-test-ge-bintX-bintY-fallback ,self1343 ,other1344))
 
 (define (py-gt-floatX-floatY-fallback self1346 other1347)
   (py-bool-from-scheme-bool
-   (py> (py-float-to-scheme self1346) (py-float-to-scheme other1347))))
+   (py-test-from-scheme
+    (py> (py-float-to-scheme self1346) (py-float-to-scheme other1347)))))
 
 (define-macro (py-gt-floatX-floatY-inline self1346 other1347)
   `(let ((self1346 ,self1346) (other1347 ,other1347))
      (py-bool-from-scheme-bool
-      (py> (py-float-to-scheme self1346) (py-float-to-scheme other1347)))))
+      (py-test-from-scheme
+       (py> (py-float-to-scheme self1346) (py-float-to-scheme other1347))))))
 
 (define (py-test-gt-floatX-floatY-fallback self1349 other1350)
-  (py> (py-float-to-scheme self1349) (py-float-to-scheme other1350)))
+  (py-test-from-scheme
+   (py> (py-float-to-scheme self1349) (py-float-to-scheme other1350))))
 
 (define-macro (py-test-gt-floatX-floatY-inline self1349 other1350)
   `(let ((self1349 ,self1349) (other1350 ,other1350))
-     (py> (py-float-to-scheme self1349) (py-float-to-scheme other1350))))
+     (py-test-from-scheme
+      (py> (py-float-to-scheme self1349) (py-float-to-scheme other1350)))))
 
 (define (py-gt-floatX-boolY-fallback self1352 other1353)
   (py-bool-from-scheme-bool
-   (py> (py-float-to-scheme self1352) (py-bool-to-scheme other1353))))
+   (py-test-from-scheme
+    (py> (py-float-to-scheme self1352) (py-bool-to-scheme other1353)))))
 
 (define-macro (py-gt-floatX-boolY-inline self1352 other1353)
   `(py-gt-floatX-boolY-fallback ,self1352 ,other1353))
 
 (define (py-test-gt-floatX-boolY-fallback self1355 other1356)
-  (py> (py-float-to-scheme self1355) (py-bool-to-scheme other1356)))
+  (py-test-from-scheme
+   (py> (py-float-to-scheme self1355) (py-bool-to-scheme other1356))))
 
 (define-macro (py-test-gt-floatX-boolY-inline self1355 other1356)
   `(py-test-gt-floatX-boolY-fallback ,self1355 ,other1356))
 
 (define (py-gt-floatX-sintY-fallback self1358 other1359)
   (py-bool-from-scheme-bool
-   (py> (py-float-to-scheme self1358) (py-sint-to-scheme other1359))))
+   (py-test-from-scheme
+    (py> (py-float-to-scheme self1358) (py-sint-to-scheme other1359)))))
 
 (define-macro (py-gt-floatX-sintY-inline self1358 other1359)
   `(let ((self1358 ,self1358) (other1359 ,other1359))
      (py-bool-from-scheme-bool
-      (py> (py-float-to-scheme self1358) (py-sint-to-scheme other1359)))))
+      (py-test-from-scheme
+       (py> (py-float-to-scheme self1358) (py-sint-to-scheme other1359))))))
 
 (define (py-test-gt-floatX-sintY-fallback self1361 other1362)
-  (py> (py-float-to-scheme self1361) (py-sint-to-scheme other1362)))
+  (py-test-from-scheme
+   (py> (py-float-to-scheme self1361) (py-sint-to-scheme other1362))))
 
 (define-macro (py-test-gt-floatX-sintY-inline self1361 other1362)
   `(let ((self1361 ,self1361) (other1362 ,other1362))
-     (py> (py-float-to-scheme self1361) (py-sint-to-scheme other1362))))
+     (py-test-from-scheme
+      (py> (py-float-to-scheme self1361) (py-sint-to-scheme other1362)))))
 
 (define (py-gt-floatX-bintY-fallback self1364 other1365)
   (py-bool-from-scheme-bool
-   (py> (py-float-to-scheme self1364) (py-bint-to-scheme other1365))))
+   (py-test-from-scheme
+    (py> (py-float-to-scheme self1364) (py-bint-to-scheme other1365)))))
 
 (define-macro (py-gt-floatX-bintY-inline self1364 other1365)
   `(py-gt-floatX-bintY-fallback ,self1364 ,other1365))
 
 (define (py-test-gt-floatX-bintY-fallback self1367 other1368)
-  (py> (py-float-to-scheme self1367) (py-bint-to-scheme other1368)))
+  (py-test-from-scheme
+   (py> (py-float-to-scheme self1367) (py-bint-to-scheme other1368))))
 
 (define-macro (py-test-gt-floatX-bintY-inline self1367 other1368)
   `(py-test-gt-floatX-bintY-fallback ,self1367 ,other1368))
 
 (define (py-gt-boolX-floatY-fallback other1370 self1371)
   (py-bool-from-scheme-bool
-   (py< (py-float-to-scheme self1371) (py-bool-to-scheme other1370))))
+   (py-test-from-scheme
+    (py< (py-float-to-scheme self1371) (py-bool-to-scheme other1370)))))
 
 (define-macro (py-gt-boolX-floatY-inline other1370 self1371)
   `(py-gt-boolX-floatY-fallback ,other1370 ,self1371))
 
 (define (py-test-gt-boolX-floatY-fallback other1373 self1374)
-  (py< (py-float-to-scheme self1374) (py-bool-to-scheme other1373)))
+  (py-test-from-scheme
+   (py< (py-float-to-scheme self1374) (py-bool-to-scheme other1373))))
 
 (define-macro (py-test-gt-boolX-floatY-inline other1373 self1374)
   `(py-test-gt-boolX-floatY-fallback ,other1373 ,self1374))
 
 (define (py-gt-boolX-boolY-fallback self1376 other1377)
   (py-bool-from-scheme-bool
-   (py> (py-bool-to-scheme self1376) (py-bool-to-scheme other1377))))
+   (py-test-from-scheme
+    (py> (py-bool-to-scheme self1376) (py-bool-to-scheme other1377)))))
 
 (define-macro (py-gt-boolX-boolY-inline self1376 other1377)
   `(py-gt-boolX-boolY-fallback ,self1376 ,other1377))
 
 (define (py-test-gt-boolX-boolY-fallback self1379 other1380)
-  (py> (py-bool-to-scheme self1379) (py-bool-to-scheme other1380)))
+  (py-test-from-scheme
+   (py> (py-bool-to-scheme self1379) (py-bool-to-scheme other1380))))
 
 (define-macro (py-test-gt-boolX-boolY-inline self1379 other1380)
   `(py-test-gt-boolX-boolY-fallback ,self1379 ,other1380))
 
 (define (py-gt-boolX-sintY-fallback self1382 other1383)
   (py-bool-from-scheme-bool
-   (py> (py-bool-to-scheme self1382) (py-sint-to-scheme other1383))))
+   (py-test-from-scheme
+    (py> (py-bool-to-scheme self1382) (py-sint-to-scheme other1383)))))
 
 (define-macro (py-gt-boolX-sintY-inline self1382 other1383)
   `(py-gt-boolX-sintY-fallback ,self1382 ,other1383))
 
 (define (py-test-gt-boolX-sintY-fallback self1385 other1386)
-  (py> (py-bool-to-scheme self1385) (py-sint-to-scheme other1386)))
+  (py-test-from-scheme
+   (py> (py-bool-to-scheme self1385) (py-sint-to-scheme other1386))))
 
 (define-macro (py-test-gt-boolX-sintY-inline self1385 other1386)
   `(py-test-gt-boolX-sintY-fallback ,self1385 ,other1386))
 
 (define (py-gt-boolX-bintY-fallback self1388 other1389)
   (py-bool-from-scheme-bool
-   (py> (py-bool-to-scheme self1388) (py-bint-to-scheme other1389))))
+   (py-test-from-scheme
+    (py> (py-bool-to-scheme self1388) (py-bint-to-scheme other1389)))))
 
 (define-macro (py-gt-boolX-bintY-inline self1388 other1389)
   `(py-gt-boolX-bintY-fallback ,self1388 ,other1389))
 
 (define (py-test-gt-boolX-bintY-fallback self1391 other1392)
-  (py> (py-bool-to-scheme self1391) (py-bint-to-scheme other1392)))
+  (py-test-from-scheme
+   (py> (py-bool-to-scheme self1391) (py-bint-to-scheme other1392))))
 
 (define-macro (py-test-gt-boolX-bintY-inline self1391 other1392)
   `(py-test-gt-boolX-bintY-fallback ,self1391 ,other1392))
 
 (define (py-gt-sintX-floatY-fallback other1394 self1395)
   (py-bool-from-scheme-bool
-   (py< (py-float-to-scheme self1395) (py-sint-to-scheme other1394))))
+   (py-test-from-scheme
+    (py< (py-float-to-scheme self1395) (py-sint-to-scheme other1394)))))
 
 (define-macro (py-gt-sintX-floatY-inline other1394 self1395)
   `(let ((other1394 ,other1394) (self1395 ,self1395))
      (py-bool-from-scheme-bool
-      (py< (py-float-to-scheme self1395) (py-sint-to-scheme other1394)))))
+      (py-test-from-scheme
+       (py< (py-float-to-scheme self1395) (py-sint-to-scheme other1394))))))
 
 (define (py-test-gt-sintX-floatY-fallback other1397 self1398)
-  (py< (py-float-to-scheme self1398) (py-sint-to-scheme other1397)))
+  (py-test-from-scheme
+   (py< (py-float-to-scheme self1398) (py-sint-to-scheme other1397))))
 
 (define-macro (py-test-gt-sintX-floatY-inline other1397 self1398)
   `(let ((other1397 ,other1397) (self1398 ,self1398))
-     (py< (py-float-to-scheme self1398) (py-sint-to-scheme other1397))))
+     (py-test-from-scheme
+      (py< (py-float-to-scheme self1398) (py-sint-to-scheme other1397)))))
 
 (define (py-gt-sintX-boolY-fallback self1400 other1401)
   (py-bool-from-scheme-bool
-   (py> (py-sint-to-scheme self1400) (py-bool-to-scheme other1401))))
+   (py-test-from-scheme
+    (py> (py-sint-to-scheme self1400) (py-bool-to-scheme other1401)))))
 
 (define-macro (py-gt-sintX-boolY-inline self1400 other1401)
   `(py-gt-sintX-boolY-fallback ,self1400 ,other1401))
 
 (define (py-test-gt-sintX-boolY-fallback self1403 other1404)
-  (py> (py-sint-to-scheme self1403) (py-bool-to-scheme other1404)))
+  (py-test-from-scheme
+   (py> (py-sint-to-scheme self1403) (py-bool-to-scheme other1404))))
 
 (define-macro (py-test-gt-sintX-boolY-inline self1403 other1404)
   `(py-test-gt-sintX-boolY-fallback ,self1403 ,other1404))
 
 (define (py-gt-sintX-sintY-fallback self1406 other1407)
   (py-bool-from-scheme-bool
-   (py> (py-sint-to-scheme self1406) (py-sint-to-scheme other1407))))
+   (py-test-from-scheme
+    (py> (py-sint-to-scheme self1406) (py-sint-to-scheme other1407)))))
 
 (define-macro (py-gt-sintX-sintY-inline self1406 other1407)
   `(let ((self1406 ,self1406) (other1407 ,other1407))
      (py-bool-from-scheme-bool
-      (py> (py-sint-to-scheme self1406) (py-sint-to-scheme other1407)))))
+      (py-test-from-scheme
+       (py> (py-sint-to-scheme self1406) (py-sint-to-scheme other1407))))))
 
 (define (py-test-gt-sintX-sintY-fallback self1409 other1410)
-  (py> (py-sint-to-scheme self1409) (py-sint-to-scheme other1410)))
+  (py-test-from-scheme
+   (py> (py-sint-to-scheme self1409) (py-sint-to-scheme other1410))))
 
 (define-macro (py-test-gt-sintX-sintY-inline self1409 other1410)
   `(let ((self1409 ,self1409) (other1410 ,other1410))
-     (py> (py-sint-to-scheme self1409) (py-sint-to-scheme other1410))))
+     (py-test-from-scheme
+      (py> (py-sint-to-scheme self1409) (py-sint-to-scheme other1410)))))
 
 (define (py-gt-sintX-bintY-fallback self1412 other1413)
   (py-bool-from-scheme-bool
-   (py> (py-sint-to-scheme self1412) (py-bint-to-scheme other1413))))
+   (py-test-from-scheme
+    (py> (py-sint-to-scheme self1412) (py-bint-to-scheme other1413)))))
 
 (define-macro (py-gt-sintX-bintY-inline self1412 other1413)
   `(py-gt-sintX-bintY-fallback ,self1412 ,other1413))
 
 (define (py-test-gt-sintX-bintY-fallback self1415 other1416)
-  (py> (py-sint-to-scheme self1415) (py-bint-to-scheme other1416)))
+  (py-test-from-scheme
+   (py> (py-sint-to-scheme self1415) (py-bint-to-scheme other1416))))
 
 (define-macro (py-test-gt-sintX-bintY-inline self1415 other1416)
   `(py-test-gt-sintX-bintY-fallback ,self1415 ,other1416))
 
 (define (py-gt-bintX-floatY-fallback other1418 self1419)
   (py-bool-from-scheme-bool
-   (py< (py-float-to-scheme self1419) (py-bint-to-scheme other1418))))
+   (py-test-from-scheme
+    (py< (py-float-to-scheme self1419) (py-bint-to-scheme other1418)))))
 
 (define-macro (py-gt-bintX-floatY-inline other1418 self1419)
   `(py-gt-bintX-floatY-fallback ,other1418 ,self1419))
 
 (define (py-test-gt-bintX-floatY-fallback other1421 self1422)
-  (py< (py-float-to-scheme self1422) (py-bint-to-scheme other1421)))
+  (py-test-from-scheme
+   (py< (py-float-to-scheme self1422) (py-bint-to-scheme other1421))))
 
 (define-macro (py-test-gt-bintX-floatY-inline other1421 self1422)
   `(py-test-gt-bintX-floatY-fallback ,other1421 ,self1422))
 
 (define (py-gt-bintX-boolY-fallback self1424 other1425)
   (py-bool-from-scheme-bool
-   (py> (py-bint-to-scheme self1424) (py-bool-to-scheme other1425))))
+   (py-test-from-scheme
+    (py> (py-bint-to-scheme self1424) (py-bool-to-scheme other1425)))))
 
 (define-macro (py-gt-bintX-boolY-inline self1424 other1425)
   `(py-gt-bintX-boolY-fallback ,self1424 ,other1425))
 
 (define (py-test-gt-bintX-boolY-fallback self1427 other1428)
-  (py> (py-bint-to-scheme self1427) (py-bool-to-scheme other1428)))
+  (py-test-from-scheme
+   (py> (py-bint-to-scheme self1427) (py-bool-to-scheme other1428))))
 
 (define-macro (py-test-gt-bintX-boolY-inline self1427 other1428)
   `(py-test-gt-bintX-boolY-fallback ,self1427 ,other1428))
 
 (define (py-gt-bintX-sintY-fallback self1430 other1431)
   (py-bool-from-scheme-bool
-   (py> (py-bint-to-scheme self1430) (py-sint-to-scheme other1431))))
+   (py-test-from-scheme
+    (py> (py-bint-to-scheme self1430) (py-sint-to-scheme other1431)))))
 
 (define-macro (py-gt-bintX-sintY-inline self1430 other1431)
   `(py-gt-bintX-sintY-fallback ,self1430 ,other1431))
 
 (define (py-test-gt-bintX-sintY-fallback self1433 other1434)
-  (py> (py-bint-to-scheme self1433) (py-sint-to-scheme other1434)))
+  (py-test-from-scheme
+   (py> (py-bint-to-scheme self1433) (py-sint-to-scheme other1434))))
 
 (define-macro (py-test-gt-bintX-sintY-inline self1433 other1434)
   `(py-test-gt-bintX-sintY-fallback ,self1433 ,other1434))
 
 (define (py-gt-bintX-bintY-fallback self1436 other1437)
   (py-bool-from-scheme-bool
-   (py> (py-bint-to-scheme self1436) (py-bint-to-scheme other1437))))
+   (py-test-from-scheme
+    (py> (py-bint-to-scheme self1436) (py-bint-to-scheme other1437)))))
 
 (define-macro (py-gt-bintX-bintY-inline self1436 other1437)
   `(py-gt-bintX-bintY-fallback ,self1436 ,other1437))
 
 (define (py-test-gt-bintX-bintY-fallback self1439 other1440)
-  (py> (py-bint-to-scheme self1439) (py-bint-to-scheme other1440)))
+  (py-test-from-scheme
+   (py> (py-bint-to-scheme self1439) (py-bint-to-scheme other1440))))
 
 (define-macro (py-test-gt-bintX-bintY-inline self1439 other1440)
   `(py-test-gt-bintX-bintY-fallback ,self1439 ,other1440))
 
 (define (py-le-floatX-floatY-fallback self1442 other1443)
   (py-bool-from-scheme-bool
-   (py<= (py-float-to-scheme self1442) (py-float-to-scheme other1443))))
+   (py-test-from-scheme
+    (py<= (py-float-to-scheme self1442) (py-float-to-scheme other1443)))))
 
 (define-macro (py-le-floatX-floatY-inline self1442 other1443)
   `(let ((self1442 ,self1442) (other1443 ,other1443))
      (py-bool-from-scheme-bool
-      (py<= (py-float-to-scheme self1442) (py-float-to-scheme other1443)))))
+      (py-test-from-scheme
+       (py<= (py-float-to-scheme self1442) (py-float-to-scheme other1443))))))
 
 (define (py-test-le-floatX-floatY-fallback self1445 other1446)
-  (py<= (py-float-to-scheme self1445) (py-float-to-scheme other1446)))
+  (py-test-from-scheme
+   (py<= (py-float-to-scheme self1445) (py-float-to-scheme other1446))))
 
 (define-macro (py-test-le-floatX-floatY-inline self1445 other1446)
   `(let ((self1445 ,self1445) (other1446 ,other1446))
-     (py<= (py-float-to-scheme self1445) (py-float-to-scheme other1446))))
+     (py-test-from-scheme
+      (py<= (py-float-to-scheme self1445) (py-float-to-scheme other1446)))))
 
 (define (py-le-floatX-boolY-fallback self1448 other1449)
   (py-bool-from-scheme-bool
-   (py<= (py-float-to-scheme self1448) (py-bool-to-scheme other1449))))
+   (py-test-from-scheme
+    (py<= (py-float-to-scheme self1448) (py-bool-to-scheme other1449)))))
 
 (define-macro (py-le-floatX-boolY-inline self1448 other1449)
   `(py-le-floatX-boolY-fallback ,self1448 ,other1449))
 
 (define (py-test-le-floatX-boolY-fallback self1451 other1452)
-  (py<= (py-float-to-scheme self1451) (py-bool-to-scheme other1452)))
+  (py-test-from-scheme
+   (py<= (py-float-to-scheme self1451) (py-bool-to-scheme other1452))))
 
 (define-macro (py-test-le-floatX-boolY-inline self1451 other1452)
   `(py-test-le-floatX-boolY-fallback ,self1451 ,other1452))
 
 (define (py-le-floatX-sintY-fallback self1454 other1455)
   (py-bool-from-scheme-bool
-   (py<= (py-float-to-scheme self1454) (py-sint-to-scheme other1455))))
+   (py-test-from-scheme
+    (py<= (py-float-to-scheme self1454) (py-sint-to-scheme other1455)))))
 
 (define-macro (py-le-floatX-sintY-inline self1454 other1455)
   `(let ((self1454 ,self1454) (other1455 ,other1455))
      (py-bool-from-scheme-bool
-      (py<= (py-float-to-scheme self1454) (py-sint-to-scheme other1455)))))
+      (py-test-from-scheme
+       (py<= (py-float-to-scheme self1454) (py-sint-to-scheme other1455))))))
 
 (define (py-test-le-floatX-sintY-fallback self1457 other1458)
-  (py<= (py-float-to-scheme self1457) (py-sint-to-scheme other1458)))
+  (py-test-from-scheme
+   (py<= (py-float-to-scheme self1457) (py-sint-to-scheme other1458))))
 
 (define-macro (py-test-le-floatX-sintY-inline self1457 other1458)
   `(let ((self1457 ,self1457) (other1458 ,other1458))
-     (py<= (py-float-to-scheme self1457) (py-sint-to-scheme other1458))))
+     (py-test-from-scheme
+      (py<= (py-float-to-scheme self1457) (py-sint-to-scheme other1458)))))
 
 (define (py-le-floatX-bintY-fallback self1460 other1461)
   (py-bool-from-scheme-bool
-   (py<= (py-float-to-scheme self1460) (py-bint-to-scheme other1461))))
+   (py-test-from-scheme
+    (py<= (py-float-to-scheme self1460) (py-bint-to-scheme other1461)))))
 
 (define-macro (py-le-floatX-bintY-inline self1460 other1461)
   `(py-le-floatX-bintY-fallback ,self1460 ,other1461))
 
 (define (py-test-le-floatX-bintY-fallback self1463 other1464)
-  (py<= (py-float-to-scheme self1463) (py-bint-to-scheme other1464)))
+  (py-test-from-scheme
+   (py<= (py-float-to-scheme self1463) (py-bint-to-scheme other1464))))
 
 (define-macro (py-test-le-floatX-bintY-inline self1463 other1464)
   `(py-test-le-floatX-bintY-fallback ,self1463 ,other1464))
 
 (define (py-le-boolX-floatY-fallback other1466 self1467)
   (py-bool-from-scheme-bool
-   (py>= (py-float-to-scheme self1467) (py-bool-to-scheme other1466))))
+   (py-test-from-scheme
+    (py>= (py-float-to-scheme self1467) (py-bool-to-scheme other1466)))))
 
 (define-macro (py-le-boolX-floatY-inline other1466 self1467)
   `(py-le-boolX-floatY-fallback ,other1466 ,self1467))
 
 (define (py-test-le-boolX-floatY-fallback other1469 self1470)
-  (py>= (py-float-to-scheme self1470) (py-bool-to-scheme other1469)))
+  (py-test-from-scheme
+   (py>= (py-float-to-scheme self1470) (py-bool-to-scheme other1469))))
 
 (define-macro (py-test-le-boolX-floatY-inline other1469 self1470)
   `(py-test-le-boolX-floatY-fallback ,other1469 ,self1470))
 
 (define (py-le-boolX-boolY-fallback self1472 other1473)
   (py-bool-from-scheme-bool
-   (py<= (py-bool-to-scheme self1472) (py-bool-to-scheme other1473))))
+   (py-test-from-scheme
+    (py<= (py-bool-to-scheme self1472) (py-bool-to-scheme other1473)))))
 
 (define-macro (py-le-boolX-boolY-inline self1472 other1473)
   `(py-le-boolX-boolY-fallback ,self1472 ,other1473))
 
 (define (py-test-le-boolX-boolY-fallback self1475 other1476)
-  (py<= (py-bool-to-scheme self1475) (py-bool-to-scheme other1476)))
+  (py-test-from-scheme
+   (py<= (py-bool-to-scheme self1475) (py-bool-to-scheme other1476))))
 
 (define-macro (py-test-le-boolX-boolY-inline self1475 other1476)
   `(py-test-le-boolX-boolY-fallback ,self1475 ,other1476))
 
 (define (py-le-boolX-sintY-fallback self1478 other1479)
   (py-bool-from-scheme-bool
-   (py<= (py-bool-to-scheme self1478) (py-sint-to-scheme other1479))))
+   (py-test-from-scheme
+    (py<= (py-bool-to-scheme self1478) (py-sint-to-scheme other1479)))))
 
 (define-macro (py-le-boolX-sintY-inline self1478 other1479)
   `(py-le-boolX-sintY-fallback ,self1478 ,other1479))
 
 (define (py-test-le-boolX-sintY-fallback self1481 other1482)
-  (py<= (py-bool-to-scheme self1481) (py-sint-to-scheme other1482)))
+  (py-test-from-scheme
+   (py<= (py-bool-to-scheme self1481) (py-sint-to-scheme other1482))))
 
 (define-macro (py-test-le-boolX-sintY-inline self1481 other1482)
   `(py-test-le-boolX-sintY-fallback ,self1481 ,other1482))
 
 (define (py-le-boolX-bintY-fallback self1484 other1485)
   (py-bool-from-scheme-bool
-   (py<= (py-bool-to-scheme self1484) (py-bint-to-scheme other1485))))
+   (py-test-from-scheme
+    (py<= (py-bool-to-scheme self1484) (py-bint-to-scheme other1485)))))
 
 (define-macro (py-le-boolX-bintY-inline self1484 other1485)
   `(py-le-boolX-bintY-fallback ,self1484 ,other1485))
 
 (define (py-test-le-boolX-bintY-fallback self1487 other1488)
-  (py<= (py-bool-to-scheme self1487) (py-bint-to-scheme other1488)))
+  (py-test-from-scheme
+   (py<= (py-bool-to-scheme self1487) (py-bint-to-scheme other1488))))
 
 (define-macro (py-test-le-boolX-bintY-inline self1487 other1488)
   `(py-test-le-boolX-bintY-fallback ,self1487 ,other1488))
 
 (define (py-le-sintX-floatY-fallback other1490 self1491)
   (py-bool-from-scheme-bool
-   (py>= (py-float-to-scheme self1491) (py-sint-to-scheme other1490))))
+   (py-test-from-scheme
+    (py>= (py-float-to-scheme self1491) (py-sint-to-scheme other1490)))))
 
 (define-macro (py-le-sintX-floatY-inline other1490 self1491)
   `(let ((other1490 ,other1490) (self1491 ,self1491))
      (py-bool-from-scheme-bool
-      (py>= (py-float-to-scheme self1491) (py-sint-to-scheme other1490)))))
+      (py-test-from-scheme
+       (py>= (py-float-to-scheme self1491) (py-sint-to-scheme other1490))))))
 
 (define (py-test-le-sintX-floatY-fallback other1493 self1494)
-  (py>= (py-float-to-scheme self1494) (py-sint-to-scheme other1493)))
+  (py-test-from-scheme
+   (py>= (py-float-to-scheme self1494) (py-sint-to-scheme other1493))))
 
 (define-macro (py-test-le-sintX-floatY-inline other1493 self1494)
   `(let ((other1493 ,other1493) (self1494 ,self1494))
-     (py>= (py-float-to-scheme self1494) (py-sint-to-scheme other1493))))
+     (py-test-from-scheme
+      (py>= (py-float-to-scheme self1494) (py-sint-to-scheme other1493)))))
 
 (define (py-le-sintX-boolY-fallback self1496 other1497)
   (py-bool-from-scheme-bool
-   (py<= (py-sint-to-scheme self1496) (py-bool-to-scheme other1497))))
+   (py-test-from-scheme
+    (py<= (py-sint-to-scheme self1496) (py-bool-to-scheme other1497)))))
 
 (define-macro (py-le-sintX-boolY-inline self1496 other1497)
   `(py-le-sintX-boolY-fallback ,self1496 ,other1497))
 
 (define (py-test-le-sintX-boolY-fallback self1499 other1500)
-  (py<= (py-sint-to-scheme self1499) (py-bool-to-scheme other1500)))
+  (py-test-from-scheme
+   (py<= (py-sint-to-scheme self1499) (py-bool-to-scheme other1500))))
 
 (define-macro (py-test-le-sintX-boolY-inline self1499 other1500)
   `(py-test-le-sintX-boolY-fallback ,self1499 ,other1500))
 
 (define (py-le-sintX-sintY-fallback self1502 other1503)
   (py-bool-from-scheme-bool
-   (py<= (py-sint-to-scheme self1502) (py-sint-to-scheme other1503))))
+   (py-test-from-scheme
+    (py<= (py-sint-to-scheme self1502) (py-sint-to-scheme other1503)))))
 
 (define-macro (py-le-sintX-sintY-inline self1502 other1503)
   `(let ((self1502 ,self1502) (other1503 ,other1503))
      (py-bool-from-scheme-bool
-      (py<= (py-sint-to-scheme self1502) (py-sint-to-scheme other1503)))))
+      (py-test-from-scheme
+       (py<= (py-sint-to-scheme self1502) (py-sint-to-scheme other1503))))))
 
 (define (py-test-le-sintX-sintY-fallback self1505 other1506)
-  (py<= (py-sint-to-scheme self1505) (py-sint-to-scheme other1506)))
+  (py-test-from-scheme
+   (py<= (py-sint-to-scheme self1505) (py-sint-to-scheme other1506))))
 
 (define-macro (py-test-le-sintX-sintY-inline self1505 other1506)
   `(let ((self1505 ,self1505) (other1506 ,other1506))
-     (py<= (py-sint-to-scheme self1505) (py-sint-to-scheme other1506))))
+     (py-test-from-scheme
+      (py<= (py-sint-to-scheme self1505) (py-sint-to-scheme other1506)))))
 
 (define (py-le-sintX-bintY-fallback self1508 other1509)
   (py-bool-from-scheme-bool
-   (py<= (py-sint-to-scheme self1508) (py-bint-to-scheme other1509))))
+   (py-test-from-scheme
+    (py<= (py-sint-to-scheme self1508) (py-bint-to-scheme other1509)))))
 
 (define-macro (py-le-sintX-bintY-inline self1508 other1509)
   `(py-le-sintX-bintY-fallback ,self1508 ,other1509))
 
 (define (py-test-le-sintX-bintY-fallback self1511 other1512)
-  (py<= (py-sint-to-scheme self1511) (py-bint-to-scheme other1512)))
+  (py-test-from-scheme
+   (py<= (py-sint-to-scheme self1511) (py-bint-to-scheme other1512))))
 
 (define-macro (py-test-le-sintX-bintY-inline self1511 other1512)
   `(py-test-le-sintX-bintY-fallback ,self1511 ,other1512))
 
 (define (py-le-bintX-floatY-fallback other1514 self1515)
   (py-bool-from-scheme-bool
-   (py>= (py-float-to-scheme self1515) (py-bint-to-scheme other1514))))
+   (py-test-from-scheme
+    (py>= (py-float-to-scheme self1515) (py-bint-to-scheme other1514)))))
 
 (define-macro (py-le-bintX-floatY-inline other1514 self1515)
   `(py-le-bintX-floatY-fallback ,other1514 ,self1515))
 
 (define (py-test-le-bintX-floatY-fallback other1517 self1518)
-  (py>= (py-float-to-scheme self1518) (py-bint-to-scheme other1517)))
+  (py-test-from-scheme
+   (py>= (py-float-to-scheme self1518) (py-bint-to-scheme other1517))))
 
 (define-macro (py-test-le-bintX-floatY-inline other1517 self1518)
   `(py-test-le-bintX-floatY-fallback ,other1517 ,self1518))
 
 (define (py-le-bintX-boolY-fallback self1520 other1521)
   (py-bool-from-scheme-bool
-   (py<= (py-bint-to-scheme self1520) (py-bool-to-scheme other1521))))
+   (py-test-from-scheme
+    (py<= (py-bint-to-scheme self1520) (py-bool-to-scheme other1521)))))
 
 (define-macro (py-le-bintX-boolY-inline self1520 other1521)
   `(py-le-bintX-boolY-fallback ,self1520 ,other1521))
 
 (define (py-test-le-bintX-boolY-fallback self1523 other1524)
-  (py<= (py-bint-to-scheme self1523) (py-bool-to-scheme other1524)))
+  (py-test-from-scheme
+   (py<= (py-bint-to-scheme self1523) (py-bool-to-scheme other1524))))
 
 (define-macro (py-test-le-bintX-boolY-inline self1523 other1524)
   `(py-test-le-bintX-boolY-fallback ,self1523 ,other1524))
 
 (define (py-le-bintX-sintY-fallback self1526 other1527)
   (py-bool-from-scheme-bool
-   (py<= (py-bint-to-scheme self1526) (py-sint-to-scheme other1527))))
+   (py-test-from-scheme
+    (py<= (py-bint-to-scheme self1526) (py-sint-to-scheme other1527)))))
 
 (define-macro (py-le-bintX-sintY-inline self1526 other1527)
   `(py-le-bintX-sintY-fallback ,self1526 ,other1527))
 
 (define (py-test-le-bintX-sintY-fallback self1529 other1530)
-  (py<= (py-bint-to-scheme self1529) (py-sint-to-scheme other1530)))
+  (py-test-from-scheme
+   (py<= (py-bint-to-scheme self1529) (py-sint-to-scheme other1530))))
 
 (define-macro (py-test-le-bintX-sintY-inline self1529 other1530)
   `(py-test-le-bintX-sintY-fallback ,self1529 ,other1530))
 
 (define (py-le-bintX-bintY-fallback self1532 other1533)
   (py-bool-from-scheme-bool
-   (py<= (py-bint-to-scheme self1532) (py-bint-to-scheme other1533))))
+   (py-test-from-scheme
+    (py<= (py-bint-to-scheme self1532) (py-bint-to-scheme other1533)))))
 
 (define-macro (py-le-bintX-bintY-inline self1532 other1533)
   `(py-le-bintX-bintY-fallback ,self1532 ,other1533))
 
 (define (py-test-le-bintX-bintY-fallback self1535 other1536)
-  (py<= (py-bint-to-scheme self1535) (py-bint-to-scheme other1536)))
+  (py-test-from-scheme
+   (py<= (py-bint-to-scheme self1535) (py-bint-to-scheme other1536))))
 
 (define-macro (py-test-le-bintX-bintY-inline self1535 other1536)
   `(py-test-le-bintX-bintY-fallback ,self1535 ,other1536))
 
 (define (py-lt-floatX-floatY-fallback self1538 other1539)
   (py-bool-from-scheme-bool
-   (py< (py-float-to-scheme self1538) (py-float-to-scheme other1539))))
+   (py-test-from-scheme
+    (py< (py-float-to-scheme self1538) (py-float-to-scheme other1539)))))
 
 (define-macro (py-lt-floatX-floatY-inline self1538 other1539)
   `(let ((self1538 ,self1538) (other1539 ,other1539))
      (py-bool-from-scheme-bool
-      (py< (py-float-to-scheme self1538) (py-float-to-scheme other1539)))))
+      (py-test-from-scheme
+       (py< (py-float-to-scheme self1538) (py-float-to-scheme other1539))))))
 
 (define (py-test-lt-floatX-floatY-fallback self1541 other1542)
-  (py< (py-float-to-scheme self1541) (py-float-to-scheme other1542)))
+  (py-test-from-scheme
+   (py< (py-float-to-scheme self1541) (py-float-to-scheme other1542))))
 
 (define-macro (py-test-lt-floatX-floatY-inline self1541 other1542)
   `(let ((self1541 ,self1541) (other1542 ,other1542))
-     (py< (py-float-to-scheme self1541) (py-float-to-scheme other1542))))
+     (py-test-from-scheme
+      (py< (py-float-to-scheme self1541) (py-float-to-scheme other1542)))))
 
 (define (py-lt-floatX-boolY-fallback self1544 other1545)
   (py-bool-from-scheme-bool
-   (py< (py-float-to-scheme self1544) (py-bool-to-scheme other1545))))
+   (py-test-from-scheme
+    (py< (py-float-to-scheme self1544) (py-bool-to-scheme other1545)))))
 
 (define-macro (py-lt-floatX-boolY-inline self1544 other1545)
   `(py-lt-floatX-boolY-fallback ,self1544 ,other1545))
 
 (define (py-test-lt-floatX-boolY-fallback self1547 other1548)
-  (py< (py-float-to-scheme self1547) (py-bool-to-scheme other1548)))
+  (py-test-from-scheme
+   (py< (py-float-to-scheme self1547) (py-bool-to-scheme other1548))))
 
 (define-macro (py-test-lt-floatX-boolY-inline self1547 other1548)
   `(py-test-lt-floatX-boolY-fallback ,self1547 ,other1548))
 
 (define (py-lt-floatX-sintY-fallback self1550 other1551)
   (py-bool-from-scheme-bool
-   (py< (py-float-to-scheme self1550) (py-sint-to-scheme other1551))))
+   (py-test-from-scheme
+    (py< (py-float-to-scheme self1550) (py-sint-to-scheme other1551)))))
 
 (define-macro (py-lt-floatX-sintY-inline self1550 other1551)
   `(let ((self1550 ,self1550) (other1551 ,other1551))
      (py-bool-from-scheme-bool
-      (py< (py-float-to-scheme self1550) (py-sint-to-scheme other1551)))))
+      (py-test-from-scheme
+       (py< (py-float-to-scheme self1550) (py-sint-to-scheme other1551))))))
 
 (define (py-test-lt-floatX-sintY-fallback self1553 other1554)
-  (py< (py-float-to-scheme self1553) (py-sint-to-scheme other1554)))
+  (py-test-from-scheme
+   (py< (py-float-to-scheme self1553) (py-sint-to-scheme other1554))))
 
 (define-macro (py-test-lt-floatX-sintY-inline self1553 other1554)
   `(let ((self1553 ,self1553) (other1554 ,other1554))
-     (py< (py-float-to-scheme self1553) (py-sint-to-scheme other1554))))
+     (py-test-from-scheme
+      (py< (py-float-to-scheme self1553) (py-sint-to-scheme other1554)))))
 
 (define (py-lt-floatX-bintY-fallback self1556 other1557)
   (py-bool-from-scheme-bool
-   (py< (py-float-to-scheme self1556) (py-bint-to-scheme other1557))))
+   (py-test-from-scheme
+    (py< (py-float-to-scheme self1556) (py-bint-to-scheme other1557)))))
 
 (define-macro (py-lt-floatX-bintY-inline self1556 other1557)
   `(py-lt-floatX-bintY-fallback ,self1556 ,other1557))
 
 (define (py-test-lt-floatX-bintY-fallback self1559 other1560)
-  (py< (py-float-to-scheme self1559) (py-bint-to-scheme other1560)))
+  (py-test-from-scheme
+   (py< (py-float-to-scheme self1559) (py-bint-to-scheme other1560))))
 
 (define-macro (py-test-lt-floatX-bintY-inline self1559 other1560)
   `(py-test-lt-floatX-bintY-fallback ,self1559 ,other1560))
 
 (define (py-lt-boolX-floatY-fallback other1562 self1563)
   (py-bool-from-scheme-bool
-   (py> (py-float-to-scheme self1563) (py-bool-to-scheme other1562))))
+   (py-test-from-scheme
+    (py> (py-float-to-scheme self1563) (py-bool-to-scheme other1562)))))
 
 (define-macro (py-lt-boolX-floatY-inline other1562 self1563)
   `(py-lt-boolX-floatY-fallback ,other1562 ,self1563))
 
 (define (py-test-lt-boolX-floatY-fallback other1565 self1566)
-  (py> (py-float-to-scheme self1566) (py-bool-to-scheme other1565)))
+  (py-test-from-scheme
+   (py> (py-float-to-scheme self1566) (py-bool-to-scheme other1565))))
 
 (define-macro (py-test-lt-boolX-floatY-inline other1565 self1566)
   `(py-test-lt-boolX-floatY-fallback ,other1565 ,self1566))
 
 (define (py-lt-boolX-boolY-fallback self1568 other1569)
   (py-bool-from-scheme-bool
-   (py< (py-bool-to-scheme self1568) (py-bool-to-scheme other1569))))
+   (py-test-from-scheme
+    (py< (py-bool-to-scheme self1568) (py-bool-to-scheme other1569)))))
 
 (define-macro (py-lt-boolX-boolY-inline self1568 other1569)
   `(py-lt-boolX-boolY-fallback ,self1568 ,other1569))
 
 (define (py-test-lt-boolX-boolY-fallback self1571 other1572)
-  (py< (py-bool-to-scheme self1571) (py-bool-to-scheme other1572)))
+  (py-test-from-scheme
+   (py< (py-bool-to-scheme self1571) (py-bool-to-scheme other1572))))
 
 (define-macro (py-test-lt-boolX-boolY-inline self1571 other1572)
   `(py-test-lt-boolX-boolY-fallback ,self1571 ,other1572))
 
 (define (py-lt-boolX-sintY-fallback self1574 other1575)
   (py-bool-from-scheme-bool
-   (py< (py-bool-to-scheme self1574) (py-sint-to-scheme other1575))))
+   (py-test-from-scheme
+    (py< (py-bool-to-scheme self1574) (py-sint-to-scheme other1575)))))
 
 (define-macro (py-lt-boolX-sintY-inline self1574 other1575)
   `(py-lt-boolX-sintY-fallback ,self1574 ,other1575))
 
 (define (py-test-lt-boolX-sintY-fallback self1577 other1578)
-  (py< (py-bool-to-scheme self1577) (py-sint-to-scheme other1578)))
+  (py-test-from-scheme
+   (py< (py-bool-to-scheme self1577) (py-sint-to-scheme other1578))))
 
 (define-macro (py-test-lt-boolX-sintY-inline self1577 other1578)
   `(py-test-lt-boolX-sintY-fallback ,self1577 ,other1578))
 
 (define (py-lt-boolX-bintY-fallback self1580 other1581)
   (py-bool-from-scheme-bool
-   (py< (py-bool-to-scheme self1580) (py-bint-to-scheme other1581))))
+   (py-test-from-scheme
+    (py< (py-bool-to-scheme self1580) (py-bint-to-scheme other1581)))))
 
 (define-macro (py-lt-boolX-bintY-inline self1580 other1581)
   `(py-lt-boolX-bintY-fallback ,self1580 ,other1581))
 
 (define (py-test-lt-boolX-bintY-fallback self1583 other1584)
-  (py< (py-bool-to-scheme self1583) (py-bint-to-scheme other1584)))
+  (py-test-from-scheme
+   (py< (py-bool-to-scheme self1583) (py-bint-to-scheme other1584))))
 
 (define-macro (py-test-lt-boolX-bintY-inline self1583 other1584)
   `(py-test-lt-boolX-bintY-fallback ,self1583 ,other1584))
 
 (define (py-lt-sintX-floatY-fallback other1586 self1587)
   (py-bool-from-scheme-bool
-   (py> (py-float-to-scheme self1587) (py-sint-to-scheme other1586))))
+   (py-test-from-scheme
+    (py> (py-float-to-scheme self1587) (py-sint-to-scheme other1586)))))
 
 (define-macro (py-lt-sintX-floatY-inline other1586 self1587)
   `(let ((other1586 ,other1586) (self1587 ,self1587))
      (py-bool-from-scheme-bool
-      (py> (py-float-to-scheme self1587) (py-sint-to-scheme other1586)))))
+      (py-test-from-scheme
+       (py> (py-float-to-scheme self1587) (py-sint-to-scheme other1586))))))
 
 (define (py-test-lt-sintX-floatY-fallback other1589 self1590)
-  (py> (py-float-to-scheme self1590) (py-sint-to-scheme other1589)))
+  (py-test-from-scheme
+   (py> (py-float-to-scheme self1590) (py-sint-to-scheme other1589))))
 
 (define-macro (py-test-lt-sintX-floatY-inline other1589 self1590)
   `(let ((other1589 ,other1589) (self1590 ,self1590))
-     (py> (py-float-to-scheme self1590) (py-sint-to-scheme other1589))))
+     (py-test-from-scheme
+      (py> (py-float-to-scheme self1590) (py-sint-to-scheme other1589)))))
 
 (define (py-lt-sintX-boolY-fallback self1592 other1593)
   (py-bool-from-scheme-bool
-   (py< (py-sint-to-scheme self1592) (py-bool-to-scheme other1593))))
+   (py-test-from-scheme
+    (py< (py-sint-to-scheme self1592) (py-bool-to-scheme other1593)))))
 
 (define-macro (py-lt-sintX-boolY-inline self1592 other1593)
   `(py-lt-sintX-boolY-fallback ,self1592 ,other1593))
 
 (define (py-test-lt-sintX-boolY-fallback self1595 other1596)
-  (py< (py-sint-to-scheme self1595) (py-bool-to-scheme other1596)))
+  (py-test-from-scheme
+   (py< (py-sint-to-scheme self1595) (py-bool-to-scheme other1596))))
 
 (define-macro (py-test-lt-sintX-boolY-inline self1595 other1596)
   `(py-test-lt-sintX-boolY-fallback ,self1595 ,other1596))
 
 (define (py-lt-sintX-sintY-fallback self1598 other1599)
   (py-bool-from-scheme-bool
-   (py< (py-sint-to-scheme self1598) (py-sint-to-scheme other1599))))
+   (py-test-from-scheme
+    (py< (py-sint-to-scheme self1598) (py-sint-to-scheme other1599)))))
 
 (define-macro (py-lt-sintX-sintY-inline self1598 other1599)
   `(let ((self1598 ,self1598) (other1599 ,other1599))
      (py-bool-from-scheme-bool
-      (py< (py-sint-to-scheme self1598) (py-sint-to-scheme other1599)))))
+      (py-test-from-scheme
+       (py< (py-sint-to-scheme self1598) (py-sint-to-scheme other1599))))))
 
 (define (py-test-lt-sintX-sintY-fallback self1601 other1602)
-  (py< (py-sint-to-scheme self1601) (py-sint-to-scheme other1602)))
+  (py-test-from-scheme
+   (py< (py-sint-to-scheme self1601) (py-sint-to-scheme other1602))))
 
 (define-macro (py-test-lt-sintX-sintY-inline self1601 other1602)
   `(let ((self1601 ,self1601) (other1602 ,other1602))
-     (py< (py-sint-to-scheme self1601) (py-sint-to-scheme other1602))))
+     (py-test-from-scheme
+      (py< (py-sint-to-scheme self1601) (py-sint-to-scheme other1602)))))
 
 (define (py-lt-sintX-bintY-fallback self1604 other1605)
   (py-bool-from-scheme-bool
-   (py< (py-sint-to-scheme self1604) (py-bint-to-scheme other1605))))
+   (py-test-from-scheme
+    (py< (py-sint-to-scheme self1604) (py-bint-to-scheme other1605)))))
 
 (define-macro (py-lt-sintX-bintY-inline self1604 other1605)
   `(py-lt-sintX-bintY-fallback ,self1604 ,other1605))
 
 (define (py-test-lt-sintX-bintY-fallback self1607 other1608)
-  (py< (py-sint-to-scheme self1607) (py-bint-to-scheme other1608)))
+  (py-test-from-scheme
+   (py< (py-sint-to-scheme self1607) (py-bint-to-scheme other1608))))
 
 (define-macro (py-test-lt-sintX-bintY-inline self1607 other1608)
   `(py-test-lt-sintX-bintY-fallback ,self1607 ,other1608))
 
 (define (py-lt-bintX-floatY-fallback other1610 self1611)
   (py-bool-from-scheme-bool
-   (py> (py-float-to-scheme self1611) (py-bint-to-scheme other1610))))
+   (py-test-from-scheme
+    (py> (py-float-to-scheme self1611) (py-bint-to-scheme other1610)))))
 
 (define-macro (py-lt-bintX-floatY-inline other1610 self1611)
   `(py-lt-bintX-floatY-fallback ,other1610 ,self1611))
 
 (define (py-test-lt-bintX-floatY-fallback other1613 self1614)
-  (py> (py-float-to-scheme self1614) (py-bint-to-scheme other1613)))
+  (py-test-from-scheme
+   (py> (py-float-to-scheme self1614) (py-bint-to-scheme other1613))))
 
 (define-macro (py-test-lt-bintX-floatY-inline other1613 self1614)
   `(py-test-lt-bintX-floatY-fallback ,other1613 ,self1614))
 
 (define (py-lt-bintX-boolY-fallback self1616 other1617)
   (py-bool-from-scheme-bool
-   (py< (py-bint-to-scheme self1616) (py-bool-to-scheme other1617))))
+   (py-test-from-scheme
+    (py< (py-bint-to-scheme self1616) (py-bool-to-scheme other1617)))))
 
 (define-macro (py-lt-bintX-boolY-inline self1616 other1617)
   `(py-lt-bintX-boolY-fallback ,self1616 ,other1617))
 
 (define (py-test-lt-bintX-boolY-fallback self1619 other1620)
-  (py< (py-bint-to-scheme self1619) (py-bool-to-scheme other1620)))
+  (py-test-from-scheme
+   (py< (py-bint-to-scheme self1619) (py-bool-to-scheme other1620))))
 
 (define-macro (py-test-lt-bintX-boolY-inline self1619 other1620)
   `(py-test-lt-bintX-boolY-fallback ,self1619 ,other1620))
 
 (define (py-lt-bintX-sintY-fallback self1622 other1623)
   (py-bool-from-scheme-bool
-   (py< (py-bint-to-scheme self1622) (py-sint-to-scheme other1623))))
+   (py-test-from-scheme
+    (py< (py-bint-to-scheme self1622) (py-sint-to-scheme other1623)))))
 
 (define-macro (py-lt-bintX-sintY-inline self1622 other1623)
   `(py-lt-bintX-sintY-fallback ,self1622 ,other1623))
 
 (define (py-test-lt-bintX-sintY-fallback self1625 other1626)
-  (py< (py-bint-to-scheme self1625) (py-sint-to-scheme other1626)))
+  (py-test-from-scheme
+   (py< (py-bint-to-scheme self1625) (py-sint-to-scheme other1626))))
 
 (define-macro (py-test-lt-bintX-sintY-inline self1625 other1626)
   `(py-test-lt-bintX-sintY-fallback ,self1625 ,other1626))
 
 (define (py-lt-bintX-bintY-fallback self1628 other1629)
   (py-bool-from-scheme-bool
-   (py< (py-bint-to-scheme self1628) (py-bint-to-scheme other1629))))
+   (py-test-from-scheme
+    (py< (py-bint-to-scheme self1628) (py-bint-to-scheme other1629)))))
 
 (define-macro (py-lt-bintX-bintY-inline self1628 other1629)
   `(py-lt-bintX-bintY-fallback ,self1628 ,other1629))
 
 (define (py-test-lt-bintX-bintY-fallback self1631 other1632)
-  (py< (py-bint-to-scheme self1631) (py-bint-to-scheme other1632)))
+  (py-test-from-scheme
+   (py< (py-bint-to-scheme self1631) (py-bint-to-scheme other1632))))
 
 (define-macro (py-test-lt-bintX-bintY-inline self1631 other1632)
   `(py-test-lt-bintX-bintY-fallback ,self1631 ,other1632))

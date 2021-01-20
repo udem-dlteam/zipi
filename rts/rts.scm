@@ -2029,7 +2029,7 @@
 ;; Returns the truthiness of an object by calling obj.__bool__
 ;; py-test is expected to return #t or #f, not a Python objects
 ;; True and False are converted to #t and #f
-(define (py-test obj)
+(define (py-test-fallback obj)
   (cond ((eq? obj py-True) ;; base case
          #t)
         ((eq? obj py-False) ;; base case
