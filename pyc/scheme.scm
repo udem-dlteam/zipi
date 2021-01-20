@@ -687,12 +687,19 @@
       (irshift . py>>)
       (isub . py-)
       (itruediv . py/)
-      (ixor . py^)))
+      (ixor . py^)
+      ;; comparisons
+      (eq . py==)
+      (ne . py!=)
+      (ge . py>=)
+      (gt . py>)
+      (le . py<=)
+      (lt . py<)))
   (cdr (assq op ops)))
 
 
 (define-walk-method (scheme this::PycBinary conf)
-  (define native-types '(Uint Usint Ubint Ufloat))
+  (define native-types '(Uint Usint Ubint Ufloat Ubool))
 
   (define (python-op)
     (epairify this
