@@ -522,7 +522,7 @@ def main_behaviors(semantics_file, builtins_file):
 
     define_behavior = "define_behavior"
     other_intrinsics = "py_int_from_host_int, py_int_to_host_int, py_bool_to_host_int, py_float_from_host_float, " \
-                       "py_float_to_host_float, py_sint_to_host_sint, py_bint_to_host_bint "
+                       "py_float_to_host_float, py_sint_to_host_sint, py_bint_to_host_bint, py_bool_from_host_bool "
 
     for semantics, subtree in decision_tree.items():
         for left_type in types_without_int:

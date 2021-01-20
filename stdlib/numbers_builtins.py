@@ -1,4 +1,4 @@
-from __compiler_intrinsics__ import absent, builtin_class, py_int_from_host_int, py_int_to_host_int, py_float_from_host_float, py_float_to_host_float
+from __compiler_intrinsics__ import absent, builtin_class, py_int_from_host_int, py_int_to_host_int, py_float_from_host_float, py_float_to_host_float, py_bool_from_host_bool 
 
 @builtin_class
 class int:
@@ -384,6 +384,60 @@ class int:
         else:
             raise TypeError("descriptor '__imod__' requires a 'int' object but received a '" + type(self).__name__ + "'")
 
+    def __eq__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                return py_bool_from_host_bool(py_int_to_host_int(self) == py_int_to_host_int(other))
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__eq__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+
+    def __ne__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                return py_bool_from_host_bool(py_int_to_host_int(self) != py_int_to_host_int(other))
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__ne__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+
+    def __ge__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                return py_bool_from_host_bool(py_int_to_host_int(self) >= py_int_to_host_int(other))
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__ge__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+
+    def __gt__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                return py_bool_from_host_bool(py_int_to_host_int(self) > py_int_to_host_int(other))
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__gt__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+
+    def __le__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                return py_bool_from_host_bool(py_int_to_host_int(self) <= py_int_to_host_int(other))
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__le__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+
+    def __lt__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                return py_bool_from_host_bool(py_int_to_host_int(self) < py_int_to_host_int(other))
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__lt__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+
 
 @builtin_class
 class bool(int):
@@ -763,3 +817,69 @@ class float:
                 return NotImplemented
         else:
             raise TypeError("descriptor '__imod__' requires a 'float' object but received a '" + type(self).__name__ + "'")
+
+    def __eq__(self, other):
+        if isinstance(self, float):
+            if isinstance(other, float):
+                return py_bool_from_host_bool(py_float_to_host_float(self) == py_float_to_host_float(other))
+            elif isinstance(other, int):
+                return py_bool_from_host_bool(py_float_to_host_float(self) == py_int_to_host_int(other))
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__eq__' requires a 'float' object but received a '" + type(self).__name__ + "'")
+
+    def __ne__(self, other):
+        if isinstance(self, float):
+            if isinstance(other, float):
+                return py_bool_from_host_bool(py_float_to_host_float(self) != py_float_to_host_float(other))
+            elif isinstance(other, int):
+                return py_bool_from_host_bool(py_float_to_host_float(self) != py_int_to_host_int(other))
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__ne__' requires a 'float' object but received a '" + type(self).__name__ + "'")
+
+    def __ge__(self, other):
+        if isinstance(self, float):
+            if isinstance(other, float):
+                return py_bool_from_host_bool(py_float_to_host_float(self) >= py_float_to_host_float(other))
+            elif isinstance(other, int):
+                return py_bool_from_host_bool(py_float_to_host_float(self) >= py_int_to_host_int(other))
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__ge__' requires a 'float' object but received a '" + type(self).__name__ + "'")
+
+    def __gt__(self, other):
+        if isinstance(self, float):
+            if isinstance(other, float):
+                return py_bool_from_host_bool(py_float_to_host_float(self) > py_float_to_host_float(other))
+            elif isinstance(other, int):
+                return py_bool_from_host_bool(py_float_to_host_float(self) > py_int_to_host_int(other))
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__gt__' requires a 'float' object but received a '" + type(self).__name__ + "'")
+
+    def __le__(self, other):
+        if isinstance(self, float):
+            if isinstance(other, float):
+                return py_bool_from_host_bool(py_float_to_host_float(self) <= py_float_to_host_float(other))
+            elif isinstance(other, int):
+                return py_bool_from_host_bool(py_float_to_host_float(self) <= py_int_to_host_int(other))
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__le__' requires a 'float' object but received a '" + type(self).__name__ + "'")
+
+    def __lt__(self, other):
+        if isinstance(self, float):
+            if isinstance(other, float):
+                return py_bool_from_host_bool(py_float_to_host_float(self) < py_float_to_host_float(other))
+            elif isinstance(other, int):
+                return py_bool_from_host_bool(py_float_to_host_float(self) < py_int_to_host_int(other))
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__lt__' requires a 'float' object but received a '" + type(self).__name__ + "'")

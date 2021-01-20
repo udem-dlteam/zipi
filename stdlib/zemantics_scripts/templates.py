@@ -394,6 +394,18 @@ int_inplace_division_method_template = \
             raise TypeError("descriptor '__i{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
 """
 
+int_comparison_method_template = \
+    """
+    def __{method_name}__(self, other):
+        if isinstance(self, int):
+            if isinstance(other, int):
+                return py_bool_from_host_bool(py_int_to_host_int(self) {op} py_int_to_host_int(other))
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+"""
+
 class_int_template = \
     """@builtin_class
 class int:
@@ -431,6 +443,15 @@ int_division_method_info = {
                  "error_message": "integer division by zero"},
     'truediv': {"method_name": "truediv", "box_method": "py_float_from_host_float", "op": "/", "error_message": "division by zero"},
     'mod': {"method_name": "mod", "box_method": "py_int_from_host_int", "op": "%", "error_message": "modulo by zero"}
+}
+
+int_comparison_method_info = {
+    'eq': {"method_name": "eq", "op": "=="},
+    'ne': {"method_name": "ne", "op": "!="},
+    'ge': {"method_name": "ge", "op": ">="},
+    'gt': {"method_name": "gt", "op": ">"},
+    'le': {"method_name": "le", "op": "<="},
+    'lt': {"method_name": "lt", "op": "<"}
 }
 
 # ======================================================================================================================
@@ -600,6 +621,20 @@ float_inplace_division_method_template = \
             raise TypeError("descriptor '__i{method_name}__' requires a 'float' object but received a '" + type(self).__name__ + "'")
 """
 
+float_comparison_method_template = \
+    """
+    def __{method_name}__(self, other):
+        if isinstance(self, float):
+            if isinstance(other, float):
+                return py_bool_from_host_bool(py_float_to_host_float(self) {op} py_float_to_host_float(other))
+            elif isinstance(other, int):
+                return py_bool_from_host_bool(py_float_to_host_float(self) {op} py_int_to_host_int(other))
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__{method_name}__' requires a 'float' object but received a '" + type(self).__name__ + "'")
+"""
+
 class_float_template = \
     """@builtin_class
 class float:
@@ -630,11 +665,21 @@ float_division_method_info = {
     'mod': {"method_name": "mod", "op": "%", "error_message": "float modulo by zero"}
 }
 
+float_comparison_method_info = {
+    'eq': {"method_name": "eq", "op": "=="},
+    'ne': {"method_name": "ne", "op": "!="},
+    'ge': {"method_name": "ge", "op": ">="},
+    'gt': {"method_name": "gt", "op": ">"},
+    'le': {"method_name": "le", "op": "<="},
+    'lt': {"method_name": "lt", "op": "<"}
+}
+
 # ======================================================================================================================
 #   builtins class templates
 # =====================================================================================================================
 
 
-builtins_template = """from __compiler_intrinsics__ import absent, builtin_class, py_int_from_host_int, py_int_to_host_int, py_float_from_host_float, py_float_to_host_float
+builtins_template = """\
+from __compiler_intrinsics__ import absent, builtin_class, py_int_from_host_int, py_int_to_host_int, py_float_from_host_float, py_float_to_host_float, py_bool_from_host_bool 
 
 {definitions}"""

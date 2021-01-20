@@ -1,4 +1,4 @@
-from __compiler_intrinsics__ import define_behavior, py_int_from_host_int, py_int_to_host_int, py_bool_to_host_int, py_float_from_host_float, py_float_to_host_float, py_sint_to_host_sint, py_bint_to_host_bint 
+from __compiler_intrinsics__ import define_behavior, py_int_from_host_int, py_int_to_host_int, py_bool_to_host_int, py_float_from_host_float, py_float_to_host_float, py_sint_to_host_sint, py_bint_to_host_bint, py_bool_from_host_bool 
 
 @define_behavior
 def py_add_floatX_floatY(self: float, other: float):
