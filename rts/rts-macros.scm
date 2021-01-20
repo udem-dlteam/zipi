@@ -439,11 +439,11 @@
             (|##=2| X Y) ;; float-sint
             (|##=2| X Y) ;; otherwise
             )
-      (py!= (##not (|##fx=| X Y)) ;; sint-sint
-            (##not (|##fl=| X Y)) ;; float-float
-            (##not (|##=2| X Y)) ;; sint-float
-            (##not (|##=2| X Y)) ;; float-sint
-            (##not (|##=2| X Y)) ;; otherwise
+      (py!= (|##not| (|##fx=| X Y)) ;; sint-sint
+            (|##not| (|##fl=| X Y)) ;; float-float
+            (|##not| (|##=2| X Y)) ;; sint-float
+            (|##not| (|##=2| X Y)) ;; float-sint
+            (|##not| (|##=2| X Y)) ;; otherwise
             )
       (py>= (|##fx>=| X Y) ;; sint-sint
             (|##fl>=| X Y) ;; float-float

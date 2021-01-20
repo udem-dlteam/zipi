@@ -338,6 +338,31 @@
     py-itruediv-floatX-sintY-inline
     py-ixor-floatX-sintY-inline
 
+    py-eq-sintX-sintY-inline
+    py-ne-sintX-sintY-inline
+    py-ge-sintX-sintY-inline
+    py-gt-sintX-sintY-inline
+    py-le-sintX-sintY-inline
+    py-lt-sintX-sintY-inline
+    py-eq-floatX-floatY-inline
+    py-ne-floatX-floatY-inline
+    py-ge-floatX-floatY-inline
+    py-gt-floatX-floatY-inline
+    py-le-floatX-floatY-inline
+    py-lt-floatX-floatY-inline
+    py-eq-floatX-sintY-inline
+    py-ne-floatX-sintY-inline
+    py-ge-floatX-sintY-inline
+    py-gt-floatX-sintY-inline
+    py-le-floatX-sintY-inline
+    py-lt-floatX-sintY-inline
+    py-eq-sintX-floatY-inline
+    py-ne-sintX-floatY-inline
+    py-ge-sintX-floatY-inline
+    py-gt-sintX-floatY-inline
+    py-le-sintX-floatY-inline
+    py-lt-sintX-floatY-inline
+
     py-invert
     py-neg
     py-pos
@@ -353,6 +378,8 @@
     py-delitem-fallback
 
     py-test
+    py-test-from-scheme
+
     py-not
     py-next
     py-import
@@ -406,6 +433,18 @@
     py-isub-behavior-call-fallback
     py-itruediv-behavior-call-fallback
     py-ixor-behavior-call-fallback
+    py-eq-behavior-call-fallback
+    py-ne-behavior-call-fallback
+    py-ge-behavior-call-fallback
+    py-gt-behavior-call-fallback
+    py-le-behavior-call-fallback
+    py-lt-behavior-call-fallback
+    py-test-eq-behavior-call-fallback
+    py-test-ne-behavior-call-fallback
+    py-test-ge-behavior-call-fallback
+    py-test-gt-behavior-call-fallback
+    py-test-le-behavior-call-fallback
+    py-test-lt-behavior-call-fallback
 
     py-add-behavior-call-with-lhs-index-fallback
     py-bitand-behavior-call-with-lhs-index-fallback
@@ -433,6 +472,18 @@
     py-isub-behavior-call-with-lhs-index-fallback
     py-itruediv-behavior-call-with-lhs-index-fallback
     py-ixor-behavior-call-with-lhs-index-fallback
+    py-eq-behavior-call-with-lhs-index-fallback
+    py-ne-behavior-call-with-lhs-index-fallback
+    py-ge-behavior-call-with-lhs-index-fallback
+    py-gt-behavior-call-with-lhs-index-fallback
+    py-le-behavior-call-with-lhs-index-fallback
+    py-lt-behavior-call-with-lhs-index-fallback
+    py-test-eq-behavior-call-with-lhs-index-fallback
+    py-test-ne-behavior-call-with-lhs-index-fallback
+    py-test-ge-behavior-call-with-lhs-index-fallback
+    py-test-gt-behavior-call-with-lhs-index-fallback
+    py-test-le-behavior-call-with-lhs-index-fallback
+    py-test-lt-behavior-call-with-lhs-index-fallback
 
     py-add-behavior-call-with-rhs-index-fallback
     py-bitand-behavior-call-with-rhs-index-fallback
@@ -460,6 +511,18 @@
     py-isub-behavior-call-with-rhs-index-fallback
     py-itruediv-behavior-call-with-rhs-index-fallback
     py-ixor-behavior-call-with-rhs-index-fallback
+    py-eq-behavior-call-with-rhs-index-fallback
+    py-ne-behavior-call-with-rhs-index-fallback
+    py-ge-behavior-call-with-rhs-index-fallback
+    py-gt-behavior-call-with-rhs-index-fallback
+    py-le-behavior-call-with-rhs-index-fallback
+    py-lt-behavior-call-with-rhs-index-fallback
+    py-test-eq-behavior-call-with-rhs-index-fallback
+    py-test-ne-behavior-call-with-rhs-index-fallback
+    py-test-ge-behavior-call-with-rhs-index-fallback
+    py-test-gt-behavior-call-with-rhs-index-fallback
+    py-test-le-behavior-call-with-rhs-index-fallback
+    py-test-lt-behavior-call-with-rhs-index-fallback
 
     py-add-behaviors-table
     py-bitand-behaviors-table
@@ -518,6 +581,7 @@
     py-sint-to-scheme-float
     py-bint-to-scheme-float
     py-bool-to-scheme
+    py-bool-from-scheme-bool
 
     py-float-from-scheme
     py-float-from-scheme-fallback
