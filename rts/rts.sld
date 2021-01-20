@@ -148,6 +148,37 @@
     py-ne-fallback:reflected
     py-ne-fallback:default
 
+    py-test-ge
+    py-test-ge-fallback
+    py-test-ge-fallback:normal
+    py-test-ge-fallback:reflected
+    py-test-ge-fallback:err
+    py-test-gt
+    py-test-gt-fallback
+    py-test-gt-fallback:normal
+    py-test-gt-fallback:reflected
+    py-test-gt-fallback:err
+    py-test-le
+    py-test-le-fallback
+    py-test-le-fallback:normal
+    py-test-le-fallback:reflected
+    py-test-le-fallback:err
+    py-test-lt
+    py-test-lt-fallback
+    py-test-lt-fallback:normal
+    py-test-lt-fallback:reflected
+    py-test-lt-fallback:err
+    py-test-eq
+    py-test-eq-fallback
+    py-test-eq-fallback:normal
+    py-test-eq-fallback:reflected
+    py-test-eq-fallback:default
+    py-test-ne
+    py-test-ne-fallback
+    py-test-ne-fallback:normal
+    py-test-ne-fallback:reflected
+    py-test-ne-fallback:default
+
     py-test-is
     py-is
     py-isnot
