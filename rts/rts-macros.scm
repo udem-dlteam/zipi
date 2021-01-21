@@ -447,27 +447,27 @@
             )
       (py>= (|##fx>=| X Y) ;; sint-sint
             (|##fl>=| X Y) ;; float-float
-            (|##>=2| X Y) ;; sint-float
-            (|##>=2| X Y) ;; float-sint
-            (|##>=2| X Y) ;; otherwise
+            (|##>=| X Y) ;; sint-float
+            (|##>=| X Y) ;; float-sint
+            (|##>=| X Y) ;; otherwise
             )
       (py>  (|##fx>| X Y) ;; sint-sint
             (|##fl>| X Y) ;; float-float
-            (|##>2| X Y) ;; sint-float
-            (|##>2| X Y) ;; float-sint
-            (|##>2| X Y) ;; otherwise
+            (|##>| X Y) ;; sint-float
+            (|##>| X Y) ;; float-sint
+            (|##>| X Y) ;; otherwise
             )
       (py<= (|##fx<=| X Y) ;; sint-sint
             (|##fl<=| X Y) ;; float-float
-            (|##<=2| X Y) ;; sint-float
-            (|##<=2| X Y) ;; float-sint
-            (|##<=2| X Y) ;; otherwise
+            (|##<=| X Y) ;; sint-float
+            (|##<=| X Y) ;; float-sint
+            (|##<=| X Y) ;; otherwise
             )
       (py<  (|##fx<| X Y) ;; sint-sint
             (|##fl<| X Y) ;; float-float
-            (|##<2| X Y) ;; sint-float
-            (|##<2| X Y) ;; float-sint
-            (|##<2| X Y) ;; otherwise
+            (|##<| X Y) ;; sint-float
+            (|##<| X Y) ;; float-sint
+            (|##<| X Y) ;; otherwise
             )))
 
   (define (dispatch-operator ops types)

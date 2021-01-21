@@ -4,6 +4,7 @@ import re
 import argparse
 import subprocess
 import multiprocessing
+import signal
 
 # Console color codes
 bcolors = {
@@ -70,8 +71,8 @@ def run_one_test(path, cpython, zipi):
     scheme_stdout = scheme_output.stdout
     cpython_stdout = cpython_output.stdout
 
-    if "segmentation fault" in scheme_stdout.decode().lower():
-        return (False, colored('FAIL', 'FAIL'), 'Segmentation fault')
+    if scheme_output.returncode == -signal.SIGSEGV:
+        return (False, colored('CRITICAL', 'FAIL'), 'Segmentation fault')
     elif cpython_output.returncode == 0:
         if cpython_stdout == scheme_stdout:
             return (True, colored('OK', 'OKGREEN'))
