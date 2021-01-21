@@ -511,7 +511,7 @@
                 (lambda (entry)
                   `(let* ((X ,(car operands))
                           (Y ,(cadr operands)))
-                     ,(dispatch-operator entry operand-types))))
+                     ,(dispatch-operator (cdr entry) operand-types))))
               (else (fallback arg)))))
     (else
       ;; scheme value should be tested as is
