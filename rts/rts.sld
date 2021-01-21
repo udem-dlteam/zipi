@@ -394,6 +394,31 @@
     py-le-sintX-floatY-inline
     py-lt-sintX-floatY-inline
 
+    py-test-eq-sintX-sintY-inline
+    py-test-ne-sintX-sintY-inline
+    py-test-ge-sintX-sintY-inline
+    py-test-gt-sintX-sintY-inline
+    py-test-le-sintX-sintY-inline
+    py-test-lt-sintX-sintY-inline
+    py-test-eq-floatX-floatY-inline
+    py-test-ne-floatX-floatY-inline
+    py-test-ge-floatX-floatY-inline
+    py-test-gt-floatX-floatY-inline
+    py-test-le-floatX-floatY-inline
+    py-test-lt-floatX-floatY-inline
+    py-test-eq-floatX-sintY-inline
+    py-test-ne-floatX-sintY-inline
+    py-test-ge-floatX-sintY-inline
+    py-test-gt-floatX-sintY-inline
+    py-test-le-floatX-sintY-inline
+    py-test-lt-floatX-sintY-inline
+    py-test-eq-sintX-floatY-inline
+    py-test-ne-sintX-floatY-inline
+    py-test-ge-sintX-floatY-inline
+    py-test-gt-sintX-floatY-inline
+    py-test-le-sintX-floatY-inline
+    py-test-lt-sintX-floatY-inline
+
     py-invert
     py-neg
     py-pos
