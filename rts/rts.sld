@@ -181,6 +181,7 @@
 
     py-test-is
     py-is
+    py-test-isnot
     py-isnot
     py-in
     py-notin
@@ -435,6 +436,7 @@
 
     py-test
     py-test-from-scheme
+    py-test-fallback
 
     py-not
     py-next

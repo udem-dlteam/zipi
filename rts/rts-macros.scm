@@ -1223,6 +1223,9 @@
 (define-macro (py-test-is x y)
   `(eq? ,x ,y))
 
+(define-macro (py-test-isnot x y)
+  `(not (py-test-is ,x ,y)))
+
 (define-macro (py-test x)
   (define cmp-operator-test-version
     '((py-eq py-test-eq)
@@ -1231,7 +1234,8 @@
       (py-gt py-test-gt)
       (py-le py-test-le)
       (py-lt py-test-lt)
-      (py-is py-test-is)))
+      (py-is py-test-is)
+      (py-is py-test-isnot)))
 
   (if (pair? x)
     (let ((test-version (assq (car x) cmp-operator-test-version)))

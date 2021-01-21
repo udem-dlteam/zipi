@@ -1326,7 +1326,7 @@
     py-False))
 
 (define (py-isnot x y) ;; x is not y
-  (if (not (eq? x y))
+  (if (py-test-isnot x y)
     py-True
     py-False))
 
