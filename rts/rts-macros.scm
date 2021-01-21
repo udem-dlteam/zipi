@@ -942,7 +942,7 @@
 
   (define (get-behavior-call-with-rhs-index-fallback op)
     `(define (,(get-behavior-call-with-rhs-index-fallback-name op) lhs rhs-index rhs)
-        ($py-behavior-call-with-lhs-index ,op lhs rhs-index rhs)))
+        ($py-behavior-call-with-rhs-index ,op lhs rhs-index rhs)))
 
   (let ((tables-init-code
           (let loop ((ops ops-with-behaviors))
@@ -998,7 +998,7 @@
           (string->symbol (string-append "py-" (symbol->string op) "-behaviors-table"))))
     `(vector-ref ,behavior-table-name (get-behavior-index ,lhs-index ,rhs-index))))
 
-(define-macro (py-behavior-set!! op lhs-index rhs-index val)
+(define-macro (py-behavior-set! op lhs-index rhs-index val)
   (let ((behavior-table-name
           (string->symbol (string-append "py-" (symbol->string op) "-behaviors-table"))))
     `(vector-set! ,behavior-table-name (get-behavior-index ,lhs-index ,rhs-index) ,val)))
