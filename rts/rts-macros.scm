@@ -870,18 +870,34 @@
       cmp-ops
       test-cmp-ops))
 
+  (define (test-op->cmp-op op)
+    (case op
+      ((test-eq) 'eq)
+      ((test-ne) 'ne)
+      ((test-ge) 'ge)
+      ((test-gt) 'gt)
+      ((test-le) 'le)
+      ((test-lt) 'lt)))
+
   (define (get-behaviors-table-name op)
     (string->symbol (string-append "py-" (symbol->string op) "-behaviors-table")))
 
   (define (get-behavior-name op lhs-type rhs-type)
     (if (or (eq? lhs-type 'default) (eq? rhs-type 'default))
       ;; use the full semantics
-      (string->symbol
-        (string-append
-          "py-"
-          (symbol->string op)
-          "-fallback"
-          (if (memq op inplace-ops) ":inplace" ":normal")))
+      (cond
+        ((memq op inplace-ops)
+          (string->symbol
+            (string-append "py-" (symbol->string op) "-fallback:inplace")))
+        ((memq op test-cmp-ops)
+          ;; call comparison semantics followed by bool semantics
+          `(lambda (x y)
+            (py-test
+              (,(string->symbol (string-append "py-" (symbol->string (test-op->cmp-op op)) "-fallback"))
+                x y))))
+        (else
+          (string->symbol
+            (string-append "py-" (symbol->string op) "-fallback:normal"))))
       ;; use a behavior
       (string->symbol
         (string-append

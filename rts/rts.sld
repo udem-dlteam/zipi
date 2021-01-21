@@ -582,6 +582,19 @@
     py-itruediv-behaviors-table
     py-ixor-behaviors-table
 
+    py-eq-behaviors-table
+    py-ne-behaviors-table
+    py-ge-behaviors-table
+    py-gt-behaviors-table
+    py-le-behaviors-table
+    py-lt-behaviors-table
+    py-test-eq-behaviors-table
+    py-test-ne-behaviors-table
+    py-test-ge-behaviors-table
+    py-test-gt-behaviors-table
+    py-test-le-behaviors-table
+    py-test-lt-behaviors-table
+
     procedure->py-function
 
     py-if-specialized-sint-representation
