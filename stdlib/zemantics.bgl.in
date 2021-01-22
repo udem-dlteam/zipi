@@ -9,7 +9,8 @@
 
    (import
       __stdlib_behaviors
-      __py_rts)
+      __py_rts
+      __py_bigloo)
 
    (export
       (zipi-init name)

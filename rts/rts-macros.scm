@@ -154,15 +154,15 @@
 
   (define binary-operators-bigloo
     '((py+  (py-sint-from-scheme (+fx X Y)) ;; bool/bool or non-ov. sint/sint
-            (py-int-from-scheme (+ X Y)) ;; sint/sint
+            (py-int-from-scheme (+fx/overflow X Y)) ;; sint/sint
             (py-int-from-scheme (+ X Y)) ;; otherwise
             )
       (py-  (py-sint-from-scheme (-fx X Y)) ;; bool/bool or non-ov. sint/sint
-            (py-int-from-scheme (- X Y)) ;; sint/sint
+            (py-int-from-scheme (-fx/overflow X Y)) ;; sint/sint
             (py-int-from-scheme (- X Y)) ;; otherwise
             )
       (py*  (py-sint-from-scheme (*fx X Y)) ;; bool/bool or non-ov. sint/sint
-            (py-int-from-scheme (* X Y)) ;; sint/sint
+            (py-int-from-scheme (*fx/overflow X Y)) ;; sint/sint
             (py-int-from-scheme (* X Y)) ;; otherwise
             )
       (py** (py-sint-from-scheme (exptfx X Y)) ;; bool/bool or non-ov. sint/sint

@@ -555,7 +555,8 @@
             loc
             (list
               (make-behavior (make-fallback-behavior-name name) body #f #f)
-              (make-behavior (make-inline-behavior-name name) (make-default-inline-behavior-body) #t #t))))))))
+              (make-behavior (make-inline-behavior-name name) (make-default-inline-behavior-body) #t #t)))))
+      this)))
 
 (define (lambda-lift-semantics! module)
   (lambda-lift-semantics-walk! module))

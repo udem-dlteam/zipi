@@ -4,7 +4,7 @@
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Tue Apr  7 16:51:08 2020                          */
 ;*    Last change :  Thu Jun 11 07:15:36 2020 (serrano)                */
-;*    Copyright   :  2020 Manuel Serrano                               */
+;*    Copyright   :  2020-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Bigloo compatibility kit                                         */
 ;*=====================================================================*/
@@ -49,6 +49,10 @@
 	   (inline u8<::bool ::uint8 ::uint8)
 	   (inline u8<=::bool ::uint8 ::uint8)
 	   (inline u8>::bool ::uint8 ::uint8)
+
+	   (inline +fx/overflow::obj ::obj ::obj)
+	   (inline -fx/overflow::obj ::obj ::obj)
+	   (inline *fx/overflow::obj ::obj ::obj)
 
 	   (inline u8vector-append . vecs)
 	   (inline subu8vector vec start stop)
@@ -154,6 +158,66 @@
 (define-inline (u8> x y) (>u8 x y))
 (define-inline (u8<= x y) (<=u8 x y))
 (define-inline (u8>= x y) (>=u8 x y))
+
+;*---------------------------------------------------------------------*/
+;*    +fx/overflow ...                                                 */
+;*---------------------------------------------------------------------*/
+(define-inline (+fx/overflow::obj x::obj y::obj)
+   (cond-expand
+      ((and bigloo-c (config have-overflow #t) (config nan-tagging #t))
+       (let ((res::int 0))
+	  (if (pragma::bool "__builtin_sadd_overflow((int)((long)$1), (int)((long)$2), &$3)"
+		 x y (pragma res))
+	      (+bx (fixnum->bignum x) (fixnum->bignum y))
+	      (pragma::bint "BINT($1)" res))))
+      ((and bigloo-c (config have-overflow #t))
+       (let ((res::long 0))
+	  (if (pragma::bool "__builtin_saddl_overflow((long)$1, (long)$2-TAG_INT, &$3)"
+		 x y (pragma res))
+	      (-bx (fixnum->bignum x) (fixnum->bignum y))
+	      (pragma::bint "(obj_t)($1)" res))))
+      (else
+       (+fx x y))))
+
+;*---------------------------------------------------------------------*/
+;*    -fx/overflow ...                                                 */
+;*---------------------------------------------------------------------*/
+(define-inline (-fx/overflow x::obj y::obj)
+   (cond-expand
+      ((and bigloo-c (config have-overflow #t) (config nan-tagging #t))
+       (let ((res::int 0))
+	  (if (pragma::bool "__builtin_ssub_overflow((int)((long)$1), (int)((long)$2), &$3)"
+		 x y (pragma res))
+	      (-bx (fixnum->bignum x) (fixnum->bignum y) )
+	      (pragma::bint "BINT($1)" res))))
+      ((and bigloo-c (config have-overflow #t))
+       (let ((res::long 0))
+	  (if (pragma::bool "__builtin_ssubl_overflow((long)$1, (long)$2-TAG_INT, &$3)"
+		 x y (pragma res))
+	      (-bx (fixnum->bignum x) (fixnum->bignum y))
+	      (pragma::bint "(obj_t)($1)" res))))
+      (else
+       (-fx x y))))
+
+;*---------------------------------------------------------------------*/
+;*    *fx/overflow ...                                                 */
+;*---------------------------------------------------------------------*/
+(define-inline (*fx/overflow x::obj y::obj)
+   (cond-expand
+      ((and bigloo-c (config have-overflow #t) (config nan-tagging #t))
+       (let ((res::int 0))
+	  (if (pragma::bool "__builtin_smul_overflow((int)((long)$1), (int)((long)$2), &$3)"
+		 x y (pragma res))
+	      (*bx (fixnum->bignum x) (fixnum->bignum y))
+	      (pragma::bint "BINT($1)" res))))
+      ((and bigloo-c (config have-overflow #t))
+       (let ((res::int 0))
+	  (if (pragma::bool "__builtin_smul_overflow((int)(CINT($1)), (int)(CINT($2)), &$3)"
+		 x y (pragma res))
+	      (*bx (fixnum->bignum x) (fixnum->bignum y))
+	      (pragma::bint "BINT($1)" res))))
+      (else
+       (*fx x y))))
 
 ;*---------------------------------------------------------------------*/
 ;*    u8vector functions ...                                           */

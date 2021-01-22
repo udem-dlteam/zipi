@@ -16,13 +16,13 @@
 			  "__stdin"))
 	     ,@(if (config-get conf bootstrap:)
 		   '((import __py_rts
-         __stdlib_zemantics
-         __stdlib_behaviors)
+			__py_bigloo
+			__stdlib_zemantics
+			__stdlib_behaviors)
 		     (include "rts-macros.scm"
 			"bigloo/call.sch"
 			"bigloo/constants.sch"))
-		   '((library zipi)
-		     ))
+		   '((library zipi)))
 	     ,@(if (config-get conf main:)
 		   '((main main))
 		   '((export (zipi-init ::bstring)))))
@@ -43,13 +43,6 @@
 		    (py-module
 		       (py-make-global)
 		       (py-make-caches ,(PycModule-caches ast))))))
-;* 	    ((config-get conf bootstrap:)                              */
-;* 	     `(define (zipi-init)                                      */
-;* 		 (let ((global (py-make-global))                       */
-;* 		       (caches (py-make-caches ,(PycModule-caches ast)))) */
-;* 		    (init-registered-constants)                        */
-;* 		    (py-module global caches)                          */
-;* 		    global)))                                          */
 	    (else
 	     `(define (zipi-init name)
 		 (init-registered-constants)
