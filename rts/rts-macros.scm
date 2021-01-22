@@ -470,6 +470,44 @@
             (|##<| X Y) ;; otherwise
             )))
 
+  (define comparison-operators-bigloo
+    '((py== (=fx X Y) ;; sint-sint
+            (=fl X Y) ;; float-float
+            (= X Y) ;; sint-float
+            (= X Y) ;; float-sint
+            (= X Y) ;; otherwise
+            )
+      (py!= (not (=fx X Y)) ;; sint-sint
+            (not (=fl X Y)) ;; float-float
+            (not (= X Y)) ;; sint-float
+            (not (= X Y)) ;; float-sint
+            (not (= X Y)) ;; otherwise
+            )
+      (py>= (>=fx X Y) ;; sint-sint
+            (>=fl X Y) ;; float-float
+            (>= X Y) ;; sint-float
+            (>= X Y) ;; float-sint
+            (>= X Y) ;; otherwise
+            )
+      (py>  (>fx X Y) ;; sint-sint
+            (>fl X Y) ;; float-float
+            (> X Y) ;; sint-float
+            (> X Y) ;; float-sint
+            (> X Y) ;; otherwise
+            )
+      (py<= (<=fx X Y) ;; sint-sint
+            (<=fl X Y) ;; float-float
+            (<= X Y) ;; sint-float
+            (<= X Y) ;; float-sint
+            (<= X Y) ;; otherwise
+            )
+      (py<  (<fx X Y) ;; sint-sint
+            (<fl X Y) ;; float-float
+            (< X Y) ;; sint-float
+            (< X Y) ;; float-sint
+            (< X Y) ;; otherwise
+            )))
+
   (define (dispatch-operator ops types)
     (cond
       ((equal? types '(sint sint)) (car ops))
