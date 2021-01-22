@@ -63,8 +63,18 @@
 		    module))))
 	 '(end-registering-constants))))
 
+(define (sort-semantics semantics)
+  (define (only form)
+    (let loop ((s semantics))
+      (cond
+        ((null? s) '())
+        ((eq? (cadar s) form) (cons (car s) (loop (cdr s))))
+        (else (loop (cdr s))))))
+
+  (append (only 'define-macro) (only 'define)))
+
 (define (pyc-scheme-gambit ast conf)
-  (let* ((semantics (collect-semantics* ast conf)))
+  (let* ((semantics (sort-semantics (collect-semantics* ast conf))))
     (if (null? semantics)
       ;; normal compilation
       (let* ((prog (pyc-scheme ast conf))
