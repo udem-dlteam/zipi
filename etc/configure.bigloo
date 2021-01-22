@@ -5,7 +5,7 @@
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Tue Jul  2 07:46:27 2019                          */
 #*    Last change :  Tue Nov 12 20:12:25 2019 (serrano)                */
-#*    Copyright   :  2019-20 Manuel Serrano                            */
+#*    Copyright   :  2019-21 Manuel Serrano                            */
 #*    -------------------------------------------------------------    */
 #*    Bigloo specific configuration                                    */
 #*=====================================================================*/
@@ -20,7 +20,8 @@ btags=bgltags
 bdepend=bgldepend
 
 bigloo=`which bigloo`
-bcflags="-O3 -fstackable -fsharing -srfi bootstrap -L \$(BUILDLIBDIR) -srfi bigloo-compile"
+#bcflags="-O3 -fstackable -fsharing -srfi bootstrap -L \$(BUILDLIBDIR) -srfi bigloo-compile"
+bcflags="-O3 -fsharing -srfi bootstrap -L \$(BUILDLIBDIR) -srfi bigloo-compile"
 blflags="-copt \$(CPICFLAGS) -L \$(BUILDLIBDIR) -srfi bigloo-compile"
 bhflags=
 btflags="-gtrace"
@@ -183,45 +184,49 @@ for file in Makefile.bigloo pyc.init zipi.init; do
    	>> $path
 done
 
-for file in pyc.init zipi.init; do
-  cat etc/$file \
-    | sed -e "s|#[*] Automatically|;* Automatically|" \
-    > $buildlibdir/$file
+cat etc/pyc.init \
+  | sed -e "s|#[*] Automatically|;* Automatically|" \
+  > $buildlibdir/pyc.init
 
-  rm etc/$file
-done
+rm etc/pyc.init
 
-# rts/hash/hash.scm
-echo ";; rts/hash/hash.scm" >> $buildlibdir/zipi.init
-echo "(eval '(begin" >> $buildlibdir/zipi.init
-cat rts/hash/hash.scm >> $buildlibdir/zipi.init
-echo "))" >> $buildlibdir/zipi.init
+cat etc/zipi.init \
+  | sed -e "s|#[*] Automatically|;* Automatically|" \
+  > rts/zipi.init
 
-# rts/config/config.scm
-echo ";; rts/config/config.scm" >> $buildlibdir/zipi.init
-echo "(eval '(begin" >> $buildlibdir/zipi.init
-cat rts/config/config.scm >> $buildlibdir/zipi.init
-echo "))" >> $buildlibdir/zipi.init
+rm etc/zipi.init
 
-# rts/bigloo/rts-call.sch
-echo ";; rts/bigloo/call.sch" >> $buildlibdir/zipi.init
-cat rts/bigloo/call_expd.sch >> $buildlibdir/zipi.init
-
-# rts/bigloo/constants.sch
-echo ";; rts/bigloo/constants.sch" >> $buildlibdir/zipi.init
-cat rts/bigloo/constants_expd.sch >> $buildlibdir/zipi.init
-
-# rts/bigloo/integer.sch
-echo ";; rts/bigloo/integer.sch" >> $buildlibdir/zipi.init
-cat rts/bigloo/integer.sch >> $buildlibdir/zipi.init
-
-# rts/rts-macro.scm
-echo ";; rts/rts-macro.scm" >> $buildlibdir/zipi.init
-cat rts/rts-macros.scm >> $buildlibdir/zipi.init
-
-# rts/bigloo/expanders.sch
-cat rts/bigloo/expanders.sch >> $buildlibdir/zipi.init
-
-echo "(zipi-install-expanders!)" >> $buildlibdir/zipi.init
+#* # rts/hash/hash.scm                                                 */
+#* echo ";; rts/hash/hash.scm" >> $buildlibdir/zipi.init               */
+#* echo "(eval '(begin" >> $buildlibdir/zipi.init                      */
+#* cat rts/hash/hash.scm >> $buildlibdir/zipi.init                     */
+#* echo "))" >> $buildlibdir/zipi.init                                 */
+#*                                                                     */
+#* # rts/config/config.scm                                             */
+#* echo ";; rts/config/config.scm" >> $buildlibdir/zipi.init           */
+#* echo "(eval '(begin" >> $buildlibdir/zipi.init                      */
+#* cat rts/config/config.scm >> $buildlibdir/zipi.init                 */
+#* echo "))" >> $buildlibdir/zipi.init                                 */
+#*                                                                     */
+#* # rts/bigloo/rts-call.sch                                           */
+#* echo ";; rts/bigloo/call.sch" >> $buildlibdir/zipi.init             */
+#* cat rts/bigloo/call_expd.sch >> $buildlibdir/zipi.init              */
+#*                                                                     */
+#* # rts/bigloo/constants.sch                                          */
+#* echo ";; rts/bigloo/constants.sch" >> $buildlibdir/zipi.init        */
+#* cat rts/bigloo/constants_expd.sch >> $buildlibdir/zipi.init         */
+#*                                                                     */
+#* # rts/bigloo/integer.sch                                            */
+#* echo ";; rts/bigloo/integer.sch" >> $buildlibdir/zipi.init          */
+#* cat rts/bigloo/integer.sch >> $buildlibdir/zipi.init                */
+#*                                                                     */
+#* # rts/rts-macro.scm                                                 */
+#* echo ";; rts/rts-macro.scm" >> $buildlibdir/zipi.init               */
+#* cat rts/rts-macros.scm >> $buildlibdir/zipi.init                    */
+#*                                                                     */
+#* # rts/bigloo/expanders.sch                                          */
+#* cat rts/bigloo/expanders.sch >> $buildlibdir/zipi.init              */
+#*                                                                     */
+#* echo "(zipi-install-expanders!)" >> $buildlibdir/zipi.init          */
 
 pysexppp="['cat', '-']"
