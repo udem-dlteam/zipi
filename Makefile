@@ -4,7 +4,7 @@
 #*    Author      :  Marc Feeley & Manuel Serrano                      */
 #*    Creation    :  Sat Feb 19 12:25:16 2000                          */
 #*    Last change :  Sat May 23 09:05:31 2020 (serrano)                */
-#*    Copyright   :  2019-20 Marc Feeley & Manuel Serrano              */
+#*    Copyright   :  2019-21 Marc Feeley & Manuel Serrano              */
 #*    -------------------------------------------------------------    */
 #*    The Makefile to build Zipi.                                      */
 #*=====================================================================*/
@@ -22,7 +22,7 @@ do: build
 #*---------------------------------------------------------------------*/
 
 venv:
-	virtualenv --python=python3.8 venv
+	virtualenv --python=$(BUILDPYTHON) venv
 	. ./venv/bin/activate; pip install -r requirements.txt
 
 #*---------------------------------------------------------------------*/

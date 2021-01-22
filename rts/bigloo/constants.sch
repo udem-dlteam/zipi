@@ -4,7 +4,7 @@
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Sat Nov 22 06:35:05 2014                          */
 ;*    Last change :  Fri Apr 12 11:44:07 2019 (serrano)                */
-;*    Copyright   :  2014-20 Manuel Serrano                            */
+;*    Copyright   :  2014-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    constants Helper macros.                                         */
 ;*=====================================================================*/

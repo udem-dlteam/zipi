@@ -5,12 +5,14 @@ import ast as AST
 import subprocess
 import sys
 
+python39 = sys.version_info[:2] == (3, 9)
 python38 = sys.version_info[:2] == (3, 8)
 python35 = False
 generate_location_information = True    # set to True to get location info
 
-if not python38:
-    raise ValueError("Zipi only supports Python 3.8")
+if not python39:
+    if not python38:
+        raise ValueError("Zipi only supports Python >= 3.8")
 
 # autoconfiguration
 class dummyClass(): pass

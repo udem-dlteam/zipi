@@ -4,7 +4,7 @@
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Mar 28 15:09:08 2019                          */
 ;*    Last change :  Sun Apr 12 13:07:06 2020 (serrano)                */
-;*    Copyright   :  2019-20 Manuel Serrano                            */
+;*    Copyright   :  2019-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    HopScript constant expanders                                     */
 ;*    -------------------------------------------------------------    */
@@ -136,17 +136,19 @@
 (define (&-expander x e)
    (match-case x
       ((& (and ?str (? string?)))
-       (let* ((&cnsts (thread-parameter '&cnsts))
-	      (old (assoc str &cnsts)))
-	  (if (pair? old)
-	      (e `(vector-ref __py_strings ,(cddr old)) e)
-	      (let ((cnst (&name-expander x e)))
-		 (if (vector? cnst)
-		     (let ((len (length &cnsts)))
-			(thread-parameter-set! '&cnsts
-			   (cons (cons str (cons cnst len)) &cnsts))
-			(e `(vector-ref __py_strings ,len) e))
-		     cnst)))))
+       (let ((&cnsts (thread-parameter '&cnsts)))
+	  (if (not &cnsts)
+	      `(py-str-from-scheme-fallback ,str)
+	      (let ((old (assoc str &cnsts)))
+		 (if (pair? old)
+		     (e `(vector-ref __py_strings ,(cddr old)) e)
+		     (let ((cnst (&name-expander x e)))
+			(if (vector? cnst)
+			    (let ((len (length &cnsts)))
+			       (thread-parameter-set! '&cnsts
+				  (cons (cons str (cons cnst len)) &cnsts))
+			       (e `(vector-ref __py_strings ,len) e))
+			    cnst)))))))
       ((& (and ?str (? string?)) ?idx)
        (e `(vector-ref __py_strings ,idx) e))
       ((& strings)

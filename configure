@@ -5,7 +5,7 @@
 #*    Author      :  Marc Feeley & Manuel Serrano                      */
 #*    Creation    :  Sat Jul 31 06:49:37 2004                          */
 #*    Last change :  Mon May 25 14:04:55 2020 (serrano)                */
-#*    Copyright   :  2019-20 Marc Feeley & Manuel Serrano              */
+#*    Copyright   :  2019-21 Marc Feeley & Manuel Serrano              */
 #*    -------------------------------------------------------------    */
 #*    HOP autoconfiguration                                            */
 #*=====================================================================*/
@@ -45,6 +45,8 @@ install="install -m a+r,u+r"
 shell=/bin/sh
 
 mode=optim
+
+buildpython=python3.8
 
 branch=`git rev-parse --abbrev-ref HEAD`
 date=`date +"%d %B %Y"`
@@ -107,6 +109,9 @@ while : ; do
     --debug*)
       mode=debug;;
 
+    --buildpython=*)
+      buildpython="`echo $1 | sed 's/^[^=]*=//'`";;
+
     -*)
       if [ "$1" != "--help" ]; then
         echo "*** Configure error, unknown option $1" >&2;
@@ -131,8 +136,9 @@ while : ; do
       echo "   --bigloolibdir=path......... the Bigloo lib-dir path" >&2;
       echo "Misc:" >&2;
       echo "   --install................... the installer ($install)" >&2;
-      echo "   --mode=[prod|debug]......... the configuration mode ($mod)" >&2;
+      echo "   --mode=[prod|debug]......... the configuration mode ($mode)" >&2;
       echo "   --debug..................... debug mode (aka --mode=debug)" >&2;
+      echo "   --buildpython............... python version to build ($buildpython)" >&2;
       exit 255;
   esac
   shift
@@ -230,6 +236,7 @@ for file in Makefile.zipiconfig configure.scm pysexp.py zpc.bigloo.sh; do
           -e "s|@INSTALL@|$install|" \
           -e "s|@LINK@|$link|" \
           -e "s|@SHELL@|$shell|" \
+          -e "s|@BUILDPYTHON@|$buildpython|" \
           -e "s|@PYSEXPPP@|$pysexppp|" \
   	>> $mkmf
 done
