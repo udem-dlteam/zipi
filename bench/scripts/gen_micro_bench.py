@@ -85,6 +85,12 @@ def expand_template(iterations, duplications, head, iter_head, body, tail, code)
                            tail=add_indent(tail, tail_indent),
                            code=repr(code))
 
+def expand_body(stmt, dups):
+    first = ['# inline_host_code(\'(inline-host-code "/*BEGIN-BENCH-FIRST-STMT*/")\')',
+             stmt,
+             '# inline_host_code(\'(inline-host-code "/*END-BENCH-FIRST-STMT*/")\')']
+    return '\n'.join(first + [stmt] * (dups-1))
+
 def expand_benchmark(specs):
     iters = specs[0] * iters_scale
     dups = specs[1] * dups_scale
@@ -93,7 +99,7 @@ def expand_benchmark(specs):
                            dups,
                            specs[2],
                            specs[3],
-                           '\n'.join([specs[4]] * dups),
+                           expand_body(specs[4], dups),
                            specs[5],
                            specs[4])
 
