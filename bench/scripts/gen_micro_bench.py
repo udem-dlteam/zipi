@@ -86,9 +86,9 @@ def expand_template(iterations, duplications, head, iter_head, body, tail, code)
                            code=repr(code))
 
 def expand_body(stmt, dups):
-    first = ['# inline_host_code(\'(inline-host-code "/*BEGIN-BENCH-FIRST-STMT*/")\')',
+    first = ['inline_host_code(\'(inline-host-code "/*BEGIN-BENCH-FIRST-STMT*/")\')',
              stmt,
-             '# inline_host_code(\'(inline-host-code "/*END-BENCH-FIRST-STMT*/")\')']
+             'inline_host_code(\'(inline-host-code "/*END-BENCH-FIRST-STMT*/")\')']
     return '\n'.join(first + [stmt] * (dups-1))
 
 def expand_benchmark(specs):
