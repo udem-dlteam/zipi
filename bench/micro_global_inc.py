@@ -1,6 +1,6 @@
 # micro_global_inc.py
 # Auto-generated
-from __compiler_intrinsics__ import inline_host_code
+
 import time
 
 bench_iterations = 700000
@@ -12,9 +12,7 @@ def bench_exec():
     while bench_counter > 0:
         bench_counter -= 1
         g=0
-        inline_host_code('(inline-c-code "/*BEGIN-BENCH-FIRST-STMT*/")')
         g+=1
-        inline_host_code('(inline-c-code "/*END-BENCH-FIRST-STMT*/")')
         g+=1
         g+=1
         g+=1

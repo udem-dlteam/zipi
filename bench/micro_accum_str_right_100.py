@@ -1,6 +1,6 @@
 # micro_accum_str_right_100.py
 # Auto-generated
-from __compiler_intrinsics__ import inline_host_code
+
 import time
 
 bench_iterations = 100000
@@ -12,9 +12,7 @@ def bench_exec():
     while bench_counter > 0:
         bench_counter -= 1
         s2="b";x=100
-        inline_host_code('(inline-c-code "/*BEGIN-BENCH-FIRST-STMT*/")')
         while x>0:x-=1;s2=s2+s1
-        inline_host_code('(inline-c-code "/*END-BENCH-FIRST-STMT*/")')
     
 
 bench_time = time.time()

@@ -1,6 +1,6 @@
 # micro_var_list_index_0.py
 # Auto-generated
-from __compiler_intrinsics__ import inline_host_code
+
 import time
 
 bench_iterations = 1600000
@@ -12,9 +12,7 @@ def bench_exec():
     while bench_counter > 0:
         bench_counter -= 1
         
-        inline_host_code('(inline-c-code "/*BEGIN-BENCH-FIRST-STMT*/")')
         x=lst[0]
-        inline_host_code('(inline-c-code "/*END-BENCH-FIRST-STMT*/")')
         x=lst[0]
         x=lst[0]
         x=lst[0]
