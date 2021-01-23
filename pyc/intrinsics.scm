@@ -65,6 +65,16 @@
               this)))
         (else this))))
 
+(define (make-inline_host_code this)
+  (let* ((loc (PycNode-loc this))
+        (args (PycCall-args this))
+        (args-len (length args)))
+    (if (and
+          (= args-len 1)
+          (PycString? (car args)))
+      (new-PycPragma loc (call-with-input-string (PycLiteralValue-val (car args)) read))
+      (error "SyntaxError" "wrong argument for inline_host_code" args))))
+
 (define (make-class_getattr this)
   (let* ((loc (PycNode-loc this))
         (args (PycCall-args this))
@@ -77,7 +87,7 @@
           loc
           (new-PycPragma loc 'getattribute-from-obj-mro)
           args)
-        (error "SyntaxError" "wrong argument for class_getattr" #f))))
+        (error "SyntaxError" "wrong argument for class_getattr" args))))
 
 (define (make-call_host this)
   (let* ((loc (PycNode-loc this))
@@ -109,6 +119,7 @@
 
 (define macro-intrinsics
   (list
+    (cons 'inline_host_code make-inline_host_code)
     (cons 'class_getattr make-class_getattr)
     (cons 'call_host make-call_host)
     (cons 'py_float_to_host (make-pragma-call-maker 'py-float-to-scheme))
