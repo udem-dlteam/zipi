@@ -1,6 +1,6 @@
 # micro_if_var_float_lt_var.py
 # Auto-generated
-
+from __compiler_intrinsics__ import inline_host_code
 import time
 
 bench_iterations = 1600000
@@ -12,7 +12,9 @@ def bench_exec():
     while bench_counter > 0:
         bench_counter -= 1
         
+        inline_host_code('(inline-c-code "/*BEGIN-BENCH-FIRST-STMT*/")')
         if x<y:x=0.
+        inline_host_code('(inline-c-code "/*END-BENCH-FIRST-STMT*/")')
         if x<y:x=0.
         if x<y:x=0.
         if x<y:x=0.

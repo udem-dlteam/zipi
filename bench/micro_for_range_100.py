@@ -1,6 +1,6 @@
 # micro_for_range_100.py
 # Auto-generated
-
+from __compiler_intrinsics__ import inline_host_code
 import time
 
 bench_iterations = 100000
@@ -12,7 +12,9 @@ def bench_exec():
     while bench_counter > 0:
         bench_counter -= 1
         
+        inline_host_code('(inline-c-code "/*BEGIN-BENCH-FIRST-STMT*/")')
         for x in range(100):pass
+        inline_host_code('(inline-c-code "/*END-BENCH-FIRST-STMT*/")')
     
 
 bench_time = time.time()
