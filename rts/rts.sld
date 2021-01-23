@@ -3,6 +3,8 @@
     run-as-main
     compile-source
 
+    inline-c-code
+
     PyObject?
     &
     &&
