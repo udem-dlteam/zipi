@@ -1,3 +1,12 @@
+;; inline c code
+
+(define-macro (inline-c-code code)
+  (cond-expand
+    (gambit
+      `(let () (declare (extended-bindings)) (##c-code ,code)))
+    (bigloo
+      #f)))
+
 ;; Macros to enable/disable various implementation strategies.
 
 (define-macro (py-if-specialized-sint-representation yes no) yes)
