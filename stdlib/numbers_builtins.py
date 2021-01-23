@@ -1,4 +1,4 @@
-from __compiler_intrinsics__ import absent, builtin_class, py_int_from_host_int, py_int_to_host_int, py_float_from_host_float, py_float_to_host_float, py_bool_from_host_bool 
+from __compiler_intrinsics__ import absent, builtin_class, py_int_from_host, py_int_to_host, py_float_from_host, py_float_to_host, py_bool_from_host_bool 
 
 @builtin_class
 class int:
@@ -8,7 +8,7 @@ class int:
             if val is absent:
                 return 0
             if isinstance(val, int):
-                return py_int_from_host_int(py_int_to_host_int(val))
+                return py_int_from_host(py_int_to_host(val))
             else:
                 raise NotImplementedError
         else:
@@ -18,7 +18,7 @@ class int:
     def __add__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                return py_int_from_host_int(py_int_to_host_int(self) + py_int_to_host_int(other))
+                return py_int_from_host(py_int_to_host(self) + py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -27,7 +27,7 @@ class int:
     def __radd__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                return py_int_from_host_int(py_int_to_host_int(other) + py_int_to_host_int(self))
+                return py_int_from_host(py_int_to_host(other) + py_int_to_host(self))
             else:
                 return NotImplemented
         else:
@@ -36,7 +36,7 @@ class int:
     def __iadd__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                return py_int_from_host_int(py_int_to_host_int(self) + py_int_to_host_int(other))
+                return py_int_from_host(py_int_to_host(self) + py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -45,7 +45,7 @@ class int:
     def __and__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                return py_int_from_host_int(py_int_to_host_int(self) & py_int_to_host_int(other))
+                return py_int_from_host(py_int_to_host(self) & py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -54,7 +54,7 @@ class int:
     def __rand__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                return py_int_from_host_int(py_int_to_host_int(other) & py_int_to_host_int(self))
+                return py_int_from_host(py_int_to_host(other) & py_int_to_host(self))
             else:
                 return NotImplemented
         else:
@@ -63,7 +63,7 @@ class int:
     def __iand__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                return py_int_from_host_int(py_int_to_host_int(self) & py_int_to_host_int(other))
+                return py_int_from_host(py_int_to_host(self) & py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -72,7 +72,7 @@ class int:
     def __or__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                return py_int_from_host_int(py_int_to_host_int(self) | py_int_to_host_int(other))
+                return py_int_from_host(py_int_to_host(self) | py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -81,7 +81,7 @@ class int:
     def __ror__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                return py_int_from_host_int(py_int_to_host_int(other) | py_int_to_host_int(self))
+                return py_int_from_host(py_int_to_host(other) | py_int_to_host(self))
             else:
                 return NotImplemented
         else:
@@ -90,7 +90,7 @@ class int:
     def __ior__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                return py_int_from_host_int(py_int_to_host_int(self) | py_int_to_host_int(other))
+                return py_int_from_host(py_int_to_host(self) | py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -99,7 +99,7 @@ class int:
     def __mul__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                return py_int_from_host_int(py_int_to_host_int(self) * py_int_to_host_int(other))
+                return py_int_from_host(py_int_to_host(self) * py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -108,7 +108,7 @@ class int:
     def __rmul__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                return py_int_from_host_int(py_int_to_host_int(other) * py_int_to_host_int(self))
+                return py_int_from_host(py_int_to_host(other) * py_int_to_host(self))
             else:
                 return NotImplemented
         else:
@@ -117,7 +117,7 @@ class int:
     def __imul__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                return py_int_from_host_int(py_int_to_host_int(self) * py_int_to_host_int(other))
+                return py_int_from_host(py_int_to_host(self) * py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -126,7 +126,7 @@ class int:
     def __pow__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                return py_int_from_host_int(py_int_to_host_int(self) ** py_int_to_host_int(other))
+                return py_int_from_host(py_int_to_host(self) ** py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -135,7 +135,7 @@ class int:
     def __rpow__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                return py_int_from_host_int(py_int_to_host_int(other) ** py_int_to_host_int(self))
+                return py_int_from_host(py_int_to_host(other) ** py_int_to_host(self))
             else:
                 return NotImplemented
         else:
@@ -144,7 +144,7 @@ class int:
     def __ipow__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                return py_int_from_host_int(py_int_to_host_int(self) ** py_int_to_host_int(other))
+                return py_int_from_host(py_int_to_host(self) ** py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -153,7 +153,7 @@ class int:
     def __sub__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                return py_int_from_host_int(py_int_to_host_int(self) - py_int_to_host_int(other))
+                return py_int_from_host(py_int_to_host(self) - py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -162,7 +162,7 @@ class int:
     def __rsub__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                return py_int_from_host_int(py_int_to_host_int(other) - py_int_to_host_int(self))
+                return py_int_from_host(py_int_to_host(other) - py_int_to_host(self))
             else:
                 return NotImplemented
         else:
@@ -171,7 +171,7 @@ class int:
     def __isub__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                return py_int_from_host_int(py_int_to_host_int(self) - py_int_to_host_int(other))
+                return py_int_from_host(py_int_to_host(self) - py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -180,7 +180,7 @@ class int:
     def __xor__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                return py_int_from_host_int(py_int_to_host_int(self) ^ py_int_to_host_int(other))
+                return py_int_from_host(py_int_to_host(self) ^ py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -189,7 +189,7 @@ class int:
     def __rxor__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                return py_int_from_host_int(py_int_to_host_int(other) ^ py_int_to_host_int(self))
+                return py_int_from_host(py_int_to_host(other) ^ py_int_to_host(self))
             else:
                 return NotImplemented
         else:
@@ -198,7 +198,7 @@ class int:
     def __ixor__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                return py_int_from_host_int(py_int_to_host_int(self) ^ py_int_to_host_int(other))
+                return py_int_from_host(py_int_to_host(self) ^ py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -208,7 +208,7 @@ class int:
         if isinstance(self, int):
             if isinstance(other, int):
                 if other >= 0:
-                    return py_int_from_host_int(py_int_to_host_int(self) << py_int_to_host_int(other))
+                    return py_int_from_host(py_int_to_host(self) << py_int_to_host(other))
                 else:
                     raise ValueError("negative shift count")
             else:
@@ -220,7 +220,7 @@ class int:
         if isinstance(self, int):
             if isinstance(other, int):
                 if self >= 0:
-                    return py_int_from_host_int(py_int_to_host_int(self) << py_int_to_host_int(other))
+                    return py_int_from_host(py_int_to_host(self) << py_int_to_host(other))
                 else:
                     raise ValueError("negative shift count")
             else:
@@ -232,7 +232,7 @@ class int:
         if isinstance(self, int):
             if isinstance(other, int):
                 if other >= 0:
-                    return py_int_from_host_int(py_int_to_host_int(self) << py_int_to_host_int(other))
+                    return py_int_from_host(py_int_to_host(self) << py_int_to_host(other))
                 else:
                     raise ValueError("negative shift count")
             else:
@@ -244,7 +244,7 @@ class int:
         if isinstance(self, int):
             if isinstance(other, int):
                 if other >= 0:
-                    return py_int_from_host_int(py_int_to_host_int(self) >> py_int_to_host_int(other))
+                    return py_int_from_host(py_int_to_host(self) >> py_int_to_host(other))
                 else:
                     raise ValueError("negative shift count")
             else:
@@ -256,7 +256,7 @@ class int:
         if isinstance(self, int):
             if isinstance(other, int):
                 if self >= 0:
-                    return py_int_from_host_int(py_int_to_host_int(self) >> py_int_to_host_int(other))
+                    return py_int_from_host(py_int_to_host(self) >> py_int_to_host(other))
                 else:
                     raise ValueError("negative shift count")
             else:
@@ -268,7 +268,7 @@ class int:
         if isinstance(self, int):
             if isinstance(other, int):
                 if other >= 0:
-                    return py_int_from_host_int(py_int_to_host_int(self) >> py_int_to_host_int(other))
+                    return py_int_from_host(py_int_to_host(self) >> py_int_to_host(other))
                 else:
                     raise ValueError("negative shift count")
             else:
@@ -280,7 +280,7 @@ class int:
         if isinstance(self, int):
             if isinstance(other, int):
                 if other != 0:
-                    return py_int_from_host_int(py_int_to_host_int(self) // py_int_to_host_int(other))
+                    return py_int_from_host(py_int_to_host(self) // py_int_to_host(other))
                 else:
                     raise ZeroDivisionError("integer division by zero")
             else:
@@ -292,7 +292,7 @@ class int:
         if isinstance(self, int):
             if isinstance(other, int):
                 if self != 0:
-                    return py_int_from_host_int(py_int_to_host_int(other) // py_int_to_host_int(self))
+                    return py_int_from_host(py_int_to_host(other) // py_int_to_host(self))
                 else:
                     raise ZeroDivisionError("integer division by zero")
             else:
@@ -304,7 +304,7 @@ class int:
         if isinstance(self, int):
             if isinstance(other, int):
                 if other != 0:
-                    return py_int_from_host_int(py_int_to_host_int(self) // py_int_to_host_int(other))
+                    return py_int_from_host(py_int_to_host(self) // py_int_to_host(other))
                 else:
                     raise ZeroDivisionError("integer division by zero")
             else:
@@ -316,7 +316,7 @@ class int:
         if isinstance(self, int):
             if isinstance(other, int):
                 if other != 0:
-                    return py_float_from_host_float(py_int_to_host_int(self) / py_int_to_host_int(other))
+                    return py_float_from_host(py_int_to_host(self) / py_int_to_host(other))
                 else:
                     raise ZeroDivisionError("division by zero")
             else:
@@ -328,7 +328,7 @@ class int:
         if isinstance(self, int):
             if isinstance(other, int):
                 if self != 0:
-                    return py_float_from_host_float(py_int_to_host_int(other) / py_int_to_host_int(self))
+                    return py_float_from_host(py_int_to_host(other) / py_int_to_host(self))
                 else:
                     raise ZeroDivisionError("division by zero")
             else:
@@ -340,7 +340,7 @@ class int:
         if isinstance(self, int):
             if isinstance(other, int):
                 if other != 0:
-                    return py_float_from_host_float(py_int_to_host_int(self) / py_int_to_host_int(other))
+                    return py_float_from_host(py_int_to_host(self) / py_int_to_host(other))
                 else:
                     raise ZeroDivisionError("division by zero")
             else:
@@ -352,7 +352,7 @@ class int:
         if isinstance(self, int):
             if isinstance(other, int):
                 if other != 0:
-                    return py_int_from_host_int(py_int_to_host_int(self) % py_int_to_host_int(other))
+                    return py_int_from_host(py_int_to_host(self) % py_int_to_host(other))
                 else:
                     raise ZeroDivisionError("modulo by zero")
             else:
@@ -364,7 +364,7 @@ class int:
         if isinstance(self, int):
             if isinstance(other, int):
                 if self != 0:
-                    return py_int_from_host_int(py_int_to_host_int(other) % py_int_to_host_int(self))
+                    return py_int_from_host(py_int_to_host(other) % py_int_to_host(self))
                 else:
                     raise ZeroDivisionError("modulo by zero")
             else:
@@ -376,7 +376,7 @@ class int:
         if isinstance(self, int):
             if isinstance(other, int):
                 if other != 0:
-                    return py_int_from_host_int(py_int_to_host_int(self) % py_int_to_host_int(other))
+                    return py_int_from_host(py_int_to_host(self) % py_int_to_host(other))
                 else:
                     raise ZeroDivisionError("modulo by zero")
             else:
@@ -387,7 +387,7 @@ class int:
     def __eq__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                return py_bool_from_host_bool(py_int_to_host_int(self) == py_int_to_host_int(other))
+                return py_bool_from_host_bool(py_int_to_host(self) == py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -396,7 +396,7 @@ class int:
     def __ne__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                return py_bool_from_host_bool(py_int_to_host_int(self) != py_int_to_host_int(other))
+                return py_bool_from_host_bool(py_int_to_host(self) != py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -405,7 +405,7 @@ class int:
     def __ge__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                return py_bool_from_host_bool(py_int_to_host_int(self) >= py_int_to_host_int(other))
+                return py_bool_from_host_bool(py_int_to_host(self) >= py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -414,7 +414,7 @@ class int:
     def __gt__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                return py_bool_from_host_bool(py_int_to_host_int(self) > py_int_to_host_int(other))
+                return py_bool_from_host_bool(py_int_to_host(self) > py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -423,7 +423,7 @@ class int:
     def __le__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                return py_bool_from_host_bool(py_int_to_host_int(self) <= py_int_to_host_int(other))
+                return py_bool_from_host_bool(py_int_to_host(self) <= py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -432,7 +432,7 @@ class int:
     def __lt__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                return py_bool_from_host_bool(py_int_to_host_int(self) < py_int_to_host_int(other))
+                return py_bool_from_host_bool(py_int_to_host(self) < py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -456,7 +456,7 @@ class bool(int):
             if type(other) is bool:
                 return other if self is True else False
             elif isinstance(other, int):
-                return py_int_from_host_int(py_int_to_host_int(self) & py_int_to_host_int(other))
+                return py_int_from_host(py_int_to_host(self) & py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -467,7 +467,7 @@ class bool(int):
             if type(other) is bool:
                 return other if self is True else False
             elif isinstance(other, int):
-                return py_int_from_host_int(py_int_to_host_int(other) & py_int_to_host_int(self))
+                return py_int_from_host(py_int_to_host(other) & py_int_to_host(self))
             else:
                 return NotImplemented
         else:
@@ -478,7 +478,7 @@ class bool(int):
             if type(other) is bool:
                 return True if self is True else other
             elif isinstance(other, int):
-                return py_int_from_host_int(py_int_to_host_int(self) | py_int_to_host_int(other))
+                return py_int_from_host(py_int_to_host(self) | py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -489,7 +489,7 @@ class bool(int):
             if type(other) is bool:
                 return True if self is True else other
             elif isinstance(other, int):
-                return py_int_from_host_int(py_int_to_host_int(other) | py_int_to_host_int(self))
+                return py_int_from_host(py_int_to_host(other) | py_int_to_host(self))
             else:
                 return NotImplemented
         else:
@@ -500,7 +500,7 @@ class bool(int):
             if type(other) is bool:
                 return self is not other
             elif isinstance(other, int):
-                return py_int_from_host_int(py_int_to_host_int(self) ^ py_int_to_host_int(other))
+                return py_int_from_host(py_int_to_host(self) ^ py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -511,7 +511,7 @@ class bool(int):
             if type(other) is bool:
                 return self is not other
             elif isinstance(other, int):
-                return py_int_from_host_int(py_int_to_host_int(other) ^ py_int_to_host_int(self))
+                return py_int_from_host(py_int_to_host(other) ^ py_int_to_host(self))
             else:
                 return NotImplemented
         else:
@@ -526,7 +526,7 @@ class float:
             if val is absent:
                 return 0.0
             if isinstance(val, float):
-                return py_float_from_host_float(py_float_to_host_float(val))
+                return py_float_from_host(py_float_to_host(val))
             else:
                 raise NotImplementedError
         else:
@@ -536,9 +536,9 @@ class float:
     def __add__(self, other):
         if isinstance(self, float):
             if isinstance(other, float):
-                return py_float_from_host_float(py_float_to_host_float(self) + py_float_to_host_float(other))
+                return py_float_from_host(py_float_to_host(self) + py_float_to_host(other))
             elif isinstance(other, int):
-                return py_float_from_host_float(py_float_to_host_float(self) + py_int_to_host_int(other))
+                return py_float_from_host(py_float_to_host(self) + py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -547,9 +547,9 @@ class float:
     def __radd__(self, other):
         if isinstance(self, float):
             if isinstance(other, float):
-                return py_float_from_host_float(py_float_to_host_float(other) + py_float_to_host_float(self))
+                return py_float_from_host(py_float_to_host(other) + py_float_to_host(self))
             elif isinstance(other, int):
-                return py_float_from_host_float(py_int_to_host_int(other) + py_float_to_host_float(self))
+                return py_float_from_host(py_int_to_host(other) + py_float_to_host(self))
             else:
                 return NotImplemented
         else:
@@ -558,9 +558,9 @@ class float:
     def __iadd__(self, other):
         if isinstance(self, float):
             if isinstance(other, float):
-                return py_float_from_host_float(py_float_to_host_float(self) + py_float_to_host_float(other))
+                return py_float_from_host(py_float_to_host(self) + py_float_to_host(other))
             elif isinstance(self, int):
-                return py_float_from_host_float(py_float_to_host_float(self) + py_int_to_host_int(other))
+                return py_float_from_host(py_float_to_host(self) + py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -569,9 +569,9 @@ class float:
     def __mul__(self, other):
         if isinstance(self, float):
             if isinstance(other, float):
-                return py_float_from_host_float(py_float_to_host_float(self) * py_float_to_host_float(other))
+                return py_float_from_host(py_float_to_host(self) * py_float_to_host(other))
             elif isinstance(other, int):
-                return py_float_from_host_float(py_float_to_host_float(self) * py_int_to_host_int(other))
+                return py_float_from_host(py_float_to_host(self) * py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -580,9 +580,9 @@ class float:
     def __rmul__(self, other):
         if isinstance(self, float):
             if isinstance(other, float):
-                return py_float_from_host_float(py_float_to_host_float(other) * py_float_to_host_float(self))
+                return py_float_from_host(py_float_to_host(other) * py_float_to_host(self))
             elif isinstance(other, int):
-                return py_float_from_host_float(py_int_to_host_int(other) * py_float_to_host_float(self))
+                return py_float_from_host(py_int_to_host(other) * py_float_to_host(self))
             else:
                 return NotImplemented
         else:
@@ -591,9 +591,9 @@ class float:
     def __imul__(self, other):
         if isinstance(self, float):
             if isinstance(other, float):
-                return py_float_from_host_float(py_float_to_host_float(self) * py_float_to_host_float(other))
+                return py_float_from_host(py_float_to_host(self) * py_float_to_host(other))
             elif isinstance(self, int):
-                return py_float_from_host_float(py_float_to_host_float(self) * py_int_to_host_int(other))
+                return py_float_from_host(py_float_to_host(self) * py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -602,9 +602,9 @@ class float:
     def __pow__(self, other):
         if isinstance(self, float):
             if isinstance(other, float):
-                return py_float_from_host_float(py_float_to_host_float(self) ** py_float_to_host_float(other))
+                return py_float_from_host(py_float_to_host(self) ** py_float_to_host(other))
             elif isinstance(other, int):
-                return py_float_from_host_float(py_float_to_host_float(self) ** py_int_to_host_int(other))
+                return py_float_from_host(py_float_to_host(self) ** py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -613,9 +613,9 @@ class float:
     def __rpow__(self, other):
         if isinstance(self, float):
             if isinstance(other, float):
-                return py_float_from_host_float(py_float_to_host_float(other) ** py_float_to_host_float(self))
+                return py_float_from_host(py_float_to_host(other) ** py_float_to_host(self))
             elif isinstance(other, int):
-                return py_float_from_host_float(py_int_to_host_int(other) ** py_float_to_host_float(self))
+                return py_float_from_host(py_int_to_host(other) ** py_float_to_host(self))
             else:
                 return NotImplemented
         else:
@@ -624,9 +624,9 @@ class float:
     def __ipow__(self, other):
         if isinstance(self, float):
             if isinstance(other, float):
-                return py_float_from_host_float(py_float_to_host_float(self) ** py_float_to_host_float(other))
+                return py_float_from_host(py_float_to_host(self) ** py_float_to_host(other))
             elif isinstance(self, int):
-                return py_float_from_host_float(py_float_to_host_float(self) ** py_int_to_host_int(other))
+                return py_float_from_host(py_float_to_host(self) ** py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -635,9 +635,9 @@ class float:
     def __sub__(self, other):
         if isinstance(self, float):
             if isinstance(other, float):
-                return py_float_from_host_float(py_float_to_host_float(self) - py_float_to_host_float(other))
+                return py_float_from_host(py_float_to_host(self) - py_float_to_host(other))
             elif isinstance(other, int):
-                return py_float_from_host_float(py_float_to_host_float(self) - py_int_to_host_int(other))
+                return py_float_from_host(py_float_to_host(self) - py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -646,9 +646,9 @@ class float:
     def __rsub__(self, other):
         if isinstance(self, float):
             if isinstance(other, float):
-                return py_float_from_host_float(py_float_to_host_float(other) - py_float_to_host_float(self))
+                return py_float_from_host(py_float_to_host(other) - py_float_to_host(self))
             elif isinstance(other, int):
-                return py_float_from_host_float(py_int_to_host_int(other) - py_float_to_host_float(self))
+                return py_float_from_host(py_int_to_host(other) - py_float_to_host(self))
             else:
                 return NotImplemented
         else:
@@ -657,9 +657,9 @@ class float:
     def __isub__(self, other):
         if isinstance(self, float):
             if isinstance(other, float):
-                return py_float_from_host_float(py_float_to_host_float(self) - py_float_to_host_float(other))
+                return py_float_from_host(py_float_to_host(self) - py_float_to_host(other))
             elif isinstance(self, int):
-                return py_float_from_host_float(py_float_to_host_float(self) - py_int_to_host_int(other))
+                return py_float_from_host(py_float_to_host(self) - py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -669,12 +669,12 @@ class float:
         if isinstance(self, float):
             if isinstance(other, float):
                 if other != 0.0:
-                    return py_float_from_host_float(py_float_to_host_float(self) // py_float_to_host_float(other))
+                    return py_float_from_host(py_float_to_host(self) // py_float_to_host(other))
                 else:
                     raise ZeroDivisionError("float division by zero")
             elif isinstance(other, int):
                 if other != 0:
-                    return py_float_from_host_float(py_float_to_host_float(self) // py_int_to_host_int(other))
+                    return py_float_from_host(py_float_to_host(self) // py_int_to_host(other))
                 else:
                     raise ZeroDivisionError("float division by zero")
             else:
@@ -686,12 +686,12 @@ class float:
         if isinstance(self, float):
             if isinstance(other, float):
                 if self != 0.0:
-                    return py_float_from_host_float(py_float_to_host_float(other) // py_float_to_host_float(self))
+                    return py_float_from_host(py_float_to_host(other) // py_float_to_host(self))
                 else:
                     raise ZeroDivisionError("float division by zero")
             elif isinstance(other, int):
                 if self != 0.0:
-                    return py_float_from_host_float(py_int_to_host_int(other) // py_float_to_host_float(self))
+                    return py_float_from_host(py_int_to_host(other) // py_float_to_host(self))
                 else:
                     raise ZeroDivisionError("float division by zero")
             else:
@@ -703,12 +703,12 @@ class float:
         if isinstance(self, float):
             if isinstance(other, float):
                 if other != 0.0:
-                    return py_float_from_host_float(py_float_to_host_float(self) // py_float_to_host_float(other))
+                    return py_float_from_host(py_float_to_host(self) // py_float_to_host(other))
                 else:
                     raise ZeroDivisionError("float division by zero")
             elif isinstance(other, int):
                 if other != 0:
-                    return py_float_from_host_float(py_float_to_host_float(self) // py_int_to_host_int(other))
+                    return py_float_from_host(py_float_to_host(self) // py_int_to_host(other))
                 else:
                     raise ZeroDivisionError("float division by zero")
             else:
@@ -720,12 +720,12 @@ class float:
         if isinstance(self, float):
             if isinstance(other, float):
                 if other != 0.0:
-                    return py_float_from_host_float(py_float_to_host_float(self) / py_float_to_host_float(other))
+                    return py_float_from_host(py_float_to_host(self) / py_float_to_host(other))
                 else:
                     raise ZeroDivisionError("float division by zero")
             elif isinstance(other, int):
                 if other != 0:
-                    return py_float_from_host_float(py_float_to_host_float(self) / py_int_to_host_int(other))
+                    return py_float_from_host(py_float_to_host(self) / py_int_to_host(other))
                 else:
                     raise ZeroDivisionError("float division by zero")
             else:
@@ -737,12 +737,12 @@ class float:
         if isinstance(self, float):
             if isinstance(other, float):
                 if self != 0.0:
-                    return py_float_from_host_float(py_float_to_host_float(other) / py_float_to_host_float(self))
+                    return py_float_from_host(py_float_to_host(other) / py_float_to_host(self))
                 else:
                     raise ZeroDivisionError("float division by zero")
             elif isinstance(other, int):
                 if self != 0.0:
-                    return py_float_from_host_float(py_int_to_host_int(other) / py_float_to_host_float(self))
+                    return py_float_from_host(py_int_to_host(other) / py_float_to_host(self))
                 else:
                     raise ZeroDivisionError("float division by zero")
             else:
@@ -754,12 +754,12 @@ class float:
         if isinstance(self, float):
             if isinstance(other, float):
                 if other != 0.0:
-                    return py_float_from_host_float(py_float_to_host_float(self) / py_float_to_host_float(other))
+                    return py_float_from_host(py_float_to_host(self) / py_float_to_host(other))
                 else:
                     raise ZeroDivisionError("float division by zero")
             elif isinstance(other, int):
                 if other != 0:
-                    return py_float_from_host_float(py_float_to_host_float(self) / py_int_to_host_int(other))
+                    return py_float_from_host(py_float_to_host(self) / py_int_to_host(other))
                 else:
                     raise ZeroDivisionError("float division by zero")
             else:
@@ -771,12 +771,12 @@ class float:
         if isinstance(self, float):
             if isinstance(other, float):
                 if other != 0.0:
-                    return py_float_from_host_float(py_float_to_host_float(self) % py_float_to_host_float(other))
+                    return py_float_from_host(py_float_to_host(self) % py_float_to_host(other))
                 else:
                     raise ZeroDivisionError("float modulo by zero")
             elif isinstance(other, int):
                 if other != 0:
-                    return py_float_from_host_float(py_float_to_host_float(self) % py_int_to_host_int(other))
+                    return py_float_from_host(py_float_to_host(self) % py_int_to_host(other))
                 else:
                     raise ZeroDivisionError("float modulo by zero")
             else:
@@ -788,12 +788,12 @@ class float:
         if isinstance(self, float):
             if isinstance(other, float):
                 if self != 0.0:
-                    return py_float_from_host_float(py_float_to_host_float(other) % py_float_to_host_float(self))
+                    return py_float_from_host(py_float_to_host(other) % py_float_to_host(self))
                 else:
                     raise ZeroDivisionError("float modulo by zero")
             elif isinstance(other, int):
                 if self != 0.0:
-                    return py_float_from_host_float(py_int_to_host_int(other) % py_float_to_host_float(self))
+                    return py_float_from_host(py_int_to_host(other) % py_float_to_host(self))
                 else:
                     raise ZeroDivisionError("float modulo by zero")
             else:
@@ -805,12 +805,12 @@ class float:
         if isinstance(self, float):
             if isinstance(other, float):
                 if other != 0.0:
-                    return py_float_from_host_float(py_float_to_host_float(self) % py_float_to_host_float(other))
+                    return py_float_from_host(py_float_to_host(self) % py_float_to_host(other))
                 else:
                     raise ZeroDivisionError("float modulo by zero")
             elif isinstance(other, int):
                 if other != 0:
-                    return py_float_from_host_float(py_float_to_host_float(self) % py_int_to_host_int(other))
+                    return py_float_from_host(py_float_to_host(self) % py_int_to_host(other))
                 else:
                     raise ZeroDivisionError("float modulo by zero")
             else:
@@ -821,9 +821,9 @@ class float:
     def __eq__(self, other):
         if isinstance(self, float):
             if isinstance(other, float):
-                return py_bool_from_host_bool(py_float_to_host_float(self) == py_float_to_host_float(other))
+                return py_bool_from_host_bool(py_float_to_host(self) == py_float_to_host(other))
             elif isinstance(other, int):
-                return py_bool_from_host_bool(py_float_to_host_float(self) == py_int_to_host_int(other))
+                return py_bool_from_host_bool(py_float_to_host(self) == py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -832,9 +832,9 @@ class float:
     def __ne__(self, other):
         if isinstance(self, float):
             if isinstance(other, float):
-                return py_bool_from_host_bool(py_float_to_host_float(self) != py_float_to_host_float(other))
+                return py_bool_from_host_bool(py_float_to_host(self) != py_float_to_host(other))
             elif isinstance(other, int):
-                return py_bool_from_host_bool(py_float_to_host_float(self) != py_int_to_host_int(other))
+                return py_bool_from_host_bool(py_float_to_host(self) != py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -843,9 +843,9 @@ class float:
     def __ge__(self, other):
         if isinstance(self, float):
             if isinstance(other, float):
-                return py_bool_from_host_bool(py_float_to_host_float(self) >= py_float_to_host_float(other))
+                return py_bool_from_host_bool(py_float_to_host(self) >= py_float_to_host(other))
             elif isinstance(other, int):
-                return py_bool_from_host_bool(py_float_to_host_float(self) >= py_int_to_host_int(other))
+                return py_bool_from_host_bool(py_float_to_host(self) >= py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -854,9 +854,9 @@ class float:
     def __gt__(self, other):
         if isinstance(self, float):
             if isinstance(other, float):
-                return py_bool_from_host_bool(py_float_to_host_float(self) > py_float_to_host_float(other))
+                return py_bool_from_host_bool(py_float_to_host(self) > py_float_to_host(other))
             elif isinstance(other, int):
-                return py_bool_from_host_bool(py_float_to_host_float(self) > py_int_to_host_int(other))
+                return py_bool_from_host_bool(py_float_to_host(self) > py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -865,9 +865,9 @@ class float:
     def __le__(self, other):
         if isinstance(self, float):
             if isinstance(other, float):
-                return py_bool_from_host_bool(py_float_to_host_float(self) <= py_float_to_host_float(other))
+                return py_bool_from_host_bool(py_float_to_host(self) <= py_float_to_host(other))
             elif isinstance(other, int):
-                return py_bool_from_host_bool(py_float_to_host_float(self) <= py_int_to_host_int(other))
+                return py_bool_from_host_bool(py_float_to_host(self) <= py_int_to_host(other))
             else:
                 return NotImplemented
         else:
@@ -876,9 +876,9 @@ class float:
     def __lt__(self, other):
         if isinstance(self, float):
             if isinstance(other, float):
-                return py_bool_from_host_bool(py_float_to_host_float(self) < py_float_to_host_float(other))
+                return py_bool_from_host_bool(py_float_to_host(self) < py_float_to_host(other))
             elif isinstance(other, int):
-                return py_bool_from_host_bool(py_float_to_host_float(self) < py_int_to_host_int(other))
+                return py_bool_from_host_bool(py_float_to_host(self) < py_int_to_host(other))
             else:
                 return NotImplemented
         else:

@@ -493,7 +493,7 @@ def partial_eval_static_function_call(func_name, args, keywords, ctx):
 
 def partial_eval_specialize_intrinsic_function(func_name, args, keywords, ctx):
     # Assume here that builtins are called with the correct number of arguments
-    if func_name == "py_int_to_host_int":
+    if func_name == "py_int_to_host":
         self = args[0]
         if isinstance(self, ast.Name):
             name = self.id
@@ -504,13 +504,13 @@ def partial_eval_specialize_intrinsic_function(func_name, args, keywords, ctx):
                 type_ = name_ctx.specialized_type
 
                 if type_ == "sint":
-                    return ast.Call(ast.Name("py_sint_to_host_sint"), args, keywords)
+                    return ast.Call(ast.Name("py_sint_to_host"), args, keywords)
                 elif type_ == "bint":
-                    return ast.Call(ast.Name("py_bint_to_host_bint"), args, keywords)
+                    return ast.Call(ast.Name("py_bint_to_host"), args, keywords)
                 elif type_ == "bool":
                     return ast.Call(ast.Name("py_bool_to_host_int"), args, keywords)
                 elif issubclass(eval(type_), int):
-                    return ast.Call(ast.Name("py_int_to_host_int"), args, keywords)
+                    return ast.Call(ast.Name("py_int_to_host"), args, keywords)
 
     # No specialization
     return ast.Call(ast.Name(func_name), args, keywords)
@@ -569,8 +569,8 @@ def main_behaviors(semantics_file, builtins_file):
     behaviors = []
 
     define_behavior = "define_behavior"
-    other_intrinsics = "py_int_from_host_int, py_int_to_host_int, py_bool_to_host_int, py_float_from_host_float, " \
-                       "py_float_to_host_float, py_sint_to_host_sint, py_bint_to_host_bint, py_bool_from_host_bool "
+    other_intrinsics = "py_int_from_host, py_int_to_host, py_bool_to_host_int, py_float_from_host, " \
+                       "py_float_to_host, py_sint_to_host, py_bint_to_host, py_bool_from_host_bool "
 
     for semantics, subtree in decision_tree.items():
         for left_type in types_without_int:
