@@ -3,7 +3,7 @@
 (define-macro (inline-c-code code)
   (cond-expand
     (gambit
-      `(let () (declare (extended-bindings)) (##c-code ,code)))
+      `(let () (declare (extended-bindings)) (|##c-code| ,code)))
     (bigloo
       #f)))
 
