@@ -2,6 +2,9 @@ include ../etc/Makefile.zipiconfig
 
 all: micro
 
+gen-micro-c-markers:
+	scripts/gen_micro_bench.py --c-code-marker
+
 gen-micro:
 	scripts/gen_micro_bench.py
 
@@ -78,8 +81,8 @@ list:
           echo $$bench; \
 	done
 
-realclean:
+realclean: clean
 	rm micro_*.py
 
 clean:
-
+	rm marked_*.py
