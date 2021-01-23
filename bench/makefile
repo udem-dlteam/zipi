@@ -81,7 +81,8 @@ list:
           echo $$bench; \
 	done
 
-realclean:
+realclean: clean
 	rm micro_*.py
 
 clean:
+	rm marked_*.py

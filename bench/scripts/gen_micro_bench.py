@@ -114,7 +114,8 @@ def expand_benchmark(specs):
                            specs[4])
 
 def gen_benchmark(specs):
-    filename = 'micro_' + specs[6] + '.py'
+    marked = "marked_" if c_code_marker else ""
+    filename = marked + 'micro_' + specs[6] + '.py'
     code = '# ' + filename + '\n' + expand_benchmark(specs)
     #print(code);return
     with open(filename, 'w') as f:
