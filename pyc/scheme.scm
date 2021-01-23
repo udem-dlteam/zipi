@@ -56,8 +56,18 @@
 		    module))))
 	 '(end-registering-constants))))
 
+(define (sort-semantics semantics)
+  (define (only form)
+    (let loop ((s semantics))
+      (cond
+        ((null? s) '())
+        ((eq? (cadar s) form) (cons (car s) (loop (cdr s))))
+        (else (loop (cdr s))))))
+
+  (append (only 'define-macro) (only 'define)))
+
 (define (pyc-scheme-gambit ast conf)
-  (let* ((semantics (collect-semantics* ast conf)))
+  (let* ((semantics (sort-semantics (collect-semantics* ast conf))))
     (if (null? semantics)
       ;; normal compilation
       (let* ((prog (pyc-scheme ast conf))
@@ -261,19 +271,10 @@
 	      ,(scheme (PycLoop-else this) conf))))))
 
 (define-walk-method (scheme this::PycIf conf)
-  (let ((test (PycIf-test this)))
-    (if (and (PycBinary? test)
-             (eq? (PycBinary-op test) 'is))
-      (epairify this
-        `(if (py-test-is ,(scheme (PycBinary-lhs test) conf)
-                         ,(scheme (PycBinary-rhs test) conf))
-          ,(scheme (PycIf-then this) conf)
-          ,(scheme (PycIf-else this) conf)))
-      ;; general case
-      (epairify this
-        `(if ,(pyc-test (PycIf-test this) conf)
-          ,(scheme (PycIf-then this) conf)
-          ,(scheme (PycIf-else this) conf))))))
+  (epairify this
+    `(if ,(pyc-test (PycIf-test this) conf)
+      ,(scheme (PycIf-then this) conf)
+      ,(scheme (PycIf-else this) conf))))
 
 (define-walk-method (scheme this::PycWith conf)
   (define (in-contexts items body)
@@ -681,11 +682,24 @@
       (isub . py-)
       (itruediv . py/)
       (ixor . py^)))
-  (cdr (assq op ops)))
+  (let ((res (assq op ops)))
+    (and res (cdr res))))
+
+
+(define (dispatch-native-cmp-operator op)
+  (define ops
+    `((eq . py==)
+      (ne . py!=)
+      (ge . py>=)
+      (gt . py>)
+      (le . py<=)
+      (lt . py<)))
+  (let ((res (assq op ops)))
+    (and res (cdr res))))
 
 
 (define-walk-method (scheme this::PycBinary conf)
-  (define native-types '(Uint Usint Ubint Ufloat))
+  (define native-types '(Uint Usint Ubint Ufloat Ubool))
 
   (define (python-op)
     (epairify this
@@ -695,9 +709,15 @@
 
   (define (scheme-op)
     (epairify this
-      `(,(dispatch-native-operator (PycBinary-op this))
-        ,(scheme (PycBinary-lhs this) conf)
-        ,(scheme (PycBinary-rhs this) conf))))
+      (let ((op (dispatch-native-operator (PycBinary-op this))))
+        (if op
+          `(,op
+            ,(scheme (PycBinary-lhs this) conf)
+            ,(scheme (PycBinary-rhs this) conf))
+          `(py-test-from-scheme
+              (,(dispatch-native-cmp-operator (PycBinary-op this))
+              ,(scheme (PycBinary-lhs this) conf)
+              ,(scheme (PycBinary-rhs this) conf)))))))
 
   (let ((lhs-type-hint (PycBinary-lhs-type-hint this))
         (rhs-type-hint (PycBinary-rhs-type-hint this)))
@@ -1029,19 +1049,10 @@
       	     (py-throw py-builtin-AssertionError))))))
 
 (define-walk-method (scheme this::PycIfExp conf)
-  (let ((test (PycIfExp-test this)))
-    (if (and (PycBinary? test)
-             (eq? (PycBinary-op test) 'is))
-      (epairify this
-       `(if (py-test-is
-                ,(scheme (PycBinary-lhs test) conf)
-                ,(scheme (PycBinary-rhs test) conf))
+  (epairify this
+    `(if (py-test ,(scheme (PycIfExp-test this) conf))
          ,(scheme (PycIfExp-body this) conf)
-         ,(scheme (PycIfExp-orelse this) conf)))
-      (epairify this
-        `(if (py-test ,(scheme (PycIfExp-test this) conf))
-             ,(scheme (PycIfExp-body this) conf)
-             ,(scheme (PycIfExp-orelse this) conf))))))
+         ,(scheme (PycIfExp-orelse this) conf))))
 
 (define-walk-method (scheme this::PycUnimplemented conf)
   `(py-throw-exception-with-message

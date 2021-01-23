@@ -4,11 +4,13 @@ import re
 import argparse
 import subprocess
 import multiprocessing
+import signal
 
 # Console color codes
 bcolors = {
     'FAIL': '\033[91m',
     'OKGREEN': '\033[92m',
+    'YELLOW': '\033[93m',
     'ENDC': '\033[0m'
 }
 
@@ -66,12 +68,29 @@ def run_one_test(path, cpython, zipi):
 
     scheme_output = subprocess.run([*zipi.split(), path], stdout=subprocess.PIPE)
 
-    if cpython_output.returncode == 0:
-        return cpython_output.stdout == scheme_output.stdout
+    scheme_stdout = scheme_output.stdout
+    cpython_stdout = cpython_output.stdout
+
+    if scheme_output.returncode == -signal.SIGSEGV:
+        return (False, colored('CRITICAL', 'FAIL'), 'Segmentation fault')
+    elif cpython_output.returncode == 0:
+        if cpython_stdout == scheme_stdout:
+            return (True, colored('OK', 'OKGREEN'))
+        else:
+            return (False, colored('FAIL', 'FAIL'), 'Incorrect result or unexpected exception')
     else:
         cpython_error = cpython_output.stderr.decode().strip().rsplit('\n', 1)[-1]
-        zipi_error = scheme_output.stdout.decode().strip().rsplit('\n', 1)[-1]
-        return cpython_error == zipi_error
+        zipi_error = scheme_stdout.decode().strip().rsplit('\n', 1)[-1]
+
+        if cpython_error == zipi_error:
+            return (True, colored('OK', 'OKGREEN'))
+        elif cpython_error.split(":")[0] == zipi_error.split(":")[0]:
+            return (True,
+                    colored('OK', 'YELLOW'),
+                    f'(cPython) {cpython_error}',
+                    f'(zipi)    {zipi_error}')
+        else:
+            return (False, colored('FAIL', 'FAIL'), 'Incorrect exception raised or no exception raised')
 
 
 def process_file(file, folder, cpython, zipi):
@@ -79,10 +98,11 @@ def process_file(file, folder, cpython, zipi):
     Wrapper to run the test at [folder]/[file] from a subprocess
     """
     path = os.path.join(folder, file)
-    success = run_one_test(path, cpython, zipi)
-    status = colored('OK', 'OKGREEN') if success else colored('FAIL', 'FAIL')
+    success, status, *messages = run_one_test(path, cpython, zipi)
 
     print(f'     {clean_name(file)}: {"." * (45 - len(file))} {status}')
+    for msg in messages:
+        print(f'       {msg}')
 
     return success
 
