@@ -2298,7 +2298,7 @@
 
 (define (py-add-floatX-boolY-fallback self5 other6)
   (py-float-from-scheme
-   (py+ (py-float-to-scheme self5) (py-bool-to-scheme other6))))
+   (py+ (py-float-to-scheme self5) (py-bool-to-scheme-int other6))))
 
 (define (py-add-floatX-sintY-fallback self8 other9)
   (py-float-from-scheme
@@ -2310,19 +2310,19 @@
 
 (define (py-add-boolX-floatY-fallback other14 self15)
   (py-float-from-scheme
-   (py+ (py-bool-to-scheme other14) (py-float-to-scheme self15))))
+   (py+ (py-bool-to-scheme-int other14) (py-float-to-scheme self15))))
 
 (define (py-add-boolX-boolY-fallback self17 other18)
   (py-int-from-scheme
-   (py+ (py-bool-to-scheme self17) (py-bool-to-scheme other18))))
+   (py+ (py-bool-to-scheme-int self17) (py-bool-to-scheme-int other18))))
 
 (define (py-add-boolX-sintY-fallback self20 other21)
   (py-int-from-scheme
-   (py+ (py-bool-to-scheme self20) (py-sint-to-scheme other21))))
+   (py+ (py-bool-to-scheme-int self20) (py-sint-to-scheme other21))))
 
 (define (py-add-boolX-bintY-fallback self23 other24)
   (py-int-from-scheme
-   (py+ (py-bool-to-scheme self23) (py-bint-to-scheme other24))))
+   (py+ (py-bool-to-scheme-int self23) (py-bint-to-scheme other24))))
 
 (define (py-add-sintX-floatY-fallback other26 self27)
   (py-float-from-scheme
@@ -2330,7 +2330,7 @@
 
 (define (py-add-sintX-boolY-fallback self29 other30)
   (py-int-from-scheme
-   (py+ (py-sint-to-scheme self29) (py-bool-to-scheme other30))))
+   (py+ (py-sint-to-scheme self29) (py-bool-to-scheme-int other30))))
 
 (define (py-add-sintX-sintY-fallback self32 other33)
   (py-int-from-scheme
@@ -2346,7 +2346,7 @@
 
 (define (py-add-bintX-boolY-fallback self41 other42)
   (py-int-from-scheme
-   (py+ (py-bint-to-scheme self41) (py-bool-to-scheme other42))))
+   (py+ (py-bint-to-scheme self41) (py-bool-to-scheme-int other42))))
 
 (define (py-add-bintX-sintY-fallback self44 other45)
   (py-int-from-scheme
@@ -2386,11 +2386,11 @@
 
 (define (py-bitand-boolX-sintY-fallback self68 other69)
   (py-int-from-scheme
-   (py& (py-bool-to-scheme self68) (py-sint-to-scheme other69))))
+   (py& (py-bool-to-scheme-int self68) (py-sint-to-scheme other69))))
 
 (define (py-bitand-boolX-bintY-fallback self71 other72)
   (py-int-from-scheme
-   (py& (py-bool-to-scheme self71) (py-bint-to-scheme other72))))
+   (py& (py-bool-to-scheme-int self71) (py-bint-to-scheme other72))))
 
 (define (py-bitand-sintX-floatY-fallback self74 other75)
   (py-throw
@@ -2399,7 +2399,7 @@
 
 (define (py-bitand-sintX-boolY-fallback self77 other78)
   (py-int-from-scheme
-   (py& (py-sint-to-scheme self77) (py-bool-to-scheme other78))))
+   (py& (py-sint-to-scheme self77) (py-bool-to-scheme-int other78))))
 
 (define (py-bitand-sintX-sintY-fallback self80 other81)
   (py-int-from-scheme
@@ -2416,7 +2416,7 @@
 
 (define (py-bitand-bintX-boolY-fallback self89 other90)
   (py-int-from-scheme
-   (py& (py-bint-to-scheme self89) (py-bool-to-scheme other90))))
+   (py& (py-bint-to-scheme self89) (py-bool-to-scheme-int other90))))
 
 (define (py-bitand-bintX-sintY-fallback self92 other93)
   (py-int-from-scheme
@@ -2456,11 +2456,11 @@
 
 (define (py-bitor-boolX-sintY-fallback self116 other117)
   (py-int-from-scheme
-   (py+b (py-bool-to-scheme self116) (py-sint-to-scheme other117))))
+   (py+b (py-bool-to-scheme-int self116) (py-sint-to-scheme other117))))
 
 (define (py-bitor-boolX-bintY-fallback self119 other120)
   (py-int-from-scheme
-   (py+b (py-bool-to-scheme self119) (py-bint-to-scheme other120))))
+   (py+b (py-bool-to-scheme-int self119) (py-bint-to-scheme other120))))
 
 (define (py-bitor-sintX-floatY-fallback self122 other123)
   (py-throw
@@ -2469,7 +2469,7 @@
 
 (define (py-bitor-sintX-boolY-fallback self125 other126)
   (py-int-from-scheme
-   (py+b (py-sint-to-scheme self125) (py-bool-to-scheme other126))))
+   (py+b (py-sint-to-scheme self125) (py-bool-to-scheme-int other126))))
 
 (define (py-bitor-sintX-sintY-fallback self128 other129)
   (py-int-from-scheme
@@ -2486,7 +2486,7 @@
 
 (define (py-bitor-bintX-boolY-fallback self137 other138)
   (py-int-from-scheme
-   (py+b (py-bint-to-scheme self137) (py-bool-to-scheme other138))))
+   (py+b (py-bint-to-scheme self137) (py-bool-to-scheme-int other138))))
 
 (define (py-bitor-bintX-sintY-fallback self140 other141)
   (py-int-from-scheme
@@ -2506,7 +2506,7 @@
 (define (py-floordiv-floatX-boolY-fallback self149 other150)
   (if (py-test (py-ne other150 (py-int-from-scheme 0)))
       (py-float-from-scheme
-       (py// (py-float-to-scheme self149) (py-bool-to-scheme other150)))
+       (py// (py-float-to-scheme self149) (py-bool-to-scheme-int other150)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
@@ -2527,14 +2527,14 @@
 (define (py-floordiv-boolX-floatY-fallback other158 self159)
   (if (py-test (py-ne self159 (py-float-from-scheme 0.)))
       (py-float-from-scheme
-       (py// (py-bool-to-scheme other158) (py-float-to-scheme self159)))
+       (py// (py-bool-to-scheme-int other158) (py-float-to-scheme self159)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
 (define (py-floordiv-boolX-boolY-fallback self161 other162)
   (if (py-test (py-ne other162 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py// (py-bool-to-scheme self161) (py-bool-to-scheme other162)))
+       (py// (py-bool-to-scheme-int self161) (py-bool-to-scheme-int other162)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError
                 (&& "integer division by zero")))))
@@ -2542,7 +2542,7 @@
 (define (py-floordiv-boolX-sintY-fallback self164 other165)
   (if (py-test (py-ne other165 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py// (py-bool-to-scheme self164) (py-sint-to-scheme other165)))
+       (py// (py-bool-to-scheme-int self164) (py-sint-to-scheme other165)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError
                 (&& "integer division by zero")))))
@@ -2550,7 +2550,7 @@
 (define (py-floordiv-boolX-bintY-fallback self167 other168)
   (if (py-test (py-ne other168 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py// (py-bool-to-scheme self167) (py-bint-to-scheme other168)))
+       (py// (py-bool-to-scheme-int self167) (py-bint-to-scheme other168)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError
                 (&& "integer division by zero")))))
@@ -2565,7 +2565,7 @@
 (define (py-floordiv-sintX-boolY-fallback self173 other174)
   (if (py-test (py-ne other174 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py// (py-sint-to-scheme self173) (py-bool-to-scheme other174)))
+       (py// (py-sint-to-scheme self173) (py-bool-to-scheme-int other174)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError
                 (&& "integer division by zero")))))
@@ -2596,7 +2596,7 @@
 (define (py-floordiv-bintX-boolY-fallback self185 other186)
   (if (py-test (py-ne other186 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py// (py-bint-to-scheme self185) (py-bool-to-scheme other186)))
+       (py// (py-bint-to-scheme self185) (py-bool-to-scheme-int other186)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError
                 (&& "integer division by zero")))))
@@ -2645,19 +2645,19 @@
 (define (py-lshift-boolX-boolY-fallback self209 other210)
   (if (py-test (py-ge other210 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py<< (py-bool-to-scheme self209) (py-bool-to-scheme other210)))
+       (py<< (py-bool-to-scheme-int self209) (py-bool-to-scheme-int other210)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-lshift-boolX-sintY-fallback self212 other213)
   (if (py-test (py-ge other213 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py<< (py-bool-to-scheme self212) (py-sint-to-scheme other213)))
+       (py<< (py-bool-to-scheme-int self212) (py-sint-to-scheme other213)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-lshift-boolX-bintY-fallback self215 other216)
   (if (py-test (py-ge other216 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py<< (py-bool-to-scheme self215) (py-bint-to-scheme other216)))
+       (py<< (py-bool-to-scheme-int self215) (py-bint-to-scheme other216)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-lshift-sintX-floatY-fallback self218 other219)
@@ -2668,7 +2668,7 @@
 (define (py-lshift-sintX-boolY-fallback self221 other222)
   (if (py-test (py-ge other222 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py<< (py-sint-to-scheme self221) (py-bool-to-scheme other222)))
+       (py<< (py-sint-to-scheme self221) (py-bool-to-scheme-int other222)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-lshift-sintX-sintY-fallback self224 other225)
@@ -2691,7 +2691,7 @@
 (define (py-lshift-bintX-boolY-fallback self233 other234)
   (if (py-test (py-ge other234 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py<< (py-bint-to-scheme self233) (py-bool-to-scheme other234)))
+       (py<< (py-bint-to-scheme self233) (py-bool-to-scheme-int other234)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-lshift-bintX-sintY-fallback self236 other237)
@@ -2796,7 +2796,7 @@
 (define (py-mod-floatX-boolY-fallback self293 other294)
   (if (py-test (py-ne other294 (py-int-from-scheme 0)))
       (py-float-from-scheme
-       (py% (py-float-to-scheme self293) (py-bool-to-scheme other294)))
+       (py% (py-float-to-scheme self293) (py-bool-to-scheme-int other294)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "float modulo by zero")))))
 
@@ -2817,26 +2817,26 @@
 (define (py-mod-boolX-floatY-fallback other302 self303)
   (if (py-test (py-ne self303 (py-float-from-scheme 0.)))
       (py-float-from-scheme
-       (py% (py-bool-to-scheme other302) (py-float-to-scheme self303)))
+       (py% (py-bool-to-scheme-int other302) (py-float-to-scheme self303)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "float modulo by zero")))))
 
 (define (py-mod-boolX-boolY-fallback self305 other306)
   (if (py-test (py-ne other306 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py% (py-bool-to-scheme self305) (py-bool-to-scheme other306)))
+       (py% (py-bool-to-scheme-int self305) (py-bool-to-scheme-int other306)))
       (py-throw (py-call py-builtin-ZeroDivisionError (&& "modulo by zero")))))
 
 (define (py-mod-boolX-sintY-fallback self308 other309)
   (if (py-test (py-ne other309 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py% (py-bool-to-scheme self308) (py-sint-to-scheme other309)))
+       (py% (py-bool-to-scheme-int self308) (py-sint-to-scheme other309)))
       (py-throw (py-call py-builtin-ZeroDivisionError (&& "modulo by zero")))))
 
 (define (py-mod-boolX-bintY-fallback self311 other312)
   (if (py-test (py-ne other312 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py% (py-bool-to-scheme self311) (py-bint-to-scheme other312)))
+       (py% (py-bool-to-scheme-int self311) (py-bint-to-scheme other312)))
       (py-throw (py-call py-builtin-ZeroDivisionError (&& "modulo by zero")))))
 
 (define (py-mod-sintX-floatY-fallback other314 self315)
@@ -2849,7 +2849,7 @@
 (define (py-mod-sintX-boolY-fallback self317 other318)
   (if (py-test (py-ne other318 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py% (py-sint-to-scheme self317) (py-bool-to-scheme other318)))
+       (py% (py-sint-to-scheme self317) (py-bool-to-scheme-int other318)))
       (py-throw (py-call py-builtin-ZeroDivisionError (&& "modulo by zero")))))
 
 (define (py-mod-sintX-sintY-fallback self320 other321)
@@ -2874,7 +2874,7 @@
 (define (py-mod-bintX-boolY-fallback self329 other330)
   (if (py-test (py-ne other330 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py% (py-bint-to-scheme self329) (py-bool-to-scheme other330)))
+       (py% (py-bint-to-scheme self329) (py-bool-to-scheme-int other330)))
       (py-throw (py-call py-builtin-ZeroDivisionError (&& "modulo by zero")))))
 
 (define (py-mod-bintX-sintY-fallback self332 other333)
@@ -2895,7 +2895,7 @@
 
 (define (py-mul-floatX-boolY-fallback self341 other342)
   (py-float-from-scheme
-   (py* (py-float-to-scheme self341) (py-bool-to-scheme other342))))
+   (py* (py-float-to-scheme self341) (py-bool-to-scheme-int other342))))
 
 (define (py-mul-floatX-sintY-fallback self344 other345)
   (py-float-from-scheme
@@ -2907,19 +2907,19 @@
 
 (define (py-mul-boolX-floatY-fallback other350 self351)
   (py-float-from-scheme
-   (py* (py-bool-to-scheme other350) (py-float-to-scheme self351))))
+   (py* (py-bool-to-scheme-int other350) (py-float-to-scheme self351))))
 
 (define (py-mul-boolX-boolY-fallback self353 other354)
   (py-int-from-scheme
-   (py* (py-bool-to-scheme self353) (py-bool-to-scheme other354))))
+   (py* (py-bool-to-scheme-int self353) (py-bool-to-scheme-int other354))))
 
 (define (py-mul-boolX-sintY-fallback self356 other357)
   (py-int-from-scheme
-   (py* (py-bool-to-scheme self356) (py-sint-to-scheme other357))))
+   (py* (py-bool-to-scheme-int self356) (py-sint-to-scheme other357))))
 
 (define (py-mul-boolX-bintY-fallback self359 other360)
   (py-int-from-scheme
-   (py* (py-bool-to-scheme self359) (py-bint-to-scheme other360))))
+   (py* (py-bool-to-scheme-int self359) (py-bint-to-scheme other360))))
 
 (define (py-mul-sintX-floatY-fallback other362 self363)
   (py-float-from-scheme
@@ -2927,7 +2927,7 @@
 
 (define (py-mul-sintX-boolY-fallback self365 other366)
   (py-int-from-scheme
-   (py* (py-sint-to-scheme self365) (py-bool-to-scheme other366))))
+   (py* (py-sint-to-scheme self365) (py-bool-to-scheme-int other366))))
 
 (define (py-mul-sintX-sintY-fallback self368 other369)
   (py-int-from-scheme
@@ -2943,7 +2943,7 @@
 
 (define (py-mul-bintX-boolY-fallback self377 other378)
   (py-int-from-scheme
-   (py* (py-bint-to-scheme self377) (py-bool-to-scheme other378))))
+   (py* (py-bint-to-scheme self377) (py-bool-to-scheme-int other378))))
 
 (define (py-mul-bintX-sintY-fallback self380 other381)
   (py-int-from-scheme
@@ -2959,7 +2959,7 @@
 
 (define (py-pow-floatX-boolY-fallback self389 other390)
   (py-float-from-scheme
-   (py** (py-float-to-scheme self389) (py-bool-to-scheme other390))))
+   (py** (py-float-to-scheme self389) (py-bool-to-scheme-int other390))))
 
 (define (py-pow-floatX-sintY-fallback self392 other393)
   (py-float-from-scheme
@@ -2971,19 +2971,19 @@
 
 (define (py-pow-boolX-floatY-fallback other398 self399)
   (py-float-from-scheme
-   (py** (py-bool-to-scheme other398) (py-float-to-scheme self399))))
+   (py** (py-bool-to-scheme-int other398) (py-float-to-scheme self399))))
 
 (define (py-pow-boolX-boolY-fallback self401 other402)
   (py-int-from-scheme
-   (py** (py-bool-to-scheme self401) (py-bool-to-scheme other402))))
+   (py** (py-bool-to-scheme-int self401) (py-bool-to-scheme-int other402))))
 
 (define (py-pow-boolX-sintY-fallback self404 other405)
   (py-int-from-scheme
-   (py** (py-bool-to-scheme self404) (py-sint-to-scheme other405))))
+   (py** (py-bool-to-scheme-int self404) (py-sint-to-scheme other405))))
 
 (define (py-pow-boolX-bintY-fallback self407 other408)
   (py-int-from-scheme
-   (py** (py-bool-to-scheme self407) (py-bint-to-scheme other408))))
+   (py** (py-bool-to-scheme-int self407) (py-bint-to-scheme other408))))
 
 (define (py-pow-sintX-floatY-fallback other410 self411)
   (py-float-from-scheme
@@ -2991,7 +2991,7 @@
 
 (define (py-pow-sintX-boolY-fallback self413 other414)
   (py-int-from-scheme
-   (py** (py-sint-to-scheme self413) (py-bool-to-scheme other414))))
+   (py** (py-sint-to-scheme self413) (py-bool-to-scheme-int other414))))
 
 (define (py-pow-sintX-sintY-fallback self416 other417)
   (py-int-from-scheme
@@ -3007,7 +3007,7 @@
 
 (define (py-pow-bintX-boolY-fallback self425 other426)
   (py-int-from-scheme
-   (py** (py-bint-to-scheme self425) (py-bool-to-scheme other426))))
+   (py** (py-bint-to-scheme self425) (py-bool-to-scheme-int other426))))
 
 (define (py-pow-bintX-sintY-fallback self428 other429)
   (py-int-from-scheme
@@ -3045,19 +3045,19 @@
 (define (py-rshift-boolX-boolY-fallback self449 other450)
   (if (py-test (py-ge other450 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py>> (py-bool-to-scheme self449) (py-bool-to-scheme other450)))
+       (py>> (py-bool-to-scheme-int self449) (py-bool-to-scheme-int other450)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-rshift-boolX-sintY-fallback self452 other453)
   (if (py-test (py-ge other453 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py>> (py-bool-to-scheme self452) (py-sint-to-scheme other453)))
+       (py>> (py-bool-to-scheme-int self452) (py-sint-to-scheme other453)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-rshift-boolX-bintY-fallback self455 other456)
   (if (py-test (py-ge other456 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py>> (py-bool-to-scheme self455) (py-bint-to-scheme other456)))
+       (py>> (py-bool-to-scheme-int self455) (py-bint-to-scheme other456)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-rshift-sintX-floatY-fallback self458 other459)
@@ -3068,7 +3068,7 @@
 (define (py-rshift-sintX-boolY-fallback self461 other462)
   (if (py-test (py-ge other462 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py>> (py-sint-to-scheme self461) (py-bool-to-scheme other462)))
+       (py>> (py-sint-to-scheme self461) (py-bool-to-scheme-int other462)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-rshift-sintX-sintY-fallback self464 other465)
@@ -3091,7 +3091,7 @@
 (define (py-rshift-bintX-boolY-fallback self473 other474)
   (if (py-test (py-ge other474 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py>> (py-bint-to-scheme self473) (py-bool-to-scheme other474)))
+       (py>> (py-bint-to-scheme self473) (py-bool-to-scheme-int other474)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-rshift-bintX-sintY-fallback self476 other477)
@@ -3112,7 +3112,7 @@
 
 (define (py-sub-floatX-boolY-fallback self485 other486)
   (py-float-from-scheme
-   (py- (py-float-to-scheme self485) (py-bool-to-scheme other486))))
+   (py- (py-float-to-scheme self485) (py-bool-to-scheme-int other486))))
 
 (define (py-sub-floatX-sintY-fallback self488 other489)
   (py-float-from-scheme
@@ -3124,19 +3124,19 @@
 
 (define (py-sub-boolX-floatY-fallback other494 self495)
   (py-float-from-scheme
-   (py- (py-bool-to-scheme other494) (py-float-to-scheme self495))))
+   (py- (py-bool-to-scheme-int other494) (py-float-to-scheme self495))))
 
 (define (py-sub-boolX-boolY-fallback self497 other498)
   (py-int-from-scheme
-   (py- (py-bool-to-scheme self497) (py-bool-to-scheme other498))))
+   (py- (py-bool-to-scheme-int self497) (py-bool-to-scheme-int other498))))
 
 (define (py-sub-boolX-sintY-fallback self500 other501)
   (py-int-from-scheme
-   (py- (py-bool-to-scheme self500) (py-sint-to-scheme other501))))
+   (py- (py-bool-to-scheme-int self500) (py-sint-to-scheme other501))))
 
 (define (py-sub-boolX-bintY-fallback self503 other504)
   (py-int-from-scheme
-   (py- (py-bool-to-scheme self503) (py-bint-to-scheme other504))))
+   (py- (py-bool-to-scheme-int self503) (py-bint-to-scheme other504))))
 
 (define (py-sub-sintX-floatY-fallback other506 self507)
   (py-float-from-scheme
@@ -3144,7 +3144,7 @@
 
 (define (py-sub-sintX-boolY-fallback self509 other510)
   (py-int-from-scheme
-   (py- (py-sint-to-scheme self509) (py-bool-to-scheme other510))))
+   (py- (py-sint-to-scheme self509) (py-bool-to-scheme-int other510))))
 
 (define (py-sub-sintX-sintY-fallback self512 other513)
   (py-int-from-scheme
@@ -3160,7 +3160,7 @@
 
 (define (py-sub-bintX-boolY-fallback self521 other522)
   (py-int-from-scheme
-   (py- (py-bint-to-scheme self521) (py-bool-to-scheme other522))))
+   (py- (py-bint-to-scheme self521) (py-bool-to-scheme-int other522))))
 
 (define (py-sub-bintX-sintY-fallback self524 other525)
   (py-int-from-scheme
@@ -3180,7 +3180,7 @@
 (define (py-truediv-floatX-boolY-fallback self533 other534)
   (if (py-test (py-ne other534 (py-int-from-scheme 0)))
       (py-float-from-scheme
-       (py/ (py-float-to-scheme self533) (py-bool-to-scheme other534)))
+       (py/ (py-float-to-scheme self533) (py-bool-to-scheme-int other534)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
@@ -3201,28 +3201,28 @@
 (define (py-truediv-boolX-floatY-fallback other542 self543)
   (if (py-test (py-ne self543 (py-float-from-scheme 0.)))
       (py-float-from-scheme
-       (py/ (py-bool-to-scheme other542) (py-float-to-scheme self543)))
+       (py/ (py-bool-to-scheme-int other542) (py-float-to-scheme self543)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
 (define (py-truediv-boolX-boolY-fallback self545 other546)
   (if (py-test (py-ne other546 (py-int-from-scheme 0)))
       (py-float-from-scheme
-       (py/ (py-bool-to-scheme self545) (py-bool-to-scheme other546)))
+       (py/ (py-bool-to-scheme-int self545) (py-bool-to-scheme-int other546)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-truediv-boolX-sintY-fallback self548 other549)
   (if (py-test (py-ne other549 (py-int-from-scheme 0)))
       (py-float-from-scheme
-       (py/ (py-bool-to-scheme self548) (py-sint-to-scheme other549)))
+       (py/ (py-bool-to-scheme-int self548) (py-sint-to-scheme other549)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-truediv-boolX-bintY-fallback self551 other552)
   (if (py-test (py-ne other552 (py-int-from-scheme 0)))
       (py-float-from-scheme
-       (py/ (py-bool-to-scheme self551) (py-bint-to-scheme other552)))
+       (py/ (py-bool-to-scheme-int self551) (py-bint-to-scheme other552)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
 
@@ -3236,7 +3236,7 @@
 (define (py-truediv-sintX-boolY-fallback self557 other558)
   (if (py-test (py-ne other558 (py-int-from-scheme 0)))
       (py-float-from-scheme
-       (py/ (py-sint-to-scheme self557) (py-bool-to-scheme other558)))
+       (py/ (py-sint-to-scheme self557) (py-bool-to-scheme-int other558)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
 
@@ -3264,7 +3264,7 @@
 (define (py-truediv-bintX-boolY-fallback self569 other570)
   (if (py-test (py-ne other570 (py-int-from-scheme 0)))
       (py-float-from-scheme
-       (py/ (py-bint-to-scheme self569) (py-bool-to-scheme other570)))
+       (py/ (py-bint-to-scheme self569) (py-bool-to-scheme-int other570)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
 
@@ -3312,11 +3312,11 @@
 
 (define (py-xor-boolX-sintY-fallback self596 other597)
   (py-int-from-scheme
-   (py^ (py-bool-to-scheme self596) (py-sint-to-scheme other597))))
+   (py^ (py-bool-to-scheme-int self596) (py-sint-to-scheme other597))))
 
 (define (py-xor-boolX-bintY-fallback self599 other600)
   (py-int-from-scheme
-   (py^ (py-bool-to-scheme self599) (py-bint-to-scheme other600))))
+   (py^ (py-bool-to-scheme-int self599) (py-bint-to-scheme other600))))
 
 (define (py-xor-sintX-floatY-fallback self602 other603)
   (py-throw
@@ -3325,7 +3325,7 @@
 
 (define (py-xor-sintX-boolY-fallback self605 other606)
   (py-int-from-scheme
-   (py^ (py-sint-to-scheme self605) (py-bool-to-scheme other606))))
+   (py^ (py-sint-to-scheme self605) (py-bool-to-scheme-int other606))))
 
 (define (py-xor-sintX-sintY-fallback self608 other609)
   (py-int-from-scheme
@@ -3342,7 +3342,7 @@
 
 (define (py-xor-bintX-boolY-fallback self617 other618)
   (py-int-from-scheme
-   (py^ (py-bint-to-scheme self617) (py-bool-to-scheme other618))))
+   (py^ (py-bint-to-scheme self617) (py-bool-to-scheme-int other618))))
 
 (define (py-xor-bintX-sintY-fallback self620 other621)
   (py-int-from-scheme
@@ -3358,7 +3358,7 @@
 
 (define (py-iadd-floatX-boolY-fallback self629 other630)
   (py-float-from-scheme
-   (py+ (py-float-to-scheme self629) (py-bool-to-scheme other630))))
+   (py+ (py-float-to-scheme self629) (py-bool-to-scheme-int other630))))
 
 (define (py-iadd-floatX-sintY-fallback self632 other633)
   (py-float-from-scheme
@@ -3370,19 +3370,19 @@
 
 (define (py-iadd-boolX-floatY-fallback other638 self639)
   (py-float-from-scheme
-   (py+ (py-bool-to-scheme other638) (py-float-to-scheme self639))))
+   (py+ (py-bool-to-scheme-int other638) (py-float-to-scheme self639))))
 
 (define (py-iadd-boolX-boolY-fallback self641 other642)
   (py-int-from-scheme
-   (py+ (py-bool-to-scheme self641) (py-bool-to-scheme other642))))
+   (py+ (py-bool-to-scheme-int self641) (py-bool-to-scheme-int other642))))
 
 (define (py-iadd-boolX-sintY-fallback self644 other645)
   (py-int-from-scheme
-   (py+ (py-bool-to-scheme self644) (py-sint-to-scheme other645))))
+   (py+ (py-bool-to-scheme-int self644) (py-sint-to-scheme other645))))
 
 (define (py-iadd-boolX-bintY-fallback self647 other648)
   (py-int-from-scheme
-   (py+ (py-bool-to-scheme self647) (py-bint-to-scheme other648))))
+   (py+ (py-bool-to-scheme-int self647) (py-bint-to-scheme other648))))
 
 (define (py-iadd-sintX-floatY-fallback other650 self651)
   (py-float-from-scheme
@@ -3390,7 +3390,7 @@
 
 (define (py-iadd-sintX-boolY-fallback self653 other654)
   (py-int-from-scheme
-   (py+ (py-sint-to-scheme self653) (py-bool-to-scheme other654))))
+   (py+ (py-sint-to-scheme self653) (py-bool-to-scheme-int other654))))
 
 (define (py-iadd-sintX-sintY-fallback self656 other657)
   (py-int-from-scheme
@@ -3406,7 +3406,7 @@
 
 (define (py-iadd-bintX-boolY-fallback self665 other666)
   (py-int-from-scheme
-   (py+ (py-bint-to-scheme self665) (py-bool-to-scheme other666))))
+   (py+ (py-bint-to-scheme self665) (py-bool-to-scheme-int other666))))
 
 (define (py-iadd-bintX-sintY-fallback self668 other669)
   (py-int-from-scheme
@@ -3446,11 +3446,11 @@
 
 (define (py-ibitand-boolX-sintY-fallback self692 other693)
   (py-int-from-scheme
-   (py& (py-bool-to-scheme self692) (py-sint-to-scheme other693))))
+   (py& (py-bool-to-scheme-int self692) (py-sint-to-scheme other693))))
 
 (define (py-ibitand-boolX-bintY-fallback self695 other696)
   (py-int-from-scheme
-   (py& (py-bool-to-scheme self695) (py-bint-to-scheme other696))))
+   (py& (py-bool-to-scheme-int self695) (py-bint-to-scheme other696))))
 
 (define (py-ibitand-sintX-floatY-fallback self698 other699)
   (py-throw
@@ -3459,7 +3459,7 @@
 
 (define (py-ibitand-sintX-boolY-fallback self701 other702)
   (py-int-from-scheme
-   (py& (py-sint-to-scheme self701) (py-bool-to-scheme other702))))
+   (py& (py-sint-to-scheme self701) (py-bool-to-scheme-int other702))))
 
 (define (py-ibitand-sintX-sintY-fallback self704 other705)
   (py-int-from-scheme
@@ -3476,7 +3476,7 @@
 
 (define (py-ibitand-bintX-boolY-fallback self713 other714)
   (py-int-from-scheme
-   (py& (py-bint-to-scheme self713) (py-bool-to-scheme other714))))
+   (py& (py-bint-to-scheme self713) (py-bool-to-scheme-int other714))))
 
 (define (py-ibitand-bintX-sintY-fallback self716 other717)
   (py-int-from-scheme
@@ -3516,11 +3516,11 @@
 
 (define (py-ibitor-boolX-sintY-fallback self740 other741)
   (py-int-from-scheme
-   (py+b (py-bool-to-scheme self740) (py-sint-to-scheme other741))))
+   (py+b (py-bool-to-scheme-int self740) (py-sint-to-scheme other741))))
 
 (define (py-ibitor-boolX-bintY-fallback self743 other744)
   (py-int-from-scheme
-   (py+b (py-bool-to-scheme self743) (py-bint-to-scheme other744))))
+   (py+b (py-bool-to-scheme-int self743) (py-bint-to-scheme other744))))
 
 (define (py-ibitor-sintX-floatY-fallback self746 other747)
   (py-throw
@@ -3529,7 +3529,7 @@
 
 (define (py-ibitor-sintX-boolY-fallback self749 other750)
   (py-int-from-scheme
-   (py+b (py-sint-to-scheme self749) (py-bool-to-scheme other750))))
+   (py+b (py-sint-to-scheme self749) (py-bool-to-scheme-int other750))))
 
 (define (py-ibitor-sintX-sintY-fallback self752 other753)
   (py-int-from-scheme
@@ -3546,7 +3546,7 @@
 
 (define (py-ibitor-bintX-boolY-fallback self761 other762)
   (py-int-from-scheme
-   (py+b (py-bint-to-scheme self761) (py-bool-to-scheme other762))))
+   (py+b (py-bint-to-scheme self761) (py-bool-to-scheme-int other762))))
 
 (define (py-ibitor-bintX-sintY-fallback self764 other765)
   (py-int-from-scheme
@@ -3566,7 +3566,7 @@
 (define (py-ifloordiv-floatX-boolY-fallback self773 other774)
   (if (py-test (py-ne other774 (py-int-from-scheme 0)))
       (py-float-from-scheme
-       (py// (py-float-to-scheme self773) (py-bool-to-scheme other774)))
+       (py// (py-float-to-scheme self773) (py-bool-to-scheme-int other774)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
@@ -3587,14 +3587,14 @@
 (define (py-ifloordiv-boolX-floatY-fallback other782 self783)
   (if (py-test (py-ne self783 (py-float-from-scheme 0.)))
       (py-float-from-scheme
-       (py// (py-bool-to-scheme other782) (py-float-to-scheme self783)))
+       (py// (py-bool-to-scheme-int other782) (py-float-to-scheme self783)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
 (define (py-ifloordiv-boolX-boolY-fallback self785 other786)
   (if (py-test (py-ne other786 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py// (py-bool-to-scheme self785) (py-bool-to-scheme other786)))
+       (py// (py-bool-to-scheme-int self785) (py-bool-to-scheme-int other786)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError
                 (&& "integer division by zero")))))
@@ -3602,7 +3602,7 @@
 (define (py-ifloordiv-boolX-sintY-fallback self788 other789)
   (if (py-test (py-ne other789 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py// (py-bool-to-scheme self788) (py-sint-to-scheme other789)))
+       (py// (py-bool-to-scheme-int self788) (py-sint-to-scheme other789)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError
                 (&& "integer division by zero")))))
@@ -3610,7 +3610,7 @@
 (define (py-ifloordiv-boolX-bintY-fallback self791 other792)
   (if (py-test (py-ne other792 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py// (py-bool-to-scheme self791) (py-bint-to-scheme other792)))
+       (py// (py-bool-to-scheme-int self791) (py-bint-to-scheme other792)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError
                 (&& "integer division by zero")))))
@@ -3625,7 +3625,7 @@
 (define (py-ifloordiv-sintX-boolY-fallback self797 other798)
   (if (py-test (py-ne other798 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py// (py-sint-to-scheme self797) (py-bool-to-scheme other798)))
+       (py// (py-sint-to-scheme self797) (py-bool-to-scheme-int other798)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError
                 (&& "integer division by zero")))))
@@ -3656,7 +3656,7 @@
 (define (py-ifloordiv-bintX-boolY-fallback self809 other810)
   (if (py-test (py-ne other810 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py// (py-bint-to-scheme self809) (py-bool-to-scheme other810)))
+       (py// (py-bint-to-scheme self809) (py-bool-to-scheme-int other810)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError
                 (&& "integer division by zero")))))
@@ -3705,19 +3705,19 @@
 (define (py-ilshift-boolX-boolY-fallback self833 other834)
   (if (py-test (py-ge other834 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py<< (py-bool-to-scheme self833) (py-bool-to-scheme other834)))
+       (py<< (py-bool-to-scheme-int self833) (py-bool-to-scheme-int other834)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-ilshift-boolX-sintY-fallback self836 other837)
   (if (py-test (py-ge other837 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py<< (py-bool-to-scheme self836) (py-sint-to-scheme other837)))
+       (py<< (py-bool-to-scheme-int self836) (py-sint-to-scheme other837)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-ilshift-boolX-bintY-fallback self839 other840)
   (if (py-test (py-ge other840 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py<< (py-bool-to-scheme self839) (py-bint-to-scheme other840)))
+       (py<< (py-bool-to-scheme-int self839) (py-bint-to-scheme other840)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-ilshift-sintX-floatY-fallback self842 other843)
@@ -3728,7 +3728,7 @@
 (define (py-ilshift-sintX-boolY-fallback self845 other846)
   (if (py-test (py-ge other846 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py<< (py-sint-to-scheme self845) (py-bool-to-scheme other846)))
+       (py<< (py-sint-to-scheme self845) (py-bool-to-scheme-int other846)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-ilshift-sintX-sintY-fallback self848 other849)
@@ -3751,7 +3751,7 @@
 (define (py-ilshift-bintX-boolY-fallback self857 other858)
   (if (py-test (py-ge other858 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py<< (py-bint-to-scheme self857) (py-bool-to-scheme other858)))
+       (py<< (py-bint-to-scheme self857) (py-bool-to-scheme-int other858)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-ilshift-bintX-sintY-fallback self860 other861)
@@ -3856,7 +3856,7 @@
 (define (py-imod-floatX-boolY-fallback self917 other918)
   (if (py-test (py-ne other918 (py-int-from-scheme 0)))
       (py-float-from-scheme
-       (py% (py-float-to-scheme self917) (py-bool-to-scheme other918)))
+       (py% (py-float-to-scheme self917) (py-bool-to-scheme-int other918)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "float modulo by zero")))))
 
@@ -3877,26 +3877,26 @@
 (define (py-imod-boolX-floatY-fallback other926 self927)
   (if (py-test (py-ne self927 (py-float-from-scheme 0.)))
       (py-float-from-scheme
-       (py% (py-bool-to-scheme other926) (py-float-to-scheme self927)))
+       (py% (py-bool-to-scheme-int other926) (py-float-to-scheme self927)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "float modulo by zero")))))
 
 (define (py-imod-boolX-boolY-fallback self929 other930)
   (if (py-test (py-ne other930 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py% (py-bool-to-scheme self929) (py-bool-to-scheme other930)))
+       (py% (py-bool-to-scheme-int self929) (py-bool-to-scheme-int other930)))
       (py-throw (py-call py-builtin-ZeroDivisionError (&& "modulo by zero")))))
 
 (define (py-imod-boolX-sintY-fallback self932 other933)
   (if (py-test (py-ne other933 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py% (py-bool-to-scheme self932) (py-sint-to-scheme other933)))
+       (py% (py-bool-to-scheme-int self932) (py-sint-to-scheme other933)))
       (py-throw (py-call py-builtin-ZeroDivisionError (&& "modulo by zero")))))
 
 (define (py-imod-boolX-bintY-fallback self935 other936)
   (if (py-test (py-ne other936 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py% (py-bool-to-scheme self935) (py-bint-to-scheme other936)))
+       (py% (py-bool-to-scheme-int self935) (py-bint-to-scheme other936)))
       (py-throw (py-call py-builtin-ZeroDivisionError (&& "modulo by zero")))))
 
 (define (py-imod-sintX-floatY-fallback other938 self939)
@@ -3909,7 +3909,7 @@
 (define (py-imod-sintX-boolY-fallback self941 other942)
   (if (py-test (py-ne other942 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py% (py-sint-to-scheme self941) (py-bool-to-scheme other942)))
+       (py% (py-sint-to-scheme self941) (py-bool-to-scheme-int other942)))
       (py-throw (py-call py-builtin-ZeroDivisionError (&& "modulo by zero")))))
 
 (define (py-imod-sintX-sintY-fallback self944 other945)
@@ -3934,7 +3934,7 @@
 (define (py-imod-bintX-boolY-fallback self953 other954)
   (if (py-test (py-ne other954 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py% (py-bint-to-scheme self953) (py-bool-to-scheme other954)))
+       (py% (py-bint-to-scheme self953) (py-bool-to-scheme-int other954)))
       (py-throw (py-call py-builtin-ZeroDivisionError (&& "modulo by zero")))))
 
 (define (py-imod-bintX-sintY-fallback self956 other957)
@@ -3955,7 +3955,7 @@
 
 (define (py-imul-floatX-boolY-fallback self965 other966)
   (py-float-from-scheme
-   (py* (py-float-to-scheme self965) (py-bool-to-scheme other966))))
+   (py* (py-float-to-scheme self965) (py-bool-to-scheme-int other966))))
 
 (define (py-imul-floatX-sintY-fallback self968 other969)
   (py-float-from-scheme
@@ -3967,19 +3967,19 @@
 
 (define (py-imul-boolX-floatY-fallback other974 self975)
   (py-float-from-scheme
-   (py* (py-bool-to-scheme other974) (py-float-to-scheme self975))))
+   (py* (py-bool-to-scheme-int other974) (py-float-to-scheme self975))))
 
 (define (py-imul-boolX-boolY-fallback self977 other978)
   (py-int-from-scheme
-   (py* (py-bool-to-scheme self977) (py-bool-to-scheme other978))))
+   (py* (py-bool-to-scheme-int self977) (py-bool-to-scheme-int other978))))
 
 (define (py-imul-boolX-sintY-fallback self980 other981)
   (py-int-from-scheme
-   (py* (py-bool-to-scheme self980) (py-sint-to-scheme other981))))
+   (py* (py-bool-to-scheme-int self980) (py-sint-to-scheme other981))))
 
 (define (py-imul-boolX-bintY-fallback self983 other984)
   (py-int-from-scheme
-   (py* (py-bool-to-scheme self983) (py-bint-to-scheme other984))))
+   (py* (py-bool-to-scheme-int self983) (py-bint-to-scheme other984))))
 
 (define (py-imul-sintX-floatY-fallback other986 self987)
   (py-float-from-scheme
@@ -3987,7 +3987,7 @@
 
 (define (py-imul-sintX-boolY-fallback self989 other990)
   (py-int-from-scheme
-   (py* (py-sint-to-scheme self989) (py-bool-to-scheme other990))))
+   (py* (py-sint-to-scheme self989) (py-bool-to-scheme-int other990))))
 
 (define (py-imul-sintX-sintY-fallback self992 other993)
   (py-int-from-scheme
@@ -4003,7 +4003,7 @@
 
 (define (py-imul-bintX-boolY-fallback self1001 other1002)
   (py-int-from-scheme
-   (py* (py-bint-to-scheme self1001) (py-bool-to-scheme other1002))))
+   (py* (py-bint-to-scheme self1001) (py-bool-to-scheme-int other1002))))
 
 (define (py-imul-bintX-sintY-fallback self1004 other1005)
   (py-int-from-scheme
@@ -4019,7 +4019,7 @@
 
 (define (py-ipow-floatX-boolY-fallback self1013 other1014)
   (py-float-from-scheme
-   (py** (py-float-to-scheme self1013) (py-bool-to-scheme other1014))))
+   (py** (py-float-to-scheme self1013) (py-bool-to-scheme-int other1014))))
 
 (define (py-ipow-floatX-sintY-fallback self1016 other1017)
   (py-float-from-scheme
@@ -4031,19 +4031,19 @@
 
 (define (py-ipow-boolX-floatY-fallback other1022 self1023)
   (py-float-from-scheme
-   (py** (py-bool-to-scheme other1022) (py-float-to-scheme self1023))))
+   (py** (py-bool-to-scheme-int other1022) (py-float-to-scheme self1023))))
 
 (define (py-ipow-boolX-boolY-fallback self1025 other1026)
   (py-int-from-scheme
-   (py** (py-bool-to-scheme self1025) (py-bool-to-scheme other1026))))
+   (py** (py-bool-to-scheme-int self1025) (py-bool-to-scheme-int other1026))))
 
 (define (py-ipow-boolX-sintY-fallback self1028 other1029)
   (py-int-from-scheme
-   (py** (py-bool-to-scheme self1028) (py-sint-to-scheme other1029))))
+   (py** (py-bool-to-scheme-int self1028) (py-sint-to-scheme other1029))))
 
 (define (py-ipow-boolX-bintY-fallback self1031 other1032)
   (py-int-from-scheme
-   (py** (py-bool-to-scheme self1031) (py-bint-to-scheme other1032))))
+   (py** (py-bool-to-scheme-int self1031) (py-bint-to-scheme other1032))))
 
 (define (py-ipow-sintX-floatY-fallback other1034 self1035)
   (py-float-from-scheme
@@ -4051,7 +4051,7 @@
 
 (define (py-ipow-sintX-boolY-fallback self1037 other1038)
   (py-int-from-scheme
-   (py** (py-sint-to-scheme self1037) (py-bool-to-scheme other1038))))
+   (py** (py-sint-to-scheme self1037) (py-bool-to-scheme-int other1038))))
 
 (define (py-ipow-sintX-sintY-fallback self1040 other1041)
   (py-int-from-scheme
@@ -4067,7 +4067,7 @@
 
 (define (py-ipow-bintX-boolY-fallback self1049 other1050)
   (py-int-from-scheme
-   (py** (py-bint-to-scheme self1049) (py-bool-to-scheme other1050))))
+   (py** (py-bint-to-scheme self1049) (py-bool-to-scheme-int other1050))))
 
 (define (py-ipow-bintX-sintY-fallback self1052 other1053)
   (py-int-from-scheme
@@ -4105,19 +4105,20 @@
 (define (py-irshift-boolX-boolY-fallback self1073 other1074)
   (if (py-test (py-ge other1074 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py>> (py-bool-to-scheme self1073) (py-bool-to-scheme other1074)))
+       (py>> (py-bool-to-scheme-int self1073)
+             (py-bool-to-scheme-int other1074)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-irshift-boolX-sintY-fallback self1076 other1077)
   (if (py-test (py-ge other1077 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py>> (py-bool-to-scheme self1076) (py-sint-to-scheme other1077)))
+       (py>> (py-bool-to-scheme-int self1076) (py-sint-to-scheme other1077)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-irshift-boolX-bintY-fallback self1079 other1080)
   (if (py-test (py-ge other1080 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py>> (py-bool-to-scheme self1079) (py-bint-to-scheme other1080)))
+       (py>> (py-bool-to-scheme-int self1079) (py-bint-to-scheme other1080)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-irshift-sintX-floatY-fallback self1082 other1083)
@@ -4128,7 +4129,7 @@
 (define (py-irshift-sintX-boolY-fallback self1085 other1086)
   (if (py-test (py-ge other1086 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py>> (py-sint-to-scheme self1085) (py-bool-to-scheme other1086)))
+       (py>> (py-sint-to-scheme self1085) (py-bool-to-scheme-int other1086)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-irshift-sintX-sintY-fallback self1088 other1089)
@@ -4151,7 +4152,7 @@
 (define (py-irshift-bintX-boolY-fallback self1097 other1098)
   (if (py-test (py-ge other1098 (py-int-from-scheme 0)))
       (py-int-from-scheme
-       (py>> (py-bint-to-scheme self1097) (py-bool-to-scheme other1098)))
+       (py>> (py-bint-to-scheme self1097) (py-bool-to-scheme-int other1098)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-irshift-bintX-sintY-fallback self1100 other1101)
@@ -4172,7 +4173,7 @@
 
 (define (py-isub-floatX-boolY-fallback self1109 other1110)
   (py-float-from-scheme
-   (py- (py-float-to-scheme self1109) (py-bool-to-scheme other1110))))
+   (py- (py-float-to-scheme self1109) (py-bool-to-scheme-int other1110))))
 
 (define (py-isub-floatX-sintY-fallback self1112 other1113)
   (py-float-from-scheme
@@ -4184,19 +4185,19 @@
 
 (define (py-isub-boolX-floatY-fallback other1118 self1119)
   (py-float-from-scheme
-   (py- (py-bool-to-scheme other1118) (py-float-to-scheme self1119))))
+   (py- (py-bool-to-scheme-int other1118) (py-float-to-scheme self1119))))
 
 (define (py-isub-boolX-boolY-fallback self1121 other1122)
   (py-int-from-scheme
-   (py- (py-bool-to-scheme self1121) (py-bool-to-scheme other1122))))
+   (py- (py-bool-to-scheme-int self1121) (py-bool-to-scheme-int other1122))))
 
 (define (py-isub-boolX-sintY-fallback self1124 other1125)
   (py-int-from-scheme
-   (py- (py-bool-to-scheme self1124) (py-sint-to-scheme other1125))))
+   (py- (py-bool-to-scheme-int self1124) (py-sint-to-scheme other1125))))
 
 (define (py-isub-boolX-bintY-fallback self1127 other1128)
   (py-int-from-scheme
-   (py- (py-bool-to-scheme self1127) (py-bint-to-scheme other1128))))
+   (py- (py-bool-to-scheme-int self1127) (py-bint-to-scheme other1128))))
 
 (define (py-isub-sintX-floatY-fallback other1130 self1131)
   (py-float-from-scheme
@@ -4204,7 +4205,7 @@
 
 (define (py-isub-sintX-boolY-fallback self1133 other1134)
   (py-int-from-scheme
-   (py- (py-sint-to-scheme self1133) (py-bool-to-scheme other1134))))
+   (py- (py-sint-to-scheme self1133) (py-bool-to-scheme-int other1134))))
 
 (define (py-isub-sintX-sintY-fallback self1136 other1137)
   (py-int-from-scheme
@@ -4220,7 +4221,7 @@
 
 (define (py-isub-bintX-boolY-fallback self1145 other1146)
   (py-int-from-scheme
-   (py- (py-bint-to-scheme self1145) (py-bool-to-scheme other1146))))
+   (py- (py-bint-to-scheme self1145) (py-bool-to-scheme-int other1146))))
 
 (define (py-isub-bintX-sintY-fallback self1148 other1149)
   (py-int-from-scheme
@@ -4240,7 +4241,7 @@
 (define (py-itruediv-floatX-boolY-fallback self1157 other1158)
   (if (py-test (py-ne other1158 (py-int-from-scheme 0)))
       (py-float-from-scheme
-       (py/ (py-float-to-scheme self1157) (py-bool-to-scheme other1158)))
+       (py/ (py-float-to-scheme self1157) (py-bool-to-scheme-int other1158)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
@@ -4261,28 +4262,29 @@
 (define (py-itruediv-boolX-floatY-fallback other1166 self1167)
   (if (py-test (py-ne self1167 (py-float-from-scheme 0.)))
       (py-float-from-scheme
-       (py/ (py-bool-to-scheme other1166) (py-float-to-scheme self1167)))
+       (py/ (py-bool-to-scheme-int other1166) (py-float-to-scheme self1167)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
 (define (py-itruediv-boolX-boolY-fallback self1169 other1170)
   (if (py-test (py-ne other1170 (py-int-from-scheme 0)))
       (py-float-from-scheme
-       (py/ (py-bool-to-scheme self1169) (py-bool-to-scheme other1170)))
+       (py/ (py-bool-to-scheme-int self1169)
+            (py-bool-to-scheme-int other1170)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-itruediv-boolX-sintY-fallback self1172 other1173)
   (if (py-test (py-ne other1173 (py-int-from-scheme 0)))
       (py-float-from-scheme
-       (py/ (py-bool-to-scheme self1172) (py-sint-to-scheme other1173)))
+       (py/ (py-bool-to-scheme-int self1172) (py-sint-to-scheme other1173)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-itruediv-boolX-bintY-fallback self1175 other1176)
   (if (py-test (py-ne other1176 (py-int-from-scheme 0)))
       (py-float-from-scheme
-       (py/ (py-bool-to-scheme self1175) (py-bint-to-scheme other1176)))
+       (py/ (py-bool-to-scheme-int self1175) (py-bint-to-scheme other1176)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
 
@@ -4296,7 +4298,7 @@
 (define (py-itruediv-sintX-boolY-fallback self1181 other1182)
   (if (py-test (py-ne other1182 (py-int-from-scheme 0)))
       (py-float-from-scheme
-       (py/ (py-sint-to-scheme self1181) (py-bool-to-scheme other1182)))
+       (py/ (py-sint-to-scheme self1181) (py-bool-to-scheme-int other1182)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
 
@@ -4324,7 +4326,7 @@
 (define (py-itruediv-bintX-boolY-fallback self1193 other1194)
   (if (py-test (py-ne other1194 (py-int-from-scheme 0)))
       (py-float-from-scheme
-       (py/ (py-bint-to-scheme self1193) (py-bool-to-scheme other1194)))
+       (py/ (py-bint-to-scheme self1193) (py-bool-to-scheme-int other1194)))
       (py-throw
        (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
 
@@ -4372,11 +4374,11 @@
 
 (define (py-ixor-boolX-sintY-fallback self1220 other1221)
   (py-int-from-scheme
-   (py^ (py-bool-to-scheme self1220) (py-sint-to-scheme other1221))))
+   (py^ (py-bool-to-scheme-int self1220) (py-sint-to-scheme other1221))))
 
 (define (py-ixor-boolX-bintY-fallback self1223 other1224)
   (py-int-from-scheme
-   (py^ (py-bool-to-scheme self1223) (py-bint-to-scheme other1224))))
+   (py^ (py-bool-to-scheme-int self1223) (py-bint-to-scheme other1224))))
 
 (define (py-ixor-sintX-floatY-fallback self1226 other1227)
   (py-throw
@@ -4385,7 +4387,7 @@
 
 (define (py-ixor-sintX-boolY-fallback self1229 other1230)
   (py-int-from-scheme
-   (py^ (py-sint-to-scheme self1229) (py-bool-to-scheme other1230))))
+   (py^ (py-sint-to-scheme self1229) (py-bool-to-scheme-int other1230))))
 
 (define (py-ixor-sintX-sintY-fallback self1232 other1233)
   (py-int-from-scheme
@@ -4402,7 +4404,7 @@
 
 (define (py-ixor-bintX-boolY-fallback self1241 other1242)
   (py-int-from-scheme
-   (py^ (py-bint-to-scheme self1241) (py-bool-to-scheme other1242))))
+   (py^ (py-bint-to-scheme self1241) (py-bool-to-scheme-int other1242))))
 
 (define (py-ixor-bintX-sintY-fallback self1244 other1245)
   (py-int-from-scheme
@@ -4424,11 +4426,11 @@
 (define (py-ge-floatX-boolY-fallback self1256 other1257)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py>= (py-float-to-scheme self1256) (py-bool-to-scheme other1257)))))
+    (py>= (py-float-to-scheme self1256) (py-bool-to-scheme-int other1257)))))
 
 (define (py-test-ge-floatX-boolY-fallback self1259 other1260)
   (py-test-from-scheme
-   (py>= (py-float-to-scheme self1259) (py-bool-to-scheme other1260))))
+   (py>= (py-float-to-scheme self1259) (py-bool-to-scheme-int other1260))))
 
 (define (py-ge-floatX-sintY-fallback self1262 other1263)
   (py-bool-from-scheme-bool
@@ -4451,38 +4453,39 @@
 (define (py-ge-boolX-floatY-fallback other1274 self1275)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py<= (py-float-to-scheme self1275) (py-bool-to-scheme other1274)))))
+    (py<= (py-float-to-scheme self1275) (py-bool-to-scheme-int other1274)))))
 
 (define (py-test-ge-boolX-floatY-fallback other1277 self1278)
   (py-test-from-scheme
-   (py<= (py-float-to-scheme self1278) (py-bool-to-scheme other1277))))
+   (py<= (py-float-to-scheme self1278) (py-bool-to-scheme-int other1277))))
 
 (define (py-ge-boolX-boolY-fallback self1280 other1281)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py>= (py-bool-to-scheme self1280) (py-bool-to-scheme other1281)))))
+    (py>= (py-bool-to-scheme-int self1280)
+          (py-bool-to-scheme-int other1281)))))
 
 (define (py-test-ge-boolX-boolY-fallback self1283 other1284)
   (py-test-from-scheme
-   (py>= (py-bool-to-scheme self1283) (py-bool-to-scheme other1284))))
+   (py>= (py-bool-to-scheme-int self1283) (py-bool-to-scheme-int other1284))))
 
 (define (py-ge-boolX-sintY-fallback self1286 other1287)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py>= (py-bool-to-scheme self1286) (py-sint-to-scheme other1287)))))
+    (py>= (py-bool-to-scheme-int self1286) (py-sint-to-scheme other1287)))))
 
 (define (py-test-ge-boolX-sintY-fallback self1289 other1290)
   (py-test-from-scheme
-   (py>= (py-bool-to-scheme self1289) (py-sint-to-scheme other1290))))
+   (py>= (py-bool-to-scheme-int self1289) (py-sint-to-scheme other1290))))
 
 (define (py-ge-boolX-bintY-fallback self1292 other1293)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py>= (py-bool-to-scheme self1292) (py-bint-to-scheme other1293)))))
+    (py>= (py-bool-to-scheme-int self1292) (py-bint-to-scheme other1293)))))
 
 (define (py-test-ge-boolX-bintY-fallback self1295 other1296)
   (py-test-from-scheme
-   (py>= (py-bool-to-scheme self1295) (py-bint-to-scheme other1296))))
+   (py>= (py-bool-to-scheme-int self1295) (py-bint-to-scheme other1296))))
 
 (define (py-ge-sintX-floatY-fallback other1298 self1299)
   (py-bool-from-scheme-bool
@@ -4496,11 +4499,11 @@
 (define (py-ge-sintX-boolY-fallback self1304 other1305)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py>= (py-sint-to-scheme self1304) (py-bool-to-scheme other1305)))))
+    (py>= (py-sint-to-scheme self1304) (py-bool-to-scheme-int other1305)))))
 
 (define (py-test-ge-sintX-boolY-fallback self1307 other1308)
   (py-test-from-scheme
-   (py>= (py-sint-to-scheme self1307) (py-bool-to-scheme other1308))))
+   (py>= (py-sint-to-scheme self1307) (py-bool-to-scheme-int other1308))))
 
 (define (py-ge-sintX-sintY-fallback self1310 other1311)
   (py-bool-from-scheme-bool
@@ -4532,11 +4535,11 @@
 (define (py-ge-bintX-boolY-fallback self1328 other1329)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py>= (py-bint-to-scheme self1328) (py-bool-to-scheme other1329)))))
+    (py>= (py-bint-to-scheme self1328) (py-bool-to-scheme-int other1329)))))
 
 (define (py-test-ge-bintX-boolY-fallback self1331 other1332)
   (py-test-from-scheme
-   (py>= (py-bint-to-scheme self1331) (py-bool-to-scheme other1332))))
+   (py>= (py-bint-to-scheme self1331) (py-bool-to-scheme-int other1332))))
 
 (define (py-ge-bintX-sintY-fallback self1334 other1335)
   (py-bool-from-scheme-bool
@@ -4568,11 +4571,11 @@
 (define (py-gt-floatX-boolY-fallback self1352 other1353)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py> (py-float-to-scheme self1352) (py-bool-to-scheme other1353)))))
+    (py> (py-float-to-scheme self1352) (py-bool-to-scheme-int other1353)))))
 
 (define (py-test-gt-floatX-boolY-fallback self1355 other1356)
   (py-test-from-scheme
-   (py> (py-float-to-scheme self1355) (py-bool-to-scheme other1356))))
+   (py> (py-float-to-scheme self1355) (py-bool-to-scheme-int other1356))))
 
 (define (py-gt-floatX-sintY-fallback self1358 other1359)
   (py-bool-from-scheme-bool
@@ -4595,38 +4598,38 @@
 (define (py-gt-boolX-floatY-fallback other1370 self1371)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py< (py-float-to-scheme self1371) (py-bool-to-scheme other1370)))))
+    (py< (py-float-to-scheme self1371) (py-bool-to-scheme-int other1370)))))
 
 (define (py-test-gt-boolX-floatY-fallback other1373 self1374)
   (py-test-from-scheme
-   (py< (py-float-to-scheme self1374) (py-bool-to-scheme other1373))))
+   (py< (py-float-to-scheme self1374) (py-bool-to-scheme-int other1373))))
 
 (define (py-gt-boolX-boolY-fallback self1376 other1377)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py> (py-bool-to-scheme self1376) (py-bool-to-scheme other1377)))))
+    (py> (py-bool-to-scheme-int self1376) (py-bool-to-scheme-int other1377)))))
 
 (define (py-test-gt-boolX-boolY-fallback self1379 other1380)
   (py-test-from-scheme
-   (py> (py-bool-to-scheme self1379) (py-bool-to-scheme other1380))))
+   (py> (py-bool-to-scheme-int self1379) (py-bool-to-scheme-int other1380))))
 
 (define (py-gt-boolX-sintY-fallback self1382 other1383)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py> (py-bool-to-scheme self1382) (py-sint-to-scheme other1383)))))
+    (py> (py-bool-to-scheme-int self1382) (py-sint-to-scheme other1383)))))
 
 (define (py-test-gt-boolX-sintY-fallback self1385 other1386)
   (py-test-from-scheme
-   (py> (py-bool-to-scheme self1385) (py-sint-to-scheme other1386))))
+   (py> (py-bool-to-scheme-int self1385) (py-sint-to-scheme other1386))))
 
 (define (py-gt-boolX-bintY-fallback self1388 other1389)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py> (py-bool-to-scheme self1388) (py-bint-to-scheme other1389)))))
+    (py> (py-bool-to-scheme-int self1388) (py-bint-to-scheme other1389)))))
 
 (define (py-test-gt-boolX-bintY-fallback self1391 other1392)
   (py-test-from-scheme
-   (py> (py-bool-to-scheme self1391) (py-bint-to-scheme other1392))))
+   (py> (py-bool-to-scheme-int self1391) (py-bint-to-scheme other1392))))
 
 (define (py-gt-sintX-floatY-fallback other1394 self1395)
   (py-bool-from-scheme-bool
@@ -4640,11 +4643,11 @@
 (define (py-gt-sintX-boolY-fallback self1400 other1401)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py> (py-sint-to-scheme self1400) (py-bool-to-scheme other1401)))))
+    (py> (py-sint-to-scheme self1400) (py-bool-to-scheme-int other1401)))))
 
 (define (py-test-gt-sintX-boolY-fallback self1403 other1404)
   (py-test-from-scheme
-   (py> (py-sint-to-scheme self1403) (py-bool-to-scheme other1404))))
+   (py> (py-sint-to-scheme self1403) (py-bool-to-scheme-int other1404))))
 
 (define (py-gt-sintX-sintY-fallback self1406 other1407)
   (py-bool-from-scheme-bool
@@ -4676,11 +4679,11 @@
 (define (py-gt-bintX-boolY-fallback self1424 other1425)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py> (py-bint-to-scheme self1424) (py-bool-to-scheme other1425)))))
+    (py> (py-bint-to-scheme self1424) (py-bool-to-scheme-int other1425)))))
 
 (define (py-test-gt-bintX-boolY-fallback self1427 other1428)
   (py-test-from-scheme
-   (py> (py-bint-to-scheme self1427) (py-bool-to-scheme other1428))))
+   (py> (py-bint-to-scheme self1427) (py-bool-to-scheme-int other1428))))
 
 (define (py-gt-bintX-sintY-fallback self1430 other1431)
   (py-bool-from-scheme-bool
@@ -4712,11 +4715,11 @@
 (define (py-le-floatX-boolY-fallback self1448 other1449)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py<= (py-float-to-scheme self1448) (py-bool-to-scheme other1449)))))
+    (py<= (py-float-to-scheme self1448) (py-bool-to-scheme-int other1449)))))
 
 (define (py-test-le-floatX-boolY-fallback self1451 other1452)
   (py-test-from-scheme
-   (py<= (py-float-to-scheme self1451) (py-bool-to-scheme other1452))))
+   (py<= (py-float-to-scheme self1451) (py-bool-to-scheme-int other1452))))
 
 (define (py-le-floatX-sintY-fallback self1454 other1455)
   (py-bool-from-scheme-bool
@@ -4739,38 +4742,39 @@
 (define (py-le-boolX-floatY-fallback other1466 self1467)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py>= (py-float-to-scheme self1467) (py-bool-to-scheme other1466)))))
+    (py>= (py-float-to-scheme self1467) (py-bool-to-scheme-int other1466)))))
 
 (define (py-test-le-boolX-floatY-fallback other1469 self1470)
   (py-test-from-scheme
-   (py>= (py-float-to-scheme self1470) (py-bool-to-scheme other1469))))
+   (py>= (py-float-to-scheme self1470) (py-bool-to-scheme-int other1469))))
 
 (define (py-le-boolX-boolY-fallback self1472 other1473)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py<= (py-bool-to-scheme self1472) (py-bool-to-scheme other1473)))))
+    (py<= (py-bool-to-scheme-int self1472)
+          (py-bool-to-scheme-int other1473)))))
 
 (define (py-test-le-boolX-boolY-fallback self1475 other1476)
   (py-test-from-scheme
-   (py<= (py-bool-to-scheme self1475) (py-bool-to-scheme other1476))))
+   (py<= (py-bool-to-scheme-int self1475) (py-bool-to-scheme-int other1476))))
 
 (define (py-le-boolX-sintY-fallback self1478 other1479)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py<= (py-bool-to-scheme self1478) (py-sint-to-scheme other1479)))))
+    (py<= (py-bool-to-scheme-int self1478) (py-sint-to-scheme other1479)))))
 
 (define (py-test-le-boolX-sintY-fallback self1481 other1482)
   (py-test-from-scheme
-   (py<= (py-bool-to-scheme self1481) (py-sint-to-scheme other1482))))
+   (py<= (py-bool-to-scheme-int self1481) (py-sint-to-scheme other1482))))
 
 (define (py-le-boolX-bintY-fallback self1484 other1485)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py<= (py-bool-to-scheme self1484) (py-bint-to-scheme other1485)))))
+    (py<= (py-bool-to-scheme-int self1484) (py-bint-to-scheme other1485)))))
 
 (define (py-test-le-boolX-bintY-fallback self1487 other1488)
   (py-test-from-scheme
-   (py<= (py-bool-to-scheme self1487) (py-bint-to-scheme other1488))))
+   (py<= (py-bool-to-scheme-int self1487) (py-bint-to-scheme other1488))))
 
 (define (py-le-sintX-floatY-fallback other1490 self1491)
   (py-bool-from-scheme-bool
@@ -4784,11 +4788,11 @@
 (define (py-le-sintX-boolY-fallback self1496 other1497)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py<= (py-sint-to-scheme self1496) (py-bool-to-scheme other1497)))))
+    (py<= (py-sint-to-scheme self1496) (py-bool-to-scheme-int other1497)))))
 
 (define (py-test-le-sintX-boolY-fallback self1499 other1500)
   (py-test-from-scheme
-   (py<= (py-sint-to-scheme self1499) (py-bool-to-scheme other1500))))
+   (py<= (py-sint-to-scheme self1499) (py-bool-to-scheme-int other1500))))
 
 (define (py-le-sintX-sintY-fallback self1502 other1503)
   (py-bool-from-scheme-bool
@@ -4820,11 +4824,11 @@
 (define (py-le-bintX-boolY-fallback self1520 other1521)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py<= (py-bint-to-scheme self1520) (py-bool-to-scheme other1521)))))
+    (py<= (py-bint-to-scheme self1520) (py-bool-to-scheme-int other1521)))))
 
 (define (py-test-le-bintX-boolY-fallback self1523 other1524)
   (py-test-from-scheme
-   (py<= (py-bint-to-scheme self1523) (py-bool-to-scheme other1524))))
+   (py<= (py-bint-to-scheme self1523) (py-bool-to-scheme-int other1524))))
 
 (define (py-le-bintX-sintY-fallback self1526 other1527)
   (py-bool-from-scheme-bool
@@ -4856,11 +4860,11 @@
 (define (py-lt-floatX-boolY-fallback self1544 other1545)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py< (py-float-to-scheme self1544) (py-bool-to-scheme other1545)))))
+    (py< (py-float-to-scheme self1544) (py-bool-to-scheme-int other1545)))))
 
 (define (py-test-lt-floatX-boolY-fallback self1547 other1548)
   (py-test-from-scheme
-   (py< (py-float-to-scheme self1547) (py-bool-to-scheme other1548))))
+   (py< (py-float-to-scheme self1547) (py-bool-to-scheme-int other1548))))
 
 (define (py-lt-floatX-sintY-fallback self1550 other1551)
   (py-bool-from-scheme-bool
@@ -4883,38 +4887,38 @@
 (define (py-lt-boolX-floatY-fallback other1562 self1563)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py> (py-float-to-scheme self1563) (py-bool-to-scheme other1562)))))
+    (py> (py-float-to-scheme self1563) (py-bool-to-scheme-int other1562)))))
 
 (define (py-test-lt-boolX-floatY-fallback other1565 self1566)
   (py-test-from-scheme
-   (py> (py-float-to-scheme self1566) (py-bool-to-scheme other1565))))
+   (py> (py-float-to-scheme self1566) (py-bool-to-scheme-int other1565))))
 
 (define (py-lt-boolX-boolY-fallback self1568 other1569)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py< (py-bool-to-scheme self1568) (py-bool-to-scheme other1569)))))
+    (py< (py-bool-to-scheme-int self1568) (py-bool-to-scheme-int other1569)))))
 
 (define (py-test-lt-boolX-boolY-fallback self1571 other1572)
   (py-test-from-scheme
-   (py< (py-bool-to-scheme self1571) (py-bool-to-scheme other1572))))
+   (py< (py-bool-to-scheme-int self1571) (py-bool-to-scheme-int other1572))))
 
 (define (py-lt-boolX-sintY-fallback self1574 other1575)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py< (py-bool-to-scheme self1574) (py-sint-to-scheme other1575)))))
+    (py< (py-bool-to-scheme-int self1574) (py-sint-to-scheme other1575)))))
 
 (define (py-test-lt-boolX-sintY-fallback self1577 other1578)
   (py-test-from-scheme
-   (py< (py-bool-to-scheme self1577) (py-sint-to-scheme other1578))))
+   (py< (py-bool-to-scheme-int self1577) (py-sint-to-scheme other1578))))
 
 (define (py-lt-boolX-bintY-fallback self1580 other1581)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py< (py-bool-to-scheme self1580) (py-bint-to-scheme other1581)))))
+    (py< (py-bool-to-scheme-int self1580) (py-bint-to-scheme other1581)))))
 
 (define (py-test-lt-boolX-bintY-fallback self1583 other1584)
   (py-test-from-scheme
-   (py< (py-bool-to-scheme self1583) (py-bint-to-scheme other1584))))
+   (py< (py-bool-to-scheme-int self1583) (py-bint-to-scheme other1584))))
 
 (define (py-lt-sintX-floatY-fallback other1586 self1587)
   (py-bool-from-scheme-bool
@@ -4928,11 +4932,11 @@
 (define (py-lt-sintX-boolY-fallback self1592 other1593)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py< (py-sint-to-scheme self1592) (py-bool-to-scheme other1593)))))
+    (py< (py-sint-to-scheme self1592) (py-bool-to-scheme-int other1593)))))
 
 (define (py-test-lt-sintX-boolY-fallback self1595 other1596)
   (py-test-from-scheme
-   (py< (py-sint-to-scheme self1595) (py-bool-to-scheme other1596))))
+   (py< (py-sint-to-scheme self1595) (py-bool-to-scheme-int other1596))))
 
 (define (py-lt-sintX-sintY-fallback self1598 other1599)
   (py-bool-from-scheme-bool
@@ -4964,11 +4968,11 @@
 (define (py-lt-bintX-boolY-fallback self1616 other1617)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py< (py-bint-to-scheme self1616) (py-bool-to-scheme other1617)))))
+    (py< (py-bint-to-scheme self1616) (py-bool-to-scheme-int other1617)))))
 
 (define (py-test-lt-bintX-boolY-fallback self1619 other1620)
   (py-test-from-scheme
-   (py< (py-bint-to-scheme self1619) (py-bool-to-scheme other1620))))
+   (py< (py-bint-to-scheme self1619) (py-bool-to-scheme-int other1620))))
 
 (define (py-lt-bintX-sintY-fallback self1622 other1623)
   (py-bool-from-scheme-bool
@@ -5000,11 +5004,11 @@
 (define (py-eq-floatX-boolY-fallback self1640 other1641)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py== (py-float-to-scheme self1640) (py-bool-to-scheme other1641)))))
+    (py== (py-float-to-scheme self1640) (py-bool-to-scheme-int other1641)))))
 
 (define (py-test-eq-floatX-boolY-fallback self1643 other1644)
   (py-test-from-scheme
-   (py== (py-float-to-scheme self1643) (py-bool-to-scheme other1644))))
+   (py== (py-float-to-scheme self1643) (py-bool-to-scheme-int other1644))))
 
 (define (py-eq-floatX-sintY-fallback self1646 other1647)
   (py-bool-from-scheme-bool
@@ -5027,38 +5031,39 @@
 (define (py-eq-boolX-floatY-fallback other1658 self1659)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py== (py-float-to-scheme self1659) (py-bool-to-scheme other1658)))))
+    (py== (py-float-to-scheme self1659) (py-bool-to-scheme-int other1658)))))
 
 (define (py-test-eq-boolX-floatY-fallback other1661 self1662)
   (py-test-from-scheme
-   (py== (py-float-to-scheme self1662) (py-bool-to-scheme other1661))))
+   (py== (py-float-to-scheme self1662) (py-bool-to-scheme-int other1661))))
 
 (define (py-eq-boolX-boolY-fallback self1664 other1665)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py== (py-bool-to-scheme self1664) (py-bool-to-scheme other1665)))))
+    (py== (py-bool-to-scheme-int self1664)
+          (py-bool-to-scheme-int other1665)))))
 
 (define (py-test-eq-boolX-boolY-fallback self1667 other1668)
   (py-test-from-scheme
-   (py== (py-bool-to-scheme self1667) (py-bool-to-scheme other1668))))
+   (py== (py-bool-to-scheme-int self1667) (py-bool-to-scheme-int other1668))))
 
 (define (py-eq-boolX-sintY-fallback self1670 other1671)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py== (py-bool-to-scheme self1670) (py-sint-to-scheme other1671)))))
+    (py== (py-bool-to-scheme-int self1670) (py-sint-to-scheme other1671)))))
 
 (define (py-test-eq-boolX-sintY-fallback self1673 other1674)
   (py-test-from-scheme
-   (py== (py-bool-to-scheme self1673) (py-sint-to-scheme other1674))))
+   (py== (py-bool-to-scheme-int self1673) (py-sint-to-scheme other1674))))
 
 (define (py-eq-boolX-bintY-fallback self1676 other1677)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py== (py-bool-to-scheme self1676) (py-bint-to-scheme other1677)))))
+    (py== (py-bool-to-scheme-int self1676) (py-bint-to-scheme other1677)))))
 
 (define (py-test-eq-boolX-bintY-fallback self1679 other1680)
   (py-test-from-scheme
-   (py== (py-bool-to-scheme self1679) (py-bint-to-scheme other1680))))
+   (py== (py-bool-to-scheme-int self1679) (py-bint-to-scheme other1680))))
 
 (define (py-eq-sintX-floatY-fallback other1682 self1683)
   (py-bool-from-scheme-bool
@@ -5072,11 +5077,11 @@
 (define (py-eq-sintX-boolY-fallback self1688 other1689)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py== (py-sint-to-scheme self1688) (py-bool-to-scheme other1689)))))
+    (py== (py-sint-to-scheme self1688) (py-bool-to-scheme-int other1689)))))
 
 (define (py-test-eq-sintX-boolY-fallback self1691 other1692)
   (py-test-from-scheme
-   (py== (py-sint-to-scheme self1691) (py-bool-to-scheme other1692))))
+   (py== (py-sint-to-scheme self1691) (py-bool-to-scheme-int other1692))))
 
 (define (py-eq-sintX-sintY-fallback self1694 other1695)
   (py-bool-from-scheme-bool
@@ -5108,11 +5113,11 @@
 (define (py-eq-bintX-boolY-fallback self1712 other1713)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py== (py-bint-to-scheme self1712) (py-bool-to-scheme other1713)))))
+    (py== (py-bint-to-scheme self1712) (py-bool-to-scheme-int other1713)))))
 
 (define (py-test-eq-bintX-boolY-fallback self1715 other1716)
   (py-test-from-scheme
-   (py== (py-bint-to-scheme self1715) (py-bool-to-scheme other1716))))
+   (py== (py-bint-to-scheme self1715) (py-bool-to-scheme-int other1716))))
 
 (define (py-eq-bintX-sintY-fallback self1718 other1719)
   (py-bool-from-scheme-bool
@@ -5144,11 +5149,11 @@
 (define (py-ne-floatX-boolY-fallback self1736 other1737)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py!= (py-float-to-scheme self1736) (py-bool-to-scheme other1737)))))
+    (py!= (py-float-to-scheme self1736) (py-bool-to-scheme-int other1737)))))
 
 (define (py-test-ne-floatX-boolY-fallback self1739 other1740)
   (py-test-from-scheme
-   (py!= (py-float-to-scheme self1739) (py-bool-to-scheme other1740))))
+   (py!= (py-float-to-scheme self1739) (py-bool-to-scheme-int other1740))))
 
 (define (py-ne-floatX-sintY-fallback self1742 other1743)
   (py-bool-from-scheme-bool
@@ -5171,38 +5176,39 @@
 (define (py-ne-boolX-floatY-fallback other1754 self1755)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py!= (py-float-to-scheme self1755) (py-bool-to-scheme other1754)))))
+    (py!= (py-float-to-scheme self1755) (py-bool-to-scheme-int other1754)))))
 
 (define (py-test-ne-boolX-floatY-fallback other1757 self1758)
   (py-test-from-scheme
-   (py!= (py-float-to-scheme self1758) (py-bool-to-scheme other1757))))
+   (py!= (py-float-to-scheme self1758) (py-bool-to-scheme-int other1757))))
 
 (define (py-ne-boolX-boolY-fallback self1760 other1761)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py!= (py-bool-to-scheme self1760) (py-bool-to-scheme other1761)))))
+    (py!= (py-bool-to-scheme-int self1760)
+          (py-bool-to-scheme-int other1761)))))
 
 (define (py-test-ne-boolX-boolY-fallback self1763 other1764)
   (py-test-from-scheme
-   (py!= (py-bool-to-scheme self1763) (py-bool-to-scheme other1764))))
+   (py!= (py-bool-to-scheme-int self1763) (py-bool-to-scheme-int other1764))))
 
 (define (py-ne-boolX-sintY-fallback self1766 other1767)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py!= (py-bool-to-scheme self1766) (py-sint-to-scheme other1767)))))
+    (py!= (py-bool-to-scheme-int self1766) (py-sint-to-scheme other1767)))))
 
 (define (py-test-ne-boolX-sintY-fallback self1769 other1770)
   (py-test-from-scheme
-   (py!= (py-bool-to-scheme self1769) (py-sint-to-scheme other1770))))
+   (py!= (py-bool-to-scheme-int self1769) (py-sint-to-scheme other1770))))
 
 (define (py-ne-boolX-bintY-fallback self1772 other1773)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py!= (py-bool-to-scheme self1772) (py-bint-to-scheme other1773)))))
+    (py!= (py-bool-to-scheme-int self1772) (py-bint-to-scheme other1773)))))
 
 (define (py-test-ne-boolX-bintY-fallback self1775 other1776)
   (py-test-from-scheme
-   (py!= (py-bool-to-scheme self1775) (py-bint-to-scheme other1776))))
+   (py!= (py-bool-to-scheme-int self1775) (py-bint-to-scheme other1776))))
 
 (define (py-ne-sintX-floatY-fallback other1778 self1779)
   (py-bool-from-scheme-bool
@@ -5216,11 +5222,11 @@
 (define (py-ne-sintX-boolY-fallback self1784 other1785)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py!= (py-sint-to-scheme self1784) (py-bool-to-scheme other1785)))))
+    (py!= (py-sint-to-scheme self1784) (py-bool-to-scheme-int other1785)))))
 
 (define (py-test-ne-sintX-boolY-fallback self1787 other1788)
   (py-test-from-scheme
-   (py!= (py-sint-to-scheme self1787) (py-bool-to-scheme other1788))))
+   (py!= (py-sint-to-scheme self1787) (py-bool-to-scheme-int other1788))))
 
 (define (py-ne-sintX-sintY-fallback self1790 other1791)
   (py-bool-from-scheme-bool
@@ -5252,11 +5258,11 @@
 (define (py-ne-bintX-boolY-fallback self1808 other1809)
   (py-bool-from-scheme-bool
    (py-test-from-scheme
-    (py!= (py-bint-to-scheme self1808) (py-bool-to-scheme other1809)))))
+    (py!= (py-bint-to-scheme self1808) (py-bool-to-scheme-int other1809)))))
 
 (define (py-test-ne-bintX-boolY-fallback self1811 other1812)
   (py-test-from-scheme
-   (py!= (py-bint-to-scheme self1811) (py-bool-to-scheme other1812))))
+   (py!= (py-bint-to-scheme self1811) (py-bool-to-scheme-int other1812))))
 
 (define (py-ne-bintX-sintY-fallback self1814 other1815)
   (py-bool-from-scheme-bool

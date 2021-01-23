@@ -7,7 +7,7 @@
 (define-macro (py-if-enable-inlined-mixed-types-behaviors yes no) no)
 
 (define-macro (py-bool-to-scheme-float arg)
-  `(fixnum->flonum (py-bool-to-scheme ,arg)))
+  `(fixnum->flonum (py-bool-to-scheme-int ,arg)))
 
 (define-macro (py-sint-to-scheme-float arg)
   `(fixnum->flonum (py-sint-to-scheme ,arg)))
@@ -34,7 +34,7 @@
 (define-macro (py-strict-subtype-of-int-to-scheme obj)
   `(py-PyObjectInt-value ,obj))
 
-(define-macro (py-bool-to-scheme arg)
+(define-macro (py-bool-to-scheme-int arg)
   `(py-strict-subtype-of-int-to-scheme ,arg)) ;; a bool is an int with value 0 or 1
 
 (define-macro (py-bool-from-scheme-bool arg)
@@ -206,7 +206,7 @@
   (define (type operand)
     (and (pair? operand)
          (let ((x (assq (car operand)
-                         '((py-bool-to-scheme bool)
+                         '((py-bool-to-scheme-int bool)
                            (py-sint-to-scheme sint)
                            (py-bint-to-scheme bint)
                            (py-int-to-scheme  int)))))
@@ -368,7 +368,7 @@
  (define (type operand)
    (and (pair? operand)
         (let ((x (assq (car operand)
-                        '((py-bool-to-scheme  bool)
+                        '((py-bool-to-scheme-int  bool)
                           (py-sint-to-scheme  sint)
                           (py-bint-to-scheme  bint)
                           (py-int-to-scheme   int)
@@ -383,13 +383,13 @@
 
  (define (to-float operand)
    (case (type operand)
-     ((bool sint bint int)
+     ((sint bint int)
       (list (string->symbol
              (string-append (symbol->string (car operand))
                             "-float"))
             (cadr operand)))
-     ((float)
-      operand)
+     ((bool) `(py-bool-to-scheme-float ,(cadr operand)))
+     ((float) operand)
      (else
       (error "unexpected type" operand))))
 
@@ -521,7 +521,7 @@
   (define (type operand)
     (and (pair? operand)
          (let ((x (assq (car operand)
-                         '((py-bool-to-scheme bool)
+                         '((py-bool-to-scheme-int bool)
                            (py-sint-to-scheme sint)
                            (py-bint-to-scheme bint)
                            (py-int-to-scheme  int)))))

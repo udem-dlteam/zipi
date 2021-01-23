@@ -115,7 +115,7 @@
     (cons 'py_float_from_host (make-pragma-call-maker 'py-float-from-scheme))
     (cons 'py_int_from_host (make-pragma-call-maker 'py-int-from-scheme))
     (cons 'py_int_to_host (make-pragma-call-maker 'py-int-to-scheme))
-    (cons 'py_bool_to_host_int (make-pragma-call-maker 'py-bool-to-scheme))
+    (cons 'py_bool_to_host_int (make-pragma-call-maker 'py-bool-to-scheme-int))
     (cons 'py_sint_to_host (make-pragma-call-maker 'py-sint-to-scheme))
     (cons 'py_bint_to_host (make-pragma-call-maker 'py-bint-to-scheme))
     (cons 'py_bool_from_host_bool (make-pragma-call-maker 'py-bool-from-scheme-bool))
@@ -346,7 +346,7 @@
         (expr (PycPragma-expr fun)))
     (cond
       ((eq? expr 'py-int-to-scheme) 'Uint)
-      ((eq? expr 'py-bool-to-scheme) 'Usint)
+      ((eq? expr 'py-bool-to-scheme-int) 'Usint)
       ((eq? expr 'py-sint-to-scheme) 'Usint)
       ((eq? expr 'py-bint-to-scheme) 'Ubint)
       ((eq? expr 'py-float-to-scheme) 'Ufloat)
