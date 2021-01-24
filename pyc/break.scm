@@ -1,35 +1,36 @@
-;; annotate return statements with tail/notail information
-;; annotation function definitions with need-return values
+;; annotate loops with need-continue and need-break
 (define (pyc-break this conf)
-   (mark-nobreak-nocontinue this)
-   (breakont this #f conf)
+   (mark-break-continue this)
    this)
 
-;; PycFun have been first initialized with need-breakont set to #t
-;; The first stage of this optimization is to replace all this #t with #f
-;; The analysis will then set to #t only functions that need to be
-(define-walk-method (mark-nobreak-nocontinue this::PycNode)
+(define-walk-method (mark-break-continue this::PycNode)
    (call-default-walker))
 
-(define-walk-method (mark-nobreak-nocontinue this::PycLoop)
+(define-walk-method (mark-break-continue this::PycLoop)
    (PycLoop-need-break-set! this #f)
-   (PycLoop-need-continue-set! this #f))
+   (PycLoop-need-continue-set! this #f)
+   (breakont (PycLoop-body this) this))
 
-;; Traverse the AST to mark all non-tail breakonts and mark the functions
-;; that use such breakonts
-(define-walk-method (breakont this::PycNode loop conf)
+;; Traverse the AST to mark loops with a break/continue
+(define-walk-method (breakont this::PycNode loop)
    (call-default-walker))
 
-(define-walk-method (breakont this::PycLoop loop conf)
-   (breakont (PycLoop-body this) this conf)
-   (breakont (PycLoop-else this) loop conf))
+;; break does not signal outside function scope
+(define-walk-method (breakont this::PycFun loop)
+  (mark-break-continue this))
 
-(define-walk-method (breakont this::PycBreak loop conf)
+;;
+(define-walk-method (breakont this::PycLoop loop)
+   (mark-break-continue this)
+   ;; break/continue on the else body of a nested loop applies to the outer loop
+   (breakont (PycLoop-else this) loop))
+
+(define-walk-method (breakont this::PycBreak loop)
    (if (isa? loop PycLoop)
        (PycLoop-need-break-set! loop #t)
        (error "breakont" "Illegal break" (pyc->list this))))
 
-(define-walk-method (breakont this::PycContinue loop conf)
+(define-walk-method (breakont this::PycContinue loop)
    (if (isa? loop PycLoop)
        (PycLoop-need-continue-set! loop #t)
        (error "breakont" "Illegal continue" (pyc->list this))))

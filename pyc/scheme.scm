@@ -197,35 +197,35 @@
 
 (define-walk-method (scheme this::PycWhile conf)
 
-   (define (scheme-while this)
-      (let ((loop (my-gensym '%while)))
-	 (epairify this
-	    (if (PycLoop-need-continue this)
-		`(let ,loop ()
-		      (bind-exit (%continue)
-			 (when ,(pyc-test (PycWhile-test this) conf)
-			    ,(scheme (PycLoop-body this) conf)
-			    (,loop))))
-		`(let ,loop ()
-		      (when ,(pyc-test (PycWhile-test this) conf)
-			 ,(scheme (PycLoop-body this) conf)
-			 (,loop)))))))
+  (define (scheme-while this)
+    (let ((loop (my-gensym '%while)))
+      (epairify this
+        (if (PycLoop-need-continue this)
+          `(let ,loop ()
+            (bind-exit (%continue)
+              (when ,(pyc-test (PycWhile-test this) conf)
+                ,(scheme (PycLoop-body this) conf)
+                (,loop))))
+          `(let ,loop ()
+            (when ,(pyc-test (PycWhile-test this) conf)
+              ,(scheme (PycLoop-body this) conf)
+              (,loop)))))))
 
-   (cond
-      ((PycLoop-need-break this)
-       (epairify this
-	  `(bind-exit (%break)
-	      ,(scheme-while this)
-	      ,@(if (isa? (PycLoop-else this) PycPass)
-		    '()
-		    (list (scheme (PycLoop-else this) conf))))))
-      ((isa? (PycLoop-else this) PycPass)
-       (scheme-while this))
-      (else
-       (epairify this
-	  `(begin
-	      ,(scheme-while this)
-	      ,(scheme (PycLoop-else this) conf))))))
+  (cond
+    ((PycLoop-need-break this)
+      (epairify this
+        `(bind-exit (%break)
+          ,(scheme-while this)
+          ,@(if (isa? (PycLoop-else this) PycPass)
+            '()
+            (list (scheme (PycLoop-else this) conf))))))
+    ((isa? (PycLoop-else this) PycPass)
+      (scheme-while this))
+    (else
+      (epairify this
+        `(begin
+          ,(scheme-while this)
+          ,(scheme (PycLoop-else this) conf))))))
 
 (define-walk-method (scheme this::PycFor conf)
 
