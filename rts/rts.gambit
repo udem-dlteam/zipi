@@ -7,15 +7,24 @@
 (declare (standard-bindings) (extended-bindings) (not safe) (block))
 
 (define-macro (with-handler handler . body)
-  `(with-exception-catcher
+  `(##with-exception-catcher
       ,handler
       (lambda ()
         ,@body)))
 
 (define-macro (bind-exit exit . body)
-`(call/cc
-    (lambda ,exit
-      ,@body)))
+  (if #t ;; use continuation objects
+
+      `(##continuation-capture
+        (lambda ($cont)
+          (let ((,(car exit)
+                 (lambda (result)
+                   (##continuation-return-no-winding $cont result))))
+            ,@body)))
+
+      `(##call-with-current-continuation
+        (lambda ,exit
+          ,@body))))
 
 (define-macro (make-cell e)
   `(box ,e))

@@ -4,7 +4,7 @@
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Mon Jul  1 13:14:30 2019                          */
 #*    Last change :  Thu Jun 11 07:27:34 2020 (serrano)                */
-#*    Copyright   :  2019-20 Marc Feeley & Manuel Serrano              */
+#*    Copyright   :  2019-21 Marc Feeley & Manuel Serrano              */
 #*    -------------------------------------------------------------    */
 #*    The makefile to build the ZIPI rts library                       */
 #*=====================================================================*/
@@ -37,7 +37,7 @@ BLIBFLAGS = $(BCFLAGSRTS)
 #*---------------------------------------------------------------------*/
 #*    Scheme extended objects                                          */
 #*---------------------------------------------------------------------*/
-OBJECTS = o/bigloo.o o/builtins.o o/zemantics.o o/hash.o $(OBJECTS_COMMON:%=o/%.o)
+OBJECTS = o/bigloo.o o/builtins.o o/zemantics.o o/hash.o o/behaviors.o $(OBJECTS_COMMON:%=o/%.o)
 EOBJECTS = o/make_lib.o
 
 INCLUDES =
@@ -52,7 +52,7 @@ INCLUDES =
 #*---------------------------------------------------------------------*/
 .PHONY: build.bigloo
 
-build.bigloo: rts.sch
+build.bigloo: rts.sch $(BUILDLIBDIR)/zipi.init
 	$(MAKE) o heap-c lib-c
 
 #*---------------------------------------------------------------------*/
@@ -78,6 +78,7 @@ clean.bigloo:
 	rm -f .afile
 	rm -rf o
 	rm -f builtins.bgl zemantics.scm zemantics.bgl behaviors.bgl
+	rm -f $(BUILDLIBDIR)/zipi.init
 	$(MAKE) -C ../stdlib clean
 
 #*---------------------------------------------------------------------*/
@@ -87,6 +88,9 @@ o/builtins.o: builtins.bgl
 	$(BIGLOO) -O3 -c $< -o $@
 
 o/zemantics.o: zemantics.bgl
+	$(BIGLOO) -O3 -c $< -o $@
+
+o/behaviors.o: behaviors.bgl
 	$(BIGLOO) -O3 -c $< -o $@
 
 o/bigloo.o: bigloo.bgl
@@ -107,6 +111,57 @@ behaviors.bgl: ../stdlib/behaviors.bgl
 	echo ";; automatically generated file, don't edit" > $@
 	echo ";; (copied from ../stdlib)" >> $@
 	cat $< >> $@
+
+$(BUILDLIBDIR)/zipi.init: zipi.init \
+  hash/hash.scm \
+  config/config.scm \
+  bigloo/call_expd.sch \
+  bigloo/constants.sch \
+  bigloo/integer.sch \
+  bigloo/expanders.sch \
+  rts-macros.scm \
+  ../stdlib/behaviors.scm
+	# zipi.init
+	@cp zipi.init $@
+
+	# rts/hash/hash.scm
+	@echo ";; rts/hash/hash.scm" >> $@
+	@echo "(eval '(begin" >> $@
+	@cat hash/hash.scm >> $@
+	@echo "))" >> $@
+
+	# rts/config/config.scm
+	@echo ";; rts/config/config.scm" >> $@
+	@echo "(eval '(begin" >> $@
+	@cat config/config.scm >> $@
+	@echo "))" >> $@
+
+	# rts/bigloo/rts-call.sch
+	@echo ";; rts/bigloo/rts-call.sch" >> $@
+	@cat bigloo/call_expd.sch >> $@
+
+	# rts/bigloo/constants.sch
+	@echo ";; rts/bigloo/constants.sch" >> $@
+	@cat bigloo/constants_expd.sch >> $@
+
+	# rts/bigloo/integer.sch
+	@echo ";; rts/bigloo/integer.sch" >> $@
+	@cat bigloo/integer.sch >> $@
+
+	# rts/rts-macro.scm
+	@echo ";; rts/rts-macro.scm" >> $@
+	@cat rts-macros.scm >> $@
+
+	# rts/bigloo/expanders.sch
+	@echo ";; rts/bigloo/expander.sch" >> $@
+	@cat bigloo/expanders.sch >> $@
+
+	# ../stdlib/behaviors.scm
+	@echo ";; stdlib/behaviors.scm" >> $@
+	@cat ../stdlib/behaviors.scm >> $@
+
+	@echo "(zipi-install-expanders!)" >> $@
+
 
 #bdepend start (don't edit)
 #*---------------------------------------------------------------------*/

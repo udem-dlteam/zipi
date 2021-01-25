@@ -9,6 +9,7 @@ import templates
 
 import astor.code_gen
 
+
 # ======================================================================================================================
 #   Helpers
 # ======================================================================================================================
@@ -27,6 +28,7 @@ def get_current_semantics_context(semantics_register):
             args = tuple(frame.frame.f_locals[name] for name in signature.keys())
             return function_name, args
     return None, None
+
 
 # ======================================================================================================================
 #   Semantics Instructions
@@ -51,10 +53,20 @@ class Procedure:
 
     @property
     def is_reflected_magic_method(self):
-        method_name = self.method.__qualname__
-
         # TODO: slightly hacky, but does the job for now
-        return method_name.split('.')[1].startswith("__r") and "__rshift__" not in method_name
+        method_args = self.method_args
+        semantics_args = self.semantics_args
+
+        # reflected method call are detected by the reversal of arguments
+        # we must use 'is' because == is True for 1 and 1.0
+        # it is okay to use 'is' because arguments come from the 'instances' global list
+        # this may not work under other implementations than cPython
+        return all(x is y for x, y in zip(method_args, reversed(semantics_args))) \
+               and not any(x is y for x, y in zip(method_args, semantics_args))
+
+    @property
+    def is_comparison(self):
+        return self.semantics in ("eq", "ne", "ge", "gt", "le", "lt")
 
 
 class Error:
@@ -68,6 +80,7 @@ class Error:
     @property
     def error_message(self):
         return str(self.exc_type(*self.exc_args))
+
 
 # ======================================================================================================================
 #   __compiler_intrinsics__ module
@@ -92,7 +105,11 @@ def make_compiler_intrinsics_module():
         return f
 
     def define_semantics(f):
-        if f.__name__ in templates.symbols:
+        # TODO: in some cases the semantics has a default behavior (ex: eq) undetected by the mock class_getattr
+        # TODO: to fix we could decorate all sub-semantics to register their call in case no magic_method succeeded
+        # TODO: this will be necessary once we generate behaviors for other types than numbers
+
+        if f.__name__ in target_semantics:
             return register_semantics(f.__name__, f)
         else:
             return f
@@ -184,7 +201,8 @@ def build_decision_tree(filename):
                 try:
                     semantics(left, right)
                 except TypeError as e:
-                    decision_tree.setdefault(name, {}).setdefault(get_type_name(left), {})[get_type_name(right)] = Error(e)
+                    decision_tree.setdefault(name, {}).setdefault(get_type_name(left), {})[
+                        get_type_name(right)] = Error(e)
 
     extend_decision_tree_with_specialized_types(decision_tree)
     return decision_tree
@@ -192,6 +210,7 @@ def build_decision_tree(filename):
 
 def main_tree(filename):
     pprint(build_decision_tree(filename))
+
 
 # ======================================================================================================================
 #   AST traversal
@@ -268,7 +287,8 @@ def partial_eval(fn_ast, *args):
     if len(args) > len(fn_args):
         raise TypeError(f"partially evaluated function takes {len(fn_args)} context arguments, {len(args)} were given.")
     elif len(args) < len(fn_args):
-        raise TypeError(f"partially evaluated function missing {len(fn_args) - len(args)} context arguments. Empty contexts must be given explicitly.")
+        raise TypeError(
+            f"partially evaluated function missing {len(fn_args) - len(args)} context arguments. Empty contexts must be given explicitly.")
 
     ctx = {}
 
@@ -473,7 +493,7 @@ def partial_eval_static_function_call(func_name, args, keywords, ctx):
 
 def partial_eval_specialize_intrinsic_function(func_name, args, keywords, ctx):
     # Assume here that builtins are called with the correct number of arguments
-    if func_name == "int_unbox":
+    if func_name == "py_int_to_host":
         self = args[0]
         if isinstance(self, ast.Name):
             name = self.id
@@ -484,16 +504,44 @@ def partial_eval_specialize_intrinsic_function(func_name, args, keywords, ctx):
                 type_ = name_ctx.specialized_type
 
                 if type_ == "sint":
-                    return ast.Call(ast.Name("sint_unbox"), args, keywords)
+                    return ast.Call(ast.Name("py_sint_to_host"), args, keywords)
                 elif type_ == "bint":
-                    return ast.Call(ast.Name("bint_unbox"), args, keywords)
+                    return ast.Call(ast.Name("py_bint_to_host"), args, keywords)
                 elif type_ == "bool":
-                    return ast.Call(ast.Name("bool_unbox"), args, keywords)
+                    return ast.Call(ast.Name("py_bool_to_host_int"), args, keywords)
                 elif issubclass(eval(type_), int):
-                    return ast.Call(ast.Name("int_unbox"), args, keywords)
+                    return ast.Call(ast.Name("py_int_to_host"), args, keywords)
 
     # No specialization
     return ast.Call(ast.Name(func_name), args, keywords)
+
+
+def convert_expr_to_return_host_bool(expr):
+    if isinstance(expr, ast.Call):
+        func = expr.func
+        if isinstance(func, ast.Name) and func.id == 'py_bool_from_host_bool':
+            # assume correct number of argument
+            return expr.args[0]
+        else:
+            raise TypeError(f"cannot convert call to a return-host-bool version due to unknown callee: {func}")
+    elif isinstance(expr, ast.Compare):
+        return ast.Call(ast.Name('py_bool_to_host_bool'), expr, [])
+    else:
+        raise TypeError(f"cannot convert expr to a return-host-bool version: {expr}")
+
+
+def convert_body_to_return_host_bool(body):
+    if len(body) == 1:
+        stmt = body[0]
+
+        if isinstance(stmt, ast.Return):
+            return [ast.Return(convert_expr_to_return_host_bool(stmt.value))]
+        elif isinstance(stmt, ast.Raise):
+            return body
+        else:
+            raise NotImplementedError(f"cannot convert body to a return-host-bool version, contains a {type(stmt)}")
+    else:
+        raise NotImplementedError("cannot convert body to a return-host-bool version due to len != 1")
 
 
 def get_binary_behavior_name(semantics, left_type, right_type):
@@ -506,11 +554,11 @@ def make_ast_raise_with_msg(error_name, msg):
 
 
 def make_ast_simple_arguments(*args_names, annotations=()):
-    return ast.arguments([], [ast.arg(n, t, None) for n, t in itertools.zip_longest(args_names, annotations)], None, [], [], None, [])
+    return ast.arguments([], [ast.arg(n, t, None) for n, t in itertools.zip_longest(args_names, annotations)], None, [],
+                         [], None, [])
 
 
 def main_behaviors(semantics_file, builtins_file):
-
     with open(builtins_file, 'r') as f:
         builtins_ast = ast.parse(f.read())
 
@@ -521,7 +569,8 @@ def main_behaviors(semantics_file, builtins_file):
     behaviors = []
 
     define_behavior = "define_behavior"
-    other_intrinsics = "int_box, int_unbox, bool_unbox, float_box, float_unbox, sint_unbox, bint_unbox"
+    other_intrinsics = "py_int_from_host, py_int_to_host, py_bool_to_host_int, py_float_from_host, " \
+                       "py_float_to_host, py_sint_to_host, py_bint_to_host, py_bool_from_host_bool "
 
     for semantics, subtree in decision_tree.items():
         for left_type in types_without_int:
@@ -544,6 +593,7 @@ def main_behaviors(semantics_file, builtins_file):
                         logging.warning(f"unimplemented behavior in magic method: {behavior_name}")
                     else:
                         is_reflected_magic_method = behavior.is_reflected_magic_method
+                        is_comparison = behavior.is_comparison
 
                         if is_reflected_magic_method:
                             # For evaluation
@@ -570,6 +620,16 @@ def main_behaviors(semantics_file, builtins_file):
 
                         behaviors.append(behavior_func)
 
+                        # For comparisons, we generate a version of the behavior which returns a host bool
+                        if is_comparison:
+                            test_behavior_func_name = behavior_name.replace('py-', 'py-test-').replace('-', '_')
+
+                            test_body = convert_body_to_return_host_bool(result_body)
+                            test_behavior_func = ast.FunctionDef(test_behavior_func_name, annotated_arguments, test_body,
+                                                                 behavior_decorator_list, method_ast.returns,
+                                                                 method_ast.type_comment)
+                            behaviors.append(test_behavior_func)
+
                 elif isinstance(behavior, Error):
                     # Argument names are unimportant since they are unused in case of Error
                     annotated_arguments = make_ast_simple_arguments("self", "other",
@@ -590,6 +650,7 @@ def main_behaviors(semantics_file, builtins_file):
     for b in behaviors:
         print(astor.code_gen.to_source(b))
 
+
 # ======================================================================================================================
 #   main
 # ======================================================================================================================
@@ -607,6 +668,9 @@ types += int_specialized_types
 # Replace 'int' by 'sint' and 'bint'
 types_without_int = [t for t in types if t != 'int']
 
+# Semantics which should be converted to behaviors
+target_semantics = [*templates.arithmetic_info, *templates.inplace_arithmetic_info,
+                    *templates.comparison_info, *templates.equality_info]
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Generate zipi decision tree and behavior functions")

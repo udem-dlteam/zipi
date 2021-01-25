@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+import argparse
+
+c_code_marker = False
 
 iters_scale = 100000  # scaling of iterations over benchmark body
 dups_scale = 10       # scaling of duplications of benchmarked code in body
@@ -14,6 +17,7 @@ benchmarks = [
 [13,3, 'x=1','',             'x+=1',          '',    'var_int_inc'],
 [13,3, 'x=1;y=1','',         'x=x+y',         '',    'var_int_add_var'],
 [13,3, 'x=1.5;y=True','',    'x=x+y',         '',    'var_float_bool_add_var'],
+[13,3, 'x=1.5;y=2.6','',     'x=x+y',         '',    'var_float_add_var'],
 [13,3, 'x=1','',             'x=x-1',         '',    'var_int_sub_1'],
 [13,3, 'x=1','',             'x-=1',          '',    'var_int_dec'],
 [13,3, 'x=1;y=1','',         'x=x-y',         '',    'var_int_sub_var'],
@@ -21,6 +25,8 @@ benchmarks = [
 [13,3, 'y=2','x=1',          'x=x*y',         '',    'var_int_mul_var'],
 [13,3, 'x=1;y=2','',         'z=(x<y)',       '',    'var_int_lt_var'],
 [16,3, 'x=1;y=2','',         'if x<y:x=0',    '',    'if_var_int_lt_var'],
+[16,3, 'x=1.;y=2.','',       'if x<y:x=0.',    '',   'if_var_float_lt_var'],
+[16,3, 'x=True;y=2.','',     'if x<y:x=0.',    '',   'if_var_bool_float_lt_var'],
 [50,3, 'false=False','',     'if false:x=0',  '',    'if_false'],
 [30,3, 'true=True','',       'if true:x=0',   '',    'if_true'],
 [13,3, 'm=__builtins__','',  'x=m.__name__',  '',    'attr_read'],
@@ -46,7 +52,7 @@ benchmarks = [
 
 template = """\
 # Auto-generated
-
+{more_imports}
 import time
 
 bench_iterations = {iterations}
@@ -77,13 +83,23 @@ def add_indent(code, indent):
     return '\n'.join(map(lambda s: ' '*indent + s, code.split('\n')))
 
 def expand_template(iterations, duplications, head, iter_head, body, tail, code):
-    return template.format(iterations=iterations,
+    return template.format(more_imports="from __compiler_intrinsics__ import inline_host_code" if c_code_marker else "",
+                           iterations=iterations,
                            duplications=duplications,
                            head=add_indent(head, head_indent),
                            iter_head=add_indent(iter_head, body_indent),
                            body=add_indent(body, body_indent),
                            tail=add_indent(tail, tail_indent),
                            code=repr(code))
+
+def expand_body(stmt, dups):
+    if c_code_marker:
+        first = ['inline_host_code(\'(inline-c-code "/*BEGIN-BENCH-FIRST-STMT*/")\')',
+                 stmt,
+                 'inline_host_code(\'(inline-c-code "/*END-BENCH-FIRST-STMT*/")\')']
+        return '\n'.join(first + [stmt] * (dups-1))
+    else:
+        return '\n'.join([stmt] * dups)
 
 def expand_benchmark(specs):
     iters = specs[0] * iters_scale
@@ -93,12 +109,13 @@ def expand_benchmark(specs):
                            dups,
                            specs[2],
                            specs[3],
-                           '\n'.join([specs[4]] * dups),
+                           expand_body(specs[4], dups),
                            specs[5],
                            specs[4])
 
 def gen_benchmark(specs):
-    filename = 'micro_' + specs[6] + '.py'
+    marked = "marked_" if c_code_marker else ""
+    filename = marked + 'micro_' + specs[6] + '.py'
     code = '# ' + filename + '\n' + expand_benchmark(specs)
     #print(code);return
     with open(filename, 'w') as f:
@@ -108,4 +125,13 @@ def gen_all():
     for b in benchmarks:
         gen_benchmark(b)
 
-gen_all()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Generate zipi micro benchmarks")
+
+    parser.add_argument("--c-code-marker", action="store_true", dest="c_code_marker")
+
+    args = parser.parse_args()
+
+    c_code_marker = args.c_code_marker
+
+    gen_all()

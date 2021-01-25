@@ -24,7 +24,7 @@ zemantics.py:
 behavior.py: numbers_builtins.py zemantics.py
 	. ../venv/bin/activate; \
 	cd  zemantics_scripts; \
-	python decision_tree.py behaviors ../zemantics.py ../numbers_builtins.py > ../behaviors.py
+	$(BUILDPYTHON) decision_tree.py behaviors ../zemantics.py ../numbers_builtins.py > ../behaviors.py
 
 #*---------------------------------------------------------------------*/
 #*    Common entry points                                              */
