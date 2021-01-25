@@ -537,9 +537,29 @@
         (+ (vector-length args) (vector-length posonlyargs)))
       #f)))
 
+
+(define-macro (py-make-PyObjectFunction hclass elements cls procedure arity signature)
+  (include "config/config.scm")
+  `(let (($hclass ,hclass)
+         ($elements ,elements)
+         ($cls ,cls)
+         ($procedure procedure)
+         ($arity ,arity)
+         ($signature ,signature))
+      (cond
+        ,@(let loop ((i 0))
+            (if (> i specialized-PyObjectFunction-args-limit)
+              '()
+              (cons
+                `((eqv? $arity ,i)
+                    (,(string->symbol (string-append "make-PyObjectFunctionArity" (number->string i)))
+                        $hclass $elements $cls $procedure $arity $signature))
+                (loop (+ i 1)))))
+        (else (make-PyObjectFunction $hclass $elements $cls $procedure $arity $signature)))))
+
 (define (prebootstrap-procedure->py-function procedure signature)
   (let ((py-function
-          (make-PyObjectFunction
+          (py-make-PyObjectFunction
             py-function-hclass-of-instances
             (make-vector
               (vector-length (HClass-names py-function-hclass-of-instances))
@@ -554,7 +574,7 @@
     py-function))
 
 (define (postbootstrap-procedure->py-function procedure signature)
-  (make-PyObjectFunction
+  (py-make-PyObjectFunction
     py-function-hclass-of-instances
     (make-vector
       (vector-length (HClass-names py-function-hclass-of-instances))

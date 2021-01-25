@@ -880,6 +880,8 @@
     py-PyObjectFunction-arity
     py-PyObjectFunction-procedure
 
+    py-PyObjectFunctionArityX?
+
     build-builtins
     compile-flag-set!
     debug-flag-set!

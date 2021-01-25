@@ -1,1 +1,1 @@
-(define py-callX-args-limit 5)
+(define specialized-PyObjectFunction-args-limit 10)

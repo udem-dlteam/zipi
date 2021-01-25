@@ -610,6 +610,26 @@
     (bigloo
       `(PyObjectFunction-procedure ,obj))))
 
+(define-macro (py-PyObjectFunctionArityX? X obj)
+  (cond-expand
+    (gambit
+      (let ((PyObjectFunctionArityX-type-id
+              (string->symbol
+                (string-append
+                  "##type-6-PyObjectFunctionArity"
+                  (number->string X)
+                  "-C6486EB6-1522-42BA-A082-B6563F943CDF"))))
+        `(eq? (|##type-id| (|##structure-type| ,obj))
+              ',PyObjectFunctionArityX-type-id)))
+    (bigloo
+      (let ((PyObjectFunctionArityX?-name
+              (string->symbol
+                (string-append
+                  "PyObjectFunctionArity"
+                  (number->string X)
+                  "?"))))
+      `(,PyObjectFunctionArityX?-name ,obj)))))
+
 ;; Get hclass of object given specialized representations of int and float
 
 (define-macro (py-obj-hclass obj)

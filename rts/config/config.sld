@@ -1,6 +1,6 @@
 (define-library (config)
   (export
-    py-callX-args-limit)
+    specialized-PyObjectFunction-args-limit)
 
   (import gambit)
   (include "config.scm"))
