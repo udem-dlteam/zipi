@@ -472,8 +472,8 @@
           (args-names (map
                         (lambda (i) (string->symbol (string-append "$arg" (number->string i))))
                         (iota X))))
-      `(let* (,@(map list args-names args)
-             ($fun ,fun)
+      `(let* (($fun ,fun)
+              ,@(map list args-names args)
              (fun-type (py-type $fun)))
         (if (eq? fun-type py-function-class)
       		(let ((arity (py-PyObjectFunction-arity $fun)))
