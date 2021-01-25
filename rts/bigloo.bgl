@@ -14,13 +14,13 @@
 ;*---------------------------------------------------------------------*/
 (module __py_bigloo
 
-   (import __py_rts
-	   __py_configure)
+   ;(import __py_rts
+;	   __py_configure)
 
    (export (macro let-values)
 
 	   (object->serial-number ::obj)
-	   
+
 	   (inline arithmetic-shift::long ::long ::long)
 	   (inline bitwise-and::long ::long ::long)
 	   (inline bitwise-ior::long ::long ::long)
@@ -50,6 +50,8 @@
 	   (inline u8<=::bool ::uint8 ::uint8)
 	   (inline u8>::bool ::uint8 ::uint8)
 
+       max-fixnum
+
 	   (inline u8vector-append . vecs)
 	   (inline subu8vector vec start stop)
 	   (u8vector-copy::u8vector ::u8vector)
@@ -67,13 +69,13 @@
 	   (path-normalize ::bstring)
 	   (path-expand ::bstring #!optional (origin (pwd)))
 	   (path-strip-trailing-directory-separator::bstring ::bstring)
-	   
+
 	   (create-directory ::bstring)
 
 	   (file-info path . rest)
 	   (file-info-last-modification-time info)
 	   (file-info-type path)
-	   
+
 	   (inline make-table #!key test weak-values)
 	   (inline table-set! table key value)
 	   (inline table-ref table key #!optional default)
@@ -128,6 +130,11 @@
 ;*---------------------------------------------------------------------*/
 (define-inline (inexact v)
    (if (exact? v) (exact->inexact v) v))
+
+;*---------------------------------------------------------------------*/
+;*    max-fixnum ...                                                   */
+;*---------------------------------------------------------------------*/
+(define max-fixnum (maxvalfx))
 
 ;*---------------------------------------------------------------------*/
 ;*    fx operations ...                                                */
@@ -247,7 +254,7 @@
 	  (make-file-name zipidir p))
 	 (else
 	  (make-file-name origin p)))))
-   
+
 (define (create-directory path)
    (make-directories path))
 
