@@ -39,6 +39,7 @@
     py-call-generic-kwargs
     py-call0
     py-callX
+    py-call-wrong-arity
 
     pack-extra-args
 

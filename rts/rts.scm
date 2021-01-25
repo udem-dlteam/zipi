@@ -579,6 +579,29 @@
     (cons (py-tuple-from-scheme (list->vector args)) '())
     (cons (car args) (pack-extra-args (+ arity 1) (cdr args)))))
 
+(define (py-call-wrong-arity arity nargs nargs-string)
+  (if (fx< arity 0)
+    (py-throw-exception-with-message
+       py-builtin-TypeError
+       (string-append
+         "missing "
+         (number->string (fx- 0 arity 1 nargs))
+         " required positional argument"))
+    (if (fx< arity nargs)
+      (py-throw-exception-with-message
+        py-builtin-TypeError
+        "function takes "
+        (number->string arity)
+        (string-append
+          " positional arguments but "
+          nargs-string
+          " were given"))
+      (py-throw-exception-with-message
+        py-builtin-TypeError
+        "missing "
+        (number->string (fx- arity X))
+        " required positional argument"))))
+
 (define (py-call-generic/*args obj args *args-lst)
   (let ((unpacked-args (iterables*->list *args-lst)))
     (py-call-generic obj (append args unpacked-args))))

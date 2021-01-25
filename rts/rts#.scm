@@ -457,12 +457,7 @@
             ((py-PyObjectFunction-procedure $fun)
               (py-tuple-from-scheme '#())))
           (else
-            (let ((min-pos-arguments (if (fx< arity 0) (fx- 0 arity 1) arity)))
-              (py-throw-exception-with-message
-                py-builtin-TypeError
-                "function takes "
-                (number->string min-pos-arguments)
-                " positional arguments but 0 were given")))))
+            (py-call-wrong-arity arity 0 "0"))))
       (py-call-generic $fun '()))))
 
 (define-macro (py-callX X fun . args)
@@ -488,27 +483,7 @@
                  (pack-extra-args arity (list ,@args-names))))
                (else
                 ;; Error messages
-                (if (fx< arity 0)
-                  (py-throw-exception-with-message
-                     py-builtin-TypeError
-                     ,(string-append
-                       "missing "
-                       (number->string (fx- 0 min-neg-arity X))
-                       " required positional argument"))
-                  (if (fx< arity ,X)
-                    (py-throw-exception-with-message
-                      py-builtin-TypeError
-                      "function takes "
-                      (number->string arity)
-                      ,(string-append
-                        " positional arguments but "
-                        (number->string X)
-                        " were given"))
-                    (py-throw-exception-with-message
-                      py-builtin-TypeError
-                      "missing "
-                      (number->string (fx- arity ,X))
-                      " required positional argument"))))))
+                (py-call-wrong-arity arity ,X ,(number->string X)))))
           (py-call-generic $fun (list ,@args-names)))))))
 
 (define-macro (py-call f . args)
