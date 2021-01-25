@@ -38,11 +38,9 @@
     py-call-hashed-kwargs
     py-call-generic-kwargs
     py-call0
-    py-call1
-    py-call2
-    py-call3
-    py-call4
-    py-call5
+    py-callX
+
+    pack-extra-args
 
     py-isinstance?
     py-issubclass?
@@ -876,6 +874,10 @@
     py-builtin-type
     py-builtin-vars
     py-builtin-zip
+
+    py-function-class
+    py-PyObjectFunction-arity
+    py-PyObjectFunction-procedure
 
     build-builtins
     compile-flag-set!

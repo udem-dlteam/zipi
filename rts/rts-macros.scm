@@ -596,6 +596,20 @@
     (bigloo
      `(PyObject-class ,obj))))
 
+(define-macro (py-PyObjectFunction-arity obj)
+  (cond-expand
+    (gambit ;; TODO: prettify... equivalent to (PyObject-class ,obj)
+     `(|##unchecked-structure-ref| ,obj 5 #f #f))
+    (bigloo
+     `(PyObjectFunction-arity ,obj))))
+
+(define-macro (py-PyObjectFunction-procedure obj)
+  (cond-expand
+    (gambit ;; TODO: prettify... equivalent to (PyObject-class ,obj)
+      `(|##unchecked-structure-ref| ,obj 4 #f #f))
+    (bigloo
+      `(PyObjectFunction-procedure ,obj))))
+
 ;; Get hclass of object given specialized representations of int and float
 
 (define-macro (py-obj-hclass obj)

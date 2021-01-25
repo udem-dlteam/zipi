@@ -444,6 +444,73 @@
     (lambda (e) (if (string? e) (constant-string e) e))
     table))
 
+(define-macro (py-call0 fun)
+  `(let* (($fun ,fun)
+         (fun-type (py-type $fun)))
+    (if (eq? fun-type py-function-class)
+      (let ((arity (py-PyObjectFunction-arity $fun)))
+        (cond
+          ((not arity) (py-call-generic $fun '()))
+          ((fx= arity 0)
+            ((py-PyObjectFunction-procedure $fun)))
+          ((fx= arity -1)
+            ((py-PyObjectFunction-procedure $fun)
+              (py-tuple-from-scheme '#())))
+          (else
+            (let ((min-pos-arguments (if (fx< arity 0) (fx- 0 arity 1) arity)))
+              (py-throw-exception-with-message
+                py-builtin-TypeError
+                "function takes "
+                (number->string min-pos-arguments)
+                " positional arguments but 0 were given")))))
+      (py-call-generic $fun '()))))
+
+(define-macro (py-callX X fun . args)
+  (if (fx= X 0)
+    `(py-call0 ,fun)
+    (let ((min-neg-arity (- 0 X 1))
+          (args-names (map
+                        (lambda (i) (string->symbol (string-append "$arg" (number->string i))))
+                        (iota X))))
+      `(let* (,@(map list args-names args)
+             ($fun ,fun)
+             (fun-type (py-type $fun)))
+        (if (eq? fun-type py-function-class)
+      		(let ((arity (py-PyObjectFunction-arity $fun)))
+            (cond
+               ((not arity)
+                (py-call-generic $fun (list ,@args-names)))
+               ((fx= arity ,X)
+                ((py-PyObjectFunction-procedure $fun) ,@args-names))
+               ((and (fx< arity 0) (fx>= arity ,min-neg-arity))
+                (apply
+                 (py-PyObjectFunction-procedure $fun)
+                 (pack-extra-args arity (list ,@args-names))))
+               (else
+                ;; Error messages
+                (if (fx< arity 0)
+                  (py-throw-exception-with-message
+                     py-builtin-TypeError
+                     ,(string-append
+                       "missing "
+                       (number->string (fx- 0 min-neg-arity X))
+                       " required positional argument"))
+                  (if (fx< arity ,X)
+                    (py-throw-exception-with-message
+                      py-builtin-TypeError
+                      "function takes "
+                      (number->string arity)
+                      ,(string-append
+                        " positional arguments but "
+                        (number->string X)
+                        " were given"))
+                    (py-throw-exception-with-message
+                      py-builtin-TypeError
+                      "missing "
+                      (number->string (fx- arity ,X))
+                      " required positional argument"))))))
+          (py-call-generic $fun (list ,@args-names)))))))
+
 (define-macro (py-call f . args)
   (define (make-kwargs-loc-table names)
     (import (zipi rts hash))
@@ -478,12 +545,6 @@
               (vector-set! table (+ name-index 1) i)
               (loop (cdr names) (+ i 1) table))))
         #f)))
-
-  (define (make-py-call-name n)
-    (string->symbol
-      (string-append
-        "py-call"
-        (number->string n))))
 
   (let* ((split-args
           (let loop ((args args) (acc '()))
@@ -555,10 +616,8 @@
           (cond
             ((not (null? *args))
               `(py-call-generic/*args ,f (list ,@pos-args) (list ,@*args)))
-            ((<= nargs py-callX-args-limit)
-              `(,(make-py-call-name nargs) ,f ,@pos-args))
             (else
-              `(py-call-generic ,f (list ,@pos-args)))))))))
+              `(py-callX ,nargs ,f ,@pos-args))))))))
 
 (define (string-split string split)
   (call-with-input-string string (lambda (port) (read-all port (lambda (p) (read-line p split))))))

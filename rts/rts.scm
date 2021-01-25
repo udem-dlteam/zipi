@@ -81,54 +81,6 @@
 (define-macro (str-representatives-eq? self other)
   `(eq? (py-str-representative ,self) (py-str-representative ,other)))
 
-(define-macro (define-all-py-callX)
-  (include "config/config.scm")
-
-  (define (define-py-callX X)
-    (let ((py-call-name (string->symbol (string-append "py-call" (number->string X))))
-          (args (map gensym (make-list X 'arg)))
-          (min-neg-arity (- 0 X 1)))
-      `(define (,py-call-name fun ,@args)
-         (declare-fixnum)
-	 (let ((fun-type (py-type fun)))
-	    (if (eq? fun-type py-function-class)
-		(let ((arity (PyObjectFunction-arity fun)))
-		   (cond
-		      ((eqv? arity ,X)
-		       ((PyObjectFunction-procedure fun) ,@args))
-		      ((not arity)
-		       (py-call-generic fun (list ,@args)))
-		      ((and (< arity 0) (>= arity ,min-neg-arity))
-		       (apply
-			  (PyObjectFunction-procedure fun)
-			  (pack-extra-args arity (list ,@args))))
-		      (else
-		       ;; Error messages
-		       (if (< arity 0)
-			   (py-throw-exception-with-message
-			      py-builtin-TypeError
-			      "missing "
-			      ,(number->string (- 0 min-neg-arity X))
-			      " required positional argument")
-			   (if (< arity ,X)
-			       (py-throw-exception-with-message
-				  py-builtin-TypeError
-				  "function takes "
-				  (number->string arity)
-				  " positional arguments but "
-				  ,(number->string X)
-				  " were given")
-			       (py-throw-exception-with-message
-				  py-builtin-TypeError
-				  "missing "
-				  (number->string (- arity ,X))
-				  " required positional argument"))))))
-		(py-call-generic fun (list ,@args)))))))
-    (let loop ((i 1) (acc '()))
-      (if (> i py-callX-args-limit)
-        `(begin ,@acc)
-        (loop (+ i 1) (cons (define-py-callX i) acc)))))
-
 ;;----------------------------------------------------------------------------
 
 ;;; Object attribute store/fetch.
@@ -626,28 +578,6 @@
   (if (= arity -1)
     (cons (py-tuple-from-scheme (list->vector args)) '())
     (cons (car args) (pack-extra-args (+ arity 1) (cdr args)))))
-
-(define (py-call0 fun)
-  (let ((fun-type (py-type fun)))
-    (if (eq? fun-type py-function-class)
-      (let ((arity (PyObjectFunction-arity fun)))
-        (cond
-          ((not arity) (py-call-generic fun '()))
-          ((= arity 0)
-            ((PyObjectFunction-procedure fun)))
-          ((= arity -1)
-            ((PyObjectFunction-procedure fun)
-              (py-tuple-from-scheme '#())))
-          (else
-            (let ((min-pos-arguments (if (< arity 0) (- 0 arity 1) arity)))
-              (py-throw-exception-with-message
-                py-builtin-TypeError
-                "function takes "
-                (number->string min-pos-arguments)
-                " positional arguments but 0 were given")))))
-      (py-call-generic fun '()))))
-
-(define-all-py-callX)
 
 (define (py-call-generic/*args obj args *args-lst)
   (let ((unpacked-args (iterables*->list *args-lst)))
