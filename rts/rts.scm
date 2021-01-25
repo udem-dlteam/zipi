@@ -539,7 +539,7 @@
 
 
 (define-macro (py-make-PyObjectFunction hclass elements cls procedure arity signature)
-  (include "config/config.scm")
+  (import (zipi rts config))
   `(let (($hclass ,hclass)
          ($elements ,elements)
          ($cls ,cls)

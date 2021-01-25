@@ -253,7 +253,7 @@
   signature)
 
 (define-macro (define-specialized-PyObjectFunctionArityX)
-  (include "config/config.scm")
+  (import (zipi rts config))
   `(begin
     ,@(let loop ((i specialized-PyObjectFunction-args-limit))
       (if (< i 0)
@@ -491,7 +491,7 @@
           (py-call-generic $fun '()))))))
 
 (define-macro (py-callX X fun . args)
-  (include "config/config.scm")
+  (import (zipi rts config))
   (cond
     ((fx= X 0) `(py-call0 ,fun))
     ((fx<= X specialized-PyObjectFunction-args-limit)
