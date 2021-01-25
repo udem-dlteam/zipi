@@ -14,8 +14,8 @@
 ;*---------------------------------------------------------------------*/
 (module __py_bigloo
 
-   ;(import __py_rts
-;	   __py_configure)
+   (import __py_rts
+	   __py_configure)
 
    (export (macro let-values)
 
