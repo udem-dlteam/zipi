@@ -29,19 +29,19 @@
     (let (($obj ,obj))
       (if (fixnum? $obj)
           $obj
-          (py-PyObjectInt-value $obj)))
-    (py-PyObjectInt-value ,obj)))
+          (PyObjectInt-value $obj)))
+    (PyObjectInt-value ,obj)))
 
 (define-macro (py-subtype-of-int-to-scheme obj)
   `(py-if-specialized-sint-representation
     (let (($obj ,obj))
       (if (fixnum? $obj)
           $obj
-          (py-PyObjectInt-value $obj)))
-    (py-PyObjectInt-value ,obj)))
+          (PyObjectInt-value $obj)))
+    (PyObjectInt-value ,obj)))
 
 (define-macro (py-strict-subtype-of-int-to-scheme obj)
-  `(py-PyObjectInt-value ,obj))
+  `(PyObjectInt-value ,obj))
 
 (define-macro (py-bool-to-scheme-int arg)
   `(py-strict-subtype-of-int-to-scheme ,arg)) ;; a bool is an int with value 0 or 1
@@ -67,11 +67,11 @@
     (let (($obj ,obj))
       (if (flonum? $obj)
           $obj
-          (py-PyObjectFloat-value $obj)))
-    (py-PyObjectFloat-value ,obj)))
+          (PyObjectFloat-value $obj)))
+    (PyObjectFloat-value ,obj)))
 
 (define-macro (py-strict-subtype-of-float-to-scheme obj)
-  `(py-PyObjectFloat-value ,obj))
+  `(PyObjectFloat-value ,obj))
 
 (define-macro (alloc-new-PyObjectInt-from-scheme value)
   `(make-PyObjectInt
@@ -573,63 +573,6 @@
            (else
             ,other))))
 
-;; Access PyObject fields
-
-(define-macro (py-PyObject-hclass obj)
-  (cond-expand
-    (gambit ;; TODO: prettify... equivalent to (PyObject-hclass ,obj)
-     `(|##unchecked-structure-ref| ,obj 1 #f #f))
-    (bigloo
-     `(PyObject-hclass ,obj))))
-
-(define-macro (py-PyObject-%elements obj)
-  (cond-expand
-    (gambit ;; TODO: prettify... equivalent to (PyObject-%elements ,obj)
-     `(|##unchecked-structure-ref| ,obj 2 #f #f))
-    (bigloo
-     `(PyObject-%elements ,obj))))
-
-(define-macro (py-PyObject-class obj)
-  (cond-expand
-    (gambit ;; TODO: prettify... equivalent to (PyObject-class ,obj)
-     `(|##unchecked-structure-ref| ,obj 3 #f #f))
-    (bigloo
-     `(PyObject-class ,obj))))
-
-(define-macro (py-PyObjectFunction-arity obj)
-  (cond-expand
-    (gambit ;; TODO: prettify... equivalent to (PyObject-class ,obj)
-     `(|##unchecked-structure-ref| ,obj 5 #f #f))
-    (bigloo
-     `(PyObjectFunction-arity ,obj))))
-
-(define-macro (py-PyObjectFunction-procedure obj)
-  (cond-expand
-    (gambit ;; TODO: prettify... equivalent to (PyObject-class ,obj)
-      `(|##unchecked-structure-ref| ,obj 4 #f #f))
-    (bigloo
-      `(PyObjectFunction-procedure ,obj))))
-
-(define-macro (py-PyObjectFunctionArityX? X obj)
-  (cond-expand
-    (gambit
-      (let ((PyObjectFunctionArityX-type-id
-              (string->symbol
-                (string-append
-                  "##type-6-PyObjectFunctionArity"
-                  (number->string X)
-                  "-C6486EB6-1522-42BA-A082-B6563F943CDF"))))
-        `(eq? (|##type-id| (|##structure-type| ,obj))
-              ',PyObjectFunctionArityX-type-id)))
-    (bigloo
-      (let ((PyObjectFunctionArityX?-name
-              (string->symbol
-                (string-append
-                  "PyObjectFunctionArity"
-                  (number->string X)
-                  "?"))))
-      `(,PyObjectFunctionArityX?-name ,obj)))))
-
 ;; Get hclass of object given specialized representations of int and float
 
 (define-macro (py-obj-hclass obj)
@@ -638,26 +581,12 @@
     ,obj
     py-int-hclass-of-instances
     py-float-hclass-of-instances
-    (py-PyObject-hclass $obj)))
+    (PyObject-hclass $obj)))
 
 ;; Get class of object given specialized representations of int and float
 
-(define-macro (py-PyObjectType-class-index cls)
-  (cond-expand
-    (gambit ;; TODO: prettify... equivalent to (PyObjectType-class-index ,cls)
-     `(|##unchecked-structure-ref| ,cls 4 #f #f))
-    (bigloo
-     `(PyObjectType-class-index ,cls))))
-
-(define-macro (py-PyObjectType-mro cls)
-  (cond-expand
-    (gambit ;; TODO: prettify... equivalent to (PyObjectType-mro ,cls)
-     `(|##unchecked-structure-ref| ,cls 6 #f #f))
-    (bigloo
-     `(PyObjectType-mro ,cls))))
-
 (define-macro (py-obj-cls-general obj)
-  `(py-PyObject-class ,obj))
+  `(PyObject-class ,obj))
 
 (define-macro (py-obj-cls obj) ;; get object's class
   `(py-specialized-sint-float-dispatch-let
@@ -668,7 +597,7 @@
     (py-obj-cls-general $obj)))
 
 (define-macro (py-obj-mro obj) ;; get MRO of object's class
-  `(py-PyObjectType-mro (py-obj-cls ,obj)))
+  `(PyObjectType-mro (py-obj-cls ,obj)))
 
 (define-macro (py-obj-class-index obj)
   `(with-class-indices-info $py-obj-class-index ,obj))
@@ -685,16 +614,9 @@
     (py-obj-class-index-general $obj)))
 
 (define-macro (py-obj-class-index-general obj)
-  `(py-PyObjectType-class-index (py-obj-cls-general ,obj)))
+  `(PyObjectType-class-index (py-obj-cls-general ,obj)))
 
 ;; Specialized type tests for int
-
-(define-macro (py-PyObjectInt-value obj)
-  (cond-expand
-    (gambit ;; TODO: prettify... equivalent to (PyObjectInt-value ,obj)
-     `(|##unchecked-structure-ref| ,obj 4 #f #f))
-    (bigloo
-     `(PyObjectInt-value ,obj))))
 
 (define-macro (py-has-type-int? obj)
   `(py-specialized-sint-float-dispatch-let
@@ -702,7 +624,7 @@
     ,obj
     #t
     #f
-    (eq? (py-PyObject-class $obj) py-int-class)))
+    (eq? (PyObject-class $obj) py-int-class)))
 
 (define-macro (py-subtype-of-int? obj)
   `(py-specialized-sint-float-dispatch-let
@@ -710,7 +632,7 @@
     ,obj
     #t
     #f
-    (or (eq? (py-PyObject-class $obj) py-int-class)
+    (or (eq? (PyObject-class $obj) py-int-class)
         (py-isinstance? $obj py-int-class))))
 
 (define-macro (py-strict-subtype-of-int? obj)
@@ -719,17 +641,10 @@
     ,obj
     #f
     #f
-    (and (not (eq? (py-PyObject-class $obj) py-int-class))
+    (and (not (eq? (PyObject-class $obj) py-int-class))
          (py-isinstance? $obj py-int-class))))
 
 ;; Specialized type tests for float
-
-(define-macro (py-PyObjectFloat-value obj)
-  (cond-expand
-    (gambit ;; TODO: prettify... equivalent to (PyObjectFloat-value ,obj)
-     `(|##unchecked-structure-ref| ,obj 4 #f #f))
-    (bigloo
-     `(PyObjectFloat-value ,obj))))
 
 (define-macro (py-has-type-float? obj)
   `(py-specialized-sint-float-dispatch-let
@@ -745,7 +660,7 @@
     ,obj
     #f
     #t
-    (or (eq? (py-PyObject-class $obj) py-float-class)
+    (or (eq? (PyObject-class $obj) py-float-class)
         (py-isinstance? $obj py-float-class))))
 
 (define-macro (py-strict-subtype-of-float? obj)
@@ -754,42 +669,14 @@
     ,obj
     #f
     #f
-    (and (not (eq? (py-PyObject-class $obj) py-float-class))
+    (and (not (eq? (PyObject-class $obj) py-float-class))
          (py-isinstance? $obj py-float-class))))
 
 ;; Specialized type tests for str
 
-(define-macro (py-PyObjectStr-len obj)
-  (cond-expand
-    (gambit ;; TODO: prettify... equivalent to (PyObjectStr-len ,obj)
-     `(|##unchecked-structure-ref| ,obj 4 #f #f))
-    (bigloo
-     `(PyObjectStr-len ,obj))))
-
-(define-macro (py-PyObjectStr-part1-or-string obj)
-  (cond-expand
-    (gambit ;; TODO: prettify... equivalent to (PyObjectStr-part1-or-string ,obj)
-     `(|##unchecked-structure-ref| ,obj 5 #f #f))
-    (bigloo
-     `(PyObjectStr-part1-or-string ,obj))))
-
-(define-macro (py-PyObjectStr-part2-or-rep obj)
-  (cond-expand
-    (gambit ;; TODO: prettify... equivalent to (PyObjectStr-part2-or-rep ,obj)
-     `(|##unchecked-structure-ref| ,obj 6 #f #f))
-    (bigloo
-     `(PyObjectStr-part2-or-rep ,obj))))
-
-(define-macro (py-PyObjectStrRep-hash obj)
-  (cond-expand
-    (gambit ;; TODO: prettify... equivalent to (PyObjectStrRep-hash ,obj)
-     `(|##unchecked-structure-ref| ,obj 7 #f #f))
-    (bigloo
-     `(PyObjectStrRep-hash ,obj))))
-
 (define-macro (py-has-type-str? obj)
   (let* ((case-PyObject
-          `(eq? (py-PyObject-class $obj) py-str-class))
+          `(eq? (PyObject-class $obj) py-str-class))
          (special-case-float
           `(py-if-specialized-float-representation
             (and (not (flonum? $obj))
@@ -805,7 +692,7 @@
 
 (define-macro (py-subtype-of-str? obj)
   (let* ((case-PyObject
-          `(or (eq? (py-PyObject-class $obj) ;; optimize common case
+          `(or (eq? (PyObject-class $obj) ;; optimize common case
                     py-str-class)
                (py-isinstance? $obj py-str-class)))
          (special-case-float

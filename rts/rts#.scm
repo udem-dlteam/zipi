@@ -137,9 +137,9 @@
   macros: ;; this will inline the operations on this type
 
   ;; attrs
-  (hclass unprintable:)
-  (%elements unprintable:)
-  (class unprintable:))
+  hclass ;; (hclass unprintable:)
+  %elements ;; (%elements unprintable:)
+  class) ;; (class unprintable:)
 
 (define-macro (PyObject-elements-ref obj offset)
   `(vector-ref (PyObject-%elements ,obj) ,offset))
@@ -163,11 +163,11 @@
   macros: ;; this will inline the operations on this type
   ;; attrs
   class-index
-  (bases unprintable:)
-  (mro unprintable:)
-  (hclass-of-instances unprintable:)
-  (is-builtin unprintable:)
-  (magic-attrs unprintable:))
+  bases ;; (bases unprintable:)
+  mro ;; (mro unprintable:)
+  hclass-of-instances ;; (hclass-of-instances unprintable:)
+  is-builtin ;; (is-builtin unprintable:)
+  magic-attrs) ;; (magic-attrs unprintable:)
 
 (define-type-of-PyObject PyObjectInt
   id: PyObjectInt-C6486EB6-1522-42BA-A082-B6563F943CDF
@@ -252,34 +252,40 @@
   arity
   signature)
 
-(define-macro (define-specialized-PyObjectFunctionArityX)
-  (import (zipi rts config))
-  `(begin
-    ,@(let loop ((i specialized-PyObjectFunction-args-limit))
-      (if (< i 0)
-        '()
-        (cons
-          (let ((name (string->symbol
-                        (string-append "PyObjectFunctionArity" (number->string i))))
-                (id (string->symbol
-                      (string-append
-                        "PyObjectFunctionArity"
-                        (number->string i)
-                        "-C6486EB6-1522-42BA-A082-B6563F943CDF")))
-                (type-exhibitor-name
-                  (string->symbol
-                    (string-append
-                      "PyObjectFunctionArity"
-                      (number->string i)
-                      "-type-get"))))
-            `(define-type-of-PyObjectFunction ,name
-                id: ,id
-                type-exhibitor: ,type-exhibitor-name
-                copier: #f
-                macros:))
-          (loop (- i 1)))))))
-
-(define-specialized-PyObjectFunctionArityX)
+;; must match config/config.scm param "specialized-PyObjectFunction-args-limit"
+(define-type-of-PyObjectFunction PyObjectFunctionArity0
+  id: PyObjectFunctionArity0-C6486EB6-1522-42BA-A082-B6563F943CDF
+  macros:)
+(define-type-of-PyObjectFunction PyObjectFunctionArity1
+  id: PyObjectFunctionArity1-C6486EB6-1522-42BA-A082-B6563F943CDF
+  macros:)
+(define-type-of-PyObjectFunction PyObjectFunctionArity2
+  id: PyObjectFunctionArity2-C6486EB6-1522-42BA-A082-B6563F943CDF
+  macros:)
+(define-type-of-PyObjectFunction PyObjectFunctionArity3
+  id: PyObjectFunctionArity3-C6486EB6-1522-42BA-A082-B6563F943CDF
+  macros:)
+(define-type-of-PyObjectFunction PyObjectFunctionArity4
+  id: PyObjectFunctionArity4-C6486EB6-1522-42BA-A082-B6563F943CDF
+  macros:)
+(define-type-of-PyObjectFunction PyObjectFunctionArity5
+  id: PyObjectFunctionArity5-C6486EB6-1522-42BA-A082-B6563F943CDF
+  macros:)
+(define-type-of-PyObjectFunction PyObjectFunctionArity6
+  id: PyObjectFunctionArity6-C6486EB6-1522-42BA-A082-B6563F943CDF
+  macros:)
+(define-type-of-PyObjectFunction PyObjectFunctionArity7
+  id: PyObjectFunctionArity7-C6486EB6-1522-42BA-A082-B6563F943CDF
+  macros:)
+(define-type-of-PyObjectFunction PyObjectFunctionArity8
+  id: PyObjectFunctionArity8-C6486EB6-1522-42BA-A082-B6563F943CDF
+  macros:)
+(define-type-of-PyObjectFunction PyObjectFunctionArity9
+  id: PyObjectFunctionArity9-C6486EB6-1522-42BA-A082-B6563F943CDF
+  macros:)
+(define-type-of-PyObjectFunction PyObjectFunctionArity10
+  id: PyObjectFunctionArity10-C6486EB6-1522-42BA-A082-B6563F943CDF
+  macros:)
 
 (define-type-of-PyObject PyObjectMethod
   id: PyObjectMethod-C6486EB6-1522-42BA-A082-B6563F943CDF
@@ -406,7 +412,7 @@
   macros: ;; this will inline the operations on this type
   ;; attrs
   names
-  (transitions unprintable:))
+  transitions) ;; (transitions unprintable:)
 
 ;; =============================================================================
 ;;  Calls
@@ -476,14 +482,14 @@
 
 (define-macro (py-call0 fun)
   `(let (($fun ,fun))
-    (if (py-PyObjectFunctionArityX? 0 $fun)
-      ((py-PyObjectFunction-procedure $fun))
+    (if (PyObjectFunctionArity0? $fun)
+      ((PyObjectFunction-procedure $fun))
       (let ((fun-type (py-obj-cls-general $fun)))
         (if (eq? fun-type py-function-class)
-          (let ((arity (py-PyObjectFunction-arity $fun)))
+          (let ((arity (PyObjectFunction-arity $fun)))
             (cond
               ((eqv? arity -1)
-                ((py-PyObjectFunction-procedure $fun)
+                ((PyObjectFunction-procedure $fun)
                   (py-tuple-from-scheme '#())))
               ((not arity) (py-call-generic $fun '()))
               (else
@@ -501,17 +507,17 @@
                           (iota X))))
         `(let* (($fun ,fun)
                 ,@(map list args-names args))
-          (if (py-PyObjectFunctionArityX? ,X $fun)
-            ((py-PyObjectFunction-procedure $fun) ,@args-names)
+          (if (,(string->symbol (string-append "PyObjectFunctionArity" (number->string X) "?")) $fun)
+            ((PyObjectFunction-procedure $fun) ,@args-names)
             (let ((fun-type (py-obj-cls-general $fun)))
               (if (eq? fun-type py-function-class)
-                (let ((arity (py-PyObjectFunction-arity $fun)))
+                (let ((arity (PyObjectFunction-arity $fun)))
                   (cond
                      ((not arity)
                       (py-call-generic $fun (list ,@args-names)))
                      ((and (fx< arity 0) (fx>= arity ,min-neg-arity))
                       (apply
-                       (py-PyObjectFunction-procedure $fun)
+                       (PyObjectFunction-procedure $fun)
                        (pack-extra-args arity (list ,@args-names))))
                      (else
                       ;; Error messages
@@ -526,15 +532,15 @@
                 ,@(map list args-names args)
                (fun-type (py-obj-cls-general $fun)))
           (if (eq? fun-type py-function-class)
-        		(let ((arity (py-PyObjectFunction-arity $fun)))
+        		(let ((arity (PyObjectFunction-arity $fun)))
               (cond
                  ((eqv? arity ,X)
-                  ((py-PyObjectFunction-procedure $fun) ,@args-names))
+                  ((PyObjectFunction-procedure $fun) ,@args-names))
                  ((not arity)
                   (py-call-generic $fun (list ,@args-names)))
                  ((and (fx< arity 0) (fx>= arity ,min-neg-arity))
                   (apply
-                   (py-PyObjectFunction-procedure $fun)
+                   (PyObjectFunction-procedure $fun)
                    (pack-extra-args arity (list ,@args-names))))
                  (else
                   ;; Error messages

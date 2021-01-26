@@ -877,10 +877,20 @@
     py-builtin-zip
 
     py-function-class
-    py-PyObjectFunction-arity
-    py-PyObjectFunction-procedure
+    PyObjectFunction-arity
+    PyObjectFunction-procedure
 
-    py-PyObjectFunctionArityX?
+    PyObjectFunctionArity0?
+    PyObjectFunctionArity1?
+    PyObjectFunctionArity2?
+    PyObjectFunctionArity3?
+    PyObjectFunctionArity4?
+    PyObjectFunctionArity5?
+    PyObjectFunctionArity6?
+    PyObjectFunctionArity7?
+    PyObjectFunctionArity8?
+    PyObjectFunctionArity9?
+    PyObjectFunctionArity10?
 
     build-builtins
     compile-flag-set!
@@ -897,8 +907,9 @@
 
     py-expression
     PyObject-class
-    py-PyObject-class
-    py-PyObjectType-class-index
+    PyObject-hclass
+    PyObject-%elements
+    PyObjectType-class-index
     py-int-class
     py-float-class
     int-cache
