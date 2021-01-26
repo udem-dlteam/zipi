@@ -137,9 +137,9 @@
   macros: ;; this will inline the operations on this type
 
   ;; attrs
-  hclass ;; (hclass unprintable:)
-  %elements ;; (%elements unprintable:)
-  class) ;; (class unprintable:)
+  (hclass unprintable:)
+  (%elements unprintable:)
+  (class unprintable:))
 
 (define-macro (PyObject-elements-ref obj offset)
   `(vector-ref (PyObject-%elements ,obj) ,offset))
@@ -163,11 +163,11 @@
   macros: ;; this will inline the operations on this type
   ;; attrs
   class-index
-  bases ;; (bases unprintable:)
-  mro ;; (mro unprintable:)
-  hclass-of-instances ;; (hclass-of-instances unprintable:)
-  is-builtin ;; (is-builtin unprintable:)
-  magic-attrs) ;; (magic-attrs unprintable:)
+  (bases unprintable:)
+  (mro unprintable:)
+  (hclass-of-instances unprintable:)
+  (is-builtin unprintable:)
+  (magic-attrs unprintable:))
 
 (define-type-of-PyObject PyObjectInt
   id: PyObjectInt-C6486EB6-1522-42BA-A082-B6563F943CDF
@@ -412,7 +412,7 @@
   macros: ;; this will inline the operations on this type
   ;; attrs
   names
-  transitions) ;; (transitions unprintable:)
+  (transitions unprintable:))
 
 ;; =============================================================================
 ;;  Calls
