@@ -15,13 +15,13 @@
 (define (make-signature-expander x e)
 
    (define rest (cdr x))
-   
+
    (define (constantify sym)
       `(& ,(symbol->string sym)))
-   
+
    (define (constantify* lst)
       `#(,@(map constantify lst)))
-   
+
    (define (get-keyword-or-default kw default)
       (let ((tail (memq kw rest)))
 	 (if tail
@@ -30,7 +30,7 @@
 
    (define (kwote val)
       (if (vector? val) `',val val))
-   
+
    ;; Check the arguments of make-signature are valid keywords
    ;; followed by values
    (let ((known-keywords
@@ -48,7 +48,7 @@
 	     (error "make-signature invalid keyword" (car lst)))
 	    (else
 	     (loop (cddr lst))))))
-   
+
    (let ((args (get-keyword-or-default args: '()))
 	 (posonlyargs (get-keyword-or-default posonlyargs: '()))
 	 (vararg (get-keyword-or-default vararg: #f))
@@ -74,7 +74,7 @@
 		 ,(and kwarg (constantify kwarg))
 		 #()))
 	 e)))
- 
+
 ;* {*---------------------------------------------------------------------*} */
 ;* {*    empty-signature-expander ...                                     *} */
 ;* {*---------------------------------------------------------------------*} */
@@ -142,7 +142,7 @@
 ;*    py-call-expander ...                                             */
 ;*---------------------------------------------------------------------*/
 (define (py-call-expander x e)
-   
+
    (define (make-kwargs-loc-table names)
       (let* ((names-length (length names))
 	     (max-table-length (* names-length 3))
@@ -227,7 +227,7 @@
 			     kwargs-names
 			     kwargs-values))
 		    #f)))
-	 
+
 	 (cond
 	    (kwargs-table
 	     `(py-call-hashed-kwargs
@@ -252,11 +252,11 @@
 		(cond
 		   ((not (null? *args))
 		    `(py-call-generic/*args ,f (list ,@pos-args) (list ,@*args)))
-		   ((<= nargs py-callX-args-limit)
+		   ((<= nargs specialized-PyObjectFunction-args-limit)
 		    `(,(make-py-call-name nargs) ,f ,@pos-args))
 		   (else
 		    `(py-call-generic ,f (list ,@pos-args)))))))))
-   
+
    (match-case x
       ((py-call ?f . ?args)
        (e (call-expander f args) e))

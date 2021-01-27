@@ -7,10 +7,10 @@
     (bigloo
       #f)))
 
-;; symbols and flags
+;; calls
 
-(define-macro (py-flag-super-called-without-arguments)
-  `'super-called-without-arguments)
+(define-macro (with-specialized-PyObjectFunction-args-limit macro-name . args)
+  `(,macro-name 10 ,@args))
 
 (define-macro (py-call0-maybe-super fn cls instance)
   `(let (($fn ,fn))
@@ -19,6 +19,96 @@
           `(py-throw-super-no-arguments-error)
           `(py-call py-builtin-super ,cls ,instance))
         (py-call $fn))))
+
+(define-macro (py-call0 fun)
+  `(let (($fun ,fun))
+    (if (PyObjectFunctionArity0? $fun)
+      ((PyObjectFunction-procedure $fun))
+      (let ((fun-type (py-obj-cls-general $fun)))
+        (if (eq? fun-type py-function-class)
+          (let ((arity (PyObjectFunction-arity $fun)))
+            (cond
+              ((eqv? arity -1)
+                ((PyObjectFunction-procedure $fun)
+                  (py-tuple-from-scheme '#())))
+              ((not arity) (py-call-generic $fun '()))
+              (else
+                (py-call-wrong-arity arity 0 "0"))))
+          (py-call-generic $fun '()))))))
+
+(define-macro (py-callX X fun . args)
+  (with-specialized-PyObjectFunction-args-limit $py-callX ,fun ,@args))
+
+(define-macro ($py-callX specialized-args-limit X fun . args)
+  (cond
+    ((fx= X 0) `(py-call0 ,fun))
+    ((fx<= X specialized-args-limit)
+      (let ((min-neg-arity (- 0 X 1))
+            (args-names (map
+                          (lambda (i) (string->symbol (string-append "$arg" (number->string i))))
+                          (iota X))))
+        `(let* (($fun ,fun)
+                ,@(map list args-names args))
+          (if (,(string->symbol (string-append "PyObjectFunctionArity" (number->string X) "?")) $fun)
+            ((PyObjectFunction-procedure $fun) ,@args-names)
+            (let ((fun-type (py-obj-cls-general $fun)))
+              (if (eq? fun-type py-function-class)
+                (let ((arity (PyObjectFunction-arity $fun)))
+                  (cond
+                     ((not arity)
+                      (py-call-generic $fun (list ,@args-names)))
+                     ((and (fx< arity 0) (fx>= arity ,min-neg-arity))
+                      (apply
+                       (PyObjectFunction-procedure $fun)
+                       (pack-extra-args arity (list ,@args-names))))
+                     (else
+                      ;; Error messages
+                      (py-call-wrong-arity arity ,X ,(number->string X)))))
+                (py-call-generic $fun (list ,@args-names))))))))
+    (else
+      (let ((min-neg-arity (- 0 X 1))
+            (args-names (map
+                          (lambda (i) (string->symbol (string-append "$arg" (number->string i))))
+                          (iota X))))
+        `(let* (($fun ,fun)
+                ,@(map list args-names args)
+               (fun-type (py-obj-cls-general $fun)))
+          (if (eq? fun-type py-function-class)
+        		(let ((arity (PyObjectFunction-arity $fun)))
+              (cond
+                 ((eqv? arity ,X)
+                  ((PyObjectFunction-procedure $fun) ,@args-names))
+                 ((not arity)
+                  (py-call-generic $fun (list ,@args-names)))
+                 ((and (fx< arity 0) (fx>= arity ,min-neg-arity))
+                  (apply
+                   (PyObjectFunction-procedure $fun)
+                   (pack-extra-args arity (list ,@args-names))))
+                 (else
+                  ;; Error messages
+                  (py-call-wrong-arity arity ,X ,(number->string X)))))
+            (py-call-generic $fun (list ,@args-names))))))))
+
+(define-macro (py-make-PyObjectFunction hclass elements cls procedure arity signature)
+  (with-specialized-PyObjectFunction-args-limit $py-make-PyObjectFunction ,hclass ,elements ,cls ,procedure ,arity ,signature))
+
+(define-macro ($py-make-PyObjectFunction specialized-args-limit hclass elements cls procedure arity signature)
+  `(let (($hclass ,hclass)
+         ($elements ,elements)
+         ($cls ,cls)
+         ($procedure procedure)
+         ($arity ,arity)
+         ($signature ,signature))
+      (cond
+        ,@(let loop ((i 0))
+            (if (> i specialized-args-limit)
+              '()
+              (cons
+                `((eqv? $arity ,i)
+                    (,(string->symbol (string-append "make-PyObjectFunctionArity" (number->string i)))
+                        $hclass $elements $cls $procedure $arity $signature))
+                (loop (+ i 1)))))
+        (else (make-PyObjectFunction $hclass $elements $cls $procedure $arity $signature)))))
 
 ;; Macros to enable/disable various implementation strategies.
 

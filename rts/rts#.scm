@@ -480,73 +480,6 @@
     (lambda (e) (if (string? e) (constant-string e) e))
     table))
 
-(define-macro (py-call0 fun)
-  `(let (($fun ,fun))
-    (if (PyObjectFunctionArity0? $fun)
-      ((PyObjectFunction-procedure $fun))
-      (let ((fun-type (py-obj-cls-general $fun)))
-        (if (eq? fun-type py-function-class)
-          (let ((arity (PyObjectFunction-arity $fun)))
-            (cond
-              ((eqv? arity -1)
-                ((PyObjectFunction-procedure $fun)
-                  (py-tuple-from-scheme '#())))
-              ((not arity) (py-call-generic $fun '()))
-              (else
-                (py-call-wrong-arity arity 0 "0"))))
-          (py-call-generic $fun '()))))))
-
-(define-macro (py-callX X fun . args)
-  (import (zipi rts config))
-  (cond
-    ((fx= X 0) `(py-call0 ,fun))
-    ((fx<= X specialized-PyObjectFunction-args-limit)
-      (let ((min-neg-arity (- 0 X 1))
-            (args-names (map
-                          (lambda (i) (string->symbol (string-append "$arg" (number->string i))))
-                          (iota X))))
-        `(let* (($fun ,fun)
-                ,@(map list args-names args))
-          (if (,(string->symbol (string-append "PyObjectFunctionArity" (number->string X) "?")) $fun)
-            ((PyObjectFunction-procedure $fun) ,@args-names)
-            (let ((fun-type (py-obj-cls-general $fun)))
-              (if (eq? fun-type py-function-class)
-                (let ((arity (PyObjectFunction-arity $fun)))
-                  (cond
-                     ((not arity)
-                      (py-call-generic $fun (list ,@args-names)))
-                     ((and (fx< arity 0) (fx>= arity ,min-neg-arity))
-                      (apply
-                       (PyObjectFunction-procedure $fun)
-                       (pack-extra-args arity (list ,@args-names))))
-                     (else
-                      ;; Error messages
-                      (py-call-wrong-arity arity ,X ,(number->string X)))))
-                (py-call-generic $fun (list ,@args-names))))))))
-    (else
-      (let ((min-neg-arity (- 0 X 1))
-            (args-names (map
-                          (lambda (i) (string->symbol (string-append "$arg" (number->string i))))
-                          (iota X))))
-        `(let* (($fun ,fun)
-                ,@(map list args-names args)
-               (fun-type (py-obj-cls-general $fun)))
-          (if (eq? fun-type py-function-class)
-        		(let ((arity (PyObjectFunction-arity $fun)))
-              (cond
-                 ((eqv? arity ,X)
-                  ((PyObjectFunction-procedure $fun) ,@args-names))
-                 ((not arity)
-                  (py-call-generic $fun (list ,@args-names)))
-                 ((and (fx< arity 0) (fx>= arity ,min-neg-arity))
-                  (apply
-                   (PyObjectFunction-procedure $fun)
-                   (pack-extra-args arity (list ,@args-names))))
-                 (else
-                  ;; Error messages
-                  (py-call-wrong-arity arity ,X ,(number->string X)))))
-            (py-call-generic $fun (list ,@args-names))))))))
-
 (define-macro (py-call f . args)
   (define (make-kwargs-loc-table names)
     (import (zipi rts hash))
@@ -648,7 +581,6 @@
           (list ,@**kwargs)))
       (else
         (let ((nargs (length pos-args)))
-          (import (zipi rts config))
           (cond
             ((not (null? *args))
               `(py-call-generic/*args ,f (list ,@pos-args) (list ,@*args)))

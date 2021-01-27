@@ -537,26 +537,6 @@
         (+ (vector-length args) (vector-length posonlyargs)))
       #f)))
 
-
-(define-macro (py-make-PyObjectFunction hclass elements cls procedure arity signature)
-  (import (zipi rts config))
-  `(let (($hclass ,hclass)
-         ($elements ,elements)
-         ($cls ,cls)
-         ($procedure procedure)
-         ($arity ,arity)
-         ($signature ,signature))
-      (cond
-        ,@(let loop ((i 0))
-            (if (> i specialized-PyObjectFunction-args-limit)
-              '()
-              (cons
-                `((eqv? $arity ,i)
-                    (,(string->symbol (string-append "make-PyObjectFunctionArity" (number->string i)))
-                        $hclass $elements $cls $procedure $arity $signature))
-                (loop (+ i 1)))))
-        (else (make-PyObjectFunction $hclass $elements $cls $procedure $arity $signature)))))
-
 (define (prebootstrap-procedure->py-function procedure signature)
   (let ((py-function
           (py-make-PyObjectFunction

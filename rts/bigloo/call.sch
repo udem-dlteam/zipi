@@ -14,7 +14,6 @@
 ;*---------------------------------------------------------------------*/
 (directives
    (option (loadq "hash/hash.scm")
-           (loadq "config/config.scm")
            (loadq "bigloo/call_expd.sch")))
 
 ;*---------------------------------------------------------------------*/
@@ -30,4 +29,3 @@
 (define-expander register-constants-perfect-hashtable register-constants-perfect-hashtable-expander)
 
 (define-expander py-call py-call-expander)
-
