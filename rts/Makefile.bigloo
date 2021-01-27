@@ -114,7 +114,6 @@ behaviors.bgl: ../stdlib/behaviors.bgl
 
 $(BUILDLIBDIR)/zipi.init: zipi.init \
   hash/hash.scm \
-  config/config.scm \
   bigloo/call_expd.sch \
   bigloo/constants.sch \
   bigloo/integer.sch \
@@ -128,12 +127,6 @@ $(BUILDLIBDIR)/zipi.init: zipi.init \
 	@echo ";; rts/hash/hash.scm" >> $@
 	@echo "(eval '(begin" >> $@
 	@cat hash/hash.scm >> $@
-	@echo "))" >> $@
-
-	# rts/config/config.scm
-	@echo ";; rts/config/config.scm" >> $@
-	@echo "(eval '(begin" >> $@
-	@cat config/config.scm >> $@
 	@echo "))" >> $@
 
 	# rts/bigloo/rts-call.sch

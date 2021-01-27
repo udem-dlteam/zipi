@@ -882,33 +882,16 @@
 	     ,(scheme (PycKont-body this) conf)))))
 
 (define-walk-method (scheme this::PycCall conf)
-   ;; Catches the super-called-without-arguments to implicitly pass
-   ;; arguments to a super() call
-   (define (super-hook)
-      (let* ((caller (config-get conf fun:))
-            (caller-args (and caller (PycFun-args caller)))
-            (class-key (and caller (PycFun-super-in-class caller))))
-        (cond
-          ((and caller class-key (> (length caller-args) 0))
-           `(py-call py-builtin-super ,class-key
-             ,(PycDecl-name (list-ref caller-args 0))))
-          (else
-           `(py-throw py-builtin-RuntimeError)))))
-
-   (define (super-handler call)
-      (let ((caller (config-get conf fun:)))
-        `(with-handler
-          (lambda (%exn)
-            (if (eq? %exn (py-flag-super-called-without-arguments))
-              ,(super-hook)
-              (raise %exn)))
-          ,call)))
-
-   (define (invoke fun args)
-        (let* ((call `(py-call ,fun ,@args)))
-          (if (or (> (length args) 0) (not (PycCall-can-be-super this)))
-              call
-              (super-handler call))))
+    (define (invoke fun args)
+      (if (or (> (length args) 0) (not (PycCall-can-be-super this)))
+        `(py-call ,fun ,@args)
+        (let* ((caller (config-get conf fun:))
+              (caller-args (and caller (PycFun-args caller)))
+              (class-key (and caller (PycFun-super-in-class caller)))
+              (super-instance (if (and caller-args (> (length caller-args) 0))
+                                  (PycDecl-name (list-ref caller-args 0))
+                                  #f)))
+          `(py-call0-maybe-super ,fun ,class-key ,super-instance))))
 
     (define (gen-args call conf)
       (append

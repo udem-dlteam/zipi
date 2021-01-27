@@ -7,6 +7,109 @@
     (bigloo
       #f)))
 
+;; calls
+
+(define-macro (with-specialized-PyObjectFunction-args-limit macro-name . args)
+  `(,macro-name 10 ,@args))
+
+(define-macro (py-call0-maybe-super fn cls instance)
+  `(let (($fn ,fn))
+      (if (eq? $fn py-builtin-super)
+        ,(if (not (and cls instance))
+          `(py-throw-super-no-arguments-error)
+          `(py-call py-builtin-super ,cls ,instance))
+        (py-call $fn))))
+
+(define-macro (py-call0 fun)
+  `(let (($fun ,fun))
+    (if (PyObjectFunctionArity0? $fun)
+      ((PyObjectFunction-procedure $fun))
+      (let ((fun-type (py-obj-cls-general $fun)))
+        (if (eq? fun-type py-function-class)
+          (let ((arity (PyObjectFunction-arity $fun)))
+            (cond
+              ((eqv? arity -1)
+                ((PyObjectFunction-procedure $fun)
+                  (py-tuple-from-scheme '#())))
+              ((not arity) (py-call-generic $fun '()))
+              (else
+                (py-call-wrong-arity arity 0 "0"))))
+          (py-call-generic $fun '()))))))
+
+(define-macro (py-callX X fun . args)
+  `(with-specialized-PyObjectFunction-args-limit $py-callX ,X ,fun ,@args))
+
+(define-macro ($py-callX specialized-args-limit X fun . args)
+  (cond
+    ((= X 0) `(py-call0 ,fun))
+    ((<= X specialized-args-limit)
+      (let ((min-neg-arity (- 0 X 1))
+            (args-names (map
+                          (lambda (i) (string->symbol (string-append "$arg" (number->string i))))
+                          (iota X))))
+        `(let* (($fun ,fun)
+                ,@(map list args-names args))
+          (if (,(string->symbol (string-append "PyObjectFunctionArity" (number->string X) "?")) $fun)
+            ((PyObjectFunction-procedure $fun) ,@args-names)
+            (let ((fun-type (py-obj-cls-general $fun)))
+              (if (eq? fun-type py-function-class)
+                (let ((arity (PyObjectFunction-arity $fun)))
+                  (cond
+                     ((not arity)
+                      (py-call-generic $fun (list ,@args-names)))
+                     ((and (fx< arity 0) (fx>= arity ,min-neg-arity))
+                      (apply
+                       (PyObjectFunction-procedure $fun)
+                       (pack-extra-args arity (list ,@args-names))))
+                     (else
+                      ;; Error messages
+                      (py-call-wrong-arity arity ,X ,(number->string X)))))
+                (py-call-generic $fun (list ,@args-names))))))))
+    (else
+      (let ((min-neg-arity (- 0 X 1))
+            (args-names (map
+                          (lambda (i) (string->symbol (string-append "$arg" (number->string i))))
+                          (iota X))))
+        `(let* (($fun ,fun)
+                ,@(map list args-names args)
+               (fun-type (py-obj-cls-general $fun)))
+          (if (eq? fun-type py-function-class)
+        		(let ((arity (PyObjectFunction-arity $fun)))
+              (cond
+                 ((eqv? arity ,X)
+                  ((PyObjectFunction-procedure $fun) ,@args-names))
+                 ((not arity)
+                  (py-call-generic $fun (list ,@args-names)))
+                 ((and (fx< arity 0) (fx>= arity ,min-neg-arity))
+                  (apply
+                   (PyObjectFunction-procedure $fun)
+                   (pack-extra-args arity (list ,@args-names))))
+                 (else
+                  ;; Error messages
+                  (py-call-wrong-arity arity ,X ,(number->string X)))))
+            (py-call-generic $fun (list ,@args-names))))))))
+
+(define-macro (py-make-PyObjectFunction hclass elements cls procedure arity signature)
+  `(with-specialized-PyObjectFunction-args-limit $py-make-PyObjectFunction ,hclass ,elements ,cls ,procedure ,arity ,signature))
+
+(define-macro ($py-make-PyObjectFunction specialized-args-limit hclass elements cls procedure arity signature)
+  `(let (($hclass ,hclass)
+         ($elements ,elements)
+         ($cls ,cls)
+         ($procedure procedure)
+         ($arity ,arity)
+         ($signature ,signature))
+      (cond
+        ,@(let loop ((i 0))
+            (if (> i specialized-args-limit)
+              '()
+              (cons
+                `((eqv? $arity ,i)
+                    (,(string->symbol (string-append "make-PyObjectFunctionArity" (number->string i)))
+                        $hclass $elements $cls $procedure $arity $signature))
+                (loop (+ i 1)))))
+        (else (make-PyObjectFunction $hclass $elements $cls $procedure $arity $signature)))))
+
 ;; Macros to enable/disable various implementation strategies.
 
 (define-macro (py-if-specialized-sint-representation yes no) yes)
@@ -29,19 +132,19 @@
     (let (($obj ,obj))
       (if (fixnum? $obj)
           $obj
-          (py-PyObjectInt-value $obj)))
-    (py-PyObjectInt-value ,obj)))
+          (PyObjectInt-value $obj)))
+    (PyObjectInt-value ,obj)))
 
 (define-macro (py-subtype-of-int-to-scheme obj)
   `(py-if-specialized-sint-representation
     (let (($obj ,obj))
       (if (fixnum? $obj)
           $obj
-          (py-PyObjectInt-value $obj)))
-    (py-PyObjectInt-value ,obj)))
+          (PyObjectInt-value $obj)))
+    (PyObjectInt-value ,obj)))
 
 (define-macro (py-strict-subtype-of-int-to-scheme obj)
-  `(py-PyObjectInt-value ,obj))
+  `(PyObjectInt-value ,obj))
 
 (define-macro (py-bool-to-scheme-int arg)
   `(py-strict-subtype-of-int-to-scheme ,arg)) ;; a bool is an int with value 0 or 1
@@ -67,11 +170,11 @@
     (let (($obj ,obj))
       (if (flonum? $obj)
           $obj
-          (py-PyObjectFloat-value $obj)))
-    (py-PyObjectFloat-value ,obj)))
+          (PyObjectFloat-value $obj)))
+    (PyObjectFloat-value ,obj)))
 
 (define-macro (py-strict-subtype-of-float-to-scheme obj)
-  `(py-PyObjectFloat-value ,obj))
+  `(PyObjectFloat-value ,obj))
 
 (define-macro (alloc-new-PyObjectInt-from-scheme value)
   `(make-PyObjectInt
@@ -573,29 +676,6 @@
            (else
             ,other))))
 
-;; Access PyObject fields
-
-(define-macro (py-PyObject-hclass obj)
-  (cond-expand
-    (gambit ;; TODO: prettify... equivalent to (PyObject-hclass ,obj)
-     `(|##unchecked-structure-ref| ,obj 1 #f #f))
-    (bigloo
-     `(PyObject-hclass ,obj))))
-
-(define-macro (py-PyObject-%elements obj)
-  (cond-expand
-    (gambit ;; TODO: prettify... equivalent to (PyObject-%elements ,obj)
-     `(|##unchecked-structure-ref| ,obj 2 #f #f))
-    (bigloo
-     `(PyObject-%elements ,obj))))
-
-(define-macro (py-PyObject-class obj)
-  (cond-expand
-    (gambit ;; TODO: prettify... equivalent to (PyObject-class ,obj)
-     `(|##unchecked-structure-ref| ,obj 3 #f #f))
-    (bigloo
-     `(PyObject-class ,obj))))
-
 ;; Get hclass of object given specialized representations of int and float
 
 (define-macro (py-obj-hclass obj)
@@ -604,26 +684,12 @@
     ,obj
     py-int-hclass-of-instances
     py-float-hclass-of-instances
-    (py-PyObject-hclass $obj)))
+    (PyObject-hclass $obj)))
 
 ;; Get class of object given specialized representations of int and float
 
-(define-macro (py-PyObjectType-class-index cls)
-  (cond-expand
-    (gambit ;; TODO: prettify... equivalent to (PyObjectType-class-index ,cls)
-     `(|##unchecked-structure-ref| ,cls 4 #f #f))
-    (bigloo
-     `(PyObjectType-class-index ,cls))))
-
-(define-macro (py-PyObjectType-mro cls)
-  (cond-expand
-    (gambit ;; TODO: prettify... equivalent to (PyObjectType-mro ,cls)
-     `(|##unchecked-structure-ref| ,cls 6 #f #f))
-    (bigloo
-     `(PyObjectType-mro ,cls))))
-
 (define-macro (py-obj-cls-general obj)
-  `(py-PyObject-class ,obj))
+  `(PyObject-class ,obj))
 
 (define-macro (py-obj-cls obj) ;; get object's class
   `(py-specialized-sint-float-dispatch-let
@@ -634,7 +700,7 @@
     (py-obj-cls-general $obj)))
 
 (define-macro (py-obj-mro obj) ;; get MRO of object's class
-  `(py-PyObjectType-mro (py-obj-cls ,obj)))
+  `(PyObjectType-mro (py-obj-cls ,obj)))
 
 (define-macro (py-obj-class-index obj)
   `(with-class-indices-info $py-obj-class-index ,obj))
@@ -651,16 +717,9 @@
     (py-obj-class-index-general $obj)))
 
 (define-macro (py-obj-class-index-general obj)
-  `(py-PyObjectType-class-index (py-obj-cls-general ,obj)))
+  `(PyObjectType-class-index (py-obj-cls-general ,obj)))
 
 ;; Specialized type tests for int
-
-(define-macro (py-PyObjectInt-value obj)
-  (cond-expand
-    (gambit ;; TODO: prettify... equivalent to (PyObjectInt-value ,obj)
-     `(|##unchecked-structure-ref| ,obj 4 #f #f))
-    (bigloo
-     `(PyObjectInt-value ,obj))))
 
 (define-macro (py-has-type-int? obj)
   `(py-specialized-sint-float-dispatch-let
@@ -668,7 +727,7 @@
     ,obj
     #t
     #f
-    (eq? (py-PyObject-class $obj) py-int-class)))
+    (eq? (PyObject-class $obj) py-int-class)))
 
 (define-macro (py-subtype-of-int? obj)
   `(py-specialized-sint-float-dispatch-let
@@ -676,7 +735,7 @@
     ,obj
     #t
     #f
-    (or (eq? (py-PyObject-class $obj) py-int-class)
+    (or (eq? (PyObject-class $obj) py-int-class)
         (py-isinstance? $obj py-int-class))))
 
 (define-macro (py-strict-subtype-of-int? obj)
@@ -685,17 +744,10 @@
     ,obj
     #f
     #f
-    (and (not (eq? (py-PyObject-class $obj) py-int-class))
+    (and (not (eq? (PyObject-class $obj) py-int-class))
          (py-isinstance? $obj py-int-class))))
 
 ;; Specialized type tests for float
-
-(define-macro (py-PyObjectFloat-value obj)
-  (cond-expand
-    (gambit ;; TODO: prettify... equivalent to (PyObjectFloat-value ,obj)
-     `(|##unchecked-structure-ref| ,obj 4 #f #f))
-    (bigloo
-     `(PyObjectFloat-value ,obj))))
 
 (define-macro (py-has-type-float? obj)
   `(py-specialized-sint-float-dispatch-let
@@ -711,7 +763,7 @@
     ,obj
     #f
     #t
-    (or (eq? (py-PyObject-class $obj) py-float-class)
+    (or (eq? (PyObject-class $obj) py-float-class)
         (py-isinstance? $obj py-float-class))))
 
 (define-macro (py-strict-subtype-of-float? obj)
@@ -720,42 +772,14 @@
     ,obj
     #f
     #f
-    (and (not (eq? (py-PyObject-class $obj) py-float-class))
+    (and (not (eq? (PyObject-class $obj) py-float-class))
          (py-isinstance? $obj py-float-class))))
 
 ;; Specialized type tests for str
 
-(define-macro (py-PyObjectStr-len obj)
-  (cond-expand
-    (gambit ;; TODO: prettify... equivalent to (PyObjectStr-len ,obj)
-     `(|##unchecked-structure-ref| ,obj 4 #f #f))
-    (bigloo
-     `(PyObjectStr-len ,obj))))
-
-(define-macro (py-PyObjectStr-part1-or-string obj)
-  (cond-expand
-    (gambit ;; TODO: prettify... equivalent to (PyObjectStr-part1-or-string ,obj)
-     `(|##unchecked-structure-ref| ,obj 5 #f #f))
-    (bigloo
-     `(PyObjectStr-part1-or-string ,obj))))
-
-(define-macro (py-PyObjectStr-part2-or-rep obj)
-  (cond-expand
-    (gambit ;; TODO: prettify... equivalent to (PyObjectStr-part2-or-rep ,obj)
-     `(|##unchecked-structure-ref| ,obj 6 #f #f))
-    (bigloo
-     `(PyObjectStr-part2-or-rep ,obj))))
-
-(define-macro (py-PyObjectStrRep-hash obj)
-  (cond-expand
-    (gambit ;; TODO: prettify... equivalent to (PyObjectStrRep-hash ,obj)
-     `(|##unchecked-structure-ref| ,obj 7 #f #f))
-    (bigloo
-     `(PyObjectStrRep-hash ,obj))))
-
 (define-macro (py-has-type-str? obj)
   (let* ((case-PyObject
-          `(eq? (py-PyObject-class $obj) py-str-class))
+          `(eq? (PyObject-class $obj) py-str-class))
          (special-case-float
           `(py-if-specialized-float-representation
             (and (not (flonum? $obj))
@@ -771,7 +795,7 @@
 
 (define-macro (py-subtype-of-str? obj)
   (let* ((case-PyObject
-          `(or (eq? (py-PyObject-class $obj) ;; optimize common case
+          `(or (eq? (PyObject-class $obj) ;; optimize common case
                     py-str-class)
                (py-isinstance? $obj py-str-class)))
          (special-case-float

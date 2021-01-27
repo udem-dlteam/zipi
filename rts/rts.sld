@@ -22,7 +22,6 @@
     with-handler
     bind-exit
 
-    py-flag-super-called-without-arguments
     py-absent
     global-get
     global-put!
@@ -31,6 +30,9 @@
     cell-ref
     cell-set!
 
+    py-make-PyObjectFunction
+    $py-make-PyObjectFunction
+
     make-signature
     py-call
     py-call-generic
@@ -38,11 +40,16 @@
     py-call-hashed-kwargs
     py-call-generic-kwargs
     py-call0
-    py-call1
-    py-call2
-    py-call3
-    py-call4
-    py-call5
+    py-callX
+    $py-callX
+    py-call-wrong-arity
+    py-call0-maybe-super
+
+    with-specialized-PyObjectFunction-args-limit
+
+    py-throw-super-no-arguments-error
+
+    pack-extra-args
 
     py-isinstance?
     py-issubclass?
@@ -877,6 +884,22 @@
     py-builtin-vars
     py-builtin-zip
 
+    py-function-class
+    PyObjectFunction-arity
+    PyObjectFunction-procedure
+
+    PyObjectFunctionArity0?
+    PyObjectFunctionArity1?
+    PyObjectFunctionArity2?
+    PyObjectFunctionArity3?
+    PyObjectFunctionArity4?
+    PyObjectFunctionArity5?
+    PyObjectFunctionArity6?
+    PyObjectFunctionArity7?
+    PyObjectFunctionArity8?
+    PyObjectFunctionArity9?
+    PyObjectFunctionArity10?
+
     build-builtins
     compile-flag-set!
     debug-flag-set!
@@ -892,8 +915,9 @@
 
     py-expression
     PyObject-class
-    py-PyObject-class
-    py-PyObjectType-class-index
+    PyObject-hclass
+    PyObject-%elements
+    PyObjectType-class-index
     py-int-class
     py-float-class
     int-cache
