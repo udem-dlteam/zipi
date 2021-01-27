@@ -931,13 +931,13 @@
           (value (kwargs-table-pop! kwargs-table name)))
       (cond
         ((not value)
-          (cons default (align-with-signature-hashed-kwargs:get-values (cdr args-defaults) kwargs-table)))
+          (cons default (align-with-signature-hashed-kwargs:get-values (map car (cdr args-defaults)) kwargs-table)))
         ((eq? value kwargs-already-seen)
           (py-throw-exception-with-message
             py-builtin-TypeError
             "pending exception message (code 24)"))
         (else
-          (cons (cdr value) (align-with-signature-hashed-kwargs:get-values (cdr args-defaults) kwargs-table)))))))
+          (cons (cdr value) (align-with-signature-hashed-kwargs:get-values (map car (cdr args-defaults)) kwargs-table)))))))
 
 (define (align-with-signature-hashed-kwargs:get-unused-kwargs kwargs-table kwarg)
   (let* ((len (vector-length kwargs-table))
