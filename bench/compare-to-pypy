@@ -1,0 +1,55 @@
+#!/bin/sh
+
+bench="$1"
+shift
+systems="$*"
+
+if test -z "$systems"; then
+   systems="gambit bigloo"
+fi
+
+pypy3_output=`pypy3 $bench`
+pypy3_time=`echo "$pypy3_output" | sed -e "s/ .*//g"`
+code=`echo "$pypy3_output" | sed -e "s/^.*: //"`
+
+#pypy2_output=`pypy2 $bench`
+#pypy2_time=`echo "$pypy2_output" | sed -e "s/ .*//g"`
+pypy2_output="$pypy3_output"
+pypy2_time="$pypy3_time"
+
+for system in $systems; do
+  case "$system" in
+    
+    gambit)
+      bench_output=`../bin/zipi.gambit $bench`
+      bench_time=`echo "$bench_output" | sed -e "s/ .*//g"`
+
+      python3 -c "t=$bench_time;pp2=$pypy2_time;pp3=$pypy3_time;system='[$system]';code='$code';bench='$bench';speedup2=pp2/t;speedup3=pp3/t;print(f'{system:10s}{speedup2:8.4f}x{speedup3:9.4f}x {code:s} ({bench:s})')"
+      ;;
+
+    bigloo)
+      bench_output=`../bin/zipi.bigloo $bench`
+      bench_time=`echo "$bench_output" | sed -e "s/ .*//g"`
+
+      python3 -c "t=$bench_time;pp2=$pypy2_time;pp3=$pypy3_time;system='[$system]';code='$code';bench='$bench';speedup2=pp2/t;speedup3=pp3/t;print(f'{system:10s}{speedup2:8.4f}x{speedup3:9.4f}x {code:s} ({bench:s})')"
+      ;;
+    
+    cpython2)
+      bench_output=`python2 $bench`
+      bench_time=`echo "$bench_output" | sed -e "s/ .*//g"`
+
+      python3 -c "t=$bench_time;pp2=$pypy2_time;pp3=$pypy3_time;system='[$system]';code='$code';bench='$bench';speedup2=pp2/t;speedup3=pp3/t;print(f'{system:10s}{speedup2:8.4f}x{speedup3:9.4f}x {code:s} ({bench:s})')"
+      ;;
+    
+    cpython3)
+      bench_output=`python3 $bench`
+      bench_time=`echo "$bench_output" | sed -e "s/ .*//g"`
+
+      python3 -c "t=$bench_time;pp2=$pypy2_time;pp3=$pypy3_time;system='[$system]';code='$code';bench='$bench';speedup2=pp2/t;speedup3=pp3/t;print(f'{system:10s}{speedup2:8.4f}x{speedup3:9.4f}x {code:s} ({bench:s})')"
+      ;;
+    
+    *)
+      echo "Unknown system $system"
+  esac
+
+done
