@@ -747,12 +747,12 @@
          (mapping-keys (py-call keys-method))
          (keys-iterator (py-iter mapping-keys)))
     (let loop ((acc '()) (next-key (py-next keys-iterator)))
-      (cond ((py-subtype-of-str? next-key)
+      (cond ((not next-key)
+              (reverse! acc))
+            ((py-subtype-of-str? next-key)
              (loop
               (cons (cons next-key (py-getitem obj next-key)) acc)
               (py-next keys-iterator)))
-            ((not next-key)
-             (reverse! acc))
             (else
              (py-throw-exception-with-message
               py-builtin-TypeError
