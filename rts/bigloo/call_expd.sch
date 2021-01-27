@@ -176,12 +176,6 @@
 		       (loop (cdr names) (+ i 1) table))))
 	     #f)))
 
-   (define (make-py-call-name n)
-      (string->symbol
-	 (string-append
-	    "py-call"
-	    (number->string n))))
-
    (define (call-expander f args)
       (let* ((split-args
 		(let loop ((args args) (acc '()))
@@ -252,10 +246,8 @@
 		(cond
 		   ((not (null? *args))
 		    `(py-call-generic/*args ,f (list ,@pos-args) (list ,@*args)))
-		   ((<= nargs specialized-PyObjectFunction-args-limit)
-		    `(,(make-py-call-name nargs) ,f ,@pos-args))
 		   (else
-		    `(py-call-generic ,f (list ,@pos-args)))))))))
+		    `(py-callX ,nargs ,f ,@pos-args))))))))
 
    (match-case x
       ((py-call ?f . ?args)

@@ -585,7 +585,7 @@
        py-builtin-TypeError
        (string-append
          "missing "
-         (number->string (fx- 0 arity 1 nargs))
+         (number->string (fx- 0 (fx+ arity (fx+ 1 nargs))))
          " required positional argument"))
     (if (fx< arity nargs)
       (py-throw-exception-with-message
@@ -599,7 +599,7 @@
       (py-throw-exception-with-message
         py-builtin-TypeError
         "missing "
-        (number->string (fx- arity X))
+        (number->string (fx- arity nargs))
         " required positional argument"))))
 
 (define (py-call-generic/*args obj args *args-lst)

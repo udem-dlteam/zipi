@@ -37,9 +37,6 @@
               (%elements (default (make-vector 4)))
               class)
 
-           (class PyFunction::PyObject
-              (procedure read-only))
-
            (class PyObjectType::PyObject
               class-index
               bases
@@ -82,6 +79,18 @@
               procedure
               arity
               signature)
+
+           (class PyObjectFunctionArity0::PyObjectFunction)
+           (class PyObjectFunctionArity1::PyObjectFunction)
+           (class PyObjectFunctionArity2::PyObjectFunction)
+           (class PyObjectFunctionArity3::PyObjectFunction)
+           (class PyObjectFunctionArity4::PyObjectFunction)
+           (class PyObjectFunctionArity5::PyObjectFunction)
+           (class PyObjectFunctionArity6::PyObjectFunction)
+           (class PyObjectFunctionArity7::PyObjectFunction)
+           (class PyObjectFunctionArity8::PyObjectFunction)
+           (class PyObjectFunctionArity9::PyObjectFunction)
+           (class PyObjectFunctionArity10::PyObjectFunction)
 
            (class PyObjectMethod::PyObject
               procedure
@@ -276,14 +285,10 @@
            (inline PyObject-elements-ref ::PyObject ::long)
            (PyObject-elements-set! ::PyObject ::long ::obj)
 
-           (py-call0 ::obj)
-           (py-call1 ::obj ::obj)
-           (py-call2 ::obj ::obj ::obj)
-           (py-call3 ::obj ::obj ::obj ::obj)
-           (py-call4 ::obj ::obj ::obj ::obj ::obj)
-           (py-call5 ::obj ::obj ::obj ::obj ::obj ::obj)
-	   (py-call-generic ::obj ::obj)
+	         (py-call-generic ::obj ::obj)
            (py-iter ::obj)
+           (py-call-wrong-arity arity nargs nargs-string)
+           (pack-extra-args arity args)
 
            (py-make-global)
            (py-make-caches ::int)
@@ -314,6 +319,7 @@
            py-object-class
            py-module-class
            py-int-class
+           py-function-class
            (py-own-attr-set! obj attr val)
 
            (py-isinstance? ::PyObject ::PyObject)
@@ -436,7 +442,6 @@
            py-builtin-ZeroDivisionError
 
            (native-builtin-__import__ ::bstring)
-           (py-flag-super-called-without-arguments)
 	   (py-throw-exception-with-message exc . msg)
            )
 

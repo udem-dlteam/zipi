@@ -37,12 +37,12 @@
           (py-call-generic $fun '()))))))
 
 (define-macro (py-callX X fun . args)
-  (with-specialized-PyObjectFunction-args-limit $py-callX ,fun ,@args))
+  `(with-specialized-PyObjectFunction-args-limit $py-callX ,X ,fun ,@args))
 
 (define-macro ($py-callX specialized-args-limit X fun . args)
   (cond
-    ((fx= X 0) `(py-call0 ,fun))
-    ((fx<= X specialized-args-limit)
+    ((= X 0) `(py-call0 ,fun))
+    ((<= X specialized-args-limit)
       (let ((min-neg-arity (- 0 X 1))
             (args-names (map
                           (lambda (i) (string->symbol (string-append "$arg" (number->string i))))
@@ -90,7 +90,7 @@
             (py-call-generic $fun (list ,@args-names))))))))
 
 (define-macro (py-make-PyObjectFunction hclass elements cls procedure arity signature)
-  (with-specialized-PyObjectFunction-args-limit $py-make-PyObjectFunction ,hclass ,elements ,cls ,procedure ,arity ,signature))
+  `(with-specialized-PyObjectFunction-args-limit $py-make-PyObjectFunction ,hclass ,elements ,cls ,procedure ,arity ,signature))
 
 (define-macro ($py-make-PyObjectFunction specialized-args-limit hclass elements cls procedure arity signature)
   `(let (($hclass ,hclass)

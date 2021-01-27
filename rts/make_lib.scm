@@ -21,7 +21,6 @@
 
    (eval (export-all)
       (class PyObject)
-      (class PyFunction)
       (class PyGenerator)
       (class PCache)
       (class HClass)))

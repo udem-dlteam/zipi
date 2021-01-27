@@ -252,7 +252,6 @@
   arity
   signature)
 
-;; must match config/config.scm param "specialized-PyObjectFunction-args-limit"
 (define-type-of-PyObjectFunction PyObjectFunctionArity0
   id: PyObjectFunctionArity0-C6486EB6-1522-42BA-A082-B6563F943CDF
   macros:)

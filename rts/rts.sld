@@ -30,6 +30,9 @@
     cell-ref
     cell-set!
 
+    py-make-PyObjectFunction
+    $py-make-PyObjectFunction
+
     make-signature
     py-call
     py-call-generic
@@ -38,8 +41,11 @@
     py-call-generic-kwargs
     py-call0
     py-callX
+    $py-callX
     py-call-wrong-arity
     py-call0-maybe-super
+
+    with-specialized-PyObjectFunction-args-limit
 
     py-throw-super-no-arguments-error
 
