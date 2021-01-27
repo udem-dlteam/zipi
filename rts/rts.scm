@@ -985,13 +985,13 @@
            (value (ordered-table-pop! ordered-table name #f)))
       (cond
         ((not value)
-          (cons default (align-with-signature-kwargs-ordered-table:get-values (cdr args-defaults) ordered-table)))
+          (cons default (align-with-signature-kwargs-ordered-table:get-values (map car (cdr args-defaults)) ordered-table)))
         ((eq? value kwargs-already-seen)
           (py-throw-exception-with-message
             py-builtin-TypeError
             "pending exception message (code 31)"))
         (else
-          (cons value (align-with-signature-kwargs-ordered-table:get-values (cdr args-defaults) ordered-table)))))))
+          (cons value (align-with-signature-kwargs-ordered-table:get-values (map car (cdr args-defaults)) ordered-table)))))))
 
 (define (align-with-signature-kwargs-ordered-table:get-unused-kwargs unused-kwargs kwarg)
   (if kwarg
