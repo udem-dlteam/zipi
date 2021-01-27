@@ -7,6 +7,21 @@
     (bigloo
       #f)))
 
+;; symbols and flags
+
+(define-macro (py-flag-super-called-without-arguments)
+  `'super-called-without-arguments)
+
+(define-macro (py-call0-maybe-super fn cls instance)
+  `(let (($fn ,fn))
+      (if (eq? $fn py-builtin-super)
+        ,(if (not (and cls instance))
+          `(py-throw-exception-with-message
+              py-builtin-RuntimeError
+              "super(): no arguments")
+          `(py-call py-builtin-super ,cls ,instance))
+        (py-call $fn))))
+
 ;; Macros to enable/disable various implementation strategies.
 
 (define-macro (py-if-specialized-sint-representation yes no) yes)

@@ -22,7 +22,6 @@
     with-handler
     bind-exit
 
-    py-flag-super-called-without-arguments
     py-absent
     global-get
     global-put!
@@ -40,6 +39,8 @@
     py-call0
     py-callX
     py-call-wrong-arity
+    py-call0-maybe-super
+    py-flag-super-called-without-arguments
 
     pack-extra-args
 
