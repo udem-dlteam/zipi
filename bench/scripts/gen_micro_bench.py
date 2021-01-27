@@ -50,9 +50,10 @@ benchmarks = [
 [13,3, 'def f(x): pass','',  'f(1)',          '',    'call_thunk1'],
 [ 1,0, '','',                'for x in range(100):pass', '', 'for_range_100'],
 [ 1,0, '','x=250',            'while x>0:x-=1', '', 'while_100'],
-[ 1,0, 'def dec1(a): return a-1\ndef dec2(a): return a-1\ndef dec3(a): return a-1\ndef dec4(a): return a-1\ndef dec5(a): return a-1\ndef call(x,dec):\n    while x>0:x=dec(x)','n=20', 'call(n,dec1);call(n,dec2);call(n,dec3);call(n,dec4);call(n,dec5);', '', 'call1_20'],
-[ 1,0, 'def dec1(a,b): return a-1\ndef dec2(a,b): return a-1\ndef dec3(a,b): return a-1\ndef dec4(a,b): return a-1\ndef dec5(a,b): return a-1\ndef call(x,dec):\n    while x>0:x=dec(x,x)','n=20', 'call(n,dec1);call(n,dec2);call(n,dec3);call(n,dec4);call(n,dec5);', '', 'call2_20'],
-[ 1,0, 'def dec1(a,b,c): return a-1\ndef dec2(a,b,c): return a-1\ndef dec3(a,b,c): return a-1\ndef dec4(a,b,c): return a-1\ndef dec5(a,b,c): return a-1\ndef call(x,dec):\n    while x>0:x=dec(x,x,x)','n=20', 'call(n,dec1);call(n,dec2);call(n,dec3);call(n,dec4);call(n,dec5);', '', 'call3_20'],
+[ 1,0, 'def one1(): return 1\ndef one2(): return 1\ndef one3(): return 1\ndef one4(): return 1\ndef one5(): return 1\ndef call(x,one):\n    while x>0:x-=one()','n=20', 'call(n,one1);call(n,one2);call(n,one3);call(n,one4);call(n,one5);', '', 'call0_20'],
+[ 1,0, 'def one1(a): return 1\ndef one2(a): return 1\ndef one3(a): return 1\ndef one4(a): return 1\ndef one5(a): return 1\ndef call(x,one):\n    while x>0:x-=one(x)','n=20', 'call(n,one1);call(n,one2);call(n,one3);call(n,one4);call(n,one5);', '', 'call1_20'],
+[ 1,0, 'def one1(a,b): return 1\ndef one2(a,b): return 1\ndef one3(a,b): return 1\ndef one4(a,b): return 1\ndef one5(a,b): return 1\ndef call(x,one):\n    while x>0:x-=one(x,x)','n=20', 'call(n,one1);call(n,one2);call(n,one3);call(n,one4);call(n,one5);', '', 'call2_20'],
+[ 1,0, 'def one1(a,b,c): return 1\ndef one2(a,b,c): return 1\ndef one3(a,b,c): return 1\ndef one4(a,b,c): return 1\ndef one5(a,b,c): return 1\ndef call(x,one):\n    while x>0:x-=one(x,x,x)','n=20', 'call(n,one1);call(n,one2);call(n,one3);call(n,one4);call(n,one5);', '', 'call3_20'],
 ]
 
 template = """\
