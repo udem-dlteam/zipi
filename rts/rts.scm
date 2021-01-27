@@ -8025,6 +8025,11 @@
 ;; For practical suggestions on how to design cooperative classes using
 ;; super(), see guide to using super().
 
+(define (py-throw-super-no-arguments-error)
+  (py-throw-exception-with-message
+      py-builtin-RuntimeError
+      "super(): no arguments"))
+
 (define (super-init self type object)
   (if (eq? object py-absent)
     (error "super not implemented for 1 argument")

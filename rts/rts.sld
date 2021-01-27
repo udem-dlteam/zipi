@@ -40,7 +40,8 @@
     py-callX
     py-call-wrong-arity
     py-call0-maybe-super
-    py-flag-super-called-without-arguments
+
+    py-throw-super-no-arguments-error
 
     pack-extra-args
 

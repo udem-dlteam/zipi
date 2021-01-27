@@ -16,9 +16,7 @@
   `(let (($fn ,fn))
       (if (eq? $fn py-builtin-super)
         ,(if (not (and cls instance))
-          `(py-throw-exception-with-message
-              py-builtin-RuntimeError
-              "super(): no arguments")
+          `(py-throw-super-no-arguments-error)
           `(py-call py-builtin-super ,cls ,instance))
         (py-call $fn))))
 
