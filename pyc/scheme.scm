@@ -491,6 +491,7 @@
    (unless (PycDecl-name this)
       (PycDecl-name-set! this
 	 (symbol-append (PycDecl-id this)
+      '-
 	    (string->symbol (number->string (PycDecl-key this))))))
    (PycDecl-name this))
 
