@@ -432,6 +432,28 @@ def partial_eval_compare(cmp, ctx):
                     evaluated_ops.append(None)
                     left = right
                     continue
+        elif isinstance(op, ast.Eq):
+            res = partial_eval_eq(left, right, ctx)
+            if isinstance(res, ast.Constant):
+                if not res.value:
+                    return res
+                else:
+                    evaluated_comparators.append(left)
+                    # Eliminate this operation
+                    evaluated_ops.append(None)
+                    left = right
+                    continue
+        elif isinstance(op, ast.NotEq):
+            res = partial_eval_ne(left, right, ctx)
+            if isinstance(res, ast.Constant):
+                if not res.value:
+                    return res
+                else:
+                    evaluated_comparators.append(left)
+                    # Eliminate this operation
+                    evaluated_ops.append(None)
+                    left = right
+                    continue
 
         # Could not evaluate this comparison in this context
         evaluated_comparators.append(left)
@@ -465,6 +487,30 @@ def partial_eval_is(left, right, ctx):
         return ast.Constant(left.id == right.id)
     else:
         return None
+
+
+def partial_eval_eq(left, right, ctx):
+    if isinstance(left, ast.Constant):
+        if isinstance(right, ast.Constant):
+            return ast.Constant(left.value == right.value)
+        else:
+            return partial_eval_eq(right, left, ctx)
+    elif isinstance(right, ast.Constant):
+        if right.value == 0 and isinstance(left, ast.Name):
+            left_type = ctx.get(left.id).specialized_type
+            if left_type == 'bint':
+                return ast.Constant(False)
+    return None
+
+
+def partial_eval_ne(left, right, ctx):
+    eq_res = partial_eval_eq(left, right, ctx)
+    if isinstance(eq_res, ast.Constant):
+        if eq_res.value is True:
+            return ast.Constant(False)
+        elif eq_res.value is False:
+            return ast.Constant(True)
+    return None
 
 
 def partial_eval_static_function_call(func_name, args, keywords, ctx):
@@ -623,14 +669,14 @@ def main_behaviors(semantics_file, builtins_file):
 
                     if is_reflected_magic_method:
                         # For evaluation
-                        args = [VarContext(tp) for tp in types_comb]
+                        args = [VarContext(tp) for tp in reversed(types_comb)]
                         # For code generation
                         # NOTE: we reverse arguments names because behaviors arguments respect
                         # operands order, not magic_method arguments order
                         args_names = [a.arg for a in method_ast.args.posonlyargs + method_ast.args.args][::-1]
                     else:
                         # For evaluation
-                        args = [VarContext(tp) for tp in reversed(types_comb)]
+                        args = [VarContext(tp) for tp in types_comb]
                         # For code generation
                         args_names = [a.arg for a in method_ast.args.posonlyargs + method_ast.args.args]
 
