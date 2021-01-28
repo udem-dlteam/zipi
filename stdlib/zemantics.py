@@ -977,6 +977,57 @@ def ixor(x, y):
 
 # Auto-generated
 @define_semantics
+def pos(x):
+    def normal():
+        magic_method = class_getattr(x, "__pos__")
+        if magic_method is absent:
+            return err()
+        else:
+            return magic_method(x)
+
+    def err():
+        raise TypeError("bad operand type for unary +: '" + type(x).__name__ + "'")
+
+    # pos:start-body
+    return normal()
+    # pos:end-body
+
+# Auto-generated
+@define_semantics
+def neg(x):
+    def normal():
+        magic_method = class_getattr(x, "__neg__")
+        if magic_method is absent:
+            return err()
+        else:
+            return magic_method(x)
+
+    def err():
+        raise TypeError("bad operand type for unary -: '" + type(x).__name__ + "'")
+
+    # neg:start-body
+    return normal()
+    # neg:end-body
+
+# Auto-generated
+@define_semantics
+def invert(x):
+    def normal():
+        magic_method = class_getattr(x, "__invert__")
+        if magic_method is absent:
+            return err()
+        else:
+            return magic_method(x)
+
+    def err():
+        raise TypeError("bad operand type for unary ~: '" + type(x).__name__ + "'")
+
+    # invert:start-body
+    return normal()
+    # invert:end-body
+
+# Auto-generated
+@define_semantics
 def ge(x, y):
     def normal():
         magic_method = class_getattr(x, "__ge__")

@@ -185,6 +185,30 @@ inplace_arithmetic_info = {'iadd': {"op": "add", "magic_method": "add", "symbol"
                            'ixor': {"op": "xor", "magic_method": "xor", "symbol": "^="},
                            }
 
+unary_arithmetic_template = \
+"""# Auto-generated
+@define_semantics
+def {op}(x):
+    def normal():
+        magic_method = class_getattr(x, "__{magic_method}__")
+        if magic_method is absent:
+            return err()
+        else:
+            return magic_method(x)
+
+    def err():
+        raise TypeError("bad operand type for unary {symbol}: '" + type(x).__name__ + "'")
+
+    # {op}:start-body
+    return normal()
+    # {op}:end-body"""
+
+unary_arithmetic_info = {
+    "pos": {"op": "pos", "magic_method": "pos", "symbol": "+"},
+    "neg": {"op": "neg", "magic_method": "neg", "symbol": "-"},
+    "invert": {"op": "invert", "magic_method": "invert", "symbol": "~"},
+}
+
 comparison_template = \
     """# Auto-generated
 @define_semantics
