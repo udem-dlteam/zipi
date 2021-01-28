@@ -7,7 +7,7 @@ bench_iterations = 2000000
 bench_duplications = 10
 
 def bench_exec():
-    global g;x=0
+    global g1,g2,g3,g4;x=0
     bench_counter = bench_iterations
     while bench_counter > 0:
         bench_counter -= 1
