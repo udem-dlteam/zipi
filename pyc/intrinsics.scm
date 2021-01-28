@@ -403,6 +403,7 @@
     (memq name '(add bitand bitor floordiv lshift matmul mod mul pow rshift sub
                  truediv xor
                  iadd ibitand ibitor ifloordiv ilshift imatmul imod
+                 pos neg invert
                  imul ipow irshift isub itruediv ixor
                  ge gt le lt eq ne)))))
 
