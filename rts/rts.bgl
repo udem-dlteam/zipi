@@ -443,6 +443,9 @@
 
            (native-builtin-__import__ ::bstring)
 	   (py-throw-exception-with-message exc . msg)
+
+	   (py-tuple-from-scheme elements)
+	   (py-throw-super-no-arguments-error)
            )
 
    (eval   (export-all)))

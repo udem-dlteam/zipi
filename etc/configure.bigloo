@@ -21,7 +21,7 @@ bdepend=bgldepend
 
 bigloo=`which bigloo`
 #bcflags="-O3 -fstackable -fsharing -srfi bootstrap -L \$(BUILDLIBDIR) -srfi bigloo-compile"
-bcflags="-O3 -fsharing -srfi bootstrap -L \$(BUILDLIBDIR) -srfi bigloo-compile"
+bcflags="-O3 -unsafe -fsharing -srfi bootstrap -L \$(BUILDLIBDIR) -srfi bigloo-compile"
 blflags="-copt \$(CPICFLAGS) -L \$(BUILDLIBDIR) -srfi bigloo-compile"
 bhflags=
 btflags="-gtrace"

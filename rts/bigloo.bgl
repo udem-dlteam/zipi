@@ -82,6 +82,7 @@
 	   (inline table-set! table key value)
 	   (inline table-ref table key #!optional default)
 	   (inline table->list table)
+	   (inline table-length table)
 
 	   (macro with-exception-catcher)
 
@@ -349,6 +350,9 @@
 
 (define-inline (table->list table)
    (hashtable-map table cons))
+
+(define-inline (table-length table)
+   
 
 ;*---------------------------------------------------------------------*/
 ;*    with-exception-catcher ...                                       */
