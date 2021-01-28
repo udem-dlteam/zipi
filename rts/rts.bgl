@@ -37,9 +37,6 @@
               (%elements (default (make-vector 4)))
               class)
 
-           (class PyFunction::PyObject
-              (procedure read-only))
-
            (class PyObjectType::PyObject
               class-index
               bases
@@ -82,6 +79,18 @@
               procedure
               arity
               signature)
+
+           (class PyObjectFunctionArity0::PyObjectFunction)
+           (class PyObjectFunctionArity1::PyObjectFunction)
+           (class PyObjectFunctionArity2::PyObjectFunction)
+           (class PyObjectFunctionArity3::PyObjectFunction)
+           (class PyObjectFunctionArity4::PyObjectFunction)
+           (class PyObjectFunctionArity5::PyObjectFunction)
+           (class PyObjectFunctionArity6::PyObjectFunction)
+           (class PyObjectFunctionArity7::PyObjectFunction)
+           (class PyObjectFunctionArity8::PyObjectFunction)
+           (class PyObjectFunctionArity9::PyObjectFunction)
+           (class PyObjectFunctionArity10::PyObjectFunction)
 
            (class PyObjectMethod::PyObject
               procedure
@@ -151,6 +160,18 @@
            (py-isub-behavior-call-fallback lhs rhs)
            (py-itruediv-behavior-call-fallback lhs rhs)
            (py-ixor-behavior-call-fallback lhs rhs)
+           (py-eq-behavior-call-fallback lhs rhs)
+           (py-ne-behavior-call-fallback lhs rhs)
+           (py-ge-behavior-call-fallback lhs rhs)
+           (py-gt-behavior-call-fallback lhs rhs)
+           (py-le-behavior-call-fallback lhs rhs)
+           (py-lt-behavior-call-fallback lhs rhs)
+           (py-test-eq-behavior-call-fallback lhs rhs)
+           (py-test-ne-behavior-call-fallback lhs rhs)
+           (py-test-ge-behavior-call-fallback lhs rhs)
+           (py-test-gt-behavior-call-fallback lhs rhs)
+           (py-test-le-behavior-call-fallback lhs rhs)
+           (py-test-lt-behavior-call-fallback lhs rhs)
 
            (py-add-behavior-call-with-lhs-index-fallback index lhs rhs)
            (py-bitand-behavior-call-with-lhs-index-fallback index lhs rhs)
@@ -178,6 +199,18 @@
            (py-isub-behavior-call-with-lhs-index-fallback index lhs rhs)
            (py-itruediv-behavior-call-with-lhs-index-fallback index lhs rhs)
            (py-ixor-behavior-call-with-lhs-index-fallback index lhs rhs)
+           (py-eq-behavior-call-with-lhs-index-fallback index lhs rhs)
+           (py-ne-behavior-call-with-lhs-index-fallback index lhs rhs)
+           (py-ge-behavior-call-with-lhs-index-fallback index lhs rhs)
+           (py-gt-behavior-call-with-lhs-index-fallback index lhs rhs)
+           (py-le-behavior-call-with-lhs-index-fallback index lhs rhs)
+           (py-lt-behavior-call-with-lhs-index-fallback index lhs rhs)
+           (py-test-eq-behavior-call-with-lhs-index-fallback index lhs rhs)
+           (py-test-ne-behavior-call-with-lhs-index-fallback index lhs rhs)
+           (py-test-ge-behavior-call-with-lhs-index-fallback index lhs rhs)
+           (py-test-gt-behavior-call-with-lhs-index-fallback index lhs rhs)
+           (py-test-le-behavior-call-with-lhs-index-fallback index lhs rhs)
+           (py-test-lt-behavior-call-with-lhs-index-fallback index lhs rhs)
 
            (py-add-behavior-call-with-rhs-index-fallback lhs index rhs)
            (py-bitand-behavior-call-with-rhs-index-fallback lhs index rhs)
@@ -205,6 +238,18 @@
            (py-isub-behavior-call-with-rhs-index-fallback lhs index rhs)
            (py-itruediv-behavior-call-with-rhs-index-fallback lhs index rhs)
            (py-ixor-behavior-call-with-rhs-index-fallback lhs index rhs)
+           (py-eq-behavior-call-with-rhs-index-fallback lhs index rhs)
+           (py-ne-behavior-call-with-rhs-index-fallback lhs index rhs)
+           (py-ge-behavior-call-with-rhs-index-fallback lhs index rhs)
+           (py-gt-behavior-call-with-rhs-index-fallback lhs index rhs)
+           (py-le-behavior-call-with-rhs-index-fallback lhs index rhs)
+           (py-lt-behavior-call-with-rhs-index-fallback lhs index rhs)
+           (py-test-eq-behavior-call-with-rhs-index-fallback lhs index rhs)
+           (py-test-ne-behavior-call-with-rhs-index-fallback lhs index rhs)
+           (py-test-ge-behavior-call-with-rhs-index-fallback lhs index rhs)
+           (py-test-gt-behavior-call-with-rhs-index-fallback lhs index rhs)
+           (py-test-le-behavior-call-with-rhs-index-fallback lhs index rhs)
+           (py-test-lt-behavior-call-with-rhs-index-fallback lhs index rhs)
 
            py-type-hclass-of-instances
            py-int-hclass-of-instances
@@ -240,14 +285,10 @@
            (inline PyObject-elements-ref ::PyObject ::long)
            (PyObject-elements-set! ::PyObject ::long ::obj)
 
-           (py-call0 ::obj)
-           (py-call1 ::obj ::obj)
-           (py-call2 ::obj ::obj ::obj)
-           (py-call3 ::obj ::obj ::obj ::obj)
-           (py-call4 ::obj ::obj ::obj ::obj ::obj)
-           (py-call5 ::obj ::obj ::obj ::obj ::obj ::obj)
-	   (py-call-generic ::obj ::obj)
+	         (py-call-generic ::obj ::obj)
            (py-iter ::obj)
+           (py-call-wrong-arity arity nargs nargs-string)
+           (pack-extra-args arity args)
 
            (py-make-global)
            (py-make-caches ::int)
@@ -259,12 +300,6 @@
 
            (py-throw ::obj)
 
-           (py-eq x y)
-           (py-ne x y)
-           (py-lt x y)
-           (py-le x y)
-           (py-gt x y)
-           (py-ge x y)
            (py-is x y)
            (py-isnot x y)
            (py-in x y)
@@ -279,11 +314,12 @@
            py-False
            py-NotImplemented
 
-           (py-test obj)
+           (py-test-fallback obj)
 
            py-object-class
            py-module-class
            py-int-class
+           py-function-class
            (py-own-attr-set! obj attr val)
 
            (py-isinstance? ::PyObject ::PyObject)
@@ -406,7 +442,6 @@
            py-builtin-ZeroDivisionError
 
            (native-builtin-__import__ ::bstring)
-           (py-flag-super-called-without-arguments)
 	   (py-throw-exception-with-message exc . msg)
            )
 

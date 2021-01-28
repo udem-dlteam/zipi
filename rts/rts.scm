@@ -81,54 +81,6 @@
 (define-macro (str-representatives-eq? self other)
   `(eq? (py-str-representative ,self) (py-str-representative ,other)))
 
-(define-macro (define-all-py-callX)
-  (include "config/config.scm")
-
-  (define (define-py-callX X)
-    (let ((py-call-name (string->symbol (string-append "py-call" (number->string X))))
-          (args (map gensym (make-list X 'arg)))
-          (min-neg-arity (- 0 X 1)))
-      `(define (,py-call-name fun ,@args)
-         (declare-fixnum)
-	 (let ((fun-type (py-type fun)))
-	    (if (eq? fun-type py-function-class)
-		(let ((arity (PyObjectFunction-arity fun)))
-		   (cond
-		      ((eqv? arity ,X)
-		       ((PyObjectFunction-procedure fun) ,@args))
-		      ((not arity)
-		       (py-call-generic fun (list ,@args)))
-		      ((and (< arity 0) (>= arity ,min-neg-arity))
-		       (apply
-			  (PyObjectFunction-procedure fun)
-			  (pack-extra-args arity (list ,@args))))
-		      (else
-		       ;; Error messages
-		       (if (< arity 0)
-			   (py-throw-exception-with-message
-			      py-builtin-TypeError
-			      "missing "
-			      ,(number->string (- 0 min-neg-arity X))
-			      " required positional argument")
-			   (if (< arity ,X)
-			       (py-throw-exception-with-message
-				  py-builtin-TypeError
-				  "function takes "
-				  (number->string arity)
-				  " positional arguments but "
-				  ,(number->string X)
-				  " were given")
-			       (py-throw-exception-with-message
-				  py-builtin-TypeError
-				  "missing "
-				  (number->string (- arity ,X))
-				  " required positional argument"))))))
-		(py-call-generic fun (list ,@args)))))))
-    (let loop ((i 1) (acc '()))
-      (if (> i py-callX-args-limit)
-        `(begin ,@acc)
-        (loop (+ i 1) (cons (define-py-callX i) acc)))))
-
 ;;----------------------------------------------------------------------------
 
 ;;; Object attribute store/fetch.
@@ -587,7 +539,7 @@
 
 (define (prebootstrap-procedure->py-function procedure signature)
   (let ((py-function
-          (make-PyObjectFunction
+          (py-make-PyObjectFunction
             py-function-hclass-of-instances
             (make-vector
               (vector-length (HClass-names py-function-hclass-of-instances))
@@ -602,7 +554,7 @@
     py-function))
 
 (define (postbootstrap-procedure->py-function procedure signature)
-  (make-PyObjectFunction
+  (py-make-PyObjectFunction
     py-function-hclass-of-instances
     (make-vector
       (vector-length (HClass-names py-function-hclass-of-instances))
@@ -627,27 +579,28 @@
     (cons (py-tuple-from-scheme (list->vector args)) '())
     (cons (car args) (pack-extra-args (+ arity 1) (cdr args)))))
 
-(define (py-call0 fun)
-  (let ((fun-type (py-type fun)))
-    (if (eq? fun-type py-function-class)
-      (let ((arity (PyObjectFunction-arity fun)))
-        (cond
-          ((not arity) (py-call-generic fun '()))
-          ((= arity 0)
-            ((PyObjectFunction-procedure fun)))
-          ((= arity -1)
-            ((PyObjectFunction-procedure fun)
-              (py-tuple-from-scheme '#())))
-          (else
-            (let ((min-pos-arguments (if (< arity 0) (- 0 arity 1) arity)))
-              (py-throw-exception-with-message
-                py-builtin-TypeError
-                "function takes "
-                (number->string min-pos-arguments)
-                " positional arguments but 0 were given")))))
-      (py-call-generic fun '()))))
-
-(define-all-py-callX)
+(define (py-call-wrong-arity arity nargs nargs-string)
+  (if (fx< arity 0)
+    (py-throw-exception-with-message
+       py-builtin-TypeError
+       (string-append
+         "missing "
+         (number->string (fx- 0 (fx+ arity (fx+ 1 nargs))))
+         " required positional argument"))
+    (if (fx< arity nargs)
+      (py-throw-exception-with-message
+        py-builtin-TypeError
+        "function takes "
+        (number->string arity)
+        (string-append
+          " positional arguments but "
+          nargs-string
+          " were given"))
+      (py-throw-exception-with-message
+        py-builtin-TypeError
+        "missing "
+        (number->string (fx- arity nargs))
+        " required positional argument"))))
 
 (define (py-call-generic/*args obj args *args-lst)
   (let ((unpacked-args (iterables*->list *args-lst)))
@@ -794,12 +747,12 @@
          (mapping-keys (py-call keys-method))
          (keys-iterator (py-iter mapping-keys)))
     (let loop ((acc '()) (next-key (py-next keys-iterator)))
-      (cond ((py-subtype-of-str? next-key)
+      (cond ((not next-key)
+              (reverse! acc))
+            ((py-subtype-of-str? next-key)
              (loop
               (cons (cons next-key (py-getitem obj next-key)) acc)
               (py-next keys-iterator)))
-            ((not next-key)
-             (reverse! acc))
             (else
              (py-throw-exception-with-message
               py-builtin-TypeError
@@ -978,13 +931,13 @@
           (value (kwargs-table-pop! kwargs-table name)))
       (cond
         ((not value)
-          (cons default (align-with-signature-hashed-kwargs:get-values (cdr args-defaults) kwargs-table)))
+          (cons default (align-with-signature-hashed-kwargs:get-values (map car (cdr args-defaults)) kwargs-table)))
         ((eq? value kwargs-already-seen)
           (py-throw-exception-with-message
             py-builtin-TypeError
             "pending exception message (code 24)"))
         (else
-          (cons (cdr value) (align-with-signature-hashed-kwargs:get-values (cdr args-defaults) kwargs-table)))))))
+          (cons (cdr value) (align-with-signature-hashed-kwargs:get-values (map car (cdr args-defaults)) kwargs-table)))))))
 
 (define (align-with-signature-hashed-kwargs:get-unused-kwargs kwargs-table kwarg)
   (let* ((len (vector-length kwargs-table))
@@ -1032,13 +985,13 @@
            (value (ordered-table-pop! ordered-table name #f)))
       (cond
         ((not value)
-          (cons default (align-with-signature-kwargs-ordered-table:get-values (cdr args-defaults) ordered-table)))
+          (cons default (align-with-signature-kwargs-ordered-table:get-values (map car (cdr args-defaults)) ordered-table)))
         ((eq? value kwargs-already-seen)
           (py-throw-exception-with-message
             py-builtin-TypeError
             "pending exception message (code 31)"))
         (else
-          (cons value (align-with-signature-kwargs-ordered-table:get-values (cdr args-defaults) ordered-table)))))))
+          (cons value (align-with-signature-kwargs-ordered-table:get-values (map car (cdr args-defaults)) ordered-table)))))))
 
 (define (align-with-signature-kwargs-ordered-table:get-unused-kwargs unused-kwargs kwarg)
   (if kwarg
@@ -1288,48 +1241,6 @@
             (py-str-to-scheme y-type-name)
             "'"))))))
 
-;; ==
-(define (py-eq x y)
-  (let* ((__eq__ (getattribute-from-obj-mro x (& "__eq__")))
-         (left-op-result
-            (if (eq? __eq__ py-absent)
-              py-NotImplemented
-              (py-call __eq__ x y))))
-      (if (eq? left-op-result py-NotImplemented)
-        (let ((right-__eq__ (getattribute-from-obj-mro y (& "__eq__"))))
-          (let ((right-op-result
-                  (if (eq? right-__eq__ py-absent)
-                    py-NotImplemented
-                    (py-call right-__eq__ y x))))
-            (if (eq? right-op-result py-NotImplemented)
-              ;; fall back on 'is'
-              (py-is x y)
-              right-op-result)))
-        left-op-result)))
-
-
-;; !=
-(define (py-ne x y) ;; x != y
-  (let ((__ne__ (getattribute-from-obj-mro x (& "__ne__"))))
-    (let ((left-op-result
-            (if (eq? __ne__ py-absent)
-              py-NotImplemented
-              (py-call __ne__ x y))))
-      (if (eq? left-op-result py-NotImplemented)
-        (let* ((right-__ne__ (getattribute-from-obj-mro y (& "__ne__")))
-               (right-op-result
-                  (if (eq? right-__ne__ py-absent)
-                    py-NotImplemented
-                    (py-call right-__ne__ y x))))
-            (if (eq? right-op-result py-NotImplemented)
-              ;; fall back on 'not x == y'
-              (let ((eq-result (py-eq x y)))
-                (if (py-test eq-result)
-                  py-False
-                  py-True))
-              right-op-result))
-        left-op-result))))
-
 ;; generic operator protocol
 (define-macro (define-binary-operator-protocol fun-name method rmethod operator)
  `(define (,fun-name x y)
@@ -1362,21 +1273,13 @@
         (lambda ()
           (throw-unsupported-operand x y ,operator)))))))
 
-(define-binary-operator-protocol py-lt "__lt__" "__gt__" "<")
-
-(define-binary-operator-protocol py-le "__le__" "__ge__" "<=")
-
-(define-binary-operator-protocol py-gt "__gt__" "__lt__" ">")
-
-(define-binary-operator-protocol py-ge "__ge__" "__le__" ">=")
-
 (define (py-is x y) ;; x is y
   (if (py-test-is x y)
     py-True
     py-False))
 
 (define (py-isnot x y) ;; x is not y
-  (if (not (eq? x y))
+  (if (py-test-isnot x y)
     py-True
     py-False))
 
@@ -2079,7 +1982,7 @@
 ;; Returns the truthiness of an object by calling obj.__bool__
 ;; py-test is expected to return #t or #f, not a Python objects
 ;; True and False are converted to #t and #f
-(define (py-test obj)
+(define (py-test-fallback obj)
   (cond ((eq? obj py-True) ;; base case
          #t)
         ((eq? obj py-False) ;; base case
@@ -8102,19 +8005,17 @@
 ;; For practical suggestions on how to design cooperative classes using
 ;; super(), see guide to using super().
 
-(define (py-flag-super-called-without-arguments)
-  'super-called-without-arguments
-)
+(define (py-throw-super-no-arguments-error)
+  (py-throw-exception-with-message
+      py-builtin-RuntimeError
+      "super(): no arguments"))
 
 (define (super-init self type object)
-  (cond ((eq? type py-absent)
-          (raise (py-flag-super-called-without-arguments)))
-        ((eq? object py-absent)
-          (error "super not implemented for 1 argument"))
-        (else
-          (begin
-            (py-own-attr-set! self (& "__thisclass__") type)
-            (py-own-attr-set! self (& "__self__") object)))))
+  (if (eq? object py-absent)
+    (error "super not implemented for 1 argument")
+    (begin
+      (py-own-attr-set! self (& "__thisclass__") type)
+      (py-own-attr-set! self (& "__self__") object))))
 
 (define super.__init__
   (procedure->py-function

@@ -56,8 +56,18 @@
 		    module))))
 	 '(end-registering-constants))))
 
+(define (sort-semantics semantics)
+  (define (only form)
+    (let loop ((s semantics))
+      (cond
+        ((null? s) '())
+        ((eq? (cadar s) form) (cons (car s) (loop (cdr s))))
+        (else (loop (cdr s))))))
+
+  (append (only 'define-macro) (only 'define)))
+
 (define (pyc-scheme-gambit ast conf)
-  (let* ((semantics (collect-semantics* ast conf)))
+  (let* ((semantics (sort-semantics (collect-semantics* ast conf))))
     (if (null? semantics)
       ;; normal compilation
       (let* ((prog (pyc-scheme ast conf))
@@ -187,35 +197,35 @@
 
 (define-walk-method (scheme this::PycWhile conf)
 
-   (define (scheme-while this)
-      (let ((loop (my-gensym '%while)))
-	 (epairify this
-	    (if (PycLoop-need-continue this)
-		`(let ,loop ()
-		      (bind-exit (%continue)
-			 (when ,(pyc-test (PycWhile-test this) conf)
-			    ,(scheme (PycLoop-body this) conf)
-			    (,loop))))
-		`(let ,loop ()
-		      (when ,(pyc-test (PycWhile-test this) conf)
-			 ,(scheme (PycLoop-body this) conf)
-			 (,loop)))))))
+  (define (scheme-while this)
+    (let ((loop (my-gensym '%while)))
+      (epairify this
+        (if (PycLoop-need-continue this)
+          `(let ,loop ()
+            (bind-exit (%continue)
+              (when ,(pyc-test (PycWhile-test this) conf)
+                ,(scheme (PycLoop-body this) conf)
+                (,loop))))
+          `(let ,loop ()
+            (when ,(pyc-test (PycWhile-test this) conf)
+              ,(scheme (PycLoop-body this) conf)
+              (,loop)))))))
 
-   (cond
-      ((PycLoop-need-break this)
-       (epairify this
-	  `(bind-exit (%break)
-	      ,(scheme-while this)
-	      ,@(if (isa? (PycLoop-else this) PycPass)
-		    '()
-		    (list (scheme (PycLoop-else this) conf))))))
-      ((isa? (PycLoop-else this) PycPass)
-       (scheme-while this))
-      (else
-       (epairify this
-	  `(begin
-	      ,(scheme-while this)
-	      ,(scheme (PycLoop-else this) conf))))))
+  (cond
+    ((PycLoop-need-break this)
+      (epairify this
+        `(bind-exit (%break)
+          ,(scheme-while this)
+          ,@(if (isa? (PycLoop-else this) PycPass)
+            '()
+            (list (scheme (PycLoop-else this) conf))))))
+    ((isa? (PycLoop-else this) PycPass)
+      (scheme-while this))
+    (else
+      (epairify this
+        `(begin
+          ,(scheme-while this)
+          ,(scheme (PycLoop-else this) conf))))))
 
 (define-walk-method (scheme this::PycFor conf)
 
@@ -261,19 +271,10 @@
 	      ,(scheme (PycLoop-else this) conf))))))
 
 (define-walk-method (scheme this::PycIf conf)
-  (let ((test (PycIf-test this)))
-    (if (and (PycBinary? test)
-             (eq? (PycBinary-op test) 'is))
-      (epairify this
-        `(if (py-test-is ,(scheme (PycBinary-lhs test) conf)
-                         ,(scheme (PycBinary-rhs test) conf))
-          ,(scheme (PycIf-then this) conf)
-          ,(scheme (PycIf-else this) conf)))
-      ;; general case
-      (epairify this
-        `(if ,(pyc-test (PycIf-test this) conf)
-          ,(scheme (PycIf-then this) conf)
-          ,(scheme (PycIf-else this) conf))))))
+  (epairify this
+    `(if ,(pyc-test (PycIf-test this) conf)
+      ,(scheme (PycIf-then this) conf)
+      ,(scheme (PycIf-else this) conf))))
 
 (define-walk-method (scheme this::PycWith conf)
   (define (in-contexts items body)
@@ -681,11 +682,24 @@
       (isub . py-)
       (itruediv . py/)
       (ixor . py^)))
-  (cdr (assq op ops)))
+  (let ((res (assq op ops)))
+    (and res (cdr res))))
+
+
+(define (dispatch-native-cmp-operator op)
+  (define ops
+    `((eq . py==)
+      (ne . py!=)
+      (ge . py>=)
+      (gt . py>)
+      (le . py<=)
+      (lt . py<)))
+  (let ((res (assq op ops)))
+    (and res (cdr res))))
 
 
 (define-walk-method (scheme this::PycBinary conf)
-  (define native-types '(Uint Usint Ubint Ufloat))
+  (define native-types '(Uint Usint Ubint Ufloat Ubool))
 
   (define (python-op)
     (epairify this
@@ -695,9 +709,15 @@
 
   (define (scheme-op)
     (epairify this
-      `(,(dispatch-native-operator (PycBinary-op this))
-        ,(scheme (PycBinary-lhs this) conf)
-        ,(scheme (PycBinary-rhs this) conf))))
+      (let ((op (dispatch-native-operator (PycBinary-op this))))
+        (if op
+          `(,op
+            ,(scheme (PycBinary-lhs this) conf)
+            ,(scheme (PycBinary-rhs this) conf))
+          `(py-test-from-scheme
+              (,(dispatch-native-cmp-operator (PycBinary-op this))
+              ,(scheme (PycBinary-lhs this) conf)
+              ,(scheme (PycBinary-rhs this) conf)))))))
 
   (let ((lhs-type-hint (PycBinary-lhs-type-hint this))
         (rhs-type-hint (PycBinary-rhs-type-hint this)))
@@ -862,33 +882,16 @@
 	     ,(scheme (PycKont-body this) conf)))))
 
 (define-walk-method (scheme this::PycCall conf)
-   ;; Catches the super-called-without-arguments to implicitly pass
-   ;; arguments to a super() call
-   (define (super-hook)
-      (let* ((caller (config-get conf fun:))
-            (caller-args (and caller (PycFun-args caller)))
-            (class-key (and caller (PycFun-super-in-class caller))))
-        (cond
-          ((and caller class-key (> (length caller-args) 0))
-           `(py-call py-builtin-super ,class-key
-             ,(PycDecl-name (list-ref caller-args 0))))
-          (else
-           `(py-throw py-builtin-RuntimeError)))))
-
-   (define (super-handler call)
-      (let ((caller (config-get conf fun:)))
-        `(with-handler
-          (lambda (%exn)
-            (if (eq? %exn (py-flag-super-called-without-arguments))
-              ,(super-hook)
-              (raise %exn)))
-          ,call)))
-
-   (define (invoke fun args)
-        (let* ((call `(py-call ,fun ,@args)))
-          (if (or (> (length args) 0) (not (PycCall-can-be-super this)))
-              call
-              (super-handler call))))
+    (define (invoke fun args)
+      (if (or (> (length args) 0) (not (PycCall-can-be-super this)))
+        `(py-call ,fun ,@args)
+        (let* ((caller (config-get conf fun:))
+              (caller-args (and caller (PycFun-args caller)))
+              (class-key (and caller (PycFun-super-in-class caller)))
+              (super-instance (if (and caller-args (> (length caller-args) 0))
+                                  (PycDecl-name (list-ref caller-args 0))
+                                  #f)))
+          `(py-call0-maybe-super ,fun ,class-key ,super-instance))))
 
     (define (gen-args call conf)
       (append
@@ -1029,19 +1032,10 @@
       	     (py-throw py-builtin-AssertionError))))))
 
 (define-walk-method (scheme this::PycIfExp conf)
-  (let ((test (PycIfExp-test this)))
-    (if (and (PycBinary? test)
-             (eq? (PycBinary-op test) 'is))
-      (epairify this
-       `(if (py-test-is
-                ,(scheme (PycBinary-lhs test) conf)
-                ,(scheme (PycBinary-rhs test) conf))
+  (epairify this
+    `(if (py-test ,(scheme (PycIfExp-test this) conf))
          ,(scheme (PycIfExp-body this) conf)
-         ,(scheme (PycIfExp-orelse this) conf)))
-      (epairify this
-        `(if (py-test ,(scheme (PycIfExp-test this) conf))
-             ,(scheme (PycIfExp-body this) conf)
-             ,(scheme (PycIfExp-orelse this) conf))))))
+         ,(scheme (PycIfExp-orelse this) conf))))
 
 (define-walk-method (scheme this::PycUnimplemented conf)
   `(py-throw-exception-with-message

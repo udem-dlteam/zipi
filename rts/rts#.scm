@@ -244,12 +244,47 @@
 
 (define-type-of-PyObject PyObjectFunction
   id: PyObjectFunction-C6486EB6-1522-42BA-A082-B6563F943CDF
+  extender: define-type-of-PyObjectFunction
   copier: #f
   macros: ;; this will inline the operations on this type
   ;; attrs
   procedure
   arity
   signature)
+
+(define-type-of-PyObjectFunction PyObjectFunctionArity0
+  id: PyObjectFunctionArity0-C6486EB6-1522-42BA-A082-B6563F943CDF
+  macros:)
+(define-type-of-PyObjectFunction PyObjectFunctionArity1
+  id: PyObjectFunctionArity1-C6486EB6-1522-42BA-A082-B6563F943CDF
+  macros:)
+(define-type-of-PyObjectFunction PyObjectFunctionArity2
+  id: PyObjectFunctionArity2-C6486EB6-1522-42BA-A082-B6563F943CDF
+  macros:)
+(define-type-of-PyObjectFunction PyObjectFunctionArity3
+  id: PyObjectFunctionArity3-C6486EB6-1522-42BA-A082-B6563F943CDF
+  macros:)
+(define-type-of-PyObjectFunction PyObjectFunctionArity4
+  id: PyObjectFunctionArity4-C6486EB6-1522-42BA-A082-B6563F943CDF
+  macros:)
+(define-type-of-PyObjectFunction PyObjectFunctionArity5
+  id: PyObjectFunctionArity5-C6486EB6-1522-42BA-A082-B6563F943CDF
+  macros:)
+(define-type-of-PyObjectFunction PyObjectFunctionArity6
+  id: PyObjectFunctionArity6-C6486EB6-1522-42BA-A082-B6563F943CDF
+  macros:)
+(define-type-of-PyObjectFunction PyObjectFunctionArity7
+  id: PyObjectFunctionArity7-C6486EB6-1522-42BA-A082-B6563F943CDF
+  macros:)
+(define-type-of-PyObjectFunction PyObjectFunctionArity8
+  id: PyObjectFunctionArity8-C6486EB6-1522-42BA-A082-B6563F943CDF
+  macros:)
+(define-type-of-PyObjectFunction PyObjectFunctionArity9
+  id: PyObjectFunctionArity9-C6486EB6-1522-42BA-A082-B6563F943CDF
+  macros:)
+(define-type-of-PyObjectFunction PyObjectFunctionArity10
+  id: PyObjectFunctionArity10-C6486EB6-1522-42BA-A082-B6563F943CDF
+  macros:)
 
 (define-type-of-PyObject PyObjectMethod
   id: PyObjectMethod-C6486EB6-1522-42BA-A082-B6563F943CDF
@@ -479,12 +514,6 @@
               (loop (cdr names) (+ i 1) table))))
         #f)))
 
-  (define (make-py-call-name n)
-    (string->symbol
-      (string-append
-        "py-call"
-        (number->string n))))
-
   (let* ((split-args
           (let loop ((args args) (acc '()))
             (if (or (null? args) (keyword? (car args)))
@@ -551,14 +580,11 @@
           (list ,@**kwargs)))
       (else
         (let ((nargs (length pos-args)))
-          (import (zipi rts config))
           (cond
             ((not (null? *args))
               `(py-call-generic/*args ,f (list ,@pos-args) (list ,@*args)))
-            ((<= nargs py-callX-args-limit)
-              `(,(make-py-call-name nargs) ,f ,@pos-args))
             (else
-              `(py-call-generic ,f (list ,@pos-args)))))))))
+              `(py-callX ,nargs ,f ,@pos-args))))))))
 
 (define (string-split string split)
   (call-with-input-string string (lambda (port) (read-all port (lambda (p) (read-line p split))))))

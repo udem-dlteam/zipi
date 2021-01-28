@@ -65,6 +65,16 @@
               this)))
         (else this))))
 
+(define (make-inline_host_code this)
+  (let* ((loc (PycNode-loc this))
+        (args (PycCall-args this))
+        (args-len (length args)))
+    (if (and
+          (= args-len 1)
+          (PycString? (car args)))
+      (new-PycPragma loc (call-with-input-string (PycLiteralValue-val (car args)) read))
+      (error "SyntaxError" "wrong argument for inline_host_code" args))))
+
 (define (make-class_getattr this)
   (let* ((loc (PycNode-loc this))
         (args (PycCall-args this))
@@ -77,7 +87,7 @@
           loc
           (new-PycPragma loc 'getattribute-from-obj-mro)
           args)
-        (error "SyntaxError" "wrong argument for class_getattr" #f))))
+        (error "SyntaxError" "wrong argument for class_getattr" args))))
 
 (define (make-call_host this)
   (let* ((loc (PycNode-loc this))
@@ -109,15 +119,18 @@
 
 (define macro-intrinsics
   (list
+    (cons 'inline_host_code make-inline_host_code)
     (cons 'class_getattr make-class_getattr)
     (cons 'call_host make-call_host)
-    (cons 'float_unbox (make-pragma-call-maker 'py-float-to-scheme))
-    (cons 'float_box (make-pragma-call-maker 'py-float-from-scheme))
-    (cons 'int_box (make-pragma-call-maker 'py-int-from-scheme))
-    (cons 'int_unbox (make-pragma-call-maker 'py-int-to-scheme))
-    (cons 'bool_unbox (make-pragma-call-maker 'py-bool-to-scheme))
-    (cons 'sint_unbox (make-pragma-call-maker 'py-sint-to-scheme))
-    (cons 'bint_unbox (make-pragma-call-maker 'py-bint-to-scheme))))
+    (cons 'py_float_to_host (make-pragma-call-maker 'py-float-to-scheme))
+    (cons 'py_float_from_host (make-pragma-call-maker 'py-float-from-scheme))
+    (cons 'py_int_from_host (make-pragma-call-maker 'py-int-from-scheme))
+    (cons 'py_int_to_host (make-pragma-call-maker 'py-int-to-scheme))
+    (cons 'py_bool_to_host_int (make-pragma-call-maker 'py-bool-to-scheme-int))
+    (cons 'py_sint_to_host (make-pragma-call-maker 'py-sint-to-scheme))
+    (cons 'py_bint_to_host (make-pragma-call-maker 'py-bint-to-scheme))
+    (cons 'py_bool_from_host_bool (make-pragma-call-maker 'py-bool-from-scheme-bool))
+    (cons 'py_bool_to_host_bool (make-pragma-call-maker 'py-bool-to-scheme-bool))))
 
 (define static-intrinsics
   (list
@@ -344,14 +357,16 @@
         (expr (PycPragma-expr fun)))
     (cond
       ((eq? expr 'py-int-to-scheme) 'Uint)
-      ((eq? expr 'py-bool-to-scheme) 'Usint)
+      ((eq? expr 'py-bool-to-scheme-int) 'Usint)
       ((eq? expr 'py-sint-to-scheme) 'Usint)
       ((eq? expr 'py-bint-to-scheme) 'Ubint)
       ((eq? expr 'py-float-to-scheme) 'Ufloat)
+      ((eq? expr 'py-bool-to-scheme-bool) 'Ubool)
       ((eq? expr 'py-int-from-scheme) 'int)
       ((eq? expr 'py-sint-from-scheme) 'sint)
       ((eq? expr 'py-bint-from-scheme) 'bint)
       ((eq? expr 'py-float-from-scheme) 'float)
+      ((eq? expr 'py-bool-from-scheme-bool) 'bool)
       (else #f))))
 
 (define (get-expr-type-hint expr)
@@ -386,8 +401,10 @@
 (define (is-inlined-semantics name)
   (not (not
     (memq name '(add bitand bitor floordiv lshift matmul mod mul pow rshift sub
-                 truediv xor iadd ibitand ibitor ifloordiv ilshift imatmul imod
-                 imul ipow irshift isub itruediv ixor)))))
+                 truediv xor
+                 iadd ibitand ibitor ifloordiv ilshift imatmul imod
+                 imul ipow irshift isub itruediv ixor
+                 ge gt le lt eq ne)))))
 
 (define-walk-method (mark-define-semantics! this::PycFun parent-semantics intrinsics-info)
   (let* ((decorators (PycFun-decorators this))

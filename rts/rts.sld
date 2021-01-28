@@ -3,6 +3,8 @@
     run-as-main
     compile-source
 
+    inline-c-code
+
     PyObject?
     &
     &&
@@ -20,7 +22,6 @@
     with-handler
     bind-exit
 
-    py-flag-super-called-without-arguments
     py-absent
     global-get
     global-put!
@@ -29,6 +30,9 @@
     cell-ref
     cell-set!
 
+    py-make-PyObjectFunction
+    $py-make-PyObjectFunction
+
     make-signature
     py-call
     py-call-generic
@@ -36,11 +40,16 @@
     py-call-hashed-kwargs
     py-call-generic-kwargs
     py-call0
-    py-call1
-    py-call2
-    py-call3
-    py-call4
-    py-call5
+    py-callX
+    $py-callX
+    py-call-wrong-arity
+    py-call0-maybe-super
+
+    with-specialized-PyObjectFunction-args-limit
+
+    py-throw-super-no-arguments-error
+
+    pack-extra-args
 
     py-isinstance?
     py-issubclass?
@@ -116,13 +125,72 @@
     py-xor-fallback:normal
     py-xor-fallback:reflected
     py-xor-fallback:err
-    py-eq
-    py-ne
-    py-lt
-    py-le
-    py-gt
+
     py-ge
+    py-ge-fallback
+    py-ge-fallback:normal
+    py-ge-fallback:reflected
+    py-ge-fallback:err
+    py-gt
+    py-gt-fallback
+    py-gt-fallback:normal
+    py-gt-fallback:reflected
+    py-gt-fallback:err
+    py-le
+    py-le-fallback
+    py-le-fallback:normal
+    py-le-fallback:reflected
+    py-le-fallback:err
+    py-lt
+    py-lt-fallback
+    py-lt-fallback:normal
+    py-lt-fallback:reflected
+    py-lt-fallback:err
+    py-eq
+    py-eq-fallback
+    py-eq-fallback:normal
+    py-eq-fallback:reflected
+    py-eq-fallback:default
+    py-ne
+    py-ne-fallback
+    py-ne-fallback:normal
+    py-ne-fallback:reflected
+    py-ne-fallback:default
+
+    py-test-ge
+    py-test-ge-fallback
+    py-test-ge-fallback:normal
+    py-test-ge-fallback:reflected
+    py-test-ge-fallback:err
+    py-test-gt
+    py-test-gt-fallback
+    py-test-gt-fallback:normal
+    py-test-gt-fallback:reflected
+    py-test-gt-fallback:err
+    py-test-le
+    py-test-le-fallback
+    py-test-le-fallback:normal
+    py-test-le-fallback:reflected
+    py-test-le-fallback:err
+    py-test-lt
+    py-test-lt-fallback
+    py-test-lt-fallback:normal
+    py-test-lt-fallback:reflected
+    py-test-lt-fallback:err
+    py-test-eq
+    py-test-eq-fallback
+    py-test-eq-fallback:normal
+    py-test-eq-fallback:reflected
+    py-test-eq-fallback:default
+    py-test-ne
+    py-test-ne-fallback
+    py-test-ne-fallback:normal
+    py-test-ne-fallback:reflected
+    py-test-ne-fallback:default
+
+    py-test-is
     py-is
+    py-test-isnot
     py-isnot
     py-in
     py-notin
@@ -311,6 +379,56 @@
     py-itruediv-floatX-sintY-inline
     py-ixor-floatX-sintY-inline
 
+    py-eq-sintX-sintY-inline
+    py-ne-sintX-sintY-inline
+    py-ge-sintX-sintY-inline
+    py-gt-sintX-sintY-inline
+    py-le-sintX-sintY-inline
+    py-lt-sintX-sintY-inline
+    py-eq-floatX-floatY-inline
+    py-ne-floatX-floatY-inline
+    py-ge-floatX-floatY-inline
+    py-gt-floatX-floatY-inline
+    py-le-floatX-floatY-inline
+    py-lt-floatX-floatY-inline
+    py-eq-floatX-sintY-inline
+    py-ne-floatX-sintY-inline
+    py-ge-floatX-sintY-inline
+    py-gt-floatX-sintY-inline
+    py-le-floatX-sintY-inline
+    py-lt-floatX-sintY-inline
+    py-eq-sintX-floatY-inline
+    py-ne-sintX-floatY-inline
+    py-ge-sintX-floatY-inline
+    py-gt-sintX-floatY-inline
+    py-le-sintX-floatY-inline
+    py-lt-sintX-floatY-inline
+
+    py-test-eq-sintX-sintY-inline
+    py-test-ne-sintX-sintY-inline
+    py-test-ge-sintX-sintY-inline
+    py-test-gt-sintX-sintY-inline
+    py-test-le-sintX-sintY-inline
+    py-test-lt-sintX-sintY-inline
+    py-test-eq-floatX-floatY-inline
+    py-test-ne-floatX-floatY-inline
+    py-test-ge-floatX-floatY-inline
+    py-test-gt-floatX-floatY-inline
+    py-test-le-floatX-floatY-inline
+    py-test-lt-floatX-floatY-inline
+    py-test-eq-floatX-sintY-inline
+    py-test-ne-floatX-sintY-inline
+    py-test-ge-floatX-sintY-inline
+    py-test-gt-floatX-sintY-inline
+    py-test-le-floatX-sintY-inline
+    py-test-lt-floatX-sintY-inline
+    py-test-eq-sintX-floatY-inline
+    py-test-ne-sintX-floatY-inline
+    py-test-ge-sintX-floatY-inline
+    py-test-gt-sintX-floatY-inline
+    py-test-le-sintX-floatY-inline
+    py-test-lt-sintX-floatY-inline
+
     py-invert
     py-neg
     py-pos
@@ -325,8 +443,10 @@
     py-delitem
     py-delitem-fallback
 
-    py-test-is
     py-test
+    py-test-from-scheme
+    py-test-fallback
+
     py-not
     py-next
     py-import
@@ -380,6 +500,18 @@
     py-isub-behavior-call-fallback
     py-itruediv-behavior-call-fallback
     py-ixor-behavior-call-fallback
+    py-eq-behavior-call-fallback
+    py-ne-behavior-call-fallback
+    py-ge-behavior-call-fallback
+    py-gt-behavior-call-fallback
+    py-le-behavior-call-fallback
+    py-lt-behavior-call-fallback
+    py-test-eq-behavior-call-fallback
+    py-test-ne-behavior-call-fallback
+    py-test-ge-behavior-call-fallback
+    py-test-gt-behavior-call-fallback
+    py-test-le-behavior-call-fallback
+    py-test-lt-behavior-call-fallback
 
     py-add-behavior-call-with-lhs-index-fallback
     py-bitand-behavior-call-with-lhs-index-fallback
@@ -407,6 +539,18 @@
     py-isub-behavior-call-with-lhs-index-fallback
     py-itruediv-behavior-call-with-lhs-index-fallback
     py-ixor-behavior-call-with-lhs-index-fallback
+    py-eq-behavior-call-with-lhs-index-fallback
+    py-ne-behavior-call-with-lhs-index-fallback
+    py-ge-behavior-call-with-lhs-index-fallback
+    py-gt-behavior-call-with-lhs-index-fallback
+    py-le-behavior-call-with-lhs-index-fallback
+    py-lt-behavior-call-with-lhs-index-fallback
+    py-test-eq-behavior-call-with-lhs-index-fallback
+    py-test-ne-behavior-call-with-lhs-index-fallback
+    py-test-ge-behavior-call-with-lhs-index-fallback
+    py-test-gt-behavior-call-with-lhs-index-fallback
+    py-test-le-behavior-call-with-lhs-index-fallback
+    py-test-lt-behavior-call-with-lhs-index-fallback
 
     py-add-behavior-call-with-rhs-index-fallback
     py-bitand-behavior-call-with-rhs-index-fallback
@@ -434,6 +578,18 @@
     py-isub-behavior-call-with-rhs-index-fallback
     py-itruediv-behavior-call-with-rhs-index-fallback
     py-ixor-behavior-call-with-rhs-index-fallback
+    py-eq-behavior-call-with-rhs-index-fallback
+    py-ne-behavior-call-with-rhs-index-fallback
+    py-ge-behavior-call-with-rhs-index-fallback
+    py-gt-behavior-call-with-rhs-index-fallback
+    py-le-behavior-call-with-rhs-index-fallback
+    py-lt-behavior-call-with-rhs-index-fallback
+    py-test-eq-behavior-call-with-rhs-index-fallback
+    py-test-ne-behavior-call-with-rhs-index-fallback
+    py-test-ge-behavior-call-with-rhs-index-fallback
+    py-test-gt-behavior-call-with-rhs-index-fallback
+    py-test-le-behavior-call-with-rhs-index-fallback
+    py-test-lt-behavior-call-with-rhs-index-fallback
 
     py-add-behaviors-table
     py-bitand-behaviors-table
@@ -461,6 +617,19 @@
     py-isub-behaviors-table
     py-itruediv-behaviors-table
     py-ixor-behaviors-table
+
+    py-eq-behaviors-table
+    py-ne-behaviors-table
+    py-ge-behaviors-table
+    py-gt-behaviors-table
+    py-le-behaviors-table
+    py-lt-behaviors-table
+    py-test-eq-behaviors-table
+    py-test-ne-behaviors-table
+    py-test-ge-behaviors-table
+    py-test-gt-behaviors-table
+    py-test-le-behaviors-table
+    py-test-lt-behaviors-table
 
     procedure->py-function
 
@@ -492,6 +661,7 @@
     py-sint-to-scheme-float
     py-bint-to-scheme-float
     py-bool-to-scheme
+    py-bool-from-scheme-bool
 
     py-float-from-scheme
     py-float-from-scheme-fallback
@@ -714,6 +884,22 @@
     py-builtin-vars
     py-builtin-zip
 
+    py-function-class
+    PyObjectFunction-arity
+    PyObjectFunction-procedure
+
+    PyObjectFunctionArity0?
+    PyObjectFunctionArity1?
+    PyObjectFunctionArity2?
+    PyObjectFunctionArity3?
+    PyObjectFunctionArity4?
+    PyObjectFunctionArity5?
+    PyObjectFunctionArity6?
+    PyObjectFunctionArity7?
+    PyObjectFunctionArity8?
+    PyObjectFunctionArity9?
+    PyObjectFunctionArity10?
+
     build-builtins
     compile-flag-set!
     debug-flag-set!
@@ -729,8 +915,9 @@
 
     py-expression
     PyObject-class
-    py-PyObject-class
-    py-PyObjectType-class-index
+    PyObject-hclass
+    PyObject-%elements
+    PyObjectType-class-index
     py-int-class
     py-float-class
     int-cache

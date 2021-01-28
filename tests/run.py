@@ -4,13 +4,65 @@ import re
 import argparse
 import subprocess
 import multiprocessing
+import signal
+import collections
 
 # Console color codes
 bcolors = {
-    'FAIL': '\033[91m',
-    'OKGREEN': '\033[92m',
+    'RED': '\033[91m',
+    'GREEN': '\033[92m',
+    'YELLOW': '\033[93m',
     'ENDC': '\033[0m'
 }
+
+# Tests results
+class Status:
+    def __init__(self, *messages):
+        self.messages = messages
+
+class OK(Status):
+    priority = 0
+
+    @staticmethod
+    def status_repr():
+        return colored('OK', 'GREEN')
+
+    @staticmethod
+    def is_success():
+        return True
+
+class MinorFail(Status):
+    priority = 1
+
+    @staticmethod
+    def status_repr():
+        return colored('MINOR', 'YELLOW')
+
+    @staticmethod
+    def is_success():
+        return True
+
+class MajorFail(Status):
+    priority = 2
+
+    @staticmethod
+    def status_repr():
+        return colored('MAJOR', 'RED')
+
+    @staticmethod
+    def is_success():
+        return False
+
+class CriticalFail(Status):
+    priority = 3
+
+    @staticmethod
+    def status_repr():
+        return colored('CRITICAL', 'RED')
+
+    @staticmethod
+    def is_success():
+        return False
 
 
 def colored(text, color):
@@ -66,12 +118,28 @@ def run_one_test(path, cpython, zipi):
 
     scheme_output = subprocess.run([*zipi.split(), path], stdout=subprocess.PIPE)
 
-    if cpython_output.returncode == 0:
-        return cpython_output.stdout == scheme_output.stdout
+    scheme_stdout = scheme_output.stdout
+    cpython_stdout = cpython_output.stdout
+
+    if scheme_output.returncode == -signal.SIGSEGV:
+        return CriticalFail('Segmentation fault')
+    elif cpython_output.returncode == 0:
+        if cpython_stdout == scheme_stdout:
+            return OK()
+        else:
+            return MajorFail('Incorrect result or unexpected exception')
     else:
         cpython_error = cpython_output.stderr.decode().strip().rsplit('\n', 1)[-1]
-        zipi_error = scheme_output.stdout.decode().strip().rsplit('\n', 1)[-1]
-        return cpython_error == zipi_error
+        zipi_error = scheme_stdout.decode().strip().rsplit('\n', 1)[-1]
+
+        if cpython_error == zipi_error:
+            return OK()
+        elif cpython_error.split(":")[0] == zipi_error.split(":")[0]:
+            return MinorFail(
+                        f'(cPython) {cpython_error}',
+                        f'(zipi)    {zipi_error}')
+        else:
+            return MajorFail('Incorrect exception raised or no exception raised')
 
 
 def process_file(file, folder, cpython, zipi):
@@ -79,12 +147,13 @@ def process_file(file, folder, cpython, zipi):
     Wrapper to run the test at [folder]/[file] from a subprocess
     """
     path = os.path.join(folder, file)
-    success = run_one_test(path, cpython, zipi)
-    status = colored('OK', 'OKGREEN') if success else colored('FAIL', 'FAIL')
+    status = run_one_test(path, cpython, zipi)
 
-    print(f'     {clean_name(file)}: {"." * (45 - len(file))} {status}')
+    print(f'     {clean_name(file)}: {"." * (45 - len(file))} {status.status_repr()}')
+    for msg in status.messages:
+        print(f'       {msg}')
 
-    return success
+    return status
 
 
 def run_all(cpython='python3', zipi='../bin/zipi.gambit', pattern=None):
@@ -99,7 +168,7 @@ def run_all(cpython='python3', zipi='../bin/zipi.gambit', pattern=None):
 
     test_files = collect_tests(pattern)
     n_tests = sum(len(tests) for tests in test_files.values())
-    n_success = 0
+    results = collections.defaultdict(int)
 
     print(f"=== Zipi tests ({n_tests} tests) ===")
 
@@ -107,15 +176,17 @@ def run_all(cpython='python3', zipi='../bin/zipi.gambit', pattern=None):
         print(f' - {clean_name(folder)} ({len(folder_tests)} tests)')
 
         for folder_test in folder_tests:
-            n_success += process_file(folder_test, folder, cpython, zipi)
+            result = process_file(folder_test, folder, cpython, zipi)
+            results[type(result)] += 1
 
     total_time = time.time() - start
 
     print()
     print('-' * 55)
-    print(f'Ran {n_tests} tests in {total_time:.1f}s  -  Passed: {n_success}  -  Failed: {n_tests - n_success}')
-    if n_success != n_tests:
-        exit(1)
+    print(f'Ran {n_tests} tests in {total_time:.1f}s:')
+
+    for status, n in sorted(results.items(), key=lambda s: s[0].priority):
+        print(f'  {status.status_repr()}: {n}')
 
 
 
