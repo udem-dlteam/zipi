@@ -20,7 +20,7 @@
    (export (macro let-values)
 
 	   (object->serial-number ::obj)
-	   
+
 	   (inline arithmetic-shift::long ::long ::long)
 	   (inline bitwise-and::long ::long ::long)
 	   (inline bitwise-ior::long ::long ::long)
@@ -71,13 +71,13 @@
 	   (path-normalize ::bstring)
 	   (path-expand ::bstring #!optional (origin (pwd)))
 	   (path-strip-trailing-directory-separator::bstring ::bstring)
-	   
+
 	   (create-directory ::bstring)
 
 	   (file-info path . rest)
 	   (file-info-last-modification-time info)
 	   (file-info-type path)
-	   
+
 	   (inline make-table #!key test weak-values)
 	   (inline table-set! table key value)
 	   (inline table-ref table key #!optional default)
@@ -312,7 +312,7 @@
 	  (make-file-name zipidir p))
 	 (else
 	  (make-file-name origin p)))))
-   
+
 (define (create-directory path)
    (make-directories path))
 
@@ -352,7 +352,8 @@
    (hashtable-map table cons))
 
 (define-inline (table-length table)
-   
+  #f)
+
 
 ;*---------------------------------------------------------------------*/
 ;*    with-exception-catcher ...                                       */

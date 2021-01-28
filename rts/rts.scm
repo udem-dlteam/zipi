@@ -1305,20 +1305,6 @@
     py-False
     py-True))
 
-;; Unary operators
-(define-macro (define-unary-operator-protocol fun-name method operator)
-  `(define (,fun-name x)
-    (let ((__op__ (getattribute-from-obj-mro x (& ,method))))
-      (if (eq? __op__ py-absent)
-          (throw-unsupported-unary-operand x ,operator)
-          (py-call __op__ x)))))
-
-(define-unary-operator-protocol py-invert "__invert__" "~")
-
-(define-unary-operator-protocol py-neg "__neg__" "-")
-
-(define-unary-operator-protocol py-pos "__pos__" "+")
-
 ;; meant to be called as the builtin abs(), not an operator but follows
 ;; the same logic
 (define (py-abs x)

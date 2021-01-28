@@ -317,6 +317,8 @@
     py-if-enable-inline-behavior-dispatch
     py-specialized-binop-dispatch
     $py-specialized-binop-dispatch
+    py-specialized-unop-dispatch
+    $py-specialized-unop-dispatch
 
     py-int-from-scheme
     py-sint-from-scheme

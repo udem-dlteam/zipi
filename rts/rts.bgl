@@ -172,6 +172,9 @@
            (py-test-gt-behavior-call-fallback lhs rhs)
            (py-test-le-behavior-call-fallback lhs rhs)
            (py-test-lt-behavior-call-fallback lhs rhs)
+           (py-pos-behavior-call-fallback x)
+           (py-neg-behavior-call-fallback x)
+           (py-invert-behavior-call-fallback x)
 
            (py-add-behavior-call-with-lhs-index-fallback index lhs rhs)
            (py-bitand-behavior-call-with-lhs-index-fallback index lhs rhs)
@@ -459,7 +462,7 @@
    (display "<" op)
    (display (typeof obj) op)
    (display ">" op))
-   
+
 ;*---------------------------------------------------------------------*/
 ;*    display-py-string ...                                            */
 ;*---------------------------------------------------------------------*/

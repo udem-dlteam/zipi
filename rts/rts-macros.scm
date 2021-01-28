@@ -121,6 +121,9 @@
 (define-macro (py-bool-to-scheme-float arg)
   `(fixnum->flonum (py-bool-to-scheme-int ,arg)))
 
+(define-macro (py-int-to-scheme-float arg)
+  `(fixnum->flonum (py-int-to-scheme ,arg)))
+
 (define-macro (py-sint-to-scheme-float arg)
   `(fixnum->flonum (py-sint-to-scheme ,arg)))
 
@@ -934,12 +937,15 @@
   (define test-cmp-ops
     '(test-eq test-ne test-ge test-gt test-le test-lt))
 
-  (define ops-with-behaviors
+  (define binary-ops-with-behaviors
     (append
       '(add bitand bitor floordiv lshift matmul mod mul pow rshift sub truediv xor)
       inplace-ops
       cmp-ops
       test-cmp-ops))
+
+  (define unary-ops-with-behaviors
+    '(pos neg invert))
 
   (define (test-op->cmp-op op)
     (case op
@@ -953,7 +959,7 @@
   (define (get-behaviors-table-name op)
     (string->symbol (string-append "py-" (symbol->string op) "-behaviors-table")))
 
-  (define (get-behavior-name op lhs-type rhs-type)
+  (define (get-binary-behavior-name op lhs-type rhs-type)
     (if (or (eq? lhs-type 'default) (eq? rhs-type 'default))
       ;; use the full semantics
       (cond
@@ -980,7 +986,21 @@
           (symbol->string rhs-type)
           "Y-fallback"))))
 
-  (define (make-behaviors-list op)
+  (define (get-unary-behavior-name op type)
+    (if (or (eq? type 'default))
+      ;; use the full semantics
+      (string->symbol
+          (string-append "py-" (symbol->string op) "-fallback:normal"))
+      ;; use a behavior
+      (string->symbol
+        (string-append
+          "py-"
+          (symbol->string op)
+          "-"
+          (symbol->string type)
+          "X"))))
+
+  (define (make-binary-behaviors-list op)
     (let lhs-loop ((lhs-types types-with-specialized-behaviors))
       (if (null? lhs-types)
         '()
@@ -988,8 +1008,16 @@
           (if (null? rhs-types)
             (lhs-loop (cdr lhs-types))
             (cons
-              (get-behavior-name op (caar lhs-types) (caar rhs-types))
+              (get-binary-behavior-name op (caar lhs-types) (caar rhs-types))
               (rhs-loop (cdr rhs-types))))))))
+
+  (define (make-unary-behaviors-list op)
+    (let loop ((types types-with-specialized-behaviors))
+      (if (null? types)
+        '()
+        (cons
+          (get-unary-behavior-name op (caar types))
+          (loop (cdr types))))))
 
   (define (get-behavior-call-fallback-name op)
     (string->symbol
@@ -1003,43 +1031,60 @@
     (string->symbol
       (string-append "py-" (symbol->string op) "-behavior-call-with-rhs-index-fallback")))
 
-  (define (get-behavior-call-fallback op)
+  (define (get-binary-behavior-call-fallback op)
     `(define (,(get-behavior-call-fallback-name op) lhs rhs)
-        ($py-behavior-call ,op lhs rhs)))
+        ($py-binary-behavior-call ,op lhs rhs)))
 
   (define (get-behavior-call-with-lhs-index-fallback op)
     `(define (,(get-behavior-call-with-lhs-index-fallback-name op) lhs-index lhs rhs)
-        ($py-behavior-call-with-lhs-index ,op lhs-index lhs rhs)))
+        ($py-binary-behavior-call-with-lhs-index ,op lhs-index lhs rhs)))
 
   (define (get-behavior-call-with-rhs-index-fallback op)
     `(define (,(get-behavior-call-with-rhs-index-fallback-name op) lhs rhs-index rhs)
-        ($py-behavior-call-with-rhs-index ,op lhs rhs-index rhs)))
+        ($py-binary-behavior-call-with-rhs-index ,op lhs rhs-index rhs)))
+
+  (define (get-unary-behavior-call-fallback op)
+    `(define (,(get-behavior-call-fallback-name op) x)
+        ($py-unary-behavior-call ,op x)))
+
+  (define (make-init-table-code ops behaviors-list-maker)
+    (if (null? ops)
+      '()
+      (let* ((op (car ops))
+            (behavior-table-name (get-behaviors-table-name op))
+            (behaviors (behaviors-list-maker op)))
+        (cons
+          `(define ,behavior-table-name (vector ,@behaviors))
+          (make-init-table-code (cdr ops) behaviors-list-maker)))))
 
   (let ((tables-init-code
-          (let loop ((ops ops-with-behaviors))
-            (if (null? ops)
-              '()
-              (let* ((op (car ops))
-                    (behavior-table-name (get-behaviors-table-name op))
-                    (behaviors (make-behaviors-list op)))
-                (cons
-                  `(define ,behavior-table-name (vector ,@behaviors))
-                  (loop (cdr ops)))))))
+          (append
+            (make-init-table-code binary-ops-with-behaviors make-binary-behaviors-list)
+            (make-init-table-code unary-ops-with-behaviors make-unary-behaviors-list)))
         (behavior-call-fallbacks
-          (let loop ((ops ops-with-behaviors))
-            (if (null? ops)
-              '()
-              (let* ((op (car ops))
-                    (behavior-call-fallback (get-behavior-call-fallback op))
-                    (behavior-call-with-lhs-index-fallback (get-behavior-call-with-lhs-index-fallback op))
-                    (behavior-call-with-rhs-index-fallback (get-behavior-call-with-rhs-index-fallback op)))
-                (cons
-                  behavior-call-fallback
+          (append
+            (let loop ((ops binary-ops-with-behaviors))
+              (if (null? ops)
+                '()
+                (let* ((op (car ops))
+                      (binary-behavior-call-fallback (get-binary-behavior-call-fallback op))
+                      (behavior-call-with-lhs-index-fallback (get-behavior-call-with-lhs-index-fallback op))
+                      (behavior-call-with-rhs-index-fallback (get-behavior-call-with-rhs-index-fallback op)))
                   (cons
-                    behavior-call-with-lhs-index-fallback
+                    binary-behavior-call-fallback
                     (cons
-                      behavior-call-with-rhs-index-fallback
-                      (loop (cdr ops))))))))))
+                      behavior-call-with-lhs-index-fallback
+                      (cons
+                        behavior-call-with-rhs-index-fallback
+                        (loop (cdr ops))))))))
+            (let loop ((ops unary-ops-with-behaviors))
+              (if (null? ops)
+                '()
+                (let* ((op (car ops))
+                      (unary-behavior-call-fallback (get-unary-behavior-call-fallback op)))
+                  (cons
+                    unary-behavior-call-fallback
+                    (loop (cdr ops)))))))))
     `(begin
         ,@tables-init-code
         ,@behavior-call-fallbacks)))
@@ -1064,62 +1109,78 @@
     (bigloo
       `(+fx (*fx ,indices-length ,lhs-index) ,rhs-index))))
 
-(define-macro (py-behavior-ref op lhs-index rhs-index)
+(define-macro (py-binary-behavior-ref op lhs-index rhs-index)
   (let ((behavior-table-name
           (string->symbol (string-append "py-" (symbol->string op) "-behaviors-table"))))
     `(vector-ref ,behavior-table-name (get-behavior-index ,lhs-index ,rhs-index))))
 
-(define-macro (py-behavior-set! op lhs-index rhs-index val)
+(define-macro (py-unary-behavior-ref op index)
   (let ((behavior-table-name
           (string->symbol (string-append "py-" (symbol->string op) "-behaviors-table"))))
-    `(vector-set! ,behavior-table-name (get-behavior-index ,lhs-index ,rhs-index) ,val)))
+    `(vector-ref ,behavior-table-name ,index)))
 
-(define-macro (py-behavior-call op lhs rhs)
+(define-macro (py-binary-behavior-call op lhs rhs)
   (let ((behavior-call-fallback-name
           (string->symbol
             (string-append "py-" (symbol->string op) "-behavior-call-fallback"))))
     `(py-if-enable-inline-behavior-dispatch
-        ($py-behavior-call ,op ,lhs ,rhs)
+        ($py-binary-behavior-call ,op ,lhs ,rhs)
         (,behavior-call-fallback-name ,lhs ,rhs))))
 
-(define-macro ($py-behavior-call op lhs rhs)
+(define-macro ($py-binary-behavior-call op lhs rhs)
   `(let (($lhs ,lhs)
          ($rhs ,rhs))
-      ((py-behavior-ref
+      ((py-binary-behavior-ref
         ,op
         (py-obj-class-index $lhs)
         (py-obj-class-index $rhs))
         $lhs
         $rhs)))
 
-(define-macro (py-behavior-call-with-lhs-index op lhs-index lhs rhs)
+
+(define-macro (py-unary-behavior-call op lhs)
+  (let ((behavior-call-fallback-name
+          (string->symbol
+            (string-append "py-" (symbol->string op) "-behavior-call-fallback"))))
+    `(py-if-enable-inline-behavior-dispatch
+        ($py-binary-behavior-call ,op ,lhs)
+        (,behavior-call-fallback-name ,lhs))))
+
+(define-macro ($py-unary-behavior-call op lhs)
+  `(let (($lhs ,lhs))
+      ((py-unary-behavior-ref
+        ,op
+        (py-obj-class-index $lhs))
+        $lhs)))
+
+(define-macro (py-binary-behavior-call-with-lhs-index op lhs-index lhs rhs)
   (let ((behavior-call-fallback-name
           (string->symbol
             (string-append "py-" (symbol->string op) "-behavior-call-with-lhs-index-fallback"))))
     `(py-if-enable-inline-behavior-dispatch
-        ($py-behavior-call-with-lhs-index ,op ,lhs-index ,lhs ,rhs)
+        ($py-binary-behavior-call-with-lhs-index ,op ,lhs-index ,lhs ,rhs)
         (,behavior-call-fallback-name ,lhs-index ,lhs ,rhs))))
 
-(define-macro ($py-behavior-call-with-lhs-index op lhs-index lhs rhs)
+(define-macro ($py-binary-behavior-call-with-lhs-index op lhs-index lhs rhs)
   `(let (($rhs ,rhs))
-      ((py-behavior-ref
+      ((py-binary-behavior-ref
         ,op
         ,lhs-index
         (py-obj-class-index $rhs))
         ,lhs
         $rhs)))
 
-(define-macro (py-behavior-call-with-rhs-index op lhs rhs-index rhs)
+(define-macro (py-binary-behavior-call-with-rhs-index op lhs rhs-index rhs)
   (let ((behavior-call-fallback-name
           (string->symbol
             (string-append "py-" (symbol->string op) "-behavior-call-with-rhs-index-fallback"))))
     `(py-if-enable-inline-behavior-dispatch
-        ($py-behavior-call-with-rhs-index ,op ,lhs ,rhs-index ,rhs)
+        ($py-binary-behavior-call-with-rhs-index ,op ,lhs ,rhs-index ,rhs)
         (,behavior-call-fallback-name ,lhs ,rhs-index ,rhs))))
 
-(define-macro ($py-behavior-call-with-rhs-index op lhs rhs-index rhs)
+(define-macro ($py-binary-behavior-call-with-rhs-index op lhs rhs-index rhs)
   `(let (($lhs ,lhs))
-      ((py-behavior-ref
+      ((py-binary-behavior-ref
         ,op
         (py-obj-class-index $lhs)
         ,rhs-index)
@@ -1151,10 +1212,10 @@
                     ((py-if-specialized-float-representation (flonum? $rhs) #f)
                       (,sint-float-op $lhs $rhs))
                     (else
-                      (py-behavior-call-with-lhs-index ,op ,sint-class-index $lhs $rhs)))
+                      (py-binary-behavior-call-with-lhs-index ,op ,sint-class-index $lhs $rhs)))
                   (if (fixnum? $rhs)
                     (,sint-sint-op $lhs $rhs)
-                    (py-behavior-call-with-lhs-index ,op ,sint-class-index $lhs $rhs))))
+                    (py-binary-behavior-call-with-lhs-index ,op ,sint-class-index $lhs $rhs))))
              ((py-if-specialized-float-representation (flonum? $lhs) #f)
                 (py-if-enable-inlined-mixed-types-behaviors
                   (cond
@@ -1163,97 +1224,123 @@
                     ((flonum? $rhs)
                       (,float-float-op $lhs $rhs))
                     (else
-                      (py-behavior-call-with-lhs-index ,op ,float-class-index $lhs $rhs)))
+                      (py-binary-behavior-call-with-lhs-index ,op ,float-class-index $lhs $rhs)))
                   (if (flonum? $rhs)
                     (,float-float-op $lhs $rhs)
-                    (py-behavior-call-with-lhs-index ,op ,float-class-index $lhs $rhs))))
+                    (py-binary-behavior-call-with-lhs-index ,op ,float-class-index $lhs $rhs))))
              (else
                (cond
                  ((py-if-specialized-sint-representation (fixnum? $rhs) #f)
-                   (py-behavior-call-with-rhs-index ,op $lhs ,sint-class-index $rhs))
+                   (py-binary-behavior-call-with-rhs-index ,op $lhs ,sint-class-index $rhs))
                  ((py-if-specialized-float-representation (flonum? $rhs) #f)
-                   (py-behavior-call-with-rhs-index ,op $lhs ,float-class-index $rhs))
+                   (py-binary-behavior-call-with-rhs-index ,op $lhs ,float-class-index $rhs))
                  (else
-                   (py-behavior-call ,op $lhs $rhs))))))
+                   (py-binary-behavior-call ,op $lhs $rhs))))))
     (,(string->symbol (string-append "py-" (symbol->string op) "-fallback")) ,lhs ,rhs)))
 
+(define-macro (py-specialized-unop-dispatch op x)
+  `(with-class-indices-info $py-specialized-unop-dispatch ,op ,x))
+
+(define-macro ($py-specialized-unop-dispatch indices-info op x)
+  (define sint-op (string->symbol (string-append "py-" (symbol->string op) "-sintX-inline")))
+  (define float-op (string->symbol (string-append "py-" (symbol->string op) "-floatX-inline")))
+
+  `(py-if-enable-behaviors-optimization
+    (let (($x ,x))
+       (cond ((py-if-specialized-sint-representation (fixnum? $x) #f)
+                (,sint-op $x))
+             ((py-if-specialized-float-representation (flonum? $x) #f)
+                (,float-op $x))
+             (else
+               (py-unary-behavior-call ,op $x))))
+    (,(string->symbol (string-append "py-" (symbol->string op) "-fallback")) ,x)))
+
 (define-macro (py-add x y)
-  `(py-specialized-binop-dispatch add ,x , y))
+  `(py-specialized-binop-dispatch add ,x ,y))
 
 (define-macro (py-bitand x y)
-  `(py-specialized-binop-dispatch bitand ,x , y))
+  `(py-specialized-binop-dispatch bitand ,x ,y))
 
 (define-macro (py-bitor x y)
-  `(py-specialized-binop-dispatch bitor ,x , y))
+  `(py-specialized-binop-dispatch bitor ,x ,y))
 
 (define-macro (py-floordiv x y)
-  `(py-specialized-binop-dispatch floordiv ,x , y))
+  `(py-specialized-binop-dispatch floordiv ,x ,y))
 
 (define-macro (py-lshift x y)
-  `(py-specialized-binop-dispatch lshift ,x , y))
+  `(py-specialized-binop-dispatch lshift ,x ,y))
 
 (define-macro (py-matmul x y)
-  `(py-specialized-binop-dispatch matmul ,x , y))
+  `(py-specialized-binop-dispatch matmul ,x ,y))
 
 (define-macro (py-mod x y)
-  `(py-specialized-binop-dispatch mod ,x , y))
+  `(py-specialized-binop-dispatch mod ,x ,y))
 
 (define-macro (py-mul x y)
-  `(py-specialized-binop-dispatch mul ,x , y))
+  `(py-specialized-binop-dispatch mul ,x ,y))
 
 (define-macro (py-pow x y)
-  `(py-specialized-binop-dispatch pow ,x , y))
+  `(py-specialized-binop-dispatch pow ,x ,y))
 
 (define-macro (py-rshift x y)
-  `(py-specialized-binop-dispatch rshift ,x , y))
+  `(py-specialized-binop-dispatch rshift ,x ,y))
 
 (define-macro (py-sub x y)
-  `(py-specialized-binop-dispatch sub ,x , y))
+  `(py-specialized-binop-dispatch sub ,x ,y))
 
 (define-macro (py-truediv x y)
-  `(py-specialized-binop-dispatch truediv ,x , y))
+  `(py-specialized-binop-dispatch truediv ,x ,y))
 
 (define-macro (py-xor x y)
-  `(py-specialized-binop-dispatch xor ,x , y))
+  `(py-specialized-binop-dispatch xor ,x ,y))
 
 (define-macro (py-iadd x y)
-  `(py-specialized-binop-dispatch iadd ,x , y))
+  `(py-specialized-binop-dispatch iadd ,x ,y))
 
 (define-macro (py-ibitand x y)
-  `(py-specialized-binop-dispatch ibitand ,x , y))
+  `(py-specialized-binop-dispatch ibitand ,x ,y))
 
 (define-macro (py-ibitor x y)
-  `(py-specialized-binop-dispatch ibitor ,x , y))
+  `(py-specialized-binop-dispatch ibitor ,x ,y))
 
 (define-macro (py-ifloordiv x y)
-  `(py-specialized-binop-dispatch ifloordiv ,x , y))
+  `(py-specialized-binop-dispatch ifloordiv ,x ,y))
 
 (define-macro (py-ilshift x y)
-  `(py-specialized-binop-dispatch ilshift ,x , y))
+  `(py-specialized-binop-dispatch ilshift ,x ,y))
 
 (define-macro (py-imatmul x y)
-  `(py-specialized-binop-dispatch imatmul ,x , y))
+  `(py-specialized-binop-dispatch imatmul ,x ,y))
 
 (define-macro (py-imod x y)
-  `(py-specialized-binop-dispatch imod ,x , y))
+  `(py-specialized-binop-dispatch imod ,x ,y))
 
 (define-macro (py-imul x y)
-  `(py-specialized-binop-dispatch imul ,x , y))
+  `(py-specialized-binop-dispatch imul ,x ,y))
 
 (define-macro (py-ipow x y)
-  `(py-specialized-binop-dispatch ipow ,x , y))
+  `(py-specialized-binop-dispatch ipow ,x ,y))
 
 (define-macro (py-irshift x y)
-  `(py-specialized-binop-dispatch irshift ,x , y))
+  `(py-specialized-binop-dispatch irshift ,x ,y))
 
 (define-macro (py-isub x y)
-  `(py-specialized-binop-dispatch isub ,x , y))
+  `(py-specialized-binop-dispatch isub ,x ,y))
 
 (define-macro (py-itruediv x y)
-  `(py-specialized-binop-dispatch itruediv ,x , y))
+  `(py-specialized-binop-dispatch itruediv ,x ,y))
 
 (define-macro (py-ixor x y)
-  `(py-specialized-binop-dispatch ixor ,x , y))
+  `(py-specialized-binop-dispatch ixor ,x ,y))
+
+(define-macro (py-pos x)
+  `(py-specialized-unop-dispatch pos ,x))
+
+(define-macro (py-neg x)
+  `(py-specialized-unop-dispatch neg ,x))
+
+(define-macro (py-invert x)
+  `(py-specialized-unop-dispatch invert ,x))
 
 (define-macro (py-ge x y)
   `(py-specialized-binop-dispatch ge ,x ,y))

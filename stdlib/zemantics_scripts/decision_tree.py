@@ -706,7 +706,14 @@ def main_behaviors(semantics_file, builtins_file):
                 # Argument names are unimportant since they are unused in case of Error
                 annotations = [ast.Name(tp) for tp in types_comb]
 
-                annotated_arguments = make_ast_simple_arguments("self", "other", annotations=annotations)
+                if len(types_comb) == 1:
+                    args_names = ["self"]
+                elif len(types_comb) == 2:
+                    args_names = ["self", "other"]
+                else:
+                    raise ValueError("cannot handle other than 1 or 2 arguments")
+
+                annotated_arguments = make_ast_simple_arguments(*args_names, annotations=annotations)
                 body = [make_ast_raise_with_msg("TypeError", behavior.error_message)]
 
                 behavior_func = ast.FunctionDef(behavior_func_name, annotated_arguments, body,
