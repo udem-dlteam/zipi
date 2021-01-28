@@ -2,7 +2,10 @@
 
 do.gambit: build.gambit
 
-build.gambit:
+rts.sld: ../stdlib/zemantics.scm ../stdlib/behaviors.scm
+	../etc/scm-to-zipi-sld ../stdlib/zemantics.scm ../stdlib/behaviors.scm rts.sld.in > rts.sld
+
+build.gambit: rts.sld rts.sld.in
 	gsc . zipi/rts
 
 install.gambit:

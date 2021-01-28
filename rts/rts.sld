@@ -61,132 +61,32 @@
     py-make-caches
 
     py-add
-    py-add-fallback
-    py-add-fallback:normal
-    py-add-fallback:reflected
-    py-add-fallback:err
     py-bitand
-    py-bitand-fallback
-    py-bitand-fallback:normal
-    py-bitand-fallback:reflected
-    py-bitand-fallback:err
     py-truediv
-    py-truediv-fallback
-    py-truediv-fallback:normal
-    py-truediv-fallback:reflected
-    py-truediv-fallback:err
     py-floordiv
-    py-floordiv-fallback
-    py-floordiv-fallback:normal
-    py-floordiv-fallback:reflected
-    py-floordiv-fallback:err
     py-lshift
-    py-lshift-fallback
-    py-lshift-fallback:normal
-    py-lshift-fallback:reflected
-    py-lshift-fallback:err
     py-matmul
-    py-matmul-fallback
-    py-matmul-fallback:normal
-    py-matmul-fallback:reflected
-    py-matmul-fallback:err
     py-mod
-    py-mod-fallback
-    py-mod-fallback:normal
-    py-mod-fallback:reflected
-    py-mod-fallback:err
     py-mul
-    py-mul-fallback
-    py-mul-fallback:normal
-    py-mul-fallback:reflected
-    py-mul-fallback:err
     py-bitor
-    py-bitor-fallback
-    py-bitor-fallback:normal
-    py-bitor-fallback:reflected
-    py-bitor-fallback:err
     py-pow
-    py-pow-fallback
-    py-pow-fallback:normal
-    py-pow-fallback:reflected
-    py-pow-fallback:err
     py-rshift
-    py-rshift-fallback
-    py-rshift-fallback:normal
-    py-rshift-fallback:reflected
-    py-rshift-fallback:err
     py-sub
-    py-sub-fallback
-    py-sub-fallback:normal
-    py-sub-fallback:reflected
-    py-sub-fallback:err
     py-xor
-    py-xor-fallback
-    py-xor-fallback:normal
-    py-xor-fallback:reflected
-    py-xor-fallback:err
 
     py-ge
-    py-ge-fallback
-    py-ge-fallback:normal
-    py-ge-fallback:reflected
-    py-ge-fallback:err
     py-gt
-    py-gt-fallback
-    py-gt-fallback:normal
-    py-gt-fallback:reflected
-    py-gt-fallback:err
     py-le
-    py-le-fallback
-    py-le-fallback:normal
-    py-le-fallback:reflected
-    py-le-fallback:err
     py-lt
-    py-lt-fallback
-    py-lt-fallback:normal
-    py-lt-fallback:reflected
-    py-lt-fallback:err
     py-eq
-    py-eq-fallback
-    py-eq-fallback:normal
-    py-eq-fallback:reflected
-    py-eq-fallback:default
     py-ne
-    py-ne-fallback
-    py-ne-fallback:normal
-    py-ne-fallback:reflected
-    py-ne-fallback:default
 
     py-test-ge
-    py-test-ge-fallback
-    py-test-ge-fallback:normal
-    py-test-ge-fallback:reflected
-    py-test-ge-fallback:err
     py-test-gt
-    py-test-gt-fallback
-    py-test-gt-fallback:normal
-    py-test-gt-fallback:reflected
-    py-test-gt-fallback:err
     py-test-le
-    py-test-le-fallback
-    py-test-le-fallback:normal
-    py-test-le-fallback:reflected
-    py-test-le-fallback:err
     py-test-lt
-    py-test-lt-fallback
-    py-test-lt-fallback:normal
-    py-test-lt-fallback:reflected
-    py-test-lt-fallback:err
     py-test-eq
-    py-test-eq-fallback
-    py-test-eq-fallback:normal
-    py-test-eq-fallback:reflected
-    py-test-eq-fallback:default
     py-test-ne
-    py-test-ne-fallback
-    py-test-ne-fallback:normal
-    py-test-ne-fallback:reflected
-    py-test-ne-fallback:default
 
     py-test-is
     py-is
@@ -196,252 +96,30 @@
     py-notin
 
     py-iadd
-    py-iadd-fallback
-    py-iadd-fallback:inplace
-    py-iadd-fallback:normal
-    py-iadd-fallback:reflected
-    py-iadd-fallback:err
     py-ibitand
-    py-ibitand-fallback
-    py-ibitand-fallback:inplace
-    py-ibitand-fallback:normal
-    py-ibitand-fallback:reflected
-    py-ibitand-fallback:err
     py-itruediv
-    py-itruediv-fallback
-    py-itruediv-fallback:inplace
-    py-itruediv-fallback:normal
-    py-itruediv-fallback:reflected
-    py-itruediv-fallback:err
     py-ifloordiv
-    py-ifloordiv-fallback
-    py-ifloordiv-fallback:inplace
-    py-ifloordiv-fallback:normal
-    py-ifloordiv-fallback:reflected
-    py-ifloordiv-fallback:err
     py-ilshift
-    py-ilshift-fallback
-    py-ilshift-fallback:inplace
-    py-ilshift-fallback:normal
-    py-ilshift-fallback:reflected
-    py-ilshift-fallback:err
     py-imatmul
-    py-imatmul-fallback
-    py-imatmul-fallback:inplace
-    py-imatmul-fallback:normal
-    py-imatmul-fallback:reflected
-    py-imatmul-fallback:err
     py-imod
-    py-imod-fallback
-    py-imod-fallback:inplace
-    py-imod-fallback:normal
-    py-imod-fallback:reflected
-    py-imod-fallback:err
     py-imul
-    py-imul-fallback
-    py-imul-fallback:inplace
-    py-imul-fallback:normal
-    py-imul-fallback:reflected
-    py-imul-fallback:err
     py-ibitor
-    py-ibitor-fallback
-    py-ibitor-fallback:inplace
-    py-ibitor-fallback:normal
-    py-ibitor-fallback:reflected
-    py-ibitor-fallback:err
     py-ipow
-    py-ipow-fallback
-    py-ipow-fallback:inplace
-    py-ipow-fallback:normal
-    py-ipow-fallback:reflected
-    py-ipow-fallback:err
     py-irshift
-    py-irshift-fallback
-    py-irshift-fallback:inplace
-    py-irshift-fallback:normal
-    py-irshift-fallback:reflected
-    py-irshift-fallback:err
     py-isub
-    py-isub-fallback
-    py-isub-fallback:inplace
-    py-isub-fallback:normal
-    py-isub-fallback:reflected
-    py-isub-fallback:err
     py-ixor
-    py-ixor-fallback
-    py-ixor-fallback:inplace
-    py-ixor-fallback:normal
-    py-ixor-fallback:reflected
-    py-ixor-fallback:err
-
-    py-add-sintX-sintY-inline
-    py-bitand-sintX-sintY-inline
-    py-bitor-sintX-sintY-inline
-    py-floordiv-sintX-sintY-inline
-    py-lshift-sintX-sintY-inline
-    py-matmul-sintX-sintY-inline
-    py-mod-sintX-sintY-inline
-    py-mul-sintX-sintY-inline
-    py-pow-sintX-sintY-inline
-    py-rshift-sintX-sintY-inline
-    py-sub-sintX-sintY-inline
-    py-truediv-sintX-sintY-inline
-    py-xor-sintX-sintY-inline
-    py-iadd-sintX-sintY-inline
-    py-ibitand-sintX-sintY-inline
-    py-ibitor-sintX-sintY-inline
-    py-ifloordiv-sintX-sintY-inline
-    py-ilshift-sintX-sintY-inline
-    py-imatmul-sintX-sintY-inline
-    py-imod-sintX-sintY-inline
-    py-imul-sintX-sintY-inline
-    py-ipow-sintX-sintY-inline
-    py-irshift-sintX-sintY-inline
-    py-isub-sintX-sintY-inline
-    py-itruediv-sintX-sintY-inline
-    py-ixor-sintX-sintY-inline
-    py-add-floatX-floatY-inline
-    py-bitand-floatX-floatY-inline
-    py-bitor-floatX-floatY-inline
-    py-floordiv-floatX-floatY-inline
-    py-lshift-floatX-floatY-inline
-    py-matmul-floatX-floatY-inline
-    py-mod-floatX-floatY-inline
-    py-mul-floatX-floatY-inline
-    py-pow-floatX-floatY-inline
-    py-rshift-floatX-floatY-inline
-    py-sub-floatX-floatY-inline
-    py-truediv-floatX-floatY-inline
-    py-xor-floatX-floatY-inline
-    py-iadd-floatX-floatY-inline
-    py-ibitand-floatX-floatY-inline
-    py-ibitor-floatX-floatY-inline
-    py-ifloordiv-floatX-floatY-inline
-    py-ilshift-floatX-floatY-inline
-    py-imatmul-floatX-floatY-inline
-    py-imod-floatX-floatY-inline
-    py-imul-floatX-floatY-inline
-    py-ipow-floatX-floatY-inline
-    py-irshift-floatX-floatY-inline
-    py-isub-floatX-floatY-inline
-    py-itruediv-floatX-floatY-inline
-    py-ixor-floatX-floatY-inline
-    py-add-sintX-floatY-inline
-    py-bitand-sintX-floatY-inline
-    py-bitor-sintX-floatY-inline
-    py-floordiv-sintX-floatY-inline
-    py-lshift-sintX-floatY-inline
-    py-matmul-sintX-floatY-inline
-    py-mod-sintX-floatY-inline
-    py-mul-sintX-floatY-inline
-    py-pow-sintX-floatY-inline
-    py-rshift-sintX-floatY-inline
-    py-sub-sintX-floatY-inline
-    py-truediv-sintX-floatY-inline
-    py-xor-sintX-floatY-inline
-    py-iadd-sintX-floatY-inline
-    py-ibitand-sintX-floatY-inline
-    py-ibitor-sintX-floatY-inline
-    py-ifloordiv-sintX-floatY-inline
-    py-ilshift-sintX-floatY-inline
-    py-imatmul-sintX-floatY-inline
-    py-imod-sintX-floatY-inline
-    py-imul-sintX-floatY-inline
-    py-ipow-sintX-floatY-inline
-    py-irshift-sintX-floatY-inline
-    py-isub-sintX-floatY-inline
-    py-itruediv-sintX-floatY-inline
-    py-ixor-sintX-floatY-inline
-    py-add-floatX-sintY-inline
-    py-bitand-floatX-sintY-inline
-    py-bitor-floatX-sintY-inline
-    py-floordiv-floatX-sintY-inline
-    py-lshift-floatX-sintY-inline
-    py-matmul-floatX-sintY-inline
-    py-mod-floatX-sintY-inline
-    py-mul-floatX-sintY-inline
-    py-pow-floatX-sintY-inline
-    py-rshift-floatX-sintY-inline
-    py-sub-floatX-sintY-inline
-    py-truediv-floatX-sintY-inline
-    py-xor-floatX-sintY-inline
-    py-iadd-floatX-sintY-inline
-    py-ibitand-floatX-sintY-inline
-    py-ibitor-floatX-sintY-inline
-    py-ifloordiv-floatX-sintY-inline
-    py-ilshift-floatX-sintY-inline
-    py-imatmul-floatX-sintY-inline
-    py-imod-floatX-sintY-inline
-    py-imul-floatX-sintY-inline
-    py-ipow-floatX-sintY-inline
-    py-irshift-floatX-sintY-inline
-    py-isub-floatX-sintY-inline
-    py-itruediv-floatX-sintY-inline
-    py-ixor-floatX-sintY-inline
-
-    py-eq-sintX-sintY-inline
-    py-ne-sintX-sintY-inline
-    py-ge-sintX-sintY-inline
-    py-gt-sintX-sintY-inline
-    py-le-sintX-sintY-inline
-    py-lt-sintX-sintY-inline
-    py-eq-floatX-floatY-inline
-    py-ne-floatX-floatY-inline
-    py-ge-floatX-floatY-inline
-    py-gt-floatX-floatY-inline
-    py-le-floatX-floatY-inline
-    py-lt-floatX-floatY-inline
-    py-eq-floatX-sintY-inline
-    py-ne-floatX-sintY-inline
-    py-ge-floatX-sintY-inline
-    py-gt-floatX-sintY-inline
-    py-le-floatX-sintY-inline
-    py-lt-floatX-sintY-inline
-    py-eq-sintX-floatY-inline
-    py-ne-sintX-floatY-inline
-    py-ge-sintX-floatY-inline
-    py-gt-sintX-floatY-inline
-    py-le-sintX-floatY-inline
-    py-lt-sintX-floatY-inline
-
-    py-test-eq-sintX-sintY-inline
-    py-test-ne-sintX-sintY-inline
-    py-test-ge-sintX-sintY-inline
-    py-test-gt-sintX-sintY-inline
-    py-test-le-sintX-sintY-inline
-    py-test-lt-sintX-sintY-inline
-    py-test-eq-floatX-floatY-inline
-    py-test-ne-floatX-floatY-inline
-    py-test-ge-floatX-floatY-inline
-    py-test-gt-floatX-floatY-inline
-    py-test-le-floatX-floatY-inline
-    py-test-lt-floatX-floatY-inline
-    py-test-eq-floatX-sintY-inline
-    py-test-ne-floatX-sintY-inline
-    py-test-ge-floatX-sintY-inline
-    py-test-gt-floatX-sintY-inline
-    py-test-le-floatX-sintY-inline
-    py-test-lt-floatX-sintY-inline
-    py-test-eq-sintX-floatY-inline
-    py-test-ne-sintX-floatY-inline
-    py-test-ge-sintX-floatY-inline
-    py-test-gt-sintX-floatY-inline
-    py-test-le-sintX-floatY-inline
-    py-test-lt-sintX-floatY-inline
 
     py-invert
     py-neg
     py-pos
+
     py-abs
     py-hash
 
     py-len
     py-getitem
-    py-getitem-fallback
     py-setitem
-    py-setitem-fallback
     py-delitem
-    py-delitem-fallback
 
     py-test
     py-test-from-scheme
@@ -457,7 +135,6 @@
     $py-obj-class-index
     py-obj-class-index-general
     py-getattribute
-    py-getattribute-fallback
     object-put!
     py-own-attr-set!
     getattribute-from-obj-mro
@@ -737,9 +414,7 @@
     py-generator-send
 
     py-enter
-    py-enter-fallback
     py-exit
-    py-exit-fallback
 
     py-True
     py-False
@@ -922,6 +597,1380 @@
     py-float-class
     int-cache
     str-representatives
+
+    ;; semantics & behaviors
+py-add-fallback:normal
+py-add-fallback:reflected
+py-add-fallback:err
+py-bitand-fallback:normal
+py-bitand-fallback:reflected
+py-bitand-fallback:err
+py-bitor-fallback:normal
+py-bitor-fallback:reflected
+py-bitor-fallback:err
+py-floordiv-fallback:normal
+py-floordiv-fallback:reflected
+py-floordiv-fallback:err
+py-lshift-fallback:normal
+py-lshift-fallback:reflected
+py-lshift-fallback:err
+py-matmul-fallback:normal
+py-matmul-fallback:reflected
+py-matmul-fallback:err
+py-mod-fallback:normal
+py-mod-fallback:reflected
+py-mod-fallback:err
+py-mul-fallback:normal
+py-mul-fallback:reflected
+py-mul-fallback:err
+py-pow-fallback:normal
+py-pow-fallback:reflected
+py-pow-fallback:err
+py-rshift-fallback:normal
+py-rshift-fallback:reflected
+py-rshift-fallback:err
+py-sub-fallback:normal
+py-sub-fallback:reflected
+py-sub-fallback:err
+py-truediv-fallback:normal
+py-truediv-fallback:reflected
+py-truediv-fallback:err
+py-xor-fallback:normal
+py-xor-fallback:reflected
+py-xor-fallback:err
+py-iadd-fallback:inplace
+py-iadd-fallback:normal
+py-iadd-fallback:reflected
+py-iadd-fallback:err
+py-ibitand-fallback:inplace
+py-ibitand-fallback:normal
+py-ibitand-fallback:reflected
+py-ibitand-fallback:err
+py-ibitor-fallback:inplace
+py-ibitor-fallback:normal
+py-ibitor-fallback:reflected
+py-ibitor-fallback:err
+py-ifloordiv-fallback:inplace
+py-ifloordiv-fallback:normal
+py-ifloordiv-fallback:reflected
+py-ifloordiv-fallback:err
+py-ilshift-fallback:inplace
+py-ilshift-fallback:normal
+py-ilshift-fallback:reflected
+py-ilshift-fallback:err
+py-imatmul-fallback:inplace
+py-imatmul-fallback:normal
+py-imatmul-fallback:reflected
+py-imatmul-fallback:err
+py-imod-fallback:inplace
+py-imod-fallback:normal
+py-imod-fallback:reflected
+py-imod-fallback:err
+py-imul-fallback:inplace
+py-imul-fallback:normal
+py-imul-fallback:reflected
+py-imul-fallback:err
+py-ipow-fallback:inplace
+py-ipow-fallback:normal
+py-ipow-fallback:reflected
+py-ipow-fallback:err
+py-irshift-fallback:inplace
+py-irshift-fallback:normal
+py-irshift-fallback:reflected
+py-irshift-fallback:err
+py-isub-fallback:inplace
+py-isub-fallback:normal
+py-isub-fallback:reflected
+py-isub-fallback:err
+py-itruediv-fallback:inplace
+py-itruediv-fallback:normal
+py-itruediv-fallback:reflected
+py-itruediv-fallback:err
+py-ixor-fallback:inplace
+py-ixor-fallback:normal
+py-ixor-fallback:reflected
+py-ixor-fallback:err
+py-pos-fallback:normal
+py-pos-fallback:err
+py-neg-fallback:normal
+py-neg-fallback:err
+py-invert-fallback:normal
+py-invert-fallback:err
+py-ge-fallback:normal
+py-ge-fallback:reflected
+py-ge-fallback:err
+py-gt-fallback:normal
+py-gt-fallback:reflected
+py-gt-fallback:err
+py-le-fallback:normal
+py-le-fallback:reflected
+py-le-fallback:err
+py-lt-fallback:normal
+py-lt-fallback:reflected
+py-lt-fallback:err
+py-eq-fallback:normal
+py-eq-fallback:reflected
+py-eq-fallback:default
+py-ne-fallback:normal
+py-ne-fallback:reflected
+py-ne-fallback:default
+py-getattribute-fallback
+py-getitem-fallback
+py-setitem-fallback
+py-delitem-fallback
+py-enter-fallback
+py-exit-fallback
+py-add-floatX-floatY-fallback
+py-add-floatX-boolY-fallback
+py-add-floatX-sintY-fallback
+py-add-floatX-bintY-fallback
+py-add-boolX-floatY-fallback
+py-add-boolX-boolY-fallback
+py-add-boolX-sintY-fallback
+py-add-boolX-bintY-fallback
+py-add-sintX-floatY-fallback
+py-add-sintX-boolY-fallback
+py-add-sintX-sintY-fallback
+py-add-sintX-bintY-fallback
+py-add-bintX-floatY-fallback
+py-add-bintX-boolY-fallback
+py-add-bintX-sintY-fallback
+py-add-bintX-bintY-fallback
+py-bitand-floatX-floatY-fallback
+py-bitand-floatX-boolY-fallback
+py-bitand-floatX-sintY-fallback
+py-bitand-floatX-bintY-fallback
+py-bitand-boolX-floatY-fallback
+py-bitand-boolX-boolY-fallback
+py-bitand-boolX-sintY-fallback
+py-bitand-boolX-bintY-fallback
+py-bitand-sintX-floatY-fallback
+py-bitand-sintX-boolY-fallback
+py-bitand-sintX-sintY-fallback
+py-bitand-sintX-bintY-fallback
+py-bitand-bintX-floatY-fallback
+py-bitand-bintX-boolY-fallback
+py-bitand-bintX-sintY-fallback
+py-bitand-bintX-bintY-fallback
+py-bitor-floatX-floatY-fallback
+py-bitor-floatX-boolY-fallback
+py-bitor-floatX-sintY-fallback
+py-bitor-floatX-bintY-fallback
+py-bitor-boolX-floatY-fallback
+py-bitor-boolX-boolY-fallback
+py-bitor-boolX-sintY-fallback
+py-bitor-boolX-bintY-fallback
+py-bitor-sintX-floatY-fallback
+py-bitor-sintX-boolY-fallback
+py-bitor-sintX-sintY-fallback
+py-bitor-sintX-bintY-fallback
+py-bitor-bintX-floatY-fallback
+py-bitor-bintX-boolY-fallback
+py-bitor-bintX-sintY-fallback
+py-bitor-bintX-bintY-fallback
+py-floordiv-floatX-floatY-fallback
+py-floordiv-floatX-boolY-fallback
+py-floordiv-floatX-sintY-fallback
+py-floordiv-floatX-bintY-fallback
+py-floordiv-boolX-floatY-fallback
+py-floordiv-boolX-boolY-fallback
+py-floordiv-boolX-sintY-fallback
+py-floordiv-boolX-bintY-fallback
+py-floordiv-sintX-floatY-fallback
+py-floordiv-sintX-boolY-fallback
+py-floordiv-sintX-sintY-fallback
+py-floordiv-sintX-bintY-fallback
+py-floordiv-bintX-floatY-fallback
+py-floordiv-bintX-boolY-fallback
+py-floordiv-bintX-sintY-fallback
+py-floordiv-bintX-bintY-fallback
+py-lshift-floatX-floatY-fallback
+py-lshift-floatX-boolY-fallback
+py-lshift-floatX-sintY-fallback
+py-lshift-floatX-bintY-fallback
+py-lshift-boolX-floatY-fallback
+py-lshift-boolX-boolY-fallback
+py-lshift-boolX-sintY-fallback
+py-lshift-boolX-bintY-fallback
+py-lshift-sintX-floatY-fallback
+py-lshift-sintX-boolY-fallback
+py-lshift-sintX-sintY-fallback
+py-lshift-sintX-bintY-fallback
+py-lshift-bintX-floatY-fallback
+py-lshift-bintX-boolY-fallback
+py-lshift-bintX-sintY-fallback
+py-lshift-bintX-bintY-fallback
+py-matmul-floatX-floatY-fallback
+py-matmul-floatX-boolY-fallback
+py-matmul-floatX-sintY-fallback
+py-matmul-floatX-bintY-fallback
+py-matmul-boolX-floatY-fallback
+py-matmul-boolX-boolY-fallback
+py-matmul-boolX-sintY-fallback
+py-matmul-boolX-bintY-fallback
+py-matmul-sintX-floatY-fallback
+py-matmul-sintX-boolY-fallback
+py-matmul-sintX-sintY-fallback
+py-matmul-sintX-bintY-fallback
+py-matmul-bintX-floatY-fallback
+py-matmul-bintX-boolY-fallback
+py-matmul-bintX-sintY-fallback
+py-matmul-bintX-bintY-fallback
+py-mod-floatX-floatY-fallback
+py-mod-floatX-boolY-fallback
+py-mod-floatX-sintY-fallback
+py-mod-floatX-bintY-fallback
+py-mod-boolX-floatY-fallback
+py-mod-boolX-boolY-fallback
+py-mod-boolX-sintY-fallback
+py-mod-boolX-bintY-fallback
+py-mod-sintX-floatY-fallback
+py-mod-sintX-boolY-fallback
+py-mod-sintX-sintY-fallback
+py-mod-sintX-bintY-fallback
+py-mod-bintX-floatY-fallback
+py-mod-bintX-boolY-fallback
+py-mod-bintX-sintY-fallback
+py-mod-bintX-bintY-fallback
+py-mul-floatX-floatY-fallback
+py-mul-floatX-boolY-fallback
+py-mul-floatX-sintY-fallback
+py-mul-floatX-bintY-fallback
+py-mul-boolX-floatY-fallback
+py-mul-boolX-boolY-fallback
+py-mul-boolX-sintY-fallback
+py-mul-boolX-bintY-fallback
+py-mul-sintX-floatY-fallback
+py-mul-sintX-boolY-fallback
+py-mul-sintX-sintY-fallback
+py-mul-sintX-bintY-fallback
+py-mul-bintX-floatY-fallback
+py-mul-bintX-boolY-fallback
+py-mul-bintX-sintY-fallback
+py-mul-bintX-bintY-fallback
+py-pow-floatX-floatY-fallback
+py-pow-floatX-boolY-fallback
+py-pow-floatX-sintY-fallback
+py-pow-floatX-bintY-fallback
+py-pow-boolX-floatY-fallback
+py-pow-boolX-boolY-fallback
+py-pow-boolX-sintY-fallback
+py-pow-boolX-bintY-fallback
+py-pow-sintX-floatY-fallback
+py-pow-sintX-boolY-fallback
+py-pow-sintX-sintY-fallback
+py-pow-sintX-bintY-fallback
+py-pow-bintX-floatY-fallback
+py-pow-bintX-boolY-fallback
+py-pow-bintX-sintY-fallback
+py-pow-bintX-bintY-fallback
+py-rshift-floatX-floatY-fallback
+py-rshift-floatX-boolY-fallback
+py-rshift-floatX-sintY-fallback
+py-rshift-floatX-bintY-fallback
+py-rshift-boolX-floatY-fallback
+py-rshift-boolX-boolY-fallback
+py-rshift-boolX-sintY-fallback
+py-rshift-boolX-bintY-fallback
+py-rshift-sintX-floatY-fallback
+py-rshift-sintX-boolY-fallback
+py-rshift-sintX-sintY-fallback
+py-rshift-sintX-bintY-fallback
+py-rshift-bintX-floatY-fallback
+py-rshift-bintX-boolY-fallback
+py-rshift-bintX-sintY-fallback
+py-rshift-bintX-bintY-fallback
+py-sub-floatX-floatY-fallback
+py-sub-floatX-boolY-fallback
+py-sub-floatX-sintY-fallback
+py-sub-floatX-bintY-fallback
+py-sub-boolX-floatY-fallback
+py-sub-boolX-boolY-fallback
+py-sub-boolX-sintY-fallback
+py-sub-boolX-bintY-fallback
+py-sub-sintX-floatY-fallback
+py-sub-sintX-boolY-fallback
+py-sub-sintX-sintY-fallback
+py-sub-sintX-bintY-fallback
+py-sub-bintX-floatY-fallback
+py-sub-bintX-boolY-fallback
+py-sub-bintX-sintY-fallback
+py-sub-bintX-bintY-fallback
+py-truediv-floatX-floatY-fallback
+py-truediv-floatX-boolY-fallback
+py-truediv-floatX-sintY-fallback
+py-truediv-floatX-bintY-fallback
+py-truediv-boolX-floatY-fallback
+py-truediv-boolX-boolY-fallback
+py-truediv-boolX-sintY-fallback
+py-truediv-boolX-bintY-fallback
+py-truediv-sintX-floatY-fallback
+py-truediv-sintX-boolY-fallback
+py-truediv-sintX-sintY-fallback
+py-truediv-sintX-bintY-fallback
+py-truediv-bintX-floatY-fallback
+py-truediv-bintX-boolY-fallback
+py-truediv-bintX-sintY-fallback
+py-truediv-bintX-bintY-fallback
+py-xor-floatX-floatY-fallback
+py-xor-floatX-boolY-fallback
+py-xor-floatX-sintY-fallback
+py-xor-floatX-bintY-fallback
+py-xor-boolX-floatY-fallback
+py-xor-boolX-boolY-fallback
+py-xor-boolX-sintY-fallback
+py-xor-boolX-bintY-fallback
+py-xor-sintX-floatY-fallback
+py-xor-sintX-boolY-fallback
+py-xor-sintX-sintY-fallback
+py-xor-sintX-bintY-fallback
+py-xor-bintX-floatY-fallback
+py-xor-bintX-boolY-fallback
+py-xor-bintX-sintY-fallback
+py-xor-bintX-bintY-fallback
+py-iadd-floatX-floatY-fallback
+py-iadd-floatX-boolY-fallback
+py-iadd-floatX-sintY-fallback
+py-iadd-floatX-bintY-fallback
+py-iadd-boolX-floatY-fallback
+py-iadd-boolX-boolY-fallback
+py-iadd-boolX-sintY-fallback
+py-iadd-boolX-bintY-fallback
+py-iadd-sintX-floatY-fallback
+py-iadd-sintX-boolY-fallback
+py-iadd-sintX-sintY-fallback
+py-iadd-sintX-bintY-fallback
+py-iadd-bintX-floatY-fallback
+py-iadd-bintX-boolY-fallback
+py-iadd-bintX-sintY-fallback
+py-iadd-bintX-bintY-fallback
+py-ibitand-floatX-floatY-fallback
+py-ibitand-floatX-boolY-fallback
+py-ibitand-floatX-sintY-fallback
+py-ibitand-floatX-bintY-fallback
+py-ibitand-boolX-floatY-fallback
+py-ibitand-boolX-boolY-fallback
+py-ibitand-boolX-sintY-fallback
+py-ibitand-boolX-bintY-fallback
+py-ibitand-sintX-floatY-fallback
+py-ibitand-sintX-boolY-fallback
+py-ibitand-sintX-sintY-fallback
+py-ibitand-sintX-bintY-fallback
+py-ibitand-bintX-floatY-fallback
+py-ibitand-bintX-boolY-fallback
+py-ibitand-bintX-sintY-fallback
+py-ibitand-bintX-bintY-fallback
+py-ibitor-floatX-floatY-fallback
+py-ibitor-floatX-boolY-fallback
+py-ibitor-floatX-sintY-fallback
+py-ibitor-floatX-bintY-fallback
+py-ibitor-boolX-floatY-fallback
+py-ibitor-boolX-boolY-fallback
+py-ibitor-boolX-sintY-fallback
+py-ibitor-boolX-bintY-fallback
+py-ibitor-sintX-floatY-fallback
+py-ibitor-sintX-boolY-fallback
+py-ibitor-sintX-sintY-fallback
+py-ibitor-sintX-bintY-fallback
+py-ibitor-bintX-floatY-fallback
+py-ibitor-bintX-boolY-fallback
+py-ibitor-bintX-sintY-fallback
+py-ibitor-bintX-bintY-fallback
+py-ifloordiv-floatX-floatY-fallback
+py-ifloordiv-floatX-boolY-fallback
+py-ifloordiv-floatX-sintY-fallback
+py-ifloordiv-floatX-bintY-fallback
+py-ifloordiv-boolX-floatY-fallback
+py-ifloordiv-boolX-boolY-fallback
+py-ifloordiv-boolX-sintY-fallback
+py-ifloordiv-boolX-bintY-fallback
+py-ifloordiv-sintX-floatY-fallback
+py-ifloordiv-sintX-boolY-fallback
+py-ifloordiv-sintX-sintY-fallback
+py-ifloordiv-sintX-bintY-fallback
+py-ifloordiv-bintX-floatY-fallback
+py-ifloordiv-bintX-boolY-fallback
+py-ifloordiv-bintX-sintY-fallback
+py-ifloordiv-bintX-bintY-fallback
+py-ilshift-floatX-floatY-fallback
+py-ilshift-floatX-boolY-fallback
+py-ilshift-floatX-sintY-fallback
+py-ilshift-floatX-bintY-fallback
+py-ilshift-boolX-floatY-fallback
+py-ilshift-boolX-boolY-fallback
+py-ilshift-boolX-sintY-fallback
+py-ilshift-boolX-bintY-fallback
+py-ilshift-sintX-floatY-fallback
+py-ilshift-sintX-boolY-fallback
+py-ilshift-sintX-sintY-fallback
+py-ilshift-sintX-bintY-fallback
+py-ilshift-bintX-floatY-fallback
+py-ilshift-bintX-boolY-fallback
+py-ilshift-bintX-sintY-fallback
+py-ilshift-bintX-bintY-fallback
+py-imatmul-floatX-floatY-fallback
+py-imatmul-floatX-boolY-fallback
+py-imatmul-floatX-sintY-fallback
+py-imatmul-floatX-bintY-fallback
+py-imatmul-boolX-floatY-fallback
+py-imatmul-boolX-boolY-fallback
+py-imatmul-boolX-sintY-fallback
+py-imatmul-boolX-bintY-fallback
+py-imatmul-sintX-floatY-fallback
+py-imatmul-sintX-boolY-fallback
+py-imatmul-sintX-sintY-fallback
+py-imatmul-sintX-bintY-fallback
+py-imatmul-bintX-floatY-fallback
+py-imatmul-bintX-boolY-fallback
+py-imatmul-bintX-sintY-fallback
+py-imatmul-bintX-bintY-fallback
+py-imod-floatX-floatY-fallback
+py-imod-floatX-boolY-fallback
+py-imod-floatX-sintY-fallback
+py-imod-floatX-bintY-fallback
+py-imod-boolX-floatY-fallback
+py-imod-boolX-boolY-fallback
+py-imod-boolX-sintY-fallback
+py-imod-boolX-bintY-fallback
+py-imod-sintX-floatY-fallback
+py-imod-sintX-boolY-fallback
+py-imod-sintX-sintY-fallback
+py-imod-sintX-bintY-fallback
+py-imod-bintX-floatY-fallback
+py-imod-bintX-boolY-fallback
+py-imod-bintX-sintY-fallback
+py-imod-bintX-bintY-fallback
+py-imul-floatX-floatY-fallback
+py-imul-floatX-boolY-fallback
+py-imul-floatX-sintY-fallback
+py-imul-floatX-bintY-fallback
+py-imul-boolX-floatY-fallback
+py-imul-boolX-boolY-fallback
+py-imul-boolX-sintY-fallback
+py-imul-boolX-bintY-fallback
+py-imul-sintX-floatY-fallback
+py-imul-sintX-boolY-fallback
+py-imul-sintX-sintY-fallback
+py-imul-sintX-bintY-fallback
+py-imul-bintX-floatY-fallback
+py-imul-bintX-boolY-fallback
+py-imul-bintX-sintY-fallback
+py-imul-bintX-bintY-fallback
+py-ipow-floatX-floatY-fallback
+py-ipow-floatX-boolY-fallback
+py-ipow-floatX-sintY-fallback
+py-ipow-floatX-bintY-fallback
+py-ipow-boolX-floatY-fallback
+py-ipow-boolX-boolY-fallback
+py-ipow-boolX-sintY-fallback
+py-ipow-boolX-bintY-fallback
+py-ipow-sintX-floatY-fallback
+py-ipow-sintX-boolY-fallback
+py-ipow-sintX-sintY-fallback
+py-ipow-sintX-bintY-fallback
+py-ipow-bintX-floatY-fallback
+py-ipow-bintX-boolY-fallback
+py-ipow-bintX-sintY-fallback
+py-ipow-bintX-bintY-fallback
+py-irshift-floatX-floatY-fallback
+py-irshift-floatX-boolY-fallback
+py-irshift-floatX-sintY-fallback
+py-irshift-floatX-bintY-fallback
+py-irshift-boolX-floatY-fallback
+py-irshift-boolX-boolY-fallback
+py-irshift-boolX-sintY-fallback
+py-irshift-boolX-bintY-fallback
+py-irshift-sintX-floatY-fallback
+py-irshift-sintX-boolY-fallback
+py-irshift-sintX-sintY-fallback
+py-irshift-sintX-bintY-fallback
+py-irshift-bintX-floatY-fallback
+py-irshift-bintX-boolY-fallback
+py-irshift-bintX-sintY-fallback
+py-irshift-bintX-bintY-fallback
+py-isub-floatX-floatY-fallback
+py-isub-floatX-boolY-fallback
+py-isub-floatX-sintY-fallback
+py-isub-floatX-bintY-fallback
+py-isub-boolX-floatY-fallback
+py-isub-boolX-boolY-fallback
+py-isub-boolX-sintY-fallback
+py-isub-boolX-bintY-fallback
+py-isub-sintX-floatY-fallback
+py-isub-sintX-boolY-fallback
+py-isub-sintX-sintY-fallback
+py-isub-sintX-bintY-fallback
+py-isub-bintX-floatY-fallback
+py-isub-bintX-boolY-fallback
+py-isub-bintX-sintY-fallback
+py-isub-bintX-bintY-fallback
+py-itruediv-floatX-floatY-fallback
+py-itruediv-floatX-boolY-fallback
+py-itruediv-floatX-sintY-fallback
+py-itruediv-floatX-bintY-fallback
+py-itruediv-boolX-floatY-fallback
+py-itruediv-boolX-boolY-fallback
+py-itruediv-boolX-sintY-fallback
+py-itruediv-boolX-bintY-fallback
+py-itruediv-sintX-floatY-fallback
+py-itruediv-sintX-boolY-fallback
+py-itruediv-sintX-sintY-fallback
+py-itruediv-sintX-bintY-fallback
+py-itruediv-bintX-floatY-fallback
+py-itruediv-bintX-boolY-fallback
+py-itruediv-bintX-sintY-fallback
+py-itruediv-bintX-bintY-fallback
+py-ixor-floatX-floatY-fallback
+py-ixor-floatX-boolY-fallback
+py-ixor-floatX-sintY-fallback
+py-ixor-floatX-bintY-fallback
+py-ixor-boolX-floatY-fallback
+py-ixor-boolX-boolY-fallback
+py-ixor-boolX-sintY-fallback
+py-ixor-boolX-bintY-fallback
+py-ixor-sintX-floatY-fallback
+py-ixor-sintX-boolY-fallback
+py-ixor-sintX-sintY-fallback
+py-ixor-sintX-bintY-fallback
+py-ixor-bintX-floatY-fallback
+py-ixor-bintX-boolY-fallback
+py-ixor-bintX-sintY-fallback
+py-ixor-bintX-bintY-fallback
+py-ge-floatX-floatY-fallback
+py-test-ge-floatX-floatY-fallback
+py-ge-floatX-boolY-fallback
+py-test-ge-floatX-boolY-fallback
+py-ge-floatX-sintY-fallback
+py-test-ge-floatX-sintY-fallback
+py-ge-floatX-bintY-fallback
+py-test-ge-floatX-bintY-fallback
+py-ge-boolX-floatY-fallback
+py-test-ge-boolX-floatY-fallback
+py-ge-boolX-boolY-fallback
+py-test-ge-boolX-boolY-fallback
+py-ge-boolX-sintY-fallback
+py-test-ge-boolX-sintY-fallback
+py-ge-boolX-bintY-fallback
+py-test-ge-boolX-bintY-fallback
+py-ge-sintX-floatY-fallback
+py-test-ge-sintX-floatY-fallback
+py-ge-sintX-boolY-fallback
+py-test-ge-sintX-boolY-fallback
+py-ge-sintX-sintY-fallback
+py-test-ge-sintX-sintY-fallback
+py-ge-sintX-bintY-fallback
+py-test-ge-sintX-bintY-fallback
+py-ge-bintX-floatY-fallback
+py-test-ge-bintX-floatY-fallback
+py-ge-bintX-boolY-fallback
+py-test-ge-bintX-boolY-fallback
+py-ge-bintX-sintY-fallback
+py-test-ge-bintX-sintY-fallback
+py-ge-bintX-bintY-fallback
+py-test-ge-bintX-bintY-fallback
+py-gt-floatX-floatY-fallback
+py-test-gt-floatX-floatY-fallback
+py-gt-floatX-boolY-fallback
+py-test-gt-floatX-boolY-fallback
+py-gt-floatX-sintY-fallback
+py-test-gt-floatX-sintY-fallback
+py-gt-floatX-bintY-fallback
+py-test-gt-floatX-bintY-fallback
+py-gt-boolX-floatY-fallback
+py-test-gt-boolX-floatY-fallback
+py-gt-boolX-boolY-fallback
+py-test-gt-boolX-boolY-fallback
+py-gt-boolX-sintY-fallback
+py-test-gt-boolX-sintY-fallback
+py-gt-boolX-bintY-fallback
+py-test-gt-boolX-bintY-fallback
+py-gt-sintX-floatY-fallback
+py-test-gt-sintX-floatY-fallback
+py-gt-sintX-boolY-fallback
+py-test-gt-sintX-boolY-fallback
+py-gt-sintX-sintY-fallback
+py-test-gt-sintX-sintY-fallback
+py-gt-sintX-bintY-fallback
+py-test-gt-sintX-bintY-fallback
+py-gt-bintX-floatY-fallback
+py-test-gt-bintX-floatY-fallback
+py-gt-bintX-boolY-fallback
+py-test-gt-bintX-boolY-fallback
+py-gt-bintX-sintY-fallback
+py-test-gt-bintX-sintY-fallback
+py-gt-bintX-bintY-fallback
+py-test-gt-bintX-bintY-fallback
+py-le-floatX-floatY-fallback
+py-test-le-floatX-floatY-fallback
+py-le-floatX-boolY-fallback
+py-test-le-floatX-boolY-fallback
+py-le-floatX-sintY-fallback
+py-test-le-floatX-sintY-fallback
+py-le-floatX-bintY-fallback
+py-test-le-floatX-bintY-fallback
+py-le-boolX-floatY-fallback
+py-test-le-boolX-floatY-fallback
+py-le-boolX-boolY-fallback
+py-test-le-boolX-boolY-fallback
+py-le-boolX-sintY-fallback
+py-test-le-boolX-sintY-fallback
+py-le-boolX-bintY-fallback
+py-test-le-boolX-bintY-fallback
+py-le-sintX-floatY-fallback
+py-test-le-sintX-floatY-fallback
+py-le-sintX-boolY-fallback
+py-test-le-sintX-boolY-fallback
+py-le-sintX-sintY-fallback
+py-test-le-sintX-sintY-fallback
+py-le-sintX-bintY-fallback
+py-test-le-sintX-bintY-fallback
+py-le-bintX-floatY-fallback
+py-test-le-bintX-floatY-fallback
+py-le-bintX-boolY-fallback
+py-test-le-bintX-boolY-fallback
+py-le-bintX-sintY-fallback
+py-test-le-bintX-sintY-fallback
+py-le-bintX-bintY-fallback
+py-test-le-bintX-bintY-fallback
+py-lt-floatX-floatY-fallback
+py-test-lt-floatX-floatY-fallback
+py-lt-floatX-boolY-fallback
+py-test-lt-floatX-boolY-fallback
+py-lt-floatX-sintY-fallback
+py-test-lt-floatX-sintY-fallback
+py-lt-floatX-bintY-fallback
+py-test-lt-floatX-bintY-fallback
+py-lt-boolX-floatY-fallback
+py-test-lt-boolX-floatY-fallback
+py-lt-boolX-boolY-fallback
+py-test-lt-boolX-boolY-fallback
+py-lt-boolX-sintY-fallback
+py-test-lt-boolX-sintY-fallback
+py-lt-boolX-bintY-fallback
+py-test-lt-boolX-bintY-fallback
+py-lt-sintX-floatY-fallback
+py-test-lt-sintX-floatY-fallback
+py-lt-sintX-boolY-fallback
+py-test-lt-sintX-boolY-fallback
+py-lt-sintX-sintY-fallback
+py-test-lt-sintX-sintY-fallback
+py-lt-sintX-bintY-fallback
+py-test-lt-sintX-bintY-fallback
+py-lt-bintX-floatY-fallback
+py-test-lt-bintX-floatY-fallback
+py-lt-bintX-boolY-fallback
+py-test-lt-bintX-boolY-fallback
+py-lt-bintX-sintY-fallback
+py-test-lt-bintX-sintY-fallback
+py-lt-bintX-bintY-fallback
+py-test-lt-bintX-bintY-fallback
+py-eq-floatX-floatY-fallback
+py-test-eq-floatX-floatY-fallback
+py-eq-floatX-boolY-fallback
+py-test-eq-floatX-boolY-fallback
+py-eq-floatX-sintY-fallback
+py-test-eq-floatX-sintY-fallback
+py-eq-floatX-bintY-fallback
+py-test-eq-floatX-bintY-fallback
+py-eq-boolX-floatY-fallback
+py-test-eq-boolX-floatY-fallback
+py-eq-boolX-boolY-fallback
+py-test-eq-boolX-boolY-fallback
+py-eq-boolX-sintY-fallback
+py-test-eq-boolX-sintY-fallback
+py-eq-boolX-bintY-fallback
+py-test-eq-boolX-bintY-fallback
+py-eq-sintX-floatY-fallback
+py-test-eq-sintX-floatY-fallback
+py-eq-sintX-boolY-fallback
+py-test-eq-sintX-boolY-fallback
+py-eq-sintX-sintY-fallback
+py-test-eq-sintX-sintY-fallback
+py-eq-sintX-bintY-fallback
+py-test-eq-sintX-bintY-fallback
+py-eq-bintX-floatY-fallback
+py-test-eq-bintX-floatY-fallback
+py-eq-bintX-boolY-fallback
+py-test-eq-bintX-boolY-fallback
+py-eq-bintX-sintY-fallback
+py-test-eq-bintX-sintY-fallback
+py-eq-bintX-bintY-fallback
+py-test-eq-bintX-bintY-fallback
+py-ne-floatX-floatY-fallback
+py-test-ne-floatX-floatY-fallback
+py-ne-floatX-boolY-fallback
+py-test-ne-floatX-boolY-fallback
+py-ne-floatX-sintY-fallback
+py-test-ne-floatX-sintY-fallback
+py-ne-floatX-bintY-fallback
+py-test-ne-floatX-bintY-fallback
+py-ne-boolX-floatY-fallback
+py-test-ne-boolX-floatY-fallback
+py-ne-boolX-boolY-fallback
+py-test-ne-boolX-boolY-fallback
+py-ne-boolX-sintY-fallback
+py-test-ne-boolX-sintY-fallback
+py-ne-boolX-bintY-fallback
+py-test-ne-boolX-bintY-fallback
+py-ne-sintX-floatY-fallback
+py-test-ne-sintX-floatY-fallback
+py-ne-sintX-boolY-fallback
+py-test-ne-sintX-boolY-fallback
+py-ne-sintX-sintY-fallback
+py-test-ne-sintX-sintY-fallback
+py-ne-sintX-bintY-fallback
+py-test-ne-sintX-bintY-fallback
+py-ne-bintX-floatY-fallback
+py-test-ne-bintX-floatY-fallback
+py-ne-bintX-boolY-fallback
+py-test-ne-bintX-boolY-fallback
+py-ne-bintX-sintY-fallback
+py-test-ne-bintX-sintY-fallback
+py-ne-bintX-bintY-fallback
+py-test-ne-bintX-bintY-fallback
+py-add-fallback
+py-bitand-fallback
+py-bitor-fallback
+py-floordiv-fallback
+py-lshift-fallback
+py-matmul-fallback
+py-mod-fallback
+py-mul-fallback
+py-pow-fallback
+py-rshift-fallback
+py-sub-fallback
+py-truediv-fallback
+py-xor-fallback
+py-iadd-fallback
+py-ibitand-fallback
+py-ibitor-fallback
+py-ifloordiv-fallback
+py-ilshift-fallback
+py-imatmul-fallback
+py-imod-fallback
+py-imul-fallback
+py-ipow-fallback
+py-irshift-fallback
+py-isub-fallback
+py-itruediv-fallback
+py-ixor-fallback
+py-pos-fallback
+py-neg-fallback
+py-invert-fallback
+py-ge-fallback
+py-gt-fallback
+py-le-fallback
+py-lt-fallback
+py-eq-fallback
+py-ne-fallback
+py-add-floatX-floatY-inline
+py-add-floatX-boolY-inline
+py-add-floatX-sintY-inline
+py-add-floatX-bintY-inline
+py-add-boolX-floatY-inline
+py-add-boolX-boolY-inline
+py-add-boolX-sintY-inline
+py-add-boolX-bintY-inline
+py-add-sintX-floatY-inline
+py-add-sintX-boolY-inline
+py-add-sintX-sintY-inline
+py-add-sintX-bintY-inline
+py-add-bintX-floatY-inline
+py-add-bintX-boolY-inline
+py-add-bintX-sintY-inline
+py-add-bintX-bintY-inline
+py-bitand-floatX-floatY-inline
+py-bitand-floatX-boolY-inline
+py-bitand-floatX-sintY-inline
+py-bitand-floatX-bintY-inline
+py-bitand-boolX-floatY-inline
+py-bitand-boolX-boolY-inline
+py-bitand-boolX-sintY-inline
+py-bitand-boolX-bintY-inline
+py-bitand-sintX-floatY-inline
+py-bitand-sintX-boolY-inline
+py-bitand-sintX-sintY-inline
+py-bitand-sintX-bintY-inline
+py-bitand-bintX-floatY-inline
+py-bitand-bintX-boolY-inline
+py-bitand-bintX-sintY-inline
+py-bitand-bintX-bintY-inline
+py-bitor-floatX-floatY-inline
+py-bitor-floatX-boolY-inline
+py-bitor-floatX-sintY-inline
+py-bitor-floatX-bintY-inline
+py-bitor-boolX-floatY-inline
+py-bitor-boolX-boolY-inline
+py-bitor-boolX-sintY-inline
+py-bitor-boolX-bintY-inline
+py-bitor-sintX-floatY-inline
+py-bitor-sintX-boolY-inline
+py-bitor-sintX-sintY-inline
+py-bitor-sintX-bintY-inline
+py-bitor-bintX-floatY-inline
+py-bitor-bintX-boolY-inline
+py-bitor-bintX-sintY-inline
+py-bitor-bintX-bintY-inline
+py-floordiv-floatX-floatY-inline
+py-floordiv-floatX-boolY-inline
+py-floordiv-floatX-sintY-inline
+py-floordiv-floatX-bintY-inline
+py-floordiv-boolX-floatY-inline
+py-floordiv-boolX-boolY-inline
+py-floordiv-boolX-sintY-inline
+py-floordiv-boolX-bintY-inline
+py-floordiv-sintX-floatY-inline
+py-floordiv-sintX-boolY-inline
+py-floordiv-sintX-sintY-inline
+py-floordiv-sintX-bintY-inline
+py-floordiv-bintX-floatY-inline
+py-floordiv-bintX-boolY-inline
+py-floordiv-bintX-sintY-inline
+py-floordiv-bintX-bintY-inline
+py-lshift-floatX-floatY-inline
+py-lshift-floatX-boolY-inline
+py-lshift-floatX-sintY-inline
+py-lshift-floatX-bintY-inline
+py-lshift-boolX-floatY-inline
+py-lshift-boolX-boolY-inline
+py-lshift-boolX-sintY-inline
+py-lshift-boolX-bintY-inline
+py-lshift-sintX-floatY-inline
+py-lshift-sintX-boolY-inline
+py-lshift-sintX-sintY-inline
+py-lshift-sintX-bintY-inline
+py-lshift-bintX-floatY-inline
+py-lshift-bintX-boolY-inline
+py-lshift-bintX-sintY-inline
+py-lshift-bintX-bintY-inline
+py-matmul-floatX-floatY-inline
+py-matmul-floatX-boolY-inline
+py-matmul-floatX-sintY-inline
+py-matmul-floatX-bintY-inline
+py-matmul-boolX-floatY-inline
+py-matmul-boolX-boolY-inline
+py-matmul-boolX-sintY-inline
+py-matmul-boolX-bintY-inline
+py-matmul-sintX-floatY-inline
+py-matmul-sintX-boolY-inline
+py-matmul-sintX-sintY-inline
+py-matmul-sintX-bintY-inline
+py-matmul-bintX-floatY-inline
+py-matmul-bintX-boolY-inline
+py-matmul-bintX-sintY-inline
+py-matmul-bintX-bintY-inline
+py-mod-floatX-floatY-inline
+py-mod-floatX-boolY-inline
+py-mod-floatX-sintY-inline
+py-mod-floatX-bintY-inline
+py-mod-boolX-floatY-inline
+py-mod-boolX-boolY-inline
+py-mod-boolX-sintY-inline
+py-mod-boolX-bintY-inline
+py-mod-sintX-floatY-inline
+py-mod-sintX-boolY-inline
+py-mod-sintX-sintY-inline
+py-mod-sintX-bintY-inline
+py-mod-bintX-floatY-inline
+py-mod-bintX-boolY-inline
+py-mod-bintX-sintY-inline
+py-mod-bintX-bintY-inline
+py-mul-floatX-floatY-inline
+py-mul-floatX-boolY-inline
+py-mul-floatX-sintY-inline
+py-mul-floatX-bintY-inline
+py-mul-boolX-floatY-inline
+py-mul-boolX-boolY-inline
+py-mul-boolX-sintY-inline
+py-mul-boolX-bintY-inline
+py-mul-sintX-floatY-inline
+py-mul-sintX-boolY-inline
+py-mul-sintX-sintY-inline
+py-mul-sintX-bintY-inline
+py-mul-bintX-floatY-inline
+py-mul-bintX-boolY-inline
+py-mul-bintX-sintY-inline
+py-mul-bintX-bintY-inline
+py-pow-floatX-floatY-inline
+py-pow-floatX-boolY-inline
+py-pow-floatX-sintY-inline
+py-pow-floatX-bintY-inline
+py-pow-boolX-floatY-inline
+py-pow-boolX-boolY-inline
+py-pow-boolX-sintY-inline
+py-pow-boolX-bintY-inline
+py-pow-sintX-floatY-inline
+py-pow-sintX-boolY-inline
+py-pow-sintX-sintY-inline
+py-pow-sintX-bintY-inline
+py-pow-bintX-floatY-inline
+py-pow-bintX-boolY-inline
+py-pow-bintX-sintY-inline
+py-pow-bintX-bintY-inline
+py-rshift-floatX-floatY-inline
+py-rshift-floatX-boolY-inline
+py-rshift-floatX-sintY-inline
+py-rshift-floatX-bintY-inline
+py-rshift-boolX-floatY-inline
+py-rshift-boolX-boolY-inline
+py-rshift-boolX-sintY-inline
+py-rshift-boolX-bintY-inline
+py-rshift-sintX-floatY-inline
+py-rshift-sintX-boolY-inline
+py-rshift-sintX-sintY-inline
+py-rshift-sintX-bintY-inline
+py-rshift-bintX-floatY-inline
+py-rshift-bintX-boolY-inline
+py-rshift-bintX-sintY-inline
+py-rshift-bintX-bintY-inline
+py-sub-floatX-floatY-inline
+py-sub-floatX-boolY-inline
+py-sub-floatX-sintY-inline
+py-sub-floatX-bintY-inline
+py-sub-boolX-floatY-inline
+py-sub-boolX-boolY-inline
+py-sub-boolX-sintY-inline
+py-sub-boolX-bintY-inline
+py-sub-sintX-floatY-inline
+py-sub-sintX-boolY-inline
+py-sub-sintX-sintY-inline
+py-sub-sintX-bintY-inline
+py-sub-bintX-floatY-inline
+py-sub-bintX-boolY-inline
+py-sub-bintX-sintY-inline
+py-sub-bintX-bintY-inline
+py-truediv-floatX-floatY-inline
+py-truediv-floatX-boolY-inline
+py-truediv-floatX-sintY-inline
+py-truediv-floatX-bintY-inline
+py-truediv-boolX-floatY-inline
+py-truediv-boolX-boolY-inline
+py-truediv-boolX-sintY-inline
+py-truediv-boolX-bintY-inline
+py-truediv-sintX-floatY-inline
+py-truediv-sintX-boolY-inline
+py-truediv-sintX-sintY-inline
+py-truediv-sintX-bintY-inline
+py-truediv-bintX-floatY-inline
+py-truediv-bintX-boolY-inline
+py-truediv-bintX-sintY-inline
+py-truediv-bintX-bintY-inline
+py-xor-floatX-floatY-inline
+py-xor-floatX-boolY-inline
+py-xor-floatX-sintY-inline
+py-xor-floatX-bintY-inline
+py-xor-boolX-floatY-inline
+py-xor-boolX-boolY-inline
+py-xor-boolX-sintY-inline
+py-xor-boolX-bintY-inline
+py-xor-sintX-floatY-inline
+py-xor-sintX-boolY-inline
+py-xor-sintX-sintY-inline
+py-xor-sintX-bintY-inline
+py-xor-bintX-floatY-inline
+py-xor-bintX-boolY-inline
+py-xor-bintX-sintY-inline
+py-xor-bintX-bintY-inline
+py-iadd-floatX-floatY-inline
+py-iadd-floatX-boolY-inline
+py-iadd-floatX-sintY-inline
+py-iadd-floatX-bintY-inline
+py-iadd-boolX-floatY-inline
+py-iadd-boolX-boolY-inline
+py-iadd-boolX-sintY-inline
+py-iadd-boolX-bintY-inline
+py-iadd-sintX-floatY-inline
+py-iadd-sintX-boolY-inline
+py-iadd-sintX-sintY-inline
+py-iadd-sintX-bintY-inline
+py-iadd-bintX-floatY-inline
+py-iadd-bintX-boolY-inline
+py-iadd-bintX-sintY-inline
+py-iadd-bintX-bintY-inline
+py-ibitand-floatX-floatY-inline
+py-ibitand-floatX-boolY-inline
+py-ibitand-floatX-sintY-inline
+py-ibitand-floatX-bintY-inline
+py-ibitand-boolX-floatY-inline
+py-ibitand-boolX-boolY-inline
+py-ibitand-boolX-sintY-inline
+py-ibitand-boolX-bintY-inline
+py-ibitand-sintX-floatY-inline
+py-ibitand-sintX-boolY-inline
+py-ibitand-sintX-sintY-inline
+py-ibitand-sintX-bintY-inline
+py-ibitand-bintX-floatY-inline
+py-ibitand-bintX-boolY-inline
+py-ibitand-bintX-sintY-inline
+py-ibitand-bintX-bintY-inline
+py-ibitor-floatX-floatY-inline
+py-ibitor-floatX-boolY-inline
+py-ibitor-floatX-sintY-inline
+py-ibitor-floatX-bintY-inline
+py-ibitor-boolX-floatY-inline
+py-ibitor-boolX-boolY-inline
+py-ibitor-boolX-sintY-inline
+py-ibitor-boolX-bintY-inline
+py-ibitor-sintX-floatY-inline
+py-ibitor-sintX-boolY-inline
+py-ibitor-sintX-sintY-inline
+py-ibitor-sintX-bintY-inline
+py-ibitor-bintX-floatY-inline
+py-ibitor-bintX-boolY-inline
+py-ibitor-bintX-sintY-inline
+py-ibitor-bintX-bintY-inline
+py-ifloordiv-floatX-floatY-inline
+py-ifloordiv-floatX-boolY-inline
+py-ifloordiv-floatX-sintY-inline
+py-ifloordiv-floatX-bintY-inline
+py-ifloordiv-boolX-floatY-inline
+py-ifloordiv-boolX-boolY-inline
+py-ifloordiv-boolX-sintY-inline
+py-ifloordiv-boolX-bintY-inline
+py-ifloordiv-sintX-floatY-inline
+py-ifloordiv-sintX-boolY-inline
+py-ifloordiv-sintX-sintY-inline
+py-ifloordiv-sintX-bintY-inline
+py-ifloordiv-bintX-floatY-inline
+py-ifloordiv-bintX-boolY-inline
+py-ifloordiv-bintX-sintY-inline
+py-ifloordiv-bintX-bintY-inline
+py-ilshift-floatX-floatY-inline
+py-ilshift-floatX-boolY-inline
+py-ilshift-floatX-sintY-inline
+py-ilshift-floatX-bintY-inline
+py-ilshift-boolX-floatY-inline
+py-ilshift-boolX-boolY-inline
+py-ilshift-boolX-sintY-inline
+py-ilshift-boolX-bintY-inline
+py-ilshift-sintX-floatY-inline
+py-ilshift-sintX-boolY-inline
+py-ilshift-sintX-sintY-inline
+py-ilshift-sintX-bintY-inline
+py-ilshift-bintX-floatY-inline
+py-ilshift-bintX-boolY-inline
+py-ilshift-bintX-sintY-inline
+py-ilshift-bintX-bintY-inline
+py-imatmul-floatX-floatY-inline
+py-imatmul-floatX-boolY-inline
+py-imatmul-floatX-sintY-inline
+py-imatmul-floatX-bintY-inline
+py-imatmul-boolX-floatY-inline
+py-imatmul-boolX-boolY-inline
+py-imatmul-boolX-sintY-inline
+py-imatmul-boolX-bintY-inline
+py-imatmul-sintX-floatY-inline
+py-imatmul-sintX-boolY-inline
+py-imatmul-sintX-sintY-inline
+py-imatmul-sintX-bintY-inline
+py-imatmul-bintX-floatY-inline
+py-imatmul-bintX-boolY-inline
+py-imatmul-bintX-sintY-inline
+py-imatmul-bintX-bintY-inline
+py-imod-floatX-floatY-inline
+py-imod-floatX-boolY-inline
+py-imod-floatX-sintY-inline
+py-imod-floatX-bintY-inline
+py-imod-boolX-floatY-inline
+py-imod-boolX-boolY-inline
+py-imod-boolX-sintY-inline
+py-imod-boolX-bintY-inline
+py-imod-sintX-floatY-inline
+py-imod-sintX-boolY-inline
+py-imod-sintX-sintY-inline
+py-imod-sintX-bintY-inline
+py-imod-bintX-floatY-inline
+py-imod-bintX-boolY-inline
+py-imod-bintX-sintY-inline
+py-imod-bintX-bintY-inline
+py-imul-floatX-floatY-inline
+py-imul-floatX-boolY-inline
+py-imul-floatX-sintY-inline
+py-imul-floatX-bintY-inline
+py-imul-boolX-floatY-inline
+py-imul-boolX-boolY-inline
+py-imul-boolX-sintY-inline
+py-imul-boolX-bintY-inline
+py-imul-sintX-floatY-inline
+py-imul-sintX-boolY-inline
+py-imul-sintX-sintY-inline
+py-imul-sintX-bintY-inline
+py-imul-bintX-floatY-inline
+py-imul-bintX-boolY-inline
+py-imul-bintX-sintY-inline
+py-imul-bintX-bintY-inline
+py-ipow-floatX-floatY-inline
+py-ipow-floatX-boolY-inline
+py-ipow-floatX-sintY-inline
+py-ipow-floatX-bintY-inline
+py-ipow-boolX-floatY-inline
+py-ipow-boolX-boolY-inline
+py-ipow-boolX-sintY-inline
+py-ipow-boolX-bintY-inline
+py-ipow-sintX-floatY-inline
+py-ipow-sintX-boolY-inline
+py-ipow-sintX-sintY-inline
+py-ipow-sintX-bintY-inline
+py-ipow-bintX-floatY-inline
+py-ipow-bintX-boolY-inline
+py-ipow-bintX-sintY-inline
+py-ipow-bintX-bintY-inline
+py-irshift-floatX-floatY-inline
+py-irshift-floatX-boolY-inline
+py-irshift-floatX-sintY-inline
+py-irshift-floatX-bintY-inline
+py-irshift-boolX-floatY-inline
+py-irshift-boolX-boolY-inline
+py-irshift-boolX-sintY-inline
+py-irshift-boolX-bintY-inline
+py-irshift-sintX-floatY-inline
+py-irshift-sintX-boolY-inline
+py-irshift-sintX-sintY-inline
+py-irshift-sintX-bintY-inline
+py-irshift-bintX-floatY-inline
+py-irshift-bintX-boolY-inline
+py-irshift-bintX-sintY-inline
+py-irshift-bintX-bintY-inline
+py-isub-floatX-floatY-inline
+py-isub-floatX-boolY-inline
+py-isub-floatX-sintY-inline
+py-isub-floatX-bintY-inline
+py-isub-boolX-floatY-inline
+py-isub-boolX-boolY-inline
+py-isub-boolX-sintY-inline
+py-isub-boolX-bintY-inline
+py-isub-sintX-floatY-inline
+py-isub-sintX-boolY-inline
+py-isub-sintX-sintY-inline
+py-isub-sintX-bintY-inline
+py-isub-bintX-floatY-inline
+py-isub-bintX-boolY-inline
+py-isub-bintX-sintY-inline
+py-isub-bintX-bintY-inline
+py-itruediv-floatX-floatY-inline
+py-itruediv-floatX-boolY-inline
+py-itruediv-floatX-sintY-inline
+py-itruediv-floatX-bintY-inline
+py-itruediv-boolX-floatY-inline
+py-itruediv-boolX-boolY-inline
+py-itruediv-boolX-sintY-inline
+py-itruediv-boolX-bintY-inline
+py-itruediv-sintX-floatY-inline
+py-itruediv-sintX-boolY-inline
+py-itruediv-sintX-sintY-inline
+py-itruediv-sintX-bintY-inline
+py-itruediv-bintX-floatY-inline
+py-itruediv-bintX-boolY-inline
+py-itruediv-bintX-sintY-inline
+py-itruediv-bintX-bintY-inline
+py-ixor-floatX-floatY-inline
+py-ixor-floatX-boolY-inline
+py-ixor-floatX-sintY-inline
+py-ixor-floatX-bintY-inline
+py-ixor-boolX-floatY-inline
+py-ixor-boolX-boolY-inline
+py-ixor-boolX-sintY-inline
+py-ixor-boolX-bintY-inline
+py-ixor-sintX-floatY-inline
+py-ixor-sintX-boolY-inline
+py-ixor-sintX-sintY-inline
+py-ixor-sintX-bintY-inline
+py-ixor-bintX-floatY-inline
+py-ixor-bintX-boolY-inline
+py-ixor-bintX-sintY-inline
+py-ixor-bintX-bintY-inline
+py-ge-floatX-floatY-inline
+py-test-ge-floatX-floatY-inline
+py-ge-floatX-boolY-inline
+py-test-ge-floatX-boolY-inline
+py-ge-floatX-sintY-inline
+py-test-ge-floatX-sintY-inline
+py-ge-floatX-bintY-inline
+py-test-ge-floatX-bintY-inline
+py-ge-boolX-floatY-inline
+py-test-ge-boolX-floatY-inline
+py-ge-boolX-boolY-inline
+py-test-ge-boolX-boolY-inline
+py-ge-boolX-sintY-inline
+py-test-ge-boolX-sintY-inline
+py-ge-boolX-bintY-inline
+py-test-ge-boolX-bintY-inline
+py-ge-sintX-floatY-inline
+py-test-ge-sintX-floatY-inline
+py-ge-sintX-boolY-inline
+py-test-ge-sintX-boolY-inline
+py-ge-sintX-sintY-inline
+py-test-ge-sintX-sintY-inline
+py-ge-sintX-bintY-inline
+py-test-ge-sintX-bintY-inline
+py-ge-bintX-floatY-inline
+py-test-ge-bintX-floatY-inline
+py-ge-bintX-boolY-inline
+py-test-ge-bintX-boolY-inline
+py-ge-bintX-sintY-inline
+py-test-ge-bintX-sintY-inline
+py-ge-bintX-bintY-inline
+py-test-ge-bintX-bintY-inline
+py-gt-floatX-floatY-inline
+py-test-gt-floatX-floatY-inline
+py-gt-floatX-boolY-inline
+py-test-gt-floatX-boolY-inline
+py-gt-floatX-sintY-inline
+py-test-gt-floatX-sintY-inline
+py-gt-floatX-bintY-inline
+py-test-gt-floatX-bintY-inline
+py-gt-boolX-floatY-inline
+py-test-gt-boolX-floatY-inline
+py-gt-boolX-boolY-inline
+py-test-gt-boolX-boolY-inline
+py-gt-boolX-sintY-inline
+py-test-gt-boolX-sintY-inline
+py-gt-boolX-bintY-inline
+py-test-gt-boolX-bintY-inline
+py-gt-sintX-floatY-inline
+py-test-gt-sintX-floatY-inline
+py-gt-sintX-boolY-inline
+py-test-gt-sintX-boolY-inline
+py-gt-sintX-sintY-inline
+py-test-gt-sintX-sintY-inline
+py-gt-sintX-bintY-inline
+py-test-gt-sintX-bintY-inline
+py-gt-bintX-floatY-inline
+py-test-gt-bintX-floatY-inline
+py-gt-bintX-boolY-inline
+py-test-gt-bintX-boolY-inline
+py-gt-bintX-sintY-inline
+py-test-gt-bintX-sintY-inline
+py-gt-bintX-bintY-inline
+py-test-gt-bintX-bintY-inline
+py-le-floatX-floatY-inline
+py-test-le-floatX-floatY-inline
+py-le-floatX-boolY-inline
+py-test-le-floatX-boolY-inline
+py-le-floatX-sintY-inline
+py-test-le-floatX-sintY-inline
+py-le-floatX-bintY-inline
+py-test-le-floatX-bintY-inline
+py-le-boolX-floatY-inline
+py-test-le-boolX-floatY-inline
+py-le-boolX-boolY-inline
+py-test-le-boolX-boolY-inline
+py-le-boolX-sintY-inline
+py-test-le-boolX-sintY-inline
+py-le-boolX-bintY-inline
+py-test-le-boolX-bintY-inline
+py-le-sintX-floatY-inline
+py-test-le-sintX-floatY-inline
+py-le-sintX-boolY-inline
+py-test-le-sintX-boolY-inline
+py-le-sintX-sintY-inline
+py-test-le-sintX-sintY-inline
+py-le-sintX-bintY-inline
+py-test-le-sintX-bintY-inline
+py-le-bintX-floatY-inline
+py-test-le-bintX-floatY-inline
+py-le-bintX-boolY-inline
+py-test-le-bintX-boolY-inline
+py-le-bintX-sintY-inline
+py-test-le-bintX-sintY-inline
+py-le-bintX-bintY-inline
+py-test-le-bintX-bintY-inline
+py-lt-floatX-floatY-inline
+py-test-lt-floatX-floatY-inline
+py-lt-floatX-boolY-inline
+py-test-lt-floatX-boolY-inline
+py-lt-floatX-sintY-inline
+py-test-lt-floatX-sintY-inline
+py-lt-floatX-bintY-inline
+py-test-lt-floatX-bintY-inline
+py-lt-boolX-floatY-inline
+py-test-lt-boolX-floatY-inline
+py-lt-boolX-boolY-inline
+py-test-lt-boolX-boolY-inline
+py-lt-boolX-sintY-inline
+py-test-lt-boolX-sintY-inline
+py-lt-boolX-bintY-inline
+py-test-lt-boolX-bintY-inline
+py-lt-sintX-floatY-inline
+py-test-lt-sintX-floatY-inline
+py-lt-sintX-boolY-inline
+py-test-lt-sintX-boolY-inline
+py-lt-sintX-sintY-inline
+py-test-lt-sintX-sintY-inline
+py-lt-sintX-bintY-inline
+py-test-lt-sintX-bintY-inline
+py-lt-bintX-floatY-inline
+py-test-lt-bintX-floatY-inline
+py-lt-bintX-boolY-inline
+py-test-lt-bintX-boolY-inline
+py-lt-bintX-sintY-inline
+py-test-lt-bintX-sintY-inline
+py-lt-bintX-bintY-inline
+py-test-lt-bintX-bintY-inline
+py-eq-floatX-floatY-inline
+py-test-eq-floatX-floatY-inline
+py-eq-floatX-boolY-inline
+py-test-eq-floatX-boolY-inline
+py-eq-floatX-sintY-inline
+py-test-eq-floatX-sintY-inline
+py-eq-floatX-bintY-inline
+py-test-eq-floatX-bintY-inline
+py-eq-boolX-floatY-inline
+py-test-eq-boolX-floatY-inline
+py-eq-boolX-boolY-inline
+py-test-eq-boolX-boolY-inline
+py-eq-boolX-sintY-inline
+py-test-eq-boolX-sintY-inline
+py-eq-boolX-bintY-inline
+py-test-eq-boolX-bintY-inline
+py-eq-sintX-floatY-inline
+py-test-eq-sintX-floatY-inline
+py-eq-sintX-boolY-inline
+py-test-eq-sintX-boolY-inline
+py-eq-sintX-sintY-inline
+py-test-eq-sintX-sintY-inline
+py-eq-sintX-bintY-inline
+py-test-eq-sintX-bintY-inline
+py-eq-bintX-floatY-inline
+py-test-eq-bintX-floatY-inline
+py-eq-bintX-boolY-inline
+py-test-eq-bintX-boolY-inline
+py-eq-bintX-sintY-inline
+py-test-eq-bintX-sintY-inline
+py-eq-bintX-bintY-inline
+py-test-eq-bintX-bintY-inline
+py-ne-floatX-floatY-inline
+py-test-ne-floatX-floatY-inline
+py-ne-floatX-boolY-inline
+py-test-ne-floatX-boolY-inline
+py-ne-floatX-sintY-inline
+py-test-ne-floatX-sintY-inline
+py-ne-floatX-bintY-inline
+py-test-ne-floatX-bintY-inline
+py-ne-boolX-floatY-inline
+py-test-ne-boolX-floatY-inline
+py-ne-boolX-boolY-inline
+py-test-ne-boolX-boolY-inline
+py-ne-boolX-sintY-inline
+py-test-ne-boolX-sintY-inline
+py-ne-boolX-bintY-inline
+py-test-ne-boolX-bintY-inline
+py-ne-sintX-floatY-inline
+py-test-ne-sintX-floatY-inline
+py-ne-sintX-boolY-inline
+py-test-ne-sintX-boolY-inline
+py-ne-sintX-sintY-inline
+py-test-ne-sintX-sintY-inline
+py-ne-sintX-bintY-inline
+py-test-ne-sintX-bintY-inline
+py-ne-bintX-floatY-inline
+py-test-ne-bintX-floatY-inline
+py-ne-bintX-boolY-inline
+py-test-ne-bintX-boolY-inline
+py-ne-bintX-sintY-inline
+py-test-ne-bintX-sintY-inline
+py-ne-bintX-bintY-inline
+py-test-ne-bintX-bintY-inline
     )
 
   (import gambit)
