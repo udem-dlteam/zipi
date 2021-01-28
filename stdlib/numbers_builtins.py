@@ -276,6 +276,24 @@ class int:
         else:
             raise TypeError("descriptor '__irshift__' requires a 'int' object but received a '" + type(self).__name__ + "'")
 
+    def __pos__(self):
+        if isinstance(self, int):
+            return self
+        else:
+            raise TypeError("descriptor '__pos__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+
+    def __neg__(self):
+        if isinstance(self, int):
+            return py_int_from_host(-py_int_to_host(self))
+        else:
+            raise TypeError("descriptor '__neg__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+
+    def __invert__(self):
+        if isinstance(self, int):
+            return py_int_from_host(~py_int_to_host(self))
+        else:
+            raise TypeError("descriptor '__invert__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+
     def __floordiv__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
@@ -664,6 +682,18 @@ class float:
                 return NotImplemented
         else:
             raise TypeError("descriptor '__isub__' requires a 'float' object but received a '" + type(self).__name__ + "'")
+
+    def __pos__(self):
+        if isinstance(self, float):
+            return self
+        else:
+            raise TypeError("descriptor '__pos__' requires a 'float' object but received a '" + type(self).__name__ + "'")
+
+    def __neg__(self):
+        if isinstance(self, float):
+            return py_float_from_host(-py_float_to_host(self))
+        else:
+            raise TypeError("descriptor '__neg__' requires a 'float' object but received a '" + type(self).__name__ + "'")
 
     def __floordiv__(self, other):
         if isinstance(self, float):

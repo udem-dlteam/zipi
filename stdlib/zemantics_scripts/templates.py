@@ -406,6 +406,15 @@ int_comparison_method_template = \
             raise TypeError("descriptor '__{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
 """
 
+int_unary_method_template = \
+    """
+    def __{method_name}__(self):
+        if isinstance(self, int):
+            return {expr}
+        else:
+            raise TypeError("descriptor '__{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+"""
+
 class_int_template = \
     """@builtin_class
 class int:
@@ -452,6 +461,12 @@ int_comparison_method_info = {
     'gt': {"method_name": "gt", "op": ">"},
     'le': {"method_name": "le", "op": "<="},
     'lt': {"method_name": "lt", "op": "<"}
+}
+
+int_unary_method_info = {
+    'pos': {"method_name": "pos", "expr": "self"},
+    'neg': {"method_name": "neg", "expr": "py_int_from_host(-py_int_to_host(self))"},
+    'invert': {"method_name": "invert", "expr": "py_int_from_host(~py_int_to_host(self))"},
 }
 
 # ======================================================================================================================
@@ -635,6 +650,15 @@ float_comparison_method_template = \
             raise TypeError("descriptor '__{method_name}__' requires a 'float' object but received a '" + type(self).__name__ + "'")
 """
 
+float_unary_method_template = \
+    """
+    def __{method_name}__(self):
+        if isinstance(self, float):
+            return {expr}
+        else:
+            raise TypeError("descriptor '__{method_name}__' requires a 'float' object but received a '" + type(self).__name__ + "'")
+"""
+
 class_float_template = \
     """@builtin_class
 class float:
@@ -672,6 +696,11 @@ float_comparison_method_info = {
     'gt': {"method_name": "gt", "op": ">"},
     'le': {"method_name": "le", "op": "<="},
     'lt': {"method_name": "lt", "op": "<"}
+}
+
+float_unary_method_info = {
+    'pos': {"method_name": "pos", "expr": "self"},
+    'neg': {"method_name": "neg", "expr": "py_float_from_host(-py_float_to_host(self))"},
 }
 
 # ======================================================================================================================

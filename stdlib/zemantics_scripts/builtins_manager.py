@@ -4,10 +4,10 @@ import templates
 
 
 def init_number_class(*, class_template, method_info, shift_method_info, division_method_info, comparison_method_info,
-                      binary_method_template, reflected_binary_method_template, inplace_binary_method_template,
-                      shift_method_template, reflected_shift_method_template, inplace_shift_method_template,
-                      division_method_template, reflected_division_method_template, inplace_division_method_template,
-                      comparison_method_template):
+                      unary_method_info, binary_method_template, reflected_binary_method_template,
+                      inplace_binary_method_template, shift_method_template, reflected_shift_method_template,
+                      inplace_shift_method_template, division_method_template, reflected_division_method_template,
+                      inplace_division_method_template, comparison_method_template, unary_method_template):
     int_methods = ""
 
     for semantics, data in method_info.items():
@@ -19,6 +19,9 @@ def init_number_class(*, class_template, method_info, shift_method_info, divisio
         int_methods += shift_method_template.format(**data)
         int_methods += reflected_shift_method_template.format(**data)
         int_methods += inplace_shift_method_template.format(**data)
+
+    for semantics, data in unary_method_info.items():
+        int_methods += unary_method_template.format(**data)
 
     for semantics, data in division_method_info.items():
         int_methods += division_method_template.format(**data)
@@ -37,6 +40,7 @@ def main_init(path):
                                   shift_method_info=templates.int_shift_method_info,
                                   division_method_info=templates.int_division_method_info,
                                   comparison_method_info=templates.int_comparison_method_info,
+                                  unary_method_info=templates.int_unary_method_info,
                                   binary_method_template=templates.int_binary_method_template,
                                   reflected_binary_method_template=templates.int_reflected_binary_method_template,
                                   inplace_binary_method_template=templates.int_inplace_binary_method_template,
@@ -46,13 +50,15 @@ def main_init(path):
                                   division_method_template=templates.int_division_method_template,
                                   reflected_division_method_template=templates.int_reflected_division_method_template,
                                   inplace_division_method_template=templates.int_inplace_division_method_template,
-                                  comparison_method_template=templates.int_comparison_method_template)
+                                  comparison_method_template=templates.int_comparison_method_template,
+                                  unary_method_template=templates.int_unary_method_template)
 
     bool_class = init_number_class(class_template=templates.class_bool_template,
                                    method_info=templates.bool_method_info,
                                    shift_method_info={},
                                    division_method_info={},
                                    comparison_method_info={},
+                                   unary_method_info={},
                                    binary_method_template=templates.bool_binary_method_template,
                                    reflected_binary_method_template=templates.bool_reflected_binary_method_template,
                                    inplace_binary_method_template="",
@@ -62,13 +68,15 @@ def main_init(path):
                                    division_method_template="",
                                    reflected_division_method_template="",
                                    inplace_division_method_template="",
-                                   comparison_method_template="")
+                                   comparison_method_template="",
+                                   unary_method_template="")
 
     float_class = init_number_class(class_template=templates.class_float_template,
                                     method_info=templates.float_method_info,
                                     shift_method_info={},
                                     division_method_info=templates.float_division_method_info,
                                     comparison_method_info=templates.float_comparison_method_info,
+                                    unary_method_info=templates.float_unary_method_info,
                                     binary_method_template=templates.float_binary_method_template,
                                     reflected_binary_method_template=templates.float_reflected_binary_method_template,
                                     inplace_binary_method_template=templates.float_inplace_binary_method_template,
@@ -78,7 +86,8 @@ def main_init(path):
                                     division_method_template=templates.float_division_method_template,
                                     reflected_division_method_template=templates.float_reflected_division_method_template,
                                     inplace_division_method_template=templates.float_inplace_division_method_template,
-                                    comparison_method_template=templates.float_comparison_method_template)
+                                    comparison_method_template=templates.float_comparison_method_template,
+                                    unary_method_template=templates.float_unary_method_template)
 
     definitions = "\n\n".join([int_class, bool_class, float_class])
 
