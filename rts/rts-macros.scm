@@ -959,7 +959,7 @@
 
   `(py-if-enable-behaviors-optimization
     (let (($lhs ,lhs)
-           ($rhs ,rhs))
+	  ($rhs ,rhs))
        (cond ((py-if-specialized-sint-representation (fixnum? $lhs) #f)
                 (py-if-enable-inlined-mixed-types-behaviors
                   (cond

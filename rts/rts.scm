@@ -155,7 +155,7 @@
 (define (py-own-attr-set! obj attr val)
   ;; TODO: fix case when obj is not represented with a PyObject
   ;; TODO: use py-own-attr-index-2cont
-  (declare-fixnum)
+   (declare-fixnum)
   (let* ((attr-representative (py-str-representative attr))
 	 (i (py-own-attr-index obj attr-representative)))
      (if (< i 0)

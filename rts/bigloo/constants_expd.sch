@@ -138,7 +138,8 @@
       ((& (and ?str (? string?)))
        (let ((&cnsts (thread-parameter '&cnsts)))
 	  (if (not &cnsts)
-	      `(py-str-from-scheme-fallback ,str)
+	      `(py-str-representative-fallback
+		  (py-str-from-scheme-fallback ,str))
 	      (let ((old (assoc str &cnsts)))
 		 (if (pair? old)
 		     (e `(vector-ref __py_strings ,(cddr old)) e)

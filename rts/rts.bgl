@@ -4,7 +4,7 @@
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
 ;*    Last change :  Tue May 26 10:15:30 2020 (serrano)                */
-;*    Copyright   :  2019-20 M. Feeley & M. Serrano                    */
+;*    Copyright   :  2019-21 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
 ;*=====================================================================*/
@@ -415,16 +415,26 @@
 (include "rts-macros.scm")
 
 ;*---------------------------------------------------------------------*/
+;*    object-print ::PyObject ...                                      */
+;*---------------------------------------------------------------------*/
+(define-method (object-print obj::PyObject op proc)
+   (display "<" op)
+   (display (typeof obj) op)
+   (display ">" op))
+   
+;*---------------------------------------------------------------------*/
 ;*    display-py-string ...                                            */
 ;*---------------------------------------------------------------------*/
 (define (display-py-string pystr::PyObjectStr op)
-   (with-access::PyObjectStr pystr (value)
+   (with-access::PyObjectStr pystr (part1-or-string)
       (display "<PyObjectStr:" op)
-;;      (display part1-or-string op)
+      (display
+	 (if (string? part1-or-string) part1-or-string (typeof part1-or-string))
+	 op)
       (display ">" op)))
 
 ;*---------------------------------------------------------------------*/
-;*    object-print ::JsStringLiteral ...                               */
+;*    object-print ::PyObjectStr ...                                   */
 ;*---------------------------------------------------------------------*/
 (define-method (object-print obj::PyObjectStr op proc)
    (display-py-string obj op))
@@ -697,14 +707,19 @@
       (else
        (vector-map! (lambda (s)
                        (let ((string (vector-ref s 1)))
-		         (instantiate::PyObjectStrRep
-                          (len (string-length string))
-			  (part1-or-string string)
-			  (part2-or-rep #f)
-                          (hash 0)
-                          (magic-index #f)
-			  (hclass py-str-hclass-of-instances)
-			  (class py-str-class))))
+			  (or (table-ref str-representatives-htable string)
+			      (let ((o (instantiate::PyObjectStrRep
+					  (len (string-length string))
+					  (part1-or-string string)
+					  (part2-or-rep #f)
+					  (hash 0)
+					  (magic-index #f)
+					  (hclass py-str-hclass-of-instances)
+					  (class py-str-class))))
+				 (with-access::PyObjectStrRep o (part2-or-rep)
+				    (set! part2-or-rep o))
+				 (table-set! str-representatives-htable string o)
+				 o))))
 	  strings))))
 
 ;*---------------------------------------------------------------------*/
