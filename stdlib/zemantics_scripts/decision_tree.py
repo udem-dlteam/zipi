@@ -14,7 +14,6 @@ import astor.code_gen
 #   Helpers
 # ======================================================================================================================
 
-
 def get_type_name(obj):
     return type(obj).__name__
 
@@ -34,8 +33,11 @@ def get_current_semantics_context(semantics_register):
 #   Semantics Instructions
 # ======================================================================================================================
 
+class Behavior:
+    pass
 
-class Procedure:
+
+class Procedure(Behavior):
     def __init__(self, semantics, method, semantics_args, method_args):
         self.semantics = semantics
         self.method = method
@@ -69,7 +71,7 @@ class Procedure:
         return self.semantics in ("eq", "ne", "ge", "gt", "le", "lt")
 
 
-class Error:
+class Error(Behavior):
     def __init__(self, exc):
         self.exc_type = type(exc)
         self.exc_args = exc.args
@@ -196,13 +198,24 @@ def build_decision_tree(filename):
         exec(content, {})
 
     for name, semantics in semantics_register.items():
+        signature = inspect.signature(semantics).parameters
+
         for left in instances:
-            for right in instances:
+
+            if len(signature) == 1:
                 try:
-                    semantics(left, right)
+                    semantics(left)
                 except TypeError as e:
-                    decision_tree.setdefault(name, {}).setdefault(get_type_name(left), {})[
-                        get_type_name(right)] = Error(e)
+                    decision_tree.setdefault(name, {})[get_type_name(left)] = Error(e)
+            elif len(signature) == 2:
+                for right in instances:
+                    try:
+                        semantics(left, right)
+                    except TypeError as e:
+                        decision_tree.setdefault(name, {}).setdefault(get_type_name(left), {})[
+                            get_type_name(right)] = Error(e)
+            else:
+                raise ValueError(f"cannot handle semantics with {len(signature)} arguments")
 
     extend_decision_tree_with_specialized_types(decision_tree)
     return decision_tree
@@ -544,8 +557,9 @@ def convert_body_to_return_host_bool(body):
         raise NotImplementedError("cannot convert body to a return-host-bool version due to len != 1")
 
 
-def get_binary_behavior_name(semantics, left_type, right_type):
-    return f"py-{semantics}-{left_type if left_type else ''}X-{right_type if right_type else ''}Y"
+def get_behavior_name(semantics, types):
+    type_signature = '-'.join(t + id_ for t, id_ in zip(types, 'XYZWABCDEF'))
+    return f"py-{semantics}-{type_signature}"
 
 
 def make_ast_raise_with_msg(error_name, msg):
@@ -556,6 +570,20 @@ def make_ast_raise_with_msg(error_name, msg):
 def make_ast_simple_arguments(*args_names, annotations=()):
     return ast.arguments([], [ast.arg(n, t, None) for n, t in itertools.zip_longest(args_names, annotations)], None, [],
                          [], None, [])
+
+
+def iter_behavior_subtree_type_combinations(tree):
+    for tp, subtree in tree.items():
+        if isinstance(subtree, Behavior):
+            yield [tp]
+        else:
+            yield from ([tp, *comb] for comb in iter_behavior_subtree_type_combinations(subtree))
+
+
+def get_subtree_nested_item(tree, chain):
+    for x in chain:
+        tree = tree[x]
+    return tree
 
 
 def main_behaviors(semantics_file, builtins_file):
@@ -573,77 +601,75 @@ def main_behaviors(semantics_file, builtins_file):
                        "py_float_to_host, py_sint_to_host, py_bint_to_host, py_bool_from_host_bool "
 
     for semantics, subtree in decision_tree.items():
-        for left_type in types_without_int:
-            for right_type in types_without_int:
+        for types_comb in iter_behavior_subtree_type_combinations(subtree):
+            behavior_name = get_behavior_name(semantics, types_comb)
+            behavior_func_name = behavior_name.replace('-', '_')
+            behavior_decorator_list = [ast.Name(f"{define_behavior}")]
 
-                behavior_name = get_binary_behavior_name(semantics, left_type, right_type)
-                behavior_func_name = behavior_name.replace('-', '_')
-                behavior_decorator_list = [ast.Name(f"{define_behavior}")]
+            try:
+                behavior = get_subtree_nested_item(subtree, types_comb)
+            except KeyError:
+                logging.warning(f"unimplemented behavior in decision tree method: {behavior_name}")
+                continue
 
-                try:
-                    behavior = subtree[left_type][right_type]
-                except KeyError:
-                    logging.warning(f"unimplemented behavior in decision tree method: {behavior_name}")
-                    continue
+            if isinstance(behavior, Procedure):
+                method_ast = class_register.get_by_qualname(behavior.method.__qualname__)
 
-                if isinstance(behavior, Procedure):
-                    method_ast = class_register.get_by_qualname(behavior.method.__qualname__)
+                if method_ast is None:
+                    logging.warning(f"unimplemented behavior in magic method: {behavior_name}")
+                else:
+                    is_reflected_magic_method = behavior.is_reflected_magic_method
+                    is_comparison = behavior.is_comparison
 
-                    if method_ast is None:
-                        logging.warning(f"unimplemented behavior in magic method: {behavior_name}")
+                    if is_reflected_magic_method:
+                        # For evaluation
+                        args = [VarContext(tp) for tp in types_comb]
+                        # For code generation
+                        # NOTE: we reverse arguments names because behaviors arguments respect
+                        # operands order, not magic_method arguments order
+                        args_names = [a.arg for a in method_ast.args.posonlyargs + method_ast.args.args][::-1]
                     else:
-                        is_reflected_magic_method = behavior.is_reflected_magic_method
-                        is_comparison = behavior.is_comparison
+                        # For evaluation
+                        args = [VarContext(tp) for tp in reversed(types_comb)]
+                        # For code generation
+                        args_names = [a.arg for a in method_ast.args.posonlyargs + method_ast.args.args]
 
-                        if is_reflected_magic_method:
-                            # For evaluation
-                            args = [VarContext(type=right_type), VarContext(type=left_type)]
-                            # For code generation
-                            # NOTE: we reverse arguments names because behaviors arguments respect
-                            # operands order, not magic_method arguments order
-                            args_names = [a.arg for a in method_ast.args.posonlyargs + method_ast.args.args][::-1]
-                        else:
-                            # For evaluation
-                            args = [VarContext(type=left_type), VarContext(type=right_type)]
-                            # For code generation
-                            args_names = [a.arg for a in method_ast.args.posonlyargs + method_ast.args.args]
+                    result_body = partial_eval(method_ast, *args)
 
-                        result_body = partial_eval(method_ast, *args)
+                    annotations = [ast.Name(tp) for tp in types_comb]
 
-                        annotated_arguments = make_ast_simple_arguments(*args_names,
-                                                                        annotations=[ast.Name(left_type),
-                                                                                     ast.Name(right_type)])
+                    annotated_arguments = make_ast_simple_arguments(*args_names, annotations=annotations)
 
-                        behavior_func = ast.FunctionDef(behavior_func_name, annotated_arguments, result_body,
-                                                        behavior_decorator_list, method_ast.returns,
-                                                        method_ast.type_comment)
-
-                        behaviors.append(behavior_func)
-
-                        # For comparisons, we generate a version of the behavior which returns a host bool
-                        if is_comparison:
-                            test_behavior_func_name = behavior_name.replace('py-', 'py-test-').replace('-', '_')
-
-                            test_body = convert_body_to_return_host_bool(result_body)
-                            test_behavior_func = ast.FunctionDef(test_behavior_func_name, annotated_arguments, test_body,
-                                                                 behavior_decorator_list, method_ast.returns,
-                                                                 method_ast.type_comment)
-                            behaviors.append(test_behavior_func)
-
-                elif isinstance(behavior, Error):
-                    # Argument names are unimportant since they are unused in case of Error
-                    annotated_arguments = make_ast_simple_arguments("self", "other",
-                                                                    annotations=[ast.Name(left_type),
-                                                                                 ast.Name(right_type)])
-                    body = [make_ast_raise_with_msg("TypeError", behavior.error_message)]
-
-                    behavior_func = ast.FunctionDef(behavior_func_name, annotated_arguments, body,
-                                                    behavior_decorator_list, None, None)
+                    behavior_func = ast.FunctionDef(behavior_func_name, annotated_arguments, result_body,
+                                                    behavior_decorator_list, method_ast.returns,
+                                                    method_ast.type_comment)
 
                     behaviors.append(behavior_func)
 
-                else:
-                    raise TypeError("unknown behavior type")
+                    # For comparisons, we generate a version of the behavior which returns a host bool
+                    if is_comparison:
+                        test_behavior_func_name = behavior_name.replace('py-', 'py-test-').replace('-', '_')
+
+                        test_body = convert_body_to_return_host_bool(result_body)
+                        test_behavior_func = ast.FunctionDef(test_behavior_func_name, annotated_arguments, test_body,
+                                                             behavior_decorator_list, method_ast.returns,
+                                                             method_ast.type_comment)
+                        behaviors.append(test_behavior_func)
+
+            elif isinstance(behavior, Error):
+                # Argument names are unimportant since they are unused in case of Error
+                annotations = [ast.Name(tp) for tp in types_comb]
+
+                annotated_arguments = make_ast_simple_arguments("self", "other", annotations=annotations)
+                body = [make_ast_raise_with_msg("TypeError", behavior.error_message)]
+
+                behavior_func = ast.FunctionDef(behavior_func_name, annotated_arguments, body,
+                                                behavior_decorator_list, None, None)
+
+                behaviors.append(behavior_func)
+
+            else:
+                raise TypeError("unknown behavior type")
 
     print(f"from __compiler_intrinsics__ import {define_behavior}, {other_intrinsics}\n")
 
@@ -670,7 +696,7 @@ types_without_int = [t for t in types if t != 'int']
 
 # Semantics which should be converted to behaviors
 target_semantics = [*templates.arithmetic_info, *templates.inplace_arithmetic_info,
-                    *templates.comparison_info, *templates.equality_info]
+                    *templates.comparison_info, *templates.equality_info, *templates.unary_arithmetic_info]
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Generate zipi decision tree and behavior functions")
