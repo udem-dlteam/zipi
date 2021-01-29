@@ -1051,10 +1051,10 @@
     (if (null? ops)
       '()
       (let* ((op (car ops))
-            (behavior-table-name (get-behaviors-table-name op))
+            (behaviors-table-name (get-behaviors-table-name op))
             (behaviors (behaviors-list-maker op)))
         (cons
-          `(define ,behavior-table-name (vector ,@behaviors))
+          `(define ,behaviors-table-name (vector ,@behaviors))
           (make-init-table-code (cdr ops) behaviors-list-maker)))))
 
   (let ((tables-init-code

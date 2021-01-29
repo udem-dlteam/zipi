@@ -143,10 +143,13 @@
     get-behavior-index
     $get-behavior-index
     behavior-specialized-operation
-    py-behavior-call
+    py-unary-behavior-call
+
+    py-binary-behavior-call
     py-behavior-call-with-lhs-index
     py-behavior-call-with-rhs-index
-    $py-behavior-call
+    $py-unary-behavior-call
+    $py-binary-behavior-call
     $py-behavior-call-with-lhs-index
     $py-behavior-call-with-rhs-index
     py-specialized-sint-float-dispatch-let
@@ -177,6 +180,9 @@
     py-isub-behavior-call-fallback
     py-itruediv-behavior-call-fallback
     py-ixor-behavior-call-fallback
+    py-pos-behavior-call-fallback
+    py-neg-behavior-call-fallback
+    py-invert-behavior-call-fallback
     py-eq-behavior-call-fallback
     py-ne-behavior-call-fallback
     py-ge-behavior-call-fallback
@@ -294,6 +300,10 @@
     py-isub-behaviors-table
     py-itruediv-behaviors-table
     py-ixor-behaviors-table
+
+    py-pos-behaviors-table
+    py-neg-behaviors-table
+    py-invert-behaviors-table
 
     py-eq-behaviors-table
     py-ne-behaviors-table
