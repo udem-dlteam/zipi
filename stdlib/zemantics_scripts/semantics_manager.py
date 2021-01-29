@@ -196,6 +196,10 @@ class Template(Version):
     inplace_arithmetic_template = templates.inplace_arithmetic_template
     inplace_arithmetic_info = templates.inplace_arithmetic_info
 
+    # unary arithmetic templates
+    unary_arithmetic_template = templates.unary_arithmetic_template
+    unary_arithmetic_info = templates.unary_arithmetic_info
+
     # comparison templates
     comparison_template = templates.comparison_template
     comparison_info = templates.comparison_info
@@ -212,10 +216,11 @@ class Template(Version):
     def init_template(self):
         arithmetic = [self.arithmetic_template.format(**info) for info in self.arithmetic_info.values()]
         inplace_arithmetic = [self.inplace_arithmetic_template.format(**info) for info in self.inplace_arithmetic_info.values()]
+        unary_arithmetic = [self.unary_arithmetic_template.format(**info) for info in self.unary_arithmetic_info.values()]
         comparison = [self.comparison_template.format(**info) for info in self.comparison_info.values()]
         equality = [self.equality_template.format(**info) for info in self.equality_info.values()]
 
-        arithmetic_semantics = '\n\n'.join(arithmetic + inplace_arithmetic + comparison + equality)
+        arithmetic_semantics = '\n\n'.join(arithmetic + inplace_arithmetic + unary_arithmetic + comparison + equality)
 
         semantics = self.main_template.format(arithmetic=arithmetic_semantics)
 

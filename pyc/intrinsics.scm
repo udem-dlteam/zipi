@@ -382,6 +382,11 @@
     (PycBinary-rhs-type-hint-set! this rhs-type-hint)
     this))
 
+(define-walk-method (resolve-statics! this::PycUnary intrinsics statics macros use-static-builtins)
+  (let* ((this (call-default-walker)))
+    (PycUnary-type-hint-set! this (get-expr-type-hint (PycUnary-expr this)))
+    this))
+
 (define-walk-method (mark-use-simple-scoping! this::PycNode)
   (call-default-walker))
 
@@ -403,6 +408,7 @@
     (memq name '(add bitand bitor floordiv lshift matmul mod mul pow rshift sub
                  truediv xor
                  iadd ibitand ibitor ifloordiv ilshift imatmul imod
+                 pos neg invert
                  imul ipow irshift isub itruediv ixor
                  ge gt le lt eq ne)))))
 
@@ -472,26 +478,21 @@
 (define-walk-method (mark-define-behavior! this::PycNode intrinsics-info)
   (call-default-walker))
 
-(define inlined-binary-behaviors '((sint sint) (float float) (sint float) (float sint)))
+(define inlined-behaviors '(
+  ;; binary
+  (sint sint) (float float) (sint float) (float sint)
+  ;;unary
+  (sint) (float)))
 
 (define (PycSemantics-has-inlinable-annotation fn)
-  (let ((fn-annotation (PycFun-annotation fn)))
-    (let loop ((annotations inlined-binary-behaviors))
+  (define (ref->symbol ref)
+    (if (PycRefUnresolved? ref) (PycRefUnresolved-id ref) #f))
+
+  (let ((fn-annotation (map ref->symbol (PycFun-annotation fn))))
+    (let loop ((annotations inlined-behaviors))
       (if (null? annotations)
         #f
-        (let ((ann (car annotations)))
-          (if (= (length fn-annotation) (length ann))
-            (let inner-loop ((fn-annotation fn-annotation) (ann ann))
-              (if (null? fn-annotation)
-                #t
-                (let ((arg-ann (car fn-annotation)))
-                  (if (not (PycUninit? arg-ann))
-                    (if (and (PycRefUnresolved? arg-ann)
-                        (eq? (PycRefUnresolved-id arg-ann) (car ann)))
-                      (inner-loop (cdr fn-annotation) (cdr ann))
-                      (loop (cdr annotations)))
-                    #f))))
-            (loop (cdr annotations))))))))
+        (if (equal? (car annotations) fn-annotation) #t (loop (cdr annotations)))))))
 
 (define-walk-method (mark-define-behavior! this::PycFun intrinsics-info)
   (let* ((loc (PycNode-loc this))

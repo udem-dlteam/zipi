@@ -3,7 +3,7 @@
 
 import time
 
-bench_iterations = 1300000
+bench_iterations = 700000
 bench_duplications = 30
 
 def bench_exec():

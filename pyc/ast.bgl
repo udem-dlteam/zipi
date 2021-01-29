@@ -197,6 +197,7 @@
                 (final-class PycUnary::PycExpr
                              op::symbol
                              expr::PycExpr
+                             (type-hint (default #f))
                              (cache (default #f)))
 
                 (final-class PycBinary::PycExpr

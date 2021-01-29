@@ -185,6 +185,30 @@ inplace_arithmetic_info = {'iadd': {"op": "add", "magic_method": "add", "symbol"
                            'ixor': {"op": "xor", "magic_method": "xor", "symbol": "^="},
                            }
 
+unary_arithmetic_template = \
+"""# Auto-generated
+@define_semantics
+def {op}(x):
+    def normal():
+        magic_method = class_getattr(x, "__{magic_method}__")
+        if magic_method is absent:
+            return err()
+        else:
+            return magic_method(x)
+
+    def err():
+        raise TypeError("bad operand type for unary {symbol}: '" + type(x).__name__ + "'")
+
+    # {op}:start-body
+    return normal()
+    # {op}:end-body"""
+
+unary_arithmetic_info = {
+    "pos": {"op": "pos", "magic_method": "pos", "symbol": "+"},
+    "neg": {"op": "neg", "magic_method": "neg", "symbol": "-"},
+    "invert": {"op": "invert", "magic_method": "invert", "symbol": "~"},
+}
+
 comparison_template = \
     """# Auto-generated
 @define_semantics
@@ -406,6 +430,15 @@ int_comparison_method_template = \
             raise TypeError("descriptor '__{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
 """
 
+int_unary_method_template = \
+    """
+    def __{method_name}__(self):
+        if isinstance(self, int):
+            return {expr}
+        else:
+            raise TypeError("descriptor '__{method_name}__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+"""
+
 class_int_template = \
     """@builtin_class
 class int:
@@ -452,6 +485,12 @@ int_comparison_method_info = {
     'gt': {"method_name": "gt", "op": ">"},
     'le': {"method_name": "le", "op": "<="},
     'lt': {"method_name": "lt", "op": "<"}
+}
+
+int_unary_method_info = {
+    'pos': {"method_name": "pos", "expr": "self"},
+    'neg': {"method_name": "neg", "expr": "py_int_from_host(-py_int_to_host(self))"},
+    'invert': {"method_name": "invert", "expr": "py_int_from_host(~py_int_to_host(self))"},
 }
 
 # ======================================================================================================================
@@ -635,6 +674,15 @@ float_comparison_method_template = \
             raise TypeError("descriptor '__{method_name}__' requires a 'float' object but received a '" + type(self).__name__ + "'")
 """
 
+float_unary_method_template = \
+    """
+    def __{method_name}__(self):
+        if isinstance(self, float):
+            return {expr}
+        else:
+            raise TypeError("descriptor '__{method_name}__' requires a 'float' object but received a '" + type(self).__name__ + "'")
+"""
+
 class_float_template = \
     """@builtin_class
 class float:
@@ -672,6 +720,11 @@ float_comparison_method_info = {
     'gt': {"method_name": "gt", "op": ">"},
     'le': {"method_name": "le", "op": "<="},
     'lt': {"method_name": "lt", "op": "<"}
+}
+
+float_unary_method_info = {
+    'pos': {"method_name": "pos", "expr": "self"},
+    'neg': {"method_name": "neg", "expr": "py_float_from_host(-py_float_to_host(self))"},
 }
 
 # ======================================================================================================================
