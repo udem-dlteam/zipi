@@ -2303,13 +2303,13 @@
   `(py-pos-intX-fallback ,self-1952))
 
 (define-macro (py-pos-floatX-inline self-1954)
-  `(py-pos-floatX-fallback ,self-1954))
+  `(let ((self-1954 ,self-1954)) self-1954))
 
 (define-macro (py-pos-boolX-inline self-1956)
   `(py-pos-boolX-fallback ,self-1956))
 
 (define-macro (py-pos-sintX-inline self-1958)
-  `(py-pos-sintX-fallback ,self-1958))
+  `(let ((self-1958 ,self-1958)) self-1958))
 
 (define-macro (py-pos-bintX-inline self-1960)
   `(py-pos-bintX-fallback ,self-1960))
@@ -2318,13 +2318,15 @@
   `(py-neg-intX-fallback ,self-1962))
 
 (define-macro (py-neg-floatX-inline self-1964)
-  `(py-neg-floatX-fallback ,self-1964))
+  `(let ((self-1964 ,self-1964))
+     (py-float-from-scheme (pyneg (py-float-to-scheme self-1964)))))
 
 (define-macro (py-neg-boolX-inline self-1966)
   `(py-neg-boolX-fallback ,self-1966))
 
 (define-macro (py-neg-sintX-inline self-1968)
-  `(py-neg-sintX-fallback ,self-1968))
+  `(let ((self-1968 ,self-1968))
+     (py-int-from-scheme (pyneg (py-sint-to-scheme self-1968)))))
 
 (define-macro (py-neg-bintX-inline self-1970)
   `(py-neg-bintX-fallback ,self-1970))
@@ -2333,13 +2335,17 @@
   `(py-invert-intX-fallback ,self-1972))
 
 (define-macro (py-invert-floatX-inline self-1974)
-  `(py-invert-floatX-fallback ,self-1974))
+  `(let ((self-1974 ,self-1974))
+     (py-throw
+      (py-call py-builtin-TypeError
+               (&& "bad operand type for unary ~: 'float'")))))
 
 (define-macro (py-invert-boolX-inline self-1976)
   `(py-invert-boolX-fallback ,self-1976))
 
 (define-macro (py-invert-sintX-inline self-1978)
-  `(py-invert-sintX-fallback ,self-1978))
+  `(let ((self-1978 ,self-1978))
+     (py-int-from-scheme (pyinvert (py-sint-to-scheme self-1978)))))
 
 (define-macro (py-invert-bintX-inline self-1980)
   `(py-invert-bintX-fallback ,self-1980))

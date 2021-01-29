@@ -37,6 +37,7 @@ benchmarks = [
 [ 9,3, 's="a"','',           'x=s.__add__',   '',    'method_bind'],
 [20,4, 'global g;x=0','g=0', 'x=g',           '',    'global_read'],
 [20,4, 'global g;x=0','g=0', 'g=x',           '',    'global_write1'],
+[20,4, '','',                'x=1',           '',    'local_write1'],
 [20,2, 'global g1,g2;x=0','g1=0;g2=0','g1=x;g2=x','',    'global_write2'],
 [20,1, 'global g1,g2,g3,g4;x=0','g1=0;g2=0;g3=0;g4=0','g1=x;g2=x;g3=x;g4=x','','global_write4'],
 [ 7,4, 'global g','g=0',     'g+=1',          '',    'global_inc'],
