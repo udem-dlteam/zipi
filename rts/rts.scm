@@ -2180,20 +2180,21 @@
 
 (define (py-str-representative-from-string len string hash)
   (let ((result
-         (make-PyObjectStrRep
-          py-str-hclass-of-instances
-          '#() #;
-          (make-vector
-           (vector-length (HClass-names py-str-hclass-of-instances))
-           py-absent)
-          py-str-class
-          len
-          string
-          #f
-          hash
-          #f)))
+          (make-still-copy
+             (make-PyObjectStrRep
+              py-str-hclass-of-instances
+              '#() #;
+              (make-vector
+               (vector-length (HClass-names py-str-hclass-of-instances))
+               py-absent)
+              py-str-class
+              len
+              string
+              #f
+              hash
+              #f))))
     (PyObjectStr-part2-or-rep-set! result result) ;; own representative
-    (make-still-copy result)))
+    result))
 
 (define (py-str-from-scheme-fallback string)
   (let ((len (string-length string)))
