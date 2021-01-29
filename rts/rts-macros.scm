@@ -998,7 +998,7 @@
           (symbol->string op)
           "-"
           (symbol->string type)
-          "X"))))
+          "X-fallback"))))
 
   (define (make-binary-behaviors-list op)
     (let lhs-loop ((lhs-types types-with-specialized-behaviors))

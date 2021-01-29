@@ -307,7 +307,6 @@
            (py-isnot x y)
            (py-in x y)
            (py-notin x y)
-           (py-neg x)
            (py-not x)
 
            py-None
