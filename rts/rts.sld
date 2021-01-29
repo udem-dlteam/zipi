@@ -145,12 +145,12 @@
     behavior-specialized-operation
     py-unary-behavior-call
     py-binary-behavior-call
-    py-behavior-call-with-lhs-index
-    py-behavior-call-with-rhs-index
+    py-binary-behavior-call-with-lhs-index
+    py-binary-behavior-call-with-rhs-index
     $py-unary-behavior-call
     $py-binary-behavior-call
-    $py-behavior-call-with-lhs-index
-    $py-behavior-call-with-rhs-index
+    $py-binary-behavior-call-with-lhs-index
+    $py-binary-behavior-call-with-rhs-index
     py-specialized-sint-float-dispatch-let
 
     py-add-behavior-call-fallback
