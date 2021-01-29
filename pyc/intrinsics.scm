@@ -382,6 +382,11 @@
     (PycBinary-rhs-type-hint-set! this rhs-type-hint)
     this))
 
+(define-walk-method (resolve-statics! this::PycUnary intrinsics statics macros use-static-builtins)
+  (let* ((this (call-default-walker)))
+    (PycUnary-type-hint-set! this (get-expr-type-hint (PycUnary-expr this)))
+    this))
+
 (define-walk-method (mark-use-simple-scoping! this::PycNode)
   (call-default-walker))
 

@@ -656,7 +656,7 @@
    (epairify this
       `(&& ,(PycLiteralValue-val this))))
 
-(define (dispatch-native-operator op)
+(define (dispatch-native-bin-operator op)
   (define ops
     `((add . py+)
       (bitand . py&)
@@ -686,7 +686,6 @@
   (let ((res (assq op ops)))
     (and res (cdr res))))
 
-
 (define (dispatch-native-cmp-operator op)
   (define ops
     `((eq . py==)
@@ -698,6 +697,13 @@
   (let ((res (assq op ops)))
     (and res (cdr res))))
 
+(define (dispatch-native-un-operator op)
+  (define ops
+    `((pos . pypos)
+      (neg . pyneg)
+      (invert . pyinvert)))
+  (let ((res (assq op ops)))
+    (and res (cdr res))))
 
 (define-walk-method (scheme this::PycBinary conf)
   (define native-types '(Uint Usint Ubint Ufloat Ubool))
@@ -710,7 +716,7 @@
 
   (define (scheme-op)
     (epairify this
-      (let ((op (dispatch-native-operator (PycBinary-op this))))
+      (let ((op (dispatch-native-bin-operator (PycBinary-op this))))
         (if op
           `(,op
             ,(scheme (PycBinary-lhs this) conf)
@@ -722,18 +728,32 @@
 
   (let ((lhs-type-hint (PycBinary-lhs-type-hint this))
         (rhs-type-hint (PycBinary-rhs-type-hint this)))
-    (if (memq lhs-type-hint native-types)
-      (if (memq rhs-type-hint native-types)
+    (if (and lhs-type-hint (memq lhs-type-hint native-types))
+      (if (and rhs-type-hint (memq rhs-type-hint native-types))
         (scheme-op)
         (error "scheme::PycBinary" "operation between lhs native type and non-native type" rhs-type-hint))
-      (if (memq rhs-type-hint native-types)
+      (if (and rhs-type-hint (memq rhs-type-hint native-types))
         (error "scheme::PycBinary" "operation between rhs native type and non-native type" lhs-type-hint)
         (python-op)))))
 
 (define-walk-method (scheme this::PycUnary conf)
-   (epairify this
+  (define native-types '(Uint Usint Ubint Ufloat Ubool))
+
+  (define (python-op)
+    (epairify this
       `(,(symbol-append 'py- (PycUnary-op this))
-	,(scheme (PycUnary-expr this) conf))))
+        ,(scheme (PycUnary-expr this) conf))))
+
+  (define (scheme-op)
+    (epairify this
+      (let ((op (dispatch-native-un-operator (PycUnary-op this))))
+        `(,op
+          ,(scheme (PycUnary-expr this) conf)))))
+
+  (let ((type-hint (PycUnary-type-hint this)))
+    (if (and type-hint (memq native-types native-types))
+      (scheme-op)
+      (python-op))))
 
 (define-walk-method (scheme this::PycBoolOp conf)
   (define (scheme-or args conf)
