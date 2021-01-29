@@ -144,7 +144,6 @@
     $get-behavior-index
     behavior-specialized-operation
     py-unary-behavior-call
-
     py-binary-behavior-call
     py-behavior-call-with-lhs-index
     py-behavior-call-with-rhs-index
@@ -183,6 +182,7 @@
     py-pos-behavior-call-fallback
     py-neg-behavior-call-fallback
     py-invert-behavior-call-fallback
+
     py-eq-behavior-call-fallback
     py-ne-behavior-call-fallback
     py-ge-behavior-call-fallback
@@ -304,6 +304,7 @@
     py-pos-behaviors-table
     py-neg-behaviors-table
     py-invert-behaviors-table
+
 
     py-eq-behaviors-table
     py-ne-behaviors-table

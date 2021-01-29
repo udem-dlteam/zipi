@@ -357,6 +357,8 @@ def partial_eval_expr(expr, ctx):
         return partial_eval_bool_op(expr, ctx)
     elif isinstance(expr, ast.BinOp):
         return partial_eval_bin_op(expr, ctx)
+    elif isinstance(expr, ast.UnaryOp):
+        return partial_eval_un_op(expr, ctx)
     else:
         return expr
 
@@ -365,6 +367,11 @@ def partial_eval_bin_op(expr, ctx):
     left = partial_eval_expr(expr.left, ctx)
     right = partial_eval_expr(expr.right, ctx)
     return ast.BinOp(left, expr.op, right)
+
+
+def partial_eval_un_op(expr, ctx):
+    operand = partial_eval_expr(expr.operand, ctx)
+    return ast.UnaryOp(expr.op, operand)
 
 
 def partial_eval_bool_op(expr, ctx):
