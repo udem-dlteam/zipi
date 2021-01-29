@@ -751,7 +751,7 @@
           ,(scheme (PycUnary-expr this) conf)))))
 
   (let ((type-hint (PycUnary-type-hint this)))
-    (if (and type-hint (memq native-types native-types))
+    (if (and type-hint (memq type-hint native-types))
       (scheme-op)
       (python-op))))
 
