@@ -259,6 +259,23 @@ class ClassRegister(AstRegister):
         return method_register.get(method_name) if method_register else None
 
 
+class SemanticsRegister(AstRegister):
+    def visit_FunctionDef(self, node):
+        decorators = node.decorator_list
+        if any(isinstance(d, ast.Name) and d.id == 'define_semantics' for d in decorators):
+            self[node.name] = node
+
+    def iter_binary_semantics(self):
+        for name, sem in self._register.items():
+            if len(sem.args.args) == 2:
+                yield name, sem
+
+    def iter_unary_semantics(self):
+        for name, sem in self._register.items():
+            if len(sem.args.args) == 1:
+                yield name, sem
+
+
 # ======================================================================================================================
 #   Partial evaluation
 # ======================================================================================================================
@@ -288,7 +305,32 @@ class VarContext:
         return f"VarContent(type={self.type} ({self.specialized_type}), value={self.value})"
 
 
-def partial_eval(fn_ast, *args):
+class Context:
+    def __init__(self, semantics, classes):
+        self._dict = {}
+        self.semantics = semantics
+        self.classes = classes
+
+    def __getitem__(self, item):
+        return self._dict[item]
+
+    def __setitem__(self, item, value):
+        self._dict[item] = value
+
+    def __contains__(self, item):
+        return item in self._dict
+
+    def get(self, item, default=None):
+        return self._dict.get(item, default)
+
+    def copy(self):
+        ctx_copy = Context(self.semantics, self.classes)
+        for k, v in self._dict.items():
+            ctx_copy[k] = v
+        return ctx_copy
+
+
+def partial_eval(fn_ast, semantics, classes, *args):
     ast_args = fn_ast.args
 
     if ast_args.kwonlyargs or ast_args.kw_defaults or ast_args.defaults:
@@ -303,7 +345,7 @@ def partial_eval(fn_ast, *args):
         raise TypeError(
             f"partially evaluated function missing {len(fn_args) - len(args)} context arguments. Empty contexts must be given explicitly.")
 
-    ctx = {}
+    ctx = Context(semantics, classes)
 
     for ctx_var, arg in zip(args, fn_args):
         ctx[arg.arg] = ctx_var
@@ -325,8 +367,14 @@ def partial_eval_body(body, ctx):
 
 def partial_eval_stmts(stmts, ctx):
     for stmt in stmts:
-        yield from partial_eval_stmt(stmt, ctx)
+        yield from filter(None, partial_eval_stmt(stmt, ctx))
 
+
+def partial_eval_set(ctx, name, ast_val):
+    if name in ctx:
+        raise ValueError(f"partial evaluation does not support re-assignation: {name}")
+    else:
+        ctx[name] = VarContext(type='function', value=ast_val)
 
 def partial_eval_stmt(stmt, ctx):
     if isinstance(stmt, ast.If):
@@ -344,6 +392,16 @@ def partial_eval_stmt(stmt, ctx):
     elif isinstance(stmt, ast.Return):
         value = stmt.value
         yield ast.Return(partial_eval_expr(value, ctx) if value is not None else value)
+    elif isinstance(stmt, ast.FunctionDef):
+        partial_eval_set(ctx, stmt.name, stmt)
+        yield None  # TODO: not ok in general, but should be in the case of behaviors where we inline local functions
+    elif isinstance(stmt, ast.Assign):
+        if len(stmt.targets) == 1 and isinstance(stmt.targets[0], ast.Name):
+            expr = partial_eval_expr(stmt.value, ctx)
+            partial_eval_set(ctx, stmt.targets[0].id, expr)
+            yield None # TODO: not ok in general, but should be in the case of behaviors
+        else:
+            raise NotImplementedError("Unsupported assignment to multiple targets or non name targets")
     else:
         yield stmt
 
@@ -554,10 +612,29 @@ def partial_eval_static_function_call(func_name, args, keywords, ctx):
                 if instance_actual_type is not _unknown:
                     return ast.Name(instance_actual_type, ast.Load())
 
-    return partial_eval_specialize_intrinsic_function(func_name, args, keywords, ctx)
+    elif func_name in ctx:
+        return partial_eval_local_function_call(ctx[func_name], args, ctx)
+    else:
+        return partial_eval_specialize_intrinsic_function(func_name, args, ctx)
 
 
-def partial_eval_specialize_intrinsic_function(func_name, args, keywords, ctx):
+def partial_eval_local_function_call(func, args, ctx):
+    if func.type == 'function':
+        fn_ast = func.value
+        call_ctx = ctx.copy()
+
+        if args:
+            raise NotImplementedError("partial evaluation of local function does not support argument passing (0 argument only)")
+        else:
+            body = fn_ast.body
+            result = partial_eval_body(body, call_ctx)
+
+            raise NotImplementedError("... do something with the partial evaluation of a local function")
+    else:
+        raise ValueError("partial evaluation call to non-function local object")
+
+
+def partial_eval_specialize_intrinsic_function(func_name, args, ctx):
     # Assume here that builtins are called with the correct number of arguments
     if func_name == "py_int_to_host":
         self = args[0]
@@ -570,13 +647,13 @@ def partial_eval_specialize_intrinsic_function(func_name, args, keywords, ctx):
                 type_ = name_ctx.specialized_type
 
                 if type_ == "sint":
-                    return ast.Call(ast.Name("py_sint_to_host"), args, keywords)
+                    return ast.Call(ast.Name("py_sint_to_host"), args, [])
                 elif type_ == "bint":
-                    return ast.Call(ast.Name("py_bint_to_host"), args, keywords)
+                    return ast.Call(ast.Name("py_bint_to_host"), args, [])
                 elif type_ == "bool":
-                    return ast.Call(ast.Name("py_bool_to_host_int"), args, keywords)
+                    return ast.Call(ast.Name("py_bool_to_host_int"), args, [])
                 elif issubclass(eval(type_), int):
-                    return ast.Call(ast.Name("py_int_to_host"), args, keywords)
+                    return ast.Call(ast.Name("py_int_to_host"), args, [])
 
     # No specialization
     return ast.Call(ast.Name(func_name), args, keywords)
@@ -643,9 +720,11 @@ def main_behaviors(semantics_file, builtins_file):
     with open(builtins_file, 'r') as f:
         builtins_ast = ast.parse(f.read())
 
-    decision_tree = build_decision_tree(semantics_file)
+    with open(semantics_file, 'r') as f:
+        semantics_ast = ast.parse(f.read())
 
     class_register = ClassRegister(builtins_ast)
+    semantics_register = SemanticsRegister(semantics_ast)
 
     behaviors = []
 
@@ -653,83 +732,32 @@ def main_behaviors(semantics_file, builtins_file):
     other_intrinsics = "py_int_from_host, py_int_to_host, py_bool_to_host_int, py_float_from_host, " \
                        "py_float_to_host, py_sint_to_host, py_bint_to_host, py_bool_from_host_bool "
 
-    for semantics, subtree in decision_tree.items():
-        for types_comb in iter_behavior_subtree_type_combinations(subtree):
-            behavior_name = get_behavior_name(semantics, types_comb)
-            behavior_func_name = behavior_name.replace('-', '_')
-            behavior_decorator_list = [ast.Name(f"{define_behavior}")]
+    behavior_decorator_list = [ast.Name(f"{define_behavior}")]
 
-            try:
-                behavior = get_subtree_nested_item(subtree, types_comb)
-            except KeyError:
-                logging.warning(f"unimplemented behavior in decision tree method: {behavior_name}")
-                continue
+    def register_behavior(name, sem, *types):
+        args_names = [a.arg for a in sem.args.args]
+        annotations = [ast.Name(t) for t in types]
 
-            if isinstance(behavior, Procedure):
-                method_ast = class_register.get_by_qualname(behavior.method.__qualname__)
+        annotated_arguments = make_ast_simple_arguments(*args_names, annotations=annotations)
+        behavior_name = get_behavior_name(name, types)
+        behavior_func_name = behavior_name.replace('-', '_')
 
-                if method_ast is None:
-                    logging.warning(f"unimplemented behavior in magic method: {behavior_name}")
-                else:
-                    is_reflected_magic_method = behavior.is_reflected_magic_method
-                    is_comparison = behavior.is_comparison
+        result_body = partial_eval(bin_semantics, semantics_register, class_register,
+                                   *[VarContext(type=t) for t in types])
 
-                    if is_reflected_magic_method:
-                        # For evaluation
-                        args = [VarContext(tp) for tp in reversed(types_comb)]
-                        # For code generation
-                        # NOTE: we reverse arguments names because behaviors arguments respect
-                        # operands order, not magic_method arguments order
-                        args_names = [a.arg for a in method_ast.args.posonlyargs + method_ast.args.args][::-1]
-                    else:
-                        # For evaluation
-                        args = [VarContext(tp) for tp in types_comb]
-                        # For code generation
-                        args_names = [a.arg for a in method_ast.args.posonlyargs + method_ast.args.args]
+        behavior_func = ast.FunctionDef(behavior_func_name, annotated_arguments, result_body,
+                                        behavior_decorator_list, None, None)
 
-                    result_body = partial_eval(method_ast, *args)
+        behaviors.append(behavior_func)
 
-                    annotations = [ast.Name(tp) for tp in types_comb]
+    for name, bin_semantics in semantics_register.iter_binary_semantics():
+        for left_type in types_without_int:
+            for right_type in types_without_int:
+                register_behavior(name, bin_semantics, left_type, right_type)
 
-                    annotated_arguments = make_ast_simple_arguments(*args_names, annotations=annotations)
-
-                    behavior_func = ast.FunctionDef(behavior_func_name, annotated_arguments, result_body,
-                                                    behavior_decorator_list, method_ast.returns,
-                                                    method_ast.type_comment)
-
-                    behaviors.append(behavior_func)
-
-                    # For comparisons, we generate a version of the behavior which returns a host bool
-                    if is_comparison:
-                        test_behavior_func_name = behavior_name.replace('py-', 'py-test-').replace('-', '_')
-
-                        test_body = convert_body_to_return_host_bool(result_body)
-                        test_behavior_func = ast.FunctionDef(test_behavior_func_name, annotated_arguments, test_body,
-                                                             behavior_decorator_list, method_ast.returns,
-                                                             method_ast.type_comment)
-                        behaviors.append(test_behavior_func)
-
-            elif isinstance(behavior, Error):
-                # Argument names are unimportant since they are unused in case of Error
-                annotations = [ast.Name(tp) for tp in types_comb]
-
-                if len(types_comb) == 1:
-                    args_names = ["self"]
-                elif len(types_comb) == 2:
-                    args_names = ["self", "other"]
-                else:
-                    raise ValueError("cannot handle other than 1 or 2 arguments")
-
-                annotated_arguments = make_ast_simple_arguments(*args_names, annotations=annotations)
-                body = [make_ast_raise_with_msg("TypeError", behavior.error_message)]
-
-                behavior_func = ast.FunctionDef(behavior_func_name, annotated_arguments, body,
-                                                behavior_decorator_list, None, None)
-
-                behaviors.append(behavior_func)
-
-            else:
-                raise TypeError("unknown behavior type")
+    for name, un_semantics in semantics_register.iter_unary_semantics():
+        for type_ in types_without_int:
+            register_behavior(name, un_semantics, type_)
 
     print(f"from __compiler_intrinsics__ import {define_behavior}, {other_intrinsics}\n")
 
