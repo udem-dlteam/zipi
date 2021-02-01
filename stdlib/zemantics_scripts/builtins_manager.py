@@ -34,6 +34,15 @@ def init_number_class(*, class_template, method_info, shift_method_info, divisio
     return class_template.format(methods=int_methods)
 
 
+def init_str_class():
+    methods = ""
+
+    for semantics, data in templates.str_comparison_method_info.items():
+        methods += templates.str_comparison_method_template.format(**data)
+
+    return templates.class_str_template.format(methods=methods)
+
+
 def main_init(path):
     int_class = init_number_class(class_template=templates.class_int_template,
                                   method_info=templates.int_method_info,
@@ -89,7 +98,9 @@ def main_init(path):
                                     comparison_method_template=templates.float_comparison_method_template,
                                     unary_method_template=templates.float_unary_method_template)
 
-    definitions = "\n\n".join([int_class, bool_class, float_class])
+    str_class = init_str_class()
+
+    definitions = "\n\n".join([int_class, bool_class, float_class, str_class])
 
     builtins = templates.builtins_template.format(definitions=definitions)
 

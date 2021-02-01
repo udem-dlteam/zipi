@@ -494,7 +494,7 @@ int_unary_method_info = {
 }
 
 # ======================================================================================================================
-#   int class templates
+#   bool class templates
 # ======================================================================================================================
 
 
@@ -728,11 +728,72 @@ float_unary_method_info = {
 }
 
 # ======================================================================================================================
+#   float class templates
+# ======================================================================================================================
+
+
+str_comparison_method_template = \
+    """
+    def __{method_name}__(self, other):
+        if isinstance(self, str):
+            if isinstance(other, str):
+                return py_bool_from_host_bool(py_str_to_host(self) {op} py_str_to_host(other))
+            else:
+                return NotImplemented
+        else:
+            raise TypeError("descriptor '__{method_name}__' requires a 'str' object but received a '" + type(self).__name__ + "'")
+"""
+
+
+str_comparison_method_info = {
+    'eq': {"method_name": "eq", "op": "=="},
+    'ne': {"method_name": "ne", "op": "!="},
+    'ge': {"method_name": "ge", "op": ">="},
+    'gt': {"method_name": "gt", "op": ">"},
+    'le': {"method_name": "le", "op": "<="},
+    'lt': {"method_name": "lt", "op": "<"}
+}
+
+
+class_str_template = \
+"""@builtin_class
+class str:
+    def __add__(self, other):
+        if isinstance(self, str):
+            if isinstance(other, str):
+                return py_str_from_host(py_str_to_host(self) + py_str_to_host(other))
+            else:
+                raise TypeError('can only concatenate str (not "' + type(other).__name__ + '") to str')
+        else:
+            raise TypeError("descriptor '__add__' requires a 'str' object but received a '" + type(self).__name__ + "'")
+            
+    def __mul__(self, other):
+        if isinstance(self, str):
+            if isinstance(other, int):
+                return py_str_from_host(py_str_to_host(self) * py_int_to_host(other))
+            else:
+                raise TypeError('can only concatenate str (not "' + type(other).__name__ + '") to str')
+        else:
+            raise TypeError("descriptor '__mul__' requires a 'str' object but received a '" + type(self).__name__ + "'")
+            
+    def __rmul__(self, other):
+        if isinstance(self, str):
+            if isinstance(other, int):
+                return py_str_from_host(py_str_to_host(self) * py_int_to_host(other))
+            else:
+                raise TypeError('can only concatenate str (not "' + type(other).__name__ + '") to str')
+        else:
+            raise TypeError("descriptor '__rmul__' requires a 'str' object but received a '" + type(self).__name__ + "'")     
+{methods}
+"""
+
+
+# ======================================================================================================================
 #   builtins class templates
 # =====================================================================================================================
 
 
 builtins_template = """\
-from __compiler_intrinsics__ import absent, builtin_class, py_int_from_host, py_int_to_host, py_float_from_host, py_float_to_host, py_bool_from_host_bool 
+from __compiler_intrinsics__ import absent, builtin_class, py_int_from_host, py_int_to_host, py_float_from_host, py_float_to_host, py_bool_from_host_bool, py_str_to_host, py_str_from_host
 
 {definitions}"""
