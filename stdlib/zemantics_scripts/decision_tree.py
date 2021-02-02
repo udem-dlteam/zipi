@@ -348,35 +348,49 @@ class VarContext:
 
 
 class Context:
-    def __init__(self, semantics, classes):
-        _dict = {}
-        self._dict = _dict
-
-        _dict["absent"] = VarContext(value=StaticValue.absent())
+    def __init__(self, semantics, classes, closure=None):
+        self._locals = {}
+        self._closure = closure if closure is not None else {}
+        self._globals = {
+            'absent': VarContext(value=StaticValue.absent())
+        }
 
         self.semantics = semantics
         self.classes = classes
 
     def __getitem__(self, item):
-        return self._dict[item]
+        loc = self._locals.get(item)
+        clo = self._closure.get(item)
+        glo = self._globals.get(item)
+
+        val = loc or clo or glo
+        if val:
+            return val
+        else:
+            raise KeyError(item)
 
     def __setitem__(self, item, value):
-        self._dict[item] = value
+        self._locals[item] = value
 
     def __contains__(self, item):
-        return item in self._dict
+        try:
+            self[item]
+            return True
+        except KeyError:
+            return False
 
     def get(self, item, default=None):
-        return self._dict.get(item, default)
+        loc = self._locals.get(item)
+        clo = self._closure.get(item)
+        glo = self._globals.get(item)
 
-    def copy(self):
-        ctx_copy = Context(self.semantics, self.classes)
-        for k, v in self._dict.items():
-            ctx_copy[k] = v
-        return ctx_copy
+        return loc or clo or glo or default
 
     def new(self):
         return Context(self.semantics, self.classes)
+
+    def from_closure(self, closure):
+        return Context(self.semantics, self.classes, closure=closure)
 
 
 def partial_eval(fn_ast, semantics, classes, *args):
@@ -689,7 +703,7 @@ def partial_eval_local_function_call(func, args, ctx):
         name_table = {}
 
         if len(args) == len(fn_args):
-            call_ctx = fn_ast.closure if isinstance(fn_ast, ClosureDef) else ctx.new()
+            call_ctx = ctx.from_closure(fn_ast.closure) if isinstance(fn_ast, ClosureDef) else ctx.new()
 
             for fn_arg, arg in zip(fn_args, args):
                 if isinstance(arg, ast.Name):
