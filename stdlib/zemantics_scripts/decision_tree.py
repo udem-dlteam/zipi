@@ -241,17 +241,35 @@ class AstRegister(ast.NodeVisitor):
         self._register[item] = value
 
     def get(self, item, default=None):
-        return self._register.get(item, default)
+        try:
+            return self.__getitem__(item)
+        except AttributeError:
+            return default
 
 
 class MethodRegister(AstRegister):
+    def __init__(self, ast_, classes):
+        super().__init__(ast_)
+        self.classes = classes
+
+    def __getitem__(self, item):
+        for base_name in self._register['__mro__']:
+            base = self.classes[base_name]
+            method = base._register.get(item)
+
+            if method is not None:
+                return method
+
+        raise AttributeError(item)
+
     def visit_FunctionDef(self, node):
         self[node.name] = node
 
 
 class ClassRegister(AstRegister):
     def visit_ClassDef(self, node):
-        self[node.name] = MethodRegister(node)
+        self[node.name] = MethodRegister(node, self)
+        self[node.name]['__mro__'] = (node.name,) + tuple(t.id for t in node.bases)
 
     def get_by_qualname(self, qualname):
         cls_name, method_name = qualname.split('.')
@@ -262,7 +280,7 @@ class ClassRegister(AstRegister):
 class SemanticsRegister(AstRegister):
     def visit_FunctionDef(self, node):
         decorators = node.decorator_list
-        if any(isinstance(d, ast.Name) and d.id == 'define_semantics' for d in decorators):
+        if any(isinstance(d, ast.Name) and d.id == 'define_semantics' for d in decorators) and node.name in target_semantics:
             self[node.name] = node
 
     def iter_binary_semantics(self):
@@ -313,9 +331,22 @@ class ClosureDef(ast.FunctionDef):
 class StaticValue(ast.Constant):
     _absent = object()
 
+    def __init__(self, value):
+        super().__init__(value)
+
     @classmethod
     def absent(cls):
         return cls(cls._absent)
+
+
+class StmtSequence(ast.stmt):
+    def __init__(self, body):
+        self.body = body
+
+    _fields = (
+        'body',
+    )
+
 
 
 # ======================================================================================================================
@@ -352,7 +383,7 @@ class Context:
         self._locals = {}
         self._closure = closure if closure is not None else {}
         self._globals = {
-            'absent': VarContext(value=StaticValue.absent())
+            'absent': VarContext(type='absent', value=StaticValue.absent())
         }
 
         self.semantics = semantics
@@ -422,7 +453,7 @@ def partial_eval_body(body, ctx):
 
     for stmt in partial_eval_stmts(body, ctx):
         result.append(stmt)
-        if isinstance(stmt, ast.Return):
+        if isinstance(stmt, ast.Return) or isinstance(stmt, ast.Raise):
             break
 
     return result
@@ -430,6 +461,7 @@ def partial_eval_body(body, ctx):
 
 def partial_eval_stmts(stmts, ctx):
     for stmt in stmts:
+        # filter out None which is a removed statement (assignment which was resolved)
         yield from filter(None, partial_eval_stmt(stmt, ctx))
 
 
@@ -438,6 +470,8 @@ def partial_eval_set(ctx, name, ast_val):
         raise NotImplementedError(f"partial evaluation does not support re-assignation: {name}")
     elif isinstance(ast_val, ast.FunctionDef):
         ctx[name] = VarContext(type='function', value=ClosureDef.from_FunctionDef(ast_val, ctx))
+    elif isinstance(ast_val, StaticValue) and ast_val.value is StaticValue._absent:
+        ctx[name] = VarContext(type="absent", value=ast_val)
     else:
         ctx[name] = VarContext(value=ast_val)
 
@@ -456,7 +490,10 @@ def partial_eval_stmt(stmt, ctx):
                          partial_eval_body(stmt.orelse, ctx))
     elif isinstance(stmt, ast.Return):
         value = stmt.value
-        yield ast.Return(partial_eval_expr(value, ctx) if value is not None else value)
+        if isinstance(value, ast.Call):
+            yield from partial_eval_return_tail_call(value, ctx)
+        else:
+            yield ast.Return(partial_eval_expr(value, ctx) if value is not None else value)
     elif isinstance(stmt, ast.FunctionDef):
         partial_eval_set(ctx, stmt.name, stmt)
         yield None  # TODO: not ok in general, but should be in the case of behaviors where we inline local functions
@@ -537,9 +574,36 @@ def partial_eval_call(call, ctx):
     args = [partial_eval_expr(arg, ctx) for arg in call.args]
 
     if isinstance(func, ast.Name):
-        return partial_eval_static_function_call(func.id, args, call.keywords, ctx)
+        result = partial_eval_static_function_call(func.id, args, call.keywords, ctx)
+
+        if isinstance(result, StmtSequence):
+            body = result.body
+
+            if len(body) == 1 and isinstance(body[0], ast.Return):
+                return body[0].value
+            else:
+                raise NotImplementedError("non-tail-call resolved to a sequence of statements")
+        else:
+            return result
     else:
         return ast.Call(func, args, call.keywords)
+
+
+def partial_eval_return_tail_call(call, ctx):
+    func = partial_eval_expr(call.func, ctx)
+    args = [partial_eval_expr(arg, ctx) for arg in call.args]
+
+    if isinstance(func, ast.Name):
+        result = partial_eval_static_function_call(func.id, args, call.keywords, ctx)
+
+        if isinstance(result, StmtSequence):
+            yield from result.body
+            # If reachable, then the function did not return and this signals interruption to the partial evaluation
+            yield ast.Return(None)
+        else:
+            yield ast.Return(result)
+    else:
+        yield ast.Return(ast.Call(func, args, call.keywords))
 
 
 def partial_eval_compare(cmp, ctx):
@@ -618,8 +682,10 @@ def partial_eval_is(left, right, ctx):
         right_var = ctx.get(right.id)
 
         if left_var and right_var:
-            if isinstance(left_var, ast.Constant) and isinstance(right_var, ast.Constant):
-                return ast.Constant(left_var.value is right_var.value)
+            if left_var.type != "unknown" != right_var.type and left_var.type != right_var.type:
+                return ast.Constant(False)
+            if isinstance(left_var.value, ast.Constant) and isinstance(right_var.value, ast.Constant):
+                return ast.Constant(left_var.value.value is right_var.value.value)
             else:
                 # Unresolved
                 return None
@@ -715,14 +781,9 @@ def partial_eval_local_function_call(func, args, ctx):
                     raise NotImplementedError("partial_eval_local_function_call: non-name argument")
 
             body = fn_ast.body
-            result_body = partial_eval_body(body, call_ctx)
-
-            if len(result_body) == 1 and isinstance(result_body[0], ast.Return):
-                return_value = result_body[0].value
-                AstRenamer(name_table).visit(return_value)
-                return return_value
-            else:
-                raise NotImplementedError("partial_eval_local_function_call: could not resolve call to single expression")
+            result_body = StmtSequence(partial_eval_body(body, call_ctx))
+            AstRenamer(name_table).visit(result_body)
+            return result_body
 
         else:
             raise TypeError("partial_eval_local_function_call: incorrect number of arguments")
@@ -869,7 +930,7 @@ def main_behaviors(semantics_file, builtins_file):
         behavior_name = get_behavior_name(name, types)
         behavior_func_name = behavior_name.replace('-', '_')
 
-        result_body = partial_eval(bin_semantics, semantics_register, class_register,
+        result_body = partial_eval(sem, semantics_register, class_register,
                                    *[VarContext(type=t) for t in types])
 
         behavior_func = ast.FunctionDef(behavior_func_name, annotated_arguments, result_body,
