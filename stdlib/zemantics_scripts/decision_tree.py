@@ -276,6 +276,48 @@ class SemanticsRegister(AstRegister):
                 yield name, sem
 
 
+class AstRenamer(ast.NodeVisitor):
+    def __init__(self, table):
+        self.table = table
+
+    def visit_Name(self, node):
+        node.id = self.table.get(node.id, node.id)
+
+
+# ======================================================================================================================
+#   Partial evaluation
+# ======================================================================================================================
+
+# Used by partial evaluator to preserve closure of a FunctionDef
+class ClosureDef(ast.FunctionDef):
+    def __init__(self, *args, closure=None):
+        super().__init__(*args)
+        self.closure = closure
+
+    @classmethod
+    def from_FunctionDef(cls, fd, ctx):
+        cd = cls(*[getattr(fd, attr) for attr in ast.FunctionDef._fields], closure=ctx)
+        return cd
+
+    _fields = (
+        'name',
+        'args',
+        'body',
+        'decorator_list',
+        'returns',
+        'type_comment',
+        'closure',
+    )
+
+
+class StaticValue(ast.Constant):
+    _absent = object()
+
+    @classmethod
+    def absent(cls):
+        return cls(cls._absent)
+
+
 # ======================================================================================================================
 #   Partial evaluation
 # ======================================================================================================================
@@ -307,7 +349,11 @@ class VarContext:
 
 class Context:
     def __init__(self, semantics, classes):
-        self._dict = {}
+        _dict = {}
+        self._dict = _dict
+
+        _dict["absent"] = VarContext(value=StaticValue.absent())
+
         self.semantics = semantics
         self.classes = classes
 
@@ -328,6 +374,9 @@ class Context:
         for k, v in self._dict.items():
             ctx_copy[k] = v
         return ctx_copy
+
+    def new(self):
+        return Context(self.semantics, self.classes)
 
 
 def partial_eval(fn_ast, semantics, classes, *args):
@@ -373,8 +422,10 @@ def partial_eval_stmts(stmts, ctx):
 def partial_eval_set(ctx, name, ast_val):
     if name in ctx:
         raise NotImplementedError(f"partial evaluation does not support re-assignation: {name}")
+    elif isinstance(ast_val, ast.FunctionDef):
+        ctx[name] = VarContext(type='function', value=ClosureDef.from_FunctionDef(ast_val, ctx))
     else:
-        ctx[name] = VarContext(type='function', value=ast_val)
+        ctx[name] = VarContext(value=ast_val)
 
 def partial_eval_stmt(stmt, ctx):
     if isinstance(stmt, ast.If):
@@ -399,7 +450,7 @@ def partial_eval_stmt(stmt, ctx):
         if len(stmt.targets) == 1 and isinstance(stmt.targets[0], ast.Name):
             expr = partial_eval_expr(stmt.value, ctx)
             partial_eval_set(ctx, stmt.targets[0].id, expr)
-            yield None # TODO: not ok in general, but should be in the case of behaviors
+            yield None  # TODO: not ok in general, but should be in the case of behaviors
         else:
             raise NotImplementedError("Unsupported assignment to multiple targets or non name targets")
     else:
@@ -549,8 +600,20 @@ def partial_eval_compare(cmp, ctx):
 
 def partial_eval_is(left, right, ctx):
     if isinstance(left, ast.Name) and isinstance(right, ast.Name):
-        return ast.Constant(left.id == right.id)
+        left_var = ctx.get(left.id)
+        right_var = ctx.get(right.id)
+
+        if left_var and right_var:
+            if isinstance(left_var, ast.Constant) and isinstance(right_var, ast.Constant):
+                return ast.Constant(left_var.value is right_var.value)
+            else:
+                # Unresolved
+                return None
+        else:
+            # Unresolved
+            return None
     else:
+        # Unresolved
         return None
 
 
@@ -619,17 +682,37 @@ def partial_eval_static_function_call(func_name, args, keywords, ctx):
 
 
 def partial_eval_local_function_call(func, args, ctx):
-    if func.type == 'function':
-        fn_ast = func.value
-        call_ctx = ctx.copy()
+    fn_ast = func.value
 
-        if args:
-            raise NotImplementedError("partial evaluation of local function does not support argument passing (0 argument only)")
-        else:
+    if isinstance(fn_ast, ast.FunctionDef):
+        fn_args = fn_ast.args.args
+        name_table = {}
+
+        if len(args) == len(fn_args):
+            call_ctx = fn_ast.closure if isinstance(fn_ast, ClosureDef) else ctx.new()
+
+            for fn_arg, arg in zip(fn_args, args):
+                if isinstance(arg, ast.Name):
+                    arg_name = fn_arg.arg
+                    arg_value = ctx[arg.id]
+                    name_table[arg_name] = arg.id
+                    call_ctx[arg_name] = arg_value
+                else:
+                    raise NotImplementedError("partial_eval_local_function_call: non-name argument")
+
             body = fn_ast.body
-            result = partial_eval_body(body, call_ctx)
+            result_body = partial_eval_body(body, call_ctx)
 
-            raise NotImplementedError("... do something with the partial evaluation of a local function")
+            if len(result_body) == 1 and isinstance(result_body[0], ast.Return):
+                return_value = result_body[0].value
+                AstRenamer(name_table).visit(return_value)
+                return return_value
+            else:
+                raise NotImplementedError("partial_eval_local_function_call: could not resolve call to single expression")
+
+        else:
+            raise TypeError("partial_eval_local_function_call: incorrect number of arguments")
+
     else:
         raise ValueError("partial evaluation call to non-function local object")
 
@@ -654,9 +737,39 @@ def partial_eval_specialize_intrinsic_function(func_name, args, ctx):
                     return ast.Call(ast.Name("py_bool_to_host_int"), args, [])
                 elif issubclass(eval(type_), int):
                     return ast.Call(ast.Name("py_int_to_host"), args, [])
+    elif func_name == "class_getattr":
+        return partial_eval_class_getattr_call(args, ctx)
 
     # No specialization
     return ast.Call(ast.Name(func_name), args, [])
+
+
+def partial_eval_class_getattr_call(args, ctx):
+    # Assume correct arity
+    name = args[0]
+    attr = args[1]
+
+    if isinstance(name, ast.Name):
+        if isinstance(attr, ast.Constant) and isinstance(attr.value, str):
+            obj = ctx.get(name.id)
+
+            if obj is None:
+                raise NameError(f"partial_eval: could not resolve {name.id}")
+            elif obj.type is _unknown:
+                raise NotImplementedError(f"partial_eval_class_getattr_call: could not resolve type of {name.id}")
+            else:
+                obj_type = obj.type
+                attr_name = attr.value
+
+                cls = ctx.classes[obj_type]
+                attr = cls.get(attr_name, StaticValue.absent())
+
+                return attr
+
+        else:
+            raise ValueError("partial_eval_class_getattr_call: second argument must be a string literal")
+    else:
+        raise NotImplementedError("partial_eval_class_getattr_call: first argument must have been resolved to a name")
 
 
 def convert_expr_to_return_host_bool(expr):
