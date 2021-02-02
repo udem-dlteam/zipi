@@ -656,7 +656,7 @@ def partial_eval_specialize_intrinsic_function(func_name, args, ctx):
                     return ast.Call(ast.Name("py_int_to_host"), args, [])
 
     # No specialization
-    return ast.Call(ast.Name(func_name), args, keywords)
+    return ast.Call(ast.Name(func_name), args, [])
 
 
 def convert_expr_to_return_host_bool(expr):
