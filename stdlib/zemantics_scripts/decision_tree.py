@@ -215,7 +215,7 @@ def build_decision_tree(filename):
                         decision_tree.setdefault(name, {}).setdefault(get_type_name(left), {})[
                             get_type_name(right)] = Error(e)
             else:
-                raise ValueError(f"cannot handle semantics with {len(signature)} arguments")
+                raise NotImplementedError(f"cannot handle semantics with {len(signature)} arguments")
 
     extend_decision_tree_with_specialized_types(decision_tree)
     return decision_tree
@@ -334,7 +334,7 @@ def partial_eval(fn_ast, semantics, classes, *args):
     ast_args = fn_ast.args
 
     if ast_args.kwonlyargs or ast_args.kw_defaults or ast_args.defaults:
-        raise ValueError("partial_eval only supports no-default positional arguments")
+        raise NotImplementedError("partial_eval only supports no-default positional arguments")
 
     # For now we assume only positional args
     fn_args = ast_args.posonlyargs + ast_args.args
@@ -372,7 +372,7 @@ def partial_eval_stmts(stmts, ctx):
 
 def partial_eval_set(ctx, name, ast_val):
     if name in ctx:
-        raise ValueError(f"partial evaluation does not support re-assignation: {name}")
+        raise NotImplementedError(f"partial evaluation does not support re-assignation: {name}")
     else:
         ctx[name] = VarContext(type='function', value=ast_val)
 
@@ -456,7 +456,7 @@ def partial_eval_bool_op(expr, ctx):
             else:
                 evaluated_values.append(val)
     else:
-        raise ValueError(f"missing partial_eval implementation for {type(op).__name__}")
+        raise NotImplementedError(f"missing partial_eval implementation for {type(op).__name__}")
 
     if not evaluated_values:
         # All values were evaluated, return the last one
