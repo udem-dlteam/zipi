@@ -448,16 +448,6 @@
             (global-get-from-builtins name cache)))
       (global-get/miss global name cache)))
 
-(define (global-get-optim global name cache get)
-  (if (eq? (PyObject-hclass global) ;; TODO: should py-obj-hclass be used instead?
-           (PCache-hclass cache))
-      (let ((val (PyObject-elements-ref global (PCache-index cache))))
-        (if (not (eq? val py-absent))
-            val
-            ;; TODO: use a different cache
-            (global-get-from-builtins name cache)))
-      (global-get/miss global name cache)))
-
 (define (global-get/miss global name cache)
   (let ((i (py-own-attr-index global name)))
     (if (< i 0)

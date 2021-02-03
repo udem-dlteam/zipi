@@ -57,7 +57,6 @@
    `(,(string->symbol (typeof this))
      :scope ,(PycDecl-scope this)
      :key ,(PycDecl-key this)
-     ,@(if (PycDecl-name this) `(:name ,(PycDecl-name this)) '())
      ,(PycDecl-id this) ,(pycnode->list (PycDeclInit-val this))))
 
 (define-walk-method (pycnode->list this::PycReturn)
@@ -98,7 +97,6 @@
 
 (define-walk-method (pycnode->list this::PycRef)
    `(,(string->symbol (typeof this))
-     :key ,(PycDecl-key (PycRef-decl this))
      ,(PycDecl-id (PycRef-decl this))))
 
 (define-walk-method (pycnode->list this::PycAccess)

@@ -4,7 +4,7 @@
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Tue Jul  2 08:15:40 2019                          */
 ;*    Last change :  Mon Apr  6 13:52:48 2020 (serrano)                */
-;*    Copyright   :  2019-21 Manuel Serrano                            */
+;*    Copyright   :  2019-20 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Compilation driver                                               */
 ;*=====================================================================*/
@@ -20,7 +20,7 @@
 	   __pyc_ast
 	   __pyc_utils
 	   __pyc_parse
-	   __pyc_intrinsics
+     __pyc_intrinsics
 	   __pyc_symbol
 	   __pyc_locals
 	   __pyc_return
@@ -28,7 +28,7 @@
 	   __pyc_super
 	   __pyc_generator
 	   __pyc_cps
-	   __pyc_simple_scoping
+     __pyc_simple_scoping
 	   __pyc_scheme
 	   __pyc_javascript)
 
