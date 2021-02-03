@@ -646,6 +646,22 @@ def partial_eval_call(call, ctx):
         return ast.Call(func, args, call.keywords)
 
 
+def ast_always_returns(node):
+    # TODO: does not cover all forms (missing: With, Try, AsyncFor, AsyncWith)
+    if isinstance(node, list):
+        return any(ast_always_returns(n) for n in node)
+    elif isinstance(node, (ast.Return, ast.Raise)):
+        return True
+    elif isinstance(node, ast.For):
+        return ast_always_returns(node.body) and ast_always_returns(node.orelse)
+    elif isinstance(node, ast.If):
+        return ast_always_returns(node.body) and ast_always_returns(node.orelse)
+    elif isinstance(node, ast.While):
+        return ast_always_returns(node.body) and ast_always_returns(node.orelse)
+    else:
+        return False
+
+
 def partial_eval_return_tail_call(call, ctx):
     func = partial_eval_expr(call.func, ctx)
     args = [partial_eval_expr(arg, ctx) for arg in call.args]
@@ -655,8 +671,8 @@ def partial_eval_return_tail_call(call, ctx):
 
         if isinstance(result, StmtSequence):
             yield from result.body
-            # If reachable, then the function did not return and this signals interruption to the partial evaluation
-            yield ast.Return(None)
+            if not ast_always_returns(result.body):
+                yield ast.Return(None)
         else:
             yield ast.Return(result)
     else:
