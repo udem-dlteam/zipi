@@ -512,8 +512,10 @@ def partial_eval_stmt(stmt, ctx):
             if var:
                 if isinstance(var.value, StmtSequence):
                     yield from var.value.body
-                else:
+                elif var.value is not _unknown:
                     yield ast.Return(var.value)
+                else:
+                    yield ast.Return(ast.Name(value.id))
             else:
                 yield ast.Return(partial_eval_expr(value, ctx) if value is not None else value)
         else:
