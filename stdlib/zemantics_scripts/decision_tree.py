@@ -338,6 +338,10 @@ class StaticValue(ast.Constant):
     def absent(cls):
         return cls(cls._absent)
 
+    @classmethod
+    def NotImplemented(cls):
+        return cls(NotImplemented)
+
 
 class StmtSequence(ast.stmt):
     def __init__(self, body):
@@ -366,6 +370,14 @@ class VarContext:
         self._type = type
         self.value = value
 
+        if isinstance(value, StaticValue):
+            if value.value is StaticValue._absent:
+                self._type = 'absent'
+            elif value.value is NotImplemented:
+                self._type = 'NotImplementedType'
+            elif value.value in {int, bool, float, str}:
+                self._type = "type"
+
     @property
     def type(self):
         return get_type_alias(self._type)
@@ -375,7 +387,7 @@ class VarContext:
         return self._type
 
     def __repr__(self):
-        return f"VarContent(type={self.type} ({self.specialized_type}), value={self.value})"
+        return f"VarContext(type={self.type} ({self.specialized_type}), value={self.value})"
 
 
 class Context:
@@ -383,7 +395,12 @@ class Context:
         self._locals = {}
         self._closure = closure if closure is not None else {}
         self._globals = {
-            'absent': VarContext(type='absent', value=StaticValue.absent())
+            'absent': VarContext(value=StaticValue.absent()),
+            'NotImplemented': VarContext(value=StaticValue.NotImplemented()),
+            'int': VarContext(value=StaticValue(int)),
+            'bool': VarContext(value=StaticValue(bool)),
+            'float': VarContext(value=StaticValue(float)),
+            'str': VarContext(value=StaticValue(str)),
         }
 
         self.semantics = semantics
@@ -470,8 +487,6 @@ def partial_eval_set(ctx, name, ast_val):
         raise NotImplementedError(f"partial evaluation does not support re-assignation: {name}")
     elif isinstance(ast_val, ast.FunctionDef):
         ctx[name] = VarContext(type='function', value=ClosureDef.from_FunctionDef(ast_val, ctx))
-    elif isinstance(ast_val, StaticValue) and ast_val.value is StaticValue._absent:
-        ctx[name] = VarContext(type="absent", value=ast_val)
     else:
         ctx[name] = VarContext(value=ast_val)
 
@@ -492,6 +507,15 @@ def partial_eval_stmt(stmt, ctx):
         value = stmt.value
         if isinstance(value, ast.Call):
             yield from partial_eval_return_tail_call(value, ctx)
+        elif isinstance(value, ast.Name):
+            var = ctx.get(value.id)
+            if var:
+                if isinstance(var.value, StmtSequence):
+                    yield from var.value.body
+                else:
+                    yield ast.Return(var.value)
+            else:
+                yield ast.Return(partial_eval_expr(value, ctx) if value is not None else value)
         else:
             yield ast.Return(partial_eval_expr(value, ctx) if value is not None else value)
     elif isinstance(stmt, ast.FunctionDef):
@@ -582,7 +606,7 @@ def partial_eval_call(call, ctx):
             if len(body) == 1 and isinstance(body[0], ast.Return):
                 return body[0].value
             else:
-                raise NotImplementedError("non-tail-call resolved to a sequence of statements")
+                return result
         else:
             return result
     else:
@@ -608,72 +632,26 @@ def partial_eval_return_tail_call(call, ctx):
 
 def partial_eval_compare(cmp, ctx):
     left = partial_eval_expr(cmp.left, ctx)
-    comparators = [partial_eval_expr(e, ctx) for e in cmp.comparators]
 
-    evaluated_comparators = []
-    evaluated_ops = []
+    if len(cmp.comparators) > 1:
+        raise NotImplementedError("partial_eval_compare: chain comparison not supported")
+    else:
+        op = cmp.ops[0]
+        right = partial_eval_expr(cmp.comparators[0], ctx)
 
-    # Eliminate operators which evaluate to True
-    for op, right in zip(cmp.ops, comparators):
         if isinstance(op, ast.Is):
             res = partial_eval_is(left, right, ctx)
-            if isinstance(res, ast.Constant):
-                if not res.value:
-                    return res
-                else:
-                    evaluated_comparators.append(left)
-                    # Eliminate this operation
-                    evaluated_ops.append(None)
-                    left = right
-                    continue
         elif isinstance(op, ast.Eq):
             res = partial_eval_eq(left, right, ctx)
-            if isinstance(res, ast.Constant):
-                if not res.value:
-                    return res
-                else:
-                    evaluated_comparators.append(left)
-                    # Eliminate this operation
-                    evaluated_ops.append(None)
-                    left = right
-                    continue
         elif isinstance(op, ast.NotEq):
             res = partial_eval_ne(left, right, ctx)
-            if isinstance(res, ast.Constant):
-                if not res.value:
-                    return res
-                else:
-                    evaluated_comparators.append(left)
-                    # Eliminate this operation
-                    evaluated_ops.append(None)
-                    left = right
-                    continue
-
-        # Could not evaluate this comparison in this context
-        evaluated_comparators.append(left)
-        evaluated_ops.append(op)
-        left = right
-
-    evaluated_comparators.append(left)
-
-    # Removing an operator in a chain is equivalent to replacing it with 'and'
-    # Ex: x is y is y is z => (x is y) and (y is z)
-    # We collect those sub-chains to later link them with ast.And
-    chained_groups = [[[], []]]
-    for i, op in enumerate(evaluated_ops):
-        if op is None:
-            chained_groups[-1][0].append(evaluated_comparators[i])
-            if chained_groups[-1] != [[], []]:
-                chained_groups.append([[], []])
         else:
-            chained_groups[-1][0].append(evaluated_comparators[i])
-            chained_groups[-1][1].append(op)
+            res = None
 
-    chained_groups[-1][0].append(evaluated_comparators[-1])
-
-    chains = [ast.Compare(exprs[0], ops, exprs[1:]) for exprs, ops in chained_groups if ops]
-
-    return ast.Constant(True) if len(chains) == 0 else ast.BoolOp(ast.And(), chains)
+        if res is None:
+            return ast.Compare(left, [op], [right])
+        else:
+            return res
 
 
 def partial_eval_is(left, right, ctx):
@@ -682,7 +660,13 @@ def partial_eval_is(left, right, ctx):
         right_var = ctx.get(right.id)
 
         if left_var and right_var:
-            if left_var.type != "unknown" != right_var.type and left_var.type != right_var.type:
+            left_type = left_var.type
+            right_type = right_var.type
+            if left_type in ("absent", "NotImplementedType") or right_type in ("absent", "NotImplementedType"):
+                # TODO: this assumption can be removed once we have more solid type-checking
+                # 'absent' and 'NotImplemented' are singletons which should always be resolved statically
+                return ast.Constant(left_type == right_type)
+            if left_var.type != _unknown != right_var.type and left_var.type != right_var.type:
                 return ast.Constant(False)
             if isinstance(left_var.value, ast.Constant) and isinstance(right_var.value, ast.Constant):
                 return ast.Constant(left_var.value.value is right_var.value.value)
@@ -950,7 +934,11 @@ def main_behaviors(semantics_file, builtins_file):
     print(f"from __compiler_intrinsics__ import {define_behavior}, {other_intrinsics}\n")
 
     for b in behaviors:
-        print(astor.code_gen.to_source(b))
+        try:
+            print(astor.code_gen.to_source(b))
+        except Exception:
+            logging.warning(f"astor failed to generate source for: {b.name}")
+            raise
 
 
 # ======================================================================================================================
