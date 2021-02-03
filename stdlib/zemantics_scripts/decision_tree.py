@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import argparse, ast, inspect, itertools, logging, sys
+import argparse, ast, inspect, itertools, logging, operator, sys
 from functools import wraps
 from pprint import pprint
 from types import ModuleType
@@ -530,6 +530,8 @@ def partial_eval_stmt(stmt, ctx):
             yield None  # TODO: not ok in general, but should be in the case of behaviors
         else:
             raise NotImplementedError("Unsupported assignment to multiple targets or non name targets")
+    elif isinstance(stmt, ast.Raise):
+        yield ast.Raise(partial_eval_expr(stmt.exc, ctx), None)
     else:
         yield stmt
 
@@ -545,14 +547,43 @@ def partial_eval_expr(expr, ctx):
         return partial_eval_bin_op(expr, ctx)
     elif isinstance(expr, ast.UnaryOp):
         return partial_eval_un_op(expr, ctx)
+    elif isinstance(expr, ast.Attribute):
+        obj = partial_eval_expr(expr.value, ctx)
+
+        if isinstance(obj, ast.Name):
+            var = ctx.get(obj.id)
+            if var and isinstance(var.value, StaticValue):
+                try:
+                    attr = getattr(var.value.value, expr.attr)
+                    if isinstance(attr, (int, float, str)):
+                        return ast.Constant(attr)
+                except AttributeError:
+                    pass
+        return ast.Attribute(obj, expr.attr, expr.ctx)
     else:
         return expr
+
+
+def get_operator_from_ast(op):
+    return {
+        ast.Add: operator.add,
+        ast.Sub: operator.sub,
+        ast.Mult: operator.mul,
+        ast.Div: operator.truediv,
+        ast.FloorDiv: operator.floordiv,
+    }.get(type(op))
 
 
 def partial_eval_bin_op(expr, ctx):
     left = partial_eval_expr(expr.left, ctx)
     right = partial_eval_expr(expr.right, ctx)
-    return ast.BinOp(left, expr.op, right)
+    op = expr.op
+    operator = get_operator_from_ast(op)
+
+    if isinstance(left, ast.Constant) and isinstance(right, ast.Constant) and operator:
+        return ast.Constant(operator(left.value, right.value))
+
+    return ast.BinOp(left, op, right)
 
 
 def partial_eval_un_op(expr, ctx):
