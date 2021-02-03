@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import argparse, ast, inspect, itertools, logging, operator, sys
+import argparse, ast, copy, inspect, itertools, logging, operator, sys
 from functools import wraps
 from pprint import pprint
 from types import ModuleType
@@ -334,6 +334,11 @@ class StaticValue(ast.Constant):
     def __init__(self, value):
         super().__init__(value)
 
+    def __deepcopy__(self, memodict={}):
+        # Ignore memodict as there should be no cycles in a tree
+        # Do not copy the value as it might be comapred with is
+        return StaticValue(self.value)
+
     @classmethod
     def absent(cls):
         return cls(cls._absent)
@@ -346,6 +351,10 @@ class StaticValue(ast.Constant):
 class StmtSequence(ast.stmt):
     def __init__(self, body):
         self.body = body
+
+    def __deepcopy__(self, memodict={}):
+        # Ignore memodict as there should be no cycles in a tree
+        return StmtSequence(copy.deepcopy(self.body, memodict))
 
     _fields = (
         'body',
@@ -814,9 +823,13 @@ def partial_eval_local_function_call(func, args, ctx):
                     raise NotImplementedError("partial_eval_local_function_call: non-name argument")
 
             body = fn_ast.body
+
             result_body = StmtSequence(partial_eval_body(body, call_ctx))
-            AstRenamer(name_table).visit(result_body)
-            return result_body
+
+            # Important to use a deepcopy of the ast so renaming does not affect called method variables
+            body_copy = copy.deepcopy(result_body)
+            AstRenamer(name_table).visit(body_copy)
+            return body_copy
 
         else:
             raise TypeError("partial_eval_local_function_call: incorrect number of arguments")
