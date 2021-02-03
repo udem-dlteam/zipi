@@ -971,6 +971,15 @@ def main_behaviors(semantics_file, builtins_file):
 
         behaviors.append(behavior_func)
 
+        # For comparisons, we generate a version of the behavior which returns a host bool
+        if name in ("eq", "ne", "ge", "gt", "le", "lt"):
+            test_behavior_func_name = behavior_name.replace('py-', 'py-test-').replace('-', '_')
+
+            test_body = convert_body_to_return_host_bool(result_body)
+            test_behavior_func = ast.FunctionDef(test_behavior_func_name, annotated_arguments, test_body,
+                                                 behavior_decorator_list, None, None)
+            behaviors.append(test_behavior_func)
+
     for name, bin_semantics in semantics_register.iter_binary_semantics():
         for left_type in types_without_int:
             for right_type in types_without_int:
