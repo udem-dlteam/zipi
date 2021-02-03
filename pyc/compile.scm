@@ -45,17 +45,22 @@
      ("javascript" . ,pyc-javascript)))
 
 (define (pyc driver conf)
-  (let* ((env (getenv "ZIPITRACE"))
-         (src (config-get conf src: #f))
-	 (conf (cons*
-                trace: (and (string? env) (string-contains env "pyc:dump"))
-                tmp: (make-file-path
-                      (os-tmp)
-                      (or (getenv "USER") "anonymous") "PYC")
-                name: (if src (prefix (basename src)) "<stdin>")
-                file: (config-get conf src: "<stdin>")
-                conf)))
-    (pyc-compile (or src (current-input-port)) driver conf)))
+   ;; optimization
+   (cond
+      ((>= (config-get conf :optim 0) 1000)
+       (unless (memq :optim-globals conf)
+	  (set! conf (cons* :optim-globals #t conf)))))
+   (let* ((env (getenv "ZIPITRACE"))
+	  (src (config-get conf src: #f))
+	  (conf (cons*
+		   trace: (and (string? env) (string-contains env "pyc:dump"))
+		   tmp: (make-file-path
+			   (os-tmp)
+			   (or (getenv "USER") "anonymous") "PYC")
+		   name: (if src (prefix (basename src)) "<stdin>")
+		   file: (config-get conf src: "<stdin>")
+		   conf)))
+      (pyc-compile (or src (current-input-port)) driver conf)))
 
 (define (pyc-compile prog passes conf)
    (let ((tracedir (make-file-name (config-get conf tmp:)
@@ -75,6 +80,7 @@
 	     ast))))
 
 (define (dump-trace tracedir pass ast)
+   (make-directories tracedir)
    (call-with-output-file (make-file-path tracedir pass)
       (lambda (p)
          (fprint p ";; -*-bee-*-")
