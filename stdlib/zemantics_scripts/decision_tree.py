@@ -699,6 +699,8 @@ def partial_eval_compare(cmp, ctx):
 
         if isinstance(op, ast.Is):
             res = partial_eval_is(left, right, ctx)
+        elif isinstance(op, ast.IsNot):
+            res = partial_eval_is_not(left, right, ctx)
         elif isinstance(op, ast.Eq):
             res = partial_eval_eq(left, right, ctx)
         elif isinstance(op, ast.NotEq):
@@ -710,6 +712,19 @@ def partial_eval_compare(cmp, ctx):
             return ast.Compare(left, [op], [right])
         else:
             return res
+
+
+def partial_eval_is_not(left, right, ctx):
+    is_res = partial_eval_is(left, right, ctx)
+
+    if is_res:
+        # an evaluation of is should always yield a bool constant
+        if isinstance(is_res, ast.Constant):
+            return ast.Constant(not is_res.value)
+        else:
+            return ast.UnaryOp(ast.Not, is_res)
+    else:
+        return None
 
 
 def partial_eval_is(left, right, ctx):
@@ -728,15 +743,8 @@ def partial_eval_is(left, right, ctx):
                 return ast.Constant(False)
             if isinstance(left_var.value, ast.Constant) and isinstance(right_var.value, ast.Constant):
                 return ast.Constant(left_var.value.value is right_var.value.value)
-            else:
-                # Unresolved
-                return None
-        else:
-            # Unresolved
-            return None
-    else:
-        # Unresolved
-        return None
+    # Unresolved
+    return None
 
 
 def partial_eval_eq(left, right, ctx):
@@ -902,9 +910,13 @@ def convert_expr_to_return_host_bool(expr):
         else:
             raise TypeError(f"cannot convert call to a return-host-bool version due to unknown callee: {func}")
     elif isinstance(expr, ast.Compare):
-        return ast.Call(ast.Name('py_bool_to_host_bool'), expr, [])
-    else:
-        raise TypeError(f"cannot convert expr to a return-host-bool version: {expr}")
+        return ast.Call(ast.Name('py_bool_to_host_bool'), [expr], [])
+    elif isinstance(expr, ast.Constant):
+        val = expr.value
+        if isinstance(val, bool):
+            return ast.Call(ast.Name('py_bool_from_host_bool'), [expr], [])
+
+    raise TypeError(f"cannot convert expr to a return-host-bool version: {expr}")
 
 
 def convert_body_to_return_host_bool(body):
@@ -964,7 +976,8 @@ def main_behaviors(semantics_file, builtins_file):
 
     define_behavior = "define_behavior"
     other_intrinsics = "py_int_from_host, py_int_to_host, py_bool_to_host_int, py_float_from_host, " \
-                       "py_float_to_host, py_sint_to_host, py_bint_to_host, py_bool_from_host_bool "
+                       "py_float_to_host, py_sint_to_host, py_bint_to_host, py_bool_from_host_bool, " \
+                       "py_bool_from_host_bool"
 
     behavior_decorator_list = [ast.Name(f"{define_behavior}")]
 
@@ -1021,7 +1034,7 @@ def get_type_alias(type_name):
     return "int" if type_name in int_specialized_types else type_name
 
 
-instances = [1, 1.0, True]
+instances = [1, 1.0, True, "foo"]
 types = [get_type_name(i) for i in instances]
 int_specialized_types = ['sint', 'bint']
 types += int_specialized_types
