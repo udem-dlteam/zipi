@@ -670,6 +670,50 @@
       ;; scheme value should be tested as is
       ,arg)))
 
+(define-macro (py-str-from-scheme arg)
+  (define (fallback arg)
+    `(py-str-from-scheme-fallback ,arg))
+
+  (define (type operand)
+    (and (pair? operand)
+         (let ((x (assq (car operand)
+                         '((py-bool-to-scheme-int  bool)
+                           (py-sint-to-scheme  sint)
+                           (py-bint-to-scheme  bint)
+                           (py-int-to-scheme   int)
+                           (py-str-to-scheme str)))))
+           (and x
+                (cadr x)))))
+
+  (define (to-str x)
+    (if (and (pair? x) (eq? (car x) 'py-str-to-scheme))
+      (cadr x)
+      x))
+
+  (define (Ustr-concat left right)
+    ;; remove py-str-to-scheme and apply concat optimisation w/o unboxing
+    `(py-add-strX-strY ,(to-str left) ,(to-str right)))
+
+  (define (Ustr-mul left right)
+    (let ((left-type (type left))
+          (right-type (type right)))
+      (if (eq? left-type 'str)
+        ;; left is the string
+        #f
+        (if (eq? right-type 'str)
+          ;; right is the string
+          #f
+          (error "py-str-from-scheme" "str multiplication called on non-str's" left right)))))
+
+  (if (pair? arg)
+    (let* ((operator (car arg))
+           (operands (cdr arg)))
+      (case operator
+        ((py+) (apply Ustr-concat operands))
+        ((py*) (apply Ustr-mul operands))
+        (else (fallback arg))))
+    (fallback arg)))
+
 (define-macro (py-specialized-sint-float-dispatch-let name obj int float other)
   `(let ((,name ,obj))
      (cond ((py-if-specialized-sint-representation (fixnum? ,name) #f)
@@ -814,9 +858,6 @@
     `(let (($obj ,obj))
        ,special-case-int)))
 
-(define-macro (py-str-from-scheme string)
-  `(py-str-from-scheme-fallback ,string))
-
 (define-macro (py-subtype-of-str-from-scheme string str-subclass)
   `(py-subtype-of-str-from-scheme-fallback ,string ,str-subclass))
 
@@ -830,7 +871,7 @@
   `(py-str-representative-fallback ,str))
 
 (define-macro (py-add-strX-strY str1 str2)
-  `(py-add-strX-strY-fallback ,str1 ,str2))
+  `(py-add-SstrX-SstrY-fallback ,str1 ,str2))
 
 (define-macro (py-getattribute-from-obj-mro-2cont obj name succeed fail)
 

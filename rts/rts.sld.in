@@ -371,7 +371,6 @@
     py-str-representative
     py-str-representative-fallback
     py-add-strX-strY
-    py-add-strX-strY-fallback
 
     py-slice-from-scheme
     py-bytearray-from-scheme

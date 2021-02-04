@@ -2275,9 +2275,6 @@
 
 (define str-representatives-htable (get-registered-constants-table))
 
-(define (py-add-strX-strY-fallback str1 str2)
-  (py-add-SstrX-SstrY str1 str2))
-
 (define (py-add-SstrX-SstrY str1 str2)
   (py-add-SstrX-SstrY-fallback str1 str2))
 

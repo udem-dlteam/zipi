@@ -346,7 +346,6 @@
            (py-str-to-scheme-fallback ::PyObjectStr)
            (py-subtype-of-str-to-scheme-fallback ::PyObjectStr)
            (py-str-representative-fallback ::PyObjectStr)
-           (py-add-strX-strY-fallback ::PyObjectStr ::PyObjectStr)
 
            (py-import path depth)
            py-import-root
