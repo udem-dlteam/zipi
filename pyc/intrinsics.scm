@@ -130,7 +130,9 @@
     (cons 'py_sint_to_host (make-pragma-call-maker 'py-sint-to-scheme))
     (cons 'py_bint_to_host (make-pragma-call-maker 'py-bint-to-scheme))
     (cons 'py_bool_from_host_bool (make-pragma-call-maker 'py-bool-from-scheme-bool))
-    (cons 'py_bool_to_host_bool (make-pragma-call-maker 'py-bool-to-scheme-bool))))
+    (cons 'py_bool_to_host_bool (make-pragma-call-maker 'py-bool-to-scheme-bool))
+    (cons 'py_str_to_host (make-pragma-call-maker 'py-str-to-scheme))
+    (cons 'py_str_from_host (make-pragma-call-maker 'py-str-from-scheme))))
 
 (define static-intrinsics
   (list
@@ -362,11 +364,13 @@
       ((eq? expr 'py-bint-to-scheme) 'Ubint)
       ((eq? expr 'py-float-to-scheme) 'Ufloat)
       ((eq? expr 'py-bool-to-scheme-bool) 'Ubool)
+      ((eq? expr 'py-str-to-scheme) 'Ustr)
       ((eq? expr 'py-int-from-scheme) 'int)
       ((eq? expr 'py-sint-from-scheme) 'sint)
       ((eq? expr 'py-bint-from-scheme) 'bint)
       ((eq? expr 'py-float-from-scheme) 'float)
       ((eq? expr 'py-bool-from-scheme-bool) 'bool)
+      ((eq? expr 'py-str-from-scheme) 'str)
       (else #f))))
 
 (define (get-expr-type-hint expr)

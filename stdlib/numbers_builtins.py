@@ -925,7 +925,7 @@ class str:
                 raise TypeError('can only concatenate str (not "' + type(other).__name__ + '") to str')
         else:
             raise TypeError("descriptor '__add__' requires a 'str' object but received a '" + type(self).__name__ + "'")
-            
+
     def __mul__(self, other):
         if isinstance(self, str):
             if isinstance(other, int):
@@ -934,7 +934,7 @@ class str:
                 raise TypeError('can only concatenate str (not "' + type(other).__name__ + '") to str')
         else:
             raise TypeError("descriptor '__mul__' requires a 'str' object but received a '" + type(self).__name__ + "'")
-            
+
     def __rmul__(self, other):
         if isinstance(self, str):
             if isinstance(other, int):
@@ -942,7 +942,7 @@ class str:
             else:
                 raise TypeError('can only concatenate str (not "' + type(other).__name__ + '") to str')
         else:
-            raise TypeError("descriptor '__rmul__' requires a 'str' object but received a '" + type(self).__name__ + "'")     
+            raise TypeError("descriptor '__rmul__' requires a 'str' object but received a '" + type(self).__name__ + "'")
 
     def __eq__(self, other):
         if isinstance(self, str):
@@ -997,4 +997,3 @@ class str:
                 return NotImplemented
         else:
             raise TypeError("descriptor '__lt__' requires a 'str' object but received a '" + type(self).__name__ + "'")
-

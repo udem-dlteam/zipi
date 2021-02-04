@@ -706,7 +706,7 @@
     (and res (cdr res))))
 
 (define-walk-method (scheme this::PycBinary conf)
-  (define native-types '(Uint Usint Ubint Ufloat Ubool))
+  (define native-types '(Uint Usint Ubint Ufloat Ubool Ustr))
 
   (define (python-op)
     (epairify this
@@ -737,7 +737,7 @@
         (python-op)))))
 
 (define-walk-method (scheme this::PycUnary conf)
-  (define native-types '(Uint Usint Ubint Ufloat Ubool))
+  (define native-types '(Uint Usint Ubint Ufloat Ubool Ustr))
 
   (define (python-op)
     (epairify this
