@@ -155,6 +155,12 @@
 (define-macro (py-bool-from-scheme-bool arg)
   `(if ,arg py-True py-False))
 
+(define-macro (py-bool-to-scheme-bool arg)
+  (cond
+    ((eq? arg 'py-True) #t)
+    ((eq? arg 'py-False) #f)
+    (else `(py-test-is ,arg py-True))))
+
 (define-macro (py-sint-to-scheme arg)
   `(py-if-specialized-sint-representation
     ,arg
