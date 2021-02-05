@@ -1,4 +1,4 @@
-from __compiler_intrinsics__ import define_behavior, py_int_from_host, py_int_to_host, py_bool_to_host_int, py_float_from_host, py_float_to_host, py_sint_to_host, py_bint_to_host, py_bool_from_host_bool, py_bool_from_host_bool, py_str_from_host, py_str_to_host
+from __compiler_intrinsics__ import define_behavior, py_int_from_host, py_int_to_host, py_bool_to_host_int, py_float_from_host, py_float_to_host, py_sint_to_host, py_bint_to_host, py_bool_from_host_bool, py_bool_to_host_bool, py_str_from_host, py_str_to_host
 
 @define_behavior
 def py_add_floatX_floatY(x: float, y: float):
@@ -3777,7 +3777,7 @@ def py_eq_floatX_strY(x: float, y: str):
 
 @define_behavior
 def py_test_eq_floatX_strY(x: float, y: str):
-    return py_bool_from_host_bool(False)
+    return py_bool_to_host_bool(False)
 
 @define_behavior
 def py_eq_floatX_sintY(x: float, y: sint):
@@ -3819,7 +3819,7 @@ def py_eq_boolX_strY(x: bool, y: str):
 
 @define_behavior
 def py_test_eq_boolX_strY(x: bool, y: str):
-    return py_bool_from_host_bool(False)
+    return py_bool_to_host_bool(False)
 
 @define_behavior
 def py_eq_boolX_sintY(x: bool, y: sint):
@@ -3843,7 +3843,7 @@ def py_eq_strX_floatY(x: str, y: float):
 
 @define_behavior
 def py_test_eq_strX_floatY(x: str, y: float):
-    return py_bool_from_host_bool(False)
+    return py_bool_to_host_bool(False)
 
 @define_behavior
 def py_eq_strX_boolY(x: str, y: bool):
@@ -3851,7 +3851,7 @@ def py_eq_strX_boolY(x: str, y: bool):
 
 @define_behavior
 def py_test_eq_strX_boolY(x: str, y: bool):
-    return py_bool_from_host_bool(False)
+    return py_bool_to_host_bool(False)
 
 @define_behavior
 def py_eq_strX_strY(x: str, y: str):
@@ -3867,7 +3867,7 @@ def py_eq_strX_sintY(x: str, y: sint):
 
 @define_behavior
 def py_test_eq_strX_sintY(x: str, y: sint):
-    return py_bool_from_host_bool(False)
+    return py_bool_to_host_bool(False)
 
 @define_behavior
 def py_eq_strX_bintY(x: str, y: bint):
@@ -3875,7 +3875,7 @@ def py_eq_strX_bintY(x: str, y: bint):
 
 @define_behavior
 def py_test_eq_strX_bintY(x: str, y: bint):
-    return py_bool_from_host_bool(False)
+    return py_bool_to_host_bool(False)
 
 @define_behavior
 def py_eq_sintX_floatY(x: sint, y: float):
@@ -3899,7 +3899,7 @@ def py_eq_sintX_strY(x: sint, y: str):
 
 @define_behavior
 def py_test_eq_sintX_strY(x: sint, y: str):
-    return py_bool_from_host_bool(False)
+    return py_bool_to_host_bool(False)
 
 @define_behavior
 def py_eq_sintX_sintY(x: sint, y: sint):
@@ -3939,7 +3939,7 @@ def py_eq_bintX_strY(x: bint, y: str):
 
 @define_behavior
 def py_test_eq_bintX_strY(x: bint, y: str):
-    return py_bool_from_host_bool(False)
+    return py_bool_to_host_bool(False)
 
 @define_behavior
 def py_eq_bintX_sintY(x: bint, y: sint):
@@ -3980,7 +3980,7 @@ def py_ne_floatX_strY(x: float, y: str):
 
 @define_behavior
 def py_test_ne_floatX_strY(x: float, y: str):
-    return py_bool_from_host_bool(True)
+    return py_bool_to_host_bool(True)
 
 @define_behavior
 def py_ne_floatX_sintY(x: float, y: sint):
@@ -4022,7 +4022,7 @@ def py_ne_boolX_strY(x: bool, y: str):
 
 @define_behavior
 def py_test_ne_boolX_strY(x: bool, y: str):
-    return py_bool_from_host_bool(True)
+    return py_bool_to_host_bool(True)
 
 @define_behavior
 def py_ne_boolX_sintY(x: bool, y: sint):
@@ -4046,7 +4046,7 @@ def py_ne_strX_floatY(x: str, y: float):
 
 @define_behavior
 def py_test_ne_strX_floatY(x: str, y: float):
-    return py_bool_from_host_bool(True)
+    return py_bool_to_host_bool(True)
 
 @define_behavior
 def py_ne_strX_boolY(x: str, y: bool):
@@ -4054,7 +4054,7 @@ def py_ne_strX_boolY(x: str, y: bool):
 
 @define_behavior
 def py_test_ne_strX_boolY(x: str, y: bool):
-    return py_bool_from_host_bool(True)
+    return py_bool_to_host_bool(True)
 
 @define_behavior
 def py_ne_strX_strY(x: str, y: str):
@@ -4070,7 +4070,7 @@ def py_ne_strX_sintY(x: str, y: sint):
 
 @define_behavior
 def py_test_ne_strX_sintY(x: str, y: sint):
-    return py_bool_from_host_bool(True)
+    return py_bool_to_host_bool(True)
 
 @define_behavior
 def py_ne_strX_bintY(x: str, y: bint):
@@ -4078,7 +4078,7 @@ def py_ne_strX_bintY(x: str, y: bint):
 
 @define_behavior
 def py_test_ne_strX_bintY(x: str, y: bint):
-    return py_bool_from_host_bool(True)
+    return py_bool_to_host_bool(True)
 
 @define_behavior
 def py_ne_sintX_floatY(x: sint, y: float):
@@ -4102,7 +4102,7 @@ def py_ne_sintX_strY(x: sint, y: str):
 
 @define_behavior
 def py_test_ne_sintX_strY(x: sint, y: str):
-    return py_bool_from_host_bool(True)
+    return py_bool_to_host_bool(True)
 
 @define_behavior
 def py_ne_sintX_sintY(x: sint, y: sint):
@@ -4142,7 +4142,7 @@ def py_ne_bintX_strY(x: bint, y: str):
 
 @define_behavior
 def py_test_ne_bintX_strY(x: bint, y: str):
-    return py_bool_from_host_bool(True)
+    return py_bool_to_host_bool(True)
 
 @define_behavior
 def py_ne_bintX_sintY(x: bint, y: sint):

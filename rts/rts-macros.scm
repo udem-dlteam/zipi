@@ -558,36 +558,42 @@
             (|##fl=| X Y) ;; float-float
             (|##=2| X Y) ;; sint-float
             (|##=2| X Y) ;; float-sint
+            (|##string=?| X Y) ;; str-str
             (|##=2| X Y) ;; otherwise
             )
       (py!= (|##not| (|##fx=| X Y)) ;; sint-sint
             (|##not| (|##fl=| X Y)) ;; float-float
             (|##not| (|##=2| X Y)) ;; sint-float
             (|##not| (|##=2| X Y)) ;; float-sint
+            (|##not| (|##string=?| X Y)) ;; str-str
             (|##not| (|##=2| X Y)) ;; otherwise
             )
       (py>= (|##fx>=| X Y) ;; sint-sint
             (|##fl>=| X Y) ;; float-float
             (|##>=| X Y) ;; sint-float
             (|##>=| X Y) ;; float-sint
+            (|##string>=?| X Y) ;; str-str
             (|##>=| X Y) ;; otherwise
             )
       (py>  (|##fx>| X Y) ;; sint-sint
             (|##fl>| X Y) ;; float-float
             (|##>| X Y) ;; sint-float
             (|##>| X Y) ;; float-sint
+            (|##string>?| X Y) ;; str-str
             (|##>| X Y) ;; otherwise
             )
       (py<= (|##fx<=| X Y) ;; sint-sint
             (|##fl<=| X Y) ;; float-float
             (|##<=| X Y) ;; sint-float
             (|##<=| X Y) ;; float-sint
+            (|##string<=?| X Y) ;; str-str
             (|##<=| X Y) ;; otherwise
             )
       (py<  (|##fx<| X Y) ;; sint-sint
             (|##fl<| X Y) ;; float-float
             (|##<| X Y) ;; sint-float
             (|##<| X Y) ;; float-sint
+            (|##string<?| X Y) ;; str-str
             (|##<| X Y) ;; otherwise
             )))
 
@@ -596,36 +602,42 @@
             (=fl X Y) ;; float-float
             (= X Y) ;; sint-float
             (= X Y) ;; float-sint
+            (string=? X Y) ;; str-str
             (= X Y) ;; otherwise
             )
       (py!= (not (=fx X Y)) ;; sint-sint
             (not (=fl X Y)) ;; float-float
             (not (= X Y)) ;; sint-float
             (not (= X Y)) ;; float-sint
+            (not (string=? X Y)) ;; str-str
             (not (= X Y)) ;; otherwise
             )
       (py>= (>=fx X Y) ;; sint-sint
             (>=fl X Y) ;; float-float
             (>= X Y) ;; sint-float
             (>= X Y) ;; float-sint
+            (string>=? X Y) ;; str-str
             (>= X Y) ;; otherwise
             )
       (py>  (>fx X Y) ;; sint-sint
             (>fl X Y) ;; float-float
             (> X Y) ;; sint-float
             (> X Y) ;; float-sint
+            (string>? X Y) ;; str-str
             (> X Y) ;; otherwise
             )
       (py<= (<=fx X Y) ;; sint-sint
             (<=fl X Y) ;; float-float
             (<= X Y) ;; sint-float
             (<= X Y) ;; float-sint
+            (string<=? X Y) ;; str-str
             (<= X Y) ;; otherwise
             )
       (py<  (<fx X Y) ;; sint-sint
             (<fl X Y) ;; float-float
             (< X Y) ;; sint-float
             (< X Y) ;; float-sint
+            (string<? X Y) ;; str-str
             (< X Y) ;; otherwise
             )))
 
@@ -635,7 +647,8 @@
       ((equal? types '(float float)) (cadr ops))
       ((equal? types '(sint float)) (caddr ops))
       ((equal? types '(float sint)) (cadddr ops))
-      (else (list-ref ops 4))))
+      ((equal? types '(str str)) (list-ref ops 4))
+      (else (list-ref ops 5))))
 
   (define host (cond-expand (gambit 'gambit) (bigloo 'bigloo)))
 
@@ -645,7 +658,8 @@
                          '((py-bool-to-scheme-int bool)
                            (py-sint-to-scheme sint)
                            (py-bint-to-scheme bint)
-                           (py-int-to-scheme  int)))))
+                           (py-int-to-scheme  int)
+                           (py-str-to-scheme  str)))))
            (and x (cadr x)))))
 
   (define (bool? t) (eq? t 'bool))

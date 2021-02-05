@@ -7515,7 +7515,7 @@
 (define (py-eq-floatX-strY-fallback x-2564 y-2565) py-False)
 
 (define (py-test-eq-floatX-strY-fallback x-2567 y-2568)
-  (py-bool-from-scheme-bool py-False))
+  (py-bool-to-scheme-bool py-False))
 
 (define (py-eq-floatX-sintY-fallback x-2570 y-2571)
   (py-bool-from-scheme-bool
@@ -7556,7 +7556,7 @@
 (define (py-eq-boolX-strY-fallback x-2594 y-2595) py-False)
 
 (define (py-test-eq-boolX-strY-fallback x-2597 y-2598)
-  (py-bool-from-scheme-bool py-False))
+  (py-bool-to-scheme-bool py-False))
 
 (define (py-eq-boolX-sintY-fallback x-2600 y-2601)
   (py-bool-from-scheme-bool
@@ -7579,12 +7579,12 @@
 (define (py-eq-strX-floatY-fallback x-2612 y-2613) py-False)
 
 (define (py-test-eq-strX-floatY-fallback x-2615 y-2616)
-  (py-bool-from-scheme-bool py-False))
+  (py-bool-to-scheme-bool py-False))
 
 (define (py-eq-strX-boolY-fallback x-2618 y-2619) py-False)
 
 (define (py-test-eq-strX-boolY-fallback x-2621 y-2622)
-  (py-bool-from-scheme-bool py-False))
+  (py-bool-to-scheme-bool py-False))
 
 (define (py-eq-strX-strY-fallback x-2624 y-2625)
   (py-bool-from-scheme-bool
@@ -7598,12 +7598,12 @@
 (define (py-eq-strX-sintY-fallback x-2630 y-2631) py-False)
 
 (define (py-test-eq-strX-sintY-fallback x-2633 y-2634)
-  (py-bool-from-scheme-bool py-False))
+  (py-bool-to-scheme-bool py-False))
 
 (define (py-eq-strX-bintY-fallback x-2636 y-2637) py-False)
 
 (define (py-test-eq-strX-bintY-fallback x-2639 y-2640)
-  (py-bool-from-scheme-bool py-False))
+  (py-bool-to-scheme-bool py-False))
 
 (define (py-eq-sintX-floatY-fallback x-2642 y-2643)
   (py-bool-from-scheme-bool
@@ -7626,7 +7626,7 @@
 (define (py-eq-sintX-strY-fallback x-2654 y-2655) py-False)
 
 (define (py-test-eq-sintX-strY-fallback x-2657 y-2658)
-  (py-bool-from-scheme-bool py-False))
+  (py-bool-to-scheme-bool py-False))
 
 (define (py-eq-sintX-sintY-fallback x-2660 y-2661)
   (py-bool-from-scheme-bool
@@ -7667,7 +7667,7 @@
 (define (py-eq-bintX-strY-fallback x-2684 y-2685) py-False)
 
 (define (py-test-eq-bintX-strY-fallback x-2687 y-2688)
-  (py-bool-from-scheme-bool py-False))
+  (py-bool-to-scheme-bool py-False))
 
 (define (py-eq-bintX-sintY-fallback x-2690 y-2691)
   (py-bool-from-scheme-bool
@@ -7708,7 +7708,7 @@
 (define (py-ne-floatX-strY-fallback x-2714 y-2715) py-True)
 
 (define (py-test-ne-floatX-strY-fallback x-2717 y-2718)
-  (py-bool-from-scheme-bool py-True))
+  (py-bool-to-scheme-bool py-True))
 
 (define (py-ne-floatX-sintY-fallback x-2720 y-2721)
   (py-bool-from-scheme-bool
@@ -7749,7 +7749,7 @@
 (define (py-ne-boolX-strY-fallback x-2744 y-2745) py-True)
 
 (define (py-test-ne-boolX-strY-fallback x-2747 y-2748)
-  (py-bool-from-scheme-bool py-True))
+  (py-bool-to-scheme-bool py-True))
 
 (define (py-ne-boolX-sintY-fallback x-2750 y-2751)
   (py-bool-from-scheme-bool
@@ -7772,12 +7772,12 @@
 (define (py-ne-strX-floatY-fallback x-2762 y-2763) py-True)
 
 (define (py-test-ne-strX-floatY-fallback x-2765 y-2766)
-  (py-bool-from-scheme-bool py-True))
+  (py-bool-to-scheme-bool py-True))
 
 (define (py-ne-strX-boolY-fallback x-2768 y-2769) py-True)
 
 (define (py-test-ne-strX-boolY-fallback x-2771 y-2772)
-  (py-bool-from-scheme-bool py-True))
+  (py-bool-to-scheme-bool py-True))
 
 (define (py-ne-strX-strY-fallback x-2774 y-2775)
   (py-bool-from-scheme-bool
@@ -7791,12 +7791,12 @@
 (define (py-ne-strX-sintY-fallback x-2780 y-2781) py-True)
 
 (define (py-test-ne-strX-sintY-fallback x-2783 y-2784)
-  (py-bool-from-scheme-bool py-True))
+  (py-bool-to-scheme-bool py-True))
 
 (define (py-ne-strX-bintY-fallback x-2786 y-2787) py-True)
 
 (define (py-test-ne-strX-bintY-fallback x-2789 y-2790)
-  (py-bool-from-scheme-bool py-True))
+  (py-bool-to-scheme-bool py-True))
 
 (define (py-ne-sintX-floatY-fallback x-2792 y-2793)
   (py-bool-from-scheme-bool
@@ -7819,7 +7819,7 @@
 (define (py-ne-sintX-strY-fallback x-2804 y-2805) py-True)
 
 (define (py-test-ne-sintX-strY-fallback x-2807 y-2808)
-  (py-bool-from-scheme-bool py-True))
+  (py-bool-to-scheme-bool py-True))
 
 (define (py-ne-sintX-sintY-fallback x-2810 y-2811)
   (py-bool-from-scheme-bool
@@ -7860,7 +7860,7 @@
 (define (py-ne-bintX-strY-fallback x-2834 y-2835) py-True)
 
 (define (py-test-ne-bintX-strY-fallback x-2837 y-2838)
-  (py-bool-from-scheme-bool py-True))
+  (py-bool-to-scheme-bool py-True))
 
 (define (py-ne-bintX-sintY-fallback x-2840 y-2841)
   (py-bool-from-scheme-bool
