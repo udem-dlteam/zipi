@@ -448,16 +448,6 @@
             (global-get-from-builtins name cache)))
       (global-get/miss global name cache)))
 
-(define (global-get-optim global name cache get)
-  (if (eq? (PyObject-hclass global) ;; TODO: should py-obj-hclass be used instead?
-           (PCache-hclass cache))
-      (let ((val (PyObject-elements-ref global (PCache-index cache))))
-        (if (not (eq? val py-absent))
-            val
-            ;; TODO: use a different cache
-            (global-get-from-builtins name cache)))
-      (global-get/miss global name cache)))
-
 (define (global-get/miss global name cache)
   (let ((i (py-own-attr-index global name)))
     (if (< i 0)
@@ -2285,13 +2275,7 @@
 
 (define str-representatives-htable (get-registered-constants-table))
 
-(define (py-add-strX-strY-fallback str1 str2)
-  (py-add-SstrX-SstrY str1 str2))
-
-(define (py-add-SstrX-SstrY str1 str2)
-  (py-add-SstrX-SstrY-fallback str1 str2))
-
-(define (py-add-SstrX-SstrY-fallback str1 str2)
+(define (py-concat-strX-strY str1 str2)
 
   (define optimize-small? #t) ;; optimize concatenation of small strings?
   (define small 8) ;; maximal length of a "small" string
@@ -2513,7 +2497,7 @@
 (define (str-add self other)
   (if (py-subtype-of-str? self)
       (if (py-subtype-of-str? other)
-          (py-add-SstrX-SstrY self other)
+          (py-concat-strX-strY self other)
           py-NotImplemented)
       (py-throw-required-type "__add__" "str" self)))
 

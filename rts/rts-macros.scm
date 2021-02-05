@@ -155,6 +155,12 @@
 (define-macro (py-bool-from-scheme-bool arg)
   `(if ,arg py-True py-False))
 
+(define-macro (py-bool-to-scheme-bool arg)
+  (cond
+    ((eq? arg 'py-True) #t)
+    ((eq? arg 'py-False) #f)
+    (else `(py-test-is ,arg py-True))))
+
 (define-macro (py-sint-to-scheme arg)
   `(py-if-specialized-sint-representation
     ,arg
@@ -552,36 +558,42 @@
             (|##fl=| X Y) ;; float-float
             (|##=2| X Y) ;; sint-float
             (|##=2| X Y) ;; float-sint
+            (|##string=?| X Y) ;; str-str
             (|##=2| X Y) ;; otherwise
             )
       (py!= (|##not| (|##fx=| X Y)) ;; sint-sint
             (|##not| (|##fl=| X Y)) ;; float-float
             (|##not| (|##=2| X Y)) ;; sint-float
             (|##not| (|##=2| X Y)) ;; float-sint
+            (|##not| (|##string=?| X Y)) ;; str-str
             (|##not| (|##=2| X Y)) ;; otherwise
             )
       (py>= (|##fx>=| X Y) ;; sint-sint
             (|##fl>=| X Y) ;; float-float
             (|##>=| X Y) ;; sint-float
             (|##>=| X Y) ;; float-sint
+            (|##string>=?| X Y) ;; str-str
             (|##>=| X Y) ;; otherwise
             )
       (py>  (|##fx>| X Y) ;; sint-sint
             (|##fl>| X Y) ;; float-float
             (|##>| X Y) ;; sint-float
             (|##>| X Y) ;; float-sint
+            (|##string>?| X Y) ;; str-str
             (|##>| X Y) ;; otherwise
             )
       (py<= (|##fx<=| X Y) ;; sint-sint
             (|##fl<=| X Y) ;; float-float
             (|##<=| X Y) ;; sint-float
             (|##<=| X Y) ;; float-sint
+            (|##string<=?| X Y) ;; str-str
             (|##<=| X Y) ;; otherwise
             )
       (py<  (|##fx<| X Y) ;; sint-sint
             (|##fl<| X Y) ;; float-float
             (|##<| X Y) ;; sint-float
             (|##<| X Y) ;; float-sint
+            (|##string<?| X Y) ;; str-str
             (|##<| X Y) ;; otherwise
             )))
 
@@ -590,36 +602,42 @@
             (=fl X Y) ;; float-float
             (= X Y) ;; sint-float
             (= X Y) ;; float-sint
+            (string=? X Y) ;; str-str
             (= X Y) ;; otherwise
             )
       (py!= (not (=fx X Y)) ;; sint-sint
             (not (=fl X Y)) ;; float-float
             (not (= X Y)) ;; sint-float
             (not (= X Y)) ;; float-sint
+            (not (string=? X Y)) ;; str-str
             (not (= X Y)) ;; otherwise
             )
       (py>= (>=fx X Y) ;; sint-sint
             (>=fl X Y) ;; float-float
             (>= X Y) ;; sint-float
             (>= X Y) ;; float-sint
+            (string>=? X Y) ;; str-str
             (>= X Y) ;; otherwise
             )
       (py>  (>fx X Y) ;; sint-sint
             (>fl X Y) ;; float-float
             (> X Y) ;; sint-float
             (> X Y) ;; float-sint
+            (string>? X Y) ;; str-str
             (> X Y) ;; otherwise
             )
       (py<= (<=fx X Y) ;; sint-sint
             (<=fl X Y) ;; float-float
             (<= X Y) ;; sint-float
             (<= X Y) ;; float-sint
+            (string<=? X Y) ;; str-str
             (<= X Y) ;; otherwise
             )
       (py<  (<fx X Y) ;; sint-sint
             (<fl X Y) ;; float-float
             (< X Y) ;; sint-float
             (< X Y) ;; float-sint
+            (string<? X Y) ;; str-str
             (< X Y) ;; otherwise
             )))
 
@@ -629,7 +647,8 @@
       ((equal? types '(float float)) (cadr ops))
       ((equal? types '(sint float)) (caddr ops))
       ((equal? types '(float sint)) (cadddr ops))
-      (else (list-ref ops 4))))
+      ((equal? types '(str str)) (list-ref ops 4))
+      (else (list-ref ops 5))))
 
   (define host (cond-expand (gambit 'gambit) (bigloo 'bigloo)))
 
@@ -639,7 +658,8 @@
                          '((py-bool-to-scheme-int bool)
                            (py-sint-to-scheme sint)
                            (py-bint-to-scheme bint)
-                           (py-int-to-scheme  int)))))
+                           (py-int-to-scheme  int)
+                           (py-str-to-scheme  str)))))
            (and x (cadr x)))))
 
   (define (bool? t) (eq? t 'bool))
@@ -669,6 +689,72 @@
     (else
       ;; scheme value should be tested as is
       ,arg)))
+
+(define-macro (py-mul-UstrX-UintY string repetitions)
+  ;; TODO: Check for memory error if string * repetitions is a bint
+  `(let* (($repetitions ,repetitions)
+         ($string ,string)
+         (len (string-length $string))
+         (result-len (* len $repetitions))
+         (result (make-string result-len)))
+    (let loop ((i 0))
+      (if (>= i result-len)
+        result
+        (begin
+          (substring-move! $string 0 len result i)
+          (loop (+ i len)))))))
+
+(define-macro (py-str-from-scheme arg)
+  (define (fallback arg)
+    `(py-str-from-scheme-fallback ,arg))
+
+  (define (type operand)
+    (and (pair? operand)
+         (let ((x (assq (car operand)
+                         '((py-bool-to-scheme-int  bool)
+                           (py-sint-to-scheme  sint)
+                           (py-bint-to-scheme  bint)
+                           (py-int-to-scheme   int)
+                           (py-str-to-scheme str)))))
+           (and x
+                (cadr x)))))
+
+  (define number-type '(int sint bint bool))
+
+  (define (to-str x)
+    (if (and (pair? x) (eq? (car x) 'py-str-to-scheme))
+      (cadr x)
+      x))
+
+  (define (str-concat left right)
+    ;; remove py-str-to-scheme and apply concat optimisation w/o unboxing
+    `(py-concat-strX-strY ,(to-str left) ,(to-str right)))
+
+  (define (str-mul left right)
+    (define (error-non-int) (error "py-str-from-scheme" "str multiplication with non-integer"))
+
+    (let ((left-type (type left))
+          (right-type (type right)))
+      (if (eq? left-type 'str)
+        ;; left is the string
+        (if (memq right-type number-type)
+          `(py-str-from-scheme-fallback (py-mul-UstrX-UintY ,left ,right))
+          (error-non-int))
+        (if (eq? right-type 'str)
+          ;; right is the string
+          (if (memq left-type number-type)
+            `(py-str-from-scheme-fallback (py-mul-UstrX-UintY ,right ,left))
+            (error-non-int))
+          (error "py-str-from-scheme" "str multiplication called on non-str's" left right)))))
+
+  (if (pair? arg)
+    (let* ((operator (car arg))
+           (operands (cdr arg)))
+      (case operator
+        ((py+) (apply str-concat operands))
+        ((py*) (apply str-mul operands))
+        (else (fallback arg))))
+    (fallback arg)))
 
 (define-macro (py-specialized-sint-float-dispatch-let name obj int float other)
   `(let ((,name ,obj))
@@ -814,9 +900,6 @@
     `(let (($obj ,obj))
        ,special-case-int)))
 
-(define-macro (py-str-from-scheme string)
-  `(py-str-from-scheme-fallback ,string))
-
 (define-macro (py-subtype-of-str-from-scheme string str-subclass)
   `(py-subtype-of-str-from-scheme-fallback ,string ,str-subclass))
 
@@ -830,7 +913,7 @@
   `(py-str-representative-fallback ,str))
 
 (define-macro (py-add-strX-strY str1 str2)
-  `(py-add-strX-strY-fallback ,str1 ,str2))
+  `(py-add-SstrX-SstrY-fallback ,str1 ,str2))
 
 (define-macro (py-getattribute-from-obj-mro-2cont obj name succeed fail)
 
@@ -882,12 +965,12 @@
           '((default       0                  #t)
             (type          0                  #f)
             (object        0                  #f)
-            (str           0                  #f)
             (tuple         0                  #f)
             (sint          1                  #t) ;; is a sint index necessary?
             (bint          2                  #t)
             (bool          3                  #t)
-            (float         4                  #t))))
+            (float         4                  #t)
+            (str           5                  #t))))
 
     ;; add info as first arg due to rest arguments in py-make-builtin-class
     `(,(car args) ,info ,@(cdr args))))

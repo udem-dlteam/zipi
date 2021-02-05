@@ -17,6 +17,7 @@ benchmarks = [
 [13,3, 'x=1','',             'x+=1',          '',    'var_int_inc'],
 [13,3, 'x=1;y=1','',         'x=x+y',         '',    'var_int_add_var'],
 [13,3, 'x=1.5;y=True','',    'x=x+y',         '',    'var_float_bool_add_var'],
+[13,3, 'x=1.5;y="foo"','',   'z = x==y',      '',    'var_float_str_eq_var'],
 [13,3, 'x=1.5;y=2.6','',     'x=x+y',         '',    'var_float_add_var'],
 [13,3, 'x=1','',             'x=x-1',         '',    'var_int_sub_1'],
 [13,3, 'x=1','',             'x=-x',          '',    'var_int_neg'],

@@ -370,8 +370,8 @@
     py-subtype-of-str-to-scheme-fallback
     py-str-representative
     py-str-representative-fallback
-    py-add-strX-strY
-    py-add-strX-strY-fallback
+    py-concat-strX-strY
+    py-mul-UstrX-UintY
 
     py-slice-from-scheme
     py-bytearray-from-scheme

@@ -59,6 +59,7 @@
 	   (u8vector-copy::u8vector ::u8vector)
 
 	   (append-strings ::pair-nil)
+     (substring-move! src-string src-start src-end dst-string dst-start)
 
 	   (inline current-second)
 	   (inline current-time)
@@ -262,6 +263,15 @@
 ;*---------------------------------------------------------------------*/
 (define (append-strings lst)
    (apply string-append lst))
+
+(define (substring-move! src-string src-start src-end dst-string dst-start)
+  (let ((len (- src-end src-start)))
+    (let loop ((i 0))
+      (if (< i len)
+        (string-set!
+          dst-string
+          (+ dst-start i)
+          (string-ref src-string (+ src-start i)))))))
 
 ;*---------------------------------------------------------------------*/
 ;*    dates                                                            */
