@@ -691,6 +691,7 @@
       ,arg)))
 
 (define-macro (py-mul-UstrX-UintY string amount)
+  ;; TODO: Check for memory error if string * amount is a bint
   `(let* (($amount ,amount)
          ($string ,string)
          (len (string-length $string))
