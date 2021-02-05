@@ -3406,12 +3406,12 @@
 (define (py-add-strX-floatY-fallback x-32 y-33)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "can only concatenate str (not \"float\") to str"))))
+            (&& "unsupported operand type(s) for +: 'str' and 'float'"))))
 
 (define (py-add-strX-boolY-fallback x-35 y-36)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "can only concatenate str (not \"bool\") to str"))))
+            (&& "unsupported operand type(s) for +: 'str' and 'bool'"))))
 
 (define (py-add-strX-strY-fallback x-38 y-39)
   (py-str-from-scheme (py+ (py-str-to-scheme x-38) (py-str-to-scheme y-39))))
@@ -3419,12 +3419,12 @@
 (define (py-add-strX-sintY-fallback x-41 y-42)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "can only concatenate str (not \"int\") to str"))))
+            (&& "unsupported operand type(s) for +: 'str' and 'int'"))))
 
 (define (py-add-strX-bintY-fallback x-44 y-45)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "can only concatenate str (not \"int\") to str"))))
+            (&& "unsupported operand type(s) for +: 'str' and 'int'"))))
 
 (define (py-add-sintX-floatY-fallback x-47 y-48)
   (py-float-from-scheme
@@ -4254,7 +4254,7 @@
 (define (py-mul-floatX-strY-fallback x-533 y-534)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "can only concatenate str (not \"float\") to str"))))
+            (&& "unsupported operand type(s) for *: 'float' and 'str'"))))
 
 (define (py-mul-floatX-sintY-fallback x-536 y-537)
   (py-float-from-scheme
@@ -4287,7 +4287,7 @@
 (define (py-mul-strX-floatY-fallback x-557 y-558)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "can only concatenate str (not \"float\") to str"))))
+            (&& "unsupported operand type(s) for *: 'str' and 'float'"))))
 
 (define (py-mul-strX-boolY-fallback x-560 y-561)
   (py-str-from-scheme
@@ -4296,7 +4296,7 @@
 (define (py-mul-strX-strY-fallback x-563 y-564)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "can only concatenate str (not \"str\") to str"))))
+            (&& "unsupported operand type(s) for *: 'str' and 'str'"))))
 
 (define (py-mul-strX-sintY-fallback x-566 y-567)
   (py-str-from-scheme
@@ -5002,12 +5002,12 @@
 (define (py-iadd-strX-floatY-fallback x-1007 y-1008)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "can only concatenate str (not \"float\") to str"))))
+            (&& "unsupported operand type(s) for +=: 'str' and 'float'"))))
 
 (define (py-iadd-strX-boolY-fallback x-1010 y-1011)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "can only concatenate str (not \"bool\") to str"))))
+            (&& "unsupported operand type(s) for +=: 'str' and 'bool'"))))
 
 (define (py-iadd-strX-strY-fallback x-1013 y-1014)
   (py-str-from-scheme
@@ -5016,12 +5016,12 @@
 (define (py-iadd-strX-sintY-fallback x-1016 y-1017)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "can only concatenate str (not \"int\") to str"))))
+            (&& "unsupported operand type(s) for +=: 'str' and 'int'"))))
 
 (define (py-iadd-strX-bintY-fallback x-1019 y-1020)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "can only concatenate str (not \"int\") to str"))))
+            (&& "unsupported operand type(s) for +=: 'str' and 'int'"))))
 
 (define (py-iadd-sintX-floatY-fallback x-1022 y-1023)
   (py-float-from-scheme
@@ -5857,7 +5857,7 @@
 (define (py-imul-floatX-strY-fallback x-1508 y-1509)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "can only concatenate str (not \"float\") to str"))))
+            (&& "unsupported operand type(s) for *=: 'float' and 'str'"))))
 
 (define (py-imul-floatX-sintY-fallback x-1511 y-1512)
   (py-float-from-scheme
@@ -5890,7 +5890,7 @@
 (define (py-imul-strX-floatY-fallback x-1532 y-1533)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "can only concatenate str (not \"float\") to str"))))
+            (&& "unsupported operand type(s) for *=: 'str' and 'float'"))))
 
 (define (py-imul-strX-boolY-fallback x-1535 y-1536)
   (py-str-from-scheme
@@ -5899,7 +5899,7 @@
 (define (py-imul-strX-strY-fallback x-1538 y-1539)
   (py-throw
    (py-call py-builtin-TypeError
-            (&& "can only concatenate str (not \"str\") to str"))))
+            (&& "unsupported operand type(s) for *=: 'str' and 'str'"))))
 
 (define (py-imul-strX-sintY-fallback x-1541 y-1542)
   (py-str-from-scheme

@@ -42,11 +42,11 @@ def py_add_boolX_bintY(x: bool, y: bint):
 
 @define_behavior
 def py_add_strX_floatY(x: str, y: float):
-    raise TypeError('can only concatenate str (not "float") to str')
+    raise TypeError("unsupported operand type(s) for +: 'str' and 'float'")
 
 @define_behavior
 def py_add_strX_boolY(x: str, y: bool):
-    raise TypeError('can only concatenate str (not "bool") to str')
+    raise TypeError("unsupported operand type(s) for +: 'str' and 'bool'")
 
 @define_behavior
 def py_add_strX_strY(x: str, y: str):
@@ -54,11 +54,11 @@ def py_add_strX_strY(x: str, y: str):
 
 @define_behavior
 def py_add_strX_sintY(x: str, y: sint):
-    raise TypeError('can only concatenate str (not "int") to str')
+    raise TypeError("unsupported operand type(s) for +: 'str' and 'int'")
 
 @define_behavior
 def py_add_strX_bintY(x: str, y: bint):
-    raise TypeError('can only concatenate str (not "int") to str')
+    raise TypeError("unsupported operand type(s) for +: 'str' and 'int'")
 
 @define_behavior
 def py_add_sintX_floatY(x: sint, y: float):
@@ -814,7 +814,7 @@ def py_mul_floatX_boolY(x: float, y: bool):
 
 @define_behavior
 def py_mul_floatX_strY(x: float, y: str):
-    raise TypeError('can only concatenate str (not "float") to str')
+    raise TypeError("unsupported operand type(s) for *: 'float' and 'str'")
 
 @define_behavior
 def py_mul_floatX_sintY(x: float, y: sint):
@@ -846,7 +846,7 @@ def py_mul_boolX_bintY(x: bool, y: bint):
 
 @define_behavior
 def py_mul_strX_floatY(x: str, y: float):
-    raise TypeError('can only concatenate str (not "float") to str')
+    raise TypeError("unsupported operand type(s) for *: 'str' and 'float'")
 
 @define_behavior
 def py_mul_strX_boolY(x: str, y: bool):
@@ -854,7 +854,7 @@ def py_mul_strX_boolY(x: str, y: bool):
 
 @define_behavior
 def py_mul_strX_strY(x: str, y: str):
-    raise TypeError('can only concatenate str (not "str") to str')
+    raise TypeError("unsupported operand type(s) for *: 'str' and 'str'")
 
 @define_behavior
 def py_mul_strX_sintY(x: str, y: sint):
@@ -1511,11 +1511,11 @@ def py_iadd_boolX_bintY(x: bool, y: bint):
 
 @define_behavior
 def py_iadd_strX_floatY(x: str, y: float):
-    raise TypeError('can only concatenate str (not "float") to str')
+    raise TypeError("unsupported operand type(s) for +=: 'str' and 'float'")
 
 @define_behavior
 def py_iadd_strX_boolY(x: str, y: bool):
-    raise TypeError('can only concatenate str (not "bool") to str')
+    raise TypeError("unsupported operand type(s) for +=: 'str' and 'bool'")
 
 @define_behavior
 def py_iadd_strX_strY(x: str, y: str):
@@ -1523,11 +1523,11 @@ def py_iadd_strX_strY(x: str, y: str):
 
 @define_behavior
 def py_iadd_strX_sintY(x: str, y: sint):
-    raise TypeError('can only concatenate str (not "int") to str')
+    raise TypeError("unsupported operand type(s) for +=: 'str' and 'int'")
 
 @define_behavior
 def py_iadd_strX_bintY(x: str, y: bint):
-    raise TypeError('can only concatenate str (not "int") to str')
+    raise TypeError("unsupported operand type(s) for +=: 'str' and 'int'")
 
 @define_behavior
 def py_iadd_sintX_floatY(x: sint, y: float):
@@ -2283,7 +2283,7 @@ def py_imul_floatX_boolY(x: float, y: bool):
 
 @define_behavior
 def py_imul_floatX_strY(x: float, y: str):
-    raise TypeError('can only concatenate str (not "float") to str')
+    raise TypeError("unsupported operand type(s) for *=: 'float' and 'str'")
 
 @define_behavior
 def py_imul_floatX_sintY(x: float, y: sint):
@@ -2315,7 +2315,7 @@ def py_imul_boolX_bintY(x: bool, y: bint):
 
 @define_behavior
 def py_imul_strX_floatY(x: str, y: float):
-    raise TypeError('can only concatenate str (not "float") to str')
+    raise TypeError("unsupported operand type(s) for *=: 'str' and 'float'")
 
 @define_behavior
 def py_imul_strX_boolY(x: str, y: bool):
@@ -2323,7 +2323,7 @@ def py_imul_strX_boolY(x: str, y: bool):
 
 @define_behavior
 def py_imul_strX_strY(x: str, y: str):
-    raise TypeError('can only concatenate str (not "str") to str')
+    raise TypeError("unsupported operand type(s) for *=: 'str' and 'str'")
 
 @define_behavior
 def py_imul_strX_sintY(x: str, y: sint):

@@ -2275,10 +2275,7 @@
 
 (define str-representatives-htable (get-registered-constants-table))
 
-(define (py-add-SstrX-SstrY str1 str2)
-  (py-add-SstrX-SstrY-fallback str1 str2))
-
-(define (py-add-SstrX-SstrY-fallback str1 str2)
+(define (py-concat-strX-strY str1 str2)
 
   (define optimize-small? #t) ;; optimize concatenation of small strings?
   (define small 8) ;; maximal length of a "small" string
@@ -2500,7 +2497,7 @@
 (define (str-add self other)
   (if (py-subtype-of-str? self)
       (if (py-subtype-of-str? other)
-          (py-add-SstrX-SstrY self other)
+          (py-concat-strX-strY self other)
           py-NotImplemented)
       (py-throw-required-type "__add__" "str" self)))
 

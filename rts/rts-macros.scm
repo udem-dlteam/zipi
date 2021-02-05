@@ -670,6 +670,19 @@
       ;; scheme value should be tested as is
       ,arg)))
 
+(define-macro (py-mul-UstrX-UintY string amount)
+  `(let* (($amount ,amount)
+         ($string ,string)
+         (len (string-length $string))
+         (result-len (* len $amount))
+         (result (make-string result-len)))
+    (let loop ((i 0))
+      (if (>= i result-len)
+        result
+        (begin
+          (substring-move! $string 0 len result i)
+          (loop (+ i len)))))))
+
 (define-macro (py-str-from-scheme arg)
   (define (fallback arg)
     `(py-str-from-scheme-fallback ,arg))
@@ -685,32 +698,40 @@
            (and x
                 (cadr x)))))
 
+  (define number-type '(int sint bint bool))
+
   (define (to-str x)
     (if (and (pair? x) (eq? (car x) 'py-str-to-scheme))
       (cadr x)
       x))
 
-  (define (Ustr-concat left right)
+  (define (str-concat left right)
     ;; remove py-str-to-scheme and apply concat optimisation w/o unboxing
-    `(py-add-strX-strY ,(to-str left) ,(to-str right)))
+    `(py-concat-strX-strY ,(to-str left) ,(to-str right)))
 
-  (define (Ustr-mul left right)
+  (define (str-mul left right)
+    (define (error-non-int) (error "py-str-from-scheme" "str multiplication with non-integer"))
+
     (let ((left-type (type left))
           (right-type (type right)))
       (if (eq? left-type 'str)
         ;; left is the string
-        #f
+        (if (memq right-type number-type)
+          `(py-str-from-scheme-fallback (py-mul-UstrX-UintY ,left ,right))
+          (error-non-int))
         (if (eq? right-type 'str)
           ;; right is the string
-          #f
+          (if (memq left-type number-type)
+            `(py-str-from-scheme-fallback (py-mul-UstrX-UintY ,right ,left))
+            (error-non-int))
           (error "py-str-from-scheme" "str multiplication called on non-str's" left right)))))
 
   (if (pair? arg)
     (let* ((operator (car arg))
            (operands (cdr arg)))
       (case operator
-        ((py+) (apply Ustr-concat operands))
-        ((py*) (apply Ustr-mul operands))
+        ((py+) (apply str-concat operands))
+        ((py*) (apply str-mul operands))
         (else (fallback arg))))
     (fallback arg)))
 
@@ -923,12 +944,12 @@
           '((default       0                  #t)
             (type          0                  #f)
             (object        0                  #f)
-            (str           0                  #f)
             (tuple         0                  #f)
             (sint          1                  #t) ;; is a sint index necessary?
             (bint          2                  #t)
             (bool          3                  #t)
-            (float         4                  #t))))
+            (float         4                  #t)
+            (str           5                  #t))))
 
     ;; add info as first arg due to rest arguments in py-make-builtin-class
     `(,(car args) ,info ,@(cdr args))))

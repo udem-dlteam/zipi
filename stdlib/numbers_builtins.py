@@ -922,7 +922,7 @@ class str:
             if isinstance(other, str):
                 return py_str_from_host(py_str_to_host(self) + py_str_to_host(other))
             else:
-                raise TypeError('can only concatenate str (not "' + type(other).__name__ + '") to str')
+                return NotImplemented
         else:
             raise TypeError("descriptor '__add__' requires a 'str' object but received a '" + type(self).__name__ + "'")
 
@@ -931,7 +931,7 @@ class str:
             if isinstance(other, int):
                 return py_str_from_host(py_str_to_host(self) * py_int_to_host(other))
             else:
-                raise TypeError('can only concatenate str (not "' + type(other).__name__ + '") to str')
+                return NotImplemented
         else:
             raise TypeError("descriptor '__mul__' requires a 'str' object but received a '" + type(self).__name__ + "'")
 
@@ -940,7 +940,7 @@ class str:
             if isinstance(other, int):
                 return py_str_from_host(py_str_to_host(self) * py_int_to_host(other))
             else:
-                raise TypeError('can only concatenate str (not "' + type(other).__name__ + '") to str')
+                return NotImplemented
         else:
             raise TypeError("descriptor '__rmul__' requires a 'str' object but received a '" + type(self).__name__ + "'")
 
@@ -997,3 +997,4 @@ class str:
                 return NotImplemented
         else:
             raise TypeError("descriptor '__lt__' requires a 'str' object but received a '" + type(self).__name__ + "'")
+

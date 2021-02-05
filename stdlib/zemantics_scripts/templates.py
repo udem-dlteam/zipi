@@ -276,7 +276,7 @@ def {op}(x, y):
                 return result
 
     def default():
-        return x {default_symbol} y 
+        return x {default_symbol} y
 
     # {op}:start-body
     return normal()
@@ -763,27 +763,27 @@ class str:
             if isinstance(other, str):
                 return py_str_from_host(py_str_to_host(self) + py_str_to_host(other))
             else:
-                raise TypeError('can only concatenate str (not "' + type(other).__name__ + '") to str')
+                return NotImplemented
         else:
             raise TypeError("descriptor '__add__' requires a 'str' object but received a '" + type(self).__name__ + "'")
-            
+
     def __mul__(self, other):
         if isinstance(self, str):
             if isinstance(other, int):
                 return py_str_from_host(py_str_to_host(self) * py_int_to_host(other))
             else:
-                raise TypeError('can only concatenate str (not "' + type(other).__name__ + '") to str')
+                return NotImplemented
         else:
             raise TypeError("descriptor '__mul__' requires a 'str' object but received a '" + type(self).__name__ + "'")
-            
+
     def __rmul__(self, other):
         if isinstance(self, str):
             if isinstance(other, int):
                 return py_str_from_host(py_str_to_host(self) * py_int_to_host(other))
             else:
-                raise TypeError('can only concatenate str (not "' + type(other).__name__ + '") to str')
+                return NotImplemented
         else:
-            raise TypeError("descriptor '__rmul__' requires a 'str' object but received a '" + type(self).__name__ + "'")     
+            raise TypeError("descriptor '__rmul__' requires a 'str' object but received a '" + type(self).__name__ + "'")
 {methods}
 """
 
