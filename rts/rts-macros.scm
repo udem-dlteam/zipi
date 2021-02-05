@@ -690,12 +690,12 @@
       ;; scheme value should be tested as is
       ,arg)))
 
-(define-macro (py-mul-UstrX-UintY string amount)
-  ;; TODO: Check for memory error if string * amount is a bint
-  `(let* (($amount ,amount)
+(define-macro (py-mul-UstrX-UintY string repetitions)
+  ;; TODO: Check for memory error if string * repetitions is a bint
+  `(let* (($repetitions ,repetitions)
          ($string ,string)
          (len (string-length $string))
-         (result-len (* len $amount))
+         (result-len (* len $repetitions))
          (result (make-string result-len)))
     (let loop ((i 0))
       (if (>= i result-len)
