@@ -1,7 +1,7 @@
 #!/bin/sh
 
-PROCEDURES=$(cat $1 | grep -oP '(?<=define )\([^\)]*\)')
-MACROS=$(cat $1 | grep -oP '(?<=define-macro )\([^\)]*\)' | sed 's/(/(macro /')
+PROCEDURES=$(cat $1 | pcregrep -io1 '\(define (\([^)]*\))' )
+MACROS=$(cat $1 | pcregrep -io1 '\(define-macro (\([^)]*\))' | sed 's/(/(macro /') 
 
 BGL_LINENO=$(awk '/@BGL_EXPORTS@/{ print NR; exit }' $2)
 

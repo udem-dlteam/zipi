@@ -2,8 +2,8 @@
 target=${@:$#}
 sources=${@:1:$#-1}
 
-PROCEDURES=$(cat $sources | grep -oP '(?<=define \()[^\)\ ]*')
-MACROS=$(cat $sources | grep -oP '(?<=define-macro \()[^\)\ ]*')
+PROCEDURES=$(cat $sources | pcregrep -io1 '\(define (\([^)]*\))')
+MACROS=$(cat $sources | pcregrep -io1 '\(define (\([^)]*\))')
 
 SLD_LINENO=$(awk '/@SLD_NAMES@/{ print NR; exit }' $target)
 
