@@ -4,7 +4,7 @@
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 12:48:54 2019                          */
 ;*    Last change :  Mon May 25 14:18:15 2020 (serrano)                */
-;*    Copyright   :  2019-20 M. Feeley & M. Serrano                    */
+;*    Copyright   :  2019-21 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    ZPC, the zipi compiler                                           */
 ;*=====================================================================*/
@@ -64,89 +64,3 @@
             (exit 1))
 	 ;; compile the source file
 	 (compile-sources))))
-
-;*    (let ((verb 0)                                                   */
-;* 	 (tgt 'bigloo)                                                 */
-;* 	 (main #t)                                                     */
-;* 	 (modname #f)                                                  */
-;* 	 (dir #f)                                                      */
-;* 	 (src #f)                                                      */
-;* 	 (dest #f)                                                     */
-;* 	 (libdir (zipi-lib-dir))                                       */
-;* 	 (bindir (zipi-bin-dir))                                       */
-;* 	 (conf '()))                                                   */
-;*       (args-parse (cdr args)                                        */
-;* 	 ((("-h" "--help") (help "This message"))                      */
-;* 	  (usage args-parse-usage)                                     */
-;* 	  (exit 0))                                                    */
-;* 	 ((("-t" "--target") ?target (help "Set target language"))     */
-;* 	  (set! tgt (string->symbol target)))                          */
-;* 	 ((("-d" "--dir") ?path (help "Root import directory"))        */
-;* 	  (set! dir path))                                             */
-;* 	 ((("-b" "--bin-dir") ?d (help "Bin directory"))               */
-;* 	  (set! bindir d))                                             */
-;* 	 ((("-l" "--lib-dir") ?d (help "Lib directory"))               */
-;* 	  (set! libdir d))                                             */
-;* 	 ((("-m" "--module-name") ?n (help "Bigloo module name"))      */
-;* 	  (set! modname n))                                            */
-;* 	 ((("-o" "--output") ?path (help "Destination"))               */
-;* 	  (set! dest path))                                            */
-;* 	 ((("--py-module-main") (help "Generate a main module clause")) */
-;* 	  (set! main #t))                                              */
-;* 	 ((("-n" "--no-main") (help "Donot generate main entry point")) */
-;* 	  (set! main #f))                                              */
-;* 	 ((("--no-py-module-main") (help "Do not generate a main module clause")) */
-;* 	  (set! main #f))                                              */
-;* 	 ((("--bootstrap") (help "Generate a bootstrap module"))       */
-;* 	  (set! main #f)                                               */
-;* 	  (set! conf (cons* :bootstrap #t conf)))                      */
-;* 	 (("-v?level" (help "Increase/set verbosity level (-v0 crystal silence)")) */
-;* 	  (if (string=? level "")                                      */
-;* 	      (set! verb (+fx 1 verb))                                 */
-;* 	      (set! verb (string->integer level))))                    */
-;* 	 (else                                                         */
-;* 	  (unless (string=? else "--")                                 */
-;* 	     (set! src else))))                                        */
-;*       (let ((port (if (string? dest)                                */
-;* 		      (open-output-file dest)                          */
-;* 		      (current-output-port))))                         */
-;* 	 (for-each (lambda (x) (pp x port))                            */
-;* 	    (pyc (target-driver tgt)                                   */
-;* 	       (cons*                                                  */
-;* 		  verbose: verb                                        */
-;* 		  target: tgt                                          */
-;* 		  lib-dir: libdir                                      */
-;* 		  bin-dir: bindir                                      */
-;* 		  dir: (or dir (if src (absolute (dirname src)) (pwd))) */
-;* 		  src: src                                             */
-;* 		  main: main                                           */
-;* 		  module-name: modname                                 */
-;* 		  conf)))                                              */
-;* 	 (close-output-port port))))                                   */
-;*                                                                     */
-;* {*---------------------------------------------------------------------*} */
-;* {*    absolute ...                                                     *} */
-;* {*---------------------------------------------------------------------*} */
-;* (define (absolute path)                                             */
-;*   (cond-expand                                                      */
-;*     (bigloo                                                         */
-;*      (file-name-canonicalize                                        */
-;*       (if (char=? (string-ref path 0) #\/)                          */
-;* 	  path                                                         */
-;* 	  (make-file-name (pwd) path))))                               */
-;*     (gambit                                                         */
-;*      (path-normalize path))))                                       */
-;*                                                                     */
-;* {*---------------------------------------------------------------------*} */
-;* {*    usage ...                                                        *} */
-;* {*---------------------------------------------------------------------*} */
-;* (define (usage args-parse-usage)                                    */
-;*    (print "zpc")                                                    */
-;*    (print "usage: zpc [options] -- [bigloo-options]")               */
-;*    (args-parse-usage #f)                                            */
-;*    (newline)                                                        */
-;*    (print "Shell Variables:")                                       */
-;*    (print "   - PYTRACE: zpc internal trace [PYTRACE=\"key1, key2, ...\"]") */
-;*    (print "      pyc:dump")                                         */
-;*    (newline))                                                       */
-          

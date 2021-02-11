@@ -4,31 +4,57 @@
       (PycModule-caches-set! ast (cell-ref cnt))
       (list (scheme ast conf))))
 
+(define (declaration->define sexp)
+   (match-case sexp
+      ((define (?- . ?-) . ?-) sexp)
+      ((define ?id ?expr) `(define ,id #f))
+      (else #f)))
+
+(define (declaration->expression sexp)
+   (match-case sexp
+      ((define (?- . ?-) . ?-) #f)
+      ((define ?id ?expr) `(set! ,id ,expr))
+      (else sexp)))
+
 (define (pyc-scheme-bigloo ast conf)
    (let* ((prog (pyc-scheme ast conf))
 	  (file (config-get conf file:))
 	  (path (config-get conf dir:))
+	  (globals (if (config-get conf optim-globals:)
+		       (collect-globals* ast)
+		       '()))
 	  (full-path (if (and file path) (make-file-path path file) #f)))
-      (list
-	 `(module ,(string->symbol
-		      (or (config-get conf module-name:)
-			  (config-get conf src:)
-			  "__stdin"))
-	     ,@(if (config-get conf bootstrap:)
-		   '((import __py_rts
-			__py_bigloo
-			__stdlib_zemantics
-			__stdlib_behaviors)
-		     (include "rts-macros.scm"
-			"bigloo/call.sch"
-			"bigloo/constants.sch"))
-		   '((library zipi)))
-	     ,@(if (config-get conf main:)
-		   '((main main))
-		   '((export (zipi-init ::bstring)))))
-	 '(start-registering-constants)
-	 `(define py-module ,@prog)
-	 (cond
+      `((module ,(string->symbol
+		    (or (config-get conf module-name:)
+			(config-get conf src:)
+			"__stdin"))
+	   ,@(if (config-get conf bootstrap:)
+		 '((import __py_rts
+		      __py_bigloo
+		      __stdlib_zemantics
+		      __stdlib_behaviors)
+		   (include "rts-macros.scm"
+		      "bigloo/call.sch"
+		      "bigloo/constants.sch"))
+		 '((library zipi)))
+	   ,@(if (config-get conf main:)
+		 '((main main))
+		 '((export (zipi-init ::bstring)))))
+	(start-registering-constants)
+	,@(if (config-get conf :topleve-module)
+	      '((define %global #unspecified)
+		(define %cache #unspecified))
+	      '())
+	,@(if (config-get conf :topleve-module)
+	      (filter-map declaration->define prog)
+	      '())
+	,(if (config-get conf :topleve-module)
+	     `(define (py-module global cache)
+		 (set! %global global)
+		 (set! %cache cache)
+		 ,@(filter-map declaration->expression prog))
+	     `(define py-module ,@prog))
+	,(cond
 	    ((config-get conf main:)
 	     `(define (main argv)
 		 (bigloo-library-path-set!
@@ -49,12 +75,12 @@
 		 (let ((caches (py-make-caches ,(PycModule-caches ast)))
 		       (module (py-make-module (py-str-from-scheme name))))
 		    ,@(if full-path
-			 `((py-own-attr-set!
-			      module (& "__file__") (& ,full-path)))
-			 '())
+			  `((py-own-attr-set!
+			       module (& "__file__") (& ,full-path)))
+			  '())
 		    (py-module module caches)
 		    module))))
-	 '(end-registering-constants))))
+	(end-registering-constants))))
 
 (define (sort-semantics semantics)
   (define (only form)
@@ -487,13 +513,56 @@
 (define-walk-method (scheme this::PycContinue conf)
    (epairify this '(%continue #f)))
 
-(define (scheme-decl this conf)
+(define (scheme-decl this::PycDecl conf)
    (unless (PycDecl-name this)
       (PycDecl-name-set! this
 	 (symbol-append (PycDecl-id this)
-      '-
+	    '-
 	    (string->symbol (number->string (PycDecl-key this))))))
    (PycDecl-name this))
+
+(define (scheme-decl-optim-global-name this::PycDecl conf)
+   (let ((scheme-name (scheme-decl this conf)))
+      (symbol-append '@ scheme-name)))
+
+(define (scheme-ref-global this::PycRef conf)
+   
+   (define (ref decl)
+      (with-access::PycDecl decl (id name)
+	 (scheme-decl-optim-global-name decl conf))
+      `(global-get %global ,(pyc-propname (PycDecl-id decl))
+	  ,(scheme-cache (PycRef-cache this) this)))
+   
+   (let ((decl (PycRef-decl this)))
+      (if (config-get conf :optim-globals)
+	  `(or ,(scheme-decl-optim-global-name decl conf)
+	       ,(ref decl))
+	  (ref decl))))
+
+(define (scheme-declinit-global this::PycDeclInit val conf)
+   
+   (define (declinit decl)
+      `(global-put! %global ,(pyc-propname (PycDecl-id this)) ,val
+	  ,(scheme-cache (PycDeclInit-cache this) this)))
+   
+   (if (config-get conf :optim-globals)
+       `(define ,(scheme-decl-optim-global-name this conf) ,val)
+       (declinit this)))
+
+(define (scheme-assig-global this::PycAssig ref decl val conf)
+   
+   (define (assig val)
+      `(global-put! %global ,(pyc-propname (PycDecl-id decl)) ,val
+	  ,(scheme-cache (PycRef-cache (PycAssig-lhs this))
+	      (PycAssig-lhs this))))
+   
+   (if (config-get conf :optim-globals)
+       (let ((tmp (gensym '%tmp))
+	     (id (scheme-decl-optim-global-name decl conf)))
+	  `(let ((,tmp ,val))
+	      (when ,id (set! ,id ,tmp))
+	      ,(assig tmp)))
+       (assig val)))
 
 (define (pyc-propname name)
    (cond
@@ -509,71 +578,68 @@
       (epairify this
 	 (if (eq? (PycDecl-scope this) 'local)
 	     `(set! ,(scheme-decl this conf) ,val)
-	     `(global-put! %global ,(pyc-propname (PycDecl-id this)) ,val
-		 ,(scheme-cache (PycDeclInit-cache this) this))))))
+	     (scheme-declinit-global this val conf)))))
 
 (define-walk-method (scheme this::PycAssig conf)
-  (cond
-    ((isa? (PycAssig-lhs this) PycRef)
-      (let* ((ref (PycAssig-lhs this))
-        (decl (PycRef-decl ref))
-        (val (scheme (PycAssig-rhs this) conf)))
-        (epairify this
-        (case (PycDecl-scope decl)
-          ((global)
-            `(global-put! %global ,(pyc-propname (PycDecl-id decl)) ,val
-            ,(scheme-cache (PycRef-cache (PycAssig-lhs this))
-            (PycAssig-lhs this))))
-          (else
-            `(set! ,(scheme-decl decl conf) ,val))))))
-    ((isa? (PycAssig-lhs this) PycRefUnresolved)
-      (let* ((ref (PycAssig-lhs this))
-            (val (scheme (PycAssig-rhs this) conf)))
-        (epairify this
-          `(global-put! %global ,(pyc-propname (PycRefUnresolved-id ref)) ,val
-          ,(scheme-cache (PycRefUnresolved-cache (PycAssig-lhs this))
-          (PycAssig-lhs this))))))
-    ((isa? (PycAssig-lhs this) PycAccess)
-      (let* ((axs (PycAssig-lhs this))
-            (obj (PycAccess-obj axs))
-            (field (PycAccess-field axs))
-            (val (scheme (PycAssig-rhs this) conf)))
-        (epairify this
-          `(object-put! ,(scheme obj conf) ,(pyc-propname field)
-          ,(scheme (PycAssig-rhs this) conf)
-          ,(scheme-cache (PycAccess-cache (PycAssig-lhs this))
-          (PycAssig-lhs this))))))
-    ((isa? (PycAssig-lhs this) PycSlice)
-      (let* ((axs (PycAssig-lhs this))
-            (obj (PycSlice-obj axs))
-            (lower (PycSlice-lower axs))
-            (upper (PycSlice-upper axs))
-            (step (PycSlice-step axs))
-            (val (scheme (PycAssig-rhs this) conf)))
-        (epairify this
-          `(py-setitem
-             ,(scheme obj conf)
-             (py-slice-from-scheme
-           	  ,(if (PycUninit? lower) 'py-None (scheme lower conf))
-           	  ,(if (PycUninit? upper) 'py-None (scheme upper conf))
-           	  ,(if (PycUninit? step) 'py-None (scheme step conf)))
-             ,val))))
-    ((isa? (PycAssig-lhs this) PycSubscript)
-      (let* ((axs (PycAssig-lhs this))
-            (obj (PycSubscript-obj axs))
-            (index (PycSubscript-index axs))
-            (val (scheme (PycAssig-rhs this) conf)))
-      (epairify this
-        `(py-setitem ,(scheme obj conf)
-        ,(scheme index conf)
-        ,(scheme (PycAssig-rhs this) conf)))))
-    ((isa? (PycAssig-lhs this) PycTuple)
-      `(py-throw-exception-with-message
-          py-builtin-NotImplementedError
-            "multiple assignations unimplemented at line "
-            ,(number->string (car (PycNode-loc this)))))
-    (else
-      (error "scheme:PycAssig" "unknown assignation type" this))))
+   (cond
+      ((isa? (PycAssig-lhs this) PycRef)
+       (let* ((ref (PycAssig-lhs this))
+	      (decl (PycRef-decl ref))
+	      (val (scheme (PycAssig-rhs this) conf)))
+	  (epairify this
+	     (case (PycDecl-scope decl)
+		((global)
+		 (scheme-assig-global this ref decl val conf))
+		(else
+		 `(set! ,(scheme-decl decl conf) ,val))))))
+      ((isa? (PycAssig-lhs this) PycRefUnresolved)
+       (let* ((ref (PycAssig-lhs this))
+	      (val (scheme (PycAssig-rhs this) conf)))
+	  (epairify this
+	     `(global-put! %global ,(pyc-propname (PycRefUnresolved-id ref)) ,val
+		 ,(scheme-cache (PycRefUnresolved-cache (PycAssig-lhs this))
+		     (PycAssig-lhs this))))))
+      ((isa? (PycAssig-lhs this) PycAccess)
+       (let* ((axs (PycAssig-lhs this))
+	      (obj (PycAccess-obj axs))
+	      (field (PycAccess-field axs))
+	      (val (scheme (PycAssig-rhs this) conf)))
+	  (epairify this
+	     `(object-put! ,(scheme obj conf) ,(pyc-propname field)
+		 ,(scheme (PycAssig-rhs this) conf)
+		 ,(scheme-cache (PycAccess-cache (PycAssig-lhs this))
+		     (PycAssig-lhs this))))))
+      ((isa? (PycAssig-lhs this) PycSlice)
+       (let* ((axs (PycAssig-lhs this))
+	      (obj (PycSlice-obj axs))
+	      (lower (PycSlice-lower axs))
+	      (upper (PycSlice-upper axs))
+	      (step (PycSlice-step axs))
+	      (val (scheme (PycAssig-rhs this) conf)))
+	  (epairify this
+	     `(py-setitem
+		 ,(scheme obj conf)
+		 (py-slice-from-scheme
+		    ,(if (PycUninit? lower) 'py-None (scheme lower conf))
+		    ,(if (PycUninit? upper) 'py-None (scheme upper conf))
+		    ,(if (PycUninit? step) 'py-None (scheme step conf)))
+		 ,val))))
+      ((isa? (PycAssig-lhs this) PycSubscript)
+       (let* ((axs (PycAssig-lhs this))
+	      (obj (PycSubscript-obj axs))
+	      (index (PycSubscript-index axs))
+	      (val (scheme (PycAssig-rhs this) conf)))
+	  (epairify this
+	     `(py-setitem ,(scheme obj conf)
+		 ,(scheme index conf)
+		 ,(scheme (PycAssig-rhs this) conf)))))
+      ((isa? (PycAssig-lhs this) PycTuple)
+       `(py-throw-exception-with-message
+	   py-builtin-NotImplementedError
+	   "multiple assignations unimplemented at line "
+	   ,(number->string (car (PycNode-loc this)))))
+      (else
+       (error "scheme:PycAssig" "unknown assignation type" this))))
 
 
 (define-walk-method (scheme this::PycAugAssig conf)
@@ -989,8 +1055,7 @@
       (case (PycDecl-scope decl)
 	 ((global)
 	  (epairify this
-	     `(global-get %global ,(pyc-propname (PycDecl-id decl))
-		 ,(scheme-cache (PycRef-cache this) this))))
+	     (scheme-ref-global this conf)))
 	 (else
 	  (scheme-decl decl conf)))))
 
@@ -1124,3 +1189,12 @@
 	 (cell-set! cnt (+ 1 m))
 	 (PycFor-cachei-set! this n)
 	 (PycFor-cachen-set! this m))))
+
+;; collect global variables
+(define-walk-method (collect-globals* this::PycNode)
+   (call-default-walker))
+
+(define-walk-method (collect-globals* this::PycDeclInit)
+   (if (eq? (PycDecl-scope this) 'global)
+       (list this)
+       '()))
