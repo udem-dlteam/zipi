@@ -303,8 +303,6 @@
 
            (py-throw ::obj)
 
-           (py-is x y)
-           (py-isnot x y)
            (py-in x y)
            (py-notin x y)
            (py-not x)
