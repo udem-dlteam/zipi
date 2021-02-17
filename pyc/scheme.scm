@@ -7,7 +7,7 @@
    (let* ((cnt (make-cell 0))
 	  (caches (collect-caches ast cnt)))
       (PycModule-caches-set! ast (cell-ref cnt))))
-   
+
 (define (declaration->define sexp)
    (match-case sexp
       ((define (?- . ?-) . ?-) sexp)
@@ -22,10 +22,10 @@
 
 (define (pyc-scheme-bigloo ast conf)
    (pyc-cache! ast conf)
-   (let* ((tlfuns (if (config-get conf :optim-toplevel-module)
+   (let* ((tlfuns (if (config-get conf optim-toplevel-module:)
 		      (collect-tl-funs* ast conf)
 		      '()))
-	  (tldecls (if (config-get conf :optim-toplevel-module)
+	  (tldecls (if (config-get conf optim-toplevel-module:)
 		       (scheme-tl* ast conf)
 		       '()))
 	  (prog (scheme ast conf))
@@ -52,18 +52,18 @@
 		 '((main main))
 		 '((export (zipi-init ::bstring)))))
 	(start-registering-constants)
-	,@(if (config-get conf :optim-toplevel-module)
-	      `((define %global #unspecified)
-		(define %caches #unspecified)
+	,@(if (config-get conf optim-toplevel-module:)
+	      `((define %global |#unspecified|)
+		(define %caches |#unspecified|)
 		,@(map (lambda (d)
 			  `(define ,(scheme-decl-optim-global-name-init d conf) #f))
 		     tlfuns)
 		,@tldecls)
 	      '())
-	,@(if (config-get conf :optim-toplevel-module)
+	,@(if (config-get conf optim-toplevel-module:)
 	      (filter-map declaration->define prog)
 	      '())
-	,(if (config-get conf :optim-toplevel-module)
+	,(if (config-get conf optim-toplevel-module:)
 	     `(define (py-module global caches)
 		 (set! %global global)
 		 (set! %caches caches)
@@ -189,7 +189,7 @@
    (let* ((stmts (PycModule-stmts this))
 	  (sexps (scheme* (PycModule-stmts this)
 		    (cons* module: (PycModule-globals this) conf))))
-      (if (config-get conf :optim-toplevel-module)
+      (if (config-get conf optim-toplevel-module:)
 	  sexps
 	  (epairify this
 	     `(lambda (%global %caches)
@@ -531,7 +531,7 @@
 (define-walk-method (scheme this::PycContinue conf)
    (epairify this '(%continue #f)))
 
-(define (scheme-decl this::PycDecl conf)
+(define (scheme-decl this conf)
    (unless (PycDecl-name this)
       (PycDecl-name-set! this
 	 (symbol-append (PycDecl-id this)
@@ -539,33 +539,32 @@
 	    (string->symbol (number->string (PycDecl-key this))))))
    (PycDecl-name this))
 
-(define (scheme-decl-optim-global-name this::PycDecl conf)
+(define (scheme-decl-optim-global-name this conf)
    (let ((scheme-name (scheme-decl this conf)))
       (symbol-append '@ scheme-name)))
 
-(define (scheme-decl-optim-global-name-init this::PycDecl conf)
+(define (scheme-decl-optim-global-name-init this conf)
    (symbol-append (scheme-decl-optim-global-name this conf) '-init))
 
-(define (scheme-decl-function-name this::PycDecl conf)
+(define (scheme-decl-function-name this conf)
    (let ((scheme-name (scheme-decl this conf)))
       (symbol-append '& scheme-name)))
 
-(define (scheme-ref-global this::PycRef conf)
-   
+(define (scheme-ref-global this conf)
+
    (define (ref decl)
-      (with-access::PycDecl decl (id name)
-	 (scheme-decl-optim-global-name decl conf))
+      (scheme-decl-optim-global-name decl conf)
       `(global-get %global ,(pyc-propname (PycDecl-id decl))
-	  ,(scheme-cache (PycRef-cache this) this)))
-   
+	       ,(scheme-cache (PycRef-cache this) this)))
+
    (let ((decl (PycRef-decl this)))
-      (if (config-get conf :optim-globals)
+      (if (config-get conf optim-globals:)
 	  `(or ,(scheme-decl-optim-global-name decl conf)
 	       ,(ref decl))
 	  (ref decl))))
 
-(define (scheme-declinit-global this::PycDeclInit val conf)
-   
+(define (scheme-declinit-global this val conf)
+
    (define (declinit decl)
       `(global-put! %global ,(pyc-propname (PycDecl-id this)) ,val
 	  ,(scheme-cache (PycDeclInit-cache this) this)))
@@ -582,8 +581,8 @@
 			,v))
 		 val)
 	     val)))
-   
-   (if (config-get conf :optim-globals)
+
+   (if (config-get conf optim-globals:)
        `(define ,(scheme-decl-optim-global-name this conf)
 	   (begin
 	      (global-register! %global ,(pyc-propname (PycDecl-id this))
@@ -593,14 +592,14 @@
 	      ,(global-init-fun-value this val)))
        (declinit this)))
 
-(define (scheme-assig-global this::PycAssig ref decl val conf)
-   
+(define (scheme-assig-global this ref decl val conf)
+
    (define (assig val)
       `(global-put! %global ,(pyc-propname (PycDecl-id decl)) ,val
 	  ,(scheme-cache (PycRef-cache (PycAssig-lhs this))
 	      (PycAssig-lhs this))))
-   
-   (if (config-get conf :optim-globals)
+
+   (if (config-get conf optim-globals:)
        (let ((tmp (gensym '%tmp))
 	     (id (scheme-decl-optim-global-name decl conf)))
 	  `(set! ,id ,val))
@@ -929,7 +928,7 @@
 		  (if (null? defaults)
 		      '()
 		      `(defaults: (vector ,@(scheme* defaults conf))))))))
-   
+
    (let loop ((decs (PycFun-decorators this)))
       (if (null? decs)
 	  (epairify this
@@ -939,15 +938,15 @@
 		 ,(signature this conf)))
 	  `(py-call ,(scheme (car decs) conf) ,(loop (cdr decs))))))
 
-(define (scheme-procedure-proc this::PycFun conf)
-   
+(define (scheme-procedure-proc this conf)
+
    (define (generator this::PycFun exp)
       (if (PycFun-generator this)
 	  (epairify this
 	     `(letrec ((%gen (py-make-generator (lambda (%v %e) ,exp))))
 		 %gen))
 	  exp))
-   
+
    (define (locals fun body)
       (if (PycFun-can-locals fun)
 	  `(let ((%frame (make-cell #f))
@@ -955,7 +954,7 @@
 			      (append (PycFun-args fun) (PycFun-decls fun)))))
 	      ,body)
 	  body))
-   
+
    (let* ((vararg (PycFun-vararg this))
 	  (kwarg (PycFun-kwarg this))
 	  (args (scheme*
@@ -1028,7 +1027,7 @@
 
    (define (correct-arity? fun::PycFun args)
       (=fx (length (PycFun-args fun)) (length args)))
-   
+
    (define (invoke-global fun args)
       (let ((f (PycCall-fun this)))
 	 (when (PycRef? f)
@@ -1043,7 +1042,7 @@
 			    (& ,(symbol->string (PycDecl-id decl)))
 			    ,(scheme-cache (PycRef-cache f) this)
 			    ,@args))))))))
-   
+
    (define (invoke fun args)
       (if (or (> (length args) 0) (not (PycCall-can-be-super this)))
 	  (or (invoke-global fun args)
@@ -1055,7 +1054,7 @@
 				     (PycDecl-name (list-ref caller-args 0))
 				     #f)))
 	     `(py-call0-maybe-super ,fun ,class-key ,super-instance))))
-   
+
    (define (gen-args call conf)
       (append
 	 (let loop ((args (PycCall-args call)) (acc '()))
@@ -1091,7 +1090,7 @@
 		   (cons
 		      (scheme (car kwargs) conf)
 		      (cons **: acc))))))))
-   
+
    (let ((fun (PycCall-fun this)))
       (cond
 	 ((isa? fun PycPragma)
@@ -1287,7 +1286,7 @@
       (and (null? (PycFun-posonlyargs fun))
 	   (not (PycDecl? (PycFun-vararg fun)))
 	   (null? (PycFun-kwonlyargs fun))))
-   
+
    (define (optimize-fun-decl? decl::PycDeclInit fun)
       ;; true iff the function can be compiled as a top-level
       ;; scheme function
