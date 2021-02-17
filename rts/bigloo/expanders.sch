@@ -4,7 +4,7 @@
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Wed Dec  6 18:25:11 2006                          */
 ;*    Last change :  Mon Nov  9 11:42:18 2020 (serrano)                */
-;*    Copyright   :  2006-20 Manuel Serrano                            */
+;*    Copyright   :  2006-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    zipi expanders installer                                         */
 ;*=====================================================================*/
@@ -36,4 +36,6 @@
    (eval `(define-expander register-constants-perfect-hashtable
 	     ,register-constants-perfect-hashtable-expander))
    (eval `(define-expander py-call
-	     ,py-call-expander)))
+	     ,py-call-expander))
+   (eval `(define-expander py-global-call
+	     ,py-global-call-expander)))

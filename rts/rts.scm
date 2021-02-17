@@ -488,7 +488,7 @@
 (define (global-put! global name val cache)
   (if (eq? (PyObject-hclass global) ;; TODO: should py-obj-hclass be used instead?
            (PCache-hclass cache))
-      (PyObject-elements-set! global (PCache-index cache) val)
+      (PyObject-global-elements-set! global (PCache-index cache) val)
       (object-put!/miss global name val cache)))
 
 (define (object-put!/miss obj name val cache)
@@ -497,13 +497,43 @@
     (if (>= index 0)
         (begin
           (PCache-set! cache hclass index)
-          (PyObject-elements-set! obj index val))
+          (PyObject-global-elements-set! obj index val))
         (let* ((name-representative (py-str-representative name))
                (nhclass (HClass-next hclass name-representative '+))
                (index (HClass-last-index nhclass)))
           (PyObject-hclass-set! obj nhclass)
           (PCache-set! cache nhclass index)
           (PyObject-elements-set! obj index val)))))
+
+(define (PyObject-global-elements-set! obj index val)
+   (let ((v (PyObject-elements-ref obj index)))
+      (if (procedure? v)
+	  (v val)
+	  (PyObject-elements-set! obj index val))))
+
+(define (global-register! global name setter cache)
+   (if (eq? (PyObject-hclass global) ;; TODO: should py-obj-hclass be used instead?
+	  (PCache-hclass cache))
+       ;; MS: 17feb21: if global-register! can override an already declared
+       ;; global variable, then before setting the new setter, the currently
+       ;; in use setter must be used a last time to invalidate the
+       ;; previously declared variable.
+       (PyObject-elements-set! global (PCache-index cache) setter)
+       (global-register/miss! global name setter cache))) 
+      
+(define (global-register/miss! obj name val cache)
+   (let* ((index (py-own-attr-index obj name))
+	  (hclass (PyObject-hclass obj))) ;; TODO: should py-obj-hclass be used instead?
+      (if (>= index 0)
+	  (begin
+	     (PCache-set! cache hclass index)
+	     (PyObject-elements-set! obj index val))
+	  (let* ((name-representative (py-str-representative name))
+		 (nhclass (HClass-next hclass name-representative '+))
+		 (index (HClass-last-index nhclass)))
+	     (PyObject-hclass-set! obj nhclass)
+	     (PCache-set! cache nhclass index)
+	     (PyObject-elements-set! obj index val)))))
 
 ;; Boostrap functions
 ;; Functions are objects of type 'function', but their type cannot be assigned

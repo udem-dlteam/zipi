@@ -6,6 +6,7 @@
      ("break" . ,pyc-break)
      ("locals" . ,pyc-locals)
      ("super" . ,pyc-super)
+     ("usage" . ,pyc-usage)
      ("generator" . ,pyc-generator)
      ("cps" . ,pyc-cps)
      ("simple-scoping" . ,pyc-simple-scoping)
@@ -19,6 +20,7 @@
      ("break" . ,pyc-break)
      ("locals" . ,pyc-locals)
      ("super" . ,pyc-super)
+     ("usage" . ,pyc-usage)
      ("generator" . ,pyc-generator)
      ("cps" . ,pyc-cps)
      ("simple-scoping" . ,pyc-simple-scoping)
@@ -32,6 +34,7 @@
      ("break" . ,pyc-break)
      ("locals" . ,pyc-locals)
      ("super" . ,pyc-super)
+     ("usage" . ,pyc-usage)
      ("generator" . ,pyc-generator)
      ("cps" . ,pyc-cps)
      ("simple-scoping" . ,pyc-simple-scoping)
@@ -49,7 +52,9 @@
    (cond
       ((>= (config-get conf :optim 0) 1000)
        (unless (memq :optim-globals conf)
-	  (set! conf (cons* :optim-globals #t conf)))))
+	  (set! conf (cons* :optim-globals #t conf)))
+       (unless (memq :toplevel-module conf)
+	  (set! conf (cons* :toplevel-module #t conf)))))
    (let* ((env (getenv "ZIPITRACE"))
 	  (src (config-get conf src: #f))
 	  (conf (cons*
@@ -59,6 +64,8 @@
 			   (or (getenv "USER") "anonymous") "PYC")
 		   name: (if src (prefix (basename src)) "<stdin>")
 		   file: (config-get conf src: "<stdin>")
+		   optim-toplevel-module: (and (config-get conf :toplevel-module)
+					       (config-get conf :optim-globals))
 		   conf)))
       (pyc-compile (or src (current-input-port)) driver conf)))
 

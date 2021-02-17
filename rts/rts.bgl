@@ -272,7 +272,8 @@
            (build-builtins)
 
            (global-get ::PyObject ::obj ::obj)
-           (global-put! global name val cache)
+           (global-put! ::PyObject name val cache)
+           (global-register! ::PyObject name setter::procedure cache)
 
            ;; (object-get ::obj ::obj ::obj)
            (object-put! ::PyObject ::obj ::obj ::obj)
