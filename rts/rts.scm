@@ -1273,16 +1273,6 @@
         (lambda ()
           (throw-unsupported-operand x y ,operator)))))))
 
-(define (py-is x y) ;; x is y
-  (if (py-test-is x y)
-    py-True
-    py-False))
-
-(define (py-isnot x y) ;; x is not y
-  (if (py-test-isnot x y)
-    py-True
-    py-False))
-
 ;; special case of x in y when y is an iterator
 (define (py-in-iterator item iterator)
   (let ((next-item (py-next iterator)))

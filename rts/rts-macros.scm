@@ -1443,6 +1443,12 @@
 (define-macro (py-ne x y)
   `(py-specialized-binop-dispatch ne ,x ,y))
 
+(define-macro (py-is x y) ;; x is y
+  `(if (py-test-is ,x ,y) py-True py-False))
+
+(define-macro (py-isnot x y) ;; x is not y
+  `(if (py-test-isnot ,x ,y) py-True py-False))
+
 (define-macro (py-test-ge x y)
   `(py-specialized-binop-dispatch test-ge ,x ,y))
 
@@ -1476,7 +1482,7 @@
       (py-le py-test-le)
       (py-lt py-test-lt)
       (py-is py-test-is)
-      (py-is py-test-isnot)))
+      (py-isnot py-test-isnot)))
 
   (if (pair? x)
     (let ((test-version (assq (car x) cmp-operator-test-version)))
