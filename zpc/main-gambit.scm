@@ -10,6 +10,8 @@
         (output #f)
         (libdir (zipi-lib-dir))
         (bindir (zipi-bin-dir))
+        (toplevel-module #t)
+        (optim-globals #t)
         (conf '()))
 
     (let loop ((args args))
@@ -52,6 +54,18 @@
                   ((member arg '("-v"))
                    (set! verbose (+ verbose 1))
                    (loop rest))
+                  ((member arg '("--toplevel-module"))
+                    (set! toplevel-module #t)
+                    (loop rest))
+                  ((member arg '("--no-toplevel-module"))
+                    (set! toplevel-module #f)
+                    (loop rest))
+                  ((member arg '("--fglobals"))
+                    (set! optim-globals #t)
+                    (loop rest))
+                  ((member arg '("--fno-globals"))
+                    (set! optim-globals #f)
+                    (loop rest))
                   (else
                    (if (and (>= (string-length arg) 2)
                             (string=? (substring arg 0 2) "--"))
@@ -73,6 +87,8 @@
                  src: src
                  main: main
                  module-name: module-name
+                 toplevel-module: toplevel-module
+                 optim-globals: optim-globals
                  conf))))
 
       (define (dump port)
