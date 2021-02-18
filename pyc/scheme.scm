@@ -572,7 +572,7 @@
    (define (global-init-fun-value this val)
       (let ((fun (PycDeclInit-val this)))
 	 (if (PycFun? fun)
-	     (if (symbol? (PycFun-%scmproc fun))
+	     (if (symbol? (PycFun-&proc fun))
 		 ;; a toplevel function
 		 (let ((v (gensym '%init)))
 		    `(let ((,v ,val))
@@ -933,7 +933,7 @@
       (if (null? decs)
 	  (epairify this
 	     `(procedure->py-function
-		 ,(or (PycFun-%scmproc this)
+		 ,(or (PycFun-&proc this)
 		      (scheme-procedure-proc this conf))
 		 ,(signature this conf)))
 	  `(py-call ,(scheme (car decs) conf) ,(loop (cdr decs))))))
@@ -1035,9 +1035,9 @@
            (if (PycDeclInit? decl)
             (let ((val (PycDeclInit-val decl)))
              (if (and (PycFun? val)
-                        (symbol? (PycFun-%scmproc val))
+                        (symbol? (PycFun-&proc val))
                         (correct-arity? val args))
-              `(py-global-call ,(PycFun-%scmproc val)
+              `(py-global-call ,(PycFun-&proc val)
                   ,(scheme-decl-optim-global-name decl conf)
                   ,(scheme-decl-optim-global-name-init decl conf)
                   (& ,(symbol->string (PycDecl-id decl)))
@@ -1304,7 +1304,7 @@
 		(let ((decs (PycFun-decorators val)))
 		   (when (null? decs)
 		      (let ((id (scheme-decl-function-name this conf)))
-			 (PycFun-%scmproc-set! val id)
+			 (PycFun-&proc-set! val id)
 			 (list this)))))))
        '()))
 
@@ -1317,7 +1317,7 @@
        '()
        (let ((val (PycDeclInit-val this)))
 	  (if (PycFun? val)
-	      (let ((id (PycFun-%scmproc val)))
+	      (let ((id (PycFun-&proc val)))
 		 (if (symbol? id)
 		     (let ((fun (PycFun-%info val)))
 			`((define ,id ,(scheme-procedure-proc val conf))))

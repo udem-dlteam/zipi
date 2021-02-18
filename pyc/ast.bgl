@@ -231,8 +231,7 @@
 	      (name (default #f))
 	      (annotation-names::pair-nil (default '()))
 	      (annotation::pair-nil (default '()))
-	      (%scmproc::obj (default #f))
-	      (%scmvar::obj (default #f)))
+	      (&proc::obj (default #f)))
 	   
 	   (final-class PycSemantics::PycFun
 	      (inline::bool (default #f))
