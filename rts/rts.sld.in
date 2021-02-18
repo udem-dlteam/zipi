@@ -25,6 +25,7 @@
     py-absent
     global-get
     global-put!
+    global-register!
     object-put-no-cache!
     make-cell
     cell-ref
