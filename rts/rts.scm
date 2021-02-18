@@ -552,31 +552,40 @@
           (PyObject-global-elements-set! obj index val)))))
 
 ;; TODO: register needs a getter for attribute access on module
-(define (global-register! global name setter cache)
+(define (global-register! global name getter setter cache)
    (if (eq? (PyObject-hclass global) ;; TODO: should py-obj-hclass be used instead?
 	          (PCache-hclass cache))
        ;; MS: 17feb21: if global-register! can override an already declared
        ;; global variable, then before setting the new setter, the currently
        ;; in use setter must be used a last time to invalidate the
        ;; previously declared variable.
-       ;; OM: I'm not sure the above is still true, but I don't understand why
+       ;; OM: 18feb21: I'm not sure the above is still true, but I don't understand why
        ;; it was before so I'll leave it here for now
-       (PyObject-elements-set! global (PCache-index cache) setter)
-       (global-register/miss! global name setter cache)))
+       (vector-set!
+         (PyObject-%elements global)
+         (PCache-index cache)
+         (vector getter setter))
+       (global-register/miss! global name getter setter cache)))
 
-(define (global-register/miss! obj name val cache)
-   (let* ((index (py-own-attr-index obj name))
-	  (hclass (PyObject-hclass obj))) ;; TODO: should py-obj-hclass be used instead?
-      (if (>= index 0)
-	  (begin
-	     (PCache-set! cache hclass index)
-	     (PyObject-elements-set! obj index val))
-	  (let* ((name-representative (py-str-representative name))
-		 (nhclass (HClass-next hclass name-representative '+))
-		 (index (HClass-last-index nhclass)))
-	     (PyObject-hclass-set! obj nhclass)
-	     (PCache-set! cache nhclass index)
-	     (PyObject-elements-set! obj index val)))))
+(define (global-register/miss! obj name getter setter cache)
+  (let* ((index (py-own-attr-index obj name))
+         (hclass (PyObject-hclass obj))) ;; TODO: should py-obj-hclass be used instead?
+    (if (>= index 0)
+      (begin
+        (PCache-set! cache hclass index)
+        (vector-set!
+          (PyObject-%elements global)
+          index
+          (vector getter setter)))
+      (let* ((name-representative (py-str-representative name))
+             (nhclass (HClass-next hclass name-representative '+))
+             (index (HClass-last-index nhclass)))
+        (PyObject-hclass-set! obj nhclass)
+        (PCache-set! cache nhclass index)
+        (vector-set!
+          (PyObject-%elements global)
+          index
+          (vector getter setter))))))
 
 ;; Boostrap functions
 ;; Functions are objects of type 'function', but their type cannot be assigned

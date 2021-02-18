@@ -608,15 +608,18 @@
 		 val)
 	     val)))
 
-   (if (config-get conf optim-globals:)
-       `(define ,(scheme-decl-optim-global-name this conf)
-	   (begin
-	      (global-register! %global ,(pyc-propname (PycDecl-id this))
-		 (lambda (v)
-		    (set! ,(scheme-decl-optim-global-name this conf) v))
-		 ,(scheme-cache (PycDeclInit-cache this) this))
-	      ,(global-init-fun-value this val)))
-       (declinit this)))
+  (if (config-get conf optim-globals:)
+    `(define ,(scheme-decl-optim-global-name this conf)
+      (begin
+        (global-register!
+          %global
+          ,(pyc-propname (PycDecl-id this))
+          (lambda () ,(scheme-decl-optim-global-name this conf))
+          (lambda (v)
+            (set! ,(scheme-decl-optim-global-name this conf) v))
+          ,(scheme-cache (PycDeclInit-cache this) this))
+        ,(global-init-fun-value this val)))
+    (declinit this)))
 
 (define (scheme-assig-global this ref decl val conf)
 
