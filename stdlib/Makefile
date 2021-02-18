@@ -37,3 +37,4 @@ install: $(ZIPISYSTEMS:%=install.%)
 
 clean: $(ZIPISYSTEMS:%=clean.%)
 distclean: $(ZIPISYSTEMS:%=distclean.%)
+	rm behaviors.py behaviors.scm zemantics.py zemantics.scm numbers_builtins.py

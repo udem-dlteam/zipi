@@ -1180,7 +1180,7 @@ def eq(x, y):
                 return result
 
     def default():
-        return x is y 
+        return x is y
 
     # eq:start-body
     return normal()
@@ -1212,7 +1212,7 @@ def ne(x, y):
                 return result
 
     def default():
-        return x is not y 
+        return x is not y
 
     # ne:start-body
     return normal()
