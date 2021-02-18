@@ -438,13 +438,58 @@
           (outer-loop (cdr lists-tail) inner-acc)
           (inner-loop (cdr head) (cons (car head) inner-acc)))))))
 
+;; global contains a vector #(getter setter [maybe value for inner use])
+(define-macro (global-cell-get-val cell)
+  `((vector-ref ,cell 0)))
+
+(define-macro (global-cell-set-val! cell val)
+  `((vector-ref ,cell 1) ,val))
+
+(define-macro (PyObject-global-elements-ref global index)
+  `(global-cell-get-val (PyObject-elements-ref ,global ,index)))
+
+(define-macro (py-global-elements-set! elements offset val)
+  `(global-cell-set-val! (vector-ref ,elements ,offset) ,val))
+
+(define-macro (PyObject-global-elements-set! obj offset val)
+  `(let* (($obj ,obj)
+          ($offset ,offset)
+          ($val ,val)
+          ($elements (PyObject-%elements $obj))
+          ($elements-len (vector-length $elements)))
+     (if (fx>= $offset $elements-len)
+         (let* (($new-len (max 1 (fx* 2 $offset)))
+                ($diff-len (- $new-len $elements-len))
+                ($elements-new (make-vector $new-len)))
+           ;; copy existing cells
+           (subvector-move! $elements 0 $elements-len $elements-new 0)
+           ;; create new cells
+           (subvector-move!
+             ;; vector of cells
+             (vector-map
+               (lambda (_)
+                  (let* (($cell (vector #f #f py-absent))
+                         ($getter (lambda () (vector-ref $cell 2)))
+                         ($setter (lambda (val) (vector-set! $cell 2 val))))
+                    (set-car! $cell $getter)
+                    (set-cdr! $cell $setter)
+                    $cell)))
+               (make-vector $diff-len)
+             0
+             $diff-len
+             $elements-new
+             $elements-len)
+           ;; set the element
+           (py-global-elements-set! $elements-new $offset $val)
+           (PyObject-%elements-set! $obj $elements-new))
+         (py-global-elements-set! $elements $offset $val))))
+
 (define (global-get global name cache)
   (if (eq? (PyObject-hclass global) ;; TODO: should py-obj-hclass be used instead?
            (PCache-hclass cache))
-      (let ((val (PyObject-elements-ref global (PCache-index cache))))
+      (let ((val (PyObject-global-elements-ref global (PCache-index cache))))
         (if (not (eq? val py-absent))
             val
-            ;; TODO: use a different cache
             (global-get-from-builtins name cache)))
       (global-get/miss global name cache)))
 
@@ -454,15 +499,13 @@
         ;; as per Python 3.8 (maybe 3.7?) builtins module is no longer recovered
         ;; through __builtins__, this was also documented as an implementation
         ;; detail: https://docs.python.org/3/library/builtins.html
-        ;; TODO: use a different cache
         (global-get-from-builtins name cache)
         (let ((hclass (PyObject-hclass global))) ;; TODO: should py-obj-hclass be used instead?
           (PCache-set! cache hclass i)
-          (let ((val (PyObject-elements-ref global i)))
-            (if (not (eq? val py-absent))
-                val
-                ;; TODO: use a different cache
-                (global-get-from-builtins name cache)))))))
+          (let ((val (PyObject-global-elements-ref global i)))
+            (if (eq? cell py-absent)
+                (global-get-from-builtins name cache)
+                val))))))
 
 ;; TODO: use a cache for builtins and one for global access
 (define (global-get-from-builtins name cache)
@@ -472,14 +515,16 @@
      "name '" (py-str-to-scheme name) "' is not defined"))
   (let ((builtins-hclass (PyObject-hclass builtins-mod))) ;; TODO: should py-obj-hclass be used instead?
     (if (eq? builtins-hclass (PCache-hclass cache))
-        (let ((val (PyObject-elements-ref builtins-mod (PCache-index cache))))
+        (let ((val (PyObject-global-elements-ref
+                      builtins-mod
+                      (PCache-index cache))))
           (if (eq? val py-absent)
               (throw-NameError)
               val))
         (let ((i (py-own-attr-index builtins-mod name)))
           (if (< i 0)
               (throw-NameError)
-              (let ((val (PyObject-elements-ref builtins-mod i)))
+              (let ((val (PyObject-global-elements-ref builtins-mod i)))
                 (PCache-set! cache builtins-hclass i)
                 (if (eq? val py-absent)
                     (throw-NameError)
@@ -488,7 +533,7 @@
 (define (global-put! global name val cache)
   (if (eq? (PyObject-hclass global) ;; TODO: should py-obj-hclass be used instead?
            (PCache-hclass cache))
-      (PyObject-global-elements-set! global (PCache-index cache) val)
+      (py-global-elements-set! (PyObject-%elements global) (PCache-index cache) val)
       (object-put!/miss global name val cache)))
 
 (define (object-put!/miss obj name val cache)
@@ -497,30 +542,28 @@
     (if (>= index 0)
         (begin
           (PCache-set! cache hclass index)
-          (PyObject-global-elements-set! obj index val))
+          (py-global-elements-set! (PyObject-%elements obj) index val))
+        ;; We have to create a cell
         (let* ((name-representative (py-str-representative name))
                (nhclass (HClass-next hclass name-representative '+))
                (index (HClass-last-index nhclass)))
           (PyObject-hclass-set! obj nhclass)
           (PCache-set! cache nhclass index)
-          (PyObject-elements-set! obj index val)))))
+          (PyObject-global-elements-set! obj index val)))))
 
-(define (PyObject-global-elements-set! obj index val)
-   (let ((v (PyObject-elements-ref obj index)))
-      (if (procedure? v)
-	  (v val)
-	  (PyObject-elements-set! obj index val))))
-
+;; TODO: register needs a getter for attribute access on module
 (define (global-register! global name setter cache)
    (if (eq? (PyObject-hclass global) ;; TODO: should py-obj-hclass be used instead?
-	  (PCache-hclass cache))
+	          (PCache-hclass cache))
        ;; MS: 17feb21: if global-register! can override an already declared
        ;; global variable, then before setting the new setter, the currently
        ;; in use setter must be used a last time to invalidate the
        ;; previously declared variable.
+       ;; OM: I'm not sure the above is still true, but I don't understand why
+       ;; it was before so I'll leave it here for now
        (PyObject-elements-set! global (PCache-index cache) setter)
-       (global-register/miss! global name setter cache))) 
-      
+       (global-register/miss! global name setter cache)))
+
 (define (global-register/miss! obj name val cache)
    (let* ((index (py-own-attr-index obj name))
 	  (hclass (PyObject-hclass obj))) ;; TODO: should py-obj-hclass be used instead?
