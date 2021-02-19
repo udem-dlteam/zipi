@@ -142,7 +142,7 @@
             (globals (if (config-get conf optim-globals:)
         		       (collect-globals* ast)
         		       '()))
-            (prog (pyc-scheme ast conf))
+            (prog (scheme ast conf))
             (full-path (if (and file path) (make-file-path path file) #f)))
         (list `(define-library (,(string->symbol (config-get conf name:)))
                   (export init)
