@@ -625,10 +625,11 @@
     (let ((fun (PycDeclInit-val this)))
       (if (PycFun-&proc fun)
         ;; a toplevel function
-        `(begin
-          (set! ,(scheme-decl-optim-global-name this conf) ,val)
-          ;; set! init value as well
-          )
+        (let ((glo-name (scheme-decl-optim-global-name this conf))
+              (init-name (scheme-decl-optim-global-name-init this conf)))
+          `(begin
+            (set! ,glo-name ,val)
+            (set! ,init-name ,glo-name)))
         #f)))
 
   (if (config-get conf optim-globals:)
