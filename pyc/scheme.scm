@@ -108,11 +108,28 @@
   (append (only 'define-macro) (only 'define)))
 
 (define (pyc-scheme-gambit ast conf)
+  (define (scheme-init-globals declinits)
+    (map
+      (lambda (declinit)
+        `(define ,(scheme-decl-optim-global-name declinit conf) py-absent))
+      declinits))
+
+  (define (scheme-register-globals declinits)
+    (map
+      (lambda (declinit)
+        `(global-register!
+          %global
+          ,(pyc-propname (PycDecl-id declinit))
+          (lambda () ,(scheme-decl-optim-global-name declinit conf))
+          (lambda (v)
+            (set! ,(scheme-decl-optim-global-name declinit conf) v))
+          ,(scheme-cache (PycDeclInit-cache declinit) declinit)))
+      declinits))
+
   (let* ((semantics (sort-semantics (collect-semantics* ast conf))))
     (if (null? semantics)
       ;; normal compilation
-      (let* ((prog (pyc-scheme ast conf))
-            (file (config-get conf file:))
+      (let* ((file (config-get conf file:))
             (path (config-get conf dir:))
             (tlfuns (if (config-get conf optim-toplevel-module:)
          		      (collect-tl-funs* ast conf)
@@ -124,6 +141,7 @@
             (globals (if (config-get conf optim-globals:)
         		       (collect-globals* ast)
         		       '()))
+            (prog (pyc-scheme ast conf))
             (full-path (if (and file path) (make-file-path path file) #f)))
         (list `(define-library (,(string->symbol (config-get conf name:)))
                   (export init)
@@ -132,21 +150,22 @@
                     (py-begin-module)
 
                     ,@(if (config-get conf optim-toplevel-module:)
-                          `((define %global #f)
-                      (define %caches #f)
-                      ,@(map (lambda (d)
-                          `(define ,(scheme-decl-optim-global-name-init d conf) #f))
-                           tlfuns)
-                      ,@tldecls)
-                          '())
-                    ,@(if (config-get conf optim-toplevel-module:)
-                          (filter-map declaration->define prog)
-                          '())
+                      `((define %global #f)
+                        (define %caches #f)
+                        ,@(map (lambda (d)
+                        `(define ,(scheme-decl-optim-global-name-init d conf) #f))
+                        tlfuns)
+                        ,@tldecls
+                        ,@(filter-map declaration->define prog)
+                        ,@(scheme-init-globals globals))
+                      '())
+
                     ,(if (config-get conf optim-toplevel-module:)
-                         `(define (py-module global caches)
-                       (set! %global global)
-                       (set! %caches caches)
-                       ,@(filter-map declaration->expression prog))
+                      `(define (py-module global caches)
+                        (set! %global global)
+                        (set! %caches caches)
+                        ,@(scheme-register-globals globals)
+                        ,@(filter-map declaration->expression prog))
                          `(define py-module ,prog))
 
                     (define (init name)
@@ -591,35 +610,30 @@
 
 (define (scheme-declinit-global this val conf)
 
-   (define (declinit decl)
-      `(global-put! %global ,(pyc-propname (PycDecl-id this)) ,val
-	  ,(scheme-cache (PycDeclInit-cache this) this)))
+  (define (declinit-default decl)
+    `(global-put! %global ,(pyc-propname (PycDecl-id this)) ,val
+    ,(scheme-cache (PycDeclInit-cache this) this)))
 
-   (define (global-init-fun-value this val)
-      (let ((fun (PycDeclInit-val this)))
-	 (if (PycFun? fun)
-	     (if (symbol? (PycFun-&proc fun))
-		 ;; a toplevel function
-		 (let ((v (gensym '%init)))
-		    `(let ((,v ,val))
-			(set! ,(scheme-decl-optim-global-name-init this conf)
-			   ,v)
-			,v))
-		 val)
-	     val)))
+  (define (declinit-optim decl)
+    (or
+      (and (PycFun? (PycDeclInit-val decl))
+           (optimize-fun-decl? decl (PycDeclInit-val decl))
+           (global-init-fun-value decl))
+      `(set! ,(scheme-decl-optim-global-name this conf) ,val)))
+
+  (define (global-init-fun-value this)
+    (let ((fun (PycDeclInit-val this)))
+      (if (PycFun-&proc fun)
+        ;; a toplevel function
+        `(begin
+          (set! ,(scheme-decl-optim-global-name this conf) ,val)
+          ;; set! init value as well
+          )
+        #f)))
 
   (if (config-get conf optim-globals:)
-    `(define ,(scheme-decl-optim-global-name this conf)
-      (begin
-        (global-register!
-          %global
-          ,(pyc-propname (PycDecl-id this))
-          (lambda () ,(scheme-decl-optim-global-name this conf))
-          (lambda (v)
-            (set! ,(scheme-decl-optim-global-name this conf) v))
-          ,(scheme-cache (PycDeclInit-cache this) this))
-        ,(global-init-fun-value this val)))
-    (declinit this)))
+    (declinit-optim this)
+    (declinit-default this)))
 
 (define (scheme-assig-global this ref decl val conf)
 
@@ -1312,32 +1326,31 @@
 
 ;; collect the python function declarations that could
 ;; be compiled into scheme top-level definitions
+
+(define (fix-arity? fun)
+  (and (null? (PycFun-posonlyargs fun))
+       (not (PycDecl? (PycFun-vararg fun)))
+       (null? (PycFun-kwonlyargs fun))))
+
+(define (optimize-fun-decl? decl fun)
+  ;; true iff the function can be compiled as a top-level
+  ;; scheme function
+  (and (PycFun? fun)
+       (fix-arity? fun)
+       (not (memq 'assig (PycDecl-usage decl)))))
+
 (define-walk-method (collect-tl-funs* this::PycNode conf)
    (call-default-walker))
 
 (define-walk-method (collect-tl-funs* this::PycDeclInit conf)
-
-  (define (fix-arity? fun)
-    (and (null? (PycFun-posonlyargs fun))
-         (not (PycDecl? (PycFun-vararg fun)))
-         (null? (PycFun-kwonlyargs fun))))
-
-  (define (optimize-fun-decl? decl fun)
-    ;; true iff the function can be compiled as a top-level
-    ;; scheme function
-    (and (PycFun? fun)
-         (fix-arity? fun)
-         (not (memq 'assig (PycDecl-usage decl)))))
-
-  (if (not (eq? (PycDecl-scope this) 'local))
+  (if (eq? (PycDecl-scope this) 'global)
     (let ((val (PycDeclInit-val this)))
       (if (optimize-fun-decl? this val)
-        (let ((decs (PycFun-decorators val)))
-          (if (null? decs)
-            (let ((id (scheme-decl-function-name this conf)))
-              (PycFun-&proc-set! val id)
-              (list this))
-          '()))
+        (if (null? (PycFun-decorators val))
+          (let ((id (scheme-decl-function-name this conf)))
+            (PycFun-&proc-set! val id)
+            (list this))
+          '())
         '()))
     '()))
 
