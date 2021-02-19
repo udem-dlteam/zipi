@@ -1082,7 +1082,9 @@
                (if (and (PycFun? val)
                           (symbol? (PycFun-&proc val))
                           (correct-arity? val args))
-                `(py-global-call ,(PycFun-&proc val)
+                `(py-global-call
+                    %global
+                    ,(PycFun-&proc val)
                     ,(scheme-decl-optim-global-name decl conf)
                     ,(scheme-decl-optim-global-name-init decl conf)
                     (& ,(symbol->string (PycDecl-id decl)))
