@@ -273,7 +273,7 @@
 
            (global-get ::PyObject ::obj ::obj)
            (global-put! ::PyObject name val cache)
-           (global-register! ::PyObject name getter::procedure setter::procedure cache)
+           (global-register! ::PyObject name getter::procedure setter::procedure)
 
            ;; (object-get ::obj ::obj ::obj)
            (object-put! ::PyObject ::obj ::obj ::obj)

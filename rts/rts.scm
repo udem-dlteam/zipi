@@ -463,6 +463,46 @@
 (define-macro (py-global-elements-set! elements offset val)
   `(global-cell-set-val! (vector-ref ,elements ,offset) ,val))
 
+;; used to set the #(getter setter) in the elements of a module w/o invoking the setter
+(define-macro (py-global-elements-direct-set! obj offset val)
+  `(let* (($obj ,obj)
+          ($offset ,offset)
+          ($val ,val)
+          ($elements (PyObject-%elements $obj))
+          ($elements-len (vector-length $elements)))
+     (if (fx>= $offset $elements-len)
+         (let* (($new-len (max 1 (fx* 2 $offset)))
+                ($diff-len (fx- $new-len $elements-len))
+                ($elements-new (make-vector $new-len)))
+           ;; copy existing cells
+           (subvector-move! $elements 0 $elements-len $elements-new 0)
+           ;; create new cells
+           (subvector-move!
+             ;; vector of cells
+             (vector-map
+               (lambda (_)
+                  (let* (($cell (vector #f #f py-absent))
+                         ($getter (lambda () (vector-ref $cell 2)))
+                         ($setter (lambda (val) (vector-set! $cell 2 val))))
+                    (global-cell-getter-set! $cell $getter)
+                    (global-cell-setter-set! $cell $setter)
+                    $cell))
+               (make-vector $diff-len))
+             0
+             $diff-len
+             $elements-new
+             $elements-len)
+           ;; set the element
+           (vector-set!
+             $elements-new
+             $offset
+             $val)
+           (PyObject-%elements-set! $obj $elements-new))
+           (vector-set!
+             $elements
+             $offset
+             $val))))
+
 (define-macro (PyObject-global-elements-set! obj offset val)
   `(let* (($obj ,obj)
           ($offset ,offset)
@@ -551,10 +591,10 @@
 (define (global-put! global name val cache)
   (if (eq? (PyObject-hclass global) ;; TODO: should py-obj-hclass be used instead?
            (PCache-hclass cache))
-      (py-global-elements-set! (PyObject-%elements global) (PCache-index cache) val)
-      (object-put!/miss global name val cache)))
+      (PyObject-global-elements-set! global (PCache-index cache) val)
+      (global-put!/miss global name val cache)))
 
-(define (object-put!/miss obj name val cache)
+(define (global-put!/miss obj name val cache)
   (let* ((index (py-own-attr-index obj name))
          (hclass (PyObject-hclass obj))) ;; TODO: should py-obj-hclass be used instead?
     (if (>= index 0)
@@ -573,7 +613,7 @@
   (let* ((index (py-own-attr-index global name))
          (hclass (PyObject-hclass global))) ;; TODO: should py-obj-hclass be used instead?
     (if (>= index 0)
-        (py-global-elements-set! (PyObject-%elements global) index val)
+        (PyObject-global-elements-set! global index val)
         ;; We have to create a cell
         (let* ((name-representative (py-str-representative name))
                (nhclass (HClass-next hclass name-representative '+))
@@ -581,33 +621,21 @@
           (PyObject-hclass-set! global nhclass)
           (PyObject-global-elements-set! global index val)))))
 
-;; TODO: register needs a getter for attribute access on module
-(define (global-register! global name getter setter cache)
-   (if (eq? (PyObject-hclass global) ;; TODO: should py-obj-hclass be used instead?
-	          (PCache-hclass cache))
-       (vector-set!
-         (PyObject-%elements global)
-         (PCache-index cache)
-         (vector getter setter))
-       (global-register/miss! global name getter setter cache)))
-
-(define (global-register/miss! obj name getter setter cache)
+(define (global-register! obj name getter setter)
   (let* ((index (py-own-attr-index obj name))
          (hclass (PyObject-hclass obj))) ;; TODO: should py-obj-hclass be used instead?
     (if (>= index 0)
       (begin
-        (PCache-set! cache hclass index)
-        (vector-set!
-          (PyObject-%elements obj)
+        (py-global-elements-direct-set!
+          obj
           index
           (vector getter setter)))
       (let* ((name-representative (py-str-representative name))
              (nhclass (HClass-next hclass name-representative '+))
              (index (HClass-last-index nhclass)))
         (PyObject-hclass-set! obj nhclass)
-        (PCache-set! cache nhclass index)
-        (vector-set!
-          (PyObject-%elements obj)
+        (py-global-elements-direct-set!
+          obj
           index
           (vector getter setter))))))
 

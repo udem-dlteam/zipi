@@ -122,8 +122,7 @@
           ,(pyc-propname (PycDecl-id declinit))
           (lambda () ,(scheme-decl-optim-global-name declinit conf))
           (lambda (v)
-            (set! ,(scheme-decl-optim-global-name declinit conf) v))
-          ,(scheme-cache (PycDeclInit-cache declinit) declinit)))
+            (set! ,(scheme-decl-optim-global-name declinit conf) v))))
       declinits))
 
   (pyc-cache! ast conf)
