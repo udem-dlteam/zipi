@@ -45,6 +45,7 @@
     $py-callX
     py-call-wrong-arity
     py-call0-maybe-super
+    py-global-call
 
     with-specialized-PyObjectFunction-args-limit
 
