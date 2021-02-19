@@ -439,11 +439,23 @@
           (inner-loop (cdr head) (cons (car head) inner-acc)))))))
 
 ;; global contains a vector #(getter setter [maybe value for inner use])
+(define-macro (global-cell-getter-get cell)
+  `(vector-ref ,cell 0))
+
+(define-macro (global-cell-getter-set! cell getter)
+  `(vector-set! ,cell 0 ,getter))
+
 (define-macro (global-cell-get-val cell)
-  `((vector-ref ,cell 0)))
+  `((global-cell-getter-get ,cell)))
+
+(define-macro (global-cell-setter-get cell)
+  `(vector-ref ,cell 1))
+
+(define-macro (global-cell-setter-set! cell setter)
+  `(vector-set! ,cell 1 ,setter))
 
 (define-macro (global-cell-set-val! cell val)
-  `((vector-ref ,cell 1) ,val))
+  `((global-cell-setter-get ,cell) ,val))
 
 (define-macro (PyObject-global-elements-ref global index)
   `(global-cell-get-val (PyObject-elements-ref ,global ,index)))
@@ -459,7 +471,7 @@
           ($elements-len (vector-length $elements)))
      (if (fx>= $offset $elements-len)
          (let* (($new-len (max 1 (fx* 2 $offset)))
-                ($diff-len (- $new-len $elements-len))
+                ($diff-len (fx- $new-len $elements-len))
                 ($elements-new (make-vector $new-len)))
            ;; copy existing cells
            (subvector-move! $elements 0 $elements-len $elements-new 0)
@@ -471,8 +483,8 @@
                   (let* (($cell (vector #f #f py-absent))
                          ($getter (lambda () (vector-ref $cell 2)))
                          ($setter (lambda (val) (vector-set! $cell 2 val))))
-                    (set-car! $cell $getter)
-                    (set-cdr! $cell $setter)
+                    (global-cell-getter-set! $cell $getter)
+                    (global-cell-setter-set! $cell $setter)
                     $cell))
                (make-vector $diff-len))
              0
