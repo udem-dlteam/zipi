@@ -605,7 +605,9 @@
 
    (let ((decl (PycRef-decl this)))
       (if (config-get conf optim-globals:)
-	  `(or ,(scheme-decl-optim-global-name decl conf)
+    ;; TODO: this could be changed to using #f, but will require some reengineering of the rts attribute access
+	  `(if (not (eq? ,(scheme-decl-optim-global-name decl conf) py-absent))
+         ,(scheme-decl-optim-global-name decl conf)
 	       ,(ref decl))
 	  (ref decl))))
 
