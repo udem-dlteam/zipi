@@ -126,6 +126,8 @@
           ,(scheme-cache (PycDeclInit-cache declinit) declinit)))
       declinits))
 
+  (pyc-cache! ast conf)
+
   (let* ((semantics (sort-semantics (collect-semantics* ast conf))))
     (if (null? semantics)
       ;; normal compilation
