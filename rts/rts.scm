@@ -555,12 +555,6 @@
 (define (global-register! global name getter setter cache)
    (if (eq? (PyObject-hclass global) ;; TODO: should py-obj-hclass be used instead?
 	          (PCache-hclass cache))
-       ;; MS: 17feb21: if global-register! can override an already declared
-       ;; global variable, then before setting the new setter, the currently
-       ;; in use setter must be used a last time to invalidate the
-       ;; previously declared variable.
-       ;; OM: 18feb21: I'm not sure the above is still true, but I don't understand why
-       ;; it was before so I'll leave it here for now
        (vector-set!
          (PyObject-%elements global)
          (PCache-index cache)
