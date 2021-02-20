@@ -6265,7 +6265,7 @@
             (if last-module
                 (global-own-attr-put-no-cache! last-module (py-str-from-scheme (car name-split)) module))
             (if (pair? (cdr name-split))
-                (let ((module.__path__ (py-own-attr-ref module (& "__path__"))))
+                (let ((module.__path__ (global-own-attr-ref-no-cache module (& "__path__"))))
                  (if (eq? py-absent module.__path__)
                      (py-throw-exception-with-message
                        py-builtin-ModuleNotFoundError
