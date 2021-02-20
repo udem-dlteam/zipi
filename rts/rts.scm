@@ -3163,7 +3163,7 @@
 (define module.__setattr__
   (procedure->py-function
     module-setattr
-    (make-signature posonlyargs: (self name))))
+    (make-signature posonlyargs: (self name val))))
 
 
 ;; =============================================================================
