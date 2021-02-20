@@ -1071,7 +1071,9 @@
 (define-walk-method (scheme this::PycCall conf)
 
    (define (correct-arity? fun args)
-      (=fx (length (PycFun-args fun)) (length args)))
+      (=fx
+        (+ (length (PycFun-args fun)) (length (PycFun-posonlyargs fun)))
+        (length args)))
 
    (define (invoke-global fun args)
     (let ((f (PycCall-fun this)))
@@ -1332,8 +1334,8 @@
 ;; be compiled into scheme top-level definitions
 
 (define (fix-arity? fun)
-  (and (null? (PycFun-posonlyargs fun))
-       (not (PycDecl? (PycFun-vararg fun)))
+  (and (not (PycDecl? (PycFun-vararg fun)))
+       (not (PycDecl? (PycFun-kwarg fun)))
        (null? (PycFun-kwonlyargs fun))))
 
 (define (optimize-fun-decl? decl fun)
