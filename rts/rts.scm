@@ -2018,11 +2018,8 @@
 (define-macro (getattribute-from-obj-mro-with-owner-2cont obj name succeed fail)
   `(getattribute-from-cls-mro-with-owner-2cont (py-obj-cls ,obj) ,name ,succeed ,fail))
 
-;; Implements object.__getattribute__
-;;   Entry point of the getattr protocol
-;;   Look into the object's own attributes
-;;   Defer to getattribute-from-obj-mro if not found
 (define (object-getattribute obj name)
+  ;; TODO: add check that obj does not has it own getattribute method
   (let ((attr (py-own-attr-ref obj name)))
     (if (not (eq? attr py-absent))
         attr
@@ -2037,11 +2034,23 @@
                (py-obj-cls obj)
                (py-throw py-builtin-AttributeError)))))))
 
-;; The Python object object.__getattribute__
-(define py-object-getattribute
+(define object.__getattribute__
   (procedure->py-function
     object-getattribute
     (make-signature posonlyargs: (obj name))))
+
+(define (object-setattr obj name val)
+  ;; TODO: add check that obj does not has it own setattr method
+  (if (py-subtype-of-str? name)
+    (py-own-attr-set! obj name val)
+    (py-throw-exception-with-message
+     py-builtin-TypeError
+     "attribute name must be string")))
+
+(define object.__setattr__
+  (procedure->py-function
+    object-setattr
+    (make-signature posonlyargs: (obj name val))))
 
 ;; Implements type.__getattribute__
 (define (type-getattribute obj name)
@@ -2976,7 +2985,8 @@
     (py-own-attr-set! object-class (& "__module__") (&& "builtins"))
     (py-own-attr-set! object-class (& "__new__") object.__new__)
     (py-own-attr-set! object-class (& "__init__") object.__init__)
-    (py-own-attr-set! object-class (& "__getattribute__") py-object-getattribute)
+    (py-own-attr-set! object-class (& "__getattribute__") object.__getattribute__)
+    (py-own-attr-set! object-class (& "__setattr__") object.__setattr__)
     (py-own-attr-set! object-class (& "__repr__") object.__repr__)
     (py-own-attr-set! object-class (& "__str__") object.__str__)
     (py-own-attr-set! object-class (& "__dir__") object.__dir__)

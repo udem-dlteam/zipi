@@ -728,6 +728,7 @@ py-ne-fallback:normal
 py-ne-fallback:reflected
 py-ne-fallback:default
 py-getattribute-fallback
+py-setattribute-fallback
 py-getitem-fallback
 py-setitem-fallback
 py-delitem-fallback
