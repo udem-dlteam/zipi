@@ -276,7 +276,6 @@
            (global-register! ::PyObject name getter::procedure setter::procedure)
 
            ;; (object-get ::obj ::obj ::obj)
-           (object-put! ::PyObject ::obj ::obj ::obj)
            (getattribute-from-obj-mro-fallback ::obj ::obj)
 
            (py-make-module name)

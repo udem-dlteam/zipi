@@ -26,7 +26,6 @@
     global-get
     global-put!
     global-register!
-    object-put-no-cache!
     make-cell
     cell-ref
     cell-set!
@@ -137,7 +136,7 @@
     $py-obj-class-index
     py-obj-class-index-general
     py-getattribute
-    object-put!
+    py-setattribute
     py-own-attr-set!
     getattribute-from-obj-mro
 

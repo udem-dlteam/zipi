@@ -2064,9 +2064,6 @@
     type-getattribute
     (make-signature posonlyargs: (obj name))))
 
-(define (object-put! obj attr val cache)
-  (py-own-attr-set! obj attr val))
-
 (define (object-has obj attr)
    (>= (py-own-attr-index obj attr) 0))
 
@@ -3122,6 +3119,41 @@
   (procedure->py-function
     module-dir
     (make-signature posonlyargs: (self))))
+
+
+(define (module-getattribute self name)
+  (if (py-isinstance? self py-module-class)
+      (if (py-isinstance? name py-str-class)
+        (let ((val (global-own-attr-ref-no-cache self name)))
+          (if (eq? val py-absent)
+            (py-throw py-builtin-AttributeError)
+            val))
+        (py-throw-exception-with-message
+         py-builtin-TypeError
+         "attribute name must be string"))
+      (throw-returned-wrong-type "__getattribute__" self "not a module")))
+
+(define module.__getattribute__
+  (procedure->py-function
+    module-getattribute
+    (make-signature posonlyargs: (self name))))
+
+
+(define (module-setattr self name val)
+  (if (py-isinstance? self py-module-class)
+      (if (py-isinstance? name py-str-class)
+        (begin
+          (global-own-attr-put-no-cache! self name val)
+          py-None)
+        (py-throw-exception-with-message
+         py-builtin-TypeError
+         "attribute name must be string"))
+      (throw-returned-wrong-type "__setattr__" self "not a module")))
+
+(define module.__setattr__
+  (procedure->py-function
+    module-setattr
+    (make-signature posonlyargs: (self name))))
 
 
 ;; =============================================================================
@@ -5486,7 +5518,9 @@
      (&& "builtins")
      (list)
      py-module-hclass-of-instances
-     (& "__dir__") module.__dir__))
+     (& "__dir__") module.__dir__
+     (& "__getattribute__") module.__getattribute__
+     (& "__setattr__") module.__setattr__))
 
   (set! py-int-class
     (py-make-builtin-class
@@ -6056,13 +6090,13 @@
           py-module-class
           py-module-hclass-of-instances)))
     (PyObject-class-set! mod py-module-class)
-    (py-own-attr-set! mod (& "__builtins__") builtins-mod)
+    (global-own-attr-put-no-cache! mod (& "__builtins__") builtins-mod)
     mod))
 
 (define (py-make-module name)
   (let ((mod (py-make-global))
         (modules (sys.modules-get)))
-   (py-own-attr-set! mod (& "__name__") name)
+   (global-own-attr-put-no-cache! mod (& "__name__") name)
    (dict-setitem modules name mod)
    mod))
 
@@ -6083,13 +6117,13 @@
 
 (define (py-make-sys-mod)
   (let ((mod (py-make-global)))
-   (py-own-attr-set! mod (& "__name__") (&& "sys"))
-   (py-own-attr-set! mod (& "modules")
+   (global-own-attr-put-no-cache! mod (& "__name__") (&& "sys"))
+   (global-own-attr-put-no-cache! mod (& "modules")
                      (py-make-dict
                        (list
                          (cons (&& "sys") mod))))
 
-   (py-own-attr-set! mod (& "path")
+   (global-own-attr-put-no-cache! mod (& "path")
                      (py-make-list
                            (py-str-from-scheme zipi-stdlib-dir)))
        mod))
@@ -6097,10 +6131,10 @@
 (define sys-mod (py-make-sys-mod))
 
 (define (sys.modules-get)
-  (py-own-attr-ref sys-mod (& "modules")))
+  (global-own-attr-ref-no-cache sys-mod (& "modules")))
 
 (define (sys.path-get)
-  (py-own-attr-ref sys-mod (& "path")))
+  (global-own-attr-ref-no-cache sys-mod (& "path")))
 
 ;; == CACHE SYSTEM ==
 
@@ -6196,7 +6230,7 @@
          (path-package-info (file-info path-package #t #f)))
     (if path-package-info
         (let ((mod (compile-and-get-mod path-package path-package-info py-__name__)))
-         (py-own-attr-set! mod (& "__path__") (py-make-list (py-str-from-scheme path)))
+         (global-own-attr-put-no-cache! mod (& "__path__") (py-make-list (py-str-from-scheme path)))
          mod)
         (let* ((path-mod (string-append path ".py"))
                (path-mod-info (file-info path-mod #t #f)))
@@ -6229,7 +6263,7 @@
       (if (and module (py-isinstance? module py-module-class))
           (begin
             (if last-module
-                (py-own-attr-set! last-module (py-str-from-scheme (car name-split)) module))
+                (global-own-attr-put-no-cache! last-module (py-str-from-scheme (car name-split)) module))
             (if (pair? (cdr name-split))
                 (let ((module.__path__ (py-own-attr-ref module (& "__path__"))))
                  (if (eq? py-absent module.__path__)
@@ -6284,7 +6318,7 @@
 
 (define (make-time-mod)
   (let ((mod (py-make-module (&& "time"))))
-   (py-own-attr-set! mod (& "time") time.time)))
+   (global-own-attr-put-no-cache! mod (& "time") time.time)))
 
 (make-time-mod)
 
@@ -6302,8 +6336,8 @@
 
 (define (make-statprof-mod)
   (let ((mod (py-make-module (&& "statprof"))))
-   (py-own-attr-set! mod (& "begin") statprof.begin)
-   (py-own-attr-set! mod (& "end") statprof.end)))
+   (global-own-attr-put-no-cache! mod (& "begin") statprof.begin)
+   (global-own-attr-put-no-cache! mod (& "end") statprof.end)))
 
 (make-statprof-mod)
 

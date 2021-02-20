@@ -1499,6 +1499,10 @@
 (define-macro (py-getattribute obj attr)
   `(py-getattribute-fallback ,obj ,attr))
 
+;; TODO implement this semantics
+(define-macro (py-setattribute obj attr val)
+  `(py-own-attr-set! ,obj ,attr ,val))
+
 (define-macro (py-getitem obj item)
   `(py-getitem-fallback ,obj ,item))
 

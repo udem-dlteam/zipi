@@ -693,10 +693,8 @@
 	      (field (PycAccess-field axs))
 	      (val (scheme (PycAssig-rhs this) conf)))
 	  (epairify this
-	     `(object-put! ,(scheme obj conf) ,(pyc-propname field)
-		 ,(scheme (PycAssig-rhs this) conf)
-		 ,(scheme-cache (PycAccess-cache (PycAssig-lhs this))
-		     (PycAssig-lhs this))))))
+	     `(py-setattribute ,(scheme obj conf) ,(pyc-propname field)
+		 ,(scheme (PycAssig-rhs this) conf)))))
       ((isa? (PycAssig-lhs this) PycSlice)
        (let* ((axs (PycAssig-lhs this))
 	      (obj (PycSlice-obj axs))
