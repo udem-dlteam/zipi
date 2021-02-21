@@ -145,10 +145,12 @@
 
 	   (class PycRef::PycExpr
 	      (decl::PycVar (info '("jsonref" "notraverse")))
+        ctx
 	      (cache (default #f)))
 
 	   (class PycRefUnresolved::PycExpr
 	      id
+        ctx
 	      (cache (default #f)))
 
 	   (class PycAccess::PycExpr

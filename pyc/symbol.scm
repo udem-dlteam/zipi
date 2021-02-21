@@ -63,7 +63,7 @@
 
 (define-walk-method (resolve-global! this::PycRefUnresolved global-vars)
   (let ((var (global-store-get-or-create global-vars (PycRefUnresolved-id this))))
-    (new-PycRef var)))
+    (new-PycRef var (PycRefUnresolved-ctx this))))
 
 (define-walk-method (resolve-global! this::PycFun global-vars)
   (PycFun-defaults-set!
@@ -105,18 +105,20 @@
           (error "SyntaxError:" "duplicate argument in function definition:" (car ids))
           (loop (cdr ids)))))))
 
+(define (get-args-vars fun)
+  (append
+    (PycFun-posonlyargs fun)
+    (PycFun-args fun)
+    (PycFun-kwonlyargs fun)
+    (let ((vararg (PycFun-vararg fun)))
+      (if (PycVar? vararg) (list vararg) '()))
+    (let ((kwarg (PycFun-kwarg fun)))
+      (if (PycVar? kwarg) (list kwarg) '()))))
+
 (define-walk-method (resolve-top-level! this::PycFun global-env)
   (check-args-are-unique this)
 
-  (let* ((args-vars
-            (append
-              (PycFun-posonlyargs this)
-              (PycFun-args this)
-              (PycFun-kwonlyargs this)
-              (let ((vararg (PycFun-vararg this)))
-                (if (PycVar? vararg) (list vararg) '()))
-              (let ((kwarg (PycFun-kwarg this)))
-                (if (PycVar? kwarg) (list kwarg) '()))))
+  (let* ((args-vars (get-args-vars this))
          (local-env (make-var-store-from-lst)))
   (PycFun-body-set!
     (resolve-function-body!
@@ -125,11 +127,26 @@
       local-env
       (make-var-store 'free)))))
 
-;; TODO resolve-top-level! for PycClass
+(define-walk-method (resolve-top-level! this::PycFun global-env)
+  (check-args-are-unique this)
+  (PycClass-body-set!
+    (resolve-class-body!
+      (PycFun-body this)
+      global-env
+      (make-var-store 'local)
+      (make-var-store 'free)))))
 
 ;; ======================
 ;; Resolve function scope
 ;; ======================
 
 (define-walk-method (resolve-function-body! this::PycNode global-env local-env free-env)
+  (call-default-walker))
+
+
+;; ======================
+;; Resolve class scope
+;; ======================
+
+(define-walk-method (resolve-class-body! this::PycNode global-env local-env free-env)
   (call-default-walker))

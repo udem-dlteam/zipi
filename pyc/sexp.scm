@@ -107,7 +107,7 @@
             (annotation-names (car annotation-info))
             (annotation (cdr annotation-info)))
       (new-PycAssig
-        (new-PycRefUnresolved id)
+        (new-PycRefUnresolved id 'Store)
         (new-PycFun
           loc
           ;; args
@@ -152,7 +152,7 @@
      ;;       keyword* keywords,
      ;;       stmt* body,
      ;;       expr* decorator_list)
-     (new-PycAssig loc (new-PycRefUnresolved loc id)
+     (new-PycAssig loc (new-PycRefUnresolved loc id 'Store)
                    (new-PycClass loc
                                  (symbol->string id)
                                  (config-get conf module: "__main__")
@@ -188,7 +188,7 @@
                  (let ((ref (sexp (car targets) #f scope conf)))
                   (loop (cdr targets)
                         (cons (new-PycAssig loc ref
-                                            (new-PycRefUnresolved (PycNode-loc ref) id))
+                                            (new-PycRefUnresolved (PycNode-loc ref) id 'Store))
                               assigs))))))))
     ((AugAssign ?loc ?target ?op ?value . ?type_comment)
      ;; AugAssign(expr target, operator op, expr value)
@@ -361,9 +361,9 @@
     ((Name ?loc ?id ?ctx)
      ;; Name(identifier id, expr_context ctx)
      (case ctx
-       ((Load) (new-PycRefUnresolved loc id))
-       ((Store) (new-PycRefUnresolved loc id))
-       ((Del) (new-PycRefUnresolved loc id))
+       ((Load) (new-PycRefUnresolved loc id 'Load))
+       ((Store) (new-PycRefUnresolved loc id 'Store))
+       ((Del) (new-PycRefUnresolved loc id 'Del))
        (else (error "ctx" "Not implemented" ctx))))
     ((List ?loc ?elts ?ctx)
      ;; List(expr* elts, expr_context ctx)
@@ -440,34 +440,32 @@
         (sexp (car body) #f scope conf)
         (compile* loc (cdr body) tail scope conf)))))
 
-(define (import-prefix name)
-   (let* ((s (symbol->string name))
-	  (i (string-index s #\.)))
-      (if i
-	  (string->symbol (substring s 0 i))
-	  name)))
-
 (define (compile-import loc alias conf)
    (match-case alias
       ((?name #f)
+       ;; no alias
        (let ((name-split (string-split (symbol->string name) ".")))
         (if (pair? (cdr name-split))
+            ;; package import
             (new-PycSeq
               loc
               (list
+                ;; according to cPython: full import done before assignment
+                (new-PycImport loc (symbol->string name))
                 (new-PycAssig
                   loc
-                  (new-PycRefUnresolved loc (import-prefix name))
-                  (new-PycImport loc (car name-split)))
-                (new-PycImport loc (symbol->string name))))
+                  (new-PycRefUnresolved loc (car name-split) 'Store)
+                  (new-PycImport loc (car name-split)))))
+            ;; module import
             (new-PycAssig
               loc
-              (new-PycRefUnresolved loc (import-prefix name))
+              (new-PycRefUnresolved loc name 'Store)
               (new-PycImport loc (symbol->string name))))))
       ((?name ?sym)
+       ;; alias
        (new-PycAssig
          loc
-         (new-PycRefUnresolved loc sym)
+         (new-PycRefUnresolved loc sym 'Store)
          (new-PycImport loc (symbol->string name))))
       (else
        (error "import" "Unsupported form" alias))))
@@ -485,11 +483,11 @@
               (match-case alias
                 ((?name #f)
                  (new-PycAssig loc
-                   (new-PycRefUnresolved loc name)
+                   (new-PycRefUnresolved loc name 'Store)
                    (new-PycAccess loc (new-PycRef loc module-ref) name)))
                 ((?name ?sym)
                  (new-PycAssig loc
-                   (new-PycRefUnresolved loc sym)
+                   (new-PycRefUnresolved loc sym 'Store)
                    (new-PycAccess loc (new-PycRef loc module-ref) name)))
                 (else
                   (error "import-from" "Unsupported form" alias))))
