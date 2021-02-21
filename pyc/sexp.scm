@@ -472,23 +472,25 @@
 
 (define (compile-import-from loc module aliases level conf)
   (let ((base (string-append (symbol->string module) "."))
-        (module-ref
-          (new-PycVar
-             loc '%mod 'block
-             (new-PycImport loc (symbol->string module)))))
+        (module-ref (new-PycVar loc '%mod 'block))
+        (module-assig
+          (new-PycAssig
+            loc
+            (new-PycRef loc module-ref 'Store)
+            (new-PycImport loc (symbol->string module)))))
    (new-PycBlock loc
-     (list module-ref)
+     (list module-assig)
      (new-PycSeq loc
        (map (lambda (alias)
               (match-case alias
                 ((?name #f)
                  (new-PycAssig loc
                    (new-PycRefUnresolved loc name 'Store)
-                   (new-PycAccess loc (new-PycRef loc module-ref) name)))
+                   (new-PycAccess loc (new-PycRef loc module-ref 'Load) name)))
                 ((?name ?sym)
                  (new-PycAssig loc
                    (new-PycRefUnresolved loc sym 'Store)
-                   (new-PycAccess loc (new-PycRef loc module-ref) name)))
+                   (new-PycAccess loc (new-PycRef loc module-ref 'Load) name)))
                 (else
                   (error "import-from" "Unsupported form" alias))))
             aliases)))))

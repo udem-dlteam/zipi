@@ -7,54 +7,69 @@
 ;; Manage compile time environments
 ;; ================================
 
-(define (make-var-store-from-lst scope lst)
+(define (make-var-env-from-lst scope lst)
   (cons scope lst))
 
-(define (make-var-store scope)
-  (make-var-store-from-lst scope '()))
+(define (make-var-env scope)
+  (make-var-env-from-lst scope '()))
 
-(define (var-store-get vars id scope create-if-not-exists)
-  (if (eq? scope (car vars))
-    (let ((var-lst (cdr vars)))
-      (let loop ((lst var-lst))
-        (if (null? lst)
-          (if create-if-not-exists
-            ;; var does not exist, create an entry
-            (let ((var (new-PycVar id scope)))
-              (set-cdr! vars (cons var var-lst)))
-            #f)
-          ;; look for the var in the lst
-          (if (eq? (PycVar-id (car lst)) id)
-            (car lst)
-            (loop (cdr lst)))))))
-    (error "var-store-get" "attempting to get var from wrong store" (car vars) scope))
+(define (var-env-get vars id scope-to-create-if-not-exists)
+  (let ((var-lst (cdr vars)))
+    (let loop ((lst var-lst))
+      (if (null? lst)
+        (if scope-to-create-if-not-exists
+          ;; var does not exist, create an entry
+          (let ((var (new-PycVar id scope-to-create-if-not-exists)))
+            (set-cdr! vars (cons var var-lst)))
+          #f)
+        ;; look for the var in the lst
+        (if (eq? (PycVar-id (car lst)) id)
+          (car lst)
+          (loop (cdr lst)))))))
 
-(define (global-store-get vars id)
-  (var-store-get vars id 'global #f)
+(define (env-get vars id)
+  (let ((var-lst (cdr vars)))
+    (let loop ((lst var-lst))
+      (if (null? lst)
+        #f
+        ;; look for the var in the lst
+        (if (eq? (PycVar-id (car lst)) id)
+          (car lst)
+          (loop (cdr lst)))))))
 
-(define (global-store-get-or-create vars id)
-  (var-store-get vars id 'global #t)
+(define (env-get-or-create vars id scope)
+  (let ((var-lst (cdr vars)))
+    (let loop ((lst var-lst))
+      (if (null? lst)
+        (env-add-id vars id scope)
+        (if (eq? (PycVar-id (car lst)) id)
+          (car lst)
+          (loop (cdr lst)))))))
 
-(define (local-store-get vars id)
-  (var-store-get vars id 'local #f)
+(define (env-add-id vars id scope)
+  ;; Does not check for existence, use get-or-create
+  ;; if you want to check if var already in env first
+  (let ((var (new-PycVar id scope-to-create-if-not-exists)))
+    (env-add-PycVar vars var)))
 
-(define (local-store-get-or-create vars id)
-  (var-store-get vars id 'local #t)
+(define (env-add-PycVar vars v)
+  ;; Does not check for existence, use get-or-create
+  ;; if you want to check if var already in env first
+  (set-cdr! vars (cons v (cdr vars)))
+  v)
 
-(define (free-store-get vars id)
-  (var-store-get vars id 'free #f)
-
-;; class scope is special in the sense that it declarations in this scope
-;; cannot be accessed from a closure
-(define (class-store-get vars id)
-  (var-store-get vars id 'class)
+(define (env-add-custom vars o)
+  ;; Does not check for existence, use get-or-create
+  ;; if you want to check if var already in env first
+  (set-cdr! vars (cons o (cdr vars)))
+  o)
 
 ;; ================================================================
 ;; Replace global PycUnresolved by PycRef and return list of PycVar
 ;; ================================================================
 
 (define (resolve-and-collect-globals! this)
-  (let* ((global-vars (make-var-store 'global)))
+  (let* ((global-vars (make-var-env 'global)))
     (resolve-global! this global-vars)
     global-vars))
 
@@ -62,7 +77,7 @@
   (call-default-walker))
 
 (define-walk-method (resolve-global! this::PycRefUnresolved global-vars)
-  (let ((var (global-store-get-or-create global-vars (PycRefUnresolved-id this))))
+  (let ((var (env-get-or-create global-vars (PycRefUnresolved-id this) 'global)))
     (new-PycRef var (PycRefUnresolved-ctx this))))
 
 (define-walk-method (resolve-global! this::PycFun global-vars)
@@ -119,30 +134,125 @@
   (check-args-are-unique this)
 
   (let* ((args-vars (get-args-vars this))
-         (local-env (make-var-store-from-lst)))
+         (local-env (make-var-env-from-lst)))
   (PycFun-body-set!
     (resolve-function-body!
       (PycFun-body this)
       global-env
       local-env
-      (make-var-store 'free)))))
+      (make-var-env 'free)))))
 
-(define-walk-method (resolve-top-level! this::PycFun global-env)
-  (check-args-are-unique this)
+(define-walk-method (resolve-top-level! this::PycClass global-env)
   (PycClass-body-set!
     (resolve-class-body!
       (PycFun-body this)
       global-env
-      (make-var-store 'local)
-      (make-var-store 'free)))))
+      (make-var-env 'local)
+      (make-var-env 'free))))
 
 ;; ======================
 ;; Resolve function scope
 ;; ======================
 
-(define-walk-method (resolve-function-body! this::PycNode global-env local-env free-env)
+(define (resolve-function-body! body global-env local-env free-env)
+  (let ((conts (make-var-env 'continuations)))
+    (resolve-function-body-assignments! body global-env local-env free-env (make-var-env 'seen) conts)
+    (resolve-function-body-refs! body global-env local-env free-env)
+    ;; now that the full scope has been analyzed we can recursively call nested scopes
+    (for-each (lambda (cont) (cont)) conts)
+    body))
+
+(define-walk-method (resolve-function-body-assignments! this::PycNode global-env local-env free-env seen-ids conts)
   (call-default-walker))
 
+(define-walk-method (resolve-function-body-assignments! this::PycSymbols global-env local-env free-env seen-ids conts)
+  (define (check-usage-prior-to-declaration symbols seen-ids)
+    ;; 'symbols' may be confusing here, it means a 'global' or 'nonlocal'
+    (let loop ((names (PycSymbols-names symbols)))
+      (cond
+        ((null? names)
+          #f)
+        ((env-get seen-ids (car names))
+          (error
+            "SyntaxError:" "name '"
+            (car names)
+            "' is used prior to "
+            (PycSymbols-scope symbols)
+            " declaration"))
+        (else
+          (loop (cdr names))))))
+
+  (check-usage-prior-to-declaration this seen-ids)
+  ;; At that point we are assured that the variable should not have been used yet
+  ;; and so should have no PycVar in local-env
+  (case (PycSymbols-scope this)
+    ((global)
+      (for-each
+        (lambda (n)
+          (let ((glo-var (env-get-or-create global-env n 'global)))
+            (env-add-PycVar local-env glo-var)))
+        (PycSymbols-names this)))
+    ((nonlocal)
+      (for-each
+        (lambda (n)
+          (let ((free-var (env-get free-env n)))
+            (if free-var
+              (env-add-PycVar local-env free-var)
+              (error "SyntaxError:" "no binding for nonlocal '" n "' found"))))
+        (PycSymbols-names this)))))
+
+(define-walk-method (resolve-function-body-assignments! this::PycRefUnresolved global-env local-env free-env seen-ids conts)
+  ;; seen env is a dummy env to detect that a global or nonlocal was not called after usage
+  (env-get-or-create seen-ids (PycRefUnresolved-id this) 'seen)
+  (case (PycRefUnresolved-ctx this)
+    ((Store Del)
+      (let ((local-var (env-get-or-create local-env (PycRefUnresolved-id this) 'local)))
+        (new-PycRef local-var 'Load)))
+    (else this)))
+
+(define-walk-method (resolve-function-body-assignments! this::PycFun global-env local-env free-env seen-ids conts)
+  (PycFun-defaults-set!
+    this
+    (map
+      (lambda (d)
+        (resolve-function-body-assignments! d global-env local-env free-env seen-ids conts))
+      (Pyc-defaults this)))
+  (PycFun-kw-defaults-set!
+    this
+    (map
+      (lambda (d)
+        (resolve-function-body-assignments! d global-env local-env free-env seen-ids conts))
+      (Pyc-kw-defaults this)))
+
+  ;; add the function to the continuations to analyze this function once done w/ this scope
+  (env-add-custom
+    cont
+    (lambda ()
+      (check-args-are-unique this)
+      (let* ((args-vars (get-args-vars this))
+             (nested-local-env (make-var-env-from-lst)))
+      (PycFun-body-set!
+        (resolve-function-body!
+          (PycFun-body this)
+          global-env
+          nested-local-env
+          (merge-envs 'free local-env free-env))))))
+  this)
+
+(define-walk-method (resolve-function-body-assignments! this::PycClass global-env local-env free-env seen-ids conts)
+  (PycClass-bases-set!
+    this
+    (map (lambda (d) (resolve-function-body-assignments! d global-vars)) (PycClass-bases this)))
+  (env-add-custom
+    cont
+    (lambda ()
+      (PycClass-body-set!
+        (resolve-class-body!
+          (PycFun-body this)
+          global-env
+          (make-var-env 'local)
+          (merge-envs 'free local-env free-env)))))
+  this)
 
 ;; ======================
 ;; Resolve class scope
