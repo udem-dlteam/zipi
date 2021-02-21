@@ -1,234 +1,135 @@
 ;; symbol resolution
 (define (pyc-symbol! this conf)
-   (let* ((env (collect* this 'global))
-	  (gla (collect-free* this #t '() 'global))
-	  (%env (cons '% env))
-	  (extras (filter-map (lambda (id)
-				 (unless (lookup-id (cdr %env) id )
-				    (new-PycDeclInit (PycNode-loc this)
-				       id 'global
-				       (new-PycUninit (PycNode-loc this)))))
-		     gla)))
-      (PycModule-stmts-set! this (append extras (PycModule-stmts this)))
-      (glodecl! this %env)
-      (resolve! this (append extras (cdr %env)) '() conf)))
+  (let* ((global-env (resolve-and-collect-globals! this)))
+    (resolve-top-level! this global-env)))
 
-;; collect declarations
-(define-walk-method (collect* this::PycNode scope)
-   (call-default-walker))
+;; ================================
+;; Manage compile time environments
+;; ================================
 
-(define-walk-method (collect* this::PycFun scope)
-   '())
+(define (make-var-store-from-lst scope lst)
+  (cons scope lst))
 
-(define-walk-method (collect* this::PycDecl scope)
-   (if (eq? (PycDecl-scope this) scope)
-       (list this)
-       '()))
+(define (make-var-store scope)
+  (make-var-store-from-lst scope '()))
 
-;; create all global declarations
-(define-walk-method (glodecl! this::PycNode %env)
-   (call-default-walker))
+(define (var-store-get vars id scope create-if-not-exists)
+  (if (eq? scope (car vars))
+    (let ((var-lst (cdr vars)))
+      (let loop ((lst var-lst))
+        (if (null? lst)
+          (if create-if-not-exists
+            ;; var does not exist, create an entry
+            (let ((var (new-PycVar id scope)))
+              (set-cdr! vars (cons var var-lst)))
+            #f)
+          ;; look for the var in the lst
+          (if (eq? (PycVar-id (car lst)) id)
+            (car lst)
+            (loop (cdr lst)))))))
+    (error "var-store-get" "attempting to get var from wrong store" (car vars) scope))
 
-(define-walk-method (glodecl! this::PycAssig %env)
-   (let ((lhs (PycAssig-lhs this)))
-      (cond
-	 ((not (PycRefUnresolved? lhs))
-	  (call-default-walker))
-	 ((lookup-id (cdr %env) (PycRefUnresolved-id lhs))
-	  (call-default-walker))
-	 (else
-	  (let ((decl (new-PycDeclInit (PycNode-loc this)
-			 (PycRefUnresolved-id lhs) 'global
-			 (glodecl! (PycAssig-rhs this) %env))))
-	     (set-cdr! %env (cons decl (cdr %env)))
-	     decl)))))
+(define (global-store-get vars id)
+  (var-store-get vars id 'global #f)
 
-(define-walk-method (glodecl! this::PycFun %env)
-   this)
+(define (global-store-get-or-create vars id)
+  (var-store-get vars id 'global #t)
 
-(define-walk-method (glodecl! this::PycClass %env)
-   this)
+(define (local-store-get vars id)
+  (var-store-get vars id 'local #f)
 
-;; symbol resolution
-(define-walk-method (resolve! this::PycNode env freeenv conf)
-   (call-default-walker))
+(define (local-store-get-or-create vars id)
+  (var-store-get vars id 'local #t)
 
-(define-walk-method (resolve! this::PycModule env freeenv conf)
-   (PycModule-globals-set! this env)
-   (call-default-walker))
+(define (free-store-get vars id)
+  (var-store-get vars id 'free #f)
 
-(define-walk-method (resolve! this::PycBlock env freeenv conf)
-   (let loop ((env env)
-	      (decls (PycBlock-decls this)))
-      (if (null? decls)
-	  (begin
-	     (PycBlock-body-set! this
-		(resolve! (PycBlock-body this) env freeenv conf))
-	     this)
-	  (let ((decl (car decls)))
-	     (PycDeclInit-val-set! decl
-		(resolve! (PycDeclInit-val decl) env freeenv conf))
-	     (loop (cons decl env) (cdr decls))))))
+;; class scope is special in the sense that it declarations in this scope
+;; cannot be accessed from a closure
+(define (class-store-get vars id)
+  (var-store-get vars id 'class)
 
-(define-walk-method (resolve! this::PycRefUnresolved env freeenv conf)
-   (let ((loc (PycNode-loc this)))
-      (let ((decl (lookup-id env (PycRefUnresolved-id this))))
-	 (if (PycDecl? decl)
-	     (new-PycRef loc decl)
-	     this))))
+;; ================================================================
+;; Replace global PycUnresolved by PycRef and return list of PycVar
+;; ================================================================
 
-(define-walk-method (resolve! this::PycFun env _ conf)
-  (let*
-   ((loc (PycNode-loc this))
-    (vararg (PycFun-vararg this))
-    (kwarg (PycFun-kwarg this))
-    (args
-      (append
-        (PycFun-posonlyargs this)
-        (PycFun-args this)
-        (if (PycDecl? vararg) (list vararg) '())
-        (PycFun-kwonlyargs this)
-        (if (PycDecl? kwarg) (list  kwarg) '())))
-	  (decls (collect* (PycFun-body this) 'local))
-	  (freeenv (collect-free* (PycFun-body this) #f '() '*))
-	  (aenv (collect-free-assig* (PycFun-body this)
-		   (append
-         decls
-         args
-          env)
-		   (cons '% freeenv)))
-	  (bdgs (map (lambda (decl)
-			(let ((loc (PycNode-loc decl)))
-			   (new-PycDeclInit loc (PycDecl-id decl) 'local
-			      (new-PycUninit loc))))
-		   (append aenv decls))))
-      (PycFun-decls-set! this bdgs)
-      (if (pair? bdgs)
-	  (PycFun-body-set! this
-	     (new-PycBlock loc
-		bdgs
-		(resolve! (PycFun-body this)
-		   (append bdgs args env) freeenv conf)))
-	  (PycFun-body-set! this
-	     (resolve! (PycFun-body this)
-		(append args env) freeenv conf)))
-      this))
+(define (resolve-and-collect-globals! this)
+  (let* ((global-vars (make-var-store 'global)))
+    (resolve-global! this global-vars)
+    global-vars))
 
-(define-walk-method (resolve! this::PycClass env freeenv conf)
-   (let* ((loc (PycNode-loc this))
-	  (decls (collect* (PycClass-body this) 'local))
-	  (aenv (collect-free-assig* (PycClass-body this)
-		   (append decls env)
-		   '(%)))
-	  (bdgs (map (lambda (decl)
-			(let ((loc (PycNode-loc decl)))
-			   (new-PycDeclInit loc (PycDecl-id decl) 'local
-			      (new-PycUninit loc))))
-		   (append aenv decls))))
-      (PycClass-decls-set! this bdgs)
-      (if (pair? bdgs)
-	  (PycClass-body-set! this
-	     (new-PycBlock loc
-		bdgs
-		(resolve! (PycClass-body this)
-		   (append bdgs env) freeenv conf)))
-	  (PycClass-body-set! this
-	     (resolve! (PycClass-body this) env freeenv conf)))
-      this))
+(define-walk-method (resolve-global! this::PycNode global-vars)
+  (call-default-walker))
 
-(define-walk-method (resolve! this::PycDeclInit env freeenv conf)
-   (if (eq? (PycDecl-scope this) 'local)
-       (let ((loc (PycNode-loc this)))
-	  ;; replace the declaration with an assignment
-	  (let ((decl (lookup-id env (PycDecl-id this))))
-	     (new-PycAssig loc (new-PycRef loc decl)
-		(resolve! (PycDeclInit-val this) env freeenv conf))))
-       (call-default-walker)))
+(define-walk-method (resolve-global! this::PycRefUnresolved global-vars)
+  (let ((var (global-store-get-or-create global-vars (PycRefUnresolved-id this))))
+    (new-PycRef var)))
 
-(define-walk-method (resolve! this::PycSymbols env global conf)
-   (new-PycPass (PycNode-loc this)))
+(define-walk-method (resolve-global! this::PycFun global-vars)
+  (PycFun-defaults-set!
+    this
+    (map (lambda (d) (resolve-global! d global-vars)) (Pyc-defaults this)))
+  (PycFun-kw-defaults-set!
+    this
+    (map (lambda (d) (resolve-global! d global-vars)) (Pyc-kw-defaults this)))
+  this)
 
-;; collect free variable assignments
-(define-walk-method (collect-free-assig* this::PycNode env freeenv)
-   (call-default-walker))
+(define-walk-method (resolve-global! this::PycClass global-vars)
+  (PycClass-bases-set!
+    this
+    (map (lambda (d) (resolve-global! d global-vars)) (PycClass-bases this)))
+  this)
 
-(define-walk-method (collect-free-assig* this::PycAssig env freeenv)
-   (cond
-      ((not (isa? (PycAssig-lhs this) PycRefUnresolved))
-       (call-default-walker))
-      ((memq (PycRefUnresolved-id (PycAssig-lhs this)) freeenv)
-       (error "symbol" "SyntaxError: name assigned before declaration"
-	  (pyc->list this)))
-      ((lookup-id env (PycRefUnresolved-id (PycAssig-lhs this)))
-       (collect-free-assig* (PycAssig-rhs this) env freeenv))
-      (else
-       (let* ((loc (PycNode-loc (PycAssig-lhs this)))
-	      (decl (new-PycDeclInit loc
-		       (PycRefUnresolved-id (PycAssig-lhs this))
-		       'local
-		       (new-PycUninit loc))))
-	  (cons decl
-	     (collect-free-assig* (PycAssig-rhs this)
-		(cons decl env) freeenv))))))
+;; ==================================================
+;; Search functions and class to resolve their scopes
+;; ==================================================
 
-(define-walk-method (collect-free-assig* this::PycWithItem env freeenv)
-  (let ((context-expr (PycWithItem-context-expr this))
-        (optional-vars (PycWithItem-optional-vars this)))
-    (if (isa? optional-vars PycRefUnresolved)
-      (let* ((loc (PycNode-loc this))
-             (decl
-               (new-PycDeclInit
-                 loc
-                 (PycRefUnresolved-id optional-vars)
-                 'local
-                 (new-PycUninit loc))))
-        (cons
-          decl
-          (collect-free-assig* context-expr env freeenv)))
-      (collect-free-assig* context-expr env freeenv))))
+(define-walk-method (resolve-top-level! this::PycNode global-env)
+  (call-default-walker))
 
-(define-walk-method (collect-free-assig* this::PycFor env freeenv)
-  (let ((n (PycFor-target this)))
-    (if (and (isa? n PycRefUnresolved)
-             (not (lookup-id env (PycRefUnresolved-id n))))
-      (let* ((loc (PycNode-loc this))
-            (decl
-              (new-PycDeclInit loc
-                (PycRefUnresolved-id n)
-                'local
-                (new-PycUninit loc))))
-        (cons
-          decl
-          (collect-free-assig* (PycLoop-body this) (cons decl env) freeenv)))
-      ;; no need to scan the iterators as they are plain expressions
-      (collect-free-assig* (PycLoop-body this) env freeenv))))
+(define (check-args-are-unique fun)
+  (let ((ids
+          (map
+            (lambda (a) (PycVar-id a))
+            (append
+              (PycFun-posonlyargs this)
+              (PycFun-args this)
+              (PycFun-kwonlyargs this)
+              (let ((vararg (PycFun-vararg this)))
+                (if (PycVar? vararg) (list vararg) '()))
+              (let ((kwarg (PycFun-kwarg this)))
+                (if (PycVar? kwarg) (list kwarg) '()))))))
+    (let loop ((ids ids))
+      (if (not (null? ids))
+        (if (memq (car ids) (cdr ids))
+          (error "SyntaxError:" "duplicate argument in function definition:" (car ids))
+          (loop (cdr ids)))))))
 
-(define-walk-method (collect-free-assig* this::PycSymbols env freeenv)
-   (for-each (lambda (id)
-		(set-cdr! freeenv (remq! id (cdr freeenv))))
-      (list-copy (PycSymbols-names this)))
-   '())
+(define-walk-method (resolve-top-level! this::PycFun global-env)
+  (check-args-are-unique this)
 
-;; collect variables declared in a global statement
-(define-walk-method (collect-free* this::PycNode rec env scope)
-   (call-default-walker))
+  (let* ((args-vars
+            (append
+              (PycFun-posonlyargs this)
+              (PycFun-args this)
+              (PycFun-kwonlyargs this)
+              (let ((vararg (PycFun-vararg this)))
+                (if (PycVar? vararg) (list vararg) '()))
+              (let ((kwarg (PycFun-kwarg this)))
+                (if (PycVar? kwarg) (list kwarg) '()))))
+         (local-env (make-var-store-from-lst)))
+  (PycFun-body-set!
+    (resolve-function-body!
+      (PycFun-body this)
+      global-env
+      local-env
+      (make-var-store 'free)))))
 
-(define-walk-method (collect-free* this::PycSymbols rec env scope)
-   (if (or (eq? (PycSymbols-scope this) scope) (eq? scope '*))
-       (delete-duplicates (append (PycSymbols-names this) env))
-       env))
+;; TODO resolve-top-level! for PycClass
 
-(define-walk-method (collect-free* this::PycFun rec env scope)
-   (if rec
-       (call-default-walker)
-       '()))
+;; ======================
+;; Resolve function scope
+;; ======================
 
-;; find a variable in the environment
-(define (lookup-id env id)
-   (let loop ((env env))
-      (cond
-	 ((null? env) #f)
-	 ((not (eq? (PycDecl-id (car env)) id)) (loop (cdr env)))
-	 ((eq? (PycDecl-scope (car env)) 'local) (car env))
-	 ((eq? (PycDecl-scope (car env)) 'block) (car env))
-	 (else (car env)))))
+(define-walk-method (resolve-function-body! this::PycNode global-env local-env free-env)
+  (call-default-walker))

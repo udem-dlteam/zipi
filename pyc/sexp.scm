@@ -61,34 +61,34 @@
        loc
        ;; args
        (map (lambda (a)
-              (new-PycDecl loc (car a) 'local))
+              (new-Var (car a) 'local))
             (car args))
        ;; posonlyargs
        (map (lambda (a)
-              (new-PycDecl loc (car a) 'local))
+              (new-Var (car a) 'local))
             (cadr args))
        ;; vararg
        (let ((a (caddr args)))
          (if a
-             (new-PycDecl loc (car a) 'local)
+             (new-Var (car a) 'local)
              (new-PycUninit loc)))
        ;; kwonlyargs
        (map (lambda (a)
-              (new-PycDecl loc (car a) 'local))
+              (new-Var (car a) 'local))
             (list-ref args 3))
        ;; kw-defaults
        (map (lambda (a)
-              (new-PycStmtExpr loc (sexp a tail scope conf)))
+              (sexp a tail scope conf))
             (list-ref args 4))
        ;; kwarg
        (let ((a (list-ref args 5)))
          (if a
-             (new-PycDecl loc (car a) 'local)
+             (new-Var (car a) 'local)
              (new-PycUninit loc)))
        ;; defaults
        (map
          (lambda (a)
-           (new-PycStmtExpr loc (sexp a tail scope conf)))
+           (sexp a tail scope conf))
          (list-ref args 6))
 
        ;; body
@@ -106,45 +106,46 @@
      (let* ((annotation-info (collect-annotation-info args loc scope conf))
             (annotation-names (car annotation-info))
             (annotation (cdr annotation-info)))
-     (new-PycDeclInit loc id scope
-       (new-PycFun
-         loc
-         ;; args
-         (map (lambda (a)
-                (new-PycDecl loc (car a) 'local))
-              (car args))
-         ;; posonlyargs
-         (map (lambda (a)
-                (new-PycDecl loc (car a) 'local))
-              (cadr args))
-         ;; vararg
-         (let ((a (caddr args)))
-           (if a
-               (new-PycDecl loc (car a) 'local)
-               (new-PycUninit loc)))
-         ;; kwonlyargs
-         (map (lambda (a)
-                (new-PycDecl loc (car a) 'local))
-              (list-ref args 3))
-         ;; kw-defaults
-         (map (lambda (a)
-                (new-PycStmtExpr loc (sexp a tail scope conf)))
-              (list-ref args 4))
-         ;; kwarg
-         (let ((a (list-ref args 5)))
-           (if a
-               (new-PycDecl loc (car a) 'local)
-               (new-PycUninit loc)))
-         ;; defaults
-         (map (lambda (a)
-                (new-PycStmtExpr loc (sexp a tail scope conf)))
-              (list-ref args 6))
-         (compile-stmt* loc body #t 'local conf)
-         decorators: (map
-                       (lambda (d) (sexp d #f scope conf)) decorator_list)
-         name: id
-         annotation: annotation
-         annotation-names: annotation-names))))
+      (new-PycAssig
+        (new-PycRefUnresolved id)
+        (new-PycFun
+          loc
+          ;; args
+          (map (lambda (a)
+                 (new-PycVar (car a) 'local))
+               (car args))
+          ;; posonlyargs
+          (map (lambda (a)
+                 (new-PycVar (car a) 'local))
+               (cadr args))
+          ;; vararg
+          (let ((a (caddr args)))
+            (if a
+                (new-PycVar (car a) 'local)
+                (new-PycUninit loc)))
+          ;; kwonlyargs
+          (map (lambda (a)
+                 (new-PycVar (car a) 'local))
+               (list-ref args 3))
+          ;; kw-defaults
+          (map (lambda (a)
+                 (sexp a tail scope conf))
+               (list-ref args 4))
+          ;; kwarg
+          (let ((a (list-ref args 5)))
+            (if a
+                (new-PycVar (car a) 'local)
+                (new-PycUninit loc)))
+          ;; defaults
+          (map (lambda (a)
+                 (sexp a tail scope conf))
+               (list-ref args 6))
+          (compile-stmt* loc body #t 'local conf)
+          decorators: (map
+                        (lambda (d) (sexp d #f scope conf)) decorator_list)
+          name: id
+          annotation: annotation
+          annotation-names: annotation-names)))
     ((ClassDef ?loc ?id ?bases ?keywords ?body ?decorator_list)
      ;; ClassDef(identifier name,
      ;;       expr* bases,
