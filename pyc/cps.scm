@@ -99,8 +99,8 @@
 (define-walk-method (cps this::PycYield k pack kbreaks kcontinues ktry fun)
 
    (define (make-yield-kont k loc)
-      (let* ((arg (new-PycDecl loc (gensym '%arg) 'local))
-	     (exn (new-PycDecl loc (gensym '%exn) 'local))
+      (let* ((arg (new-PycVar loc (gensym '%arg) 'local))
+	     (exn (new-PycVar loc (gensym '%exn) 'local))
 	     (body (kcall k (new-PycRef loc arg)))
 	     (cont (new-PycIf loc
 		      (new-PycBinary loc 'is
@@ -108,7 +108,7 @@
 		      (new-PycRaise loc (new-PycRef loc arg) (new-PycUninit loc))
 		      body)))
 	 (new-PycKont loc arg exn (pack cont))))
-   
+
    (let* ((loc (PycNode-loc this))
 	  (val (PycYield-val this))
 	  (gen (PycYield-generator this))
@@ -170,7 +170,7 @@
 	  (kcall k this)))))
 
 (define-walk-method (cps this::PycSeq k pack kbreaks kcontinues ktry fun)
-   
+
    (define (pack-seq this prev res)
       (if (pair? prev)
 	  (set-cdr! prev (list res))
@@ -184,7 +184,7 @@
 		  this)
 	      (car (PycSeq-nodes this)))
 	  this))
-   
+
    (let ((loc (PycNode-loc this)))
       (let loop ((walk (PycSeq-nodes this))
 		 (pnodes '()))
@@ -208,6 +208,8 @@
 		      this k)
 		   pack kbreaks kcontinues ktry fun)))))))
 
+;; TODO: OM Feb 22 2021: this will no longer work after the scoping update of feb 21
+;; I did not fix it because I am not sure it worked previously anyway
 (define-walk-method (cps this::PycBlock k pack kbreaks kcontinues ktry fun)
    (let loop ((wdecls (PycBlock-decls this))
 	      (pdecls '())
@@ -222,13 +224,13 @@
 	  (loop (cdr wdecls) wdecls
 	     (if (pair? sdecls) sdecls wdecls)))
 	 (else
-	  (PycDecl-scope-set! (car wdecls) 'kont)
+	  (PycVar-scope-set! (car wdecls) 'kont)
 	  (let* ((y (cps (car wdecls)
 		       (KontStmt (lambda (ndecl)
 				    (cond
 				       ((null? (cdr wdecls))
 					(new-PycBlock (PycNode-loc this)
-					   (list ndecl) 
+					   (list ndecl)
 					   (cps (PycBlock-body this)
 					      k pack kbreaks kcontinues
 					      ktry fun)))
@@ -276,4 +278,3 @@
 ;*       (if (assq target kcontinues)                                  */
 ;* 	  (list this)                                                  */
 ;* 	  '())))                                                       */
-
