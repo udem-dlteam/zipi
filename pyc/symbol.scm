@@ -64,6 +64,9 @@
   (set-cdr! vars (cons o (cdr vars)))
   o)
 
+(define (merge-envs scope . envs)
+  (make-env-from-lst scope (apply append (map cdr envs))))
+
 ;; ================================================================
 ;; Replace global PycUnresolved by PycRef and return list of PycVar
 ;; ================================================================
@@ -150,22 +153,30 @@
       (make-var-env 'local)
       (make-var-env 'free))))
 
-;; ======================
-;; Resolve function scope
-;; ======================
+;; ==============
+;; Resolve scopes
+;; ==============
 
 (define (resolve-function-body! body global-env local-env free-env)
   (let ((conts (make-var-env 'continuations)))
-    (resolve-function-body-assignments! body global-env local-env free-env (make-var-env 'seen) conts)
-    (resolve-function-body-refs! body global-env local-env free-env)
+    (resolve-body-assignments! body 'function global-env local-env free-env (make-var-env 'seen) conts)
+    (resolve-body-refs! body 'function global-env local-env free-env)
     ;; now that the full scope has been analyzed we can recursively call nested scopes
     (for-each (lambda (cont) (cont)) conts)
     body))
 
-(define-walk-method (resolve-function-body-assignments! this::PycNode global-env local-env free-env seen-ids conts)
+(define (resolve-class-body! body global-env local-env free-env)
+  (let ((conts (make-var-env 'continuations)))
+    (resolve-body-assignments! body 'class global-env local-env free-env (make-var-env 'seen) conts)
+    (resolve-body-refs! body 'class global-env local-env free-env)
+    ;; now that the full scope has been analyzed we can recursively call nested scopes
+    (for-each (lambda (cont) (cont)) conts)
+    body))
+
+(define-walk-method (resolve-body-assignments! this::PycNode kind global-env local-env free-env seen-ids conts)
   (call-default-walker))
 
-(define-walk-method (resolve-function-body-assignments! this::PycSymbols global-env local-env free-env seen-ids conts)
+(define-walk-method (resolve-body-assignments! this::PycSymbols kind global-env local-env free-env seen-ids conts)
   (define (check-usage-prior-to-declaration symbols seen-ids)
     ;; 'symbols' may be confusing here, it means a 'global' or 'nonlocal'
     (let loop ((names (PycSymbols-names symbols)))
@@ -201,7 +212,7 @@
               (error "SyntaxError:" "no binding for nonlocal '" n "' found"))))
         (PycSymbols-names this)))))
 
-(define-walk-method (resolve-function-body-assignments! this::PycRefUnresolved global-env local-env free-env seen-ids conts)
+(define-walk-method (resolve-body-assignments! this::PycRefUnresolved global-env kind local-env free-env seen-ids conts)
   ;; seen env is a dummy env to detect that a global or nonlocal was not called after usage
   (env-get-or-create seen-ids (PycRefUnresolved-id this) 'seen)
   (case (PycRefUnresolved-ctx this)
@@ -210,18 +221,18 @@
         (new-PycRef local-var 'Load)))
     (else this)))
 
-(define-walk-method (resolve-function-body-assignments! this::PycFun global-env local-env free-env seen-ids conts)
+(define-walk-method (resolve-body-assignments! this::PycFun kind global-env local-env free-env seen-ids conts)
   (PycFun-defaults-set!
     this
     (map
       (lambda (d)
-        (resolve-function-body-assignments! d global-env local-env free-env seen-ids conts))
+        (resolve-body-assignments! d 'function global-env local-env free-env seen-ids conts))
       (Pyc-defaults this)))
   (PycFun-kw-defaults-set!
     this
     (map
       (lambda (d)
-        (resolve-function-body-assignments! d global-env local-env free-env seen-ids conts))
+        (resolve-body-assignments! d 'function global-env local-env free-env seen-ids conts))
       (Pyc-kw-defaults this)))
 
   ;; add the function to the continuations to analyze this function once done w/ this scope
@@ -231,19 +242,25 @@
       (check-args-are-unique this)
       (let* ((args-vars (get-args-vars this))
              (nested-local-env (make-var-env-from-lst)))
-      (PycFun-body-set!
-        (resolve-function-body!
-          (PycFun-body this)
-          global-env
-          nested-local-env
-          (merge-envs 'free local-env free-env))))))
+        (PycFun-body-set!
+          (resolve-function-body!
+            (PycFun-body this)
+            global-env
+            nested-local-env
+            (case kind
+              ((function)
+                (merge-envs 'free local-env free-env))
+              ((class
+                free-env))
+              (else
+                (error "resolve-body-assignments!::::PycFun" "wrong kind of env" kind))))))))
   this)
 
-(define-walk-method (resolve-function-body-assignments! this::PycClass global-env local-env free-env seen-ids conts)
+(define-walk-method (resolve-body-assignments! this::PycClass kind global-env local-env free-env seen-ids conts)
   (PycClass-bases-set!
     this
     (map
-      (lambda (d) (resolve-function-body-assignments! d global-vars local-env free-env seen-ids conts))
+      (lambda (d) (resolve-body-assignments! d 'class global-vars local-env free-env seen-ids conts))
       (PycClass-bases this)))
   (env-add-custom
     cont
@@ -253,15 +270,21 @@
           (PycFun-body this)
           global-env
           (make-var-env 'local)
-          (merge-envs 'free local-env free-env)))))
+          (case kind
+            ((function)
+              (merge-envs 'free local-env free-env))
+            ((class
+              free-env))
+            (else
+              (error "resolve-body-assignments!::::PycFun" "wrong kind of env" kind)))))))
   this)
 
 ;; resolve for refs
 
-(define-macro (resolve-function-body-refs! this::PycNode global-env local-env free-env)
+(define-macro (resolve-body-refs! this::PycNode kind global-env local-env free-env)
   (call-default-walker))
 
-(define-walk-method (resolve-function-body-refs! this::PycRefUnresolved global-env local-env free-env)
+(define-walk-method (resolve-body-refs! this::PycRefUnresolved kind global-env local-env free-env)
   (let ((id (PycRefUnresolved-id this)))
     (case (PycRefUnresolved-ctx this)
       ((Load)
@@ -273,30 +296,23 @@
             this)))
       (else this))))
 
-(define-walk-method (resolve-function-body-refs! this::PycFun global-env local-env free-env)
+(define-walk-method (resolve-body-refs! this::PycFun kind global-env local-env free-env)
   (PycFun-defaults-set!
     this
     (map
       (lambda (d)
-        (resolve-function-body-refs! d global-env local-env free-env))
+        (resolve-body-refs! d 'function global-env local-env free-env))
       (Pyc-defaults this)))
   (PycFun-kw-defaults-set!
     this
     (map
       (lambda (d)
-        (resolve-function-body-refs! d global-env local-env free-env))
+        (resolve-body-refs! d 'function global-env local-env free-env))
       (Pyc-kw-defaults this)))
   this)
 
-(define-walk-method (resolve-function-body-refs! this::PycClass global-env local-env free-env)
+(define-walk-method (resolve-body-refs! this::PycClass kind global-env local-env free-env)
   (PycClass-bases-set!
     this
-    (map (lambda (d) (resolve-function-body-refs! d global-env local-env free-env)) (PycClass-bases this)))
+    (map (lambda (d) (resolve-body-refs! d 'class global-env local-env free-env)) (PycClass-bases this)))
   this)
-
-;; ======================
-;; Resolve class scope
-;; ======================
-
-(define-walk-method (resolve-class-body! this::PycNode global-env local-env free-env)
-  (call-default-walker))
