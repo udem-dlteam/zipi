@@ -178,18 +178,25 @@
          (new-PycAssig loc
                        (sexp (car targets) #f scope conf)
                        (sexp value #f scope conf))
-         (let* ((id (gensym 'tmp))
-                (var (new-PycVar loc id 'block (sexp value #f scope conf))))
+         (let* ((id (gensym '%tmp))
+                (block-var (new-PycVar loc id 'block))
+                (block-assig
+                  (new-PycAssig
+                    loc
+                    (new-PycRef loc block-var 'Store)
+                    (sexp value #f scope conf))))
            (let loop ((targets targets)
                       (assigs '()))
              (if (null? targets)
-                 (new-PycBlock loc (list var)
-                               (new-PycSeq loc assigs))
-                 (let ((ref (sexp (car targets) #f scope conf)))
+                 (new-PycBlock loc (list block-assig) (new-PycSeq loc assigs))
+                 (let ((target (sexp (car targets) #f scope conf)))
                   (loop (cdr targets)
-                        (cons (new-PycAssig loc ref
-                                            (new-PycRefUnresolved (PycNode-loc ref) id 'Store))
-                              assigs))))))))
+                        (cons
+                          (new-PycAssig
+                            loc
+                            target
+                            (new-PycRef (PycNode-loc target) block-var 'Store))
+                          assigs))))))))
     ((AugAssign ?loc ?target ?op ?value . ?type_comment)
      ;; AugAssign(expr target, operator op, expr value)
      (new-PycAugAssig loc
@@ -472,11 +479,11 @@
 
 (define (compile-import-from loc module aliases level conf)
   (let ((base (string-append (symbol->string module) "."))
-        (module-ref (new-PycVar loc '%mod 'block))
+        (module-var (new-PycVar loc '%mod 'block))
         (module-assig
           (new-PycAssig
             loc
-            (new-PycRef loc module-ref 'Store)
+            (new-PycRef loc module-var 'Store)
             (new-PycImport loc (symbol->string module)))))
    (new-PycBlock loc
      (list module-assig)
@@ -486,11 +493,11 @@
                 ((?name #f)
                  (new-PycAssig loc
                    (new-PycRefUnresolved loc name 'Store)
-                   (new-PycAccess loc (new-PycRef loc module-ref 'Load) name)))
+                   (new-PycAccess loc (new-PycRef loc module-var 'Load) name)))
                 ((?name ?sym)
                  (new-PycAssig loc
                    (new-PycRefUnresolved loc sym 'Store)
-                   (new-PycAccess loc (new-PycRef loc module-ref 'Load) name)))
+                   (new-PycAccess loc (new-PycRef loc module-var 'Load) name)))
                 (else
                   (error "import-from" "Unsupported form" alias))))
             aliases)))))

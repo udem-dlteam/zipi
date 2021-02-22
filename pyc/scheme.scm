@@ -577,23 +577,27 @@
 (define-walk-method (scheme this::PycContinue conf)
    (epairify this '(%continue #f)))
 
-(define (scheme-decl this conf)
-   (unless (PycDecl-name this)
-      (PycDecl-name-set! this
-	 (symbol-append (PycDecl-id this)
-	    '-
-	    (string->symbol (number->string (PycDecl-key this))))))
-   (PycDecl-name this))
+(define (scheme-var-name var conf)
+  (let ((current-name (PycVar-name var)))
+    (if current-name
+      current
+      (let* ((name
+               (symbol-append
+                 (PycDecl-id this)
+          	     '-
+          	     (string->symbol (number->string (PycVar-key this))))))
+        (PycDecl-name-set! this name)
+        name))))
 
 (define (scheme-decl-optim-global-name this conf)
-   (let ((scheme-name (scheme-decl this conf)))
+   (let ((scheme-name (scheme-var-name this conf)))
       (symbol-append '@ scheme-name)))
 
 (define (scheme-decl-optim-global-name-init this conf)
    (symbol-append (scheme-decl-optim-global-name this conf) '-init))
 
 (define (scheme-decl-function-name this conf)
-   (let ((scheme-name (scheme-decl this conf)))
+   (let ((scheme-name (scheme-var-name this conf)))
       (symbol-append '& scheme-name)))
 
 (define (scheme-ref-global this conf)
@@ -658,74 +662,69 @@
       ((symbol? name) `(& ,(symbol->string name)))
       (else (error "pyc-propname" "Wrong property name" name))))
 
-(define-walk-method (scheme this::PycDecl conf)
-   (scheme-decl this conf))
-
-(define-walk-method (scheme this::PycDeclInit conf)
-   (let ((val (scheme (PycDeclInit-val this) conf)))
-      (epairify this
-	 (if (eq? (PycDecl-scope this) 'local)
-	     `(set! ,(scheme-decl this conf) ,val)
-	     (scheme-declinit-global this val conf)))))
-
 (define-walk-method (scheme this::PycAssig conf)
-   (cond
-      ((isa? (PycAssig-lhs this) PycRef)
-       (let* ((ref (PycAssig-lhs this))
-	      (decl (PycRef-decl ref))
-	      (val (scheme (PycAssig-rhs this) conf)))
-	  (epairify this
-	     (case (PycDecl-scope decl)
-		((global)
-		 (scheme-assig-global this ref decl val conf))
-		(else
-		 `(set! ,(scheme-decl decl conf) ,val))))))
-      ((isa? (PycAssig-lhs this) PycRefUnresolved)
-       (let* ((ref (PycAssig-lhs this))
-	      (val (scheme (PycAssig-rhs this) conf)))
-	  (epairify this
-	     `(global-put! %global ,(pyc-propname (PycRefUnresolved-id ref)) ,val
-		 ,(scheme-cache (PycRefUnresolved-cache (PycAssig-lhs this))
-		     (PycAssig-lhs this))))))
-      ((isa? (PycAssig-lhs this) PycAccess)
-       (let* ((axs (PycAssig-lhs this))
-	      (obj (PycAccess-obj axs))
-	      (field (PycAccess-field axs))
-	      (val (scheme (PycAssig-rhs this) conf)))
-	  (epairify this
-	     `(py-setattribute ,(scheme obj conf) ,(pyc-propname field)
-		 ,(scheme (PycAssig-rhs this) conf)))))
-      ((isa? (PycAssig-lhs this) PycSlice)
-       (let* ((axs (PycAssig-lhs this))
-	      (obj (PycSlice-obj axs))
-	      (lower (PycSlice-lower axs))
-	      (upper (PycSlice-upper axs))
-	      (step (PycSlice-step axs))
-	      (val (scheme (PycAssig-rhs this) conf)))
-	  (epairify this
-	     `(py-setitem
-		 ,(scheme obj conf)
-		 (py-slice-from-scheme
-		    ,(if (PycUninit? lower) 'py-None (scheme lower conf))
-		    ,(if (PycUninit? upper) 'py-None (scheme upper conf))
-		    ,(if (PycUninit? step) 'py-None (scheme step conf)))
-		 ,val))))
-      ((isa? (PycAssig-lhs this) PycSubscript)
-       (let* ((axs (PycAssig-lhs this))
-	      (obj (PycSubscript-obj axs))
-	      (index (PycSubscript-index axs))
-	      (val (scheme (PycAssig-rhs this) conf)))
-	  (epairify this
-	     `(py-setitem ,(scheme obj conf)
-		 ,(scheme index conf)
-		 ,(scheme (PycAssig-rhs this) conf)))))
-      ((isa? (PycAssig-lhs this) PycTuple)
-       `(py-throw-exception-with-message
-	   py-builtin-NotImplementedError
-	   "multiple assignations unimplemented at line "
-	   ,(number->string (car (PycNode-loc this)))))
+  (let ((lhs (PycAssig-lhs this))
+        (rhs (PycAssig-rhs this))
+        (val (scheme rhs conf)))
+    (cond
+      ;; foo = X
+      ;; reference which has been resolved (local or global)
+      ((isa? lhs PycRef)
+        (let* ((var (PycRef-decl lhs)))
+          (epairify this
+            (case (PycVar-scope var)
+              ((global)
+                (scheme-assig-global this ref decl val conf))
+              (else
+                `(set! ,(scheme-var-name decl conf) ,val))))))
+
+      ;; reference which is not resolved this should not happen
+      ;; because and assignment always allows resolving
+      ((isa? lhs PycRefUnresolved)
+        (error "scheme::PycAssig" "assignment to unresolved variable" lhs))
+
+      ;; obj.attr = X
+      ((isa? lhs PycAccess)
+        (let* ((obj (PycAccess-obj lhs))
+               (field (PycAccess-field lhs)))
+        (epairify this
+          `(py-setattribute
+            ,(scheme obj conf)
+            ,(pyc-propname field)
+            ,(scheme rhs conf)))))
+
+      ;; l[x:y:z] = X
+      ((isa? lhs PycSlice)
+        (let* ((obj (PycSlice-obj lhs))
+               (lower (PycSlice-lower lhs))
+               (upper (PycSlice-upper lhs))
+               (step (PycSlice-step lhs)))
+          (epairify this
+            `(py-setitem
+              ,(scheme obj conf)
+              (py-slice-from-scheme
+                ,(if (PycUninit? lower) 'py-None (scheme lower conf))
+                ,(if (PycUninit? upper) 'py-None (scheme upper conf))
+                ,(if (PycUninit? step) 'py-None (scheme step conf)))
+              ,val))))
+
+      ;; l[x] = X
+      ((isa? lhs PycSubscript)
+        (let* ((obj (PycSubscript-obj lhs))
+               (index (PycSubscript-index lhs)))
+        (epairify this
+          `(py-setitem
+            ,(scheme obj conf)
+            ,(scheme index conf)
+            ,(scheme rhs conf)))))
+
+      ((isa? lhs PycTuple)
+        `(py-throw-exception-with-message
+            py-builtin-NotImplementedError
+            "multiple assignations unimplemented at line "
+            ,(number->string (car (PycNode-loc this)))))
       (else
-       (error "scheme:PycAssig" "unknown assignation type" this))))
+        (error "scheme:PycAssig" "unknown assignment type" this)))))
 
 
 (define-walk-method (scheme this::PycAugAssig conf)
@@ -1023,43 +1022,49 @@
 	      ,(generator this body)))))
 
 (define-walk-method (scheme this::PycClass conf)
-   (define (make-HClass-name name)
-      (string->symbol (string-append "py-" name "-hclass-of-instances")))
+  (define (make-HClass-name name)
+    (string->symbol (string-append "py-" name "-hclass-of-instances")))
 
-   (define (pyc-class this::PycClass)
-     (let ((cls-symbol (PycClass-super-key this))
-           (is-builtin (PycClass-is-builtin this)))
+  (define (pyc-class this::PycClass)
+    (let ((cls-symbol (PycClass-super-key this))
+          (is-builtin (PycClass-is-builtin this)))
       (epairify this
-	 `(begin
-     ,(if is-builtin
-       `(set! ,cls-symbol (py-make-builtin-class
-    	     (&& ,(PycClass-name this))
-    	     (&& ,(PycClass-module this))
-    	     (list ,@(map (lambda (b) (scheme b conf)) (PycClass-bases this)))
-           ,(make-HClass-name (PycClass-name this))
-    	     ,@(append-map (lambda (decl)
-    			      `((& ,(symbol->string (PycDecl-id decl)))
-    				,(scheme-decl decl conf)))
-    		  (PycClass-decls this))))
-       `(set! ,cls-symbol (py-make-class
-    	     (&& ,(PycClass-name this))
-    	     (&& ,(PycClass-module this))
-    	     (list ,@(map (lambda (b) (scheme b conf)) (PycClass-bases this)))
-    	     ,@(append-map (lambda (decl)
-    			      `((& ,(symbol->string (PycDecl-id decl)))
-    				,(scheme-decl decl conf)))
-    		  (PycClass-decls this)))))
-      ,cls-symbol))))
+        `(begin
+          ,(if is-builtin
+            ;; builtin classes defined in he builtins.py
+            `(set! ,cls-symbol
+              (py-make-builtin-class
+                (&& ,(PycClass-name this))
+                (&& ,(PycClass-module this))
+                (list ,@(map (lambda (b) (scheme b conf)) (PycClass-bases this)))
+                ,(make-HClass-name (PycClass-name this))
+                ,@(append-map
+                  (lambda (var)
+                    `((& ,(symbol->string (PycVar-id var)))
+                      ,(scheme-var-name var conf)))
+                    (PycClass-decls this))))
+            ;; user-defined class
+            `(set! ,cls-symbol
+              (py-make-class
+                (&& ,(PycClass-name this))
+                (&& ,(PycClass-module this))
+                (list ,@(map (lambda (b) (scheme b conf)) (PycClass-bases this)))
+                ,@(append-map
+                  (lambda (var)
+                    `((& ,(symbol->string (PycVar-id var)))
+                    ,(scheme-var-name var conf)))
+                  (PycClass-decls this)))))
+                ,cls-symbol))))
 
-   (let ((body (scheme (PycClass-body this) conf)))
-     (let ((cls-symbol (PycClass-super-key this)))
-        (epairify this
-      `(let (( ,cls-symbol py-absent))
-  	 ,(match-case body
-  	    ((letrec* ?bindings . ?body)
-  	     `(letrec* ,bindings ,@body ,(pyc-class this)))
-  	    (else
-  	     `(begin ,body ,(pyc-class this)))))))))
+  (let* ((body (scheme (PycClass-body this) conf))
+         (cls-symbol (PycClass-super-key this)))
+    (epairify this
+      `(let ((,cls-symbol py-absent))
+        ,(match-case body
+          ((letrec* ?bindings . ?body)
+            `(letrec* ,bindings ,@body ,(pyc-class this)))
+          (else
+            `(begin ,body ,(pyc-class this))))))))
 
 (define-walk-method (scheme this::PycKont conf)
    (let ((param (scheme (PycKont-param this) conf))
