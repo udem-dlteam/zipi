@@ -107,6 +107,38 @@
 (define-walk-method (resolve-top-level! this::PycNode global-env)
   (call-default-walker))
 
+(define (get-args-vars fun)
+  (append
+    (PycFun-posonlyargs fun)
+    (PycFun-args fun)
+    (PycFun-kwonlyargs fun)
+    (let ((vararg (PycFun-vararg fun)))
+      (if (PycVar? vararg) (list vararg) '()))
+    (let ((kwarg (PycFun-kwarg fun)))
+      (if (PycVar? kwarg) (list kwarg) '()))))
+
+(define-walk-method (resolve-top-level! this::PycFun global-env)
+  (PycFun-body-set!
+    (resolve-function-body!
+      this
+      global-env
+      local-env
+      (make-var-env 'free)))
+  this)
+
+(define-walk-method (resolve-top-level! this::PycClass global-env)
+  (PycClass-body-set!
+    (resolve-class-body!
+      this
+      (PycClass-body this)
+      global-env
+      (make-var-env 'free)))
+  this)
+
+;; ==============
+;; Resolve scopes
+;; ==============
+
 (define (check-args-are-unique fun)
   (let ((ids
           (map
@@ -125,44 +157,16 @@
           (error "SyntaxError:" "duplicate argument in function definition:" (car ids))
           (loop (cdr ids)))))))
 
-(define (get-args-vars fun)
-  (append
-    (PycFun-posonlyargs fun)
-    (PycFun-args fun)
-    (PycFun-kwonlyargs fun)
-    (let ((vararg (PycFun-vararg fun)))
-      (if (PycVar? vararg) (list vararg) '()))
-    (let ((kwarg (PycFun-kwarg fun)))
-      (if (PycVar? kwarg) (list kwarg) '()))))
-
-(define-walk-method (resolve-top-level! this::PycFun global-env)
-  (check-args-are-unique this)
-
-  (let* ((args-vars (get-args-vars this))
-         (local-env (make-var-env-from-lst)))
-  (PycFun-body-set!
-    (resolve-function-body!
-      (PycFun-body this)
-      global-env
-      local-env
-      (make-var-env 'free)))))
-
-(define-walk-method (resolve-top-level! this::PycClass global-env)
-  (PycClass-body-set!
-    (resolve-class-body!
-      this
-      (PycClass-body this)
-      global-env
-      (make-var-env 'free))))
-
-;; ==============
-;; Resolve scopes
-;; ==============
-
-(define (resolve-function-body! body global-env local-env free-env)
-  (let ((conts (make-var-env 'continuations)))
+(define (resolve-function-body! fun global-env free-env)
+  (check-args-are-unique fun)
+  (let* ((body (PycFun-body fun))
+        (conts (make-var-env 'continuations))
+        (args-vars (get-args-vars this))
+        (local-env (make-var-env-from-lst 'local args-vars)))
     (resolve-body-assignments! body 'function global-env local-env free-env (make-var-env 'seen) conts)
     (resolve-body-refs! body 'function global-env local-env free-env)
+    ;; store function declarations
+    (PycFun-decls-set! (env->list local-env))
     ;; now that the full scope has been analyzed we can recursively call nested scopes
     (for-each (lambda (cont) (cont)) conts)
     body))
@@ -244,22 +248,18 @@
   (env-add-custom
     cont
     (lambda ()
-      (check-args-are-unique this)
-      (let* ((args-vars (get-args-vars this))
-             (nested-local-env (make-var-env-from-lst)))
-        (PycFun-body-set!
-          (resolve-function-body!
-            (PycFun-body this)
-            global-env
-            nested-local-env
-            (case kind
-              ((function)
-                ;; order is important, local should be on the left of the list so closest syntactic var is used
-                (merge-envs 'free local-env free-env))
-              ((class
-                free-env))
-              (else
-                (error "resolve-body-assignments!::::PycFun" "wrong kind of env" kind))))))))
+      (PycFun-body-set!
+        (resolve-function-body!
+          this
+          global-env
+          (case kind
+            ((function)
+              ;; order is important, local should be on the left of the list so closest syntactic var is used
+              (merge-envs 'free local-env free-env))
+            ((class
+              free-env))
+            (else
+              (error "resolve-body-assignments!::::PycFun" "wrong kind of env" kind)))))))
   this)
 
 (define-walk-method (resolve-body-assignments! this::PycClass kind global-env local-env free-env seen-ids conts)
