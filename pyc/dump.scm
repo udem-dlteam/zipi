@@ -47,18 +47,12 @@
      ,(pycnode->list (PycWith-items this))
      ,(pycnode->list (PycWith-body this))))
 
-(define-walk-method (pycnode->list this::PycDecl)
+(define-walk-method (pycnode->list this::PycVar)
    `(,(string->symbol (typeof this))
-     :scope ,(PycDecl-scope this)
-     :key ,(PycDecl-key this)
-     ,(PycDecl-id this)))
-
-(define-walk-method (pycnode->list this::PycDeclInit)
-   `(,(string->symbol (typeof this))
-     :scope ,(PycDecl-scope this)
-     :key ,(PycDecl-key this)
-     ,@(if (PycDecl-name this) `(:name ,(PycDecl-name this)) '())
-     ,(PycDecl-id this) ,(pycnode->list (PycDeclInit-val this))))
+     :scope ,(PycVar-scope this)
+     :key ,(PycVar-key this)
+     :name ,(PycVar-name this)
+     :id ,(PycVar-id this)))
 
 (define-walk-method (pycnode->list this::PycReturn)
    `(,(string->symbol (typeof this))
@@ -98,8 +92,8 @@
 
 (define-walk-method (pycnode->list this::PycRef)
    `(,(string->symbol (typeof this))
-     :key ,(PycDecl-key (PycRef-decl this))
-     ,(PycDecl-id (PycRef-decl this))))
+     :key ,(PycVar-key (PycRef-decl this))
+     ,(PycVar-id (PycRef-decl this))))
 
 (define-walk-method (pycnode->list this::PycAccess)
    `(,(string->symbol (typeof this))
@@ -133,8 +127,8 @@
      :bases ,(map pycnode->list (PycClass-bases this))
      :decls ,(map (lambda (d)
 		     `(,(string->symbol (typeof d))
-		       :key ,(PycDecl-key d)
-		       ,(PycDecl-id d)))
+		       :key ,(PycVar-key d)
+		       ,(PycVar-id d)))
 		(PycClass-decls this))
      ,(pycnode->list (PycClass-body this))))
 
