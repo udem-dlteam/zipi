@@ -67,6 +67,8 @@
 (define (merge-envs scope . envs)
   (make-env-from-lst scope (apply append (map cdr envs))))
 
+(define (env->list env) (cdr env))
+
 ;; ================================================================
 ;; Replace global PycUnresolved by PycRef and return list of PycVar
 ;; ================================================================
@@ -148,9 +150,9 @@
 (define-walk-method (resolve-top-level! this::PycClass global-env)
   (PycClass-body-set!
     (resolve-class-body!
-      (PycFun-body this)
+      this
+      (PycClass-body this)
       global-env
-      (make-var-env 'local)
       (make-var-env 'free))))
 
 ;; ==============
@@ -165,10 +167,13 @@
     (for-each (lambda (cont) (cont)) conts)
     body))
 
-(define (resolve-class-body! body global-env local-env free-env)
-  (let ((conts (make-var-env 'continuations)))
+(define (resolve-class-body! cls body global-env free-env)
+  (let ((conts (make-var-env 'continuations))
+        (local-env (make-var-env 'local)))
     (resolve-body-assignments! body 'class global-env local-env free-env (make-var-env 'seen) conts)
     (resolve-body-refs! body 'class global-env local-env free-env)
+    ;; store class declarations
+    (PycClass-decls-set! (env->list local-env))
     ;; now that the full scope has been analyzed we can recursively call nested scopes
     (for-each (lambda (cont) (cont)) conts)
     body))
@@ -249,6 +254,7 @@
             nested-local-env
             (case kind
               ((function)
+                ;; order is important, local should be on the left of the list so closest syntactic var is used
                 (merge-envs 'free local-env free-env))
               ((class
                 free-env))
@@ -267,11 +273,12 @@
     (lambda ()
       (PycClass-body-set!
         (resolve-class-body!
-          (PycFun-body this)
+          this
+          (PycClass-body this)
           global-env
-          (make-var-env 'local)
           (case kind
             ((function)
+              ;; order is important, local should be on the left of the list so closest syntactic var is used
               (merge-envs 'free local-env free-env))
             ((class
               free-env))
