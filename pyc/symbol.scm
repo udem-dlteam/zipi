@@ -69,6 +69,9 @@
 
 (define (env->list env) (cdr env))
 
+(define (PycVar-add-usage var ref)
+  (PycVar-usage-set! (cons var (PycVar-usage var))))
+
 ;; ================================================================
 ;; Replace global PycUnresolved by PycRef and return list of PycVar
 ;; ================================================================
@@ -82,8 +85,10 @@
   (call-default-walker))
 
 (define-walk-method (resolve-global! this::PycRefUnresolved global-vars)
-  (let ((var (env-get-or-create global-vars (PycRefUnresolved-id this) 'global)))
-    (new-PycRef var (PycRefUnresolved-ctx this))))
+  (let* ((var (env-get-or-create global-vars (PycRefUnresolved-id this) 'global))
+         (ref (new-PycRef var (PycRefUnresolved-ctx this))))
+    (PycVar-add-usage var ref)
+    ref))
 
 (define-walk-method (resolve-global! this::PycFun global-vars)
   (PycFun-defaults-set!
@@ -226,8 +231,9 @@
   (env-get-or-create seen-ids (PycRefUnresolved-id this) 'seen)
   (case (PycRefUnresolved-ctx this)
     ((Store Del)
-      (let ((local-var (env-get-or-create local-env (PycRefUnresolved-id this) 'local)))
-        (new-PycRef local-var 'Load)))
+      (let ((local-var (env-get-or-create local-env (PycRefUnresolved-id this) 'local))
+            (ref (new-PycRef local-var 'Load)))
+        (PycVar-add-usage local-var ref)))
     (else this)))
 
 (define-walk-method (resolve-body-assignments! this::PycFun kind global-env local-env free-env seen-ids conts)
@@ -298,7 +304,9 @@
         (let ((var (or (env-get local-env id) (env-get free-env id) (env-get global-env id))))
           (if var
             ;; link the variable to found scope
-            (new-PycRef local-var 'Load)
+            (let ((ref (new-PycRef local-var 'Load)))
+              (PycVar-add-usage var ref)
+              ref)
             ;; leave variable unresolved
             this)))
       (else this))))
