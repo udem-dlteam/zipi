@@ -70,7 +70,7 @@
 (define (env->list env) (cdr env))
 
 (define (PycVar-add-usage var ref)
-  (PycVar-usage-set! (cons var (PycVar-usage var))))
+  (PycVar-usage-set! var (cons ref (PycVar-usage var))))
 
 ;; ================================================================
 ;; Replace global PycUnresolved by PycRef and return list of PycVar
