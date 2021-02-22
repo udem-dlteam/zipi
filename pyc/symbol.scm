@@ -76,9 +76,10 @@
 ;; Replace global PycUnresolved by PycRef and return list of PycVar
 ;; ================================================================
 
-(define (resolve-and-collect-globals! this)
+(define (resolve-and-collect-globals! module)
   (let* ((global-vars (make-var-env 'global)))
-    (resolve-global! this global-vars)
+    (resolve-global! module global-vars)
+    (PycModule-global-defs-set! (collect-global-defs* module))
     global-vars))
 
 (define-walk-method (resolve-global! this::PycNode global-vars)
@@ -104,6 +105,19 @@
     this
     (map (lambda (d) (resolve-global! d global-vars)) (PycClass-bases this)))
   this)
+
+;; collect global function definitions for global call optimisation
+
+(define-walk-method (collect-global-defs* this::PycNode)
+  (call-default-walker))
+
+(define-walk-method (collect-global-defs* this::PycClass)
+  '())
+
+(define-walk-method (collect-global-defs* this::PycAssig)
+  (if (PycFun? (PycAssig-rhs this))
+    (list this)
+    (call-default-walker)))
 
 ;; ==================================================
 ;; Search functions and class to resolve their scopes

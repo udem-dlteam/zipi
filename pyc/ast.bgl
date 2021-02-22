@@ -30,6 +30,7 @@
 	      (ident::string read-only)
 	      stmts::pair-nil
 	      (globals::pair-nil (default '()))
+        (global-defs::pair-nil (default '()))
 	      (caches::long (default -1)))
 
 	   ;; misc
