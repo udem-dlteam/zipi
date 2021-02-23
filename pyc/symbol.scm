@@ -19,8 +19,8 @@
       (if (null? lst)
         (if (symbol? scope-to-create-if-not-exists)
           ;; var does not exist, create an entry
-          (let ((var (new-PycVar id scope-to-create-if-not-exists)))
-            (set-cdr! vars (cons var var-lst)))
+          (let ((var (new-PycVar '(-1 -1) id scope-to-create-if-not-exists)))
+            (env-add-PycVar vars var))
           #f)
         ;; look for the var in the lst
         (if (eq? (PycVar-id (car lst)) id)
@@ -49,7 +49,7 @@
 (define (env-add-id vars id scope)
   ;; Does not check for existence, use get-or-create
   ;; if you want to check if var already in env first
-  (let ((var (new-PycVar id scope)))
+  (let ((var (new-PycVar '(-1 -1) id scope)))
     (env-add-PycVar vars var)))
 
 (define (env-add-PycVar vars v)

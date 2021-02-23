@@ -61,20 +61,20 @@
        loc
        ;; args
        (map (lambda (a)
-              (new-PycVar (car a) 'local))
+              (new-PycVar '(-1 -1) (car a) 'local))
             (car args))
        ;; posonlyargs
        (map (lambda (a)
-              (new-PycVar (car a) 'local))
+              (new-PycVar '(-1 -1) (car a) 'local))
             (cadr args))
        ;; vararg
        (let ((a (caddr args)))
          (if a
-             (new-PycVar (car a) 'local)
+             (new-PycVar '(-1 -1) (car a) 'local)
              (new-PycUninit loc)))
        ;; kwonlyargs
        (map (lambda (a)
-              (new-PycVar (car a) 'local))
+              (new-PycVar '(-1 -1) (car a) 'local))
             (list-ref args 3))
        ;; kw-defaults
        (map (lambda (a)
@@ -83,7 +83,7 @@
        ;; kwarg
        (let ((a (list-ref args 5)))
          (if a
-             (new-PycVar (car a) 'local)
+             (new-PycVar '(-1 -1) (car a) 'local)
              (new-PycUninit loc)))
        ;; defaults
        (map
@@ -113,20 +113,20 @@
           loc
           ;; args
           (map (lambda (a)
-                 (new-PycVar (car a) 'local))
+                 (new-PycVar '(-1 -1) (car a) 'local))
                (car args))
           ;; posonlyargs
           (map (lambda (a)
-                 (new-PycVar (car a) 'local))
+                 (new-PycVar '(-1 -1) (car a) 'local))
                (cadr args))
           ;; vararg
           (let ((a (caddr args)))
             (if a
-                (new-PycVar (car a) 'local)
+                (new-PycVar '(-1 -1) (car a) 'local)
                 (new-PycUninit loc)))
           ;; kwonlyargs
           (map (lambda (a)
-                 (new-PycVar (car a) 'local))
+                 (new-PycVar '(-1 -1) (car a) 'local))
                (list-ref args 3))
           ;; kw-defaults
           (map (lambda (a)
@@ -135,7 +135,7 @@
           ;; kwarg
           (let ((a (list-ref args 5)))
             (if a
-                (new-PycVar (car a) 'local)
+                (new-PycVar '(-1 -1) (car a) 'local)
                 (new-PycUninit loc)))
           ;; defaults
           (map (lambda (a)
@@ -180,7 +180,7 @@
                        (sexp (car targets) #f scope conf)
                        (sexp value #f scope conf))
          (let* ((id (gensym '%tmp))
-                (block-var (new-PycVar id 'block))
+                (block-var (new-PycVar '(-1 -1) id 'block))
                 (block-assig
                   (new-PycAssig
                     loc
@@ -422,6 +422,7 @@
                        (new-PycAssig
                          loc
                          (new-PycVar
+                               '(-1 -1)
                                name
                                'block)
                          (new-PycPragma loc exc-sym)))
@@ -483,7 +484,7 @@
 
 (define (compile-import-from loc module aliases level conf)
   (let* ((base (string-append (symbol->string module) "."))
-        (module-var (new-PycVar '%mod 'block))
+        (module-var (new-PycVar '(-1 -1) '%mod 'block))
         (module-assig
           (new-PycAssig
             loc

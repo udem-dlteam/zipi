@@ -14,7 +14,8 @@
 ;*---------------------------------------------------------------------*/
 (module __pyc_ast
 
-   (export (abstract-class PycNode
+   (export
+      (abstract-class PycNode
 	      (loc::pair read-only (info '("notraverse")))
 	      (%info (default #f) (info '("nojson" "notraverse"))))
 
@@ -34,7 +35,7 @@
 	      (caches::long (default -1)))
 
 	   ;; misc
-	   (class PycVar
+	   (class PycVar::PycNode
        id::symbol
        scope::symbol
        (name::symbol (default #f))
