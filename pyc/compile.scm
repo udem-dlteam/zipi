@@ -1,7 +1,7 @@
 (define (pyc-scheme-driver)
    `(("parse" . ,pyc-parse)
-     ("intrinsics" . ,pyc-intrinsics)
      ("symbol" . ,pyc-symbol!)
+     ("intrinsics" . ,pyc-intrinsics)
      ("return" . ,pyc-return)
      ("break" . ,pyc-break)
      ("locals" . ,pyc-locals)
@@ -13,8 +13,8 @@
 
 (define (pyc-bigloo-driver)
    `(("parse" . ,pyc-parse)
-     ("intrinsics" . ,pyc-intrinsics)
      ("symbol" . ,pyc-symbol!)
+     ("intrinsics" . ,pyc-intrinsics)
      ("return" . ,pyc-return)
      ("break" . ,pyc-break)
      ("locals" . ,pyc-locals)
@@ -26,8 +26,8 @@
 
 (define (pyc-gambit-driver)
    `(("parse" . ,pyc-parse)
-     ("intrinsics" . ,pyc-intrinsics)
      ("symbol" . ,pyc-symbol!)
+     ("intrinsics" . ,pyc-intrinsics)
      ("return" . ,pyc-return)
      ("break" . ,pyc-break)
      ("locals" . ,pyc-locals)

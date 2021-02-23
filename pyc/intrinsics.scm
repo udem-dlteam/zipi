@@ -536,7 +536,7 @@
           inline-as-is: inline-as-is)))
 
     (define (make-default-inline-behavior-body)
-      (define args-names (append (map PycDecl-id posonlyargs) (map PycDecl-id args)))
+      (define args-names (append (map PycVar-id posonlyargs) (map PycVar-id args)))
       (new-PycSeq
         loc
         (list
@@ -581,8 +581,8 @@
 (define-walk-method (lambda-lift-semantics-walk! this::PycNode)
   (call-default-walker))
 
-(define-walk-method (lambda-lift-semantics-walk! this::PycDeclInit)
-  (let ((val (PycDeclInit-val this)))
+(define-walk-method (lambda-lift-semantics-walk! this::PycAssig)
+  (let ((val (PycAssig-rhs this)))
     (if (isa? val PycSemantics)
       (lambda-lift-nested-semantics val)
       this)))
@@ -591,9 +591,9 @@
   (let* ((loc (PycNode-loc sem))
         (cte
           (append
-            (apply append (map (lambda (arg) (collect-semantics-decls* arg #f)) (PycFun-args sem)))
+            (PycFun-args sem)
             (collect-semantics-decls* (PycFun-body sem) #f)))
-        (args-order (map (lambda (a) (PycDecl-id a)) (PycFun-args sem)))
+        (args-order (map (lambda (a) (PycVar-id a)) (PycFun-args sem)))
         (lifted-semantics (get-lifted-semantics* (PycFun-body sem) (PycFun-name sem) cte args-order)))
     (for-each
       (lambda (info)
@@ -690,7 +690,7 @@
     (PycFun-args-set!
       this
       (append
-        (map (lambda (name) (new-PycDecl loc name 'local)) lifted-vars)
+        (map (lambda (name) (new-PycVar name 'local)) lifted-vars)
         (PycFun-args this)))
     (list
       (list
@@ -709,17 +709,10 @@
     (call-default-walker)
     '()))
 
-(define-walk-method (collect-semantics-decls* this::PycDecl search-nested-semantics)
-  (list (PycDecl-id this)))
-
-(define-walk-method (collect-semantics-decls* this::PycDeclInit search-nested-semantics)
-  ;; Assumption: all sub-procedures in semantics are liftable and will be global
-  (if (isa? (PycDeclInit-val this) PycSemantics)
-    '()
-    (list (PycDecl-id this))))
-
-(define-walk-method (collect-semantics-decls* this::PycAssig search-nested-semantics)
-  (collect-semantics-refs* (PycAssig-lhs this) search-nested-semantics))
+(define-walk-method (collect-semantics-decls* this::PycRef search-nested-semantics)
+  (if (eq? (PycRef-ctx this) 'Store)
+    (list (PycRef-decl this))
+    '()))
 
 ;; collect-semantics-refs*
 
@@ -734,8 +727,10 @@
 (define-walk-method (collect-semantics-refs* this::PycRefUnresolved search-nested-semantics)
   (list (PycRefUnresolved-id this)))
 
-(define-walk-method (collect-semantics-refs* this::PycAssig search-nested-semantics)
-  (collect-semantics-refs* (PycAssig-rhs this) search-nested-semantics))
+(define-walk-method (collect-semantics-refs* this::PycRef search-nested-semantics)
+  (if (eq? (PycRef-ctx this) 'Load)
+    (list (PycRef-decl this))
+    '()))
 
 ;; remove-semantics-decl!
 
@@ -749,8 +744,8 @@
       (cond
         ((null? nodes)
           '())
-        ((and (isa? (car nodes) PycDeclInit)
-              (isa? (PycDeclInit-val (car nodes)) PycSemantics))
+        ((and (isa? (car nodes) PycAssig)
+              (isa? (PycAssig-rhs (car nodes)) PycSemantics))
           (filter (cdr nodes)))
         (else
           (cons (remove-semantics-decl! (car nodes)) (filter (cdr nodes)))))))
@@ -878,8 +873,8 @@
       (let ((args (PycFun-args fun)))
         (if (null? args)
           #f
-          (PycDecl-id (car args))))
-      (PycDecl-id (car posonlyargs)))))
+          (PycVar-id (car args))))
+      (PycVar-id (car posonlyargs)))))
 
 (define-walk-method (optimize-builtin-class-refs! this::PycFun builtins-class-table class self)
   (if class
