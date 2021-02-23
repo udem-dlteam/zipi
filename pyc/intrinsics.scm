@@ -27,7 +27,7 @@
   (cond
     ((null? lst)
       #f)
-    ((and (isa? PycRef (car lst))
+    ((and (isa? (car lst) PycRef)
           (eq? (PycVar-id (PycRef-decl (car lst))) id))
       (car lst))
     (else
@@ -37,11 +37,11 @@
   (cond
     ((null? lst)
       #f)
-    ((and (isa? PycRef (car lst))
+    ((and (isa? (car lst) PycRef)
           (eq? (PycRef-decl (car lst)) var))
       (car lst))
     (else
-      (list-find-PycRef-by-id (cdr lst) id))))
+      (list-find-PycRef-by-PycVar (cdr lst) var))))
 
 ;; definitions for intrinsic calls/values
 (define (make-inline_host_code this)
@@ -263,7 +263,7 @@
 (define (make-intrinsics-assoc-list intrinsics assoc-list)
   (if (null? intrinsics)
     '()
-    (let ((var (car intrinsics))
+    (let* ((var (car intrinsics))
           (id (PycVar-id var))
           (pair (assoc id assoc-list)))
       (if pair
@@ -321,9 +321,9 @@
   (call-default-walker))
 
 (define-walk-method (check-no-intrinsics-assignation this::PycRef intrinsics)
-  (if (memq (PycRef-ctx this) (Store Del))
+  (if (memq (PycRef-ctx this) '(Store Del))
     (if (memq (PycRef-decl this) intrinsics)
-      (error "SyntaxError" "cannot assign/delete compiler intrinsic name" (PycVar-id var))
+      (error "SyntaxError" "cannot assign/delete compiler intrinsic name" (PycVar-id (PycRef-decl this)))
       (call-default-walker)))
     (call-default-walker))
 
@@ -337,7 +337,7 @@
         (static-value
           (let ((pair (assq var statics))) (if pair (cdr pair) #f))))
     (if static-value
-      (new-PycStatic (PycNode-loc this) id static-value)
+      (new-PycPragma (PycNode-loc this) static-value)
       this)))
 
 (define-walk-method (resolve-statics! this::PycRefUnresolved intrinsics statics macros use-static-builtins)
@@ -373,7 +373,7 @@
        (fun (PycCall-fun this)))
     (if (and use-static-builtins
              (isa? fun PycRefUnresolved)
-             (not (eq? (PycRefUnresolved-id 'super))))
+             (not (eq? (PycRefUnresolved-id fun) 'super)))
       (PycCall-can-be-super-set! this #f))
     (if (PycRef? fun)
       (let* ((pair (assq fun macros)))
@@ -817,9 +817,9 @@
       (error "get-builtin-class-structure-name" "unknown structure for class" class-name))))
 
 (define-walk-method (collect-builtins-class-usage* this::PycAssig)
-  (let ((lhs (PycAssig-lhs))
-        (rhs (PycAssig-rhs)))
-    (if (and (isa? lhs PycRef) (isa? rhs PycClass)
+  (let ((lhs (PycAssig-lhs this))
+        (rhs (PycAssig-rhs this)))
+    (if (and (isa? lhs PycRef) (isa? rhs PycClass))
       (let* ((decorators (PycClass-decorators rhs))
             (name (string->symbol (PycClass-name rhs)))
             (builtin_class-var (list-find-PycRef-by-id decorators 'builtin_class)))
@@ -852,7 +852,7 @@
 
 (define-walk-method (optimize-builtin-class-refs! this::PycCall builtins-class-table class self)
   (let ((fun (PycCall-fun this)))
-    (if (isa fun PycRef)
+    (if (isa? fun PycRef)
       (let ((scheme-class (assq (PycRef-decl fun) builtins-class-table)))
         (if scheme-class
           (let ((loc (PycNode-loc this)))
