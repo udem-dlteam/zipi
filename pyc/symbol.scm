@@ -17,7 +17,7 @@
   (let ((var-lst (cdr vars)))
     (let loop ((lst var-lst))
       (if (null? lst)
-        (if scope-to-create-if-not-exists
+        (if (symbol? scope-to-create-if-not-exists)
           ;; var does not exist, create an entry
           (let ((var (new-PycVar id scope-to-create-if-not-exists)))
             (set-cdr! vars (cons var var-lst)))
@@ -229,15 +229,19 @@
         (lambda (n)
           (let ((glo-var (env-get-or-create global-env n 'global)))
             (env-add-PycVar local-env glo-var)))
-        (PycSymbols-names this)))
+        (PycSymbols-names this))
+      (new-PycPass (PycNode-loc this)))
     ((nonlocal)
       (for-each
         (lambda (n)
           (let ((free-var (env-get free-env n)))
-            (if free-var
+            (if (isa? free-var PycVar)
               (env-add-PycVar local-env free-var)
               (error "SyntaxError:" "no binding for nonlocal found:" n ))))
-        (PycSymbols-names this)))))
+        (PycSymbols-names this))
+      (new-PycPass (PycNode-loc this)))
+    (else
+      (error "resolve-body-assignments!:PycSymbols" "unknown symbols kind" (PycSymbols-scope this)))))
 
 (define-walk-method (resolve-body-assignments! this::PycRefUnresolved global-env kind local-env free-env seen-ids conts)
   ;; seen env is a dummy env to detect that a global or nonlocal was not called after usage
@@ -319,7 +323,7 @@
     (case (PycRefUnresolved-ctx this)
       ((Load)
         (let ((var (or (env-get local-env id) (env-get free-env id) (env-get global-env id))))
-          (if var
+          (if (isa? var PycVar)
             ;; link the variable to found scope
             (let ((ref (new-PycRef loc var 'Load)))
               (PycVar-add-usage var ref)
