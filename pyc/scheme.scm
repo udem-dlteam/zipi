@@ -109,11 +109,11 @@
   (append (only 'define-macro) (only 'define)))
 
 (define (pyc-scheme-gambit ast conf)
-  (define (scheme-init-globals refs)
+  (define (scheme-init-globals vars)
     (map
       (lambda (name)
         `(define ,name py-absent))
-      (get-unique-ref-names-lst refs)))
+      (get-unique-var-names-lst vars)))
 
   (define (scheme-init-global-defs defs)
     (apply
@@ -158,14 +158,14 @@
   (define (get-def-procedure-name def)
     (PycFun-&proc (PycAssig-rhs def)))
 
-  (define (get-unique-ref-names-lst refs)
-    (let loop ((refs refs) (acc '()))
-      (if (null? refs)
+  (define (get-unique-var-names-lst vars)
+    (let loop ((vars vars) (acc '()))
+      (if (null? vars)
         acc
-        (let ((name (scheme-var-name (PycRef-decl (car refs)) conf)))
+        (let ((name (scheme-var-name (car vars) conf)))
           (if (memq name acc)
-            (loop (cdr refs) acc)
-            (loop (cdr refs) (cons name acc)))))))
+            (loop (cdr vars) acc)
+            (loop (cdr vars) (cons name acc)))))))
 
   (pyc-cache! ast conf)
 
@@ -197,14 +197,14 @@
                 `((define %global #f)
                   (define %caches #f)
                   ,@(scheme-init-global-defs global-funs)
-                  ,@(scheme-init-globals global-refs))
+                  ,@(scheme-init-globals (map PycRef-decl global-refs)))
                 '())
 
               ,(if (config-get conf optim-toplevel-module:)
                 `(define (py-module global caches)
                   (set! %global global)
                   (set! %caches caches)
-                  ,@(scheme-register-globals global-refs))
+                  ,@(scheme-register-globals (map PycRef-decl global-refs)))
                    `(define py-module ,prog))
 
               (define (init name)
@@ -620,7 +620,7 @@
     (if current-name
       current-name
       (let* ((name
-              (if (eq? (PycVar-scope var) 'global')
+              (if (eq? (PycVar-scope var) 'global)
                 (symbol-append
                   '|global:|
                   (PycVar-id var)
@@ -1337,7 +1337,7 @@
    (call-default-walker))
 
 (define-walk-method (collect-globals* this::PycRef)
-  (if (eq? (PycRef-decl (PycVar-scope this)) 'global)
+  (if (eq? (PycVar-scope (PycRef-decl this)) 'global)
     (list this)
     '()))
 
