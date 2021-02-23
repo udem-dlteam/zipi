@@ -1,21 +1,9 @@
 (define (pyc-intrinsics this conf)
    (intrinsics this conf))
 
-(define (collect-import-intrinsics nodes)
-  (if (null? nodes)
-    '()
-    (cons
-      (PycRefUnresolved-id (PycAssig-lhs (car nodes)))
-      (collect-import-intrinsics (cdr nodes)))))
-
+;; utilities
 (define (list-remove lst x)
-  (cond
-    ((null? lst)
-      '())
-    ((eq? (car lst) x)
-      (cdr lst))
-    (else
-      (cons (car lst) (list-remove (cdr lst) x)))))
+  (list-remove-pred lst (lambda (el) (eq? el x))))
 
 (define (list-remove-pred lst pred?)
   (cond
@@ -26,7 +14,203 @@
     (else
       (cons (car lst) (list-remove-pred (cdr lst) pred?)))))
 
+(define (list-find-PycVar-by-id lst id)
+  (cond
+    ((null? lst)
+      #f)
+    ((eq? (PycVar-id (car lst)) id)
+      (car lst))
+    (list-find-PycVar-by-id (cdr lst) id)))
+
+(define (list-find-PycRef-by-id lst id)
+  (cond
+    ((null? lst)
+      #f)
+    ((and (isa? PycRef (car lst))
+          (eq? (PycVar-id (PycRef-decl (car lst))) id))
+      (car lst))
+    (list-find-PycVar-by-id (cdr lst) id)))
+
+;; definitions for intrinsic calls/values
+(define (make-inline_host_code this)
+ (let* ((loc (PycNode-loc this))
+       (args (PycCall-args this))
+       (args-len (length args)))
+   (if (and
+         (= args-len 1)
+         (PycString? (car args)))
+     (new-PycPragma loc (call-with-input-string (PycLiteralValue-val (car args)) read))
+     (error "SyntaxError" "wrong argument for inline_host_code" args))))
+
+(define (make-class_getattr this)
+ (let* ((loc (PycNode-loc this))
+       (args (PycCall-args this))
+       (args-len (length args))
+       (attr (cadr args)))
+     (if (and
+           (= args-len 2)
+           (PycString? attr))
+       (new-PycCall
+         loc
+         (new-PycPragma loc 'getattribute-from-obj-mro)
+         args)
+       (error "SyntaxError" "wrong argument for class_getattr" args))))
+
+(define (make-call_host this)
+ (let* ((loc (PycNode-loc this))
+       (args (PycCall-args this))
+       (args-len (length args))
+       (attr (cadr args)))
+     (if (and
+           (>= args-len 1)
+           (PycString? (car args)))
+       (new-PycCall
+         loc
+         (new-PycPragma loc 'call-host)
+         (cons
+           (new-PycStatic
+             loc
+             'host-signature
+             (PycLiteralValue-val (car args)))
+           (cdr args)))
+       (error "SyntaxError" "wrong argument for call_host" #f))))
+
+(define (make-pragma-call-maker name)
+ (lambda (this)
+   (let* ((loc (PycNode-loc this))
+         (args (PycCall-args this)))
+     (new-PycCall
+       loc
+       (new-PycPragma loc name)
+       args))))
+
+(define macro-intrinsics
+ (list
+   (cons 'inline_host_code make-inline_host_code)
+   (cons 'class_getattr make-class_getattr)
+   (cons 'call_host make-call_host)
+   (cons 'py_float_to_host (make-pragma-call-maker 'py-float-to-scheme))
+   (cons 'py_float_from_host (make-pragma-call-maker 'py-float-from-scheme))
+   (cons 'py_int_from_host (make-pragma-call-maker 'py-int-from-scheme))
+   (cons 'py_int_to_host (make-pragma-call-maker 'py-int-to-scheme))
+   (cons 'py_bool_to_host_int (make-pragma-call-maker 'py-bool-to-scheme-int))
+   (cons 'py_sint_to_host (make-pragma-call-maker 'py-sint-to-scheme))
+   (cons 'py_bint_to_host (make-pragma-call-maker 'py-bint-to-scheme))
+   (cons 'py_bool_from_host_bool (make-pragma-call-maker 'py-bool-from-scheme-bool))
+   (cons 'py_bool_to_host_bool (make-pragma-call-maker 'py-bool-to-scheme-bool))
+   (cons 'py_str_to_host (make-pragma-call-maker 'py-str-to-scheme))
+   (cons 'py_str_from_host (make-pragma-call-maker 'py-str-from-scheme))))
+
+(define static-intrinsics
+ (list
+   (cons 'absent 'py-absent)))
+
+;; TODO: generate a full table of builtins with Zipi rts name
+(define static-builtins
+ '(
+   ;; builtin callables
+   (super . py-builtin-super)
+   (type . py-builtin-type)
+   ;; builtin constants
+   (NotImplemented . py-NotImplemented)
+   ;; exceptions
+   (ArithmeticError . py-builtin-ArithmeticError)
+   (AssertionError . py-builtin-AssertionError)
+   (AttributeError . py-builtin-AttributeError)
+   (BaseException . py-builtin-BaseException)
+   (BlockingIOError . py-builtin-BlockingIOError)
+   (BrokenPipeError . py-builtin-BrokenPipeError)
+   (BufferError . py-builtin-BufferError)
+   (BytesWarning . py-builtin-BytesWarning)
+   (ChildProcessError . py-builtin-ChildProcessError)
+   (ConnectionAbortedError . py-builtin-ConnectionAbortedError)
+   (ConnectionError . py-builtin-ConnectionError)
+   (ConnectionRefusedError . py-builtin-ConnectionRefusedError)
+   (ConnectionResetError . py-builtin-ConnectionResetError)
+   (DeprecationWarning . py-builtin-DeprecationWarning)
+   (EOFError . py-builtin-EOFError)
+   (EnvironmentError . py-builtin-EnvironmentError)
+   (Exception . py-builtin-Exception)
+   (FileExistsError . py-builtin-FileExistsError)
+   (FileNotFoundError . py-builtin-FileNotFoundError)
+   (FloatingPointError . py-builtin-FloatingPointError)
+   (FutureWarning . py-builtin-FutureWarning)
+   (GeneratorExit . py-builtin-GeneratorExit)
+   (IOError . py-builtin-IOError)
+   (ImportError . py-builtin-ImportError)
+   (ImportWarning . py-builtin-ImportWarning)
+   (IndentationError . py-builtin-IndentationError)
+   (IndexError . py-builtin-IndexError)
+   (InterruptedError . py-builtin-InterruptedError)
+   (IsADirectoryError . py-builtin-IsADirectoryError)
+   (KeyError . py-builtin-KeyError)
+   (KeyboardInterrupt . py-builtin-KeyboardInterrupt)
+   (LookupError . py-builtin-LookupError)
+   (MemoryError . py-builtin-MemoryError)
+   (ModuleNotFoundError . py-builtin-ModuleNotFoundError)
+   (NameError . py-builtin-NameError)
+   (NotADirectoryError . py-builtin-NotADirectoryError)
+   (NotImplementedError . py-builtin-NotImplementedError)
+   (OSError . py-builtin-OSError)
+   (OverflowError . py-builtin-OverflowError)
+   (PendingDeprecationWarning . py-builtin-PendingDeprecationWarning)
+   (PermissionError . py-builtin-PermissionError)
+   (ProcessLookupError . py-builtin-ProcessLookupError)
+   (RecursionError . py-builtin-RecursionError)
+   (ReferenceError . py-builtin-ReferenceError)
+   (ResourceWarning . py-builtin-ResourceWarning)
+   (RuntimeError . py-builtin-RuntimeError)
+   (RuntimeWarning . py-builtin-RuntimeWarning)
+   (StopAsyncIteration . py-builtin-StopAsyncIteration)
+   (StopIteration . py-builtin-StopIteration)
+   (SyntaxError . py-builtin-SyntaxError)
+   (SyntaxWarning . py-builtin-SyntaxWarning)
+   (SystemError . py-builtin-SystemError)
+   (SystemExit . py-builtin-SystemExit)
+   (TabError . py-builtin-TabError)
+   (TimeoutError . py-builtin-TimeoutError)
+   (TypeError . py-builtin-TypeError)
+   (UnboundLocalError . py-builtin-UnboundLocalError)
+   (UnicodeDecodeError . py-builtin-UnicodeDecodeError)
+   (UnicodeEncodeError . py-builtin-UnicodeEncodeError)
+   (UnicodeError . py-builtin-UnicodeError)
+   (UnicodeTranslateError . py-builtin-UnicodeTranslateError)
+   (UnicodeWarning . py-builtin-UnicodeWarning)
+   (UserWarning . py-builtin-UserWarning)
+   (ValueError . py-builtin-ValueError)
+   (Warning . py-builtin-Warning)
+   (ZeroDivisionError . py-builtin-ZeroDivisionError)))
+
+(define static-builtins-table
+ (let ((table (make-hashtable)))
+   (for-each
+     (lambda (pair)
+       (let ((key (car pair))
+             (value (cdr pair)))
+         (hashtable-put! table key value)))
+     static-builtins)
+     table))
+
+(define valid-intrinsics
+ (append
+   (map car static-intrinsics)
+   (map car macro-intrinsics)
+   '(define_semantics
+     define_behavior
+     use_static_builtins
+     use_simple_scoping absent
+     builtin_class)))
+
+;; Detect intrinsics import
 (define (intrinsics this conf)
+
+  (define (collect-import-intrinsics nodes)
+    (if (null? nodes)
+      '()
+      (cons
+        (PycRef-decl (PycAssig-lhs (car nodes)))
+        (collect-import-intrinsics (cdr nodes)))))
+
   (let ((fst-line-stmt
           (let loop ((stmts (PycModule-stmts this)))
             (if (null? stmts)
@@ -48,7 +232,7 @@
               this)))
         ((PycBlock? fst-line-stmt)
           (let* ((decls (PycBlock-decls fst-line-stmt))
-                (fst-decl (and (not (null? decls) (car decls)))))
+                (fst-decl (and (not (null? decls)) (car decls))))
             (if fst-decl
               (let ((val (PycAssig-rhs fst-decl)))
                 (if (and (PycImport? val)
@@ -57,201 +241,40 @@
                          (intrinsics (collect-import-intrinsics nodes)))
                     (PycModule-stmts-set!
                       this
-                      (list-remove
-                        (PycModule-stmts this)
-                        fst-line-stmt))
+                      (list-remove (PycModule-stmts this) fst-line-stmt))
                     (use-intrinsics! this intrinsics))
                   this))
               this)))
         (else this))))
 
-(define (make-inline_host_code this)
-  (let* ((loc (PycNode-loc this))
-        (args (PycCall-args this))
-        (args-len (length args)))
-    (if (and
-          (= args-len 1)
-          (PycString? (car args)))
-      (new-PycPragma loc (call-with-input-string (PycLiteralValue-val (car args)) read))
-      (error "SyntaxError" "wrong argument for inline_host_code" args))))
-
-(define (make-class_getattr this)
-  (let* ((loc (PycNode-loc this))
-        (args (PycCall-args this))
-        (args-len (length args))
-        (attr (cadr args)))
-      (if (and
-            (= args-len 2)
-            (PycString? attr))
-        (new-PycCall
-          loc
-          (new-PycPragma loc 'getattribute-from-obj-mro)
-          args)
-        (error "SyntaxError" "wrong argument for class_getattr" args))))
-
-(define (make-call_host this)
-  (let* ((loc (PycNode-loc this))
-        (args (PycCall-args this))
-        (args-len (length args))
-        (attr (cadr args)))
-      (if (and
-            (>= args-len 1)
-            (PycString? (car args)))
-        (new-PycCall
-          loc
-          (new-PycPragma loc 'call-host)
-          (cons
-            (new-PycStatic
-              loc
-              'host-signature
-              (PycLiteralValue-val (car args)))
-            (cdr args)))
-        (error "SyntaxError" "wrong argument for call_host" #f))))
-
-(define (make-pragma-call-maker name)
-  (lambda (this)
-    (let* ((loc (PycNode-loc this))
-          (args (PycCall-args this)))
-      (new-PycCall
-        loc
-        (new-PycPragma loc name)
-        args))))
-
-(define macro-intrinsics
-  (list
-    (cons 'inline_host_code make-inline_host_code)
-    (cons 'class_getattr make-class_getattr)
-    (cons 'call_host make-call_host)
-    (cons 'py_float_to_host (make-pragma-call-maker 'py-float-to-scheme))
-    (cons 'py_float_from_host (make-pragma-call-maker 'py-float-from-scheme))
-    (cons 'py_int_from_host (make-pragma-call-maker 'py-int-from-scheme))
-    (cons 'py_int_to_host (make-pragma-call-maker 'py-int-to-scheme))
-    (cons 'py_bool_to_host_int (make-pragma-call-maker 'py-bool-to-scheme-int))
-    (cons 'py_sint_to_host (make-pragma-call-maker 'py-sint-to-scheme))
-    (cons 'py_bint_to_host (make-pragma-call-maker 'py-bint-to-scheme))
-    (cons 'py_bool_from_host_bool (make-pragma-call-maker 'py-bool-from-scheme-bool))
-    (cons 'py_bool_to_host_bool (make-pragma-call-maker 'py-bool-to-scheme-bool))
-    (cons 'py_str_to_host (make-pragma-call-maker 'py-str-to-scheme))
-    (cons 'py_str_from_host (make-pragma-call-maker 'py-str-from-scheme))))
-
-(define static-intrinsics
-  (list
-    (cons 'absent 'py-absent)))
-
-;; TODO: generate a full table of builtins with Zipi rts name
-(define static-builtins
-  '(
-    ;; builtin callables
-    (super . py-builtin-super)
-    (type . py-builtin-type)
-    ;; builtin constants
-    (NotImplemented . py-NotImplemented)
-    ;; exceptions
-    (ArithmeticError . py-builtin-ArithmeticError)
-    (AssertionError . py-builtin-AssertionError)
-    (AttributeError . py-builtin-AttributeError)
-    (BaseException . py-builtin-BaseException)
-    (BlockingIOError . py-builtin-BlockingIOError)
-    (BrokenPipeError . py-builtin-BrokenPipeError)
-    (BufferError . py-builtin-BufferError)
-    (BytesWarning . py-builtin-BytesWarning)
-    (ChildProcessError . py-builtin-ChildProcessError)
-    (ConnectionAbortedError . py-builtin-ConnectionAbortedError)
-    (ConnectionError . py-builtin-ConnectionError)
-    (ConnectionRefusedError . py-builtin-ConnectionRefusedError)
-    (ConnectionResetError . py-builtin-ConnectionResetError)
-    (DeprecationWarning . py-builtin-DeprecationWarning)
-    (EOFError . py-builtin-EOFError)
-    (EnvironmentError . py-builtin-EnvironmentError)
-    (Exception . py-builtin-Exception)
-    (FileExistsError . py-builtin-FileExistsError)
-    (FileNotFoundError . py-builtin-FileNotFoundError)
-    (FloatingPointError . py-builtin-FloatingPointError)
-    (FutureWarning . py-builtin-FutureWarning)
-    (GeneratorExit . py-builtin-GeneratorExit)
-    (IOError . py-builtin-IOError)
-    (ImportError . py-builtin-ImportError)
-    (ImportWarning . py-builtin-ImportWarning)
-    (IndentationError . py-builtin-IndentationError)
-    (IndexError . py-builtin-IndexError)
-    (InterruptedError . py-builtin-InterruptedError)
-    (IsADirectoryError . py-builtin-IsADirectoryError)
-    (KeyError . py-builtin-KeyError)
-    (KeyboardInterrupt . py-builtin-KeyboardInterrupt)
-    (LookupError . py-builtin-LookupError)
-    (MemoryError . py-builtin-MemoryError)
-    (ModuleNotFoundError . py-builtin-ModuleNotFoundError)
-    (NameError . py-builtin-NameError)
-    (NotADirectoryError . py-builtin-NotADirectoryError)
-    (NotImplementedError . py-builtin-NotImplementedError)
-    (OSError . py-builtin-OSError)
-    (OverflowError . py-builtin-OverflowError)
-    (PendingDeprecationWarning . py-builtin-PendingDeprecationWarning)
-    (PermissionError . py-builtin-PermissionError)
-    (ProcessLookupError . py-builtin-ProcessLookupError)
-    (RecursionError . py-builtin-RecursionError)
-    (ReferenceError . py-builtin-ReferenceError)
-    (ResourceWarning . py-builtin-ResourceWarning)
-    (RuntimeError . py-builtin-RuntimeError)
-    (RuntimeWarning . py-builtin-RuntimeWarning)
-    (StopAsyncIteration . py-builtin-StopAsyncIteration)
-    (StopIteration . py-builtin-StopIteration)
-    (SyntaxError . py-builtin-SyntaxError)
-    (SyntaxWarning . py-builtin-SyntaxWarning)
-    (SystemError . py-builtin-SystemError)
-    (SystemExit . py-builtin-SystemExit)
-    (TabError . py-builtin-TabError)
-    (TimeoutError . py-builtin-TimeoutError)
-    (TypeError . py-builtin-TypeError)
-    (UnboundLocalError . py-builtin-UnboundLocalError)
-    (UnicodeDecodeError . py-builtin-UnicodeDecodeError)
-    (UnicodeEncodeError . py-builtin-UnicodeEncodeError)
-    (UnicodeError . py-builtin-UnicodeError)
-    (UnicodeTranslateError . py-builtin-UnicodeTranslateError)
-    (UnicodeWarning . py-builtin-UnicodeWarning)
-    (UserWarning . py-builtin-UserWarning)
-    (ValueError . py-builtin-ValueError)
-    (Warning . py-builtin-Warning)
-    (ZeroDivisionError . py-builtin-ZeroDivisionError)))
-
-(define static-builtins-table
-  (let ((table (make-hashtable)))
-    (for-each
-      (lambda (pair)
-        (let ((key (car pair))
-              (value (cdr pair)))
-          (hashtable-put! table key value)))
-      static-builtins)
-      table))
-
-(define valid-intrinsics
-  (append
-    (map car static-intrinsics)
-    (map car macro-intrinsics)
-    '(define_semantics
-      define_behavior
-      use_static_builtins
-      use_simple_scoping absent
-      builtin_class)))
-
+;; apply intrinsics
 (define (make-intrinsics-assoc-list intrinsics assoc-list)
   (if (null? intrinsics)
     '()
-    (let ((pair (assoc (car intrinsics) assoc-list)))
+    (let ((var (car intrinsics))
+          (id (PycVar-id var))
+          (pair (assoc id assoc-list)))
       (if pair
-        (cons pair (make-intrinsics-assoc-list (cdr intrinsics) assoc-list))
+        (cons
+          (cons var (cdr pair))
+          (make-intrinsics-assoc-list (cdr intrinsics) assoc-list))
         (make-intrinsics-assoc-list (cdr intrinsics) assoc-list)))))
 
-(define (check-invalid-intrinsics intrinsics)
-  (cond
-    ((null? intrinsics)
-      #t)
-    ((member (car intrinsics) valid-intrinsics)
-      (check-invalid-intrinsics (cdr intrinsics)))
-    (else
-      (error "SyntaxError" "invalid __compiler_intrinsics__" (car intrinsics)))))
-
 (define (use-intrinsics! this intrinsics)
+
+  (define (check-invalid-intrinsics intrinsics)
+    (cond
+      ((null? intrinsics)
+        #t)
+      ((memq (PycVar-id (PycRef-decl (car intrinsics)))
+             valid-intrinsics)
+        (check-invalid-intrinsics (cdr intrinsics)))
+      (else
+        (error "SyntaxError" "invalid __compiler_intrinsics__" (car intrinsics)))))
+
+  (check-invalid-intrinsics intrinsics)
+  (check-no-intrinsics-assignation this intrinsics)
+
   (let* ((statics-assoc-list (make-intrinsics-assoc-list intrinsics static-intrinsics))
          (macro-assoc-list (make-intrinsics-assoc-list intrinsics macro-intrinsics))
          (intrinsics-info
@@ -259,77 +282,76 @@
             intrinsics
             statics-assoc-list
             macro-assoc-list)))
-  (check-invalid-intrinsics intrinsics)
-  (check-no-intrinsics-assignation this intrinsics)
+
+  ;; static functions and values
   (resolve-statics!
     this
     intrinsics
     statics-assoc-list
     macro-assoc-list
     #f)
-  (if (member 'use_simple_scoping intrinsics)
+
+  ;; scoping/behaviors intrinsics
+  (if (list-find-PycRef-by-id intrinsics 'use_simple_scoping)
       (mark-use-simple-scoping! this))
-  (if (member 'define_semantics intrinsics)
+  (if (list-find-PycRef-by-id intrinsics 'define_semantics)
       (begin
         (mark-define-semantics! this #f intrinsics-info)
         (lambda-lift-semantics! this)))
-  (if (member 'define_behavior intrinsics)
+  (if (list-find-PycRef-by-id intrinsics 'define_behavior)
     (mark-define-behavior! this intrinsics-info))
-  (if (member 'builtin_class intrinsics)
+  (if (list-find-PycRef-by-id intrinsics 'builtin_class)
       (mark-builtin-class-semantics! this))
   this))
 
+;; check no intrinsics assig
 (define-walk-method (check-no-intrinsics-assignation this::PycNode intrinsics)
   (call-default-walker))
 
 (define-walk-method (check-no-intrinsics-assignation this::PycRef intrinsics)
   (if (memq (PycRef-ctx this) (Store Del))
-    (let ((var (PycRef-decl this)))
-      (if (memq (PycVar-id var) intrinsics)
-        (error "SyntaxError" "cannot assign/delete compiler intrinsic name" (PycVar-id var))
-        (call-default-walker)))
-    (call-default-walker)))
+    (if (memq (PycRef-decl this) intrinsics)
+      (error "SyntaxError" "cannot assign/delete compiler intrinsic name" (PycVar-id var))
+      (call-default-walker)))
+    (call-default-walker))
+
+;; resolve static intrinsics
 
 (define-walk-method (resolve-statics! this::PycNode instrinsics statics macros use-static-builtins)
   (call-default-walker))
 
-(define-walk-method (resolve-statics! this::PycRefUnresolved intrinsics statics macros use-static-builtins)
-  (let* ((id (PycRefUnresolved-id this))
+(define-walk-method (resolve-statics! this::PycRef intrinsics statics macros use-static-builtins)
+  (let* ((var (PycRef-decl this))
         (static-value
-          (or
-            (let ((pair (assoc id statics)))
-              (if pair (cdr pair) #f))
-            (and
-              use-static-builtins
-              (hashtable-get static-builtins-table id)))))
+          (let ((pair (assq var statics))) (if pair (cdr pair) #f))))
     (if static-value
-      (let ((loc (PycNode-loc this)))
-        (new-PycStatic loc id static-value))
+      (new-PycStatic (PycNode-loc this) id static-value)
       this)))
 
-(define (PycRef-with-name? x name)
-  (and (PycRefUnresolved? x) (eq? (PycRefUnresolved-id x) name)))
-
-(define (contains-PycRef-with-name? lst name)
-  (cond
-    ((null? lst)
-      #f)
-    ((PycRef-with-name? (car lst) name)
-      #t)
-    (else
-      (contains-PycRef-with-name? (cdr lst) name))))
+(define-walk-method (resolve-statics! this::PycRefUnresolved intrinsics statics macros use-static-builtins)
+  (let* ((id (PycRefUnresolved-id this))
+         (static-value
+           (and use-static-builtins (hashtable-get static-builtins-table id))))
+    (if static-value
+      (new-PycStatic (PycNode-loc this) id static-value)
+      this)))
 
 (define-walk-method (resolve-statics! this::PycFun intrinsics statics macros use-static-builtins)
-  (let ((decorators (PycFun-decorators this)))
+  (let* ((decorators (PycFun-decorators this))
+         (use_static_builtins-var (list-find-PycVar-by-id intrinsics 'use_static_builtins)))
     (if (or use-static-builtins
-            (and
-              (member 'use_static_builtins intrinsics)
-              (contains-PycRef-with-name? decorators 'use_static_builtins)))
+            (list-find-PycRef-by-id
+              decorators
+              use_static_builtins-var))
       (let* ((body (PycFun-body this))
             (new-body (resolve-statics! body intrinsics statics macros #t)))
         (PycFun-decorators-set!
           this
-          (list-remove-pred decorators (lambda (d) (PycRef-with-name? d 'use_static_builtins))))
+          (list-remove-pred
+            decorators
+            (lambda (d)
+              (and (isa? d PycRef)
+                   (eq? (PycRef-decl d) use_static_builtins-var)))))
         (PycFun-body-set! this new-body)
         this)
       (call-default-walker))))
@@ -338,17 +360,17 @@
   (let ((this (call-default-walker))
        (fun (PycCall-fun this)))
     (if (and use-static-builtins
-           (or
-             (not (PycStatic? fun))
-             (not (eq? (PycIntrinsics-id fun) 'super))))
+             (isa? fun PycRefUnresolved)
+             (not (eq? (PycRefUnresolved-id 'super))))
       (PycCall-can-be-super-set! this #f))
-    (if (PycRefUnresolved? fun)
-      (let* ((pair (assoc (PycRefUnresolved-id fun) macros)))
+    (if (PycRef? fun)
+      (let* ((pair (assq fun macros)))
         (if pair
           ((cdr pair) this)
           this))
       this)))
 
+;; resolve statically types binops
 (define (get-pragma-call-type-hint call)
   (let* ((fun (PycCall-fun call))
         (expr (PycPragma-expr fun)))
@@ -386,21 +408,33 @@
     (PycUnary-type-hint-set! this (get-expr-type-hint (PycUnary-expr this)))
     this))
 
+;; detects the use_simple-scoping intrinsics
 (define-walk-method (mark-use-simple-scoping! this::PycNode)
   (call-default-walker))
 
 (define-walk-method (mark-use-simple-scoping! this::PycFun)
-  (let ((decorators (PycFun-decorators this)))
-    (if (contains-PycRef-with-name? decorators 'use_simple_scoping)
+  (let ((decorators (PycFun-decorators this))
+        (use_simple_scoping-var (list-find-PycVar-by-id intrinsics 'use_simple_scoping)))
+    (if (list-find-PycRef-by-id
+          decorators
+          use_simple_scoping-var)
       (begin
         (PycFun-decorators-set!
           this
-          (list-remove-pred decorators (lambda (d) (PycRef-with-name? d 'use_simple_scoping))))
+          (list-remove-pred
+            decorators
+            (lambda (d)
+              (and (isa? d PycRef)
+                   (eq? (PycRef-decl d) use_simple_scoping-var)))))
         (PycFun-use-simple-scoping-set! this #t)))
       (call-default-walker)))
 
-(define-walk-method (mark-define-semantics! this::PycNode parent-semantics intrinsics-info)
-  (call-default-walker))
+;; semantics
+(define inlined-behaviors '(
+  ;; binary
+  (sint sint) (float float) (sint float) (float sint)
+  ;;unary
+  (sint) (float)))
 
 (define (is-inlined-semantics name)
   (not (not
@@ -410,6 +444,9 @@
                  pos neg invert
                  imul ipow irshift isub itruediv ixor
                  ge gt le lt eq ne)))))
+
+(define-walk-method (mark-define-semantics! this::PycNode parent-semantics intrinsics-info)
+  (call-default-walker))
 
 (define-walk-method (mark-define-semantics! this::PycFun parent-semantics intrinsics-info)
   (let* ((decorators (PycFun-decorators this))
@@ -477,11 +514,7 @@
 (define-walk-method (mark-define-behavior! this::PycNode intrinsics-info)
   (call-default-walker))
 
-(define inlined-behaviors '(
-  ;; binary
-  (sint sint) (float float) (sint float) (float sint)
-  ;;unary
-  (sint) (float)))
+
 
 (define (PycSemantics-has-inlinable-annotation fn)
   (define (ref->symbol ref)
@@ -536,7 +569,6 @@
           inline-as-is: inline-as-is)))
 
     (define (make-default-inline-behavior-body)
-      (define args-names (append (map PycVar-id posonlyargs) (map PycVar-id args)))
       (new-PycSeq
         loc
         (list
@@ -546,12 +578,12 @@
               loc
               (new-PycPragma loc (make-fallback-behavior-name name))
               (map
-                (lambda (name)
+                (lambda (a)
                   (new-PycCall
                     loc
                     (new-PycPragma loc 'unquote)
-                    (list (new-PycRefUnresolved loc name))))
-                args-names))))))
+                    (list (new-PycRef loc a 'Load))))
+                (append posonlyargs args)))))))
 
     (if is-decorated-behavior
       (begin
@@ -574,6 +606,11 @@
               (make-behavior (make-fallback-behavior-name name) body #f #f)
               (make-behavior (make-inline-behavior-name name) (make-default-inline-behavior-body) #t #t)))))
       this)))
+
+
+
+
+;; lambda lifting of semantics
 
 (define (lambda-lift-semantics! module)
   (lambda-lift-semantics-walk! module))
@@ -690,7 +727,7 @@
     (PycFun-args-set!
       this
       (append
-        (map (lambda (name) (new-PycVar name 'local)) lifted-vars)
+        (map (lambda (name) (new-PycVar '(-1 -1) name 'local)) lifted-vars)
         (PycFun-args this)))
     (list
       (list

@@ -27,7 +27,7 @@
 		          (PycModule-global-defs ast)
 		          '()))
 	  (tldecls (if (config-get conf optim-toplevel-module:)
-		       (scheme-tl* ast conf)
+		       '() ;; TODO
 		       '()))
 	  (prog (scheme ast conf))
 	  (file (config-get conf file:))
@@ -121,14 +121,14 @@
       (filter-map
         (lambda (d)
           (let ((proc-name (get-def-procedure-name d))
-                (var (PycRef-decl d)))
+                (var (PycRef-decl (PycAssig-lhs d))))
             (if proc-name
               (list
                 `(define ,proc-name #f)
                 `(define (scheme-def-optim-global-name-init var) #f)
                 )
               #f)))
-        global-funs)))
+        defs)))
 
 
   (define (scheme-register-globals vars)
@@ -137,9 +137,9 @@
         `(global-register!
           %global
           ,(pyc-propname (PycVar-id var))
-          (lambda () ,(schem-var-name var conf))
+          (lambda () ,(scheme-var-name var conf))
           (lambda (v)
-            (set! ,(schem-var-name var conf) v))))
+            (set! ,(scheme-var-name var conf) v))))
       vars))
 
 
@@ -162,10 +162,10 @@
     (let loop ((refs refs) (acc '()))
       (if (null? refs)
         acc
-        (let ((name (scheme-var-name (PycRef-decl (car refs)))))
+        (let ((name (scheme-var-name (PycRef-decl (car refs)) conf)))
           (if (memq name acc)
             (loop (cdr refs) acc)
-            (loop (cdr refs (cons name acc))))))))
+            (loop (cdr refs) (cons name acc)))))))
 
   (pyc-cache! ast conf)
 
@@ -204,7 +204,7 @@
                 `(define (py-module global caches)
                   (set! %global global)
                   (set! %caches caches)
-                  ,@(scheme-register-globals globals))
+                  ,@(scheme-register-globals global-refs))
                    `(define py-module ,prog))
 
               (define (init name)
@@ -305,7 +305,7 @@
                     ,(scheme rhs conf))
                   (error "scheme::PycBlock" "block assignment must be PycRef" lhs))
             decls)
-          ,(scheme (PycBlock-body this) conf))))))
+          ,(scheme (PycBlock-body this) conf))))))))
 
 (define-walk-method (scheme this::PycReturn conf)
    (if (PycReturn-tail this)
@@ -460,7 +460,7 @@
                     ,(in-contexts (cdr items) body))
                     (py-exit ,ctx-sym py-None))
                 `(let ((,ctx-sym ,(scheme context-expr conf)))
-                   (set! ,(scheme-decl var conf) (py-enter ,ctx-sym))
+                   (set! ,(scheme-var-name var conf) (py-enter ,ctx-sym))
                    (with-handler
                     (lambda (%exn)
                       (if (PyObject? %exn)
@@ -618,19 +618,19 @@
 (define (scheme-var-name var conf)
   (let ((current-name (PycVar-name var)))
     (if current-name
-      current
+      current-name
       (let* ((name
               (if (eq? (PycVar-scope var) 'global')
                 (symbol-append
                   '|global:|
-                  (PycVar-id this)
+                  (PycVar-id var)
                   '-
-                  (string->symbol (number->string (PycVar-key this))))
+                  (string->symbol (number->string (PycVar-key var))))
                  (symbol-append
-                   (PycVar-id this)
+                   (PycVar-id var)
             	     '-
-            	     (string->symbol (number->string (PycVar-key this)))))))
-        (PycVar-name-set! this name)
+            	     (string->symbol (number->string (PycVar-key var)))))))
+        (PycVar-name-set! var name)
         name))))
 
 (define (scheme-def-optim-global-name-init this conf)
@@ -642,7 +642,7 @@
 (define (scheme-assig-global ref val conf)
   (define (assig var val)
     `(global-put! %global ,(pyc-propname (PycVar-id var)) ,val
-      ,(scheme-cache (PycRef-cache ref))))
+      ,(scheme-cache (PycRef-cache ref) ref)))
 
   (let ((var (PycRef-decl ref)))
     (if (config-get conf optim-globals:)
@@ -656,7 +656,7 @@
       (else (error "pyc-propname" "Wrong property name" name))))
 
 (define-walk-method (scheme this::PycAssig conf)
-  (let ((lhs (PycAssig-lhs this))
+  (let* ((lhs (PycAssig-lhs this))
         (rhs (PycAssig-rhs this))
         (val (scheme rhs conf)))
     (cond
@@ -667,7 +667,7 @@
           (epairify this
             (case (PycVar-scope var)
               ((global)
-                (scheme-assig-global ref val conf))
+                (scheme-assig-global lhs val conf))
               (else
                 `(set! ,(scheme-var-name var conf) ,val))))))
 
@@ -1089,7 +1089,7 @@
         ((PycRef? f)
           (let* ((var (PycRef-decl f)))
             (if (eq? (PycVar-scope var) 'global)
-              (let ((global-funs (memq global-funs: conf))
+              (let* ((global-funs (memq global-funs: conf))
                     (init-val (get-def-with-var global-funs var)))
                  (if (and (PycFun? init-val)
                           (symbol? (PycFun-&proc init-val))
@@ -1195,13 +1195,13 @@
   (let* ((var (PycRef-decl this))
         (id (PycVar-id var))
         (name (scheme-var-name var conf)))
-    (case (PycVar-scope)
+    (case (PycVar-scope var)
       ((global)
         `(if (eq? ,name py-absent)
           (global-get
             %global
             (& (symbol->string ,name))
-            ,(scheme-cache (PycRef-cache f) this))
+            ,(scheme-cache (PycRef-cache this) this))
           ,name))
       (else
         name))))
@@ -1337,7 +1337,7 @@
    (call-default-walker))
 
 (define-walk-method (collect-globals* this::PycRef)
-  (if (eq? (PycRef-decl (PycVar-scope this) 'global))
+  (if (eq? (PycRef-decl (PycVar-scope this)) 'global)
     (list this)
     '()))
 
@@ -1359,11 +1359,11 @@
                 (cond
                   ((null? usage)
                     '())
-                  ((eq? (PycRef-ctx (car usage) 'Store))
+                  ((eq? (PycRef-ctx (car usage)) 'Store)
                     (cons (car usage) (loop (cdr usage))))
                   (else
                     (loop (cdr usage)))))))
         (and (PycFun? fun)
              (fix-arity? fun)
-             (= (length assig-usage 1))))
+             (= (length assig-usage) 1)))
         #f)))
