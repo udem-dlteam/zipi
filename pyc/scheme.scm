@@ -130,18 +130,16 @@
               #f)))
         defs)))
 
-
   (define (scheme-register-globals vars)
     (map
-      (lambda (var)
+      (lambda (name)
         `(global-register!
           %global
-          ,(pyc-propname (PycVar-id var))
-          (lambda () ,(scheme-var-name var conf))
+          ,(pyc-propname name)
+          (lambda () ,name)
           (lambda (v)
-            (set! ,(scheme-var-name var conf) v))))
-      vars))
-
+            (set! ,name v))))
+      (get-unique-var-names-lst vars)))
 
   (define (set-procedure-names! defs)
     (if (not (null? defs))
@@ -204,7 +202,8 @@
                 `(define (py-module global caches)
                   (set! %global global)
                   (set! %caches caches)
-                  ,@(scheme-register-globals (map PycRef-decl global-refs)))
+                  ,@(scheme-register-globals (map PycRef-decl global-refs))
+                  ,@prog)
                    `(define py-module ,prog))
 
               (define (init name)
@@ -1089,7 +1088,7 @@
         ((PycRef? f)
           (let* ((var (PycRef-decl f)))
             (if (eq? (PycVar-scope var) 'global)
-              (let* ((global-funs (memq global-funs: conf))
+              (let* ((global-funs (cadr (memq global-funs: conf)))
                     (init-val (get-def-with-var global-funs var)))
                  (if (and (PycFun? init-val)
                           (symbol? (PycFun-&proc init-val))

@@ -77,19 +77,43 @@
 ;; ================================================================
 
 (define (resolve-and-collect-globals! module)
-  (let* ((global-vars (make-var-env 'global)))
+  (let* ((global-vars (make-var-env-from-lst 'global (collect-global-assig-vars* module))))
     (resolve-global! module global-vars)
     (PycModule-global-defs-set! module (collect-global-defs* module))
     global-vars))
 
+;; collect
+(define-walk-method (collect-global-assig-vars* this::PycNode)
+  (call-default-walker))
+
+(define-walk-method (collect-global-assig-vars* this::PycRefUnresolved)
+  (if (eq? (PycRefUnresolved-ctx this) 'Store)
+    (list (new-PycVar '(-1 -1) (PycRefUnresolved-id this) 'global))
+    '()))
+
+(define-walk-method (collect-global-assig-vars* this::PycFun)
+  (append
+    (apply append
+      (map (lambda (d) (collect-global-assig-vars* d)) (PycFun-defaults this)))
+    (apply append
+      (map (lambda (d) (collect-global-assig-vars* d)) (PycFun-kw-defaults this)))))
+
+
+(define-walk-method (collect-global-assig-vars* this::PycClass)
+  (apply append
+    (map (lambda (d) (collect-global-assig-vars* d)) (PycClass-bases this))))
+
+;; resolve
 (define-walk-method (resolve-global! this::PycNode global-vars)
   (call-default-walker))
 
 (define-walk-method (resolve-global! this::PycRefUnresolved global-vars)
-  (let* ((var (env-get-or-create global-vars (PycRefUnresolved-id this) 'global))
-         (ref (new-PycRef (PycNode-loc this) var (PycRefUnresolved-ctx this))))
-    (PycVar-add-usage var ref)
-    ref))
+  (let* ((var (env-get global-vars (PycRefUnresolved-id this))))
+    (if var
+      (let ((ref (new-PycRef (PycNode-loc this) var (PycRefUnresolved-ctx this))))
+        (PycVar-add-usage var ref)
+        ref)
+      this)))
 
 (define-walk-method (resolve-global! this::PycFun global-vars)
   (PycFun-defaults-set!
