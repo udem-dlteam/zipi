@@ -36,8 +36,6 @@ $PYC_DIR/scheme.bgl \
 $PYC_DIR/scheme.scm \
 $PYC_DIR/break.bgl \
 $PYC_DIR/break.scm \
-$PYC_DIR/usage.bgl \
-$PYC_DIR/usage.scm \
 $PYC_DIR/generator.bgl \
 $PYC_DIR/generator.scm \
 $PYC_DIR/cps.bgl \
