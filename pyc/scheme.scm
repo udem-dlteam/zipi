@@ -109,13 +109,13 @@
   (append (only 'define-macro) (only 'define)))
 
 (define (pyc-scheme-gambit ast conf)
-  (define (scheme-init-globals vars)
+  (define (scheme-init-globals vars conf)
     (map
       (lambda (name)
         `(define ,name py-absent))
       (get-unique-var-names-lst vars)))
 
-  (define (scheme-init-global-defs defs)
+  (define (scheme-init-global-defs defs conf)
     (apply
       append
       (filter-map
@@ -124,7 +124,7 @@
                 (var (PycRef-decl (PycAssig-lhs d))))
             (if proc-name
               (list
-                `(define ,proc-name #f)
+                `(define ,proc-name ,(scheme-procedure-proc (PycAssig-rhs d) conf))
                 `(define (scheme-def-optim-global-name-init var) #f)
                 )
               #f)))
@@ -182,7 +182,8 @@
               (if (config-get conf optim-globals:)
                 (collect-globals* ast)
         		    '()))
-            (prog (scheme ast (cons* global-funs: global-funs conf)))
+            (conf-with-defs (cons* global-funs: global-funs conf))
+            (prog (scheme ast (cons* global-funs: global-funs conf-with-defs)))
             (full-path (if (and file path) (make-file-path path file) #f)))
         (list
           `(define-library (,(string->symbol (config-get conf name:)))
@@ -191,14 +192,14 @@
             (begin
               (py-begin-module)
 
-              ,@(if (config-get conf optim-toplevel-module:)
+              ,@(if (config-get conf-with-defs optim-toplevel-module:)
                 `((define %global #f)
                   (define %caches #f)
-                  ,@(scheme-init-global-defs global-funs)
-                  ,@(scheme-init-globals (map PycRef-decl global-refs)))
+                  ,@(scheme-init-global-defs global-funs conf-with-defs)
+                  ,@(scheme-init-globals (map PycRef-decl global-refs) conf-with-defs))
                 '())
 
-              ,(if (config-get conf optim-toplevel-module:)
+              ,(if (config-get conf-with-defs optim-toplevel-module:)
                 `(define (py-module global caches)
                   (set! %global global)
                   (set! %caches caches)

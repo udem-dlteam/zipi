@@ -212,7 +212,7 @@
     ;; store function declarations
     (PycFun-decls-set! fun (env->list local-env))
     ;; now that the full scope has been analyzed we can recursively call nested scopes
-    (for-each (lambda (cont) (cont)) conts)
+    (for-each (lambda (cont) (cont)) (env->list conts))
     body))
 
 (define (resolve-class-body! cls body global-env free-env)
