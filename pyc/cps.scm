@@ -99,15 +99,16 @@
 (define-walk-method (cps this::PycYield k pack kbreaks kcontinues ktry fun)
 
    (define (make-yield-kont k loc)
-      (let* ((arg (new-PycVar loc (gensym '%arg) 'local))
-	     (exn (new-PycVar loc (gensym '%exn) 'local))
-	     (body (kcall k (new-PycRef loc arg)))
-	     (cont (new-PycIf loc
-		      (new-PycBinary loc 'is
-			 (new-PycRef loc exn) (new-PycBool loc #t) type: 'bool)
-		      (new-PycRaise loc (new-PycRef loc arg) (new-PycUninit loc))
-		      body)))
-	 (new-PycKont loc arg exn (pack cont))))
+    (let* ((arg (new-PycVar loc (gensym '%arg) 'local))
+           (exn (new-PycVar loc (gensym '%exn) 'local))
+           (body (kcall k (new-PycRef loc arg 'Store)))
+           (cont
+             (new-PycIf loc
+               (new-PycBinary loc 'is
+                 (new-PycRef loc exn 'Store) (new-PycBool loc #t) type: 'bool)
+             (new-PycRaise loc (new-PycRef loc arg 'Load) (new-PycUninit loc))
+            body)))
+    (new-PycKont loc arg exn (pack cont))))
 
    (let* ((loc (PycNode-loc this))
 	  (val (PycYield-val this))
