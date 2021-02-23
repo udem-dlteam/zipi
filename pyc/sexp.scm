@@ -61,20 +61,20 @@
        loc
        ;; args
        (map (lambda (a)
-              (new-Var (car a) 'local))
+              (new-PycVar (car a) 'local))
             (car args))
        ;; posonlyargs
        (map (lambda (a)
-              (new-Var (car a) 'local))
+              (new-PycVar (car a) 'local))
             (cadr args))
        ;; vararg
        (let ((a (caddr args)))
          (if a
-             (new-Var (car a) 'local)
+             (new-PycVar (car a) 'local)
              (new-PycUninit loc)))
        ;; kwonlyargs
        (map (lambda (a)
-              (new-Var (car a) 'local))
+              (new-PycVar (car a) 'local))
             (list-ref args 3))
        ;; kw-defaults
        (map (lambda (a)
@@ -83,7 +83,7 @@
        ;; kwarg
        (let ((a (list-ref args 5)))
          (if a
-             (new-Var (car a) 'local)
+             (new-PycVar (car a) 'local)
              (new-PycUninit loc)))
        ;; defaults
        (map
@@ -107,7 +107,8 @@
             (annotation-names (car annotation-info))
             (annotation (cdr annotation-info)))
       (new-PycAssig
-        (new-PycRefUnresolved id 'Store)
+        loc
+        (new-PycRefUnresolved loc id 'Store)
         (new-PycFun
           loc
           ;; args
@@ -145,7 +146,7 @@
                         (lambda (d) (sexp d #f scope conf)) decorator_list)
           name: id
           annotation: annotation
-          annotation-names: annotation-names)))
+          annotation-names: annotation-names))))
     ((ClassDef ?loc ?id ?bases ?keywords ?body ?decorator_list)
      ;; ClassDef(identifier name,
      ;;       expr* bases,
@@ -179,7 +180,7 @@
                        (sexp (car targets) #f scope conf)
                        (sexp value #f scope conf))
          (let* ((id (gensym '%tmp))
-                (block-var (new-PycVar loc id 'block))
+                (block-var (new-PycVar id 'block))
                 (block-assig
                   (new-PycAssig
                     loc
@@ -417,10 +418,13 @@
        (if name
            (let ((body
                    (new-PycBlock loc
-                     (list (new-PycVar loc
-                             name
-                             'block
-                             (new-PycPragma loc exc-sym)))
+                     (list
+                       (new-PycAssig
+                         loc
+                         (new-PycVar
+                               name
+                               'block)
+                         (new-PycPragma loc exc-sym)))
                      (compile-stmt* loc body #f scope conf))))
              (new-PycHandler loc expr body))
            (new-PycHandler loc expr (compile-stmt* loc body #f scope conf)))))
@@ -478,8 +482,8 @@
        (error "import" "Unsupported form" alias))))
 
 (define (compile-import-from loc module aliases level conf)
-  (let ((base (string-append (symbol->string module) "."))
-        (module-var (new-PycVar loc '%mod 'block))
+  (let* ((base (string-append (symbol->string module) "."))
+        (module-var (new-PycVar '%mod 'block))
         (module-assig
           (new-PycAssig
             loc

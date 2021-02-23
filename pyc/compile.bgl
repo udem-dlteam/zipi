@@ -26,7 +26,6 @@
 	   __pyc_return
 	   __pyc_break
 	   __pyc_super
-	   __pyc_usage
 	   __pyc_generator
 	   __pyc_cps
 	   __pyc_simple_scoping
