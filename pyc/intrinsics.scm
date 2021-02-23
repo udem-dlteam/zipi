@@ -20,7 +20,8 @@
       #f)
     ((eq? (PycVar-id (car lst)) id)
       (car lst))
-    (list-find-PycVar-by-id (cdr lst) id)))
+    (else
+      (list-find-PycVar-by-id (cdr lst) id))))
 
 (define (list-find-PycRef-by-id lst id)
   (cond
@@ -29,7 +30,18 @@
     ((and (isa? PycRef (car lst))
           (eq? (PycVar-id (PycRef-decl (car lst))) id))
       (car lst))
-    (list-find-PycVar-by-id (cdr lst) id)))
+    (else
+      (list-find-PycRef-by-id (cdr lst) id))))
+
+(define (list-find-PycRef-by-PycVar lst var)
+  (cond
+    ((null? lst)
+      #f)
+    ((and (isa? PycRef (car lst))
+          (eq? (PycRef-decl (car lst)) var))
+      (car lst))
+    (else
+      (list-find-PycRef-by-id (cdr lst) id))))
 
 ;; definitions for intrinsic calls/values
 (define (make-inline_host_code this)
@@ -450,15 +462,15 @@
 
 (define-walk-method (mark-define-semantics! this::PycFun parent-semantics intrinsics-info)
   (let* ((decorators (PycFun-decorators this))
-        (is-decorated-semantics (contains-PycRef-with-name? decorators 'define_semantics)))
-    (if is-decorated-semantics
+        (semantics-decorator (list-find-PycRef-by-id decorators 'define_semantics)))
+    (if (isa? semantics-decorator PycRef)
       (resolve-statics!
         (PycFun-body this)
         (car intrinsics-info)
         (cadr intrinsics-info)
         (caddr intrinsics-info)
         #t))
-    (if (or is-decorated-semantics parent-semantics)
+    (if (or semantics-decorator parent-semantics)
       (let* ((res (call-default-walker))
             (loc (PycNode-loc res))
             (args (PycFun-args res))
@@ -484,19 +496,18 @@
           defaults
           (mark-define-semantics! body #t intrinsics-info)
           decorators:
-            (list-remove-pred
+            (list-remove
               decorators
-              (lambda (d)
-                (or (PycRef-with-name? d 'use_simple_scoping)
-                    (PycRef-with-name? d 'define_semantics))))
+              semantics-decorator)
           decls: decls
           use-simple-scoping: #t
-          name: (if is-decorated-semantics (symbol-append 'py- name '-fallback) name)
+          name: (if semantics-decorator (symbol-append 'py- name '-fallback) name)
           annotation: annotation
           annotation-names: annotation-names
-          inline: (if is-decorated-semantics (is-inlined-semantics name) #f)))
+          inline: (if semantics-decorator (is-inlined-semantics name) #f)))
       (call-default-walker))))
 
+;; behaviors
 (define (schemify-name name)
   (list->string
     (let loop ((chars (string->list (symbol->string name))))
@@ -513,8 +524,6 @@
 
 (define-walk-method (mark-define-behavior! this::PycNode intrinsics-info)
   (call-default-walker))
-
-
 
 (define (PycSemantics-has-inlinable-annotation fn)
   (define (ref->symbol ref)
@@ -533,8 +542,7 @@
         (args (PycFun-args this))
         (posonlyargs (PycFun-posonlyargs this))
         (decorators (PycFun-decorators this))
-        (is-decorated-behavior (contains-PycRef-with-name? decorators 'define_behavior)))
-
+        (behavior-decorator (list-find-PycRef-by-id decorators 'define_behavior)))
     (define (make-behavior name body inline inline-as-is)
       (let* ((vararg (PycFun-vararg this))
             (kwonlyargs (PycFun-kwonlyargs this))
@@ -555,11 +563,9 @@
           defaults
           body
           decorators:
-            (list-remove-pred
+            (list-remove
               decorators
-              (lambda (d)
-                (or (PycRef-with-name? d 'use_simple_scoping)
-                    (PycRef-with-name? d 'define_behavior))))
+              behavior-decorator)
           decls: decls
           use-simple-scoping: #t
           name: name
@@ -585,7 +591,7 @@
                     (list (new-PycRef loc a 'Load))))
                 (append posonlyargs args)))))))
 
-    (if is-decorated-behavior
+    (if behavior-decorator
       (begin
         (resolve-statics!
           (PycFun-body this)
@@ -606,9 +612,6 @@
               (make-behavior (make-fallback-behavior-name name) body #f #f)
               (make-behavior (make-inline-behavior-name name) (make-default-inline-behavior-body) #t #t)))))
       this)))
-
-
-
 
 ;; lambda lifting of semantics
 
@@ -666,7 +669,7 @@
           (new-PycPragma loc new-name)
           (append
             (map
-              (lambda (name) (new-PycRefUnresolved ref-loc name))
+              (lambda (var) (new-PycRef ref-loc var 'Load))
               lifted-vars)
             (map (lambda (a) (update-semantics-calls! a old-name new-name lifted-vars)) args))))
       (call-default-walker))))
@@ -691,29 +694,34 @@
           (loop (cdr pairs) (cons (caar pairs) acc))
           (loop (cdr pairs) acc))))))
 
-(define (sort-lifted-vars vars order)
-  (define (symbol-sort lst)
-    (map string->symbol (sort string<? (map symbol->string lst))))
+(define (sort-lifted-vars refs args-order)
+  (define (var-sort lst)
+    (sort
+      (lambda (l r)
+        (string<?
+          (symbol->string (PycVar-id l))
+          (symbol->string (PycVar-id r))))
+      lst))
 
   (let* ((with-order
-          (let loop ((lst order) (acc '()))
+          (let loop ((lst args-order) (acc '()))
                 (cond
                   ((null? lst)
                     (reverse acc))
-                  ((member (car lst) vars)
+                  ((list-find-PycRef-by-PycVar refs (car lst))
                     (loop (cdr lst) (cons (car lst) acc)))
                   (else
                     (loop (cdr lst) acc)))))
         (w/o-order
-          (let loop ((lst vars) (acc '()))
+          (let loop ((lst refs) (acc '()))
                 (cond
                   ((null? lst)
                     (reverse acc))
-                  ((member (car lst) order)
+                  ((list-find-PycRef-by-PycVar args-order (car lst))
                     (loop (cdr lst) acc))
                   (else
                     (loop (cdr lst) (cons (car lst) acc))))))
-        (sorted-w/o-order (symbol-sort w/o-order)))
+        (sorted-w/o-order (var-sort w/o-order)))
     (append with-order sorted-w/o-order)))
 
 (define-walk-method (get-lifted-semantics* this::PycNode parent-name cte args-order)
@@ -721,8 +729,8 @@
 
 (define-walk-method (get-lifted-semantics* this::PycSemantics parent-name cte args-order)
   (let* ((loc (PycNode-loc this))
-        (sem-cte (collect-semantics-decls* this #t))
-        (sem-refs (collect-semantics-refs* this #t))
+        (sem-cte (collect-semantics-decls* this #t)) ;; return Store PycRef in semantics
+        (sem-refs (collect-semantics-refs* this #t)) ;; return Load PycRef in semantics
         (lifted-vars (sort-lifted-vars (get-variables-to-lift cte sem-cte sem-refs) args-order)))
     (PycFun-args-set!
       this
@@ -761,12 +769,9 @@
     (call-default-walker)
     '()))
 
-(define-walk-method (collect-semantics-refs* this::PycRefUnresolved search-nested-semantics)
-  (list (PycRefUnresolved-id this)))
-
 (define-walk-method (collect-semantics-refs* this::PycRef search-nested-semantics)
   (if (eq? (PycRef-ctx this) 'Load)
-    (list (PycRef-decl this))
+    (list this)
     '()))
 
 ;; remove-semantics-decl!
@@ -790,6 +795,13 @@
 
 ;; mark-builtin-class-semantics!
 
+(define builtin-class-structure-name-assoc-list
+  '((int . PyObjectInt)
+    (bool . PyObjectInt)
+    (float . PyObjectFloat)
+    (range . PyObjectRange)
+    (range_iterator . PyObjectRangeIterator)))
+
 (define (mark-builtin-class-semantics! this)
   (let ((builtins-class-usage (collect-builtins-class-usage* this)))
     (if (not (null? builtins-class-usage))
@@ -798,48 +810,26 @@
 (define-walk-method (collect-builtins-class-usage* this::PycNode)
   (call-default-walker))
 
-(define (get-builtin-class-decorator-name node)
-  (if (PycCall? node)
-    (let ((fun (PycCall-fun node)))
-      (if (and (PycRefUnresolved? fun) (eq? (PycRefUnresolved-id fun) 'builtin_class))
-        (let ((args (PycCall-args node)))
-          (if (< (length args) 1)
-            (error "SyntaxError" "builtin_class requires at least one argument, the object type linked to the class" fun)
-            (let ((scheme-class-name (car args)))
-              (if (PycString? scheme-class-name)
-                (PycLiteralValue-val scheme-class-name)
-                (error "SyntaxError" "builtin_class first argument must be a string literal" scheme-class-name)))))
-        #f))
-    #f))
-
-(define (find-class-decorator-name decorators)
-  (if (null? decorators)
-    #f
-    (or (get-builtin-class-decorator-name (car decorators))
-        (find-class-decorator-name (cdr decorators)))))
-
-(define builtin-class-structure-name-assoc-list
-  '((int . PyObjectInt)
-    (bool . PyObjectInt)
-    (float . PyObjectFloat)
-    (range . PyObjectRange)
-    (range_iterator . PyObjectRangeIterator)))
-
 (define (get-builtin-class-structure-name class-name)
   (let ((res (assq class-name builtin-class-structure-name-assoc-list)))
     (if res
       (cdr res)
       (error "get-builtin-class-structure-name" "unknown structure for class" class-name))))
 
-(define-walk-method (collect-builtins-class-usage* this::PycClass)
-  (let* ((decorators (PycClass-decorators this))
-        (name (string->symbol (PycClass-name this))))
-    (if (contains-PycRef-with-name? decorators 'builtin_class)
-      (cons
-        (cons
-          name
-          (get-builtin-class-structure-name name))
-        (call-default-walker))
+(define-walk-method (collect-builtins-class-usage* this::PycAssig)
+  (let ((lhs (PycAssig-lhs))
+        (rhs (PycAssig-rhs)))
+    (if (and (isa? lhs PycRef) (isa? rhs PycClass)
+      (let* ((decorators (PycClass-decorators rhs))
+            (name (string->symbol (PycClass-name rhs)))
+            (builtin_class-var (list-find-PycRef-by-id decorators 'builtin_class)))
+        (if builtin_class-var
+          (cons
+            (cons
+              (PycRef-decl lhs)
+              (get-builtin-class-structure-name name))
+            (call-default-walker))
+          (call-default-walker)))
       (call-default-walker))))
 
 (define-walk-method (optimize-builtin-class-refs! this::PycNode builtins-class-table class self)
@@ -862,8 +852,8 @@
 
 (define-walk-method (optimize-builtin-class-refs! this::PycCall builtins-class-table class self)
   (let ((fun (PycCall-fun this)))
-    (if (PycRefUnresolved? fun)
-      (let ((scheme-class (assq (PycRefUnresolved-id fun) builtins-class-table)))
+    (if (isa fun PycRef)
+      (let ((scheme-class (assq (PycRef-decl fun) builtins-class-table)))
         (if scheme-class
           (let ((loc (PycNode-loc this)))
             (new-PycCall
@@ -871,9 +861,9 @@
               (new-PycPragma loc (make-maker-name (cdr scheme-class)))
               (append
                 (list
-                  (new-PycStatic loc 'arg1 (make-HClass-name (car scheme-class)))
+                  (new-PycStatic loc 'arg1 (make-HClass-name (PycVar-id (car scheme-class))))
                   (new-PycStaticSexp loc 'arg2 '(quote #()))
-                  (new-PycStatic loc 'arg3 (make-scheme-class-name (car scheme-class))))
+                  (new-PycStatic loc 'arg3 (make-scheme-class-name (PycVar-id (car scheme-class)))))
                 (map
                   (lambda (n)
                     (optimize-builtin-class-refs!
