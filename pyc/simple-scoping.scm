@@ -34,8 +34,8 @@
       (cons (reverse inside-assig) '())
       (let* ((assig (car assignments))
              (ref (PycAssig-lhs assig))
-             (var (PycRef-var ref))
-             (usage (collect-usage* this res)))
+             (var (PycRef-decl ref))
+             (usage (collect-usage* this ref)))
         (if (= (length (PycVar-usage var)) (length usage))
           ;; All usages of this variable are inside this PycSeq
           (split-assignments-by-usage (cdr assignments) (cons assig inside-assig))
@@ -44,15 +44,15 @@
 
   (define (set-assig-scopes-to-block! assigs)
     (if (not (null? assigs))
-      (PycVar-scope-set! (Pyc-Ref-decl (Pyc-Assig-lhs (car assigs))) 'block)))
+      (PycVar-scope-set! (PycRef-decl (PycAssig-lhs (car assigs))) 'block)))
 
   (define (splits-assignments nodes)
     (let* ((assig-stmt (split-nodes-after-assignments nodes '()))
           (simple-rest (split-assignments-by-usage (car assig-stmt) '())))
       (cons (car simple-rest) (append (cdr simple-rest) (cdr assig-stmt)))))
 
-  (let ((loc (PycNode-loc this))
-        (assig-rest (splits-assignments nodes))
+  (let* ((loc (PycNode-loc this))
+        (assig-rest (splits-assignments (PycSeq-nodes this)))
         (assigs (car assig-rest))
         (rest (cdr assig-rest)))
     (if (null? assigs)
@@ -68,9 +68,9 @@
               (lambda (s) (apply-simple-scoping! s))
               rest)))))))
 
-(define-macro (collect-usage* this::PycNode var)
+(define-walk-method (collect-usage* this::PycNode var)
   (call-default-walker))
 
-(define-macro (collect-usage* this::PycRef var)
-  (if (eq? (PycRef-var this) var)
+(define-walk-method (collect-usage* this::PycRef var)
+  (if (eq? (PycRef-decl this) var)
     (list this)))
