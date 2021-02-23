@@ -42,6 +42,7 @@
        (key::int (default (genkey)))
        ;; scope: global, local, block
        ;; usage
+       (in-scope-of (default #f))
        (usage::pair-nil (default '()))
        (simple-scoping-top-block (info '("jsonref" "notraverse")) (default #f))
        (cache (default #f)))

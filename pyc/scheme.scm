@@ -299,13 +299,13 @@
           ,(map
             (lambda (assig)
               (let ((lhs (PycAssig-lhs assig))
-                    (rhs (PycAssic-rhs assig)))
+                    (rhs (PycAssig-rhs assig)))
                 (if (PycRef? lhs)
-                  `(,(scheme-var-name (PycRef-var lhs) conf)
+                  `(,(scheme-var-name (PycRef-decl lhs) conf)
                     ,(scheme rhs conf))
-                  (error "scheme::PycBlock" "block assignment must be PycRef" lhs))
+                  (error "scheme::PycBlock" "block assignment must be PycRef" lhs))))
             decls)
-          ,(scheme (PycBlock-body this) conf))))))))
+          ,(scheme (PycBlock-body this) conf))))))
 
 (define-walk-method (scheme this::PycReturn conf)
    (if (PycReturn-tail this)
@@ -985,13 +985,20 @@
       exp))
 
   (define (locals fun body)
-    (if (PycFun-can-locals fun)
-      `(let ((%frame (make-cell #f))
-             (%names
-               ',(map! PycVar-id
-                 (append (PycFun-args fun) (PycFun-decls fun)))))
-          ,body)
-      body))
+    (let ((body-with-vars
+            `(letrec*
+              ,(map (lambda (decl)
+                 `(,(scheme-var-name decl conf)
+                  #f))
+                (PycFun-decls fun))
+              ,body)))
+      (if (PycFun-can-locals fun)
+        `(let ((%frame (make-cell #f))
+               (%names
+                 ',(map! PycVar-id
+                   (append (PycFun-args fun) (PycFun-decls fun)))))
+                ,body-with-vars)
+        body-with-vars)))
 
     (let* ((vararg (PycFun-vararg this))
 	        (kwarg (PycFun-kwarg this))
@@ -1204,7 +1211,10 @@
             ,(scheme-cache (PycRef-cache this) this))
           ,name))
       (else
-        name))))
+        `(or ,name
+            (py-throw-exception-with-message
+              py-builtin-UnboundLocalError
+              "local variable" ,(symbol->string id) "referenced before assignment"))))))
 
 (define-walk-method (scheme this::PycRefUnresolved conf)
    (epairify this
