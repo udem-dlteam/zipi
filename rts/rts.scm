@@ -5960,9 +5960,10 @@
   (gambit)
   (bigloo ((@ zipi-init __stdlib_behaviors) "behaviors")))
 
-(define (command-line-argv-set! value)
+;; note here that we assume that the list is at least of size 1 and contains as first argument the filename 
+(define (command-line-argv-set! list-with-file-name)
   (py-own-attr-set! sys-mod (& "argv")
-       (py-make-list-elems (map py-str-from-scheme-fallback value))))
+       (py-make-list-elems (map py-str-from-scheme-fallback (cdr list-with-file-name)))))
 
 (define (py-make-sys-mod)
   (let ((mod (py-make-global)))
