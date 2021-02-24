@@ -898,33 +898,14 @@
           (call-default-walker)))
       (call-default-walker))))
 
-(define-walk-method (optimize-builtin-class-refs! this::PycClass builtins-class-table class self)
-  (let ((scheme-class-info (assq (string->symbol (PycClass-name this)) builtins-class-table)))
-    (if scheme-class-info
-      (let ((scheme-class (cdr scheme-class-info)))
-        (new-PycClass
-          (PycNode-loc this)
-          (PycClass-name this)
-          (PycClass-module this)
-          ;; bases
-          (map (lambda (node) (optimize-builtin-class-refs! node builtins-class-table class self))
-               (PycClass-bases this))
-          ;; body
-          (optimize-builtin-class-refs! (PycClass-body this) builtins-class-table scheme-class self)
-          decorators:
-            (map (lambda (node) (optimize-builtin-class-refs! node builtins-class-table class self))
-                 (PycClass-decorators this))
-          is-builtin: #t))
-      (call-default-walker))))
-
 (define (get-fun-first-arg fun)
   (let ((posonlyargs (PycFun-posonlyargs fun)))
     (if (null? posonlyargs)
       (let ((args (PycFun-args fun)))
         (if (null? args)
           #f
-          (PycVar-id (car args))))
-      (PycVar-id (car posonlyargs)))))
+          (car args)))
+      (car posonlyargs))))
 
 (define-walk-method (optimize-builtin-class-refs! this::PycFun builtins-class-table class self)
   (if class
@@ -942,29 +923,62 @@
     (call-default-walker)))
 
 (define-walk-method (optimize-builtin-class-refs! this::PycAssig builtins-class-table class self)
-  (if (and class self)
-    (let ((lhs (PycAssig-lhs this)))
-      (if (PycAccess? lhs)
-        (let ((obj (PycAccess-obj lhs))
-              (loc (PycNode-loc this)))
-          (if (and (PycRefUnresolved? obj) (eq? (PycRefUnresolved-id obj) self))
-            (new-PycCall
-              loc
-              (new-PycPragma loc (make-setter-name class (PycAccess-field lhs)))
-              (list
-                (optimize-builtin-class-refs! obj builtins-class-table class self)
-                (optimize-builtin-class-refs! (PycAssig-rhs this) builtins-class-table class self)))
-            (call-default-walker)))
-        (call-default-walker)))
-  (call-default-walker)))
+  (let ((lhs (PycAssig-lhs this))
+        (rhs (PycAssig-rhs this)))
+    (cond
+      ((PycAccess? lhs)
+        (if (and class self)
+          (let ((obj (PycAccess-obj lhs))
+                (loc (PycNode-loc this)))
+            (if (and (PycRef? obj) (eq? (PycRef-decl obj) self))
+              (new-PycCall
+                loc
+                (new-PycPragma loc
+                  (make-setter-name
+                    (cdr (assq class builtins-class-table))
+                    (PycAccess-field lhs)))
+                (list
+                  (optimize-builtin-class-refs! obj builtins-class-table class self)
+                  (optimize-builtin-class-refs! rhs builtins-class-table class self)))
+              (begin
+                (PycAssig-rhs-set!
+                  this
+                  (optimize-builtin-class-refs! (PycAssig-rhs this) class self))
+                this)))
+          (call-default-walker)))
+        ((and (isa? lhs PycRef) (isa? rhs PycClass))
+          (let ((scheme-class-info (assq (PycRef-decl lhs) builtins-class-table)))
+            (if scheme-class-info
+              (let ((scheme-class (PycRef-decl lhs)))
+                (PycAssig-rhs-set!
+                  this
+                  (new-PycClass
+                    (PycNode-loc rhs)
+                    (PycClass-name rhs)
+                    (PycClass-module rhs)
+                    ;; bases
+                    (map (lambda (node) (optimize-builtin-class-refs! node builtins-class-table class self))
+                         (PycClass-bases rhs))
+                    ;; body
+                    (optimize-builtin-class-refs! (PycClass-body rhs) builtins-class-table scheme-class #f)
+                    decorators:
+                      (map (lambda (node) (optimize-builtin-class-refs! node builtins-class-table class self))
+                           (PycClass-decorators rhs))
+                    is-builtin: #t))
+                  this)
+              (call-default-walker))))
+        (else (call-default-walker)))))
 
 (define-walk-method (optimize-builtin-class-refs! this::PycAccess builtins-class-table class self)
   (let ((obj (PycAccess-obj this))
         (loc (PycNode-loc this)))
-    (if (and (PycRefUnresolved? obj) (eq? (PycRefUnresolved-id obj) self))
+    (if (and (PycRef? obj) (eq? (PycRef-decl obj) self))
       (new-PycCall
         loc
-        (new-PycPragma loc (make-getter-name class (PycAccess-field this)))
+        (new-PycPragma loc
+          (make-getter-name
+            (cdr (assq class builtins-class-table))
+            (PycAccess-field this)))
         (list
           (optimize-builtin-class-refs! obj builtins-class-table class self)))
       (call-default-walker))))

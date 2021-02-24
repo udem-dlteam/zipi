@@ -113,7 +113,7 @@
     (map
       (lambda (name)
         `(define ,name py-absent))
-      (get-unique-var-names-lst vars)))
+      (get-unique-var-names-lst vars conf)))
 
   (define (scheme-init-global-defs defs conf)
     (apply
@@ -139,7 +139,7 @@
           (lambda () ,(scheme-var-name var conf))
           (lambda (v)
             (set! ,(scheme-var-name var conf) v))))
-      (get-unique-var-lst vars)))
+      (get-unique-var-lst vars conf)))
 
   (define (set-procedure-names! defs)
     (if (not (null? defs))
@@ -156,10 +156,10 @@
   (define (get-def-procedure-name def)
     (PycFun-&proc (PycAssig-rhs def)))
 
-  (define (get-unique-var-names-lst vars)
-    (map PycVar-name (get-unique-var-lst vars)))
+  (define (get-unique-var-names-lst vars conf)
+    (map (lambda (v) (scheme-var-name v conf)) (get-unique-var-lst vars conf)))
 
-  (define (get-unique-var-lst vars)
+  (define (get-unique-var-lst vars conf)
     (let loop ((vars vars) (acc '()))
       (if (null? vars)
         acc
@@ -720,7 +720,7 @@
             "multiple assignations unimplemented at line "
             ,(number->string (car (PycNode-loc this)))))
       (else
-        (error "scheme:PycAssig" "unknown assignment type" this)))))
+        (error "scheme:PycAssig" "unknown assignment type" lhs)))))
 
 
 (define-walk-method (scheme this::PycAugAssig conf)
@@ -1128,7 +1128,7 @@
 		 (class-key (and caller (PycFun-super-in-class caller)))
 		 (super-instance
        (if (and caller-args (> (length caller-args) 0))
-		      (PycVar-name (list-ref caller-args 0))
+		      (scheme-var-name (list-ref caller-args 0))
 		      #f)))
 	     `(py-call0-maybe-super ,fun ,class-key ,super-instance))))
 
