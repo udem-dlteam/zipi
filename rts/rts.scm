@@ -3265,6 +3265,9 @@
 (define-concat-dynamic-vector concat-dynamic-u8vectors u8vector-ref u8vector-set! make-u8vector 0)
 
 (define (py-make-list . elements)
+  (py-make-list-elems elements))
+
+(define (py-make-list-elems elements)
   (let ((len (length elements))
         (len-vec-pair (list->dynamic-vector elements)))
   (py-list-from-scheme len-vec-pair)))
@@ -5977,6 +5980,11 @@
   (gambit)
   (bigloo ((@ zipi-init __stdlib_behaviors) "behaviors")))
 
+;; note here that we assume that the list is at least of size 1 and contains as first argument the filename 
+(define (command-line-argv-set! list-with-file-name)
+  (py-own-attr-set! sys-mod (& "argv")
+       (py-make-list-elems (map py-str-from-scheme-fallback (cdr list-with-file-name)))))
+
 (define (py-make-sys-mod)
   (let ((mod (py-make-global)))
    (py-own-attr-set! mod (& "__name__") (&& "sys"))
@@ -5984,6 +5992,10 @@
                      (py-make-dict
                        (list
                          (cons (&& "sys") mod))))
+
+   (py-own-attr-set! mod (& "maxsize")
+                     (py-int-from-scheme max-fixnum)
+                     )
 
    (py-own-attr-set! mod (& "path")
                      (py-make-list
@@ -6014,6 +6026,7 @@
 (define profile-flag #f)
 (define (profile-flag-set! value)
   (set! profile-flag value))
+
 
 (module-search-order-add! (cache-location))
 
@@ -6168,6 +6181,7 @@
 
 
 ;; MODULES
+
 
 
 ;; time

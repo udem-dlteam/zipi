@@ -270,6 +270,10 @@
            (inline PyObjectStr-type-get o)
 
            (build-builtins)
+           (compile-flag-set! flag)
+           (debug-flag-set! flag)
+           (profile-flag-set! flag)
+           (command-line-argv-set! list-with-filename)
 
            (global-get ::PyObject ::obj ::obj)
            (global-put! ::PyObject name val cache)

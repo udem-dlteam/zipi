@@ -74,6 +74,8 @@
 (define-macro (type-name t)
   `(##type-name ,t))
 
+(define max-fixnum ##max-fixnum)
+
 (define (init-constants constants)
   (vector-for-each
     (lambda (obj)

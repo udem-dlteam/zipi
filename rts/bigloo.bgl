@@ -50,6 +50,8 @@
 	   (inline u8<=::bool ::uint8 ::uint8)
 	   (inline u8>::bool ::uint8 ::uint8)
 
+       max-fixnum
+
 	   (inline +fx/overflow::obj ::obj ::obj)
 	   (inline -fx/overflow::obj ::obj ::obj)
 	   (inline *fx/overflow::obj ::obj ::obj)
@@ -134,6 +136,11 @@
 ;*---------------------------------------------------------------------*/
 (define-inline (inexact v)
    (if (exact? v) (exact->inexact v) v))
+
+;*---------------------------------------------------------------------*/
+;*    max-fixnum ...                                                   */
+;*---------------------------------------------------------------------*/
+(define max-fixnum (maxvalfx))
 
 ;*---------------------------------------------------------------------*/
 ;*    fx operations ...                                                */

@@ -591,6 +591,7 @@
     compile-flag-set!
     debug-flag-set!
     profile-flag-set!
+    command-line-argv-set!
 
     ;;debug functions
     debug-get
