@@ -125,21 +125,21 @@
             (if proc-name
               (list
                 `(define ,proc-name ,(scheme-procedure-proc (PycAssig-rhs d) conf))
-                `(define (scheme-def-optim-global-name-init var) #f)
+                `(define ,(scheme-def-optim-global-name-init var conf) #f)
                 )
               #f)))
         defs)))
 
-  (define (scheme-register-globals vars)
+  (define (scheme-register-globals vars conf)
     (map
-      (lambda (name)
+      (lambda (var)
         `(global-register!
           %global
-          ,(pyc-propname name)
-          (lambda () ,name)
+          ,(pyc-propname (PycVar-id var))
+          (lambda () ,(scheme-var-name var conf))
           (lambda (v)
-            (set! ,name v))))
-      (get-unique-var-names-lst vars)))
+            (set! ,(scheme-var-name var conf) v))))
+      (get-unique-var-lst vars)))
 
   (define (set-procedure-names! defs)
     (if (not (null? defs))
@@ -157,13 +157,16 @@
     (PycFun-&proc (PycAssig-rhs def)))
 
   (define (get-unique-var-names-lst vars)
+    (map PycVar-name (get-unique-var-lst vars)))
+
+  (define (get-unique-var-lst vars)
     (let loop ((vars vars) (acc '()))
       (if (null? vars)
         acc
-        (let ((name (scheme-var-name (car vars) conf)))
-          (if (memq name acc)
-            (loop (cdr vars) acc)
-            (loop (cdr vars) (cons name acc)))))))
+        (if (memq (car vars) acc)
+          (loop (cdr vars) acc)
+          (loop (cdr vars) (cons (car vars) acc))))))
+
   (pyc-cache! ast conf)
 
   (let* ((semantics (sort-semantics (collect-semantics* ast conf))))
@@ -202,7 +205,7 @@
                 `(define (py-module global caches)
                   (set! %global global)
                   (set! %caches caches)
-                  ,@(scheme-register-globals (map PycRef-decl global-refs))
+                  ,@(scheme-register-globals (map PycRef-decl global-refs) conf-with-defs)
                   ,@prog)
                    `(define py-module ,prog))
 
