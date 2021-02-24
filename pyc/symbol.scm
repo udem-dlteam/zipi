@@ -102,8 +102,11 @@
 
 
 (define-walk-method (collect-global-assig-vars* this::PycClass)
-  (apply append
-    (map (lambda (d) (collect-global-assig-vars* d)) (PycClass-bases this))))
+  (append
+    (apply append
+      (map (lambda (d) (collect-global-assig-vars* d)) (PycClass-decorators this)))
+    (apply append
+      (map (lambda (d) (collect-global-assig-vars* d)) (PycClass-bases this)))))
 
 ;; resolve
 (define-walk-method (resolve-global! this::PycNode global-vars)
@@ -130,6 +133,9 @@
   this)
 
 (define-walk-method (resolve-global! this::PycClass global-vars)
+  (PycClass-decorators-set!
+    this
+    (map (lambda (d) (resolve-global! d global-vars)) (PycClass-decorators this)))
   (PycClass-bases-set!
     this
     (map (lambda (d) (resolve-global! d global-vars)) (PycClass-bases this)))
