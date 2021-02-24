@@ -1215,7 +1215,7 @@
         `(or ,name
             (py-throw-exception-with-message
               py-builtin-UnboundLocalError
-              "local variable" ,(symbol->string id) "referenced before assignment"))))))
+              ,(string-append "local variable '" (symbol->string id) "' referenced before assignment")))))))
 
 (define-walk-method (scheme this::PycRefUnresolved conf)
    (epairify this
