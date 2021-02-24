@@ -122,6 +122,7 @@ EOF
             (compile-flag-set! compile)
             (debug-flag-set! debug)
             (profile-flag-set! profile)
+            (command-line-argv-set! argv)
 
             (run-as-main path)))
    path
