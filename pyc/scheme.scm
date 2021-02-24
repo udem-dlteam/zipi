@@ -1135,7 +1135,7 @@
 		 (class-key (and caller (PycFun-super-in-class caller)))
 		 (super-instance
        (if (and caller-args (> (length caller-args) 0))
-		      (scheme-var-name (list-ref caller-args 0))
+		      (scheme-var-name (list-ref caller-args 0) conf)
 		      #f)))
 	     `(py-call0-maybe-super ,fun ,class-key ,super-instance))))
 

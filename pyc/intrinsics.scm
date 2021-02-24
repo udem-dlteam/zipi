@@ -943,7 +943,7 @@
               (begin
                 (PycAssig-rhs-set!
                   this
-                  (optimize-builtin-class-refs! (PycAssig-rhs this) class self))
+                  (optimize-builtin-class-refs! (PycAssig-rhs this) builtins-class-table class self))
                 this)))
           (call-default-walker)))
         ((and (isa? lhs PycRef) (isa? rhs PycClass))
