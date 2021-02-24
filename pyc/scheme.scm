@@ -1031,7 +1031,7 @@
   (define (make-HClass-name name)
     (string->symbol (string-append "py-" name "-hclass-of-instances")))
 
-  (define (pyc-class this::PycClass)
+  (define (pyc-class this)
     (let ((cls-symbol (PycClass-super-key this))
           (is-builtin (PycClass-is-builtin this)))
       (epairify this
@@ -1046,7 +1046,7 @@
                 ,(make-HClass-name (PycClass-name this))
                 ,@(append-map
                   (lambda (var)
-                    `((& ,(symbol->string (PycVar-id var)))
+                    `(,(pyc-propname (PycVar-id var))
                       ,(scheme-var-name var conf)))
                     (PycClass-decls this))))
             ;; user-defined class
@@ -1057,20 +1057,27 @@
                 (list ,@(map (lambda (b) (scheme b conf)) (PycClass-bases this)))
                 ,@(append-map
                   (lambda (var)
-                    `((& ,(symbol->string (PycVar-id var)))
+                    `(,(pyc-propname (PycVar-id var))
                     ,(scheme-var-name var conf)))
                   (PycClass-decls this)))))
-                ,cls-symbol))))
+              ,cls-symbol))))
 
   (let* ((body (scheme (PycClass-body this) conf))
+         (body-with-vars
+            `(letrec*
+              ,(map (lambda (decl)
+                 `(,(scheme-var-name decl conf)
+                  #f))
+                (PycClass-decls this))
+              ,body))
          (cls-symbol (PycClass-super-key this)))
     (epairify this
       `(let ((,cls-symbol py-absent))
-        ,(match-case body
+        ,(match-case body-with-vars
           ((letrec* ?bindings . ?body)
             `(letrec* ,bindings ,@body ,(pyc-class this)))
           (else
-            `(begin ,body ,(pyc-class this))))))))
+            `(begin ,body-with-vars ,(pyc-class this))))))))
 
 (define-walk-method (scheme this::PycKont conf)
    (let ((param (scheme (PycKont-param this) conf))

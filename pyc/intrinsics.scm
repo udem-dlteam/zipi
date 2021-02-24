@@ -950,22 +950,19 @@
           (let ((scheme-class-info (assq (PycRef-decl lhs) builtins-class-table)))
             (if scheme-class-info
               (let ((scheme-class (PycRef-decl lhs)))
-                (PycAssig-rhs-set!
-                  this
-                  (new-PycClass
-                    (PycNode-loc rhs)
-                    (PycClass-name rhs)
-                    (PycClass-module rhs)
-                    ;; bases
-                    (map (lambda (node) (optimize-builtin-class-refs! node builtins-class-table class self))
-                         (PycClass-bases rhs))
-                    ;; body
-                    (optimize-builtin-class-refs! (PycClass-body rhs) builtins-class-table scheme-class #f)
-                    decorators:
-                      (map (lambda (node) (optimize-builtin-class-refs! node builtins-class-table class self))
-                           (PycClass-decorators rhs))
-                    is-builtin: #t))
-                  this)
+                (PycClass-bases-set!
+                  rhs
+                  (map (lambda (node) (optimize-builtin-class-refs! node builtins-class-table class self))
+                       (PycClass-bases rhs)))
+                (PycClass-body-set!
+                  rhs
+                  (optimize-builtin-class-refs! (PycClass-body rhs) builtins-class-table scheme-class #f))
+                (PycClass-decorators-set!
+                  rhs
+                  (map (lambda (node) (optimize-builtin-class-refs! node builtins-class-table class self))
+                       (PycClass-decorators rhs)))
+                (PycClass-is-builtin-set! rhs #t)
+                this)
               (call-default-walker))))
         (else (call-default-walker)))))
 
