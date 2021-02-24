@@ -381,7 +381,7 @@
              (not (eq? (PycRefUnresolved-id fun) 'super)))
       (PycCall-can-be-super-set! this #f))
     (if (PycRef? fun)
-      (let* ((pair (assq fun macros)))
+      (let* ((pair (assq (PycRef-decl fun) macros)))
         (if pair
           ((cdr pair) this)
           this))
