@@ -230,7 +230,8 @@
   (call-default-walker))
 
 (define-walk-method (collect-semantics* this::PycSemantics conf)
-  (let* ((args (scheme* (PycFun-args this) conf))
+  (let* ((args (PycFun-args this))
+        (arg-names (map (lambda (a) (scheme-var-name a conf)) args))
         (need-return (PycFun-need-return this))
         (return-sym (if need-return (my-gensym '%return) #f))
         (body-conf
@@ -244,13 +245,13 @@
         scheme-name
         (if (PycSemantics-inline this)
           (if (PycSemantics-inline-as-is this)
-            (list 'define-macro (cons scheme-name args)
+            (list 'define-macro (cons scheme-name arg-names)
                 (list 'quasiquote body))
-            (list 'define-macro (cons scheme-name args)
+            (list 'define-macro (cons scheme-name arg-names)
                 (list 'quasiquote
-                (list 'let (map (lambda (name) (list name (list 'unquote name))) args)
+                (list 'let (map (lambda (name) (list name (list 'unquote name))) arg-names)
                 body))))
-          `(define (,scheme-name ,@args) ,body))))))
+          `(define (,scheme-name ,@arg-names) ,body))))))
 
 (define (scheme* nodes conf)
   (map (lambda (n) (scheme n conf)) nodes))
@@ -1096,8 +1097,9 @@
         ((PycRef? f)
           (let* ((var (PycRef-decl f)))
             (if (eq? (PycVar-scope var) 'global)
-              (let* ((global-funs (cadr (memq global-funs: conf)))
-                    (init-val (get-def-with-var global-funs var)))
+              (let* ((global-funs
+                      (let ((gf (memq global-funs: conf))) (and gf (cadr gf))))
+                    (init-val (and global-funs (get-def-with-var global-funs var))))
                  (if (and (PycFun? init-val)
                           (symbol? (PycFun-&proc init-val))
                           (correct-arity? init-val args))
