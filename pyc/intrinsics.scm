@@ -666,7 +666,7 @@
   (let ((loc (PycNode-loc this))
         (fun (PycCall-fun this))
         (args (PycCall-args this)))
-    (if (and (isa? fun PycRefUnresolved) (eq? (PycRefUnresolved-id fun) old-name))
+    (if (and (isa? fun PycRef) (eq? (PycRef-decl fun) old-name))
       (let ((ref-loc (PycNode-loc fun)))
         (new-PycCall
           loc
@@ -731,22 +731,26 @@
 (define-walk-method (get-lifted-semantics* this::PycNode parent-name cte args-order)
   (call-default-walker))
 
-(define-walk-method (get-lifted-semantics* this::PycSemantics parent-name cte args-order)
-  (let* ((loc (PycNode-loc this))
-        (sem-cte (collect-semantics-decls* this #t)) ;; return Store PycRef in semantics
-        (sem-refs (collect-semantics-refs* this #t)) ;; return Load PycRef in semantics
-        (lifted-vars (sort-lifted-vars (get-variables-to-lift cte sem-cte sem-refs) args-order)))
-    (PycFun-args-set!
-      this
-      (append
-        (map (lambda (name) (new-PycVar '(-1 -1) name 'local)) lifted-vars)
-        (PycFun-args this)))
-    (list
-      (list
-        this ;; semantics
-        (PycFun-name this) ;; old name
-        (symbol-append parent-name ': (PycFun-name this)) ;; new name
-        lifted-vars))))
+(define-walk-method (get-lifted-semantics* this::PycAssig parent-name cte args-order)
+  (let ((lhs (PycAssig-lhs this))
+        (rhs (PycAssig-rhs this)))
+    (if (and (isa? lhs PycRef) (isa? rhs PycSemantics))
+      (let* ((loc (PycNode-loc rhs))
+            (sem-cte (collect-semantics-decls* rhs #t)) ;; return Store PycRef in semantics
+            (sem-refs (collect-semantics-refs* rhs #t)) ;; return Load PycRef in semantics
+            (lifted-vars (sort-lifted-vars (get-variables-to-lift cte sem-cte sem-refs) args-order)))
+        (PycFun-args-set!
+          rhs
+          (append
+            (map (lambda (name) (new-PycVar '(-1 -1) name 'local)) lifted-vars)
+            (PycFun-args rhs)))
+        (list
+          (list
+            rhs ;; semantics
+            (PycRef-decl lhs) ;; old name
+            (symbol-append parent-name ': (PycFun-name rhs)) ;; new name
+            lifted-vars)))
+      (call-default-walker))))
 
 ;; collect-semantics-decls*
 
