@@ -2,25 +2,6 @@
    (intrinsics this conf))
 
 ;; utilities
-(define (list-find lst x)
-  (let loop ((i 0) (lst lst))
-    (cond
-      ((null? lst)
-        '())
-      ((eq? (car lst) x)
-        (cons i (loop (+ i 1) (cdr lst))))
-      (else
-        (loop (+ i 1) (cdr lst))))))
-
-(define (list-find-first lst x)
-  (let loop ((i 0) (lst lst))
-    (cond
-      ((null? lst)
-        #f)
-      ((eq? (car lst) x)
-        i)
-      (else
-        (loop (+ i 1) (cdr lst))))))
 
 (define (list-remove lst x)
   (list-remove-pred lst (lambda (el) (eq? el x))))

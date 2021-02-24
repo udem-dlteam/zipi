@@ -35,8 +35,8 @@
       (let* ((assig (car assignments))
              (ref (PycAssig-lhs assig))
              (var (PycRef-decl ref))
-             (usage (collect-usage* this ref)))
-        (if (= (length (PycVar-usage var)) (length usage))
+             (local-usage (collect-usage* this var)))
+        (if (= (length (PycVar-usage var)) (length local-usage))
           ;; All usages of this variable are inside this PycSeq
           (split-assignments-by-usage (cdr assignments) (cons assig inside-assig))
           ;; There is at least one usage outside this PycSeq
@@ -48,15 +48,16 @@
 
   (define (splits-assignments nodes)
     (let* ((assig-stmt (split-nodes-after-assignments nodes '()))
-          (simple-rest (split-assignments-by-usage (car assig-stmt) '())))
-      (cons (car simple-rest) (append (cdr simple-rest) (cdr assig-stmt)))))
+          (simple-assigs-rest (split-assignments-by-usage (car assig-stmt) '())))
+      (cons (car simple-assigs-rest) (append (cdr simple-assigs-rest) (cdr assig-stmt)))))
 
-  (let* ((loc (PycNode-loc this))
-        (assig-rest (splits-assignments (PycSeq-nodes this)))
+  (let* ((simple-seq (call-default-walker))
+        (loc (PycNode-loc simple-seq))
+        (assig-rest (splits-assignments (PycSeq-nodes simple-seq)))
         (assigs (car assig-rest))
         (rest (cdr assig-rest)))
     (if (null? assigs)
-      (call-default-walker)
+      simple-seq
       (begin
         (set-assig-scopes-to-block! assigs)
         (new-PycBlock
@@ -79,5 +80,5 @@
 
 (define-walk-method (collect-usage* this::PycRef var)
   (if (eq? (PycRef-decl this) var)
-    (list this))
-    '())
+    (list this)
+    '()))
