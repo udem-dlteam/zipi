@@ -466,7 +466,7 @@
                 (new-PycImport loc (symbol->string name))
                 (new-PycAssig
                   loc
-                  (new-PycRefUnresolved loc (car name-split) 'Store)
+                  (new-PycRefUnresolved loc (string->symbol (car name-split)) 'Store)
                   (new-PycImport loc (car name-split)))))
             ;; module import
             (new-PycAssig
