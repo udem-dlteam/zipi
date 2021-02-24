@@ -94,6 +94,8 @@
 (define-walk-method (collect-global-assig-vars* this::PycFun)
   (append
     (apply append
+      (map (lambda (d) (collect-global-assig-vars* d)) (PycFun-decorators this)))
+    (apply append
       (map (lambda (d) (collect-global-assig-vars* d)) (PycFun-defaults this)))
     (apply append
       (map (lambda (d) (collect-global-assig-vars* d)) (PycFun-kw-defaults this)))))
@@ -116,6 +118,9 @@
       this)))
 
 (define-walk-method (resolve-global! this::PycFun global-vars)
+  (PycFun-decorators-set!
+    this
+    (map (lambda (d) (resolve-global! d global-vars)) (PycFun-decorators this)))
   (PycFun-defaults-set!
     this
     (map (lambda (d) (resolve-global! d global-vars)) (PycFun-defaults this)))
@@ -294,6 +299,9 @@
     (else this)))
 
 (define-walk-method (resolve-body-assignments! this::PycFun body kind global-env local-env free-env seen-ids conts)
+  (PycFun-decorators-set!
+    this
+    (map (lambda (d) (resolve-body-assignments! d body 'function global-env local-env free-env seen-ids conts)) (PycFun-decorators this)))
   (PycFun-defaults-set!
     this
     (map
@@ -372,6 +380,12 @@
       (else this))))
 
 (define-walk-method (resolve-body-refs! this::PycFun kind global-env local-env free-env)
+  (PycFun-decorators-set!
+    this
+    (map
+      (lambda (d)
+        (resolve-body-refs! d 'function global-env local-env free-env))
+      (PycFun-decorators this)))
   (PycFun-defaults-set!
     this
     (map

@@ -164,7 +164,6 @@
           (if (memq name acc)
             (loop (cdr vars) acc)
             (loop (cdr vars) (cons name acc)))))))
-
   (pyc-cache! ast conf)
 
   (let* ((semantics (sort-semantics (collect-semantics* ast conf))))

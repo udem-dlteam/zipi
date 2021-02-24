@@ -278,7 +278,7 @@
     (cond
       ((null? intrinsics)
         #t)
-      ((memq (PycVar-id (PycRef-decl (car intrinsics)))
+      ((memq (PycVar-id (car intrinsics))
              valid-intrinsics)
         (check-invalid-intrinsics (cdr intrinsics)))
       (else
@@ -304,16 +304,21 @@
     #f)
 
   ;; scoping/behaviors intrinsics
-  (if (list-find-PycRef-by-id intrinsics 'use_simple_scoping)
-      (mark-use-simple-scoping! this))
-  (if (list-find-PycRef-by-id intrinsics 'define_semantics)
-      (begin
-        (mark-define-semantics! this #f intrinsics-info)
-        (lambda-lift-semantics! this)))
-  (if (list-find-PycRef-by-id intrinsics 'define_behavior)
-    (mark-define-behavior! this intrinsics-info))
-  (if (list-find-PycRef-by-id intrinsics 'builtin_class)
-      (mark-builtin-class-semantics! this))
+  (let ((use_simple_scoping-var (list-find-PycVar-by-id intrinsics 'use_simple_scoping)))
+    (if use_simple_scoping-var
+        (mark-use-simple-scoping! this (list-find-PycVar-by-id intrinsics 'use_simple_scoping))))
+  (let ((define_semantics-var (list-find-PycVar-by-id intrinsics 'define_semantics)))
+    (if define_semantics-var
+        (begin
+          (mark-define-semantics! this #f intrinsics-info define_semantics-var)
+          (lambda-lift-semantics! this))))
+  (let ((define_behavior-var (list-find-PycVar-by-id intrinsics 'define_behavior)))
+    (if define_behavior-var
+      (mark-define-behavior! this intrinsics-info define_behavior-var)))
+
+  (let ((builtin_class-var (list-find-PycVar-by-id intrinsics 'builtin_class)))
+    (if (list-find-PycVar-by-id intrinsics 'builtin_class)
+        (mark-builtin-class-semantics! this builtin_class-var)))
   this))
 
 ;; check no intrinsics assig
@@ -352,7 +357,7 @@
   (let* ((decorators (PycFun-decorators this))
          (use_static_builtins-var (list-find-PycVar-by-id intrinsics 'use_static_builtins)))
     (if (or use-static-builtins
-            (list-find-PycRef-by-id
+            (list-find-PycRef-by-PycVar
               decorators
               use_static_builtins-var))
       (let* ((body (PycFun-body this))
@@ -421,12 +426,11 @@
     this))
 
 ;; detects the use_simple-scoping intrinsics
-(define-walk-method (mark-use-simple-scoping! this::PycNode)
+(define-walk-method (mark-use-simple-scoping! this::PycNode use_simple_scoping-var)
   (call-default-walker))
 
-(define-walk-method (mark-use-simple-scoping! this::PycFun)
-  (let ((decorators (PycFun-decorators this))
-        (use_simple_scoping-var (list-find-PycVar-by-id intrinsics 'use_simple_scoping)))
+(define-walk-method (mark-use-simple-scoping! this::PycFun use_simple_scoping-var)
+  (let ((decorators (PycFun-decorators this)))
     (if (list-find-PycRef-by-id
           decorators
           use_simple_scoping-var)
@@ -457,12 +461,12 @@
                  imul ipow irshift isub itruediv ixor
                  ge gt le lt eq ne)))))
 
-(define-walk-method (mark-define-semantics! this::PycNode parent-semantics intrinsics-info)
+(define-walk-method (mark-define-semantics! this::PycNode parent-semantics intrinsics-info define_semantics-var)
   (call-default-walker))
 
-(define-walk-method (mark-define-semantics! this::PycFun parent-semantics intrinsics-info)
+(define-walk-method (mark-define-semantics! this::PycFun parent-semantics intrinsics-info define_semantics-var)
   (let* ((decorators (PycFun-decorators this))
-        (semantics-decorator (list-find-PycRef-by-id decorators 'define_semantics)))
+         (semantics-decorator (list-find-PycRef-by-PycVar decorators define_semantics-var)))
     (if (isa? semantics-decorator PycRef)
       (resolve-statics!
         (PycFun-body this)
@@ -494,7 +498,7 @@
           kw-defaults
           kwarg
           defaults
-          (mark-define-semantics! body #t intrinsics-info)
+          (mark-define-semantics! body #t intrinsics-info define_semantics-var)
           decorators:
             (list-remove
               decorators
@@ -522,7 +526,7 @@
 (define (make-inline-behavior-name name)
   (string->symbol (string-append (schemify-name name) "-inline")))
 
-(define-walk-method (mark-define-behavior! this::PycNode intrinsics-info)
+(define-walk-method (mark-define-behavior! this::PycNode intrinsics-info define_behavior-var)
   (call-default-walker))
 
 (define (PycSemantics-has-inlinable-annotation fn)
@@ -535,14 +539,14 @@
         #f
         (if (equal? (car annotations) fn-annotation) #t (loop (cdr annotations)))))))
 
-(define-walk-method (mark-define-behavior! this::PycFun intrinsics-info)
+(define-walk-method (mark-define-behavior! this::PycFun intrinsics-info define_behavior-var)
   (let* ((loc (PycNode-loc this))
         (name (PycFun-name this))
         (body (PycFun-body this))
         (args (PycFun-args this))
         (posonlyargs (PycFun-posonlyargs this))
         (decorators (PycFun-decorators this))
-        (behavior-decorator (list-find-PycRef-by-id decorators 'define_behavior)))
+        (behavior-decorator (list-find-PycRef-by-PycVar decorators define_behavior-var)))
     (define (make-behavior name body inline inline-as-is)
       (let* ((vararg (PycFun-vararg this))
             (kwonlyargs (PycFun-kwonlyargs this))
@@ -802,12 +806,12 @@
     (range . PyObjectRange)
     (range_iterator . PyObjectRangeIterator)))
 
-(define (mark-builtin-class-semantics! this)
-  (let ((builtins-class-usage (collect-builtins-class-usage* this)))
+(define (mark-builtin-class-semantics! this builtin_class-var)
+  (let ((builtins-class-usage (collect-builtins-class-usage* this builtin_class-var)))
     (if (not (null? builtins-class-usage))
       (optimize-builtin-class-refs! this builtins-class-usage #f #f))))
 
-(define-walk-method (collect-builtins-class-usage* this::PycNode)
+(define-walk-method (collect-builtins-class-usage* this::PycNode builtin_class-var)
   (call-default-walker))
 
 (define (get-builtin-class-structure-name class-name)
@@ -816,14 +820,14 @@
       (cdr res)
       (error "get-builtin-class-structure-name" "unknown structure for class" class-name))))
 
-(define-walk-method (collect-builtins-class-usage* this::PycAssig)
+(define-walk-method (collect-builtins-class-usage* this::PycAssig builtin_class-var)
   (let ((lhs (PycAssig-lhs this))
         (rhs (PycAssig-rhs this)))
     (if (and (isa? lhs PycRef) (isa? rhs PycClass))
       (let* ((decorators (PycClass-decorators rhs))
             (name (string->symbol (PycClass-name rhs)))
-            (builtin_class-var (list-find-PycRef-by-id decorators 'builtin_class)))
-        (if builtin_class-var
+            (builtin_class-decorator (list-find-PycRef-by-PycVar decorators builtin_class-var)))
+        (if builtin_class-decorator
           (cons
             (cons
               (PycRef-decl lhs)
