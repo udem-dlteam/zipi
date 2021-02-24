@@ -68,6 +68,12 @@
               (lambda (s) (apply-simple-scoping! s))
               rest)))))))
 
+(define-walk-method (apply-simple-scoping! this::PycRef)
+  ;; simple scoping skips check for UnboundLocalError
+  (if (eq? (PycVar-scope (PycRef-decl this)) 'local)
+    (PycRef-can-direct-access-set! this #t))
+  this)
+
 (define-walk-method (collect-usage* this::PycNode var)
   (call-default-walker))
 
