@@ -2,6 +2,26 @@
    (intrinsics this conf))
 
 ;; utilities
+(define (list-find lst x)
+  (let loop ((i 0) (lst lst))
+    (cond
+      ((null? lst)
+        '())
+      ((eq? (car lst) x)
+        (cons i (loop (+ i 1) (cdr lst))))
+      (else
+        (loop (+ i 1) (cdr lst))))))
+
+(define (list-find-first lst x)
+  (let loop ((i 0) (lst lst))
+    (cond
+      ((null? lst)
+        #f)
+      ((eq? (car lst) x)
+        i)
+      (else
+        (loop (+ i 1) (cdr lst))))))
+
 (define (list-remove lst x)
   (list-remove-pred lst (lambda (el) (eq? el x))))
 
@@ -636,7 +656,7 @@
         (cte
           (append
             (PycFun-args sem)
-            (collect-semantics-decls* (PycFun-body sem) #f)))
+            (map PycRef-decl (collect-semantics-decls* (PycFun-body sem) #f))))
         (args-order (map (lambda (a) (PycVar-id a)) (PycFun-args sem)))
         (lifted-semantics (get-lifted-semantics* (PycFun-body sem) (PycFun-name sem) cte args-order)))
     (for-each
@@ -736,13 +756,13 @@
         (rhs (PycAssig-rhs this)))
     (if (and (isa? lhs PycRef) (isa? rhs PycSemantics))
       (let* ((loc (PycNode-loc rhs))
-            (sem-cte (collect-semantics-decls* rhs #t)) ;; return Store PycRef in semantics
-            (sem-refs (collect-semantics-refs* rhs #t)) ;; return Load PycRef in semantics
+            (sem-cte (map PycRef-decl (collect-semantics-decls* rhs #t))) ;; return Store PycRef in semantics
+            (sem-refs (map PycRef-decl (collect-semantics-refs* rhs #t))) ;; return Load PycRef in semantics
             (lifted-vars (sort-lifted-vars (get-variables-to-lift cte sem-cte sem-refs) args-order)))
         (PycFun-args-set!
           rhs
           (append
-            (map (lambda (name) (new-PycVar '(-1 -1) name 'local)) lifted-vars)
+            lifted-vars
             (PycFun-args rhs)))
         (list
           (list
@@ -764,8 +784,22 @@
 
 (define-walk-method (collect-semantics-decls* this::PycRef search-nested-semantics)
   (if (eq? (PycRef-ctx this) 'Store)
-    (list (PycRef-decl this))
+    (list this)
     '()))
+
+(define-walk-method (collect-semantics-decls* this::PycAssig search-nested-semantics)
+  ;; this step is meant to avoid collecting PycRef for semantics as they will all be lifted
+  ;; and so will become global refs
+  (let ((lhs (PycAssig-lhs this))
+        (rhs (PycAssig-rhs this)))
+    (cond
+      ((isa? rhs PycSemantics)
+        (collect-semantics-decls* rhs search-nested-semantics))
+      ((isa? lhs PycRef)
+        (cons lhs (collect-semantics-decls* rhs search-nested-semantics)))
+      (else
+        (call-default-walker)))))
+
 
 ;; collect-semantics-refs*
 
