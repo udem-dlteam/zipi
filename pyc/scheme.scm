@@ -977,7 +977,7 @@
 
 (define (scheme-procedure-proc this conf)
 
-  (define (generator this::PycFun exp)
+  (define (generator this exp)
     (if (PycFun-generator this)
       (epairify this
         `(letrec ((%gen (py-make-generator (lambda (%v %e) ,exp))))
@@ -1000,28 +1000,29 @@
                 ,body-with-vars)
         body-with-vars)))
 
-    (let* ((vararg (PycFun-vararg this))
-	        (kwarg (PycFun-kwarg this))
-	        (args
-            (scheme*
-      		    (append
-      		      (PycFun-posonlyargs this)
-      		      (PycFun-args this)
-      		      (if (PycVar? vararg) (list vararg) '())
-      		      (PycFun-kwonlyargs this)
-      		      (if (PycVar? kwarg) (list kwarg) '()))
-		           conf))
-      	  (need-return (PycFun-need-return this))
-      	  (return-sym (if need-return (my-gensym '%return) #f))
-      	  (body-conf (if need-return
-      			 (cons* fun: this return: return-sym conf)
-      			 (cons* fun: this conf)))
-      	  (body (locals this (scheme (PycFun-body this) body-conf))))
-    (if need-return
-      `(lambda ,args
-        ,(generator this `(bind-exit (,return-sym) ,body)))
-      `(lambda ,args
-        ,(generator this body)))))
+  (let* ((vararg (PycFun-vararg this))
+        (kwarg (PycFun-kwarg this))
+        (args
+          (map
+            scheme-var-name
+    		    (append
+    		      (PycFun-posonlyargs this)
+    		      (PycFun-args this)
+    		      (if (PycVar? vararg) (list vararg) '())
+    		      (PycFun-kwonlyargs this)
+    		      (if (PycVar? kwarg) (list kwarg) '()))
+	           conf))
+    	  (need-return (PycFun-need-return this))
+    	  (return-sym (if need-return (my-gensym '%return) #f))
+    	  (body-conf (if need-return
+    			 (cons* fun: this return: return-sym conf)
+    			 (cons* fun: this conf)))
+    	  (body (locals this (scheme (PycFun-body this) body-conf))))
+  (if need-return
+    `(lambda ,args
+      ,(generator this `(bind-exit (,return-sym) ,body)))
+    `(lambda ,args
+      ,(generator this body)))))
 
 (define-walk-method (scheme this::PycClass conf)
   (define (make-HClass-name name)

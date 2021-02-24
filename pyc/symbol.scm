@@ -201,14 +201,14 @@
           (error "SyntaxError:" "duplicate argument in function definition:" (car ids))
           (loop (cdr ids)))))))
 
-(define (filter-local-vars vars fun)
+(define (filter-local-vars vars fun args-vars)
   (cond
     ((null? vars)
       '())
-    ((eq? (PycVar-in-scope-of (car vars)) fun)
-      (cons (car vars) (filter-local-vars (cdr vars) fun)))
+    ((and (eq? (PycVar-in-scope-of (car vars)) fun) (not (memq (car vars) args-vars)))
+      (cons (car vars) (filter-local-vars (cdr vars) fun args-vars)))
     (else
-      (filter-local-vars (cdr vars) fun))))
+      (filter-local-vars (cdr vars) fun args-vars))))
 
 
 (define (resolve-function-body! fun global-env free-env)
@@ -220,7 +220,7 @@
     (resolve-body-assignments! body fun 'function global-env local-env free-env (make-var-env 'seen) conts)
     (resolve-body-refs! body 'function global-env local-env free-env)
     ;; store function declarations
-    (PycFun-decls-set! fun (filter-local-vars (env->list local-env) fun))
+    (PycFun-decls-set! fun (filter-local-vars (env->list local-env) fun args-vars))
     ;; now that the full scope has been analyzed we can recursively call nested scopes
     (for-each (lambda (cont) (cont)) (env->list conts))
     body))
@@ -283,7 +283,7 @@
   (case (PycRefUnresolved-ctx this)
     ((Store Del)
       (let* ((local-var (env-get-or-create local-env (PycRefUnresolved-id this) 'local))
-            (ref (new-PycRef (PycNode-loc this) local-var 'Load)))
+            (ref (new-PycRef (PycNode-loc this) local-var (PycRefUnresolved-ctx this))))
         (PycVar-add-usage local-var ref)
         ;; If the local var is local (it could be global if 'global X' was used
         ;; and it is not assigned a 'in-scope-of', then we just resolved a new var which
