@@ -238,7 +238,7 @@
     ;; store class declarations
     (PycClass-decls-set! cls (env->list local-env))
     ;; now that the full scope has been analyzed we can recursively call nested scopes
-    (for-each (lambda (cont) (cont)) conts)
+    (for-each (lambda (cont) (cont)) (env->list conts))
     body))
 
 (define-walk-method (resolve-body-assignments! this::PycNode body kind global-env local-env free-env seen-ids conts)
