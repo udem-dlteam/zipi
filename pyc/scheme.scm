@@ -1209,7 +1209,7 @@
         `(if (eq? ,name py-absent)
           (global-get
             %global
-            (& (symbol->string ,name))
+            (& ,(symbol->string name))
             ,(scheme-cache (PycRef-cache this) this))
           ,name))
       (else
