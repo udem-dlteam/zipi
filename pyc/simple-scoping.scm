@@ -25,8 +25,8 @@
     (if (or (null? nodes)
             (not (PycAssig? (car nodes)))
             (not (PycRef? (PycAssig-lhs (car nodes)))))
-      (cons (reverse assignments) nodes))
-      (split-nodes-after-assignments (cdr nodes) (cons (car nodes) assignments)))
+      (cons (reverse assignments) nodes)
+      (split-nodes-after-assignments (cdr nodes) (cons (car nodes) assignments))))
 
   (define (split-assignments-by-usage assignments inside-assig)
     ;; split assignments at the first assignment which has usage outside of this PycSeq
@@ -73,4 +73,5 @@
 
 (define-walk-method (collect-usage* this::PycRef var)
   (if (eq? (PycRef-decl this) var)
-    (list this)))
+    (list this))
+    '())
