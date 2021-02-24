@@ -453,7 +453,7 @@
             (let ((var (PycRef-decl optional-vars)))
               (if (eq? (PycVar-scope var) 'global)
                 `(let ((,ctx-sym ,(scheme context-expr conf)))
-                   (scheme-assig-global optional-vars `(py-enter ,ctx-sym) conf)
+                   ,(scheme-assig-global optional-vars `(py-enter ,ctx-sym) conf)
                    (with-handler
                     (lambda (%exn)
                       (if (PyObject? %exn)
