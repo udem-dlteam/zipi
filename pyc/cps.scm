@@ -108,7 +108,7 @@
                  (new-PycRef loc exn 'Store) (new-PycBool loc #t) type: 'bool)
              (new-PycRaise loc (new-PycRef loc arg 'Load) (new-PycUninit loc))
             body)))
-    (new-PycKont loc arg exn (pack cont))))
+    (new-PycKont loc (new-PycRef loc arg 'Store) (new-PycRef loc exn 'Store) (pack cont))))
 
    (let* ((loc (PycNode-loc this))
 	  (val (PycYield-val this))
