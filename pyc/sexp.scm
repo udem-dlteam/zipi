@@ -421,10 +421,10 @@
                      (list
                        (new-PycAssig
                          loc
-                         (new-PycVar
-                               '(-1 -1)
-                               name
-                               'block)
+                         (new-PycRefUnresolved
+                            loc
+                            name
+                            'Store)
                          (new-PycPragma loc exc-sym)))
                      (compile-stmt* loc body #f scope conf))))
              (new-PycHandler loc expr body))
