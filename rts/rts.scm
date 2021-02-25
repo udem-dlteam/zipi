@@ -2005,15 +2005,15 @@
   `(let (($mro (PyObjectType-mro ,cls)))
      (let $loop-mro (($cls-index 0))
        (if (fx< $cls-index (vector-length $mro))
-	   (let (($cls (vector-ref $mro $cls-index)))
-             (py-own-attr-ref-2cont
-              $cls
-              ,name
-              (lambda ($val)
-                (,succeed $val $cls))
-              (lambda ()
-                ($loop-mro (fx+ $cls-index 1)))))
-	   (,fail)))))
+    	   (let (($cls (vector-ref $mro $cls-index)))
+           (py-own-attr-ref-2cont
+            $cls
+            ,name
+            (lambda ($val)
+              (,succeed $val $cls))
+            (lambda ()
+              ($loop-mro (fx+ $cls-index 1)))))
+	       (,fail)))))
 
 ;; Recover an attribute from the class of 'obj'
 (define (getattribute-from-obj-mro-fallback obj name)
@@ -2037,6 +2037,7 @@
            (object-get-bind-descriptor cls-attr obj owner))
          (lambda ()
            ;; TODO: replace this hack by something better
+           ;; NOTE: __class__ should get a getset_descriptor on type
            (if (eq? (py-str-representative name) (& "__class__"))
                (py-obj-cls obj)
                (py-throw py-builtin-AttributeError)))))))
@@ -3157,7 +3158,13 @@
       (if (py-isinstance? name py-str-class)
         (let ((val (global-own-attr-ref-no-cache self name)))
           (if (eq? val py-absent)
-            (py-throw py-builtin-AttributeError)
+            (getattribute-from-obj-mro-with-owner-2cont
+             self
+             name
+             (lambda (cls-attr owner)
+               (object-get-bind-descriptor cls-attr self owner))
+             (lambda ()
+               (py-throw py-builtin-AttributeError)))
             val))
         (py-throw-exception-with-message
          py-builtin-TypeError
