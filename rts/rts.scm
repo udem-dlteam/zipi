@@ -326,6 +326,49 @@
           cls)))
     self))
 
+;; global contains a vector #(getter setter [maybe value for inner use])
+(define-macro (global-cell-getter-get cell)
+  `(vector-ref ,cell 0))
+
+(define-macro (global-cell-getter-set! cell getter)
+  `(vector-set! ,cell 0 ,getter))
+
+(define-macro (global-cell-get-val cell)
+  `((global-cell-getter-get ,cell)))
+
+(define-macro (global-cell-setter-get cell)
+  `(vector-ref ,cell 1))
+
+(define-macro (global-cell-setter-set! cell setter)
+  `(vector-set! ,cell 1 ,setter))
+
+(define-macro (global-cell-set-val! cell val)
+  `((global-cell-setter-get ,cell) ,val))
+
+(define-macro (PyObject-global-elements-ref global index)
+  `(global-cell-get-val (PyObject-elements-ref ,global ,index)))
+
+(define-macro (py-global-elements-set! elements offset val)
+  `(global-cell-set-val! (vector-ref ,elements ,offset) ,val))
+
+(define-macro (make-global-cell val)
+  `(let* (($cell (vector #f #f ,val))
+         ($getter (lambda () (vector-ref $cell 2)))
+         ($setter (lambda (val) (vector-set! $cell 2 val))))
+    (global-cell-getter-set! $cell $getter)
+    (global-cell-setter-set! $cell $setter)
+    $cell))
+
+(define (py-module-alloc cls hclass-of-instances)
+  (let ((self
+         (make-PyObject
+          py-module-hclass-of-instances
+          (vector-map
+            (lambda (_) (make-global-cell py-absent))
+            (make-vector (vector-length (HClass-names hclass-of-instances))))
+          cls)))
+    self))
+
 ;; type allocation
 
 (define list-of-magic-attrs
@@ -438,31 +481,6 @@
           (outer-loop (cdr lists-tail) inner-acc)
           (inner-loop (cdr head) (cons (car head) inner-acc)))))))
 
-;; global contains a vector #(getter setter [maybe value for inner use])
-(define-macro (global-cell-getter-get cell)
-  `(vector-ref ,cell 0))
-
-(define-macro (global-cell-getter-set! cell getter)
-  `(vector-set! ,cell 0 ,getter))
-
-(define-macro (global-cell-get-val cell)
-  `((global-cell-getter-get ,cell)))
-
-(define-macro (global-cell-setter-get cell)
-  `(vector-ref ,cell 1))
-
-(define-macro (global-cell-setter-set! cell setter)
-  `(vector-set! ,cell 1 ,setter))
-
-(define-macro (global-cell-set-val! cell val)
-  `((global-cell-setter-get ,cell) ,val))
-
-(define-macro (PyObject-global-elements-ref global index)
-  `(global-cell-get-val (PyObject-elements-ref ,global ,index)))
-
-(define-macro (py-global-elements-set! elements offset val)
-  `(global-cell-set-val! (vector-ref ,elements ,offset) ,val))
-
 ;; used to set the #(getter setter) in the elements of a module w/o invoking the setter
 (define-macro (py-global-elements-direct-set! obj offset val)
   `(let* (($obj ,obj)
@@ -481,12 +499,7 @@
              ;; vector of cells
              (vector-map
                (lambda (_)
-                  (let* (($cell (vector #f #f py-absent))
-                         ($getter (lambda () (vector-ref $cell 2)))
-                         ($setter (lambda (val) (vector-set! $cell 2 val))))
-                    (global-cell-getter-set! $cell $getter)
-                    (global-cell-setter-set! $cell $setter)
-                    $cell))
+                  (make-global-cell py-absent))
                (make-vector $diff-len))
              0
              $diff-len
@@ -519,13 +532,7 @@
            (subvector-move!
              ;; vector of cells
              (vector-map
-               (lambda (_)
-                  (let* (($cell (vector #f #f py-absent))
-                         ($getter (lambda () (vector-ref $cell 2)))
-                         ($setter (lambda (val) (vector-set! $cell 2 val))))
-                    (global-cell-getter-set! $cell $getter)
-                    (global-cell-setter-set! $cell $setter)
-                    $cell))
+               (lambda (_) (make-global-cell py-absent))
                (make-vector $diff-len))
              0
              $diff-len
@@ -2636,20 +2643,46 @@
     str-add
     (make-signature posonlyargs: (self other))))
 
-(define (add-hclass-names-to-table table obj)
-  (vector-for-each
-   (lambda (name)
-     (table-set! table name #t))
-   (HClass-names (py-obj-hclass obj))))
+(define (obj-hclass->hashtable obj)
+  (let* ((table (make-table test: eq?))
+        (names (HClass-names (py-obj-hclass obj)))
+        (names-len (vector-length names))
+        (obj-elements-len (vector-length (PyObject-%elements obj))))
+    (let loop ((i 0))
+      (if (and (< i names-len) (< i obj-elements-len))
+        (begin
+          (table-set! table (vector-ref names i) (PyObject-elements-ref obj i))
+          (loop (+ i 1)))
+        table))))
+
+(define (py-get-list-of-obj-str-attr obj)
+  (let ((table (obj-hclass->hashtable obj)))
+    (py-list-from-scheme
+      (list->dynamic-vector
+        (let filter ((lst (table->list table)))
+          (cond
+            ((null? lst)
+              '())
+            ((eq? (cdar lst) py-absent)
+              (filter (cdr lst)))
+            (else
+              (cons (caar lst) (filter (cdr lst))))))))))
+
+(define (py-get-list-of-global-str-attr module)
+  (let ((table (obj-hclass->hashtable module)))
+    (py-list-from-scheme
+      (list->dynamic-vector
+        (let filter ((lst (table->list table)))
+          (cond
+            ((null? lst)
+              '())
+            ((eq? (global-cell-get-val (cdar lst)) py-absent)
+              (filter (cdr lst)))
+            (else
+              (cons (caar lst) (filter (cdr lst))))))))))
 
 (define (object-dir self)
-  (let ((table (make-table test: eq?)))
-   (add-hclass-names-to-table table self)
-   (vector-for-each (lambda (x) (add-hclass-names-to-table table x))
-                    (PyObjectType-mro (py-obj-cls self)))
-   (py-list-from-scheme
-     (list->dynamic-vector
-       (map car (table->list table))))))
+  (py-get-list-of-obj-str-attr self))
 
 (define object.__dir__
   (procedure->py-function
@@ -2657,14 +2690,7 @@
     (make-signature posonlyargs: (self))))
 
 (define (type-dir self)
-  (if (py-isinstance? self py-type-class)
-      (let ((table (make-table test: eq?)))
-       (vector-for-each (lambda (x) (add-hclass-names-to-table table x))
-                        (PyObjectType-mro self))
-       (py-list-from-scheme
-         (list->dynamic-vector
-           (map car (table->list table)))))
-      (py-throw-required-type "__dir__" "type" self)))
+  (py-get-list-of-obj-str-attr self))
 
 (define type.__dir__
   (procedure->py-function
@@ -2973,8 +2999,6 @@
        (vector (& "__name__") (& "__call__")))
     (HClass-names-set! py-method-hclass-of-instances
        (vector (& "__self__")))
-    (HClass-names-set! py-module-hclass-of-instances
-       (vector (& "__next__") (& "send")))
 
     ;; Fill in object class
     (PyObject-class-set! object-class type-class)
@@ -3119,10 +3143,7 @@
 
 (define (module-dir self)
   (if (py-isinstance? self py-module-class)
-      (py-list-from-scheme
-       (list->dynamic-vector
-        (vector->list
-         (HClass-names (PyObject-hclass self))))) ;; TODO: should py-obj-hclass be used instead?
+      (py-get-list-of-global-str-attr self) ;; TODO: should py-obj-hclass be used instead?
       (throw-returned-wrong-type "__dir__" self "not a module")))
 
 (define module.__dir__
@@ -6095,16 +6116,8 @@
 ;; builtins initialization
 ;; ---------------------
 
-(define builtins-mod py-absent)
-
 (define (py-make-global)
-  (let ((mod
-         (py-obj-alloc
-          py-module-class
-          py-module-hclass-of-instances)))
-    (PyObject-class-set! mod py-module-class)
-    (global-own-attr-put-no-cache! mod (& "__builtins__") builtins-mod)
-    mod))
+  (py-module-alloc py-module-class py-module-hclass-of-instances))
 
 (define (py-make-module name)
   (let ((mod (py-make-global))
@@ -8662,8 +8675,10 @@
      (bootstrap-builtins builtins-mod)
     builtins-mod))
 
+(define builtins-mod #f)
+
 (define (build-builtins)
-  (if (eq? builtins-mod py-absent)
+  (if (not builtins-mod)
       (set! builtins-mod (py-make-builtins-mod))))
 
 (end-registering-constants)
