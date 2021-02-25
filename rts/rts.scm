@@ -2658,32 +2658,34 @@
 
 (define (py-get-list-of-obj-str-attr obj)
   (let ((table (obj-hclass->hashtable obj)))
-    (py-list-from-scheme
-      (list->dynamic-vector
-        (let filter ((lst (table->list table)))
-          (cond
-            ((null? lst)
-              '())
-            ((eq? (cdar lst) py-absent)
-              (filter (cdr lst)))
-            (else
-              (cons (caar lst) (filter (cdr lst))))))))))
+    (let filter ((lst (table->list table)))
+      (cond
+        ((null? lst)
+          '())
+        ((eq? (cdar lst) py-absent)
+          (filter (cdr lst)))
+        (else
+          (cons (caar lst) (filter (cdr lst))))))))
 
 (define (py-get-list-of-global-str-attr module)
   (let ((table (obj-hclass->hashtable module)))
-    (py-list-from-scheme
-      (list->dynamic-vector
-        (let filter ((lst (table->list table)))
-          (cond
-            ((null? lst)
-              '())
-            ((eq? (global-cell-get-val (cdar lst)) py-absent)
-              (filter (cdr lst)))
-            (else
-              (cons (caar lst) (filter (cdr lst))))))))))
+    (let filter ((lst (table->list table)))
+      (cond
+        ((null? lst)
+          '())
+        ((eq? (global-cell-get-val (cdar lst)) py-absent)
+          (filter (cdr lst)))
+        (else
+          (cons (caar lst) (filter (cdr lst))))))))
 
+;; TODO need some type checks in those dir methods
 (define (object-dir self)
-  (py-get-list-of-obj-str-attr self))
+  (py-list-from-scheme
+    (list->dynamic-vector
+      (append
+        ;; coverage for case where self is not a boxed object (ex: fixnum/floats)
+        (if (PyObject? self) (py-get-list-of-obj-str-attr self) '())
+        (py-get-list-of-obj-str-attr (py-obj-cls self))))))
 
 (define object.__dir__
   (procedure->py-function
@@ -2691,7 +2693,9 @@
     (make-signature posonlyargs: (self))))
 
 (define (type-dir self)
-  (py-get-list-of-obj-str-attr self))
+  (py-list-from-scheme
+    (list->dynamic-vector
+      (py-get-list-of-obj-str-attr self))))
 
 (define type.__dir__
   (procedure->py-function
@@ -3144,8 +3148,10 @@
 
 (define (module-dir self)
   (if (py-isinstance? self py-module-class)
-      (py-get-list-of-global-str-attr self) ;; TODO: should py-obj-hclass be used instead?
-      (throw-returned-wrong-type "__dir__" self "not a module")))
+    (py-list-from-scheme
+      (list->dynamic-vector
+        (py-get-list-of-global-str-attr self)))
+    (throw-returned-wrong-type "__dir__" self "not a module")))
 
 (define module.__dir__
   (procedure->py-function
