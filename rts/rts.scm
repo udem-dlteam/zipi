@@ -3411,6 +3411,9 @@
 (define-concat-dynamic-vector concat-dynamic-u8vectors u8vector-ref u8vector-set! make-u8vector 0)
 
 (define (py-make-list . elements)
+  (py-make-list-elems elements))
+
+(define (py-make-list-elems elements)
   (let ((len (length elements))
         (len-vec-pair (list->dynamic-vector elements)))
   (py-list-from-scheme len-vec-pair)))
@@ -6125,18 +6128,21 @@
   (gambit)
   (bigloo ((@ zipi-init __stdlib_behaviors) "behaviors")))
 
+;; note here that we assume that the list is at least of size 1 and contains as first argument the filename
+(define (command-line-argv-set! list-with-file-name)
+  (global-own-attr-put-no-cache! sys-mod (& "argv")
+       (py-make-list-elems (map py-str-from-scheme-fallback (cdr list-with-file-name)))))
+
 (define (py-make-sys-mod)
   (let ((mod (py-make-global)))
    (global-own-attr-put-no-cache! mod (& "__name__") (&& "sys"))
    (global-own-attr-put-no-cache! mod (& "modules")
-                     (py-make-dict
-                       (list
-                         (cons (&& "sys") mod))))
+                     (py-make-dict (list (cons (&& "sys") mod))))
 
+   (global-own-attr-put-no-cache! mod (& "maxsize") (py-int-from-scheme max-fixnum))
    (global-own-attr-put-no-cache! mod (& "path")
-                     (py-make-list
-                           (py-str-from-scheme zipi-stdlib-dir)))
-       mod))
+                     (py-make-list (py-str-from-scheme zipi-stdlib-dir)))
+   mod))
 
 (define sys-mod (py-make-sys-mod))
 
@@ -6162,6 +6168,7 @@
 (define profile-flag #f)
 (define (profile-flag-set! value)
   (set! profile-flag value))
+
 
 (module-search-order-add! (cache-location))
 
@@ -6316,6 +6323,7 @@
 
 
 ;; MODULES
+
 
 
 ;; time
