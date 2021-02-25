@@ -2644,48 +2644,62 @@
     str-add
     (make-signature posonlyargs: (self other))))
 
-(define (obj-hclass->hashtable obj)
-  (let* ((table (make-table test: eq?))
-        (names (HClass-names (py-obj-hclass obj)))
+(define (add-obj-hclass-to-hashtable! table obj)
+  (let* ((names (HClass-names (py-obj-hclass obj)))
         (names-len (vector-length names))
         (obj-elements-len (vector-length (PyObject-%elements obj))))
-    (let loop ((i 0))
-      (if (and (< i names-len) (< i obj-elements-len))
-        (begin
-          (table-set! table (vector-ref names i) (PyObject-elements-ref obj i))
-          (loop (+ i 1)))
-        table))))
+      (let loop ((i 0))
+        (if (and (< i names-len) (< i obj-elements-len))
+          (let ((val (PyObject-elements-ref obj i)))
+            (if (not (eq? val py-absent))
+              (table-set! table (vector-ref names i) val))
+            (loop (+ i 1)))))))
 
-(define (py-get-list-of-obj-str-attr obj)
-  (let ((table (obj-hclass->hashtable obj)))
-    (let filter ((lst (table->list table)))
-      (cond
-        ((null? lst)
-          '())
-        ((eq? (cdar lst) py-absent)
-          (filter (cdr lst)))
-        (else
-          (cons (caar lst) (filter (cdr lst))))))))
+(define (add-global-hclass-to-hashtable! table obj)
+  (let* ((names (HClass-names (py-obj-hclass obj)))
+        (names-len (vector-length names))
+        (obj-elements-len (vector-length (PyObject-%elements obj))))
+      (let loop ((i 0))
+        (if (and (< i names-len) (< i obj-elements-len))
+          (let ((val (PyObject-global-elements-ref obj i)))
+            (if (not (eq? val py-absent))
+              (table-set! table (vector-ref names i) val))
+            (loop (+ i 1)))))))
 
-(define (py-get-list-of-global-str-attr module)
-  (let ((table (obj-hclass->hashtable module)))
-    (let filter ((lst (table->list table)))
-      (cond
-        ((null? lst)
-          '())
-        ((eq? (global-cell-get-val (cdar lst)) py-absent)
-          (filter (cdr lst)))
-        (else
-          (cons (caar lst) (filter (cdr lst))))))))
+;; WARNING values of left-most objects in the list will be overwritten in hashtable
+(define (obj*-hclass->hashtable . objs)
+  (let* ((table (make-table test: eq?)))
+    (for-each
+      (lambda (o) (add-obj-hclass-to-hashtable! table o))
+      objs)
+    table))
+
+(define (global*-hclass->hashtable . glo)
+  (let* ((table (make-table test: eq?)))
+    (for-each
+      (lambda (o) (add-global-hclass-to-hashtable! table o))
+      glo)
+    table))
+
+(define (py-get-list-of-obj*-str-attr . objs)
+  (let ((table (apply obj*-hclass->hashtable objs)))
+    (map car (table->list table))))
+
+(define (py-get-list-of-global*-str-attr . objs)
+  (let ((table (apply global*-hclass->hashtable objs)))
+    (map car (table->list table))))
 
 ;; TODO need some type checks in those dir methods
 (define (object-dir self)
   (py-list-from-scheme
     (list->dynamic-vector
-      (append
-        ;; coverage for case where self is not a boxed object (ex: fixnum/floats)
-        (if (PyObject? self) (py-get-list-of-obj-str-attr self) '())
-        (py-get-list-of-obj-str-attr (py-obj-cls self))))))
+      (if (PyObject? self)
+        (py-get-list-of-obj*-str-attr
+          self
+          (py-obj-cls self))
+        ;; Non-PyObject such as fixnums have no attributes
+        (py-get-list-of-obj*-str-attr
+          (py-obj-cls self))))))
 
 (define object.__dir__
   (procedure->py-function
@@ -2695,7 +2709,9 @@
 (define (type-dir self)
   (py-list-from-scheme
     (list->dynamic-vector
-      (py-get-list-of-obj-str-attr self))))
+      (py-get-list-of-obj*-str-attr
+        self
+        (py-obj-cls self)))))
 
 (define type.__dir__
   (procedure->py-function
@@ -3150,7 +3166,7 @@
   (if (py-isinstance? self py-module-class)
     (py-list-from-scheme
       (list->dynamic-vector
-        (py-get-list-of-global-str-attr self)))
+        (py-get-list-of-global*-str-attr self)))
     (throw-returned-wrong-type "__dir__" self "not a module")))
 
 (define module.__dir__
