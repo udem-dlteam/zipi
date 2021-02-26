@@ -8,34 +8,93 @@
 	  (caches (collect-caches ast cnt)))
       (PycModule-caches-set! ast (cell-ref cnt))))
 
-(define (declaration->define sexp)
-   (match-case sexp
-      ((define (?- . ?-) . ?-) sexp)
-      ((define ?id ?expr) `(define ,id #f))
-      (else #f)))
+(define (sort-semantics semantics)
+  (define (only form)
+    (let loop ((s semantics))
+      (cond
+        ((null? s) '())
+        ((eq? (cadar s) form) (cons (car s) (loop (cdr s))))
+        (else (loop (cdr s))))))
+  (append (only 'define-macro) (only 'define)))
 
-(define (declaration->expression sexp)
-   (match-case sexp
-      ((define (?- . ?-) . ?-) #f)
-      ((define ?id ?expr) `(set! ,id ,expr))
-      (else sexp)))
+(define (scheme-init-globals vars conf)
+  (map
+    (lambda (name)
+      `(define ,name py-absent))
+    (get-unique-var-names-lst vars conf)))
+
+(define (scheme-init-global-defs defs conf)
+  (apply
+    append
+    (filter-map
+      (lambda (d)
+        (let ((proc-name (get-def-procedure-name d))
+              (var (PycRef-decl (PycAssig-lhs d))))
+          (if proc-name
+            (list
+              `(define ,proc-name ,(scheme-procedure-proc (PycAssig-rhs d) conf))
+              `(define ,(scheme-def-optim-globals-name-init var conf) #f)
+              )
+            #f)))
+      defs)))
+
+(define (scheme-register-globals vars conf)
+  (map
+    (lambda (var)
+      `(global-register!
+        %global
+        ,(pyc-propname (PycVar-id var))
+        (lambda () ,(scheme-var-name var conf))
+        (lambda (v)
+          (set! ,(scheme-var-name var conf) v))))
+    (get-unique-var-lst vars conf)))
+
+(define (set-procedure-names! defs conf)
+  (if (not (null? defs))
+    ;; defs are PycAssic with PycRef (lhs) and PycFun (rhs)
+    (let* ((def (car defs))
+          (ref (PycAssig-lhs def))
+          (var (PycRef-decl ref))
+          (fun (PycAssig-rhs def)))
+      ;; only keep procedure for functions which do not seem to be reassigned
+      (if (optimize-fun-def? ref fun)
+        (PycFun-&proc-set! fun (scheme-def-procedure-name var conf)))
+      (set-procedure-names! (cdr defs) conf))))
+
+(define (get-def-procedure-name def)
+  (PycFun-&proc (PycAssig-rhs def)))
+
+(define (get-unique-var-names-lst vars conf)
+  (map (lambda (v) (scheme-var-name v conf)) (get-unique-var-lst vars conf)))
+
+(define (get-unique-var-lst vars conf)
+  (let loop ((vars vars) (acc '()))
+    (if (null? vars)
+      acc
+      (if (memq (car vars) acc)
+        (loop (cdr vars) acc)
+        (loop (cdr vars) (cons (car vars) acc))))))
 
 (define (pyc-scheme-bigloo ast conf)
    (pyc-cache! ast conf)
-   (let* ((tlfuns
-            (if (config-get conf optim-toplevel-module:)
-		          (PycModule-global-defs ast)
-		          '()))
-	  (tldecls (if (config-get conf optim-toplevel-module:)
-		       '() ;; TODO
-		       '()))
-	  (prog (scheme ast conf))
-	  (file (config-get conf file:))
-	  (path (config-get conf dir:))
-	  (globals (if (config-get conf optim-globals:)
+   (let* ((file (config-get conf file:))
+	        (path (config-get conf dir:))
+          (global-funs
+            (if (config-get conf optim-globals:)
+                (let ((defs (PycModule-global-defs ast)))
+                  (set-procedure-names! defs conf)
+                  defs)
+                '()))
+          (global-refs
+            (if (config-get conf optim-globals:)
+              (collect-globals* ast)
+              '()))
+	        (globals (if (config-get conf optim-globals:)
 		       (collect-globals* ast)
 		       '()))
-	  (full-path (if (and file path) (make-file-path path file) #f)))
+          (conf-with-defs (cons* global-funs: global-funs conf))
+          (prog (scheme ast (cons* global-funs: global-funs conf-with-defs)))
+      	  (full-path (if (and file path) (make-file-path path file) #f)))
       `((module ,(string->symbol
 		    (or (config-get conf module-name:)
 			(config-get conf src:)
@@ -53,23 +112,19 @@
 		 '((main main))
 		 '((export (zipi-init ::bstring)))))
 	(start-registering-constants)
-	,@(if (config-get conf optim-toplevel-module:)
-	      `((define %global |#unspecified|)
-		(define %caches |#unspecified|)
-		,@(map (lambda (d)
-			  `(define ,(scheme-def-optim-global-name-init d conf) #f))
-		     tlfuns)
-		,@tldecls)
-	      '())
-	,@(if (config-get conf optim-toplevel-module:)
-	      (filter-map declaration->define prog)
-	      '())
-	,(if (config-get conf optim-toplevel-module:)
-	     `(define (py-module global caches)
-		 (set! %global global)
-		 (set! %caches caches)
-		 ,@(filter-map declaration->expression prog))
-	     `(define py-module ,prog))
+  ,@(if (config-get conf-with-defs optim-globals:)
+    `((define %global #f)
+      (define %caches #f)
+      ,@(scheme-init-global-defs global-funs conf-with-defs)
+      ,@(scheme-init-globals (map PycRef-decl global-refs) conf-with-defs))
+    '())
+  ,(if (config-get conf-with-defs optim-globals:)
+    `(define (py-module global caches)
+      (set! %global global)
+      (set! %caches caches)
+      ,@(scheme-register-globals (map PycRef-decl global-refs) conf-with-defs)
+      ,@prog)
+       `(define py-module ,prog))
 	,(cond
 	    ((config-get conf main:)
 	     `(define (main argv)
@@ -98,75 +153,7 @@
 		    module))))
 	(end-registering-constants))))
 
-(define (sort-semantics semantics)
-  (define (only form)
-    (let loop ((s semantics))
-      (cond
-        ((null? s) '())
-        ((eq? (cadar s) form) (cons (car s) (loop (cdr s))))
-        (else (loop (cdr s))))))
-
-  (append (only 'define-macro) (only 'define)))
-
 (define (pyc-scheme-gambit ast conf)
-  (define (scheme-init-globals vars conf)
-    (map
-      (lambda (name)
-        `(define ,name py-absent))
-      (get-unique-var-names-lst vars conf)))
-
-  (define (scheme-init-global-defs defs conf)
-    (apply
-      append
-      (filter-map
-        (lambda (d)
-          (let ((proc-name (get-def-procedure-name d))
-                (var (PycRef-decl (PycAssig-lhs d))))
-            (if proc-name
-              (list
-                `(define ,proc-name ,(scheme-procedure-proc (PycAssig-rhs d) conf))
-                `(define ,(scheme-def-optim-global-name-init var conf) #f)
-                )
-              #f)))
-        defs)))
-
-  (define (scheme-register-globals vars conf)
-    (map
-      (lambda (var)
-        `(global-register!
-          %global
-          ,(pyc-propname (PycVar-id var))
-          (lambda () ,(scheme-var-name var conf))
-          (lambda (v)
-            (set! ,(scheme-var-name var conf) v))))
-      (get-unique-var-lst vars conf)))
-
-  (define (set-procedure-names! defs)
-    (if (not (null? defs))
-      ;; defs are PycAssic with PycRef (lhs) and PycFun (rhs)
-      (let* ((def (car defs))
-            (ref (PycAssig-lhs def))
-            (var (PycRef-decl ref))
-            (fun (PycAssig-rhs def)))
-        ;; only keep procedure for functions which do not seem to be reassigned
-        (if (optimize-fun-def? ref fun)
-          (PycFun-&proc-set! fun (scheme-def-procedure-name var conf)))
-        (set-procedure-names! (cdr defs)))))
-
-  (define (get-def-procedure-name def)
-    (PycFun-&proc (PycAssig-rhs def)))
-
-  (define (get-unique-var-names-lst vars conf)
-    (map (lambda (v) (scheme-var-name v conf)) (get-unique-var-lst vars conf)))
-
-  (define (get-unique-var-lst vars conf)
-    (let loop ((vars vars) (acc '()))
-      (if (null? vars)
-        acc
-        (if (memq (car vars) acc)
-          (loop (cdr vars) acc)
-          (loop (cdr vars) (cons (car vars) acc))))))
-
   (pyc-cache! ast conf)
 
   (let* ((semantics (sort-semantics (collect-semantics* ast conf))))
@@ -175,9 +162,9 @@
       (let* ((file (config-get conf file:))
             (path (config-get conf dir:))
             (global-funs
-              (if (config-get conf optim-toplevel-module:)
+              (if (config-get conf optim-globals:)
                   (let ((defs (PycModule-global-defs ast)))
-                    (set-procedure-names! defs)
+                    (set-procedure-names! defs conf)
                     defs)
          		      '()))
             (global-refs
@@ -194,14 +181,14 @@
             (begin
               (py-begin-module)
 
-              ,@(if (config-get conf-with-defs optim-toplevel-module:)
+              ,@(if (config-get conf-with-defs optim-globals:)
                 `((define %global #f)
                   (define %caches #f)
                   ,@(scheme-init-global-defs global-funs conf-with-defs)
                   ,@(scheme-init-globals (map PycRef-decl global-refs) conf-with-defs))
                 '())
 
-              ,(if (config-get conf-with-defs optim-toplevel-module:)
+              ,(if (config-get conf-with-defs optim-globals:)
                 `(define (py-module global caches)
                   (set! %global global)
                   (set! %caches caches)
@@ -276,7 +263,7 @@
    (let* ((stmts (PycModule-stmts this))
 	  (sexps (scheme* (PycModule-stmts this)
 		    (cons* module: (PycModule-globals this) conf))))
-      (if (config-get conf optim-toplevel-module:)
+      (if (config-get conf optim-globals:)
 	  sexps
 	  (epairify this
 	     `(lambda (%global %caches)
@@ -636,7 +623,7 @@
         (PycVar-name-set! var name)
         name))))
 
-(define (scheme-def-optim-global-name-init this conf)
+(define (scheme-def-optim-globals-name-init this conf)
    (symbol-append '|init:| (scheme-var-name this conf)))
 
 (define (scheme-def-procedure-name this conf)
@@ -1117,7 +1104,7 @@
                       %global
                       ,(PycFun-&proc init-val)
                       ,(scheme-var-name var conf)
-                      ,(scheme-def-optim-global-name-init var conf)
+                      ,(scheme-def-optim-globals-name-init var conf)
                       ,(pyc-propname (PycVar-id var))
                       ,(scheme-cache (PycRef-cache f) this)
                       ,@args)
