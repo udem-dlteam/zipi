@@ -27,6 +27,8 @@ $PYC_DIR/ast.bgl \
 -e "(##include \"$PYC_DIR/sexp.scm\")" \
 $PYC_DIR/symbol.bgl \
 $PYC_DIR/symbol.scm \
+$PYC_DIR/usage.bgl \
+$PYC_DIR/usage.scm \
 $PYC_DIR/return.bgl \
 $PYC_DIR/return.scm \
 $PYC_DIR/locals.bgl \

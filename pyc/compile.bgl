@@ -22,6 +22,7 @@
 	   __pyc_parse
 	   __pyc_intrinsics
 	   __pyc_symbol
+     __pyc_usage
 	   __pyc_locals
 	   __pyc_return
 	   __pyc_break

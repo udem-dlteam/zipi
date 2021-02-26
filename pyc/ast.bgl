@@ -44,6 +44,7 @@
        ;; usage
        (in-scope-of (default #f))
        (usage::pair-nil (default '()))
+       (can-be-deleted::bool (default #f))
        (simple-scoping-top-block (info '("jsonref" "notraverse")) (default #f))
        (cache (default #f)))
 
