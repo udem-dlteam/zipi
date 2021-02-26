@@ -38,7 +38,7 @@
 	   (class PycVar::PycNode
        id::symbol
        scope::symbol
-       (name::symbol (default #f))
+       (name (default #f))
        (key::int (default (genkey)))
        ;; scope: global, local, block
        ;; usage
