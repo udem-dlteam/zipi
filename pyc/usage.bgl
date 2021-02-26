@@ -1,0 +1,10 @@
+(module __pyc_usage
+
+   (include "ast.sch"
+	    "walk.sch")
+
+   (import __pyc_dump
+	   __pyc_ast
+	   __pyc_utils)
+
+   (export (pyc-usage! this::PycNode conf)))
