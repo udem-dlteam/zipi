@@ -20,10 +20,14 @@
           `(py-call py-builtin-super ,cls ,instance))
         (py-call $fn))))
 
-(define-macro (py-global-call global procedure global-value init-value name cache . args)
-  `(if (eq? ,global-value ,init-value)
-      (,procedure ,@args)
-      (py-call (global-get ,global ,name ,cache) ,@args)))
+(define-macro (py-global-call global procedure global-id init-value name cache . args)
+  (if (symbol? global-id)
+    `(if (eq? ,global-id ,init-value)
+        (,procedure ,@args)
+        (py-call
+          (if (eq? ,global-id py-absent) (global-get ,global ,name ,cache) ,global-id)
+          ,@args))
+    (error "py-global-call" "global-id must be a symbol" global-id)))
 
 (define-macro (py-call0 fun)
   `(let (($fun ,fun))
