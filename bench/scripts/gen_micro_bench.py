@@ -34,7 +34,7 @@ benchmarks = [
 [16,3, 'x=True;y=2.','',     'if x<y:x=0.',    '',   'if_var_bool_float_lt_var'],
 [50,3, 'false=False','',     'if false:x=0',  '',    'if_false'],
 [30,3, 'true=True','',       'if true:x=0',   '',    'if_true'],
-[13,3, 'm=__builtins__','',  'x=m.__name__',  '',    'attr_read'],
+[13,3, 'm=int','',           'x=m.__name__',  '',    'attr_read'],
 [ 9,3, 's="a"','',           'x=s.__add__',   '',    'method_bind'],
 [20,4, 'global g;x=0','g=0', 'x=g',           '',    'global_read'],
 [20,4, 'global g;x=0','g=0', 'g=x',           '',    'global_write1'],
