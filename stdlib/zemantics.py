@@ -1233,6 +1233,13 @@ def getattribute(obj, attr):
     # getattribute:end-body
 
 @define_semantics
+def setattribute(obj, attr, val):
+    # setattribute:start-body
+    __setattr__ = class_getattr(obj, "__setattr__")
+    return __setattr__(obj, attr, val)
+    # setattribute:end-body
+
+@define_semantics
 def getitem(obj, index):
     # getitem:start-body
     __getitem__ = class_getattr(obj, "__getitem__")

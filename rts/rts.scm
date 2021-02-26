@@ -326,6 +326,49 @@
           cls)))
     self))
 
+;; global contains a vector #(getter setter [maybe value for inner use])
+(define-macro (global-cell-getter-get cell)
+  `(vector-ref ,cell 0))
+
+(define-macro (global-cell-getter-set! cell getter)
+  `(vector-set! ,cell 0 ,getter))
+
+(define-macro (global-cell-get-val cell)
+  `((global-cell-getter-get ,cell)))
+
+(define-macro (global-cell-setter-get cell)
+  `(vector-ref ,cell 1))
+
+(define-macro (global-cell-setter-set! cell setter)
+  `(vector-set! ,cell 1 ,setter))
+
+(define-macro (global-cell-set-val! cell val)
+  `((global-cell-setter-get ,cell) ,val))
+
+(define-macro (PyObject-global-elements-ref global index)
+  `(global-cell-get-val (PyObject-elements-ref ,global ,index)))
+
+(define-macro (py-global-elements-set! elements offset val)
+  `(global-cell-set-val! (vector-ref ,elements ,offset) ,val))
+
+(define-macro (make-global-cell val)
+  `(let* (($cell (vector #f #f ,val))
+         ($getter (lambda () (vector-ref $cell 2)))
+         ($setter (lambda (val) (vector-set! $cell 2 val))))
+    (global-cell-getter-set! $cell $getter)
+    (global-cell-setter-set! $cell $setter)
+    $cell))
+
+(define (py-module-alloc cls hclass-of-instances)
+  (let ((self
+         (make-PyObject
+          py-module-hclass-of-instances
+          (vector-map
+            (lambda (_) (make-global-cell py-absent))
+            (make-vector (vector-length (HClass-names hclass-of-instances))))
+          cls)))
+    self))
+
 ;; type allocation
 
 (define list-of-magic-attrs
@@ -438,13 +481,74 @@
           (outer-loop (cdr lists-tail) inner-acc)
           (inner-loop (cdr head) (cons (car head) inner-acc)))))))
 
+;; used to set the #(getter setter) in the elements of a module w/o invoking the setter
+(define-macro (py-global-elements-direct-set! obj offset val)
+  `(let* (($obj ,obj)
+          ($offset ,offset)
+          ($val ,val)
+          ($elements (PyObject-%elements $obj))
+          ($elements-len (vector-length $elements)))
+     (if (fx>= $offset $elements-len)
+         (let* (($new-len (max 1 (fx* 2 $offset)))
+                ($diff-len (fx- $new-len $elements-len))
+                ($elements-new (make-vector $new-len)))
+           ;; copy existing cells
+           (subvector-move! $elements 0 $elements-len $elements-new 0)
+           ;; create new cells
+           (subvector-move!
+             ;; vector of cells
+             (vector-map
+               (lambda (_)
+                  (make-global-cell py-absent))
+               (make-vector $diff-len))
+             0
+             $diff-len
+             $elements-new
+             $elements-len)
+           ;; set the element
+           (vector-set!
+             $elements-new
+             $offset
+             $val)
+           (PyObject-%elements-set! $obj $elements-new))
+           (vector-set!
+             $elements
+             $offset
+             $val))))
+
+(define-macro (PyObject-global-elements-set! obj offset val)
+  `(let* (($obj ,obj)
+          ($offset ,offset)
+          ($val ,val)
+          ($elements (PyObject-%elements $obj))
+          ($elements-len (vector-length $elements)))
+     (if (fx>= $offset $elements-len)
+         (let* (($new-len (max 1 (fx* 2 $offset)))
+                ($diff-len (fx- $new-len $elements-len))
+                ($elements-new (make-vector $new-len)))
+           ;; copy existing cells
+           (subvector-move! $elements 0 $elements-len $elements-new 0)
+           ;; create new cells
+           (subvector-move!
+             ;; vector of cells
+             (vector-map
+               (lambda (_) (make-global-cell py-absent))
+               (make-vector $diff-len))
+             0
+             $diff-len
+             $elements-new
+             $elements-len)
+           ;; set the element
+           (py-global-elements-set! $elements-new $offset $val)
+           (PyObject-%elements-set! $obj $elements-new))
+         (py-global-elements-set! $elements $offset $val))))
+
 (define (global-get global name cache)
   (if (eq? (PyObject-hclass global) ;; TODO: should py-obj-hclass be used instead?
            (PCache-hclass cache))
-      (let ((val (PyObject-elements-ref global (PCache-index cache))))
+      (let ((val (PyObject-global-elements-ref global (PCache-index cache))))
         (if (not (eq? val py-absent))
             val
-            ;; TODO: use a different cache
             (global-get-from-builtins name cache)))
       (global-get/miss global name cache)))
 
@@ -454,15 +558,19 @@
         ;; as per Python 3.8 (maybe 3.7?) builtins module is no longer recovered
         ;; through __builtins__, this was also documented as an implementation
         ;; detail: https://docs.python.org/3/library/builtins.html
-        ;; TODO: use a different cache
         (global-get-from-builtins name cache)
         (let ((hclass (PyObject-hclass global))) ;; TODO: should py-obj-hclass be used instead?
           (PCache-set! cache hclass i)
-          (let ((val (PyObject-elements-ref global i)))
-            (if (not (eq? val py-absent))
-                val
-                ;; TODO: use a different cache
-                (global-get-from-builtins name cache)))))))
+          (let ((val (PyObject-global-elements-ref global i)))
+            (if (eq? val py-absent)
+                (global-get-from-builtins name cache)
+                val))))))
+
+(define (global-own-attr-ref-no-cache global name)
+  (let ((i (py-own-attr-index global name)))
+    (if (< i 0)
+      py-absent
+      (PyObject-global-elements-ref global i))))
 
 ;; TODO: use a cache for builtins and one for global access
 (define (global-get-from-builtins name cache)
@@ -472,14 +580,16 @@
      "name '" (py-str-to-scheme name) "' is not defined"))
   (let ((builtins-hclass (PyObject-hclass builtins-mod))) ;; TODO: should py-obj-hclass be used instead?
     (if (eq? builtins-hclass (PCache-hclass cache))
-        (let ((val (PyObject-elements-ref builtins-mod (PCache-index cache))))
+        (let ((val (PyObject-global-elements-ref
+                      builtins-mod
+                      (PCache-index cache))))
           (if (eq? val py-absent)
               (throw-NameError)
               val))
         (let ((i (py-own-attr-index builtins-mod name)))
           (if (< i 0)
               (throw-NameError)
-              (let ((val (PyObject-elements-ref builtins-mod i)))
+              (let ((val (PyObject-global-elements-ref builtins-mod i)))
                 (PCache-set! cache builtins-hclass i)
                 (if (eq? val py-absent)
                     (throw-NameError)
@@ -489,51 +599,52 @@
   (if (eq? (PyObject-hclass global) ;; TODO: should py-obj-hclass be used instead?
            (PCache-hclass cache))
       (PyObject-global-elements-set! global (PCache-index cache) val)
-      (object-put!/miss global name val cache)))
+      (global-put!/miss global name val cache)))
 
-(define (object-put!/miss obj name val cache)
+(define (global-put!/miss obj name val cache)
   (let* ((index (py-own-attr-index obj name))
          (hclass (PyObject-hclass obj))) ;; TODO: should py-obj-hclass be used instead?
     (if (>= index 0)
         (begin
           (PCache-set! cache hclass index)
-          (PyObject-global-elements-set! obj index val))
+          (py-global-elements-set! (PyObject-%elements obj) index val))
+        ;; We have to create a cell
         (let* ((name-representative (py-str-representative name))
                (nhclass (HClass-next hclass name-representative '+))
                (index (HClass-last-index nhclass)))
           (PyObject-hclass-set! obj nhclass)
           (PCache-set! cache nhclass index)
-          (PyObject-elements-set! obj index val)))))
+          (PyObject-global-elements-set! obj index val)))))
 
-(define (PyObject-global-elements-set! obj index val)
-   (let ((v (PyObject-elements-ref obj index)))
-      (if (procedure? v)
-	  (v val)
-	  (PyObject-elements-set! obj index val))))
+(define (global-own-attr-put-no-cache! global name val)
+  (let* ((index (py-own-attr-index global name))
+         (hclass (PyObject-hclass global))) ;; TODO: should py-obj-hclass be used instead?
+    (if (>= index 0)
+        (PyObject-global-elements-set! global index val)
+        ;; We have to create a cell
+        (let* ((name-representative (py-str-representative name))
+               (nhclass (HClass-next hclass name-representative '+))
+               (index (HClass-last-index nhclass)))
+          (PyObject-hclass-set! global nhclass)
+          (PyObject-global-elements-set! global index val)))))
 
-(define (global-register! global name setter cache)
-   (if (eq? (PyObject-hclass global) ;; TODO: should py-obj-hclass be used instead?
-	  (PCache-hclass cache))
-       ;; MS: 17feb21: if global-register! can override an already declared
-       ;; global variable, then before setting the new setter, the currently
-       ;; in use setter must be used a last time to invalidate the
-       ;; previously declared variable.
-       (PyObject-elements-set! global (PCache-index cache) setter)
-       (global-register/miss! global name setter cache))) 
-      
-(define (global-register/miss! obj name val cache)
-   (let* ((index (py-own-attr-index obj name))
-	  (hclass (PyObject-hclass obj))) ;; TODO: should py-obj-hclass be used instead?
-      (if (>= index 0)
-	  (begin
-	     (PCache-set! cache hclass index)
-	     (PyObject-elements-set! obj index val))
-	  (let* ((name-representative (py-str-representative name))
-		 (nhclass (HClass-next hclass name-representative '+))
-		 (index (HClass-last-index nhclass)))
-	     (PyObject-hclass-set! obj nhclass)
-	     (PCache-set! cache nhclass index)
-	     (PyObject-elements-set! obj index val)))))
+(define (global-register! obj name getter setter)
+  (let* ((index (py-own-attr-index obj name))
+         (hclass (PyObject-hclass obj))) ;; TODO: should py-obj-hclass be used instead?
+    (if (>= index 0)
+      (begin
+        (py-global-elements-direct-set!
+          obj
+          index
+          (vector getter setter)))
+      (let* ((name-representative (py-str-representative name))
+             (nhclass (HClass-next hclass name-representative '+))
+             (index (HClass-last-index nhclass)))
+        (PyObject-hclass-set! obj nhclass)
+        (py-global-elements-direct-set!
+          obj
+          index
+          (vector getter setter))))))
 
 ;; Boostrap functions
 ;; Functions are objects of type 'function', but their type cannot be assigned
@@ -1894,15 +2005,15 @@
   `(let (($mro (PyObjectType-mro ,cls)))
      (let $loop-mro (($cls-index 0))
        (if (fx< $cls-index (vector-length $mro))
-	   (let (($cls (vector-ref $mro $cls-index)))
-             (py-own-attr-ref-2cont
-              $cls
-              ,name
-              (lambda ($val)
-                (,succeed $val $cls))
-              (lambda ()
-                ($loop-mro (fx+ $cls-index 1)))))
-	   (,fail)))))
+    	   (let (($cls (vector-ref $mro $cls-index)))
+           (py-own-attr-ref-2cont
+            $cls
+            ,name
+            (lambda ($val)
+              (,succeed $val $cls))
+            (lambda ()
+              ($loop-mro (fx+ $cls-index 1)))))
+	       (,fail)))))
 
 ;; Recover an attribute from the class of 'obj'
 (define (getattribute-from-obj-mro-fallback obj name)
@@ -1914,11 +2025,8 @@
 (define-macro (getattribute-from-obj-mro-with-owner-2cont obj name succeed fail)
   `(getattribute-from-cls-mro-with-owner-2cont (py-obj-cls ,obj) ,name ,succeed ,fail))
 
-;; Implements object.__getattribute__
-;;   Entry point of the getattr protocol
-;;   Look into the object's own attributes
-;;   Defer to getattribute-from-obj-mro if not found
 (define (object-getattribute obj name)
+  ;; TODO: add check that obj does not has it own getattribute method
   (let ((attr (py-own-attr-ref obj name)))
     (if (not (eq? attr py-absent))
         attr
@@ -1929,15 +2037,28 @@
            (object-get-bind-descriptor cls-attr obj owner))
          (lambda ()
            ;; TODO: replace this hack by something better
+           ;; NOTE: __class__ should get a getset_descriptor on type
            (if (eq? (py-str-representative name) (& "__class__"))
                (py-obj-cls obj)
                (py-throw py-builtin-AttributeError)))))))
 
-;; The Python object object.__getattribute__
-(define py-object-getattribute
+(define object.__getattribute__
   (procedure->py-function
     object-getattribute
     (make-signature posonlyargs: (obj name))))
+
+(define (object-setattr obj name val)
+  ;; TODO: add check that obj does not has it own setattr method
+  (if (py-subtype-of-str? name)
+    (py-own-attr-set! obj name val)
+    (py-throw-exception-with-message
+     py-builtin-TypeError
+     "attribute name must be string")))
+
+(define object.__setattr__
+  (procedure->py-function
+    object-setattr
+    (make-signature posonlyargs: (obj name val))))
 
 ;; Implements type.__getattribute__
 (define (type-getattribute obj name)
@@ -1959,9 +2080,6 @@
   (procedure->py-function
     type-getattribute
     (make-signature posonlyargs: (obj name))))
-
-(define (object-put! obj attr val cache)
-  (py-own-attr-set! obj attr val))
 
 (define (object-has obj attr)
    (>= (py-own-attr-index obj attr) 0))
@@ -2526,20 +2644,62 @@
     str-add
     (make-signature posonlyargs: (self other))))
 
-(define (add-hclass-names-to-table table obj)
-  (vector-for-each
-   (lambda (name)
-     (table-set! table name #t))
-   (HClass-names (py-obj-hclass obj))))
+(define (add-obj-hclass-to-hashtable! table obj)
+  (let* ((names (HClass-names (py-obj-hclass obj)))
+        (names-len (vector-length names))
+        (obj-elements-len (vector-length (PyObject-%elements obj))))
+      (let loop ((i 0))
+        (if (and (< i names-len) (< i obj-elements-len))
+          (let ((val (PyObject-elements-ref obj i)))
+            (if (not (eq? val py-absent))
+              (table-set! table (vector-ref names i) val))
+            (loop (+ i 1)))))))
 
+(define (add-global-hclass-to-hashtable! table obj)
+  (let* ((names (HClass-names (py-obj-hclass obj)))
+        (names-len (vector-length names))
+        (obj-elements-len (vector-length (PyObject-%elements obj))))
+      (let loop ((i 0))
+        (if (and (< i names-len) (< i obj-elements-len))
+          (let ((val (PyObject-global-elements-ref obj i)))
+            (if (not (eq? val py-absent))
+              (table-set! table (vector-ref names i) val))
+            (loop (+ i 1)))))))
+
+;; WARNING values of left-most objects in the list will be overwritten in hashtable
+(define (obj*-hclass->hashtable . objs)
+  (let* ((table (make-table test: eq?)))
+    (for-each
+      (lambda (o) (add-obj-hclass-to-hashtable! table o))
+      objs)
+    table))
+
+(define (global*-hclass->hashtable . glo)
+  (let* ((table (make-table test: eq?)))
+    (for-each
+      (lambda (o) (add-global-hclass-to-hashtable! table o))
+      glo)
+    table))
+
+(define (py-get-list-of-obj*-str-attr . objs)
+  (let ((table (apply obj*-hclass->hashtable objs)))
+    (map car (table->list table))))
+
+(define (py-get-list-of-global*-str-attr . objs)
+  (let ((table (apply global*-hclass->hashtable objs)))
+    (map car (table->list table))))
+
+;; TODO need some type checks in those dir methods
 (define (object-dir self)
-  (let ((table (make-table test: eq?)))
-   (add-hclass-names-to-table table self)
-   (vector-for-each (lambda (x) (add-hclass-names-to-table table x))
-                    (PyObjectType-mro (py-obj-cls self)))
-   (py-list-from-scheme
-     (list->dynamic-vector
-       (map car (table->list table))))))
+  (py-list-from-scheme
+    (list->dynamic-vector
+      (if (PyObject? self)
+        (py-get-list-of-obj*-str-attr
+          self
+          (py-obj-cls self))
+        ;; Non-PyObject such as fixnums have no attributes
+        (py-get-list-of-obj*-str-attr
+          (py-obj-cls self))))))
 
 (define object.__dir__
   (procedure->py-function
@@ -2547,14 +2707,11 @@
     (make-signature posonlyargs: (self))))
 
 (define (type-dir self)
-  (if (py-isinstance? self py-type-class)
-      (let ((table (make-table test: eq?)))
-       (vector-for-each (lambda (x) (add-hclass-names-to-table table x))
-                        (PyObjectType-mro self))
-       (py-list-from-scheme
-         (list->dynamic-vector
-           (map car (table->list table)))))
-      (py-throw-required-type "__dir__" "type" self)))
+  (py-list-from-scheme
+    (list->dynamic-vector
+      (py-get-list-of-obj*-str-attr
+        self
+        (py-obj-cls self)))))
 
 (define type.__dir__
   (procedure->py-function
@@ -2863,8 +3020,6 @@
        (vector (& "__name__") (& "__call__")))
     (HClass-names-set! py-method-hclass-of-instances
        (vector (& "__self__")))
-    (HClass-names-set! py-module-hclass-of-instances
-       (vector (& "__next__") (& "send")))
 
     ;; Fill in object class
     (PyObject-class-set! object-class type-class)
@@ -2875,7 +3030,8 @@
     (py-own-attr-set! object-class (& "__module__") (&& "builtins"))
     (py-own-attr-set! object-class (& "__new__") object.__new__)
     (py-own-attr-set! object-class (& "__init__") object.__init__)
-    (py-own-attr-set! object-class (& "__getattribute__") py-object-getattribute)
+    (py-own-attr-set! object-class (& "__getattribute__") object.__getattribute__)
+    (py-own-attr-set! object-class (& "__setattr__") object.__setattr__)
     (py-own-attr-set! object-class (& "__repr__") object.__repr__)
     (py-own-attr-set! object-class (& "__str__") object.__str__)
     (py-own-attr-set! object-class (& "__dir__") object.__dir__)
@@ -3008,16 +3164,56 @@
 
 (define (module-dir self)
   (if (py-isinstance? self py-module-class)
-      (py-list-from-scheme
-       (list->dynamic-vector
-        (vector->list
-         (HClass-names (PyObject-hclass self))))) ;; TODO: should py-obj-hclass be used instead?
-      (throw-returned-wrong-type "__dir__" self "not a module")))
+    (py-list-from-scheme
+      (list->dynamic-vector
+        (py-get-list-of-global*-str-attr self)))
+    (throw-returned-wrong-type "__dir__" self "not a module")))
 
 (define module.__dir__
   (procedure->py-function
     module-dir
     (make-signature posonlyargs: (self))))
+
+
+(define (module-getattribute self name)
+  (if (py-isinstance? self py-module-class)
+      (if (py-isinstance? name py-str-class)
+        (let ((val (global-own-attr-ref-no-cache self name)))
+          (if (eq? val py-absent)
+            (getattribute-from-obj-mro-with-owner-2cont
+             self
+             name
+             (lambda (cls-attr owner)
+               (object-get-bind-descriptor cls-attr self owner))
+             (lambda ()
+               (py-throw py-builtin-AttributeError)))
+            val))
+        (py-throw-exception-with-message
+         py-builtin-TypeError
+         "attribute name must be string"))
+      (throw-returned-wrong-type "__getattribute__" self "not a module")))
+
+(define module.__getattribute__
+  (procedure->py-function
+    module-getattribute
+    (make-signature posonlyargs: (self name))))
+
+
+(define (module-setattr self name val)
+  (if (py-isinstance? self py-module-class)
+      (if (py-isinstance? name py-str-class)
+        (begin
+          (global-own-attr-put-no-cache! self name val)
+          py-None)
+        (py-throw-exception-with-message
+         py-builtin-TypeError
+         "attribute name must be string"))
+      (throw-returned-wrong-type "__setattr__" self "not a module")))
+
+(define module.__setattr__
+  (procedure->py-function
+    module-setattr
+    (make-signature posonlyargs: (self name val))))
 
 
 ;; =============================================================================
@@ -5385,7 +5581,9 @@
      (&& "builtins")
      (list)
      py-module-hclass-of-instances
-     (& "__dir__") module.__dir__))
+     (& "__dir__") module.__dir__
+     (& "__getattribute__") module.__getattribute__
+     (& "__setattr__") module.__setattr__))
 
   (set! py-int-class
     (py-make-builtin-class
@@ -5947,21 +6145,13 @@
 ;; builtins initialization
 ;; ---------------------
 
-(define builtins-mod py-absent)
-
 (define (py-make-global)
-  (let ((mod
-         (py-obj-alloc
-          py-module-class
-          py-module-hclass-of-instances)))
-    (PyObject-class-set! mod py-module-class)
-    (py-own-attr-set! mod (& "__builtins__") builtins-mod)
-    mod))
+  (py-module-alloc py-module-class py-module-hclass-of-instances))
 
 (define (py-make-module name)
   (let ((mod (py-make-global))
         (modules (sys.modules-get)))
-   (py-own-attr-set! mod (& "__name__") name)
+   (global-own-attr-put-no-cache! mod (& "__name__") name)
    (dict-setitem modules name mod)
    mod))
 
@@ -5980,35 +6170,29 @@
   (gambit)
   (bigloo ((@ zipi-init __stdlib_behaviors) "behaviors")))
 
-;; note here that we assume that the list is at least of size 1 and contains as first argument the filename 
+;; note here that we assume that the list is at least of size 1 and contains as first argument the filename
 (define (command-line-argv-set! list-with-file-name)
-  (py-own-attr-set! sys-mod (& "argv")
-       (py-make-list-elems (map py-str-from-scheme-fallback (cdr list-with-file-name)))))
+  (global-own-attr-put-no-cache! sys-mod (& "argv")
+       (py-make-list-elems (map py-str-from-scheme-fallback list-with-file-name))))
 
 (define (py-make-sys-mod)
   (let ((mod (py-make-global)))
-   (py-own-attr-set! mod (& "__name__") (&& "sys"))
-   (py-own-attr-set! mod (& "modules")
-                     (py-make-dict
-                       (list
-                         (cons (&& "sys") mod))))
+   (global-own-attr-put-no-cache! mod (& "__name__") (&& "sys"))
+   (global-own-attr-put-no-cache! mod (& "modules")
+                     (py-make-dict (list (cons (&& "sys") mod))))
 
-   (py-own-attr-set! mod (& "maxsize")
-                     (py-int-from-scheme max-fixnum)
-                     )
-
-   (py-own-attr-set! mod (& "path")
-                     (py-make-list
-                           (py-str-from-scheme zipi-stdlib-dir)))
-       mod))
+   (global-own-attr-put-no-cache! mod (& "maxsize") (py-int-from-scheme max-fixnum))
+   (global-own-attr-put-no-cache! mod (& "path")
+                     (py-make-list (py-str-from-scheme zipi-stdlib-dir)))
+   mod))
 
 (define sys-mod (py-make-sys-mod))
 
 (define (sys.modules-get)
-  (py-own-attr-ref sys-mod (& "modules")))
+  (global-own-attr-ref-no-cache sys-mod (& "modules")))
 
 (define (sys.path-get)
-  (py-own-attr-ref sys-mod (& "path")))
+  (global-own-attr-ref-no-cache sys-mod (& "path")))
 
 ;; == CACHE SYSTEM ==
 
@@ -6105,7 +6289,7 @@
          (path-package-info (file-info path-package #t #f)))
     (if path-package-info
         (let ((mod (compile-and-get-mod path-package path-package-info py-__name__)))
-         (py-own-attr-set! mod (& "__path__") (py-make-list (py-str-from-scheme path)))
+         (global-own-attr-put-no-cache! mod (& "__path__") (py-make-list (py-str-from-scheme path)))
          mod)
         (let* ((path-mod (string-append path ".py"))
                (path-mod-info (file-info path-mod #t #f)))
@@ -6138,9 +6322,9 @@
       (if (and module (py-isinstance? module py-module-class))
           (begin
             (if last-module
-                (py-own-attr-set! last-module (py-str-from-scheme (car name-split)) module))
+                (global-own-attr-put-no-cache! last-module (py-str-from-scheme (car name-split)) module))
             (if (pair? (cdr name-split))
-                (let ((module.__path__ (py-own-attr-ref module (& "__path__"))))
+                (let ((module.__path__ (global-own-attr-ref-no-cache module (& "__path__"))))
                  (if (eq? py-absent module.__path__)
                      (py-throw-exception-with-message
                        py-builtin-ModuleNotFoundError
@@ -6194,7 +6378,7 @@
 
 (define (make-time-mod)
   (let ((mod (py-make-module (&& "time"))))
-   (py-own-attr-set! mod (& "time") time.time)))
+   (global-own-attr-put-no-cache! mod (& "time") time.time)))
 
 (make-time-mod)
 
@@ -6212,8 +6396,8 @@
 
 (define (make-statprof-mod)
   (let ((mod (py-make-module (&& "statprof"))))
-   (py-own-attr-set! mod (& "begin") statprof.begin)
-   (py-own-attr-set! mod (& "end") statprof.end)))
+   (global-own-attr-put-no-cache! mod (& "begin") statprof.begin)
+   (global-own-attr-put-no-cache! mod (& "end") statprof.end)))
 
 (make-statprof-mod)
 
@@ -8351,75 +8535,75 @@
 ;; Examples are exceptions which are part of Python protocols, such as StopIteration
 (define (bootstrap-builtins builtins-mod)
   ;; builtin functions
-  (set! py-builtin-sorted (py-own-attr-ref builtins-mod (& "sorted")))
+  (set! py-builtin-sorted (global-own-attr-ref-no-cache builtins-mod (& "sorted")))
 
   ;; Exceptions
-  (set! py-builtin-ArithmeticError (py-own-attr-ref builtins-mod (& "ArithmeticError")))
-  (set! py-builtin-AssertionError (py-own-attr-ref builtins-mod (& "AssertionError")))
-  (set! py-builtin-AttributeError (py-own-attr-ref builtins-mod (& "AttributeError")))
-  (set! py-builtin-BaseException (py-own-attr-ref builtins-mod (& "BaseException")))
-  (set! py-builtin-BlockingIOError (py-own-attr-ref builtins-mod (& "BlockingIOError")))
-  (set! py-builtin-BrokenPipeError (py-own-attr-ref builtins-mod (& "BrokenPipeError")))
-  (set! py-builtin-BufferError (py-own-attr-ref builtins-mod (& "BufferError")))
-  (set! py-builtin-BytesWarning (py-own-attr-ref builtins-mod (& "BytesWarning")))
-  (set! py-builtin-ChildProcessError (py-own-attr-ref builtins-mod (& "ChildProcessError")))
-  (set! py-builtin-ConnectionAbortedError (py-own-attr-ref builtins-mod (& "ConnectionAbortedError")))
-  (set! py-builtin-ConnectionError (py-own-attr-ref builtins-mod (& "ConnectionError")))
-  (set! py-builtin-ConnectionRefusedError (py-own-attr-ref builtins-mod (& "ConnectionRefusedError")))
-  (set! py-builtin-ConnectionResetError (py-own-attr-ref builtins-mod (& "ConnectionResetError")))
-  (set! py-builtin-DeprecationWarning (py-own-attr-ref builtins-mod (& "DeprecationWarning")))
-  (set! py-builtin-EOFError (py-own-attr-ref builtins-mod (& "EOFError")))
-  (set! py-builtin-EnvironmentError (py-own-attr-ref builtins-mod (& "EnvironmentError")))
-  (set! py-builtin-Exception (py-own-attr-ref builtins-mod (& "Exception")))
-  (set! py-builtin-FileExistsError (py-own-attr-ref builtins-mod (& "FileExistsError")))
-  (set! py-builtin-FileNotFoundError (py-own-attr-ref builtins-mod (& "FileNotFoundError")))
-  (set! py-builtin-FloatingPointError (py-own-attr-ref builtins-mod (& "FloatingPointError")))
-  (set! py-builtin-FutureWarning (py-own-attr-ref builtins-mod (& "FutureWarning")))
-  (set! py-builtin-GeneratorExit (py-own-attr-ref builtins-mod (& "GeneratorExit")))
-  (set! py-builtin-IOError (py-own-attr-ref builtins-mod (& "IOError")))
-  (set! py-builtin-ImportError (py-own-attr-ref builtins-mod (& "ImportError")))
-  (set! py-builtin-ImportWarning (py-own-attr-ref builtins-mod (& "ImportWarning")))
-  (set! py-builtin-IndentationError (py-own-attr-ref builtins-mod (& "IndentationError")))
-  (set! py-builtin-IndexError (py-own-attr-ref builtins-mod (& "IndexError")))
-  (set! py-builtin-InterruptedError (py-own-attr-ref builtins-mod (& "InterruptedError")))
-  (set! py-builtin-IsADirectoryError (py-own-attr-ref builtins-mod (& "IsADirectoryError")))
-  (set! py-builtin-KeyError (py-own-attr-ref builtins-mod (& "KeyError")))
-  (set! py-builtin-KeyboardInterrupt (py-own-attr-ref builtins-mod (& "KeyboardInterrupt")))
-  (set! py-builtin-LookupError (py-own-attr-ref builtins-mod (& "LookupError")))
-  (set! py-builtin-MemoryError (py-own-attr-ref builtins-mod (& "MemoryError")))
-  (set! py-builtin-ModuleNotFoundError (py-own-attr-ref builtins-mod (& "ModuleNotFoundError")))
-  (set! py-builtin-NameError (py-own-attr-ref builtins-mod (& "NameError")))
-  (set! py-builtin-NotADirectoryError (py-own-attr-ref builtins-mod (& "NotADirectoryError")))
-  (set! py-builtin-NotImplementedError (py-own-attr-ref builtins-mod (& "NotImplementedError")))
-  (set! py-builtin-OSError (py-own-attr-ref builtins-mod (& "OSError")))
-  (set! py-builtin-OverflowError (py-own-attr-ref builtins-mod (& "OverflowError")))
-  (set! py-builtin-PendingDeprecationWarning (py-own-attr-ref builtins-mod (& "PendingDeprecationWarning")))
-  (set! py-builtin-PermissionError (py-own-attr-ref builtins-mod (& "PermissionError")))
-  (set! py-builtin-ProcessLookupError (py-own-attr-ref builtins-mod (& "ProcessLookupError")))
-  (set! py-builtin-RecursionError (py-own-attr-ref builtins-mod (& "RecursionError")))
-  (set! py-builtin-ReferenceError (py-own-attr-ref builtins-mod (& "ReferenceError")))
-  (set! py-builtin-ResourceWarning (py-own-attr-ref builtins-mod (& "ResourceWarning")))
-  (set! py-builtin-RuntimeError (py-own-attr-ref builtins-mod (& "RuntimeError")))
-  (set! py-builtin-RuntimeWarning (py-own-attr-ref builtins-mod (& "RuntimeWarning")))
-  (set! py-builtin-StopAsyncIteration (py-own-attr-ref builtins-mod (& "StopAsyncIteration")))
-  (set! py-builtin-StopIteration (py-own-attr-ref builtins-mod (& "StopIteration")))
-  (set! py-builtin-SyntaxError (py-own-attr-ref builtins-mod (& "SyntaxError")))
-  (set! py-builtin-SyntaxWarning (py-own-attr-ref builtins-mod (& "SyntaxWarning")))
-  (set! py-builtin-SystemError (py-own-attr-ref builtins-mod (& "SystemError")))
-  (set! py-builtin-SystemExit (py-own-attr-ref builtins-mod (& "SystemExit")))
-  (set! py-builtin-TabError (py-own-attr-ref builtins-mod (& "TabError")))
-  (set! py-builtin-TimeoutError (py-own-attr-ref builtins-mod (& "TimeoutError")))
-  (set! py-builtin-TypeError (py-own-attr-ref builtins-mod (& "TypeError")))
-  (set! py-builtin-UnboundLocalError (py-own-attr-ref builtins-mod (& "UnboundLocalError")))
-  (set! py-builtin-UnicodeDecodeError (py-own-attr-ref builtins-mod (& "UnicodeDecodeError")))
-  (set! py-builtin-UnicodeEncodeError (py-own-attr-ref builtins-mod (& "UnicodeEncodeError")))
-  (set! py-builtin-UnicodeError (py-own-attr-ref builtins-mod (& "UnicodeError")))
-  (set! py-builtin-UnicodeTranslateError (py-own-attr-ref builtins-mod (& "UnicodeTranslateError")))
-  (set! py-builtin-UnicodeWarning (py-own-attr-ref builtins-mod (& "UnicodeWarning")))
-  (set! py-builtin-UserWarning (py-own-attr-ref builtins-mod (& "UserWarning")))
-  (set! py-builtin-ValueError (py-own-attr-ref builtins-mod (& "ValueError")))
-  (set! py-builtin-Warning (py-own-attr-ref builtins-mod (& "Warning")))
-  (set! py-builtin-ZeroDivisionError (py-own-attr-ref builtins-mod (& "ZeroDivisionError")))
+  (set! py-builtin-ArithmeticError (global-own-attr-ref-no-cache builtins-mod (& "ArithmeticError")))
+  (set! py-builtin-AssertionError (global-own-attr-ref-no-cache builtins-mod (& "AssertionError")))
+  (set! py-builtin-AttributeError (global-own-attr-ref-no-cache builtins-mod (& "AttributeError")))
+  (set! py-builtin-BaseException (global-own-attr-ref-no-cache builtins-mod (& "BaseException")))
+  (set! py-builtin-BlockingIOError (global-own-attr-ref-no-cache builtins-mod (& "BlockingIOError")))
+  (set! py-builtin-BrokenPipeError (global-own-attr-ref-no-cache builtins-mod (& "BrokenPipeError")))
+  (set! py-builtin-BufferError (global-own-attr-ref-no-cache builtins-mod (& "BufferError")))
+  (set! py-builtin-BytesWarning (global-own-attr-ref-no-cache builtins-mod (& "BytesWarning")))
+  (set! py-builtin-ChildProcessError (global-own-attr-ref-no-cache builtins-mod (& "ChildProcessError")))
+  (set! py-builtin-ConnectionAbortedError (global-own-attr-ref-no-cache builtins-mod (& "ConnectionAbortedError")))
+  (set! py-builtin-ConnectionError (global-own-attr-ref-no-cache builtins-mod (& "ConnectionError")))
+  (set! py-builtin-ConnectionRefusedError (global-own-attr-ref-no-cache builtins-mod (& "ConnectionRefusedError")))
+  (set! py-builtin-ConnectionResetError (global-own-attr-ref-no-cache builtins-mod (& "ConnectionResetError")))
+  (set! py-builtin-DeprecationWarning (global-own-attr-ref-no-cache builtins-mod (& "DeprecationWarning")))
+  (set! py-builtin-EOFError (global-own-attr-ref-no-cache builtins-mod (& "EOFError")))
+  (set! py-builtin-EnvironmentError (global-own-attr-ref-no-cache builtins-mod (& "EnvironmentError")))
+  (set! py-builtin-Exception (global-own-attr-ref-no-cache builtins-mod (& "Exception")))
+  (set! py-builtin-FileExistsError (global-own-attr-ref-no-cache builtins-mod (& "FileExistsError")))
+  (set! py-builtin-FileNotFoundError (global-own-attr-ref-no-cache builtins-mod (& "FileNotFoundError")))
+  (set! py-builtin-FloatingPointError (global-own-attr-ref-no-cache builtins-mod (& "FloatingPointError")))
+  (set! py-builtin-FutureWarning (global-own-attr-ref-no-cache builtins-mod (& "FutureWarning")))
+  (set! py-builtin-GeneratorExit (global-own-attr-ref-no-cache builtins-mod (& "GeneratorExit")))
+  (set! py-builtin-IOError (global-own-attr-ref-no-cache builtins-mod (& "IOError")))
+  (set! py-builtin-ImportError (global-own-attr-ref-no-cache builtins-mod (& "ImportError")))
+  (set! py-builtin-ImportWarning (global-own-attr-ref-no-cache builtins-mod (& "ImportWarning")))
+  (set! py-builtin-IndentationError (global-own-attr-ref-no-cache builtins-mod (& "IndentationError")))
+  (set! py-builtin-IndexError (global-own-attr-ref-no-cache builtins-mod (& "IndexError")))
+  (set! py-builtin-InterruptedError (global-own-attr-ref-no-cache builtins-mod (& "InterruptedError")))
+  (set! py-builtin-IsADirectoryError (global-own-attr-ref-no-cache builtins-mod (& "IsADirectoryError")))
+  (set! py-builtin-KeyError (global-own-attr-ref-no-cache builtins-mod (& "KeyError")))
+  (set! py-builtin-KeyboardInterrupt (global-own-attr-ref-no-cache builtins-mod (& "KeyboardInterrupt")))
+  (set! py-builtin-LookupError (global-own-attr-ref-no-cache builtins-mod (& "LookupError")))
+  (set! py-builtin-MemoryError (global-own-attr-ref-no-cache builtins-mod (& "MemoryError")))
+  (set! py-builtin-ModuleNotFoundError (global-own-attr-ref-no-cache builtins-mod (& "ModuleNotFoundError")))
+  (set! py-builtin-NameError (global-own-attr-ref-no-cache builtins-mod (& "NameError")))
+  (set! py-builtin-NotADirectoryError (global-own-attr-ref-no-cache builtins-mod (& "NotADirectoryError")))
+  (set! py-builtin-NotImplementedError (global-own-attr-ref-no-cache builtins-mod (& "NotImplementedError")))
+  (set! py-builtin-OSError (global-own-attr-ref-no-cache builtins-mod (& "OSError")))
+  (set! py-builtin-OverflowError (global-own-attr-ref-no-cache builtins-mod (& "OverflowError")))
+  (set! py-builtin-PendingDeprecationWarning (global-own-attr-ref-no-cache builtins-mod (& "PendingDeprecationWarning")))
+  (set! py-builtin-PermissionError (global-own-attr-ref-no-cache builtins-mod (& "PermissionError")))
+  (set! py-builtin-ProcessLookupError (global-own-attr-ref-no-cache builtins-mod (& "ProcessLookupError")))
+  (set! py-builtin-RecursionError (global-own-attr-ref-no-cache builtins-mod (& "RecursionError")))
+  (set! py-builtin-ReferenceError (global-own-attr-ref-no-cache builtins-mod (& "ReferenceError")))
+  (set! py-builtin-ResourceWarning (global-own-attr-ref-no-cache builtins-mod (& "ResourceWarning")))
+  (set! py-builtin-RuntimeError (global-own-attr-ref-no-cache builtins-mod (& "RuntimeError")))
+  (set! py-builtin-RuntimeWarning (global-own-attr-ref-no-cache builtins-mod (& "RuntimeWarning")))
+  (set! py-builtin-StopAsyncIteration (global-own-attr-ref-no-cache builtins-mod (& "StopAsyncIteration")))
+  (set! py-builtin-StopIteration (global-own-attr-ref-no-cache builtins-mod (& "StopIteration")))
+  (set! py-builtin-SyntaxError (global-own-attr-ref-no-cache builtins-mod (& "SyntaxError")))
+  (set! py-builtin-SyntaxWarning (global-own-attr-ref-no-cache builtins-mod (& "SyntaxWarning")))
+  (set! py-builtin-SystemError (global-own-attr-ref-no-cache builtins-mod (& "SystemError")))
+  (set! py-builtin-SystemExit (global-own-attr-ref-no-cache builtins-mod (& "SystemExit")))
+  (set! py-builtin-TabError (global-own-attr-ref-no-cache builtins-mod (& "TabError")))
+  (set! py-builtin-TimeoutError (global-own-attr-ref-no-cache builtins-mod (& "TimeoutError")))
+  (set! py-builtin-TypeError (global-own-attr-ref-no-cache builtins-mod (& "TypeError")))
+  (set! py-builtin-UnboundLocalError (global-own-attr-ref-no-cache builtins-mod (& "UnboundLocalError")))
+  (set! py-builtin-UnicodeDecodeError (global-own-attr-ref-no-cache builtins-mod (& "UnicodeDecodeError")))
+  (set! py-builtin-UnicodeEncodeError (global-own-attr-ref-no-cache builtins-mod (& "UnicodeEncodeError")))
+  (set! py-builtin-UnicodeError (global-own-attr-ref-no-cache builtins-mod (& "UnicodeError")))
+  (set! py-builtin-UnicodeTranslateError (global-own-attr-ref-no-cache builtins-mod (& "UnicodeTranslateError")))
+  (set! py-builtin-UnicodeWarning (global-own-attr-ref-no-cache builtins-mod (& "UnicodeWarning")))
+  (set! py-builtin-UserWarning (global-own-attr-ref-no-cache builtins-mod (& "UserWarning")))
+  (set! py-builtin-ValueError (global-own-attr-ref-no-cache builtins-mod (& "ValueError")))
+  (set! py-builtin-Warning (global-own-attr-ref-no-cache builtins-mod (& "Warning")))
+  (set! py-builtin-ZeroDivisionError (global-own-attr-ref-no-cache builtins-mod (& "ZeroDivisionError")))
 
   ;; Reuse sorted procedure for list.sort
   (set! list.sort
@@ -8439,89 +8623,91 @@
 
   (py-own-attr-set! py-list-class (& "sort") list.sort)
 
-  (py-own-attr-set! builtins-mod (& "None") py-None)
-  (py-own-attr-set! builtins-mod (& "NotImplemented") py-NotImplemented)
-  (py-own-attr-set! builtins-mod (& "False") py-False)
-  (py-own-attr-set! builtins-mod (& "True") py-True)
-  (py-own-attr-set! builtins-mod (& "abs") py-builtin-abs)
-  (py-own-attr-set! builtins-mod (& "all") py-builtin-all)
-  (py-own-attr-set! builtins-mod (& "any") py-builtin-any)
-  (py-own-attr-set! builtins-mod (& "ascii") py-builtin-ascii)
-  (py-own-attr-set! builtins-mod (& "bin") py-builtin-bin)
-  (py-own-attr-set! builtins-mod (& "bool") py-builtin-bool)
-  (py-own-attr-set! builtins-mod (& "breakpoint") py-builtin-breakpoint)
-  (py-own-attr-set! builtins-mod (& "bytearray") py-builtin-bytearray)
-  (py-own-attr-set! builtins-mod (& "bytes") py-builtin-bytes)
-  (py-own-attr-set! builtins-mod (& "callable") py-builtin-callable)
-  (py-own-attr-set! builtins-mod (& "chr") py-builtin-chr)
-  (py-own-attr-set! builtins-mod (& "classmethod") py-builtin-classmethod)
-  (py-own-attr-set! builtins-mod (& "compile") py-builtin-compile)
-  (py-own-attr-set! builtins-mod (& "complex") py-builtin-complex)
-  (py-own-attr-set! builtins-mod (& "delattr") py-builtin-delattr)
-  (py-own-attr-set! builtins-mod (& "dict") py-builtin-dict)
-  (py-own-attr-set! builtins-mod (& "dir") py-builtin-dir)
-  (py-own-attr-set! builtins-mod (& "divmod") py-builtin-divmod)
-  (py-own-attr-set! builtins-mod (& "enumerate") py-builtin-enumerate)
-  (py-own-attr-set! builtins-mod (& "eval") py-builtin-eval)
-  (py-own-attr-set! builtins-mod (& "exec") py-builtin-exec)
-  (py-own-attr-set! builtins-mod (& "filter") py-builtin-filter)
-  (py-own-attr-set! builtins-mod (& "float") py-builtin-float)
-  (py-own-attr-set! builtins-mod (& "format") py-builtin-format)
-  (py-own-attr-set! builtins-mod (& "frozenset") py-builtin-frozenset)
-  (py-own-attr-set! builtins-mod (& "getattr") py-builtin-getattr)
-  (py-own-attr-set! builtins-mod (& "globals") py-builtin-globals)
-  (py-own-attr-set! builtins-mod (& "hasattr") py-builtin-hasattr)
-  (py-own-attr-set! builtins-mod (& "hash") py-builtin-hash)
-  (py-own-attr-set! builtins-mod (& "help") py-builtin-help)
-  (py-own-attr-set! builtins-mod (& "hex") py-builtin-hex)
-  (py-own-attr-set! builtins-mod (& "id") py-builtin-id)
-  (py-own-attr-set! builtins-mod (& "input") py-builtin-input)
-  (py-own-attr-set! builtins-mod (& "int") py-builtin-int)
-  (py-own-attr-set! builtins-mod (& "isinstance") py-builtin-isinstance)
-  (py-own-attr-set! builtins-mod (& "issubclass") py-builtin-issubclass)
-  (py-own-attr-set! builtins-mod (& "iter") py-builtin-iter)
-  (py-own-attr-set! builtins-mod (& "len") py-builtin-len)
-  (py-own-attr-set! builtins-mod (& "list") py-builtin-list)
-  (py-own-attr-set! builtins-mod (& "locals") py-builtin-locals)
-  (py-own-attr-set! builtins-mod (& "map") py-builtin-map)
-  (py-own-attr-set! builtins-mod (& "max") py-builtin-max)
-  (py-own-attr-set! builtins-mod (& "memoryview") py-builtin-memoryview)
-  (py-own-attr-set! builtins-mod (& "min") py-builtin-min)
-  (py-own-attr-set! builtins-mod (& "next") py-builtin-next)
-  (py-own-attr-set! builtins-mod (& "object") py-builtin-object)
-  (py-own-attr-set! builtins-mod (& "oct") py-builtin-oct)
-  (py-own-attr-set! builtins-mod (& "open") py-builtin-open)
-  (py-own-attr-set! builtins-mod (& "ord") py-builtin-ord)
-  (py-own-attr-set! builtins-mod (& "pow") py-builtin-pow)
-  (py-own-attr-set! builtins-mod (& "print") py-builtin-print)
-  (py-own-attr-set! builtins-mod (& "property") py-builtin-property)
-  (py-own-attr-set! builtins-mod (& "repr") py-builtin-repr)
-  (py-own-attr-set! builtins-mod (& "reversed") py-builtin-reversed)
-  (py-own-attr-set! builtins-mod (& "round") py-builtin-round)
-  (py-own-attr-set! builtins-mod (& "set") py-builtin-set)
-  (py-own-attr-set! builtins-mod (& "setattr") py-builtin-setattr)
-  (py-own-attr-set! builtins-mod (& "slice") py-builtin-slice)
-  (py-own-attr-set! builtins-mod (& "sorted") py-builtin-sorted)
-  (py-own-attr-set! builtins-mod (& "staticmethod") py-builtin-staticmethod)
-  (py-own-attr-set! builtins-mod (& "str") py-builtin-str)
-  (py-own-attr-set! builtins-mod (& "sum") py-builtin-sum)
-  (py-own-attr-set! builtins-mod (& "super") py-builtin-super)
-  (py-own-attr-set! builtins-mod (& "tuple") py-builtin-tuple)
-  (py-own-attr-set! builtins-mod (& "type") py-builtin-type)
-  (py-own-attr-set! builtins-mod (& "vars") py-builtin-vars)
-  (py-own-attr-set! builtins-mod (& "zip") py-builtin-zip)
-  (py-own-attr-set! builtins-mod (& "__import__") py-builtin-__import__)
+  (global-own-attr-put-no-cache! builtins-mod (& "None") py-None)
+  (global-own-attr-put-no-cache! builtins-mod (& "NotImplemented") py-NotImplemented)
+  (global-own-attr-put-no-cache! builtins-mod (& "False") py-False)
+  (global-own-attr-put-no-cache! builtins-mod (& "True") py-True)
+  (global-own-attr-put-no-cache! builtins-mod (& "abs") py-builtin-abs)
+  (global-own-attr-put-no-cache! builtins-mod (& "all") py-builtin-all)
+  (global-own-attr-put-no-cache! builtins-mod (& "any") py-builtin-any)
+  (global-own-attr-put-no-cache! builtins-mod (& "ascii") py-builtin-ascii)
+  (global-own-attr-put-no-cache! builtins-mod (& "bin") py-builtin-bin)
+  (global-own-attr-put-no-cache! builtins-mod (& "bool") py-builtin-bool)
+  (global-own-attr-put-no-cache! builtins-mod (& "breakpoint") py-builtin-breakpoint)
+  (global-own-attr-put-no-cache! builtins-mod (& "bytearray") py-builtin-bytearray)
+  (global-own-attr-put-no-cache! builtins-mod (& "bytes") py-builtin-bytes)
+  (global-own-attr-put-no-cache! builtins-mod (& "callable") py-builtin-callable)
+  (global-own-attr-put-no-cache! builtins-mod (& "chr") py-builtin-chr)
+  (global-own-attr-put-no-cache! builtins-mod (& "classmethod") py-builtin-classmethod)
+  (global-own-attr-put-no-cache! builtins-mod (& "compile") py-builtin-compile)
+  (global-own-attr-put-no-cache! builtins-mod (& "complex") py-builtin-complex)
+  (global-own-attr-put-no-cache! builtins-mod (& "delattr") py-builtin-delattr)
+  (global-own-attr-put-no-cache! builtins-mod (& "dict") py-builtin-dict)
+  (global-own-attr-put-no-cache! builtins-mod (& "dir") py-builtin-dir)
+  (global-own-attr-put-no-cache! builtins-mod (& "divmod") py-builtin-divmod)
+  (global-own-attr-put-no-cache! builtins-mod (& "enumerate") py-builtin-enumerate)
+  (global-own-attr-put-no-cache! builtins-mod (& "eval") py-builtin-eval)
+  (global-own-attr-put-no-cache! builtins-mod (& "exec") py-builtin-exec)
+  (global-own-attr-put-no-cache! builtins-mod (& "filter") py-builtin-filter)
+  (global-own-attr-put-no-cache! builtins-mod (& "float") py-builtin-float)
+  (global-own-attr-put-no-cache! builtins-mod (& "format") py-builtin-format)
+  (global-own-attr-put-no-cache! builtins-mod (& "frozenset") py-builtin-frozenset)
+  (global-own-attr-put-no-cache! builtins-mod (& "getattr") py-builtin-getattr)
+  (global-own-attr-put-no-cache! builtins-mod (& "globals") py-builtin-globals)
+  (global-own-attr-put-no-cache! builtins-mod (& "hasattr") py-builtin-hasattr)
+  (global-own-attr-put-no-cache! builtins-mod (& "hash") py-builtin-hash)
+  (global-own-attr-put-no-cache! builtins-mod (& "help") py-builtin-help)
+  (global-own-attr-put-no-cache! builtins-mod (& "hex") py-builtin-hex)
+  (global-own-attr-put-no-cache! builtins-mod (& "id") py-builtin-id)
+  (global-own-attr-put-no-cache! builtins-mod (& "input") py-builtin-input)
+  (global-own-attr-put-no-cache! builtins-mod (& "int") py-builtin-int)
+  (global-own-attr-put-no-cache! builtins-mod (& "isinstance") py-builtin-isinstance)
+  (global-own-attr-put-no-cache! builtins-mod (& "issubclass") py-builtin-issubclass)
+  (global-own-attr-put-no-cache! builtins-mod (& "iter") py-builtin-iter)
+  (global-own-attr-put-no-cache! builtins-mod (& "len") py-builtin-len)
+  (global-own-attr-put-no-cache! builtins-mod (& "list") py-builtin-list)
+  (global-own-attr-put-no-cache! builtins-mod (& "locals") py-builtin-locals)
+  (global-own-attr-put-no-cache! builtins-mod (& "map") py-builtin-map)
+  (global-own-attr-put-no-cache! builtins-mod (& "max") py-builtin-max)
+  (global-own-attr-put-no-cache! builtins-mod (& "memoryview") py-builtin-memoryview)
+  (global-own-attr-put-no-cache! builtins-mod (& "min") py-builtin-min)
+  (global-own-attr-put-no-cache! builtins-mod (& "next") py-builtin-next)
+  (global-own-attr-put-no-cache! builtins-mod (& "object") py-builtin-object)
+  (global-own-attr-put-no-cache! builtins-mod (& "oct") py-builtin-oct)
+  (global-own-attr-put-no-cache! builtins-mod (& "open") py-builtin-open)
+  (global-own-attr-put-no-cache! builtins-mod (& "ord") py-builtin-ord)
+  (global-own-attr-put-no-cache! builtins-mod (& "pow") py-builtin-pow)
+  (global-own-attr-put-no-cache! builtins-mod (& "print") py-builtin-print)
+  (global-own-attr-put-no-cache! builtins-mod (& "property") py-builtin-property)
+  (global-own-attr-put-no-cache! builtins-mod (& "repr") py-builtin-repr)
+  (global-own-attr-put-no-cache! builtins-mod (& "reversed") py-builtin-reversed)
+  (global-own-attr-put-no-cache! builtins-mod (& "round") py-builtin-round)
+  (global-own-attr-put-no-cache! builtins-mod (& "set") py-builtin-set)
+  (global-own-attr-put-no-cache! builtins-mod (& "setattr") py-builtin-setattr)
+  (global-own-attr-put-no-cache! builtins-mod (& "slice") py-builtin-slice)
+  (global-own-attr-put-no-cache! builtins-mod (& "sorted") py-builtin-sorted)
+  (global-own-attr-put-no-cache! builtins-mod (& "staticmethod") py-builtin-staticmethod)
+  (global-own-attr-put-no-cache! builtins-mod (& "str") py-builtin-str)
+  (global-own-attr-put-no-cache! builtins-mod (& "sum") py-builtin-sum)
+  (global-own-attr-put-no-cache! builtins-mod (& "super") py-builtin-super)
+  (global-own-attr-put-no-cache! builtins-mod (& "tuple") py-builtin-tuple)
+  (global-own-attr-put-no-cache! builtins-mod (& "type") py-builtin-type)
+  (global-own-attr-put-no-cache! builtins-mod (& "vars") py-builtin-vars)
+  (global-own-attr-put-no-cache! builtins-mod (& "zip") py-builtin-zip)
+  (global-own-attr-put-no-cache! builtins-mod (& "__import__") py-builtin-__import__)
 
-  (set! py-builtin-range (py-own-attr-ref builtins-mod (& "range")))
-  (set! py-builtin-range_iterator (py-own-attr-ref builtins-mod (& "range_iterator"))))
+  (set! py-builtin-range (global-own-attr-ref-no-cache builtins-mod (& "range")))
+  (set! py-builtin-range_iterator (global-own-attr-ref-no-cache builtins-mod (& "range_iterator"))))
 
 (define (py-make-builtins-mod)
   (let ((builtins-mod (builtin-__import__ "builtins")))
      (bootstrap-builtins builtins-mod)
     builtins-mod))
 
+(define builtins-mod #f)
+
 (define (build-builtins)
-  (if (eq? builtins-mod py-absent)
+  (if (not builtins-mod)
       (set! builtins-mod (py-make-builtins-mod))))
 
 (end-registering-constants)

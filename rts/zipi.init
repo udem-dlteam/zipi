@@ -1,0 +1,31 @@
+;* Automatically generated file (don't edit) */
+;; -*-bee-*-
+;*=====================================================================*/
+;*    serrano/prgm/project/zipi/etc/zipi.init.in                       */
+;*    -------------------------------------------------------------    */
+;*    Author      :  Manuel Serrano                                    */
+;*    Creation    :  Tue Jul  2 15:20:22 2019                          */
+;*    Last change :  Mon May 25 18:12:40 2020 (serrano)                */
+;*    Copyright   :  2019-20 Manuel Serrano                            */
+;*    -------------------------------------------------------------    */
+;*    ZIPI init file.                                                  */
+;*=====================================================================*/
+
+;*---------------------------------------------------------------------*/
+;*    Library                                                          */
+;*---------------------------------------------------------------------*/
+(declare-library! 'zipi
+		  :version "0.0.1"
+		  :module-init '__py_bigloo
+		  :module-eval '__py_make_lib)
+
+;*---------------------------------------------------------------------*/
+;*    Link option                                                      */
+;*---------------------------------------------------------------------*/
+(cond-expand
+   (bigloo-compile
+    (set! *additional-bigloo-libraries* *additional-bigloo-libraries*))
+   (bigloo-eval
+    #unspecified))
+
+

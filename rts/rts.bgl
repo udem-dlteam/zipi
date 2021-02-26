@@ -277,10 +277,9 @@
 
            (global-get ::PyObject ::obj ::obj)
            (global-put! ::PyObject name val cache)
-           (global-register! ::PyObject name setter::procedure cache)
+           (global-register! ::PyObject name getter::procedure setter::procedure)
 
            ;; (object-get ::obj ::obj ::obj)
-           (object-put! ::PyObject ::obj ::obj ::obj)
            (getattribute-from-obj-mro-fallback ::obj ::obj)
 
            (py-make-module name)
@@ -709,6 +708,12 @@
 
 (define (make-still-copy o)
    o)
+
+(define-inline (subvector-move! src-vector src-start src-end dst-vector dst-start)
+  (if (< src-start src-end)
+    (begin
+      (vector-set! dst-vector dst-start (vector-ref src-vector src-start))
+      (subvector-move! src-vector (+ 1 src-start) src-end dst-vector (+ 1 dst-start)))))
 
 ;*---------------------------------------------------------------------*/
 ;*    get-registered-constants-table ...                               */

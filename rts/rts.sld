@@ -25,7 +25,7 @@
     py-absent
     global-get
     global-put!
-    object-put-no-cache!
+    global-register!
     make-cell
     cell-ref
     cell-set!
@@ -44,6 +44,7 @@
     $py-callX
     py-call-wrong-arity
     py-call0-maybe-super
+    py-global-call
 
     with-specialized-PyObjectFunction-args-limit
 
@@ -135,7 +136,7 @@
     $py-obj-class-index
     py-obj-class-index-general
     py-getattribute
-    object-put!
+    py-setattribute
     py-own-attr-set!
     getattribute-from-obj-mro
 
@@ -728,6 +729,7 @@ py-ne-fallback:normal
 py-ne-fallback:reflected
 py-ne-fallback:default
 py-getattribute-fallback
+py-setattribute-fallback
 py-getitem-fallback
 py-setitem-fallback
 py-delitem-fallback

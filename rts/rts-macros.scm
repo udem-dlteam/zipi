@@ -20,6 +20,11 @@
           `(py-call py-builtin-super ,cls ,instance))
         (py-call $fn))))
 
+(define-macro (py-global-call global procedure global-value init-value name cache . args)
+  `(if (eq? ,global-value ,init-value)
+      (,procedure ,@args)
+      (py-call (global-get ,global ,name ,cache) ,@args)))
+
 (define-macro (py-call0 fun)
   `(let (($fun ,fun))
     (if (PyObjectFunctionArity0? $fun)
@@ -1493,6 +1498,9 @@
 
 (define-macro (py-getattribute obj attr)
   `(py-getattribute-fallback ,obj ,attr))
+
+(define-macro (py-setattribute obj attr val)
+  `(py-setattribute-fallback ,obj ,attr ,val))
 
 (define-macro (py-getitem obj item)
   `(py-getitem-fallback ,obj ,item))

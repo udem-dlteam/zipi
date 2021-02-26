@@ -6,104 +6,79 @@
 
 (define-walk-method (use-simple-scoping! this::PycFun)
   (if (PycFun-use-simple-scoping this)
-    (apply-simple-scoping! this this '())
+    (apply-simple-scoping! this)
     (call-default-walker)))
 
-(define (add-block-ref-to-decl decl block)
-  (PycDeclInit-simple-scoping-top-block-set! decl block))
-
-(define (list-remove lst x)
-  (cond
-    ((null? lst)
-      '())
-    ((eq? (car lst) x)
-      (cdr lst))
-    (else
-      (cons (car lst) (list-remove (cdr lst) x)))))
-
-(define (remove-decl-from-old-block decl)
-  (let ((block (PycDeclInit-simple-scoping-top-block decl)))
-    (PycBlock-decls-set!
-      block
-      (list-remove (PycBlock-decls block) decl))
-    (PycDeclInit-simple-scoping-top-block-set! decl #f)))
-
-(define-walk-method (apply-simple-scoping! this::PycNode fun locals)
+;; simple-scoping uses Scheme let's instead of variable slots
+;; This is done by converting PycSeq starting with PycAssig into a PycBlock
+;; with the condition that the variable is not used outside the PycSeq
+;; this is used for semantics and builtins so it can be shaky in general
+(define-walk-method (apply-simple-scoping! this::PycNode)
   (call-default-walker))
 
-(define-walk-method (apply-simple-scoping! this::PycFun fun locals)
-  (PycFun-body-set!
-    this
-    (apply-simple-scoping!
-      (PycFun-body this)
-      fun
-      locals))
+(define-walk-method (apply-simple-scoping! this::PycFun)
+  (PycFun-body-set! this (apply-simple-scoping!(PycFun-body this)))
   this)
 
-(define-walk-method (apply-simple-scoping! this::PycBlock fun locals)
-  (for-each (lambda (d) (add-block-ref-to-decl d this)) (PycBlock-decls this))
-  (PycBlock-body-set!
-    this
-    (apply-simple-scoping!
-      (PycBlock-body this)
-      fun
-      (append
-        (PycBlock-decls this)
-        locals)))
+(define-walk-method (apply-simple-scoping! this::PycSeq)
+  (define (split-nodes-after-assignments nodes assignments)
+    (if (or (null? nodes)
+            (not (PycAssig? (car nodes)))
+            (not (PycRef? (PycAssig-lhs (car nodes)))))
+      (cons (reverse assignments) nodes)
+      (split-nodes-after-assignments (cdr nodes) (cons (car nodes) assignments))))
+
+  (define (split-assignments-by-usage assignments inside-assig)
+    ;; split assignments at the first assignment which has usage outside of this PycSeq
+    (if (null? assignments)
+      (cons (reverse inside-assig) '())
+      (let* ((assig (car assignments))
+             (ref (PycAssig-lhs assig))
+             (var (PycRef-decl ref))
+             (local-usage (collect-usage* this var)))
+        (if (= (length (PycVar-usage var)) (length local-usage))
+          ;; All usages of this variable are inside this PycSeq
+          (split-assignments-by-usage (cdr assignments) (cons assig inside-assig))
+          ;; There is at least one usage outside this PycSeq
+          (cons (reverse inside-assig) assignments)))))
+
+  (define (set-assig-scopes-to-block! assigs)
+    (if (not (null? assigs))
+      (PycVar-scope-set! (PycRef-decl (PycAssig-lhs (car assigs))) 'block)))
+
+  (define (splits-assignments nodes)
+    (let* ((assig-stmt (split-nodes-after-assignments nodes '()))
+          (simple-assigs-rest (split-assignments-by-usage (car assig-stmt) '())))
+      (cons (car simple-assigs-rest) (append (cdr simple-assigs-rest) (cdr assig-stmt)))))
+
+  (let* ((simple-seq (call-default-walker))
+        (loc (PycNode-loc simple-seq))
+        (assig-rest (splits-assignments (PycSeq-nodes simple-seq)))
+        (assigs (car assig-rest))
+        (rest (cdr assig-rest)))
+    (if (null? assigs)
+      simple-seq
+      (begin
+        (set-assig-scopes-to-block! assigs)
+        (new-PycBlock
+          loc
+          assigs
+          (new-PycSeq
+            loc
+            (map
+              (lambda (s) (apply-simple-scoping! s))
+              rest)))))))
+
+(define-walk-method (apply-simple-scoping! this::PycRef)
+  ;; simple scoping skips check for UnboundLocalError
+  (if (eq? (PycVar-scope (PycRef-decl this)) 'local)
+    (PycRef-can-direct-access-set! this #t))
   this)
 
-(define-walk-method (apply-simple-scoping! this::PycSeq fun locals)
-  (let loop ((nodes (PycSeq-nodes this)))
-    (if (null? nodes)
-      (call-default-walker)
-      (let ((head (car nodes)))
-        (if (PycAssig? head)
-          (let ((lhs (PycAssig-lhs head)))
-            (if (PycRef? lhs)
-              (let ((decl (PycRef-decl lhs)))
-                (if (and
-                       (memq decl locals)
-                       (can-drop-decl fun decl head))
-                  (let* ((tail (cdr nodes))
-                        (loc (PycNode-loc head))
-                        (tail-block
-                          (new-PycBlock
-                            loc
-                            (list decl)
-                            (new-PycSeq loc tail))))
-                    (PycDeclInit-val-set! decl (PycAssig-rhs head))
-                    (set-car! nodes tail-block)
-                    (set-cdr! nodes '())
-                    (remove-decl-from-old-block decl)
-                    (call-default-walker))
-                (call-default-walker)))
-              (call-default-walker)))
-          (call-default-walker))))))
-
-;; Using a let-block instead of an initialisation requires that the variable
-;; be used nowhere outside the let block. This is a very restrictive condition
-;; which may possibily be improved in the future
-(define (can-drop-decl this from-decl to-assign)
-  (call/cc
-    (lambda (cc)
-      (no-parallel-usage this from-decl to-assign (lambda () (cc #f)))
-      #t)))
-
-(define-walk-method (no-parallel-usage this::PycNode from-decl to-assign fail)
+(define-walk-method (collect-usage* this::PycNode var)
   (call-default-walker))
 
-(define-walk-method (no-parallel-usage this::PycRef from-decl to-assign fail)
-  (if (eq? (PycRef-decl this) from-decl)
-    (fail)
-    (call-default-walker)))
-
-(define-walk-method (no-parallel-usage this::PycSeq from-decl to-assign fail)
-  (let loop ((nodes (PycSeq-nodes this)))
-    (if (null? nodes)
-      #t ;; do nothing
-      (let ((head (car nodes)))
-        (if (eq? head to-assign)
-          #t ;; do nothing
-          (begin
-            (no-parallel-usage head from-decl to-assign fail)
-            (loop (cdr nodes))))))))
+(define-walk-method (collect-usage* this::PycRef var)
+  (if (eq? (PycRef-decl this) var)
+    (list this)
+    '()))

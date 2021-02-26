@@ -146,14 +146,18 @@ def process_file(file, folder, cpython, zipi):
     """
     Wrapper to run the test at [folder]/[file] from a subprocess
     """
-    path = os.path.join(folder, file)
-    status = run_one_test(path, cpython, zipi)
+    try:
+        path = os.path.join(folder, file)
+        status = run_one_test(path, cpython, zipi)
 
-    print(f'     {clean_name(file)}: {"." * (45 - len(file))} {status.status_repr()}')
-    for msg in status.messages:
-        print(f'       {msg}')
+        print(f'     {clean_name(file)}: {"." * (45 - len(file))} {status.status_repr()}')
+        for msg in status.messages:
+            print(f'       {msg}')
 
-    return status
+        return status
+    except KeyboardInterrupt:
+        print(colored(f"KeyboardInterrupt in test {folder}/{file}", "RED"))
+        raise
 
 
 def run_all(cpython='python3', zipi='../bin/zipi.gambit', pattern=None):

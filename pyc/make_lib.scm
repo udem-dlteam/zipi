@@ -21,8 +21,6 @@
    (eval
       (class PycNode)
       (class PycModule)
-      (class PycDecl)
-      (class PycDeclInit)
       (class PycVar)
       (class PycStmt)
       (class PycSeq)

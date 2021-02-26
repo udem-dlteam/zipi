@@ -61,34 +61,34 @@
        loc
        ;; args
        (map (lambda (a)
-              (new-PycDecl loc (car a) 'local))
+              (new-PycVar '(-1 -1) (car a) 'local))
             (car args))
        ;; posonlyargs
        (map (lambda (a)
-              (new-PycDecl loc (car a) 'local))
+              (new-PycVar '(-1 -1) (car a) 'local))
             (cadr args))
        ;; vararg
        (let ((a (caddr args)))
          (if a
-             (new-PycDecl loc (car a) 'local)
+             (new-PycVar '(-1 -1) (car a) 'local)
              (new-PycUninit loc)))
        ;; kwonlyargs
        (map (lambda (a)
-              (new-PycDecl loc (car a) 'local))
+              (new-PycVar '(-1 -1) (car a) 'local))
             (list-ref args 3))
        ;; kw-defaults
        (map (lambda (a)
-              (new-PycStmtExpr loc (sexp a tail scope conf)))
+              (sexp a tail scope conf))
             (list-ref args 4))
        ;; kwarg
        (let ((a (list-ref args 5)))
          (if a
-             (new-PycDecl loc (car a) 'local)
+             (new-PycVar '(-1 -1) (car a) 'local)
              (new-PycUninit loc)))
        ;; defaults
        (map
          (lambda (a)
-           (new-PycStmtExpr loc (sexp a tail scope conf)))
+           (sexp a tail scope conf))
          (list-ref args 6))
 
        ;; body
@@ -106,52 +106,54 @@
      (let* ((annotation-info (collect-annotation-info args loc scope conf))
             (annotation-names (car annotation-info))
             (annotation (cdr annotation-info)))
-     (new-PycDeclInit loc id scope
-       (new-PycFun
-         loc
-         ;; args
-         (map (lambda (a)
-                (new-PycDecl loc (car a) 'local))
-              (car args))
-         ;; posonlyargs
-         (map (lambda (a)
-                (new-PycDecl loc (car a) 'local))
-              (cadr args))
-         ;; vararg
-         (let ((a (caddr args)))
-           (if a
-               (new-PycDecl loc (car a) 'local)
-               (new-PycUninit loc)))
-         ;; kwonlyargs
-         (map (lambda (a)
-                (new-PycDecl loc (car a) 'local))
-              (list-ref args 3))
-         ;; kw-defaults
-         (map (lambda (a)
-                (new-PycStmtExpr loc (sexp a tail scope conf)))
-              (list-ref args 4))
-         ;; kwarg
-         (let ((a (list-ref args 5)))
-           (if a
-               (new-PycDecl loc (car a) 'local)
-               (new-PycUninit loc)))
-         ;; defaults
-         (map (lambda (a)
-                (new-PycStmtExpr loc (sexp a tail scope conf)))
-              (list-ref args 6))
-         (compile-stmt* loc body #t 'local conf)
-         decorators: (map
-                       (lambda (d) (sexp d #f scope conf)) decorator_list)
-         name: id
-         annotation: annotation
-         annotation-names: annotation-names))))
+      (new-PycAssig
+        loc
+        (new-PycRefUnresolved loc id 'Store)
+        (new-PycFun
+          loc
+          ;; args
+          (map (lambda (a)
+                 (new-PycVar '(-1 -1) (car a) 'local))
+               (car args))
+          ;; posonlyargs
+          (map (lambda (a)
+                 (new-PycVar '(-1 -1) (car a) 'local))
+               (cadr args))
+          ;; vararg
+          (let ((a (caddr args)))
+            (if a
+                (new-PycVar '(-1 -1) (car a) 'local)
+                (new-PycUninit loc)))
+          ;; kwonlyargs
+          (map (lambda (a)
+                 (new-PycVar '(-1 -1) (car a) 'local))
+               (list-ref args 3))
+          ;; kw-defaults
+          (map (lambda (a)
+                 (sexp a tail scope conf))
+               (list-ref args 4))
+          ;; kwarg
+          (let ((a (list-ref args 5)))
+            (if a
+                (new-PycVar '(-1 -1) (car a) 'local)
+                (new-PycUninit loc)))
+          ;; defaults
+          (map (lambda (a)
+                 (sexp a tail scope conf))
+               (list-ref args 6))
+          (compile-stmt* loc body #t 'local conf)
+          decorators: (map
+                        (lambda (d) (sexp d #f scope conf)) decorator_list)
+          name: id
+          annotation: annotation
+          annotation-names: annotation-names))))
     ((ClassDef ?loc ?id ?bases ?keywords ?body ?decorator_list)
      ;; ClassDef(identifier name,
      ;;       expr* bases,
      ;;       keyword* keywords,
      ;;       stmt* body,
      ;;       expr* decorator_list)
-     (new-PycAssig loc (new-PycRefUnresolved loc id)
+     (new-PycAssig loc (new-PycRefUnresolved loc id 'Store)
                    (new-PycClass loc
                                  (symbol->string id)
                                  (config-get conf module: "__main__")
@@ -177,18 +179,25 @@
          (new-PycAssig loc
                        (sexp (car targets) #f scope conf)
                        (sexp value #f scope conf))
-         (let* ((id (gensym 'tmp))
-                (var (new-PycVar loc id 'block (sexp value #f scope conf))))
+         (let* ((id (gensym '%tmp))
+                (block-var (new-PycVar '(-1 -1) id 'block))
+                (block-assig
+                  (new-PycAssig
+                    loc
+                    (new-PycRef loc block-var 'Store)
+                    (sexp value #f scope conf))))
            (let loop ((targets targets)
                       (assigs '()))
              (if (null? targets)
-                 (new-PycBlock loc (list var)
-                               (new-PycSeq loc assigs))
-                 (let ((ref (sexp (car targets) #f scope conf)))
+                 (new-PycBlock loc (list block-assig) (new-PycSeq loc assigs))
+                 (let ((target (sexp (car targets) #f scope conf)))
                   (loop (cdr targets)
-                        (cons (new-PycAssig loc ref
-                                            (new-PycRefUnresolved (PycNode-loc ref) id))
-                              assigs))))))))
+                        (cons
+                          (new-PycAssig
+                            loc
+                            target
+                            (new-PycRef (PycNode-loc target) block-var 'Store))
+                          assigs))))))))
     ((AugAssign ?loc ?target ?op ?value . ?type_comment)
      ;; AugAssign(expr target, operator op, expr value)
      (new-PycAugAssig loc
@@ -360,9 +369,9 @@
     ((Name ?loc ?id ?ctx)
      ;; Name(identifier id, expr_context ctx)
      (case ctx
-       ((Load) (new-PycRefUnresolved loc id))
-       ((Store) (new-PycRefUnresolved loc id))
-       ((Del) (new-PycRefUnresolved loc id))
+       ((Load) (new-PycRefUnresolved loc id 'Load))
+       ((Store) (new-PycRefUnresolved loc id 'Store))
+       ((Del) (new-PycRefUnresolved loc id 'Del))
        (else (error "ctx" "Not implemented" ctx))))
     ((List ?loc ?elts ?ctx)
      ;; List(expr* elts, expr_context ctx)
@@ -409,10 +418,14 @@
        (if name
            (let ((body
                    (new-PycBlock loc
-                     (list (new-PycVar loc
-                             name
-                             'block
-                             (new-PycPragma loc exc-sym)))
+                     (list
+                       (new-PycAssig
+                         loc
+                         (new-PycRefUnresolved
+                            loc
+                            name
+                            'Store)
+                         (new-PycPragma loc exc-sym)))
                      (compile-stmt* loc body #f scope conf))))
              (new-PycHandler loc expr body))
            (new-PycHandler loc expr (compile-stmt* loc body #f scope conf)))))
@@ -439,57 +452,57 @@
         (sexp (car body) #f scope conf)
         (compile* loc (cdr body) tail scope conf)))))
 
-(define (import-prefix name)
-   (let* ((s (symbol->string name))
-	  (i (string-index s #\.)))
-      (if i
-	  (string->symbol (substring s 0 i))
-	  name)))
-
 (define (compile-import loc alias conf)
    (match-case alias
       ((?name #f)
+       ;; no alias
        (let ((name-split (string-split (symbol->string name) ".")))
         (if (pair? (cdr name-split))
+            ;; package import
             (new-PycSeq
               loc
               (list
+                ;; according to cPython: full import done before assignment
+                (new-PycImport loc (symbol->string name))
                 (new-PycAssig
                   loc
-                  (new-PycRefUnresolved loc (import-prefix name))
-                  (new-PycImport loc (car name-split)))
-                (new-PycImport loc (symbol->string name))))
+                  (new-PycRefUnresolved loc (string->symbol (car name-split)) 'Store)
+                  (new-PycImport loc (car name-split)))))
+            ;; module import
             (new-PycAssig
               loc
-              (new-PycRefUnresolved loc (import-prefix name))
+              (new-PycRefUnresolved loc name 'Store)
               (new-PycImport loc (symbol->string name))))))
       ((?name ?sym)
+       ;; alias
        (new-PycAssig
          loc
-         (new-PycRefUnresolved loc sym)
+         (new-PycRefUnresolved loc sym 'Store)
          (new-PycImport loc (symbol->string name))))
       (else
        (error "import" "Unsupported form" alias))))
 
 (define (compile-import-from loc module aliases level conf)
-  (let ((base (string-append (symbol->string module) "."))
-        (module-ref
-          (new-PycVar
-             loc '%mod 'block
-             (new-PycImport loc (symbol->string module)))))
+  (let* ((base (string-append (symbol->string module) "."))
+        (module-var (new-PycVar '(-1 -1) '%mod 'block))
+        (module-assig
+          (new-PycAssig
+            loc
+            (new-PycRef loc module-var 'Store)
+            (new-PycImport loc (symbol->string module)))))
    (new-PycBlock loc
-     (list module-ref)
+     (list module-assig)
      (new-PycSeq loc
        (map (lambda (alias)
               (match-case alias
                 ((?name #f)
                  (new-PycAssig loc
-                   (new-PycRefUnresolved loc name)
-                   (new-PycAccess loc (new-PycRef loc module-ref) name)))
+                   (new-PycRefUnresolved loc name 'Store)
+                   (new-PycAccess loc (new-PycRef loc module-var 'Load) name)))
                 ((?name ?sym)
                  (new-PycAssig loc
-                   (new-PycRefUnresolved loc sym)
-                   (new-PycAccess loc (new-PycRef loc module-ref) name)))
+                   (new-PycRefUnresolved loc sym 'Store)
+                   (new-PycAccess loc (new-PycRef loc module-var 'Load) name)))
                 (else
                   (error "import-from" "Unsupported form" alias))))
             aliases)))))
