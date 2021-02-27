@@ -23,20 +23,25 @@
       `(define ,name py-absent))
     (get-unique-var-names-lst vars conf)))
 
-(define (scheme-init-global-defs defs conf)
-  (apply
-    append
-    (filter-map
-      (lambda (d)
-        (let ((proc-name (get-def-procedure-name d))
-              (var (PycRef-decl (PycAssig-lhs d))))
-          (if proc-name
-            (list
-              `(define ,proc-name ,(scheme-procedure-proc (PycAssig-rhs d) conf))
-              `(define ,(scheme-def-optim-globals-name-init var conf) #f)
-              )
-            #f)))
-      defs)))
+(define (scheme-init-global-procedures defs conf)
+  (filter-map
+    (lambda (d)
+      (let ((proc-name (get-def-procedure-name d))
+            (var (PycRef-decl (PycAssig-lhs d))))
+        (if proc-name
+          `(define ,proc-name ,(scheme-procedure-proc (PycAssig-rhs d) conf))
+          #f)))
+    defs))
+
+(define (scheme-init-global-init-defs defs conf)
+  (filter-map
+    (lambda (d)
+      (let ((proc-name (get-def-procedure-name d))
+            (var (PycRef-decl (PycAssig-lhs d))))
+        (if proc-name
+          `(define ,(scheme-def-optim-globals-name-init var conf) #f)
+          #f)))
+    defs))
 
 (define (scheme-register-globals vars conf)
   (map
@@ -115,7 +120,8 @@
   ,@(if (config-get conf-with-defs optim-globals:)
     `((define %global #f)
       (define %caches #f)
-      ,@(scheme-init-global-defs global-funs conf-with-defs)
+      ,@(scheme-init-global-procedures global-funs conf-with-defs)
+      ,@(scheme-init-global-init-defs global-funs conf-with-defs)
       ,@(scheme-init-globals (map PycRef-decl global-refs) conf-with-defs))
     '())
   ,(if (config-get conf-with-defs optim-globals:)
@@ -182,10 +188,15 @@
               (py-begin-module)
 
               ,@(if (config-get conf-with-defs optim-globals:)
-                `((define %global #f)
+                ;; procedures are static
+                `(,@(scheme-init-global-procedures global-funs conf-with-defs)
+                  (declare (separate))
+                  (define %global #f)
                   (define %caches #f)
-                  ,@(scheme-init-global-defs global-funs conf-with-defs)
-                  ,@(scheme-init-globals (map PycRef-decl global-refs) conf-with-defs))
+                  ;; function objects and global variables are dynamic
+                  ,@(scheme-init-global-init-defs global-funs conf-with-defs)
+                  ,@(scheme-init-globals (map PycRef-decl global-refs) conf-with-defs)
+                  (declare (block)))
                 '())
 
               ,(if (config-get conf-with-defs optim-globals:)
