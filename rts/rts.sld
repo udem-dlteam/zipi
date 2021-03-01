@@ -612,6 +612,19 @@
     int-cache
     str-representatives
 
+    pyneg-UintX-fallback
+    pyinvert-UintX-fallback
+    pyadd-UintX-UintY-fallback
+    pysub-UintX-UintY-fallback
+    pymul-UintX-UintY-fallback
+    py&-UintX-UintY-fallback
+    py+b-UintX-UintY-fallback
+    py^-UintX-UintY-fallback
+    py>>-UintX-UintY-fallback
+    py<<-UintX-UintY-fallback
+    py//-UintX-UintY-fallback
+    py%-UintX-UintY-fallback
+
     ;; semantics & behaviors
 py-add-fallback:normal
 py-add-fallback:reflected

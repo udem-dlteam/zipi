@@ -83,7 +83,7 @@
                 ,@(map list args-names args)
                (fun-type (py-obj-cls-general $fun)))
           (if (eq? fun-type py-function-class)
-        		(let ((arity (PyObjectFunction-arity $fun)))
+                        (let ((arity (PyObjectFunction-arity $fun)))
               (cond
                  ((eqv? arity ,X)
                   ((PyObjectFunction-procedure $fun) ,@args-names))
@@ -215,60 +215,61 @@
                 X ;; otherwise
                 )
       (pyneg    (py-sint-from-scheme (|##fx-| X)) ;; bool or non-ov. sint
-                (or (|##fx-?| X) (py-bint-from-scheme (|##negate| X))) ;; sint
-                (py-int-from-scheme (|##negate| X)) ;; otherwise
+                (or (|##fx-?| X) (pyneg-UintX X)) ;; sint
+                (pyneg-UintX X) ;; otherwise
                 )
       (pyinvert (py-sint-from-scheme (|##fxnot| X)) ;; bool or non-ov. sint
                 (py-sint-from-scheme (|##fxnot| X)) ;; sint
-                (py-int-from-scheme (|##bitwise-not| X)) ;; otherwise
+                (pyinvert-UintX X) ;; otherwise
                 )))
 
   (define binary-operators-gambit
     '((py+  (py-sint-from-scheme (|##fx+| X Y)) ;; bool/bool or non-ov. sint/sint
-            (or (|##fx+?| X Y) (py-bint-from-scheme (|##+2| X Y))) ;; sint/sint
-            (py-int-from-scheme (|##+2| X Y)) ;; otherwise
+            (or (|##fx+?| X Y) (pyadd-UintX-UintY-fallback X Y)) ;; sint/sint
+            (pyadd-UintX-UintY-fallback X Y) ;; otherwise
             )
       (py-  (py-sint-from-scheme (|##fx-| X Y)) ;; bool/bool or non-ov. sint/sint
-            (or (|##fx-?| X Y) (py-bint-from-scheme (|##-2| X Y))) ;; sint/sint
-            (py-int-from-scheme (|##-2| X Y)) ;; otherwise
+            (or (|##fx-?| X Y) (pysub-UintX-UintY-fallback X Y)) ;; sint/sint
+            (pysub-UintX-UintY-fallback X Y) ;; otherwise
             )
       (py*  (py-sint-from-scheme (|##fx*| X Y)) ;; bool/bool or non-ov. sint/sint
-            (or (|##fx*?| X Y) (py-bint-from-scheme (|##*2| X Y))) ;; sint/sint
-            (py-int-from-scheme (|##*2| X Y)) ;; otherwise
+            (or (|##fx*?| X Y) (pymul-UintX-UintY-fallback X Y)) ;; sint/sint
+            (pymul-UintX-UintY-fallback X Y) ;; otherwise
             )
-      (py** (py-int-from-scheme (expt X Y)) ;; TODO: define and use a primitive
+      ;; TODO: define and use a primitive
+      (py** (py-int-from-scheme (expt X Y))
             (py-int-from-scheme (expt X Y))
             (py-int-from-scheme (expt X Y))
             )
       (py&  (py-sint-from-scheme (|##fxand| X Y)) ;; bool/bool or non-ov. sint/sint
             (py-sint-from-scheme (|##fxand| X Y)) ;; sint/sint
-            (py-int-from-scheme (|##bitwise-and| X Y)) ;; otherwise
+            (py&-UintX-UintY-fallback X Y) ;; otherwise
             )
       (py+b (py-sint-from-scheme (|##fxior| X Y)) ;; bool/bool or non-ov. sint/sint
             (py-sint-from-scheme (|##fxior| X Y)) ;; sint/sint
-            (py-int-from-scheme (|##bitwise-ior| X Y)) ;; otherwise
+            (py+b-UintX-UintY-fallback X Y) ;; otherwise
             )
       (py^  (py-sint-from-scheme (|##fxxor| X Y)) ;; bool/bool or non-ov. sint/sint
             (py-sint-from-scheme (|##fxxor| X Y)) ;; sint/sint
-            (py-int-from-scheme (|##bitwise-xor| X Y)) ;; otherwise
+            (py^-UintX-UintY-fallback X Y) ;; otherwise
             )
       (py>> (py-sint-from-scheme (|##fxarithmetic-shift-right| X Y)) ;; bool/bool or non-ov. sint/sint
-            (py-int-from-scheme (|##arithmetic-shift| X (|##negate| Y))) ;; sint/sint
-            (py-int-from-scheme (|##arithmetic-shift| X (|##negate| Y))) ;; otherwise
+            (or (|##fxarithmetic-shift-right?| X Y) (py>>-UintX-UintY-fallback X Y)) ;; sint/sint
+            (py>>-UintX-UintY-fallback X Y) ;; otherwise
             )
       (py<< (py-sint-from-scheme (|##fxarithmetic-shift-left| X Y)) ;; bool/bool or non-ov. sint/sint
-            (py-int-from-scheme (|##arithmetic-shift| X Y)) ;; sint/sint
-            (py-int-from-scheme (|##arithmetic-shift| X Y)) ;; otherwise
+            (or (|##fxarithmetic-shift-left?| X Y) (py<<-UintX-UintY-fallback X Y)) ;; sint/sint
+            (py<<-UintX-UintY-fallback X Y) ;; otherwise
             )
       (py// (py-sint-from-scheme (|##fxquotient| X Y)) ;; bool/bool or non-ov. sint/sint
             (if (|##eqv?| Y -1) ;; sint/sint
-                (or (|##fx-?| X) (py-bint-from-scheme (|##negate| X)))
+                (or (|##fx-?| X) (pyneg-UintX X))
                 (|##fxquotient| X Y))
-            (py-int-from-scheme (|##quotient| X Y)) ;; otherwise
+            (py//-UintX-UintY-fallback X Y) ;; otherwise
             )
       (py%  (py-sint-from-scheme (|##fxmodulo| X Y)) ;; bool/bool or non-ov. sint/sint
             (py-sint-from-scheme (|##fxmodulo| X Y)) ;; sint/sint
-            (py-int-from-scheme (|##modulo| X Y)) ;; otherwise
+            (py%-UintX-UintY-fallback X Y) ;; otherwise
             )))
 
   (define unary-operators-bigloo
@@ -562,6 +563,7 @@
         (fallback arg))))
 
 (define-macro (py-test-from-scheme arg)
+
   (define comparison-operators-gambit
     '((py== (|##fx=| X Y) ;; sint-sint
             (|##fl=| X Y) ;; float-float
@@ -702,16 +704,16 @@
 (define-macro (py-mul-UstrX-UintY string repetitions)
   ;; TODO: Check for memory error if string * repetitions is a bint
   `(let* (($repetitions ,repetitions)
-         ($string ,string)
-         (len (string-length $string))
-         (result-len (* len $repetitions))
-         (result (make-string result-len)))
-    (let loop ((i 0))
-      (if (>= i result-len)
-        result
-        (begin
-          (substring-move! $string 0 len result i)
-          (loop (+ i len)))))))
+          ($string ,string)
+          (len (string-length $string))
+          (result-len (* len $repetitions))
+          (result (make-string result-len)))
+     (let loop ((i 0))
+       (if (>= i result-len)
+           result
+           (begin
+             (substring-move! $string 0 len result i)
+             (loop (+ i len)))))))
 
 (define-macro (py-str-from-scheme arg)
   (define (fallback arg)
@@ -1285,6 +1287,7 @@
   `(with-class-indices-info $py-specialized-binop-dispatch ,op ,lhs ,rhs))
 
 (define-macro ($py-specialized-binop-dispatch indices-info op lhs rhs)
+
   (define sint-sint-op (string->symbol (string-append "py-" (symbol->string op) "-sintX-sintY-inline")))
   (define float-float-op (string->symbol (string-append "py-" (symbol->string op) "-floatX-floatY-inline")))
   (define sint-float-op (string->symbol (string-append "py-" (symbol->string op) "-sintX-floatY-inline")))
@@ -1295,56 +1298,57 @@
 
   `(py-if-enable-behaviors-optimization
     (let (($lhs ,lhs)
-	  ($rhs ,rhs))
-       (cond ((py-if-specialized-sint-representation (fixnum? $lhs) #f)
-                (py-if-enable-inlined-mixed-types-behaviors
-                  (cond
-                    ((py-if-specialized-sint-representation (fixnum? $rhs) #f)
-                      (,sint-sint-op $lhs $rhs))
-                    ((py-if-specialized-float-representation (flonum? $rhs) #f)
-                      (,sint-float-op $lhs $rhs))
-                    (else
-                      (py-binary-behavior-call-with-lhs-index ,op ,sint-class-index $lhs $rhs)))
-                  (if (fixnum? $rhs)
-                    (,sint-sint-op $lhs $rhs)
-                    (py-binary-behavior-call-with-lhs-index ,op ,sint-class-index $lhs $rhs))))
-             ((py-if-specialized-float-representation (flonum? $lhs) #f)
-                (py-if-enable-inlined-mixed-types-behaviors
-                  (cond
-                    ((py-if-specialized-sint-representation (fixnum? $rhs) #f)
-                      (,float-sint-op $lhs $rhs))
-                    ((flonum? $rhs)
-                      (,float-float-op $lhs $rhs))
-                    (else
-                      (py-binary-behavior-call-with-lhs-index ,op ,float-class-index $lhs $rhs)))
-                  (if (flonum? $rhs)
-                    (,float-float-op $lhs $rhs)
-                    (py-binary-behavior-call-with-lhs-index ,op ,float-class-index $lhs $rhs))))
-             (else
-               (cond
-                 ((py-if-specialized-sint-representation (fixnum? $rhs) #f)
-                   (py-binary-behavior-call-with-rhs-index ,op $lhs ,sint-class-index $rhs))
-                 ((py-if-specialized-float-representation (flonum? $rhs) #f)
-                   (py-binary-behavior-call-with-rhs-index ,op $lhs ,float-class-index $rhs))
-                 (else
-                   (py-binary-behavior-call ,op $lhs $rhs))))))
+          ($rhs ,rhs))
+      (cond ((py-if-specialized-sint-representation (fixnum? $lhs) #f)
+             (py-if-enable-inlined-mixed-types-behaviors
+              (cond
+               ((py-if-specialized-sint-representation (fixnum? $rhs) #f)
+                (,sint-sint-op $lhs $rhs))
+               ((py-if-specialized-float-representation (flonum? $rhs) #f)
+                (,sint-float-op $lhs $rhs))
+               (else
+                (py-binary-behavior-call-with-lhs-index ,op ,sint-class-index $lhs $rhs)))
+              (if (fixnum? $rhs)
+                  (,sint-sint-op $lhs $rhs)
+                  (py-binary-behavior-call-with-lhs-index ,op ,sint-class-index $lhs $rhs))))
+            ((py-if-specialized-float-representation (flonum? $lhs) #f)
+             (py-if-enable-inlined-mixed-types-behaviors
+              (cond
+               ((py-if-specialized-sint-representation (fixnum? $rhs) #f)
+                (,float-sint-op $lhs $rhs))
+               ((flonum? $rhs)
+                (,float-float-op $lhs $rhs))
+               (else
+                (py-binary-behavior-call-with-lhs-index ,op ,float-class-index $lhs $rhs)))
+              (if (flonum? $rhs)
+                  (,float-float-op $lhs $rhs)
+                  (py-binary-behavior-call-with-lhs-index ,op ,float-class-index $lhs $rhs))))
+            (else
+             (cond
+              ((py-if-specialized-sint-representation (fixnum? $rhs) #f)
+               (py-binary-behavior-call-with-rhs-index ,op $lhs ,sint-class-index $rhs))
+              ((py-if-specialized-float-representation (flonum? $rhs) #f)
+               (py-binary-behavior-call-with-rhs-index ,op $lhs ,float-class-index $rhs))
+              (else
+               (py-binary-behavior-call ,op $lhs $rhs))))))
     (,(string->symbol (string-append "py-" (symbol->string op) "-fallback")) ,lhs ,rhs)))
 
 (define-macro (py-specialized-unop-dispatch op x)
   `(with-class-indices-info $py-specialized-unop-dispatch ,op ,x))
 
 (define-macro ($py-specialized-unop-dispatch indices-info op x)
+
   (define sint-op (string->symbol (string-append "py-" (symbol->string op) "-sintX-inline")))
   (define float-op (string->symbol (string-append "py-" (symbol->string op) "-floatX-inline")))
 
   `(py-if-enable-behaviors-optimization
     (let (($x ,x))
-       (cond ((py-if-specialized-sint-representation (fixnum? $x) #f)
-                (,sint-op $x))
-             ((py-if-specialized-float-representation (flonum? $x) #f)
-                (,float-op $x))
-             (else
-               (py-unary-behavior-call ,op $x))))
+      (cond ((py-if-specialized-sint-representation (fixnum? $x) #f)
+             (,sint-op $x))
+            ((py-if-specialized-float-representation (flonum? $x) #f)
+             (,float-op $x))
+            (else
+             (py-unary-behavior-call ,op $x))))
     (,(string->symbol (string-append "py-" (symbol->string op) "-fallback")) ,x)))
 
 (define-macro (py-add x y)
@@ -1483,6 +1487,7 @@
   `(not (py-test-is ,x ,y)))
 
 (define-macro (py-test x)
+
   (define cmp-operator-test-version
     '((py-eq py-test-eq)
       (py-ne py-test-ne)
@@ -1494,11 +1499,11 @@
       (py-isnot py-test-isnot)))
 
   (if (pair? x)
-    (let ((test-version (assq (car x) cmp-operator-test-version)))
-      (if test-version
-        `(,(cadr test-version) ,@(cdr x))
-        `(py-test-fallback ,x)))
-    `(py-test-fallback ,x)))
+      (let ((test-version (assq (car x) cmp-operator-test-version)))
+        (if test-version
+            `(,(cadr test-version) ,@(cdr x))
+            `(py-test-fallback ,x)))
+      `(py-test-fallback ,x)))
 
 (define-macro (py-getattribute obj attr)
   `(py-getattribute-fallback ,obj ,attr))

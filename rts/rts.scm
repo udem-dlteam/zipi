@@ -1604,6 +1604,48 @@
 
 (define (!= x y) (not (= x y)))
 
+(cond-expand
+  (gambit
+
+   ;; fallbacks for int/int operations
+
+   (define (pyneg-UintX-fallback x)
+     (py-int-from-scheme (|##negate| x)))
+
+   (define (pyinvert-UintX-fallback x)
+     (py-int-from-scheme (|##bitwise-not| x)))
+
+   (define (pyadd-UintX-UintY-fallback x y)
+     (py-int-from-scheme (|##+2| x y)))
+
+   (define (pysub-UintX-UintY-fallback x y)
+     (py-int-from-scheme (|##-2| x y)))
+
+   (define (pymul-UintX-UintY-fallback x y)
+     (py-int-from-scheme (|##*2| x y)))
+
+   (define (py&-UintX-UintY-fallback x y)
+     (py-int-from-scheme (|##bitwise-and| x y)))
+
+   (define (py+b-UintX-UintY-fallback x y)
+     (py-int-from-scheme (|##bitwise-ior| x y)))
+
+   (define (py^-UintX-UintY-fallback x y)
+     (py-int-from-scheme (|##bitwise-xor| x y)))
+
+   (define (py>>-UintX-UintY-fallback x y)
+     (py-int-from-scheme (|##arithmetic-shift| x (|##negate| y))))
+
+   (define (py<<-UintX-UintY-fallback x y)
+     (py-int-from-scheme (|##arithmetic-shift| x y)))
+
+   (define (py//-UintX-UintY-fallback x y)
+     (py-int-from-scheme (|##quotient| x y)))
+
+   (define (py%-UintX-UintY-fallback x y)
+     (py-int-from-scheme (|##modulo| x y)))
+))
+
 ;; operations
 
 (define-int-into-int-binary-operator int-add "__add__" +)
