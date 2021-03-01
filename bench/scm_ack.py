@@ -16,7 +16,9 @@ def ack(m, n):
     else:
         return ack(m-1, ack(m, n-1))
 
+result = ack(3, 7) - 1021 # dry run
+
 bench_time = time.time()
-result = ack(m, n)
+result = result + ack(m, n)
 bench_time = time.time() - bench_time
 print(str(bench_time) + ' seconds: ack(' + str(m) + ', ' + str(n) + ') = ' + str(result))

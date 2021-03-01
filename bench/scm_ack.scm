@@ -27,15 +27,17 @@
 (define n 9)
 
 (define (ack m n)
-  (cond ((= m 0)
-         (+ n 1))
-        ((and (> m 0) (= n 0))
-         (ack (- m 1) 1))
+  (cond ((fx= m 0)
+         (fx+ n 1))
+        ((and (fx> m 0) (fx= n 0))
+         (ack (fx- m 1) 1))
         (else
-         (ack (- m 1) (ack m (- n 1))))))
+         (ack (fx- m 1) (ack m (fx- n 1))))))
+
+(define result (fx- (ack 3 7) 1021)) ;; dry run
 
 (define bench-time (current-second))
-(define result (ack m n))
+(set! result (fx+ result (ack m n)))
 (set! bench-time (- (current-second) bench-time))
 
 (display bench-time)

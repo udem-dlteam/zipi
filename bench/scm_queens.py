@@ -20,7 +20,9 @@ def q(i, diag1, diag2, cols):
 def queens(n):
     return q(n, -1, -1, (1<<n)-1)
 
+result = queens(8) - 92 # dry run
+
 bench_time = time.time()
-result = queens(n)
+result = result + queens(n)
 bench_time = time.time() - bench_time
 print(str(bench_time) + ' seconds: queens(' + str(n) + ') = ' + str(result))

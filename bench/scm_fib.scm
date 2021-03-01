@@ -23,15 +23,17 @@
    (define-macro (fxarithmetic-shift-left  . args) `(bit-lsh ,@args))
    (define-macro (fxarithmetic-shift-right . args) `(bit-rsh ,@args))))
 
-(define n 33)
+(define n 34)
 
 (define (fib n)
   (if (fx< n 2)
       n
       (fx+ (fib (fx- n 1)) (fib (fx- n 2)))))
 
+(define result (fx- (fib 20) 6765)) ;; dry run
+
 (define bench-time (current-second))
-(define result (fib n))
+(set! result (fx+ result (fib n)))
 (set! bench-time (- (current-second) bench-time))
 
 (display bench-time)

@@ -44,8 +44,10 @@
 (define (queens n)
   (q n -1 -1 (fx- (fxarithmetic-shift-left 1 n) 1)))
 
+(define result (fx- (queens 8) 92)) ;; dry run
+
 (define bench-time (current-second))
-(define result (queens n))
+(set! result (fx+ result (queens n)))
 (set! bench-time (- (current-second) bench-time))
 
 (display bench-time)
