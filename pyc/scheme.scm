@@ -1402,6 +1402,7 @@
                   (else
                     (loop (cdr usage)))))))
         (and (PycFun? fun)
+             (null? (PycFun-decorators fun))
              (fix-arity? fun)
              (= (length assig-usage) 1)))
         #f)))
