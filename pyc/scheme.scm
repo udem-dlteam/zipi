@@ -63,7 +63,9 @@
           (fun (PycAssig-rhs def)))
       ;; only keep procedure for functions which do not seem to be reassigned
       (if (optimize-fun-def? ref fun)
-        (PycFun-&proc-set! fun (scheme-def-procedure-name var conf)))
+        (begin
+          (PycFun-&proc-set! fun (scheme-def-procedure-name var conf))
+          (PycFun-&proc-init-set! fun (scheme-def-optim-globals-name-init var conf))))
       (set-procedure-names! (cdr defs) conf))))
 
 (define (get-def-procedure-name def)
@@ -640,15 +642,28 @@
 (define (scheme-def-procedure-name this conf)
    (symbol-append '|procedure:| (scheme-var-name this conf)))
 
-(define (scheme-assig-global ref val conf)
-  (define (assig var val)
-    `(global-put! %global ,(pyc-propname (PycVar-id var)) ,val
-      ,(scheme-cache (PycRef-cache ref) ref)))
+(define (scheme-default-global-assig ref var val)
+ `(global-put! %global ,(pyc-propname (PycVar-id var)) ,val
+   ,(scheme-cache (PycRef-cache ref) ref)))
 
+(define (scheme-assig-global ref val conf)
   (let ((var (PycRef-decl ref)))
     (if (config-get conf optim-globals:)
       `(set! ,(scheme-var-name var conf) ,val)
-      (assig var val))))
+      (scheme-default-global-assig ref var val))))
+
+(define (scheme-assig-global-fun ref fun conf)
+  (let ((var (PycRef-decl ref))
+        (val (scheme fun conf)))
+    (if (config-get conf optim-globals:)
+      (if (PycFun-&proc fun)
+        ;; optimized global fun, set an init value for fast call
+        `(let (($fun-obj ,val))
+          (set! ,(scheme-var-name var conf) $fun-obj)
+          (set! ,(PycFun-&proc-init fun) $fun-obj))
+        ;; non-optimized global fun
+        `(set! ,(scheme-var-name var conf) ,val))
+      (scheme-default-global-assig ref var val))))
 
 (define (pyc-propname name)
    (cond
@@ -658,8 +673,7 @@
 
 (define-walk-method (scheme this::PycAssig conf)
   (let* ((lhs (PycAssig-lhs this))
-        (rhs (PycAssig-rhs this))
-        (val (scheme rhs conf)))
+        (rhs (PycAssig-rhs this)))
     (cond
       ;; foo = X
       ;; reference which has been resolved (local or global)
@@ -668,9 +682,11 @@
           (epairify this
             (case (PycVar-scope var)
               ((global)
-                (scheme-assig-global lhs val conf))
+                (if (isa? rhs PycFun)
+                  (scheme-assig-global-fun lhs rhs conf)
+                  (scheme-assig-global lhs (scheme rhs conf) conf)))
               (else
-                `(set! ,(scheme-var-name var conf) ,val))))))
+                `(set! ,(scheme-var-name var conf) ,(scheme rhs conf)))))))
 
       ;; reference which is not resolved this should not happen
       ;; because and assignment always allows resolving
@@ -700,7 +716,7 @@
                 ,(if (PycUninit? lower) 'py-None (scheme lower conf))
                 ,(if (PycUninit? upper) 'py-None (scheme upper conf))
                 ,(if (PycUninit? step) 'py-None (scheme step conf)))
-              ,val))))
+              ,(scheme rhs conf)))))
 
       ;; l[x] = X
       ((isa? lhs PycSubscript)
@@ -1386,6 +1402,7 @@
                   (else
                     (loop (cdr usage)))))))
         (and (PycFun? fun)
+             (null? (PycFun-decorators fun))
              (fix-arity? fun)
              (= (length assig-usage) 1)))
         #f)))
