@@ -743,6 +743,35 @@
         (number->string (fx- arity nargs))
         " required positional argument"))))
 
+(define (py-call0-fallback fun)
+  (let ((fun-type (py-obj-cls-general fun)))
+    (if (eq? fun-type py-function-class)
+      (let ((arity (PyObjectFunction-arity fun)))
+        (cond
+          ((eqv? arity -1)
+            ((PyObjectFunction-procedure fun)
+              (py-tuple-from-scheme '#())))
+          ((not arity) (py-call-generic fun '()))
+          (else
+            (py-call-wrong-arity arity 0 "0"))))
+      (py-call-generic fun '()))))
+
+(define (py-callX-fallback min-neg-arity fun . args)
+  (let ((fun-type (py-obj-cls-general fun)))
+    (if (eq? fun-type py-function-class)
+      (let ((arity (PyObjectFunction-arity fun)))
+        (cond
+           ((not arity)
+            (py-call-generic fun args))
+           ((and (fx< arity 0) (fx>= arity min-neg-arity))
+            (apply
+             (PyObjectFunction-procedure fun)
+             (pack-extra-args arity args)))
+           (else
+            ;; Error messages
+            (py-call-wrong-arity arity (length args) (number->string (length args))))))
+      (py-call-generic fun args))))
+
 (define (py-call-generic/*args obj args *args-lst)
   (let ((unpacked-args (iterables*->list *args-lst)))
     (py-call-generic obj (append args unpacked-args))))

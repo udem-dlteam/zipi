@@ -33,17 +33,7 @@
   `(let (($fun ,fun))
     (if (PyObjectFunctionArity0? $fun)
       ((PyObjectFunction-procedure $fun))
-      (let ((fun-type (py-obj-cls-general $fun)))
-        (if (eq? fun-type py-function-class)
-          (let ((arity (PyObjectFunction-arity $fun)))
-            (cond
-              ((eqv? arity -1)
-                ((PyObjectFunction-procedure $fun)
-                  (py-tuple-from-scheme '#())))
-              ((not arity) (py-call-generic $fun '()))
-              (else
-                (py-call-wrong-arity arity 0 "0"))))
-          (py-call-generic $fun '()))))))
+      (py-call0-fallback $fun))))
 
 (define-macro (py-callX X fun . args)
   `(with-specialized-PyObjectFunction-args-limit $py-callX ,X ,fun ,@args))
@@ -60,43 +50,9 @@
                 ,@(map list args-names args))
           (if (,(string->symbol (string-append "PyObjectFunctionArity" (number->string X) "?")) $fun)
             ((PyObjectFunction-procedure $fun) ,@args-names)
-            (let ((fun-type (py-obj-cls-general $fun)))
-              (if (eq? fun-type py-function-class)
-                (let ((arity (PyObjectFunction-arity $fun)))
-                  (cond
-                     ((not arity)
-                      (py-call-generic $fun (list ,@args-names)))
-                     ((and (fx< arity 0) (fx>= arity ,min-neg-arity))
-                      (apply
-                       (PyObjectFunction-procedure $fun)
-                       (pack-extra-args arity (list ,@args-names))))
-                     (else
-                      ;; Error messages
-                      (py-call-wrong-arity arity ,X ,(number->string X)))))
-                (py-call-generic $fun (list ,@args-names))))))))
+            (py-callX-fallback ,min-neg-arity $fun ,@args-names)))))
     (else
-      (let ((min-neg-arity (- 0 X 1))
-            (args-names (map
-                          (lambda (i) (string->symbol (string-append "$arg" (number->string i))))
-                          (iota X))))
-        `(let* (($fun ,fun)
-                ,@(map list args-names args)
-               (fun-type (py-obj-cls-general $fun)))
-          (if (eq? fun-type py-function-class)
-                        (let ((arity (PyObjectFunction-arity $fun)))
-              (cond
-                 ((eqv? arity ,X)
-                  ((PyObjectFunction-procedure $fun) ,@args-names))
-                 ((not arity)
-                  (py-call-generic $fun (list ,@args-names)))
-                 ((and (fx< arity 0) (fx>= arity ,min-neg-arity))
-                  (apply
-                   (PyObjectFunction-procedure $fun)
-                   (pack-extra-args arity (list ,@args-names))))
-                 (else
-                  ;; Error messages
-                  (py-call-wrong-arity arity ,X ,(number->string X)))))
-            (py-call-generic $fun (list ,@args-names))))))))
+      (py-callX-fallback ,(- 0 X 1) ,fun ,@args))))
 
 (define-macro (py-make-PyObjectFunction hclass elements cls procedure arity signature)
   `(with-specialized-PyObjectFunction-args-limit $py-make-PyObjectFunction ,hclass ,elements ,cls ,procedure ,arity ,signature))

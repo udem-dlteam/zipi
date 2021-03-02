@@ -40,7 +40,9 @@
     py-call-hashed-kwargs
     py-call-generic-kwargs
     py-call0
+    py-call0-fallback
     py-callX
+    py-callX-fallback
     $py-callX
     py-call-wrong-arity
     py-call0-maybe-super
