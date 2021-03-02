@@ -292,6 +292,8 @@
            (inline PyObject-elements-ref ::PyObject ::long)
            (PyObject-elements-set! ::PyObject ::long ::obj)
 
+           (py-call0-fallback fun)
+           (py-callX-fallback min-neg-arity fun . args)
 	         (py-call-generic ::obj ::obj)
            (py-iter ::obj)
            (py-call-wrong-arity arity nargs nargs-string)

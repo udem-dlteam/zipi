@@ -33,17 +33,7 @@
   `(let (($fun ,fun))
     (if (PyObjectFunctionArity0? $fun)
       ((PyObjectFunction-procedure $fun))
-      (let ((fun-type (py-obj-cls-general $fun)))
-        (if (eq? fun-type py-function-class)
-          (let ((arity (PyObjectFunction-arity $fun)))
-            (cond
-              ((eqv? arity -1)
-                ((PyObjectFunction-procedure $fun)
-                  (py-tuple-from-scheme '#())))
-              ((not arity) (py-call-generic $fun '()))
-              (else
-                (py-call-wrong-arity arity 0 "0"))))
-          (py-call-generic $fun '()))))))
+      (py-call0-fallback $fun))))
 
 (define-macro (py-callX X fun . args)
   `(with-specialized-PyObjectFunction-args-limit $py-callX ,X ,fun ,@args))
@@ -60,43 +50,9 @@
                 ,@(map list args-names args))
           (if (,(string->symbol (string-append "PyObjectFunctionArity" (number->string X) "?")) $fun)
             ((PyObjectFunction-procedure $fun) ,@args-names)
-            (let ((fun-type (py-obj-cls-general $fun)))
-              (if (eq? fun-type py-function-class)
-                (let ((arity (PyObjectFunction-arity $fun)))
-                  (cond
-                     ((not arity)
-                      (py-call-generic $fun (list ,@args-names)))
-                     ((and (fx< arity 0) (fx>= arity ,min-neg-arity))
-                      (apply
-                       (PyObjectFunction-procedure $fun)
-                       (pack-extra-args arity (list ,@args-names))))
-                     (else
-                      ;; Error messages
-                      (py-call-wrong-arity arity ,X ,(number->string X)))))
-                (py-call-generic $fun (list ,@args-names))))))))
+            (py-callX-fallback ,min-neg-arity $fun ,@args-names)))))
     (else
-      (let ((min-neg-arity (- 0 X 1))
-            (args-names (map
-                          (lambda (i) (string->symbol (string-append "$arg" (number->string i))))
-                          (iota X))))
-        `(let* (($fun ,fun)
-                ,@(map list args-names args)
-               (fun-type (py-obj-cls-general $fun)))
-          (if (eq? fun-type py-function-class)
-                        (let ((arity (PyObjectFunction-arity $fun)))
-              (cond
-                 ((eqv? arity ,X)
-                  ((PyObjectFunction-procedure $fun) ,@args-names))
-                 ((not arity)
-                  (py-call-generic $fun (list ,@args-names)))
-                 ((and (fx< arity 0) (fx>= arity ,min-neg-arity))
-                  (apply
-                   (PyObjectFunction-procedure $fun)
-                   (pack-extra-args arity (list ,@args-names))))
-                 (else
-                  ;; Error messages
-                  (py-call-wrong-arity arity ,X ,(number->string X)))))
-            (py-call-generic $fun (list ,@args-names))))))))
+      (py-callX-fallback ,(- 0 X 1) ,fun ,@args))))
 
 (define-macro (py-make-PyObjectFunction hclass elements cls procedure arity signature)
   `(with-specialized-PyObjectFunction-args-limit $py-make-PyObjectFunction ,hclass ,elements ,cls ,procedure ,arity ,signature))
@@ -125,7 +81,8 @@
 (define-macro (py-if-specialized-float-representation yes no) yes)
 (define-macro (py-if-enable-behaviors-optimization yes no) yes)
 (define-macro (py-if-enable-inline-behavior-dispatch yes no) no)
-(define-macro (py-if-enable-inlined-mixed-types-behaviors yes no) no)
+(define-macro (py-if-enable-inlined-mixed-types-behaviors yes no) yes)
+(define-macro (py-if-enable-inline-partial-behavior-dispatch yes no) no)
 
 (define-macro (py-bool-to-scheme-float arg)
   `(fixnum->flonum (py-bool-to-scheme-int ,arg)))
@@ -1251,7 +1208,7 @@
   (let ((behavior-call-fallback-name
           (string->symbol
             (string-append "py-" (symbol->string op) "-behavior-call-with-lhs-index-fallback"))))
-    `(py-if-enable-inline-behavior-dispatch
+    `(py-if-enable-inline-partial-behavior-dispatch
         ($py-binary-behavior-call-with-lhs-index ,op ,lhs-index ,lhs ,rhs)
         (,behavior-call-fallback-name ,lhs-index ,lhs ,rhs))))
 
@@ -1268,7 +1225,7 @@
   (let ((behavior-call-fallback-name
           (string->symbol
             (string-append "py-" (symbol->string op) "-behavior-call-with-rhs-index-fallback"))))
-    `(py-if-enable-inline-behavior-dispatch
+    `(py-if-enable-inline-partial-behavior-dispatch
         ($py-binary-behavior-call-with-rhs-index ,op ,lhs ,rhs-index ,rhs)
         (,behavior-call-fallback-name ,lhs ,rhs-index ,rhs))))
 
@@ -1308,7 +1265,7 @@
                 (,sint-float-op $lhs $rhs))
                (else
                 (py-binary-behavior-call-with-lhs-index ,op ,sint-class-index $lhs $rhs)))
-              (if (fixnum? $rhs)
+              (if (py-if-specialized-sint-representation (fixnum? $rhs) #f)
                   (,sint-sint-op $lhs $rhs)
                   (py-binary-behavior-call-with-lhs-index ,op ,sint-class-index $lhs $rhs))))
             ((py-if-specialized-float-representation (flonum? $lhs) #f)
@@ -1324,13 +1281,7 @@
                   (,float-float-op $lhs $rhs)
                   (py-binary-behavior-call-with-lhs-index ,op ,float-class-index $lhs $rhs))))
             (else
-             (cond
-              ((py-if-specialized-sint-representation (fixnum? $rhs) #f)
-               (py-binary-behavior-call-with-rhs-index ,op $lhs ,sint-class-index $rhs))
-              ((py-if-specialized-float-representation (flonum? $rhs) #f)
-               (py-binary-behavior-call-with-rhs-index ,op $lhs ,float-class-index $rhs))
-              (else
-               (py-binary-behavior-call ,op $lhs $rhs))))))
+             (py-binary-behavior-call ,op $lhs $rhs))))
     (,(string->symbol (string-append "py-" (symbol->string op) "-fallback")) ,lhs ,rhs)))
 
 (define-macro (py-specialized-unop-dispatch op x)
@@ -1352,7 +1303,9 @@
     (,(string->symbol (string-append "py-" (symbol->string op) "-fallback")) ,x)))
 
 (define-macro (py-add x y)
-  `(py-specialized-binop-dispatch add ,x ,y))
+  (if (and (pair? x) (memq (car x) '(& &&)) (pair? y) (memq (car y) '(& &&)))
+    `(&& ,(string-append (cadr x) (cadr y)))
+    `(py-specialized-binop-dispatch add ,x ,y)))
 
 (define-macro (py-bitand x y)
   `(py-specialized-binop-dispatch bitand ,x ,y))
@@ -1373,7 +1326,35 @@
   `(py-specialized-binop-dispatch mod ,x ,y))
 
 (define-macro (py-mul x y)
-  `(py-specialized-binop-dispatch mul ,x ,y))
+  (define (str-literal? o)
+    (if (and (pair? o) (memq (car o) '(& &&)))
+      (cadr o)
+      #f))
+
+  (define (int-literal? o)
+    (if (and (pair? o) (eq? (car o) 'py-int-from-scheme))
+      (cadr o)
+      #f))
+
+  (define (str-mul? s count)
+    (if (< (* (string-length s) count) 1000) ;; Put some limit on the result size at compile-time
+      (fold string-append "" (make-list count s))
+      #f))
+
+  (define (str-mul-literal? lhs rhs)
+    (let ((lhs-int (int-literal? lhs))
+          (lhs-str (str-literal? lhs))
+          (rhs-int (int-literal? rhs))
+          (rhs-str (str-literal? rhs)))
+    (cond
+      ((and lhs-int rhs-str)
+        `(&& ,(str-mul? rhs-str lhs-int)))
+      ((and lhs-str rhs-int)
+        `(&& ,(str-mul? lhs-str rhs-int)))
+      (else
+        #f))))
+
+  (or (str-mul-literal? x y) `(py-specialized-binop-dispatch mul ,x ,y)))
 
 (define-macro (py-pow x y)
   `(py-specialized-binop-dispatch pow ,x ,y))
