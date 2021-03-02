@@ -326,6 +326,7 @@
     py-if-enable-behaviors-optimization
     py-if-enable-inlined-mixed-types-behaviors
     py-if-enable-inline-behavior-dispatch
+    py-if-enable-inline-partial-behavior-dispatch
     py-specialized-binop-dispatch
     $py-specialized-binop-dispatch
     py-specialized-unop-dispatch
@@ -611,19 +612,6 @@
     py-float-class
     int-cache
     str-representatives
-
-    pyneg-UintX-fallback
-    pyinvert-UintX-fallback
-    pyadd-UintX-UintY-fallback
-    pysub-UintX-UintY-fallback
-    pymul-UintX-UintY-fallback
-    py&-UintX-UintY-fallback
-    py+b-UintX-UintY-fallback
-    py^-UintX-UintY-fallback
-    py>>-UintX-UintY-fallback
-    py<<-UintX-UintY-fallback
-    py//-UintX-UintY-fallback
-    py%-UintX-UintY-fallback
 
     ;; semantics & behaviors
 py-add-fallback:normal

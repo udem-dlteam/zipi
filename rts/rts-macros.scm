@@ -125,7 +125,8 @@
 (define-macro (py-if-specialized-float-representation yes no) yes)
 (define-macro (py-if-enable-behaviors-optimization yes no) yes)
 (define-macro (py-if-enable-inline-behavior-dispatch yes no) no)
-(define-macro (py-if-enable-inlined-mixed-types-behaviors yes no) no)
+(define-macro (py-if-enable-inlined-mixed-types-behaviors yes no) yes)
+(define-macro (py-if-enable-inline-partial-behavior-dispatch yes no) no)
 
 (define-macro (py-bool-to-scheme-float arg)
   `(fixnum->flonum (py-bool-to-scheme-int ,arg)))
@@ -1251,7 +1252,7 @@
   (let ((behavior-call-fallback-name
           (string->symbol
             (string-append "py-" (symbol->string op) "-behavior-call-with-lhs-index-fallback"))))
-    `(py-if-enable-inline-behavior-dispatch
+    `(py-if-enable-inline-partial-behavior-dispatch
         ($py-binary-behavior-call-with-lhs-index ,op ,lhs-index ,lhs ,rhs)
         (,behavior-call-fallback-name ,lhs-index ,lhs ,rhs))))
 
@@ -1268,7 +1269,7 @@
   (let ((behavior-call-fallback-name
           (string->symbol
             (string-append "py-" (symbol->string op) "-behavior-call-with-rhs-index-fallback"))))
-    `(py-if-enable-inline-behavior-dispatch
+    `(py-if-enable-inline-partial-behavior-dispatch
         ($py-binary-behavior-call-with-rhs-index ,op ,lhs ,rhs-index ,rhs)
         (,behavior-call-fallback-name ,lhs ,rhs-index ,rhs))))
 
@@ -1308,7 +1309,7 @@
                 (,sint-float-op $lhs $rhs))
                (else
                 (py-binary-behavior-call-with-lhs-index ,op ,sint-class-index $lhs $rhs)))
-              (if (fixnum? $rhs)
+              (if (py-if-specialized-sint-representation (fixnum? $rhs) #f)
                   (,sint-sint-op $lhs $rhs)
                   (py-binary-behavior-call-with-lhs-index ,op ,sint-class-index $lhs $rhs))))
             ((py-if-specialized-float-representation (flonum? $lhs) #f)
@@ -1324,13 +1325,7 @@
                   (,float-float-op $lhs $rhs)
                   (py-binary-behavior-call-with-lhs-index ,op ,float-class-index $lhs $rhs))))
             (else
-             (cond
-              ((py-if-specialized-sint-representation (fixnum? $rhs) #f)
-               (py-binary-behavior-call-with-rhs-index ,op $lhs ,sint-class-index $rhs))
-              ((py-if-specialized-float-representation (flonum? $rhs) #f)
-               (py-binary-behavior-call-with-rhs-index ,op $lhs ,float-class-index $rhs))
-              (else
-               (py-binary-behavior-call ,op $lhs $rhs))))))
+             (py-binary-behavior-call ,op $lhs $rhs))))
     (,(string->symbol (string-append "py-" (symbol->string op) "-fallback")) ,lhs ,rhs)))
 
 (define-macro (py-specialized-unop-dispatch op x)
