@@ -1303,7 +1303,9 @@
     (,(string->symbol (string-append "py-" (symbol->string op) "-fallback")) ,x)))
 
 (define-macro (py-add x y)
-  `(py-specialized-binop-dispatch add ,x ,y))
+  (if (and (pair? x) (memq (car x) '(& &&)) (pair? y) (memq (car y) '(& &&)))
+    `(&& ,(string-append (cadr x) (cadr y)))
+    `(py-specialized-binop-dispatch add ,x ,y)))
 
 (define-macro (py-bitand x y)
   `(py-specialized-binop-dispatch bitand ,x ,y))
@@ -1324,7 +1326,35 @@
   `(py-specialized-binop-dispatch mod ,x ,y))
 
 (define-macro (py-mul x y)
-  `(py-specialized-binop-dispatch mul ,x ,y))
+  (define (str-literal? o)
+    (if (and (pair? o) (memq (car o) '(& &&)))
+      (cadr o)
+      #f))
+
+  (define (int-literal? o)
+    (if (and (pair? o) (eq? (car o) 'py-int-from-scheme))
+      (cadr o)
+      #f))
+
+  (define (str-mul? s count)
+    (if (< (* (string-length s) count) 1000) ;; Put some limit on the result size at compile-time
+      (fold string-append "" (make-list count s))
+      #f))
+
+  (define (str-mul-literal? lhs rhs)
+    (let ((lhs-int (int-literal? lhs))
+          (lhs-str (str-literal? lhs))
+          (rhs-int (int-literal? rhs))
+          (rhs-str (str-literal? rhs)))
+    (cond
+      ((and lhs-int rhs-str)
+        `(&& ,(str-mul? rhs-str lhs-int)))
+      ((and lhs-str rhs-int)
+        `(&& ,(str-mul? lhs-str rhs-int)))
+      (else
+        #f))))
+
+  (or (str-mul-literal? x y) `(py-specialized-binop-dispatch mul ,x ,y)))
 
 (define-macro (py-pow x y)
   `(py-specialized-binop-dispatch pow ,x ,y))
