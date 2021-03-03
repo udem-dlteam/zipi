@@ -1235,7 +1235,7 @@
         `(if (eq? ,name py-absent)
           (global-get
             %global
-            (& ,(symbol->string name))
+            ,(pyc-propname id)
             ,(scheme-cache (PycRef-cache this) this))
           ,name))
       (else
