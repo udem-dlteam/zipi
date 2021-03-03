@@ -347,8 +347,6 @@
     py-strict-subtype-of-int-to-scheme
     PyObjectInt-value
     py-has-type-int?
-    py-has-type-sint?
-    py-has-type-bint?
     py-subtype-of-int?
     py-strict-subtype-of-int?
 
@@ -734,6 +732,10 @@ py-eq-fallback:default
 py-ne-fallback:normal
 py-ne-fallback:reflected
 py-ne-fallback:default
+py-index-fallback
+py-maybe-len-fallback
+py-len-fallback
+py-truth-fallback
 py-getattribute-fallback
 py-setattribute-fallback
 py-getitem-fallback

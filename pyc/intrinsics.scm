@@ -55,6 +55,15 @@
      (new-PycPragma loc (call-with-input-string (PycLiteralValue-val (car args)) read))
      (error "SyntaxError" "wrong argument for inline_host_code" args))))
 
+(define (make-semantics-scheme-name-from-fun-name name)
+  (let ((id-with-dashes
+          (string->symbol
+            (list->string
+              (map
+                (lambda (c) (if (eq? c #\_) #\- c))
+                (string->list (symbol->string name)))))))
+    (symbol-append 'py- id-with-dashes '-fallback)))
+
 (define (make-class_getattr this)
  (let* ((loc (PycNode-loc this))
        (args (PycCall-args this))
@@ -346,6 +355,20 @@
             statics-assoc-list
             macro-assoc-list)))
 
+  (let ((define_semantics-var (list-find-PycVar-by-id intrinsics 'define_semantics)))
+    (if define_semantics-var
+        (begin
+          (mark-define-semantics! this #f intrinsics-info define_semantics-var)
+          (let ((semantics (collect-top-level-semantics-intrinsics* this)))
+            (set!
+              statics-assoc-list
+              (append
+                statics-assoc-list
+                (map
+                  (lambda (pair) (cons (car pair) (PycFun-name (cdr pair))))
+                  semantics))))
+          (lambda-lift-semantics! this))))
+
   ;; static functions and values
   (resolve-statics-calls!
     this
@@ -364,11 +387,6 @@
   (let ((use_simple_scoping-var (list-find-PycVar-by-id intrinsics 'use_simple_scoping)))
     (if use_simple_scoping-var
         (mark-use-simple-scoping! this (list-find-PycVar-by-id intrinsics 'use_simple_scoping))))
-  (let ((define_semantics-var (list-find-PycVar-by-id intrinsics 'define_semantics)))
-    (if define_semantics-var
-        (begin
-          (mark-define-semantics! this #f intrinsics-info define_semantics-var)
-          (lambda-lift-semantics! this))))
   (let ((define_behavior-var (list-find-PycVar-by-id intrinsics 'define_behavior)))
     (if define_behavior-var
       (mark-define-behavior! this intrinsics-info define_behavior-var)))
@@ -594,7 +612,7 @@
               semantics-decorator)
           decls: decls
           use-simple-scoping: #t
-          name: (if semantics-decorator (symbol-append 'py- name '-fallback) name)
+          name: (if semantics-decorator (make-semantics-scheme-name-from-fun-name name) name)
           annotation: annotation
           annotation-names: annotation-names
           inline: (if semantics-decorator (is-inlined-semantics name) #f)))
@@ -1067,3 +1085,22 @@
         (list
           (optimize-builtin-class-refs! obj builtins-class-table class self)))
       (call-default-walker))))
+
+(define-walk-method (collect-top-level-semantics-intrinsics* this::PycNode)
+  (call-default-walker))
+
+(define-walk-method (collect-top-level-semantics-intrinsics* this::PycAssig)
+  (let ((lhs (PycAssig-lhs this))
+        (rhs (PycAssig-rhs this)))
+    (if (and (isa? lhs PycRef) (isa? rhs PycSemantics))
+      (list (cons (PycRef-decl lhs) rhs))
+      (call-default-walker))))
+
+(define-walk-method (collect-top-level-semantics-intrinsics* this::PycSemantics)
+  (error "collect-top-level-semantics-intrinsics*::PycSemantics" "semantics not in PycAssig" this))
+
+(define-walk-method (collect-top-level-semantics-intrinsics* this::PycFun)
+  '())
+
+(define-walk-method (collect-top-level-semantics-intrinsics* this::PycClass)
+  '())

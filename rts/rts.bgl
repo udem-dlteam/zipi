@@ -381,6 +381,7 @@
            py-builtin-super
            py-builtin-tuple
            py-builtin-type
+           py-builtin-bool
 
            py-builtin-ArithmeticError
            py-builtin-AssertionError

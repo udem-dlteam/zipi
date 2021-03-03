@@ -126,10 +126,10 @@
    (py-builtin-TypeError
     (py-add (py-add (py-add (py-add (&& "unsupported operand type(s) for +: '")
                                     (py-getattribute
-                                     (py-obj-cls x-2)
+                                     (py-builtin-type x-2)
                                      (& "__name__")))
                             (&& "' and '"))
-                    (py-getattribute (py-obj-cls y-3) (& "__name__")))
+                    (py-getattribute (py-builtin-type y-3) (& "__name__")))
             (&& "'")))))
 
 (define (py-bitand-fallback:normal x-4 y-5)
@@ -155,10 +155,10 @@
    (py-builtin-TypeError
     (py-add (py-add (py-add (py-add (&& "unsupported operand type(s) for &: '")
                                     (py-getattribute
-                                     (py-obj-cls x-4)
+                                     (py-builtin-type x-4)
                                      (& "__name__")))
                             (&& "' and '"))
-                    (py-getattribute (py-obj-cls y-5) (& "__name__")))
+                    (py-getattribute (py-builtin-type y-5) (& "__name__")))
             (&& "'")))))
 
 (define (py-bitor-fallback:normal x-6 y-7)
@@ -184,10 +184,10 @@
    (py-builtin-TypeError
     (py-add (py-add (py-add (py-add (&& "unsupported operand type(s) for |: '")
                                     (py-getattribute
-                                     (py-obj-cls x-6)
+                                     (py-builtin-type x-6)
                                      (& "__name__")))
                             (&& "' and '"))
-                    (py-getattribute (py-obj-cls y-7) (& "__name__")))
+                    (py-getattribute (py-builtin-type y-7) (& "__name__")))
             (&& "'")))))
 
 (define (py-floordiv-fallback:normal x-8 y-9)
@@ -215,10 +215,10 @@
    (py-builtin-TypeError
     (py-add (py-add (py-add (py-add (&& "unsupported operand type(s) for //: '")
                                     (py-getattribute
-                                     (py-obj-cls x-8)
+                                     (py-builtin-type x-8)
                                      (& "__name__")))
                             (&& "' and '"))
-                    (py-getattribute (py-obj-cls y-9) (& "__name__")))
+                    (py-getattribute (py-builtin-type y-9) (& "__name__")))
             (&& "'")))))
 
 (define (py-lshift-fallback:normal x-10 y-11)
@@ -246,10 +246,10 @@
    (py-builtin-TypeError
     (py-add (py-add (py-add (py-add (&& "unsupported operand type(s) for <<: '")
                                     (py-getattribute
-                                     (py-obj-cls x-10)
+                                     (py-builtin-type x-10)
                                      (& "__name__")))
                             (&& "' and '"))
-                    (py-getattribute (py-obj-cls y-11) (& "__name__")))
+                    (py-getattribute (py-builtin-type y-11) (& "__name__")))
             (&& "'")))))
 
 (define (py-matmul-fallback:normal x-12 y-13)
@@ -277,10 +277,10 @@
    (py-builtin-TypeError
     (py-add (py-add (py-add (py-add (&& "unsupported operand type(s) for @: '")
                                     (py-getattribute
-                                     (py-obj-cls x-12)
+                                     (py-builtin-type x-12)
                                      (& "__name__")))
                             (&& "' and '"))
-                    (py-getattribute (py-obj-cls y-13) (& "__name__")))
+                    (py-getattribute (py-builtin-type y-13) (& "__name__")))
             (&& "'")))))
 
 (define (py-mod-fallback:normal x-14 y-15)
@@ -307,10 +307,10 @@
    (py-builtin-TypeError
     (py-add (py-add (py-add (py-add (&& "unsupported operand type(s) for %: '")
                                     (py-getattribute
-                                     (py-obj-cls x-14)
+                                     (py-builtin-type x-14)
                                      (& "__name__")))
                             (&& "' and '"))
-                    (py-getattribute (py-obj-cls y-15) (& "__name__")))
+                    (py-getattribute (py-builtin-type y-15) (& "__name__")))
             (&& "'")))))
 
 (define (py-mul-fallback:normal x-16 y-17)
@@ -337,10 +337,10 @@
    (py-builtin-TypeError
     (py-add (py-add (py-add (py-add (&& "unsupported operand type(s) for *: '")
                                     (py-getattribute
-                                     (py-obj-cls x-16)
+                                     (py-builtin-type x-16)
                                      (& "__name__")))
                             (&& "' and '"))
-                    (py-getattribute (py-obj-cls y-17) (& "__name__")))
+                    (py-getattribute (py-builtin-type y-17) (& "__name__")))
             (&& "'")))))
 
 (define (py-pow-fallback:normal x-18 y-19)
@@ -367,10 +367,10 @@
    (py-builtin-TypeError
     (py-add (py-add (py-add (py-add (&& "unsupported operand type(s) for **: '")
                                     (py-getattribute
-                                     (py-obj-cls x-18)
+                                     (py-builtin-type x-18)
                                      (& "__name__")))
                             (&& "' and '"))
-                    (py-getattribute (py-obj-cls y-19) (& "__name__")))
+                    (py-getattribute (py-builtin-type y-19) (& "__name__")))
             (&& "'")))))
 
 (define (py-rshift-fallback:normal x-20 y-21)
@@ -398,10 +398,10 @@
    (py-builtin-TypeError
     (py-add (py-add (py-add (py-add (&& "unsupported operand type(s) for >>: '")
                                     (py-getattribute
-                                     (py-obj-cls x-20)
+                                     (py-builtin-type x-20)
                                      (& "__name__")))
                             (&& "' and '"))
-                    (py-getattribute (py-obj-cls y-21) (& "__name__")))
+                    (py-getattribute (py-builtin-type y-21) (& "__name__")))
             (&& "'")))))
 
 (define (py-sub-fallback:normal x-22 y-23)
@@ -428,10 +428,10 @@
    (py-builtin-TypeError
     (py-add (py-add (py-add (py-add (&& "unsupported operand type(s) for -: '")
                                     (py-getattribute
-                                     (py-obj-cls x-22)
+                                     (py-builtin-type x-22)
                                      (& "__name__")))
                             (&& "' and '"))
-                    (py-getattribute (py-obj-cls y-23) (& "__name__")))
+                    (py-getattribute (py-builtin-type y-23) (& "__name__")))
             (&& "'")))))
 
 (define (py-truediv-fallback:normal x-24 y-25)
@@ -459,10 +459,10 @@
    (py-builtin-TypeError
     (py-add (py-add (py-add (py-add (&& "unsupported operand type(s) for /: '")
                                     (py-getattribute
-                                     (py-obj-cls x-24)
+                                     (py-builtin-type x-24)
                                      (& "__name__")))
                             (&& "' and '"))
-                    (py-getattribute (py-obj-cls y-25) (& "__name__")))
+                    (py-getattribute (py-builtin-type y-25) (& "__name__")))
             (&& "'")))))
 
 (define (py-xor-fallback:normal x-26 y-27)
@@ -489,10 +489,10 @@
    (py-builtin-TypeError
     (py-add (py-add (py-add (py-add (&& "unsupported operand type(s) for ^: '")
                                     (py-getattribute
-                                     (py-obj-cls x-26)
+                                     (py-builtin-type x-26)
                                      (& "__name__")))
                             (&& "' and '"))
-                    (py-getattribute (py-obj-cls y-27) (& "__name__")))
+                    (py-getattribute (py-builtin-type y-27) (& "__name__")))
             (&& "'")))))
 
 (define (py-iadd-fallback:inplace x-28 y-29)
@@ -529,10 +529,10 @@
    (py-builtin-TypeError
     (py-add (py-add (py-add (py-add (&& "unsupported operand type(s) for +=: '")
                                     (py-getattribute
-                                     (py-obj-cls x-28)
+                                     (py-builtin-type x-28)
                                      (& "__name__")))
                             (&& "' and '"))
-                    (py-getattribute (py-obj-cls y-29) (& "__name__")))
+                    (py-getattribute (py-builtin-type y-29) (& "__name__")))
             (&& "'")))))
 
 (define (py-ibitand-fallback:inplace x-30 y-31)
@@ -569,10 +569,10 @@
    (py-builtin-TypeError
     (py-add (py-add (py-add (py-add (&& "unsupported operand type(s) for &=: '")
                                     (py-getattribute
-                                     (py-obj-cls x-30)
+                                     (py-builtin-type x-30)
                                      (& "__name__")))
                             (&& "' and '"))
-                    (py-getattribute (py-obj-cls y-31) (& "__name__")))
+                    (py-getattribute (py-builtin-type y-31) (& "__name__")))
             (&& "'")))))
 
 (define (py-ibitor-fallback:inplace x-32 y-33)
@@ -607,10 +607,10 @@
    (py-builtin-TypeError
     (py-add (py-add (py-add (py-add (&& "unsupported operand type(s) for |=: '")
                                     (py-getattribute
-                                     (py-obj-cls x-32)
+                                     (py-builtin-type x-32)
                                      (& "__name__")))
                             (&& "' and '"))
-                    (py-getattribute (py-obj-cls y-33) (& "__name__")))
+                    (py-getattribute (py-builtin-type y-33) (& "__name__")))
             (&& "'")))))
 
 (define (py-ifloordiv-fallback:inplace x-34 y-35)
@@ -648,10 +648,10 @@
    (py-builtin-TypeError
     (py-add (py-add (py-add (py-add (&& "unsupported operand type(s) for //=: '")
                                     (py-getattribute
-                                     (py-obj-cls x-34)
+                                     (py-builtin-type x-34)
                                      (& "__name__")))
                             (&& "' and '"))
-                    (py-getattribute (py-obj-cls y-35) (& "__name__")))
+                    (py-getattribute (py-builtin-type y-35) (& "__name__")))
             (&& "'")))))
 
 (define (py-ilshift-fallback:inplace x-36 y-37)
@@ -689,10 +689,10 @@
    (py-builtin-TypeError
     (py-add (py-add (py-add (py-add (&& "unsupported operand type(s) for <<=: '")
                                     (py-getattribute
-                                     (py-obj-cls x-36)
+                                     (py-builtin-type x-36)
                                      (& "__name__")))
                             (&& "' and '"))
-                    (py-getattribute (py-obj-cls y-37) (& "__name__")))
+                    (py-getattribute (py-builtin-type y-37) (& "__name__")))
             (&& "'")))))
 
 (define (py-imatmul-fallback:inplace x-38 y-39)
@@ -730,10 +730,10 @@
    (py-builtin-TypeError
     (py-add (py-add (py-add (py-add (&& "unsupported operand type(s) for @=: '")
                                     (py-getattribute
-                                     (py-obj-cls x-38)
+                                     (py-builtin-type x-38)
                                      (& "__name__")))
                             (&& "' and '"))
-                    (py-getattribute (py-obj-cls y-39) (& "__name__")))
+                    (py-getattribute (py-builtin-type y-39) (& "__name__")))
             (&& "'")))))
 
 (define (py-imod-fallback:inplace x-40 y-41)
@@ -770,10 +770,10 @@
    (py-builtin-TypeError
     (py-add (py-add (py-add (py-add (&& "unsupported operand type(s) for %=: '")
                                     (py-getattribute
-                                     (py-obj-cls x-40)
+                                     (py-builtin-type x-40)
                                      (& "__name__")))
                             (&& "' and '"))
-                    (py-getattribute (py-obj-cls y-41) (& "__name__")))
+                    (py-getattribute (py-builtin-type y-41) (& "__name__")))
             (&& "'")))))
 
 (define (py-imul-fallback:inplace x-42 y-43)
@@ -810,10 +810,10 @@
    (py-builtin-TypeError
     (py-add (py-add (py-add (py-add (&& "unsupported operand type(s) for *=: '")
                                     (py-getattribute
-                                     (py-obj-cls x-42)
+                                     (py-builtin-type x-42)
                                      (& "__name__")))
                             (&& "' and '"))
-                    (py-getattribute (py-obj-cls y-43) (& "__name__")))
+                    (py-getattribute (py-builtin-type y-43) (& "__name__")))
             (&& "'")))))
 
 (define (py-ipow-fallback:inplace x-44 y-45)
@@ -850,10 +850,10 @@
    (py-builtin-TypeError
     (py-add (py-add (py-add (py-add (&& "unsupported operand type(s) for **=: '")
                                     (py-getattribute
-                                     (py-obj-cls x-44)
+                                     (py-builtin-type x-44)
                                      (& "__name__")))
                             (&& "' and '"))
-                    (py-getattribute (py-obj-cls y-45) (& "__name__")))
+                    (py-getattribute (py-builtin-type y-45) (& "__name__")))
             (&& "'")))))
 
 (define (py-irshift-fallback:inplace x-46 y-47)
@@ -891,10 +891,10 @@
    (py-builtin-TypeError
     (py-add (py-add (py-add (py-add (&& "unsupported operand type(s) for >>=: '")
                                     (py-getattribute
-                                     (py-obj-cls x-46)
+                                     (py-builtin-type x-46)
                                      (& "__name__")))
                             (&& "' and '"))
-                    (py-getattribute (py-obj-cls y-47) (& "__name__")))
+                    (py-getattribute (py-builtin-type y-47) (& "__name__")))
             (&& "'")))))
 
 (define (py-isub-fallback:inplace x-48 y-49)
@@ -931,10 +931,10 @@
    (py-builtin-TypeError
     (py-add (py-add (py-add (py-add (&& "unsupported operand type(s) for -=: '")
                                     (py-getattribute
-                                     (py-obj-cls x-48)
+                                     (py-builtin-type x-48)
                                      (& "__name__")))
                             (&& "' and '"))
-                    (py-getattribute (py-obj-cls y-49) (& "__name__")))
+                    (py-getattribute (py-builtin-type y-49) (& "__name__")))
             (&& "'")))))
 
 (define (py-itruediv-fallback:inplace x-50 y-51)
@@ -972,10 +972,10 @@
    (py-builtin-TypeError
     (py-add (py-add (py-add (py-add (&& "unsupported operand type(s) for /=: '")
                                     (py-getattribute
-                                     (py-obj-cls x-50)
+                                     (py-builtin-type x-50)
                                      (& "__name__")))
                             (&& "' and '"))
-                    (py-getattribute (py-obj-cls y-51) (& "__name__")))
+                    (py-getattribute (py-builtin-type y-51) (& "__name__")))
             (&& "'")))))
 
 (define (py-ixor-fallback:inplace x-52 y-53)
@@ -1013,10 +1013,10 @@
    (py-builtin-TypeError
     (py-add (py-add (py-add (py-add (&& "unsupported operand type(s) for ^=: '")
                                     (py-getattribute
-                                     (py-obj-cls x-52)
+                                     (py-builtin-type x-52)
                                      (& "__name__")))
                             (&& "' and '"))
-                    (py-getattribute (py-obj-cls y-53) (& "__name__")))
+                    (py-getattribute (py-builtin-type y-53) (& "__name__")))
             (&& "'")))))
 
 (define (py-pos-fallback:normal x-54)
@@ -1030,7 +1030,7 @@
   (py-throw
    (py-builtin-TypeError
     (py-add (py-add (&& "bad operand type for unary +: '")
-                    (py-getattribute (py-obj-cls x-54) (& "__name__")))
+                    (py-getattribute (py-builtin-type x-54) (& "__name__")))
             (&& "'")))))
 
 (define (py-neg-fallback:normal x-55)
@@ -1044,7 +1044,7 @@
   (py-throw
    (py-builtin-TypeError
     (py-add (py-add (&& "bad operand type for unary -: '")
-                    (py-getattribute (py-obj-cls x-55) (& "__name__")))
+                    (py-getattribute (py-builtin-type x-55) (& "__name__")))
             (&& "'")))))
 
 (define (py-invert-fallback:normal x-56)
@@ -1058,7 +1058,7 @@
   (py-throw
    (py-builtin-TypeError
     (py-add (py-add (&& "bad operand type for unary ~: '")
-                    (py-getattribute (py-obj-cls x-56) (& "__name__")))
+                    (py-getattribute (py-builtin-type x-56) (& "__name__")))
             (&& "'")))))
 
 (define (py-ge-fallback:normal x-57 y-58)
@@ -1084,10 +1084,10 @@
    (py-builtin-TypeError
     (py-add (py-add (py-add (py-add (&& "'>=' not supported between instances of '")
                                     (py-getattribute
-                                     (py-obj-cls x-57)
+                                     (py-builtin-type x-57)
                                      (& "__name__")))
                             (&& "' and '"))
-                    (py-getattribute (py-obj-cls y-58) (& "__name__")))
+                    (py-getattribute (py-builtin-type y-58) (& "__name__")))
             (&& "'")))))
 
 (define (py-gt-fallback:normal x-59 y-60)
@@ -1113,10 +1113,10 @@
    (py-builtin-TypeError
     (py-add (py-add (py-add (py-add (&& "'>' not supported between instances of '")
                                     (py-getattribute
-                                     (py-obj-cls x-59)
+                                     (py-builtin-type x-59)
                                      (& "__name__")))
                             (&& "' and '"))
-                    (py-getattribute (py-obj-cls y-60) (& "__name__")))
+                    (py-getattribute (py-builtin-type y-60) (& "__name__")))
             (&& "'")))))
 
 (define (py-le-fallback:normal x-61 y-62)
@@ -1142,10 +1142,10 @@
    (py-builtin-TypeError
     (py-add (py-add (py-add (py-add (&& "'<=' not supported between instances of '")
                                     (py-getattribute
-                                     (py-obj-cls x-61)
+                                     (py-builtin-type x-61)
                                      (& "__name__")))
                             (&& "' and '"))
-                    (py-getattribute (py-obj-cls y-62) (& "__name__")))
+                    (py-getattribute (py-builtin-type y-62) (& "__name__")))
             (&& "'")))))
 
 (define (py-lt-fallback:normal x-63 y-64)
@@ -1171,10 +1171,10 @@
    (py-builtin-TypeError
     (py-add (py-add (py-add (py-add (&& "'<' not supported between instances of '")
                                     (py-getattribute
-                                     (py-obj-cls x-63)
+                                     (py-builtin-type x-63)
                                      (& "__name__")))
                             (&& "' and '"))
-                    (py-getattribute (py-obj-cls y-64) (& "__name__")))
+                    (py-getattribute (py-builtin-type y-64) (& "__name__")))
             (&& "'")))))
 
 (define (py-eq-fallback:normal x-65 y-66)
@@ -1224,7 +1224,9 @@
         (py-throw
          (py-builtin-TypeError
           (py-add (py-add (&& "'")
-                          (py-getattribute (py-obj-cls obj-69) (& "__name__")))
+                          (py-getattribute
+                           (py-builtin-type obj-69)
+                           (& "__name__")))
                   (&& "' object cannot be interpreted as an integer"))))
         (letrec* ((result-1298 (py-call __index__-1291 obj-69)))
           (if (py-has-type-sint? result-1298)
@@ -1237,29 +1239,21 @@
                    (py-builtin-TypeError
                     (&& "__index__ returned non-int (type str)")))))))))
 
-(define (py-maybe_len-fallback obj-70)
+(define (py-maybe-len-fallback obj-70)
   (letrec* ((__len__-1304 (getattribute-from-obj-mro obj-70 (&& "__len__"))))
     (if (py-test (py-is __len__-1304 py-absent))
         py-absent
-        (py-call (if (eq? global:index-128 py-absent)
-                     (global-get %global (& "index") (vector-ref %caches 64))
-                     global:index-128)
-                 (py-call __len__-1304 obj-70)))))
+        (py-index-fallback (py-call __len__-1304 obj-70)))))
 
 (define (py-len-fallback obj-71)
-  (letrec* ((result-1310
-             (py-call (if (eq? global:maybe_len-129 py-absent)
-                          (global-get
-                           %global
-                           (& "maybe_len")
-                           (vector-ref %caches 65))
-                          global:maybe_len-129)
-                      obj-71)))
+  (letrec* ((result-1310 (py-maybe-len-fallback obj-71)))
     (if (py-test (py-is result-1310 py-absent))
         (py-throw
          (py-builtin-TypeError
           (py-add (py-add (&& "object of type")
-                          (py-getattribute (py-obj-cls obj-71) (& "__name__")))
+                          (py-getattribute
+                           (py-builtin-type obj-71)
+                           (& "__name__")))
                   (&& "has no len()"))))
         result-1310)))
 
@@ -1273,17 +1267,10 @@
                (py-builtin-TypeError
                 (py-add (py-add (&& "__bool__ should return bool, returned '")
                                 (py-getattribute
-                                 (py-obj-cls obj-72)
+                                 (py-builtin-type obj-72)
                                  (& "__name__")))
                         (&& "'"))))))
-        (letrec* ((len_result-1328
-                   (py-call (if (eq? global:maybe_len-129 py-absent)
-                                (global-get
-                                 %global
-                                 (& "maybe_len")
-                                 (vector-ref %caches 68))
-                                global:maybe_len-129)
-                            obj-72)))
+        (letrec* ((len_result-1328 (py-maybe-len-fallback obj-72)))
           (if (py-test (py-isnot len_result-1328 py-absent))
               (py-ne len_result-1328 (py-int-from-scheme 0))
               py-True)))))
@@ -1348,7 +1335,7 @@
             (letrec* ((exit_result-1381
                        (py-call __exit__-1374
                                 obj-86
-                                (py-obj-cls exc-87)
+                                (py-builtin-type exc-87)
                                 exc-87
                                 py-None)))
               (if (py-test exit_result-1381) py-None (py-throw exc-87)))))))
