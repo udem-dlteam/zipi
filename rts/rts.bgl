@@ -325,6 +325,7 @@
            py-object-class
            py-module-class
            py-int-class
+           py-float-class
            py-function-class
            (py-own-attr-set! obj attr val)
 

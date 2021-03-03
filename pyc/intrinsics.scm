@@ -120,6 +120,17 @@
             args)))
       (error "SyntaxError" "wrong argument for isinstance" args))))
 
+(define (make-type this)
+  (let* ((loc (PycNode-loc this))
+        (args (PycCall-args this))
+        (args-len (length args)))
+    (if (= args-len 1)
+      (new-PycCall
+        loc
+        (new-PycPragma loc 'py-obj-cls)
+        args)
+      (error "SyntaxError" "wrong argument for type" args))))
+
 
 (define (make-pragma-call-maker name)
  (lambda (this)
@@ -153,7 +164,8 @@
 
 (define macro-static-builtins
   (list
-    (cons 'isinstance make-isinstance)))
+    (cons 'isinstance make-isinstance)
+    (cons 'type make-type)))
 
 ;; TODO: generate a full table of builtins with Zipi rts name
 (define static-builtins
