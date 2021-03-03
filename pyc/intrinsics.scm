@@ -417,7 +417,7 @@
         (static-value
           (let ((pair (assq var statics))) (if pair (cdr pair) #f))))
     (if static-value
-      (new-PycPragma (PycNode-loc this) static-value)
+      (new-PycStatic (PycNode-loc this) (PycVar-id var) static-value)
       this)))
 
 (define-walk-method (resolve-statics! this::PycRefUnresolved intrinsics statics macros use-static-builtins)
@@ -425,7 +425,7 @@
          (static-value
            (and use-static-builtins (hashtable-get static-builtins-table id))))
     (if static-value
-      (new-PycPragma (PycNode-loc this) static-value)
+      (new-PycStatic (PycNode-loc this) id static-value)
       this)))
 
 (define-walk-method (resolve-statics! this::PycFun intrinsics statics macros use-static-builtins)

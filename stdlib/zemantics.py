@@ -1232,7 +1232,7 @@ def index(obj):
         elif isinstance(result, bint):
             raise OverflowError("cannot fit 'int' into an index-sized integer")
         else:
-            raise TypeError("__index__ returned non-int (type str)")
+            raise TypeError("__index__ returned non-int type: '" + type(obj).__name__ + "'")
     # index:end-body
 
 @define_semantics
