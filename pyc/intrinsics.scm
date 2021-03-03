@@ -173,6 +173,7 @@
    ;; builtin callables
    (super . py-builtin-super)
    (type . py-builtin-type)
+   (bool . py-builtin-bool)
    ;; builtin constants
    (NotImplemented . py-NotImplemented)
    ;; exceptions
@@ -406,7 +407,7 @@
          (static-value
            (and use-static-builtins (hashtable-get static-builtins-table id))))
     (if static-value
-      (new-PycStatic (PycNode-loc this) id static-value)
+      (new-PycPragma (PycNode-loc this) static-value)
       this)))
 
 (define-walk-method (resolve-statics! this::PycFun intrinsics statics macros use-static-builtins)

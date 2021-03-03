@@ -1256,8 +1256,8 @@ def len(obj):
     # len:end-body
 
 @define_semantics
-def bool(obj):
-    # bool:start-body
+def truth(obj):
+    # truth:start-body
     __bool__ = class_getattr(obj, "__bool__")
     if __bool__ is not absent:
         result = __bool__(obj)
@@ -1271,7 +1271,7 @@ def bool(obj):
             return len_result != 0
         else:
             return True
-    # bool:end-body
+    # truth:end-body
 
 @define_semantics
 def getattribute(obj, attr):

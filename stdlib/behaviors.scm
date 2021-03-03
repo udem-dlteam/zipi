@@ -84,8 +84,8 @@
 (define-macro (py-bitand-floatX-floatY-inline x-52 y-53)
   `(let ((x-52 ,x-52) (y-53 ,y-53))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for &: 'float' and 'float'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for &: 'float' and 'float'")))))
 
 (define-macro (py-bitand-floatX-boolY-inline x-54 y-55)
   `(py-bitand-floatX-boolY-fallback ,x-54 ,y-55))
@@ -96,8 +96,8 @@
 (define-macro (py-bitand-floatX-sintY-inline x-58 y-59)
   `(let ((x-58 ,x-58) (y-59 ,y-59))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for &: 'float' and 'int'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for &: 'float' and 'int'")))))
 
 (define-macro (py-bitand-floatX-bintY-inline x-60 y-61)
   `(py-bitand-floatX-bintY-fallback ,x-60 ,y-61))
@@ -135,8 +135,8 @@
 (define-macro (py-bitand-sintX-floatY-inline x-82 y-83)
   `(let ((x-82 ,x-82) (y-83 ,y-83))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for &: 'int' and 'float'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for &: 'int' and 'float'")))))
 
 (define-macro (py-bitand-sintX-boolY-inline x-84 y-85)
   `(py-bitand-sintX-boolY-fallback ,x-84 ,y-85))
@@ -170,8 +170,8 @@
 (define-macro (py-bitor-floatX-floatY-inline x-102 y-103)
   `(let ((x-102 ,x-102) (y-103 ,y-103))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for |: 'float' and 'float'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for |: 'float' and 'float'")))))
 
 (define-macro (py-bitor-floatX-boolY-inline x-104 y-105)
   `(py-bitor-floatX-boolY-fallback ,x-104 ,y-105))
@@ -182,8 +182,8 @@
 (define-macro (py-bitor-floatX-sintY-inline x-108 y-109)
   `(let ((x-108 ,x-108) (y-109 ,y-109))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for |: 'float' and 'int'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for |: 'float' and 'int'")))))
 
 (define-macro (py-bitor-floatX-bintY-inline x-110 y-111)
   `(py-bitor-floatX-bintY-fallback ,x-110 ,y-111))
@@ -221,8 +221,8 @@
 (define-macro (py-bitor-sintX-floatY-inline x-132 y-133)
   `(let ((x-132 ,x-132) (y-133 ,y-133))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for |: 'int' and 'float'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for |: 'int' and 'float'")))))
 
 (define-macro (py-bitor-sintX-boolY-inline x-134 y-135)
   `(py-bitor-sintX-boolY-fallback ,x-134 ,y-135))
@@ -259,8 +259,7 @@
          (py-float-from-scheme
           (py// (py-float-to-scheme x-152) (py-float-to-scheme y-153)))
          (py-throw
-          (py-call py-builtin-ZeroDivisionError
-                   (&& "float division by zero"))))))
+          (py-builtin-ZeroDivisionError (&& "float division by zero"))))))
 
 (define-macro (py-floordiv-floatX-boolY-inline x-154 y-155)
   `(py-floordiv-floatX-boolY-fallback ,x-154 ,y-155))
@@ -274,8 +273,7 @@
          (py-float-from-scheme
           (py// (py-float-to-scheme x-158) (py-sint-to-scheme y-159)))
          (py-throw
-          (py-call py-builtin-ZeroDivisionError
-                   (&& "float division by zero"))))))
+          (py-builtin-ZeroDivisionError (&& "float division by zero"))))))
 
 (define-macro (py-floordiv-floatX-bintY-inline x-160 y-161)
   `(py-floordiv-floatX-bintY-fallback ,x-160 ,y-161))
@@ -316,8 +314,7 @@
          (py-float-from-scheme
           (py// (py-sint-to-scheme x-182) (py-float-to-scheme y-183)))
          (py-throw
-          (py-call py-builtin-ZeroDivisionError
-                   (&& "float division by zero"))))))
+          (py-builtin-ZeroDivisionError (&& "float division by zero"))))))
 
 (define-macro (py-floordiv-sintX-boolY-inline x-184 y-185)
   `(py-floordiv-sintX-boolY-fallback ,x-184 ,y-185))
@@ -331,8 +328,7 @@
          (py-int-from-scheme
           (py// (py-sint-to-scheme x-188) (py-sint-to-scheme y-189)))
          (py-throw
-          (py-call py-builtin-ZeroDivisionError
-                   (&& "integer division by zero"))))))
+          (py-builtin-ZeroDivisionError (&& "integer division by zero"))))))
 
 (define-macro (py-floordiv-sintX-bintY-inline x-190 y-191)
   `(py-floordiv-sintX-bintY-fallback ,x-190 ,y-191))
@@ -355,8 +351,8 @@
 (define-macro (py-lshift-floatX-floatY-inline x-202 y-203)
   `(let ((x-202 ,x-202) (y-203 ,y-203))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for <<: 'float' and 'float'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for <<: 'float' and 'float'")))))
 
 (define-macro (py-lshift-floatX-boolY-inline x-204 y-205)
   `(py-lshift-floatX-boolY-fallback ,x-204 ,y-205))
@@ -367,8 +363,8 @@
 (define-macro (py-lshift-floatX-sintY-inline x-208 y-209)
   `(let ((x-208 ,x-208) (y-209 ,y-209))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for <<: 'float' and 'int'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for <<: 'float' and 'int'")))))
 
 (define-macro (py-lshift-floatX-bintY-inline x-210 y-211)
   `(py-lshift-floatX-bintY-fallback ,x-210 ,y-211))
@@ -406,8 +402,8 @@
 (define-macro (py-lshift-sintX-floatY-inline x-232 y-233)
   `(let ((x-232 ,x-232) (y-233 ,y-233))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for <<: 'int' and 'float'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for <<: 'int' and 'float'")))))
 
 (define-macro (py-lshift-sintX-boolY-inline x-234 y-235)
   `(py-lshift-sintX-boolY-fallback ,x-234 ,y-235))
@@ -420,8 +416,7 @@
      (if (py-test (py-ge y-239 (py-int-from-scheme 0)))
          (py-int-from-scheme
           (py<< (py-sint-to-scheme x-238) (py-sint-to-scheme y-239)))
-         (py-throw
-          (py-call py-builtin-ValueError (&& "negative shift count"))))))
+         (py-throw (py-builtin-ValueError (&& "negative shift count"))))))
 
 (define-macro (py-lshift-sintX-bintY-inline x-240 y-241)
   `(py-lshift-sintX-bintY-fallback ,x-240 ,y-241))
@@ -444,8 +439,8 @@
 (define-macro (py-matmul-floatX-floatY-inline x-252 y-253)
   `(let ((x-252 ,x-252) (y-253 ,y-253))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for @: 'float' and 'float'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for @: 'float' and 'float'")))))
 
 (define-macro (py-matmul-floatX-boolY-inline x-254 y-255)
   `(py-matmul-floatX-boolY-fallback ,x-254 ,y-255))
@@ -456,8 +451,8 @@
 (define-macro (py-matmul-floatX-sintY-inline x-258 y-259)
   `(let ((x-258 ,x-258) (y-259 ,y-259))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for @: 'float' and 'int'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for @: 'float' and 'int'")))))
 
 (define-macro (py-matmul-floatX-bintY-inline x-260 y-261)
   `(py-matmul-floatX-bintY-fallback ,x-260 ,y-261))
@@ -495,8 +490,8 @@
 (define-macro (py-matmul-sintX-floatY-inline x-282 y-283)
   `(let ((x-282 ,x-282) (y-283 ,y-283))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for @: 'int' and 'float'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for @: 'int' and 'float'")))))
 
 (define-macro (py-matmul-sintX-boolY-inline x-284 y-285)
   `(py-matmul-sintX-boolY-fallback ,x-284 ,y-285))
@@ -507,8 +502,8 @@
 (define-macro (py-matmul-sintX-sintY-inline x-288 y-289)
   `(let ((x-288 ,x-288) (y-289 ,y-289))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for @: 'int' and 'int'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for @: 'int' and 'int'")))))
 
 (define-macro (py-matmul-sintX-bintY-inline x-290 y-291)
   `(py-matmul-sintX-bintY-fallback ,x-290 ,y-291))
@@ -534,8 +529,7 @@
          (py-float-from-scheme
           (py% (py-float-to-scheme x-302) (py-float-to-scheme y-303)))
          (py-throw
-          (py-call py-builtin-ZeroDivisionError
-                   (&& "float modulo by zero"))))))
+          (py-builtin-ZeroDivisionError (&& "float modulo by zero"))))))
 
 (define-macro (py-mod-floatX-boolY-inline x-304 y-305)
   `(py-mod-floatX-boolY-fallback ,x-304 ,y-305))
@@ -549,8 +543,7 @@
          (py-float-from-scheme
           (py% (py-float-to-scheme x-308) (py-sint-to-scheme y-309)))
          (py-throw
-          (py-call py-builtin-ZeroDivisionError
-                   (&& "float modulo by zero"))))))
+          (py-builtin-ZeroDivisionError (&& "float modulo by zero"))))))
 
 (define-macro (py-mod-floatX-bintY-inline x-310 y-311)
   `(py-mod-floatX-bintY-fallback ,x-310 ,y-311))
@@ -591,8 +584,7 @@
          (py-float-from-scheme
           (py% (py-sint-to-scheme x-332) (py-float-to-scheme y-333)))
          (py-throw
-          (py-call py-builtin-ZeroDivisionError
-                   (&& "float modulo by zero"))))))
+          (py-builtin-ZeroDivisionError (&& "float modulo by zero"))))))
 
 (define-macro (py-mod-sintX-boolY-inline x-334 y-335)
   `(py-mod-sintX-boolY-fallback ,x-334 ,y-335))
@@ -605,8 +597,7 @@
      (if (py-test (py-ne y-339 (py-int-from-scheme 0)))
          (py-int-from-scheme
           (py% (py-sint-to-scheme x-338) (py-sint-to-scheme y-339)))
-         (py-throw
-          (py-call py-builtin-ZeroDivisionError (&& "modulo by zero"))))))
+         (py-throw (py-builtin-ZeroDivisionError (&& "modulo by zero"))))))
 
 (define-macro (py-mod-sintX-bintY-inline x-340 y-341)
   `(py-mod-sintX-bintY-fallback ,x-340 ,y-341))
@@ -795,8 +786,8 @@
 (define-macro (py-rshift-floatX-floatY-inline x-452 y-453)
   `(let ((x-452 ,x-452) (y-453 ,y-453))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for >>: 'float' and 'float'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for >>: 'float' and 'float'")))))
 
 (define-macro (py-rshift-floatX-boolY-inline x-454 y-455)
   `(py-rshift-floatX-boolY-fallback ,x-454 ,y-455))
@@ -807,8 +798,8 @@
 (define-macro (py-rshift-floatX-sintY-inline x-458 y-459)
   `(let ((x-458 ,x-458) (y-459 ,y-459))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for >>: 'float' and 'int'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for >>: 'float' and 'int'")))))
 
 (define-macro (py-rshift-floatX-bintY-inline x-460 y-461)
   `(py-rshift-floatX-bintY-fallback ,x-460 ,y-461))
@@ -846,8 +837,8 @@
 (define-macro (py-rshift-sintX-floatY-inline x-482 y-483)
   `(let ((x-482 ,x-482) (y-483 ,y-483))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for >>: 'int' and 'float'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for >>: 'int' and 'float'")))))
 
 (define-macro (py-rshift-sintX-boolY-inline x-484 y-485)
   `(py-rshift-sintX-boolY-fallback ,x-484 ,y-485))
@@ -860,8 +851,7 @@
      (if (py-test (py-ge y-489 (py-int-from-scheme 0)))
          (py-int-from-scheme
           (py>> (py-sint-to-scheme x-488) (py-sint-to-scheme y-489)))
-         (py-throw
-          (py-call py-builtin-ValueError (&& "negative shift count"))))))
+         (py-throw (py-builtin-ValueError (&& "negative shift count"))))))
 
 (define-macro (py-rshift-sintX-bintY-inline x-490 y-491)
   `(py-rshift-sintX-bintY-fallback ,x-490 ,y-491))
@@ -970,8 +960,7 @@
          (py-float-from-scheme
           (py/ (py-float-to-scheme x-552) (py-float-to-scheme y-553)))
          (py-throw
-          (py-call py-builtin-ZeroDivisionError
-                   (&& "float division by zero"))))))
+          (py-builtin-ZeroDivisionError (&& "float division by zero"))))))
 
 (define-macro (py-truediv-floatX-boolY-inline x-554 y-555)
   `(py-truediv-floatX-boolY-fallback ,x-554 ,y-555))
@@ -985,8 +974,7 @@
          (py-float-from-scheme
           (py/ (py-float-to-scheme x-558) (py-sint-to-scheme y-559)))
          (py-throw
-          (py-call py-builtin-ZeroDivisionError
-                   (&& "float division by zero"))))))
+          (py-builtin-ZeroDivisionError (&& "float division by zero"))))))
 
 (define-macro (py-truediv-floatX-bintY-inline x-560 y-561)
   `(py-truediv-floatX-bintY-fallback ,x-560 ,y-561))
@@ -1027,8 +1015,7 @@
          (py-float-from-scheme
           (py/ (py-sint-to-scheme x-582) (py-float-to-scheme y-583)))
          (py-throw
-          (py-call py-builtin-ZeroDivisionError
-                   (&& "float division by zero"))))))
+          (py-builtin-ZeroDivisionError (&& "float division by zero"))))))
 
 (define-macro (py-truediv-sintX-boolY-inline x-584 y-585)
   `(py-truediv-sintX-boolY-fallback ,x-584 ,y-585))
@@ -1041,8 +1028,7 @@
      (if (py-test (py-ne y-589 (py-int-from-scheme 0)))
          (py-float-from-scheme
           (py/ (py-sint-to-scheme x-588) (py-sint-to-scheme y-589)))
-         (py-throw
-          (py-call py-builtin-ZeroDivisionError (&& "division by zero"))))))
+         (py-throw (py-builtin-ZeroDivisionError (&& "division by zero"))))))
 
 (define-macro (py-truediv-sintX-bintY-inline x-590 y-591)
   `(py-truediv-sintX-bintY-fallback ,x-590 ,y-591))
@@ -1065,8 +1051,8 @@
 (define-macro (py-xor-floatX-floatY-inline x-602 y-603)
   `(let ((x-602 ,x-602) (y-603 ,y-603))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for ^: 'float' and 'float'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for ^: 'float' and 'float'")))))
 
 (define-macro (py-xor-floatX-boolY-inline x-604 y-605)
   `(py-xor-floatX-boolY-fallback ,x-604 ,y-605))
@@ -1077,8 +1063,8 @@
 (define-macro (py-xor-floatX-sintY-inline x-608 y-609)
   `(let ((x-608 ,x-608) (y-609 ,y-609))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for ^: 'float' and 'int'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for ^: 'float' and 'int'")))))
 
 (define-macro (py-xor-floatX-bintY-inline x-610 y-611)
   `(py-xor-floatX-bintY-fallback ,x-610 ,y-611))
@@ -1116,8 +1102,8 @@
 (define-macro (py-xor-sintX-floatY-inline x-632 y-633)
   `(let ((x-632 ,x-632) (y-633 ,y-633))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for ^: 'int' and 'float'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for ^: 'int' and 'float'")))))
 
 (define-macro (py-xor-sintX-boolY-inline x-634 y-635)
   `(py-xor-sintX-boolY-fallback ,x-634 ,y-635))
@@ -1234,8 +1220,8 @@
 (define-macro (py-ibitand-floatX-floatY-inline x-702 y-703)
   `(let ((x-702 ,x-702) (y-703 ,y-703))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for &=: 'float' and 'float'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for &=: 'float' and 'float'")))))
 
 (define-macro (py-ibitand-floatX-boolY-inline x-704 y-705)
   `(py-ibitand-floatX-boolY-fallback ,x-704 ,y-705))
@@ -1246,8 +1232,8 @@
 (define-macro (py-ibitand-floatX-sintY-inline x-708 y-709)
   `(let ((x-708 ,x-708) (y-709 ,y-709))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for &=: 'float' and 'int'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for &=: 'float' and 'int'")))))
 
 (define-macro (py-ibitand-floatX-bintY-inline x-710 y-711)
   `(py-ibitand-floatX-bintY-fallback ,x-710 ,y-711))
@@ -1285,8 +1271,8 @@
 (define-macro (py-ibitand-sintX-floatY-inline x-732 y-733)
   `(let ((x-732 ,x-732) (y-733 ,y-733))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for &=: 'int' and 'float'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for &=: 'int' and 'float'")))))
 
 (define-macro (py-ibitand-sintX-boolY-inline x-734 y-735)
   `(py-ibitand-sintX-boolY-fallback ,x-734 ,y-735))
@@ -1320,8 +1306,8 @@
 (define-macro (py-ibitor-floatX-floatY-inline x-752 y-753)
   `(let ((x-752 ,x-752) (y-753 ,y-753))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for |=: 'float' and 'float'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for |=: 'float' and 'float'")))))
 
 (define-macro (py-ibitor-floatX-boolY-inline x-754 y-755)
   `(py-ibitor-floatX-boolY-fallback ,x-754 ,y-755))
@@ -1332,8 +1318,8 @@
 (define-macro (py-ibitor-floatX-sintY-inline x-758 y-759)
   `(let ((x-758 ,x-758) (y-759 ,y-759))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for |=: 'float' and 'int'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for |=: 'float' and 'int'")))))
 
 (define-macro (py-ibitor-floatX-bintY-inline x-760 y-761)
   `(py-ibitor-floatX-bintY-fallback ,x-760 ,y-761))
@@ -1371,8 +1357,8 @@
 (define-macro (py-ibitor-sintX-floatY-inline x-782 y-783)
   `(let ((x-782 ,x-782) (y-783 ,y-783))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for |=: 'int' and 'float'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for |=: 'int' and 'float'")))))
 
 (define-macro (py-ibitor-sintX-boolY-inline x-784 y-785)
   `(py-ibitor-sintX-boolY-fallback ,x-784 ,y-785))
@@ -1409,8 +1395,7 @@
          (py-float-from-scheme
           (py// (py-float-to-scheme x-802) (py-float-to-scheme y-803)))
          (py-throw
-          (py-call py-builtin-ZeroDivisionError
-                   (&& "float division by zero"))))))
+          (py-builtin-ZeroDivisionError (&& "float division by zero"))))))
 
 (define-macro (py-ifloordiv-floatX-boolY-inline x-804 y-805)
   `(py-ifloordiv-floatX-boolY-fallback ,x-804 ,y-805))
@@ -1424,8 +1409,7 @@
          (py-float-from-scheme
           (py// (py-float-to-scheme x-808) (py-sint-to-scheme y-809)))
          (py-throw
-          (py-call py-builtin-ZeroDivisionError
-                   (&& "float division by zero"))))))
+          (py-builtin-ZeroDivisionError (&& "float division by zero"))))))
 
 (define-macro (py-ifloordiv-floatX-bintY-inline x-810 y-811)
   `(py-ifloordiv-floatX-bintY-fallback ,x-810 ,y-811))
@@ -1466,8 +1450,7 @@
          (py-float-from-scheme
           (py// (py-sint-to-scheme x-832) (py-float-to-scheme y-833)))
          (py-throw
-          (py-call py-builtin-ZeroDivisionError
-                   (&& "float division by zero"))))))
+          (py-builtin-ZeroDivisionError (&& "float division by zero"))))))
 
 (define-macro (py-ifloordiv-sintX-boolY-inline x-834 y-835)
   `(py-ifloordiv-sintX-boolY-fallback ,x-834 ,y-835))
@@ -1481,8 +1464,7 @@
          (py-int-from-scheme
           (py// (py-sint-to-scheme x-838) (py-sint-to-scheme y-839)))
          (py-throw
-          (py-call py-builtin-ZeroDivisionError
-                   (&& "integer division by zero"))))))
+          (py-builtin-ZeroDivisionError (&& "integer division by zero"))))))
 
 (define-macro (py-ifloordiv-sintX-bintY-inline x-840 y-841)
   `(py-ifloordiv-sintX-bintY-fallback ,x-840 ,y-841))
@@ -1505,8 +1487,8 @@
 (define-macro (py-ilshift-floatX-floatY-inline x-852 y-853)
   `(let ((x-852 ,x-852) (y-853 ,y-853))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for <<=: 'float' and 'float'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for <<=: 'float' and 'float'")))))
 
 (define-macro (py-ilshift-floatX-boolY-inline x-854 y-855)
   `(py-ilshift-floatX-boolY-fallback ,x-854 ,y-855))
@@ -1517,8 +1499,8 @@
 (define-macro (py-ilshift-floatX-sintY-inline x-858 y-859)
   `(let ((x-858 ,x-858) (y-859 ,y-859))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for <<=: 'float' and 'int'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for <<=: 'float' and 'int'")))))
 
 (define-macro (py-ilshift-floatX-bintY-inline x-860 y-861)
   `(py-ilshift-floatX-bintY-fallback ,x-860 ,y-861))
@@ -1556,8 +1538,8 @@
 (define-macro (py-ilshift-sintX-floatY-inline x-882 y-883)
   `(let ((x-882 ,x-882) (y-883 ,y-883))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for <<=: 'int' and 'float'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for <<=: 'int' and 'float'")))))
 
 (define-macro (py-ilshift-sintX-boolY-inline x-884 y-885)
   `(py-ilshift-sintX-boolY-fallback ,x-884 ,y-885))
@@ -1570,8 +1552,7 @@
      (if (py-test (py-ge y-889 (py-int-from-scheme 0)))
          (py-int-from-scheme
           (py<< (py-sint-to-scheme x-888) (py-sint-to-scheme y-889)))
-         (py-throw
-          (py-call py-builtin-ValueError (&& "negative shift count"))))))
+         (py-throw (py-builtin-ValueError (&& "negative shift count"))))))
 
 (define-macro (py-ilshift-sintX-bintY-inline x-890 y-891)
   `(py-ilshift-sintX-bintY-fallback ,x-890 ,y-891))
@@ -1594,8 +1575,8 @@
 (define-macro (py-imatmul-floatX-floatY-inline x-902 y-903)
   `(let ((x-902 ,x-902) (y-903 ,y-903))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for @=: 'float' and 'float'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for @=: 'float' and 'float'")))))
 
 (define-macro (py-imatmul-floatX-boolY-inline x-904 y-905)
   `(py-imatmul-floatX-boolY-fallback ,x-904 ,y-905))
@@ -1606,8 +1587,8 @@
 (define-macro (py-imatmul-floatX-sintY-inline x-908 y-909)
   `(let ((x-908 ,x-908) (y-909 ,y-909))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for @=: 'float' and 'int'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for @=: 'float' and 'int'")))))
 
 (define-macro (py-imatmul-floatX-bintY-inline x-910 y-911)
   `(py-imatmul-floatX-bintY-fallback ,x-910 ,y-911))
@@ -1645,8 +1626,8 @@
 (define-macro (py-imatmul-sintX-floatY-inline x-932 y-933)
   `(let ((x-932 ,x-932) (y-933 ,y-933))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for @=: 'int' and 'float'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for @=: 'int' and 'float'")))))
 
 (define-macro (py-imatmul-sintX-boolY-inline x-934 y-935)
   `(py-imatmul-sintX-boolY-fallback ,x-934 ,y-935))
@@ -1657,8 +1638,8 @@
 (define-macro (py-imatmul-sintX-sintY-inline x-938 y-939)
   `(let ((x-938 ,x-938) (y-939 ,y-939))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for @=: 'int' and 'int'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for @=: 'int' and 'int'")))))
 
 (define-macro (py-imatmul-sintX-bintY-inline x-940 y-941)
   `(py-imatmul-sintX-bintY-fallback ,x-940 ,y-941))
@@ -1684,8 +1665,7 @@
          (py-float-from-scheme
           (py% (py-float-to-scheme x-952) (py-float-to-scheme y-953)))
          (py-throw
-          (py-call py-builtin-ZeroDivisionError
-                   (&& "float modulo by zero"))))))
+          (py-builtin-ZeroDivisionError (&& "float modulo by zero"))))))
 
 (define-macro (py-imod-floatX-boolY-inline x-954 y-955)
   `(py-imod-floatX-boolY-fallback ,x-954 ,y-955))
@@ -1699,8 +1679,7 @@
          (py-float-from-scheme
           (py% (py-float-to-scheme x-958) (py-sint-to-scheme y-959)))
          (py-throw
-          (py-call py-builtin-ZeroDivisionError
-                   (&& "float modulo by zero"))))))
+          (py-builtin-ZeroDivisionError (&& "float modulo by zero"))))))
 
 (define-macro (py-imod-floatX-bintY-inline x-960 y-961)
   `(py-imod-floatX-bintY-fallback ,x-960 ,y-961))
@@ -1741,8 +1720,7 @@
          (py-float-from-scheme
           (py% (py-sint-to-scheme x-982) (py-float-to-scheme y-983)))
          (py-throw
-          (py-call py-builtin-ZeroDivisionError
-                   (&& "float modulo by zero"))))))
+          (py-builtin-ZeroDivisionError (&& "float modulo by zero"))))))
 
 (define-macro (py-imod-sintX-boolY-inline x-984 y-985)
   `(py-imod-sintX-boolY-fallback ,x-984 ,y-985))
@@ -1755,8 +1733,7 @@
      (if (py-test (py-ne y-989 (py-int-from-scheme 0)))
          (py-int-from-scheme
           (py% (py-sint-to-scheme x-988) (py-sint-to-scheme y-989)))
-         (py-throw
-          (py-call py-builtin-ZeroDivisionError (&& "modulo by zero"))))))
+         (py-throw (py-builtin-ZeroDivisionError (&& "modulo by zero"))))))
 
 (define-macro (py-imod-sintX-bintY-inline x-990 y-991)
   `(py-imod-sintX-bintY-fallback ,x-990 ,y-991))
@@ -1945,8 +1922,8 @@
 (define-macro (py-irshift-floatX-floatY-inline x-1102 y-1103)
   `(let ((x-1102 ,x-1102) (y-1103 ,y-1103))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for >>=: 'float' and 'float'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for >>=: 'float' and 'float'")))))
 
 (define-macro (py-irshift-floatX-boolY-inline x-1104 y-1105)
   `(py-irshift-floatX-boolY-fallback ,x-1104 ,y-1105))
@@ -1957,8 +1934,8 @@
 (define-macro (py-irshift-floatX-sintY-inline x-1108 y-1109)
   `(let ((x-1108 ,x-1108) (y-1109 ,y-1109))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for >>=: 'float' and 'int'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for >>=: 'float' and 'int'")))))
 
 (define-macro (py-irshift-floatX-bintY-inline x-1110 y-1111)
   `(py-irshift-floatX-bintY-fallback ,x-1110 ,y-1111))
@@ -1996,8 +1973,8 @@
 (define-macro (py-irshift-sintX-floatY-inline x-1132 y-1133)
   `(let ((x-1132 ,x-1132) (y-1133 ,y-1133))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for >>=: 'int' and 'float'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for >>=: 'int' and 'float'")))))
 
 (define-macro (py-irshift-sintX-boolY-inline x-1134 y-1135)
   `(py-irshift-sintX-boolY-fallback ,x-1134 ,y-1135))
@@ -2010,8 +1987,7 @@
      (if (py-test (py-ge y-1139 (py-int-from-scheme 0)))
          (py-int-from-scheme
           (py>> (py-sint-to-scheme x-1138) (py-sint-to-scheme y-1139)))
-         (py-throw
-          (py-call py-builtin-ValueError (&& "negative shift count"))))))
+         (py-throw (py-builtin-ValueError (&& "negative shift count"))))))
 
 (define-macro (py-irshift-sintX-bintY-inline x-1140 y-1141)
   `(py-irshift-sintX-bintY-fallback ,x-1140 ,y-1141))
@@ -2120,8 +2096,7 @@
          (py-float-from-scheme
           (py/ (py-float-to-scheme x-1202) (py-float-to-scheme y-1203)))
          (py-throw
-          (py-call py-builtin-ZeroDivisionError
-                   (&& "float division by zero"))))))
+          (py-builtin-ZeroDivisionError (&& "float division by zero"))))))
 
 (define-macro (py-itruediv-floatX-boolY-inline x-1204 y-1205)
   `(py-itruediv-floatX-boolY-fallback ,x-1204 ,y-1205))
@@ -2135,8 +2110,7 @@
          (py-float-from-scheme
           (py/ (py-float-to-scheme x-1208) (py-sint-to-scheme y-1209)))
          (py-throw
-          (py-call py-builtin-ZeroDivisionError
-                   (&& "float division by zero"))))))
+          (py-builtin-ZeroDivisionError (&& "float division by zero"))))))
 
 (define-macro (py-itruediv-floatX-bintY-inline x-1210 y-1211)
   `(py-itruediv-floatX-bintY-fallback ,x-1210 ,y-1211))
@@ -2177,8 +2151,7 @@
          (py-float-from-scheme
           (py/ (py-sint-to-scheme x-1232) (py-float-to-scheme y-1233)))
          (py-throw
-          (py-call py-builtin-ZeroDivisionError
-                   (&& "float division by zero"))))))
+          (py-builtin-ZeroDivisionError (&& "float division by zero"))))))
 
 (define-macro (py-itruediv-sintX-boolY-inline x-1234 y-1235)
   `(py-itruediv-sintX-boolY-fallback ,x-1234 ,y-1235))
@@ -2191,8 +2164,7 @@
      (if (py-test (py-ne y-1239 (py-int-from-scheme 0)))
          (py-float-from-scheme
           (py/ (py-sint-to-scheme x-1238) (py-sint-to-scheme y-1239)))
-         (py-throw
-          (py-call py-builtin-ZeroDivisionError (&& "division by zero"))))))
+         (py-throw (py-builtin-ZeroDivisionError (&& "division by zero"))))))
 
 (define-macro (py-itruediv-sintX-bintY-inline x-1240 y-1241)
   `(py-itruediv-sintX-bintY-fallback ,x-1240 ,y-1241))
@@ -2215,8 +2187,8 @@
 (define-macro (py-ixor-floatX-floatY-inline x-1252 y-1253)
   `(let ((x-1252 ,x-1252) (y-1253 ,y-1253))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for ^=: 'float' and 'float'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for ^=: 'float' and 'float'")))))
 
 (define-macro (py-ixor-floatX-boolY-inline x-1254 y-1255)
   `(py-ixor-floatX-boolY-fallback ,x-1254 ,y-1255))
@@ -2227,8 +2199,8 @@
 (define-macro (py-ixor-floatX-sintY-inline x-1258 y-1259)
   `(let ((x-1258 ,x-1258) (y-1259 ,y-1259))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for ^=: 'float' and 'int'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for ^=: 'float' and 'int'")))))
 
 (define-macro (py-ixor-floatX-bintY-inline x-1260 y-1261)
   `(py-ixor-floatX-bintY-fallback ,x-1260 ,y-1261))
@@ -2266,8 +2238,8 @@
 (define-macro (py-ixor-sintX-floatY-inline x-1282 y-1283)
   `(let ((x-1282 ,x-1282) (y-1283 ,y-1283))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "unsupported operand type(s) for ^=: 'int' and 'float'")))))
+      (py-builtin-TypeError
+       (&& "unsupported operand type(s) for ^=: 'int' and 'float'")))))
 
 (define-macro (py-ixor-sintX-boolY-inline x-1284 y-1285)
   `(py-ixor-sintX-boolY-fallback ,x-1284 ,y-1285))
@@ -3345,8 +3317,7 @@
 (define-macro (py-invert-floatX-inline x-1912)
   `(let ((x-1912 ,x-1912))
      (py-throw
-      (py-call py-builtin-TypeError
-               (&& "bad operand type for unary ~: 'float'")))))
+      (py-builtin-TypeError (&& "bad operand type for unary ~: 'float'")))))
 
 (define-macro (py-invert-boolX-inline x-1913)
   `(py-invert-boolX-fallback ,x-1913))
@@ -3371,8 +3342,8 @@
 
 (define (py-add-floatX-strY-fallback x-6 y-7)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for +: 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for +: 'float' and 'str'"))))
 
 (define (py-add-floatX-sintY-fallback x-8 y-9)
   (py-float-from-scheme
@@ -3392,8 +3363,8 @@
 
 (define (py-add-boolX-strY-fallback x-16 y-17)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for +: 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for +: 'bool' and 'str'"))))
 
 (define (py-add-boolX-sintY-fallback x-18 y-19)
   (py-int-from-scheme
@@ -3405,26 +3376,26 @@
 
 (define (py-add-strX-floatY-fallback x-22 y-23)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for +: 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for +: 'str' and 'float'"))))
 
 (define (py-add-strX-boolY-fallback x-24 y-25)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for +: 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for +: 'str' and 'bool'"))))
 
 (define (py-add-strX-strY-fallback x-26 y-27)
   (py-str-from-scheme (py+ (py-str-to-scheme x-26) (py-str-to-scheme y-27))))
 
 (define (py-add-strX-sintY-fallback x-28 y-29)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for +: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for +: 'str' and 'int'"))))
 
 (define (py-add-strX-bintY-fallback x-30 y-31)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for +: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for +: 'str' and 'int'"))))
 
 (define (py-add-sintX-floatY-fallback x-32 y-33)
   (py-float-from-scheme
@@ -3436,8 +3407,8 @@
 
 (define (py-add-sintX-strY-fallback x-36 y-37)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for +: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for +: 'int' and 'str'"))))
 
 (define (py-add-sintX-sintY-fallback x-38 y-39)
   (py-int-from-scheme (py+ (py-sint-to-scheme x-38) (py-sint-to-scheme y-39))))
@@ -3455,8 +3426,8 @@
 
 (define (py-add-bintX-strY-fallback x-46 y-47)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for +: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for +: 'int' and 'str'"))))
 
 (define (py-add-bintX-sintY-fallback x-48 y-49)
   (py-int-from-scheme (py+ (py-bint-to-scheme x-48) (py-sint-to-scheme y-49))))
@@ -3466,41 +3437,41 @@
 
 (define (py-bitand-floatX-floatY-fallback x-52 y-53)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &: 'float' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &: 'float' and 'float'"))))
 
 (define (py-bitand-floatX-boolY-fallback x-54 y-55)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &: 'float' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &: 'float' and 'bool'"))))
 
 (define (py-bitand-floatX-strY-fallback x-56 y-57)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &: 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &: 'float' and 'str'"))))
 
 (define (py-bitand-floatX-sintY-fallback x-58 y-59)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &: 'float' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &: 'float' and 'int'"))))
 
 (define (py-bitand-floatX-bintY-fallback x-60 y-61)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &: 'float' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &: 'float' and 'int'"))))
 
 (define (py-bitand-boolX-floatY-fallback x-62 y-63)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &: 'bool' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &: 'bool' and 'float'"))))
 
 (define (py-bitand-boolX-boolY-fallback x-64 y-65)
   (if (py-test (py-is x-64 py-True)) y-65 py-False))
 
 (define (py-bitand-boolX-strY-fallback x-66 y-67)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &: 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &: 'bool' and 'str'"))))
 
 (define (py-bitand-boolX-sintY-fallback x-68 y-69)
   (py-int-from-scheme
@@ -3512,33 +3483,33 @@
 
 (define (py-bitand-strX-floatY-fallback x-72 y-73)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &: 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &: 'str' and 'float'"))))
 
 (define (py-bitand-strX-boolY-fallback x-74 y-75)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &: 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &: 'str' and 'bool'"))))
 
 (define (py-bitand-strX-strY-fallback x-76 y-77)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &: 'str' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &: 'str' and 'str'"))))
 
 (define (py-bitand-strX-sintY-fallback x-78 y-79)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &: 'str' and 'int'"))))
 
 (define (py-bitand-strX-bintY-fallback x-80 y-81)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &: 'str' and 'int'"))))
 
 (define (py-bitand-sintX-floatY-fallback x-82 y-83)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &: 'int' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &: 'int' and 'float'"))))
 
 (define (py-bitand-sintX-boolY-fallback x-84 y-85)
   (py-int-from-scheme
@@ -3546,8 +3517,8 @@
 
 (define (py-bitand-sintX-strY-fallback x-86 y-87)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &: 'int' and 'str'"))))
 
 (define (py-bitand-sintX-sintY-fallback x-88 y-89)
   (py-int-from-scheme (py& (py-sint-to-scheme x-88) (py-sint-to-scheme y-89))))
@@ -3557,8 +3528,8 @@
 
 (define (py-bitand-bintX-floatY-fallback x-92 y-93)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &: 'int' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &: 'int' and 'float'"))))
 
 (define (py-bitand-bintX-boolY-fallback x-94 y-95)
   (py-int-from-scheme
@@ -3566,8 +3537,8 @@
 
 (define (py-bitand-bintX-strY-fallback x-96 y-97)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &: 'int' and 'str'"))))
 
 (define (py-bitand-bintX-sintY-fallback x-98 y-99)
   (py-int-from-scheme (py& (py-bint-to-scheme x-98) (py-sint-to-scheme y-99))))
@@ -3578,41 +3549,41 @@
 
 (define (py-bitor-floatX-floatY-fallback x-102 y-103)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |: 'float' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |: 'float' and 'float'"))))
 
 (define (py-bitor-floatX-boolY-fallback x-104 y-105)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |: 'float' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |: 'float' and 'bool'"))))
 
 (define (py-bitor-floatX-strY-fallback x-106 y-107)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |: 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |: 'float' and 'str'"))))
 
 (define (py-bitor-floatX-sintY-fallback x-108 y-109)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |: 'float' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |: 'float' and 'int'"))))
 
 (define (py-bitor-floatX-bintY-fallback x-110 y-111)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |: 'float' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |: 'float' and 'int'"))))
 
 (define (py-bitor-boolX-floatY-fallback x-112 y-113)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |: 'bool' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |: 'bool' and 'float'"))))
 
 (define (py-bitor-boolX-boolY-fallback x-114 y-115)
   (if (py-test (py-is x-114 py-True)) py-True y-115))
 
 (define (py-bitor-boolX-strY-fallback x-116 y-117)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |: 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |: 'bool' and 'str'"))))
 
 (define (py-bitor-boolX-sintY-fallback x-118 y-119)
   (py-int-from-scheme
@@ -3624,33 +3595,33 @@
 
 (define (py-bitor-strX-floatY-fallback x-122 y-123)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |: 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |: 'str' and 'float'"))))
 
 (define (py-bitor-strX-boolY-fallback x-124 y-125)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |: 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |: 'str' and 'bool'"))))
 
 (define (py-bitor-strX-strY-fallback x-126 y-127)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |: 'str' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |: 'str' and 'str'"))))
 
 (define (py-bitor-strX-sintY-fallback x-128 y-129)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |: 'str' and 'int'"))))
 
 (define (py-bitor-strX-bintY-fallback x-130 y-131)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |: 'str' and 'int'"))))
 
 (define (py-bitor-sintX-floatY-fallback x-132 y-133)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |: 'int' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |: 'int' and 'float'"))))
 
 (define (py-bitor-sintX-boolY-fallback x-134 y-135)
   (py-int-from-scheme
@@ -3658,8 +3629,8 @@
 
 (define (py-bitor-sintX-strY-fallback x-136 y-137)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |: 'int' and 'str'"))))
 
 (define (py-bitor-sintX-sintY-fallback x-138 y-139)
   (py-int-from-scheme
@@ -3671,8 +3642,8 @@
 
 (define (py-bitor-bintX-floatY-fallback x-142 y-143)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |: 'int' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |: 'int' and 'float'"))))
 
 (define (py-bitor-bintX-boolY-fallback x-144 y-145)
   (py-int-from-scheme
@@ -3680,8 +3651,8 @@
 
 (define (py-bitor-bintX-strY-fallback x-146 y-147)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |: 'int' and 'str'"))))
 
 (define (py-bitor-bintX-sintY-fallback x-148 y-149)
   (py-int-from-scheme
@@ -3695,27 +3666,24 @@
   (if (py-test (py-ne y-153 (py-float-from-scheme 0.)))
       (py-float-from-scheme
        (py// (py-float-to-scheme x-152) (py-float-to-scheme y-153)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
 (define (py-floordiv-floatX-boolY-fallback x-154 y-155)
   (if (py-test (py-ne y-155 (py-int-from-scheme 0)))
       (py-float-from-scheme
        (py// (py-float-to-scheme x-154) (py-bool-to-scheme-int y-155)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
 (define (py-floordiv-floatX-strY-fallback x-156 y-157)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for //: 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for //: 'float' and 'str'"))))
 
 (define (py-floordiv-floatX-sintY-fallback x-158 y-159)
   (if (py-test (py-ne y-159 (py-int-from-scheme 0)))
       (py-float-from-scheme
        (py// (py-float-to-scheme x-158) (py-sint-to-scheme y-159)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
 (define (py-floordiv-floatX-bintY-fallback x-160 y-161)
   (py-float-from-scheme
@@ -3725,29 +3693,26 @@
   (if (py-test (py-ne y-163 (py-float-from-scheme 0.)))
       (py-float-from-scheme
        (py// (py-bool-to-scheme-int x-162) (py-float-to-scheme y-163)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
 (define (py-floordiv-boolX-boolY-fallback x-164 y-165)
   (if (py-test (py-ne y-165 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py// (py-bool-to-scheme-int x-164) (py-bool-to-scheme-int y-165)))
       (py-throw
-       (py-call py-builtin-ZeroDivisionError
-                (&& "integer division by zero")))))
+       (py-builtin-ZeroDivisionError (&& "integer division by zero")))))
 
 (define (py-floordiv-boolX-strY-fallback x-166 y-167)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for //: 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for //: 'bool' and 'str'"))))
 
 (define (py-floordiv-boolX-sintY-fallback x-168 y-169)
   (if (py-test (py-ne y-169 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py// (py-bool-to-scheme-int x-168) (py-sint-to-scheme y-169)))
       (py-throw
-       (py-call py-builtin-ZeroDivisionError
-                (&& "integer division by zero")))))
+       (py-builtin-ZeroDivisionError (&& "integer division by zero")))))
 
 (define (py-floordiv-boolX-bintY-fallback x-170 y-171)
   (py-int-from-scheme
@@ -3755,56 +3720,53 @@
 
 (define (py-floordiv-strX-floatY-fallback x-172 y-173)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for //: 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for //: 'str' and 'float'"))))
 
 (define (py-floordiv-strX-boolY-fallback x-174 y-175)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for //: 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for //: 'str' and 'bool'"))))
 
 (define (py-floordiv-strX-strY-fallback x-176 y-177)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for //: 'str' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for //: 'str' and 'str'"))))
 
 (define (py-floordiv-strX-sintY-fallback x-178 y-179)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for //: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for //: 'str' and 'int'"))))
 
 (define (py-floordiv-strX-bintY-fallback x-180 y-181)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for //: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for //: 'str' and 'int'"))))
 
 (define (py-floordiv-sintX-floatY-fallback x-182 y-183)
   (if (py-test (py-ne y-183 (py-float-from-scheme 0.)))
       (py-float-from-scheme
        (py// (py-sint-to-scheme x-182) (py-float-to-scheme y-183)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
 (define (py-floordiv-sintX-boolY-fallback x-184 y-185)
   (if (py-test (py-ne y-185 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py// (py-sint-to-scheme x-184) (py-bool-to-scheme-int y-185)))
       (py-throw
-       (py-call py-builtin-ZeroDivisionError
-                (&& "integer division by zero")))))
+       (py-builtin-ZeroDivisionError (&& "integer division by zero")))))
 
 (define (py-floordiv-sintX-strY-fallback x-186 y-187)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for //: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for //: 'int' and 'str'"))))
 
 (define (py-floordiv-sintX-sintY-fallback x-188 y-189)
   (if (py-test (py-ne y-189 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py// (py-sint-to-scheme x-188) (py-sint-to-scheme y-189)))
       (py-throw
-       (py-call py-builtin-ZeroDivisionError
-                (&& "integer division by zero")))))
+       (py-builtin-ZeroDivisionError (&& "integer division by zero")))))
 
 (define (py-floordiv-sintX-bintY-fallback x-190 y-191)
   (py-int-from-scheme
@@ -3814,29 +3776,26 @@
   (if (py-test (py-ne y-193 (py-float-from-scheme 0.)))
       (py-float-from-scheme
        (py// (py-bint-to-scheme x-192) (py-float-to-scheme y-193)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
 (define (py-floordiv-bintX-boolY-fallback x-194 y-195)
   (if (py-test (py-ne y-195 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py// (py-bint-to-scheme x-194) (py-bool-to-scheme-int y-195)))
       (py-throw
-       (py-call py-builtin-ZeroDivisionError
-                (&& "integer division by zero")))))
+       (py-builtin-ZeroDivisionError (&& "integer division by zero")))))
 
 (define (py-floordiv-bintX-strY-fallback x-196 y-197)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for //: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for //: 'int' and 'str'"))))
 
 (define (py-floordiv-bintX-sintY-fallback x-198 y-199)
   (if (py-test (py-ne y-199 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py// (py-bint-to-scheme x-198) (py-sint-to-scheme y-199)))
       (py-throw
-       (py-call py-builtin-ZeroDivisionError
-                (&& "integer division by zero")))))
+       (py-builtin-ZeroDivisionError (&& "integer division by zero")))))
 
 (define (py-floordiv-bintX-bintY-fallback x-200 y-201)
   (py-int-from-scheme
@@ -3844,288 +3803,285 @@
 
 (define (py-lshift-floatX-floatY-fallback x-202 y-203)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<: 'float' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<: 'float' and 'float'"))))
 
 (define (py-lshift-floatX-boolY-fallback x-204 y-205)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<: 'float' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<: 'float' and 'bool'"))))
 
 (define (py-lshift-floatX-strY-fallback x-206 y-207)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<: 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<: 'float' and 'str'"))))
 
 (define (py-lshift-floatX-sintY-fallback x-208 y-209)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<: 'float' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<: 'float' and 'int'"))))
 
 (define (py-lshift-floatX-bintY-fallback x-210 y-211)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<: 'float' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<: 'float' and 'int'"))))
 
 (define (py-lshift-boolX-floatY-fallback x-212 y-213)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<: 'bool' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<: 'bool' and 'float'"))))
 
 (define (py-lshift-boolX-boolY-fallback x-214 y-215)
   (if (py-test (py-ge y-215 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py<< (py-bool-to-scheme-int x-214) (py-bool-to-scheme-int y-215)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-lshift-boolX-strY-fallback x-216 y-217)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<: 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<: 'bool' and 'str'"))))
 
 (define (py-lshift-boolX-sintY-fallback x-218 y-219)
   (if (py-test (py-ge y-219 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py<< (py-bool-to-scheme-int x-218) (py-sint-to-scheme y-219)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-lshift-boolX-bintY-fallback x-220 y-221)
   (if (py-test (py-ge y-221 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py<< (py-bool-to-scheme-int x-220) (py-bint-to-scheme y-221)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-lshift-strX-floatY-fallback x-222 y-223)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<: 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<: 'str' and 'float'"))))
 
 (define (py-lshift-strX-boolY-fallback x-224 y-225)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<: 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<: 'str' and 'bool'"))))
 
 (define (py-lshift-strX-strY-fallback x-226 y-227)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<: 'str' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<: 'str' and 'str'"))))
 
 (define (py-lshift-strX-sintY-fallback x-228 y-229)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<: 'str' and 'int'"))))
 
 (define (py-lshift-strX-bintY-fallback x-230 y-231)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<: 'str' and 'int'"))))
 
 (define (py-lshift-sintX-floatY-fallback x-232 y-233)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<: 'int' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<: 'int' and 'float'"))))
 
 (define (py-lshift-sintX-boolY-fallback x-234 y-235)
   (if (py-test (py-ge y-235 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py<< (py-sint-to-scheme x-234) (py-bool-to-scheme-int y-235)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-lshift-sintX-strY-fallback x-236 y-237)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<: 'int' and 'str'"))))
 
 (define (py-lshift-sintX-sintY-fallback x-238 y-239)
   (if (py-test (py-ge y-239 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py<< (py-sint-to-scheme x-238) (py-sint-to-scheme y-239)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-lshift-sintX-bintY-fallback x-240 y-241)
   (if (py-test (py-ge y-241 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py<< (py-sint-to-scheme x-240) (py-bint-to-scheme y-241)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-lshift-bintX-floatY-fallback x-242 y-243)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<: 'int' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<: 'int' and 'float'"))))
 
 (define (py-lshift-bintX-boolY-fallback x-244 y-245)
   (if (py-test (py-ge y-245 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py<< (py-bint-to-scheme x-244) (py-bool-to-scheme-int y-245)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-lshift-bintX-strY-fallback x-246 y-247)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<: 'int' and 'str'"))))
 
 (define (py-lshift-bintX-sintY-fallback x-248 y-249)
   (if (py-test (py-ge y-249 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py<< (py-bint-to-scheme x-248) (py-sint-to-scheme y-249)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-lshift-bintX-bintY-fallback x-250 y-251)
   (if (py-test (py-ge y-251 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py<< (py-bint-to-scheme x-250) (py-bint-to-scheme y-251)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-matmul-floatX-floatY-fallback x-252 y-253)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'float' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @: 'float' and 'float'"))))
 
 (define (py-matmul-floatX-boolY-fallback x-254 y-255)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'float' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @: 'float' and 'bool'"))))
 
 (define (py-matmul-floatX-strY-fallback x-256 y-257)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @: 'float' and 'str'"))))
 
 (define (py-matmul-floatX-sintY-fallback x-258 y-259)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'float' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @: 'float' and 'int'"))))
 
 (define (py-matmul-floatX-bintY-fallback x-260 y-261)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'float' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @: 'float' and 'int'"))))
 
 (define (py-matmul-boolX-floatY-fallback x-262 y-263)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'bool' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @: 'bool' and 'float'"))))
 
 (define (py-matmul-boolX-boolY-fallback x-264 y-265)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'bool' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @: 'bool' and 'bool'"))))
 
 (define (py-matmul-boolX-strY-fallback x-266 y-267)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @: 'bool' and 'str'"))))
 
 (define (py-matmul-boolX-sintY-fallback x-268 y-269)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'bool' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @: 'bool' and 'int'"))))
 
 (define (py-matmul-boolX-bintY-fallback x-270 y-271)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'bool' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @: 'bool' and 'int'"))))
 
 (define (py-matmul-strX-floatY-fallback x-272 y-273)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @: 'str' and 'float'"))))
 
 (define (py-matmul-strX-boolY-fallback x-274 y-275)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @: 'str' and 'bool'"))))
 
 (define (py-matmul-strX-strY-fallback x-276 y-277)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'str' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @: 'str' and 'str'"))))
 
 (define (py-matmul-strX-sintY-fallback x-278 y-279)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @: 'str' and 'int'"))))
 
 (define (py-matmul-strX-bintY-fallback x-280 y-281)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @: 'str' and 'int'"))))
 
 (define (py-matmul-sintX-floatY-fallback x-282 y-283)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'int' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @: 'int' and 'float'"))))
 
 (define (py-matmul-sintX-boolY-fallback x-284 y-285)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'int' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @: 'int' and 'bool'"))))
 
 (define (py-matmul-sintX-strY-fallback x-286 y-287)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @: 'int' and 'str'"))))
 
 (define (py-matmul-sintX-sintY-fallback x-288 y-289)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'int' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @: 'int' and 'int'"))))
 
 (define (py-matmul-sintX-bintY-fallback x-290 y-291)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'int' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @: 'int' and 'int'"))))
 
 (define (py-matmul-bintX-floatY-fallback x-292 y-293)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'int' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @: 'int' and 'float'"))))
 
 (define (py-matmul-bintX-boolY-fallback x-294 y-295)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'int' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @: 'int' and 'bool'"))))
 
 (define (py-matmul-bintX-strY-fallback x-296 y-297)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @: 'int' and 'str'"))))
 
 (define (py-matmul-bintX-sintY-fallback x-298 y-299)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'int' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @: 'int' and 'int'"))))
 
 (define (py-matmul-bintX-bintY-fallback x-300 y-301)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @: 'int' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @: 'int' and 'int'"))))
 
 (define (py-mod-floatX-floatY-fallback x-302 y-303)
   (if (py-test (py-ne y-303 (py-float-from-scheme 0.)))
       (py-float-from-scheme
        (py% (py-float-to-scheme x-302) (py-float-to-scheme y-303)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float modulo by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float modulo by zero")))))
 
 (define (py-mod-floatX-boolY-fallback x-304 y-305)
   (if (py-test (py-ne y-305 (py-int-from-scheme 0)))
       (py-float-from-scheme
        (py% (py-float-to-scheme x-304) (py-bool-to-scheme-int y-305)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float modulo by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float modulo by zero")))))
 
 (define (py-mod-floatX-strY-fallback x-306 y-307)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for %: 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for %: 'float' and 'str'"))))
 
 (define (py-mod-floatX-sintY-fallback x-308 y-309)
   (if (py-test (py-ne y-309 (py-int-from-scheme 0)))
       (py-float-from-scheme
        (py% (py-float-to-scheme x-308) (py-sint-to-scheme y-309)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float modulo by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float modulo by zero")))))
 
 (define (py-mod-floatX-bintY-fallback x-310 y-311)
   (py-float-from-scheme
@@ -4135,25 +4091,24 @@
   (if (py-test (py-ne y-313 (py-float-from-scheme 0.)))
       (py-float-from-scheme
        (py% (py-bool-to-scheme-int x-312) (py-float-to-scheme y-313)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float modulo by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float modulo by zero")))))
 
 (define (py-mod-boolX-boolY-fallback x-314 y-315)
   (if (py-test (py-ne y-315 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py% (py-bool-to-scheme-int x-314) (py-bool-to-scheme-int y-315)))
-      (py-throw (py-call py-builtin-ZeroDivisionError (&& "modulo by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "modulo by zero")))))
 
 (define (py-mod-boolX-strY-fallback x-316 y-317)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for %: 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for %: 'bool' and 'str'"))))
 
 (define (py-mod-boolX-sintY-fallback x-318 y-319)
   (if (py-test (py-ne y-319 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py% (py-bool-to-scheme-int x-318) (py-sint-to-scheme y-319)))
-      (py-throw (py-call py-builtin-ZeroDivisionError (&& "modulo by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "modulo by zero")))))
 
 (define (py-mod-boolX-bintY-fallback x-320 y-321)
   (py-int-from-scheme
@@ -4161,52 +4116,51 @@
 
 (define (py-mod-strX-floatY-fallback x-322 y-323)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for %: 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for %: 'str' and 'float'"))))
 
 (define (py-mod-strX-boolY-fallback x-324 y-325)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for %: 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for %: 'str' and 'bool'"))))
 
 (define (py-mod-strX-strY-fallback x-326 y-327)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for %: 'str' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for %: 'str' and 'str'"))))
 
 (define (py-mod-strX-sintY-fallback x-328 y-329)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for %: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for %: 'str' and 'int'"))))
 
 (define (py-mod-strX-bintY-fallback x-330 y-331)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for %: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for %: 'str' and 'int'"))))
 
 (define (py-mod-sintX-floatY-fallback x-332 y-333)
   (if (py-test (py-ne y-333 (py-float-from-scheme 0.)))
       (py-float-from-scheme
        (py% (py-sint-to-scheme x-332) (py-float-to-scheme y-333)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float modulo by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float modulo by zero")))))
 
 (define (py-mod-sintX-boolY-fallback x-334 y-335)
   (if (py-test (py-ne y-335 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py% (py-sint-to-scheme x-334) (py-bool-to-scheme-int y-335)))
-      (py-throw (py-call py-builtin-ZeroDivisionError (&& "modulo by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "modulo by zero")))))
 
 (define (py-mod-sintX-strY-fallback x-336 y-337)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for %: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for %: 'int' and 'str'"))))
 
 (define (py-mod-sintX-sintY-fallback x-338 y-339)
   (if (py-test (py-ne y-339 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py% (py-sint-to-scheme x-338) (py-sint-to-scheme y-339)))
-      (py-throw (py-call py-builtin-ZeroDivisionError (&& "modulo by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "modulo by zero")))))
 
 (define (py-mod-sintX-bintY-fallback x-340 y-341)
   (py-int-from-scheme
@@ -4216,25 +4170,24 @@
   (if (py-test (py-ne y-343 (py-float-from-scheme 0.)))
       (py-float-from-scheme
        (py% (py-bint-to-scheme x-342) (py-float-to-scheme y-343)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float modulo by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float modulo by zero")))))
 
 (define (py-mod-bintX-boolY-fallback x-344 y-345)
   (if (py-test (py-ne y-345 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py% (py-bint-to-scheme x-344) (py-bool-to-scheme-int y-345)))
-      (py-throw (py-call py-builtin-ZeroDivisionError (&& "modulo by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "modulo by zero")))))
 
 (define (py-mod-bintX-strY-fallback x-346 y-347)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for %: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for %: 'int' and 'str'"))))
 
 (define (py-mod-bintX-sintY-fallback x-348 y-349)
   (if (py-test (py-ne y-349 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py% (py-bint-to-scheme x-348) (py-sint-to-scheme y-349)))
-      (py-throw (py-call py-builtin-ZeroDivisionError (&& "modulo by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "modulo by zero")))))
 
 (define (py-mod-bintX-bintY-fallback x-350 y-351)
   (py-int-from-scheme
@@ -4250,8 +4203,8 @@
 
 (define (py-mul-floatX-strY-fallback x-356 y-357)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for *: 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for *: 'float' and 'str'"))))
 
 (define (py-mul-floatX-sintY-fallback x-358 y-359)
   (py-float-from-scheme
@@ -4283,8 +4236,8 @@
 
 (define (py-mul-strX-floatY-fallback x-372 y-373)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for *: 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for *: 'str' and 'float'"))))
 
 (define (py-mul-strX-boolY-fallback x-374 y-375)
   (py-str-from-scheme
@@ -4292,8 +4245,8 @@
 
 (define (py-mul-strX-strY-fallback x-376 y-377)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for *: 'str' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for *: 'str' and 'str'"))))
 
 (define (py-mul-strX-sintY-fallback x-378 y-379)
   (py-str-from-scheme
@@ -4353,8 +4306,8 @@
 
 (define (py-pow-floatX-strY-fallback x-406 y-407)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for **: 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for **: 'float' and 'str'"))))
 
 (define (py-pow-floatX-sintY-fallback x-408 y-409)
   (py-float-from-scheme
@@ -4374,8 +4327,8 @@
 
 (define (py-pow-boolX-strY-fallback x-416 y-417)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for **: 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for **: 'bool' and 'str'"))))
 
 (define (py-pow-boolX-sintY-fallback x-418 y-419)
   (py-int-from-scheme
@@ -4387,28 +4340,28 @@
 
 (define (py-pow-strX-floatY-fallback x-422 y-423)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for **: 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for **: 'str' and 'float'"))))
 
 (define (py-pow-strX-boolY-fallback x-424 y-425)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for **: 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for **: 'str' and 'bool'"))))
 
 (define (py-pow-strX-strY-fallback x-426 y-427)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for **: 'str' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for **: 'str' and 'str'"))))
 
 (define (py-pow-strX-sintY-fallback x-428 y-429)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for **: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for **: 'str' and 'int'"))))
 
 (define (py-pow-strX-bintY-fallback x-430 y-431)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for **: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for **: 'str' and 'int'"))))
 
 (define (py-pow-sintX-floatY-fallback x-432 y-433)
   (py-float-from-scheme
@@ -4420,8 +4373,8 @@
 
 (define (py-pow-sintX-strY-fallback x-436 y-437)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for **: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for **: 'int' and 'str'"))))
 
 (define (py-pow-sintX-sintY-fallback x-438 y-439)
   (py-int-from-scheme
@@ -4441,8 +4394,8 @@
 
 (define (py-pow-bintX-strY-fallback x-446 y-447)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for **: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for **: 'int' and 'str'"))))
 
 (define (py-pow-bintX-sintY-fallback x-448 y-449)
   (py-int-from-scheme
@@ -4454,137 +4407,137 @@
 
 (define (py-rshift-floatX-floatY-fallback x-452 y-453)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>: 'float' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>: 'float' and 'float'"))))
 
 (define (py-rshift-floatX-boolY-fallback x-454 y-455)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>: 'float' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>: 'float' and 'bool'"))))
 
 (define (py-rshift-floatX-strY-fallback x-456 y-457)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>: 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>: 'float' and 'str'"))))
 
 (define (py-rshift-floatX-sintY-fallback x-458 y-459)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>: 'float' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>: 'float' and 'int'"))))
 
 (define (py-rshift-floatX-bintY-fallback x-460 y-461)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>: 'float' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>: 'float' and 'int'"))))
 
 (define (py-rshift-boolX-floatY-fallback x-462 y-463)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>: 'bool' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>: 'bool' and 'float'"))))
 
 (define (py-rshift-boolX-boolY-fallback x-464 y-465)
   (if (py-test (py-ge y-465 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py>> (py-bool-to-scheme-int x-464) (py-bool-to-scheme-int y-465)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-rshift-boolX-strY-fallback x-466 y-467)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>: 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>: 'bool' and 'str'"))))
 
 (define (py-rshift-boolX-sintY-fallback x-468 y-469)
   (if (py-test (py-ge y-469 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py>> (py-bool-to-scheme-int x-468) (py-sint-to-scheme y-469)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-rshift-boolX-bintY-fallback x-470 y-471)
   (if (py-test (py-ge y-471 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py>> (py-bool-to-scheme-int x-470) (py-bint-to-scheme y-471)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-rshift-strX-floatY-fallback x-472 y-473)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>: 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>: 'str' and 'float'"))))
 
 (define (py-rshift-strX-boolY-fallback x-474 y-475)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>: 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>: 'str' and 'bool'"))))
 
 (define (py-rshift-strX-strY-fallback x-476 y-477)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>: 'str' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>: 'str' and 'str'"))))
 
 (define (py-rshift-strX-sintY-fallback x-478 y-479)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>: 'str' and 'int'"))))
 
 (define (py-rshift-strX-bintY-fallback x-480 y-481)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>: 'str' and 'int'"))))
 
 (define (py-rshift-sintX-floatY-fallback x-482 y-483)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>: 'int' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>: 'int' and 'float'"))))
 
 (define (py-rshift-sintX-boolY-fallback x-484 y-485)
   (if (py-test (py-ge y-485 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py>> (py-sint-to-scheme x-484) (py-bool-to-scheme-int y-485)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-rshift-sintX-strY-fallback x-486 y-487)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>: 'int' and 'str'"))))
 
 (define (py-rshift-sintX-sintY-fallback x-488 y-489)
   (if (py-test (py-ge y-489 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py>> (py-sint-to-scheme x-488) (py-sint-to-scheme y-489)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-rshift-sintX-bintY-fallback x-490 y-491)
   (if (py-test (py-ge y-491 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py>> (py-sint-to-scheme x-490) (py-bint-to-scheme y-491)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-rshift-bintX-floatY-fallback x-492 y-493)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>: 'int' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>: 'int' and 'float'"))))
 
 (define (py-rshift-bintX-boolY-fallback x-494 y-495)
   (if (py-test (py-ge y-495 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py>> (py-bint-to-scheme x-494) (py-bool-to-scheme-int y-495)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-rshift-bintX-strY-fallback x-496 y-497)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>: 'int' and 'str'"))))
 
 (define (py-rshift-bintX-sintY-fallback x-498 y-499)
   (if (py-test (py-ge y-499 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py>> (py-bint-to-scheme x-498) (py-sint-to-scheme y-499)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-rshift-bintX-bintY-fallback x-500 y-501)
   (if (py-test (py-ge y-501 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py>> (py-bint-to-scheme x-500) (py-bint-to-scheme y-501)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-sub-floatX-floatY-fallback x-502 y-503)
   (py-float-from-scheme
@@ -4596,8 +4549,8 @@
 
 (define (py-sub-floatX-strY-fallback x-506 y-507)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for -: 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for -: 'float' and 'str'"))))
 
 (define (py-sub-floatX-sintY-fallback x-508 y-509)
   (py-float-from-scheme
@@ -4617,8 +4570,8 @@
 
 (define (py-sub-boolX-strY-fallback x-516 y-517)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for -: 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for -: 'bool' and 'str'"))))
 
 (define (py-sub-boolX-sintY-fallback x-518 y-519)
   (py-int-from-scheme
@@ -4630,28 +4583,28 @@
 
 (define (py-sub-strX-floatY-fallback x-522 y-523)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for -: 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for -: 'str' and 'float'"))))
 
 (define (py-sub-strX-boolY-fallback x-524 y-525)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for -: 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for -: 'str' and 'bool'"))))
 
 (define (py-sub-strX-strY-fallback x-526 y-527)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for -: 'str' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for -: 'str' and 'str'"))))
 
 (define (py-sub-strX-sintY-fallback x-528 y-529)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for -: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for -: 'str' and 'int'"))))
 
 (define (py-sub-strX-bintY-fallback x-530 y-531)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for -: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for -: 'str' and 'int'"))))
 
 (define (py-sub-sintX-floatY-fallback x-532 y-533)
   (py-float-from-scheme
@@ -4663,8 +4616,8 @@
 
 (define (py-sub-sintX-strY-fallback x-536 y-537)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for -: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for -: 'int' and 'str'"))))
 
 (define (py-sub-sintX-sintY-fallback x-538 y-539)
   (py-int-from-scheme
@@ -4684,8 +4637,8 @@
 
 (define (py-sub-bintX-strY-fallback x-546 y-547)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for -: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for -: 'int' and 'str'"))))
 
 (define (py-sub-bintX-sintY-fallback x-548 y-549)
   (py-int-from-scheme
@@ -4699,27 +4652,24 @@
   (if (py-test (py-ne y-553 (py-float-from-scheme 0.)))
       (py-float-from-scheme
        (py/ (py-float-to-scheme x-552) (py-float-to-scheme y-553)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
 (define (py-truediv-floatX-boolY-fallback x-554 y-555)
   (if (py-test (py-ne y-555 (py-int-from-scheme 0)))
       (py-float-from-scheme
        (py/ (py-float-to-scheme x-554) (py-bool-to-scheme-int y-555)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
 (define (py-truediv-floatX-strY-fallback x-556 y-557)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for /: 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for /: 'float' and 'str'"))))
 
 (define (py-truediv-floatX-sintY-fallback x-558 y-559)
   (if (py-test (py-ne y-559 (py-int-from-scheme 0)))
       (py-float-from-scheme
        (py/ (py-float-to-scheme x-558) (py-sint-to-scheme y-559)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
 (define (py-truediv-floatX-bintY-fallback x-560 y-561)
   (py-float-from-scheme
@@ -4729,27 +4679,24 @@
   (if (py-test (py-ne y-563 (py-float-from-scheme 0.)))
       (py-float-from-scheme
        (py/ (py-bool-to-scheme-int x-562) (py-float-to-scheme y-563)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
 (define (py-truediv-boolX-boolY-fallback x-564 y-565)
   (if (py-test (py-ne y-565 (py-int-from-scheme 0)))
       (py-float-from-scheme
        (py/ (py-bool-to-scheme-int x-564) (py-bool-to-scheme-int y-565)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-truediv-boolX-strY-fallback x-566 y-567)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for /: 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for /: 'bool' and 'str'"))))
 
 (define (py-truediv-boolX-sintY-fallback x-568 y-569)
   (if (py-test (py-ne y-569 (py-int-from-scheme 0)))
       (py-float-from-scheme
        (py/ (py-bool-to-scheme-int x-568) (py-sint-to-scheme y-569)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-truediv-boolX-bintY-fallback x-570 y-571)
   (py-float-from-scheme
@@ -4757,54 +4704,51 @@
 
 (define (py-truediv-strX-floatY-fallback x-572 y-573)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for /: 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for /: 'str' and 'float'"))))
 
 (define (py-truediv-strX-boolY-fallback x-574 y-575)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for /: 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for /: 'str' and 'bool'"))))
 
 (define (py-truediv-strX-strY-fallback x-576 y-577)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for /: 'str' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for /: 'str' and 'str'"))))
 
 (define (py-truediv-strX-sintY-fallback x-578 y-579)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for /: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for /: 'str' and 'int'"))))
 
 (define (py-truediv-strX-bintY-fallback x-580 y-581)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for /: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for /: 'str' and 'int'"))))
 
 (define (py-truediv-sintX-floatY-fallback x-582 y-583)
   (if (py-test (py-ne y-583 (py-float-from-scheme 0.)))
       (py-float-from-scheme
        (py/ (py-sint-to-scheme x-582) (py-float-to-scheme y-583)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
 (define (py-truediv-sintX-boolY-fallback x-584 y-585)
   (if (py-test (py-ne y-585 (py-int-from-scheme 0)))
       (py-float-from-scheme
        (py/ (py-sint-to-scheme x-584) (py-bool-to-scheme-int y-585)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-truediv-sintX-strY-fallback x-586 y-587)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for /: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for /: 'int' and 'str'"))))
 
 (define (py-truediv-sintX-sintY-fallback x-588 y-589)
   (if (py-test (py-ne y-589 (py-int-from-scheme 0)))
       (py-float-from-scheme
        (py/ (py-sint-to-scheme x-588) (py-sint-to-scheme y-589)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-truediv-sintX-bintY-fallback x-590 y-591)
   (py-float-from-scheme
@@ -4814,27 +4758,24 @@
   (if (py-test (py-ne y-593 (py-float-from-scheme 0.)))
       (py-float-from-scheme
        (py/ (py-bint-to-scheme x-592) (py-float-to-scheme y-593)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
 (define (py-truediv-bintX-boolY-fallback x-594 y-595)
   (if (py-test (py-ne y-595 (py-int-from-scheme 0)))
       (py-float-from-scheme
        (py/ (py-bint-to-scheme x-594) (py-bool-to-scheme-int y-595)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-truediv-bintX-strY-fallback x-596 y-597)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for /: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for /: 'int' and 'str'"))))
 
 (define (py-truediv-bintX-sintY-fallback x-598 y-599)
   (if (py-test (py-ne y-599 (py-int-from-scheme 0)))
       (py-float-from-scheme
        (py/ (py-bint-to-scheme x-598) (py-sint-to-scheme y-599)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-truediv-bintX-bintY-fallback x-600 y-601)
   (py-float-from-scheme
@@ -4842,40 +4783,40 @@
 
 (define (py-xor-floatX-floatY-fallback x-602 y-603)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^: 'float' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^: 'float' and 'float'"))))
 
 (define (py-xor-floatX-boolY-fallback x-604 y-605)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^: 'float' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^: 'float' and 'bool'"))))
 
 (define (py-xor-floatX-strY-fallback x-606 y-607)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^: 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^: 'float' and 'str'"))))
 
 (define (py-xor-floatX-sintY-fallback x-608 y-609)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^: 'float' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^: 'float' and 'int'"))))
 
 (define (py-xor-floatX-bintY-fallback x-610 y-611)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^: 'float' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^: 'float' and 'int'"))))
 
 (define (py-xor-boolX-floatY-fallback x-612 y-613)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^: 'bool' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^: 'bool' and 'float'"))))
 
 (define (py-xor-boolX-boolY-fallback x-614 y-615) (py-isnot x-614 y-615))
 
 (define (py-xor-boolX-strY-fallback x-616 y-617)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^: 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^: 'bool' and 'str'"))))
 
 (define (py-xor-boolX-sintY-fallback x-618 y-619)
   (py-int-from-scheme
@@ -4887,33 +4828,33 @@
 
 (define (py-xor-strX-floatY-fallback x-622 y-623)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^: 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^: 'str' and 'float'"))))
 
 (define (py-xor-strX-boolY-fallback x-624 y-625)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^: 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^: 'str' and 'bool'"))))
 
 (define (py-xor-strX-strY-fallback x-626 y-627)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^: 'str' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^: 'str' and 'str'"))))
 
 (define (py-xor-strX-sintY-fallback x-628 y-629)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^: 'str' and 'int'"))))
 
 (define (py-xor-strX-bintY-fallback x-630 y-631)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^: 'str' and 'int'"))))
 
 (define (py-xor-sintX-floatY-fallback x-632 y-633)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^: 'int' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^: 'int' and 'float'"))))
 
 (define (py-xor-sintX-boolY-fallback x-634 y-635)
   (py-int-from-scheme
@@ -4921,8 +4862,8 @@
 
 (define (py-xor-sintX-strY-fallback x-636 y-637)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^: 'int' and 'str'"))))
 
 (define (py-xor-sintX-sintY-fallback x-638 y-639)
   (py-int-from-scheme
@@ -4934,8 +4875,8 @@
 
 (define (py-xor-bintX-floatY-fallback x-642 y-643)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^: 'int' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^: 'int' and 'float'"))))
 
 (define (py-xor-bintX-boolY-fallback x-644 y-645)
   (py-int-from-scheme
@@ -4943,8 +4884,8 @@
 
 (define (py-xor-bintX-strY-fallback x-646 y-647)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^: 'int' and 'str'"))))
 
 (define (py-xor-bintX-sintY-fallback x-648 y-649)
   (py-int-from-scheme
@@ -4964,8 +4905,8 @@
 
 (define (py-iadd-floatX-strY-fallback x-656 y-657)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for +=: 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for +=: 'float' and 'str'"))))
 
 (define (py-iadd-floatX-sintY-fallback x-658 y-659)
   (py-float-from-scheme
@@ -4985,8 +4926,8 @@
 
 (define (py-iadd-boolX-strY-fallback x-666 y-667)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for +=: 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for +=: 'bool' and 'str'"))))
 
 (define (py-iadd-boolX-sintY-fallback x-668 y-669)
   (py-int-from-scheme
@@ -4998,26 +4939,26 @@
 
 (define (py-iadd-strX-floatY-fallback x-672 y-673)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for +=: 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for +=: 'str' and 'float'"))))
 
 (define (py-iadd-strX-boolY-fallback x-674 y-675)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for +=: 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for +=: 'str' and 'bool'"))))
 
 (define (py-iadd-strX-strY-fallback x-676 y-677)
   (py-str-from-scheme (py+ (py-str-to-scheme x-676) (py-str-to-scheme y-677))))
 
 (define (py-iadd-strX-sintY-fallback x-678 y-679)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for +=: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for +=: 'str' and 'int'"))))
 
 (define (py-iadd-strX-bintY-fallback x-680 y-681)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for +=: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for +=: 'str' and 'int'"))))
 
 (define (py-iadd-sintX-floatY-fallback x-682 y-683)
   (py-float-from-scheme
@@ -5029,8 +4970,8 @@
 
 (define (py-iadd-sintX-strY-fallback x-686 y-687)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for +=: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for +=: 'int' and 'str'"))))
 
 (define (py-iadd-sintX-sintY-fallback x-688 y-689)
   (py-int-from-scheme
@@ -5050,8 +4991,8 @@
 
 (define (py-iadd-bintX-strY-fallback x-696 y-697)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for +=: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for +=: 'int' and 'str'"))))
 
 (define (py-iadd-bintX-sintY-fallback x-698 y-699)
   (py-int-from-scheme
@@ -5063,33 +5004,33 @@
 
 (define (py-ibitand-floatX-floatY-fallback x-702 y-703)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &=: 'float' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &=: 'float' and 'float'"))))
 
 (define (py-ibitand-floatX-boolY-fallback x-704 y-705)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &=: 'float' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &=: 'float' and 'bool'"))))
 
 (define (py-ibitand-floatX-strY-fallback x-706 y-707)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &=: 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &=: 'float' and 'str'"))))
 
 (define (py-ibitand-floatX-sintY-fallback x-708 y-709)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &=: 'float' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &=: 'float' and 'int'"))))
 
 (define (py-ibitand-floatX-bintY-fallback x-710 y-711)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &=: 'float' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &=: 'float' and 'int'"))))
 
 (define (py-ibitand-boolX-floatY-fallback x-712 y-713)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &=: 'bool' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &=: 'bool' and 'float'"))))
 
 (define (py-ibitand-boolX-boolY-fallback x-714 y-715)
   (py-int-from-scheme
@@ -5097,8 +5038,8 @@
 
 (define (py-ibitand-boolX-strY-fallback x-716 y-717)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &=: 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &=: 'bool' and 'str'"))))
 
 (define (py-ibitand-boolX-sintY-fallback x-718 y-719)
   (py-int-from-scheme
@@ -5110,33 +5051,33 @@
 
 (define (py-ibitand-strX-floatY-fallback x-722 y-723)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &=: 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &=: 'str' and 'float'"))))
 
 (define (py-ibitand-strX-boolY-fallback x-724 y-725)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &=: 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &=: 'str' and 'bool'"))))
 
 (define (py-ibitand-strX-strY-fallback x-726 y-727)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &=: 'str' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &=: 'str' and 'str'"))))
 
 (define (py-ibitand-strX-sintY-fallback x-728 y-729)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &=: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &=: 'str' and 'int'"))))
 
 (define (py-ibitand-strX-bintY-fallback x-730 y-731)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &=: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &=: 'str' and 'int'"))))
 
 (define (py-ibitand-sintX-floatY-fallback x-732 y-733)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &=: 'int' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &=: 'int' and 'float'"))))
 
 (define (py-ibitand-sintX-boolY-fallback x-734 y-735)
   (py-int-from-scheme
@@ -5144,8 +5085,8 @@
 
 (define (py-ibitand-sintX-strY-fallback x-736 y-737)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &=: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &=: 'int' and 'str'"))))
 
 (define (py-ibitand-sintX-sintY-fallback x-738 y-739)
   (py-int-from-scheme
@@ -5157,8 +5098,8 @@
 
 (define (py-ibitand-bintX-floatY-fallback x-742 y-743)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &=: 'int' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &=: 'int' and 'float'"))))
 
 (define (py-ibitand-bintX-boolY-fallback x-744 y-745)
   (py-int-from-scheme
@@ -5166,8 +5107,8 @@
 
 (define (py-ibitand-bintX-strY-fallback x-746 y-747)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for &=: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for &=: 'int' and 'str'"))))
 
 (define (py-ibitand-bintX-sintY-fallback x-748 y-749)
   (py-int-from-scheme
@@ -5179,33 +5120,33 @@
 
 (define (py-ibitor-floatX-floatY-fallback x-752 y-753)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |=: 'float' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |=: 'float' and 'float'"))))
 
 (define (py-ibitor-floatX-boolY-fallback x-754 y-755)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |=: 'float' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |=: 'float' and 'bool'"))))
 
 (define (py-ibitor-floatX-strY-fallback x-756 y-757)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |=: 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |=: 'float' and 'str'"))))
 
 (define (py-ibitor-floatX-sintY-fallback x-758 y-759)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |=: 'float' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |=: 'float' and 'int'"))))
 
 (define (py-ibitor-floatX-bintY-fallback x-760 y-761)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |=: 'float' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |=: 'float' and 'int'"))))
 
 (define (py-ibitor-boolX-floatY-fallback x-762 y-763)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |=: 'bool' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |=: 'bool' and 'float'"))))
 
 (define (py-ibitor-boolX-boolY-fallback x-764 y-765)
   (py-int-from-scheme
@@ -5213,8 +5154,8 @@
 
 (define (py-ibitor-boolX-strY-fallback x-766 y-767)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |=: 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |=: 'bool' and 'str'"))))
 
 (define (py-ibitor-boolX-sintY-fallback x-768 y-769)
   (py-int-from-scheme
@@ -5226,33 +5167,33 @@
 
 (define (py-ibitor-strX-floatY-fallback x-772 y-773)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |=: 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |=: 'str' and 'float'"))))
 
 (define (py-ibitor-strX-boolY-fallback x-774 y-775)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |=: 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |=: 'str' and 'bool'"))))
 
 (define (py-ibitor-strX-strY-fallback x-776 y-777)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |=: 'str' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |=: 'str' and 'str'"))))
 
 (define (py-ibitor-strX-sintY-fallback x-778 y-779)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |=: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |=: 'str' and 'int'"))))
 
 (define (py-ibitor-strX-bintY-fallback x-780 y-781)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |=: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |=: 'str' and 'int'"))))
 
 (define (py-ibitor-sintX-floatY-fallback x-782 y-783)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |=: 'int' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |=: 'int' and 'float'"))))
 
 (define (py-ibitor-sintX-boolY-fallback x-784 y-785)
   (py-int-from-scheme
@@ -5260,8 +5201,8 @@
 
 (define (py-ibitor-sintX-strY-fallback x-786 y-787)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |=: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |=: 'int' and 'str'"))))
 
 (define (py-ibitor-sintX-sintY-fallback x-788 y-789)
   (py-int-from-scheme
@@ -5273,8 +5214,8 @@
 
 (define (py-ibitor-bintX-floatY-fallback x-792 y-793)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |=: 'int' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |=: 'int' and 'float'"))))
 
 (define (py-ibitor-bintX-boolY-fallback x-794 y-795)
   (py-int-from-scheme
@@ -5282,8 +5223,8 @@
 
 (define (py-ibitor-bintX-strY-fallback x-796 y-797)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for |=: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for |=: 'int' and 'str'"))))
 
 (define (py-ibitor-bintX-sintY-fallback x-798 y-799)
   (py-int-from-scheme
@@ -5297,27 +5238,24 @@
   (if (py-test (py-ne y-803 (py-float-from-scheme 0.)))
       (py-float-from-scheme
        (py// (py-float-to-scheme x-802) (py-float-to-scheme y-803)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
 (define (py-ifloordiv-floatX-boolY-fallback x-804 y-805)
   (if (py-test (py-ne y-805 (py-int-from-scheme 0)))
       (py-float-from-scheme
        (py// (py-float-to-scheme x-804) (py-bool-to-scheme-int y-805)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
 (define (py-ifloordiv-floatX-strY-fallback x-806 y-807)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for //=: 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for //=: 'float' and 'str'"))))
 
 (define (py-ifloordiv-floatX-sintY-fallback x-808 y-809)
   (if (py-test (py-ne y-809 (py-int-from-scheme 0)))
       (py-float-from-scheme
        (py// (py-float-to-scheme x-808) (py-sint-to-scheme y-809)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
 (define (py-ifloordiv-floatX-bintY-fallback x-810 y-811)
   (py-float-from-scheme
@@ -5327,29 +5265,26 @@
   (if (py-test (py-ne y-813 (py-float-from-scheme 0.)))
       (py-float-from-scheme
        (py// (py-bool-to-scheme-int x-812) (py-float-to-scheme y-813)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
 (define (py-ifloordiv-boolX-boolY-fallback x-814 y-815)
   (if (py-test (py-ne y-815 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py// (py-bool-to-scheme-int x-814) (py-bool-to-scheme-int y-815)))
       (py-throw
-       (py-call py-builtin-ZeroDivisionError
-                (&& "integer division by zero")))))
+       (py-builtin-ZeroDivisionError (&& "integer division by zero")))))
 
 (define (py-ifloordiv-boolX-strY-fallback x-816 y-817)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for //=: 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for //=: 'bool' and 'str'"))))
 
 (define (py-ifloordiv-boolX-sintY-fallback x-818 y-819)
   (if (py-test (py-ne y-819 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py// (py-bool-to-scheme-int x-818) (py-sint-to-scheme y-819)))
       (py-throw
-       (py-call py-builtin-ZeroDivisionError
-                (&& "integer division by zero")))))
+       (py-builtin-ZeroDivisionError (&& "integer division by zero")))))
 
 (define (py-ifloordiv-boolX-bintY-fallback x-820 y-821)
   (py-int-from-scheme
@@ -5357,56 +5292,53 @@
 
 (define (py-ifloordiv-strX-floatY-fallback x-822 y-823)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for //=: 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for //=: 'str' and 'float'"))))
 
 (define (py-ifloordiv-strX-boolY-fallback x-824 y-825)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for //=: 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for //=: 'str' and 'bool'"))))
 
 (define (py-ifloordiv-strX-strY-fallback x-826 y-827)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for //=: 'str' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for //=: 'str' and 'str'"))))
 
 (define (py-ifloordiv-strX-sintY-fallback x-828 y-829)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for //=: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for //=: 'str' and 'int'"))))
 
 (define (py-ifloordiv-strX-bintY-fallback x-830 y-831)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for //=: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for //=: 'str' and 'int'"))))
 
 (define (py-ifloordiv-sintX-floatY-fallback x-832 y-833)
   (if (py-test (py-ne y-833 (py-float-from-scheme 0.)))
       (py-float-from-scheme
        (py// (py-sint-to-scheme x-832) (py-float-to-scheme y-833)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
 (define (py-ifloordiv-sintX-boolY-fallback x-834 y-835)
   (if (py-test (py-ne y-835 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py// (py-sint-to-scheme x-834) (py-bool-to-scheme-int y-835)))
       (py-throw
-       (py-call py-builtin-ZeroDivisionError
-                (&& "integer division by zero")))))
+       (py-builtin-ZeroDivisionError (&& "integer division by zero")))))
 
 (define (py-ifloordiv-sintX-strY-fallback x-836 y-837)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for //=: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for //=: 'int' and 'str'"))))
 
 (define (py-ifloordiv-sintX-sintY-fallback x-838 y-839)
   (if (py-test (py-ne y-839 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py// (py-sint-to-scheme x-838) (py-sint-to-scheme y-839)))
       (py-throw
-       (py-call py-builtin-ZeroDivisionError
-                (&& "integer division by zero")))))
+       (py-builtin-ZeroDivisionError (&& "integer division by zero")))))
 
 (define (py-ifloordiv-sintX-bintY-fallback x-840 y-841)
   (py-int-from-scheme
@@ -5416,29 +5348,26 @@
   (if (py-test (py-ne y-843 (py-float-from-scheme 0.)))
       (py-float-from-scheme
        (py// (py-bint-to-scheme x-842) (py-float-to-scheme y-843)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
 (define (py-ifloordiv-bintX-boolY-fallback x-844 y-845)
   (if (py-test (py-ne y-845 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py// (py-bint-to-scheme x-844) (py-bool-to-scheme-int y-845)))
       (py-throw
-       (py-call py-builtin-ZeroDivisionError
-                (&& "integer division by zero")))))
+       (py-builtin-ZeroDivisionError (&& "integer division by zero")))))
 
 (define (py-ifloordiv-bintX-strY-fallback x-846 y-847)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for //=: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for //=: 'int' and 'str'"))))
 
 (define (py-ifloordiv-bintX-sintY-fallback x-848 y-849)
   (if (py-test (py-ne y-849 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py// (py-bint-to-scheme x-848) (py-sint-to-scheme y-849)))
       (py-throw
-       (py-call py-builtin-ZeroDivisionError
-                (&& "integer division by zero")))))
+       (py-builtin-ZeroDivisionError (&& "integer division by zero")))))
 
 (define (py-ifloordiv-bintX-bintY-fallback x-850 y-851)
   (py-int-from-scheme
@@ -5446,288 +5375,285 @@
 
 (define (py-ilshift-floatX-floatY-fallback x-852 y-853)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<=: 'float' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<=: 'float' and 'float'"))))
 
 (define (py-ilshift-floatX-boolY-fallback x-854 y-855)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<=: 'float' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<=: 'float' and 'bool'"))))
 
 (define (py-ilshift-floatX-strY-fallback x-856 y-857)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<=: 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<=: 'float' and 'str'"))))
 
 (define (py-ilshift-floatX-sintY-fallback x-858 y-859)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<=: 'float' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<=: 'float' and 'int'"))))
 
 (define (py-ilshift-floatX-bintY-fallback x-860 y-861)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<=: 'float' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<=: 'float' and 'int'"))))
 
 (define (py-ilshift-boolX-floatY-fallback x-862 y-863)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<=: 'bool' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<=: 'bool' and 'float'"))))
 
 (define (py-ilshift-boolX-boolY-fallback x-864 y-865)
   (if (py-test (py-ge y-865 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py<< (py-bool-to-scheme-int x-864) (py-bool-to-scheme-int y-865)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-ilshift-boolX-strY-fallback x-866 y-867)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<=: 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<=: 'bool' and 'str'"))))
 
 (define (py-ilshift-boolX-sintY-fallback x-868 y-869)
   (if (py-test (py-ge y-869 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py<< (py-bool-to-scheme-int x-868) (py-sint-to-scheme y-869)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-ilshift-boolX-bintY-fallback x-870 y-871)
   (if (py-test (py-ge y-871 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py<< (py-bool-to-scheme-int x-870) (py-bint-to-scheme y-871)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-ilshift-strX-floatY-fallback x-872 y-873)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<=: 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<=: 'str' and 'float'"))))
 
 (define (py-ilshift-strX-boolY-fallback x-874 y-875)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<=: 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<=: 'str' and 'bool'"))))
 
 (define (py-ilshift-strX-strY-fallback x-876 y-877)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<=: 'str' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<=: 'str' and 'str'"))))
 
 (define (py-ilshift-strX-sintY-fallback x-878 y-879)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<=: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<=: 'str' and 'int'"))))
 
 (define (py-ilshift-strX-bintY-fallback x-880 y-881)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<=: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<=: 'str' and 'int'"))))
 
 (define (py-ilshift-sintX-floatY-fallback x-882 y-883)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<=: 'int' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<=: 'int' and 'float'"))))
 
 (define (py-ilshift-sintX-boolY-fallback x-884 y-885)
   (if (py-test (py-ge y-885 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py<< (py-sint-to-scheme x-884) (py-bool-to-scheme-int y-885)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-ilshift-sintX-strY-fallback x-886 y-887)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<=: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<=: 'int' and 'str'"))))
 
 (define (py-ilshift-sintX-sintY-fallback x-888 y-889)
   (if (py-test (py-ge y-889 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py<< (py-sint-to-scheme x-888) (py-sint-to-scheme y-889)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-ilshift-sintX-bintY-fallback x-890 y-891)
   (if (py-test (py-ge y-891 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py<< (py-sint-to-scheme x-890) (py-bint-to-scheme y-891)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-ilshift-bintX-floatY-fallback x-892 y-893)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<=: 'int' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<=: 'int' and 'float'"))))
 
 (define (py-ilshift-bintX-boolY-fallback x-894 y-895)
   (if (py-test (py-ge y-895 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py<< (py-bint-to-scheme x-894) (py-bool-to-scheme-int y-895)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-ilshift-bintX-strY-fallback x-896 y-897)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for <<=: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for <<=: 'int' and 'str'"))))
 
 (define (py-ilshift-bintX-sintY-fallback x-898 y-899)
   (if (py-test (py-ge y-899 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py<< (py-bint-to-scheme x-898) (py-sint-to-scheme y-899)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-ilshift-bintX-bintY-fallback x-900 y-901)
   (if (py-test (py-ge y-901 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py<< (py-bint-to-scheme x-900) (py-bint-to-scheme y-901)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-imatmul-floatX-floatY-fallback x-902 y-903)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @=: 'float' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @=: 'float' and 'float'"))))
 
 (define (py-imatmul-floatX-boolY-fallback x-904 y-905)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @=: 'float' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @=: 'float' and 'bool'"))))
 
 (define (py-imatmul-floatX-strY-fallback x-906 y-907)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @=: 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @=: 'float' and 'str'"))))
 
 (define (py-imatmul-floatX-sintY-fallback x-908 y-909)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @=: 'float' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @=: 'float' and 'int'"))))
 
 (define (py-imatmul-floatX-bintY-fallback x-910 y-911)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @=: 'float' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @=: 'float' and 'int'"))))
 
 (define (py-imatmul-boolX-floatY-fallback x-912 y-913)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @=: 'bool' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @=: 'bool' and 'float'"))))
 
 (define (py-imatmul-boolX-boolY-fallback x-914 y-915)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @=: 'bool' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @=: 'bool' and 'bool'"))))
 
 (define (py-imatmul-boolX-strY-fallback x-916 y-917)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @=: 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @=: 'bool' and 'str'"))))
 
 (define (py-imatmul-boolX-sintY-fallback x-918 y-919)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @=: 'bool' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @=: 'bool' and 'int'"))))
 
 (define (py-imatmul-boolX-bintY-fallback x-920 y-921)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @=: 'bool' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @=: 'bool' and 'int'"))))
 
 (define (py-imatmul-strX-floatY-fallback x-922 y-923)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @=: 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @=: 'str' and 'float'"))))
 
 (define (py-imatmul-strX-boolY-fallback x-924 y-925)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @=: 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @=: 'str' and 'bool'"))))
 
 (define (py-imatmul-strX-strY-fallback x-926 y-927)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @=: 'str' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @=: 'str' and 'str'"))))
 
 (define (py-imatmul-strX-sintY-fallback x-928 y-929)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @=: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @=: 'str' and 'int'"))))
 
 (define (py-imatmul-strX-bintY-fallback x-930 y-931)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @=: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @=: 'str' and 'int'"))))
 
 (define (py-imatmul-sintX-floatY-fallback x-932 y-933)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @=: 'int' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @=: 'int' and 'float'"))))
 
 (define (py-imatmul-sintX-boolY-fallback x-934 y-935)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @=: 'int' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @=: 'int' and 'bool'"))))
 
 (define (py-imatmul-sintX-strY-fallback x-936 y-937)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @=: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @=: 'int' and 'str'"))))
 
 (define (py-imatmul-sintX-sintY-fallback x-938 y-939)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @=: 'int' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @=: 'int' and 'int'"))))
 
 (define (py-imatmul-sintX-bintY-fallback x-940 y-941)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @=: 'int' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @=: 'int' and 'int'"))))
 
 (define (py-imatmul-bintX-floatY-fallback x-942 y-943)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @=: 'int' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @=: 'int' and 'float'"))))
 
 (define (py-imatmul-bintX-boolY-fallback x-944 y-945)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @=: 'int' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @=: 'int' and 'bool'"))))
 
 (define (py-imatmul-bintX-strY-fallback x-946 y-947)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @=: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @=: 'int' and 'str'"))))
 
 (define (py-imatmul-bintX-sintY-fallback x-948 y-949)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @=: 'int' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @=: 'int' and 'int'"))))
 
 (define (py-imatmul-bintX-bintY-fallback x-950 y-951)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for @=: 'int' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for @=: 'int' and 'int'"))))
 
 (define (py-imod-floatX-floatY-fallback x-952 y-953)
   (if (py-test (py-ne y-953 (py-float-from-scheme 0.)))
       (py-float-from-scheme
        (py% (py-float-to-scheme x-952) (py-float-to-scheme y-953)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float modulo by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float modulo by zero")))))
 
 (define (py-imod-floatX-boolY-fallback x-954 y-955)
   (if (py-test (py-ne y-955 (py-int-from-scheme 0)))
       (py-float-from-scheme
        (py% (py-float-to-scheme x-954) (py-bool-to-scheme-int y-955)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float modulo by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float modulo by zero")))))
 
 (define (py-imod-floatX-strY-fallback x-956 y-957)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for %=: 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for %=: 'float' and 'str'"))))
 
 (define (py-imod-floatX-sintY-fallback x-958 y-959)
   (if (py-test (py-ne y-959 (py-int-from-scheme 0)))
       (py-float-from-scheme
        (py% (py-float-to-scheme x-958) (py-sint-to-scheme y-959)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float modulo by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float modulo by zero")))))
 
 (define (py-imod-floatX-bintY-fallback x-960 y-961)
   (py-float-from-scheme
@@ -5737,25 +5663,24 @@
   (if (py-test (py-ne y-963 (py-float-from-scheme 0.)))
       (py-float-from-scheme
        (py% (py-bool-to-scheme-int x-962) (py-float-to-scheme y-963)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float modulo by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float modulo by zero")))))
 
 (define (py-imod-boolX-boolY-fallback x-964 y-965)
   (if (py-test (py-ne y-965 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py% (py-bool-to-scheme-int x-964) (py-bool-to-scheme-int y-965)))
-      (py-throw (py-call py-builtin-ZeroDivisionError (&& "modulo by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "modulo by zero")))))
 
 (define (py-imod-boolX-strY-fallback x-966 y-967)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for %=: 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for %=: 'bool' and 'str'"))))
 
 (define (py-imod-boolX-sintY-fallback x-968 y-969)
   (if (py-test (py-ne y-969 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py% (py-bool-to-scheme-int x-968) (py-sint-to-scheme y-969)))
-      (py-throw (py-call py-builtin-ZeroDivisionError (&& "modulo by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "modulo by zero")))))
 
 (define (py-imod-boolX-bintY-fallback x-970 y-971)
   (py-int-from-scheme
@@ -5763,52 +5688,51 @@
 
 (define (py-imod-strX-floatY-fallback x-972 y-973)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for %=: 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for %=: 'str' and 'float'"))))
 
 (define (py-imod-strX-boolY-fallback x-974 y-975)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for %=: 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for %=: 'str' and 'bool'"))))
 
 (define (py-imod-strX-strY-fallback x-976 y-977)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for %=: 'str' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for %=: 'str' and 'str'"))))
 
 (define (py-imod-strX-sintY-fallback x-978 y-979)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for %=: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for %=: 'str' and 'int'"))))
 
 (define (py-imod-strX-bintY-fallback x-980 y-981)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for %=: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for %=: 'str' and 'int'"))))
 
 (define (py-imod-sintX-floatY-fallback x-982 y-983)
   (if (py-test (py-ne y-983 (py-float-from-scheme 0.)))
       (py-float-from-scheme
        (py% (py-sint-to-scheme x-982) (py-float-to-scheme y-983)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float modulo by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float modulo by zero")))))
 
 (define (py-imod-sintX-boolY-fallback x-984 y-985)
   (if (py-test (py-ne y-985 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py% (py-sint-to-scheme x-984) (py-bool-to-scheme-int y-985)))
-      (py-throw (py-call py-builtin-ZeroDivisionError (&& "modulo by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "modulo by zero")))))
 
 (define (py-imod-sintX-strY-fallback x-986 y-987)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for %=: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for %=: 'int' and 'str'"))))
 
 (define (py-imod-sintX-sintY-fallback x-988 y-989)
   (if (py-test (py-ne y-989 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py% (py-sint-to-scheme x-988) (py-sint-to-scheme y-989)))
-      (py-throw (py-call py-builtin-ZeroDivisionError (&& "modulo by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "modulo by zero")))))
 
 (define (py-imod-sintX-bintY-fallback x-990 y-991)
   (py-int-from-scheme
@@ -5818,25 +5742,24 @@
   (if (py-test (py-ne y-993 (py-float-from-scheme 0.)))
       (py-float-from-scheme
        (py% (py-bint-to-scheme x-992) (py-float-to-scheme y-993)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float modulo by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float modulo by zero")))))
 
 (define (py-imod-bintX-boolY-fallback x-994 y-995)
   (if (py-test (py-ne y-995 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py% (py-bint-to-scheme x-994) (py-bool-to-scheme-int y-995)))
-      (py-throw (py-call py-builtin-ZeroDivisionError (&& "modulo by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "modulo by zero")))))
 
 (define (py-imod-bintX-strY-fallback x-996 y-997)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for %=: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for %=: 'int' and 'str'"))))
 
 (define (py-imod-bintX-sintY-fallback x-998 y-999)
   (if (py-test (py-ne y-999 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py% (py-bint-to-scheme x-998) (py-sint-to-scheme y-999)))
-      (py-throw (py-call py-builtin-ZeroDivisionError (&& "modulo by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "modulo by zero")))))
 
 (define (py-imod-bintX-bintY-fallback x-1000 y-1001)
   (py-int-from-scheme
@@ -5852,8 +5775,8 @@
 
 (define (py-imul-floatX-strY-fallback x-1006 y-1007)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for *=: 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for *=: 'float' and 'str'"))))
 
 (define (py-imul-floatX-sintY-fallback x-1008 y-1009)
   (py-float-from-scheme
@@ -5885,8 +5808,8 @@
 
 (define (py-imul-strX-floatY-fallback x-1022 y-1023)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for *=: 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for *=: 'str' and 'float'"))))
 
 (define (py-imul-strX-boolY-fallback x-1024 y-1025)
   (py-str-from-scheme
@@ -5894,8 +5817,8 @@
 
 (define (py-imul-strX-strY-fallback x-1026 y-1027)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for *=: 'str' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for *=: 'str' and 'str'"))))
 
 (define (py-imul-strX-sintY-fallback x-1028 y-1029)
   (py-str-from-scheme
@@ -5955,8 +5878,8 @@
 
 (define (py-ipow-floatX-strY-fallback x-1056 y-1057)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for **=: 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for **=: 'float' and 'str'"))))
 
 (define (py-ipow-floatX-sintY-fallback x-1058 y-1059)
   (py-float-from-scheme
@@ -5976,8 +5899,8 @@
 
 (define (py-ipow-boolX-strY-fallback x-1066 y-1067)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for **=: 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for **=: 'bool' and 'str'"))))
 
 (define (py-ipow-boolX-sintY-fallback x-1068 y-1069)
   (py-int-from-scheme
@@ -5989,28 +5912,28 @@
 
 (define (py-ipow-strX-floatY-fallback x-1072 y-1073)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for **=: 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for **=: 'str' and 'float'"))))
 
 (define (py-ipow-strX-boolY-fallback x-1074 y-1075)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for **=: 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for **=: 'str' and 'bool'"))))
 
 (define (py-ipow-strX-strY-fallback x-1076 y-1077)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for **=: 'str' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for **=: 'str' and 'str'"))))
 
 (define (py-ipow-strX-sintY-fallback x-1078 y-1079)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for **=: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for **=: 'str' and 'int'"))))
 
 (define (py-ipow-strX-bintY-fallback x-1080 y-1081)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for **=: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for **=: 'str' and 'int'"))))
 
 (define (py-ipow-sintX-floatY-fallback x-1082 y-1083)
   (py-float-from-scheme
@@ -6022,8 +5945,8 @@
 
 (define (py-ipow-sintX-strY-fallback x-1086 y-1087)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for **=: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for **=: 'int' and 'str'"))))
 
 (define (py-ipow-sintX-sintY-fallback x-1088 y-1089)
   (py-int-from-scheme
@@ -6043,8 +5966,8 @@
 
 (define (py-ipow-bintX-strY-fallback x-1096 y-1097)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for **=: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for **=: 'int' and 'str'"))))
 
 (define (py-ipow-bintX-sintY-fallback x-1098 y-1099)
   (py-int-from-scheme
@@ -6056,137 +5979,137 @@
 
 (define (py-irshift-floatX-floatY-fallback x-1102 y-1103)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>=: 'float' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>=: 'float' and 'float'"))))
 
 (define (py-irshift-floatX-boolY-fallback x-1104 y-1105)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>=: 'float' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>=: 'float' and 'bool'"))))
 
 (define (py-irshift-floatX-strY-fallback x-1106 y-1107)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>=: 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>=: 'float' and 'str'"))))
 
 (define (py-irshift-floatX-sintY-fallback x-1108 y-1109)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>=: 'float' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>=: 'float' and 'int'"))))
 
 (define (py-irshift-floatX-bintY-fallback x-1110 y-1111)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>=: 'float' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>=: 'float' and 'int'"))))
 
 (define (py-irshift-boolX-floatY-fallback x-1112 y-1113)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>=: 'bool' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>=: 'bool' and 'float'"))))
 
 (define (py-irshift-boolX-boolY-fallback x-1114 y-1115)
   (if (py-test (py-ge y-1115 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py>> (py-bool-to-scheme-int x-1114) (py-bool-to-scheme-int y-1115)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-irshift-boolX-strY-fallback x-1116 y-1117)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>=: 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>=: 'bool' and 'str'"))))
 
 (define (py-irshift-boolX-sintY-fallback x-1118 y-1119)
   (if (py-test (py-ge y-1119 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py>> (py-bool-to-scheme-int x-1118) (py-sint-to-scheme y-1119)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-irshift-boolX-bintY-fallback x-1120 y-1121)
   (if (py-test (py-ge y-1121 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py>> (py-bool-to-scheme-int x-1120) (py-bint-to-scheme y-1121)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-irshift-strX-floatY-fallback x-1122 y-1123)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>=: 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>=: 'str' and 'float'"))))
 
 (define (py-irshift-strX-boolY-fallback x-1124 y-1125)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>=: 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>=: 'str' and 'bool'"))))
 
 (define (py-irshift-strX-strY-fallback x-1126 y-1127)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>=: 'str' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>=: 'str' and 'str'"))))
 
 (define (py-irshift-strX-sintY-fallback x-1128 y-1129)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>=: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>=: 'str' and 'int'"))))
 
 (define (py-irshift-strX-bintY-fallback x-1130 y-1131)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>=: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>=: 'str' and 'int'"))))
 
 (define (py-irshift-sintX-floatY-fallback x-1132 y-1133)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>=: 'int' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>=: 'int' and 'float'"))))
 
 (define (py-irshift-sintX-boolY-fallback x-1134 y-1135)
   (if (py-test (py-ge y-1135 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py>> (py-sint-to-scheme x-1134) (py-bool-to-scheme-int y-1135)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-irshift-sintX-strY-fallback x-1136 y-1137)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>=: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>=: 'int' and 'str'"))))
 
 (define (py-irshift-sintX-sintY-fallback x-1138 y-1139)
   (if (py-test (py-ge y-1139 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py>> (py-sint-to-scheme x-1138) (py-sint-to-scheme y-1139)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-irshift-sintX-bintY-fallback x-1140 y-1141)
   (if (py-test (py-ge y-1141 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py>> (py-sint-to-scheme x-1140) (py-bint-to-scheme y-1141)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-irshift-bintX-floatY-fallback x-1142 y-1143)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>=: 'int' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>=: 'int' and 'float'"))))
 
 (define (py-irshift-bintX-boolY-fallback x-1144 y-1145)
   (if (py-test (py-ge y-1145 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py>> (py-bint-to-scheme x-1144) (py-bool-to-scheme-int y-1145)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-irshift-bintX-strY-fallback x-1146 y-1147)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for >>=: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for >>=: 'int' and 'str'"))))
 
 (define (py-irshift-bintX-sintY-fallback x-1148 y-1149)
   (if (py-test (py-ge y-1149 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py>> (py-bint-to-scheme x-1148) (py-sint-to-scheme y-1149)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-irshift-bintX-bintY-fallback x-1150 y-1151)
   (if (py-test (py-ge y-1151 (py-int-from-scheme 0)))
       (py-int-from-scheme
        (py>> (py-bint-to-scheme x-1150) (py-bint-to-scheme y-1151)))
-      (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
+      (py-throw (py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-isub-floatX-floatY-fallback x-1152 y-1153)
   (py-float-from-scheme
@@ -6198,8 +6121,8 @@
 
 (define (py-isub-floatX-strY-fallback x-1156 y-1157)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for -=: 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for -=: 'float' and 'str'"))))
 
 (define (py-isub-floatX-sintY-fallback x-1158 y-1159)
   (py-float-from-scheme
@@ -6219,8 +6142,8 @@
 
 (define (py-isub-boolX-strY-fallback x-1166 y-1167)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for -=: 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for -=: 'bool' and 'str'"))))
 
 (define (py-isub-boolX-sintY-fallback x-1168 y-1169)
   (py-int-from-scheme
@@ -6232,28 +6155,28 @@
 
 (define (py-isub-strX-floatY-fallback x-1172 y-1173)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for -=: 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for -=: 'str' and 'float'"))))
 
 (define (py-isub-strX-boolY-fallback x-1174 y-1175)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for -=: 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for -=: 'str' and 'bool'"))))
 
 (define (py-isub-strX-strY-fallback x-1176 y-1177)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for -=: 'str' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for -=: 'str' and 'str'"))))
 
 (define (py-isub-strX-sintY-fallback x-1178 y-1179)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for -=: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for -=: 'str' and 'int'"))))
 
 (define (py-isub-strX-bintY-fallback x-1180 y-1181)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for -=: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for -=: 'str' and 'int'"))))
 
 (define (py-isub-sintX-floatY-fallback x-1182 y-1183)
   (py-float-from-scheme
@@ -6265,8 +6188,8 @@
 
 (define (py-isub-sintX-strY-fallback x-1186 y-1187)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for -=: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for -=: 'int' and 'str'"))))
 
 (define (py-isub-sintX-sintY-fallback x-1188 y-1189)
   (py-int-from-scheme
@@ -6286,8 +6209,8 @@
 
 (define (py-isub-bintX-strY-fallback x-1196 y-1197)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for -=: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for -=: 'int' and 'str'"))))
 
 (define (py-isub-bintX-sintY-fallback x-1198 y-1199)
   (py-int-from-scheme
@@ -6301,27 +6224,24 @@
   (if (py-test (py-ne y-1203 (py-float-from-scheme 0.)))
       (py-float-from-scheme
        (py/ (py-float-to-scheme x-1202) (py-float-to-scheme y-1203)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
 (define (py-itruediv-floatX-boolY-fallback x-1204 y-1205)
   (if (py-test (py-ne y-1205 (py-int-from-scheme 0)))
       (py-float-from-scheme
        (py/ (py-float-to-scheme x-1204) (py-bool-to-scheme-int y-1205)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
 (define (py-itruediv-floatX-strY-fallback x-1206 y-1207)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for /=: 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for /=: 'float' and 'str'"))))
 
 (define (py-itruediv-floatX-sintY-fallback x-1208 y-1209)
   (if (py-test (py-ne y-1209 (py-int-from-scheme 0)))
       (py-float-from-scheme
        (py/ (py-float-to-scheme x-1208) (py-sint-to-scheme y-1209)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
 (define (py-itruediv-floatX-bintY-fallback x-1210 y-1211)
   (py-float-from-scheme
@@ -6331,27 +6251,24 @@
   (if (py-test (py-ne y-1213 (py-float-from-scheme 0.)))
       (py-float-from-scheme
        (py/ (py-bool-to-scheme-int x-1212) (py-float-to-scheme y-1213)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
 (define (py-itruediv-boolX-boolY-fallback x-1214 y-1215)
   (if (py-test (py-ne y-1215 (py-int-from-scheme 0)))
       (py-float-from-scheme
        (py/ (py-bool-to-scheme-int x-1214) (py-bool-to-scheme-int y-1215)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-itruediv-boolX-strY-fallback x-1216 y-1217)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for /=: 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for /=: 'bool' and 'str'"))))
 
 (define (py-itruediv-boolX-sintY-fallback x-1218 y-1219)
   (if (py-test (py-ne y-1219 (py-int-from-scheme 0)))
       (py-float-from-scheme
        (py/ (py-bool-to-scheme-int x-1218) (py-sint-to-scheme y-1219)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-itruediv-boolX-bintY-fallback x-1220 y-1221)
   (py-float-from-scheme
@@ -6359,54 +6276,51 @@
 
 (define (py-itruediv-strX-floatY-fallback x-1222 y-1223)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for /=: 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for /=: 'str' and 'float'"))))
 
 (define (py-itruediv-strX-boolY-fallback x-1224 y-1225)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for /=: 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for /=: 'str' and 'bool'"))))
 
 (define (py-itruediv-strX-strY-fallback x-1226 y-1227)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for /=: 'str' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for /=: 'str' and 'str'"))))
 
 (define (py-itruediv-strX-sintY-fallback x-1228 y-1229)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for /=: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for /=: 'str' and 'int'"))))
 
 (define (py-itruediv-strX-bintY-fallback x-1230 y-1231)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for /=: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for /=: 'str' and 'int'"))))
 
 (define (py-itruediv-sintX-floatY-fallback x-1232 y-1233)
   (if (py-test (py-ne y-1233 (py-float-from-scheme 0.)))
       (py-float-from-scheme
        (py/ (py-sint-to-scheme x-1232) (py-float-to-scheme y-1233)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
 (define (py-itruediv-sintX-boolY-fallback x-1234 y-1235)
   (if (py-test (py-ne y-1235 (py-int-from-scheme 0)))
       (py-float-from-scheme
        (py/ (py-sint-to-scheme x-1234) (py-bool-to-scheme-int y-1235)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-itruediv-sintX-strY-fallback x-1236 y-1237)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for /=: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for /=: 'int' and 'str'"))))
 
 (define (py-itruediv-sintX-sintY-fallback x-1238 y-1239)
   (if (py-test (py-ne y-1239 (py-int-from-scheme 0)))
       (py-float-from-scheme
        (py/ (py-sint-to-scheme x-1238) (py-sint-to-scheme y-1239)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-itruediv-sintX-bintY-fallback x-1240 y-1241)
   (py-float-from-scheme
@@ -6416,27 +6330,24 @@
   (if (py-test (py-ne y-1243 (py-float-from-scheme 0.)))
       (py-float-from-scheme
        (py/ (py-bint-to-scheme x-1242) (py-float-to-scheme y-1243)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "float division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "float division by zero")))))
 
 (define (py-itruediv-bintX-boolY-fallback x-1244 y-1245)
   (if (py-test (py-ne y-1245 (py-int-from-scheme 0)))
       (py-float-from-scheme
        (py/ (py-bint-to-scheme x-1244) (py-bool-to-scheme-int y-1245)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-itruediv-bintX-strY-fallback x-1246 y-1247)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for /=: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for /=: 'int' and 'str'"))))
 
 (define (py-itruediv-bintX-sintY-fallback x-1248 y-1249)
   (if (py-test (py-ne y-1249 (py-int-from-scheme 0)))
       (py-float-from-scheme
        (py/ (py-bint-to-scheme x-1248) (py-sint-to-scheme y-1249)))
-      (py-throw
-       (py-call py-builtin-ZeroDivisionError (&& "division by zero")))))
+      (py-throw (py-builtin-ZeroDivisionError (&& "division by zero")))))
 
 (define (py-itruediv-bintX-bintY-fallback x-1250 y-1251)
   (py-float-from-scheme
@@ -6444,33 +6355,33 @@
 
 (define (py-ixor-floatX-floatY-fallback x-1252 y-1253)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^=: 'float' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^=: 'float' and 'float'"))))
 
 (define (py-ixor-floatX-boolY-fallback x-1254 y-1255)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^=: 'float' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^=: 'float' and 'bool'"))))
 
 (define (py-ixor-floatX-strY-fallback x-1256 y-1257)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^=: 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^=: 'float' and 'str'"))))
 
 (define (py-ixor-floatX-sintY-fallback x-1258 y-1259)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^=: 'float' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^=: 'float' and 'int'"))))
 
 (define (py-ixor-floatX-bintY-fallback x-1260 y-1261)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^=: 'float' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^=: 'float' and 'int'"))))
 
 (define (py-ixor-boolX-floatY-fallback x-1262 y-1263)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^=: 'bool' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^=: 'bool' and 'float'"))))
 
 (define (py-ixor-boolX-boolY-fallback x-1264 y-1265)
   (py-int-from-scheme
@@ -6478,8 +6389,8 @@
 
 (define (py-ixor-boolX-strY-fallback x-1266 y-1267)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^=: 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^=: 'bool' and 'str'"))))
 
 (define (py-ixor-boolX-sintY-fallback x-1268 y-1269)
   (py-int-from-scheme
@@ -6491,33 +6402,33 @@
 
 (define (py-ixor-strX-floatY-fallback x-1272 y-1273)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^=: 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^=: 'str' and 'float'"))))
 
 (define (py-ixor-strX-boolY-fallback x-1274 y-1275)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^=: 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^=: 'str' and 'bool'"))))
 
 (define (py-ixor-strX-strY-fallback x-1276 y-1277)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^=: 'str' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^=: 'str' and 'str'"))))
 
 (define (py-ixor-strX-sintY-fallback x-1278 y-1279)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^=: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^=: 'str' and 'int'"))))
 
 (define (py-ixor-strX-bintY-fallback x-1280 y-1281)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^=: 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^=: 'str' and 'int'"))))
 
 (define (py-ixor-sintX-floatY-fallback x-1282 y-1283)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^=: 'int' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^=: 'int' and 'float'"))))
 
 (define (py-ixor-sintX-boolY-fallback x-1284 y-1285)
   (py-int-from-scheme
@@ -6525,8 +6436,8 @@
 
 (define (py-ixor-sintX-strY-fallback x-1286 y-1287)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^=: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^=: 'int' and 'str'"))))
 
 (define (py-ixor-sintX-sintY-fallback x-1288 y-1289)
   (py-int-from-scheme
@@ -6538,8 +6449,8 @@
 
 (define (py-ixor-bintX-floatY-fallback x-1292 y-1293)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^=: 'int' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^=: 'int' and 'float'"))))
 
 (define (py-ixor-bintX-boolY-fallback x-1294 y-1295)
   (py-int-from-scheme
@@ -6547,8 +6458,8 @@
 
 (define (py-ixor-bintX-strY-fallback x-1296 y-1297)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "unsupported operand type(s) for ^=: 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "unsupported operand type(s) for ^=: 'int' and 'str'"))))
 
 (define (py-ixor-bintX-sintY-fallback x-1298 y-1299)
   (py-int-from-scheme
@@ -6578,13 +6489,13 @@
 
 (define (py-ge-floatX-strY-fallback x-1310 y-1311)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>=' not supported between instances of 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'>=' not supported between instances of 'float' and 'str'"))))
 
 (define (py-test-ge-floatX-strY-fallback x-1312 y-1313)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>=' not supported between instances of 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'>=' not supported between instances of 'float' and 'str'"))))
 
 (define (py-ge-floatX-sintY-fallback x-1314 y-1315)
   (py-bool-from-scheme-bool
@@ -6624,13 +6535,13 @@
 
 (define (py-ge-boolX-strY-fallback x-1330 y-1331)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>=' not supported between instances of 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'>=' not supported between instances of 'bool' and 'str'"))))
 
 (define (py-test-ge-boolX-strY-fallback x-1332 y-1333)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>=' not supported between instances of 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'>=' not supported between instances of 'bool' and 'str'"))))
 
 (define (py-ge-boolX-sintY-fallback x-1334 y-1335)
   (py-bool-from-scheme-bool
@@ -6652,23 +6563,23 @@
 
 (define (py-ge-strX-floatY-fallback x-1342 y-1343)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>=' not supported between instances of 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "'>=' not supported between instances of 'str' and 'float'"))))
 
 (define (py-test-ge-strX-floatY-fallback x-1344 y-1345)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>=' not supported between instances of 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "'>=' not supported between instances of 'str' and 'float'"))))
 
 (define (py-ge-strX-boolY-fallback x-1346 y-1347)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>=' not supported between instances of 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "'>=' not supported between instances of 'str' and 'bool'"))))
 
 (define (py-test-ge-strX-boolY-fallback x-1348 y-1349)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>=' not supported between instances of 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "'>=' not supported between instances of 'str' and 'bool'"))))
 
 (define (py-ge-strX-strY-fallback x-1350 y-1351)
   (py-bool-from-scheme-bool
@@ -6681,23 +6592,23 @@
 
 (define (py-ge-strX-sintY-fallback x-1354 y-1355)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>=' not supported between instances of 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "'>=' not supported between instances of 'str' and 'int'"))))
 
 (define (py-test-ge-strX-sintY-fallback x-1356 y-1357)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>=' not supported between instances of 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "'>=' not supported between instances of 'str' and 'int'"))))
 
 (define (py-ge-strX-bintY-fallback x-1358 y-1359)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>=' not supported between instances of 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "'>=' not supported between instances of 'str' and 'int'"))))
 
 (define (py-test-ge-strX-bintY-fallback x-1360 y-1361)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>=' not supported between instances of 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "'>=' not supported between instances of 'str' and 'int'"))))
 
 (define (py-ge-sintX-floatY-fallback x-1362 y-1363)
   (py-bool-from-scheme-bool
@@ -6719,13 +6630,13 @@
 
 (define (py-ge-sintX-strY-fallback x-1370 y-1371)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>=' not supported between instances of 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'>=' not supported between instances of 'int' and 'str'"))))
 
 (define (py-test-ge-sintX-strY-fallback x-1372 y-1373)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>=' not supported between instances of 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'>=' not supported between instances of 'int' and 'str'"))))
 
 (define (py-ge-sintX-sintY-fallback x-1374 y-1375)
   (py-bool-from-scheme-bool
@@ -6765,13 +6676,13 @@
 
 (define (py-ge-bintX-strY-fallback x-1390 y-1391)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>=' not supported between instances of 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'>=' not supported between instances of 'int' and 'str'"))))
 
 (define (py-test-ge-bintX-strY-fallback x-1392 y-1393)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>=' not supported between instances of 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'>=' not supported between instances of 'int' and 'str'"))))
 
 (define (py-ge-bintX-sintY-fallback x-1394 y-1395)
   (py-bool-from-scheme-bool
@@ -6811,13 +6722,13 @@
 
 (define (py-gt-floatX-strY-fallback x-1410 y-1411)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>' not supported between instances of 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'>' not supported between instances of 'float' and 'str'"))))
 
 (define (py-test-gt-floatX-strY-fallback x-1412 y-1413)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>' not supported between instances of 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'>' not supported between instances of 'float' and 'str'"))))
 
 (define (py-gt-floatX-sintY-fallback x-1414 y-1415)
   (py-bool-from-scheme-bool
@@ -6857,13 +6768,13 @@
 
 (define (py-gt-boolX-strY-fallback x-1430 y-1431)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>' not supported between instances of 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'>' not supported between instances of 'bool' and 'str'"))))
 
 (define (py-test-gt-boolX-strY-fallback x-1432 y-1433)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>' not supported between instances of 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'>' not supported between instances of 'bool' and 'str'"))))
 
 (define (py-gt-boolX-sintY-fallback x-1434 y-1435)
   (py-bool-from-scheme-bool
@@ -6885,23 +6796,23 @@
 
 (define (py-gt-strX-floatY-fallback x-1442 y-1443)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>' not supported between instances of 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "'>' not supported between instances of 'str' and 'float'"))))
 
 (define (py-test-gt-strX-floatY-fallback x-1444 y-1445)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>' not supported between instances of 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "'>' not supported between instances of 'str' and 'float'"))))
 
 (define (py-gt-strX-boolY-fallback x-1446 y-1447)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>' not supported between instances of 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "'>' not supported between instances of 'str' and 'bool'"))))
 
 (define (py-test-gt-strX-boolY-fallback x-1448 y-1449)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>' not supported between instances of 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "'>' not supported between instances of 'str' and 'bool'"))))
 
 (define (py-gt-strX-strY-fallback x-1450 y-1451)
   (py-bool-from-scheme-bool
@@ -6914,23 +6825,23 @@
 
 (define (py-gt-strX-sintY-fallback x-1454 y-1455)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>' not supported between instances of 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "'>' not supported between instances of 'str' and 'int'"))))
 
 (define (py-test-gt-strX-sintY-fallback x-1456 y-1457)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>' not supported between instances of 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "'>' not supported between instances of 'str' and 'int'"))))
 
 (define (py-gt-strX-bintY-fallback x-1458 y-1459)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>' not supported between instances of 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "'>' not supported between instances of 'str' and 'int'"))))
 
 (define (py-test-gt-strX-bintY-fallback x-1460 y-1461)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>' not supported between instances of 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "'>' not supported between instances of 'str' and 'int'"))))
 
 (define (py-gt-sintX-floatY-fallback x-1462 y-1463)
   (py-bool-from-scheme-bool
@@ -6952,13 +6863,13 @@
 
 (define (py-gt-sintX-strY-fallback x-1470 y-1471)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>' not supported between instances of 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'>' not supported between instances of 'int' and 'str'"))))
 
 (define (py-test-gt-sintX-strY-fallback x-1472 y-1473)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>' not supported between instances of 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'>' not supported between instances of 'int' and 'str'"))))
 
 (define (py-gt-sintX-sintY-fallback x-1474 y-1475)
   (py-bool-from-scheme-bool
@@ -6998,13 +6909,13 @@
 
 (define (py-gt-bintX-strY-fallback x-1490 y-1491)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>' not supported between instances of 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'>' not supported between instances of 'int' and 'str'"))))
 
 (define (py-test-gt-bintX-strY-fallback x-1492 y-1493)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'>' not supported between instances of 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'>' not supported between instances of 'int' and 'str'"))))
 
 (define (py-gt-bintX-sintY-fallback x-1494 y-1495)
   (py-bool-from-scheme-bool
@@ -7044,13 +6955,13 @@
 
 (define (py-le-floatX-strY-fallback x-1510 y-1511)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<=' not supported between instances of 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'<=' not supported between instances of 'float' and 'str'"))))
 
 (define (py-test-le-floatX-strY-fallback x-1512 y-1513)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<=' not supported between instances of 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'<=' not supported between instances of 'float' and 'str'"))))
 
 (define (py-le-floatX-sintY-fallback x-1514 y-1515)
   (py-bool-from-scheme-bool
@@ -7090,13 +7001,13 @@
 
 (define (py-le-boolX-strY-fallback x-1530 y-1531)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<=' not supported between instances of 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'<=' not supported between instances of 'bool' and 'str'"))))
 
 (define (py-test-le-boolX-strY-fallback x-1532 y-1533)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<=' not supported between instances of 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'<=' not supported between instances of 'bool' and 'str'"))))
 
 (define (py-le-boolX-sintY-fallback x-1534 y-1535)
   (py-bool-from-scheme-bool
@@ -7118,23 +7029,23 @@
 
 (define (py-le-strX-floatY-fallback x-1542 y-1543)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<=' not supported between instances of 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "'<=' not supported between instances of 'str' and 'float'"))))
 
 (define (py-test-le-strX-floatY-fallback x-1544 y-1545)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<=' not supported between instances of 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "'<=' not supported between instances of 'str' and 'float'"))))
 
 (define (py-le-strX-boolY-fallback x-1546 y-1547)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<=' not supported between instances of 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "'<=' not supported between instances of 'str' and 'bool'"))))
 
 (define (py-test-le-strX-boolY-fallback x-1548 y-1549)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<=' not supported between instances of 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "'<=' not supported between instances of 'str' and 'bool'"))))
 
 (define (py-le-strX-strY-fallback x-1550 y-1551)
   (py-bool-from-scheme-bool
@@ -7147,23 +7058,23 @@
 
 (define (py-le-strX-sintY-fallback x-1554 y-1555)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<=' not supported between instances of 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "'<=' not supported between instances of 'str' and 'int'"))))
 
 (define (py-test-le-strX-sintY-fallback x-1556 y-1557)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<=' not supported between instances of 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "'<=' not supported between instances of 'str' and 'int'"))))
 
 (define (py-le-strX-bintY-fallback x-1558 y-1559)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<=' not supported between instances of 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "'<=' not supported between instances of 'str' and 'int'"))))
 
 (define (py-test-le-strX-bintY-fallback x-1560 y-1561)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<=' not supported between instances of 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "'<=' not supported between instances of 'str' and 'int'"))))
 
 (define (py-le-sintX-floatY-fallback x-1562 y-1563)
   (py-bool-from-scheme-bool
@@ -7185,13 +7096,13 @@
 
 (define (py-le-sintX-strY-fallback x-1570 y-1571)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<=' not supported between instances of 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'<=' not supported between instances of 'int' and 'str'"))))
 
 (define (py-test-le-sintX-strY-fallback x-1572 y-1573)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<=' not supported between instances of 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'<=' not supported between instances of 'int' and 'str'"))))
 
 (define (py-le-sintX-sintY-fallback x-1574 y-1575)
   (py-bool-from-scheme-bool
@@ -7231,13 +7142,13 @@
 
 (define (py-le-bintX-strY-fallback x-1590 y-1591)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<=' not supported between instances of 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'<=' not supported between instances of 'int' and 'str'"))))
 
 (define (py-test-le-bintX-strY-fallback x-1592 y-1593)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<=' not supported between instances of 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'<=' not supported between instances of 'int' and 'str'"))))
 
 (define (py-le-bintX-sintY-fallback x-1594 y-1595)
   (py-bool-from-scheme-bool
@@ -7277,13 +7188,13 @@
 
 (define (py-lt-floatX-strY-fallback x-1610 y-1611)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<' not supported between instances of 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'<' not supported between instances of 'float' and 'str'"))))
 
 (define (py-test-lt-floatX-strY-fallback x-1612 y-1613)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<' not supported between instances of 'float' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'<' not supported between instances of 'float' and 'str'"))))
 
 (define (py-lt-floatX-sintY-fallback x-1614 y-1615)
   (py-bool-from-scheme-bool
@@ -7323,13 +7234,13 @@
 
 (define (py-lt-boolX-strY-fallback x-1630 y-1631)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<' not supported between instances of 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'<' not supported between instances of 'bool' and 'str'"))))
 
 (define (py-test-lt-boolX-strY-fallback x-1632 y-1633)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<' not supported between instances of 'bool' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'<' not supported between instances of 'bool' and 'str'"))))
 
 (define (py-lt-boolX-sintY-fallback x-1634 y-1635)
   (py-bool-from-scheme-bool
@@ -7351,23 +7262,23 @@
 
 (define (py-lt-strX-floatY-fallback x-1642 y-1643)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<' not supported between instances of 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "'<' not supported between instances of 'str' and 'float'"))))
 
 (define (py-test-lt-strX-floatY-fallback x-1644 y-1645)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<' not supported between instances of 'str' and 'float'"))))
+   (py-builtin-TypeError
+    (&& "'<' not supported between instances of 'str' and 'float'"))))
 
 (define (py-lt-strX-boolY-fallback x-1646 y-1647)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<' not supported between instances of 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "'<' not supported between instances of 'str' and 'bool'"))))
 
 (define (py-test-lt-strX-boolY-fallback x-1648 y-1649)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<' not supported between instances of 'str' and 'bool'"))))
+   (py-builtin-TypeError
+    (&& "'<' not supported between instances of 'str' and 'bool'"))))
 
 (define (py-lt-strX-strY-fallback x-1650 y-1651)
   (py-bool-from-scheme-bool
@@ -7380,23 +7291,23 @@
 
 (define (py-lt-strX-sintY-fallback x-1654 y-1655)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<' not supported between instances of 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "'<' not supported between instances of 'str' and 'int'"))))
 
 (define (py-test-lt-strX-sintY-fallback x-1656 y-1657)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<' not supported between instances of 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "'<' not supported between instances of 'str' and 'int'"))))
 
 (define (py-lt-strX-bintY-fallback x-1658 y-1659)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<' not supported between instances of 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "'<' not supported between instances of 'str' and 'int'"))))
 
 (define (py-test-lt-strX-bintY-fallback x-1660 y-1661)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<' not supported between instances of 'str' and 'int'"))))
+   (py-builtin-TypeError
+    (&& "'<' not supported between instances of 'str' and 'int'"))))
 
 (define (py-lt-sintX-floatY-fallback x-1662 y-1663)
   (py-bool-from-scheme-bool
@@ -7418,13 +7329,13 @@
 
 (define (py-lt-sintX-strY-fallback x-1670 y-1671)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<' not supported between instances of 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'<' not supported between instances of 'int' and 'str'"))))
 
 (define (py-test-lt-sintX-strY-fallback x-1672 y-1673)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<' not supported between instances of 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'<' not supported between instances of 'int' and 'str'"))))
 
 (define (py-lt-sintX-sintY-fallback x-1674 y-1675)
   (py-bool-from-scheme-bool
@@ -7464,13 +7375,13 @@
 
 (define (py-lt-bintX-strY-fallback x-1690 y-1691)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<' not supported between instances of 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'<' not supported between instances of 'int' and 'str'"))))
 
 (define (py-test-lt-bintX-strY-fallback x-1692 y-1693)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "'<' not supported between instances of 'int' and 'str'"))))
+   (py-builtin-TypeError
+    (&& "'<' not supported between instances of 'int' and 'str'"))))
 
 (define (py-lt-bintX-sintY-fallback x-1694 y-1695)
   (py-bool-from-scheme-bool
@@ -7881,8 +7792,7 @@
 (define (py-pos-boolX-fallback x-1903) x-1903)
 
 (define (py-pos-strX-fallback x-1904)
-  (py-throw
-   (py-call py-builtin-TypeError (&& "bad operand type for unary +: 'str'"))))
+  (py-throw (py-builtin-TypeError (&& "bad operand type for unary +: 'str'"))))
 
 (define (py-pos-sintX-fallback x-1905) x-1905)
 
@@ -7895,8 +7805,7 @@
   (py-int-from-scheme (pyneg (py-bool-to-scheme-int x-1908))))
 
 (define (py-neg-strX-fallback x-1909)
-  (py-throw
-   (py-call py-builtin-TypeError (&& "bad operand type for unary -: 'str'"))))
+  (py-throw (py-builtin-TypeError (&& "bad operand type for unary -: 'str'"))))
 
 (define (py-neg-sintX-fallback x-1910)
   (py-int-from-scheme (pyneg (py-sint-to-scheme x-1910))))
@@ -7906,15 +7815,13 @@
 
 (define (py-invert-floatX-fallback x-1912)
   (py-throw
-   (py-call py-builtin-TypeError
-            (&& "bad operand type for unary ~: 'float'"))))
+   (py-builtin-TypeError (&& "bad operand type for unary ~: 'float'"))))
 
 (define (py-invert-boolX-fallback x-1913)
   (py-int-from-scheme (pyinvert (py-bool-to-scheme-int x-1913))))
 
 (define (py-invert-strX-fallback x-1914)
-  (py-throw
-   (py-call py-builtin-TypeError (&& "bad operand type for unary ~: 'str'"))))
+  (py-throw (py-builtin-TypeError (&& "bad operand type for unary ~: 'str'"))))
 
 (define (py-invert-sintX-fallback x-1915)
   (py-int-from-scheme (pyinvert (py-sint-to-scheme x-1915))))
