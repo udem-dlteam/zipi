@@ -88,6 +88,39 @@
            (cdr args)))
        (error "SyntaxError" "wrong argument for call_host" #f))))
 
+(define (make-isinstance this)
+  (let* ((loc (PycNode-loc this))
+        (args (PycCall-args this))
+        (args-len (length args)))
+    (if (= args-len 2)
+      (let ((arg1 (car args))
+            (arg2 (cadr args)))
+        (if (isa? arg2 PycRefUnresolved)
+          (case (PycRefUnresolved-id arg2)
+            ((sint)
+              (new-PycCall
+                loc
+                (new-PycPragma loc 'py-has-type-sint?)
+                (list arg1)
+                type: 'Ubool))
+            ((bint)
+              (new-PycCall
+                loc
+                (new-PycPragma loc 'py-has-type-bint?)
+                (list arg1)
+                type: 'Ubool))
+            (else
+              (new-PycCall
+                loc
+                (new-PycPragma loc 'py-isinstance?)
+                args)))
+          (new-PycCall
+            loc
+            (new-PycPragma loc 'py-isinstance?)
+            args)))
+      (error "SyntaxError" "wrong argument for isinstance" args))))
+
+
 (define (make-pragma-call-maker name)
  (lambda (this)
    (let* ((loc (PycNode-loc this))
@@ -117,6 +150,10 @@
 (define static-intrinsics
  (list
    (cons 'absent 'py-absent)))
+
+(define macro-static-builtins
+  (list
+    (cons 'isinstance make-isinstance)))
 
 ;; TODO: generate a full table of builtins with Zipi rts name
 (define static-builtins
@@ -297,6 +334,12 @@
             macro-assoc-list)))
 
   ;; static functions and values
+  (resolve-statics-calls!
+    this
+    intrinsics
+    macro-assoc-list
+    #f)
+
   (resolve-statics!
     this
     intrinsics
@@ -374,19 +417,51 @@
         this)
       (call-default-walker))))
 
-(define-walk-method (resolve-statics! this::PycCall intrinsics statics macros use-static-builtins)
-  (let ((this (call-default-walker))
-       (fun (PycCall-fun this)))
-    (if (and use-static-builtins
-             (isa? fun PycRefUnresolved)
-             (not (eq? (PycRefUnresolved-id fun) 'super)))
+
+(define (check-and-set-static-can-be-super! this)
+  (let* ((fun (PycCall-fun this)))
+    (if (or (and
+              (isa? fun PycRefUnresolved)
+              (not (eq? (PycRefUnresolved-id fun) 'super)))
+            (and
+              (isa? fun PycPragma)
+              (not (eq? (PycPragma-expr fun) 'py-builtin-super))))
       (PycCall-can-be-super-set! this #f))
-    (if (PycRef? fun)
-      (let* ((pair (assq (PycRef-decl fun) macros)))
-        (if pair
-          ((cdr pair) this)
-          this))
-      this)))
+    this))
+
+(define-walk-method (resolve-statics-calls! this::PycNode intrinsics macros use-static-builtins)
+  (call-default-walker))
+
+(define-walk-method (resolve-statics-calls! this::PycFun intrinsics macros use-static-builtins)
+  (let* ((decorators (PycFun-decorators this))
+         (use_static_builtins-var (list-find-PycVar-by-id intrinsics 'use_static_builtins)))
+    (if (or use-static-builtins
+            (list-find-PycRef-by-PycVar
+              decorators
+              use_static_builtins-var))
+      (let* ((body (PycFun-body this))
+            (new-body (resolve-statics-calls! body intrinsics macros #t)))
+        ;; do not remove the decorator yet
+        (PycFun-body-set! this new-body)
+        this)
+      (call-default-walker))))
+
+(define-walk-method (resolve-statics-calls! this::PycCall intrinsics macros use-static-builtins)
+  (let* ((this (call-default-walker))
+       (fun (PycCall-fun this)))
+    (if use-static-builtins (check-and-set-static-can-be-super! this))
+    (cond
+      ((PycRef? fun)
+        (let* ((pair (assq (PycRef-decl fun) macros)))
+          (if pair
+            ((cdr pair) this)
+            this)))
+      ((PycRefUnresolved? fun)
+        (let* ((pair (assq (PycRefUnresolved-id fun) macro-static-builtins)))
+          (if pair
+            ((cdr pair) this)
+            this)))
+      (else this))))
 
 ;; resolve statically types binops
 (define (get-pragma-call-type-hint call)

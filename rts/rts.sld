@@ -347,6 +347,8 @@
     py-strict-subtype-of-int-to-scheme
     PyObjectInt-value
     py-has-type-int?
+    py-has-type-sint?
+    py-has-type-bint?
     py-subtype-of-int?
     py-strict-subtype-of-int?
 

@@ -777,6 +777,23 @@
   `(PyObjectType-class-index (py-obj-cls-general ,obj)))
 
 ;; Specialized type tests for int
+(define-macro (py-has-type-sint? obj)
+  `(py-specialized-sint-float-dispatch-let
+    $obj
+    ,obj
+    #t
+    #f
+    (py-if-specialized-sint-representation
+      #f
+      (and (py-has-type-int? $obj) (fixnum? (py-int-to-scheme $obj))))))
+
+(define-macro (py-has-type-bint? obj)
+  `(py-specialized-sint-float-dispatch-let
+    $obj
+    ,obj
+    #f
+    #f
+    (and (py-has-type-int? $obj) (not (fixnum? (py-int-to-scheme $obj))))))
 
 (define-macro (py-has-type-int? obj)
   `(py-specialized-sint-float-dispatch-let
