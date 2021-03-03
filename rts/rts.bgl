@@ -271,6 +271,7 @@
 
            (build-builtins)
            (compile-flag-set! flag)
+           (expansion-flag-set! value)
            (debug-flag-set! flag)
            (profile-flag-set! flag)
            (command-line-argv-set! list-with-filename)

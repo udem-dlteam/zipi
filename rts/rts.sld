@@ -593,9 +593,9 @@
 
     build-builtins
     compile-flag-set!
+    expansion-flag-set!
     debug-flag-set!
     profile-flag-set!
-    expansion-flag-set!
     command-line-argv-set!
 
     ;;debug functions
