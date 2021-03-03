@@ -20,14 +20,15 @@
       (println "*** WARNING -- Cache not found: " (cache-location))))
 
 (define (main . args)
-  (let ((help    #f)
-        (compile #t)
-        (debug   #f)
-        (profile #f)
-        (reset   #f)
-        (version 0) ;; count number of -V
-        (file    #f)
-        (argv    #f))
+  (let ((help      #f)
+        (compile   #t)
+        (debug     #f)
+        (profile   #f)
+        (expansion #f)
+        (reset     #f)
+        (version   0) ;; count number of -V
+        (file      #f)
+        (argv      #f))
 
     (let loop ((args args))
       (if (pair? args)
@@ -53,6 +54,8 @@
                                 (if (member 'profile p)
                                     p
                                     (cons 'profile p)))))
+                           ((string=? option "expansion")
+                            (set! expansion #t))
                            ((string=? option "reset")
                             (set! reset #t))
                            (else
@@ -90,7 +93,7 @@
            (if (not file)
                (if (not reset) (usage))
                (let ((path (path-normalize file)))
-                 (run-as-main path argv compile debug profile)))))))
+                 (run-as-main path argv compile debug profile expansion)))))))
 
 (define (usage)
   (print (string-append "usage: " (car (command-line)) #<<EOF
@@ -105,23 +108,24 @@ Options and arguments:
            debug       generate debugging information in compiled code
            flamegraph  generate statistical profile as a flamegraph
            profile     generate statistical profile as .html files
+           expansion   show Scheme code of module after expansion
            reset       reset the zipi module cache
-
 
 EOF
 )))
 
-(define (run-as-main path argv compile debug profile)
+(define (run-as-main path argv compile debug profile expansion)
 
   ;; use eval to delay processing of (import (zipi rts))
 
-  ((eval '(lambda (path argv compile debug profile)
+  ((eval '(lambda (path argv compile debug profile expansion)
 
             (import (zipi rts))
 
             (compile-flag-set! compile)
             (debug-flag-set! debug)
             (profile-flag-set! profile)
+            (expansion-flag-set! expansion)
             (command-line-argv-set! argv)
 
             (run-as-main path)))
@@ -129,6 +133,7 @@ EOF
    argv
    compile
    debug
-   profile))
+   profile
+   expansion))
 
 (##main-set! main)

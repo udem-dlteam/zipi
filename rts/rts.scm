@@ -6282,6 +6282,10 @@
 (define (profile-flag-set! value)
   (set! profile-flag value))
 
+(define expansion-flag #f)
+(define (expansion-flag-set! value)
+  (set! expansion-flag value))
+
 
 (module-search-order-add! (cache-location))
 
@@ -6345,6 +6349,16 @@
         (compile)))) ;; compiled file does not exist (must compile)
 
 (define (compile-and-get-mod path path-info py-__name__)
+
+  ;; useful for debugging
+  (if expansion-flag
+      (cond-expand
+        (gambit
+         (##build-module-subprocess-default-options-set!
+          (if value '((expansion)) '())))
+        (bigloo
+         #f)))
+
   (let ((mod-init
           (and
             (compile-to-cache path path-info)
