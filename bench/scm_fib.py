@@ -2,7 +2,7 @@
 
 import time
 
-n = 35
+n = 33
 
 def fib(n):
     if n<2:
@@ -10,7 +10,7 @@ def fib(n):
     else:
         return fib(n-1) + fib(n-2)
 
-result = fib(20) - 6765 # dry run
+result = fib(30) - 832040 # dry run
 
 bench_time = time.time()
 result = result + fib(n)
