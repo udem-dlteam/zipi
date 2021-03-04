@@ -486,7 +486,7 @@
 (define (compile-import-from loc module aliases level conf)
   
   ;; module can be #f in the case of from . import x
-  (let* ((module-str (if module (symbol->string module) module)) 
+  (let* ((module-str (if module (symbol->string module) "")) 
          (module-var (new-PycVar '(-1 -1) '%mod 'block))
          (module-assig
            (new-PycAssig
