@@ -209,10 +209,10 @@
                   ,@prog)
                    `(define py-module ,prog))
 
-              (define (init name)
+              (define (init name package)
                 (py-init-module)
                 (let ((caches (py-make-caches ,(PycModule-caches ast)))
-                      (module (py-make-module name)))
+                      (module (py-make-module name package)))
                   ,(if full-path
                     `(global-put!
                       module (& "__file__") (&& ,full-path))

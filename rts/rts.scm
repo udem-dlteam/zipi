@@ -6219,10 +6219,11 @@
 (define (py-make-global)
   (py-module-alloc py-module-class py-module-hclass-of-instances))
 
-(define (py-make-module name)
+(define (py-make-module name package)
   (let ((mod (py-make-global))
         (modules (sys.modules-get)))
    (global-own-attr-put-no-cache! mod (& "__name__") name)
+   (global-own-attr-put-no-cache! mod (& "__package__") package)
    (dict-setitem modules name mod)
    mod))
 
@@ -6349,7 +6350,7 @@
             (compile))
         (compile)))) ;; compiled file does not exist (must compile)
 
-(define (compile-and-get-mod path path-info py-__name__)
+(define (compile-and-get-mod path path-info py-__name__ py-__package__)
 
   ;; useful for debugging
   (if expansion-flag
@@ -6367,23 +6368,23 @@
             (load-module-and-get-init
               (substring path 1 (string-length (path-strip-extension path)))))))
     (if mod-init
-        (mod-init py-__name__)
+        (mod-init py-__name__ py-__package__)
         #f)))
 
-(define (import-with-zipi-cache path py-__name__)
+(define (import-with-zipi-cache path py-__name__ py-__package__)
   (let* ((path-package (path-expand "__init__.py" path))
          (path-package-info (file-info path-package #t #f)))
     (if path-package-info
-        (let ((mod (compile-and-get-mod path-package path-package-info py-__name__)))
+        (let ((mod (compile-and-get-mod path-package path-package-info py-__name__ py-__name__)))
          (global-own-attr-put-no-cache! mod (& "__path__") (py-make-list (py-str-from-scheme path)))
          mod)
         (let* ((path-mod (string-append path ".py"))
                (path-mod-info (file-info path-mod #t #f)))
           (if path-mod-info
-              (compile-and-get-mod path-mod path-mod-info py-__name__)
+              (compile-and-get-mod path-mod path-mod-info py-__name__ py-__package__)
               #f)))))
 
-(define (import-from-sys.path sys.path __name__ py-__name__)
+(define (import-from-sys.path sys.path __name__ py-__name__ py-__package__)
   (or (dict-get (sys.modules-get) py-__name__ #f)
       (let ((sys.path-iter (py-iter sys.path)))
         (let loop ((value sys.path-iter))
@@ -6394,41 +6395,49 @@
                                   (path-normalize
                                    (py-subtype-of-str-to-scheme value))
                                   __name__)))
-                       (or (import-with-zipi-cache path py-__name__)
+                       (or (import-with-zipi-cache path py-__name__ py-__package__)
                            (loop sys.path-iter)))
                      (loop sys.path-iter))))))))
 
 (define (default-builtin-__import__ __name__)
    (let ((name-split (string-split __name__ #\.)))
-   (let loop ((sys.path (sys.path-get))
-              (name-split name-split)
-              (name-cumulative (car name-split))
-              (last-module #f))
-     (let ((module (import-from-sys.path sys.path (car name-split) (py-str-from-scheme name-cumulative))))
-      (if (and module (py-isinstance? module py-module-class))
-          (begin
-            (if last-module
-                (global-own-attr-put-no-cache! last-module (py-str-from-scheme (car name-split)) module))
-            (if (pair? (cdr name-split))
-                (let ((module.__path__ (global-own-attr-ref-no-cache module (& "__path__"))))
-                 (if (eq? py-absent module.__path__)
-                     (py-throw-exception-with-message
-                       py-builtin-ModuleNotFoundError
-                       "No module named '" __name__ "'; " (car name-split) " is not a package")
-                     (loop module.__path__
-                           (cdr name-split)
-                           (string-append name-cumulative "." (cadr name-split))
-                           module)))
-                module))
-          (py-throw-exception-with-message
-            py-builtin-ModuleNotFoundError
-            "No module named '" __name__ "'"))))))
+    (let loop ((sys.path (sys.path-get))
+               (name-split name-split)
+               (name-cumulative (car name-split))
+               (package-name py-None)
+               (last-module #f))
+      (let* ((py-name-cumulative (py-str-from-scheme name-cumulative)) 
+             (module (import-from-sys.path sys.path 
+                                           (car name-split) 
+                                           py-name-cumulative package-name)))
+       (if (and module (py-isinstance? module py-module-class))
+           (begin
+             (if last-module
+                 (global-own-attr-put-no-cache! last-module 
+                                                (py-str-from-scheme (car name-split)) 
+                                                module))
+             (if (pair? (cdr name-split))
+                 (let ((module.__path__ (global-own-attr-ref-no-cache module (& "__path__"))))
+                  (if (eq? py-absent module.__path__)
+                      (py-throw-exception-with-message
+                        py-builtin-ModuleNotFoundError
+                        "No module named '" __name__ "'; " (car name-split) " is not a package")
+                      (loop module.__path__
+                            (cdr name-split)
+                            (string-append name-cumulative "." (cadr name-split))
+                            py-name-cumulative
+                            module)))
+                 module))
+           (py-throw-exception-with-message
+             py-builtin-ModuleNotFoundError
+             "No module named '" __name__ "'"))))))
 
 (define (builtin-__import__ __name__)
    (or (native-builtin-__import__ __name__)
        (default-builtin-__import__ __name__)))
 
 (define (py-import path from-list depth)
+
   (let ((mod (builtin-__import__ path))
         (py-path (py-str-from-scheme-fallback path)))
     (for-each 
@@ -6462,7 +6471,7 @@
        (if profile-flag
            (statprof-begin profile-flag))
 
-       (compile-and-get-mod path (file-info path) (& "__main__"))
+       (compile-and-get-mod path (file-info path) (& "__main__") py-None)
 
        (if profile-flag
            (statprof-end path))))))
@@ -6483,7 +6492,7 @@
     (make-signature)))
 
 (define (make-time-mod)
-  (let ((mod (py-make-module (&& "time"))))
+  (let ((mod (py-make-module (& "time") (& ""))))
    (global-own-attr-put-no-cache! mod (& "time") time.time)))
 
 (make-time-mod)
@@ -6501,7 +6510,7 @@
     (make-signature posonlyargs: (file))))
 
 (define (make-statprof-mod)
-  (let ((mod (py-make-module (&& "statprof"))))
+  (let ((mod (py-make-module (&& "statprof") (& ""))))
    (global-own-attr-put-no-cache! mod (& "begin") statprof.begin)
    (global-own-attr-put-no-cache! mod (& "end") statprof.end)))
 
