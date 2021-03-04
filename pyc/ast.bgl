@@ -280,6 +280,7 @@
 
 	   (final-class PycImport::PycExpr
 	      (path::bstring read-only)
+         (from-list::pair-nil)
 	      (depth::int read-only (default 0)))
 
 	   (class PycIntrinsics::PycExpr

@@ -352,7 +352,7 @@
            (py-str-representative-fallback ::PyObjectStr)
            (py-concat-strX-strY str1 str2)
 
-           (py-import path depth)
+           (py-import path from-list depth)
            py-import-root
 
            (class PyGenerator::PyObject %next)

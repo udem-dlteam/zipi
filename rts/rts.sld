@@ -131,6 +131,7 @@
     py-not
     py-next
     py-import
+    py-import-from
 
     py-obj-cls
     py-obj-cls-general

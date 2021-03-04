@@ -6231,7 +6231,8 @@
 ;; ===========================================
 
 
-(define zipi-stdlib-dir (path-expand "stdlib" (getenv "ZIPIROOT" "~~zipidir")))
+(define zipi-stdlib-dir (list (path-expand "stdlib" (getenv "ZIPIROOT" "~~zipidir"))
+                              (path-expand "zipitestlib" (getenv "ZIPIROOT" "~~zipidir"))))
 
 (cond-expand
    (gambit)
@@ -6254,7 +6255,7 @@
 
    (global-own-attr-put-no-cache! mod (& "maxsize") (py-int-from-scheme max-fixnum))
    (global-own-attr-put-no-cache! mod (& "path")
-                     (py-make-list (py-str-from-scheme zipi-stdlib-dir)))
+                     (py-make-list-elems (map py-str-from-scheme-fallback zipi-stdlib-dir)))
    mod))
 
 (define sys-mod (py-make-sys-mod))
@@ -6427,8 +6428,28 @@
    (or (native-builtin-__import__ __name__)
        (default-builtin-__import__ __name__)))
 
-(define (py-import path depth)
-  (builtin-__import__ path))
+(define (py-import path fromList depth)
+  (let ((mod (builtin-__import__ path))
+        (py-path (py-str-from-scheme-fallback path)))
+    (for-each 
+      (lambda (from)
+        (let* ((py-from (py-str-from-scheme-fallback from)) 
+               (module.from (global-own-attr-ref-no-cache mod py-from)))
+          (if (eq? module.from py-absent) ;; the attribute is not present
+              (begin
+                (py-import (string-append path "." from) #f #f)
+                (let ((module.from (global-own-attr-ref-no-cache mod py-from)))
+                 (if (eq? module.from py-absent)
+                     (py-throw-exception-with-message py-builtin-ImportError "Cannot import name '" from "' from '" path "'")
+                     (begin 
+                       (global-own-attr-put-no-cache! mod py-from module.from)
+                       module.from))))
+              module.from)))
+      fromList)
+    mod))
+
+
+
 
 (define (run-as-main path)
   (build-builtins)

@@ -463,22 +463,22 @@
               loc
               (list
                 ;; according to cPython: full import done before assignment
-                (new-PycImport loc (symbol->string name))
+                (new-PycImport loc (symbol->string name) '())
                 (new-PycAssig
                   loc
                   (new-PycRefUnresolved loc (string->symbol (car name-split)) 'Store)
-                  (new-PycImport loc (car name-split)))))
+                  (new-PycImport loc (car name-split) '()))))
             ;; module import
             (new-PycAssig
               loc
               (new-PycRefUnresolved loc name 'Store)
-              (new-PycImport loc (symbol->string name))))))
+              (new-PycImport loc (symbol->string name) '())))))
       ((?name ?sym)
        ;; alias
        (new-PycAssig
          loc
          (new-PycRefUnresolved loc sym 'Store)
-         (new-PycImport loc (symbol->string name))))
+         (new-PycImport loc (symbol->string name) '())))
       (else
        (error "import" "Unsupported form" alias))))
 
@@ -489,7 +489,7 @@
           (new-PycAssig
             loc
             (new-PycRef loc module-var 'Store)
-            (new-PycImport loc (symbol->string module)))))
+            (new-PycImport loc (symbol->string module) (map (lambda (x) (symbol->string (car x))) aliases)))))
    (new-PycBlock loc
      (list module-assig)
      (new-PycSeq loc
