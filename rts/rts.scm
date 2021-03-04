@@ -6421,7 +6421,7 @@
                   (if (eq? py-absent module.__path__)
                       (py-throw-exception-with-message
                         py-builtin-ModuleNotFoundError
-                        "No module named '" __name__ "' " (car name-split) " is not a package")
+                        "No module named '" __name__ "'; " (car name-split) " is not a package")
                       (loop module.__path__
                             (cdr name-split)
                             (string-append name-cumulative "." (cadr name-split))
@@ -6458,7 +6458,7 @@
          (levels (string-split (if (or (eq? __package__ py-absent)
                                        (eq? __package__ py-None))
                                    ;; the real protocol checks __name__ in this case
-                                   (py-throw-exception-with-message py-builtin-ImportError "attribute __package__ not found")
+                                   (py-throw-exception-with-message py-builtin-ImportError "attempted relative import with no known parent package")
                                    (py-str-to-scheme __package__))
                                #\.))
          (levels-length (length levels)))
