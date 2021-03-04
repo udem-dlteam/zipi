@@ -1,4 +1,4 @@
-from __compiler_intrinsics__ import define_semantics, use_static_builtins, use_simple_scoping, class_getattr, absent
+from __compiler_intrinsics__ import define_semantics, use_static_builtins, use_simple_scoping, class_getattr, py_bool_to_host_bool, absent
 
 # Auto-generated
 @define_semantics
@@ -1272,6 +1272,10 @@ def truth(obj):
         else:
             return True
     # truth:end-body
+
+@define_semantics
+def test(obj):
+    return py_bool_to_host_bool(truth(obj))
 
 @define_semantics
 def getattribute(obj, attr):

@@ -126,7 +126,6 @@
 
     py-test
     py-test-from-scheme
-    py-test-fallback
 
     py-not
     py-next
@@ -736,6 +735,7 @@ py-index-fallback
 py-maybe-len-fallback
 py-len-fallback
 py-truth-fallback
+py-test-fallback
 py-getattribute-fallback
 py-setattribute-fallback
 py-getitem-fallback

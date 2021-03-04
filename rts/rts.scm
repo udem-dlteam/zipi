@@ -2157,9 +2157,6 @@
     py-False
     py-True))
 
-(define (py-test-fallback obj)
-  (py-bool-to-scheme-bool (py-truth obj)))
-
 ;; =============
 ;; CALL PROTOCOL
 ;; =============

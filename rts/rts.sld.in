@@ -126,7 +126,6 @@
 
     py-test
     py-test-from-scheme
-    py-test-fallback
 
     py-not
     py-next
