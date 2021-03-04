@@ -1503,6 +1503,18 @@
             `(py-test-fallback ,x)))
       `(py-test-fallback ,x)))
 
+(define-macro (py-truth obj)
+  `(py-truth-fallback ,obj))
+
+(define-macro (py-len obj)
+  `(py-len-fallback ,obj))
+
+(define-macro (py-maybe-len obj)
+  `(py-maybe-len-fallback ,obj))
+
+(define-macro (py-index obj)
+  `(py-index-fallback ,obj))
+
 (define-macro (py-getattribute obj attr)
   `(py-getattribute-fallback ,obj ,attr))
 
