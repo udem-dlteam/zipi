@@ -361,11 +361,11 @@
           (mark-define-semantics! this #f intrinsics-info define_semantics-var)
           (let ((semantics (collect-top-level-semantics-intrinsics* this)))
             (set!
-              statics-assoc-list
+              macro-assoc-list
               (append
-                statics-assoc-list
+                macro-assoc-list
                 (map
-                  (lambda (pair) (cons (car pair) (PycFun-name (cdr pair))))
+                  (lambda (pair) (cons (car pair) (make-pragma-call-maker (PycFun-name (cdr pair)))))
                   semantics))))
           (lambda-lift-semantics! this))))
 

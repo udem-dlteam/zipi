@@ -1313,10 +1313,10 @@
   (letrec* ((__len__-1304 (getattribute-from-obj-mro obj-70 (&& "__len__"))))
     (if (py-test (py-is __len__-1304 py-absent))
         py-absent
-        (py-call py-index-fallback (py-call __len__-1304 obj-70)))))
+        (py-index-fallback (py-call __len__-1304 obj-70)))))
 
 (define (py-len-fallback obj-71)
-  (letrec* ((result-1310 (py-call py-maybe-len-fallback obj-71)))
+  (letrec* ((result-1310 (py-maybe-len-fallback obj-71)))
     (if (py-test (py-is result-1310 py-absent))
         (py-throw
          (py-call py-builtin-TypeError
@@ -1340,7 +1340,7 @@
                                          (py-call py-builtin-type obj-72)
                                          (& "__name__")))
                                 (&& "'"))))))
-        (letrec* ((len_result-1328 (py-call py-maybe-len-fallback obj-72)))
+        (letrec* ((len_result-1328 (py-maybe-len-fallback obj-72)))
           (if (py-test (py-isnot len_result-1328 py-absent))
               (py-ne len_result-1328 (py-int-from-scheme 0))
               py-True)))))
