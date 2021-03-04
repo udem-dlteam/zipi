@@ -6428,7 +6428,7 @@
    (or (native-builtin-__import__ __name__)
        (default-builtin-__import__ __name__)))
 
-(define (py-import path fromList depth)
+(define (py-import path from-list depth)
   (let ((mod (builtin-__import__ path))
         (py-path (py-str-from-scheme-fallback path)))
     (for-each 
@@ -6445,7 +6445,7 @@
                        (global-own-attr-put-no-cache! mod py-from module.from)
                        module.from))))
               module.from)))
-      fromList)
+      from-list)
     mod))
 
 
