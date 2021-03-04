@@ -1331,7 +1331,7 @@
   (letrec* ((__bool__-1317 (getattribute-from-obj-mro obj-72 (&& "__bool__"))))
     (if (py-test (py-isnot __bool__-1317 py-absent))
         (letrec* ((result-1322 (py-call __bool__-1317 obj-72)))
-          (if (py-test (py-isinstance? result-1322 py-builtin-bool))
+          (if (py-isinstance? result-1322 py-builtin-bool)
               result-1322
               (py-throw
                (py-call py-builtin-TypeError

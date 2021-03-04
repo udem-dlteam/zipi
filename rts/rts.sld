@@ -2714,6 +2714,6 @@ py-invert-bintX-inline
   (include "rts-macros.scm")
   (include "rts#.scm")
   (include "rts.gambit")
-  (include "../stdlib/zemantics.scm")
   (include "../stdlib/behaviors.scm")
+  (include "../stdlib/zemantics.scm")
   (include "rts.scm"))

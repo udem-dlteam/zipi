@@ -122,11 +122,13 @@
               (new-PycCall
                 loc
                 (new-PycPragma loc 'py-isinstance?)
-                args)))
+                args
+                type: 'Ubool)))
           (new-PycCall
             loc
             (new-PycPragma loc 'py-isinstance?)
-            args)))
+            args
+            type: 'Ubool)))
       (error "SyntaxError" "wrong argument for isinstance" args))))
 
 (define (make-type this)
