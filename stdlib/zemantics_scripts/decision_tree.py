@@ -490,6 +490,22 @@ def partial_eval_stmts(stmts, ctx):
         # filter out None which is a removed statement (assignment which was resolved)
         yield from filter(None, partial_eval_stmt(stmt, ctx))
 
+def partial_eval_resolve_type(ctx, expr):
+    if isinstance(expr, ast.Constant):
+        return type(expr.value).__name__
+    elif isinstance(expr, ast.Compare):
+        # In the context of behavior which are only for builtin types, a comparison will always return a bool
+        return 'bool'
+    elif isinstance(expr, ast.UnaryOp):
+        if isinstance(expr.op, ast.Not):
+            return 'bool'
+    elif isinstance(expr, ast.Name):
+        var = ctx.get(expr.id)
+        if var:
+            return var.type
+
+    return _unknown
+
 
 def partial_eval_set(ctx, name, ast_val):
     if name in ctx:
@@ -497,7 +513,7 @@ def partial_eval_set(ctx, name, ast_val):
     elif isinstance(ast_val, ast.FunctionDef):
         ctx[name] = VarContext(type='function', value=ClosureDef.from_FunctionDef(ast_val, ctx))
     else:
-        ctx[name] = VarContext(value=ast_val)
+        ctx[name] = VarContext(type=partial_eval_resolve_type(ctx, ast_val), value=ast_val)
 
 def partial_eval_stmt(stmt, ctx):
     if isinstance(stmt, ast.If):
@@ -758,6 +774,8 @@ def partial_eval_eq(left, right, ctx):
             left_type = ctx.get(left.id).specialized_type
             if left_type == 'bint':
                 return ast.Constant(False)
+            elif left_type == 'bool':
+                return ast.UnaryOp(ast.Not(), left)
     return None
 
 
@@ -768,6 +786,8 @@ def partial_eval_ne(left, right, ctx):
             return ast.Constant(False)
         elif eq_res.value is False:
             return ast.Constant(True)
+    elif isinstance(eq_res, ast.UnaryOp) and isinstance(eq_res.op, ast.Not):
+        return eq_res.operand
     return None
 
 
@@ -786,10 +806,14 @@ def partial_eval_static_function_call(func_name, args, keywords, ctx):
             if instance_ctx:
                 instance_actual_type = instance_ctx.type
 
-                if issubclass(eval(instance_actual_type), eval(type_info_name)):
+                if instance_actual_type is _unknown:
+                    raise TypeError(f"partial_eval_static_function_call: type of '{instance_name}' is unknown")
+                elif issubclass(eval(instance_actual_type), eval(type_info_name)):
                     return ast.Constant(True)
                 elif instance_actual_type in types:
                     return ast.Constant(False)
+            else:
+                raise NameError(f"partial_eval_static_function_call: could not resolve name '{instance_name}'")
 
     elif func_name == "type":
         instance = args[0]
@@ -804,6 +828,13 @@ def partial_eval_static_function_call(func_name, args, keywords, ctx):
 
                 if instance_actual_type is not _unknown:
                     return ast.Name(instance_actual_type, ast.Load())
+                else:
+                    raise TypeError(f"partial_eval_static_function_call: type of '{instance_name}' is unknown")
+
+            else:
+                raise NameError(f"partial_eval_static_function_call: could not resolve name '{instance_name}'")
+        else:
+            raise NotImplementedError(f"partial_eval_static_function_call: could not type of '{instance}'")
 
     elif func_name in ctx:
         return partial_eval_local_function_call(ctx[func_name], args, ctx)
@@ -1043,8 +1074,13 @@ types += int_specialized_types
 types_without_int = [t for t in types if t != 'int']
 
 # Semantics which should be converted to behaviors
-target_semantics = [*templates.arithmetic_info, *templates.inplace_arithmetic_info,
-                    *templates.comparison_info, *templates.equality_info, *templates.unary_arithmetic_info]
+target_semantics = [*templates.arithmetic_info,
+                    *templates.inplace_arithmetic_info,
+                    *templates.comparison_info,
+                    *templates.equality_info,
+                    *templates.unary_arithmetic_info,
+                    "truth",
+                    "test"]
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Generate zipi decision tree and behavior functions")

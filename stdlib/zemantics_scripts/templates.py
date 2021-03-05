@@ -519,7 +519,12 @@ class int:
                 raise NotImplementedError
         else:
             raise NotImplementedError
-
+            
+    def __bool__(self):
+        if isinstance(self, int):
+            return self != 0
+        else:
+            raise TypeError("descriptor '__bool__' requires a 'int' object but received a '" + type(self).__name__ + "'")
 {methods}"""
 
 int_method_info = {
@@ -763,7 +768,12 @@ class float:
                 raise NotImplementedError
         else:
             raise NotImplementedError
-
+            
+    def __bool__(self):
+        if isinstance(self, float):
+            return self != 0.0
+        else:
+            raise TypeError("descriptor '__bool__' requires a 'float' object but received a '" + type(self).__name__ + "'")
 {methods}"""
 
 float_method_info = {
