@@ -55,6 +55,15 @@
      (new-PycPragma loc (call-with-input-string (PycLiteralValue-val (car args)) read))
      (error "SyntaxError" "wrong argument for inline_host_code" args))))
 
+(define (make-semantics-scheme-name-from-fun-name name)
+  (let ((id-with-dashes
+          (string->symbol
+            (list->string
+              (map
+                (lambda (c) (if (eq? c #\_) #\- c))
+                (string->list (symbol->string name)))))))
+    (symbol-append 'py- id-with-dashes '-fallback)))
+
 (define (make-class_getattr this)
  (let* ((loc (PycNode-loc this))
        (args (PycCall-args this))
@@ -88,6 +97,52 @@
            (cdr args)))
        (error "SyntaxError" "wrong argument for call_host" #f))))
 
+(define (make-isinstance this)
+  (let* ((loc (PycNode-loc this))
+        (args (PycCall-args this))
+        (args-len (length args)))
+    (if (= args-len 2)
+      (let ((arg1 (car args))
+            (arg2 (cadr args)))
+        (if (isa? arg2 PycRefUnresolved)
+          (case (PycRefUnresolved-id arg2)
+            ((sint)
+              (new-PycCall
+                loc
+                (new-PycPragma loc 'py-has-type-sint?)
+                (list arg1)
+                type: 'Ubool))
+            ((bint)
+              (new-PycCall
+                loc
+                (new-PycPragma loc 'py-has-type-bint?)
+                (list arg1)
+                type: 'Ubool))
+            (else
+              (new-PycCall
+                loc
+                (new-PycPragma loc 'py-isinstance?)
+                args
+                type: 'Ubool)))
+          (new-PycCall
+            loc
+            (new-PycPragma loc 'py-isinstance?)
+            args
+            type: 'Ubool)))
+      (error "SyntaxError" "wrong argument for isinstance" args))))
+
+(define (make-type this)
+  (let* ((loc (PycNode-loc this))
+        (args (PycCall-args this))
+        (args-len (length args)))
+    (if (= args-len 1)
+      (new-PycCall
+        loc
+        (new-PycPragma loc 'py-obj-cls)
+        args)
+      (error "SyntaxError" "wrong argument for type" args))))
+
+
 (define (make-pragma-call-maker name)
  (lambda (this)
    (let* ((loc (PycNode-loc this))
@@ -118,12 +173,18 @@
  (list
    (cons 'absent 'py-absent)))
 
+(define macro-static-builtins
+  (list
+    (cons 'isinstance make-isinstance)
+    (cons 'type make-type)))
+
 ;; TODO: generate a full table of builtins with Zipi rts name
 (define static-builtins
  '(
    ;; builtin callables
    (super . py-builtin-super)
    (type . py-builtin-type)
+   (bool . py-builtin-bool)
    ;; builtin constants
    (NotImplemented . py-NotImplemented)
    ;; exceptions
@@ -296,7 +357,27 @@
             statics-assoc-list
             macro-assoc-list)))
 
+  (let ((define_semantics-var (list-find-PycVar-by-id intrinsics 'define_semantics)))
+    (if define_semantics-var
+        (begin
+          (mark-define-semantics! this #f intrinsics-info define_semantics-var)
+          (let ((semantics (collect-top-level-semantics-intrinsics* this)))
+            (set!
+              macro-assoc-list
+              (append
+                macro-assoc-list
+                (map
+                  (lambda (pair) (cons (car pair) (make-pragma-call-maker (PycFun-name (cdr pair)))))
+                  semantics))))
+          (lambda-lift-semantics! this))))
+
   ;; static functions and values
+  (resolve-statics-calls!
+    this
+    intrinsics
+    macro-assoc-list
+    #f)
+
   (resolve-statics!
     this
     intrinsics
@@ -308,11 +389,6 @@
   (let ((use_simple_scoping-var (list-find-PycVar-by-id intrinsics 'use_simple_scoping)))
     (if use_simple_scoping-var
         (mark-use-simple-scoping! this (list-find-PycVar-by-id intrinsics 'use_simple_scoping))))
-  (let ((define_semantics-var (list-find-PycVar-by-id intrinsics 'define_semantics)))
-    (if define_semantics-var
-        (begin
-          (mark-define-semantics! this #f intrinsics-info define_semantics-var)
-          (lambda-lift-semantics! this))))
   (let ((define_behavior-var (list-find-PycVar-by-id intrinsics 'define_behavior)))
     (if define_behavior-var
       (mark-define-behavior! this intrinsics-info define_behavior-var)))
@@ -343,7 +419,7 @@
         (static-value
           (let ((pair (assq var statics))) (if pair (cdr pair) #f))))
     (if static-value
-      (new-PycPragma (PycNode-loc this) static-value)
+      (new-PycStatic (PycNode-loc this) (PycVar-id var) static-value)
       this)))
 
 (define-walk-method (resolve-statics! this::PycRefUnresolved intrinsics statics macros use-static-builtins)
@@ -374,19 +450,51 @@
         this)
       (call-default-walker))))
 
-(define-walk-method (resolve-statics! this::PycCall intrinsics statics macros use-static-builtins)
-  (let ((this (call-default-walker))
-       (fun (PycCall-fun this)))
-    (if (and use-static-builtins
-             (isa? fun PycRefUnresolved)
-             (not (eq? (PycRefUnresolved-id fun) 'super)))
+
+(define (check-and-set-static-can-be-super! this)
+  (let* ((fun (PycCall-fun this)))
+    (if (or (and
+              (isa? fun PycRefUnresolved)
+              (not (eq? (PycRefUnresolved-id fun) 'super)))
+            (and
+              (isa? fun PycPragma)
+              (not (eq? (PycPragma-expr fun) 'py-builtin-super))))
       (PycCall-can-be-super-set! this #f))
-    (if (PycRef? fun)
-      (let* ((pair (assq (PycRef-decl fun) macros)))
-        (if pair
-          ((cdr pair) this)
-          this))
-      this)))
+    this))
+
+(define-walk-method (resolve-statics-calls! this::PycNode intrinsics macros use-static-builtins)
+  (call-default-walker))
+
+(define-walk-method (resolve-statics-calls! this::PycFun intrinsics macros use-static-builtins)
+  (let* ((decorators (PycFun-decorators this))
+         (use_static_builtins-var (list-find-PycVar-by-id intrinsics 'use_static_builtins)))
+    (if (or use-static-builtins
+            (list-find-PycRef-by-PycVar
+              decorators
+              use_static_builtins-var))
+      (let* ((body (PycFun-body this))
+            (new-body (resolve-statics-calls! body intrinsics macros #t)))
+        ;; do not remove the decorator yet
+        (PycFun-body-set! this new-body)
+        this)
+      (call-default-walker))))
+
+(define-walk-method (resolve-statics-calls! this::PycCall intrinsics macros use-static-builtins)
+  (let* ((this (call-default-walker))
+       (fun (PycCall-fun this)))
+    (if use-static-builtins (check-and-set-static-can-be-super! this))
+    (cond
+      ((PycRef? fun)
+        (let* ((pair (assq (PycRef-decl fun) macros)))
+          (if pair
+            ((cdr pair) this)
+            this)))
+      ((PycRefUnresolved? fun)
+        (let* ((pair (assq (PycRefUnresolved-id fun) macro-static-builtins)))
+          (if pair
+            ((cdr pair) this)
+            this)))
+      (else this))))
 
 ;; resolve statically types binops
 (define (get-pragma-call-type-hint call)
@@ -506,7 +614,7 @@
               semantics-decorator)
           decls: decls
           use-simple-scoping: #t
-          name: (if semantics-decorator (symbol-append 'py- name '-fallback) name)
+          name: (if semantics-decorator (make-semantics-scheme-name-from-fun-name name) name)
           annotation: annotation
           annotation-names: annotation-names
           inline: (if semantics-decorator (is-inlined-semantics name) #f)))
@@ -979,3 +1087,22 @@
         (list
           (optimize-builtin-class-refs! obj builtins-class-table class self)))
       (call-default-walker))))
+
+(define-walk-method (collect-top-level-semantics-intrinsics* this::PycNode)
+  (call-default-walker))
+
+(define-walk-method (collect-top-level-semantics-intrinsics* this::PycAssig)
+  (let ((lhs (PycAssig-lhs this))
+        (rhs (PycAssig-rhs this)))
+    (if (and (isa? lhs PycRef) (isa? rhs PycSemantics))
+      (list (cons (PycRef-decl lhs) rhs))
+      (call-default-walker))))
+
+(define-walk-method (collect-top-level-semantics-intrinsics* this::PycSemantics)
+  (error "collect-top-level-semantics-intrinsics*::PycSemantics" "semantics not in PycAssig" this))
+
+(define-walk-method (collect-top-level-semantics-intrinsics* this::PycFun)
+  '())
+
+(define-walk-method (collect-top-level-semantics-intrinsics* this::PycClass)
+  '())

@@ -1,4 +1,4 @@
-from __compiler_intrinsics__ import define_semantics, use_static_builtins, use_simple_scoping, class_getattr, absent
+from __compiler_intrinsics__ import define_semantics, use_static_builtins, use_simple_scoping, class_getattr, py_bool_to_host_bool, absent
 
 # Auto-generated
 @define_semantics
@@ -1217,6 +1217,65 @@ def ne(x, y):
     # ne:start-body
     return normal()
     # ne:end-body
+
+@define_semantics
+def index(obj):
+    # index:start-body
+    __index__ = class_getattr(obj, "__index__")
+    if __index__ is absent:
+        raise TypeError("'" + type(obj).__name__ + "' object cannot be interpreted as an integer")
+    else:
+        result = __index__(obj)
+
+        if isinstance(result, sint):
+            return result
+        elif isinstance(result, bint):
+            raise OverflowError("cannot fit 'int' into an index-sized integer")
+        else:
+            raise TypeError("__index__ returned non-int type: '" + type(obj).__name__ + "'")
+    # index:end-body
+
+@define_semantics
+def maybe_len(obj):
+    # len:start-body
+    __len__ = class_getattr(obj, "__len__")
+    if __len__ is absent:
+        return absent
+    else:
+        return index(__len__(obj))
+    # len:end-body
+
+@define_semantics
+def len(obj):
+    # len:start-body
+    result = maybe_len(obj)
+    if result is absent:
+        raise TypeError("object of type" + type(obj).__name__ + "has no len()")
+    else:
+        return result
+    # len:end-body
+
+@define_semantics
+def truth(obj):
+    # truth:start-body
+    __bool__ = class_getattr(obj, "__bool__")
+    if __bool__ is not absent:
+        result = __bool__(obj)
+        if isinstance(result, bool):
+            return result
+        else:
+            raise TypeError("__bool__ should return bool, returned '" + type(obj).__name__ + "'")
+    else:
+        len_result = maybe_len(obj)
+        if len_result is not absent:
+            return len_result != 0
+        else:
+            return True
+    # truth:end-body
+
+@define_semantics
+def test(obj):
+    return py_bool_to_host_bool(truth(obj))
 
 @define_semantics
 def getattribute(obj, attr):

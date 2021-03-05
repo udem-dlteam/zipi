@@ -330,7 +330,9 @@
 
 (define (pyc-test this conf)
    (epairify this
-	  `(py-test ,(scheme this conf))))
+     (if (eq? (PycExpr-type this) 'Ubool)
+      (scheme this conf)
+	    `(py-test ,(scheme this conf)))))
 
 (define-walk-method (scheme this::PycWhile conf)
 
@@ -1306,7 +1308,7 @@
 
 (define-walk-method (scheme this::PycIfExp conf)
   (epairify this
-    `(if (py-test ,(scheme (PycIfExp-test this) conf))
+    `(if ,(pyc-test (PycIfExp-test this) conf)
          ,(scheme (PycIfExp-body this) conf)
          ,(scheme (PycIfExp-orelse this) conf))))
 

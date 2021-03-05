@@ -126,7 +126,6 @@
 
     py-test
     py-test-from-scheme
-    py-test-fallback
 
     py-not
     py-next
@@ -732,6 +731,11 @@ py-eq-fallback:default
 py-ne-fallback:normal
 py-ne-fallback:reflected
 py-ne-fallback:default
+py-index-fallback
+py-maybe-len-fallback
+py-len-fallback
+py-truth-fallback
+py-test-fallback
 py-getattribute-fallback
 py-setattribute-fallback
 py-getitem-fallback
@@ -2710,6 +2714,6 @@ py-invert-bintX-inline
   (include "rts-macros.scm")
   (include "rts#.scm")
   (include "rts.gambit")
-  (include "../stdlib/zemantics.scm")
   (include "../stdlib/behaviors.scm")
+  (include "../stdlib/zemantics.scm")
   (include "rts.scm"))

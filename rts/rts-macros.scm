@@ -777,6 +777,23 @@
   `(PyObjectType-class-index (py-obj-cls-general ,obj)))
 
 ;; Specialized type tests for int
+(define-macro (py-has-type-sint? obj)
+  `(py-specialized-sint-float-dispatch-let
+    $obj
+    ,obj
+    #t
+    #f
+    (py-if-specialized-sint-representation
+      #f
+      (and (py-has-type-int? $obj) (fixnum? (py-int-to-scheme $obj))))))
+
+(define-macro (py-has-type-bint? obj)
+  `(py-specialized-sint-float-dispatch-let
+    $obj
+    ,obj
+    #f
+    #f
+    (and (py-has-type-int? $obj) (not (fixnum? (py-int-to-scheme $obj))))))
 
 (define-macro (py-has-type-int? obj)
   `(py-specialized-sint-float-dispatch-let
@@ -1485,6 +1502,18 @@
             `(,(cadr test-version) ,@(cdr x))
             `(py-test-fallback ,x)))
       `(py-test-fallback ,x)))
+
+(define-macro (py-truth obj)
+  `(py-truth-fallback ,obj))
+
+(define-macro (py-len obj)
+  `(py-len-fallback ,obj))
+
+(define-macro (py-maybe-len obj)
+  `(py-maybe-len-fallback ,obj))
+
+(define-macro (py-index obj)
+  `(py-index-fallback ,obj))
 
 (define-macro (py-getattribute obj attr)
   `(py-getattribute-fallback ,obj ,attr))

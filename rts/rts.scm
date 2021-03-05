@@ -1201,13 +1201,13 @@
 
 (define (py-throw exc)
   (cond ((not (PyObject? exc))
-         (raise (py-call py-builtin-TypeError)))
+         (raise (py-call py-builtin-TypeError (& "exceptions must derive from BaseException"))))
         ((py-is-in-mro? py-builtin-BaseException (py-obj-mro exc))
          (raise exc))
         ((py-is-in-mro? py-builtin-BaseException (PyObjectType-mro exc))
          (raise (py-call exc)))
         (else
-         (raise (py-call py-builtin-TypeError)))))
+         (raise (py-call py-builtin-TypeError (& "exceptions must derive from BaseException"))))))
 
 ;; =============================================================================
 ;; Exception thrower helpers
@@ -1771,8 +1771,7 @@
    ((py-has-type-int? self)
     self)
    ((py-subtype-of-int? self)
-    ;;TODO: this code seems incorrect!
-    (py-str-from-scheme (number->string (py-subtype-of-int-to-scheme self))))
+    (py-int-from-scheme (py-subtype-of-int-to-scheme self)))
    (else
     (py-throw-required-type "__repr__" "int" self))))
 
@@ -2017,26 +2016,6 @@
 
 ;;;----------------------------------------------------------------------------
 
-(define (py-maybe-len obj)
-  (let ((__len__ (getattribute-from-obj-mro obj (& "__len__"))))
-    (if (eq? __len__ py-absent)
-        py-absent
-        (let ((len (py-call __len__ obj)))
-          (cond ((py-has-type-int? len)
-                 len)
-                ((py-subtype-of-int? len)
-                 (py-int-from-scheme (py-subtype-of-int-to-scheme len)))
-                (else
-                 (py-throw-not-an-integer len)))))))
-
-(define (py-len obj)
-  (let ((len (py-maybe-len obj)))
-    (if (eq? len py-absent)
-        (py-throw-has-no-len obj)
-        len)))
-
-;;;----------------------------------------------------------------------------
-
 ;; ===================
 ;; DESCRIPTOR PROTOCOL
 ;; ===================
@@ -2172,27 +2151,6 @@
   (procedure->py-function
     int-bool
     (make-signature posonlyargs: (self))))
-
-
-;; Returns the truthiness of an object by calling obj.__bool__
-;; py-test is expected to return #t or #f, not a Python objects
-;; True and False are converted to #t and #f
-(define (py-test-fallback obj)
-  (cond ((eq? obj py-True) ;; base case
-         #t)
-        ((eq? obj py-False) ;; base case
-         #f)
-        ((py-has-type-int? obj) ;; optimization (test common case first)
-         (not (eq? obj py-int-0)))
-        (else
-         (let ((__bool__ (getattribute-from-obj-mro obj (& "__bool__"))))
-           (if (not (eq? __bool__ py-absent))
-               (let ((test-value (py-call __bool__ obj)))
-                 (py-test test-value))
-               (let ((len (py-maybe-len obj)))
-                 (if (eq? len py-absent)
-                     #t
-                     (py-test len))))))))
 
 (define (py-not obj)
   (if (py-test obj)
@@ -5700,6 +5658,7 @@
      (& "__truediv__") int.__truediv__
      (& "__itruediv__") int.__itruediv__
      (& "__repr__") int.__repr__
+     (& "__index__") int.__index__
      ))
 
   ;; Pre-allocate ints from -5 to 256 and cache them
@@ -7466,7 +7425,7 @@
 
 (define py-builtin-len
   (procedure->py-function
-    py-len
+    (lambda (o) (py-len o))
     (make-signature posonlyargs: (obj))))
 
 ;;-------------------- class list([iterable])

@@ -126,7 +126,6 @@
 
     py-test
     py-test-from-scheme
-    py-test-fallback
 
     py-not
     py-next
@@ -624,6 +623,6 @@
   (include "rts-macros.scm")
   (include "rts#.scm")
   (include "rts.gambit")
-  (include "../stdlib/zemantics.scm")
   (include "../stdlib/behaviors.scm")
+  (include "../stdlib/zemantics.scm")
   (include "rts.scm"))
