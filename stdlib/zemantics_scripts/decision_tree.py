@@ -753,7 +753,10 @@ def partial_eval_is(left, right, ctx):
             right_type = right_var.type
             if left_type in ("absent", "NotImplementedType") or right_type in ("absent", "NotImplementedType"):
                 # TODO: this assumption can be removed once we have more solid type-checking
-                # 'absent' and 'NotImplemented' are singletons which should always be resolved statically
+                # 'absent' and 'NotImplemented' are singletons which should always be resolvable statically
+                # if a type is unknown, we assume it was not absent or NotImplemented
+                # this assumption can hold here because absent and NotImplemented values being returned by a semantics
+                # or a dunder is never specific to a value, but always to a whole type
                 return ast.Constant(left_type == right_type)
             if left_var.type != _unknown != right_var.type and left_var.type != right_var.type:
                 return ast.Constant(False)
