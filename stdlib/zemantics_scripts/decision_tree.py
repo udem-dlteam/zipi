@@ -278,10 +278,18 @@ class ClassRegister(AstRegister):
 
 
 class SemanticsRegister(AstRegister):
+    # Offers a register of semantics to be optimized to behaviors and a second register of all defined semantics
+    # The second register must be accessed through the 'get_from_all_semantics' method
+    def __init__(self, ast_):
+        self._all_semantics = {}
+        super().__init__(ast_)
+
     def visit_FunctionDef(self, node):
         decorators = node.decorator_list
-        if any(isinstance(d, ast.Name) and d.id == 'define_semantics' for d in decorators) and node.name in target_semantics:
-            self[node.name] = node
+        if any(isinstance(d, ast.Name) and d.id == 'define_semantics' for d in decorators):
+            if node.name in target_semantics:
+                self[node.name] = node
+            self._all_semantics[node.name] = node
 
     def iter_binary_semantics(self):
         for name, sem in self._register.items():
@@ -292,6 +300,9 @@ class SemanticsRegister(AstRegister):
         for name, sem in self._register.items():
             if len(sem.args.args) == 1:
                 yield name, sem
+
+    def get_from_all_semantics(self, name, default=None):
+        return self._all_semantics.get(name, default)
 
 
 class AstRenamer(ast.NodeVisitor):
@@ -448,6 +459,9 @@ class Context:
 
     def from_closure(self, closure):
         return Context(self.semantics, self.classes, closure=closure)
+
+    def get_semantics(self, name, default=None):
+        return self.semantics.get_from_all_semantics(name, default)
 
 
 def partial_eval(fn_ast, semantics, classes, *args):
@@ -845,37 +859,40 @@ def partial_eval_static_function_call(func_name, args, keywords, ctx):
         return partial_eval_specialize_intrinsic_function(func_name, args, ctx)
 
 
+def partial_eval_resolved_function_call(fn_ast, args, ctx):
+    fn_args = fn_ast.args.args
+    name_table = {}
+
+    if len(args) == len(fn_args):
+        call_ctx = ctx.from_closure(fn_ast.closure) if isinstance(fn_ast, ClosureDef) else ctx.new()
+
+        for fn_arg, arg in zip(fn_args, args):
+            if isinstance(arg, ast.Name):
+                arg_name = fn_arg.arg
+                arg_value = ctx[arg.id]
+                name_table[arg_name] = arg.id
+                call_ctx[arg_name] = arg_value
+            else:
+                raise NotImplementedError("partial_eval_local_function_call: non-name argument")
+
+        body = fn_ast.body
+
+        result_body = StmtSequence(partial_eval_body(body, call_ctx))
+
+        # Important to use a deepcopy of the ast so renaming does not affect called method variables
+        body_copy = copy.deepcopy(result_body)
+        AstRenamer(name_table).visit(body_copy)
+        return body_copy
+
+    else:
+        raise TypeError("partial_eval_local_function_call: incorrect number of arguments")
+
+
 def partial_eval_local_function_call(func, args, ctx):
     fn_ast = func.value
 
     if isinstance(fn_ast, ast.FunctionDef):
-        fn_args = fn_ast.args.args
-        name_table = {}
-
-        if len(args) == len(fn_args):
-            call_ctx = ctx.from_closure(fn_ast.closure) if isinstance(fn_ast, ClosureDef) else ctx.new()
-
-            for fn_arg, arg in zip(fn_args, args):
-                if isinstance(arg, ast.Name):
-                    arg_name = fn_arg.arg
-                    arg_value = ctx[arg.id]
-                    name_table[arg_name] = arg.id
-                    call_ctx[arg_name] = arg_value
-                else:
-                    raise NotImplementedError("partial_eval_local_function_call: non-name argument")
-
-            body = fn_ast.body
-
-            result_body = StmtSequence(partial_eval_body(body, call_ctx))
-
-            # Important to use a deepcopy of the ast so renaming does not affect called method variables
-            body_copy = copy.deepcopy(result_body)
-            AstRenamer(name_table).visit(body_copy)
-            return body_copy
-
-        else:
-            raise TypeError("partial_eval_local_function_call: incorrect number of arguments")
-
+        return partial_eval_resolved_function_call(fn_ast, args, ctx)
     else:
         raise ValueError("partial evaluation call to non-function local object")
 
@@ -902,6 +919,10 @@ def partial_eval_specialize_intrinsic_function(func_name, args, ctx):
                     return ast.Call(ast.Name("py_int_to_host"), args, [])
     elif func_name == "class_getattr":
         return partial_eval_class_getattr_call(args, ctx)
+
+    semantics = ctx.get_semantics(func_name)
+    if semantics:
+        return partial_eval_resolved_function_call(semantics, args, ctx)
 
     # No specialization
     return ast.Call(ast.Name(func_name), args, [])
