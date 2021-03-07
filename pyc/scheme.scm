@@ -117,7 +117,7 @@
 		 '((library zipi)))
 	   ,@(if (config-get conf main:)
 		 '((main main))
-		 '((export (zipi-init ::bstring)))))
+		 '((export (zipi-init ::bstring ::bstring ::bstring)))))
 	(start-registering-constants)
   ,@(if (config-get conf-with-defs optim-globals:)
     `((define %global #f)
@@ -149,10 +149,13 @@
 		       (py-make-global)
 		       (py-make-caches ,(PycModule-caches ast))))))
 	    (else
-	     `(define (zipi-init name)
+	     `(define (zipi-init name package path)
 		 (init-registered-constants)
 		 (let ((caches (py-make-caches ,(PycModule-caches ast)))
-		       (module (py-make-module (py-str-from-scheme name))))
+		       (module (py-make-module
+                         (py-str-from-scheme name)
+                         (py-str-from-scheme package)
+                         (py-str-from-scheme path))))
 		    ,@(if full-path
 			  `((py-own-attr-set!
 			       module (& "__file__") (& ,full-path)))
@@ -209,10 +212,10 @@
                   ,@prog)
                    `(define py-module ,prog))
 
-              (define (init name)
+              (define (init name package __path__)
                 (py-init-module)
                 (let ((caches (py-make-caches ,(PycModule-caches ast)))
-                      (module (py-make-module name)))
+                      (module (py-make-module name package __path__)))
                   ,(if full-path
                     `(global-put!
                       module (& "__file__") (&& ,full-path))
@@ -1224,7 +1227,10 @@
 
 (define-walk-method (scheme this::PycImport conf)
    (epairify this
-      `(py-import ,(PycImport-path this) ,(PycImport-depth this))))
+      (let ((depth (PycImport-depth this)))
+        (if (= depth 0)
+            `(py-import ,(PycImport-path this) ',(PycImport-from-list this))
+            `(py-import-relative %global ,(PycImport-path this) ',(PycImport-from-list this) ,depth)))))
 
 (define-walk-method (scheme this::PycRef conf)
   (let* ((var (PycRef-decl this))
