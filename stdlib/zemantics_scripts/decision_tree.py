@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse, ast, copy, inspect, itertools, logging, operator, sys
+from collections import Counter
 from functools import wraps
 from pprint import pprint
 from types import ModuleType
@@ -305,12 +306,17 @@ class SemanticsRegister(AstRegister):
         return self._all_semantics.get(name, default)
 
 
-class AstRenamer(ast.NodeVisitor):
+class AstNameInliner(ast.NodeVisitor):
     def __init__(self, table):
         self.table = table
 
     def visit_Name(self, node):
-        node.id = self.table.get(node.id, node.id)
+        node.id = self.table.get((node.id, type(node.ctx).__name__), node.id)
+
+
+class AstNameCounter(ast.NodeVisitor, Counter):
+    def visit_Name(self, node):
+        self[node.id, type(node.ctx).__name__] += 1
 
 
 # ======================================================================================================================
@@ -464,6 +470,30 @@ class Context:
         return self.semantics.get_from_all_semantics(name, default)
 
 
+def inline_variables(body, ctx):
+    name_counter = AstNameCounter()
+    for stmt in body:
+        name_counter.visit(stmt)
+
+    names = {name for name, _ in name_counter.keys()}
+
+    inlining_table = {
+        (name, "Load"): ctx.get(name).value
+        for name in names
+        if not name_counter[name, "Store"]
+           and not name_counter[name, "Del"]
+           and name_counter[name, "Load"] == 1
+           and name in ctx
+           and ctx.get(name).value is not _unknown
+    }
+
+    body_copy = copy.deepcopy(body)
+    for stmt in body_copy:
+        AstNameInliner(inlining_table).visit(stmt)
+
+    return body_copy
+
+
 def partial_eval(fn_ast, semantics, classes, *args):
     ast_args = fn_ast.args
 
@@ -496,7 +526,7 @@ def partial_eval_body(body, ctx):
         if isinstance(stmt, ast.Return) or isinstance(stmt, ast.Raise):
             break
 
-    return result
+    return inline_variables(result, ctx)
 
 
 def partial_eval_stmts(stmts, ctx):
@@ -574,7 +604,7 @@ def partial_eval_stmt(stmt, ctx):
                 elif var.value is not _unknown:
                     yield ast.Return(var.value)
                 else:
-                    yield ast.Return(ast.Name(value.id))
+                    yield ast.Return(ast.Name(value.id, ast.Load()))
             else:
                 yield ast.Return(partial_eval_expr(value, ctx) if value is not None else value)
         else:
@@ -845,6 +875,12 @@ def partial_eval_static_function_call(func_name, args, keywords, ctx):
 
                 if instance_actual_type is _unknown:
                     raise TypeError(f"partial_eval_static_function_call: type of '{instance_name}' is unknown")
+                elif type_info_name == "sint":
+                    # TODO: incorrect but temporarily works for index semantics
+                    return ast.Constant(True)
+                elif type_info_name == "bint":
+                    # TODO: incorrect but temporarily works for index semantics
+                    return ast.Constant(False)
                 elif issubclass(eval(instance_actual_type), eval(type_info_name)):
                     return ast.Constant(True)
                 elif instance_actual_type in types:
@@ -890,7 +926,8 @@ def partial_eval_resolved_function_call(fn_ast, args, ctx):
             if isinstance(arg, ast.Name):
                 arg_name = fn_arg.arg
                 arg_value = ctx[arg.id]
-                name_table[arg_name] = arg.id
+                for ast_ctx in ["Load", "Store", "Del"]:
+                    name_table[(arg_name, ast_ctx)] = arg.id
                 call_ctx[arg_name] = arg_value
             else:
                 raise NotImplementedError("partial_eval_local_function_call: non-name argument")
@@ -901,7 +938,7 @@ def partial_eval_resolved_function_call(fn_ast, args, ctx):
 
         # Important to use a deepcopy of the ast so renaming does not affect called method variables
         body_copy = copy.deepcopy(result_body)
-        AstRenamer(name_table).visit(body_copy)
+        AstNameInliner(name_table).visit(body_copy)
         return body_copy
 
     else:
@@ -930,13 +967,13 @@ def partial_eval_specialize_intrinsic_function(func_name, args, ctx):
                 type_ = name_ctx.specialized_type
 
                 if type_ == "sint":
-                    return ast.Call(ast.Name("py_sint_to_host"), args, [])
+                    return ast.Call(ast.Name("py_sint_to_host", ast.Load()), args, [])
                 elif type_ == "bint":
-                    return ast.Call(ast.Name("py_bint_to_host"), args, [])
+                    return ast.Call(ast.Name("py_bint_to_host", ast.Load()), args, [])
                 elif type_ == "bool":
-                    return ast.Call(ast.Name("py_bool_to_host_int"), args, [])
+                    return ast.Call(ast.Name("py_bool_to_host_int", ast.Load()), args, [])
                 elif issubclass(eval(type_), int):
-                    return ast.Call(ast.Name("py_int_to_host"), args, [])
+                    return ast.Call(ast.Name("py_int_to_host", ast.Load()), args, [])
     elif func_name == "class_getattr":
         return partial_eval_class_getattr_call(args, ctx)
 
@@ -945,7 +982,7 @@ def partial_eval_specialize_intrinsic_function(func_name, args, ctx):
         return partial_eval_resolved_function_call(semantics, args, ctx)
 
     # No specialization
-    return ast.Call(ast.Name(func_name), args, [])
+    return ast.Call(ast.Name(func_name, ast.Load()), args, [])
 
 
 def partial_eval_class_getattr_call(args, ctx):
@@ -985,11 +1022,11 @@ def convert_expr_to_return_host_bool(expr):
         else:
             raise TypeError(f"cannot convert call to a return-host-bool version due to unknown callee: {func}")
     elif isinstance(expr, ast.Compare):
-        return ast.Call(ast.Name('py_bool_to_host_bool'), [expr], [])
+        return ast.Call(ast.Name('py_bool_to_host_bool', ast.Load()), [expr], [])
     elif isinstance(expr, ast.Constant):
         val = expr.value
         if isinstance(val, bool):
-            return ast.Call(ast.Name('py_bool_to_host_bool'), [expr], [])
+            return ast.Call(ast.Name('py_bool_to_host_bool', ast.Load()), [expr], [])
 
     raise TypeError(f"cannot convert expr to a return-host-bool version: {expr}")
 
@@ -1054,11 +1091,11 @@ def main_behaviors(semantics_file, builtins_file):
                        "py_float_to_host, py_sint_to_host, py_bint_to_host, py_bool_from_host_bool, " \
                        "py_bool_to_host_bool, py_str_from_host, py_str_to_host"
 
-    behavior_decorator_list = [ast.Name(f"{define_behavior}")]
+    behavior_decorator_list = [ast.Name(f"{define_behavior}", ast.Load())]
 
     def register_behavior(name, sem, *types):
         args_names = [a.arg for a in sem.args.args]
-        annotations = [ast.Name(t) for t in types]
+        annotations = [ast.Name(t, ast.Load()) for t in types]
 
         annotated_arguments = make_ast_simple_arguments(*args_names, annotations=annotations)
         behavior_name = get_behavior_name(name, types)

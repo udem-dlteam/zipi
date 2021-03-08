@@ -526,6 +526,12 @@ class int:
             return self != 0
         else:
             raise TypeError("descriptor '__bool__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+            
+    def __index__(self):
+        if isinstance(self, int):
+            return py_int_from_host(py_int_to_host(self))
+        else:
+            raise TypeError("descriptor '__index__' requires a 'int' object but received a '" + type(self).__name__ + "'")
 {methods}"""
 
 int_method_info = {
@@ -560,7 +566,7 @@ int_comparison_method_info = {
 }
 
 int_unary_method_info = {
-    'pos': {"method_name": "pos", "expr": "self"},
+    'pos': {"method_name": "pos", "expr": "py_int_from_host(py_int_to_host(self))"},
     'neg': {"method_name": "neg", "expr": "py_int_from_host(-py_int_to_host(self))"},
     'invert': {"method_name": "invert", "expr": "py_int_from_host(~py_int_to_host(self))"},
 }

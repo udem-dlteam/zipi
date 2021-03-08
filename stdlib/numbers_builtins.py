@@ -19,6 +19,12 @@ class int:
             return self != 0
         else:
             raise TypeError("descriptor '__bool__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+            
+    def __index__(self):
+        if isinstance(self, int):
+            return py_int_from_host(py_int_to_host(self))
+        else:
+            raise TypeError("descriptor '__index__' requires a 'int' object but received a '" + type(self).__name__ + "'")
 
     def __add__(self, other):
         if isinstance(self, int):
@@ -283,7 +289,7 @@ class int:
 
     def __pos__(self):
         if isinstance(self, int):
-            return self
+            return py_int_from_host(py_int_to_host(self))
         else:
             raise TypeError("descriptor '__pos__' requires a 'int' object but received a '" + type(self).__name__ + "'")
 
