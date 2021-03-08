@@ -1,4 +1,4 @@
-from __compiler_intrinsics__ import absent, builtin_class, py_int_from_host, py_int_to_host, py_float_from_host, py_float_to_host, py_bool_from_host_bool, py_bool_to_host_bool, py_str_to_host, py_str_from_host
+from __compiler_intrinsics__ import absent, builtin_class, py_int_from_host, py_int_to_host, py_float_from_host, py_float_to_host, py_bool_from_host_bool, py_bool_to_host_bool, py_str_to_host, py_str_from_host, py_str_len_to_host
 
 @builtin_class
 class int:
@@ -927,6 +927,12 @@ class float:
 
 @builtin_class
 class str:
+    def __len__(self):
+        if isinstance(self, str):
+            return py_int_from_host(py_str_len_to_host(self))
+        else:
+            raise TypeError("descriptor '__len__' requires a 'str' object but received a '" + type(self).__name__ + "'")
+
     def __add__(self, other):
         if isinstance(self, str):
             if isinstance(other, str):

@@ -517,6 +517,26 @@ def partial_eval_resolve_type(ctx, expr):
         var = ctx.get(expr.id)
         if var:
             return var.type
+    elif isinstance(expr, ast.Call):
+        return partial_eval_resolve_call_return_type(ctx, expr)
+
+    return _unknown
+
+
+def partial_eval_resolve_call_return_type(ctx, call):
+    func = call.func
+
+    # Resolve return types of intrinsics functions
+    if isinstance(func, ast.Name):
+        name = func.id
+        if name == "py_int_from_host":
+            return "int"
+        elif name == "py_bool_from_host_bool":
+            return "bool"
+        elif name == "py_float_from_host":
+            return "float"
+        elif name == "py_str_from_host":
+            return "str"
 
     return _unknown
 
@@ -940,7 +960,7 @@ def partial_eval_class_getattr_call(args, ctx):
             if obj is None:
                 raise NameError(f"partial_eval: could not resolve {name.id}")
             elif obj.type is _unknown:
-                raise NotImplementedError(f"partial_eval_class_getattr_call: could not resolve type of {name.id}")
+                raise NotImplementedError(f"partial_eval_class_getattr_call: could not resolve type of '{name.id}'")
             else:
                 obj_type = obj.type
                 attr_name = attr.value
