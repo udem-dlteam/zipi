@@ -306,12 +306,94 @@ class SemanticsRegister(AstRegister):
         return self._all_semantics.get(name, default)
 
 
-class AstNameInliner(ast.NodeVisitor):
+class AstNameInliner(ast.NodeTransformer):
     def __init__(self, table):
         self.table = table
 
     def visit_Name(self, node):
-        node.id = self.table.get((node.id, type(node.ctx).__name__), node.id)
+        return self.table.get((node.id, type(node.ctx).__name__), None) or node
+
+
+intrinsics_inverses = {
+    "py_int_from_host": "py_int_to_host",
+    "py_float_from_host": "py_float_to_host",
+    "py_bool_to_host_bool": "py_bool_from_host_bool"
+}
+
+intrinsics_inverses = {
+    **intrinsics_inverses,
+    **{v: k for k, v in intrinsics_inverses.items()}
+}
+
+
+py_to_host_number_table = {
+    "int": "py_int_to_host",
+    "float": "py_float_to_host",
+}
+
+
+def get_py_to_host_number_intrinsics(type_):
+    return py_to_host_number_table.get(type_)
+
+
+def intrinsics_are_inverse(left_func, right_func):
+    try:
+        return intrinsics_inverses[left_func] == right_func
+    except KeyError:
+        return False
+
+
+class AstIntrinsicsCallSimplifier(ast.NodeTransformer):
+    @classmethod
+    def get_call_function_id(cls, call):
+        func = call.func
+        if isinstance(func, ast.Name):
+            return func.id
+        else:
+            return None
+
+    @classmethod
+    def get_arg_call_function_id(cls, call, i):
+        args = call.args
+        if i < len(args) and isinstance(args[i], ast.Call):
+            return cls.get_call_function_id(args[i])
+        else:
+            return None
+
+    def visit_Call(self, node):
+        node = self.generic_visit(node)
+
+        func_name = self.get_call_function_id(node)
+        first_arg_func_name = self.get_arg_call_function_id(node, 0)
+
+        if intrinsics_are_inverse(func_name, first_arg_func_name):
+            return node.args[0].args[0]
+
+        return node
+
+
+class AstConvertOpsToHost(ast.NodeTransformer):
+    # TODO: convert BinOp, this was not required when this comment was written
+    def __init__(self, ctx):
+        self.ctx = ctx
+
+    def visit_Compare(self, node):
+        left = node.left
+        comparators = node.comparators
+
+        left_type = partial_eval_resolve_type(left, self.ctx)
+        comparators_types = [partial_eval_resolve_type(c, self.ctx) for c in comparators]
+
+        left_intrinsics = get_py_to_host_number_intrinsics(left_type)
+        comparators_intrinsics = [get_py_to_host_number_intrinsics(t) for t in comparators_types]
+
+        if left_intrinsics and all(comparators_intrinsics):
+            return ast.Compare(
+                ast.Call(ast.Name(left_intrinsics, ast.Load()), [left], []),
+                node.ops,
+                [ast.Call(ast.Name(i, ast.Load()), [c], []) for i, c in zip(comparators_intrinsics, comparators)])
+
+        return node
 
 
 class AstNameCounter(ast.NodeVisitor, Counter):
@@ -376,7 +458,6 @@ class StmtSequence(ast.stmt):
     _fields = (
         'body',
     )
-
 
 
 # ======================================================================================================================
@@ -470,7 +551,26 @@ class Context:
         return self.semantics.get_from_all_semantics(name, default)
 
 
+def optimize_body(body, ctx):
+    for optimization in [inline_variables, convert_ops_to_host_version, resolve_intrinsics_inverses]:
+        body = optimization(body, ctx)
+    return body
+
+
+def convert_ops_to_host_version(body, ctx):
+    return [AstConvertOpsToHost(ctx).visit(stmt) for stmt in copy.deepcopy(body)]
+
+
+def resolve_intrinsics_inverses(body, ctx):
+    return [AstIntrinsicsCallSimplifier().visit(stmt) for stmt in copy.deepcopy(body)]
+
+
 def inline_variables(body, ctx):
+    """
+    Replace Name(..., Load()) which appear exactly once in the body by its value in the context
+    Since assignments are removed in the pre-evaluated code, this is necessary
+    TODO: When a name is referenced but cannot be inlined, we should add an assignment at the beginning of the body
+    """
     name_counter = AstNameCounter()
     for stmt in body:
         name_counter.visit(stmt)
@@ -526,7 +626,7 @@ def partial_eval_body(body, ctx):
         if isinstance(stmt, ast.Return) or isinstance(stmt, ast.Raise):
             break
 
-    return inline_variables(result, ctx)
+    return optimize_body(result, ctx)
 
 
 def partial_eval_stmts(stmts, ctx):
@@ -534,7 +634,8 @@ def partial_eval_stmts(stmts, ctx):
         # filter out None which is a removed statement (assignment which was resolved)
         yield from filter(None, partial_eval_stmt(stmt, ctx))
 
-def partial_eval_resolve_type(ctx, expr):
+
+def partial_eval_resolve_type(expr, ctx):
     if isinstance(expr, ast.Constant):
         return type(expr.value).__name__
     elif isinstance(expr, ast.Compare):
@@ -577,7 +678,8 @@ def partial_eval_set(ctx, name, ast_val):
     elif isinstance(ast_val, ast.FunctionDef):
         ctx[name] = VarContext(type='function', value=ClosureDef.from_FunctionDef(ast_val, ctx))
     else:
-        ctx[name] = VarContext(type=partial_eval_resolve_type(ctx, ast_val), value=ast_val)
+        ctx[name] = VarContext(type=partial_eval_resolve_type(ast_val, ctx), value=ast_val)
+
 
 def partial_eval_stmt(stmt, ctx):
     if isinstance(stmt, ast.If):
@@ -927,7 +1029,7 @@ def partial_eval_resolved_function_call(fn_ast, args, ctx):
                 arg_name = fn_arg.arg
                 arg_value = ctx[arg.id]
                 for ast_ctx in ["Load", "Store", "Del"]:
-                    name_table[(arg_name, ast_ctx)] = arg.id
+                    name_table[(arg_name, ast_ctx)] = ast.Name(arg.id, ast_ctx)
                 call_ctx[arg_name] = arg_value
             else:
                 raise NotImplementedError("partial_eval_local_function_call: non-name argument")
