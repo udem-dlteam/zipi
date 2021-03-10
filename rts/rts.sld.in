@@ -184,6 +184,8 @@
     py-pos-behavior-call-fallback
     py-neg-behavior-call-fallback
     py-invert-behavior-call-fallback
+    py-test-behavior-call-fallback
+    py-truth-behavior-call-fallback
 
     py-eq-behavior-call-fallback
     py-ne-behavior-call-fallback
@@ -306,6 +308,8 @@
     py-pos-behaviors-table
     py-neg-behaviors-table
     py-invert-behaviors-table
+    py-test-behaviors-table
+    py-truth-behaviors-table
 
     py-eq-behaviors-table
     py-ne-behaviors-table

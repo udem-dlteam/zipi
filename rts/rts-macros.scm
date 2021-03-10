@@ -1018,6 +1018,9 @@
   (define unary-ops-with-behaviors
     '(pos neg invert))
 
+  (define unary-truthiness-ops-with-behaviors
+    '(test truth))
+
   (define (test-op->cmp-op op)
     (case op
       ((test-eq) 'eq)
@@ -1058,10 +1061,24 @@
           "Y-fallback"))))
 
   (define (get-unary-behavior-name op type)
-    (if (or (eq? type 'default))
+    (if (eq? type 'default)
       ;; use the full semantics
       (string->symbol
           (string-append "py-" (symbol->string op) "-fallback:normal"))
+      ;; use a behavior
+      (string->symbol
+        (string-append
+          "py-"
+          (symbol->string op)
+          "-"
+          (symbol->string type)
+          "X-fallback"))))
+
+  (define (get-unary-truthiness-behavior-name op type)
+    (if (eq? type 'default)
+      ;; use the full semantics
+      (string->symbol
+          (string-append "py-" (symbol->string op) "-fallback"))
       ;; use a behavior
       (string->symbol
         (string-append
@@ -1088,6 +1105,14 @@
         '()
         (cons
           (get-unary-behavior-name op (caar types))
+          (loop (cdr types))))))
+
+  (define (make-unary-truthiness-behaviors-list op)
+    (let loop ((types types-with-specialized-behaviors))
+      (if (null? types)
+        '()
+        (cons
+          (get-unary-truthiness-behavior-name op (caar types))
           (loop (cdr types))))))
 
   (define (get-behavior-call-fallback-name op)
@@ -1131,7 +1156,8 @@
   (let ((tables-init-code
           (append
             (make-init-table-code binary-ops-with-behaviors make-binary-behaviors-list)
-            (make-init-table-code unary-ops-with-behaviors make-unary-behaviors-list)))
+            (make-init-table-code unary-ops-with-behaviors make-unary-behaviors-list)
+            (make-init-table-code unary-truthiness-ops-with-behaviors make-unary-truthiness-behaviors-list)))
         (behavior-call-fallbacks
           (append
             (let loop ((ops binary-ops-with-behaviors))
@@ -1148,7 +1174,7 @@
                       (cons
                         behavior-call-with-rhs-index-fallback
                         (loop (cdr ops))))))))
-            (let loop ((ops unary-ops-with-behaviors))
+            (let loop ((ops (append unary-ops-with-behaviors unary-truthiness-ops-with-behaviors)))
               (if (null? ops)
                 '()
                 (let* ((op (car ops))
@@ -1503,11 +1529,11 @@
       (let ((test-version (assq (car x) cmp-operator-test-version)))
         (if test-version
             `(,(cadr test-version) ,@(cdr x))
-            `(py-test-fallback ,x)))
-      `(py-test-fallback ,x)))
+            `(py-specialized-unop-dispatch test ,x)))
+      `(py-specialized-unop-dispatch test ,x)))
 
 (define-macro (py-truth obj)
-  `(py-truth-fallback ,obj))
+  `(py-specialized-unop-dispatch truth ,obj))
 
 (define-macro (py-len obj)
   `(py-len-fallback ,obj))
