@@ -672,6 +672,9 @@
              (substring-move! $string 0 len result i)
              (loop (+ i len)))))))
 
+(define-macro (py-str-len-to-scheme arg)
+  `(PyObjectStr-len ,arg))
+
 (define-macro (py-str-from-scheme arg)
   (define (fallback arg)
     `(py-str-from-scheme-fallback ,arg))
