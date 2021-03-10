@@ -388,11 +388,15 @@ class AstConvertOpsToHost(ast.NodeTransformer):
         comparators_intrinsics = [get_py_to_host_number_intrinsics(t) for t in comparators_types]
 
         if left_intrinsics and all(comparators_intrinsics):
-            return ast.Compare(
-                ast.Call(ast.Name(left_intrinsics, ast.Load()), [left], []),
-                node.ops,
-                [ast.Call(ast.Name(i, ast.Load()), [c], []) for i, c in zip(comparators_intrinsics, comparators)])
-
+            host_comparison = ast.Compare(
+                ast.Call(
+                    ast.Name(left_intrinsics, ast.Load()), [left], []),
+                    node.ops,
+                    [ast.Call(ast.Name(i, ast.Load()), [c], []) for i, c in zip(comparators_intrinsics, comparators)])
+            return ast.Call(
+                ast.Name("py_bool_from_host_bool", ast.Load()),
+                [host_comparison],
+                [])
         return node
 
 
