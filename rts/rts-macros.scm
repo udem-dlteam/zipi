@@ -1527,9 +1527,13 @@
 
   (if (pair? x)
       (let ((test-version (assq (car x) cmp-operator-test-version)))
-        (if test-version
-            `(,(cadr test-version) ,@(cdr x))
-            `(py-specialized-unop-dispatch test ,x)))
+        (cond
+          (test-version
+            `(,(cadr test-version) ,@(cdr x)))
+          ((eq? (car x) 'py-bool-from-scheme-bool)
+            (cadr x))
+          (else
+            `(py-specialized-unop-dispatch test ,x))))
       `(py-specialized-unop-dispatch test ,x)))
 
 (define-macro (py-truth obj)
