@@ -271,7 +271,7 @@
          (new-PycSeq loc
                      (map (lambda (a) (compile-import loc a conf))
                           aliases))))
-    ((ImportFrom ?loc ?module ?aliases . ?level)
+    ((ImportFrom ?loc ?module ?aliases ?level)
      ;; ImportFrom(identifier? module, alias* names, int? level)
      (compile-import-from loc module aliases level conf))
     ((Global ?loc ?names)
@@ -463,33 +463,36 @@
               loc
               (list
                 ;; according to cPython: full import done before assignment
-                (new-PycImport loc (symbol->string name))
+                (new-PycImport loc (symbol->string name) '() 0)
                 (new-PycAssig
                   loc
                   (new-PycRefUnresolved loc (string->symbol (car name-split)) 'Store)
-                  (new-PycImport loc (car name-split)))))
+                  (new-PycImport loc (car name-split) '() 0))))
             ;; module import
             (new-PycAssig
               loc
               (new-PycRefUnresolved loc name 'Store)
-              (new-PycImport loc (symbol->string name))))))
+              (new-PycImport loc (symbol->string name) '() 0)))))
       ((?name ?sym)
        ;; alias
        (new-PycAssig
          loc
          (new-PycRefUnresolved loc sym 'Store)
-         (new-PycImport loc (symbol->string name))))
+         (new-PycImport loc (symbol->string name) '() 0)))
       (else
        (error "import" "Unsupported form" alias))))
 
+
 (define (compile-import-from loc module aliases level conf)
-  (let* ((base (string-append (symbol->string module) "."))
-        (module-var (new-PycVar '(-1 -1) '%mod 'block))
-        (module-assig
-          (new-PycAssig
-            loc
-            (new-PycRef loc module-var 'Store)
-            (new-PycImport loc (symbol->string module)))))
+  
+  ;; module can be #f in the case of from . import x
+  (let* ((module-str (if module (symbol->string module) "")) 
+         (module-var (new-PycVar '(-1 -1) '%mod 'block))
+         (module-assig
+           (new-PycAssig
+             loc
+             (new-PycRef loc module-var 'Store)
+             (new-PycImport loc module-str (map (lambda (x) (symbol->string (car x))) aliases) level))))
    (new-PycBlock loc
      (list module-assig)
      (new-PycSeq loc

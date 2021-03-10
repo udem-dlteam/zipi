@@ -285,7 +285,7 @@
            ;; (object-get ::obj ::obj ::obj)
            (getattribute-from-obj-mro-fallback ::obj ::obj)
 
-           (py-make-module name)
+           (py-make-module name package path)
            (py-make-list . elements)
 
            ;; (py-getitem ::PyObject ::obj ::obj)
@@ -354,7 +354,8 @@
            (py-str-representative-fallback ::PyObjectStr)
            (py-concat-strX-strY str1 str2)
 
-           (py-import path depth)
+           (py-import path from-list)
+           (py-import-relative selfmod path from-list depth)
            py-import-root
 
            (class PyGenerator::PyObject %next)
