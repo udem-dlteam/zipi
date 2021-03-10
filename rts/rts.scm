@@ -6412,7 +6412,6 @@
 
 ;; asuming depth > 0 and path can be ""
 (define (py-import-relative selfmod path from-list depth)
-
   (let* ((__package__ (global-own-attr-ref-no-cache selfmod (& "__package__")))
          (levels (string-split (if (or (eq? __package__ py-absent)
                                        (eq? __package__ py-None))
