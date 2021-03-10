@@ -1195,7 +1195,7 @@ def main_behaviors(semantics_file, builtins_file):
     define_behavior = "define_behavior"
     other_intrinsics = "py_int_from_host, py_int_to_host, py_bool_to_host_int, py_float_from_host, " \
                        "py_float_to_host, py_sint_to_host, py_bint_to_host, py_bool_from_host_bool, " \
-                       "py_bool_to_host_bool, py_str_from_host, py_str_to_host"
+                       "py_bool_to_host_bool, py_str_from_host, py_str_to_host, py_str_len_to_host"
 
     behavior_decorator_list = [ast.Name(f"{define_behavior}", ast.Load())]
 

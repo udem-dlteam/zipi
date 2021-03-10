@@ -896,7 +896,9 @@
         (scheme-op)
         (error "scheme::PycBinary" "operation between lhs native type and non-native type" rhs-type-hint))
       (if (and rhs-type-hint (memq rhs-type-hint native-types))
-        (error "scheme::PycBinary" "operation between rhs native type and non-native type" lhs-type-hint)
+        (begin
+          (pp this)
+        (error "scheme::PycBinary" "operation between rhs native type and non-native type" lhs-type-hint))
         (python-op)))))
 
 (define-walk-method (scheme this::PycUnary conf)

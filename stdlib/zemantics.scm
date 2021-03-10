@@ -1313,11 +1313,12 @@
   (letrec* ((__len__-1307 (getattribute-from-obj-mro obj-70 (&& "__len__"))))
     (if (py-test (py-is __len__-1307 py-absent))
         py-absent
-        (py-index-fallback (py-call __len__-1307 obj-70)))))
+        (letrec* ((len_result-1312 (py-call __len__-1307 obj-70)))
+          (py-index-fallback len_result-1312)))))
 
 (define (py-len-fallback obj-71)
-  (letrec* ((result-1313 (py-maybe-len-fallback obj-71)))
-    (if (py-test (py-is result-1313 py-absent))
+  (letrec* ((result-1315 (py-maybe-len-fallback obj-71)))
+    (if (py-test (py-is result-1315 py-absent))
         (py-throw
          (py-call py-builtin-TypeError
                   (py-add (py-add (&& "object of type")
@@ -1325,14 +1326,14 @@
                                    (py-call py-builtin-type obj-71)
                                    (& "__name__")))
                           (&& "has no len()"))))
-        result-1313)))
+        result-1315)))
 
 (define (py-truth-fallback obj-72)
-  (letrec* ((__bool__-1320 (getattribute-from-obj-mro obj-72 (&& "__bool__"))))
-    (if (py-test (py-isnot __bool__-1320 py-absent))
-        (letrec* ((result-1325 (py-call __bool__-1320 obj-72)))
-          (if (py-isinstance? result-1325 py-builtin-bool)
-              result-1325
+  (letrec* ((__bool__-1322 (getattribute-from-obj-mro obj-72 (&& "__bool__"))))
+    (if (py-test (py-isnot __bool__-1322 py-absent))
+        (letrec* ((result-1327 (py-call __bool__-1322 obj-72)))
+          (if (py-isinstance? result-1327 py-builtin-bool)
+              result-1327
               (py-throw
                (py-call py-builtin-TypeError
                         (py-add (py-add (&& "__bool__ should return bool, returned '")
@@ -1340,79 +1341,79 @@
                                          (py-call py-builtin-type obj-72)
                                          (& "__name__")))
                                 (&& "'"))))))
-        (letrec* ((len_result-1331 (py-maybe-len-fallback obj-72)))
-          (if (py-test (py-isnot len_result-1331 py-absent))
-              (py-ne len_result-1331 (py-int-from-scheme 0))
+        (letrec* ((len_result-1333 (py-maybe-len-fallback obj-72)))
+          (if (py-test (py-isnot len_result-1333 py-absent))
+              (py-ne len_result-1333 (py-int-from-scheme 0))
               py-True)))))
 
 (define (py-test-fallback obj-73)
   (py-bool-to-scheme-bool (py-truth-fallback obj-73)))
 
 (define (py-getattribute-fallback obj-74 attr-75)
-  (letrec* ((__getattribute__-1337
+  (letrec* ((__getattribute__-1339
              (getattribute-from-obj-mro obj-74 (&& "__getattribute__"))))
     (with-handler
      (lambda ($%exc_0)
        (cond ((py-isinstance? $%exc_0 py-builtin-AttributeError)
-              (letrec* ((__getattr__-1343
+              (letrec* ((__getattr__-1345
                          (getattribute-from-obj-mro
                           obj-74
                           (&& "__getattr__"))))
-                (if (py-test (py-is __getattr__-1343 py-absent))
+                (if (py-test (py-is __getattr__-1345 py-absent))
                     (py-throw $%exc_0)
-                    (py-call __getattr__-1343 obj-74 attr-75))))
+                    (py-call __getattr__-1345 obj-74 attr-75))))
              (else (raise $%exc_0))))
-     (py-call __getattribute__-1337 obj-74 attr-75))))
+     (py-call __getattribute__-1339 obj-74 attr-75))))
 
 (define (py-setattribute-fallback obj-76 attr-77 val-78)
-  (letrec* ((__setattr__-1346
+  (letrec* ((__setattr__-1348
              (getattribute-from-obj-mro obj-76 (&& "__setattr__"))))
-    (py-call __setattr__-1346 obj-76 attr-77 val-78)))
+    (py-call __setattr__-1348 obj-76 attr-77 val-78)))
 
 (define (py-getitem-fallback obj-79 index-80)
-  (letrec* ((__getitem__-1352
+  (letrec* ((__getitem__-1354
              (getattribute-from-obj-mro obj-79 (&& "__getitem__"))))
-    (if (py-test (py-is __getitem__-1352 py-absent))
+    (if (py-test (py-is __getitem__-1354 py-absent))
         (py-throw
          (py-call py-builtin-TypeError (&& "object is not subscriptable")))
-        (py-call __getitem__-1352 obj-79 index-80))))
+        (py-call __getitem__-1354 obj-79 index-80))))
 
 (define (py-setitem-fallback obj-81 index-82 value-83)
-  (letrec* ((__setitem__-1359
+  (letrec* ((__setitem__-1361
              (getattribute-from-obj-mro obj-81 (&& "__setitem__"))))
-    (if (py-test (py-is __setitem__-1359 py-absent))
+    (if (py-test (py-is __setitem__-1361 py-absent))
         (py-throw
          (py-call py-builtin-TypeError
                   (&& "object does not support item assignment")))
-        (py-call __setitem__-1359 obj-81 index-82 value-83))))
+        (py-call __setitem__-1361 obj-81 index-82 value-83))))
 
 (define (py-delitem-fallback obj-84 index-85)
-  (letrec* ((__delitem__-1367
+  (letrec* ((__delitem__-1369
              (getattribute-from-obj-mro obj-84 (&& "__delitem__"))))
-    (if (py-test (py-is __delitem__-1367 py-absent))
+    (if (py-test (py-is __delitem__-1369 py-absent))
         (py-throw
          (py-call py-builtin-TypeError
                   (&& "object does not support item deletion")))
-        (py-call __delitem__-1367 obj-84 index-85))))
+        (py-call __delitem__-1369 obj-84 index-85))))
 
 (define (py-enter-fallback obj-86)
-  (letrec* ((__enter__-1374
+  (letrec* ((__enter__-1376
              (getattribute-from-obj-mro obj-86 (&& "__enter__"))))
-    (if (py-test (py-is __enter__-1374 py-absent))
+    (if (py-test (py-is __enter__-1376 py-absent))
         (py-throw (py-call py-builtin-AttributeError (&& "__enter__")))
-        (py-call __enter__-1374 obj-86))))
+        (py-call __enter__-1376 obj-86))))
 
 (define (py-exit-fallback obj-87 exc-88)
-  (letrec* ((__exit__-1380 (getattribute-from-obj-mro obj-87 (&& "__exit__"))))
-    (if (py-test (py-is __exit__-1380 py-absent))
+  (letrec* ((__exit__-1382 (getattribute-from-obj-mro obj-87 (&& "__exit__"))))
+    (if (py-test (py-is __exit__-1382 py-absent))
         (py-throw (py-call py-builtin-AttributeError (&& "__exit__")))
         (if (py-test (py-is exc-88 py-None))
-            (py-call __exit__-1380 obj-87 py-None py-None py-None)
-            (letrec* ((exit_result-1387
-                       (py-call __exit__-1380
+            (py-call __exit__-1382 obj-87 py-None py-None py-None)
+            (letrec* ((exit_result-1389
+                       (py-call __exit__-1382
                                 obj-87
                                 (py-call py-builtin-type exc-88)
                                 exc-88
                                 py-None)))
-              (if (py-test exit_result-1387) py-None (py-throw exc-88)))))))
+              (if (py-test exit_result-1389) py-None (py-throw exc-88)))))))
 

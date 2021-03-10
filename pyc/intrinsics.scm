@@ -167,7 +167,8 @@
    (cons 'py_bool_from_host_bool (make-pragma-call-maker 'py-bool-from-scheme-bool))
    (cons 'py_bool_to_host_bool (make-pragma-call-maker 'py-bool-to-scheme-bool))
    (cons 'py_str_to_host (make-pragma-call-maker 'py-str-to-scheme))
-   (cons 'py_str_from_host (make-pragma-call-maker 'py-str-from-scheme))))
+   (cons 'py_str_from_host (make-pragma-call-maker 'py-str-from-scheme))
+   (cons 'py_str_len_to_host (make-pragma-call-maker 'py-str-len-to-scheme))))
 
 (define static-intrinsics
  (list
@@ -514,6 +515,7 @@
       ((eq? expr 'py-float-from-scheme) 'float)
       ((eq? expr 'py-bool-from-scheme-bool) 'bool)
       ((eq? expr 'py-str-from-scheme) 'str)
+      ((eq? expr 'py-str-len-to-scheme) 'Usint)
       (else #f))))
 
 (define (get-expr-type-hint expr)
