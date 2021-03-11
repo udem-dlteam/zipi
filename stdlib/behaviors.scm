@@ -256,9 +256,7 @@
 (define-macro (py-floordiv-floatX-floatY-inline x-152 y-153)
   `(let ((x-152 ,x-152) (y-153 ,y-153))
      (if (py-test (py-bool-from-scheme-bool
-                   (py-test-from-scheme
-                    (py!= (py-float-to-scheme y-153)
-                          (py-float-to-scheme (py-float-from-scheme 0.))))))
+                   (py-test-from-scheme (py!= (py-float-to-scheme y-153) 0.))))
          (py-float-from-scheme
           (py// (py-float-to-scheme x-152) (py-float-to-scheme y-153)))
          (py-throw
@@ -274,9 +272,7 @@
 (define-macro (py-floordiv-floatX-sintY-inline x-158 y-159)
   `(let ((x-158 ,x-158) (y-159 ,y-159))
      (if (py-test (py-bool-from-scheme-bool
-                   (py-test-from-scheme
-                    (py!= (py-int-to-scheme y-159)
-                          (py-int-to-scheme (py-int-from-scheme 0))))))
+                   (py-test-from-scheme (py!= (py-int-to-scheme y-159) 0))))
          (py-float-from-scheme
           (py// (py-float-to-scheme x-158) (py-sint-to-scheme y-159)))
          (py-throw
@@ -319,9 +315,7 @@
 (define-macro (py-floordiv-sintX-floatY-inline x-182 y-183)
   `(let ((x-182 ,x-182) (y-183 ,y-183))
      (if (py-test (py-bool-from-scheme-bool
-                   (py-test-from-scheme
-                    (py!= (py-float-to-scheme y-183)
-                          (py-float-to-scheme (py-float-from-scheme 0.))))))
+                   (py-test-from-scheme (py!= (py-float-to-scheme y-183) 0.))))
          (py-float-from-scheme
           (py// (py-sint-to-scheme x-182) (py-float-to-scheme y-183)))
          (py-throw
@@ -337,9 +331,7 @@
 (define-macro (py-floordiv-sintX-sintY-inline x-188 y-189)
   `(let ((x-188 ,x-188) (y-189 ,y-189))
      (if (py-test (py-bool-from-scheme-bool
-                   (py-test-from-scheme
-                    (py!= (py-int-to-scheme y-189)
-                          (py-int-to-scheme (py-int-from-scheme 0))))))
+                   (py-test-from-scheme (py!= (py-int-to-scheme y-189) 0))))
          (py-int-from-scheme
           (py// (py-sint-to-scheme x-188) (py-sint-to-scheme y-189)))
          (py-throw
@@ -430,9 +422,7 @@
 (define-macro (py-lshift-sintX-sintY-inline x-238 y-239)
   `(let ((x-238 ,x-238) (y-239 ,y-239))
      (if (py-test (py-bool-from-scheme-bool
-                   (py-test-from-scheme
-                    (py>= (py-int-to-scheme y-239)
-                          (py-int-to-scheme (py-int-from-scheme 0))))))
+                   (py-test-from-scheme (py>= (py-int-to-scheme y-239) 0))))
          (py-int-from-scheme
           (py<< (py-sint-to-scheme x-238) (py-sint-to-scheme y-239)))
          (py-throw
@@ -546,9 +536,7 @@
 (define-macro (py-mod-floatX-floatY-inline x-302 y-303)
   `(let ((x-302 ,x-302) (y-303 ,y-303))
      (if (py-test (py-bool-from-scheme-bool
-                   (py-test-from-scheme
-                    (py!= (py-float-to-scheme y-303)
-                          (py-float-to-scheme (py-float-from-scheme 0.))))))
+                   (py-test-from-scheme (py!= (py-float-to-scheme y-303) 0.))))
          (py-float-from-scheme
           (py% (py-float-to-scheme x-302) (py-float-to-scheme y-303)))
          (py-throw
@@ -564,9 +552,7 @@
 (define-macro (py-mod-floatX-sintY-inline x-308 y-309)
   `(let ((x-308 ,x-308) (y-309 ,y-309))
      (if (py-test (py-bool-from-scheme-bool
-                   (py-test-from-scheme
-                    (py!= (py-int-to-scheme y-309)
-                          (py-int-to-scheme (py-int-from-scheme 0))))))
+                   (py-test-from-scheme (py!= (py-int-to-scheme y-309) 0))))
          (py-float-from-scheme
           (py% (py-float-to-scheme x-308) (py-sint-to-scheme y-309)))
          (py-throw
@@ -609,9 +595,7 @@
 (define-macro (py-mod-sintX-floatY-inline x-332 y-333)
   `(let ((x-332 ,x-332) (y-333 ,y-333))
      (if (py-test (py-bool-from-scheme-bool
-                   (py-test-from-scheme
-                    (py!= (py-float-to-scheme y-333)
-                          (py-float-to-scheme (py-float-from-scheme 0.))))))
+                   (py-test-from-scheme (py!= (py-float-to-scheme y-333) 0.))))
          (py-float-from-scheme
           (py% (py-sint-to-scheme x-332) (py-float-to-scheme y-333)))
          (py-throw
@@ -627,9 +611,7 @@
 (define-macro (py-mod-sintX-sintY-inline x-338 y-339)
   `(let ((x-338 ,x-338) (y-339 ,y-339))
      (if (py-test (py-bool-from-scheme-bool
-                   (py-test-from-scheme
-                    (py!= (py-int-to-scheme y-339)
-                          (py-int-to-scheme (py-int-from-scheme 0))))))
+                   (py-test-from-scheme (py!= (py-int-to-scheme y-339) 0))))
          (py-int-from-scheme
           (py% (py-sint-to-scheme x-338) (py-sint-to-scheme y-339)))
          (py-throw
@@ -885,9 +867,7 @@
 (define-macro (py-rshift-sintX-sintY-inline x-488 y-489)
   `(let ((x-488 ,x-488) (y-489 ,y-489))
      (if (py-test (py-bool-from-scheme-bool
-                   (py-test-from-scheme
-                    (py>= (py-int-to-scheme y-489)
-                          (py-int-to-scheme (py-int-from-scheme 0))))))
+                   (py-test-from-scheme (py>= (py-int-to-scheme y-489) 0))))
          (py-int-from-scheme
           (py>> (py-sint-to-scheme x-488) (py-sint-to-scheme y-489)))
          (py-throw
@@ -997,9 +977,7 @@
 (define-macro (py-truediv-floatX-floatY-inline x-552 y-553)
   `(let ((x-552 ,x-552) (y-553 ,y-553))
      (if (py-test (py-bool-from-scheme-bool
-                   (py-test-from-scheme
-                    (py!= (py-float-to-scheme y-553)
-                          (py-float-to-scheme (py-float-from-scheme 0.))))))
+                   (py-test-from-scheme (py!= (py-float-to-scheme y-553) 0.))))
          (py-float-from-scheme
           (py/ (py-float-to-scheme x-552) (py-float-to-scheme y-553)))
          (py-throw
@@ -1015,9 +993,7 @@
 (define-macro (py-truediv-floatX-sintY-inline x-558 y-559)
   `(let ((x-558 ,x-558) (y-559 ,y-559))
      (if (py-test (py-bool-from-scheme-bool
-                   (py-test-from-scheme
-                    (py!= (py-int-to-scheme y-559)
-                          (py-int-to-scheme (py-int-from-scheme 0))))))
+                   (py-test-from-scheme (py!= (py-int-to-scheme y-559) 0))))
          (py-float-from-scheme
           (py/ (py-float-to-scheme x-558) (py-sint-to-scheme y-559)))
          (py-throw
@@ -1060,9 +1036,7 @@
 (define-macro (py-truediv-sintX-floatY-inline x-582 y-583)
   `(let ((x-582 ,x-582) (y-583 ,y-583))
      (if (py-test (py-bool-from-scheme-bool
-                   (py-test-from-scheme
-                    (py!= (py-float-to-scheme y-583)
-                          (py-float-to-scheme (py-float-from-scheme 0.))))))
+                   (py-test-from-scheme (py!= (py-float-to-scheme y-583) 0.))))
          (py-float-from-scheme
           (py/ (py-sint-to-scheme x-582) (py-float-to-scheme y-583)))
          (py-throw
@@ -1078,9 +1052,7 @@
 (define-macro (py-truediv-sintX-sintY-inline x-588 y-589)
   `(let ((x-588 ,x-588) (y-589 ,y-589))
      (if (py-test (py-bool-from-scheme-bool
-                   (py-test-from-scheme
-                    (py!= (py-int-to-scheme y-589)
-                          (py-int-to-scheme (py-int-from-scheme 0))))))
+                   (py-test-from-scheme (py!= (py-int-to-scheme y-589) 0))))
          (py-float-from-scheme
           (py/ (py-sint-to-scheme x-588) (py-sint-to-scheme y-589)))
          (py-throw
@@ -1448,9 +1420,7 @@
 (define-macro (py-ifloordiv-floatX-floatY-inline x-802 y-803)
   `(let ((x-802 ,x-802) (y-803 ,y-803))
      (if (py-test (py-bool-from-scheme-bool
-                   (py-test-from-scheme
-                    (py!= (py-float-to-scheme y-803)
-                          (py-float-to-scheme (py-float-from-scheme 0.))))))
+                   (py-test-from-scheme (py!= (py-float-to-scheme y-803) 0.))))
          (py-float-from-scheme
           (py// (py-float-to-scheme x-802) (py-float-to-scheme y-803)))
          (py-throw
@@ -1466,9 +1436,7 @@
 (define-macro (py-ifloordiv-floatX-sintY-inline x-808 y-809)
   `(let ((x-808 ,x-808) (y-809 ,y-809))
      (if (py-test (py-bool-from-scheme-bool
-                   (py-test-from-scheme
-                    (py!= (py-int-to-scheme y-809)
-                          (py-int-to-scheme (py-int-from-scheme 0))))))
+                   (py-test-from-scheme (py!= (py-int-to-scheme y-809) 0))))
          (py-float-from-scheme
           (py// (py-float-to-scheme x-808) (py-sint-to-scheme y-809)))
          (py-throw
@@ -1511,9 +1479,7 @@
 (define-macro (py-ifloordiv-sintX-floatY-inline x-832 y-833)
   `(let ((x-832 ,x-832) (y-833 ,y-833))
      (if (py-test (py-bool-from-scheme-bool
-                   (py-test-from-scheme
-                    (py!= (py-float-to-scheme y-833)
-                          (py-float-to-scheme (py-float-from-scheme 0.))))))
+                   (py-test-from-scheme (py!= (py-float-to-scheme y-833) 0.))))
          (py-float-from-scheme
           (py// (py-sint-to-scheme x-832) (py-float-to-scheme y-833)))
          (py-throw
@@ -1529,9 +1495,7 @@
 (define-macro (py-ifloordiv-sintX-sintY-inline x-838 y-839)
   `(let ((x-838 ,x-838) (y-839 ,y-839))
      (if (py-test (py-bool-from-scheme-bool
-                   (py-test-from-scheme
-                    (py!= (py-int-to-scheme y-839)
-                          (py-int-to-scheme (py-int-from-scheme 0))))))
+                   (py-test-from-scheme (py!= (py-int-to-scheme y-839) 0))))
          (py-int-from-scheme
           (py// (py-sint-to-scheme x-838) (py-sint-to-scheme y-839)))
          (py-throw
@@ -1622,9 +1586,7 @@
 (define-macro (py-ilshift-sintX-sintY-inline x-888 y-889)
   `(let ((x-888 ,x-888) (y-889 ,y-889))
      (if (py-test (py-bool-from-scheme-bool
-                   (py-test-from-scheme
-                    (py>= (py-int-to-scheme y-889)
-                          (py-int-to-scheme (py-int-from-scheme 0))))))
+                   (py-test-from-scheme (py>= (py-int-to-scheme y-889) 0))))
          (py-int-from-scheme
           (py<< (py-sint-to-scheme x-888) (py-sint-to-scheme y-889)))
          (py-throw
@@ -1738,9 +1700,7 @@
 (define-macro (py-imod-floatX-floatY-inline x-952 y-953)
   `(let ((x-952 ,x-952) (y-953 ,y-953))
      (if (py-test (py-bool-from-scheme-bool
-                   (py-test-from-scheme
-                    (py!= (py-float-to-scheme y-953)
-                          (py-float-to-scheme (py-float-from-scheme 0.))))))
+                   (py-test-from-scheme (py!= (py-float-to-scheme y-953) 0.))))
          (py-float-from-scheme
           (py% (py-float-to-scheme x-952) (py-float-to-scheme y-953)))
          (py-throw
@@ -1756,9 +1716,7 @@
 (define-macro (py-imod-floatX-sintY-inline x-958 y-959)
   `(let ((x-958 ,x-958) (y-959 ,y-959))
      (if (py-test (py-bool-from-scheme-bool
-                   (py-test-from-scheme
-                    (py!= (py-int-to-scheme y-959)
-                          (py-int-to-scheme (py-int-from-scheme 0))))))
+                   (py-test-from-scheme (py!= (py-int-to-scheme y-959) 0))))
          (py-float-from-scheme
           (py% (py-float-to-scheme x-958) (py-sint-to-scheme y-959)))
          (py-throw
@@ -1801,9 +1759,7 @@
 (define-macro (py-imod-sintX-floatY-inline x-982 y-983)
   `(let ((x-982 ,x-982) (y-983 ,y-983))
      (if (py-test (py-bool-from-scheme-bool
-                   (py-test-from-scheme
-                    (py!= (py-float-to-scheme y-983)
-                          (py-float-to-scheme (py-float-from-scheme 0.))))))
+                   (py-test-from-scheme (py!= (py-float-to-scheme y-983) 0.))))
          (py-float-from-scheme
           (py% (py-sint-to-scheme x-982) (py-float-to-scheme y-983)))
          (py-throw
@@ -1819,9 +1775,7 @@
 (define-macro (py-imod-sintX-sintY-inline x-988 y-989)
   `(let ((x-988 ,x-988) (y-989 ,y-989))
      (if (py-test (py-bool-from-scheme-bool
-                   (py-test-from-scheme
-                    (py!= (py-int-to-scheme y-989)
-                          (py-int-to-scheme (py-int-from-scheme 0))))))
+                   (py-test-from-scheme (py!= (py-int-to-scheme y-989) 0))))
          (py-int-from-scheme
           (py% (py-sint-to-scheme x-988) (py-sint-to-scheme y-989)))
          (py-throw
@@ -2077,9 +2031,7 @@
 (define-macro (py-irshift-sintX-sintY-inline x-1138 y-1139)
   `(let ((x-1138 ,x-1138) (y-1139 ,y-1139))
      (if (py-test (py-bool-from-scheme-bool
-                   (py-test-from-scheme
-                    (py>= (py-int-to-scheme y-1139)
-                          (py-int-to-scheme (py-int-from-scheme 0))))))
+                   (py-test-from-scheme (py>= (py-int-to-scheme y-1139) 0))))
          (py-int-from-scheme
           (py>> (py-sint-to-scheme x-1138) (py-sint-to-scheme y-1139)))
          (py-throw
@@ -2190,8 +2142,7 @@
   `(let ((x-1202 ,x-1202) (y-1203 ,y-1203))
      (if (py-test (py-bool-from-scheme-bool
                    (py-test-from-scheme
-                    (py!= (py-float-to-scheme y-1203)
-                          (py-float-to-scheme (py-float-from-scheme 0.))))))
+                    (py!= (py-float-to-scheme y-1203) 0.))))
          (py-float-from-scheme
           (py/ (py-float-to-scheme x-1202) (py-float-to-scheme y-1203)))
          (py-throw
@@ -2207,9 +2158,7 @@
 (define-macro (py-itruediv-floatX-sintY-inline x-1208 y-1209)
   `(let ((x-1208 ,x-1208) (y-1209 ,y-1209))
      (if (py-test (py-bool-from-scheme-bool
-                   (py-test-from-scheme
-                    (py!= (py-int-to-scheme y-1209)
-                          (py-int-to-scheme (py-int-from-scheme 0))))))
+                   (py-test-from-scheme (py!= (py-int-to-scheme y-1209) 0))))
          (py-float-from-scheme
           (py/ (py-float-to-scheme x-1208) (py-sint-to-scheme y-1209)))
          (py-throw
@@ -2253,8 +2202,7 @@
   `(let ((x-1232 ,x-1232) (y-1233 ,y-1233))
      (if (py-test (py-bool-from-scheme-bool
                    (py-test-from-scheme
-                    (py!= (py-float-to-scheme y-1233)
-                          (py-float-to-scheme (py-float-from-scheme 0.))))))
+                    (py!= (py-float-to-scheme y-1233) 0.))))
          (py-float-from-scheme
           (py/ (py-sint-to-scheme x-1232) (py-float-to-scheme y-1233)))
          (py-throw
@@ -2270,9 +2218,7 @@
 (define-macro (py-itruediv-sintX-sintY-inline x-1238 y-1239)
   `(let ((x-1238 ,x-1238) (y-1239 ,y-1239))
      (if (py-test (py-bool-from-scheme-bool
-                   (py-test-from-scheme
-                    (py!= (py-int-to-scheme y-1239)
-                          (py-int-to-scheme (py-int-from-scheme 0))))))
+                   (py-test-from-scheme (py!= (py-int-to-scheme y-1239) 0))))
          (py-float-from-scheme
           (py/ (py-sint-to-scheme x-1238) (py-sint-to-scheme y-1239)))
          (py-throw
@@ -3449,9 +3395,7 @@
 (define-macro (py-truth-floatX-inline obj-1917)
   `(let ((obj-1917 ,obj-1917))
      (py-bool-from-scheme-bool
-      (py-test-from-scheme
-       (py!= (py-float-to-scheme obj-1917)
-             (py-float-to-scheme (py-float-from-scheme 0.)))))))
+      (py-test-from-scheme (py!= (py-float-to-scheme obj-1917) 0.)))))
 
 (define-macro (py-truth-boolX-inline obj-1918)
   `(py-truth-boolX-fallback ,obj-1918))
@@ -3462,18 +3406,14 @@
 (define-macro (py-truth-sintX-inline obj-1920)
   `(let ((obj-1920 ,obj-1920))
      (py-bool-from-scheme-bool
-      (py-test-from-scheme
-       (py!= (py-int-to-scheme obj-1920)
-             (py-int-to-scheme (py-int-from-scheme 0)))))))
+      (py-test-from-scheme (py!= (py-int-to-scheme obj-1920) 0)))))
 
 (define-macro (py-truth-bintX-inline obj-1921)
   `(py-truth-bintX-fallback ,obj-1921))
 
 (define-macro (py-test-floatX-inline obj-1922)
   `(let ((obj-1922 ,obj-1922))
-     (py-test-from-scheme
-      (py!= (py-float-to-scheme obj-1922)
-            (py-float-to-scheme (py-float-from-scheme 0.))))))
+     (py-test-from-scheme (py!= (py-float-to-scheme obj-1922) 0.))))
 
 (define-macro (py-test-boolX-inline obj-1923)
   `(py-test-boolX-fallback ,obj-1923))
@@ -3483,9 +3423,7 @@
 
 (define-macro (py-test-sintX-inline obj-1925)
   `(let ((obj-1925 ,obj-1925))
-     (py-test-from-scheme
-      (py!= (py-int-to-scheme obj-1925)
-            (py-int-to-scheme (py-int-from-scheme 0))))))
+     (py-test-from-scheme (py!= (py-int-to-scheme obj-1925) 0))))
 
 (define-macro (py-test-bintX-inline obj-1926)
   `(py-test-bintX-fallback ,obj-1926))
@@ -3822,9 +3760,7 @@
 
 (define (py-floordiv-floatX-floatY-fallback x-152 y-153)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-float-to-scheme y-153)
-                       (py-float-to-scheme (py-float-from-scheme 0.))))))
+                (py-test-from-scheme (py!= (py-float-to-scheme y-153) 0.))))
       (py-float-from-scheme
        (py// (py-float-to-scheme x-152) (py-float-to-scheme y-153)))
       (py-throw
@@ -3844,9 +3780,7 @@
 
 (define (py-floordiv-floatX-sintY-fallback x-158 y-159)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-int-to-scheme y-159)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py!= (py-int-to-scheme y-159) 0))))
       (py-float-from-scheme
        (py// (py-float-to-scheme x-158) (py-sint-to-scheme y-159)))
       (py-throw
@@ -3858,9 +3792,7 @@
 
 (define (py-floordiv-boolX-floatY-fallback x-162 y-163)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-float-to-scheme y-163)
-                       (py-float-to-scheme (py-float-from-scheme 0.))))))
+                (py-test-from-scheme (py!= (py-float-to-scheme y-163) 0.))))
       (py-float-from-scheme
        (py// (py-bool-to-scheme-int x-162) (py-float-to-scheme y-163)))
       (py-throw
@@ -3881,9 +3813,7 @@
 
 (define (py-floordiv-boolX-sintY-fallback x-168 y-169)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-int-to-scheme y-169)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py!= (py-int-to-scheme y-169) 0))))
       (py-int-from-scheme
        (py// (py-bool-to-scheme-int x-168) (py-sint-to-scheme y-169)))
       (py-throw
@@ -3921,9 +3851,7 @@
 
 (define (py-floordiv-sintX-floatY-fallback x-182 y-183)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-float-to-scheme y-183)
-                       (py-float-to-scheme (py-float-from-scheme 0.))))))
+                (py-test-from-scheme (py!= (py-float-to-scheme y-183) 0.))))
       (py-float-from-scheme
        (py// (py-sint-to-scheme x-182) (py-float-to-scheme y-183)))
       (py-throw
@@ -3944,9 +3872,7 @@
 
 (define (py-floordiv-sintX-sintY-fallback x-188 y-189)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-int-to-scheme y-189)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py!= (py-int-to-scheme y-189) 0))))
       (py-int-from-scheme
        (py// (py-sint-to-scheme x-188) (py-sint-to-scheme y-189)))
       (py-throw
@@ -3959,9 +3885,7 @@
 
 (define (py-floordiv-bintX-floatY-fallback x-192 y-193)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-float-to-scheme y-193)
-                       (py-float-to-scheme (py-float-from-scheme 0.))))))
+                (py-test-from-scheme (py!= (py-float-to-scheme y-193) 0.))))
       (py-float-from-scheme
        (py// (py-bint-to-scheme x-192) (py-float-to-scheme y-193)))
       (py-throw
@@ -3982,9 +3906,7 @@
 
 (define (py-floordiv-bintX-sintY-fallback x-198 y-199)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-int-to-scheme y-199)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py!= (py-int-to-scheme y-199) 0))))
       (py-int-from-scheme
        (py// (py-bint-to-scheme x-198) (py-sint-to-scheme y-199)))
       (py-throw
@@ -4038,18 +3960,14 @@
 
 (define (py-lshift-boolX-sintY-fallback x-218 y-219)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py>= (py-int-to-scheme y-219)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py>= (py-int-to-scheme y-219) 0))))
       (py-int-from-scheme
        (py<< (py-bool-to-scheme-int x-218) (py-sint-to-scheme y-219)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-lshift-boolX-bintY-fallback x-220 y-221)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py>= (py-int-to-scheme y-221)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py>= (py-int-to-scheme y-221) 0))))
       (py-int-from-scheme
        (py<< (py-bool-to-scheme-int x-220) (py-bint-to-scheme y-221)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
@@ -4097,18 +4015,14 @@
 
 (define (py-lshift-sintX-sintY-fallback x-238 y-239)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py>= (py-int-to-scheme y-239)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py>= (py-int-to-scheme y-239) 0))))
       (py-int-from-scheme
        (py<< (py-sint-to-scheme x-238) (py-sint-to-scheme y-239)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-lshift-sintX-bintY-fallback x-240 y-241)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py>= (py-int-to-scheme y-241)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py>= (py-int-to-scheme y-241) 0))))
       (py-int-from-scheme
        (py<< (py-sint-to-scheme x-240) (py-bint-to-scheme y-241)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
@@ -4131,18 +4045,14 @@
 
 (define (py-lshift-bintX-sintY-fallback x-248 y-249)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py>= (py-int-to-scheme y-249)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py>= (py-int-to-scheme y-249) 0))))
       (py-int-from-scheme
        (py<< (py-bint-to-scheme x-248) (py-sint-to-scheme y-249)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-lshift-bintX-bintY-fallback x-250 y-251)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py>= (py-int-to-scheme y-251)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py>= (py-int-to-scheme y-251) 0))))
       (py-int-from-scheme
        (py<< (py-bint-to-scheme x-250) (py-bint-to-scheme y-251)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
@@ -4274,9 +4184,7 @@
 
 (define (py-mod-floatX-floatY-fallback x-302 y-303)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-float-to-scheme y-303)
-                       (py-float-to-scheme (py-float-from-scheme 0.))))))
+                (py-test-from-scheme (py!= (py-float-to-scheme y-303) 0.))))
       (py-float-from-scheme
        (py% (py-float-to-scheme x-302) (py-float-to-scheme y-303)))
       (py-throw
@@ -4296,9 +4204,7 @@
 
 (define (py-mod-floatX-sintY-fallback x-308 y-309)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-int-to-scheme y-309)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py!= (py-int-to-scheme y-309) 0))))
       (py-float-from-scheme
        (py% (py-float-to-scheme x-308) (py-sint-to-scheme y-309)))
       (py-throw
@@ -4310,9 +4216,7 @@
 
 (define (py-mod-boolX-floatY-fallback x-312 y-313)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-float-to-scheme y-313)
-                       (py-float-to-scheme (py-float-from-scheme 0.))))))
+                (py-test-from-scheme (py!= (py-float-to-scheme y-313) 0.))))
       (py-float-from-scheme
        (py% (py-bool-to-scheme-int x-312) (py-float-to-scheme y-313)))
       (py-throw
@@ -4331,9 +4235,7 @@
 
 (define (py-mod-boolX-sintY-fallback x-318 y-319)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-int-to-scheme y-319)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py!= (py-int-to-scheme y-319) 0))))
       (py-int-from-scheme
        (py% (py-bool-to-scheme-int x-318) (py-sint-to-scheme y-319)))
       (py-throw (py-call py-builtin-ZeroDivisionError (&& "modulo by zero")))))
@@ -4369,9 +4271,7 @@
 
 (define (py-mod-sintX-floatY-fallback x-332 y-333)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-float-to-scheme y-333)
-                       (py-float-to-scheme (py-float-from-scheme 0.))))))
+                (py-test-from-scheme (py!= (py-float-to-scheme y-333) 0.))))
       (py-float-from-scheme
        (py% (py-sint-to-scheme x-332) (py-float-to-scheme y-333)))
       (py-throw
@@ -4390,9 +4290,7 @@
 
 (define (py-mod-sintX-sintY-fallback x-338 y-339)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-int-to-scheme y-339)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py!= (py-int-to-scheme y-339) 0))))
       (py-int-from-scheme
        (py% (py-sint-to-scheme x-338) (py-sint-to-scheme y-339)))
       (py-throw (py-call py-builtin-ZeroDivisionError (&& "modulo by zero")))))
@@ -4403,9 +4301,7 @@
 
 (define (py-mod-bintX-floatY-fallback x-342 y-343)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-float-to-scheme y-343)
-                       (py-float-to-scheme (py-float-from-scheme 0.))))))
+                (py-test-from-scheme (py!= (py-float-to-scheme y-343) 0.))))
       (py-float-from-scheme
        (py% (py-bint-to-scheme x-342) (py-float-to-scheme y-343)))
       (py-throw
@@ -4424,9 +4320,7 @@
 
 (define (py-mod-bintX-sintY-fallback x-348 y-349)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-int-to-scheme y-349)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py!= (py-int-to-scheme y-349) 0))))
       (py-int-from-scheme
        (py% (py-bint-to-scheme x-348) (py-sint-to-scheme y-349)))
       (py-throw (py-call py-builtin-ZeroDivisionError (&& "modulo by zero")))))
@@ -4690,18 +4584,14 @@
 
 (define (py-rshift-boolX-sintY-fallback x-468 y-469)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py>= (py-int-to-scheme y-469)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py>= (py-int-to-scheme y-469) 0))))
       (py-int-from-scheme
        (py>> (py-bool-to-scheme-int x-468) (py-sint-to-scheme y-469)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-rshift-boolX-bintY-fallback x-470 y-471)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py>= (py-int-to-scheme y-471)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py>= (py-int-to-scheme y-471) 0))))
       (py-int-from-scheme
        (py>> (py-bool-to-scheme-int x-470) (py-bint-to-scheme y-471)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
@@ -4749,18 +4639,14 @@
 
 (define (py-rshift-sintX-sintY-fallback x-488 y-489)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py>= (py-int-to-scheme y-489)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py>= (py-int-to-scheme y-489) 0))))
       (py-int-from-scheme
        (py>> (py-sint-to-scheme x-488) (py-sint-to-scheme y-489)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-rshift-sintX-bintY-fallback x-490 y-491)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py>= (py-int-to-scheme y-491)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py>= (py-int-to-scheme y-491) 0))))
       (py-int-from-scheme
        (py>> (py-sint-to-scheme x-490) (py-bint-to-scheme y-491)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
@@ -4783,18 +4669,14 @@
 
 (define (py-rshift-bintX-sintY-fallback x-498 y-499)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py>= (py-int-to-scheme y-499)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py>= (py-int-to-scheme y-499) 0))))
       (py-int-from-scheme
        (py>> (py-bint-to-scheme x-498) (py-sint-to-scheme y-499)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-rshift-bintX-bintY-fallback x-500 y-501)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py>= (py-int-to-scheme y-501)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py>= (py-int-to-scheme y-501) 0))))
       (py-int-from-scheme
        (py>> (py-bint-to-scheme x-500) (py-bint-to-scheme y-501)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
@@ -4910,9 +4792,7 @@
 
 (define (py-truediv-floatX-floatY-fallback x-552 y-553)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-float-to-scheme y-553)
-                       (py-float-to-scheme (py-float-from-scheme 0.))))))
+                (py-test-from-scheme (py!= (py-float-to-scheme y-553) 0.))))
       (py-float-from-scheme
        (py/ (py-float-to-scheme x-552) (py-float-to-scheme y-553)))
       (py-throw
@@ -4932,9 +4812,7 @@
 
 (define (py-truediv-floatX-sintY-fallback x-558 y-559)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-int-to-scheme y-559)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py!= (py-int-to-scheme y-559) 0))))
       (py-float-from-scheme
        (py/ (py-float-to-scheme x-558) (py-sint-to-scheme y-559)))
       (py-throw
@@ -4946,9 +4824,7 @@
 
 (define (py-truediv-boolX-floatY-fallback x-562 y-563)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-float-to-scheme y-563)
-                       (py-float-to-scheme (py-float-from-scheme 0.))))))
+                (py-test-from-scheme (py!= (py-float-to-scheme y-563) 0.))))
       (py-float-from-scheme
        (py/ (py-bool-to-scheme-int x-562) (py-float-to-scheme y-563)))
       (py-throw
@@ -4968,9 +4844,7 @@
 
 (define (py-truediv-boolX-sintY-fallback x-568 y-569)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-int-to-scheme y-569)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py!= (py-int-to-scheme y-569) 0))))
       (py-float-from-scheme
        (py/ (py-bool-to-scheme-int x-568) (py-sint-to-scheme y-569)))
       (py-throw
@@ -5007,9 +4881,7 @@
 
 (define (py-truediv-sintX-floatY-fallback x-582 y-583)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-float-to-scheme y-583)
-                       (py-float-to-scheme (py-float-from-scheme 0.))))))
+                (py-test-from-scheme (py!= (py-float-to-scheme y-583) 0.))))
       (py-float-from-scheme
        (py/ (py-sint-to-scheme x-582) (py-float-to-scheme y-583)))
       (py-throw
@@ -5029,9 +4901,7 @@
 
 (define (py-truediv-sintX-sintY-fallback x-588 y-589)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-int-to-scheme y-589)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py!= (py-int-to-scheme y-589) 0))))
       (py-float-from-scheme
        (py/ (py-sint-to-scheme x-588) (py-sint-to-scheme y-589)))
       (py-throw
@@ -5043,9 +4913,7 @@
 
 (define (py-truediv-bintX-floatY-fallback x-592 y-593)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-float-to-scheme y-593)
-                       (py-float-to-scheme (py-float-from-scheme 0.))))))
+                (py-test-from-scheme (py!= (py-float-to-scheme y-593) 0.))))
       (py-float-from-scheme
        (py/ (py-bint-to-scheme x-592) (py-float-to-scheme y-593)))
       (py-throw
@@ -5065,9 +4933,7 @@
 
 (define (py-truediv-bintX-sintY-fallback x-598 y-599)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-int-to-scheme y-599)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py!= (py-int-to-scheme y-599) 0))))
       (py-float-from-scheme
        (py/ (py-bint-to-scheme x-598) (py-sint-to-scheme y-599)))
       (py-throw
@@ -5532,9 +5398,7 @@
 
 (define (py-ifloordiv-floatX-floatY-fallback x-802 y-803)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-float-to-scheme y-803)
-                       (py-float-to-scheme (py-float-from-scheme 0.))))))
+                (py-test-from-scheme (py!= (py-float-to-scheme y-803) 0.))))
       (py-float-from-scheme
        (py// (py-float-to-scheme x-802) (py-float-to-scheme y-803)))
       (py-throw
@@ -5554,9 +5418,7 @@
 
 (define (py-ifloordiv-floatX-sintY-fallback x-808 y-809)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-int-to-scheme y-809)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py!= (py-int-to-scheme y-809) 0))))
       (py-float-from-scheme
        (py// (py-float-to-scheme x-808) (py-sint-to-scheme y-809)))
       (py-throw
@@ -5568,9 +5430,7 @@
 
 (define (py-ifloordiv-boolX-floatY-fallback x-812 y-813)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-float-to-scheme y-813)
-                       (py-float-to-scheme (py-float-from-scheme 0.))))))
+                (py-test-from-scheme (py!= (py-float-to-scheme y-813) 0.))))
       (py-float-from-scheme
        (py// (py-bool-to-scheme-int x-812) (py-float-to-scheme y-813)))
       (py-throw
@@ -5591,9 +5451,7 @@
 
 (define (py-ifloordiv-boolX-sintY-fallback x-818 y-819)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-int-to-scheme y-819)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py!= (py-int-to-scheme y-819) 0))))
       (py-int-from-scheme
        (py// (py-bool-to-scheme-int x-818) (py-sint-to-scheme y-819)))
       (py-throw
@@ -5631,9 +5489,7 @@
 
 (define (py-ifloordiv-sintX-floatY-fallback x-832 y-833)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-float-to-scheme y-833)
-                       (py-float-to-scheme (py-float-from-scheme 0.))))))
+                (py-test-from-scheme (py!= (py-float-to-scheme y-833) 0.))))
       (py-float-from-scheme
        (py// (py-sint-to-scheme x-832) (py-float-to-scheme y-833)))
       (py-throw
@@ -5654,9 +5510,7 @@
 
 (define (py-ifloordiv-sintX-sintY-fallback x-838 y-839)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-int-to-scheme y-839)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py!= (py-int-to-scheme y-839) 0))))
       (py-int-from-scheme
        (py// (py-sint-to-scheme x-838) (py-sint-to-scheme y-839)))
       (py-throw
@@ -5669,9 +5523,7 @@
 
 (define (py-ifloordiv-bintX-floatY-fallback x-842 y-843)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-float-to-scheme y-843)
-                       (py-float-to-scheme (py-float-from-scheme 0.))))))
+                (py-test-from-scheme (py!= (py-float-to-scheme y-843) 0.))))
       (py-float-from-scheme
        (py// (py-bint-to-scheme x-842) (py-float-to-scheme y-843)))
       (py-throw
@@ -5692,9 +5544,7 @@
 
 (define (py-ifloordiv-bintX-sintY-fallback x-848 y-849)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-int-to-scheme y-849)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py!= (py-int-to-scheme y-849) 0))))
       (py-int-from-scheme
        (py// (py-bint-to-scheme x-848) (py-sint-to-scheme y-849)))
       (py-throw
@@ -5748,18 +5598,14 @@
 
 (define (py-ilshift-boolX-sintY-fallback x-868 y-869)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py>= (py-int-to-scheme y-869)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py>= (py-int-to-scheme y-869) 0))))
       (py-int-from-scheme
        (py<< (py-bool-to-scheme-int x-868) (py-sint-to-scheme y-869)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-ilshift-boolX-bintY-fallback x-870 y-871)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py>= (py-int-to-scheme y-871)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py>= (py-int-to-scheme y-871) 0))))
       (py-int-from-scheme
        (py<< (py-bool-to-scheme-int x-870) (py-bint-to-scheme y-871)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
@@ -5807,18 +5653,14 @@
 
 (define (py-ilshift-sintX-sintY-fallback x-888 y-889)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py>= (py-int-to-scheme y-889)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py>= (py-int-to-scheme y-889) 0))))
       (py-int-from-scheme
        (py<< (py-sint-to-scheme x-888) (py-sint-to-scheme y-889)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-ilshift-sintX-bintY-fallback x-890 y-891)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py>= (py-int-to-scheme y-891)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py>= (py-int-to-scheme y-891) 0))))
       (py-int-from-scheme
        (py<< (py-sint-to-scheme x-890) (py-bint-to-scheme y-891)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
@@ -5841,18 +5683,14 @@
 
 (define (py-ilshift-bintX-sintY-fallback x-898 y-899)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py>= (py-int-to-scheme y-899)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py>= (py-int-to-scheme y-899) 0))))
       (py-int-from-scheme
        (py<< (py-bint-to-scheme x-898) (py-sint-to-scheme y-899)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-ilshift-bintX-bintY-fallback x-900 y-901)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py>= (py-int-to-scheme y-901)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py>= (py-int-to-scheme y-901) 0))))
       (py-int-from-scheme
        (py<< (py-bint-to-scheme x-900) (py-bint-to-scheme y-901)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
@@ -5984,9 +5822,7 @@
 
 (define (py-imod-floatX-floatY-fallback x-952 y-953)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-float-to-scheme y-953)
-                       (py-float-to-scheme (py-float-from-scheme 0.))))))
+                (py-test-from-scheme (py!= (py-float-to-scheme y-953) 0.))))
       (py-float-from-scheme
        (py% (py-float-to-scheme x-952) (py-float-to-scheme y-953)))
       (py-throw
@@ -6006,9 +5842,7 @@
 
 (define (py-imod-floatX-sintY-fallback x-958 y-959)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-int-to-scheme y-959)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py!= (py-int-to-scheme y-959) 0))))
       (py-float-from-scheme
        (py% (py-float-to-scheme x-958) (py-sint-to-scheme y-959)))
       (py-throw
@@ -6020,9 +5854,7 @@
 
 (define (py-imod-boolX-floatY-fallback x-962 y-963)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-float-to-scheme y-963)
-                       (py-float-to-scheme (py-float-from-scheme 0.))))))
+                (py-test-from-scheme (py!= (py-float-to-scheme y-963) 0.))))
       (py-float-from-scheme
        (py% (py-bool-to-scheme-int x-962) (py-float-to-scheme y-963)))
       (py-throw
@@ -6041,9 +5873,7 @@
 
 (define (py-imod-boolX-sintY-fallback x-968 y-969)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-int-to-scheme y-969)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py!= (py-int-to-scheme y-969) 0))))
       (py-int-from-scheme
        (py% (py-bool-to-scheme-int x-968) (py-sint-to-scheme y-969)))
       (py-throw (py-call py-builtin-ZeroDivisionError (&& "modulo by zero")))))
@@ -6079,9 +5909,7 @@
 
 (define (py-imod-sintX-floatY-fallback x-982 y-983)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-float-to-scheme y-983)
-                       (py-float-to-scheme (py-float-from-scheme 0.))))))
+                (py-test-from-scheme (py!= (py-float-to-scheme y-983) 0.))))
       (py-float-from-scheme
        (py% (py-sint-to-scheme x-982) (py-float-to-scheme y-983)))
       (py-throw
@@ -6100,9 +5928,7 @@
 
 (define (py-imod-sintX-sintY-fallback x-988 y-989)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-int-to-scheme y-989)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py!= (py-int-to-scheme y-989) 0))))
       (py-int-from-scheme
        (py% (py-sint-to-scheme x-988) (py-sint-to-scheme y-989)))
       (py-throw (py-call py-builtin-ZeroDivisionError (&& "modulo by zero")))))
@@ -6113,9 +5939,7 @@
 
 (define (py-imod-bintX-floatY-fallback x-992 y-993)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-float-to-scheme y-993)
-                       (py-float-to-scheme (py-float-from-scheme 0.))))))
+                (py-test-from-scheme (py!= (py-float-to-scheme y-993) 0.))))
       (py-float-from-scheme
        (py% (py-bint-to-scheme x-992) (py-float-to-scheme y-993)))
       (py-throw
@@ -6134,9 +5958,7 @@
 
 (define (py-imod-bintX-sintY-fallback x-998 y-999)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-int-to-scheme y-999)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py!= (py-int-to-scheme y-999) 0))))
       (py-int-from-scheme
        (py% (py-bint-to-scheme x-998) (py-sint-to-scheme y-999)))
       (py-throw (py-call py-builtin-ZeroDivisionError (&& "modulo by zero")))))
@@ -6400,18 +6222,14 @@
 
 (define (py-irshift-boolX-sintY-fallback x-1118 y-1119)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py>= (py-int-to-scheme y-1119)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py>= (py-int-to-scheme y-1119) 0))))
       (py-int-from-scheme
        (py>> (py-bool-to-scheme-int x-1118) (py-sint-to-scheme y-1119)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-irshift-boolX-bintY-fallback x-1120 y-1121)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py>= (py-int-to-scheme y-1121)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py>= (py-int-to-scheme y-1121) 0))))
       (py-int-from-scheme
        (py>> (py-bool-to-scheme-int x-1120) (py-bint-to-scheme y-1121)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
@@ -6459,18 +6277,14 @@
 
 (define (py-irshift-sintX-sintY-fallback x-1138 y-1139)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py>= (py-int-to-scheme y-1139)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py>= (py-int-to-scheme y-1139) 0))))
       (py-int-from-scheme
        (py>> (py-sint-to-scheme x-1138) (py-sint-to-scheme y-1139)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-irshift-sintX-bintY-fallback x-1140 y-1141)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py>= (py-int-to-scheme y-1141)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py>= (py-int-to-scheme y-1141) 0))))
       (py-int-from-scheme
        (py>> (py-sint-to-scheme x-1140) (py-bint-to-scheme y-1141)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
@@ -6493,18 +6307,14 @@
 
 (define (py-irshift-bintX-sintY-fallback x-1148 y-1149)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py>= (py-int-to-scheme y-1149)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py>= (py-int-to-scheme y-1149) 0))))
       (py-int-from-scheme
        (py>> (py-bint-to-scheme x-1148) (py-sint-to-scheme y-1149)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
 
 (define (py-irshift-bintX-bintY-fallback x-1150 y-1151)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py>= (py-int-to-scheme y-1151)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py>= (py-int-to-scheme y-1151) 0))))
       (py-int-from-scheme
        (py>> (py-bint-to-scheme x-1150) (py-bint-to-scheme y-1151)))
       (py-throw (py-call py-builtin-ValueError (&& "negative shift count")))))
@@ -6620,9 +6430,7 @@
 
 (define (py-itruediv-floatX-floatY-fallback x-1202 y-1203)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-float-to-scheme y-1203)
-                       (py-float-to-scheme (py-float-from-scheme 0.))))))
+                (py-test-from-scheme (py!= (py-float-to-scheme y-1203) 0.))))
       (py-float-from-scheme
        (py/ (py-float-to-scheme x-1202) (py-float-to-scheme y-1203)))
       (py-throw
@@ -6642,9 +6450,7 @@
 
 (define (py-itruediv-floatX-sintY-fallback x-1208 y-1209)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-int-to-scheme y-1209)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py!= (py-int-to-scheme y-1209) 0))))
       (py-float-from-scheme
        (py/ (py-float-to-scheme x-1208) (py-sint-to-scheme y-1209)))
       (py-throw
@@ -6656,9 +6462,7 @@
 
 (define (py-itruediv-boolX-floatY-fallback x-1212 y-1213)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-float-to-scheme y-1213)
-                       (py-float-to-scheme (py-float-from-scheme 0.))))))
+                (py-test-from-scheme (py!= (py-float-to-scheme y-1213) 0.))))
       (py-float-from-scheme
        (py/ (py-bool-to-scheme-int x-1212) (py-float-to-scheme y-1213)))
       (py-throw
@@ -6678,9 +6482,7 @@
 
 (define (py-itruediv-boolX-sintY-fallback x-1218 y-1219)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-int-to-scheme y-1219)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py!= (py-int-to-scheme y-1219) 0))))
       (py-float-from-scheme
        (py/ (py-bool-to-scheme-int x-1218) (py-sint-to-scheme y-1219)))
       (py-throw
@@ -6717,9 +6519,7 @@
 
 (define (py-itruediv-sintX-floatY-fallback x-1232 y-1233)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-float-to-scheme y-1233)
-                       (py-float-to-scheme (py-float-from-scheme 0.))))))
+                (py-test-from-scheme (py!= (py-float-to-scheme y-1233) 0.))))
       (py-float-from-scheme
        (py/ (py-sint-to-scheme x-1232) (py-float-to-scheme y-1233)))
       (py-throw
@@ -6739,9 +6539,7 @@
 
 (define (py-itruediv-sintX-sintY-fallback x-1238 y-1239)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-int-to-scheme y-1239)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py!= (py-int-to-scheme y-1239) 0))))
       (py-float-from-scheme
        (py/ (py-sint-to-scheme x-1238) (py-sint-to-scheme y-1239)))
       (py-throw
@@ -6753,9 +6551,7 @@
 
 (define (py-itruediv-bintX-floatY-fallback x-1242 y-1243)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-float-to-scheme y-1243)
-                       (py-float-to-scheme (py-float-from-scheme 0.))))))
+                (py-test-from-scheme (py!= (py-float-to-scheme y-1243) 0.))))
       (py-float-from-scheme
        (py/ (py-bint-to-scheme x-1242) (py-float-to-scheme y-1243)))
       (py-throw
@@ -6775,9 +6571,7 @@
 
 (define (py-itruediv-bintX-sintY-fallback x-1248 y-1249)
   (if (py-test (py-bool-from-scheme-bool
-                (py-test-from-scheme
-                 (py!= (py-int-to-scheme y-1249)
-                       (py-int-to-scheme (py-int-from-scheme 0))))))
+                (py-test-from-scheme (py!= (py-int-to-scheme y-1249) 0))))
       (py-float-from-scheme
        (py/ (py-bint-to-scheme x-1248) (py-sint-to-scheme y-1249)))
       (py-throw
@@ -8272,42 +8066,30 @@
 
 (define (py-truth-floatX-fallback obj-1917)
   (py-bool-from-scheme-bool
-   (py-test-from-scheme
-    (py!= (py-float-to-scheme obj-1917)
-          (py-float-to-scheme (py-float-from-scheme 0.))))))
+   (py-test-from-scheme (py!= (py-float-to-scheme obj-1917) 0.))))
 
 (define (py-truth-boolX-fallback obj-1918) obj-1918)
 
 (define (py-truth-strX-fallback obj-1919)
   (py-bool-from-scheme-bool
-   (py-test-from-scheme
-    (py!= (py-str-len-to-scheme obj-1919)
-          (py-int-to-scheme (py-int-from-scheme 0))))))
+   (py-test-from-scheme (py!= (py-str-len-to-scheme obj-1919) 0))))
 
 (define (py-truth-sintX-fallback obj-1920)
   (py-bool-from-scheme-bool
-   (py-test-from-scheme
-    (py!= (py-int-to-scheme obj-1920)
-          (py-int-to-scheme (py-int-from-scheme 0))))))
+   (py-test-from-scheme (py!= (py-int-to-scheme obj-1920) 0))))
 
 (define (py-truth-bintX-fallback obj-1921) py-True)
 
 (define (py-test-floatX-fallback obj-1922)
-  (py-test-from-scheme
-   (py!= (py-float-to-scheme obj-1922)
-         (py-float-to-scheme (py-float-from-scheme 0.)))))
+  (py-test-from-scheme (py!= (py-float-to-scheme obj-1922) 0.)))
 
 (define (py-test-boolX-fallback obj-1923) (py-bool-to-scheme-bool obj-1923))
 
 (define (py-test-strX-fallback obj-1924)
-  (py-test-from-scheme
-   (py!= (py-str-len-to-scheme obj-1924)
-         (py-int-to-scheme (py-int-from-scheme 0)))))
+  (py-test-from-scheme (py!= (py-str-len-to-scheme obj-1924) 0)))
 
 (define (py-test-sintX-fallback obj-1925)
-  (py-test-from-scheme
-   (py!= (py-int-to-scheme obj-1925)
-         (py-int-to-scheme (py-int-from-scheme 0)))))
+  (py-test-from-scheme (py!= (py-int-to-scheme obj-1925) 0)))
 
 (define (py-test-bintX-fallback obj-1926) (py-bool-to-scheme-bool py-True))
 

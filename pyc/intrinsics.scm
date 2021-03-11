@@ -97,6 +97,42 @@
            (cdr args)))
        (error "SyntaxError" "wrong argument for call_host" #f))))
 
+(define (make-py-int-to-scheme this)
+  (let* ((loc (PycNode-loc this))
+        (args (PycCall-args this)))
+    (if (not (= (length args) 1))
+      (error "make-py-int-to-scheme" "incorrect arity for call to py-int-to-scheme" this))
+    (let ((arg0 (car args)))
+      (if (and
+            (isa? arg0 PycNumber)
+            (integer? (PycLiteralValue-val arg0)))
+        (new-PycPragma
+          loc
+          (PycLiteralValue-val arg0)
+          type: (if (fixnum? (PycLiteralValue-val arg0)) 'Usint 'Ubint))
+        (new-PycCall
+          loc
+          (new-PycPragma loc 'py-int-to-scheme)
+          args)))))
+
+(define (make-py-float-to-scheme this)
+  (let* ((loc (PycNode-loc this))
+        (args (PycCall-args this)))
+    (if (not (= (length args) 1))
+      (error "make-py-float-to-scheme" "incorrect arity for call to py-float-to-scheme" this))
+    (let ((arg0 (car args)))
+      (if (and
+            (isa? arg0 PycNumber)
+            (flonum? (PycLiteralValue-val arg0)))
+        (new-PycPragma
+          loc
+          (PycLiteralValue-val arg0)
+          type: 'Ufloat)
+        (new-PycCall
+          loc
+          (new-PycPragma loc 'py-float-to-scheme)
+          args)))))
+
 (define (make-isinstance this)
   (let* ((loc (PycNode-loc this))
         (args (PycCall-args this))
@@ -157,10 +193,10 @@
    (cons 'inline_host_code make-inline_host_code)
    (cons 'class_getattr make-class_getattr)
    (cons 'call_host make-call_host)
-   (cons 'py_float_to_host (make-pragma-call-maker 'py-float-to-scheme))
+   (cons 'py_float_to_host make-py-float-to-scheme)
    (cons 'py_float_from_host (make-pragma-call-maker 'py-float-from-scheme))
    (cons 'py_int_from_host (make-pragma-call-maker 'py-int-from-scheme))
-   (cons 'py_int_to_host (make-pragma-call-maker 'py-int-to-scheme))
+   (cons 'py_int_to_host make-py-int-to-scheme)
    (cons 'py_bool_to_host_int (make-pragma-call-maker 'py-bool-to-scheme-int))
    (cons 'py_sint_to_host (make-pragma-call-maker 'py-sint-to-scheme))
    (cons 'py_bint_to_host (make-pragma-call-maker 'py-bint-to-scheme))
@@ -519,9 +555,13 @@
       (else #f))))
 
 (define (get-expr-type-hint expr)
-  (if (and (PycCall? expr) (PycPragma? (PycCall-fun expr)))
-    (get-pragma-call-type-hint expr)
-    #f))
+  (cond
+    ((and (PycCall? expr) (PycPragma? (PycCall-fun expr)))
+      (get-pragma-call-type-hint expr))
+    ((PycExpr-type expr)
+      (PycExpr-type expr))
+    (else
+      #f)))
 
 (define-walk-method (resolve-statics! this::PycBinary intrinsics statics macros use-static-builtins)
   (let* ((this (call-default-walker))
