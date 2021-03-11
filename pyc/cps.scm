@@ -39,6 +39,39 @@
 (define-walk-method (cps this::PycNode k pack kbreaks kcontinues ktry fun)
    (error "cps" "Should not be here" (pyc->list this)))
 
+(define-walk-method (cps this::PycIf k pack kbreaks kcontinues ktry fun)
+   (let ((iftest (PycIf-test this))
+	 (ifthen (PycIf-then this))
+	 (ifelse (PycIf-else this))
+	 (ifloc (PycIf-loc this)))
+      (let* ((name (gensym '%kif))
+	     (kfun (new-PycKont ifloc '()
+		      (new-PycBlock ifloc '()
+			 (kcall k (new-PycNone ifloc #f)))))
+	     (kdecl (new-PycVar ifloc name 'block))
+	     (kif (KontStmt (lambda (n)
+			       (new-PycSeq ifloc
+				  (list
+				     n
+				     (new-PycReturn ifloc
+					(new-PycCallKont ifloc
+					   (new-PycRef ifloc kdecl 'Load
+					      :can-direct-access #t))))))
+		     this k)))
+	 (cps iftest
+	    (KontExpr (lambda (ktest)
+			 (new-PycBlock ifloc
+			    (list (new-PycAssig ifloc
+				     (new-PycRef ifloc kdecl 'Store
+					:can-direct-access #t)
+				     (new-PycNone ifloc #f)))
+			    (new-PycIf ifloc
+			       ktest
+			       (cps ifthen kif pack kbreaks kcontinues ktry fun)
+			       (cps ifelse kif pack kbreaks kcontinues ktry fun))))
+	       this k)
+	    pack kbreaks kcontinues ktry fun))))
+
 (define-walk-method (cps this::PycStmtExpr k pack kbreaks kcontinues ktry fun)
    (let ((loc (PycNode-loc this))
 	 (expr (PycStmtExpr-expr this)))
@@ -97,19 +130,25 @@
 	  (kcall k this)))))
 
 (define-walk-method (cps this::PycYield k pack kbreaks kcontinues ktry fun)
-
+   
    (define (make-yield-kont k loc)
-    (let* ((arg (new-PycVar loc (gensym '%arg) 'local))
-           (exn (new-PycVar loc (gensym '%exn) 'local))
-           (body (kcall k (new-PycRef loc arg 'Store)))
-           (cont
-             (new-PycIf loc
-               (new-PycBinary loc 'is
-                 (new-PycRef loc exn 'Store) (new-PycBool loc #t) type: 'bool)
-             (new-PycRaise loc (new-PycRef loc arg 'Load) (new-PycUninit loc))
-            body)))
-    (new-PycKont loc (new-PycRef loc arg 'Store) (new-PycRef loc exn 'Store) (pack cont))))
-
+      (let* ((arg (new-PycVar loc (gensym '%arg) 'local))
+	     (exn (new-PycVar loc (gensym '%exn) 'local))
+	     (body (kcall k (new-PycRef loc arg 'Store :can-direct-access #t)))
+	     (cont (new-PycIf loc
+		      (new-PycBinary loc 'is
+			 (new-PycRef loc exn 'Load :can-direct-access #t)
+			 (new-PycBool loc #t)
+			 type: 'bool)
+		      (new-PycRaise loc
+			 (new-PycRef loc arg 'Load :can-direct-access #t)
+			 (new-PycUninit loc))
+		      body)))
+	 (new-PycKont loc
+	    (list (new-PycRef loc arg 'Store :can-direct-access #t)
+	       (new-PycRef loc exn 'Store :can-direct-access #t))
+	    (pack cont))))
+   
    (let* ((loc (PycNode-loc this))
 	  (val (PycYield-val this))
 	  (gen (PycYield-generator this))
@@ -131,7 +170,7 @@
 			  (if ktry
 			      '(new-PycTail loc
 				(new-PycCall loc
-				   (new-PycRef loc ktry)
+				   (new-PycRef loc ktry :can-direct-access #t)
 				   (PycBool #t)
 				   kexpr))
 			      (new-PycReturnYield loc kexpr

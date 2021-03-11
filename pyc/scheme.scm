@@ -236,28 +236,27 @@
   (call-default-walker))
 
 (define-walk-method (collect-semantics* this::PycSemantics conf)
-  (let* ((args (PycFun-args this))
-        (arg-names (map (lambda (a) (scheme-var-name a conf)) args))
-        (need-return (PycFun-need-return this))
-        (return-sym (if need-return (my-gensym '%return) #f))
-        (body-conf
-          (if need-return
-            (cons* fun: this return: return-sym conf)
-            (cons* fun: this conf)))
-        (body (scheme (PycFun-body this) body-conf))
-        (scheme-name (PycFun-name this)))
-    (list
-      (cons
-        scheme-name
-        (if (PycSemantics-inline this)
-          (if (PycSemantics-inline-as-is this)
-            (list 'define-macro (cons scheme-name arg-names)
-                (list 'quasiquote body))
-            (list 'define-macro (cons scheme-name arg-names)
-                (list 'quasiquote
-                (list 'let (map (lambda (name) (list name (list 'unquote name))) arg-names)
-                body))))
-          `(define (,scheme-name ,@arg-names) ,body))))))
+   (let* ((args (PycFun-args this))
+	  (arg-names (map (lambda (a) (scheme-var-name a conf)) args))
+	  (need-return (PycFun-need-return this))
+	  (return-sym (if need-return (my-gensym '%return) #f))
+	  (body-conf (if need-return
+			 (cons* fun: this return: return-sym conf)
+			 (cons* fun: this conf)))
+	  (body (scheme (PycFun-body this) body-conf))
+	  (scheme-name (PycFun-name this)))
+      (list
+	 (cons
+	    scheme-name
+	    (if (PycSemantics-inline this)
+		(if (PycSemantics-inline-as-is this)
+		    (list 'define-macro (cons scheme-name arg-names)
+		       (list 'quasiquote body))
+		    (list 'define-macro (cons scheme-name arg-names)
+		       (list 'quasiquote
+			  (list 'let (map (lambda (name) (list name (list 'unquote name))) arg-names)
+			     body))))
+		`(define (,scheme-name ,@arg-names) ,body))))))
 
 (define (scheme* nodes conf)
   (map (lambda (n) (scheme n conf)) nodes))
@@ -1099,11 +1098,17 @@
             `(begin ,body-with-vars ,(pyc-class this))))))))
 
 (define-walk-method (scheme this::PycKont conf)
-   (let ((param (scheme (PycKont-param this) conf))
-	 (exn (scheme (PycKont-exn this) conf)))
-      (epairify this
-	 `(lambda (,param ,exn)
-	     ,(scheme (PycKont-body this) conf)))))
+   (epairify this
+      `(lambda ,(map (lambda (p)
+			(let ((d (PycRef-decl p)))
+			   (scheme-var-name d conf)))
+		   (PycKont-params this))
+	  ,(scheme (PycKont-body this) conf))))
+
+(define-walk-method (scheme this::PycCallKont conf)
+   (epairify this
+      `(,(scheme (PycCallKont-kont this) conf)
+	,@(map (lambda (a) (scheme a conf)) (PycCallKont-args this)))))
 
 (define (get-def-with-var global-funs var)
   (if (null? global-funs)
@@ -1233,24 +1238,24 @@
             `(py-import-relative %global ,(PycImport-path this) ',(PycImport-from-list this) ,depth)))))
 
 (define-walk-method (scheme this::PycRef conf)
-  (let* ((var (PycRef-decl this))
-        (id (PycVar-id var))
-        (name (scheme-var-name var conf)))
-    (case (PycVar-scope var)
-      ((global)
-        `(if (eq? ,name py-absent)
-          (global-get
-            %global
-            ,(pyc-propname id)
-            ,(scheme-cache (PycRef-cache this) this))
-          ,name))
-      (else
-        (if (PycRef-can-direct-access this)
-          name
-          `(or ,name
-              (py-throw-exception-with-message
-                py-builtin-UnboundLocalError
-                ,(string-append "local variable '" (symbol->string id) "' referenced before assignment"))))))))
+   (let* ((var (PycRef-decl this))
+	  (id (PycVar-id var))
+	  (name (scheme-var-name var conf)))
+      (cond
+	 ((eq? (PycVar-scope var) 'global)
+	  `(if (eq? ,name py-absent)
+	       (global-get
+		  %global
+		  ,(pyc-propname id)
+		  ,(scheme-cache (PycRef-cache this) this))
+	       ,name))
+	 ((PycRef-can-direct-access this)
+	  name)
+	 (else
+	  `(or ,name
+	       (py-throw-exception-with-message
+		  py-builtin-UnboundLocalError
+		  ,(string-append "local variable '" (symbol->string id) "' referenced before assignment")))))))
 
 (define-walk-method (scheme this::PycRefUnresolved conf)
    (epairify this

@@ -134,8 +134,7 @@
 
 (define-walk-method (pycnode->list this::PycKont)
    `(,(string->symbol (typeof this))
-     (,(pycnode->list (PycKont-param this))
-      ,(pycnode->list (PycKont-exn this)))
+     (map pycnode->list (PycKont-params this))
      ,(pycnode->list (PycKont-body this))))
 
 (define-walk-method (pycnode->list this::PycCall)
