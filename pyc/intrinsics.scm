@@ -115,6 +115,24 @@
           (new-PycPragma loc 'py-int-to-scheme)
           args)))))
 
+(define (make-py-sint-to-scheme this)
+  (let* ((loc (PycNode-loc this))
+        (args (PycCall-args this)))
+    (if (not (= (length args) 1))
+      (error "make-py-sint-to-scheme" "incorrect arity for call to py-sint-to-scheme" this))
+    (let ((arg0 (car args)))
+      (if (and (isa? arg0 PycLiteralValue))
+        (if (fixnum? (PycLiteralValue-val arg0))
+          (new-PycPragma
+            loc
+            (PycLiteralValue-val arg0)
+            type: (if (fixnum? (PycLiteralValue-val arg0)) 'Usint 'Ubint))
+          (error "make-py-sint-to-scheme" "called with non fixnum literal" this))
+        (new-PycCall
+          loc
+          (new-PycPragma loc 'py-sint-to-scheme)
+          args)))))
+
 (define (make-py-float-to-scheme this)
   (let* ((loc (PycNode-loc this))
         (args (PycCall-args this)))
@@ -198,7 +216,7 @@
    (cons 'py_int_from_host (make-pragma-call-maker 'py-int-from-scheme))
    (cons 'py_int_to_host make-py-int-to-scheme)
    (cons 'py_bool_to_host_int (make-pragma-call-maker 'py-bool-to-scheme-int))
-   (cons 'py_sint_to_host (make-pragma-call-maker 'py-sint-to-scheme))
+   (cons 'py_sint_to_host make-py-sint-to-scheme)
    (cons 'py_bint_to_host (make-pragma-call-maker 'py-bint-to-scheme))
    (cons 'py_bool_from_host_bool (make-pragma-call-maker 'py-bool-from-scheme-bool))
    (cons 'py_bool_to_host_bool (make-pragma-call-maker 'py-bool-to-scheme-bool))
