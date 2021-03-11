@@ -10,6 +10,12 @@ import templates
 
 import astor.code_gen
 
+# ======================================================================================================================
+#   Parameters
+# ======================================================================================================================
+
+# Default value if not --int-maxsize argument is passed
+INT_MAXSIZE = sys.maxsize
 
 # ======================================================================================================================
 #   Helpers
@@ -328,6 +334,8 @@ intrinsics_inverses = {
 
 py_to_host_number_table = {
     "int": "py_int_to_host",
+    "sint": "py_sint_to_host",
+    "bint": "py_bint_to_host",
     "float": "py_float_to_host",
 }
 
@@ -639,9 +647,28 @@ def partial_eval_stmts(stmts, ctx):
         yield from filter(None, partial_eval_stmt(stmt, ctx))
 
 
+def is_sint_value(val):
+    return val in range(-INT_MAXSIZE - 1, INT_MAXSIZE + 1)
+
+
+def is_bint_value(val):
+    return val not in range(-INT_MAXSIZE - 1, INT_MAXSIZE + 1)
+
+
 def partial_eval_resolve_type(expr, ctx):
     if isinstance(expr, ast.Constant):
-        return type(expr.value).__name__
+        value = expr.value
+        type_name = type(value).__name__
+
+        if type_name == "int":
+            if is_sint_value(value):
+                return "sint"
+            elif is_bint_value(value):
+                return "bint"
+            else:
+                return "int"
+        else:
+            return type_name
     elif isinstance(expr, ast.Compare):
         # In the context of behavior which are only for builtin types, a comparison will always return a bool
         return 'bool'
@@ -651,7 +678,7 @@ def partial_eval_resolve_type(expr, ctx):
     elif isinstance(expr, ast.Name):
         var = ctx.get(expr.id)
         if var:
-            return var.type
+            return var.specialized_type
     elif isinstance(expr, ast.Call):
         return partial_eval_resolve_call_return_type(ctx, expr)
 
@@ -1193,7 +1220,7 @@ def main_behaviors(semantics_file, builtins_file):
     behaviors = []
 
     define_behavior = "define_behavior"
-    other_intrinsics = "py_int_from_host, py_int_to_host, py_bool_to_host_int, py_float_from_host, " \
+    other_intrinsics = "py_int_from_host, py_bool_to_host_int, py_float_from_host, " \
                        "py_float_to_host, py_sint_to_host, py_bint_to_host, py_bool_from_host_bool, " \
                        "py_bool_to_host_bool, py_str_from_host, py_str_to_host, py_str_len_to_host"
 
@@ -1274,14 +1301,16 @@ if __name__ == '__main__':
 
     subparser = parser.add_subparsers(dest='command', required=True)
 
-    # update command
+    # tree command
     tree_parser = subparser.add_parser('tree', description="Generate the decision tree only")
     tree_parser.add_argument('semantics_file')
 
-    # save command
+    # behaviors command
     behaviors_parser = subparser.add_parser('behaviors', description="Generate the behaviors")
     behaviors_parser.add_argument('semantics_file')
     behaviors_parser.add_argument('builtins_file')
+    behaviors_parser.add_argument('--int-maxsize', dest='int_maxsize', type=int, default=INT_MAXSIZE)
+
 
     args = parser.parse_args()
 
@@ -1290,4 +1319,5 @@ if __name__ == '__main__':
     if command == 'tree':
         main_tree(args.semantics_file)
     elif command == 'behaviors':
+        INT_MAXSIZE = args.int_maxsize
         main_behaviors(args.semantics_file, args.builtins_file)
