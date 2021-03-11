@@ -6317,8 +6317,7 @@
   (if expansion-flag
       (cond-expand
         (gambit
-         (|##build-module-subprocess-default-options-set!|
-          (if value '((expansion)) '())))
+         (|##build-module-subprocess-default-options-set!| '((expansion))))
         (bigloo
          #f)))
 
