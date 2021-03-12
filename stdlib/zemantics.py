@@ -1242,7 +1242,8 @@ def maybe_len(obj):
     if __len__ is absent:
         return absent
     else:
-        return index(__len__(obj))
+        len_result = __len__(obj)
+        return index(len_result)
     # len:end-body
 
 @define_semantics

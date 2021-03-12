@@ -175,6 +175,8 @@
            (py-pos-behavior-call-fallback x)
            (py-neg-behavior-call-fallback x)
            (py-invert-behavior-call-fallback x)
+           (py-test-behavior-call-fallback x)
+           (py-truth-behavior-call-fallback x)
 
            (py-add-behavior-call-with-lhs-index-fallback index lhs rhs)
            (py-bitand-behavior-call-with-lhs-index-fallback index lhs rhs)

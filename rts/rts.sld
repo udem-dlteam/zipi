@@ -185,6 +185,8 @@
     py-pos-behavior-call-fallback
     py-neg-behavior-call-fallback
     py-invert-behavior-call-fallback
+    py-test-behavior-call-fallback
+    py-truth-behavior-call-fallback
 
     py-eq-behavior-call-fallback
     py-ne-behavior-call-fallback
@@ -307,6 +309,8 @@
     py-pos-behaviors-table
     py-neg-behaviors-table
     py-invert-behaviors-table
+    py-test-behaviors-table
+    py-truth-behaviors-table
 
     py-eq-behaviors-table
     py-ne-behaviors-table
@@ -1709,6 +1713,16 @@ py-invert-boolX-fallback
 py-invert-strX-fallback
 py-invert-sintX-fallback
 py-invert-bintX-fallback
+py-truth-floatX-fallback
+py-truth-boolX-fallback
+py-truth-strX-fallback
+py-truth-sintX-fallback
+py-truth-bintX-fallback
+py-test-floatX-fallback
+py-test-boolX-fallback
+py-test-strX-fallback
+py-test-sintX-fallback
+py-test-bintX-fallback
 py-add-fallback
 py-bitand-fallback
 py-bitor-fallback
@@ -2709,6 +2723,16 @@ py-invert-boolX-inline
 py-invert-strX-inline
 py-invert-sintX-inline
 py-invert-bintX-inline
+py-truth-floatX-inline
+py-truth-boolX-inline
+py-truth-strX-inline
+py-truth-sintX-inline
+py-truth-bintX-inline
+py-test-floatX-inline
+py-test-boolX-inline
+py-test-strX-inline
+py-test-sintX-inline
+py-test-bintX-inline
     )
 
   (import gambit)

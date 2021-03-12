@@ -1,4 +1,4 @@
-from __compiler_intrinsics__ import define_behavior, py_int_from_host, py_int_to_host, py_bool_to_host_int, py_float_from_host, py_float_to_host, py_sint_to_host, py_bint_to_host, py_bool_from_host_bool, py_bool_to_host_bool, py_str_from_host, py_str_to_host
+from __compiler_intrinsics__ import define_behavior, py_int_from_host, py_bool_to_host_int, py_float_from_host, py_float_to_host, py_sint_to_host, py_bint_to_host, py_bool_from_host_bool, py_bool_to_host_bool, py_str_from_host, py_str_to_host, py_str_len_to_host
 
 @define_behavior
 def py_add_floatX_floatY(x: float, y: float):
@@ -302,14 +302,14 @@ def py_bitor_bintX_bintY(x: bint, y: bint):
 
 @define_behavior
 def py_floordiv_floatX_floatY(x: float, y: float):
-    if y != 0.0:
+    if py_bool_from_host_bool(py_float_to_host(y) != py_float_to_host(0.0)):
         return py_float_from_host(py_float_to_host(x) // py_float_to_host(y))
     else:
         raise ZeroDivisionError('float division by zero')
 
 @define_behavior
 def py_floordiv_floatX_boolY(x: float, y: bool):
-    if y != 0:
+    if y:
         return py_float_from_host(py_float_to_host(x) // py_bool_to_host_int(y)
             )
     else:
@@ -321,7 +321,7 @@ def py_floordiv_floatX_strY(x: float, y: str):
 
 @define_behavior
 def py_floordiv_floatX_sintY(x: float, y: sint):
-    if y != 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) != py_sint_to_host(0)):
         return py_float_from_host(py_float_to_host(x) // py_sint_to_host(y))
     else:
         raise ZeroDivisionError('float division by zero')
@@ -332,7 +332,7 @@ def py_floordiv_floatX_bintY(x: float, y: bint):
 
 @define_behavior
 def py_floordiv_boolX_floatY(x: bool, y: float):
-    if y != 0.0:
+    if py_bool_from_host_bool(py_float_to_host(y) != py_float_to_host(0.0)):
         return py_float_from_host(py_bool_to_host_int(x) // py_float_to_host(y)
             )
     else:
@@ -340,7 +340,7 @@ def py_floordiv_boolX_floatY(x: bool, y: float):
 
 @define_behavior
 def py_floordiv_boolX_boolY(x: bool, y: bool):
-    if y != 0:
+    if y:
         return py_int_from_host(py_bool_to_host_int(x) //
             py_bool_to_host_int(y))
     else:
@@ -352,7 +352,7 @@ def py_floordiv_boolX_strY(x: bool, y: str):
 
 @define_behavior
 def py_floordiv_boolX_sintY(x: bool, y: sint):
-    if y != 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) != py_sint_to_host(0)):
         return py_int_from_host(py_bool_to_host_int(x) // py_sint_to_host(y))
     else:
         raise ZeroDivisionError('integer division by zero')
@@ -383,14 +383,14 @@ def py_floordiv_strX_bintY(x: str, y: bint):
 
 @define_behavior
 def py_floordiv_sintX_floatY(x: sint, y: float):
-    if y != 0.0:
+    if py_bool_from_host_bool(py_float_to_host(y) != py_float_to_host(0.0)):
         return py_float_from_host(py_sint_to_host(x) // py_float_to_host(y))
     else:
         raise ZeroDivisionError('float division by zero')
 
 @define_behavior
 def py_floordiv_sintX_boolY(x: sint, y: bool):
-    if y != 0:
+    if y:
         return py_int_from_host(py_sint_to_host(x) // py_bool_to_host_int(y))
     else:
         raise ZeroDivisionError('integer division by zero')
@@ -401,7 +401,7 @@ def py_floordiv_sintX_strY(x: sint, y: str):
 
 @define_behavior
 def py_floordiv_sintX_sintY(x: sint, y: sint):
-    if y != 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) != py_sint_to_host(0)):
         return py_int_from_host(py_sint_to_host(x) // py_sint_to_host(y))
     else:
         raise ZeroDivisionError('integer division by zero')
@@ -412,14 +412,14 @@ def py_floordiv_sintX_bintY(x: sint, y: bint):
 
 @define_behavior
 def py_floordiv_bintX_floatY(x: bint, y: float):
-    if y != 0.0:
+    if py_bool_from_host_bool(py_float_to_host(y) != py_float_to_host(0.0)):
         return py_float_from_host(py_bint_to_host(x) // py_float_to_host(y))
     else:
         raise ZeroDivisionError('float division by zero')
 
 @define_behavior
 def py_floordiv_bintX_boolY(x: bint, y: bool):
-    if y != 0:
+    if y:
         return py_int_from_host(py_bint_to_host(x) // py_bool_to_host_int(y))
     else:
         raise ZeroDivisionError('integer division by zero')
@@ -430,7 +430,7 @@ def py_floordiv_bintX_strY(x: bint, y: str):
 
 @define_behavior
 def py_floordiv_bintX_sintY(x: bint, y: sint):
-    if y != 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) != py_sint_to_host(0)):
         return py_int_from_host(py_bint_to_host(x) // py_sint_to_host(y))
     else:
         raise ZeroDivisionError('integer division by zero')
@@ -477,14 +477,14 @@ def py_lshift_boolX_strY(x: bool, y: str):
 
 @define_behavior
 def py_lshift_boolX_sintY(x: bool, y: sint):
-    if y >= 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) >= py_sint_to_host(0)):
         return py_int_from_host(py_bool_to_host_int(x) << py_sint_to_host(y))
     else:
         raise ValueError('negative shift count')
 
 @define_behavior
 def py_lshift_boolX_bintY(x: bool, y: bint):
-    if y >= 0:
+    if py_bool_from_host_bool(py_bint_to_host(y) >= py_sint_to_host(0)):
         return py_int_from_host(py_bool_to_host_int(x) << py_bint_to_host(y))
     else:
         raise ValueError('negative shift count')
@@ -526,14 +526,14 @@ def py_lshift_sintX_strY(x: sint, y: str):
 
 @define_behavior
 def py_lshift_sintX_sintY(x: sint, y: sint):
-    if y >= 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) >= py_sint_to_host(0)):
         return py_int_from_host(py_sint_to_host(x) << py_sint_to_host(y))
     else:
         raise ValueError('negative shift count')
 
 @define_behavior
 def py_lshift_sintX_bintY(x: sint, y: bint):
-    if y >= 0:
+    if py_bool_from_host_bool(py_bint_to_host(y) >= py_sint_to_host(0)):
         return py_int_from_host(py_sint_to_host(x) << py_bint_to_host(y))
     else:
         raise ValueError('negative shift count')
@@ -555,14 +555,14 @@ def py_lshift_bintX_strY(x: bint, y: str):
 
 @define_behavior
 def py_lshift_bintX_sintY(x: bint, y: sint):
-    if y >= 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) >= py_sint_to_host(0)):
         return py_int_from_host(py_bint_to_host(x) << py_sint_to_host(y))
     else:
         raise ValueError('negative shift count')
 
 @define_behavior
 def py_lshift_bintX_bintY(x: bint, y: bint):
-    if y >= 0:
+    if py_bool_from_host_bool(py_bint_to_host(y) >= py_sint_to_host(0)):
         return py_int_from_host(py_bint_to_host(x) << py_bint_to_host(y))
     else:
         raise ValueError('negative shift count')
@@ -669,14 +669,14 @@ def py_matmul_bintX_bintY(x: bint, y: bint):
 
 @define_behavior
 def py_mod_floatX_floatY(x: float, y: float):
-    if y != 0.0:
+    if py_bool_from_host_bool(py_float_to_host(y) != py_float_to_host(0.0)):
         return py_float_from_host(py_float_to_host(x) % py_float_to_host(y))
     else:
         raise ZeroDivisionError('float modulo by zero')
 
 @define_behavior
 def py_mod_floatX_boolY(x: float, y: bool):
-    if y != 0:
+    if y:
         return py_float_from_host(py_float_to_host(x) % py_bool_to_host_int(y))
     else:
         raise ZeroDivisionError('float modulo by zero')
@@ -687,7 +687,7 @@ def py_mod_floatX_strY(x: float, y: str):
 
 @define_behavior
 def py_mod_floatX_sintY(x: float, y: sint):
-    if y != 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) != py_sint_to_host(0)):
         return py_float_from_host(py_float_to_host(x) % py_sint_to_host(y))
     else:
         raise ZeroDivisionError('float modulo by zero')
@@ -698,14 +698,14 @@ def py_mod_floatX_bintY(x: float, y: bint):
 
 @define_behavior
 def py_mod_boolX_floatY(x: bool, y: float):
-    if y != 0.0:
+    if py_bool_from_host_bool(py_float_to_host(y) != py_float_to_host(0.0)):
         return py_float_from_host(py_bool_to_host_int(x) % py_float_to_host(y))
     else:
         raise ZeroDivisionError('float modulo by zero')
 
 @define_behavior
 def py_mod_boolX_boolY(x: bool, y: bool):
-    if y != 0:
+    if y:
         return py_int_from_host(py_bool_to_host_int(x) % py_bool_to_host_int(y)
             )
     else:
@@ -717,7 +717,7 @@ def py_mod_boolX_strY(x: bool, y: str):
 
 @define_behavior
 def py_mod_boolX_sintY(x: bool, y: sint):
-    if y != 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) != py_sint_to_host(0)):
         return py_int_from_host(py_bool_to_host_int(x) % py_sint_to_host(y))
     else:
         raise ZeroDivisionError('modulo by zero')
@@ -748,14 +748,14 @@ def py_mod_strX_bintY(x: str, y: bint):
 
 @define_behavior
 def py_mod_sintX_floatY(x: sint, y: float):
-    if y != 0.0:
+    if py_bool_from_host_bool(py_float_to_host(y) != py_float_to_host(0.0)):
         return py_float_from_host(py_sint_to_host(x) % py_float_to_host(y))
     else:
         raise ZeroDivisionError('float modulo by zero')
 
 @define_behavior
 def py_mod_sintX_boolY(x: sint, y: bool):
-    if y != 0:
+    if y:
         return py_int_from_host(py_sint_to_host(x) % py_bool_to_host_int(y))
     else:
         raise ZeroDivisionError('modulo by zero')
@@ -766,7 +766,7 @@ def py_mod_sintX_strY(x: sint, y: str):
 
 @define_behavior
 def py_mod_sintX_sintY(x: sint, y: sint):
-    if y != 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) != py_sint_to_host(0)):
         return py_int_from_host(py_sint_to_host(x) % py_sint_to_host(y))
     else:
         raise ZeroDivisionError('modulo by zero')
@@ -777,14 +777,14 @@ def py_mod_sintX_bintY(x: sint, y: bint):
 
 @define_behavior
 def py_mod_bintX_floatY(x: bint, y: float):
-    if y != 0.0:
+    if py_bool_from_host_bool(py_float_to_host(y) != py_float_to_host(0.0)):
         return py_float_from_host(py_bint_to_host(x) % py_float_to_host(y))
     else:
         raise ZeroDivisionError('float modulo by zero')
 
 @define_behavior
 def py_mod_bintX_boolY(x: bint, y: bool):
-    if y != 0:
+    if y:
         return py_int_from_host(py_bint_to_host(x) % py_bool_to_host_int(y))
     else:
         raise ZeroDivisionError('modulo by zero')
@@ -795,7 +795,7 @@ def py_mod_bintX_strY(x: bint, y: str):
 
 @define_behavior
 def py_mod_bintX_sintY(x: bint, y: sint):
-    if y != 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) != py_sint_to_host(0)):
         return py_int_from_host(py_bint_to_host(x) % py_sint_to_host(y))
     else:
         raise ZeroDivisionError('modulo by zero')
@@ -1042,14 +1042,14 @@ def py_rshift_boolX_strY(x: bool, y: str):
 
 @define_behavior
 def py_rshift_boolX_sintY(x: bool, y: sint):
-    if y >= 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) >= py_sint_to_host(0)):
         return py_int_from_host(py_bool_to_host_int(x) >> py_sint_to_host(y))
     else:
         raise ValueError('negative shift count')
 
 @define_behavior
 def py_rshift_boolX_bintY(x: bool, y: bint):
-    if y >= 0:
+    if py_bool_from_host_bool(py_bint_to_host(y) >= py_sint_to_host(0)):
         return py_int_from_host(py_bool_to_host_int(x) >> py_bint_to_host(y))
     else:
         raise ValueError('negative shift count')
@@ -1091,14 +1091,14 @@ def py_rshift_sintX_strY(x: sint, y: str):
 
 @define_behavior
 def py_rshift_sintX_sintY(x: sint, y: sint):
-    if y >= 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) >= py_sint_to_host(0)):
         return py_int_from_host(py_sint_to_host(x) >> py_sint_to_host(y))
     else:
         raise ValueError('negative shift count')
 
 @define_behavior
 def py_rshift_sintX_bintY(x: sint, y: bint):
-    if y >= 0:
+    if py_bool_from_host_bool(py_bint_to_host(y) >= py_sint_to_host(0)):
         return py_int_from_host(py_sint_to_host(x) >> py_bint_to_host(y))
     else:
         raise ValueError('negative shift count')
@@ -1120,14 +1120,14 @@ def py_rshift_bintX_strY(x: bint, y: str):
 
 @define_behavior
 def py_rshift_bintX_sintY(x: bint, y: sint):
-    if y >= 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) >= py_sint_to_host(0)):
         return py_int_from_host(py_bint_to_host(x) >> py_sint_to_host(y))
     else:
         raise ValueError('negative shift count')
 
 @define_behavior
 def py_rshift_bintX_bintY(x: bint, y: bint):
-    if y >= 0:
+    if py_bool_from_host_bool(py_bint_to_host(y) >= py_sint_to_host(0)):
         return py_int_from_host(py_bint_to_host(x) >> py_bint_to_host(y))
     else:
         raise ValueError('negative shift count')
@@ -1234,14 +1234,14 @@ def py_sub_bintX_bintY(x: bint, y: bint):
 
 @define_behavior
 def py_truediv_floatX_floatY(x: float, y: float):
-    if y != 0.0:
+    if py_bool_from_host_bool(py_float_to_host(y) != py_float_to_host(0.0)):
         return py_float_from_host(py_float_to_host(x) / py_float_to_host(y))
     else:
         raise ZeroDivisionError('float division by zero')
 
 @define_behavior
 def py_truediv_floatX_boolY(x: float, y: bool):
-    if y != 0:
+    if y:
         return py_float_from_host(py_float_to_host(x) / py_bool_to_host_int(y))
     else:
         raise ZeroDivisionError('float division by zero')
@@ -1252,7 +1252,7 @@ def py_truediv_floatX_strY(x: float, y: str):
 
 @define_behavior
 def py_truediv_floatX_sintY(x: float, y: sint):
-    if y != 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) != py_sint_to_host(0)):
         return py_float_from_host(py_float_to_host(x) / py_sint_to_host(y))
     else:
         raise ZeroDivisionError('float division by zero')
@@ -1263,14 +1263,14 @@ def py_truediv_floatX_bintY(x: float, y: bint):
 
 @define_behavior
 def py_truediv_boolX_floatY(x: bool, y: float):
-    if y != 0.0:
+    if py_bool_from_host_bool(py_float_to_host(y) != py_float_to_host(0.0)):
         return py_float_from_host(py_bool_to_host_int(x) / py_float_to_host(y))
     else:
         raise ZeroDivisionError('float division by zero')
 
 @define_behavior
 def py_truediv_boolX_boolY(x: bool, y: bool):
-    if y != 0:
+    if y:
         return py_float_from_host(py_bool_to_host_int(x) /
             py_bool_to_host_int(y))
     else:
@@ -1282,7 +1282,7 @@ def py_truediv_boolX_strY(x: bool, y: str):
 
 @define_behavior
 def py_truediv_boolX_sintY(x: bool, y: sint):
-    if y != 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) != py_sint_to_host(0)):
         return py_float_from_host(py_bool_to_host_int(x) / py_sint_to_host(y))
     else:
         raise ZeroDivisionError('division by zero')
@@ -1313,14 +1313,14 @@ def py_truediv_strX_bintY(x: str, y: bint):
 
 @define_behavior
 def py_truediv_sintX_floatY(x: sint, y: float):
-    if y != 0.0:
+    if py_bool_from_host_bool(py_float_to_host(y) != py_float_to_host(0.0)):
         return py_float_from_host(py_sint_to_host(x) / py_float_to_host(y))
     else:
         raise ZeroDivisionError('float division by zero')
 
 @define_behavior
 def py_truediv_sintX_boolY(x: sint, y: bool):
-    if y != 0:
+    if y:
         return py_float_from_host(py_sint_to_host(x) / py_bool_to_host_int(y))
     else:
         raise ZeroDivisionError('division by zero')
@@ -1331,7 +1331,7 @@ def py_truediv_sintX_strY(x: sint, y: str):
 
 @define_behavior
 def py_truediv_sintX_sintY(x: sint, y: sint):
-    if y != 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) != py_sint_to_host(0)):
         return py_float_from_host(py_sint_to_host(x) / py_sint_to_host(y))
     else:
         raise ZeroDivisionError('division by zero')
@@ -1342,14 +1342,14 @@ def py_truediv_sintX_bintY(x: sint, y: bint):
 
 @define_behavior
 def py_truediv_bintX_floatY(x: bint, y: float):
-    if y != 0.0:
+    if py_bool_from_host_bool(py_float_to_host(y) != py_float_to_host(0.0)):
         return py_float_from_host(py_bint_to_host(x) / py_float_to_host(y))
     else:
         raise ZeroDivisionError('float division by zero')
 
 @define_behavior
 def py_truediv_bintX_boolY(x: bint, y: bool):
-    if y != 0:
+    if y:
         return py_float_from_host(py_bint_to_host(x) / py_bool_to_host_int(y))
     else:
         raise ZeroDivisionError('division by zero')
@@ -1360,7 +1360,7 @@ def py_truediv_bintX_strY(x: bint, y: str):
 
 @define_behavior
 def py_truediv_bintX_sintY(x: bint, y: sint):
-    if y != 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) != py_sint_to_host(0)):
         return py_float_from_host(py_bint_to_host(x) / py_sint_to_host(y))
     else:
         raise ZeroDivisionError('division by zero')
@@ -1771,14 +1771,14 @@ def py_ibitor_bintX_bintY(x: bint, y: bint):
 
 @define_behavior
 def py_ifloordiv_floatX_floatY(x: float, y: float):
-    if y != 0.0:
+    if py_bool_from_host_bool(py_float_to_host(y) != py_float_to_host(0.0)):
         return py_float_from_host(py_float_to_host(x) // py_float_to_host(y))
     else:
         raise ZeroDivisionError('float division by zero')
 
 @define_behavior
 def py_ifloordiv_floatX_boolY(x: float, y: bool):
-    if y != 0:
+    if y:
         return py_float_from_host(py_float_to_host(x) // py_bool_to_host_int(y)
             )
     else:
@@ -1790,7 +1790,7 @@ def py_ifloordiv_floatX_strY(x: float, y: str):
 
 @define_behavior
 def py_ifloordiv_floatX_sintY(x: float, y: sint):
-    if y != 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) != py_sint_to_host(0)):
         return py_float_from_host(py_float_to_host(x) // py_sint_to_host(y))
     else:
         raise ZeroDivisionError('float division by zero')
@@ -1801,7 +1801,7 @@ def py_ifloordiv_floatX_bintY(x: float, y: bint):
 
 @define_behavior
 def py_ifloordiv_boolX_floatY(x: bool, y: float):
-    if y != 0.0:
+    if py_bool_from_host_bool(py_float_to_host(y) != py_float_to_host(0.0)):
         return py_float_from_host(py_bool_to_host_int(x) // py_float_to_host(y)
             )
     else:
@@ -1809,7 +1809,7 @@ def py_ifloordiv_boolX_floatY(x: bool, y: float):
 
 @define_behavior
 def py_ifloordiv_boolX_boolY(x: bool, y: bool):
-    if y != 0:
+    if y:
         return py_int_from_host(py_bool_to_host_int(x) //
             py_bool_to_host_int(y))
     else:
@@ -1821,7 +1821,7 @@ def py_ifloordiv_boolX_strY(x: bool, y: str):
 
 @define_behavior
 def py_ifloordiv_boolX_sintY(x: bool, y: sint):
-    if y != 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) != py_sint_to_host(0)):
         return py_int_from_host(py_bool_to_host_int(x) // py_sint_to_host(y))
     else:
         raise ZeroDivisionError('integer division by zero')
@@ -1852,14 +1852,14 @@ def py_ifloordiv_strX_bintY(x: str, y: bint):
 
 @define_behavior
 def py_ifloordiv_sintX_floatY(x: sint, y: float):
-    if y != 0.0:
+    if py_bool_from_host_bool(py_float_to_host(y) != py_float_to_host(0.0)):
         return py_float_from_host(py_sint_to_host(x) // py_float_to_host(y))
     else:
         raise ZeroDivisionError('float division by zero')
 
 @define_behavior
 def py_ifloordiv_sintX_boolY(x: sint, y: bool):
-    if y != 0:
+    if y:
         return py_int_from_host(py_sint_to_host(x) // py_bool_to_host_int(y))
     else:
         raise ZeroDivisionError('integer division by zero')
@@ -1870,7 +1870,7 @@ def py_ifloordiv_sintX_strY(x: sint, y: str):
 
 @define_behavior
 def py_ifloordiv_sintX_sintY(x: sint, y: sint):
-    if y != 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) != py_sint_to_host(0)):
         return py_int_from_host(py_sint_to_host(x) // py_sint_to_host(y))
     else:
         raise ZeroDivisionError('integer division by zero')
@@ -1881,14 +1881,14 @@ def py_ifloordiv_sintX_bintY(x: sint, y: bint):
 
 @define_behavior
 def py_ifloordiv_bintX_floatY(x: bint, y: float):
-    if y != 0.0:
+    if py_bool_from_host_bool(py_float_to_host(y) != py_float_to_host(0.0)):
         return py_float_from_host(py_bint_to_host(x) // py_float_to_host(y))
     else:
         raise ZeroDivisionError('float division by zero')
 
 @define_behavior
 def py_ifloordiv_bintX_boolY(x: bint, y: bool):
-    if y != 0:
+    if y:
         return py_int_from_host(py_bint_to_host(x) // py_bool_to_host_int(y))
     else:
         raise ZeroDivisionError('integer division by zero')
@@ -1899,7 +1899,7 @@ def py_ifloordiv_bintX_strY(x: bint, y: str):
 
 @define_behavior
 def py_ifloordiv_bintX_sintY(x: bint, y: sint):
-    if y != 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) != py_sint_to_host(0)):
         return py_int_from_host(py_bint_to_host(x) // py_sint_to_host(y))
     else:
         raise ZeroDivisionError('integer division by zero')
@@ -1946,14 +1946,14 @@ def py_ilshift_boolX_strY(x: bool, y: str):
 
 @define_behavior
 def py_ilshift_boolX_sintY(x: bool, y: sint):
-    if y >= 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) >= py_sint_to_host(0)):
         return py_int_from_host(py_bool_to_host_int(x) << py_sint_to_host(y))
     else:
         raise ValueError('negative shift count')
 
 @define_behavior
 def py_ilshift_boolX_bintY(x: bool, y: bint):
-    if y >= 0:
+    if py_bool_from_host_bool(py_bint_to_host(y) >= py_sint_to_host(0)):
         return py_int_from_host(py_bool_to_host_int(x) << py_bint_to_host(y))
     else:
         raise ValueError('negative shift count')
@@ -1995,14 +1995,14 @@ def py_ilshift_sintX_strY(x: sint, y: str):
 
 @define_behavior
 def py_ilshift_sintX_sintY(x: sint, y: sint):
-    if y >= 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) >= py_sint_to_host(0)):
         return py_int_from_host(py_sint_to_host(x) << py_sint_to_host(y))
     else:
         raise ValueError('negative shift count')
 
 @define_behavior
 def py_ilshift_sintX_bintY(x: sint, y: bint):
-    if y >= 0:
+    if py_bool_from_host_bool(py_bint_to_host(y) >= py_sint_to_host(0)):
         return py_int_from_host(py_sint_to_host(x) << py_bint_to_host(y))
     else:
         raise ValueError('negative shift count')
@@ -2024,14 +2024,14 @@ def py_ilshift_bintX_strY(x: bint, y: str):
 
 @define_behavior
 def py_ilshift_bintX_sintY(x: bint, y: sint):
-    if y >= 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) >= py_sint_to_host(0)):
         return py_int_from_host(py_bint_to_host(x) << py_sint_to_host(y))
     else:
         raise ValueError('negative shift count')
 
 @define_behavior
 def py_ilshift_bintX_bintY(x: bint, y: bint):
-    if y >= 0:
+    if py_bool_from_host_bool(py_bint_to_host(y) >= py_sint_to_host(0)):
         return py_int_from_host(py_bint_to_host(x) << py_bint_to_host(y))
     else:
         raise ValueError('negative shift count')
@@ -2138,14 +2138,14 @@ def py_imatmul_bintX_bintY(x: bint, y: bint):
 
 @define_behavior
 def py_imod_floatX_floatY(x: float, y: float):
-    if y != 0.0:
+    if py_bool_from_host_bool(py_float_to_host(y) != py_float_to_host(0.0)):
         return py_float_from_host(py_float_to_host(x) % py_float_to_host(y))
     else:
         raise ZeroDivisionError('float modulo by zero')
 
 @define_behavior
 def py_imod_floatX_boolY(x: float, y: bool):
-    if y != 0:
+    if y:
         return py_float_from_host(py_float_to_host(x) % py_bool_to_host_int(y))
     else:
         raise ZeroDivisionError('float modulo by zero')
@@ -2156,7 +2156,7 @@ def py_imod_floatX_strY(x: float, y: str):
 
 @define_behavior
 def py_imod_floatX_sintY(x: float, y: sint):
-    if y != 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) != py_sint_to_host(0)):
         return py_float_from_host(py_float_to_host(x) % py_sint_to_host(y))
     else:
         raise ZeroDivisionError('float modulo by zero')
@@ -2167,14 +2167,14 @@ def py_imod_floatX_bintY(x: float, y: bint):
 
 @define_behavior
 def py_imod_boolX_floatY(x: bool, y: float):
-    if y != 0.0:
+    if py_bool_from_host_bool(py_float_to_host(y) != py_float_to_host(0.0)):
         return py_float_from_host(py_bool_to_host_int(x) % py_float_to_host(y))
     else:
         raise ZeroDivisionError('float modulo by zero')
 
 @define_behavior
 def py_imod_boolX_boolY(x: bool, y: bool):
-    if y != 0:
+    if y:
         return py_int_from_host(py_bool_to_host_int(x) % py_bool_to_host_int(y)
             )
     else:
@@ -2186,7 +2186,7 @@ def py_imod_boolX_strY(x: bool, y: str):
 
 @define_behavior
 def py_imod_boolX_sintY(x: bool, y: sint):
-    if y != 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) != py_sint_to_host(0)):
         return py_int_from_host(py_bool_to_host_int(x) % py_sint_to_host(y))
     else:
         raise ZeroDivisionError('modulo by zero')
@@ -2217,14 +2217,14 @@ def py_imod_strX_bintY(x: str, y: bint):
 
 @define_behavior
 def py_imod_sintX_floatY(x: sint, y: float):
-    if y != 0.0:
+    if py_bool_from_host_bool(py_float_to_host(y) != py_float_to_host(0.0)):
         return py_float_from_host(py_sint_to_host(x) % py_float_to_host(y))
     else:
         raise ZeroDivisionError('float modulo by zero')
 
 @define_behavior
 def py_imod_sintX_boolY(x: sint, y: bool):
-    if y != 0:
+    if y:
         return py_int_from_host(py_sint_to_host(x) % py_bool_to_host_int(y))
     else:
         raise ZeroDivisionError('modulo by zero')
@@ -2235,7 +2235,7 @@ def py_imod_sintX_strY(x: sint, y: str):
 
 @define_behavior
 def py_imod_sintX_sintY(x: sint, y: sint):
-    if y != 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) != py_sint_to_host(0)):
         return py_int_from_host(py_sint_to_host(x) % py_sint_to_host(y))
     else:
         raise ZeroDivisionError('modulo by zero')
@@ -2246,14 +2246,14 @@ def py_imod_sintX_bintY(x: sint, y: bint):
 
 @define_behavior
 def py_imod_bintX_floatY(x: bint, y: float):
-    if y != 0.0:
+    if py_bool_from_host_bool(py_float_to_host(y) != py_float_to_host(0.0)):
         return py_float_from_host(py_bint_to_host(x) % py_float_to_host(y))
     else:
         raise ZeroDivisionError('float modulo by zero')
 
 @define_behavior
 def py_imod_bintX_boolY(x: bint, y: bool):
-    if y != 0:
+    if y:
         return py_int_from_host(py_bint_to_host(x) % py_bool_to_host_int(y))
     else:
         raise ZeroDivisionError('modulo by zero')
@@ -2264,7 +2264,7 @@ def py_imod_bintX_strY(x: bint, y: str):
 
 @define_behavior
 def py_imod_bintX_sintY(x: bint, y: sint):
-    if y != 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) != py_sint_to_host(0)):
         return py_int_from_host(py_bint_to_host(x) % py_sint_to_host(y))
     else:
         raise ZeroDivisionError('modulo by zero')
@@ -2511,14 +2511,14 @@ def py_irshift_boolX_strY(x: bool, y: str):
 
 @define_behavior
 def py_irshift_boolX_sintY(x: bool, y: sint):
-    if y >= 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) >= py_sint_to_host(0)):
         return py_int_from_host(py_bool_to_host_int(x) >> py_sint_to_host(y))
     else:
         raise ValueError('negative shift count')
 
 @define_behavior
 def py_irshift_boolX_bintY(x: bool, y: bint):
-    if y >= 0:
+    if py_bool_from_host_bool(py_bint_to_host(y) >= py_sint_to_host(0)):
         return py_int_from_host(py_bool_to_host_int(x) >> py_bint_to_host(y))
     else:
         raise ValueError('negative shift count')
@@ -2560,14 +2560,14 @@ def py_irshift_sintX_strY(x: sint, y: str):
 
 @define_behavior
 def py_irshift_sintX_sintY(x: sint, y: sint):
-    if y >= 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) >= py_sint_to_host(0)):
         return py_int_from_host(py_sint_to_host(x) >> py_sint_to_host(y))
     else:
         raise ValueError('negative shift count')
 
 @define_behavior
 def py_irshift_sintX_bintY(x: sint, y: bint):
-    if y >= 0:
+    if py_bool_from_host_bool(py_bint_to_host(y) >= py_sint_to_host(0)):
         return py_int_from_host(py_sint_to_host(x) >> py_bint_to_host(y))
     else:
         raise ValueError('negative shift count')
@@ -2589,14 +2589,14 @@ def py_irshift_bintX_strY(x: bint, y: str):
 
 @define_behavior
 def py_irshift_bintX_sintY(x: bint, y: sint):
-    if y >= 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) >= py_sint_to_host(0)):
         return py_int_from_host(py_bint_to_host(x) >> py_sint_to_host(y))
     else:
         raise ValueError('negative shift count')
 
 @define_behavior
 def py_irshift_bintX_bintY(x: bint, y: bint):
-    if y >= 0:
+    if py_bool_from_host_bool(py_bint_to_host(y) >= py_sint_to_host(0)):
         return py_int_from_host(py_bint_to_host(x) >> py_bint_to_host(y))
     else:
         raise ValueError('negative shift count')
@@ -2703,14 +2703,14 @@ def py_isub_bintX_bintY(x: bint, y: bint):
 
 @define_behavior
 def py_itruediv_floatX_floatY(x: float, y: float):
-    if y != 0.0:
+    if py_bool_from_host_bool(py_float_to_host(y) != py_float_to_host(0.0)):
         return py_float_from_host(py_float_to_host(x) / py_float_to_host(y))
     else:
         raise ZeroDivisionError('float division by zero')
 
 @define_behavior
 def py_itruediv_floatX_boolY(x: float, y: bool):
-    if y != 0:
+    if y:
         return py_float_from_host(py_float_to_host(x) / py_bool_to_host_int(y))
     else:
         raise ZeroDivisionError('float division by zero')
@@ -2721,7 +2721,7 @@ def py_itruediv_floatX_strY(x: float, y: str):
 
 @define_behavior
 def py_itruediv_floatX_sintY(x: float, y: sint):
-    if y != 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) != py_sint_to_host(0)):
         return py_float_from_host(py_float_to_host(x) / py_sint_to_host(y))
     else:
         raise ZeroDivisionError('float division by zero')
@@ -2732,14 +2732,14 @@ def py_itruediv_floatX_bintY(x: float, y: bint):
 
 @define_behavior
 def py_itruediv_boolX_floatY(x: bool, y: float):
-    if y != 0.0:
+    if py_bool_from_host_bool(py_float_to_host(y) != py_float_to_host(0.0)):
         return py_float_from_host(py_bool_to_host_int(x) / py_float_to_host(y))
     else:
         raise ZeroDivisionError('float division by zero')
 
 @define_behavior
 def py_itruediv_boolX_boolY(x: bool, y: bool):
-    if y != 0:
+    if y:
         return py_float_from_host(py_bool_to_host_int(x) /
             py_bool_to_host_int(y))
     else:
@@ -2751,7 +2751,7 @@ def py_itruediv_boolX_strY(x: bool, y: str):
 
 @define_behavior
 def py_itruediv_boolX_sintY(x: bool, y: sint):
-    if y != 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) != py_sint_to_host(0)):
         return py_float_from_host(py_bool_to_host_int(x) / py_sint_to_host(y))
     else:
         raise ZeroDivisionError('division by zero')
@@ -2782,14 +2782,14 @@ def py_itruediv_strX_bintY(x: str, y: bint):
 
 @define_behavior
 def py_itruediv_sintX_floatY(x: sint, y: float):
-    if y != 0.0:
+    if py_bool_from_host_bool(py_float_to_host(y) != py_float_to_host(0.0)):
         return py_float_from_host(py_sint_to_host(x) / py_float_to_host(y))
     else:
         raise ZeroDivisionError('float division by zero')
 
 @define_behavior
 def py_itruediv_sintX_boolY(x: sint, y: bool):
-    if y != 0:
+    if y:
         return py_float_from_host(py_sint_to_host(x) / py_bool_to_host_int(y))
     else:
         raise ZeroDivisionError('division by zero')
@@ -2800,7 +2800,7 @@ def py_itruediv_sintX_strY(x: sint, y: str):
 
 @define_behavior
 def py_itruediv_sintX_sintY(x: sint, y: sint):
-    if y != 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) != py_sint_to_host(0)):
         return py_float_from_host(py_sint_to_host(x) / py_sint_to_host(y))
     else:
         raise ZeroDivisionError('division by zero')
@@ -2811,14 +2811,14 @@ def py_itruediv_sintX_bintY(x: sint, y: bint):
 
 @define_behavior
 def py_itruediv_bintX_floatY(x: bint, y: float):
-    if y != 0.0:
+    if py_bool_from_host_bool(py_float_to_host(y) != py_float_to_host(0.0)):
         return py_float_from_host(py_bint_to_host(x) / py_float_to_host(y))
     else:
         raise ZeroDivisionError('float division by zero')
 
 @define_behavior
 def py_itruediv_bintX_boolY(x: bint, y: bool):
-    if y != 0:
+    if y:
         return py_float_from_host(py_bint_to_host(x) / py_bool_to_host_int(y))
     else:
         raise ZeroDivisionError('division by zero')
@@ -2829,7 +2829,7 @@ def py_itruediv_bintX_strY(x: bint, y: str):
 
 @define_behavior
 def py_itruediv_bintX_sintY(x: bint, y: sint):
-    if y != 0:
+    if py_bool_from_host_bool(py_sint_to_host(y) != py_sint_to_host(0)):
         return py_float_from_host(py_bint_to_host(x) / py_sint_to_host(y))
     else:
         raise ZeroDivisionError('division by zero')
@@ -4166,7 +4166,7 @@ def py_pos_floatX(x: float):
 
 @define_behavior
 def py_pos_boolX(x: bool):
-    return x
+    return py_int_from_host(py_bool_to_host_int(x))
 
 @define_behavior
 def py_pos_strX(x: str):
@@ -4174,11 +4174,11 @@ def py_pos_strX(x: str):
 
 @define_behavior
 def py_pos_sintX(x: sint):
-    return x
+    return py_int_from_host(py_sint_to_host(x))
 
 @define_behavior
 def py_pos_bintX(x: bint):
-    return x
+    return py_int_from_host(py_bint_to_host(x))
 
 @define_behavior
 def py_neg_floatX(x: float):
@@ -4219,4 +4219,46 @@ def py_invert_sintX(x: sint):
 @define_behavior
 def py_invert_bintX(x: bint):
     return py_int_from_host(~py_bint_to_host(x))
+
+@define_behavior
+def py_truth_floatX(obj: float):
+    return py_bool_from_host_bool(py_float_to_host(obj) != py_float_to_host
+        (0.0))
+
+@define_behavior
+def py_truth_boolX(obj: bool):
+    return obj
+
+@define_behavior
+def py_truth_strX(obj: str):
+    return py_bool_from_host_bool(py_str_len_to_host(obj) != py_sint_to_host(0)
+        )
+
+@define_behavior
+def py_truth_sintX(obj: sint):
+    return py_bool_from_host_bool(py_sint_to_host(obj) != py_sint_to_host(0))
+
+@define_behavior
+def py_truth_bintX(obj: bint):
+    return True
+
+@define_behavior
+def py_test_floatX(obj: float):
+    return py_float_to_host(obj) != py_float_to_host(0.0)
+
+@define_behavior
+def py_test_boolX(obj: bool):
+    return py_bool_to_host_bool(obj)
+
+@define_behavior
+def py_test_strX(obj: str):
+    return py_str_len_to_host(obj) != py_sint_to_host(0)
+
+@define_behavior
+def py_test_sintX(obj: sint):
+    return py_sint_to_host(obj) != py_sint_to_host(0)
+
+@define_behavior
+def py_test_bintX(obj: bint):
+    return py_bool_to_host_bool(True)
 

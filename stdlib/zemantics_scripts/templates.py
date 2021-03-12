@@ -31,7 +31,8 @@ def maybe_len(obj):
     if __len__ is absent:
         return absent
     else:
-        return index(__len__(obj))
+        len_result = __len__(obj)
+        return index(len_result)
     # len:end-body
 
 @define_semantics
@@ -519,7 +520,18 @@ class int:
                 raise NotImplementedError
         else:
             raise NotImplementedError
-
+            
+    def __bool__(self):
+        if isinstance(self, int):
+            return self != 0
+        else:
+            raise TypeError("descriptor '__bool__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+            
+    def __index__(self):
+        if isinstance(self, int):
+            return py_int_from_host(py_int_to_host(self))
+        else:
+            raise TypeError("descriptor '__index__' requires a 'int' object but received a '" + type(self).__name__ + "'")
 {methods}"""
 
 int_method_info = {
@@ -554,7 +566,7 @@ int_comparison_method_info = {
 }
 
 int_unary_method_info = {
-    'pos': {"method_name": "pos", "expr": "self"},
+    'pos': {"method_name": "pos", "expr": "py_int_from_host(py_int_to_host(self))"},
     'neg': {"method_name": "neg", "expr": "py_int_from_host(-py_int_to_host(self))"},
     'invert': {"method_name": "invert", "expr": "py_int_from_host(~py_int_to_host(self))"},
 }
@@ -763,7 +775,12 @@ class float:
                 raise NotImplementedError
         else:
             raise NotImplementedError
-
+            
+    def __bool__(self):
+        if isinstance(self, float):
+            return self != 0.0
+        else:
+            raise TypeError("descriptor '__bool__' requires a 'float' object but received a '" + type(self).__name__ + "'")
 {methods}"""
 
 float_method_info = {
@@ -824,6 +841,12 @@ str_comparison_method_info = {
 class_str_template = \
 """@builtin_class
 class str:
+    def __len__(self):
+        if isinstance(self, str):
+            return py_int_from_host(py_str_len_to_host(self))
+        else:
+            raise TypeError("descriptor '__len__' requires a 'str' object but received a '" + type(self).__name__ + "'")
+
     def __add__(self, other):
         if isinstance(self, str):
             if isinstance(other, str):
@@ -860,6 +883,6 @@ class str:
 
 
 builtins_template = """\
-from __compiler_intrinsics__ import absent, builtin_class, py_int_from_host, py_int_to_host, py_float_from_host, py_float_to_host, py_bool_from_host_bool, py_bool_to_host_bool, py_str_to_host, py_str_from_host
+from __compiler_intrinsics__ import absent, builtin_class, py_int_from_host, py_int_to_host, py_float_from_host, py_float_to_host, py_bool_from_host_bool, py_bool_to_host_bool, py_str_to_host, py_str_from_host, py_str_len_to_host
 
 {definitions}"""

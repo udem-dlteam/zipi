@@ -2418,7 +2418,7 @@
               part2-or-rep))))
 
 (define (py-str-concatenation-to-scheme str)
-  (let* ((len (PyObjectStr-len str))
+  (let* ((len (py-str-len-to-scheme str))
          (result (make-string len)))
 
     (define (store str len pos)
@@ -2433,9 +2433,9 @@
                      (begin
                        (string-set! result j (string-ref part1-or-string i))
                        (loop (fx+ i 1) (fx+ j 1)))))))
-            (let* ((len1 (PyObjectStr-len part1-or-string))
+            (let* ((len1 (py-str-len-to-scheme part1-or-string))
                    (part2-or-rep (PyObjectStr-part2-or-rep str))
-                   (len2 (PyObjectStr-len part2-or-rep)))
+                   (len2 (py-str-len-to-scheme part2-or-rep)))
               (if (fx< len1 len2) ;; guarantee O(log n) call stack depth
                   (begin
                     (store part1-or-string len1 pos)
@@ -2463,8 +2463,8 @@
   (define optimize-small? #t) ;; optimize concatenation of small strings?
   (define small 8) ;; maximal length of a "small" string
 
-  (let* ((len1 (PyObjectStr-len str1))
-         (len2 (PyObjectStr-len str2))
+  (let* ((len1 (py-str-len-to-scheme str1))
+         (len2 (py-str-len-to-scheme str2))
          (len (fx+ len1 len2)))
 
     (cond ((and optimize-small?
@@ -2479,7 +2479,7 @@
                 (not (string? (PyObjectStr-part1-or-string str1)))
                 (string? (PyObjectStr-part1-or-string
                           (PyObjectStr-part2-or-rep str1)))
-                (fx<= (fx+ (PyObjectStr-len
+                (fx<= (fx+ (py-str-len-to-scheme
                             (PyObjectStr-part2-or-rep str1))
                            len2)
                       small))
@@ -2487,7 +2487,7 @@
             len
             (PyObjectStr-part1-or-string str1)
             (py-str-from-string
-             (fx+ (PyObjectStr-len (PyObjectStr-part2-or-rep str1))
+             (fx+ (py-str-len-to-scheme (PyObjectStr-part2-or-rep str1))
                   len2)
              (string-append (PyObjectStr-part1-or-string
                              (PyObjectStr-part2-or-rep str1))
@@ -2499,14 +2499,14 @@
                 (string? (PyObjectStr-part1-or-string
                           (PyObjectStr-part1-or-string str2)))
                 (fx<= (fx+ len1
-                           (PyObjectStr-len
+                           (py-str-len-to-scheme
                             (PyObjectStr-part1-or-string str2)))
                       small))
            (py-str-from-concat
             len
             (py-str-from-string
              (fx+ len1
-                  (PyObjectStr-len (PyObjectStr-part1-or-string str2)))
+                  (py-str-len-to-scheme (PyObjectStr-part1-or-string str2)))
              (string-append (PyObjectStr-part1-or-string str1)
                             (PyObjectStr-part1-or-string
                              (PyObjectStr-part1-or-string str2))))
@@ -2607,7 +2607,7 @@
 
 (define (str-len self)
   (if (py-subtype-of-str? self)
-      (py-int-from-scheme (PyObjectStr-len self))
+      (py-int-from-scheme (py-str-len-to-scheme self))
       (py-throw-required-type "__len__" "str" self)))
 
 (define str.__len__
@@ -6341,8 +6341,7 @@
   (if expansion-flag
       (cond-expand
         (gambit
-         (|##build-module-subprocess-default-options-set!|
-          (if value '((expansion)) '())))
+         (|##build-module-subprocess-default-options-set!| '((expansion))))
         (bigloo
          #f)))
 

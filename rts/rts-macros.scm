@@ -292,14 +292,25 @@
   (define host (cond-expand (gambit 'gambit) (bigloo 'bigloo)))
 
   (define (type operand)
-    (and (pair? operand)
-         (let ((x (assq (car operand)
-                         '((py-bool-to-scheme-int bool)
-                           (py-sint-to-scheme sint)
-                           (py-bint-to-scheme bint)
-                           (py-int-to-scheme  int)))))
-           (and x
-                (cadr x)))))
+    (cond
+      ((pair? operand)
+        (let ((x (assq (car operand)
+                        '((py-bool-to-scheme-int bool)
+                          (py-sint-to-scheme sint)
+                          (py-str-len-to-scheme sint)
+                          (py-bint-to-scheme bint)
+                          (py-int-to-scheme  int)
+                          (py-float-to-scheme float)
+                          (py-str-to-scheme  str)))))
+          (and x (cadr x))))
+      ((fixnum? operand)
+        'sint)
+      ((flonum? operand)
+        'float)
+      (((cond-expand (gambit |##bignum?|) (bigloo bignum?)) operand)
+        'bint)
+      (else
+        #f)))
 
   (define (bool? t) (eq? t 'bool))
   (define (bool-or-sint? t) (or (eq? t 'bool) (eq? t 'sint)))
@@ -454,15 +465,25 @@
  (define host (cond-expand (gambit 'gambit) (bigloo 'bigloo)))
 
  (define (type operand)
-   (and (pair? operand)
-        (let ((x (assq (car operand)
-                        '((py-bool-to-scheme-int  bool)
-                          (py-sint-to-scheme  sint)
-                          (py-bint-to-scheme  bint)
-                          (py-int-to-scheme   int)
-                          (py-float-to-scheme float)))))
-          (and x
-               (cadr x)))))
+   (cond
+     ((pair? operand)
+       (let ((x (assq (car operand)
+                       '((py-bool-to-scheme-int bool)
+                         (py-sint-to-scheme sint)
+                         (py-str-len-to-scheme sint)
+                         (py-bint-to-scheme bint)
+                         (py-int-to-scheme  int)
+                         (py-float-to-scheme float)
+                         (py-str-to-scheme  str)))))
+         (and x (cadr x))))
+     ((fixnum? operand)
+       'sint)
+     ((flonum? operand)
+       'float)
+     (((cond-expand (gambit |##bignum?|) (bigloo bignum?)) operand)
+       'bint)
+     (else
+       #f)))
 
  (define (fallback arg)
    `(py-if-specialized-float-representation
@@ -621,14 +642,25 @@
   (define host (cond-expand (gambit 'gambit) (bigloo 'bigloo)))
 
   (define (type operand)
-    (and (pair? operand)
-         (let ((x (assq (car operand)
-                         '((py-bool-to-scheme-int bool)
-                           (py-sint-to-scheme sint)
-                           (py-bint-to-scheme bint)
-                           (py-int-to-scheme  int)
-                           (py-str-to-scheme  str)))))
-           (and x (cadr x)))))
+    (cond
+      ((pair? operand)
+        (let ((x (assq (car operand)
+                        '((py-bool-to-scheme-int bool)
+                          (py-sint-to-scheme sint)
+                          (py-str-len-to-scheme sint)
+                          (py-bint-to-scheme bint)
+                          (py-int-to-scheme  int)
+                          (py-float-to-scheme float)
+                          (py-str-to-scheme  str)))))
+          (and x (cadr x))))
+      ((fixnum? operand)
+        'sint)
+      ((flonum? operand)
+        'float)
+      (((cond-expand (gambit |##bignum?|) (bigloo bignum?)) operand)
+        'bint)
+      (else
+        #f)))
 
   (define (bool? t) (eq? t 'bool))
   (define (bool-or-sint? t) (or (eq? t 'bool) (eq? t 'sint)))
@@ -672,20 +704,33 @@
              (substring-move! $string 0 len result i)
              (loop (+ i len)))))))
 
+(define-macro (py-str-len-to-scheme arg)
+  `(PyObjectStr-len ,arg))
+
 (define-macro (py-str-from-scheme arg)
   (define (fallback arg)
     `(py-str-from-scheme-fallback ,arg))
 
   (define (type operand)
-    (and (pair? operand)
-         (let ((x (assq (car operand)
-                         '((py-bool-to-scheme-int  bool)
-                           (py-sint-to-scheme  sint)
-                           (py-bint-to-scheme  bint)
-                           (py-int-to-scheme   int)
-                           (py-str-to-scheme str)))))
-           (and x
-                (cadr x)))))
+    (cond
+      ((pair? operand)
+        (let ((x (assq (car operand)
+                        '((py-bool-to-scheme-int bool)
+                          (py-sint-to-scheme sint)
+                          (py-str-len-to-scheme sint)
+                          (py-bint-to-scheme bint)
+                          (py-int-to-scheme  int)
+                          (py-float-to-scheme float)
+                          (py-str-to-scheme  str)))))
+          (and x (cadr x))))
+      ((fixnum? operand)
+        'sint)
+      ((flonum? operand)
+        'float)
+      (((cond-expand (gambit |##bignum?|) (bigloo bignum?)) operand)
+        'bint)
+      (else
+        #f)))
 
   (define number-type '(int sint bint bool))
 
@@ -1015,6 +1060,9 @@
   (define unary-ops-with-behaviors
     '(pos neg invert))
 
+  (define unary-truthiness-ops-with-behaviors
+    '(test truth))
+
   (define (test-op->cmp-op op)
     (case op
       ((test-eq) 'eq)
@@ -1055,10 +1103,24 @@
           "Y-fallback"))))
 
   (define (get-unary-behavior-name op type)
-    (if (or (eq? type 'default))
+    (if (eq? type 'default)
       ;; use the full semantics
       (string->symbol
           (string-append "py-" (symbol->string op) "-fallback:normal"))
+      ;; use a behavior
+      (string->symbol
+        (string-append
+          "py-"
+          (symbol->string op)
+          "-"
+          (symbol->string type)
+          "X-fallback"))))
+
+  (define (get-unary-truthiness-behavior-name op type)
+    (if (eq? type 'default)
+      ;; use the full semantics
+      (string->symbol
+          (string-append "py-" (symbol->string op) "-fallback"))
       ;; use a behavior
       (string->symbol
         (string-append
@@ -1085,6 +1147,14 @@
         '()
         (cons
           (get-unary-behavior-name op (caar types))
+          (loop (cdr types))))))
+
+  (define (make-unary-truthiness-behaviors-list op)
+    (let loop ((types types-with-specialized-behaviors))
+      (if (null? types)
+        '()
+        (cons
+          (get-unary-truthiness-behavior-name op (caar types))
           (loop (cdr types))))))
 
   (define (get-behavior-call-fallback-name op)
@@ -1128,7 +1198,8 @@
   (let ((tables-init-code
           (append
             (make-init-table-code binary-ops-with-behaviors make-binary-behaviors-list)
-            (make-init-table-code unary-ops-with-behaviors make-unary-behaviors-list)))
+            (make-init-table-code unary-ops-with-behaviors make-unary-behaviors-list)
+            (make-init-table-code unary-truthiness-ops-with-behaviors make-unary-truthiness-behaviors-list)))
         (behavior-call-fallbacks
           (append
             (let loop ((ops binary-ops-with-behaviors))
@@ -1145,7 +1216,7 @@
                       (cons
                         behavior-call-with-rhs-index-fallback
                         (loop (cdr ops))))))))
-            (let loop ((ops unary-ops-with-behaviors))
+            (let loop ((ops (append unary-ops-with-behaviors unary-truthiness-ops-with-behaviors)))
               (if (null? ops)
                 '()
                 (let* ((op (car ops))
@@ -1507,13 +1578,17 @@
 
   (if (pair? x)
       (let ((test-version (assq (car x) cmp-operator-test-version)))
-        (if test-version
-            `(,(cadr test-version) ,@(cdr x))
-            `(py-test-fallback ,x)))
-      `(py-test-fallback ,x)))
+        (cond
+          (test-version
+            `(,(cadr test-version) ,@(cdr x)))
+          ((eq? (car x) 'py-bool-from-scheme-bool)
+            (cadr x))
+          (else
+            `(py-specialized-unop-dispatch test ,x))))
+      `(py-specialized-unop-dispatch test ,x)))
 
 (define-macro (py-truth obj)
-  `(py-truth-fallback ,obj))
+  `(py-specialized-unop-dispatch truth ,obj))
 
 (define-macro (py-len obj)
   `(py-len-fallback ,obj))
