@@ -2090,7 +2090,15 @@
            ;; NOTE: __class__ should get a getset_descriptor on type
            (if (eq? (py-str-representative name) (& "__class__"))
                (py-obj-cls obj)
-               (py-throw py-builtin-AttributeError)))))))
+               (py-throw
+                 (py-call
+                   py-builtin-AttributeError
+                   (py-add*
+                     (&& "'")
+                     (py-getattribute (py-obj-cls obj) (& "__name__"))
+                     (&& "' object has no attribute '")
+                     name
+                     (&& "'"))))))))))
 
 (define object.__getattribute__
   (procedure->py-function
@@ -2122,7 +2130,15 @@
              (lambda (cls-attr owner)
                (object-get-bind-descriptor cls-attr obj owner))
              (lambda ()
-               (py-throw py-builtin-AttributeError)))))
+               (py-throw
+                 (py-call
+                   py-builtin-AttributeError
+                   (py-add*
+                     (&& "type object '")
+                     (py-getattribute obj (& "__name__"))
+                     (&& "' has no attribute '")
+                     name
+                     (&& "'"))))))))
       (py-throw-required-type "__getattribute__" "type" obj)))
 
 ;; The Python object type.__getattribute__
@@ -3215,7 +3231,15 @@
              (lambda (cls-attr owner)
                (object-get-bind-descriptor cls-attr self owner))
              (lambda ()
-               (py-throw py-builtin-AttributeError)))
+               (py-throw
+                 (py-call
+                   py-builtin-AttributeError
+                   (py-add*
+                     (&& "module '")
+                     (py-getattribute self (& "__name__"))
+                     (&& "' has no attribute '")
+                     name
+                     (&& "'"))))))
             val))
         (py-throw-exception-with-message
          py-builtin-TypeError

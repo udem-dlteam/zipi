@@ -1324,6 +1324,15 @@
     `(&& ,(string-append (cadr x) (cadr y)))
     `(py-specialized-binop-dispatch add ,x ,y)))
 
+(define-macro (py-add* . args)
+  (case (length args)
+    ((0 1)
+      (error "py-add*" "requires at least 2 argument and got" (length args)))
+    ((2)
+      `(py-add ,@args))
+    (else
+      `(py-add ,(car args) (py-add* ,@(cdr args))))))
+
 (define-macro (py-bitand x y)
   `(py-specialized-binop-dispatch bitand ,x ,y))
 
