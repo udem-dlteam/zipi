@@ -335,7 +335,19 @@
    (epairify this
      (if (eq? (PycExpr-type this) 'Ubool)
       (scheme this conf)
-	    `(py-test ,(scheme this conf)))))
+      (if (isa? this PycBoolOp)
+        ;; in a test we try to skip conversion of expression to Python bool
+        ;; and convert directly to scheme bool
+        (let ((op (PycBoolOp-op this))
+              (args (PycBoolOp-args this)))
+          (case op
+            ((or)
+              `(or ,@(map (lambda (a) (pyc-test a conf)) args)))
+            ((and)
+              `(and ,@(map (lambda (a) (pyc-test a conf)) args)))
+            (else (error "scheme::PycBoolOp" "unknown op" op))))
+       ;; TODO: there might be BoolOp nested in there, can we do better?
+	     `(py-test ,(scheme this conf))))))
 
 (define-walk-method (scheme this::PycWhile conf)
 
@@ -936,7 +948,7 @@
   (define (scheme-and args conf)
     (if (null? (cdr args))
       (scheme (car args) conf)
-      (let ((sym (my-gensym 'or-arg)))
+      (let ((sym (my-gensym 'and-arg)))
         `(let ((,sym ,(scheme (car args) conf)))
             (if (py-test ,sym)
               ,(scheme-and (cdr args) conf)
