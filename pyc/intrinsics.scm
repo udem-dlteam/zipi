@@ -151,6 +151,50 @@
           (new-PycPragma loc 'py-float-to-scheme)
           args)))))
 
+(define (make-alloc this)
+  (define (get-kwarg-value name pairs)
+    (cdr
+      (or
+        (assq name pairs)
+        (error "alloc()" "missing keyword" name))))
+
+  (define (make-alloc-range this args kwargs-pairs)
+    (if (not (null? args))
+      (error "alloc(range, ...)" "takes only one positional argument" "")
+      (let ((loc (PycNode-loc this))
+            (start (get-kwarg-value 'start kwargs-pairs))
+            (stop (get-kwarg-value 'stop kwargs-pairs))
+            (step (get-kwarg-value 'step kwargs-pairs)))
+        (new-PycCall
+          loc
+          (new-PycPragma loc 'make-PyObjectRange)
+          (list
+            (new-PycPragma loc 'py-range-hclass-of-instances)
+            (new-PycPragma loc '(quote #()))
+            (new-PycPragma loc 'py-builtin-range)
+            start
+            stop
+            step)))))
+
+  (let* ((loc (PycNode-loc this))
+        (args (PycCall-args this))
+        (kw-names (PycCall-keywords-names this))
+        (kw-values (PycCall-keywords-values this)))
+    (if (not (null? args))
+      (let ((alloc-kind
+              (cond
+                ((isa? (car args) PycRef)
+                  (PycVar-id (PycRef-decl (car args))))
+                ((isa? (car args) PycRefUnresolved)
+                  (PycRefUnresolved-id (car args)))
+                (else
+                  (error "alloc()" "first argument not recognized statically as builtin type" "")))))
+        (case alloc-kind
+          ((range) (make-alloc-range this (cdr args) (map cons kw-names kw-values)))
+          (else
+            (error "alloc()" "first argument cannot be allocated with alloc():" alloc-kind))))
+      (error "alloc()" "requires at least one argument object type to alloc" ""))))
+
 (define (make-isinstance this)
   (let* ((loc (PycNode-loc this))
         (args (PycCall-args this))
@@ -211,6 +255,7 @@
    (cons 'inline_host_code make-inline_host_code)
    (cons 'class_getattr make-class_getattr)
    (cons 'call_host make-call_host)
+   (cons 'alloc make-alloc)
    (cons 'py_float_to_host make-py-float-to-scheme)
    (cons 'py_float_from_host (make-pragma-call-maker 'py-float-from-scheme))
    (cons 'py_int_from_host (make-pragma-call-maker 'py-int-from-scheme))
@@ -987,27 +1032,24 @@
 ;; mark-builtin-class-semantics!
 
 (define builtin-class-structure-name-assoc-list
-  '((int . PyObjectInt)
-    (bool . PyObjectInt)
-    (float . PyObjectFloat)
-    (range . PyObjectRange)
+  '((range . PyObjectRange)
     (range_iterator . PyObjectRangeIterator)))
 
 (define (mark-builtin-class-semantics! this builtin_class-var)
-  (let ((builtins-class-usage (collect-builtins-class-usage* this builtin_class-var)))
+  (let ((builtins-class-usage (collect-builtins-class-with-optimized-structures-usage* this builtin_class-var)))
     (if (not (null? builtins-class-usage))
       (optimize-builtin-class-refs! this builtins-class-usage #f #f))))
 
-(define-walk-method (collect-builtins-class-usage* this::PycNode builtin_class-var)
+(define-walk-method (collect-builtins-class-with-optimized-structures-usage* this::PycNode builtin_class-var)
   (call-default-walker))
 
 (define (get-builtin-class-structure-name class-name)
   (let ((res (assq class-name builtin-class-structure-name-assoc-list)))
     (if res
       (cdr res)
-      (error "get-builtin-class-structure-name" "unknown structure for class" class-name))))
+      #f)))
 
-(define-walk-method (collect-builtins-class-usage* this::PycAssig builtin_class-var)
+(define-walk-method (collect-builtins-class-with-optimized-structures-usage* this::PycAssig builtin_class-var)
   (let ((lhs (PycAssig-lhs this))
         (rhs (PycAssig-rhs this)))
     (if (and (isa? lhs PycRef) (isa? rhs PycClass))
@@ -1015,11 +1057,14 @@
             (name (string->symbol (PycClass-name rhs)))
             (builtin_class-decorator (list-find-PycRef-by-PycVar decorators builtin_class-var)))
         (if builtin_class-decorator
-          (cons
-            (cons
-              (PycRef-decl lhs)
-              (get-builtin-class-structure-name name))
-            (call-default-walker))
+          (let ((structure (get-builtin-class-structure-name name)))
+            (if structure
+              (cons
+                (cons
+                  (PycRef-decl lhs)
+                  structure)
+                (call-default-walker))
+              (call-default-walker)))
           (call-default-walker)))
       (call-default-walker))))
 
