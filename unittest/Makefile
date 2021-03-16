@@ -15,7 +15,11 @@ clean:
 	rm -rf cpython
 
 install: cpython
-	cp -n -r cpython/Lib/test ../zipitestlib/test
+	cp -r test ../zipitestlib
+	cp -n -r cpython/Lib/test ../zipitestlib/
 
 unittest: install
 	python run-test.py ../zipitestlib/test/test_*.py
+
+unittest-fast: install
+	python run-test.py ../zipitestlib/test/{test_int.py,test_bool.py}
