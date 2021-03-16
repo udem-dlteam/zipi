@@ -1,6 +1,6 @@
-from __compiler_intrinsics__ import absent, builtin_class, alloc, py_int_from_host, py_int_to_host, py_float_from_host, py_float_to_host, py_bool_from_host_bool, py_bool_to_host_bool, py_str_to_host, py_str_from_host, py_str_len_to_host
+from __compiler_intrinsics__ import absent, builtin, private, alloc, py_int_from_host, py_int_to_host, py_float_from_host, py_float_to_host, py_bool_from_host_bool, py_bool_to_host_bool, py_str_to_host, py_str_from_host, py_str_len_to_host
 
-@builtin_class
+@builtin
 class int:
     @staticmethod
     def __new__(cls, val=absent):
@@ -468,7 +468,7 @@ class int:
             raise TypeError("descriptor '__lt__' requires a 'int' object but received a '" + type(self).__name__ + "'")
 
 
-@builtin_class
+@builtin
 class bool(int):
     @staticmethod
     def __new__(cls, val=absent):
@@ -547,7 +547,7 @@ class bool(int):
             raise TypeError("descriptor '__rxor__' requires a 'bool' object but received a '" + type(self).__name__ + "'")
 
 
-@builtin_class
+@builtin
 class float:
     @staticmethod
     def __new__(cls, val=absent):
@@ -931,7 +931,7 @@ class float:
             raise TypeError("descriptor '__lt__' requires a 'float' object but received a '" + type(self).__name__ + "'")
 
 
-@builtin_class
+@builtin
 class str:
     def __len__(self):
         if isinstance(self, str):
@@ -1022,7 +1022,7 @@ class str:
 
 
 
-@builtin_class
+@builtin
 class range_iterator:
     def __iter__(self, /):
         return self
@@ -1043,7 +1043,7 @@ class range_iterator:
 
         raise StopIteration
 
-@builtin_class
+@builtin
 class range:
     def __new__(cls, arg1, arg2=absent, arg3=absent, /):
         if arg3 is not absent:
@@ -1083,6 +1083,7 @@ class range:
         else:
             return "range(" + str(start) + ", " + str(stop) + ", " + str(step) + ")"
 
+@private
 def __merge(l1, l2):
     """
     Merge all items from two sorted list into one sorted list.
@@ -1103,7 +1104,7 @@ def __merge(l1, l2):
 
     return output
 
-
+@private
 def __merge_many(lsts):
     """
     Merge all items from k lists into one sorted list.
@@ -1123,6 +1124,7 @@ def __merge_many(lsts):
 
 
 # TODO: key and reversed must be kwonlyargs
+@builtin
 def sorted(lst, key=None, reversed=False):
     """
     Timsort is an improved version of Merge Sort which splits the list into monotonic sub-lists before merging them
@@ -1155,7 +1157,7 @@ def sorted(lst, key=None, reversed=False):
 # Exceptions
 # ==============================================================================
 
-@builtin_class
+@builtin
 class BaseException:
     def __init__(self, *args):
         self.args = args
@@ -1171,330 +1173,330 @@ class BaseException:
         else:
             return str(args)
 
-@builtin_class
+@builtin
 class Exception(BaseException):
     pass
 
-@builtin_class
+@builtin
 class GeneratorExit(BaseException):
     pass
 
 
-@builtin_class
+@builtin
 class KeyboardInterrupt(BaseException):
     pass
 
 
-@builtin_class
+@builtin
 class SystemExit(BaseException):
     pass
 
 
-@builtin_class
+@builtin
 class ArithmeticError(Exception):
     pass
 
 
-@builtin_class
+@builtin
 class AssertionError(Exception):
     pass
 
 
-@builtin_class
+@builtin
 class AttributeError(Exception):
     pass
 
 
-@builtin_class
+@builtin
 class BufferError(Exception):
     pass
 
 
-@builtin_class
+@builtin
 class EOFError(Exception):
     pass
 
 
-@builtin_class
+@builtin
 class ImportError(Exception):
     pass
 
 
-@builtin_class
+@builtin
 class LookupError(Exception):
     pass
 
 
-@builtin_class
+@builtin
 class MemoryError(Exception):
     pass
 
 
-@builtin_class
+@builtin
 class NameError(Exception):
     pass
 
 
-@builtin_class
+@builtin
 class EnvironmentError(Exception):
     pass
 
 
-@builtin_class
+@builtin
 class IOError(Exception):
     pass
 
 
-@builtin_class
+@builtin
 class OSError(Exception):
     pass
 
 
-@builtin_class
+@builtin
 class WindowsError(Exception):
     pass
 
 
-@builtin_class
+@builtin
 class ReferenceError(Exception):
     pass
 
 
-@builtin_class
+@builtin
 class RuntimeError(Exception):
     pass
 
 
-@builtin_class
+@builtin
 class StopAsyncIteration(Exception):
     pass
 
 
-@builtin_class
+@builtin
 class StopIteration(Exception):
     pass
 
 
-@builtin_class
+@builtin
 class SyntaxError(Exception):
     pass
 
 
-@builtin_class
+@builtin
 class SystemError(Exception):
     pass
 
 
-@builtin_class
+@builtin
 class TypeError(Exception):
     pass
 
 
-@builtin_class
+@builtin
 class ValueError(Exception):
     pass
 
 
-@builtin_class
+@builtin
 class Warning(Exception):
     pass
 
 
-@builtin_class
+@builtin
 class FloatingPointError(ArithmeticError):
     pass
 
 
-@builtin_class
+@builtin
 class OverflowError(ArithmeticError):
     pass
 
 
-@builtin_class
+@builtin
 class ZeroDivisionError(ArithmeticError):
     pass
 
 
-@builtin_class
+@builtin
 class ModuleNotFoundError(ImportError):
     pass
 
 
-@builtin_class
+@builtin
 class IndexError(LookupError):
     pass
 
 
-@builtin_class
+@builtin
 class KeyError(LookupError):
     pass
 
 
-@builtin_class
+@builtin
 class UnboundLocalError(NameError):
     pass
 
 
-@builtin_class
+@builtin
 class BlockingIOError(OSError):
     pass
 
 
-@builtin_class
+@builtin
 class ChildProcessError(OSError):
     pass
 
 
-@builtin_class
+@builtin
 class ConnectionError(OSError):
     pass
 
 
-@builtin_class
+@builtin
 class FileExistsError(OSError):
     pass
 
 
-@builtin_class
+@builtin
 class FileNotFoundError(OSError):
     pass
 
 
-@builtin_class
+@builtin
 class InterruptedError(OSError):
     pass
 
 
-@builtin_class
+@builtin
 class IsADirectoryError(OSError):
     pass
 
 
-@builtin_class
+@builtin
 class NotADirectoryError(OSError):
     pass
 
 
-@builtin_class
+@builtin
 class PermissionError(OSError):
     pass
 
 
-@builtin_class
+@builtin
 class ProcessLookupError(OSError):
     pass
 
 
-@builtin_class
+@builtin
 class TimeoutError(OSError):
     pass
 
 
-@builtin_class
+@builtin
 class NotImplementedError(RuntimeError):
     pass
 
 
-@builtin_class
+@builtin
 class RecursionError(RuntimeError):
     pass
 
 
-@builtin_class
+@builtin
 class IndentationError(SyntaxError):
     pass
 
 
-@builtin_class
+@builtin
 class UnicodeError(ValueError):
     pass
 
 
-@builtin_class
+@builtin
 class BytesWarning(Warning):
     pass
 
 
-@builtin_class
+@builtin
 class DeprecationWarning(Warning):
     pass
 
 
-@builtin_class
+@builtin
 class FutureWarning(Warning):
     pass
 
 
-@builtin_class
+@builtin
 class ImportWarning(Warning):
     pass
 
 
-@builtin_class
+@builtin
 class PendingDeprecationWarning(Warning):
     pass
 
 
-@builtin_class
+@builtin
 class ResourceWarning(Warning):
     pass
 
 
-@builtin_class
+@builtin
 class RuntimeWarning(Warning):
     pass
 
 
-@builtin_class
+@builtin
 class SyntaxWarning(Warning):
     pass
 
 
-@builtin_class
+@builtin
 class UnicodeWarning(Warning):
     pass
 
 
-@builtin_class
+@builtin
 class UserWarning(Warning):
     pass
 
 
-@builtin_class
+@builtin
 class BrokenPipeError(ConnectionError):
     pass
 
 
-@builtin_class
+@builtin
 class ConnectionAbortedError(ConnectionError):
     pass
 
 
-@builtin_class
+@builtin
 class ConnectionRefusedError(ConnectionError):
     pass
 
 
-@builtin_class
+@builtin
 class ConnectionResetError(ConnectionError):
     pass
 
 
-@builtin_class
+@builtin
 class TabError(IndentationError):
     pass
 
 
-@builtin_class
+@builtin
 class UnicodeDecodeError(UnicodeError):
     pass
 
 
-@builtin_class
+@builtin
 class UnicodeEncodeError(UnicodeError):
     pass
 
 
-@builtin_class
+@builtin
 class UnicodeTranslateError(UnicodeError):
     pass

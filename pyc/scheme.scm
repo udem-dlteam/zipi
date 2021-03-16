@@ -639,16 +639,20 @@
     (if current-name
       current-name
       (let* ((name
-              (if (eq? (PycVar-scope var) 'global)
-                (symbol-append
-                  '|global:|
-                  (PycVar-id var)
-                  '-
-                  (string->symbol (number->string (PycVar-key var))))
-                 (symbol-append
-                   (PycVar-id var)
-            	     '-
-            	     (string->symbol (number->string (PycVar-key var)))))))
+              (cond
+                ((PycVar-is-builtin var)
+                  (symbol-append 'py-builtin- (PycVar-id var)))
+                ((eq? (PycVar-scope var) 'global)
+                  (symbol-append
+                    '|global:|
+                    (PycVar-id var)
+                    '-
+                    (string->symbol (number->string (PycVar-key var)))))
+                (else
+                  (symbol-append
+                     (PycVar-id var)
+              	     '-
+              	     (string->symbol (number->string (PycVar-key var))))))))
         (PycVar-name-set! var name)
         name))))
 
@@ -1253,23 +1257,23 @@
 
 (define-walk-method (scheme this::PycRef conf)
    (let* ((var (PycRef-decl this))
-	  (id (PycVar-id var))
-	  (name (scheme-var-name var conf)))
-      (cond
-	 ((eq? (PycVar-scope var) 'global)
-	  `(if (eq? ,name py-absent)
-	       (global-get
-		  %global
-		  ,(pyc-propname id)
-		  ,(scheme-cache (PycRef-cache this) this))
-	       ,name))
-	 ((PycRef-can-direct-access this)
-	  name)
-	 (else
-	  `(or ,name
-	       (py-throw-exception-with-message
-		  py-builtin-UnboundLocalError
-		  ,(string-append "local variable '" (symbol->string id) "' referenced before assignment")))))))
+          (id (PycVar-id var))
+          (name (scheme-var-name var conf)))
+    (cond
+      ((PycRef-can-direct-access this)
+        name)
+  	  ((eq? (PycVar-scope var) 'global)
+  	   `(if (eq? ,name py-absent)
+  	        (global-get
+  		   %global
+  		   ,(pyc-propname id)
+  		   ,(scheme-cache (PycRef-cache this) this))
+  	        ,name))
+  	  (else
+  	   `(or ,name
+  	        (py-throw-exception-with-message
+  	 	  py-builtin-UnboundLocalError
+  	 	  ,(string-append "local variable '" (symbol->string id) "' referenced before assignment")))))))
 
 (define-walk-method (scheme this::PycRefUnresolved conf)
    (epairify this
