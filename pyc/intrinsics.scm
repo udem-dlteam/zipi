@@ -1086,31 +1086,6 @@
 (define (make-scheme-class-name name)
   (string->symbol (string-append "py-builtin-" (symbol->string name))))
 
-(define-walk-method (optimize-builtin-class-refs! this::PycCall builtins-class-table class self)
-  (let ((fun (PycCall-fun this)))
-    (if (isa? fun PycRef)
-      (let ((scheme-class (assq (PycRef-decl fun) builtins-class-table)))
-        (if scheme-class
-          (let ((loc (PycNode-loc this)))
-            (new-PycCall
-              loc
-              (new-PycPragma loc (make-maker-name (cdr scheme-class)))
-              (append
-                (list
-                  (new-PycStatic loc 'arg1 (make-HClass-name (PycVar-id (car scheme-class))))
-                  (new-PycStaticSexp loc 'arg2 '(quote #()))
-                  (new-PycStatic loc 'arg3 (make-scheme-class-name (PycVar-id (car scheme-class)))))
-                (map
-                  (lambda (n)
-                    (optimize-builtin-class-refs!
-                      n
-                      builtins-class-table
-                      class
-                      self))
-                  (PycCall-args this)))))
-          (call-default-walker)))
-      (call-default-walker))))
-
 (define (get-fun-first-arg fun)
   (let ((posonlyargs (PycFun-posonlyargs fun)))
     (if (null? posonlyargs)
