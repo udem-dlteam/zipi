@@ -1092,9 +1092,6 @@
       ,(generator this body)))))
 
 (define-walk-method (scheme this::PycClass conf)
-  (define (make-HClass-name name)
-    (string->symbol (string-append "py-" name "-hclass-of-instances")))
-
   (define (pyc-class this)
     (let ((cls-symbol (PycClass-super-key this))
           (is-builtin (PycClass-is-builtin this)))
@@ -1107,7 +1104,6 @@
                 (&& ,(PycClass-name this))
                 (&& ,(PycClass-module this))
                 (list ,@(map (lambda (b) (scheme b conf)) (PycClass-bases this)))
-                ,(make-HClass-name (PycClass-name this))
                 ,@(append-map
                   (lambda (var)
                     `(,(pyc-propname (PycVar-id var))

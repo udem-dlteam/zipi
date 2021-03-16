@@ -391,13 +391,14 @@
     py-make-tuple
     py-type
 
+    py-object-hclass-of-instances
     py-type-hclass-of-instances
     py-int-hclass-of-instances
     py-float-hclass-of-instances
     py-str-hclass-of-instances
     py-tuple-hclass-of-instances
-
     py-range-hclass-of-instances
+
     make-PyObjectRange
     PyObjectRange-start
     PyObjectRange-stop

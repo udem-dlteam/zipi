@@ -1011,8 +1011,50 @@
 (define-macro ($get-behavior-type-index indices-info name)
   (cadr (assq name indices-info)))
 
-(define-macro (py-make-builtin-class name module bases hclass-of-instances . attrs)
-  `(with-class-indices-info $py-make-builtin-class-with-class-index-info ,name ,module ,bases ,hclass-of-instances ,@attrs))
+(define-macro (py-make-builtin-class name module bases . attrs)
+  (define hclass-of-instances-assoc-list
+    '((object py-object-hclass-of-instances)
+      (type py-type-hclass-of-instances)
+      (str py-str-hclass-of-instances)
+      (tuple py-tuple-hclass-of-instances)
+      (int py-int-hclass-of-instances)
+      (bool py-int-hclass-of-instances)
+      (float py-float-hclass-of-instances)
+      (slice py-slice-hclass-of-instances)
+      (bytearray py-bytearray-hclass-of-instances)
+      (method py-method-hclass-of-instances)
+      (function py-function-hclass-of-instances)
+      (list py-list-hclass-of-instances)
+      (dict py-dict-hclass-of-instances)
+      (set py-set-hclass-of-instances)
+      (module py-module-hclass-of-instances)
+      (list_iterator py-list-iterator-hclass-of-instances)
+      (bytearray_iterator py-bytearray-iterator-hclass-of-instances)
+      (tuple_iterator py-tuple-iterator-hclass-of-instances)
+      (dict_keyiterator py-dict-keyiterator-hclass-of-instances)
+      (generator py-generator-hclass)
+      (TextIOWrapper py-TextIOWrapper-hclass-of-instances)
+      (super py-super-hclass-of-instances)
+      (range py-range-hclass-of-instances)
+      (range_iterator py-range_iterator-hclass-of-instances)))
+
+  (let* ((scheme-name
+          (if (and (pair? name) (memq (car name) '(& &&)))
+            (string->symbol (cadr name))
+            (error "py-make-builtin-class" "name must be a Python string literal" name)))
+        (hclass-of-instances
+          (let ((pair (assq scheme-name hclass-of-instances-assoc-list)))
+            (if pair
+              (cdr pair)
+              'py-object-hclass-of-instances))))
+
+  `(with-class-indices-info
+    $py-make-builtin-class-with-class-index-info
+    ,name
+    ,module
+    ,bases
+    ,hclass-of-instances
+    ,@attrs)))
 
 (define-macro ($py-make-builtin-class-with-class-index-info indices-info name module bases hclass-of-instances . attrs)
   (define (get-class-index-by-name name-symbol)

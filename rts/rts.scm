@@ -3361,7 +3361,6 @@
     (&& "list_iterator")
     (&& "builtins")
     (list)
-    py-list-iterator-hclass-of-instances
       (& "__iter__") list_iterator.__iter__
       (& "__next__") list_iterator.__next__))
 
@@ -3397,7 +3396,6 @@
     (&& "tuple_iterator")
     (&& "builtins")
     (list)
-    py-tuple-iterator-hclass-of-instances
       (& "__iter__") py-tuple-iterator-iter
       (& "__next__") py-tuple-iterator-next))
 
@@ -3438,7 +3436,6 @@
     (&& "bytearray_iterator")
     (&& "builtins")
     (list)
-    py-bytearray-iterator-hclass-of-instances
       (& "__iter__") py-bytearray-iterator.__iter__
       (& "__next__") py-bytearray-iterator.__next__))
 
@@ -5603,7 +5600,6 @@
     (&& "dict_keyiterator")
     (&& "builtins")
     (list)
-    py-dict-keyiterator-hclass-of-instances
       (& "__iter__") dict_keyiterator.__iter__
       (& "__next__") dict_keyiterator.__next__))
 
@@ -5633,7 +5629,6 @@
      (&& "module")
      (&& "builtins")
      (list)
-     py-module-hclass-of-instances
      (& "__dir__") module.__dir__
      (& "__getattribute__") module.__getattribute__
      (& "__setattr__") module.__setattr__))
@@ -5643,7 +5638,6 @@
      (&& "int")
      (&& "builtins")
      (list)
-     py-int-hclass-of-instances
      (& "__new__") int.__new__
      (& "__bool__") int.__bool__
      (& "__add__") int.__add__
@@ -5693,7 +5687,6 @@
      (&& "float")
      (&& "builtins")
      (list)
-     py-float-hclass-of-instances
      (& "__new__") float.__new__
      (& "__repr__") float.__repr__
      (& "__add__") float.__add__
@@ -5736,7 +5729,6 @@
      (&& "bool")
      (&& "builtins")
      (list py-int-class)
-     py-int-hclass-of-instances
      (& "__new__") bool.__new__
      (& "__str__") bool.__str__
      (& "__repr__") bool.__repr__))
@@ -5745,15 +5737,13 @@
     (py-make-builtin-class
      (& "complex")
      (& "builtins")
-     (list)
-     py-complex-hclass-of-instances))
+     (list)))
 
   (set! py-slice-class
     (py-make-builtin-class
      (&& "slice")
      (&& "builtins")
      (list)
-     py-slice-hclass-of-instances
      (& "__new__") slice.__new__
      (& "indices") slice.indices))
 
@@ -5770,7 +5760,6 @@
      (&& "function")
      (&& "builtins")
      (list)
-     py-function-hclass-of-instances
      (& "__call__") function.__call__
      (& "__get__") function.__get__))
 
@@ -5779,7 +5768,6 @@
      (&& "list")
      (&& "builtins")
      (list)
-     py-list-hclass-of-instances
      (& "__new__") list.__new__
      (& "__iter__") list.__iter__
      (& "__contains__") list.__contains__
@@ -5818,7 +5806,6 @@
      (&& "dict")
      (&& "builtins")
      (list)
-     py-dict-hclass-of-instances
      (& "__getitem__") dict.__getitem__
      (& "__setitem__") dict.__setitem__
      (& "__delitem__") dict.__delitem__
@@ -5831,15 +5818,13 @@
     (py-make-builtin-class
      (&& "set")
      (&& "builtins")
-     (list)
-     py-set-hclass-of-instances))
+     (list)))
 
   (set! py-bytearray-class
     (py-make-builtin-class
       (&& "bytearray")
       (&& "builtins")
       (list)
-      py-set-hclass-of-instances
         (& "__getitem__") bytearray.__getitem__
         (& "__new__") bytearray.__new__
         (& "__setitem__") bytearray.__setitem__
@@ -6031,7 +6016,6 @@
     (&& "_io")
     ;; TODO: the correct mro is actually [<class '_io.TextIOWrapper'>, <class '_io._TextIOBase'>, <class '_io._IOBase'>, <class 'object'>]
     (list)
-    py-TextIOWrapper-hclass-of-instances
       (& "__enter__") TextIOWrapper.__enter__
       (& "__exit__") TextIOWrapper.__exit__
       (& "close") TextIOWrapper.close
@@ -6096,7 +6080,6 @@
     (&& "NotImplementedType")
     (&& "builtins")
     (list)
-    py-object-hclass-of-instances
       (& "__new__") NotImplementedType.__new__
       (& "__repr__") NotImplementedType.__repr__))
 
@@ -6154,7 +6137,6 @@
     (&& "NoneType")
     (&& "builtins")
     (list)
-    py-object-hclass-of-instances
       (& "__new__") NoneType.__new__
       (& "__repr__") NoneType.__repr__
       (& "__bool__") NoneType.__bool__))
@@ -8375,7 +8357,6 @@
     (&& "super")
     (&& "builtins")
     (list)
-    py-super-hclass-of-instances
       (& "__init__") super.__init__
       (& "__getattribute__") super.__getattribute__
     ))

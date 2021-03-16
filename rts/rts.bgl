@@ -256,6 +256,7 @@
            (py-test-le-behavior-call-with-rhs-index-fallback lhs index rhs)
            (py-test-lt-behavior-call-with-rhs-index-fallback lhs index rhs)
 
+           py-object-hclass-of-instances
            py-type-hclass-of-instances
            py-int-hclass-of-instances
            py-float-hclass-of-instances
