@@ -888,6 +888,7 @@ from __compiler_intrinsics__ import absent, builtin, private, alloc, py_int_from
 {definitions}
 
 @builtin
+@private
 class range_iterator:
     def __iter__(self, /):
         return self
@@ -949,6 +950,7 @@ class range:
             return "range(" + str(start) + ", " + str(stop) + ", " + str(step) + ")"
 
 @private
+@builtin
 def __merge(l1, l2):
     \"""
     Merge all items from two sorted list into one sorted list.
@@ -970,6 +972,7 @@ def __merge(l1, l2):
     return output
 
 @private
+@builtin
 def __merge_many(lsts):
     \"""
     Merge all items from k lists into one sorted list.

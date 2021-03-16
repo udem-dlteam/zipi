@@ -27,6 +27,7 @@
 
       ;; module
       (class PycModule::PycNode
+   (special-init (default #f))
 	 (version::int read-only (default 1))
 	 (ident::string read-only)
 	 stmts::pair-nil

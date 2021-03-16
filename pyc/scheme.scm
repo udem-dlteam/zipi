@@ -43,6 +43,15 @@
           #f)))
     defs))
 
+(define (filter-private-vars vars)
+  (cond
+    ((null? vars)
+      '())
+    ((PycVar-global-only-accessed-in-module (car vars))
+      (filter-private-vars (cdr vars)))
+    (else
+      (cons (car vars) (filter-private-vars (cdr vars))))))
+
 (define (scheme-register-globals vars conf)
   (map
     (lambda (var)
@@ -52,7 +61,7 @@
         (lambda () ,(scheme-var-name var conf))
         (lambda (v)
           (set! ,(scheme-var-name var conf) v))))
-    (get-unique-var-lst vars conf)))
+    (get-unique-var-lst (filter-private-vars vars) conf)))
 
 (define (set-procedure-names! defs conf)
   (if (not (null? defs))
@@ -172,6 +181,10 @@
       ;; normal compilation
       (let* ((file (config-get conf file:))
             (path (config-get conf dir:))
+            (special-init
+              (if (eq? (PycModule-special-init ast) 'builtins)
+                'init-builtin-module
+                #f))
             (global-funs
               (if (config-get conf optim-globals:)
                   (let ((defs (PycModule-global-defs ast)))
@@ -187,7 +200,14 @@
             (full-path (if (and file path) (make-file-path path file) #f)))
         (list
           `(define-library (,(string->symbol (config-get conf name:)))
-            (export init)
+            ,(if special-init
+              `(export
+                init
+                ,special-init
+                ,@(map
+                  (lambda (var) (scheme-var-name var conf))
+                  (get-unique-var-lst (filter-private-vars (map PycRef-decl global-refs)) conf)))
+              `(export init))
             (import (gambit) (zipi rts))
             (begin
               (py-begin-module)
@@ -212,7 +232,15 @@
                   ,@prog)
                    `(define py-module ,prog))
 
-              (define (init name package __path__)
+              ,@(if special-init
+                `((define (init name package __path__)
+                    (py-init-module)
+                    (py-throw-exception-with-message
+                      py-builtin-ImportError
+                      "cannot import multiple instances of builtin module")))
+                '())
+
+              (define (,(or special-init 'init) name package __path__)
                 (py-init-module)
                 (let ((caches (py-make-caches ,(PycModule-caches ast)))
                       (module (py-make-module name package __path__)))
@@ -1155,14 +1183,16 @@
                  (if (and (PycFun? init-val)
                           (symbol? (PycFun-&proc init-val))
                           (correct-arity? init-val args))
-                  `(py-global-call
-                      %global
-                      ,(PycFun-&proc init-val)
-                      ,(scheme-var-name var conf)
-                      ,(scheme-def-optim-globals-name-init var conf)
-                      ,(pyc-propname (PycVar-id var))
-                      ,(scheme-cache (PycRef-cache f) this)
-                      ,@args)
+                  (if (PycVar-global-ref-to-init-def var)
+                    `(,(PycFun-&proc init-val) ,@args)
+                    `(py-global-call
+                        %global
+                        ,(PycFun-&proc init-val)
+                        ,(scheme-var-name var conf)
+                        ,(scheme-def-optim-globals-name-init var conf)
+                        ,(pyc-propname (PycVar-id var))
+                        ,(scheme-cache (PycRef-cache f) this)
+                        ,@args))
                   #f))
               #f)))
         ((PycRefUnresolved? f) #f)

@@ -496,8 +496,9 @@
 
   (let ((builtin-var (list-find-PycVar-by-id intrinsics 'builtin))
         (private-var (list-find-PycVar-by-id intrinsics 'private)))
-    (if (or builtin-var private-var)
-        (mark-builtin-functions-and-classes-semantics! this builtin-var private-var)))
+    (when (or builtin-var private-var)
+      (mark-builtin-functions-and-classes-semantics! this builtin-var private-var)
+      (PycModule-special-init-set! this 'builtins)))
   this))
 
 ;; check no intrinsics assig
