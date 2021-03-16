@@ -11,20 +11,20 @@ do: build
 #*    Semantics generation                                             */
 #*---------------------------------------------------------------------*/
 
-numbers_builtins.py:
+builtins.py:
 	. ../venv/bin/activate; \
 	cd  zemantics_scripts; \
-	python builtins_manager.py init ../numbers_builtins.py
+	python builtins_manager.py init ../builtins.py
 
 zemantics.py:
 	. ../venv/bin/activate; \
 	cd  zemantics_scripts; \
 	python semantics_manager.py init ../zemantics.py
 
-behavior.py: numbers_builtins.py zemantics.py
+behavior.py: builtins.py zemantics.py
 	. ../venv/bin/activate; \
 	cd  zemantics_scripts; \
-	$(BUILDPYTHON) decision_tree.py behaviors ../zemantics.py ../numbers_builtins.py > ../behaviors.py
+	$(BUILDPYTHON) decision_tree.py behaviors ../zemantics.py ../builtins.py > ../behaviors.py
 
 #*---------------------------------------------------------------------*/
 #*    Common entry points                                              */
@@ -37,4 +37,4 @@ install: $(ZIPISYSTEMS:%=install.%)
 
 clean: $(ZIPISYSTEMS:%=clean.%)
 distclean: $(ZIPISYSTEMS:%=distclean.%)
-	rm behaviors.py behaviors.scm zemantics.py zemantics.scm numbers_builtins.py
+	rm behaviors.py behaviors.scm zemantics.py zemantics.scm builtins.py
