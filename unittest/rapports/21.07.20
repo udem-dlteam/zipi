@@ -1,0 +1,443 @@
+==== RESULTS ====
+
+--- PASS ---
+test_suite/test_int_literal.py   PASS |  6 tests passed ! yay !
+
+--- FAIL ---
+test_suite/test_bool.py   FAIL | 28 tests. PASSED = 5    FAILED = 23
+test_suite/test_exception_variations.py   FAIL | 11 tests. PASSED = 0    FAILED = 11
+test_suite/test_longexp.py   FAIL | 1 tests. PASSED = 0    FAILED = 1
+test_suite/test_structseq.py   FAIL | 12 tests. PASSED = 0    FAILED = 12
+test_suite/test_unicode_identifiers.py   FAIL | 3 tests. PASSED = 0    FAILED = 3
+test_suite/test_utf8source.py   FAIL | 2 tests. PASSED = 0    FAILED = 2
+
+--- compile_error ---
+test_suite/test_abc.py
+test_suite/test___all__.py
+test_suite/test_argparse.py
+test_suite/test_array.py
+test_suite/test_ast.py
+test_suite/test_asyncgen.py
+test_suite/test_asyncio
+test_suite/test_atexit.py
+test_suite/test_audioop.py
+test_suite/test_audit.py
+test_suite/test_augassign.py
+test_suite/test_bdb.py
+test_suite/test_bigmem.py
+test_suite/test_bisect.py
+test_suite/test_buffer.py
+test_suite/test_builtin.py
+test_suite/test_bytes.py
+test_suite/test_bz2.py
+test_suite/test_call.py
+test_suite/test_capi.py
+test_suite/test_class.py
+test_suite/test_clinic.py
+test_suite/test_c_locale_coercion.py
+test_suite/test_cmd_line.py
+test_suite/test_cmd_line_script.py
+test_suite/test_codeccallbacks.py
+test_suite/test_codecs.py
+test_suite/test_code_module.py
+test_suite/test_code.py
+test_suite/test_collections.py
+test_suite/test_colorsys.py
+test_suite/test_compileall.py
+test_suite/test_compile.py
+test_suite/test_complex.py
+test_suite/test_concurrent_futures.py
+test_suite/test_configparser.py
+test_suite/test_contains.py
+test_suite/test_contextlib_async.py
+test_suite/test_contextlib.py
+test_suite/test_context.py
+test_suite/test_copy.py
+test_suite/test_coroutines.py
+test_suite/test_csv.py
+test_suite/test_curses.py
+test_suite/test_dataclasses.py
+test_suite/test_dbm_gnu.py
+test_suite/test_dbm.py
+test_suite/test_decimal.py
+test_suite/test_decorators.py
+test_suite/test_defaultdict.py
+test_suite/test_deque.py
+test_suite/test_descr.py
+test_suite/test_dictcomps.py
+test_suite/test_dict.py
+test_suite/test_dict_version.py
+test_suite/test_difflib_expect.html
+test_suite/test_dis.py
+test_suite/test_doctest3.txt
+test_suite/test_doctest4.txt
+test_suite/test_doctest.py
+test_suite/test_doctest.txt
+test_suite/test_dynamicclassattribute.py
+test_suite/test_eintr.py
+test_suite/test_email
+test_suite/test_embed.py
+test_suite/test_ensurepip.py
+test_suite/test_enumerate.py
+test_suite/test_enum.py
+test_suite/test_exception_hierarchy.py
+test_suite/test_exceptions.py
+test_suite/test_faulthandler.py
+test_suite/test_fileinput.py
+test_suite/test_fileio.py
+test_suite/test_finalization.py
+test_suite/test_fnmatch.py
+test_suite/test_fractions.py
+test_suite/test_frame.py
+test_suite/test_fstring.py
+test_suite/test_ftplib.py
+test_suite/test_funcattrs.py
+test_suite/test_functools.py
+test_suite/test_future.py
+test_suite/test_gc.py
+test_suite/test_gdb.py
+test_suite/test_generators.py
+test_suite/test_genericalias.py
+test_suite/test_genericclass.py
+test_suite/test_getopt.py
+test_suite/test_gettext.py
+test_suite/test_glob.py
+test_suite/test_grammar.py
+test_suite/test_graphlib.py
+test_suite/test_gzip.py
+test_suite/test_hashlib.py
+test_suite/test_hash.py
+test_suite/test_heapq.py
+test_suite/test_hmac.py
+test_suite/test_htmlparser.py
+test_suite/test_http_cookiejar.py
+test_suite/test_httplib.py
+test_suite/test_imaplib.py
+test_suite/test_imghdr.py
+test_suite/test_import
+test_suite/test_importlib
+test_suite/test_imp.py
+test_suite/test_inspect.py
+test_suite/test_int.py
+test_suite/test_ioctl.py
+test_suite/test_io.py
+test_suite/test_ipaddress.py
+test_suite/test_iter.py
+test_suite/test_itertools.py
+test_suite/test_json
+test_suite/test_keywordonlyarg.py
+test_suite/test_keyword.py
+test_suite/test_kqueue.py
+test_suite/test_largefile.py
+test_suite/test_linecache.py
+test_suite/test_locale.py
+test_suite/test_logging.py
+test_suite/test_long.py
+test_suite/test_mailbox.py
+test_suite/test_math.py
+test_suite/test_memoryio.py
+test_suite/test_memoryview.py
+test_suite/test_mimetypes.py
+test_suite/test_mmap.py
+test_suite/test_modulefinder.py
+test_suite/test_module.py
+test_suite/test_named_expressions.py
+test_suite/test_nntplib.py
+test_suite/test_opcodes.py
+test_suite/test_operator.py
+test_suite/test_optparse.py
+test_suite/test_ordered_dict.py
+test_suite/test_os.py
+test_suite/test_parser.py
+test_suite/test_pathlib.py
+test_suite/test_peepholer.py
+test_suite/test_peg_generator
+test_suite/test_peg_parser.py
+test_suite/test_picklebuffer.py
+test_suite/test_pickle.py
+test_suite/test_pickletools.py
+test_suite/test_pkgutil.py
+test_suite/test_platform.py
+test_suite/test_positional_only_arg.py
+test_suite/test_posix.py
+test_suite/test_profile.py
+test_suite/test_property.py
+test_suite/test_pulldom.py
+test_suite/test_py_compile.py
+test_suite/test_pydoc.py
+test_suite/test_queue.py
+test_suite/test_raise.py
+test_suite/test_random.py
+test_suite/test_range.py
+test_suite/test_readline.py
+test_suite/test_regrtest.py
+test_suite/test_repl.py
+test_suite/test_re.py
+test_suite/test_richcmp.py
+test_suite/test_rlcompleter.py
+test_suite/test_runpy.py
+test_suite/test_sched.py
+test_suite/test_scope.py
+test_suite/test_secrets.py
+test_suite/test_selectors.py
+test_suite/test_set.py
+test_suite/test_shelve.py
+test_suite/test_shutil.py
+test_suite/test_signal.py
+test_suite/test_site.py
+test_suite/test_smtpd.py
+test_suite/test_smtplib.py
+test_suite/test_socket.py
+test_suite/test_socketserver.py
+test_suite/test_ssl.py
+test_suite/test_statistics.py
+test_suite/test_string_literals.py
+test_suite/test_string.py
+test_suite/test_strtod.py
+test_suite/test_struct.py
+test_suite/test_subclassinit.py
+test_suite/test_subprocess.py
+test_suite/test_super.py
+test_suite/test_support.py
+test_suite/test_sysconfig.py
+test_suite/test_sys.py
+test_suite/test_sys_setprofile.py
+test_suite/test_sys_settrace.py
+test_suite/test_tabnanny.py
+test_suite/test_tarfile.py
+test_suite/test_tcl.py
+test_suite/test_telnetlib.py
+test_suite/test_tempfile.py
+test_suite/test_textwrap.py
+test_suite/test_threading_local.py
+test_suite/test_threading.py
+test_suite/test_thread.py
+test_suite/test_timeit.py
+test_suite/test_timeout.py
+test_suite/test_time.py
+test_suite/test_tokenize.py
+test_suite/test_tools
+test_suite/test_traceback.py
+test_suite/test_tracemalloc.py
+test_suite/test_trace.py
+test_suite/test_ttk_guionly.py
+test_suite/test_tuple.py
+test_suite/test_typechecks.py
+test_suite/test_type_comments.py
+test_suite/test_types.py
+test_suite/test_typing.py
+test_suite/test_unary.py
+test_suite/test_unicodedata.py
+test_suite/test_unicode.py
+test_suite/test_unparse.py
+test_suite/test_urllib2_localnet.py
+test_suite/test_urllib2net.py
+test_suite/test_urllib2.py
+test_suite/test_urllibnet.py
+test_suite/test_urllib.py
+test_suite/test_urlparse.py
+test_suite/test_userstring.py
+test_suite/test_utf8_mode.py
+test_suite/test_uuid.py
+test_suite/test_venv.py
+test_suite/test_wait3.py
+test_suite/test_wait4.py
+test_suite/test_warnings
+test_suite/test_weakref.py
+test_suite/test_weakset.py
+test_suite/test_webbrowser.py
+test_suite/test_winsound.py
+test_suite/test_with.py
+test_suite/test_wsgiref.py
+test_suite/test_xml_etree_c.py
+test_suite/test_xml_etree.py
+test_suite/test_xmlrpc.py
+test_suite/test__xxsubinterpreters.py
+test_suite/test_yield_from.py
+test_suite/test_zipfile.py
+test_suite/test_zipimport.py
+test_suite/test_zlib.py
+test_suite/test_zoneinfo
+
+--- import_error ---
+test_suite/test_abstract_numbers.py   ModuleNotFoundError: No module named 'math'
+test_suite/test_asdl_parser.py   ModuleNotFoundError: No module named 'importlib'
+test_suite/test_asyncore.py   ModuleNotFoundError: No module named 'asyncore'
+test_suite/test_base64.py   ModuleNotFoundError: No module named 'base64'
+test_suite/test_baseexception.py   ModuleNotFoundError: No module named 'platform'
+test_suite/test_binascii.py   ModuleNotFoundError: No module named 'binascii'
+test_suite/test_binop.py   ModuleNotFoundError: No module named 'operator'
+test_suite/test_bufio.py   ModuleNotFoundError: No module named 'io'
+test_suite/test_calendar.py   ModuleNotFoundError: No module named 'calendar'
+test_suite/test_cgi.py   ModuleNotFoundError: No module named 'cgi'
+test_suite/test_charmapcodec.py   ModuleNotFoundError: No module named 'codecs'
+test_suite/test_check_c_globals.py   ModuleNotFoundError: No module named 'test.test_tools'
+test_suite/test_cmd.py   ModuleNotFoundError: No module named 'cmd'
+test_suite/test_codeop.py   ModuleNotFoundError: No module named 'codeop'
+test_suite/test_copyreg.py   ModuleNotFoundError: No module named 'copyreg'
+test_suite/test_cprofile.py   ModuleNotFoundError: No module named 'cProfile'
+test_suite/test_crashers.py   ModuleNotFoundError: No module named 'glob'
+test_suite/test_dbm_dumb.py   ModuleNotFoundError: No module named 'contextlib'
+test_suite/test_devpoll.py   ModuleNotFoundError: No module named 'random'
+test_suite/test_dictviews.py   ModuleNotFoundError: No module named 'collections'
+test_suite/test_difflib.py   ModuleNotFoundError: No module named 'difflib'
+test_suite/test_distutils.py   ModuleNotFoundError: No module named 'distutils'
+test_suite/test_docxmlrpc.py   ModuleNotFoundError: No module named 'xmlrpc.server'
+test_suite/test_dtrace.py   ModuleNotFoundError: No module named 'dis'
+test_suite/test_epoll.py   ModuleNotFoundError: No module named 'errno'
+test_suite/test_errno.py   ModuleNotFoundError: No module named 'errno'
+test_suite/test_fcntl.py   ModuleNotFoundError: No module named 'platform'
+test_suite/test_filecmp.py   ModuleNotFoundError: No module named 'filecmp'
+test_suite/test_file_eintr.py   ModuleNotFoundError: No module named 'select'
+test_suite/test_file.py   ModuleNotFoundError: No module named 'array'
+test_suite/test_float.py   ModuleNotFoundError: No module named 'fractions'
+test_suite/test_flufl.py   ModuleNotFoundError: No module named '__future__'
+test_suite/test_fork1.py   ModuleNotFoundError: No module named '_imp'
+test_suite/test_future3.py   ModuleNotFoundError: No module named '__future__'
+test_suite/test_future4.py   ModuleNotFoundError: No module named '__future__'
+test_suite/test_future5.py   ModuleNotFoundError: No module named '__future__'
+test_suite/test___future__.py   ModuleNotFoundError: No module named '__future__'
+test_suite/test_generator_stop.py   ModuleNotFoundError: No module named '__future__'
+test_suite/test_genericpath.py   ModuleNotFoundError: No module named 'genericpath'
+test_suite/test_getargs2.py   ModuleNotFoundError: No module named 'math'
+test_suite/test_getpass.py   ModuleNotFoundError: No module named 'getpass'
+test_suite/test_html.py   ModuleNotFoundError: No module named 'html'
+test_suite/test_http_cookies.py   ModuleNotFoundError: No module named 'copy'
+test_suite/test_httpservers.py   ModuleNotFoundError: No module named 'http.server'
+test_suite/test_index.py   ModuleNotFoundError: No module named 'operator'
+test_suite/test_lib2to3.py   ModuleNotFoundError: No module named 'lib2to3.tests'
+test_suite/test_lltrace.py   ModuleNotFoundError: No module named 'textwrap'
+test_suite/test__locale.py   ModuleNotFoundError: No module named '_locale'
+test_suite/test_lzma.py   ModuleNotFoundError: No module named '_compression'
+test_suite/test_mailcap.py   ModuleNotFoundError: No module named 'mailcap'
+test_suite/test_marshal.py   ModuleNotFoundError: No module named 'array'
+test_suite/test_minidom.py   ModuleNotFoundError: No module named 'copy'
+test_suite/test_multiprocessing_fork.py   ModuleNotFoundError: No module named 'test._test_multiprocessing'
+test_suite/test_multiprocessing_forkserver.py   ModuleNotFoundError: No module named 'test._test_multiprocessing'
+test_suite/test_multiprocessing_spawn.py   ModuleNotFoundError: No module named 'test._test_multiprocessing'
+test_suite/test_netrc.py   ModuleNotFoundError: No module named 'netrc'
+test_suite/test_ntpath.py   ModuleNotFoundError: No module named 'ntpath'
+test_suite/test_numeric_tower.py   ModuleNotFoundError: No module named 'random'
+test_suite/test__opcode.py   ModuleNotFoundError: No module named 'dis'
+test_suite/test__osx_support.py   ModuleNotFoundError: No module named 'platform'
+test_suite/test_pdb.py   ModuleNotFoundError: No module named 'doctest'
+test_suite/test_pipes.py   ModuleNotFoundError: No module named 'pipes'
+test_suite/test_pkg.py   ModuleNotFoundError: No module named 'tempfile'
+test_suite/test_plistlib.py   ModuleNotFoundError: No module named 'copy'
+test_suite/test_poll.py   ModuleNotFoundError: No module named 'subprocess'
+test_suite/test_poplib.py   ModuleNotFoundError: No module named 'poplib'
+test_suite/test_posixpath.py   ModuleNotFoundError: No module named 'posixpath'
+test_suite/test_pow.py   ModuleNotFoundError: No module named 'math'
+test_suite/test_pprint.py   ModuleNotFoundError: No module named 'collections'
+test_suite/test_print.py   ModuleNotFoundError: No module named 'io'
+test_suite/test_pstats.py   ModuleNotFoundError: No module named 'io'
+test_suite/test_pyclbr.py   ModuleNotFoundError: No module named 'textwrap'
+test_suite/test_pyexpat.py   ModuleNotFoundError: No module named 'io'
+test_suite/test_quopri.py   ModuleNotFoundError: No module named 'io'
+test_suite/test_reprlib.py   ModuleNotFoundError: No module named 'shutil'
+test_suite/test_resource.py   ModuleNotFoundError: No module named 'contextlib'
+test_suite/test_robotparser.py   ModuleNotFoundError: No module named 'io'
+test_suite/test_sax.py   ModuleNotFoundError: No module named 'xml.sax'
+test_suite/test_script_helper.py   ModuleNotFoundError: No module named 'subprocess'
+test_suite/test_select.py   ModuleNotFoundError: No module named 'errno'
+test_suite/test_shlex.py   ModuleNotFoundError: No module named 'io'
+test_suite/test_slice.py   ModuleNotFoundError: No module named 'operator'
+test_suite/test_sndhdr.py   ModuleNotFoundError: No module named 'sndhdr'
+test_suite/test_sort.py   ModuleNotFoundError: No module named 'random'
+test_suite/test_startfile.py   ModuleNotFoundError: No module named 'platform'
+test_suite/test_stat.py   ModuleNotFoundError: No module named 'socket'
+test_suite/test_strftime.py   ModuleNotFoundError: No module named 'calendar'
+test_suite/test_stringprep.py   ModuleNotFoundError: No module named 'stringprep'
+test_suite/test_strptime.py   ModuleNotFoundError: No module named 'locale'
+test_suite/test_sundry.py   ModuleNotFoundError: No module named 'importlib'
+test_suite/test_symbol.py   ModuleNotFoundError: No module named 'sysconfig'
+test_suite/test_symtable.py   ModuleNotFoundError: No module named 'symtable'
+test_suite/test_syntax.py   ModuleNotFoundError: No module named 're'
+test_suite/test_threadedtempfile.py   ModuleNotFoundError: No module named 'tempfile'
+test_suite/test_threadsignals.py   ModuleNotFoundError: No module named 'signal'
+test_suite/test_turtle.py   ModuleNotFoundError: No module named 'pickle'
+test_suite/test_ucn.py   ModuleNotFoundError: No module named 'unicodedata'
+test_suite/test_unicode_file_functions.py   ModuleNotFoundError: No module named 'warnings'
+test_suite/test_unicode_file.py   ModuleNotFoundError: No module named 'glob'
+test_suite/test_unittest.py   ModuleNotFoundError: No module named 'unittest.test'; unittest is not a package
+test_suite/test_univnewlines.py   ModuleNotFoundError: No module named 'io'
+test_suite/test_urllib_response.py   ModuleNotFoundError: No module named 'socket'
+test_suite/test_userlist.py   ModuleNotFoundError: No module named 'collections'
+test_suite/test_uu.py   ModuleNotFoundError: No module named 'stat'
+test_suite/test_winconsoleio.py   ModuleNotFoundError: No module named 'io'
+test_suite/test_winreg.py   ModuleNotFoundError: No module named 'errno'
+test_suite/test_xdrlib.py   ModuleNotFoundError: No module named 'xdrlib'
+test_suite/test_xml_dom_minicompat.py   ModuleNotFoundError: No module named 'copy'
+test_suite/test_xmlrpc_net.py   ModuleNotFoundError: No module named 'collections'
+test_suite/test_xxtestfuzz.py   ModuleNotFoundError: No module named 'faulthandler'
+test_suite/test_zipapp.py   ModuleNotFoundError: No module named 'io'
+test_suite/test_zipimport_support.py   ModuleNotFoundError: No module named 'os.path'; os is not a package
+
+--- attribute_error ---
+test_suite/test_aifc.py
+test_suite/test_asynchat.py
+test_suite/test_bigaddrspace.py
+test_suite/test_binhex.py
+test_suite/test_cgitb.py
+test_suite/test_cmath.py
+test_suite/test_codecencodings_cn.py
+test_suite/test_codecencodings_hk.py
+test_suite/test_codecencodings_iso2022.py
+test_suite/test_codecencodings_jp.py
+test_suite/test_codecencodings_kr.py
+test_suite/test_codecencodings_tw.py
+test_suite/test_codecmaps_cn.py
+test_suite/test_codecmaps_hk.py
+test_suite/test_codecmaps_jp.py
+test_suite/test_codecmaps_kr.py
+test_suite/test_codecmaps_tw.py
+test_suite/test_compare.py
+test_suite/test_crypt.py
+test_suite/test_ctypes.py
+test_suite/test_datetime.py
+test_suite/test_dbm_ndbm.py
+test_suite/test_descrtut.py
+test_suite/test_doctest2.py
+test_suite/test_doctest2.txt
+test_suite/test_dynamic.py
+test_suite/test_eof.py
+test_suite/test_extcall.py
+test_suite/test_format.py
+test_suite/test_frozen.py
+test_suite/test_global.py
+test_suite/test_grp.py
+test_suite/test_idle.py
+test_suite/test_iterlen.py
+test_suite/test_list.py
+test_suite/test_msilib.py
+test_suite/test_multibytecodec.py
+test_suite/test_multiprocessing_main_handling.py
+test_suite/test_nis.py
+test_suite/test_ossaudiodev.py
+test_suite/test_osx_env.py
+test_suite/test_popen.py
+test_suite/test_pty.py
+test_suite/test_pwd.py
+test_suite/test_smtpnet.py
+test_suite/test_source_encoding.py
+test_suite/test_spwd.py
+test_suite/test_sqlite.py
+test_suite/test_structmembers.py
+test_suite/test_sunau.py
+test_suite/test_syslog.py
+test_suite/test_tix.py
+test_suite/test_tk.py
+test_suite/test_ttk_textonly.py
+test_suite/test_userdict.py
+test_suite/test_wave.py
+test_suite/test_zipfile64.py
+
+--- other_error ---
+test_suite/test_genexps.py   NotImplementedError: hasattr not implemented
+test_suite/test_isinstance.py   NotImplementedError: property not implemented
+test_suite/test_listcomps.py   NotImplementedError: py-call does not support nammed args, *args or **kwargs
+test_suite/test_metaclass.py   NotImplementedError: hasattr not implemented
+test_suite/test_openpty.py   NotImplementedError: hasattr not implemented
+test_suite/test_setcomps.py   NotImplementedError: py-call does not support nammed args, *args or **kwargs
+test_suite/test_unpack_ex.py   NotImplementedError: py-call does not support nammed args, *args or **kwargs
+test_suite/test_unpack.py   NotImplementedError: py-call does not support nammed args, *args or **kwargs

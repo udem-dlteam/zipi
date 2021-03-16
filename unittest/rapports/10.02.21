@@ -1,0 +1,189 @@
+
+==== STATISTICS ====
+
+Ran 1 tests
+PASS : 0
+FAIL : 0
+compile_error : 1
+import_error : 0
+attribute_error : 0
+other_error : 0
+
+==== COMPLETE REPORT ====
+
+--- PASS ---
+No entry
+
+--- FAIL ---
+No entry
+
+--- compile_error ---
+test_suite/test_bool.py
+    CalledProcessError(70, '$ZIPIROOT/bin/zipi.gambit test_suite/test_bool.py & wait $!')
+
+--- import_error ---
+No entry
+
+--- attribute_error ---
+No entry
+
+--- other_error ---
+No entry
+
+==== STATISTICS ====
+
+Ran 1 tests
+PASS : 0
+FAIL : 0
+compile_error : 0
+import_error : 0
+attribute_error : 0
+other_error : 1
+
+==== COMPLETE REPORT ====
+
+--- PASS ---
+No entry
+
+--- FAIL ---
+No entry
+
+--- compile_error ---
+No entry
+
+--- import_error ---
+No entry
+
+--- attribute_error ---
+No entry
+
+--- other_error ---
+test_suite/test_bool.py
+    test_blocked
+    test_boolean
+    test_callable
+    test_contains
+    test_convert
+    test_convert_to_bool
+    test_fileclosed
+    test_float
+    test_format
+    test_from_bytes
+    test_hasattr
+    test_int
+    test_isinstance
+    test_issubclass
+    test_keyword_args
+    test_marshal
+    test_math
+    test_operator
+    test_pickle
+    test_picklevalues
+    test_print
+    test_real_and_imag
+    test_repr
+    test_sane_len
+    test_str
+    test_string
+    test_subclass
+    test_types
+    AttributeError
+    
+
+==== STATISTICS ====
+
+Ran 1 tests
+PASS : 0
+FAIL : 0
+compile_error : 1
+import_error : 0
+attribute_error : 0
+other_error : 0
+
+==== COMPLETE REPORT ====
+
+--- PASS ---
+No entry
+
+--- FAIL ---
+No entry
+
+--- compile_error ---
+test_suite/test_bool.py
+    CalledProcessError(70, '$ZIPIROOT/bin/zipi.gambit test_suite/test_bool.py & wait $!')
+
+--- import_error ---
+No entry
+
+--- attribute_error ---
+No entry
+
+--- other_error ---
+No entry
+
+==== STATISTICS ====
+
+Ran 1 tests
+PASS : 0
+FAIL : 1
+compile_error : 0
+import_error : 0
+attribute_error : 0
+other_error : 0
+
+==== COMPLETE REPORT ====
+
+--- PASS ---
+No entry
+
+--- FAIL ---
+test_suite/test_bool.py
+    test_blocked : the assert function assertRaises is not implemented
+    test_boolean : the assert function assertNotIsInstance is not implemented
+    test_callable : NotImplementedError raised
+    test_contains : OK
+    test_convert : the assert function assertRaises is not implemented
+    test_convert_to_bool : the assert function assertRaises is not implemented
+    test_fileclosed : An error was raised : <NameError object #0x2>
+    test_float : NotImplementedError raised
+    test_format : An error was raised : <TypeError object #0x3>
+    test_from_bytes : An error was raised : <AttributeError object #0x4>
+    test_hasattr : NotImplementedError raised
+    test_int : OK
+    test_isinstance : OK
+    test_issubclass : NotImplementedError raised
+    test_keyword_args : the assert function assertRaisesRegex is not implemented
+    test_marshal : An error was raised : <ModuleNotFoundError object #0x5>
+    test_math : FAIL
+      138 'assertIs' FAILED
+      140 'assertIs' FAILED
+    
+    test_operator : An error was raised : <ModuleNotFoundError object #0x6>
+    test_pickle : An error was raised : <ModuleNotFoundError object #0x7>
+    test_picklevalues : An error was raised : <ModuleNotFoundError object #0x8>
+    test_print : An error was raised : <NameError object #0x9>
+    test_real_and_imag : An error was raised : <AttributeError object #0xa>
+    test_repr : NotImplementedError raised
+    test_sane_len : OK
+    test_str : OK
+    test_string : An error was raised : <AttributeError object #0xb>
+    test_subclass : An error was raised : <AttributeError object #0xc>
+    test_types : OK
+    
+    success : 6
+    not implemented : 10
+    total : 28
+    FAIL | 28 tests runned. PASSED = 6    FAILED = 22
+    
+
+--- compile_error ---
+No entry
+
+--- import_error ---
+No entry
+
+--- attribute_error ---
+No entry
+
+--- other_error ---
+No entry

@@ -1,0 +1,1928 @@
+
+==== STATISTICS ====
+
+Ran 496 tests
+PASS : 0
+FAIL : 1
+compile_error : 1
+import_error : 176
+attribute_error : 64
+other_error : 254
+
+==== COMPLETE REPORT ====
+
+--- PASS ---
+No entry
+
+--- FAIL ---
+test_suite/test_bool.py
+    test_blocked : the assert function assertRaises is not implemented
+    test_boolean : the assert function assertNotIsInstance is not implemented
+    test_callable : NotImplementedError raised
+    test_contains : OK
+    test_convert : the assert function assertRaises is not implemented
+    test_convert_to_bool : the assert function assertRaises is not implemented
+    test_fileclosed : An error was raised : <NameError object #0x2>
+    test_float : NotImplementedError raised
+    test_format : An error was raised : <TypeError object #0x3>
+    test_from_bytes : An error was raised : <AttributeError object #0x4>
+    test_hasattr : NotImplementedError raised
+    test_int : OK
+    test_isinstance : OK
+    test_issubclass : NotImplementedError raised
+    test_keyword_args : the assert function assertRaisesRegex is not implemented
+    test_marshal : An error was raised : <ModuleNotFoundError object #0x5>
+    test_math : FAIL
+      138 'assertIs' FAILED
+      140 'assertIs' FAILED
+    
+    test_operator : An error was raised : <ModuleNotFoundError object #0x6>
+    test_pickle : An error was raised : <ModuleNotFoundError object #0x7>
+    test_picklevalues : An error was raised : <ModuleNotFoundError object #0x8>
+    test_print : An error was raised : <NameError object #0x9>
+    test_real_and_imag : An error was raised : <AttributeError object #0xa>
+    test_repr : NotImplementedError raised
+    test_sane_len : OK
+    test_str : OK
+    test_string : An error was raised : <AttributeError object #0xb>
+    test_subclass : An error was raised : <AttributeError object #0xc>
+    test_types : OK
+    
+    success : 6
+    not implemented : 10
+    total : 28
+    FAIL | 28 tests runned. PASSED = 6    FAILED = 22
+    
+
+--- compile_error ---
+test_suite/test_int_literal.py
+    CalledProcessError(70, '$ZIPIROOT/bin/zipi.gambit test_suite/test_int_literal.py & wait $!')
+
+--- import_error ---
+test_suite/__main__.py
+    ModuleNotFoundError: No module named 'test.libregrtest'
+    
+test_suite/ann_module.py
+    ModuleNotFoundError: No module named 'typing'
+    
+test_suite/ann_module2.py
+    ModuleNotFoundError: No module named 'typing'
+    
+test_suite/autotest.py
+    ModuleNotFoundError: No module named 'test.libregrtest'
+    
+test_suite/badsyntax_future3.py
+    ModuleNotFoundError: No module named '__future__'
+    
+test_suite/badsyntax_future4.py
+    ModuleNotFoundError: No module named '__future__'
+    
+test_suite/badsyntax_future5.py
+    ModuleNotFoundError: No module named '__future__'
+    
+test_suite/badsyntax_future6.py
+    ModuleNotFoundError: No module named '__future__'
+    
+test_suite/badsyntax_future7.py
+    ModuleNotFoundError: No module named '__future__'
+    
+test_suite/badsyntax_future8.py
+    ModuleNotFoundError: No module named '__future__'
+    
+test_suite/badsyntax_future9.py
+    ModuleNotFoundError: No module named '__future__'
+    
+test_suite/badsyntax_future10.py
+    ModuleNotFoundError: No module named '__future__'
+    
+test_suite/bisect_cmd.py
+    ModuleNotFoundError: No module named 'argparse'
+    
+test_suite/curses_tests.py
+    ModuleNotFoundError: No module named 'curses'
+    
+test_suite/dataclass_module_1.py
+    ModuleNotFoundError: No module named 'dataclasses'
+    
+test_suite/dataclass_module_1_str.py
+    ModuleNotFoundError: No module named '__future__'
+    
+test_suite/dataclass_module_2.py
+    ModuleNotFoundError: No module named 'dataclasses'
+    
+test_suite/dataclass_module_2_str.py
+    ModuleNotFoundError: No module named '__future__'
+    
+test_suite/dataclass_textanno.py
+    ModuleNotFoundError: No module named '__future__'
+    
+test_suite/final_a.py
+    ModuleNotFoundError: No module named 'shutil'
+    
+test_suite/final_b.py
+    ModuleNotFoundError: No module named 'shutil'
+    
+test_suite/future_test1.py
+    ModuleNotFoundError: No module named '__future__'
+    
+test_suite/future_test2.py
+    ModuleNotFoundError: No module named '__future__'
+    
+test_suite/list_tests.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/make_ssl_certs.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/memory_watchdog.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/mock_socket.py
+    ModuleNotFoundError: No module named 'socket'
+    
+test_suite/mod_generics_cache.py
+    ModuleNotFoundError: No module named 'textwrap'
+    
+test_suite/mp_fork_bomb.py
+    ModuleNotFoundError: No module named 'multiprocessing'
+    
+test_suite/mp_preload.py
+    ModuleNotFoundError: No module named 'multiprocessing'
+    
+test_suite/pydocfodder.py
+    ModuleNotFoundError: No module named 'types'
+    
+test_suite/regrtest.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/reperf.py
+    ModuleNotFoundError: No module named 're'
+    
+test_suite/signalinterproctester.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/ssl_servers.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/ssltests.py
+    ModuleNotFoundError: No module named 'ssl'
+    
+test_suite/test___future__.py
+    ModuleNotFoundError: No module named '__future__'
+    
+test_suite/test__locale.py
+    ModuleNotFoundError: No module named '_locale'
+    
+test_suite/test__opcode.py
+    ModuleNotFoundError: No module named 'dis'
+    
+test_suite/test__osx_support.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/test_abc.py
+    ModuleNotFoundError: No module named 'abc'
+    
+test_suite/test_abstract_numbers.py
+    ModuleNotFoundError: No module named 'math'
+    
+test_suite/test_asdl_parser.py
+    ModuleNotFoundError: No module named 'importlib'
+    
+test_suite/test_asyncore.py
+    ModuleNotFoundError: No module named 'asyncore'
+    
+test_suite/test_atexit.py
+    ModuleNotFoundError: No module named 'io'
+    
+test_suite/test_base64.py
+    ModuleNotFoundError: No module named 'base64'
+    
+test_suite/test_baseexception.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/test_binascii.py
+    ModuleNotFoundError: No module named 'binascii'
+    
+test_suite/test_binop.py
+    ModuleNotFoundError: No module named 'operator'
+    
+test_suite/test_bufio.py
+    ModuleNotFoundError: No module named 'io'
+    
+test_suite/test_calendar.py
+    ModuleNotFoundError: No module named 'calendar'
+    
+test_suite/test_cgi.py
+    ModuleNotFoundError: No module named 'cgi'
+    
+test_suite/test_charmapcodec.py
+    ModuleNotFoundError: No module named 'codecs'
+    
+test_suite/test_check_c_globals.py
+    ModuleNotFoundError: No module named 'test.test_tools'
+    
+test_suite/test_cmd.py
+    ModuleNotFoundError: No module named 'cmd'
+    
+test_suite/test_codeop.py
+    ModuleNotFoundError: No module named 'codeop'
+    
+test_suite/test_copyreg.py
+    ModuleNotFoundError: No module named 'copyreg'
+    
+test_suite/test_cprofile.py
+    ModuleNotFoundError: No module named 'cProfile'
+    
+test_suite/test_crashers.py
+    ModuleNotFoundError: No module named 'glob'
+    
+test_suite/test_csv.py
+    ModuleNotFoundError: No module named 'copy'
+    
+test_suite/test_dbm_dumb.py
+    ModuleNotFoundError: No module named 'contextlib'
+    
+test_suite/test_devpoll.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/test_dictviews.py
+    ModuleNotFoundError: No module named 'collections'
+    
+test_suite/test_difflib.py
+    ModuleNotFoundError: No module named 'difflib'
+    
+test_suite/test_distutils.py
+    ModuleNotFoundError: No module named 'distutils'
+    
+test_suite/test_docxmlrpc.py
+    ModuleNotFoundError: No module named 'xmlrpc.server'
+    
+test_suite/test_dtrace.py
+    ModuleNotFoundError: No module named 'dis'
+    
+test_suite/test_epoll.py
+    ModuleNotFoundError: No module named 'errno'
+    
+test_suite/test_errno.py
+    ModuleNotFoundError: No module named 'errno'
+    
+test_suite/test_fcntl.py
+    ModuleNotFoundError: No module named 'platform'
+    
+test_suite/test_file.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/test_file_eintr.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/test_filecmp.py
+    ModuleNotFoundError: No module named 'filecmp'
+    
+test_suite/test_fileinput.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/test_float.py
+    ModuleNotFoundError: No module named 'fractions'
+    
+test_suite/test_flufl.py
+    ModuleNotFoundError: No module named '__future__'
+    
+test_suite/test_fork1.py
+    ModuleNotFoundError: No module named '_imp'
+    
+test_suite/test_fractions.py
+    ModuleNotFoundError: No module named 'decimal'
+    
+test_suite/test_future3.py
+    ModuleNotFoundError: No module named '__future__'
+    
+test_suite/test_future4.py
+    ModuleNotFoundError: No module named '__future__'
+    
+test_suite/test_future5.py
+    ModuleNotFoundError: No module named '__future__'
+    
+test_suite/test_generator_stop.py
+    ModuleNotFoundError: No module named '__future__'
+    
+test_suite/test_genericpath.py
+    ModuleNotFoundError: No module named 'genericpath'
+    
+test_suite/test_getargs2.py
+    ModuleNotFoundError: No module named 'math'
+    
+test_suite/test_getpass.py
+    ModuleNotFoundError: No module named 'getpass'
+    
+test_suite/test_html.py
+    ModuleNotFoundError: No module named 'html'
+    
+test_suite/test_http_cookies.py
+    ModuleNotFoundError: No module named 'copy'
+    
+test_suite/test_httpservers.py
+    ModuleNotFoundError: No module named 'http.server'
+    
+test_suite/test_imghdr.py
+    ModuleNotFoundError: No module named 'imghdr'
+    
+test_suite/test_index.py
+    ModuleNotFoundError: No module named 'operator'
+    
+test_suite/test_lib2to3.py
+    ModuleNotFoundError: No module named 'lib2to3.tests'
+    
+test_suite/test_linecache.py
+    ModuleNotFoundError: No module named 'linecache'
+    
+test_suite/test_lltrace.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/test_lzma.py
+    ModuleNotFoundError: No module named '_compression'
+    
+test_suite/test_mailcap.py
+    ModuleNotFoundError: No module named 'mailcap'
+    
+test_suite/test_marshal.py
+    ModuleNotFoundError: No module named 'array'
+    
+test_suite/test_minidom.py
+    ModuleNotFoundError: No module named 'copy'
+    
+test_suite/test_modulefinder.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/test_msilib.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/test_multiprocessing_fork.py
+    ModuleNotFoundError: No module named 'test._test_multiprocessing'
+    
+test_suite/test_multiprocessing_forkserver.py
+    ModuleNotFoundError: No module named 'test._test_multiprocessing'
+    
+test_suite/test_multiprocessing_spawn.py
+    ModuleNotFoundError: No module named 'test._test_multiprocessing'
+    
+test_suite/test_netrc.py
+    ModuleNotFoundError: No module named 'netrc'
+    
+test_suite/test_ntpath.py
+    ModuleNotFoundError: No module named 'ntpath'
+    
+test_suite/test_numeric_tower.py
+    ModuleNotFoundError: No module named 'random'
+    
+test_suite/test_openpty.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/test_pdb.py
+    ModuleNotFoundError: No module named 'doctest'
+    
+test_suite/test_pickletools.py
+    ModuleNotFoundError: No module named 'pickle'
+    
+test_suite/test_pipes.py
+    ModuleNotFoundError: No module named 'pipes'
+    
+test_suite/test_pkg.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/test_plistlib.py
+    ModuleNotFoundError: No module named 'copy'
+    
+test_suite/test_poll.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/test_popen.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/test_poplib.py
+    ModuleNotFoundError: No module named 'poplib'
+    
+test_suite/test_posixpath.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/test_pow.py
+    ModuleNotFoundError: No module named 'math'
+    
+test_suite/test_pprint.py
+    ModuleNotFoundError: No module named 'collections'
+    
+test_suite/test_print.py
+    ModuleNotFoundError: No module named 'io'
+    
+test_suite/test_pstats.py
+    ModuleNotFoundError: No module named 'io'
+    
+test_suite/test_pulldom.py
+    ModuleNotFoundError: No module named 'io'
+    
+test_suite/test_pyclbr.py
+    ModuleNotFoundError: No module named 'textwrap'
+    
+test_suite/test_pyexpat.py
+    ModuleNotFoundError: No module named 'io'
+    
+test_suite/test_quopri.py
+    ModuleNotFoundError: No module named 'io'
+    
+test_suite/test_repl.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/test_reprlib.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/test_resource.py
+    ModuleNotFoundError: No module named 'contextlib'
+    
+test_suite/test_robotparser.py
+    ModuleNotFoundError: No module named 'io'
+    
+test_suite/test_sax.py
+    ModuleNotFoundError: No module named 'xml.sax'
+    
+test_suite/test_sched.py
+    ModuleNotFoundError: No module named 'queue'
+    
+test_suite/test_script_helper.py
+    ModuleNotFoundError: No module named 'subprocess'
+    
+test_suite/test_select.py
+    ModuleNotFoundError: No module named 'errno'
+    
+test_suite/test_shlex.py
+    ModuleNotFoundError: No module named 'io'
+    
+test_suite/test_slice.py
+    ModuleNotFoundError: No module named 'operator'
+    
+test_suite/test_smtpd.py
+    ModuleNotFoundError: No module named 'textwrap'
+    
+test_suite/test_sndhdr.py
+    ModuleNotFoundError: No module named 'sndhdr'
+    
+test_suite/test_sort.py
+    ModuleNotFoundError: No module named 'random'
+    
+test_suite/test_spwd.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/test_startfile.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/test_stat.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/test_strftime.py
+    ModuleNotFoundError: No module named 'calendar'
+    
+test_suite/test_stringprep.py
+    ModuleNotFoundError: No module named 'stringprep'
+    
+test_suite/test_strptime.py
+    ModuleNotFoundError: No module named 'locale'
+    
+test_suite/test_structseq.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/test_subclassinit.py
+    ModuleNotFoundError: No module named 'types'
+    
+test_suite/test_sundry.py
+    ModuleNotFoundError: No module named 'importlib'
+    
+test_suite/test_symbol.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/test_symtable.py
+    ModuleNotFoundError: No module named 'symtable'
+    
+test_suite/test_syntax.py
+    ModuleNotFoundError: No module named 're'
+    
+test_suite/test_textwrap.py
+    ModuleNotFoundError: No module named 'textwrap'
+    
+test_suite/test_threadedtempfile.py
+    ModuleNotFoundError: No module named 'tempfile'
+    
+test_suite/test_threadsignals.py
+    ModuleNotFoundError: No module named 'signal'
+    
+test_suite/test_turtle.py
+    ModuleNotFoundError: No module named 'pickle'
+    
+test_suite/test_ucn.py
+    ModuleNotFoundError: No module named 'unicodedata'
+    
+test_suite/test_unicode_file.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/test_unicode_file_functions.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/test_unittest.py
+    ModuleNotFoundError: No module named 'unittest.test'; unittest is not a package
+    
+test_suite/test_univnewlines.py
+    ModuleNotFoundError: No module named 'io'
+    
+test_suite/test_urllib2_localnet.py
+    ModuleNotFoundError: No module named 'base64'
+    
+test_suite/test_urllib_response.py
+    ModuleNotFoundError: No module named 'socket'
+    
+test_suite/test_userlist.py
+    ModuleNotFoundError: No module named 'collections'
+    
+test_suite/test_uu.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/test_winconsoleio.py
+    ModuleNotFoundError: No module named 'io'
+    
+test_suite/test_winreg.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/test_winsound.py
+    ModuleNotFoundError: No module named 'functools'
+    
+test_suite/test_xdrlib.py
+    ModuleNotFoundError: No module named 'xdrlib'
+    
+test_suite/test_xml_dom_minicompat.py
+    ModuleNotFoundError: No module named 'copy'
+    
+test_suite/test_xmlrpc_net.py
+    ModuleNotFoundError: No module named 'collections'
+    
+test_suite/test_xxtestfuzz.py
+    ModuleNotFoundError: No module named 'faulthandler'
+    
+test_suite/test_zipapp.py
+    ModuleNotFoundError: No module named 'io'
+    
+test_suite/test_zipimport.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/test_zipimport_support.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/testcodec.py
+    ModuleNotFoundError: No module named 'codecs'
+    
+test_suite/tf_inherit_check.py
+    ModuleNotFoundError: No module named 'os'
+    
+test_suite/time_hashlib.py
+    ModuleNotFoundError: No module named 'hashlib'
+    
+test_suite/win_console_handler.py
+    ModuleNotFoundError: No module named 'ctypes'
+    
+test_suite/xmltests.py
+    ModuleNotFoundError: No module named 'test.test_minidom'
+    
+
+--- attribute_error ---
+test_suite/audiotests.py
+    AttributeError
+    
+test_suite/double_const.py
+    AttributeError
+    
+test_suite/test_aifc.py
+    AttributeError
+    
+test_suite/test_asynchat.py
+    AttributeError
+    
+test_suite/test_bigaddrspace.py
+    AttributeError
+    
+test_suite/test_binhex.py
+    AttributeError
+    
+test_suite/test_cgitb.py
+    AttributeError
+    
+test_suite/test_clinic.py
+    AttributeError
+    
+test_suite/test_cmath.py
+    AttributeError
+    
+test_suite/test_codecencodings_cn.py
+    AttributeError
+    
+test_suite/test_codecencodings_hk.py
+    AttributeError
+    
+test_suite/test_codecencodings_iso2022.py
+    AttributeError
+    
+test_suite/test_codecencodings_jp.py
+    AttributeError
+    
+test_suite/test_codecencodings_kr.py
+    AttributeError
+    
+test_suite/test_codecencodings_tw.py
+    AttributeError
+    
+test_suite/test_codecmaps_cn.py
+    AttributeError
+    
+test_suite/test_codecmaps_hk.py
+    AttributeError
+    
+test_suite/test_codecmaps_jp.py
+    AttributeError
+    
+test_suite/test_codecmaps_kr.py
+    AttributeError
+    
+test_suite/test_codecmaps_tw.py
+    AttributeError
+    
+test_suite/test_compare.py
+    AttributeError
+    
+test_suite/test_crypt.py
+    AttributeError
+    
+test_suite/test_ctypes.py
+    AttributeError
+    
+test_suite/test_datetime.py
+    AttributeError
+    
+test_suite/test_dbm_ndbm.py
+    AttributeError
+    
+test_suite/test_descrtut.py
+    AttributeError
+    
+test_suite/test_dict_version.py
+    AttributeError
+    
+test_suite/test_doctest2.py
+    AttributeError
+    
+test_suite/test_dynamic.py
+    AttributeError
+    
+test_suite/test_eof.py
+    AttributeError
+    
+test_suite/test_extcall.py
+    AttributeError
+    
+test_suite/test_format.py
+    AttributeError
+    
+test_suite/test_frozen.py
+    AttributeError
+    
+test_suite/test_global.py
+    AttributeError
+    
+test_suite/test_grp.py
+    AttributeError
+    
+test_suite/test_idle.py
+    AttributeError
+    
+test_suite/test_int.py
+    AttributeError
+    
+test_suite/test_iterlen.py
+    AttributeError
+    
+test_suite/test_list.py
+    AttributeError
+    
+test_suite/test_listcomps.py
+    AttributeError
+    
+test_suite/test_multibytecodec.py
+    AttributeError
+    
+test_suite/test_multiprocessing_main_handling.py
+    AttributeError
+    
+test_suite/test_nis.py
+    AttributeError
+    
+test_suite/test_ossaudiodev.py
+    AttributeError
+    
+test_suite/test_osx_env.py
+    AttributeError
+    
+test_suite/test_pty.py
+    AttributeError
+    
+test_suite/test_pwd.py
+    AttributeError
+    
+test_suite/test_setcomps.py
+    AttributeError
+    
+test_suite/test_smtpnet.py
+    AttributeError
+    
+test_suite/test_source_encoding.py
+    AttributeError
+    
+test_suite/test_sqlite.py
+    AttributeError
+    
+test_suite/test_structmembers.py
+    AttributeError
+    
+test_suite/test_sunau.py
+    AttributeError
+    
+test_suite/test_syslog.py
+    AttributeError
+    
+test_suite/test_tix.py
+    AttributeError
+    
+test_suite/test_tk.py
+    AttributeError
+    
+test_suite/test_ttk_textonly.py
+    AttributeError
+    
+test_suite/test_unpack.py
+    AttributeError
+    
+test_suite/test_unpack_ex.py
+    AttributeError
+    
+test_suite/test_urllib2net.py
+    AttributeError
+    
+test_suite/test_userdict.py
+    AttributeError
+    
+test_suite/test_userstring.py
+    AttributeError
+    
+test_suite/test_wave.py
+    AttributeError
+    
+test_suite/test_zipfile64.py
+    AttributeError
+    
+
+--- other_error ---
+test_suite/__init__.py
+    
+test_suite/_test_multiprocessing.py
+    > 
+    *** EOF again to exit
+    
+test_suite/ann_module3.py
+    
+test_suite/audit-tests.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/audit-tests/audit-tests.sld"@3.75 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/bad_coding.py
+    > 
+    *** EOF again to exit
+    
+test_suite/bad_coding2.py
+    > 
+    *** EOF again to exit
+    
+test_suite/bad_getattr.py
+    
+test_suite/bad_getattr2.py
+    
+test_suite/bad_getattr3.py
+    
+test_suite/badsyntax_3131.py
+    > 
+    *** EOF again to exit
+    
+test_suite/badsyntax_pep3120.py
+    > 
+    *** EOF again to exit
+    
+test_suite/coding20731.py
+    
+test_suite/datetimetester.py
+    > 
+    *** EOF again to exit
+    
+test_suite/dis_module.py
+    
+test_suite/doctest_aliases.py
+    
+test_suite/fork_wait.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/fork_wait/fork_wait.sld"@1.14 -- Invalid token
+    > 
+    *** EOF again to exit
+    
+test_suite/gdb_sample.py
+    NotImplementedError: id not implemented
+    
+test_suite/good_getattr.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/good_getattr/good_getattr.sld"@3.76 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/imp_dummy.py
+    
+test_suite/inspect_fodder.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/inspect_fodder/inspect_fodder.sld"@3.73 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/inspect_fodder2.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/inspect_fodder2/inspect_fodder2.sld"@1.14 -- Invalid token
+    > 
+    *** EOF again to exit
+    
+test_suite/lock_tests.py
+    
+test_suite/mapping_tests.py
+    > 
+    *** EOF again to exit
+    
+test_suite/multibytecodec_support.py
+    > 
+    *** EOF again to exit
+    
+test_suite/pickletester.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/pickletester/pickletester.sld"@3.62 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/profilee.py
+    
+test_suite/pyclbr_input.py
+    NotImplementedError: classmethod not implemented
+    
+test_suite/pydoc_mod.py
+    
+test_suite/pythoninfo.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/pythoninfo/pythoninfo.sld"@3.57 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/re_tests.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/re_tests/re_tests.sld"@3.1 -- Invalid token
+    > 
+    *** EOF again to exit
+    
+test_suite/relimport.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_import/__init__/__init__.sld"@3.73 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/sample_doctest.py
+    
+test_suite/sample_doctest_no_docstrings.py
+    
+test_suite/sample_doctest_no_doctests.py
+    
+test_suite/seq_tests.py
+    > 
+    *** EOF again to exit
+    
+test_suite/sortperf.py
+    
+test_suite/string_tests.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/string_tests/string_tests.sld"@3.74 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test___all__.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test__xxsubinterpreters.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test__xxsubinterpreters/test__xxsubinterpreters.sld"@3.39 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_argparse.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_array.py
+    
+test_suite/test_ast.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_ast/test_ast.sld"@3.71 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_asyncgen.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_asyncgen/test_asyncgen.sld"@3.74 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_audioop.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_audioop/test_audioop.sld"@3.76 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_audit.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_audit/test_audit.sld"@3.72 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_augassign.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_bdb.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_bigmem.py
+    
+test_suite/test_bisect.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_buffer.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_buffer/test_buffer.sld"@1.14 -- Invalid token
+    > 
+    *** EOF again to exit
+    
+test_suite/test_builtin.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_bytes.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_bytes/test_bytes.sld"@3.41 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_bz2.py
+    
+test_suite/test_c_locale_coercion.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_c_locale_coercion/test_c_locale_coercion.sld"@3.68 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_call.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_call/test_call.sld"@1.14 -- Invalid token
+    > 
+    *** EOF again to exit
+    
+test_suite/test_capi.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_class.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_cmd_line.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_cmd_line/test_cmd_line.sld"@3.41 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_cmd_line_script.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_code.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_code/test_code.sld"@3.65 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_code_module.py
+    
+test_suite/test_codeccallbacks.py
+    
+test_suite/test_codecs.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_codecs/test_codecs.sld"@3.52 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_collections.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_colorsys.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_compile.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_compile/test_compile.sld"@3.70 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_compileall.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_compileall/test_compileall.sld"@3.52 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_complex.py
+    
+test_suite/test_concurrent_futures.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_configparser.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_contains.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_context.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_context/test_context.sld"@3.74 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_contextlib.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_contextlib_async.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_contextlib_async/test_contextlib_async.sld"@3.73 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_copy.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_copy/test_copy.sld"@1.14 -- Invalid token
+    > 
+    *** EOF again to exit
+    
+test_suite/test_coroutines.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_curses.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_dataclasses.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_dataclasses/test_dataclasses.sld"@3.39 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_dbm.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_dbm_gnu.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_dbm_gnu/test_dbm_gnu.sld"@3.76 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_decimal.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_decimal/test_decimal.sld"@3.70 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_decorators.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_decorators/test_decorators.sld"@3.74 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_defaultdict.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_deque.py
+    
+test_suite/test_descr.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_dict.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_dict/test_dict.sld"@3.74 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_dictcomps.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_dictcomps/test_dictcomps.sld"@3.41 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_dis.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_dis/test_dis.sld"@3.21 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_doctest.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_dynamicclassattribute.py
+    
+test_suite/test_eintr.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_eintr/test_eintr.sld"@3.39 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_embed.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_ensurepip.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_enum.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_enumerate.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_exception_hierarchy.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_exception_variations.py
+    ExceptionTestCase
+    running  ExceptionTestCase
+    test_nested : FAIL
+      1 'assertTrue' FAILED
+      2 'assertTrue' FAILED
+      3 'assertTrue' FAILED
+    
+    test_nested_else : FAIL
+      1 'assertFalse' FAILED
+      2 'assertTrue' FAILED
+      3 'assertFalse' FAILED
+      4 'assertTrue' FAILED
+      5 'assertTrue' FAILED
+    
+    test_try_except : FAIL
+      1 'assertTrue' FAILED
+    
+    test_try_except_else : FAIL
+      1 'assertFalse' FAILED
+      2 'assertTrue' FAILED
+    
+    test_try_except_else_finally : FAIL
+      1 'assertTrue' FAILED
+      2 'assertTrue' FAILED
+      3 'assertFalse' FAILED
+    
+    test_try_except_else_finally_no_exception : FAIL
+      1 'assertFalse' FAILED
+      2 'assertTrue' FAILED
+      3 'assertTrue' FAILED
+    
+    test_try_except_else_no_exception : FAIL
+      1 'assertFalse' FAILED
+      2 'assertTrue' FAILED
+    
+    test_try_except_finally : FAIL
+      1 'assertTrue' FAILED
+      2 'assertTrue' FAILED
+    
+    test_try_except_finally_no_exception : FAIL
+      1 'assertFalse' FAILED
+      2 'assertTrue' FAILED
+    
+    test_try_except_no_exception : FAIL
+      1 'assertFalse' FAILED
+    
+    test_try_finally_no_exception : FAIL
+      1 'assertTrue' FAILED
+    
+    
+    success : 0
+    not implemented : 0
+    total : 11
+    FAIL | 11 tests runned. PASSED = 0    FAILED = 11
+    __builtins__
+    __name__
+    __next__
+    AttributeError
+    
+test_suite/test_exceptions.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_faulthandler.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_fileio.py
+    
+test_suite/test_finalization.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_fnmatch.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_fnmatch/test_fnmatch.sld"@3.74 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_frame.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_fstring.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_ftplib.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_ftplib/test_ftplib.sld"@3.1 -- Invalid token
+    > 
+    *** EOF again to exit
+    
+test_suite/test_funcattrs.py
+    
+test_suite/test_functools.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_future.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_future/test_future.sld"@3.74 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_gc.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_gdb.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_gdb/test_gdb.sld"@3.54 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_generators.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_generators/test_generators.sld"@3.34 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_genericalias.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_genericalias/test_genericalias.sld"@3.54 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_genericclass.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_genericclass/test_genericclass.sld"@3.75 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_genexps.py
+    NotImplementedError: hasattr not implemented
+    
+test_suite/test_getopt.py
+    
+test_suite/test_gettext.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_gettext/test_gettext.sld"@3.74 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_glob.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_glob/test_glob.sld"@3.58 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_grammar.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_graphlib.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_graphlib/test_graphlib.sld"@3.76 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_gzip.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_hash.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_hashlib.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_hashlib/test_hashlib.sld"@3.31 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_heapq.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_hmac.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_hmac/test_hmac.sld"@3.75 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_htmlparser.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_http_cookiejar.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_http_cookiejar/test_http_cookiejar.sld"@3.41 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_httplib.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_httplib/test_httplib.sld"@3.70 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_imaplib.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_imp.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_imp/test_imp.sld"@3.76 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_inspect.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_inspect/test_inspect.sld"@1.14 -- Invalid token
+    > 
+    *** EOF again to exit
+    
+test_suite/test_io.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_io/test_io.sld"@3.43 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_ioctl.py
+    
+test_suite/test_ipaddress.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_ipaddress/test_ipaddress.sld"@3.2 -- Invalid token
+    > 
+    *** EOF again to exit
+    
+test_suite/test_isinstance.py
+    NotImplementedError: property not implemented
+    
+test_suite/test_iter.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_itertools.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_keyword.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_keyword/test_keyword.sld"@3.76 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_keywordonlyarg.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_keywordonlyarg/test_keywordonlyarg.sld"@1.14 -- Invalid token
+    > 
+    *** EOF again to exit
+    
+test_suite/test_kqueue.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_largefile.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_largefile/test_largefile.sld"@3.73 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_locale.py
+    
+test_suite/test_logging.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_logging/test_logging.sld"@3.51 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_long.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_longexp.py
+    LongExpText
+    running  LongExpText
+    test_longexp : An error was raised : <TypeError object #0x2>
+    
+    success : 0
+    not implemented : 0
+    total : 1
+    FAIL | 1 tests runned. PASSED = 0    FAILED = 1
+    __builtins__
+    __name__
+    __next__
+    AttributeError
+    
+test_suite/test_mailbox.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_mailbox/test_mailbox.sld"@3.71 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_math.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_math/test_math.sld"@3.2 -- Invalid token
+    > 
+    *** EOF again to exit
+    
+test_suite/test_memoryio.py
+    
+test_suite/test_memoryview.py
+    
+test_suite/test_metaclass.py
+    NotImplementedError: hasattr not implemented
+    
+test_suite/test_mimetypes.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_mmap.py
+    
+test_suite/test_module.py
+    
+test_suite/test_named_expressions.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_named_expressions/test_named_expressions.sld"@3.41 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_nntplib.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_nntplib/test_nntplib.sld"@3.52 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_opcodes.py
+    
+test_suite/test_operator.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_optparse.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_ordered_dict.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_os.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_os/test_os.sld"@3.22 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_parser.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_pathlib.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_pathlib/test_pathlib.sld"@3.61 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_peepholer.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_peepholer/test_peepholer.sld"@3.1 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_peg_parser.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_peg_parser/test_peg_parser.sld"@3.21 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_pickle.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_pickle/test_pickle.sld"@3.72 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_picklebuffer.py
+    
+test_suite/test_pkgutil.py
+    
+test_suite/test_platform.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_platform/test_platform.sld"@3.22 -- Invalid token
+    > 
+    *** EOF again to exit
+    
+test_suite/test_positional_only_arg.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_positional_only_arg/test_positional_only_arg.sld"@1.14 -- Invalid token
+    > 
+    *** EOF again to exit
+    
+test_suite/test_posix.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_profile.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_profile/test_profile.sld"@3.54 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_property.py
+    
+test_suite/test_py_compile.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_py_compile/test_py_compile.sld"@1.14 -- Invalid token
+    > 
+    *** EOF again to exit
+    
+test_suite/test_pydoc.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_queue.py
+    
+test_suite/test_raise.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_random.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_range.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_re.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_readline.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_readline/test_readline.sld"@3.64 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_regrtest.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_regrtest/test_regrtest.sld"@3.75 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_richcmp.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_rlcompleter.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_rlcompleter/test_rlcompleter.sld"@3.71 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_runpy.py
+    
+test_suite/test_scope.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_secrets.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_selectors.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_set.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_set/test_set.sld"@3.62 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_shelve.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_shutil.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_signal.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_signal/test_signal.sld"@3.72 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_site.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_site/test_site.sld"@3.70 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_smtplib.py
+    
+test_suite/test_socket.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_socketserver.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_ssl.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_ssl/test_ssl.sld"@3.52 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_statistics.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_string.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_string_literals.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_strtod.py
+    
+test_suite/test_struct.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_subprocess.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_subprocess/test_subprocess.sld"@3.43 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_super.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_support.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_support/test_support.sld"@3.41 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_sys.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_sys/test_sys.sld"@3.66 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_sys_setprofile.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_sys_settrace.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_sys_settrace/test_sys_settrace.sld"@3.73 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_sysconfig.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_tabnanny.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_tabnanny/test_tabnanny.sld"@3.22 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_tarfile.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_tcl.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_telnetlib.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_tempfile.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_thread.py
+    
+test_suite/test_threading.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_threading/test_threading.sld"@3.43 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_threading_local.py
+    
+test_suite/test_time.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_timeit.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_timeout.py
+    
+test_suite/test_tokenize.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_tokenize/test_tokenize.sld"@3.74 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_trace.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_trace/test_trace.sld"@3.22 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_traceback.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_traceback/test_traceback.sld"@3.41 -- Invalid escaped character: #\.
+    > 
+    *** EOF again to exit
+    
+test_suite/test_tracemalloc.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_tracemalloc/test_tracemalloc.sld"@3.67 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_ttk_guionly.py
+    
+test_suite/test_tuple.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_tuple/test_tuple.sld"@3.72 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_type_comments.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_typechecks.py
+    NameError: py-set-from-scheme not implemented
+    
+test_suite/test_types.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_typing.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_typing/test_typing.sld"@3.74 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_unary.py
+    UnaryOpTestCase
+    running  UnaryOpTestCase
+    test_bad_types : the assert function assertRaises is not implemented
+    test_invert : FAIL
+      1 'assertTrue' FAILED
+      4 'assertTrue' FAILED
+    
+    test_negation_of_exponentiation : OK
+    test_negative : FAIL
+      1 'assertTrue' FAILED
+      4 'assertTrue' FAILED
+      5 'assertTrue' FAILED
+      6 'assertTrue' FAILED
+    
+    test_no_overflow : An error was raised : <TypeError object #0x2>
+    test_positive : OK
+    
+    success : 2
+    not implemented : 1
+    total : 6
+    FAIL | 6 tests runned. PASSED = 2    FAILED = 4
+    __builtins__
+    __name__
+    __next__
+    AttributeError
+    
+test_suite/test_unicode.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_unicode/test_unicode.sld"@3.43 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_unicode_identifiers.py
+    PEP3131Test
+    running  PEP3131Test
+    test_invalid : An error was raised : <AttributeError object #0x2>
+    test_non_bmp_normalized : NotImplementedError raised
+    test_valid : An error was raised : <AttributeError object #0x3>
+    
+    success : 0
+    not implemented : 1
+    total : 3
+    FAIL | 3 tests runned. PASSED = 0    FAILED = 3
+    __builtins__
+    __name__
+    __next__
+    AttributeError
+    
+test_suite/test_unicodedata.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_unicodedata/test_unicodedata.sld"@3.22 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_unparse.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_unparse/test_unparse.sld"@3.76 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_urllib.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_urllib/test_urllib.sld"@3.69 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_urllib2.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_urllib2/test_urllib2.sld"@3.64 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_urllibnet.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_urllibnet/test_urllibnet.sld"@3.76 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_urlparse.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_urlparse/test_urlparse.sld"@3.63 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_utf8_mode.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_utf8_mode/test_utf8_mode.sld"@3.73 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_utf8source.py
+    BuiltinCompileTests
+    running  BuiltinCompileTests
+    test_latin1 : An error was raised : <AttributeError object #0x2>
+    
+    success : 0
+    not implemented : 0
+    total : 1
+    FAIL | 1 tests runned. PASSED = 0    FAILED = 1
+    PEP3120Test
+    running  PEP3120Test
+    test_badsyntax : An error was raised : <ModuleNotFoundError object #0x3>
+    test_pep3120 : An error was raised : <AttributeError object #0x4>
+    
+    success : 0
+    not implemented : 0
+    total : 2
+    FAIL | 2 tests runned. PASSED = 0    FAILED = 2
+    __builtins__
+    __name__
+    __next__
+    AttributeError
+    
+test_suite/test_uuid.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_venv.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_venv/test_venv.sld"@3.74 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_wait3.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_wait3/test_wait3.sld"@1.14 -- Invalid token
+    > 
+    *** EOF again to exit
+    
+test_suite/test_wait4.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_wait4/test_wait4.sld"@1.14 -- Invalid token
+    > 
+    *** EOF again to exit
+    
+test_suite/test_weakref.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_weakset.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_webbrowser.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_webbrowser/test_webbrowser.sld"@1.14 -- Invalid token
+    > 
+    *** EOF again to exit
+    
+test_suite/test_with.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_wsgiref.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_xml_etree.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_xml_etree/test_xml_etree.sld"@3.76 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_xml_etree_c.py
+    > 
+    *** EOF again to exit
+    
+test_suite/test_xmlrpc.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_xmlrpc/test_xmlrpc.sld"@3.41 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_yield_from.py
+    *** ERROR IN "/home/leonard/.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_yield_from/test_yield_from.sld"@1.124 -- Ill-formed expression
+    > 
+    *** EOF again to exit
+    
+test_suite/test_zipfile.py
+    *** ERROR IN "../../../.zipicache2/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_zipfile/test_zipfile.sld"@3.63 -- Incomplete form, EOF reached
+    > 
+    *** EOF again to exit
+    
+test_suite/test_zlib.py
+    
