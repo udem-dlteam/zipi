@@ -267,12 +267,11 @@
            py-range_iterator-hclass-of-instances
 
            py-builtin-range
-           py-builtin-range_iterator
 
            (inline PyObject-type-get o)
            (inline PyObjectStr-type-get o)
 
-           (build-builtins)
+           (bootstrap-builtins)
            (compile-flag-set! flag)
            (expansion-flag-set! value)
            (debug-flag-set! flag)
@@ -306,8 +305,6 @@
            (py-make-global)
            (py-make-caches ::int)
 
-           int-cache
-
            (py-extend-builtin-core-class cls . attrs)
            (py-make-class name module bases . atrs)
            (py-make-builtin-class-with-class-index class-index name module bases hclass-of-instances . attrs)
@@ -330,8 +327,6 @@
            py-tuple-class
            py-str-class
            py-module-class
-           py-int-class
-           py-float-class
            py-function-class
            (py-own-attr-set! obj attr val)
 
@@ -815,3 +810,6 @@
 ;*---------------------------------------------------------------------*/
 (define-method (exception-notify o::PyObject)
    (print-exception o))
+
+(define (bootstrap-builtins)
+  #f)

@@ -155,7 +155,7 @@
   `(make-PyObjectInt
       py-int-hclass-of-instances
       '#()
-      py-int-class
+      py-builtin-int
       ,value))
 
 (define-macro (py-bint-from-scheme value)
@@ -797,8 +797,8 @@
   `(py-specialized-sint-float-dispatch-let
     $obj
     ,obj
-    py-int-class
-    py-float-class
+    py-builtin-int
+    py-builtin-float
     (py-obj-cls-general $obj)))
 
 (define-macro (py-obj-mro obj) ;; get MRO of object's class
@@ -846,7 +846,7 @@
     ,obj
     #t
     #f
-    (eq? (PyObject-class $obj) py-int-class)))
+    (eq? (PyObject-class $obj) py-builtin-int)))
 
 (define-macro (py-subtype-of-int? obj)
   `(py-specialized-sint-float-dispatch-let
@@ -854,8 +854,8 @@
     ,obj
     #t
     #f
-    (or (eq? (PyObject-class $obj) py-int-class)
-        (py-isinstance? $obj py-int-class))))
+    (or (eq? (PyObject-class $obj) py-builtin-int)
+        (py-isinstance? $obj py-builtin-int))))
 
 (define-macro (py-strict-subtype-of-int? obj)
   `(py-specialized-sint-float-dispatch-let
@@ -863,8 +863,8 @@
     ,obj
     #f
     #f
-    (and (not (eq? (PyObject-class $obj) py-int-class))
-         (py-isinstance? $obj py-int-class))))
+    (and (not (eq? (PyObject-class $obj) py-builtin-int))
+         (py-isinstance? $obj py-builtin-int))))
 
 ;; Specialized type tests for float
 
@@ -882,8 +882,8 @@
     ,obj
     #f
     #t
-    (or (eq? (PyObject-class $obj) py-float-class)
-        (py-isinstance? $obj py-float-class))))
+    (or (eq? (PyObject-class $obj) py-builtin-float)
+        (py-isinstance? $obj py-builtin-float))))
 
 (define-macro (py-strict-subtype-of-float? obj)
   `(py-specialized-sint-float-dispatch-let
@@ -891,14 +891,14 @@
     ,obj
     #f
     #f
-    (and (not (eq? (PyObject-class $obj) py-float-class))
-         (py-isinstance? $obj py-float-class))))
+    (and (not (eq? (PyObject-class $obj) py-builtin-float))
+         (py-isinstance? $obj py-builtin-float))))
 
 ;; Specialized type tests for str
 
 (define-macro (py-has-type-str? obj)
   (let* ((case-PyObject
-          `(eq? (PyObject-class $obj) py-builtin-str))
+          `(eq? (PyObject-class $obj) py-str-class))
          (special-case-float
           `(py-if-specialized-float-representation
             (and (not (flonum? $obj))
@@ -915,8 +915,8 @@
 (define-macro (py-subtype-of-str? obj)
   (let* ((case-PyObject
           `(or (eq? (PyObject-class $obj) ;; optimize common case
-                    py-builtin-str)
-               (py-isinstance? $obj py-builtin-str)))
+                    py-str-class)
+               (py-isinstance? $obj py-str-class)))
          (special-case-float
           `(py-if-specialized-float-representation
             (and (not (flonum? $obj))
@@ -1013,36 +1013,36 @@
 
 (define-macro (py-make-builtin-class name module bases . attrs)
   (define hclass-of-instances
-    '((object py-object-hclass-of-instances)
-      (type py-type-hclass-of-instances)
-      (str py-str-hclass-of-instances)
-      (tuple py-tuple-hclass-of-instances)
-      (int py-int-hclass-of-instances)
-      (bool py-int-hclass-of-instances)
-      (float py-float-hclass-of-instances)
-      (slice py-slice-hclass-of-instances)
-      (bytearray py-bytearray-hclass-of-instances)
-      (method py-method-hclass-of-instances)
-      (function py-function-hclass-of-instances)
-      (list py-list-hclass-of-instances)
-      (dict py-dict-hclass-of-instances)
-      (set py-set-hclass-of-instances)
-      (module py-module-hclass-of-instances)
-      (list_iterator py-list-iterator-hclass-of-instances)
-      (bytearray_iterator py-bytearray-iterator-hclass-of-instances)
-      (tuple_iterator py-tuple-iterator-hclass-of-instances)
-      (dict_keyiterator py-dict-keyiterator-hclass-of-instances)
-      (generator py-generator-hclass)
-      (TextIOWrapper py-TextIOWrapper-hclass-of-instances)
-      (super py-super-hclass-of-instances)
-      (range py-range-hclass-of-instances)
-      (range_iterator py-range_iterator-hclass-of-instances)))
+    '((object . py-object-hclass-of-instances)
+      (type . py-type-hclass-of-instances)
+      (str . py-str-hclass-of-instances)
+      (tuple . py-tuple-hclass-of-instances)
+      (int . py-int-hclass-of-instances)
+      (bool . py-int-hclass-of-instances)
+      (float . py-float-hclass-of-instances)
+      (slice . py-slice-hclass-of-instances)
+      (bytearray . py-bytearray-hclass-of-instances)
+      (method . py-method-hclass-of-instances)
+      (function . py-function-hclass-of-instances)
+      (list . py-list-hclass-of-instances)
+      (dict . py-dict-hclass-of-instances)
+      (set . py-set-hclass-of-instances)
+      (module . py-module-hclass-of-instances)
+      (list_iterator . py-list-iterator-hclass-of-instances)
+      (bytearray_iterator . py-bytearray-iterator-hclass-of-instances)
+      (tuple_iterator . py-tuple-iterator-hclass-of-instances)
+      (dict_keyiterator . py-dict-keyiterator-hclass-of-instances)
+      (generator . py-generator-hclass)
+      (TextIOWrapper . py-TextIOWrapper-hclass-of-instances)
+      (super . py-super-hclass-of-instances)
+      (range . py-range-hclass-of-instances)
+      (range_iterator . py-range_iterator-hclass-of-instances)))
 
   (define pre-bootstrap-classes
-    '((object py-object-class)
-      (type py-type-class)
-      (str py-str-class)
-      (tuple py-tuple-class)))
+    '((object . py-object-class)
+      (type . py-type-class)
+      (str . py-str-class)
+      (tuple . py-tuple-class)))
 
   (let* ((scheme-name
           (if (and (pair? name) (memq (car name) '(& &&)))

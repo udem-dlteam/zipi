@@ -419,6 +419,7 @@
     py-make-builtin-class
     $py-make-builtin-class-with-class-index-info
     py-make-builtin-class-with-class-index
+    py-extend-builtin-core-class
 
     with-class-indices-info
     get-behavior-type-index
@@ -440,6 +441,13 @@
     py-False
     py-None
     py-NotImplemented
+
+    builtins-mod
+
+    py-object-class
+    py-type-class
+    py-tuple-class
+    py-str-class
 
     ;; builtins from builtins.py
     py-builtin-UnicodeTranslateError
