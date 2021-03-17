@@ -898,7 +898,7 @@
 
 (define-macro (py-has-type-str? obj)
   (let* ((case-PyObject
-          `(eq? (PyObject-class $obj) py-str-class))
+          `(eq? (PyObject-class $obj) py-builtin-str))
          (special-case-float
           `(py-if-specialized-float-representation
             (and (not (flonum? $obj))
@@ -915,8 +915,8 @@
 (define-macro (py-subtype-of-str? obj)
   (let* ((case-PyObject
           `(or (eq? (PyObject-class $obj) ;; optimize common case
-                    py-str-class)
-               (py-isinstance? $obj py-str-class)))
+                    py-builtin-str)
+               (py-isinstance? $obj py-builtin-str)))
          (special-case-float
           `(py-if-specialized-float-representation
             (and (not (flonum? $obj))
@@ -1012,7 +1012,7 @@
   (cadr (assq name indices-info)))
 
 (define-macro (py-make-builtin-class name module bases . attrs)
-  (define hclass-of-instances-assoc-list
+  (define hclass-of-instances
     '((object py-object-hclass-of-instances)
       (type py-type-hclass-of-instances)
       (str py-str-hclass-of-instances)
@@ -1038,23 +1038,35 @@
       (range py-range-hclass-of-instances)
       (range_iterator py-range_iterator-hclass-of-instances)))
 
+  (define pre-bootstrap-classes
+    '((object py-object-class)
+      (type py-type-class)
+      (str py-str-class)
+      (tuple py-tuple-class)))
+
   (let* ((scheme-name
           (if (and (pair? name) (memq (car name) '(& &&)))
             (string->symbol (cadr name))
             (error "py-make-builtin-class" "name must be a Python string literal" name)))
+        (pre-bootstrap-class
+          (let ((pair (assq scheme-name pre-bootstrap-classes))) (if pair (cdr pair) #f)))
         (hclass-of-instances
-          (let ((pair (assq scheme-name hclass-of-instances-assoc-list)))
+          (let ((pair (assq scheme-name hclass-of-instances)))
             (if pair
               (cdr pair)
               'py-object-hclass-of-instances))))
 
-  `(with-class-indices-info
-    $py-make-builtin-class-with-class-index-info
-    ,name
-    ,module
-    ,bases
-    ,hclass-of-instances
-    ,@attrs)))
+  (if pre-bootstrap-class
+    `(py-extend-builtin-core-class
+        ,pre-bootstrap-class
+        ,@attrs)
+    `(with-class-indices-info
+      $py-make-builtin-class-with-class-index-info
+      ,name
+      ,module
+      ,bases
+      ,hclass-of-instances
+      ,@attrs))))
 
 (define-macro ($py-make-builtin-class-with-class-index-info indices-info name module bases hclass-of-instances . attrs)
   (define (get-class-index-by-name name-symbol)

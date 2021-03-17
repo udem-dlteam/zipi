@@ -234,10 +234,7 @@
 
               ,@(if special-init
                 `((define (init name package __path__)
-                    (py-init-module)
-                    (py-throw-exception-with-message
-                      py-builtin-ImportError
-                      "cannot import multiple instances of builtin module")))
+                    builtins-mod))
                 '())
 
               (define (,(or special-init 'init) name package __path__)
@@ -669,7 +666,7 @@
       (let* ((name
               (cond
                 ((PycVar-is-builtin var)
-                  (symbol-append 'py-builtin- (PycVar-id var)))
+                  (symbol-append '&py-builtin- (PycVar-id var)))
                 ((eq? (PycVar-scope var) 'global)
                   (symbol-append
                     '|global:|

@@ -286,7 +286,7 @@
            ;; (object-get ::obj ::obj ::obj)
            (getattribute-from-obj-mro-fallback ::obj ::obj)
 
-           (py-make-module name package path)
+           (py-make-module name package #!optional (path #f))
            (py-make-list . elements)
 
            ;; (py-getitem ::PyObject ::obj ::obj)
@@ -308,6 +308,7 @@
 
            int-cache
 
+           (py-extend-builtin-core-class cls . attrs)
            (py-make-class name module bases . atrs)
            (py-make-builtin-class-with-class-index class-index name module bases hclass-of-instances . attrs)
 
@@ -325,6 +326,9 @@
            py-NotImplemented
 
            py-object-class
+           py-type-class
+           py-tuple-class
+           py-str-class
            py-module-class
            py-int-class
            py-float-class
@@ -379,6 +383,7 @@
            (py-init-registered-constants strings)
 
            (py-make-tuple . els)
+
 
            py-builtin-super
            py-builtin-tuple

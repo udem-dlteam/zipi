@@ -419,6 +419,7 @@
     py-make-builtin-class
     $py-make-builtin-class-with-class-index-info
     py-make-builtin-class-with-class-index
+    py-extend-builtin-core-class
 
     with-class-indices-info
     get-behavior-type-index
@@ -441,80 +442,95 @@
     py-None
     py-NotImplemented
 
-    py-builtin-ArithmeticError
-    py-builtin-AssertionError
-    py-builtin-AttributeError
-    py-builtin-BaseException
-    py-builtin-BlockingIOError
-    py-builtin-BrokenPipeError
-    py-builtin-BufferError
-    py-builtin-BytesWarning
-    py-builtin-ChildProcessError
-    py-builtin-ConnectionAbortedError
-    py-builtin-ConnectionError
-    py-builtin-ConnectionRefusedError
-    py-builtin-ConnectionResetError
-    py-builtin-DeprecationWarning
-    py-builtin-EOFError
-    py-builtin-EnvironmentError
-    py-builtin-Exception
-    py-builtin-FileExistsError
-    py-builtin-FileNotFoundError
-    py-builtin-FloatingPointError
-    py-builtin-FutureWarning
-    py-builtin-GeneratorExit
-    py-builtin-IOError
-    py-builtin-ImportError
-    py-builtin-ImportWarning
-    py-builtin-IndentationError
-    py-builtin-IndexError
-    py-builtin-InterruptedError
-    py-builtin-IsADirectoryError
-    py-builtin-KeyError
-    py-builtin-KeyboardInterrupt
-    py-builtin-LookupError
-    py-builtin-MemoryError
-    py-builtin-ModuleNotFoundError
-    py-builtin-NameError
-    py-builtin-NotADirectoryError
-    py-builtin-NotImplemented
-    py-builtin-NotImplementedError
-    py-builtin-OSError
-    py-builtin-OverflowError
-    py-builtin-PendingDeprecationWarning
-    py-builtin-PermissionError
-    py-builtin-ProcessLookupError
-    py-builtin-RecursionError
-    py-builtin-ReferenceError
-    py-builtin-ResourceWarning
-    py-builtin-RuntimeError
-    py-builtin-RuntimeWarning
-    py-builtin-StopAsyncIteration
-    py-builtin-StopIteration
-    py-builtin-SyntaxError
-    py-builtin-SyntaxWarning
-    py-builtin-SystemError
-    py-builtin-SystemExit
-    py-builtin-TabError
-    py-builtin-TimeoutError
-    py-builtin-TypeError
-    py-builtin-UnboundLocalError
-    py-builtin-UnicodeDecodeError
-    py-builtin-UnicodeEncodeError
-    py-builtin-UnicodeError
+    builtins-mod
+
+    py-object-class
+    py-type-class
+    py-tuple-class
+    py-str-class
+
+    ;; builtins from builtins.py
     py-builtin-UnicodeTranslateError
-    py-builtin-UnicodeWarning
+    py-builtin-UnicodeEncodeError
+    py-builtin-UnicodeDecodeError
+    py-builtin-TabError
+    py-builtin-ConnectionResetError
+    py-builtin-ConnectionRefusedError
+    py-builtin-ConnectionAbortedError
+    py-builtin-BrokenPipeError
     py-builtin-UserWarning
-    py-builtin-ValueError
+    py-builtin-UnicodeWarning
+    py-builtin-SyntaxWarning
+    py-builtin-RuntimeWarning
+    py-builtin-ResourceWarning
+    py-builtin-PendingDeprecationWarning
+    py-builtin-ImportWarning
+    py-builtin-FutureWarning
+    py-builtin-DeprecationWarning
+    py-builtin-BytesWarning
+    py-builtin-UnicodeError
+    py-builtin-IndentationError
+    py-builtin-RecursionError
+    py-builtin-TimeoutError
+    py-builtin-ProcessLookupError
+    py-builtin-PermissionError
+    py-builtin-NotADirectoryError
+    py-builtin-IsADirectoryError
+    py-builtin-InterruptedError
+    py-builtin-FileNotFoundError
+    py-builtin-FileExistsError
+    py-builtin-ConnectionError
+    py-builtin-ChildProcessError
+    py-builtin-BlockingIOError
+    py-builtin-UnboundLocalError
+    py-builtin-KeyError
+    py-builtin-IndexError
+    py-builtin-ModuleNotFoundError
+    py-builtin-OverflowError
+    py-builtin-FloatingPointError
     py-builtin-Warning
+    py-builtin-SystemError
+    py-builtin-SyntaxError
+    py-builtin-StopAsyncIteration
+    py-builtin-RuntimeError
+    py-builtin-ReferenceError
+    py-builtin-WindowsError
+    py-builtin-OSError
+    py-builtin-IOError
+    py-builtin-EnvironmentError
+    py-builtin-NameError
+    py-builtin-MemoryError
+    py-builtin-LookupError
+    py-builtin-ImportError
+    py-builtin-EOFError
+    py-builtin-BufferError
+    py-builtin-AttributeError
+    py-builtin-AssertionError
+    py-builtin-ArithmeticError
+    py-builtin-SystemExit
+    py-builtin-KeyboardInterrupt
+    py-builtin-GeneratorExit
+    py-builtin-Exception
+    py-builtin-BaseException
+    py-builtin-sorted
+    py-builtin-range
+    py-builtin-StopIteration
+    py-builtin-str
+    py-builtin-float
+    py-builtin-bool
     py-builtin-ZeroDivisionError
+    py-builtin-ValueError
+    py-builtin-TypeError
+    py-builtin-NotImplementedError
+    py-builtin-int
+
+    ;; builtins defined in rts.scm
     py-builtin-__import__
     py-builtin-abs
     py-builtin-all
     py-builtin-any
     py-builtin-ascii
     py-builtin-bin
-    py-builtin-bool
     py-builtin-breakpoint
     py-builtin-bytearray
     py-builtin-bytes
@@ -531,7 +547,6 @@
     py-builtin-eval
     py-builtin-exec
     py-builtin-filter
-    py-builtin-float
     py-builtin-format
     py-builtin-frozenset
     py-builtin-getattr
@@ -542,7 +557,6 @@
     py-builtin-hex
     py-builtin-id
     py-builtin-input
-    py-builtin-int
     py-builtin-isinstance
     py-builtin-issubclass
     py-builtin-iter
@@ -561,17 +575,13 @@
     py-builtin-pow
     py-builtin-print
     py-builtin-property
-    py-builtin-range
-    py-builtin-range_iterator
     py-builtin-repr
     py-builtin-reversed
     py-builtin-round
     py-builtin-set
     py-builtin-setattr
     py-builtin-slice
-    py-builtin-sorted
     py-builtin-staticmethod
-    py-builtin-str
     py-builtin-sum
     py-builtin-super
     py-builtin-tuple
