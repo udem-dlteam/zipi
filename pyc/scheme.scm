@@ -20,7 +20,7 @@
 (define (scheme-init-globals vars conf)
   (map
     (lambda (name)
-      `(define ,name py-absent))
+      `(define ,name #f))
     (get-unique-var-names-lst vars conf)))
 
 (define (scheme-init-global-procedures defs conf)
@@ -1286,12 +1286,11 @@
       ((PycRef-can-direct-access this)
         name)
   	  ((eq? (PycVar-scope var) 'global)
-  	   `(if (eq? ,name py-absent)
+  	   `(or ,name
   	        (global-get
   		   %global
   		   ,(pyc-propname id)
-  		   ,(scheme-cache (PycRef-cache this) this))
-  	        ,name))
+  		   ,(scheme-cache (PycRef-cache this) this))))
   	  (else
   	   `(or ,name
   	        (py-throw-exception-with-message
