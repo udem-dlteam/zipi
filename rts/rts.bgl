@@ -266,7 +266,6 @@
            py-range-hclass-of-instances
            py-range_iterator-hclass-of-instances
 
-           py-builtin-range
 
            (inline PyObject-type-get o)
            (inline PyObjectStr-type-get o)
@@ -383,7 +382,11 @@
            py-builtin-super
            py-builtin-tuple
            py-builtin-type
+           py-builtin-range
+           py-builtin-int
            py-builtin-bool
+           py-builtin-float
+           py-builtin-str
 
            py-builtin-ArithmeticError
            py-builtin-AssertionError
