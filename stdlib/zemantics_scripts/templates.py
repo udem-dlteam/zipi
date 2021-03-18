@@ -509,7 +509,6 @@ int_unary_method_template = \
 class_int_template = \
     """@builtin
 class int:
-    @staticmethod
     def __new__(cls, val=absent):
         if cls is int:
             if val is absent:
@@ -607,7 +606,6 @@ bool_reflected_binary_method_template = \
 class_bool_template = \
     """@builtin
 class bool(int):
-    @staticmethod
     def __new__(cls, val=absent):
         if cls is int:
             if val is absent:
@@ -764,7 +762,6 @@ float_unary_method_template = \
 class_float_template = \
     """@builtin
 class float:
-    @staticmethod
     def __new__(cls, val=absent):
         if cls is int:
             if val is absent:

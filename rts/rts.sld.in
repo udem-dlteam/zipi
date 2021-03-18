@@ -392,6 +392,7 @@
     py-type
 
     py-type-hclass-of-instances
+    py-object-hclass-of-instances
     py-int-hclass-of-instances
     py-float-hclass-of-instances
     py-str-hclass-of-instances

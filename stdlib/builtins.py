@@ -2,7 +2,6 @@ from __compiler_intrinsics__ import absent, builtin, private, alloc, py_int_from
 
 @builtin
 class int:
-    @staticmethod
     def __new__(cls, val=absent):
         if cls is int:
             if val is absent:
@@ -470,7 +469,6 @@ class int:
 
 @builtin
 class bool(int):
-    @staticmethod
     def __new__(cls, val=absent):
         if cls is int:
             if val is absent:
@@ -549,7 +547,6 @@ class bool(int):
 
 @builtin
 class float:
-    @staticmethod
     def __new__(cls, val=absent):
         if cls is int:
             if val is absent:
