@@ -364,7 +364,7 @@
          (make-PyObject
           py-module-hclass-of-instances
           (vector-map
-            (lambda (_) (make-global-cell py-absent))
+            (lambda (_) (make-global-cell #f))
             (make-vector (vector-length (HClass-names hclass-of-instances))))
           cls)))
     self))
@@ -499,7 +499,7 @@
              ;; vector of cells
              (vector-map
                (lambda (_)
-                  (make-global-cell py-absent))
+                  (make-global-cell #f))
                (make-vector $diff-len))
              0
              $diff-len
@@ -532,7 +532,7 @@
            (subvector-move!
              ;; vector of cells
              (vector-map
-               (lambda (_) (make-global-cell py-absent))
+               (lambda (_) (make-global-cell #f))
                (make-vector $diff-len))
              0
              $diff-len
@@ -547,8 +547,7 @@
   (if (eq? (PyObject-hclass global) ;; TODO: should py-obj-hclass be used instead?
            (PCache-hclass cache))
       (let ((val (PyObject-global-elements-ref global (PCache-index cache))))
-        (if (not (eq? val py-absent))
-            val
+        (or val
             (global-get-from-builtins name cache)))
       (global-get/miss global name cache)))
 
@@ -562,14 +561,13 @@
         (let ((hclass (PyObject-hclass global))) ;; TODO: should py-obj-hclass be used instead?
           (PCache-set! cache hclass i)
           (let ((val (PyObject-global-elements-ref global i)))
-            (if (eq? val py-absent)
-                (global-get-from-builtins name cache)
-                val))))))
+            (or val
+                (global-get-from-builtins name cache)))))))
 
 (define (global-own-attr-ref-no-cache global name)
   (let ((i (py-own-attr-index global name)))
     (if (< i 0)
-      py-absent
+      #f
       (PyObject-global-elements-ref global i))))
 
 ;; TODO: use a cache for builtins and one for global access
@@ -583,17 +581,15 @@
         (let ((val (PyObject-global-elements-ref
                       builtins-mod
                       (PCache-index cache))))
-          (if (eq? val py-absent)
-              (throw-NameError)
-              val))
+          (or val
+              (throw-NameError)))
         (let ((i (py-own-attr-index builtins-mod name)))
           (if (< i 0)
               (throw-NameError)
               (let ((val (PyObject-global-elements-ref builtins-mod i)))
                 (PCache-set! cache builtins-hclass i)
-                (if (eq? val py-absent)
-                    (throw-NameError)
-                    val)))))))
+                (or val
+                    (throw-NameError))))))))
 
 (define (global-put! global name val cache)
   (if (eq? (PyObject-hclass global) ;; TODO: should py-obj-hclass be used instead?
@@ -2707,7 +2703,7 @@
       (let loop ((i 0))
         (if (and (< i names-len) (< i obj-elements-len))
           (let ((val (PyObject-global-elements-ref obj i)))
-            (if (not (eq? val py-absent))
+            (if val
               (table-set! table (vector-ref names i) val))
             (loop (+ i 1)))))))
 
@@ -3224,7 +3220,8 @@
   (if (py-isinstance? self py-module-class)
       (if (py-isinstance? name py-str-class)
         (let ((val (global-own-attr-ref-no-cache self name)))
-          (if (eq? val py-absent)
+          (or
+            val
             (getattribute-from-obj-mro-with-owner-2cont
              self
              name
@@ -3239,8 +3236,7 @@
                      (py-getattribute self (& "__name__"))
                      (&& "' has no attribute '")
                      name
-                     (&& "'"))))))
-            val))
+                     (&& "'"))))))))
         (py-throw-exception-with-message
          py-builtin-TypeError
          "attribute name must be string"))
@@ -6363,7 +6359,7 @@
         (let* ((path-mod (string-append path ".py"))
                (path-mod-info (file-info path-mod #t #f)))
           (if path-mod-info
-              (compile-and-get-mod path-mod path-mod-info py-__name__ py-__package__ py-absent)
+              (compile-and-get-mod path-mod path-mod-info py-__name__ py-__package__ #f)
               #f)))))
 
 (define (import-from-sys.path sys.path __name__ py-__name__ py-__package__)
@@ -6436,8 +6432,8 @@
 ;; asuming depth > 0 and path can be ""
 (define (py-import-relative selfmod path from-list depth)
   (let* ((__package__ (global-own-attr-ref-no-cache selfmod (& "__package__")))
-         (levels (string-split (if (or (eq? __package__ py-absent)
-                                       (eq? __package__ py-None))
+         (levels (string-split (if (or (not __package__)
+                                       (py-test-is __package__ py-None))
                                    ;; the real protocol checks __name__ in this case
                                    (py-throw-exception-with-message py-builtin-ImportError "attempted relative import with no known parent package")
                                    (py-str-to-scheme __package__))
@@ -6456,11 +6452,11 @@
       (lambda (from)
         (let* ((py-from (py-str-from-scheme-fallback from))
                (module.from (global-own-attr-ref-no-cache mod py-from)))
-          (if (eq? module.from py-absent) ;; the attribute is not present
+          (or module.from
               (begin
                 (py-import (string-append path "." from) '())
                 (let ((module.from (global-own-attr-ref-no-cache mod py-from)))
-                 (if (eq? module.from py-absent)
+                 (if (not module.from)
                      (py-throw-exception-with-message py-builtin-ImportError "Cannot import name '" from "' from '" path "'")
                      (begin
                        (global-own-attr-put-no-cache! mod py-from module.from)
@@ -6483,7 +6479,7 @@
        (if profile-flag
            (statprof-begin profile-flag))
 
-       (compile-and-get-mod path (file-info path) (& "__main__") py-None py-absent)
+       (compile-and-get-mod path (file-info path) (& "__main__") py-None #f)
 
        (if profile-flag
            (statprof-end path))))))
@@ -6504,7 +6500,7 @@
     (make-signature)))
 
 (define (make-time-mod)
-  (let ((mod (py-make-module (& "time") (& "") py-absent)))
+  (let ((mod (py-make-module (& "time") (& "") #f)))
    (global-own-attr-put-no-cache! mod (& "time") time.time)))
 
 (make-time-mod)
@@ -6522,7 +6518,7 @@
     (make-signature posonlyargs: (file))))
 
 (define (make-statprof-mod)
-  (let ((mod (py-make-module (&& "statprof") (& "") py-absent)))
+  (let ((mod (py-make-module (&& "statprof") (& "") #f)))
    (global-own-attr-put-no-cache! mod (& "begin") statprof.begin)
    (global-own-attr-put-no-cache! mod (& "end") statprof.end)))
 
