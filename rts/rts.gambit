@@ -271,11 +271,11 @@
     (set! py-builtin-Warning &py-builtin-Warning)
     (set! py-builtin-ZeroDivisionError &py-builtin-ZeroDivisionError)
     (set! py-builtin-range &py-builtin-range)
+    (set! py-builtin-range_iterator &py-builtin-range_iterator)
     (set! py-builtin-int &py-builtin-int)
     (set! py-builtin-bool &py-builtin-bool)
     (set! py-builtin-float &py-builtin-float)
     (set! py-builtin-str &py-builtin-str)
-    (set! py-builtin-range &py-builtin-range)
 
     ;; Reuse sorted procedure for list.sort
     (set! list.sort

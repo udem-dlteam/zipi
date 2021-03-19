@@ -65,8 +65,11 @@
          &py-builtin-Exception
          &py-builtin-BaseException
          &py-builtin-sorted
+         &py-builtin-__merge_many
+         &py-builtin-__merge
          &py-builtin-range
          &py-builtin-StopIteration
+         &py-builtin-range_iterator
          &py-builtin-str
          &py-builtin-float
          &py-builtin-bool
@@ -79,26 +82,26 @@
  (begin
    (py-begin-module)
    (define procedure:&py-builtin-__merge
-     (lambda (l1-197 l2-198)
-       (letrec* ((output-1473 #f) (i-1471 #f) (j-1469 #f))
+     (lambda (l1-198 l2-199)
+       (letrec* ((output-1478 #f) (i-1476 #f) (j-1474 #f))
          (begin
            (&& "\n    Merge all items from two sorted list into one sorted list.\n    Time complexity: O(n) where n is the total number of elements\n    ")
-           (letrec* ((%tmp0-199 (py-int-from-scheme 0)))
+           (letrec* ((%tmp0-200 (py-int-from-scheme 0)))
              (begin
-               (set! j-1469
-                     (or %tmp0-199
+               (set! j-1474
+                     (or %tmp0-200
                          (py-throw-exception-with-message
                           py-builtin-UnboundLocalError
                           "local variable '%tmp0' referenced before assignment")))
-               (set! i-1471
-                     (or %tmp0-199
+               (set! i-1476
+                     (or %tmp0-200
                          (py-throw-exception-with-message
                           py-builtin-UnboundLocalError
                           "local variable '%tmp0' referenced before assignment")))))
-           (set! output-1473 (py-make-list))
+           (set! output-1478 (py-make-list))
            (let $%while_77 ()
              (when (and
-                    (py-test (py-lt (or i-1471
+                    (py-test (py-lt (or i-1476
                                         (py-throw-exception-with-message
                                          py-builtin-UnboundLocalError
                                          "local variable 'i' referenced before assignment"))
@@ -106,8 +109,8 @@
                                               %global
                                               (& "len")
                                               (vector-ref %caches 543))
-                                             l1-197)))
-                    (py-test (py-lt (or j-1469
+                                             l1-198)))
+                    (py-test (py-lt (or j-1474
                                         (py-throw-exception-with-message
                                          py-builtin-UnboundLocalError
                                          "local variable 'j' referenced before assignment"))
@@ -115,110 +118,110 @@
                                               %global
                                               (& "len")
                                               (vector-ref %caches 544))
-                                             l2-198))))
+                                             l2-199))))
                (if (py-test (py-le (py-getitem
-                                    l1-197
-                                    (or i-1471
+                                    l1-198
+                                    (or i-1476
                                         (py-throw-exception-with-message
                                          py-builtin-UnboundLocalError
                                          "local variable 'i' referenced before assignment")))
                                    (py-getitem
-                                    l2-198
-                                    (or j-1469
+                                    l2-199
+                                    (or j-1474
                                         (py-throw-exception-with-message
                                          py-builtin-UnboundLocalError
                                          "local variable 'j' referenced before assignment")))))
                    (begin
-                     (py-call (py-getattribute output-1473 (& "append"))
+                     (py-call (py-getattribute output-1478 (& "append"))
                               (py-getitem
-                               l1-197
-                               (or i-1471
+                               l1-198
+                               (or i-1476
                                    (py-throw-exception-with-message
                                     py-builtin-UnboundLocalError
                                     "local variable 'i' referenced before assignment"))))
-                     (set! i-1471
-                           (py-iadd (or i-1471
+                     (set! i-1476
+                           (py-iadd (or i-1476
                                         (py-throw-exception-with-message
                                          py-builtin-UnboundLocalError
                                          "local variable 'i' referenced before assignment"))
                                     (py-int-from-scheme 1))))
                    (begin
-                     (py-call (py-getattribute output-1473 (& "append"))
+                     (py-call (py-getattribute output-1478 (& "append"))
                               (py-getitem
-                               l2-198
-                               (or j-1469
+                               l2-199
+                               (or j-1474
                                    (py-throw-exception-with-message
                                     py-builtin-UnboundLocalError
                                     "local variable 'j' referenced before assignment"))))
-                     (set! j-1469
-                           (py-iadd (or j-1469
+                     (set! j-1474
+                           (py-iadd (or j-1474
                                         (py-throw-exception-with-message
                                          py-builtin-UnboundLocalError
                                          "local variable 'j' referenced before assignment"))
                                     (py-int-from-scheme 1)))))
                ($%while_77)))
-           (py-call (py-getattribute output-1473 (& "extend"))
+           (py-call (py-getattribute output-1478 (& "extend"))
                     (py-add (py-getitem
-                             l1-197
+                             l1-198
                              (py-slice-from-scheme
-                              (or i-1471
+                              (or i-1476
                                   (py-throw-exception-with-message
                                    py-builtin-UnboundLocalError
                                    "local variable 'i' referenced before assignment"))
                               py-None
                               py-None))
                             (py-getitem
-                             l2-198
+                             l2-199
                              (py-slice-from-scheme
-                              (or j-1469
+                              (or j-1474
                                   (py-throw-exception-with-message
                                    py-builtin-UnboundLocalError
                                    "local variable 'j' referenced before assignment"))
                               py-None
                               py-None))))
-           output-1473))))
+           output-1478))))
    (define procedure:&py-builtin-__merge_many
-     (lambda (lsts-200)
-       (letrec* ((right-1483 #f) (left-1481 #f))
+     (lambda (lsts-201)
+       (letrec* ((right-1488 #f) (left-1486 #f))
          (begin
            (&& "\n    Merge all items from k lists into one sorted list.\n    Time complexity: O(n log(k)) where n is the total number of elements and k the number of lists\n    ")
-           (if (py-test (py-not lsts-200))
+           (if (py-test (py-not lsts-201))
                (py-make-list)
                (if (py-test (py-eq (py-call (global-get
                                              %global
                                              (& "len")
                                              (vector-ref %caches 552))
-                                            lsts-200)
+                                            lsts-201)
                                    (py-int-from-scheme 1)))
                    (py-getitem
-                    (py-getitem lsts-200 (py-int-from-scheme 0))
+                    (py-getitem lsts-201 (py-int-from-scheme 0))
                     (py-slice-from-scheme py-None py-None py-None))
                    (if (py-test (py-eq (py-call (global-get
                                                  %global
                                                  (& "len")
                                                  (vector-ref %caches 553))
-                                                lsts-200)
+                                                lsts-201)
                                        (py-int-from-scheme 2)))
                        (procedure:&py-builtin-__merge
-                        (py-getitem lsts-200 (py-int-from-scheme 0))
-                        (py-getitem lsts-200 (py-int-from-scheme 1)))
+                        (py-getitem lsts-201 (py-int-from-scheme 0))
+                        (py-getitem lsts-201 (py-int-from-scheme 1)))
                        (begin
-                         (set! left-1481
+                         (set! left-1486
                                (py-getitem
-                                lsts-200
+                                lsts-201
                                 (py-slice-from-scheme
                                  (py-floordiv
                                   (py-call (global-get
                                             %global
                                             (& "len")
                                             (vector-ref %caches 555))
-                                           lsts-200)
+                                           lsts-201)
                                   (py-int-from-scheme 2))
                                  py-None
                                  py-None)))
-                         (set! right-1483
+                         (set! right-1488
                                (py-getitem
-                                lsts-200
+                                lsts-201
                                 (py-slice-from-scheme
                                  py-None
                                  (py-floordiv
@@ -226,124 +229,124 @@
                                             %global
                                             (& "len")
                                             (vector-ref %caches 556))
-                                           lsts-200)
+                                           lsts-201)
                                   (py-int-from-scheme 2))
                                  py-None)))
                          (procedure:&py-builtin-__merge
-                          (procedure:&py-builtin-__merge_many left-1481)
+                          (procedure:&py-builtin-__merge_many left-1486)
                           (procedure:&py-builtin-__merge_many
-                           right-1483))))))))))
+                           right-1488))))))))))
    (define procedure:&py-builtin-sorted
-     (lambda (lst-201 key-202 reversed-203)
-       (letrec* ((i-1488 #f) (sublsts-1486 #f))
+     (lambda (lst-202 key-203 reversed-204)
+       (letrec* ((i-1493 #f) (sublsts-1491 #f))
          (begin
            (&& "\n    Timsort is an improved version of Merge Sort which splits the list into monotonic sub-lists before merging them\n    into a sorted list.\n    Worst case time complexity: O(n log(n))\n    Best cast time complexity:  O(n) when the list is almost sorted\n        where n is the number of elements in the list\n    ")
-           (set! sublsts-1486 (py-make-list))
-           (set! i-1488 (py-int-from-scheme 0))
+           (set! sublsts-1491 (py-make-list))
+           (set! i-1493 (py-int-from-scheme 0))
            (let $%while_78 ()
              (when (py-test
-                    (py-lt i-1488
+                    (py-lt i-1493
                            (py-call (global-get
                                      %global
                                      (& "len")
                                      (vector-ref %caches 561))
-                                    lst-201)))
+                                    lst-202)))
                (begin
-                 (py-call (py-getattribute sublsts-1486 (& "append"))
-                          (py-make-list (py-getitem lst-201 i-1488)))
-                 (set! i-1488
-                       (py-iadd (or i-1488
+                 (py-call (py-getattribute sublsts-1491 (& "append"))
+                          (py-make-list (py-getitem lst-202 i-1493)))
+                 (set! i-1493
+                       (py-iadd (or i-1493
                                     (py-throw-exception-with-message
                                      py-builtin-UnboundLocalError
                                      "local variable 'i' referenced before assignment"))
                                 (py-int-from-scheme 1)))
-                 (if (and (py-test (py-lt i-1488
+                 (if (and (py-test (py-lt i-1493
                                           (py-call (global-get
                                                     %global
                                                     (& "len")
                                                     (vector-ref %caches 564))
-                                                   lst-201)))
-                          (py-test (py-ge (py-getitem lst-201 i-1488)
+                                                   lst-202)))
+                          (py-test (py-ge (py-getitem lst-202 i-1493)
                                           (py-getitem
-                                           lst-201
-                                           (py-sub i-1488
+                                           lst-202
+                                           (py-sub i-1493
                                                    (py-int-from-scheme 1))))))
                      (let $%while_79 ()
                        (when (and
-                              (py-test (py-lt i-1488
+                              (py-test (py-lt i-1493
                                               (py-call (global-get
                                                         %global
                                                         (& "len")
                                                         (vector-ref
                                                          %caches
                                                          565))
-                                                       lst-201)))
-                              (py-test (py-ge (py-getitem lst-201 i-1488)
+                                                       lst-202)))
+                              (py-test (py-ge (py-getitem lst-202 i-1493)
                                               (py-getitem
-                                               lst-201
-                                               (py-sub i-1488
+                                               lst-202
+                                               (py-sub i-1493
                                                        (py-int-from-scheme
                                                         1))))))
                          (begin
                            (py-call (py-getattribute
                                      (py-getitem
-                                      sublsts-1486
+                                      sublsts-1491
                                       (py-neg (py-int-from-scheme 1)))
                                      (& "append"))
-                                    (py-getitem lst-201 i-1488))
-                           (set! i-1488
-                                 (py-iadd (or i-1488
+                                    (py-getitem lst-202 i-1493))
+                           (set! i-1493
+                                 (py-iadd (or i-1493
                                               (py-throw-exception-with-message
                                                py-builtin-UnboundLocalError
                                                "local variable 'i' referenced before assignment"))
                                           (py-int-from-scheme 1))))
                          ($%while_79)))
-                     (if (py-test (py-lt i-1488
+                     (if (py-test (py-lt i-1493
                                          (py-call (global-get
                                                    %global
                                                    (& "len")
                                                    (vector-ref %caches 569))
-                                                  lst-201)))
+                                                  lst-202)))
                          (begin
                            (let $%while_80 ()
                              (when (and
-                                    (py-test (py-lt i-1488
+                                    (py-test (py-lt i-1493
                                                     (py-call (global-get
                                                               %global
                                                               (& "len")
                                                               (vector-ref
                                                                %caches
                                                                570))
-                                                             lst-201)))
-                                    (py-test (py-lt (py-getitem lst-201 i-1488)
+                                                             lst-202)))
+                                    (py-test (py-lt (py-getitem lst-202 i-1493)
                                                     (py-getitem
-                                                     lst-201
-                                                     (py-sub i-1488
+                                                     lst-202
+                                                     (py-sub i-1493
                                                              (py-int-from-scheme
                                                               1))))))
                                (begin
                                  (py-call (py-getattribute
                                            (py-getitem
-                                            sublsts-1486
+                                            sublsts-1491
                                             (py-neg (py-int-from-scheme 1)))
                                            (& "append"))
-                                          (py-getitem lst-201 i-1488))
-                                 (set! i-1488
-                                       (py-iadd (or i-1488
+                                          (py-getitem lst-202 i-1493))
+                                 (set! i-1493
+                                       (py-iadd (or i-1493
                                                     (py-throw-exception-with-message
                                                      py-builtin-UnboundLocalError
                                                      "local variable 'i' referenced before assignment"))
                                                 (py-int-from-scheme 1))))
                                ($%while_80)))
                            (py-setitem
-                            (or sublsts-1486
+                            (or sublsts-1491
                                 (py-throw-exception-with-message
                                  py-builtin-UnboundLocalError
                                  "local variable 'sublsts' referenced before assignment"))
                             (py-neg (py-int-from-scheme 1))
                             (py-getitem
                              (py-getitem
-                              (or sublsts-1486
+                              (or sublsts-1491
                                   (py-throw-exception-with-message
                                    py-builtin-UnboundLocalError
                                    "local variable 'sublsts' referenced before assignment"))
@@ -354,7 +357,7 @@
                               (py-neg (py-int-from-scheme 1))))))
                          #f)))
                ($%while_78)))
-           (procedure:&py-builtin-__merge_many sublsts-1486)))))
+           (procedure:&py-builtin-__merge_many sublsts-1491)))))
    (declare (separate))
    (define %global #f)
    (define %caches #f)
@@ -808,56 +811,56 @@
       (lambda (v) (set! &py-builtin-int v)))
      (set! &py-builtin-int
            (let (($%cls_0 py-absent))
-             (letrec* ((__lt__-392 #f)
-                       (__le__-390 #f)
-                       (__gt__-388 #f)
-                       (__ge__-386 #f)
-                       (__ne__-384 #f)
-                       (__eq__-382 #f)
-                       (__imod__-380 #f)
-                       (__rmod__-378 #f)
-                       (__mod__-376 #f)
-                       (__itruediv__-374 #f)
-                       (__rtruediv__-372 #f)
-                       (__truediv__-370 #f)
-                       (__ifloordiv__-368 #f)
-                       (__rfloordiv__-366 #f)
-                       (__floordiv__-364 #f)
-                       (__invert__-362 #f)
-                       (__neg__-360 #f)
-                       (__pos__-358 #f)
-                       (__irshift__-356 #f)
-                       (__rrshift__-354 #f)
-                       (__rshift__-352 #f)
-                       (__ilshift__-350 #f)
-                       (__rlshift__-348 #f)
-                       (__lshift__-346 #f)
-                       (__ixor__-344 #f)
-                       (__rxor__-342 #f)
-                       (__xor__-340 #f)
-                       (__isub__-338 #f)
-                       (__rsub__-336 #f)
-                       (__sub__-334 #f)
-                       (__ipow__-332 #f)
-                       (__rpow__-330 #f)
-                       (__pow__-328 #f)
-                       (__imul__-326 #f)
-                       (__rmul__-324 #f)
-                       (__mul__-322 #f)
-                       (__ior__-320 #f)
-                       (__ror__-318 #f)
-                       (__or__-316 #f)
-                       (__iand__-314 #f)
-                       (__rand__-312 #f)
-                       (__and__-310 #f)
-                       (__iadd__-308 #f)
-                       (__radd__-306 #f)
-                       (__add__-304 #f)
-                       (__index__-302 #f)
-                       (__bool__-300 #f)
-                       (__new__-297 #f))
+             (letrec* ((__lt__-393 #f)
+                       (__le__-391 #f)
+                       (__gt__-389 #f)
+                       (__ge__-387 #f)
+                       (__ne__-385 #f)
+                       (__eq__-383 #f)
+                       (__imod__-381 #f)
+                       (__rmod__-379 #f)
+                       (__mod__-377 #f)
+                       (__itruediv__-375 #f)
+                       (__rtruediv__-373 #f)
+                       (__truediv__-371 #f)
+                       (__ifloordiv__-369 #f)
+                       (__rfloordiv__-367 #f)
+                       (__floordiv__-365 #f)
+                       (__invert__-363 #f)
+                       (__neg__-361 #f)
+                       (__pos__-359 #f)
+                       (__irshift__-357 #f)
+                       (__rrshift__-355 #f)
+                       (__rshift__-353 #f)
+                       (__ilshift__-351 #f)
+                       (__rlshift__-349 #f)
+                       (__lshift__-347 #f)
+                       (__ixor__-345 #f)
+                       (__rxor__-343 #f)
+                       (__xor__-341 #f)
+                       (__isub__-339 #f)
+                       (__rsub__-337 #f)
+                       (__sub__-335 #f)
+                       (__ipow__-333 #f)
+                       (__rpow__-331 #f)
+                       (__pow__-329 #f)
+                       (__imul__-327 #f)
+                       (__rmul__-325 #f)
+                       (__mul__-323 #f)
+                       (__ior__-321 #f)
+                       (__ror__-319 #f)
+                       (__or__-317 #f)
+                       (__iand__-315 #f)
+                       (__rand__-313 #f)
+                       (__and__-311 #f)
+                       (__iadd__-309 #f)
+                       (__radd__-307 #f)
+                       (__add__-305 #f)
+                       (__index__-303 #f)
+                       (__bool__-301 #f)
+                       (__new__-298 #f))
                (begin
-                 (set! __new__-297
+                 (set! __new__-298
                        (procedure->py-function
                         (lambda (cls-2 val-3)
                           (bind-exit
@@ -879,7 +882,7 @@
                          (cls val)
                          defaults:
                          (vector py-absent))))
-                 (set! __bool__-300
+                 (set! __bool__-301
                        (procedure->py-function
                         (lambda (self-4)
                           (letrec* ()
@@ -893,7 +896,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self))))
-                 (set! __index__-302
+                 (set! __index__-303
                        (procedure->py-function
                         (lambda (self-5)
                           (letrec* ()
@@ -907,7 +910,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self))))
-                 (set! __add__-304
+                 (set! __add__-305
                        (procedure->py-function
                         (lambda (self-6 other-7)
                           (letrec* ()
@@ -928,7 +931,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __radd__-306
+                 (set! __radd__-307
                        (procedure->py-function
                         (lambda (self-8 other-9)
                           (letrec* ()
@@ -949,7 +952,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __iadd__-308
+                 (set! __iadd__-309
                        (procedure->py-function
                         (lambda (self-10 other-11)
                           (letrec* ()
@@ -970,7 +973,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __and__-310
+                 (set! __and__-311
                        (procedure->py-function
                         (lambda (self-12 other-13)
                           (letrec* ()
@@ -991,7 +994,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rand__-312
+                 (set! __rand__-313
                        (procedure->py-function
                         (lambda (self-14 other-15)
                           (letrec* ()
@@ -1012,7 +1015,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __iand__-314
+                 (set! __iand__-315
                        (procedure->py-function
                         (lambda (self-16 other-17)
                           (letrec* ()
@@ -1033,7 +1036,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __or__-316
+                 (set! __or__-317
                        (procedure->py-function
                         (lambda (self-18 other-19)
                           (letrec* ()
@@ -1054,7 +1057,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ror__-318
+                 (set! __ror__-319
                        (procedure->py-function
                         (lambda (self-20 other-21)
                           (letrec* ()
@@ -1075,7 +1078,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ior__-320
+                 (set! __ior__-321
                        (procedure->py-function
                         (lambda (self-22 other-23)
                           (letrec* ()
@@ -1096,7 +1099,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __mul__-322
+                 (set! __mul__-323
                        (procedure->py-function
                         (lambda (self-24 other-25)
                           (letrec* ()
@@ -1117,7 +1120,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rmul__-324
+                 (set! __rmul__-325
                        (procedure->py-function
                         (lambda (self-26 other-27)
                           (letrec* ()
@@ -1138,7 +1141,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __imul__-326
+                 (set! __imul__-327
                        (procedure->py-function
                         (lambda (self-28 other-29)
                           (letrec* ()
@@ -1159,7 +1162,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __pow__-328
+                 (set! __pow__-329
                        (procedure->py-function
                         (lambda (self-30 other-31)
                           (letrec* ()
@@ -1180,7 +1183,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rpow__-330
+                 (set! __rpow__-331
                        (procedure->py-function
                         (lambda (self-32 other-33)
                           (letrec* ()
@@ -1201,7 +1204,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ipow__-332
+                 (set! __ipow__-333
                        (procedure->py-function
                         (lambda (self-34 other-35)
                           (letrec* ()
@@ -1222,7 +1225,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __sub__-334
+                 (set! __sub__-335
                        (procedure->py-function
                         (lambda (self-36 other-37)
                           (letrec* ()
@@ -1243,7 +1246,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rsub__-336
+                 (set! __rsub__-337
                        (procedure->py-function
                         (lambda (self-38 other-39)
                           (letrec* ()
@@ -1264,7 +1267,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __isub__-338
+                 (set! __isub__-339
                        (procedure->py-function
                         (lambda (self-40 other-41)
                           (letrec* ()
@@ -1285,7 +1288,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __xor__-340
+                 (set! __xor__-341
                        (procedure->py-function
                         (lambda (self-42 other-43)
                           (letrec* ()
@@ -1306,7 +1309,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rxor__-342
+                 (set! __rxor__-343
                        (procedure->py-function
                         (lambda (self-44 other-45)
                           (letrec* ()
@@ -1327,7 +1330,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ixor__-344
+                 (set! __ixor__-345
                        (procedure->py-function
                         (lambda (self-46 other-47)
                           (letrec* ()
@@ -1348,7 +1351,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __lshift__-346
+                 (set! __lshift__-347
                        (procedure->py-function
                         (lambda (self-48 other-49)
                           (letrec* ()
@@ -1375,7 +1378,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rlshift__-348
+                 (set! __rlshift__-349
                        (procedure->py-function
                         (lambda (self-50 other-51)
                           (letrec* ()
@@ -1402,7 +1405,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ilshift__-350
+                 (set! __ilshift__-351
                        (procedure->py-function
                         (lambda (self-52 other-53)
                           (letrec* ()
@@ -1429,7 +1432,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rshift__-352
+                 (set! __rshift__-353
                        (procedure->py-function
                         (lambda (self-54 other-55)
                           (letrec* ()
@@ -1456,7 +1459,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rrshift__-354
+                 (set! __rrshift__-355
                        (procedure->py-function
                         (lambda (self-56 other-57)
                           (letrec* ()
@@ -1483,7 +1486,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __irshift__-356
+                 (set! __irshift__-357
                        (procedure->py-function
                         (lambda (self-58 other-59)
                           (letrec* ()
@@ -1510,7 +1513,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __pos__-358
+                 (set! __pos__-359
                        (procedure->py-function
                         (lambda (self-60)
                           (letrec* ()
@@ -1524,7 +1527,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self))))
-                 (set! __neg__-360
+                 (set! __neg__-361
                        (procedure->py-function
                         (lambda (self-61)
                           (letrec* ()
@@ -1539,7 +1542,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self))))
-                 (set! __invert__-362
+                 (set! __invert__-363
                        (procedure->py-function
                         (lambda (self-62)
                           (letrec* ()
@@ -1554,7 +1557,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self))))
-                 (set! __floordiv__-364
+                 (set! __floordiv__-365
                        (procedure->py-function
                         (lambda (self-63 other-64)
                           (letrec* ()
@@ -1581,7 +1584,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rfloordiv__-366
+                 (set! __rfloordiv__-367
                        (procedure->py-function
                         (lambda (self-65 other-66)
                           (letrec* ()
@@ -1608,7 +1611,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ifloordiv__-368
+                 (set! __ifloordiv__-369
                        (procedure->py-function
                         (lambda (self-67 other-68)
                           (letrec* ()
@@ -1635,7 +1638,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __truediv__-370
+                 (set! __truediv__-371
                        (procedure->py-function
                         (lambda (self-69 other-70)
                           (letrec* ()
@@ -1662,7 +1665,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rtruediv__-372
+                 (set! __rtruediv__-373
                        (procedure->py-function
                         (lambda (self-71 other-72)
                           (letrec* ()
@@ -1689,7 +1692,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __itruediv__-374
+                 (set! __itruediv__-375
                        (procedure->py-function
                         (lambda (self-73 other-74)
                           (letrec* ()
@@ -1716,7 +1719,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __mod__-376
+                 (set! __mod__-377
                        (procedure->py-function
                         (lambda (self-75 other-76)
                           (letrec* ()
@@ -1743,7 +1746,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rmod__-378
+                 (set! __rmod__-379
                        (procedure->py-function
                         (lambda (self-77 other-78)
                           (letrec* ()
@@ -1770,7 +1773,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __imod__-380
+                 (set! __imod__-381
                        (procedure->py-function
                         (lambda (self-79 other-80)
                           (letrec* ()
@@ -1797,7 +1800,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __eq__-382
+                 (set! __eq__-383
                        (procedure->py-function
                         (lambda (self-81 other-82)
                           (letrec* ()
@@ -1819,7 +1822,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ne__-384
+                 (set! __ne__-385
                        (procedure->py-function
                         (lambda (self-83 other-84)
                           (letrec* ()
@@ -1841,7 +1844,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ge__-386
+                 (set! __ge__-387
                        (procedure->py-function
                         (lambda (self-85 other-86)
                           (letrec* ()
@@ -1863,7 +1866,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __gt__-388
+                 (set! __gt__-389
                        (procedure->py-function
                         (lambda (self-87 other-88)
                           (letrec* ()
@@ -1885,7 +1888,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __le__-390
+                 (set! __le__-391
                        (procedure->py-function
                         (lambda (self-89 other-90)
                           (letrec* ()
@@ -1907,7 +1910,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __lt__-392
+                 (set! __lt__-393
                        (procedure->py-function
                         (lambda (self-91 other-92)
                           (letrec* ()
@@ -1936,114 +1939,114 @@
                         (&& "__main__")
                         (list)
                         (& "__lt__")
-                        __lt__-392
+                        __lt__-393
                         (& "__le__")
-                        __le__-390
+                        __le__-391
                         (& "__gt__")
-                        __gt__-388
+                        __gt__-389
                         (& "__ge__")
-                        __ge__-386
+                        __ge__-387
                         (& "__ne__")
-                        __ne__-384
+                        __ne__-385
                         (& "__eq__")
-                        __eq__-382
+                        __eq__-383
                         (& "__imod__")
-                        __imod__-380
+                        __imod__-381
                         (& "__rmod__")
-                        __rmod__-378
+                        __rmod__-379
                         (& "__mod__")
-                        __mod__-376
+                        __mod__-377
                         (& "__itruediv__")
-                        __itruediv__-374
+                        __itruediv__-375
                         (& "__rtruediv__")
-                        __rtruediv__-372
+                        __rtruediv__-373
                         (& "__truediv__")
-                        __truediv__-370
+                        __truediv__-371
                         (& "__ifloordiv__")
-                        __ifloordiv__-368
+                        __ifloordiv__-369
                         (& "__rfloordiv__")
-                        __rfloordiv__-366
+                        __rfloordiv__-367
                         (& "__floordiv__")
-                        __floordiv__-364
+                        __floordiv__-365
                         (& "__invert__")
-                        __invert__-362
+                        __invert__-363
                         (& "__neg__")
-                        __neg__-360
+                        __neg__-361
                         (& "__pos__")
-                        __pos__-358
+                        __pos__-359
                         (& "__irshift__")
-                        __irshift__-356
+                        __irshift__-357
                         (& "__rrshift__")
-                        __rrshift__-354
+                        __rrshift__-355
                         (& "__rshift__")
-                        __rshift__-352
+                        __rshift__-353
                         (& "__ilshift__")
-                        __ilshift__-350
+                        __ilshift__-351
                         (& "__rlshift__")
-                        __rlshift__-348
+                        __rlshift__-349
                         (& "__lshift__")
-                        __lshift__-346
+                        __lshift__-347
                         (& "__ixor__")
-                        __ixor__-344
+                        __ixor__-345
                         (& "__rxor__")
-                        __rxor__-342
+                        __rxor__-343
                         (& "__xor__")
-                        __xor__-340
+                        __xor__-341
                         (& "__isub__")
-                        __isub__-338
+                        __isub__-339
                         (& "__rsub__")
-                        __rsub__-336
+                        __rsub__-337
                         (& "__sub__")
-                        __sub__-334
+                        __sub__-335
                         (& "__ipow__")
-                        __ipow__-332
+                        __ipow__-333
                         (& "__rpow__")
-                        __rpow__-330
+                        __rpow__-331
                         (& "__pow__")
-                        __pow__-328
+                        __pow__-329
                         (& "__imul__")
-                        __imul__-326
+                        __imul__-327
                         (& "__rmul__")
-                        __rmul__-324
+                        __rmul__-325
                         (& "__mul__")
-                        __mul__-322
+                        __mul__-323
                         (& "__ior__")
-                        __ior__-320
+                        __ior__-321
                         (& "__ror__")
-                        __ror__-318
+                        __ror__-319
                         (& "__or__")
-                        __or__-316
+                        __or__-317
                         (& "__iand__")
-                        __iand__-314
+                        __iand__-315
                         (& "__rand__")
-                        __rand__-312
+                        __rand__-313
                         (& "__and__")
-                        __and__-310
+                        __and__-311
                         (& "__iadd__")
-                        __iadd__-308
+                        __iadd__-309
                         (& "__radd__")
-                        __radd__-306
+                        __radd__-307
                         (& "__add__")
-                        __add__-304
+                        __add__-305
                         (& "__index__")
-                        __index__-302
+                        __index__-303
                         (& "__bool__")
-                        __bool__-300
+                        __bool__-301
                         (& "__new__")
-                        __new__-297))
+                        __new__-298))
                  $%cls_0))))
      (set! &py-builtin-bool
            (let (($%cls_1 py-absent))
-             (letrec* ((__rxor__-843 #f)
-                       (__xor__-841 #f)
-                       (__ror__-839 #f)
-                       (__or__-837 #f)
-                       (__rand__-835 #f)
-                       (__and__-833 #f)
-                       (__repr__-831 #f)
-                       (__new__-828 #f))
+             (letrec* ((__rxor__-844 #f)
+                       (__xor__-842 #f)
+                       (__ror__-840 #f)
+                       (__or__-838 #f)
+                       (__rand__-836 #f)
+                       (__and__-834 #f)
+                       (__repr__-832 #f)
+                       (__new__-829 #f))
                (begin
-                 (set! __new__-828
+                 (set! __new__-829
                        (procedure->py-function
                         (lambda (cls-93 val-94)
                           (letrec* ()
@@ -2057,7 +2060,7 @@
                          (cls val)
                          defaults:
                          (vector py-absent))))
-                 (set! __repr__-831
+                 (set! __repr__-832
                        (procedure->py-function
                         (lambda (self-95)
                           (letrec* ()
@@ -2074,7 +2077,7 @@
                                                                (& "__name__")))
                                                       (&& "'"))))))))
                         (make-signature args: (self))))
-                 (set! __and__-833
+                 (set! __and__-834
                        (procedure->py-function
                         (lambda (self-96 other-97)
                           (letrec* ()
@@ -2103,7 +2106,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rand__-835
+                 (set! __rand__-836
                        (procedure->py-function
                         (lambda (self-98 other-99)
                           (letrec* ()
@@ -2132,7 +2135,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __or__-837
+                 (set! __or__-838
                        (procedure->py-function
                         (lambda (self-100 other-101)
                           (letrec* ()
@@ -2162,7 +2165,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ror__-839
+                 (set! __ror__-840
                        (procedure->py-function
                         (lambda (self-102 other-103)
                           (letrec* ()
@@ -2192,7 +2195,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __xor__-841
+                 (set! __xor__-842
                        (procedure->py-function
                         (lambda (self-104 other-105)
                           (letrec* ()
@@ -2220,7 +2223,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rxor__-843
+                 (set! __rxor__-844
                        (procedure->py-function
                         (lambda (self-106 other-107)
                           (letrec* ()
@@ -2255,57 +2258,57 @@
                         (&& "__main__")
                         (list &py-builtin-int)
                         (& "__rxor__")
-                        __rxor__-843
+                        __rxor__-844
                         (& "__xor__")
-                        __xor__-841
+                        __xor__-842
                         (& "__ror__")
-                        __ror__-839
+                        __ror__-840
                         (& "__or__")
-                        __or__-837
+                        __or__-838
                         (& "__rand__")
-                        __rand__-835
+                        __rand__-836
                         (& "__and__")
-                        __and__-833
+                        __and__-834
                         (& "__repr__")
-                        __repr__-831
+                        __repr__-832
                         (& "__new__")
-                        __new__-828))
+                        __new__-829))
                  $%cls_1))))
      (set! &py-builtin-float
            (let (($%cls_2 py-absent))
-             (letrec* ((__lt__-974 #f)
-                       (__le__-972 #f)
-                       (__gt__-970 #f)
-                       (__ge__-968 #f)
-                       (__ne__-966 #f)
-                       (__eq__-964 #f)
-                       (__imod__-962 #f)
-                       (__rmod__-960 #f)
-                       (__mod__-958 #f)
-                       (__itruediv__-956 #f)
-                       (__rtruediv__-954 #f)
-                       (__truediv__-952 #f)
-                       (__ifloordiv__-950 #f)
-                       (__rfloordiv__-948 #f)
-                       (__floordiv__-946 #f)
-                       (__neg__-944 #f)
-                       (__pos__-942 #f)
-                       (__isub__-940 #f)
-                       (__rsub__-938 #f)
-                       (__sub__-936 #f)
-                       (__ipow__-934 #f)
-                       (__rpow__-932 #f)
-                       (__pow__-930 #f)
-                       (__imul__-928 #f)
-                       (__rmul__-926 #f)
-                       (__mul__-924 #f)
-                       (__iadd__-922 #f)
-                       (__radd__-920 #f)
-                       (__add__-918 #f)
-                       (__bool__-916 #f)
-                       (__new__-913 #f))
+             (letrec* ((__lt__-975 #f)
+                       (__le__-973 #f)
+                       (__gt__-971 #f)
+                       (__ge__-969 #f)
+                       (__ne__-967 #f)
+                       (__eq__-965 #f)
+                       (__imod__-963 #f)
+                       (__rmod__-961 #f)
+                       (__mod__-959 #f)
+                       (__itruediv__-957 #f)
+                       (__rtruediv__-955 #f)
+                       (__truediv__-953 #f)
+                       (__ifloordiv__-951 #f)
+                       (__rfloordiv__-949 #f)
+                       (__floordiv__-947 #f)
+                       (__neg__-945 #f)
+                       (__pos__-943 #f)
+                       (__isub__-941 #f)
+                       (__rsub__-939 #f)
+                       (__sub__-937 #f)
+                       (__ipow__-935 #f)
+                       (__rpow__-933 #f)
+                       (__pow__-931 #f)
+                       (__imul__-929 #f)
+                       (__rmul__-927 #f)
+                       (__mul__-925 #f)
+                       (__iadd__-923 #f)
+                       (__radd__-921 #f)
+                       (__add__-919 #f)
+                       (__bool__-917 #f)
+                       (__new__-914 #f))
                (begin
-                 (set! __new__-913
+                 (set! __new__-914
                        (procedure->py-function
                         (lambda (cls-108 val-109)
                           (bind-exit
@@ -2329,7 +2332,7 @@
                          (cls val)
                          defaults:
                          (vector py-absent))))
-                 (set! __bool__-916
+                 (set! __bool__-917
                        (procedure->py-function
                         (lambda (self-110)
                           (letrec* ()
@@ -2344,7 +2347,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self))))
-                 (set! __add__-918
+                 (set! __add__-919
                        (procedure->py-function
                         (lambda (self-111 other-112)
                           (letrec* ()
@@ -2374,7 +2377,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __radd__-920
+                 (set! __radd__-921
                        (procedure->py-function
                         (lambda (self-113 other-114)
                           (letrec* ()
@@ -2404,7 +2407,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __iadd__-922
+                 (set! __iadd__-923
                        (procedure->py-function
                         (lambda (self-115 other-116)
                           (letrec* ()
@@ -2434,7 +2437,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __mul__-924
+                 (set! __mul__-925
                        (procedure->py-function
                         (lambda (self-117 other-118)
                           (letrec* ()
@@ -2464,7 +2467,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rmul__-926
+                 (set! __rmul__-927
                        (procedure->py-function
                         (lambda (self-119 other-120)
                           (letrec* ()
@@ -2494,7 +2497,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __imul__-928
+                 (set! __imul__-929
                        (procedure->py-function
                         (lambda (self-121 other-122)
                           (letrec* ()
@@ -2524,7 +2527,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __pow__-930
+                 (set! __pow__-931
                        (procedure->py-function
                         (lambda (self-123 other-124)
                           (letrec* ()
@@ -2554,7 +2557,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rpow__-932
+                 (set! __rpow__-933
                        (procedure->py-function
                         (lambda (self-125 other-126)
                           (letrec* ()
@@ -2584,7 +2587,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ipow__-934
+                 (set! __ipow__-935
                        (procedure->py-function
                         (lambda (self-127 other-128)
                           (letrec* ()
@@ -2614,7 +2617,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __sub__-936
+                 (set! __sub__-937
                        (procedure->py-function
                         (lambda (self-129 other-130)
                           (letrec* ()
@@ -2644,7 +2647,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rsub__-938
+                 (set! __rsub__-939
                        (procedure->py-function
                         (lambda (self-131 other-132)
                           (letrec* ()
@@ -2674,7 +2677,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __isub__-940
+                 (set! __isub__-941
                        (procedure->py-function
                         (lambda (self-133 other-134)
                           (letrec* ()
@@ -2704,7 +2707,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __pos__-942
+                 (set! __pos__-943
                        (procedure->py-function
                         (lambda (self-135)
                           (letrec* ()
@@ -2719,7 +2722,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self))))
-                 (set! __neg__-944
+                 (set! __neg__-945
                        (procedure->py-function
                         (lambda (self-136)
                           (letrec* ()
@@ -2735,7 +2738,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self))))
-                 (set! __floordiv__-946
+                 (set! __floordiv__-947
                        (procedure->py-function
                         (lambda (self-137 other-138)
                           (letrec* ()
@@ -2779,7 +2782,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rfloordiv__-948
+                 (set! __rfloordiv__-949
                        (procedure->py-function
                         (lambda (self-139 other-140)
                           (letrec* ()
@@ -2822,7 +2825,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ifloordiv__-950
+                 (set! __ifloordiv__-951
                        (procedure->py-function
                         (lambda (self-141 other-142)
                           (letrec* ()
@@ -2866,7 +2869,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __truediv__-952
+                 (set! __truediv__-953
                        (procedure->py-function
                         (lambda (self-143 other-144)
                           (letrec* ()
@@ -2909,7 +2912,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rtruediv__-954
+                 (set! __rtruediv__-955
                        (procedure->py-function
                         (lambda (self-145 other-146)
                           (letrec* ()
@@ -2952,7 +2955,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __itruediv__-956
+                 (set! __itruediv__-957
                        (procedure->py-function
                         (lambda (self-147 other-148)
                           (letrec* ()
@@ -2995,7 +2998,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __mod__-958
+                 (set! __mod__-959
                        (procedure->py-function
                         (lambda (self-149 other-150)
                           (letrec* ()
@@ -3038,7 +3041,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rmod__-960
+                 (set! __rmod__-961
                        (procedure->py-function
                         (lambda (self-151 other-152)
                           (letrec* ()
@@ -3081,7 +3084,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __imod__-962
+                 (set! __imod__-963
                        (procedure->py-function
                         (lambda (self-153 other-154)
                           (letrec* ()
@@ -3124,7 +3127,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __eq__-964
+                 (set! __eq__-965
                        (procedure->py-function
                         (lambda (self-155 other-156)
                           (letrec* ()
@@ -3156,7 +3159,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ne__-966
+                 (set! __ne__-967
                        (procedure->py-function
                         (lambda (self-157 other-158)
                           (letrec* ()
@@ -3188,7 +3191,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ge__-968
+                 (set! __ge__-969
                        (procedure->py-function
                         (lambda (self-159 other-160)
                           (letrec* ()
@@ -3220,7 +3223,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __gt__-970
+                 (set! __gt__-971
                        (procedure->py-function
                         (lambda (self-161 other-162)
                           (letrec* ()
@@ -3252,7 +3255,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __le__-972
+                 (set! __le__-973
                        (procedure->py-function
                         (lambda (self-163 other-164)
                           (letrec* ()
@@ -3284,7 +3287,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __lt__-974
+                 (set! __lt__-975
                        (procedure->py-function
                         (lambda (self-165 other-166)
                           (letrec* ()
@@ -3323,82 +3326,82 @@
                         (&& "__main__")
                         (list)
                         (& "__lt__")
-                        __lt__-974
+                        __lt__-975
                         (& "__le__")
-                        __le__-972
+                        __le__-973
                         (& "__gt__")
-                        __gt__-970
+                        __gt__-971
                         (& "__ge__")
-                        __ge__-968
+                        __ge__-969
                         (& "__ne__")
-                        __ne__-966
+                        __ne__-967
                         (& "__eq__")
-                        __eq__-964
+                        __eq__-965
                         (& "__imod__")
-                        __imod__-962
+                        __imod__-963
                         (& "__rmod__")
-                        __rmod__-960
+                        __rmod__-961
                         (& "__mod__")
-                        __mod__-958
+                        __mod__-959
                         (& "__itruediv__")
-                        __itruediv__-956
+                        __itruediv__-957
                         (& "__rtruediv__")
-                        __rtruediv__-954
+                        __rtruediv__-955
                         (& "__truediv__")
-                        __truediv__-952
+                        __truediv__-953
                         (& "__ifloordiv__")
-                        __ifloordiv__-950
+                        __ifloordiv__-951
                         (& "__rfloordiv__")
-                        __rfloordiv__-948
+                        __rfloordiv__-949
                         (& "__floordiv__")
-                        __floordiv__-946
+                        __floordiv__-947
                         (& "__neg__")
-                        __neg__-944
+                        __neg__-945
                         (& "__pos__")
-                        __pos__-942
+                        __pos__-943
                         (& "__isub__")
-                        __isub__-940
+                        __isub__-941
                         (& "__rsub__")
-                        __rsub__-938
+                        __rsub__-939
                         (& "__sub__")
-                        __sub__-936
+                        __sub__-937
                         (& "__ipow__")
-                        __ipow__-934
+                        __ipow__-935
                         (& "__rpow__")
-                        __rpow__-932
+                        __rpow__-933
                         (& "__pow__")
-                        __pow__-930
+                        __pow__-931
                         (& "__imul__")
-                        __imul__-928
+                        __imul__-929
                         (& "__rmul__")
-                        __rmul__-926
+                        __rmul__-927
                         (& "__mul__")
-                        __mul__-924
+                        __mul__-925
                         (& "__iadd__")
-                        __iadd__-922
+                        __iadd__-923
                         (& "__radd__")
-                        __radd__-920
+                        __radd__-921
                         (& "__add__")
-                        __add__-918
+                        __add__-919
                         (& "__bool__")
-                        __bool__-916
+                        __bool__-917
                         (& "__new__")
-                        __new__-913))
+                        __new__-914))
                  $%cls_2))))
      (set! &py-builtin-str
            (let (($%cls_3 py-absent))
-             (letrec* ((__lt__-1326 #f)
-                       (__le__-1324 #f)
-                       (__gt__-1322 #f)
-                       (__ge__-1320 #f)
-                       (__ne__-1318 #f)
-                       (__eq__-1316 #f)
-                       (__rmul__-1314 #f)
-                       (__mul__-1312 #f)
-                       (__add__-1310 #f)
-                       (__len__-1308 #f))
+             (letrec* ((__lt__-1327 #f)
+                       (__le__-1325 #f)
+                       (__gt__-1323 #f)
+                       (__ge__-1321 #f)
+                       (__ne__-1319 #f)
+                       (__eq__-1317 #f)
+                       (__rmul__-1315 #f)
+                       (__mul__-1313 #f)
+                       (__add__-1311 #f)
+                       (__len__-1309 #f))
                (begin
-                 (set! __len__-1308
+                 (set! __len__-1309
                        (procedure->py-function
                         (lambda (self-167)
                           (letrec* ()
@@ -3414,7 +3417,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self))))
-                 (set! __add__-1310
+                 (set! __add__-1311
                        (procedure->py-function
                         (lambda (self-168 other-169)
                           (letrec* ()
@@ -3436,7 +3439,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __mul__-1312
+                 (set! __mul__-1313
                        (procedure->py-function
                         (lambda (self-170 other-171)
                           (letrec* ()
@@ -3458,7 +3461,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rmul__-1314
+                 (set! __rmul__-1315
                        (procedure->py-function
                         (lambda (self-172 other-173)
                           (letrec* ()
@@ -3480,7 +3483,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __eq__-1316
+                 (set! __eq__-1317
                        (procedure->py-function
                         (lambda (self-174 other-175)
                           (letrec* ()
@@ -3503,7 +3506,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ne__-1318
+                 (set! __ne__-1319
                        (procedure->py-function
                         (lambda (self-176 other-177)
                           (letrec* ()
@@ -3526,7 +3529,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ge__-1320
+                 (set! __ge__-1321
                        (procedure->py-function
                         (lambda (self-178 other-179)
                           (letrec* ()
@@ -3549,7 +3552,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __gt__-1322
+                 (set! __gt__-1323
                        (procedure->py-function
                         (lambda (self-180 other-181)
                           (letrec* ()
@@ -3572,7 +3575,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __le__-1324
+                 (set! __le__-1325
                        (procedure->py-function
                         (lambda (self-182 other-183)
                           (letrec* ()
@@ -3595,7 +3598,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __lt__-1326
+                 (set! __lt__-1327
                        (procedure->py-function
                         (lambda (self-184 other-185)
                           (letrec* ()
@@ -3625,64 +3628,72 @@
                         (&& "__main__")
                         (list)
                         (& "__lt__")
-                        __lt__-1326
+                        __lt__-1327
                         (& "__le__")
-                        __le__-1324
+                        __le__-1325
                         (& "__gt__")
-                        __gt__-1322
+                        __gt__-1323
                         (& "__ge__")
-                        __ge__-1320
+                        __ge__-1321
                         (& "__ne__")
-                        __ne__-1318
+                        __ne__-1319
                         (& "__eq__")
-                        __eq__-1316
+                        __eq__-1317
                         (& "__rmul__")
-                        __rmul__-1314
+                        __rmul__-1315
                         (& "__mul__")
-                        __mul__-1312
+                        __mul__-1313
                         (& "__add__")
-                        __add__-1310
+                        __add__-1311
                         (& "__len__")
-                        __len__-1308))
+                        __len__-1309))
                  $%cls_3))))
      (set! &py-builtin-range_iterator
            (let (($%cls_4 py-absent))
-             (letrec* ((__next__-1422 #f) (__iter__-1420 #f))
+             (letrec* ((__next__-1425 #f) (__iter__-1423 #f) (__new__-1421 #f))
                (begin
-                 (set! __iter__-1420
+                 (set! __new__-1421
                        (procedure->py-function
-                        (lambda (self-186) (letrec* () self-186))
+                        (lambda (args-186)
+                          (letrec* ()
+                            (py-throw
+                             (py-call &py-builtin-ValueError
+                                      (&& "cannot create 'range_iterator' instances")))))
+                        (make-signature vararg: args)))
+                 (set! __iter__-1423
+                       (procedure->py-function
+                        (lambda (self-187) (letrec* () self-187))
                         (make-signature posonlyargs: (self))))
-                 (set! __next__-1422
+                 (set! __next__-1425
                        (procedure->py-function
-                        (lambda (self-187)
+                        (lambda (self-188)
                           (bind-exit
                            ($%return_75)
-                           (letrec* ((step-1429 #f)
-                                     (stop-1427 #f)
-                                     (start-1424 #f))
+                           (letrec* ((step-1432 #f)
+                                     (stop-1430 #f)
+                                     (start-1427 #f))
                              (begin
-                               (set! start-1424
-                                     (PyObjectRangeIterator-start self-187))
-                               (set! stop-1427
-                                     (PyObjectRangeIterator-stop self-187))
-                               (set! step-1429
-                                     (PyObjectRangeIterator-step self-187))
-                               (if (py-test (py-lt step-1429
+                               (set! start-1427
+                                     (PyObjectRangeIterator-start self-188))
+                               (set! stop-1430
+                                     (PyObjectRangeIterator-stop self-188))
+                               (set! step-1432
+                                     (PyObjectRangeIterator-step self-188))
+                               (if (py-test (py-lt step-1432
                                                    (py-int-from-scheme 0)))
-                                   (if (py-test (py-gt start-1424 stop-1427))
+                                   (if (py-test (py-gt start-1427 stop-1430))
                                        (begin
                                          (PyObjectRangeIterator-start-set!
-                                          self-187
-                                          (py-add start-1424 step-1429))
-                                         ($%return_75 start-1424))
+                                          self-188
+                                          (py-add start-1427 step-1432))
+                                         ($%return_75 start-1427))
                                        #f)
-                                   (if (py-test (py-lt start-1424 stop-1427))
+                                   (if (py-test (py-lt start-1427 stop-1430))
                                        (begin
                                          (PyObjectRangeIterator-start-set!
-                                          self-187
-                                          (py-add start-1424 step-1429))
-                                         ($%return_75 start-1424))
+                                          self-188
+                                          (py-add start-1427 step-1432))
+                                         ($%return_75 start-1427))
                                        #f))
                                (py-throw &py-builtin-StopIteration)))))
                         (make-signature posonlyargs: (self)))))
@@ -3693,126 +3704,131 @@
                         (&& "__main__")
                         (list)
                         (& "__next__")
-                        __next__-1422
+                        __next__-1425
                         (& "__iter__")
-                        __iter__-1420))
+                        __iter__-1423
+                        (& "__new__")
+                        __new__-1421))
                  $%cls_4))))
      (set! &py-builtin-range
            (let (($%cls_5 py-absent))
-             (letrec* ((__repr__-1442 #f)
-                       (__iter__-1440 #f)
-                       (__contains__-1438 #f)
-                       (__len__-1436 #f)
-                       (__new__-1433 #f))
+             (letrec* ((__repr__-1446 #f)
+                       (__iter__-1444 #f)
+                       (__contains__-1442 #f)
+                       (__len__-1440 #f)
+                       (__new__-1437 #f))
                (begin
-                 (set! __new__-1433
+                 (set! __new__-1437
                        (procedure->py-function
-                        (lambda (cls-188 arg1-189 arg2-190 arg3-191)
+                        (lambda (cls-189 arg1-190 arg2-191 arg3-192)
                           (letrec* ()
-                            (if (py-test (py-isnot arg3-191 py-absent))
+                            (if (py-test (py-isnot arg3-192 py-absent))
                                 (make-PyObjectRange
                                  py-range-hclass-of-instances
                                  '#()
                                  py-builtin-range
-                                 arg1-189
-                                 arg2-190
-                                 arg3-191)
-                                (if (py-test (py-isnot arg2-190 py-absent))
+                                 arg1-190
+                                 arg2-191
+                                 arg3-192)
+                                (if (py-test (py-isnot arg2-191 py-absent))
                                     (make-PyObjectRange
                                      py-range-hclass-of-instances
                                      '#()
                                      py-builtin-range
-                                     arg1-189
-                                     arg2-190
+                                     arg1-190
+                                     arg2-191
                                      (py-int-from-scheme 1))
                                     (make-PyObjectRange
                                      py-range-hclass-of-instances
                                      '#()
                                      py-builtin-range
                                      (py-int-from-scheme 0)
-                                     arg1-189
+                                     arg1-190
                                      (py-int-from-scheme 1))))))
                         (make-signature
                          posonlyargs:
                          (cls arg1 arg2 arg3)
                          defaults:
                          (vector py-absent py-absent))))
-                 (set! __len__-1436
+                 (set! __len__-1440
                        (procedure->py-function
-                        (lambda (self-192)
+                        (lambda (self-193)
                           (letrec* ()
                             (py-floordiv
-                             (py-sub (PyObjectRange-stop self-192)
-                                     (PyObjectRange-start self-192))
-                             (PyObjectRange-step self-192))))
+                             (py-sub (PyObjectRange-stop self-193)
+                                     (PyObjectRange-start self-193))
+                             (PyObjectRange-step self-193))))
                         (make-signature posonlyargs: (self))))
-                 (set! __contains__-1438
+                 (set! __contains__-1442
                        (procedure->py-function
-                        (lambda (self-193 item-194)
+                        (lambda (self-194 item-195)
                           (bind-exit
                            ($%return_76)
-                           (letrec* ((step-1459 #f)
-                                     (stop-1457 #f)
-                                     (start-1454 #f))
+                           (letrec* ((step-1464 #f)
+                                     (stop-1462 #f)
+                                     (start-1459 #f))
                              (begin
-                               (set! start-1454 (PyObjectRange-start self-193))
-                               (set! stop-1457 (PyObjectRange-stop self-193))
-                               (set! step-1459 (PyObjectRange-step self-193))
-                               (if (py-test (py-lt step-1459
+                               (set! start-1459 (PyObjectRange-start self-194))
+                               (set! stop-1462 (PyObjectRange-stop self-194))
+                               (set! step-1464 (PyObjectRange-step self-194))
+                               (if (py-test (py-lt step-1464
                                                    (py-int-from-scheme 0)))
-                                   (if (or (py-test (py-ge stop-1457 item-194))
-                                           (py-test (py-gt item-194
-                                                           start-1454)))
+                                   (if (or (py-test (py-ge stop-1462 item-195))
+                                           (py-test (py-gt item-195
+                                                           start-1459)))
                                        ($%return_76 py-False)
                                        #f)
-                                   (if (or (py-test (py-gt start-1454
-                                                           item-194))
-                                           (py-test (py-ge item-194
-                                                           stop-1457)))
+                                   (if (or (py-test (py-gt start-1459
+                                                           item-195))
+                                           (py-test (py-ge item-195
+                                                           stop-1462)))
                                        ($%return_76 py-False)
                                        #f))
-                               (py-eq (py-mod (py-sub item-194 start-1454)
-                                              step-1459)
+                               (py-eq (py-mod (py-sub item-195 start-1459)
+                                              step-1464)
                                       (py-int-from-scheme 0))))))
                         (make-signature posonlyargs: (self item))))
-                 (set! __iter__-1440
-                       (procedure->py-function
-                        (lambda (self-195)
-                          (letrec* ()
-                            (py-call &py-builtin-range_iterator
-                                     (PyObjectRange-start self-195)
-                                     (PyObjectRange-stop self-195)
-                                     (PyObjectRange-step self-195))))
-                        (make-signature posonlyargs: (self))))
-                 (set! __repr__-1442
+                 (set! __iter__-1444
                        (procedure->py-function
                         (lambda (self-196)
-                          (letrec* ((step-1449 #f)
-                                    (stop-1447 #f)
-                                    (start-1444 #f))
+                          (letrec* ()
+                            (make-PyObjectRangeIterator
+                             py-range_iterator-hclass-of-instances
+                             '#()
+                             py-builtin-range_iterator
+                             (PyObjectRange-start self-196)
+                             (PyObjectRange-stop self-196)
+                             (PyObjectRange-step self-196))))
+                        (make-signature posonlyargs: (self))))
+                 (set! __repr__-1446
+                       (procedure->py-function
+                        (lambda (self-197)
+                          (letrec* ((step-1453 #f)
+                                    (stop-1451 #f)
+                                    (start-1448 #f))
                             (begin
-                              (set! start-1444 (PyObjectRange-start self-196))
-                              (set! stop-1447 (PyObjectRange-stop self-196))
-                              (set! step-1449 (PyObjectRange-step self-196))
-                              (if (py-test (py-eq step-1449
+                              (set! start-1448 (PyObjectRange-start self-197))
+                              (set! stop-1451 (PyObjectRange-stop self-197))
+                              (set! step-1453 (PyObjectRange-step self-197))
+                              (if (py-test (py-eq step-1453
                                                   (py-int-from-scheme 1)))
                                   (py-add (py-add (py-add (py-add (&& "range(")
 ;;<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-                          (py-call &py-builtin-str start-1444))
+                          (py-call &py-builtin-str start-1448))
                   (&& ", "))
 ;;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
                                                   (py-call &py-builtin-str
-                                                           stop-1447))
+                                                           stop-1451))
                                           (&& ")"))
                                   (py-add (py-add (py-add (py-add (py-add (py-add (&& "range(")
 ;;<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-                                          (py-call &py-builtin-str start-1444))
+                                          (py-call &py-builtin-str start-1448))
                                   (&& ", "))
-                          (py-call &py-builtin-str stop-1447))
+                          (py-call &py-builtin-str stop-1451))
                   (&& ", "))
 ;;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
                                                   (py-call &py-builtin-str
-                                                           step-1449))
+                                                           step-1453))
                                           (&& ")"))))))
                         (make-signature args: (self)))))
                (begin
@@ -3822,15 +3838,15 @@
                         (&& "__main__")
                         (list)
                         (& "__repr__")
-                        __repr__-1442
+                        __repr__-1446
                         (& "__iter__")
-                        __iter__-1440
+                        __iter__-1444
                         (& "__contains__")
-                        __contains__-1438
+                        __contains__-1442
                         (& "__len__")
-                        __len__-1436
+                        __len__-1440
                         (& "__new__")
-                        __new__-1433))
+                        __new__-1437))
                  $%cls_5))))
      (let (($fun-obj
             (procedure->py-function
@@ -3856,50 +3872,50 @@
        (set! init:&py-builtin-sorted $fun-obj))
      (set! &py-builtin-BaseException
            (let (($%cls_6 py-absent))
-             (letrec* ((__str__-1495 #f) (__init__-1493 #f))
+             (letrec* ((__str__-1500 #f) (__init__-1498 #f))
                (begin
-                 (set! __init__-1493
+                 (set! __init__-1498
                        (procedure->py-function
-                        (lambda (self-204 args-205)
+                        (lambda (self-205 args-206)
                           (letrec* ()
                             (begin
                               (py-setattribute
-                               (or self-204
+                               (or self-205
                                    (py-throw-exception-with-message
                                     py-builtin-UnboundLocalError
                                     "local variable 'self' referenced before assignment"))
                                (& "args")
-                               (or args-205
+                               (or args-206
                                    (py-throw-exception-with-message
                                     py-builtin-UnboundLocalError
                                     "local variable 'args' referenced before assignment")))
                               py-None)))
                         (make-signature args: (self) vararg: args)))
-                 (set! __str__-1495
+                 (set! __str__-1500
                        (procedure->py-function
-                        (lambda (self-206)
-                          (letrec* ((args_len-1500 #f) (args-1497 #f))
+                        (lambda (self-207)
+                          (letrec* ((args_len-1505 #f) (args-1502 #f))
                             (begin
-                              (set! args-1497
-                                    (py-getattribute self-206 (& "args")))
-                              (set! args_len-1500
+                              (set! args-1502
+                                    (py-getattribute self-207 (& "args")))
+                              (set! args_len-1505
                                     (py-call (global-get
                                               %global
                                               (& "len")
                                               (vector-ref %caches 581))
                                              (py-getattribute
-                                              self-206
+                                              self-207
                                               (& "args"))))
-                              (if (py-test (py-eq args_len-1500
+                              (if (py-test (py-eq args_len-1505
                                                   (py-int-from-scheme 0)))
                                   (&& "")
-                                  (if (py-test (py-eq args_len-1500
+                                  (if (py-test (py-eq args_len-1505
                                                       (py-int-from-scheme 1)))
                                       (py-call &py-builtin-str
                                                (py-getitem
-                                                args-1497
+                                                args-1502
                                                 (py-int-from-scheme 0)))
-                                      (py-call &py-builtin-str args-1497))))))
+                                      (py-call &py-builtin-str args-1502))))))
                         (make-signature args: (self)))))
                (begin
                  (set! $%cls_6
@@ -3908,9 +3924,9 @@
                         (&& "__main__")
                         (list)
                         (& "__str__")
-                        __str__-1495
+                        __str__-1500
                         (& "__init__")
-                        __init__-1493))
+                        __init__-1498))
                  $%cls_6))))
      (set! &py-builtin-Exception
            (let (($%cls_7 py-absent))

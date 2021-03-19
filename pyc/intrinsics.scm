@@ -176,6 +176,24 @@
             stop
             step)))))
 
+  (define (make-alloc-range-iterator this args kwargs-pairs)
+    (if (not (null? args))
+      (error "alloc(range_iterator, ...)" "takes only one positional argument" "")
+      (let ((loc (PycNode-loc this))
+            (start (get-kwarg-value 'start kwargs-pairs))
+            (stop (get-kwarg-value 'stop kwargs-pairs))
+            (step (get-kwarg-value 'step kwargs-pairs)))
+        (new-PycCall
+          loc
+          (new-PycPragma loc 'make-PyObjectRangeIterator)
+          (list
+            (new-PycPragma loc 'py-range_iterator-hclass-of-instances)
+            (new-PycPragma loc '(quote #()))
+            (new-PycPragma loc 'py-builtin-range_iterator)
+            start
+            stop
+            step)))))
+
   (let* ((loc (PycNode-loc this))
         (args (PycCall-args this))
         (kw-names (PycCall-keywords-names this))
@@ -191,6 +209,7 @@
                   (error "alloc()" "first argument not recognized statically as builtin type" "")))))
         (case alloc-kind
           ((range) (make-alloc-range this (cdr args) (map cons kw-names kw-values)))
+          ((range_iterator) (make-alloc-range-iterator this (cdr args) (map cons kw-names kw-values)))
           (else
             (error "alloc()" "first argument cannot be allocated with alloc():" alloc-kind))))
       (error "alloc()" "requires at least one argument object type to alloc" ""))))

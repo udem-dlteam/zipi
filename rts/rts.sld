@@ -515,6 +515,7 @@
     py-builtin-BaseException
     py-builtin-sorted
     py-builtin-range
+    py-builtin-range_iterator
     py-builtin-StopIteration
     py-builtin-str
     py-builtin-float

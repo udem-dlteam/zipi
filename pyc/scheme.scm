@@ -206,7 +206,7 @@
                 ,special-init
                 ,@(map
                   (lambda (var) (scheme-var-name var conf))
-                  (get-unique-var-lst (filter-private-vars (map PycRef-decl global-refs)) conf)))
+                  (get-unique-var-lst (map PycRef-decl global-refs) conf)))
               `(export init))
             (import (gambit) (zipi rts))
             (begin

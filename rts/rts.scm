@@ -7368,6 +7368,7 @@
 ;; type, as documented in Ranges and Sequence Types — list, tuple, range.
 
 (define py-builtin-range #f)
+(define py-builtin-range_iterator #f)
 
 ;;-------------------- repr(object)
 

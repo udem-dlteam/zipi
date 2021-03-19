@@ -895,6 +895,9 @@ from __compiler_intrinsics__ import absent, builtin, private, alloc, py_int_from
 @builtin
 @private
 class range_iterator:
+    def __new__(*args):
+        raise ValueError("cannot create 'range_iterator' instances")
+
     def __iter__(self, /):
         return self
 
@@ -942,7 +945,7 @@ class range:
         return (item - start) % step == 0
 
     def __iter__(self, /):
-        return range_iterator(self.start, self.stop, self.step)
+        return alloc(range_iterator, start=self.start, stop=self.stop, step=self.step)
 
     def __repr__(self):
         start = self.start

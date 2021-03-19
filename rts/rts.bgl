@@ -386,6 +386,7 @@
            py-builtin-tuple
            py-builtin-type
            py-builtin-range
+           py-builtin-range_iterator
            py-builtin-int
            py-builtin-bool
            py-builtin-float
