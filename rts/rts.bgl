@@ -312,7 +312,6 @@
 
            (py-in x y)
            (py-notin x y)
-           (py-not x)
 
            py-None
            py-absent
@@ -325,6 +324,10 @@
            py-type-class
            py-tuple-class
            py-str-class
+           py-int-class
+           py-bool-class
+           py-float-class
+
            py-module-class
            py-function-class
            (py-own-attr-set! obj attr val)

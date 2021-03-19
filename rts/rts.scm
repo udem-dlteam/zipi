@@ -199,6 +199,11 @@
     '#()
     '()))
 
+(define py-bool-hclass-of-instances
+  (make-builtin-HClass
+    '#()
+    '()))
+
 (define py-float-hclass-of-instances
   (make-builtin-HClass
     '#()
@@ -1534,6 +1539,16 @@
      (py-int-from-scheme (|##modulo| x y)))
 ))
 
+(define (int-repr self)
+  (if (py-subtype-of-int? self)
+      (py-str-from-scheme (number->string (py-subtype-of-int-to-scheme self)))
+      (py-throw-required-type "__repr__" "int" self)))
+
+(define int.__repr__
+  (procedure->py-function
+    int-repr
+    (make-signature posonlyargs: (self))))
+
 ;;;----------------------------------------------------------------------------
 
 ;; ===================
@@ -1669,29 +1684,6 @@
 
 (define (object-has obj attr)
    (>= (py-own-attr-index obj attr) 0))
-
-;; ================
-;; BOOL PROTOCOL
-;; ================
-
-(define (int-bool self)
-  (if (py-subtype-of-int? self)
-      (let ((value (py-subtype-of-int-to-scheme self)))
-        (if (= value 0)
-            py-False
-            py-True))
-      (py-throw-required-type "__bool__" "int" self)))
-
-;; The Python object int.__bool__
-(define int.__bool__
-  (procedure->py-function
-    int-bool
-    (make-signature posonlyargs: (self))))
-
-(define (py-not obj)
-  (if (py-test obj)
-    py-False
-    py-True))
 
 ;; =============
 ;; CALL PROTOCOL
@@ -2348,6 +2340,9 @@
 (define py-type-class   #f)
 (define py-str-class    #f)
 (define py-tuple-class  #f)
+(define py-int-class #f)
+(define py-bool-class #f)
+(define py-float-class #f)
 
 (define py-bytearray-class #f)
 (define py-complex-class #f)
@@ -2519,9 +2514,6 @@
     (py-own-attr-set! str-class (& "__hash__") str.__hash__)))
 
 (bootstrap-type-hierarchy-phase1)
-
-(define py-True (py-subtype-of-int-from-scheme 1 #f))
-(define py-False (py-subtype-of-int-from-scheme 0 #f))
 
 ;; adds top-level behavior tables
 (init-behavior-dispatch-vector)
@@ -5018,6 +5010,48 @@
 ;; -----------------------------------------------------------------------------
 
 (define (bootstrap-type-hierarchy-phase2)
+  ;; create number core types
+  (let* ((int-class
+            (py-builtin-type-alloc
+                py-type-class
+                (get-behavior-type-index bint)
+                (vector py-object-class) ;; bases
+                #f ;; mro
+                py-int-hclass-of-instances))
+           (bool-class
+              (py-builtin-type-alloc
+                  py-type-class
+                  (get-behavior-type-index bool)
+                  (vector py-object-class) ;; bases
+                  #f ;; mro
+                  py-int-hclass-of-instances))
+           (float-class
+              (py-builtin-type-alloc
+                  py-type-class
+                  (get-behavior-type-index float)
+                  (vector py-object-class) ;; bases
+                  #f ;; mro
+                  py-int-hclass-of-instances)))
+    ;; int
+    (set! py-int-class int-class)
+    (PyObjectType-mro-set! int-class (vector int-class py-object-class))
+    (py-own-attr-set! int-class (& "__name__") (&& "int"))
+    (py-own-attr-set! int-class (& "__module__") (&& "builtins"))
+    (py-own-attr-set! int-class (& "__repr__") int.__repr__)
+
+    ;; bool
+    (set! py-bool-class bool-class)
+    (PyObjectType-mro-set! int-class (vector bool-class int-class py-object-class))
+    (py-own-attr-set! int-class (& "__name__") (&& "bool"))
+    (py-own-attr-set! int-class (& "__module__") (&& "builtins"))
+
+    ;;float
+    (set! py-float-class float-class)
+    (PyObjectType-mro-set! float-class (vector float-class py-object-class))
+    (py-own-attr-set! float-class (& "__name__") (&& "float"))
+    (py-own-attr-set! float-class (& "__module__") (&& "builtins"))
+    (py-own-attr-set! float-class (& "__repr__") float.__repr__))
+
   ;; Fill in tuple class
   (py-own-attr-set! py-tuple-class (& "__iter__") tuple.__iter__)
   (py-own-attr-set! py-tuple-class (& "__contains__") tuple.__contains__)
@@ -5163,6 +5197,10 @@
       )
 
 (bootstrap-type-hierarchy-phase2)
+
+(define py-True (py-subtype-of-int-from-scheme 1 py-bool-class))
+(define py-False (py-subtype-of-int-from-scheme 0 py-bool-class))
+
 (bootstrap-functions)
 
 

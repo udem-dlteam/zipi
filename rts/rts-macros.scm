@@ -1018,7 +1018,7 @@
       (str . py-str-hclass-of-instances)
       (tuple . py-tuple-hclass-of-instances)
       (int . py-int-hclass-of-instances)
-      (bool . py-int-hclass-of-instances)
+      (bool . py-bool-hclass-of-instances)
       (float . py-float-hclass-of-instances)
       (slice . py-slice-hclass-of-instances)
       (bytearray . py-bytearray-hclass-of-instances)
@@ -1042,7 +1042,10 @@
     '((object . py-object-class)
       (type . py-type-class)
       (str . py-str-class)
-      (tuple . py-tuple-class)))
+      (tuple . py-tuple-class)
+      (int . py-int-class)
+      (bool . py-bool-class)
+      (float . py-float-class)))
 
   (let* ((scheme-name
           (if (and (pair? name) (memq (car name) '(& &&)))
@@ -1587,6 +1590,9 @@
 
 (define-macro (py-ne x y)
   `(py-specialized-binop-dispatch ne ,x ,y))
+
+(define-macro (py-not obj)
+  `(if (py-test ,obj) py-False py-True))
 
 (define-macro (py-is x y) ;; x is y
   `(if (py-test-is ,x ,y) py-True py-False))
