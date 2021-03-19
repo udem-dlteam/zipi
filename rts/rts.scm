@@ -6784,7 +6784,19 @@
 (define py-builtin-issubclass
   (procedure->py-function
     (lambda (object classinfo)
-      (py-throw-exception-with-message py-builtin-NotImplementedError "issubclass not implemented"))
+      (if (py-isinstance? object py-builtin-type)
+        (cond
+          ((py-isinstance? classinfo py-builtin-type)
+            (py-bool-from-scheme-bool (py-issubclass? object classinfo)))
+          ((py-isinstance? classinfo py-builtin-tuple)
+            (py-throw py-builtin-NotImplementedError))
+          (else
+            (py-throw-exception-with-message
+              py-builtin-TypeError
+              "issubclass() arg 2 must be a class or tuple of classes")))
+        (py-throw-exception-with-message
+          py-builtin-TypeError
+          "issubclass() arg 1 must be a class")))
     (make-signature posonlyargs: (object classinfo))))
 
 ;;-------------------- iter(object[, sentinel])

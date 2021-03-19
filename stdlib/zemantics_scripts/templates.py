@@ -517,8 +517,10 @@ class int:
                 return py_int_from_host(py_int_to_host(val))
             else:
                 raise NotImplementedError
-        else:
+        elif isinstance(cls, type) and issubclass(cls, int):
             raise NotImplementedError
+        else:
+            raise TypeError("int.__new__ expected a subtype of 'int' as first argument")
 
     def __bool__(self):
         if isinstance(self, int):
@@ -622,7 +624,7 @@ class bool(int):
             else:
                 return True if val else False
         else:
-            raise TypeError
+            raise TypeError("bool.__new__ expected a subtype of 'bool' as first argument")
 
     def __repr__(self):
         if self is True:
@@ -780,15 +782,17 @@ class_float_template = \
     """@builtin
 class float:
     def __new__(cls, val=absent):
-        if cls is int:
+        if cls is float:
             if val is absent:
                 return 0.0
             if isinstance(val, float):
                 return py_float_from_host(py_float_to_host(val))
             else:
                 raise NotImplementedError
-        else:
+        elif isinstance(cls, type) and issubclass(cls, float):
             raise NotImplementedError
+        else:
+            raise TypeError("float.__new__ expected a subtype of 'float' as first argument")
 
     def __bool__(self):
         if isinstance(self, float):
@@ -929,12 +933,17 @@ class range_iterator:
 @builtin
 class range:
     def __new__(cls, arg1, arg2=absent, arg3=absent, /):
-        if arg3 is not absent:
-            return alloc(range, start=arg1, stop=arg2, step=arg3)
-        elif arg2 is not absent:
-            return alloc(range, start=arg1, stop=arg2, step=1)
+        if cls is range:
+            if arg3 is not absent:
+                return alloc(range, start=arg1, stop=arg2, step=arg3)
+            elif arg2 is not absent:
+                return alloc(range, start=arg1, stop=arg2, step=1)
+            else:
+                return alloc(range, start=0, stop=arg1, step=1)
+        elif isinstance(cls, type) and issubclass(cls, range):
+            raise NotImplementedError
         else:
-            return alloc(range, start=0, stop=arg1, step=1)
+            raise TypeError("range.__new__ expected a subtype of 'range' as first argument")
 
     def __len__(self, /):
         return (self.stop - self.start) // self.step

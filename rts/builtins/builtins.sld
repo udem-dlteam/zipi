@@ -83,88 +83,88 @@
    (py-begin-module)
    (define procedure:&py-builtin-__merge
      (lambda (l1-199 l2-200)
-       (letrec* ((output-1488 #f) (i-1486 #f) (j-1484 #f))
+       (letrec* ((output-1499 #f) (i-1497 #f) (j-1495 #f))
          (begin
            (&& "\n    Merge all items from two sorted list into one sorted list.\n    Time complexity: O(n) where n is the total number of elements\n    ")
            (letrec* ((%tmp0-201 (py-int-from-scheme 0)))
              (begin
-               (set! j-1484
+               (set! j-1495
                      (or %tmp0-201
                          (py-throw-exception-with-message
                           py-builtin-UnboundLocalError
                           "local variable '%tmp0' referenced before assignment")))
-               (set! i-1486
+               (set! i-1497
                      (or %tmp0-201
                          (py-throw-exception-with-message
                           py-builtin-UnboundLocalError
                           "local variable '%tmp0' referenced before assignment")))))
-           (set! output-1488 (py-make-list))
+           (set! output-1499 (py-make-list))
            (let $%while_77 ()
              (when (and
-                    (py-test (py-lt (or i-1486
+                    (py-test (py-lt (or i-1497
                                         (py-throw-exception-with-message
                                          py-builtin-UnboundLocalError
                                          "local variable 'i' referenced before assignment"))
                                     (py-call (global-get
                                               %global
                                               (& "len")
-                                              (vector-ref %caches 547))
+                                              (vector-ref %caches 561))
                                              l1-199)))
-                    (py-test (py-lt (or j-1484
+                    (py-test (py-lt (or j-1495
                                         (py-throw-exception-with-message
                                          py-builtin-UnboundLocalError
                                          "local variable 'j' referenced before assignment"))
                                     (py-call (global-get
                                               %global
                                               (& "len")
-                                              (vector-ref %caches 548))
+                                              (vector-ref %caches 562))
                                              l2-200))))
                (if (py-test (py-le (py-getitem
                                     l1-199
-                                    (or i-1486
+                                    (or i-1497
                                         (py-throw-exception-with-message
                                          py-builtin-UnboundLocalError
                                          "local variable 'i' referenced before assignment")))
                                    (py-getitem
                                     l2-200
-                                    (or j-1484
+                                    (or j-1495
                                         (py-throw-exception-with-message
                                          py-builtin-UnboundLocalError
                                          "local variable 'j' referenced before assignment")))))
                    (begin
-                     (py-call (py-getattribute output-1488 (& "append"))
+                     (py-call (py-getattribute output-1499 (& "append"))
                               (py-getitem
                                l1-199
-                               (or i-1486
+                               (or i-1497
                                    (py-throw-exception-with-message
                                     py-builtin-UnboundLocalError
                                     "local variable 'i' referenced before assignment"))))
-                     (set! i-1486
-                           (py-iadd (or i-1486
+                     (set! i-1497
+                           (py-iadd (or i-1497
                                         (py-throw-exception-with-message
                                          py-builtin-UnboundLocalError
                                          "local variable 'i' referenced before assignment"))
                                     (py-int-from-scheme 1))))
                    (begin
-                     (py-call (py-getattribute output-1488 (& "append"))
+                     (py-call (py-getattribute output-1499 (& "append"))
                               (py-getitem
                                l2-200
-                               (or j-1484
+                               (or j-1495
                                    (py-throw-exception-with-message
                                     py-builtin-UnboundLocalError
                                     "local variable 'j' referenced before assignment"))))
-                     (set! j-1484
-                           (py-iadd (or j-1484
+                     (set! j-1495
+                           (py-iadd (or j-1495
                                         (py-throw-exception-with-message
                                          py-builtin-UnboundLocalError
                                          "local variable 'j' referenced before assignment"))
                                     (py-int-from-scheme 1)))))
                ($%while_77)))
-           (py-call (py-getattribute output-1488 (& "extend"))
+           (py-call (py-getattribute output-1499 (& "extend"))
                     (py-add (py-getitem
                              l1-199
                              (py-slice-from-scheme
-                              (or i-1486
+                              (or i-1497
                                   (py-throw-exception-with-message
                                    py-builtin-UnboundLocalError
                                    "local variable 'i' referenced before assignment"))
@@ -173,16 +173,16 @@
                             (py-getitem
                              l2-200
                              (py-slice-from-scheme
-                              (or j-1484
+                              (or j-1495
                                   (py-throw-exception-with-message
                                    py-builtin-UnboundLocalError
                                    "local variable 'j' referenced before assignment"))
                               py-None
                               py-None))))
-           output-1488))))
+           output-1499))))
    (define procedure:&py-builtin-__merge_many
      (lambda (lsts-202)
-       (letrec* ((right-1498 #f) (left-1496 #f))
+       (letrec* ((right-1509 #f) (left-1507 #f))
          (begin
            (&& "\n    Merge all items from k lists into one sorted list.\n    Time complexity: O(n log(k)) where n is the total number of elements and k the number of lists\n    ")
            (if (py-test (py-not lsts-202))
@@ -190,7 +190,7 @@
                (if (py-test (py-eq (py-call (global-get
                                              %global
                                              (& "len")
-                                             (vector-ref %caches 556))
+                                             (vector-ref %caches 570))
                                             lsts-202)
                                    (py-int-from-scheme 1)))
                    (py-getitem
@@ -199,14 +199,14 @@
                    (if (py-test (py-eq (py-call (global-get
                                                  %global
                                                  (& "len")
-                                                 (vector-ref %caches 557))
+                                                 (vector-ref %caches 571))
                                                 lsts-202)
                                        (py-int-from-scheme 2)))
                        (procedure:&py-builtin-__merge
                         (py-getitem lsts-202 (py-int-from-scheme 0))
                         (py-getitem lsts-202 (py-int-from-scheme 1)))
                        (begin
-                         (set! left-1496
+                         (set! left-1507
                                (py-getitem
                                 lsts-202
                                 (py-slice-from-scheme
@@ -214,12 +214,12 @@
                                   (py-call (global-get
                                             %global
                                             (& "len")
-                                            (vector-ref %caches 559))
+                                            (vector-ref %caches 573))
                                            lsts-202)
                                   (py-int-from-scheme 2))
                                  py-None
                                  py-None)))
-                         (set! right-1498
+                         (set! right-1509
                                (py-getitem
                                 lsts-202
                                 (py-slice-from-scheme
@@ -228,125 +228,125 @@
                                   (py-call (global-get
                                             %global
                                             (& "len")
-                                            (vector-ref %caches 560))
+                                            (vector-ref %caches 574))
                                            lsts-202)
                                   (py-int-from-scheme 2))
                                  py-None)))
                          (procedure:&py-builtin-__merge
-                          (procedure:&py-builtin-__merge_many left-1496)
+                          (procedure:&py-builtin-__merge_many left-1507)
                           (procedure:&py-builtin-__merge_many
-                           right-1498))))))))))
+                           right-1509))))))))))
    (define procedure:&py-builtin-sorted
      (lambda (lst-203 key-204 reversed-205)
-       (letrec* ((i-1503 #f) (sublsts-1501 #f))
+       (letrec* ((i-1514 #f) (sublsts-1512 #f))
          (begin
            (&& "\n    Timsort is an improved version of Merge Sort which splits the list into monotonic sub-lists before merging them\n    into a sorted list.\n    Worst case time complexity: O(n log(n))\n    Best cast time complexity:  O(n) when the list is almost sorted\n        where n is the number of elements in the list\n    ")
-           (set! sublsts-1501 (py-make-list))
-           (set! i-1503 (py-int-from-scheme 0))
+           (set! sublsts-1512 (py-make-list))
+           (set! i-1514 (py-int-from-scheme 0))
            (let $%while_78 ()
              (when (py-test
-                    (py-lt i-1503
+                    (py-lt i-1514
                            (py-call (global-get
                                      %global
                                      (& "len")
-                                     (vector-ref %caches 565))
+                                     (vector-ref %caches 579))
                                     lst-203)))
                (begin
-                 (py-call (py-getattribute sublsts-1501 (& "append"))
-                          (py-make-list (py-getitem lst-203 i-1503)))
-                 (set! i-1503
-                       (py-iadd (or i-1503
+                 (py-call (py-getattribute sublsts-1512 (& "append"))
+                          (py-make-list (py-getitem lst-203 i-1514)))
+                 (set! i-1514
+                       (py-iadd (or i-1514
                                     (py-throw-exception-with-message
                                      py-builtin-UnboundLocalError
                                      "local variable 'i' referenced before assignment"))
                                 (py-int-from-scheme 1)))
-                 (if (and (py-test (py-lt i-1503
+                 (if (and (py-test (py-lt i-1514
                                           (py-call (global-get
                                                     %global
                                                     (& "len")
-                                                    (vector-ref %caches 568))
+                                                    (vector-ref %caches 582))
                                                    lst-203)))
-                          (py-test (py-ge (py-getitem lst-203 i-1503)
+                          (py-test (py-ge (py-getitem lst-203 i-1514)
                                           (py-getitem
                                            lst-203
-                                           (py-sub i-1503
+                                           (py-sub i-1514
                                                    (py-int-from-scheme 1))))))
                      (let $%while_79 ()
                        (when (and
-                              (py-test (py-lt i-1503
+                              (py-test (py-lt i-1514
                                               (py-call (global-get
                                                         %global
                                                         (& "len")
                                                         (vector-ref
                                                          %caches
-                                                         569))
+                                                         583))
                                                        lst-203)))
-                              (py-test (py-ge (py-getitem lst-203 i-1503)
+                              (py-test (py-ge (py-getitem lst-203 i-1514)
                                               (py-getitem
                                                lst-203
-                                               (py-sub i-1503
+                                               (py-sub i-1514
                                                        (py-int-from-scheme
                                                         1))))))
                          (begin
                            (py-call (py-getattribute
                                      (py-getitem
-                                      sublsts-1501
+                                      sublsts-1512
                                       (py-neg (py-int-from-scheme 1)))
                                      (& "append"))
-                                    (py-getitem lst-203 i-1503))
-                           (set! i-1503
-                                 (py-iadd (or i-1503
+                                    (py-getitem lst-203 i-1514))
+                           (set! i-1514
+                                 (py-iadd (or i-1514
                                               (py-throw-exception-with-message
                                                py-builtin-UnboundLocalError
                                                "local variable 'i' referenced before assignment"))
                                           (py-int-from-scheme 1))))
                          ($%while_79)))
-                     (if (py-test (py-lt i-1503
+                     (if (py-test (py-lt i-1514
                                          (py-call (global-get
                                                    %global
                                                    (& "len")
-                                                   (vector-ref %caches 573))
+                                                   (vector-ref %caches 587))
                                                   lst-203)))
                          (begin
                            (let $%while_80 ()
                              (when (and
-                                    (py-test (py-lt i-1503
+                                    (py-test (py-lt i-1514
                                                     (py-call (global-get
                                                               %global
                                                               (& "len")
                                                               (vector-ref
                                                                %caches
-                                                               574))
+                                                               588))
                                                              lst-203)))
-                                    (py-test (py-lt (py-getitem lst-203 i-1503)
+                                    (py-test (py-lt (py-getitem lst-203 i-1514)
                                                     (py-getitem
                                                      lst-203
-                                                     (py-sub i-1503
+                                                     (py-sub i-1514
                                                              (py-int-from-scheme
                                                               1))))))
                                (begin
                                  (py-call (py-getattribute
                                            (py-getitem
-                                            sublsts-1501
+                                            sublsts-1512
                                             (py-neg (py-int-from-scheme 1)))
                                            (& "append"))
-                                          (py-getitem lst-203 i-1503))
-                                 (set! i-1503
-                                       (py-iadd (or i-1503
+                                          (py-getitem lst-203 i-1514))
+                                 (set! i-1514
+                                       (py-iadd (or i-1514
                                                     (py-throw-exception-with-message
                                                      py-builtin-UnboundLocalError
                                                      "local variable 'i' referenced before assignment"))
                                                 (py-int-from-scheme 1))))
                                ($%while_80)))
                            (py-setitem
-                            (or sublsts-1501
+                            (or sublsts-1512
                                 (py-throw-exception-with-message
                                  py-builtin-UnboundLocalError
                                  "local variable 'sublsts' referenced before assignment"))
                             (py-neg (py-int-from-scheme 1))
                             (py-getitem
                              (py-getitem
-                              (or sublsts-1501
+                              (or sublsts-1512
                                   (py-throw-exception-with-message
                                    py-builtin-UnboundLocalError
                                    "local variable 'sublsts' referenced before assignment"))
@@ -357,7 +357,7 @@
                               (py-neg (py-int-from-scheme 1))))))
                          #f)))
                ($%while_78)))
-           (procedure:&py-builtin-__merge_many sublsts-1501)))))
+           (procedure:&py-builtin-__merge_many sublsts-1512)))))
    (declare (separate))
    (define %global #f)
    (define %caches #f)
@@ -877,7 +877,24 @@
                                         (py-int-to-scheme val-3))
                                        (py-throw
                                         &py-builtin-NotImplementedError)))
-                                 (py-throw &py-builtin-NotImplementedError)))))
+                                 (if (and (py-isinstance?
+                                           cls-2
+                                           (global-get
+                                            %global
+                                            (& "type")
+                                            (vector-ref %caches 4)))
+                                          (py-test (py-call (global-get
+                                                             %global
+                                                             (& "issubclass")
+                                                             (vector-ref
+                                                              %caches
+                                                              5))
+                                                            cls-2
+                                                            &py-builtin-int)))
+                                     (py-throw &py-builtin-NotImplementedError)
+                                     (py-throw
+                                      (py-call &py-builtin-TypeError
+                                               (&& "int.__new__ expected a subtype of 'int' as first argument"))))))))
                         (make-signature
                          args:
                          (cls val)
@@ -942,7 +959,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 17)))
+                                     (vector-ref %caches 21)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__add__' requires a 'int' object but received a '")
@@ -963,7 +980,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 22)))
+                                     (vector-ref %caches 26)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__radd__' requires a 'int' object but received a '")
@@ -984,7 +1001,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 27)))
+                                     (vector-ref %caches 31)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__iadd__' requires a 'int' object but received a '")
@@ -1005,7 +1022,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 32)))
+                                     (vector-ref %caches 36)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__and__' requires a 'int' object but received a '")
@@ -1026,7 +1043,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 37)))
+                                     (vector-ref %caches 41)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__rand__' requires a 'int' object but received a '")
@@ -1047,7 +1064,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 42)))
+                                     (vector-ref %caches 46)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__iand__' requires a 'int' object but received a '")
@@ -1068,7 +1085,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 47)))
+                                     (vector-ref %caches 51)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__or__' requires a 'int' object but received a '")
@@ -1089,7 +1106,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 52)))
+                                     (vector-ref %caches 56)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__ror__' requires a 'int' object but received a '")
@@ -1110,7 +1127,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 57)))
+                                     (vector-ref %caches 61)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__ior__' requires a 'int' object but received a '")
@@ -1131,7 +1148,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 62)))
+                                     (vector-ref %caches 66)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__mul__' requires a 'int' object but received a '")
@@ -1152,7 +1169,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 67)))
+                                     (vector-ref %caches 71)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__rmul__' requires a 'int' object but received a '")
@@ -1173,7 +1190,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 72)))
+                                     (vector-ref %caches 76)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__imul__' requires a 'int' object but received a '")
@@ -1194,7 +1211,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 77)))
+                                     (vector-ref %caches 81)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__pow__' requires a 'int' object but received a '")
@@ -1215,7 +1232,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 82)))
+                                     (vector-ref %caches 86)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__rpow__' requires a 'int' object but received a '")
@@ -1236,7 +1253,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 87)))
+                                     (vector-ref %caches 91)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__ipow__' requires a 'int' object but received a '")
@@ -1257,7 +1274,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 92)))
+                                     (vector-ref %caches 96)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__sub__' requires a 'int' object but received a '")
@@ -1278,7 +1295,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 97)))
+                                     (vector-ref %caches 101)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__rsub__' requires a 'int' object but received a '")
@@ -1299,7 +1316,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 102)))
+                                     (vector-ref %caches 106)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__isub__' requires a 'int' object but received a '")
@@ -1320,7 +1337,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 107)))
+                                     (vector-ref %caches 111)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__xor__' requires a 'int' object but received a '")
@@ -1341,7 +1358,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 112)))
+                                     (vector-ref %caches 116)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__rxor__' requires a 'int' object but received a '")
@@ -1362,7 +1379,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 117)))
+                                     (vector-ref %caches 121)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__ixor__' requires a 'int' object but received a '")
@@ -1389,7 +1406,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 123)))
+                                     (vector-ref %caches 127)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__lshift__' requires a 'int' object but received a '")
@@ -1416,7 +1433,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 129)))
+                                     (vector-ref %caches 133)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__rlshift__' requires a 'int' object but received a '")
@@ -1443,7 +1460,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 135)))
+                                     (vector-ref %caches 139)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__ilshift__' requires a 'int' object but received a '")
@@ -1470,7 +1487,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 141)))
+                                     (vector-ref %caches 145)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__rshift__' requires a 'int' object but received a '")
@@ -1497,7 +1514,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 147)))
+                                     (vector-ref %caches 151)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__rrshift__' requires a 'int' object but received a '")
@@ -1524,7 +1541,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 153)))
+                                     (vector-ref %caches 157)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__irshift__' requires a 'int' object but received a '")
@@ -1595,7 +1612,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 170)))
+                                     (vector-ref %caches 174)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__floordiv__' requires a 'int' object but received a '")
@@ -1622,7 +1639,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 176)))
+                                     (vector-ref %caches 180)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__rfloordiv__' requires a 'int' object but received a '")
@@ -1649,7 +1666,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 182)))
+                                     (vector-ref %caches 186)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__ifloordiv__' requires a 'int' object but received a '")
@@ -1676,7 +1693,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 188)))
+                                     (vector-ref %caches 192)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__truediv__' requires a 'int' object but received a '")
@@ -1703,7 +1720,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 194)))
+                                     (vector-ref %caches 198)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__rtruediv__' requires a 'int' object but received a '")
@@ -1730,7 +1747,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 200)))
+                                     (vector-ref %caches 204)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__itruediv__' requires a 'int' object but received a '")
@@ -1757,7 +1774,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 206)))
+                                     (vector-ref %caches 210)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__mod__' requires a 'int' object but received a '")
@@ -1784,7 +1801,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 212)))
+                                     (vector-ref %caches 216)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__rmod__' requires a 'int' object but received a '")
@@ -1811,7 +1828,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 218)))
+                                     (vector-ref %caches 222)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__imod__' requires a 'int' object but received a '")
@@ -1833,7 +1850,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 223)))
+                                     (vector-ref %caches 227)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__eq__' requires a 'int' object but received a '")
@@ -1855,7 +1872,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 228)))
+                                     (vector-ref %caches 232)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__ne__' requires a 'int' object but received a '")
@@ -1877,7 +1894,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 233)))
+                                     (vector-ref %caches 237)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__ge__' requires a 'int' object but received a '")
@@ -1899,7 +1916,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 238)))
+                                     (vector-ref %caches 242)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__gt__' requires a 'int' object but received a '")
@@ -1921,7 +1938,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 243)))
+                                     (vector-ref %caches 247)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__le__' requires a 'int' object but received a '")
@@ -1943,7 +1960,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 248)))
+                                     (vector-ref %caches 252)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__lt__' requires a 'int' object but received a '")
@@ -2059,16 +2076,16 @@
                  $%cls_0))))
      (set! &py-builtin-bool
            (let (($%cls_1 py-absent))
-             (letrec* ((__rxor__-854 #f)
-                       (__xor__-852 #f)
-                       (__ror__-850 #f)
-                       (__or__-848 #f)
-                       (__rand__-846 #f)
-                       (__and__-844 #f)
-                       (__repr__-842 #f)
-                       (__new__-839 #f))
+             (letrec* ((__rxor__-857 #f)
+                       (__xor__-855 #f)
+                       (__ror__-853 #f)
+                       (__or__-851 #f)
+                       (__rand__-849 #f)
+                       (__and__-847 #f)
+                       (__repr__-845 #f)
+                       (__new__-842 #f))
                (begin
-                 (set! __new__-839
+                 (set! __new__-842
                        (procedure->py-function
                         (lambda (cls-94 val-95)
                           (letrec* ()
@@ -2076,13 +2093,15 @@
                                 (if (py-test (py-is val-95 py-absent))
                                     py-False
                                     (if (py-test val-95) py-True py-False))
-                                (py-throw &py-builtin-TypeError))))
+                                (py-throw
+                                 (py-call &py-builtin-TypeError
+                                          (&& "bool.__new__ expected a subtype of 'bool' as first argument"))))))
                         (make-signature
                          args:
                          (cls val)
                          defaults:
                          (vector py-absent))))
-                 (set! __repr__-842
+                 (set! __repr__-845
                        (procedure->py-function
                         (lambda (self-96)
                           (letrec* ()
@@ -2099,7 +2118,7 @@
                                                                (& "__name__")))
                                                       (&& "'"))))))))
                         (make-signature args: (self))))
-                 (set! __and__-844
+                 (set! __and__-847
                        (procedure->py-function
                         (lambda (self-97 other-98)
                           (letrec* ()
@@ -2119,7 +2138,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 259))))
+                                         (vector-ref %caches 263))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__and__' requires a 'bool' object but received a '")
@@ -2128,7 +2147,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rand__-846
+                 (set! __rand__-849
                        (procedure->py-function
                         (lambda (self-99 other-100)
                           (letrec* ()
@@ -2148,7 +2167,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 265))))
+                                         (vector-ref %caches 269))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__rand__' requires a 'bool' object but received a '")
@@ -2157,7 +2176,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __or__-848
+                 (set! __or__-851
                        (procedure->py-function
                         (lambda (self-101 other-102)
                           (letrec* ()
@@ -2177,7 +2196,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 271))))
+                                         (vector-ref %caches 275))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__or__' requires a 'bool' object but received a '")
@@ -2187,7 +2206,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ror__-850
+                 (set! __ror__-853
                        (procedure->py-function
                         (lambda (self-103 other-104)
                           (letrec* ()
@@ -2207,7 +2226,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 277))))
+                                         (vector-ref %caches 281))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__ror__' requires a 'bool' object but received a '")
@@ -2217,7 +2236,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __xor__-852
+                 (set! __xor__-855
                        (procedure->py-function
                         (lambda (self-105 other-106)
                           (letrec* ()
@@ -2235,7 +2254,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 283))))
+                                         (vector-ref %caches 287))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__xor__' requires a 'bool' object but received a '")
@@ -2245,7 +2264,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rxor__-854
+                 (set! __rxor__-857
                        (procedure->py-function
                         (lambda (self-107 other-108)
                           (letrec* ()
@@ -2263,7 +2282,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 289))))
+                                         (vector-ref %caches 293))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__rxor__' requires a 'bool' object but received a '")
@@ -2280,63 +2299,63 @@
                         (&& "__main__")
                         (list &py-builtin-int)
                         (& "__rxor__")
-                        __rxor__-854
+                        __rxor__-857
                         (& "__xor__")
-                        __xor__-852
+                        __xor__-855
                         (& "__ror__")
-                        __ror__-850
+                        __ror__-853
                         (& "__or__")
-                        __or__-848
+                        __or__-851
                         (& "__rand__")
-                        __rand__-846
+                        __rand__-849
                         (& "__and__")
-                        __and__-844
+                        __and__-847
                         (& "__repr__")
-                        __repr__-842
+                        __repr__-845
                         (& "__new__")
-                        __new__-839))
+                        __new__-842))
                  $%cls_1))))
      (set! &py-builtin-float
            (let (($%cls_2 py-absent))
-             (letrec* ((__lt__-985 #f)
-                       (__le__-983 #f)
-                       (__gt__-981 #f)
-                       (__ge__-979 #f)
-                       (__ne__-977 #f)
-                       (__eq__-975 #f)
-                       (__imod__-973 #f)
-                       (__rmod__-971 #f)
-                       (__mod__-969 #f)
-                       (__itruediv__-967 #f)
-                       (__rtruediv__-965 #f)
-                       (__truediv__-963 #f)
-                       (__ifloordiv__-961 #f)
-                       (__rfloordiv__-959 #f)
-                       (__floordiv__-957 #f)
-                       (__neg__-955 #f)
-                       (__pos__-953 #f)
-                       (__isub__-951 #f)
-                       (__rsub__-949 #f)
-                       (__sub__-947 #f)
-                       (__ipow__-945 #f)
-                       (__rpow__-943 #f)
-                       (__pow__-941 #f)
-                       (__imul__-939 #f)
-                       (__rmul__-937 #f)
-                       (__mul__-935 #f)
-                       (__iadd__-933 #f)
-                       (__radd__-931 #f)
-                       (__add__-929 #f)
-                       (__bool__-927 #f)
-                       (__new__-924 #f))
+             (letrec* ((__lt__-988 #f)
+                       (__le__-986 #f)
+                       (__gt__-984 #f)
+                       (__ge__-982 #f)
+                       (__ne__-980 #f)
+                       (__eq__-978 #f)
+                       (__imod__-976 #f)
+                       (__rmod__-974 #f)
+                       (__mod__-972 #f)
+                       (__itruediv__-970 #f)
+                       (__rtruediv__-968 #f)
+                       (__truediv__-966 #f)
+                       (__ifloordiv__-964 #f)
+                       (__rfloordiv__-962 #f)
+                       (__floordiv__-960 #f)
+                       (__neg__-958 #f)
+                       (__pos__-956 #f)
+                       (__isub__-954 #f)
+                       (__rsub__-952 #f)
+                       (__sub__-950 #f)
+                       (__ipow__-948 #f)
+                       (__rpow__-946 #f)
+                       (__pow__-944 #f)
+                       (__imul__-942 #f)
+                       (__rmul__-940 #f)
+                       (__mul__-938 #f)
+                       (__iadd__-936 #f)
+                       (__radd__-934 #f)
+                       (__add__-932 #f)
+                       (__bool__-930 #f)
+                       (__new__-927 #f))
                (begin
-                 (set! __new__-924
+                 (set! __new__-927
                        (procedure->py-function
                         (lambda (cls-109 val-110)
                           (bind-exit
                            ($%return_74)
                            (letrec* ()
-                             (if (py-test (py-is cls-109 &py-builtin-int))
+                             (if (py-test (py-is cls-109 &py-builtin-float))
                                  (begin
                                    (if (py-test (py-is val-110 py-absent))
                                        ($%return_74 (py-float-from-scheme 0.))
@@ -2348,13 +2367,30 @@
                                         (py-float-to-scheme val-110))
                                        (py-throw
                                         &py-builtin-NotImplementedError)))
-                                 (py-throw &py-builtin-NotImplementedError)))))
+                                 (if (and (py-isinstance?
+                                           cls-109
+                                           (global-get
+                                            %global
+                                            (& "type")
+                                            (vector-ref %caches 301)))
+                                          (py-test (py-call (global-get
+                                                             %global
+                                                             (& "issubclass")
+                                                             (vector-ref
+                                                              %caches
+                                                              302))
+                                                            cls-109
+                                                            &py-builtin-float)))
+                                     (py-throw &py-builtin-NotImplementedError)
+                                     (py-throw
+                                      (py-call &py-builtin-TypeError
+                                               (&& "float.__new__ expected a subtype of 'float' as first argument"))))))))
                         (make-signature
                          args:
                          (cls val)
                          defaults:
                          (vector py-absent))))
-                 (set! __bool__-927
+                 (set! __bool__-930
                        (procedure->py-function
                         (lambda (self-111)
                           (letrec* ()
@@ -2369,7 +2405,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self))))
-                 (set! __add__-929
+                 (set! __add__-932
                        (procedure->py-function
                         (lambda (self-112 other-113)
                           (letrec* ()
@@ -2389,7 +2425,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 304))))
+                                         (vector-ref %caches 312))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__add__' requires a 'float' object but received a '")
@@ -2399,7 +2435,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __radd__-931
+                 (set! __radd__-934
                        (procedure->py-function
                         (lambda (self-114 other-115)
                           (letrec* ()
@@ -2419,7 +2455,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 310))))
+                                         (vector-ref %caches 318))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__radd__' requires a 'float' object but received a '")
@@ -2429,7 +2465,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __iadd__-933
+                 (set! __iadd__-936
                        (procedure->py-function
                         (lambda (self-116 other-117)
                           (letrec* ()
@@ -2449,7 +2485,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 316))))
+                                         (vector-ref %caches 324))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__iadd__' requires a 'float' object but received a '")
@@ -2459,7 +2495,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __mul__-935
+                 (set! __mul__-938
                        (procedure->py-function
                         (lambda (self-118 other-119)
                           (letrec* ()
@@ -2479,7 +2515,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 322))))
+                                         (vector-ref %caches 330))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__mul__' requires a 'float' object but received a '")
@@ -2489,7 +2525,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rmul__-937
+                 (set! __rmul__-940
                        (procedure->py-function
                         (lambda (self-120 other-121)
                           (letrec* ()
@@ -2509,7 +2545,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 328))))
+                                         (vector-ref %caches 336))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__rmul__' requires a 'float' object but received a '")
@@ -2519,7 +2555,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __imul__-939
+                 (set! __imul__-942
                        (procedure->py-function
                         (lambda (self-122 other-123)
                           (letrec* ()
@@ -2539,7 +2575,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 334))))
+                                         (vector-ref %caches 342))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__imul__' requires a 'float' object but received a '")
@@ -2549,7 +2585,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __pow__-941
+                 (set! __pow__-944
                        (procedure->py-function
                         (lambda (self-124 other-125)
                           (letrec* ()
@@ -2569,7 +2605,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 340))))
+                                         (vector-ref %caches 348))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__pow__' requires a 'float' object but received a '")
@@ -2579,7 +2615,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rpow__-943
+                 (set! __rpow__-946
                        (procedure->py-function
                         (lambda (self-126 other-127)
                           (letrec* ()
@@ -2599,7 +2635,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 346))))
+                                         (vector-ref %caches 354))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__rpow__' requires a 'float' object but received a '")
@@ -2609,7 +2645,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ipow__-945
+                 (set! __ipow__-948
                        (procedure->py-function
                         (lambda (self-128 other-129)
                           (letrec* ()
@@ -2629,7 +2665,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 352))))
+                                         (vector-ref %caches 360))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__ipow__' requires a 'float' object but received a '")
@@ -2639,7 +2675,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __sub__-947
+                 (set! __sub__-950
                        (procedure->py-function
                         (lambda (self-130 other-131)
                           (letrec* ()
@@ -2659,7 +2695,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 358))))
+                                         (vector-ref %caches 366))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__sub__' requires a 'float' object but received a '")
@@ -2669,7 +2705,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rsub__-949
+                 (set! __rsub__-952
                        (procedure->py-function
                         (lambda (self-132 other-133)
                           (letrec* ()
@@ -2689,7 +2725,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 364))))
+                                         (vector-ref %caches 372))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__rsub__' requires a 'float' object but received a '")
@@ -2699,7 +2735,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __isub__-951
+                 (set! __isub__-954
                        (procedure->py-function
                         (lambda (self-134 other-135)
                           (letrec* ()
@@ -2719,7 +2755,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 370))))
+                                         (vector-ref %caches 378))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__isub__' requires a 'float' object but received a '")
@@ -2729,7 +2765,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __pos__-953
+                 (set! __pos__-956
                        (procedure->py-function
                         (lambda (self-136)
                           (letrec* ()
@@ -2744,7 +2780,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self))))
-                 (set! __neg__-955
+                 (set! __neg__-958
                        (procedure->py-function
                         (lambda (self-137)
                           (letrec* ()
@@ -2760,7 +2796,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self))))
-                 (set! __floordiv__-957
+                 (set! __floordiv__-960
                        (procedure->py-function
                         (lambda (self-138 other-139)
                           (letrec* ()
@@ -2794,7 +2830,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 385))))
+                                         (vector-ref %caches 393))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__floordiv__' requires a 'float' object but received a '")
@@ -2804,7 +2840,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rfloordiv__-959
+                 (set! __rfloordiv__-962
                        (procedure->py-function
                         (lambda (self-140 other-141)
                           (letrec* ()
@@ -2837,7 +2873,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 393))))
+                                         (vector-ref %caches 401))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__rfloordiv__' requires a 'float' object but received a '")
@@ -2847,7 +2883,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ifloordiv__-961
+                 (set! __ifloordiv__-964
                        (procedure->py-function
                         (lambda (self-142 other-143)
                           (letrec* ()
@@ -2881,7 +2917,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 401))))
+                                         (vector-ref %caches 409))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__ifloordiv__' requires a 'float' object but received a '")
@@ -2891,7 +2927,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __truediv__-963
+                 (set! __truediv__-966
                        (procedure->py-function
                         (lambda (self-144 other-145)
                           (letrec* ()
@@ -2924,7 +2960,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 409))))
+                                         (vector-ref %caches 417))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__truediv__' requires a 'float' object but received a '")
@@ -2934,7 +2970,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rtruediv__-965
+                 (set! __rtruediv__-968
                        (procedure->py-function
                         (lambda (self-146 other-147)
                           (letrec* ()
@@ -2967,7 +3003,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 417))))
+                                         (vector-ref %caches 425))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__rtruediv__' requires a 'float' object but received a '")
@@ -2977,7 +3013,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __itruediv__-967
+                 (set! __itruediv__-970
                        (procedure->py-function
                         (lambda (self-148 other-149)
                           (letrec* ()
@@ -3010,7 +3046,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 425))))
+                                         (vector-ref %caches 433))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__itruediv__' requires a 'float' object but received a '")
@@ -3020,7 +3056,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __mod__-969
+                 (set! __mod__-972
                        (procedure->py-function
                         (lambda (self-150 other-151)
                           (letrec* ()
@@ -3053,7 +3089,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 433))))
+                                         (vector-ref %caches 441))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__mod__' requires a 'float' object but received a '")
@@ -3063,7 +3099,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rmod__-971
+                 (set! __rmod__-974
                        (procedure->py-function
                         (lambda (self-152 other-153)
                           (letrec* ()
@@ -3096,7 +3132,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 441))))
+                                         (vector-ref %caches 449))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__rmod__' requires a 'float' object but received a '")
@@ -3106,7 +3142,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __imod__-973
+                 (set! __imod__-976
                        (procedure->py-function
                         (lambda (self-154 other-155)
                           (letrec* ()
@@ -3139,7 +3175,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 449))))
+                                         (vector-ref %caches 457))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__imod__' requires a 'float' object but received a '")
@@ -3149,7 +3185,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __eq__-975
+                 (set! __eq__-978
                        (procedure->py-function
                         (lambda (self-156 other-157)
                           (letrec* ()
@@ -3171,7 +3207,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 455))))
+                                         (vector-ref %caches 463))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__eq__' requires a 'float' object but received a '")
@@ -3181,7 +3217,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ne__-977
+                 (set! __ne__-980
                        (procedure->py-function
                         (lambda (self-158 other-159)
                           (letrec* ()
@@ -3203,7 +3239,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 461))))
+                                         (vector-ref %caches 469))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__ne__' requires a 'float' object but received a '")
@@ -3213,7 +3249,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ge__-979
+                 (set! __ge__-982
                        (procedure->py-function
                         (lambda (self-160 other-161)
                           (letrec* ()
@@ -3235,7 +3271,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 467))))
+                                         (vector-ref %caches 475))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__ge__' requires a 'float' object but received a '")
@@ -3245,7 +3281,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __gt__-981
+                 (set! __gt__-984
                        (procedure->py-function
                         (lambda (self-162 other-163)
                           (letrec* ()
@@ -3267,7 +3303,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 473))))
+                                         (vector-ref %caches 481))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__gt__' requires a 'float' object but received a '")
@@ -3277,7 +3313,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __le__-983
+                 (set! __le__-986
                        (procedure->py-function
                         (lambda (self-164 other-165)
                           (letrec* ()
@@ -3299,7 +3335,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 479))))
+                                         (vector-ref %caches 487))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__le__' requires a 'float' object but received a '")
@@ -3309,7 +3345,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __lt__-985
+                 (set! __lt__-988
                        (procedure->py-function
                         (lambda (self-166 other-167)
                           (letrec* ()
@@ -3331,7 +3367,7 @@
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 485))))
+                                         (vector-ref %caches 493))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__lt__' requires a 'float' object but received a '")
@@ -3348,82 +3384,82 @@
                         (&& "__main__")
                         (list)
                         (& "__lt__")
-                        __lt__-985
+                        __lt__-988
                         (& "__le__")
-                        __le__-983
+                        __le__-986
                         (& "__gt__")
-                        __gt__-981
+                        __gt__-984
                         (& "__ge__")
-                        __ge__-979
+                        __ge__-982
                         (& "__ne__")
-                        __ne__-977
+                        __ne__-980
                         (& "__eq__")
-                        __eq__-975
+                        __eq__-978
                         (& "__imod__")
-                        __imod__-973
+                        __imod__-976
                         (& "__rmod__")
-                        __rmod__-971
+                        __rmod__-974
                         (& "__mod__")
-                        __mod__-969
+                        __mod__-972
                         (& "__itruediv__")
-                        __itruediv__-967
+                        __itruediv__-970
                         (& "__rtruediv__")
-                        __rtruediv__-965
+                        __rtruediv__-968
                         (& "__truediv__")
-                        __truediv__-963
+                        __truediv__-966
                         (& "__ifloordiv__")
-                        __ifloordiv__-961
+                        __ifloordiv__-964
                         (& "__rfloordiv__")
-                        __rfloordiv__-959
+                        __rfloordiv__-962
                         (& "__floordiv__")
-                        __floordiv__-957
+                        __floordiv__-960
                         (& "__neg__")
-                        __neg__-955
+                        __neg__-958
                         (& "__pos__")
-                        __pos__-953
+                        __pos__-956
                         (& "__isub__")
-                        __isub__-951
+                        __isub__-954
                         (& "__rsub__")
-                        __rsub__-949
+                        __rsub__-952
                         (& "__sub__")
-                        __sub__-947
+                        __sub__-950
                         (& "__ipow__")
-                        __ipow__-945
+                        __ipow__-948
                         (& "__rpow__")
-                        __rpow__-943
+                        __rpow__-946
                         (& "__pow__")
-                        __pow__-941
+                        __pow__-944
                         (& "__imul__")
-                        __imul__-939
+                        __imul__-942
                         (& "__rmul__")
-                        __rmul__-937
+                        __rmul__-940
                         (& "__mul__")
-                        __mul__-935
+                        __mul__-938
                         (& "__iadd__")
-                        __iadd__-933
+                        __iadd__-936
                         (& "__radd__")
-                        __radd__-931
+                        __radd__-934
                         (& "__add__")
-                        __add__-929
+                        __add__-932
                         (& "__bool__")
-                        __bool__-927
+                        __bool__-930
                         (& "__new__")
-                        __new__-924))
+                        __new__-927))
                  $%cls_2))))
      (set! &py-builtin-str
            (let (($%cls_3 py-absent))
-             (letrec* ((__lt__-1337 #f)
-                       (__le__-1335 #f)
-                       (__gt__-1333 #f)
-                       (__ge__-1331 #f)
-                       (__ne__-1329 #f)
-                       (__eq__-1327 #f)
-                       (__rmul__-1325 #f)
-                       (__mul__-1323 #f)
-                       (__add__-1321 #f)
-                       (__len__-1319 #f))
+             (letrec* ((__lt__-1342 #f)
+                       (__le__-1340 #f)
+                       (__gt__-1338 #f)
+                       (__ge__-1336 #f)
+                       (__ne__-1334 #f)
+                       (__eq__-1332 #f)
+                       (__rmul__-1330 #f)
+                       (__mul__-1328 #f)
+                       (__add__-1326 #f)
+                       (__len__-1324 #f))
                (begin
-                 (set! __len__-1319
+                 (set! __len__-1324
                        (procedure->py-function
                         (lambda (self-168)
                           (letrec* ()
@@ -3439,7 +3475,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self))))
-                 (set! __add__-1321
+                 (set! __add__-1326
                        (procedure->py-function
                         (lambda (self-169 other-170)
                           (letrec* ()
@@ -3451,7 +3487,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 494)))
+                                     (vector-ref %caches 502)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__add__' requires a 'str' object but received a '")
@@ -3461,7 +3497,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __mul__-1323
+                 (set! __mul__-1328
                        (procedure->py-function
                         (lambda (self-171 other-172)
                           (letrec* ()
@@ -3473,7 +3509,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 499)))
+                                     (vector-ref %caches 507)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__mul__' requires a 'str' object but received a '")
@@ -3483,7 +3519,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rmul__-1325
+                 (set! __rmul__-1330
                        (procedure->py-function
                         (lambda (self-173 other-174)
                           (letrec* ()
@@ -3495,7 +3531,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 504)))
+                                     (vector-ref %caches 512)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__rmul__' requires a 'str' object but received a '")
@@ -3505,7 +3541,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __eq__-1327
+                 (set! __eq__-1332
                        (procedure->py-function
                         (lambda (self-175 other-176)
                           (letrec* ()
@@ -3518,7 +3554,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 509)))
+                                     (vector-ref %caches 517)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__eq__' requires a 'str' object but received a '")
@@ -3528,7 +3564,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ne__-1329
+                 (set! __ne__-1334
                        (procedure->py-function
                         (lambda (self-177 other-178)
                           (letrec* ()
@@ -3541,7 +3577,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 514)))
+                                     (vector-ref %caches 522)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__ne__' requires a 'str' object but received a '")
@@ -3551,7 +3587,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ge__-1331
+                 (set! __ge__-1336
                        (procedure->py-function
                         (lambda (self-179 other-180)
                           (letrec* ()
@@ -3564,7 +3600,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 519)))
+                                     (vector-ref %caches 527)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__ge__' requires a 'str' object but received a '")
@@ -3574,7 +3610,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __gt__-1333
+                 (set! __gt__-1338
                        (procedure->py-function
                         (lambda (self-181 other-182)
                           (letrec* ()
@@ -3587,7 +3623,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 524)))
+                                     (vector-ref %caches 532)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__gt__' requires a 'str' object but received a '")
@@ -3597,7 +3633,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __le__-1335
+                 (set! __le__-1340
                        (procedure->py-function
                         (lambda (self-183 other-184)
                           (letrec* ()
@@ -3610,7 +3646,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 529)))
+                                     (vector-ref %caches 537)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__le__' requires a 'str' object but received a '")
@@ -3620,7 +3656,7 @@
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __lt__-1337
+                 (set! __lt__-1342
                        (procedure->py-function
                         (lambda (self-185 other-186)
                           (letrec* ()
@@ -3633,7 +3669,7 @@
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 534)))
+                                     (vector-ref %caches 542)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__lt__' requires a 'str' object but received a '")
@@ -3650,31 +3686,31 @@
                         (&& "__main__")
                         (list)
                         (& "__lt__")
-                        __lt__-1337
+                        __lt__-1342
                         (& "__le__")
-                        __le__-1335
+                        __le__-1340
                         (& "__gt__")
-                        __gt__-1333
+                        __gt__-1338
                         (& "__ge__")
-                        __ge__-1331
+                        __ge__-1336
                         (& "__ne__")
-                        __ne__-1329
+                        __ne__-1334
                         (& "__eq__")
-                        __eq__-1327
+                        __eq__-1332
                         (& "__rmul__")
-                        __rmul__-1325
+                        __rmul__-1330
                         (& "__mul__")
-                        __mul__-1323
+                        __mul__-1328
                         (& "__add__")
-                        __add__-1321
+                        __add__-1326
                         (& "__len__")
-                        __len__-1319))
+                        __len__-1324))
                  $%cls_3))))
      (set! &py-builtin-range_iterator
            (let (($%cls_4 py-absent))
-             (letrec* ((__next__-1435 #f) (__iter__-1433 #f) (__new__-1431 #f))
+             (letrec* ((__next__-1440 #f) (__iter__-1438 #f) (__new__-1436 #f))
                (begin
-                 (set! __new__-1431
+                 (set! __new__-1436
                        (procedure->py-function
                         (lambda (args-187)
                           (letrec* ()
@@ -3682,40 +3718,40 @@
                              (py-call &py-builtin-ValueError
                                       (&& "cannot create 'range_iterator' instances")))))
                         (make-signature vararg: args)))
-                 (set! __iter__-1433
+                 (set! __iter__-1438
                        (procedure->py-function
                         (lambda (self-188) (letrec* () self-188))
                         (make-signature posonlyargs: (self))))
-                 (set! __next__-1435
+                 (set! __next__-1440
                        (procedure->py-function
                         (lambda (self-189)
                           (bind-exit
                            ($%return_75)
-                           (letrec* ((step-1442 #f)
-                                     (stop-1440 #f)
-                                     (start-1437 #f))
+                           (letrec* ((step-1447 #f)
+                                     (stop-1445 #f)
+                                     (start-1442 #f))
                              (begin
-                               (set! start-1437
+                               (set! start-1442
                                      (PyObjectRangeIterator-start self-189))
-                               (set! stop-1440
+                               (set! stop-1445
                                      (PyObjectRangeIterator-stop self-189))
-                               (set! step-1442
+                               (set! step-1447
                                      (PyObjectRangeIterator-step self-189))
-                               (if (py-test (py-lt step-1442
+                               (if (py-test (py-lt step-1447
                                                    (py-int-from-scheme 0)))
-                                   (if (py-test (py-gt start-1437 stop-1440))
+                                   (if (py-test (py-gt start-1442 stop-1445))
                                        (begin
                                          (PyObjectRangeIterator-start-set!
                                           self-189
-                                          (py-add start-1437 step-1442))
-                                         ($%return_75 start-1437))
+                                          (py-add start-1442 step-1447))
+                                         ($%return_75 start-1442))
                                        #f)
-                                   (if (py-test (py-lt start-1437 stop-1440))
+                                   (if (py-test (py-lt start-1442 stop-1445))
                                        (begin
                                          (PyObjectRangeIterator-start-set!
                                           self-189
-                                          (py-add start-1437 step-1442))
-                                         ($%return_75 start-1437))
+                                          (py-add start-1442 step-1447))
+                                         ($%return_75 start-1442))
                                        #f))
                                (py-throw &py-builtin-StopIteration)))))
                         (make-signature posonlyargs: (self)))))
@@ -3726,53 +3762,72 @@
                         (&& "__main__")
                         (list)
                         (& "__next__")
-                        __next__-1435
+                        __next__-1440
                         (& "__iter__")
-                        __iter__-1433
+                        __iter__-1438
                         (& "__new__")
-                        __new__-1431))
+                        __new__-1436))
                  $%cls_4))))
      (set! &py-builtin-range
            (let (($%cls_5 py-absent))
-             (letrec* ((__repr__-1456 #f)
-                       (__iter__-1454 #f)
-                       (__contains__-1452 #f)
-                       (__len__-1450 #f)
-                       (__new__-1447 #f))
+             (letrec* ((__repr__-1461 #f)
+                       (__iter__-1459 #f)
+                       (__contains__-1457 #f)
+                       (__len__-1455 #f)
+                       (__new__-1452 #f))
                (begin
-                 (set! __new__-1447
+                 (set! __new__-1452
                        (procedure->py-function
                         (lambda (cls-190 arg1-191 arg2-192 arg3-193)
                           (letrec* ()
-                            (if (py-test (py-isnot arg3-193 py-absent))
-                                (make-PyObjectRange
-                                 py-range-hclass-of-instances
-                                 '#()
-                                 py-builtin-range
-                                 arg1-191
-                                 arg2-192
-                                 arg3-193)
-                                (if (py-test (py-isnot arg2-192 py-absent))
+                            (if (py-test (py-is cls-190 &py-builtin-range))
+                                (if (py-test (py-isnot arg3-193 py-absent))
                                     (make-PyObjectRange
                                      py-range-hclass-of-instances
                                      '#()
                                      py-builtin-range
                                      arg1-191
                                      arg2-192
-                                     (py-int-from-scheme 1))
-                                    (make-PyObjectRange
-                                     py-range-hclass-of-instances
-                                     '#()
-                                     py-builtin-range
-                                     (py-int-from-scheme 0)
-                                     arg1-191
-                                     (py-int-from-scheme 1))))))
+                                     arg3-193)
+                                    (if (py-test (py-isnot arg2-192 py-absent))
+                                        (make-PyObjectRange
+                                         py-range-hclass-of-instances
+                                         '#()
+                                         py-builtin-range
+                                         arg1-191
+                                         arg2-192
+                                         (py-int-from-scheme 1))
+                                        (make-PyObjectRange
+                                         py-range-hclass-of-instances
+                                         '#()
+                                         py-builtin-range
+                                         (py-int-from-scheme 0)
+                                         arg1-191
+                                         (py-int-from-scheme 1))))
+                                (if (and (py-isinstance?
+                                          cls-190
+                                          (global-get
+                                           %global
+                                           (& "type")
+                                           (vector-ref %caches 550)))
+                                         (py-test (py-call (global-get
+                                                            %global
+                                                            (& "issubclass")
+                                                            (vector-ref
+                                                             %caches
+                                                             551))
+                                                           cls-190
+                                                           &py-builtin-range)))
+                                    (py-throw &py-builtin-NotImplementedError)
+                                    (py-throw
+                                     (py-call &py-builtin-TypeError
+                                              (&& "range.__new__ expected a subtype of 'range' as first argument")))))))
                         (make-signature
                          posonlyargs:
                          (cls arg1 arg2 arg3)
                          defaults:
                          (vector py-absent py-absent))))
-                 (set! __len__-1450
+                 (set! __len__-1455
                        (procedure->py-function
                         (lambda (self-194)
                           (letrec* ()
@@ -3781,36 +3836,36 @@
                                      (PyObjectRange-start self-194))
                              (PyObjectRange-step self-194))))
                         (make-signature posonlyargs: (self))))
-                 (set! __contains__-1452
+                 (set! __contains__-1457
                        (procedure->py-function
                         (lambda (self-195 item-196)
                           (bind-exit
                            ($%return_76)
-                           (letrec* ((step-1474 #f)
-                                     (stop-1472 #f)
-                                     (start-1469 #f))
+                           (letrec* ((step-1479 #f)
+                                     (stop-1477 #f)
+                                     (start-1474 #f))
                              (begin
-                               (set! start-1469 (PyObjectRange-start self-195))
-                               (set! stop-1472 (PyObjectRange-stop self-195))
-                               (set! step-1474 (PyObjectRange-step self-195))
-                               (if (py-test (py-lt step-1474
+                               (set! start-1474 (PyObjectRange-start self-195))
+                               (set! stop-1477 (PyObjectRange-stop self-195))
+                               (set! step-1479 (PyObjectRange-step self-195))
+                               (if (py-test (py-lt step-1479
                                                    (py-int-from-scheme 0)))
-                                   (if (or (py-test (py-ge stop-1472 item-196))
+                                   (if (or (py-test (py-ge stop-1477 item-196))
                                            (py-test (py-gt item-196
-                                                           start-1469)))
+                                                           start-1474)))
                                        ($%return_76 py-False)
                                        #f)
-                                   (if (or (py-test (py-gt start-1469
+                                   (if (or (py-test (py-gt start-1474
                                                            item-196))
                                            (py-test (py-ge item-196
-                                                           stop-1472)))
+                                                           stop-1477)))
                                        ($%return_76 py-False)
                                        #f))
-                               (py-eq (py-mod (py-sub item-196 start-1469)
-                                              step-1474)
+                               (py-eq (py-mod (py-sub item-196 start-1474)
+                                              step-1479)
                                       (py-int-from-scheme 0))))))
                         (make-signature posonlyargs: (self item))))
-                 (set! __iter__-1454
+                 (set! __iter__-1459
                        (procedure->py-function
                         (lambda (self-197)
                           (letrec* ()
@@ -3822,35 +3877,35 @@
                              (PyObjectRange-stop self-197)
                              (PyObjectRange-step self-197))))
                         (make-signature posonlyargs: (self))))
-                 (set! __repr__-1456
+                 (set! __repr__-1461
                        (procedure->py-function
                         (lambda (self-198)
-                          (letrec* ((step-1463 #f)
-                                    (stop-1461 #f)
-                                    (start-1458 #f))
+                          (letrec* ((step-1468 #f)
+                                    (stop-1466 #f)
+                                    (start-1463 #f))
                             (begin
-                              (set! start-1458 (PyObjectRange-start self-198))
-                              (set! stop-1461 (PyObjectRange-stop self-198))
-                              (set! step-1463 (PyObjectRange-step self-198))
-                              (if (py-test (py-eq step-1463
+                              (set! start-1463 (PyObjectRange-start self-198))
+                              (set! stop-1466 (PyObjectRange-stop self-198))
+                              (set! step-1468 (PyObjectRange-step self-198))
+                              (if (py-test (py-eq step-1468
                                                   (py-int-from-scheme 1)))
                                   (py-add (py-add (py-add (py-add (&& "range(")
 ;;<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-                          (py-call &py-builtin-str start-1458))
+                          (py-call &py-builtin-str start-1463))
                   (&& ", "))
 ;;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
                                                   (py-call &py-builtin-str
-                                                           stop-1461))
+                                                           stop-1466))
                                           (&& ")"))
                                   (py-add (py-add (py-add (py-add (py-add (py-add (&& "range(")
 ;;<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-                                          (py-call &py-builtin-str start-1458))
+                                          (py-call &py-builtin-str start-1463))
                                   (&& ", "))
-                          (py-call &py-builtin-str stop-1461))
+                          (py-call &py-builtin-str stop-1466))
                   (&& ", "))
 ;;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
                                                   (py-call &py-builtin-str
-                                                           step-1463))
+                                                           step-1468))
                                           (&& ")"))))))
                         (make-signature args: (self)))))
                (begin
@@ -3860,15 +3915,15 @@
                         (&& "__main__")
                         (list)
                         (& "__repr__")
-                        __repr__-1456
+                        __repr__-1461
                         (& "__iter__")
-                        __iter__-1454
+                        __iter__-1459
                         (& "__contains__")
-                        __contains__-1452
+                        __contains__-1457
                         (& "__len__")
-                        __len__-1450
+                        __len__-1455
                         (& "__new__")
-                        __new__-1447))
+                        __new__-1452))
                  $%cls_5))))
      (let (($fun-obj
             (procedure->py-function
@@ -3894,9 +3949,9 @@
        (set! init:&py-builtin-sorted $fun-obj))
      (set! &py-builtin-BaseException
            (let (($%cls_6 py-absent))
-             (letrec* ((__str__-1510 #f) (__init__-1508 #f))
+             (letrec* ((__str__-1521 #f) (__init__-1519 #f))
                (begin
-                 (set! __init__-1508
+                 (set! __init__-1519
                        (procedure->py-function
                         (lambda (self-206 args-207)
                           (letrec* ()
@@ -3913,31 +3968,31 @@
                                     "local variable 'args' referenced before assignment")))
                               py-None)))
                         (make-signature args: (self) vararg: args)))
-                 (set! __str__-1510
+                 (set! __str__-1521
                        (procedure->py-function
                         (lambda (self-208)
-                          (letrec* ((args_len-1515 #f) (args-1512 #f))
+                          (letrec* ((args_len-1526 #f) (args-1523 #f))
                             (begin
-                              (set! args-1512
+                              (set! args-1523
                                     (py-getattribute self-208 (& "args")))
-                              (set! args_len-1515
+                              (set! args_len-1526
                                     (py-call (global-get
                                               %global
                                               (& "len")
-                                              (vector-ref %caches 585))
+                                              (vector-ref %caches 599))
                                              (py-getattribute
                                               self-208
                                               (& "args"))))
-                              (if (py-test (py-eq args_len-1515
+                              (if (py-test (py-eq args_len-1526
                                                   (py-int-from-scheme 0)))
                                   (&& "")
-                                  (if (py-test (py-eq args_len-1515
+                                  (if (py-test (py-eq args_len-1526
                                                       (py-int-from-scheme 1)))
                                       (py-call &py-builtin-str
                                                (py-getitem
-                                                args-1512
+                                                args-1523
                                                 (py-int-from-scheme 0)))
-                                      (py-call &py-builtin-str args-1512))))))
+                                      (py-call &py-builtin-str args-1523))))))
                         (make-signature args: (self)))))
                (begin
                  (set! $%cls_6
@@ -3946,9 +4001,9 @@
                         (&& "__main__")
                         (list)
                         (& "__str__")
-                        __str__-1510
+                        __str__-1521
                         (& "__init__")
-                        __init__-1508))
+                        __init__-1519))
                  $%cls_6))))
      (set! &py-builtin-Exception
            (let (($%cls_7 py-absent))
@@ -4679,7 +4734,7 @@
    (define (init name package __path__) builtins-mod)
    (define (init-builtin-module name package __path__)
      (py-init-module)
-     (let ((caches (py-make-caches 721))
+     (let ((caches (py-make-caches 735))
            (module (py-make-module name package __path__)))
        (begin)
        (py-module module caches)
