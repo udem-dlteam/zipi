@@ -81,8 +81,12 @@ list:
           echo $$bench; \
 	done
 
+lib-performance:
+	git clone https://github.com/jd/performance lib-performance
+
 realclean: clean
 	rm micro_*.py
+	rm -rf lib-performance
 
 clean:
 	rm marked_*.py
