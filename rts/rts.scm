@@ -3232,8 +3232,8 @@
          (py-step (PyObjectSlice-step slice))
          (step
            (cond
-             ((eq? py-step py-None) 1)
-             ((py-eq py-step (py-int-from-scheme 1))
+             ((eq? py-step py-None) (py-int-from-scheme 1))
+             ((py-test-eq py-step (py-int-from-scheme 0))
               (py-throw (py-call py-builtin-ValueError (&& "slice step cannot be zero"))))
              ((py-subtype-of-int? py-step)
                 (py-subtype-of-int-to-scheme py-step))
