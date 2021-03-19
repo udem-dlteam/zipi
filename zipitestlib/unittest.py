@@ -1,17 +1,19 @@
+
 class TestCase():
     class _AssertRaise():
-        def __init__(self, exc):
+        def __init__(self, exc, test_case):
             self.exc = exc
+            self.test_case = test_case
 
         def __enter__(self):
             return self
 
-        def __exit__(c_self, exc_type, exc_value, tb):
+        def __exit__(self, exc_type, exc_value, tb):
             if exc_type is None:
-                exc_name = str(c_self.exc)
-                self._fail(exc_name + " not raised")
+                exc_name = str(self.exc)
+                self.test_case._fail(exc_name + " not raised")
             elif not isinstance(exc_value, self.exc):
-                self._fail(str(c_self.exc) + " does not match " + str(exc_value))
+                self.test_case._fail(str(self.exc) + " does not match " + str(exc_value))
 
     is_testcase = True
 
@@ -168,9 +170,9 @@ class TestCase():
     def assertRaises(self, expected_exception, *args, **kwargs):
         # Checks if no arguments are given. In this case, it is used as a with handler
         if not args and ("msg" in kwargs) == len(kwargs):
-            return self._AssertRaise(expected_exception)
+            return self._AssertRaise(expected_exception, self)
         else:
-            with self._AssertRaise(expected_exception):
+            with self._AssertRaise(expected_exception, self):
                 object_to_call = args[0]
                 args = args[1:]
                 object_to_call(*args)

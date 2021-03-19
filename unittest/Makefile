@@ -20,7 +20,7 @@ install: cpython
 	cp -n -r cpython/Lib/test ../zipitestlib/
 
 unittest: install
-	python run-test.py ../zipitestlib/test/test_*.py
+	python run-test.py ../zipitestlib/test/test_*.py -c
 
 unittest-fast: install
-	python run-test.py ../zipitestlib/test/{test_int.py,test_bool.py}
+	python run-test.py ../zipitestlib/test/{test_int.py,test_bool.py} -c
