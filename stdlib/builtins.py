@@ -478,6 +478,14 @@ class bool(int):
         else:
             raise NotImplementedError
 
+    def __repr__(self):
+        if self is True:
+            return "True"
+        elif self is False:
+            return "False"
+        else:
+            raise TypeError("descriptor '__repr__' requires a 'bool' object but received a '" + type(self).__name__ + "'")
+
     def __and__(self, other):
         if type(self) is bool:
             if type(other) is bool:

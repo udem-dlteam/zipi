@@ -614,6 +614,14 @@ class bool(int):
                 return True if val else False
         else:
             raise NotImplementedError
+
+    def __repr__(self):
+        if self is True:
+            return "True"
+        elif self is False:
+            return "False"
+        else:
+            raise TypeError("descriptor '__repr__' requires a 'bool' object but received a '" + type(self).__name__ + "'")
 {methods}"""
 
 bool_method_info = {

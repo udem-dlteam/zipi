@@ -627,6 +627,7 @@
     PyObject-%elements
     PyObjectType-class-index
     py-int-class
+    py-bool-class
     py-float-class
     int-cache
     str-representatives

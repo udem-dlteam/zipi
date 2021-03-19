@@ -2111,6 +2111,28 @@
     str-hash
     (make-signature posonlyargs: (self))))
 
+(define (str-str self)
+  (if (py-subtype-of-str? self)
+      self
+      (py-throw-required-type "__str__" "str" self)))
+
+(define str.__str__
+  (procedure->py-function
+    str-str
+    (make-signature posonlyargs: (self))))
+
+(define (str-repr self)
+  (if (py-subtype-of-str? self)
+      (let* ((string (py-subtype-of-str-to-scheme self))
+             (string-repr (py-str-repr-scheme string)))
+        (py-str-from-scheme string-repr))
+      (py-throw-required-type "__repr__" "str" self)))
+
+(define str.__repr__
+  (procedure->py-function
+    str-repr
+    (make-signature posonlyargs: (self))))
+
 (define (add-obj-hclass-to-hashtable! table obj)
   (let* ((names (HClass-names (py-obj-hclass obj)))
         (names-len (vector-length names))
@@ -2511,7 +2533,9 @@
     (py-own-attr-set! str-class (& "__name__") (&& "str"))
     (py-own-attr-set! str-class (& "__module__") (&& "builtins"))
     (py-own-attr-set! str-class (& "__new__") str.__new__)
-    (py-own-attr-set! str-class (& "__hash__") str.__hash__)))
+    (py-own-attr-set! str-class (& "__hash__") str.__hash__)
+    (py-own-attr-set! str-class (& "__repr__") str.__repr__)
+    (py-own-attr-set! str-class (& "__str__") str.__str__)))
 
 (bootstrap-type-hierarchy-phase1)
 
@@ -5041,9 +5065,9 @@
 
     ;; bool
     (set! py-bool-class bool-class)
-    (PyObjectType-mro-set! int-class (vector bool-class int-class py-object-class))
-    (py-own-attr-set! int-class (& "__name__") (&& "bool"))
-    (py-own-attr-set! int-class (& "__module__") (&& "builtins"))
+    (PyObjectType-mro-set! bool-class (vector bool-class int-class py-object-class))
+    (py-own-attr-set! bool-class (& "__name__") (&& "bool"))
+    (py-own-attr-set! bool-class (& "__module__") (&& "builtins"))
 
     ;;float
     (set! py-float-class float-class)
