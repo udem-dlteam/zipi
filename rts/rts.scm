@@ -1549,6 +1549,16 @@
     int-repr
     (make-signature posonlyargs: (self))))
 
+(define (int-hash self)
+  (if (py-subtype-of-int? self)
+      (py-int-from-scheme (truncate-hash (py-subtype-of-int-to-scheme self)))
+      (py-throw-required-type "__hash__" "int" self)))
+
+(define int.__hash__
+  (procedure->py-function
+    int-hash
+    (make-signature posonlyargs: (self))))
+
 ;;;----------------------------------------------------------------------------
 
 ;; ===================
@@ -5062,6 +5072,7 @@
     (py-own-attr-set! int-class (& "__name__") (&& "int"))
     (py-own-attr-set! int-class (& "__module__") (&& "builtins"))
     (py-own-attr-set! int-class (& "__repr__") int.__repr__)
+    (py-own-attr-set! int-class (& "__hash__") int.__hash__)
 
     ;; bool
     (set! py-bool-class bool-class)

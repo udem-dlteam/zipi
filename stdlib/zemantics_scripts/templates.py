@@ -531,6 +531,15 @@ class int:
             return py_int_from_host(py_int_to_host(self))
         else:
             raise TypeError("descriptor '__index__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+
+    def __abs__(self):
+        if isinstance(self, int):
+            if self < 0:
+                return py_int_from_host(-py_int_to_host(self))
+            else:
+                return py_int_from_host(py_int_to_host(self))
+        else:
+            raise TypeError("descriptor '__abs__' requires a 'int' object but received a '" + type(self).__name__ + "'")
 {methods}"""
 
 int_method_info = {
@@ -607,13 +616,13 @@ class_bool_template = \
     """@builtin
 class bool(int):
     def __new__(cls, val=absent):
-        if cls is int:
+        if cls is bool:
             if val is absent:
                 return False
             else:
                 return True if val else False
         else:
-            raise NotImplementedError
+            raise TypeError
 
     def __repr__(self):
         if self is True:

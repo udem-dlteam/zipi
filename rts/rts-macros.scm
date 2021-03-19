@@ -172,8 +172,8 @@
                 X ;; otherwise
                 )
       (pyneg    (py-sint-from-scheme (|##fx-| X)) ;; bool or non-ov. sint
-                (or (|##fx-?| X) (pyneg-UintX X)) ;; sint
-                (pyneg-UintX X) ;; otherwise
+                (or (|##fx-?| X) (|##negate| X)) ;; sint
+                (|##negate| X) ;; otherwise
                 )
       (pyinvert (py-sint-from-scheme (|##fxnot| X)) ;; bool or non-ov. sint
                 (py-sint-from-scheme (|##fxnot| X)) ;; sint
@@ -220,7 +220,7 @@
             )
       (py// (py-sint-from-scheme (|##fxquotient| X Y)) ;; bool/bool or non-ov. sint/sint
             (if (|##eqv?| Y -1) ;; sint/sint
-                (or (|##fx-?| X) (pyneg-UintX X))
+                (or (|##fx-?| X) (|##negate| X))
                 (|##fxquotient| X Y))
             (py//-UintX-UintY-fallback X Y) ;; otherwise
             )

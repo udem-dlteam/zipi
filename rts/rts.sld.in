@@ -378,6 +378,8 @@
     py-subtype-of-str-to-scheme-fallback
     py-str-representative
     py-str-representative-fallback
+    py-str-len-to-scheme
+    PyObjectStr-len
     py-concat-strX-strY
     py-mul-UstrX-UintY
 
