@@ -81,8 +81,12 @@ list:
           echo $$bench; \
 	done
 
+lib-pyperformance:
+	git clone https://github.com/python/pyperformance lib-pyperformance
+
 realclean: clean
-	rm micro_*.py
+	rm -rf lib-pyperformance
+	-rm micro_*.py
 
 clean:
-	rm marked_*.py
+	-rm marked_*.py
