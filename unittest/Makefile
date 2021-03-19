@@ -13,6 +13,7 @@ cpython:
 
 clean:
 	rm -rf cpython
+	rm -rf ../zipitestlib/test
 
 install: cpython
 	cp -r test ../zipitestlib

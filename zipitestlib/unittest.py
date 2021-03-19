@@ -6,12 +6,12 @@ class TestCase():
         def __enter__(self):
             return self
 
-        def __exit__(self, exc_type, exc_value, tb):
+        def __exit__(c_self, exc_type, exc_value, tb):
             if exc_type is None:
-                exc_name = str(self.exc)
+                exc_name = str(c_self.exc)
                 self._fail(exc_name + " not raised")
             elif not isinstance(exc_value, self.exc):
-                self._fail(str(self.exc) + " does not match " + str(exc_value))
+                self._fail(str(c_self.exc) + " does not match " + str(exc_value))
 
     is_testcase = True
 
@@ -171,11 +171,8 @@ class TestCase():
             return self._AssertRaise(expected_exception)
         else:
             with self._AssertRaise(expected_exception):
-                print(args)
                 object_to_call = args[0]
                 args = args[1:]
-                print(object_to_call)
-                print(args)
                 object_to_call(*args)
 
     #real signature with **kwargs
