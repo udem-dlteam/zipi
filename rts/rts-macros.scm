@@ -25,7 +25,7 @@
     `(if (eq? ,global-id ,init-value)
         (,procedure ,@args)
         (py-call
-          (if (eq? ,global-id py-absent) (global-get ,global ,name ,cache) ,global-id)
+          (or ,global-id (global-get ,global ,name ,cache))
           ,@args))
     (error "py-global-call" "global-id must be a symbol" global-id)))
 

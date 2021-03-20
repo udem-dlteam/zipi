@@ -39,7 +39,7 @@
       (let ((proc-name (get-def-procedure-name d))
             (var (PycRef-decl (PycAssig-lhs d))))
         (if proc-name
-          `(define ,(scheme-def-optim-globals-name-init var conf) #f)
+          `(define ,(scheme-def-optim-globals-name-init var conf) (quote %uninit))
           #f)))
     defs))
 
