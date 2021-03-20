@@ -153,65 +153,74 @@
 
 (define (make-alloc this)
   (define (get-kwarg-value name pairs)
-    (cdr
-      (or
-        (assq name pairs)
-        (error "alloc()" "missing keyword" name))))
+    (if (pair? name)
+      ;; keyword has a default value
+      (let ((val (assq name pairs)))
+        (if val
+          (cdr val)
+          (cadr name)))
+      (cdr
+        (or
+          (assq name pairs)
+          (error "alloc()" "missing keyword" name)))))
 
-  (define (make-alloc-range this args kwargs-pairs)
-    (if (not (null? args))
-      (error "alloc(range, ...)" "takes only one positional argument" "")
-      (let ((loc (PycNode-loc this))
-            (start (get-kwarg-value 'start kwargs-pairs))
-            (stop (get-kwarg-value 'stop kwargs-pairs))
-            (step (get-kwarg-value 'step kwargs-pairs)))
-        (new-PycCall
-          loc
-          (new-PycPragma loc 'make-PyObjectRange)
-          (list
-            (new-PycPragma loc 'py-range-hclass-of-instances)
-            (new-PycPragma loc '(quote #()))
-            (new-PycPragma loc 'py-builtin-range)
-            start
-            stop
-            step)))))
+  (define (do-alloc constructor attributes-names hclass-of-instances)
+    (lambda (this args kwargs-pairs)
+      (case (length args)
+        ((0)
+          (let* ((loc (PycNode-loc this))
+                (attributes
+                  (map
+                    (lambda (a)
+                      (let ((v (get-kwarg-value a kwargs-pairs)))
+                        (if (isa? v PycNode)
+                          v
+                          (new-PycPragma loc v))))
+                      attributes-names)))
+            (new-PycCall
+              loc
+              (new-PycPragma loc constructor)
+              (append
+                (list
+                  (new-PycPragma loc hclass-of-instances)
+                  (new-PycPragma loc '(quote #())))
+                attributes))))
+        (else
+          (error "alloc()" "takes one positional arguments" "")))))
 
-  (define (make-alloc-range-iterator this args kwargs-pairs)
-    (if (not (null? args))
-      (error "alloc(range_iterator, ...)" "takes only one positional argument" "")
-      (let ((loc (PycNode-loc this))
-            (start (get-kwarg-value 'start kwargs-pairs))
-            (stop (get-kwarg-value 'stop kwargs-pairs))
-            (step (get-kwarg-value 'step kwargs-pairs)))
-        (new-PycCall
-          loc
-          (new-PycPragma loc 'make-PyObjectRangeIterator)
-          (list
-            (new-PycPragma loc 'py-range_iterator-hclass-of-instances)
-            (new-PycPragma loc '(quote #()))
-            (new-PycPragma loc 'py-builtin-range_iterator)
-            start
-            stop
-            step)))))
+  (define alloc-range
+    (do-alloc 'make-PyObjectRange '((cls py-builtin-range) start stop step) 'py-range-hclass-of-instances))
+
+  (define alloc-range-iterator
+    (do-alloc 'make-PyObjectRangeIterator '((cls py-builtin-range_iterator) start stop step) 'py-range_iterator-hclass-of-instances))
+
+  (define alloc-int
+    (do-alloc 'make-PyObjectInt '((cls py-builtin-int) value) 'py-int-hclass-of-instances))
+
+  (define alloc-float
+    (do-alloc 'make-PyObjectFloat '((cls py-builtin-float) value) 'py-float-hclass-of-instances))
 
   (let* ((loc (PycNode-loc this))
         (args (PycCall-args this))
         (kw-names (PycCall-keywords-names this))
         (kw-values (PycCall-keywords-values this)))
     (if (not (null? args))
-      (let ((alloc-kind
+      (let* ((alloc-kind
               (cond
                 ((isa? (car args) PycRef)
                   (PycVar-id (PycRef-decl (car args))))
                 ((isa? (car args) PycRefUnresolved)
                   (PycRefUnresolved-id (car args)))
                 (else
-                  (error "alloc()" "first argument not recognized statically as builtin type" "")))))
-        (case alloc-kind
-          ((range) (make-alloc-range this (cdr args) (map cons kw-names kw-values)))
-          ((range_iterator) (make-alloc-range-iterator this (cdr args) (map cons kw-names kw-values)))
-          (else
-            (error "alloc()" "first argument cannot be allocated with alloc():" alloc-kind))))
+                  (error "alloc()" "first argument not recognized statically as builtin type" ""))))
+            (maker
+              (case alloc-kind
+                ((range) alloc-range)
+                ((range_iterator) alloc-range-iterator)
+                ((int) alloc-int)
+                ((float) alloc-float)
+                (else (error "alloc()" "first argument cannot be allocated with alloc():" alloc-kind)))))
+        (maker this (cdr args) (map cons kw-names kw-values)))
       (error "alloc()" "requires at least one argument object type to alloc" ""))))
 
 (define (make-isinstance this)
