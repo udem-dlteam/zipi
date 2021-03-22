@@ -77,6 +77,19 @@
     py-sub
     py-xor
 
+    pyneg-UintX-fallback
+    pyinvert-UintX-fallback
+    pyadd-UintX-UintY-fallback
+    pysub-UintX-UintY-fallback
+    pymul-UintX-UintY-fallback
+    py&-UintX-UintY-fallback
+    py+b-UintX-UintY-fallback
+    py^-UintX-UintY-fallback
+    py>>-UintX-UintY-fallback
+    py<<-UintX-UintY-fallback
+    py//-UintX-UintY-fallback
+    py%-UintX-UintY-fallback
+
     py-ge
     py-gt
     py-le
@@ -120,6 +133,14 @@
     py-hash
 
     py-len
+    py-maybe-len
+    py-integer
+    py-maybe-integer
+    py-index
+    py-maybe-index
+    py-trunc
+    py-maybe-trunc
+
     py-getitem
     py-setitem
     py-delitem
@@ -399,6 +420,8 @@
     py-float-hclass-of-instances
     py-str-hclass-of-instances
     py-tuple-hclass-of-instances
+
+    make-PyObjectInt
 
     py-range-hclass-of-instances
     make-PyObjectRange
@@ -751,6 +774,11 @@ py-eq-fallback:default
 py-ne-fallback:normal
 py-ne-fallback:reflected
 py-ne-fallback:default
+py-maybe-trunc-fallback
+py-trunc-fallback
+py-maybe-integer-fallback
+py-integer-fallback
+py-maybe-index-fallback
 py-index-fallback
 py-maybe-len-fallback
 py-len-fallback

@@ -155,7 +155,7 @@
   (define (get-kwarg-value name pairs)
     (if (pair? name)
       ;; keyword has a default value
-      (let ((val (assq name pairs)))
+      (let ((val (assq (car name) pairs)))
         (if val
           (cdr val)
           (cadr name)))
@@ -295,7 +295,14 @@
    (cons 'py_bool_to_host_bool (make-pragma-call-maker 'py-bool-to-scheme-bool))
    (cons 'py_str_to_host (make-pragma-call-maker 'py-str-to-scheme))
    (cons 'py_str_from_host (make-pragma-call-maker 'py-str-from-scheme))
-   (cons 'py_str_len_to_host (make-pragma-call-maker 'py-str-len-to-scheme))))
+   (cons 'py_str_len_to_host (make-pragma-call-maker 'py-str-len-to-scheme))
+   ;; semantics
+   (cons 'semantics_integer (make-pragma-call-maker 'py-integer))
+   (cons 'semantics_maybe_integer (make-pragma-call-maker 'py-maybe-integer))
+   (cons 'semantics_index (make-pragma-call-maker 'py-index))
+   (cons 'semantics_maybe_index (make-pragma-call-maker 'py-maybe-index))
+   (cons 'semantics_trunc (make-pragma-call-maker 'py-trunc))
+   (cons 'semantics_maybe_trunc (make-pragma-call-maker 'py-maybe-trunc))))
 
 (define static-intrinsics
  (list
@@ -312,7 +319,11 @@
    ;; builtin callables
    (super . py-builtin-super)
    (type . py-builtin-type)
+   (int . py-builtin-int)
    (bool . py-builtin-bool)
+   (float . py-builtin-float)
+   (str . py-builtin-str)
+   (range . py-builtin-range)
    ;; builtin constants
    (NotImplemented . py-NotImplemented)
    ;; exceptions

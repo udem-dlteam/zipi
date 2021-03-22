@@ -1650,14 +1650,29 @@
 (define-macro (py-truth obj)
   `(py-specialized-unop-dispatch truth ,obj))
 
+(define-macro (py-trunc obj)
+  `(py-trunc-fallback ,obj))
+
+(define-macro (py-maybe-trunc obj)
+  `(py-maybe-trunc-fallback ,obj))
+
+(define-macro (py-integer obj)
+  `(py-integer-fallback ,obj))
+
+(define-macro (py-maybe-integer obj)
+  `(py-maybe-integer-fallback ,obj))
+
+(define-macro (py-index obj)
+  `(py-index-fallback ,obj))
+
+(define-macro (py-maybe-index obj)
+  `(py-maybe-index-fallback ,obj))
+
 (define-macro (py-len obj)
   `(py-len-fallback ,obj))
 
 (define-macro (py-maybe-len obj)
   `(py-maybe-len-fallback ,obj))
-
-(define-macro (py-index obj)
-  `(py-index-fallback ,obj))
 
 (define-macro (py-getattribute obj attr)
   `(py-getattribute-fallback ,obj ,attr))

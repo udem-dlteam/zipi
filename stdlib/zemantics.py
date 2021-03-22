@@ -1219,20 +1219,82 @@ def ne(x, y):
     # ne:end-body
 
 @define_semantics
-def index(obj):
-    # index:start-body
+def maybe_trunc(obj):
+    # maybe_trunc:start-body
+    __trunc__ = class_getattr(obj, "__trunc__")
+    if __trunc__ is absent:
+        return absent
+    else:
+        result = __trunc__(obj)
+
+        if isinstance(result, int):
+            return result
+        else:
+            raise TypeError("__trunc__ returned non-int type: '" + type(obj).__name__ + "'")
+    # maybe_trunc:end-body
+
+@define_semantics
+def trunc(obj):
+    # trunc:start-body
+    result = maybe_trunc(obj)
+    if result is absent:
+        raise TypeError("type '" + type(obj).__name__ + "' doesn't define __trunc__ method")
+    else:
+        return result
+    # trunc:end-body
+
+@define_semantics
+def maybe_integer(obj):
+    # maybe_integer:start-body
+    __int__ = class_getattr(obj, "__int__")
+    if __int__ is absent:
+        return absent
+    else:
+        result = __int__(obj)
+
+        if isinstance(result, int):
+            return result
+        else:
+            raise TypeError("__int__ returned non-int type: '" + type(obj).__name__ + "'")
+    # maybe_integer:end-body
+
+@define_semantics
+def integer(obj):
+    # integer:start-body
+    result = maybe_integer(obj)
+    if result is absent:
+        raise TypeError("'" + type(obj).__name__ + "' object cannot be interpreted as an integer")
+    else:
+        return result
+    # integer:end-body
+
+@define_semantics
+def maybe_index(obj):
+    # maybe_index:start-body
     __index__ = class_getattr(obj, "__index__")
     if __index__ is absent:
-        raise TypeError("'" + type(obj).__name__ + "' object cannot be interpreted as an integer")
+        return absent
     else:
         result = __index__(obj)
 
-        if isinstance(result, sint):
+        if result is absent:
+            return absent
+        elif isinstance(result, sint):
             return result
         elif isinstance(result, bint):
             raise OverflowError("cannot fit 'int' into an index-sized integer")
         else:
             raise TypeError("__index__ returned non-int type: '" + type(obj).__name__ + "'")
+    # maybe_index:end-body
+
+@define_semantics
+def index(obj):
+    # index:start-body
+    result = maybe_index(obj)
+    if result is absent:
+        raise TypeError("'" + type(obj).__name__ + "' object cannot be interpreted as an integer")
+    else:
+        return result
     # index:end-body
 
 @define_semantics

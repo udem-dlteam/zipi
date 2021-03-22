@@ -1,4 +1,22 @@
-from __compiler_intrinsics__ import absent, builtin, private, alloc, py_int_from_host, py_int_to_host, py_float_from_host, py_float_to_host, py_bool_from_host_bool, py_bool_to_host_bool, py_str_to_host, py_str_from_host, py_str_len_to_host
+from __compiler_intrinsics__ import absent, builtin, private, alloc, py_int_from_host, py_int_to_host, py_float_from_host, py_float_to_host, py_bool_from_host_bool, py_bool_to_host_bool, py_str_to_host, py_str_from_host, py_str_len_to_host, semantics_maybe_integer, semantics_maybe_index, semantics_maybe_trunc
+
+
+@builtin
+@private
+def convert_to_int(obj):
+    int_conversion = semantics_maybe_integer(obj)
+    if int_conversion is absent:
+        index_conversion = semantics_maybe_index(obj)
+        if index_conversion is absent:
+            trunc_conversion = semantics_maybe_trunc(obj)
+            if trunc_conversion is absent:
+                raise TypeError("int() argument must be a string, a bytes-like object or a number, not '" + type(obj).__name__ + "'")
+            else:
+                return trunc_conversion
+        else:
+            return index_conversion
+    else:
+        return int_conversion
 
 @builtin
 class int:
@@ -6,12 +24,13 @@ class int:
         if cls is int:
             if val is absent:
                 return 0
-            if isinstance(val, int):
-                return py_int_from_host(py_int_to_host(val))
             else:
-                raise NotImplementedError
+                return convert_to_int(val)
         elif isinstance(cls, type) and issubclass(cls, int):
-            raise NotImplementedError
+            if val is absent:
+                return alloc(int, cls=cls, value=py_int_to_host(0))
+            else:
+                return alloc(int, cls=cls, value=py_int_to_host(convert_to_int(val)))
         else:
             raise TypeError("int.__new__ expected a subtype of 'int' as first argument")
 

@@ -8,20 +8,82 @@ semantics_template = \
 {arithmetic}
 
 @define_semantics
-def index(obj):
-    # index:start-body
+def maybe_trunc(obj):
+    # maybe_trunc:start-body
+    __trunc__ = class_getattr(obj, "__trunc__")
+    if __trunc__ is absent:
+        return absent
+    else:
+        result = __trunc__(obj)
+
+        if isinstance(result, int):
+            return result
+        else:
+            raise TypeError("__trunc__ returned non-int type: '" + type(obj).__name__ + "'")
+    # maybe_trunc:end-body
+
+@define_semantics
+def trunc(obj):
+    # trunc:start-body
+    result = maybe_trunc(obj)
+    if result is absent:
+        raise TypeError("type '" + type(obj).__name__ + "' doesn't define __trunc__ method")
+    else:
+        return result
+    # trunc:end-body
+
+@define_semantics
+def maybe_integer(obj):
+    # maybe_integer:start-body
+    __int__ = class_getattr(obj, "__int__")
+    if __int__ is absent:
+        return absent
+    else:
+        result = __int__(obj)
+
+        if isinstance(result, int):
+            return result
+        else:
+            raise TypeError("__int__ returned non-int type: '" + type(obj).__name__ + "'")
+    # maybe_integer:end-body
+
+@define_semantics
+def integer(obj):
+    # integer:start-body
+    result = maybe_integer(obj)
+    if result is absent:
+        raise TypeError("'" + type(obj).__name__ + "' object cannot be interpreted as an integer")
+    else:
+        return result
+    # integer:end-body
+
+@define_semantics
+def maybe_index(obj):
+    # maybe_index:start-body
     __index__ = class_getattr(obj, "__index__")
     if __index__ is absent:
-        raise TypeError("'" + type(obj).__name__ + "' object cannot be interpreted as an integer")
+        return absent
     else:
         result = __index__(obj)
 
-        if isinstance(result, sint):
+        if result is absent:
+            return absent
+        elif isinstance(result, sint):
             return result
         elif isinstance(result, bint):
             raise OverflowError("cannot fit 'int' into an index-sized integer")
         else:
             raise TypeError("__index__ returned non-int type: '" + type(obj).__name__ + "'")
+    # maybe_index:end-body
+
+@define_semantics
+def index(obj):
+    # index:start-body
+    result = maybe_index(obj)
+    if result is absent:
+        raise TypeError("'" + type(obj).__name__ + "' object cannot be interpreted as an integer")
+    else:
+        return result
     # index:end-body
 
 @define_semantics
@@ -507,18 +569,37 @@ int_unary_method_template = \
 """
 
 class_int_template = \
-    """@builtin
+    """
+@builtin
+@private
+def convert_to_int(obj):
+    int_conversion = semantics_maybe_integer(obj)
+    if int_conversion is absent:
+        index_conversion = semantics_maybe_index(obj)
+        if index_conversion is absent:
+            trunc_conversion = semantics_maybe_trunc(obj)
+            if trunc_conversion is absent:
+                raise TypeError("int() argument must be a string, a bytes-like object or a number, not '" + type(obj).__name__ + "'")
+            else:
+                return trunc_conversion
+        else:
+            return index_conversion
+    else:
+        return int_conversion
+
+@builtin
 class int:
     def __new__(cls, val=absent):
         if cls is int:
             if val is absent:
                 return 0
-            if isinstance(val, int):
-                return py_int_from_host(py_int_to_host(val))
             else:
-                raise NotImplementedError
+                return convert_to_int(val)
         elif isinstance(cls, type) and issubclass(cls, int):
-            raise NotImplementedError
+            if val is absent:
+                return alloc(int, cls=cls, value=py_int_to_host(0))
+            else:
+                return alloc(int, cls=cls, value=py_int_to_host(convert_to_int(val)))
         else:
             raise TypeError("int.__new__ expected a subtype of 'int' as first argument")
 
@@ -901,7 +982,7 @@ class str:
 
 
 builtins_template = """\
-from __compiler_intrinsics__ import absent, builtin, private, alloc, py_int_from_host, py_int_to_host, py_float_from_host, py_float_to_host, py_bool_from_host_bool, py_bool_to_host_bool, py_str_to_host, py_str_from_host, py_str_len_to_host
+from __compiler_intrinsics__ import absent, builtin, private, alloc, py_int_from_host, py_int_to_host, py_float_from_host, py_float_to_host, py_bool_from_host_bool, py_bool_to_host_bool, py_str_to_host, py_str_from_host, py_str_len_to_host, semantics_maybe_integer, semantics_maybe_index, semantics_maybe_trunc
 
 {definitions}
 
